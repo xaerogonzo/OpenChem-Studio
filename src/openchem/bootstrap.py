@@ -23,13 +23,14 @@ def build_service_container() -> ServiceContainer:
     """
     event_bus = EventBus()
     engine = ChemistryEngine()
-    # QuantumChemistryService needs Settings (for orca/executable_path) --
-    # constructed here rather than threading a Settings parameter through
-    # this function's signature (every existing caller, including many
-    # tests, calls build_service_container() with no arguments). Settings
-    # is a lightweight wrapper over the same global QSettings store
-    # regardless of how many Python instances wrap it, so this is safe:
-    # main.py's own separately-constructed Settings(services.event_bus)
+    # DockingService (for docking/vina_executable_path) and
+    # QuantumChemistryService (for orca/executable_path) both need Settings
+    # -- constructed here rather than threading a Settings parameter
+    # through this function's signature (every existing caller, including
+    # many tests, calls build_service_container() with no arguments).
+    # Settings is a lightweight wrapper over the same global QSettings
+    # store regardless of how many Python instances wrap it, so this is
+    # safe: main.py's own separately-constructed Settings(services.event_bus)
     # reads/writes the identical underlying store.
     settings = Settings(event_bus)
     return ServiceContainer(
@@ -41,6 +42,6 @@ def build_service_container() -> ServiceContainer:
         project_service=ProjectService(event_bus),
         conformer_service=ConformerService(event_bus, engine),
         measurement_service=MeasurementService(engine),
-        docking_service=DockingService(event_bus),
+        docking_service=DockingService(event_bus, settings),
         quantum_chemistry_service=QuantumChemistryService(event_bus, settings),
     )

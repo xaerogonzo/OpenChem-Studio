@@ -85,7 +85,7 @@ class MainWindow(QMainWindow):
         self._property_panel = PropertyPanel(services.event_bus, self)
         self._console_panel = ConsolePanel(self)
         self._docking_panel = DockingPanel(
-            services.docking_service, services.chemistry_engine, services.event_bus, self
+            services.docking_service, services.chemistry_engine, self._settings, services.event_bus, self
         )
         self._quantum_chemistry_panel = QuantumChemistryPanel(
             services.quantum_chemistry_service, services.chemistry_engine, self._settings, services.event_bus, self

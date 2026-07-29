@@ -5,6 +5,7 @@ import logging
 from PySide6.QtCore import QRunnable, QThreadPool
 from rdkit import Chem
 
+from openchem.app.settings import Settings
 from openchem.chem.docking_providers import VinaDockingProvider
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.docking import DockingBox, DockingResultModel
@@ -128,9 +129,17 @@ class DockingService:
     today — same shape as `ConformerService`.
     """
 
-    def __init__(self, event_bus: EventBus, providers: dict[str, DockingProvider] | None = None) -> None:
+    def __init__(
+        self,
+        event_bus: EventBus,
+        settings: Settings,
+        providers: dict[str, DockingProvider] | None = None,
+    ) -> None:
         self._event_bus = event_bus
-        default_provider = VinaDockingProvider()
+        self._settings = settings
+        default_provider = VinaDockingProvider(
+            executable_path_resolver=lambda: settings.get("docking/vina_executable_path", "")
+        )
         self._providers: dict[str, DockingProvider] = (
             providers if providers is not None else {default_provider.provider_id: default_provider}
         )

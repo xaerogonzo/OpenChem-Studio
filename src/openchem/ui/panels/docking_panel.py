@@ -2,12 +2,16 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import (
     QComboBox,
+    QDialog,
+    QDialogButtonBox,
     QDoubleSpinBox,
+    QFileDialog,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QLineEdit,
     QPushButton,
     QSpinBox,
     QTableWidget,
@@ -16,6 +20,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.app.settings import Settings
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.docking import DockingBox
 from openchem.domain.project import ProjectModel
@@ -33,6 +38,49 @@ _LIMITATION_NOTE = (
 )
 
 
+class _VinaPathDialog(QDialog):
+    """Same shape as `quantum_chemistry_panel._OrcaPathDialog` — kept as a
+    separate small class rather than a shared helper until a third
+    executable-path dialog actually needs this shape (see how `run_async`
+    was only extracted once three plugins needed the identical pattern)."""
+
+    def __init__(self, settings: Settings, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Configure Vina")
+        self._settings = settings
+
+        self._path_edit = QLineEdit(self)
+        self._path_edit.setText(settings.get("docking/vina_executable_path", ""))
+        browse_button = QPushButton("Browse...", self)
+        browse_button.clicked.connect(self._on_browse_clicked)
+
+        path_row = QHBoxLayout()
+        path_row.addWidget(self._path_edit)
+        path_row.addWidget(browse_button)
+
+        form = QFormLayout()
+        form.addRow("Vina executable:", path_row)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+
+        layout = QVBoxLayout(self)
+        layout.addLayout(form)
+        layout.addWidget(buttons)
+
+    def _on_browse_clicked(self) -> None:
+        path_str, _ = QFileDialog.getOpenFileName(self, "Select Vina executable")
+        if path_str:
+            self._path_edit.setText(path_str)
+
+    def accept(self) -> None:
+        self._settings.set("docking/vina_executable_path", self._path_edit.text())
+        super().accept()
+
+
 class DockingPanel(QWidget):
     """Pick a receptor (macromolecule) + ligand (molecule) from the current
     project, define a search box, and run AutoDock Vina via whichever
@@ -44,12 +92,14 @@ class DockingPanel(QWidget):
         self,
         docking_service: DockingService,
         chemistry_engine: ChemistryEngine,
+        settings: Settings,
         event_bus: EventBus,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._docking_service = docking_service
         self._chemistry_engine = chemistry_engine
+        self._settings = settings
         self._event_bus = event_bus
         self._project: ProjectModel | None = None
         self._pending_ligand_uuid: str | None = None
@@ -68,6 +118,9 @@ class DockingPanel(QWidget):
         self._num_poses_spin = QSpinBox(self)
         self._num_poses_spin.setRange(1, 50)
         self._num_poses_spin.setValue(9)
+
+        self._configure_button = QPushButton("Configure Vina...", self)
+        self._configure_button.clicked.connect(self._on_configure_clicked)
 
         self._dock_button = QPushButton("Dock", self)
         self._dock_button.clicked.connect(self._on_dock_clicked)
@@ -101,6 +154,7 @@ class DockingPanel(QWidget):
         run_row = QHBoxLayout()
         run_row.addWidget(QLabel("Poses:"))
         run_row.addWidget(self._num_poses_spin)
+        run_row.addWidget(self._configure_button)
         run_row.addWidget(self._dock_button)
 
         layout = QVBoxLayout(self)
@@ -133,6 +187,10 @@ class DockingPanel(QWidget):
             self._receptor_combo.addItem(macromolecule.display_name, macromolecule.uuid)
         for molecule in self._project.molecules:
             self._ligand_combo.addItem(molecule.display_name, molecule.uuid)
+
+    def _on_configure_clicked(self) -> None:
+        dialog = _VinaPathDialog(self._settings, self)
+        dialog.exec()
 
     def _on_dock_clicked(self) -> None:
         if self._project is None:

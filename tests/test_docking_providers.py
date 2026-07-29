@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from rdkit import Chem
@@ -124,3 +125,46 @@ def test_engine_id_and_version_reflect_selected_engine():
     provider_without_engine = VinaDockingProvider(engine=None)
     assert provider_without_engine.engine_id == "none"
     assert provider_without_engine.engine_version() == "unknown"
+
+
+def test_executable_path_resolver_is_consulted_not_settings_directly():
+    """VinaDockingProvider must stay decoupled from openchem.app.Settings
+    (chem/ is a lower layer than app/) -- it only ever calls a generic
+    Callable[[], str] resolver, which DockingService supplies as a closure
+    over the real Settings object."""
+    calls = []
+
+    def resolver() -> str:
+        calls.append(1)
+        return ""
+
+    provider = VinaDockingProvider(executable_path_resolver=resolver)
+    # No real vina/executable available in this environment, so this
+    # resolves to "none" -- the point is just that the resolver got called.
+    assert provider.engine_id == "none"
+    assert calls == [1]
+
+
+def test_last_resolved_engine_is_cached_after_dock_not_recomputed():
+    """engine_id/engine_version() must describe exactly what the most
+    recent dock() call actually used, read from a cache set by dock() —
+    not re-resolved independently on every access. If they did re-resolve
+    each time, a resolver whose return value changes between calls (e.g.
+    settings changing mid-job) could make them disagree with what actually
+    ran. Patches `_resolve_engine` itself to count calls, since a fixed
+    `engine=` override would bypass resolution entirely and prove nothing.
+    """
+    engine = FakeVinaEngine()
+    provider = VinaDockingProvider(executable_path_resolver=lambda: "")
+    mol = Chem.MolFromSmiles("CCO")
+    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+
+    with patch.object(provider, "_resolve_engine", return_value=engine) as mock_resolve:
+        provider.dock(RECEPTOR_PDB, "pdb", mol, box, 9, ProgressHandle())
+        assert mock_resolve.call_count == 1
+
+        assert provider.engine_id == "fake"
+        assert provider.engine_version() == "1.0.0-fake"
+        # engine_id/engine_version() must not have called _resolve_engine
+        # again -- they read the cached _last_resolved_engine from dock().
+        assert mock_resolve.call_count == 1

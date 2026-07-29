@@ -3,12 +3,17 @@ from __future__ import annotations
 from PySide6.QtCore import QThreadPool
 from rdkit import Chem
 
+from openchem.app.settings import Settings
 from openchem.domain.common import CacheState
 from openchem.domain.docking import DockingBox, DockingPoseModel
 from openchem.events.base import EventBus
 from openchem.events.events import DockingJobStateChanged, DockingResultReady
 from openchem.plugins.interfaces import DockingProvider
 from openchem.services.docking_service import DockingService
+
+
+def _make_settings(bus: EventBus) -> Settings:
+    return Settings(bus)
 
 
 class FakeDockingProvider(DockingProvider):
@@ -39,7 +44,7 @@ def _drain(qapp, timeout_ms: int = 5000) -> None:
 def test_docking_job_lifecycle_reaches_completed(qapp):
     bus = EventBus()
     provider = FakeDockingProvider()
-    service = DockingService(bus, providers={provider.provider_id: provider})
+    service = DockingService(bus, _make_settings(bus), providers={provider.provider_id: provider})
 
     states: list[CacheState] = []
     bus.subscribe(DockingJobStateChanged, lambda e: states.append(e.state))
@@ -76,7 +81,7 @@ def test_docking_job_lifecycle_reaches_completed(qapp):
 def test_docking_job_failure_is_reported(qapp):
     bus = EventBus()
     provider = FakeDockingProvider(raise_error=True)
-    service = DockingService(bus, providers={provider.provider_id: provider})
+    service = DockingService(bus, _make_settings(bus), providers={provider.provider_id: provider})
 
     states: list[CacheState] = []
     bus.subscribe(DockingJobStateChanged, lambda e: states.append(e.state))
@@ -101,7 +106,7 @@ def test_docking_job_failure_is_reported(qapp):
 
 def test_docking_unknown_provider_fails_immediately(qapp):
     bus = EventBus()
-    service = DockingService(bus, providers={})
+    service = DockingService(bus, _make_settings(bus), providers={})
 
     states: list[CacheState] = []
     bus.subscribe(DockingJobStateChanged, lambda e: states.append(e.state))
@@ -122,7 +127,7 @@ def test_docking_unknown_provider_fails_immediately(qapp):
 
 def test_register_and_unregister_provider(qapp):
     bus = EventBus()
-    service = DockingService(bus, providers={})
+    service = DockingService(bus, _make_settings(bus), providers={})
     provider = FakeDockingProvider()
 
     service.register_provider(provider)
@@ -130,3 +135,28 @@ def test_register_and_unregister_provider(qapp):
 
     service.unregister_provider("fake")
     assert "fake" not in service._providers
+
+
+def test_default_provider_reads_executable_path_from_settings(qapp):
+    """The default "vina" provider constructed by DockingService (when no
+    `providers` override is given) must resolve its executable path from
+    live Settings, not a value frozen at construction time -- otherwise a
+    path configured via the docking panel's "Configure Vina..." dialog
+    after startup would never take effect without an app restart. Doesn't
+    assert a blank starting value: `isolated_settings`'s per-test QSettings
+    IniFormat file lives under `tmp_path`, whose directory naming pytest
+    can reuse across separate invocations, so a previous run's value can
+    genuinely still be on disk -- only the "does a fresh write take effect
+    immediately" behavior is asserted here.
+    """
+    bus = EventBus()
+    settings = _make_settings(bus)
+    service = DockingService(bus, settings)
+
+    vina_provider = service._providers["vina"]
+
+    settings.set("docking/vina_executable_path", "C:/fake/vina.exe")
+    assert vina_provider._executable_path_resolver() == "C:/fake/vina.exe"
+
+    settings.set("docking/vina_executable_path", "D:/other/vina2.exe")
+    assert vina_provider._executable_path_resolver() == "D:/other/vina2.exe"

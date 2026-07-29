@@ -194,7 +194,15 @@ it).
   auto-selected by `select_vina_engine()` (Python binding preferred, then a
   configured/found executable, else a clear "no backend" error) — this also
   sets up cleanly for smina/gnina/QuickVina later, a real anticipated need,
-  not speculative generality.
+  not speculative generality. The executable path (`docking/vina_executable_path`,
+  set via the docking panel's "Configure Vina..." dialog) is resolved fresh
+  on every `dock()` call, not cached at construction time — same reasoning
+  as `QuantumChemistryService`'s executable-path resolution, so a path
+  configured mid-session takes effect without restarting the app.
+  `VinaDockingProvider` itself never imports `Settings` directly (`chem/`
+  stays decoupled from `app/`) — it takes a plain `Callable[[], str]`
+  resolver, and `DockingService` (which is allowed to depend on `Settings`)
+  supplies a closure over the real settings object.
 - **`QuantumEngineProvider` has three pure methods
   (`build_input`/`command_args`/`parse_output`), not one blocking `run()`.**
   `QuantumChemistryService` owns the actual `QProcess` lifecycle entirely;

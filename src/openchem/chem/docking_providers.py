@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import tempfile
 from pathlib import Path
+from typing import Callable
 
 from rdkit import Chem
 
@@ -23,9 +24,22 @@ class DockingProviderError(Exception):
 
 
 class VinaDockingProvider(DockingProvider):
-    """AutoDock Vina, via whichever `VinaEngine` is actually usable
-    (`select_vina_engine()` — the Python binding if importable, else a
-    configured/found executable, chosen once at construction time).
+    """AutoDock Vina, via whichever `VinaEngine` is actually usable.
+
+    Engine selection is deliberately re-resolved on every call
+    (`_resolve_engine()` below), not cached once at construction time: the
+    user can configure a Vina executable path (via the docking panel's
+    "Configure Vina..." dialog) *after* the app has already started, and a
+    construction-time-only resolution would never pick that up without a
+    restart. `select_vina_engine()` still prefers the Python binding when
+    importable, falling back to the configured/found executable.
+
+    `executable_path_resolver` is a plain `Callable[[], str]`, not a
+    `Settings` object — `chem/` stays fully decoupled from `openchem.app`;
+    `DockingService` (which already depends on `Settings`, same as
+    `QuantumChemistryService`) supplies a closure over the real settings
+    object. `engine` is a test-only override that bypasses path resolution
+    entirely.
 
     **Known limitation, not built here**: receptor/ligand preparation is
     Open Babel's default automatic hydrogen addition + PDBQT conversion
@@ -38,8 +52,26 @@ class VinaDockingProvider(DockingProvider):
 
     provider_id = "vina"
 
-    def __init__(self, engine: VinaEngine | None = None) -> None:
-        self._engine = engine if engine is not None else select_vina_engine()
+    def __init__(
+        self,
+        executable_path_resolver: Callable[[], str] | None = None,
+        engine: VinaEngine | None = None,
+    ) -> None:
+        self._executable_path_resolver = executable_path_resolver
+        self._fixed_engine = engine
+        # Set by dock() on every call, so engine_id/engine_version() always
+        # describe exactly what the most recent dock() actually used —
+        # re-resolving independently in each of the three places (dock(),
+        # engine_id, engine_version()) would open a window, however
+        # unlikely in practice, for them to disagree if settings changed
+        # between calls within the same job.
+        self._last_resolved_engine: VinaEngine | None = None
+
+    def _resolve_engine(self) -> VinaEngine | None:
+        if self._fixed_engine is not None:
+            return self._fixed_engine
+        configured_path = self._executable_path_resolver() if self._executable_path_resolver else ""
+        return select_vina_engine(configured_path or None)
 
     @property
     def engine_id(self) -> str:
@@ -48,10 +80,12 @@ class VinaDockingProvider(DockingProvider):
         wouldn't have this concept); `DockingService` reads it defensively
         via `getattr` for the `DockingResultModel.engine` reproducibility
         field."""
-        return self._engine.engine_id if self._engine is not None else "none"
+        engine = self._last_resolved_engine if self._last_resolved_engine is not None else self._resolve_engine()
+        return engine.engine_id if engine is not None else "none"
 
     def engine_version(self) -> str:
-        return self._engine.version() if self._engine is not None else "unknown"
+        engine = self._last_resolved_engine if self._last_resolved_engine is not None else self._resolve_engine()
+        return engine.version() if engine is not None else "unknown"
 
     def dock(
         self,
@@ -62,11 +96,13 @@ class VinaDockingProvider(DockingProvider):
         num_poses: int,
         progress: ProgressHandle,
     ) -> list[DockingPoseModel]:
-        if self._engine is None:
+        engine = self._resolve_engine()
+        self._last_resolved_engine = engine
+        if engine is None:
             raise DockingProviderError(
                 "No Vina docking backend available — install the 'vina' Python "
                 "package (uv sync --extra docking) or configure a Vina "
-                "executable path in Settings."
+                "executable path via 'Configure Vina...' in the Docking panel."
             )
 
         from openbabel import pybel
@@ -82,7 +118,7 @@ class VinaDockingProvider(DockingProvider):
             progress.report(0.15, "Preparing ligand")
             self._convert_ligand_to_pdbqt(pybel, ligand_mol, ligand_pdbqt)
 
-            output_text = self._engine.dock(
+            output_text = engine.dock(
                 receptor_pdbqt=receptor_pdbqt,
                 ligand_pdbqt=ligand_pdbqt,
                 box=box,
