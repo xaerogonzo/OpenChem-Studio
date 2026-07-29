@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>OpenChem Studio - Molecule Editor</title>
+    <style>
+      html, body, #root { height: 100%; margin: 0; padding: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <!--
+      qwebchannel.js is served from Qt's own qrc:// resource scheme and only
+      resolves when this page is loaded inside a QWebEngineView that has
+      QWebEnginePage.setWebChannel() called on it (see
+      ui/widgets/ketcher_editor_backend.py). It has no effect, and does not
+      need to load successfully, in a plain browser.
+    -->
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

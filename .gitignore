@@ -1,0 +1,47 @@
+# Machine-specific config (if your project uses one)
+*.local.json
+
+# Claude Code local session settings
+.claude/
+
+# tokensave index (machine-specific binary database)
+.tokensave/
+
+# CodeGraph SQLite index — machine-specific binary database.
+# IMPORTANT: do NOT blanket-ignore .codegraph/ — CodeGraph deliberately
+# expects .codegraph/config.json to be TRACKED (per-project indexing
+# configuration intended to be shared across machines). CodeGraph itself
+# writes a .codegraph/.gitignore that handles binary-DB exclusion.
+.codegraph/codegraph.db
+.codegraph/codegraph.db-*
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Nuitka build output (root-anchored — do NOT match src/openchem/resources/ketcher/dist/,
+# which is the vendored, committed Ketcher bundle the app loads at runtime)
+*.onefile-build/
+*.build/
+/dist/
+/build/
+
+# Virtual environments
+.venv/
+venv/
+
+# Node dependencies for tools/ketcher-host (the Ketcher build IS committed
+# under src/openchem/resources/ketcher/dist/ — only node_modules is not)
+node_modules/
+
+# Logs
+logs/
+
+# OS noise
+Thumbs.db
+.DS_Store
+
+# Manager-generated temp files (Draft PR pre-fetched context)
+.pr_context.tmp.md
+PR_DRAFT.md
