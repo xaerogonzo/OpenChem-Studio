@@ -45,3 +45,28 @@ Thumbs.db
 # Manager-generated temp files (Draft PR pre-fetched context)
 .pr_context.tmp.md
 PR_DRAFT.md
+
+# Added by TokenSave Manager
+
+# Python tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.eggs/
+*.egg-info/
+
+# Coverage reports
+.coverage
+.coverage.*
+htmlcov/
+
+# Secrets / environment overrides — never commit these
+.env
+.env.*
+*.pem
+
+# Node/npm noise for tools/ketcher-host (package-lock.json IS tracked
+# intentionally, for reproducible Ketcher bundle rebuilds)
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
