@@ -172,9 +172,12 @@ class MainWindow(QMainWindow):
     # --- molecule lifecycle --------------------------------------------------
 
     def _new_molecule(self) -> None:
+        self.add_molecule(MoleculeModel(display_name="New molecule"))
+
+    def add_molecule(self, molecule: MoleculeModel) -> None:
         if self._session.project is None:
+            logger.warning("add_molecule called with no project open; ignoring")
             return
-        molecule = MoleculeModel(display_name="New molecule")
         command = AddMoleculeCommand(self._session.project, molecule, self._services.event_bus)
         self._undo_stack.push(command)
         self._project_explorer.refresh()
@@ -265,8 +268,9 @@ class MainWindow(QMainWindow):
         return self._session.project.find_molecule(self._session.selected_molecule_uuid)
 
     # --- UIRegistry protocol (see plugins/ui_registry.py) -----------------------
-    # PluginManager depends on these four methods structurally, never on
-    # MainWindow itself.
+    # PluginManager depends on these methods structurally, never on
+    # MainWindow itself. `add_molecule` is the fifth one, defined above under
+    # "molecule lifecycle" since it shares `_new_molecule`'s implementation.
 
     def add_panel(self, panel_id: str, widget_factory: Callable[[], QWidget]) -> None:
         if panel_id in self._plugin_panels:

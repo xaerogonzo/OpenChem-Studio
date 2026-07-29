@@ -4,6 +4,8 @@ from typing import Callable, Protocol
 
 from PySide6.QtWidgets import QWidget
 
+from openchem.domain.molecule import MoleculeModel
+
 
 class UIRegistry(Protocol):
     """What `PluginManager` needs from a host window — nothing more.
@@ -32,4 +34,10 @@ class UIRegistry(Protocol):
 
     def remove_menu_actions(self, plugin_id: str) -> None:
         """Remove every menu action previously added for this plugin."""
+        ...
+
+    def add_molecule(self, molecule: MoleculeModel) -> None:
+        """Add `molecule` to the current project as an undoable action and
+        select it — the same path `MainWindow._new_molecule()` uses. A
+        no-op (should log, not raise) if no project is currently open."""
         ...

@@ -1,0 +1,9 @@
+plugin_id = "database_search"
+version = "0.1.0"
+api_version = 1
+display_name = "Database Search"
+author = "OpenChem Studio"
+description = "Search PubChem and ChEMBL by name, SMILES, or InChIKey and import results as new molecules."
+homepage = ""
+license = "GPL-3.0-or-later"
+dependencies = []

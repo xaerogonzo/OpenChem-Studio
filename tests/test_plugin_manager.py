@@ -15,6 +15,7 @@ class FakeUIRegistry:
     def __init__(self) -> None:
         self.panels: dict[str, object] = {}
         self.menu_actions: dict[str, list[tuple[str, object]]] = {}
+        self.added_molecules: list[object] = []
 
     def add_panel(self, panel_id, widget_factory):
         self.panels[panel_id] = widget_factory()
@@ -27,6 +28,9 @@ class FakeUIRegistry:
 
     def remove_menu_actions(self, plugin_id):
         self.menu_actions.pop(plugin_id, None)
+
+    def add_molecule(self, molecule):
+        self.added_molecules.append(molecule)
 
 
 VALID_PLUGIN_SRC = """

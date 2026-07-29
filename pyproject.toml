@@ -27,6 +27,9 @@ ai = [
     "anthropic>=0.120.2",
     "openai>=2.50.0",
 ]
+network = [
+    "requests>=2.32",
+]
 
 [dependency-groups]
 dev = [

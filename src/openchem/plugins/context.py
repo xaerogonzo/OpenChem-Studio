@@ -8,6 +8,7 @@ import keyring
 import keyring.errors
 
 from openchem.app.settings import Settings
+from openchem.domain.molecule import MoleculeModel
 from openchem.events.base import Event, EventBus
 from openchem.plugins.interfaces import (
     ConformerProvider,
@@ -62,6 +63,21 @@ class _PluginSecrets:
             keyring.delete_password(self._service_name, key)
         except keyring.errors.PasswordDeleteError:
             pass  # already absent — deleting a not-there secret isn't an error
+
+
+class _PluginMolecules:
+    """Lets a plugin add a molecule to the current project — e.g. a database
+    search result or a predicted reaction product — through the same
+    undoable path `MainWindow._new_molecule()` uses. Not tracked for
+    rollback: an added molecule is real project data, same treatment as a
+    molecule added via File > New, not a registration to unwind on unload.
+    """
+
+    def __init__(self, ui_registry: UIRegistry) -> None:
+        self._ui_registry = ui_registry
+
+    def add(self, molecule: MoleculeModel) -> None:
+        self._ui_registry.add_molecule(molecule)
 
 
 class _DescriptorRegistrar:
@@ -152,8 +168,9 @@ class PluginContext:
     through (transactional activation, see `PluginManager`).
 
     Grouped into small namespaces (`descriptors`, `conformers`, `importers`,
-    `exporters`, `panels`, `menus`, `events`, `settings`, `secrets`) rather
-    than one flat pile of `register_*` methods on this class directly.
+    `exporters`, `panels`, `menus`, `events`, `settings`, `secrets`,
+    `molecules`) rather than one flat pile of `register_*` methods on this
+    class directly.
 
     Deliberately does not expose the raw `EventBus`, `ServiceContainer`, or
     any concrete window/UI object — only these narrow registration
@@ -183,6 +200,7 @@ class PluginContext:
         self.events = _EventRegistrar(services.event_bus, self._rollbacks)
         self.settings = _PluginSettings(settings, plugin_id)
         self.secrets = _PluginSecrets(plugin_id)
+        self.molecules = _PluginMolecules(ui_registry)
 
     def resource_path(self, relative: str) -> Path:
         """Path to a file bundled alongside this plugin (icons, templates, etc.)."""
