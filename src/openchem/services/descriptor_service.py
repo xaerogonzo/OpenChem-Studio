@@ -91,6 +91,14 @@ class DescriptorService:
         self._providers = providers if providers is not None else [RDKitDescriptorProvider()]
         self._pool = QThreadPool.globalInstance()
 
+    def register_provider(self, provider: DescriptorProvider) -> None:
+        """Register a plugin-supplied descriptor provider. Its descriptors
+        run alongside the built-in ones for every future request."""
+        self._providers.append(provider)
+
+    def unregister_provider(self, provider_id: str) -> None:
+        self._providers = [p for p in self._providers if p.provider_id != provider_id]
+
     def request_descriptors(self, model: MoleculeModel) -> None:
         for provider in self._providers:
             for descriptor_id in provider.descriptor_ids():

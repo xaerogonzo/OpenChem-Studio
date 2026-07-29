@@ -94,25 +94,51 @@ class ConformerService:
     """Schedules conformer generation (+ optional geometry optimization) on a
     QThreadPool, moving each request through Queued -> Running ->
     Completed|Failed, same contract as DescriptorService.
+
+    Supports multiple registered providers (keyed by `provider_id`) for
+    plugin extensibility, even though only the built-in "rdkit" one is
+    exposed through the UI today — the "Generate Conformers" dialog picking
+    a provider is a fast-follow, not part of this phase.
     """
 
     def __init__(
         self,
         event_bus: EventBus,
         engine: ChemistryEngine,
-        provider: ConformerProvider | None = None,
+        providers: dict[str, ConformerProvider] | None = None,
     ) -> None:
         self._event_bus = event_bus
         self._engine = engine
-        self._provider = provider if provider is not None else RDKitConformerProvider()
+        default_provider = RDKitConformerProvider()
+        self._providers: dict[str, ConformerProvider] = (
+            providers if providers is not None else {default_provider.provider_id: default_provider}
+        )
         self._pool = QThreadPool.globalInstance()
 
-    def request_conformers(self, model: MoleculeModel, num_conformers: int, optimize: bool) -> None:
+    def register_provider(self, provider: ConformerProvider) -> None:
+        self._providers[provider.provider_id] = provider
+
+    def unregister_provider(self, provider_id: str) -> None:
+        self._providers.pop(provider_id, None)
+
+    def request_conformers(
+        self, model: MoleculeModel, num_conformers: int, optimize: bool, provider_id: str = "rdkit"
+    ) -> None:
+        provider = self._providers.get(provider_id)
+        if provider is None:
+            self._event_bus.publish(
+                ConformerJobStateChanged(
+                    molecule_uuid=model.uuid,
+                    state=CacheState.FAILED,
+                    message=f"Unknown conformer provider: {provider_id}",
+                )
+            )
+            return
         self._event_bus.publish(
             ConformerJobStateChanged(molecule_uuid=model.uuid, state=CacheState.QUEUED)
         )
         self._pool.start(
             _ConformerGenerationTask(
-                self._provider, self._engine, model, num_conformers, optimize, self._event_bus
+                provider, self._engine, model, num_conformers, optimize, self._event_bus
             )
         )

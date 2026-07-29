@@ -9,6 +9,7 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
+    "platformdirs>=4.11.0",
     "pyside6>=6.7",
     "pyside6-addons>=6.7",
     "rdkit>=2024.3.1",

@@ -17,7 +17,10 @@ class PropertyPanel(QWidget):
     def __init__(self, event_bus: EventBus, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._selected_molecule_uuid: str | None = None
-        self._rows: dict[str, int] = {}
+        # Keyed on (provider, descriptor_id) rather than bare descriptor_id:
+        # two providers (e.g. a plugin and the built-in one) could otherwise
+        # pick the same short name and silently collide in this table.
+        self._rows: dict[tuple[str, str], int] = {}
 
         self._table = QTableWidget(0, 3, self)
         self._table.setHorizontalHeaderLabels(["Descriptor", "Value", "Status"])
@@ -38,11 +41,12 @@ class PropertyPanel(QWidget):
         descriptor = event.descriptor
         if descriptor.molecule_uuid != self._selected_molecule_uuid:
             return
-        row = self._rows.get(descriptor.descriptor_id)
+        row_key = (descriptor.provider, descriptor.descriptor_id)
+        row = self._rows.get(row_key)
         if row is None:
             row = self._table.rowCount()
             self._table.insertRow(row)
-            self._rows[descriptor.descriptor_id] = row
+            self._rows[row_key] = row
         label = f"{descriptor.name} ({descriptor.units})" if descriptor.units else descriptor.name
         value_text = "" if descriptor.value is None else str(descriptor.value)
         self._table.setItem(row, 0, QTableWidgetItem(label))

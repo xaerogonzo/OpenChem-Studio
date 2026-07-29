@@ -69,5 +69,16 @@ class PluginLoaded(Event):
 
 
 @dataclass(frozen=True)
+class PluginUnloaded(Event):
+    plugin_id: str
+
+
+@dataclass(frozen=True)
+class PluginLoadFailed(Event):
+    plugin_id: str
+    error: str
+
+
+@dataclass(frozen=True)
 class SettingsChanged(Event):
     key: str

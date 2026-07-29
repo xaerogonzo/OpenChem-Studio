@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Callable
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QUndoStack
-from PySide6.QtWidgets import QDockWidget, QFileDialog, QMainWindow, QMessageBox, QTabWidget
+from PySide6.QtCore import QUrl, Qt
+from PySide6.QtGui import QAction, QDesktopServices, QUndoStack
+from PySide6.QtWidgets import QDockWidget, QFileDialog, QMainWindow, QMessageBox, QTabWidget, QWidget
 
 from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
@@ -15,7 +16,14 @@ from openchem.commands.molecule_commands import AddMoleculeCommand
 from openchem.commands.project_commands import OpenProjectCommand, SaveProjectCommand
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
-from openchem.events.events import ConformersReady, MoleculeChanged, MoleculeSelected
+from openchem.events.events import (
+    ConformersReady,
+    MoleculeChanged,
+    MoleculeSelected,
+    PluginLoaded,
+    PluginUnloaded,
+)
+from openchem.plugins.manager import PluginManager
 from openchem.services.container import ServiceContainer
 from openchem.ui.panels.console_panel import ConsolePanel
 from openchem.ui.panels.project_explorer_panel import ProjectExplorerPanel
@@ -40,6 +48,8 @@ class MainWindow(QMainWindow):
         self._settings = settings
         self._session = session
         self._undo_stack = QUndoStack(self)
+        self._plugin_panels: dict[str, QDockWidget] = {}
+        self._plugin_menu_actions: dict[str, list[QAction]] = {}
 
         self.setWindowTitle("OpenChem Studio")
         self.resize(1280, 800)
@@ -68,14 +78,24 @@ class MainWindow(QMainWindow):
         services.event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
         services.event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
         services.event_bus.subscribe(ConformersReady, self._on_conformers_ready)
+        services.event_bus.subscribe(PluginLoaded, self._on_plugins_state_changed)
+        services.event_bus.subscribe(PluginUnloaded, self._on_plugins_state_changed)
 
         self._new_project()
 
-    def _add_dock(self, title: str, widget, area: Qt.DockWidgetArea) -> None:
+        # Constructed last: PluginManager depends only on the UIRegistry
+        # protocol (add_panel/remove_panel/add_menu_action/remove_menu_actions
+        # below), not on MainWindow itself — see plugins/ui_registry.py.
+        self._plugin_manager = PluginManager(services, self, settings)
+        self._plugin_manager.load_all()
+        self._refresh_installed_plugins_menu()
+
+    def _add_dock(self, title: str, widget: QWidget, area: Qt.DockWidgetArea) -> QDockWidget:
         dock = QDockWidget(title, self)
         dock.setObjectName(title.replace(" ", "_"))
         dock.setWidget(widget)
         self.addDockWidget(area, dock)
+        return dock
 
     def _build_menus(self) -> None:
         file_menu = self.menuBar().addMenu("&File")
@@ -97,12 +117,23 @@ class MainWindow(QMainWindow):
         edit_menu.addAction(undo_action)
         edit_menu.addAction(redo_action)
 
-        view_menu = self.menuBar().addMenu("&View")
+        self._view_menu = self.menuBar().addMenu("&View")
         for dock in self.findChildren(QDockWidget):
-            view_menu.addAction(dock.toggleViewAction())
+            self._view_menu.addAction(dock.toggleViewAction())
 
-        plugins_menu = self.menuBar().addMenu("&Plugins")
-        plugins_menu.setEnabled(False)  # Phase 4: discovery/loading not implemented yet
+        self._plugins_menu = self.menuBar().addMenu("&Plugins")
+        self._plugins_menu.addAction("Reload Plugins", self._reload_plugins)
+        self._plugins_menu.addAction(
+            "Open Project Plugins Folder", lambda: self._open_plugins_folder(project=True)
+        )
+        self._plugins_menu.addAction(
+            "Open User Plugins Folder", lambda: self._open_plugins_folder(project=False)
+        )
+        self._plugins_menu.addSeparator()
+        self._installed_plugins_menu = self._plugins_menu.addMenu("Installed Plugins")
+        self._plugins_menu.addSeparator()
+        # Plugin-contributed menu entries (via context.menus.register(...))
+        # are appended directly to this menu, below the separator above.
 
         help_menu = self.menuBar().addMenu("&Help")
         help_menu.addAction("About OpenChem Studio", self._show_about)
@@ -212,6 +243,71 @@ class MainWindow(QMainWindow):
         if self._session.project is None or self._session.selected_molecule_uuid is None:
             return None
         return self._session.project.find_molecule(self._session.selected_molecule_uuid)
+
+    # --- UIRegistry protocol (see plugins/ui_registry.py) -----------------------
+    # PluginManager depends on these four methods structurally, never on
+    # MainWindow itself.
+
+    def add_panel(self, panel_id: str, widget_factory: Callable[[], QWidget]) -> None:
+        if panel_id in self._plugin_panels:
+            self.remove_panel(panel_id)
+        widget = widget_factory()
+        dock = self._add_dock(panel_id, widget, Qt.DockWidgetArea.RightDockWidgetArea)
+        self._plugin_panels[panel_id] = dock
+        self._view_menu.addAction(dock.toggleViewAction())
+
+    def remove_panel(self, panel_id: str) -> None:
+        dock = self._plugin_panels.pop(panel_id, None)
+        if dock is None:
+            return
+        self.removeDockWidget(dock)
+        dock.deleteLater()
+
+    def add_menu_action(self, plugin_id: str, label: str, callback: Callable[[], None]) -> None:
+        action = QAction(label, self)
+        action.triggered.connect(callback)
+        self._plugins_menu.addAction(action)
+        self._plugin_menu_actions.setdefault(plugin_id, []).append(action)
+
+    def remove_menu_actions(self, plugin_id: str) -> None:
+        actions = self._plugin_menu_actions.pop(plugin_id, [])
+        for action in actions:
+            self._plugins_menu.removeAction(action)
+            action.deleteLater()
+
+    # --- plugin menu ------------------------------------------------------------
+
+    def _reload_plugins(self) -> None:
+        self._plugin_manager.reload_all()
+        self._refresh_installed_plugins_menu()
+
+    def _open_plugins_folder(self, project: bool) -> None:
+        directories = self._plugin_manager.plugin_directories
+        directory = directories[0] if project else directories[1]
+        directory.mkdir(parents=True, exist_ok=True)
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(directory)))
+
+    def _on_plugins_state_changed(self, event) -> None:
+        self._refresh_installed_plugins_menu()
+
+    def _refresh_installed_plugins_menu(self) -> None:
+        self._installed_plugins_menu.clear()
+        manifests = self._plugin_manager.discover_manifests()
+        if not manifests:
+            placeholder = self._installed_plugins_menu.addAction("(none found)")
+            placeholder.setEnabled(False)
+            return
+        disabled = self._plugin_manager.disabled_ids()
+        for manifest in manifests:
+            action = QAction(manifest.display_name, self)
+            action.setCheckable(True)
+            action.setChecked(manifest.plugin_id not in disabled)
+            action.toggled.connect(
+                lambda checked, plugin_id=manifest.plugin_id: self._plugin_manager.set_enabled(
+                    plugin_id, checked
+                )
+            )
+            self._installed_plugins_menu.addAction(action)
 
     def _show_about(self) -> None:
         QMessageBox.about(

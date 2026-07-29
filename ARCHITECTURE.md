@@ -35,8 +35,8 @@ subscribe by event type rather than by ad-hoc signal name.
 | `openchem.chem` | `ChemistryEngine` (MoleculeModel <-> RDKit Mol, canonicalization, and 3D measurement via `rdMolTransforms`), `DescriptorProvider`/`ConformerProvider` implementations, `Importer`/`Exporter` backends. The only place `rdkit`/`openbabel` are imported. |
 | `openchem.services` | `DescriptorService`, `ConformerService`, `MeasurementService`, `ImportService`, `ExportService`, `ProjectService`, plus `ProgressHandle` for cancellable/progress-reporting long operations. The async ones own `QThreadPool` execution and publish events. |
 | `openchem.commands` | `QUndoCommand` subclasses wrapping service calls, giving undo/redo for structure edits, conformer generation, and project operations from day one. |
-| `openchem.plugins` | Interfaces only (`Plugin`, `DescriptorProvider`, `ConformerProvider`, `PanelProvider`, `MenuProvider`, `Importer`, `Exporter`). No discovery/loading yet — that arrives with the Phase 4 plugin loader described in ROADMAP.md. |
-| `openchem.app` | Composition: `MainWindow`, typed `Settings`, `SessionManager`, structured logging setup. |
+| `openchem.plugins` | `interfaces.py` (`Plugin`, `DescriptorProvider`, `ConformerProvider`, `PanelProvider`, `MenuProvider`, `Importer`, `Exporter`), `manifest.py` (`PluginManifest` + dependency topological sort), `context.py` (`PluginContext`), `ui_registry.py` (`UIRegistry` protocol), `manager.py` (`PluginManager` — discovery, transactional load/unload/reload, hot-reload watcher). See `PLUGIN_SDK.md`. |
+| `openchem.app` | Composition: `MainWindow`, typed `Settings`, `SessionManager`, structured logging setup. `MainWindow` implements the `UIRegistry` protocol and constructs `PluginManager` at the end of `__init__`. |
 | `openchem.ui` | Widgets and dock panels. `EditorBackend`/`KetcherEditorBackend` (2D, `resources/ketcher/dist/`) and `ViewerBackend`/`Mol3DViewerBackend` (3D, `resources/viewer3d/`, 3Dmol.js) are both interface + single-implementation pairs — either can be swapped or extended with a sibling implementation (e.g. a future Mol*-based viewer for macromolecules/crystallography) without touching chemistry, services, or commands. |
 
 `tools/ketcher-host/` is a small separate Node/Vite project (not part of the
@@ -85,6 +85,22 @@ at all for this one.
   `MainWindow`, mirroring how `EditStructureCommand` is pushed from Ketcher's
   async result) actually writes to `MoleculeModel.conformers` — keeping that
   mutation on the GUI thread and undoable.
+- **`PluginManager` depends on the `UIRegistry` protocol, never on
+  `MainWindow` directly.** `plugins/ui_registry.py` is a `typing.Protocol`;
+  `MainWindow` satisfies it structurally (matching method names/signatures)
+  without inheriting from it at runtime — avoids the QObject/ABCMeta
+  metaclass conflict documented in `ui/editor_backend.py`, and means a
+  headless mode or a second window later needs its own `UIRegistry`, not a
+  `PluginManager` change.
+- **Plugin metadata lives in `manifest.toml`, never on the `Plugin` object.**
+  The loader reads `plugin_id`/`api_version`/`dependencies` without ever
+  importing `plugin.py` — listing, dependency-ordering, and enabling/
+  disabling plugins never executes arbitrary plugin code.
+- **Every `PluginContext` registration is tracked for rollback.** The same
+  tracked-unregister list that makes `PluginManager.unload()` correct also
+  makes plugin activation transactional: if `Plugin.activate()` raises
+  partway through, the loader replays that list immediately so a
+  half-failed plugin never leaves partial registrations behind.
 
 ## Known TODOs
 
@@ -93,11 +109,13 @@ at all for this one.
   Nuitka profile (swap `--enable-plugin=tk-inter` for the PySide6 plugin,
   drop `pystray`, add RDKit/Open Babel data-file includes) before they can
   package this application. Not needed until an actual release build.
-- Plugin *discovery/loading* (reading a `plugins/` directory, hot-loading)
-  is intentionally not implemented yet — only the interfaces exist.
 - `SimilarityService` doesn't exist yet; belongs to a later roadmap phase
   and would currently have no callers.
 - Editing a molecule's 2D structure does not currently invalidate/clear its
   previously generated conformers, which then describe a stale structure
   until the user regenerates them manually. Deliberately out of scope for
   Phase 3 (no `ConformersInvalidated` event yet) — worth revisiting.
+- Plugin loading has no async/background state, no `ToolbarProvider`/
+  `ContextMenuProvider`, no numeric provider priority, and no declared
+  permissions — all deliberately deferred; see the "Explicitly deferred"
+  reasoning preserved in `PLUGIN_SDK.md`'s "Known limitations" section.

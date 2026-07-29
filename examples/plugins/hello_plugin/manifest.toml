@@ -1,0 +1,9 @@
+plugin_id = "hello_plugin"
+version = "0.1.0"
+api_version = 1
+display_name = "Hello Plugin"
+author = "OpenChem Studio"
+description = "Worked example: one descriptor, one panel, one menu entry."
+homepage = ""
+license = "MIT"
+dependencies = []

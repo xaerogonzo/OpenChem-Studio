@@ -18,10 +18,15 @@
 - [x] Measurement tools (click two atoms for a distance readout, via `MeasurementService`)
 
 ## Phase 4 — Plugin architecture
-- [x] Plugin interfaces defined (`openchem.plugins.interfaces`) — no loader yet
-- [ ] Plugin discovery + loader
-- [ ] Plugin SDK docs
-- [ ] Hot loading
+- [x] Plugin interfaces (`openchem.plugins.interfaces`) — `Plugin`, `DescriptorProvider`,
+      `ConformerProvider`, `PanelProvider`, `MenuProvider`, `Importer`, `Exporter`
+- [x] Plugin discovery + loader (`PluginManager`, manifest-based metadata, dependency
+      topological sort, transactional activate/rollback, decoupled from `MainWindow`
+      via the `UIRegistry` protocol)
+- [x] Plugin SDK docs (`PLUGIN_SDK.md`, plus a worked example at
+      `examples/plugins/hello_plugin/`)
+- [x] Hot loading (recursive `QFileSystemWatcher` + debounce, per-plugin enable/disable
+      persisted in Settings)
 
 ## Phase 5 — AI assistant
 - [ ] Context-aware chemistry explanations

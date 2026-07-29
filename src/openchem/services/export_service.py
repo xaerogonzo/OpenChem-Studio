@@ -27,6 +27,16 @@ class ExportService:
     def __init__(self, engine: ChemistryEngine) -> None:
         self._rdkit_exporter: Exporter = RDKitExporter(engine)
         self._openbabel_exporter: Exporter = OpenBabelExporter(engine)
+        self._extra_exporters: list[Exporter] = []
+
+    def register_exporter(self, exporter: Exporter) -> None:
+        """Register a plugin-supplied exporter, checked before the built-in
+        RDKit/Open Babel backends for any format it claims."""
+        self._extra_exporters.append(exporter)
+
+    def unregister_exporter(self, exporter: Exporter) -> None:
+        if exporter in self._extra_exporters:
+            self._extra_exporters.remove(exporter)
 
     def export_file(
         self, model: MoleculeModel, path: Path, progress: ProgressHandle | None = None
@@ -34,11 +44,16 @@ class ExportService:
         progress = progress or ProgressHandle()
         fmt = path.suffix.lstrip(".").lower()
         progress.report(0.0, f"Exporting {path.name}")
-        if fmt in RDKIT_EXPORT_FORMATS:
-            self._rdkit_exporter.export_file(model, path, fmt)
-        elif fmt in OPENBABEL_FALLBACK_FORMATS:
-            self._openbabel_exporter.export_file(model, path, fmt)
+        for exporter in self._extra_exporters:
+            if fmt in exporter.supported_formats():
+                exporter.export_file(model, path, fmt)
+                break
         else:
-            raise UnsupportedFormatError(f"No exporter registered for .{fmt}")
+            if fmt in RDKIT_EXPORT_FORMATS:
+                self._rdkit_exporter.export_file(model, path, fmt)
+            elif fmt in OPENBABEL_FALLBACK_FORMATS:
+                self._openbabel_exporter.export_file(model, path, fmt)
+            else:
+                raise UnsupportedFormatError(f"No exporter registered for .{fmt}")
         progress.report(1.0, "Done")
         logger.info("Exported molecule %s to %s", model.uuid, path)

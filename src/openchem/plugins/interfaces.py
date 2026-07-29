@@ -2,38 +2,58 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from rdkit import Chem
 
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.molecule import MoleculeModel
 
+if TYPE_CHECKING:
+    from openchem.plugins.context import PluginContext
+
+# Bumped whenever Plugin/PluginContext's own contract changes in a way that
+# could break existing plugins. Compared against each plugin's declared
+# `api_version` in manifest.toml before it's ever imported.
+PLUGIN_API_VERSION = 1
+
 """Plugin contract interfaces.
 
-Only the interfaces exist in Phase 1/2 — there is no discovery or loading
-yet (that's the Phase 4 plugin loader). Defining them now, and having the
-built-in RDKit-backed implementations (`openchem.chem.descriptor_providers`,
+Discovery/loading lives in `openchem.plugins.manager` (Phase 4). Defining
+these ABCs early, and having the built-in RDKit-backed implementations
+(`openchem.chem.descriptor_providers`, `openchem.chem.conformer_providers`,
 `openchem.chem.io_backends`) implement these *same* ABCs rather than
-private copies, means Phase 4 only has to add discovery — not redesign
+private copies, meant Phase 4 only had to add discovery — not redesign
 what a plugin looks like.
 
 These interfaces reference `rdkit.Chem.Mol` because a descriptor/import/
 export plugin necessarily does real chemistry. That's distinct from the
 "UI never imports RDKit" rule, which is about the UI/widget layer, not
 plugin implementations — a plugin is expected to sit alongside `chem/`.
+
+`Plugin` itself carries no metadata (no `plugin_id`/`display_name`/
+`api_version` attributes) — that all lives in each plugin's `manifest.toml`
+(see `plugins/manifest.py`), read by the loader *without* importing any
+plugin code. `Plugin` is purely the lifecycle contract.
 """
 
 
 class Plugin(ABC):
-    plugin_id: str
-    display_name: str
+    @abstractmethod
+    def activate(self, context: "PluginContext") -> None:
+        """Register everything this plugin provides, via `context`.
+
+        If this raises, the loader rolls back anything already registered
+        through `context` before the exception — see `PluginManager`.
+        """
 
     @abstractmethod
-    def activate(self) -> None: ...
-
-    @abstractmethod
-    def deactivate(self) -> None: ...
+    def deactivate(self) -> None:
+        """Best-effort cleanup hook for anything `context`'s tracked
+        unregistration doesn't cover (e.g. an open file handle). The loader
+        already reverses every `context.*.register`/`context.events.subscribe`
+        call on its own; this is not the primary unload mechanism.
+        """
 
 
 class DescriptorProvider(ABC):
@@ -79,6 +99,10 @@ class MenuProvider(ABC):
     @abstractmethod
     def menu_entries(self) -> list[tuple[str, str]]:
         """Return (menu_path, action_id) pairs to insert into the main menu."""
+
+    @abstractmethod
+    def handle_menu_action(self, action_id: str) -> None:
+        """Called when the user triggers one of this provider's menu entries."""
 
 
 class Importer(ABC):
