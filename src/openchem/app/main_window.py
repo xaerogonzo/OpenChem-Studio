@@ -12,8 +12,10 @@ from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
 from openchem.commands.conformer_commands import SetConformersCommand
 from openchem.commands.import_export_commands import ExportMoleculeCommand, ImportMoleculeCommand
+from openchem.commands.macromolecule_commands import AddMacromoleculeCommand
 from openchem.commands.molecule_commands import AddMoleculeCommand
 from openchem.commands.project_commands import OpenProjectCommand, SaveProjectCommand
+from openchem.domain.macromolecule import MacromoleculeModel
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.events.events import (
@@ -31,6 +33,7 @@ from openchem.ui.panels.project_explorer_panel import ProjectExplorerPanel
 from openchem.ui.panels.property_panel import PropertyPanel
 from openchem.ui.widgets.molecule_editor_widget import MoleculeEditorWidget
 from openchem.ui.widgets.molecule_viewer3d_widget import MoleculeViewer3DWidget
+from openchem.ui.widgets.molstar_viewer_backend import MolStarViewerBackend
 
 logger = logging.getLogger("openchem.ui")
 
@@ -61,9 +64,15 @@ class MainWindow(QMainWindow):
         self._viewer3d = MoleculeViewer3DWidget(
             services.conformer_service, services.measurement_service, services.event_bus, parent=self
         )
+        # Sibling to Mol3DViewerBackend (small molecules) — Mol* is for
+        # macromolecular/crystallographic structures (MacromoleculeModel),
+        # a genuinely different content shape, so it gets its own tab
+        # rather than being squeezed into the existing 3D Viewer widget.
+        self._macromolecule_viewer = MolStarViewerBackend(parent=self)
         self._center_tabs = QTabWidget(self)
         self._center_tabs.addTab(self._editor, "2D Editor")
         self._center_tabs.addTab(self._viewer3d, "3D Viewer")
+        self._center_tabs.addTab(self._macromolecule_viewer.widget(), "Macromolecule Viewer")
         self.setCentralWidget(self._center_tabs)
 
         self._project_explorer = ProjectExplorerPanel(services.event_bus, self)
@@ -107,6 +116,8 @@ class MainWindow(QMainWindow):
         file_menu.addAction("New Molecule", self._new_molecule)
         file_menu.addAction("Import Molecule...", self._import_molecule)
         file_menu.addAction("Export Molecule...", self._export_molecule)
+        file_menu.addSeparator()
+        file_menu.addAction("Import Macromolecule...", self._import_macromolecule)
         file_menu.addSeparator()
         file_menu.addAction("Exit", self.close)
 
@@ -219,6 +230,42 @@ class MainWindow(QMainWindow):
         except Exception as exc:  # noqa: BLE001
             logger.exception("Export failed")
             QMessageBox.critical(self, "Export failed", str(exc))
+
+    # --- macromolecule lifecycle -------------------------------------------------
+
+    def _import_macromolecule(self) -> None:
+        if self._session.project is None:
+            return
+        path_str, _ = QFileDialog.getOpenFileName(
+            self, "Import Macromolecule", filter="Structure files (*.pdb *.ent *.cif *.mmcif)"
+        )
+        if not path_str:
+            return
+        path = Path(path_str)
+        # Mol*'s own format vocabulary (see MacromoleculeModel's docstring)
+        # — no separate naming scheme to translate between.
+        source_format = "mmcif" if path.suffix.lower() in (".cif", ".mmcif") else "pdb"
+        try:
+            structure_text = path.read_text(encoding="utf-8")
+        except OSError as exc:
+            logger.exception("Failed to read macromolecule file")
+            QMessageBox.critical(self, "Import failed", str(exc))
+            return
+        macromolecule = MacromoleculeModel(
+            display_name=path.stem, structure_text=structure_text, source_format=source_format
+        )
+        self.add_macromolecule(macromolecule)
+
+    def add_macromolecule(self, macromolecule: MacromoleculeModel) -> None:
+        if self._session.project is None:
+            logger.warning("add_macromolecule called with no project open; ignoring")
+            return
+        command = AddMacromoleculeCommand(self._session.project, macromolecule)
+        self._undo_stack.push(command)
+        self._macromolecule_viewer.load_macromolecule(
+            macromolecule.structure_text, macromolecule.source_format
+        )
+        self._center_tabs.setCurrentWidget(self._macromolecule_viewer.widget())
 
     # --- event handlers --------------------------------------------------------
 

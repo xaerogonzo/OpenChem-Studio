@@ -5,6 +5,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
+from openchem.domain.macromolecule import MacromoleculeModel
 from openchem.domain.molecule import MoleculeModel
 
 SCHEMA_VERSION = 1
@@ -36,6 +37,7 @@ class ProjectModel:
     uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
     name: str = "Untitled project"
     molecules: list[MoleculeModel] = field(default_factory=list)
+    macromolecules: list[MacromoleculeModel] = field(default_factory=list)
     notes: str = ""
     tags: list[str] = field(default_factory=list)
     folders: list[str] = field(default_factory=list)
@@ -52,6 +54,12 @@ class ProjectModel:
                 return molecule
         return None
 
+    def find_macromolecule(self, macromolecule_uuid: str) -> MacromoleculeModel | None:
+        for macromolecule in self.macromolecules:
+            if macromolecule.uuid == macromolecule_uuid:
+                return macromolecule
+        return None
+
     def record_history(self, action: str) -> None:
         self.history.append(HistoryEntry(timestamp=time.time(), action=action))
         self.modified_at = time.time()
@@ -61,6 +69,7 @@ class ProjectModel:
             "uuid": self.uuid,
             "name": self.name,
             "molecules": [m.to_dict() for m in self.molecules],
+            "macromolecules": [m.to_dict() for m in self.macromolecules],
             "notes": self.notes,
             "tags": list(self.tags),
             "folders": list(self.folders),
@@ -78,6 +87,9 @@ class ProjectModel:
             uuid=data["uuid"],
             name=data.get("name", "Untitled project"),
             molecules=[MoleculeModel.from_dict(m) for m in data.get("molecules", [])],
+            macromolecules=[
+                MacromoleculeModel.from_dict(m) for m in data.get("macromolecules", [])
+            ],
             notes=data.get("notes", ""),
             tags=list(data.get("tags", [])),
             folders=list(data.get("folders", [])),

@@ -81,10 +81,16 @@ def test_predict_and_import_end_to_end(tmp_path: Path, qapp):
     panel._method_combo.setCurrentText("Templates")
     panel._on_predict_clicked()
 
-    for _ in range(50):
+    # See test_database_search_plugin.py's equivalent wait for why this
+    # needs a small sleep, not a bare processEvents() busy-loop (confirmed
+    # flaky under load without it).
+    import time as _time
+
+    for _ in range(200):
         qapp.processEvents()
         if panel._table.rowCount() > 0 or panel._status_label.text().startswith("Error"):
             break
+        _time.sleep(0.01)
 
     assert panel._table.rowCount() == 1
     assert panel._table.item(0, 0).text() == "CCOC(C)=O"

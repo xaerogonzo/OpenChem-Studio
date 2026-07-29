@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>OpenChem Studio - Macromolecule Viewer</title>
+    <style>
+      html, body, #app { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
+    </style>
+    <link rel="stylesheet" type="text/css" href="molstar.css" />
+    <script src="molstar.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <!--
+      qwebchannel.js is served from Qt's own qrc:// resource scheme and only
+      resolves when this page is loaded inside a QWebEngineView that has
+      QWebEnginePage.setWebChannel() called on it (see
+      ui/widgets/molstar_viewer_backend.py) — same convention as
+      resources/viewer3d/viewer.html.
+    -->
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script>
+      var bridge = null;
+      var viewer = null;
+      // Viewer.create(...) resolves asynchronously (unlike 3Dmol.js, which
+      // is ready synchronously) — same shape of problem Ketcher's own
+      // async init has (see ketcher_editor_backend.py's docstring), so
+      // calls made before the promise resolves are queued here rather
+      // than assuming the viewer already exists.
+      var pendingCalls = [];
+
+      function whenReady(fn) {
+        if (viewer) {
+          fn();
+        } else {
+          pendingCalls.push(fn);
+        }
+      }
+
+      window.openchemMolstarViewer = {
+        loadStructure: function (structureText, format, label) {
+          whenReady(function () {
+            viewer.plugin.clear().then(function () {
+              viewer.loadStructureFromData(structureText, format, { dataLabel: label });
+            });
+          });
+        },
+        clear: function () {
+          whenReady(function () {
+            viewer.plugin.clear();
+          });
+        },
+      };
+
+      molstar.Viewer.create('app', {
+        layoutIsExpanded: false,
+        layoutShowControls: true,
+        layoutShowRemoteState: false,
+        layoutShowSequence: true,
+        layoutShowLog: false,
+        layoutShowLeftPanel: true,
+
+        viewportShowExpand: true,
+        viewportShowSelectionMode: false,
+        viewportShowAnimation: false,
+      }).then(function (createdViewer) {
+        viewer = createdViewer;
+        pendingCalls.forEach(function (fn) { fn(); });
+        pendingCalls = [];
+
+        // Forwards click events to Python — event.current is a Loci
+        // (mol-model/loci.d.ts); "empty-loci" means the user clicked on
+        // empty space, not a structural element.
+        viewer.subscribe(viewer.plugin.behaviors.interaction.click, function (event) {
+          // The underlying RxJS BehaviorSubject emits its initial/default
+          // value synchronously to a brand-new subscriber (before any real
+          // click), so both "no current loci at all" and "empty-loci" must
+          // be treated as "nothing was clicked."
+          if (bridge && event && event.current && event.current.kind && event.current.kind !== 'empty-loci') {
+            bridge.structureClicked(event.current.kind);
+          }
+        });
+
+        if (bridge) {
+          bridge.viewerReady();
+        } else {
+          // QWebChannel below hasn't finished connecting yet; tell it once
+          // it does (see the channel callback further down).
+          window.openchemMolstarViewerReadyPending = true;
+        }
+      });
+
+      if (window.qt && window.qt.webChannelTransport) {
+        // eslint-disable-next-line no-undef
+        new QWebChannel(window.qt.webChannelTransport, function (channel) {
+          bridge = channel.objects.bridge;
+          if (window.openchemMolstarViewerReadyPending) {
+            bridge.viewerReady();
+            window.openchemMolstarViewerReadyPending = false;
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
