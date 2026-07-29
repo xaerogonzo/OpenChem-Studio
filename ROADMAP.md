@@ -44,17 +44,49 @@
       token-by-token; the async `QRunnable` plumbing would support adding it later
 
 ## Phase 6 — Scientific extensions
-- [ ] PubChem / ChEMBL search
-- [ ] ORCA integration
-- [ ] Molecular docking
-- [ ] Reaction prediction / machine learning models
-- [ ] Mol*-based macromolecule/crystallography viewer — a second `ViewerBackend`
-      implementation (`src/openchem/ui/viewer_backend.py`) added as a sibling to
-      Phase 3's 3Dmol.js-based `Mol3DViewerBackend`, not a replacement for it.
-      Right tool for large biomolecular/PDB/crystal structures, which is also
-      where this phase's PubChem/ChEMBL/docking work will actually produce
-      structures worth viewing that way. No changes needed to domain/services/
-      commands to add it — see ARCHITECTURE.md.
+Five largely independent sub-phases, built and verified in order (6.1-6.5).
+
+- [x] 6.1 — PubChem / ChEMBL search (bundled `plugins/database_search/` plugin,
+      `DatabaseSearchProvider` ABC generic over "a chemical database with a REST
+      API" — `PubChemProvider`/`ChEMBLProvider` today, room for PDB/DrugBank/
+      BindingDB/local later). Search results import as a new molecule via
+      `context.molecules.add(...)`.
+- [x] 6.2 — Reaction prediction (bundled `plugins/reaction_prediction/` plugin):
+      `RDKitTemplateProvider` (deterministic, zero-config, bundled + user-data-dir
+      reaction-SMARTS templates) and an optional `RemoteReactionAPIProvider`
+      (documented default target: IBM RXN for Chemistry, kept genuinely
+      configurable, not hardcoded — its exact request/response contract was not
+      verified against a live account).
+- [x] 6.3 — Mol*-based macromolecule/crystallography viewer: `MolStarViewerBackend`,
+      a second `ViewerBackend` implementation (`src/openchem/ui/viewer_backend.py`)
+      added as a sibling to 3Dmol.js's `Mol3DViewerBackend`, not a replacement —
+      right tool for large biomolecular/PDB/crystal structures. New
+      `MacromoleculeModel` domain type (deliberately not RDKit-Mol-backed) and
+      "Import Macromolecule..." action.
+- [x] 6.4 — Molecular docking via AutoDock Vina: `DockingProvider` ABC +
+      `VinaDockingProvider`, receptor from a `MacromoleculeModel` (6.3), results
+      rendered in the Mol* viewer alongside the receptor. Vina itself runs through
+      a `VinaEngine` abstraction (`PythonVinaEngine` / `ExecutableVinaEngine`,
+      auto-selected) after the `vina` PyPI package turned out to have no
+      prebuilt Windows wheel.
+- [x] 6.5 — ORCA quantum chemistry integration (single-point energy, geometry
+      optimization, opt+freq thermochemistry): `QuantumEngineProvider` ABC +
+      `OrcaQuantumEngineProvider`, run via `QuantumChemistryService` — the one
+      service in this codebase using `QProcess` on the GUI thread instead of
+      `QRunnable`/`QThreadPool`, for real cancellation and live-streamed output.
+- [ ] *Deferred*: a `ReceptorPreparationPipeline` for proper docking receptor/ligand
+      prep (protonation states, waters/cofactors, missing-residue repair) — 6.4
+      ships with Open Babel's default hydrogen-addition prep only.
+- [ ] *Deferred*: a central `JobManager` unifying scheduling across
+      descriptors/conformers/docking/quantum-chemistry — a likely Phase 7+
+      "Calculation Framework" consolidation target; Phase 6 services were kept
+      deliberately thin and structurally uniform so that unification is easier
+      later, not harder.
+- [ ] *Deferred*: full mmCIF/BinaryCIF/MMTF ingestion beyond raw PDB text, rich
+      per-pose docking interaction analysis (H-bonds/clashes/pharmacophore),
+      plugin-provided reaction templates, and retrofitting the new `Provenance`
+      dataclass onto Phase 1-5 models — all explicitly logged as real gaps, not
+      silently dropped. See ARCHITECTURE.md's design-decisions section.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for how the codebase is structured to
 make Phases 3-6 additive rather than requiring a rewrite.

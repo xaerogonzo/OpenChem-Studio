@@ -31,14 +31,18 @@ subscribe by event type rather than by ad-hoc signal name.
 
 | Package | Responsibility |
 |---|---|
-| `openchem.domain` | Pure data: `MoleculeModel`, `ProjectModel`, `DescriptorValue`, `ConformerModel`, plus the shared `CacheState` enum (`domain/common.py`). No RDKit, no Qt. Molecules are identified by UUID, never filename or list position. |
-| `openchem.chem` | `ChemistryEngine` (MoleculeModel <-> RDKit Mol, canonicalization, and 3D measurement via `rdMolTransforms`), `DescriptorProvider`/`ConformerProvider` implementations, `Importer`/`Exporter` backends. The only place `rdkit`/`openbabel` are imported. |
-| `openchem.services` | `DescriptorService`, `ConformerService`, `MeasurementService`, `ImportService`, `ExportService`, `ProjectService`, plus `ProgressHandle` for cancellable/progress-reporting long operations. The async ones own `QThreadPool` execution and publish events. |
-| `openchem.commands` | `QUndoCommand` subclasses wrapping service calls, giving undo/redo for structure edits, conformer generation, and project operations from day one. |
-| `openchem.plugins` | `interfaces.py` (`Plugin`, `DescriptorProvider`, `ConformerProvider`, `PanelProvider`, `MenuProvider`, `Importer`, `Exporter`), `manifest.py` (`PluginManifest` + dependency topological sort), `context.py` (`PluginContext`, including the `context.secrets` namespace backed by the OS keychain via `keyring`), `ui_registry.py` (`UIRegistry` protocol), `manager.py` (`PluginManager` — discovery, transactional load/unload/reload, hot-reload watcher). See `PLUGIN_SDK.md`. |
+| `openchem.domain` | Pure data: `MoleculeModel`, `ProjectModel`, `DescriptorValue`, `ConformerModel`, `MacromoleculeModel`, `DockingBox`/`DockingPoseModel`/`DockingResultModel`, plus the shared `CacheState` enum and `Provenance` dataclass (`domain/common.py`). No RDKit, no Qt. Molecules (and macromolecules, and docking results) are identified by UUID, never filename or list position. |
+| `openchem.chem` | `ChemistryEngine` (MoleculeModel <-> RDKit Mol, canonicalization, 3D measurement via `rdMolTransforms`, and `formal_charge()` — the one place the UI layer can get a chemistry-derived default without importing rdkit itself), `DescriptorProvider`/`ConformerProvider`/`DockingProvider` implementations, `Importer`/`Exporter` backends, `vina_engine.py` (`VinaEngine` abstraction — see below), `orca_engine.py` (ORCA input building + output parsing). The only place `rdkit`/`openbabel` are imported. |
+| `openchem.services` | `DescriptorService`, `ConformerService`, `MeasurementService`, `ImportService`, `ExportService`, `ProjectService`, `DockingService`, `QuantumChemistryService`, plus `ProgressHandle` for cancellable/progress-reporting long operations. All but `QuantumChemistryService` own `QThreadPool` execution and publish events — `QuantumChemistryService` is the one exception (see design decisions below). |
+| `openchem.commands` | `QUndoCommand` subclasses wrapping service calls, giving undo/redo for structure edits, conformer generation, docking results, quantum-chemistry conformers, and project operations from day one. |
+| `openchem.plugins` | `interfaces.py` (`Plugin`, `DescriptorProvider`, `ConformerProvider`, `DockingProvider`, `QuantumEngineProvider`, `PanelProvider`, `MenuProvider`, `Importer`, `Exporter`), `manifest.py` (`PluginManifest` + dependency topological sort), `context.py` (`PluginContext`, including the `context.secrets` namespace backed by the OS keychain via `keyring`, and `context.molecules`/`context.docking`/`context.quantum_chemistry`), `ui_registry.py` (`UIRegistry` protocol), `manager.py` (`PluginManager` — discovery, transactional load/unload/reload, hot-reload watcher). See `PLUGIN_SDK.md`. |
 | `openchem.app` | Composition: `MainWindow`, typed `Settings`, `SessionManager`, structured logging setup. `MainWindow` implements the `UIRegistry` protocol and constructs `PluginManager` at the end of `__init__`. |
-| `openchem.ui` | Widgets and dock panels. `EditorBackend`/`KetcherEditorBackend` (2D, `resources/ketcher/dist/`) and `ViewerBackend`/`Mol3DViewerBackend` (3D, `resources/viewer3d/`, 3Dmol.js) are both interface + single-implementation pairs — either can be swapped or extended with a sibling implementation (e.g. a future Mol*-based viewer for macromolecules/crystallography) without touching chemistry, services, or commands. |
-| `plugins/ai_assistant` | Bundled first-party plugin (loads by default, unlike `examples/`). `providers.py` (`AIProvider` ABC, `AnthropicProvider`, `OpenAICompatibleProvider` covering OpenAI + local Ollama), `context_builder.py` (`MoleculeContextCache` — accumulates molecule identity/descriptors purely from subscribed events, same pattern as `PropertyPanel`), `panel.py` (chat UI, async `QRunnable` network calls), `plugin.py` (registers the panel + two menu-driven canned prompts). Kept out of core `openchem` so the `anthropic`/`openai` SDKs stay optional (`pyproject.toml`'s `ai` extra). |
+| `openchem.ui` | Widgets and dock panels. `EditorBackend`/`KetcherEditorBackend` (2D, `resources/ketcher/dist/`), `ViewerBackend`/`Mol3DViewerBackend` (3D small molecules, `resources/viewer3d/`, 3Dmol.js), and `ViewerBackend`/`MolStarViewerBackend` (macromolecules/crystallography, `resources/molstar/`, Mol*) are interface + implementation pairs — new content types get a sibling implementation, or a new optional capability method on the shared `ViewerBackend` base, without touching chemistry, services, or commands. `panels/docking_panel.py` and `panels/quantum_chemistry_panel.py` are core (not plugin) panels, same tier as `PropertyPanel`. |
+| `plugins/ai_assistant` | Bundled first-party plugin (loads by default, unlike `examples/`). `providers.py` (`AIProvider` ABC, `AnthropicProvider`, `OpenAICompatibleProvider` covering OpenAI + local Ollama), `context_builder.py` (`MoleculeContextCache` — accumulates molecule identity/descriptors purely from subscribed events, same pattern as `PropertyPanel`), `panel.py` (chat UI), `plugin.py` (registers the panel + two menu-driven canned prompts). Kept out of core `openchem` so the `anthropic`/`openai` SDKs stay optional (`pyproject.toml`'s `ai` extra). |
+| `plugins/database_search` | Bundled plugin: `DatabaseSearchProvider` ABC (`PubChemProvider`, `ChEMBLProvider`), search results import as a new molecule via `context.molecules.add(...)`. `requests` stays optional (`network` extra). |
+| `plugins/reaction_prediction` | Bundled plugin: `ReactionPredictor` ABC (`RDKitTemplateProvider` — deterministic, zero-config; `RemoteReactionAPIProvider` — optional, configured via `context.settings`/`context.secrets`). |
+
+All three bundled plugins share the same `QRunnable`+`Signal` off-GUI-thread pattern for network/provider calls, extracted into `openchem.plugins.async_task.run_async` after the third one made the duplication obvious — see `PLUGIN_SDK.md`.
 
 `tools/ketcher-host/` is a small separate Node/Vite project (not part of the
 Python package) that builds the static Ketcher bundle vendored into
@@ -58,6 +62,25 @@ step — `3Dmol-min.js` is vendored directly as a single dependency-free
 browser file (from the `3dmol` npm package's `build/` output, BSD-3-Clause),
 paired with a small hand-written static `viewer.html`. No Node/npm involved
 at all for this one.
+
+`src/openchem/resources/molstar/` (the macromolecule viewer) follows the
+same no-build-step pattern as `viewer3d/`, not Ketcher's: `molstar.js`/
+`.css` are the `molstar` npm package's own prebuilt `build/viewer/` output
+(MIT-licensed, `LICENSE` included), paired with a custom `viewer.html`
+adapted from Mol*'s own `build/viewer/embedded.html` example (its default
+`index.html` is a full demo UI, not what's wanted here).
+
+## Vendored library maintenance
+
+Confirm this against the actual installed package version before
+finalizing, rather than assuming an API from memory or documentation —
+`chem/vina_engine.py`'s `PythonVinaEngine` and `resources/molstar/viewer.html`
+were both written after reading (respectively) the real cached `vina`
+package source and a real Mol* spike, specifically because guessing from
+memory would have been wrong in small but real ways (e.g. Mol*'s click
+`BehaviorSubject` emits an initial value synchronously to a new subscriber,
+which reads as a false "click" unless the handler defensively checks for
+it).
 
 ## Design decisions worth remembering
 
@@ -140,6 +163,71 @@ at all for this one.
   rejected). `MainWindow.add_menu_action` connects through
   `lambda checked=False: callback()` so every `UIRegistry` caller genuinely
   only ever needs to handle the zero-argument case the protocol promises.
+- **`context.molecules.add(molecule)`** lets a plugin add a molecule to the
+  project through the same undoable path `MainWindow._new_molecule()` uses
+  — added when `database_search` needed to turn a search result into a real
+  project molecule and discovered `PluginContext` had no such path at all.
+- **A fire-and-forget async call must keep its own strong reference to
+  the in-flight task.** `openchem.plugins.async_task.run_async` (used by
+  all three bundled plugins) keeps a module-level `set` of in-flight
+  `PluginAsyncTask`s until each one's `finished`/`failed` signal fires —
+  confirmed directly that without this, `QThreadPool.start()`'s C++-side
+  ownership does not reliably protect a `QRunnable`'s Python wrapper (and
+  its child `QObject` signals) from CPython's own refcounting when no
+  caller holds the returned task, which every fire-and-forget button
+  handler here does.
+- **`Provenance`** (`domain/common.py`) — a shared `created_by`/`method`/
+  `parameters`/`timestamp` shape — is used on new Phase 6 models
+  (`DockingResultModel`) going forward, not retrofitted onto Phase 1-5
+  fields (`ConformerModel.method`/`.timestamp`, `DescriptorValue.provider`/
+  `.timestamp` already existed and are left alone).
+- **`MacromoleculeModel` is deliberately not RDKit-Mol-backed.** Full
+  proteins don't fit V2000 molblock assumptions well and aren't edited or
+  conformer-generated the way small molecules are — it stores raw
+  `structure_text`/`source_format` (matching Mol*'s own `"pdb"`/`"mmcif"`
+  vocabulary directly, no translation layer) instead.
+- **`DockingProvider` (which algorithm) is a different axis from
+  `VinaEngine` (how Vina itself runs).** The `vina` PyPI package has no
+  prebuilt Windows wheel (confirmed directly — building it needs Boost +
+  MSVC); rather than block on that, `chem/vina_engine.py` adds
+  `PythonVinaEngine` and `ExecutableVinaEngine` behind one interface,
+  auto-selected by `select_vina_engine()` (Python binding preferred, then a
+  configured/found executable, else a clear "no backend" error) — this also
+  sets up cleanly for smina/gnina/QuickVina later, a real anticipated need,
+  not speculative generality.
+- **`QuantumEngineProvider` has three pure methods
+  (`build_input`/`command_args`/`parse_output`), not one blocking `run()`.**
+  `QuantumChemistryService` owns the actual `QProcess` lifecycle entirely;
+  the provider never touches a subprocess, keeping input-building and
+  output-parsing trivially unit-testable without any process involved.
+- **`QuantumChemistryService` runs `QProcess` on the GUI thread — the one
+  deliberate exception to "async services use `QRunnable`/`QThreadPool`."**
+  `QProcess` is only safely usable from the thread that constructs it, and
+  ORCA jobs need real, immediate cancellation (`kill()` from a live Cancel
+  button, not "the next time a worker thread checks in") plus live-streamed
+  stdout — both fit `QProcess`/GUI-thread naturally, unlike a blocking
+  worker-thread subprocess call. Confirmed directly that killing a running
+  `QProcess` also fires `errorOccurred` (not just `finished`) — both
+  handlers pop the same job from the same dict, so both must check the
+  `cancelled` flag or a real cancellation gets misreported as a generic
+  crash.
+- **ORCA scratch directories are never derived from the project path.**
+  This project's own working directory contains a space
+  (`...\OpenChem Studio\`), which ORCA's documentation warns against —
+  every job's scratch directory is created under
+  `platformdirs.user_cache_dir(...)` instead, with cleanup guaranteed via
+  `try`/`finally` covering success, cancellation, crash, and parse-failure
+  alike.
+- **`AddConformerCommand` exists because `SetConformersCommand` replaces
+  the whole list.** ORCA (6.5) needs to add one optimized-geometry
+  conformer without wiping out whatever RDKit-generated conformers already
+  exist — `SetConformersCommand`'s wholesale-replace semantics would do
+  exactly that if reused as-is.
+- **Quantum-chemistry descriptor results reuse the existing
+  `DescriptorComputed` event, not a new display mechanism.** Descriptors
+  were never cached on the molecule to begin with (see above) — ORCA's
+  values are just another provider's `DescriptorValue`s, and `PropertyPanel`
+  already displays whatever it's given.
 
 ## Known TODOs
 
@@ -161,3 +249,35 @@ at all for this one.
 - `ai_assistant` has no tool-calling loop (the assistant can't request safe
   read operations like SMARTS validation itself) and no response streaming —
   both deliberately deferred out of Phase 5; see ROADMAP.md.
+- No `ReceptorPreparationPipeline` for docking (6.4): receptor/ligand prep is
+  Open Babel's default automatic hydrogen addition + PDBQT conversion only —
+  no protonation-state assignment, alternate-location handling, water/
+  cofactor treatment, or missing-residue repair. Stated in the docking
+  panel's own UI copy, not just here.
+- No central `JobManager`: `DescriptorService`/`ConformerService`/
+  `DockingService`/`QuantumChemistryService` each schedule their own work.
+  A likely Phase 7+ "Calculation Framework" consolidation target — Phase 6
+  services were kept deliberately thin and structurally uniform (same
+  `CacheState`/`Event`/`ProgressHandle` contract throughout) specifically so
+  that unification is easier later, not harder.
+- `MacromoleculeModel` only stores raw PDB/mmCIF text — no structured
+  chain/residue/assembly parsing, no BinaryCIF/MMTF support yet (the
+  `structure_text`/`source_format` field split makes room for it later
+  without another schema change).
+- `DockingPoseModel.metadata` and `RDKitTemplateProvider`'s
+  bundled-plus-user-dir templates are both extensibility points with
+  nothing built on them yet: rich per-pose interaction analysis (H-bonds,
+  clashes, pharmacophore contacts) and a formal `context.reactions.register(...)`-
+  style plugin-provided-templates namespace are both real gaps, not
+  silently dropped.
+- No `RemoteServicePlugin` base class exists yet for the network/async/
+  settings/secrets boilerplate common to `ai_assistant`/`database_search`/
+  `reaction_prediction` (only `run_async` was extracted) — revisit if a
+  fourth plugin needs the same shape.
+- No real Vina or ORCA execution was verified in this project's own
+  development environment: `vina` has no prebuilt Windows wheel here, and
+  neither a real Vina executable nor ORCA (both external, separately-
+  installed by the user) were downloaded/run directly. Both backends are
+  built and tested with the engine layer mocked/faked (including, for
+  ORCA, a genuinely real subprocess standing in for the executable) — a
+  live run needs the user's own installation to actually exercise.

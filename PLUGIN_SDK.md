@@ -112,6 +112,8 @@ tracked, so it can be reversed automatically (see "Unload and hot reload").
 |---|---|---|
 | `context.descriptors` | `.register(provider: DescriptorProvider)` | Add computed molecule properties, shown in the Properties panel. |
 | `context.conformers` | `.register(provider: ConformerProvider)` | Add a conformer-generation method (used via its `provider_id`). |
+| `context.docking` | `.register(provider: DockingProvider)` | Add a docking algorithm (used via its `provider_id`) — `"vina"` is the only built-in one. |
+| `context.quantum_chemistry` | `.register(provider: QuantumEngineProvider)` | Add a quantum-chemistry engine (used via its `provider_id`) — `"orca"` is the only built-in one. |
 | `context.importers` | `.register(importer: Importer)` | Add a file-import format, checked before the built-in RDKit/Open Babel backends. |
 | `context.exporters` | `.register(exporter: Exporter)` | Same, for export. |
 | `context.panels` | `.register(provider: PanelProvider)` | Add a new dock panel. |
