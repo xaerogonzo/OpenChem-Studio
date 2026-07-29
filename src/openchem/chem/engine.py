@@ -28,7 +28,18 @@ class ChemistryEngine:
         return self.mol_from_molblock(model.molblock)
 
     def mol_from_molblock(self, molblock: str) -> Chem.Mol:
-        mol = Chem.MolFromMolBlock(molblock)
+        # `removeHs=False` -- RDKit's default (True) converts any EXPLICIT
+        # hydrogen atom into implicit H-count on its neighbor, which keeps
+        # the molecular formula correct but silently discards that
+        # hydrogen's own 3D position entirely. Confirmed live: a conformer
+        # molblock built via Chem.AddHs() + embedding (RDKitConformerProvider,
+        # the normal path for real 3D geometry) round-tripped through the
+        # default here came back as a BARE HEAVY-ATOM-ONLY mol with no
+        # hydrogen positions at all -- for water, an oxygen atom with none
+        # of its two hydrogens, which OrcaQuantumEngineProvider.build_input
+        # then sent to ORCA as-is, silently computing the wrong molecule's
+        # energy instead of failing loudly.
+        mol = Chem.MolFromMolBlock(molblock, removeHs=False)
         if mol is None:
             raise InvalidStructureError("Could not parse molblock")
         return mol

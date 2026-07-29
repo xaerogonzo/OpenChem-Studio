@@ -186,6 +186,19 @@ class QuantumChemistryService(QObject):
             if job.cancelled:
                 self._publish_state(molecule_uuid, CacheState.FAILED, "Cancelled by user")
                 return
+            # `finished` can fire before Qt has delivered the LAST
+            # `readyReadStandardOutput` signal for data ORCA wrote right as
+            # it exited -- confirmed live: a short single-point job's
+            # output always arrived in time, but a longer geometry
+            # optimization's final "FINAL SINGLE POINT ENERGY"/"OPTIMIZATION
+            # RUN DONE" block was sporadically missing from `stdout_chunks`,
+            # even though the identical input ran to completion when
+            # invoked directly. Draining here guarantees nothing buffered
+            # is lost regardless of exactly when that last signal lands.
+            if job.process.bytesAvailable():
+                job.stdout_chunks.append(
+                    bytes(job.process.readAllStandardOutput()).decode("utf-8", errors="replace")
+                )
             output_text = "".join(job.stdout_chunks)
             try:
                 descriptors, conformer = job.provider.parse_output(

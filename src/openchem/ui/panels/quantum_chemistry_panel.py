@@ -137,11 +137,25 @@ class QuantumChemistryPanel(QWidget):
         if molecule is None or not molecule.molblock:
             self._status_label.setText("Select a molecule with a structure first.")
             return
+        if not molecule.conformers:
+            # Confirmed live against a real ORCA install: molecule.molblock
+            # alone (from SMILES import or the 2D editor) carries only
+            # heavy atoms -- hydrogens stay implicit, same as virtually
+            # every MOL/SDF representation -- so building an ORCA input
+            # straight from it silently sends an incomplete structure (a
+            # bare oxygen atom for water, not H2O) rather than failing
+            # loudly. RDKitConformerProvider._embed_one already calls
+            # Chem.AddHs() before embedding, so requiring a real conformer
+            # here guarantees explicit hydrogens with real 3D positions,
+            # not just a flatter/lower-quality geometry.
+            self._status_label.setText(
+                "Generate a 3D conformer first (Conformers panel) -- quantum chemistry "
+                "needs explicit hydrogens with real 3D positions, which the 2D editor's "
+                "structure alone doesn't have."
+            )
+            return
 
-        # Prefer an existing 3D conformer (from RDKit generation) over the
-        # molecule's own molblock, which may only carry 2D coordinates from
-        # the editor -- a quantum-chemistry job needs real 3D geometry.
-        molblock = molecule.conformers[0].molblock if molecule.conformers else molecule.molblock
+        molblock = molecule.conformers[0].molblock
         mol = self._chemistry_engine.mol_from_molblock(molblock)
 
         calc_type = _CALC_TYPE_LABELS[self._calc_type_combo.currentText()]

@@ -282,10 +282,35 @@ it).
   settings/secrets boilerplate common to `ai_assistant`/`database_search`/
   `reaction_prediction` (only `run_async` was extracted) — revisit if a
   fourth plugin needs the same shape.
-- No real Vina or ORCA execution was verified in this project's own
-  development environment: `vina` has no prebuilt Windows wheel here, and
-  neither a real Vina executable nor ORCA (both external, separately-
-  installed by the user) were downloaded/run directly. Both backends are
-  built and tested with the engine layer mocked/faked (including, for
-  ORCA, a genuinely real subprocess standing in for the executable) — a
-  live run needs the user's own installation to actually exercise.
+- **Vina and ORCA execution are now verified against real installed
+  backends** (issue #2): a real `vina_1.2.7_win.exe` and a real ORCA 6.1.1
+  install were pointed at end-to-end through `DockingPanel`/
+  `QuantumChemistryPanel` — real docking poses, and real single-point/
+  geometry-optimization/opt+freq ORCA results including thermochemistry.
+  `PythonVinaEngine`'s exact method sequence is still unverified (no `vina`
+  Python wheel on Windows; `ExecutableVinaEngine` is what actually ran and
+  is confirmed correct). Three real bugs surfaced only by this live testing,
+  all fixed:
+  - `ChemistryEngine.mol_from_molblock` used RDKit's default `removeHs=True`,
+    which silently discards a conformer's explicit hydrogen *positions* on
+    every round-trip (folded into implicit H-count on the heavy atom) — for
+    water this sent ORCA a bare oxygen atom instead of H2O, computing a
+    plausible-looking but chemically wrong energy with no error at all. Now
+    `removeHs=False`.
+  - `QuantumChemistryPanel._on_run_clicked` accepted a molecule with no 3D
+    conformer, falling back to its 2D-editor molblock — which, combined with
+    the bug above, is how the wrong-energy case above was reached in the
+    first place. Now refuses ("Generate a 3D conformer first") without one,
+    mirroring `DockingPanel`'s equivalent guard.
+  - `QuantumChemistryService._on_finished` could read `job.stdout_chunks`
+    before Qt delivered the QProcess's last `readyReadStandardOutput` signal
+    for output written right as the process exited — intermittently missing
+    a long job's final result block even though the identical input
+    completed correctly when run directly. Now drains any remaining
+    buffered bytes before parsing.
+  - Not a code bug, but worth recording: ORCA fails at startup
+    ("aborting the run") if its own *install* directory contains a space —
+    it spawns sibling helper binaries (`orca_startup`, etc.) with an
+    unquoted path internally. Distinct from the scratch/working directory
+    space requirement already noted above, which was already handled
+    correctly.

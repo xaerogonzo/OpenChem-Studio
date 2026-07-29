@@ -242,6 +242,52 @@ def test_quantum_chemistry_no_executable_configured_fails_immediately(qapp, tmp_
     assert not service._active_jobs
 
 
+class _LargeFinalBurstProvider(FakeQuantumEngineProvider):
+    """Generates its large payload AT RUNTIME inside the subprocess rather
+    than embedding it in the `-c` script argument itself -- a literal
+    ~200KB string baked into the command line blows past Windows' argument-
+    length limits and the process never starts. The marker is what matters:
+    it must survive to `parse_output` intact."""
+
+    MARKER = "END_MARKER_" + "x" * 100
+
+    def command_args(self, executable_path, input_path):
+        script = f"import sys; sys.stdout.write('y' * 200_000 + {self.MARKER!r}); sys.exit(0)"
+        return [executable_path, "-c", script]
+
+
+def test_quantum_chemistry_captures_full_output_for_a_large_final_burst(qapp, tmp_path):
+    """Regression test: confirmed live against a real ORCA install that
+    QProcess's `finished` signal can fire before Qt has delivered the LAST
+    `readyReadStandardOutput` chunk for data the process wrote right as it
+    exited -- a short job's output always arrived in time, but a longer
+    job's final "FINAL SINGLE POINT ENERGY"/"OPTIMIZATION RUN DONE" block
+    was sporadically missing from the captured text, even though the
+    identical input completed fine when run directly. `_on_finished` now
+    drains any remaining buffered bytes before parsing -- this pumps a
+    large (~200KB), single burst of output right before exit to exercise
+    that path.
+    """
+    provider = _LargeFinalBurstProvider()
+    service, bus = _make_service(tmp_path, provider)
+    states = []
+    bus.subscribe(QuantumChemistryJobStateChanged, lambda e: states.append(e.state))
+
+    service.request_calculation(
+        mol=Chem.MolFromSmiles("CCO"),
+        molecule_uuid="mol-1",
+        calc_type="sp",
+        charge=0,
+        multiplicity=1,
+        method_basis="B3LYP def2-SVP",
+        provider_id="fake",
+    )
+    assert _wait_until(qapp, lambda: states and states[-1] in (CacheState.COMPLETED, CacheState.FAILED))
+
+    assert states[-1] == CacheState.COMPLETED
+    assert _LargeFinalBurstProvider.MARKER in provider.parse_calls[0]
+
+
 def test_quantum_chemistry_unknown_provider_fails_immediately(qapp, tmp_path):
     bus = EventBus()
     settings = Settings(bus)

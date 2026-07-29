@@ -125,6 +125,18 @@ verification never exercised.
       before anything downloads. ORCA is registration/EULA-gated with no
       public direct-download URL, so it only ever gets a Browse button plus
       a link to the official download page.
+- [x] 7.6 — Vina and ORCA verified end-to-end against real installed
+      backends (closes issue #2): real docking through `DockingPanel` and
+      real single-point/geometry-optimization/opt+freq ORCA runs (with
+      correct thermochemistry) through `QuantumChemistryPanel`. Surfaced —
+      and fixed — three real bugs no mock/fake engine could have caught:
+      `ChemistryEngine.mol_from_molblock` was silently discarding a
+      conformer's explicit-hydrogen *positions* on every round-trip
+      (RDKit's `removeHs=True` default), `QuantumChemistryPanel` accepted a
+      molecule with no 3D conformer at all, and
+      `QuantumChemistryService._on_finished` could read a QProcess's output
+      before Qt delivered its last buffered chunk. See ARCHITECTURE.md's
+      "Known TODOs" for the full detail on each.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for how the codebase is structured to
 make Phases 3-6 additive rather than requiring a rewrite.
