@@ -34,3 +34,25 @@ class SetConformersCommand(OpenChemCommand):
     def undo(self) -> None:
         self._molecule.conformers = list(self._old_conformers)
         self._event_bus.publish(ConformersChanged(molecule_uuid=self._molecule.uuid))
+
+
+class AddConformerCommand(OpenChemCommand):
+    """Appends a single conformer without touching the existing set —
+    unlike `SetConformersCommand`, which replaces the whole list wholesale.
+    Needed for ORCA (6.5): an optimized geometry should be added alongside
+    whatever RDKit-generated conformers already exist, not wipe them.
+    """
+
+    def __init__(self, molecule: MoleculeModel, new_conformer: ConformerModel, event_bus: EventBus) -> None:
+        super().__init__(f"Add conformer ({new_conformer.method}) to '{molecule.display_name}'")
+        self._molecule = molecule
+        self._new_conformer = new_conformer
+        self._event_bus = event_bus
+
+    def redo(self) -> None:
+        self._molecule.conformers.append(self._new_conformer)
+        self._event_bus.publish(ConformersChanged(molecule_uuid=self._molecule.uuid))
+
+    def undo(self) -> None:
+        self._molecule.conformers.remove(self._new_conformer)
+        self._event_bus.publish(ConformersChanged(molecule_uuid=self._molecule.uuid))

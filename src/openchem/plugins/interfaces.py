@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from rdkit import Chem
 
+from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.docking import DockingBox, DockingPoseModel
 from openchem.domain.molecule import MoleculeModel
@@ -117,6 +118,57 @@ class DockingProvider(ABC):
         structure data, not pre-converted files. Reports phase-labeled
         progress via `progress.report(...)` (e.g. "Preparing receptor",
         "Docking", "Scoring")."""
+
+
+class QuantumEngineProvider(ABC):
+    """Which quantum-chemistry engine runs a calculation — `OrcaQuantumEngineProvider`
+    (chem/orca_engine.py) is the only implementation today, but quantum-
+    chemistry engines are a well-established, obviously-multi-implementation
+    category regardless (xTB, Psi4, NWChem, Gaussian, MOPAC, CREST are all
+    real, commonly-used alternatives) — matching a known scientific
+    taxonomy at near-zero extra cost, not premature generality.
+
+    Deliberately three pure, synchronous methods rather than one blocking
+    `run()`: `QuantumChemistryService` runs the actual engine via `QProcess`
+    **on the GUI thread** (unlike every other async service in this
+    codebase, which uses `QRunnable`/`QThreadPool` — see
+    `services/quantum_chemistry_service.py`'s docstring for why), so the
+    provider itself must never own subprocess/thread lifecycle — only
+    input-building and output-parsing, both trivially unit-testable without
+    any process involved.
+    """
+
+    provider_id: str
+
+    @abstractmethod
+    def build_input(
+        self, mol: Chem.Mol, charge: int, multiplicity: int, method_basis: str, calc_type: str
+    ) -> str:
+        """Returns the engine's own input-file text. `calc_type` is "sp",
+        "opt", or "opt_freq"."""
+
+    @abstractmethod
+    def command_args(self, executable_path: str, input_path: Path) -> list[str]:
+        """How to invoke this engine's executable for `input_path` — e.g.
+        `["orca", str(input_path)]`. A different future engine may have a
+        different CLI convention (a separate output-file argument, etc.),
+        hence this being part of the provider, not hardcoded in the
+        service."""
+
+    @abstractmethod
+    def parse_output(
+        self, output_text: str, mol: Chem.Mol, molecule_uuid: str, calc_type: str
+    ) -> tuple[list[DescriptorValue], ConformerModel | None]:
+        """Parses the engine's own captured stdout into results. `mol` (the
+        same one passed to `build_input`) is needed to reconstruct an
+        optimized-geometry conformer onto the original connectivity — the
+        engine's output gives element symbols + coordinates, not bonds.
+        `molecule_uuid` only stamps the returned `DescriptorValue`s (same
+        convention as `DescriptorProvider.compute`), not used for lookup.
+        Returns however many `DescriptorValue`s the output actually yields
+        (SCF energy always; thermochemistry only for "opt_freq") plus an
+        optimized-geometry `ConformerModel` for "opt"/"opt_freq" (`None`
+        for "sp")."""
 
 
 class PanelProvider(ABC):

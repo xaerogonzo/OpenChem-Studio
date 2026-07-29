@@ -1,0 +1,230 @@
+from __future__ import annotations
+
+from PySide6.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QFileDialog,
+    QFormLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPlainTextEdit,
+    QPushButton,
+    QSpinBox,
+    QVBoxLayout,
+    QWidget,
+)
+
+from openchem.app.settings import Settings
+from openchem.chem.engine import ChemistryEngine
+from openchem.domain.project import ProjectModel
+from openchem.events.base import EventBus
+from openchem.events.events import QuantumChemistryJobStateChanged, QuantumChemistryResultReady
+from openchem.services.quantum_chemistry_service import QuantumChemistryService
+
+_CALC_TYPE_LABELS = {
+    "Single Point": "sp",
+    "Geometry Optimization": "opt",
+    "Optimization + Frequency": "opt_freq",
+}
+_METHOD_BASIS_PRESETS = ["B3LYP def2-SVP", "PBE0 def2-TZVP", "B3LYP 6-31G(d)"]
+
+
+class _OrcaPathDialog(QDialog):
+    def __init__(self, settings: Settings, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Configure ORCA")
+        self._settings = settings
+
+        self._path_edit = QLineEdit(self)
+        self._path_edit.setText(settings.get("orca/executable_path", ""))
+        browse_button = QPushButton("Browse...", self)
+        browse_button.clicked.connect(self._on_browse_clicked)
+
+        path_row = QHBoxLayout()
+        path_row.addWidget(self._path_edit)
+        path_row.addWidget(browse_button)
+
+        form = QFormLayout()
+        form.addRow("ORCA executable:", path_row)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+
+        layout = QVBoxLayout(self)
+        layout.addLayout(form)
+        layout.addWidget(buttons)
+
+    def _on_browse_clicked(self) -> None:
+        path_str, _ = QFileDialog.getOpenFileName(self, "Select ORCA executable")
+        if path_str:
+            self._path_edit.setText(path_str)
+
+    def accept(self) -> None:
+        self._settings.set("orca/executable_path", self._path_edit.text())
+        super().accept()
+
+
+class QuantumChemistryPanel(QWidget):
+    """Pick a molecule from the current project, configure a calculation,
+    and run it via whichever `QuantumEngineProvider` is registered
+    (`OrcaQuantumEngineProvider` is the only one today). Streams ORCA's
+    stdout live and shows a summary once results arrive.
+    """
+
+    def __init__(
+        self,
+        quantum_chemistry_service: QuantumChemistryService,
+        chemistry_engine: ChemistryEngine,
+        settings: Settings,
+        event_bus: EventBus,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._quantum_chemistry_service = quantum_chemistry_service
+        self._chemistry_engine = chemistry_engine
+        self._settings = settings
+        self._project: ProjectModel | None = None
+        self._pending_molecule_uuid: str | None = None
+
+        self._molecule_combo = QComboBox(self)
+        self._molecule_combo.currentIndexChanged.connect(self._on_molecule_changed)
+
+        self._calc_type_combo = QComboBox(self)
+        self._calc_type_combo.addItems(list(_CALC_TYPE_LABELS.keys()))
+
+        self._charge_spin = QSpinBox(self)
+        self._charge_spin.setRange(-10, 10)
+
+        self._multiplicity_spin = QSpinBox(self)
+        self._multiplicity_spin.setRange(1, 10)
+        self._multiplicity_spin.setValue(1)
+
+        self._method_combo = QComboBox(self)
+        self._method_combo.setEditable(True)
+        self._method_combo.addItems(_METHOD_BASIS_PRESETS)
+
+        self._configure_button = QPushButton("Configure ORCA...", self)
+        self._configure_button.clicked.connect(self._on_configure_clicked)
+
+        self._run_button = QPushButton("Run", self)
+        self._run_button.clicked.connect(self._on_run_clicked)
+        self._cancel_button = QPushButton("Cancel", self)
+        self._cancel_button.setEnabled(False)
+        self._cancel_button.clicked.connect(self._on_cancel_clicked)
+
+        self._status_label = QLabel("", self)
+        self._output_log = QPlainTextEdit(self)
+        self._output_log.setReadOnly(True)
+        self._results_label = QLabel("", self)
+        self._results_label.setWordWrap(True)
+
+        form = QFormLayout()
+        form.addRow("Molecule:", self._molecule_combo)
+        form.addRow("Calculation:", self._calc_type_combo)
+        form.addRow("Charge:", self._charge_spin)
+        form.addRow("Multiplicity:", self._multiplicity_spin)
+        form.addRow("Method/basis:", self._method_combo)
+
+        run_row = QHBoxLayout()
+        run_row.addWidget(self._configure_button)
+        run_row.addWidget(self._run_button)
+        run_row.addWidget(self._cancel_button)
+
+        layout = QVBoxLayout(self)
+        layout.addLayout(form)
+        layout.addLayout(run_row)
+        layout.addWidget(self._status_label)
+        layout.addWidget(self._output_log)
+        layout.addWidget(self._results_label)
+
+        event_bus.subscribe(QuantumChemistryJobStateChanged, self._on_job_state_changed)
+        event_bus.subscribe(QuantumChemistryResultReady, self._on_result_ready)
+
+    def set_project(self, project: ProjectModel | None) -> None:
+        self._project = project
+        self._refresh_molecule_combo()
+
+    def _refresh_molecule_combo(self) -> None:
+        self._molecule_combo.clear()
+        if self._project is None:
+            return
+        for molecule in self._project.molecules:
+            self._molecule_combo.addItem(molecule.display_name, molecule.uuid)
+
+    def _current_molecule(self):
+        if self._project is None:
+            return None
+        molecule_uuid = self._molecule_combo.currentData()
+        if molecule_uuid is None:
+            return None
+        return self._project.find_molecule(molecule_uuid)
+
+    def _on_molecule_changed(self, _index: int) -> None:
+        molecule = self._current_molecule()
+        if molecule is not None and molecule.molblock:
+            self._charge_spin.setValue(self._chemistry_engine.formal_charge(molecule))
+
+    def _on_configure_clicked(self) -> None:
+        dialog = _OrcaPathDialog(self._settings, self)
+        dialog.exec()
+
+    def _on_run_clicked(self) -> None:
+        molecule = self._current_molecule()
+        if molecule is None or not molecule.molblock:
+            self._status_label.setText("Select a molecule with a structure first.")
+            return
+
+        # Prefer an existing 3D conformer (from RDKit generation) over the
+        # molecule's own molblock, which may only carry 2D coordinates from
+        # the editor -- a quantum-chemistry job needs real 3D geometry.
+        molblock = molecule.conformers[0].molblock if molecule.conformers else molecule.molblock
+        mol = self._chemistry_engine.mol_from_molblock(molblock)
+
+        calc_type = _CALC_TYPE_LABELS[self._calc_type_combo.currentText()]
+        method_basis = self._method_combo.currentText().strip()
+        if not method_basis:
+            self._status_label.setText("Enter a method/basis (e.g. 'B3LYP def2-SVP').")
+            return
+
+        self._pending_molecule_uuid = molecule.uuid
+        self._run_button.setEnabled(False)
+        self._cancel_button.setEnabled(True)
+        self._output_log.clear()
+        self._results_label.setText("")
+        self._status_label.setText("queued")
+
+        self._quantum_chemistry_service.request_calculation(
+            mol=mol,
+            molecule_uuid=molecule.uuid,
+            calc_type=calc_type,
+            charge=self._charge_spin.value(),
+            multiplicity=self._multiplicity_spin.value(),
+            method_basis=method_basis,
+        )
+
+    def _on_cancel_clicked(self) -> None:
+        if self._pending_molecule_uuid is not None:
+            self._quantum_chemistry_service.cancel(self._pending_molecule_uuid)
+
+    def _on_job_state_changed(self, event: QuantumChemistryJobStateChanged) -> None:
+        if event.molecule_uuid != self._pending_molecule_uuid:
+            return
+        self._status_label.setText(event.state.value)
+        if event.message:
+            self._output_log.appendPlainText(event.message)
+        if event.state.value in ("completed", "failed"):
+            self._run_button.setEnabled(True)
+            self._cancel_button.setEnabled(False)
+
+    def _on_result_ready(self, event: QuantumChemistryResultReady) -> None:
+        if event.molecule_uuid != self._pending_molecule_uuid:
+            return
+        lines = [f"{d.name}: {d.value:.6f} {d.units}" for d in event.descriptors]
+        if event.conformer is not None:
+            lines.append("Optimized geometry added as a new conformer.")
+        self._results_label.setText("\n".join(lines))

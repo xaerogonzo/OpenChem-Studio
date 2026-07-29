@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QDockWidget, QFileDialog, QMainWindow, QMessageBox
 
 from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
-from openchem.commands.conformer_commands import SetConformersCommand
+from openchem.commands.conformer_commands import AddConformerCommand, SetConformersCommand
 from openchem.commands.docking_commands import SetDockingResultCommand
 from openchem.commands.import_export_commands import ExportMoleculeCommand, ImportMoleculeCommand
 from openchem.commands.macromolecule_commands import AddMacromoleculeCommand
@@ -21,12 +21,14 @@ from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.events.events import (
     ConformersReady,
+    DescriptorComputed,
     DockingResultReady,
     MoleculeChanged,
     MoleculeSelected,
     MoleculeSnapshotUpdated,
     PluginLoaded,
     PluginUnloaded,
+    QuantumChemistryResultReady,
 )
 from openchem.plugins.manager import PluginManager
 from openchem.services.container import ServiceContainer
@@ -34,6 +36,7 @@ from openchem.ui.panels.console_panel import ConsolePanel
 from openchem.ui.panels.docking_panel import DockingPanel
 from openchem.ui.panels.project_explorer_panel import ProjectExplorerPanel
 from openchem.ui.panels.property_panel import PropertyPanel
+from openchem.ui.panels.quantum_chemistry_panel import QuantumChemistryPanel
 from openchem.ui.widgets.molecule_editor_widget import MoleculeEditorWidget
 from openchem.ui.widgets.molecule_viewer3d_widget import MoleculeViewer3DWidget
 from openchem.ui.widgets.molstar_viewer_backend import MolStarViewerBackend
@@ -84,11 +87,15 @@ class MainWindow(QMainWindow):
         self._docking_panel = DockingPanel(
             services.docking_service, services.chemistry_engine, services.event_bus, self
         )
+        self._quantum_chemistry_panel = QuantumChemistryPanel(
+            services.quantum_chemistry_service, services.chemistry_engine, self._settings, services.event_bus, self
+        )
 
         self._add_dock("Project Explorer", self._project_explorer, Qt.DockWidgetArea.LeftDockWidgetArea)
         self._add_dock("Properties", self._property_panel, Qt.DockWidgetArea.RightDockWidgetArea)
         self._add_dock("Console", self._console_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         self._add_dock("Docking", self._docking_panel, Qt.DockWidgetArea.RightDockWidgetArea)
+        self._add_dock("Quantum Chemistry", self._quantum_chemistry_panel, Qt.DockWidgetArea.RightDockWidgetArea)
 
         self._build_menus()
 
@@ -96,6 +103,7 @@ class MainWindow(QMainWindow):
         services.event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
         services.event_bus.subscribe(ConformersReady, self._on_conformers_ready)
         services.event_bus.subscribe(DockingResultReady, self._on_docking_result_ready)
+        services.event_bus.subscribe(QuantumChemistryResultReady, self._on_quantum_chemistry_result_ready)
         services.event_bus.subscribe(PluginLoaded, self._on_plugins_state_changed)
         services.event_bus.subscribe(PluginUnloaded, self._on_plugins_state_changed)
 
@@ -167,6 +175,7 @@ class MainWindow(QMainWindow):
         self._session.set_project(project)
         self._project_explorer.set_project(project)
         self._docking_panel.set_project(project)
+        self._quantum_chemistry_panel.set_project(project)
         self.setWindowTitle(f"OpenChem Studio - {project.name}")
 
     def _open_project(self) -> None:
@@ -316,6 +325,27 @@ class MainWindow(QMainWindow):
         if molecule is None or molecule.uuid != event.molecule_uuid:
             return
         command = SetConformersCommand(molecule, event.conformers, self._services.event_bus)
+        self._undo_stack.push(command)
+
+    def _on_quantum_chemistry_result_ready(self, event: QuantumChemistryResultReady) -> None:
+        # Descriptors reuse the EXISTING DescriptorComputed mechanism
+        # (PropertyPanel already displays these) rather than inventing a
+        # separate quantum-chemistry-specific display path -- descriptors
+        # were never cached on the molecule to begin with (see
+        # ARCHITECTURE.md), so ORCA's results are just another provider's
+        # values, not a special case.
+        for descriptor in event.descriptors:
+            self._services.event_bus.publish(DescriptorComputed(descriptor=descriptor))
+
+        if event.conformer is None:
+            return
+        molecule = self._session.project.find_molecule(event.molecule_uuid) if self._session.project else None
+        if molecule is None:
+            return
+        # AddConformerCommand, not SetConformersCommand -- an ORCA-optimized
+        # geometry is added alongside whatever conformers already exist,
+        # never wiping them out.
+        command = AddConformerCommand(molecule, event.conformer, self._services.event_bus)
         self._undo_stack.push(command)
 
     def _on_docking_result_ready(self, event: DockingResultReady) -> None:

@@ -116,3 +116,17 @@ class DockingJobStateChanged(Event):
 @dataclass(frozen=True)
 class DockingResultReady(Event):
     result: DockingResultModel
+
+
+@dataclass(frozen=True)
+class QuantumChemistryJobStateChanged(Event):
+    molecule_uuid: str
+    state: CacheState
+    message: str = ""
+
+
+@dataclass(frozen=True)
+class QuantumChemistryResultReady(Event):
+    molecule_uuid: str
+    descriptors: list[DescriptorValue]
+    conformer: ConformerModel | None

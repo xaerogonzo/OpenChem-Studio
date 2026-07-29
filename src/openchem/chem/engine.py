@@ -42,6 +42,12 @@ class ChemistryEngine:
             raise InvalidStructureError(f"Could not parse SMILES: {smiles!r}")
         return mol
 
+    def formal_charge(self, model: MoleculeModel) -> int:
+        """Sum of RDKit formal charges — used as a sensible default charge
+        for a quantum-chemistry job (6.5), never guessed in the UI layer
+        since only this module ever imports rdkit."""
+        return Chem.GetFormalCharge(self.mol_from_model(model))
+
     def canonicalize(self, model: MoleculeModel) -> MoleculeModel:
         """Recompute canonical_smiles/inchi/inchikey from model.molblock, in place."""
         mol = self.mol_from_model(model)

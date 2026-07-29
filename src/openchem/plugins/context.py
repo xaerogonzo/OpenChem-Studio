@@ -18,6 +18,7 @@ from openchem.plugins.interfaces import (
     Importer,
     MenuProvider,
     PanelProvider,
+    QuantumEngineProvider,
 )
 from openchem.plugins.ui_registry import UIRegistry
 from openchem.services.container import ServiceContainer
@@ -111,6 +112,16 @@ class _DockingRegistrar:
         self._rollbacks.append(lambda: self._service.unregister_provider(provider.provider_id))
 
 
+class _QuantumChemistryRegistrar:
+    def __init__(self, service, rollbacks: list[Rollback]) -> None:
+        self._service = service
+        self._rollbacks = rollbacks
+
+    def register(self, provider: QuantumEngineProvider) -> None:
+        self._service.register_provider(provider)
+        self._rollbacks.append(lambda: self._service.unregister_provider(provider.provider_id))
+
+
 class _ImporterRegistrar:
     def __init__(self, service, rollbacks: list[Rollback]) -> None:
         self._service = service
@@ -179,9 +190,9 @@ class PluginContext:
     through (transactional activation, see `PluginManager`).
 
     Grouped into small namespaces (`descriptors`, `conformers`, `docking`,
-    `importers`, `exporters`, `panels`, `menus`, `events`, `settings`,
-    `secrets`, `molecules`) rather than one flat pile of `register_*`
-    methods on this class directly.
+    `quantum_chemistry`, `importers`, `exporters`, `panels`, `menus`,
+    `events`, `settings`, `secrets`, `molecules`) rather than one flat pile
+    of `register_*` methods on this class directly.
 
     Deliberately does not expose the raw `EventBus`, `ServiceContainer`, or
     any concrete window/UI object — only these narrow registration
@@ -205,6 +216,7 @@ class PluginContext:
         self.descriptors = _DescriptorRegistrar(services.descriptor_service, self._rollbacks)
         self.conformers = _ConformerRegistrar(services.conformer_service, self._rollbacks)
         self.docking = _DockingRegistrar(services.docking_service, self._rollbacks)
+        self.quantum_chemistry = _QuantumChemistryRegistrar(services.quantum_chemistry_service, self._rollbacks)
         self.importers = _ImporterRegistrar(services.import_service, self._rollbacks)
         self.exporters = _ExporterRegistrar(services.export_service, self._rollbacks)
         self.panels = _PanelRegistrar(ui_registry, self._rollbacks)
