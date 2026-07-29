@@ -273,6 +273,7 @@ class MainWindow(QMainWindow):
         command = AddMoleculeCommand(self._session.project, molecule, self._services.event_bus)
         self._undo_stack.push(command)
         self._project_explorer.refresh()
+        self._refresh_molecule_combos()
         self._services.event_bus.publish(MoleculeSelected(molecule_uuid=molecule.uuid))
 
     def _import_molecule(self) -> None:
@@ -294,6 +295,7 @@ class MainWindow(QMainWindow):
             logger.exception("Import failed")
             QMessageBox.critical(self, "Import failed", str(exc))
         self._project_explorer.refresh()
+        self._refresh_molecule_combos()
 
     def _export_molecule(self) -> None:
         molecule = self._current_molecule()
@@ -347,6 +349,21 @@ class MainWindow(QMainWindow):
             macromolecule.structure_text, macromolecule.source_format
         )
         self._center_tabs.setCurrentWidget(self._macromolecule_viewer.widget())
+        self._refresh_molecule_combos()
+
+    def _refresh_molecule_combos(self) -> None:
+        """DockingPanel's receptor/ligand combos and QuantumChemistryPanel's
+        molecule combo are only populated when `set_project` runs (project
+        open/new) -- confirmed live: a molecule or macromolecule added
+        afterward (File > New Molecule, an import, a plugin search result,
+        or the empty-project auto-create in `_set_project`) never appeared
+        in either dropdown, making them look permanently broken/unusable.
+        `set_project` just re-reads the current project's lists, so calling
+        it again here is a cheap, correct refresh -- same project object,
+        no re-selection side effects beyond what a combo repopulate implies.
+        """
+        self._docking_panel.set_project(self._session.project)
+        self._quantum_chemistry_panel.set_project(self._session.project)
 
     # --- event handlers --------------------------------------------------------
 

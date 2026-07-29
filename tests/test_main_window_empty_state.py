@@ -33,6 +33,69 @@ def test_new_project_auto_creates_and_selects_a_blank_molecule(qapp, tmp_path):
     assert window._editor._molecule is auto_created
 
 
+def test_auto_created_molecule_appears_in_docking_and_quantum_chemistry_combos(qapp, tmp_path):
+    """Regression test: DockingPanel's ligand combo and QuantumChemistryPanel's
+    molecule combo are only populated when set_project runs (project open/
+    new) -- confirmed live that a molecule added afterward (including the
+    empty-project auto-create above) never appeared in either dropdown,
+    making them look permanently unusable ('clicking the dropdown arrow
+    does nothing'). add_molecule/_import_molecule/add_macromolecule must
+    also refresh both panels' combos."""
+    window, session, _ = _make_window(tmp_path)
+    auto_created = session.project.molecules[0]
+
+    ligand_items = [
+        window._docking_panel._ligand_combo.itemText(i)
+        for i in range(window._docking_panel._ligand_combo.count())
+    ]
+    molecule_items = [
+        window._quantum_chemistry_panel._molecule_combo.itemText(i)
+        for i in range(window._quantum_chemistry_panel._molecule_combo.count())
+    ]
+    assert auto_created.display_name in ligand_items
+    assert auto_created.display_name in molecule_items
+
+
+def test_a_second_added_molecule_also_appears_in_both_combos(qapp, tmp_path):
+    window, session, _ = _make_window(tmp_path)
+
+    window._new_molecule()
+    second = session.project.molecules[-1]
+
+    ligand_combo_data = [
+        window._docking_panel._ligand_combo.itemData(i)
+        for i in range(window._docking_panel._ligand_combo.count())
+    ]
+    molecule_combo_data = [
+        window._quantum_chemistry_panel._molecule_combo.itemData(i)
+        for i in range(window._quantum_chemistry_panel._molecule_combo.count())
+    ]
+    # Both combos store the uuid as item data (see _refresh_combos/
+    # _refresh_molecule_combo) -- check by uuid, not display name, since two
+    # molecules can share the default "New molecule" name.
+    assert second.uuid in ligand_combo_data
+    assert second.uuid in molecule_combo_data
+    assert len(ligand_combo_data) == 2
+    assert len(molecule_combo_data) == 2
+
+
+def test_added_macromolecule_appears_in_docking_receptor_combo(qapp, tmp_path):
+    from openchem.domain.macromolecule import MacromoleculeModel
+
+    window, _, _ = _make_window(tmp_path)
+    macromolecule = MacromoleculeModel(
+        display_name="Test receptor", structure_text="HEADER\nATOM\nEND\n", source_format="pdb"
+    )
+
+    window.add_macromolecule(macromolecule)
+
+    receptor_items = [
+        window._docking_panel._receptor_combo.itemText(i)
+        for i in range(window._docking_panel._receptor_combo.count())
+    ]
+    assert "Test receptor" in receptor_items
+
+
 def test_new_molecule_action_still_works_after_auto_create(qapp, tmp_path):
     """The auto-create-on-empty-project fix must not swallow File > New
     Molecule -- a project that already has the auto-created molecule
