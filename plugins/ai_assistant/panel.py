@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import html
 
-from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -18,6 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.plugins.async_task import run_async
 from openchem.plugins.context import PluginContext
 
 from .context_builder import MoleculeContextCache
@@ -30,36 +30,6 @@ SYSTEM_PROMPT_PREFIX = (
     "themselves. Never claim to have modified the user's project yourself — "
     "you have no ability to. Here is the currently selected molecule:\n\n"
 )
-
-
-class _CompletionSignals(QObject):
-    finished = Signal(object)  # AIResponse
-    failed = Signal(str)
-
-
-class _CompletionTask(QRunnable):
-    """Runs one provider.complete() call off the GUI thread — same
-    off-thread pattern DescriptorService/ConformerService use. Results
-    come back via this small QObject's signals, the same cross-thread-safe
-    marshaling EventBus itself relies on (signal/slot connections queue
-    onto the receiver's thread automatically).
-    """
-
-    def __init__(self, provider: AIProvider, request: AIRequest) -> None:
-        super().__init__()
-        self._provider = provider
-        self._request = request
-        self.signals = _CompletionSignals()
-
-    def run(self) -> None:
-        try:
-            response = self._provider.complete(self._request)
-        except AIProviderError as exc:
-            self.signals.failed.emit(str(exc))
-        except Exception as exc:  # noqa: BLE001 - never let an unexpected error escape the pool
-            self.signals.failed.emit(f"Unexpected error: {exc}")
-        else:
-            self.signals.finished.emit(response)
 
 
 class _ProviderSettingsDialog(QDialog):
@@ -182,10 +152,7 @@ class AIAssistantPanel(QWidget):
         )
 
         self._send_button.setEnabled(False)
-        task = _CompletionTask(provider, request)
-        task.signals.finished.connect(self._on_response)
-        task.signals.failed.connect(self._on_error)
-        QThreadPool.globalInstance().start(task)
+        run_async(lambda: provider.complete(request), AIProviderError, self._on_response, self._on_error)
 
     def _on_response(self, response: AIResponse) -> None:
         self._send_button.setEnabled(True)

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
@@ -16,6 +15,7 @@ from PySide6.QtWidgets import (
 from rdkit import Chem
 
 from openchem.domain.molecule import MoleculeModel
+from openchem.plugins.async_task import run_async
 from openchem.plugins.context import PluginContext
 
 from .providers import DatabaseSearchError, DatabaseSearchProvider, SearchResult
@@ -42,33 +42,6 @@ def _molecule_from_smiles(display_name: str, smiles: str) -> MoleculeModel:
     model.inchi = inchi or None
     model.inchikey = Chem.InchiToInchiKey(inchi) if inchi else None
     return model
-
-
-class _SearchSignals(QObject):
-    finished = Signal(list)  # list[SearchResult]
-    failed = Signal(str)
-
-
-class _SearchTask(QRunnable):
-    """Runs one provider.search() call off the GUI thread — same pattern as
-    ai_assistant's _CompletionTask."""
-
-    def __init__(self, provider: DatabaseSearchProvider, query: str, query_type: str) -> None:
-        super().__init__()
-        self._provider = provider
-        self._query = query
-        self._query_type = query_type
-        self.signals = _SearchSignals()
-
-    def run(self) -> None:
-        try:
-            results = self._provider.search(self._query, self._query_type)
-        except DatabaseSearchError as exc:
-            self.signals.failed.emit(str(exc))
-        except Exception as exc:  # noqa: BLE001 - never let an unexpected error escape the pool
-            self.signals.failed.emit(f"Unexpected error: {exc}")
-        else:
-            self.signals.finished.emit(results)
 
 
 class DatabaseSearchPanel(QWidget):
@@ -137,10 +110,9 @@ class DatabaseSearchPanel(QWidget):
 
         self._search_button.setEnabled(False)
         self._status_label.setText("Searching...")
-        task = _SearchTask(provider, query, query_type)
-        task.signals.finished.connect(self._on_results)
-        task.signals.failed.connect(self._on_error)
-        QThreadPool.globalInstance().start(task)
+        run_async(
+            lambda: provider.search(query, query_type), DatabaseSearchError, self._on_results, self._on_error
+        )
 
     def _on_results(self, results: list[SearchResult]) -> None:
         self._search_button.setEnabled(True)

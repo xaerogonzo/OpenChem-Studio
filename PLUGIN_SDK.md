@@ -119,8 +119,33 @@ tracked, so it can be reversed automatically (see "Unload and hot reload").
 | `context.events` | `.subscribe(event_type, handler)` / `.unsubscribe(...)` | React to app events (`MoleculeChanged`, `ProjectLoaded`, etc.) — **never** connect to the event bus or a Qt signal directly; only this is tracked for cleanup. |
 | `context.settings` | `.get(key, default)` / `.set(key, value)` | Persistent settings, transparently namespaced under `plugins/<your_plugin_id>/` — you cannot read or write any other key. |
 | `context.secrets` | `.get(key)` / `.set(key, value)` / `.delete(key)` | API keys and other credentials, stored in the OS keychain via `keyring` (Windows Credential Manager, macOS Keychain, Secret Service on Linux) — never in `Settings`/`QSettings`, never in plaintext config. Namespaced per-plugin under the hood (service name `openchem-plugin-<your_plugin_id>`); one plugin can never read another's stored values. `.get()` returns `None` if nothing is stored. Like `context.settings`, not tracked for rollback — a stored credential survives unload/reload, since the user shouldn't have to re-enter it every time a plugin hot-reloads. |
+| `context.molecules` | `.add(molecule: MoleculeModel)` | Add a molecule to the current project as an undoable action and select it — e.g. a database search result or a predicted reaction product. A no-op (logged) if no project is currently open. Not tracked for rollback — an added molecule is real project data, same treatment as one added via File > New. |
 | `context.resource_path(relative)` | — | Path to a file bundled alongside your plugin (icons, templates, etc.) — never guess your own directory. |
 | `context.logger` | — | A `logging.Logger` named `openchem.plugin.<your_plugin_id>`, surfaced in the Console panel. |
+
+### Running network/provider calls off the GUI thread
+
+`openchem.plugins.async_task.run_async(func, expected_errors, on_finished,
+on_failed)` runs `func()` on the global `QThreadPool` and delivers the
+result back to the GUI thread via Qt signals — the same pattern
+`ai_assistant`, `database_search`, and `reaction_prediction` all use for
+their network/provider calls. `expected_errors` is the exception type (or
+tuple of types) your provider raises for a "clean," documented failure
+(e.g. `AIProviderError`) — caught and passed to `on_failed` as `str(exc)`;
+anything else is still caught (never left to crash the pool) but prefixed
+`"Unexpected error: "`. Safe to call without keeping the returned task —
+`run_async` keeps its own reference for the task's actual lifetime, so a
+fire-and-forget call from a button handler works correctly even though
+nothing else holds onto it.
+
+```python
+run_async(
+    lambda: provider.search(query, query_type),
+    DatabaseSearchError,
+    self._on_results,
+    self._on_error,
+)
+```
 
 ### Descriptor IDs must be namespaced
 
