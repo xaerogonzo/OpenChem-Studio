@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from rdkit import Chem
+from rdkit.Chem import rdMolTransforms
 
 from openchem.domain.molecule import MoleculeModel
 
@@ -32,6 +33,9 @@ class ChemistryEngine:
             raise InvalidStructureError("Could not parse molblock")
         return mol
 
+    def mol_to_molblock(self, mol: Chem.Mol) -> str:
+        return Chem.MolToMolBlock(mol)
+
     def mol_from_smiles(self, smiles: str) -> Chem.Mol:
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
@@ -56,3 +60,20 @@ class ChemistryEngine:
         mol = self.mol_from_smiles(smiles)
         model.molblock = Chem.MolToMolBlock(mol)
         return self.canonicalize(model)
+
+    def bond_length(self, molblock: str, atom_idx_1: int, atom_idx_2: int) -> float:
+        """Distance (Angstroms) between two atoms in a 3D conformer molblock."""
+        conf = self.mol_from_molblock(molblock).GetConformer()
+        return rdMolTransforms.GetBondLength(conf, atom_idx_1, atom_idx_2)
+
+    def bond_angle(self, molblock: str, atom_idx_1: int, atom_idx_2: int, atom_idx_3: int) -> float:
+        """Angle (degrees) atom1-atom2-atom3 in a 3D conformer molblock."""
+        conf = self.mol_from_molblock(molblock).GetConformer()
+        return rdMolTransforms.GetAngleDeg(conf, atom_idx_1, atom_idx_2, atom_idx_3)
+
+    def dihedral_angle(
+        self, molblock: str, atom_idx_1: int, atom_idx_2: int, atom_idx_3: int, atom_idx_4: int
+    ) -> float:
+        """Dihedral angle (degrees) atom1-atom2-atom3-atom4 in a 3D conformer molblock."""
+        conf = self.mol_from_molblock(molblock).GetConformer()
+        return rdMolTransforms.GetDihedralDeg(conf, atom_idx_1, atom_idx_2, atom_idx_3, atom_idx_4)

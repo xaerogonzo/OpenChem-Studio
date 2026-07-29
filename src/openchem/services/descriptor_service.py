@@ -7,7 +7,8 @@ from PySide6.QtCore import QRunnable, QThreadPool
 
 from openchem.chem.descriptor_providers import DescriptorProvider, RDKitDescriptorProvider
 from openchem.chem.engine import ChemistryEngine
-from openchem.domain.descriptor import CacheState, DescriptorValue
+from openchem.domain.common import CacheState
+from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.molecule import MoleculeModel
 from openchem.events.base import EventBus
 from openchem.events.events import DescriptorComputed

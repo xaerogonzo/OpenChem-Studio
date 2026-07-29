@@ -13,9 +13,9 @@
 - [x] File import/export (MOL, MOL2, SDF, PDB, XYZ, CML, SMILES, InChI — RDKit first, Open Babel fallback)
 
 ## Phase 3 — 3D visualization
-- [ ] Conformer generation, geometry optimization (`ConformerService`)
-- [ ] 3D viewer (py3Dmol / Mol* / optional VTK)
-- [ ] Measurement tools
+- [x] Conformer generation, geometry optimization (`ConformerService`, RDKit ETKDGv3 + MMFF94/UFF)
+- [x] 3D viewer (3Dmol.js, via `QWebEngineView`/`QWebChannel`, behind a `ViewerBackend` interface)
+- [x] Measurement tools (click two atoms for a distance readout, via `MeasurementService`)
 
 ## Phase 4 — Plugin architecture
 - [x] Plugin interfaces defined (`openchem.plugins.interfaces`) — no loader yet
@@ -33,6 +33,13 @@
 - [ ] ORCA integration
 - [ ] Molecular docking
 - [ ] Reaction prediction / machine learning models
+- [ ] Mol*-based macromolecule/crystallography viewer — a second `ViewerBackend`
+      implementation (`src/openchem/ui/viewer_backend.py`) added as a sibling to
+      Phase 3's 3Dmol.js-based `Mol3DViewerBackend`, not a replacement for it.
+      Right tool for large biomolecular/PDB/crystal structures, which is also
+      where this phase's PubChem/ChEMBL/docking work will actually produce
+      structures worth viewing that way. No changes needed to domain/services/
+      commands to add it — see ARCHITECTURE.md.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for how the codebase is structured to
 make Phases 3-6 additive rather than requiring a rewrite.

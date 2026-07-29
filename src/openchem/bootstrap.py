@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from openchem.chem.engine import ChemistryEngine
 from openchem.events.base import EventBus
+from openchem.services.conformer_service import ConformerService
 from openchem.services.container import ServiceContainer
 from openchem.services.descriptor_service import DescriptorService
 from openchem.services.export_service import ExportService
 from openchem.services.import_service import ImportService
+from openchem.services.measurement_service import MeasurementService
 from openchem.services.project_service import ProjectService
 
 
@@ -25,4 +27,6 @@ def build_service_container() -> ServiceContainer:
         import_service=ImportService(engine),
         export_service=ExportService(engine),
         project_service=ProjectService(event_bus),
+        conformer_service=ConformerService(event_bus, engine),
+        measurement_service=MeasurementService(engine),
     )

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from openchem.domain.common import CacheState
+from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
 from openchem.events.base import Event
 
@@ -35,6 +37,30 @@ class DescriptorInvalidated(Event):
 @dataclass(frozen=True)
 class DescriptorComputed(Event):
     descriptor: DescriptorValue
+
+
+@dataclass(frozen=True)
+class ConformerJobStateChanged(Event):
+    molecule_uuid: str
+    state: CacheState
+    message: str = ""
+
+
+@dataclass(frozen=True)
+class ConformersReady(Event):
+    molecule_uuid: str
+    conformers: list[ConformerModel]
+
+
+@dataclass(frozen=True)
+class ConformersChanged(Event):
+    molecule_uuid: str
+
+
+@dataclass(frozen=True)
+class ConformerSelected(Event):
+    molecule_uuid: str
+    conformer_id: str | None
 
 
 @dataclass(frozen=True)

@@ -4,6 +4,8 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
+from openchem.domain.conformer import ConformerModel
+
 
 @dataclass(slots=True)
 class MoleculeModel:
@@ -24,6 +26,7 @@ class MoleculeModel:
     tags: list[str] = field(default_factory=list)
     favorite: bool = False
     notes: str = ""
+    conformers: list[ConformerModel] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -37,6 +40,7 @@ class MoleculeModel:
             "tags": list(self.tags),
             "favorite": self.favorite,
             "notes": self.notes,
+            "conformers": [c.to_dict() for c in self.conformers],
         }
 
     @classmethod
@@ -52,4 +56,5 @@ class MoleculeModel:
             tags=list(data.get("tags", [])),
             favorite=data.get("favorite", False),
             notes=data.get("notes", ""),
+            conformers=[ConformerModel.from_dict(c) for c in data.get("conformers", [])],
         )

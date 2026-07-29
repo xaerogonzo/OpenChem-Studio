@@ -4,9 +4,11 @@ from dataclasses import dataclass
 
 from openchem.chem.engine import ChemistryEngine
 from openchem.events.base import EventBus
+from openchem.services.conformer_service import ConformerService
 from openchem.services.descriptor_service import DescriptorService
 from openchem.services.export_service import ExportService
 from openchem.services.import_service import ImportService
+from openchem.services.measurement_service import MeasurementService
 from openchem.services.project_service import ProjectService
 
 
@@ -25,3 +27,5 @@ class ServiceContainer:
     import_service: ImportService
     export_service: ExportService
     project_service: ProjectService
+    conformer_service: ConformerService
+    measurement_service: MeasurementService

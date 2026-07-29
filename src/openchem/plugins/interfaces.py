@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from rdkit import Chem
 
@@ -46,6 +46,25 @@ class DescriptorProvider(ABC):
     @abstractmethod
     def compute(self, mol: Chem.Mol, molecule_uuid: str) -> list[DescriptorValue]:
         """Compute this provider's descriptors for a parsed RDKit Mol."""
+
+
+class ConformerProvider(ABC):
+    provider_id: str
+
+    @abstractmethod
+    def generate_conformers(
+        self,
+        mol: Chem.Mol,
+        num_conformers: int,
+        optimize: bool,
+        on_progress: Callable[[int, int], None] | None = None,
+    ) -> list[tuple[Chem.Mol, float | None]]:
+        """Return up to `num_conformers` (conformer_mol, energy) pairs.
+
+        `energy` (kcal/mol) is None when `optimize` is False. `on_progress`,
+        if given, is called as `on_progress(done, total)` after each
+        conformer so callers can report incremental progress.
+        """
 
 
 class PanelProvider(ABC):

@@ -5,21 +5,23 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QUndoStack
-from PySide6.QtWidgets import QDockWidget, QFileDialog, QMainWindow, QMessageBox
+from PySide6.QtWidgets import QDockWidget, QFileDialog, QMainWindow, QMessageBox, QTabWidget
 
 from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
+from openchem.commands.conformer_commands import SetConformersCommand
 from openchem.commands.import_export_commands import ExportMoleculeCommand, ImportMoleculeCommand
 from openchem.commands.molecule_commands import AddMoleculeCommand
 from openchem.commands.project_commands import OpenProjectCommand, SaveProjectCommand
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
-from openchem.events.events import MoleculeChanged, MoleculeSelected
+from openchem.events.events import ConformersReady, MoleculeChanged, MoleculeSelected
 from openchem.services.container import ServiceContainer
 from openchem.ui.panels.console_panel import ConsolePanel
 from openchem.ui.panels.project_explorer_panel import ProjectExplorerPanel
 from openchem.ui.panels.property_panel import PropertyPanel
 from openchem.ui.widgets.molecule_editor_widget import MoleculeEditorWidget
+from openchem.ui.widgets.molecule_viewer3d_widget import MoleculeViewer3DWidget
 
 logger = logging.getLogger("openchem.ui")
 
@@ -45,7 +47,13 @@ class MainWindow(QMainWindow):
         self._editor = MoleculeEditorWidget(
             services.chemistry_engine, services.event_bus, self._undo_stack, parent=self
         )
-        self.setCentralWidget(self._editor)
+        self._viewer3d = MoleculeViewer3DWidget(
+            services.conformer_service, services.measurement_service, services.event_bus, parent=self
+        )
+        self._center_tabs = QTabWidget(self)
+        self._center_tabs.addTab(self._editor, "2D Editor")
+        self._center_tabs.addTab(self._viewer3d, "3D Viewer")
+        self.setCentralWidget(self._center_tabs)
 
         self._project_explorer = ProjectExplorerPanel(services.event_bus, self)
         self._property_panel = PropertyPanel(services.event_bus, self)
@@ -59,6 +67,7 @@ class MainWindow(QMainWindow):
 
         services.event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
         services.event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
+        services.event_bus.subscribe(ConformersReady, self._on_conformers_ready)
 
         self._new_project()
 
@@ -182,6 +191,7 @@ class MainWindow(QMainWindow):
         self._session.select_molecule(event.molecule_uuid)
         molecule = self._current_molecule()
         self._editor.set_molecule(molecule)
+        self._viewer3d.set_molecule(molecule)
         if molecule is not None:
             self._services.descriptor_service.request_descriptors(molecule)
 
@@ -190,6 +200,13 @@ class MainWindow(QMainWindow):
         molecule = self._current_molecule()
         if molecule is not None and molecule.uuid == event.molecule_uuid:
             self._services.descriptor_service.request_descriptors(molecule)
+
+    def _on_conformers_ready(self, event: ConformersReady) -> None:
+        molecule = self._current_molecule()
+        if molecule is None or molecule.uuid != event.molecule_uuid:
+            return
+        command = SetConformersCommand(molecule, event.conformers, self._services.event_bus)
+        self._undo_stack.push(command)
 
     def _current_molecule(self) -> MoleculeModel | None:
         if self._session.project is None or self._session.selected_molecule_uuid is None:

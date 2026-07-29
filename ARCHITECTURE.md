@@ -31,13 +31,13 @@ subscribe by event type rather than by ad-hoc signal name.
 
 | Package | Responsibility |
 |---|---|
-| `openchem.domain` | Pure data: `MoleculeModel`, `ProjectModel`, `DescriptorValue`. No RDKit, no Qt. Molecules are identified by UUID, never filename or list position. |
-| `openchem.chem` | `ChemistryEngine` (MoleculeModel <-> RDKit Mol, canonicalization to SMILES/InChI/InChIKey), `DescriptorProvider` implementations, `Importer`/`Exporter` backends. The only place `rdkit`/`openbabel` are imported. |
-| `openchem.services` | `DescriptorService`, `ImportService`, `ExportService`, `ProjectService`, plus `ProgressHandle` for cancellable/progress-reporting long operations. Own the `QThreadPool`-based async execution and publish events. |
-| `openchem.commands` | `QUndoCommand` subclasses wrapping service calls, giving undo/redo for structure edits and project operations from day one. |
-| `openchem.plugins` | Interfaces only (`Plugin`, `DescriptorProvider`, `PanelProvider`, `MenuProvider`, `Importer`, `Exporter`). No discovery/loading yet — that arrives with the Phase 4 plugin loader described in ROADMAP.md. |
+| `openchem.domain` | Pure data: `MoleculeModel`, `ProjectModel`, `DescriptorValue`, `ConformerModel`, plus the shared `CacheState` enum (`domain/common.py`). No RDKit, no Qt. Molecules are identified by UUID, never filename or list position. |
+| `openchem.chem` | `ChemistryEngine` (MoleculeModel <-> RDKit Mol, canonicalization, and 3D measurement via `rdMolTransforms`), `DescriptorProvider`/`ConformerProvider` implementations, `Importer`/`Exporter` backends. The only place `rdkit`/`openbabel` are imported. |
+| `openchem.services` | `DescriptorService`, `ConformerService`, `MeasurementService`, `ImportService`, `ExportService`, `ProjectService`, plus `ProgressHandle` for cancellable/progress-reporting long operations. The async ones own `QThreadPool` execution and publish events. |
+| `openchem.commands` | `QUndoCommand` subclasses wrapping service calls, giving undo/redo for structure edits, conformer generation, and project operations from day one. |
+| `openchem.plugins` | Interfaces only (`Plugin`, `DescriptorProvider`, `ConformerProvider`, `PanelProvider`, `MenuProvider`, `Importer`, `Exporter`). No discovery/loading yet — that arrives with the Phase 4 plugin loader described in ROADMAP.md. |
 | `openchem.app` | Composition: `MainWindow`, typed `Settings`, `SessionManager`, structured logging setup. |
-| `openchem.ui` | Widgets and dock panels. `EditorBackend` is an interface; `KetcherEditorBackend` (QWebEngineView + QWebChannel around the Ketcher build in `resources/ketcher/dist/`) is the only current implementation — the 2D editor is swappable without touching chemistry code. |
+| `openchem.ui` | Widgets and dock panels. `EditorBackend`/`KetcherEditorBackend` (2D, `resources/ketcher/dist/`) and `ViewerBackend`/`Mol3DViewerBackend` (3D, `resources/viewer3d/`, 3Dmol.js) are both interface + single-implementation pairs — either can be swapped or extended with a sibling implementation (e.g. a future Mol*-based viewer for macromolecules/crystallography) without touching chemistry, services, or commands. |
 
 `tools/ketcher-host/` is a small separate Node/Vite project (not part of the
 Python package) that builds the static Ketcher bundle vendored into
@@ -51,6 +51,12 @@ inside `ketcher-core`'s bundled Raphael.js — see
 [epam/ketcher#5565](https://github.com/epam/ketcher/issues/5565)) and
 minification must stay off (it reintroduces a temporal-dead-zone bug from
 `ketcher-core`'s circular imports once variable names are mangled).
+
+`src/openchem/resources/viewer3d/` (the 3D viewer) has no equivalent build
+step — `3Dmol-min.js` is vendored directly as a single dependency-free
+browser file (from the `3dmol` npm package's `build/` output, BSD-3-Clause),
+paired with a small hand-written static `viewer.html`. No Node/npm involved
+at all for this one.
 
 ## Design decisions worth remembering
 
@@ -70,7 +76,15 @@ minification must stay off (it reintroduces a temporal-dead-zone bug from
   (and imports) `openbabel` when RDKit lacks support for that format.
 - **`ProjectModel` carries `project_version` / `application_version` /
   `schema_version`** from the start so a future format change is a migration
-  in `ProjectService`, not a breaking change.
+  in `ProjectService`, not a breaking change. `MoleculeModel.conformers` was
+  added as a plain additive field (default `[]`) with no schema bump needed —
+  old project files without a `"conformers"` key still load.
+- **Conformer generation follows the same "service never mutates the model"
+  rule as descriptors.** `ConformerService` publishes results as data
+  (`ConformersReady`), and only `SetConformersCommand` (pushed by
+  `MainWindow`, mirroring how `EditStructureCommand` is pushed from Ketcher's
+  async result) actually writes to `MoleculeModel.conformers` — keeping that
+  mutation on the GUI thread and undoable.
 
 ## Known TODOs
 
@@ -81,6 +95,9 @@ minification must stay off (it reintroduces a temporal-dead-zone bug from
   package this application. Not needed until an actual release build.
 - Plugin *discovery/loading* (reading a `plugins/` directory, hot-loading)
   is intentionally not implemented yet — only the interfaces exist.
-- `ConformerService` / `SimilarityService` don't exist yet; they belong to
-  later roadmap phases (3D viewer, similarity search) and would currently
-  have no callers.
+- `SimilarityService` doesn't exist yet; belongs to a later roadmap phase
+  and would currently have no callers.
+- Editing a molecule's 2D structure does not currently invalidate/clear its
+  previously generated conformers, which then describe a stale structure
+  until the user regenerates them manually. Deliberately out of scope for
+  Phase 3 (no `ConformersInvalidated` event yet) — worth revisiting.

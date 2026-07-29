@@ -3,7 +3,7 @@ from __future__ import annotations
 from PySide6.QtCore import QThreadPool
 
 from openchem.chem.engine import ChemistryEngine
-from openchem.domain.descriptor import CacheState
+from openchem.domain.common import CacheState
 from openchem.domain.molecule import MoleculeModel
 from openchem.events.base import EventBus
 from openchem.events.events import DescriptorComputed

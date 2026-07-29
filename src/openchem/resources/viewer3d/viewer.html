@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>OpenChem Studio - 3D Viewer</title>
+    <style>
+      html, body, #viewer-container { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
+    </style>
+    <script src="3Dmol-min.js"></script>
+  </head>
+  <body>
+    <div id="viewer-container"></div>
+    <!--
+      qwebchannel.js is served from Qt's own qrc:// resource scheme and only
+      resolves when this page is loaded inside a QWebEngineView that has
+      QWebEnginePage.setWebChannel() called on it (see
+      ui/widgets/mol3d_viewer_backend.py). It has no effect, and does not
+      need to load successfully, in a plain browser.
+    -->
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script>
+      // 3Dmol.js's UMD build exports a global literally named "3Dmol", which
+      // is not a valid bare identifier (can't start with a digit) -- alias
+      // it through window[] the way 3Dmol.js's own examples do.
+      var $3Dmol = window['3Dmol'];
+      var viewer = $3Dmol.createViewer(document.getElementById('viewer-container'), {
+        backgroundColor: 'white',
+      });
+      var currentStyle = 'stick';
+      var bridge = null;
+
+      function styleSpecFor(name) {
+        switch (name) {
+          case 'sphere':
+            return { sphere: {} };
+          case 'line':
+            return { line: {} };
+          case 'ballstick':
+            return { stick: { radius: 0.15 }, sphere: { scale: 0.25 } };
+          case 'stick':
+          default:
+            return { stick: {} };
+        }
+      }
+
+      function applyStyle() {
+        viewer.setStyle({}, styleSpecFor(currentStyle));
+        viewer.render();
+      }
+
+      // Exposed for Python's fire-and-forget runJavaScript calls (see
+      // ui/widgets/mol3d_viewer_backend.py). None of these need a return
+      // value round-tripped back to Python, unlike Ketcher's getMolfile(),
+      // so no QWebChannel request/response dance is needed here.
+      window.openchemViewer = {
+        loadMolblock: function (molblock) {
+          viewer.clear();
+          var model = viewer.addModel(molblock, 'mol');
+          applyStyle();
+          model.setClickable({}, true, function (atom) {
+            if (bridge) {
+              bridge.atomClicked(atom.index);
+            }
+          });
+          viewer.zoomTo();
+          viewer.render();
+        },
+        setStyle: function (styleName) {
+          currentStyle = styleName;
+          applyStyle();
+        },
+        clear: function () {
+          viewer.clear();
+          viewer.render();
+        },
+      };
+
+      if (window.qt && window.qt.webChannelTransport) {
+        // eslint-disable-next-line no-undef
+        new QWebChannel(window.qt.webChannelTransport, function (channel) {
+          bridge = channel.objects.bridge;
+        });
+      }
+    </script>
+  </body>
+</html>
