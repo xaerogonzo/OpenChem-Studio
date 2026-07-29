@@ -100,6 +100,15 @@ class DescriptorService:
         self._providers = [p for p in self._providers if p.provider_id != provider_id]
 
     def request_descriptors(self, model: MoleculeModel) -> None:
+        if not model.molblock:
+            # A freshly-created molecule with no structure yet can't produce
+            # descriptors -- publishing QUEUED/FAILED for it would just show
+            # a permanent "failed" row in the Properties panel before the
+            # user has drawn anything. Silently do nothing instead; a real
+            # request follows once the molecule actually has a structure
+            # (see MoleculeEditorWidget -> EditStructureCommand -> the
+            # MoleculeChanged handler that re-requests descriptors).
+            return
         for provider in self._providers:
             for descriptor_id in provider.descriptor_ids():
                 self._event_bus.publish(

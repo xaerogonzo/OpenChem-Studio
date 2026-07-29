@@ -5,8 +5,16 @@ from pathlib import Path
 from typing import Callable
 
 from PySide6.QtCore import QUrl, Qt
-from PySide6.QtGui import QAction, QDesktopServices, QUndoStack
-from PySide6.QtWidgets import QDockWidget, QFileDialog, QMainWindow, QMessageBox, QTabWidget, QWidget
+from PySide6.QtGui import QAction, QCloseEvent, QDesktopServices, QUndoStack
+from PySide6.QtWidgets import (
+    QDockWidget,
+    QFileDialog,
+    QMainWindow,
+    QMessageBox,
+    QScrollArea,
+    QTabWidget,
+    QWidget,
+)
 
 from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
@@ -32,6 +40,7 @@ from openchem.events.events import (
 )
 from openchem.plugins.manager import PluginManager
 from openchem.services.container import ServiceContainer
+from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
 from openchem.ui.panels.console_panel import ConsolePanel
 from openchem.ui.panels.docking_panel import DockingPanel
 from openchem.ui.panels.project_explorer_panel import ProjectExplorerPanel
@@ -92,12 +101,31 @@ class MainWindow(QMainWindow):
         )
 
         self._add_dock("Project Explorer", self._project_explorer, Qt.DockWidgetArea.LeftDockWidgetArea)
-        self._add_dock("Properties", self._property_panel, Qt.DockWidgetArea.RightDockWidgetArea)
+        self._properties_dock = self._add_dock(
+            "Properties", self._property_panel, Qt.DockWidgetArea.RightDockWidgetArea
+        )
         self._add_dock("Console", self._console_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
-        self._add_dock("Docking", self._docking_panel, Qt.DockWidgetArea.RightDockWidgetArea)
-        self._add_dock("Quantum Chemistry", self._quantum_chemistry_panel, Qt.DockWidgetArea.RightDockWidgetArea)
+        docking_dock = self._add_dock(
+            "Docking", self._wrap_scrollable(self._docking_panel), Qt.DockWidgetArea.RightDockWidgetArea
+        )
+        quantum_chemistry_dock = self._add_dock(
+            "Quantum Chemistry",
+            self._wrap_scrollable(self._quantum_chemistry_panel),
+            Qt.DockWidgetArea.RightDockWidgetArea,
+        )
+
+        # All right-side panels share one tab group instead of stacking
+        # vertically -- six-plus docks sharing a single column (this trio
+        # plus every plugin panel added via add_panel()) left each one a
+        # sliver too short to render its own controls without overlapping.
+        # Tabbing keeps whichever panel is active at full height; plugin
+        # panels join the same group below, in add_panel().
+        self.tabifyDockWidget(self._properties_dock, docking_dock)
+        self.tabifyDockWidget(self._properties_dock, quantum_chemistry_dock)
+        self._properties_dock.raise_()
 
         self._build_menus()
+        self._restore_window_state()
 
         services.event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
         services.event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
@@ -122,6 +150,31 @@ class MainWindow(QMainWindow):
         dock.setWidget(widget)
         self.addDockWidget(area, dock)
         return dock
+
+    def _wrap_scrollable(self, widget: QWidget) -> QScrollArea:
+        """Defensive floor for form-heavy panels (Docking, Quantum Chemistry):
+        if a dock genuinely ends up too short even after tabifying, content
+        scrolls instead of overlapping/truncating."""
+        scroll = QScrollArea(self)
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(widget)
+        return scroll
+
+    def _restore_window_state(self) -> None:
+        """Mirror image of closeEvent()'s save -- both go through the same
+        Settings.window_geometry/window_state keys, which existed since an
+        earlier phase but were never actually wired up until now."""
+        geometry = self._settings.window_geometry()
+        if geometry:
+            self.restoreGeometry(geometry)
+        state = self._settings.window_state()
+        if state:
+            self.restoreState(state)
+
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 - Qt override
+        self._settings.set_window_geometry(self.saveGeometry())
+        self._settings.set_window_state(self.saveState())
+        super().closeEvent(event)
 
     def _build_menus(self) -> None:
         file_menu = self.menuBar().addMenu("&File")
@@ -148,6 +201,9 @@ class MainWindow(QMainWindow):
         self._view_menu = self.menuBar().addMenu("&View")
         for dock in self.findChildren(QDockWidget):
             self._view_menu.addAction(dock.toggleViewAction())
+
+        tools_menu = self.menuBar().addMenu("&Tools")
+        tools_menu.addAction("External Tools...", self._show_external_tools_dialog)
 
         self._plugins_menu = self.menuBar().addMenu("&Plugins")
         self._plugins_menu.addAction("Reload Plugins", self._reload_plugins)
@@ -177,6 +233,13 @@ class MainWindow(QMainWindow):
         self._docking_panel.set_project(project)
         self._quantum_chemistry_panel.set_project(project)
         self.setWindowTitle(f"OpenChem Studio - {project.name}")
+        if not project.molecules:
+            # A brand-new (or loaded-but-empty) project has nothing selected,
+            # so the 2D editor's target molecule stays None and every edit is
+            # silently discarded (MoleculeEditorWidget._on_editor_edited bails
+            # when self._molecule is None) until the user does File > New
+            # Molecule by hand. Auto-create one so drawing works immediately.
+            self._new_molecule()
 
     def _open_project(self) -> None:
         path_str, _ = QFileDialog.getOpenFileName(self, "Open Project", filter="OpenChem Project (*.ocsproj)")
@@ -379,6 +442,9 @@ class MainWindow(QMainWindow):
             self.remove_panel(panel_id)
         widget = widget_factory()
         dock = self._add_dock(panel_id, widget, Qt.DockWidgetArea.RightDockWidgetArea)
+        # Join the same tab group as Properties/Docking/Quantum Chemistry
+        # rather than taking a fresh vertical slice of the right dock area.
+        self.tabifyDockWidget(self._properties_dock, dock)
         self._plugin_panels[panel_id] = dock
         self._view_menu.addAction(dock.toggleViewAction())
 
@@ -437,6 +503,10 @@ class MainWindow(QMainWindow):
                 )
             )
             self._installed_plugins_menu.addAction(action)
+
+    def _show_external_tools_dialog(self) -> None:
+        dialog = ExternalToolsDialog(self._settings, self)
+        dialog.exec()
 
     def _show_about(self) -> None:
         QMessageBox.about(

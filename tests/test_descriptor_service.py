@@ -66,7 +66,11 @@ def test_descriptor_completed_values_are_correct(qapp):
     assert round(completed_values["mol_wt"], 2) == 78.11
 
 
-def test_descriptor_failure_reported_when_no_structure(qapp):
+def test_descriptor_request_is_a_no_op_when_no_structure(qapp):
+    """A freshly-created molecule with no molblock yet (e.g. right after
+    File > New Molecule, before anything is drawn) must not produce a
+    permanent "failed" row in the Properties panel -- request_descriptors
+    should silently skip it rather than running a doomed computation."""
     bus = EventBus()
     engine = ChemistryEngine()
     service = DescriptorService(bus, engine)
@@ -78,4 +82,4 @@ def test_descriptor_failure_reported_when_no_structure(qapp):
     service.request_descriptors(model)
     _drain(qapp)
 
-    assert results["mol_wt"] == CacheState.FAILED
+    assert results == {}

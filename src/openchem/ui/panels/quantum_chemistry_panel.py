@@ -2,13 +2,9 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import (
     QComboBox,
-    QDialog,
-    QDialogButtonBox,
-    QFileDialog,
     QFormLayout,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
     QPlainTextEdit,
     QPushButton,
     QSpinBox,
@@ -22,6 +18,7 @@ from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
 from openchem.events.events import QuantumChemistryJobStateChanged, QuantumChemistryResultReady
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
+from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
 
 _CALC_TYPE_LABELS = {
     "Single Point": "sp",
@@ -29,44 +26,6 @@ _CALC_TYPE_LABELS = {
     "Optimization + Frequency": "opt_freq",
 }
 _METHOD_BASIS_PRESETS = ["B3LYP def2-SVP", "PBE0 def2-TZVP", "B3LYP 6-31G(d)"]
-
-
-class _OrcaPathDialog(QDialog):
-    def __init__(self, settings: Settings, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setWindowTitle("Configure ORCA")
-        self._settings = settings
-
-        self._path_edit = QLineEdit(self)
-        self._path_edit.setText(settings.get("orca/executable_path", ""))
-        browse_button = QPushButton("Browse...", self)
-        browse_button.clicked.connect(self._on_browse_clicked)
-
-        path_row = QHBoxLayout()
-        path_row.addWidget(self._path_edit)
-        path_row.addWidget(browse_button)
-
-        form = QFormLayout()
-        form.addRow("ORCA executable:", path_row)
-
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self
-        )
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-
-        layout = QVBoxLayout(self)
-        layout.addLayout(form)
-        layout.addWidget(buttons)
-
-    def _on_browse_clicked(self) -> None:
-        path_str, _ = QFileDialog.getOpenFileName(self, "Select ORCA executable")
-        if path_str:
-            self._path_edit.setText(path_str)
-
-    def accept(self) -> None:
-        self._settings.set("orca/executable_path", self._path_edit.text())
-        super().accept()
 
 
 class QuantumChemistryPanel(QWidget):
@@ -170,7 +129,7 @@ class QuantumChemistryPanel(QWidget):
             self._charge_spin.setValue(self._chemistry_engine.formal_charge(molecule))
 
     def _on_configure_clicked(self) -> None:
-        dialog = _OrcaPathDialog(self._settings, self)
+        dialog = ExternalToolsDialog(self._settings, self, focus="orca")
         dialog.exec()
 
     def _on_run_clicked(self) -> None:

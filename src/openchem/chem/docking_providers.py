@@ -136,7 +136,14 @@ class VinaDockingProvider(DockingProvider):
         try:
             mol = pybel.readstring(source_format, structure_text)
             mol.addh()
-            mol.write("pdbqt", str(out_path), overwrite=True)
+            # `opt={"r": None}` is Open Babel's rigid-receptor flag (the
+            # `-xr` CLI equivalent) -- without it, `write("pdbqt", ...)`
+            # treats the WHOLE receptor as one flexible ligand-style
+            # structure, emitting ROOT/BRANCH/TORSDOF records (confirmed
+            # live: a 327-atom protein came out with "104 active torsions").
+            # A docking receptor must be rigid; only the ligand should carry
+            # torsions.
+            mol.write("pdbqt", str(out_path), overwrite=True, opt={"r": None})
         except Exception as exc:  # noqa: BLE001 - surface as a clear docking-specific error
             raise DockingProviderError(f"Failed to prepare receptor: {exc}") from exc
 

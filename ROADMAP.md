@@ -88,5 +88,43 @@ Five largely independent sub-phases, built and verified in order (6.1-6.5).
       dataclass onto Phase 1-5 models — all explicitly logged as real gaps, not
       silently dropped. See ARCHITECTURE.md's design-decisions section.
 
+## Phase 7 — Stabilization (real-world usage fixes)
+
+First hands-on use of the built app (a real installed Vina executable, a
+real window on a real screen) surfaced problems Phase 6's scripted/mocked
+verification never exercised.
+
+- [x] 7.1 — GUI layout: the six right-side dock panels (Properties, Docking,
+      Quantum Chemistry, plus every plugin panel) all landed in the same
+      `RightDockWidgetArea` with no tabbing, so they visually overlapped at
+      anything less than a very tall window. Now `tabifyDockWidget`'d into
+      one tab group. `Settings.window_geometry`/`window_state` (present
+      since an earlier phase but never called) are now actually wired to
+      `MainWindow.closeEvent`/init, so window size and dock layout persist
+      across restarts.
+- [x] 7.2 — Empty-state bugs: a brand-new/loaded-empty project now
+      auto-creates and selects a blank molecule (previously nothing was
+      selected, so the 2D editor's target stayed `None` and every edit was
+      silently discarded until the user did File > New Molecule by hand).
+      Added `EditorBackend.clear()` so switching to no-molecule/no-structure
+      actually empties the canvas instead of leaving a stale drawing behind.
+      `DescriptorService` now skips computation entirely for a molecule with
+      no structure yet, instead of publishing a permanent "failed" row.
+- [x] 7.3 — Real Vina correctness, found via testing against an actual
+      installed `vina_1.2.7_win.exe`: receptor PDBQT conversion now passes
+      Open Babel's rigid-receptor option (`opt={"r": None}`) — the default
+      was emitting `ROOT`/`BRANCH`/`TORSDOF` records as if the whole
+      receptor were one flexible ligand. `DockingPanel` now prefers a
+      molecule's stored 3D conformer over its raw (possibly 2D, all-zero-z)
+      molblock for the ligand, mirroring `QuantumChemistryPanel`'s existing
+      pattern.
+- [x] 7.4 — External Tools manager (`ExternalToolsDialog`, replacing the
+      separate Vina/ORCA "Configure..." dialogs): AutoDock Vina gets a real
+      Download/Update button against its public, Apache-2.0-licensed GitHub
+      releases, with the exact URL/version/size shown for confirmation
+      before anything downloads. ORCA is registration/EULA-gated with no
+      public direct-download URL, so it only ever gets a Browse button plus
+      a link to the official download page.
+
 See [ARCHITECTURE.md](ARCHITECTURE.md) for how the codebase is structured to
 make Phases 3-6 additive rather than requiring a rewrite.

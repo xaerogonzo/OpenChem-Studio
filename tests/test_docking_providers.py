@@ -51,21 +51,25 @@ class FakeVinaEngine(VinaEngine):
         return "1.0.0-fake"
 
     def dock(self, receptor_pdbqt, ligand_pdbqt, box, num_poses, exhaustiveness, seed, progress):
+        # A real engine would have written receptor_pdbqt/ligand_pdbqt (by
+        # the time dock() is called, VinaDockingProvider has already
+        # created them) -- assert that here as a sanity check, and capture
+        # the receptor's actual PDBQT text now, while the scratch dir still
+        # exists (VinaDockingProvider.dock's `with tempfile.TemporaryDirectory`
+        # deletes it as soon as this call returns).
+        assert Path(receptor_pdbqt).exists()
+        assert Path(ligand_pdbqt).exists()
         self.dock_calls.append(
             {
                 "receptor_pdbqt": receptor_pdbqt,
                 "ligand_pdbqt": ligand_pdbqt,
                 "box": box,
                 "num_poses": num_poses,
+                "receptor_pdbqt_text": Path(receptor_pdbqt).read_text(encoding="utf-8"),
             }
         )
         if self._raise_error:
             raise RuntimeError("boom")
-        # A real engine would have written receptor_pdbqt/ligand_pdbqt
-        # (by the time dock() is called, VinaDockingProvider has already
-        # created them) -- assert that here as a sanity check.
-        assert Path(receptor_pdbqt).exists()
-        assert Path(ligand_pdbqt).exists()
         progress.report(1.0, "done")
         return self._output
 
@@ -143,6 +147,27 @@ def test_executable_path_resolver_is_consulted_not_settings_directly():
     # resolves to "none" -- the point is just that the resolver got called.
     assert provider.engine_id == "none"
     assert calls == [1]
+
+
+def test_receptor_pdbqt_is_prepared_as_rigid_not_flexible():
+    """Regression test: confirmed live against a real 327-atom protein that
+    the default `pybel.Molecule.write("pdbqt", ...)` treats the WHOLE
+    receptor as one flexible ligand-style structure, emitting
+    ROOT/BRANCH/TORSDOF records and reporting "104 active torsions" -- a
+    docking receptor must be rigid. `_convert_receptor_to_pdbqt` must pass
+    Open Babel's rigid-receptor option (`opt={"r": None}`, the `-xr` CLI
+    equivalent) so none of those records appear."""
+    engine = FakeVinaEngine()
+    provider = VinaDockingProvider(engine=engine)
+    mol = Chem.MolFromSmiles("CCO")
+    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+
+    provider.dock(RECEPTOR_PDB, "pdb", mol, box, 9, ProgressHandle())
+
+    receptor_text = engine.dock_calls[0]["receptor_pdbqt_text"]
+    assert "ROOT" not in receptor_text
+    assert "BRANCH" not in receptor_text
+    assert "TORSDOF" not in receptor_text
 
 
 def test_last_resolved_engine_is_cached_after_dock_not_recomputed():

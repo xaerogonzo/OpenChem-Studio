@@ -44,6 +44,12 @@ class MoleculeEditorWidget(QWidget):
         self._molecule = molecule
         if molecule is not None and molecule.molblock:
             self._backend.load_molblock(molecule.molblock)
+        else:
+            # No molecule selected, or a freshly-created one with no
+            # structure yet -- clear the canvas instead of silently leaving
+            # whatever the previous molecule (or an orphaned pre-selection
+            # drawing) left on screen.
+            self._backend.clear()
 
     def _on_editor_edited(self) -> None:
         if self._molecule is None:

@@ -2,16 +2,12 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import (
     QComboBox,
-    QDialog,
-    QDialogButtonBox,
     QDoubleSpinBox,
-    QFileDialog,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
     QLabel,
-    QLineEdit,
     QPushButton,
     QSpinBox,
     QTableWidget,
@@ -27,6 +23,7 @@ from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
 from openchem.events.events import DockingJobStateChanged, DockingResultReady
 from openchem.services.docking_service import DockingService
+from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
 
 _POSE_COLUMNS = ("Pose", "Binding Affinity (kcal/mol)", "RMSD l.b.", "RMSD u.b.")
 
@@ -36,49 +33,6 @@ _LIMITATION_NOTE = (
     "handling, or missing-residue repair. Treat results as a starting "
     "point, not production-grade docking prep."
 )
-
-
-class _VinaPathDialog(QDialog):
-    """Same shape as `quantum_chemistry_panel._OrcaPathDialog` — kept as a
-    separate small class rather than a shared helper until a third
-    executable-path dialog actually needs this shape (see how `run_async`
-    was only extracted once three plugins needed the identical pattern)."""
-
-    def __init__(self, settings: Settings, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setWindowTitle("Configure Vina")
-        self._settings = settings
-
-        self._path_edit = QLineEdit(self)
-        self._path_edit.setText(settings.get("docking/vina_executable_path", ""))
-        browse_button = QPushButton("Browse...", self)
-        browse_button.clicked.connect(self._on_browse_clicked)
-
-        path_row = QHBoxLayout()
-        path_row.addWidget(self._path_edit)
-        path_row.addWidget(browse_button)
-
-        form = QFormLayout()
-        form.addRow("Vina executable:", path_row)
-
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self
-        )
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-
-        layout = QVBoxLayout(self)
-        layout.addLayout(form)
-        layout.addWidget(buttons)
-
-    def _on_browse_clicked(self) -> None:
-        path_str, _ = QFileDialog.getOpenFileName(self, "Select Vina executable")
-        if path_str:
-            self._path_edit.setText(path_str)
-
-    def accept(self) -> None:
-        self._settings.set("docking/vina_executable_path", self._path_edit.text())
-        super().accept()
 
 
 class DockingPanel(QWidget):
@@ -189,7 +143,7 @@ class DockingPanel(QWidget):
             self._ligand_combo.addItem(molecule.display_name, molecule.uuid)
 
     def _on_configure_clicked(self) -> None:
-        dialog = _VinaPathDialog(self._settings, self)
+        dialog = ExternalToolsDialog(self._settings, self, focus="vina")
         dialog.exec()
 
     def _on_dock_clicked(self) -> None:
@@ -204,12 +158,21 @@ class DockingPanel(QWidget):
         ligand = self._project.find_molecule(ligand_uuid)
         if receptor is None or ligand is None:
             return
+        if not ligand.conformers and not ligand.molblock:
+            self._status_label.setText("Selected ligand has no structure yet.")
+            return
 
         box = DockingBox(
             center=(self._center_x.value(), self._center_y.value(), self._center_z.value()),
             size=(self._size_x.value(), self._size_y.value(), self._size_z.value()),
         )
-        ligand_mol = self._chemistry_engine.mol_from_model(ligand)
+        # Prefer a real 3D conformer over the molecule's own molblock, which
+        # for anything drawn in the 2D editor has all-zero z-coordinates --
+        # docking a flat structure against a 3D receptor is meaningless, not
+        # just lower quality. Mirrors QuantumChemistryPanel._on_run_clicked's
+        # identical preference.
+        ligand_molblock = ligand.conformers[0].molblock if ligand.conformers else ligand.molblock
+        ligand_mol = self._chemistry_engine.mol_from_molblock(ligand_molblock)
 
         self._pending_ligand_uuid = ligand_uuid
         self._pending_receptor_uuid = receptor_uuid
