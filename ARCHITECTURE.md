@@ -35,9 +35,10 @@ subscribe by event type rather than by ad-hoc signal name.
 | `openchem.chem` | `ChemistryEngine` (MoleculeModel <-> RDKit Mol, canonicalization, and 3D measurement via `rdMolTransforms`), `DescriptorProvider`/`ConformerProvider` implementations, `Importer`/`Exporter` backends. The only place `rdkit`/`openbabel` are imported. |
 | `openchem.services` | `DescriptorService`, `ConformerService`, `MeasurementService`, `ImportService`, `ExportService`, `ProjectService`, plus `ProgressHandle` for cancellable/progress-reporting long operations. The async ones own `QThreadPool` execution and publish events. |
 | `openchem.commands` | `QUndoCommand` subclasses wrapping service calls, giving undo/redo for structure edits, conformer generation, and project operations from day one. |
-| `openchem.plugins` | `interfaces.py` (`Plugin`, `DescriptorProvider`, `ConformerProvider`, `PanelProvider`, `MenuProvider`, `Importer`, `Exporter`), `manifest.py` (`PluginManifest` + dependency topological sort), `context.py` (`PluginContext`), `ui_registry.py` (`UIRegistry` protocol), `manager.py` (`PluginManager` — discovery, transactional load/unload/reload, hot-reload watcher). See `PLUGIN_SDK.md`. |
+| `openchem.plugins` | `interfaces.py` (`Plugin`, `DescriptorProvider`, `ConformerProvider`, `PanelProvider`, `MenuProvider`, `Importer`, `Exporter`), `manifest.py` (`PluginManifest` + dependency topological sort), `context.py` (`PluginContext`, including the `context.secrets` namespace backed by the OS keychain via `keyring`), `ui_registry.py` (`UIRegistry` protocol), `manager.py` (`PluginManager` — discovery, transactional load/unload/reload, hot-reload watcher). See `PLUGIN_SDK.md`. |
 | `openchem.app` | Composition: `MainWindow`, typed `Settings`, `SessionManager`, structured logging setup. `MainWindow` implements the `UIRegistry` protocol and constructs `PluginManager` at the end of `__init__`. |
 | `openchem.ui` | Widgets and dock panels. `EditorBackend`/`KetcherEditorBackend` (2D, `resources/ketcher/dist/`) and `ViewerBackend`/`Mol3DViewerBackend` (3D, `resources/viewer3d/`, 3Dmol.js) are both interface + single-implementation pairs — either can be swapped or extended with a sibling implementation (e.g. a future Mol*-based viewer for macromolecules/crystallography) without touching chemistry, services, or commands. |
+| `plugins/ai_assistant` | Bundled first-party plugin (loads by default, unlike `examples/`). `providers.py` (`AIProvider` ABC, `AnthropicProvider`, `OpenAICompatibleProvider` covering OpenAI + local Ollama), `context_builder.py` (`MoleculeContextCache` — accumulates molecule identity/descriptors purely from subscribed events, same pattern as `PropertyPanel`), `panel.py` (chat UI, async `QRunnable` network calls), `plugin.py` (registers the panel + two menu-driven canned prompts). Kept out of core `openchem` so the `anthropic`/`openai` SDKs stay optional (`pyproject.toml`'s `ai` extra). |
 
 `tools/ketcher-host/` is a small separate Node/Vite project (not part of the
 Python package) that builds the static Ketcher bundle vendored into
@@ -101,6 +102,44 @@ at all for this one.
   makes plugin activation transactional: if `Plugin.activate()` raises
   partway through, the loader replays that list immediately so a
   half-failed plugin never leaves partial registrations behind.
+- **Multi-file plugins are supported via synthetic namespace packages.**
+  `PluginManager._import_plugin_module` sets `module.__path__ = [plugin_dir]`
+  and `module.__package__ = module_name` on the `ModuleType` it `exec()`s
+  `plugin.py` into, so `from . import sibling` in a plugin resolves against
+  its own directory through Python's normal path-based finder. `plugin.py`
+  itself is still read and `exec()`d directly (see the docstring on that
+  function for why — bytecode-cache staleness during hot reload), but
+  sibling-module imports go through ordinary import machinery, which writes
+  `__pycache__/*.pyc` — since the hot-reload watcher recurses into a
+  plugin's whole directory tree, that write would otherwise look like a
+  filesystem change and trigger a spurious self-reload a few hundred ms
+  after every load. `sys.dont_write_bytecode = True` at the top of
+  `manager.py` disables that caching outright (undesirable for plugins
+  anyway, for the same staleness reason).
+- **Plugin credentials live in `context.secrets`, never in `Settings`.**
+  `_PluginSecrets` (in `context.py`) wraps `keyring.get_password`/
+  `set_password`/`delete_password`, namespaced per-plugin via service name
+  `f"openchem-plugin-{plugin_id}"` so one plugin can never read another's
+  stored key. Not tracked in the rollback list — like `context.settings`, a
+  stored credential is meant to survive reload/unload.
+- **`MoleculeSnapshotUpdated` gives plugins molecule identity without
+  exposing `SessionManager`/`ProjectModel`.** `MoleculeSelected`/
+  `MoleculeChanged` only carry a `molecule_uuid`; this additive event
+  (`events/events.py`) carries display name, canonical SMILES/InChI/InChIKey,
+  and conformer summary data, published by `MainWindow` from the same
+  handlers that already resolve the real `MoleculeModel`. Any plugin needing
+  molecule identity (not just `ai_assistant`) subscribes to this instead of
+  requesting deeper access.
+- **`UIRegistry.add_menu_action`'s `callback` contract is genuinely
+  zero-argument, enforced at the `MainWindow` boundary.** `QAction.triggered`
+  emits `triggered(checked: bool)`; connecting it directly to a callback
+  would silently pass that bool as the callback's first positional argument
+  — including clobbering a lambda default like
+  `lambda aid=action_id: ...` (Python allows overriding a default via a
+  positional argument, so the emitted bool overwrites `aid` instead of being
+  rejected). `MainWindow.add_menu_action` connects through
+  `lambda checked=False: callback()` so every `UIRegistry` caller genuinely
+  only ever needs to handle the zero-argument case the protocol promises.
 
 ## Known TODOs
 
@@ -119,3 +158,6 @@ at all for this one.
   `ContextMenuProvider`, no numeric provider priority, and no declared
   permissions — all deliberately deferred; see the "Explicitly deferred"
   reasoning preserved in `PLUGIN_SDK.md`'s "Known limitations" section.
+- `ai_assistant` has no tool-calling loop (the assistant can't request safe
+  read operations like SMARTS validation itself) and no response streaming —
+  both deliberately deferred out of Phase 5; see ROADMAP.md.

@@ -4,6 +4,9 @@ import logging
 from pathlib import Path
 from typing import Any, Callable, TypeVar
 
+import keyring
+import keyring.errors
+
 from openchem.app.settings import Settings
 from openchem.events.base import Event, EventBus
 from openchem.plugins.interfaces import (
@@ -35,6 +38,30 @@ class _PluginSettings:
 
     def set(self, key: str, value: Any) -> None:
         self._settings.set(self._prefix + key, value)
+
+
+class _PluginSecrets:
+    """Namespaced view over the OS keychain (via `keyring`) — a plugin can
+    only read/write its own credentials, never another plugin's.
+
+    Not tracked in the rollback list: a stored credential is expected to
+    persist across reload/unload, same as `context.settings`.
+    """
+
+    def __init__(self, plugin_id: str) -> None:
+        self._service_name = f"openchem-plugin-{plugin_id}"
+
+    def get(self, key: str) -> str | None:
+        return keyring.get_password(self._service_name, key)
+
+    def set(self, key: str, value: str) -> None:
+        keyring.set_password(self._service_name, key, value)
+
+    def delete(self, key: str) -> None:
+        try:
+            keyring.delete_password(self._service_name, key)
+        except keyring.errors.PasswordDeleteError:
+            pass  # already absent — deleting a not-there secret isn't an error
 
 
 class _DescriptorRegistrar:
@@ -125,8 +152,8 @@ class PluginContext:
     through (transactional activation, see `PluginManager`).
 
     Grouped into small namespaces (`descriptors`, `conformers`, `importers`,
-    `exporters`, `panels`, `menus`, `events`, `settings`) rather than one
-    flat pile of `register_*` methods on this class directly.
+    `exporters`, `panels`, `menus`, `events`, `settings`, `secrets`) rather
+    than one flat pile of `register_*` methods on this class directly.
 
     Deliberately does not expose the raw `EventBus`, `ServiceContainer`, or
     any concrete window/UI object — only these narrow registration
@@ -155,6 +182,7 @@ class PluginContext:
         self.menus = _MenuRegistrar(ui_registry, plugin_id, self._rollbacks)
         self.events = _EventRegistrar(services.event_bus, self._rollbacks)
         self.settings = _PluginSettings(settings, plugin_id)
+        self.secrets = _PluginSecrets(plugin_id)
 
     def resource_path(self, relative: str) -> Path:
         """Path to a file bundled alongside this plugin (icons, templates, etc.)."""

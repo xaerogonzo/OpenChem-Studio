@@ -23,6 +23,18 @@ logger = logging.getLogger("openchem.plugin")
 DEFAULT_PROJECT_PLUGINS_DIR = Path(__file__).resolve().parents[3] / "plugins"
 DEBOUNCE_MS = 300
 
+# A multi-file plugin's sibling-module imports (`from . import helper`)
+# go through Python's normal import machinery (unlike plugin.py itself,
+# which this module compiles/execs directly — see _import_plugin_module),
+# and normal imports write __pycache__/*.pyc as a side effect. Since the
+# recursive hot-reload watcher below watches a plugin's whole directory
+# tree, that .pyc write is itself a filesystem change — creating __pycache__
+# the first time a multi-file plugin loads would immediately trigger a
+# spurious self-triggered reload a few hundred ms after every load. Bytecode
+# caching for plugins is undesirable anyway (the same staleness class of bug
+# documented on _import_plugin_module), so it's disabled outright.
+sys.dont_write_bytecode = True
+
 
 class PluginLoadError(Exception):
     """Raised internally when a plugin can't be imported or instantiated."""
@@ -54,6 +66,12 @@ def _import_plugin_module(plugin_dir: Path, module_name: str) -> ModuleType:
     source = plugin_file.read_text(encoding="utf-8")
     module = ModuleType(module_name)
     module.__file__ = str(plugin_file)
+    # Makes `plugin.py` behave like a package's __init__ for sibling-module
+    # imports (`from . import helpers`) — Python's standard path-based
+    # finder resolves `<module_name>.helpers` by searching __path__, so a
+    # multi-file plugin can organize itself into more than one module.
+    module.__path__ = [str(plugin_dir)]
+    module.__package__ = module_name
     sys.modules[module_name] = module
     try:
         code = compile(source, str(plugin_file), "exec")

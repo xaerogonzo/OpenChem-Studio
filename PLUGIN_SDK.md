@@ -93,6 +93,15 @@ you need to react to a project opening or closing, subscribe to the
 existing `ProjectLoaded`/`ProjectClosed` events via `context.events`
 (see below), the same mechanism as everything else.
 
+### Splitting a plugin across multiple files
+
+`plugin.py` can import sibling modules in its own directory with a relative
+import, e.g. `from . import helpers` or `from .providers import MyThing`
+(see `plugins/ai_assistant/` for a worked multi-file example: `plugin.py`,
+`providers.py`, `context_builder.py`, `panel.py`). You don't need an
+`__init__.py` and there's no package name to pick — the loader sets this up
+for you automatically.
+
 ## `PluginContext` reference
 
 Everything your plugin can do goes through `context`, grouped into small
@@ -109,6 +118,7 @@ tracked, so it can be reversed automatically (see "Unload and hot reload").
 | `context.menus` | `.register(provider: MenuProvider)` | Add entries under the **Plugins** menu. |
 | `context.events` | `.subscribe(event_type, handler)` / `.unsubscribe(...)` | React to app events (`MoleculeChanged`, `ProjectLoaded`, etc.) — **never** connect to the event bus or a Qt signal directly; only this is tracked for cleanup. |
 | `context.settings` | `.get(key, default)` / `.set(key, value)` | Persistent settings, transparently namespaced under `plugins/<your_plugin_id>/` — you cannot read or write any other key. |
+| `context.secrets` | `.get(key)` / `.set(key, value)` / `.delete(key)` | API keys and other credentials, stored in the OS keychain via `keyring` (Windows Credential Manager, macOS Keychain, Secret Service on Linux) — never in `Settings`/`QSettings`, never in plaintext config. Namespaced per-plugin under the hood (service name `openchem-plugin-<your_plugin_id>`); one plugin can never read another's stored values. `.get()` returns `None` if nothing is stored. Like `context.settings`, not tracked for rollback — a stored credential survives unload/reload, since the user shouldn't have to re-enter it every time a plugin hot-reloads. |
 | `context.resource_path(relative)` | — | Path to a file bundled alongside your plugin (icons, templates, etc.) — never guess your own directory. |
 | `context.logger` | — | A `logging.Logger` named `openchem.plugin.<your_plugin_id>`, surfaced in the Console panel. |
 

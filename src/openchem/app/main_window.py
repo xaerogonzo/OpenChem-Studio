@@ -20,6 +20,7 @@ from openchem.events.events import (
     ConformersReady,
     MoleculeChanged,
     MoleculeSelected,
+    MoleculeSnapshotUpdated,
     PluginLoaded,
     PluginUnloaded,
 )
@@ -225,12 +226,31 @@ class MainWindow(QMainWindow):
         self._viewer3d.set_molecule(molecule)
         if molecule is not None:
             self._services.descriptor_service.request_descriptors(molecule)
+            self._publish_molecule_snapshot(molecule)
 
     def _on_molecule_changed(self, event: MoleculeChanged) -> None:
         self._session.mark_dirty()
         molecule = self._current_molecule()
         if molecule is not None and molecule.uuid == event.molecule_uuid:
             self._services.descriptor_service.request_descriptors(molecule)
+            self._publish_molecule_snapshot(molecule)
+
+    def _publish_molecule_snapshot(self, molecule: MoleculeModel) -> None:
+        """Gives plugins (which have no access to SessionManager/ProjectModel)
+        a read-only view of identity fields DescriptorComputed/MoleculeChanged
+        don't carry — see MoleculeSnapshotUpdated in events/events.py."""
+        energies = [c.energy for c in molecule.conformers if c.energy is not None]
+        self._services.event_bus.publish(
+            MoleculeSnapshotUpdated(
+                molecule_uuid=molecule.uuid,
+                display_name=molecule.display_name,
+                canonical_smiles=molecule.canonical_smiles,
+                inchi=molecule.inchi,
+                inchikey=molecule.inchikey,
+                conformer_count=len(molecule.conformers),
+                lowest_conformer_energy=min(energies) if energies else None,
+            )
+        )
 
     def _on_conformers_ready(self, event: ConformersReady) -> None:
         molecule = self._current_molecule()
@@ -265,7 +285,10 @@ class MainWindow(QMainWindow):
 
     def add_menu_action(self, plugin_id: str, label: str, callback: Callable[[], None]) -> None:
         action = QAction(label, self)
-        action.triggered.connect(callback)
+        # QAction.triggered emits (checked: bool); the protocol promises
+        # callers a zero-arg callback, so that bool must be swallowed here
+        # rather than leaking into every caller's callback signature.
+        action.triggered.connect(lambda checked=False: callback())
         self._plugins_menu.addAction(action)
         self._plugin_menu_actions.setdefault(plugin_id, []).append(action)
 

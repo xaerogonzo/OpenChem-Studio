@@ -19,6 +19,26 @@ class MoleculeSelected(Event):
 
 
 @dataclass(frozen=True)
+class MoleculeSnapshotUpdated(Event):
+    """A lightweight, read-only snapshot of a molecule's identity fields.
+
+    Plugins have no access to SessionManager/ProjectModel (that would break
+    the same UI decoupling `UIRegistry` was built to preserve), so this is
+    the one place they can learn a molecule's canonical SMILES/InChI/name —
+    MoleculeSelected/MoleculeChanged only carry a UUID, and DescriptorComputed
+    only carries numeric values, not identity fields.
+    """
+
+    molecule_uuid: str
+    display_name: str
+    canonical_smiles: str | None
+    inchi: str | None
+    inchikey: str | None
+    conformer_count: int
+    lowest_conformer_energy: float | None
+
+
+@dataclass(frozen=True)
 class ProjectLoaded(Event):
     project_uuid: str
 

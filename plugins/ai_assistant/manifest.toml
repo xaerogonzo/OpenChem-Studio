@@ -1,0 +1,9 @@
+plugin_id = "ai_assistant"
+version = "0.1.0"
+api_version = 1
+display_name = "AI Assistant"
+author = "OpenChem Studio"
+description = "Context-aware chemistry explanations, SMARTS/workflow suggestions, and documentation generation via Anthropic, OpenAI, or a local Ollama model."
+homepage = ""
+license = "GPL-3.0-or-later"
+dependencies = []

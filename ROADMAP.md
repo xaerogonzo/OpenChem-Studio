@@ -29,9 +29,19 @@
       persisted in Settings)
 
 ## Phase 5 — AI assistant
-- [ ] Context-aware chemistry explanations
-- [ ] Workflow assistance / SMARTS/query generation
-- [ ] Documentation generation
+- [x] Context-aware chemistry explanations (bundled `plugins/ai_assistant/` plugin,
+      multi-provider — Anthropic, OpenAI, local/Ollama — via a small `AIProvider`
+      abstraction; context built purely from events, same pattern as `PropertyPanel`)
+- [x] Workflow assistance via canned, pre-filled prompts ("Explain Selected Molecule",
+      "Generate Molecule Report") — user still clicks Send, nothing fires over the
+      network on its own
+- [x] Documentation generation (the "report" prompt above, over the same chat pipeline)
+- [x] Credential storage via a new `context.secrets` namespace (`PluginContext`), backed
+      by the OS keychain (`keyring`), namespaced per-plugin
+- [ ] *Deferred*: constrained tool-calling loop (the assistant requesting safe read
+      operations like SMARTS validation itself) — logged for a future phase, not built
+- [ ] *Deferred*: response streaming — a complete reply is shown when it arrives, not
+      token-by-token; the async `QRunnable` plumbing would support adding it later
 
 ## Phase 6 — Scientific extensions
 - [ ] PubChem / ChEMBL search
