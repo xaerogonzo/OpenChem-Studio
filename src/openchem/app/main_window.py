@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QDockWidget, QFileDialog, QMainWindow, QMessageBox
 from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
 from openchem.commands.conformer_commands import SetConformersCommand
+from openchem.commands.docking_commands import SetDockingResultCommand
 from openchem.commands.import_export_commands import ExportMoleculeCommand, ImportMoleculeCommand
 from openchem.commands.macromolecule_commands import AddMacromoleculeCommand
 from openchem.commands.molecule_commands import AddMoleculeCommand
@@ -20,6 +21,7 @@ from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.events.events import (
     ConformersReady,
+    DockingResultReady,
     MoleculeChanged,
     MoleculeSelected,
     MoleculeSnapshotUpdated,
@@ -29,6 +31,7 @@ from openchem.events.events import (
 from openchem.plugins.manager import PluginManager
 from openchem.services.container import ServiceContainer
 from openchem.ui.panels.console_panel import ConsolePanel
+from openchem.ui.panels.docking_panel import DockingPanel
 from openchem.ui.panels.project_explorer_panel import ProjectExplorerPanel
 from openchem.ui.panels.property_panel import PropertyPanel
 from openchem.ui.widgets.molecule_editor_widget import MoleculeEditorWidget
@@ -78,16 +81,21 @@ class MainWindow(QMainWindow):
         self._project_explorer = ProjectExplorerPanel(services.event_bus, self)
         self._property_panel = PropertyPanel(services.event_bus, self)
         self._console_panel = ConsolePanel(self)
+        self._docking_panel = DockingPanel(
+            services.docking_service, services.chemistry_engine, services.event_bus, self
+        )
 
         self._add_dock("Project Explorer", self._project_explorer, Qt.DockWidgetArea.LeftDockWidgetArea)
         self._add_dock("Properties", self._property_panel, Qt.DockWidgetArea.RightDockWidgetArea)
         self._add_dock("Console", self._console_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
+        self._add_dock("Docking", self._docking_panel, Qt.DockWidgetArea.RightDockWidgetArea)
 
         self._build_menus()
 
         services.event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
         services.event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
         services.event_bus.subscribe(ConformersReady, self._on_conformers_ready)
+        services.event_bus.subscribe(DockingResultReady, self._on_docking_result_ready)
         services.event_bus.subscribe(PluginLoaded, self._on_plugins_state_changed)
         services.event_bus.subscribe(PluginUnloaded, self._on_plugins_state_changed)
 
@@ -158,6 +166,7 @@ class MainWindow(QMainWindow):
     def _set_project(self, project: ProjectModel) -> None:
         self._session.set_project(project)
         self._project_explorer.set_project(project)
+        self._docking_panel.set_project(project)
         self.setWindowTitle(f"OpenChem Studio - {project.name}")
 
     def _open_project(self) -> None:
@@ -308,6 +317,22 @@ class MainWindow(QMainWindow):
             return
         command = SetConformersCommand(molecule, event.conformers, self._services.event_bus)
         self._undo_stack.push(command)
+
+    def _on_docking_result_ready(self, event: DockingResultReady) -> None:
+        if self._session.project is None:
+            return
+        command = SetDockingResultCommand(self._session.project, event.result)
+        self._undo_stack.push(command)
+
+        if not event.result.poses:
+            return
+        receptor = self._session.project.find_macromolecule(event.result.receptor_macromolecule_uuid)
+        if receptor is None:
+            return
+        self._macromolecule_viewer.load_macromolecule(receptor.structure_text, receptor.source_format)
+        best_pose = min(event.result.poses, key=lambda p: p.binding_affinity_kcal_mol)
+        self._macromolecule_viewer.load_additional_structure(best_pose.pose_molblock, "mol", "docked ligand")
+        self._center_tabs.setCurrentWidget(self._macromolecule_viewer.widget())
 
     def _current_molecule(self) -> MoleculeModel | None:
         if self._session.project is None or self._session.selected_molecule_uuid is None:

@@ -71,33 +71,46 @@ class MolStarViewerBackend(ViewerBackend):
         self._page.setWebChannel(self._channel)
 
         self._viewer_ready = False
-        self._pending_call: tuple[str, str, str] | None = None
+        # A FIFO, not a single slot: load_macromolecule() followed
+        # immediately by load_additional_structure() (as
+        # MainWindow._on_docking_result_ready does, to show a docked
+        # ligand pose with its receptor) must run in that order even if
+        # neither call happened to be Python-side "ready" yet.
+        self._pending_calls: list[tuple[str, str, str, bool]] = []
         self._page.load(QUrl.fromLocalFile(str(_VIEWER_HTML)))
 
     def _on_viewer_ready(self) -> None:
         self._viewer_ready = True
-        if self._pending_call is not None:
-            structure_text, source_format, label = self._pending_call
-            self._run_load(structure_text, source_format, label)
-            self._pending_call = None
+        pending, self._pending_calls = self._pending_calls, []
+        for structure_text, source_format, label, additional in pending:
+            self._run_load(structure_text, source_format, label, additional)
 
     def load_macromolecule(self, structure_text: str, source_format: str) -> None:
-        label = "structure"
-        if self._viewer_ready:
-            self._run_load(structure_text, source_format, label)
-        else:
-            self._pending_call = (structure_text, source_format, label)
+        self._load(structure_text, source_format, "structure", additional=False)
 
-    def _run_load(self, structure_text: str, source_format: str, label: str) -> None:
+    def load_additional_structure(self, structure_text: str, source_format: str, label: str = "structure") -> None:
+        """Adds a structure alongside whatever is already loaded (does not
+        clear first) — used to show a docked ligand pose together with its
+        receptor."""
+        self._load(structure_text, source_format, label, additional=True)
+
+    def _load(self, structure_text: str, source_format: str, label: str, additional: bool) -> None:
+        if self._viewer_ready:
+            self._run_load(structure_text, source_format, label, additional)
+        else:
+            self._pending_calls.append((structure_text, source_format, label, additional))
+
+    def _run_load(self, structure_text: str, source_format: str, label: str, additional: bool) -> None:
+        js_function = "loadAdditionalStructure" if additional else "loadStructure"
         self._page.runJavaScript(
-            "window.openchemMolstarViewer.loadStructure("
+            f"window.openchemMolstarViewer.{js_function}("
             f"{json.dumps(structure_text)}, {json.dumps(source_format)}, {json.dumps(label)});"
         )
 
     def clear(self) -> None:
         if self._viewer_ready:
             self._page.runJavaScript("window.openchemMolstarViewer.clear();")
-        self._pending_call = None
+        self._pending_calls = []
 
     def widget(self):
         return self._view

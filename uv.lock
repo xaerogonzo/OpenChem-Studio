@@ -711,6 +711,9 @@ ai = [
     { name = "anthropic" },
     { name = "openai" },
 ]
+docking = [
+    { name = "vina" },
+]
 network = [
     { name = "requests" },
 ]
@@ -734,8 +737,9 @@ requires-dist = [
     { name = "pyside6-addons", specifier = ">=6.7" },
     { name = "rdkit", specifier = ">=2024.3.1" },
     { name = "requests", marker = "extra == 'network'", specifier = ">=2.32" },
+    { name = "vina", marker = "extra == 'docking'", specifier = ">=1.2.5" },
 ]
-provides-extras = ["openbabel", "ai", "network"]
+provides-extras = ["openbabel", "ai", "network", "docking"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=8.0" }]
@@ -1117,6 +1121,15 @@ wheels = [
 ]
 
 [[package]]
+name = "setuptools"
+version = "83.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/34/26/f5d29e25ffdb535afef2d35cdb55b325298f96debd670da4c325e08d70f4/setuptools-83.0.0.tar.gz", hash = "sha256:025bccbbf0fa05b6192bc64ae1e7b16e001fd6d6d4d5de03c97b1c1ade523bef", size = 1154254, upload-time = "2026-07-04T15:31:22.699Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5d/40/e1e72872c6354b306daef1703549e8e83b4d43cfea356311bf722a043752/setuptools-83.0.0-py3-none-any.whl", hash = "sha256:29b23c360f22f414dc7336bb39178cc7bcbf6021ed2733cde173f09dba19abb3", size = 1008090, upload-time = "2026-07-04T15:31:20.885Z" },
+]
+
+[[package]]
 name = "shiboken6"
 version = "6.11.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1177,6 +1190,37 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/53/0c/06f8b233b8fd13b9e5ee11424ef85419ba0d8ba0b3138bf360be2ff56953/urllib3-2.7.0.tar.gz", hash = "sha256:231e0ec3b63ceb14667c67be60f2f2c40a518cb38b03af60abc813da26505f4c", size = 433602, upload-time = "2026-05-07T16:13:18.596Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7f/3e/5db95bcf282c52709639744ca2a8b149baccf648e39c8cc87553df9eae0c/urllib3-2.7.0-py3-none-any.whl", hash = "sha256:9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897", size = 131087, upload-time = "2026-05-07T16:13:17.151Z" },
+]
+
+[[package]]
+name = "vina"
+version = "1.2.7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "packaging" },
+    { name = "setuptools" },
+    { name = "wheel" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d2/2a/6746ef5e57b1c643e9fb24ad9e4fa520add7338736d50954e0fbc12ae52e/vina-1.2.7.tar.gz", hash = "sha256:79e5288d10207b85f20adac3dd6f4708eac761c2d8070fbad76ff997cf48e4f9", size = 89176, upload-time = "2025-02-26T03:23:17.85Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b4/89/b8cab012500fa7fcb1d868ddf23a42a66953dae8a4cce49105ec64f8d436/vina-1.2.7-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:46edb24ad831f586c68bd582f9c0675fb1abf5e49b7e317336b5c1b26949c7de", size = 6844204, upload-time = "2025-02-26T03:22:54.206Z" },
+    { url = "https://files.pythonhosted.org/packages/a0/4c/a1a2cf6c99d4c8564172191cf662f81fa8460cb8c583d4d3e52e5db907dd/vina-1.2.7-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:43edeaba01f22b96211a71516fbb2ee73815781679eca4805df750770868adef", size = 7009728, upload-time = "2025-02-26T03:22:57.835Z" },
+    { url = "https://files.pythonhosted.org/packages/36/1f/45ee007da0d3dc791c3dc7143f038221360f3305aa9152acb0fbacb26139/vina-1.2.7-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a6e46560e50e693fb29883b82be8d9a4d74207b4464cfedf2bd5235192f4eb3d", size = 6855509, upload-time = "2025-02-26T03:23:03.342Z" },
+    { url = "https://files.pythonhosted.org/packages/af/eb/667b855ff38962edcce7ad32007765e9cebe9e7d5d4ea3e6f901231eb9a6/vina-1.2.7-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:a8e1ab100e6a6537b6f47d103843af41e391b1cd0afbe87c6e4d4f2f78d5a2f0", size = 7023498, upload-time = "2025-02-26T03:23:06.12Z" },
+]
+
+[[package]]
+name = "wheel"
+version = "0.47.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/39/62/75f18a0f03b4219c456652c7780e4d749b929eb605c098ce3a5b6b6bc081/wheel-0.47.0.tar.gz", hash = "sha256:cc72bd1009ba0cf63922e28f94d9d83b920aa2bb28f798a31d0691b02fa3c9b3", size = 63854, upload-time = "2026-04-22T15:51:27.727Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/87/1b/9e33c09813d65e248f7f773119148a612516a4bea93e9c6f545f78455b7c/wheel-0.47.0-py3-none-any.whl", hash = "sha256:212281cab4dff978f6cedd499cd893e1f620791ca6ff7107cf270781e587eced", size = 32218, upload-time = "2026-04-22T15:51:26.296Z" },
 ]
 
 [[package]]

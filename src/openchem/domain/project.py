@@ -5,6 +5,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
+from openchem.domain.docking import DockingResultModel
 from openchem.domain.macromolecule import MacromoleculeModel
 from openchem.domain.molecule import MoleculeModel
 
@@ -38,6 +39,7 @@ class ProjectModel:
     name: str = "Untitled project"
     molecules: list[MoleculeModel] = field(default_factory=list)
     macromolecules: list[MacromoleculeModel] = field(default_factory=list)
+    docking_results: list[DockingResultModel] = field(default_factory=list)
     notes: str = ""
     tags: list[str] = field(default_factory=list)
     folders: list[str] = field(default_factory=list)
@@ -60,6 +62,12 @@ class ProjectModel:
                 return macromolecule
         return None
 
+    def find_docking_result(self, docking_result_uuid: str) -> DockingResultModel | None:
+        for result in self.docking_results:
+            if result.uuid == docking_result_uuid:
+                return result
+        return None
+
     def record_history(self, action: str) -> None:
         self.history.append(HistoryEntry(timestamp=time.time(), action=action))
         self.modified_at = time.time()
@@ -70,6 +78,7 @@ class ProjectModel:
             "name": self.name,
             "molecules": [m.to_dict() for m in self.molecules],
             "macromolecules": [m.to_dict() for m in self.macromolecules],
+            "docking_results": [d.to_dict() for d in self.docking_results],
             "notes": self.notes,
             "tags": list(self.tags),
             "folders": list(self.folders),
@@ -89,6 +98,9 @@ class ProjectModel:
             molecules=[MoleculeModel.from_dict(m) for m in data.get("molecules", [])],
             macromolecules=[
                 MacromoleculeModel.from_dict(m) for m in data.get("macromolecules", [])
+            ],
+            docking_results=[
+                DockingResultModel.from_dict(d) for d in data.get("docking_results", [])
             ],
             notes=data.get("notes", ""),
             tags=list(data.get("tags", [])),

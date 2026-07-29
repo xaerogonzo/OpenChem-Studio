@@ -45,6 +45,15 @@
             });
           });
         },
+        // Adds a structure alongside whatever is already loaded, without
+        // clearing first -- used to show a docked ligand pose together
+        // with its receptor (see ui/widgets/molstar_viewer_backend.py's
+        // load_additional_structure).
+        loadAdditionalStructure: function (structureText, format, label) {
+          whenReady(function () {
+            viewer.loadStructureFromData(structureText, format, { dataLabel: label });
+          });
+        },
         clear: function () {
           whenReady(function () {
             viewer.plugin.clear();

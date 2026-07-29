@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from openchem.domain.common import CacheState
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
+from openchem.domain.docking import DockingResultModel
 from openchem.events.base import Event
 
 
@@ -102,3 +103,16 @@ class PluginLoadFailed(Event):
 @dataclass(frozen=True)
 class SettingsChanged(Event):
     key: str
+
+
+@dataclass(frozen=True)
+class DockingJobStateChanged(Event):
+    ligand_molecule_uuid: str
+    receptor_macromolecule_uuid: str
+    state: CacheState
+    message: str = ""
+
+
+@dataclass(frozen=True)
+class DockingResultReady(Event):
+    result: DockingResultModel

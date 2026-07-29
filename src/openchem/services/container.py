@@ -6,6 +6,7 @@ from openchem.chem.engine import ChemistryEngine
 from openchem.events.base import EventBus
 from openchem.services.conformer_service import ConformerService
 from openchem.services.descriptor_service import DescriptorService
+from openchem.services.docking_service import DockingService
 from openchem.services.export_service import ExportService
 from openchem.services.import_service import ImportService
 from openchem.services.measurement_service import MeasurementService
@@ -29,3 +30,4 @@ class ServiceContainer:
     project_service: ProjectService
     conformer_service: ConformerService
     measurement_service: MeasurementService
+    docking_service: DockingService

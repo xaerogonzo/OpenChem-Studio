@@ -7,7 +7,9 @@ from typing import TYPE_CHECKING, Any, Callable
 from rdkit import Chem
 
 from openchem.domain.descriptor import DescriptorValue
+from openchem.domain.docking import DockingBox, DockingPoseModel
 from openchem.domain.molecule import MoleculeModel
+from openchem.services.progress import ProgressHandle
 
 if TYPE_CHECKING:
     from openchem.plugins.context import PluginContext
@@ -85,6 +87,36 @@ class ConformerProvider(ABC):
         if given, is called as `on_progress(done, total)` after each
         conformer so callers can report incremental progress.
         """
+
+
+class DockingProvider(ABC):
+    """Which docking *algorithm* runs — deliberately separate from
+    `chem.vina_engine.VinaEngine`, which is about how AutoDock Vina itself
+    gets invoked (Python binding vs. CLI executable). A future alternative
+    docking algorithm (not just an alternative way to run Vina) registers
+    a second `DockingProvider`, the same extensibility shape as
+    `ConformerProvider`/`DescriptorProvider`.
+    """
+
+    provider_id: str
+
+    @abstractmethod
+    def dock(
+        self,
+        receptor_structure_text: str,
+        receptor_source_format: str,
+        ligand_mol: Chem.Mol,
+        box: DockingBox,
+        num_poses: int,
+        progress: ProgressHandle,
+    ) -> list[DockingPoseModel]:
+        """Dock `ligand_mol` against a receptor (raw structure text, same
+        shape as `MacromoleculeModel.structure_text`/`.source_format`)
+        within `box`. The provider is responsible for its own receptor/
+        ligand preparation (PDBQT conversion, etc.) — callers pass raw
+        structure data, not pre-converted files. Reports phase-labeled
+        progress via `progress.report(...)` (e.g. "Preparing receptor",
+        "Docking", "Scoring")."""
 
 
 class PanelProvider(ABC):
