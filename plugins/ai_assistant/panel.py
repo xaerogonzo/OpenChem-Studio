@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QDialogButtonBox,
+    QFileDialog,
     QFormLayout,
     QHBoxLayout,
     QLabel,
@@ -33,23 +34,50 @@ SYSTEM_PROMPT_PREFIX = (
 
 
 class _ProviderSettingsDialog(QDialog):
+    """API-key providers (Anthropic/OpenAI/Ollama) and ClaudeCLIProvider
+    need genuinely different configuration -- the latter authenticates via
+    a locally-logged-in `claude` CLI session, so an "API key" field would
+    be actively misleading. `provider.requires_api_key` decides which of
+    the two this dialog shows.
+    """
+
     def __init__(
-        self, context: PluginContext, provider_id: str, default_model: str, parent: QWidget | None = None
+        self, context: PluginContext, provider_id: str, provider: AIProvider, parent: QWidget | None = None
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle(f"Configure {provider_id}")
         self._context = context
         self._provider_id = provider_id
-
-        self._api_key_edit = QLineEdit(self)
-        self._api_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        self._api_key_edit.setText(context.secrets.get(f"{provider_id}_api_key") or "")
-
-        self._model_edit = QLineEdit(self)
-        self._model_edit.setText(context.settings.get(f"{provider_id}_model", default_model))
+        self._requires_api_key = provider.requires_api_key
 
         form = QFormLayout()
-        form.addRow("API key:", self._api_key_edit)
+        note: QLabel | None = None
+
+        if self._requires_api_key:
+            self._api_key_edit = QLineEdit(self)
+            self._api_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
+            self._api_key_edit.setText(context.secrets.get(f"{provider_id}_api_key") or "")
+            form.addRow("API key:", self._api_key_edit)
+        else:
+            self._cli_path_edit = QLineEdit(self)
+            self._cli_path_edit.setText(context.settings.get(f"{provider_id}_cli_path", ""))
+            browse_button = QPushButton("Browse...", self)
+            browse_button.clicked.connect(self._on_browse_clicked)
+            path_row = QHBoxLayout()
+            path_row.addWidget(self._cli_path_edit)
+            path_row.addWidget(browse_button)
+            form.addRow("CLI path (optional):", path_row)
+            note = QLabel(
+                "Uses your local Claude Code CLI login -- run 'claude' once in a "
+                "terminal to sign in with your claude.ai subscription (Pro/Max), no "
+                "separate Anthropic API key or billing needed. Leave the path blank "
+                "to auto-detect 'claude' on PATH.",
+                self,
+            )
+            note.setWordWrap(True)
+
+        self._model_edit = QLineEdit(self)
+        self._model_edit.setText(context.settings.get(f"{provider_id}_model", provider.default_model))
         form.addRow("Model:", self._model_edit)
 
         buttons = QDialogButtonBox(
@@ -60,10 +88,20 @@ class _ProviderSettingsDialog(QDialog):
 
         layout = QVBoxLayout(self)
         layout.addLayout(form)
+        if note is not None:
+            layout.addWidget(note)
         layout.addWidget(buttons)
 
+    def _on_browse_clicked(self) -> None:
+        path_str, _ = QFileDialog.getOpenFileName(self, "Select claude executable")
+        if path_str:
+            self._cli_path_edit.setText(path_str)
+
     def accept(self) -> None:
-        self._context.secrets.set(f"{self._provider_id}_api_key", self._api_key_edit.text())
+        if self._requires_api_key:
+            self._context.secrets.set(f"{self._provider_id}_api_key", self._api_key_edit.text())
+        else:
+            self._context.settings.set(f"{self._provider_id}_cli_path", self._cli_path_edit.text())
         self._context.settings.set(f"{self._provider_id}_model", self._model_edit.text())
         super().accept()
 
@@ -128,7 +166,7 @@ class AIAssistantPanel(QWidget):
     def _on_configure_clicked(self) -> None:
         provider_id = self._provider_combo.currentText()
         provider = self._providers[provider_id]
-        dialog = _ProviderSettingsDialog(self._context, provider_id, provider.default_model, self)
+        dialog = _ProviderSettingsDialog(self._context, provider_id, provider, self)
         dialog.exec()
 
     def _on_send_clicked(self) -> None:

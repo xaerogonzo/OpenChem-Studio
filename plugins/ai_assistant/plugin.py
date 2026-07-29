@@ -70,7 +70,9 @@ class AIAssistantPlugin(Plugin):
         context.events.subscribe(MoleculeSnapshotUpdated, cache.on_snapshot_updated)
         context.events.subscribe(DescriptorComputed, cache.on_descriptor_computed)
 
-        provider_map = providers_module.build_default_providers()
+        provider_map = providers_module.build_default_providers(
+            cli_path_resolver=lambda: context.settings.get("claude_cli_cli_path", "")
+        )
 
         panel_provider = AIAssistantPanelProvider(context, provider_map, cache)
         context.panels.register(panel_provider)
