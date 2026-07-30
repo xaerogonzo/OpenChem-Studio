@@ -270,6 +270,82 @@ def _service_calculator_definition(calculator_id: str, category: str) -> Calcula
     )
 
 
+def _hint_texts(section) -> list[str]:
+    from PySide6.QtWidgets import QLabel
+
+    layout = section._calculators_layout
+    return [
+        layout.itemAt(i).widget().text()
+        for i in range(layout.count())
+        if isinstance(layout.itemAt(i).widget(), QLabel)
+    ]
+
+
+def test_empirical_only_section_points_at_its_ab_initio_counterpart(qapp):
+    """Phase 23: Alex ran the empirical NMR estimate believing it was the
+    real ORCA calculation, because nothing on screen said otherwise. An
+    empirical-only section now points at the ab initio counterpart, matched
+    on the Phase 21 dotted-calculator_id convention (orca.nmr -> "nmr")
+    since the two deliberately live in different categories."""
+    registry = CalculatorRegistry()
+    empirical = CalculatorDefinition(
+        calculator_id="nmr_empirical", display_name="NMR Shift", category="nmr",
+        description="", execution=RegistryExecution(compute=lambda m, u, p: None),
+        prediction_basis="empirical",
+    )
+    ab_initio = CalculatorDefinition(
+        calculator_id="orca.nmr", display_name="NMR", category="quantum_chemistry",
+        description="", execution=ServiceExecution(
+            service_name="quantum_chemistry_service", panel_name="Quantum Chemistry panel"
+        ),
+        prediction_basis="ab_initio",
+    )
+    registry.register(empirical)
+    registry.register(ab_initio)
+
+    panel, _bus, _service = _make_panel(qapp, registry)
+
+    hints = _hint_texts(panel._sections["nmr"])
+    assert len(hints) == 1
+    assert "empirical" in hints[0]
+    assert "Quantum Chemistry panel" in hints[0]
+
+
+def test_no_hint_when_there_is_no_ab_initio_counterpart(qapp):
+    registry = CalculatorRegistry()
+    registry.register(
+        CalculatorDefinition(
+            calculator_id="nmr_empirical", display_name="NMR Shift", category="nmr",
+            description="", execution=RegistryExecution(compute=lambda m, u, p: None),
+            prediction_basis="empirical",
+        )
+    )
+
+    panel, _bus, _service = _make_panel(qapp, registry)
+
+    assert _hint_texts(panel._sections["nmr"]) == []
+
+
+def test_no_hint_for_a_section_that_is_not_empirical(qapp):
+    """Charge/LogP/pKa have no prediction_basis set -- they must not grow a
+    hint just because an ab initio calculator exists somewhere."""
+    registry = CalculatorRegistry()
+    registry.register(_calculator_definition("gasteiger_charge_at_ph", category="charge"))
+    registry.register(
+        CalculatorDefinition(
+            calculator_id="orca.charge", display_name="QM Charge", category="quantum_chemistry",
+            description="", execution=ServiceExecution(
+                service_name="quantum_chemistry_service", panel_name="Quantum Chemistry panel"
+            ),
+            prediction_basis="ab_initio",
+        )
+    )
+
+    panel, _bus, _service = _make_panel(qapp, registry)
+
+    assert _hint_texts(panel._sections["charge"]) == []
+
+
 def test_a_registered_category_gets_a_section_eagerly_even_with_no_scalar_descriptor(qapp):
     """Regression test: pKa has no scalar descriptor to otherwise trigger
     section creation via _on_descriptor_computed -- the section (and its

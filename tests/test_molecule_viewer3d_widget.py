@@ -3,12 +3,9 @@ from __future__ import annotations
 from PySide6.QtWidgets import QWidget
 
 from openchem.chem.engine import ChemistryEngine
-from openchem.domain.common import Provenance
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.molecule import MoleculeModel
-from openchem.domain.scientific_result import PerAtomDataset
 from openchem.events.base import EventBus
-from openchem.events.events import PerAtomDataComputed
 from openchem.services.conformer_service import ConformerService
 from openchem.services.measurement_service import MeasurementService
 from openchem.ui.viewer_backend import ViewerBackend
@@ -58,117 +55,65 @@ def _molecule_with_conformer() -> MoleculeModel:
     return model
 
 
-def test_color_by_default_never_applies_a_layer(qapp):
+def test_widget_has_no_color_by_dropdown(qapp):
+    """Phase 23: per-property colouring moved out of this widget entirely --
+    it predated CalculatorRegistry and hardcoded two properties, which the
+    registry-driven Calculator Inspector now supersedes generically. This
+    widget is style/navigation/measurement only."""
+    widget, _backend, _bus = _make_widget(qapp)
+
+    assert not hasattr(widget, "_color_by_combo")
+    assert not hasattr(widget, "_per_atom_datasets")
+
+
+def test_widget_never_applies_a_visualization_layer(qapp):
     widget, backend, _bus = _make_widget(qapp)
     widget.set_molecule(_molecule_with_conformer())
 
-    # Default selection: apply_visualization(None) only (the "clear" case),
-    # never a real layer.
-    assert all(layer is None for layer in backend.applied_layers)
+    assert backend.applied_layers == []
 
 
-def test_selecting_color_by_applies_cached_dataset(qapp):
-    widget, backend, bus = _make_widget(qapp)
-    molecule = _molecule_with_conformer()
-    widget.set_molecule(molecule)
-
-    bus.publish(
-        PerAtomDataComputed(
-            dataset=PerAtomDataset(
-                property_id="crippen_logp_contrib",
-                name="LogP Contribution",
-                units="",
-                method="rdkit",
-                molecule_uuid=molecule.uuid,
-                values={0: -0.5, 1: 0.5},
-                provenance=Provenance(created_by="core", method="rdkit"),
-            )
-        )
-    )
-
-    widget._color_by_combo.setCurrentText("LogP contribution")
-
-    real_layers = [layer for layer in backend.applied_layers if layer is not None]
-    assert len(real_layers) == 1
-    assert real_layers[0].atom_colors.keys() == {0, 1}
-    assert "LogP Contribution" in widget._legend_label.text()
-
-
-def test_per_atom_data_for_a_different_molecule_is_ignored(qapp):
-    widget, backend, bus = _make_widget(qapp)
+def test_loading_a_molecule_loads_its_first_conformer(qapp):
+    widget, backend, _bus = _make_widget(qapp)
     widget.set_molecule(_molecule_with_conformer())
-    widget._color_by_combo.setCurrentText("Partial charge")
 
-    bus.publish(
-        PerAtomDataComputed(
-            dataset=PerAtomDataset(
-                property_id="gasteiger_charge",
-                name="Partial Charge",
-                units="e",
-                method="rdkit",
-                molecule_uuid="some-other-molecule",
-                values={0: 0.1},
-                provenance=Provenance(created_by="core", method="rdkit"),
-            )
-        )
-    )
-
-    assert all(layer is None for layer in backend.applied_layers)
+    assert backend.loaded_molblocks == ["fake molblock"]
 
 
-def test_switching_molecule_resets_color_by_to_default(qapp):
-    widget, backend, bus = _make_widget(qapp)
-    molecule = _molecule_with_conformer()
-    widget.set_molecule(molecule)
-    bus.publish(
-        PerAtomDataComputed(
-            dataset=PerAtomDataset(
-                property_id="crippen_logp_contrib",
-                name="LogP Contribution",
-                units="",
-                method="rdkit",
-                molecule_uuid=molecule.uuid,
-                values={0: -0.5},
-                provenance=Provenance(created_by="core", method="rdkit"),
-            )
-        )
-    )
-    widget._color_by_combo.setCurrentText("LogP contribution")
-    assert any(layer is not None for layer in backend.applied_layers)
-
-    other_molecule = _molecule_with_conformer()
-    widget.set_molecule(other_molecule)
-
-    assert widget._color_by_combo.currentText() == "Default"
-    assert widget._per_atom_datasets == {}
-
-
-def test_switching_conformer_reapplies_active_visualization(qapp):
-    widget, backend, bus = _make_widget(qapp)
+def test_switching_conformer_loads_the_next_molblock(qapp):
+    widget, backend, _bus = _make_widget(qapp)
     molecule = MoleculeModel(display_name="Test")
     molecule.conformers = [
         ConformerModel(molblock="conf-1", method="rdkit"),
         ConformerModel(molblock="conf-2", method="rdkit"),
     ]
     widget.set_molecule(molecule)
-    bus.publish(
-        PerAtomDataComputed(
-            dataset=PerAtomDataset(
-                property_id="crippen_logp_contrib",
-                name="LogP Contribution",
-                units="",
-                method="rdkit",
-                molecule_uuid=molecule.uuid,
-                values={0: -0.5},
-                provenance=Provenance(created_by="core", method="rdkit"),
-            )
-        )
-    )
-    widget._color_by_combo.setCurrentText("LogP contribution")
-    backend.applied_layers.clear()
 
     widget._show_next_conformer()
 
     assert backend.loaded_molblocks[-1] == "conf-2"
-    real_layers = [layer for layer in backend.applied_layers if layer is not None]
-    assert len(real_layers) == 1
+    assert "2/2" in widget._status_label.text()
+
+
+def test_switching_back_returns_to_the_previous_conformer(qapp):
+    widget, backend, _bus = _make_widget(qapp)
+    molecule = MoleculeModel(display_name="Test")
+    molecule.conformers = [
+        ConformerModel(molblock="conf-1", method="rdkit"),
+        ConformerModel(molblock="conf-2", method="rdkit"),
+    ]
+    widget.set_molecule(molecule)
+    widget._show_next_conformer()
+
+    widget._show_previous_conformer()
+
+    assert backend.loaded_molblocks[-1] == "conf-1"
+
+
+def test_molecule_with_no_conformers_reports_none(qapp):
+    widget, backend, _bus = _make_widget(qapp)
+
+    widget.set_molecule(MoleculeModel(display_name="Empty"))
+
+    assert widget._status_label.text() == "No conformers"
+    assert backend.loaded_molblocks == []

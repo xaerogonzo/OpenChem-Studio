@@ -64,6 +64,7 @@ class Mol3DViewerBackend(ViewerBackend):
 
         self._page_ready = False
         self._pending_molblock: str | None = None
+        self._pending_layer: VisualizationLayer | None = None
         self._page.loadFinished.connect(self._on_load_finished)
         self._page.load(QUrl.fromLocalFile(str(_VIEWER_HTML)))
 
@@ -75,6 +76,12 @@ class Mol3DViewerBackend(ViewerBackend):
         if self._pending_molblock is not None:
             self._run_load(self._pending_molblock)
             self._pending_molblock = None
+        # Replayed AFTER the molblock, never before: viewer.html's
+        # loadMolblock() resets any active visualization, so applying the
+        # layer first would immediately be undone.
+        if self._pending_layer is not None:
+            self._run_apply_visualization(self._pending_layer)
+            self._pending_layer = None
 
     def _on_atom_clicked(self, atom_index: int) -> None:
         self.atoms_selected.emit([atom_index])
@@ -95,6 +102,19 @@ class Mol3DViewerBackend(ViewerBackend):
         self._page.runJavaScript("window.openchemViewer.clear();")
 
     def apply_visualization(self, layer: VisualizationLayer | None) -> None:
+        # Deferred until the page is ready, exactly like load_conformer --
+        # without this, a caller that constructs this backend and applies a
+        # layer in the same synchronous block (CalculatorInspectorDialog
+        # does) fired runJavaScript into a not-yet-loaded page, where it
+        # was silently discarded and never replayed. That was the real
+        # cause of the Calculator Inspector's 3D pane rendering uncoloured
+        # while its 2D pane (synchronous RDKit SVG) showed colours fine.
+        if not self._page_ready:
+            self._pending_layer = layer
+            return
+        self._run_apply_visualization(layer)
+
+    def _run_apply_visualization(self, layer: VisualizationLayer | None) -> None:
         if layer is None or not layer.atom_colors:
             self._page.runJavaScript("window.openchemViewer.clearVisualization();")
             return

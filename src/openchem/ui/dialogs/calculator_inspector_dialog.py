@@ -37,20 +37,29 @@ class _CalculatorResultView(QWidget):
         # construction) -- no separate lookup into the scalar descriptor
         # set needed, and this stays correct for any future additive
         # per-atom property without extra wiring.
-        units_suffix = ""
+        #
+        # Deliberately NOT attempted for a SpectrumResult (Phase 23):
+        # summing chemical shifts is chemically meaningless, so a spectrum
+        # gets no summary line at all rather than a misleading total or a
+        # bare "Overall: n/a" that reads like something failed.
+        # Both PerAtomDataset and SpectrumResult carry `units`, so the
+        # legend below gets its suffix either way -- only the *total* is
+        # PerAtomDataset-only.
+        units = getattr(result, "units", "")
+        units_suffix = f" {units}" if units else ""
         total: float | None = None
         if isinstance(result, PerAtomDataset) and result.values:
             total = sum(result.values.values())
-            units_suffix = f" {result.units}" if result.units else ""
 
         if result.cache_state == CacheState.FAILED:
             summary_text = result.error or "Failed"
         elif total is not None:
             summary_text = f"Overall: {total:.4g}{units_suffix}"
         else:
-            summary_text = "Overall: n/a"
+            summary_text = ""
         summary_label = QLabel(summary_text, self)
         summary_label.setWordWrap(True)
+        summary_label.setVisible(bool(summary_text))
 
         svg_widget = QSvgWidget(self)
         if molecule.molblock and layer is not None:

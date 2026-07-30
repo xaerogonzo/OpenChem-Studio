@@ -14,7 +14,12 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.chem.engine import ChemistryEngine
-from openchem.domain.calculator import CalculationRequest, CalculatorDefinition, RegistryExecution
+from openchem.domain.calculator import (
+    CalculationRequest,
+    CalculatorDefinition,
+    RegistryExecution,
+    ServiceExecution,
+)
 from openchem.domain.project import ProjectModel
 from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
 from openchem.events.base import EventBus
@@ -116,8 +121,12 @@ class _CollapsibleSection(QWidget):
     def content_layout(self) -> QFormLayout:
         return self._content_layout
 
-    def add_calculator_button(self, button: QPushButton) -> None:
-        self._calculators_layout.addWidget(button)
+    def add_calculator_widget(self, widget: QWidget) -> None:
+        """A persistent widget for this section (an "Open [Calculator]..."
+        button, or a hint label) -- lives in `_calculators_layout`, which
+        `clear_rows` deliberately leaves alone, unlike the per-molecule
+        descriptor rows in `_content_layout`."""
+        self._calculators_layout.addWidget(widget)
 
     def clear_rows(self) -> None:
         while self._content_layout.rowCount():
@@ -255,9 +264,53 @@ class PropertyPanel(QWidget):
                 continue
             button = QPushButton(f"Open {definition.display_name}...", section.content)
             button.clicked.connect(lambda _checked=False, d=definition: self._open_calculator(d))
-            section.add_calculator_button(button)
+            section.add_calculator_widget(button)
+        self._add_service_execution_hint(section, category)
         self._reorder_sections()
         return section
+
+    def _add_service_execution_hint(self, section: _CollapsibleSection, category: str) -> None:
+        """Phase 23: a section whose runnable calculators are all
+        `prediction_basis == "empirical"` gets a one-line pointer to the
+        matching `"ab_initio"` calculator, when one exists. Concretely: the
+        NMR section's clickable row is the instant SMARTS estimate, and
+        nothing on screen previously hinted that a real ORCA NMR
+        calculation exists at all -- a user could reasonably believe they
+        had just run the ab initio one (Alex did).
+
+        The ab initio counterpart lives in a DIFFERENT category
+        (`orca.nmr` is in `"quantum_chemistry"`, so its own panel keeps its
+        natural grouping), so the match is on the dotted-calculator_id
+        convention established in Phase 21: `orca.nmr` / `orca.nmr_coupling`
+        both carry `nmr` as their id suffix. Registry-driven rather than
+        hardcoding "NMR", so a future empirical/ab-initio pair following
+        the same naming gets this for free.
+        """
+        runnable = [
+            d for d in self._calculator_registry.by_category(category)
+            if isinstance(d.execution, RegistryExecution)
+        ]
+        if not runnable or any(d.prediction_basis != "empirical" for d in runnable):
+            return
+        ab_initio = [
+            d
+            for c in self._calculator_registry.categories()
+            for d in self._calculator_registry.by_category(c)
+            if d.prediction_basis == "ab_initio"
+            and isinstance(d.execution, ServiceExecution)
+            and category in d.calculator_id.split(".")[-1].split("_")
+        ]
+        if not ab_initio:
+            return
+        panel_name = ab_initio[0].execution.panel_name
+        hint = QLabel(
+            f"Estimate above is empirical (instant). For a real ab initio "
+            f"calculation, use the {panel_name}.",
+            section.content,
+        )
+        hint.setWordWrap(True)
+        hint.setStyleSheet("color: #666666; font-style: italic;")
+        section.add_calculator_widget(hint)
 
     def _reorder_sections(self) -> None:
         # Re-inserts every known section in preferred order (listed

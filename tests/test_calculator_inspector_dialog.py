@@ -57,6 +57,41 @@ def test_dialog_with_no_molblock_does_not_crash(qapp):
     assert dialog.windowTitle() == "Calculator Inspector — Untitled"
 
 
+def test_spectrum_result_gets_no_overall_summary_line(qapp):
+    """Phase 23: summing chemical shifts is chemically meaningless, so a
+    spectrum must show NO summary line -- not a bogus total, and not the
+    bare "Overall: n/a" that used to appear and read like a failure."""
+    from openchem.domain.scientific_result import NMRSpectrumResult
+
+    engine = ChemistryEngine()
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    result = NMRSpectrumResult(
+        spectrum_type="nmr_empirical",
+        name="NMR Shift",
+        units="ppm",
+        method="smarts_lookup",
+        molecule_uuid="mol-1",
+        values={0: 25.0, 1: 70.0},
+    )
+
+    dialog = CalculatorInspectorDialog(engine, molecule, result, conformer_molblock=None)
+
+    texts = [label.text() for label in dialog.findChildren(QLabel)]
+    assert not any(t.startswith("Overall") for t in texts)
+
+
+def test_per_atom_dataset_still_gets_its_overall_total(qapp):
+    engine = ChemistryEngine()
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+
+    dialog = CalculatorInspectorDialog(engine, molecule, _dataset({0: 0.5, 1: 0.25}), conformer_molblock=None)
+
+    texts = [label.text() for label in dialog.findChildren(QLabel)]
+    assert any(t.startswith("Overall: 0.75") for t in texts)
+
+
 def test_dialog_with_no_conformer_and_no_color_scale_shows_the_no_conformer_hint(qapp):
     # An empty-values dataset never produces a color_scale (see
     # build_atom_color_layer), so the legend falls to the "no conformer"

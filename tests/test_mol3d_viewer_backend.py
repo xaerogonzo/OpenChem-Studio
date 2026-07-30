@@ -112,3 +112,43 @@ def test_clear_visualization_removes_labels(qapp):
     backend.apply_visualization(None)
 
     assert _wait_until(qapp, lambda: label_count() == 0)
+
+
+def test_visualization_applied_before_the_page_loads_is_replayed(qapp):
+    """Regression test for the real bug behind the Calculator Inspector's
+    uncoloured 3D pane: CalculatorInspectorDialog constructs a fresh
+    backend and calls load_conformer + apply_visualization synchronously in
+    __init__, long before loadFinished. load_conformer already deferred via
+    _pending_molblock, but apply_visualization fired runJavaScript into a
+    dead page and was silently discarded, with nothing replaying it -- so
+    the 3D view was ALWAYS uncoloured there while the 2D pane (synchronous
+    RDKit SVG) rendered colours fine."""
+    backend = Mol3DViewerBackend()
+    assert not backend._page_ready  # exactly the inspector's situation
+
+    backend.load_conformer(_ethanol_molblock())
+    backend.apply_visualization(
+        VisualizationLayer(name="LogP", atom_colors={0: "#ff0000", 1: "#0000ff"})
+    )
+
+    assert _wait_until(qapp, lambda: backend._page_ready)
+    assert _wait_until(qapp, lambda: _current_visualization(qapp, backend) not in (None, "null"))
+    assert backend._pending_layer is None  # consumed, not left queued forever
+
+
+def test_pending_visualization_is_replayed_after_the_molblock_not_before(qapp):
+    """Order matters: viewer.html's loadMolblock() resets any active
+    visualization, so replaying a queued layer before the queued molblock
+    would immediately undo it."""
+    backend = Mol3DViewerBackend()
+    fired: list[str] = []
+    original = backend._page.runJavaScript
+    backend._page.runJavaScript = lambda js, *a, **k: (fired.append(js), original(js, *a, **k))[1]
+
+    backend.load_conformer(_ethanol_molblock())
+    backend.apply_visualization(VisualizationLayer(name="t", atom_colors={0: "#ff0000"}))
+    assert fired == []  # nothing escaped to a page that isn't ready
+
+    assert _wait_until(qapp, lambda: len(fired) >= 2)
+    assert "loadMolblock" in fired[0]
+    assert "applyVisualization" in fired[1]

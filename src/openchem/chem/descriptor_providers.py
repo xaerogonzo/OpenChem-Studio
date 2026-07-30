@@ -613,10 +613,18 @@ def compute_empirical_nmr_shifts(mol: Chem.Mol, molecule_uuid: str, parameters: 
     synchronous, ORCA-free typical-range shift estimate. Fits the
     RegistryExecution shape exactly (unlike the real ORCA NMR calc types,
     which stay ServiceExecution-only in bootstrap.py -- they're async,
-    QProcess-driven, and need a configured executable)."""
+    QProcess-driven, and need a configured executable).
+
+    `Chem.AddHs` first (Phase 23): the mol reaching a calculator comes from
+    the editor molblock, where hydrogens are implicit -- without this there
+    are no H atoms to assign 1H shifts to at all, so the result was
+    carbon-only. `AddHs` appends the new H atoms after the existing ones
+    and never reorders, so heavy-atom indices stay aligned with the 2D
+    depiction the inspector renders alongside.
+    """
     from openchem.chem.nmr_empirical_smarts import estimate_shifts_by_smarts_environment
 
-    return estimate_shifts_by_smarts_environment(mol, molecule_uuid)
+    return estimate_shifts_by_smarts_environment(Chem.AddHs(mol), molecule_uuid)
 
 
 CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [

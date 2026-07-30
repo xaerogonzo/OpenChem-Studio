@@ -12,21 +12,12 @@ from PySide6.QtWidgets import (
 
 from openchem.domain.common import CacheState
 from openchem.domain.molecule import MoleculeModel
-from openchem.domain.scientific_result import PerAtomDataset
 from openchem.events.base import EventBus
-from openchem.events.events import ConformerJobStateChanged, ConformersChanged, PerAtomDataComputed
+from openchem.events.events import ConformerJobStateChanged, ConformersChanged
 from openchem.services.conformer_service import ConformerService
 from openchem.services.measurement_service import MeasurementService
 from openchem.ui.viewer_backend import ViewerBackend
-from openchem.ui.visualization import build_atom_color_layer
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
-
-# Display label -> PerAtomDataset.property_id. "Default" (no entry) clears
-# any active visualization layer.
-_COLOR_BY_PROPERTIES = {
-    "LogP contribution": "crippen_logp_contrib",
-    "Partial charge": "gasteiger_charge",
-}
 
 
 class MoleculeViewer3DWidget(QWidget):
@@ -38,6 +29,12 @@ class MoleculeViewer3DWidget(QWidget):
     turning the result into a persisted, undoable change is MainWindow's
     job via SetConformersCommand — this widget only calls the service and
     reacts to events, matching how the other panels stay thin.
+
+    Deliberately has no per-property colouring of its own (Phase 23): the
+    old "Color by" dropdown here predated `CalculatorRegistry` and
+    hardcoded exactly two properties, which the registry-driven Calculator
+    Inspector now supersedes generically — every calculator gets a real
+    2D+3D projection there instead of two of them getting one here.
     """
 
     def __init__(
@@ -54,9 +51,6 @@ class MoleculeViewer3DWidget(QWidget):
         self._molecule: MoleculeModel | None = None
         self._conformer_index = 0
         self._selected_atoms: list[int] = []
-        # property_id -> latest PerAtomDataset for the current molecule,
-        # cleared on set_molecule -- feeds the "Color by" dropdown below.
-        self._per_atom_datasets: dict[str, PerAtomDataset] = {}
 
         self._backend: ViewerBackend = backend or Mol3DViewerBackend(self)
         self._backend.atoms_selected.connect(self._on_atoms_selected)
@@ -64,11 +58,6 @@ class MoleculeViewer3DWidget(QWidget):
         self._style_combo = QComboBox(self)
         self._style_combo.addItems(["stick", "ballstick", "sphere", "line"])
         self._style_combo.currentTextChanged.connect(self._backend.set_style)
-
-        self._color_by_combo = QComboBox(self)
-        self._color_by_combo.addItems(["Default", *_COLOR_BY_PROPERTIES.keys()])
-        self._color_by_combo.currentTextChanged.connect(self._on_color_by_changed)
-        self._legend_label = QLabel("", self)
 
         self._generate_button = QPushButton("Generate Conformers...", self)
         self._generate_button.clicked.connect(self._on_generate_clicked)
@@ -83,8 +72,6 @@ class MoleculeViewer3DWidget(QWidget):
         toolbar = QHBoxLayout()
         toolbar.addWidget(QLabel("Style:"))
         toolbar.addWidget(self._style_combo)
-        toolbar.addWidget(QLabel("Color by:"))
-        toolbar.addWidget(self._color_by_combo)
         toolbar.addWidget(self._generate_button)
         toolbar.addStretch()
         toolbar.addWidget(self._prev_button)
@@ -95,23 +82,16 @@ class MoleculeViewer3DWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addLayout(toolbar)
         layout.addWidget(self._backend.widget())
-        layout.addWidget(self._legend_label)
         layout.addWidget(self._measurement_label)
 
         event_bus.subscribe(ConformersChanged, self._on_conformers_changed)
         event_bus.subscribe(ConformerJobStateChanged, self._on_job_state_changed)
-        event_bus.subscribe(PerAtomDataComputed, self._on_per_atom_data_computed)
 
     def set_molecule(self, molecule: MoleculeModel | None) -> None:
         self._molecule = molecule
         self._conformer_index = 0
         self._selected_atoms.clear()
         self._measurement_label.setText("")
-        self._per_atom_datasets.clear()
-        self._legend_label.setText("")
-        self._color_by_combo.blockSignals(True)
-        self._color_by_combo.setCurrentText("Default")
-        self._color_by_combo.blockSignals(False)
         self._refresh_view()
 
     def _on_generate_clicked(self) -> None:
@@ -174,48 +154,3 @@ class MoleculeViewer3DWidget(QWidget):
         self._status_label.setText(
             f"Conformer {self._conformer_index + 1}/{len(self._molecule.conformers)} - {energy_text}"
         )
-        # load_conformer() resets any active visualization layer on the JS
-        # side (see viewer.html) -- re-apply the current "Color by"
-        # selection, if any, so switching conformers doesn't silently drop
-        # the coloring.
-        self._apply_active_visualization()
-
-    def _on_per_atom_data_computed(self, event: PerAtomDataComputed) -> None:
-        dataset = event.dataset
-        if self._molecule is None or dataset.molecule_uuid != self._molecule.uuid:
-            return
-        self._per_atom_datasets[dataset.property_id] = dataset
-        if _COLOR_BY_PROPERTIES.get(self._color_by_combo.currentText()) == dataset.property_id:
-            self._apply_active_visualization()
-
-    def _on_color_by_changed(self, _label: str) -> None:
-        self._apply_active_visualization()
-
-    def _apply_active_visualization(self) -> None:
-        # Per-atom data (LogP contributions, partial charges) is computed
-        # from the molecule's 2D/editor structure (heavy atoms only, no
-        # explicit hydrogens -- see DescriptorService), while the 3D
-        # viewer displays a conformer's molblock (heavy atoms in the SAME
-        # order, since RDKit's AddHs -- used when generating conformers --
-        # never reorders existing atoms, only appends new H atoms after
-        # them). Heavy-atom indices therefore line up correctly between
-        # the two; any extra explicit-H atom indices in the conformer
-        # simply have no color entry and render with the default style.
-        property_id = _COLOR_BY_PROPERTIES.get(self._color_by_combo.currentText())
-        if property_id is None:
-            self._backend.apply_visualization(None)
-            self._legend_label.setText("")
-            return
-        dataset = self._per_atom_datasets.get(property_id)
-        if dataset is None:
-            self._backend.apply_visualization(None)
-            self._legend_label.setText(f"{self._color_by_combo.currentText()}: not computed yet")
-            return
-        layer = build_atom_color_layer(dataset)
-        self._backend.apply_visualization(layer)
-        if layer.color_scale is not None:
-            units_suffix = f" {dataset.units}" if dataset.units else ""
-            self._legend_label.setText(
-                f"{dataset.name}: {layer.color_scale.domain_min:.3f} to "
-                f"{layer.color_scale.domain_max:.3f}{units_suffix}"
-            )
