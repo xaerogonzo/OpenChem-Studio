@@ -3,6 +3,8 @@ from __future__ import annotations
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QWidget
 
+from openchem.ui.visualization import VisualizationLayer
+
 
 class ViewerBackend(QObject):
     """Interface for a 3D structure-viewer widget's underlying engine.
@@ -46,5 +48,16 @@ class ViewerBackend(QObject):
         so a future viewer content type (a docking result, a trajectory)
         has an established place to declare its own optional capability
         method here too, instead of becoming a one-off special case.
+        """
+        raise NotImplementedError
+
+    def apply_visualization(self, layer: VisualizationLayer | None) -> None:
+        """Apply a visualization layer (atom colors today — see
+        `ui/visualization.py`), or clear the active one if `layer` is
+        `None`. Optional capability, same reasoning as
+        `load_macromolecule` above: Mol*'s macromolecule viewer has no
+        per-atom scientific data feeding it yet, so this stays here as the
+        established place for a future implementer to declare it, not
+        implemented unconditionally.
         """
         raise NotImplementedError

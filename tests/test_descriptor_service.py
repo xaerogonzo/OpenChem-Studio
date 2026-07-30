@@ -6,7 +6,7 @@ from openchem.chem.engine import ChemistryEngine
 from openchem.domain.common import CacheState
 from openchem.domain.molecule import MoleculeModel
 from openchem.events.base import EventBus
-from openchem.events.events import DescriptorComputed
+from openchem.events.events import AlertComputed, DescriptorComputed, PerAtomDataComputed
 from openchem.services.descriptor_service import DescriptorService
 
 
@@ -106,3 +106,38 @@ def test_descriptor_completed_values_carry_provenance(qapp):
         assert descriptor.provenance is not None
         assert descriptor.provenance.created_by == "core"
         assert descriptor.provenance.method == "rdkit"
+
+
+def test_request_descriptors_publishes_alert_computed(qapp):
+    bus = EventBus()
+    engine = ChemistryEngine()
+    service = DescriptorService(bus, engine)
+
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "O=C1CSC(=S)N1")  # rhodanine, a known PAINS hit
+
+    alerts = []
+    bus.subscribe(AlertComputed, lambda e: alerts.append(e.alert))
+    service.request_descriptors(model)
+    _drain(qapp)
+
+    assert len(alerts) == 1
+    assert alerts[0].alert_id == "pains"
+    assert alerts[0].matched
+
+
+def test_request_descriptors_publishes_per_atom_data_computed(qapp):
+    bus = EventBus()
+    engine = ChemistryEngine()
+    service = DescriptorService(bus, engine)
+
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "CCO")
+
+    datasets = []
+    bus.subscribe(PerAtomDataComputed, lambda e: datasets.append(e.dataset))
+    service.request_descriptors(model)
+    _drain(qapp)
+
+    property_ids = {d.property_id for d in datasets}
+    assert property_ids == {"crippen_logp_contrib", "crippen_mr_contrib", "gasteiger_charge"}

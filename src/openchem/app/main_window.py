@@ -43,6 +43,7 @@ from openchem.services.container import ServiceContainer
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
 from openchem.ui.panels.console_panel import ConsolePanel
 from openchem.ui.panels.docking_panel import DockingPanel
+from openchem.ui.panels.jobs_panel import JobsPanel
 from openchem.ui.panels.project_explorer_panel import ProjectExplorerPanel
 from openchem.ui.panels.property_panel import PropertyPanel
 from openchem.ui.panels.quantum_chemistry_panel import QuantumChemistryPanel
@@ -99,6 +100,7 @@ class MainWindow(QMainWindow):
         self._quantum_chemistry_panel = QuantumChemistryPanel(
             services.quantum_chemistry_service, services.chemistry_engine, self._settings, services.event_bus, self
         )
+        self._jobs_panel = JobsPanel(services.job_manager, self)
 
         self._add_dock("Project Explorer", self._project_explorer, Qt.DockWidgetArea.LeftDockWidgetArea)
         self._properties_dock = self._add_dock(
@@ -113,6 +115,7 @@ class MainWindow(QMainWindow):
             self._wrap_scrollable(self._quantum_chemistry_panel),
             Qt.DockWidgetArea.RightDockWidgetArea,
         )
+        jobs_dock = self._add_dock("Jobs", self._jobs_panel, Qt.DockWidgetArea.RightDockWidgetArea)
 
         # All right-side panels share one tab group instead of stacking
         # vertically -- six-plus docks sharing a single column (this trio
@@ -122,6 +125,7 @@ class MainWindow(QMainWindow):
         # panels join the same group below, in add_panel().
         self.tabifyDockWidget(self._properties_dock, docking_dock)
         self.tabifyDockWidget(self._properties_dock, quantum_chemistry_dock)
+        self.tabifyDockWidget(self._properties_dock, jobs_dock)
         self._properties_dock.raise_()
 
         self._build_menus()

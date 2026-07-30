@@ -6,6 +6,7 @@ from openchem.domain.common import CacheState
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.docking import DockingResultModel
+from openchem.domain.scientific_result import AlertResult, PerAtomDataset, SpectrumResult
 from openchem.events.base import Event
 
 
@@ -58,6 +59,16 @@ class DescriptorInvalidated(Event):
 @dataclass(frozen=True)
 class DescriptorComputed(Event):
     descriptor: DescriptorValue
+
+
+@dataclass(frozen=True)
+class AlertComputed(Event):
+    alert: AlertResult
+
+
+@dataclass(frozen=True)
+class PerAtomDataComputed(Event):
+    dataset: PerAtomDataset
 
 
 @dataclass(frozen=True)
@@ -143,3 +154,8 @@ class QuantumChemistryResultReady(Event):
     molecule_uuid: str
     descriptors: list[DescriptorValue]
     conformer: ConformerModel | None
+
+
+@dataclass(frozen=True)
+class SpectrumComputed(Event):
+    spectrum: SpectrumResult

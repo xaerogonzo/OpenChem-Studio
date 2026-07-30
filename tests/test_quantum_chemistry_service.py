@@ -11,7 +11,12 @@ from openchem.domain.common import CacheState
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
 from openchem.events.base import EventBus
-from openchem.events.events import QuantumChemistryJobStateChanged, QuantumChemistryResultReady
+from openchem.domain.scientific_result import SpectrumResult
+from openchem.events.events import (
+    QuantumChemistryJobStateChanged,
+    QuantumChemistryResultReady,
+    SpectrumComputed,
+)
 from openchem.plugins.interfaces import QuantumEngineProvider
 from openchem.services.job_manager import JobManager
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
@@ -343,3 +348,70 @@ def test_quantum_chemistry_unknown_provider_fails_immediately(qapp, tmp_path):
     )
 
     assert states == [CacheState.FAILED]
+
+
+class _NmrSpectrumProvider(FakeQuantumEngineProvider):
+    """Overrides only parse_spectrum_output -- exercises
+    QuantumChemistryService's own wiring of that optional method, not the
+    real ORCA parser (already covered directly in test_orca_engine.py)."""
+
+    def parse_spectrum_output(self, output_text, mol, molecule_uuid: str, calc_type: str):
+        if calc_type != "nmr":
+            return None
+        return SpectrumResult(
+            spectrum_type="nmr_raw_shielding",
+            name="Fake NMR",
+            units="ppm",
+            method=self.provider_id,
+            molecule_uuid=molecule_uuid,
+            values={0: 365.694},
+            elements={0: "O"},
+        )
+
+
+def test_quantum_chemistry_publishes_spectrum_computed_for_nmr(qapp, tmp_path):
+    provider = _NmrSpectrumProvider()
+    service, bus = _make_service(tmp_path, provider)
+
+    spectra = []
+    bus.subscribe(SpectrumComputed, lambda e: spectra.append(e.spectrum))
+    states = []
+    bus.subscribe(QuantumChemistryJobStateChanged, lambda e: states.append(e.state))
+
+    service.request_calculation(
+        mol=Chem.MolFromSmiles("O"),
+        molecule_uuid="mol-1",
+        calc_type="nmr",
+        charge=0,
+        multiplicity=1,
+        method_basis="HF STO-3G",
+        provider_id="fake",
+    )
+    assert _wait_until(qapp, lambda: states and states[-1] in (CacheState.COMPLETED, CacheState.FAILED))
+
+    assert states[-1] == CacheState.COMPLETED
+    assert len(spectra) == 1
+    assert spectra[0].values == {0: 365.694}
+
+
+def test_quantum_chemistry_does_not_publish_spectrum_for_non_nmr_calc_types(qapp, tmp_path):
+    provider = _NmrSpectrumProvider()
+    service, bus = _make_service(tmp_path, provider)
+
+    spectra = []
+    bus.subscribe(SpectrumComputed, lambda e: spectra.append(e.spectrum))
+    states = []
+    bus.subscribe(QuantumChemistryJobStateChanged, lambda e: states.append(e.state))
+
+    service.request_calculation(
+        mol=Chem.MolFromSmiles("CCO"),
+        molecule_uuid="mol-1",
+        calc_type="sp",
+        charge=0,
+        multiplicity=1,
+        method_basis="B3LYP def2-SVP",
+        provider_id="fake",
+    )
+    assert _wait_until(qapp, lambda: states and states[-1] in (CacheState.COMPLETED, CacheState.FAILED))
+
+    assert spectra == []

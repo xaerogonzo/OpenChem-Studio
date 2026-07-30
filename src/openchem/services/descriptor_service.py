@@ -11,7 +11,7 @@ from openchem.domain.common import CacheState
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.molecule import MoleculeModel
 from openchem.events.base import EventBus
-from openchem.events.events import DescriptorComputed
+from openchem.events.events import AlertComputed, DescriptorComputed, PerAtomDataComputed
 
 logger = logging.getLogger("openchem.chemistry")
 
@@ -51,6 +51,22 @@ class _DescriptorComputeTask(QRunnable):
             return
         for value in values:
             self._event_bus.publish(DescriptorComputed(descriptor=value))
+
+        try:
+            alerts = self._provider.compute_alerts(mol, self._model.uuid)
+        except Exception:  # noqa: BLE001 - alerts are an enhancement, must not drop the descriptors above
+            logger.exception("Alert computation failed for provider %s", self._provider.provider_id)
+        else:
+            for alert in alerts:
+                self._event_bus.publish(AlertComputed(alert=alert))
+
+        try:
+            datasets = self._provider.compute_per_atom(mol, self._model.uuid)
+        except Exception:  # noqa: BLE001 - per-atom data is an enhancement, must not drop the descriptors above
+            logger.exception("Per-atom data computation failed for provider %s", self._provider.provider_id)
+            return
+        for dataset in datasets:
+            self._event_bus.publish(PerAtomDataComputed(dataset=dataset))
 
     def _publish(self, descriptor_id: str, state: CacheState, error: str | None = None) -> None:
         self._event_bus.publish(

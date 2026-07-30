@@ -10,6 +10,7 @@ from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.docking import DockingBox, DockingPoseModel
 from openchem.domain.molecule import MoleculeModel
+from openchem.domain.scientific_result import AlertResult, PerAtomDataset, SpectrumResult
 from openchem.services.progress import ProgressHandle
 
 if TYPE_CHECKING:
@@ -70,6 +71,22 @@ class DescriptorProvider(ABC):
     def compute(self, mol: Chem.Mol, molecule_uuid: str) -> list[DescriptorValue]:
         """Compute this provider's descriptors for a parsed RDKit Mol."""
 
+    def compute_alerts(self, mol: Chem.Mol, molecule_uuid: str) -> list[AlertResult]:
+        """Optional: structural-alert catalog results (e.g. PAINS) this
+        provider can flag — a molecule either matches zero or more named
+        alerts, which doesn't fit a single `DescriptorValue`. Not abstract:
+        most providers have no alert-shaped output, so the default is none
+        rather than forcing every implementer (including plugin-supplied
+        ones) to override it."""
+        return []
+
+    def compute_per_atom(self, mol: Chem.Mol, molecule_uuid: str) -> list[PerAtomDataset]:
+        """Optional: per-atom scientific data (partial charges, LogP
+        contributions) this provider can produce — one value per atom
+        index, which doesn't fit a single `DescriptorValue` either. Not
+        abstract, same reasoning as `compute_alerts`."""
+        return []
+
 
 class ConformerProvider(ABC):
     provider_id: str
@@ -80,14 +97,17 @@ class ConformerProvider(ABC):
         mol: Chem.Mol,
         num_conformers: int,
         optimize: bool,
-        on_progress: Callable[[int, int], None] | None = None,
+        on_progress: Callable[[int, int], bool | None] | None = None,
     ) -> list[tuple[Chem.Mol, float | None]]:
         """Return up to `num_conformers` (conformer_mol, energy) pairs.
 
         `energy` (kcal/mol) is None when `optimize` is False. `on_progress`,
         if given, is called as `on_progress(done, total)` after each
-        conformer so callers can report incremental progress.
-        """
+        conformer so callers can report incremental progress. If it
+        returns `False`, the provider should stop before generating the
+        next conformer (best-effort cancellation, checked between
+        conformers — a `None` return, the common case, means "keep
+        going")."""
 
 
 class DockingProvider(ABC):
@@ -175,6 +195,17 @@ class QuantumEngineProvider(ABC):
         (SCF energy always; thermochemistry only for "opt_freq") plus an
         optimized-geometry `ConformerModel` for "opt"/"opt_freq" (`None`
         for "sp")."""
+
+    def parse_spectrum_output(
+        self, output_text: str, mol: Chem.Mol, molecule_uuid: str, calc_type: str
+    ) -> SpectrumResult | None:
+        """Optional: a spectroscopic result (NMR shielding today) this
+        engine's output can yield for `calc_type` — per-nucleus data,
+        which doesn't fit `DescriptorValue`'s one-scalar shape (see
+        `SpectrumResult`). Not abstract: most calc_types (`"sp"`/`"opt"`/
+        `"opt_freq"`) have no spectrum to report, so the default is `None`
+        rather than forcing every implementer to override it."""
+        return None
 
 
 class PanelProvider(ABC):

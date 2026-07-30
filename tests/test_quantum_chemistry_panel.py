@@ -5,7 +5,9 @@ from openchem.chem.engine import ChemistryEngine
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
+from openchem.domain.scientific_result import SpectrumResult
 from openchem.events.base import EventBus
+from openchem.events.events import SpectrumComputed
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.ui.panels.quantum_chemistry_panel import QuantumChemistryPanel
 
@@ -80,3 +82,62 @@ def test_run_proceeds_once_a_conformer_exists(qapp):
     assert len(service.requests) == 1
     used_mol = service.requests[0]["mol"]
     assert used_mol.GetNumAtoms() == 3  # O + 2 H, not stripped down to just O
+
+
+def test_nmr_calc_type_is_offered():
+    panel, _engine, _service = _make_panel()
+    assert "NMR (raw shielding)" in [
+        panel._calc_type_combo.itemText(i) for i in range(panel._calc_type_combo.count())
+    ]
+
+
+def test_spectrum_computed_populates_the_table(qapp):
+    bus = EventBus()
+    engine = ChemistryEngine()
+    settings = Settings(bus)
+    service = _RecordingQuantumChemistryService(bus)
+    panel = QuantumChemistryPanel(service, engine, settings, bus)
+    panel._pending_molecule_uuid = "mol-1"
+
+    bus.publish(
+        SpectrumComputed(
+            spectrum=SpectrumResult(
+                spectrum_type="nmr_raw_shielding",
+                name="NMR Isotropic Shielding",
+                units="ppm (isotropic shielding)",
+                method="orca",
+                molecule_uuid="mol-1",
+                values={0: 365.694, 1: 33.679, 2: 33.679},
+                elements={0: "O", 1: "H", 2: "H"},
+            )
+        )
+    )
+
+    assert panel._spectrum_table.rowCount() == 3
+    assert panel._spectrum_table.item(0, 1).text() == "O"
+    assert panel._spectrum_table.item(0, 2).text() == "365.694"
+
+
+def test_spectrum_computed_for_a_different_molecule_is_ignored(qapp):
+    bus = EventBus()
+    engine = ChemistryEngine()
+    settings = Settings(bus)
+    service = _RecordingQuantumChemistryService(bus)
+    panel = QuantumChemistryPanel(service, engine, settings, bus)
+    panel._pending_molecule_uuid = "mol-1"
+
+    bus.publish(
+        SpectrumComputed(
+            spectrum=SpectrumResult(
+                spectrum_type="nmr_raw_shielding",
+                name="NMR",
+                units="ppm",
+                method="orca",
+                molecule_uuid="some-other-molecule",
+                values={0: 1.0},
+                elements={0: "O"},
+            )
+        )
+    )
+
+    assert panel._spectrum_table.rowCount() == 0

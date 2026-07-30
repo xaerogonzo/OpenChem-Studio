@@ -9,6 +9,34 @@ from rdkit.Chem import AllChem
 from openchem.chem.orca_engine import OrcaOutputError, OrcaQuantumEngineProvider
 from openchem.domain.common import CacheState
 
+# A verbatim excerpt (not trimmed/reworded) from a REAL ORCA 6.1.1 run --
+# `! HF STO-3G NMR` on water -- captured live via a real installed ORCA
+# executable during Phase 12's implementation. Unlike FIXTURE_OUTPUT below
+# (SCF/thermochemistry/cartesian-coordinates, not independently verified
+# this session), every line here is copied exactly from real ORCA output,
+# not reconstructed from documentation.
+REAL_NMR_FIXTURE_OUTPUT = """
+                         Program Version 6.1.1  -  RELEASE   -
+
+FINAL SINGLE POINT ENERGY       -74.963023138558
+
+--------------------------------
+CHEMICAL SHIELDING SUMMARY (ppm)
+--------------------------------
+
+
+  Nucleus  Element    Isotropic     Anisotropy
+  -------  -------  ------------   ------------
+      0       O          365.694          4.029
+      1       H           33.679         15.151
+      2       H           33.679         15.151
+
+
+NMR shielding tensor and spin rotation calculation done in   0.0 sec
+
+Maximum memory used throughout the entire PROP-calculation: 2.1 MB
+"""
+
 # Best-effort fixture based on ORCA's documented/widely-referenced output
 # shape (FINAL SINGLE POINT ENERGY, the CARTESIAN COORDINATES (ANGSTROEM)
 # block repeated once per optimization step, and the THERMOCHEMISTRY
@@ -200,3 +228,61 @@ def test_parse_output_atom_count_mismatch_skips_conformer():
 
     assert len(descriptors) == 1
     assert conformer is None
+
+
+def test_build_input_nmr_includes_keyword():
+    provider = OrcaQuantumEngineProvider()
+    mol = _ethanol_mol()
+
+    text = provider.build_input(mol, charge=0, multiplicity=1, method_basis="HF STO-3G", calc_type="nmr")
+
+    assert text.startswith("! HF STO-3G NMR")
+
+
+def test_parse_output_nmr_still_extracts_scf_energy_and_version():
+    """A pure `! NMR` job still needs a converged SCF first -- confirmed
+    live that 'FINAL SINGLE POINT ENERGY' is present even with no Opt/Freq
+    keyword. calc_type='nmr' isn't 'opt'/'opt_freq', so no conformer."""
+    provider = OrcaQuantumEngineProvider()
+    mol = Chem.AddHs(Chem.MolFromSmiles("O"))
+
+    descriptors, conformer = provider.parse_output(REAL_NMR_FIXTURE_OUTPUT, mol, "mol-1", "nmr")
+
+    assert len(descriptors) == 1
+    assert descriptors[0].descriptor_id == "orca.scf_energy"
+    assert descriptors[0].value == pytest.approx(-74.963023138558)
+    assert descriptors[0].provenance.parameters["orca_version"] == "6.1.1"
+    assert conformer is None
+
+
+def test_parse_spectrum_output_extracts_real_shielding_values():
+    provider = OrcaQuantumEngineProvider()
+    mol = Chem.AddHs(Chem.MolFromSmiles("O"))
+
+    spectrum = provider.parse_spectrum_output(REAL_NMR_FIXTURE_OUTPUT, mol, "mol-1", "nmr")
+
+    assert spectrum is not None
+    assert spectrum.spectrum_type == "nmr_raw_shielding"
+    assert spectrum.molecule_uuid == "mol-1"
+    assert spectrum.values == {0: 365.694, 1: 33.679, 2: 33.679}
+    assert spectrum.elements == {0: "O", 1: "H", 2: "H"}
+    assert spectrum.provenance is not None
+    assert spectrum.provenance.method == "orca"
+    assert spectrum.provenance.parameters["orca_version"] == "6.1.1"
+
+
+def test_parse_spectrum_output_returns_none_for_non_nmr_calc_types():
+    provider = OrcaQuantumEngineProvider()
+    mol = _ethanol_mol()
+
+    assert provider.parse_spectrum_output(FIXTURE_OUTPUT, mol, "mol-1", "sp") is None
+    assert provider.parse_spectrum_output(FIXTURE_OUTPUT, mol, "mol-1", "opt") is None
+    assert provider.parse_spectrum_output(FIXTURE_OUTPUT, mol, "mol-1", "opt_freq") is None
+
+
+def test_parse_spectrum_output_missing_summary_raises():
+    provider = OrcaQuantumEngineProvider()
+    mol = _ethanol_mol()
+
+    with pytest.raises(OrcaOutputError):
+        provider.parse_spectrum_output("ORCA crashed, no NMR results here", mol, "mol-1", "nmr")

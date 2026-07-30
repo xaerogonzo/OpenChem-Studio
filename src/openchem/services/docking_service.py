@@ -49,6 +49,7 @@ class _DockingTask(QRunnable):
         event_bus: EventBus,
         job_manager: JobManager,
         receptor_prep_options: dict[str, Any],
+        progress: ProgressHandle,
     ) -> None:
         super().__init__()
         self._provider = provider
@@ -62,6 +63,14 @@ class _DockingTask(QRunnable):
         self._event_bus = event_bus
         self._job_manager = job_manager
         self._receptor_prep_options = receptor_prep_options
+        # Constructed by DockingService BEFORE this task is scheduled (see
+        # request_docking) so its cancel() can be registered with
+        # JobManager as this job's cancel_callback ahead of time -- not
+        # constructed here, since by the time run() starts on the worker
+        # thread it would already be too late for a Jobs panel to have
+        # anything to cancel.
+        self._progress = progress
+        self._progress.on_progress = self._on_progress
 
     def run(self) -> None:
         self._event_bus.publish(
@@ -71,7 +80,7 @@ class _DockingTask(QRunnable):
                 state=CacheState.RUNNING,
             )
         )
-        progress = ProgressHandle(on_progress=self._on_progress)
+        progress = self._progress
         try:
             poses = self._provider.dock(
                 self._receptor_structure_text,
@@ -150,6 +159,8 @@ class _DockingTask(QRunnable):
             )
 
     def _on_progress(self, fraction: float, message: str) -> None:
+        job_key = _job_key(self._ligand_molecule_uuid, self._receptor_macromolecule_uuid)
+        self._job_manager.update_message(_JOB_KIND, job_key, message)
         self._event_bus.publish(
             DockingJobStateChanged(
                 ligand_molecule_uuid=self._ligand_molecule_uuid,
@@ -218,7 +229,16 @@ class DockingService:
             )
             return
         job_key = _job_key(ligand_molecule_uuid, receptor_macromolecule_uuid)
-        if not self._job_manager.try_start(_JOB_KIND, job_key):
+        # Constructed here (main thread, before scheduling) rather than
+        # inside _DockingTask.run() (worker thread) so its cancel() can be
+        # registered with JobManager up front -- a Jobs panel calling
+        # cancel() before the task even starts running must still reach
+        # it. VinaDockingProvider checks progress.is_cancelled() at its
+        # own phase boundaries (best-effort: the actual Vina search itself
+        # is one blocking call neither Vina backend exposes a mid-run
+        # cancellation hook for).
+        progress = ProgressHandle()
+        if not self._job_manager.try_start(_JOB_KIND, job_key, cancel_callback=progress.cancel):
             self._event_bus.publish(
                 DockingJobStateChanged(
                     ligand_molecule_uuid=ligand_molecule_uuid,
@@ -248,5 +268,6 @@ class DockingService:
                 self._event_bus,
                 self._job_manager,
                 receptor_prep_options or {},
+                progress,
             )
         )

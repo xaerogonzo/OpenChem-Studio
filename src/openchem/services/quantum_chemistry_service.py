@@ -14,7 +14,11 @@ from openchem.app.settings import Settings
 from openchem.chem.orca_engine import OrcaQuantumEngineProvider
 from openchem.domain.common import CacheState
 from openchem.events.base import EventBus
-from openchem.events.events import QuantumChemistryJobStateChanged, QuantumChemistryResultReady
+from openchem.events.events import (
+    QuantumChemistryJobStateChanged,
+    QuantumChemistryResultReady,
+    SpectrumComputed,
+)
 from openchem.plugins.interfaces import QuantumEngineProvider
 from openchem.services.job_manager import JobManager
 
@@ -109,7 +113,14 @@ class QuantumChemistryService(QObject):
         # never reach it again) while the first job's own finished/
         # errorOccurred handler later popped the SECOND job's entry out
         # from under it.
-        if not self._job_manager.try_start(_JOB_KIND, molecule_uuid):
+        # Registers this service's own existing cancel() as the callback --
+        # QuantumChemistryService already has real, immediate QProcess.kill()
+        # cancellation; this just makes it reachable through JobManager too,
+        # so a Jobs panel can cancel it the same way it cancels any other
+        # job type, not only from this panel's own Cancel button.
+        if not self._job_manager.try_start(
+            _JOB_KIND, molecule_uuid, cancel_callback=lambda: self.cancel(molecule_uuid)
+        ):
             self._publish_state(
                 molecule_uuid,
                 CacheState.FAILED,
@@ -231,6 +242,15 @@ class QuantumChemistryService(QObject):
             self._event_bus.publish(
                 QuantumChemistryResultReady(molecule_uuid=molecule_uuid, descriptors=descriptors, conformer=conformer)
             )
+            try:
+                spectrum = job.provider.parse_spectrum_output(
+                    output_text, job.mol, molecule_uuid, job.calc_type
+                )
+            except Exception:  # noqa: BLE001 - a spectrum is an enhancement, must not fail an otherwise-successful job
+                logger.exception("Failed to parse spectrum output for molecule %s", molecule_uuid)
+            else:
+                if spectrum is not None:
+                    self._event_bus.publish(SpectrumComputed(spectrum=spectrum))
             self._publish_state(molecule_uuid, CacheState.COMPLETED)
         finally:
             # Guaranteed regardless of which branch above returns --
@@ -245,6 +265,8 @@ class QuantumChemistryService(QObject):
             logger.warning("Failed to clean up ORCA scratch directory %s", scratch_dir)
 
     def _publish_state(self, molecule_uuid: str, state: CacheState, message: str = "") -> None:
+        if message:
+            self._job_manager.update_message(_JOB_KIND, molecule_uuid, message)
         self._event_bus.publish(
             QuantumChemistryJobStateChanged(molecule_uuid=molecule_uuid, state=state, message=message)
         )

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from PySide6.QtCore import QThreadPool
 
 from openchem.chem.engine import ChemistryEngine
@@ -7,6 +9,7 @@ from openchem.domain.common import CacheState
 from openchem.domain.molecule import MoleculeModel
 from openchem.events.base import EventBus
 from openchem.events.events import ConformerJobStateChanged, ConformersReady
+from openchem.plugins.interfaces import ConformerProvider
 from openchem.services.conformer_service import ConformerService
 from openchem.services.job_manager import JobManager
 
@@ -15,6 +18,34 @@ def _drain(qapp, iterations: int = 50) -> None:
     QThreadPool.globalInstance().waitForDone(5000)
     for _ in range(iterations):
         qapp.processEvents()
+
+
+def _wait_until(qapp, predicate, timeout_seconds: float = 10) -> bool:
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
+        qapp.processEvents()
+        if predicate():
+            return True
+        time.sleep(0.01)
+    return False
+
+
+class _SlowConformerProvider(ConformerProvider):
+    """Sleeps between conformers -- gives a test enough real wall-clock
+    time to call job_manager.cancel() while generation is genuinely still
+    in progress, rather than racing a sub-millisecond real RDKit embed."""
+
+    provider_id = "slow"
+
+    def generate_conformers(self, mol, num_conformers, optimize, on_progress=None):
+        results = []
+        for i in range(num_conformers):
+            time.sleep(0.05)
+            if on_progress is not None:
+                should_continue = on_progress(i + 1, num_conformers)
+                if should_continue is False:
+                    break
+        return results
 
 
 def test_conformer_job_lifecycle_reaches_completed(qapp):
@@ -107,3 +138,32 @@ def test_conformer_results_carry_provenance_and_round_trip(qapp):
 
         round_tripped = type(conformer).from_dict(conformer.to_dict())
         assert round_tripped.provenance == conformer.provenance
+
+
+def test_cancel_via_job_manager_stops_generation(qapp):
+    bus = EventBus()
+    engine = ChemistryEngine()
+    provider = _SlowConformerProvider()
+    job_manager = JobManager()
+    service = ConformerService(
+        bus, engine, providers={provider.provider_id: provider}, job_manager=job_manager
+    )
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "CCO")
+
+    states: list[CacheState] = []
+    bus.subscribe(ConformerJobStateChanged, lambda e: states.append(e.state))
+    ready_events = []
+    bus.subscribe(ConformersReady, lambda e: ready_events.append(e))
+
+    service.request_conformers(model, num_conformers=100, optimize=False, provider_id="slow")
+    assert _wait_until(qapp, lambda: CacheState.RUNNING in states)
+
+    cancelled = job_manager.cancel("conformer", model.uuid)
+    assert cancelled is True
+
+    assert _wait_until(qapp, lambda: states and states[-1] == CacheState.FAILED)
+    _drain(qapp)
+
+    assert ready_events == []  # partial results must not be reported as a success
+    assert not job_manager.is_active("conformer", model.uuid)

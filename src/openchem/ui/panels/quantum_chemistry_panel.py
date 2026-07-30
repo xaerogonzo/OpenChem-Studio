@@ -4,10 +4,13 @@ from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QPlainTextEdit,
     QPushButton,
     QSpinBox,
+    QTableWidget,
+    QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -16,7 +19,11 @@ from openchem.app.settings import Settings
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
-from openchem.events.events import QuantumChemistryJobStateChanged, QuantumChemistryResultReady
+from openchem.events.events import (
+    QuantumChemistryJobStateChanged,
+    QuantumChemistryResultReady,
+    SpectrumComputed,
+)
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
 
@@ -24,7 +31,9 @@ _CALC_TYPE_LABELS = {
     "Single Point": "sp",
     "Geometry Optimization": "opt",
     "Optimization + Frequency": "opt_freq",
+    "NMR (raw shielding)": "nmr",
 }
+_NMR_SPECTRUM_COLUMNS = ("Atom", "Element", "Isotropic Shielding (ppm)")
 _METHOD_BASIS_PRESETS = ["B3LYP def2-SVP", "PBE0 def2-TZVP", "B3LYP 6-31G(d)"]
 
 
@@ -82,6 +91,19 @@ class QuantumChemistryPanel(QWidget):
         self._results_label = QLabel("", self)
         self._results_label.setWordWrap(True)
 
+        self._spectrum_note_label = QLabel(
+            "Note: isotropic shielding constants, not yet referenced to a standard (e.g. TMS) "
+            "as a chemical shift — treat as raw ORCA output, not a directly comparable δ (ppm) value.",
+            self,
+        )
+        self._spectrum_note_label.setWordWrap(True)
+        self._spectrum_note_label.setVisible(False)
+        self._spectrum_table = QTableWidget(0, len(_NMR_SPECTRUM_COLUMNS), self)
+        self._spectrum_table.setHorizontalHeaderLabels(_NMR_SPECTRUM_COLUMNS)
+        self._spectrum_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self._spectrum_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self._spectrum_table.setVisible(False)
+
         form = QFormLayout()
         form.addRow("Molecule:", self._molecule_combo)
         form.addRow("Calculation:", self._calc_type_combo)
@@ -100,9 +122,12 @@ class QuantumChemistryPanel(QWidget):
         layout.addWidget(self._status_label)
         layout.addWidget(self._output_log)
         layout.addWidget(self._results_label)
+        layout.addWidget(self._spectrum_note_label)
+        layout.addWidget(self._spectrum_table)
 
         event_bus.subscribe(QuantumChemistryJobStateChanged, self._on_job_state_changed)
         event_bus.subscribe(QuantumChemistryResultReady, self._on_result_ready)
+        event_bus.subscribe(SpectrumComputed, self._on_spectrum_computed)
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
@@ -169,6 +194,9 @@ class QuantumChemistryPanel(QWidget):
         self._cancel_button.setEnabled(True)
         self._output_log.clear()
         self._results_label.setText("")
+        self._spectrum_table.setRowCount(0)
+        self._spectrum_table.setVisible(False)
+        self._spectrum_note_label.setVisible(False)
         self._status_label.setText("queued")
 
         self._quantum_chemistry_service.request_calculation(
@@ -201,3 +229,20 @@ class QuantumChemistryPanel(QWidget):
         if event.conformer is not None:
             lines.append("Optimized geometry added as a new conformer.")
         self._results_label.setText("\n".join(lines))
+
+    def _on_spectrum_computed(self, event: SpectrumComputed) -> None:
+        spectrum = event.spectrum
+        if spectrum.molecule_uuid != self._pending_molecule_uuid:
+            return
+        self._spectrum_note_label.setVisible(True)
+        self._spectrum_table.setVisible(True)
+        atom_indices = sorted(spectrum.values)
+        self._spectrum_table.setRowCount(len(atom_indices))
+        for row, atom_index in enumerate(atom_indices):
+            values = (
+                str(atom_index),
+                spectrum.elements.get(atom_index, ""),
+                f"{spectrum.values[atom_index]:.3f}",
+            )
+            for col, text in enumerate(values):
+                self._spectrum_table.setItem(row, col, QTableWidgetItem(text))

@@ -18,8 +18,13 @@ logger = logging.getLogger("openchem.chemistry")
 class RDKitConformerProvider(ConformerProvider):
     """Embeds conformers one at a time (rather than RDKit's batch
     EmbedMultipleConfs) specifically so each iteration can report progress
-    and honor cancellation via `on_progress`'s return-agnostic callback
-    contract at the service layer.
+    and honor cancellation via `on_progress`'s return value: returning
+    `False` stops the loop before the next conformer starts (RDKit's own
+    embed/optimize calls aren't preemptible mid-call, so this is
+    best-effort, checked between conformers, not instant). A `None` return
+    (the common case -- most callers' `on_progress` has no return
+    statement) means "keep going," so this is fully backward compatible
+    with callers that don't care about cancellation at all.
     """
 
     provider_id = "rdkit"
@@ -29,7 +34,7 @@ class RDKitConformerProvider(ConformerProvider):
         mol: Chem.Mol,
         num_conformers: int,
         optimize: bool,
-        on_progress: Callable[[int, int], None] | None = None,
+        on_progress: Callable[[int, int], bool | None] | None = None,
     ) -> list[tuple[Chem.Mol, float | None]]:
         results: list[tuple[Chem.Mol, float | None]] = []
         for i in range(num_conformers):
@@ -38,7 +43,9 @@ class RDKitConformerProvider(ConformerProvider):
             if conf_mol is not None:
                 results.append((conf_mol, energy))
             if on_progress is not None:
-                on_progress(i + 1, num_conformers)
+                should_continue = on_progress(i + 1, num_conformers)
+                if should_continue is False:
+                    break
         return results
 
     def _embed_one(self, mol: Chem.Mol) -> Chem.Mol | None:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from PySide6.QtCore import QThreadPool
 from rdkit import Chem
 
@@ -11,6 +13,33 @@ from openchem.events.events import DockingJobStateChanged, DockingResultReady
 from openchem.plugins.interfaces import DockingProvider
 from openchem.services.docking_service import DockingService
 from openchem.services.job_manager import JobManager
+
+
+def _wait_until(qapp, predicate, timeout_seconds: float = 10) -> bool:
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
+        qapp.processEvents()
+        if predicate():
+            return True
+        time.sleep(0.01)
+    return False
+
+
+class _SlowDockingProvider(DockingProvider):
+    """Sleeps in short steps, checking progress.is_cancelled() between
+    them -- gives a test real wall-clock time to call job_manager.cancel()
+    while docking is genuinely still in progress."""
+
+    provider_id = "slow"
+
+    def dock(self, receptor_structure_text, receptor_source_format, ligand_mol, box, num_poses, progress, receptor_prep_options=None):
+        for _ in range(100):
+            if progress.is_cancelled():
+                raise RuntimeError("Docking cancelled by user")
+            time.sleep(0.02)
+        return [
+            DockingPoseModel(pose_molblock="fake molblock", binding_affinity_kcal_mol=-5.0, rmsd_lb=0.0, rmsd_ub=0.0)
+        ]
 
 
 def _make_settings(bus: EventBus) -> Settings:
@@ -261,3 +290,37 @@ def test_default_provider_reads_executable_path_from_settings(qapp):
 
     settings.set("docking/vina_executable_path", "D:/other/vina2.exe")
     assert vina_provider._executable_path_resolver() == "D:/other/vina2.exe"
+
+
+def test_cancel_via_job_manager_stops_docking(qapp):
+    bus = EventBus()
+    provider = _SlowDockingProvider()
+    job_manager = JobManager()
+    service = DockingService(
+        bus, _make_settings(bus), providers={provider.provider_id: provider}, job_manager=job_manager
+    )
+
+    states: list[CacheState] = []
+    bus.subscribe(DockingJobStateChanged, lambda e: states.append(e.state))
+    results = []
+    bus.subscribe(DockingResultReady, lambda e: results.append(e.result))
+
+    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+    service.request_docking(
+        ligand_molecule_uuid="lig-1",
+        ligand_mol=Chem.MolFromSmiles("CCO"),
+        receptor_macromolecule_uuid="rec-1",
+        receptor_structure_text="ATOM ...",
+        receptor_source_format="pdb",
+        box=box,
+        provider_id="slow",
+    )
+    assert _wait_until(qapp, lambda: CacheState.RUNNING in states)
+
+    cancelled = job_manager.cancel("docking", "lig-1:rec-1")
+    assert cancelled is True
+
+    assert _wait_until(qapp, lambda: states and states[-1] == CacheState.FAILED)
+
+    assert results == []
+    assert not job_manager.is_active("docking", "lig-1:rec-1")

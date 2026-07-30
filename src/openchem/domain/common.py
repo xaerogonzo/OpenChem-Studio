@@ -24,11 +24,11 @@ class CacheState(str, Enum):
 @dataclass(frozen=True)
 class Provenance:
     """What produced a scientific result, with what parameters, when —
-    used on new Phase 6+ domain models (starting with `DockingResultModel`)
-    so every generated result can answer "what produced this." Not a
-    retrofit of Phase 1-5 fields (`ConformerModel.method`/`.timestamp`,
-    `DescriptorValue.provider`/`.timestamp` already exist and are left as
-    they are — this is for new models going forward, not existing ones.
+    first used on Phase 6+ domain models (starting with `DockingResultModel`)
+    so every generated result can answer "what produced this," later
+    retrofitted (Phase 9.5) onto `ConformerModel`/`DescriptorValue` as an
+    additive optional field alongside their own pre-existing `.method`/
+    `.timestamp`/`.provider` fields, not a replacement for them.
     """
 
     created_by: str  # plugin_id, or "core"
@@ -52,3 +52,27 @@ class Provenance:
             parameters=dict(data.get("parameters", {})),
             timestamp=data.get("timestamp", 0.0),
         )
+
+
+@dataclass(frozen=True, kw_only=True)
+class ScientificResult:
+    """Shared shape for a computed scientific output that isn't a bare
+    scalar. `DescriptorValue` (one number per descriptor) predates this and
+    keeps its own directly-defined `provenance`/`timestamp`/`cache_state`
+    fields rather than being retrofitted to compose this — no behavior
+    change for existing callers, it's simply the same shape by convention.
+    New result kinds that don't fit a single scalar (per-atom datasets,
+    categorical alerts, spectra — see `PerAtomDataset`, `AlertResult`,
+    `SpectrumResult`) build on this instead of each inventing their own
+    provenance/timestamp/status shape independently.
+
+    `kw_only=True` so subclasses can add their own required fields (a
+    dataclass can't otherwise mix required subclass fields after
+    already-defaulted base fields — every field here has a default so
+    plain positional inheritance would force subclasses to default
+    everything too, including fields that should stay required).
+    """
+
+    provenance: Provenance | None = None
+    timestamp: float = field(default_factory=time.time)
+    cache_state: CacheState = CacheState.COMPLETED

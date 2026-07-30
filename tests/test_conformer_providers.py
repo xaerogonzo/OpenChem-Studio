@@ -37,3 +37,36 @@ def test_on_progress_called_once_per_conformer():
     provider.generate_conformers(mol, num_conformers=3, optimize=False, on_progress=lambda d, t: calls.append((d, t)))
 
     assert calls == [(1, 3), (2, 3), (3, 3)]
+
+
+def test_on_progress_returning_false_stops_early():
+    engine = ChemistryEngine()
+    mol = engine.mol_from_smiles("CCO")
+    provider = RDKitConformerProvider()
+
+    calls: list[tuple[int, int]] = []
+
+    def on_progress(done: int, total: int) -> bool:
+        calls.append((done, total))
+        return done < 2  # stop right after the 2nd conformer
+
+    results = provider.generate_conformers(mol, num_conformers=5, optimize=False, on_progress=on_progress)
+
+    assert calls == [(1, 5), (2, 5)]
+    assert len(results) == 2
+
+
+def test_on_progress_returning_none_keeps_going():
+    """The common case -- most callers' on_progress has no return
+    statement at all (implicitly None) -- must not be mistaken for a
+    cancellation request."""
+    engine = ChemistryEngine()
+    mol = engine.mol_from_smiles("CCO")
+    provider = RDKitConformerProvider()
+
+    def on_progress(done: int, total: int) -> None:
+        pass  # no return statement -- implicitly None
+
+    results = provider.generate_conformers(mol, num_conformers=3, optimize=False, on_progress=on_progress)
+
+    assert len(results) == 3

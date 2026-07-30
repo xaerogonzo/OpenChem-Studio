@@ -28,6 +28,9 @@
       });
       var currentStyle = 'stick';
       var bridge = null;
+      // atom index (string, since JS object keys are always strings) ->
+      // hex color, or null when no visualization layer is active.
+      var currentVisualization = null;
 
       function styleSpecFor(name) {
         switch (name) {
@@ -43,8 +46,29 @@
         }
       }
 
+      function styleSpecWithColor(name, color) {
+        // Shallow-clone each shape key of the base spec and add a color
+        // override -- structuredClone isn't available in every WebEngine
+        // Chromium version this app might run against, and the base spec
+        // is only ever one level deep (e.g. { stick: {...} }), so a
+        // manual per-key copy is simpler than depending on it.
+        var base = styleSpecFor(name);
+        var colored = {};
+        Object.keys(base).forEach(function (shapeKey) {
+          colored[shapeKey] = Object.assign({}, base[shapeKey], { color: color });
+        });
+        return colored;
+      }
+
       function applyStyle() {
         viewer.setStyle({}, styleSpecFor(currentStyle));
+        if (currentVisualization) {
+          Object.keys(currentVisualization).forEach(function (atomIndexStr) {
+            var atomIndex = parseInt(atomIndexStr, 10);
+            var color = currentVisualization[atomIndexStr];
+            viewer.setStyle({ index: atomIndex }, styleSpecWithColor(currentStyle, color));
+          });
+        }
         viewer.render();
       }
 
@@ -55,6 +79,10 @@
       window.openchemViewer = {
         loadMolblock: function (molblock) {
           viewer.clear();
+          // A new molecule's atom indices have nothing to do with
+          // whatever the previous molecule's visualization layer meant --
+          // stale coloring must not carry over.
+          currentVisualization = null;
           var model = viewer.addModel(molblock, 'mol');
           applyStyle();
           model.setClickable({}, true, function (atom) {
@@ -69,7 +97,16 @@
           currentStyle = styleName;
           applyStyle();
         },
+        applyVisualization: function (atomColors) {
+          currentVisualization = atomColors;
+          applyStyle();
+        },
+        clearVisualization: function () {
+          currentVisualization = null;
+          applyStyle();
+        },
         clear: function () {
+          currentVisualization = null;
           viewer.clear();
           viewer.render();
         },

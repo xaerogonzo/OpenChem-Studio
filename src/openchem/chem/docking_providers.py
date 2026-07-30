@@ -53,6 +53,11 @@ def _filter_pdb_altlocs(pdb_text: str) -> str:
     return "".join(kept_lines)
 
 
+def _raise_if_cancelled(progress: ProgressHandle) -> None:
+    if progress.is_cancelled():
+        raise DockingProviderError("Docking cancelled by user")
+
+
 class DockingProviderError(Exception):
     """Raised when docking can't be performed — no usable Vina backend, or
     a receptor/ligand preparation failure. Always caught by the service
@@ -155,6 +160,13 @@ class VinaDockingProvider(DockingProvider):
             receptor_pdbqt = scratch / "receptor.pdbqt"
             ligand_pdbqt = scratch / "ligand.pdbqt"
 
+            # Cancellation is best-effort, checked at these phase
+            # boundaries -- neither VinaEngine implementation exposes a
+            # mid-search cancellation hook (the actual Vina run is one
+            # blocking call either way), so a cancel requested during the
+            # search itself only takes effect once that call returns, not
+            # instantly.
+            _raise_if_cancelled(progress)
             progress.report(0.05, "Preparing receptor")
             self._convert_receptor_to_pdbqt(
                 pybel,
@@ -164,6 +176,7 @@ class VinaDockingProvider(DockingProvider):
                 receptor_prep_options or {},
             )
 
+            _raise_if_cancelled(progress)
             progress.report(0.15, "Preparing ligand")
             self._convert_ligand_to_pdbqt(pybel, ligand_mol, ligand_pdbqt)
 
@@ -177,6 +190,7 @@ class VinaDockingProvider(DockingProvider):
                 progress=progress,
             )
 
+        _raise_if_cancelled(progress)
         progress.report(0.95, "Finalizing")
         raw_poses = parse_vina_output_pdbqt(output_text)
         return [self._raw_pose_to_model(pybel, raw) for raw in raw_poses]

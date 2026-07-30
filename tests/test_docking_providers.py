@@ -316,3 +316,21 @@ def test_last_resolved_engine_is_cached_after_dock_not_recomputed():
         # engine_id/engine_version() must not have called _resolve_engine
         # again -- they read the cached _last_resolved_engine from dock().
         assert mock_resolve.call_count == 1
+
+
+def test_dock_raises_immediately_when_progress_already_cancelled():
+    """Best-effort cancellation is checked at each phase boundary
+    (receptor prep / ligand prep / after the engine call) -- a
+    pre-cancelled ProgressHandle must stop before wasting any work at
+    all, not just eventually."""
+    engine = FakeVinaEngine()
+    provider = VinaDockingProvider(engine=engine)
+    mol = Chem.MolFromSmiles("CCO")
+    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+    progress = ProgressHandle()
+    progress.cancel()
+
+    with pytest.raises(DockingProviderError, match="cancelled"):
+        provider.dock(RECEPTOR_PDB, "pdb", mol, box, 9, progress)
+
+    assert engine.dock_calls == []

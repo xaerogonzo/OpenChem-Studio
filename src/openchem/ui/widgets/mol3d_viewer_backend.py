@@ -11,6 +11,7 @@ from PySide6.QtWebEngineCore import QWebEnginePage
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from openchem.ui.viewer_backend import ViewerBackend
+from openchem.ui.visualization import VisualizationLayer
 
 logger = logging.getLogger("openchem.ui")
 
@@ -92,6 +93,17 @@ class Mol3DViewerBackend(ViewerBackend):
 
     def clear(self) -> None:
         self._page.runJavaScript("window.openchemViewer.clear();")
+
+    def apply_visualization(self, layer: VisualizationLayer | None) -> None:
+        if layer is None or not layer.atom_colors:
+            self._page.runJavaScript("window.openchemViewer.clearVisualization();")
+            return
+        # dict keys become JSON string keys (json.dumps does this
+        # automatically for int keys) -- fine, JS object property access
+        # coerces a numeric atom index to the same string either way.
+        self._page.runJavaScript(
+            f"window.openchemViewer.applyVisualization({json.dumps(layer.atom_colors)});"
+        )
 
     def widget(self):
         return self._view

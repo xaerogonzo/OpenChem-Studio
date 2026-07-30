@@ -14,6 +14,7 @@ from openchem.events.base import EventBus
 from openchem.events.events import ConformerJobStateChanged, ConformersReady
 from openchem.plugins.interfaces import ConformerProvider
 from openchem.services.job_manager import JobManager
+from openchem.services.progress import ProgressHandle
 
 _JOB_KIND = "conformer"
 
@@ -39,6 +40,7 @@ class _ConformerGenerationTask(QRunnable):
         optimize: bool,
         event_bus: EventBus,
         job_manager: JobManager,
+        progress: ProgressHandle,
     ) -> None:
         super().__init__()
         self._provider = provider
@@ -48,6 +50,11 @@ class _ConformerGenerationTask(QRunnable):
         self._optimize = optimize
         self._event_bus = event_bus
         self._job_manager = job_manager
+        # Constructed by ConformerService BEFORE this task is scheduled
+        # (see request_conformers), same reasoning as DockingService's
+        # equivalent: its cancel() must be registered with JobManager
+        # ahead of scheduling, not from inside run() on the worker thread.
+        self._progress = progress
 
     def run(self) -> None:
         self._event_bus.publish(
@@ -63,6 +70,21 @@ class _ConformerGenerationTask(QRunnable):
             self._event_bus.publish(
                 ConformerJobStateChanged(
                     molecule_uuid=self._model.uuid, state=CacheState.FAILED, message=str(exc)
+                )
+            )
+            self._job_manager.finish(_JOB_KIND, self._model.uuid)
+            return
+
+        if self._progress.is_cancelled():
+            # generate_conformers() returns whatever partial results it had
+            # accumulated when on_progress told it to stop (best-effort,
+            # checked between conformers) -- discarded here rather than
+            # reported as a successful (if short) batch, matching
+            # Docking/QuantumChemistry's convention that a cancelled job
+            # reports FAILED("Cancelled by user"), not a partial COMPLETED.
+            self._event_bus.publish(
+                ConformerJobStateChanged(
+                    molecule_uuid=self._model.uuid, state=CacheState.FAILED, message="Cancelled by user"
                 )
             )
             self._job_manager.finish(_JOB_KIND, self._model.uuid)
@@ -94,14 +116,17 @@ class _ConformerGenerationTask(QRunnable):
         )
         self._job_manager.finish(_JOB_KIND, self._model.uuid)
 
-    def _on_progress(self, done: int, total: int) -> None:
+    def _on_progress(self, done: int, total: int) -> bool | None:
+        message = f"{done}/{total} conformers"
+        self._job_manager.update_message(_JOB_KIND, self._model.uuid, message)
         self._event_bus.publish(
             ConformerJobStateChanged(
                 molecule_uuid=self._model.uuid,
                 state=CacheState.RUNNING,
-                message=f"{done}/{total} conformers",
+                message=message,
             )
         )
+        return not self._progress.is_cancelled()
 
 
 class ConformerService:
@@ -150,7 +175,11 @@ class ConformerService:
                 )
             )
             return
-        if not self._job_manager.try_start(_JOB_KIND, model.uuid):
+        # Constructed here (main thread, before scheduling) so its
+        # cancel() can be registered with JobManager up front -- same
+        # reasoning as DockingService's equivalent.
+        progress = ProgressHandle()
+        if not self._job_manager.try_start(_JOB_KIND, model.uuid, cancel_callback=progress.cancel):
             self._event_bus.publish(
                 ConformerJobStateChanged(
                     molecule_uuid=model.uuid,
@@ -164,6 +193,13 @@ class ConformerService:
         )
         self._pool.start(
             _ConformerGenerationTask(
-                provider, self._engine, model, num_conformers, optimize, self._event_bus, self._job_manager
+                provider,
+                self._engine,
+                model,
+                num_conformers,
+                optimize,
+                self._event_bus,
+                self._job_manager,
+                progress,
             )
         )
