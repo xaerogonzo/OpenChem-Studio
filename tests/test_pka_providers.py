@@ -26,28 +26,69 @@ def test_acetic_acid_stays_deprotonated_at_high_ph():
     assert Chem.MolToSmiles(protonated) == Chem.CanonSmiles("CC(=O)[O-]")
 
 
-def test_pka_predictor_available_reflects_the_real_install_state():
-    """pkasolver's own dependency chain (torch-geometric -> torch-scatter/
-    torch-sparse) has no pre-built wheel on this machine and needs an
-    MSVC compiler to build from source, which isn't present (confirmed
-    live during the Phase 18 install spike) -- False is the honest,
-    current answer, not a hardcoded stub."""
-    assert pka_predictor_available() is False
+def test_pka_predictor_unavailable_when_nothing_configured():
+    """pkasolver runs out of process from its own environment (Phase 23):
+    it needs numpy<2 while this app runs numpy 2.x, so it is configured as
+    an external tool rather than imported. No configured path means no
+    numeric pKa -- honestly reported, not a hardcoded stub."""
+    assert pka_predictor_available(None) is False
+    assert pka_predictor_available("") is False
 
 
-def test_compute_pka_returns_none_when_predictor_unavailable():
+def test_pka_predictor_unavailable_for_a_nonexistent_interpreter(tmp_path):
+    assert pka_predictor_available(str(tmp_path / "does-not-exist.exe")) is False
+
+
+def test_pka_predictor_available_for_a_real_file(tmp_path):
+    fake = tmp_path / "python.exe"
+    fake.write_text("")
+    assert pka_predictor_available(str(fake)) is True
+
+
+def test_compute_pka_returns_none_when_nothing_is_configured():
+    """None means "not installed" -- distinct from an empty list, which
+    would mean "ran, found no ionizable centre"."""
     mol = Chem.MolFromSmiles("CC(=O)O")
-    assert compute_pka(mol) is None
+    assert compute_pka(mol, None) is None
 
 
-def test_compute_pka_raises_clearly_if_predictor_becomes_available_but_unimplemented(monkeypatch):
-    """If a future pkasolver install spike succeeds, compute_pka must fail
-    loudly (NotImplementedError) rather than silently pretend to work --
-    this pins that contract so it can't regress into a silent no-op."""
-    import openchem.chem.pka_providers as pka_providers
-
-    monkeypatch.setattr(pka_providers, "pka_predictor_available", lambda: True)
+def test_compute_pka_raises_when_a_configured_interpreter_fails(tmp_path):
+    """A configured-but-broken environment must report a real error rather
+    than degrade into the same silent state as "not configured"."""
+    fake = tmp_path / "python.exe"
+    fake.write_text("")  # exists, but is not a runnable interpreter
     mol = Chem.MolFromSmiles("CC(=O)O")
 
-    with pytest.raises(NotImplementedError):
-        compute_pka(mol)
+    with pytest.raises(RuntimeError):
+        compute_pka(mol, str(fake))
+
+
+def test_runner_output_parser_extracts_json_after_dependency_banners():
+    """pkasolver's dependencies print citation/progress banners to stdout,
+    so the JSON payload is the last brace-line, not the whole stream."""
+    from openchem.chem.pka_providers import _parse_runner_output
+
+    stdout = 'Dimorphite-DL citation banner\nloading models...\n{"pkas": [{"pka": 4.82, "atom_idx": 12}]}\n'
+    payload = _parse_runner_output(stdout, "", 0)
+
+    assert payload["pkas"][0]["pka"] == 4.82
+
+
+def test_runner_output_parser_raises_on_a_structured_error():
+    from openchem.chem.pka_providers import _parse_runner_output
+
+    with pytest.raises(RuntimeError, match="boom"):
+        _parse_runner_output('{"error": "boom"}', "", 1)
+
+
+def test_runner_output_parser_raises_when_there_is_no_payload():
+    from openchem.chem.pka_providers import _parse_runner_output
+
+    with pytest.raises(RuntimeError, match="no usable output"):
+        _parse_runner_output("just banners, no json\n", "traceback here", 1)
+
+
+def test_describe_pka_status_reports_not_configured():
+    from openchem.chem.pka_providers import describe_pka_status
+
+    assert "Not configured" in describe_pka_status("")

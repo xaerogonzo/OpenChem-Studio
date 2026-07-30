@@ -570,41 +570,120 @@ def compute_crippen_mr_contrib_calculator(
 
 
 _PKA_NOT_INSTALLED_MESSAGE = (
-    "pkasolver not installed -- numeric pKa is unavailable in this build "
-    "(its dependency chain needs a compiler this environment doesn't have; "
-    "see chem/pka_providers.py). Ionizable-group detection via Dimorphite-DL "
-    "still works through the Charge category's pH control."
+    "No pkasolver environment configured. pkasolver runs out of process from its "
+    "own virtual environment (it requires numpy<2, while this app runs numpy 2.x) "
+    "-- set the interpreter path under Tools > External Tools. Until then, "
+    "pH-dependent protonation via Dimorphite-DL still works through the Charge "
+    "category's pH control, and LogD falls back to a labelled approximation."
 )
 
 
-def compute_pka_dataset(mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any]) -> PerAtomDataset:
-    """The "pka" category's calculator. Returns a FAILED, clearly-messaged
-    empty dataset when pkasolver isn't installed (the current, honest
-    state of this build -- see chem/pka_providers.py) rather than an
-    empty dataset with no explanation."""
+def compute_pka_dataset(
+    mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any], interpreter_path: str | None = None
+) -> AlertResult:
+    """The "pka" category's calculator. pkasolver runs out of process (see
+    `chem/pka_providers.py` for why); when no environment is configured
+    this returns a FAILED, clearly-messaged result rather than an empty
+    one with no explanation.
+
+    Reports the pKa VALUES as an `AlertResult` list rather than a
+    per-atom-keyed dataset on purpose: pkasolver's reaction-centre indices
+    do not map onto our atom numbering (confirmed live -- see
+    `compute_pka`), so keying a 2D/3D visualization off them would
+    confidently highlight the wrong atoms.
+    """
     from openchem.chem.pka_providers import compute_pka, pka_predictor_available
 
-    if not pka_predictor_available():
-        return PerAtomDataset(
-            property_id="pka",
+    if not pka_predictor_available(interpreter_path):
+        return AlertResult(
+            alert_id="pka",
             name="pKa",
-            units="",
-            method="pkasolver",
             molecule_uuid=molecule_uuid,
-            values={},
+            matched=[],
+            category="pka",
             provenance=Provenance(created_by="core", method="pkasolver"),
             cache_state=CacheState.FAILED,
             error=_PKA_NOT_INSTALLED_MESSAGE,
         )
-    pairs = compute_pka(mol)  # pragma: no cover - unreachable while pka_predictor_available() is always False
-    return PerAtomDataset(
-        property_id="pka",
+    try:
+        pairs = compute_pka(mol, interpreter_path)
+    except RuntimeError as exc:
+        return AlertResult(
+            alert_id="pka",
+            name="pKa",
+            molecule_uuid=molecule_uuid,
+            matched=[],
+            category="pka",
+            provenance=Provenance(created_by="core", method="pkasolver"),
+            cache_state=CacheState.FAILED,
+            error=str(exc),
+        )
+    return AlertResult(
+        alert_id="pka",
         name="pKa",
-        units="",
-        method="pkasolver",
         molecule_uuid=molecule_uuid,
-        values=dict(pairs or []),
+        matched=[f"pKa {pka:.2f}" for _idx, pka in sorted(pairs or [], key=lambda p: p[1])],
+        category="pka",
         provenance=Provenance(created_by="core", method="pkasolver"),
+    )
+
+
+def compute_logd(
+    mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any], interpreter_path: str | None = None
+) -> AlertResult:
+    """The "logd" category's calculator (Phase 23) -- pH-adjustable
+    distribution coefficient.
+
+    Uses real Henderson-Hasselbalch when numeric pKa is available
+    (pkasolver, out of process), and clearly says so. Otherwise falls back
+    to the LogP of the dominant microspecies at that pH via Dimorphite-DL:
+    a real pH-dependent number, but NOT true logD, and labelled as such
+    rather than presented as equivalent.
+    """
+    from openchem.chem.logd import classify_ionizable_centres, logd_from_microspecies, logd_from_pkas
+    from openchem.chem.pka_providers import compute_pka, pka_predictor_available
+
+    ph = float(parameters.get("pH", 7.4))
+    logp = Crippen.MolLogP(mol)
+    acids, bases = classify_ionizable_centres(mol)
+
+    lines: list[str] = []
+    if acids == 0 and bases == 0:
+        lines.append(f"logD = {logp:.2f} at pH {ph:g} (no ionizable centre — equal to LogP)")
+        method = "rdkit"
+    elif pka_predictor_available(interpreter_path):
+        try:
+            pkas = [pka for _idx, pka in (compute_pka(mol, interpreter_path) or [])]
+        except RuntimeError as exc:
+            return AlertResult(
+                alert_id="logd", name="LogD", molecule_uuid=molecule_uuid, matched=[], category="logd",
+                provenance=Provenance(created_by="core", method="pkasolver"),
+                cache_state=CacheState.FAILED, error=str(exc),
+            )
+        value = logd_from_pkas(mol, ph, pkas)
+        lines.append(f"logD = {value:.2f} at pH {ph:g} (Henderson-Hasselbalch)")
+        lines.append(f"LogP = {logp:.2f}")
+        lines.append("pKa: " + ", ".join(f"{p:.2f}" for p in sorted(pkas)))
+        method = "rdkit+pkasolver"
+    else:
+        value = logd_from_microspecies(mol, ph)
+        lines.append(f"logD ~ {value:.2f} at pH {ph:g} (approximation)")
+        lines.append(f"LogP = {logp:.2f}")
+        lines.append(
+            "Approximation: LogP of the dominant microspecies at this pH (Dimorphite-DL), "
+            "not true Henderson-Hasselbalch logD — configure a pkasolver environment in "
+            "Tools > External Tools for real numeric pKa."
+        )
+        method = "rdkit+dimorphite_dl"
+
+    lines.append(f"Ionizable centres: {acids} acidic, {bases} basic")
+    return AlertResult(
+        alert_id="logd",
+        name=f"LogD at pH {ph:g}",
+        molecule_uuid=molecule_uuid,
+        matched=lines,
+        category="logd",
+        provenance=Provenance(created_by="core", method=method, parameters={"pH": ph}),
     )
 
 
@@ -656,8 +735,27 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         calculator_id="pka",
         display_name="pKa",
         category="pka",
-        description="Ionizable-group detection (Dimorphite-DL); numeric pKa values need pkasolver, not installed in this build.",
+        description=(
+            "Numeric pKa via pkasolver, run out of process from its own environment "
+            "(configure it in Tools > External Tools)."
+        ),
         execution=RegistryExecution(compute=compute_pka_dataset),
+        prediction_basis="empirical",
+    ),
+    CalculatorDefinition(
+        calculator_id="logd",
+        display_name="LogD (pH-dependent)",
+        category="logd",
+        description=(
+            "Distribution coefficient at a given pH. Real Henderson-Hasselbalch when a "
+            "pkasolver environment is configured; otherwise the LogP of the dominant "
+            "microspecies at that pH, labelled as an approximation."
+        ),
+        execution=RegistryExecution(compute=compute_logd),
+        prediction_basis="empirical",
+        parameters=[
+            CalculatorParameter(name="pH", label="pH", kind="float", default=7.4, minimum=0.0, maximum=14.0)
+        ],
     ),
     CalculatorDefinition(
         calculator_id="nmr_empirical",

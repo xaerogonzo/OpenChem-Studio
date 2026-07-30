@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.app.settings import Settings
+from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING, describe_pka_status
 from openchem.plugins.async_task import run_async
 from openchem.services.tool_download_service import (
     ORCA_DOCS_PAGE,
@@ -57,8 +58,11 @@ class ExternalToolsDialog(QDialog):
         self._tabs = QTabWidget(self)
         self._tabs.addTab(self._build_vina_tab(), "AutoDock Vina")
         self._tabs.addTab(self._build_orca_tab(), "ORCA")
+        self._tabs.addTab(self._build_pkasolver_tab(), "pkasolver (pKa)")
         if focus == "orca":
             self._tabs.setCurrentIndex(1)
+        elif focus == "pkasolver":
+            self._tabs.setCurrentIndex(2)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close, self)
         buttons.rejected.connect(self.reject)
@@ -241,3 +245,86 @@ class ExternalToolsDialog(QDialog):
         if path_str:
             self._orca_path_edit.setText(path_str)
             self._on_orca_path_edited()
+
+    # --- pkasolver tab --------------------------------------------------------
+
+    def _build_pkasolver_tab(self) -> QWidget:
+        tab = QWidget(self)
+
+        self._pkasolver_path_edit = QLineEdit(tab)
+        self._pkasolver_path_edit.setText(self._settings.get(PKASOLVER_PYTHON_SETTING, ""))
+        self._pkasolver_path_edit.editingFinished.connect(self._on_pkasolver_path_edited)
+        browse_button = QPushButton("Browse...", tab)
+        browse_button.clicked.connect(self._on_pkasolver_browse_clicked)
+        path_row = QHBoxLayout()
+        path_row.addWidget(self._pkasolver_path_edit)
+        path_row.addWidget(browse_button)
+
+        self._pkasolver_status_label = QLabel("Not checked", tab)
+        self._pkasolver_status_label.setWordWrap(True)
+        test_button = QPushButton("Test (predicts acetic acid's pKa)...", tab)
+        test_button.clicked.connect(self._on_pkasolver_test_clicked)
+
+        why_note = QLabel(
+            "Unlike Vina and ORCA this is a Python interpreter, not an executable. "
+            "pkasolver needs numpy<2 while OpenChem Studio runs numpy 2.x, so it "
+            "runs out of process in its own virtual environment rather than being "
+            "installed alongside the app.",
+            tab,
+        )
+        why_note.setWordWrap(True)
+
+        setup_note = QLabel(
+            "Setup (one time, ~1 GB): create a Python 3.11 virtual environment, then "
+            "install into it — torch==2.3.0 (CPU), torch-geometric==2.0.1, "
+            "torch-scatter and torch-sparse from https://data.pyg.org/whl/torch-2.3.0+cpu.html "
+            "(prebuilt wheels, no compiler needed), numpy<2, scipy<1.14, pandas, rdkit, "
+            "and pkasolver itself from github.com/mayrf/pkasolver. Then Browse to that "
+            "environment's python.exe above. These exact versions matter: newer "
+            "torch-geometric cannot load pkasolver's trained models.",
+            tab,
+        )
+        setup_note.setWordWrap(True)
+
+        without_note = QLabel(
+            "Without this, pH-dependent protonation (Charge category) still works via "
+            "Dimorphite-DL, and LogD falls back to a clearly-labelled approximation.",
+            tab,
+        )
+        without_note.setWordWrap(True)
+
+        form = QFormLayout()
+        form.addRow("Python interpreter:", path_row)
+        form.addRow("Status:", self._pkasolver_status_label)
+
+        layout = QVBoxLayout(tab)
+        layout.addLayout(form)
+        layout.addWidget(test_button)
+        layout.addWidget(why_note)
+        layout.addWidget(setup_note)
+        layout.addWidget(without_note)
+        layout.addStretch(1)
+        return tab
+
+    def _on_pkasolver_path_edited(self) -> None:
+        self._settings.set(PKASOLVER_PYTHON_SETTING, self._pkasolver_path_edit.text())
+        self._pkasolver_status_label.setText("Not checked — press Test to verify")
+
+    def _on_pkasolver_browse_clicked(self) -> None:
+        path_str, _ = QFileDialog.getOpenFileName(self, "Select the pkasolver environment's Python interpreter")
+        if path_str:
+            self._pkasolver_path_edit.setText(path_str)
+            self._on_pkasolver_path_edited()
+
+    def _on_pkasolver_test_clicked(self) -> None:
+        # Runs a real prediction, which loads a ~105 MB model ensemble and
+        # takes a while -- kept off the GUI thread via the same run_async
+        # helper the Vina release lookup uses.
+        self._pkasolver_status_label.setText("Testing (loading models, this can take a minute)...")
+        path = self._pkasolver_path_edit.text()
+        run_async(
+            lambda: describe_pka_status(path),
+            RuntimeError,
+            self._pkasolver_status_label.setText,
+            lambda message: self._pkasolver_status_label.setText(f"Test failed: {message}"),
+        )

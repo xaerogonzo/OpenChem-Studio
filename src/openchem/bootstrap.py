@@ -1,10 +1,18 @@
 from __future__ import annotations
 
+import dataclasses
+
 from openchem.app.settings import Settings
 from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.orca_engine import CALC_TYPE_LABELS, METHOD_BASIS_PRESETS
-from openchem.domain.calculator import CalculatorDefinition, CalculatorParameter, ServiceExecution
+from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING
+from openchem.domain.calculator import (
+    CalculatorDefinition,
+    CalculatorParameter,
+    RegistryExecution,
+    ServiceExecution,
+)
 from openchem.events.base import EventBus
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.conformer_service import ConformerService
@@ -92,6 +100,31 @@ for _label, _calc_type in CALC_TYPE_LABELS.items():
     )
 
 
+# Calculators whose compute function needs the configured pkasolver
+# interpreter. `CalculatorRegistry.compute` deliberately passes only
+# (mol, molecule_uuid, parameters) -- a calculator has no business reaching
+# into app Settings itself, and `chem/` must not import `app/`. So the
+# composition root, which already owns Settings, binds the path in at
+# registration time. Read lazily per call (not captured once) so
+# reconfiguring the path in Tools > External Tools takes effect without a
+# restart.
+_SETTINGS_BOUND_CALCULATORS = frozenset({"pka", "logd"})
+
+
+def _bind_settings(definition: CalculatorDefinition, settings: Settings) -> CalculatorDefinition:
+    if definition.calculator_id not in _SETTINGS_BOUND_CALCULATORS:
+        return definition
+    inner = definition.execution.compute
+
+    def compute(mol, molecule_uuid, parameters, _inner=inner):
+        return _inner(
+            mol, molecule_uuid, parameters,
+            interpreter_path=settings.get(PKASOLVER_PYTHON_SETTING, ""),
+        )
+
+    return dataclasses.replace(definition, execution=RegistryExecution(compute=compute))
+
+
 def build_service_container() -> ServiceContainer:
     """Composition root: wires concrete services into a ServiceContainer.
 
@@ -124,7 +157,7 @@ def build_service_container() -> ServiceContainer:
     # (ServiceExecution) entries -- see _EXTERNAL_CALCULATOR_DEFINITIONS.
     calculator_registry = CalculatorRegistry()
     for definition in CALCULATOR_DEFINITIONS:
-        calculator_registry.register(definition)
+        calculator_registry.register(_bind_settings(definition, settings))
     for definition in _EXTERNAL_CALCULATOR_DEFINITIONS:
         calculator_registry.register(definition)
     return ServiceContainer(
