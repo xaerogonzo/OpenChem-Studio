@@ -35,6 +35,21 @@ ATOM      4  O   ALA A   1      13.598  13.601   2.128  1.00 20.00           O
 END
 """
 
+# ALA residue + a crystallographic water + a non-standard HETATM (zinc, a
+# common cofactor) + a duplicate-altloc atom on the CB, for exercising
+# receptor_prep_options end to end through the real Open Babel pipeline.
+RECEPTOR_PDB_WITH_EXTRAS = """HEADER    TEST
+ATOM      1  N   ALA A   1      11.104  13.207   2.845  1.00 20.00           N
+ATOM      2  CA  ALA A   1      11.999  12.040   2.945  1.00 20.00           C
+ATOM      3  C   ALA A   1      13.398  12.442   2.508  1.00 20.00           C
+ATOM      4  O   ALA A   1      13.598  13.601   2.128  1.00 20.00           O
+ATOM      5  CB AALA A   1      11.500  10.800   2.000  0.60 20.00           C
+ATOM      6  CB BALA A   1      11.600  10.900   2.100  0.40 20.00           C
+HETATM    7  O   HOH A   2      20.000  20.000  20.000  1.00 20.00           O
+HETATM    8 ZN   ZN  A   3      25.000  25.000  25.000  1.00 20.00          ZN
+END
+"""
+
 
 class FakeVinaEngine(VinaEngine):
     engine_id = "fake"
@@ -168,6 +183,114 @@ def test_receptor_pdbqt_is_prepared_as_rigid_not_flexible():
     assert "ROOT" not in receptor_text
     assert "BRANCH" not in receptor_text
     assert "TORSDOF" not in receptor_text
+
+
+def test_receptor_prep_strips_waters_by_default():
+    engine = FakeVinaEngine()
+    provider = VinaDockingProvider(engine=engine)
+    mol = Chem.MolFromSmiles("CCO")
+    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+
+    provider.dock(RECEPTOR_PDB_WITH_EXTRAS, "pdb", mol, box, 9, ProgressHandle())
+
+    receptor_text = engine.dock_calls[0]["receptor_pdbqt_text"]
+    assert "HOH" not in receptor_text
+
+
+def test_receptor_prep_keeps_waters_when_disabled():
+    engine = FakeVinaEngine()
+    provider = VinaDockingProvider(engine=engine)
+    mol = Chem.MolFromSmiles("CCO")
+    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+
+    provider.dock(
+        RECEPTOR_PDB_WITH_EXTRAS, "pdb", mol, box, 9, ProgressHandle(),
+        receptor_prep_options={"strip_waters": False},
+    )
+
+    receptor_text = engine.dock_calls[0]["receptor_pdbqt_text"]
+    assert "HOH" in receptor_text
+
+
+def test_receptor_prep_keeps_cofactors_by_default():
+    engine = FakeVinaEngine()
+    provider = VinaDockingProvider(engine=engine)
+    mol = Chem.MolFromSmiles("CCO")
+    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+
+    provider.dock(RECEPTOR_PDB_WITH_EXTRAS, "pdb", mol, box, 9, ProgressHandle())
+
+    receptor_text = engine.dock_calls[0]["receptor_pdbqt_text"]
+    assert "ZN" in receptor_text
+
+
+def test_receptor_prep_strips_cofactors_when_enabled():
+    engine = FakeVinaEngine()
+    provider = VinaDockingProvider(engine=engine)
+    mol = Chem.MolFromSmiles("CCO")
+    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+
+    provider.dock(
+        RECEPTOR_PDB_WITH_EXTRAS, "pdb", mol, box, 9, ProgressHandle(),
+        receptor_prep_options={"strip_cofactors": True},
+    )
+
+    receptor_text = engine.dock_calls[0]["receptor_pdbqt_text"]
+    assert "ZN" not in receptor_text
+    # A standard residue (ALA) must survive strip_cofactors -- it only
+    # removes non-standard HETATM residues, not the receptor itself.
+    assert "ALA" in receptor_text
+
+
+def test_receptor_prep_filters_duplicate_altlocs():
+    """Regression test: confirmed live that Open Babel's own PDB reader
+    does NOT dedupe alternate locations -- a two-altloc atom comes back as
+    two full atoms at two positions. `_filter_pdb_altlocs` must drop every
+    altloc except blank/'A' before Open Babel ever reads the structure."""
+    engine = FakeVinaEngine()
+    provider = VinaDockingProvider(engine=engine)
+    mol = Chem.MolFromSmiles("CCO")
+    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+
+    provider.dock(RECEPTOR_PDB_WITH_EXTRAS, "pdb", mol, box, 9, ProgressHandle())
+
+    receptor_text = engine.dock_calls[0]["receptor_pdbqt_text"]
+    # Exactly one CB atom line should survive (the 'A' altloc), not two.
+    cb_lines = [line for line in receptor_text.splitlines() if " CB " in line]
+    assert len(cb_lines) == 1
+
+
+def test_receptor_prep_ph_is_passed_to_add_hydrogens():
+    """Doesn't assert a specific protonation outcome (fragile/chemistry-
+    dependent) -- just that a custom pH actually reaches AddHydrogens
+    instead of always using the 7.4 default, via a spy on OBMol."""
+    from openbabel import openbabel as ob
+
+    engine = FakeVinaEngine()
+    provider = VinaDockingProvider(engine=engine)
+    mol = Chem.MolFromSmiles("CCO")
+    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+
+    calls = []
+    original = ob.OBMol.AddHydrogens
+
+    # Matches OBMol::AddHydrogens' real C++ defaults -- the ligand-prep
+    # path (_convert_ligand_to_pdbqt) also calls this, via pybel's own
+    # addh() wrapper, with no arguments at all.
+    def spy(self, polaronly=False, correct_for_ph=False, ph=7.4):
+        calls.append((polaronly, correct_for_ph, ph))
+        return original(self, polaronly, correct_for_ph, ph)
+
+    with patch.object(ob.OBMol, "AddHydrogens", spy):
+        provider.dock(
+            RECEPTOR_PDB, "pdb", mol, box, 9, ProgressHandle(),
+            receptor_prep_options={"ph": 5.0},
+        )
+
+    # The receptor-prep call (polaronly=False, correctForPH=True, pH=5.0)
+    # must be among the calls made -- the ligand-prep path's own addh()
+    # call (with all defaults) is expected too and isn't what's under test.
+    assert (False, True, 5.0) in calls
 
 
 def test_last_resolved_engine_is_cached_after_dock_not_recomputed():

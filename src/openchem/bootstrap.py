@@ -9,6 +9,7 @@ from openchem.services.descriptor_service import DescriptorService
 from openchem.services.docking_service import DockingService
 from openchem.services.export_service import ExportService
 from openchem.services.import_service import ImportService
+from openchem.services.job_manager import JobManager
 from openchem.services.measurement_service import MeasurementService
 from openchem.services.project_service import ProjectService
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
@@ -33,6 +34,11 @@ def build_service_container() -> ServiceContainer:
     # safe: main.py's own separately-constructed Settings(services.event_bus)
     # reads/writes the identical underlying store.
     settings = Settings(event_bus)
+    # One JobManager shared by every service that guards against duplicate
+    # concurrent submissions for the same key (see JobManager's docstring)
+    # -- DescriptorService deliberately doesn't get one; a re-edit should
+    # supersede an in-flight descriptor recompute, not be dropped by it.
+    job_manager = JobManager()
     return ServiceContainer(
         event_bus=event_bus,
         chemistry_engine=engine,
@@ -40,8 +46,9 @@ def build_service_container() -> ServiceContainer:
         import_service=ImportService(engine),
         export_service=ExportService(engine),
         project_service=ProjectService(event_bus),
-        conformer_service=ConformerService(event_bus, engine),
+        conformer_service=ConformerService(event_bus, engine, job_manager=job_manager),
         measurement_service=MeasurementService(engine),
-        docking_service=DockingService(event_bus, settings),
-        quantum_chemistry_service=QuantumChemistryService(event_bus, settings),
+        docking_service=DockingService(event_bus, settings, job_manager=job_manager),
+        quantum_chemistry_service=QuantumChemistryService(event_bus, settings, job_manager=job_manager),
+        job_manager=job_manager,
     )

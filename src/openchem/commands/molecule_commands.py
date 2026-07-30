@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from openchem.chem.engine import ChemistryEngine
 from openchem.commands.base import OpenChemCommand
+from openchem.domain.conformer import ConformerModel
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
-from openchem.events.events import MoleculeChanged
+from openchem.events.events import ConformersChanged, ConformersInvalidated, MoleculeChanged
 
 
 class AddMoleculeCommand(OpenChemCommand):
@@ -66,9 +67,14 @@ class EditStructureCommand(OpenChemCommand):
         self._old_molblock = molecule.molblock
         self._new_molblock = new_molblock
         self._event_bus = event_bus
+        # Snapshotted so undo can restore the conformers that matched the
+        # old structure, not just the old molblock -- they describe the
+        # same structure the undo is reverting to, so they're still valid.
+        self._old_conformers: list[ConformerModel] = list(molecule.conformers)
 
     def redo(self) -> None:
         self._engine.set_structure_from_molblock(self._molecule, self._new_molblock)
+        self._invalidate_stale_conformers()
         self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
 
     def undo(self) -> None:
@@ -79,4 +85,18 @@ class EditStructureCommand(OpenChemCommand):
             self._molecule.canonical_smiles = None
             self._molecule.inchi = None
             self._molecule.inchikey = None
+        if self._molecule.conformers != self._old_conformers:
+            self._molecule.conformers = list(self._old_conformers)
+            self._event_bus.publish(ConformersChanged(molecule_uuid=self._molecule.uuid))
         self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
+
+    def _invalidate_stale_conformers(self) -> None:
+        # A structure edit invalidates whatever conformers existed before
+        # it -- they described the old structure, not this one. Published
+        # before MoleculeChanged so MainWindow's snapshot (conformer_count,
+        # lowest_conformer_energy) already reflects the cleared state.
+        if not self._molecule.conformers:
+            return
+        self._molecule.conformers = []
+        self._event_bus.publish(ConformersInvalidated(molecule_uuid=self._molecule.uuid))
+        self._event_bus.publish(ConformersChanged(molecule_uuid=self._molecule.uuid))

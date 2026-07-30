@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import html
+from typing import Callable
 
+from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -22,7 +24,13 @@ from openchem.plugins.async_task import run_async
 from openchem.plugins.context import PluginContext
 
 from .context_builder import MoleculeContextCache
-from .providers import AIMessage, AIProvider, AIProviderError, AIRequest, AIResponse
+from .providers import AIMessage, AIProvider, AIProviderError, AIRequest, AIResponse, ToolCall
+from .tools import AVAILABLE_TOOLS, TOOL_REGISTRY
+
+# A runaway model that keeps requesting tools forever must not hang the
+# chat indefinitely -- bounds the request/tool-result loop in
+# AIAssistantPanel._run_completion.
+MAX_TOOL_ITERATIONS = 5
 
 _MODEL_PRESETS: dict[str, list[str]] = {
     # Current Claude model ids, not the stale "claude-sonnet-4-5" that used
@@ -43,6 +51,19 @@ SYSTEM_PROMPT_PREFIX = (
     "themselves. Never claim to have modified the user's project yourself — "
     "you have no ability to. Here is the currently selected molecule:\n\n"
 )
+
+
+class _ChunkSignal(QObject):
+    """A minimal QObject just to hold a Signal -- `provider.stream()` runs
+    on a worker thread (via `run_async`), and emitting a Qt signal from
+    there is this codebase's already-established cross-thread-safe
+    pattern (same reasoning `EventBus.publish` relies on: a signal emit
+    queues onto the thread that connected to it, the GUI thread here).
+    A plain callback into a QWidget method from a worker thread would not
+    be thread-safe the same way.
+    """
+
+    chunk_received = Signal(str)
 
 
 class _ProviderSettingsDialog(QDialog):
@@ -135,6 +156,11 @@ class AIAssistantPanel(QWidget):
         self._providers = providers
         self._cache = cache
         self._history: list[AIMessage] = []
+        self._stream_active = False
+        # Keeps the current send's chunk-signal QObject alive for the
+        # worker thread's lifetime -- same reasoning `async_task.py`'s
+        # `_IN_FLIGHT_TASKS` documents for its own PluginAsyncTask.
+        self._current_stream_signal: _ChunkSignal | None = None
 
         self._provider_combo = QComboBox(self)
         self._provider_combo.addItems(list(providers.keys()))
@@ -195,24 +221,95 @@ class AIAssistantPanel(QWidget):
         provider = self._providers[provider_id]
         api_key = self._context.secrets.get(f"{provider_id}_api_key") or ""
         model = self._context.settings.get(f"{provider_id}_model", provider.default_model)
+        system_context = SYSTEM_PROMPT_PREFIX + self._cache.build_context_text()
+        history_snapshot = list(self._history)
 
-        request = AIRequest(
-            system_context=SYSTEM_PROMPT_PREFIX + self._cache.build_context_text(),
-            messages=list(self._history),
-            model=model,
-            api_key=api_key,
-        )
+        self._stream_active = False
+        signal = _ChunkSignal()
+        signal.chunk_received.connect(self._on_chunk_received)
+        self._current_stream_signal = signal
 
         self._send_button.setEnabled(False)
-        run_async(lambda: provider.complete(request), AIProviderError, self._on_response, self._on_error)
+        run_async(
+            lambda: self._run_completion(
+                provider, system_context, history_snapshot, model, api_key, signal.chunk_received.emit
+            ),
+            AIProviderError,
+            self._on_response,
+            self._on_error,
+        )
+
+    def _run_completion(
+        self,
+        provider: AIProvider,
+        system_context: str,
+        messages: list[AIMessage],
+        model: str,
+        api_key: str,
+        on_chunk: Callable[[str], None],
+    ) -> AIResponse:
+        """Runs off the GUI thread (called from `run_async`'s lambda).
+
+        Streams every turn via `provider.stream()` — including any
+        intermediate turns where the model requests a tool — rather than
+        a separate non-streaming tool-call path, since `stream()` already
+        surfaces `tool_calls` on its returned `AIResponse` exactly like
+        `complete()` does (see providers.py). Bounded to
+        `MAX_TOOL_ITERATIONS` so a model that keeps requesting tools can't
+        hang the chat indefinitely. Every tool call is executed locally
+        against a small fixed registry (`ai_assistant/tools.py`) — the
+        model never gets direct tool access of its own.
+        """
+        messages = list(messages)
+        tools = AVAILABLE_TOOLS if provider.supports_tools else None
+        response = AIResponse(text="")
+        for _ in range(MAX_TOOL_ITERATIONS):
+            request = AIRequest(system_context=system_context, messages=messages, model=model, api_key=api_key)
+            response = provider.stream(request, on_chunk, tools)
+            if not response.tool_calls:
+                return response
+            messages.append(AIMessage(role="assistant", content=response.text, tool_calls=response.tool_calls))
+            for tool_call in response.tool_calls:
+                messages.append(
+                    AIMessage(role="tool", content=self._execute_tool(tool_call), tool_call_id=tool_call.id)
+                )
+        return response
+
+    def _execute_tool(self, tool_call: ToolCall) -> str:
+        handler = TOOL_REGISTRY.get(tool_call.name)
+        if handler is None:
+            return f"Unknown tool: {tool_call.name}"
+        try:
+            return handler(**tool_call.input)
+        except Exception as exc:  # noqa: BLE001 - a bad tool call must not crash the loop
+            return f"Tool {tool_call.name} failed: {exc}"
+
+    def _on_chunk_received(self, chunk: str) -> None:
+        if not chunk:
+            return
+        if not self._stream_active:
+            self._stream_active = True
+            self._transcript.append(f"<b>{html.escape(self._provider_combo.currentText())}:</b> ")
+        cursor = self._transcript.textCursor()
+        cursor.movePosition(cursor.MoveOperation.End)
+        cursor.insertText(chunk)
+        self._transcript.setTextCursor(cursor)
 
     def _on_response(self, response: AIResponse) -> None:
         self._send_button.setEnabled(True)
         self._history.append(AIMessage(role="assistant", content=response.text))
-        self._append_transcript(self._provider_combo.currentText(), response.text)
+        if not self._stream_active:
+            # Reached if a provider's stream() never actually called
+            # on_chunk (e.g. an empty final reply) -- render it now so a
+            # blank turn isn't silently dropped from the transcript.
+            self._append_transcript(self._provider_combo.currentText(), response.text)
+        self._stream_active = False
+        self._current_stream_signal = None
 
     def _on_error(self, message: str) -> None:
         self._send_button.setEnabled(True)
+        self._stream_active = False
+        self._current_stream_signal = None
         self._append_transcript("Error", message)
 
     def _append_transcript(self, speaker: str, text: str) -> None:

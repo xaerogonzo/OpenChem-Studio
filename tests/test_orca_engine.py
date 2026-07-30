@@ -170,6 +170,24 @@ def test_parse_output_missing_scf_energy_raises():
         provider.parse_output("ORCA crashed, no results here", mol, "mol-1", "sp")
 
 
+def test_parse_output_results_carry_provenance():
+    provider = OrcaQuantumEngineProvider()
+    mol = _ethanol_mol()
+
+    descriptors, conformer = provider.parse_output(FIXTURE_OUTPUT, mol, "mol-1", "opt_freq")
+
+    assert conformer is not None
+    assert conformer.provenance is not None
+    assert conformer.provenance.created_by == "core"
+    assert conformer.provenance.method == "orca"
+    for descriptor in descriptors:
+        assert descriptor.provenance is not None
+        assert descriptor.provenance.method == "orca"
+    # Every descriptor + the conformer from the SAME call share one
+    # Provenance instance (same timestamp), not independently-timed ones.
+    assert len({d.provenance.timestamp for d in descriptors} | {conformer.provenance.timestamp}) == 1
+
+
 def test_parse_output_atom_count_mismatch_skips_conformer():
     """If the cartesian block doesn't match the molecule's atom count (a
     differently-shaped block this regex wasn't meant to match), the

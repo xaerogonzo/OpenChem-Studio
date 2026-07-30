@@ -7,7 +7,7 @@ from pathlib import Path
 from rdkit import Chem
 from rdkit.Geometry import Point3D
 
-from openchem.domain.common import CacheState
+from openchem.domain.common import CacheState, Provenance
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
 from openchem.plugins.interfaces import QuantumEngineProvider
@@ -80,6 +80,11 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
             )
         scf_energy_hartree = float(scf_match.group(1))
         now = time.time()
+        # One shared Provenance for every DescriptorValue/ConformerModel
+        # this call produces -- same ORCA run, same "what produced this,"
+        # so they should carry an identical timestamp rather than each
+        # grabbing a slightly different time.time().
+        provenance = Provenance(created_by="core", method=self.provider_id, timestamp=now)
 
         descriptors = [
             DescriptorValue(
@@ -92,19 +97,22 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
                 value=scf_energy_hartree,
                 timestamp=now,
                 cache_state=CacheState.COMPLETED,
+                provenance=provenance,
             )
         ]
 
         if calc_type == "opt_freq":
-            descriptors.extend(self._parse_thermochemistry(output_text, molecule_uuid))
+            descriptors.extend(self._parse_thermochemistry(output_text, molecule_uuid, provenance))
 
         optimized_conformer = None
         if calc_type in ("opt", "opt_freq"):
-            optimized_conformer = self._parse_optimized_conformer(output_text, mol)
+            optimized_conformer = self._parse_optimized_conformer(output_text, mol, provenance)
 
         return descriptors, optimized_conformer
 
-    def _parse_thermochemistry(self, output_text: str, molecule_uuid: str) -> list[DescriptorValue]:
+    def _parse_thermochemistry(
+        self, output_text: str, molecule_uuid: str, provenance: Provenance
+    ) -> list[DescriptorValue]:
         descriptors = []
         now = time.time()
         enthalpy_match = _ENTHALPY_RE.search(output_text)
@@ -120,6 +128,7 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
                     value=float(enthalpy_match.group(1)),
                     timestamp=now,
                     cache_state=CacheState.COMPLETED,
+                    provenance=provenance,
                 )
             )
         entropy_match = _ENTROPY_TERM_RE.search(output_text)
@@ -135,6 +144,7 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
                     value=float(entropy_match.group(1)),
                     timestamp=now,
                     cache_state=CacheState.COMPLETED,
+                    provenance=provenance,
                 )
             )
         gibbs_match = _GIBBS_RE.search(output_text)
@@ -150,11 +160,14 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
                     value=float(gibbs_match.group(1)),
                     timestamp=now,
                     cache_state=CacheState.COMPLETED,
+                    provenance=provenance,
                 )
             )
         return descriptors
 
-    def _parse_optimized_conformer(self, output_text: str, mol: Chem.Mol) -> ConformerModel | None:
+    def _parse_optimized_conformer(
+        self, output_text: str, mol: Chem.Mol, provenance: Provenance
+    ) -> ConformerModel | None:
         blocks = _CARTESIAN_BLOCK_RE.findall(output_text)
         if not blocks:
             return None
@@ -175,4 +188,6 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
             x, y, z = float(parts[1]), float(parts[2]), float(parts[3])
             conf.SetAtomPosition(idx, Point3D(x, y, z))
 
-        return ConformerModel(molblock=Chem.MolToMolBlock(new_mol), energy=None, method="orca_opt")
+        return ConformerModel(
+            molblock=Chem.MolToMolBlock(new_mol), energy=None, method="orca_opt", provenance=provenance
+        )

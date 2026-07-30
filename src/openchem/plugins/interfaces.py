@@ -110,6 +110,7 @@ class DockingProvider(ABC):
         box: DockingBox,
         num_poses: int,
         progress: ProgressHandle,
+        receptor_prep_options: dict[str, Any] | None = None,
     ) -> list[DockingPoseModel]:
         """Dock `ligand_mol` against a receptor (raw structure text, same
         shape as `MacromoleculeModel.structure_text`/`.source_format`)
@@ -117,7 +118,12 @@ class DockingProvider(ABC):
         ligand preparation (PDBQT conversion, etc.) — callers pass raw
         structure data, not pre-converted files. Reports phase-labeled
         progress via `progress.report(...)` (e.g. "Preparing receptor",
-        "Docking", "Scoring")."""
+        "Docking", "Scoring").
+
+        `receptor_prep_options` (all optional, provider-defined keys —
+        `VinaDockingProvider` recognizes `ph: float`, `strip_waters: bool`,
+        `strip_cofactors: bool`) controls receptor preparation. `None`
+        means "use the provider's own defaults," same as an empty dict."""
 
 
 class QuantumEngineProvider(ABC):

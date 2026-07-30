@@ -5,7 +5,7 @@ import time
 from rdkit import Chem
 from rdkit.Chem import Crippen, Descriptors, Lipinski, rdMolDescriptors
 
-from openchem.domain.common import CacheState
+from openchem.domain.common import CacheState, Provenance
 from openchem.domain.descriptor import DescriptorValue
 from openchem.plugins.interfaces import DescriptorProvider
 
@@ -41,6 +41,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
 
     def compute(self, mol: Chem.Mol, molecule_uuid: str) -> list[DescriptorValue]:
         now = time.time()
+        provenance = Provenance(created_by="core", method=self.provider_id, timestamp=now)
         chiral_centers = Chem.FindMolChiralCenters(
             mol, includeUnassigned=True, useLegacyImplementation=False
         )
@@ -69,6 +70,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
                 value=raw_values[descriptor_id],
                 timestamp=now,
                 cache_state=CacheState.COMPLETED,
+                provenance=provenance,
             )
             for descriptor_id, name, units, category in _DESCRIPTOR_SPECS
         ]

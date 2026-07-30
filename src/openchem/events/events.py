@@ -79,6 +79,19 @@ class ConformersChanged(Event):
 
 
 @dataclass(frozen=True)
+class ConformersInvalidated(Event):
+    """A molecule's conformers were cleared because its 2D structure
+    changed underneath them -- distinct from ConformersChanged (which also
+    fires on a legitimate regeneration/undo) so a future consumer can react
+    specifically to "these are gone because they're stale," not just "the
+    list changed." Always accompanied by a ConformersChanged for the same
+    molecule_uuid, published immediately after this one.
+    """
+
+    molecule_uuid: str
+
+
+@dataclass(frozen=True)
 class ConformerSelected(Event):
     molecule_uuid: str
     conformer_id: str | None

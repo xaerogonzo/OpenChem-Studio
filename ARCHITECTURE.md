@@ -177,10 +177,13 @@ it).
   caller holds the returned task, which every fire-and-forget button
   handler here does.
 - **`Provenance`** (`domain/common.py`) — a shared `created_by`/`method`/
-  `parameters`/`timestamp` shape — is used on new Phase 6 models
-  (`DockingResultModel`) going forward, not retrofitted onto Phase 1-5
-  fields (`ConformerModel.method`/`.timestamp`, `DescriptorValue.provider`/
-  `.timestamp` already existed and are left alone).
+  `parameters`/`timestamp` shape — was used on new Phase 6 models
+  (`DockingResultModel`) first, then retrofitted onto `ConformerModel`/
+  `DescriptorValue` in Phase 9.5 as an additive optional field (`None` for
+  anything round-tripped from before it existed) — their own pre-existing
+  `.method`/`.timestamp`/`.provider` fields were left as they are, not
+  replaced. `MacromoleculeModel` stayed out of scope: it's imported user
+  data, not a provider-computed result.
 - **`MacromoleculeModel` is deliberately not RDKit-Mol-backed.** Full
   proteins don't fit V2000 molblock assumptions well and aren't edited or
   conformer-generated the way small molecules are — it stores raw
@@ -243,45 +246,38 @@ it).
   from project scaffolding (tkinter/pystray profile). They need a PySide6
   Nuitka profile (swap `--enable-plugin=tk-inter` for the PySide6 plugin,
   drop `pystray`, add RDKit/Open Babel data-file includes) before they can
-  package this application. Not needed until an actual release build.
+  package this application. Not needed until an actual release build —
+  explicitly out of scope for Phase 9's hardening pass too.
 - `SimilarityService` doesn't exist yet; belongs to a later roadmap phase
   and would currently have no callers.
-- Editing a molecule's 2D structure does not currently invalidate/clear its
-  previously generated conformers, which then describe a stale structure
-  until the user regenerates them manually. Deliberately out of scope for
-  Phase 3 (no `ConformersInvalidated` event yet) — worth revisiting.
 - Plugin loading has no async/background state, no `ToolbarProvider`/
   `ContextMenuProvider`, no numeric provider priority, and no declared
-  permissions — all deliberately deferred; see the "Explicitly deferred"
+  permissions, and no `RemoteServicePlugin` base class exists for the
+  network/async/settings/secrets boilerplate common to
+  `ai_assistant`/`database_search`/`reaction_prediction` (only `run_async`
+  was extracted) — all deliberately deferred, reconfirmed still true as of
+  Phase 9: there is still no concrete fourth plugin whose actual
+  requirements would tell us what these abstractions should look like, so
+  building them now would mean guessing. See the "Explicitly deferred"
   reasoning preserved in `PLUGIN_SDK.md`'s "Known limitations" section.
-- `ai_assistant` has no tool-calling loop (the assistant can't request safe
-  read operations like SMARTS validation itself) and no response streaming —
-  both deliberately deferred out of Phase 5; see ROADMAP.md.
-- No `ReceptorPreparationPipeline` for docking (6.4): receptor/ligand prep is
-  Open Babel's default automatic hydrogen addition + PDBQT conversion only —
-  no protonation-state assignment, alternate-location handling, water/
-  cofactor treatment, or missing-residue repair. Stated in the docking
-  panel's own UI copy, not just here.
-- No central `JobManager`: `DescriptorService`/`ConformerService`/
-  `DockingService`/`QuantumChemistryService` each schedule their own work.
-  A likely Phase 7+ "Calculation Framework" consolidation target — Phase 6
-  services were kept deliberately thin and structurally uniform (same
-  `CacheState`/`Event`/`ProgressHandle` contract throughout) specifically so
-  that unification is easier later, not harder.
 - `MacromoleculeModel` only stores raw PDB/mmCIF text — no structured
   chain/residue/assembly parsing, no BinaryCIF/MMTF support yet (the
   `structure_text`/`source_format` field split makes room for it later
-  without another schema change).
-- `DockingPoseModel.metadata` and `RDKitTemplateProvider`'s
-  bundled-plus-user-dir templates are both extensibility points with
-  nothing built on them yet: rich per-pose interaction analysis (H-bonds,
-  clashes, pharmacophore contacts) and a formal `context.reactions.register(...)`-
-  style plugin-provided-templates namespace are both real gaps, not
-  silently dropped.
-- No `RemoteServicePlugin` base class exists yet for the network/async/
-  settings/secrets boilerplate common to `ai_assistant`/`database_search`/
-  `reaction_prediction` (only `run_async` was extracted) — revisit if a
-  fourth plugin needs the same shape.
+  without another schema change). Raw mmCIF text import into the Mol*
+  viewer already works; BinaryCIF/MMTF (binary formats) have no importer
+  or fetch path driving them yet.
+- `RDKitTemplateProvider`'s bundled-plus-user-dir templates are an
+  extensibility point with nothing built on them yet: a formal
+  `context.reactions.register(...)`-style plugin-provided-templates
+  namespace is a real gap, not silently dropped.
+- Docking receptor prep (`VinaDockingProvider`, see Phase 9.3 in
+  ROADMAP.md) still has no missing-residue repair — needs a dedicated
+  structure-repair library, a genuinely different dependency/problem than
+  the pH/water/cofactor/altloc handling that IS built.
+- `DockingPoseModel.metadata`'s H-bond/clash analysis (Phase 9.4) is a
+  heavy-atom-distance heuristic only — pharmacophore/hydrophobic contact
+  detection is a real gap, less standardized and meaningfully more work
+  than what's built.
 - **Vina and ORCA execution are now verified against real installed
   backends** (issue #2): a real `vina_1.2.7_win.exe` and a real ORCA 6.1.1
   install were pointed at end-to-end through `DockingPanel`/

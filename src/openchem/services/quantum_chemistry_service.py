@@ -16,12 +16,14 @@ from openchem.domain.common import CacheState
 from openchem.events.base import EventBus
 from openchem.events.events import QuantumChemistryJobStateChanged, QuantumChemistryResultReady
 from openchem.plugins.interfaces import QuantumEngineProvider
+from openchem.services.job_manager import JobManager
 
 logger = logging.getLogger("openchem.chemistry")
 
 # Same appname/appauthor PluginManager/reaction_prediction already use for
 # their own "OpenChemStudio" app-data locations.
 _APP_NAME = "OpenChemStudio"
+_JOB_KIND = "quantum_chemistry"
 
 
 @dataclass
@@ -60,6 +62,7 @@ class QuantumChemistryService(QObject):
         event_bus: EventBus,
         settings: Settings,
         providers: dict[str, QuantumEngineProvider] | None = None,
+        job_manager: JobManager | None = None,
     ) -> None:
         super().__init__()
         self._event_bus = event_bus
@@ -69,6 +72,7 @@ class QuantumChemistryService(QObject):
             providers if providers is not None else {default_provider.provider_id: default_provider}
         )
         self._active_jobs: dict[str, _ActiveJob] = {}
+        self._job_manager = job_manager if job_manager is not None else JobManager()
 
     def register_provider(self, provider: QuantumEngineProvider) -> None:
         self._providers[provider.provider_id] = provider
@@ -98,6 +102,20 @@ class QuantumChemistryService(QObject):
                 "No ORCA executable configured or found on PATH — set orca/executable_path in Settings.",
             )
             return
+        # Guards the real bug this used to have: request_calculation had no
+        # check at all before `self._active_jobs[molecule_uuid] = job`
+        # below, so a second call while one was running silently overwrote
+        # the dict entry -- orphaning the first QProcess (cancel() could
+        # never reach it again) while the first job's own finished/
+        # errorOccurred handler later popped the SECOND job's entry out
+        # from under it.
+        if not self._job_manager.try_start(_JOB_KIND, molecule_uuid):
+            self._publish_state(
+                molecule_uuid,
+                CacheState.FAILED,
+                "A calculation is already running for this molecule — cancel it first.",
+            )
+            return
 
         self._publish_state(molecule_uuid, CacheState.QUEUED)
 
@@ -115,6 +133,7 @@ class QuantumChemistryService(QObject):
         except Exception as exc:  # noqa: BLE001 - bad input params, report don't crash
             self._cleanup_scratch(scratch_dir)
             self._publish_state(molecule_uuid, CacheState.FAILED, f"Failed to build input: {exc}")
+            self._job_manager.finish(_JOB_KIND, molecule_uuid)
             return
 
         input_path = scratch_dir / "job.inp"
@@ -177,6 +196,7 @@ class QuantumChemistryService(QObject):
                 self._publish_state(molecule_uuid, CacheState.FAILED, f"Process error: {error}")
         finally:
             self._cleanup_scratch(job.scratch_dir)
+            self._job_manager.finish(_JOB_KIND, molecule_uuid)
 
     def _on_finished(self, molecule_uuid: str) -> None:
         job = self._active_jobs.pop(molecule_uuid, None)
@@ -216,6 +236,7 @@ class QuantumChemistryService(QObject):
             # Guaranteed regardless of which branch above returns --
             # success, cancellation, or a parse failure all reach here.
             self._cleanup_scratch(job.scratch_dir)
+            self._job_manager.finish(_JOB_KIND, molecule_uuid)
 
     def _cleanup_scratch(self, scratch_dir: Path) -> None:
         try:

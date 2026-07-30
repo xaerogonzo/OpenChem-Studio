@@ -7,12 +7,15 @@ from PySide6.QtCore import QRunnable, QThreadPool
 
 from openchem.chem.conformer_providers import RDKitConformerProvider
 from openchem.chem.engine import ChemistryEngine
-from openchem.domain.common import CacheState
+from openchem.domain.common import CacheState, Provenance
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.molecule import MoleculeModel
 from openchem.events.base import EventBus
 from openchem.events.events import ConformerJobStateChanged, ConformersReady
 from openchem.plugins.interfaces import ConformerProvider
+from openchem.services.job_manager import JobManager
+
+_JOB_KIND = "conformer"
 
 logger = logging.getLogger("openchem.chemistry")
 
@@ -35,6 +38,7 @@ class _ConformerGenerationTask(QRunnable):
         num_conformers: int,
         optimize: bool,
         event_bus: EventBus,
+        job_manager: JobManager,
     ) -> None:
         super().__init__()
         self._provider = provider
@@ -43,6 +47,7 @@ class _ConformerGenerationTask(QRunnable):
         self._num_conformers = num_conformers
         self._optimize = optimize
         self._event_bus = event_bus
+        self._job_manager = job_manager
 
     def run(self) -> None:
         self._event_bus.publish(
@@ -60,18 +65,26 @@ class _ConformerGenerationTask(QRunnable):
                     molecule_uuid=self._model.uuid, state=CacheState.FAILED, message=str(exc)
                 )
             )
+            self._job_manager.finish(_JOB_KIND, self._model.uuid)
             return
 
         method = (
             f"{self._provider.provider_id}+MMFF94/UFF" if self._optimize else self._provider.provider_id
         )
         now = time.time()
+        provenance = Provenance(
+            created_by="core",
+            method=self._provider.provider_id,
+            parameters={"num_conformers": self._num_conformers, "optimize": self._optimize},
+            timestamp=now,
+        )
         conformers = [
             ConformerModel(
                 molblock=self._engine.mol_to_molblock(conf_mol),
                 energy=energy,
                 method=method,
                 timestamp=now,
+                provenance=provenance,
             )
             for conf_mol, energy in results
         ]
@@ -79,6 +92,7 @@ class _ConformerGenerationTask(QRunnable):
         self._event_bus.publish(
             ConformerJobStateChanged(molecule_uuid=self._model.uuid, state=CacheState.COMPLETED)
         )
+        self._job_manager.finish(_JOB_KIND, self._model.uuid)
 
     def _on_progress(self, done: int, total: int) -> None:
         self._event_bus.publish(
@@ -106,6 +120,7 @@ class ConformerService:
         event_bus: EventBus,
         engine: ChemistryEngine,
         providers: dict[str, ConformerProvider] | None = None,
+        job_manager: JobManager | None = None,
     ) -> None:
         self._event_bus = event_bus
         self._engine = engine
@@ -114,6 +129,7 @@ class ConformerService:
             providers if providers is not None else {default_provider.provider_id: default_provider}
         )
         self._pool = QThreadPool.globalInstance()
+        self._job_manager = job_manager if job_manager is not None else JobManager()
 
     def register_provider(self, provider: ConformerProvider) -> None:
         self._providers[provider.provider_id] = provider
@@ -134,11 +150,20 @@ class ConformerService:
                 )
             )
             return
+        if not self._job_manager.try_start(_JOB_KIND, model.uuid):
+            self._event_bus.publish(
+                ConformerJobStateChanged(
+                    molecule_uuid=model.uuid,
+                    state=CacheState.FAILED,
+                    message="A conformer generation job is already running for this molecule.",
+                )
+            )
+            return
         self._event_bus.publish(
             ConformerJobStateChanged(molecule_uuid=model.uuid, state=CacheState.QUEUED)
         )
         self._pool.start(
             _ConformerGenerationTask(
-                provider, self._engine, model, num_conformers, optimize, self._event_bus
+                provider, self._engine, model, num_conformers, optimize, self._event_bus, self._job_manager
             )
         )

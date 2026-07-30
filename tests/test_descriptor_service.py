@@ -83,3 +83,26 @@ def test_descriptor_request_is_a_no_op_when_no_structure(qapp):
     _drain(qapp)
 
     assert results == {}
+
+
+def test_descriptor_completed_values_carry_provenance(qapp):
+    bus = EventBus()
+    engine = ChemistryEngine()
+    service = DescriptorService(bus, engine)
+
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "c1ccccc1")
+
+    completed = []
+    bus.subscribe(
+        DescriptorComputed,
+        lambda e: completed.append(e.descriptor) if e.descriptor.cache_state == CacheState.COMPLETED else None,
+    )
+    service.request_descriptors(model)
+    _drain(qapp)
+
+    assert completed
+    for descriptor in completed:
+        assert descriptor.provenance is not None
+        assert descriptor.provenance.created_by == "core"
+        assert descriptor.provenance.method == "rdkit"

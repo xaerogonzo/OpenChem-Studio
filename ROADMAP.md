@@ -41,10 +41,12 @@
 - [x] Documentation generation (the "report" prompt above, over the same chat pipeline)
 - [x] Credential storage via a new `context.secrets` namespace (`PluginContext`), backed
       by the OS keychain (`keyring`), namespaced per-plugin
-- [ ] *Deferred*: constrained tool-calling loop (the assistant requesting safe read
-      operations like SMARTS validation itself) — logged for a future phase, not built
-- [ ] *Deferred*: response streaming — a complete reply is shown when it arrives, not
-      token-by-token; the async `QRunnable` plumbing would support adding it later
+- [x] Constrained tool-calling loop (the assistant requesting safe read operations like
+      SMARTS validation itself) — built in Phase 9.6, for `AnthropicProvider`/
+      `OpenAICompatibleProvider` only (see there)
+- [x] Response streaming — built in Phase 9.6, for `AnthropicProvider`/
+      `OpenAICompatibleProvider`; `ClaudeCLIProvider` still shows a complete reply at
+      once (its CLI invocation has no incremental-output mode this app uses)
 
 ## Phase 6 — Scientific extensions
 Five largely independent sub-phases, built and verified in order (6.1-6.5).
@@ -77,19 +79,24 @@ Five largely independent sub-phases, built and verified in order (6.1-6.5).
       `OrcaQuantumEngineProvider`, run via `QuantumChemistryService` — the one
       service in this codebase using `QProcess` on the GUI thread instead of
       `QRunnable`/`QThreadPool`, for real cancellation and live-streamed output.
-- [ ] *Deferred*: a `ReceptorPreparationPipeline` for proper docking receptor/ligand
-      prep (protonation states, waters/cofactors, missing-residue repair) — 6.4
-      ships with Open Babel's default hydrogen-addition prep only.
-- [ ] *Deferred*: a central `JobManager` unifying scheduling across
-      descriptors/conformers/docking/quantum-chemistry — a likely Phase 7+
-      "Calculation Framework" consolidation target; Phase 6 services were kept
-      deliberately thin and structurally uniform so that unification is easier
-      later, not harder.
-- [ ] *Deferred*: full mmCIF/BinaryCIF/MMTF ingestion beyond raw PDB text, rich
-      per-pose docking interaction analysis (H-bonds/clashes/pharmacophore),
-      plugin-provided reaction templates, and retrofitting the new `Provenance`
-      dataclass onto Phase 1-5 models — all explicitly logged as real gaps, not
-      silently dropped. See ARCHITECTURE.md's design-decisions section.
+- [x] Receptor preparation for docking (pH-correct protonation, water/cofactor
+      stripping, alternate-location filtering) — built in Phase 9.3. Missing-residue
+      repair stays deferred (needs a dedicated structure-repair library).
+- [x] A shared `JobManager` across `ConformerService`/`DockingService`/
+      `QuantumChemistryService` — built in Phase 9.2, scoped to a registry +
+      single-flight guard rather than a full scheduling rewrite (each service
+      keeps its own QRunnable/QProcess mechanics; see there for why).
+- [x] Per-pose docking interaction analysis (H-bonds/clashes) — built in Phase 9.4.
+      Pharmacophore contacts stay deferred (less standardized, meaningfully more
+      work).
+- [x] Retrofitting `Provenance` onto `ConformerModel`/`DescriptorValue` — built in
+      Phase 9.5. `MacromoleculeModel` stays out of scope (imported user data, not a
+      provider-computed result).
+- [ ] *Deferred, still*: full mmCIF/BinaryCIF/MMTF ingestion — raw mmCIF text
+      import into the Mol* viewer already worked before Phase 9; BinaryCIF/MMTF
+      (binary formats) have no importer or fetch path driving them yet. Plugin-
+      provided reaction templates (a formal `context.reactions.register(...)`-style
+      namespace). See ARCHITECTURE.md's design-decisions section.
 
 ## Phase 7 — Stabilization (real-world usage fixes)
 
@@ -168,6 +175,83 @@ issues.
       button) — fixed the wording. The AI Assistant's provider Model field
       was a plain text box requiring the exact model id typed from memory —
       now an editable combo box with current per-provider presets.
+
+## Phase 9 — Hardening, gaps, and consolidation
+
+Cleared the deferred backlog logged in Phase 5/6 plus ARCHITECTURE.md's "Known
+TODOs" before starting new feature work — correctness gaps first, then
+docking/quantum-chemistry hardening, then service consolidation, then the AI
+assistant's deferred items. Packaging (`build.ps1`/`build.bat`) stayed
+explicitly out of scope.
+
+- [x] 9.1 — Conformer invalidation: `EditStructureCommand`
+      (`commands/molecule_commands.py`) now clears a molecule's conformers on
+      structure edit (they described the old structure) and restores them on
+      undo — previously they silently kept describing a structure that no
+      longer existed until the user manually regenerated them. New
+      `ConformersInvalidated` event, published alongside the existing
+      `ConformersChanged` (whose 3D-viewer listener already handled an empty
+      conformer list correctly, so no UI changes were needed there).
+- [x] 9.2 — `JobManager` (`services/job_manager.py`): a shared registry +
+      single-flight guard for `ConformerService`/`DockingService`/
+      `QuantumChemistryService` — deliberately not a scheduling rewrite (each
+      service keeps its own `QRunnable`/`QProcess` mechanics untouched).
+      Fixed two real duplicate-job bugs this surfaced:
+      `MoleculeViewer3DWidget`'s "Generate Conformers..." button had no
+      re-entrancy guard, and `QuantumChemistryService.request_calculation`
+      wrote `self._active_jobs[molecule_uuid] = job` with no check first, so
+      a second call before the first finished silently orphaned the running
+      `QProcess`.
+- [x] 9.3 — Docking receptor preparation
+      (`VinaDockingProvider._convert_receptor_to_pdbqt`): real pH-correct
+      protonation, water stripping, and cofactor stripping via Open Babel
+      (`receptor_prep_options`, exposed in `DockingPanel`'s new "Receptor
+      preparation" group), plus alternate-location filtering
+      (`_filter_pdb_altlocs`) — confirmed live that Open Babel's own PDB
+      reader does NOT dedupe altlocs on its own (a two-altloc atom came back
+      as two full atoms at two positions). Missing-residue repair stays
+      deferred (needs a dedicated structure-repair library, a different
+      dependency). The mmCIF-format docking bug originally suspected here
+      turned out not to exist on investigation — confirmed live that Open
+      Babel already registers `"mmcif"` as a receptor format and round-trips
+      it correctly; no fix was needed.
+- [x] 9.4 — Per-pose docking interaction analysis (`chem/pose_analysis.py`):
+      H-bond and steric-clash detection populate `DockingPoseModel.metadata`
+      — a heavy-atom-distance heuristic, deliberately not a donor-H...acceptor
+      angle check (the receptor has no experimental hydrogen positions to
+      compute a real angle from), via Open Babel for receptor atoms
+      (format-agnostic across PDB/mmCIF, unlike RDKit's PDB-only
+      `MolFromPDBBlock` — confirmed the installed RDKit has no mmCIF block
+      reader) and RDKit for the ligand pose. Pharmacophore contacts stay
+      deferred — less standardized, meaningfully more work.
+- [x] 9.5 — `Provenance` retrofit onto `ConformerModel`/`DescriptorValue`
+      (not `MacromoleculeModel` — imported user data, not a
+      provider-computed result): populated at construction in
+      `RDKitDescriptorProvider.compute()`, `ConformerService`'s
+      `_ConformerGenerationTask`, and `OrcaQuantumEngineProvider.parse_output()`
+      (one shared `Provenance` instance per ORCA run, so every descriptor/
+      conformer it produces carries an identical timestamp).
+- [x] 9.6 — AI assistant tool-calling loop + streaming
+      (`plugins/ai_assistant/`), scoped to `AnthropicProvider`/
+      `OpenAICompatibleProvider` (both SDKs support both natively) —
+      `ClaudeCLIProvider` keeps single-shot replies via `AIProvider.stream()`'s
+      base-class fallback, not a special case. First tool: `validate_smarts`
+      (`ai_assistant/tools.py`), executed locally against a fixed registry,
+      never handed to the model directly. `AIAssistantPanel._run_completion`
+      runs a bounded (`MAX_TOOL_ITERATIONS = 5`) request/tool-result loop via
+      `provider.stream()` for every turn — including intermediate tool-use
+      turns, since `stream()` surfaces `tool_calls` exactly like `complete()`
+      does.
+- [ ] *Deferred, explicitly*: the plugin-system extras
+      (`ToolbarProvider`/`ContextMenuProvider`, a `RemoteServicePlugin` base
+      class, numeric provider priority, declared permissions) — flagged in
+      the code itself as "revisit if a fourth plugin needs the same shape,"
+      and still no concrete plugin needs them. BinaryCIF/MMTF import — no
+      importer, no fetch path, no driving feature. Plugin-provided
+      reaction-template registration. Missing-residue repair for docking
+      receptors. Pharmacophore/hydrophobic contact detection for docking
+      poses. Nuitka packaging (`build.ps1`/`build.bat`) — out of scope for
+      this phase, not needed until an actual release build.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for how the codebase is structured to
 make Phases 3-6 additive rather than requiring a rewrite.

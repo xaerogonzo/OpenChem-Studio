@@ -13,6 +13,7 @@ from openchem.domain.descriptor import DescriptorValue
 from openchem.events.base import EventBus
 from openchem.events.events import QuantumChemistryJobStateChanged, QuantumChemistryResultReady
 from openchem.plugins.interfaces import QuantumEngineProvider
+from openchem.services.job_manager import JobManager
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 
 
@@ -286,6 +287,41 @@ def test_quantum_chemistry_captures_full_output_for_a_large_final_burst(qapp, tm
 
     assert states[-1] == CacheState.COMPLETED
     assert _LargeFinalBurstProvider.MARKER in provider.parse_calls[0]
+
+
+def test_quantum_chemistry_request_rejected_while_one_already_running(qapp, tmp_path):
+    """Regression test for the real bug this guard fixes: request_calculation
+    used to write `self._active_jobs[molecule_uuid] = job` with no check
+    first, so a second call before the first finished silently overwrote
+    the dict entry, orphaning the first QProcess. Exercised deterministically
+    via the JobManager guard directly, no real subprocess timing race needed.
+    """
+    provider = FakeQuantumEngineProvider()
+    bus = EventBus()
+    settings = Settings(bus)
+    settings.set("orca/executable_path", sys.executable)
+    job_manager = JobManager()
+    service = QuantumChemistryService(
+        bus, settings, providers={provider.provider_id: provider}, job_manager=job_manager
+    )
+
+    job_manager.try_start("quantum_chemistry", "mol-1")
+
+    states = []
+    bus.subscribe(QuantumChemistryJobStateChanged, lambda e: states.append(e.state))
+
+    service.request_calculation(
+        mol=Chem.MolFromSmiles("CCO"),
+        molecule_uuid="mol-1",
+        calc_type="sp",
+        charge=0,
+        multiplicity=1,
+        method_basis="B3LYP def2-SVP",
+        provider_id="fake",
+    )
+
+    assert states == [CacheState.FAILED]
+    assert not service._active_jobs
 
 
 def test_quantum_chemistry_unknown_provider_fails_immediately(qapp, tmp_path):

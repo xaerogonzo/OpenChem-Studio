@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDoubleSpinBox,
     QFormLayout,
@@ -28,10 +29,10 @@ from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
 _POSE_COLUMNS = ("Pose", "Binding Affinity (kcal/mol)", "RMSD l.b.", "RMSD u.b.")
 
 _LIMITATION_NOTE = (
-    "Note: receptor/ligand preparation uses Open Babel's default hydrogen "
-    "addition only — no protonation-state assignment, water/cofactor "
-    "handling, or missing-residue repair. Treat results as a starting "
-    "point, not production-grade docking prep."
+    "Note: receptor preparation handles pH-correct protonation and "
+    "water/cofactor stripping (below), via Open Babel. Missing-residue "
+    "repair is still not handled — treat results as a starting point, not "
+    "production-grade docking prep."
 )
 
 
@@ -73,6 +74,15 @@ class DockingPanel(QWidget):
         self._num_poses_spin.setRange(1, 50)
         self._num_poses_spin.setValue(9)
 
+        self._ph_spin = QDoubleSpinBox(self)
+        self._ph_spin.setRange(0.0, 14.0)
+        self._ph_spin.setSingleStep(0.1)
+        self._ph_spin.setValue(7.4)
+        self._strip_waters_check = QCheckBox("Strip waters", self)
+        self._strip_waters_check.setChecked(True)
+        self._strip_cofactors_check = QCheckBox("Strip cofactors", self)
+        self._strip_cofactors_check.setChecked(False)
+
         self._configure_button = QPushButton("Configure Vina...", self)
         self._configure_button.clicked.connect(self._on_configure_clicked)
 
@@ -105,6 +115,14 @@ class DockingPanel(QWidget):
         box_form.addRow("Center (x, y, z):", center_row)
         box_form.addRow("Size (x, y, z):", size_row)
 
+        prep_group = QGroupBox("Receptor preparation", self)
+        prep_form = QFormLayout(prep_group)
+        prep_form.addRow("Protonation pH:", self._ph_spin)
+        strip_row = QHBoxLayout()
+        strip_row.addWidget(self._strip_waters_check)
+        strip_row.addWidget(self._strip_cofactors_check)
+        prep_form.addRow("", strip_row)
+
         run_row = QHBoxLayout()
         run_row.addWidget(QLabel("Poses:"))
         run_row.addWidget(self._num_poses_spin)
@@ -114,6 +132,7 @@ class DockingPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.addLayout(selection_form)
         layout.addWidget(box_group)
+        layout.addWidget(prep_group)
         layout.addLayout(run_row)
         layout.addWidget(self._status_label)
         layout.addWidget(self._table)
@@ -188,6 +207,11 @@ class DockingPanel(QWidget):
             receptor_source_format=receptor.source_format,
             box=box,
             num_poses=self._num_poses_spin.value(),
+            receptor_prep_options={
+                "ph": self._ph_spin.value(),
+                "strip_waters": self._strip_waters_check.isChecked(),
+                "strip_cofactors": self._strip_cofactors_check.isChecked(),
+            },
         )
 
     def _is_pending(self, ligand_molecule_uuid: str, receptor_macromolecule_uuid: str) -> bool:
