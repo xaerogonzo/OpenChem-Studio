@@ -9,6 +9,8 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
+    "keyring>=25.7.0",
+    "platformdirs>=4.11.0",
     "pyside6>=6.7",
     "pyside6-addons>=6.7",
     "rdkit>=2024.3.1",
@@ -20,6 +22,16 @@ openchem = "openchem.main:main"
 [project.optional-dependencies]
 openbabel = [
     "openbabel-wheel>=3.1.1.23",
+]
+ai = [
+    "anthropic>=0.120.2",
+    "openai>=2.50.0",
+]
+network = [
+    "requests>=2.32",
+]
+docking = [
+    "vina>=1.2.5",
 ]
 
 [dependency-groups]

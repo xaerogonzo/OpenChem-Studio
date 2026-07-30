@@ -1,0 +1,9 @@
+plugin_id = "reaction_prediction"
+version = "0.1.0"
+api_version = 1
+display_name = "Reaction Prediction"
+author = "OpenChem Studio"
+description = "Predicts reaction products from a set of reactants, via deterministic RDKit reaction templates or an optional remote prediction API."
+homepage = ""
+license = "GPL-3.0-or-later"
+dependencies = []

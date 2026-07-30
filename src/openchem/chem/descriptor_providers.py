@@ -5,7 +5,8 @@ import time
 from rdkit import Chem
 from rdkit.Chem import Crippen, Descriptors, Lipinski, rdMolDescriptors
 
-from openchem.domain.descriptor import CacheState, DescriptorValue
+from openchem.domain.common import CacheState
+from openchem.domain.descriptor import DescriptorValue
 from openchem.plugins.interfaces import DescriptorProvider
 
 # RDKitDescriptorProvider implements the same DescriptorProvider ABC a future

@@ -1,0 +1,10 @@
+[
+  {
+    "name": "Fischer esterification",
+    "smarts": "[CX3:1](=[OX1:2])[OX2H1].[OX2H1:3][#6:4]>>[CX3:1](=[OX1:2])[OX2:3][#6:4]"
+  },
+  {
+    "name": "Amide coupling",
+    "smarts": "[CX3:1](=[OX1:2])[OX2H1].[NX3;H2,H1:3]>>[CX3:1](=[OX1:2])[N:3]"
+  }
+]

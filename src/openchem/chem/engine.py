@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from rdkit import Chem
+from rdkit.Chem import rdMolTransforms
 
 from openchem.domain.molecule import MoleculeModel
 
@@ -27,16 +28,36 @@ class ChemistryEngine:
         return self.mol_from_molblock(model.molblock)
 
     def mol_from_molblock(self, molblock: str) -> Chem.Mol:
-        mol = Chem.MolFromMolBlock(molblock)
+        # `removeHs=False` -- RDKit's default (True) converts any EXPLICIT
+        # hydrogen atom into implicit H-count on its neighbor, which keeps
+        # the molecular formula correct but silently discards that
+        # hydrogen's own 3D position entirely. Confirmed live: a conformer
+        # molblock built via Chem.AddHs() + embedding (RDKitConformerProvider,
+        # the normal path for real 3D geometry) round-tripped through the
+        # default here came back as a BARE HEAVY-ATOM-ONLY mol with no
+        # hydrogen positions at all -- for water, an oxygen atom with none
+        # of its two hydrogens, which OrcaQuantumEngineProvider.build_input
+        # then sent to ORCA as-is, silently computing the wrong molecule's
+        # energy instead of failing loudly.
+        mol = Chem.MolFromMolBlock(molblock, removeHs=False)
         if mol is None:
             raise InvalidStructureError("Could not parse molblock")
         return mol
+
+    def mol_to_molblock(self, mol: Chem.Mol) -> str:
+        return Chem.MolToMolBlock(mol)
 
     def mol_from_smiles(self, smiles: str) -> Chem.Mol:
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
             raise InvalidStructureError(f"Could not parse SMILES: {smiles!r}")
         return mol
+
+    def formal_charge(self, model: MoleculeModel) -> int:
+        """Sum of RDKit formal charges — used as a sensible default charge
+        for a quantum-chemistry job (6.5), never guessed in the UI layer
+        since only this module ever imports rdkit."""
+        return Chem.GetFormalCharge(self.mol_from_model(model))
 
     def canonicalize(self, model: MoleculeModel) -> MoleculeModel:
         """Recompute canonical_smiles/inchi/inchikey from model.molblock, in place."""
@@ -56,3 +77,20 @@ class ChemistryEngine:
         mol = self.mol_from_smiles(smiles)
         model.molblock = Chem.MolToMolBlock(mol)
         return self.canonicalize(model)
+
+    def bond_length(self, molblock: str, atom_idx_1: int, atom_idx_2: int) -> float:
+        """Distance (Angstroms) between two atoms in a 3D conformer molblock."""
+        conf = self.mol_from_molblock(molblock).GetConformer()
+        return rdMolTransforms.GetBondLength(conf, atom_idx_1, atom_idx_2)
+
+    def bond_angle(self, molblock: str, atom_idx_1: int, atom_idx_2: int, atom_idx_3: int) -> float:
+        """Angle (degrees) atom1-atom2-atom3 in a 3D conformer molblock."""
+        conf = self.mol_from_molblock(molblock).GetConformer()
+        return rdMolTransforms.GetAngleDeg(conf, atom_idx_1, atom_idx_2, atom_idx_3)
+
+    def dihedral_angle(
+        self, molblock: str, atom_idx_1: int, atom_idx_2: int, atom_idx_3: int, atom_idx_4: int
+    ) -> float:
+        """Dihedral angle (degrees) atom1-atom2-atom3-atom4 in a 3D conformer molblock."""
+        conf = self.mol_from_molblock(molblock).GetConformer()
+        return rdMolTransforms.GetDihedralDeg(conf, atom_idx_1, atom_idx_2, atom_idx_3, atom_idx_4)

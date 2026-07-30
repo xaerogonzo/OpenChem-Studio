@@ -6,8 +6,9 @@ PySide6, RDKit, and Open Babel, with a layered architecture designed to
 support future plugins (descriptor providers, importers/exporters, panels)
 without restructuring the core.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the internal design and
-[ROADMAP.md](ROADMAP.md) for the phased development plan.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the internal design,
+[ROADMAP.md](ROADMAP.md) for the phased development plan, and
+[PLUGIN_SDK.md](PLUGIN_SDK.md) for writing your own plugins.
 
 ## Development setup
 

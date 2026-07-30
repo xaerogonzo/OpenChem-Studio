@@ -7,7 +7,8 @@ from PySide6.QtCore import QRunnable, QThreadPool
 
 from openchem.chem.descriptor_providers import DescriptorProvider, RDKitDescriptorProvider
 from openchem.chem.engine import ChemistryEngine
-from openchem.domain.descriptor import CacheState, DescriptorValue
+from openchem.domain.common import CacheState
+from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.molecule import MoleculeModel
 from openchem.events.base import EventBus
 from openchem.events.events import DescriptorComputed
@@ -90,7 +91,24 @@ class DescriptorService:
         self._providers = providers if providers is not None else [RDKitDescriptorProvider()]
         self._pool = QThreadPool.globalInstance()
 
+    def register_provider(self, provider: DescriptorProvider) -> None:
+        """Register a plugin-supplied descriptor provider. Its descriptors
+        run alongside the built-in ones for every future request."""
+        self._providers.append(provider)
+
+    def unregister_provider(self, provider_id: str) -> None:
+        self._providers = [p for p in self._providers if p.provider_id != provider_id]
+
     def request_descriptors(self, model: MoleculeModel) -> None:
+        if not model.molblock:
+            # A freshly-created molecule with no structure yet can't produce
+            # descriptors -- publishing QUEUED/FAILED for it would just show
+            # a permanent "failed" row in the Properties panel before the
+            # user has drawn anything. Silently do nothing instead; a real
+            # request follows once the molecule actually has a structure
+            # (see MoleculeEditorWidget -> EditStructureCommand -> the
+            # MoleculeChanged handler that re-requests descriptors).
+            return
         for provider in self._providers:
             for descriptor_id in provider.descriptor_ids():
                 self._event_bus.publish(

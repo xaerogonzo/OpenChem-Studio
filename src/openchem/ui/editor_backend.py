@@ -25,6 +25,17 @@ class EditorBackend(QObject):
         """Load a structure (as a V2000/V3000 molblock) into the editor."""
         raise NotImplementedError
 
+    def clear(self) -> None:
+        """Empty the editor's canvas entirely.
+
+        Default implementation delegates to `load_molblock("")`, which
+        `KetcherEditorBackend` already handles safely (calls
+        `window.ketcher.setMolecule("")`) -- a subclass only needs to
+        override this if an empty molblock isn't a safe "clear" signal for
+        its underlying engine.
+        """
+        self.load_molblock("")
+
     def get_molblock(self, callback: Callable[[str | None], None]) -> None:
         """Asynchronously fetch the current structure as a molblock.
 
