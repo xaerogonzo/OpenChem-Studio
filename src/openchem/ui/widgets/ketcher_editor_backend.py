@@ -128,6 +128,62 @@ class KetcherEditorBackend(EditorBackend):
         """
         self._page.runJavaScript(script)
 
+    def set_render_option(self, name: str, value: object) -> None:
+        # `window.ketcher.editor.setOptions` takes a JSON STRING (confirmed
+        # live against this vendored build: `ketcher.editor.render.options`
+        # exposes ~88 keys including `showHydrogenLabels`, `carbonExplicitly`,
+        # `showValence`, `showCharge` -- no lone-pair option exists anywhere
+        # in that set, confirmed absent from this Ketcher build, not just
+        # unwired here), not a JS object literal -- `json.dumps` twice:
+        # once to build the JSON payload, once more to embed it as a JS
+        # string literal in the injected script.
+        payload = json.dumps({name: value})
+        script = f"""
+        (function() {{
+          if (!window.ketcher) return;
+          window.ketcher.editor.setOptions({json.dumps(payload)});
+        }})();
+        """
+        self._page.runJavaScript(script)
+
+    def trigger_toolbar_action(self, action_id: str) -> None:
+        # Ketcher's public `window.ketcher` object (the `Ketcher` class
+        # instance) does NOT expose "add explicit hydrogens" or "open 3D
+        # viewer" as callable methods -- those are wired only as onClick
+        # handlers on the React toolbar's own buttons (confirmed by
+        # searching the vendored bundle for `onToggleExplicitHydrogens`/
+        # `onMiew`, both private props of the toolbar component, not the
+        # Ketcher class). Clicking the real DOM button via its
+        # `data-testid` (Ketcher's own e2e tests key off these, so they're
+        # kept stable across releases) is the only integration point that
+        # actually exists -- confirmed live: this correctly converts
+        # implicit hydrogens into real explicit atoms (verified via
+        # before/after getMolfile() atom counts) and opens the real Miew
+        # 3D dialog for the current structure, not a template-only feature.
+        # `action_id` is the button's `data-testid` value, e.g.
+        # "Add/Remove explicit hydrogens button" or "3D Viewer button".
+        #
+        # KNOWN LIMITATION, confirmed live: Ketcher's toolbar is responsive
+        # -- at a small/zero viewport (an unshown or very narrow
+        # QWebEngineView) it collapses secondary buttons like these two
+        # into an overflow menu, and this query then silently finds
+        # nothing. A normally-docked, visible 2D Editor tab has plenty of
+        # width in practice, but this is a real fragility, not a
+        # theoretical one -- `console.warn` here at least surfaces it in
+        # the JS console (forwarded to Python logging by `_LoggingPage`)
+        # instead of failing completely silently.
+        script = f"""
+        (function() {{
+          var btn = document.querySelector('[data-testid={json.dumps(action_id)}]');
+          if (btn) {{
+            btn.click();
+          }} else {{
+            console.warn('[ketcher-host] toolbar action not found (collapsed into overflow menu?): ' + {json.dumps(action_id)});
+          }}
+        }})();
+        """
+        self._page.runJavaScript(script)
+
     def get_molblock(self, callback: Callable[[str | None], None]) -> None:
         if not self._ketcher_ready:
             callback(None)

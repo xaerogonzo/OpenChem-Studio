@@ -47,6 +47,47 @@ class ChemistryEngine:
     def mol_to_molblock(self, mol: Chem.Mol) -> str:
         return Chem.MolToMolBlock(mol)
 
+    def render_2d_svg(
+        self,
+        molblock: str,
+        atom_colors: dict[int, str] | None = None,
+        atom_labels: dict[int, str] | None = None,
+        width: int = 360,
+        height: int = 320,
+    ) -> str:
+        """Renders `molblock`'s existing 2D layout (never recomputed --
+        this must match what's drawn in the 2D editor) as an SVG string,
+        optionally highlighting atoms with `atom_colors` (atom index -> hex
+        color), the same shape `ui.visualization.VisualizationLayer.atom_colors`
+        already produces for the 3D viewer -- lets a caller (the Property
+        Inspector dialog) feed the same color data into both renderings.
+        `atom_labels` (atom index -> formatted text, Phase 18) sets RDKit's
+        `atomNote` per atom -- confirmed live this renders as vector glyph
+        paths near the atom (RDKit's SVG backend draws text as bezier
+        paths, not literal `<text>` nodes, so verify by rendering, not by
+        string-searching the SVG output)."""
+        from rdkit.Chem.Draw import rdMolDraw2D
+
+        mol = self.mol_from_molblock(molblock)
+        if atom_labels:
+            for idx, label in atom_labels.items():
+                if idx < mol.GetNumAtoms():
+                    mol.GetAtomWithIdx(idx).SetProp("atomNote", label)
+        drawer = rdMolDraw2D.MolDraw2DSVG(width, height)
+        highlight_atoms = list(atom_colors) if atom_colors else []
+        highlight_colors = (
+            {idx: self._hex_to_rgb_fraction(color) for idx, color in atom_colors.items()} if atom_colors else {}
+        )
+        rdMolDraw2D.PrepareAndDrawMolecule(
+            drawer, mol, highlightAtoms=highlight_atoms, highlightAtomColors=highlight_colors
+        )
+        drawer.FinishDrawing()
+        return drawer.GetDrawingText()
+
+    @staticmethod
+    def _hex_to_rgb_fraction(color: str) -> tuple[float, float, float]:
+        return tuple(int(color[i : i + 2], 16) / 255.0 for i in (1, 3, 5))
+
     def mol_from_smiles(self, smiles: str) -> Chem.Mol:
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:

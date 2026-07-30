@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Callable
 
+from openchem.domain.common import ScientificResult
 from openchem.domain.scientific_result import PerAtomDataset
 
 # Diverging: negative -> red, zero -> near-white, positive -> blue. Matches
@@ -64,12 +66,16 @@ class VisualizationLayer:
     name: str
     atom_colors: dict[int, str]  # atom index -> resolved hex color
     color_scale: ColorScale | None = None  # for a legend; optional
+    atom_labels: dict[int, str] | None = None  # atom index -> formatted value text (Phase 18)
 
 
-def build_atom_color_layer(dataset: PerAtomDataset) -> VisualizationLayer:
+def build_atom_color_layer(dataset: PerAtomDataset, include_labels: bool = False) -> VisualizationLayer:
     """Extracts a `VisualizationLayer` from a `PerAtomDataset` — diverging
     red/blue for signed data (contribution-style values, where the sign
-    itself is meaningful), sequential for magnitude-only data."""
+    itself is meaningful), sequential for magnitude-only data.
+    `include_labels=True` (Calculator Inspector, Phase 18) also formats
+    each value into `atom_labels`; the default `False` keeps the existing
+    3D-viewer "Color by" dropdown (a quick-glance tool) uncluttered."""
     values = dataset.values
     if not values:
         return VisualizationLayer(name=dataset.name, atom_colors={})
@@ -85,4 +91,22 @@ def build_atom_color_layer(dataset: PerAtomDataset) -> VisualizationLayer:
         )
 
     atom_colors = {idx: scale.color_for(v) for idx, v in values.items()}
-    return VisualizationLayer(name=dataset.name, atom_colors=atom_colors, color_scale=scale)
+    atom_labels = {idx: f"{v:+.2f}" for idx, v in values.items()} if include_labels else None
+    return VisualizationLayer(name=dataset.name, atom_colors=atom_colors, color_scale=scale, atom_labels=atom_labels)
+
+
+# Phase 18: ScientificResult -> VisualizationAdapter -> VisualizationLayer.
+# Only PerAtomDataset has an adapter today (honest about current scope) --
+# a future result kind (spectra, ESP maps, ...) registers its own entry
+# here instead of the 3D viewer or Calculator Inspector growing an
+# isinstance chain.
+_VISUALIZATION_ADAPTERS: dict[type, Callable[..., VisualizationLayer]] = {
+    PerAtomDataset: build_atom_color_layer,
+}
+
+
+def build_visualization_layer(result: ScientificResult, include_labels: bool = False) -> VisualizationLayer | None:
+    """Dispatches to the registered adapter for `type(result)`, or `None`
+    if no adapter is registered for that result kind."""
+    adapter = _VISUALIZATION_ADAPTERS.get(type(result))
+    return adapter(result, include_labels=include_labels) if adapter else None

@@ -71,6 +71,16 @@ class DescriptorProvider(ABC):
     def compute(self, mol: Chem.Mol, molecule_uuid: str) -> list[DescriptorValue]:
         """Compute this provider's descriptors for a parsed RDKit Mol."""
 
+    def descriptor_categories(self) -> dict[str, str]:
+        """Optional: descriptor_id -> category, known up front without
+        computing anything. Lets callers (DescriptorService's QUEUED/RUNNING
+        placeholders) publish the real category immediately instead of an
+        empty one that the UI would have to correct later. Not abstract:
+        defaults to empty, so a provider that only ever categorizes on the
+        computed DescriptorValue itself still works, just without the
+        up-front placeholder benefit."""
+        return {}
+
     def compute_alerts(self, mol: Chem.Mol, molecule_uuid: str) -> list[AlertResult]:
         """Optional: structural-alert catalog results (e.g. PAINS) this
         provider can flag — a molecule either matches zero or more named

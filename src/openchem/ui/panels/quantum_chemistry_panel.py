@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 
 from openchem.app.settings import Settings
 from openchem.chem.engine import ChemistryEngine
+from openchem.chem.orca_engine import CALC_TYPE_LABELS, METHOD_BASIS_PRESETS
 from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
 from openchem.events.events import (
@@ -27,14 +28,7 @@ from openchem.events.events import (
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
 
-_CALC_TYPE_LABELS = {
-    "Single Point": "sp",
-    "Geometry Optimization": "opt",
-    "Optimization + Frequency": "opt_freq",
-    "NMR (raw shielding)": "nmr",
-}
 _NMR_SPECTRUM_COLUMNS = ("Atom", "Element", "Isotropic Shielding (ppm)")
-_METHOD_BASIS_PRESETS = ["B3LYP def2-SVP", "PBE0 def2-TZVP", "B3LYP 6-31G(d)"]
 
 
 class QuantumChemistryPanel(QWidget):
@@ -63,7 +57,7 @@ class QuantumChemistryPanel(QWidget):
         self._molecule_combo.currentIndexChanged.connect(self._on_molecule_changed)
 
         self._calc_type_combo = QComboBox(self)
-        self._calc_type_combo.addItems(list(_CALC_TYPE_LABELS.keys()))
+        self._calc_type_combo.addItems(list(CALC_TYPE_LABELS.keys()))
 
         self._charge_spin = QSpinBox(self)
         self._charge_spin.setRange(-10, 10)
@@ -74,7 +68,7 @@ class QuantumChemistryPanel(QWidget):
 
         self._method_combo = QComboBox(self)
         self._method_combo.setEditable(True)
-        self._method_combo.addItems(_METHOD_BASIS_PRESETS)
+        self._method_combo.addItems(METHOD_BASIS_PRESETS)
 
         self._configure_button = QPushButton("Configure ORCA...", self)
         self._configure_button.clicked.connect(self._on_configure_clicked)
@@ -183,7 +177,7 @@ class QuantumChemistryPanel(QWidget):
         molblock = molecule.conformers[0].molblock
         mol = self._chemistry_engine.mol_from_molblock(molblock)
 
-        calc_type = _CALC_TYPE_LABELS[self._calc_type_combo.currentText()]
+        calc_type = CALC_TYPE_LABELS[self._calc_type_combo.currentText()]
         method_basis = self._method_combo.currentText().strip()
         if not method_basis:
             self._status_label.setText("Enter a method/basis (e.g. 'B3LYP def2-SVP').")

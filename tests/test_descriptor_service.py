@@ -2,11 +2,15 @@ from __future__ import annotations
 
 from PySide6.QtCore import QThreadPool
 
+from openchem.chem.conformer_providers import RDKitConformerProvider
 from openchem.chem.engine import ChemistryEngine
+from openchem.domain.calculator import CalculationRequest, CalculatorDefinition, RegistryExecution
 from openchem.domain.common import CacheState
 from openchem.domain.molecule import MoleculeModel
+from openchem.domain.scientific_result import AlertResult, PerAtomDataset
 from openchem.events.base import EventBus
 from openchem.events.events import AlertComputed, DescriptorComputed, PerAtomDataComputed
+from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.descriptor_service import DescriptorService
 
 
@@ -108,6 +112,69 @@ def test_descriptor_completed_values_carry_provenance(qapp):
         assert descriptor.provenance.method == "rdkit"
 
 
+def test_queued_and_running_placeholders_carry_the_real_category(qapp):
+    """Regression test for the Property Panel category-bucketing bug:
+    QUEUED/RUNNING placeholders must carry the same category the final
+    COMPLETED value does, so a UI that binds a row to its first-seen
+    category never has to re-parent it (see PropertyPanel's defensive
+    re-parenting for when a provider doesn't declare categories up front)."""
+    bus = EventBus()
+    engine = ChemistryEngine()
+    service = DescriptorService(bus, engine)
+
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "c1ccccc1")
+
+    categories_seen: dict[str, set[str]] = {}
+    bus.subscribe(
+        DescriptorComputed,
+        lambda e: categories_seen.setdefault(e.descriptor.descriptor_id, set()).add(e.descriptor.category),
+    )
+    service.request_descriptors(model)
+    _drain(qapp)
+
+    assert categories_seen["formula"] == {"identity"}
+    assert categories_seen["mol_wt"] == {"physicochemical"}
+    assert categories_seen["num_rotatable_bonds"] == {"topology"}
+
+
+def test_request_descriptors_with_molblock_override_uses_the_given_structure(qapp):
+    """Shape descriptors need a real 3D conformer (Is3D()) -- passing a
+    conformer's molblock as an override (rather than the flat 2D
+    model.molblock) is what lets them compute for real instead of
+    permanently reporting "needs a conformer" (see MainWindow's
+    _on_conformers_changed, Phase 14b)."""
+    bus = EventBus()
+    engine = ChemistryEngine()
+    service = DescriptorService(bus, engine)
+
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "CCCCCCO")  # flat 2D molblock
+    original_molblock = model.molblock
+
+    conformer_mol, _energy = RDKitConformerProvider().generate_conformers(
+        engine.mol_from_model(model), num_conformers=1, optimize=False
+    )[0]
+    conformer_molblock = engine.mol_to_molblock(conformer_mol)
+
+    completed_values: dict[str, object] = {}
+    completed_states: dict[str, CacheState] = {}
+
+    def handler(event: DescriptorComputed) -> None:
+        if event.descriptor.cache_state in (CacheState.COMPLETED, CacheState.FAILED):
+            completed_values[event.descriptor.descriptor_id] = event.descriptor.value
+            completed_states[event.descriptor.descriptor_id] = event.descriptor.cache_state
+
+    bus.subscribe(DescriptorComputed, handler)
+    service.request_descriptors(model, molblock=conformer_molblock)
+    _drain(qapp)
+
+    assert completed_states["radius_of_gyration"] == CacheState.COMPLETED
+    assert isinstance(completed_values["radius_of_gyration"], float)
+    # The override is request-scoped -- model.molblock itself is untouched.
+    assert model.molblock == original_molblock
+
+
 def test_request_descriptors_publishes_alert_computed(qapp):
     bus = EventBus()
     engine = ChemistryEngine()
@@ -121,9 +188,12 @@ def test_request_descriptors_publishes_alert_computed(qapp):
     service.request_descriptors(model)
     _drain(qapp)
 
-    assert len(alerts) == 1
-    assert alerts[0].alert_id == "pains"
-    assert alerts[0].matched
+    # Phase 19 adds BRENK ("Thiocarbonyl_group" alert here), Phase 20 adds
+    # functional_groups + herg_risk_factors -- four AlertResults total now.
+    assert len(alerts) == 4
+    alerts_by_id = {a.alert_id: a for a in alerts}
+    assert alerts_by_id["pains"].matched
+    assert alerts_by_id["brenk"].matched
 
 
 def test_request_descriptors_publishes_per_atom_data_computed(qapp):
@@ -141,3 +211,162 @@ def test_request_descriptors_publishes_per_atom_data_computed(qapp):
 
     property_ids = {d.property_id for d in datasets}
     assert property_ids == {"crippen_logp_contrib", "crippen_mr_contrib", "gasteiger_charge"}
+
+
+def _definition(calculator_id: str, compute) -> CalculatorDefinition:
+    return CalculatorDefinition(
+        calculator_id=calculator_id,
+        display_name=calculator_id,
+        category="test",
+        description="",
+        execution=RegistryExecution(compute=compute),
+    )
+
+
+def test_run_calculator_publishes_per_atom_data_computed(qapp):
+    bus = EventBus()
+    engine = ChemistryEngine()
+    registry = CalculatorRegistry()
+
+    def compute(mol, molecule_uuid, params):
+        return PerAtomDataset(
+            property_id="test_calc", name="Test", units="", method="rdkit",
+            molecule_uuid=molecule_uuid, values={0: 1.5},
+        )
+
+    registry.register(_definition("test_calc", compute))
+    service = DescriptorService(bus, engine, calculator_registry=registry)
+
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "CCO")
+
+    datasets = []
+    bus.subscribe(PerAtomDataComputed, lambda e: datasets.append(e.dataset))
+    service.run_calculator(model, CalculationRequest(calculator_id="test_calc", molecule_uuid=model.uuid))
+    _drain(qapp)
+
+    assert len(datasets) == 1
+    assert datasets[0].property_id == "test_calc"
+    assert datasets[0].values == {0: 1.5}
+
+
+def test_run_calculator_publishes_alert_computed_for_an_alert_result(qapp):
+    bus = EventBus()
+    engine = ChemistryEngine()
+    registry = CalculatorRegistry()
+
+    def compute(mol, molecule_uuid, params):
+        return AlertResult(alert_id="test_alert", name="Test Alert", molecule_uuid=molecule_uuid, matched=["x"])
+
+    registry.register(_definition("test_alert_calc", compute))
+    service = DescriptorService(bus, engine, calculator_registry=registry)
+
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "CCO")
+
+    alerts = []
+    bus.subscribe(AlertComputed, lambda e: alerts.append(e.alert))
+    service.run_calculator(model, CalculationRequest(calculator_id="test_alert_calc", molecule_uuid=model.uuid))
+    _drain(qapp)
+
+    assert len(alerts) == 1
+    assert alerts[0].alert_id == "test_alert"
+
+
+def test_run_calculator_with_unknown_calculator_id_publishes_a_failed_result(qapp):
+    bus = EventBus()
+    engine = ChemistryEngine()
+    service = DescriptorService(bus, engine, calculator_registry=CalculatorRegistry())
+
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "CCO")
+
+    datasets = []
+    bus.subscribe(PerAtomDataComputed, lambda e: datasets.append(e.dataset))
+    service.run_calculator(model, CalculationRequest(calculator_id="does-not-exist", molecule_uuid=model.uuid))
+    _drain(qapp)
+
+    assert len(datasets) == 1
+    assert datasets[0].cache_state == CacheState.FAILED
+    assert "does-not-exist" in datasets[0].error
+
+
+def test_run_calculator_passes_parameters_through_to_compute(qapp):
+    bus = EventBus()
+    engine = ChemistryEngine()
+    registry = CalculatorRegistry()
+    received_params = []
+
+    def compute(mol, molecule_uuid, params):
+        received_params.append(params)
+        return PerAtomDataset(
+            property_id="test_calc", name="Test", units="", method="rdkit",
+            molecule_uuid=molecule_uuid, values={},
+        )
+
+    registry.register(_definition("test_calc", compute))
+    service = DescriptorService(bus, engine, calculator_registry=registry)
+
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "CCO")
+
+    service.run_calculator(
+        model, CalculationRequest(calculator_id="test_calc", molecule_uuid=model.uuid, parameters={"pH": 2.0})
+    )
+    _drain(qapp)
+
+    assert received_params == [{"pH": 2.0}]
+
+
+def test_run_calculator_when_compute_raises_publishes_a_failed_result(qapp):
+    bus = EventBus()
+    engine = ChemistryEngine()
+    registry = CalculatorRegistry()
+
+    def compute(mol, molecule_uuid, params):
+        raise ValueError("boom")
+
+    registry.register(_definition("test_calc", compute))
+    service = DescriptorService(bus, engine, calculator_registry=registry)
+
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "CCO")
+
+    datasets = []
+    bus.subscribe(PerAtomDataComputed, lambda e: datasets.append(e.dataset))
+    service.run_calculator(model, CalculationRequest(calculator_id="test_calc", molecule_uuid=model.uuid))
+    _drain(qapp)
+
+    assert len(datasets) == 1
+    assert datasets[0].cache_state == CacheState.FAILED
+    assert "boom" in datasets[0].error
+
+
+def test_run_calculator_end_to_end_with_the_real_charge_at_ph_calculator(qapp):
+    """Regression test wiring bootstrap.py's real CALCULATOR_DEFINITIONS
+    through DescriptorService, not just a fake compute function -- catches
+    a bootstrap.py registration mistake a fake-only test wouldn't."""
+    from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
+
+    bus = EventBus()
+    engine = ChemistryEngine()
+    registry = CalculatorRegistry()
+    for definition in CALCULATOR_DEFINITIONS:
+        registry.register(definition)
+    service = DescriptorService(bus, engine, calculator_registry=registry)
+
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "CC(=O)O")  # acetic acid
+
+    datasets = []
+    bus.subscribe(PerAtomDataComputed, lambda e: datasets.append(e.dataset))
+    service.run_calculator(
+        model,
+        CalculationRequest(calculator_id="gasteiger_charge_at_ph", molecule_uuid=model.uuid, parameters={"pH": 2.0}),
+    )
+    _drain(qapp)
+
+    assert len(datasets) == 1
+    assert datasets[0].cache_state == CacheState.COMPLETED
+    assert datasets[0].property_id == "gasteiger_charge_at_ph"
+    assert len(datasets[0].values) > 0

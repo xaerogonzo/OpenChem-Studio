@@ -56,6 +56,17 @@ def test_on_progress_returning_false_stops_early():
     assert len(results) == 2
 
 
+def test_conformers_are_sorted_ascending_by_energy():
+    engine = ChemistryEngine()
+    mol = engine.mol_from_smiles("CCCCCCO")  # flexible chain, several distinct energies expected
+    provider = RDKitConformerProvider()
+
+    results = provider.generate_conformers(mol, num_conformers=8, optimize=True)
+
+    energies = [energy for _, energy in results]
+    assert energies == sorted(energies)
+
+
 def test_on_progress_returning_none_keeps_going():
     """The common case -- most callers' on_progress has no return
     statement at all (implicitly None) -- must not be mistaken for a

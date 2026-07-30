@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QDockWidget,
     QFileDialog,
     QMainWindow,
+    QMenu,
     QMessageBox,
     QScrollArea,
     QTabWidget,
@@ -28,6 +29,7 @@ from openchem.domain.macromolecule import MacromoleculeModel
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.events.events import (
+    ConformersChanged,
     ConformersReady,
     DescriptorComputed,
     DockingResultReady,
@@ -91,8 +93,14 @@ class MainWindow(QMainWindow):
         self._center_tabs.addTab(self._macromolecule_viewer.widget(), "Macromolecule Viewer")
         self.setCentralWidget(self._center_tabs)
 
-        self._project_explorer = ProjectExplorerPanel(services.event_bus, self)
-        self._property_panel = PropertyPanel(services.event_bus, self)
+        self._project_explorer = ProjectExplorerPanel(services.event_bus, self._undo_stack, self)
+        self._property_panel = PropertyPanel(
+            services.event_bus,
+            services.calculator_registry,
+            services.descriptor_service,
+            services.chemistry_engine,
+            self,
+        )
         self._console_panel = ConsolePanel(self)
         self._docking_panel = DockingPanel(
             services.docking_service, services.chemistry_engine, self._settings, services.event_bus, self
@@ -134,6 +142,7 @@ class MainWindow(QMainWindow):
         services.event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
         services.event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
         services.event_bus.subscribe(ConformersReady, self._on_conformers_ready)
+        services.event_bus.subscribe(ConformersChanged, self._on_conformers_changed)
         services.event_bus.subscribe(DockingResultReady, self._on_docking_result_ready)
         services.event_bus.subscribe(QuantumChemistryResultReady, self._on_quantum_chemistry_result_ready)
         services.event_bus.subscribe(PluginLoaded, self._on_plugins_state_changed)
@@ -201,10 +210,58 @@ class MainWindow(QMainWindow):
         redo_action.setShortcut("Ctrl+Y")
         edit_menu.addAction(undo_action)
         edit_menu.addAction(redo_action)
+        edit_menu.addSeparator()
+        # Real Ketcher toolbar actions, same `trigger_toolbar_action`
+        # bridge as the explicit-hydrogens/3D-viewer ones -- these mutate
+        # the structure (Aromatize/Dearomatize/Layout/Clean Up) or run a
+        # real calculation on it (Calculate CIP, Check Structure), so they
+        # belong under Edit, not View. Ketcher reports the resulting
+        # structure change through its own normal `change` event, which
+        # already flows back through EditorBackend.edited ->
+        # EditStructureCommand -> the undo stack, same as any in-canvas
+        # edit -- no separate command needed here.
+        for label, test_id in (
+            ("Aromatize", "Aromatize button"),
+            ("Dearomatize", "Dearomatize button"),
+            ("Layout (Recalculate Coordinates)", "Layout button"),
+            ("Clean Up", "Clean Up button"),
+            ("Calculate CIP (Stereo Descriptors)", "Calculate CIP button"),
+            ("Check Structure...", "Check Structure button"),
+        ):
+            edit_menu.addAction(label, lambda test_id=test_id: self._editor.trigger_toolbar_action(test_id))
 
         self._view_menu = self.menuBar().addMenu("&View")
         for dock in self.findChildren(QDockWidget):
             self._view_menu.addAction(dock.toggleViewAction())
+        self._view_menu.addSeparator()
+        structure_display_menu = self._view_menu.addMenu("2D Structure Display")
+        self._add_structure_display_toggle(
+            structure_display_menu, "Show Carbon Labels", "carbonExplicitly", True, False
+        )
+        self._add_structure_display_toggle(
+            structure_display_menu,
+            "Show Valence (abnormal valence only)",
+            "showValence",
+            True,
+            False,
+        )
+        structure_display_menu.addSeparator()
+        # These two are real Ketcher toolbar buttons, not render options --
+        # "explicit hydrogens" actually adds/removes atoms (confirmed live:
+        # ethanol's 3-heavy-atom structure gained 6 real H atoms), and "3D
+        # Viewer" opens Ketcher's own Miew dialog for the CURRENT structure
+        # (confirmed live, not just for inserted 3D templates) -- see
+        # KetcherEditorBackend.trigger_toolbar_action for why these go
+        # through Ketcher's own button rather than `set_render_option`
+        # (there's no public API for either).
+        structure_display_menu.addAction(
+            "Toggle Explicit Hydrogens",
+            lambda: self._editor.trigger_toolbar_action("Add/Remove explicit hydrogens button"),
+        )
+        structure_display_menu.addAction(
+            "Open 3D Viewer (Miew)...", lambda: self._editor.trigger_toolbar_action("3D Viewer button")
+        )
+        structure_display_menu.addAction("Send to 3D Viewer Tab", self._send_to_3d_viewer)
 
         tools_menu = self.menuBar().addMenu("&Tools")
         tools_menu.addAction("External Tools...", self._show_external_tools_dialog)
@@ -226,6 +283,26 @@ class MainWindow(QMainWindow):
         help_menu = self.menuBar().addMenu("&Help")
         help_menu.addAction("About OpenChem Studio", self._show_about)
 
+    def _add_structure_display_toggle(
+        self, menu: QMenu, label: str, option_name: str, checked_value: object, unchecked_value: object
+    ) -> None:
+        """Proxies one of Ketcher's own confirmed-live render options
+        (`ketcher.editor.render.options` -- see KetcherEditorBackend.
+        set_render_option) into a checkable View menu action, so it's
+        reachable from the app's own menu chrome instead of only Ketcher's
+        in-canvas UI. Fire-and-forget like the rest of the editor bridge --
+        Ketcher applies the option and re-renders immediately, no
+        confirmation round-trip.
+        """
+        action = QAction(label, self)
+        action.setCheckable(True)
+        action.toggled.connect(
+            lambda checked: self._editor.set_render_option(
+                option_name, checked_value if checked else unchecked_value
+            )
+        )
+        menu.addAction(action)
+
     # --- project lifecycle --------------------------------------------------
 
     def _new_project(self) -> None:
@@ -236,6 +313,7 @@ class MainWindow(QMainWindow):
         self._project_explorer.set_project(project)
         self._docking_panel.set_project(project)
         self._quantum_chemistry_panel.set_project(project)
+        self._property_panel.set_project(project)
         self.setWindowTitle(f"OpenChem Studio - {project.name}")
         if not project.molecules:
             # A brand-new (or loaded-but-empty) project has nothing selected,
@@ -411,6 +489,25 @@ class MainWindow(QMainWindow):
         command = SetConformersCommand(molecule, event.conformers, self._services.event_bus)
         self._undo_stack.push(command)
 
+    def _on_conformers_changed(self, event: ConformersChanged) -> None:
+        # Fires after SetConformersCommand/AddConformerCommand redo AND
+        # undo, and after ConformersInvalidated's own ConformersChanged
+        # (EditStructureCommand) -- one handler covers "conformers just
+        # appeared," "conformer generation was undone," and "structure
+        # edited, conformers cleared" alike. Shape descriptors (Phase 10a)
+        # need a real 3D conformer, not the flat 2D molblock, to compute for
+        # real (see Phase 14b) -- RDKitConformerProvider sorts its results
+        # ascending by energy (Phase 14c), so conformers[0] is the best one
+        # to use when one exists; falling back to the plain molblock when
+        # the list is empty naturally reverts descriptors to "needs a
+        # conformer."
+        molecule = self._current_molecule()
+        if molecule is None or molecule.uuid != event.molecule_uuid:
+            return
+        best_molblock = molecule.conformers[0].molblock if molecule.conformers else None
+        self._services.descriptor_service.request_descriptors(molecule, molblock=best_molblock)
+        self._publish_molecule_snapshot(molecule)
+
     def _on_quantum_chemistry_result_ready(self, event: QuantumChemistryResultReady) -> None:
         # Descriptors reuse the EXISTING DescriptorComputed mechanism
         # (PropertyPanel already displays these) rather than inventing a
@@ -452,6 +549,22 @@ class MainWindow(QMainWindow):
         if self._session.project is None or self._session.selected_molecule_uuid is None:
             return None
         return self._session.project.find_molecule(self._session.selected_molecule_uuid)
+
+    def _send_to_3d_viewer(self) -> None:
+        """Bridges the 2D Editor to the "3D Viewer" tab (3Dmol.js) --
+        which already has style switching (stick/ball-stick/sphere/line,
+        `MoleculeViewer3DWidget._style_combo`) and the LogP/partial-charge
+        color-by/Property Inspector integration Ketcher's own Miew dialog
+        doesn't have. If no conformer exists yet, requests one first (same
+        provider/count/optimize choice "Generate Conformers..." already
+        uses) rather than sending an empty 3D view.
+        """
+        molecule = self._current_molecule()
+        if molecule is None:
+            return
+        if not molecule.conformers:
+            self._services.conformer_service.request_conformers(molecule, 10, optimize=True)
+        self._center_tabs.setCurrentWidget(self._viewer3d)
 
     # --- UIRegistry protocol (see plugins/ui_registry.py) -----------------------
     # PluginManager depends on these methods structurally, never on

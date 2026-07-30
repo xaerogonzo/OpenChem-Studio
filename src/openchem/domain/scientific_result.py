@@ -13,10 +13,16 @@ class AlertResult(ScientificResult):
     having run at all (`cache_state` covers that).
     """
 
-    alert_id: str  # e.g. "pains"
+    alert_id: str  # e.g. "pains", "brenk"
     name: str  # display name, e.g. "PAINS"
     molecule_uuid: str
     matched: list[str] = field(default_factory=list)
+    # Default matches PAINS, this field's only caller before Phase 19 --
+    # additive, backward-compatible. Lets PropertyPanel route an alert to
+    # the right section via `alert.category` instead of a hardcoded
+    # string (BRENK's toxicity-relevant alerts belong under "admet", not
+    # "medicinal_chemistry").
+    category: str = "medicinal_chemistry"
 
 
 @dataclass(frozen=True, kw_only=True)

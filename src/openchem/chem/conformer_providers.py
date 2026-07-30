@@ -46,6 +46,11 @@ class RDKitConformerProvider(ConformerProvider):
                 should_continue = on_progress(i + 1, num_conformers)
                 if should_continue is False:
                     break
+        # Ascending by energy so conformer 1/N is the lowest-energy (most
+        # relevant) one -- matches Marvin/standard conformer-tool convention.
+        # A stable sort with unenergized (optimize=False) results all keyed
+        # equal leaves embedding order untouched in that case.
+        results.sort(key=lambda item: item[1] if item[1] is not None else float("inf"))
         return results
 
     def _embed_one(self, mol: Chem.Mol) -> Chem.Mol | None:

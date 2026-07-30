@@ -253,5 +253,33 @@ explicitly out of scope.
       poses. Nuitka packaging (`build.ps1`/`build.bat`) — out of scope for
       this phase, not needed until an actual release build.
 
+## Future extension point — ML Calculator Plugins
+
+Not a phase, not built — a documented starting point so this doesn't get
+rediscovered from scratch later. hERG inhibition, CYP inhibition, Ames
+mutagenicity, and similar endpoints genuinely need a trained model; no
+lightweight rule or SMARTS catalog substitutes for one honestly (see the
+calculator-expansion phases' own deferred lists — every attempt at a
+verified lightweight hERG/CYP path came up empty, most recently checked
+for a redistributable ONNX model with the same result).
+
+The extension point for this already exists, no new core code needed:
+`CalculatorRegistry.register()` (`services/calculator_registry.py`)
+accepts any `Callable[[Chem.Mol, str, dict], ScientificResult]` — a
+plugin (via the existing `plugins/` loader) can register a PyTorch-,
+ONNX Runtime-, or other framework-backed calculator today. Model
+version, confidence, and applicability domain don't need new fields
+either: `Provenance.parameters` (a free `dict[str, Any]`, already carried
+on every `ScientificResult`) is where a plugin should report them, e.g.
+`Provenance(created_by="my_herg_plugin", method="hergpred-v1.2",
+parameters={"confidence": 0.87, "applicability_domain": "in"})`.
+
+ONNX Runtime specifically is worth preferring over shipping a full
+PyTorch/torch-geometric chain if/when a real model is identified — it's
+a much lighter, pure-pip-installable dependency with no compiler
+requirement, unlike the chain that blocked pkasolver's numeric pKa (see
+the pKa calculator's own deferred notes). Revisit when a specific,
+verified, redistributable model exists to point at — not before.
+
 See [ARCHITECTURE.md](ARCHITECTURE.md) for how the codebase is structured to
 make Phases 3-6 additive rather than requiring a rewrite.

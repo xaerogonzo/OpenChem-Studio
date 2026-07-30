@@ -76,3 +76,9 @@ class ScientificResult:
     provenance: Provenance | None = None
     timestamp: float = field(default_factory=time.time)
     cache_state: CacheState = CacheState.COMPLETED
+    # Same convention DescriptorValue's own `error` field already
+    # established -- a human-readable reason when `cache_state` is
+    # FAILED (e.g. "pkasolver not installed"), added here (Phase 18)
+    # rather than on individual subclasses so every result kind can
+    # report a failure reason uniformly.
+    error: str | None = None

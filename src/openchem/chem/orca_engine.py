@@ -64,6 +64,22 @@ HARTREE_TO_KCAL_MOL = 627.5094740631
 
 _CALC_TYPES = ("sp", "opt", "opt_freq", "nmr")
 
+# Public, chemistry-layer source of truth for calc_type display names and
+# real method/basis presets -- both used to live UI-panel-private in
+# quantum_chemistry_panel.py (`_CALC_TYPE_LABELS`/`_METHOD_BASIS_PRESETS`).
+# Moved here (Phase 21) so bootstrap.py's CalculatorRegistry registrations
+# and the panel's own combo boxes read from one place instead of two
+# hand-synced copies that could silently drift apart. Keyed display-name ->
+# calc_type (not the other way around) to match the panel's original
+# `addItems(list(...keys()))` / `[...currentText()]` usage unchanged.
+CALC_TYPE_LABELS = {
+    "Single Point": "sp",
+    "Geometry Optimization": "opt",
+    "Optimization + Frequency": "opt_freq",
+    "NMR (raw shielding)": "nmr",
+}
+METHOD_BASIS_PRESETS = ["B3LYP def2-SVP", "PBE0 def2-TZVP", "B3LYP 6-31G(d)"]
+
 
 class OrcaOutputError(Exception):
     """Raised when ORCA's output can't be parsed — no SCF energy found

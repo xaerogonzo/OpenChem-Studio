@@ -83,3 +83,32 @@ def test_loading_a_new_molecule_clears_previous_visualization(qapp):
     backend.load_conformer(_ethanol_molblock())
 
     assert _wait_until(qapp, lambda: _current_visualization(qapp, backend) == "null")
+
+
+def test_apply_visualization_with_labels_adds_a_3dmol_label_per_atom(qapp):
+    backend = _ready_backend(qapp)
+    layer = VisualizationLayer(
+        name="LogP contribution", atom_colors={0: "#d32f2f", 1: "#1976d2"}, atom_labels={0: "-0.50", 1: "+0.50"}
+    )
+
+    backend.apply_visualization(layer)
+
+    def label_count() -> object:
+        return _run_js(qapp, backend, "viewer.getNumLabels ? viewer.getNumLabels() : viewer.labels.length")
+
+    assert _wait_until(qapp, lambda: label_count() == 2)
+
+
+def test_clear_visualization_removes_labels(qapp):
+    backend = _ready_backend(qapp)
+    layer = VisualizationLayer(name="test", atom_colors={0: "#d32f2f"}, atom_labels={0: "+0.50"})
+    backend.apply_visualization(layer)
+
+    def label_count() -> object:
+        return _run_js(qapp, backend, "viewer.getNumLabels ? viewer.getNumLabels() : viewer.labels.length")
+
+    assert _wait_until(qapp, lambda: label_count() == 1)
+
+    backend.apply_visualization(None)
+
+    assert _wait_until(qapp, lambda: label_count() == 0)

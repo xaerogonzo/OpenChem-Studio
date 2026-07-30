@@ -45,6 +45,23 @@ class DeleteMoleculeCommand(OpenChemCommand):
         self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
 
 
+class RenameMoleculeCommand(OpenChemCommand):
+    def __init__(self, molecule: MoleculeModel, new_name: str, event_bus: EventBus) -> None:
+        super().__init__(f"Rename molecule to '{new_name}'")
+        self._molecule = molecule
+        self._old_name = molecule.display_name
+        self._new_name = new_name
+        self._event_bus = event_bus
+
+    def redo(self) -> None:
+        self._molecule.display_name = self._new_name
+        self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
+
+    def undo(self) -> None:
+        self._molecule.display_name = self._old_name
+        self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
+
+
 class EditStructureCommand(OpenChemCommand):
     """Wraps a whole-structure edit (e.g. from Ketcher) as an undoable command.
 

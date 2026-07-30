@@ -4,11 +4,13 @@ import sys
 import time
 from importlib import import_module
 from types import ModuleType
+from typing import Any
 
 from rdkit import Chem
-from rdkit.Chem import Crippen, Descriptors, Descriptors3D, Lipinski, QED, rdMolDescriptors, rdPartialCharges
+from rdkit.Chem import Crippen, Descriptors, Descriptors3D, Fragments, Lipinski, QED, rdMolDescriptors, rdPartialCharges
 from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
 
+from openchem.domain.calculator import CalculatorDefinition, CalculatorParameter, RegistryExecution
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.scientific_result import AlertResult, PerAtomDataset
@@ -20,21 +22,26 @@ from openchem.plugins.interfaces import DescriptorProvider
 
 
 # (descriptor_id, display name, units, category) — the original Phase 1 set.
+# Phase 18 moved formal_charge/mol_logp/molar_refractivity into their own
+# charge/logp/molar_refractivity categories (previously identity/
+# physicochemical/physicochemical) so each lines up with the matching
+# CalculatorRegistry category's "Open [Calculator]..." row in the Property
+# Panel.
 _DESCRIPTOR_SPECS: list[tuple[str, str, str, str]] = [
     ("mol_wt", "Molecular Weight", "g/mol", "physicochemical"),
     ("exact_mass", "Exact Mass", "g/mol", "physicochemical"),
     ("formula", "Molecular Formula", "", "identity"),
-    ("mol_logp", "LogP", "", "physicochemical"),
+    ("mol_logp", "LogP", "", "logp"),
     ("tpsa", "TPSA", "Å²", "physicochemical"),
     ("num_rotatable_bonds", "Rotatable Bonds", "", "topology"),
     ("num_hbd", "H-Bond Donors", "", "topology"),
     ("num_hba", "H-Bond Acceptors", "", "topology"),
-    ("formal_charge", "Formal Charge", "", "identity"),
+    ("formal_charge", "Formal Charge", "", "charge"),
     ("ring_count", "Ring Count", "", "topology"),
     ("heavy_atom_count", "Heavy Atom Count", "", "topology"),
     ("num_stereocenters", "Stereocenters", "", "stereochemistry"),
     # Phase 10a additions below — all zero-new-dependency RDKit calls.
-    ("molar_refractivity", "Molar Refractivity", "", "physicochemical"),
+    ("molar_refractivity", "Molar Refractivity", "", "molar_refractivity"),
     ("labute_asa", "Approx. Surface Area (Labute)", "Å²", "physicochemical"),
     ("qed", "QED (Drug-likeness)", "", "medicinal_chemistry"),
     ("sa_score", "Synthetic Accessibility", "", "medicinal_chemistry"),
@@ -42,6 +49,24 @@ _DESCRIPTOR_SPECS: list[tuple[str, str, str, str]] = [
     ("veber_pass", "Veber Rule", "", "medicinal_chemistry"),
     ("ghose_pass", "Ghose Filter", "", "medicinal_chemistry"),
     ("egan_pass", "Egan Filter", "", "medicinal_chemistry"),
+    # Phase 19 additions below — ADMET heuristics. esol_logs is a real,
+    # verified literature formula (zero new dependencies); bbb_permeant/
+    # bioavailability_likely are documented approximations of published
+    # heuristics, same "not the literal original criterion" convention as
+    # Ghose/Veber/Egan above (see their comment) -- NOT reproductions of
+    # Clark's actual BBB regression or Martin's actual categorical
+    # bioavailability score.
+    ("esol_logs", "Aqueous Solubility (ESOL, log mol/L)", "", "admet"),
+    ("bbb_permeant", "Blood-Brain Barrier Permeant (heuristic)", "", "admet"),
+    ("bioavailability_likely", "Oral Bioavailability Likely (heuristic)", "", "admet"),
+    # Phase 20 additions below — real, cited threshold rules (Hughes et al.
+    # 2008 Pfizer 245-compound analysis; Gleeson ~30,000-compound GSK
+    # analysis; Congreve et al. 2003 Drug Discovery Today 8(19):876-877),
+    # same "documented approximation of a real rule" convention as the
+    # medicinal-chemistry filters above.
+    ("pfizer_375_pass", "Pfizer 3/75 Rule", "", "medicinal_chemistry"),
+    ("gsk_400_pass", "GSK 4/400 Rule", "", "medicinal_chemistry"),
+    ("rule_of_three_pass", "Rule of Three (Fragment-likeness)", "", "medicinal_chemistry"),
 ]
 
 # Shape descriptors need a REAL 3D conformer, not just "a conformer block" --
@@ -108,6 +133,138 @@ def _load_pains_catalog() -> FilterCatalog:
     return _pains_catalog
 
 
+_brenk_catalog: FilterCatalog | None = None
+
+
+def _load_brenk_catalog() -> FilterCatalog:
+    """Brenk et al. 2008's catalog of reactive/unstable/toxicophore-
+    adjacent functional groups (105 entries, confirmed live -- correctly
+    flags acetaldehyde as "aldehyde", acetyl chloride as "acid_halide"
+    +"aldehyde", leaves benzene/ethanol clean) -- a real, RDKit-bundled
+    toxicity-relevant alert catalog, distinct from PAINS. Cached at module
+    level for the same reason `_load_pains_catalog` is."""
+    global _brenk_catalog
+    if _brenk_catalog is None:
+        params = FilterCatalogParams()
+        params.AddCatalog(FilterCatalogParams.FilterCatalogs.BRENK)
+        _brenk_catalog = FilterCatalog(params)
+    return _brenk_catalog
+
+
+# Phase 20: a curated subset of RDKit's 85 built-in Fragments.fr_* counting
+# functions (confirmed live: 85 total, sanity-checked on aspirin --
+# fr_ester=1, fr_COO=1, fr_benzene=1, fr_phenol=0 correctly since aspirin's
+# phenol oxygen is esterified) -- not all 85, most of the rest are narrow
+# specializations (e.g. fr_Ar_COO vs fr_Al_COO vs fr_COO2) that would
+# clutter a general-purpose functional-group panel more than inform it.
+# (fr_* function, display name) pairs.
+_FUNCTIONAL_GROUP_SPECS: list[tuple[str, str]] = [
+    ("fr_amide", "Amide"),
+    ("fr_ester", "Ester"),
+    ("fr_ether", "Ether"),
+    ("fr_ketone", "Ketone"),
+    ("fr_aldehyde", "Aldehyde"),
+    ("fr_COO", "Carboxylic Acid"),
+    ("fr_Al_OH", "Aliphatic Alcohol"),
+    ("fr_phenol", "Phenol"),
+    ("fr_NH2", "Primary Amine"),
+    ("fr_NH1", "Secondary Amine"),
+    ("fr_NH0", "Tertiary Amine"),
+    ("fr_nitro", "Nitro"),
+    ("fr_nitrile", "Nitrile"),
+    ("fr_sulfonamd", "Sulfonamide"),
+    ("fr_sulfone", "Sulfone"),
+    ("fr_halogen", "Halogen"),
+    ("fr_epoxide", "Epoxide"),
+    ("fr_imidazole", "Imidazole"),
+    ("fr_pyridine", "Pyridine"),
+    ("fr_furan", "Furan"),
+    ("fr_thiophene", "Thiophene"),
+    ("fr_benzene", "Benzene Ring"),
+    ("fr_urea", "Urea"),
+    ("fr_guanido", "Guanidine"),
+]
+
+
+def compute_functional_groups(mol: Chem.Mol, molecule_uuid: str) -> AlertResult:
+    """Which of a curated set of common functional groups are present
+    (and how many), via RDKit's built-in `Fragments` module -- zero new
+    dependencies, ChatGPT's "functional group intelligence" ask. Reuses
+    `AlertResult`'s shape (a categorical result, not a single scalar) even
+    though this isn't a toxicity alert -- `matched` holds formatted
+    "name (count)" strings for every group with count > 0, same "empty
+    list means checked, nothing found" convention as PAINS/BRENK.
+    """
+    matched = []
+    for fn_name, display_name in _FUNCTIONAL_GROUP_SPECS:
+        count = getattr(Fragments, fn_name)(mol)
+        if count > 0:
+            matched.append(f"{display_name} ({count})")
+    return AlertResult(
+        alert_id="functional_groups",
+        name="Functional Groups",
+        molecule_uuid=molecule_uuid,
+        matched=matched,
+        provenance=Provenance(created_by="core", method="rdkit"),
+        category="admet",
+    )
+
+
+# Basic-amine SMARTS for the hERG risk-factor checklist (Phase 20) --
+# confirmed live against 9 reference molecules before shipping: matches
+# verapamil, amitriptyline (both real tertiary-amine hERG-liability
+# compounds), diethylamine, triethylamine; correctly does NOT match
+# aspirin (no amine), acetamide (amide N), pyridine (aromatic N),
+# benzenesulfonamide (sulfonamide N -- an earlier draft of this pattern
+# false-positived here), or aniline (aromatic-attached amine, too weakly
+# basic at physiological pH to count -- an earlier draft false-positived
+# here too).
+_BASIC_AMINE_SMARTS = Chem.MolFromSmarts("[NX3;H2,H1,H0;!$(NC=[O,S]);!$(N=*);!$(NS(=O)=O);!$(Nc);!a]")
+
+_HERG_RISK_NAME = "hERG Risk Factors (not a prediction)"
+
+
+def compute_herg_risk_factors(mol: Chem.Mol, molecule_uuid: str) -> AlertResult:
+    """Lists known STRUCTURAL CORRELATES of hERG channel liability --
+    high lipophilicity, a basic amine, aromatic ring(s) for pi-stacking
+    with Phe656 (all three confirmed via independent hERG SAR review/
+    risk-assessment literature) -- explicitly NOT a prediction of binding
+    affinity or a pass/fail verdict. No trained model backs this; it's a
+    checklist of factors the literature associates with risk, nothing
+    more. Real hERG/CYP prediction remains deferred pending a verified,
+    redistributable model (see ROADMAP.md's "ML Calculator Plugins" note).
+    """
+    matched = []
+    mol_logp = Crippen.MolLogP(mol)
+    if mol_logp > 3:
+        matched.append(f"High lipophilicity (LogP {mol_logp:.1f} > 3)")
+    if mol.HasSubstructMatch(_BASIC_AMINE_SMARTS):
+        matched.append("Basic amine present")
+    aromatic_ring_count = rdMolDescriptors.CalcNumAromaticRings(mol)
+    if aromatic_ring_count > 0:
+        matched.append(f"{aromatic_ring_count} aromatic ring(s)")
+    return AlertResult(
+        alert_id="herg_risk_factors",
+        name=_HERG_RISK_NAME,
+        molecule_uuid=molecule_uuid,
+        matched=matched,
+        provenance=Provenance(created_by="core", method="rdkit"),
+        category="admet",
+    )
+
+
+def _compute_gasteiger_charges(mol: Chem.Mol) -> dict[int, float]:
+    """Mutates `mol` in place (sets a "_GasteigerCharge" property per atom)
+    -- harmless for every current caller, none of which reads `mol`
+    again afterward expecting that property's absence. Shared by the
+    always-on `compute_per_atom` and the pH-parameterized
+    `compute_gasteiger_charge_at_ph` calculator (Phase 18) so the
+    Gasteiger-charge logic isn't duplicated between them.
+    """
+    rdPartialCharges.ComputeGasteigerCharges(mol)
+    return {atom.GetIdx(): atom.GetDoubleProp("_GasteigerCharge") for atom in mol.GetAtoms()}
+
+
 class RDKitDescriptorProvider(DescriptorProvider):
     """Computes the built-in descriptor set using RDKit only."""
 
@@ -115,6 +272,11 @@ class RDKitDescriptorProvider(DescriptorProvider):
 
     def descriptor_ids(self) -> list[str]:
         return [spec[0] for spec in _DESCRIPTOR_SPECS] + [spec[0] for spec in _SHAPE_DESCRIPTOR_SPECS]
+
+    def descriptor_categories(self) -> dict[str, str]:
+        categories = {descriptor_id: category for descriptor_id, _name, _units, category in _DESCRIPTOR_SPECS}
+        categories.update({descriptor_id: "shape" for descriptor_id, _name, _units in _SHAPE_DESCRIPTOR_SPECS})
+        return categories
 
     def compute(self, mol: Chem.Mol, molecule_uuid: str) -> list[DescriptorValue]:
         now = time.time()
@@ -148,6 +310,35 @@ class RDKitDescriptorProvider(DescriptorProvider):
         )
         egan_pass = -1 <= mol_logp <= 5.88 and tpsa <= 131.6
 
+        # ESOL (Delaney 2004, refit coefficients) -- confirmed live against
+        # the reference implementation (PatWalters/solubility) and
+        # sanity-checked against known experimental values (aspirin: -2.09
+        # predicted vs. -2.19 experimental; caffeine: -0.53 vs. -0.8, both
+        # within ESOL's documented accuracy).
+        aromatic_atom_count = sum(1 for atom in mol.GetAtoms() if atom.GetIsAromatic())
+        # mol.GetNumAtoms() (not heavy_atom_count) to match the verified
+        # reference implementation and the live-checked values above --
+        # equal to heavy-atom count when the molblock has no explicit Hs
+        # (the common case), differs only if it does.
+        aromatic_proportion = aromatic_atom_count / mol.GetNumAtoms() if mol.GetNumAtoms() else 0.0
+        esol_logs = (
+            0.2612 - 0.7417 * mol_logp - 0.0066 * mol_wt + 0.0035 * num_rotatable_bonds - 0.4262 * aromatic_proportion
+        )
+        # Simplified, documented approximations -- NOT reproductions of
+        # Clark 1999's actual BBB regression or Martin 2005's actual
+        # categorical "Abbott Bioavailability Score" (see _DESCRIPTOR_SPECS'
+        # comment above these three entries).
+        bbb_permeant = tpsa <= 90 and mol_wt <= 450
+        bioavailability_likely = 20 <= tpsa <= 130 and num_rotatable_bonds <= 10 and lipinski_violations <= 1
+
+        # Confirmed via primary citations (see _DESCRIPTOR_SPECS' comment
+        # above these three entries): Pfizer 3/75 and GSK 4/400 flag a
+        # HIGHER-risk regime, so "pass" is the negation; Rule of Three's
+        # thresholds are used directly (all four must hold to pass).
+        pfizer_375_pass = not (mol_logp > 3 and tpsa < 75)
+        gsk_400_pass = not (mol_logp > 4 and mol_wt > 400)
+        rule_of_three_pass = mol_wt < 300 and mol_logp <= 3 and num_hbd <= 3 and num_hba <= 3
+
         raw_values = {
             "mol_wt": mol_wt,
             "exact_mass": Descriptors.ExactMolWt(mol),
@@ -169,6 +360,12 @@ class RDKitDescriptorProvider(DescriptorProvider):
             "veber_pass": veber_pass,
             "ghose_pass": ghose_pass,
             "egan_pass": egan_pass,
+            "esol_logs": esol_logs,
+            "bbb_permeant": bbb_permeant,
+            "bioavailability_likely": bioavailability_likely,
+            "pfizer_375_pass": pfizer_375_pass,
+            "gsk_400_pass": gsk_400_pass,
+            "rule_of_three_pass": rule_of_three_pass,
         }
         values = [
             DescriptorValue(
@@ -238,16 +435,29 @@ class RDKitDescriptorProvider(DescriptorProvider):
         ]
 
     def compute_alerts(self, mol: Chem.Mol, molecule_uuid: str) -> list[AlertResult]:
-        catalog = _load_pains_catalog()
-        matched = [entry.GetDescription() for entry in catalog.GetMatches(mol)]
+        pains_catalog = _load_pains_catalog()
+        pains_matched = [entry.GetDescription() for entry in pains_catalog.GetMatches(mol)]
+        brenk_catalog = _load_brenk_catalog()
+        brenk_matched = [entry.GetDescription() for entry in brenk_catalog.GetMatches(mol)]
         return [
             AlertResult(
                 alert_id="pains",
                 name="PAINS",
                 molecule_uuid=molecule_uuid,
-                matched=matched,
+                matched=pains_matched,
                 provenance=Provenance(created_by="core", method=self.provider_id),
-            )
+                category="medicinal_chemistry",
+            ),
+            AlertResult(
+                alert_id="brenk",
+                name="BRENK (Reactive/Unstable Groups)",
+                molecule_uuid=molecule_uuid,
+                matched=brenk_matched,
+                provenance=Provenance(created_by="core", method=self.provider_id),
+                category="admet",
+            ),
+            compute_functional_groups(mol, molecule_uuid),
+            compute_herg_risk_factors(mol, molecule_uuid),
         ]
 
     def compute_per_atom(self, mol: Chem.Mol, molecule_uuid: str) -> list[PerAtomDataset]:
@@ -256,14 +466,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
         contribs = rdMolDescriptors._CalcCrippenContribs(mol)
         logp_contrib = {idx: logp for idx, (logp, _mr) in enumerate(contribs)}
         mr_contrib = {idx: mr for idx, (_logp, mr) in enumerate(contribs)}
-
-        # Mutates `mol` in place (sets a "_GasteigerCharge" property per
-        # atom) -- harmless here: nothing else reading `mol` in this
-        # provider's other methods depends on that property's absence.
-        rdPartialCharges.ComputeGasteigerCharges(mol)
-        gasteiger_charge = {
-            atom.GetIdx(): atom.GetDoubleProp("_GasteigerCharge") for atom in mol.GetAtoms()
-        }
+        gasteiger_charge = _compute_gasteiger_charges(mol)
 
         return [
             PerAtomDataset(
@@ -294,3 +497,147 @@ class RDKitDescriptorProvider(DescriptorProvider):
                 provenance=provenance,
             ),
         ]
+
+
+# --- Phase 18: CalculatorRegistry-registered calculators --------------------
+# Each function matches CalculatorRegistry's compute signature
+# (mol, molecule_uuid, parameters) -> ScientificResult. Registered against
+# CALCULATOR_DEFINITIONS in bootstrap.build_service_container() rather than
+# here, keeping this module's job "know how to compute things," not "know
+# about the registry."
+
+
+def compute_gasteiger_charge_at_ph(
+    mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any]
+) -> PerAtomDataset:
+    """The "charge" category's calculator. Protonates `mol` to the
+    pH-appropriate dominant microspecies via Dimorphite-DL
+    (`chem.pka_providers.protonate_at_ph`) before computing Gasteiger
+    charges, so the result reflects that pH's ionization state rather than
+    whatever protonation state the molecule happened to be drawn in.
+    """
+    from openchem.chem.pka_providers import protonate_at_ph
+
+    ph = parameters.get("pH", 7.4)
+    protonated = protonate_at_ph(mol, ph)
+    charges = _compute_gasteiger_charges(protonated)
+    return PerAtomDataset(
+        property_id="gasteiger_charge_at_ph",
+        name=f"Partial Charge (Gasteiger) at pH {ph:g}",
+        units="e",
+        method="rdkit+dimorphite_dl",
+        molecule_uuid=molecule_uuid,
+        values=charges,
+        provenance=Provenance(created_by="core", method="rdkit+dimorphite_dl", parameters={"pH": ph}),
+    )
+
+
+def compute_crippen_logp_contrib_calculator(
+    mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any]
+) -> PerAtomDataset:
+    """The "logp" category's calculator -- same Crippen contribution call
+    `compute_per_atom` uses for its always-on batch, so the registry-driven
+    path and that batch never compute this two different ways."""
+    contribs = rdMolDescriptors._CalcCrippenContribs(mol)
+    logp_contrib = {idx: logp for idx, (logp, _mr) in enumerate(contribs)}
+    return PerAtomDataset(
+        property_id="crippen_logp_contrib",
+        name="LogP Contribution (Crippen)",
+        units="",
+        method="rdkit",
+        molecule_uuid=molecule_uuid,
+        values=logp_contrib,
+        provenance=Provenance(created_by="core", method="rdkit"),
+    )
+
+
+def compute_crippen_mr_contrib_calculator(
+    mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any]
+) -> PerAtomDataset:
+    """The "molar_refractivity" category's calculator -- same Crippen
+    contribution call `compute_per_atom` uses for its always-on batch."""
+    contribs = rdMolDescriptors._CalcCrippenContribs(mol)
+    mr_contrib = {idx: mr for idx, (_logp, mr) in enumerate(contribs)}
+    return PerAtomDataset(
+        property_id="crippen_mr_contrib",
+        name="Molar Refractivity Contribution (Crippen)",
+        units="",
+        method="rdkit",
+        molecule_uuid=molecule_uuid,
+        values=mr_contrib,
+        provenance=Provenance(created_by="core", method="rdkit"),
+    )
+
+
+_PKA_NOT_INSTALLED_MESSAGE = (
+    "pkasolver not installed -- numeric pKa is unavailable in this build "
+    "(its dependency chain needs a compiler this environment doesn't have; "
+    "see chem/pka_providers.py). Ionizable-group detection via Dimorphite-DL "
+    "still works through the Charge category's pH control."
+)
+
+
+def compute_pka_dataset(mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any]) -> PerAtomDataset:
+    """The "pka" category's calculator. Returns a FAILED, clearly-messaged
+    empty dataset when pkasolver isn't installed (the current, honest
+    state of this build -- see chem/pka_providers.py) rather than an
+    empty dataset with no explanation."""
+    from openchem.chem.pka_providers import compute_pka, pka_predictor_available
+
+    if not pka_predictor_available():
+        return PerAtomDataset(
+            property_id="pka",
+            name="pKa",
+            units="",
+            method="pkasolver",
+            molecule_uuid=molecule_uuid,
+            values={},
+            provenance=Provenance(created_by="core", method="pkasolver"),
+            cache_state=CacheState.FAILED,
+            error=_PKA_NOT_INSTALLED_MESSAGE,
+        )
+    pairs = compute_pka(mol)  # pragma: no cover - unreachable while pka_predictor_available() is always False
+    return PerAtomDataset(
+        property_id="pka",
+        name="pKa",
+        units="",
+        method="pkasolver",
+        molecule_uuid=molecule_uuid,
+        values=dict(pairs or []),
+        provenance=Provenance(created_by="core", method="pkasolver"),
+    )
+
+
+CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
+    CalculatorDefinition(
+        calculator_id="gasteiger_charge_at_ph",
+        display_name="Partial Charge (pH-dependent)",
+        category="charge",
+        description="Gasteiger partial charges, recomputed on the dominant protonation state at a given pH.",
+        execution=RegistryExecution(compute=compute_gasteiger_charge_at_ph),
+        parameters=[
+            CalculatorParameter(name="pH", label="pH", kind="float", default=7.4, minimum=0.0, maximum=14.0)
+        ],
+    ),
+    CalculatorDefinition(
+        calculator_id="crippen_logp_contrib",
+        display_name="LogP Contribution",
+        category="logp",
+        description="Per-atom Crippen LogP contribution -- which atoms increase vs. decrease LogP.",
+        execution=RegistryExecution(compute=compute_crippen_logp_contrib_calculator),
+    ),
+    CalculatorDefinition(
+        calculator_id="crippen_mr_contrib",
+        display_name="Molar Refractivity Contribution",
+        category="molar_refractivity",
+        description="Per-atom Crippen molar refractivity contribution.",
+        execution=RegistryExecution(compute=compute_crippen_mr_contrib_calculator),
+    ),
+    CalculatorDefinition(
+        calculator_id="pka",
+        display_name="pKa",
+        category="pka",
+        description="Ionizable-group detection (Dimorphite-DL); numeric pKa values need pkasolver, not installed in this build.",
+        execution=RegistryExecution(compute=compute_pka_dataset),
+    ),
+]

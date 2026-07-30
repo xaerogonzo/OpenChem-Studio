@@ -31,6 +31,11 @@
       // atom index (string, since JS object keys are always strings) ->
       // hex color, or null when no visualization layer is active.
       var currentVisualization = null;
+      // atom index (string) -> formatted value text, or null (Phase 18).
+      var currentLabels = null;
+      // The active GLModel, needed to look up each atom's 3D position
+      // when placing labels -- not otherwise kept around before Phase 18.
+      var currentModel = null;
 
       function styleSpecFor(name) {
         switch (name) {
@@ -72,6 +77,31 @@
         viewer.render();
       }
 
+      // Phase 18: numeric per-atom labels alongside the existing color
+      // layer -- a separate step from applyStyle() since labels are
+      // positioned overlays (viewer.addLabel), not a per-atom style
+      // property like color is.
+      function applyLabels() {
+        viewer.removeAllLabels();
+        if (!currentLabels || !currentModel) {
+          return;
+        }
+        Object.keys(currentLabels).forEach(function (atomIndexStr) {
+          var atomIndex = parseInt(atomIndexStr, 10);
+          var atoms = currentModel.selectedAtoms({ index: atomIndex });
+          if (atoms.length === 0) {
+            return;
+          }
+          var atom = atoms[0];
+          viewer.addLabel(currentLabels[atomIndexStr], {
+            position: { x: atom.x, y: atom.y, z: atom.z },
+            fontSize: 10,
+            showBackground: false,
+          });
+        });
+        viewer.render();
+      }
+
       // Exposed for Python's fire-and-forget runJavaScript calls (see
       // ui/widgets/mol3d_viewer_backend.py). None of these need a return
       // value round-tripped back to Python, unlike Ketcher's getMolfile(),
@@ -81,10 +111,13 @@
           viewer.clear();
           // A new molecule's atom indices have nothing to do with
           // whatever the previous molecule's visualization layer meant --
-          // stale coloring must not carry over.
+          // stale coloring/labels must not carry over.
           currentVisualization = null;
+          currentLabels = null;
           var model = viewer.addModel(molblock, 'mol');
+          currentModel = model;
           applyStyle();
+          applyLabels();
           model.setClickable({}, true, function (atom) {
             if (bridge) {
               bridge.atomClicked(atom.index);
@@ -97,17 +130,25 @@
           currentStyle = styleName;
           applyStyle();
         },
-        applyVisualization: function (atomColors) {
+        applyVisualization: function (atomColors, atomLabels) {
           currentVisualization = atomColors;
+          currentLabels = atomLabels || null;
           applyStyle();
+          applyLabels();
         },
         clearVisualization: function () {
           currentVisualization = null;
+          currentLabels = null;
           applyStyle();
+          viewer.removeAllLabels();
+          viewer.render();
         },
         clear: function () {
           currentVisualization = null;
+          currentLabels = null;
+          currentModel = null;
           viewer.clear();
+          viewer.removeAllLabels();
           viewer.render();
         },
       };

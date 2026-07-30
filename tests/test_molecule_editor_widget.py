@@ -21,12 +21,20 @@ class _RecordingEditorBackend(EditorBackend):
         super().__init__(parent)
         self._widget = QWidget(parent)
         self.load_calls: list[str] = []
+        self.render_option_calls: list[tuple[str, object]] = []
+        self.toolbar_action_calls: list[str] = []
 
     def load_molblock(self, molblock: str) -> None:
         self.load_calls.append(molblock)
 
     def get_molblock(self, callback):
         callback(self.load_calls[-1] if self.load_calls else None)
+
+    def set_render_option(self, name, value):
+        self.render_option_calls.append((name, value))
+
+    def trigger_toolbar_action(self, action_id):
+        self.toolbar_action_calls.append(action_id)
 
     def widget(self):
         return self._widget
@@ -93,3 +101,19 @@ def test_editing_is_no_longer_silently_discarded_once_a_molecule_is_selected(qap
     widget._on_editor_edited()
 
     assert molecule.molblock is not None
+
+
+def test_set_render_option_delegates_to_the_backend(qapp):
+    _, widget, backend = _make_widget()
+
+    widget.set_render_option("showHydrogenLabels", "All")
+
+    assert backend.render_option_calls == [("showHydrogenLabels", "All")]
+
+
+def test_trigger_toolbar_action_delegates_to_the_backend(qapp):
+    _, widget, backend = _make_widget()
+
+    widget.trigger_toolbar_action("Add/Remove explicit hydrogens button")
+
+    assert backend.toolbar_action_calls == ["Add/Remove explicit hydrogens button"]

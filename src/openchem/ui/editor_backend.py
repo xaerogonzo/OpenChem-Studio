@@ -36,6 +36,26 @@ class EditorBackend(QObject):
         """
         self.load_molblock("")
 
+    def set_render_option(self, name: str, value: object) -> None:
+        """Set one of the underlying editor's own rendering/display options
+        (e.g. whether to show explicit hydrogen labels) -- optional
+        capability, not every backend has a settable-options surface.
+        Fire-and-forget, same as `load_molblock`: no confirmation, the
+        backend is expected to apply it immediately.
+        """
+        raise NotImplementedError
+
+    def trigger_toolbar_action(self, action_id: str) -> None:
+        """Trigger one of the underlying editor's own built-in toolbar
+        actions (e.g. "add/remove explicit hydrogens", "open the 3D
+        viewer") by an implementation-defined id -- optional capability,
+        not every backend has actions worth exposing this way. Structure-
+        mutating actions triggered this way still end up going through the
+        normal `edited` signal -> EditStructureCommand path, same as any
+        other in-canvas edit.
+        """
+        raise NotImplementedError
+
     def get_molblock(self, callback: Callable[[str | None], None]) -> None:
         """Asynchronously fetch the current structure as a molblock.
 

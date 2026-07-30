@@ -17,6 +17,19 @@ class MoleculeEditorWidget(QWidget):
     Never touches RDKit directly: a structure edit is pushed as an
     EditStructureCommand onto the shared QUndoStack, which is the only thing
     that mutates MoleculeModel.
+
+    Ketcher's own toolbar already has a real, working 3D view (its "3D
+    Viewer" button opens an embedded Miew dialog that rotates the current
+    structure and can bake a 3D-informed stereo edit back into the 2D
+    structure via Apply) and a real "Add/Remove explicit hydrogens" action
+    -- an earlier pass here built a second, read-only 3D pane inside this
+    widget on the mistaken assumption that Ketcher's own 3D view wasn't
+    wired up in this vendored build. It was: confirmed live via
+    `data-testid="3D Viewer button"`, which the initial audit missed
+    because that button has no accessible name, only a `title`/`data-testid`.
+    That duplicate pane was removed (MainWindow.set_render_option-driven
+    View-menu actions call Ketcher's OWN buttons instead -- see
+    KetcherEditorBackend.trigger_toolbar_action).
     """
 
     def __init__(
@@ -50,6 +63,21 @@ class MoleculeEditorWidget(QWidget):
             # whatever the previous molecule (or an orphaned pre-selection
             # drawing) left on screen.
             self._backend.clear()
+
+    def set_render_option(self, name: str, value: object) -> None:
+        """Proxies to the underlying EditorBackend's own display option
+        (e.g. Ketcher's `showHydrogenLabels`) -- lets MainWindow's View
+        menu reach a capability Ketcher already has, without MainWindow
+        reaching past this widget into `_backend` directly."""
+        self._backend.set_render_option(name, value)
+
+    def trigger_toolbar_action(self, test_id: str) -> None:
+        """Proxies to one of Ketcher's own real toolbar buttons (e.g. "Add/
+        Remove explicit hydrogens", "3D Viewer") by its stable
+        `data-testid` -- see KetcherEditorBackend.trigger_toolbar_action
+        for why this goes through Ketcher's actual button rather than a
+        reimplementation."""
+        self._backend.trigger_toolbar_action(test_id)
 
     def _on_editor_edited(self) -> None:
         if self._molecule is None:

@@ -101,8 +101,11 @@ class Mol3DViewerBackend(ViewerBackend):
         # dict keys become JSON string keys (json.dumps does this
         # automatically for int keys) -- fine, JS object property access
         # coerces a numeric atom index to the same string either way.
+        # atom_labels (Phase 18) is optional -- `null` when absent, which
+        # viewer.html's applyVisualization already treats as "no labels".
         self._page.runJavaScript(
-            f"window.openchemViewer.applyVisualization({json.dumps(layer.atom_colors)});"
+            f"window.openchemViewer.applyVisualization("
+            f"{json.dumps(layer.atom_colors)}, {json.dumps(layer.atom_labels)});"
         )
 
     def widget(self):
