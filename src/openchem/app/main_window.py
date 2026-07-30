@@ -472,6 +472,19 @@ class MainWindow(QMainWindow):
         self.removeDockWidget(dock)
         dock.deleteLater()
 
+    def reveal_panel(self, panel_id: str) -> None:
+        # Confirmed live: every plugin's "focus my panel" menu action
+        # (Explain Selected Molecule, Search Chemical Databases, Predict
+        # Reaction Products) only called `widget.setFocus()`, which is
+        # invisible when that panel is hidden behind another tab in its
+        # tabified dock group -- indistinguishable from the click doing
+        # nothing at all. show()+raise_() actually switches to its tab.
+        dock = self._plugin_panels.get(panel_id)
+        if dock is None:
+            return
+        dock.show()
+        dock.raise_()
+
     def add_menu_action(self, plugin_id: str, label: str, callback: Callable[[], None]) -> None:
         action = QAction(label, self)
         # QAction.triggered emits (checked: bool); the protocol promises

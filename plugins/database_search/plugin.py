@@ -21,7 +21,8 @@ class DatabaseSearchPanelProvider(PanelProvider):
 
 
 class DatabaseSearchMenuProvider(MenuProvider):
-    def __init__(self, panel_provider: DatabaseSearchPanelProvider) -> None:
+    def __init__(self, context: PluginContext, panel_provider: DatabaseSearchPanelProvider) -> None:
+        self._context = context
         self._panel_provider = panel_provider
 
     def menu_entries(self) -> list[tuple[str, str]]:
@@ -31,6 +32,7 @@ class DatabaseSearchMenuProvider(MenuProvider):
         panel = self._panel_provider.panel
         if panel is None:
             return
+        self._context.panels.reveal(DatabaseSearchPanelProvider.panel_id)
         panel.setFocus()
 
 
@@ -41,7 +43,7 @@ class DatabaseSearchPlugin(Plugin):
         panel_provider = DatabaseSearchPanelProvider(context, provider_map)
         context.panels.register(panel_provider)
 
-        menu_provider = DatabaseSearchMenuProvider(panel_provider)
+        menu_provider = DatabaseSearchMenuProvider(context, panel_provider)
         context.menus.register(menu_provider)
 
     def deactivate(self) -> None:

@@ -24,6 +24,18 @@ from openchem.plugins.context import PluginContext
 from .context_builder import MoleculeContextCache
 from .providers import AIMessage, AIProvider, AIProviderError, AIRequest, AIResponse
 
+_MODEL_PRESETS: dict[str, list[str]] = {
+    # Current Claude model ids, not the stale "claude-sonnet-4-5" that used
+    # to be AnthropicProvider's only option here -- still editable, so a
+    # future/renamed model can always be typed in directly.
+    "anthropic": ["claude-sonnet-5", "claude-opus-5", "claude-fable-5", "claude-haiku-4-5-20251001"],
+    "openai": ["gpt-4o-mini", "gpt-4o"],
+    "ollama": ["llama3.1", "qwen2.5-coder:14b", "mistral", "phi3"],
+    # Blank means "let the claude CLI use its own configured default" --
+    # ClaudeCLIProvider.default_model is "" for exactly this reason.
+    "claude_cli": ["", "sonnet", "opus", "fable", "haiku"],
+}
+
 SYSTEM_PROMPT_PREFIX = (
     "You are a chemistry assistant embedded in OpenChem Studio, a molecular "
     "editor. Explain results, suggest workflows, and generate SMARTS queries "
@@ -76,9 +88,11 @@ class _ProviderSettingsDialog(QDialog):
             )
             note.setWordWrap(True)
 
-        self._model_edit = QLineEdit(self)
-        self._model_edit.setText(context.settings.get(f"{provider_id}_model", provider.default_model))
-        form.addRow("Model:", self._model_edit)
+        self._model_combo = QComboBox(self)
+        self._model_combo.setEditable(True)
+        self._model_combo.addItems(_MODEL_PRESETS.get(provider_id, []))
+        self._model_combo.setCurrentText(context.settings.get(f"{provider_id}_model", provider.default_model))
+        form.addRow("Model:", self._model_combo)
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self
@@ -102,7 +116,7 @@ class _ProviderSettingsDialog(QDialog):
             self._context.secrets.set(f"{self._provider_id}_api_key", self._api_key_edit.text())
         else:
             self._context.settings.set(f"{self._provider_id}_cli_path", self._cli_path_edit.text())
-        self._context.settings.set(f"{self._provider_id}_model", self._model_edit.text())
+        self._context.settings.set(f"{self._provider_id}_model", self._model_combo.currentText())
         super().accept()
 
 

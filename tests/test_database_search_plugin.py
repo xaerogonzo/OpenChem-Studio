@@ -31,6 +31,22 @@ def test_database_search_loads_and_registers_everything(tmp_path: Path, qapp):
     assert "Search Chemical Databases" in labels
 
 
+def test_menu_action_reveals_its_own_panel(tmp_path: Path, qapp):
+    """Regression test: the menu action used to only call panel.setFocus(),
+    invisible when the panel is hidden behind another tab -- confirmed live
+    as "clicking the menu item does nothing." Must reveal its own panel
+    first."""
+    manager, services, ui = _make_manager(tmp_path)
+    manager.load_all()
+
+    _, callback = next(
+        (label, cb) for label, cb in ui.menu_actions["database_search"] if label == "Search Chemical Databases"
+    )
+    callback()
+
+    assert "Database Search" in ui.revealed_panels
+
+
 def test_import_search_result_adds_molecule_via_context(tmp_path: Path, qapp):
     manager, services, ui = _make_manager(tmp_path)
     manager.load_all()

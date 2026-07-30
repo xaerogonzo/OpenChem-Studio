@@ -28,6 +28,16 @@ class UIRegistry(Protocol):
         """Remove a previously added panel."""
         ...
 
+    def reveal_panel(self, panel_id: str) -> None:
+        """Bring a previously-added panel to the front (e.g. switch to its
+        tab if it's tabbed with others) and give it focus. Menu actions that
+        target a specific panel (e.g. "Explain Selected Molecule") must call
+        this -- a plain `widget.setFocus()` on a panel that's hidden behind
+        another tab is invisible to the user, indistinguishable from the
+        action having done nothing at all. A no-op if `panel_id` isn't
+        currently registered."""
+        ...
+
     def add_menu_action(self, plugin_id: str, label: str, callback: Callable[[], None]) -> None:
         """Add an entry under the Plugins menu that calls `callback()` when triggered."""
         ...

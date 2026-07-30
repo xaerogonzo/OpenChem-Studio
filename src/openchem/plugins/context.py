@@ -152,6 +152,12 @@ class _PanelRegistrar:
         self._ui_registry.add_panel(panel_id, provider.create_panel)
         self._rollbacks.append(lambda: self._ui_registry.remove_panel(panel_id))
 
+    def reveal(self, panel_id: str) -> None:
+        """Bring a registered panel's tab to the front -- call this from a
+        menu action before focusing/prefilling the panel's own widget, or
+        the action is invisible whenever that panel isn't the active tab."""
+        self._ui_registry.reveal_panel(panel_id)
+
 
 class _MenuRegistrar:
     def __init__(self, ui_registry: UIRegistry, plugin_id: str, rollbacks: list[Rollback]) -> None:

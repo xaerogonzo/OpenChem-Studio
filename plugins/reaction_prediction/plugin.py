@@ -24,7 +24,8 @@ class ReactionPredictionPanelProvider(PanelProvider):
 
 
 class ReactionPredictionMenuProvider(MenuProvider):
-    def __init__(self, panel_provider: ReactionPredictionPanelProvider) -> None:
+    def __init__(self, context: PluginContext, panel_provider: ReactionPredictionPanelProvider) -> None:
+        self._context = context
         self._panel_provider = panel_provider
 
     def menu_entries(self) -> list[tuple[str, str]]:
@@ -34,6 +35,7 @@ class ReactionPredictionMenuProvider(MenuProvider):
         panel = self._panel_provider.panel
         if panel is None:
             return
+        self._context.panels.reveal(ReactionPredictionPanelProvider.panel_id)
         panel.focus_and_prefill_from_selection()
 
 
@@ -49,7 +51,7 @@ class ReactionPredictionPlugin(Plugin):
         panel_provider = ReactionPredictionPanelProvider(context, provider_map, cache)
         context.panels.register(panel_provider)
 
-        menu_provider = ReactionPredictionMenuProvider(panel_provider)
+        menu_provider = ReactionPredictionMenuProvider(context, panel_provider)
         context.menus.register(menu_provider)
 
     def deactivate(self) -> None:

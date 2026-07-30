@@ -16,12 +16,16 @@ class FakeUIRegistry:
         self.panels: dict[str, object] = {}
         self.menu_actions: dict[str, list[tuple[str, object]]] = {}
         self.added_molecules: list[object] = []
+        self.revealed_panels: list[str] = []
 
     def add_panel(self, panel_id, widget_factory):
         self.panels[panel_id] = widget_factory()
 
     def remove_panel(self, panel_id):
         self.panels.pop(panel_id, None)
+
+    def reveal_panel(self, panel_id):
+        self.revealed_panels.append(panel_id)
 
     def add_menu_action(self, plugin_id, label, callback):
         self.menu_actions.setdefault(plugin_id, []).append((label, callback))

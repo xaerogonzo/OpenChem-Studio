@@ -57,6 +57,11 @@ def test_menu_action_prefills_reactant_from_selection(tmp_path: Path, qapp):
     callback()
 
     assert panel._reactant1_edit.text() == "CCO"
+    # Regression test: the menu action used to only call panel.setFocus(),
+    # invisible when the panel is hidden behind another tab -- confirmed
+    # live as "clicking the menu item does nothing." Must reveal its own
+    # panel first.
+    assert "Reaction Prediction" in ui.revealed_panels
 
 
 def test_menu_action_with_no_selection_does_not_crash(tmp_path: Path, qapp):

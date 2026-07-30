@@ -45,6 +45,11 @@ def test_menu_action_with_no_molecule_selected_shows_placeholder(tmp_path: Path,
     callback()
 
     assert "No molecule" in panel._input.toPlainText()
+    # Regression test: the menu action used to only call panel-internal
+    # focus/prefill methods, invisible when the panel is hidden behind
+    # another tab -- confirmed live as "clicking the menu item does
+    # nothing." Must reveal its own panel first.
+    assert "AI Assistant" in ui.revealed_panels
 
 
 def test_menu_action_prefills_from_cached_context(tmp_path: Path, qapp):

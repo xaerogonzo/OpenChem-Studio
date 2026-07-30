@@ -33,7 +33,10 @@ class AIAssistantMenuProvider(MenuProvider):
     prompt over the same chat pipeline, not a separate subsystem.
     """
 
-    def __init__(self, panel_provider: AIAssistantPanelProvider, cache: MoleculeContextCache) -> None:
+    def __init__(
+        self, context: PluginContext, panel_provider: AIAssistantPanelProvider, cache: MoleculeContextCache
+    ) -> None:
+        self._context = context
         self._panel_provider = panel_provider
         self._cache = cache
 
@@ -47,6 +50,7 @@ class AIAssistantMenuProvider(MenuProvider):
         panel = self._panel_provider.panel
         if panel is None:
             return
+        self._context.panels.reveal(AIAssistantPanelProvider.panel_id)
         if not self._cache.has_molecule():
             panel.prefill_and_focus("No molecule is currently selected.")
             return
@@ -77,7 +81,7 @@ class AIAssistantPlugin(Plugin):
         panel_provider = AIAssistantPanelProvider(context, provider_map, cache)
         context.panels.register(panel_provider)
 
-        menu_provider = AIAssistantMenuProvider(panel_provider, cache)
+        menu_provider = AIAssistantMenuProvider(context, panel_provider, cache)
         context.menus.register(menu_provider)
 
     def deactivate(self) -> None:
