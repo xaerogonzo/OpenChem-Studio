@@ -217,6 +217,16 @@ class QuantumEngineProvider(ABC):
         rather than forcing every implementer to override it."""
         return None
 
+    def parse_spin_spin_coupling(
+        self, output_text: str, calc_type: str
+    ) -> dict[tuple[int, int], float] | None:
+        """Optional (Phase 22): real ab initio spin-spin coupling
+        constants (Hz) between atom-index pairs, for engines/calc_types
+        that compute them. Default `None` — most calc_types have no
+        coupling data, same optional-capability shape as
+        `parse_spectrum_output`."""
+        return None
+
 
 class PanelProvider(ABC):
     panel_id: str

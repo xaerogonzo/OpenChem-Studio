@@ -19,7 +19,7 @@ def test_calculator_registry_includes_docking_and_quantum_chemistry_categories(q
     assert docking_ids == {"docking.vina"}
 
     qm_ids = {d.calculator_id for d in registry.by_category("quantum_chemistry")}
-    assert qm_ids == {"orca.sp", "orca.opt", "orca.opt_freq", "orca.nmr"}
+    assert qm_ids == {"orca.sp", "orca.opt", "orca.opt_freq", "orca.nmr", "orca.nmr_coupling"}
 
     for definition in registry.by_category("docking") + registry.by_category("quantum_chemistry"):
         assert isinstance(definition.execution, ServiceExecution)

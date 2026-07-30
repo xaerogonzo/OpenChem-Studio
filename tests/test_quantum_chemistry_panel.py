@@ -5,9 +5,9 @@ from openchem.chem.engine import ChemistryEngine
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
-from openchem.domain.scientific_result import SpectrumResult
+from openchem.domain.scientific_result import NMRSpectrumResult, SpectrumResult
 from openchem.events.base import EventBus
-from openchem.events.events import SpectrumComputed
+from openchem.events.events import NmrReferenceCalibrated, SpectrumComputed
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.ui.panels.quantum_chemistry_panel import QuantumChemistryPanel
 
@@ -20,9 +20,13 @@ class _RecordingQuantumChemistryService(QuantumChemistryService):
     def __init__(self, event_bus: EventBus) -> None:
         super().__init__(event_bus, Settings(event_bus), providers={})
         self.requests: list[dict] = []
+        self.reference_requests: list[tuple[str, str]] = []
 
     def request_calculation(self, **kwargs) -> None:  # noqa: D102 - test double
         self.requests.append(kwargs)
+
+    def request_reference_calibration(self, method_basis: str, provider_id: str = "orca") -> None:
+        self.reference_requests.append((method_basis, provider_id))
 
 
 def _make_panel():
@@ -141,3 +145,123 @@ def test_spectrum_computed_for_a_different_molecule_is_ignored(qapp):
     )
 
     assert panel._spectrum_table.rowCount() == 0
+
+
+def test_calibrate_button_calls_request_reference_calibration_with_method_basis(qapp):
+    panel, _engine, service = _make_panel()
+    panel._method_combo.setCurrentText("B3LYP def2-SVP")
+
+    panel._on_calibrate_clicked()
+
+    assert service.reference_requests == [("B3LYP def2-SVP", "orca")]
+    assert not panel._calibrate_button.isEnabled()
+
+
+def test_calibrate_button_with_empty_method_basis_does_not_call_service(qapp):
+    panel, _engine, service = _make_panel()
+    panel._method_combo.setCurrentText("")
+
+    panel._on_calibrate_clicked()
+
+    assert service.reference_requests == []
+
+
+def test_reference_calibrated_success_updates_status_and_reenables_button(qapp):
+    bus = EventBus()
+    engine = ChemistryEngine()
+    settings = Settings(bus)
+    service = _RecordingQuantumChemistryService(bus)
+    panel = QuantumChemistryPanel(service, engine, settings, bus)
+    panel._calibrate_button.setEnabled(False)
+
+    bus.publish(
+        NmrReferenceCalibrated(method_basis="B3LYP def2-SVP", provider_id="orca", values={"H": 30.0, "C": 190.0})
+    )
+
+    assert panel._calibrate_button.isEnabled()
+    assert "B3LYP def2-SVP" in panel._status_label.text()
+
+
+def test_reference_calibrated_failure_shows_the_error(qapp):
+    bus = EventBus()
+    engine = ChemistryEngine()
+    settings = Settings(bus)
+    service = _RecordingQuantumChemistryService(bus)
+    panel = QuantumChemistryPanel(service, engine, settings, bus)
+
+    bus.publish(
+        NmrReferenceCalibrated(method_basis="B3LYP def2-SVP", provider_id="orca", values={}, error="No executable")
+    )
+
+    assert panel._calibrate_button.isEnabled()
+    assert "No executable" in panel._status_label.text()
+
+
+def test_note_label_shows_calibrated_text_for_a_calibrated_spectrum(qapp):
+    bus = EventBus()
+    engine = ChemistryEngine()
+    settings = Settings(bus)
+    service = _RecordingQuantumChemistryService(bus)
+    panel = QuantumChemistryPanel(service, engine, settings, bus)
+    panel._pending_molecule_uuid = "mol-1"
+
+    bus.publish(
+        SpectrumComputed(
+            spectrum=NMRSpectrumResult(
+                spectrum_type="nmr_calibrated",
+                name="Chemical Shift",
+                units="ppm",
+                method="orca",
+                molecule_uuid="mol-1",
+                values={0: 90.0},
+                elements={0: "C"},
+            )
+        )
+    )
+
+    assert "Calibrated to TMS" in panel._spectrum_note_label.text()
+
+
+def test_spectrum_computed_populates_correlation_tabs(qapp):
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    bus = EventBus()
+    engine = ChemistryEngine()
+    settings = Settings(bus)
+    service = _RecordingQuantumChemistryService(bus)
+    panel = QuantumChemistryPanel(service, engine, settings, bus)
+
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    mol_3d = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(mol_3d, randomSeed=7)
+    molecule.conformers.append(ConformerModel(molblock=Chem.MolToMolBlock(mol_3d), method="rdkit_etkdg"))
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    panel._method_combo.setCurrentText("B3LYP def2-SVP")
+    panel._on_run_clicked()  # sets panel._pending_mol/_pending_molecule_uuid
+
+    values = {idx: 100.0 + idx for idx in range(mol_3d.GetNumAtoms())}
+    elements = {idx: atom.GetSymbol() for idx, atom in enumerate(mol_3d.GetAtoms())}
+    bus.publish(
+        SpectrumComputed(
+            spectrum=NMRSpectrumResult(
+                spectrum_type="nmr_raw_shielding",
+                name="raw",
+                units="ppm",
+                method="orca",
+                molecule_uuid=molecule.uuid,
+                values=values,
+                elements=elements,
+            )
+        )
+    )
+
+    # Ethanol has exactly 5 real C-H bonds (3 on CH3, 2 on CH2) -- the OH
+    # hydrogen has no carbon neighbor and must be excluded.
+    assert panel._correlation_tables["hsqc"].rowCount() == 5
+    assert len(panel._correlation_plots["hsqc"]._peaks) == 5
+    assert panel._correlation_tables["cosy"].rowCount() > 0

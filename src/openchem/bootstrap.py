@@ -54,6 +54,11 @@ _QM_CALC_TYPE_DESCRIPTIONS = {
         "NMR shielding prediction via ORCA. Produces per-atom isotropic shielding "
         "constants (raw, not yet referenced to a standard like TMS)."
     ),
+    "nmr_coupling": (
+        "NMR shielding + real ab initio spin-spin (J) coupling constants via ORCA. "
+        "More expensive than plain NMR (couples every nucleus pair) -- produces per-atom "
+        "shielding plus real Hz coupling values feeding the HSQC/HMBC/COSY correlation tables."
+    ),
 }
 
 for _label, _calc_type in CALC_TYPE_LABELS.items():
@@ -69,6 +74,7 @@ for _label, _calc_type in CALC_TYPE_LABELS.items():
             execution=ServiceExecution(
                 service_name="quantum_chemistry_service", panel_name="Quantum Chemistry panel"
             ),
+            prediction_basis="ab_initio",
             parameters=[
                 CalculatorParameter(name="charge", label="Charge", kind="int", default=0, minimum=-10, maximum=10),
                 CalculatorParameter(

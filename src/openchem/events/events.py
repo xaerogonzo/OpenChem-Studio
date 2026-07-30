@@ -159,3 +159,17 @@ class QuantumChemistryResultReady(Event):
 @dataclass(frozen=True)
 class SpectrumComputed(Event):
     spectrum: SpectrumResult
+
+
+@dataclass(frozen=True)
+class NmrReferenceCalibrated(Event):
+    """Published when a TMS reference-shielding calibration job
+    (`QuantumChemistryService.request_reference_calibration`, Phase 22)
+    finishes — `values` maps element symbol ("H"/"C") to its averaged
+    reference shielding, empty with `error` set on failure/cancellation.
+    """
+
+    method_basis: str
+    provider_id: str
+    values: dict[str, float]
+    error: str | None = None

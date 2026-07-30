@@ -608,6 +608,17 @@ def compute_pka_dataset(mol: Chem.Mol, molecule_uuid: str, parameters: dict[str,
     )
 
 
+def compute_empirical_nmr_shifts(mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any]):
+    """The "nmr" category's zero-parameter calculator (Phase 22) -- fast,
+    synchronous, ORCA-free typical-range shift estimate. Fits the
+    RegistryExecution shape exactly (unlike the real ORCA NMR calc types,
+    which stay ServiceExecution-only in bootstrap.py -- they're async,
+    QProcess-driven, and need a configured executable)."""
+    from openchem.chem.nmr_empirical_smarts import estimate_shifts_by_smarts_environment
+
+    return estimate_shifts_by_smarts_environment(mol, molecule_uuid)
+
+
 CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     CalculatorDefinition(
         calculator_id="gasteiger_charge_at_ph",
@@ -639,5 +650,18 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         category="pka",
         description="Ionizable-group detection (Dimorphite-DL); numeric pKa values need pkasolver, not installed in this build.",
         execution=RegistryExecution(compute=compute_pka_dataset),
+    ),
+    CalculatorDefinition(
+        calculator_id="nmr_empirical",
+        display_name="NMR Shift (empirical, typical range)",
+        category="nmr",
+        description=(
+            "Fast, ORCA-free typical-range chemical shift estimate from a curated SMARTS-based "
+            "characteristic-environment lookup (standard organic-chemistry reference ranges) -- "
+            "not a quantitative prediction. For a real ab initio calculation, use the Quantum "
+            "Chemistry panel's NMR calc types."
+        ),
+        execution=RegistryExecution(compute=compute_empirical_nmr_shifts),
+        prediction_basis="empirical",
     ),
 ]

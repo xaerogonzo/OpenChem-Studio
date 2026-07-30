@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 from openchem.domain.common import ScientificResult
-from openchem.domain.scientific_result import PerAtomDataset
+from openchem.domain.scientific_result import NMRSpectrumResult, PerAtomDataset
 
 # Diverging: negative -> red, zero -> near-white, positive -> blue. Matches
 # the ask this exists for ("show which atoms increase LogP vs decrease
@@ -96,12 +96,12 @@ def build_atom_color_layer(dataset: PerAtomDataset, include_labels: bool = False
 
 
 # Phase 18: ScientificResult -> VisualizationAdapter -> VisualizationLayer.
-# Only PerAtomDataset has an adapter today (honest about current scope) --
-# a future result kind (spectra, ESP maps, ...) registers its own entry
-# here instead of the 3D viewer or Calculator Inspector growing an
-# isinstance chain.
+# NMRSpectrumResult (Phase 22) reuses build_atom_color_layer as-is -- it
+# only touches .values/.name, which SpectrumResult already has in the
+# same shape, no PerAtomDataset-specific field needed.
 _VISUALIZATION_ADAPTERS: dict[type, Callable[..., VisualizationLayer]] = {
     PerAtomDataset: build_atom_color_layer,
+    NMRSpectrumResult: build_atom_color_layer,
 }
 
 

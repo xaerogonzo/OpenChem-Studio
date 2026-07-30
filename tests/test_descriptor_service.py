@@ -342,6 +342,39 @@ def test_run_calculator_when_compute_raises_publishes_a_failed_result(qapp):
     assert "boom" in datasets[0].error
 
 
+def test_run_calculator_publishes_spectrum_computed_for_a_spectrum_result(qapp):
+    """Phase 22: a RegistryExecution calculator can return a SpectrumResult
+    (the empirical NMR estimator) -- must publish SpectrumComputed, not
+    fall through to the 'unpublishable result type' error path."""
+    bus = EventBus()
+    engine = ChemistryEngine()
+    registry = CalculatorRegistry()
+
+    def compute(mol, molecule_uuid, params):
+        from openchem.domain.scientific_result import NMRSpectrumResult
+
+        return NMRSpectrumResult(
+            spectrum_type="nmr_empirical", name="NMR Shift", units="ppm", method="smarts_lookup",
+            molecule_uuid=molecule_uuid, values={0: 1.4},
+        )
+
+    registry.register(_definition("nmr_empirical", compute))
+    service = DescriptorService(bus, engine, calculator_registry=registry)
+
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "CCO")
+
+    from openchem.events.events import SpectrumComputed
+
+    spectra = []
+    bus.subscribe(SpectrumComputed, lambda e: spectra.append(e.spectrum))
+    service.run_calculator(model, CalculationRequest(calculator_id="nmr_empirical", molecule_uuid=model.uuid))
+    _drain(qapp)
+
+    assert len(spectra) == 1
+    assert spectra[0].spectrum_type == "nmr_empirical"
+
+
 def test_run_calculator_end_to_end_with_the_real_charge_at_ph_calculator(qapp):
     """Regression test wiring bootstrap.py's real CALCULATOR_DEFINITIONS
     through DescriptorService, not just a fake compute function -- catches

@@ -13,6 +13,7 @@ from openchem.domain.descriptor import DescriptorValue
 from openchem.events.base import EventBus
 from openchem.domain.scientific_result import SpectrumResult
 from openchem.events.events import (
+    NmrReferenceCalibrated,
     QuantumChemistryJobStateChanged,
     QuantumChemistryResultReady,
     SpectrumComputed,
@@ -415,3 +416,138 @@ def test_quantum_chemistry_does_not_publish_spectrum_for_non_nmr_calc_types(qapp
     assert _wait_until(qapp, lambda: states and states[-1] in (CacheState.COMPLETED, CacheState.FAILED))
 
     assert spectra == []
+
+
+class _TmsLikeProvider(FakeQuantumEngineProvider):
+    """Returns synthetic but internally-consistent TMS-shaped shielding
+    (uniform per element, like TMS's real chemical equivalence) for
+    reference-calibration tests, and molecule-specific shielding for a
+    real molecule request keyed by molecule_uuid."""
+
+    def parse_spectrum_output(self, output_text, mol, molecule_uuid: str, calc_type: str):
+        if calc_type != "nmr":
+            return None
+        if molecule_uuid == "mol-1":
+            return SpectrumResult(
+                spectrum_type="nmr_raw_shielding", name="raw", units="ppm", method=self.provider_id,
+                molecule_uuid=molecule_uuid, values={0: 100.0, 1: 25.0}, elements={0: "C", 1: "H"},
+            )
+        # TMS reference job -- 4 equivalent C, 12 equivalent H.
+        values = {i: 190.0 for i in range(4)} | {i: 30.0 for i in range(4, 16)}
+        elements = {i: "C" for i in range(4)} | {i: "H" for i in range(4, 16)}
+        return SpectrumResult(
+            spectrum_type="nmr_raw_shielding", name="raw", units="ppm", method=self.provider_id,
+            molecule_uuid=molecule_uuid, values=values, elements=elements,
+        )
+
+
+def test_request_reference_calibration_caches_and_publishes(qapp, tmp_path):
+    provider = _TmsLikeProvider()
+    service, bus = _make_service(tmp_path, provider)
+
+    calibrated = []
+    bus.subscribe(NmrReferenceCalibrated, lambda e: calibrated.append(e))
+
+    service.request_reference_calibration("B3LYP def2-SVP", provider_id="fake")
+
+    assert _wait_until(qapp, lambda: calibrated)
+    event = calibrated[0]
+    assert event.error is None
+    assert event.method_basis == "B3LYP def2-SVP"
+    assert event.values == {"C": 190.0, "H": 30.0}
+    assert not service._active_jobs
+
+
+def test_request_reference_calibration_with_no_executable_publishes_error(qapp, tmp_path):
+    provider = _TmsLikeProvider()
+    bus = EventBus()
+    settings = Settings(bus)  # no orca/executable_path set
+    service = QuantumChemistryService(bus, settings, providers={"fake": provider})
+
+    calibrated = []
+    bus.subscribe(NmrReferenceCalibrated, lambda e: calibrated.append(e))
+
+    service.request_reference_calibration("B3LYP def2-SVP", provider_id="fake")
+
+    assert len(calibrated) == 1
+    assert calibrated[0].error is not None
+    assert calibrated[0].values == {}
+
+
+def test_calibration_is_applied_to_a_subsequent_real_molecule_result(qapp, tmp_path):
+    provider = _TmsLikeProvider()
+    service, bus = _make_service(tmp_path, provider)
+
+    calibrated = []
+    bus.subscribe(NmrReferenceCalibrated, lambda e: calibrated.append(e))
+    service.request_reference_calibration("B3LYP def2-SVP", provider_id="fake")
+    assert _wait_until(qapp, lambda: calibrated)
+
+    spectra = []
+    bus.subscribe(SpectrumComputed, lambda e: spectra.append(e.spectrum))
+    service.request_calculation(
+        mol=Chem.MolFromSmiles("CO"),
+        molecule_uuid="mol-1",
+        calc_type="nmr",
+        charge=0,
+        multiplicity=1,
+        method_basis="B3LYP def2-SVP",
+        provider_id="fake",
+    )
+    assert _wait_until(qapp, lambda: spectra)
+
+    spectrum = spectra[0]
+    assert spectrum.spectrum_type == "nmr_calibrated"
+    # delta = reference - raw: C = 190-100=90, H = 30-25=5.
+    assert spectrum.values == {0: 90.0, 1: 5.0}
+
+
+def test_calibration_does_not_apply_for_a_different_uncalibrated_method_basis(qapp, tmp_path):
+    provider = _TmsLikeProvider()
+    service, bus = _make_service(tmp_path, provider)
+
+    calibrated = []
+    bus.subscribe(NmrReferenceCalibrated, lambda e: calibrated.append(e))
+    service.request_reference_calibration("B3LYP def2-SVP", provider_id="fake")
+    assert _wait_until(qapp, lambda: calibrated)
+
+    spectra = []
+    bus.subscribe(SpectrumComputed, lambda e: spectra.append(e.spectrum))
+    service.request_calculation(
+        mol=Chem.MolFromSmiles("CO"),
+        molecule_uuid="mol-1",
+        calc_type="nmr",
+        charge=0,
+        multiplicity=1,
+        method_basis="PBE0 def2-TZVP",  # different method_basis, no cached reference
+        provider_id="fake",
+    )
+    assert _wait_until(qapp, lambda: spectra)
+
+    assert spectra[0].spectrum_type == "nmr_raw_shielding"  # unchanged, no reference for this method_basis
+
+
+def test_reference_job_and_real_molecule_job_use_separate_job_manager_kinds(qapp, tmp_path):
+    """A reference calibration and a real molecule's calculation must not
+    collide on JobManager keys even if run concurrently."""
+    provider = _TmsLikeProvider()
+    job_manager = JobManager()
+    bus = EventBus()
+    settings = Settings(bus)
+    settings.set("orca/executable_path", sys.executable)
+    service = QuantumChemistryService(bus, settings, providers={"fake": provider}, job_manager=job_manager)
+
+    states = []
+    bus.subscribe(QuantumChemistryJobStateChanged, lambda e: states.append(e.state))
+    calibrated = []
+    bus.subscribe(NmrReferenceCalibrated, lambda e: calibrated.append(e))
+
+    service.request_calculation(
+        mol=Chem.MolFromSmiles("CO"), molecule_uuid="mol-1", calc_type="nmr",
+        charge=0, multiplicity=1, method_basis="B3LYP def2-SVP", provider_id="fake",
+    )
+    service.request_reference_calibration("B3LYP def2-SVP", provider_id="fake")
+
+    assert _wait_until(qapp, lambda: calibrated and states and states[-1] == CacheState.COMPLETED)
+    assert calibrated[0].error is None
+    assert states[-1] == CacheState.COMPLETED

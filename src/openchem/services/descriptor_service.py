@@ -11,9 +11,9 @@ from openchem.domain.calculator import CalculationRequest
 from openchem.domain.common import CacheState
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.molecule import MoleculeModel
-from openchem.domain.scientific_result import AlertResult, PerAtomDataset
+from openchem.domain.scientific_result import AlertResult, PerAtomDataset, SpectrumResult
 from openchem.events.base import EventBus
-from openchem.events.events import AlertComputed, DescriptorComputed, PerAtomDataComputed
+from openchem.events.events import AlertComputed, DescriptorComputed, PerAtomDataComputed, SpectrumComputed
 from openchem.services.calculator_registry import CalculatorRegistry
 
 logger = logging.getLogger("openchem.chemistry")
@@ -141,6 +141,8 @@ class _CalculationTask(QRunnable):
             self._event_bus.publish(PerAtomDataComputed(dataset=result))
         elif isinstance(result, AlertResult):
             self._event_bus.publish(AlertComputed(alert=result))
+        elif isinstance(result, SpectrumResult):
+            self._event_bus.publish(SpectrumComputed(spectrum=result))
         else:
             logger.error(
                 "Calculator %s produced an unpublishable result type: %s",

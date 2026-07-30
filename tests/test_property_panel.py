@@ -454,6 +454,50 @@ def test_matching_result_opens_the_inspector_and_clears_pending(qapp, monkeypatc
     assert panel._pending_calculator_id is None
 
 
+def test_matching_spectrum_result_opens_the_inspector_and_clears_pending(qapp, monkeypatch):
+    """Phase 22: a RegistryExecution calculator can return a SpectrumResult
+    (the empirical NMR estimator) instead of a PerAtomDataset -- matched
+    by spectrum_type against _pending_calculator_id the same way
+    property_id is matched for PerAtomDataComputed."""
+    from openchem.domain.scientific_result import NMRSpectrumResult
+    from openchem.events.events import SpectrumComputed
+
+    opened = []
+
+    class _FakeInspectorDialog:
+        def __init__(self, engine, molecule, result, conformer_molblock, parent=None):
+            opened.append((molecule, result))
+
+        def exec(self):
+            return QDialog.DialogCode.Accepted
+
+    monkeypatch.setattr(property_panel_module, "CalculatorInspectorDialog", _FakeInspectorDialog)
+
+    panel, bus, _service = _make_panel(qapp)
+    molecule = MoleculeModel(display_name="Ethanol")
+    project = ProjectModel(molecules=[molecule])
+    panel.set_project(project)
+    bus.publish(MoleculeSelected(molecule_uuid=molecule.uuid))
+    panel._pending_calculator_id = "nmr_empirical"
+
+    bus.publish(
+        SpectrumComputed(
+            spectrum=NMRSpectrumResult(
+                spectrum_type="nmr_empirical",
+                name="NMR Shift",
+                units="ppm",
+                method="smarts_lookup",
+                molecule_uuid=molecule.uuid,
+                values={0: 1.4},
+            )
+        )
+    )
+
+    assert len(opened) == 1
+    assert opened[0][0] is molecule
+    assert panel._pending_calculator_id is None
+
+
 def test_unrelated_per_atom_data_does_not_open_the_inspector(qapp, monkeypatch):
     """The always-on eager batch publishes PerAtomDataComputed for
     crippen_logp_contrib/crippen_mr_contrib/gasteiger_charge on every

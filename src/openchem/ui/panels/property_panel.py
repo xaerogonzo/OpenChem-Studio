@@ -16,9 +16,15 @@ from PySide6.QtWidgets import (
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.calculator import CalculationRequest, CalculatorDefinition, RegistryExecution
 from openchem.domain.project import ProjectModel
-from openchem.domain.scientific_result import PerAtomDataset
+from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
 from openchem.events.base import EventBus
-from openchem.events.events import AlertComputed, DescriptorComputed, MoleculeSelected, PerAtomDataComputed
+from openchem.events.events import (
+    AlertComputed,
+    DescriptorComputed,
+    MoleculeSelected,
+    PerAtomDataComputed,
+    SpectrumComputed,
+)
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.descriptor_service import DescriptorService
 from openchem.ui.dialogs.calculator_inspector_dialog import CalculatorInspectorDialog
@@ -220,6 +226,7 @@ class PropertyPanel(QWidget):
         event_bus.subscribe(DescriptorComputed, self._on_descriptor_computed)
         event_bus.subscribe(AlertComputed, self._on_alert_computed)
         event_bus.subscribe(PerAtomDataComputed, self._on_per_atom_data_computed)
+        event_bus.subscribe(SpectrumComputed, self._on_spectrum_computed)
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
@@ -347,6 +354,22 @@ class PropertyPanel(QWidget):
             self._pending_calculator_id = None
             self._open_inspector(dataset)
 
+    def _on_spectrum_computed(self, event: SpectrumComputed) -> None:
+        # Phase 22: a RegistryExecution-backed calculator (e.g. the
+        # empirical SMARTS NMR estimator) can produce a SpectrumResult
+        # instead of a PerAtomDataset -- matched by spectrum_type against
+        # _pending_calculator_id the same way property_id is matched
+        # above (the two calculators that use this path name their
+        # calculator_id and spectrum_type identically).
+        spectrum = event.spectrum
+        if (
+            self._pending_calculator_id is not None
+            and spectrum.spectrum_type == self._pending_calculator_id
+            and spectrum.molecule_uuid == self._selected_molecule_uuid
+        ):
+            self._pending_calculator_id = None
+            self._open_inspector(spectrum)
+
     def _open_calculator(self, definition: CalculatorDefinition) -> None:
         if self._project is None or self._selected_molecule_uuid is None:
             return
@@ -365,7 +388,7 @@ class PropertyPanel(QWidget):
             CalculationRequest(calculator_id=definition.calculator_id, molecule_uuid=molecule.uuid, parameters=parameters),
         )
 
-    def _open_inspector(self, result: PerAtomDataset) -> None:
+    def _open_inspector(self, result: PerAtomDataset | SpectrumResult) -> None:
         if self._project is None:
             return
         molecule = self._project.find_molecule(result.molecule_uuid)

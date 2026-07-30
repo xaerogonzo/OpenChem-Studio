@@ -8,6 +8,7 @@ from rdkit.Chem import AllChem
 
 from openchem.chem.orca_engine import OrcaOutputError, OrcaQuantumEngineProvider
 from openchem.domain.common import CacheState
+from openchem.domain.scientific_result import NMRSpectrumResult
 
 # A verbatim excerpt (not trimmed/reworded) from a REAL ORCA 6.1.1 run --
 # `! HF STO-3G NMR` on water -- captured live via a real installed ORCA
@@ -35,6 +36,49 @@ CHEMICAL SHIELDING SUMMARY (ppm)
 NMR shielding tensor and spin rotation calculation done in   0.0 sec
 
 Maximum memory used throughout the entire PROP-calculation: 2.1 MB
+"""
+
+# A verbatim excerpt from a REAL ORCA 6.1.1 run -- `! HF STO-3G NMR` on
+# formaldehyde (H2C=O) with a `%eprnmr Nuclei = all C,H { shift, ssall }`
+# block placed AFTER the coordinate block (confirmed live: ORCA aborts at
+# startup with "nuclear properties are requested but no coordinates have
+# been read" if the block precedes coordinates -- the opposite ordering
+# every other ORCA block in this file uses). Captured live via the real
+# installed ORCA executable during Phase 22's implementation, the same
+# discipline REAL_NMR_FIXTURE_OUTPUT above already established. Real
+# values sanity-checked: 1J(C-H) ~122 Hz >> 2J(H-H, geminal) ~38 Hz, the
+# right relative ordering for this chemistry even at this crude
+# minimal-basis level of theory.
+REAL_COUPLING_FIXTURE_OUTPUT = """
+                         Program Version 6.1.1  -  RELEASE   -
+
+FINAL SINGLE POINT ENERGY      -112.352352895878
+
+--------------------------------
+CHEMICAL SHIELDING SUMMARY (ppm)
+--------------------------------
+
+
+  Nucleus  Element    Isotropic     Anisotropy
+  -------  -------  ------------   ------------
+      0       C           97.747        142.432
+      2       H           22.536          6.475
+      3       H           22.536          6.475
+
+
+NMR shielding tensor and spin rotation calculation done in   0.0 sec
+
+-----------------------------------------------------------------------------
+                SUMMARY OF ISOTROPIC COUPLING CONSTANTS J (Hz)
+-----------------------------------------------------------------------------
+                  0 C        2 H        3 H
+      0 C        0.000    122.043    122.043
+      2 H      122.043      0.000     37.978
+      3 H      122.043     37.978      0.000
+
+NMR spin-spin coupling calculation done in   0.0 sec
+
+Maximum memory used throughout the entire PROP-calculation: 2.2 MB
 """
 
 # Best-effort fixture based on ORCA's documented/widely-referenced output
@@ -269,6 +313,11 @@ def test_parse_spectrum_output_extracts_real_shielding_values():
     assert spectrum.provenance is not None
     assert spectrum.provenance.method == "orca"
     assert spectrum.provenance.parameters["orca_version"] == "6.1.1"
+    # Phase 22: NMRSpectrumResult (not the bare SpectrumResult) so the
+    # empirical estimator's ranges field has somewhere to live -- the ORCA
+    # path just never populates it.
+    assert isinstance(spectrum, NMRSpectrumResult)
+    assert spectrum.ranges is None
 
 
 def test_parse_spectrum_output_returns_none_for_non_nmr_calc_types():
@@ -286,3 +335,53 @@ def test_parse_spectrum_output_missing_summary_raises():
 
     with pytest.raises(OrcaOutputError):
         provider.parse_spectrum_output("ORCA crashed, no NMR results here", mol, "mol-1", "nmr")
+
+
+def test_build_input_nmr_coupling_puts_eprnmr_block_after_coordinates():
+    """Regression test for the real ordering requirement confirmed live:
+    ORCA aborts if %eprnmr precedes coordinates."""
+    provider = OrcaQuantumEngineProvider()
+    mol = Chem.AddHs(Chem.MolFromSmiles("O"))
+    AllChem.EmbedMolecule(mol, randomSeed=1)
+
+    input_text = provider.build_input(mol, 0, 1, "HF STO-3G", "nmr_coupling")
+
+    coord_block_end = input_text.rindex("*")
+    eprnmr_index = input_text.index("%eprnmr")
+    assert eprnmr_index > coord_block_end
+    assert "ssall" in input_text
+
+
+def test_parse_spectrum_output_works_for_nmr_coupling_calc_type():
+    provider = OrcaQuantumEngineProvider()
+    mol = Chem.AddHs(Chem.MolFromSmiles("C=O"))
+
+    spectrum = provider.parse_spectrum_output(REAL_COUPLING_FIXTURE_OUTPUT, mol, "mol-1", "nmr_coupling")
+
+    assert spectrum is not None
+    assert spectrum.values == {0: 97.747, 2: 22.536, 3: 22.536}
+
+
+def test_parse_spin_spin_coupling_extracts_real_values():
+    provider = OrcaQuantumEngineProvider()
+
+    couplings = provider.parse_spin_spin_coupling(REAL_COUPLING_FIXTURE_OUTPUT, "nmr_coupling")
+
+    assert couplings == {(0, 2): 122.043, (0, 3): 122.043, (2, 3): 37.978}
+    # 1J(C-H) must be much larger than 2J(H-H, geminal) -- real formaldehyde
+    # chemistry, not an artifact of the parser.
+    assert couplings[(0, 2)] > couplings[(2, 3)]
+
+
+def test_parse_spin_spin_coupling_returns_none_for_other_calc_types():
+    provider = OrcaQuantumEngineProvider()
+
+    assert provider.parse_spin_spin_coupling(REAL_COUPLING_FIXTURE_OUTPUT, "nmr") is None
+    assert provider.parse_spin_spin_coupling(FIXTURE_OUTPUT, "sp") is None
+
+
+def test_parse_spin_spin_coupling_missing_summary_raises():
+    provider = OrcaQuantumEngineProvider()
+
+    with pytest.raises(OrcaOutputError):
+        provider.parse_spin_spin_coupling("ORCA crashed, no coupling results here", "nmr_coupling")

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from openchem.domain.common import Provenance
-from openchem.domain.scientific_result import AlertResult, PerAtomDataset
+from openchem.domain.scientific_result import AlertResult, NMRSpectrumResult, PerAtomDataset
 from openchem.ui.visualization import ColorScale, build_atom_color_layer, build_visualization_layer
 
 
@@ -107,6 +107,21 @@ def test_build_visualization_layer_dispatches_to_the_per_atom_dataset_adapter():
 
     assert layer is not None
     assert layer.atom_labels == {0: "-0.50", 1: "+0.50"}
+
+
+def test_build_visualization_layer_dispatches_to_the_same_adapter_for_nmr_spectrum_result():
+    """Phase 22: NMRSpectrumResult reuses build_atom_color_layer as-is --
+    it only touches .values/.name, structurally identical to what
+    PerAtomDataset already provides."""
+    spectrum = NMRSpectrumResult(
+        spectrum_type="nmr_empirical", name="NMR Shift", units="ppm", method="smarts_lookup",
+        molecule_uuid="mol-1", values={0: 25.0, 1: 190.0},
+    )
+
+    layer = build_visualization_layer(spectrum, include_labels=True)
+
+    assert layer is not None
+    assert layer.atom_colors.keys() == {0, 1}
 
 
 def test_build_visualization_layer_returns_none_for_an_unregistered_result_type():

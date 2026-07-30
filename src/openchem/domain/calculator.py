@@ -68,6 +68,12 @@ class CalculatorDefinition:
     description: str
     execution: CalculatorExecution
     parameters: list[CalculatorParameter] = field(default_factory=list)
+    # "empirical" | "ab_initio" | None (Phase 22) -- lets a UI badge how
+    # trustworthy a result is, same honesty spirit as the hERG risk-factor
+    # checklist's "not a prediction" label. Populated only where it's
+    # actually known; left unset rather than guessed for calculators
+    # outside whatever phase introduced this field.
+    prediction_basis: str | None = None
 
 
 @dataclass(frozen=True, kw_only=True)

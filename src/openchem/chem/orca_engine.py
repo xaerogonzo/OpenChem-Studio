@@ -10,7 +10,7 @@ from rdkit.Geometry import Point3D
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
-from openchem.domain.scientific_result import SpectrumResult
+from openchem.domain.scientific_result import NMRSpectrumResult
 from openchem.plugins.interfaces import QuantumEngineProvider
 
 # ORCA's simple, well-documented "! <keywords>" / "* xyz <charge> <mult> ...
@@ -24,7 +24,7 @@ from openchem.plugins.interfaces import QuantumEngineProvider
 # verified against a real ORCA 6.1.1 run (HF/STO-3G, water) — see
 # `_SHIELDING_HEADER_RE`'s own note.
 
-_CALC_TYPE_KEYWORDS = {"sp": "", "opt": "Opt", "opt_freq": "Opt Freq", "nmr": "NMR"}
+_CALC_TYPE_KEYWORDS = {"sp": "", "opt": "Opt", "opt_freq": "Opt Freq", "nmr": "NMR", "nmr_coupling": "NMR"}
 
 _SCF_ENERGY_RE = re.compile(r"FINAL SINGLE POINT ENERGY\s+(-?\d+\.\d+)")
 _CARTESIAN_BLOCK_RE = re.compile(
@@ -60,9 +60,14 @@ _SHIELDING_HEADER_RE = re.compile(r"CHEMICAL SHIELDING SUMMARY \(ppm\)")
 _SHIELDING_ROW_RE = re.compile(r"^\s*(\d+)\s+([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$", re.MULTILINE)
 _SHIELDING_END_MARKER = "NMR shielding tensor and spin rotation calculation done"
 
+# Confirmed live against a real ORCA 6.1.1 `%eprnmr ... ssall` run -- see
+# parse_spin_spin_coupling's own docstring for the exact captured format.
+_COUPLING_SUMMARY_HEADER_RE = re.compile(r"SUMMARY OF ISOTROPIC COUPLING CONSTANTS J \(Hz\)")
+_COUPLING_END_MARKER = "NMR spin-spin coupling calculation done"
+
 HARTREE_TO_KCAL_MOL = 627.5094740631
 
-_CALC_TYPES = ("sp", "opt", "opt_freq", "nmr")
+_CALC_TYPES = ("sp", "opt", "opt_freq", "nmr", "nmr_coupling")
 
 # Public, chemistry-layer source of truth for calc_type display names and
 # real method/basis presets -- both used to live UI-panel-private in
@@ -77,6 +82,7 @@ CALC_TYPE_LABELS = {
     "Geometry Optimization": "opt",
     "Optimization + Frequency": "opt_freq",
     "NMR (raw shielding)": "nmr",
+    "NMR + Spin-Spin Coupling": "nmr_coupling",
 }
 METHOD_BASIS_PRESETS = ["B3LYP def2-SVP", "PBE0 def2-TZVP", "B3LYP 6-31G(d)"]
 
@@ -105,6 +111,25 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
             pos = conf.GetAtomPosition(atom.GetIdx())
             lines.append(f"{atom.GetSymbol():<3}{pos.x:>14.6f}{pos.y:>14.6f}{pos.z:>14.6f}")
         lines.append("*")
+        if calc_type == "nmr_coupling":
+            # Confirmed live against a real ORCA 6.1.1 run: the %eprnmr
+            # block MUST come AFTER the coordinate (`* xyz ... *`) block --
+            # ORCA aborts at startup ("nuclear properties are requested
+            # but no coordinates have been read") if it's placed before,
+            # unlike every other ORCA block in this file which precedes
+            # coordinates. `ssall` requests spin-spin coupling to every
+            # other listed nucleus; `shift` keeps the shielding summary
+            # (same one plain "nmr" already produces) so a coupling run
+            # doesn't lose that data.
+            lines.extend(
+                [
+                    "",
+                    "%eprnmr",
+                    " Nuclei = all C { shift, ssall }",
+                    " Nuclei = all H { shift, ssall }",
+                    "end",
+                ]
+            )
         return "\n".join(lines) + "\n"
 
     def command_args(self, executable_path: str, input_path: Path) -> list[str]:
@@ -248,8 +273,8 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
 
     def parse_spectrum_output(
         self, output_text: str, mol: Chem.Mol, molecule_uuid: str, calc_type: str
-    ) -> SpectrumResult | None:
-        if calc_type != "nmr":
+    ) -> NMRSpectrumResult | None:
+        if calc_type not in ("nmr", "nmr_coupling"):
             return None
         shieldings = self._parse_shielding_summary(output_text)
         version_match = _VERSION_RE.search(output_text)
@@ -258,7 +283,7 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
             method=self.provider_id,
             parameters={"orca_version": version_match.group(1) if version_match else "unknown"},
         )
-        return SpectrumResult(
+        return NMRSpectrumResult(
             spectrum_type="nmr_raw_shielding",
             name="NMR Isotropic Shielding (raw, not yet referenced to TMS)",
             # Deliberately NOT yet a chemical shift (delta, ppm relative to
@@ -300,3 +325,66 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
                 "under it — ORCA's output format may have changed."
             )
         return shieldings
+
+    def parse_spin_spin_coupling(
+        self, output_text: str, calc_type: str
+    ) -> dict[tuple[int, int], float] | None:
+        """Real ab initio J-coupling constants (Hz) between atom-index
+        pairs -- `None` for any calc_type other than "nmr_coupling" (the
+        only one that requests the `%eprnmr ... ssall` block).
+
+        Confirmed live against a real ORCA 6.1.1 run (HF/STO-3G,
+        formaldehyde, `%eprnmr Nuclei = all C,H { shift, ssall }`):
+
+            -----------------------------------------------------------------------------
+                            SUMMARY OF ISOTROPIC COUPLING CONSTANTS J (Hz)
+            -----------------------------------------------------------------------------
+                              0 C        2 H        3 H
+                  0 C        0.000    122.043    122.043
+                  2 H      122.043      0.000     37.978
+                  3 H      122.043     37.978      0.000
+
+        A symmetric matrix, not a flat per-pair list like the shielding
+        summary -- the header row gives column atom indices (paired with
+        their element symbol), each following row repeats its own atom
+        index/element then one coupling value per column. The diagonal
+        (self-coupling, always 0.000) and the redundant lower/upper
+        triangle duplicate are both collapsed to one entry per unordered
+        pair. Real values sanity-checked against known formaldehyde
+        chemistry: 1J(C-H) >> 2J(H-H), both in the right ballpark for this
+        crude minimal-basis method (real values are method/basis-
+        dependent, not claimed to be quantitatively accurate at HF/STO-3G).
+        """
+        if calc_type != "nmr_coupling":
+            return None
+        header_match = _COUPLING_SUMMARY_HEADER_RE.search(output_text)
+        if header_match is None:
+            raise OrcaOutputError(
+                "Could not find 'SUMMARY OF ISOTROPIC COUPLING CONSTANTS' in ORCA output — "
+                "the spin-spin coupling calculation likely failed."
+            )
+        end_index = output_text.find(_COUPLING_END_MARKER, header_match.end())
+        block = output_text[header_match.end() : end_index if end_index != -1 else None]
+        lines = [line for line in block.splitlines() if line.strip() and set(line.strip()) != {"-"}]
+        if not lines:
+            raise OrcaOutputError(
+                "Found the coupling-constants summary header but no matrix rows under it — "
+                "ORCA's output format may have changed."
+            )
+
+        header_tokens = lines[0].split()
+        column_atoms = [int(header_tokens[i]) for i in range(0, len(header_tokens), 2)]
+
+        couplings: dict[tuple[int, int], float] = {}
+        for line in lines[1:]:
+            parts = line.split()
+            if len(parts) < 2:
+                continue
+            row_atom = int(parts[0])
+            values = parts[2:]
+            for column_atom, value_text in zip(column_atoms, values):
+                if column_atom == row_atom:
+                    continue
+                key = (min(row_atom, column_atom), max(row_atom, column_atom))
+                couplings.setdefault(key, float(value_text))
+        return couplings
