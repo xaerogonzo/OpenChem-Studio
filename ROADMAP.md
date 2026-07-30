@@ -30,8 +30,11 @@
 
 ## Phase 5 — AI assistant
 - [x] Context-aware chemistry explanations (bundled `plugins/ai_assistant/` plugin,
-      multi-provider — Anthropic, OpenAI, local/Ollama — via a small `AIProvider`
-      abstraction; context built purely from events, same pattern as `PropertyPanel`)
+      multi-provider — Anthropic, OpenAI, local/Ollama, plus a `ClaudeCLIProvider`
+      added in Phase 7 for claude.ai subscription users (Pro/Max) with no separate
+      Anthropic API key, driving a locally-logged-in `claude` CLI headless (`claude
+      -p`, all tools disabled) — via a small `AIProvider` abstraction; context built
+      purely from events, same pattern as `PropertyPanel`)
 - [x] Workflow assistance via canned, pre-filled prompts ("Explain Selected Molecule",
       "Generate Molecule Report") — user still clicks Send, nothing fires over the
       network on its own
@@ -137,6 +140,34 @@ verification never exercised.
       `QuantumChemistryService._on_finished` could read a QProcess's output
       before Qt delivered its last buffered chunk. See ARCHITECTURE.md's
       "Known TODOs" for the full detail on each.
+
+## Phase 8 — Interactivity fixes (real-world usage, round 2)
+
+More real usage after Phase 7 landed, surfacing bugs specifically about
+things not *responding* to clicks, distinct from Phase 7's layout/backend
+issues.
+
+- [x] 8.1 — `DockingPanel`'s receptor/ligand combos and
+      `QuantumChemistryPanel`'s molecule combo were only populated when
+      `set_project()` ran (project open/new) — a molecule or macromolecule
+      added afterward (File > New Molecule, an import, a plugin search
+      result, or Phase 7.2's empty-project auto-create) never appeared in
+      either dropdown, making them look permanently unusable. `add_molecule`/
+      `_import_molecule`/`add_macromolecule` now explicitly refresh both
+      panels, the same way they already refreshed the project explorer.
+- [x] 8.2 — All three bundled plugins' menu actions ("Explain Selected
+      Molecule", "Search Chemical Databases", "Predict Reaction Products")
+      only called panel-internal focus/prefill methods, invisible whenever
+      that panel was hidden behind another tab in its tabified dock group —
+      confirmed live as "clicking the menu item does nothing." Added
+      `UIRegistry.reveal_panel()` / `context.panels.reveal()` and wired it
+      into all three plugins.
+- [x] 8.3 — Small UX fixes found in the same pass: `QuantumChemistryPanel`'s
+      "generate a conformer first" message referenced a nonexistent
+      "Conformers panel" (it's the 3D Viewer tab's "Generate Conformers..."
+      button) — fixed the wording. The AI Assistant's provider Model field
+      was a plain text box requiring the exact model id typed from memory —
+      now an editable combo box with current per-provider presets.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for how the codebase is structured to
 make Phases 3-6 additive rather than requiring a rewrite.
