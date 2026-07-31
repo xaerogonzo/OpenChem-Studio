@@ -530,23 +530,37 @@ def test_matching_result_opens_the_inspector_and_clears_pending(qapp, monkeypatc
     assert panel._pending_calculator_id is None
 
 
-def test_matching_spectrum_result_opens_the_inspector_and_clears_pending(qapp, monkeypatch):
+def test_matching_spectrum_result_opens_the_nmr_view_and_clears_pending(qapp, monkeypatch):
     """Phase 22: a RegistryExecution calculator can return a SpectrumResult
     (the empirical NMR estimator) instead of a PerAtomDataset -- matched
     by spectrum_type against _pending_calculator_id the same way
-    property_id is matched for PerAtomDataComputed."""
+    property_id is matched for PerAtomDataComputed.
+
+    Phase 23c: a spectrum now opens the dedicated NMR view rather than the
+    generic Calculator Inspector, whose one-colour-per-atom layout has
+    nowhere to put grouped signals, integrations and multiplicities.
+    """
     from openchem.domain.scientific_result import NMRSpectrumResult
     from openchem.events.events import SpectrumComputed
 
     opened = []
+    inspector_opened = []
 
-    class _FakeInspectorDialog:
+    class _FakeNmrViewDialog:
         def __init__(self, engine, molecule, result, conformer_molblock, parent=None):
             opened.append((molecule, result))
 
         def exec(self):
             return QDialog.DialogCode.Accepted
 
+    class _FakeInspectorDialog:
+        def __init__(self, engine, molecule, result, conformer_molblock, parent=None):
+            inspector_opened.append(result)
+
+        def exec(self):
+            return QDialog.DialogCode.Accepted
+
+    monkeypatch.setattr(property_panel_module, "NmrViewDialog", _FakeNmrViewDialog)
     monkeypatch.setattr(property_panel_module, "CalculatorInspectorDialog", _FakeInspectorDialog)
 
     panel, bus, _service = _make_panel(qapp)
@@ -571,6 +585,7 @@ def test_matching_spectrum_result_opens_the_inspector_and_clears_pending(qapp, m
 
     assert len(opened) == 1
     assert opened[0][0] is molecule
+    assert inspector_opened == []
     assert panel._pending_calculator_id is None
 
 

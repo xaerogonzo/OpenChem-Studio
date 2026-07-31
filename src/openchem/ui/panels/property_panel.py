@@ -34,6 +34,7 @@ from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.descriptor_service import DescriptorService
 from openchem.ui.dialogs.calculator_inspector_dialog import CalculatorInspectorDialog
 from openchem.ui.dialogs.calculator_settings_dialog import CalculatorSettingsDialog
+from openchem.ui.dialogs.nmr_view_dialog import NmrViewDialog
 
 # Preferred display order -- any category not listed here (e.g. a future
 # plugin-supplied one) is appended alphabetically after these, not dropped.
@@ -450,5 +451,13 @@ class PropertyPanel(QWidget):
         if molecule is None:
             return
         conformer_molblock = molecule.conformers[0].molblock if molecule.conformers else None
-        dialog = CalculatorInspectorDialog(self._chemistry_engine, molecule, result, conformer_molblock, self)
+        # A spectrum goes to the dedicated NMR view (Phase 23c): grouped
+        # signals, integrations and multiplicities have nowhere to live in
+        # the generic inspector's one-colour-per-atom layout.
+        if isinstance(result, SpectrumResult):
+            dialog = NmrViewDialog(self._chemistry_engine, molecule, result, conformer_molblock, parent=self)
+        else:
+            dialog = CalculatorInspectorDialog(
+                self._chemistry_engine, molecule, result, conformer_molblock, self
+            )
         dialog.exec()

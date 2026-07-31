@@ -34,6 +34,7 @@ from openchem.events.events import (
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
 from openchem.ui.widgets.nmr_correlation_plot_widget import NmrCorrelationPlotWidget, Peak
+from openchem.ui.widgets.nmr_view_widget import NmrViewWidget
 
 _NMR_SPECTRUM_COLUMNS = ("Atom", "Element", "Value (ppm)")
 _CORRELATION_COLUMNS = ("Atom A", "Atom B", "Shift A", "Shift B", "J (Hz)")
@@ -75,6 +76,12 @@ class QuantumChemistryPanel(QWidget):
         self._pending_mol = None  # rdkit.Chem.Mol, set in _on_run_clicked -- needed
         # by _on_spectrum_computed to compute connectivity-derived HSQC/
         # HMBC/COSY correlations against whichever shift values arrive.
+        # The molecule's own 2D structure and its conformer, kept for the 1D
+        # NMR view: the depiction must come from the 2D molblock (drawing
+        # the conformer's flattened 3D coordinates gives an unreadable
+        # tangle), the 3D pane from the conformer.
+        self._pending_molblock: str = ""
+        self._pending_conformer_molblock: str = ""
 
         self._molecule_combo = QComboBox(self)
         self._molecule_combo.currentIndexChanged.connect(self._on_molecule_changed)
@@ -120,12 +127,21 @@ class QuantumChemistryPanel(QWidget):
         self._spectrum_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._spectrum_table.setVisible(False)
 
-        # 2D correlation tabs (HSQC/HMBC/COSY, Phase 22) -- one table +
-        # scatter plot per correlation type, built from connectivity alone
+        # NMR tabs: the Phase 23c 1D signal view first, then the Phase 22 2D
+        # correlation tabs (HSQC/HMBC/COSY) -- one table + scatter plot per
+        # correlation type, built from connectivity alone
         # (chem/nmr_correlation.py), so they populate regardless of
         # whether the shift values are raw shielding or TMS-calibrated.
         self._correlation_tabs = QTabWidget(self)
         self._correlation_tabs.setVisible(False)
+        # The 1D view owns a QWebEngineView for its 3D pane, which is
+        # expensive enough not to build for every user who never runs an NMR
+        # calculation -- the tab exists from the start (so tab order never
+        # shifts under the user), the widget lands in it on first result.
+        self._nmr_view: NmrViewWidget | None = None
+        self._nmr_view_tab = QWidget(self._correlation_tabs)
+        self._nmr_view_layout = QVBoxLayout(self._nmr_view_tab)
+        self._correlation_tabs.addTab(self._nmr_view_tab, "1D Signals")
         self._correlation_tables: dict[str, QTableWidget] = {}
         self._correlation_plots: dict[str, NmrCorrelationPlotWidget] = {}
         for correlation_type, _compute_fn, _x_label, _y_label in _CORRELATION_SPECS:
@@ -232,6 +248,8 @@ class QuantumChemistryPanel(QWidget):
 
         self._pending_molecule_uuid = molecule.uuid
         self._pending_mol = mol
+        self._pending_molblock = molecule.molblock
+        self._pending_conformer_molblock = molblock
         self._run_button.setEnabled(False)
         self._cancel_button.setEnabled(True)
         self._output_log.clear()
@@ -310,7 +328,22 @@ class QuantumChemistryPanel(QWidget):
             for col, text in enumerate(values):
                 self._spectrum_table.setItem(row, col, QTableWidgetItem(text))
 
+        self._update_nmr_view(spectrum)
         self._update_correlation_tabs(spectrum)
+
+    def _update_nmr_view(self, spectrum: SpectrumResult) -> None:
+        """Populates the 1D signal view -- the same `NmrViewWidget` the
+        Property Panel opens for the empirical estimator, so a real ORCA
+        result and a SMARTS estimate are read the same way."""
+        if not self._pending_molblock:
+            return
+        if self._nmr_view is None:
+            self._nmr_view = NmrViewWidget(self._chemistry_engine, parent=self._nmr_view_tab)
+            self._nmr_view_layout.addWidget(self._nmr_view)
+        self._nmr_view.set_spectrum(
+            self._pending_molblock, spectrum, self._pending_conformer_molblock or None
+        )
+        self._correlation_tabs.setVisible(True)
 
     def _update_correlation_tabs(self, spectrum: SpectrumResult) -> None:
         mol = self._pending_mol
