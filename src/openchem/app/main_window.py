@@ -49,6 +49,7 @@ from openchem.ui.panels.jobs_panel import JobsPanel
 from openchem.ui.panels.project_explorer_panel import ProjectExplorerPanel
 from openchem.ui.panels.property_panel import PropertyPanel
 from openchem.ui.panels.quantum_chemistry_panel import QuantumChemistryPanel
+from openchem.ui.visualization import build_interaction_layers
 from openchem.ui.widgets.molecule_editor_widget import MoleculeEditorWidget
 from openchem.ui.widgets.molecule_viewer3d_widget import MoleculeViewer3DWidget
 from openchem.ui.widgets.molstar_viewer_backend import MolStarViewerBackend
@@ -543,6 +544,14 @@ class MainWindow(QMainWindow):
         self._macromolecule_viewer.load_macromolecule(receptor.structure_text, receptor.source_format)
         best_pose = min(event.result.poses, key=lambda p: p.binding_affinity_kcal_mol)
         self._macromolecule_viewer.load_additional_structure(best_pose.pose_molblock, "mol", "docked ligand")
+        # Colour the binding site from the interaction analysis this pose
+        # already carries (chem/pose_analysis.py wrote it into metadata when
+        # the job finished) -- blue where the ligand hydrogen-bonds, red
+        # where it clashes. Empty for a pose with neither, which correctly
+        # clears rather than leaving a previous pose's colouring behind.
+        self._macromolecule_viewer.apply_visualizations(
+            build_interaction_layers(best_pose.metadata)
+        )
         self._center_tabs.setCurrentWidget(self._macromolecule_viewer.widget())
 
     def _current_molecule(self) -> MoleculeModel | None:

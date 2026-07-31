@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 
 from openchem.ui.visualization import ResidueColorLayer, VisualizationLayer
-from openchem.ui.widgets.molstar_viewer_backend import MolStarViewerBackend
+from openchem.ui.widgets.molstar_viewer_backend import _NOTHING_PENDING, MolStarViewerBackend
 
 # A minimal, self-contained single-residue PDB — no network access needed.
 # Confirmed against the real (offscreen-platform) Mol* viewer during the
@@ -115,7 +115,7 @@ def test_residue_colors_applied_before_the_viewer_exists_are_replayed(qapp):
     # exist until its structure is loaded.
     assert "loadStructure" in calls[0]
     assert "applyResidueColors" in calls[1]
-    assert backend._pending_layers is None
+    assert backend._pending_layers is _NOTHING_PENDING  # consumed, not left queued
 
 
 def test_residue_names_are_passed_unquoted_to_mol_script(qapp):
@@ -173,3 +173,18 @@ def test_empty_layer_list_clears(qapp):
     backend.apply_visualizations([])
 
     assert "clearResidueColors" in calls[-1]
+
+
+def test_a_queued_clear_is_not_lost(qapp):
+    """Regression test for an ambiguous sentinel: None is a real queued
+    VALUE here (meaning "clear"), so using None as the also-means-empty
+    marker silently dropped clears requested before the viewer existed."""
+    backend = MolStarViewerBackend()
+    calls = _fired_js(backend)
+
+    backend.load_macromolecule(_MINIMAL_PDB, "pdb")
+    backend.apply_visualizations([])  # queued clear, viewer not ready yet
+    assert calls == []
+
+    assert _wait_until(qapp, lambda: backend._viewer_ready)
+    assert _wait_until(qapp, lambda: any("clearResidueColors" in js for js in calls))

@@ -16,6 +16,9 @@ logger = logging.getLogger("openchem.ui")
 
 _VIEWER_HTML = Path(__file__).resolve().parent.parent.parent / "resources" / "molstar" / "viewer.html"
 
+# Distinct from None, which is a real queued value meaning "clear".
+_NOTHING_PENDING = object()
+
 
 class _Bridge(QObject):
     """QWebChannel-exposed object. viewer.html's JS calls these back —
@@ -81,7 +84,11 @@ class MolStarViewerBackend(ViewerBackend):
         # Residue colouring queued before the viewer exists. A single slot,
         # not a FIFO like _pending_calls above: layers replace rather than
         # accumulate, so only the most recent one matters.
-        self._pending_layers: dict[str, str] | None = None
+        #
+        # `_NOTHING_PENDING` rather than None as the empty marker, because
+        # None is itself a meaningful queued VALUE here -- it means "clear
+        # the colouring". Using None for both lost queued clears entirely.
+        self._pending_layers: dict[str, str] | None | object = _NOTHING_PENDING
         self._page.load(QUrl.fromLocalFile(str(_VIEWER_HTML)))
 
     def _on_viewer_ready(self) -> None:
@@ -92,9 +99,9 @@ class MolStarViewerBackend(ViewerBackend):
         # Replayed AFTER the structures, never before: overpaint attaches
         # to a representation that does not exist until its structure is
         # loaded, so colouring first would target nothing.
-        if self._pending_layers is not None:
+        if self._pending_layers is not _NOTHING_PENDING:
             self._run_apply_residue_colors(self._pending_layers)
-            self._pending_layers = None
+            self._pending_layers = _NOTHING_PENDING
 
     def load_macromolecule(self, structure_text: str, source_format: str) -> None:
         self._load(structure_text, source_format, "structure", additional=False)
@@ -122,7 +129,7 @@ class MolStarViewerBackend(ViewerBackend):
         if self._viewer_ready:
             self._page.runJavaScript("window.openchemMolstarViewer.clear();")
         self._pending_calls = []
-        self._pending_layers = None
+        self._pending_layers = _NOTHING_PENDING
 
     def apply_visualizations(self, layers: list[AnyVisualizationLayer]) -> None:
         """Renders `ResidueColorLayer`s and IGNORES atom layers -- per
