@@ -21,6 +21,7 @@ from openchem.chem.calculator_options import (
 )
 from openchem.chem.bbb_stereo import compute_bbb_descriptors, compute_stereo_descriptors
 from openchem.chem.nmr_database import compute_database_nmr
+from openchem.chem.steric import compute_steric_analysis
 from openchem.chem.alignment import (
     ACCURACY_LEVELS,
     ALIGNMENT_METHODS,
@@ -1283,6 +1284,34 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         tags=["admet", "cns", "mpo", "druglikeness"],
         parameters=[
             decimal_places_parameter(),
+        ],
+    ),
+    CalculatorDefinition(
+        calculator_id="steric_analysis",
+        display_name="Ligand Steric Bulk",
+        category="geometry",
+        description=(
+            "Exact cone angle (Bilbrey/Allen) and percent buried volume for a ligand, with the "
+            "cone axis solved for rather than assumed along the metal-donor bond. Computed from "
+            "free-ligand MMFF conformers, so values RANK ligands correctly (ordering identical "
+            "to Tolman's published series, r = 0.98) but are not directly comparable to tables "
+            "computed on metal-bound DFT or crystal geometries. Needs a donor atom."
+        ),
+        execution=RegistryExecution(compute=compute_steric_analysis),
+        tags=["geometry", "steric", "ligand", "cone angle", "buried volume"],
+        parameters=[
+            decimal_places_parameter(),
+            CalculatorParameter(
+                name="conformers", label="Conformers", kind="int", default=20, minimum=1, maximum=200
+            ),
+            CalculatorParameter(
+                name="metal_distance", label="Metal-donor distance (A)", kind="float",
+                default=2.28, minimum=1.0, maximum=5.0,
+            ),
+            CalculatorParameter(
+                name="sphere_radius", label="%Vbur sphere radius (A)", kind="float",
+                default=3.5, minimum=1.0, maximum=10.0,
+            ),
         ],
     ),
     CalculatorDefinition(

@@ -11,40 +11,17 @@ well-defined force field energies, but they are not comparable to
 Marvin's numbers, and relabelling either as "Dreiding" would produce a
 figure that looks authoritative and cross-references to nothing.
 
-ON STERIC HINDRANCE: still absent, but the reason has narrowed and is
-worth recording so the next attempt does not start over.
+ON STERIC HINDRANCE: two real measures now ship, in `chem/steric.py`
+-- the exact cone angle and percent buried volume. What unblocked them
+was not new code but the realisation that the earlier validation used
+the wrong reference: those numbers were being compared against Tolman's
+CPK-model values, when the quantity being computed is the EXACT cone
+angle, a different (and better-posed) definition. See that module for
+the measured results and the geometry caveat.
 
-"Steric hindrance" itself names several incompatible quantities. But two
-REAL, published, validatable measures exist, and both were implemented
-and checked against their literature values:
-
-  Tolman cone angle (Chem. Rev. 1977, 77, 313), M-P 2.28 A --
-      PH3 86.4 vs 87, PMe3 117.2 vs 118, PCy3 170.6 vs 170: essentially
-      exact. But PPh3 came out 163.8 against Tolman's 145, and P(tBu)3
-      193.6 against 182. Tolman folded substituents into their nested
-      minimum profile on CPK models; minimising over an MMFF conformer
-      ensemble does not reproduce that, and it fails hardest on flexible
-      aryl groups -- i.e. on PPh3, the one ligand everybody checks a cone
-      angle implementation against.
-
-  Percent buried volume (SambVca; R = 3.5 A, M-P 2.28 A, Bondi radii
-  x1.17, hydrogens omitted) --
-      PMe3 24.4 vs 26.2, PPh3 30.8 vs 30.1, PCy3 35.5 vs 32.7,
-      P(tBu)3 39.7 vs 36.2. Mean absolute error 2.2 points, and the
-      residual grows monotonically with ligand size, which points at the
-      geometry source: published values come from crystal structures,
-      not from an MMFF-optimised ensemble.
-
-Both reproduce the ORDERING correctly (PMe3 < PPh3 < PCy3 < PtBu3), which
-is what a steric measure is mostly used for. Neither reproduces absolute
-published values closely enough to ship under its own name -- reporting
-PCy3 as 35.5 %Vbur when the literature says 32.7 would mislead anyone
-comparing against a paper. Shipping it as an unnamed "steric index"
-would be worse: unnamed means uncheckable.
-
-The gaps are now specific rather than fundamental (substituent nesting;
-crystal vs. force-field geometry), so this is a real candidate to finish,
-unlike the topological steric effect index -- see `topology_analysis`.
+The TOPOLOGICAL steric effect index stays absent -- see
+`topology_analysis`. Unlike these two it has no single definition to
+implement.
 """
 
 from __future__ import annotations
