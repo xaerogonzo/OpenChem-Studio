@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QTimer, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QDialog,
@@ -23,6 +23,19 @@ from PySide6.QtWidgets import (
 from openchem.app.settings import Settings
 from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING, describe_pka_status
 from openchem.plugins.async_task import run_async
+from openchem.services.pkasolver_setup import (
+    APPROX_DISK_GB,
+    APPROX_DOWNLOAD_MB,
+    PKASOLVER_REPO,
+    PkasolverSetupError,
+    SetupProgress,
+    TORCH_VERSION,
+    default_install_root,
+    describe_prerequisites,
+    find_fallback_python,
+    find_uv,
+    install,
+)
 from openchem.services.tool_download_service import (
     ORCA_DOCS_PAGE,
     ORCA_DOWNLOAD_PAGE,
@@ -265,6 +278,12 @@ class ExternalToolsDialog(QDialog):
         test_button = QPushButton("Test (predicts acetic acid's pKa)...", tab)
         test_button.clicked.connect(self._on_pkasolver_test_clicked)
 
+        self._pkasolver_setup_button = QPushButton("Set Up Automatically...", tab)
+        self._pkasolver_setup_button.clicked.connect(self._on_pkasolver_setup_clicked)
+        self._pkasolver_prereq_label = QLabel(describe_prerequisites(), tab)
+        self._pkasolver_prereq_label.setWordWrap(True)
+        self._pkasolver_prereq_label.setStyleSheet("color: #666666;")
+
         why_note = QLabel(
             "Unlike Vina and ORCA this is a Python interpreter, not an executable. "
             "pkasolver needs numpy<2 while OpenChem Studio runs numpy 2.x, so it "
@@ -275,13 +294,15 @@ class ExternalToolsDialog(QDialog):
         why_note.setWordWrap(True)
 
         setup_note = QLabel(
-            "Setup (one time, ~1 GB): create a Python 3.11 virtual environment, then "
-            "install into it — torch==2.3.0 (CPU), torch-geometric==2.0.1, "
-            "torch-scatter and torch-sparse from https://data.pyg.org/whl/torch-2.3.0+cpu.html "
-            "(prebuilt wheels, no compiler needed), numpy<2, scipy<1.14, pandas, rdkit, "
-            "and pkasolver itself from github.com/mayrf/pkasolver. Then Browse to that "
-            "environment's python.exe above. These exact versions matter: newer "
-            "torch-geometric cannot load pkasolver's trained models.",
+            "'Set Up Automatically' builds the whole environment for you and fills in the "
+            "path above — it will show you exactly what gets downloaded first. If you would "
+            "rather do it by hand: a Python 3.10–3.12 environment (NOT this app's own 3.13 — "
+            "PyTorch 2.3.0 publishes no wheels for it) containing torch==2.3.0 (CPU), "
+            "torch-geometric==2.0.1, torch-scatter and torch-sparse from "
+            "https://data.pyg.org/whl/torch-2.3.0+cpu.html (prebuilt, no compiler needed), "
+            "numpy<2, scipy<1.14, pandas, rdkit, plus github.com/mayrf/pkasolver on its "
+            "import path. Those exact pins matter — newer torch-geometric cannot load "
+            "pkasolver's trained models at all.",
             tab,
         )
         setup_note.setWordWrap(True)
@@ -297,14 +318,88 @@ class ExternalToolsDialog(QDialog):
         form.addRow("Python interpreter:", path_row)
         form.addRow("Status:", self._pkasolver_status_label)
 
+        action_row = QHBoxLayout()
+        action_row.addWidget(self._pkasolver_setup_button)
+        action_row.addWidget(test_button)
+        action_row.addStretch()
+
         layout = QVBoxLayout(tab)
         layout.addLayout(form)
-        layout.addWidget(test_button)
+        layout.addLayout(action_row)
+        layout.addWidget(self._pkasolver_prereq_label)
         layout.addWidget(why_note)
         layout.addWidget(setup_note)
         layout.addWidget(without_note)
         layout.addStretch(1)
         return tab
+
+    def _on_pkasolver_setup_clicked(self) -> None:
+        if not find_uv() and not find_fallback_python():
+            QMessageBox.warning(self, "Cannot set up automatically", describe_prerequisites())
+            return
+
+        root = default_install_root()
+        # Same policy the Vina downloader follows: never fetch anything
+        # without showing what, from where, and how big, then waiting for
+        # an explicit yes. This one is multi-gigabyte, so it matters more.
+        answer = QMessageBox.question(
+            self,
+            "Set up pkasolver",
+            (
+                f"Build a pkasolver environment?\n\n"
+                f"Location: {root}\n"
+                f"Downloads: roughly {APPROX_DOWNLOAD_MB} MB\n"
+                f"Disk space when finished: about {APPROX_DISK_GB} GB\n\n"
+                f"Sources:\n"
+                f"  • PyTorch {TORCH_VERSION} (CPU) — download.pytorch.org\n"
+                f"  • torch-scatter / torch-sparse — data.pyg.org (prebuilt wheels)\n"
+                f"  • torch-geometric, numpy, scipy, pandas, rdkit — PyPI\n"
+                f"  • pkasolver + trained models — {PKASOLVER_REPO}\n\n"
+                f"{describe_prerequisites()}\n\n"
+                f"This takes several minutes. Continue?"
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        self._pkasolver_setup_button.setEnabled(False)
+        self._pkasolver_status_label.setText("Starting…")
+        run_async(
+            lambda: install(root, on_progress=self._on_pkasolver_setup_progress),
+            PkasolverSetupError,
+            self._on_pkasolver_setup_finished,
+            self._on_pkasolver_setup_failed,
+        )
+
+    def _on_pkasolver_setup_progress(self, progress: SetupProgress) -> None:
+        # Called from the worker thread. setText on a QLabel from a non-GUI
+        # thread is not safe in general, so this hops back via the same
+        # single-shot-timer idiom Qt sanctions for cross-thread UI updates.
+        QTimer.singleShot(
+            0,
+            lambda: self._pkasolver_status_label.setText(
+                f"[{progress.step}/{progress.total}] {progress.message}…"
+            ),
+        )
+
+    def _on_pkasolver_setup_finished(self, interpreter: Path) -> None:
+        self._pkasolver_setup_button.setEnabled(True)
+        self._pkasolver_path_edit.setText(str(interpreter))
+        self._on_pkasolver_path_edited()
+        self._pkasolver_status_label.setText(
+            "Set up and verified — numeric pKa and Henderson-Hasselbalch LogD are now available."
+        )
+        QMessageBox.information(
+            self,
+            "pkasolver ready",
+            f"Environment built and verified with a real prediction.\n\n{interpreter}",
+        )
+
+    def _on_pkasolver_setup_failed(self, message: str) -> None:
+        self._pkasolver_setup_button.setEnabled(True)
+        self._pkasolver_status_label.setText(f"Setup failed: {message}")
+        QMessageBox.critical(self, "pkasolver setup failed", message)
 
     def _on_pkasolver_path_edited(self) -> None:
         self._settings.set(PKASOLVER_PYTHON_SETTING, self._pkasolver_path_edit.text())

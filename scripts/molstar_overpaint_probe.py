@@ -1,33 +1,38 @@
-"""Interactive probe: does Mol* residue overpainting actually work?
-
-Run it, look at the window, answer one question. Nothing here touches the
-app's own code paths destructively -- it drives the REAL
-`MolStarViewerBackend` with a small synthetic 3-residue peptide, then tries
-several candidate mol-script selection syntaxes one at a time.
+"""Interactive probe: which mol-script syntax actually colours a residue?
 
     uv run python scripts/molstar_overpaint_probe.py
 
+One syntax at a time. For each, the probe clears any previous colouring,
+waits for Mol* to settle, then asks you a yes/no question with two buttons.
+It records your answers and prints a summary at the end -- you don't have
+to remember or transcribe anything.
+
 Why this exists: `OverpaintStructureRepresentation3DFromScript` commits
-without error even when its selection matches NOTHING -- verified during
-Phase 24, where a select-everything expression still reported zero layers
-on readback. So "it didn't throw" proves nothing, and reading the state
-back proved unreliable too. The only trustworthy signal left is your eyes:
-a residue either turns red on screen or it doesn't.
+without error even when its selection matches NOTHING, and reading the
+resulting state back proved unreliable too (a select-everything expression
+reported zero layers while visibly working). Eyes are the only trustworthy
+oracle here, so the probe's whole job is making the question unambiguous.
 """
 
 from __future__ import annotations
 
+import json
 import sys
 
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 from openchem.ui.widgets.molstar_viewer_backend import MolStarViewerBackend
 
-# Three well-separated residues so a colour change on ONE of them is
-# unmistakable. TYR652 is the target throughout -- it is also the residue
-# real hERG/binding-site analysis cares about, which makes the numbering
-# familiar rather than arbitrary.
+# Three well-separated residues so a colour change on ONE is unmistakable.
 _PDB = "\n".join(
     [
         "ATOM      1  N   TYR A 652      11.104  13.207   2.845  1.00 20.00           N",
@@ -48,32 +53,34 @@ _PDB = "\n".join(
     ]
 )
 
-# Candidate selection syntaxes. The differences that matter: auth_* (author
-# numbering, what a PDB file literally says) vs label_* (mmCIF canonical
-# numbering), and whether string literals need quoting in mol-script.
-_CANDIDATES: list[tuple[str, str]] = [
-    ("auth_quoted", '(sel.atom.res (and (= atom.auth_comp_id "TYR") (= atom.auth_seq_id 652)))'),
-    ("auth_bare", "(sel.atom.res (and (= atom.auth_comp_id TYR) (= atom.auth_seq_id 652)))"),
-    ("label_quoted", '(sel.atom.res (and (= atom.label_comp_id "TYR") (= atom.label_seq_id 652)))'),
-    ("auth_seq_only", "(sel.atom.res (= atom.auth_seq_id 652))"),
-    ("resname_only_quoted", '(sel.atom.res (= atom.auth_comp_id "TYR"))'),
-    ("EVERYTHING (control)", "(sel.atom.atoms)"),
+# Each entry: (label, expression, what you should see if it matches).
+# The two controls at the ends are what make the run interpretable: if
+# EVERYTHING fails to colour, the problem is not the selection syntax, and
+# if NOTHING-selector colours something, the probe itself is broken.
+_CANDIDATES: list[tuple[str, str, str]] = [
+    ("CONTROL: select everything", "(sel.atom.atoms)", "ALL THREE residues red"),
+    ("auth_bare", "(sel.atom.res (and (= atom.auth_comp_id TYR) (= atom.auth_seq_id 652)))", "leftmost only"),
+    ("auth_quoted", '(sel.atom.res (and (= atom.auth_comp_id "TYR") (= atom.auth_seq_id 652)))', "leftmost only"),
+    ("label_bare", "(sel.atom.res (and (= atom.label_comp_id TYR) (= atom.label_seq_id 652)))", "leftmost only"),
+    ("auth_seq_only", "(sel.atom.res (= atom.auth_seq_id 652))", "leftmost only"),
+    ("resname_only_bare", "(sel.atom.res (= atom.auth_comp_id TYR))", "leftmost only"),
+    ("CONTROL: matches nothing", "(sel.atom.res (= atom.auth_seq_id 99999))", "NOTHING red"),
 ]
 
-_JS_TEMPLATE = """
+_APPLY_JS = """
 (function () {
   try {
     var plugin = window.__probeViewer.plugin;
     var ST = molstar.lib.plugin.StateTransforms;
     var hier = plugin.managers.structure.hierarchy.current;
-    if (!hier.structures.length) return 'NO STRUCTURE LOADED';
+    if (!hier.structures.length) return 'NO STRUCTURE';
     var repr = hier.structures[0].components[0].representations[0];
     plugin.build().to(repr.cell.transform.ref).apply(
       ST.Representation.OverpaintStructureRepresentation3DFromScript,
       { layers: [{ script: { language: 'mol-script', expression: %s },
                    color: 0xff0000, clear: false }] }
     ).commit();
-    return 'committed';
+    return 'ok';
   } catch (e) { return 'ERROR ' + String(e); }
 })();
 """
@@ -86,6 +93,7 @@ _CLEAR_JS = """
     plugin.state.data.cells.forEach(function (c, ref) {
       if (c.transform.transformer.id && /overpaint/i.test(c.transform.transformer.id)) refs.push(ref);
     });
+    if (!refs.length) return 'nothing to clear';
     var b = plugin.build();
     refs.forEach(function (r) { b.delete(r); });
     b.commit();
@@ -94,77 +102,104 @@ _CLEAR_JS = """
 })();
 """
 
+# Mol* commits asynchronously and repaints on its own schedule. Waiting
+# between clear -> apply -> "now look" is what removes the ambiguity that
+# made the first version of this probe unreadable.
+_SETTLE_MS = 1200
+
 
 class Probe(QWidget):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Mol* overpaint probe — does TYR652 turn red?")
-        self.resize(1100, 760)
-        self._index = 0
+        self.setWindowTitle("Mol* overpaint probe")
+        self.resize(1150, 820)
+        self._index = -1
+        self._answers: list[tuple[str, str]] = []
 
         self._backend = MolStarViewerBackend(self)
-        self._status = QLabel("Loading structure…", self)
-        self._status.setWordWrap(True)
-        self._status.setStyleSheet("font-size: 14px; padding: 6px;")
 
-        self._next = QPushButton("Try next syntax →", self)
-        self._next.clicked.connect(self._apply_next)
-        self._next.setEnabled(False)
-        self._clear = QPushButton("Clear colouring", self)
-        self._clear.clicked.connect(lambda: self._run(_CLEAR_JS, "cleared"))
+        self._heading = QLabel("Loading structure…", self)
+        self._heading.setStyleSheet("font-size: 17px; font-weight: bold; padding: 4px;")
+        self._heading.setWordWrap(True)
+        self._detail = QLabel("", self)
+        self._detail.setStyleSheet("font-size: 13px; padding: 2px 4px;")
+        self._detail.setWordWrap(True)
 
-        row = QHBoxLayout()
-        row.addWidget(self._next)
-        row.addWidget(self._clear)
-        row.addStretch()
+        self._yes = QPushButton("YES — I see red", self)
+        self._no = QPushButton("NO — nothing changed", self)
+        self._yes.clicked.connect(lambda: self._answer("MATCHED"))
+        self._no.clicked.connect(lambda: self._answer("no match"))
+        self._set_buttons(False)
+
+        self._summary = QTextEdit(self)
+        self._summary.setReadOnly(True)
+        self._summary.setMaximumHeight(150)
+        self._summary.setPlaceholderText("Results appear here as you answer — paste this back to Claude when done.")
+
+        buttons = QHBoxLayout()
+        buttons.addWidget(self._yes)
+        buttons.addWidget(self._no)
+        buttons.addStretch()
 
         layout = QVBoxLayout(self)
-        layout.addWidget(self._status)
-        layout.addLayout(row)
-        layout.addWidget(self._backend.widget())
+        layout.addWidget(self._heading)
+        layout.addWidget(self._detail)
+        layout.addLayout(buttons)
+        layout.addWidget(self._backend.widget(), stretch=1)
+        layout.addWidget(self._summary)
 
         self._backend.load_macromolecule(_PDB, "pdb")
-        # Mol*'s viewer is created asynchronously; give the structure a
-        # moment to render before exposing the viewer handle the JS needs.
-        QTimer.singleShot(4000, self._ready)
+        QTimer.singleShot(4500, self._begin)
 
-    def _ready(self) -> None:
+    def _set_buttons(self, enabled: bool) -> None:
+        self._yes.setEnabled(enabled)
+        self._no.setEnabled(enabled)
+
+    def _begin(self) -> None:
         self._backend._page.runJavaScript("window.__probeViewer = viewer; 'ok';")
-        self._next.setEnabled(True)
-        self._status.setText(
-            "Structure loaded: TYR652, PHE656, GLY660 (three separated blobs).\n"
-            "Click 'Try next syntax' and watch whether the LEFTMOST residue (TYR652) turns RED."
-        )
+        self._advance()
 
-    def _apply_next(self) -> None:
-        if self._index >= len(_CANDIDATES):
-            self._status.setText("All syntaxes tried. Tell Claude which ones (if any) coloured anything.")
-            self._next.setEnabled(False)
-            return
-        name, expression = _CANDIDATES[self._index]
+    def _advance(self) -> None:
         self._index += 1
-        self._run(_CLEAR_JS, None)
-        js = _JS_TEMPLATE % _js_string(expression)
-        self._run(js, None)
-        remaining = len(_CANDIDATES) - self._index
-        self._status.setText(
-            f"[{self._index}/{len(_CANDIDATES)}]  {name}\n"
-            f"{expression}\n\n"
-            f"Does TYR652 (leftmost) look RED right now?   ({remaining} left)"
+        if self._index >= len(_CANDIDATES):
+            self._finish()
+            return
+        label, expression, expectation = _CANDIDATES[self._index]
+        self._set_buttons(False)
+        self._heading.setText(f"[{self._index + 1}/{len(_CANDIDATES)}]  {label} — applying…")
+        self._detail.setText(expression)
+
+        # clear -> settle -> apply -> settle -> ask. Chained on timers
+        # rather than fired back-to-back, so nothing is being asked about
+        # a frame that hasn't rendered yet.
+        self._backend._page.runJavaScript(_CLEAR_JS)
+        QTimer.singleShot(_SETTLE_MS, lambda: self._apply(label, expression, expectation))
+
+    def _apply(self, label: str, expression: str, expectation: str) -> None:
+        self._backend._page.runJavaScript(_APPLY_JS % json.dumps(expression))
+        QTimer.singleShot(_SETTLE_MS, lambda: self._ask(label, expectation))
+
+    def _ask(self, label: str, expectation: str) -> None:
+        self._heading.setText(f"[{self._index + 1}/{len(_CANDIDATES)}]  {label}   →   LOOK NOW")
+        self._detail.setText(
+            f"{_CANDIDATES[self._index][1]}\n\nIf this syntax works you should see: {expectation}"
         )
+        self._set_buttons(True)
 
-    def _run(self, js: str, done_message: str | None) -> None:
-        def _back(result):
-            if done_message:
-                self._status.setText(f"{done_message}: {result}")
+    def _answer(self, verdict: str) -> None:
+        label = _CANDIDATES[self._index][0]
+        self._answers.append((label, verdict))
+        self._summary.setPlainText(
+            "\n".join(f"{name:28s} {result}" for name, result in self._answers)
+        )
+        self._advance()
 
-        self._backend._page.runJavaScript(js, _back)
-
-
-def _js_string(value: str) -> str:
-    import json
-
-    return json.dumps(value)
+    def _finish(self) -> None:
+        self._set_buttons(False)
+        self._heading.setText("Done — paste the results below back to Claude.")
+        self._detail.setText("")
+        lines = [f"{name:28s} {result}" for name, result in self._answers]
+        self._summary.setPlainText("\n".join(lines))
 
 
 def main() -> int:

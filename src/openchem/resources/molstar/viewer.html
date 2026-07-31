@@ -59,6 +59,75 @@
             viewer.plugin.clear();
           });
         },
+        // Colours whole residues (see ui/visualization.py's
+        // ResidueColorLayer). `residueColors` maps "TYR652" -> "#rrggbb".
+        //
+        // The selection is a mol-script expression with BARE symbols:
+        // (= atom.auth_comp_id TYR), never (= atom.auth_comp_id "TYR").
+        // Quoting silently matches ZERO atoms while the transform still
+        // commits successfully, which is a genuinely nasty failure mode --
+        // it cost a whole round of "the API must be broken" before an
+        // interactive probe showed unquoted working and quoted not.
+        // auth_* (not label_*) because these residue ids come from
+        // pose_analysis reading a PDB, which is author numbering.
+        applyResidueColors: function (residueColors) {
+          whenReady(function () {
+            var plugin = viewer.plugin;
+            var ST = molstar.lib.plugin.StateTransforms;
+            var hier = plugin.managers.structure.hierarchy.current;
+            if (!hier.structures.length) { return; }
+
+            // Group by colour so each distinct colour is one overpaint
+            // layer, rather than one layer per residue.
+            var byColor = {};
+            Object.keys(residueColors || {}).forEach(function (residue) {
+              var match = /^([A-Za-z]+)(-?\d+)$/.exec(residue);
+              if (!match) { return; }
+              var color = residueColors[residue];
+              (byColor[color] = byColor[color] || []).push(
+                '(and (= atom.auth_comp_id ' + match[1].toUpperCase() + ') (= atom.auth_seq_id ' + match[2] + '))'
+              );
+            });
+
+            var layers = Object.keys(byColor).map(function (color) {
+              var clauses = byColor[color];
+              var expression = clauses.length === 1
+                ? '(sel.atom.res ' + clauses[0] + ')'
+                : '(sel.atom.res (or ' + clauses.join(' ') + '))';
+              return {
+                script: { language: 'mol-script', expression: expression },
+                color: parseInt(color.replace('#', ''), 16),
+                clear: false,
+              };
+            });
+
+            hier.structures.forEach(function (structure) {
+              structure.components.forEach(function (component) {
+                component.representations.forEach(function (representation) {
+                  plugin.build().to(representation.cell.transform.ref).apply(
+                    ST.Representation.OverpaintStructureRepresentation3DFromScript,
+                    { layers: layers }
+                  ).commit();
+                });
+              });
+            });
+          });
+        },
+        clearResidueColors: function () {
+          whenReady(function () {
+            var plugin = viewer.plugin;
+            var refs = [];
+            plugin.state.data.cells.forEach(function (cell, ref) {
+              if (cell.transform.transformer.id && /overpaint/i.test(cell.transform.transformer.id)) {
+                refs.push(ref);
+              }
+            });
+            if (!refs.length) { return; }
+            var builder = plugin.build();
+            refs.forEach(function (ref) { builder.delete(ref); });
+            builder.commit();
+          });
+        },
       };
 
       molstar.Viewer.create('app', {

@@ -10,6 +10,7 @@ from PySide6.QtWebEngineCore import QWebEnginePage
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from openchem.ui.viewer_backend import ViewerBackend
+from openchem.ui.visualization import AnyVisualizationLayer, ResidueColorLayer
 
 logger = logging.getLogger("openchem.ui")
 
@@ -77,6 +78,10 @@ class MolStarViewerBackend(ViewerBackend):
         # ligand pose with its receptor) must run in that order even if
         # neither call happened to be Python-side "ready" yet.
         self._pending_calls: list[tuple[str, str, str, bool]] = []
+        # Residue colouring queued before the viewer exists. A single slot,
+        # not a FIFO like _pending_calls above: layers replace rather than
+        # accumulate, so only the most recent one matters.
+        self._pending_layers: dict[str, str] | None = None
         self._page.load(QUrl.fromLocalFile(str(_VIEWER_HTML)))
 
     def _on_viewer_ready(self) -> None:
@@ -84,6 +89,12 @@ class MolStarViewerBackend(ViewerBackend):
         pending, self._pending_calls = self._pending_calls, []
         for structure_text, source_format, label, additional in pending:
             self._run_load(structure_text, source_format, label, additional)
+        # Replayed AFTER the structures, never before: overpaint attaches
+        # to a representation that does not exist until its structure is
+        # loaded, so colouring first would target nothing.
+        if self._pending_layers is not None:
+            self._run_apply_residue_colors(self._pending_layers)
+            self._pending_layers = None
 
     def load_macromolecule(self, structure_text: str, source_format: str) -> None:
         self._load(structure_text, source_format, "structure", additional=False)
@@ -111,6 +122,45 @@ class MolStarViewerBackend(ViewerBackend):
         if self._viewer_ready:
             self._page.runJavaScript("window.openchemMolstarViewer.clear();")
         self._pending_calls = []
+        self._pending_layers = None
+
+    def apply_visualizations(self, layers: list[AnyVisualizationLayer]) -> None:
+        """Renders `ResidueColorLayer`s and IGNORES atom layers -- per
+        `ViewerBackend.apply_visualizations`' contract, a backend renders
+        the target kinds it can. Per-atom scientific data (LogP
+        contributions, partial charges) is computed for small molecules and
+        has no meaning against a receptor-sized structure here.
+
+        Composites in order with later layers winning, which is what makes
+        `build_interaction_layers` emit clashes after H-bonds: a residue
+        doing both ends up flagged with the problem.
+        """
+        residue_layers = [layer for layer in layers if isinstance(layer, ResidueColorLayer)]
+        if not residue_layers:
+            self._apply_residue_colors(None)
+            return
+        merged: dict[str, str] = {}
+        for layer in residue_layers:
+            merged.update(layer.residue_colors)
+        self._apply_residue_colors(merged)
+
+    def _apply_residue_colors(self, residue_colors: dict[str, str] | None) -> None:
+        # Deferred like every other call here: Mol*'s viewer is created
+        # asynchronously, and a colouring applied before it exists would be
+        # silently dropped (the same class of bug that left the Calculator
+        # Inspector's 3D pane uncoloured -- see Mol3DViewerBackend).
+        if not self._viewer_ready:
+            self._pending_layers = residue_colors
+            return
+        self._run_apply_residue_colors(residue_colors)
+
+    def _run_apply_residue_colors(self, residue_colors: dict[str, str] | None) -> None:
+        if not residue_colors:
+            self._page.runJavaScript("window.openchemMolstarViewer.clearResidueColors();")
+            return
+        self._page.runJavaScript(
+            f"window.openchemMolstarViewer.applyResidueColors({json.dumps(residue_colors)});"
+        )
 
     def widget(self):
         return self._view
