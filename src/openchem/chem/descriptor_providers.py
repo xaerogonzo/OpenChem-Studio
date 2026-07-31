@@ -19,6 +19,7 @@ from openchem.chem.calculator_options import (
     decimals,
     microspecies_parameters,
 )
+from openchem.chem.bbb_stereo import compute_bbb_descriptors, compute_stereo_descriptors
 from openchem.chem.alignment import (
     ACCURACY_LEVELS,
     ALIGNMENT_METHODS,
@@ -1282,6 +1283,37 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         parameters=[
             decimal_places_parameter(),
         ],
+    ),
+    CalculatorDefinition(
+        calculator_id="bbb_descriptors",
+        display_name="BBB Score Descriptors",
+        category="admet",
+        description=(
+            "The five inputs to Gupta et al.'s (2019) BBB Score: aromatic rings, heavy atoms, "
+            "MWHBN, TPSA and the most basic pKa. The composite score itself is not computed -- "
+            "its weight functions are unpublished, and ChemAxon's single worked example cannot "
+            "validate five unknown curves. Aromatic rings, heavy atoms and MWHBN all reproduce "
+            "that example exactly."
+        ),
+        execution=RegistryExecution(compute=compute_bbb_descriptors),
+        prediction_basis="empirical",
+        tags=["admet", "bbb", "cns", "permeability"],
+        parameters=[
+            decimal_places_parameter(),
+            *microspecies_parameters(),
+        ],
+    ),
+    CalculatorDefinition(
+        calculator_id="stereo_descriptors",
+        display_name="Stereo Descriptors",
+        category="stereochemistry",
+        description=(
+            "R/S and E/Z labels for every stereo element, from RDKit's own CIP labeller. "
+            "Topology Analysis reports how many stereocentres exist; this reports which is "
+            "which, and flags the ones left undefined in the drawn structure."
+        ),
+        execution=RegistryExecution(compute=compute_stereo_descriptors),
+        tags=["stereochemistry", "cip", "chirality"],
     ),
     CalculatorDefinition(
         calculator_id="structural_frameworks",

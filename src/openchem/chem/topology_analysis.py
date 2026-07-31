@@ -9,15 +9,25 @@ a published value before shipping:
 
 All confirmed live. Balaban J is RDKit's own `Descriptors.BalabanJ`.
 
-DELIBERATELY ABSENT -- Szeged index and the topological steric effect
-index (TSEI). Both appear in Marvin's Topology Analysis, and both were
-left out rather than guessed: the formulas have several mutually
-incompatible definitions in the literature (particularly TSEI, where
-"steric index" names at least three different quantities), and no
-reference value was found to check an implementation against. Shipping a
+The SZEGED INDEX is now included, validated by a THEOREM rather than by a
+reference value: for any acyclic graph the Szeged and Wiener indices are
+equal (Gutman 1994), and for a cyclic graph Szeged strictly exceeds
+Wiener. Checked live -- n-butane 10 = 10, isobutane 9 = 9, benzene 54 > 27,
+naphthalene 243 > 109. That identity pins the implementation more firmly
+than agreeing with one tool's output would, since it cannot be satisfied
+by accident.
+
+    (Mordred was investigated as a cross-check and does NOT implement it:
+    its `SZ` descriptor is "sum of constitutional descriptor", giving 5.67
+    for n-butane. A promising-looking name that turned out to be a
+    different quantity entirely.)
+
+STILL DELIBERATELY ABSENT -- the topological steric effect index (TSEI).
+Unlike Szeged, "steric index" genuinely names several mutually
+incompatible quantities in the literature, there is no identity to check
+an implementation against, and no reference value was found. Shipping a
 number under a recognised name that disagrees with every other tool
-reporting that name would be worse than not shipping it. Revisit if a
-third-party engine or an authoritative reference value turns up.
+reporting that name would be worse than not shipping it.
 """
 
 from __future__ import annotations
@@ -87,6 +97,25 @@ def randic_index(mol: Chem.Mol) -> float:
         1.0 / math.sqrt(bond.GetBeginAtom().GetDegree() * bond.GetEndAtom().GetDegree())
         for bond in mol.GetBonds()
     )
+
+
+def szeged_index(mol: Chem.Mol) -> int:
+    """Sum over bonds of n_u * n_v, where n_u counts the atoms strictly
+    closer to one end of the bond than the other (Gutman 1994).
+
+    Atoms equidistant from both ends belong to neither count, which is
+    what makes this differ from the Wiener index on cyclic graphs and
+    coincide with it on trees.
+    """
+    matrix = _distance_matrix(mol)
+    count = mol.GetNumAtoms()
+    total = 0
+    for bond in mol.GetBonds():
+        begin, end = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+        nearer_begin = sum(1 for atom in range(count) if matrix[begin][atom] < matrix[end][atom])
+        nearer_end = sum(1 for atom in range(count) if matrix[end][atom] < matrix[begin][atom])
+        total += nearer_begin * nearer_end
+    return total
 
 
 def eccentricity(mol: Chem.Mol) -> dict[int, float]:
@@ -200,6 +229,7 @@ def compute_topology_analysis(
         f"Harary index: {harary_index(mol):.{places}f}",
         f"Hyper Wiener index: {hyper_wiener_index(mol)}",
         f"Wiener index: {wiener_index(mol)}",
+        f"Szeged index: {szeged_index(mol)}",
         f"Wiener polarity: {wiener_polarity(mol)}",
         f"Asymmetric atom count: {stereo['asymmetric_atom_count']}",
         f"Chiral center count: {stereo['chiral_center_count']}",

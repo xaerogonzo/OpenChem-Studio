@@ -39,6 +39,7 @@ from openchem.chem.topology_analysis import (
     randic_index,
     ring_counts,
     stereo_counts,
+    szeged_index,
     wiener_index,
     wiener_polarity,
 )
@@ -145,15 +146,70 @@ def test_chiral_centres_and_asymmetric_atoms_are_not_the_same_thing():
     assert counts["asymmetric_atom_count"] == 0
 
 
-def test_szeged_and_steric_effect_index_are_deliberately_absent():
-    """Both appear in Marvin's Topology Analysis and are NOT implemented:
-    their literature definitions conflict and no reference value was found
-    to validate against. This test exists so re-adding them is a conscious
-    decision rather than an accident."""
+def test_steric_effect_index_is_deliberately_absent():
+    """TSEI appears in Marvin's Topology Analysis and is NOT implemented:
+    its literature definitions conflict and no reference value was found
+    to validate against. This test exists so re-adding it is a conscious
+    decision rather than an accident.
+
+    Szeged USED to be excluded for the same reason and no longer is -- see
+    the tests below, which validate it against a theorem rather than
+    against a reference implementation.
+    """
     joined = "\n".join(compute_topology_analysis(Chem.MolFromSmiles("CCO"), "mol-1").matched).lower()
 
-    assert "szeged" not in joined
     assert "steric" not in joined
+
+
+@pytest.mark.parametrize(
+    "smiles,label",
+    [
+        ("CCCC", "n-butane"),
+        ("CC(C)C", "isobutane"),
+        ("CCCCCC", "n-hexane"),
+        ("CCO", "ethanol"),
+        ("CC(C)(C)CO", "neopentyl alcohol"),
+    ],
+)
+def test_szeged_equals_wiener_on_acyclic_graphs(smiles, label):
+    """Gutman's theorem: on a tree, every atom is strictly nearer one end
+    of any bond than the other, so the Szeged sum collapses exactly onto
+    the Wiener sum.
+
+    This is what validates the implementation. No reference implementation
+    was available to check against -- Mordred's `SZ` turned out to be an
+    unrelated "sum of constitutional" descriptor (5.67 for butane, not an
+    integer and not 10) -- so a theorem that must hold for a whole class of
+    inputs is the stronger check anyway.
+    """
+    mol = Chem.MolFromSmiles(smiles)
+
+    assert szeged_index(mol) == wiener_index(mol), label
+
+
+@pytest.mark.parametrize(
+    "smiles,label",
+    [
+        ("c1ccccc1", "benzene"),
+        ("c1ccc2ccccc2c1", "naphthalene"),
+        ("C1CCCCC1", "cyclohexane"),
+    ],
+)
+def test_szeged_exceeds_wiener_on_cyclic_graphs(smiles, label):
+    """The other half of the same theorem, and the half that proves the
+    two indices are not accidentally the same function: a cycle puts atoms
+    equidistant from both ends of a bond, and those atoms count toward
+    neither side of the Szeged product while still contributing to Wiener.
+    """
+    mol = Chem.MolFromSmiles(smiles)
+
+    assert szeged_index(mol) > wiener_index(mol), label
+
+
+def test_szeged_is_reported_by_the_topology_calculator():
+    joined = "\n".join(compute_topology_analysis(Chem.MolFromSmiles("CCCC"), "mol-1").matched)
+
+    assert "Szeged index: 10" in joined
 
 
 # --- Geometry -----------------------------------------------------------
