@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Callable
 
 import platformdirs
+from openchem import paths as app_paths
 
 logger = logging.getLogger("openchem.services")
 
@@ -77,7 +78,7 @@ class StoutSetupError(RuntimeError):
 
 
 def default_install_root() -> Path:
-    return Path(platformdirs.user_data_dir(_APP_NAME, appauthor=False)) / "stout_env"
+    return app_paths.subdirectory("stout_env")
 
 
 def interpreter_for(root: Path) -> Path:

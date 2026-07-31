@@ -33,6 +33,7 @@ from typing import Callable
 from urllib.request import urlopen
 
 import platformdirs
+from openchem import paths as app_paths
 
 logger = logging.getLogger("openchem.services")
 
@@ -66,7 +67,7 @@ class JavaSetupError(RuntimeError):
 
 
 def default_install_root() -> Path:
-    return Path(platformdirs.user_data_dir(_APP_NAME, appauthor=False)) / "jre"
+    return app_paths.subdirectory("jre")
 
 
 def _platform() -> tuple[str, str]:

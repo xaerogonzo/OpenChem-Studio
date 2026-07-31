@@ -64,6 +64,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import platformdirs
+from openchem import paths as app_paths
 
 logger = logging.getLogger("openchem.chemistry")
 
@@ -80,7 +81,7 @@ WIDE_SPREAD_PPM = {"C": 8.0, "H": 0.5}
 
 
 def default_database_path() -> Path:
-    return Path(platformdirs.user_data_dir(_APP_NAME, appauthor=False)) / "nmrshiftdb.sqlite"
+    return app_paths.data_root() / "nmrshiftdb.sqlite"
 
 
 @dataclass(frozen=True)

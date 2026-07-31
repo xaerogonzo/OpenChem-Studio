@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import platformdirs
+from openchem import paths as app_paths
 
 REQUEST_TIMEOUT_SECONDS = 30
 
@@ -15,7 +16,7 @@ REQUEST_TIMEOUT_SECONDS = 30
 # user has one predictable "OpenChemStudio" app-data location, not a
 # second, differently-named one just for reaction templates.
 USER_TEMPLATES_PATH = (
-    Path(platformdirs.user_data_dir("OpenChemStudio", appauthor=False)) / "reaction_templates.json"
+    app_paths.data_root() / "reaction_templates.json"
 )
 
 

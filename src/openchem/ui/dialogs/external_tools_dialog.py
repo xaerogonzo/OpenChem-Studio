@@ -5,7 +5,7 @@ import os
 import logging
 from pathlib import Path
 
-from PySide6.QtCore import QTimer, QUrl
+from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QDialog,
@@ -93,6 +93,7 @@ class ExternalToolsDialog(QDialog):
         self._tabs.addTab(self._build_stout_tab(), "STOUT (naming)")
         self._tabs.addTab(self._build_java_tab(), "Java (Temurin)")
         self._tabs.addTab(self._build_nmr_database_tab(), "NMR Database")
+        self._tabs.addTab(self._build_storage_tab(), "Storage")
         if focus == "orca":
             self._tabs.setCurrentIndex(1)
         elif focus == "pkasolver":
@@ -281,6 +282,173 @@ class ExternalToolsDialog(QDialog):
             self._on_orca_path_edited()
 
     # --- pkasolver tab --------------------------------------------------------
+
+
+    # --- Storage ------------------------------------------------------------
+
+    def _build_storage_tab(self) -> QWidget:
+        from openchem.services import storage_service
+
+        tab = QWidget(self)
+        self._storage_status_label = QLabel(storage_service.describe_status(), tab)
+        self._storage_status_label.setWordWrap(True)
+
+        self._storage_usage_label = QLabel("", tab)
+        self._storage_usage_label.setWordWrap(True)
+        self._storage_usage_label.setStyleSheet("font-family: monospace;")
+        self._storage_usage_label.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+
+        self._storage_move_button = QPushButton("Change Location...", tab)
+        self._storage_move_button.clicked.connect(self._on_storage_move_clicked)
+        self._storage_reset_button = QPushButton("Use System Default", tab)
+        self._storage_reset_button.clicked.connect(self._on_storage_reset_clicked)
+        self._storage_refresh_button = QPushButton("Refresh", tab)
+        self._storage_refresh_button.clicked.connect(self._refresh_storage)
+
+        why_note = QLabel(
+            "The sidecar environments are large - a pkasolver install is around 2.3 GB and a "
+            "STOUT one 1.5 GB - and by default they sit in the per-user data folder, which on "
+            "Windows is on the system drive. None of it is data the OS needs to manage, so it "
+            "can live anywhere. Changing the location MOVES what is already there.",
+            tab,
+        )
+        why_note.setWordWrap(True)
+
+        caveat_note = QLabel(
+            "Only a few bytes stay behind, in the config folder, recording where everything "
+            "went. Moving is safe for the Python sidecars: a virtual environment records its "
+            "BASE interpreter, which does not move. Interpreter paths stored in settings are "
+            "rewritten to follow.",
+            tab,
+        )
+        caveat_note.setWordWrap(True)
+        caveat_note.setStyleSheet("color: #666666;")
+
+        row = QHBoxLayout()
+        row.addWidget(self._storage_move_button)
+        row.addWidget(self._storage_reset_button)
+        row.addWidget(self._storage_refresh_button)
+        row.addStretch(1)
+
+        layout = QVBoxLayout(tab)
+        layout.addWidget(self._storage_status_label)
+        layout.addLayout(row)
+        layout.addWidget(self._storage_usage_label)
+        layout.addWidget(why_note)
+        layout.addWidget(caveat_note)
+        layout.addStretch(1)
+        self._refresh_storage()
+        return tab
+
+    def _refresh_storage(self) -> None:
+        from openchem.services import storage_service
+
+        self._storage_status_label.setText(storage_service.describe_status())
+        self._storage_usage_label.setText(storage_service.usage().describe())
+        self._storage_reset_button.setEnabled(
+            storage_service.app_paths.configured_data_root() is not None
+        )
+
+    def _on_storage_move_clicked(self) -> None:
+        from openchem.services import storage_service
+
+        chosen = QFileDialog.getExistingDirectory(self, "Choose a new location for OpenChem Studio data")
+        if not chosen:
+            return
+        destination = Path(chosen)
+        # An empty folder the user picked is fine; a populated one they
+        # picked by accident is not, and the service refuses it. Naming a
+        # subfolder is the friendlier default for "I picked D:\".
+        if destination.exists() and any(destination.iterdir()):
+            destination = destination / "OpenChemStudio"
+
+        current = storage_service.usage()
+        answer = QMessageBox.question(
+            self,
+            "Move data",
+            (
+                f"Move OpenChem Studio's data?\n\n"
+                f"From: {current.root}\n"
+                f"To:   {destination}\n"
+                f"Size: {storage_service._human(current.total_bytes)}\n\n"
+                "Everything already installed is moved, and the app is pointed at the new "
+                "location. Across drives this is a copy-then-delete and can take a while.\n\n"
+                "Continue?"
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        self._storage_move_button.setEnabled(False)
+        self._storage_status_label.setText("Moving...")
+        run_async(
+            lambda: storage_service.move_data_root(
+                destination, self._settings, on_progress=self._on_storage_progress
+            ),
+            storage_service.StorageError,
+            self._on_storage_moved,
+            self._on_storage_move_failed,
+        )
+
+    def _on_storage_progress(self, progress) -> None:
+        QTimer.singleShot(
+            0,
+            lambda: self._storage_status_label.setText(
+                f"[{progress.step}/{progress.total}] {progress.message}..."
+            ),
+        )
+
+    def _on_storage_moved(self, destination: Path) -> None:
+        self._storage_move_button.setEnabled(True)
+        self._refresh_storage()
+        QMessageBox.information(
+            self, "Data moved", f"Everything now lives in\n{destination}"
+        )
+
+    def _on_storage_move_failed(self, message: str) -> None:
+        self._storage_move_button.setEnabled(True)
+        self._refresh_storage()
+        QMessageBox.critical(self, "Move failed", message)
+
+    def _on_storage_reset_clicked(self) -> None:
+        from openchem.services import storage_service
+
+        default = storage_service.app_paths.default_data_root()
+        answer = QMessageBox.question(
+            self,
+            "Use the system default",
+            (
+                f"Move data back to the default location?\n\n"
+                f"To: {default}\n\n"
+                "On Windows that is on the system drive."
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        self._storage_move_button.setEnabled(False)
+        run_async(
+            lambda: storage_service.move_data_root(
+                default, self._settings, on_progress=self._on_storage_progress
+            ),
+            storage_service.StorageError,
+            self._on_storage_reset_done,
+            self._on_storage_move_failed,
+        )
+
+    def _on_storage_reset_done(self, destination: Path) -> None:
+        # move_data_root records the destination as a custom root; going
+        # back to the default means clearing the pointer entirely, so the
+        # app follows the OS if that location ever changes.
+        from openchem.services import storage_service
+
+        storage_service.app_paths.set_data_root(None)
+        self._storage_move_button.setEnabled(True)
+        self._refresh_storage()
+        QMessageBox.information(self, "Data moved", f"Back to the default location\n{destination}")
 
 
     # --- Java ---------------------------------------------------------------

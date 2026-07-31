@@ -13,6 +13,7 @@ from urllib.request import Request, urlopen
 import platformdirs
 
 from openchem.chem.vina_engine import select_vina_engine
+from openchem import paths as app_paths
 
 logger = logging.getLogger("openchem.tools")
 
@@ -158,11 +159,11 @@ def download_vina_asset(
     confirmation (exact URL, version, and size, per this app's own
     file-download policy) before invoking this -- this function performs
     the download unconditionally as soon as it's called. Same
-    `platformdirs.user_data_dir("OpenChemStudio", ...)` base directory
+    configured data root (see `openchem/paths.py`)
     `PluginManager` already uses for the equivalent "app-managed, per-user
     files" concept (see `plugins/manager.py`).
     """
-    dest_dir = Path(platformdirs.user_data_dir("OpenChemStudio", appauthor=False)) / "tools" / "vina"
+    dest_dir = app_paths.subdirectory("tools") / "vina"
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest_path = dest_dir / asset.name
 

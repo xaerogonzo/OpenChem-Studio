@@ -17,6 +17,7 @@ from openchem.plugins.interfaces import PLUGIN_API_VERSION, Plugin
 from openchem.plugins.manifest import ManifestError, PluginManifest, topological_order
 from openchem.plugins.ui_registry import UIRegistry
 from openchem.services.container import ServiceContainer
+from openchem import paths as app_paths
 
 logger = logging.getLogger("openchem.plugin")
 
@@ -100,7 +101,7 @@ class PluginManager:
         self._project_plugins_dir = Path(
             settings.get("plugins/project_directory", str(DEFAULT_PROJECT_PLUGINS_DIR))
         )
-        default_user_dir = Path(platformdirs.user_data_dir("OpenChemStudio", appauthor=False)) / "plugins"
+        default_user_dir = app_paths.subdirectory("plugins")
         self._user_plugins_dir = Path(settings.get("plugins/user_directory", str(default_user_dir)))
 
         self._watcher = QFileSystemWatcher()

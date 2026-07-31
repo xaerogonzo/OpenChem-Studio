@@ -19,6 +19,7 @@ from openchem.chem.nmr_reference import (
     tms_molecule,
 )
 from openchem.chem.orca_engine import OrcaQuantumEngineProvider
+from openchem import paths as app_paths
 from openchem.domain.common import CacheState, Provenance
 from openchem.events.base import EventBus
 from openchem.events.events import (
@@ -519,7 +520,10 @@ class QuantumChemistryService(QObject):
         # spaces, and this project's own working directory (a checkout
         # under "D:\...\OpenChem Studio\") does contain one — never derive
         # the scratch dir from the project/source path.
-        cache_root = Path(platformdirs.user_cache_dir(_APP_NAME, appauthor=False))
+        # Follows the configured data root: an ORCA optimisation writes
+        # gigabytes of scratch, which is exactly what someone moving their
+        # data off the system drive meant to move.
+        cache_root = app_paths.cache_root()
         cache_root.mkdir(parents=True, exist_ok=True)
         scratch_dir = Path(tempfile.mkdtemp(prefix="orca_job_", dir=str(cache_root)))
 

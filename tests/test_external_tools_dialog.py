@@ -21,6 +21,9 @@ def test_dialog_has_every_tool_tab_and_focuses_the_requested_one(qapp):
         # are both dead without one) and the experimental shift index.
         "Java (Temurin)",
         "NMR Database",
+        # Not a tool at all -- where the tools' own multi-gigabyte
+        # installs are kept, and how to move them off the system drive.
+        "Storage",
     ]
     assert dialog._tabs.currentIndex() == 1
 

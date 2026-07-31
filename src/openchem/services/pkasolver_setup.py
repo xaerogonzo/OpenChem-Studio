@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Callable
 
 import platformdirs
+from openchem import paths as app_paths
 
 logger = logging.getLogger("openchem.services")
 
@@ -77,7 +78,7 @@ class PkasolverSetupError(RuntimeError):
 def default_install_root() -> Path:
     """Beside the app's other tool data, not inside the source tree -- an
     installed copy of this app has no writable source directory."""
-    return Path(platformdirs.user_data_dir(_APP_NAME, appauthor=False)) / "pkasolver_env"
+    return app_paths.subdirectory("pkasolver_env")
 
 
 def interpreter_for(root: Path) -> Path:
