@@ -44,6 +44,7 @@ from typing import Any
 from rdkit import Chem
 from rdkit.Chem import rdPartialCharges
 
+from openchem.chem.calculator_options import decimals
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.scientific_result import AlertResult, PerAtomDataset
 
@@ -164,6 +165,7 @@ def compute_atomic_polarizability(
 ) -> PerAtomDataset:
     """Per-atom polarizability contributions, projected onto 2D and 3D --
     the "atomic" Type option in Marvin's panel."""
+    _places = decimals(parameters)
     parameters = parameters or {}
     target = _maybe_microspecies(mol, parameters)
     values = atomic_polarizabilities(target)
@@ -180,7 +182,7 @@ def compute_atomic_polarizability(
                 "No Jensen polarizability parameter for: "
                 + ", ".join(_unparameterised_elements(target))
             ),
-            provenance=Provenance(created_by="core", method="jensen"),
+            provenance=Provenance(created_by="core", method="jensen", parameters={"decimal_places": _places}),
         )
     return PerAtomDataset(
         property_id="atomic_polarizability",
@@ -189,7 +191,7 @@ def compute_atomic_polarizability(
         method="jensen",
         molecule_uuid=molecule_uuid,
         values=values,
-        provenance=Provenance(created_by="core", method="jensen"),
+        provenance=Provenance(created_by="core", method="jensen", parameters={"decimal_places": _places}),
     )
 
 
@@ -236,6 +238,7 @@ def compute_orbital_electronegativity(
     implement -- claiming a pi value by relabelling the sigma one would be
     worse than not offering it.
     """
+    _places = decimals(parameters)
     parameters = parameters or {}
     target = _maybe_microspecies(mol, parameters)
     values = orbital_electronegativities(
@@ -251,7 +254,7 @@ def compute_orbital_electronegativity(
             values={},
             cache_state=CacheState.FAILED,
             error="No atom in this molecule has Gasteiger-Marsili parameters.",
-            provenance=Provenance(created_by="core", method="gasteiger_marsili"),
+            provenance=Provenance(created_by="core", method="gasteiger_marsili", parameters={"decimal_places": _places}),
         )
     return PerAtomDataset(
         property_id="orbital_electronegativity",

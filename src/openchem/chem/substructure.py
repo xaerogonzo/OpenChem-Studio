@@ -19,6 +19,7 @@ from typing import Any
 
 from rdkit import Chem
 
+from openchem.chem.calculator_options import decimals
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.scientific_result import PerAtomDataset
 
@@ -72,6 +73,7 @@ def compute_substructure_search(
     `COMMON_PATTERNS`; an explicit `smarts` wins so a user's own pattern is
     never silently overridden by a leftover dropdown selection.
     """
+    _places = decimals(parameters)
     parameters = parameters or {}
     smarts = (parameters.get("smarts") or "").strip()
     if not smarts:
@@ -86,7 +88,7 @@ def compute_substructure_search(
             values={},
             cache_state=CacheState.FAILED,
             error="Enter a SMARTS pattern, or pick one from the list.",
-            provenance=Provenance(created_by="core", method="rdkit"),
+            provenance=Provenance(created_by="core", method="rdkit", parameters={"decimal_places": _places}),
         )
 
     try:
@@ -101,7 +103,7 @@ def compute_substructure_search(
             values={},
             cache_state=CacheState.FAILED,
             error=str(exc),
-            provenance=Provenance(created_by="core", method="rdkit"),
+            provenance=Provenance(created_by="core", method="rdkit", parameters={"decimal_places": _places}),
         )
 
     hit_atoms = {index for match in matches for index in match}
@@ -119,6 +121,10 @@ def compute_substructure_search(
         provenance=Provenance(
             created_by="core",
             method="rdkit",
-            parameters={"smarts": smarts, "match_count": len(matches)},
+            parameters={
+                "smarts": smarts,
+                "match_count": len(matches),
+                "decimal_places": _places,
+            },
         ),
     )

@@ -221,6 +221,7 @@ def compute_eccentricity_dataset(
     """Per-atom eccentricity, which gets the 2D+3D projection treatment
     through the Calculator Inspector -- a visual read of how peripheral
     versus central each atom is in the molecular graph."""
+    _places = decimals(parameters)
     return PerAtomDataset(
         property_id="topology_eccentricity",
         name="Eccentricity (topological)",
@@ -228,13 +229,14 @@ def compute_eccentricity_dataset(
         method="rdkit",
         molecule_uuid=molecule_uuid,
         values=eccentricity(mol),
-        provenance=Provenance(created_by="core", method="rdkit"),
+        provenance=Provenance(created_by="core", method="rdkit", parameters={"decimal_places": _places}),
     )
 
 
 def compute_distance_degree_dataset(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None
 ) -> PerAtomDataset:
+    _places = decimals(parameters)
     return PerAtomDataset(
         property_id="topology_distance_degree",
         name="Distance Degree (topological)",
@@ -242,5 +244,5 @@ def compute_distance_degree_dataset(
         method="rdkit",
         molecule_uuid=molecule_uuid,
         values=distance_degree(mol),
-        provenance=Provenance(created_by="core", method="rdkit"),
+        provenance=Provenance(created_by="core", method="rdkit", parameters={"decimal_places": _places}),
     )

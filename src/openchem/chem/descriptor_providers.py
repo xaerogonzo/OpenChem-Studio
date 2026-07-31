@@ -16,7 +16,14 @@ from openchem.chem.interaction_analysis import compute_interaction_analysis
 from openchem.chem.markush import DEFAULT_MAX_STRUCTURES as MARKUSH_DEFAULT_MAX
 from openchem.chem.calculator_options import (
     decimal_places_parameter,
+    decimals,
     microspecies_parameters,
+)
+from openchem.chem.alignment import (
+    ACCURACY_LEVELS,
+    ALIGNMENT_METHODS,
+    DEFAULT_ACCURACY,
+    compute_3d_alignment,
 )
 from openchem.chem.dipole import compute_dipole_moment
 from openchem.chem.electronic_properties import (
@@ -578,6 +585,7 @@ def compute_gasteiger_charge_at_ph(
     charges, so the result reflects that pH's ionization state rather than
     whatever protonation state the molecule happened to be drawn in.
     """
+    _places = decimals(parameters)
     from openchem.chem.pka_providers import protonate_at_ph
 
     ph = parameters.get("pH", 7.4)
@@ -595,7 +603,11 @@ def compute_gasteiger_charge_at_ph(
         provenance=Provenance(
             created_by="core",
             method="rdkit+dimorphite_dl",
-            parameters={"pH": ph, "include_hydrogens": include_hydrogens},
+            parameters={
+                "pH": ph,
+                "include_hydrogens": include_hydrogens,
+                "decimal_places": _places,
+            },
         ),
     )
 
@@ -606,6 +618,7 @@ def compute_crippen_logp_contrib_calculator(
     """The "logp" category's calculator -- same Crippen contribution call
     `compute_per_atom` uses for its always-on batch, so the registry-driven
     path and that batch never compute this two different ways."""
+    _places = decimals(parameters)
     contribs = rdMolDescriptors._CalcCrippenContribs(mol)
     logp_contrib = {idx: logp for idx, (logp, _mr) in enumerate(contribs)}
     return PerAtomDataset(
@@ -615,7 +628,7 @@ def compute_crippen_logp_contrib_calculator(
         method="rdkit",
         molecule_uuid=molecule_uuid,
         values=logp_contrib,
-        provenance=Provenance(created_by="core", method="rdkit"),
+        provenance=Provenance(created_by="core", method="rdkit", parameters={"decimal_places": _places}),
     )
 
 
@@ -624,6 +637,7 @@ def compute_crippen_mr_contrib_calculator(
 ) -> PerAtomDataset:
     """The "molar_refractivity" category's calculator -- same Crippen
     contribution call `compute_per_atom` uses for its always-on batch."""
+    _places = decimals(parameters)
     contribs = rdMolDescriptors._CalcCrippenContribs(mol)
     mr_contrib = {idx: mr for idx, (_logp, mr) in enumerate(contribs)}
     return PerAtomDataset(
@@ -633,7 +647,7 @@ def compute_crippen_mr_contrib_calculator(
         method="rdkit",
         molecule_uuid=molecule_uuid,
         values=mr_contrib,
-        provenance=Provenance(created_by="core", method="rdkit"),
+        provenance=Provenance(created_by="core", method="rdkit", parameters={"decimal_places": _places}),
     )
 
 
@@ -810,6 +824,9 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         category="logp",
         description="Per-atom Crippen LogP contribution -- which atoms increase vs. decrease LogP.",
         execution=RegistryExecution(compute=compute_crippen_logp_contrib_calculator),
+        parameters=[
+            decimal_places_parameter(),
+        ],
     ),
     CalculatorDefinition(
         calculator_id="crippen_mr_contrib",
@@ -817,6 +834,9 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         category="molar_refractivity",
         description="Per-atom Crippen molar refractivity contribution.",
         execution=RegistryExecution(compute=compute_crippen_mr_contrib_calculator),
+        parameters=[
+            decimal_places_parameter(),
+        ],
     ),
     CalculatorDefinition(
         calculator_id="pka",
@@ -885,6 +905,9 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         description="Greatest topological distance from each atom to any other -- how peripheral each atom is.",
         execution=RegistryExecution(compute=compute_eccentricity_dataset),
         tags=["topology", "graph", "per-atom"],
+        parameters=[
+            decimal_places_parameter(),
+        ],
     ),
     CalculatorDefinition(
         calculator_id="topology_distance_degree",
@@ -893,6 +916,9 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         description="Sum of each atom's topological distances to every other atom.",
         execution=RegistryExecution(compute=compute_distance_degree_dataset),
         tags=["topology", "graph", "per-atom"],
+        parameters=[
+            decimal_places_parameter(),
+        ],
     ),
     CalculatorDefinition(
         calculator_id="geometry_analysis",
@@ -930,6 +956,9 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         description="Per-atom solvent-accessible surface -- which atoms are actually exposed. Needs a conformer.",
         execution=RegistryExecution(compute=compute_sasa_dataset),
         tags=["surface", "3d", "per-atom"],
+        parameters=[
+            decimal_places_parameter(),
+        ],
     ),
     CalculatorDefinition(
         calculator_id="polar_surface_area",
@@ -952,6 +981,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         ),
         execution=RegistryExecution(compute=compute_substructure_search),
         parameters=[
+            decimal_places_parameter(),
             CalculatorParameter(
                 name="pattern",
                 label="Common pattern",
@@ -1183,6 +1213,9 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         execution=RegistryExecution(compute=compute_pi_electron_density),
         prediction_basis="ab_initio",
         tags=["quantum", "per-atom", "density"],
+        parameters=[
+            decimal_places_parameter(),
+        ],
     ),
     CalculatorDefinition(
         calculator_id="dipole_moment",
@@ -1293,6 +1326,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         execution=RegistryExecution(compute=compute_atomic_polarizability),
         prediction_basis="empirical",
         parameters=[
+            decimal_places_parameter(),
             CalculatorParameter(
                 name="major_microspecies",
                 label="Take major microspecies",
@@ -1318,6 +1352,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         execution=RegistryExecution(compute=compute_orbital_electronegativity),
         prediction_basis="empirical",
         parameters=[
+            decimal_places_parameter(),
             CalculatorParameter(
                 name="include_hydrogens",
                 label="Include hydrogens",
@@ -1335,5 +1370,44 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             ),
         ],
         tags=["electronic", "electronegativity", "per-atom"],
+    ),
+    # ---- 3D alignment -------------------------------------------------
+    CalculatorDefinition(
+        calculator_id="alignment_3d",
+        display_name="3D Alignment",
+        category="alignment",
+        description=(
+            "Aligns this molecule onto a reference structure in 3D. \"Extended atom types\" "
+            "pairs atoms by MMFF type (atomic number, hybridization and aromaticity), so an "
+            "aromatic nitrogen will not pair with a tertiary amine. \"Common scaffold\" fixes "
+            "the pairing from the 2D maximum common substructure first, then refines the rest. "
+            "Score is an overlap quality where HIGHER is better; RMSD is a distance in "
+            "angstroms where LOWER is better -- they are not the same measure."
+        ),
+        execution=RegistryExecution(compute=compute_3d_alignment),
+        parameters=[
+            CalculatorParameter(
+                name="reference_smiles",
+                label="Reference structure (SMILES)",
+                kind="text",
+                default="",
+            ),
+            CalculatorParameter(
+                name="method",
+                label="Alignment method",
+                kind="choice",
+                default="Extended atom types",
+                choices=list(ALIGNMENT_METHODS),
+            ),
+            CalculatorParameter(
+                name="accuracy",
+                label="Accuracy",
+                kind="choice",
+                default=DEFAULT_ACCURACY,
+                choices=list(ACCURACY_LEVELS),
+            ),
+            decimal_places_parameter(),
+        ],
+        tags=["alignment", "3d", "overlay", "shape"],
     ),
 ]

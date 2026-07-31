@@ -168,3 +168,63 @@ def test_no_parameter_list_contains_duplicate_names():
         for definition in registry.by_category(category):
             names = [parameter.name for parameter in definition.parameters]
             assert len(names) == len(set(names)), definition.calculator_id
+
+
+# --- Per-atom label precision (the second half of the options pass) ------
+
+
+def test_per_atom_label_precision_comes_from_the_dataset():
+    """The Calculator Inspector only ever sees a finished result, never the
+    request -- so the precision travels in Provenance.parameters rather
+    than being threaded through every view."""
+    from openchem.chem.descriptor_providers import compute_crippen_logp_contrib_calculator
+    from openchem.ui.visualization import build_atom_color_layer
+
+    mol = Chem.MolFromSmiles("CCO")
+    one = build_atom_color_layer(
+        compute_crippen_logp_contrib_calculator(mol, "m", {"decimal_places": 1}), include_labels=True
+    )
+    four = build_atom_color_layer(
+        compute_crippen_logp_contrib_calculator(mol, "m", {"decimal_places": 4}), include_labels=True
+    )
+    assert list(one.atom_labels.values()) != list(four.atom_labels.values())
+    assert all(len(label.split(".")[1]) == 1 for label in one.atom_labels.values())
+    assert all(len(label.split(".")[1]) == 4 for label in four.atom_labels.values())
+
+
+def test_signed_data_keeps_its_plus_sign():
+    """LogP contributions are signed and the sign carries the meaning."""
+    from openchem.chem.descriptor_providers import compute_crippen_logp_contrib_calculator
+    from openchem.ui.visualization import build_atom_color_layer
+
+    layer = build_atom_color_layer(
+        compute_crippen_logp_contrib_calculator(Chem.MolFromSmiles("CCO"), "m", {}),
+        include_labels=True,
+    )
+    assert any(label.startswith("+") for label in layer.atom_labels.values())
+
+
+def test_magnitude_only_data_gets_no_bogus_plus_sign():
+    """An eccentricity or a surface area has no negative branch, so a "+"
+    reads as noise rather than information."""
+    from openchem.chem.topology_analysis import compute_eccentricity_dataset
+    from openchem.ui.visualization import build_atom_color_layer
+
+    layer = build_atom_color_layer(
+        compute_eccentricity_dataset(Chem.MolFromSmiles("CCO"), "m", {}), include_labels=True
+    )
+    assert not any(label.startswith("+") for label in layer.atom_labels.values())
+
+
+def test_a_dataset_without_provenance_still_labels_sensibly():
+    from openchem.domain.scientific_result import PerAtomDataset
+    from openchem.ui.visualization import build_atom_color_layer
+
+    layer = build_atom_color_layer(
+        PerAtomDataset(
+            property_id="p", name="P", units="", method="m", molecule_uuid="m",
+            values={0: 1.5, 1: 2.5},
+        ),
+        include_labels=True,
+    )
+    assert layer.atom_labels == {0: "1.50", 1: "2.50"}

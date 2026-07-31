@@ -231,6 +231,7 @@ def compute_pi_electron_density(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None
 ) -> PerAtomDataset:
     """Per-atom pi electron density, projected onto the 2D and 3D views."""
+    _places = decimals(parameters)
     parameters = parameters or {}
     target = apply_microspecies(mol, parameters)
     override = parameters.get("pi_electrons", 0)
@@ -245,7 +246,7 @@ def compute_pi_electron_density(
             values={},
             cache_state=CacheState.FAILED,
             error=_NO_PI_SYSTEM,
-            provenance=Provenance(created_by="core", method="huckel"),
+            provenance=Provenance(created_by="core", method="huckel", parameters={"decimal_places": _places}),
         )
     return PerAtomDataset(
         property_id="huckel_pi_density",
@@ -254,5 +255,5 @@ def compute_pi_electron_density(
         method="huckel",
         molecule_uuid=molecule_uuid,
         values=result.electron_density,
-        provenance=Provenance(created_by="core", method="huckel"),
+        provenance=Provenance(created_by="core", method="huckel", parameters={"decimal_places": _places}),
     )

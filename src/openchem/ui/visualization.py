@@ -158,6 +158,28 @@ def build_surface_layer(
     )
 
 
+_DEFAULT_LABEL_DECIMALS = 2
+
+
+def _label_decimals(dataset: PerAtomDataset) -> int:
+    """Display precision, carried by the DATA rather than passed in.
+
+    The `decimal_places` option lives on the calculator's request, which
+    the Calculator Inspector never sees -- it only receives the finished
+    result. Rather than thread a parameter through every view, calculators
+    record the requested precision in `Provenance.parameters`, which is
+    already the free-form place this codebase puts exactly this kind of
+    presentation metadata.
+    """
+    provenance = dataset.provenance
+    if provenance is None:
+        return _DEFAULT_LABEL_DECIMALS
+    try:
+        return max(0, min(8, int(provenance.parameters.get("decimal_places", _DEFAULT_LABEL_DECIMALS))))
+    except (TypeError, ValueError):
+        return _DEFAULT_LABEL_DECIMALS
+
+
 def build_atom_color_layer(dataset: PerAtomDataset, include_labels: bool = False) -> VisualizationLayer:
     """Extracts a `VisualizationLayer` from a `PerAtomDataset` — diverging
     red/blue for signed data (contribution-style values, where the sign
@@ -171,7 +193,8 @@ def build_atom_color_layer(dataset: PerAtomDataset, include_labels: bool = False
 
     has_negative = any(v < 0 for v in values.values())
     has_positive = any(v > 0 for v in values.values())
-    if has_negative and has_positive:
+    signed = has_negative and has_positive
+    if signed:
         magnitude = max(abs(v) for v in values.values()) or 1.0
         scale = ColorScale(palette=_DIVERGING_PALETTE, domain_min=-magnitude, domain_max=magnitude)
     else:
@@ -180,7 +203,15 @@ def build_atom_color_layer(dataset: PerAtomDataset, include_labels: bool = False
         )
 
     atom_colors = {idx: scale.color_for(v) for idx, v in values.items()}
-    atom_labels = {idx: f"{v:+.2f}" for idx, v in values.items()} if include_labels else None
+    atom_labels = None
+    if include_labels:
+        places = _label_decimals(dataset)
+        # An explicit "+" belongs on contribution-style data, where the
+        # sign carries the meaning -- but reads as noise on a magnitude,
+        # since a surface area or an eccentricity has no negative branch
+        # to distinguish it from. Same condition that picks the palette.
+        sign = "+" if signed else ""
+        atom_labels = {idx: f"{v:{sign}.{places}f}" for idx, v in values.items()}
     return VisualizationLayer(name=dataset.name, atom_colors=atom_colors, color_scale=scale, atom_labels=atom_labels)
 
 

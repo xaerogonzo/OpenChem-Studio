@@ -130,6 +130,7 @@ def compute_sasa_dataset(
 ) -> PerAtomDataset:
     """Per-atom accessible surface area -- which atoms are actually exposed
     to solvent, projected onto the 2D depiction and the 3D surface."""
+    _places = decimals(parameters)
     try:
         values = per_atom_sasa(mol)
     except NoConformerError as exc:
@@ -142,7 +143,7 @@ def compute_sasa_dataset(
             values={},
             cache_state=CacheState.FAILED,
             error=str(exc),
-            provenance=Provenance(created_by="core", method="rdkit"),
+            provenance=Provenance(created_by="core", method="rdkit", parameters={"decimal_places": _places}),
         )
     return PerAtomDataset(
         property_id="atom_sasa",
@@ -151,5 +152,5 @@ def compute_sasa_dataset(
         method="rdkit",
         molecule_uuid=molecule_uuid,
         values=values,
-        provenance=Provenance(created_by="core", method="rdkit"),
+        provenance=Provenance(created_by="core", method="rdkit", parameters={"decimal_places": _places}),
     )
