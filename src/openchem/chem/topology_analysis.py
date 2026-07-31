@@ -28,6 +28,15 @@ incompatible quantities in the literature, there is no identity to check
 an implementation against, and no reference value was found. Shipping a
 number under a recognised name that disagrees with every other tool
 reporting that name would be worse than not shipping it.
+
+TSEI IS NOT RELATED TO THE SZEGED INDEX, despite both being distance-
+matrix quantities and both having been deferred together. Szeged counts
+atoms by which end of a bond they are nearer -- pure connectivity, no
+chemistry. TSEI weights paths by atomic radii to approximate through-space
+bulk from the graph alone. Adding Szeged therefore unblocks nothing here.
+The 3D steric measures are a separate question again, and further along --
+see `geometry_analysis`, which records live results for the Tolman cone
+angle and percent buried volume against their published values.
 """
 
 from __future__ import annotations
