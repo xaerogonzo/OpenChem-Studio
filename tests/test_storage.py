@@ -16,6 +16,7 @@ from pathlib import Path
 import pytest
 
 from openchem import paths as app_paths
+from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING
 from openchem.services import storage_service
 
 
@@ -126,7 +127,11 @@ def test_stored_interpreter_paths_follow_the_move(isolated_root, tmp_path, monke
     interpreter.write_text("", encoding="utf-8")
     settings = _FakeSettings(
         {
-            "pkasolver/python_interpreter": str(interpreter),
+            # The REAL settings key, imported rather than spelled out --
+            # an earlier version of this test invented a name, matched the
+            # same invented name in the service, and passed while the
+            # feature was broken.
+            PKASOLVER_PYTHON_SETTING: str(interpreter),
             "orca/executable_path": r"D:\ORCA\orca.exe",
         }
     )
@@ -134,7 +139,7 @@ def test_stored_interpreter_paths_follow_the_move(isolated_root, tmp_path, monke
     destination = tmp_path / "moved"
     storage_service.move_data_root(destination, settings)
 
-    assert settings.get("pkasolver/python_interpreter") == str(
+    assert settings.get(PKASOLVER_PYTHON_SETTING) == str(
         destination / "pkasolver_env" / ".venv" / "Scripts" / "python.exe"
     )
     # A path outside the data directory is left alone.
@@ -233,3 +238,16 @@ def test_usage_lists_the_biggest_things_first(isolated_root):
 
 def test_status_says_whether_the_location_is_custom(isolated_root):
     assert "custom location" in storage_service.describe_status()
+
+
+def test_the_status_line_does_not_walk_the_data_directory(isolated_root, monkeypatch):
+    """It is drawn on dialog construction, so it has to be instant.
+    Totalling the directory took 6.2 seconds on a real install."""
+    walked = []
+    monkeypatch.setattr(
+        storage_service, "_directory_size", lambda path: walked.append(path) or 0
+    )
+
+    storage_service.describe_status()
+
+    assert walked == []

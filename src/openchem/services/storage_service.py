@@ -32,14 +32,23 @@ from pathlib import Path
 from typing import Callable
 
 from openchem import paths as app_paths
+from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING
+from openchem.chem.stout_providers import STOUT_PYTHON_SETTING
 
 logger = logging.getLogger("openchem.services")
 
 # Settings keys holding an absolute path INTO the data directory, which
 # therefore have to follow it.
+#
+# IMPORTED, not written as literals. The first version of this guessed the
+# key names ("pkasolver/python_interpreter") and got both wrong -- so the
+# move would have relocated the files and left the settings pointing at
+# the old location, breaking exactly what this exists to protect. The
+# accompanying test guessed identically and passed. Importing the real
+# constants makes the two impossible to disagree.
 _PATH_SETTINGS = (
-    "pkasolver/python_interpreter",
-    "stout/python_interpreter",
+    PKASOLVER_PYTHON_SETTING,
+    STOUT_PYTHON_SETTING,
     "docking/vina_executable_path",
 )
 
@@ -199,8 +208,12 @@ def _repoint_settings(settings, source: Path, destination: Path) -> None:
 
 
 def describe_status() -> str:
+    """The location only -- deliberately no size.
+
+    Totalling the data directory means walking every file in it, which
+    for two sidecar environments takes seconds. A status line is drawn on
+    dialog construction and must be instant; the size arrives separately.
+    """
     configured = app_paths.configured_data_root()
-    root = app_paths.data_root()
-    total = usage(root).total_bytes
     where = "custom location" if configured is not None else "system default"
-    return f"{root}  ({where}, {_human(total)})"
+    return f"{app_paths.data_root()}  ({where})"

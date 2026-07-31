@@ -9,6 +9,9 @@ from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QDialog,
+    QHeaderView,
+    QTableWidget,
+    QTableWidgetItem,
     QDialogButtonBox,
     QFileDialog,
     QFormLayout,
@@ -332,24 +335,155 @@ class ExternalToolsDialog(QDialog):
         row.addWidget(self._storage_refresh_button)
         row.addStretch(1)
 
+        self._components_table = QTableWidget(0, 4, tab)
+        self._components_table.setHorizontalHeaderLabels(["Component", "Size", "", "Status"])
+        self._components_table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.ResizeToContents
+        )
+        self._components_table.horizontalHeader().setStretchLastSection(True)
+        self._components_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self._components_table.verticalHeader().setVisible(False)
+
         layout = QVBoxLayout(tab)
         layout.addWidget(self._storage_status_label)
         layout.addLayout(row)
         layout.addWidget(self._storage_usage_label)
+        layout.addWidget(QLabel("Installed components:", tab))
+        layout.addWidget(self._components_table)
         layout.addWidget(why_note)
         layout.addWidget(caveat_note)
         layout.addStretch(1)
-        self._refresh_storage()
+        # Deliberately NOT measured here. Sizing the data directory walks
+        # every file in two sidecar environments -- 18.9 seconds, paid on
+        # every construction of this dialog, before this was made lazy.
+        self._storage_measured = False
+        self._refresh_storage_labels()
+        self._tabs.currentChanged.connect(self._on_tab_changed)
         return tab
 
-    def _refresh_storage(self) -> None:
-        from openchem.services import storage_service
+    def _on_tab_changed(self, index: int) -> None:
+        if self._tabs.tabText(index) == "Storage" and not self._storage_measured:
+            self._measure_storage()
+
+    def _refresh_storage_labels(self) -> None:
+        """Everything that costs nothing to know."""
+        from openchem.services import sidecar_inventory, storage_service
 
         self._storage_status_label.setText(storage_service.describe_status())
-        self._storage_usage_label.setText(storage_service.usage().describe())
         self._storage_reset_button.setEnabled(
             storage_service.app_paths.configured_data_root() is not None
         )
+        items = sidecar_inventory.components(self._settings)
+        self._populate_components([(component, None) for component in items])
+
+    def _measure_storage(self) -> None:
+        """Walk the disk for real sizes, off the GUI thread."""
+        from openchem.services import sidecar_inventory
+
+        self._storage_usage_label.setText("Calculating sizes...")
+        run_async(
+            lambda: sidecar_inventory.measure(self._settings),
+            Exception,
+            self._on_storage_measured,
+            lambda message: self._storage_usage_label.setText(f"Could not read sizes: {message}"),
+        )
+
+    def _on_storage_measured(self, measured) -> None:
+        from openchem.services import sidecar_inventory
+
+        self._storage_measured = True
+        total = sum(size for _component, size in measured)
+        self._storage_usage_label.setText(f"Total: {sidecar_inventory._human(total)}")
+        self._populate_components(measured)
+
+    def _populate_components(self, measured) -> None:
+        from openchem.services import sidecar_inventory
+
+        self._components_table.setRowCount(len(measured))
+        for row, (component, size) in enumerate(measured):
+            self._components_table.setItem(row, 0, QTableWidgetItem(component.label))
+            if not component.present:
+                size_text = "-"
+            elif size is None:
+                size_text = "..."
+            else:
+                size_text = sidecar_inventory._human(size)
+            self._components_table.setItem(row, 1, QTableWidgetItem(size_text))
+            if component.present:
+                button = QPushButton("Remove", self._components_table)
+                button.clicked.connect(
+                    lambda _checked=False, key=component.key: self._on_remove_component(key)
+                )
+                self._components_table.setCellWidget(row, 2, button)
+            else:
+                self._components_table.setCellWidget(row, 2, None)
+                self._components_table.setItem(row, 2, QTableWidgetItem(""))
+            # Says WHY a row has no Remove button -- "not installed" and
+            # "yours, not ours" are different situations and a blank cell
+            # would read the same for both.
+            status = (
+                component.unmanaged_reason
+                if not component.is_managed
+                else (component.description if component.present else "Not installed")
+            )
+            self._components_table.setItem(row, 3, QTableWidgetItem(status))
+
+    def _on_remove_component(self, key: str) -> None:
+        from openchem.services import sidecar_inventory
+
+        component = sidecar_inventory.find(key, self._settings)
+        answer = QMessageBox.question(
+            self,
+            f"Remove {component.label}",
+            (
+                f"Delete {component.label}?\n\n"
+                f"Frees: {sidecar_inventory._human(component.size_bytes())}\n"
+                + "\n".join(f"Removes: {path}" for path in component.paths)
+                + f"\n\n{component.reinstall_hint}\n\nThis cannot be undone. Continue?"
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            freed = sidecar_inventory.uninstall(component, self._settings)
+        except sidecar_inventory.UninstallError as exc:
+            QMessageBox.critical(self, "Could not remove", str(exc))
+            self._refresh_storage()
+            return
+        self._refresh_storage()
+        # The tool's own tab still shows its old path/status until told.
+        self._refresh_tool_tabs()
+        QMessageBox.information(
+            self,
+            "Removed",
+            f"{component.label} removed, freeing {sidecar_inventory._human(freed)}.",
+        )
+
+    def _refresh_tool_tabs(self) -> None:
+        """Re-read every tool's status after a removal.
+
+        Without this the pkasolver tab would keep showing the interpreter
+        path that was just deleted and cleared from settings -- the same
+        confusing configured-but-broken state this whole feature exists
+        to avoid."""
+        from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING
+        from openchem.chem.stout_providers import STOUT_PYTHON_SETTING
+        from openchem.services import java_setup, nmr_database_setup, stout_setup
+
+        self._pkasolver_path_edit.setText(self._settings.get(PKASOLVER_PYTHON_SETTING, ""))
+        self._pkasolver_status_label.setText("Not checked - press Test to verify")
+        self._stout_path_edit.setText(self._settings.get(STOUT_PYTHON_SETTING, ""))
+        self._stout_status_label.setText("Not checked - press Test to verify")
+        self._stout_prereq_label.setText(stout_setup.describe_prerequisites())
+        self._java_status_label.setText(java_setup.describe_status())
+        self._nmr_db_status_label.setText(nmr_database_setup.describe_status())
+        self._vina_path_edit.setText(self._settings.get("docking/vina_executable_path", ""))
+        self._refresh_vina_status()
+
+    def _refresh_storage(self) -> None:
+        self._refresh_storage_labels()
+        self._measure_storage()
 
     def _on_storage_move_clicked(self) -> None:
         from openchem.services import storage_service
