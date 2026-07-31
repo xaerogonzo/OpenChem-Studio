@@ -78,48 +78,109 @@ def _atom_symbol(atom: Chem.Atom) -> str:
     return symbol
 
 
-def _branch(
-    mol: Chem.Mol, atom_index: int, came_from: int | None, seen: frozenset[int], depth: int
+def _ordering_key(
+    mol: Chem.Mol, atom_index: int, came_from: int, seen: frozenset[int], depth: int
 ) -> str:
-    """The code for everything reachable from `atom_index` within `depth`.
+    """A canonical signature for a branch, used only to ORDER siblings.
 
-    Recursive by construction: a branch's string is built from its
-    children's strings, which is also what orders them. That ordering has
-    to depend only on the branch's own contents -- see the module note on
-    why a whole-molecule canonical rank cannot be used here.
+    A local depth-first walk, which is enough to sort by and -- crucially
+    -- depends only on what is inside the branch. A whole-molecule
+    canonical rank would sort correctly too and would silently give the
+    same environment different codes in different molecules, breaking
+    every lookup.
     """
     atom = mol.GetAtomWithIdx(atom_index)
     if depth <= 0:
         return _atom_symbol(atom)
-
     seen = seen | {atom_index}
-    children = []
-    for bond in atom.GetBonds():
-        neighbour = bond.GetOtherAtomIdx(atom_index)
-        if neighbour == came_from:
-            continue
-        if neighbour in seen:
-            # A ring closing back on the walk. Recorded as a marker rather
-            # than followed, or the recursion would loop.
-            children.append(f"{_bond_symbol(bond)}{_RING_CLOSURE}")
-            continue
-        children.append(
-            f"{_bond_symbol(bond)}{_branch(mol, neighbour, atom_index, seen, depth - 1)}"
-        )
-
-    if not children:
-        return _atom_symbol(atom)
-    return f"{_atom_symbol(atom)}({','.join(sorted(children))})"
+    children = sorted(
+        f"{_bond_symbol(bond)}"
+        f"{_ordering_key(mol, bond.GetOtherAtomIdx(atom_index), atom_index, seen, depth - 1)}"
+        for bond in atom.GetBonds()
+        if bond.GetOtherAtomIdx(atom_index) != came_from
+        and bond.GetOtherAtomIdx(atom_index) not in seen
+    )
+    return f"{_atom_symbol(atom)}({','.join(children)})" if children else _atom_symbol(atom)
 
 
 def hose_code(mol: Chem.Mol, atom_index: int, spheres: int = DEFAULT_MAX_SPHERES) -> str:
     """The code for one atom at one sphere depth.
 
+    Sphere-by-sphere (breadth-first) with a GLOBAL record of which atoms
+    have been reached, which is the part that makes rings work. A
+    depth-first walk carrying a per-path visited set cannot see a ring
+    that closes between two SIBLING branches: walking out from a benzene
+    carbon, the two directions round the ring meet at the para carbon,
+    and neither branch knows the other was there. The ring is then never
+    marked closed and the shared atom is counted twice, so a ring reads
+    exactly like a branched chain -- confirmed live, benzene's four-sphere
+    code contained no closure marker at all, and the resulting
+    over-pooling put ~4000 unrelated measurements behind a single toluene
+    carbon and pulled its prediction 3.7 ppm off.
+
+    Within one sphere, an atom reached from two parents at once is the
+    atom on its first (sorted) appearance and a closure marker on the
+    rest, so the same ring always closes the same way.
+
     `spheres` is how far out to look. Deeper means a more specific
-    environment and fewer database matches; shallower means more matches
-    with more scatter among them.
+    environment and fewer matches; shallower means more matches with more
+    scatter among them.
     """
-    return _branch(mol, atom_index, None, frozenset(), spheres)
+    root = mol.GetAtomWithIdx(atom_index)
+    visited = {atom_index}
+    # (atom, the atom it was reached from) -- the parent is needed so the
+    # next sphere does not report the edge it just came along as a ring
+    # closure, which every atom would otherwise do once `visited` is
+    # global.
+    layer: list[tuple[int, int | None]] = [(atom_index, None)]
+    sphere_parts: list[str] = []
+
+    for remaining in range(spheres, 0, -1):
+        # (sort key, display token, neighbour, parent, is_closure)
+        candidates: list[tuple[str, str, int, int, bool]] = []
+        for parent, grandparent in layer:
+            for bond in mol.GetAtomWithIdx(parent).GetBonds():
+                neighbour = bond.GetOtherAtomIdx(parent)
+                if neighbour == grandparent:
+                    continue
+                symbol = _bond_symbol(bond)
+                if neighbour in visited:
+                    closure = f"{symbol}{_RING_CLOSURE}"
+                    candidates.append((closure, closure, neighbour, parent, True))
+                    continue
+                display = f"{symbol}{_atom_symbol(mol.GetAtomWithIdx(neighbour))}"
+                key = _ordering_key(mol, neighbour, parent, frozenset(visited), remaining - 1)
+                candidates.append((f"{display}|{key}", display, neighbour, parent, False))
+
+        if not candidates:
+            break
+        candidates.sort(key=lambda entry: entry[0])
+
+        tokens: list[str] = []
+        next_layer: list[tuple[int, int | None]] = []
+        claimed: dict[int, int] = {}
+        for _key, display, neighbour, parent, is_closure in candidates:
+            if is_closure:
+                tokens.append(display)
+                continue
+            if neighbour in claimed:
+                # Reached twice within this same sphere, from two
+                # different parents -- that is a ring closing across
+                # branches, which is exactly what the old depth-first walk
+                # could not see.
+                tokens.append(f"{display[: -len(_atom_symbol(mol.GetAtomWithIdx(neighbour)))]}{_RING_CLOSURE}")
+                continue
+            claimed[neighbour] = parent
+            tokens.append(display)
+            next_layer.append((neighbour, parent))
+
+        visited |= set(claimed)
+        sphere_parts.append(",".join(tokens))
+        layer = next_layer
+        if not layer:
+            break
+
+    return f"{_atom_symbol(root)};" + "/".join(sphere_parts)
 
 
 def hose_codes(

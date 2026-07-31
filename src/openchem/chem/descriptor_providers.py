@@ -20,6 +20,7 @@ from openchem.chem.calculator_options import (
     microspecies_parameters,
 )
 from openchem.chem.bbb_stereo import compute_bbb_descriptors, compute_stereo_descriptors
+from openchem.chem.nmr_database import compute_database_nmr
 from openchem.chem.alignment import (
     ACCURACY_LEVELS,
     ALIGNMENT_METHODS,
@@ -1282,6 +1283,28 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         tags=["admet", "cns", "mpo", "druglikeness"],
         parameters=[
             decimal_places_parameter(),
+        ],
+    ),
+    CalculatorDefinition(
+        calculator_id="nmr_database",
+        display_name="NMR Shifts (experimental database)",
+        category="nmr",
+        description=(
+            "Predicts shifts by looking up each atom's environment in assigned experimental "
+            "spectra from nmrshiftdb2, and reports a per-atom confidence earned from how many "
+            "measurements matched and how well they agree. Instant, unlike the ab initio path, "
+            "but limited to environments the database has seen. Held-out accuracy: 1.17 ppm mean "
+            "error on atoms it rates 'good', 9.93 on atoms it rates 'rough' -- the rating is "
+            "worth reading."
+        ),
+        execution=RegistryExecution(compute=compute_database_nmr),
+        prediction_basis="empirical",
+        tags=["nmr", "spectroscopy", "database", "experimental"],
+        parameters=[
+            CalculatorParameter(
+                name="nucleus", label="Nucleus", kind="choice", default="13C",
+                choices=["13C", "1H"],
+            ),
         ],
     ),
     CalculatorDefinition(
