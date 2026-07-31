@@ -1,11 +1,18 @@
 from __future__ import annotations
 
-from PySide6.QtWidgets import QComboBox, QLabel, QWidget
+from PySide6.QtGui import QGuiApplication
+from PySide6.QtWidgets import QComboBox, QLabel, QPushButton, QWidget
+from rdkit import Chem
 
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.molecule import MoleculeModel
-from openchem.domain.scientific_result import PerAtomDataset
+from openchem.domain.scientific_result import (
+    AlertResult,
+    PerAtomDataset,
+    StructureEntry,
+    StructureSetResult,
+)
 from openchem.ui.dialogs.calculator_inspector_dialog import CalculatorInspectorDialog
 
 
@@ -221,3 +228,159 @@ def test_selecting_no_surface_clears_it(qapp):
     combo.setCurrentIndex(0)
 
     assert applied[-1] is None
+
+
+# --- Report results, copy, and taking a structure out ---------------------
+
+
+def _aspirin_molecule(engine):
+    molecule = MoleculeModel(display_name="aspirin")
+    engine.set_structure_from_smiles(molecule, "CC(=O)Oc1ccccc1C(=O)O")
+    return molecule
+
+
+def test_a_report_result_shows_its_lines_instead_of_two_empty_molecule_panes(qapp):
+    """The regression this guards: AlertResult fell through to the
+    per-atom 2D+3D view, which has nothing to draw for it -- so Elemental
+    Analysis computed a formula, a mass and a full composition and
+    displayed NONE of it, under a "No conformer generated yet" label that
+    made it look like a conformer problem."""
+    from PySide6.QtWidgets import QPlainTextEdit
+
+    engine = ChemistryEngine()
+    result = AlertResult(
+        alert_id="elemental",
+        name="Elemental Analysis",
+        molecule_uuid="m",
+        matched=["Formula: C9H8O4", "Mass: 180.159"],
+    )
+
+    dialog = CalculatorInspectorDialog(engine, _aspirin_molecule(engine), result, None)
+
+    shown = dialog.findChildren(QPlainTextEdit)[0].toPlainText()
+    assert "Formula: C9H8O4" in shown
+    assert "Mass: 180.159" in shown
+
+
+def test_a_failed_report_result_shows_its_error(qapp):
+    from PySide6.QtWidgets import QPlainTextEdit
+
+    engine = ChemistryEngine()
+    result = AlertResult(
+        alert_id="geometry",
+        name="Geometry",
+        molecule_uuid="m",
+        matched=[],
+        cache_state=CacheState.FAILED,
+        error="This calculation needs a 3D conformer.",
+    )
+
+    dialog = CalculatorInspectorDialog(engine, _aspirin_molecule(engine), result, None)
+
+    assert "needs a 3D conformer" in dialog.findChildren(QPlainTextEdit)[0].toPlainText()
+
+
+def _button(dialog, text):
+    return next(b for b in dialog.findChildren(QPushButton) if b.text() == text)
+
+
+def test_copy_all_puts_the_result_on_the_clipboard(qapp):
+    engine = ChemistryEngine()
+    result = AlertResult(
+        alert_id="elemental", name="Elemental Analysis", molecule_uuid="m", matched=["Formula: C9H8O4"]
+    )
+    dialog = CalculatorInspectorDialog(engine, _aspirin_molecule(engine), result, None)
+
+    _button(dialog, "Copy All").click()
+
+    assert QGuiApplication.clipboard().text() == "Elemental Analysis\nFormula: C9H8O4"
+
+
+def _stereoisomer_result():
+    entries = [
+        StructureEntry(molblock=Chem.MolToMolBlock(Chem.MolFromSmiles(smiles)), label=f"Isomer {i}")
+        for i, smiles in enumerate(["C[C@H](F)Cl", "C[C@@H](F)Cl"], start=1)
+    ]
+    return StructureSetResult(
+        set_id="stereoisomers",
+        name="Stereoisomers",
+        method="rdkit",
+        molecule_uuid="m",
+        entries=entries,
+    )
+
+
+def test_structure_actions_stay_disabled_until_one_is_picked(qapp):
+    engine = ChemistryEngine()
+    dialog = CalculatorInspectorDialog(
+        engine, _aspirin_molecule(engine), _stereoisomer_result(), None
+    )
+
+    assert not _button(dialog, "Copy SMILES").isEnabled()
+
+    dialog._view._on_cell_clicked(0)
+
+    assert _button(dialog, "Copy SMILES").isEnabled()
+
+
+def test_copying_the_picked_isomer_keeps_its_stereochemistry(qapp):
+    """The workflow this exists for: generate the isomers, pick the one
+    you wanted, take it away. Copying the SECOND one specifically, since
+    a bug that always copied the first would still look right."""
+    engine = ChemistryEngine()
+    dialog = CalculatorInspectorDialog(
+        engine, _aspirin_molecule(engine), _stereoisomer_result(), None
+    )
+
+    dialog._view._on_cell_clicked(1)
+    _button(dialog, "Copy SMILES").click()
+
+    assert QGuiApplication.clipboard().text() == "C[C@@H](F)Cl"
+
+
+def test_copying_a_molblock_gives_the_molblock_not_smiles(qapp):
+    """A molblock is what carries 3D coordinates -- the whole difference
+    for a conformer set."""
+    engine = ChemistryEngine()
+    dialog = CalculatorInspectorDialog(
+        engine, _aspirin_molecule(engine), _stereoisomer_result(), None
+    )
+
+    dialog._view._on_cell_clicked(0)
+    _button(dialog, "Copy Molblock").click()
+
+    copied = QGuiApplication.clipboard().text()
+    assert "V2000" in copied
+    assert Chem.MolFromMolBlock(copied) is not None
+
+
+def test_add_to_project_hands_over_the_picked_structure(qapp):
+    engine = ChemistryEngine()
+    added: list[tuple[str, str]] = []
+    dialog = CalculatorInspectorDialog(
+        engine,
+        _aspirin_molecule(engine),
+        _stereoisomer_result(),
+        None,
+        on_add_structure=lambda molblock, label: added.append((molblock, label)),
+    )
+
+    dialog._view._on_cell_clicked(1)
+    _button(dialog, "Add to Project").click()
+
+    assert len(added) == 1
+    molblock, label = added[0]
+    assert label == "Isomer 2"
+    assert engine.molblock_to_smiles(molblock) == "C[C@@H](F)Cl"
+
+
+def test_add_to_project_is_hidden_when_no_handler_was_given(qapp):
+    """The dialog is constructible without a project (tests, and any
+    future caller that has no undo stack) -- it must not offer an action
+    it cannot perform."""
+    engine = ChemistryEngine()
+    dialog = CalculatorInspectorDialog(
+        engine, _aspirin_molecule(engine), _stereoisomer_result(), None
+    )
+
+    assert not _button(dialog, "Add to Project").isVisible()

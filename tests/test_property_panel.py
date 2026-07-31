@@ -497,7 +497,7 @@ def test_matching_result_opens_the_inspector_and_clears_pending(qapp, monkeypatc
     opened = []
 
     class _FakeInspectorDialog:
-        def __init__(self, engine, molecule, result, conformer_molblock, parent=None):
+        def __init__(self, engine, molecule, result, conformer_molblock, parent=None, **kwargs):
             opened.append((molecule, result))
 
         def exec(self):
@@ -547,7 +547,7 @@ def test_matching_spectrum_result_opens_the_nmr_view_and_clears_pending(qapp, mo
     inspector_opened = []
 
     class _FakeNmrViewDialog:
-        def __init__(self, engine, molecule, result, conformer_molblock, parent=None):
+        def __init__(self, engine, molecule, result, conformer_molblock, parent=None, **kwargs):
             opened.append((molecule, result))
 
         def exec(self):

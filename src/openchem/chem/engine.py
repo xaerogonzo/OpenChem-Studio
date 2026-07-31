@@ -47,6 +47,15 @@ class ChemistryEngine:
     def mol_to_molblock(self, mol: Chem.Mol) -> str:
         return Chem.MolToMolBlock(mol)
 
+    def molblock_to_smiles(self, molblock: str) -> str:
+        """Isomeric SMILES for a structure held as a molblock.
+
+        Isomeric, not canonical-without-stereo: the first caller is the
+        stereoisomer grid's copy action, where dropping the @/@@ would
+        turn every isomer into the same string and make the copy useless.
+        """
+        return Chem.MolToSmiles(self.mol_from_molblock(molblock), isomericSmiles=True)
+
     def render_2d_svg(
         self,
         molblock: str,

@@ -22,6 +22,12 @@ def _molecule_and_spectrum(engine: ChemistryEngine):
     return molecule, spectrum
 
 
+def _dialog(qapp) -> NmrViewDialog:
+    engine = ChemistryEngine()
+    molecule, spectrum = _molecule_and_spectrum(engine)
+    return NmrViewDialog(engine, molecule, spectrum, None, backend=FakeViewerBackend())
+
+
 def test_dialog_shows_the_signal_list(qapp):
     engine = ChemistryEngine()
     molecule, spectrum = _molecule_and_spectrum(engine)
@@ -53,3 +59,32 @@ def test_dialog_without_a_conformer_still_shows_the_spectrum(qapp):
 
     assert backend.loaded_molblocks == []
     assert dialog.view.signals()
+
+
+def test_copy_signals_gives_tab_separated_columns(qapp):
+    from PySide6.QtGui import QGuiApplication
+    from PySide6.QtWidgets import QPushButton
+
+    dialog = _dialog(qapp)
+    next(b for b in dialog.findChildren(QPushButton) if b.text() == "Copy Signals").click()
+
+    lines = QGuiApplication.clipboard().text().splitlines()
+    assert lines[0] == "Shift (ppm)\tIntegration\tMultiplicity\tJ (Hz)"
+    assert len(lines) == len(dialog.view.signals()) + 1
+    # Every row has the same column count as the header, or a spreadsheet
+    # paste shears.
+    assert {line.count("\t") for line in lines} == {3}
+
+
+def test_copy_raw_shifts_gives_the_per_nucleus_values_not_the_signals(qapp):
+    """The two copies are different data on purpose -- signals are
+    grouped, raw shifts are per nucleus."""
+    from PySide6.QtGui import QGuiApplication
+    from PySide6.QtWidgets import QPushButton
+
+    dialog = _dialog(qapp)
+    next(b for b in dialog.findChildren(QPushButton) if b.text() == "Copy Raw Shifts").click()
+
+    text = QGuiApplication.clipboard().text()
+    assert "Atom\tElement\tShift" in text
+    assert text != dialog.signals_text()

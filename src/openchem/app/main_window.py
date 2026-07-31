@@ -102,6 +102,7 @@ class MainWindow(QMainWindow):
             services.descriptor_service,
             services.chemistry_engine,
             self,
+            on_add_structure=self._add_generated_structure,
         )
         self._console_panel = ConsolePanel(self)
         self._docking_panel = DockingPanel(
@@ -367,6 +368,24 @@ class MainWindow(QMainWindow):
         self._project_explorer.refresh()
         self._refresh_molecule_combos()
         self._services.event_bus.publish(MoleculeSelected(molecule_uuid=molecule.uuid))
+
+    def _add_generated_structure(self, molblock: str, label: str) -> None:
+        """Take a structure a calculator generated -- a chosen
+        stereoisomer, tautomer or resonance form -- into the project as a
+        real molecule.
+
+        Routed through `add_molecule` so it lands on the undo stack and
+        selects the new molecule, exactly like importing one. The label
+        the generator gave the entry becomes the display name, since
+        "Isomer 3 (S,R)" is more use in the explorer than "Molecule 7".
+        """
+        molecule = MoleculeModel(display_name=label or "Generated structure")
+        try:
+            self._services.chemistry_engine.set_structure_from_molblock(molecule, molblock)
+        except Exception:  # noqa: BLE001 - report, never crash the dialog that called in
+            logger.exception("Could not add generated structure %r to the project", label)
+            return
+        self.add_molecule(molecule)
 
     def _import_molecule(self) -> None:
         if self._session.project is None:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QDialog,
@@ -201,11 +203,17 @@ class PropertyPanel(QWidget):
         descriptor_service: DescriptorService,
         chemistry_engine: ChemistryEngine,
         parent: QWidget | None = None,
+        on_add_structure: Callable[[str, str], None] | None = None,
     ) -> None:
         super().__init__(parent)
         self._calculator_registry = calculator_registry
         self._descriptor_service = descriptor_service
         self._chemistry_engine = chemistry_engine
+        # Adding a generated structure (a chosen stereoisomer, tautomer,
+        # resonance form) as a new molecule needs the undo stack, which
+        # MainWindow owns -- so it injects the callback rather than this
+        # panel reaching upward for it.
+        self._on_add_structure = on_add_structure
         self._project: ProjectModel | None = None
         self._selected_molecule_uuid: str | None = None
         # Set right before DescriptorService.run_calculator() and cleared
@@ -513,6 +521,11 @@ class PropertyPanel(QWidget):
             dialog = NmrViewDialog(self._chemistry_engine, molecule, result, conformer_molblock, parent=self)
         else:
             dialog = CalculatorInspectorDialog(
-                self._chemistry_engine, molecule, result, conformer_molblock, self
+                self._chemistry_engine,
+                molecule,
+                result,
+                conformer_molblock,
+                self,
+                on_add_structure=self._on_add_structure,
             )
         dialog.exec()

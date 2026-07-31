@@ -2,13 +2,30 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtSvgWidgets import QSvgWidget
-from PySide6.QtWidgets import QComboBox, QDialog, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QHBoxLayout,
+    QLabel,
+    QPlainTextEdit,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.common import CacheState, ScientificResult
 from openchem.domain.molecule import MoleculeModel
-from openchem.domain.scientific_result import PerAtomDataset, PhCurveResult, StructureSetResult
+from openchem.domain.scientific_result import (
+    AlertResult,
+    PerAtomDataset,
+    PhCurveResult,
+    StructureEntry,
+    StructureSetResult,
+)
+from openchem.ui.result_clipboard import result_to_text
 from openchem.ui.visualization import (
     SURFACE_REPRESENTATION_LABELS,
     SURFACE_REPRESENTATIONS,
@@ -171,6 +188,46 @@ def _build_ph_curve_view(
     return _PhCurveResultView(result, parent)
 
 
+class _TextResultView(QWidget):
+    """A report-style result: the calculator's own lines, selectable.
+
+    `AlertResult` carries its entire output in `matched` and has no
+    per-atom data at all, so it used to fall through to
+    `_CalculatorResultView` and render TWO EMPTY molecule panes plus "No
+    conformer generated yet" -- Elemental Analysis computed a formula, a
+    mass and a full composition breakdown and displayed none of it. Every
+    report-shaped calculator (Topology, Geometry, Surface, Interactions,
+    Elemental, BBB, Stereo, CNS MPO, Huckel...) was affected.
+
+    Read-only but SELECTABLE, so text can be dragged out with the mouse
+    as well as taken with the Copy button.
+    """
+
+    def __init__(self, result: ScientificResult, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        text = QPlainTextEdit(self)
+        text.setReadOnly(True)
+        if result.cache_state == CacheState.FAILED:
+            text.setPlainText(getattr(result, "error", "") or "Failed")
+        else:
+            text.setPlainText("\n".join(getattr(result, "matched", [])))
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(QLabel(getattr(result, "name", ""), self))
+        layout.addWidget(text)
+
+
+def _build_text_view(
+    engine: ChemistryEngine,
+    molecule: MoleculeModel,
+    result: ScientificResult,
+    conformer_molblock: str | None,
+    parent: QWidget | None,
+) -> QWidget:
+    return _TextResultView(result, parent)
+
+
 def _build_structure_grid_view(
     engine: ChemistryEngine,
     molecule: MoleculeModel,
@@ -196,6 +253,7 @@ def _build_structure_grid_view(
 _RESULT_VIEW_FACTORIES: dict[type, Callable[..., QWidget]] = {
     PhCurveResult: _build_ph_curve_view,
     StructureSetResult: _build_structure_grid_view,
+    AlertResult: _build_text_view,
 }
 
 
@@ -217,11 +275,102 @@ class CalculatorInspectorDialog(QDialog):
         result: ScientificResult,
         conformer_molblock: str | None,
         parent: QWidget | None = None,
+        on_add_structure: Callable[[str, str], None] | None = None,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle(f"Calculator Inspector — {molecule.display_name}")
         self.resize(820, 460)
+        self._engine = engine
+        self._result = result
+        self._on_add_structure = on_add_structure
 
         factory = _RESULT_VIEW_FACTORIES.get(type(result), _CalculatorResultView)
+        self._view = factory(engine, molecule, result, conformer_molblock, self)
+
         layout = QVBoxLayout(self)
-        layout.addWidget(factory(engine, molecule, result, conformer_molblock, self))
+        layout.addWidget(self._view)
+        layout.addLayout(self._build_actions(molecule))
+
+    def _build_actions(self, molecule: MoleculeModel) -> QHBoxLayout:
+        """One action row for every result type. "Copy All" is always
+        offered -- a calculator whose numbers cannot leave the dialog may
+        as well not have run."""
+        row = QHBoxLayout()
+        self._status_label = QLabel("", self)
+
+        copy_all = QPushButton("Copy All", self)
+        copy_all.setToolTip("Copy this result as text (tab-separated where it is tabular).")
+        copy_all.clicked.connect(self._on_copy_all)
+        row.addWidget(copy_all)
+
+        if isinstance(self._view, StructureGridWidget):
+            # A structure set is the case where copying the WHOLE result is
+            # the less useful option: the point of a stereoisomer grid is
+            # picking the one you wanted and taking that.
+            self._copy_smiles_button = QPushButton("Copy SMILES", self)
+            self._copy_smiles_button.clicked.connect(self._on_copy_smiles)
+            self._copy_molblock_button = QPushButton("Copy Molblock", self)
+            self._copy_molblock_button.clicked.connect(self._on_copy_molblock)
+            self._add_button = QPushButton("Add to Project", self)
+            self._add_button.setToolTip("Add the selected structure as a new molecule (undoable).")
+            self._add_button.clicked.connect(self._on_add_selected)
+            self._add_button.setVisible(self._on_add_structure is not None)
+            for button in (self._copy_smiles_button, self._copy_molblock_button, self._add_button):
+                row.addWidget(button)
+            self._view.structure_selected.connect(self._on_structure_selected)
+            self._update_structure_actions()
+
+        row.addStretch(1)
+        row.addWidget(self._status_label)
+        return row
+
+    # --- actions ----------------------------------------------------------
+
+    def _set_status(self, message: str) -> None:
+        self._status_label.setText(message)
+
+    def _copy(self, text: str, what: str) -> None:
+        QGuiApplication.clipboard().setText(text)
+        self._set_status(f"{what} copied.")
+
+    def _on_copy_all(self) -> None:
+        self._copy(result_to_text(self._result), "Result")
+
+    def _selected_entry(self) -> StructureEntry | None:
+        return self._view.selected_entry() if isinstance(self._view, StructureGridWidget) else None
+
+    def _update_structure_actions(self) -> None:
+        has_selection = self._selected_entry() is not None
+        for button in (self._copy_smiles_button, self._copy_molblock_button, self._add_button):
+            button.setEnabled(has_selection)
+        if not has_selection:
+            self._set_status("Click a structure to select it.")
+
+    def _on_structure_selected(self, _index: int) -> None:
+        self._update_structure_actions()
+        entry = self._selected_entry()
+        if entry is not None:
+            self._set_status(f"Selected: {entry.label}")
+
+    def _on_copy_smiles(self) -> None:
+        entry = self._selected_entry()
+        if entry is None:
+            return
+        try:
+            self._copy(self._engine.molblock_to_smiles(entry.molblock), "SMILES")
+        except Exception as exc:  # noqa: BLE001 - say why rather than copying nothing
+            self._set_status(f"Could not convert to SMILES: {exc}")
+
+    def _on_copy_molblock(self) -> None:
+        entry = self._selected_entry()
+        if entry is not None:
+            # The molblock, not SMILES, is what preserves 3D coordinates --
+            # which is the whole difference for a conformer set.
+            self._copy(entry.molblock, "Molblock")
+
+    def _on_add_selected(self) -> None:
+        entry = self._selected_entry()
+        if entry is None or self._on_add_structure is None:
+            return
+        self._on_add_structure(entry.molblock, entry.label)
+        self._set_status(f"Added {entry.label} to the project.")
