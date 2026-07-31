@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.common import CacheState, ScientificResult
 from openchem.domain.molecule import MoleculeModel
-from openchem.domain.scientific_result import PerAtomDataset
+from openchem.domain.scientific_result import PerAtomDataset, PhCurveResult
 from openchem.ui.visualization import build_visualization_layer
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
+from openchem.ui.widgets.ph_curve_widget import PhCurveWidget
 
 
 class _CalculatorResultView(QWidget):
@@ -90,6 +93,64 @@ class _CalculatorResultView(QWidget):
         layout.addWidget(legend_label)
 
 
+class _PhCurveResultView(QWidget):
+    """A pH-curve result's inspection: the chart plus a live readout.
+
+    Deliberately NOT the molecular 2D+3D view above. A `PhCurveResult` has
+    no per-atom data at all, so `build_visualization_layer` returns `None`
+    for it and `_CalculatorResultView` would render two empty molecule
+    panes plus a misleading "No conformer generated yet" line -- the same
+    class of empty-looking-like-broken bug Phase 23a fixed when a spectrum
+    was showing "Overall: n/a".
+    """
+
+    def __init__(self, result: PhCurveResult, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._chart = PhCurveWidget(result, self)
+        self._readout = QLabel(self)
+        self._readout.setWordWrap(True)
+        self._chart.ph_hovered.connect(self._on_ph_hovered)
+
+        header = QLabel(result.name, self)
+        if result.cache_state == CacheState.FAILED:
+            header.setText(result.error or "Failed")
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(header)
+        layout.addWidget(self._chart)
+        layout.addWidget(self._readout)
+
+    def _on_ph_hovered(self, ph: float) -> None:
+        values = self._chart.readout_at(ph)
+        self._readout.setText(
+            f"pH {ph:.2f} — " + ", ".join(f"{name}: {value:.2f}" for name, value in values.items())
+        )
+
+
+def _build_ph_curve_view(
+    engine: ChemistryEngine,
+    molecule: MoleculeModel,
+    result: ScientificResult,
+    conformer_molblock: str | None,
+    parent: QWidget | None,
+) -> QWidget:
+    return _PhCurveResultView(result, parent)
+
+
+# Result type -> view factory, mirroring `_VISUALIZATION_ADAPTERS`'
+# type-keyed dispatch (Phase 18) but one level up: that registry answers
+# "how do I colour atoms for this result", which only makes sense for
+# results that HAVE atoms. This one answers "what widget shows this
+# result at all", so a chart-shaped result can opt out of the molecular
+# view entirely instead of rendering it empty.
+#
+# Anything unregistered falls back to the 2D+3D molecular view, which is
+# right for every per-atom and spectral result shipped so far.
+_RESULT_VIEW_FACTORIES: dict[type, Callable[..., QWidget]] = {
+    PhCurveResult: _build_ph_curve_view,
+}
+
+
 class CalculatorInspectorDialog(QDialog):
     """Marvin-style calculator-result inspector -- overall value plus 2D-
     and 3D-colored-and-numbered depictions for ONE calculator's result.
@@ -97,7 +158,8 @@ class CalculatorInspectorDialog(QDialog):
     row, after that calculator's settings dialog (if it has parameters).
     Named "Calculator" rather than "Property" since it can show results
     from any registered `CalculatorRegistry` entry, not just classic
-    scalar/per-atom descriptors.
+    scalar/per-atom descriptors -- which is now literally true: the view
+    is chosen by result type via `_RESULT_VIEW_FACTORIES`.
     """
 
     def __init__(
@@ -112,5 +174,6 @@ class CalculatorInspectorDialog(QDialog):
         self.setWindowTitle(f"Calculator Inspector — {molecule.display_name}")
         self.resize(820, 460)
 
+        factory = _RESULT_VIEW_FACTORIES.get(type(result), _CalculatorResultView)
         layout = QVBoxLayout(self)
-        layout.addWidget(_CalculatorResultView(engine, molecule, result, conformer_molblock, self))
+        layout.addWidget(factory(engine, molecule, result, conformer_molblock, self))

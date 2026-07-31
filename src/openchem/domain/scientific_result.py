@@ -79,6 +79,40 @@ class NMRSpectrumResult(SpectrumResult):
 
 
 @dataclass(frozen=True, kw_only=True)
+class PhCurveResult(ScientificResult):
+    """A property sampled across a pH range (Phase 25a).
+
+    One shape, four real consumers: pKa microspecies distribution, logD vs
+    pH, the isoelectric-point charge curve, and H-bond donor/acceptor
+    counts vs pH -- so this is a shared shape from day one rather than a
+    generalization built ahead of need.
+
+    `series` is a mapping of series name -> one value per entry in
+    `ph_values`, which is what lets a single result carry several curves
+    on one set of axes (a pKa distribution has one curve per microspecies;
+    an isoelectric-point result has exactly one). Every list in `series`
+    must be the same length as `ph_values` -- the widget zips them.
+    """
+
+    curve_id: str  # e.g. "pka_microspecies", "logd_vs_ph"
+    name: str  # display name
+    method: str
+    molecule_uuid: str
+    ph_values: list[float] = field(default_factory=list)
+    series: dict[str, list[float]] = field(default_factory=dict)
+    x_label: str = "pH"
+    y_label: str = ""
+    # Optional hard axis bounds, for quantities that are physically
+    # bounded. Without them the widget pads the observed range by 8% to
+    # keep curves off the frame, which is right for an unbounded quantity
+    # like logD but produces "-8% to 108%" on a microspecies distribution
+    # -- caught by rendering one and looking at it. A calculator that
+    # knows its range says so; everything else keeps the padding.
+    y_min: float | None = None
+    y_max: float | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
 class CrossPeak:
     """One correlated atom pair inside a `CorrelationResult` — a plain
     value object, not its own `ScientificResult` (it has no independent
