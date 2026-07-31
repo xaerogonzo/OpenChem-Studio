@@ -28,6 +28,7 @@ from rdkit import Chem
 from rdkit.Chem import rdPartialCharges
 
 from openchem.chem.geometry_analysis import NoConformerError, _require_conformer
+from openchem.chem.calculator_options import decimals
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.scientific_result import AlertResult
 
@@ -87,11 +88,12 @@ def compute_dipole_moment(
             provenance=Provenance(created_by="core", method="rdkit"),
         )
 
+    places = decimals(parameters)
     lines = [
-        f"Dipole: {magnitude:.2f} Debye",
-        f"Dipole X: {vector[0]:+.2f} Debye",
-        f"Dipole Y: {vector[1]:+.2f} Debye",
-        f"Dipole Z: {vector[2]:+.2f} Debye",
+        f"Dipole: {magnitude:.{places}f} Debye",
+        f"Dipole X: {vector[0]:+.{places}f} Debye",
+        f"Dipole Y: {vector[1]:+.{places}f} Debye",
+        f"Dipole Z: {vector[2]:+.{places}f} Debye",
     ]
     if not origin_independent:
         lines.append(

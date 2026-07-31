@@ -14,6 +14,10 @@ from openchem.chem.elemental_analysis import compute_elemental_analysis
 from openchem.chem.geometry_analysis import compute_geometry_analysis
 from openchem.chem.interaction_analysis import compute_interaction_analysis
 from openchem.chem.markush import DEFAULT_MAX_STRUCTURES as MARKUSH_DEFAULT_MAX
+from openchem.chem.calculator_options import (
+    decimal_places_parameter,
+    microspecies_parameters,
+)
 from openchem.chem.dipole import compute_dipole_moment
 from openchem.chem.electronic_properties import (
     compute_atomic_polarizability,
@@ -852,6 +856,10 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         ),
         execution=RegistryExecution(compute=compute_elemental_analysis),
         tags=["identity", "composition", "mass"],
+        parameters=[
+            decimal_places_parameter(),
+            *microspecies_parameters(),
+        ],
     ),
     CalculatorDefinition(
         calculator_id="topology_analysis",
@@ -866,6 +874,9 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         ),
         execution=RegistryExecution(compute=compute_topology_analysis),
         tags=["topology", "graph", "indices"],
+        parameters=[
+            decimal_places_parameter(),
+        ],
     ),
     CalculatorDefinition(
         calculator_id="topology_eccentricity",
@@ -894,6 +905,9 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         ),
         execution=RegistryExecution(compute=compute_geometry_analysis),
         tags=["geometry", "3d", "energy"],
+        parameters=[
+            decimal_places_parameter(),
+        ],
     ),
     CalculatorDefinition(
         calculator_id="surface_analysis",
@@ -905,6 +919,9 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         ),
         execution=RegistryExecution(compute=compute_surface_analysis),
         tags=["surface", "3d", "solvent"],
+        parameters=[
+            decimal_places_parameter(),
+        ],
     ),
     CalculatorDefinition(
         calculator_id="atom_sasa",
@@ -957,6 +974,9 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         ),
         execution=RegistryExecution(compute=compute_interaction_analysis),
         tags=["interactions", "3d", "contacts"],
+        parameters=[
+            decimal_places_parameter(),
+        ],
     ),
     # ---- Phase 27: structure generators ------------------------------
     CalculatorDefinition(
@@ -1142,6 +1162,18 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         execution=RegistryExecution(compute=compute_huckel_analysis),
         prediction_basis="ab_initio",
         tags=["quantum", "orbitals", "aromaticity"],
+        parameters=[
+            decimal_places_parameter(),
+            *microspecies_parameters(),
+            CalculatorParameter(
+                name="pi_electrons",
+                label="Pi electrons (0 = from structure and charge)",
+                kind="int",
+                default=0,
+                minimum=0,
+                maximum=200,
+            ),
+        ],
     ),
     CalculatorDefinition(
         calculator_id="huckel_pi_density",
@@ -1163,6 +1195,9 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         ),
         execution=RegistryExecution(compute=compute_dipole_moment),
         tags=["charge", "3d", "polarity"],
+        parameters=[
+            decimal_places_parameter(),
+        ],
     ),
     CalculatorDefinition(
         calculator_id="molecular_dynamics",
@@ -1211,6 +1246,9 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         execution=RegistryExecution(compute=compute_cns_mpo),
         prediction_basis="empirical",
         tags=["admet", "cns", "mpo", "druglikeness"],
+        parameters=[
+            decimal_places_parameter(),
+        ],
     ),
     CalculatorDefinition(
         calculator_id="structural_frameworks",

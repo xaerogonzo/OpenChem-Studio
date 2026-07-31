@@ -21,6 +21,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem, rdFreeSASA
 
 from openchem.chem.geometry_analysis import NoConformerError, _require_conformer
+from openchem.chem.calculator_options import decimals
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.scientific_result import AlertResult, PerAtomDataset
 
@@ -106,17 +107,18 @@ def compute_surface_analysis(
             error=str(exc),
             provenance=Provenance(created_by="core", method="rdkit"),
         )
+    places = decimals(parameters)
     return AlertResult(
         alert_id="surface_analysis",
         name="Molecular Surface Area (3D)",
         molecule_uuid=molecule_uuid,
         matched=[
-            f"ASA (solvent accessible): {areas['asa']:.2f} Å²",
-            f"ASA+ (positively charged atoms): {areas['asa_positive']:.2f} Å²",
-            f"ASA- (negatively charged atoms): {areas['asa_negative']:.2f} Å²",
-            f"ASA_H (hydrophobic): {areas['asa_hydrophobic']:.2f} Å²",
-            f"ASA_P (polar): {areas['asa_polar']:.2f} Å²",
-            f"van der Waals volume: {areas['vdw_volume']:.2f} Å³",
+            f"ASA (solvent accessible): {areas['asa']:.{places}f} Å²",
+            f"ASA+ (positively charged atoms): {areas['asa_positive']:.{places}f} Å²",
+            f"ASA- (negatively charged atoms): {areas['asa_negative']:.{places}f} Å²",
+            f"ASA_H (hydrophobic): {areas['asa_hydrophobic']:.{places}f} Å²",
+            f"ASA_P (polar): {areas['asa_polar']:.{places}f} Å²",
+            f"van der Waals volume: {areas['vdw_volume']:.{places}f} Å³",
         ],
         category="surface",
         provenance=Provenance(created_by="core", method="rdkit"),

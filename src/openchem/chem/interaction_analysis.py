@@ -33,6 +33,7 @@ from openchem.chem.pose_analysis import (
     _POLAR_ELEMENTS,
     _VDW_RADII,
 )
+from openchem.chem.calculator_options import decimals
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.scientific_result import AlertResult
 
@@ -234,6 +235,7 @@ def compute_interaction_analysis(
             provenance=Provenance(created_by="core", method="rdkit"),
         )
 
+    places = decimals(parameters)
     lines: list[str] = []
     for kind, entries in interactions.items():
         for entry in entries:
@@ -244,7 +246,9 @@ def compute_interaction_analysis(
                 where = f"atom {entry['atom']} / ring {sorted(entry['ring'])}"
             else:
                 where = f"atoms {entry['atoms'][0]}-{entry['atoms'][1]}"
-            lines.append(f"{_LABELS[kind]}: {where} ({entry['distance']:.2f} Å)")
+            lines.append(
+                f"{_LABELS[kind]}: {where} ({entry['distance']:.{places}f} Å)"
+            )
 
     if not lines:
         # An empty result is a real finding ("nothing contacts anything"),

@@ -28,6 +28,7 @@ from typing import Any
 from rdkit import Chem
 from rdkit.Chem import Descriptors, rdMolDescriptors
 
+from openchem.chem.calculator_options import decimals
 from openchem.domain.common import Provenance
 from openchem.domain.scientific_result import AlertResult, PerAtomDataset
 
@@ -173,6 +174,7 @@ def compute_topology_analysis(
 ) -> AlertResult:
     """The "topology" category's Topology Analysis calculator -- the whole
     index set as one readout, the way Marvin's own window presents it."""
+    places = decimals(parameters)
     rings = ring_counts(mol)
     stereo = stereo_counts(mol)
     lines = [
@@ -193,9 +195,9 @@ def compute_topology_analysis(
         f"Largest ring size: {rings['largest_ring_size']}",
         f"Smallest ring size: {rings['smallest_ring_size']}",
         f"Platt index: {platt_index(mol)}",
-        f"Randic index: {randic_index(mol):.2f}",
-        f"Balaban index: {Descriptors.BalabanJ(mol):.2f}",
-        f"Harary index: {harary_index(mol):.2f}",
+        f"Randic index: {randic_index(mol):.{places}f}",
+        f"Balaban index: {Descriptors.BalabanJ(mol):.{places}f}",
+        f"Harary index: {harary_index(mol):.{places}f}",
         f"Hyper Wiener index: {hyper_wiener_index(mol)}",
         f"Wiener index: {wiener_index(mol)}",
         f"Wiener polarity: {wiener_polarity(mol)}",

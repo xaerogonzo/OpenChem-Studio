@@ -27,6 +27,7 @@ from typing import Any
 from rdkit import Chem
 from rdkit.Chem import AllChem, rdMolTransforms
 
+from openchem.chem.calculator_options import decimals
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.scientific_result import AlertResult
 
@@ -115,6 +116,7 @@ def compute_geometry_analysis(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None
 ) -> AlertResult:
     """The "geometry" category's calculator."""
+    places = decimals(parameters)
     try:
         radii = molecular_radii(mol)
         energies = force_field_energies(mol)
@@ -131,15 +133,15 @@ def compute_geometry_analysis(
         )
 
     lines = [
-        f"Max radius (from centroid): {radii['max_radius']:.3f} Å",
-        f"Min radius (from centroid): {radii['min_radius']:.3f} Å",
-        f"Mean radius (from centroid): {radii['mean_radius']:.3f} Å",
+        f"Max radius (from centroid): {radii['max_radius']:.{places}f} Å",
+        f"Min radius (from centroid): {radii['min_radius']:.{places}f} Å",
+        f"Mean radius (from centroid): {radii['mean_radius']:.{places}f} Å",
     ]
     # Named explicitly so nobody reads these as Marvin's Dreiding value.
     if energies["mmff94"] is not None:
-        lines.append(f"MMFF94 energy: {energies['mmff94']:.2f} kcal/mol")
+        lines.append(f"MMFF94 energy: {energies['mmff94']:.{places}f} kcal/mol")
     if energies["uff"] is not None:
-        lines.append(f"UFF energy: {energies['uff']:.2f} kcal/mol")
+        lines.append(f"UFF energy: {energies['uff']:.{places}f} kcal/mol")
     if energies["mmff94"] is None and energies["uff"] is None:
         lines.append("No force field parameters available for this molecule.")
     else:

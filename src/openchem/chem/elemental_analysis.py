@@ -21,6 +21,11 @@ from typing import Any
 from rdkit import Chem
 from rdkit.Chem import Descriptors, rdMolDescriptors
 
+from openchem.chem.calculator_options import (
+    apply_microspecies,
+    decimals,
+    microspecies_note,
+)
 from openchem.domain.common import Provenance
 from openchem.domain.scientific_result import AlertResult
 
@@ -82,17 +87,19 @@ def compute_elemental_analysis(
     `AlertResult.matched` already renders as a labelled list in the
     Property Panel with no new result shape or view needed.
     """
+    parameters = parameters or {}
+    places = decimals(parameters)
     # Explicit hydrogens or the composition is wrong: RDKit keeps H
     # implicit by default, and an implicit H contributes no atom to count.
-    mol_with_h = Chem.AddHs(mol)
+    mol_with_h = Chem.AddHs(apply_microspecies(mol, parameters))
     composition = element_composition(mol_with_h)
     plain = molecular_formula(mol_with_h)
     dotted = dot_disconnected_formula(mol_with_h)
 
     lines = [
         f"Formula: {plain}",
-        f"Mass: {Descriptors.MolWt(mol_with_h):.3f}",
-        f"Exact mass: {Descriptors.ExactMolWt(mol_with_h):.6f}",
+        f"Mass: {Descriptors.MolWt(mol_with_h):.{max(places, 3)}f}",
+        f"Exact mass: {Descriptors.ExactMolWt(mol_with_h):.{max(places, 6)}f}",
         f"Atom count: {mol_with_h.GetNumAtoms()}",
     ]
     # Only shown when it actually says something new -- a single-fragment
@@ -103,7 +110,10 @@ def compute_elemental_analysis(
     isotopes = isotope_formula(mol_with_h)
     if any(atom.GetIsotope() for atom in mol_with_h.GetAtoms()):
         lines.append(f"Isotope formula: {isotopes}")
-    lines.extend(f"{element}: {percent:.2f}%" for element, percent in composition.items())
+    lines.extend(
+        f"{element}: {percent:.{places}f}%" for element, percent in composition.items()
+    )
+    lines.extend(microspecies_note(parameters))
 
     return AlertResult(
         alert_id="elemental_analysis",

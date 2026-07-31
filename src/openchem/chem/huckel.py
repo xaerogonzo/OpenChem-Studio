@@ -40,6 +40,7 @@ from typing import Any
 import numpy as np
 from rdkit import Chem
 
+from openchem.chem.calculator_options import apply_microspecies, decimals, microspecies_note
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.scientific_result import AlertResult, PerAtomDataset
 
@@ -108,7 +109,14 @@ def solve_huckel(mol: Chem.Mol, pi_electrons: int | None = None) -> HuckelResult
     eigenvalues = eigenvalues[order]
     eigenvectors = eigenvectors[:, order]
 
-    electrons = size if pi_electrons is None else pi_electrons
+    # Pi electrons = one per pi centre, MINUS the formal charge. Without
+    # the charge term the two textbook aromatic ions come out wrong:
+    # cyclopentadienyl anion got 5 electrons instead of 6 and tropylium
+    # cation got 7 instead of 6, so neither showed the closed 6-electron
+    # shell that makes them aromatic -- on exactly the species someone
+    # would use to check a Huckel implementation.
+    electrons = (size - Chem.GetFormalCharge(mol)) if pi_electrons is None else pi_electrons
+    electrons = max(0, min(electrons, 2 * size))
     occupations: list[int] = []
     remaining = electrons
     for _ in range(size):
@@ -166,7 +174,10 @@ def compute_huckel_analysis(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None
 ) -> AlertResult:
     """The "quantum" category's Huckel calculator."""
-    result = solve_huckel(mol)
+    parameters = parameters or {}
+    target = apply_microspecies(mol, parameters)
+    override = parameters.get("pi_electrons", 0)
+    result = solve_huckel(target, pi_electrons=int(override) or None)
     if result is None:
         return AlertResult(
             alert_id="huckel_analysis",
@@ -179,21 +190,23 @@ def compute_huckel_analysis(
             provenance=Provenance(created_by="core", method="huckel"),
         )
 
+    places = decimals(parameters)
     lines = [
-        f"Pi system: {len(result.atom_indices)} atoms",
-        f"Total pi energy: {result.total_pi_energy:.4f} beta",
+        f"Pi system: {len(result.atom_indices)} atoms, {sum(result.occupations)} pi electrons",
+        f"Total pi energy: {result.total_pi_energy:.{places}f} beta",
     ]
     if result.homo is not None:
-        lines.append(f"HOMO: {result.homo:+.4f} beta")
+        lines.append(f"HOMO: {result.homo:+.{places}f} beta")
     if result.lumo is not None:
-        lines.append(f"LUMO: {result.lumo:+.4f} beta")
+        lines.append(f"LUMO: {result.lumo:+.{places}f} beta")
     if result.homo_lumo_gap is not None:
-        lines.append(f"HOMO-LUMO gap: {result.homo_lumo_gap:.4f} beta")
+        lines.append(f"HOMO-LUMO gap: {result.homo_lumo_gap:.{places}f} beta")
     lines.append(
         "Orbital energies (beta): "
-        + ", ".join(f"{value:+.3f}" for value in result.orbital_energies)
+        + ", ".join(f"{value:+.{places}f}" for value in result.orbital_energies)
     )
-    if _heteroatoms_present(mol, result.atom_indices):
+    lines.extend(microspecies_note(parameters))
+    if _heteroatoms_present(target, result.atom_indices):
         lines.append(_HETEROATOM_CAVEAT)
 
     return AlertResult(
@@ -218,7 +231,10 @@ def compute_pi_electron_density(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None
 ) -> PerAtomDataset:
     """Per-atom pi electron density, projected onto the 2D and 3D views."""
-    result = solve_huckel(mol)
+    parameters = parameters or {}
+    target = apply_microspecies(mol, parameters)
+    override = parameters.get("pi_electrons", 0)
+    result = solve_huckel(target, pi_electrons=int(override) or None)
     if result is None:
         return PerAtomDataset(
             property_id="huckel_pi_density",
