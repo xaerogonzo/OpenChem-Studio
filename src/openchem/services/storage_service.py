@@ -26,7 +26,9 @@ installing into it, moving the directory and re-running it.
 from __future__ import annotations
 
 import logging
+import os
 import shutil
+import stat
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -51,6 +53,54 @@ _PATH_SETTINGS = (
     STOUT_PYTHON_SETTING,
     "docking/vina_executable_path",
 )
+
+
+
+def _force_writable(func, path, exc):
+    r"""rmtree error handler that clears the read-only bit and retries.
+
+    Git marks everything under `.git/objects` READ-ONLY, and the
+    pkasolver install is a git clone. On Windows a read-only file cannot
+    be deleted, so removing that tree fails with
+
+        PermissionError: [WinError 5] Access is denied:
+        ...pkasolver\.git\objects\pack\pack-8245c60d....idx
+
+    Hit for real while moving 3.7 GB: the copy had already succeeded and
+    the source delete died half way, leaving a damaged original. POSIX
+    does not care -- deletion there depends on the DIRECTORY's permissions
+    -- which is why this only shows up on Windows.
+    """
+    try:
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+    except OSError:
+        raise
+
+
+def remove_tree(path: Path) -> None:
+    """`shutil.rmtree` that coexists with read-only files."""
+    shutil.rmtree(path, onexc=_force_writable)
+
+
+def move_tree(source: Path, destination: Path) -> None:
+    """Move one item, whatever is in the way.
+
+    A rename is tried FIRST: within a volume it is instantaneous and
+    moves nothing, where copy-then-delete would shuffle gigabytes. It
+    fails across volumes, which is when the copy path is actually needed.
+    """
+    try:
+        os.replace(source, destination)
+        return
+    except OSError:
+        pass
+    if source.is_dir():
+        shutil.copytree(source, destination, symlinks=True)
+        remove_tree(source)
+    else:
+        shutil.copy2(source, destination)
+        source.unlink()
 
 
 @dataclass(frozen=True)
@@ -167,7 +217,7 @@ def move_data_root(
         if on_progress:
             on_progress(MoveProgress(index + 1, total, f"Moving {child.name}"))
         try:
-            shutil.move(str(child), str(destination / child.name))
+            move_tree(child, destination / child.name)
         except OSError as exc:
             raise StorageError(
                 f"Failed while moving {child.name}: {exc}. Some items may already have moved; "
@@ -180,6 +230,7 @@ def move_data_root(
         on_progress(MoveProgress(total, total, "Recording the new location"))
     app_paths.set_data_root(destination)
 
+    _repoint_pth_files(destination, source)
     if settings is not None:
         _repoint_settings(settings, source, destination)
 
@@ -191,6 +242,36 @@ def move_data_root(
     except OSError:
         pass
     return destination
+
+
+def _repoint_pth_files(root: Path, old_root: Path) -> None:
+    """Rewrite .pth files inside moved environments that named the old
+    location.
+
+    A .pth file in site-packages puts extra directories on the import
+    path, and an absolute one survives a move looking perfectly healthy
+    while pointing at nothing. Hit for real: pkasolver's clone was added
+    this way, and after moving, the interpreter still started and every
+    prediction failed with "ModuleNotFoundError: No module named
+    'pkasolver'" -- naming neither the .pth file nor the move.
+
+    New installs write a path derived from `sys.prefix` instead and are
+    immune (see `pkasolver_setup.RELOCATABLE_PTH`); this repairs the ones
+    already on disk.
+    """
+    old_text = str(old_root)
+    for pth in root.rglob("*.pth"):
+        try:
+            content = pth.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        if old_text not in content:
+            continue
+        try:
+            pth.write_text(content.replace(old_text, str(root)), encoding="utf-8")
+            logger.info("Re-pointed %s after data move", pth)
+        except OSError:
+            logger.warning("Could not re-point %s; it still names the old location", pth)
 
 
 def _repoint_settings(settings, source: Path, destination: Path) -> None:

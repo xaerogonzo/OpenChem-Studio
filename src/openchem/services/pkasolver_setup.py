@@ -75,6 +75,27 @@ class PkasolverSetupError(RuntimeError):
     so it names what failed and what to do, not just a return code."""
 
 
+PTH_NAME = "openchem_pkasolver.pth"
+
+# The clone goes on the import path via a .pth file rather than
+# `pip install -e .`, because pkasolver's setup.py uses versioneer, which
+# calls the configparser.SafeConfigParser removed in Python 3.12.
+#
+# COMPUTED AT RUNTIME, not written as an absolute path. A .pth line
+# beginning with "import" is executed by the site module, so this derives
+# the clone's location from sys.prefix -- the environment's own root --
+# every time the interpreter starts. An absolute path here was baked in
+# at install time and silently invalidated the moment the data directory
+# moved: the environment still ran, and every prediction failed with
+# "ModuleNotFoundError: No module named 'pkasolver'", naming neither the
+# .pth file nor the move. Deriving it means the environment can be moved
+# anywhere, by this app or by hand, and still work.
+RELOCATABLE_PTH = (
+    "import os, sys; "
+    "sys.path.insert(0, os.path.join(sys.prefix, os.pardir, 'pkasolver'))\n"
+)
+
+
 def default_install_root() -> Path:
     """Beside the app's other tool data, not inside the source tree -- an
     installed copy of this app has no writable source directory."""
@@ -229,7 +250,7 @@ def install(root: Path | None = None, on_progress: ProgressCallback | None = Non
     #    on the interpreter this environment needs.
     report(5)
     site_packages = _site_packages_of(python)
-    (site_packages / "openchem_pkasolver.pth").write_text(str(repo) + "\n", encoding="utf-8")
+    (site_packages / PTH_NAME).write_text(RELOCATABLE_PTH, encoding="utf-8")
 
     # 7. Prove it works rather than assuming -- a setup that "succeeded"
     #    but cannot predict is worse than one that failed loudly.

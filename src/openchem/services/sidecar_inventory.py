@@ -27,6 +27,7 @@ from pathlib import Path
 from openchem import paths as app_paths
 from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING
 from openchem.chem.stout_providers import STOUT_PYTHON_SETTING
+from openchem.services import storage_service
 
 logger = logging.getLogger("openchem.services")
 
@@ -226,7 +227,11 @@ def uninstall(component: Component, settings=None) -> int:
             if path.is_file():
                 path.unlink()
             else:
-                shutil.rmtree(path)
+                # Not plain rmtree: the pkasolver install is a git clone
+                # and git marks its pack files read-only, which Windows
+                # refuses to delete. Removing pkasolver would have failed
+                # for exactly the reason moving it did.
+                storage_service.remove_tree(path)
         except OSError as exc:
             raise UninstallError(
                 f"Could not remove {path}: {exc}. If a calculation is still running, wait for "

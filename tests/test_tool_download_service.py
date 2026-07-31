@@ -8,6 +8,7 @@ import pytest
 
 import openchem.services.tool_download_service as svc
 from openchem.services.tool_download_service import VinaReleaseAsset
+from openchem import paths as app_paths
 
 
 def _fake_response(payload: dict) -> MagicMock:
@@ -93,7 +94,7 @@ def test_describe_vina_status_reports_engine_id_and_version(monkeypatch):
 
 
 def test_download_vina_asset_writes_file_to_the_tools_directory(tmp_path, monkeypatch):
-    monkeypatch.setattr(svc.platformdirs, "user_data_dir", lambda *a, **k: str(tmp_path))
+    monkeypatch.setenv(app_paths.DATA_ROOT_ENV_VAR, str(tmp_path))
 
     fake_bytes = b"fake-vina-binary-content"
     chunks = [fake_bytes, b""]
@@ -115,7 +116,7 @@ def test_download_vina_asset_writes_file_to_the_tools_directory(tmp_path, monkey
 
 
 def test_download_vina_asset_cleans_up_partial_file_on_failure(tmp_path, monkeypatch):
-    monkeypatch.setattr(svc.platformdirs, "user_data_dir", lambda *a, **k: str(tmp_path))
+    monkeypatch.setenv(app_paths.DATA_ROOT_ENV_VAR, str(tmp_path))
     asset = VinaReleaseAsset(version="v1", name="broken.exe", download_url="https://x/broken", size_bytes=10)
 
     with (

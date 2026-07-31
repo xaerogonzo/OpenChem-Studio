@@ -8,6 +8,7 @@ exercise real files and a real virtual environment rather than mocks.
 from __future__ import annotations
 
 import os
+import stat
 import subprocess
 import sys
 import venv
@@ -176,13 +177,13 @@ def test_the_pointer_is_written_only_after_everything_moved(isolated_root, tmp_p
     (isolated_root / "payload").mkdir()
 
     seen_when_moving = {}
-    original = storage_service.shutil.move
+    original = storage_service.move_tree
 
     def spy(source, target):
         seen_when_moving["root_during_move"] = app_paths.data_root()
         return original(source, target)
 
-    monkeypatch.setattr(storage_service.shutil, "move", spy)
+    monkeypatch.setattr(storage_service, "move_tree", spy)
     storage_service.move_data_root(tmp_path / "moved")
 
     assert seen_when_moving["root_during_move"] == isolated_root
@@ -251,3 +252,83 @@ def test_the_status_line_does_not_walk_the_data_directory(isolated_root, monkeyp
     storage_service.describe_status()
 
     assert walked == []
+
+
+def test_read_only_files_do_not_block_a_move(isolated_root, tmp_path, monkeypatch):
+    """The failure hit for real while moving 3.7 GB. Git marks everything
+    under .git/objects read-only and the pkasolver install is a clone, so
+    Windows refused to delete the source after copying it -- leaving a
+    complete copy at the destination and a damaged original behind.
+    """
+    monkeypatch.delenv(app_paths.DATA_ROOT_ENV_VAR, raising=False)
+    monkeypatch.setattr(app_paths, "pointer_file", lambda: tmp_path / "pointer.txt")
+    app_paths.set_data_root(isolated_root)
+
+    locked = isolated_root / "clone" / ".git" / "objects" / "pack"
+    locked.mkdir(parents=True)
+    pack = locked / "pack-abc.idx"
+    pack.write_bytes(b"objects")
+    pack.chmod(stat.S_IREAD)
+
+    destination = tmp_path / "moved"
+    storage_service.move_data_root(destination)
+
+    assert (destination / "clone" / ".git" / "objects" / "pack" / "pack-abc.idx").is_file()
+    assert not (isolated_root / "clone").exists(), "the source must be fully removed"
+
+
+def test_a_same_volume_move_renames_instead_of_copying(isolated_root, tmp_path, monkeypatch):
+    """Copy-then-delete would shuffle gigabytes for a move that the
+    filesystem can do instantly."""
+    monkeypatch.delenv(app_paths.DATA_ROOT_ENV_VAR, raising=False)
+    monkeypatch.setattr(app_paths, "pointer_file", lambda: tmp_path / "pointer.txt")
+    app_paths.set_data_root(isolated_root)
+    (isolated_root / "payload").mkdir()
+
+    copied = []
+    monkeypatch.setattr(
+        storage_service.shutil, "copytree", lambda *a, **k: copied.append(a) or None
+    )
+    storage_service.move_data_root(tmp_path / "moved")
+
+    assert copied == [], "same-volume move must rename, not copy"
+
+
+def test_an_absolute_pth_file_is_repointed_after_a_move(isolated_root, tmp_path, monkeypatch):
+    """A .pth naming the old root survives a move looking healthy while
+    pointing at nothing. Hit for real: pkasolver's clone was added this
+    way, the moved interpreter still started, and every prediction failed
+    with ModuleNotFoundError naming neither the .pth nor the move."""
+    monkeypatch.delenv(app_paths.DATA_ROOT_ENV_VAR, raising=False)
+    monkeypatch.setattr(app_paths, "pointer_file", lambda: tmp_path / "pointer.txt")
+    app_paths.set_data_root(isolated_root)
+    site_packages = isolated_root / "env" / ".venv" / "Lib" / "site-packages"
+    site_packages.mkdir(parents=True)
+    pth = site_packages / "thing.pth"
+    pth.write_text(str(isolated_root / "clone") + "\n", encoding="utf-8")
+
+    destination = tmp_path / "moved"
+    storage_service.move_data_root(destination)
+
+    moved_pth = destination / "env" / ".venv" / "Lib" / "site-packages" / "thing.pth"
+    assert str(isolated_root) not in moved_pth.read_text(encoding="utf-8")
+    assert str(destination) in moved_pth.read_text(encoding="utf-8")
+
+
+def test_a_relocatable_pth_is_left_alone(isolated_root, tmp_path, monkeypatch):
+    """New installs derive their path from sys.prefix and name no root at
+    all, so there is nothing to rewrite."""
+    from openchem.services.pkasolver_setup import RELOCATABLE_PTH
+
+    monkeypatch.delenv(app_paths.DATA_ROOT_ENV_VAR, raising=False)
+    monkeypatch.setattr(app_paths, "pointer_file", lambda: tmp_path / "pointer.txt")
+    app_paths.set_data_root(isolated_root)
+    site_packages = isolated_root / "env" / ".venv" / "Lib" / "site-packages"
+    site_packages.mkdir(parents=True)
+    (site_packages / "openchem_pkasolver.pth").write_text(RELOCATABLE_PTH, encoding="utf-8")
+
+    destination = tmp_path / "moved"
+    storage_service.move_data_root(destination)
+
+    moved = destination / "env" / ".venv" / "Lib" / "site-packages" / "openchem_pkasolver.pth"
+    assert moved.read_text(encoding="utf-8") == RELOCATABLE_PTH
