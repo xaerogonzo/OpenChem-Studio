@@ -687,25 +687,6 @@ def compute_logd(
     )
 
 
-def compute_empirical_nmr_shifts(mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any]):
-    """The "nmr" category's zero-parameter calculator (Phase 22) -- fast,
-    synchronous, ORCA-free typical-range shift estimate. Fits the
-    RegistryExecution shape exactly (unlike the real ORCA NMR calc types,
-    which stay ServiceExecution-only in bootstrap.py -- they're async,
-    QProcess-driven, and need a configured executable).
-
-    `Chem.AddHs` first (Phase 23): the mol reaching a calculator comes from
-    the editor molblock, where hydrogens are implicit -- without this there
-    are no H atoms to assign 1H shifts to at all, so the result was
-    carbon-only. `AddHs` appends the new H atoms after the existing ones
-    and never reorders, so heavy-atom indices stay aligned with the 2D
-    depiction the inspector renders alongside.
-    """
-    from openchem.chem.nmr_empirical_smarts import estimate_shifts_by_smarts_environment
-
-    return estimate_shifts_by_smarts_environment(Chem.AddHs(mol), molecule_uuid)
-
-
 CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     CalculatorDefinition(
         calculator_id="gasteiger_charge_at_ph",
@@ -756,18 +737,5 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         parameters=[
             CalculatorParameter(name="pH", label="pH", kind="float", default=7.4, minimum=0.0, maximum=14.0)
         ],
-    ),
-    CalculatorDefinition(
-        calculator_id="nmr_empirical",
-        display_name="NMR Shift (empirical, typical range)",
-        category="nmr",
-        description=(
-            "Fast, ORCA-free typical-range chemical shift estimate from a curated SMARTS-based "
-            "characteristic-environment lookup (standard organic-chemistry reference ranges) -- "
-            "not a quantitative prediction. For a real ab initio calculation, use the Quantum "
-            "Chemistry panel's NMR calc types."
-        ),
-        execution=RegistryExecution(compute=compute_empirical_nmr_shifts),
-        prediction_basis="empirical",
     ),
 ]

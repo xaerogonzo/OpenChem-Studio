@@ -21,7 +21,12 @@ from PySide6.QtWidgets import (
 from openchem.app.settings import Settings
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.nmr_correlation import compute_cosy_pairs, compute_hmbc_pairs, compute_hsqc_pairs
-from openchem.chem.orca_engine import CALC_TYPE_LABELS, METHOD_BASIS_PRESETS
+from openchem.chem.orca_engine import (
+    CALC_TYPE_LABELS,
+    METHOD_BASIS_PRESETS,
+    NMR_METHOD_BASIS,
+    SOLVENTS,
+)
 from openchem.domain.project import ProjectModel
 from openchem.domain.scientific_result import CrossPeak, SpectrumResult
 from openchem.events.base import EventBus
@@ -88,6 +93,7 @@ class QuantumChemistryPanel(QWidget):
 
         self._calc_type_combo = QComboBox(self)
         self._calc_type_combo.addItems(list(CALC_TYPE_LABELS.keys()))
+        self._calc_type_combo.currentTextChanged.connect(self._on_calc_type_changed)
 
         self._charge_spin = QSpinBox(self)
         self._charge_spin.setRange(-10, 10)
@@ -99,6 +105,21 @@ class QuantumChemistryPanel(QWidget):
         self._method_combo = QComboBox(self)
         self._method_combo.setEditable(True)
         self._method_combo.addItems(METHOD_BASIS_PRESETS)
+
+        # Solvent is NOT a separate parameter threaded through the service --
+        # it is appended to the method/basis string as a CPCM keyword, which
+        # is what ORCA itself wants (`! B3LYP pcSseg-1 CPCM(Chloroform)`) and
+        # what `method_basis` already is here: the whole free-text `!` header.
+        #
+        # That is not just convenience. The TMS reference cache is keyed on
+        # the method_basis string verbatim, so appending the solvent makes a
+        # chloroform reference and a gas-phase reference distinct cache
+        # entries automatically. A separate `solvent` parameter would have
+        # left them sharing one key and silently calibrated solvated shifts
+        # against a gas-phase TMS.
+        self._solvent_combo = QComboBox(self)
+        for solvent in SOLVENTS:
+            self._solvent_combo.addItem(solvent or "None (gas phase)", solvent)
 
         self._configure_button = QPushButton("Configure ORCA...", self)
         self._configure_button.clicked.connect(self._on_configure_clicked)
@@ -164,6 +185,7 @@ class QuantumChemistryPanel(QWidget):
         form.addRow("Charge:", self._charge_spin)
         form.addRow("Multiplicity:", self._multiplicity_spin)
         form.addRow("Method/basis:", self._method_combo)
+        form.addRow("Solvent (CPCM):", self._solvent_combo)
 
         run_row = QHBoxLayout()
         run_row.addWidget(self._configure_button)
@@ -241,7 +263,7 @@ class QuantumChemistryPanel(QWidget):
         mol = self._chemistry_engine.mol_from_molblock(molblock)
 
         calc_type = CALC_TYPE_LABELS[self._calc_type_combo.currentText()]
-        method_basis = self._method_combo.currentText().strip()
+        method_basis = self._effective_method_basis()
         if not method_basis:
             self._status_label.setText("Enter a method/basis (e.g. 'B3LYP def2-SVP').")
             return
@@ -273,8 +295,37 @@ class QuantumChemistryPanel(QWidget):
         if self._pending_molecule_uuid is not None:
             self._quantum_chemistry_service.cancel(self._pending_molecule_uuid)
 
-    def _on_calibrate_clicked(self) -> None:
+    def _effective_method_basis(self) -> str:
+        """The full ORCA `!` header body -- method/basis plus the CPCM
+        solvent keyword when one is selected.
+
+        Both Run and Calibrate go through here, and they must: the TMS
+        reference is cached against this exact string, so a reference
+        calibrated in chloroform would never be found by a job that built
+        its header differently.
+        """
         method_basis = self._method_combo.currentText().strip()
+        if not method_basis:
+            return ""
+        solvent = self._solvent_combo.currentData()
+        return f"{method_basis} CPCM({solvent})" if solvent else method_basis
+
+    def _on_calc_type_changed(self, label: str) -> None:
+        """Steers NMR runs onto an NMR-appropriate basis.
+
+        Shielding depends on core electron density, which the general-purpose
+        valence bases don't describe -- so the default preset is a poor choice
+        for exactly the calculation whose point is shielding accuracy. Only
+        moves off a preset the user hasn't customised: an edited or
+        hand-typed method string is left alone.
+        """
+        if CALC_TYPE_LABELS.get(label) not in ("nmr", "nmr_coupling"):
+            return
+        if self._method_combo.currentText().strip() in METHOD_BASIS_PRESETS:
+            self._method_combo.setCurrentText(NMR_METHOD_BASIS)
+
+    def _on_calibrate_clicked(self) -> None:
+        method_basis = self._effective_method_basis()
         if not method_basis:
             self._status_label.setText("Enter a method/basis before calibrating.")
             return

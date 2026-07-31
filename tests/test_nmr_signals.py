@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from rdkit import Chem
 
-from openchem.chem.nmr_empirical_smarts import estimate_shifts_by_smarts_environment
+from conftest import synthetic_nmr_spectrum
 from openchem.chem.nmr_signals import (
     NMRSignal,
     align_mol_to_spectrum,
@@ -24,7 +24,7 @@ STYRENE = "C=Cc1ccccc1"
 
 def _mol_and_spectrum(smiles: str):
     mol = Chem.AddHs(Chem.MolFromSmiles(smiles))
-    return mol, estimate_shifts_by_smarts_environment(mol, "mol-1")
+    return mol, synthetic_nmr_spectrum(mol, "mol-1")
 
 
 def _proton_signals(smiles: str) -> list[NMRSignal]:

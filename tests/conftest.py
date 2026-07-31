@@ -49,3 +49,46 @@ def isolated_settings(tmp_path, monkeypatch):
     unique_name = f"OpenChemStudio-pytest-{tmp_path.name}"
     monkeypatch.setattr(settings_module, "ORG_NAME", unique_name)
     monkeypatch.setattr(settings_module, "APP_NAME", unique_name)
+
+
+def synthetic_nmr_spectrum(mol, molecule_uuid: str = "mol-1"):
+    """A deterministic NMRSpectrumResult for a molecule, for tests that need
+    *some* shift values to exercise signal grouping, plotting or selection.
+
+    Replaces the empirical SMARTS estimator these tests used to borrow.
+    That estimator was removed for collapsing distinct signals onto
+    identical values (11 of propranolol's 16), but the deeper point is that
+    a test of grouping or rendering should never have depended on a
+    predictor's accuracy in the first place -- it only needs values that
+    are distinct and reproducible.
+
+    Shifts are spread by atom index within each element's usual window, so
+    every atom gets a different value and grouping/overlap behaviour is
+    observable rather than accidental.
+    """
+    from openchem.domain.scientific_result import NMRSpectrumResult
+
+    values: dict[int, float] = {}
+    elements: dict[int, str] = {}
+    protons = carbons = 0
+    for atom in mol.GetAtoms():
+        symbol = atom.GetSymbol()
+        if symbol == "H":
+            values[atom.GetIdx()] = round(0.9 + 0.37 * protons, 3)
+            protons += 1
+        elif symbol == "C":
+            values[atom.GetIdx()] = round(18.0 + 7.3 * carbons, 3)
+            carbons += 1
+        else:
+            continue
+        elements[atom.GetIdx()] = symbol
+
+    return NMRSpectrumResult(
+        spectrum_type="nmr_calibrated",
+        name="Synthetic test spectrum",
+        units="ppm",
+        method="test",
+        molecule_uuid=molecule_uuid,
+        values=values,
+        elements=elements,
+    )

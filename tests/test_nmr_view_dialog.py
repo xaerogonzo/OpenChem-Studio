@@ -3,7 +3,7 @@ from __future__ import annotations
 from rdkit import Chem
 
 from openchem.chem.engine import ChemistryEngine
-from openchem.chem.nmr_empirical_smarts import estimate_shifts_by_smarts_environment
+from conftest import synthetic_nmr_spectrum
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.molecule import MoleculeModel
 from openchem.ui.dialogs.nmr_view_dialog import NmrViewDialog
@@ -16,7 +16,7 @@ IBUPROFEN = "CC(C)Cc1ccc(cc1)C(C)C(=O)O"
 def _molecule_and_spectrum(engine: ChemistryEngine):
     molecule = MoleculeModel(display_name="Ibuprofen")
     engine.set_structure_from_smiles(molecule, IBUPROFEN)
-    spectrum = estimate_shifts_by_smarts_environment(
+    spectrum = synthetic_nmr_spectrum(
         Chem.AddHs(Chem.MolFromSmiles(IBUPROFEN)), molecule.uuid
     )
     return molecule, spectrum

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from openchem.app.settings import Settings
 from openchem.chem.engine import ChemistryEngine
+from openchem.chem.orca_engine import NMR_METHOD_BASIS
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
@@ -155,6 +156,71 @@ def test_calibrate_button_calls_request_reference_calibration_with_method_basis(
 
     assert service.reference_requests == [("B3LYP def2-SVP", "orca")]
     assert not panel._calibrate_button.isEnabled()
+
+
+def test_selecting_a_solvent_appends_a_cpcm_keyword_to_the_header(qapp):
+    panel, _engine, service = _make_panel()
+    panel._method_combo.setCurrentText("B3LYP pcSseg-1")
+    panel._solvent_combo.setCurrentText("Chloroform")
+
+    panel._on_calibrate_clicked()
+
+    assert service.reference_requests == [("B3LYP pcSseg-1 CPCM(Chloroform)", "orca")]
+
+
+def test_gas_phase_leaves_the_header_untouched(qapp):
+    panel, _engine, service = _make_panel()
+    panel._method_combo.setCurrentText("B3LYP pcSseg-1")
+
+    panel._on_calibrate_clicked()
+
+    # The default entry carries "" as its data, so existing gas-phase jobs --
+    # and every TMS reference already cached against a bare method string --
+    # keep producing the exact same header they always did.
+    assert service.reference_requests == [("B3LYP pcSseg-1", "orca")]
+
+
+def test_run_and_calibrate_build_the_same_solvated_header(qapp):
+    """The TMS reference cache is keyed on this string, so a mismatch here
+    would mean a solvated run never finds the reference calibrated for it."""
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    panel, engine, service = _make_panel()
+    molecule = MoleculeModel(display_name="Water")
+    engine.set_structure_from_smiles(molecule, "O")
+    mol_3d = Chem.AddHs(Chem.MolFromSmiles("O"))
+    AllChem.EmbedMolecule(mol_3d, randomSeed=42)
+    molecule.conformers.append(ConformerModel(molblock=Chem.MolToMolBlock(mol_3d), method="rdkit_etkdg"))
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    panel._method_combo.setCurrentText("B3LYP pcSseg-1")
+    panel._solvent_combo.setCurrentText("DMSO")
+
+    panel._on_calibrate_clicked()
+    panel._on_run_clicked()
+
+    assert service.reference_requests[0][0] == service.requests[0]["method_basis"]
+
+
+def test_switching_to_nmr_preselects_an_nmr_appropriate_basis(qapp):
+    panel, _engine, _service = _make_panel()
+    panel._method_combo.setCurrentText("B3LYP def2-SVP")
+
+    panel._calc_type_combo.setCurrentText("NMR (raw shielding)")
+
+    assert panel._method_combo.currentText() == NMR_METHOD_BASIS
+
+
+def test_switching_to_nmr_leaves_a_hand_typed_method_alone(qapp):
+    panel, _engine, _service = _make_panel()
+    panel._method_combo.setCurrentText("PBE0 D3BJ pcSseg-2")
+
+    panel._calc_type_combo.setCurrentText("NMR (raw shielding)")
+
+    assert panel._method_combo.currentText() == "PBE0 D3BJ pcSseg-2"
 
 
 def test_calibrate_button_with_empty_method_basis_does_not_call_service(qapp):

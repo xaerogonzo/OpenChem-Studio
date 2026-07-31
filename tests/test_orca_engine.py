@@ -6,7 +6,13 @@ import pytest
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
-from openchem.chem.orca_engine import OrcaOutputError, OrcaQuantumEngineProvider
+from openchem.chem.orca_engine import (
+    METHOD_BASIS_PRESETS,
+    NMR_METHOD_BASIS,
+    SOLVENTS,
+    OrcaOutputError,
+    OrcaQuantumEngineProvider,
+)
 from openchem.domain.common import CacheState
 from openchem.domain.scientific_result import NMRSpectrumResult
 
@@ -281,6 +287,34 @@ def test_build_input_nmr_includes_keyword():
     text = provider.build_input(mol, charge=0, multiplicity=1, method_basis="HF STO-3G", calc_type="nmr")
 
     assert text.startswith("! HF STO-3G NMR")
+
+
+def test_build_input_carries_a_cpcm_solvent_keyword_through_method_basis():
+    """The panel appends CPCM(...) to method_basis rather than passing a
+    separate solvent argument -- confirmed live against ORCA 6.1.1, which
+    accepts it as a plain header keyword and reports CPCM as active."""
+    provider = OrcaQuantumEngineProvider()
+    mol = _ethanol_mol()
+
+    text = provider.build_input(
+        mol, charge=0, multiplicity=1, method_basis="B3LYP pcSseg-1 CPCM(Chloroform)", calc_type="nmr"
+    )
+
+    assert text.startswith("! B3LYP pcSseg-1 CPCM(Chloroform) NMR")
+
+
+def test_nmr_preset_is_one_of_the_offered_presets():
+    """The panel only preselects NMR_METHOD_BASIS when the current text is
+    an untouched preset, and compares against METHOD_BASIS_PRESETS -- if the
+    NMR preset ever fell out of that list the preselect would fire once and
+    then never again."""
+    assert NMR_METHOD_BASIS in METHOD_BASIS_PRESETS
+
+
+def test_solvents_start_with_gas_phase():
+    """Empty string first means the combo defaults to gas phase, so existing
+    jobs and every already-cached TMS reference keep their exact header."""
+    assert SOLVENTS[0] == ""
 
 
 def test_parse_output_nmr_still_extracts_scf_energy_and_version():

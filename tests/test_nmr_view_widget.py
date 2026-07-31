@@ -4,7 +4,7 @@ from PySide6.QtWidgets import QWidget
 from rdkit import Chem
 
 from openchem.chem.engine import ChemistryEngine
-from openchem.chem.nmr_empirical_smarts import estimate_shifts_by_smarts_environment
+from conftest import synthetic_nmr_spectrum
 from openchem.chem.nmr_signals import depiction_atoms
 from openchem.domain.molecule import MoleculeModel
 from openchem.ui.viewer_backend import ViewerBackend
@@ -44,7 +44,7 @@ def _make_view(qapp, smiles: str = IBUPROFEN):
     engine = ChemistryEngine()
     molecule = MoleculeModel(display_name="Test")
     engine.set_structure_from_smiles(molecule, smiles)
-    spectrum = estimate_shifts_by_smarts_environment(
+    spectrum = synthetic_nmr_spectrum(
         Chem.AddHs(Chem.MolFromSmiles(smiles)), molecule.uuid
     )
     backend = FakeViewerBackend()
@@ -71,7 +71,7 @@ def test_table_columns_have_no_prediction_quality(qapp):
 
 def test_table_reports_the_method_the_numbers_came_from(qapp):
     view, _backend, _molecule, spectrum = _make_view(qapp)
-    assert view._table.item(0, 4).text() == spectrum.method == "smarts_lookup"
+    assert view._table.item(0, 4).text() == spectrum.method
 
 
 def test_missing_coupling_data_shows_a_dash_not_a_zero(qapp):
