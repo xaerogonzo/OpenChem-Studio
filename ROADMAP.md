@@ -274,6 +274,50 @@ on every `ScientificResult`) is where a plugin should report them, e.g.
 `Provenance(created_by="my_herg_plugin", method="hergpred-v1.2",
 parameters={"confidence": 0.87, "applicability_domain": "in"})`.
 
+### ML NMR shift prediction — attempted, NO-GO on Windows
+
+Recorded so the next attempt starts from the evidence rather than
+repeating the spike.
+
+**respredict** (Jonas & Kuhn 2019, the obvious candidate — ~1.3 ppm on
+13C with calibrated uncertainty) **no longer exists**:
+`thejonaslab/respredict` is deleted. Two things descend from it:
+
+- `stefhk3/nmr-respredict-docker` vendors the original source and is
+  maintained by the paper's co-author, but declares **no license at all**
+  and ships only a 13C model. Not something to build on.
+- `thejonaslab/fullsspruce-public` (FullSSPrUCe) is the same lab's
+  successor, MIT licensed, bundling 1H, 13C and two coupling models, all
+  returning `pred_mu`/`pred_std`. This is the right target.
+
+FullSSPrUCe was taken as far as it goes here. Its own dependencies
+install cleanly on pip despite a conda-oriented `environment.yml` — a
+Python 3.9 venv with CPU torch 2.8, rdkit 2022.03.5, scipy 1.9.1 and
+numpy 1.24 all resolved. It fails on ONE transitive dependency:
+
+**`tinygraph`** (`thejonaslab/tinygraph`) has a mandatory C++ Cython
+extension and no wheel anywhere. Its single GitHub release carries zero
+assets, and the `tinygraph` on PyPI is an unrelated project by a
+different author — installing that would silently supply the wrong
+library. Building it needs MSVC, which this machine does not have; and
+even with Build Tools installed the build would still fail as written,
+because `setup.py` passes GCC/Clang flags (`-O3`, `-fPIC`,
+`-fno-omit-frame-pointer`, `-g3`) that MSVC rejects. It was never built
+for Windows.
+
+Getting there would mean forking and patching a transitive dependency of
+a dependency, plus a multi-gigabyte compiler install — the same
+"fragile dependency chain" the pkasolver spike exists to catch, and the
+same MSVC wall that one hit.
+
+**Real routes if this is wanted later:** WSL or Docker (both sidestep
+the compiler entirely, and the app already invokes out-of-process tools),
+or upstream wheels appearing. The value has also shrunk since this was
+planned: `chem/nmr_database.py` already gives 1.17 ppm on well-covered
+atoms with an honest per-atom rating, and scaled ORCA covers what the
+database has not seen. What FullSSPrUCe would add is *universal*
+coverage, not better accuracy where evidence exists.
+
 ONNX Runtime specifically is worth preferring over shipping a full
 PyTorch/torch-geometric chain if/when a real model is identified — it's
 a much lighter, pure-pip-installable dependency with no compiler
