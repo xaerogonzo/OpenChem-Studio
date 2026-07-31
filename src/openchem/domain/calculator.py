@@ -42,13 +42,13 @@ CalculatorExecution = RegistryExecution | ServiceExecution
 class CalculatorParameter:
     """One configurable input a calculator's settings dialog should show —
     the generic `CalculatorSettingsDialog` builds one Qt widget per
-    parameter from `kind` (`"float"`/`"int"`/`"choice"`/`"bool"`) rather
+    parameter from `kind` (`"float"`/`"int"`/`"choice"`/`"bool"`/`"text"`) rather
     than every calculator hand-building its own dialog.
     """
 
     name: str  # key this value is stored under in CalculationRequest.parameters
     label: str  # shown next to the widget in the settings dialog
-    kind: str  # "float" | "int" | "choice" | "bool"
+    kind: str  # "float" | "int" | "choice" | "bool" | "text"
     default: Any
     minimum: float | None = None
     maximum: float | None = None
@@ -74,6 +74,12 @@ class CalculatorDefinition:
     # actually known; left unset rather than guessed for calculators
     # outside whatever phase introduced this field.
     prediction_basis: str | None = None
+    # Free-form labels for search and filtering (Phase 26). Additive,
+    # default empty -- a calculator without tags is still fully usable.
+    # Earned its place at ~15 registered calculators; at 4 it would have
+    # been ceremony. Plain strings for the same reason `category` is:
+    # a new tag needs no code change.
+    tags: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True, kw_only=True)

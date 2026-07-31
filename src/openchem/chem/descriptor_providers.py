@@ -10,6 +10,16 @@ from rdkit import Chem
 from rdkit.Chem import Crippen, Descriptors, Descriptors3D, Fragments, Lipinski, QED, rdMolDescriptors, rdPartialCharges
 from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
 
+from openchem.chem.elemental_analysis import compute_elemental_analysis
+from openchem.chem.geometry_analysis import compute_geometry_analysis
+from openchem.chem.interaction_analysis import compute_interaction_analysis
+from openchem.chem.substructure import COMMON_PATTERNS, compute_substructure_search
+from openchem.chem.surface_analysis import compute_sasa_dataset, compute_surface_analysis
+from openchem.chem.topology_analysis import (
+    compute_distance_degree_dataset,
+    compute_eccentricity_dataset,
+    compute_topology_analysis,
+)
 from openchem.domain.calculator import CalculatorDefinition, CalculatorParameter, RegistryExecution
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.descriptor import DescriptorValue
@@ -687,6 +697,37 @@ def compute_logd(
     )
 
 
+def compute_polar_surface_area(
+    mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any]
+) -> AlertResult:
+    """The "surface" category's 2D Polar Surface Area calculator.
+
+    Reports TPSA for the neutral structure AND for the dominant
+    microspecies at a given pH -- Marvin shows both, and they genuinely
+    differ: protonating an amine or deprotonating an acid changes the polar
+    atom set. Reuses `protonate_at_ph` (Phase 18), the same transformation
+    the pH-dependent charge calculator already applies.
+    """
+    from openchem.chem.pka_providers import protonate_at_ph
+
+    ph = float(parameters.get("pH", 7.4))
+    neutral_tpsa = rdMolDescriptors.CalcTPSA(mol)
+    lines = [f"Polar surface area: {neutral_tpsa:.2f} Å² (as drawn)"]
+    try:
+        protonated = protonate_at_ph(mol, ph)
+        lines.append(f"Polar surface area at pH {ph:g}: {rdMolDescriptors.CalcTPSA(protonated):.2f} Å²")
+    except Exception:  # noqa: BLE001 - Dimorphite-DL is optional-ish; the neutral value still stands
+        lines.append(f"Could not build the dominant microspecies at pH {ph:g}; showing the drawn form only.")
+    return AlertResult(
+        alert_id="polar_surface_area",
+        name="Polar Surface Area (2D)",
+        molecule_uuid=molecule_uuid,
+        matched=lines,
+        category="surface",
+        provenance=Provenance(created_by="core", method="rdkit+dimorphite_dl", parameters={"pH": ph}),
+    )
+
+
 CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     CalculatorDefinition(
         calculator_id="gasteiger_charge_at_ph",
@@ -737,5 +778,123 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         parameters=[
             CalculatorParameter(name="pH", label="pH", kind="float", default=7.4, minimum=0.0, maximum=14.0)
         ],
+    ),
+    # ---- Phase 26 ----------------------------------------------------
+    CalculatorDefinition(
+        calculator_id="elemental_analysis",
+        display_name="Elemental Analysis",
+        category="identity",
+        description=(
+            "Molecular formula, average and exact mass, atom count and elemental "
+            "composition (w/w %). Validated against MarvinSketch's own output for "
+            "tyramine hydrochloride."
+        ),
+        execution=RegistryExecution(compute=compute_elemental_analysis),
+        tags=["identity", "composition", "mass"],
+    ),
+    CalculatorDefinition(
+        calculator_id="topology_analysis",
+        display_name="Topology Analysis",
+        category="topology",
+        description=(
+            "Graph-theoretic descriptors: ring and chain counts, cyclomatic number, "
+            "Platt/Randic/Balaban/Harary/Wiener/hyper-Wiener indices, Wiener polarity, "
+            "and stereo centre counts. Szeged and the topological steric effect index "
+            "are deliberately omitted -- their literature definitions conflict and no "
+            "reference value was found to validate an implementation against."
+        ),
+        execution=RegistryExecution(compute=compute_topology_analysis),
+        tags=["topology", "graph", "indices"],
+    ),
+    CalculatorDefinition(
+        calculator_id="topology_eccentricity",
+        display_name="Eccentricity (per atom)",
+        category="topology",
+        description="Greatest topological distance from each atom to any other -- how peripheral each atom is.",
+        execution=RegistryExecution(compute=compute_eccentricity_dataset),
+        tags=["topology", "graph", "per-atom"],
+    ),
+    CalculatorDefinition(
+        calculator_id="topology_distance_degree",
+        display_name="Distance Degree (per atom)",
+        category="topology",
+        description="Sum of each atom's topological distances to every other atom.",
+        execution=RegistryExecution(compute=compute_distance_degree_dataset),
+        tags=["topology", "graph", "per-atom"],
+    ),
+    CalculatorDefinition(
+        calculator_id="geometry_analysis",
+        display_name="Geometry",
+        category="geometry",
+        description=(
+            "3D extent (min/max/mean radius from the centroid) and force field energy of "
+            "the current conformer. Reports MMFF94/UFF -- RDKit has no Dreiding, so these "
+            "are NOT comparable to MarvinSketch's Dreiding energy. Needs a conformer."
+        ),
+        execution=RegistryExecution(compute=compute_geometry_analysis),
+        tags=["geometry", "3d", "energy"],
+    ),
+    CalculatorDefinition(
+        calculator_id="surface_analysis",
+        display_name="Molecular Surface Area (3D)",
+        category="surface",
+        description=(
+            "Solvent-accessible surface area with Marvin's ASA+/ASA-/ASA_H/ASA_P splits, "
+            "plus van der Waals volume. Needs a conformer."
+        ),
+        execution=RegistryExecution(compute=compute_surface_analysis),
+        tags=["surface", "3d", "solvent"],
+    ),
+    CalculatorDefinition(
+        calculator_id="atom_sasa",
+        display_name="Accessible Surface Area (per atom)",
+        category="surface",
+        description="Per-atom solvent-accessible surface -- which atoms are actually exposed. Needs a conformer.",
+        execution=RegistryExecution(compute=compute_sasa_dataset),
+        tags=["surface", "3d", "per-atom"],
+    ),
+    CalculatorDefinition(
+        calculator_id="polar_surface_area",
+        display_name="Polar Surface Area (2D)",
+        category="surface",
+        description="Topological polar surface area, for the structure as drawn and for the dominant microspecies at a given pH.",
+        execution=RegistryExecution(compute=compute_polar_surface_area),
+        parameters=[
+            CalculatorParameter(name="pH", label="pH", kind="float", default=7.4, minimum=0.0, maximum=14.0)
+        ],
+        tags=["surface", "polarity", "ph"],
+    ),
+    CalculatorDefinition(
+        calculator_id="substructure_search",
+        display_name="Substructure Search",
+        category="substructure",
+        description=(
+            "Match a SMARTS pattern and highlight the hits in 2D and 3D. Pick from a "
+            "built-in library of common functional groups or type your own."
+        ),
+        execution=RegistryExecution(compute=compute_substructure_search),
+        parameters=[
+            CalculatorParameter(
+                name="pattern",
+                label="Common pattern",
+                kind="choice",
+                default="Carboxylic acid",
+                choices=list(COMMON_PATTERNS),
+            ),
+            CalculatorParameter(name="smarts", label="Custom SMARTS (overrides)", kind="text", default=""),
+        ],
+        tags=["substructure", "smarts", "search"],
+    ),
+    CalculatorDefinition(
+        calculator_id="interaction_analysis",
+        display_name="Interaction Analysis",
+        category="interactions",
+        description=(
+            "Intramolecular non-covalent contacts in the current conformer: hydrogen "
+            "bonds, salt bridges, π-π stacking, cation-π, hydrophobic contacts, metal "
+            "coordination and steric clashes. Needs a conformer."
+        ),
+        execution=RegistryExecution(compute=compute_interaction_analysis),
+        tags=["interactions", "3d", "contacts"],
     ),
 ]

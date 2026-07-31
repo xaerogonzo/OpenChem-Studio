@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QFormLayout,
     QLabel,
+    QLineEdit,
     QSpinBox,
     QVBoxLayout,
     QWidget,
@@ -77,6 +78,13 @@ class CalculatorSettingsDialog(QDialog):
             widget = QCheckBox(self)
             widget.setChecked(bool(parameter.default))
             return widget
+        if parameter.kind == "text":
+            # Phase 26: free text, added for Substructure Search's custom
+            # SMARTS field. A choice list can't cover "any SMARTS the user
+            # can write", which is the whole point of that calculator.
+            widget = QLineEdit(self)
+            widget.setText(str(parameter.default or ""))
+            return widget
         raise ValueError(f"Unknown CalculatorParameter.kind: {parameter.kind!r}")
 
     def parameters(self) -> dict[str, Any]:
@@ -92,4 +100,6 @@ class CalculatorSettingsDialog(QDialog):
                 values[parameter.name] = widget.currentText()
             elif isinstance(widget, QCheckBox):
                 values[parameter.name] = widget.isChecked()
+            elif isinstance(widget, QLineEdit):
+                values[parameter.name] = widget.text()
         return values

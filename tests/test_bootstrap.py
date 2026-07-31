@@ -34,3 +34,42 @@ def test_calculator_registry_still_has_the_four_registry_execution_calculators(q
     assert registry.get("crippen_logp_contrib") is not None
     assert registry.get("crippen_mr_contrib") is not None
     assert registry.get("pka") is not None
+
+
+def test_phase26_calculators_are_registered():
+    """Regression guard: a future bootstrap/descriptor_providers edit must
+    not silently drop these, the way a registration list can."""
+    registry = build_service_container().calculator_registry
+    expected = {
+        "elemental_analysis",
+        "topology_analysis",
+        "topology_eccentricity",
+        "topology_distance_degree",
+        "geometry_analysis",
+        "surface_analysis",
+        "atom_sasa",
+        "polar_surface_area",
+        "substructure_search",
+        "interaction_analysis",
+    }
+
+    registered = {
+        definition.calculator_id
+        for category in registry.categories()
+        for definition in registry.by_category(category)
+    }
+
+    assert expected <= registered
+
+
+def test_new_categories_appear_in_the_registry():
+    registry = build_service_container().calculator_registry
+    assert {"geometry", "surface", "substructure", "interactions"} <= set(registry.categories())
+
+
+def test_registered_calculators_carry_tags():
+    """Tags exist to make ~15 calculators searchable. A definition without
+    them still works, but the Phase 26 batch should have them."""
+    registry = build_service_container().calculator_registry
+    assert registry.get("topology_analysis").tags
+    assert registry.get("interaction_analysis").tags
