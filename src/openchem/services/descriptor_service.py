@@ -17,6 +17,7 @@ from openchem.domain.scientific_result import (
     PhCurveResult,
     SpectrumResult,
     StructureSetResult,
+    TrajectoryResult,
 )
 from openchem.events.base import EventBus
 from openchem.events.events import (
@@ -26,6 +27,7 @@ from openchem.events.events import (
     PhCurveComputed,
     SpectrumComputed,
     StructureSetComputed,
+    TrajectoryComputed,
 )
 from openchem.services.calculator_registry import CalculatorRegistry
 
@@ -160,6 +162,8 @@ class _CalculationTask(QRunnable):
             self._event_bus.publish(StructureSetComputed(structure_set=result))
         elif isinstance(result, PhCurveResult):
             self._event_bus.publish(PhCurveComputed(curve=result))
+        elif isinstance(result, TrajectoryResult):
+            self._event_bus.publish(TrajectoryComputed(trajectory=result))
         else:
             logger.error(
                 "Calculator %s produced an unpublishable result type: %s",

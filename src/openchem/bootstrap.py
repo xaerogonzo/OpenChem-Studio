@@ -115,7 +115,7 @@ for _label, _calc_type in CALC_TYPE_LABELS.items():
 # `CalculatorRegistry.compute` deliberately passes only
 # (mol, molecule_uuid, parameters).
 _SETTINGS_BOUND_CALCULATORS = frozenset(
-    {"pka", "logd", "pka_microspecies", "isoelectric_point", "logd_curve"}
+    {"pka", "logd", "pka_microspecies", "isoelectric_point", "logd_curve", "cns_mpo"}
 )
 # `iupac_name` needs a DIFFERENT interpreter (STOUT, not pkasolver), so it
 # gets its own binding rather than being folded into the set above.

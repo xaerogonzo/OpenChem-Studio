@@ -14,7 +14,15 @@ from openchem.chem.elemental_analysis import compute_elemental_analysis
 from openchem.chem.geometry_analysis import compute_geometry_analysis
 from openchem.chem.interaction_analysis import compute_interaction_analysis
 from openchem.chem.markush import DEFAULT_MAX_STRUCTURES as MARKUSH_DEFAULT_MAX
+from openchem.chem.dipole import compute_dipole_moment
+from openchem.chem.huckel import compute_huckel_analysis, compute_pi_electron_density
 from openchem.chem.markush import compute_markush_enumeration
+from openchem.chem.molecular_dynamics import DEFAULT_FRAME_INTERVAL as MD_DEFAULT_FRAME_INTERVAL
+from openchem.chem.molecular_dynamics import DEFAULT_STEP_FS as MD_DEFAULT_STEP_FS
+from openchem.chem.molecular_dynamics import DEFAULT_STEPS as MD_DEFAULT_STEPS
+from openchem.chem.molecular_dynamics import DEFAULT_TEMPERATURE_K as MD_DEFAULT_TEMPERATURE
+from openchem.chem.molecular_dynamics import compute_molecular_dynamics
+from openchem.chem.mpo_scores import compute_cns_mpo, compute_structural_frameworks
 from openchem.chem.naming_providers import compute_iupac_name
 from openchem.chem.ph_curves import (
     compute_hbond_vs_ph,
@@ -1115,5 +1123,96 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             )
         ],
         tags=["naming", "iupac", "identity"],
+    ),
+    # ---- Phase 30: quantum, dynamics, dipole, MPO --------------------
+    CalculatorDefinition(
+        calculator_id="huckel_analysis",
+        display_name="Huckel Analysis",
+        category="quantum",
+        description=(
+            "Simple Huckel MO analysis of the conjugated pi system: orbital energies, total "
+            "pi energy, HOMO/LUMO and their gap, all in units of beta. Treats every pi centre "
+            "as an identical carbon, so heteroatom densities are indicative only."
+        ),
+        execution=RegistryExecution(compute=compute_huckel_analysis),
+        prediction_basis="ab_initio",
+        tags=["quantum", "orbitals", "aromaticity"],
+    ),
+    CalculatorDefinition(
+        calculator_id="huckel_pi_density",
+        display_name="Pi Electron Density (Huckel)",
+        category="quantum",
+        description="Per-atom pi electron density from the Huckel orbitals, projected onto 2D and 3D.",
+        execution=RegistryExecution(compute=compute_pi_electron_density),
+        prediction_basis="ab_initio",
+        tags=["quantum", "per-atom", "density"],
+    ),
+    CalculatorDefinition(
+        calculator_id="dipole_moment",
+        display_name="Dipole Moment",
+        category="charge",
+        description=(
+            "Net molecular dipole as a vector and magnitude in Debye, from Gasteiger partial "
+            "charges and this conformer's geometry. Needs a conformer. Direction and symmetry "
+            "are reliable; the magnitude inherits the charge model's accuracy."
+        ),
+        execution=RegistryExecution(compute=compute_dipole_moment),
+        tags=["charge", "3d", "polarity"],
+    ),
+    CalculatorDefinition(
+        calculator_id="molecular_dynamics",
+        display_name="Molecular Dynamics (vacuum)",
+        category="dynamics",
+        description=(
+            "Velocity-Verlet dynamics over MMFF94/UFF forces. VACUUM only: no thermostat, no "
+            "barostat, no constraints, no periodic boundaries, no solvent. Not Dreiding, so "
+            "energies are not comparable to MarvinSketch's. Needs a conformer."
+        ),
+        execution=RegistryExecution(compute=compute_molecular_dynamics),
+        parameters=[
+            CalculatorParameter(
+                name="steps", label="Simulation steps", kind="int",
+                default=MD_DEFAULT_STEPS, minimum=10, maximum=100000,
+            ),
+            CalculatorParameter(
+                name="step_fs", label="Step time (fs)", kind="float",
+                default=MD_DEFAULT_STEP_FS, minimum=0.1, maximum=2.0,
+            ),
+            CalculatorParameter(
+                name="temperature", label="Initial temperature (K)", kind="float",
+                default=MD_DEFAULT_TEMPERATURE, minimum=1.0, maximum=2000.0,
+            ),
+            CalculatorParameter(
+                name="frame_interval", label="Frame interval (steps)", kind="int",
+                default=MD_DEFAULT_FRAME_INTERVAL, minimum=1, maximum=1000,
+            ),
+            CalculatorParameter(
+                name="seed", label="Random seed (0 = none)", kind="int",
+                default=0, minimum=0, maximum=999999,
+            ),
+        ],
+        tags=["dynamics", "3d", "simulation"],
+    ),
+    CalculatorDefinition(
+        calculator_id="cns_mpo",
+        display_name="CNS MPO Score",
+        category="admet",
+        description=(
+            "Wager et al. CNS multiparameter optimisation score, 0-6 from six desirability "
+            "functions. Breakpoints validated against ChemAxon's documented aspirin example "
+            "(5.75). Without a pkasolver environment the pKa term is omitted rather than "
+            "assumed favourable, and the score is reported out of 5."
+        ),
+        execution=RegistryExecution(compute=compute_cns_mpo),
+        prediction_basis="empirical",
+        tags=["admet", "cns", "mpo", "druglikeness"],
+    ),
+    CalculatorDefinition(
+        calculator_id="structural_frameworks",
+        display_name="Structural Frameworks",
+        category="structures",
+        description="Bemis-Murcko scaffold and the generic (all-carbon, all-single-bond) framework.",
+        execution=RegistryExecution(compute=compute_structural_frameworks),
+        tags=["structures", "scaffold", "murcko"],
     ),
 ]

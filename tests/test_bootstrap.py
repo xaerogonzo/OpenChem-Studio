@@ -108,3 +108,18 @@ def test_naming_calculator_is_registered_and_stout_bound():
     # Needs the STOUT interpreter, NOT pkasolver's -- a wrong binding would
     # hand it the wrong environment and fail only at click time.
     assert "iupac_name" in _STOUT_BOUND_CALCULATORS
+
+
+def test_phase30_calculators_are_registered():
+    registry = build_service_container().calculator_registry
+    expected = {
+        "huckel_analysis", "huckel_pi_density", "dipole_moment",
+        "molecular_dynamics", "cns_mpo", "structural_frameworks",
+    }
+    registered = {
+        definition.calculator_id
+        for category in registry.categories()
+        for definition in registry.by_category(category)
+    }
+    assert expected <= registered
+    assert {"quantum", "dynamics"} <= set(registry.categories())

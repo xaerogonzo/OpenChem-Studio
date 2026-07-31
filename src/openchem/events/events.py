@@ -12,6 +12,7 @@ from openchem.domain.scientific_result import (
     PhCurveResult,
     SpectrumResult,
     StructureSetResult,
+    TrajectoryResult,
 )
 from openchem.events.base import Event
 
@@ -173,6 +174,14 @@ class PhCurveComputed(Event):
     (Phase 28) -- pKa speciation, isoelectric point, logD, H-bonding."""
 
     curve: PhCurveResult
+
+
+@dataclass(frozen=True)
+class TrajectoryComputed(Event):
+    """Published when a calculator produces a time-ordered set of
+    frames (Phase 30) -- molecular dynamics today."""
+
+    trajectory: TrajectoryResult
 
 
 @dataclass(frozen=True)

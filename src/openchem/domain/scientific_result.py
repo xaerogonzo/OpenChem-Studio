@@ -99,6 +99,33 @@ class StructureEntry:
 
 
 @dataclass(frozen=True, kw_only=True)
+class TrajectoryResult(ScientificResult):
+    """Frames of a structure evolving over time (Phase 30).
+
+    Not "a list of conformers": molecular dynamics, normal-mode
+    animations, reaction paths, NEB images and docking pose animations all
+    share this shape, and docking poses are already representable from
+    today's `DockingResultModel` -- so this has a consumer beyond the one
+    that introduced it.
+
+    Deliberately no `cell` field: nothing here models periodic systems and
+    the MD is explicitly vacuum, so it would be an always-None field with
+    no consumer -- the same speculative scaffolding this project has
+    declined elsewhere.
+    """
+
+    trajectory_id: str
+    name: str
+    method: str
+    molecule_uuid: str
+    frames: list[str] = field(default_factory=list)  # molblocks, in time order
+    times: list[float] = field(default_factory=list)  # fs
+    energies: list[float] = field(default_factory=list)  # kcal/mol
+    temperature: float | None = None  # K, initial
+    metadata: dict = field(default_factory=dict)
+
+
+@dataclass(frozen=True, kw_only=True)
 class StructureSetResult(ScientificResult):
     """A set of generated structures (Phase 27).
 
