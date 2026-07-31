@@ -15,6 +15,11 @@ from openchem.chem.geometry_analysis import compute_geometry_analysis
 from openchem.chem.interaction_analysis import compute_interaction_analysis
 from openchem.chem.markush import DEFAULT_MAX_STRUCTURES as MARKUSH_DEFAULT_MAX
 from openchem.chem.dipole import compute_dipole_moment
+from openchem.chem.electronic_properties import (
+    compute_atomic_polarizability,
+    compute_orbital_electronegativity,
+    compute_polarizability,
+)
 from openchem.chem.huckel import compute_huckel_analysis, compute_pi_electron_density
 from openchem.chem.markush import compute_markush_enumeration
 from openchem.chem.molecular_dynamics import DEFAULT_FRAME_INTERVAL as MD_DEFAULT_FRAME_INTERVAL
@@ -1214,5 +1219,83 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         description="Bemis-Murcko scaffold and the generic (all-carbon, all-single-bond) framework.",
         execution=RegistryExecution(compute=compute_structural_frameworks),
         tags=["structures", "scaffold", "murcko"],
+    ),
+    # ---- Polarizability and orbital electronegativity ----------------
+    CalculatorDefinition(
+        calculator_id="polarizability",
+        display_name="Polarizability (molecular)",
+        category="electronic",
+        description=(
+            "Molecular polarizability in A^3 by the additive atomic scheme of Jensen et al. "
+            "Accurate to about 1% for aromatics and halogenated compounds; roughly 11% high "
+            "for saturated hydrocarbons, since an atom-additive scheme has no hybridization "
+            "dependence. Miller's method is not offered -- its parameters are not published "
+            "in ChemAxon's docs and could not be reproduced reliably."
+        ),
+        execution=RegistryExecution(compute=compute_polarizability),
+        prediction_basis="empirical",
+        parameters=[
+            CalculatorParameter(
+                name="major_microspecies",
+                label="Take major microspecies",
+                kind="bool",
+                default=False,
+            ),
+            CalculatorParameter(
+                name="pH", label="at pH", kind="float", default=7.4, minimum=0.0, maximum=14.0
+            ),
+        ],
+        tags=["electronic", "polarizability", "physchem"],
+    ),
+    CalculatorDefinition(
+        calculator_id="atomic_polarizability",
+        display_name="Polarizability (per atom)",
+        category="electronic",
+        description="Per-atom polarizability contributions (Jensen et al.), projected onto 2D and 3D.",
+        execution=RegistryExecution(compute=compute_atomic_polarizability),
+        prediction_basis="empirical",
+        parameters=[
+            CalculatorParameter(
+                name="major_microspecies",
+                label="Take major microspecies",
+                kind="bool",
+                default=False,
+            ),
+            CalculatorParameter(
+                name="pH", label="at pH", kind="float", default=7.4, minimum=0.0, maximum=14.0
+            ),
+        ],
+        tags=["electronic", "polarizability", "per-atom"],
+    ),
+    CalculatorDefinition(
+        calculator_id="orbital_electronegativity",
+        display_name="Orbital Electronegativity",
+        category="electronic",
+        description=(
+            "Gasteiger-Marsili sigma orbital electronegativity (eV) at each atom's converged "
+            "PEOE charge. Absolute values depend on the parameter set and will differ between "
+            "implementations; the ordering between atoms is the meaningful part. The pi "
+            "component is not offered -- it needs a separate pi-charge iteration."
+        ),
+        execution=RegistryExecution(compute=compute_orbital_electronegativity),
+        prediction_basis="empirical",
+        parameters=[
+            CalculatorParameter(
+                name="include_hydrogens",
+                label="Include hydrogens",
+                kind="bool",
+                default=False,
+            ),
+            CalculatorParameter(
+                name="major_microspecies",
+                label="Take major microspecies",
+                kind="bool",
+                default=False,
+            ),
+            CalculatorParameter(
+                name="pH", label="at pH", kind="float", default=7.4, minimum=0.0, maximum=14.0
+            ),
+        ],
+        tags=["electronic", "electronegativity", "per-atom"],
     ),
 ]
