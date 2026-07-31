@@ -12,6 +12,7 @@ from PySide6.QtCore import QObject, QProcess
 from rdkit import Chem
 
 from openchem.app.settings import Settings
+from openchem.chem.boltzmann import boltzmann_average_spectrum
 from openchem.chem.nmr_reference import average_reference_shielding, tms_molecule
 from openchem.chem.orca_engine import OrcaQuantumEngineProvider
 from openchem.domain.common import CacheState
@@ -43,6 +44,42 @@ def _reference_job_key(method_basis: str) -> str:
     return f"__nmr_reference__::{method_basis}"
 
 
+def _job_manager_kind(kind: str) -> str:
+    """Only a reference calibration gets its own JobManager kind. A
+    conformer job in a Boltzmann run is part of the molecule's single
+    logical job, so it shares `_JOB_KIND` with an ordinary calculation --
+    which is what keeps Cancel and the one-job-per-molecule guard working
+    across the whole sequence."""
+    return _REFERENCE_JOB_KIND if kind == "reference" else _JOB_KIND
+
+
+@dataclass
+class _BoltzmannRun:
+    """One logical NMR job spanning N sequential ORCA runs, one per
+    conformer, averaged at the end (`chem/boltzmann.py`).
+
+    Sequential rather than parallel on purpose: ORCA is already
+    multi-threaded internally and will happily saturate the machine, so
+    running conformers concurrently mostly makes each one slower while
+    multiplying the scratch-disk footprint. It also keeps the existing
+    one-job-per-molecule invariant intact -- from JobManager's point of
+    view this is still a single job for the molecule, which is what makes
+    Cancel keep working unchanged.
+    """
+
+    molecule_uuid: str
+    remaining_mols: list[Chem.Mol]
+    calc_type: str
+    charge: int
+    multiplicity: int
+    method_basis: str
+    provider: QuantumEngineProvider
+    executable_path: str
+    total: int
+    spectra: list = field(default_factory=list)
+    energies: list[float] = field(default_factory=list)
+
+
 @dataclass
 class _ActiveJob:
     key: str
@@ -51,8 +88,8 @@ class _ActiveJob:
     calc_type: str
     scratch_dir: Path
     process: QProcess
-    kind: str = "calculation"  # "calculation" | "reference"
-    molecule_uuid: str | None = None  # only set for kind == "calculation"
+    kind: str = "calculation"  # "calculation" | "reference" | "conformer"
+    molecule_uuid: str | None = None  # only set for kind == "calculation"/"conformer"
     method_basis: str = ""  # set for both kinds -- the exact free-text
     # method_basis string the job ran with, needed to look up/write the
     # right TMS reference cache entry either way.
@@ -98,6 +135,9 @@ class QuantumChemistryService(QObject):
             providers if providers is not None else {default_provider.provider_id: default_provider}
         )
         self._active_jobs: dict[str, _ActiveJob] = {}
+        # Keyed by molecule_uuid, same as _active_jobs: a Boltzmann run owns
+        # the molecule's job slot for its whole sequence of conformers.
+        self._boltzmann_runs: dict[str, _BoltzmannRun] = {}
         self._job_manager = job_manager if job_manager is not None else JobManager()
 
     def register_provider(self, provider: QuantumEngineProvider) -> None:
@@ -161,6 +201,91 @@ class QuantumChemistryService(QObject):
             executable_path=executable_path,
             kind="calculation",
             molecule_uuid=molecule_uuid,
+        )
+
+    def request_boltzmann_nmr(
+        self,
+        mols: list[Chem.Mol],
+        molecule_uuid: str,
+        calc_type: str,
+        charge: int,
+        multiplicity: int,
+        method_basis: str,
+        provider_id: str = "orca",
+    ) -> None:
+        """Runs `calc_type` on every conformer in `mols`, one after another,
+        and publishes a single Boltzmann-averaged spectrum.
+
+        This is what makes a predicted shift comparable to a measured one
+        for a flexible molecule: the experiment sees a population-weighted
+        average over conformers, not the lowest-energy geometry alone.
+
+        Costs N times a single run, so the panel offers it as an opt-in
+        rather than doing it silently. One conformer degrades to exactly
+        `request_calculation` -- no special case needed downstream, since
+        averaging one spectrum returns it unchanged.
+        """
+        if not mols:
+            self._publish_state(molecule_uuid, CacheState.FAILED, "No conformers to average over.")
+            return
+        provider = self._providers.get(provider_id)
+        if provider is None:
+            self._publish_state(molecule_uuid, CacheState.FAILED, f"Unknown quantum engine: {provider_id}")
+            return
+        executable_path = self._resolve_executable_path()
+        if executable_path is None:
+            self._publish_state(
+                molecule_uuid,
+                CacheState.FAILED,
+                "No ORCA executable configured or found on PATH — set orca/executable_path in Settings.",
+            )
+            return
+        # Takes the molecule's single job slot for the WHOLE sequence, not
+        # per conformer -- so Cancel (from this panel or the Jobs panel)
+        # reaches the run as one thing, and a second request while it is
+        # going is refused the same way it would be for a single job.
+        if not self._job_manager.try_start(
+            _JOB_KIND, molecule_uuid, cancel_callback=lambda: self.cancel(molecule_uuid)
+        ):
+            self._publish_state(
+                molecule_uuid,
+                CacheState.FAILED,
+                "A calculation is already running for this molecule — cancel it first.",
+            )
+            return
+
+        run = _BoltzmannRun(
+            molecule_uuid=molecule_uuid,
+            remaining_mols=list(mols),
+            calc_type=calc_type,
+            charge=charge,
+            multiplicity=multiplicity,
+            method_basis=method_basis,
+            provider=provider,
+            executable_path=executable_path,
+            total=len(mols),
+        )
+        self._boltzmann_runs[molecule_uuid] = run
+        self._launch_next_conformer(run)
+
+    def _launch_next_conformer(self, run: _BoltzmannRun) -> None:
+        mol = run.remaining_mols.pop(0)
+        self._publish_state(
+            run.molecule_uuid,
+            CacheState.RUNNING,
+            f"Conformer {run.total - len(run.remaining_mols)}/{run.total}",
+        )
+        self._launch_job(
+            key=run.molecule_uuid,
+            mol=mol,
+            charge=run.charge,
+            multiplicity=run.multiplicity,
+            method_basis=run.method_basis,
+            calc_type=run.calc_type,
+            provider=run.provider,
+            executable_path=run.executable_path,
+            kind="conformer",
+            molecule_uuid=run.molecule_uuid,
         )
 
     def request_reference_calibration(self, method_basis: str, provider_id: str = "orca") -> None:
@@ -255,12 +380,17 @@ class QuantumChemistryService(QObject):
         cache_root.mkdir(parents=True, exist_ok=True)
         scratch_dir = Path(tempfile.mkdtemp(prefix="orca_job_", dir=str(cache_root)))
 
-        job_kind_for_manager = _JOB_KIND if kind == "calculation" else _REFERENCE_JOB_KIND
+        job_kind_for_manager = _job_manager_kind(kind)
         try:
             input_text = provider.build_input(mol, charge, multiplicity, method_basis, calc_type)
         except Exception as exc:  # noqa: BLE001 - bad input params, report don't crash
             self._cleanup_scratch(scratch_dir)
             self._publish_state(key, CacheState.FAILED, f"Failed to build input: {exc}")
+            # Abandons the whole Boltzmann sequence if one conformer can't
+            # even produce an input file -- the remaining ones would fail
+            # identically (same params, same provider), and a partial
+            # average would be silently wrong rather than obviously absent.
+            self._boltzmann_runs.pop(key, None)
             self._job_manager.finish(job_kind_for_manager, key)
             return
 
@@ -334,16 +464,25 @@ class QuantumChemistryService(QObject):
             else:
                 self._publish_state(key, CacheState.FAILED, message)
         finally:
+            # A process-level error ends the whole run, not just this
+            # conformer -- there is no partial average worth publishing.
+            self._boltzmann_runs.pop(key, None)
             self._cleanup_scratch(job.scratch_dir)
-            job_kind_for_manager = _JOB_KIND if job.kind == "calculation" else _REFERENCE_JOB_KIND
-            self._job_manager.finish(job_kind_for_manager, key)
+            self._job_manager.finish(_job_manager_kind(job.kind), key)
 
     def _on_finished(self, key: str) -> None:
         job = self._active_jobs.pop(key, None)
         if job is None:
             return
+        # Set only when this conformer's success handler started the NEXT
+        # one in the sequence. The molecule's JobManager slot must then stay
+        # held (the logical job is still running) -- releasing it here would
+        # let a second request start alongside the rest of the run and would
+        # make Cancel unreachable for the remaining conformers.
+        chaining = False
         try:
             if job.cancelled:
+                self._boltzmann_runs.pop(key, None)
                 if job.kind == "reference":
                     self._event_bus.publish(
                         NmrReferenceCalibrated(
@@ -372,14 +511,18 @@ class QuantumChemistryService(QObject):
             output_text = "".join(job.stdout_chunks)
             if job.kind == "reference":
                 self._finish_reference_job(job, output_text)
+            elif job.kind == "conformer":
+                chaining = self._finish_conformer_job(job, output_text)
             else:
                 self._finish_calculation_job(job, output_text)
         finally:
             # Guaranteed regardless of which branch above returns --
             # success, cancellation, or a parse failure all reach here.
+            # The scratch dir is this conformer's own, so it is cleaned up
+            # even mid-sequence; only the job slot is held open.
             self._cleanup_scratch(job.scratch_dir)
-            job_kind_for_manager = _JOB_KIND if job.kind == "calculation" else _REFERENCE_JOB_KIND
-            self._job_manager.finish(job_kind_for_manager, key)
+            if not chaining:
+                self._job_manager.finish(_job_manager_kind(job.kind), key)
 
     def _finish_calculation_job(self, job: _ActiveJob, output_text: str) -> None:
         molecule_uuid = job.molecule_uuid
@@ -407,6 +550,82 @@ class QuantumChemistryService(QObject):
                         spectrum = dataclasses.replace(spectrum, couplings=couplings)
                 self._event_bus.publish(SpectrumComputed(spectrum=self._maybe_calibrate(spectrum, job.method_basis)))
         self._publish_state(molecule_uuid, CacheState.COMPLETED)
+
+    def _finish_conformer_job(self, job: _ActiveJob, output_text: str) -> bool:
+        """Collects one conformer's spectrum + SCF energy, then either
+        starts the next conformer or publishes the Boltzmann average.
+
+        Returns True when it started another job, which tells `_on_finished`
+        to keep holding the molecule's JobManager slot.
+        """
+        molecule_uuid = job.molecule_uuid
+        run = self._boltzmann_runs.get(molecule_uuid)
+        if run is None:  # cancelled or already torn down
+            return False
+        try:
+            descriptors, _conformer = job.provider.parse_output(
+                output_text, job.mol, molecule_uuid, job.calc_type
+            )
+            spectrum = job.provider.parse_spectrum_output(output_text, job.mol, molecule_uuid, job.calc_type)
+        except Exception as exc:  # noqa: BLE001 - report failure, never crash
+            logger.exception("Failed to parse ORCA output for molecule %s", molecule_uuid)
+            self._boltzmann_runs.pop(molecule_uuid, None)
+            self._publish_state(molecule_uuid, CacheState.FAILED, str(exc))
+            return False
+        if spectrum is None:
+            self._boltzmann_runs.pop(molecule_uuid, None)
+            self._publish_state(
+                molecule_uuid, CacheState.FAILED, "ORCA produced no shielding data for this conformer."
+            )
+            return False
+
+        # The energy that weights this conformer comes from the SAME run
+        # that produced its shieldings -- same geometry, same level of
+        # theory. Using the RDKit MMFF energy the conformer was embedded
+        # with would mix a force-field population with DFT shifts.
+        # `<provider_id>.scf_energy` is the convention every QuantumEngine
+        # Provider follows for its converged total energy (orca_engine.py's
+        # `orca.scf_energy`), so this stays provider-agnostic rather than
+        # hardcoding ORCA's id into the service.
+        energy_id = f"{job.provider.provider_id}.scf_energy"
+        energy = next((d.value for d in descriptors if d.descriptor_id == energy_id), None)
+        if energy is None:
+            self._boltzmann_runs.pop(molecule_uuid, None)
+            self._publish_state(
+                molecule_uuid,
+                CacheState.FAILED,
+                "No SCF energy in ORCA output — cannot weight this conformer.",
+            )
+            return False
+
+        try:
+            couplings = job.provider.parse_spin_spin_coupling(output_text, job.calc_type)
+        except Exception:  # noqa: BLE001 - couplings are an enhancement, must not drop the spectrum
+            logger.exception("Failed to parse spin-spin coupling for molecule %s", molecule_uuid)
+        else:
+            if couplings is not None:
+                spectrum = dataclasses.replace(spectrum, couplings=couplings)
+
+        run.spectra.append(spectrum)
+        run.energies.append(float(energy))
+
+        if run.remaining_mols:
+            self._launch_next_conformer(run)
+            return True
+
+        self._boltzmann_runs.pop(molecule_uuid, None)
+        averaged = boltzmann_average_spectrum(run.spectra, run.energies)
+        # Only the averaged spectrum is published, not one event per
+        # conformer: the per-conformer shifts are an intermediate, and
+        # emitting them would leave the NMR view flickering through
+        # geometries that are not what the experiment measures.
+        self._event_bus.publish(
+            SpectrumComputed(spectrum=self._maybe_calibrate(averaged, run.method_basis))
+        )
+        self._publish_state(
+            molecule_uuid, CacheState.COMPLETED, f"Averaged over {run.total} conformer(s)"
+        )
+        return False
 
     def _maybe_calibrate(self, spectrum, method_basis: str):
         # Local import avoids a hard dependency on nmr_reference for every

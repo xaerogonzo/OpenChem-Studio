@@ -181,7 +181,14 @@ class QuantumEngineProvider(ABC):
         self, mol: Chem.Mol, charge: int, multiplicity: int, method_basis: str, calc_type: str
     ) -> str:
         """Returns the engine's own input-file text. `calc_type` is "sp",
-        "opt", or "opt_freq"."""
+        "opt", or "opt_freq".
+
+        Note on `parse_output`'s descriptors: emit the converged total
+        energy as `"<provider_id>.scf_energy"` in Hartree. Boltzmann
+        conformer averaging (`chem/boltzmann.py`) looks it up by that
+        convention to weight each conformer's spectrum, and silently
+        skips a run that doesn't provide it.
+        """
 
     @abstractmethod
     def command_args(self, executable_path: str, input_path: Path) -> list[str]:

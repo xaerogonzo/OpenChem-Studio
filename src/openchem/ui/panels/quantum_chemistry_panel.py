@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses
 
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QFormLayout,
     QHBoxLayout,
@@ -121,6 +122,17 @@ class QuantumChemistryPanel(QWidget):
         for solvent in SOLVENTS:
             self._solvent_combo.addItem(solvent or "None (gas phase)", solvent)
 
+        # Opt-in, because it costs one full ORCA run per conformer. Off by
+        # default so nobody accidentally turns a 5-minute job into an hour.
+        self._boltzmann_check = QCheckBox("Average over all conformers (Boltzmann)", self)
+        self._boltzmann_check.setToolTip(
+            "Runs the calculation on every conformer and averages the shifts by their "
+            "Boltzmann populations, using each run's own SCF energy.\n\n"
+            "A flexible molecule in solution interconverts fast on the NMR timescale, so "
+            "the measured shift is a population average -- not the lowest-energy geometry's.\n\n"
+            "Costs one full ORCA run per conformer."
+        )
+
         self._configure_button = QPushButton("Configure ORCA...", self)
         self._configure_button.clicked.connect(self._on_configure_clicked)
 
@@ -186,6 +198,7 @@ class QuantumChemistryPanel(QWidget):
         form.addRow("Multiplicity:", self._multiplicity_spin)
         form.addRow("Method/basis:", self._method_combo)
         form.addRow("Solvent (CPCM):", self._solvent_combo)
+        form.addRow("", self._boltzmann_check)
 
         run_row = QHBoxLayout()
         run_row.addWidget(self._configure_button)
@@ -281,6 +294,20 @@ class QuantumChemistryPanel(QWidget):
         self._spectrum_note_label.setVisible(False)
         self._correlation_tabs.setVisible(False)
         self._status_label.setText("queued")
+
+        if self._boltzmann_check.isChecked() and len(molecule.conformers) > 1:
+            self._quantum_chemistry_service.request_boltzmann_nmr(
+                mols=[
+                    self._chemistry_engine.mol_from_molblock(conformer.molblock)
+                    for conformer in molecule.conformers
+                ],
+                molecule_uuid=molecule.uuid,
+                calc_type=calc_type,
+                charge=self._charge_spin.value(),
+                multiplicity=self._multiplicity_spin.value(),
+                method_basis=method_basis,
+            )
+            return
 
         self._quantum_chemistry_service.request_calculation(
             mol=mol,

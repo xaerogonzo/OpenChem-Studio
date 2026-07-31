@@ -21,10 +21,14 @@ class _RecordingQuantumChemistryService(QuantumChemistryService):
     def __init__(self, event_bus: EventBus) -> None:
         super().__init__(event_bus, Settings(event_bus), providers={})
         self.requests: list[dict] = []
+        self.boltzmann_requests: list[dict] = []
         self.reference_requests: list[tuple[str, str]] = []
 
     def request_calculation(self, **kwargs) -> None:  # noqa: D102 - test double
         self.requests.append(kwargs)
+
+    def request_boltzmann_nmr(self, **kwargs) -> None:  # noqa: D102 - test double
+        self.boltzmann_requests.append(kwargs)
 
     def request_reference_calibration(self, method_basis: str, provider_id: str = "orca") -> None:
         self.reference_requests.append((method_basis, provider_id))
@@ -376,3 +380,63 @@ def test_spectrum_computed_populates_the_1d_signal_view(qapp):
     # Ethanol's protons: CH3 (3H), CH2 (2H), OH (1H).
     assert panel._nmr_view is not None
     assert sorted(s.integration for s in panel._nmr_view.signals()) == [1, 2, 3]
+
+
+def _panel_with_conformers(count: int):
+    """A molecule carrying `count` real embedded conformers, since the
+    Boltzmann path only engages when there is more than one to average."""
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    panel, engine, service = _make_panel()
+    molecule = MoleculeModel(display_name="Butane")
+    engine.set_structure_from_smiles(molecule, "CCCC")
+    mol_3d = Chem.AddHs(Chem.MolFromSmiles("CCCC"))
+    AllChem.EmbedMultipleConfs(mol_3d, numConfs=count, randomSeed=42)
+    for conf_id in range(count):
+        molecule.conformers.append(
+            ConformerModel(molblock=Chem.MolToMolBlock(mol_3d, confId=conf_id), method="rdkit_etkdg")
+        )
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    panel._method_combo.setCurrentText("B3LYP pcSseg-1")
+    return panel, service, molecule
+
+
+def test_boltzmann_is_off_by_default(qapp):
+    panel, _engine, _service = _make_panel()
+    assert not panel._boltzmann_check.isChecked()
+
+
+def test_unchecked_boltzmann_runs_the_single_lowest_energy_conformer(qapp):
+    panel, service, _molecule = _panel_with_conformers(3)
+
+    panel._on_run_clicked()
+
+    assert len(service.requests) == 1
+    assert service.boltzmann_requests == []
+
+
+def test_checked_boltzmann_sends_every_conformer(qapp):
+    panel, service, molecule = _panel_with_conformers(3)
+    panel._boltzmann_check.setChecked(True)
+
+    panel._on_run_clicked()
+
+    assert service.requests == []
+    assert len(service.boltzmann_requests) == 1
+    assert len(service.boltzmann_requests[0]["mols"]) == len(molecule.conformers) == 3
+
+
+def test_checked_boltzmann_with_one_conformer_takes_the_ordinary_path(qapp):
+    """Nothing to average over -- routing it through the sequencing code
+    would only add a layer for no benefit."""
+    panel, service, _molecule = _panel_with_conformers(1)
+    panel._boltzmann_check.setChecked(True)
+
+    panel._on_run_clicked()
+
+    assert len(service.requests) == 1
+    assert service.boltzmann_requests == []

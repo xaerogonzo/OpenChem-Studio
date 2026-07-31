@@ -4,6 +4,7 @@ import sys
 import time
 from pathlib import Path
 
+import pytest
 from rdkit import Chem
 
 from openchem.app.settings import Settings
@@ -11,7 +12,7 @@ from openchem.domain.common import CacheState
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
 from openchem.events.base import EventBus
-from openchem.domain.scientific_result import SpectrumResult
+from openchem.domain.scientific_result import NMRSpectrumResult, SpectrumResult
 from openchem.events.events import (
     NmrReferenceCalibrated,
     QuantumChemistryJobStateChanged,
@@ -54,7 +55,9 @@ class FakeQuantumEngineProvider(QuantumEngineProvider):
         if "FAIL_PARSE" in output_text:
             raise RuntimeError("fake parse failure")
         descriptor = DescriptorValue(
-            descriptor_id="fake.energy",
+            # `<provider_id>.scf_energy` is the convention the service uses
+            # to find a conformer's weighting energy for Boltzmann averaging.
+            descriptor_id="fake.scf_energy",
             name="Fake Energy",
             units="Hartree",
             category="quantum_chemistry",
@@ -551,3 +554,203 @@ def test_reference_job_and_real_molecule_job_use_separate_job_manager_kinds(qapp
     assert _wait_until(qapp, lambda: calibrated and states and states[-1] == CacheState.COMPLETED)
     assert calibrated[0].error is None
     assert states[-1] == CacheState.COMPLETED
+
+
+class _PerConformerProvider(FakeQuantumEngineProvider):
+    """Returns a different SCF energy and a different shielding on each
+    successive job, so a Boltzmann run over N conformers produces N
+    genuinely distinct spectra to average -- the same subprocess runs every
+    time, so without this every "conformer" would be identical and the
+    averaging would be untestable.
+    """
+
+    def __init__(self, energies: list[float], shifts: list[float], sleep_seconds: float = 0.0) -> None:
+        super().__init__(stdout_text="fake nmr output", sleep_seconds=sleep_seconds)
+        self._energies = energies
+        self._shifts = shifts
+        self.calls = 0
+
+    def parse_output(self, output_text: str, mol, molecule_uuid: str, calc_type: str):
+        index = self.calls
+        self.calls += 1
+        descriptor = DescriptorValue(
+            descriptor_id="fake.scf_energy",
+            name="Fake SCF Energy",
+            units="Hartree",
+            category="quantum_chemistry",
+            provider="fake",
+            molecule_uuid=molecule_uuid,
+            value=self._energies[index],
+            cache_state=CacheState.COMPLETED,
+        )
+        return [descriptor], None
+
+    def parse_spectrum_output(self, output_text: str, mol, molecule_uuid: str, calc_type: str):
+        # parse_output ran first for this same job and already advanced the
+        # counter, so the current conformer is calls - 1.
+        index = self.calls - 1
+        return NMRSpectrumResult(
+            spectrum_type="nmr_raw_shielding",
+            name="NMR Isotropic Shielding",
+            units="ppm (isotropic shielding)",
+            method="fake",
+            molecule_uuid=molecule_uuid,
+            values={0: self._shifts[index]},
+            elements={0: "H"},
+        )
+
+
+def test_boltzmann_run_executes_one_job_per_conformer_and_publishes_one_spectrum(qapp, tmp_path):
+    provider = _PerConformerProvider(energies=[-100.0, -100.0], shifts=[30.0, 10.0])
+    service, bus = _make_service(tmp_path, provider)
+
+    spectra = []
+    bus.subscribe(SpectrumComputed, lambda e: spectra.append(e.spectrum))
+    states: list[CacheState] = []
+    bus.subscribe(QuantumChemistryJobStateChanged, lambda e: states.append(e.state))
+
+    mol = Chem.MolFromSmiles("CCO")
+    service.request_boltzmann_nmr(
+        mols=[mol, mol],
+        molecule_uuid="mol-1",
+        calc_type="nmr",
+        charge=0,
+        multiplicity=1,
+        method_basis="B3LYP pcSseg-1",
+        provider_id="fake",
+    )
+
+    assert _wait_until(qapp, lambda: states and states[-1] in (CacheState.COMPLETED, CacheState.FAILED))
+
+    assert states[-1] == CacheState.COMPLETED
+    assert provider.calls == 2  # both conformers really ran
+    # One event, not one per conformer -- the per-conformer shifts are an
+    # intermediate, not something the NMR view should flicker through.
+    assert len(spectra) == 1
+    assert spectra[0].values[0] == pytest.approx(20.0)  # equal energies -> mean
+
+
+def test_boltzmann_run_weights_by_the_scf_energy_of_each_run(qapp, tmp_path):
+    """A 3 kcal/mol gap leaves the higher conformer effectively unpopulated,
+    so the average must sit on the lower one -- proving the energies are
+    really coming from each job rather than being ignored."""
+    three_kcal = 3.0 / 627.5094740631
+    provider = _PerConformerProvider(energies=[-100.0, -100.0 + three_kcal], shifts=[30.0, 10.0])
+    service, bus = _make_service(tmp_path, provider)
+
+    spectra = []
+    bus.subscribe(SpectrumComputed, lambda e: spectra.append(e.spectrum))
+
+    mol = Chem.MolFromSmiles("CCO")
+    service.request_boltzmann_nmr(
+        mols=[mol, mol], molecule_uuid="mol-1", calc_type="nmr",
+        charge=0, multiplicity=1, method_basis="B3LYP pcSseg-1", provider_id="fake",
+    )
+
+    assert _wait_until(qapp, lambda: spectra)
+    assert spectra[0].values[0] == pytest.approx(30.0, abs=0.2)
+
+
+def test_boltzmann_run_holds_the_molecule_job_slot_for_the_whole_sequence(qapp, tmp_path):
+    """Releasing the slot between conformers would let a second request
+    start alongside the rest of the run and make Cancel unreachable."""
+    provider = _PerConformerProvider(energies=[-100.0] * 3, shifts=[30.0, 20.0, 10.0])
+    job_manager = JobManager()
+    bus = EventBus()
+    settings = Settings(bus)
+    settings.set("orca/executable_path", sys.executable)
+    service = QuantumChemistryService(bus, settings, providers={"fake": provider}, job_manager=job_manager)
+
+    events = []
+    bus.subscribe(QuantumChemistryJobStateChanged, events.append)
+
+    mol = Chem.MolFromSmiles("CCO")
+    service.request_boltzmann_nmr(
+        mols=[mol, mol, mol], molecule_uuid="mol-1", calc_type="nmr",
+        charge=0, multiplicity=1, method_basis="B3LYP pcSseg-1", provider_id="fake",
+    )
+
+    # Mid-run: the second request must be refused, not run concurrently.
+    assert _wait_until(qapp, lambda: provider.calls >= 1)
+    service.request_calculation(
+        mol=mol, molecule_uuid="mol-1", calc_type="sp",
+        charge=0, multiplicity=1, method_basis="HF STO-3G", provider_id="fake",
+    )
+    assert any("already running" in event.message for event in events)
+
+    # Waits on the run's own progress, not on the last state event: the
+    # refusal above publishes FAILED for this same molecule_uuid, so a
+    # "last state is terminal" condition would return immediately while the
+    # run is still going.
+    assert _wait_until(qapp, lambda: provider.calls == 3)
+    assert _wait_until(qapp, lambda: not job_manager.is_active("quantum_chemistry", "mol-1"))
+
+
+def test_boltzmann_run_of_one_conformer_still_publishes_a_spectrum(qapp, tmp_path):
+    provider = _PerConformerProvider(energies=[-100.0], shifts=[42.0])
+    service, bus = _make_service(tmp_path, provider)
+
+    spectra = []
+    bus.subscribe(SpectrumComputed, lambda e: spectra.append(e.spectrum))
+
+    service.request_boltzmann_nmr(
+        mols=[Chem.MolFromSmiles("CCO")], molecule_uuid="mol-1", calc_type="nmr",
+        charge=0, multiplicity=1, method_basis="B3LYP pcSseg-1", provider_id="fake",
+    )
+
+    assert _wait_until(qapp, lambda: spectra)
+    assert spectra[0].values[0] == pytest.approx(42.0)
+
+
+def test_boltzmann_run_with_no_conformers_fails_cleanly(qapp, tmp_path):
+    provider = _PerConformerProvider(energies=[], shifts=[])
+    service, bus = _make_service(tmp_path, provider)
+
+    states = []
+    bus.subscribe(QuantumChemistryJobStateChanged, lambda e: states.append(e))
+
+    service.request_boltzmann_nmr(
+        mols=[], molecule_uuid="mol-1", calc_type="nmr",
+        charge=0, multiplicity=1, method_basis="B3LYP pcSseg-1", provider_id="fake",
+    )
+
+    assert states[-1].state == CacheState.FAILED
+    assert "No conformers" in states[-1].message
+
+
+def test_cancelling_mid_run_stops_the_sequence_and_releases_the_slot(qapp, tmp_path):
+    """Cancel must end the whole run, not just the conformer in flight --
+    otherwise the next one would start immediately after the kill."""
+    provider = _PerConformerProvider(
+        energies=[-100.0] * 4, shifts=[30.0, 20.0, 10.0, 5.0], sleep_seconds=0.5
+    )
+    job_manager = JobManager()
+    bus = EventBus()
+    settings = Settings(bus)
+    settings.set("orca/executable_path", sys.executable)
+    service = QuantumChemistryService(bus, settings, providers={"fake": provider}, job_manager=job_manager)
+
+    spectra = []
+    bus.subscribe(SpectrumComputed, lambda e: spectra.append(e.spectrum))
+    events = []
+    bus.subscribe(QuantumChemistryJobStateChanged, events.append)
+
+    mol = Chem.MolFromSmiles("CCO")
+    service.request_boltzmann_nmr(
+        mols=[mol] * 4, molecule_uuid="mol-1", calc_type="nmr",
+        charge=0, multiplicity=1, method_basis="B3LYP pcSseg-1", provider_id="fake",
+    )
+    assert _wait_until(qapp, lambda: service._active_jobs.get("mol-1") is not None)
+    service.cancel("mol-1")
+
+    assert _wait_until(qapp, lambda: not job_manager.is_active("quantum_chemistry", "mol-1"))
+    assert spectra == []  # no partial average published
+    assert any("Cancelled by user" in event.message for event in events)
+    assert "mol-1" not in service._boltzmann_runs
+
+    # And nothing kept running: the remaining conformers were abandoned.
+    calls_at_cancel = provider.calls
+    qapp.processEvents()
+    time.sleep(0.6)
+    qapp.processEvents()
+    assert provider.calls == calls_at_cancel
