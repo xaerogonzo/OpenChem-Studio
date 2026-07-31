@@ -137,6 +137,16 @@ def describe_pka_status(interpreter_path: str) -> str:
     tiny prediction rather than just checking the path, since a configured
     but broken environment is the failure mode worth surfacing here.
     """
+    # Checked before running anything: a path that is not an interpreter
+    # produces an OS error naming neither the path nor the problem, and
+    # the app knows where it installed the real one.
+    from openchem.services.pkasolver_setup import default_install_root
+    from openchem.services.sidecar_env import interpreter_problem, recovery_hint
+
+    if interpreter_path and interpreter_path.strip():
+        problem = interpreter_problem(interpreter_path)
+        if problem is not None:
+            return f"Not usable: {problem}{recovery_hint(default_install_root())}"
     if not pka_predictor_available(interpreter_path):
         return "Not configured — numeric pKa unavailable (ionizable-group detection still works)"
     try:

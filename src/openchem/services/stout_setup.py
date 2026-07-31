@@ -38,6 +38,22 @@ _TARGET_PYTHON = "3.10"
 
 STOUT_PACKAGE = "STOUT-pypi"
 
+# TensorFlow 2.10's compiled extensions were built against the NumPy 1.x C
+# ABI, and its own metadata does not cap the version -- so a fresh install
+# silently pulls NumPy 2.x and then dies on IMPORT with
+#
+#     _np_bfloat16 = _pywrap_bfloat16.TF_bfloat16_type()
+#     TypeError: Unable to convert function return value to a Python type!
+#
+# which names neither TensorFlow nor NumPy and is unguessable from the
+# message. Confirmed live: a STOUT environment built without this pin
+# ended up on numpy 2.2.6 and could not import tensorflow at all.
+#
+# Installed in the SAME pip call as STOUT, not a later one: a second call
+# would let the resolver satisfy STOUT with numpy 2 first and then
+# downgrade, which works but leaves the wrong wheels' metadata cached.
+NUMPY_PIN = "numpy<2"
+
 # TensorFlow is most of this. The trained translation models download on
 # first use rather than at install time, so the on-disk figure grows after
 # the first prediction -- stated up front rather than surprising anyone.
@@ -104,7 +120,55 @@ def _python_reports_version(executable: str, extra_args: list[str], expected: st
     return result.returncode == 0 and result.stdout.strip() == expected
 
 
+def find_java() -> str | None:
+    """STOUT needs a JVM AT RUNTIME, not just at install time.
+
+    Not obvious and not documented anywhere prominent: `STOUT.repack.helper`
+    starts a JVM through jpype to reach CDK, at import. Without one, every
+    prediction dies with
+
+        OSError: [WinError 126] JVM DLL not found: Define/path/or/set/
+        JAVA_HOME/variable/properly
+
+    after the ~600 MB TensorFlow download has already completed. Checking
+    first turns a multi-gigabyte dead end into an immediate, actionable
+    message.
+
+    This is a DIFFERENT requirement from OPSIN's Java dependency, which
+    the External Tools text already mentioned -- OPSIN is name-to-
+    structure and entirely optional; this is STOUT itself.
+    """
+    if os.environ.get("JAVA_HOME"):
+        return os.environ["JAVA_HOME"]
+    found = shutil.which("java")
+    if found:
+        return found
+    # jpype finds a JVM through JAVA_HOME or the loader path, so an install
+    # that is on neither still counts as missing for our purposes -- but
+    # naming a real directory we can see makes the fix obvious.
+    for candidate in (
+        Path("C:/Program Files/Eclipse Adoptium"),
+        Path("C:/Program Files/Java"),
+        Path("/usr/lib/jvm"),
+    ):
+        if candidate.is_dir() and any(candidate.iterdir()):
+            return str(candidate)
+    return None
+
+
+_JAVA_MISSING = (
+    "No Java runtime found. STOUT itself needs one: it starts a JVM through jpype to reach "
+    "CDK every time it loads, so without Java no prediction can run at all. Install any JRE "
+    "or JDK (Temurin/Adoptium is a good free choice) and make sure java is on PATH or "
+    "JAVA_HOME is set, then try again."
+)
+
+
 def describe_prerequisites() -> str:
+    if not find_java():
+        # Reported FIRST and on its own: no amount of Python provisioning
+        # helps if the JVM is missing, and it is the cheaper thing to fix.
+        return f"Cannot set up: {_JAVA_MISSING}"
     if find_uv():
         return f"Ready: uv found, will provision Python {_TARGET_PYTHON} automatically."
     fallback = find_fallback_python()
@@ -134,6 +198,12 @@ def _run(command: list[str], step: str, timeout: int = 3600) -> None:
 def install(root: Path | None = None, on_progress: ProgressCallback | None = None) -> Path:
     """Builds the environment and returns the interpreter path to store in
     Settings. Safe to re-run: every step overwrites or is idempotent."""
+    # Checked BEFORE anything is created or downloaded. Failing here costs
+    # a second; failing at _verify costs ~600 MB and several minutes for
+    # the same unusable result.
+    if not find_java():
+        raise StoutSetupError(_JAVA_MISSING)
+
     root = root or default_install_root()
     root.mkdir(parents=True, exist_ok=True)
     venv = root / ".venv"
@@ -169,7 +239,7 @@ def install(root: Path | None = None, on_progress: ProgressCallback | None = Non
     )
 
     report(1)
-    _run([*pip_install, STOUT_PACKAGE], steps[1])
+    _run([*pip_install, STOUT_PACKAGE, NUMPY_PIN], steps[1])
 
     # Prove it works rather than assuming. A setup that "succeeded" but
     # cannot predict is worse than one that failed loudly -- and STOUT

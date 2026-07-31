@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 import logging
 from pathlib import Path
 
@@ -54,6 +56,16 @@ from openchem.services.tool_download_service import (
 
 logger = logging.getLogger("openchem.ui")
 
+
+# A sidecar path must be an INTERPRETER, not any file in the environment.
+# Without this filter a stored path of "...\pkasolver\.codecov.yml" was
+# selectable, and produced only "[WinError 193] %1 is not a valid Win32
+# application" at the point of use.
+_INTERPRETER_FILTER = (
+    "Python interpreter (python.exe python3.exe python python3);;All files (*)"
+    if os.name == "nt"
+    else "Python interpreter (python python3 python3.*);;All files (*)"
+)
 
 class ExternalToolsDialog(QDialog):
     """Single home for configuring/obtaining external chemistry tools --
@@ -301,7 +313,10 @@ class ExternalToolsDialog(QDialog):
         why_note = QLabel(
             "STOUT predicts an IUPAC name for any structure. Like pkasolver this is a Python "
             "interpreter rather than an executable: STOUT pins TensorFlow 2.10, whose newest "
-            "wheels are for Python 3.10, so it cannot be installed alongside this app.",
+            "wheels are for Python 3.10, so it cannot be installed alongside this app. "
+            "STOUT ALSO NEEDS JAVA — it starts a JVM to reach CDK every time it loads, so "
+            "without a JRE no prediction runs at all. That is checked before the download "
+            "starts, not after.",
             tab,
         )
         why_note.setWordWrap(True)
@@ -414,7 +429,10 @@ class ExternalToolsDialog(QDialog):
 
     def _on_stout_browse_clicked(self) -> None:
         path_str, _ = QFileDialog.getOpenFileName(
-            self, "Select the STOUT environment's Python interpreter"
+            self,
+            "Select the STOUT environment's Python interpreter",
+            "",
+            _INTERPRETER_FILTER,
         )
         if path_str:
             self._stout_path_edit.setText(path_str)
@@ -580,7 +598,12 @@ class ExternalToolsDialog(QDialog):
         self._pkasolver_status_label.setText("Not checked — press Test to verify")
 
     def _on_pkasolver_browse_clicked(self) -> None:
-        path_str, _ = QFileDialog.getOpenFileName(self, "Select the pkasolver environment's Python interpreter")
+        path_str, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select the pkasolver environment's Python interpreter",
+            "",
+            _INTERPRETER_FILTER,
+        )
         if path_str:
             self._pkasolver_path_edit.setText(path_str)
             self._on_pkasolver_path_edited()
