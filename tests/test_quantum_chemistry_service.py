@@ -15,6 +15,7 @@ from openchem.events.base import EventBus
 from openchem.domain.scientific_result import NMRSpectrumResult, SpectrumResult
 from openchem.events.events import (
     NmrReferenceCalibrated,
+    NmrScalingCalibrated,
     QuantumChemistryJobStateChanged,
     QuantumChemistryResultReady,
     SpectrumComputed,
@@ -754,3 +755,171 @@ def test_cancelling_mid_run_stops_the_sequence_and_releases_the_slot(qapp, tmp_p
     time.sleep(0.6)
     qapp.processEvents()
     assert provider.calls == calls_at_cancel
+
+
+# --- Empirical scaling calibration ---------------------------------------
+
+_TRUE_SLOPE = {"C": -1.05, "H": -0.98}
+_TRUE_INTERCEPT = {"C": 186.0, "H": 31.4}
+
+
+class ScalingCalibrationProvider(FakeQuantumEngineProvider):
+    """Emits shieldings that lie EXACTLY on a known line for each element.
+
+    So the calibration must recover `_TRUE_SLOPE`/`_TRUE_INTERCEPT` to
+    within floating point -- a far sharper check than "the numbers look
+    plausible", and it needs no ORCA. The real ORCA behaviour is pinned
+    separately by the measured shieldings in `test_nmr_scaling.py`.
+    """
+
+    def __init__(self, skip: set[str] | None = None, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._skip = skip or set()
+        self.seen: list[str] = []
+
+    def parse_spectrum_output(self, output_text, mol, molecule_uuid, calc_type):
+        from rdkit import Chem
+
+        from openchem.chem.nmr_scaling import REFERENCE_COMPOUNDS
+
+        smiles = Chem.MolToSmiles(Chem.RemoveHs(mol))
+        compound = next(
+            (
+                c
+                for c in REFERENCE_COMPOUNDS
+                if Chem.MolToSmiles(Chem.MolFromSmiles(c.smiles)) == smiles
+            ),
+            None,
+        )
+        if compound is None or compound.name in self._skip:
+            return None
+        self.seen.append(compound.name)
+
+        values, elements = {}, {}
+        for atom in mol.GetAtoms():
+            element = atom.GetSymbol()
+            shift = compound.shifts.get(element)
+            if shift is None or element not in _TRUE_SLOPE:
+                continue
+            # Invert the line, so fitting it back recovers the line.
+            values[atom.GetIdx()] = (shift - _TRUE_INTERCEPT[element]) / _TRUE_SLOPE[element]
+            elements[atom.GetIdx()] = element
+        if not values:
+            return None
+        return NMRSpectrumResult(
+            spectrum_type="nmr_raw_shielding",
+            name="Fake shielding",
+            units="ppm",
+            method="fake",
+            molecule_uuid=molecule_uuid,
+            values=values,
+            elements=elements,
+        )
+
+
+def test_scaling_calibration_recovers_the_line_and_caches_it(qapp, tmp_path):
+    provider = ScalingCalibrationProvider()
+    service, bus = _make_service(tmp_path, provider)
+    events = []
+    bus.subscribe(NmrScalingCalibrated, events.append)
+
+    service.request_scaling_calibration("B3LYP def2-SVP", provider_id="fake")
+
+    assert _wait_until(qapp, lambda: events, timeout_seconds=60)
+    event = events[0]
+    assert event.error is None
+    for element in ("C", "H"):
+        assert event.factors[element].slope == pytest.approx(_TRUE_SLOPE[element])
+        assert event.factors[element].intercept == pytest.approx(_TRUE_INTERCEPT[element])
+        assert event.factors[element].r_squared == pytest.approx(1.0)
+    # Every standard really ran, one ORCA job each.
+    assert len(provider.seen) == 11
+    assert not service._scaling_runs
+    assert not service._active_jobs
+
+
+def test_scaled_factors_are_used_in_preference_to_tms_subtraction(qapp, tmp_path):
+    """Subtraction is scaling with the slope forced to -1, and that forced
+    slope is most of the residual error -- so where both are cached, the
+    fitted line has to win."""
+    provider = ScalingCalibrationProvider()
+    service, bus = _make_service(tmp_path, provider)
+    calibrations = []
+    bus.subscribe(NmrScalingCalibrated, calibrations.append)
+    service.request_scaling_calibration("B3LYP def2-SVP", provider_id="fake")
+    assert _wait_until(qapp, lambda: calibrations, timeout_seconds=60)
+
+    # A stale TMS reference for the same method/basis, which must lose.
+    service._settings.set("orca/nmr_reference/B3LYP def2-SVP/unknown/C", 999.0)
+
+    spectra = []
+    bus.subscribe(SpectrumComputed, lambda e: spectra.append(e.spectrum))
+    service.request_calculation(
+        mol=Chem.MolFromSmiles("c1ccccc1"),
+        molecule_uuid="mol-1",
+        calc_type="nmr",
+        charge=0,
+        multiplicity=1,
+        method_basis="B3LYP def2-SVP",
+        provider_id="fake",
+    )
+    assert _wait_until(qapp, lambda: spectra, timeout_seconds=30)
+
+    spectrum = spectra[0]
+    assert spectrum.provenance.parameters["referencing"] == "empirical_linear_scaling"
+    # Benzene's literature 13C shift, recovered through the fitted line
+    # rather than the bogus 999.0 reference.
+    assert all(value == pytest.approx(128.4) for value in spectrum.values.values())
+
+
+def test_one_failed_standard_costs_a_point_not_the_calibration(qapp, tmp_path):
+    """The fit needs four points, not eleven."""
+    provider = ScalingCalibrationProvider(skip={"Benzene", "Acetylene"})
+    service, bus = _make_service(tmp_path, provider)
+    events = []
+    bus.subscribe(NmrScalingCalibrated, events.append)
+
+    service.request_scaling_calibration("B3LYP def2-SVP", provider_id="fake")
+
+    assert _wait_until(qapp, lambda: events, timeout_seconds=60)
+    assert events[0].error is None
+    assert events[0].factors["C"].slope == pytest.approx(_TRUE_SLOPE["C"])
+    # Two fewer standards contributed than the full set would have.
+    assert events[0].factors["H"].sample_count < 9
+
+
+def test_a_second_calibration_for_the_same_method_is_refused(qapp, tmp_path):
+    provider = ScalingCalibrationProvider(sleep_seconds=0.5)
+    service, bus = _make_service(tmp_path, provider)
+    events = []
+    bus.subscribe(NmrScalingCalibrated, events.append)
+
+    service.request_scaling_calibration("B3LYP def2-SVP", provider_id="fake")
+    service.request_scaling_calibration("B3LYP def2-SVP", provider_id="fake")
+
+    assert events, "the second request should have been refused immediately"
+    assert "already running" in events[0].error
+    assert _wait_until(qapp, lambda: len(events) > 1, timeout_seconds=90)
+
+
+def test_cancelling_a_calibration_reports_it_and_releases_the_slot(qapp, tmp_path):
+    provider = ScalingCalibrationProvider(sleep_seconds=0.5)
+    job_manager = JobManager()
+    bus = EventBus()
+    settings = Settings(bus)
+    settings.set("orca/executable_path", sys.executable)
+    service = QuantumChemistryService(
+        bus, settings, providers={"fake": provider}, job_manager=job_manager
+    )
+    events = []
+    bus.subscribe(NmrScalingCalibrated, events.append)
+
+    service.request_scaling_calibration("B3LYP def2-SVP", provider_id="fake")
+    key = "__nmr_scaling__::B3LYP def2-SVP"
+    assert _wait_until(qapp, lambda: key in service._active_jobs)
+    job_manager.cancel("quantum_chemistry_scaling", key)
+
+    assert _wait_until(qapp, lambda: events, timeout_seconds=30)
+    assert events[0].error == "Cancelled by user"
+    assert not service._scaling_runs
+    assert not job_manager.is_active("quantum_chemistry_scaling", key)

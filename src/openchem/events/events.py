@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from openchem.domain.alignment import EnsembleEntry
 from openchem.domain.common import CacheState
+from openchem.domain.nmr import ScalingFactors
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.docking import DockingResultModel
@@ -232,3 +233,21 @@ class EnsembleAlignmentReady(Event):
     entries: list[EnsembleEntry]
     method: str
     accuracy: str
+
+
+@dataclass(frozen=True)
+class NmrScalingCalibrated(Event):
+    """Published when an empirical shift-scaling calibration
+    (`QuantumChemistryService.request_scaling_calibration`) finishes.
+
+    `factors` maps element symbol to its fitted line; empty with `error`
+    set on failure, cancellation, or a fit too poor to trust. An element
+    whose fit was refused is simply absent rather than present with a bad
+    slope -- a partial calibration is a real, usable outcome (carbon often
+    fits when hydrogen does not, and vice versa).
+    """
+
+    method_basis: str
+    provider_id: str
+    factors: dict[str, ScalingFactors]
+    error: str | None = None

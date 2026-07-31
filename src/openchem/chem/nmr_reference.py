@@ -11,7 +11,10 @@ from openchem.domain.scientific_result import NMRSpectrumResult
 # calculation cover both nuclei this app's NMR path reports.
 _TMS_SMILES = "C[Si](C)(C)C"
 
-_SPECTRUM_TYPE_BY_ELEMENT = {"H": "nmr_1h", "C": "nmr_13c"}
+# Public: the scaling path in QuantumChemistryService produces the same
+# spectrum_type values, and two copies of this map would be one edit away
+# from disagreeing.
+SPECTRUM_TYPE_BY_ELEMENT = {"H": "nmr_1h", "C": "nmr_13c"}
 
 
 def tms_molecule() -> Chem.Mol:

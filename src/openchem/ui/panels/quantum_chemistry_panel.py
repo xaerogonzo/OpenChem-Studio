@@ -33,6 +33,7 @@ from openchem.domain.scientific_result import CrossPeak, SpectrumResult
 from openchem.events.base import EventBus
 from openchem.events.events import (
     NmrReferenceCalibrated,
+    NmrScalingCalibrated,
     QuantumChemistryJobStateChanged,
     QuantumChemistryResultReady,
     SpectrumComputed,
@@ -49,6 +50,10 @@ _RAW_SHIELDING_NOTE = (
     "as a chemical shift — treat as raw ORCA output, not a directly comparable δ (ppm) value."
 )
 _CALIBRATED_NOTE = "Calibrated to TMS — values are real δ (ppm) chemical shifts."
+_SCALED_NOTE = (
+    "Empirically scaled — real δ (ppm), fitted against known compounds at this exact "
+    "method/basis. More accurate than TMS referencing alone, which assumes a slope of −1."
+)
 # (correlation_type, compute_fn, x_axis_label, y_axis_label) -- HSQC/HMBC
 # always put H first/C second (see chem/nmr_correlation.py), COSY is H-H.
 _CORRELATION_SPECS = (
@@ -138,6 +143,16 @@ class QuantumChemistryPanel(QWidget):
 
         self._calibrate_button = QPushButton("Calibrate Reference (TMS)...", self)
         self._calibrate_button.clicked.connect(self._on_calibrate_clicked)
+        # A second, more thorough calibration. Costs N ORCA runs against
+        # the TMS button's one, which is why it is its own button rather
+        # than an upgrade of that one -- the user should choose to spend
+        # that time. Once it has run, its factors take priority.
+        self._scaling_button = QPushButton("Calibrate Scaling (11 standards)...", self)
+        self._scaling_button.setToolTip(
+            "Fits an empirical shift-scaling line from real runs on known compounds. "
+            "Much more accurate than TMS referencing alone, and much slower to calibrate."
+        )
+        self._scaling_button.clicked.connect(self._on_scaling_calibrate_clicked)
 
         self._run_button = QPushButton("Run", self)
         self._run_button.clicked.connect(self._on_run_clicked)
@@ -203,6 +218,7 @@ class QuantumChemistryPanel(QWidget):
         run_row = QHBoxLayout()
         run_row.addWidget(self._configure_button)
         run_row.addWidget(self._calibrate_button)
+        run_row.addWidget(self._scaling_button)
         run_row.addWidget(self._run_button)
         run_row.addWidget(self._cancel_button)
 
@@ -220,6 +236,7 @@ class QuantumChemistryPanel(QWidget):
         event_bus.subscribe(QuantumChemistryResultReady, self._on_result_ready)
         event_bus.subscribe(SpectrumComputed, self._on_spectrum_computed)
         event_bus.subscribe(NmrReferenceCalibrated, self._on_reference_calibrated)
+        event_bus.subscribe(NmrScalingCalibrated, self._on_scaling_calibrated)
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
@@ -360,6 +377,34 @@ class QuantumChemistryPanel(QWidget):
         self._status_label.setText(f"Calibrating reference (TMS) for {method_basis!r} — this may take a while.")
         self._quantum_chemistry_service.request_reference_calibration(method_basis)
 
+    def _on_scaling_calibrate_clicked(self) -> None:
+        method_basis = self._effective_method_basis()
+        if not method_basis:
+            self._status_label.setText("Enter a method/basis before calibrating.")
+            return
+        self._scaling_button.setEnabled(False)
+        self._status_label.setText(
+            f"Calibrating scaling factors for {method_basis!r} across 11 reference compounds — "
+            "this runs 11 ORCA jobs and will take a while."
+        )
+        self._quantum_chemistry_service.request_scaling_calibration(method_basis)
+
+    def _on_scaling_calibrated(self, event: NmrScalingCalibrated) -> None:
+        self._scaling_button.setEnabled(True)
+        if not event.factors:
+            self._status_label.setText(f"Scaling calibration failed: {event.error}")
+            return
+        # R^2 is shown, not hidden: a slope is only as good as the fit it
+        # came from, and the user is about to trust every shift to it.
+        summary = ", ".join(
+            f"{element} R²={factors.r_squared:.4f} (n={factors.sample_count})"
+            for element, factors in sorted(event.factors.items())
+        )
+        message = f"Scaling calibrated for {event.method_basis!r}: {summary}."
+        if event.error:
+            message += f" Not calibrated — {event.error}"
+        self._status_label.setText(message)
+
     def _on_reference_calibrated(self, event: NmrReferenceCalibrated) -> None:
         self._calibrate_button.setEnabled(True)
         if event.error:
@@ -390,9 +435,16 @@ class QuantumChemistryPanel(QWidget):
         spectrum = event.spectrum
         if spectrum.molecule_uuid != self._pending_molecule_uuid:
             return
-        self._spectrum_note_label.setText(
-            _RAW_SHIELDING_NOTE if spectrum.spectrum_type == "nmr_raw_shielding" else _CALIBRATED_NOTE
+        referencing = (
+            spectrum.provenance.parameters.get("referencing") if spectrum.provenance else None
         )
+        if spectrum.spectrum_type == "nmr_raw_shielding":
+            note = _RAW_SHIELDING_NOTE
+        elif referencing == "empirical_linear_scaling":
+            note = _SCALED_NOTE
+        else:
+            note = _CALIBRATED_NOTE
+        self._spectrum_note_label.setText(note)
         self._spectrum_note_label.setVisible(True)
         self._spectrum_table.setVisible(True)
         atom_indices = sorted(spectrum.values)

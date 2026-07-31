@@ -53,6 +53,21 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from openchem.domain.nmr import ScalingFactors
+
+__all__ = [
+    "CalibrationError",
+    "MIN_POINTS",
+    "MIN_R_SQUARED",
+    "REFERENCE_COMPOUNDS",
+    "ReferenceCompound",
+    "ScalingFactors",
+    "fit_scaling",
+    "reference_molecule",
+    "reference_points",
+    "scale_spectrum",
+]
+
 
 @dataclass(frozen=True)
 class ReferenceCompound:
@@ -126,23 +141,26 @@ class CalibrationError(ValueError):
     """The fit cannot be trusted, with a reason worth showing."""
 
 
-@dataclass(frozen=True)
-class ScalingFactors:
-    """`delta = slope * sigma + intercept`, plus the evidence for it.
+def reference_molecule(compound: ReferenceCompound):
+    """A real embedded-and-optimized structure for a calibration standard.
 
-    `r_squared` and `sample_count` travel WITH the factors rather than
-    being logged and dropped, so the UI can show what a calibration was
-    actually based on -- a slope fitted to four points and one fitted to
-    eleven are not equally trustworthy and should not look identical.
+    Goes through the same `RDKitConformerProvider` path every molecule
+    takes before an ORCA job -- a calibration run against a shortcut
+    geometry would fit the shortcut, not the method. Imported lazily so
+    this module stays importable (and its arithmetic testable) without
+    RDKit being pulled in.
     """
+    from rdkit import Chem
 
-    slope: float
-    intercept: float
-    r_squared: float
-    sample_count: int
+    from openchem.chem.conformer_providers import RDKitConformerProvider
 
-    def apply(self, shielding: float) -> float:
-        return self.slope * shielding + self.intercept
+    mol = Chem.MolFromSmiles(compound.smiles)
+    if mol is None:
+        raise CalibrationError(f"Could not parse reference SMILES for {compound.name}.")
+    conformers = RDKitConformerProvider().generate_conformers(mol, num_conformers=1, optimize=True)
+    if not conformers:
+        raise CalibrationError(f"Could not embed a conformer for {compound.name}.")
+    return conformers[0][0]
 
 
 def fit_scaling(points: list[tuple[float, float]]) -> ScalingFactors:

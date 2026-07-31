@@ -13,11 +13,16 @@ from rdkit import Chem
 
 from openchem.app.settings import Settings
 from openchem.chem.boltzmann import boltzmann_average_spectrum
-from openchem.chem.nmr_reference import average_reference_shielding, tms_molecule
+from openchem.chem.nmr_reference import (
+    SPECTRUM_TYPE_BY_ELEMENT,
+    average_reference_shielding,
+    tms_molecule,
+)
 from openchem.chem.orca_engine import OrcaQuantumEngineProvider
-from openchem.domain.common import CacheState
+from openchem.domain.common import CacheState, Provenance
 from openchem.events.base import EventBus
 from openchem.events.events import (
+    NmrScalingCalibrated,
     NmrReferenceCalibrated,
     QuantumChemistryJobStateChanged,
     QuantumChemistryResultReady,
@@ -33,6 +38,7 @@ logger = logging.getLogger("openchem.chemistry")
 _APP_NAME = "OpenChemStudio"
 _JOB_KIND = "quantum_chemistry"
 _REFERENCE_JOB_KIND = "quantum_chemistry_reference"
+_SCALING_JOB_KIND = "quantum_chemistry_scaling"
 
 # TMS is neutral, closed-shell -- fixed, not user-configurable (only
 # method_basis varies per reference calibration request).
@@ -44,13 +50,21 @@ def _reference_job_key(method_basis: str) -> str:
     return f"__nmr_reference__::{method_basis}"
 
 
+def _scaling_job_key(method_basis: str) -> str:
+    return f"__nmr_scaling__::{method_basis}"
+
+
 def _job_manager_kind(kind: str) -> str:
     """Only a reference calibration gets its own JobManager kind. A
     conformer job in a Boltzmann run is part of the molecule's single
     logical job, so it shares `_JOB_KIND` with an ordinary calculation --
     which is what keeps Cancel and the one-job-per-molecule guard working
     across the whole sequence."""
-    return _REFERENCE_JOB_KIND if kind == "reference" else _JOB_KIND
+    if kind == "reference":
+        return _REFERENCE_JOB_KIND
+    if kind == "scaling":
+        return _SCALING_JOB_KIND
+    return _JOB_KIND
 
 
 @dataclass
@@ -81,6 +95,35 @@ class _BoltzmannRun:
 
 
 @dataclass
+class _ScalingRun:
+    """One logical calibration spanning N sequential ORCA runs, one per
+    reference compound, regressed at the end (`chem/nmr_scaling.py`).
+
+    Sequential for the same reasons as `_BoltzmannRun`, and holding ONE
+    JobManager slot for the whole sequence so Cancel reaches the run as a
+    single thing rather than only the compound currently in flight.
+
+    A compound that fails to run is recorded in `failed` and skipped
+    rather than aborting: the fit needs four points, not eleven, so one
+    bad reference should cost a data point and not the calibration. The
+    R^2 guard is what catches a set degraded too far.
+    """
+
+    method_basis: str
+    remaining: list  # list[ReferenceCompound]
+    provider: QuantumEngineProvider
+    executable_path: str
+    total: int
+    # compound name -> element -> shieldings for that element's nuclei
+    shieldings: dict[str, dict[str, list[float]]] = field(default_factory=dict)
+    failed: list[str] = field(default_factory=list)
+    # Recorded from the first standard that reports one. The cache key
+    # includes it so a calibration never survives an ORCA upgrade that
+    # could have changed the shieldings it was fitted to.
+    orca_version: str = "unknown"
+
+
+@dataclass
 class _ActiveJob:
     key: str
     mol: Chem.Mol
@@ -88,8 +131,12 @@ class _ActiveJob:
     calc_type: str
     scratch_dir: Path
     process: QProcess
-    kind: str = "calculation"  # "calculation" | "reference" | "conformer"
+    kind: str = "calculation"  # "calculation" | "reference" | "conformer" | "scaling"
     molecule_uuid: str | None = None  # only set for kind == "calculation"/"conformer"
+    # Only set for kind == "scaling": which calibration standard this run
+    # is, so its shieldings can be filed against the right literature
+    # shift when the whole sequence finishes.
+    compound_name: str = ""
     method_basis: str = ""  # set for both kinds -- the exact free-text
     # method_basis string the job ran with, needed to look up/write the
     # right TMS reference cache entry either way.
@@ -138,6 +185,8 @@ class QuantumChemistryService(QObject):
         # Keyed by molecule_uuid, same as _active_jobs: a Boltzmann run owns
         # the molecule's job slot for its whole sequence of conformers.
         self._boltzmann_runs: dict[str, _BoltzmannRun] = {}
+        # Keyed by scaling-job key, one entry per in-flight calibration.
+        self._scaling_runs: dict[str, _ScalingRun] = {}
         self._job_manager = job_manager if job_manager is not None else JobManager()
 
     def register_provider(self, provider: QuantumEngineProvider) -> None:
@@ -345,6 +394,99 @@ class QuantumChemistryService(QObject):
             kind="reference",
         )
 
+    def request_scaling_calibration(self, method_basis: str, provider_id: str = "orca") -> None:
+        """Runs `! NMR` on each calibration standard in
+        `chem/nmr_scaling.REFERENCE_COMPOUNDS` at `method_basis`, then
+        fits `delta = slope * sigma + intercept` per element and caches
+        the result for every subsequent NMR job at the same (method_basis,
+        ORCA version).
+
+        Costs N runs where the TMS reference costs one, which is why it is
+        a separate opt-in rather than folded into that button. What it buys
+        is real: measured against ORCA 6.1.1 at B3LYP/def2-SVP, carbon goes
+        from ~11.3 ppm mean error to 1.5, and protons from 0.67 to 0.21.
+        """
+        from openchem.chem.nmr_scaling import REFERENCE_COMPOUNDS
+
+        provider = self._providers.get(provider_id)
+        if provider is None:
+            self._fail_scaling(method_basis, provider_id, f"Unknown quantum engine: {provider_id}")
+            return
+        executable_path = self._resolve_executable_path()
+        if executable_path is None:
+            self._fail_scaling(
+                method_basis,
+                provider_id,
+                "No ORCA executable configured or found on PATH — set orca/executable_path in Settings.",
+            )
+            return
+
+        key = _scaling_job_key(method_basis)
+        if not self._job_manager.try_start(
+            _SCALING_JOB_KIND, key, cancel_callback=lambda: self._cancel_by_key(key)
+        ):
+            self._fail_scaling(
+                method_basis, provider_id, f"A scaling calibration for {method_basis!r} is already running."
+            )
+            return
+
+        run = _ScalingRun(
+            method_basis=method_basis,
+            remaining=list(REFERENCE_COMPOUNDS),
+            provider=provider,
+            executable_path=executable_path,
+            total=len(REFERENCE_COMPOUNDS),
+        )
+        self._scaling_runs[key] = run
+        self._launch_next_reference_compound(key, run)
+
+    def _fail_scaling(self, method_basis: str, provider_id: str, message: str) -> None:
+        self._event_bus.publish(
+            NmrScalingCalibrated(
+                method_basis=method_basis, provider_id=provider_id, factors={}, error=message
+            )
+        )
+
+    def _launch_next_reference_compound(self, key: str, run: _ScalingRun) -> None:
+        """Starts the next standard, skipping any that cannot be built.
+
+        Embedding failures are handled HERE rather than inside the job
+        loop because they happen before any process starts -- a compound
+        RDKit cannot embed should cost one data point, not stall the
+        sequence waiting for a process that was never launched.
+        """
+        from openchem.chem.nmr_scaling import reference_molecule
+
+        while run.remaining:
+            compound = run.remaining.pop(0)
+            try:
+                mol = reference_molecule(compound)
+            except Exception as exc:  # noqa: BLE001 - skip this standard, keep the run
+                logger.warning("Skipping NMR calibration standard %s: %s", compound.name, exc)
+                run.failed.append(compound.name)
+                continue
+            self._publish_state(
+                key,
+                CacheState.RUNNING,
+                f"{compound.name} ({run.total - len(run.remaining)}/{run.total})",
+            )
+            self._launch_job(
+                key=key,
+                mol=mol,
+                charge=_TMS_CHARGE,
+                multiplicity=_TMS_MULTIPLICITY,
+                method_basis=run.method_basis,
+                calc_type="nmr",
+                provider=run.provider,
+                executable_path=run.executable_path,
+                kind="scaling",
+                compound_name=compound.name,
+            )
+            return
+        # Nothing left to launch -- every remaining standard failed to
+        # build, so finish with whatever was already collected.
+        self._complete_scaling_run(key, run)
+
     def _launch_job(
         self,
         *,
@@ -358,6 +500,7 @@ class QuantumChemistryService(QObject):
         executable_path: str,
         kind: str,
         molecule_uuid: str | None = None,
+        compound_name: str = "",
     ) -> None:
         """Shared QProcess launch mechanics for both `request_calculation`
         (a real molecule) and `request_reference_calibration` (TMS) --
@@ -391,6 +534,7 @@ class QuantumChemistryService(QObject):
             # identically (same params, same provider), and a partial
             # average would be silently wrong rather than obviously absent.
             self._boltzmann_runs.pop(key, None)
+            self._scaling_runs.pop(key, None)
             self._job_manager.finish(job_kind_for_manager, key)
             return
 
@@ -409,6 +553,7 @@ class QuantumChemistryService(QObject):
             kind=kind,
             molecule_uuid=molecule_uuid,
             method_basis=method_basis,
+            compound_name=compound_name,
         )
         self._active_jobs[key] = job
 
@@ -455,20 +600,46 @@ class QuantumChemistryService(QObject):
             return
         try:
             message = "Cancelled by user" if job.cancelled else f"Process error: {error}"
-            if job.kind == "reference":
-                self._event_bus.publish(
-                    NmrReferenceCalibrated(
-                        method_basis=job.method_basis, provider_id=job.provider.provider_id, values={}, error=message
-                    )
-                )
-            else:
-                self._publish_state(key, CacheState.FAILED, message)
+            self._report_job_failure(job, message)
         finally:
             # A process-level error ends the whole run, not just this
             # conformer -- there is no partial average worth publishing.
             self._boltzmann_runs.pop(key, None)
+            self._scaling_runs.pop(key, None)
             self._cleanup_scratch(job.scratch_dir)
             self._job_manager.finish(_job_manager_kind(job.kind), key)
+
+    def _report_job_failure(self, job: _ActiveJob, message: str) -> None:
+        """Announce a terminal failure on the channel this job's requester
+        is actually listening to.
+
+        Shared by `_on_process_error` and `_on_finished` because those two
+        RACE each other when a running process is killed -- whichever pops
+        the job first wins. That race was already handled for reference
+        jobs and was missed for scaling ones when they were added, so the
+        Cancel button silently produced no event at all. One reporter
+        means the next job kind cannot repeat it.
+        """
+        if job.kind == "reference":
+            self._event_bus.publish(
+                NmrReferenceCalibrated(
+                    method_basis=job.method_basis,
+                    provider_id=job.provider.provider_id,
+                    values={},
+                    error=message,
+                )
+            )
+        elif job.kind == "scaling":
+            self._event_bus.publish(
+                NmrScalingCalibrated(
+                    method_basis=job.method_basis,
+                    provider_id=job.provider.provider_id,
+                    factors={},
+                    error=message,
+                )
+            )
+        else:
+            self._publish_state(job.key, CacheState.FAILED, message)
 
     def _on_finished(self, key: str) -> None:
         job = self._active_jobs.pop(key, None)
@@ -483,17 +654,8 @@ class QuantumChemistryService(QObject):
         try:
             if job.cancelled:
                 self._boltzmann_runs.pop(key, None)
-                if job.kind == "reference":
-                    self._event_bus.publish(
-                        NmrReferenceCalibrated(
-                            method_basis=job.method_basis,
-                            provider_id=job.provider.provider_id,
-                            values={},
-                            error="Cancelled by user",
-                        )
-                    )
-                else:
-                    self._publish_state(key, CacheState.FAILED, "Cancelled by user")
+                self._scaling_runs.pop(key, None)
+                self._report_job_failure(job, "Cancelled by user")
                 return
             # `finished` can fire before Qt has delivered the LAST
             # `readyReadStandardOutput` signal for data ORCA wrote right as
@@ -513,6 +675,8 @@ class QuantumChemistryService(QObject):
                 self._finish_reference_job(job, output_text)
             elif job.kind == "conformer":
                 chaining = self._finish_conformer_job(job, output_text)
+            elif job.kind == "scaling":
+                chaining = self._finish_scaling_job(job, output_text)
             else:
                 self._finish_calculation_job(job, output_text)
         finally:
@@ -627,6 +791,113 @@ class QuantumChemistryService(QObject):
         )
         return False
 
+    def _finish_scaling_job(self, job: _ActiveJob, output_text: str) -> bool:
+        """Files one standard's shieldings, then starts the next or fits.
+
+        Returns True when it started another job, which tells
+        `_on_finished` to keep holding the calibration's JobManager slot.
+        """
+        run = self._scaling_runs.get(job.key)
+        if run is None:  # cancelled or already torn down
+            return False
+        try:
+            spectrum = job.provider.parse_spectrum_output(
+                output_text, job.mol, "__nmr_scaling__", job.calc_type
+            )
+        except Exception:  # noqa: BLE001 - one bad standard costs a point, not the run
+            logger.exception("Failed to parse calibration output for %s", job.compound_name)
+            spectrum = None
+
+        if spectrum is None or not spectrum.values:
+            run.failed.append(job.compound_name)
+        else:
+            per_element: dict[str, list[float]] = {}
+            for atom_index, shielding in spectrum.values.items():
+                element = spectrum.elements.get(atom_index)
+                if element is not None:
+                    per_element.setdefault(element, []).append(shielding)
+            run.shieldings[job.compound_name] = per_element
+            # Recorded from the first standard that reports one, so the
+            # cache key matches what `_maybe_calibrate` will look up.
+            if spectrum.provenance is not None:
+                run.orca_version = spectrum.provenance.parameters.get("orca_version", run.orca_version)
+
+        if run.remaining:
+            self._launch_next_reference_compound(job.key, run)
+            return True
+        self._complete_scaling_run(job.key, run)
+        return False
+
+    def _complete_scaling_run(self, key: str, run: _ScalingRun) -> None:
+        """Fits one line per element and caches whatever passed.
+
+        Elements are fitted INDEPENDENTLY and a refused fit drops only
+        that element: carbon and hydrogen genuinely do not succeed or fail
+        together (measured -- at HF/STO-3G carbon fits at R^2 0.979 while
+        hydrogen comes out at 0.859), so an all-or-nothing calibration
+        would throw away a good carbon line because of a bad proton one.
+        """
+        from openchem.chem.nmr_scaling import CalibrationError, fit_scaling, reference_points
+
+        self._scaling_runs.pop(key, None)
+        factors = {}
+        reasons = []
+        for element in ("H", "C"):
+            points = reference_points(
+                {name: values.get(element, []) for name, values in run.shieldings.items()}, element
+            )
+            try:
+                factors[element] = fit_scaling(points)
+            except CalibrationError as exc:
+                reasons.append(f"{element}: {exc}")
+
+        if not factors:
+            message = " ".join(reasons) or "No reference calculation produced usable shieldings."
+            self._fail_scaling(run.method_basis, run.provider.provider_id, message)
+            self._publish_state(key, CacheState.FAILED, message)
+            return
+
+        for element, fitted in factors.items():
+            prefix = f"orca/nmr_scaling/{run.method_basis}/{run.orca_version}/{element}"
+            self._settings.set(f"{prefix}/slope", fitted.slope)
+            self._settings.set(f"{prefix}/intercept", fitted.intercept)
+            self._settings.set(f"{prefix}/r_squared", fitted.r_squared)
+            self._settings.set(f"{prefix}/sample_count", fitted.sample_count)
+
+        self._event_bus.publish(
+            NmrScalingCalibrated(
+                method_basis=run.method_basis,
+                provider_id=run.provider.provider_id,
+                factors=factors,
+                # A partial success still reports what went wrong, so a
+                # missing element is explained rather than just absent.
+                error="; ".join(reasons) or None,
+            )
+        )
+        self._publish_state(
+            key,
+            CacheState.COMPLETED,
+            f"Calibrated {', '.join(sorted(factors))} from {len(run.shieldings)} standard(s)",
+        )
+
+    def _cached_scaling_factors(self, method_basis: str, orca_version: str) -> dict:
+        from openchem.domain.nmr import ScalingFactors
+
+        factors = {}
+        for element in ("H", "C"):
+            prefix = f"orca/nmr_scaling/{method_basis}/{orca_version}/{element}"
+            slope = self._settings.get(f"{prefix}/slope", None)
+            intercept = self._settings.get(f"{prefix}/intercept", None)
+            if slope is None or intercept is None:
+                continue
+            factors[element] = ScalingFactors(
+                slope=float(slope),
+                intercept=float(intercept),
+                r_squared=float(self._settings.get(f"{prefix}/r_squared", 0.0) or 0.0),
+                sample_count=int(self._settings.get(f"{prefix}/sample_count", 0) or 0),
+            )
+        return factors
+
     def _maybe_calibrate(self, spectrum, method_basis: str):
         # Local import avoids a hard dependency on nmr_reference for every
         # QuantumChemistryService caller/test that never touches NMR at
@@ -636,6 +907,18 @@ class QuantumChemistryService(QObject):
         from openchem.chem.nmr_reference import chemical_shift_from_reference
 
         orca_version = (spectrum.provenance.parameters.get("orca_version", "unknown") if spectrum.provenance else "unknown")
+
+        # Empirical scaling WINS over plain TMS subtraction where both are
+        # cached, because subtraction is the special case of scaling with
+        # the slope forced to -1 -- and that forced slope is most of the
+        # residual error (measured at B3LYP/def2-SVP: carbon 1.5 ppm
+        # scaled against ~11.3 subtracted). Falls back rather than
+        # requiring both, so an existing TMS-only setup keeps working
+        # exactly as before.
+        scaling = self._cached_scaling_factors(method_basis, orca_version)
+        if scaling:
+            return self._apply_scaling(spectrum, scaling)
+
         reference: dict[str, float] = {}
         for element in ("H", "C"):
             cached = self._settings.get(f"orca/nmr_reference/{method_basis}/{orca_version}/{element}", None)
@@ -645,6 +928,56 @@ class QuantumChemistryService(QObject):
             return spectrum  # no cached reference yet -- raw shielding, unchanged
         calibrated = chemical_shift_from_reference(spectrum, reference)
         return calibrated if calibrated is not None else spectrum
+
+    def _apply_scaling(self, spectrum, factors: dict):
+        """Rebuild the spectrum in real ppm, one `spectrum_type` per
+        nucleus.
+
+        Mirrors `chemical_shift_from_reference`'s output shape rather than
+        inventing a second one -- the NMR view and the signal grouping
+        both key off `spectrum_type`, so a scaled result has to be
+        indistinguishable in shape from a TMS-referenced one. Returns the
+        spectrum unchanged if scaling would leave it empty (every atom's
+        element uncalibrated), since an empty spectrum reads as a failed
+        calculation.
+        """
+        from openchem.chem.nmr_scaling import scale_spectrum
+
+        scaled_values = scale_spectrum(spectrum.values, spectrum.elements, factors)
+        if not scaled_values:
+            return spectrum
+
+        elements_present = {spectrum.elements.get(index) for index in scaled_values}
+        spectrum_type = (
+            SPECTRUM_TYPE_BY_ELEMENT.get(next(iter(elements_present)), spectrum.spectrum_type)
+            if len(elements_present) == 1
+            else "nmr_shifts"
+        )
+        parameters = dict(spectrum.provenance.parameters) if spectrum.provenance else {}
+        parameters["referencing"] = "empirical_linear_scaling"
+        for element, fitted in factors.items():
+            parameters[f"scaling_{element}"] = {
+                "slope": fitted.slope,
+                "intercept": fitted.intercept,
+                "r_squared": fitted.r_squared,
+                "sample_count": fitted.sample_count,
+            }
+        # Provenance is CREATED when absent rather than left None: how a
+        # value was referenced is the difference between 128 ppm and a raw
+        # shielding of 57, and a result that does not say which is a
+        # result nobody can check.
+        provenance = (
+            dataclasses.replace(spectrum.provenance, parameters=parameters)
+            if spectrum.provenance is not None
+            else Provenance(created_by="core", method="empirical_linear_scaling", parameters=parameters)
+        )
+        return dataclasses.replace(
+            spectrum,
+            values=scaled_values,
+            units="ppm",
+            spectrum_type=spectrum_type,
+            provenance=provenance,
+        )
 
     def _finish_reference_job(self, job: _ActiveJob, output_text: str) -> None:
         method_basis = job.method_basis
