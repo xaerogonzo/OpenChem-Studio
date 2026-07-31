@@ -265,3 +265,48 @@ def test_spectrum_computed_populates_correlation_tabs(qapp):
     assert panel._correlation_tables["hsqc"].rowCount() == 5
     assert len(panel._correlation_plots["hsqc"]._peaks) == 5
     assert panel._correlation_tables["cosy"].rowCount() > 0
+
+
+def test_the_1d_signal_tab_exists_before_any_result_arrives(qapp):
+    """The tab is created up front so tab order never shifts under the user;
+    only the widget inside it (which owns a QWebEngineView) is deferred."""
+    panel, _engine, _service = _make_panel()
+    assert panel._correlation_tabs.tabText(0) == "1D Signals"
+    assert panel._nmr_view is None
+
+
+def test_spectrum_computed_populates_the_1d_signal_view(qapp):
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    panel, engine, _service = _make_panel()
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    mol_3d = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(mol_3d, randomSeed=7)
+    molecule.conformers.append(ConformerModel(molblock=Chem.MolToMolBlock(mol_3d), method="rdkit_etkdg"))
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    panel._method_combo.setCurrentText("B3LYP def2-SVP")
+    panel._on_run_clicked()
+
+    elements = {idx: atom.GetSymbol() for idx, atom in enumerate(mol_3d.GetAtoms())}
+    panel._on_spectrum_computed(
+        SpectrumComputed(
+            spectrum=NMRSpectrumResult(
+                spectrum_type="nmr_calibrated",
+                name="Chemical Shift",
+                units="ppm",
+                method="orca",
+                molecule_uuid=molecule.uuid,
+                values={idx: 1.0 + idx for idx in range(mol_3d.GetNumAtoms())},
+                elements=elements,
+            )
+        )
+    )
+
+    # Ethanol's protons: CH3 (3H), CH2 (2H), OH (1H).
+    assert panel._nmr_view is not None
+    assert sorted(s.integration for s in panel._nmr_view.signals()) == [1, 2, 3]
