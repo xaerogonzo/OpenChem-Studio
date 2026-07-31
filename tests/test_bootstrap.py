@@ -73,3 +73,27 @@ def test_registered_calculators_carry_tags():
     registry = build_service_container().calculator_registry
     assert registry.get("topology_analysis").tags
     assert registry.get("interaction_analysis").tags
+
+
+def test_phase27_and_28_calculators_are_registered():
+    registry = build_service_container().calculator_registry
+    expected = {
+        "stereoisomers", "tautomers", "resonance_forms", "markush_enumeration",
+        "pka_microspecies", "major_microspecies", "isoelectric_point",
+        "logd_curve", "hbond_vs_ph",
+    }
+    registered = {
+        definition.calculator_id
+        for category in registry.categories()
+        for definition in registry.by_category(category)
+    }
+    assert expected <= registered
+
+
+def test_ph_curve_calculators_get_the_pkasolver_interpreter_injected():
+    """They take an extra `interpreter_path` argument that `chem/` cannot
+    read itself -- the composition root closes over Settings. A missing
+    binding would surface as a TypeError only at click time."""
+    from openchem.bootstrap import _SETTINGS_BOUND_CALCULATORS
+
+    assert {"pka_microspecies", "isoelectric_point", "logd_curve"} <= _SETTINGS_BOUND_CALCULATORS

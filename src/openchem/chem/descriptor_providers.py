@@ -15,6 +15,13 @@ from openchem.chem.geometry_analysis import compute_geometry_analysis
 from openchem.chem.interaction_analysis import compute_interaction_analysis
 from openchem.chem.markush import DEFAULT_MAX_STRUCTURES as MARKUSH_DEFAULT_MAX
 from openchem.chem.markush import compute_markush_enumeration
+from openchem.chem.ph_curves import (
+    compute_hbond_vs_ph,
+    compute_isoelectric_point,
+    compute_logd_curve,
+    compute_major_microspecies,
+    compute_pka_distribution,
+)
 from openchem.chem.structure_generators import (
     DEFAULT_MAX_STRUCTURES,
     RESONANCE_FLAG_SETS,
@@ -272,16 +279,34 @@ def compute_herg_risk_factors(mol: Chem.Mol, molecule_uuid: str) -> AlertResult:
     )
 
 
-def _compute_gasteiger_charges(mol: Chem.Mol) -> dict[int, float]:
+def _compute_gasteiger_charges(mol: Chem.Mol, include_hydrogens: bool = False) -> dict[int, float]:
     """Mutates `mol` in place (sets a "_GasteigerCharge" property per atom)
     -- harmless for every current caller, none of which reads `mol`
     again afterward expecting that property's absence. Shared by the
     always-on `compute_per_atom` and the pH-parameterized
     `compute_gasteiger_charge_at_ph` calculator (Phase 18) so the
     Gasteiger-charge logic isn't duplicated between them.
+
+    `include_hydrogens=True` adds each heavy atom's implicit-hydrogen
+    charge to its own -- Marvin's "Increment of Hs" option, the bracketed
+    second number in its charge screenshots. RDKit exposes exactly this as
+    `_GasteigerHCharge` (confirmed live), so it is real data rather than
+    an approximation.
+
+    A NOTE ON SIGMA/PI: Marvin also offers a sigma/pi/total selector.
+    RDKit implements PEOE, which is a SIGMA-charge method -- it has no pi
+    component to separate out, so that selector is deliberately not
+    offered here rather than being faked by relabelling one number three
+    ways.
     """
     rdPartialCharges.ComputeGasteigerCharges(mol)
-    return {atom.GetIdx(): atom.GetDoubleProp("_GasteigerCharge") for atom in mol.GetAtoms()}
+    charges = {}
+    for atom in mol.GetAtoms():
+        value = atom.GetDoubleProp("_GasteigerCharge")
+        if include_hydrogens and atom.HasProp("_GasteigerHCharge"):
+            value += atom.GetDoubleProp("_GasteigerHCharge")
+        charges[atom.GetIdx()] = value
+    return charges
 
 
 class RDKitDescriptorProvider(DescriptorProvider):
@@ -538,16 +563,22 @@ def compute_gasteiger_charge_at_ph(
     from openchem.chem.pka_providers import protonate_at_ph
 
     ph = parameters.get("pH", 7.4)
+    include_hydrogens = bool(parameters.get("include_hydrogens", False))
     protonated = protonate_at_ph(mol, ph)
-    charges = _compute_gasteiger_charges(protonated)
+    charges = _compute_gasteiger_charges(protonated, include_hydrogens=include_hydrogens)
+    suffix = " incl. H" if include_hydrogens else ""
     return PerAtomDataset(
         property_id="gasteiger_charge_at_ph",
-        name=f"Partial Charge (Gasteiger) at pH {ph:g}",
+        name=f"Partial Charge (Gasteiger) at pH {ph:g}{suffix}",
         units="e",
         method="rdkit+dimorphite_dl",
         molecule_uuid=molecule_uuid,
         values=charges,
-        provenance=Provenance(created_by="core", method="rdkit+dimorphite_dl", parameters={"pH": ph}),
+        provenance=Provenance(
+            created_by="core",
+            method="rdkit+dimorphite_dl",
+            parameters={"pH": ph, "include_hydrogens": include_hydrogens},
+        ),
     )
 
 
@@ -745,8 +776,15 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         description="Gasteiger partial charges, recomputed on the dominant protonation state at a given pH.",
         execution=RegistryExecution(compute=compute_gasteiger_charge_at_ph),
         parameters=[
-            CalculatorParameter(name="pH", label="pH", kind="float", default=7.4, minimum=0.0, maximum=14.0)
+            CalculatorParameter(name="pH", label="pH", kind="float", default=7.4, minimum=0.0, maximum=14.0),
+            CalculatorParameter(
+                name="include_hydrogens",
+                label="Increment of Hs (add implicit H charge)",
+                kind="bool",
+                default=False,
+            ),
         ],
+        tags=["charge", "ph", "per-atom"],
     ),
     CalculatorDefinition(
         calculator_id="crippen_logp_contrib",
@@ -995,5 +1033,66 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             ),
         ],
         tags=["markush", "enumeration", "combinatorial", "patent"],
+    ),
+    # ---- Phase 28: pH-dependent curves --------------------------------
+    CalculatorDefinition(
+        calculator_id="pka_microspecies",
+        display_name="Microspecies Distribution",
+        category="pka",
+        description=(
+            "Percentage of each protonation state across pH 0-14, from predicted pKa values. "
+            "Needs a configured pkasolver environment."
+        ),
+        execution=RegistryExecution(compute=compute_pka_distribution),
+        prediction_basis="empirical",
+        tags=["pka", "ph", "speciation", "curve"],
+    ),
+    CalculatorDefinition(
+        calculator_id="major_microspecies",
+        display_name="Major Microspecies",
+        category="pka",
+        description="The dominant protonation form at a given pH, via Dimorphite-DL.",
+        execution=RegistryExecution(compute=compute_major_microspecies),
+        parameters=[
+            CalculatorParameter(name="pH", label="pH", kind="float", default=7.4, minimum=0.0, maximum=14.0)
+        ],
+        tags=["pka", "ph", "protonation"],
+    ),
+    CalculatorDefinition(
+        calculator_id="isoelectric_point",
+        display_name="Isoelectric Point",
+        category="charge",
+        description=(
+            "Net charge across pH 0-14 and the pH where it crosses zero. Needs a configured "
+            "pkasolver environment."
+        ),
+        execution=RegistryExecution(compute=compute_isoelectric_point),
+        prediction_basis="empirical",
+        tags=["charge", "ph", "pi", "curve"],
+    ),
+    CalculatorDefinition(
+        calculator_id="logd_curve",
+        display_name="LogD vs pH",
+        category="logd",
+        description=(
+            "The distribution coefficient across pH 0-14 by Henderson-Hasselbalch. Needs a "
+            "configured pkasolver environment. Note: Henderson-Hasselbalch under-predicts logD "
+            "for zwitterions (e.g. amino acids), because it assumes the partitioning species has "
+            "no site ionized; monoprotic acids and bases are unaffected."
+        ),
+        execution=RegistryExecution(compute=compute_logd_curve),
+        prediction_basis="empirical",
+        tags=["logd", "ph", "partitioning", "curve"],
+    ),
+    CalculatorDefinition(
+        calculator_id="hbond_vs_ph",
+        display_name="H-Bond Donors/Acceptors vs pH",
+        category="topology",
+        description=(
+            "Donor and acceptor counts on the dominant microspecies at each pH. Works without "
+            "pkasolver -- Dimorphite-DL alone gives the dominant form."
+        ),
+        execution=RegistryExecution(compute=compute_hbond_vs_ph),
+        tags=["topology", "ph", "hydrogen-bonding", "curve"],
     ),
 ]

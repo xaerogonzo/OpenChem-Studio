@@ -108,7 +108,14 @@ for _label, _calc_type in CALC_TYPE_LABELS.items():
 # registration time. Read lazily per call (not captured once) so
 # reconfiguring the path in Tools > External Tools takes effect without a
 # restart.
-_SETTINGS_BOUND_CALCULATORS = frozenset({"pka", "logd"})
+# Calculators that need the out-of-process pkasolver interpreter. They
+# take an extra `interpreter_path` argument, injected here by the
+# composition root -- `chem/` must not import `app/`, and
+# `CalculatorRegistry.compute` deliberately passes only
+# (mol, molecule_uuid, parameters).
+_SETTINGS_BOUND_CALCULATORS = frozenset(
+    {"pka", "logd", "pka_microspecies", "isoelectric_point", "logd_curve"}
+)
 
 
 def _bind_settings(definition: CalculatorDefinition, settings: Settings) -> CalculatorDefinition:

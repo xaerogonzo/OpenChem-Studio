@@ -28,6 +28,7 @@ from openchem.events.events import (
     DescriptorComputed,
     MoleculeSelected,
     PerAtomDataComputed,
+    PhCurveComputed,
     SpectrumComputed,
     StructureSetComputed,
 )
@@ -253,6 +254,7 @@ class PropertyPanel(QWidget):
         event_bus.subscribe(PerAtomDataComputed, self._on_per_atom_data_computed)
         event_bus.subscribe(SpectrumComputed, self._on_spectrum_computed)
         event_bus.subscribe(StructureSetComputed, self._on_structure_set_computed)
+        event_bus.subscribe(PhCurveComputed, self._on_ph_curve_computed)
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
@@ -455,6 +457,19 @@ class PropertyPanel(QWidget):
         ):
             self._pending_calculator_id = None
             self._open_inspector(structure_set)
+
+    def _on_ph_curve_computed(self, event: PhCurveComputed) -> None:
+        # Phase 28. Matched on curve_id, which every pH calculator sets
+        # equal to its registered calculator_id -- same convention the
+        # structure-set and spectrum paths use.
+        curve = event.curve
+        if (
+            self._pending_calculator_id is not None
+            and curve.curve_id == self._pending_calculator_id
+            and curve.molecule_uuid == self._selected_molecule_uuid
+        ):
+            self._pending_calculator_id = None
+            self._open_inspector(curve)
 
     def _open_calculator(self, definition: CalculatorDefinition) -> None:
         if self._project is None or self._selected_molecule_uuid is None:

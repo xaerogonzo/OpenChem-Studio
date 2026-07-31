@@ -9,6 +9,7 @@ from openchem.domain.docking import DockingResultModel
 from openchem.domain.scientific_result import (
     AlertResult,
     PerAtomDataset,
+    PhCurveResult,
     SpectrumResult,
     StructureSetResult,
 )
@@ -164,6 +165,14 @@ class QuantumChemistryResultReady(Event):
 @dataclass(frozen=True)
 class SpectrumComputed(Event):
     spectrum: SpectrumResult
+
+
+@dataclass(frozen=True)
+class PhCurveComputed(Event):
+    """Published when a calculator produces a property-vs-pH curve
+    (Phase 28) -- pKa speciation, isoelectric point, logD, H-bonding."""
+
+    curve: PhCurveResult
 
 
 @dataclass(frozen=True)

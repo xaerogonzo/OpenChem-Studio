@@ -14,6 +14,7 @@ from openchem.domain.molecule import MoleculeModel
 from openchem.domain.scientific_result import (
     AlertResult,
     PerAtomDataset,
+    PhCurveResult,
     SpectrumResult,
     StructureSetResult,
 )
@@ -22,6 +23,7 @@ from openchem.events.events import (
     AlertComputed,
     DescriptorComputed,
     PerAtomDataComputed,
+    PhCurveComputed,
     SpectrumComputed,
     StructureSetComputed,
 )
@@ -156,6 +158,8 @@ class _CalculationTask(QRunnable):
             self._event_bus.publish(SpectrumComputed(spectrum=result))
         elif isinstance(result, StructureSetResult):
             self._event_bus.publish(StructureSetComputed(structure_set=result))
+        elif isinstance(result, PhCurveResult):
+            self._event_bus.publish(PhCurveComputed(curve=result))
         else:
             logger.error(
                 "Calculator %s produced an unpublishable result type: %s",
