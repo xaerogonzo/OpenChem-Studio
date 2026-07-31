@@ -53,20 +53,50 @@ class ColorScale:
 
 @dataclass(frozen=True, kw_only=True)
 class VisualizationLayer:
-    """Renderer-independent visualization data. `ViewerBackend.apply_visualization`
-    consumes this without knowing which scientific property (or which
-    provider — descriptor, docking, a future quantum result) produced it.
-    Only an atom-color-map variant exists today; layer composability
-    (multiple simultaneous layers, reordering, opacity) and non-atom
-    targets (residue/chain/surface coloring) are deliberately not built
-    yet — callers hold `list[VisualizationLayer]` even though only one is
-    ever active, so that lifts without a data-shape rewrite.
+    """Renderer-independent per-ATOM visualization data.
+    `ViewerBackend.apply_visualization(s)` consumes this without knowing
+    which scientific property (or which provider — descriptor, docking, a
+    future quantum result) produced it.
+
+    Kept as the atom-target layer rather than renamed to `AtomColorLayer`
+    when residue targeting arrived (Phase 23): it has many existing
+    callers and tests, and `ResidueColorLayer` below is a sibling rather
+    than a subtype anyway — the two carry genuinely different key spaces
+    (atom index vs residue identifier) with no shared field worth
+    hoisting into a base beyond `name`, which does not justify the churn.
     """
 
     name: str
     atom_colors: dict[int, str]  # atom index -> resolved hex color
     color_scale: ColorScale | None = None  # for a legend; optional
     atom_labels: dict[int, str] | None = None  # atom index -> formatted value text (Phase 18)
+
+
+@dataclass(frozen=True, kw_only=True)
+class ResidueColorLayer:
+    """Renderer-independent per-RESIDUE visualization data (Phase 23) —
+    colours whole residues of a macromolecule rather than individual atoms.
+
+    Keyed by the residue identifier `pose_analysis` already emits for every
+    docking contact: name concatenated with number, e.g. `"TYR652"` (see
+    `analyze_pose`'s `receptor_residue`). That existing, real data is what
+    justifies this layer type — it is not a speculative generalization;
+    `build_interaction_layers` below turns it into exactly these.
+    """
+
+    name: str
+    residue_colors: dict[str, str]  # "TYR652" -> resolved hex color
+    color_scale: ColorScale | None = None
+    residue_labels: dict[str, str] | None = None
+
+
+# Any layer a `ViewerBackend` may be handed. A backend is expected to
+# render the target kinds it can and ignore the rest -- 3Dmol.js has no
+# residue concept for a small-molecule conformer, and a macromolecule
+# viewer has no per-atom scientific data feeding it, so "ignore what you
+# can't render" is the honest contract rather than requiring every backend
+# to implement every target.
+AnyVisualizationLayer = VisualizationLayer | ResidueColorLayer
 
 
 def build_atom_color_layer(dataset: PerAtomDataset, include_labels: bool = False) -> VisualizationLayer:
@@ -110,3 +140,47 @@ def build_visualization_layer(result: ScientificResult, include_labels: bool = F
     if no adapter is registered for that result kind."""
     adapter = _VISUALIZATION_ADAPTERS.get(type(result))
     return adapter(result, include_labels=include_labels) if adapter else None
+
+
+# Binding-site interaction colours. Distinct hues rather than a scale:
+# H-bond and clash are categorically different findings, not two points on
+# one continuum, so a diverging/sequential ColorScale would misrepresent
+# them (and both layers carry `color_scale=None` for the same reason).
+_HBOND_COLOR = "#1976d2"  # blue -- favourable polar contact
+_CLASH_COLOR = "#d32f2f"  # red -- unfavourable steric overlap
+
+
+def build_interaction_layers(pose_metadata: dict) -> list[ResidueColorLayer]:
+    """Turns one docked pose's interaction analysis into residue layers --
+    which receptor residues hydrogen-bond with the ligand, and which clash.
+
+    Consumes `DockingPoseModel.metadata` exactly as `analyze_pose`
+    (`chem/pose_analysis.py`) writes it: `{"hbonds": [...], "clashes":
+    [...]}`, each entry carrying `receptor_residue` like `"TYR652"`. This
+    is the real, already-computed data that residue targeting exists for.
+
+    Returns only non-empty layers, and clashes last so that a residue
+    which both H-bonds AND clashes ends up flagged with the problem rather
+    than the favourable contact -- a backend compositing layers in order
+    lets the later one win, and a steric clash is the finding a user needs
+    to see.
+    """
+    layers: list[ResidueColorLayer] = []
+    for key, name, color in (
+        ("hbonds", "H-bonds", _HBOND_COLOR),
+        ("clashes", "Steric clashes", _CLASH_COLOR),
+    ):
+        residues = {
+            contact["receptor_residue"]
+            for contact in pose_metadata.get(key, [])
+            if contact.get("receptor_residue")
+        }
+        if not residues:
+            continue
+        layers.append(
+            ResidueColorLayer(
+                name=f"{name} ({len(residues)} residue{'s' if len(residues) != 1 else ''})",
+                residue_colors={residue: color for residue in residues},
+            )
+        )
+    return layers

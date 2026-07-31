@@ -136,6 +136,72 @@ def test_visualization_applied_before_the_page_loads_is_replayed(qapp):
     assert backend._pending_layer is None  # consumed, not left queued forever
 
 
+def test_multiple_atom_layers_composite_with_later_layers_winning(qapp):
+    """Phase 23: several simultaneous layers merge into one colour map,
+    later layers overriding earlier ones where they overlap."""
+    backend = _ready_backend(qapp)
+    fired: list[str] = []
+    original = backend._page.runJavaScript
+    backend._page.runJavaScript = lambda js, *a, **k: (fired.append(js), original(js, *a, **k))[1]
+
+    backend.apply_visualizations([
+        VisualizationLayer(name="LogP", atom_colors={0: "#ff0000", 1: "#00ff00"}, atom_labels={0: "+1"}),
+        VisualizationLayer(name="Charge", atom_colors={1: "#0000ff", 2: "#ffff00"}),
+    ])
+
+    js = fired[-1]
+    assert '"1": "#0000ff"' in js  # the later layer won this atom
+    assert '"0": "#ff0000"' in js  # untouched by the later layer
+    assert '"2": "#ffff00"' in js
+    assert '"0": "+1"' in js  # labels merged too
+
+
+def test_a_residue_layer_alone_is_ignored_by_the_small_molecule_viewer(qapp):
+    """3Dmol.js renders conformers, which have no residues -- an
+    unrenderable layer is ignored rather than raising, so callers need not
+    know which backend they are talking to."""
+    from openchem.ui.visualization import ResidueColorLayer
+
+    backend = _ready_backend(qapp)
+    fired: list[str] = []
+    original = backend._page.runJavaScript
+    backend._page.runJavaScript = lambda js, *a, **k: (fired.append(js), original(js, *a, **k))[1]
+
+    backend.apply_visualizations([ResidueColorLayer(name="H-bonds", residue_colors={"TYR652": "#1976d2"})])
+
+    assert "clearVisualization" in fired[-1]
+
+
+def test_apply_visualizations_with_an_empty_list_clears(qapp):
+    backend = _ready_backend(qapp)
+    fired: list[str] = []
+    original = backend._page.runJavaScript
+    backend._page.runJavaScript = lambda js, *a, **k: (fired.append(js), original(js, *a, **k))[1]
+
+    backend.apply_visualizations([])
+
+    assert "clearVisualization" in fired[-1]
+
+
+def test_single_layer_keeps_its_color_scale_but_a_composite_does_not(qapp):
+    """One legend can only describe one scale honestly."""
+    from openchem.ui.visualization import ColorScale
+
+    scale = ColorScale(palette=[(0.0, "#ff0000"), (1.0, "#0000ff")], domain_min=0.0, domain_max=1.0)
+    backend = _ready_backend(qapp)
+    captured: list = []
+    backend._run_apply_visualization = captured.append
+
+    backend.apply_visualizations([VisualizationLayer(name="A", atom_colors={0: "#ff0000"}, color_scale=scale)])
+    assert captured[-1].color_scale is scale
+
+    backend.apply_visualizations([
+        VisualizationLayer(name="A", atom_colors={0: "#ff0000"}, color_scale=scale),
+        VisualizationLayer(name="B", atom_colors={1: "#0000ff"}, color_scale=scale),
+    ])
+    assert captured[-1].color_scale is None
+
+
 def test_pending_visualization_is_replayed_after_the_molblock_not_before(qapp):
     """Order matters: viewer.html's loadMolblock() resets any active
     visualization, so replaying a queued layer before the queued molblock

@@ -3,7 +3,7 @@ from __future__ import annotations
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QWidget
 
-from openchem.ui.visualization import VisualizationLayer
+from openchem.ui.visualization import AnyVisualizationLayer, VisualizationLayer
 
 
 class ViewerBackend(QObject):
@@ -52,12 +52,30 @@ class ViewerBackend(QObject):
         raise NotImplementedError
 
     def apply_visualization(self, layer: VisualizationLayer | None) -> None:
-        """Apply a visualization layer (atom colors today — see
+        """Apply a single visualization layer (atom colors — see
         `ui/visualization.py`), or clear the active one if `layer` is
         `None`. Optional capability, same reasoning as
-        `load_macromolecule` above: Mol*'s macromolecule viewer has no
-        per-atom scientific data feeding it yet, so this stays here as the
-        established place for a future implementer to declare it, not
-        implemented unconditionally.
+        `load_macromolecule` above.
+
+        Retained as the single-layer convenience over
+        `apply_visualizations` below, since the great majority of callers
+        (the Calculator Inspector, every per-atom property) show exactly
+        one layer and reading `apply_visualization(layer)` at those call
+        sites is clearer than `apply_visualizations([layer])`.
+        """
+        self.apply_visualizations([layer] if layer is not None else [])
+
+    def apply_visualizations(self, layers: list[AnyVisualizationLayer]) -> None:
+        """Apply several visualization layers at once, compositing in
+        order so later layers win where they overlap (Phase 23). An empty
+        list clears.
+
+        Layers may target different things -- atoms (`VisualizationLayer`)
+        or whole residues (`ResidueColorLayer`). A backend renders the
+        target kinds it can and IGNORES the rest rather than raising:
+        3Dmol.js has no residue concept for a small-molecule conformer,
+        and a macromolecule viewer has no per-atom scientific data, so
+        refusing an unrenderable layer would force every caller to know
+        which backend it happens to be talking to.
         """
         raise NotImplementedError

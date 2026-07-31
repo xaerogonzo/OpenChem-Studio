@@ -11,7 +11,7 @@ from PySide6.QtWebEngineCore import QWebEnginePage
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from openchem.ui.viewer_backend import ViewerBackend
-from openchem.ui.visualization import VisualizationLayer
+from openchem.ui.visualization import AnyVisualizationLayer, VisualizationLayer
 
 logger = logging.getLogger("openchem.ui")
 
@@ -100,6 +100,34 @@ class Mol3DViewerBackend(ViewerBackend):
 
     def clear(self) -> None:
         self._page.runJavaScript("window.openchemViewer.clear();")
+
+    def apply_visualizations(self, layers: list[AnyVisualizationLayer]) -> None:
+        # Composites the atom-target layers into one colour/label map,
+        # later layers winning where they overlap. ResidueColorLayers are
+        # IGNORED here rather than rejected -- 3Dmol.js renders
+        # small-molecule conformers, which have no residues; see
+        # ViewerBackend.apply_visualizations' contract.
+        atom_layers = [layer for layer in layers if isinstance(layer, VisualizationLayer)]
+        if not atom_layers:
+            self.apply_visualization(None)
+            return
+        merged_colors: dict[int, str] = {}
+        merged_labels: dict[int, str] = {}
+        for layer in atom_layers:
+            merged_colors.update(layer.atom_colors)
+            if layer.atom_labels:
+                merged_labels.update(layer.atom_labels)
+        self.apply_visualization(
+            VisualizationLayer(
+                name=" + ".join(layer.name for layer in atom_layers),
+                atom_colors=merged_colors,
+                # One legend can only describe one scale honestly, so a
+                # composite keeps the scale only when a single layer
+                # produced it.
+                color_scale=atom_layers[0].color_scale if len(atom_layers) == 1 else None,
+                atom_labels=merged_labels or None,
+            )
+        )
 
     def apply_visualization(self, layer: VisualizationLayer | None) -> None:
         # Deferred until the page is ready, exactly like load_conformer --

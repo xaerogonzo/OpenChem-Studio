@@ -130,3 +130,71 @@ def test_build_visualization_layer_returns_none_for_an_unregistered_result_type(
     )
 
     assert build_visualization_layer(alert) is None
+
+
+# --- Phase 23: residue-target layers from real docking interaction data ------
+
+# Verbatim shape of what analyze_pose (chem/pose_analysis.py) writes into
+# DockingPoseModel.metadata -- residue coloring exists because THIS data
+# already exists, not as a speculative generalization.
+_POSE_METADATA = {
+    "hbonds": [
+        {"ligand_element": "O", "receptor_element": "N", "receptor_residue": "TYR652", "distance": 2.9},
+        {"ligand_element": "N", "receptor_element": "O", "receptor_residue": "TYR652", "distance": 3.1},
+        {"ligand_element": "O", "receptor_element": "N", "receptor_residue": "SER624", "distance": 2.8},
+    ],
+    "clashes": [
+        {"ligand_element": "C", "receptor_element": "C", "receptor_residue": "PHE656", "distance": 2.9},
+    ],
+}
+
+
+def test_interaction_layers_are_built_for_hbonds_and_clashes():
+    from openchem.ui.visualization import build_interaction_layers
+
+    layers = build_interaction_layers(_POSE_METADATA)
+
+    assert [layer.name.split(" (")[0] for layer in layers] == ["H-bonds", "Steric clashes"]
+    assert set(layers[0].residue_colors) == {"TYR652", "SER624"}
+    assert set(layers[1].residue_colors) == {"PHE656"}
+
+
+def test_multiple_contacts_to_one_residue_collapse_to_a_single_entry():
+    """TYR652 appears in two separate H-bond contacts above -- it is one
+    residue to colour, not two."""
+    from openchem.ui.visualization import build_interaction_layers
+
+    hbond_layer = build_interaction_layers(_POSE_METADATA)[0]
+
+    assert len(hbond_layer.residue_colors) == 2
+    assert "2 residues" in hbond_layer.name
+
+
+def test_clashes_come_after_hbonds_so_a_problem_residue_wins():
+    """Backends composite in order with later layers winning, so a residue
+    that both H-bonds AND clashes must end up flagged as the clash -- that
+    is the finding a user needs to see."""
+    from openchem.ui.visualization import build_interaction_layers
+
+    both = {
+        "hbonds": [{"receptor_residue": "TYR652"}],
+        "clashes": [{"receptor_residue": "TYR652"}],
+    }
+    layers = build_interaction_layers(both)
+
+    assert layers[-1].name.startswith("Steric clashes")
+
+
+def test_a_clean_pose_produces_no_layers():
+    from openchem.ui.visualization import build_interaction_layers
+
+    assert build_interaction_layers({"hbonds": [], "clashes": []}) == []
+    assert build_interaction_layers({}) == []
+
+
+def test_singular_residue_wording():
+    from openchem.ui.visualization import build_interaction_layers
+
+    layers = build_interaction_layers({"hbonds": [{"receptor_residue": "TYR652"}]})
+
+    assert "1 residue)" in layers[0].name
