@@ -21,7 +21,13 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.app.settings import Settings
+from openchem.chem.naming_providers import describe_opsin_status
 from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING, describe_pka_status
+from openchem.chem.stout_providers import (
+    STOUT_PYTHON_SETTING,
+    describe_stout_status,
+    describe_stout_test,
+)
 from openchem.plugins.async_task import run_async
 from openchem.services.pkasolver_setup import (
     APPROX_DISK_GB,
@@ -72,6 +78,7 @@ class ExternalToolsDialog(QDialog):
         self._tabs.addTab(self._build_vina_tab(), "AutoDock Vina")
         self._tabs.addTab(self._build_orca_tab(), "ORCA")
         self._tabs.addTab(self._build_pkasolver_tab(), "pkasolver (pKa)")
+        self._tabs.addTab(self._build_stout_tab(), "STOUT (naming)")
         if focus == "orca":
             self._tabs.setCurrentIndex(1)
         elif focus == "pkasolver":
@@ -260,6 +267,173 @@ class ExternalToolsDialog(QDialog):
             self._on_orca_path_edited()
 
     # --- pkasolver tab --------------------------------------------------------
+
+
+    def _build_stout_tab(self) -> QWidget:
+        """Deliberately the same shape as the pkasolver tab. Both solve the
+        same problem -- a package this app's own Python cannot host -- and
+        making them look different would imply a difference that isn't
+        there."""
+        import openchem.services.stout_setup as stout_setup
+
+        tab = QWidget(self)
+
+        self._stout_path_edit = QLineEdit(tab)
+        self._stout_path_edit.setText(self._settings.get(STOUT_PYTHON_SETTING, ""))
+        self._stout_path_edit.editingFinished.connect(self._on_stout_path_edited)
+        browse_button = QPushButton("Browse...", tab)
+        browse_button.clicked.connect(self._on_stout_browse_clicked)
+        path_row = QHBoxLayout()
+        path_row.addWidget(self._stout_path_edit)
+        path_row.addWidget(browse_button)
+
+        self._stout_status_label = QLabel("Not checked", tab)
+        self._stout_status_label.setWordWrap(True)
+        test_button = QPushButton("Test (names ethanol)...", tab)
+        test_button.clicked.connect(self._on_stout_test_clicked)
+
+        self._stout_setup_button = QPushButton("Set Up Automatically...", tab)
+        self._stout_setup_button.clicked.connect(self._on_stout_setup_clicked)
+        self._stout_prereq_label = QLabel(stout_setup.describe_prerequisites(), tab)
+        self._stout_prereq_label.setWordWrap(True)
+        self._stout_prereq_label.setStyleSheet("color: #666666;")
+
+        why_note = QLabel(
+            "STOUT predicts an IUPAC name for any structure. Like pkasolver this is a Python "
+            "interpreter rather than an executable: STOUT pins TensorFlow 2.10, whose newest "
+            "wheels are for Python 3.10, so it cannot be installed alongside this app.",
+            tab,
+        )
+        why_note.setWordWrap(True)
+
+        honesty_note = QLabel(
+            "STOUT is a neural model. It produces a well-formed, plausible name for ANY input, "
+            "including a wrong one, and nothing in its output distinguishes the two. Names are "
+            "labelled as predictions, and are checked by parsing them back to a structure when "
+            "an offline parser is available.",
+            tab,
+        )
+        honesty_note.setWordWrap(True)
+        honesty_note.setStyleSheet("color: #8a6d00;")
+
+        sources_note = QLabel(
+            "Without this, PubChem still provides exact IUPAC names for compounds it has a "
+            "record for -- which covers known drugs and reagents, but not novel structures. "
+            f"Name-to-structure: {describe_opsin_status()}",
+            tab,
+        )
+        sources_note.setWordWrap(True)
+
+        form = QFormLayout()
+        form.addRow("Python interpreter:", path_row)
+        form.addRow("Status:", self._stout_status_label)
+
+        action_row = QHBoxLayout()
+        action_row.addWidget(self._stout_setup_button)
+        action_row.addWidget(test_button)
+        action_row.addStretch()
+
+        layout = QVBoxLayout(tab)
+        layout.addLayout(form)
+        layout.addLayout(action_row)
+        layout.addWidget(self._stout_prereq_label)
+        layout.addWidget(why_note)
+        layout.addWidget(honesty_note)
+        layout.addWidget(sources_note)
+        layout.addStretch(1)
+        return tab
+
+    def _on_stout_setup_clicked(self) -> None:
+        import openchem.services.stout_setup as stout_setup
+
+        if not stout_setup.find_uv() and not stout_setup.find_fallback_python():
+            QMessageBox.warning(
+                self, "Cannot set up automatically", stout_setup.describe_prerequisites()
+            )
+            return
+        root = stout_setup.default_install_root()
+        # Same policy as every other download here: say what, from where,
+        # and how big, then wait for an explicit yes.
+        answer = QMessageBox.question(
+            self,
+            "Set up STOUT",
+            (
+                "Build a STOUT environment?\n\n"
+                f"Location: {root}\n"
+                f"Downloads: roughly {stout_setup.APPROX_DOWNLOAD_MB} MB\n"
+                f"Disk space when finished: about {stout_setup.APPROX_DISK_GB} GB\n\n"
+                "Sources:\n"
+                f"  - {stout_setup.STOUT_PACKAGE} and TensorFlow 2.10 - PyPI\n"
+                "  - trained translation models - downloaded on first prediction\n\n"
+                f"{stout_setup.describe_prerequisites()}\n\n"
+                "This takes several minutes. Continue?"
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        self._stout_setup_button.setEnabled(False)
+        self._stout_status_label.setText("Starting...")
+        run_async(
+            lambda: stout_setup.install(root, on_progress=self._on_stout_setup_progress),
+            stout_setup.StoutSetupError,
+            self._on_stout_setup_finished,
+            self._on_stout_setup_failed,
+        )
+
+    def _on_stout_setup_progress(self, progress) -> None:
+        # Called from the worker thread; hops back to the GUI thread via
+        # the same single-shot-timer idiom the pkasolver path uses.
+        QTimer.singleShot(
+            0,
+            lambda: self._stout_status_label.setText(
+                f"[{progress.step}/{progress.total}] {progress.message}..."
+            ),
+        )
+
+    def _on_stout_setup_finished(self, interpreter: Path) -> None:
+        self._stout_setup_button.setEnabled(True)
+        self._stout_path_edit.setText(str(interpreter))
+        self._on_stout_path_edited()
+        self._stout_status_label.setText(
+            "Set up and verified - predicted IUPAC names are available."
+        )
+        QMessageBox.information(
+            self, "STOUT ready", f"Environment built and verified.\n\n{interpreter}"
+        )
+
+    def _on_stout_setup_failed(self, message: str) -> None:
+        self._stout_setup_button.setEnabled(True)
+        self._stout_status_label.setText(f"Setup failed: {message}")
+        QMessageBox.critical(self, "STOUT setup failed", message)
+
+    def _on_stout_path_edited(self) -> None:
+        self._settings.set(STOUT_PYTHON_SETTING, self._stout_path_edit.text())
+        self._stout_status_label.setText("Not checked - press Test to verify")
+
+    def _on_stout_browse_clicked(self) -> None:
+        path_str, _ = QFileDialog.getOpenFileName(
+            self, "Select the STOUT environment's Python interpreter"
+        )
+        if path_str:
+            self._stout_path_edit.setText(path_str)
+            self._on_stout_path_edited()
+
+    def _on_stout_test_clicked(self) -> None:
+        # describe_stout_test builds its own test molecule: the UI layer
+        # must not import RDKit directly (tests/test_layering.py), and
+        # doing so here is exactly what that rule exists to catch.
+        self._stout_status_label.setText(
+            "Testing (loading TensorFlow, this can take a minute)..."
+        )
+        path = self._stout_path_edit.text()
+        run_async(
+            lambda: describe_stout_test(path),
+            RuntimeError,
+            self._stout_status_label.setText,
+            lambda message: self._stout_status_label.setText(f"Failed: {message}"),
+        )
 
     def _build_pkasolver_tab(self) -> QWidget:
         tab = QWidget(self)

@@ -43,6 +43,7 @@ from openchem.ui.dialogs.nmr_view_dialog import NmrViewDialog
 _CATEGORY_ORDER = [
     "physicochemical",
     "identity",
+    "naming",
     "charge",
     "logp",
     "logd",
@@ -63,6 +64,7 @@ _CATEGORY_ORDER = [
 _CATEGORY_LABELS = {
     "physicochemical": "Physicochemical",
     "identity": "Identity",
+    "naming": "Naming",
     "charge": "Charge",
     "logp": "LogP",
     "logd": "LogD (pH-dependent)",

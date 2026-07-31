@@ -36,7 +36,7 @@ class RDKitImporter(Importer):
             return [self._mol_to_model(mol, path) for mol in supplier if mol is not None]
         if fmt in ("smi", "smiles"):
             models = []
-            for line in path.read_text().splitlines():
+            for line in path.read_text(encoding="utf-8").splitlines():
                 line = line.strip()
                 if not line:
                     continue
@@ -45,7 +45,7 @@ class RDKitImporter(Importer):
                     models.append(self._mol_to_model(mol, path))
             return models
         if fmt == "inchi":
-            mol = Chem.MolFromInchi(path.read_text().strip())
+            mol = Chem.MolFromInchi(path.read_text(encoding="utf-8").strip())
             return [self._mol_to_model(mol, path)] if mol is not None else []
         raise ValueError(f"RDKitImporter cannot handle format: {fmt}")
 
@@ -72,7 +72,7 @@ class RDKitExporter(Exporter):
             finally:
                 writer.close()
         elif fmt == "smi":
-            path.write_text(Chem.MolToSmiles(mol) + "\n")
+            path.write_text(Chem.MolToSmiles(mol) + "\n", encoding="utf-8")
         else:
             raise ValueError(f"RDKitExporter cannot handle format: {fmt}")
 

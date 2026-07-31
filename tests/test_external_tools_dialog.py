@@ -11,10 +11,12 @@ def test_dialog_has_every_tool_tab_and_focuses_the_requested_one(qapp):
 
     dialog = ExternalToolsDialog(settings, focus="orca")
 
-    assert dialog._tabs.count() == 3
-    assert dialog._tabs.tabText(0) == "AutoDock Vina"
-    assert dialog._tabs.tabText(1) == "ORCA"
-    assert dialog._tabs.tabText(2) == "pkasolver (pKa)"
+    assert [dialog._tabs.tabText(i) for i in range(dialog._tabs.count())] == [
+        "AutoDock Vina",
+        "ORCA",
+        "pkasolver (pKa)",
+        "STOUT (naming)",
+    ]
     assert dialog._tabs.currentIndex() == 1
 
 
@@ -81,3 +83,31 @@ def test_dialog_prefills_paths_already_present_in_settings(qapp):
 
     assert dialog._vina_path_edit.text() == "C:/existing/vina.exe"
     assert dialog._orca_path_edit.text() == "C:/existing/orca.exe"
+
+
+def test_stout_tab_offers_setup_and_saves_its_path(qapp):
+    from openchem.chem.stout_providers import STOUT_PYTHON_SETTING
+
+    bus = EventBus()
+    settings = Settings(bus)
+    dialog = ExternalToolsDialog(settings, focus="orca")
+
+    dialog._stout_path_edit.setText(r"C:\some\stout\python.exe")
+    dialog._on_stout_path_edited()
+
+    assert settings.get(STOUT_PYTHON_SETTING, "") == r"C:\some\stout\python.exe"
+    assert dialog._stout_setup_button.isEnabled()
+
+
+def test_stout_tab_states_that_names_are_predictions(qapp):
+    """A wrong STOUT name looks exactly as authoritative as a right one, so
+    the dialog has to say so rather than leaving it to be discovered."""
+    from PySide6.QtWidgets import QLabel
+
+    bus = EventBus()
+    settings = Settings(bus)
+    dialog = ExternalToolsDialog(settings, focus="orca")
+
+    text = " ".join(label.text() for label in dialog.findChildren(QLabel))
+    assert "neural model" in text
+    assert "plausible name for ANY input" in text

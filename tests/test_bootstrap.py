@@ -97,3 +97,14 @@ def test_ph_curve_calculators_get_the_pkasolver_interpreter_injected():
     from openchem.bootstrap import _SETTINGS_BOUND_CALCULATORS
 
     assert {"pka_microspecies", "isoelectric_point", "logd_curve"} <= _SETTINGS_BOUND_CALCULATORS
+
+
+def test_naming_calculator_is_registered_and_stout_bound():
+    from openchem.bootstrap import _STOUT_BOUND_CALCULATORS
+
+    registry = build_service_container().calculator_registry
+    assert "naming" in registry.categories()
+    assert [d.calculator_id for d in registry.by_category("naming")] == ["iupac_name"]
+    # Needs the STOUT interpreter, NOT pkasolver's -- a wrong binding would
+    # hand it the wrong environment and fail only at click time.
+    assert "iupac_name" in _STOUT_BOUND_CALCULATORS

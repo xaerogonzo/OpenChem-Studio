@@ -24,11 +24,17 @@ class ProjectService:
         self._event_bus = event_bus
 
     def save(self, project: ProjectModel, path: Path) -> None:
-        path.write_text(json.dumps(project.to_dict(), indent=2))
+        # Explicit UTF-8 on both sides: a project file is meant to move
+        # between machines, and Python's default is the PLATFORM encoding
+        # (cp1252 on Windows). This is safe today only because
+        # json.dumps defaults to ensure_ascii=True; the day anything
+        # non-ASCII reaches the file it would break silently and
+        # asymmetrically depending on who saved it.
+        path.write_text(json.dumps(project.to_dict(), indent=2), encoding="utf-8")
         logger.info("Saved project %s to %s", project.uuid, path)
 
     def load(self, path: Path) -> ProjectModel:
-        data = json.loads(path.read_text())
+        data = json.loads(path.read_text(encoding="utf-8"))
         data = self._migrate(data)
         project = ProjectModel.from_dict(data)
         self._event_bus.publish(ProjectLoaded(project_uuid=project.uuid))

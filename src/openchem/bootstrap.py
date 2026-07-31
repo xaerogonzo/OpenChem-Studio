@@ -7,6 +7,7 @@ from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.orca_engine import CALC_TYPE_LABELS, METHOD_BASIS_PRESETS
 from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING
+from openchem.chem.stout_providers import STOUT_PYTHON_SETTING
 from openchem.domain.calculator import (
     CalculatorDefinition,
     CalculatorParameter,
@@ -116,9 +117,24 @@ for _label, _calc_type in CALC_TYPE_LABELS.items():
 _SETTINGS_BOUND_CALCULATORS = frozenset(
     {"pka", "logd", "pka_microspecies", "isoelectric_point", "logd_curve"}
 )
+# `iupac_name` needs a DIFFERENT interpreter (STOUT, not pkasolver), so it
+# gets its own binding rather than being folded into the set above.
+_STOUT_BOUND_CALCULATORS = frozenset({"iupac_name"})
 
 
 def _bind_settings(definition: CalculatorDefinition, settings: Settings) -> CalculatorDefinition:
+    if definition.calculator_id in _STOUT_BOUND_CALCULATORS:
+        stout_inner = definition.execution.compute
+
+        def compute_with_stout(mol, molecule_uuid, parameters, _inner=stout_inner):
+            return _inner(
+                mol, molecule_uuid, parameters,
+                interpreter_path=settings.get(STOUT_PYTHON_SETTING, ""),
+            )
+
+        return dataclasses.replace(
+            definition, execution=RegistryExecution(compute=compute_with_stout)
+        )
     if definition.calculator_id not in _SETTINGS_BOUND_CALCULATORS:
         return definition
     inner = definition.execution.compute

@@ -15,6 +15,7 @@ from openchem.chem.geometry_analysis import compute_geometry_analysis
 from openchem.chem.interaction_analysis import compute_interaction_analysis
 from openchem.chem.markush import DEFAULT_MAX_STRUCTURES as MARKUSH_DEFAULT_MAX
 from openchem.chem.markush import compute_markush_enumeration
+from openchem.chem.naming_providers import compute_iupac_name
 from openchem.chem.ph_curves import (
     compute_hbond_vs_ph,
     compute_isoelectric_point,
@@ -1094,5 +1095,25 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         ),
         execution=RegistryExecution(compute=compute_hbond_vs_ph),
         tags=["topology", "ph", "hydrogen-bonding", "curve"],
+    ),
+    # ---- Phase 29: naming --------------------------------------------
+    CalculatorDefinition(
+        calculator_id="iupac_name",
+        display_name="IUPAC Name",
+        category="naming",
+        description=(
+            "Reports the IUPAC name from every configured source, each labelled with its "
+            "origin and kind: PubChem records are exact, STOUT output is a neural prediction. "
+            "PubChem lookup sends the structure to NCBI's public servers -- turn it off for "
+            "confidential structures."
+        ),
+        execution=RegistryExecution(compute=compute_iupac_name),
+        parameters=[
+            CalculatorParameter(
+                name="use_pubchem", label="Look up on PubChem (sends the structure)",
+                kind="bool", default=True,
+            )
+        ],
+        tags=["naming", "iupac", "identity"],
     ),
 ]
