@@ -28,6 +28,7 @@ Conflating them would invert the meaning of a result.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -35,6 +36,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem, rdFMCS, rdMolAlign, rdMolDescriptors
 
 from openchem.chem.calculator_options import decimals
+from openchem.domain.alignment import EnsembleEntry
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.scientific_result import StructureEntry, StructureSetResult
 
@@ -194,6 +196,51 @@ def align(
         typing=typing,
         conformers_tried=len(conformer_ids),
     )
+
+
+def align_ensemble(
+    probes: list[tuple[str, Chem.Mol]],
+    reference: Chem.Mol,
+    reference_label: str = "Reference",
+    method: str = "atom_types",
+    accuracy: str = DEFAULT_ACCURACY,
+    seed: int = 0xF00D,
+    on_progress: Callable[[int, int, str], None] | None = None,
+) -> list[EnsembleEntry]:
+    """Align every molecule in `probes` onto the same `reference`.
+
+    Returns the reference FIRST, then one entry per probe in the order
+    given. Pairwise `align()` is called once per probe rather than
+    anything cleverer: O3A is inherently pairwise, and aligning each
+    molecule onto the same fixed reference is what puts them all in one
+    coordinate frame -- which is the whole point of an ensemble overlay.
+
+    A per-molecule failure is recorded on its own entry, not raised. Ten
+    molecules where one cannot be embedded should return nine alignments
+    and one explanation, not nothing.
+    """
+    reference_3d = _ensure_conformer(reference, seed=seed)
+    entries = [EnsembleEntry(label=reference_label, molblock=Chem.MolToMolBlock(reference_3d))]
+
+    for index, (label, probe) in enumerate(probes):
+        if on_progress is not None:
+            on_progress(index, len(probes), label)
+        try:
+            result = align(probe, reference, method=method, accuracy=accuracy, seed=seed)
+        except (AlignmentError, ValueError, RuntimeError) as exc:
+            entries.append(EnsembleEntry(label=label, molblock="", error=str(exc)))
+            continue
+        entries.append(
+            EnsembleEntry(
+                label=label,
+                molblock=result.aligned_molblock,
+                score=result.score,
+                rmsd=result.rmsd,
+                matched_atoms=result.matched_atoms,
+                typing=result.typing,
+            )
+        )
+    return entries
 
 
 def _failed(molecule_uuid: str, message: str) -> StructureSetResult:

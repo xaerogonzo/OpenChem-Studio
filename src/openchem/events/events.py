@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from openchem.domain.alignment import EnsembleEntry
 from openchem.domain.common import CacheState
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
@@ -204,3 +205,30 @@ class NmrReferenceCalibrated(Event):
     provider_id: str
     values: dict[str, float]
     error: str | None = None
+
+
+@dataclass(frozen=True)
+class AlignmentJobStateChanged(Event):
+    """Progress for an ensemble 3D-alignment run (`AlignmentService`).
+
+    Keyed on the REFERENCE molecule's uuid, since that is what identifies
+    the run -- an ensemble alignment has no single subject molecule the
+    way conformer generation or docking does.
+    """
+
+    reference_uuid: str
+    state: CacheState
+    message: str = ""
+
+
+@dataclass(frozen=True)
+class EnsembleAlignmentReady(Event):
+    """One finished ensemble alignment: the reference first, then every
+    probe in the order requested. Entries that could not be aligned carry
+    an `error` instead of scores, so a single bad structure is reported
+    rather than discarding the rest of the run."""
+
+    reference_uuid: str
+    entries: list[EnsembleEntry]
+    method: str
+    accuracy: str

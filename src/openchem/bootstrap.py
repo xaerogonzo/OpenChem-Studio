@@ -16,6 +16,7 @@ from openchem.domain.calculator import (
 )
 from openchem.events.base import EventBus
 from openchem.services.calculator_registry import CalculatorRegistry
+from openchem.services.alignment_service import AlignmentService
 from openchem.services.conformer_service import ConformerService
 from openchem.services.container import ServiceContainer
 from openchem.services.descriptor_service import DescriptorService
@@ -199,6 +200,7 @@ def build_service_container() -> ServiceContainer:
         export_service=ExportService(engine),
         project_service=ProjectService(event_bus),
         conformer_service=ConformerService(event_bus, engine, job_manager=job_manager),
+        alignment_service=AlignmentService(event_bus, engine, job_manager=job_manager),
         measurement_service=MeasurementService(engine),
         docking_service=DockingService(event_bus, settings, job_manager=job_manager),
         quantum_chemistry_service=QuantumChemistryService(event_bus, settings, job_manager=job_manager),

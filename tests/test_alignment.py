@@ -10,6 +10,7 @@ from openchem.chem.alignment import (
     ALIGNMENT_METHODS,
     AlignmentError,
     align,
+    align_ensemble,
     compute_3d_alignment,
 )
 from openchem.domain.common import CacheState
@@ -153,3 +154,73 @@ def test_decimal_places_reaches_the_alignment_summary():
         {"reference_smiles": NAPROXEN, "accuracy": "Fast", "decimal_places": 4},
     )
     assert one.name != four.name
+
+
+# --- Ensemble alignment ---------------------------------------------------
+
+
+def test_ensemble_returns_the_reference_first_then_each_probe_in_order():
+    entries = align_ensemble(
+        [("ibuprofen", Chem.MolFromSmiles(IBUPROFEN)), ("naproxen", Chem.MolFromSmiles(NAPROXEN))],
+        Chem.MolFromSmiles(IBUPROFEN),
+        reference_label="ref",
+        accuracy="Fast",
+    )
+
+    assert [entry.label for entry in entries] == ["ref", "ibuprofen", "naproxen"]
+    # The reference defines the frame, so it has no score against anything.
+    assert entries[0].score is None
+    assert entries[0].molblock
+    assert all(entry.aligned for entry in entries)
+
+
+def test_every_probe_lands_in_the_references_coordinate_frame():
+    """The point of an ensemble: aligning each molecule onto the SAME
+    reference is what makes their coordinates comparable to each other.
+    Checked by centroid proximity -- two independently embedded molecules
+    would be centred wherever their own embedding happened to put them."""
+    reference = Chem.MolFromSmiles(IBUPROFEN)
+    entries = align_ensemble(
+        [("naproxen", Chem.MolFromSmiles(NAPROXEN)), ("ibuprofen", Chem.MolFromSmiles(IBUPROFEN))],
+        reference,
+        accuracy="Fast",
+    )
+
+    centroids = []
+    for entry in entries:
+        conformer = Chem.MolFromMolBlock(entry.molblock, removeHs=False).GetConformer()
+        positions = conformer.GetPositions()
+        centroids.append(positions.mean(axis=0))
+    for centroid in centroids[1:]:
+        assert float(((centroid - centroids[0]) ** 2).sum() ** 0.5) < 3.0
+
+
+def test_one_unalignable_molecule_does_not_discard_the_others():
+    """A ten-molecule run where one structure fails should return nine
+    alignments and one explanation, not nothing."""
+    entries = align_ensemble(
+        [
+            ("good", Chem.MolFromSmiles(NAPROXEN)),
+            ("empty", Chem.MolFromSmiles("")),
+        ],
+        Chem.MolFromSmiles(IBUPROFEN),
+        accuracy="Fast",
+    )
+
+    by_label = {entry.label: entry for entry in entries}
+    assert by_label["good"].aligned
+    assert by_label["good"].score is not None
+    assert not by_label["empty"].aligned
+    assert by_label["empty"].error
+
+
+def test_ensemble_reports_progress_per_molecule():
+    seen: list[tuple[int, int, str]] = []
+    align_ensemble(
+        [("ibuprofen", Chem.MolFromSmiles(IBUPROFEN)), ("naproxen", Chem.MolFromSmiles(NAPROXEN))],
+        Chem.MolFromSmiles(IBUPROFEN),
+        accuracy="Fast",
+        on_progress=lambda done, total, label: seen.append((done, total, label)),
+    )
+
+    assert seen == [(0, 2, "ibuprofen"), (1, 2, "naproxen")]

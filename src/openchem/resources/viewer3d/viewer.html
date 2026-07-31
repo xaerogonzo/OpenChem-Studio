@@ -43,6 +43,11 @@
       // { representation: 'vdw'|'sas'|'ms'|'ses', opacity: number,
       //   atomColors: {atomIndex: '#rrggbb'} | null }
       var currentSurface = null;
+      // Ensemble overlay (3D alignment): an array of hex colours, one per
+      // loaded model, or null in the normal single-molecule mode. Held as
+      // state for the same reason as the above -- a style change has to
+      // re-apply per-model colouring, not flatten it.
+      var currentEnsemble = null;
 
       // Confirmed live against this exact vendored bundle:
       // $3Dmol.SurfaceType === {VDW:1, MS:2, SAS:3, SES:4}. SES is real
@@ -117,6 +122,18 @@
       }
 
       function applyStyle() {
+        // Ensemble mode colours BY MODEL rather than by atom: an overlay
+        // of several molecules is read by telling them apart, so each
+        // model keeps its own colour through every style change. A single
+        // global setStyle({}) would flatten them all to one colour the
+        // moment the user switched from stick to ball-and-stick.
+        if (currentEnsemble) {
+          currentEnsemble.forEach(function (color, modelIndex) {
+            viewer.setStyle({ model: modelIndex }, styleSpecWithColor(currentStyle, color));
+          });
+          viewer.render();
+          return;
+        }
         viewer.setStyle({}, styleSpecFor(currentStyle));
         if (currentVisualization) {
           Object.keys(currentVisualization).forEach(function (atomIndexStr) {
@@ -165,6 +182,11 @@
           // stale coloring/labels must not carry over.
           currentVisualization = null;
           currentLabels = null;
+          // Leaving ensemble mode. Without this the single molecule about
+          // to load would be styled with the ensemble's per-model colour
+          // list, and every model index past 0 would silently match
+          // nothing.
+          currentEnsemble = null;
           var model = viewer.addModel(molblock, 'mol');
           currentModel = model;
           applyStyle();
@@ -187,6 +209,30 @@
               bridge.atomClicked(atom.index);
             }
           });
+          viewer.zoomTo();
+          viewer.render();
+        },
+        // 3D alignment: several structures superimposed in ONE coordinate
+        // frame, each its own model so it keeps its own colour. Distinct
+        // from loadMolblock's single model, and from the macromolecule
+        // path, which is a different viewer backend entirely.
+        loadEnsemble: function (entries) {
+          viewer.clear();
+          currentVisualization = null;
+          currentLabels = null;
+          currentSurface = null;
+          currentEnsemble = entries.map(function (entry) {
+            return entry.color;
+          });
+          entries.forEach(function (entry) {
+            viewer.addModel(entry.molblock, 'mol');
+          });
+          // currentModel drives label placement by atom index, which is
+          // meaningless across several models -- an index means a
+          // different atom in each. Left null so applyLabels no-ops
+          // rather than labelling the wrong atoms.
+          currentModel = null;
+          applyStyle();
           viewer.zoomTo();
           viewer.render();
         },

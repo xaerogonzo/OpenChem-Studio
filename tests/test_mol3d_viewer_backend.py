@@ -333,3 +333,104 @@ def test_loading_a_new_molecule_drops_stale_surface_colors_but_keeps_the_shape(q
 
     assert _wait_until(qapp, lambda: '"atomColors":null' in str(_current_surface(qapp, backend)))
     assert '"representation":"ms"' in _current_surface(qapp, backend)
+
+
+# --- Ensemble overlay (3D alignment panel) --------------------------------
+
+
+def _methanol_molblock() -> str:
+    mol = Chem.AddHs(Chem.MolFromSmiles("CO"))
+    AllChem.EmbedMolecule(mol, randomSeed=7)
+    return Chem.MolToMolBlock(mol)
+
+
+def _model_count(qapp, backend: Mol3DViewerBackend) -> int:
+    """This vendored 3Dmol build has no `getNumModels()` -- confirmed live,
+    it is `undefined`. `viewer.models` is the real array, and reading the
+    wrong one is how a working feature looks broken."""
+    return _run_js(qapp, backend, "viewer.models.length")
+
+
+def test_load_ensemble_creates_one_real_model_per_structure(qapp):
+    """Read back the VIEWER's own model list, not just that the JS call
+    returned. `runJavaScript` succeeding proves nothing about whether
+    3Dmol actually built anything -- a lesson this project has now
+    learned three separate times."""
+    backend = Mol3DViewerBackend()
+    assert _wait_until(qapp, lambda: backend._page_ready)
+
+    backend.load_ensemble([(_ethanol_molblock(), "#0072b2"), (_methanol_molblock(), "#d55e00")])
+
+    assert _wait_until(qapp, lambda: _model_count(qapp, backend) == 2)
+    # And each model really holds its own structure -- ethanol's 9 atoms
+    # and methanol's 6, not one merged blob or two copies of the first.
+    counts = _run_js(
+        qapp, backend, "JSON.stringify(viewer.models.map(function (m) "
+        "{ return m.selectedAtoms({}).length; }))"
+    )
+    assert counts == "[9,6]"
+
+
+def test_ensemble_colours_survive_a_style_change(qapp):
+    """The reason per-model colour is held as state: a global
+    setStyle({}) on the next style change would flatten every structure
+    to one colour, which is exactly what an overlay must not do."""
+    backend = Mol3DViewerBackend()
+    assert _wait_until(qapp, lambda: backend._page_ready)
+    backend.load_ensemble([(_ethanol_molblock(), "#0072b2"), (_methanol_molblock(), "#d55e00")])
+    assert _wait_until(qapp, lambda: _model_count(qapp, backend) == 2)
+
+    backend.set_style("sphere")
+
+    assert _wait_until(
+        qapp,
+        lambda: _run_js(qapp, backend, "JSON.stringify(currentEnsemble)")
+        == '["#0072b2","#d55e00"]',
+    )
+    # The colour is really on the atoms' style, not just remembered in a
+    # variable.
+    style = _run_js(
+        qapp, backend, "JSON.stringify(viewer.models[1].selectedAtoms({})[0].style)"
+    )
+    assert "#d55e00" in style
+
+
+def test_loading_a_single_molecule_leaves_ensemble_mode(qapp):
+    backend = Mol3DViewerBackend()
+    assert _wait_until(qapp, lambda: backend._page_ready)
+    backend.load_ensemble([(_ethanol_molblock(), "#0072b2"), (_methanol_molblock(), "#d55e00")])
+    assert _wait_until(qapp, lambda: _model_count(qapp, backend) == 2)
+
+    backend.load_conformer(_ethanol_molblock())
+
+    assert _wait_until(qapp, lambda: _model_count(qapp, backend) == 1)
+    assert _run_js(qapp, backend, "JSON.stringify(currentEnsemble)") == "null"
+
+
+def test_an_ensemble_requested_before_the_page_is_ready_still_lands(qapp):
+    """The deferral race that has now bitten this backend three times
+    (Calculator Inspector, Mol* replay, the surface None sentinel), so it
+    ships WITH the feature rather than as a later fix."""
+    backend = Mol3DViewerBackend()
+    assert not backend._page_ready
+
+    backend.load_ensemble([(_ethanol_molblock(), "#0072b2"), (_methanol_molblock(), "#d55e00")])
+
+    assert _wait_until(qapp, lambda: backend._page_ready)
+    assert _wait_until(qapp, lambda: _model_count(qapp, backend) == 2)
+
+
+def test_queueing_an_ensemble_replaces_a_queued_single_molecule(qapp):
+    """The two modes are mutually exclusive, so whichever call came last
+    is what the user asked for -- replaying both would load a molecule
+    and then immediately discard it."""
+    backend = Mol3DViewerBackend()
+    assert not backend._page_ready
+
+    backend.load_conformer(_ethanol_molblock())
+    backend.load_ensemble([(_methanol_molblock(), "#d55e00")])
+
+    assert backend._pending_molblock is None
+    assert _wait_until(qapp, lambda: backend._page_ready)
+    assert _wait_until(qapp, lambda: _model_count(qapp, backend) == 1)
+    assert _run_js(qapp, backend, "JSON.stringify(currentEnsemble)") == '["#d55e00"]'

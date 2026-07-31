@@ -68,6 +68,11 @@ class Mol3DViewerBackend(ViewerBackend):
 
         self._page_ready = False
         self._pending_molblock: str | None = None
+        # Mutually exclusive with _pending_molblock: the viewer shows
+        # either one molecule or one superimposed ensemble, never both, so
+        # queueing one clears the other. Whichever call came last is what
+        # the user asked for.
+        self._pending_ensemble: list[dict[str, str]] | None = None
         self._pending_layer: VisualizationLayer | None = None
         # `_NOTHING_PENDING` rather than None, because None is itself a
         # meaningful queued VALUE for a surface -- it means "clear". The
@@ -85,6 +90,9 @@ class Mol3DViewerBackend(ViewerBackend):
         if self._pending_molblock is not None:
             self._run_load(self._pending_molblock)
             self._pending_molblock = None
+        if self._pending_ensemble is not None:
+            self._run_load_ensemble(self._pending_ensemble)
+            self._pending_ensemble = None
         # Replayed AFTER the molblock, never before: viewer.html's
         # loadMolblock() resets any active visualization, so applying the
         # layer first would immediately be undone.
@@ -101,6 +109,7 @@ class Mol3DViewerBackend(ViewerBackend):
         self.atoms_selected.emit([atom_index])
 
     def load_conformer(self, molblock: str) -> None:
+        self._pending_ensemble = None
         if self._page_ready:
             self._run_load(molblock)
         else:
@@ -108,6 +117,24 @@ class Mol3DViewerBackend(ViewerBackend):
 
     def _run_load(self, molblock: str) -> None:
         self._page.runJavaScript(f"window.openchemViewer.loadMolblock({json.dumps(molblock)});")
+
+    def load_ensemble(self, entries: list[tuple[str, str]]) -> None:
+        """Superimpose several structures, each in its own colour.
+
+        `entries` is (molblock, hex colour) in draw order. Used by the 3D
+        alignment panel, where the structures are already in one shared
+        coordinate frame and telling them apart by colour is the entire
+        point of the view.
+        """
+        payload = [{"molblock": molblock, "color": color} for molblock, color in entries]
+        self._pending_molblock = None
+        if self._page_ready:
+            self._run_load_ensemble(payload)
+        else:
+            self._pending_ensemble = payload
+
+    def _run_load_ensemble(self, payload: list[dict[str, str]]) -> None:
+        self._page.runJavaScript(f"window.openchemViewer.loadEnsemble({json.dumps(payload)});")
 
     def set_style(self, style: str) -> None:
         self._page.runJavaScript(f"window.openchemViewer.setStyle({json.dumps(style)});")

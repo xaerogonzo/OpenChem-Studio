@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from openchem.chem.engine import ChemistryEngine
 from openchem.events.base import EventBus
 from openchem.services.calculator_registry import CalculatorRegistry
+from openchem.services.alignment_service import AlignmentService
 from openchem.services.conformer_service import ConformerService
 from openchem.services.descriptor_service import DescriptorService
 from openchem.services.docking_service import DockingService
@@ -32,6 +33,7 @@ class ServiceContainer:
     export_service: ExportService
     project_service: ProjectService
     conformer_service: ConformerService
+    alignment_service: AlignmentService
     measurement_service: MeasurementService
     docking_service: DockingService
     quantum_chemistry_service: QuantumChemistryService
