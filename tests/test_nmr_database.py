@@ -278,3 +278,78 @@ def test_the_registered_calculator_reports_a_missing_database_clearly(tmp_path, 
 
     assert not result.values
     assert "database" in result.error.lower()
+
+
+# --- The in-app index builder --------------------------------------------
+
+
+def test_a_truncated_download_is_rejected_rather_than_indexed(tmp_path):
+    """The failure that would otherwise pass silently: a partial SDF
+    parses as a SHORTER database and produces a quietly worse index with
+    no error anywhere."""
+    from openchem.services import nmr_database_setup
+
+    partial = tmp_path / "partial.sd"
+    partial.write_text("some molblock text without a terminator\n", encoding="utf-8")
+
+    assert not nmr_database_setup._looks_complete(partial)
+
+    complete = tmp_path / "complete.sd"
+    complete.write_text("molblock\n$$$$\n", encoding="utf-8")
+    assert nmr_database_setup._looks_complete(complete)
+
+
+def test_building_from_a_local_file_skips_the_download(tmp_path):
+    """So a re-index after a code change does not refetch 150 MB."""
+    from openchem.chem import nmr_database
+    from openchem.services import nmr_database_setup
+
+    sdf = _write_sdf(tmp_path / "in.sd", _benzene_records(3, 128.4))
+
+    stats = nmr_database_setup.build(
+        source_path=sdf, database_path=tmp_path / "index.sqlite"
+    )
+
+    assert stats.measurements == 18
+    assert (tmp_path / "index.sqlite").is_file()
+
+
+def test_a_file_with_no_assigned_spectra_names_the_likely_mistake(tmp_path):
+    """The plain nmrshiftdb2.sd has spectra but no per-atom assignment, so
+    picking it is an easy and otherwise-silent error."""
+    from openchem.chem import nmr_database
+    from openchem.services import nmr_database_setup
+
+    sdf = _write_sdf(tmp_path / "in.sd", [("CCO", {"Comment": "no spectra here"})])
+
+    with pytest.raises(nmr_database_setup.NmrDatabaseSetupError, match="no assigned spectra"):
+        nmr_database_setup.build(source_path=sdf, database_path=tmp_path / "index.sqlite")
+
+
+def test_a_missing_local_file_is_reported_clearly(tmp_path):
+    from openchem.services import nmr_database_setup
+
+    with pytest.raises(nmr_database_setup.NmrDatabaseSetupError, match="No such file"):
+        nmr_database_setup.build(source_path=tmp_path / "absent.sd")
+
+
+def test_the_setup_points_at_the_assigned_variant():
+    """The plain file is smaller and wrong for this."""
+    from openchem.services import nmr_database_setup
+
+    assert nmr_database_setup.SOURCE_FILE == "nmrshiftdb2withsignals.sd"
+    assert nmr_database_setup.INDEX_SPHERES == 6
+
+
+def test_the_index_destination_cannot_be_omitted():
+    """It used to default to the user's real index, and build_index starts
+    by deleting what is there -- so a caller that forgot the argument
+    destroyed a built index rather than writing where it meant to. That
+    is not hypothetical: a test in this very file wiped a real 15 MB
+    index and left it reading 'source: in.sd, molecules: 0'."""
+    import inspect
+
+    from openchem.chem.nmr_database import build_index
+
+    parameter = inspect.signature(build_index).parameters["database_path"]
+    assert parameter.default is inspect.Parameter.empty

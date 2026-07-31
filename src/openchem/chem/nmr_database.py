@@ -331,11 +331,19 @@ class BuildStats:
 
 def build_index(
     sdf_path: Path,
-    database_path: Path | None = None,
+    database_path: Path,
     max_spheres: int = 4,
     on_progress=None,
 ) -> BuildStats:
     """Parse the nmrshiftdb2 distribution into the queryable index.
+
+    `database_path` is REQUIRED, deliberately. It used to default to the
+    user's real index, and this function begins by DELETING what is
+    there -- so a caller that simply forgot the argument silently
+    destroyed a built index instead of writing where it meant to. That
+    happened: a test that did not redirect it wiped a real 15 MB index
+    and left metadata reading `source: in.sd, molecules: 0`. A required
+    argument cannot be forgotten.
 
     Every measurement is filed under its atom's code at EVERY sphere
     depth, not just the deepest. That is what makes the widening fallback

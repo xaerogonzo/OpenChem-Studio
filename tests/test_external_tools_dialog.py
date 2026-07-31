@@ -16,6 +16,11 @@ def test_dialog_has_every_tool_tab_and_focuses_the_requested_one(qapp):
         "ORCA",
         "pkasolver (pKa)",
         "STOUT (naming)",
+        # These two OBTAIN a prerequisite rather than configure a tool the
+        # user already has: a portable Temurin runtime (STOUT and OPSIN
+        # are both dead without one) and the experimental shift index.
+        "Java (Temurin)",
+        "NMR Database",
     ]
     assert dialog._tabs.currentIndex() == 1
 

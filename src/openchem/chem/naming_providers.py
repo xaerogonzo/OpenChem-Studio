@@ -30,6 +30,8 @@ TWO FAILURE MODES CONFIRMED LIVE, both of which look like success:
 
 from __future__ import annotations
 
+import os
+
 import json
 import logging
 import shutil
@@ -151,7 +153,9 @@ def opsin_available() -> bool:
     the pkasolver and STOUT sidecars, and `describe_opsin_status` says
     what is missing.
     """
-    if shutil.which("java") is None:
+    from openchem.services.java_setup import java_home
+
+    if java_home() is None:
         return False
     try:
         import py2opsin  # noqa: F401
@@ -163,11 +167,13 @@ def opsin_available() -> bool:
 def describe_opsin_status() -> str:
     if opsin_available():
         return "Ready: OPSIN can parse IUPAC names into structures offline."
-    if shutil.which("java") is None:
+    from openchem.services.java_setup import java_home
+
+    if java_home() is None:
         return (
-            "OPSIN needs Java, which was not found on PATH. Install a JRE to parse names "
-            "offline; PubChem name lookup works without it (but only covers known compounds "
-            "and sends the name over the network)."
+            "OPSIN needs Java, which was not found. Tools > External Tools > Java can install "
+            "a portable Temurin runtime for you; PubChem name lookup works without it (but "
+            "only covers known compounds and sends the name over the network)."
         )
     return "OPSIN needs the py2opsin package, which is not installed."
 
@@ -183,7 +189,20 @@ def opsin_structure_for_name(name: str) -> StructureResult:
         raise NamingError(describe_opsin_status())
     from py2opsin import py2opsin as run_opsin
 
-    result = run_opsin(name.strip())
+    # py2opsin shells out to `java` itself and looks it up on PATH, so a
+    # runtime this app manages has to be put there for the duration --
+    # scoped to this call rather than exported, and restored afterwards
+    # so nothing else in the process sees a mutated PATH.
+    from openchem.services.java_setup import java_home
+
+    home = java_home()
+    original_path = os.environ.get("PATH", "")
+    if home is not None:
+        os.environ["PATH"] = str(home / "bin") + os.pathsep + original_path
+    try:
+        result = run_opsin(name.strip())
+    finally:
+        os.environ["PATH"] = original_path
     # py2opsin returns an empty string for an unparseable name.
     if not result:
         raise NamingError(f"OPSIN could not parse {name.strip()!r} as an IUPAC name.")

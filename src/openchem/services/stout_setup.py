@@ -138,11 +138,14 @@ def find_java() -> str | None:
     the External Tools text already mentioned -- OPSIN is name-to-
     structure and entirely optional; this is STOUT itself.
     """
-    if os.environ.get("JAVA_HOME"):
-        return os.environ["JAVA_HOME"]
-    found = shutil.which("java")
-    if found:
-        return found
+    # Includes the portable runtime this app can install itself
+    # (services/java_setup.py), so a managed Java counts as found and the
+    # Java check is not a permanent wall for anyone without one.
+    from openchem.services.java_setup import java_home
+
+    managed_or_system = java_home()
+    if managed_or_system is not None:
+        return str(managed_or_system)
     # jpype finds a JVM through JAVA_HOME or the loader path, so an install
     # that is on neither still counts as missing for our purposes -- but
     # naming a real directory we can see makes the fix obvious.

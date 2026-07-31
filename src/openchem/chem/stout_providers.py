@@ -83,12 +83,19 @@ def run_stout(mol: Chem.Mol, interpreter_path: str | None) -> str:
 
     smiles = Chem.MolToSmiles(mol)
     try:
+        # JAVA_HOME is injected rather than assumed to be set: STOUT
+        # starts a JVM through jpype on import, and a Temurin runtime this
+        # app installed itself is on neither PATH nor the environment. See
+        # services/java_setup.py.
+        from openchem.services.java_setup import environment_with_java
+
         result = subprocess.run(
             [str(interpreter_path), str(_RUNNER)],
             input=smiles,
             capture_output=True,
             text=True,
             timeout=_TIMEOUT_SECONDS,
+            env=environment_with_java(),
         )
     except subprocess.TimeoutExpired as exc:
         raise RuntimeError(f"STOUT timed out after {_TIMEOUT_SECONDS}s.") from exc

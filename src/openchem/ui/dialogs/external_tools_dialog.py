@@ -91,6 +91,8 @@ class ExternalToolsDialog(QDialog):
         self._tabs.addTab(self._build_orca_tab(), "ORCA")
         self._tabs.addTab(self._build_pkasolver_tab(), "pkasolver (pKa)")
         self._tabs.addTab(self._build_stout_tab(), "STOUT (naming)")
+        self._tabs.addTab(self._build_java_tab(), "Java (Temurin)")
+        self._tabs.addTab(self._build_nmr_database_tab(), "NMR Database")
         if focus == "orca":
             self._tabs.setCurrentIndex(1)
         elif focus == "pkasolver":
@@ -279,6 +281,232 @@ class ExternalToolsDialog(QDialog):
             self._on_orca_path_edited()
 
     # --- pkasolver tab --------------------------------------------------------
+
+
+    # --- Java ---------------------------------------------------------------
+
+    def _build_java_tab(self) -> QWidget:
+        import openchem.services.java_setup as java_setup
+
+        tab = QWidget(self)
+        self._java_status_label = QLabel(java_setup.describe_status(), tab)
+        self._java_status_label.setWordWrap(True)
+
+        self._java_setup_button = QPushButton("Set Up Automatically...", tab)
+        self._java_setup_button.clicked.connect(self._on_java_setup_clicked)
+        self._java_refresh_button = QPushButton("Re-check", tab)
+        self._java_refresh_button.clicked.connect(self._on_java_refresh_clicked)
+
+        why_note = QLabel(
+            "Two features need Java: STOUT starts a JVM to reach CDK every time it loads, and "
+            "OPSIN (name-to-structure) is a Java library. Without it both are unavailable, and "
+            "the error each gives on its own names neither Java nor the fix.",
+            tab,
+        )
+        why_note.setWordWrap(True)
+
+        portable_note = QLabel(
+            "Eclipse Temurin publishes PORTABLE archives, so this extracts a runtime into this "
+            "app's data folder rather than running an installer. Nothing is registered, no "
+            "system setting is changed, and deleting the folder removes it completely. A Java "
+            "already on this machine is always preferred over installing another.",
+            tab,
+        )
+        portable_note.setWordWrap(True)
+        portable_note.setStyleSheet("color: #666666;")
+
+        row = QHBoxLayout()
+        row.addWidget(self._java_setup_button)
+        row.addWidget(self._java_refresh_button)
+        row.addStretch(1)
+
+        layout = QVBoxLayout(tab)
+        layout.addWidget(self._java_status_label)
+        layout.addLayout(row)
+        layout.addWidget(why_note)
+        layout.addWidget(portable_note)
+        layout.addStretch(1)
+        return tab
+
+    def _on_java_refresh_clicked(self) -> None:
+        import openchem.services.java_setup as java_setup
+
+        self._java_status_label.setText(java_setup.describe_status())
+
+    def _on_java_setup_clicked(self) -> None:
+        import openchem.services.java_setup as java_setup
+
+        existing = java_setup.system_java_home()
+        if existing is not None:
+            QMessageBox.information(
+                self, "Java already available", f"Java is already installed at {existing}."
+            )
+            return
+        root = java_setup.default_install_root()
+        answer = QMessageBox.question(
+            self,
+            "Install a Java runtime",
+            (
+                "Download a portable Java runtime?\n\n"
+                f"Source: Eclipse Temurin {java_setup.FEATURE_VERSION} (JRE), via the official "
+                "Adoptium release API\n"
+                f"Download: about {java_setup.APPROX_DOWNLOAD_MB} MB\n"
+                f"Location: {root}\n\n"
+                "Extracted, not installed - no installer runs and no system setting changes. "
+                "This unblocks STOUT (structure-to-name) and OPSIN (name-to-structure).\n\n"
+                "Continue?"
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        self._java_setup_button.setEnabled(False)
+        self._java_status_label.setText("Starting...")
+        run_async(
+            lambda: java_setup.install(root, on_progress=self._on_java_setup_progress),
+            java_setup.JavaSetupError,
+            self._on_java_setup_finished,
+            self._on_java_setup_failed,
+        )
+
+    def _on_java_setup_progress(self, progress) -> None:
+        QTimer.singleShot(
+            0,
+            lambda: self._java_status_label.setText(
+                f"[{progress.step}/{progress.total}] {progress.message}..."
+            ),
+        )
+
+    def _on_java_setup_finished(self, home: Path) -> None:
+        self._java_setup_button.setEnabled(True)
+        self._java_status_label.setText(f"Installed and verified: {home}")
+        # STOUT's own prerequisite line said "no Java" a moment ago; it is
+        # refreshed here so the two tabs cannot disagree with each other.
+        import openchem.services.stout_setup as stout_setup
+
+        self._stout_prereq_label.setText(stout_setup.describe_prerequisites())
+        QMessageBox.information(
+            self,
+            "Java ready",
+            f"Runtime installed at\n{home}\n\nSTOUT and OPSIN can now run.",
+        )
+
+    def _on_java_setup_failed(self, message: str) -> None:
+        self._java_setup_button.setEnabled(True)
+        self._java_status_label.setText(f"Setup failed: {message}")
+        QMessageBox.critical(self, "Java setup failed", message)
+
+    # --- NMR shift database -------------------------------------------------
+
+    def _build_nmr_database_tab(self) -> QWidget:
+        import openchem.services.nmr_database_setup as nmr_setup
+
+        tab = QWidget(self)
+        self._nmr_db_status_label = QLabel(nmr_setup.describe_status(), tab)
+        self._nmr_db_status_label.setWordWrap(True)
+
+        self._nmr_db_build_button = QPushButton("Build Index...", tab)
+        self._nmr_db_build_button.clicked.connect(self._on_nmr_database_build_clicked)
+        self._nmr_db_refresh_button = QPushButton("Re-check", tab)
+        self._nmr_db_refresh_button.clicked.connect(self._on_nmr_database_refresh_clicked)
+
+        why_note = QLabel(
+            "Predicts NMR shifts by looking each atom's environment up in assigned experimental "
+            "spectra, rather than computing them - instant, where the ab initio path takes "
+            "minutes. It also reports a per-atom confidence earned from how many measurements "
+            "matched and how well they agree.",
+            tab,
+        )
+        why_note.setWordWrap(True)
+
+        accuracy_note = QLabel(
+            "Held-out accuracy, measured on molecules excluded from the index: 1.17 ppm mean "
+            "error on atoms rated 'good', 3.38 on 'medium', 9.93 on 'rough'. The rating is "
+            "worth reading - it is the difference between a number to trust and one to check. "
+            "Coverage is not universal: an environment the database has never seen gets no "
+            "prediction rather than a guess.",
+            tab,
+        )
+        accuracy_note.setWordWrap(True)
+        accuracy_note.setStyleSheet("color: #666666;")
+
+        row = QHBoxLayout()
+        row.addWidget(self._nmr_db_build_button)
+        row.addWidget(self._nmr_db_refresh_button)
+        row.addStretch(1)
+
+        layout = QVBoxLayout(tab)
+        layout.addWidget(self._nmr_db_status_label)
+        layout.addLayout(row)
+        layout.addWidget(why_note)
+        layout.addWidget(accuracy_note)
+        layout.addStretch(1)
+        return tab
+
+    def _on_nmr_database_refresh_clicked(self) -> None:
+        import openchem.services.nmr_database_setup as nmr_setup
+
+        self._nmr_db_status_label.setText(nmr_setup.describe_status())
+
+    def _on_nmr_database_build_clicked(self) -> None:
+        import openchem.services.nmr_database_setup as nmr_setup
+
+        answer = QMessageBox.question(
+            self,
+            "Build the NMR shift index",
+            (
+                "Download nmrshiftdb2 and build the shift index?\n\n"
+                f"Source: {nmr_setup.SOURCE_FILE} from the nmrshiftdb2 project on SourceForge "
+                "(open content)\n"
+                f"Download: about {nmr_setup.APPROX_DOWNLOAD_MB} MB\n"
+                "Kept afterwards: about 15 MB - the download is discarded once indexed\n\n"
+                "Indexing takes a few minutes: every assigned atom is coded at six environment "
+                "depths, so a lookup can widen when the most specific one has too little "
+                "evidence.\n\n"
+                "Continue?"
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        self._nmr_db_build_button.setEnabled(False)
+        self._nmr_db_status_label.setText("Starting...")
+        run_async(
+            lambda: nmr_setup.build(on_progress=self._on_nmr_database_progress),
+            nmr_setup.NmrDatabaseSetupError,
+            self._on_nmr_database_finished,
+            self._on_nmr_database_failed,
+        )
+
+    def _on_nmr_database_progress(self, progress) -> None:
+        QTimer.singleShot(
+            0,
+            lambda: self._nmr_db_status_label.setText(
+                f"[{progress.step}/{progress.total}] {progress.message}..."
+            ),
+        )
+
+    def _on_nmr_database_finished(self, stats) -> None:
+        import openchem.services.nmr_database_setup as nmr_setup
+
+        self._nmr_db_build_button.setEnabled(True)
+        self._nmr_db_status_label.setText(nmr_setup.describe_status())
+        QMessageBox.information(
+            self,
+            "NMR index built",
+            (
+                f"{stats.molecules:,} molecules\n"
+                f"{stats.measurements:,} assigned shifts\n"
+                f"{stats.environments:,} environments indexed"
+            ),
+        )
+
+    def _on_nmr_database_failed(self, message: str) -> None:
+        self._nmr_db_build_button.setEnabled(True)
+        self._nmr_db_status_label.setText(f"Build failed: {message}")
+        QMessageBox.critical(self, "NMR index build failed", message)
 
 
     def _build_stout_tab(self) -> QWidget:
