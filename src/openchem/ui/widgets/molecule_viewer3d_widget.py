@@ -17,6 +17,11 @@ from openchem.events.events import ConformerJobStateChanged, ConformersChanged
 from openchem.services.conformer_service import ConformerService
 from openchem.services.measurement_service import MeasurementService
 from openchem.ui.viewer_backend import ViewerBackend
+from openchem.ui.visualization import (
+    SURFACE_REPRESENTATION_LABELS,
+    SURFACE_REPRESENTATIONS,
+    SurfaceLayer,
+)
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
 
 
@@ -59,6 +64,15 @@ class MoleculeViewer3DWidget(QWidget):
         self._style_combo.addItems(["stick", "ballstick", "sphere", "line"])
         self._style_combo.currentTextChanged.connect(self._backend.set_style)
 
+        # Phase 25b. "None" first so the default view is unchanged -- a
+        # surface is opt-in, and an opaque shell over the sticks is not
+        # what someone opening the 3D tab expects to see by default.
+        self._surface_combo = QComboBox(self)
+        self._surface_combo.addItem("None", "")
+        for representation in SURFACE_REPRESENTATIONS:
+            self._surface_combo.addItem(SURFACE_REPRESENTATION_LABELS[representation], representation)
+        self._surface_combo.currentIndexChanged.connect(self._on_surface_changed)
+
         self._generate_button = QPushButton("Generate Conformers...", self)
         self._generate_button.clicked.connect(self._on_generate_clicked)
 
@@ -72,6 +86,8 @@ class MoleculeViewer3DWidget(QWidget):
         toolbar = QHBoxLayout()
         toolbar.addWidget(QLabel("Style:"))
         toolbar.addWidget(self._style_combo)
+        toolbar.addWidget(QLabel("Surface:"))
+        toolbar.addWidget(self._surface_combo)
         toolbar.addWidget(self._generate_button)
         toolbar.addStretch()
         toolbar.addWidget(self._prev_button)
@@ -93,6 +109,19 @@ class MoleculeViewer3DWidget(QWidget):
         self._selected_atoms.clear()
         self._measurement_label.setText("")
         self._refresh_view()
+
+    def _on_surface_changed(self, _index: int) -> None:
+        representation = self._surface_combo.currentData()
+        if not representation:
+            self._backend.apply_surface(None)
+            return
+        # No atom_colors here: this is the quick-glance shape-only view,
+        # same spirit as the style dropdown next to it. Property-coloured
+        # surfaces come from the Calculator Inspector, which has the
+        # per-atom data and a legend to explain it.
+        self._backend.apply_surface(
+            SurfaceLayer(name="Surface", representation=representation, atom_colors=None)
+        )
 
     def _on_generate_clicked(self) -> None:
         if self._molecule is None:

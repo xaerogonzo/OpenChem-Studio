@@ -5,7 +5,7 @@ import time
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
-from openchem.ui.visualization import VisualizationLayer
+from openchem.ui.visualization import SurfaceLayer, VisualizationLayer
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
 
 _CURRENT_VISUALIZATION_JS = "JSON.stringify(currentVisualization)"
@@ -218,3 +218,118 @@ def test_pending_visualization_is_replayed_after_the_molblock_not_before(qapp):
     assert _wait_until(qapp, lambda: len(fired) >= 2)
     assert "loadMolblock" in fired[0]
     assert "applyVisualization" in fired[1]
+
+
+_SURFACE_STATE_JS = "JSON.stringify(currentSurface)"
+
+
+def _current_surface(qapp, backend: Mol3DViewerBackend) -> object:
+    return _run_js(qapp, backend, _SURFACE_STATE_JS)
+
+
+def test_apply_surface_sets_the_surface_state(qapp):
+    backend = _ready_backend(qapp)
+
+    backend.apply_surface(SurfaceLayer(name="vdW", representation="vdw", opacity=0.8))
+
+    assert _wait_until(qapp, lambda: _current_surface(qapp, backend) not in (None, "null"))
+    raw = _current_surface(qapp, backend)
+    assert '"representation":"vdw"' in raw
+    assert '"opacity":0.8' in raw
+
+
+def test_apply_surface_carries_per_atom_colors(qapp):
+    """Confirmed live that 3Dmol's colorfunc is invoked once per atom and
+    surface vertices take the nearest atom's colour -- that's what maps a
+    property like partial charge onto the surface."""
+    backend = _ready_backend(qapp)
+
+    backend.apply_surface(
+        SurfaceLayer(name="Charge", representation="sas", atom_colors={0: "#d32f2f", 2: "#1976d2"})
+    )
+
+    assert _wait_until(qapp, lambda: _current_surface(qapp, backend) not in (None, "null"))
+    raw = _current_surface(qapp, backend)
+    assert '"0":"#d32f2f"' in raw
+    assert '"2":"#1976d2"' in raw
+
+
+def test_apply_surface_none_clears(qapp):
+    backend = _ready_backend(qapp)
+    backend.apply_surface(SurfaceLayer(name="vdW", representation="vdw"))
+    assert _wait_until(qapp, lambda: _current_surface(qapp, backend) not in (None, "null"))
+
+    backend.apply_surface(None)
+
+    assert _wait_until(qapp, lambda: _current_surface(qapp, backend) in (None, "null"))
+
+
+def test_surface_applied_before_the_page_loads_is_replayed(qapp):
+    """The same deferral race that has now been introduced and fixed three
+    times in this codebase (the Calculator Inspector's 3D pane, the Mol*
+    structure replay, the Mol* None-sentinel). Shipped WITH the feature
+    this time rather than after it."""
+    backend = Mol3DViewerBackend()
+    assert not backend._page_ready
+
+    backend.load_conformer(_ethanol_molblock())
+    backend.apply_surface(SurfaceLayer(name="vdW", representation="ms", opacity=0.6))
+
+    assert _wait_until(qapp, lambda: backend._page_ready)
+    assert _wait_until(qapp, lambda: _current_surface(qapp, backend) not in (None, "null"))
+    raw = _current_surface(qapp, backend)
+    assert '"representation":"ms"' in raw
+
+
+def test_a_queued_surface_clear_is_not_swallowed(qapp):
+    """None is a real queued VALUE here (meaning 'clear'), which is why the
+    empty marker is a sentinel object rather than None -- using None for
+    both is exactly what silently dropped queued clears in the Mol*
+    backend."""
+    backend = Mol3DViewerBackend()
+    backend.apply_surface(SurfaceLayer(name="vdW", representation="vdw"))
+    backend.apply_surface(None)
+
+    assert backend._pending_surface is None  # queued clear, still distinguishable
+    assert _wait_until(qapp, lambda: backend._page_ready)
+    assert _wait_until(qapp, lambda: backend._pending_surface is not None)  # consumed
+
+
+def test_apply_visualizations_routes_a_surface_layer_to_the_surface(qapp):
+    backend = _ready_backend(qapp)
+
+    backend.apply_visualizations([
+        VisualizationLayer(name="LogP", atom_colors={0: "#ff0000"}),
+        SurfaceLayer(name="LogP surface", representation="sas", atom_colors={0: "#ff0000"}),
+    ])
+
+    assert _wait_until(qapp, lambda: _current_surface(qapp, backend) not in (None, "null"))
+    assert '"representation":"sas"' in _current_surface(qapp, backend)
+    # The atom layer still applied too -- a surface doesn't replace it.
+    assert _wait_until(qapp, lambda: _current_visualization(qapp, backend) not in (None, "null"))
+
+
+def test_a_layer_list_without_a_surface_clears_any_existing_one(qapp):
+    backend = _ready_backend(qapp)
+    backend.apply_surface(SurfaceLayer(name="vdW", representation="vdw"))
+    assert _wait_until(qapp, lambda: _current_surface(qapp, backend) not in (None, "null"))
+
+    backend.apply_visualizations([VisualizationLayer(name="LogP", atom_colors={0: "#ff0000"})])
+
+    assert _wait_until(qapp, lambda: _current_surface(qapp, backend) in (None, "null"))
+
+
+def test_loading_a_new_molecule_drops_stale_surface_colors_but_keeps_the_shape(qapp):
+    """A new molecule's atom indices have nothing to do with the previous
+    molecule's property values -- same staleness rule loadMolblock already
+    applies to currentVisualization."""
+    backend = _ready_backend(qapp)
+    backend.apply_surface(
+        SurfaceLayer(name="Charge", representation="ms", atom_colors={0: "#d32f2f"})
+    )
+    assert _wait_until(qapp, lambda: _current_surface(qapp, backend) not in (None, "null"))
+
+    backend.load_conformer(_ethanol_molblock())
+
+    assert _wait_until(qapp, lambda: '"atomColors":null' in str(_current_surface(qapp, backend)))
+    assert '"representation":"ms"' in _current_surface(qapp, backend)

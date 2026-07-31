@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtWidgets import QLabel
+from PySide6.QtWidgets import QComboBox, QLabel, QWidget
 
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.common import CacheState, Provenance
@@ -153,3 +153,71 @@ def test_a_per_atom_result_still_gets_the_molecular_view(qapp):
 
     assert not dialog.findChildren(PhCurveWidget)
     assert any(label.text().startswith("Overall:") for label in dialog.findChildren(QLabel))
+
+
+def test_surface_combo_is_disabled_without_a_conformer(qapp):
+    """A surface needs 3D coordinates. Offering the control with nothing to
+    wrap would look like a broken feature rather than a missing input."""
+    engine = ChemistryEngine()
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+
+    dialog = CalculatorInspectorDialog(engine, molecule, _dataset({0: -0.2, 1: 0.3}), conformer_molblock=None)
+
+    view = dialog.findChild(QWidget)
+    combo = next(c for c in dialog.findChildren(QComboBox))
+    assert not combo.isEnabled()
+
+
+def test_surface_combo_offers_every_confirmed_representation(qapp):
+    from openchem.ui.visualization import SURFACE_REPRESENTATIONS
+
+    engine = ChemistryEngine()
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+
+    dialog = CalculatorInspectorDialog(engine, molecule, _dataset({0: -0.2}), conformer_molblock=None)
+
+    combo = next(c for c in dialog.findChildren(QComboBox))
+    offered = [combo.itemData(i) for i in range(combo.count())]
+    assert offered == ["", *SURFACE_REPRESENTATIONS]
+
+
+def test_selecting_a_surface_applies_one_built_from_the_result(qapp):
+    engine = ChemistryEngine()
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    result = _dataset({0: -0.2, 1: 0.3})
+    dialog = CalculatorInspectorDialog(engine, molecule, result, conformer_molblock="fake molblock")
+
+    applied = []
+    view = dialog.findChildren(QWidget)
+    combo = next(c for c in dialog.findChildren(QComboBox))
+    # Capture what reaches the backend rather than round-tripping through
+    # a real WebEngine page, which this unit test has no reason to spin up.
+    target = next(w for w in dialog.findChildren(QWidget) if hasattr(w, "_viewer3d"))
+    target._viewer3d.apply_surface = applied.append
+
+    combo.setCurrentIndex(1)  # first real representation
+
+    assert len(applied) == 1
+    assert applied[0].representation == "vdw"
+    assert applied[0].atom_colors  # coloured by the result's own values
+
+
+def test_selecting_no_surface_clears_it(qapp):
+    engine = ChemistryEngine()
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    dialog = CalculatorInspectorDialog(
+        engine, molecule, _dataset({0: -0.2}), conformer_molblock="fake molblock"
+    )
+    combo = next(c for c in dialog.findChildren(QComboBox))
+    target = next(w for w in dialog.findChildren(QWidget) if hasattr(w, "_viewer3d"))
+    applied = []
+    target._viewer3d.apply_surface = applied.append
+
+    combo.setCurrentIndex(1)
+    combo.setCurrentIndex(0)
+
+    assert applied[-1] is None

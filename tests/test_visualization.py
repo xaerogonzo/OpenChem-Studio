@@ -198,3 +198,52 @@ def test_singular_residue_wording():
     layers = build_interaction_layers({"hbonds": [{"receptor_residue": "TYR652"}]})
 
     assert "1 residue)" in layers[0].name
+
+
+def test_build_surface_layer_reuses_the_atom_layer_colors(qapp=None):
+    """The surface and the sticks underneath must agree -- one colour
+    decision feeding both, not two independent palette choices for the
+    same property."""
+    from openchem.ui.visualization import build_atom_color_layer, build_surface_layer
+
+    dataset = PerAtomDataset(
+        property_id="crippen_logp_contrib",
+        name="LogP Contribution",
+        units="",
+        method="rdkit",
+        molecule_uuid="mol-1",
+        values={0: -0.4, 1: 0.0, 2: 0.4},
+    )
+
+    atom_layer = build_atom_color_layer(dataset)
+    surface = build_surface_layer(dataset, representation="sas", opacity=0.6)
+
+    assert surface.atom_colors == atom_layer.atom_colors
+    assert surface.color_scale == atom_layer.color_scale
+    assert surface.representation == "sas"
+    assert surface.opacity == 0.6
+
+
+def test_build_surface_layer_on_an_empty_dataset_has_no_colors():
+    """None rather than an empty dict: viewer.html treats a null atomColors
+    as 'plain uncoloured surface', which is the honest rendering of a
+    property that produced no values."""
+    from openchem.ui.visualization import build_surface_layer
+
+    surface = build_surface_layer(
+        PerAtomDataset(
+            property_id="p", name="P", units="", method="rdkit", molecule_uuid="mol-1", values={}
+        )
+    )
+
+    assert surface.atom_colors is None
+
+
+def test_surface_representations_match_the_confirmed_3dmol_types():
+    """Confirmed live: $3Dmol.SurfaceType is {VDW:1, MS:2, SAS:3, SES:4}.
+    A representation not in that set would silently fall back to VDW in
+    viewer.html rather than erroring."""
+    from openchem.ui.visualization import SURFACE_REPRESENTATION_LABELS, SURFACE_REPRESENTATIONS
+
+    assert SURFACE_REPRESENTATIONS == ["vdw", "sas", "ms", "ses"]
+    assert set(SURFACE_REPRESENTATION_LABELS) == set(SURFACE_REPRESENTATIONS)

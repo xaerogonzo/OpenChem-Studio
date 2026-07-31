@@ -3,13 +3,18 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from PySide6.QtSvgWidgets import QSvgWidget
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QComboBox, QDialog, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.common import CacheState, ScientificResult
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.scientific_result import PerAtomDataset, PhCurveResult
-from openchem.ui.visualization import build_visualization_layer
+from openchem.ui.visualization import (
+    SURFACE_REPRESENTATION_LABELS,
+    SURFACE_REPRESENTATIONS,
+    build_surface_layer,
+    build_visualization_layer,
+)
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
 from openchem.ui.widgets.ph_curve_widget import PhCurveWidget
 
@@ -75,6 +80,19 @@ class _CalculatorResultView(QWidget):
             self._viewer3d.load_conformer(conformer_molblock)
             self._viewer3d.apply_visualization(layer)
 
+        # Phase 25b: the same per-atom data, optionally painted onto a
+        # molecular surface -- the Marvin charge/LogP screenshots show the
+        # property as a coloured surface, not only as coloured sticks.
+        # Off by default so the numbered stick view stays the first thing
+        # seen; a surface hides the atom labels underneath it.
+        self._surface_combo = QComboBox(self)
+        self._surface_combo.addItem("No surface", "")
+        for representation in SURFACE_REPRESENTATIONS:
+            self._surface_combo.addItem(SURFACE_REPRESENTATION_LABELS[representation], representation)
+        self._surface_result = result if isinstance(result, PerAtomDataset) else None
+        self._surface_combo.setEnabled(self._surface_result is not None and bool(conformer_molblock))
+        self._surface_combo.currentIndexChanged.connect(self._on_surface_changed)
+
         legend_label = QLabel(self)
         if layer is not None and layer.color_scale is not None:
             legend_label.setText(
@@ -87,10 +105,25 @@ class _CalculatorResultView(QWidget):
         views_row.addWidget(svg_widget)
         views_row.addWidget(self._viewer3d.widget())
 
+        surface_row = QHBoxLayout()
+        surface_row.addWidget(QLabel("3D surface:", self))
+        surface_row.addWidget(self._surface_combo)
+        surface_row.addStretch()
+
         layout = QVBoxLayout(self)
         layout.addWidget(summary_label)
         layout.addLayout(views_row)
+        layout.addLayout(surface_row)
         layout.addWidget(legend_label)
+
+    def _on_surface_changed(self, _index: int) -> None:
+        representation = self._surface_combo.currentData()
+        if not representation or self._surface_result is None:
+            self._viewer3d.apply_surface(None)
+            return
+        self._viewer3d.apply_surface(
+            build_surface_layer(self._surface_result, representation=representation)
+        )
 
 
 class _PhCurveResultView(QWidget):

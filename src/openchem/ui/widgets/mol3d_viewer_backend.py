@@ -11,13 +11,17 @@ from PySide6.QtWebEngineCore import QWebEnginePage
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from openchem.ui.viewer_backend import ViewerBackend
-from openchem.ui.visualization import AnyVisualizationLayer, VisualizationLayer
+from openchem.ui.visualization import AnyVisualizationLayer, SurfaceLayer, VisualizationLayer
 
 logger = logging.getLogger("openchem.ui")
 
 _VIEWER_HTML = (
     Path(__file__).resolve().parent.parent.parent / "resources" / "viewer3d" / "viewer.html"
 )
+
+# Distinct from None, which is a real queued value meaning "clear the
+# surface" -- same sentinel MolStarViewerBackend uses for the same reason.
+_NOTHING_PENDING = object()
 
 
 class _Bridge(QObject):
@@ -65,6 +69,11 @@ class Mol3DViewerBackend(ViewerBackend):
         self._page_ready = False
         self._pending_molblock: str | None = None
         self._pending_layer: VisualizationLayer | None = None
+        # `_NOTHING_PENDING` rather than None, because None is itself a
+        # meaningful queued VALUE for a surface -- it means "clear". The
+        # same ambiguity was a real bug in MolStarViewerBackend, where
+        # using None for both silently swallowed queued clears.
+        self._pending_surface: SurfaceLayer | None | object = _NOTHING_PENDING
         self._page.loadFinished.connect(self._on_load_finished)
         self._page.load(QUrl.fromLocalFile(str(_VIEWER_HTML)))
 
@@ -82,6 +91,11 @@ class Mol3DViewerBackend(ViewerBackend):
         if self._pending_layer is not None:
             self._run_apply_visualization(self._pending_layer)
             self._pending_layer = None
+        # Also after the molblock, for the same reason -- loadMolblock()
+        # drops the surface's stale per-atom colours.
+        if self._pending_surface is not _NOTHING_PENDING:
+            self._run_apply_surface(self._pending_surface)
+            self._pending_surface = _NOTHING_PENDING
 
     def _on_atom_clicked(self, atom_index: int) -> None:
         self.atoms_selected.emit([atom_index])
@@ -107,6 +121,13 @@ class Mol3DViewerBackend(ViewerBackend):
         # IGNORED here rather than rejected -- 3Dmol.js renders
         # small-molecule conformers, which have no residues; see
         # ViewerBackend.apply_visualizations' contract.
+        # A SurfaceLayer is a different render target, not an atom-colour
+        # map -- it goes to apply_surface() rather than being composited
+        # into the colour merge below. Last one wins if several are passed;
+        # only one surface can be shown at a time.
+        surface_layers = [layer for layer in layers if isinstance(layer, SurfaceLayer)]
+        self.apply_surface(surface_layers[-1] if surface_layers else None)
+
         atom_layers = [layer for layer in layers if isinstance(layer, VisualizationLayer)]
         if not atom_layers:
             self.apply_visualization(None)
@@ -141,6 +162,31 @@ class Mol3DViewerBackend(ViewerBackend):
             self._pending_layer = layer
             return
         self._run_apply_visualization(layer)
+
+    def apply_surface(self, layer: SurfaceLayer | None) -> None:
+        """Shows a molecular surface, or clears it with `None`.
+
+        Deferred until the page is ready, exactly like `load_conformer` and
+        `apply_visualization` -- the deferral ships WITH the feature rather
+        than after it, because this same race has been introduced and fixed
+        three separate times in this codebase already (the Calculator
+        Inspector's 3D pane, the Mol* structure replay, and the Mol*
+        None-sentinel ambiguity).
+        """
+        if not self._page_ready:
+            self._pending_surface = layer
+            return
+        self._run_apply_surface(layer)
+
+    def _run_apply_surface(self, layer: SurfaceLayer | None) -> None:
+        if layer is None:
+            self._page.runJavaScript("window.openchemViewer.clearSurface();")
+            return
+        self._page.runJavaScript(
+            f"window.openchemViewer.applySurface("
+            f"{json.dumps(layer.representation)}, {json.dumps(layer.opacity)}, "
+            f"{json.dumps(layer.atom_colors)});"
+        )
 
     def _run_apply_visualization(self, layer: VisualizationLayer | None) -> None:
         if layer is None or not layer.atom_colors:

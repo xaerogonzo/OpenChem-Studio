@@ -90,13 +90,72 @@ class ResidueColorLayer:
     residue_labels: dict[str, str] | None = None
 
 
+# Surface representations 3Dmol's vendored bundle actually supports --
+# confirmed live that `$3Dmol.SurfaceType` is {VDW:1, MS:2, SAS:3, SES:4}
+# (SES is real here even though Marvin doesn't offer it).
+#
+# `SurfaceLayer.representation` is deliberately a plain `str` rather than
+# an Enum constrained to these four: electrostatic-potential, electron-
+# density, molecular-orbital and spin-density surfaces are all real future
+# additions that would come from volumetric data rather than a 3Dmol
+# SurfaceType, and a closed enum would have to be widened for each. Same
+# precedent as `CalculatorDefinition.category` (Phase 18), a plain string
+# so a new value needs no code change.
+SURFACE_REPRESENTATIONS = ["vdw", "sas", "ms", "ses"]
+SURFACE_REPRESENTATION_LABELS = {
+    "vdw": "van der Waals",
+    "sas": "Solvent Accessible",
+    "ms": "Molecular Surface",
+    "ses": "Solvent Excluded",
+}
+
+
+@dataclass(frozen=True, kw_only=True)
+class SurfaceLayer:
+    """Renderer-independent molecular-SURFACE visualization data.
+
+    A sibling of `VisualizationLayer`/`ResidueColorLayer` rather than a
+    variant of either: a surface's identity is its representation and
+    opacity, which neither of the others has, and its optional per-atom
+    colours are a way of *painting* it rather than what it is. The sibling
+    pattern is the one Phase 23 established for residues.
+
+    `atom_colors` is optional -- a plain uncoloured surface (just shape) is
+    a legitimate and common use. When present, surface vertices take the
+    colour of the nearest atom, which is how a per-atom property such as
+    partial charge gets mapped onto the surface the way Marvin shows it.
+    """
+
+    name: str
+    representation: str = "vdw"
+    opacity: float = 0.75
+    atom_colors: dict[int, str] | None = None
+    color_scale: ColorScale | None = None
+
+
 # Any layer a `ViewerBackend` may be handed. A backend is expected to
 # render the target kinds it can and ignore the rest -- 3Dmol.js has no
 # residue concept for a small-molecule conformer, and a macromolecule
 # viewer has no per-atom scientific data feeding it, so "ignore what you
 # can't render" is the honest contract rather than requiring every backend
 # to implement every target.
-AnyVisualizationLayer = VisualizationLayer | ResidueColorLayer
+AnyVisualizationLayer = VisualizationLayer | ResidueColorLayer | SurfaceLayer
+
+
+def build_surface_layer(
+    dataset: PerAtomDataset, representation: str = "vdw", opacity: float = 0.75
+) -> SurfaceLayer:
+    """Paints a per-atom property onto a molecular surface, reusing
+    `build_atom_color_layer`'s colour choices so the surface and the
+    sticks underneath agree rather than each picking a palette."""
+    atom_layer = build_atom_color_layer(dataset)
+    return SurfaceLayer(
+        name=dataset.name,
+        representation=representation,
+        opacity=opacity,
+        atom_colors=atom_layer.atom_colors or None,
+        color_scale=atom_layer.color_scale,
+    )
 
 
 def build_atom_color_layer(dataset: PerAtomDataset, include_labels: bool = False) -> VisualizationLayer:

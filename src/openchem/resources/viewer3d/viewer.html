@@ -36,6 +36,57 @@
       // The active GLModel, needed to look up each atom's 3D position
       // when placing labels -- not otherwise kept around before Phase 18.
       var currentModel = null;
+      // Phase 25b: the active molecular surface, or null. Held as state
+      // (like currentVisualization/currentLabels) rather than applied
+      // once, because viewer.clear() in loadMolblock destroys surfaces --
+      // so a surface has to be re-added after every structure load.
+      // { representation: 'vdw'|'sas'|'ms'|'ses', opacity: number,
+      //   atomColors: {atomIndex: '#rrggbb'} | null }
+      var currentSurface = null;
+
+      // Confirmed live against this exact vendored bundle:
+      // $3Dmol.SurfaceType === {VDW:1, MS:2, SAS:3, SES:4}. SES is real
+      // here even though Marvin doesn't offer it.
+      function surfaceTypeFor(representation) {
+        switch (String(representation).toLowerCase()) {
+          case 'sas':
+            return $3Dmol.SurfaceType.SAS;
+          case 'ms':
+            return $3Dmol.SurfaceType.MS;
+          case 'ses':
+            return $3Dmol.SurfaceType.SES;
+          case 'vdw':
+          default:
+            return $3Dmol.SurfaceType.VDW;
+        }
+      }
+
+      function applySurface() {
+        // Always clear first. Confirmed live that this is safe even though
+        // addSurface returns a PROMISE: viewer.surfaces is populated
+        // synchronously, and removeAllSurfaces() called before an earlier
+        // promise resolves still leaves a count of 0 afterwards -- so a
+        // rapid re-apply cannot orphan a half-built surface.
+        viewer.removeAllSurfaces();
+        if (!currentSurface) {
+          viewer.render();
+          return;
+        }
+        var atomColors = currentSurface.atomColors;
+        var style = { opacity: currentSurface.opacity };
+        if (atomColors) {
+          // colorfunc is invoked once per atom (confirmed: 9 calls for a
+          // 9-atom ethanol), and surface vertices take the colour of the
+          // nearest atom -- which is what maps a per-atom property like
+          // partial charge onto the surface the way Marvin shows it.
+          style.colorfunc = function (atom) {
+            var color = atomColors[String(atom.index)];
+            return color || '#cccccc';
+          };
+        }
+        viewer.addSurface(surfaceTypeFor(currentSurface.representation), style);
+        viewer.render();
+      }
 
       function styleSpecFor(name) {
         switch (name) {
@@ -118,6 +169,19 @@
           currentModel = model;
           applyStyle();
           applyLabels();
+          // viewer.clear() above destroyed any active surface, and the
+          // per-atom colours belonged to the OLD molecule's atom indices
+          // anyway -- same staleness reason currentVisualization is
+          // dropped. Re-add the surface shape (representation/opacity) if
+          // one was active, but without carrying stale colours over.
+          if (currentSurface) {
+            currentSurface = {
+              representation: currentSurface.representation,
+              opacity: currentSurface.opacity,
+              atomColors: null,
+            };
+            applySurface();
+          }
           model.setClickable({}, true, function (atom) {
             if (bridge) {
               bridge.atomClicked(atom.index);
@@ -135,18 +199,44 @@
           currentLabels = atomLabels || null;
           applyStyle();
           applyLabels();
+          // A surface showing per-atom colours must follow the layer it is
+          // showing -- otherwise changing the property would recolour the
+          // sticks and leave the surface painted with the previous one.
+          if (currentSurface && currentSurface.atomColors) {
+            currentSurface.atomColors = atomColors;
+            applySurface();
+          }
         },
         clearVisualization: function () {
           currentVisualization = null;
           currentLabels = null;
           applyStyle();
           viewer.removeAllLabels();
+          if (currentSurface && currentSurface.atomColors) {
+            currentSurface.atomColors = null;
+            applySurface();
+          }
           viewer.render();
+        },
+        // Phase 25b. `representation` is 'vdw'|'sas'|'ms'|'ses';
+        // `atomColors` may be null for a plain uncoloured surface.
+        applySurface: function (representation, opacity, atomColors) {
+          currentSurface = {
+            representation: representation,
+            opacity: opacity,
+            atomColors: atomColors || null,
+          };
+          applySurface();
+        },
+        clearSurface: function () {
+          currentSurface = null;
+          applySurface();
         },
         clear: function () {
           currentVisualization = null;
           currentLabels = null;
           currentModel = null;
+          currentSurface = null;
           viewer.clear();
           viewer.removeAllLabels();
           viewer.render();
