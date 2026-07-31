@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import time
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, TypeVar
 
 from openchem.domain.docking import DockingResultModel
 from openchem.domain.macromolecule import MacromoleculeModel
@@ -11,6 +12,23 @@ from openchem.domain.molecule import MoleculeModel
 
 SCHEMA_VERSION = 1
 APPLICATION_VERSION = "0.1.0"
+
+# TypeVar rather than a shared `ChemicalEntity` base class: MoleculeModel,
+# MacromoleculeModel and DockingResultModel share exactly three fields
+# (uuid, display_name, metadata) and are deliberately routed through
+# different code paths everywhere -- small molecules to RDKit/3Dmol.js,
+# macromolecules to Mol* (see MacromoleculeModel's own docstring). Nothing
+# consumes them polymorphically, so the only real duplication was these
+# three identical uuid searches, and structural typing removes it without
+# inheritance or a slots=True reparenting exercise.
+_HasUuid = TypeVar("_HasUuid")
+
+
+def _find_by_uuid(items: Sequence[_HasUuid], target_uuid: str) -> _HasUuid | None:
+    for item in items:
+        if item.uuid == target_uuid:
+            return item
+    return None
 
 
 @dataclass(slots=True)
@@ -51,22 +69,13 @@ class ProjectModel:
     schema_version: int = SCHEMA_VERSION
 
     def find_molecule(self, molecule_uuid: str) -> MoleculeModel | None:
-        for molecule in self.molecules:
-            if molecule.uuid == molecule_uuid:
-                return molecule
-        return None
+        return _find_by_uuid(self.molecules, molecule_uuid)
 
     def find_macromolecule(self, macromolecule_uuid: str) -> MacromoleculeModel | None:
-        for macromolecule in self.macromolecules:
-            if macromolecule.uuid == macromolecule_uuid:
-                return macromolecule
-        return None
+        return _find_by_uuid(self.macromolecules, macromolecule_uuid)
 
     def find_docking_result(self, docking_result_uuid: str) -> DockingResultModel | None:
-        for result in self.docking_results:
-            if result.uuid == docking_result_uuid:
-                return result
-        return None
+        return _find_by_uuid(self.docking_results, docking_result_uuid)
 
     def record_history(self, action: str) -> None:
         self.history.append(HistoryEntry(timestamp=time.time(), action=action))
