@@ -107,3 +107,85 @@ def test_peaks_at_the_same_shift_both_get_a_region(qapp):
     widget = NmrSpectrumWidget([_signal(2.3, 1, [22]), _signal(2.3, 1, [23])])
     widget.resize(400, 250)
     assert len(widget.hit_regions()) == 2
+
+
+# --- Frequency and solvent peak ------------------------------------------
+
+
+def _quartet() -> NMRSignal:
+    return NMRSignal(
+        shift=3.70, atom_indices=[0, 1], integration=2, multiplicity="q", coupling_hz=[7.0]
+    )
+
+
+def test_the_solvent_peak_widens_the_axis_so_it_stays_on_screen(qapp):
+    """DMSO's residual peak at 2.50 sits well outside an aromatics-only
+    spectrum -- drawing it off the edge of the plot would be worse than
+    not drawing it."""
+    widget = NmrSpectrumWidget()
+    widget.set_signals(
+        [NMRSignal(shift=7.2, atom_indices=[0], integration=1, multiplicity="s")]
+    )
+    without = widget._axis_range()
+
+    widget.set_solvent("DMSO-d6")
+
+    low, high = widget._axis_range()
+    assert low < 2.50 < high
+    assert low < without[0]
+
+
+def test_no_solvent_selected_leaves_the_axis_alone(qapp):
+    widget = NmrSpectrumWidget()
+    widget.set_signals([NMRSignal(shift=7.2, atom_indices=[0], integration=1, multiplicity="s")])
+    before = widget._axis_range()
+
+    widget.set_solvent(None)
+
+    assert widget._axis_range() == before
+
+
+def test_a_solvent_with_no_entry_for_the_active_nucleus_draws_nothing(qapp):
+    """D2O has no carbon to observe. Its missing 13C value must read as
+    "no peak", not as 0 ppm."""
+    widget = NmrSpectrumWidget()
+    widget.set_signals(
+        [NMRSignal(shift=40.0, atom_indices=[0], integration=1, multiplicity="s", element="C")]
+    )
+    widget.set_solvent("D2O")
+
+    assert widget._solvent_shift() is None
+
+
+def test_the_widget_paints_a_split_multiplet_without_crashing(qapp):
+    """Renders for real onto a QImage -- the paint path has to survive
+    multiplet splitting, a solvent line and a highlight together, and a
+    QPainter error only shows up when something actually paints."""
+    from PySide6.QtGui import QImage
+
+    widget = NmrSpectrumWidget()
+    widget.set_signals([_quartet()])
+    widget.set_solvent("CDCl3")
+    widget.set_frequency(60.0)
+    widget.set_highlighted_atoms([0])
+
+    image = QImage(400, 300, QImage.Format.Format_ARGB32)
+    image.fill(0)
+    widget.resize(400, 300)
+    widget.render(image)
+
+    # Something was actually drawn -- an all-transparent image would mean
+    # paintEvent bailed out and the test proved nothing.
+    assert any(image.pixelColor(x, y).alpha() for x in range(0, 400, 5) for y in range(0, 300, 5))
+
+
+def test_clicking_anywhere_on_a_split_signal_still_selects_it(qapp):
+    """The hit region is anchored on the signal's centre shift, so
+    splitting the drawn lines must not make the peak unclickable."""
+    widget = NmrSpectrumWidget()
+    widget.resize(400, 300)
+    widget.set_signals([_quartet()])
+    widget.set_frequency(60.0)
+
+    region, signal = widget.hit_regions()[0]
+    assert widget.signal_at(region.center().x(), region.center().y()) is signal

@@ -298,3 +298,78 @@ def build_nmr_signals(
         for group in groups
     ]
     return sorted(signals, key=lambda signal: signal.shift, reverse=True)
+
+
+# Residual solvent 1H/13C shifts, ppm, from Gottlieb, Kotlyar & Nudelman
+# (J. Org. Chem. 1997, 62, 7512) -- the reference table every lab uses.
+# Published values, not predictions, so they are exact in a way nothing
+# else on this screen is.
+RESIDUAL_SOLVENT_PEAKS: dict[str, dict[str, float]] = {
+    "CDCl3": {"H": 7.26, "C": 77.16},
+    "DMSO-d6": {"H": 2.50, "C": 39.52},
+    "D2O": {"H": 4.79},
+    "Acetone-d6": {"H": 2.05, "C": 29.84},
+    "CD3OD": {"H": 3.31, "C": 49.00},
+    "C6D6": {"H": 7.16, "C": 128.06},
+    "CD3CN": {"H": 1.94, "C": 1.32},
+}
+
+# The common spectrometer field strengths, in MHz for 1H. Frequency does
+# not move a chemical shift -- that is the entire point of the ppm scale --
+# but it does set how far apart a multiplet's lines fall in ppm, which is
+# why the same compound looks resolved at 600 MHz and a blur at 60.
+SPECTROMETER_FREQUENCIES_MHZ = (60.0, 100.0, 200.0, 300.0, 400.0, 500.0, 600.0, 800.0)
+DEFAULT_FREQUENCY_MHZ = 400.0
+
+# Gyromagnetic ratio relative to 1H: a "400 MHz" spectrometer observes
+# carbon near 100 MHz, so a 13C multiplet's lines are ~4x further apart in
+# ppm than a proton multiplet with the same J in Hz.
+_RELATIVE_FREQUENCY = {"H": 1.0, "C": 0.2514, "F": 0.9407, "P": 0.4048, "N": 0.0721}
+
+
+def _binomial_row(n: int) -> list[float]:
+    row = [1.0]
+    for k in range(n):
+        row.append(row[-1] * (n - k) / (k + 1))
+    return row
+
+
+def multiplet_lines(
+    signal: NMRSignal, frequency_mhz: float = DEFAULT_FREQUENCY_MHZ
+) -> list[tuple[float, float]]:
+    """(ppm, relative intensity) for each line of a first-order multiplet.
+
+    A multiplet's lines sit J Hz apart, and Hz converts to ppm by dividing
+    by the observation frequency -- so this needs a real spectrometer
+    frequency and a real J, and returns a single line when either is
+    missing rather than inventing a splitting.
+
+    Intensities are the binomial row, which is the first-order
+    approximation: it is exact when the coupled nuclei are equivalent and
+    the shift difference is large compared with J, and progressively wrong
+    ("roofing") as they approach each other. Second-order line shapes
+    would need a full spin-Hamiltonian simulation, which this is not.
+    """
+    lines_expected = next(
+        (count for count, letter in _MULTIPLICITY_BY_LINE_COUNT.items() if letter == signal.multiplicity),
+        1,
+    )
+    if lines_expected <= 1 or not signal.coupling_hz or frequency_mhz <= 0:
+        return [(signal.shift, 1.0)]
+
+    observation_mhz = frequency_mhz * _RELATIVE_FREQUENCY.get(signal.element, 1.0)
+    if observation_mhz <= 0:
+        return [(signal.shift, 1.0)]
+
+    # One J for the whole multiplet: an n+1 pattern by definition comes
+    # from n EQUIVALENT partners sharing one coupling constant. A signal
+    # with several distinct J values is reported as "m" upstream and takes
+    # the single-line path above.
+    spacing_ppm = signal.coupling_hz[0] / observation_mhz
+    neighbours = lines_expected - 1
+    intensities = _binomial_row(neighbours)
+    total = sum(intensities)
+    return [
+        (signal.shift + (neighbours / 2.0 - index) * spacing_ppm, intensity / total)
+        for index, intensity in enumerate(intensities)
+    ]

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from rdkit import Chem
 
 from conftest import synthetic_nmr_spectrum
@@ -9,6 +11,8 @@ from openchem.chem.nmr_signals import (
     are_diastereotopic,
     build_nmr_signals,
     depiction_atoms,
+    RESIDUAL_SOLVENT_PEAKS,
+    multiplet_lines,
 )
 from openchem.domain.scientific_result import NMRSpectrumResult
 
@@ -283,3 +287,94 @@ def test_empty_spectrum_produces_no_signals():
         molecule_uuid="mol-1",
     )
     assert build_nmr_signals(mol, spectrum, "H") == []
+
+
+# --- Multiplet line splitting --------------------------------------------
+
+
+def test_a_quartet_splits_into_four_lines_at_the_right_spacing():
+    """J/frequency is the entire conversion: 7 Hz at 400 MHz is 0.0175
+    ppm between adjacent lines, and the multiplet stays centred on the
+    signal's own shift."""
+    signal = NMRSignal(
+        shift=3.70, atom_indices=[0, 1], integration=2, multiplicity="q", coupling_hz=[7.0]
+    )
+
+    lines = multiplet_lines(signal, 400.0)
+
+    assert len(lines) == 4
+    shifts = [shift for shift, _intensity in lines]
+    assert shifts[0] - shifts[1] == pytest.approx(7.0 / 400.0)
+    assert sum(shifts) / len(shifts) == pytest.approx(3.70)
+
+
+def test_multiplet_intensities_are_the_binomial_row_and_sum_to_one():
+    """1:3:3:1 for a quartet. Normalised so a quartet and a singlet with
+    the same integration enclose the same area -- which is what
+    integration means."""
+    signal = NMRSignal(
+        shift=1.0, atom_indices=[0], integration=1, multiplicity="q", coupling_hz=[7.0]
+    )
+
+    intensities = [intensity for _shift, intensity in multiplet_lines(signal, 400.0)]
+
+    assert sum(intensities) == pytest.approx(1.0)
+    assert intensities == pytest.approx([1 / 8, 3 / 8, 3 / 8, 1 / 8])
+
+
+def test_a_higher_field_squeezes_the_multiplet_in_ppm():
+    """The reason frequency is an option at all: the same coupling looks
+    resolved at 600 MHz and collapsed at 60."""
+    signal = NMRSignal(
+        shift=2.0, atom_indices=[0], integration=1, multiplicity="d", coupling_hz=[7.0]
+    )
+
+    def span(frequency):
+        shifts = [shift for shift, _i in multiplet_lines(signal, frequency)]
+        return max(shifts) - min(shifts)
+
+    assert span(600.0) < span(60.0)
+    assert span(60.0) == pytest.approx(10 * span(600.0))
+
+
+def test_carbon_multiplets_spread_further_than_proton_ones_at_the_same_field():
+    """A "400 MHz" spectrometer observes carbon near 100 MHz, so the same
+    J in Hz is about four times wider in ppm."""
+    common = {"atom_indices": [0], "integration": 1, "multiplicity": "d", "coupling_hz": [7.0]}
+    proton = NMRSignal(shift=2.0, element="H", **common)
+    carbon = NMRSignal(shift=20.0, element="C", **common)
+
+    def span(signal):
+        shifts = [shift for shift, _i in multiplet_lines(signal, 400.0)]
+        return max(shifts) - min(shifts)
+
+    assert span(carbon) > 3 * span(proton)
+
+
+@pytest.mark.parametrize(
+    "multiplicity,coupling",
+    [("s", []), ("m", [7.0]), ("d", [])],
+)
+def test_no_splitting_is_drawn_without_both_a_pattern_and_a_real_coupling(multiplicity, coupling):
+    """A singlet has nothing to split; "m" means the pattern is not
+    first-order; and a doublet with no measured J has no spacing to draw.
+    None of the three may invent one."""
+    signal = NMRSignal(
+        shift=2.0,
+        atom_indices=[0],
+        integration=1,
+        multiplicity=multiplicity,
+        coupling_hz=list(coupling),
+    )
+
+    assert multiplet_lines(signal, 400.0) == [(2.0, 1.0)]
+
+
+def test_residual_solvent_peaks_match_the_published_reference():
+    """Gottlieb, Kotlyar & Nudelman (1997) -- measured literature values,
+    the only exact numbers on this whole screen."""
+    assert RESIDUAL_SOLVENT_PEAKS["CDCl3"] == {"H": 7.26, "C": 77.16}
+    assert RESIDUAL_SOLVENT_PEAKS["DMSO-d6"]["H"] == 2.50
+    # D2O has no carbon to observe, so it has no 13C entry rather than a
+    # placeholder one.
+    assert "C" not in RESIDUAL_SOLVENT_PEAKS["D2O"]

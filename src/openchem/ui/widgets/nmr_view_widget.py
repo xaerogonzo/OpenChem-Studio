@@ -13,7 +13,15 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.chem.engine import ChemistryEngine
-from openchem.chem.nmr_signals import NMRSignal, align_mol_to_spectrum, build_nmr_signals, depiction_atoms
+from openchem.chem.nmr_signals import (
+    DEFAULT_FREQUENCY_MHZ,
+    RESIDUAL_SOLVENT_PEAKS,
+    SPECTROMETER_FREQUENCIES_MHZ,
+    NMRSignal,
+    align_mol_to_spectrum,
+    build_nmr_signals,
+    depiction_atoms,
+)
 from openchem.domain.scientific_result import SpectrumResult
 from openchem.ui.viewer_backend import ViewerBackend
 from openchem.ui.visualization import VisualizationLayer
@@ -82,9 +90,32 @@ class NmrViewWidget(QWidget):
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self._table.itemSelectionChanged.connect(self._on_table_selection_changed)
 
+        # Marvin's own NMR panel offers both. Neither changes a predicted
+        # shift -- frequency only sets how far apart a multiplet's lines
+        # fall in ppm, and the solvent peak is the solvent's, not the
+        # sample's -- but both are what make a plot read like a real
+        # spectrum instead of a bar chart.
+        self._frequency_combo = QComboBox(self)
+        for frequency in SPECTROMETER_FREQUENCIES_MHZ:
+            self._frequency_combo.addItem(f"{frequency:g} MHz", frequency)
+        self._frequency_combo.setCurrentIndex(
+            list(SPECTROMETER_FREQUENCIES_MHZ).index(DEFAULT_FREQUENCY_MHZ)
+        )
+        self._frequency_combo.currentIndexChanged.connect(self._on_frequency_changed)
+
+        self._solvent_combo = QComboBox(self)
+        self._solvent_combo.addItem("None", None)
+        for solvent in RESIDUAL_SOLVENT_PEAKS:
+            self._solvent_combo.addItem(solvent, solvent)
+        self._solvent_combo.currentIndexChanged.connect(self._on_solvent_changed)
+
         element_row = QHBoxLayout()
         element_row.addWidget(QLabel("Nucleus:", self))
         element_row.addWidget(self._element_combo)
+        element_row.addWidget(QLabel("Frequency:", self))
+        element_row.addWidget(self._frequency_combo)
+        element_row.addWidget(QLabel("Solvent peak:", self))
+        element_row.addWidget(self._solvent_combo)
         element_row.addStretch()
 
         structures_row = QHBoxLayout()
@@ -140,6 +171,12 @@ class NmrViewWidget(QWidget):
 
     def _on_element_changed(self, _index: int) -> None:
         self._rebuild_signals()
+
+    def _on_frequency_changed(self, _index: int) -> None:
+        self._spectrum_widget.set_frequency(self._frequency_combo.currentData())
+
+    def _on_solvent_changed(self, _index: int) -> None:
+        self._spectrum_widget.set_solvent(self._solvent_combo.currentData())
 
     def _rebuild_signals(self) -> None:
         if self._spectrum is None or self._mol is None:
