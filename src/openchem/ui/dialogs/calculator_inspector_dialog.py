@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QComboBox, QDialog, QHBoxLayout, QLabel, QVBoxLayo
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.common import CacheState, ScientificResult
 from openchem.domain.molecule import MoleculeModel
-from openchem.domain.scientific_result import PerAtomDataset, PhCurveResult
+from openchem.domain.scientific_result import PerAtomDataset, PhCurveResult, StructureSetResult
 from openchem.ui.visualization import (
     SURFACE_REPRESENTATION_LABELS,
     SURFACE_REPRESENTATIONS,
@@ -17,6 +17,7 @@ from openchem.ui.visualization import (
 )
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
 from openchem.ui.widgets.ph_curve_widget import PhCurveWidget
+from openchem.ui.widgets.structure_grid_widget import StructureGridWidget
 
 
 class _CalculatorResultView(QWidget):
@@ -170,6 +171,19 @@ def _build_ph_curve_view(
     return _PhCurveResultView(result, parent)
 
 
+def _build_structure_grid_view(
+    engine: ChemistryEngine,
+    molecule: MoleculeModel,
+    result: ScientificResult,
+    conformer_molblock: str | None,
+    parent: QWidget | None,
+) -> QWidget:
+    """A structure SET has many molecules, so the single-molecule 2D+3D
+    view is the wrong shape entirely -- it would depict the input rather
+    than any of the results."""
+    return StructureGridWidget(engine, result, parent)
+
+
 # Result type -> view factory, mirroring `_VISUALIZATION_ADAPTERS`'
 # type-keyed dispatch (Phase 18) but one level up: that registry answers
 # "how do I colour atoms for this result", which only makes sense for
@@ -181,6 +195,7 @@ def _build_ph_curve_view(
 # right for every per-atom and spectral result shipped so far.
 _RESULT_VIEW_FACTORIES: dict[type, Callable[..., QWidget]] = {
     PhCurveResult: _build_ph_curve_view,
+    StructureSetResult: _build_structure_grid_view,
 }
 
 

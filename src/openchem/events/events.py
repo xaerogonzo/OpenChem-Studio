@@ -6,7 +6,12 @@ from openchem.domain.common import CacheState
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.docking import DockingResultModel
-from openchem.domain.scientific_result import AlertResult, PerAtomDataset, SpectrumResult
+from openchem.domain.scientific_result import (
+    AlertResult,
+    PerAtomDataset,
+    SpectrumResult,
+    StructureSetResult,
+)
 from openchem.events.base import Event
 
 
@@ -159,6 +164,14 @@ class QuantumChemistryResultReady(Event):
 @dataclass(frozen=True)
 class SpectrumComputed(Event):
     spectrum: SpectrumResult
+
+
+@dataclass(frozen=True)
+class StructureSetComputed(Event):
+    """Published when a calculator produces a SET of structures (Phase 27)
+    -- stereoisomers, tautomers, resonance forms, a Markush library."""
+
+    structure_set: StructureSetResult
 
 
 @dataclass(frozen=True)

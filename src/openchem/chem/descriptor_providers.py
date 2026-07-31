@@ -13,6 +13,15 @@ from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
 from openchem.chem.elemental_analysis import compute_elemental_analysis
 from openchem.chem.geometry_analysis import compute_geometry_analysis
 from openchem.chem.interaction_analysis import compute_interaction_analysis
+from openchem.chem.markush import DEFAULT_MAX_STRUCTURES as MARKUSH_DEFAULT_MAX
+from openchem.chem.markush import compute_markush_enumeration
+from openchem.chem.structure_generators import (
+    DEFAULT_MAX_STRUCTURES,
+    RESONANCE_FLAG_SETS,
+    compute_resonance_forms,
+    compute_stereoisomers,
+    compute_tautomers,
+)
 from openchem.chem.substructure import COMMON_PATTERNS, compute_substructure_search
 from openchem.chem.surface_analysis import compute_sasa_dataset, compute_surface_analysis
 from openchem.chem.topology_analysis import (
@@ -896,5 +905,95 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         ),
         execution=RegistryExecution(compute=compute_interaction_analysis),
         tags=["interactions", "3d", "contacts"],
+    ),
+    # ---- Phase 27: structure generators ------------------------------
+    CalculatorDefinition(
+        calculator_id="stereoisomers",
+        display_name="Stereoisomers",
+        category="structures",
+        description="Every stereoisomer, varying only the centres left unspecified by default.",
+        execution=RegistryExecution(compute=compute_stereoisomers),
+        parameters=[
+            CalculatorParameter(
+                name="max_structures", label="Maximum structures", kind="int",
+                default=DEFAULT_MAX_STRUCTURES, minimum=1, maximum=10000,
+            ),
+            CalculatorParameter(
+                name="only_unassigned", label="Vary only unspecified centres", kind="bool", default=True
+            ),
+        ],
+        tags=["structures", "stereochemistry", "enumeration"],
+    ),
+    CalculatorDefinition(
+        calculator_id="tautomers",
+        display_name="Tautomers",
+        category="structures",
+        description="Tautomeric forms, with the canonical tautomer flagged.",
+        execution=RegistryExecution(compute=compute_tautomers),
+        parameters=[
+            CalculatorParameter(
+                name="max_structures", label="Maximum structures", kind="int",
+                default=DEFAULT_MAX_STRUCTURES, minimum=1, maximum=10000,
+            )
+        ],
+        tags=["structures", "tautomer", "enumeration"],
+    ),
+    CalculatorDefinition(
+        calculator_id="resonance_forms",
+        display_name="Resonance Forms",
+        category="structures",
+        description=(
+            "Resonance contributors. 'Major contributors' allows charge separation; the wider "
+            "set also allows incomplete octets. RDKit's own defaults return NO forms at all for "
+            "some molecules, so the flag set is an explicit choice here."
+        ),
+        execution=RegistryExecution(compute=compute_resonance_forms),
+        parameters=[
+            CalculatorParameter(
+                name="flag_set", label="Contributors", kind="choice",
+                default="Major contributors", choices=list(RESONANCE_FLAG_SETS),
+            ),
+            CalculatorParameter(
+                name="max_structures", label="Maximum structures", kind="int",
+                default=DEFAULT_MAX_STRUCTURES, minimum=1, maximum=10000,
+            ),
+        ],
+        tags=["structures", "resonance", "enumeration"],
+    ),
+    CalculatorDefinition(
+        calculator_id="markush_enumeration",
+        display_name="Markush Enumeration",
+        category="markush",
+        description=(
+            "Enumerate the library of a Markush structure. Draw the core with dummy-atom "
+            "attachment points ([*:1], [*:2]) and define substituents as \"R1: Cl, F, Br; "
+            "R2: O, N\". Supports sequential and random enumeration, library sizing without "
+            "enumerating, selected-part enumeration, and the valence filter. R-groups and atom "
+            "lists are supported; bond lists and nested R-groups are not."
+        ),
+        execution=RegistryExecution(compute=compute_markush_enumeration),
+        parameters=[
+            CalculatorParameter(
+                name="mode", label="Calculation", kind="choice",
+                default="Sequential enumeration",
+                choices=["Sequential enumeration", "Random enumeration", "Markush library size"],
+            ),
+            CalculatorParameter(
+                name="substituents", label="R-group definitions", kind="text",
+                default="R1: Cl, F, Br",
+            ),
+            CalculatorParameter(
+                name="max_structures", label="Generate maximum", kind="int",
+                default=MARKUSH_DEFAULT_MAX, minimum=1, maximum=100000,
+            ),
+            CalculatorParameter(
+                name="only_labels", label="Enumerate only R-labels (blank = all)", kind="text", default=""
+            ),
+            CalculatorParameter(name="valence_filter", label="Valence filter", kind="bool", default=True),
+            CalculatorParameter(
+                name="seed", label="Random seed (0 = none)", kind="int", default=0, minimum=0, maximum=999999
+            ),
+        ],
+        tags=["markush", "enumeration", "combinatorial", "patent"],
     ),
 ]

@@ -79,6 +79,50 @@ class NMRSpectrumResult(SpectrumResult):
 
 
 @dataclass(frozen=True, kw_only=True)
+class StructureEntry:
+    """One generated structure inside a `StructureSetResult`.
+
+    A dataclass rather than a bare tuple, and carrying `score`/`energy`
+    from the start because two consumers need them on day one: conformers
+    have energies, and resonance forms can carry a relative weight. Same
+    call Phase 22 made when it replaced a raw tuple with `CrossPeak`.
+
+    Not a `ScientificResult` itself -- it has no independent provenance or
+    cache state, existing only as an entry in a set.
+    """
+
+    molblock: str
+    label: str = ""
+    score: float | None = None
+    energy: float | None = None
+    metadata: dict = field(default_factory=dict)
+
+
+@dataclass(frozen=True, kw_only=True)
+class StructureSetResult(ScientificResult):
+    """A set of generated structures (Phase 27).
+
+    Four consumers from the start: stereoisomer enumeration, tautomer
+    enumeration, resonance forms, and Markush library enumeration -- plus
+    the conformer grid.
+
+    `total_available` is separate from `len(entries)` on purpose. A Markush
+    library can hold 10^8 members while only the first thousand are
+    generated; a UI that showed only the generated count would badly
+    misrepresent the structure's real scope. `None` means "all of them are
+    here".
+    """
+
+    set_id: str
+    name: str
+    method: str
+    molecule_uuid: str
+    entries: list[StructureEntry] = field(default_factory=list)
+    total_available: int | None = None
+    truncated: bool = False
+
+
+@dataclass(frozen=True, kw_only=True)
 class PhCurveResult(ScientificResult):
     """A property sampled across a pH range (Phase 25a).
 

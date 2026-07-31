@@ -29,6 +29,7 @@ from openchem.events.events import (
     MoleculeSelected,
     PerAtomDataComputed,
     SpectrumComputed,
+    StructureSetComputed,
 )
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.descriptor_service import DescriptorService
@@ -45,6 +46,8 @@ _CATEGORY_ORDER = [
     "logp",
     "logd",
     "molar_refractivity",
+    "structures",
+    "markush",
     "topology",
     "geometry",
     "surface",
@@ -63,6 +66,8 @@ _CATEGORY_LABELS = {
     "logp": "LogP",
     "logd": "LogD (pH-dependent)",
     "molar_refractivity": "Molar Refractivity",
+    "structures": "Structure Generators",
+    "markush": "Markush Enumeration",
     "topology": "Topology",
     "geometry": "Geometry (3D)",
     "surface": "Surface Area",
@@ -247,6 +252,7 @@ class PropertyPanel(QWidget):
         event_bus.subscribe(AlertComputed, self._on_alert_computed)
         event_bus.subscribe(PerAtomDataComputed, self._on_per_atom_data_computed)
         event_bus.subscribe(SpectrumComputed, self._on_spectrum_computed)
+        event_bus.subscribe(StructureSetComputed, self._on_structure_set_computed)
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
@@ -433,6 +439,22 @@ class PropertyPanel(QWidget):
         ):
             self._pending_calculator_id = None
             self._open_inspector(spectrum)
+
+    def _on_structure_set_computed(self, event: StructureSetComputed) -> None:
+        # Phase 27: a structure-generating calculator (stereoisomers,
+        # tautomers, resonance, Markush) produces a StructureSetResult.
+        # Matched on set_id the same way the spectrum path matches
+        # spectrum_type. Every generator's set_id is deliberately equal to
+        # its registered calculator_id so no mapping table is needed -- they
+        # were aligned before shipping rather than bridged afterwards.
+        structure_set = event.structure_set
+        if (
+            self._pending_calculator_id is not None
+            and structure_set.set_id == self._pending_calculator_id
+            and structure_set.molecule_uuid == self._selected_molecule_uuid
+        ):
+            self._pending_calculator_id = None
+            self._open_inspector(structure_set)
 
     def _open_calculator(self, definition: CalculatorDefinition) -> None:
         if self._project is None or self._selected_molecule_uuid is None:
