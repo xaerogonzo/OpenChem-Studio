@@ -6,7 +6,8 @@
   "counts": {
    "exact": 71,
    "equivalent": 49,
-   "wrong_structure": 4
+   "gate_disagreement": 2,
+   "wrong_structure": 2
   },
   "outcomes": [
    "exact",
@@ -40,7 +41,7 @@
    "exact",
    "exact",
    "exact",
-   "wrong_structure",
+   "gate_disagreement",
    "exact",
    "exact",
    "exact",
@@ -121,7 +122,7 @@
    "equivalent",
    "equivalent",
    "exact",
-   "wrong_structure",
+   "gate_disagreement",
    "exact",
    "equivalent",
    "equivalent",

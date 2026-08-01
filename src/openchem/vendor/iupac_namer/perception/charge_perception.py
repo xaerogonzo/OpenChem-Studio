@@ -78,6 +78,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Iterable, Literal
 
+from openchem.vendor.iupac_namer import diagnostics as _diagnostics
 from openchem.vendor.iupac_namer.types import (
     Choice,
     DecisionContext,
@@ -344,6 +345,64 @@ def classify_charges(mol) -> tuple[ChargeClassification, ...]:
 # ---------------------------------------------------------------------------
 
 
+def _record_render_outcome(cls, mol, text, stage: str) -> None:
+    """Instrument a render attempt whose classification passed the gates.
+
+    Both dispatch entries return ``None`` when the renderer declines, and
+    ``None`` does NOT mean "no name": the engine falls through to the
+    generic plan search, which neutralizes the molecule and names the
+    neutral skeleton.  A renderer gap therefore surfaces as a silently
+    WRONG STRUCTURE -- benzyl cation as ``methylbenzene`` -- rather than
+    as a visible failure.
+
+    The coverage gates upstream have already proved the classification
+    claims every formal charge, so any call here with ``text is None`` is
+    a renderer that needs extending.  These gaps can only be found by
+    measuring, never by reading, because the code emitting the wrong
+    answer is working exactly as written.
+
+    Off unless ``OPENCHEM_NAMER_DEBUG`` is set (or a ``diagnostics.capture()``
+    scope is open); the canonical-SMILES cost is paid only when recording.
+    """
+    if not _diagnostics.enabled():
+        return
+    _diagnostics.record(
+        cls.suffix_hint,
+        smiles=_diagnostic_smiles(mol),
+        succeeded=text is not None,
+        stage=stage,
+    )
+
+
+def _diagnostic_smiles(mol) -> str:
+    from rdkit import Chem as _Chem
+
+    try:
+        return _Chem.MolToSmiles(mol)
+    except Exception:  # diagnostics must never break naming
+        return "<unserialisable>"
+
+
+def _record_gap(mol, reason: str, stage: str, suffix_hint: str = "") -> None:
+    """Record a charged molecule being handed back to the plan search.
+
+    Gated on the molecule actually carrying a formal charge: ``detect``
+    runs for every molecule the engine names, and a neutral one declining
+    here is the normal path, not a gap.  Recording those would bury the
+    handful of real cases under thousands of uninteresting ones.
+    """
+    if not _diagnostics.enabled():
+        return
+    if not any(a.GetFormalCharge() != 0 for a in mol.GetAtoms()):
+        return
+    _diagnostics.record_gap(
+        reason,
+        smiles=_diagnostic_smiles(mol),
+        stage=stage,
+        suffix_hint=suffix_hint,
+    )
+
+
 def detect(
     mol,
     output_form: OutputForm,
@@ -414,6 +473,11 @@ def detect(
 
     classifications = classify_charges(mol)
     if len(classifications) != 1:
+        _record_gap(
+            mol,
+            "unclaimed" if not classifications else "ambiguous",
+            "charge_perception.detect",
+        )
         return None
     cls = classifications[0]
 
@@ -423,6 +487,9 @@ def detect(
         a.GetIdx() for a in mol.GetAtoms() if a.GetFormalCharge() != 0
     )
     if not charged_idx.issubset(set(cls.site_atom_indices)):
+        _record_gap(
+            mol, "partial_claim", "charge_perception.detect", cls.suffix_hint
+        )
         return None
 
     # Stage 7: closed-shell-only gate.  Radical-cation motifs route
@@ -437,9 +504,16 @@ def detect(
     if cls.site_charges:
         net_charge = sum(a.GetFormalCharge() for a in mol.GetAtoms())
         if sum(cls.site_charges) != net_charge:
+            _record_gap(
+                mol,
+                "charge_sum_mismatch",
+                "charge_perception.detect",
+                cls.suffix_hint,
+            )
             return None
 
     text = _render(cls, mol, strategy=strategy, session=session, depth=depth)
+    _record_render_outcome(cls, mol, text, "charge_perception.detect")
     if text is None:
         return None
 
@@ -518,6 +592,7 @@ def detect_pre_validation(
         return None
 
     text = _render(cls, mol, strategy=strategy, session=session, depth=depth)
+    _record_render_outcome(cls, mol, text, "charge_perception.detect_pre_validation")
     if text is None:
         return None
     return LeafTree(
