@@ -78,6 +78,8 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Iterable, Literal
 
+import re
+
 from openchem.vendor.iupac_namer import diagnostics as _diagnostics
 from openchem.vendor.iupac_namer.types import (
     Choice,
@@ -85,7 +87,11 @@ from openchem.vendor.iupac_namer.types import (
     FreeValenceInfo,
     LeafTree,
     OutputForm,
+    SubstituentMethod,
 )
+
+# Trailing "-<n>-" of a substituent stem, e.g. the "2" of "propan-2-".
+_TRAILING_LOCANT_RE = re.compile(r"-(\d+)-$")
 
 
 @lru_cache(maxsize=1)
@@ -2933,15 +2939,119 @@ def _render_simple_carbon(
     parent_name = _drive_engine(parent_smiles, strategy, session, depth)
     if parent_name is None:
         return None
-    # We need to know the locant of c_idx in the parent's numbering.
-    # For this module's scope (single charged C on a chain or
-    # cyclohexane), locant 1 is always correct: the alpha carbon of
-    # the chain is numbered 1, and a monosubstituted cyclohexane is
-    # numbered with the substituent at 1.  The unit tests pin every
-    # locant we emit through the OPSIN round-trip.
-    locant = 1
     suffix = "ylium" if cls.is_cation else "ide"
-    return _splice_alkane_suffix(parent_name, locant, suffix)
+
+    # Where does the charge sit in the parent's numbering?  This used to be
+    # hardcoded to 1, on the reasoning that the alpha carbon of a chain and
+    # the substituted carbon of a monosubstituted cyclohexane are both
+    # numbered 1.  That is true only for a TERMINAL charge, which is all the
+    # four audit compounds had, so the OPSIN round-trip never exercised
+    # anything else -- and every non-terminal case came out wrong:
+    # C[CH+]C as "propan-1-ylium" (it is propan-2-ylium) and
+    # [CH2+]C1CCCCC1 as "methylcyclohexan-1-ylium", which is a different
+    # molecule (the charge moved onto the ring).
+    #
+    # Rather than reimplement parent selection, ask the engine to name the
+    # skeleton as a SUBSTITUENT anchored at the charged atom.  The free
+    # valence is the anchor that forces the parent to contain that atom and
+    # to number it as low as possible -- exactly the constraint the -ylium /
+    # -ide suffix imposes (P-31.1.4).  The engine already gets this right:
+    # propan-2-yl, 2-methylpropan-2-yl, pentan-3-yl, cyclohexylmethyl.
+    # elide_locant_one=False asks for the uncontracted form, so the
+    # attachment locant is stated even when it is 1 ("ethan-1-yl", not
+    # "ethyl").  That makes the conversion uniform: strip "yl", append
+    # "ylium" / "ide".
+    group = _name_as_substituent(mol, c_idx, strategy, session, depth)
+    locant, group_stem = _split_substituent_locant(group)
+    if group_stem is not None and locant is not None:
+        return f"{group_stem}{suffix}"
+
+    # No explicit attachment locant means a fully contracted ring name
+    # ("cyclohexyl"), where the charge is at ring position 1 and the
+    # parent-hydride splice gives the systematic PIN the engine has always
+    # emitted for this shape ("cyclohexan-1-ylium").
+    return _splice_alkane_suffix(parent_name, 1, suffix)
+
+
+def _name_as_substituent(
+    mol, atom_idx: int, strategy, session, depth: int
+) -> str | None:
+    """Name ``mol`` as the substituent group attached at ``atom_idx``.
+
+    Returns e.g. ``propan-2-yl`` / ``cyclohexylmethyl`` / ``ethyl``, or
+    None when the engine cannot produce a substituent form.
+    """
+    from rdkit import Chem
+
+    from openchem.vendor.iupac_namer.assembly import assemble
+    from openchem.vendor.iupac_namer.engine import name as _recursive_name
+
+    neutral = _neutral_skeleton_smiles(
+        mol, {atom_idx: {"charge": 0, "no_implicit": False}}
+    )
+    if neutral is None:
+        return None
+    # _neutral_skeleton_smiles canonicalises, which renumbers atoms, so the
+    # charged atom has to be located again in the rebuilt molecule via the
+    # atom map rather than carried over by index.
+    rw = Chem.RWMol(mol)
+    for atom in rw.GetAtoms():
+        atom.SetAtomMapNum(atom.GetIdx() + 1)
+    rw.GetAtomWithIdx(atom_idx).SetFormalCharge(0)
+    rw.GetAtomWithIdx(atom_idx).SetNoImplicit(False)
+    try:
+        Chem.SanitizeMol(rw)
+        probe = Chem.MolFromSmiles(Chem.MolToSmiles(rw.GetMol()))
+    except Exception:
+        return None
+    if probe is None:
+        return None
+    target = None
+    for atom in probe.GetAtoms():
+        if atom.GetAtomMapNum() == atom_idx + 1:
+            target = atom.GetIdx()
+        atom.SetAtomMapNum(0)
+    if target is None:
+        return None
+
+    free_valence = FreeValenceInfo(
+        bond_orders=(1,),
+        method=SubstituentMethod.ALKANYL,
+        attachment_atoms_in_fragment=(target,),
+        # Keep the locant even when it is 1: the caller uses its presence to
+        # tell "the engine numbered the attachment" from a contracted ring
+        # name that carries no attachment locant at all.
+        elide_locant_one=False,
+    )
+    try:
+        tree = _recursive_name(
+            probe,
+            strategy,
+            OutputForm.SUBSTITUENT,
+            free_valence=free_valence,
+            decision_ctx=None,
+            _session=session,
+            _depth=depth + 1,
+        )
+        return assemble(tree)
+    except Exception:
+        return None
+
+
+def _split_substituent_locant(group: str | None) -> tuple[int | None, str | None]:
+    """Split a ``-yl`` substituent name into (locant, stem-without-'yl').
+
+    ``propan-2-yl`` -> ``(2, "propan-2-")``; ``cyclohexylmethyl`` ->
+    ``(None, "cyclohexylmethyl")``; a non-``yl`` name -> ``(None, None)``.
+    The stem keeps everything up to the final ``yl`` so the caller can
+    append ``ylium`` / ``ide`` directly.
+    """
+    if not group or not group.endswith("yl"):
+        return None, None
+    stem = group[: -len("yl")]
+    match = _TRAILING_LOCANT_RE.search(stem)
+    locant = int(match.group(1)) if match else None
+    return locant, stem
 
 
 def _splice_alkane_suffix(parent_name: str, locant: int, suffix: str) -> str:

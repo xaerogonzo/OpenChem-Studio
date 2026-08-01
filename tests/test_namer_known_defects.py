@@ -1,0 +1,154 @@
+"""Severity-A regression suite for the vendored IUPAC engine.
+
+SEVERITY A MEANS THE ENGINE NAMED THE WRONG MOLECULE. Not a debatable
+choice between two valid names -- a name that denotes something else.
+The benzyl cation came out as `methylbenzene`, which is toluene; the
+phthaloyl dication as `1,2-bis(oxomethyl)benzene`, which is
+phthalaldehyde. Both were emitted with complete confidence and nothing in
+the output to suggest a problem.
+
+That is why this file lives in the DEFAULT test suite rather than in
+tests/vendor/, which is excluded from the normal run because it takes
+seven minutes. A wrong-molecule regression must surface on every run, not
+only when somebody remembers to invoke the vendored suite. Everything
+here is a single `name_smiles` call, so the whole file costs a second or
+two.
+
+Each expected name below was verified through the engine's own
+correctness criterion -- parse it back with OPSIN and confirm it yields
+the input structure, checked on canonical SMILES AND full InChIKey. That
+verification needs a JRE, so it lives in the vendored suite; what is
+pinned here is the resulting string, which needs nothing but RDKit.
+
+`former` records what the engine used to emit. It is not decoration: when
+one of these regresses, the failure message shows the wrong answer it
+regressed to, which is usually enough to identify the cause without
+bisecting.
+
+OPEN defects are marked xfail(strict=True). If one starts passing the
+test FAILS, which is the intended alarm -- it means somebody fixed it and
+this file needs updating rather than silently drifting out of date.
+"""
+
+from __future__ import annotations
+
+import pytest
+
+from openchem.vendor.iupac_namer import name_smiles
+
+# (defect id, SMILES, correct name, name formerly emitted, what went wrong)
+FIXED: list[tuple[str, str, str, str, str]] = [
+    # --- D-001: ring polyacylium named as its neutral aldehyde ----------
+    # _diacid_name_to_polyacylium had no rule for a "-carboxylic acid"
+    # parent, returned None, and None routes to the plan-search
+    # neutralizer instead of failing.
+    ("D-001a", "O=[C+]c1ccccc1[C+]=O", "benzene-1,2-dicarbonylium",
+     "1,2-bis(oxomethyl)benzene", "charge dropped; phthalaldehyde"),
+    ("D-001b", "O=[C+]c1cccc([C+]=O)c1", "benzene-1,3-dicarbonylium",
+     "1,3-bis(oxomethyl)benzene", "charge dropped"),
+    ("D-001c", "O=[C+]c1ccc([C+]=O)cc1", "benzene-1,4-dicarbonylium",
+     "1,4-bis(oxomethyl)benzene", "charge dropped"),
+    ("D-001d", "O=[C+]C1CCCCC1[C+]=O", "cyclohexane-1,2-dicarbonylium",
+     "1,2-bis(oxomethyl)cyclohexane", "charge dropped"),
+    ("D-001e", "O=[C+]c1ccc2ccccc2c1[C+]=O", "naphthalene-1,2-dicarbonylium",
+     "1,2-bis(oxomethyl)naphthalene", "charge dropped"),
+    ("D-001f", "O=[C+]c1ccncc1[C+]=O", "pyridine-3,4-dicarbonylium",
+     "3,4-bis(oxomethyl)pyridine", "charge dropped"),
+    ("D-001g", "O=[C+]c1cc([C+]=O)cc([C+]=O)c1", "benzene-1,3,5-tricarbonylium",
+     "1,3,5-tris(oxomethyl)benzene", "charge dropped (trication)"),
+
+    # --- D-005: -ylium / -ide locant hardcoded to 1 ---------------------
+    # _render_simple_carbon assumed the charged carbon is always at
+    # position 1. True for the four terminal-charge audit compounds it was
+    # written against, false for everything else -- and because no test
+    # exercised a non-terminal charge, the OPSIN round-trip never caught
+    # it. Now the engine is asked to name the skeleton as a SUBSTITUENT
+    # anchored at the charged atom, so its own parent selection and
+    # numbering decide.
+    ("D-005a", "C[CH+]C", "propan-2-ylium",
+     "propan-1-ylium", "charge moved to C1; isopropyl vs n-propyl cation"),
+    ("D-005b", "C[C-](C)C", "2-methylpropan-2-ide",
+     "isobutan-1-ide", "charge moved to a methyl carbon"),
+    ("D-005c", "C[C+](C)C", "2-methylpropan-2-ylium",
+     "isobutan-1-ylium", "charge moved to a methyl carbon"),
+    ("D-005d", "[CH2+]C1CCCCC1", "cyclohexylmethan-1-ylium",
+     "methylcyclohexan-1-ylium", "charge moved onto the ring"),
+    ("D-005e", "[CH2-]C1CCCCC1", "cyclohexylmethan-1-ide",
+     "methylcyclohexan-1-ide", "charge moved onto the ring"),
+    ("D-005f", "[CH2+]CC(C)C", "3-methylbutan-1-ylium",
+     "2-methylbutan-1-ylium", "branch locant numbered from the wrong end"),
+    ("D-005g", "CC[CH+]CC", "pentan-3-ylium",
+     "pentan-1-ylium", "charge moved to C1"),
+    ("D-005h", "[CH+]1CCCC(C)C1", "3-methylcyclohexan-1-ylium",
+     "methylcyclohexan-1-ylium", "substituent locant dropped"),
+    ("D-005i", "CC(C)[CH+]C(C)C", "2,4-dimethylpentan-3-ylium",
+     "2,4-dimethylpentan-1-ylium", "charge moved to C1"),
+
+    # --- non-regression: shapes the locant fix must NOT disturb ---------
+    ("D-005j", "[CH2+]C", "ethan-1-ylium", "ethan-1-ylium", "unchanged"),
+    ("D-005k", "[CH2+]CCCC", "pentan-1-ylium", "pentan-1-ylium", "unchanged"),
+    ("D-005l", "[CH+]1CCCCC1", "cyclohexan-1-ylium", "cyclohexan-1-ylium",
+     "unchanged"),
+    ("D-005m", "[CH3+]", "methylium", "methylium", "unchanged"),
+    ("D-005n", "[CH3-]", "methanide", "methanide", "unchanged"),
+]
+
+# Measured, reproduced, not yet fixed. Every one of these currently names
+# the WRONG MOLECULE. The common shape is a charged carbon next to
+# unsaturation or aromaticity, which no classifier claims, so the charge
+# is dropped and the neutral skeleton is named.
+OPEN: list[tuple[str, str, str, str, str]] = [
+    # NB "benzylium" would be the obvious target and is WRONG: OPSIN reads
+    # it as O=[C+]c1ccccc1, the benzoyl cation. Every target in this list
+    # was checked by parsing it back, precisely to catch that.
+    ("D-002", "[CH2+]c1ccccc1", "phenylmethan-1-ylium",
+     "methylbenzene", "charge dropped; toluene"),
+    ("D-003", "c1ccc[c-]c1", "benzenide",
+     "cyclohexane", "charge AND aromaticity dropped"),
+    ("D-004", "[NH2+]=C(N)N", "guanidinium",
+     "iminomethane-1,1-diamine", "charge dropped"),
+    ("D-009", "[CH2+]C=C", "prop-2-en-1-ylium",
+     "prop-1-ene", "charge dropped; propene"),
+    ("D-010", "[CH+]=C", "ethen-1-ylium", "ethene", "charge dropped"),
+    ("D-011", "[CH2-]c1ccccc1", "phenylmethan-1-ide",
+     "methylbenzene", "charge dropped; toluene"),
+    ("D-012", "[CH2-]C=C", "prop-2-en-1-ide", "prop-1-ene", "charge dropped"),
+    ("D-013", "[CH+]=O", "oxomethylium", "oxomethane", "charge dropped"),
+    ("D-014", "[CH+](c1ccccc1)c1ccccc1", "diphenylmethylium",
+     "(phenylmethyl)benzene", "charge dropped; diphenylmethane"),
+    ("D-015", "[n-]1cccc1", "pyrrol-1-ide",
+     "1H-pyrrol-2-ide", "charge relocated from N to C"),
+    ("D-016", "[N-]=[N+]=[N-]", "azide",
+     "diiminoazanium", "wrong structure"),
+]
+
+
+@pytest.mark.parametrize(
+    "defect,smiles,expected,former,note",
+    FIXED,
+    ids=[row[0] for row in FIXED],
+)
+def test_fixed_defect_stays_fixed(defect, smiles, expected, former, note):
+    got = name_smiles(smiles)
+    assert got == expected, (
+        f"{defect} regressed ({note}).\n"
+        f"  input:    {smiles}\n"
+        f"  expected: {expected}\n"
+        f"  got:      {got}\n"
+        f"  (the original defect emitted {former!r})"
+    )
+
+
+@pytest.mark.parametrize(
+    "defect,smiles,expected,former,note",
+    OPEN,
+    ids=[row[0] for row in OPEN],
+)
+@pytest.mark.xfail(strict=True, reason="known open defect, measured not guessed")
+def test_open_defect_still_open(defect, smiles, expected, former, note):
+    """Fails when the defect is fixed -- that is the point.
+
+    A strict xfail turning green means the engine improved and this file
+    is now lying about it. Move the row from OPEN to FIXED.
+    """
+    assert name_smiles(smiles) == expected

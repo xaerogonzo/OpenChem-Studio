@@ -25,6 +25,7 @@ from unittest import mock
 
 from openchem.vendor.iupac_namer import diagnostics
 from openchem.vendor.iupac_namer.engine import name_smiles
+from openchem.vendor.iupac_namer.perception import charge_perception
 
 
 class TestEnablement:
@@ -68,10 +69,16 @@ class TestGateAttribution:
         reasons = {g.reason for g in rec.gaps}
         assert "unclaimed" in reasons, rec.report()
 
-    def test_render_failed_when_claimed_motif_cannot_be_composed(self):
-        # Ring polyacylium IS claimed (suffix_hint 'polyacylium') but the
-        # renderer has no rule for a "-dicarboxylic acid" parent, so the
-        # fix belongs in the renderer.
+    def test_render_failed_when_claimed_motif_cannot_be_composed(self, monkeypatch):
+        """A claimed motif whose renderer declines is attributed to the
+        renderer, not to a missing classifier.
+
+        The renderer is forced to decline rather than using a live defect
+        as the example: this test previously used the ring polyacylium
+        dication, and went stale the moment that case was fixed. What is
+        being pinned is the instrument, not the current defect list.
+        """
+        monkeypatch.setattr(charge_perception, "_render", lambda *a, **k: None)
         with diagnostics.capture() as rec:
             name_smiles("O=[C+]c1ccccc1[C+]=O")
         failed = [g for g in rec.gaps if g.reason == "render_failed"]
