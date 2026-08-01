@@ -249,6 +249,26 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-020c", "c1ccccc1NC(N)=[NH2+]", "phenylguanidinium",
      "N-(aminoiminomethyl)benzen-1-amine", "as above"),
 
+    # --- D-025: more than one N-substituent on guanidinium --------------
+    # Guanidine numbers the charged (imino) nitrogen 2 and the two amino
+    # nitrogens 1 and 3. Lowest locants go to the more heavily substituted
+    # amino nitrogen, which is what makes the trimethyl case 1,1,3- rather
+    # than 1,3,3-.
+    ("D-025", "CNC(NC)=[NH2+]", "1,3-dimethylguanidinium",
+     "1-imino-N,N'-dimethylmethane-1,1-diamine", "charge dropped"),
+    ("D-025b", "CN(C)C(N)=[NH2+]", "1,1-dimethylguanidinium",
+     "N-(aminoiminomethyl)-N-methylmethanamine",
+     "both substituents on one nitrogen"),
+    ("D-025c", "CNC(=[NH2+])N(C)C", "1,1,3-trimethylguanidinium",
+     "N-[(imino)(methylamino)methyl]-N-methylmethanamine",
+     "lowest locants to the more substituted nitrogen"),
+    ("D-025d", "CNC(N)=[NH+]C", "1,2-dimethylguanidinium",
+     "N-{amino[amino(methyl)azaniumylidene]methyl}methanamine",
+     "the charged nitrogen is locant 2"),
+    ("D-025e", "CCNC(=[NH2+])NC", "1-ethyl-3-methylguanidinium",
+     "N-ethyl-1-imino-N'-methylmethane-1,1-diamine",
+     "different prefixes, alphabetical order"),
+
     # --- non-regression: motifs the relaxed gate must NOT steal ---------
     ("D-013x", "[C+](C)=O", "acetylium", "acetylium", "unchanged"),
     ("D-013y", "CC(=[NH2+])N", "acetamidinium", "acetamidinium", "unchanged"),
@@ -361,18 +381,18 @@ OPEN: list[tuple[str, str, str, str, str]] = [
     # (tests/vendor/iupac_namer/test_known_defects.py), precisely to catch
     # that class of mistake before it becomes someone's goal.
 
-    # Ring-embedded charge-separated group plus a carbocation. The N-oxide
-    # is named additively as the two-word "pyridine 1-oxide", and nothing
-    # can be spliced onto that -- the simple-carbon classifier therefore
-    # declines when any other charged atom is in a ring, and the molecule
-    # falls through to the neutralizer.
+    # A ring N-oxide in SUBSTITUENT position. Additive nomenclature is the
+    # engine's only N-oxide renderer, and it works as a top-level wrapper:
+    # strip the exocyclic [O-], name what is left, append " 1-oxide". When
+    # the core carries a charge suffix that produces
+    # "(pyridin-4-yl)methan-1-ylium 1-oxide", which is not a valid name --
+    # the oxide has to go INLINE, as "1-oxido...-1-ium". That substitutive
+    # form is a naming capability the engine does not have, not a missing
+    # table entry: a curated ring entry keyed on the N-oxide ring was tried
+    # and is dead data, because the additive path strips the oxide before
+    # ring lookup.
     ("D-024", "[CH2+]c1cc[n+]([O-])cc1", "(1-oxidopyridin-1-ium-4-yl)methylium",
-     "4-methylpyridine 1-oxide", "charge dropped"),
-    # More than one N-substituent on guanidinium: the locants would have to
-    # be assigned across the guanidine skeleton, so the classifier declines
-    # rather than half-naming it. The mono-substituted case (D-020) works.
-    ("D-025", "CNC(NC)=[NH2+]", "1,3-dimethylguanidinium",
-     "1-imino-N,N'-dimethylmethane-1,1-diamine", "charge dropped"),
+     "(pyridin-4-yl)methan-1-ylium 1-oxide", "unparsable; oxide cannot wrap a cation"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified

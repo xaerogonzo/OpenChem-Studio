@@ -685,11 +685,12 @@ def _classify_guanidinium(mol) -> Iterable[ChargeClassification]:
     ``guanidinium`` its retained cation (P-73.1, "-ium" on the parent
     name), so the surface name is emitted directly rather than composed.
 
-    A neutral nitrogen may carry ONE substituent between them
-    (``CNC(N)=[NH2+]`` -> ``methylguanidinium``); the renderer names it as a
-    prefix.  More than one is declined rather than half-named, because the
-    locants would have to be assigned across the guanidine skeleton and a
-    classifier that claims what it cannot render now raises.
+    Any of the three nitrogens may carry substituents; the renderer names
+    them as prefixes with locants.  Guanidine numbers the charged (imino)
+    nitrogen **2** and the two amino nitrogens 1 and 3, so
+    ``CNC(NC)=[NH2+]`` is ``1,3-dimethylguanidinium`` and
+    ``CN(C)C(N)=[NH2+]`` -- both methyls on one nitrogen -- is
+    ``1,1-dimethylguanidinium``.
     """
     for atom in mol.GetAtoms():
         if atom.GetAtomicNum() != 6 or atom.GetFormalCharge() != 0:
@@ -708,26 +709,24 @@ def _classify_guanidinium(mol) -> Iterable[ChargeClassification]:
             if (
                 other.GetFormalCharge() == 1
                 and bond.GetBondTypeAsDouble() == 2.0
-                and other.GetDegree() == 1
-                and other.GetTotalNumHs() == 2
+                and other.GetDegree() in (1, 2)
                 and n_plus is None
             ):
+                # degree 2 == one substituent besides the central carbon
+                substituents += other.GetDegree() - 1
                 n_plus = other.GetIdx()
                 continue
             if (
                 other.GetFormalCharge() == 0
                 and bond.GetBondTypeAsDouble() == 1.0
-                and other.GetDegree() in (1, 2)
+                and other.GetDegree() in (1, 2, 3)
             ):
-                # degree 2 == one substituent besides the central carbon
                 substituents += other.GetDegree() - 1
                 neutral_ns.append(other.GetIdx())
                 continue
             other_neighbour = True
             break
         if other_neighbour or n_plus is None or len(neutral_ns) != 2:
-            continue
-        if substituents > 1:
             continue
         yield ChargeClassification(
             site_atom_indices=(atom.GetIdx(), n_plus, *neutral_ns),
@@ -3335,27 +3334,72 @@ def _render_guanidinium(
     session,
     depth: int,
 ) -> str | None:
-    """Render ``methylguanidinium``: one N-substituent as a prefix.
+    """Render ``methylguanidinium`` / ``1,3-dimethylguanidinium`` etc.
+
+    Guanidine numbers the charged (imino) nitrogen **2** and the two amino
+    nitrogens 1 and 3.  Lowest locants go to the more heavily substituted
+    amino nitrogen, which is what makes ``CNC(=[NH2+])N(C)C``
+    ``1,1,3-trimethylguanidinium`` rather than ``1,3,3-``.
 
     The unsubstituted parent never reaches here -- the classifier gives it
     ``surface_name="guanidinium"`` directly.
     """
     from rdkit import Chem
 
-    core = set(cls.site_atom_indices)
-    c_idx, _n_plus, *neutral_ns = cls.site_atom_indices
-    roots = [
-        nb.GetIdx()
-        for n in neutral_ns
-        for nb in mol.GetAtomWithIdx(n).GetNeighbors()
-        if nb.GetIdx() not in core
-    ]
-    if len(roots) != 1:
-        return None
-    root = roots[0]
+    from openchem.vendor.iupac_namer.data_loader import get_multiplier
 
-    # Carve the substituent branch: everything reachable from its root
-    # without stepping back into the guanidine core.
+    core = set(cls.site_atom_indices)
+    _c_idx, n_plus, *amino = cls.site_atom_indices
+
+    def branches(n_idx: int) -> list[int]:
+        return [
+            nb.GetIdx()
+            for nb in mol.GetAtomWithIdx(n_idx).GetNeighbors()
+            if nb.GetIdx() not in core
+        ]
+
+    # More substituents wins locant 1; ties are symmetric so either order
+    # gives the same name.
+    first, third = sorted(amino, key=lambda n: -len(branches(n)))
+    locant_of = {first: 1, n_plus: 2, third: 3}
+
+    prefixed: list[tuple[int, str]] = []
+    for n_idx, locant in locant_of.items():
+        for root in branches(n_idx):
+            name = _name_branch_as_prefix(mol, core, root, strategy, session, depth)
+            if not name:
+                return None
+            prefixed.append((locant, name))
+    if not prefixed:
+        return "guanidinium"
+
+    # A lone substituent needs no locant: 1 and 3 are equivalent when only
+    # one of them is substituted, so "methylguanidinium" is unambiguous.
+    if len(prefixed) == 1:
+        return f"{prefixed[0][1]}guanidinium"
+
+    grouped: dict[str, list[int]] = {}
+    for locant, name in prefixed:
+        grouped.setdefault(name, []).append(locant)
+    parts = []
+    for name in sorted(grouped):
+        locants = sorted(grouped[name])
+        mult = get_multiplier(len(locants), complex=False) or "" if len(locants) > 1 else ""
+        parts.append(f"{','.join(str(x) for x in locants)}-{mult}{name}")
+    return f"{'-'.join(parts)}guanidinium"
+
+
+def _name_branch_as_prefix(
+    mol, core: set[int], root: int, strategy, session, depth: int
+) -> str | None:
+    """Name the branch hanging off ``root`` as a substituent prefix.
+
+    The branch is carved out of the molecule first so the engine sees only
+    the substituent, then named with the locant elided so it reads as an
+    ordinary prefix ("methyl", not "methan-1-yl").
+    """
+    from rdkit import Chem
+
     branch: set[int] = set()
     stack = [root]
     while stack:
@@ -3380,12 +3424,9 @@ def _render_guanidinium(
         Chem.SanitizeMol(frag)
     except Exception:
         return None
-    prefix = _name_as_substituent(
+    return _name_as_substituent(
         frag, new_root, strategy, session, depth, elide_locant_one=True
     )
-    if not prefix:
-        return None
-    return f"{prefix}guanidinium"
 
 
 def _render_diazonium_ylide(

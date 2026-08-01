@@ -37,15 +37,34 @@ Two of those fall-through reasons now raise instead of neutralizing — see
 
 ## Open defects (severity A — wrong molecule)
 
-| id | input | emits | should be | why |
-|---|---|---|---|---|
-| D-024 | `[CH2+]c1cc[n+]([O-])cc1` | `4-methylpyridine 1-oxide` | `(1-oxidopyridin-1-ium-4-yl)methylium` | a ring-embedded charge-separated group makes the parent an additive two-word name (`pyridine 1-oxide`), and nothing can be spliced onto that |
-| D-025 | `CNC(NC)=[NH2+]` | `1-imino-N,N'-dimethylmethane-1,1-diamine` | `1,3-dimethylguanidinium` | more than one N-substituent on guanidinium needs locants assigned across the skeleton; the mono-substituted case (D-020) works |
+One remains.
 
-Both are declined deliberately rather than half-named: with the refusal guard
-in place, a classifier that claims what it cannot render raises instead of
-mis-naming, which would be a regression on an answer that is at least
-currently produced.
+| id | input | emits | should be |
+|---|---|---|---|
+| D-024 | `[CH2+]c1cc[n+]([O-])cc1` | `(pyridin-4-yl)methan-1-ylium 1-oxide` (unparsable) | `(1-oxidopyridin-1-ium-4-yl)methylium` |
+
+**A ring N-oxide in substituent position.** Additive nomenclature is the
+engine's only N-oxide renderer, and it works as a top-level wrapper: strip the
+exocyclic `[O-]`, name what is left, append ` 1-oxide`. That is right for
+`pyridine 1-oxide` and for `pyridine-4-carboxylic acid 1-oxide`, but when the
+core carries a charge suffix it produces `…-ylium 1-oxide`, which is not a
+valid name — the oxide has to go INLINE, as `1-oxido…-1-ium`.
+
+The fix is a naming capability the engine does not have, not a missing table
+entry, and two cheaper routes were tried and rejected:
+
+* A curated ring entry keyed on the N-oxide ring (`[O-][n+]1ccccc1`) with a
+  `substituent_form` is **dead data** — the additive path strips the oxide
+  *before* ring lookup, so the ring reaching the table is plain pyridine.
+* Composing the name by hand from parts the engine does give
+  (`pyridinium-4-yl` plus a `1-oxido` prefix) means reimplementing substituent
+  assembly for one molecular shape, which is the sort of narrow special case
+  this engine has been having removed from it.
+
+What it actually needs is for the additive-versus-substitutive choice to be
+made with the output form in view, so a ring N-oxide destined for substituent
+position takes the `1-oxido…-1-ium` form. The additive path currently lives
+inside plan search and is not output-form aware.
 
 ### Observed, no verified target
 
@@ -64,7 +83,8 @@ rows are now characterised, and **two of them are not engine errors at all**.
 
 (The corpus has since grown to 165 rows; the current score is **163/165**.
 Zero wrong structures, zero refusals, zero unparsable names: the only two
-failures are the tautomers below, which are not errors.)
+failures are the tautomers below, which are not errors. D-024 is not in the
+corpus.)
 
 ### Tautomers — the engine is defensible
 

@@ -102,6 +102,31 @@ Fourteen inputs that named the wrong compound. All are pinned in
 
 Benchmark unchanged at 120/124 across all of the above, stereochemistry 11/11.
 
+## 2026-08-01 — poly-N-substituted guanidinium
+
+D-025.  Guanidinium with more than one N-substituent was declined by the
+classifier and fell through to the neutralizer, so `CNC(NC)=[NH2+]` came out
+as `1-imino-N,N'-dimethylmethane-1,1-diamine` with the charge gone.
+
+Guanidine numbers the charged (imino) nitrogen **2** and the two amino
+nitrogens 1 and 3.  Lowest locants go to the more heavily substituted amino
+nitrogen, which is what makes `CNC(=[NH2+])N(C)C` `1,1,3-trimethylguanidinium`
+rather than `1,3,3-`.  Substituents are carved out, named as prefixes by the
+engine, grouped by name, and emitted with multiplicity and alphabetical order:
+
+  CNC(NC)=[NH2+]      -> 1,3-dimethylguanidinium
+  CN(C)C(N)=[NH2+]    -> 1,1-dimethylguanidinium
+  CNC(=[NH2+])N(C)C   -> 1,1,3-trimethylguanidinium
+  CNC(N)=[NH+]C       -> 1,2-dimethylguanidinium
+  CCNC(=[NH2+])NC     -> 1-ethyl-3-methylguanidinium
+
+A lone substituent keeps the locant-free form (`methylguanidinium`): 1 and 3
+are equivalent when only one is substituted, so it is unambiguous.
+
+D-024 -- a ring N-oxide in substituent position -- remains open and is now
+characterised in `KNOWN_LIMITATIONS.md`, including the two cheaper fixes that
+were tried and rejected.
+
 ## 2026-08-01 — the last five open severity-A defects
 
 Cleared the open list. Each had a different cause, and two of them turned out

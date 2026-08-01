@@ -62,7 +62,7 @@ name is right when parsing it back yields the structure it came from. Writing
 it fixed **7 of the 12 failures** — those tests were failing because of the
 missing module, not on their merits.
 
-Current state: **3,156 passing, 0 failing, 16 skipped** in ~7 minutes.
+Current state: **3,165 passing, 0 failing, 16 skipped** in ~7 minutes.
 
 The five that were still failing turned out not to be engine defects: they
 asserted a non-minimal lambda numbering and three general-nomenclature-only
@@ -73,11 +73,11 @@ Investigating them exposed something worse than a red test, which is now the
 main reason this directory carries its own documentation: inputs that name
 *successfully* but to the **wrong molecule**. The benzyl cation was named
 `methylbenzene` (toluene); the phthaloyl dication `1,2-bis(oxomethyl)benzene`
-(phthalaldehyde). **Fifty-nine** such cases have been fixed and are pinned in
+(phthalaldehyde). **Sixty-four** such cases have been fixed and are pinned in
 `tests/test_namer_known_defects.py`, alongside 29 non-regression rows guarding
 the paths the fixes could have stolen from. It runs in the DEFAULT suite,
-because a wrong-molecule regression must not wait for the 7-minute run. Two
-remain open and are recorded in `KNOWN_LIMITATIONS.md`.
+because a wrong-molecule regression must not wait for the 7-minute run. ONE
+remains open and is recorded in `KNOWN_LIMITATIONS.md`.
 
 The benchmark now reports **zero wrong structures** across its 165 molecules,
 and nothing refused or unparsable: the only two failures are tautomers.

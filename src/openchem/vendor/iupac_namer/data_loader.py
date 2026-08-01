@@ -796,6 +796,11 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # numbering directions are equivalent by C2v symmetry; we pick one.
     "c1ccncc1":        {"name": "pyridine",   "substituent_form": "pyridinyl",   "alkyl_stem_ok": False,
                         "atom_locants": {3: 1, 2: 2, 1: 3, 0: 4, 5: 5, 4: 6}},
+    # NB a curated entry keyed on the N-oxide ring ("[O-][n+]1ccccc1") would
+    # be dead data: the additive N-oxide path strips the exocyclic [O-]
+    # before ring lookup, names what is left, and appends " 1-oxide", so the
+    # ring that reaches this table is plain pyridine.  Tried and removed.
+    # See D-024 in KNOWN_LIMITATIONS.md.
     # 1,4-dihydropyridine — DHP drugs (nifedipine class). RDKit canonical: C1=CNC=CC1
     # Atom_locants: N(idx2)=pos1, C(idx1, adj-N, C=C)=pos2, C(idx0, adj-sp3, C=C)=pos3,
     #               C(idx5, sp3)=pos4, C(idx4, adj-sp3, C=C)=pos5, C(idx3, adj-N, C=C)=pos6
