@@ -173,6 +173,92 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "2-(3-methyl-5-oxo-1-phenyl-4,5-dihydro-1H-pyrazol-4-yl)ethanenitrile",
      "2-(3-methyl-1-phenyl-5-pyrazolon-4-yl)ethanenitrile", "as above"),
 
+    # --- D-013 / D-018: the all-carbon classifier gate ------------------
+    # _classify_simple_carbon_charge required EVERY atom to be carbon, far
+    # stronger than the reason for the gate: heteroatom motifs (acylium,
+    # iminium, amidinium) all have the heteroatom bonded directly to the
+    # charged atom, so checking the charged atom's own NEIGHBOURS is
+    # enough. The stronger form left any charge on a hetero-containing
+    # skeleton unclaimed, and unclaimed means neutralized.
+    ("D-018", "[CH2+]c1ccncc1", "(pyridin-4-yl)methan-1-ylium",
+     "4-methylpyridine", "charge dropped"),
+    ("D-018b", "[CH2-]c1ccncc1", "(pyridin-4-yl)methan-1-ide",
+     "4-methylpyridine", "charge dropped"),
+    ("D-018c", "[CH2+]c1ccco1", "(furan-2-yl)methan-1-ylium",
+     "2-methylfuran", "charge dropped"),
+    ("D-018d", "[CH2+]COC", "2-methoxyethan-1-ylium",
+     "1-methoxyethane", "charge dropped"),
+    # Charge-separated groups elsewhere (nitro, azido) carry no net charge
+    # and are ordinary prefixes, but detect()'s coverage gate needs them
+    # claimed or it refuses the molecule.
+    ("D-018e", "[CH2+]c1ccc([N+](=O)[O-])cc1", "(4-nitrophenyl)methan-1-ylium",
+     "4-methyl-1-nitrobenzene", "charge dropped"),
+    ("D-018f", "[CH2+]CN=[N+]=[N-]", "2-azidoethan-1-ylium",
+     "1-azidoethane", "charge dropped"),
+    # Formylium is the R=H acylium. _classify_acylium cannot reach it --
+    # it demands no hydrogen on the [C+] and a single-bonded R, and
+    # formylium has one H and no R -- so the single species is curated.
+    ("D-013", "[CH+]=O", "formylium", "oxomethane", "charge dropped"),
+
+    # --- D-015: azolide charge relocated from N to C --------------------
+    # Worse than dropping the charge: the plan search MOVED it, naming
+    # pyrrolide "1H-pyrrol-2-ide" with the charge on a ring carbon. The
+    # ring-anion classifier now covers nitrogen as well as carbon. The
+    # trap was the neutralization probe: an aromatic ring N needs its
+    # hydrogen stated EXPLICITLY or the ring will not kekulize, which
+    # presented as "not an aromatic ring anion" and skipped the family.
+    ("D-015", "[n-]1cccc1", "1H-pyrrol-1-ide",
+     "1H-pyrrol-2-ide", "charge relocated from N to C"),
+    ("D-015b", "[n-]1ccnc1", "1H-imidazol-1-ide",
+     "1,3-diazol-3-ide", "Hantzsch-Widman stem instead of the retained PIN"),
+    ("D-015c", "c1nnn[n-]1", "1H-tetrazol-1-ide",
+     "1,2,3,4-tetraazol-1-ide", "as above"),
+    ("D-015d", "[n-]1cccn1", "1H-pyrazol-1-ide",
+     "1,2-diazol-2-ide", "as above"),
+    # NOT a defect fix, recorded so the change is not mistaken for one:
+    # the fused azolide was ALREADY correct as "1H-indol-1-ide". Routing it
+    # through the ring-anion classifier changed it to "indol-1-ide", which
+    # round-trips just as well. One right name replaced another.
+    ("D-015e", "[n-]1ccc2ccccc21", "indol-1-ide",
+     "1H-indol-1-ide", "was already correct; wording changed"),
+
+    # --- D-019: diazoalkane ylide ---------------------------------------
+    # Net-neutral but carrying both a carbanion and a diazonium.
+    # _classify_diazonium claimed only the two nitrogens, leaving the
+    # carbanion uncovered, so the coverage gate refused the molecule.
+    # Named as the carbanion's own "-ide" name + "yldiazonium", which
+    # delegates parent selection and locants to the renderer that already
+    # gets them right.
+    ("D-019", "[CH2-][N+]#N", "methanidyldiazonium",
+     "(azanylidyne)(methyl)azanium", "gained an H; emitted the cation"),
+    ("D-019b", "C[CH-][N+]#N", "ethan-1-id-1-yldiazonium",
+     "<raised: partial_claim>", "generalises to diazoalkanes"),
+    # The diazonium sits on the SAME carbon as the charge, so its locant
+    # must be stated: "propan-2-idyl" lets OPSIN default the attachment to
+    # C1, giving the 1-diazonio-2-ide -- a different molecule.
+    ("D-019c", "C[C-](C)[N+]#N", "propan-2-id-2-yldiazonium",
+     "<raised: partial_claim>", "attachment locant must be cited"),
+    ("D-019d", "[CH-](c1ccccc1)[N+]#N", "phenylmethan-1-id-1-yldiazonium",
+     "<raised: partial_claim>", "as above"),
+
+    # --- D-020: N-substituted guanidinium -------------------------------
+    ("D-020", "CNC(N)=[NH2+]", "methylguanidinium",
+     "N-(aminoiminomethyl)methanamine", "charge dropped"),
+    ("D-020b", "CCNC(N)=[NH2+]", "ethylguanidinium",
+     "N-(aminoiminomethyl)ethanamine", "one N-substituent as a prefix"),
+    ("D-020c", "c1ccccc1NC(N)=[NH2+]", "phenylguanidinium",
+     "N-(aminoiminomethyl)benzen-1-amine", "as above"),
+
+    # --- non-regression: motifs the relaxed gate must NOT steal ---------
+    ("D-013x", "[C+](C)=O", "acetylium", "acetylium", "unchanged"),
+    ("D-013y", "CC(=[NH2+])N", "acetamidinium", "acetamidinium", "unchanged"),
+    ("D-013z", "CC[N+]#N", "ethane-1-diazonium", "ethane-1-diazonium",
+     "unchanged"),
+    ("D-015x", "c1cc[nH]c1", "1H-pyrrole", "1H-pyrrole", "unchanged"),
+    ("D-015y", "[O-][n+]1ccccc1", "pyridine 1-oxide", "pyridine 1-oxide",
+     "unchanged"),
+    ("D-020x", "[NH2+]=C(N)N", "guanidinium", "guanidinium", "unchanged"),
+
     # --- D-023: pyrazole stem lost in the partially-saturated path -----
     # Severity B, not A -- the molecule was right, the ring stem was not.
     # With no curated entry for the partially-saturated 1,2-diazole ring,
@@ -275,29 +361,18 @@ OPEN: list[tuple[str, str, str, str, str]] = [
     # (tests/vendor/iupac_namer/test_known_defects.py), precisely to catch
     # that class of mistake before it becomes someone's goal.
 
-    # Heteroatom-containing skeletons: the simple-carbon classifier gate
-    # is all-carbon, so anything with N/O/S stays unclaimed. Widening it
-    # means teaching the renderer about heteroatom parents, a larger
-    # change.
-    ("D-013", "[CH+]=O", "oxomethylium", "oxomethane", "charge dropped"),
-    ("D-018", "[CH2+]c1ccncc1", "pyridin-4-ylmethan-1-ylium",
-     "4-methylpyridine", "charge dropped; heteroaryl skeleton"),
-    # Charge relocated rather than dropped.
-    ("D-015", "[n-]1cccc1", "pyrrol-1-ide",
-     "1H-pyrrol-2-ide", "charge relocated from N to C"),
-    # Zwitterion: the engine protonates the carbanion half and keeps the
-    # cation, so neutral CH2N2 comes out as the CH3N2+ methyldiazonium
-    # CATION -- an invented hydrogen and a charge that is not there.
-    # Benchmark row "diazomethane".
-    ("D-019", "[CH2-][N+]#N", "methanidyldiazonium",
-     "(azanylidyne)(methyl)azanium", "gains an H; emits the cation"),
-    # N-SUBSTITUTED guanidinium. The parent (D-004) is fixed, but a
-    # substituted one needs prefixes on the guanidine skeleton, so the
-    # classifier deliberately does not claim it -- claiming without being
-    # able to render would now raise rather than mis-name, which is better
-    # but is still a regression on today's answer.
-    ("D-020", "CNC(N)=[NH2+]", "methylguanidinium",
-     "N-(aminoiminomethyl)methanamine", "charge dropped"),
+    # Ring-embedded charge-separated group plus a carbocation. The N-oxide
+    # is named additively as the two-word "pyridine 1-oxide", and nothing
+    # can be spliced onto that -- the simple-carbon classifier therefore
+    # declines when any other charged atom is in a ring, and the molecule
+    # falls through to the neutralizer.
+    ("D-024", "[CH2+]c1cc[n+]([O-])cc1", "(1-oxidopyridin-1-ium-4-yl)methylium",
+     "4-methylpyridine 1-oxide", "charge dropped"),
+    # More than one N-substituent on guanidinium: the locants would have to
+    # be assigned across the guanidine skeleton, so the classifier declines
+    # rather than half-naming it. The mono-substituted case (D-020) works.
+    ("D-025", "CNC(NC)=[NH2+]", "1,3-dimethylguanidinium",
+     "1-imino-N,N'-dimethylmethane-1,1-diamine", "charge dropped"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified

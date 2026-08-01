@@ -4627,6 +4627,16 @@ _INORGANIC_CURATED_SMILES: dict[str, dict] = {
     # --- Monoatomic cations ---
     "[NH4+]":  {"name": "azanium"},             # P-73.2.1; also "ammonium" (common)
     "[H3O+]":  {"name": "oxidanium"},           # hydronium
+    # Formylium (CHO+), the R=H member of the acylium family.
+    # _classify_acylium cannot reach it: it requires the [C+] to carry no
+    # hydrogen AND to have a single-bonded R neighbour, and formylium fails
+    # both -- it has one H and no R.  Relaxing those guards for the sake of a
+    # one-atom family would widen the acylium pattern for nothing, so the
+    # single species is curated instead.  Without this the charge was dropped
+    # and it named as "oxomethane".
+    # "formylium" is the PIN (formyl is a retained acyl group, P-65.1.7.1) and
+    # matches the acetylium / benzoylium the engine already emits.
+    "[CH+]=O": {"name": "formylium"},
     "[Li+]":   {"name": "lithium(1+)"},
     "[Na+]":   {"name": "sodium(1+)"},
     "[K+]":    {"name": "potassium(1+)"},

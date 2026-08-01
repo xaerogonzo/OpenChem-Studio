@@ -54,7 +54,7 @@ that same extended corpus gives the comparison that was missing:
 | | corrected | exact | equivalent | wrong structure |
 |---|---|---|---|---|
 | as vendored | 148/165 (90%) | 79 | 69 | 15 |
-| after this work | **162/165 (98%)** | 80 | 82 | **0** |
+| after this work | **163/165 (99%)** | 80 | 83 | **0** |
 
 | category | as vendored | after |
 |---|---|---|
@@ -63,10 +63,9 @@ that same extended corpus gives the comparison that was missing:
 | onium_ion | 8/9 | **9/9** |
 | polycharged | 9/12 | **12/12** |
 
-**No wrong structures remain.** The three failures are two tautomers — same
-InChIKey, not errors — and diazomethane, which refuses rather than answering
-wrongly. Every row the engine still answers, it answers with a name that
-denotes the molecule it was given.
+**No wrong structures remain, and nothing is refused or unparsable.** The two
+failures are tautomers — same InChIKey, not errors. Every molecule in the
+corpus gets a name, and every name denotes the molecule it was given.
 
 All three defects the new categories exposed — phenyl anion (D-003),
 guanidinium (D-004), azide (D-016) — were fixed within a day of being made
@@ -80,10 +79,11 @@ visible. That is the corpus doing its job: none of them was findable from the
 | 2026-08-01 | azide | 161/165 | polycharged 11/12 -> 12/12; all four charged categories now perfect |
 | 2026-08-01 | pyrazolone in substituent position | **162/165** | novel_unregistered 3/4 -> 4/4; **wrong_structure count reaches 0** |
 | 2026-08-01 | pyrazole stem (severity B) | 162/165 | unchanged by design -- both stems denote the same molecule; the fix is which one is preferred |
+| 2026-08-01 | the last five open severity-A defects | **163/165** | diazomethane no_prediction -> equivalent; **zero wrong structures, zero refusals, zero unparsable** |
 
 The extension paid for itself immediately. Every defect fixed in the rows above
 was surfaced by the new categories or by the one corpus row that happened to
-carry a pyrazolone, and together they moved the headline number 158 -> 162 —
+carry a pyrazolone, and together they moved the headline number 158 -> 163 —
 which the previous six changes, all real severity-A fixes, could not do at all
 on the 124-row revision.
 

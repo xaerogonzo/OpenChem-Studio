@@ -102,6 +102,54 @@ Fourteen inputs that named the wrong compound. All are pinned in
 
 Benchmark unchanged at 120/124 across all of the above, stereochemistry 11/11.
 
+## 2026-08-01 — the last five open severity-A defects
+
+Cleared the open list. Each had a different cause, and two of them turned out
+to be one cause shared.
+
+* **D-013, D-018 — the all-carbon gate.** `_classify_simple_carbon_charge`
+  required EVERY atom to be carbon, far stronger than its own justification:
+  the heteroatom motifs it exists to protect (acylium, iminium, amidinium) all
+  have the heteroatom bonded directly to the charged atom, so checking the
+  charged atom's own NEIGHBOURS suffices. The stronger form left any charge on
+  a hetero-containing skeleton unclaimed, and unclaimed means neutralized --
+  `[CH2+]c1ccncc1` came out as `4-methylpyridine`. Relaxing it also fixed the
+  furyl, methoxy and hydroxy carbocations for free.
+
+  Charge-separated groups elsewhere (nitro, azido) are now claimed rather than
+  refused: they carry no net charge and are ordinary prefixes, but the coverage
+  gate needs them accounted for. They must be OUTSIDE a ring -- a ring-embedded
+  one makes the parent an additive two-word name (`pyridine 1-oxide`) that
+  nothing can be spliced onto, which is D-024.
+
+  Formylium is curated rather than classified: `_classify_acylium` demands no
+  hydrogen on the `[C+]` and a single-bonded R, and the R=H member has one H
+  and no R. Widening that pattern for a one-member family buys nothing.
+
+* **D-015 — azolides.** Worse than dropping the charge: the plan search MOVED
+  it, naming pyrrolide `1H-pyrrol-2-ide` with the charge on a ring carbon. The
+  ring-anion classifier now covers nitrogen. The trap was the neutralization
+  probe -- an aromatic ring N needs its hydrogen stated EXPLICITLY or the ring
+  will not kekulize, and the failure presented as "not an aromatic ring anion",
+  silently skipping the whole family. Imidazolide, tetrazolide and pyrazolide
+  came along with it, moving from Hantzsch-Widman stems to retained PINs.
+
+* **D-019 — diazoalkane ylides.** Net-neutral but carrying both a carbanion
+  and a diazonium; `_classify_diazonium` claimed only the two nitrogens, so the
+  coverage gate refused the molecule. Named as the carbanion's own `-ide` name
+  plus `yldiazonium`, which delegates parent selection and numbering to the
+  renderer that already gets them right. The attachment locant has to be
+  restated -- `propan-2-idyl` lets OPSIN default the attachment to C1, giving a
+  different molecule -- hence `propan-2-id-2-yldiazonium`.
+
+* **D-020 — N-substituted guanidinium.** One substituent is named as a prefix
+  on `guanidinium`. Two or more are declined rather than half-named (D-025),
+  because the locants would have to be assigned across the guanidine skeleton.
+
+Benchmark 162/165 -> **163/165**, diazomethane `no_prediction -> equivalent`.
+Zero wrong structures, zero refusals, zero unparsable names: the only two
+failures left are tautomers, and those are not errors.
+
 ## 2026-08-01 — the pyrazole stem in the partially-saturated path
 
 D-023, severity B: right molecule, wrong ring stem. With no curated entry for

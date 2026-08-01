@@ -39,17 +39,13 @@ Two of those fall-through reasons now raise instead of neutralizing — see
 
 | id | input | emits | should be | why |
 |---|---|---|---|---|
-| D-013 | `[CH+]=O` | `oxomethane` | `oxomethylium` | classifier gate is all-carbon |
-| D-018 | `[CH2+]c1ccncc1` | `4-methylpyridine` | `pyridin-4-ylmethan-1-ylium` | classifier gate is all-carbon |
-| D-015 | `[n-]1cccc1` | `1H-pyrrol-2-ide` | `pyrrol-1-ide` | charge relocated from N to C |
-| D-019 | `[CH2-][N+]#N` | `(azanylidyne)(methyl)azanium` | `methanidyldiazonium` | protonates the carbanion half of the zwitterion and emits the CH3N2+ **cation** — an invented hydrogen and a charge that is not there |
-| D-020 | `CNC(N)=[NH2+]` | `N-(aminoiminomethyl)methanamine` | `methylguanidinium` | N-substituted guanidinium needs prefixes on the guanidine skeleton; the parent (D-004) is fixed |
+| D-024 | `[CH2+]c1cc[n+]([O-])cc1` | `4-methylpyridine 1-oxide` | `(1-oxidopyridin-1-ium-4-yl)methylium` | a ring-embedded charge-separated group makes the parent an additive two-word name (`pyridine 1-oxide`), and nothing can be spliced onto that |
+| D-025 | `CNC(NC)=[NH2+]` | `1-imino-N,N'-dimethylmethane-1,1-diamine` | `1,3-dimethylguanidinium` | more than one N-substituent on guanidinium needs locants assigned across the skeleton; the mono-substituted case (D-020) works |
 
-The all-carbon cluster (D-013, D-018) has one cause:
-`_classify_simple_carbon_charge` requires every atom to be carbon, which is
-what keeps the heteroatom motifs (acylium, iminium, amidinium) with the
-specific classifiers that know how to name them. Widening it means teaching
-the renderer about heteroatom parents.
+Both are declined deliberately rather than half-named: with the refusal guard
+in place, a classifier that claims what it cannot render raises instead of
+mis-naming, which would be a regression on an answer that is at least
+currently produced.
 
 ### Observed, no verified target
 
@@ -66,10 +62,9 @@ target.
 On the original 124-row corpus the engine scores 120/124. All four remaining
 rows are now characterised, and **two of them are not engine errors at all**.
 
-(The corpus has since grown to 165 rows; the current score is **162/165**,
-with **zero wrong structures**. All three defects the new charged-species
-categories exposed — phenyl anion, guanidinium and azide — have been fixed,
-and all four of those categories now score perfectly.)
+(The corpus has since grown to 165 rows; the current score is **163/165**.
+Zero wrong structures, zero refusals, zero unparsable names: the only two
+failures are the tautomers below, which are not errors.)
 
 ### Tautomers — the engine is defensible
 
@@ -86,30 +81,18 @@ decide, which is exactly what that outcome class is for.
 
 ### Genuine wrong structures
 
-| row | cause |
-|---|---|
-| diazomethane | D-019 above — now refuses rather than answering wrongly |
+**None remain.** Both rows that used to sit here are fixed: the novel
+pyrazolone (D-022) and diazomethane (D-019). Every molecule in the corpus that
+the engine names, it names with a name denoting the molecule it was given.
 
-The novel pyrazolone used to sit here and is fixed (D-022). `5-pyrazolone`
-encodes C4's saturation only by convention, so using it in substituent
-position (`…-5-pyrazolon-4-yl`) removed the hydrogen that made C4 sp3 and
-OPSIN re-read the ring as its aromatic tautomer. It is semi-systematic rather
-than a PIN, so it is now declined and the systematic path — which states the
-saturation explicitly — is used in both positions.
-
-**There are now zero wrong structures in the 165-molecule corpus.** The three
-remaining failures are two tautomers (not errors) and one honest refusal.
-
-### A scoring artifact worth knowing
-
-Fixing diazomethane will *not* move the score to 121, because canonical SMILES
-is sensitive to which Lewis structure is written. `[CH2-][N+]#N` (corpus) and
-`C=[N+]=[N-]` (what OPSIN emits for the name `diazomethane`) are the same
-substance — identical InChIKey `YXHKONLOYHBTNS-UHFFFAOYSA-N` — but different
-canonical SMILES. The correct name therefore scores as `gate_disagreement`.
-This is the clearest argument for keeping the second gate: resonance and
-tautomer depiction differences are visible to one gate and invisible to the
-other, and the disagreement is the signal.
+Diazomethane is worth one note. It is named `methanidyldiazonium`, and the
+canonical SMILES gate still disagrees with the corpus entry — `[CH2-][N+]#N`
+versus `C=[N+]=[N-]` — because those are two Lewis structures of one
+substance, identical InChIKey `YXHKONLOYHBTNS-UHFFFAOYSA-N`. The InChIKey gate
+sees they are the same and scores it a pass. That is the clearest argument for
+keeping the second gate: resonance and tautomer depiction differences are
+visible to one gate and invisible to the other, and the disagreement is the
+signal.
 
 ## Severity B — right molecule, non-preferred name
 

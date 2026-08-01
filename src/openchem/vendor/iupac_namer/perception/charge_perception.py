@@ -93,6 +93,9 @@ from openchem.vendor.iupac_namer.types import (
 # Trailing "-<n>-" of a substituent stem, e.g. the "2" of "propan-2-".
 _TRAILING_LOCANT_RE = re.compile(r"-(\d+)-$")
 
+# The locant of an "-ide" name, e.g. the "2" of "propan-2-ide".
+_TRAILING_IDE_LOCANT_RE = re.compile(r"-(\d+)-ide$")
+
 
 @lru_cache(maxsize=1)
 def _retained_carbocyclic_ring_cation_smiles() -> frozenset[str]:
@@ -297,6 +300,10 @@ def classify_charges(mol) -> tuple[ChargeClassification, ...]:
         # reject it anyway, leaving it to the neutralizer.
         _classify_guanidinium,
         _classify_amidinium,
+        # The ylide form runs before the plain diazonium: it is the more
+        # specific pattern, and the plain one would otherwise claim the two
+        # nitrogens and leave the carbanion uncovered.
+        _classify_diazonium_ylide,
         _classify_diazonium,
         # ---- Stage 7 polyacylium runs BEFORE _classify_acylium so a
         #      multi-[C+]=O molecule is claimed as a single polyacylium
@@ -678,12 +685,11 @@ def _classify_guanidinium(mol) -> Iterable[ChargeClassification]:
     ``guanidinium`` its retained cation (P-73.1, "-ium" on the parent
     name), so the surface name is emitted directly rather than composed.
 
-    Scope is the UNSUBSTITUTED parent only: all three nitrogens terminal.
-    N-substituted guanidinium salts (``CNC(N)=[NH2+]`` ->
-    ``methylguanidinium``) would need substituent prefixes on the
-    guanidine skeleton, and a classifier that claimed them without being
-    able to render them would now raise rather than mis-name -- better,
-    but still a regression on today's silent-but-neutral answer.
+    A neutral nitrogen may carry ONE substituent between them
+    (``CNC(N)=[NH2+]`` -> ``methylguanidinium``); the renderer names it as a
+    prefix.  More than one is declined rather than half-named, because the
+    locants would have to be assigned across the guanidine skeleton and a
+    classifier that claims what it cannot render now raises.
     """
     for atom in mol.GetAtoms():
         if atom.GetAtomicNum() != 6 or atom.GetFormalCharge() != 0:
@@ -692,10 +698,11 @@ def _classify_guanidinium(mol) -> Iterable[ChargeClassification]:
             continue
         n_plus: int | None = None
         neutral_ns: list[int] = []
+        substituents = 0
         other_neighbour = False
         for bond in atom.GetBonds():
             other = bond.GetOtherAtom(atom)
-            if other.GetAtomicNum() != 7:
+            if other.GetAtomicNum() != 7 or other.IsInRing():
                 other_neighbour = True
                 break
             if (
@@ -710,14 +717,17 @@ def _classify_guanidinium(mol) -> Iterable[ChargeClassification]:
             if (
                 other.GetFormalCharge() == 0
                 and bond.GetBondTypeAsDouble() == 1.0
-                and other.GetDegree() == 1
-                and other.GetTotalNumHs() == 2
+                and other.GetDegree() in (1, 2)
             ):
+                # degree 2 == one substituent besides the central carbon
+                substituents += other.GetDegree() - 1
                 neutral_ns.append(other.GetIdx())
                 continue
             other_neighbour = True
             break
         if other_neighbour or n_plus is None or len(neutral_ns) != 2:
+            continue
+        if substituents > 1:
             continue
         yield ChargeClassification(
             site_atom_indices=(atom.GetIdx(), n_plus, *neutral_ns),
@@ -725,7 +735,7 @@ def _classify_guanidinium(mol) -> Iterable[ChargeClassification]:
             suffix_hint="guanidinium",
             locant=None,
             parent_smiles=None,
-            surface_name="guanidinium",
+            surface_name="guanidinium" if substituents == 0 else None,
         )
 
 
@@ -793,6 +803,57 @@ def _classify_amidinium(mol) -> Iterable[ChargeClassification]:
         )
 
 
+def _classify_diazonium_ylide(mol) -> Iterable[ChargeClassification]:
+    """Detect ``[C-]-[N+]#N`` -- the diazoalkane ylide, e.g. diazomethane.
+
+    Net-neutral, but with both a carbanion and a diazonium.  Neither
+    classifier could take it alone: ``_classify_diazonium`` claimed only the
+    two nitrogens, leaving the carbanion uncovered, and detect()'s coverage
+    gate then refused the whole molecule.  Before the refusal guard existed
+    that surfaced as ``(azanylidyne)(methyl)azanium`` -- the CH3N2+ cation,
+    an invented hydrogen and a charge that is not in the input.
+
+    Named as ``<carbanion>yldiazonium``, which is just the carbanion's own
+    ``-ide`` name with the terminal ``e`` elided: methanide ->
+    methanidyldiazonium, ethan-1-ide -> ethan-1-idyldiazonium.
+    """
+    for atom in mol.GetAtoms():
+        if atom.GetAtomicNum() != 7 or atom.GetFormalCharge() != 1:
+            continue
+        if atom.IsInRing() or atom.GetDegree() != 2:
+            continue
+        triple_n: int | None = None
+        c_minus: int | None = None
+        for bond in atom.GetBonds():
+            other = bond.GetOtherAtom(atom)
+            if (
+                other.GetAtomicNum() == 7
+                and other.GetFormalCharge() == 0
+                and bond.GetBondTypeAsDouble() == 3.0
+                and other.GetDegree() == 1
+            ):
+                triple_n = other.GetIdx()
+                continue
+            if (
+                other.GetAtomicNum() == 6
+                and other.GetFormalCharge() == -1
+                and bond.GetBondTypeAsDouble() == 1.0
+            ):
+                c_minus = other.GetIdx()
+                continue
+        if triple_n is None or c_minus is None:
+            continue
+        yield ChargeClassification(
+            site_atom_indices=(c_minus, atom.GetIdx(), triple_n),
+            charge_sign="+",
+            suffix_hint="diazonium_ylide",
+            locant=None,
+            parent_smiles=None,
+            surface_name=None,
+            site_charges=(-1, 1, 0),
+        )
+
+
 def _classify_diazonium(mol) -> Iterable[ChargeClassification]:
     """Detect ``R-[N+]#N`` (acyclic, terminal triple bond).
 
@@ -823,6 +884,15 @@ def _classify_diazonium(mol) -> Iterable[ChargeClassification]:
                 other.GetAtomicNum() == 6
                 and bond.GetBondTypeAsDouble() == 1.0
             ):
+                # A NEGATIVE parent carbon means this is a zwitterion, not a
+                # diazonium salt: diazomethane, [CH2-][N+]#N.  Claiming just
+                # the two nitrogens would leave the carbanion uncovered, and
+                # detect()'s coverage gate then refuses the whole molecule.
+                # _classify_carbanion_zwitterion claims both halves and runs
+                # later, so declining here hands it over rather than blocking
+                # it.
+                if other.GetFormalCharge() < 0:
+                    return
                 parent_c = other.GetIdx()
                 continue
         if triple_n is None or parent_c is None:
@@ -906,11 +976,20 @@ def _classify_simple_carbon_charge(mol) -> Iterable[ChargeClassification]:
     # Must not have free-valence (radical) - unrelated audit territory.
     if c.GetNumRadicalElectrons() != 0:
         return
-    # The skeleton must be an all-carbon hydrocarbon.  This is the gate that
-    # keeps the heteroatom motifs (acylium R-[C+]=O, iminium, amidinium ...)
-    # with the specific classifiers that know how to name them.
-    for atom in mol.GetAtoms():
-        if atom.GetAtomicNum() != 6:
+    # The CHARGED CARBON's own neighbours must all be carbon.  That is what
+    # keeps the heteroatom motifs -- acylium R-[C+]=O, iminium, amidinium --
+    # with the specific classifiers that know how to name them: in every one
+    # of those the heteroatom is bonded directly to the charged atom.
+    #
+    # The whole SKELETON used to have to be carbon, which was far stronger
+    # than that reasoning requires and cost real correctness: a charged
+    # carbon on any hetero-containing skeleton was left unclaimed, and
+    # unclaimed means neutralized, so [CH2+]c1ccncc1 came out as
+    # "4-methylpyridine" -- charge dropped, wrong molecule.  Heteroatoms
+    # away from the charge are the renderer's business, and the renderer
+    # hands them to the engine's substituent naming, which handles them.
+    for nb in c.GetNeighbors():
+        if nb.GetAtomicNum() != 6:
             return
     # The charged carbon itself must not be aromatic: an aromatic ring
     # carbanion/carbocation is a different naming problem (indicated
@@ -948,19 +1027,47 @@ def _classify_simple_carbon_charge(mol) -> Iterable[ChargeClassification]:
     # The renderer drives the engine in substituent mode, which handles
     # these skeletons perfectly well (phenylmethan-1-yl, prop-2-en-1-yl,
     # ethen-1-yl), so the restriction was never needed on its account.
+    # Any OTHER formally-charged atoms must belong to charge-separated groups
+    # that carry no net charge -- a nitro group, an N-oxide, an azido
+    # substituent.  Those are artefacts of the Lewis structure rather than
+    # ionic sites, and the engine renders them as ordinary substituent
+    # prefixes, so the charged carbon is still the only thing being named
+    # here.  They ARE claimed below, because detect()'s coverage gate
+    # requires every formal charge to be accounted for; leaving them out
+    # would refuse the molecule rather than name it.
+    others = [
+        a for a in mol.GetAtoms()
+        if a.GetFormalCharge() != 0 and a.GetIdx() != c.GetIdx()
+    ]
+    if sum(a.GetFormalCharge() for a in others) != 0:
+        return
+    # ...and they must sit OUTSIDE any ring.  An exocyclic one is a
+    # substituent prefix and the parent name is unaffected; a ring-embedded
+    # one changes the parent's whole form -- pyridine N-oxide is named
+    # additively as the two-word "pyridine 1-oxide", and there is no way to
+    # splice "-1-ylium" onto that.  Attempting it produced
+    # "4-methylpyridine 1-oxid-1-ylium", which OPSIN cannot parse.
+    if any(a.IsInRing() for a in others):
+        return
     sign: ChargeSign = "+" if c.GetFormalCharge() == 1 else "-"
+    sites = (c.GetIdx(), *(a.GetIdx() for a in others))
     yield ChargeClassification(
-        site_atom_indices=(c.GetIdx(),),
+        site_atom_indices=sites,
         charge_sign=sign,
         suffix_hint="ylium" if sign == "+" else "ide",
         locant=None,  # filled in by the emitter once parent is named
         parent_smiles=None,
         surface_name=None,
+        site_charges=tuple(
+            mol.GetAtomWithIdx(i).GetFormalCharge() for i in sites
+        ),
     )
 
 
 def _classify_aromatic_ring_anion(mol) -> Iterable[ChargeClassification]:
-    """Detect an aromatic ring carbanion (``-ide``), e.g. ``c1ccc[c-]c1``.
+    """Detect an aromatic ring anion (``-ide``), on carbon or nitrogen.
+
+    ``c1ccc[c-]c1`` -> ``benzen-1-ide``; ``[n-]1cccc1`` -> ``1H-pyrrol-1-ide``.
 
     The mirror of :func:`_classify_aromatic_ring_cation`, and it exists
     for the same reason: nothing else claims these, and an unclaimed
@@ -979,7 +1086,12 @@ def _classify_aromatic_ring_anion(mol) -> Iterable[ChargeClassification]:
 
     Detection contract (all must hold, else yields nothing):
 
-    * exactly one formally-charged atom, a carbon with charge -1;
+    * exactly one formally-charged atom, a carbon or nitrogen with charge -1.
+      The nitrogen case is the azolide family (pyrrolide, imidazolide,
+      tetrazolide), where the charge sits on the ring N.  Nothing claimed
+      those either, and the plan search did something worse than dropping
+      the charge -- it MOVED it, naming pyrrolide ``1H-pyrrol-2-ide`` with
+      the charge on a ring carbon;
     * it is aromatic and in a ring;
     * NEUTRALIZING THE SITE STILL LEAVES AN AROMATIC RING. This is the
       line between two chemically different species, not a convenience.
@@ -1006,7 +1118,7 @@ def _classify_aromatic_ring_anion(mol) -> Iterable[ChargeClassification]:
     if len(charged) != 1:
         return
     c = charged[0]
-    if c.GetAtomicNum() != 6 or c.GetFormalCharge() != -1:
+    if c.GetAtomicNum() not in (6, 7) or c.GetFormalCharge() != -1:
         return
     if not c.GetIsAromatic() or not c.IsInRing():
         return
@@ -1015,9 +1127,14 @@ def _classify_aromatic_ring_anion(mol) -> Iterable[ChargeClassification]:
     try:
         probe = Chem.RWMol(mol)
         site = probe.GetAtomWithIdx(c.GetIdx())
+        # The anion came from removing a proton, so neutralizing puts one
+        # back.  It has to be EXPLICIT: an aromatic ring nitrogen needs its
+        # H stated to contribute the lone pair, and leaving RDKit to infer
+        # it makes pyrrolide fail to kekulize -- which silently looked like
+        # "not an aromatic ring anion" and skipped the whole azolide family.
+        site.SetNumExplicitHs(site.GetTotalNumHs() + 1)
         site.SetFormalCharge(0)
-        site.SetNoImplicit(False)
-        site.SetNumExplicitHs(0)
+        site.SetNoImplicit(True)
         Chem.SanitizeMol(probe)
     except Exception:
         return
@@ -2631,6 +2748,10 @@ def _render(
         return _render_aromatic_ring_cation(cls, mol, strategy, session, depth)
     if cls.suffix_hint == "diazonium":
         return _render_diazonium(cls, mol, strategy, session, depth)
+    if cls.suffix_hint == "diazonium_ylide":
+        return _render_diazonium_ylide(cls, mol, strategy, session, depth)
+    if cls.suffix_hint == "guanidinium":
+        return _render_guanidinium(cls, mol, strategy, session, depth)
     if cls.suffix_hint == "amidinium":
         return _render_amidinium(cls, mol, strategy, session, depth)
     if cls.suffix_hint == "acylium":
@@ -3059,6 +3180,24 @@ def _render_substituted_boranuide(
     return f"{render_merged_prefixes(merged)}boranuide"
 
 
+def _neutralized_site_changes(atom) -> dict:
+    """Mutations that turn a charged site back into its neutral parent atom.
+
+    An aromatic ring NITROGEN has to be handed its hydrogen explicitly. It
+    contributes its lone pair to the ring only when the H is stated, so
+    leaving RDKit to infer one makes pyrrolide fail to kekulize -- which
+    presents as "this is not an aromatic ring anion" and silently skips the
+    whole azolide family. Carbon infers correctly and is left alone.
+    """
+    if atom.GetAtomicNum() == 7 and atom.GetIsAromatic():
+        return {
+            "charge": 0,
+            "explicit_h": atom.GetTotalNumHs() + 1,
+            "no_implicit": True,
+        }
+    return {"charge": 0, "no_implicit": False}
+
+
 def _neutral_skeleton_smiles(mol, atom_changes: dict[int, dict]) -> str | None:
     """Build a canonical SMILES of the neutralized skeleton.
 
@@ -3139,7 +3278,7 @@ def _render_simple_carbon(
         return "methylium" if cls.is_cation else "methanide"
     parent_smiles = _neutral_skeleton_smiles(
         mol,
-        {c_idx: {"charge": 0, "no_implicit": False}},
+        {c_idx: _neutralized_site_changes(mol.GetAtomWithIdx(c_idx))},
     )
     if parent_smiles is None:
         return None
@@ -3173,6 +3312,15 @@ def _render_simple_carbon(
     if group_stem is not None and locant is not None:
         return f"{group_stem}{suffix}"
 
+    # A multi-word parent is a functional-class or additive name -- "pyridine
+    # 1-oxide", not a parent hydride -- and nothing can be spliced onto it.
+    # Doing so anyway produced "4-methylpyridine 1-oxid-1-ylium", which OPSIN
+    # cannot parse.  Refusing is the honest outcome: the engine has no
+    # substituent rendering for these fragments (substituent mode hands back
+    # the standalone name unchanged), so there is no correct name to emit.
+    if " " in parent_name:
+        return None
+
     # No explicit attachment locant means a fully contracted ring name
     # ("cyclohexyl"), where the charge is at ring position 1 and the
     # parent-hydride splice gives the systematic PIN the engine has always
@@ -3180,8 +3328,128 @@ def _render_simple_carbon(
     return _splice_alkane_suffix(parent_name, 1, suffix)
 
 
+def _render_guanidinium(
+    cls: ChargeClassification,
+    mol,
+    strategy,
+    session,
+    depth: int,
+) -> str | None:
+    """Render ``methylguanidinium``: one N-substituent as a prefix.
+
+    The unsubstituted parent never reaches here -- the classifier gives it
+    ``surface_name="guanidinium"`` directly.
+    """
+    from rdkit import Chem
+
+    core = set(cls.site_atom_indices)
+    c_idx, _n_plus, *neutral_ns = cls.site_atom_indices
+    roots = [
+        nb.GetIdx()
+        for n in neutral_ns
+        for nb in mol.GetAtomWithIdx(n).GetNeighbors()
+        if nb.GetIdx() not in core
+    ]
+    if len(roots) != 1:
+        return None
+    root = roots[0]
+
+    # Carve the substituent branch: everything reachable from its root
+    # without stepping back into the guanidine core.
+    branch: set[int] = set()
+    stack = [root]
+    while stack:
+        cur = stack.pop()
+        if cur in branch:
+            continue
+        branch.add(cur)
+        for nb in mol.GetAtomWithIdx(cur).GetNeighbors():
+            if nb.GetIdx() not in core:
+                stack.append(nb.GetIdx())
+
+    drop = sorted(
+        (a.GetIdx() for a in mol.GetAtoms() if a.GetIdx() not in branch),
+        reverse=True,
+    )
+    rw = Chem.RWMol(mol)
+    for idx in drop:
+        rw.RemoveAtom(idx)
+    new_root = root - sum(1 for idx in drop if idx < root)
+    try:
+        frag = rw.GetMol()
+        Chem.SanitizeMol(frag)
+    except Exception:
+        return None
+    prefix = _name_as_substituent(
+        frag, new_root, strategy, session, depth, elide_locant_one=True
+    )
+    if not prefix:
+        return None
+    return f"{prefix}guanidinium"
+
+
+def _render_diazonium_ylide(
+    cls: ChargeClassification,
+    mol,
+    strategy,
+    session,
+    depth: int,
+) -> str | None:
+    """Render ``methanidyldiazonium`` / ``ethan-1-idyldiazonium`` etc.
+
+    The name is the carbanion's own ``-ide`` name with the terminal ``e``
+    elided and ``yldiazonium`` appended, so the whole carbanion half is
+    delegated to ``_render_simple_carbon`` rather than re-derived here --
+    which is what makes the locant and the parent selection come out right
+    (``propan-2-idyldiazonium``, not ``propan-1-...``).
+    """
+    from rdkit import Chem
+
+    c_minus_idx, n_plus_idx, n_term_idx = cls.site_atom_indices
+    drop = sorted((n_plus_idx, n_term_idx), reverse=True)
+    rw = Chem.RWMol(mol)
+    for idx in drop:
+        rw.RemoveAtom(idx)
+    # Removing higher indices first keeps the lower ones stable, so the
+    # carbanion only shifts by however many removed atoms preceded it.
+    new_c = c_minus_idx - sum(1 for idx in drop if idx < c_minus_idx)
+    try:
+        frag = rw.GetMol()
+        Chem.SanitizeMol(frag)
+    except Exception:
+        return None
+    if frag.GetAtomWithIdx(new_c).GetFormalCharge() != -1:
+        return None
+    ide_name = _render_simple_carbon(
+        ChargeClassification(
+            site_atom_indices=(new_c,),
+            charge_sign="-",
+            suffix_hint="ide",
+            locant=None,
+            parent_smiles=None,
+            surface_name=None,
+        ),
+        frag,
+        strategy,
+        session,
+        depth,
+    )
+    if not ide_name:
+        return None
+    # The diazonium hangs off the SAME carbon as the charge, so its locant
+    # has to be stated: "propan-2-idyl" lets the attachment default to C1 and
+    # OPSIN reads it as the 1-diazonio-2-ide, a different molecule.  Repeat
+    # the ide locant -- "propan-2-id-2-yl".  Names with no locant at all
+    # (methanide) have only one candidate atom and need none.
+    match = _TRAILING_IDE_LOCANT_RE.search(ide_name)
+    if match:
+        loc = match.group(1)
+        return f"{ide_name[: -len('e')]}-{loc}-yldiazonium"
+    return f"{ide_name[:-1] if ide_name.endswith('e') else ide_name}yldiazonium"
+
+
 def _name_as_substituent(
-    mol, atom_idx: int, strategy, session, depth: int
+    mol, atom_idx: int, strategy, session, depth: int, elide_locant_one: bool = False
 ) -> str | None:
     """Name ``mol`` as the substituent group attached at ``atom_idx``.
 
@@ -3193,9 +3461,8 @@ def _name_as_substituent(
     from openchem.vendor.iupac_namer.assembly import assemble
     from openchem.vendor.iupac_namer.engine import name as _recursive_name
 
-    neutral = _neutral_skeleton_smiles(
-        mol, {atom_idx: {"charge": 0, "no_implicit": False}}
-    )
+    changes = _neutralized_site_changes(mol.GetAtomWithIdx(atom_idx))
+    neutral = _neutral_skeleton_smiles(mol, {atom_idx: changes})
     if neutral is None:
         return None
     # _neutral_skeleton_smiles canonicalises, which renumbers atoms, so the
@@ -3204,8 +3471,11 @@ def _name_as_substituent(
     rw = Chem.RWMol(mol)
     for atom in rw.GetAtoms():
         atom.SetAtomMapNum(atom.GetIdx() + 1)
-    rw.GetAtomWithIdx(atom_idx).SetFormalCharge(0)
-    rw.GetAtomWithIdx(atom_idx).SetNoImplicit(False)
+    site = rw.GetAtomWithIdx(atom_idx)
+    site.SetFormalCharge(changes["charge"])
+    if "explicit_h" in changes:
+        site.SetNumExplicitHs(changes["explicit_h"])
+    site.SetNoImplicit(changes.get("no_implicit", False))
     try:
         Chem.SanitizeMol(rw)
         probe = Chem.MolFromSmiles(Chem.MolToSmiles(rw.GetMol()))
@@ -3225,10 +3495,12 @@ def _name_as_substituent(
         bond_orders=(1,),
         method=SubstituentMethod.ALKANYL,
         attachment_atoms_in_fragment=(target,),
-        # Keep the locant even when it is 1: the caller uses its presence to
-        # tell "the engine numbered the attachment" from a contracted ring
-        # name that carries no attachment locant at all.
-        elide_locant_one=False,
+        # The ylium / ide caller keeps the locant even when it is 1, because
+        # its presence is how that caller tells "the engine numbered the
+        # attachment" from a contracted ring name carrying no attachment
+        # locant at all.  A caller that only wants a readable prefix
+        # ("methyl", not "methan-1-yl") passes True.
+        elide_locant_one=elide_locant_one,
     )
     try:
         tree = _recursive_name(

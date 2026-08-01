@@ -129,11 +129,35 @@ class TestRefusalGuard:
     any future gap from a wrong molecule into a visible failure.
     """
 
-    def test_partial_claim_refuses_instead_of_naming_another_molecule(self):
-        """Diazomethane: the diazonium classifier claims the [N+] and
-        leaves the carbanion uncovered. Falling through let the plan
-        search protonate it into the CH3N2+ cation -- an invented
-        hydrogen and a charge that is not in the input."""
+    def test_partial_claim_refuses_instead_of_naming_another_molecule(
+        self, monkeypatch
+    ):
+        """A classification covering only SOME of the formal charges must
+        refuse, not fall through.
+
+        The condition is forced rather than taken from a live defect. This
+        test used diazomethane, where the diazonium classifier claimed the
+        [N+] and left the carbanion uncovered -- and it expired the moment
+        that was fixed, exactly like the two tests above. What is pinned is
+        the guard, not the current defect list.
+        """
+        from openchem.vendor.iupac_namer.perception.charge_perception import (
+            ChargeClassification,
+        )
+
+        def _covers_only_the_carbanion(mol):
+            return (
+                ChargeClassification(
+                    site_atom_indices=(0,),
+                    charge_sign="-",
+                    suffix_hint="ide",
+                    site_charges=(-1,),
+                ),
+            )
+
+        monkeypatch.setattr(
+            charge_perception, "classify_charges", _covers_only_the_carbanion
+        )
         with pytest.raises(ValueError, match="partial_claim"):
             name_smiles("[CH2-][N+]#N")
 
