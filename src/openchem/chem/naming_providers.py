@@ -203,6 +203,50 @@ def describe_opsin_status() -> str:
     return "OPSIN needs the py2opsin package, which is not installed."
 
 
+#: A name this engine generated and that OPSIN parsed back to the same
+#: structure. Stronger than PREDICTED and weaker than EXACT: derived from
+#: the molecular graph by rule rather than looked up, and checked.
+DERIVED = "derived"
+
+
+def derived_name_for_structure(mol: Chem.Mol) -> NameResult:
+    """A systematic name generated from the molecular graph by rule.
+
+    Deterministic, offline, and about 10 ms -- no model, no weights, no
+    network. It reaches structures no database has ever seen, which is
+    exactly where PubChem stops.
+
+    VERIFIED BEFORE IT IS RETURNED, when a parser is available: the name
+    is fed back through OPSIN and must yield the structure it came from.
+    A rule engine cannot be fluently wrong the way a language model can,
+    but it can still be wrong, and this is a cheap independent check --
+    the engine's own author uses the same one. Without OPSIN the name is
+    still returned, flagged as unverified rather than silently trusted.
+
+    See src/openchem/vendor/VENDORING.md for provenance and
+    benchmarks/naming for the measured accuracy (120/124, stereochemistry
+    11/11).
+    """
+    from openchem.vendor.iupac_namer import name_smiles
+
+    smiles = Chem.MolToSmiles(mol)
+    try:
+        name = name_smiles(smiles)
+    except Exception as exc:  # the engine raises a wide variety on odd input
+        raise NamingError(f"Could not derive a name for this structure: {exc}") from exc
+    if not name:
+        raise NamingError("The nomenclature engine produced no name for this structure.")
+
+    verified = verify_name_round_trip(str(name), mol)
+    if verified is False:
+        raise NamingError(
+            "A name was derived but did not parse back to this structure, so it is "
+            "being withheld rather than shown."
+        )
+    note = "" if verified else "Not verified: no offline parser available to check it."
+    return NameResult(name=str(name), source="Nomenclature engine", kind=DERIVED, note=note)
+
+
 def opsin_structure_for_name(name: str) -> StructureResult:
     """Parse an IUPAC name into a structure, offline and deterministically.
 
@@ -295,23 +339,23 @@ def compute_iupac_name(
         except NamingError as exc:
             lines.append(f"PubChem: {exc}")
 
+    # After PubChem, because a curated record beats a generated name even
+    # when the generator is very good. Before STOUT, because it is.
+    try:
+        results.append(derived_name_for_structure(mol))
+    except NamingError as exc:
+        lines.append(f"Nomenclature engine: {exc}")
+
     if stout_is_configured(interpreter_path):
         try:
             results.append(stout_name_for_structure(mol, interpreter_path))
         except RuntimeError as exc:
             lines.append(f"STOUT: {exc}")
-    else:
-        lines.append(
-            # Plain ASCII: this line lands in AlertResult.matched, which
-            # reaches logs and console streams as well as Qt. A Windows
-            # cp1252 stream raises UnicodeEncodeError on an em-dash.
-            # Pointing at External Tools would send someone off to set up
-            # something that cannot be set up: STOUT's weights were
-            # withdrawn upstream (see services/stout_setup.py). Say the
-            # true thing instead of the instruction that used to be true.
-            "STOUT: unavailable -- its trained weights were withdrawn upstream, so no "
-            "predicted name can be produced for a structure PubChem does not have."
-        )
+    # No "STOUT unavailable" line. It used to be worth saying, because
+    # STOUT was the only thing that could name a structure PubChem does
+    # not have. The nomenclature engine above now does that job, offline
+    # and better, so the notice would appear on every molecule forever to
+    # report the absence of something nobody needs.
 
     for result in results:
         line = f"{result.name}  [{result.source}, {result.kind}]"

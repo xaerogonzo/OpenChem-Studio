@@ -199,8 +199,11 @@ def test_calculator_can_be_run_without_touching_the_network():
     ):
         result = compute_iupac_name(Chem.MolFromSmiles(ASPIRIN), "mol-1", {"use_pubchem": False})
 
-    assert result.cache_state == CacheState.FAILED
-    assert any("STOUT" in line for line in result.matched)
+    # Used to be FAILED: with the network off and STOUT gone, nothing
+    # could name anything. The vendored nomenclature engine is offline and
+    # deterministic, so the honest answer now is a real name.
+    assert result.cache_state == CacheState.COMPLETED
+    assert any("Nomenclature engine" in line for line in result.matched)
 
 
 def test_calculator_reports_why_each_source_produced_nothing():
@@ -211,8 +214,10 @@ def test_calculator_reports_why_each_source_produced_nothing():
         result = compute_iupac_name(Chem.MolFromSmiles(ASPIRIN), "mol-1", {"use_pubchem": True})
 
     joined = "\n".join(result.matched)
-    assert "no record" in joined
-    assert "STOUT" in joined  # says it isn't configured rather than staying silent
+    assert "no record" in joined  # says why, rather than staying silent
+    # ...and a structure PubChem cannot find still gets a name, which is the
+    # entire reason for carrying a nomenclature engine.
+    assert "Nomenclature engine" in joined
 
 
 def test_a_predicted_name_is_flagged_as_predicted():
@@ -307,3 +312,65 @@ def test_path_is_restored_after_opsin_runs():
     with naming_providers._java_on_path():
         pass
     assert os.environ.get("PATH", "") == before
+
+
+# --- The vendored deterministic nomenclature engine -----------------------
+
+
+def test_a_derived_name_round_trips_to_the_structure_it_came_from():
+    """The gate. A rule engine cannot be fluently wrong the way a model
+    can, but it can still be wrong, and OPSIN is a cheap independent
+    check -- the engine's own author uses the same one."""
+    mol = Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O")
+
+    result = naming_providers.derived_name_for_structure(mol)
+
+    assert result.kind == naming_providers.DERIVED
+    assert result.source == "Nomenclature engine"
+    parsed = naming_providers.opsin_structure_for_name(result.name)
+    assert Chem.MolToSmiles(Chem.MolFromSmiles(parsed.smiles)) == Chem.MolToSmiles(mol)
+
+
+def test_stereochemistry_survives_into_the_derived_name():
+    """The single capability no ML model in the benchmark had. If this
+    regresses, two enantiomers get the same name."""
+    r_name = naming_providers.derived_name_for_structure(
+        Chem.MolFromSmiles("C[C@H](O)C(=O)O")).name
+    s_name = naming_providers.derived_name_for_structure(
+        Chem.MolFromSmiles("C[C@@H](O)C(=O)O")).name
+
+    assert r_name != s_name
+    assert ("2S)" in r_name) or ("2R)" in r_name)
+
+
+def test_it_names_a_structure_pubchem_has_never_seen():
+    """The whole reason to carry a nomenclature engine at all -- PubChem
+    covers the known world, this covers the rest."""
+    novel = Chem.MolFromSmiles("O=C(Nc1ccc(-c2ccncc2)cc1)Nc1cccc(C(F)(F)F)c1")
+
+    result = naming_providers.derived_name_for_structure(novel)
+
+    assert "urea" in result.name
+    parsed = naming_providers.opsin_structure_for_name(result.name)
+    assert Chem.MolToSmiles(Chem.MolFromSmiles(parsed.smiles)) == Chem.MolToSmiles(novel)
+
+
+def test_a_name_that_fails_the_round_trip_is_withheld(monkeypatch):
+    """Withheld, not shown with a caveat. A wrong systematic name looks
+    exactly as authoritative as a right one."""
+    monkeypatch.setattr(naming_providers, "verify_name_round_trip", lambda name, mol: False)
+
+    with pytest.raises(naming_providers.NamingError, match="withheld"):
+        naming_providers.derived_name_for_structure(Chem.MolFromSmiles("CCO"))
+
+
+def test_the_calculator_reports_pubchem_and_the_engine_separately():
+    """Never merged into one 'the name': a curated record and a derived
+    name differ in authority, and one string would erase that."""
+    result = naming_providers.compute_iupac_name(
+        Chem.MolFromSmiles("CCO"), "uuid", {"use_pubchem": False})
+
+    assert any("Nomenclature engine, derived" in line for line in result.matched)
+    assert not any("STOUT" in line for line in result.matched), (
+        "the STOUT notice is obsolete now the engine covers that job"
+    )

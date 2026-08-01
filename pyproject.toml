@@ -48,6 +48,12 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# The vendored nomenclature engine ships ~2,900 of its own tests. They are
+# real and they pass, but they take 6.5 minutes against this suite's 2, and
+# they cover that engine's internals rather than our integration with it.
+# Excluded from the default run; see src/openchem/vendor/VENDORING.md for
+# when to run them (`uv run pytest tests/vendor -q`).
+norecursedirs = ["tests/vendor"]
 
 [build-system]
 requires = ["uv_build>=0.11.5,<0.12.0"]

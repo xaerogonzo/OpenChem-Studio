@@ -1,6 +1,6 @@
 [
  {
-  "label": "open-iupac-namer (deterministic, rdkit-only)",
+  "label": "open-iupac-namer (VENDORED)",
   "total": 124,
   "correct": 120,
   "counts": {
