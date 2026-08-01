@@ -59,19 +59,35 @@ class TestLambdaValenceEndocyclic:
     """
 
     def test_cyclotriphosphazene_hexamethyl(self):
-        """1,2,3,4,4,6-hexamethyl derivative of hexahydro-1,3,5,2,4,6-
-        triazatriphosphinine.  One P carries an endocyclic N=P double
-        bond, so its valence is 5 and the ring uses the unsaturated stem
+        """Hexamethyl derivative of hexahydro-1,3,5,2,4,6-triazatri-
+        phosphinine.  One P carries an endocyclic N=P double bond, so its
+        valence is 5 and the ring uses the unsaturated stem
         ``triazatriphosphinine``.
+
+        The lambda locant is 2.  The ring name pins N to 1,3,5 and P to
+        2,4,6, which leaves six numberings placing the lambda5 phosphorus
+        at 2, 4 or 6.  Two independent criteria both select 2: the
+        lambda-locant criterion (2 < 4 < 6, and it outranks indicated
+        hydrogen -- see ``_compute_hw_locants``), and P-14.4's "lowest
+        locants to detachable prefixes", since 1,2,2,4,5,6 < 1,2,3,4,4,6
+        < 1,2,3,4,6,6.  So 2 is right however that hierarchy is read.
+
+        This test previously pinned ``4lambda5`` with methyls at
+        1,2,3,4,4,6 -- a numbering that is the minimum on neither
+        criterion.  It was written from an illustrative example in
+        ``try_hantzsch_widman``'s comment block that the code never
+        produced (with the lambda tiebreaker disabled it yields
+        ``6lambda5``, not ``4lambda5``).  Both names OPSIN-round-trip to
+        the same structure, so only the lowest-locant rule separates them.
         """
         smi = "CN1P(C)N=P(C)(C)N(C)P1C"
         name = name_smiles(smi)
-        assert "4lambda5" in name, f"expected 4lambda5 in {name!r}"
+        assert "2lambda5" in name, f"expected 2lambda5 in {name!r}"
         assert "triazatriphosphinine" in name, (
             f"expected aromatic stem 'triazatriphosphinine' in {name!r}"
         )
         assert name == (
-            "1,2,3,4,4,6-hexamethyl-4lambda5-1,3,5,2,4,6-triazatriphosphinine"
+            "1,2,2,4,5,6-hexamethyl-2lambda5-1,3,5,2,4,6-triazatriphosphinine"
         )
         if HAVE_OPSIN:
             assert _opsin_roundtrip(smi, name), f"round-trip failed: {name}"
@@ -148,8 +164,11 @@ class TestOpsinVerifiedLambda:
 
     @pytest.mark.parametrize("smi,expected_name", [
         (
+            # Lambda at 2, not 4 -- see
+            # TestLambdaValenceEndocyclic.test_cyclotriphosphazene_hexamethyl
+            # for why, and why this used to say 4.
             "CN1P(C)N=P(C)(C)N(C)P1C",
-            "1,2,3,4,4,6-hexamethyl-4lambda5-1,3,5,2,4,6-triazatriphosphinine",
+            "1,2,2,4,5,6-hexamethyl-2lambda5-1,3,5,2,4,6-triazatriphosphinine",
         ),
         (
             "O=P1(N(CC)CC)OCCCN1",

@@ -3488,10 +3488,16 @@ def _render_polyacylium(
 
 
 def _diacid_name_to_polyacylium(diacid_name: str) -> str | None:
-    """Transform a diacid name to its bis-acyl-cation form.
+    """Transform a polyacid name to its poly-acyl-cation form.
 
-    Handles retained names (``oxalic acid`` -> ``oxalylium`` etc.) and
-    the systematic ``-dioic acid`` -> ``-dioylium`` mapping.
+    Handles retained names (``oxalic acid`` -> ``oxalylium``), the
+    systematic chain ``-dioic acid`` -> ``-dioylium`` mapping, and the
+    ring ``-carboxylic acid`` -> ``-carbonylium`` mapping.
+
+    Returning None here is not harmless: the caller's caller falls
+    through to the plan search, which neutralizes the molecule, so an
+    unhandled acid shape becomes a neutral aldehyde name rather than a
+    visible failure.
     """
     if not diacid_name:
         return None
@@ -3499,6 +3505,18 @@ def _diacid_name_to_polyacylium(diacid_name: str) -> str | None:
         return _RETAINED_DIACID_TO_DIACYLIUM[diacid_name]
     if diacid_name.endswith("dioic acid"):
         return diacid_name[: -len("dioic acid")] + "dioylium"
+    # Ring parents arrive as "<ring>-<locants>-dicarboxylic acid"
+    # (benzene-1,2-dicarboxylic acid, pyridine-3,4-dicarboxylic acid),
+    # which the chain rule above cannot see -- every ring-based
+    # polyacylium therefore used to name as its neutral aldehyde
+    # ("1,2-bis(oxomethyl)benzene" for the phthaloyl dication).  P-65.3.1
+    # gives the acyl group of a carboxylic acid as "carbonyl", so the
+    # cation is "carbonylium"; the multiplier is already carried by the
+    # acid name ("di"/"tri"), which is why it is not re-inserted here.
+    # Same transform as _acid_name_to_acyl in engine.py, one step further.
+    for _suffix in (" carboxylic acid", "carboxylic acid"):
+        if diacid_name.endswith(_suffix):
+            return diacid_name[: -len(_suffix)] + "carbonylium"
     return None
 
 

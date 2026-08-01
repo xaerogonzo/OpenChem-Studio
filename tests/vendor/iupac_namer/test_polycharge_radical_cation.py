@@ -193,10 +193,36 @@ def test_polyacylium_does_not_steal_single_acylium() -> None:
     ("C[C+2]C",                              "propane-2,2-diylium"),
     ("[CH+2]CC",                             "propane-1,1-diylium"),
     # ---- polyacylium ----
+    # Oxalylium keeps its retained form because "oxalic acid" IS the PIN,
+    # so "oxalyl" is the PIN acyl group.  The rest are systematic: the
+    # malonic / succinic / glutaric / adipic retained names are kept for
+    # GENERAL nomenclature only and the systematic name is the PIN
+    # (P-65.1.1.2.2 / P-66.6.3), so the engine's acid path deliberately
+    # emits "propanedioic acid" and never "malonic acid" -- see the note
+    # on _RETAINED_ACID_STEM_TABLE in engine.py.  Naming the acid
+    # systematically but the derived cation trivially would be internally
+    # inconsistent.  These three used to pin malonylium / succinylium /
+    # glutarylium, which the engine cannot reach; both forms round-trip
+    # through OPSIN to the same structure, so only the PIN rule separates
+    # them.
     ("O=[C+][C+]=O",                         "oxalylium"),
-    ("O=[C+]C[C+]=O",                        "malonylium"),
-    ("O=[C+]CC[C+]=O",                       "succinylium"),
-    ("O=[C+]CCC[C+]=O",                      "glutarylium"),
+    ("O=[C+]C[C+]=O",                        "propanedioylium"),
+    ("O=[C+]CC[C+]=O",                       "butanedioylium"),
+    ("O=[C+]CCC[C+]=O",                      "pentanedioylium"),
+    # ---- ring polyacylium ----
+    # These reach the renderer with a "<ring>-<locants>-dicarboxylic acid"
+    # parent, which the chain "-dioic acid" rule cannot see.  Before that
+    # was handled, EVERY one of them named as its neutral aldehyde
+    # ("1,2-bis(oxomethyl)benzene" -- phthalaldehyde), because a renderer
+    # returning None sends the molecule to the plan-search neutralizer.
+    # Wrong molecule, emitted with no sign of trouble.
+    ("O=[C+]c1ccccc1[C+]=O",                 "benzene-1,2-dicarbonylium"),
+    ("O=[C+]c1cccc([C+]=O)c1",               "benzene-1,3-dicarbonylium"),
+    ("O=[C+]c1ccc([C+]=O)cc1",               "benzene-1,4-dicarbonylium"),
+    ("O=[C+]C1CCCCC1[C+]=O",                 "cyclohexane-1,2-dicarbonylium"),
+    ("O=[C+]c1ccc2ccccc2c1[C+]=O",           "naphthalene-1,2-dicarbonylium"),
+    ("O=[C+]c1ccncc1[C+]=O",                 "pyridine-3,4-dicarbonylium"),
+    ("O=[C+]c1cc([C+]=O)cc([C+]=O)c1",       "benzene-1,3,5-tricarbonylium"),
 ])
 def test_engine_emits_exact_surface_name(smi: str, expected_name: str) -> None:
     """Pin the exact surface name the engine emits for each Stage 7 probe."""
@@ -239,6 +265,14 @@ def test_engine_emits_exact_surface_name(smi: str, expected_name: str) -> None:
     "O=[C+]CC[C+]=O",
     "O=[C+]CCC[C+]=O",
     "O=[C+]CCCC[C+]=O",
+    # ring polyacylium (carboxylic-acid parents)
+    "O=[C+]c1ccccc1[C+]=O",
+    "O=[C+]c1cccc([C+]=O)c1",
+    "O=[C+]c1ccc([C+]=O)cc1",
+    "O=[C+]C1CCCCC1[C+]=O",
+    "O=[C+]c1ccc2ccccc2c1[C+]=O",
+    "O=[C+]c1ccncc1[C+]=O",
+    "O=[C+]c1cc([C+]=O)cc([C+]=O)c1",
 ])
 def test_engine_output_round_trips_through_opsin(smi: str) -> None:
     """Strong gate: OPSIN canonicalises our name back to the input's
