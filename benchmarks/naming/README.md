@@ -66,11 +66,39 @@ row of `<unk>` and the model invents a ring. Before this was found, every
 aromatic compound came back as a phosphorus heterocycle and the model looked
 worthless.
 
-| engine | correct | stereochemistry |
-|---|---|---|
-| `SMILES2IUPAC-canonical-base` (180 MB) | **88/124 (71%)** | 0/11 — crashes with `IndexError` |
-| `SMILES2IUPAC-isomeric-small` (24 MB) | 75/124 (60%) | 5/11 correct, **3 silently flattened** |
-| `SMILES2IUPAC-canonical-small` (24 MB) | 71/124 (57%) | 0/11 |
+| engine | correct | stereochemistry | dependencies | speed |
+|---|---|---|---|---|
+| **`open-iupac-namer`** (deterministic) | **120/124 (97%)** | **11/11** | rdkit only | 12 ms |
+| `SMILES2IUPAC-canonical-base` (180 MB) | 88/124 (71%) | 0/11 — crashes with `IndexError` | torch + transformers, 1.1 GB | 190 ms |
+| `SMILES2IUPAC-isomeric-small` (24 MB) | 75/124 (60%) | 5/11 correct, **3 silently flattened** | torch + transformers | 97 ms |
+| `SMILES2IUPAC-canonical-small` (24 MB) | 71/124 (57%) | 0/11 | torch + transformers | 97 ms |
+
+### The deterministic engine wins on every axis
+
+[`leehiufung911/open-iupac-namer`](https://github.com/leehiufung911/open-iupac-namer)
+(MIT, ~63k lines, from-scratch 2013 Blue Book implementation) beats the ML
+option by 26 points while depending on nothing the app does not already have,
+running 16x faster, and — the part no model managed — handling stereochemistry
+perfectly. It also independently arrived at OPSIN round-tripping as its own
+correctness check, which is what this benchmark scores on.
+
+Three of its four failures are not wrong molecules. Same molecular formula,
+same skeleton, different tautomer or H placement:
+
+```
+1,2,3-triazole    -> 1H-1,2,3-triazole                C2H3N3        (tautomer)
+metformin         -> 1,1-dimethylbiguanide            C4H11N5       (tautomer)
+novel pyrazolone  -> N-{2-[1-(4-bromophenyl)-...      C20H17BrF3N3O3 (tautomer)
+diazomethane      -> (azanylidyne)(methyl)azanium     CH3N2+ vs CH2N2  <- genuinely wrong
+```
+
+So one true structural error in 124. It scores 3/4 on the novel scaffolds
+where the ML model scored 1/6 across the whole gap.
+
+Caveats worth stating: 1 GitHub star, self-described as experimental and under
+active development, and partly built with a coding agent. Those are reasons to
+pin a commit and keep the round-trip gate on, not reasons to ignore a result
+this far ahead.
 
 Where `canonical-base` is strong: heterocycles 12/12, fused polycyclics 10/10,
 bridged bicyclics 6/6, organosilicon 5/5, organoboron 5/5.

@@ -87,3 +87,40 @@ def test_selecting_an_item_still_publishes_molecule_selected(qapp):
     panel._list.setCurrentRow(0)
 
     assert selected == [molecule.uuid]
+
+
+# --- Copying identifiers --------------------------------------------------
+
+
+def test_copy_smiles_puts_the_structure_on_the_clipboard(qapp):
+    """The direct ask. Right-click a molecule, get its SMILES."""
+    from PySide6.QtGui import QGuiApplication
+    from rdkit import Chem
+
+    panel = ProjectExplorerPanel(EventBus(), QUndoStack())
+    molecule = MoleculeModel(display_name="aspirin")
+    molecule.molblock = Chem.MolToMolBlock(Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O"))
+    panel.set_project(ProjectModel(molecules=[molecule]))
+
+    QGuiApplication.clipboard().setText("")
+    panel._copy_identifier(panel._list.item(0), "smiles")
+
+    pasted = QGuiApplication.clipboard().text()
+    assert Chem.MolFromSmiles(pasted) is not None
+    assert Chem.MolToSmiles(Chem.MolFromSmiles(pasted)) == Chem.MolToSmiles(
+        Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O")
+    )
+
+
+def test_copying_a_molecule_with_no_structure_leaves_the_clipboard_alone(qapp):
+    """Better than clearing it: someone who copied something else and
+    then right-clicked an empty molecule should not lose it."""
+    from PySide6.QtGui import QGuiApplication
+
+    panel = ProjectExplorerPanel(EventBus(), QUndoStack())
+    panel.set_project(ProjectModel(molecules=[MoleculeModel(display_name="empty")]))
+
+    QGuiApplication.clipboard().setText("something the user already had")
+    panel._copy_identifier(panel._list.item(0), "smiles")
+
+    assert QGuiApplication.clipboard().text() == "something the user already had"

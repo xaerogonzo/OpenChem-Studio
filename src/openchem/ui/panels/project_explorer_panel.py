@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QKeySequence, QShortcut, QUndoStack
+from PySide6.QtGui import QGuiApplication, QKeySequence, QShortcut, QUndoStack
 from PySide6.QtWidgets import QListWidget, QListWidgetItem, QMenu, QVBoxLayout, QWidget
 
+from openchem.chem.identifiers import identifier_for_molblock
 from openchem.commands.molecule_commands import DeleteMoleculeCommand, RenameMoleculeCommand
 from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
@@ -79,13 +80,42 @@ class ProjectExplorerPanel(QWidget):
         if item is None:
             return
         menu = QMenu(self._list)
+        # Identifiers first: this is the most frequent reason to
+        # right-click a molecule, and -- since most structures have no
+        # verified IUPAC name (see benchmarks/naming) -- a SMILES or an
+        # InChIKey is often the only way to refer to one at all.
+        copy_smiles_action = menu.addAction("Copy SMILES")
+        copy_inchi_action = menu.addAction("Copy InChI")
+        copy_key_action = menu.addAction("Copy InChIKey")
+        menu.addSeparator()
         rename_action = menu.addAction("Rename")
         delete_action = menu.addAction("Delete")
         chosen = menu.exec(self._list.mapToGlobal(pos))
-        if chosen is rename_action:
+        if chosen is copy_smiles_action:
+            self._copy_identifier(item, "smiles")
+        elif chosen is copy_inchi_action:
+            self._copy_identifier(item, "inchi")
+        elif chosen is copy_key_action:
+            self._copy_identifier(item, "inchikey")
+        elif chosen is rename_action:
             self._list.editItem(item)
         elif chosen is delete_action:
             self._delete_item(item)
+
+    def _copy_identifier(self, item: QListWidgetItem, kind: str) -> None:
+        """Put one identifier for `item`'s molecule on the clipboard.
+
+        Silent on failure by design: a molecule with no parseable
+        structure has no identifier to copy, and a modal complaint on a
+        right-click menu action would be more disruptive than the empty
+        clipboard the user will notice immediately.
+        """
+        molecule = self._molecule_for_item(item)
+        if molecule is None:
+            return
+        text = identifier_for_molblock(molecule.molblock, kind)
+        if text:
+            QGuiApplication.clipboard().setText(text)
 
     def _delete_selected(self) -> None:
         item = self._list.currentItem()
