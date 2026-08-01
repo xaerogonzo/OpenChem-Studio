@@ -95,10 +95,36 @@ diazomethane      -> (azanylidyne)(methyl)azanium     CH3N2+ vs CH2N2  <- genuin
 So one true structural error in 124. It scores 3/4 on the novel scaffolds
 where the ML model scored 1/6 across the whole gap.
 
-Caveats worth stating: 1 GitHub star, self-described as experimental and under
-active development, and partly built with a coding agent. Those are reasons to
-pin a commit and keep the round-trip gate on, not reasons to ignore a result
-this far ahead.
+Caveats worth stating: 1 GitHub star, self-described as experimental, and
+partly built with a coding agent. Those are reasons to pin a commit and keep
+the round-trip gate on, not reasons to ignore a result this far ahead.
+
+### Forkability assessment (2026-08-01)
+
+Measured, because "adopt or rebuild" turns on real numbers:
+
+| | |
+|---|---|
+| engine | 63,129 lines — 28.6k top level, 18.9k perception, 15.4k ring naming |
+| tests | 22,788 lines, 110 files, **2,907 passing / 12 failing** on upstream HEAD |
+| data | 36,302 lines — Blue Book prefixes (397 KB), retained names, fusion components |
+| docs | 2,994 lines of architecture documentation |
+| licence | MIT, and the OPSIN-derived data tables are MIT upstream too — clean to vendor |
+
+**It is abandoned.** Created 2026-05-24, last pushed 2026-05-24, 3 commits, one
+author, zero forks, zero issues. It was published once and never touched again.
+
+That single fact collapses the decision. There is no upstream to track, so
+"depend on it" and "make it ours" are the same act — vendoring *is* the
+in-house version. And rebuilding from scratch is not a real option: the 36k
+lines of curated nomenclature tables alone represent months of work before a
+single name is generated, and the engine encodes the Blue Book's decision
+cascade that took this author however long it took.
+
+The 12 failures are in narrow areas (xanthine retained-name fallback,
+polycharged radical cations, skeletal chain replacement), not the core. One
+test file (`test_fr_orientation_numbering.py`) references a `tests/audit`
+package that was never committed.
 
 Where `canonical-base` is strong: heterocycles 12/12, fused polycyclics 10/10,
 bridged bicyclics 6/6, organosilicon 5/5, organoboron 5/5.
