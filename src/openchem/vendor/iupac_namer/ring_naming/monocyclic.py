@@ -1707,11 +1707,23 @@ def try_hantzsch_widman(
     # When a ring heteroatom has a valence different from its standard value,
     # IUPAC requires the λ<n> (lambda) convention.  The parent ring is named
     # using the MAXIMALLY UNSATURATED (aromatic) form, and the lambda marker
-    # is prepended as "<locant>lambda<valence>-" (e.g. "4lambda5-").
+    # is prepended as "<locant>lambda<valence>-" (e.g. "2lambda5-").
     #
-    # Example: 6-membered N/P ring where one P has valence 5 due to N=P bond:
+    # Example: 6-membered N/P ring where one P has valence 5 due to N=P bond
+    # (CN1P(C)N=P(C)(C)N(C)P1C):
     #   parent → "1,3,5,2,4,6-triazatriphosphinine" (aromatic form)
-    #   lambda → "4lambda5-1,3,5,2,4,6-triazatriphosphinine"
+    #   lambda → "1,2,2,4,5,6-hexamethyl-2lambda5-1,3,5,2,4,6-triazatri-
+    #             phosphinine"
+    #
+    # The lambda locant there is 2, NOT 4.  The ring name pins N to 1,3,5 and
+    # P to 2,4,6, which leaves six numberings placing the λ5 phosphorus at 2,
+    # 4 or 6.  _compute_hw_locants picks 2 because the λ-locant criterion
+    # outranks indicated hydrogen (see its docstring); independently, that
+    # same numbering wins P-14.4's "lowest locants to detachable prefixes"
+    # (1,2,2,4,5,6 < 1,2,3,4,4,6 < 1,2,3,4,6,6), so 2 is correct however that
+    # hierarchy is read.  This comment used to say "4lambda5" and
+    # test_lambda_valence.py was written from it — the test still pins that
+    # non-minimal numbering and fails on it.
     #
     # This generalises to any heteroatom with non-standard valence: S(IV/VI),
     # As(V), Sb(V), etc.

@@ -3360,15 +3360,20 @@ def _render_polycarbon(
 
 
 # Retained polycarboxylic-acid -> retained polyacylium surface mapping.
-# OPSIN parses every retained name in this map; the systematic
-# "<parent>dioylium" form is emitted when the engine yields the
-# systematic acid name (``hexanedioic acid`` -> ``hexanedioylium``).
+#
+# Oxalic acid is the only member: its retained name IS the PIN, so the acyl
+# group is ``oxalyl`` and the cation ``oxalylium``.  The other aliphatic
+# alpha,omega-dicarboxylic retained names (malonic, succinic, glutaric,
+# adipic, ...) are retained for GENERAL nomenclature only — the systematic
+# name is the PIN (P-65.1.1.2.2 / P-66.6.3) — and the acid path deliberately
+# never emits them; see ``_RETAINED_ACID_STEM_TABLE`` in engine.py.  Keys for
+# those four used to sit here and were unreachable by construction: the
+# parent name arriving from ``_drive_engine`` is always ``propanedioic acid``,
+# never ``malonic acid``.  They fall through to the systematic
+# "<parent>dioic acid" -> "<parent>dioylium" transform below, which is the PIN
+# form and round-trips through OPSIN to the same structure.
 _RETAINED_DIACID_TO_DIACYLIUM: dict[str, str] = {
     "oxalic acid": "oxalylium",
-    "malonic acid": "malonylium",
-    "succinic acid": "succinylium",
-    "glutaric acid": "glutarylium",
-    "adipic acid": "adipoylium",
 }
 
 
