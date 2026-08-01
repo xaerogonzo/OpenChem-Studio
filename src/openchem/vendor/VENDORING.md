@@ -25,7 +25,7 @@ of anything upstream chose to measure.
 
 ### What was changed
 
-Deliberately minimal, so the diff against upstream stays reviewable:
+At vendoring time, deliberately minimal:
 
 1. **Imports re-homed.** 302 occurrences of `iupac_namer.` became
    `openchem.vendor.iupac_namer.` across 33 modules, so the package does not
@@ -36,6 +36,12 @@ Deliberately minimal, so the diff against upstream stays reviewable:
    two levels, `perception/fg/acid_infix_composition.py` walks up four).
    Mirroring the layout means zero path patches; moving `data/` inside the
    package required patching each resolver and broke on the second one.
+
+Since then the engine has been changed on its merits — this project is its
+maintainer now, not a downstream consumer. **`CHANGELOG.md` is the record**;
+`KNOWN_LIMITATIONS.md` is what is still wrong; `BENCHMARK_HISTORY.md` tracks
+the score per change. Keeping the diff against upstream small stopped being a
+goal once it was established that there is no upstream to diff against.
 
 `docs/` carries upstream's architecture documentation (~3,000 lines), which is
 the main reason this is maintainable by someone who did not write it.
@@ -53,9 +59,24 @@ name is right when parsing it back yields the structure it came from. Writing
 it fixed **7 of the 12 failures** — those tests were failing because of the
 missing module, not on their merits.
 
-Current state: **2,940 passing, 5 failing, 16 skipped** in ~7 minutes. The
-remaining five are narrow — cyclotriphosphazene lambda-valence naming (2) and
-polycharged acylium cations (3) — and none touch the core naming path.
+Current state: **3,039 passing, 0 failing, 16 skipped** in ~7 minutes.
+
+The five that were still failing turned out not to be engine defects: they
+asserted a non-minimal lambda numbering and three general-nomenclature-only
+acylium names, and the engine's output is more correct in each case. See
+`CHANGELOG.md` for the reasoning and the rule citations.
+
+Investigating them exposed something worse than a red test, which is now the
+main reason this directory carries its own documentation: inputs that name
+*successfully* but to the **wrong molecule**. The benzyl cation was named
+`methylbenzene` (toluene); the phthaloyl dication `1,2-bis(oxomethyl)benzene`
+(phthalaldehyde). Twenty-six such cases have been fixed and are pinned in
+`tests/test_namer_known_defects.py`, which runs in the DEFAULT suite because a
+wrong-molecule regression must not wait for the 7-minute run. Seven remain
+open and are recorded in `KNOWN_LIMITATIONS.md`.
+
+Set `OPENCHEM_NAMER_DEBUG=1` to instrument the fall-through that causes them
+(`iupac_namer/diagnostics.py`).
 
 Those tests live in `tests/vendor/iupac_namer/` and are **excluded from the
 default run**: they take 6.5 minutes against this project's 2 minutes, and

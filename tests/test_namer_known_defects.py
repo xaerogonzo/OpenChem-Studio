@@ -154,6 +154,12 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "1H-pyrrol-2-ide", "charge relocated from N to C"),
     ("D-016", "[N-]=[N+]=[N-]", "azide",
      "diiminoazanium", "wrong structure"),
+    # Zwitterion: the engine protonates the carbanion half and keeps the
+    # cation, so neutral CH2N2 comes out as the CH3N2+ methyldiazonium
+    # CATION -- an invented hydrogen and a charge that is not there.
+    # Benchmark row "diazomethane".
+    ("D-019", "[CH2-][N+]#N", "methanidyldiazonium",
+     "(azanylidyne)(methyl)azanium", "gains an H; emits the cation"),
 ]
 
 
