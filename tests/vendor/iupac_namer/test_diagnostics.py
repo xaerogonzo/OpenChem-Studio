@@ -61,9 +61,17 @@ class TestEnablement:
 class TestGateAttribution:
     """Each defect must be attributed to the layer that has to change."""
 
-    def test_unclaimed_when_no_classifier_recognises_the_motif(self):
-        # Benzyl cation: names as "methylbenzene" (toluene).  No classifier
-        # claims it, so the fix belongs in a classifier, not a renderer.
+    def test_unclaimed_when_no_classifier_recognises_the_motif(self, monkeypatch):
+        """A charged molecule no classifier claims is attributed to the
+        classifier layer, not to a renderer.
+
+        Classification is forced to come back empty rather than relying on
+        a live defect: this test used to pass the benzyl cation, and went
+        stale the moment that case was fixed. Same trap as the
+        render_failed test below -- what is pinned is the instrument, not
+        which defects happen to be open today.
+        """
+        monkeypatch.setattr(charge_perception, "classify_charges", lambda mol: ())
         with diagnostics.capture() as rec:
             name_smiles("[CH2+]c1ccccc1")
         reasons = {g.reason for g in rec.gaps}

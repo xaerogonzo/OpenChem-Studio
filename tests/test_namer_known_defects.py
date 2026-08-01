@@ -84,6 +84,37 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-005i", "CC(C)[CH+]C(C)C", "2,4-dimethylpentan-3-ylium",
      "2,4-dimethylpentan-1-ylium", "charge moved to C1"),
 
+    # --- D-002 family: charge next to unsaturation or aromaticity ------
+    # _classify_simple_carbon_charge required every atom non-aromatic and
+    # every bond single, so it claimed nothing here -- and an unclaimed
+    # charge is not left alone, it falls through to the plan-search
+    # neutralizer. The restriction bought nothing: the renderer drives the
+    # engine in substituent mode, which names these skeletons perfectly
+    # well (phenylmethan-1-yl, prop-2-en-1-yl, ethen-1-yl).
+    ("D-002", "[CH2+]c1ccccc1", "phenylmethan-1-ylium",
+     "methylbenzene", "charge dropped; toluene"),
+    ("D-011", "[CH2-]c1ccccc1", "phenylmethan-1-ide",
+     "methylbenzene", "charge dropped; toluene"),
+    ("D-009", "[CH2+]C=C", "prop-2-en-1-ylium",
+     "prop-1-ene", "charge dropped; propene"),
+    ("D-012", "[CH2-]C=C", "prop-2-en-1-ide", "prop-1-ene", "charge dropped"),
+    ("D-010", "[CH+]=C", "ethen-1-ylium", "ethene", "charge dropped"),
+    ("D-014", "[CH+](c1ccccc1)c1ccccc1", "diphenylmethan-1-ylium",
+     "(phenylmethyl)benzene", "charge dropped; diphenylmethane"),
+    ("D-017", "[CH2+]C#C", "prop-2-yn-1-ylium",
+     "prop-1-yne", "charge dropped; propyne"),
+
+    # --- non-regression: retained ring cations the relaxed gate must NOT
+    # steal. These carry retained -ylium PINs owned by the retained-ring
+    # lookup; claiming them in the simple-carbon classifier would quietly
+    # replace a correct retained name with the systematic one
+    # ("phenylium" -> "benzene-1-ylium"). A Kekule-written ring cation is
+    # not flagged aromatic by RDKit, so the guard is ring saturation, not
+    # the aromatic flag.
+    ("D-002x", "[C+]1=CC=CC=C1", "phenylium", "phenylium", "unchanged"),
+    ("D-002y", "[O+]1=CC=CC=C1", "pyrylium", "pyrylium", "unchanged"),
+    ("D-002z", "[C+](C)=O", "acetylium", "acetylium", "unchanged"),
+
     # --- non-regression: shapes the locant fix must NOT disturb ---------
     ("D-005j", "[CH2+]C", "ethan-1-ylium", "ethan-1-ylium", "unchanged"),
     ("D-005k", "[CH2+]CCCC", "pentan-1-ylium", "pentan-1-ylium", "unchanged"),
@@ -98,24 +129,27 @@ FIXED: list[tuple[str, str, str, str, str]] = [
 # unsaturation or aromaticity, which no classifier claims, so the charge
 # is dropped and the neutral skeleton is named.
 OPEN: list[tuple[str, str, str, str, str]] = [
-    # NB "benzylium" would be the obvious target and is WRONG: OPSIN reads
-    # it as O=[C+]c1ccccc1, the benzoyl cation. Every target in this list
-    # was checked by parsing it back, precisely to catch that.
-    ("D-002", "[CH2+]c1ccccc1", "phenylmethan-1-ylium",
-     "methylbenzene", "charge dropped; toluene"),
+    # NB "benzylium" would be the obvious target for a benzyl cation and is
+    # WRONG: OPSIN reads it as O=[C+]c1ccccc1, the BENZOYL cation. Every
+    # target here is checked by parsing it back
+    # (tests/vendor/iupac_namer/test_known_defects.py), precisely to catch
+    # that class of mistake before it becomes someone's goal.
+
+    # Aromatic ring carbanion. Excluded from the simple-carbon classifier
+    # on purpose -- the charged atom is aromatic, and a ring carbanion
+    # needs indicated hydrogen and ring numbering, which is the
+    # retained-ring path's problem, not this classifier's.
     ("D-003", "c1ccc[c-]c1", "benzenide",
      "cyclohexane", "charge AND aromaticity dropped"),
+    # Heteroatom-containing skeletons: the classifier gate is all-carbon,
+    # so anything with N/O/S stays unclaimed. Widening it means teaching
+    # the renderer about heteroatom parents, a larger change.
     ("D-004", "[NH2+]=C(N)N", "guanidinium",
      "iminomethane-1,1-diamine", "charge dropped"),
-    ("D-009", "[CH2+]C=C", "prop-2-en-1-ylium",
-     "prop-1-ene", "charge dropped; propene"),
-    ("D-010", "[CH+]=C", "ethen-1-ylium", "ethene", "charge dropped"),
-    ("D-011", "[CH2-]c1ccccc1", "phenylmethan-1-ide",
-     "methylbenzene", "charge dropped; toluene"),
-    ("D-012", "[CH2-]C=C", "prop-2-en-1-ide", "prop-1-ene", "charge dropped"),
     ("D-013", "[CH+]=O", "oxomethylium", "oxomethane", "charge dropped"),
-    ("D-014", "[CH+](c1ccccc1)c1ccccc1", "diphenylmethylium",
-     "(phenylmethyl)benzene", "charge dropped; diphenylmethane"),
+    ("D-018", "[CH2+]c1ccncc1", "pyridin-4-ylmethan-1-ylium",
+     "4-methylpyridine", "charge dropped; heteroaryl skeleton"),
+    # Charge relocated rather than dropped.
     ("D-015", "[n-]1cccc1", "pyrrol-1-ide",
      "1H-pyrrol-2-ide", "charge relocated from N to C"),
     ("D-016", "[N-]=[N+]=[N-]", "azide",

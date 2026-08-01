@@ -796,25 +796,48 @@ def _classify_simple_carbon_charge(mol) -> Iterable[ChargeClassification]:
     # Must not have free-valence (radical) - unrelated audit territory.
     if c.GetNumRadicalElectrons() != 0:
         return
-    # All neighbours via single bond (no =O, no =N, etc).
-    for bond in c.GetBonds():
-        if bond.GetBondTypeAsDouble() != 1.0:
-            return
-        other = bond.GetOtherAtom(c)
-        if other.GetAtomicNum() != 6:
-            return
-        if other.GetIsAromatic():
-            return
-    # The whole skeleton must be saturated all-carbon.
+    # The skeleton must be an all-carbon hydrocarbon.  This is the gate that
+    # keeps the heteroatom motifs (acylium R-[C+]=O, iminium, amidinium ...)
+    # with the specific classifiers that know how to name them.
     for atom in mol.GetAtoms():
         if atom.GetAtomicNum() != 6:
             return
-        if atom.GetIsAromatic():
-            return
-    # All bonds between heavy atoms must be single.
-    for bond in mol.GetBonds():
-        if bond.GetBondTypeAsDouble() != 1.0:
-            return
+    # The charged carbon itself must not be aromatic: an aromatic ring
+    # carbanion/carbocation is a different naming problem (indicated
+    # hydrogen, ring numbering) and belongs to _classify_aromatic_ring_cation
+    # and _classify_cyclopentadienyl_anion, which run earlier and claim first.
+    if c.GetIsAromatic():
+        return
+    # Nor may the charge sit in an UNSATURATED ring.  Those carry retained
+    # -ylium PINs (phenylium, tropylium, cyclopentadienylium) that the
+    # retained-ring lookup owns; claiming them here would emit the
+    # systematic form instead and quietly replace a correct retained name
+    # ("phenylium" -> "benzene-1-ylium").  A Kekule-written ring cation is
+    # not flagged aromatic by RDKit, so the check above does not cover this.
+    ring_info = mol.GetRingInfo()
+    for ring in ring_info.AtomRings():
+        if c.GetIdx() not in ring:
+            continue
+        members = set(ring)
+        for bond in mol.GetBonds():
+            if (
+                bond.GetBeginAtomIdx() in members
+                and bond.GetEndAtomIdx() in members
+                and bond.GetBondTypeAsDouble() != 1.0
+            ):
+                return
+    #
+    # Unsaturation and aromaticity ELSEWHERE in the skeleton used to be
+    # rejected here -- the gate required every atom non-aromatic and every
+    # bond single.  That silently cost correctness rather than buying it:
+    # an unclaimed charge is not left alone, it falls through to the plan
+    # search, which neutralizes the molecule.  So the benzyl cation named as
+    # "methylbenzene" (toluene), the allyl cation as "prop-1-ene", the vinyl
+    # cation as "ethene" -- all wrong molecules, emitted with no warning.
+    #
+    # The renderer drives the engine in substituent mode, which handles
+    # these skeletons perfectly well (phenylmethan-1-yl, prop-2-en-1-yl,
+    # ethen-1-yl), so the restriction was never needed on its account.
     sign: ChargeSign = "+" if c.GetFormalCharge() == 1 else "-"
     yield ChargeClassification(
         site_atom_indices=(c.GetIdx(),),
