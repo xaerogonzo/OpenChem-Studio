@@ -305,8 +305,12 @@ def compute_iupac_name(
             # Plain ASCII: this line lands in AlertResult.matched, which
             # reaches logs and console streams as well as Qt. A Windows
             # cp1252 stream raises UnicodeEncodeError on an em-dash.
-            "STOUT: not configured -- set up a STOUT environment under Tools > External Tools "
-            "to predict names for structures PubChem does not have."
+            # Pointing at External Tools would send someone off to set up
+            # something that cannot be set up: STOUT's weights were
+            # withdrawn upstream (see services/stout_setup.py). Say the
+            # true thing instead of the instruction that used to be true.
+            "STOUT: unavailable -- its trained weights were withdrawn upstream, so no "
+            "predicted name can be produced for a structure PubChem does not have."
         )
 
     for result in results:
