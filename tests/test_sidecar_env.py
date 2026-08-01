@@ -84,3 +84,103 @@ def test_no_hint_when_there_is_nothing_to_suggest(tmp_path):
     unconditionally."""
     assert recovery_hint(tmp_path) == ""
     assert working_interpreter_in(tmp_path) is None
+
+
+# --- Finding an executable without making the user dig -------------------
+
+
+def _fake_venv(root: Path) -> Path:
+    """A real venv, since finding is validated by RUNNING what it finds."""
+    import venv
+
+    venv.EnvBuilder(with_pip=False).create(root / ".venv")
+    return root / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+
+
+def test_pointing_at_the_environment_folder_finds_the_interpreter(tmp_path):
+    """The whole complaint: the interpreter is three levels down at
+    .venv/Scripts/python.exe and nobody should have to know that."""
+    from openchem.services.sidecar_env import find_interpreter
+
+    expected = _fake_venv(tmp_path / "pkasolver_env")
+
+    assert find_interpreter(tmp_path / "pkasolver_env") == expected
+
+
+def test_pointing_at_a_folder_ABOVE_the_environment_still_finds_it(tmp_path):
+    """Picking the whole data folder should work too -- it is the obvious
+    thing to try."""
+    from openchem.services.sidecar_env import find_interpreter
+
+    expected = _fake_venv(tmp_path / "data" / "pkasolver_env")
+
+    assert find_interpreter(tmp_path / "data") == expected
+
+
+def test_the_decoy_package_directory_is_not_mistaken_for_the_interpreter(tmp_path):
+    """pkasolver_env contains BOTH `.venv` and a `pkasolver/pkasolver/`
+    clone. The screenshots that prompted this show someone browsing into
+    the clone looking for an executable that was never there."""
+    from openchem.services.sidecar_env import find_interpreter
+
+    root = tmp_path / "pkasolver_env"
+    expected = _fake_venv(root)
+    decoy = root / "pkasolver" / "pkasolver"
+    decoy.mkdir(parents=True)
+    (decoy / "python.exe").write_text("not really an interpreter", encoding="utf-8")
+
+    assert find_interpreter(root) == expected
+
+
+def test_an_already_correct_file_is_accepted_unchanged(tmp_path):
+    from openchem.services.sidecar_env import find_interpreter
+
+    expected = _fake_venv(tmp_path / "env")
+
+    assert find_interpreter(expected) == expected
+
+
+def test_a_folder_with_nothing_in_it_reports_nothing(tmp_path):
+    from openchem.services.sidecar_env import find_interpreter
+
+    assert find_interpreter(tmp_path) is None
+
+
+def test_a_versioned_executable_is_found_by_prefix(tmp_path):
+    """Vina ships as `vina_1.2.7_win.exe`, so an exact-name match would
+    find nothing at all."""
+    from openchem.services.sidecar_env import find_program
+
+    tools = tmp_path / "tools" / "vina"
+    tools.mkdir(parents=True)
+    binary = tools / ("vina_1.2.7_win.exe" if os.name == "nt" else "vina_1.2.7")
+    binary.write_bytes(b"binary")
+
+    assert find_program(tmp_path, ("vina",)) == binary
+
+
+def test_searching_skips_the_directories_that_would_dominate_it(tmp_path):
+    """A pkasolver clone holds thousands of files under .git, none of them
+    what is being looked for."""
+    from openchem.services.sidecar_env import _SKIP_DIRECTORIES, find_program
+
+    assert ".git" in _SKIP_DIRECTORIES
+    buried = tmp_path / ".git" / "objects"
+    buried.mkdir(parents=True)
+    (buried / "orca.exe").write_bytes(b"x")
+
+    assert find_program(tmp_path, ("orca",)) is None
+
+
+def test_the_search_depth_is_bounded(tmp_path):
+    """Someone will point this at a drive root; it must not try to walk
+    the disk."""
+    from openchem.services.sidecar_env import MAX_SEARCH_DEPTH, find_program
+
+    deep = tmp_path
+    for level in range(MAX_SEARCH_DEPTH + 3):
+        deep = deep / f"level{level}"
+    deep.mkdir(parents=True)
+    (deep / "orca.exe").write_bytes(b"x")
+
+    assert find_program(tmp_path, ("orca",)) is None

@@ -111,6 +111,48 @@ class ExternalToolsDialog(QDialog):
 
         self._refresh_vina_status()
 
+    # --- Locating an executable without making the user dig ------------------
+
+    def _browse_for(self, title: str, finder, description: str) -> str | None:
+        """Ask for a FOLDER and find the program inside it.
+
+        A folder is far easier to point at than a file buried three levels
+        down: a pkasolver interpreter sits at
+        `pkasolver_env/.venv/Scripts/python.exe`, next to a `pkasolver/`
+        directory that looks equally plausible, and picking wrong gives
+        "[WinError 193] %1 is not a valid Win32 application". Pointing at
+        the environment -- or at the whole data folder -- is enough.
+        """
+        chosen = QFileDialog.getExistingDirectory(self, title)
+        if not chosen:
+            return None
+        found = finder(Path(chosen))
+        if found is None:
+            QMessageBox.warning(
+                self,
+                "Nothing found",
+                f"No {description} was found in\n{chosen}\n\n"
+                "Pick the folder the tool was installed into, or a folder above it.",
+            )
+            return None
+        return str(found)
+
+    def _auto_locate(self, root: Path, finder, description: str) -> str | None:
+        """Look where this app would have installed it, with no dialog.
+
+        The application put it there; it should not have to ask.
+        """
+        found = finder(root) if root.exists() else None
+        if found is None:
+            QMessageBox.information(
+                self,
+                "Not found automatically",
+                f"No {description} was found in\n{root}\n\n"
+                "Use 'Set Up Automatically' to install it, or Browse if it is elsewhere.",
+            )
+            return None
+        return str(found)
+
     # --- Vina tab -----------------------------------------------------------
 
     def _build_vina_tab(self) -> QWidget:
@@ -154,7 +196,13 @@ class ExternalToolsDialog(QDialog):
         self._refresh_vina_status()
 
     def _on_vina_browse_clicked(self) -> None:
-        path_str, _ = QFileDialog.getOpenFileName(self, "Select Vina executable")
+        from openchem.services.sidecar_env import find_program
+
+        path_str = self._browse_for(
+            "Select the folder containing Vina",
+            lambda root: find_program(root, ("vina",)),
+            "Vina executable",
+        )
         if path_str:
             self._vina_path_edit.setText(path_str)
             self._on_vina_path_edited()
@@ -279,7 +327,13 @@ class ExternalToolsDialog(QDialog):
         self._settings.set("orca/executable_path", self._orca_path_edit.text())
 
     def _on_orca_browse_clicked(self) -> None:
-        path_str, _ = QFileDialog.getOpenFileName(self, "Select ORCA executable")
+        from openchem.services.sidecar_env import find_program
+
+        path_str = self._browse_for(
+            "Select the folder ORCA is installed in",
+            lambda root: find_program(root, ("orca",)),
+            "ORCA executable",
+        )
         if path_str:
             self._orca_path_edit.setText(path_str)
             self._on_orca_path_edited()
@@ -834,6 +888,11 @@ class ExternalToolsDialog(QDialog):
         test_button = QPushButton("Test (names ethanol)...", tab)
         test_button.clicked.connect(self._on_stout_test_clicked)
 
+        self._stout_locate_button = QPushButton("Locate Installed", tab)
+        self._stout_locate_button.setToolTip(
+            "Look where this app installs it, without asking you to find anything."
+        )
+        self._stout_locate_button.clicked.connect(self._on_stout_locate_clicked)
         self._stout_setup_button = QPushButton("Set Up Automatically...", tab)
         self._stout_setup_button.clicked.connect(self._on_stout_setup_clicked)
         self._stout_prereq_label = QLabel(stout_setup.describe_prerequisites(), tab)
@@ -875,6 +934,7 @@ class ExternalToolsDialog(QDialog):
 
         action_row = QHBoxLayout()
         action_row.addWidget(self._stout_setup_button)
+        action_row.addWidget(self._stout_locate_button)
         action_row.addWidget(test_button)
         action_row.addStretch()
 
@@ -958,15 +1018,26 @@ class ExternalToolsDialog(QDialog):
         self._stout_status_label.setText("Not checked - press Test to verify")
 
     def _on_stout_browse_clicked(self) -> None:
-        path_str, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select the STOUT environment's Python interpreter",
-            "",
-            _INTERPRETER_FILTER,
+        from openchem.services.sidecar_env import find_interpreter
+
+        path_str = self._browse_for(
+            "Select the STOUT environment folder", find_interpreter, "Python interpreter"
         )
         if path_str:
             self._stout_path_edit.setText(path_str)
             self._on_stout_path_edited()
+
+    def _on_stout_locate_clicked(self) -> None:
+        from openchem.services.sidecar_env import find_interpreter
+        from openchem.services.stout_setup import default_install_root
+
+        path_str = self._auto_locate(
+            default_install_root(), find_interpreter, "Python interpreter"
+        )
+        if path_str:
+            self._stout_path_edit.setText(path_str)
+            self._on_stout_path_edited()
+            self._stout_status_label.setText(f"Found: {path_str} - press Test to verify")
 
     def _on_stout_test_clicked(self) -> None:
         # describe_stout_test builds its own test molecule: the UI layer
@@ -1000,6 +1071,11 @@ class ExternalToolsDialog(QDialog):
         test_button = QPushButton("Test (predicts acetic acid's pKa)...", tab)
         test_button.clicked.connect(self._on_pkasolver_test_clicked)
 
+        self._pkasolver_locate_button = QPushButton("Locate Installed", tab)
+        self._pkasolver_locate_button.setToolTip(
+            "Look where this app installs it, without asking you to find anything."
+        )
+        self._pkasolver_locate_button.clicked.connect(self._on_pkasolver_locate_clicked)
         self._pkasolver_setup_button = QPushButton("Set Up Automatically...", tab)
         self._pkasolver_setup_button.clicked.connect(self._on_pkasolver_setup_clicked)
         self._pkasolver_prereq_label = QLabel(describe_prerequisites(), tab)
@@ -1042,6 +1118,7 @@ class ExternalToolsDialog(QDialog):
 
         action_row = QHBoxLayout()
         action_row.addWidget(self._pkasolver_setup_button)
+        action_row.addWidget(self._pkasolver_locate_button)
         action_row.addWidget(test_button)
         action_row.addStretch()
 
@@ -1128,15 +1205,26 @@ class ExternalToolsDialog(QDialog):
         self._pkasolver_status_label.setText("Not checked — press Test to verify")
 
     def _on_pkasolver_browse_clicked(self) -> None:
-        path_str, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select the pkasolver environment's Python interpreter",
-            "",
-            _INTERPRETER_FILTER,
+        from openchem.services.sidecar_env import find_interpreter
+
+        path_str = self._browse_for(
+            "Select the pkasolver environment folder", find_interpreter, "Python interpreter"
         )
         if path_str:
             self._pkasolver_path_edit.setText(path_str)
             self._on_pkasolver_path_edited()
+
+    def _on_pkasolver_locate_clicked(self) -> None:
+        from openchem.services.pkasolver_setup import default_install_root
+        from openchem.services.sidecar_env import find_interpreter
+
+        path_str = self._auto_locate(
+            default_install_root(), find_interpreter, "Python interpreter"
+        )
+        if path_str:
+            self._pkasolver_path_edit.setText(path_str)
+            self._on_pkasolver_path_edited()
+            self._pkasolver_status_label.setText(f"Found: {path_str} - press Test to verify")
 
     def _on_pkasolver_test_clicked(self) -> None:
         # Runs a real prediction, which loads a ~105 MB model ensemble and
