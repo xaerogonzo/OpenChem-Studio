@@ -249,6 +249,32 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-020c", "c1ccccc1NC(N)=[NH2+]", "phenylguanidinium",
      "N-(aminoiminomethyl)benzen-1-amine", "as above"),
 
+    # --- D-024: ring N-oxide in substituent position --------------------
+    # Additive nomenclature produces a two-word name ("pyridine 1-oxide"),
+    # and a substituent must end in "-yl" for its parent to attach to --
+    # there is nothing to attach to the end of the word "oxide". Emitting
+    # it anyway gave "(pyridin-4-yl)methan-1-ylium 1-oxide", unparsable.
+    # The additive path now steps aside in substituent output form, and the
+    # substitutive path already knew how: "1-(oxido)pyridin-1-ium-4-yl".
+    # Standalone output is untouched, so "pyridine 1-oxide" and
+    # "pyridine-4-carboxylate 1-oxide" keep the additive form correct for them.
+    ("D-024", "[CH2+]c1cc[n+]([O-])cc1",
+     "[1-(oxido)pyridin-1-ium-4-yl]methan-1-ylium",
+     "(pyridin-4-yl)methan-1-ylium 1-oxide", "unparsable; oxide wrapped a cation"),
+    ("D-024b", "[CH2-]c1cc[n+]([O-])cc1",
+     "[1-(oxido)pyridin-1-ium-4-yl]methan-1-ide",
+     "(unclaimed)", "same shape, anion"),
+
+    # --- non-regression: additive names that MUST keep the two-word form
+    ("D-024x", "[O-][n+]1ccccc1", "pyridine 1-oxide", "pyridine 1-oxide",
+     "unchanged"),
+    ("D-024y", "[O-]C(=O)c1cc[n+]([O-])cc1", "pyridine-4-carboxylate 1-oxide",
+     "pyridine-4-carboxylate 1-oxide", "unchanged"),
+    ("D-024z", "C[N+](C)(C)[O-]", "trimethylamine oxide",
+     "trimethylamine oxide", "unchanged"),
+    ("D-024w", "CS(C)=O", "dimethyl sulfoxide", "dimethyl sulfoxide",
+     "unchanged"),
+
     # --- D-025: more than one N-substituent on guanidinium --------------
     # Guanidine numbers the charged (imino) nitrogen 2 and the two amino
     # nitrogens 1 and 3. Lowest locants go to the more heavily substituted
@@ -374,26 +400,16 @@ FIXED: list[tuple[str, str, str, str, str]] = [
 # the WRONG MOLECULE. The common shape is a charged carbon next to
 # unsaturation or aromaticity, which no classifier claims, so the charge
 # is dropped and the neutral skeleton is named.
-OPEN: list[tuple[str, str, str, str, str]] = [
-    # NB "benzylium" would be the obvious target for a benzyl cation and is
-    # WRONG: OPSIN reads it as O=[C+]c1ccccc1, the BENZOYL cation. Every
-    # target here is checked by parsing it back
-    # (tests/vendor/iupac_namer/test_known_defects.py), precisely to catch
-    # that class of mistake before it becomes someone's goal.
-
-    # A ring N-oxide in SUBSTITUENT position. Additive nomenclature is the
-    # engine's only N-oxide renderer, and it works as a top-level wrapper:
-    # strip the exocyclic [O-], name what is left, append " 1-oxide". When
-    # the core carries a charge suffix that produces
-    # "(pyridin-4-yl)methan-1-ylium 1-oxide", which is not a valid name --
-    # the oxide has to go INLINE, as "1-oxido...-1-ium". That substitutive
-    # form is a naming capability the engine does not have, not a missing
-    # table entry: a curated ring entry keyed on the N-oxide ring was tried
-    # and is dead data, because the additive path strips the oxide before
-    # ring lookup.
-    ("D-024", "[CH2+]c1cc[n+]([O-])cc1", "(1-oxidopyridin-1-ium-4-yl)methylium",
-     "(pyridin-4-yl)methan-1-ylium 1-oxide", "unparsable; oxide cannot wrap a cation"),
-]
+# Empty, and that is the point of keeping it: a defect found later is added
+# here as xfail(strict=True) so that fixing it FAILS the suite and forces
+# this table and KNOWN_LIMITATIONS.md to be updated together.
+#
+# NB "benzylium" would be the obvious target for a benzyl cation and is
+# WRONG: OPSIN reads it as O=[C+]c1ccccc1, the BENZOYL cation. Every target
+# added here must be checked by parsing it back
+# (tests/vendor/iupac_namer/test_known_defects.py), precisely to catch that
+# class of mistake before it becomes someone's goal.
+OPEN: list[tuple[str, str, str, str, str]] = []
 
 # Observed but NOT tracked here, because this table requires a verified
 # target name and these have none:

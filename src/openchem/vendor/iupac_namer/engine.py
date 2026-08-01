@@ -8678,8 +8678,24 @@ def name(
                 output_form = OutputForm.ANION
 
     # --- Additive check (pre-interpretation, v13 B3) ---
+    # NOT in substituent form.  Additive nomenclature produces a two-word name
+    # ("pyridine 1-oxide"), and a substituent has to end in "-yl" so its parent
+    # can attach to it -- there is nothing to attach to the end of a word like
+    # "oxide".  Emitting it anyway is how a carbocation on a pyridine N-oxide
+    # ring became "(pyridin-4-yl)methan-1-ylium 1-oxide", which OPSIN cannot
+    # parse: the oxide has to go INLINE, as "1-oxido...-1-ium".
+    #
+    # Declining here is all that is needed for that, because the substitutive
+    # path already knows how -- it renders the same ring as
+    # "1-(oxido)pyridin-1-ium-4-yl".  Standalone output is untouched, so
+    # "pyridine 1-oxide" and "pyridine-4-carboxylate 1-oxide" keep the additive
+    # form that is correct for them.
     additive_groups = perception.fgs.additive_groups
-    if additive_groups and strategy.accept_additive(additive_groups):
+    if (
+        additive_groups
+        and output_form != OutputForm.SUBSTITUENT
+        and strategy.accept_additive(additive_groups)
+    ):
         parent_mol, atom_map = strip_additive_atoms(mol, additive_groups)
         parent_tree = name(
             parent_mol, strategy, OutputForm.STANDALONE,

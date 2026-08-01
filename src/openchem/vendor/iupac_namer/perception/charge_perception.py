@@ -1040,14 +1040,12 @@ def _classify_simple_carbon_charge(mol) -> Iterable[ChargeClassification]:
     ]
     if sum(a.GetFormalCharge() for a in others) != 0:
         return
-    # ...and they must sit OUTSIDE any ring.  An exocyclic one is a
-    # substituent prefix and the parent name is unaffected; a ring-embedded
-    # one changes the parent's whole form -- pyridine N-oxide is named
-    # additively as the two-word "pyridine 1-oxide", and there is no way to
-    # splice "-1-ylium" onto that.  Attempting it produced
-    # "4-methylpyridine 1-oxid-1-ylium", which OPSIN cannot parse.
-    if any(a.IsInRing() for a in others):
-        return
+    # Ring-embedded ones are allowed too, and used to be refused here.  The
+    # obstacle was never the charge: it was that a ring N-oxide is rendered
+    # by ADDITIVE nomenclature as the two-word "pyridine 1-oxide", which has
+    # nothing to splice "-1-ylium" onto.  The additive path now steps aside
+    # in substituent output form, so the ring comes back substitutively as
+    # "1-(oxido)pyridin-1-ium-4-yl" and composes normally.
     sign: ChargeSign = "+" if c.GetFormalCharge() == 1 else "-"
     sites = (c.GetIdx(), *(a.GetIdx() for a in others))
     yield ChargeClassification(

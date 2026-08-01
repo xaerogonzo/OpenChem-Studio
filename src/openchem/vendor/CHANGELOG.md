@@ -102,6 +102,39 @@ Fourteen inputs that named the wrong compound. All are pinned in
 
 Benchmark unchanged at 120/124 across all of the above, stereochemistry 11/11.
 
+## 2026-08-01 — ring N-oxides in substituent position
+
+D-024, the last open severity-A defect.  `[CH2+]c1cc[n+]([O-])cc1` came out as
+`(pyridin-4-yl)methan-1-ylium 1-oxide`, which OPSIN cannot parse.
+
+Additive nomenclature produces a TWO-WORD name, and a substituent has to end
+in `-yl` so its parent can attach to it -- there is nothing to attach to the
+end of the word "oxide".  The additive check in `engine.py` fired regardless
+of output form, so it wrapped a cation core.
+
+The fix is one condition: **the additive path declines in SUBSTITUENT output
+form.**  The substitutive path already knew how to render the ring --
+`1-(oxido)pyridin-1-ium-4-yl` -- it was simply never reached, because additive
+claimed the molecule first.  Standalone output is untouched, so
+`pyridine 1-oxide`, `pyridine-4-carboxylate 1-oxide`,
+`trimethylamine oxide` and `dimethyl sulfoxide` all keep the additive form
+that is correct for them.
+
+With that in place the simple-carbon classifier no longer needs to refuse a
+ring-embedded charge-separated group, so the guard added for D-018 is gone
+again.  The obstacle was never the charge; it was the two-word name.
+
+Two cheaper routes were tried first and both were wrong, which is why they are
+recorded in `KNOWN_LIMITATIONS.md`: a curated ring entry keyed on the N-oxide
+ring is dead data (the additive path strips the oxide before ring lookup), and
+composing the name from parts means reimplementing substituent assembly for
+one molecular shape.
+
+Benchmark unchanged at 163/165 -- D-024 is not in the corpus, so this one is
+verified by the defect table rather than by the score.
+
+**The severity-A open list is now empty.**
+
 ## 2026-08-01 — poly-N-substituted guanidinium
 
 D-025.  Guanidinium with more than one N-substituent was declined by the

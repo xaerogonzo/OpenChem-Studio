@@ -37,34 +37,38 @@ Two of those fall-through reasons now raise instead of neutralizing — see
 
 ## Open defects (severity A — wrong molecule)
 
-One remains.
+**None.** Every severity-A defect found by the sweeps, the benchmark and the
+corpus extension has been fixed; the table in
+`tests/test_namer_known_defects.py` holds 66 of them plus 33 non-regression
+rows guarding the paths those fixes could have stolen from.
 
-| id | input | emits | should be |
-|---|---|---|---|
-| D-024 | `[CH2+]c1cc[n+]([O-])cc1` | `(pyridin-4-yl)methan-1-ylium 1-oxide` (unparsable) | `(1-oxidopyridin-1-ium-4-yl)methylium` |
+That is a statement about what has been *looked for*, not a claim that none
+exists. The instrument that found most of them is still in the box: set
+`OPENCHEM_NAMER_DEBUG=1`, or open a `diagnostics.capture()` scope, and sweep a
+corpus. The `OPEN` list in the defect table is deliberately kept, empty, so a
+newly found defect can be added as `xfail(strict=True)` — fixing it then FAILS
+the suite and forces this document and that table to be updated together.
 
-**A ring N-oxide in substituent position.** Additive nomenclature is the
-engine's only N-oxide renderer, and it works as a top-level wrapper: strip the
-exocyclic `[O-]`, name what is left, append ` 1-oxide`. That is right for
-`pyridine 1-oxide` and for `pyridine-4-carboxylic acid 1-oxide`, but when the
-core carries a charge suffix it produces `…-ylium 1-oxide`, which is not a
-valid name — the oxide has to go INLINE, as `1-oxido…-1-ium`.
+The last one to go, D-024, is worth keeping as a worked example because the
+two obvious fixes were both wrong:
 
-The fix is a naming capability the engine does not have, not a missing table
-entry, and two cheaper routes were tried and rejected:
-
-* A curated ring entry keyed on the N-oxide ring (`[O-][n+]1ccccc1`) with a
-  `substituent_form` is **dead data** — the additive path strips the oxide
-  *before* ring lookup, so the ring reaching the table is plain pyridine.
-* Composing the name by hand from parts the engine does give
-  (`pyridinium-4-yl` plus a `1-oxido` prefix) means reimplementing substituent
-  assembly for one molecular shape, which is the sort of narrow special case
-  this engine has been having removed from it.
-
-What it actually needs is for the additive-versus-substitutive choice to be
-made with the output form in view, so a ring N-oxide destined for substituent
-position takes the `1-oxido…-1-ium` form. The additive path currently lives
-inside plan search and is not output-form aware.
+> A ring N-oxide in substituent position came out as
+> `(pyridin-4-yl)methan-1-ylium 1-oxide`, which OPSIN cannot parse. Additive
+> nomenclature produces a two-word name, and a substituent has to end in
+> `-yl` for its parent to attach to it — there is nothing to attach to the end
+> of the word "oxide".
+>
+> A curated ring entry keyed on the N-oxide ring is **dead data**: the
+> additive path strips the exocyclic `[O-]` *before* ring lookup, so the ring
+> reaching the table is plain pyridine. Composing the name by hand from parts
+> the engine does give means reimplementing substituent assembly for one
+> molecular shape.
+>
+> What actually worked was one condition: the additive path declines in
+> SUBSTITUENT output form. The substitutive path already knew how to render
+> it — `1-(oxido)pyridin-1-ium-4-yl` — it was simply never reached. Standalone
+> output is untouched, so `pyridine 1-oxide` and
+> `pyridine-4-carboxylate 1-oxide` keep the additive form correct for them.
 
 ### Observed, no verified target
 
@@ -83,8 +87,7 @@ rows are now characterised, and **two of them are not engine errors at all**.
 
 (The corpus has since grown to 165 rows; the current score is **163/165**.
 Zero wrong structures, zero refusals, zero unparsable names: the only two
-failures are the tautomers below, which are not errors. D-024 is not in the
-corpus.)
+failures are the tautomers below, which are not errors.)
 
 ### Tautomers — the engine is defensible
 
