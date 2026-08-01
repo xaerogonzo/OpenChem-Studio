@@ -133,16 +133,128 @@ CORPUS: dict[str, list[tuple[str, str]]] = {
         ("novel spiro amide", "O=C(NC1CCC2(CC1)OCCO2)c1ccc(N2CCOCC2)nc1"),
         ("novel biaryl urea", "O=C(Nc1ccc(-c2ccncc2)cc1)Nc1cccc(C(F)(F)F)c1"),
     ],
+    # Charged species. Added after a defect hunt found that the engine was
+    # SILENTLY NEUTRALIZING whole families of these -- the benzyl cation named
+    # as "methylbenzene" (toluene), the phthaloyl dication as
+    # "1,2-bis(oxomethyl)benzene" (phthalaldehyde). Twenty-six such cases were
+    # fixed, and none of them were measurable here, because the one
+    # charged_zwitterion category above contains no carbocation, no carbanion
+    # and no polyacylium. The benchmark could not see the single largest
+    # correctness problem the engine had.
+    #
+    # Deliberately includes species that still FAIL (phenyl anion,
+    # guanidinium, azide). A benchmark that only contains what the engine
+    # already handles measures nothing.
+    "carbocation": [
+        ("methylium", "[CH3+]"), ("ethan-1-ylium", "[CH2+]C"),
+        ("propan-2-ylium", "C[CH+]C"), ("tert-butyl cation", "C[C+](C)C"),
+        ("cyclohexan-1-ylium", "[CH+]1CCCCC1"),
+        ("benzyl cation", "[CH2+]c1ccccc1"),
+        ("allyl cation", "[CH2+]C=C"), ("vinyl cation", "[CH+]=C"),
+        ("phenylium", "[C+]1=CC=CC=C1"), ("tropylium", "[CH+]1C=CC=CC=C1"),
+        ("acetylium", "[C+](C)=O"), ("benzoylium", "O=[C+]c1ccccc1"),
+    ],
+    "carbanion": [
+        ("methanide", "[CH3-]"), ("ethan-1-ide", "[CH2-]C"),
+        ("propan-2-ide", "C[CH-]C"), ("benzyl anion", "[CH2-]c1ccccc1"),
+        ("allyl anion", "[CH2-]C=C"), ("acetylide", "[C-]#C"),
+        ("cyclopentadienide", "[cH-]1cccc1"),
+        ("phenyl anion", "c1ccc[c-]c1"),
+    ],
+    "onium_ion": [
+        ("methylammonium", "C[NH3+]"), ("trimethylsulfonium", "C[S+](C)C"),
+        ("tetramethylphosphonium", "C[P+](C)(C)C"),
+        ("N-methylpyridinium", "C[n+]1ccccc1"),
+        ("pyrylium", "[O+]1=CC=CC=C1"), ("thiopyrylium", "[S+]1=CC=CC=C1"),
+        ("guanidinium", "[NH2+]=C(N)N"),
+        ("diphenyliodonium", "c1ccccc1[I+]c1ccccc1"),
+        ("benzenediazonium", "c1ccc(cc1)[N+]#N"),
+    ],
+    "polycharged": [
+        ("propane-1,3-diylium", "[CH2+]C[CH2+]"),
+        ("methanediylium", "[CH2+2]"),
+        ("propane-1,3-diide", "[CH2-]C[CH2-]"),
+        ("ethylenediammonium", "[NH3+]CC[NH3+]"),
+        ("malonate", "[O-]C(=O)CC(=O)[O-]"),
+        ("phthalate", "[O-]C(=O)c1ccccc1C(=O)[O-]"),
+        ("oxalylium", "O=[C+][C+]=O"),
+        ("propanedioylium", "O=[C+]C[C+]=O"),
+        ("benzene-1,2-dicarbonylium", "O=[C+]c1ccccc1[C+]=O"),
+        ("benzene-1,3,5-tricarbonylium", "O=[C+]c1cc([C+]=O)cc([C+]=O)c1"),
+        ("azide", "[N-]=[N+]=[N-]"),
+        ("tetrafluoroborate", "[B-](F)(F)(F)F"),
+    ],
 }
 
 
+def _trusted_pubchem_name(mol: Chem.Mol) -> str | None:
+    """PubChem's name for this structure, but only if it denotes it.
+
+    PubChem resolves a structure it does not hold to the nearest thing it
+    does, and for charged species that is routinely the NEUTRAL PARENT:
+    it answers "methylbenzene" for the benzyl cation and "propane" for the
+    isopropyl cation. Storing those as ground truth would enshrine, as the
+    benchmark's own reference, exactly the neutralisation bug this corpus
+    was extended to detect.
+
+    So the name is kept only when parsing it back with OPSIN yields the
+    structure it was fetched for. Otherwise the row gets None, which costs
+    nothing but the ability to score EXACT -- `classify` uses this field
+    only to upgrade EQUIVALENT to EXACT, never to fail a row.
+
+    The guard also rejects ground truth that silently drops information:
+    PubChem answers "azane" for 15-N ammonia and "carbane" for 13-C
+    methane, both of which discard the isotope label.
+    """
+    try:
+        name = n.pubchem_name_for_structure(mol).name
+    except n.NamingError:
+        return None
+    if not name:
+        return None
+    try:
+        parsed = n.opsin_structure_for_name(name)
+    except Exception:
+        return None
+    back = Chem.MolFromSmiles(parsed.smiles)
+    if back is None:
+        return None
+    if Chem.MolToSmiles(back) != Chem.MolToSmiles(mol):
+        print(f"      (dropped ground truth {name!r}: denotes a different structure)")
+        return None
+    return name
+
+
 def main() -> None:
-    rows = []
+    """Build the corpus, or with --append add only rows that are missing.
+
+    Appending matters because a full rebuild re-queries PubChem for all
+    124 existing rows, and PubChem's answers drift. Re-fetching them to
+    add new molecules would silently move the baseline the whole benchmark
+    is measured against, which is the one thing this file must not do.
+    """
+    append = "--append" in sys.argv
+    out = Path(__file__).with_name("corpus.json")
+    existing: list[dict] = []
+    if append and out.exists():
+        existing = json.loads(out.read_text(encoding="utf-8"))
+    # Deduplicate on canonical SMILES, not on (category, label). The corpus
+    # is a set of MOLECULES, and the same molecule added twice under two
+    # labels would be scored twice. Labels are not a reliable key: the
+    # committed corpus and this file already disagree about several stereo
+    # names -- CC(C)Cc1ccc([C@@H](C)C(=O)O)cc1 is "(R)-ibuprofen" there and
+    # "(S)-ibuprofen" here -- so keying on them silently duplicated six rows.
+    seen = {r["smiles"] for r in existing}
+
+    rows = list(existing)
+    added = 0
     for category, entries in CORPUS.items():
         for label, smiles in entries:
             mol = Chem.MolFromSmiles(smiles)
             if mol is None:
                 print(f"  SKIP (bad SMILES) {label}: {smiles}")
+                continue
+            if Chem.MolToSmiles(mol) in seen:
                 continue
             kekule_smiles = None
             try:
@@ -151,10 +263,7 @@ def main() -> None:
                 kekule_smiles = Chem.MolToSmiles(copy, kekuleSmiles=True)
             except Exception:
                 pass
-            try:
-                truth = n.pubchem_name_for_structure(mol).name
-            except n.NamingError:
-                truth = None
+            truth = _trusted_pubchem_name(mol)
             rows.append({
                 "label": label,
                 "category": category,
@@ -163,14 +272,15 @@ def main() -> None:
                 "has_stereo": _has_stereo(mol),
                 "pubchem_name": truth,
             })
+            added += 1
             print(f"  {'ok ' if truth else '-- '} {category:20} {label}")
             time.sleep(0.25)  # NCBI asks for no more than 5 requests/second
 
-    out = Path(__file__).with_name("corpus.json")
     out.write_text(json.dumps(rows, indent=1), encoding="utf-8")
     named = sum(1 for r in rows if r["pubchem_name"])
     stereo = sum(1 for r in rows if r["has_stereo"])
-    print(f"\n{len(rows)} molecules | {named} with a PubChem name | {stereo} carrying stereochemistry")
+    print(f"\n{len(rows)} molecules ({added} added) | {named} with a trusted "
+          f"PubChem name | {stereo} carrying stereochemistry")
     print(f"-> {out}")
 
 

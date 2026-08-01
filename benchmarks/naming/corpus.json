@@ -990,5 +990,333 @@
   "kekule_smiles": "O=C(NC1=CC=C(C2=CC=NC=C2)C=C1)NC1=CC=CC(C(F)(F)F)=C1",
   "has_stereo": false,
   "pubchem_name": null
+ },
+ {
+  "label": "methylium",
+  "category": "carbocation",
+  "smiles": "[CH3+]",
+  "kekule_smiles": "[CH3+]",
+  "has_stereo": false,
+  "pubchem_name": "carbanylium"
+ },
+ {
+  "label": "ethan-1-ylium",
+  "category": "carbocation",
+  "smiles": "[CH2+]C",
+  "kekule_smiles": "[CH2+]C",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "propan-2-ylium",
+  "category": "carbocation",
+  "smiles": "C[CH+]C",
+  "kekule_smiles": "C[CH+]C",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "tert-butyl cation",
+  "category": "carbocation",
+  "smiles": "C[C+](C)C",
+  "kekule_smiles": "C[C+](C)C",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "cyclohexan-1-ylium",
+  "category": "carbocation",
+  "smiles": "[CH+]1CCCCC1",
+  "kekule_smiles": "[CH+]1CCCCC1",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "benzyl cation",
+  "category": "carbocation",
+  "smiles": "[CH2+]c1ccccc1",
+  "kekule_smiles": "[CH2+]C1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "allyl cation",
+  "category": "carbocation",
+  "smiles": "C=C[CH2+]",
+  "kekule_smiles": "C=C[CH2+]",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "vinyl cation",
+  "category": "carbocation",
+  "smiles": "[CH+]=C",
+  "kekule_smiles": "[CH+]=C",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "phenylium",
+  "category": "carbocation",
+  "smiles": "[C+]1=CC=CC=C1",
+  "kekule_smiles": "[C+]1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "tropylium",
+  "category": "carbocation",
+  "smiles": "c1ccc[cH+]cc1",
+  "kekule_smiles": "C1=CC=C[CH+]C=C1",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "acetylium",
+  "category": "carbocation",
+  "smiles": "C[C+]=O",
+  "kekule_smiles": "C[C+]=O",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "benzoylium",
+  "category": "carbocation",
+  "smiles": "O=[C+]c1ccccc1",
+  "kekule_smiles": "O=[C+]C1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "methanide",
+  "category": "carbanion",
+  "smiles": "[CH3-]",
+  "kekule_smiles": "[CH3-]",
+  "has_stereo": false,
+  "pubchem_name": "carbanide"
+ },
+ {
+  "label": "ethan-1-ide",
+  "category": "carbanion",
+  "smiles": "[CH2-]C",
+  "kekule_smiles": "[CH2-]C",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "propan-2-ide",
+  "category": "carbanion",
+  "smiles": "C[CH-]C",
+  "kekule_smiles": "C[CH-]C",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "benzyl anion",
+  "category": "carbanion",
+  "smiles": "[CH2-]c1ccccc1",
+  "kekule_smiles": "[CH2-]C1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": "methanidylbenzene"
+ },
+ {
+  "label": "allyl anion",
+  "category": "carbanion",
+  "smiles": "C=C[CH2-]",
+  "kekule_smiles": "C=C[CH2-]",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "acetylide",
+  "category": "carbanion",
+  "smiles": "[C-]#C",
+  "kekule_smiles": "[C-]#C",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "cyclopentadienide",
+  "category": "carbanion",
+  "smiles": "c1cc[cH-]c1",
+  "kekule_smiles": "C1=C[CH-]C=C1",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "phenyl anion",
+  "category": "carbanion",
+  "smiles": "[c-]1ccccc1",
+  "kekule_smiles": "[C-]1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "methylammonium",
+  "category": "onium_ion",
+  "smiles": "C[NH3+]",
+  "kekule_smiles": "C[NH3+]",
+  "has_stereo": false,
+  "pubchem_name": "methylazanium"
+ },
+ {
+  "label": "trimethylsulfonium",
+  "category": "onium_ion",
+  "smiles": "C[S+](C)C",
+  "kekule_smiles": "C[S+](C)C",
+  "has_stereo": false,
+  "pubchem_name": "trimethylsulfanium"
+ },
+ {
+  "label": "tetramethylphosphonium",
+  "category": "onium_ion",
+  "smiles": "C[P+](C)(C)C",
+  "kekule_smiles": "C[P+](C)(C)C",
+  "has_stereo": false,
+  "pubchem_name": "tetramethylphosphanium"
+ },
+ {
+  "label": "N-methylpyridinium",
+  "category": "onium_ion",
+  "smiles": "C[n+]1ccccc1",
+  "kekule_smiles": "C[N+]1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": "1-methylpyridin-1-ium"
+ },
+ {
+  "label": "pyrylium",
+  "category": "onium_ion",
+  "smiles": "c1cc[o+]cc1",
+  "kekule_smiles": "C1=CC=[O+]C=C1",
+  "has_stereo": false,
+  "pubchem_name": "pyrylium"
+ },
+ {
+  "label": "thiopyrylium",
+  "category": "onium_ion",
+  "smiles": "c1cc[s+]cc1",
+  "kekule_smiles": "C1=CC=[S+]C=C1",
+  "has_stereo": false,
+  "pubchem_name": "thiopyrylium"
+ },
+ {
+  "label": "guanidinium",
+  "category": "onium_ion",
+  "smiles": "NC(N)=[NH2+]",
+  "kekule_smiles": "NC(N)=[NH2+]",
+  "has_stereo": false,
+  "pubchem_name": "diaminomethylideneazanium"
+ },
+ {
+  "label": "diphenyliodonium",
+  "category": "onium_ion",
+  "smiles": "c1ccc([I+]c2ccccc2)cc1",
+  "kekule_smiles": "C1=CC=C([I+]C2=CC=CC=C2)C=C1",
+  "has_stereo": false,
+  "pubchem_name": "diphenyliodanium"
+ },
+ {
+  "label": "benzenediazonium",
+  "category": "onium_ion",
+  "smiles": "N#[N+]c1ccccc1",
+  "kekule_smiles": "N#[N+]C1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": "benzenediazonium"
+ },
+ {
+  "label": "propane-1,3-diylium",
+  "category": "polycharged",
+  "smiles": "[CH2+]C[CH2+]",
+  "kekule_smiles": "[CH2+]C[CH2+]",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "methanediylium",
+  "category": "polycharged",
+  "smiles": "[CH2+2]",
+  "kekule_smiles": "[CH2+2]",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "propane-1,3-diide",
+  "category": "polycharged",
+  "smiles": "[CH2-]C[CH2-]",
+  "kekule_smiles": "[CH2-]C[CH2-]",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "ethylenediammonium",
+  "category": "polycharged",
+  "smiles": "[NH3+]CC[NH3+]",
+  "kekule_smiles": "[NH3+]CC[NH3+]",
+  "has_stereo": false,
+  "pubchem_name": "2-azaniumylethylazanium"
+ },
+ {
+  "label": "malonate",
+  "category": "polycharged",
+  "smiles": "O=C([O-])CC(=O)[O-]",
+  "kekule_smiles": "O=C([O-])CC(=O)[O-]",
+  "has_stereo": false,
+  "pubchem_name": "propanedioate"
+ },
+ {
+  "label": "phthalate",
+  "category": "polycharged",
+  "smiles": "O=C([O-])c1ccccc1C(=O)[O-]",
+  "kekule_smiles": "O=C([O-])C1=CC=CC=C1C(=O)[O-]",
+  "has_stereo": false,
+  "pubchem_name": "phthalate"
+ },
+ {
+  "label": "oxalylium",
+  "category": "polycharged",
+  "smiles": "O=[C+][C+]=O",
+  "kekule_smiles": "O=[C+][C+]=O",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "propanedioylium",
+  "category": "polycharged",
+  "smiles": "O=[C+]C[C+]=O",
+  "kekule_smiles": "O=[C+]C[C+]=O",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "benzene-1,2-dicarbonylium",
+  "category": "polycharged",
+  "smiles": "O=[C+]c1ccccc1[C+]=O",
+  "kekule_smiles": "O=[C+]C1=CC=CC=C1[C+]=O",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "benzene-1,3,5-tricarbonylium",
+  "category": "polycharged",
+  "smiles": "O=[C+]c1cc([C+]=O)cc([C+]=O)c1",
+  "kekule_smiles": "O=[C+]C1=CC([C+]=O)=CC([C+]=O)=C1",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "azide",
+  "category": "polycharged",
+  "smiles": "[N-]=[N+]=[N-]",
+  "kekule_smiles": "[N-]=[N+]=[N-]",
+  "has_stereo": false,
+  "pubchem_name": "azide"
+ },
+ {
+  "label": "tetrafluoroborate",
+  "category": "polycharged",
+  "smiles": "F[B-](F)(F)F",
+  "kekule_smiles": "F[B-](F)(F)F",
+  "has_stereo": false,
+  "pubchem_name": "tetrafluoroborate"
  }
 ]

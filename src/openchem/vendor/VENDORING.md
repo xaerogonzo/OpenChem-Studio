@@ -17,9 +17,12 @@ upstream to track and no release to pin, so depending on a git URL would give
 all the fragility of a fork with none of the control.
 
 It is also the best structure-to-name engine that exists in the open. Measured
-against this project's own 124-molecule corpus (`benchmarks/naming`) it scores
-**120/124 with stereochemistry 11/11**, beating the leading ML alternative by
-26 points while needing nothing beyond RDKit and running 16x faster. That
+against this project's own corpus (`benchmarks/naming`) it scored **120/124
+with stereochemistry 11/11** as vendored, beating the leading ML alternative by
+26 points while needing nothing beyond RDKit and running 16x faster. (The
+corpus has since grown to 165 with charged species the original set could not
+see; on that revision the engine as vendored scores 148/165 and now scores
+158/165 — see `BENCHMARK_HISTORY.md`.) That
 benchmark was built before this engine was found, so the result is independent
 of anything upstream chose to measure.
 

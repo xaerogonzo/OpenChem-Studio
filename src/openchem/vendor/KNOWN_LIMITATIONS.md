@@ -55,8 +55,13 @@ the renderer about heteroatom parents.
 
 ## Benchmark: the standing 4 of 124
 
-`benchmarks/naming` scores 120/124. All four remaining rows are now
-characterised, and **two of them are not engine errors at all**.
+On the original 124-row corpus the engine scores 120/124. All four remaining
+rows are now characterised, and **two of them are not engine errors at all**.
+
+(The corpus has since grown to 165 rows; the current score is 158/165. The
+three additional failures are the open severity-A defects listed above —
+phenyl anion, guanidinium and azide — which the new charged-species categories
+were added to expose.)
 
 ### Tautomers — the engine is defensible
 

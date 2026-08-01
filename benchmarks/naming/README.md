@@ -18,10 +18,42 @@ characterisation.
 
 | | |
 |---|---|
-| `corpus.json` | 124 molecules, 15 categories, ground truth from PubChem. Committed. |
-| `build_corpus.py` | Regenerates `corpus.json`. Only needed when adding molecules. |
+| `corpus.json` | 165 molecules, 19 categories, ground truth from PubChem. Committed. |
+| `build_corpus.py` | Regenerates `corpus.json`. `--append` adds only molecules not already present, so existing rows are never re-fetched. |
 | `score.py` | Scores a predictions file and classifies every failure. |
-| `predictions_full.json` | Raw output of the three models evaluated so far. |
+| `predictions_full.json` | Raw output of the three models evaluated so far. Recorded against the original **124-row** corpus; see *Corpus revisions*. |
+
+## Corpus revisions
+
+The corpus started at 124 molecules and was extended to 165 in August 2026
+with four categories of charged species — `carbocation`, `carbanion`,
+`onium_ion`, `polycharged`.
+
+The reason is worth recording, because it is an argument about what a
+benchmark is for. A defect hunt in the deterministic engine found it was
+**silently neutralizing** whole families of ions: the benzyl cation named as
+`methylbenzene` (toluene), the phthaloyl dication as
+`1,2-bis(oxomethyl)benzene` (phthalaldehyde). Twenty-six such cases were
+fixed, and **not one of them was visible here**, because the sole
+`charged_zwitterion` category contained no carbocation, no carbanion and no
+polyacylium. The benchmark had been blind to the largest correctness problem
+the engine had.
+
+The new rows deliberately include species that still fail. A corpus containing
+only what an engine already handles measures nothing.
+
+Ground truth for these rows is thinner on purpose. PubChem resolves a
+structure it does not hold to the nearest one it does, which for ions is
+routinely the neutral parent — it answers `methylbenzene` for the benzyl
+cation and `propane` for the isopropyl cation. `build_corpus.py` therefore
+keeps a PubChem name only when parsing it back yields the structure it was
+fetched for; 24 of the 41 new rows have no trusted name and can score
+`equivalent` but never `exact`. That costs nothing real: `exact` is a
+tie-break, and the round trip is the actual gate.
+
+**Predictions recorded against an older corpus cannot be rescored against a
+newer one.** `score.py` refuses a length mismatch rather than letting `zip()`
+truncate and report a model's 88/124 as "88/165".
 
 ```bash
 python benchmarks/naming/score.py benchmarks/naming/predictions_full.json
@@ -66,12 +98,20 @@ row of `<unk>` and the model invents a ring. Before this was found, every
 aromatic compound came back as a phosphorus heterocycle and the model looked
 worthless.
 
+Scored against the original **124-row** corpus, which is the only revision all
+four engines were run on:
+
 | engine | correct | stereochemistry | dependencies | speed |
 |---|---|---|---|---|
 | **`open-iupac-namer`** (deterministic) | **120/124 (97%)** | **11/11** | rdkit only | 12 ms |
 | `SMILES2IUPAC-canonical-base` (180 MB) | 88/124 (71%) | 0/11 — crashes with `IndexError` | torch + transformers, 1.1 GB | 190 ms |
 | `SMILES2IUPAC-isomeric-small` (24 MB) | 75/124 (60%) | 5/11 correct, **3 silently flattened** | torch + transformers | 97 ms |
 | `SMILES2IUPAC-canonical-small` (24 MB) | 71/124 (57%) | 0/11 | torch + transformers | 97 ms |
+
+On the extended 165-row corpus the deterministic engine scores **158/165
+(96%)**, against **148/165 (90%)** for the same engine as originally vendored
+— the difference being the charged-species defects fixed since. The ML models
+have not been rerun; re-running them needs torch and the weights.
 
 ### The deterministic engine wins on every axis
 
@@ -82,18 +122,26 @@ running 16x faster, and — the part no model managed — handling stereochemist
 perfectly. It also independently arrived at OPSIN round-tripping as its own
 correctness check, which is what this benchmark scores on.
 
-Three of its four failures are not wrong molecules. Same molecular formula,
-same skeleton, different tautomer or H placement:
+Two of its four failures are not wrong molecules. Adding full InChIKey as a
+second gate settled which — InChI normalises mobile hydrogens, so a pair that
+shares a key is the same substance depicted two ways:
 
 ```
-1,2,3-triazole    -> 1H-1,2,3-triazole                C2H3N3        (tautomer)
-metformin         -> 1,1-dimethylbiguanide            C4H11N5       (tautomer)
-novel pyrazolone  -> N-{2-[1-(4-bromophenyl)-...      C20H17BrF3N3O3 (tautomer)
-diazomethane      -> (azanylidyne)(methyl)azanium     CH3N2+ vs CH2N2  <- genuinely wrong
+1,2,3-triazole    -> 1H-1,2,3-triazole            same InChIKey  (tautomer)
+metformin         -> 1,1-dimethylbiguanide        same InChIKey  (tautomer)
+novel pyrazolone  -> N-{2-[1-(4-bromophenyl)-...  skeleton block DIFFERS
+diazomethane      -> (azanylidyne)(methyl)azanium CH3N2+ vs CH2N2
 ```
 
-So one true structural error in 124. It scores 3/4 on the novel scaffolds
-where the ML model scored 1/6 across the whole gap.
+The pyrazolone was previously assumed to be a tautomer too; it is not. Its
+InChIKey skeleton block differs from the corpus entry, so it is a different
+species — the emitted name omits the indicated hydrogen that pins the sp3 C4,
+and OPSIN resolves it to the aromatic form. So **two** true structural errors
+in 124, not one. Diazomethane has since been fixed to refuse rather than
+answer wrongly.
+
+It scores 3/4 on the novel scaffolds where the ML model scored 1/6 across the
+whole gap.
 
 Caveats worth stating: 1 GitHub star, self-described as experimental, and
 partly built with a coding agent. Those are reasons to pin a commit and keep
@@ -143,8 +191,8 @@ Isotopic labelling: 0/4. Stereochemistry: 0/11.
 
 ### The decisive number
 
-PubChem already names 118 of these 124. Splitting the score by whether PubChem
-had an answer changes the conclusion entirely:
+PubChem already names 118 of the original 124. Splitting the score by whether
+PubChem had an answer changes the conclusion entirely:
 
 ```
 87/118  where PubChem ALREADY has the exact name   (no value added)

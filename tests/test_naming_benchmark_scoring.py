@@ -41,6 +41,20 @@ ROWS = [
 ]
 
 
+def _scorable_rows(n: int) -> list[dict]:
+    """`n` corpus-shaped rows, enough for report() to run over."""
+    return [
+        {
+            "label": f"mol{i}",
+            "category": "test",
+            "smiles": "C",
+            "has_stereo": False,
+            "pubchem_name": None,
+        }
+        for i in range(n)
+    ]
+
+
 class TestDelta:
     def test_classifies_fixed_regressed_and_lateral_moves(self, score):
         previous = ["wrong_structure", "exact", "exact", "equivalent"]
@@ -72,6 +86,30 @@ class TestDelta:
     def test_identical_runs_report_nothing(self, score):
         current = ["exact", "equivalent", "exact", "exact"]
         assert score.delta(ROWS, current, current) == []
+
+
+class TestCorpusLengthGuard:
+    def test_mismatched_prediction_count_is_refused(self, score):
+        """A predictions file written against an older, smaller corpus must
+        not be scored against a newer one.
+
+        `zip()` truncates to the shorter list, so 124 predictions against a
+        165-row corpus would report a model's 88/124 as "88/165" -- a wrong
+        comparison that looks like a real one. The corpus grew when the
+        charged-species categories were added, stranding every predictions
+        file recorded before that.
+        """
+        corpus = _scorable_rows(165)
+        with pytest.raises(SystemExit, match="124 predictions"):
+            score.report("stale run", corpus, ["anything"] * 124)
+
+    def test_matching_counts_are_accepted(self, score):
+        corpus = _scorable_rows(5)
+        # Empty predictions short-circuit to NO_PREDICTION, so this stays a
+        # pure count check and never shells out to OPSIN.
+        out = score.report("ok run", corpus, [""] * len(corpus))
+        assert out["total"] == len(corpus)
+        assert out["correct"] == 0
 
 
 class TestInChIKeyGate:

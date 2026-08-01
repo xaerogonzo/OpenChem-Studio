@@ -124,6 +124,20 @@ def classify(row: dict, predicted: str | None) -> str:
 
 
 def report(label: str, rows: list[dict], predictions: list[str]) -> dict:
+    # zip() would silently truncate to the shorter list, so a predictions
+    # file written against an older, smaller corpus would be scored as
+    # "88/165" when it actually answered 88 of 124 -- a wrong comparison
+    # that looks like a real one. The corpus grew from 124 to 165 when the
+    # charged-species categories were added, which stranded every
+    # predictions file recorded before that.
+    if len(predictions) != len(rows):
+        raise SystemExit(
+            f"{label!r}: {len(predictions)} predictions for a corpus of "
+            f"{len(rows)} molecules. Predictions must be in corpus order, "
+            f"one per row. Files recorded before the corpus was extended "
+            f"cannot be rescored against it -- compare them against the "
+            f"corpus revision they were made for."
+        )
     outcomes = [classify(r, p) for r, p in zip(rows, predictions)]
     counts = Counter(outcomes)
     total = len(rows)
