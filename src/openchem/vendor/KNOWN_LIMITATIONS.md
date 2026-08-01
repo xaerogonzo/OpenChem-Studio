@@ -42,7 +42,6 @@ still open — see *Deliberately open decisions* below.
 | D-013 | `[CH+]=O` | `oxomethane` | `oxomethylium` | classifier gate is all-carbon |
 | D-018 | `[CH2+]c1ccncc1` | `4-methylpyridine` | `pyridin-4-ylmethan-1-ylium` | classifier gate is all-carbon |
 | D-015 | `[n-]1cccc1` | `1H-pyrrol-2-ide` | `pyrrol-1-ide` | charge relocated from N to C |
-| D-016 | `[N-]=[N+]=[N-]` | `diiminoazanium` | `azide` | wrong structure |
 | D-019 | `[CH2-][N+]#N` | `(azanylidyne)(methyl)azanium` | `methanidyldiazonium` | protonates the carbanion half of the zwitterion and emits the CH3N2+ **cation** — an invented hydrogen and a charge that is not there |
 | D-020 | `CNC(N)=[NH2+]` | `N-(aminoiminomethyl)methanamine` | `methylguanidinium` | N-substituted guanidinium needs prefixes on the guanidine skeleton; the parent (D-004) is fixed |
 
@@ -67,9 +66,11 @@ target.
 On the original 124-row corpus the engine scores 120/124. All four remaining
 rows are now characterised, and **two of them are not engine errors at all**.
 
-(The corpus has since grown to 165 rows; the current score is **160/165**.
-The phenyl anion and guanidinium rows that the new charged-species categories
-exposed are now fixed; azide (D-016) remains.)
+(The corpus has since grown to 165 rows; the current score is **161/165**.
+All three defects the new charged-species categories exposed — phenyl anion,
+guanidinium and azide — have been fixed, and all four of those categories now
+score perfectly. Exactly one wrong structure remains in the whole corpus: the
+novel pyrazolone.)
 
 ### Tautomers — the engine is defensible
 

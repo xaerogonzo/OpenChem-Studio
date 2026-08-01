@@ -4888,6 +4888,14 @@ _INORGANIC_CURATED_SMILES: dict[str, dict] = {
     "[N-]=C=O":   {"name": "isocyanate"},
     # Isothiocyanate: canonical "[N-]=C=S"
     "[N-]=C=S":   {"name": "isothiocyanate"},
+    # Azide: canonical "[N-]=[N+]=[N-]".  Without this entry the engine
+    # named BOTH the azide anion and its conjugate acid "diiminoazanium",
+    # which denotes N=[N+]=N -- a CATION, and therefore neither of them.
+    # One name, given confidently, for three different species.
+    "[N-]=[N+]=[N-]": {"name": "azide"},
+    # Hydrogen azide (HN3): canonical "[N-]=[N+]=N".  The PIN; "hydrazoic
+    # acid" is the retained common name and OPSIN accepts both.
+    "[N-]=[N+]=N":    {"name": "hydrogen azide"},
 
     # --- Terminal alkynyl carbanion anions (P-72.2 / P-73 salt context) ---
     # These ``[C-]#C-R`` anions arise in metal-acetylide salts.  The engine

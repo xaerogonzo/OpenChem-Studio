@@ -108,10 +108,12 @@ four engines were run on:
 | `SMILES2IUPAC-isomeric-small` (24 MB) | 75/124 (60%) | 5/11 correct, **3 silently flattened** | torch + transformers | 97 ms |
 | `SMILES2IUPAC-canonical-small` (24 MB) | 71/124 (57%) | 0/11 | torch + transformers | 97 ms |
 
-On the extended 165-row corpus the deterministic engine scores **160/165
-(96%)**, against **148/165 (90%)** for the same engine as originally vendored
-— the difference being the charged-species defects fixed since. The ML models
-have not been rerun; re-running them needs torch and the weights.
+On the extended 165-row corpus the deterministic engine scores **161/165
+(98%)**, against **148/165 (90%)** for the same engine as originally vendored
+— the difference being the charged-species defects fixed since. All four
+charged-species categories now score perfectly, and exactly one wrong
+structure remains in the whole corpus. The ML models have not been rerun;
+re-running them needs torch and the weights.
 
 ### The deterministic engine wins on every axis
 

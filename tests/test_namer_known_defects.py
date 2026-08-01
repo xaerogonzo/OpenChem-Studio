@@ -126,6 +126,29 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-004", "[NH2+]=C(N)N", "guanidinium",
      "iminomethane-1,1-diamine", "charge dropped"),
 
+    # --- D-016: azide -------------------------------------------------
+    # No classifier claimed the N3 chain, so the plan search produced
+    # "diiminoazanium" -- which denotes N=[N+]=N, a CATION. The same one
+    # name came out for the anion (q=-1) AND its conjugate acid (q=0),
+    # so one confident answer covered three different species and matched
+    # none of them. Azide belongs with the other retained pseudohalides
+    # (cyanide, thiocyanate, cyanate, isocyanate, isothiocyanate) in the
+    # curated inorganic table, and simply was not there.
+    ("D-016", "[N-]=[N+]=[N-]", "azide",
+     "diiminoazanium", "named a cation for an anion"),
+    ("D-016b", "N=[N+]=[N-]", "hydrogen azide",
+     "diiminoazanium", "same wrong name as its conjugate base"),
+    ("D-016c", "[Na+].[N-]=[N+]=[N-]", "sodium azide",
+     "sodium diiminoazanium", "salt path inherited the wrong ion name"),
+
+    # --- non-regression: the rest of the pseudohalide block ------------
+    ("D-016x", "[C-]#N", "cyanide", "cyanide", "unchanged"),
+    ("D-016y", "N#C[S-]", "thiocyanate", "thiocyanate", "unchanged"),
+    ("D-016z", "[N-]=C=S", "isothiocyanate", "isothiocyanate", "unchanged"),
+    # Organic azides never went through the ion table -- the azido
+    # substituent prefix is a separate path and was always correct.
+    ("D-016w", "CCN=[N+]=[N-]", "azidoethane", "azidoethane", "unchanged"),
+
     # --- non-regression: delocalised aromatic anions the ring-carbanion
     # classifier must NOT steal. Cyclopentadienide keeps its hydrogen and
     # is a delocalised pi anion with a retained name; benzenide is a sigma
@@ -185,8 +208,6 @@ OPEN: list[tuple[str, str, str, str, str]] = [
     # Charge relocated rather than dropped.
     ("D-015", "[n-]1cccc1", "pyrrol-1-ide",
      "1H-pyrrol-2-ide", "charge relocated from N to C"),
-    ("D-016", "[N-]=[N+]=[N-]", "azide",
-     "diiminoazanium", "wrong structure"),
     # Zwitterion: the engine protonates the carbanion half and keeps the
     # cation, so neutral CH2N2 comes out as the CH3N2+ methyldiazonium
     # CATION -- an invented hydrogen and a charge that is not there.

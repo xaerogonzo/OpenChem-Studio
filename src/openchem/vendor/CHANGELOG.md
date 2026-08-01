@@ -102,6 +102,29 @@ Fourteen inputs that named the wrong compound. All are pinned in
 
 Benchmark unchanged at 120/124 across all of the above, stereochemistry 11/11.
 
+## 2026-08-01 — azide
+
+D-016, severity A. `[N-]=[N+]=[N-]` named as `diiminoazanium`, which denotes
+`N=[N+]=N` — a **cation**. The same one name came out for the azide anion
+(q=−1) *and* for its conjugate acid HN3 (q=0), so a single confident answer
+covered three different species and matched none of them.
+
+No classifier claimed the N3 chain, so the plan search invented something.
+Azide belongs with the other retained pseudohalides in the curated inorganic
+table — cyanide, thiocyanate, cyanate, isocyanate, isothiocyanate are all
+there — and simply was not. Two entries added: `azide` and, for the conjugate
+acid, `hydrogen azide` (the PIN; OPSIN also accepts the retained "hydrazoic
+acid").
+
+The salt path inherited the fix for free: `[Na+].[N-]=[N+]=[N-]` was
+`sodium diiminoazanium` and is now `sodium azide`. Organic azides were never
+affected — `azidoethane` and `azidobenzene` go through the `azido` substituent
+prefix, a separate path that was always correct.
+
+Benchmark 160/165 -> **161/165**; polycharged 11/12 -> 12/12, which makes all
+four charged-species categories perfect. One wrong structure now remains in
+the whole 165-molecule corpus.
+
 ## 2026-08-01 — aromatic ring carbanions and guanidinium
 
 Two more severity-A defects, both surfaced by the extended corpus.

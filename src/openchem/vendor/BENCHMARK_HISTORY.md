@@ -54,24 +54,29 @@ that same extended corpus gives the comparison that was missing:
 | | corrected | exact | equivalent | wrong structure |
 |---|---|---|---|---|
 | as vendored | 148/165 (90%) | 79 | 69 | 15 |
-| after this work | **160/165 (97%)** | 79 | 81 | 2 |
+| after this work | **161/165 (98%)** | 80 | 81 | 1 |
 
 | category | as vendored | after |
 |---|---|---|
 | carbocation | 7/12 | **12/12** |
 | carbanion | 4/8 | **8/8** |
 | onium_ion | 8/9 | **9/9** |
-| polycharged | 9/12 | **11/12** |
+| polycharged | 9/12 | **12/12** |
 
-Five failures remain: the four already characterised above (two of them
-tautomers, not errors) plus azide (D-016). The new categories exposed three
-open defects; two of them — the phenyl anion (D-003) and guanidinium (D-004) —
-were fixed immediately afterwards, which is the corpus doing its job.
+Four failures remain, and only ONE is a wrong structure — the novel
+pyrazolone. The other three are two tautomers (not errors) and diazomethane,
+which now refuses rather than answering wrongly.
+
+All three defects the new categories exposed — phenyl anion (D-003),
+guanidinium (D-004), azide (D-016) — were fixed within a day of being made
+visible. That is the corpus doing its job: none of them was findable from the
+124-row revision, and each was obvious once it appeared as a red row.
 
 | date | change | correct | notes |
 |---|---|---|---|
 | 2026-08-01 | corpus extended to 165 | 158/165 | +41 charged species; baseline on the same corpus is 148/165 |
-| 2026-08-01 | aromatic ring carbanion + guanidinium | **160/165** | carbanion 7/8 -> 8/8, onium_ion 8/9 -> 9/9; delta reported both rows as FIXED |
+| 2026-08-01 | aromatic ring carbanion + guanidinium | 160/165 | carbanion 7/8 -> 8/8, onium_ion 8/9 -> 9/9; delta reported both rows as FIXED |
+| 2026-08-01 | azide | **161/165** | polycharged 11/12 -> 12/12; all four charged categories now perfect |
 
 The extension paid for itself immediately: the two defects fixed in that last
 row were both surfaced by the new categories, and both moved the headline
