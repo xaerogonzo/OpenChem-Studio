@@ -101,3 +101,23 @@ Fourteen inputs that named the wrong compound. All are pinned in
   matters.
 
 Benchmark unchanged at 120/124 across all of the above, stereochemistry 11/11.
+
+## 2026-08-01 — the neutralizer fall-through now refuses, selectively
+
+Decided on measurement rather than principle. Over the benchmark corpus plus
+the 69-probe sweep (193 molecules), `render_failed` occurred 0 times and
+`partial_claim` once, while `unclaimed` occurred 35 times and was almost
+always a molecule some other path names correctly.
+
+So the first two raise and the third does not. A classifier that engaged with
+a molecule and then could not finish can only produce a name for a different
+molecule, because the coverage gate has already established which charges are
+claimed. `unclaimed`, by contrast, is this module declining business that
+belongs to the retained-ring path and friends — pyridinium, sulfonium,
+betaine, nitrobenzene, phenylium.
+
+Visible effect: `name_smiles("[CH2-][N+]#N")` raises instead of returning
+`(azanylidyne)(methyl)azanium`, which was the methyldiazonium **cation** —
+an invented hydrogen and a charge that is not in the input. On the benchmark
+diazomethane moved `wrong_structure -> no_prediction`, so the score is
+unchanged; the difference is that one of those two is honest.

@@ -7,7 +7,8 @@
    "exact": 71,
    "equivalent": 49,
    "gate_disagreement": 2,
-   "wrong_structure": 2
+   "no_prediction": 1,
+   "wrong_structure": 1
   },
   "outcomes": [
    "exact",
@@ -67,7 +68,7 @@
    "equivalent",
    "equivalent",
    "exact",
-   "wrong_structure",
+   "no_prediction",
    "equivalent",
    "equivalent",
    "equivalent",

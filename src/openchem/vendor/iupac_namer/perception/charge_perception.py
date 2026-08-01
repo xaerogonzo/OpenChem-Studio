@@ -389,6 +389,41 @@ def _diagnostic_smiles(mol) -> str:
         return "<unserialisable>"
 
 
+def _refuse_rather_than_neutralize(mol, reason: str, suffix_hint: str) -> None:
+    """Raise instead of letting a charged molecule reach the neutralizer.
+
+    Only two of the dispatcher's decline reasons can be treated this way,
+    and the split is not a judgement call -- it was measured over the
+    benchmark corpus plus a 69-probe charged-species sweep (193 molecules):
+
+    * ``render_failed`` (0 occurrences) and ``partial_claim`` (1) are
+      always defects.  Both mean a classifier engaged with the molecule
+      and then could not finish: the coverage gate has already proved
+      which formal charges are claimed, so falling through can only
+      produce a name for a DIFFERENT molecule.  The single live case is
+      diazomethane, where the diazonium classifier claims the [N+] and
+      leaves the carbanion uncovered, and the plan search then protonates
+      it into the CH3N2+ cation.
+    * ``unclaimed`` (35 occurrences) is NOT a defect signal and must keep
+      falling through.  Pyridinium, sulfonium, betaine, nitrobenzene and
+      phenylium all land there and are all named correctly by other
+      paths; this module's docstring lists them as deliberately not its
+      business.
+
+    Raising matches the engine's existing idiom for "cannot name this
+    confidently" (``_validate_no_open_valences``).  A caller that would
+    rather have a wrong name than an exception is not a caller this
+    engine should serve: the whole point is that the wrong name arrives
+    with no indication that anything went wrong.
+    """
+    raise ValueError(
+        f"charge perception claimed a {suffix_hint!r} motif but could not "
+        f"complete it ({reason}); refusing to fall through to the "
+        f"neutralizer, which would name a different molecule. "
+        f"See src/openchem/vendor/KNOWN_LIMITATIONS.md"
+    )
+
+
 def _record_gap(mol, reason: str, stage: str, suffix_hint: str = "") -> None:
     """Record a charged molecule being handed back to the plan search.
 
@@ -496,6 +531,7 @@ def detect(
         _record_gap(
             mol, "partial_claim", "charge_perception.detect", cls.suffix_hint
         )
+        _refuse_rather_than_neutralize(mol, "partial_claim", cls.suffix_hint)
         return None
 
     # Stage 7: closed-shell-only gate.  Radical-cation motifs route
@@ -521,6 +557,7 @@ def detect(
     text = _render(cls, mol, strategy=strategy, session=session, depth=depth)
     _record_render_outcome(cls, mol, text, "charge_perception.detect")
     if text is None:
+        _refuse_rather_than_neutralize(mol, "render_failed", cls.suffix_hint)
         return None
 
     return LeafTree(

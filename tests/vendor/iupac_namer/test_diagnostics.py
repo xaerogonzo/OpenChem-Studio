@@ -23,6 +23,8 @@ from __future__ import annotations
 import os
 from unittest import mock
 
+import pytest
+
 from openchem.vendor.iupac_namer import diagnostics
 from openchem.vendor.iupac_namer.engine import name_smiles
 from openchem.vendor.iupac_namer.perception import charge_perception
@@ -88,7 +90,11 @@ class TestGateAttribution:
         """
         monkeypatch.setattr(charge_perception, "_render", lambda *a, **k: None)
         with diagnostics.capture() as rec:
-            name_smiles("O=[C+]c1ccccc1[C+]=O")
+            # Recording happens before the refusal, so the gap is captured
+            # and then the ValueError propagates -- see
+            # _refuse_rather_than_neutralize.
+            with pytest.raises(ValueError, match="render_failed"):
+                name_smiles("O=[C+]c1ccccc1[C+]=O")
         failed = [g for g in rec.gaps if g.reason == "render_failed"]
         assert failed, rec.report()
         assert failed[0].suffix_hint == "polyacylium"
@@ -109,6 +115,39 @@ class TestGateAttribution:
             name_smiles("CCO")
             name_smiles("CC(=O)O")
         assert rec.gaps == []
+
+
+class TestRefusalGuard:
+    """Two decline reasons refuse; the third must keep falling through.
+
+    The split was measured, not reasoned: over the benchmark corpus plus a
+    69-probe charged-species sweep (193 molecules), `render_failed`
+    occurred 0 times and `partial_claim` once, while `unclaimed` occurred
+    35 times and was almost always a molecule some OTHER path names
+    correctly. Making `unclaimed` fatal would break dozens of correct
+    names; making the other two fatal costs nothing today and converts
+    any future gap from a wrong molecule into a visible failure.
+    """
+
+    def test_partial_claim_refuses_instead_of_naming_another_molecule(self):
+        """Diazomethane: the diazonium classifier claims the [N+] and
+        leaves the carbanion uncovered. Falling through let the plan
+        search protonate it into the CH3N2+ cation -- an invented
+        hydrogen and a charge that is not in the input."""
+        with pytest.raises(ValueError, match="partial_claim"):
+            name_smiles("[CH2-][N+]#N")
+
+    @pytest.mark.parametrize("smiles", [
+        "c1cc[nH+]cc1",          # pyridinium, retained ring-cation path
+        "C[S+](C)C",             # sulfonium
+        "C[N+](C)(C)CC(=O)[O-]",  # betaine
+        "O=[N+]([O-])c1ccccc1",  # nitrobenzene
+        "[C+]1=CC=CC=C1",        # phenylium, retained lookup
+    ])
+    def test_unclaimed_still_falls_through_and_names_correctly(self, smiles):
+        """`unclaimed` is not a defect signal. This module deliberately
+        leaves these motifs to other paths, and they name them fine."""
+        assert name_smiles(smiles)
 
 
 class TestRecorder:

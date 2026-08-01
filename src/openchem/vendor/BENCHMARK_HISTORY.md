@@ -24,6 +24,12 @@ different depiction".
 | 2026-08-01 | WS-2/3 test expectations + ring polyacylium | 120/124 | 71 | 49 | 2 | 2 | 14 measured, 7 fixed | 2962 P / 0 F / 16 S |
 | 2026-08-01 | WS-5 ylium/ide locant | 120/124 | 71 | 49 | 2 | 2 | 14 measured, 16 fixed | 2971 P / 0 F / 16 S |
 | 2026-08-01 | WS-4 charge next to unsaturation | 120/124 | 71 | 49 | 2 | 2 | 7 open, 26 fixed | 3039 P / 0 F / 16 S |
+| 2026-08-01 | WS-9 refusal guard | 120/124 | 71 | 49 | 2 | 1 + 1 no-pred | 7 open, 26 fixed | 3046 P / 0 F / 16 S |
+
+The last row is the only one where a molecule moved: diazomethane
+`wrong_structure -> no_prediction`. The score is unchanged because both are
+failures — but one of them was a confident wrong answer and the other is an
+honest refusal, which is the trade the refusal guard exists to make.
 
 ## Why the score did not move
 

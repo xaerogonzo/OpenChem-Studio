@@ -110,16 +110,26 @@ The amide/aldehyde entries come from `retained_pins` in
 produces, the same dead-key pattern already removed from
 `_RETAINED_DIACID_TO_DIACYLIUM`.
 
-## Deliberately open decisions
+## The refusal guard (resolved 2026-08-01)
 
-**Should the neutralizer fall-through become a hard error?** When a
-classification has claimed every formal charge and the renderer then declines,
-the engine could refuse instead of silently naming the neutral skeleton. That
-is the right end state — it converts any future gap from a wrong structure
-into a visible failure — but it cannot be switched on blind, because it turns
-an unknown number of currently green-but-wrong outputs into errors. The
-decision is gated on the diagnostics statistics across a wider corpus than the
-~70-probe sweep used so far.
+Two of the dispatcher's decline reasons now **raise** rather than falling
+through to the neutralizer. The split was measured over the benchmark corpus
+plus the 69-probe charged-species sweep — 193 molecules:
+
+| reason | occurrences | behaviour | why |
+|---|---|---|---|
+| `render_failed` | 0 | **raises** | a classifier engaged and could not finish; the coverage gate has already proved every charge is claimed, so falling through can only name a different molecule |
+| `partial_claim` | 1 | **raises** | as above; the one live case is D-019 |
+| `unclaimed` | 35 | falls through | **not** a defect signal — pyridinium, sulfonium, betaine, nitrobenzene and phenylium all land here and are all named correctly by other paths |
+
+Making `unclaimed` fatal would have broken dozens of correct names. Making the
+other two fatal cost nothing on the day and converts any future gap from a
+wrong molecule into a visible failure.
+
+The visible effect: `name_smiles("[CH2-][N+]#N")` now raises instead of
+returning `(azanylidyne)(methyl)azanium`. On the benchmark diazomethane moved
+`wrong_structure -> no_prediction`; the score is unchanged at 120/124 because
+both are failures, but one of them was lying.
 
 ## Not limitations
 
