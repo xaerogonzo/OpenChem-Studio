@@ -550,7 +550,7 @@ class ExternalToolsDialog(QDialog):
         # picked by accident is not, and the service refuses it. Naming a
         # subfolder is the friendlier default for "I picked D:\".
         if destination.exists() and any(destination.iterdir()):
-            destination = destination / "OpenChemStudio"
+            destination = destination / storage_service.DEFAULT_FOLDER_NAME
 
         current = storage_service.usage()
         answer = QMessageBox.question(

@@ -103,6 +103,18 @@ def move_tree(source: Path, destination: Path) -> None:
         source.unlink()
 
 
+#: Used when someone picks a folder that already has things in it -- the
+#: data goes in a subfolder rather than mixing with what is there.
+#:
+#: The "_Data" suffix is deliberate and is Alex's own convention: the
+#: source tree is "OpenChem Studio", so a data folder called
+#: "OpenChemStudio" beside it reads as a second copy of the project.
+#: Naming it distinctly means the two can never be confused at a glance,
+#: which matters most when someone is looking at a backup listing months
+#: later.
+DEFAULT_FOLDER_NAME = "OpenChemStudio_Data"
+
+
 @dataclass(frozen=True)
 class MoveProgress:
     step: int

@@ -332,3 +332,11 @@ def test_a_relocatable_pth_is_left_alone(isolated_root, tmp_path, monkeypatch):
 
     moved = destination / "env" / ".venv" / "Lib" / "site-packages" / "openchem_pkasolver.pth"
     assert moved.read_text(encoding="utf-8") == RELOCATABLE_PTH
+
+
+def test_the_default_folder_name_is_distinct_from_the_source_tree():
+    """The source tree is "OpenChem Studio". A data folder called
+    "OpenChemStudio" beside it reads as a second copy of the project --
+    confusing now, worse in a backup listing months later."""
+    assert storage_service.DEFAULT_FOLDER_NAME == "OpenChemStudio_Data"
+    assert "Data" in storage_service.DEFAULT_FOLDER_NAME
