@@ -54,22 +54,28 @@ that same extended corpus gives the comparison that was missing:
 | | corrected | exact | equivalent | wrong structure |
 |---|---|---|---|---|
 | as vendored | 148/165 (90%) | 79 | 69 | 15 |
-| after this work | **158/165 (96%)** | 79 | 79 | 4 |
+| after this work | **160/165 (97%)** | 79 | 81 | 2 |
 
 | category | as vendored | after |
 |---|---|---|
 | carbocation | 7/12 | **12/12** |
-| carbanion | 4/8 | **7/8** |
+| carbanion | 4/8 | **8/8** |
+| onium_ion | 8/9 | **9/9** |
 | polycharged | 9/12 | **11/12** |
-| onium_ion | 8/9 | 8/9 |
 
-The seven remaining failures are the four already characterised above plus the
-three open defects the new categories deliberately expose: phenyl anion
-(D-003), guanidinium (D-004), azide (D-016).
+Five failures remain: the four already characterised above (two of them
+tautomers, not errors) plus azide (D-016). The new categories exposed three
+open defects; two of them — the phenyl anion (D-003) and guanidinium (D-004) —
+were fixed immediately afterwards, which is the corpus doing its job.
 
 | date | change | correct | notes |
 |---|---|---|---|
 | 2026-08-01 | corpus extended to 165 | 158/165 | +41 charged species; baseline on the same corpus is 148/165 |
+| 2026-08-01 | aromatic ring carbanion + guanidinium | **160/165** | carbanion 7/8 -> 8/8, onium_ion 8/9 -> 9/9; delta reported both rows as FIXED |
+
+The extension paid for itself immediately: the two defects fixed in that last
+row were both surfaced by the new categories, and both moved the headline
+number that the previous six changes could not.
 
 ### Consequence worth knowing
 

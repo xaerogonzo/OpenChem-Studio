@@ -102,6 +102,48 @@ Fourteen inputs that named the wrong compound. All are pinned in
 
 Benchmark unchanged at 120/124 across all of the above, stereochemistry 11/11.
 
+## 2026-08-01 — aromatic ring carbanions and guanidinium
+
+Two more severity-A defects, both surfaced by the extended corpus.
+
+* **D-003, aromatic ring carbanion.** `c1ccc[c-]c1` named as `cyclohexane`,
+  losing the charge AND the aromaticity. `_classify_simple_carbon_charge`
+  refuses an aromatic charged atom on purpose — a ring carbanion needs the
+  ring parent's numbering, not a chain's — and nothing else claimed it.
+  `_classify_aromatic_ring_anion` now does, emitting the plain `"ide"` hint so
+  the existing renderer composes the name from the ring parent and the
+  engine's own substituent numbering: `benzen-1-ide`, and it generalises to
+  `naphthalen-1-ide`, `naphthalen-2-ide`, `pyridin-2-ide`, `pyridin-3-ide`.
+
+  The gate took three attempts, and the two rejected ones are worth recording
+  because they look sufficient. A **radical** test misses `[cH-]1cccc1`, which
+  is closed-shell. "No hydrogen on the charged carbon" misses
+  `Clc1ccc[c-]1Cl`, where a chlorine occupies the position rather than a
+  proton having left it — and that arrives here as a lone fragment of a
+  ferrocene salt, so it is not hypothetical. The gate that works is the one
+  that matches the chemistry: **neutralize the site and check the ring is
+  still aromatic.** Benzenide is a sigma carbanion, so putting the hydrogen
+  back gives benzene; cyclopentadienide is a delocalised pi anion, so putting
+  it back gives cyclopenta-1,3-diene, which is not aromatic and belongs to the
+  retained-name path.
+
+* **D-004, guanidinium.** `[NH2+]=C(N)N` named as
+  `iminomethane-1,1-diamine`. `_classify_amidinium` requires the third
+  substituent on the central carbon to be a CARBON, so guanidinium — whose
+  third substituent is another amino nitrogen — fell through to the
+  neutralizer. `guanidine` is a retained functional parent (P-66.4.1.2.1.2)
+  and `guanidinium` its retained cation (P-73.1), so the name is emitted
+  directly. Scope is the unsubstituted parent; `methylguanidinium` is recorded
+  as D-020 rather than half-claimed, because with the refusal guard in place a
+  classifier that claims what it cannot render raises instead of mis-naming.
+
+`_splice_alkane_suffix` now elides a trailing `e` from any parent, not only
+`-ane`: `ylium` and `ide` are vowel-initial, so `benzene` + `ide` is
+`benzen-1-ide`. OPSIN accepts the unelided form too, but the elided one is the
+PIN.
+
+Benchmark 158/165 -> **160/165**; carbanion 7/8 -> 8/8, onium_ion 8/9 -> 9/9.
+
 ## 2026-08-01 — the neutralizer fall-through now refuses, selectively
 
 Decided on measurement rather than principle. Over the benchmark corpus plus

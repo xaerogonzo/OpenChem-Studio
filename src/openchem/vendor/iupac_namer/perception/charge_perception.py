@@ -286,7 +286,16 @@ def classify_charges(mol) -> tuple[ChargeClassification, ...]:
         # ---- cyclopentadienyl anion ([C-]1C=CC=C1) ----
         # Has 1 radical electron, routes via detect_pre_validation.
         _classify_cyclopentadienyl_anion,
+        # ---- aromatic ring carbanion (benzenide etc.) ----
+        # After cyclopentadienide, which owns its retained name.  Runs
+        # before _classify_simple_carbon_charge, which refuses an aromatic
+        # charged atom and would otherwise leave these to the neutralizer.
+        _classify_aromatic_ring_anion,
         # ---- R2-B closed-shell motifs (unchanged) ----
+        # Guanidinium before amidinium: it is the more specific pattern
+        # (three N on the central carbon), and amidinium's guards would
+        # reject it anyway, leaving it to the neutralizer.
+        _classify_guanidinium,
         _classify_amidinium,
         _classify_diazonium,
         # ---- Stage 7 polyacylium runs BEFORE _classify_acylium so a
@@ -656,6 +665,70 @@ def detect_pre_validation(
 # ---------------------------------------------------------------------------
 
 
+def _classify_guanidinium(mol) -> Iterable[ChargeClassification]:
+    """Detect ``[NH2+]=C(N)N`` -- the guanidinium cation.
+
+    ``_classify_amidinium`` recognises ``R-C(=[NH2+])N`` but requires the
+    third substituent R to be a CARBON, so guanidinium -- whose third
+    substituent is a second amino nitrogen -- fell through to the plan
+    search, which dropped the charge and named the neutral skeleton
+    ``iminomethane-1,1-diamine``.
+
+    ``guanidine`` is a retained functional parent (P-66.4.1.2.1.2) and
+    ``guanidinium`` its retained cation (P-73.1, "-ium" on the parent
+    name), so the surface name is emitted directly rather than composed.
+
+    Scope is the UNSUBSTITUTED parent only: all three nitrogens terminal.
+    N-substituted guanidinium salts (``CNC(N)=[NH2+]`` ->
+    ``methylguanidinium``) would need substituent prefixes on the
+    guanidine skeleton, and a classifier that claimed them without being
+    able to render them would now raise rather than mis-name -- better,
+    but still a regression on today's silent-but-neutral answer.
+    """
+    for atom in mol.GetAtoms():
+        if atom.GetAtomicNum() != 6 or atom.GetFormalCharge() != 0:
+            continue
+        if atom.GetDegree() != 3:
+            continue
+        n_plus: int | None = None
+        neutral_ns: list[int] = []
+        other_neighbour = False
+        for bond in atom.GetBonds():
+            other = bond.GetOtherAtom(atom)
+            if other.GetAtomicNum() != 7:
+                other_neighbour = True
+                break
+            if (
+                other.GetFormalCharge() == 1
+                and bond.GetBondTypeAsDouble() == 2.0
+                and other.GetDegree() == 1
+                and other.GetTotalNumHs() == 2
+                and n_plus is None
+            ):
+                n_plus = other.GetIdx()
+                continue
+            if (
+                other.GetFormalCharge() == 0
+                and bond.GetBondTypeAsDouble() == 1.0
+                and other.GetDegree() == 1
+                and other.GetTotalNumHs() == 2
+            ):
+                neutral_ns.append(other.GetIdx())
+                continue
+            other_neighbour = True
+            break
+        if other_neighbour or n_plus is None or len(neutral_ns) != 2:
+            continue
+        yield ChargeClassification(
+            site_atom_indices=(atom.GetIdx(), n_plus, *neutral_ns),
+            charge_sign="+",
+            suffix_hint="guanidinium",
+            locant=None,
+            parent_smiles=None,
+            surface_name="guanidinium",
+        )
+
+
 def _classify_amidinium(mol) -> Iterable[ChargeClassification]:
     """Detect ``R-C(=[NH2+])N`` - the protonated-imine amidine cation.
 
@@ -881,6 +954,80 @@ def _classify_simple_carbon_charge(mol) -> Iterable[ChargeClassification]:
         charge_sign=sign,
         suffix_hint="ylium" if sign == "+" else "ide",
         locant=None,  # filled in by the emitter once parent is named
+        parent_smiles=None,
+        surface_name=None,
+    )
+
+
+def _classify_aromatic_ring_anion(mol) -> Iterable[ChargeClassification]:
+    """Detect an aromatic ring carbanion (``-ide``), e.g. ``c1ccc[c-]c1``.
+
+    The mirror of :func:`_classify_aromatic_ring_cation`, and it exists
+    for the same reason: nothing else claims these, and an unclaimed
+    charge is not left alone -- the plan search neutralizes it. The
+    phenyl anion came out as ``cyclohexane``, losing the charge AND the
+    aromaticity, which is about as wrong as a name can be.
+
+    ``_classify_simple_carbon_charge`` deliberately refuses an aromatic
+    charged atom, because a ring carbanion needs the ring parent's
+    numbering rather than a chain's; that is what this classifier
+    supplies. It emits the plain ``"ide"`` hint so the existing
+    ``_render_simple_carbon`` composes the name: neutralize the site,
+    name the ring parent, and take the locant from the engine's own
+    substituent numbering. That works across ring systems --
+    ``benzen-1-ide``, ``naphthalen-2-ide``, ``pyridin-3-ide``.
+
+    Detection contract (all must hold, else yields nothing):
+
+    * exactly one formally-charged atom, a carbon with charge -1;
+    * it is aromatic and in a ring;
+    * NEUTRALIZING THE SITE STILL LEAVES AN AROMATIC RING. This is the
+      line between two chemically different species, not a convenience.
+      Benzenide is a SIGMA carbanion: a hydrogen was removed from an sp2
+      ring carbon and the lone pair sits in the ring plane, leaving the
+      aromatic sextet intact -- put the hydrogen back and you have
+      benzene, so the parent IS an aromatic ring and the name is that
+      parent plus ``-ide``. Cyclopentadienide is a delocalised PI anion
+      whose charge belongs to the whole ring; put a hydrogen back and you
+      get cyclopenta-1,3-diene, which is not aromatic. It has a retained
+      name and belongs to the path that owns it.
+
+      Cheaper-looking tests do not work. ``[cH-]1cccc1`` is closed-shell,
+      so a radical test misses it; and "the charged carbon has no
+      hydrogen" misses ``Clc1ccc[c-]1Cl``, where the position is occupied
+      by a chlorine rather than vacated by a proton -- still a
+      delocalised cyclopentadienide, and one that reaches this classifier
+      as a lone fragment of a metallocene salt;
+    * CLOSED-SHELL: no radical electrons anywhere.
+    """
+    from rdkit import Chem
+
+    charged = [a for a in mol.GetAtoms() if a.GetFormalCharge() != 0]
+    if len(charged) != 1:
+        return
+    c = charged[0]
+    if c.GetAtomicNum() != 6 or c.GetFormalCharge() != -1:
+        return
+    if not c.GetIsAromatic() or not c.IsInRing():
+        return
+    if any(a.GetNumRadicalElectrons() for a in mol.GetAtoms()):
+        return
+    try:
+        probe = Chem.RWMol(mol)
+        site = probe.GetAtomWithIdx(c.GetIdx())
+        site.SetFormalCharge(0)
+        site.SetNoImplicit(False)
+        site.SetNumExplicitHs(0)
+        Chem.SanitizeMol(probe)
+    except Exception:
+        return
+    if not probe.GetAtomWithIdx(c.GetIdx()).GetIsAromatic():
+        return
+    yield ChargeClassification(
+        site_atom_indices=(c.GetIdx(),),
+        charge_sign="-",
+        suffix_hint="ide",
+        locant=None,
         parent_smiles=None,
         surface_name=None,
     )
@@ -3119,15 +3266,17 @@ def _splice_alkane_suffix(parent_name: str, locant: int, suffix: str) -> str:
 
     - ``ethane`` + 1 + ``ylium`` -> ``ethan-1-ylium``
     - ``cyclohexane`` + 1 + ``ide`` -> ``cyclohexan-1-ide``
+    - ``benzene`` + 1 + ``ide`` -> ``benzen-1-ide``
 
-    The trailing ``e`` of ``-ane`` elides before the vowel-initial
-    suffixes ``ylium`` / ``ide``.
+    ``ylium`` and ``ide`` are both vowel-initial, so the terminal ``e``
+    of the parent hydride elides before them.  That applies to any such
+    parent, not only ``-ane``: ``benzene`` -> ``benzen-1-ide``,
+    ``pyridine`` -> ``pyridin-3-ide``.  OPSIN happens to accept the
+    unelided ``benzene-1-ide`` too, but the elided form is the PIN.
     """
-    if parent_name.endswith("ane"):
-        stem = parent_name[:-1]  # "ethane" -> "ethan"
+    if parent_name.endswith("e"):
+        stem = parent_name[:-1]  # "ethane" -> "ethan", "benzene" -> "benzen"
         return f"{stem}-{locant}-{suffix}"
-    # Aromatic / retained parents (benzene, naphthalene) don't elide
-    # the trailing ``e`` quite the same way; we fall back to dash form.
     return f"{parent_name}-{locant}-{suffix}"
 
 

@@ -39,29 +39,37 @@ still open — see *Deliberately open decisions* below.
 
 | id | input | emits | should be | why |
 |---|---|---|---|---|
-| D-003 | `c1ccc[c-]c1` | `cyclohexane` | `benzenide` | charged atom is aromatic; a ring carbanion needs indicated hydrogen and ring numbering, which belongs to the retained-ring path |
-| D-004 | `[NH2+]=C(N)N` | `iminomethane-1,1-diamine` | `guanidinium` | classifier gate is all-carbon |
 | D-013 | `[CH+]=O` | `oxomethane` | `oxomethylium` | classifier gate is all-carbon |
 | D-018 | `[CH2+]c1ccncc1` | `4-methylpyridine` | `pyridin-4-ylmethan-1-ylium` | classifier gate is all-carbon |
 | D-015 | `[n-]1cccc1` | `1H-pyrrol-2-ide` | `pyrrol-1-ide` | charge relocated from N to C |
 | D-016 | `[N-]=[N+]=[N-]` | `diiminoazanium` | `azide` | wrong structure |
 | D-019 | `[CH2-][N+]#N` | `(azanylidyne)(methyl)azanium` | `methanidyldiazonium` | protonates the carbanion half of the zwitterion and emits the CH3N2+ **cation** — an invented hydrogen and a charge that is not there |
+| D-020 | `CNC(N)=[NH2+]` | `N-(aminoiminomethyl)methanamine` | `methylguanidinium` | N-substituted guanidinium needs prefixes on the guanidine skeleton; the parent (D-004) is fixed |
 
-The all-carbon cluster (D-004, D-013, D-018) has one cause:
+The all-carbon cluster (D-013, D-018) has one cause:
 `_classify_simple_carbon_charge` requires every atom to be carbon, which is
 what keeps the heteroatom motifs (acylium, iminium, amidinium) with the
 specific classifiers that know how to name them. Widening it means teaching
 the renderer about heteroatom parents.
+
+### Observed, no verified target
+
+`[C-]1C=CC=C1` names as `cyclopenta-2,4-dien-1-ide`, dropping the unpaired
+electron. This is the cyclopentadienyl **radical anion** — a different species
+from cyclopentadienide, with a different InChIKey. `cyclopentadienide` was
+tried as the target name and rejected by the round-trip check: it denotes the
+closed-shell anion. No name was found that OPSIN parses back to the radical
+anion, so none is stated. Not in the defect table, which requires a verified
+target.
 
 ## Benchmark: the standing 4 of 124
 
 On the original 124-row corpus the engine scores 120/124. All four remaining
 rows are now characterised, and **two of them are not engine errors at all**.
 
-(The corpus has since grown to 165 rows; the current score is 158/165. The
-three additional failures are the open severity-A defects listed above —
-phenyl anion, guanidinium and azide — which the new charged-species categories
-were added to expose.)
+(The corpus has since grown to 165 rows; the current score is **160/165**.
+The phenyl anion and guanidinium rows that the new charged-species categories
+exposed are now fixed; azide (D-016) remains.)
 
 ### Tautomers — the engine is defensible
 

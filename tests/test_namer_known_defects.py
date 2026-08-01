@@ -104,6 +104,46 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-017", "[CH2+]C#C", "prop-2-yn-1-ylium",
      "prop-1-yne", "charge dropped; propyne"),
 
+    # --- D-003: aromatic ring carbanion -------------------------------
+    # No classifier claimed these, so the plan search neutralized them --
+    # the phenyl anion lost its charge AND its aromaticity. An aromatic
+    # ring carbanion needs the RING parent's numbering, which is exactly
+    # why _classify_simple_carbon_charge refuses an aromatic charged atom.
+    ("D-003", "c1ccc[c-]c1", "benzen-1-ide",
+     "cyclohexane", "charge AND aromaticity dropped"),
+    ("D-003b", "[c-]1cccc2ccccc12", "naphthalen-1-ide",
+     "(unclaimed)", "generalises to fused rings"),
+    ("D-003c", "[c-]1ccc2ccccc2c1", "naphthalen-2-ide",
+     "(unclaimed)", "locant comes from the engine's own numbering"),
+    ("D-003d", "[c-]1cccnc1", "pyridin-3-ide",
+     "(unclaimed)", "generalises to heteroaromatic rings"),
+    ("D-003e", "[c-]1ccccn1", "pyridin-2-ide", "(unclaimed)", "as above"),
+
+    # --- D-004: guanidinium -------------------------------------------
+    # _classify_amidinium requires the third substituent on the central
+    # carbon to be a CARBON, so guanidinium -- whose third substituent is
+    # another amino nitrogen -- fell through to the neutralizer.
+    ("D-004", "[NH2+]=C(N)N", "guanidinium",
+     "iminomethane-1,1-diamine", "charge dropped"),
+
+    # --- non-regression: delocalised aromatic anions the ring-carbanion
+    # classifier must NOT steal. Cyclopentadienide keeps its hydrogen and
+    # is a delocalised pi anion with a retained name; benzenide is a sigma
+    # carbanion with the hydrogen removed. Gating on "no H on the charged
+    # carbon" is what separates them -- written as [cH-]1cccc1 the
+    # cyclopentadienide is closed-shell, so a radical test does not.
+    ("D-003x", "[cH-]1cccc1", "cyclopentadienide", "cyclopentadienide",
+     "unchanged"),
+    # Ferrocene reaches the ring-carbanion classifier one fragment at a
+    # time, so a substituted cyclopentadienide arrives on its own. Two
+    # cheaper gates were tried and both let it through: "no radical" (it
+    # is closed-shell) and "no hydrogen on the charged carbon" (a chlorine
+    # occupies that position rather than a proton having left it). With
+    # the refusal guard in place, over-claiming here raised instead of
+    # mis-naming -- louder, but still a regression.
+    ("D-003y", "c1cc[cH-]c1.[Fe+2].c1cc[cH-]c1", "ferrocene", "ferrocene",
+     "unchanged"),
+
     # --- non-regression: retained ring cations the relaxed gate must NOT
     # steal. These carry retained -ylium PINs owned by the retained-ring
     # lookup; claiming them in the simple-carbon classifier would quietly
@@ -135,17 +175,10 @@ OPEN: list[tuple[str, str, str, str, str]] = [
     # (tests/vendor/iupac_namer/test_known_defects.py), precisely to catch
     # that class of mistake before it becomes someone's goal.
 
-    # Aromatic ring carbanion. Excluded from the simple-carbon classifier
-    # on purpose -- the charged atom is aromatic, and a ring carbanion
-    # needs indicated hydrogen and ring numbering, which is the
-    # retained-ring path's problem, not this classifier's.
-    ("D-003", "c1ccc[c-]c1", "benzenide",
-     "cyclohexane", "charge AND aromaticity dropped"),
-    # Heteroatom-containing skeletons: the classifier gate is all-carbon,
-    # so anything with N/O/S stays unclaimed. Widening it means teaching
-    # the renderer about heteroatom parents, a larger change.
-    ("D-004", "[NH2+]=C(N)N", "guanidinium",
-     "iminomethane-1,1-diamine", "charge dropped"),
+    # Heteroatom-containing skeletons: the simple-carbon classifier gate
+    # is all-carbon, so anything with N/O/S stays unclaimed. Widening it
+    # means teaching the renderer about heteroatom parents, a larger
+    # change.
     ("D-013", "[CH+]=O", "oxomethylium", "oxomethane", "charge dropped"),
     ("D-018", "[CH2+]c1ccncc1", "pyridin-4-ylmethan-1-ylium",
      "4-methylpyridine", "charge dropped; heteroaryl skeleton"),
@@ -160,7 +193,26 @@ OPEN: list[tuple[str, str, str, str, str]] = [
     # Benchmark row "diazomethane".
     ("D-019", "[CH2-][N+]#N", "methanidyldiazonium",
      "(azanylidyne)(methyl)azanium", "gains an H; emits the cation"),
+    # N-SUBSTITUTED guanidinium. The parent (D-004) is fixed, but a
+    # substituted one needs prefixes on the guanidine skeleton, so the
+    # classifier deliberately does not claim it -- claiming without being
+    # able to render would now raise rather than mis-name, which is better
+    # but is still a regression on today's answer.
+    ("D-020", "CNC(N)=[NH2+]", "methylguanidinium",
+     "N-(aminoiminomethyl)methanamine", "charge dropped"),
 ]
+
+# Observed but NOT tracked here, because this table requires a verified
+# target name and these have none:
+#
+#   [C-]1C=CC=C1  ->  "cyclopenta-2,4-dien-1-ide"
+#       The cyclopentadienyl RADICAL anion (no H, one unpaired electron),
+#       which is a different species from cyclopentadienide -- different
+#       InChIKey -- and the radical is dropped. "cyclopentadienide" was
+#       tried as the target and rejected by the OPSIN check in
+#       tests/vendor/iupac_namer/test_known_defects.py: it denotes the
+#       closed-shell anion. No name for the radical anion was found that
+#       OPSIN parses back to it, so stating one would be guessing.
 
 
 @pytest.mark.parametrize(
