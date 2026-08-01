@@ -102,6 +102,43 @@ Fourteen inputs that named the wrong compound. All are pinned in
 
 Benchmark unchanged at 120/124 across all of the above, stereochemistry 11/11.
 
+## 2026-08-01 — the pyrazole stem in the partially-saturated path
+
+D-023, severity B: right molecule, wrong ring stem. With no curated entry for
+the partially-saturated 1,2-diazole ring, naming fell through to
+Hantzsch-Widman, which spells it `1,2-diazole` — so 2-pyrazoline came out as
+`4,5-dihydro-1H-1,2-diazole`. `pyrazole` is a retained ring name and the PIN
+(P-25.2.1).
+
+Only pyrazole was affected, which is worth knowing before assuming the hydro
+path is broken generally. Imidazole and pyrrole already have curated
+partially-saturated entries (`4,5-dihydro-1H-imidazole`,
+`2,3-dihydro-1H-pyrrole`), and oxazole and thiazole get away without one
+because their Hantzsch-Widman names — `1,3-oxazole`, `1,3-thiazole` — ARE the
+preferred forms. Pyrazole is the only 5-ring in that set whose HW name differs
+from its PIN, so it was the only one the gap could bite. Aromatic pyrazole was
+never affected.
+
+Two curated ring entries added beside the imidazoline one they mirror, with
+`atom_locants` derived by OPSIN chloro-probing exactly as that entry documents.
+For `4,5-dihydro-1H-pyrazole` locant 2 cannot be probed — it is the `=N-`, and
+chlorinating it saturates the ring, so `2-chloro-…` resolves to pyrazolidine
+instead; it is the one remaining atom and the one remaining locant.
+
+This propagates through the whole pyrazolone family fixed in D-022: the
+benchmark row is now `…-5-oxo-4,5-dihydro-1H-pyrazol-4-yl…`, and the edaravone
+core is `3-methyl-1-phenyl-4,5-dihydro-1H-pyrazol-5-one`.
+
+Knock-on, kept deliberately rather than worked around: a curated entry for the
+2,3-dihydro-1H-pyrazole skeleton outranks the pre-composed `4-pyrazolone`
+stem, so that ring now takes the systematic `4,5-dihydro-1H-pyrazol-4-one`.
+That is the same treatment `5-pyrazolone` received in D-022 for being
+semi-systematic rather than a PIN, so both pyrazolone stems now behave
+consistently. Round-trip verified on both gates.
+
+Benchmark unchanged at 162/165 — as expected for a severity-B fix, since both
+forms denote the same molecule.
+
 ## 2026-08-01 — pre-composed retained rings in substituent position
 
 D-022, severity A, and the last wrong structure in the corpus.

@@ -79,10 +79,13 @@ visible. That is the corpus doing its job: none of them was findable from the
 | 2026-08-01 | aromatic ring carbanion + guanidinium | 160/165 | carbanion 7/8 -> 8/8, onium_ion 8/9 -> 9/9; delta reported both rows as FIXED |
 | 2026-08-01 | azide | 161/165 | polycharged 11/12 -> 12/12; all four charged categories now perfect |
 | 2026-08-01 | pyrazolone in substituent position | **162/165** | novel_unregistered 3/4 -> 4/4; **wrong_structure count reaches 0** |
+| 2026-08-01 | pyrazole stem (severity B) | 162/165 | unchanged by design -- both stems denote the same molecule; the fix is which one is preferred |
 
-The extension paid for itself immediately: the two defects fixed in that last
-row were both surfaced by the new categories, and both moved the headline
-number that the previous six changes could not.
+The extension paid for itself immediately. Every defect fixed in the rows above
+was surfaced by the new categories or by the one corpus row that happened to
+carry a pyrazolone, and together they moved the headline number 158 -> 162 —
+which the previous six changes, all real severity-A fixes, could not do at all
+on the 124-row revision.
 
 ### Consequence worth knowing
 

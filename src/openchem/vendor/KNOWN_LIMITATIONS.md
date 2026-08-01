@@ -117,12 +117,6 @@ other, and the disagreement is the signal.
 |---|---|---|---|
 | `ClC(=O)C(=O)Cl` | `ethane-1,2-dioyl chloride` | `oxalyl dichloride` | `oxalyl` IS the PIN acyl group (P-65.1.7.2.1); the `di` multiplier is also missing |
 | `CC(C)C` | `isobutane` | `2-methylpropane` | retained, not a PIN |
-| `C1C=NNC1` | `4,5-dihydro-1H-1,2-diazole` | `4,5-dihydro-1H-pyrazole` | `pyrazole` is the retained PIN ring name (P-25.2.1); the partially-saturated path falls back to the Hantzsch-Widman `1,2-diazole` stem |
-
-The `1,2-diazole` stem is pre-existing and independent of D-022 — the hydro
-path already emitted it — but fixing D-022 routes the whole pyrazolone family
-through that path, so it now shows up far more often. Aromatic pyrazole itself
-is unaffected and correctly names as `1H-pyrazole`.
 
 The acyl-halide case is **not** a matter of adding a table entry. Instrumenting
 `_acid_name_to_acyl` over 200+ molecules showed only two distinct acid names

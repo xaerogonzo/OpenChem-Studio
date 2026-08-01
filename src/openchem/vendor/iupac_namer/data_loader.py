@@ -1742,6 +1742,35 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # idx0=C2, idx1=N3, idx2=C4, idx3=C5, idx4=N1(H).
     "C1=NCCN1":        {"name": "4,5-dihydro-1H-imidazole", "substituent_form": "4,5-dihydro-1H-imidazolyl", "alkyl_stem_ok": False,
                         "atom_locants": {0: 2, 1: 3, 2: 4, 3: 5, 4: 1}},
+    # The pyrazole counterparts of the entry above.  They were missing, and
+    # without them the partially-saturated 1,2-diazole ring fell through to
+    # Hantzsch-Widman, which spells it "1,2-diazole": 2-pyrazoline came out as
+    # "4,5-dihydro-1H-1,2-diazole".  That denotes the right molecule but is not
+    # the PIN -- "pyrazole" is a retained ring name (P-25.2.1), exactly as
+    # "imidazole" is for the 1,3-isomer above.  Aromatic pyrazole was never
+    # affected: it matches the "c1cn[nH]c1" entry two lines up.
+    #
+    # Why only pyrazole was wrong: imidazole and pyrrole have curated
+    # partially-saturated entries, and oxazole/thiazole get away without one
+    # because their Hantzsch-Widman names ("1,3-oxazole", "1,3-thiazole") ARE
+    # the preferred forms.  Pyrazole is the only 5-ring here whose HW name
+    # differs from its PIN.
+    #
+    # 4,5-dihydro-1H-pyrazole (2-pyrazoline).  RDKit canonical 'C1=NNCC1':
+    # idx0=C, idx1=N, idx2=N, idx3=C, idx4=C.
+    # atom_locants from OPSIN chloro-probing of the canonical form:
+    #   1-Cl -> idx2, 3-Cl -> idx0, 4-Cl -> idx4, 5-Cl -> idx3.
+    # Locant 2 is the remaining atom, idx1: it is the =N- and cannot carry a
+    # substituent without saturating the ring, so 2-chloro probes back to
+    # pyrazolidine rather than to this parent.
+    "C1=NNCC1":        {"name": "4,5-dihydro-1H-pyrazole", "substituent_form": "4,5-dihydro-1H-pyrazolyl", "alkyl_stem_ok": False,
+                        "atom_locants": {2: 1, 1: 2, 0: 3, 4: 4, 3: 5}},
+    # 2,3-dihydro-1H-pyrazole (3-pyrazoline).  RDKit canonical 'C1=CNNC1':
+    # idx0=C, idx1=C, idx2=N, idx3=N, idx4=C.  All five locants probed
+    # cleanly: 1-Cl -> idx2, 2-Cl -> idx3, 3-Cl -> idx4, 4-Cl -> idx0,
+    # 5-Cl -> idx1.
+    "C1=CNNC1":        {"name": "2,3-dihydro-1H-pyrazole", "substituent_form": "2,3-dihydro-1H-pyrazolyl", "alkyl_stem_ok": False,
+                        "atom_locants": {2: 1, 3: 2, 4: 3, 0: 4, 1: 5}},
     # S,N
     # 1,3-thiazole: S=1, C=2 (between S and N), N=3, C=4 (next to N), C=5 (next to S).
     # Canonical 'c1cscn1': idx0=C, idx1=C, idx2=S, idx3=C, idx4=N. Ring bonds 0-1, 1-2, 2-3, 3-4, 4-0.

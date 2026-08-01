@@ -163,15 +163,47 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # path -- which states the saturation explicitly -- is correct in both
     # positions.
     ("D-022", "CC1=NN(c2ccccc2)C(=O)C1CCNC(C)=O",
-     "N-[2-(3-methyl-5-oxo-1-phenyl-4,5-dihydro-1H-1,2-diazol-4-yl)ethyl]acetamide",
+     "N-[2-(3-methyl-5-oxo-1-phenyl-4,5-dihydro-1H-pyrazol-4-yl)ethyl]acetamide",
      "N-[2-(3-methyl-1-phenyl-5-pyrazolon-4-yl)ethyl]acetamide",
      "ring re-read as its aromatic tautomer"),
     ("D-022b", "CC1=NN(c2ccccc2)C(=O)C1CCC(=O)O",
-     "3-(3-methyl-5-oxo-1-phenyl-4,5-dihydro-1H-1,2-diazol-4-yl)propanoic acid",
+     "3-(3-methyl-5-oxo-1-phenyl-4,5-dihydro-1H-pyrazol-4-yl)propanoic acid",
      "3-(3-methyl-1-phenyl-5-pyrazolon-4-yl)propanoic acid", "as above"),
     ("D-022c", "CC1=NN(c2ccccc2)C(=O)C1CC#N",
-     "2-(3-methyl-5-oxo-1-phenyl-4,5-dihydro-1H-1,2-diazol-4-yl)ethanenitrile",
+     "2-(3-methyl-5-oxo-1-phenyl-4,5-dihydro-1H-pyrazol-4-yl)ethanenitrile",
      "2-(3-methyl-1-phenyl-5-pyrazolon-4-yl)ethanenitrile", "as above"),
+
+    # --- D-023: pyrazole stem lost in the partially-saturated path -----
+    # Severity B, not A -- the molecule was right, the ring stem was not.
+    # With no curated entry for the partially-saturated 1,2-diazole ring,
+    # naming fell through to Hantzsch-Widman, which spells it
+    # "1,2-diazole". "pyrazole" is the retained PIN (P-25.2.1). Only
+    # pyrazole was affected: imidazole and pyrrole already had curated
+    # partially-saturated entries, and oxazole/thiazole get away without
+    # one because their HW names ("1,3-oxazole", "1,3-thiazole") ARE the
+    # preferred forms. Pyrazole is the sole 5-ring here whose HW name
+    # differs from its PIN.
+    ("D-023", "C1C=NNC1", "4,5-dihydro-1H-pyrazole",
+     "4,5-dihydro-1H-1,2-diazole", "HW stem instead of the retained PIN"),
+    ("D-023b", "C1NNC=C1", "2,3-dihydro-1H-pyrazole",
+     "2,3-dihydro-1H-1,2-diazole", "as above"),
+    ("D-023c", "CC1=NN(c2ccccc2)C(=O)C1",
+     "3-methyl-1-phenyl-4,5-dihydro-1H-pyrazol-5-one",
+     "3-methyl-1-phenyl-4,5-dihydro-1H-1,2-diazol-5-one",
+     "edaravone core; stem propagates through the whole pyrazolone family"),
+    ("D-023d", "C1C=NN(c2ccccc2)C1", "(4,5-dihydro-1H-pyrazol-1-yl)benzene",
+     "(4,5-dihydro-1H-1,2-diazol-1-yl)benzene", "substituent form too"),
+
+    # --- non-regression: sibling 5-rings the new curated entries sit
+    # beside, which must keep the names they already had.
+    ("D-023x", "c1cc[nH]n1", "1H-pyrazole", "1H-pyrazole", "unchanged"),
+    ("D-023y", "C1CNNC1", "pyrazolidine", "pyrazolidine", "unchanged"),
+    ("D-023z", "C1CN=CN1", "4,5-dihydro-1H-imidazole",
+     "4,5-dihydro-1H-imidazole", "unchanged"),
+    ("D-023w", "C1CC=CN1", "2,3-dihydro-1H-pyrrole",
+     "2,3-dihydro-1H-pyrrole", "unchanged"),
+    ("D-023v", "C1COC=N1", "4,5-dihydro-1,3-oxazole",
+     "4,5-dihydro-1,3-oxazole", "unchanged"),
 
     # --- non-regression: the other PIN-ineligible retained stems, which
     # share the gate that was extended to reach the pyrazolone.
@@ -184,7 +216,15 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-022z", "O=S1(=O)CC=CC1CCN", "2-(sulfol-3-en-5-yl)ethanamine",
      "2-(sulfol-3-en-5-yl)ethanamine", "unchanged"),
     ("D-022w", "O=c1[nH][nH]c(=O)[nH]1", "urazol", "urazol", "unchanged"),
-    ("D-022v", "O=C1C=NNC1", "4-pyrazolone", "4-pyrazolone", "unchanged"),
+    # 4-pyrazolone changed as a consequence of the D-023 curated entries,
+    # and the change is kept rather than worked around. Adding a curated
+    # ring entry for the 2,3-dihydro-1H-pyrazole skeleton gives it priority
+    # over the pre-composed "4-pyrazolone" stem, so this ring now takes the
+    # systematic form -- which is exactly the treatment 5-pyrazolone was
+    # given for being semi-systematic rather than a PIN. Both pyrazolone
+    # stems now behave the same way. Verified to round-trip on both gates.
+    ("D-022v", "O=C1C=NNC1", "4,5-dihydro-1H-pyrazol-4-one",
+     "4-pyrazolone", "semi-systematic stem replaced by the systematic form"),
 
     # --- non-regression: delocalised aromatic anions the ring-carbanion
     # classifier must NOT steal. Cyclopentadienide keeps its hydrogen and
