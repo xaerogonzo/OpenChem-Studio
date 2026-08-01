@@ -1,0 +1,994 @@
+[
+ {
+  "label": "methanol",
+  "category": "simple_aliphatic",
+  "smiles": "CO",
+  "kekule_smiles": "CO",
+  "has_stereo": false,
+  "pubchem_name": "methanol"
+ },
+ {
+  "label": "ethanol",
+  "category": "simple_aliphatic",
+  "smiles": "CCO",
+  "kekule_smiles": "CCO",
+  "has_stereo": false,
+  "pubchem_name": "ethanol"
+ },
+ {
+  "label": "propan-2-ol",
+  "category": "simple_aliphatic",
+  "smiles": "CC(C)O",
+  "kekule_smiles": "CC(C)O",
+  "has_stereo": false,
+  "pubchem_name": "propan-2-ol"
+ },
+ {
+  "label": "acetic acid",
+  "category": "simple_aliphatic",
+  "smiles": "CC(=O)O",
+  "kekule_smiles": "CC(=O)O",
+  "has_stereo": false,
+  "pubchem_name": "acetic acid"
+ },
+ {
+  "label": "acetone",
+  "category": "simple_aliphatic",
+  "smiles": "CC(C)=O",
+  "kekule_smiles": "CC(C)=O",
+  "has_stereo": false,
+  "pubchem_name": "propan-2-one"
+ },
+ {
+  "label": "butanal",
+  "category": "simple_aliphatic",
+  "smiles": "CCCC=O",
+  "kekule_smiles": "CCCC=O",
+  "has_stereo": false,
+  "pubchem_name": "butanal"
+ },
+ {
+  "label": "diethyl ether",
+  "category": "simple_aliphatic",
+  "smiles": "CCOCC",
+  "kekule_smiles": "CCOCC",
+  "has_stereo": false,
+  "pubchem_name": "ethoxyethane"
+ },
+ {
+  "label": "butyl propanoate",
+  "category": "simple_aliphatic",
+  "smiles": "CCCCOC(=O)CC",
+  "kekule_smiles": "CCCCOC(=O)CC",
+  "has_stereo": false,
+  "pubchem_name": "butyl propanoate"
+ },
+ {
+  "label": "triethylamine",
+  "category": "simple_aliphatic",
+  "smiles": "CCN(CC)CC",
+  "kekule_smiles": "CCN(CC)CC",
+  "has_stereo": false,
+  "pubchem_name": "N,N-diethylethanamine"
+ },
+ {
+  "label": "acetonitrile",
+  "category": "simple_aliphatic",
+  "smiles": "CC#N",
+  "kekule_smiles": "CC#N",
+  "has_stereo": false,
+  "pubchem_name": "acetonitrile"
+ },
+ {
+  "label": "urea",
+  "category": "simple_aliphatic",
+  "smiles": "NC(N)=O",
+  "kekule_smiles": "NC(N)=O",
+  "has_stereo": false,
+  "pubchem_name": "urea"
+ },
+ {
+  "label": "glycerol",
+  "category": "simple_aliphatic",
+  "smiles": "OCC(O)CO",
+  "kekule_smiles": "OCC(O)CO",
+  "has_stereo": false,
+  "pubchem_name": "propane-1,2,3-triol"
+ },
+ {
+  "label": "benzene",
+  "category": "aromatic",
+  "smiles": "c1ccccc1",
+  "kekule_smiles": "C1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": "benzene"
+ },
+ {
+  "label": "toluene",
+  "category": "aromatic",
+  "smiles": "Cc1ccccc1",
+  "kekule_smiles": "CC1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": "toluene"
+ },
+ {
+  "label": "phenol",
+  "category": "aromatic",
+  "smiles": "Oc1ccccc1",
+  "kekule_smiles": "OC1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": "phenol"
+ },
+ {
+  "label": "aniline",
+  "category": "aromatic",
+  "smiles": "Nc1ccccc1",
+  "kekule_smiles": "NC1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": "aniline"
+ },
+ {
+  "label": "benzoic acid",
+  "category": "aromatic",
+  "smiles": "O=C(O)c1ccccc1",
+  "kekule_smiles": "O=C(O)C1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": "benzoic acid"
+ },
+ {
+  "label": "styrene",
+  "category": "aromatic",
+  "smiles": "C=Cc1ccccc1",
+  "kekule_smiles": "C=CC1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": "styrene"
+ },
+ {
+  "label": "nitrobenzene",
+  "category": "aromatic",
+  "smiles": "O=[N+]([O-])c1ccccc1",
+  "kekule_smiles": "O=[N+]([O-])C1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": "nitrobenzene"
+ },
+ {
+  "label": "p-xylene",
+  "category": "aromatic",
+  "smiles": "Cc1ccc(C)cc1",
+  "kekule_smiles": "CC1=CC=C(C)C=C1",
+  "has_stereo": false,
+  "pubchem_name": "1,4-xylene"
+ },
+ {
+  "label": "benzaldehyde",
+  "category": "aromatic",
+  "smiles": "O=Cc1ccccc1",
+  "kekule_smiles": "O=CC1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": "benzaldehyde"
+ },
+ {
+  "label": "mesitylene",
+  "category": "aromatic",
+  "smiles": "Cc1cc(C)cc(C)c1",
+  "kekule_smiles": "CC1=CC(C)=CC(C)=C1",
+  "has_stereo": false,
+  "pubchem_name": "1,3,5-trimethylbenzene"
+ },
+ {
+  "label": "pyridine",
+  "category": "heterocycle",
+  "smiles": "c1ccncc1",
+  "kekule_smiles": "C1=CC=NC=C1",
+  "has_stereo": false,
+  "pubchem_name": "pyridine"
+ },
+ {
+  "label": "pyrrole",
+  "category": "heterocycle",
+  "smiles": "c1cc[nH]c1",
+  "kekule_smiles": "C1=CNC=C1",
+  "has_stereo": false,
+  "pubchem_name": "1H-pyrrole"
+ },
+ {
+  "label": "furan",
+  "category": "heterocycle",
+  "smiles": "c1ccoc1",
+  "kekule_smiles": "C1=COC=C1",
+  "has_stereo": false,
+  "pubchem_name": "furan"
+ },
+ {
+  "label": "thiophene",
+  "category": "heterocycle",
+  "smiles": "c1ccsc1",
+  "kekule_smiles": "C1=CSC=C1",
+  "has_stereo": false,
+  "pubchem_name": "thiophene"
+ },
+ {
+  "label": "imidazole",
+  "category": "heterocycle",
+  "smiles": "c1c[nH]cn1",
+  "kekule_smiles": "C1=CNC=N1",
+  "has_stereo": false,
+  "pubchem_name": "1H-imidazole"
+ },
+ {
+  "label": "pyrimidine",
+  "category": "heterocycle",
+  "smiles": "c1cncnc1",
+  "kekule_smiles": "C1=CN=CN=C1",
+  "has_stereo": false,
+  "pubchem_name": "pyrimidine"
+ },
+ {
+  "label": "piperidine",
+  "category": "heterocycle",
+  "smiles": "C1CCNCC1",
+  "kekule_smiles": "C1CCNCC1",
+  "has_stereo": false,
+  "pubchem_name": "piperidine"
+ },
+ {
+  "label": "morpholine",
+  "category": "heterocycle",
+  "smiles": "C1COCCN1",
+  "kekule_smiles": "C1COCCN1",
+  "has_stereo": false,
+  "pubchem_name": "morpholine"
+ },
+ {
+  "label": "oxazole",
+  "category": "heterocycle",
+  "smiles": "c1cocn1",
+  "kekule_smiles": "C1=COC=N1",
+  "has_stereo": false,
+  "pubchem_name": "1,3-oxazole"
+ },
+ {
+  "label": "1,2,3-triazole",
+  "category": "heterocycle",
+  "smiles": "c1cn[nH]n1",
+  "kekule_smiles": "C1=NNN=C1",
+  "has_stereo": false,
+  "pubchem_name": "2H-triazole"
+ },
+ {
+  "label": "tetrahydrofuran",
+  "category": "heterocycle",
+  "smiles": "C1CCOC1",
+  "kekule_smiles": "C1CCOC1",
+  "has_stereo": false,
+  "pubchem_name": "oxolane"
+ },
+ {
+  "label": "piperazine",
+  "category": "heterocycle",
+  "smiles": "C1CNCCN1",
+  "kekule_smiles": "C1CNCCN1",
+  "has_stereo": false,
+  "pubchem_name": "piperazine"
+ },
+ {
+  "label": "naphthalene",
+  "category": "fused_polycyclic",
+  "smiles": "c1ccc2ccccc2c1",
+  "kekule_smiles": "C1=CC=C2C=CC=CC2=C1",
+  "has_stereo": false,
+  "pubchem_name": "naphthalene"
+ },
+ {
+  "label": "anthracene",
+  "category": "fused_polycyclic",
+  "smiles": "c1ccc2cc3ccccc3cc2c1",
+  "kekule_smiles": "C1=CC=C2C=C3C=CC=CC3=CC2=C1",
+  "has_stereo": false,
+  "pubchem_name": "anthracene"
+ },
+ {
+  "label": "quinoline",
+  "category": "fused_polycyclic",
+  "smiles": "c1ccc2ncccc2c1",
+  "kekule_smiles": "C1=CC=C2N=CC=CC2=C1",
+  "has_stereo": false,
+  "pubchem_name": "quinoline"
+ },
+ {
+  "label": "indole",
+  "category": "fused_polycyclic",
+  "smiles": "c1ccc2[nH]ccc2c1",
+  "kekule_smiles": "C1=CC=C2NC=CC2=C1",
+  "has_stereo": false,
+  "pubchem_name": "1H-indole"
+ },
+ {
+  "label": "purine",
+  "category": "fused_polycyclic",
+  "smiles": "c1ncc2nc[nH]c2n1",
+  "kekule_smiles": "C1=NC=NC2=C1N=CN2",
+  "has_stereo": false,
+  "pubchem_name": "7H-purine"
+ },
+ {
+  "label": "carbazole",
+  "category": "fused_polycyclic",
+  "smiles": "c1ccc2c(c1)[nH]c1ccccc12",
+  "kekule_smiles": "C1=CC=C2C(=C1)NC1=CC=CC=C12",
+  "has_stereo": false,
+  "pubchem_name": "9H-carbazole"
+ },
+ {
+  "label": "phenanthrene",
+  "category": "fused_polycyclic",
+  "smiles": "c1ccc2c(c1)ccc1ccccc12",
+  "kekule_smiles": "C1=CC=C2C(=C1)C=CC1=CC=CC=C12",
+  "has_stereo": false,
+  "pubchem_name": "phenanthrene"
+ },
+ {
+  "label": "benzofuran",
+  "category": "fused_polycyclic",
+  "smiles": "c1ccc2occc2c1",
+  "kekule_smiles": "C1=CC=C2OC=CC2=C1",
+  "has_stereo": false,
+  "pubchem_name": "1-benzofuran"
+ },
+ {
+  "label": "acridine",
+  "category": "fused_polycyclic",
+  "smiles": "c1ccc2nc3ccccc3cc2c1",
+  "kekule_smiles": "C1=CC=C2N=C3C=CC=CC3=CC2=C1",
+  "has_stereo": false,
+  "pubchem_name": "acridine"
+ },
+ {
+  "label": "indazole",
+  "category": "fused_polycyclic",
+  "smiles": "c1ccc2[nH]ncc2c1",
+  "kekule_smiles": "C1=CC=C2NN=CC2=C1",
+  "has_stereo": false,
+  "pubchem_name": "1H-indazole"
+ },
+ {
+  "label": "norbornane",
+  "category": "bridged_bicyclic",
+  "smiles": "C1CC2CCC1C2",
+  "kekule_smiles": "C1CC2CCC1C2",
+  "has_stereo": false,
+  "pubchem_name": "bicyclo[2.2.1]heptane"
+ },
+ {
+  "label": "bicyclo[2.2.2]octane",
+  "category": "bridged_bicyclic",
+  "smiles": "C1CC2CCC1CC2",
+  "kekule_smiles": "C1CC2CCC1CC2",
+  "has_stereo": false,
+  "pubchem_name": "bicyclo[2.2.2]octane"
+ },
+ {
+  "label": "adamantane",
+  "category": "bridged_bicyclic",
+  "smiles": "C1C2CC3CC1CC(C2)C3",
+  "kekule_smiles": "C1C2CC3CC1CC(C2)C3",
+  "has_stereo": false,
+  "pubchem_name": "adamantane"
+ },
+ {
+  "label": "camphor (flat)",
+  "category": "bridged_bicyclic",
+  "smiles": "CC12CCC(CC1=O)C2(C)C",
+  "kekule_smiles": "CC12CCC(CC1=O)C2(C)C",
+  "has_stereo": false,
+  "pubchem_name": "1,7,7-trimethylbicyclo[2.2.1]heptan-2-one"
+ },
+ {
+  "label": "quinuclidine",
+  "category": "bridged_bicyclic",
+  "smiles": "C1CN2CCC1CC2",
+  "kekule_smiles": "C1CN2CCC1CC2",
+  "has_stereo": false,
+  "pubchem_name": "1-azabicyclo[2.2.2]octane"
+ },
+ {
+  "label": "cubane",
+  "category": "bridged_bicyclic",
+  "smiles": "C12C3C4C1C1C2C3C41",
+  "kekule_smiles": "C12C3C4C1C1C2C3C41",
+  "has_stereo": false,
+  "pubchem_name": "cubane"
+ },
+ {
+  "label": "acetate",
+  "category": "charged_zwitterion",
+  "smiles": "CC(=O)[O-]",
+  "kekule_smiles": "CC(=O)[O-]",
+  "has_stereo": false,
+  "pubchem_name": "acetate"
+ },
+ {
+  "label": "ammonium",
+  "category": "charged_zwitterion",
+  "smiles": "[NH4+]",
+  "kekule_smiles": "[NH4+]",
+  "has_stereo": false,
+  "pubchem_name": "azanium"
+ },
+ {
+  "label": "tetramethylammonium",
+  "category": "charged_zwitterion",
+  "smiles": "C[N+](C)(C)C",
+  "kekule_smiles": "C[N+](C)(C)C",
+  "has_stereo": false,
+  "pubchem_name": "tetramethylazanium"
+ },
+ {
+  "label": "glycine zwitterion",
+  "category": "charged_zwitterion",
+  "smiles": "[NH3+]CC(=O)[O-]",
+  "kekule_smiles": "[NH3+]CC(=O)[O-]",
+  "has_stereo": false,
+  "pubchem_name": "2-azaniumylacetate"
+ },
+ {
+  "label": "betaine",
+  "category": "charged_zwitterion",
+  "smiles": "C[N+](C)(C)CC(=O)[O-]",
+  "kekule_smiles": "C[N+](C)(C)CC(=O)[O-]",
+  "has_stereo": false,
+  "pubchem_name": "2-(trimethylazaniumyl)acetate"
+ },
+ {
+  "label": "methanesulfonate",
+  "category": "charged_zwitterion",
+  "smiles": "CS(=O)(=O)[O-]",
+  "kekule_smiles": "CS(=O)(=O)[O-]",
+  "has_stereo": false,
+  "pubchem_name": "methanesulfonate"
+ },
+ {
+  "label": "pyridinium",
+  "category": "charged_zwitterion",
+  "smiles": "c1cc[nH+]cc1",
+  "kekule_smiles": "C1=CC=[NH+]C=C1",
+  "has_stereo": false,
+  "pubchem_name": "pyridin-1-ium"
+ },
+ {
+  "label": "diazomethane",
+  "category": "charged_zwitterion",
+  "smiles": "[CH2-][N+]#N",
+  "kekule_smiles": "[CH2-][N+]#N",
+  "has_stereo": false,
+  "pubchem_name": "diazomethane"
+ },
+ {
+  "label": "deuterated methanol",
+  "category": "isotopic",
+  "smiles": "[2H]CO",
+  "kekule_smiles": "[2H]CO",
+  "has_stereo": false,
+  "pubchem_name": "deuteriomethanol"
+ },
+ {
+  "label": "deuterated water",
+  "category": "isotopic",
+  "smiles": "[2H]O[2H]",
+  "kekule_smiles": "[2H]O[2H]",
+  "has_stereo": false,
+  "pubchem_name": "deuterated water"
+ },
+ {
+  "label": "N-15 ammonia",
+  "category": "isotopic",
+  "smiles": "[15NH3]",
+  "kekule_smiles": "[15NH3]",
+  "has_stereo": false,
+  "pubchem_name": "azane"
+ },
+ {
+  "label": "carbon-13 methane",
+  "category": "isotopic",
+  "smiles": "[13CH4]",
+  "kekule_smiles": "[13CH4]",
+  "has_stereo": false,
+  "pubchem_name": "carbane"
+ },
+ {
+  "label": "(R)-naproxen",
+  "category": "stereochemistry",
+  "smiles": "COc1ccc2cc([C@@H](C)C(=O)O)ccc2c1",
+  "kekule_smiles": "COC1=CC=C2C=C([C@@H](C)C(=O)O)C=CC2=C1",
+  "has_stereo": true,
+  "pubchem_name": "(2R)-2-(6-methoxynaphthalen-2-yl)propanoic acid"
+ },
+ {
+  "label": "(S)-naproxen",
+  "category": "stereochemistry",
+  "smiles": "COc1ccc2cc([C@H](C)C(=O)O)ccc2c1",
+  "kekule_smiles": "COC1=CC=C2C=C([C@H](C)C(=O)O)C=CC2=C1",
+  "has_stereo": true,
+  "pubchem_name": "(2S)-2-(6-methoxynaphthalen-2-yl)propanoic acid"
+ },
+ {
+  "label": "(R)-ibuprofen",
+  "category": "stereochemistry",
+  "smiles": "CC(C)Cc1ccc([C@@H](C)C(=O)O)cc1",
+  "kekule_smiles": "CC(C)CC1=CC=C([C@@H](C)C(=O)O)C=C1",
+  "has_stereo": true,
+  "pubchem_name": "(2R)-2-[4-(2-methylpropyl)phenyl]propanoic acid"
+ },
+ {
+  "label": "(R)-alanine",
+  "category": "stereochemistry",
+  "smiles": "C[C@@H](N)C(=O)O",
+  "kekule_smiles": "C[C@@H](N)C(=O)O",
+  "has_stereo": true,
+  "pubchem_name": "(2R)-2-aminopropanoic acid"
+ },
+ {
+  "label": "(S)-alanine",
+  "category": "stereochemistry",
+  "smiles": "C[C@H](N)C(=O)O",
+  "kekule_smiles": "C[C@H](N)C(=O)O",
+  "has_stereo": true,
+  "pubchem_name": "(2S)-2-aminopropanoic acid"
+ },
+ {
+  "label": "(E)-but-2-ene",
+  "category": "stereochemistry",
+  "smiles": "C/C=C/C",
+  "kekule_smiles": "C/C=C/C",
+  "has_stereo": true,
+  "pubchem_name": null
+ },
+ {
+  "label": "(Z)-but-2-ene",
+  "category": "stereochemistry",
+  "smiles": "C/C=C\\C",
+  "kekule_smiles": "C/C=C\\C",
+  "has_stereo": true,
+  "pubchem_name": null
+ },
+ {
+  "label": "(S)-nicotine",
+  "category": "stereochemistry",
+  "smiles": "CN1CCC[C@H]1c1cccnc1",
+  "kekule_smiles": "CN1CCC[C@H]1C1=CC=CN=C1",
+  "has_stereo": true,
+  "pubchem_name": "3-[(2S)-1-methylpyrrolidin-2-yl]pyridine"
+ },
+ {
+  "label": "(S)-lactic acid",
+  "category": "stereochemistry",
+  "smiles": "C[C@H](O)C(=O)O",
+  "kekule_smiles": "C[C@H](O)C(=O)O",
+  "has_stereo": true,
+  "pubchem_name": "(2S)-2-hydroxypropanoic acid"
+ },
+ {
+  "label": "(S,R)-ephedrine",
+  "category": "stereochemistry",
+  "smiles": "CN[C@@H](C)[C@H](O)c1ccccc1",
+  "kekule_smiles": "CN[C@@H](C)[C@H](O)C1=CC=CC=C1",
+  "has_stereo": true,
+  "pubchem_name": "(1R,2S)-2-(methylamino)-1-phenylpropan-1-ol"
+ },
+ {
+  "label": "(S,S)-tartaric acid",
+  "category": "stereochemistry",
+  "smiles": "O=C(O)[C@@H](O)[C@H](O)C(=O)O",
+  "kekule_smiles": "O=C(O)[C@@H](O)[C@H](O)C(=O)O",
+  "has_stereo": true,
+  "pubchem_name": "(2S,3S)-2,3-dihydroxybutanedioic acid"
+ },
+ {
+  "label": "trans-decalin",
+  "category": "stereochemistry",
+  "smiles": "C1CC[C@H]2CCCC[C@@H]2C1",
+  "kekule_smiles": "C1CC[C@H]2CCCC[C@@H]2C1",
+  "has_stereo": false,
+  "pubchem_name": "1,2,3,4,4a,5,6,7,8,8a-decahydronaphthalene"
+ },
+ {
+  "label": "tetramethylsilane",
+  "category": "organosilicon",
+  "smiles": "C[Si](C)(C)C",
+  "kekule_smiles": "C[Si](C)(C)C",
+  "has_stereo": false,
+  "pubchem_name": "tetramethylsilane"
+ },
+ {
+  "label": "trimethylsilanol",
+  "category": "organosilicon",
+  "smiles": "C[Si](C)(C)O",
+  "kekule_smiles": "C[Si](C)(C)O",
+  "has_stereo": false,
+  "pubchem_name": "hydroxy(trimethyl)silane"
+ },
+ {
+  "label": "phenyltrimethylsilane",
+  "category": "organosilicon",
+  "smiles": "C[Si](C)(C)c1ccccc1",
+  "kekule_smiles": "C[Si](C)(C)C1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": "trimethyl(phenyl)silane"
+ },
+ {
+  "label": "hexamethyldisiloxane",
+  "category": "organosilicon",
+  "smiles": "C[Si](C)(C)O[Si](C)(C)C",
+  "kekule_smiles": "C[Si](C)(C)O[Si](C)(C)C",
+  "has_stereo": false,
+  "pubchem_name": "trimethyl(trimethylsilyloxy)silane"
+ },
+ {
+  "label": "triethoxysilane",
+  "category": "organosilicon",
+  "smiles": "CCO[SiH](OCC)OCC",
+  "kekule_smiles": "CCO[SiH](OCC)OCC",
+  "has_stereo": false,
+  "pubchem_name": "triethoxysilane"
+ },
+ {
+  "label": "boric acid",
+  "category": "organoboron",
+  "smiles": "OB(O)O",
+  "kekule_smiles": "OB(O)O",
+  "has_stereo": false,
+  "pubchem_name": "boric acid"
+ },
+ {
+  "label": "phenylboronic acid",
+  "category": "organoboron",
+  "smiles": "OB(O)c1ccccc1",
+  "kekule_smiles": "OB(O)C1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": "phenylboronic acid"
+ },
+ {
+  "label": "trimethylborane",
+  "category": "organoboron",
+  "smiles": "CB(C)C",
+  "kekule_smiles": "CB(C)C",
+  "has_stereo": false,
+  "pubchem_name": "trimethylborane"
+ },
+ {
+  "label": "pinacol phenylboronate",
+  "category": "organoboron",
+  "smiles": "CC1(C)OB(c2ccccc2)OC1(C)C",
+  "kekule_smiles": "CC1(C)OB(C2=CC=CC=C2)OC1(C)C",
+  "has_stereo": false,
+  "pubchem_name": "4,4,5,5-tetramethyl-2-phenyl-1,3,2-dioxaborolane"
+ },
+ {
+  "label": "borohydride anion",
+  "category": "organoboron",
+  "smiles": "[BH4-]",
+  "kekule_smiles": "[BH4-]",
+  "has_stereo": false,
+  "pubchem_name": "boranuide"
+ },
+ {
+  "label": "dimethyl sulfoxide",
+  "category": "sulfur_rich",
+  "smiles": "CS(C)=O",
+  "kekule_smiles": "CS(C)=O",
+  "has_stereo": false,
+  "pubchem_name": "methylsulfinylmethane"
+ },
+ {
+  "label": "dimethyl sulfone",
+  "category": "sulfur_rich",
+  "smiles": "CS(C)(=O)=O",
+  "kekule_smiles": "CS(C)(=O)=O",
+  "has_stereo": false,
+  "pubchem_name": "methylsulfonylmethane"
+ },
+ {
+  "label": "thiophenol",
+  "category": "sulfur_rich",
+  "smiles": "Sc1ccccc1",
+  "kekule_smiles": "SC1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": "benzenethiol"
+ },
+ {
+  "label": "methanethiol",
+  "category": "sulfur_rich",
+  "smiles": "CS",
+  "kekule_smiles": "CS",
+  "has_stereo": false,
+  "pubchem_name": "methanethiol"
+ },
+ {
+  "label": "benzenesulfonamide",
+  "category": "sulfur_rich",
+  "smiles": "NS(=O)(=O)c1ccccc1",
+  "kekule_smiles": "NS(=O)(=O)C1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": "benzenesulfonamide"
+ },
+ {
+  "label": "carbon disulfide",
+  "category": "sulfur_rich",
+  "smiles": "S=C=S",
+  "kekule_smiles": "S=C=S",
+  "has_stereo": false,
+  "pubchem_name": "methanedithione"
+ },
+ {
+  "label": "thiourea",
+  "category": "sulfur_rich",
+  "smiles": "NC(N)=S",
+  "kekule_smiles": "NC(N)=S",
+  "has_stereo": false,
+  "pubchem_name": "thiourea"
+ },
+ {
+  "label": "dimethyl disulfide",
+  "category": "sulfur_rich",
+  "smiles": "CSSC",
+  "kekule_smiles": "CSSC",
+  "has_stereo": false,
+  "pubchem_name": "(methyldisulfanyl)methane"
+ },
+ {
+  "label": "sulfanilamide",
+  "category": "sulfur_rich",
+  "smiles": "Nc1ccc(S(N)(=O)=O)cc1",
+  "kekule_smiles": "NC1=CC=C(S(N)(=O)=O)C=C1",
+  "has_stereo": false,
+  "pubchem_name": "4-aminobenzenesulfonamide"
+ },
+ {
+  "label": "trimethyl phosphate",
+  "category": "phosphorus",
+  "smiles": "COP(=O)(OC)OC",
+  "kekule_smiles": "COP(=O)(OC)OC",
+  "has_stereo": false,
+  "pubchem_name": "trimethyl phosphate"
+ },
+ {
+  "label": "triphenylphosphine",
+  "category": "phosphorus",
+  "smiles": "c1ccc(P(c2ccccc2)c2ccccc2)cc1",
+  "kekule_smiles": "C1=CC=C(P(C2=CC=CC=C2)C2=CC=CC=C2)C=C1",
+  "has_stereo": false,
+  "pubchem_name": "triphenylphosphane"
+ },
+ {
+  "label": "phosphoric acid",
+  "category": "phosphorus",
+  "smiles": "O=P(O)(O)O",
+  "kekule_smiles": "O=P(O)(O)O",
+  "has_stereo": false,
+  "pubchem_name": "phosphoric acid"
+ },
+ {
+  "label": "trimethylphosphine",
+  "category": "phosphorus",
+  "smiles": "CP(C)C",
+  "kekule_smiles": "CP(C)C",
+  "has_stereo": false,
+  "pubchem_name": "trimethylphosphane"
+ },
+ {
+  "label": "dimethyl methylphosphonate",
+  "category": "phosphorus",
+  "smiles": "COP(C)(=O)OC",
+  "kekule_smiles": "COP(C)(=O)OC",
+  "has_stereo": false,
+  "pubchem_name": "[methoxy(methyl)phosphoryl]oxymethane"
+ },
+ {
+  "label": "triphenylphosphine oxide",
+  "category": "phosphorus",
+  "smiles": "O=P(c1ccccc1)(c1ccccc1)c1ccccc1",
+  "kekule_smiles": "O=P(C1=CC=CC=C1)(C1=CC=CC=C1)C1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": "diphenylphosphorylbenzene"
+ },
+ {
+  "label": "chloroform",
+  "category": "halogenated",
+  "smiles": "ClC(Cl)Cl",
+  "kekule_smiles": "ClC(Cl)Cl",
+  "has_stereo": false,
+  "pubchem_name": "chloroform"
+ },
+ {
+  "label": "carbon tetrachloride",
+  "category": "halogenated",
+  "smiles": "ClC(Cl)(Cl)Cl",
+  "kekule_smiles": "ClC(Cl)(Cl)Cl",
+  "has_stereo": false,
+  "pubchem_name": "tetrachloromethane"
+ },
+ {
+  "label": "chlorobenzene",
+  "category": "halogenated",
+  "smiles": "Clc1ccccc1",
+  "kekule_smiles": "ClC1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": "chlorobenzene"
+ },
+ {
+  "label": "trifluoromethylbenzene",
+  "category": "halogenated",
+  "smiles": "FC(F)(F)c1ccccc1",
+  "kekule_smiles": "FC(F)(F)C1=CC=CC=C1",
+  "has_stereo": false,
+  "pubchem_name": "trifluoromethylbenzene"
+ },
+ {
+  "label": "iodomethane",
+  "category": "halogenated",
+  "smiles": "CI",
+  "kekule_smiles": "CI",
+  "has_stereo": false,
+  "pubchem_name": "iodomethane"
+ },
+ {
+  "label": "1,2-dibromoethane",
+  "category": "halogenated",
+  "smiles": "BrCCBr",
+  "kekule_smiles": "BrCCBr",
+  "has_stereo": false,
+  "pubchem_name": "1,2-dibromoethane"
+ },
+ {
+  "label": "aspirin",
+  "category": "medicinal_scaffold",
+  "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+  "kekule_smiles": "CC(=O)OC1=CC=CC=C1C(=O)O",
+  "has_stereo": false,
+  "pubchem_name": "2-acetyloxybenzoic acid"
+ },
+ {
+  "label": "paracetamol",
+  "category": "medicinal_scaffold",
+  "smiles": "CC(=O)Nc1ccc(O)cc1",
+  "kekule_smiles": "CC(=O)NC1=CC=C(O)C=C1",
+  "has_stereo": false,
+  "pubchem_name": "N-(4-hydroxyphenyl)acetamide"
+ },
+ {
+  "label": "caffeine",
+  "category": "medicinal_scaffold",
+  "smiles": "Cn1c(=O)c2c(ncn2C)n(C)c1=O",
+  "kekule_smiles": "CN1C=NC2=C1C(=O)N(C)C(=O)N2C",
+  "has_stereo": false,
+  "pubchem_name": "1,3,7-trimethylpurine-2,6-dione"
+ },
+ {
+  "label": "ibuprofen (flat)",
+  "category": "medicinal_scaffold",
+  "smiles": "CC(C)Cc1ccc(C(C)C(=O)O)cc1",
+  "kekule_smiles": "CC(C)CC1=CC=C(C(C)C(=O)O)C=C1",
+  "has_stereo": false,
+  "pubchem_name": "2-[4-(2-methylpropyl)phenyl]propanoic acid"
+ },
+ {
+  "label": "diazepam",
+  "category": "medicinal_scaffold",
+  "smiles": "CN1C(=O)CN=C(c2ccccc2)c2cc(Cl)ccc21",
+  "kekule_smiles": "CN1C(=O)CN=C(C2=CC=CC=C2)C2=CC(Cl)=CC=C21",
+  "has_stereo": false,
+  "pubchem_name": "7-chloro-1-methyl-5-phenyl-3H-1,4-benzodiazepin-2-one"
+ },
+ {
+  "label": "nicotine (flat)",
+  "category": "medicinal_scaffold",
+  "smiles": "CN1CCCC1c1cccnc1",
+  "kekule_smiles": "CN1CCCC1C1=CC=CN=C1",
+  "has_stereo": false,
+  "pubchem_name": "3-(1-methylpyrrolidin-2-yl)pyridine"
+ },
+ {
+  "label": "salicylic acid",
+  "category": "medicinal_scaffold",
+  "smiles": "O=C(O)c1ccccc1O",
+  "kekule_smiles": "O=C(O)C1=CC=CC=C1O",
+  "has_stereo": false,
+  "pubchem_name": "2-hydroxybenzoic acid"
+ },
+ {
+  "label": "metformin",
+  "category": "medicinal_scaffold",
+  "smiles": "CN(C)C(=N)N=C(N)N",
+  "kekule_smiles": "CN(C)C(=N)N=C(N)N",
+  "has_stereo": false,
+  "pubchem_name": "2-carbamimidoyl-1,1-dimethylguanidine"
+ },
+ {
+  "label": "phenobarbital",
+  "category": "medicinal_scaffold",
+  "smiles": "CCC1(c2ccccc2)C(=O)NC(=O)NC1=O",
+  "kekule_smiles": "CCC1(C2=CC=CC=C2)C(=O)NC(=O)NC1=O",
+  "has_stereo": false,
+  "pubchem_name": "5-ethyl-5-phenyl-1,3-diazinane-2,4,6-trione"
+ },
+ {
+  "label": "sulfamethoxazole",
+  "category": "medicinal_scaffold",
+  "smiles": "Cc1cc(NS(=O)(=O)c2ccc(N)cc2)no1",
+  "kekule_smiles": "CC1=CC(NS(=O)(=O)C2=CC=C(N)C=C2)=NO1",
+  "has_stereo": false,
+  "pubchem_name": "4-amino-N-(5-methyl-1,2-oxazol-3-yl)benzenesulfonamide"
+ },
+ {
+  "label": "warfarin (flat)",
+  "category": "medicinal_scaffold",
+  "smiles": "CC(=O)CC(c1ccccc1)c1c(O)c2ccccc2oc1=O",
+  "kekule_smiles": "CC(=O)CC(C1=CC=CC=C1)C1=C(O)C2=CC=CC=C2OC1=O",
+  "has_stereo": false,
+  "pubchem_name": "4-hydroxy-3-(3-oxo-1-phenylbutyl)chromen-2-one"
+ },
+ {
+  "label": "chloroquine (flat)",
+  "category": "medicinal_scaffold",
+  "smiles": "CCN(CC)CCCC(C)Nc1ccnc2cc(Cl)ccc12",
+  "kekule_smiles": "CCN(CC)CCCC(C)NC1=CC=NC2=CC(Cl)=CC=C21",
+  "has_stereo": false,
+  "pubchem_name": "4-N-(7-chloroquinolin-4-yl)-1-N,1-N-diethylpentane-1,4-diamine"
+ },
+ {
+  "label": "indomethacin",
+  "category": "medicinal_scaffold",
+  "smiles": "COc1ccc2c(c1)c(CC(=O)O)c(C)n2C(=O)c1ccc(Cl)cc1",
+  "kekule_smiles": "COC1=CC=C2C(=C1)C(CC(=O)O)=C(C)N2C(=O)C1=CC=C(Cl)C=C1",
+  "has_stereo": false,
+  "pubchem_name": "2-[1-(4-chlorobenzoyl)-5-methoxy-2-methylindol-3-yl]acetic acid"
+ },
+ {
+  "label": "atenolol",
+  "category": "medicinal_scaffold",
+  "smiles": "CC(C)NCC(O)COc1ccc(CC(N)=O)cc1",
+  "kekule_smiles": "CC(C)NCC(O)COC1=CC=C(CC(N)=O)C=C1",
+  "has_stereo": false,
+  "pubchem_name": "2-[4-[2-hydroxy-3-(propan-2-ylamino)propoxy]phenyl]acetamide"
+ },
+ {
+  "label": "omeprazole (flat)",
+  "category": "medicinal_scaffold",
+  "smiles": "COc1ccc2[nH]c(S(=O)Cc3ncc(C)c(OC)c3C)nc2c1",
+  "kekule_smiles": "COC1=CC=C2NC(S(=O)CC3=NC=C(C)C(OC)=C3C)=NC2=C1",
+  "has_stereo": false,
+  "pubchem_name": "6-methoxy-2-[(4-methoxy-3,5-dimethyl-2-pyridinyl)methylsulfinyl]-1H-benzimidazole"
+ },
+ {
+  "label": "novel pyrazolone",
+  "category": "novel_unregistered",
+  "smiles": "CC1=NN(c2ccc(Br)cc2)C(=O)C1CCNC(=O)c1cccc(OC(F)(F)F)c1",
+  "kekule_smiles": "CC1=NN(C2=CC=C(Br)C=C2)C(=O)C1CCNC(=O)C1=CC=CC(OC(F)(F)F)=C1",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "novel triazole sulfonamide",
+  "category": "novel_unregistered",
+  "smiles": "O=C(NCCn1cc(-c2ccc(C(F)(F)F)cc2)nn1)C1CCN(S(=O)(=O)c2ccccc2)CC1",
+  "kekule_smiles": "O=C(NCCN1C=C(C2=CC=C(C(F)(F)F)C=C2)N=N1)C1CCN(S(=O)(=O)C2=CC=CC=C2)CC1",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "novel spiro amide",
+  "category": "novel_unregistered",
+  "smiles": "O=C(NC1CCC2(CC1)OCCO2)c1ccc(N2CCOCC2)nc1",
+  "kekule_smiles": "O=C(NC1CCC2(CC1)OCCO2)C1=CC=C(N2CCOCC2)N=C1",
+  "has_stereo": false,
+  "pubchem_name": null
+ },
+ {
+  "label": "novel biaryl urea",
+  "category": "novel_unregistered",
+  "smiles": "O=C(Nc1ccc(-c2ccncc2)cc1)Nc1cccc(C(F)(F)F)c1",
+  "kekule_smiles": "O=C(NC1=CC=C(C2=CC=NC=C2)C=C1)NC1=CC=CC(C(F)(F)F)=C1",
+  "has_stereo": false,
+  "pubchem_name": null
+ }
+]
