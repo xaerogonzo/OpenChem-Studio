@@ -12,6 +12,12 @@ dependencies = [
     "dimorphite-dl>=2.0.2",
     "keyring>=25.7.0",
     "platformdirs>=4.11.0",
+    # Name-to-structure. Bundles OPSIN's jar (13 MB) and shells out to a
+    # JRE, so it is only useful with Java present -- which the app can now
+    # install itself (services/java_setup.py). It stays import-guarded in
+    # chem/naming_providers.py regardless, because the JRE is the real
+    # requirement and declaring the package cannot guarantee one.
+    "py2opsin>=1.2.0",
     "pyside6>=6.7",
     "pyside6-addons>=6.7",
     "rdkit>=2024.3.1",

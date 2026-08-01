@@ -22,6 +22,7 @@ import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Callable
 
@@ -167,10 +168,76 @@ _JAVA_MISSING = (
     "JAVA_HOME is set, then try again."
 )
 
+# The address STOUT 2.0.5 has compiled into it (`STOUT/stout.py`, module
+# level). It is fetched by pystow on the first prediction -- which is why
+# a broken one is not discovered until after TensorFlow has been
+# installed.
+MODEL_WEIGHTS_URL = "https://storage.googleapis.com/decimer_weights/models.zip"
+
+_WEIGHTS_GONE = (
+    "STOUT's trained model weights are no longer published. The address built into "
+    f"{STOUT_PACKAGE} 2.0.5 ({MODEL_WEIGHTS_URL}) returns HTTP 404, and so does the "
+    "storage bucket containing it, so there is nothing to download and no version of "
+    "STOUT on PyPI points anywhere else. This is upstream's outage, not a problem with "
+    "this machine or this app, and it cannot be worked around from here.\n\n"
+    "Structure-to-name still works through PubChem, which returns EXACT names for "
+    "compounds it has a record of -- most known drugs and reagents, though not novel "
+    "structures. Name-to-structure through OPSIN is unaffected."
+)
+
+
+#: Short on purpose. This runs when the External Tools dialog opens, on
+#: the GUI thread, so it is a responsiveness budget rather than a
+#: generous allowance -- a slow answer is worth less here than a fast
+#: "don't know", which degrades to the Java check below.
+_WEIGHTS_PROBE_TIMEOUT = 6
+
+
+@lru_cache(maxsize=1)
+def weights_available() -> bool | None:
+    """Whether STOUT's model weights can still be downloaded.
+
+    True/False when the answer is definite, None when the question could
+    not be asked -- an offline machine must not be told a third party has
+    shut down. That distinction is the whole reason this returns three
+    values rather than a bool.
+
+    WHY THIS IS CHECKED AT ALL. STOUT fetches its weights lazily, on the
+    first prediction, so a dead URL surfaces only at the verification
+    step -- after ~600 MB of TensorFlow and several minutes, as a pystow
+    stack trace. Same reasoning as `find_java` above: ask the cheap
+    question first.
+
+    CACHED for the life of the process: this is called when the External
+    Tools dialog is built, and an uncached network round trip there would
+    put a stall on the GUI thread every time the tab is rebuilt. Upstream
+    restoring the weights mid-session is not worth paying for on every
+    open; a restart picks it up.
+    """
+    from urllib.error import HTTPError
+
+    from openchem.net import open_url
+
+    try:
+        with open_url(MODEL_WEIGHTS_URL, timeout=_WEIGHTS_PROBE_TIMEOUT) as response:
+            return 200 <= response.status < 300
+    except HTTPError as exc:
+        # A definite answer from a reachable server. Only 4xx means gone --
+        # a 5xx is upstream having a bad day, which is not the same claim.
+        return not (400 <= exc.code < 500)
+    except OSError:
+        # No network, DNS failure, timeout -- unknown, not "gone".
+        return None
+
 
 def describe_prerequisites() -> str:
+    if weights_available() is False:
+        # Reported FIRST: it is the one thing here that no amount of
+        # local setup can fix, so offering to provision Python beneath it
+        # would be misleading.
+        return f"Cannot set up: {_WEIGHTS_GONE}"
     if not find_java():
-        # Reported FIRST and on its own: no amount of Python provisioning
+        # Reported next and on its own: no amount of Python provisioning
         # helps if the JVM is missing, and it is the cheaper thing to fix.
         return f"Cannot set up: {_JAVA_MISSING}"
     if find_uv():
@@ -202,9 +269,15 @@ def _run(command: list[str], step: str, timeout: int = 3600) -> None:
 def install(root: Path | None = None, on_progress: ProgressCallback | None = None) -> Path:
     """Builds the environment and returns the interpreter path to store in
     Settings. Safe to re-run: every step overwrites or is idempotent."""
-    # Checked BEFORE anything is created or downloaded. Failing here costs
-    # a second; failing at _verify costs ~600 MB and several minutes for
-    # the same unusable result.
+    # Both checked BEFORE anything is created or downloaded. Failing here
+    # costs a second; failing at _verify costs ~600 MB and several minutes
+    # for the same unusable result.
+    #
+    # Weights first: a missing JVM is fixable, missing weights are not, so
+    # sending someone off to install Java for a tool that cannot work
+    # would waste their time twice.
+    if weights_available() is False:
+        raise StoutSetupError(_WEIGHTS_GONE)
     if not find_java():
         raise StoutSetupError(_JAVA_MISSING)
 

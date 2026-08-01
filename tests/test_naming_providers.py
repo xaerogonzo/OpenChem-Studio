@@ -9,12 +9,14 @@ that return HTTP 200 and look like success.
 from __future__ import annotations
 
 import json
+import os
 import urllib.error
 from unittest.mock import patch
 
 import pytest
 from rdkit import Chem
 
+from openchem.chem import naming_providers
 from openchem.chem.naming_providers import (
     EXACT,
     PARSED,
@@ -255,3 +257,53 @@ def test_naming_result_lines_stay_ascii():
 
     for line in result.matched:
         line.encode("cp1252")
+
+
+# --- The path that still works now STOUT is gone --------------------------
+
+
+@pytest.mark.skipif(
+    not naming_providers.opsin_available(),
+    reason="needs py2opsin and a JRE",
+)
+def test_pubchem_name_round_trips_back_through_opsin():
+    """With STOUT's weights withdrawn upstream, this IS the naming
+    feature: PubChem gives an exact name for a known compound, and OPSIN
+    parses it back to prove the name really denotes that structure.
+
+    Hits the network, hence the marker -- but it is the only assertion
+    that covers the two providers actually agreeing, which is the whole
+    claim being made to the user.
+    """
+    aspirin = Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O")
+
+    name = naming_providers.pubchem_name_for_structure(aspirin)
+    assert name.kind == naming_providers.EXACT
+
+    parsed = naming_providers.opsin_structure_for_name(name.name)
+    assert parsed.kind == naming_providers.PARSED
+    assert Chem.MolToSmiles(Chem.MolFromSmiles(parsed.smiles)) == Chem.MolToSmiles(aspirin)
+
+
+@pytest.mark.skipif(
+    not naming_providers.opsin_available(),
+    reason="needs py2opsin and a JRE",
+)
+def test_opsin_runs_without_emitting_a_bogus_java_warning(recwarn):
+    """py2opsin probes `java -version` at IMPORT and warns when it fails.
+    A runtime this app installed is on neither PATH nor JAVA_HOME, so the
+    warning fired even though every call worked -- alarming and untrue.
+    """
+    naming_providers.opsin_structure_for_name("benzene")
+
+    java_warnings = [w for w in recwarn if "Java may not be installed" in str(w.message)]
+    assert java_warnings == []
+
+
+def test_path_is_restored_after_opsin_runs():
+    """The Java injection is scoped to the call. Leaking it would change
+    which `java` every OTHER subprocess in the app resolves."""
+    before = os.environ.get("PATH", "")
+    with naming_providers._java_on_path():
+        pass
+    assert os.environ.get("PATH", "") == before

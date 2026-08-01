@@ -36,6 +36,7 @@ import os
 import shutil
 import urllib.error
 import urllib.parse
+from contextlib import contextmanager
 from dataclasses import dataclass
 
 from rdkit import Chem
@@ -141,28 +142,50 @@ def pubchem_structure_for_name(name: str) -> StructureResult:
     return StructureResult(smiles=smiles, source="PubChem", kind=EXACT, note=PUBCHEM_PRIVACY_NOTE)
 
 
+@contextmanager
+def _java_on_path():
+    """Puts a managed Java runtime on PATH for the duration of the block.
+
+    py2opsin shells out to a bare `java` and finds it on PATH, so a
+    runtime this app installed into its own data directory -- on neither
+    PATH nor JAVA_HOME -- is invisible to it. Scoped to the block rather
+    than exported, and restored afterwards, so nothing else in the
+    process sees a mutated PATH.
+
+    This has to wrap the IMPORT as well as the call: py2opsin runs
+    `java -version` at module scope and warns "Java may not be
+    installed/accessible" when it fails. That warning is wrong here (the
+    calls work, because they were already wrapped) but it reaches the
+    console, and a scary-but-false warning is worth the two lines it
+    costs to not emit.
+    """
+    from openchem.services.java_setup import java_home
+
+    home = java_home()
+    original = os.environ.get("PATH", "")
+    if home is not None:
+        os.environ["PATH"] = str(home / "bin") + os.pathsep + original
+    try:
+        yield home
+    finally:
+        os.environ["PATH"] = original
+
+
 def opsin_available() -> bool:
     """OPSIN is a Java library. `py2opsin` bundles its jar but still shells
     out to a JRE, so the package being importable is NOT enough -- a
     machine without Java gets an import that works and a call that fails.
     Both conditions are checked.
-
-    py2opsin is deliberately NOT a declared dependency of this project.
-    The plan assumed it was pure Python; it is not, and a dependency whose
-    runtime requirement (a JRE) could not be satisfied on the development
-    machine is one whose working path could not be verified before
-    shipping. It stays an import-guarded optional capability, exactly like
-    the pkasolver and STOUT sidecars, and `describe_opsin_status` says
-    what is missing.
     """
     from openchem.services.java_setup import java_home
 
     if java_home() is None:
         return False
-    try:
-        import py2opsin  # noqa: F401
-    except ImportError:
-        return False
+    with _java_on_path():
+        try:
+            import py2opsin  # noqa: F401
+        except ImportError:
+            return False
     return True
 
 
@@ -189,22 +212,10 @@ def opsin_structure_for_name(name: str) -> StructureResult:
     """
     if not opsin_available():
         raise NamingError(describe_opsin_status())
-    from py2opsin import py2opsin as run_opsin
+    with _java_on_path():
+        from py2opsin import py2opsin as run_opsin
 
-    # py2opsin shells out to `java` itself and looks it up on PATH, so a
-    # runtime this app manages has to be put there for the duration --
-    # scoped to this call rather than exported, and restored afterwards
-    # so nothing else in the process sees a mutated PATH.
-    from openchem.services.java_setup import java_home
-
-    home = java_home()
-    original_path = os.environ.get("PATH", "")
-    if home is not None:
-        os.environ["PATH"] = str(home / "bin") + os.pathsep + original_path
-    try:
         result = run_opsin(name.strip())
-    finally:
-        os.environ["PATH"] = original_path
     # py2opsin returns an empty string for an unparseable name.
     if not result:
         raise NamingError(f"OPSIN could not parse {name.strip()!r} as an IUPAC name.")
