@@ -16036,7 +16036,22 @@ def _acid_name_to_acyl(acid_name: str) -> str | None:
 
     Returns None if the conversion can't be determined.
     """
-    # Retained acid names with known acyl forms
+    # Retained acid names with known acyl forms.
+    #
+    # Note the pattern in the entries that are NOT PINs: a retained acid name
+    # maps to the SYSTEMATIC acyl ("propionic acid" -> "propanoyl", not
+    # "propionyl"), because the retained acid is accepted on input while the
+    # PIN acyl is what should come out.
+    #
+    # malonic / succinic / glutaric / adipic acid used to sit here mapping to
+    # malonyl / succinyl / glutaryl / adipoyl -- both non-PIN and, in this
+    # table, pointing the wrong way.  They were also unreachable: the acid
+    # path deliberately never produces those names (see
+    # _RETAINED_ACID_STEM_TABLE above, P-65.1.1.2.2 / P-66.6.3), so nothing
+    # could ever look them up.  Verified by instrumenting this function over
+    # the benchmark corpus plus a charged-species sweep, 200+ molecules: only
+    # two distinct acid names reach it and neither is one of those four.
+    # Same dead-key pattern already removed from _RETAINED_DIACID_TO_DIACYLIUM.
     _RETAINED_ACID_TO_ACYL: dict[str, str] = {
         "formic acid":      "formyl",
         "acetic acid":      "acetyl",
@@ -16045,10 +16060,6 @@ def _acid_name_to_acyl(acid_name: str) -> str | None:
         "valeric acid":     "pentanoyl",
         "benzoic acid":     "benzoyl",
         "oxalic acid":      "oxalyl",
-        "malonic acid":     "malonyl",
-        "succinic acid":    "succinyl",
-        "glutaric acid":    "glutaryl",
-        "adipic acid":      "adipoyl",
         "lactic acid":      "lactoyl",
         "pyruvic acid":     "pyruvyl",
     }

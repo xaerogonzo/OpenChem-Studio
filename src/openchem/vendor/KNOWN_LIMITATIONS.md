@@ -94,14 +94,29 @@ other, and the disagreement is the signal.
 | input | emits | preferred | rule |
 |---|---|---|---|
 | `ClC(=O)C(=O)Cl` | `ethane-1,2-dioyl chloride` | `oxalyl dichloride` | `oxalyl` IS the PIN acyl group (P-65.1.7.2.1); the `di` multiplier is also missing |
-| `NC(=O)CC(=O)N` | `malonamide` | `propanediamide` | malonic is general-nomenclature-only (P-65.1.1.2.2 / P-66.6.3); the engine already emits `butanediamide` for the next homologue |
-| `O=CCC=O` | `malonaldehyde` | `propanedial` | as above |
 | `CC(C)C` | `isobutane` | `2-methylpropane` | retained, not a PIN |
 
-The amide/aldehyde entries come from `retained_pins` in
-`data/retained_names_expanded.json`, both tagged `"source": "algorithm.py",
-"rule": "various"` — i.e. unvetted. `succinimide` in the same file is a
-**genuine** PIN with a correct P-66.2 citation and must not be "corrected".
+The acyl-halide case is **not** a matter of adding a table entry. Instrumenting
+`_acid_name_to_acyl` over 200+ molecules showed only two distinct acid names
+ever reach it, and the acyl-halide name is not built through it at all — so
+routing it through the retained lookup is a structural change to that path, not
+a data fix. Deferred rather than attempted.
+
+`malonamide` -> `propanediamide` and `malonaldehyde` -> `propanedial` were
+fixed: both came from `retained_pins` in
+`data/retained_names_expanded.json` tagged `"source": "algorithm.py", "rule":
+"various"` — i.e. unvetted — and both contradicted the engine's own acid path,
+which already emitted `butanediamide` and `butanedial` for the next homologue.
+
+**`succinimide` in the same file is a genuine PIN** with a correct P-66.2
+citation and must not be "corrected" to match.
+
+### Unaudited data
+
+74 of the 292 `retained_pins` entries carry `"source": "algorithm.py", "rule":
+"various"`, meaning no rule was ever cited for them. Two turned out to be
+wrong on inspection. The other 72 are unexamined — not known to be wrong, but
+not known to be right either, and that is the honest description.
 
 ## Severity C
 

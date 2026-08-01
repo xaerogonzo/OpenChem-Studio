@@ -71,9 +71,9 @@
       "rule": "various"
     },
     "O=CCC=O": {
-      "name": "malonaldehyde",
-      "source": "algorithm.py",
-      "rule": "various"
+      "name": "propanedial",
+      "source": "iupac_p65",
+      "rule": "P-65.1.1.2.2 / P-66.6.3: 'malonic' and its derived names are retained for GENERAL nomenclature only; the systematic name is the PIN. Was 'malonaldehyde' (source algorithm.py, rule 'various' -- unvetted), which contradicted the engine's own acid path: it emits 'propanedioic acid', never 'malonic acid', and already emits 'butanediamide' for the next homologue."
     },
     "CC(N)=O": {
       "name": "acetamide",
@@ -106,9 +106,9 @@
       "rule": "various"
     },
     "NC(=O)CC(N)=O": {
-      "name": "malonamide",
-      "source": "algorithm.py",
-      "rule": "various"
+      "name": "propanediamide",
+      "source": "iupac_p65",
+      "rule": "P-65.1.1.2.2 / P-66.6.3: 'malonic' and its derived names are retained for GENERAL nomenclature only; the systematic name is the PIN. Was 'malonamide' (source algorithm.py, rule 'various' -- unvetted). The engine already emits 'butanediamide' for the succinic analogue, so the retained form here was also internally inconsistent."
     },
     "CC#N": {
       "name": "acetonitrile",
