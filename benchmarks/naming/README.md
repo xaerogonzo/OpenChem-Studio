@@ -18,16 +18,17 @@ characterisation.
 
 | | |
 |---|---|
-| `corpus.json` | 165 molecules, 19 categories, ground truth from PubChem. Committed. |
+| `corpus.json` | 181 molecules, 22 categories, ground truth from PubChem. Committed. |
 | `build_corpus.py` | Regenerates `corpus.json`. `--append` adds only molecules not already present, so existing rows are never re-fetched. |
 | `score.py` | Scores a predictions file and classifies every failure. |
 | `predictions_full.json` | Raw output of the three models evaluated so far. Recorded against the original **124-row** corpus; see *Corpus revisions*. |
 
 ## Corpus revisions
 
-The corpus started at 124 molecules and was extended to 165 in August 2026
-with four categories of charged species — `carbocation`, `carbanion`,
-`onium_ion`, `polycharged`.
+The corpus started at 124 molecules and was extended twice in August 2026:
+to 165 with four categories of charged species — `carbocation`, `carbanion`,
+`onium_ion`, `polycharged` — and then to 181 with `n_oxide`, `guanidinium`
+and `tautomer`.
 
 The reason is worth recording, because it is an argument about what a
 benchmark is for. A defect hunt in the deterministic engine found it was
@@ -42,6 +43,11 @@ the engine had.
 The new rows deliberately include species that still fail. A corpus containing
 only what an engine already handles measures nothing.
 
+The second extension was added for the opposite reason: three fixes in a row
+landed in families the corpus could not see, so their score was unmoved and
+nothing would have caught a later regression. Those categories start perfect —
+they exist to stay that way, not to raise the number.
+
 Ground truth for these rows is thinner on purpose. PubChem resolves a
 structure it does not hold to the nearest one it does, which for ions is
 routinely the neutral parent — it answers `methylbenzene` for the benzyl
@@ -53,7 +59,7 @@ tie-break, and the round trip is the actual gate.
 
 **Predictions recorded against an older corpus cannot be rescored against a
 newer one.** `score.py` refuses a length mismatch rather than letting `zip()`
-truncate and report a model's 88/124 as "88/165".
+truncate and report a model's 88/124 as "88/181".
 
 ```bash
 python benchmarks/naming/score.py benchmarks/naming/predictions_full.json
@@ -108,12 +114,13 @@ four engines were run on:
 | `SMILES2IUPAC-isomeric-small` (24 MB) | 75/124 (60%) | 5/11 correct, **3 silently flattened** | torch + transformers | 97 ms |
 | `SMILES2IUPAC-canonical-small` (24 MB) | 71/124 (57%) | 0/11 | torch + transformers | 97 ms |
 
-On the extended 165-row corpus the deterministic engine scores **163/165
+On the extended 181-row corpus the deterministic engine scores **180/181
 (99%)**, against **148/165 (90%)** for the same engine as originally vendored
-— the difference being the defects fixed since. **No wrong structures remain**,
-and nothing is refused or unparsable: the only two failures are tautomers,
-which are not errors. The ML models have not been rerun; re-running them needs
-torch and the weights.
+on the revision that existed then — the difference being the defects fixed
+since. **No wrong structures remain**, and nothing is refused or unparsable.
+The one failure is metformin, where engine and corpus depict the same
+substance differently. The ML models have not been rerun; re-running them
+needs torch and the weights.
 
 ### The deterministic engine wins on every axis
 
@@ -124,9 +131,10 @@ running 16x faster, and — the part no model managed — handling stereochemist
 perfectly. It also independently arrived at OPSIN round-tripping as its own
 correctness check, which is what this benchmark scores on.
 
-Two of its four failures are not wrong molecules. Adding full InChIKey as a
-second gate settled which — InChI normalises mobile hydrogens, so a pair that
-shares a key is the same substance depicted two ways:
+Adding full InChIKey as a second gate sorted its four failures. InChI
+normalises mobile hydrogens, so a shared key means *the gate cannot tell them
+apart* — which is weaker than it first looks, and is not by itself proof the
+name is right:
 
 ```
 1,2,3-triazole    -> 1H-1,2,3-triazole            same InChIKey  (tautomer)
@@ -141,9 +149,14 @@ species — the emitted name omits the indicated hydrogen that pins the sp3 C4,
 and OPSIN resolves it to the aromatic form. So **two** true structural errors
 in 124, not one.
 
-Both have since been fixed. On the current corpus the engine reports **no
-wrong structures at all** and refuses nothing, and it scores 4/4 on the novel
-scaffolds where the ML model scored 1/6 across the whole gap.
+The triazole later turned out to be a third: matching keys meant only that
+InChI could not see the difference, and the ring table had it labelled as the
+wrong tautomer outright. Metformin is the genuine article — `biguanide` is a
+retained name that carries no tautomer information for a name to lose.
+
+All three have since been fixed. On the current corpus the engine reports
+**no wrong structures at all** and refuses nothing, and it scores 4/4 on the
+novel scaffolds where the ML model scored 1/6 across the whole gap.
 
 Caveats worth stating: 1 GitHub star, self-described as experimental, and
 partly built with a coding agent. Those are reasons to pin a commit and keep

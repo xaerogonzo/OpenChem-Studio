@@ -249,6 +249,34 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-020c", "c1ccccc1NC(N)=[NH2+]", "phenylguanidinium",
      "N-(aminoiminomethyl)benzen-1-amine", "as above"),
 
+    # --- D-026: indicated hydrogen discarded ----------------------------
+    # The 2H entry in the ring table was labelled "1H-1,2,3-triazole" -- the
+    # wrong tautomer -- and the 1H form had no entry at all, so BOTH inputs
+    # came back as the 1H structure and the indicated hydrogen the caller
+    # supplied was thrown away. Same class as silently flattening
+    # stereochemistry: information the input carried, discarded without a
+    # word. The 1,2,4-triazole and tetrazole entries beside it already
+    # distinguished their tautomers correctly.
+    ("D-026", "c1cn[nH]n1", "2H-1,2,3-triazole",
+     "1H-1,2,3-triazole", "named the other tautomer"),
+    ("D-026b", "c1c[nH]nn1", "1H-1,2,3-triazole",
+     "1,2,3-triazole", "had no entry; fell through to the generic name"),
+
+    # --- non-regression: tautomer pairs that were already right ---------
+    ("D-026x", "c1nc[nH]n1", "1H-1,2,4-triazole", "1H-1,2,4-triazole",
+     "unchanged"),
+    ("D-026y", "c1nnc[nH]1", "4H-1,2,4-triazole", "4H-1,2,4-triazole",
+     "unchanged"),
+    ("D-026z", "c1nnn[nH]1", "1H-tetrazole", "1H-tetrazole", "unchanged"),
+    ("D-026w", "c1nn[nH]n1", "2H-tetrazole", "2H-tetrazole", "unchanged"),
+    ("D-026v", "Cn1cnc2c1c(=O)n(C)c(=O)n2C", "caffeine", "caffeine",
+     "unchanged"),
+    # Purine deliberately normalises all four tautomers to 9H-purine, the
+    # IUPAC preferred parent, with atom_locants built so N9 gets locant 9
+    # whatever the canonical SMILES does. Documented in data_loader.py and
+    # left alone -- it underpins the whole xanthine family.
+    ("D-026u", "c1ncc2nc[nH]c2n1", "9H-purine", "9H-purine", "unchanged"),
+
     # --- D-024: ring N-oxide in substituent position --------------------
     # Additive nomenclature produces a two-word name ("pyridine 1-oxide"),
     # and a substituent must end in "-yl" for its parent to attach to --

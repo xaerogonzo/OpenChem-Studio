@@ -82,40 +82,72 @@ target.
 
 ## Benchmark: the standing 4 of 124
 
-On the original 124-row corpus the engine scores 120/124. All four remaining
-rows are now characterised, and **two of them are not engine errors at all**.
+On the original 124-row corpus the engine scores 120/124. All four rows were
+characterised; two were called "not engine errors at all", and that turned out
+to be **true of one of them and wrong about the other** — see below.
 
-(The corpus has since grown to 165 rows; the current score is **163/165**.
-Zero wrong structures, zero refusals, zero unparsable names: the only two
-failures are the tautomers below, which are not errors.)
+(The corpus has since grown to 181 rows and now covers ring N-oxides,
+substituted guanidiniums and tautomer pairs — the families the last few fixes
+landed in, none of which the corpus could previously see. Current score
+**180/181**: zero wrong structures, zero refusals, zero unparsable names, and
+one `gate_disagreement` (metformin, below).)
 
-### Tautomers — the engine is defensible
+### Tautomers — three different situations, not one
 
-| row | corpus | engine names | verdict |
-|---|---|---|---|
-| 1,2,3-triazole | `c1cn[nH]n1` (2H) | `1H-1,2,3-triazole` | annular tautomer |
-| metformin | `CN(C)C(=N)N=C(N)N` | `1,1-dimethylbiguanide` | proton tautomer |
+An earlier version of this document said the two standing tautomer failures
+were "not engine errors at all". That was **wrong for one of them**, and the
+mistake is worth recording: a matching InChIKey was read as proof the engine
+was right, when all it proves is that InChI declines to distinguish mobile
+hydrogens. Agreement from a gate that cannot see the difference is not
+evidence.
 
-Each pair shares a full InChIKey, so InChI — which normalises mobile
-hydrogens — considers them the same substance. They are reported as
-`gate_disagreement` rather than scored as passes, because InChI normalising a
-difference away is not proof the difference does not matter. A human should
-decide, which is exactly what that outcome class is for.
+Tested properly, the three cases separate:
+
+**1,2,3-triazole — a real defect, fixed (D-026).** The ring table entry for
+`c1cn[nH]n1` was labelled `1H-1,2,3-triazole`, which is the *other* tautomer
+(OPSIN parses 1H- to `c1c[nH]nn1`), and the 1H form had no entry at all. So
+both inputs came back as the 1H structure: the indicated hydrogen the caller
+supplied was discarded. Same class as silently flattening stereochemistry.
+The 1,2,4-triazole and tetrazole entries beside it already distinguished their
+tautomers correctly, so this was an outlier rather than a policy.
+
+The corroboration was sitting in the corpus the whole time: that row's PubChem
+ground truth reads `2H-triazole`. An independent source had the tautomer right
+while the engine, the ring table and a vendored test all agreed on the wrong
+one — they agreed because the test was written from the table. Agreement
+between things with a common ancestor is not corroboration.
+
+**Purine — deliberate, and left alone.** All four tautomers are labelled
+`9H-purine`, the IUPAC preferred parent, with `atom_locants` built so N9 gets
+locant 9 whatever the canonical SMILES does. `data_loader.py` states the
+reasoning, and the whole xanthine/caffeine family is numbered off it. Giving
+`c1ncc2nc[nH]c2n1` the name `9H-purine` does lose which tautomer was supplied,
+and that is a known consequence of a decision taken on purpose.
+
+**Metformin — not a defect, and not fixable by naming.** The engine emits
+`1,1-dimethylbiguanide`. `biguanide` is an IUPAC retained name for the
+substance and carries no tautomer information at all — `1H-biguanide` and
+`2H-biguanide` do not parse, unlike `1H-`/`2H-triazole`. OPSIN simply has to
+pick a depiction when it emits SMILES. Both depictions share an InChIKey, and
+both get the same correct name. This is precisely what `gate_disagreement`
+exists to surface: same substance, different depiction, a human decides.
 
 ### Genuine wrong structures
 
-**None remain.** Both rows that used to sit here are fixed: the novel
-pyrazolone (D-022) and diazomethane (D-019). Every molecule in the corpus that
-the engine names, it names with a name denoting the molecule it was given.
+**None remain.** Every row that used to sit here is fixed: the novel
+pyrazolone (D-022), diazomethane (D-019), and the triazole above (D-026).
+Every molecule in the corpus that the engine names, it names with a name
+denoting the molecule it was given.
 
-Diazomethane is worth one note. It is named `methanidyldiazonium`, and the
-canonical SMILES gate still disagrees with the corpus entry — `[CH2-][N+]#N`
-versus `C=[N+]=[N-]` — because those are two Lewis structures of one
-substance, identical InChIKey `YXHKONLOYHBTNS-UHFFFAOYSA-N`. The InChIKey gate
-sees they are the same and scores it a pass. That is the clearest argument for
-keeping the second gate: resonance and tautomer depiction differences are
-visible to one gate and invisible to the other, and the disagreement is the
-signal.
+Diazomethane is worth one note in the other direction. It is named
+`methanidyldiazonium`, and the canonical SMILES gate *disagrees* with the
+corpus entry — `[CH2-][N+]#N` versus `C=[N+]=[N-]` — because those are two
+Lewis structures of one substance, identical InChIKey
+`YXHKONLOYHBTNS-UHFFFAOYSA-N`. Here the InChIKey gate is the one that sees
+correctly and the SMILES gate is fooled; with the triazole it was the reverse.
+Neither gate is the stronger one, which is the whole argument for running two:
+where they disagree, something needs a human, and that is the only reliable
+signal either of them gives about its own blind spot.
 
 ## Severity B — right molecule, non-preferred name
 

@@ -170,6 +170,35 @@ CORPUS: dict[str, list[tuple[str, str]]] = {
         ("diphenyliodonium", "c1ccccc1[I+]c1ccccc1"),
         ("benzenediazonium", "c1ccc(cc1)[N+]#N"),
     ],
+    # Families the engine was found to get wrong that the corpus could not
+    # see. Ring N-oxides in substituent position and substituted guanidiniums
+    # were both fixed with nothing here able to score the fix; tautomer pairs
+    # cover indicated-hydrogen preservation, where a mislabelled table entry
+    # had been silently replacing the caller's H placement.
+    "n_oxide": [
+        ("pyridine N-oxide", "[O-][n+]1ccccc1"),
+        ("4-methylpyridine N-oxide", "Cc1cc[n+]([O-])cc1"),
+        ("isonicotinic acid N-oxide", "OC(=O)c1cc[n+]([O-])cc1"),
+        ("(N-oxidopyridinyl)methylium", "[CH2+]c1cc[n+]([O-])cc1"),
+        ("(N-oxidopyridinyl)methanide", "[CH2-]c1cc[n+]([O-])cc1"),
+        ("trimethylamine N-oxide", "C[N+](C)(C)[O-]"),
+    ],
+    "guanidinium": [
+        ("guanidinium", "[NH2+]=C(N)N"),
+        ("methylguanidinium", "CNC(N)=[NH2+]"),
+        ("1,3-dimethylguanidinium", "CNC(NC)=[NH2+]"),
+        ("1,1-dimethylguanidinium", "CN(C)C(N)=[NH2+]"),
+        ("1,1,3-trimethylguanidinium", "CNC(=[NH2+])N(C)C"),
+        ("phenylguanidinium", "c1ccccc1NC(N)=[NH2+]"),
+    ],
+    "tautomer": [
+        ("1H-1,2,3-triazole", "c1c[nH]nn1"),
+        ("1H-1,2,4-triazole", "c1nc[nH]n1"),
+        ("4H-1,2,4-triazole", "c1nnc[nH]1"),
+        ("1H-tetrazole", "c1nnn[nH]1"),
+        ("2H-tetrazole", "c1nn[nH]n1"),
+        ("9H-purine", "c1ncc2nc[nH]c2n1"),
+    ],
     "polycharged": [
         ("propane-1,3-diylium", "[CH2+]C[CH2+]"),
         ("methanediylium", "[CH2+2]"),

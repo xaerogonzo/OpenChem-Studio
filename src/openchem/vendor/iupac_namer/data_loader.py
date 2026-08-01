@@ -1803,7 +1803,17 @@ _RING_CURATED_SMILES: dict[str, dict] = {
 
     # Three heteroatoms
     # N,N,N
-    "c1cn[nH]n1":      {"name": "1H-1,2,3-triazole",  "substituent_form": "1,2,3-triazolyl",  "alkyl_stem_ok": False},
+    # 1,2,3-triazole, both tautomers.  The 2H entry used to be labelled
+    # "1H-1,2,3-triazole", which is simply the wrong tautomer: OPSIN parses
+    # 1H- to c1c[nH]nn1 and 2H- to c1cn[nH]n1.  The effect was that the 2H
+    # form was named 1H- and the 1H form had no entry at all, so BOTH inputs
+    # came back as the 1H structure and the indicated hydrogen the caller
+    # supplied was discarded.  The 1,2,4-triazole and tetrazole entries
+    # nearby already distinguish their tautomers; this one was the odd one
+    # out rather than a deliberate normalisation (contrast the purine block,
+    # which collapses its four tautomers on purpose and says so).
+    "c1c[nH]nn1":      {"name": "1H-1,2,3-triazole",  "substituent_form": "1,2,3-triazolyl",  "alkyl_stem_ok": False},
+    "c1cn[nH]n1":      {"name": "2H-1,2,3-triazole",  "substituent_form": "1,2,3-triazolyl",  "alkyl_stem_ok": False},
     # 1H-1,2,4-triazole: N(H) on an adjacent N (N1). Atoms (canonical 'c1nc[nH]n1'):
     # 0=C, 1=N, 2=C, 3=[nH], 4=N. Ring bonds: 0-1, 1-2, 2-3, 3-4, 4-0.
     # [nH] at 3 is N1; its ring neighbors are 2 (C) and 4 (N). Atom 4 is the adjacent N2.

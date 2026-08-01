@@ -13,7 +13,14 @@ from openchem.vendor.iupac_namer.engine import name_smiles
 @pytest.mark.parametrize("smi,expected", [
     # 5-membered azoles
     ("c1cn[nH]c1",  "1H-pyrazole"),
-    ("c1cn[nH]n1",  "1H-1,2,3-triazole"),
+    # This row used to read ("c1cn[nH]n1", "1H-1,2,3-triazole"), which asserts
+    # a name that OPSIN parses back to a DIFFERENT molecule: 1H- gives
+    # c1c[nH]nn1, 2H- gives c1cn[nH]n1. The test was written from the ring
+    # table, which carried the same mislabel, so the two agreed with each
+    # other and not with the chemistry. Both are corrected (D-026); the
+    # 1,2,4-triazole and tetrazole rows below were always right.
+    ("c1c[nH]nn1",  "1H-1,2,3-triazole"),
+    ("c1cn[nH]n1",  "2H-1,2,3-triazole"),
     ("c1nc[nH]n1",  "1H-1,2,4-triazole"),
     ("c1nnn[nH]1",  "1H-tetrazole"),
     ("c1cscn1",     "1,3-thiazole"),

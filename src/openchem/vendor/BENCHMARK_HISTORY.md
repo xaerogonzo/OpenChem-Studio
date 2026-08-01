@@ -51,10 +51,15 @@ The corpus was then extended with 41 charged species in four new categories
 including species that still fail. Running the **pre-work engine** against
 that same extended corpus gives the comparison that was missing:
 
-| | corrected | exact | equivalent | wrong structure |
-|---|---|---|---|---|
-| as vendored | 148/165 (90%) | 79 | 69 | 15 |
-| after this work | **163/165 (99%)** | 80 | 83 | **0** |
+| corpus | | corrected | exact | equivalent | wrong structure |
+|---|---|---|---|---|---|
+| 165 rows | as vendored | 148/165 (90%) | 79 | 69 | 15 |
+| 165 rows | after this work | **164/165 (99%)** | 80 | 84 | **0** |
+| 181 rows | as vendored | 157/181 (87%) | 81 | 76 | 22 |
+| 181 rows | after this work | **180/181 (99%)** | 82 | 98 | **0** |
+
+Both engines were run against both corpus revisions, so each pair is a like
+for like comparison. The 181-row revision is the current one.
 
 | category | as vendored | after |
 |---|---|---|
@@ -82,6 +87,8 @@ visible. That is the corpus doing its job: none of them was findable from the
 | 2026-08-01 | the last five open severity-A defects | **163/165** | diazomethane no_prediction -> equivalent; **zero wrong structures, zero refusals, zero unparsable** |
 | 2026-08-01 | poly-N-substituted guanidinium (D-025) | 163/165 | unchanged: the corpus contains no substituted guanidinium. Verified by the defect table, not the score |
 | 2026-08-01 | ring N-oxide substituents (D-024) | 163/165 | unchanged, and not in the corpus either. **Severity-A open list reaches empty** |
+| 2026-08-01 | indicated hydrogen preserved (D-026) | **164/165** | 1,2,3-triazole gate_disagreement -> equivalent. The one remaining failure, metformin, is a genuine depiction difference |
+| 2026-08-01 | corpus extended to 181 | **180/181** | +16 rows covering the last three fixes: n_oxide 6/6, guanidinium 5/5, tautomer 5/5 |
 
 The extension paid for itself immediately. Every defect fixed in the rows above
 was surfaced by the new categories or by the one corpus row that happened to
@@ -89,10 +96,28 @@ carry a pyrazolone, and together they moved the headline number 158 -> 163 —
 which the previous six changes, all real severity-A fixes, could not do at all
 on the 124-row revision.
 
+### Why the corpus was extended twice
+
+Three consecutive fixes — D-024, D-025, D-026 — could not move the score,
+because the corpus held no ring N-oxide substituent, no substituted
+guanidinium, and no tautomer pair. Each had to be verified against the defect
+table instead. A score that cannot move is a score that cannot regress either,
+so the second extension exists to close that blind spot rather than to raise
+the number.
+
+It half worked, and the as-vendored comparison below says which half.
+`guanidinium` goes 0/5 -> 5/5 and `n_oxide` 4/6 -> 6/6, so those rows do catch
+their defects. `tautomer` reads 5/5 on both engines: the as-vendored one
+emitted the bare name `1,2,3-triazole`, which OPSIN resolves to 1H, so it
+round-tripped by accident. D-026 is caught by the pre-existing `heterocycle`
+row instead. New rows do not automatically see the defect they were added
+for — that has to be checked, not assumed.
+
 ### Consequence worth knowing
 
 Predictions files recorded against the 124-row corpus — including the ML
 baselines in `predictions_full.json` — **cannot be rescored** against the
 extended corpus. `score.py` now refuses them rather than letting `zip()`
-silently truncate and report a model's 88/124 as "88/165". Those files remain
-valid against the corpus revision they were made for.
+silently truncate and report a model's 88/124 as "88/181". Those files remain
+valid against the corpus revision they were made for. This now applies to the
+165-row revision as well.

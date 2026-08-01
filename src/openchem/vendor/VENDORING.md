@@ -20,9 +20,11 @@ It is also the best structure-to-name engine that exists in the open. Measured
 against this project's own corpus (`benchmarks/naming`) it scored **120/124
 with stereochemistry 11/11** as vendored, beating the leading ML alternative by
 26 points while needing nothing beyond RDKit and running 16x faster. (The
-corpus has since grown to 165 with charged species the original set could not
-see; on that revision the engine as vendored scores 148/165 and now scores
-163/165 — see `BENCHMARK_HISTORY.md`.) That
+corpus has since grown to 181 with charged species, ring N-oxides,
+substituted guanidiniums and tautomer pairs the original set could not see;
+on the 165-row revision the engine as vendored scored 148 and now scores 164,
+and on the current 181-row revision it scores **180/181** —
+see `BENCHMARK_HISTORY.md`.) That
 benchmark was built before this engine was found, so the result is independent
 of anything upstream chose to measure.
 
@@ -62,7 +64,7 @@ name is right when parsing it back yields the structure it came from. Writing
 it fixed **7 of the 12 failures** — those tests were failing because of the
 missing module, not on their merits.
 
-Current state: **3,176 passing, 0 failing, 16 skipped** in ~7 minutes.
+Current state: **3,300 passing, 0 failing, 17 skipped** in ~8 minutes.
 
 The five that were still failing turned out not to be engine defects: they
 asserted a non-minimal lambda numbering and three general-nomenclature-only
@@ -80,11 +82,13 @@ because a wrong-molecule regression must not wait for the 7-minute run.
 **None remain open** -- which says what has been looked for, not that none
 exists; `KNOWN_LIMITATIONS.md` explains how to look for more.
 
-The benchmark now reports **zero wrong structures** across its 165 molecules,
-and nothing refused or unparsable: the only two failures are tautomers.
+The benchmark now reports **zero wrong structures** across its 181 molecules,
+and nothing refused or unparsable. The single remaining failure is metformin,
+where the engine and the corpus depict the same substance differently; see
+`KNOWN_LIMITATIONS.md`.
 
-Set `OPENCHEM_NAMER_DEBUG=1` to instrument the fall-through that causes them
-(`iupac_namer/diagnostics.py`).
+Set `OPENCHEM_NAMER_DEBUG=1` to instrument the fall-through that used to cause
+this class of failure (`iupac_namer/diagnostics.py`).
 
 Those tests live in `tests/vendor/iupac_namer/` and are **excluded from the
 default run**: they take 6.5 minutes against this project's 2 minutes, and

@@ -369,3 +369,43 @@ Visible effect: `name_smiles("[CH2-][N+]#N")` raises instead of returning
 an invented hydrogen and a charge that is not in the input. On the benchmark
 diazomethane moved `wrong_structure -> no_prediction`, so the score is
 unchanged; the difference is that one of those two is honest.
+
+## 2026-08-01 — indicated hydrogen survives the ring table (D-026)
+
+The ring-table entry for `c1cn[nH]n1` was labelled `1H-1,2,3-triazole`, which
+is the other tautomer — OPSIN parses `1H-` to `c1c[nH]nn1` — and the 1H form
+had no entry at all. Both inputs therefore came back named as the 1H
+structure, discarding the indicated hydrogen the caller supplied. A plain data
+mislabel, not an algorithm defect: the 1,2,4-triazole and tetrazole entries
+sitting beside it already distinguished their tautomers correctly.
+
+Probing all 13 tautomer-sensitive azoles in the tables found no second case.
+The purine family still normalises to `9H-purine` on purpose (see
+`KNOWN_LIMITATIONS.md`); that is the only remaining place where an input
+tautomer is not preserved.
+
+This also corrects a claim made earlier in this branch. The two standing
+benchmark failures were described as "tautomers, not errors" — true of
+metformin, false of the triazole, where the engine really was substituting a
+different structure. The mistake came from reading a matching InChIKey as
+proof of correctness when InChI cannot distinguish mobile hydrogens at all.
+
+## 2026-08-01 — benchmark corpus extended to 181
+
+The last three fixes (D-024 ring N-oxide substituents, D-025 poly-N-substituted
+guanidinium, D-026 tautomers) all had to be verified against the defect table
+rather than the score, because the corpus contained nothing from those
+families. Added 16 rows — `n_oxide` (6), `guanidinium` (5), `tautomer` (5) —
+so those paths are now measured on every run.
+
+Re-running the **as-vendored** engine against the extended corpus shows how
+much each category actually discriminates, which is not uniform:
+`guanidinium` 0/5 and `n_oxide` 4/6 then, both 100% now — those rows catch
+their defects outright. `tautomer` scores 5/5 *both* times, because the
+as-vendored engine emitted the bare name `1,2,3-triazole` for the 1H input
+and OPSIN resolves a bare name to 1H, so it round-tripped by luck. D-026 is
+caught by the pre-existing `heterocycle` row (the 2H form), not by the new
+category; the new rows guard the 1,2,4-triazole and tetrazole pairs that were
+already correct. Worth stating plainly: adding rows to a corpus does not by
+itself mean the corpus can see the defect they were added for.
+
