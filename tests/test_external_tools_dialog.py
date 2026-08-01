@@ -119,3 +119,38 @@ def test_stout_tab_states_that_names_are_predictions(qapp):
     text = " ".join(label.text() for label in dialog.findChildren(QLabel))
     assert "neural model" in text
     assert "plausible name for ANY input" in text
+
+
+def test_each_sidecar_tab_can_remove_its_own_tool(qapp):
+    """Remove has always worked -- but only from the Storage tab, and
+    nobody standing on the STOUT tab, having just read that STOUT cannot
+    work, goes hunting under Storage for it. Alex looked and reported
+    there was no uninstall.
+    """
+    dialog = ExternalToolsDialog(Settings(EventBus()))
+
+    for attribute in (
+        "_stout_remove_button",
+        "_pkasolver_remove_button",
+        "_java_remove_button",
+        "_nmr_db_remove_button",
+    ):
+        button = getattr(dialog, attribute, None)
+        assert button is not None, f"{attribute} is missing from its tab"
+        assert button.text() == "Remove from Disk..."
+
+
+def test_the_tab_buttons_reuse_the_storage_tabs_removal_path(qapp, monkeypatch):
+    """One confirmation, one set of paths, one refresh -- a second
+    implementation is how the two would drift apart."""
+    dialog = ExternalToolsDialog(Settings(EventBus()))
+    removed: list[str] = []
+    monkeypatch.setattr(dialog, "_on_remove_component", removed.append)
+    # Rebuild the buttons so they close over the patched method.
+    dialog._stout_remove_button = dialog._remove_button(dialog, "stout", "STOUT")
+    dialog._java_remove_button = dialog._remove_button(dialog, "java", "Java")
+
+    dialog._stout_remove_button.click()
+    dialog._java_remove_button.click()
+
+    assert removed == ["stout", "java"]

@@ -482,6 +482,24 @@ class ExternalToolsDialog(QDialog):
             )
             self._components_table.setItem(row, 3, QTableWidgetItem(status))
 
+    def _remove_button(self, parent: QWidget, key: str, label: str) -> QPushButton:
+        """A "Remove from Disk" button for one sidecar's OWN tab.
+
+        The Storage tab has had a working Remove for every component all
+        along, but nobody standing on the STOUT tab -- having just been
+        told STOUT cannot work -- thinks to go looking under Storage for
+        it. The decision to remove a tool is made where you learn you do
+        not want it, so the button belongs there too.
+
+        Same `_on_remove_component` behind both: one confirmation, one set
+        of paths, one refresh path. A second implementation is how the two
+        would drift.
+        """
+        button = QPushButton("Remove from Disk...", parent)
+        button.setToolTip(f"Delete {label} and free the space it uses.")
+        button.clicked.connect(lambda _checked=False: self._on_remove_component(key))
+        return button
+
     def _on_remove_component(self, key: str) -> None:
         from openchem.services import sidecar_inventory
 
@@ -673,6 +691,8 @@ class ExternalToolsDialog(QDialog):
 
         row = QHBoxLayout()
         row.addWidget(self._java_setup_button)
+        self._java_remove_button = self._remove_button(tab, 'java', 'the Java runtime')
+        row.addWidget(self._java_remove_button)
         row.addWidget(self._java_refresh_button)
         row.addStretch(1)
 
@@ -790,6 +810,8 @@ class ExternalToolsDialog(QDialog):
         row = QHBoxLayout()
         row.addWidget(self._nmr_db_build_button)
         row.addWidget(self._nmr_db_refresh_button)
+        self._nmr_db_remove_button = self._remove_button(tab, 'nmr_index', 'the NMR shift database')
+        row.addWidget(self._nmr_db_remove_button)
         row.addStretch(1)
 
         layout = QVBoxLayout(tab)
@@ -934,6 +956,8 @@ class ExternalToolsDialog(QDialog):
 
         action_row = QHBoxLayout()
         action_row.addWidget(self._stout_setup_button)
+        self._stout_remove_button = self._remove_button(tab, 'stout', 'the STOUT environment')
+        action_row.addWidget(self._stout_remove_button)
         action_row.addWidget(self._stout_locate_button)
         action_row.addWidget(test_button)
         action_row.addStretch()
@@ -1118,6 +1142,8 @@ class ExternalToolsDialog(QDialog):
 
         action_row = QHBoxLayout()
         action_row.addWidget(self._pkasolver_setup_button)
+        self._pkasolver_remove_button = self._remove_button(tab, 'pkasolver', 'the pkasolver environment')
+        action_row.addWidget(self._pkasolver_remove_button)
         action_row.addWidget(self._pkasolver_locate_button)
         action_row.addWidget(test_button)
         action_row.addStretch()
