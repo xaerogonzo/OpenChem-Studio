@@ -94,7 +94,14 @@ def test_a_404_becomes_a_readable_not_found():
 
 
 def test_an_unreachable_network_is_reported_as_such():
-    with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("offline")):
+    # Patched at the seam the module actually calls. Patching
+    # `urllib.request.urlopen` used to work by accident and no longer
+    # does -- `openchem.net` binds the name at import time, so a global
+    # patch would silently let this hit the real PubChem servers.
+    with patch(
+        "openchem.chem.naming_providers.open_url",
+        side_effect=urllib.error.URLError("offline"),
+    ):
         with pytest.raises(NamingError, match="Could not reach PubChem"):
             pubchem_name_for_structure(Chem.MolFromSmiles(ASPIRIN))
 

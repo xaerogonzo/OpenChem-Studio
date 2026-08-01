@@ -30,10 +30,10 @@ import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
-from urllib.request import urlopen
 
 import platformdirs
 from openchem import paths as app_paths
+from openchem.net import open_url
 
 logger = logging.getLogger("openchem.services")
 
@@ -207,7 +207,9 @@ def install(root: Path | None = None, on_progress: ProgressCallback | None = Non
 
     report(0)
     try:
-        with urlopen(download_url(), timeout=120) as response, archive.open("wb") as target:
+        # Must go through openchem.net: this endpoint is behind Cloudflare
+        # and answers a default-User-Agent request with 403.
+        with open_url(download_url(), timeout=120) as response, archive.open("wb") as target:
             shutil.copyfileobj(response, target)
     except OSError as exc:
         raise JavaSetupError(f"Could not download the Java runtime: {exc}") from exc

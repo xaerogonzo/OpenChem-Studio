@@ -30,7 +30,7 @@ def test_fetch_latest_vina_release_picks_matching_platform_asset():
     }
     with (
         patch.object(svc.platform, "system", return_value="Windows"),
-        patch.object(svc, "urlopen", return_value=_fake_response(payload)),
+        patch.object(svc, "open_url", return_value=_fake_response(payload)),
     ):
         asset = svc.fetch_latest_vina_release()
 
@@ -49,7 +49,7 @@ def test_fetch_latest_vina_release_skips_checksum_files():
     }
     with (
         patch.object(svc.platform, "system", return_value="Windows"),
-        patch.object(svc, "urlopen", return_value=_fake_response(payload)),
+        patch.object(svc, "open_url", return_value=_fake_response(payload)),
     ):
         asset = svc.fetch_latest_vina_release()
 
@@ -63,7 +63,7 @@ def test_fetch_latest_vina_release_raises_clear_error_when_no_platform_asset():
     }
     with (
         patch.object(svc.platform, "system", return_value="Windows"),
-        patch.object(svc, "urlopen", return_value=_fake_response(payload)),
+        patch.object(svc, "open_url", return_value=_fake_response(payload)),
         pytest.raises(RuntimeError, match="No win executable found"),
     ):
         svc.fetch_latest_vina_release()
@@ -71,7 +71,7 @@ def test_fetch_latest_vina_release_raises_clear_error_when_no_platform_asset():
 
 def test_fetch_latest_vina_release_wraps_network_errors():
     with (
-        patch.object(svc, "urlopen", side_effect=URLError("boom")),
+        patch.object(svc, "open_url", side_effect=URLError("boom")),
         pytest.raises(RuntimeError, match="Could not reach GitHub"),
     ):
         svc.fetch_latest_vina_release()
@@ -108,7 +108,7 @@ def test_download_vina_asset_writes_file_to_the_tools_directory(tmp_path, monkey
         version="v1.2.7", name="vina_1.2.7_win.exe", download_url="https://x/win.exe", size_bytes=len(fake_bytes)
     )
 
-    with patch.object(svc, "urlopen", return_value=response):
+    with patch.object(svc, "open_url", return_value=response):
         result_path = svc.download_vina_asset(asset)
 
     assert result_path == tmp_path / "tools" / "vina" / "vina_1.2.7_win.exe"
@@ -120,7 +120,7 @@ def test_download_vina_asset_cleans_up_partial_file_on_failure(tmp_path, monkeyp
     asset = VinaReleaseAsset(version="v1", name="broken.exe", download_url="https://x/broken", size_bytes=10)
 
     with (
-        patch.object(svc, "urlopen", side_effect=OSError("boom")),
+        patch.object(svc, "open_url", side_effect=OSError("boom")),
         pytest.raises(RuntimeError, match="Download failed"),
     ):
         svc.download_vina_asset(asset)

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 from urllib.error import URLError
-from urllib.request import Request, urlopen
+from openchem.net import open_url
 
 import platformdirs
 
@@ -117,12 +117,10 @@ def fetch_latest_vina_release() -> VinaReleaseAsset:
     thread (see `openchem.plugins.async_task.run_async`, the same helper
     every other network-touching panel in this codebase already uses).
     """
-    request = Request(
-        VINA_RELEASES_API,
-        headers={"Accept": "application/vnd.github+json", "User-Agent": "OpenChemStudio"},
-    )
     try:
-        with urlopen(request, timeout=15) as response:  # noqa: S310 - fixed https GitHub API URL, not user input
+        with open_url(  # noqa: S310 - fixed https GitHub API URL, not user input
+            VINA_RELEASES_API, timeout=15, headers={"Accept": "application/vnd.github+json"}
+        ) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except (URLError, OSError) as exc:
         raise RuntimeError(f"Could not reach GitHub: {exc}") from exc
@@ -167,9 +165,9 @@ def download_vina_asset(
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest_path = dest_dir / asset.name
 
-    request = Request(asset.download_url, headers={"User-Agent": "OpenChemStudio"})
     try:
-        with urlopen(request, timeout=30) as response:  # noqa: S310 - URL comes from GitHub's own API response
+        # noqa: S310 - URL comes from GitHub's own API response
+        with open_url(asset.download_url, timeout=30) as response:
             total = asset.size_bytes or int(response.headers.get("Content-Length", 0) or 0)
             downloaded = 0
             with open(dest_path, "wb") as out_file:

@@ -20,7 +20,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
-from urllib.request import urlopen
+from openchem.net import open_url
 
 from openchem.chem.nmr_database import (
     BuildStats,
@@ -123,7 +123,7 @@ def build(
             scratch = Path(tempfile.mkdtemp(prefix="nmrshiftdb_"))
             sdf = scratch / SOURCE_FILE
             try:
-                with urlopen(DOWNLOAD_URL, timeout=300) as response, sdf.open("wb") as target:
+                with open_url(DOWNLOAD_URL, timeout=300) as response, sdf.open("wb") as target:
                     shutil.copyfileobj(response, target)
             except OSError as exc:
                 raise NmrDatabaseSetupError(

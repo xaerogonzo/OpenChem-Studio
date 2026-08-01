@@ -30,17 +30,17 @@ TWO FAILURE MODES CONFIRMED LIVE, both of which look like success:
 
 from __future__ import annotations
 
-import os
-
 import json
 import logging
+import os
 import shutil
 import urllib.error
 import urllib.parse
-import urllib.request
 from dataclasses import dataclass
 
 from rdkit import Chem
+
+from openchem.net import open_url
 
 logger = logging.getLogger("openchem.chemistry")
 
@@ -86,7 +86,9 @@ class NamingError(RuntimeError):
 def _pubchem(path: str) -> dict:
     url = f"{_PUBCHEM_BASE}/{path}"
     try:
-        with urllib.request.urlopen(url, timeout=_TIMEOUT_SECONDS) as response:
+        # NCBI's usage policy asks callers to identify themselves so they
+        # can reach whoever is generating load -- open_url does that.
+        with open_url(url, timeout=_TIMEOUT_SECONDS) as response:
             return json.load(response)
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
