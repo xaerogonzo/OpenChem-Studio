@@ -32,8 +32,8 @@ produces the wrong answer is working exactly as written. Set
 every such fall-through attributed to the gate that let it go. See
 `iupac_namer/diagnostics.py`.
 
-Whether that fall-through should become a hard error instead is deliberately
-still open — see *Deliberately open decisions* below.
+Two of those fall-through reasons now raise instead of neutralizing — see
+*The refusal guard* below for which, and why the third must not.
 
 ## Open defects (severity A — wrong molecule)
 
@@ -66,11 +66,10 @@ target.
 On the original 124-row corpus the engine scores 120/124. All four remaining
 rows are now characterised, and **two of them are not engine errors at all**.
 
-(The corpus has since grown to 165 rows; the current score is **161/165**.
-All three defects the new charged-species categories exposed — phenyl anion,
-guanidinium and azide — have been fixed, and all four of those categories now
-score perfectly. Exactly one wrong structure remains in the whole corpus: the
-novel pyrazolone.)
+(The corpus has since grown to 165 rows; the current score is **162/165**,
+with **zero wrong structures**. All three defects the new charged-species
+categories exposed — phenyl anion, guanidinium and azide — have been fixed,
+and all four of those categories now score perfectly.)
 
 ### Tautomers — the engine is defensible
 
@@ -89,8 +88,17 @@ decide, which is exactly what that outcome class is for.
 
 | row | cause |
 |---|---|
-| diazomethane | D-019 above |
-| novel pyrazolone | the emitted name omits the indicated hydrogen needed to pin the sp3 C4, so OPSIN resolves it to the aromatic tautomer. Unlike the two rows above, the InChIKey **skeleton blocks differ**, so this is a different species and not a normalisation artifact |
+| diazomethane | D-019 above — now refuses rather than answering wrongly |
+
+The novel pyrazolone used to sit here and is fixed (D-022). `5-pyrazolone`
+encodes C4's saturation only by convention, so using it in substituent
+position (`…-5-pyrazolon-4-yl`) removed the hydrogen that made C4 sp3 and
+OPSIN re-read the ring as its aromatic tautomer. It is semi-systematic rather
+than a PIN, so it is now declined and the systematic path — which states the
+saturation explicitly — is used in both positions.
+
+**There are now zero wrong structures in the 165-molecule corpus.** The three
+remaining failures are two tautomers (not errors) and one honest refusal.
 
 ### A scoring artifact worth knowing
 
@@ -109,6 +117,12 @@ other, and the disagreement is the signal.
 |---|---|---|---|
 | `ClC(=O)C(=O)Cl` | `ethane-1,2-dioyl chloride` | `oxalyl dichloride` | `oxalyl` IS the PIN acyl group (P-65.1.7.2.1); the `di` multiplier is also missing |
 | `CC(C)C` | `isobutane` | `2-methylpropane` | retained, not a PIN |
+| `C1C=NNC1` | `4,5-dihydro-1H-1,2-diazole` | `4,5-dihydro-1H-pyrazole` | `pyrazole` is the retained PIN ring name (P-25.2.1); the partially-saturated path falls back to the Hantzsch-Widman `1,2-diazole` stem |
+
+The `1,2-diazole` stem is pre-existing and independent of D-022 — the hydro
+path already emitted it — but fixing D-022 routes the whole pyrazolone family
+through that path, so it now shows up far more often. Aromatic pyrazole itself
+is unaffected and correctly names as `1H-pyrazole`.
 
 The acyl-halide case is **not** a matter of adding a table entry. Instrumenting
 `_acid_name_to_acyl` over 200+ molecules showed only two distinct acid names

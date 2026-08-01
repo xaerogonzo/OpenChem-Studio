@@ -102,6 +102,46 @@ Fourteen inputs that named the wrong compound. All are pinned in
 
 Benchmark unchanged at 120/124 across all of the above, stereochemistry 11/11.
 
+## 2026-08-01 — pre-composed retained rings in substituent position
+
+D-022, severity A, and the last wrong structure in the corpus.
+
+`5-pyrazolone` encodes C4's saturation only by convention. Put the ring in
+substituent position and the name becomes `…-5-pyrazolon-4-yl`, which removes
+the very hydrogen that made C4 sp3 — OPSIN then re-reads the whole ring as its
+aromatic tautomer, a different species. Every senior characteristic group that
+pushes the ring into substituent position hit it: amide, carboxylic acid,
+nitrile. Only the benchmark's one pyrazolone row made it visible.
+
+The retained lookup cannot detect this on its own, and that is worth recording
+for whoever meets the shape again: `try_retained_name(ring_system, mol)`
+receives the CARVED fragment, which is byte-identical to the standalone
+molecule, and neither it nor the plan scorer in `strategy.py` is told the
+output form. There is no structural signal to test.
+
+What made a contained fix possible is that `5-pyrazolone` is semi-systematic
+rather than a PIN — the PIN is the systematic `2,4-dihydro-3H-pyrazol-3-one`
+form — so the engine's existing `_DATAFILE_PIN_INELIGIBLE_NAMES` gate is the
+right home for it, next to tetralin/indan/chroman/isochroman. Declining the
+stem outright sidesteps the missing context: the systematic path states the
+saturation explicitly and is correct in BOTH positions.
+
+That gate turned out to be wired into only one of the two branches that read
+`_smiles_to_record`. The oxo fallback — the branch that matches rings keeping
+an exocyclic =O, which is exactly where the pyrazolone family arrives — never
+consulted it. Both branches now do.
+
+Benchmark 161/165 -> **162/165**, and the wrong_structure count reaches
+**zero**: every row the engine still answers, it answers with a name that
+denotes the molecule it was given. The three remaining failures are two
+tautomers and one refusal.
+
+Knock-on worth stating: the systematic path spells the ring `1,2-diazole`
+(Hantzsch-Widman) where `pyrazole` is the retained PIN. That is severity B,
+pre-existing, and independent of this change — the hydro path already emitted
+it — but routing the pyrazolone family through that path makes it far more
+visible. Recorded in `KNOWN_LIMITATIONS.md`.
+
 ## 2026-08-01 — azide
 
 D-016, severity A. `[N-]=[N+]=[N-]` named as `diiminoazanium`, which denotes

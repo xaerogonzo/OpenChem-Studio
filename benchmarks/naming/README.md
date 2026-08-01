@@ -108,11 +108,11 @@ four engines were run on:
 | `SMILES2IUPAC-isomeric-small` (24 MB) | 75/124 (60%) | 5/11 correct, **3 silently flattened** | torch + transformers | 97 ms |
 | `SMILES2IUPAC-canonical-small` (24 MB) | 71/124 (57%) | 0/11 | torch + transformers | 97 ms |
 
-On the extended 165-row corpus the deterministic engine scores **161/165
+On the extended 165-row corpus the deterministic engine scores **162/165
 (98%)**, against **148/165 (90%)** for the same engine as originally vendored
-— the difference being the charged-species defects fixed since. All four
-charged-species categories now score perfectly, and exactly one wrong
-structure remains in the whole corpus. The ML models have not been rerun;
+— the difference being the defects fixed since. All four charged-species
+categories now score perfectly and **no wrong structures remain**: the three
+failures are two tautomers and one refusal. The ML models have not been rerun;
 re-running them needs torch and the weights.
 
 ### The deterministic engine wins on every axis
@@ -139,11 +139,12 @@ The pyrazolone was previously assumed to be a tautomer too; it is not. Its
 InChIKey skeleton block differs from the corpus entry, so it is a different
 species — the emitted name omits the indicated hydrogen that pins the sp3 C4,
 and OPSIN resolves it to the aromatic form. So **two** true structural errors
-in 124, not one. Diazomethane has since been fixed to refuse rather than
-answer wrongly.
+in 124, not one.
 
-It scores 3/4 on the novel scaffolds where the ML model scored 1/6 across the
-whole gap.
+Both have since been fixed: the pyrazolone properly, and diazomethane by
+refusing rather than answering wrongly. On the current corpus the engine
+reports **no wrong structures at all**, and scores 4/4 on the novel scaffolds
+where the ML model scored 1/6 across the whole gap.
 
 Caveats worth stating: 1 GitHub star, self-described as experimental, and
 partly built with a coding agent. Those are reasons to pin a commit and keep

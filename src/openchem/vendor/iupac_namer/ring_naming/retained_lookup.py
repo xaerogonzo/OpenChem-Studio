@@ -267,6 +267,23 @@ _DATAFILE_PIN_INELIGIBLE_NAMES: frozenset[str] = frozenset({
     "indan", "indane",
     "chroman", "chromane",
     "isochroman", "isochromane",
+    # 5-pyrazolone (the edaravone / antipyrine core) is semi-systematic, not
+    # a PIN -- the PIN is the systematic 2,4-dihydro-3H-pyrazol-3-one form.
+    #
+    # Emitting the retained stem was also actively WRONG as soon as the ring
+    # became a substituent.  The stem encodes C4's saturation only by
+    # convention, so attaching there ("...-5-pyrazolon-4-yl") removes the
+    # hydrogen that made C4 sp3 and OPSIN re-reads the whole ring as its
+    # aromatic tautomer -- a different species.  Every senior characteristic
+    # group that pushes the ring into substituent position hit this: amide,
+    # carboxylic acid, nitrile.
+    #
+    # The retained lookup cannot detect that case on its own.  It receives
+    # the carved fragment, which is byte-identical to the standalone
+    # molecule, and neither it nor the plan scorer is told the output form.
+    # Declining the stem outright sidesteps that: the systematic path states
+    # the saturation explicitly and is correct in both positions.
+    "5-pyrazolone",
 })
 
 
@@ -1520,6 +1537,12 @@ def try_retained_name(
                 record = _smiles_to_record.get(oxo_smiles)
                 if record is None and oxo_no_stereo:
                     record = _smiles_to_record.get(oxo_no_stereo)
+                if record is not None and record["name"] in _DATAFILE_PIN_INELIGIBLE_NAMES:
+                    # Same PIN-eligibility gate the main data-file branch
+                    # above applies.  Both read from _smiles_to_record, so a
+                    # name that is general-nomenclature-only must be declined
+                    # on either route; it was only wired into one of them.
+                    record = None
                 if record is not None:
                     candidate_name = record["name"]
                     # Only accept pre-composed retained names whose stem

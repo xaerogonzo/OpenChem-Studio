@@ -149,6 +149,43 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # substituent prefix is a separate path and was always correct.
     ("D-016w", "CCN=[N+]=[N-]", "azidoethane", "azidoethane", "unchanged"),
 
+    # --- D-022: pre-composed retained ring in substituent position -----
+    # "5-pyrazolone" encodes C4's saturation only by convention, so
+    # attaching there ("...-5-pyrazolon-4-yl") removed the hydrogen that
+    # made C4 sp3 and OPSIN re-read the ring as its aromatic tautomer -- a
+    # different species. Any senior characteristic group that pushes the
+    # ring into substituent position hit it: amide, acid, nitrile.
+    #
+    # The retained lookup cannot see the substituent case: it receives the
+    # carved fragment, which is byte-identical to the standalone molecule,
+    # and is not told the output form. 5-pyrazolone is semi-systematic
+    # rather than a PIN, so it is now declined outright and the systematic
+    # path -- which states the saturation explicitly -- is correct in both
+    # positions.
+    ("D-022", "CC1=NN(c2ccccc2)C(=O)C1CCNC(C)=O",
+     "N-[2-(3-methyl-5-oxo-1-phenyl-4,5-dihydro-1H-1,2-diazol-4-yl)ethyl]acetamide",
+     "N-[2-(3-methyl-1-phenyl-5-pyrazolon-4-yl)ethyl]acetamide",
+     "ring re-read as its aromatic tautomer"),
+    ("D-022b", "CC1=NN(c2ccccc2)C(=O)C1CCC(=O)O",
+     "3-(3-methyl-5-oxo-1-phenyl-4,5-dihydro-1H-1,2-diazol-4-yl)propanoic acid",
+     "3-(3-methyl-1-phenyl-5-pyrazolon-4-yl)propanoic acid", "as above"),
+    ("D-022c", "CC1=NN(c2ccccc2)C(=O)C1CC#N",
+     "2-(3-methyl-5-oxo-1-phenyl-4,5-dihydro-1H-1,2-diazol-4-yl)ethanenitrile",
+     "2-(3-methyl-1-phenyl-5-pyrazolon-4-yl)ethanenitrile", "as above"),
+
+    # --- non-regression: the other PIN-ineligible retained stems, which
+    # share the gate that was extended to reach the pyrazolone.
+    ("D-022x", "C1Cc2ccccc2C1", "2,3-dihydro-1H-indene",
+     "2,3-dihydro-1H-indene", "unchanged"),
+    ("D-022y", "C1CCc2ccccc2C1", "1,2,3,4-tetrahydronaphthalene",
+     "1,2,3,4-tetrahydronaphthalene", "unchanged"),
+    # Pre-composed retained stems that are still PIN-eligible and must keep
+    # their retained names, including in substituent position.
+    ("D-022z", "O=S1(=O)CC=CC1CCN", "2-(sulfol-3-en-5-yl)ethanamine",
+     "2-(sulfol-3-en-5-yl)ethanamine", "unchanged"),
+    ("D-022w", "O=c1[nH][nH]c(=O)[nH]1", "urazol", "urazol", "unchanged"),
+    ("D-022v", "O=C1C=NNC1", "4-pyrazolone", "4-pyrazolone", "unchanged"),
+
     # --- non-regression: delocalised aromatic anions the ring-carbanion
     # classifier must NOT steal. Cyclopentadienide keeps its hydrogen and
     # is a delocalised pi anion with a retained name; benzenide is a sigma

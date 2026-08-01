@@ -54,7 +54,7 @@ that same extended corpus gives the comparison that was missing:
 | | corrected | exact | equivalent | wrong structure |
 |---|---|---|---|---|
 | as vendored | 148/165 (90%) | 79 | 69 | 15 |
-| after this work | **161/165 (98%)** | 80 | 81 | 1 |
+| after this work | **162/165 (98%)** | 80 | 82 | **0** |
 
 | category | as vendored | after |
 |---|---|---|
@@ -63,9 +63,10 @@ that same extended corpus gives the comparison that was missing:
 | onium_ion | 8/9 | **9/9** |
 | polycharged | 9/12 | **12/12** |
 
-Four failures remain, and only ONE is a wrong structure — the novel
-pyrazolone. The other three are two tautomers (not errors) and diazomethane,
-which now refuses rather than answering wrongly.
+**No wrong structures remain.** The three failures are two tautomers — same
+InChIKey, not errors — and diazomethane, which refuses rather than answering
+wrongly. Every row the engine still answers, it answers with a name that
+denotes the molecule it was given.
 
 All three defects the new categories exposed — phenyl anion (D-003),
 guanidinium (D-004), azide (D-016) — were fixed within a day of being made
@@ -76,7 +77,8 @@ visible. That is the corpus doing its job: none of them was findable from the
 |---|---|---|---|
 | 2026-08-01 | corpus extended to 165 | 158/165 | +41 charged species; baseline on the same corpus is 148/165 |
 | 2026-08-01 | aromatic ring carbanion + guanidinium | 160/165 | carbanion 7/8 -> 8/8, onium_ion 8/9 -> 9/9; delta reported both rows as FIXED |
-| 2026-08-01 | azide | **161/165** | polycharged 11/12 -> 12/12; all four charged categories now perfect |
+| 2026-08-01 | azide | 161/165 | polycharged 11/12 -> 12/12; all four charged categories now perfect |
+| 2026-08-01 | pyrazolone in substituent position | **162/165** | novel_unregistered 3/4 -> 4/4; **wrong_structure count reaches 0** |
 
 The extension paid for itself immediately: the two defects fixed in that last
 row were both surfaced by the new categories, and both moved the headline

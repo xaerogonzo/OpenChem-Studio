@@ -2,13 +2,12 @@
  {
   "label": "open-iupac-namer (VENDORED)",
   "total": 165,
-  "correct": 161,
+  "correct": 162,
   "counts": {
    "exact": 80,
-   "equivalent": 81,
+   "equivalent": 82,
    "gate_disagreement": 2,
-   "no_prediction": 1,
-   "wrong_structure": 1
+   "no_prediction": 1
   },
   "outcomes": [
    "exact",
@@ -131,7 +130,7 @@
    "equivalent",
    "equivalent",
    "equivalent",
-   "wrong_structure",
+   "equivalent",
    "equivalent",
    "equivalent",
    "equivalent",
