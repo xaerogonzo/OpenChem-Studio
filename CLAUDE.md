@@ -2,39 +2,68 @@
 
 ## Running the tests
 
-**Use `python -m pytest`, redirected to a file. Not `pytest -q` through a pipe.**
-
 ```bash
 uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suite.log
 ```
 
-The suite takes **~2m45s** and ends at roughly `1177 passed, 2 skipped`.
+A clean run is **~2m45s**, ending at roughly `1177 passed, 2 skipped`. Writing
+to a file rather than a pipe is worth doing because it lets you watch progress
+while it runs — but it is **not** what determines whether the run finishes.
 
-This form is not a preference. `uv run --no-sync pytest -q ... | tail` has hung
-twice, both times sitting at **~22 seconds of CPU across 40+ minutes of wall
-clock** — blocked, not working, and producing no output to suggest otherwise.
-The bad form goes through the `pytest.exe` console-script shim, which under
-`uv run` spawns an extra nested process (`uv.exe → pytest.exe → python.exe →
-python.exe`); the good form invokes pytest as a module and writes to a file
-instead of a pipe.
+### The suite can hang, and it is not the invocation
 
-The mechanism is **not fully root-caused**. What is established is that the
-module-plus-file form has never hung and the shim-plus-pipe form has hung
-twice. If you want to spend time pinning it down, do that deliberately —
-do not "just try `pytest -q` once to see", because the failure costs 40
-minutes of wall clock and looks exactly like a slow test run.
+**`QtWebEngineProcess.exe` instances accumulate and are never torn down.**
+A hung run was caught with **91 of them alive**, all children of the pytest
+process, all spawned within about six seconds of each other. The Python
+process sat at **14 seconds of CPU** while wall clock passed 40 minutes:
+blocked, not working, and producing no output to suggest otherwise.
 
-Related trap: the first hang was misdiagnosed as a bad shell wait-loop
-(`until grep -q "passed|failed"`, which never matched because `-q` buffers).
-That explanation was wrong, and accepting it cost a second 40-minute hang
-later the same day.
+Every `QWebEngineView` a test constructs spawns a set of Chromium helper
+processes. Nothing disposes of them between tests, so they pile up until
+something — handles, memory, a port — gives out and the run stops dead,
+always around the webview-heavy tests at roughly 30%.
 
-### One known-flaky test
+They ARE reaped when the pytest process exits: a successful run leaves zero
+behind, verified. That is why this stayed invisible for so long — there is no
+wreckage to find afterwards, only during. Check while a run is in flight, not
+after it.
+
+This also explains the "flaky" webview test below. Same root cause, two faces:
+under resource pressure the view sometimes fails to become ready (an `F`) and
+sometimes never returns at all (the hang). Whether a run finishes depends on
+machine state, not on how pytest was invoked.
+
+**If a run stalls**, check before assuming it is slow:
+
+```bash
+# Blocked, not busy, if CPU stays flat while wall clock climbs.
+powershell "Get-CimInstance Win32_Process -Filter \"Name='QtWebEngineProcess.exe'\" | Measure-Object | Select-Object Count"
+powershell "Get-Process QtWebEngineProcess | Stop-Process -Force"
+```
+
+**Two wrong explanations were believed before this one** — record them so a
+third does not get invented:
+
+1. A bad shell wait-loop (`until grep -q "passed|failed"`, which never matched
+   because `-q` buffers). Wrong, and accepting it cost a second 40-minute hang
+   the same day.
+2. The `pytest.exe` console-script shim under `uv run` spawning an extra
+   nested process. Plausible, written into this file as near-fact, and also
+   wrong — the module form hung the very next run. The shim was correlation.
+
+The real fix is disposing of web views in test teardown. Until that is done,
+a hang is a resource leak to be killed and re-run, not a mystery.
+
+### One known-flaky test — the same leak, milder
 
 `tests/test_mol3d_viewer_backend.py::test_apply_visualization_sets_atom_colors`
 fails intermittently on `QWebEngineView` readiness and passes in isolation.
-Sometimes a sibling test in that file fails instead. Re-run the file alone
-before treating it as a regression.
+Sometimes a sibling test in that file fails instead — which is the tell that
+the test is not what is wrong. It is the leak above, caught at the point where
+starting one more Chromium process is slow rather than impossible.
+
+Re-run the file alone before treating it as a regression. Fixing the teardown
+should fix this too; if it does not, then there is a second, real bug here.
 
 ### The vendored nomenclature engine's own suite
 
