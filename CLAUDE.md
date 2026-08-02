@@ -6,43 +6,43 @@
 uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suite.log
 ```
 
-A clean run is **~2m45s**, ending at roughly `1177 passed, 2 skipped`. Writing
-to a file rather than a pipe is worth doing because it lets you watch progress
-while it runs — but it is **not** what determines whether the run finishes.
+A clean run is **~1m40s**, ending at `1178 passed, 2 skipped`. Writing to a
+file rather than a pipe is worth doing because it lets you watch progress
+while it runs.
 
-### The suite can hang, and it is not the invocation
-
-**`QtWebEngineProcess.exe` instances accumulate and are never torn down.**
-A hung run was caught with **91 of them alive**, all children of the pytest
-process, all spawned within about six seconds of each other. The Python
-process sat at **14 seconds of CPU** while wall clock passed 40 minutes:
-blocked, not working, and producing no output to suggest otherwise.
-
-Every `QWebEngineView` a test constructs spawns a set of Chromium helper
-processes. Nothing disposes of them between tests, so they pile up until
-something — handles, memory, a port — gives out and the run stops dead,
-always around the webview-heavy tests at roughly 30%.
-
-They ARE reaped when the pytest process exits: a successful run leaves zero
-behind, verified. That is why this stayed invisible for so long — there is no
-wreckage to find afterwards, only during. Check while a run is in flight, not
-after it.
-
-This also explains the "flaky" webview test below. Same root cause, two faces:
-under resource pressure the view sometimes fails to become ready (an `F`) and
-sometimes never returns at all (the hang). Whether a run finishes depends on
-machine state, not on how pytest was invoked.
-
-**If a run stalls**, check before assuming it is slow:
+The suite also needs the optional extras installed, or ~40 tests fail on
+missing imports and it looks like something is badly broken when nothing is:
 
 ```bash
-# Blocked, not busy, if CPU stays flat while wall clock climbs.
-powershell "Get-CimInstance Win32_Process -Filter \"Name='QtWebEngineProcess.exe'\" | Measure-Object | Select-Object Count"
-powershell "Get-Process QtWebEngineProcess | Stop-Process -Force"
+uv sync --extra ai --extra network --extra openbabel
 ```
 
-**Two wrong explanations were believed before this one** — record them so a
-third does not get invented:
+(Not `--all-extras`: that pulls in `docking`, whose `vina` wheel builds from
+source and needs Boost. The reference environment does not have it.)
+
+### The suite used to hang — fixed, kept here as history
+
+This is no longer something to work around. It is recorded because the cause
+took three attempts to identify and the failure mode was invisible.
+
+**`QtWebEngineProcess.exe` instances accumulated and were never torn down.**
+Every `QWebEngineView` a test constructs spawns Chromium helper processes, and
+nothing disposed of them between tests. A hung run was caught with **91 alive**;
+a measured baseline reached **116**, plateauing near 88, with the Python
+process at **14 seconds of CPU** while wall clock passed 40 minutes — blocked,
+not working. They pile up until something (handles, memory, a port) gives out,
+always around the webview-heavy tests at roughly 30%.
+
+They ARE reaped when pytest exits, so a post-mortem finds zero and looks
+healthy. **The count only means anything sampled DURING a run.**
+
+The fix is the autouse `dispose_web_engine_views` fixture in
+`tests/conftest.py` — read its docstring before changing anything there, since
+two plausible-looking implementations of it crash. Measured across two full
+runs after the fix: peak **6** processes, mostly 0–1, against 116 before.
+
+**Three wrong explanations were believed before the right one** — recorded so
+a fourth does not get invented:
 
 1. A bad shell wait-loop (`until grep -q "passed|failed"`, which never matched
    because `-q` buffers). Wrong, and accepting it cost a second 40-minute hang
@@ -50,20 +50,29 @@ third does not get invented:
 2. The `pytest.exe` console-script shim under `uv run` spawning an extra
    nested process. Plausible, written into this file as near-fact, and also
    wrong — the module form hung the very next run. The shim was correlation.
+3. While fixing it: that tearing pages down mid-load caused the teardown
+   crash, so `view.stop()` was the cure. Removing `stop()` did not reproduce
+   the crash in 8 runs. The actual cause was
+   `sendPostedEvents(None, DeferredDelete)` draining every pending deferred
+   delete in the process, including ones other tests had queued on
+   already-collected objects. It is now flushed per view.
 
-The real fix is disposing of web views in test teardown. Until that is done,
-a hang is a resource leak to be killed and re-run, not a mystery.
+If a run ever stalls again, sample before assuming it is slow:
 
-### One known-flaky test — the same leak, milder
+```bash
+powershell "(Get-CimInstance Win32_Process -Filter \"Name='QtWebEngineProcess.exe'\" | Measure-Object).Count"
+```
+
+### The formerly-flaky webview test
 
 `tests/test_mol3d_viewer_backend.py::test_apply_visualization_sets_atom_colors`
-fails intermittently on `QWebEngineView` readiness and passes in isolation.
-Sometimes a sibling test in that file fails instead — which is the tell that
-the test is not what is wrong. It is the leak above, caught at the point where
-starting one more Chromium process is slow rather than impossible.
+used to fail intermittently on `QWebEngineView` readiness (sometimes a sibling
+failed instead — the tell that the test was not what was wrong). It was the
+leak above, caught where starting one more Chromium process was slow rather
+than impossible.
 
-Re-run the file alone before treating it as a regression. Fixing the teardown
-should fix this too; if it does not, then there is a second, real bug here.
+It failed on the pre-fix baseline run and has passed **5 consecutive full runs**
+since. If it flakes again, that is a genuinely new bug, not this one.
 
 ### The vendored nomenclature engine's own suite
 

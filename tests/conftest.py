@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
+import weakref
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -17,8 +18,113 @@ if str(PLUGINS_DIR) not in sys.path:
     sys.path.insert(0, str(PLUGINS_DIR))
 
 import pytest
-from PySide6.QtCore import QSettings
+import shiboken6
+from PySide6.QtCore import QCoreApplication, QEvent, QSettings
 from PySide6.QtWidgets import QApplication
+
+
+# Weak refs to every QWebEngineView built since the current test started.
+# Weak so that merely watching a view never keeps it alive.
+_views_created_during_test: list[weakref.ref] = []
+
+
+def _track_web_engine_views() -> bool:
+    """Start recording `QWebEngineView` construction, once. True if views
+    can now be tracked at all.
+
+    Wrapping the constructor is deliberate, and the second thing tried.
+    The obvious approach -- sweep `QApplication.allWidgets()` in teardown
+    and destroy any view found -- reads better and is wrong: Chromium
+    constantly creates and destroys its OWN internal QWidgets for each
+    page, so enumerating every widget while that churn is in flight
+    faulted outright (an access violation inside `allWidgets()`, roughly
+    one run in six). Recording construction only ever yields the handful
+    of views the tests themselves asked for, and never races Chromium's
+    private widgets.
+
+    Nothing happens until something imports the web-engine module --
+    until then no view can exist, and importing it here would drag
+    Chromium into the ~1000 tests that never touch a webview.
+    """
+    module = sys.modules.get("PySide6.QtWebEngineWidgets")
+    if module is None:
+        return False
+    view_type = module.QWebEngineView
+    if getattr(view_type.__init__, "_openchem_tracks_views", False):
+        return True
+
+    original_init = view_type.__init__
+
+    def tracking_init(self, *args, **kwargs):
+        original_init(self, *args, **kwargs)
+        _views_created_during_test.append(weakref.ref(self))
+
+    tracking_init._openchem_tracks_views = True
+    view_type.__init__ = tracking_init
+    return True
+
+
+@pytest.fixture(autouse=True)
+def dispose_web_engine_views():
+    """Destroy any `QWebEngineView` a test created, before the next runs.
+
+    Without this the suite HANGS, and that is the entire reason the
+    fixture exists -- nothing in the code below hints at it. Every
+    `QWebEngineView` spawns its own Chromium helper processes, and Qt
+    reaps them only when the pytest process itself exits, not when the
+    last Python reference to a view goes away. So they accumulate: nine
+    test files build web-engine-backed objects and none disposed of them,
+    which carried one run to 116 live `QtWebEngineProcess.exe` before
+    something (handles, memory, a port) gave out and pytest blocked
+    forever at around 30%, sitting at 14 seconds of CPU across 40 minutes
+    of wall clock while printing nothing at all. Since the strays die
+    with the process, a post-mortem finds zero of them and looks
+    perfectly healthy -- the count only means anything sampled DURING a
+    run, never after one.
+
+    Pumping `DeferredDelete` is what makes it work at all: `deleteLater()`
+    only posts an event, so with nothing draining it the destruction never
+    happens and the processes stay. There is deliberately no blocking wait
+    afterwards -- measured, the count stays flat without one, because
+    Chromium reaps each helper on its own once the page is destroyed.
+
+    `stop()` is precautionary, not proven. Some tests build a backend and
+    never wait for it
+    (`test_set_render_option_before_ketcher_is_ready_does_not_raise` is
+    exactly that), so teardown can land mid-load; cancelling first is the
+    cheap defensive move. Removing it did NOT reproduce any crash in 8
+    runs of the pair that used to fail, so do not read it as the fix --
+    the fix is the per-view flush below.
+
+    Scope is "created during this test", so a view meant to outlive one
+    test would be destroyed under it. Nothing does that today -- every web
+    view in the suite is built inside the test or a function-scoped
+    fixture -- and anything that ever needs to should hold its view in a
+    wider-scoped fixture and be excluded here explicitly, rather than
+    this quietly growing an exception.
+    """
+    tracking = _track_web_engine_views()
+    _views_created_during_test.clear()
+
+    yield
+
+    if not tracking:
+        return
+    created = [ref() for ref in _views_created_during_test]
+    _views_created_during_test.clear()
+    live = [v for v in created if v is not None and shiboken6.isValid(v)]
+    if not live:
+        return
+    for view in live:
+        view.stop()
+        view.deleteLater()
+        # Flushed per view, never as sendPostedEvents(None, DeferredDelete).
+        # The global form drains EVERY pending deferred delete in the
+        # process, including ones unrelated tests left queued on objects
+        # Python had already collected -- which double-freed and crashed
+        # here, but only once some earlier test had queued one (jobs-panel
+        # widgets, say), so it looked like a webview bug and was not.
+        QCoreApplication.sendPostedEvents(view, QEvent.Type.DeferredDelete)
 
 
 @pytest.fixture(scope="session")
