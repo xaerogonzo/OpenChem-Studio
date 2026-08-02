@@ -32,12 +32,13 @@ subscribe by event type rather than by ad-hoc signal name.
 | Package | Responsibility |
 |---|---|
 | `openchem.domain` | Pure data: `MoleculeModel`, `ProjectModel`, `DescriptorValue`, `ConformerModel`, `MacromoleculeModel`, `DockingBox`/`DockingPoseModel`/`DockingResultModel`, plus the shared `CacheState` enum and `Provenance` dataclass (`domain/common.py`). No RDKit, no Qt. Molecules (and macromolecules, and docking results) are identified by UUID, never filename or list position. |
-| `openchem.chem` | `ChemistryEngine` (MoleculeModel <-> RDKit Mol, canonicalization, 3D measurement via `rdMolTransforms`, and `formal_charge()` — the one place the UI layer can get a chemistry-derived default without importing rdkit itself), `DescriptorProvider`/`ConformerProvider`/`DockingProvider` implementations, `Importer`/`Exporter` backends, `vina_engine.py` (`VinaEngine` abstraction — see below), `orca_engine.py` (ORCA input building + output parsing). The only place `rdkit`/`openbabel` are imported. |
+| `openchem.chem` | `ChemistryEngine` (MoleculeModel <-> RDKit Mol, canonicalization, 3D measurement via `rdMolTransforms`, and `formal_charge()` — the one place the UI layer can get a chemistry-derived default without importing rdkit itself), `DescriptorProvider`/`ConformerProvider`/`DockingProvider` implementations, `Importer`/`Exporter` backends, `vina_engine.py` (`VinaEngine` abstraction — see below), `orca_engine.py` (ORCA input building + output parsing), `naming_providers.py` (structure <-> name across PubChem, the vendored nomenclature engine, and OPSIN — each result labelled with its source and whether it is `exact`, `derived` or `parsed`), and `identifiers.py` (SMILES/InChI/InChIKey for a structure, which is how a compound with no verified name gets referred to at all). The only place `rdkit`/`openbabel` are imported. |
 | `openchem.services` | `DescriptorService`, `ConformerService`, `MeasurementService`, `ImportService`, `ExportService`, `ProjectService`, `DockingService`, `QuantumChemistryService`, plus `ProgressHandle` for cancellable/progress-reporting long operations. All but `QuantumChemistryService` own `QThreadPool` execution and publish events — `QuantumChemistryService` is the one exception (see design decisions below). |
 | `openchem.commands` | `QUndoCommand` subclasses wrapping service calls, giving undo/redo for structure edits, conformer generation, docking results, quantum-chemistry conformers, and project operations from day one. |
 | `openchem.plugins` | `interfaces.py` (`Plugin`, `DescriptorProvider`, `ConformerProvider`, `DockingProvider`, `QuantumEngineProvider`, `PanelProvider`, `MenuProvider`, `Importer`, `Exporter`), `manifest.py` (`PluginManifest` + dependency topological sort), `context.py` (`PluginContext`, including the `context.secrets` namespace backed by the OS keychain via `keyring`, and `context.molecules`/`context.docking`/`context.quantum_chemistry`), `ui_registry.py` (`UIRegistry` protocol), `manager.py` (`PluginManager` — discovery, transactional load/unload/reload, hot-reload watcher). See `PLUGIN_SDK.md`. |
 | `openchem.app` | Composition: `MainWindow`, typed `Settings`, `SessionManager`, structured logging setup. `MainWindow` implements the `UIRegistry` protocol and constructs `PluginManager` at the end of `__init__`. |
 | `openchem.ui` | Widgets and dock panels. `EditorBackend`/`KetcherEditorBackend` (2D, `resources/ketcher/dist/`), `ViewerBackend`/`Mol3DViewerBackend` (3D small molecules, `resources/viewer3d/`, 3Dmol.js), and `ViewerBackend`/`MolStarViewerBackend` (macromolecules/crystallography, `resources/molstar/`, Mol*) are interface + implementation pairs — new content types get a sibling implementation, or a new optional capability method on the shared `ViewerBackend` base, without touching chemistry, services, or commands. `panels/docking_panel.py` and `panels/quantum_chemistry_panel.py` are core (not plugin) panels, same tier as `PropertyPanel`. |
+| `openchem.vendor` | Third-party code owned in-tree rather than depended on. Currently one entry: `iupac_namer`, a deterministic IUPAC nomenclature engine (structure -> name). Reached only through `chem/naming_providers.py`; nothing else imports it. See below and `vendor/VENDORING.md`. |
 | `plugins/ai_assistant` | Bundled first-party plugin (loads by default, unlike `examples/`). `providers.py` (`AIProvider` ABC, `AnthropicProvider`, `OpenAICompatibleProvider` covering OpenAI + local Ollama, `ClaudeCLIProvider` driving a locally-logged-in `claude` CLI headless for claude.ai subscription users with no separate API key), `context_builder.py` (`MoleculeContextCache` — accumulates molecule identity/descriptors purely from subscribed events, same pattern as `PropertyPanel`), `panel.py` (chat UI), `plugin.py` (registers the panel + two menu-driven canned prompts). Kept out of core `openchem` so the `anthropic`/`openai` SDKs stay optional (`pyproject.toml`'s `ai` extra) — `ClaudeCLIProvider` needs neither, just `claude` on PATH. |
 | `plugins/database_search` | Bundled plugin: `DatabaseSearchProvider` ABC (`PubChemProvider`, `ChEMBLProvider`), search results import as a new molecule via `context.molecules.add(...)`. `requests` stays optional (`network` extra). |
 | `plugins/reaction_prediction` | Bundled plugin: `ReactionPredictor` ABC (`RDKitTemplateProvider` — deterministic, zero-config; `RemoteReactionAPIProvider` — optional, configured via `context.settings`/`context.secrets`). |
@@ -70,6 +71,34 @@ same no-build-step pattern as `viewer3d/`, not Ketcher's: `molstar.js`/
 adapted from Mol*'s own `build/viewer/embedded.html` example (its default
 `index.html` is a full demo UI, not what's wanted here).
 
+### `src/openchem/vendor/` — the IUPAC nomenclature engine
+
+The one vendored **Python** library, and unlike the browser assets above it
+is not a build artifact of somebody else's release: it is a 63,000-line
+structure-to-name engine (`iupac_namer`, MIT) implementing the 2013 IUPAC
+Blue Book, plus ~36,000 lines of nomenclature tables in `vendor/data/`.
+
+It is vendored rather than depended on because **upstream is abandoned** —
+created and last pushed the same day, three commits, one author, never
+published to PyPI. With no upstream to track, depending on it and owning it
+are the same act. `vendor/VENDORING.md` records the pinned commit, the
+licence, and the single mechanical change made (302 imports re-homed).
+
+Two traps for anyone editing it:
+
+- `vendor/data/` is a **sibling** of `vendor/iupac_namer/`, not inside it,
+  because data files are resolved from several different module depths.
+  Moving it into the package requires patching every resolver and breaks on
+  the second one.
+- Its ~3,200 own tests live in `tests/vendor/` and are **excluded from the
+  default run** (`norecursedirs`) — they take ~10 minutes. Run them after any
+  change under `vendor/`, with Java on PATH. See `CLAUDE.md`.
+
+`benchmarks/naming/` is the arbiter for naming quality: 181 molecules scored
+by OPSIN round-trip rather than string equality. It has twice overturned a
+conclusion reached without it, and it is what justified adopting this engine
+over a 1.1 GB ML alternative that scored 26 points lower.
+
 ## Vendored library maintenance
 
 Confirm this against the actual installed package version before
@@ -98,6 +127,26 @@ it).
 - **Open Babel is a fallback, not a foundation.** `chem/io_backends.py` tries
   the RDKit importer/exporter first for every format and only instantiates
   (and imports) `openbabel` when RDKit lacks support for that format.
+- **Naming reports every source separately, never one merged answer.**
+  A PubChem record is a curated fact; a generated name is a derivation. They
+  differ in authority and collapsing them into one string would erase that,
+  so `compute_iupac_name` returns each labelled with `source` and `kind`
+  (`exact` / `derived` / `parsed`).
+- **A generated name is withheld unless it round-trips.** `derived_name_for_
+  structure` feeds its own output back through OPSIN and requires the same
+  structure out. A rule engine cannot be fluently wrong the way a language
+  model can, but it can still be wrong, and a wrong systematic name looks
+  exactly as authoritative as a right one. No parser available means the
+  name is flagged unverified, not silently trusted.
+- **Every outbound HTTP request goes through `openchem/net.py`.** It exists
+  because Adoptium sits behind Cloudflare, which rejects Python's default
+  `Python-urllib/3.x` User-Agent with a 403 whose body says only
+  `error code: 1010` — the Java installer failed on exactly this and reported
+  it as a download failure. Identifying the client is also what NCBI's usage
+  policy asks of PubChem callers. It sits at the package root, like
+  `paths.py`, because callers span layers: `chem/naming_providers.py` reaches
+  PubChem and `chem/` must not import from `services/`. A test fails the
+  build if any module opens a URL directly.
 - **`ProjectModel` carries `project_version` / `application_version` /
   `schema_version`** from the start so a future format change is a migration
   in `ProjectService`, not a breaking change. `MoleculeModel.conformers` was

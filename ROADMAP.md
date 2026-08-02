@@ -253,6 +253,41 @@ explicitly out of scope.
       poses. Nuitka packaging (`build.ps1`/`build.bat`) — out of scope for
       this phase, not needed until an actual release build.
 
+## Naming — resolved, and how
+
+Structure-to-name went through three answers in one day. Recorded because
+each one was overturned by measurement, and the record is what makes the
+next reassessment cheap.
+
+**STOUT is dead.** The address compiled into `STOUT-pypi` 2.0.5 returns 404,
+the whole storage bucket 404s on a listing, and the upstream repository no
+longer exists on GitHub. Not recoverable from here. `services/stout_setup.py`
+checks this before spending ~600 MB on TensorFlow, and reports it as
+upstream's outage rather than as a local failure.
+
+**The ML replacement was rejected on evidence.** `SMILES2IUPAC-canonical-base`
+scored 71% against the benchmark below — but split by whether PubChem already
+had an answer, it was 87/118 where a lookup already worked and **1/6 where it
+did not**. It had learned the distribution of known compounds, not the naming
+rules, and 1.1 GB of torch to be right one time in six on the only cases that
+matter is a bad trade. It also crashed on every stereochemical input.
+
+**What shipped is deterministic.** A vendored Blue Book engine
+(`src/openchem/vendor/`, see ARCHITECTURE.md) scores 180/181 with
+stereochemistry 11/11, needs nothing beyond RDKit, and runs in ~12 ms.
+The stack is PubChem first (exact, curated), then the engine (derived,
+verified by OPSIN round-trip), with OPSIN also serving name-to-structure.
+
+`benchmarks/naming/` is the permanent regression check — 181 molecules
+scored by round-trip, not string equality, with failures classified so that
+"99% correct" cannot hide *which* 1%. Adding an engine means producing a
+predictions file and running one command. Do that before believing any
+future claim that something is better.
+
+**Still open:** metformin is a `gate_disagreement` (canonical SMILES and
+InChIKey disagree over a tautomer, surfaced rather than scored as wrong).
+Solvent-dependent and 2D-correlation naming remain out of scope.
+
 ## Future extension point — ML Calculator Plugins
 
 Not a phase, not built — a documented starting point so this doesn't get

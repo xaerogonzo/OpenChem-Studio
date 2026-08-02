@@ -10,6 +10,20 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the internal design,
 [ROADMAP.md](ROADMAP.md) for the phased development plan, and
 [PLUGIN_SDK.md](PLUGIN_SDK.md) for writing your own plugins.
 
+## Naming molecules
+
+Structure-to-name works offline and without a model. Known compounds resolve
+against PubChem; anything else — including structures nothing has ever
+registered — is named by a vendored deterministic IUPAC engine, and every
+generated name is verified by parsing it back with OPSIN before it is shown.
+Names carry their source and whether they are `exact`, `derived` or `parsed`;
+they are never merged into a single unattributed answer.
+
+Accuracy is measured, not asserted: `benchmarks/naming/` scores 181 molecules
+by structural round-trip rather than string equality. Current: **180/181**,
+stereochemistry 11/11. Run it before believing any claim that a different
+engine is better.
+
 ## Development setup
 
 ```bash
@@ -20,8 +34,13 @@ uv run python -m openchem.main
 Run the test suite:
 
 ```bash
-uv run pytest
+uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suite.log
 ```
+
+Invoke pytest as a module and redirect to a file. `uv run pytest -q ... | tail`
+has hung twice for ~40 minutes at almost no CPU; see [CLAUDE.md](CLAUDE.md).
+The vendored nomenclature engine's own ~3,200 tests are excluded from that run
+— `uv run --no-sync python -m pytest tests/vendor -q`, with Java on PATH.
 
 ## License
 
