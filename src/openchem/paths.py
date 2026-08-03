@@ -105,6 +105,57 @@ def cache_root() -> Path:
     return Path(platformdirs.user_cache_dir(APP_NAME, appauthor=False))
 
 
+#: Used when the cache root contains a space. Deliberately at the drive
+#: root rather than tucked under the data root -- anything under a parent
+#: whose name has a space inherits the problem.
+_SPACE_FREE_CACHE_DIRNAME = "OpenChemStudio-scratch"
+
+
+def space_free_cache_root() -> Path:
+    """`cache_root()`, or somewhere without spaces if that has one.
+
+    ORCA CANNOT READ AN INPUT PATH CONTAINING A SPACE. It does not fail
+    cleanly either: it starts, prints its banner, and then reports
+
+        Error: Cannot open input file D:\\Random
+
+    having truncated `D:\\Random Programs\\...` at the space. Confirmed
+    against a real ORCA 6.1.1 by running the same job from a spaced and an
+    unspaced directory -- the second returned an energy, the first did not.
+
+    `quantum_chemistry_service` already knew this and avoided deriving the
+    scratch directory from the source tree, which lives under
+    "OpenChem Studio". What it could not foresee is that `cache_root()`
+    follows the CONFIGURABLE data root, so a user who points their data at
+    `D:\\Random Programs\\...` silently reintroduces exactly the thing the
+    original comment was guarding against. This makes the requirement hold
+    for real instead of by assumption.
+
+    Stays on the SAME DRIVE as the configured cache, because the reason
+    that root is configurable is that a geometry optimisation writes
+    gigabytes and someone moved it off the system disk on purpose. Falling
+    back to a temp directory would quietly undo that.
+
+    Note the 8.3 short-name trick does NOT work as a substitute: on the
+    machine this was found on, `GetShortPathName` returned the spaced path
+    unchanged because 8.3 generation is disabled on that volume. It looks
+    like a fix and does nothing.
+    """
+    cache = cache_root()
+    if " " not in str(cache):
+        return cache
+    anchor = Path(cache.anchor)
+    candidate = anchor / _SPACE_FREE_CACHE_DIRNAME
+    # A UNC share can itself contain a space (`\\\\host\\My Share\\`), and
+    # then there is nowhere space-free on that volume to retreat to. Return
+    # the spaced path rather than a wrong one: the caller reports ORCA's own
+    # failure, which is at least truthful, instead of writing somewhere the
+    # user never chose.
+    if " " in str(candidate):
+        return cache
+    return candidate
+
+
 def subdirectory(name: str) -> Path:
     """A named directory under the data root, e.g. `subdirectory("jre")`."""
     return data_root() / name
