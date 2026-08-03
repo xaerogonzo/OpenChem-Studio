@@ -440,3 +440,144 @@ def test_checked_boltzmann_with_one_conformer_takes_the_ordinary_path(qapp):
 
     assert len(service.requests) == 1
     assert service.boltzmann_requests == []
+
+
+def _ethanol_panel(bus, engine, settings, service):
+    """A panel with a real ethanol conformer, run-clicked so the panel holds
+    the mol its hybrid merge needs."""
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    panel = QuantumChemistryPanel(service, engine, settings, bus)
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    mol_3d = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(mol_3d, randomSeed=7)
+    molecule.conformers.append(
+        ConformerModel(molblock=Chem.MolToMolBlock(mol_3d), method="rdkit_etkdg")
+    )
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    panel._method_combo.setCurrentText("B3LYP def2-SVP")
+    panel._on_run_clicked()
+    return panel, molecule, mol_3d
+
+
+def test_the_hybrid_tab_refuses_an_unscaled_spectrum(qapp):
+    """TMS referencing removes an offset but not the scale error, so
+    merging those values into measured ones would put part of the spectrum
+    on a different scale -- a step that reads as chemistry."""
+    from openchem.domain.common import Provenance
+
+    bus = EventBus()
+    engine = ChemistryEngine()
+    panel, molecule, mol_3d = _ethanol_panel(
+        bus, engine, Settings(bus), _RecordingQuantumChemistryService(bus)
+    )
+
+    bus.publish(
+        SpectrumComputed(
+            spectrum=NMRSpectrumResult(
+                spectrum_type="nmr_13c",
+                name="TMS referenced",
+                units="ppm",
+                method="orca",
+                molecule_uuid=molecule.uuid,
+                values={0: 15.0, 1: 58.0},
+                elements={0: "C", 1: "C"},
+                provenance=Provenance(created_by="core", method="orca", parameters={"referencing": "tms"}),
+            )
+        )
+    )
+
+    assert panel._hybrid_table.rowCount() == 0
+    assert "empirically scaled" in panel._hybrid_summary_label.text()
+
+
+def test_the_hybrid_tab_picks_each_atoms_less_wrong_method(qapp, monkeypatch):
+    """The wiring end to end: a well-covered carbon keeps the database
+    value, a poorly covered one takes the calculation."""
+    from openchem.chem import nmr_database
+    from openchem.domain.common import CacheState, Provenance
+
+    bus = EventBus()
+    engine = ChemistryEngine()
+    panel, molecule, mol_3d = _ethanol_panel(
+        bus, engine, Settings(bus), _RecordingQuantumChemistryService(bus)
+    )
+
+    def fake_predict(mol, molecule_uuid, element="C", **kwargs):
+        if element != "C":
+            return NMRSpectrumResult(
+                spectrum_type="nmr_1h",
+                name="H NMR (database)",
+                units="ppm",
+                method="hose_lookup",
+                molecule_uuid=molecule_uuid,
+                cache_state=CacheState.FAILED,
+                error="nothing indexed",
+            )
+        return NMRSpectrumResult(
+            spectrum_type="nmr_13c",
+            name="C NMR (database)",
+            units="ppm",
+            method="hose_lookup",
+            molecule_uuid=molecule_uuid,
+            values={0: 18.3, 1: 52.0},
+            elements={0: "C", 1: "C"},
+            cache_state=CacheState.COMPLETED,
+            provenance=Provenance(
+                created_by="core",
+                method="hose_lookup",
+                parameters={
+                    "per_atom": {
+                        "0": {"quality": "good", "matches": 40, "spheres": 4},
+                        "1": {"quality": "rough", "matches": 1, "spheres": 2},
+                    }
+                },
+            ),
+        )
+
+    monkeypatch.setattr(nmr_database, "predict_spectrum", fake_predict)
+
+    bus.publish(
+        SpectrumComputed(
+            spectrum=NMRSpectrumResult(
+                spectrum_type="nmr_13c",
+                name="scaled",
+                units="ppm",
+                method="orca",
+                molecule_uuid=molecule.uuid,
+                values={0: 18.6, 1: 58.4},
+                elements={0: "C", 1: "C"},
+                provenance=Provenance(
+                    created_by="core",
+                    method="orca",
+                    parameters={
+                        "referencing": "empirical_linear_scaling",
+                        "scaling_C": {
+                            "slope": -1.04,
+                            "intercept": 186.2,
+                            "r_squared": 0.998,
+                            "sample_count": 7,
+                            "residual_rms": 1.5,
+                        },
+                    },
+                ),
+            )
+        )
+    )
+
+    rows = {
+        panel._hybrid_table.item(row, 0).text(): (
+            panel._hybrid_table.item(row, 2).text(),
+            panel._hybrid_table.item(row, 3).text(),
+        )
+        for row in range(panel._hybrid_table.rowCount())
+    }
+    assert rows == {"0": ("18.300", "trusted lookup"), "1": ("58.400", "ORCA (scaled)")}
+    summary = panel._hybrid_summary_label.text()
+    assert "1 ORCA (scaled)" in summary and "1 trusted lookup" in summary
+    assert "calibration check passed against 1 trusted values" in summary

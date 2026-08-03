@@ -197,8 +197,17 @@ def fit_scaling(points: list[tuple[float, float]]) -> ScalingFactors:
             f"Calibration fit is too poor to use (R^2 = {r_squared:.3f}). Check that the "
             "reference calculations completed and used consistent settings."
         )
+    # The residual sum is already here for R^2; taking its RMS costs
+    # nothing and is the only number downstream can compare against the
+    # database's measured per-band MAE. R^2 cannot fill that role: it is
+    # unitless, and 0.999 over a 200 ppm range still leaves several ppm.
+    residual_rms = (residual / count) ** 0.5
     return ScalingFactors(
-        slope=slope, intercept=intercept, r_squared=r_squared, sample_count=count
+        slope=slope,
+        intercept=intercept,
+        r_squared=r_squared,
+        sample_count=count,
+        residual_rms=residual_rms,
     )
 
 

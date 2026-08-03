@@ -966,6 +966,10 @@ class QuantumChemistryService(QObject):
                 "intercept": fitted.intercept,
                 "r_squared": fitted.r_squared,
                 "sample_count": fitted.sample_count,
+                # Carried because it is this method's expected error in
+                # ppm, which is what `nmr_hybrid` selects on. Keys match
+                # ScalingFactors' fields so the reader can rebuild one.
+                "residual_rms": fitted.residual_rms,
             }
         # Provenance is CREATED when absent rather than left None: how a
         # value was referenced is the difference between 128 ppm and a raw

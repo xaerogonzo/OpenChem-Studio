@@ -25,6 +25,20 @@ class ScalingFactors:
     intercept: float
     r_squared: float
     sample_count: int
+    #: RMS of the fit's own residuals, in ppm -- how far the reference
+    #: compounds actually sat from the fitted line.
+    #:
+    #: This is the honest answer to "how accurate is a scaled shielding
+    #: from THIS install at THIS method/basis". R^2 says the line explains
+    #: the variance; it says nothing about scale, and an R^2 of 0.999 over
+    #: a 200 ppm range still leaves several ppm of error. Selecting between
+    #: prediction methods needs a number in ppm, not a correlation, which
+    #: is why this exists rather than a remembered "about 1.5".
+    #:
+    #: Optional because a stored calibration from before this field
+    #: existed has no value for it, and "unknown" must stay distinguishable
+    #: from "zero" -- see `nmr_hybrid`, where unknown loses to measured.
+    residual_rms: float | None = None
 
     def apply(self, shielding: float) -> float:
         return self.slope * shielding + self.intercept

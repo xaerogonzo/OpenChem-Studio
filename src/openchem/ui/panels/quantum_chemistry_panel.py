@@ -45,6 +45,23 @@ from openchem.ui.widgets.nmr_view_widget import NmrViewWidget
 
 _NMR_SPECTRUM_COLUMNS = ("Atom", "Element", "Value (ppm)")
 _CORRELATION_COLUMNS = ("Atom A", "Atom B", "Shift A", "Shift B", "J (Hz)")
+# "Source" is a first-class column, not something to dig out of provenance:
+# a spectrum drawn from two methods that does not say which value came from
+# where is harder to trust than either method alone.
+_HYBRID_COLUMNS = (
+    "Atom",
+    "Element",
+    "Shift (ppm)",
+    "Source",
+    "Expected error",
+    "Methods differ by",
+)
+_HYBRID_UNAVAILABLE_NOTE = (
+    "The hybrid view merges this calculation with the experimental-shift database, "
+    "per atom. It needs an empirically scaled spectrum — calibrate this method/basis "
+    "first (Calibrate Reference), since TMS referencing alone leaves the computed "
+    "values on a different scale from measured ones."
+)
 _RAW_SHIELDING_NOTE = (
     "Note: isotropic shielding constants, not yet referenced to a standard (e.g. TMS) "
     "as a chemical shift — treat as raw ORCA output, not a directly comparable δ (ppm) value."
@@ -190,6 +207,23 @@ class QuantumChemistryPanel(QWidget):
         self._nmr_view_tab = QWidget(self._correlation_tabs)
         self._nmr_view_layout = QVBoxLayout(self._nmr_view_tab)
         self._correlation_tabs.addTab(self._nmr_view_tab, "1D Signals")
+
+        # Hybrid: this calculation merged with the experimental-shift
+        # lookup, per atom, choosing whichever expects to be less wrong.
+        # Built here rather than on first result because it is a plain
+        # label and table -- nothing expensive to defer.
+        hybrid_tab = QWidget(self._correlation_tabs)
+        hybrid_layout = QVBoxLayout(hybrid_tab)
+        self._hybrid_summary_label = QLabel("", hybrid_tab)
+        self._hybrid_summary_label.setWordWrap(True)
+        self._hybrid_table = QTableWidget(0, len(_HYBRID_COLUMNS), hybrid_tab)
+        self._hybrid_table.setHorizontalHeaderLabels(_HYBRID_COLUMNS)
+        self._hybrid_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self._hybrid_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        hybrid_layout.addWidget(self._hybrid_summary_label)
+        hybrid_layout.addWidget(self._hybrid_table)
+        self._correlation_tabs.addTab(hybrid_tab, "Hybrid")
+
         self._correlation_tables: dict[str, QTableWidget] = {}
         self._correlation_plots: dict[str, NmrCorrelationPlotWidget] = {}
         for correlation_type, _compute_fn, _x_label, _y_label in _CORRELATION_SPECS:
@@ -460,6 +494,7 @@ class QuantumChemistryPanel(QWidget):
 
         self._update_nmr_view(spectrum)
         self._update_correlation_tabs(spectrum)
+        self._update_hybrid_tab(spectrum)
 
     def _update_nmr_view(self, spectrum: SpectrumResult) -> None:
         """Populates the 1D signal view -- the same `NmrViewWidget` the
@@ -494,6 +529,115 @@ class QuantumChemistryPanel(QWidget):
                 ]
             self._populate_correlation_tab(correlation_type, cross_peaks, spectrum, x_label, y_label)
         self._correlation_tabs.setVisible(True)
+
+    def _update_hybrid_tab(self, spectrum: SpectrumResult) -> None:
+        """Merges this calculation with the database lookup, per atom.
+
+        Runs only against an empirically scaled spectrum. A raw or
+        TMS-only one is refused rather than merged: the database's values
+        are measured ppm, and TMS referencing removes an offset without
+        removing the scale error, so splicing the two would produce a
+        step in the spectrum that reads as chemistry.
+        """
+        from openchem.chem import nmr_database, nmr_hybrid
+        from openchem.domain.nmr import ScalingFactors
+
+        mol = self._pending_mol
+        parameters = (spectrum.provenance.parameters if spectrum.provenance else {}) or {}
+        if mol is None or parameters.get("referencing") != "empirical_linear_scaling":
+            self._hybrid_summary_label.setText(_HYBRID_UNAVAILABLE_NOTE)
+            self._hybrid_table.setRowCount(0)
+            return
+
+        rows: list[tuple[str, ...]] = []
+        counts: dict[str, int] = {}
+        errors: list[float] = []
+        notes: list[str] = []
+        # Carbon only -- the lookup's per-band accuracy was measured on
+        # carbons, and selecting protons on a number nobody measured is
+        # exactly what this module refuses to do.
+        for element in sorted(
+            {e for e in spectrum.elements.values() if e in nmr_hybrid.MERGEABLE_ELEMENTS}
+        ):
+            computed = {
+                index: value
+                for index, value in spectrum.values.items()
+                if spectrum.elements.get(index) == element
+            }
+            scaling = parameters.get(f"scaling_{element}")
+            factors = ScalingFactors(**scaling) if isinstance(scaling, dict) else None
+
+            lookup = nmr_database.predict_spectrum(mol, spectrum.molecule_uuid, element=element)
+            if not lookup.values:
+                notes.append(
+                    f"{element}: no database values to merge with"
+                    + (f" — {lookup.error}" if lookup.error else "")
+                )
+                continue
+
+            check = nmr_hybrid.check_calibration(
+                nmr_hybrid.trusted_values(lookup),
+                computed,
+                element,
+                getattr(factors, "residual_rms", None),
+            )
+            lookups = nmr_hybrid.lookup_candidates(lookup)
+            computed_candidates = nmr_hybrid.computed_candidates(computed, factors)
+            candidates = {
+                index: [c for c in (lookups.get(index), computed_candidates.get(index)) if c]
+                for index in set(lookups) | set(computed_candidates)
+            }
+            merged = nmr_hybrid.fuse(
+                candidates, spectrum.elements, spectrum.molecule_uuid, element, check
+            )
+            if merged.error:
+                notes.append(f"{element}: {merged.error}")
+                continue
+
+            details = merged.provenance.parameters
+            notes.append(self._hybrid_summary(element, details, check))
+            for source, count in details["sources"].items():
+                counts[source] = counts.get(source, 0) + count
+            for index in sorted(merged.values):
+                detail = details["per_atom"][str(index)]
+                expected = detail["expected_error"]
+                if expected is not None:
+                    errors.append(expected)
+                rows.append(
+                    (
+                        str(index),
+                        element,
+                        f"{merged.values[index]:.3f}",
+                        str(detail["source"]),
+                        f"{expected:.2f}" if expected is not None else "unknown",
+                        f"{detail['disagreement_ppm']:.2f}"
+                        if detail["disagreement_ppm"]
+                        else "—",
+                    )
+                )
+
+        if rows:
+            totals = "   ".join(f"{count} {source}" for source, count in sorted(counts.items()))
+            average = f"{sum(errors) / len(errors):.2f} ppm" if errors else "unknown"
+            notes.insert(0, f"{len(rows)} atoms      {totals}\nexpected average error   {average}")
+        self._hybrid_summary_label.setText("\n".join(notes) or _HYBRID_UNAVAILABLE_NOTE)
+        self._hybrid_table.setRowCount(len(rows))
+        for row, values in enumerate(rows):
+            for col, text in enumerate(values):
+                self._hybrid_table.setItem(row, col, QTableWidgetItem(text))
+
+    @staticmethod
+    def _hybrid_summary(element: str, details: dict, check) -> str:
+        if check is None:
+            return (
+                f"{element}: no database values confident enough to check this "
+                "calculation against — the merge could not verify itself."
+            )
+        return (
+            f"{element}: calibration check passed against {check.compared} trusted "
+            f"values (offset {check.mean_offset:+.2f}, RMS {check.rms:.2f}, "
+            f"max {check.max_deviation:.2f} ppm)"
+        )
 
     def _populate_correlation_tab(
         self,
