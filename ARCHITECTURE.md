@@ -291,12 +291,39 @@ it).
 
 ## Known TODOs
 
-- `build.ps1` / `build.bat` are generic Nuitka packaging templates left over
-  from project scaffolding (tkinter/pystray profile). They need a PySide6
-  Nuitka profile (swap `--enable-plugin=tk-inter` for the PySide6 plugin,
-  drop `pystray`, add RDKit/Open Babel data-file includes) before they can
-  package this application. Not needed until an actual release build —
-  explicitly out of scope for Phase 9's hardening pass too.
+- ~~Packaging~~ **Done.** `build.ps1` freezes the app with **PyInstaller**
+  into a ~650 MB one-directory `dist\OpenChemStudio\`, driven by
+  `packaging\openchem.spec`. PyInstaller over Nuitka deliberately: nearly
+  every packaging failure here is a missing data file that produces a
+  silently blank window rather than a build error, so the build/launch/
+  see-what-is-blank cycle gets run repeatedly, and PyInstaller's is minutes
+  where Nuitka's is tens of minutes. Startup speed is not the bottleneck.
+
+  The spec carries a comment per bundled item; the four that matter, all of
+  which fail silently:
+  - **QtWebEngine** needs `QtWebEngineProcess.exe`, `resources/`, and at
+    least one `qtwebengine_locales/*.pak` adjacent at runtime. Qt's `.qm`
+    translations are trimmed (the app has no translations); the Chromium
+    locale packs are *not* — dropping them all is one way to get three blank
+    web views. `build.ps1` asserts these exist post-build.
+  - **`vendor/data/` must stay a sibling of `vendor/iupac_namer/`**, since
+    data is resolved from two different module depths. Verified by naming a
+    molecule in the built app, not by a file listing.
+  - **`sascorer`** (`rdkit/Contrib/SA_Score`) is source imported by name off
+    `sys.path`, which `collect_data_files` skips by default. Missing, it took
+    down *every* Physicochemical property, not just its own descriptor.
+  - **`sys.stdout` is `None`** in a windowed PyInstaller build. py2opsin reads
+    `sys.stdout.encoding`, so naming died with a `TypeError` from py2opsin's
+    own broken error handler, naming neither stdout nor the real fault. The
+    frozen entry point (`packaging\openchem_launcher.py`) attaches real
+    devnull streams before the app starts.
+
+  `plugins/` ships as source **beside** the exe rather than inside the
+  payload, so a user can add one without a Python install;
+  `PluginManager` looks there when `sys.frozen` is set. Sidecars (pkasolver,
+  STOUT, Temurin, ORCA, Vina) are not bundled and are still found in the
+  configurable data directory — confirmed in the frozen build, which located
+  a real Vina 1.2.7 and a managed Temurin JRE.
 - `SimilarityService` doesn't exist yet; belongs to a later roadmap phase
   and would currently have no callers.
 - Plugin loading has no async/background state, no `ToolbarProvider`/

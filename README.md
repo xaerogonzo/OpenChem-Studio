@@ -42,6 +42,26 @@ has hung twice for ~40 minutes at almost no CPU; see [CLAUDE.md](CLAUDE.md).
 The vendored nomenclature engine's own ~3,200 tests are excluded from that run
 — `uv run --no-sync python -m pytest tests/vendor -q`, with Java on PATH.
 
+## Building a standalone application
+
+Produces `dist\OpenChemStudio\`, which runs on a Windows machine with no
+Python and no development environment:
+
+```powershell
+uv sync --extra ai --extra network --extra openbabel --group build
+.\build.ps1
+```
+
+It is ~650 MB, almost all of it PySide6 — QtWebEngine alone is a full
+Chromium, and the app hosts three web views (Ketcher, Mol*, 3Dmol). Ship the
+whole directory; the `.exe` alone does nothing.
+
+pkasolver, STOUT, the Temurin JRE, ORCA and Vina are **not** bundled. They
+stay user-installed into the configurable data directory via Tools > External
+Tools, exactly as in a source checkout. See
+[ARCHITECTURE.md](ARCHITECTURE.md) for what the build has to get right and
+why each part of it is there.
+
 ## License
 
 GPL-3.0-or-later — see [LICENSE](LICENSE). This license is required because

@@ -45,6 +45,12 @@ docking = [
 dev = [
     "pytest>=8.0",
 ]
+# Not in `dev`: freezing is a release activity, PyInstaller pulls in
+# pefile/pywin32 that nothing else needs, and a test run should not have to
+# install it. `uv sync --group build` before running build.ps1.
+build = [
+    "pyinstaller>=6.11",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

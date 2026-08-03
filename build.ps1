@@ -1,24 +1,24 @@
 # =============================================================================
-# nuitka-build.ps1 - OpenChem Studio build pipeline
-# Generated from nuitka-build.ps1.template
+# build.ps1 - freeze OpenChem Studio into dist\OpenChemStudio\
 # =============================================================================
 #
-# Produces standalone .exe files in dist\ with no Python install required.
+#   uv sync --extra ai --extra network --extra openbabel --group build
+#   .\build.ps1
 #
-# BEFORE FIRST USE: replace these placeholders below
-#   OpenChem Studio   - your project (cosmetic, used in build banner)
-#   [ENTRY_SCRIPT]   - path to your main .py relative to this script
-#   [OUTPUT_NAME]    - desired .exe filename
+# Produces a one-directory build (~1 GB) that runs on a Windows machine with
+# no Python and no development environment. The size is PySide6: QtWebEngine
+# alone is a full Chromium. That is expected -- do not contort the build
+# trying to shrink it.
 #
-# Prerequisites (run once):
-#   pip install nuitka ordered-set zstandard
-#   + any runtime deps your project uses (pillow, pystray, etc.)
+# The real work is in packaging\openchem.spec, which carries the reasoning
+# for every bundled data file. This script is the parts that do not belong
+# in a spec: prerequisite checks, clean state, and staging plugins\.
 #
-# Optional:
-#   icon.ico - place a 256x256 icon file next to this script.
-#   If absent, the --windows-icon-from-ico flag is skipped automatically.
-#
-# See NUITKA_GOTCHAS.md (in the same templates folder) for known issues.
+# What is deliberately NOT bundled: pkasolver, STOUT, the Temurin JRE, ORCA
+# and Vina. Those are user-installed into the configurable data directory
+# (src\openchem\paths.py) through the External Tools dialog -- they are
+# multi-gigabyte, individually optional, and several are separately licensed.
+# The frozen app finds them there exactly as the source build does.
 # =============================================================================
 
 Set-StrictMode -Version Latest
@@ -26,173 +26,152 @@ $ErrorActionPreference = "Stop"
 
 $ROOT = $PSScriptRoot
 $DIST = "$ROOT\dist"
-$ICON = "$ROOT\icon.ico"
+$APPDIR = "$DIST\OpenChemStudio"
+$SPEC = "$ROOT\packaging\openchem.spec"
 
-# ---------- Pre-flight checks ------------------------------------------------
+Write-Host ""
+Write-Host "=== OpenChem Studio - PyInstaller build ===" -ForegroundColor Cyan
+Write-Host ""
 
-if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
-    throw "python is not on PATH. Activate your venv or install Python first."
+# ---------- Pre-flight --------------------------------------------------------
+
+if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+    throw "uv is not on PATH. See README.md for setup."
 }
 
-# Check Nuitka is installed (cheap version probe)
-& python -m nuitka --version 2>&1 | Out-Null
+& uv run --no-sync python -c "import PyInstaller" 2>&1 | Out-Null
 if ($LASTEXITCODE -ne 0) {
-    throw "Nuitka is not installed. Run: pip install nuitka ordered-set zstandard"
+    throw "PyInstaller is missing. Run: uv sync --extra ai --extra network --extra openbabel --group build"
 }
 
-# ---------- Orphan cleanup ---------------------------------------------------
-# Nuitka leaves *.onefile-build, *.build, *.dist dirs if --remove-output was
-# blocked (AV file lock, interrupted compile). Clear them before building so
-# we start clean and never accumulate stale state.
-
-function Clear-NuitkaOrphans($dir) {
-    if (-not (Test-Path $dir)) { return }
-    $patterns = @("*.onefile-build", "*.build", "*.dist")
-    foreach ($pat in $patterns) {
-        Get-ChildItem -Path $dir -Directory -Filter $pat -ErrorAction SilentlyContinue | ForEach-Object {
-            Write-Host "  [clean] removing $($_.Name)" -ForegroundColor DarkGray
-            try {
-                Remove-Item $_.FullName -Recurse -Force -ErrorAction Stop
-            } catch {
-                Write-Host "  [warn]  could not remove $($_.Name) - $($_.Exception.Message)" -ForegroundColor Yellow
-            }
-        }
-    }
+# The AI plugin's providers import `anthropic`/`openai` lazily and the spec
+# lists them as hidden imports. A hidden import that is not installed is a
+# hard PyInstaller error, so catch it here with an actionable message rather
+# than 200 lines into the build log.
+& uv run --no-sync python -c "import anthropic, openai, requests" 2>&1 | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    throw "The ai/network extras are missing. Run: uv sync --extra ai --extra network --extra openbabel --group build"
 }
 
-# ---------- Build helper -----------------------------------------------------
+# ---------- Refuse to build over a running copy --------------------------------
+# Hit for real, and the raw failure names neither the app nor the fix: the
+# clean step below dies with "Access to the path
+# ...\_internal\numpy\...\_umath_linalg.cp313-win_amd64.pyd is denied".
+#
+# QtWebEngineProcess is checked separately and is the reason this is worth a
+# pre-flight at all -- closing the app's window does not always take its
+# Chromium helpers with it, and a stray helper holds the payload open just as
+# effectively as the app does while leaving no visible window to close.
 
-function Build-Exe($script, $outName, $nuArgs) {
-    $isGuiBuild = $nuArgs -contains "--enable-plugin=tk-inter"
+$running = @(Get-Process -Name "OpenChemStudio", "QtWebEngineProcess" -ErrorAction SilentlyContinue)
+if ($running.Count -gt 0) {
+    $names = ($running | Group-Object Name |
+        ForEach-Object { "$($_.Name) x$($_.Count)" }) -join ", "
+    throw "A previous build is still running ($names) and holds files in dist\ open. Close OpenChem Studio, then re-run. If no window is open, the leftovers are Chromium helpers: Stop-Process -Name OpenChemStudio,QtWebEngineProcess -Force"
+}
 
-    if ((Test-Path $ICON) -and ($isGuiBuild)) {
-        $nuArgs += "--windows-icon-from-ico=$ICON"
-    }
+# ---------- Clean -------------------------------------------------------------
+# A stale dist\ is actively misleading here: the failure mode being tested for
+# is a MISSING data file, and last build's copy of it sitting in place looks
+# exactly like success.
 
-    Clear-NuitkaOrphans $DIST
-
-    Write-Host "  Building $outName ..." -ForegroundColor Cyan
-
-    # Capture output so we can parse the uncompressed payload size for the sanity check.
-    # Temporarily suspend Stop mode: with $ErrorActionPreference = "Stop", PowerShell
-    # treats each native command stderr line as a NativeCommandError and aborts.
-    # Nuitka writes progress to stderr, so we must use Continue while capturing.
-    $prevEAP = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-    $buildOutput = & python @nuArgs $script 2>&1
-    $nuitkaExit = $LASTEXITCODE
-    $ErrorActionPreference = $prevEAP
-
-    $buildOutput | ForEach-Object { Write-Host $_ }
-    if ($nuitkaExit -ne 0) {
-        throw "Nuitka failed (exit $nuitkaExit) building $outName"
-    }
-    Write-Host "  OK: $DIST\$outName" -ForegroundColor Green
-
-    Clear-NuitkaOrphans $DIST
-
-    # ---- Sanity check: uncompressed payload size ---------------------------
-    # Nuitka compresses onefile payloads ~27%, so a healthy tkinter+PIL+pystray
-    # app lands at ~14 MB on disk even though the uncompressed payload is ~55 MB.
-    # Checking the compressed exe size would always fire a false WARN, so we
-    # parse the uncompressed size from Nuitka's own "Onefile payload..." log line.
-    # Only enforce for GUI builds (--enable-plugin=tk-inter present).
-    # CLI tools can legitimately be a few MB uncompressed - skip the check.
-    if ($isGuiBuild) {
-        $payloadLine = ($buildOutput | Select-String "Onefile payload compression ratio") | Select-Object -Last 1
-        if ($payloadLine -match "size (\d+) to") {
-            $uncompressedMB = [math]::Round([long]$Matches[1] / 1MB, 1)
-            if ($uncompressedMB -lt 30) {
-                Write-Host ""
-                Write-Host "  [WARN] $outName uncompressed payload is only $uncompressedMB MB - suspicious for a GUI build." -ForegroundColor Yellow
-                Write-Host "         Likely a missing --enable-plugin or --include-package flag." -ForegroundColor Yellow
-                Write-Host "         Run the exe from cmd with --windows-console-mode=attach to debug." -ForegroundColor Yellow
-                Write-Host ""
-            } else {
-                Write-Host "  Payload OK: $uncompressedMB MB uncompressed" -ForegroundColor DarkGray
-            }
-        } else {
-            $sizeMB = [math]::Round((Get-Item "$DIST\$outName").Length / 1MB, 1)
-            Write-Host "  Compressed size: $sizeMB MB (could not parse uncompressed payload)" -ForegroundColor DarkGray
-        }
+foreach ($stale in @($APPDIR, "$ROOT\build")) {
+    if (Test-Path $stale) {
+        Write-Host "  [clean] $stale" -ForegroundColor DarkGray
+        Remove-Item $stale -Recurse -Force
     }
 }
 
-# ---------- Main -------------------------------------------------------------
+# ---------- Freeze ------------------------------------------------------------
+# PyInstaller writes progress to stderr; with $ErrorActionPreference = "Stop"
+# PowerShell turns each such line into a NativeCommandError and aborts the
+# script mid-build. Suspend Stop mode around the call and check the exit code.
+
+$prevEAP = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+& uv run --no-sync python -m PyInstaller --noconfirm --distpath $DIST --workpath "$ROOT\build" $SPEC 2>&1 |
+    ForEach-Object { Write-Host $_ }
+$exitCode = $LASTEXITCODE
+$ErrorActionPreference = $prevEAP
+
+if ($exitCode -ne 0) {
+    throw "PyInstaller failed (exit $exitCode)"
+}
+
+# ---------- Stage plugins -----------------------------------------------------
+# Plugins are loaded by reading and exec'ing plugin.py as *source*
+# (plugins/manager.py:_import_plugin_module), so they ship as a plain
+# directory rather than as frozen modules -- and they ship BESIDE the exe,
+# not inside _internal\, so a user can add or edit one without a Python
+# install. PluginManager looks exactly here when sys.frozen is set.
 
 Write-Host ""
-Write-Host "=== OpenChem Studio - Nuitka build ===" -ForegroundColor Cyan
-Write-Host ""
+Write-Host "  Staging plugins\ ..." -ForegroundColor Cyan
+Copy-Item "$ROOT\plugins" "$APPDIR\plugins" -Recurse -Force
+Get-ChildItem "$APPDIR\plugins" -Recurse -Directory -Filter "__pycache__" |
+    Remove-Item -Recurse -Force
 
-New-Item -ItemType Directory -Force -Path $DIST | Out-Null
+# ---------- Verify ------------------------------------------------------------
+# Every check below is for something that fails SILENTLY at runtime -- a blank
+# web view or an exception on a code path a smoke test would not reach. A
+# build that merely compiled proves nothing.
 
-# ---- GUI build (tkinter app) ------------------------------------------------
-# Edit [ENTRY_SCRIPT] and [OUTPUT_NAME]. Remove PIL/pystray if your app doesn't use them.
-$guiArgs = @(
-    "-m", "nuitka",
-    "--onefile",
-    "--windows-console-mode=disable",
-    "--enable-plugin=tk-inter",
-    "--include-package=PIL",
-    "--include-package=pystray",
-    # ---- Anaconda bloat exclusions (safe to remove if not using Anaconda) ----
-    # If building from an Anaconda or conda env, Nuitka traces into numpy,
-    # scipy, pandas etc. even if your app never imports them, bundling ~450 MB
-    # of Intel MKL DLLs and scientific libraries. These flags block that.
-    # Remove any package your app actually uses.
-    "--nofollow-import-to=numpy",
-    "--nofollow-import-to=scipy",
-    "--nofollow-import-to=pandas",
-    "--nofollow-import-to=matplotlib",
-    "--nofollow-import-to=sklearn",
-    "--nofollow-import-to=IPython",
-    "--nofollow-import-to=notebook",
-    # --------------------------------------------------------------------------
-    "--remove-output",
-    "--assume-yes-for-downloads",
-    "--output-dir=$DIST",
-    "--output-filename=[OUTPUT_NAME]"
+$required = @(
+    # QtWebEngine's helper process and its resource tree. Without these the
+    # 2D editor and both 3D viewers render blank and the app looks fine.
+    "_internal\PySide6\QtWebEngineProcess.exe",
+    "_internal\PySide6\resources\qtwebengine_resources.pak",
+    "_internal\PySide6\translations\qtwebengine_locales\en-US.pak",
+    # The three web views' own assets.
+    "_internal\openchem\resources\ketcher\dist\index.html",
+    "_internal\openchem\resources\molstar\viewer.html",
+    "_internal\openchem\resources\viewer3d\viewer.html",
+    # The vendored namer's data, which has to sit as a SIBLING of the
+    # iupac_namer package. Only the data half can be checked for on disk:
+    # the package half is frozen into the PYZ archive and has no loose .py
+    # files at all, so there is nothing to compare against here. Whether the
+    # sibling relationship actually holds is decided by `__file__`-relative
+    # resolution at runtime and can only be proved by naming a molecule --
+    # bluebook\ is included as a second, deeper file because
+    # perception\fg\ resolves the data directory from four levels up rather
+    # than two, and a partially-copied tree would satisfy only the shallow one.
+    "_internal\openchem\vendor\data\functional_groups.json",
+    "_internal\openchem\vendor\data\bluebook",
+    # Sidecar runner scripts, which are data rather than imports.
+    "_internal\openchem\chem\pka_runner.py",
+    "_internal\openchem\chem\stout_runner.py",
+    # OPSIN's jar.
+    "_internal\py2opsin\opsin-cli-2.9.0-jar-with-dependencies.jar",
+    # RDKit's synthetic-accessibility scorer: source imported by name off
+    # sys.path, which the default data collection drops. Its absence broke
+    # every Physicochemical property, not just this one descriptor.
+    "_internal\rdkit\Contrib\SA_Score\sascorer.py",
+    # Plugins, staged above.
+    "plugins\ai_assistant\plugin.py",
+    "OpenChemStudio.exe"
 )
 
-# ---- CLI build (no GUI plugins) ---------------------------------------------
-# Uncomment and use this instead of the GUI block above for CLI-only tools.
-# $cliArgs = @(
-#     "-m", "nuitka",
-#     "--onefile",
-#     "--windows-console-mode=force",
-#     "--nofollow-import-to=numpy",
-#     "--nofollow-import-to=scipy",
-#     "--nofollow-import-to=pandas",
-#     "--nofollow-import-to=matplotlib",
-#     "--nofollow-import-to=sklearn",
-#     "--nofollow-import-to=IPython",
-#     "--nofollow-import-to=notebook",
-#     "--remove-output",
-#     "--assume-yes-for-downloads",
-#     "--output-dir=$DIST",
-#     "--output-filename=[OUTPUT_NAME]"
-# )
+$missing = @()
+foreach ($rel in $required) {
+    if (-not (Test-Path "$APPDIR\$rel")) { $missing += $rel }
+}
 
-Build-Exe "$ROOT\[ENTRY_SCRIPT]" "[OUTPUT_NAME]" $guiArgs
+if ($missing.Count -gt 0) {
+    Write-Host ""
+    Write-Host "  [FAIL] the build is missing files that fail silently at runtime:" -ForegroundColor Red
+    $missing | ForEach-Object { Write-Host "         $_" -ForegroundColor Red }
+    throw "Incomplete build"
+}
 
-# Add more Build-Exe calls here if the project ships multiple binaries.
-# Example:
-# Build-Exe "$ROOT\src\my-helper.py" "my-helper.exe" $cliArgs
-
-# ---------- Stage data files (edit per project) ------------------------------
-# If your app ships with config files, templates, docs, etc., copy them
-# into $DIST here. Example:
-#
-# Copy-Item "$ROOT\README.md" "$DIST\README.md" -Force
-#
-# For JSON config files, use [System.IO.File]::WriteAllText so PowerShell
-# doesn't add a UTF-8 BOM (which crashes Python's json.load):
-#
-# $config = @{ key = "value" }
-# [System.IO.File]::WriteAllText("$DIST\config.json", ($config | ConvertTo-Json -Depth 5))
+$sizeGB = [math]::Round((Get-ChildItem $APPDIR -Recurse -File |
+    Measure-Object -Property Length -Sum).Sum / 1GB, 2)
 
 Write-Host ""
-Write-Host "Build complete -> $DIST" -ForegroundColor Green
+Write-Host "  All $($required.Count) required-file checks passed." -ForegroundColor Green
+Write-Host "Build complete -> $APPDIR ($sizeGB GB)" -ForegroundColor Green
+Write-Host ""
+Write-Host "Launch it and confirm the 2D editor draws, both 3D viewers render," -ForegroundColor DarkGray
+Write-Host "and naming returns a name. Those are the checks a file list cannot make." -ForegroundColor DarkGray
 Write-Host ""
 
 exit 0
