@@ -15,6 +15,9 @@ def test_dialog_has_every_tool_tab_and_focuses_the_requested_one(qapp):
         "AutoDock Vina",
         "ORCA",
         "pkasolver (pKa)",
+        # Grouped with the other out-of-process Python environments rather
+        # than with the executables above -- same shape, same problem.
+        "ADMET (hERG/CYP)",
         # These two OBTAIN a prerequisite rather than configure a tool the
         # user already has: a portable Temurin runtime (OPSIN is dead
         # without one) and the experimental shift index.
@@ -124,3 +127,69 @@ def test_the_tab_buttons_reuse_the_storage_tabs_removal_path(qapp, monkeypatch):
     dialog._java_remove_button.click()
 
     assert removed == ["pkasolver", "java"]
+
+
+def test_the_admet_tab_exists_with_the_full_sidecar_affordance_set(qapp):
+    """Every sidecar tab offers the same four things. A tab that can be
+    configured but not installed, or installed but not removed, is the
+    gap that made the pkasolver and STOUT tabs frustrating before."""
+    dialog = ExternalToolsDialog(Settings(EventBus()))
+
+    assert "ADMET (hERG/CYP)" in [
+        dialog._tabs.tabText(i) for i in range(dialog._tabs.count())
+    ]
+    for attribute in (
+        "_admet_path_edit",
+        "_admet_setup_button",
+        "_admet_locate_button",
+        "_admet_remove_button",
+    ):
+        assert getattr(dialog, attribute, None) is not None, f"{attribute} missing"
+    assert dialog._admet_remove_button.text() == "Remove from Disk..."
+
+
+def test_editing_the_admet_path_persists_to_the_setting_the_calculator_reads(qapp):
+    """The dialog and the calculator must agree on the key. A mismatch
+    would look configured and behave unconfigured."""
+    from openchem.chem.admet_providers import ADMET_PYTHON_SETTING
+
+    settings = Settings(EventBus())
+    dialog = ExternalToolsDialog(settings)
+
+    dialog._admet_path_edit.setText(r"C:\somewhere\python.exe")
+    dialog._on_admet_path_edited()
+
+    assert settings.get(ADMET_PYTHON_SETTING, "") == r"C:\somewhere\python.exe"
+
+
+def test_the_admet_self_test_uses_a_known_herg_blocker(qapp, monkeypatch):
+    """Astemizole, not something inert. A test that passed on a molecule
+    with no liability would prove the plumbing runs and nothing else --
+    and a model returning 0.05 for astemizole is broken, not cautious."""
+    from openchem.chem import admet_providers as ap
+
+    seen = {}
+
+    def fake(mol, interpreter_path):
+        from rdkit import Chem
+
+        seen["smiles"] = Chem.MolToSmiles(mol)
+        return {"hERG": 0.995}
+
+    monkeypatch.setattr(ap, "compute_admet", fake)
+    message = ap.describe_admet_test("anything")
+
+    assert "0.995" in message and "withdrawn" in message
+    assert "N" in seen["smiles"] and len(seen["smiles"]) > 30  # the real drug, not a stub
+
+
+def test_a_low_herg_score_for_astemizole_is_reported_as_suspect(qapp, monkeypatch):
+    """The self-test must not print "Working" for a result that is
+    chemically wrong."""
+    from openchem.chem import admet_providers as ap
+
+    monkeypatch.setattr(ap, "compute_admet", lambda mol, path: {"hERG": 0.05})
+    message = ap.describe_admet_test("anything")
+
+    assert "suspect" in message.lower()
+    assert "working" not in message.lower()

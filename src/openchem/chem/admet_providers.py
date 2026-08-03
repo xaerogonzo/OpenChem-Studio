@@ -140,3 +140,37 @@ def describe_admet_status(interpreter_path: str | None) -> str:
         "rule-based substitute. Like pkasolver it needs its own Python environment "
         "(~1 GB, mostly PyTorch), so it is installed separately rather than shipped."
     )
+
+
+def describe_admet_test(interpreter_path: str | None) -> str:
+    """Run one real prediction and report it as a sentence.
+
+    Lives here rather than in the dialog because it needs RDKit, and the
+    UI layer may not import chemistry engines directly -- enforced by
+    `tests/test_layering.py`. `stout_providers.describe_stout_test`
+    already set this precedent.
+
+    Astemizole rather than something inert: it was withdrawn for QT
+    prolongation via hERG block, so a working model must score it HIGH. A
+    self-test that passed on a molecule with no liability would prove only
+    that the plumbing runs, which is the weaker of the two things worth
+    knowing.
+    """
+    from rdkit import Chem
+
+    astemizole = "COc1ccc(CCN2CCC(Nc3nc4ccccc4n3Cc3ccc(F)cc3)CC2)cc1"
+    endpoints = compute_admet(Chem.MolFromSmiles(astemizole), interpreter_path)
+    if endpoints is None:
+        return "No interpreter configured."
+    herg = endpoints.get("hERG")
+    if herg is None:
+        return "The model ran but produced no hERG value."
+    if herg > 0.5:
+        return (
+            f"Working: astemizole hERG = {herg:.3f}, as expected for a drug "
+            f"withdrawn for QT prolongation."
+        )
+    return (
+        f"Ran, but astemizole scored only {herg:.3f} for hERG. It is a known "
+        f"blocker, so this environment is suspect - try Set Up Automatically again."
+    )
