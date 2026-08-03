@@ -81,6 +81,31 @@ datas += collect_data_files(
 # user-installed sidecar and is deliberately NOT bundled.)
 datas += collect_data_files("py2opsin")
 
+# Open Babel's format plugins (*.obf) and its data tables. Every file format
+# Open Babel reads or writes lives in one of these nine plugin libraries --
+# they are dlopen'd by Open Babel's own plugin loader at import time, so
+# PyInstaller's binary analysis never sees them and collected only
+# `bin/openbabel-3.dll`.
+#
+# WHY `bin/` AND NOT WHERE THE PACKAGE SAYS. `openbabel/__init__.py` sets
+# BABEL_LIBDIR to `<pkg>/lib/openbabel/3.1.0` and BABEL_DATADIR to
+# `<pkg>/share/openbabel/3.1.0` -- and the wheel HAS NO `lib/` DIRECTORY AT
+# ALL. Both env vars point at paths that do not exist, and Open Babel falls
+# back to looking beside its own DLL, which is `bin/`. That fallback is what
+# actually works in a source checkout, so the frozen build has to reproduce
+# `bin/` faithfully rather than trust the documented variables.
+#
+# Missing, this fails in one specific place and nowhere else: `pybel` is
+# imported lazily inside `docking_providers.dock()`, and with no format
+# plugins `GetSupportedInputFormat()` returns entries that pybel's
+# `_formatstodict` cannot split, so DOCKING dies with
+# "ValueError: not enough values to unpack (expected 2, got 1)" -- an error
+# that mentions neither Open Babel nor a missing file. Everything else in the
+# application keeps working.
+datas += collect_data_files(
+    "openbabel", includes=["bin/*.obf", "bin/data/*", "share/**"]
+)
+
 # --------------------------------------------------------------------------
 # Hidden imports
 # --------------------------------------------------------------------------

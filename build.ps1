@@ -146,6 +146,11 @@ $required = @(
     # sys.path, which the default data collection drops. Its absence broke
     # every Physicochemical property, not just this one descriptor.
     "_internal\rdkit\Contrib\SA_Score\sascorer.py",
+    # Open Babel's format plugins and data tables, which it dlopen's from
+    # beside its own DLL. Without them the ONLY thing that breaks is docking,
+    # with a ValueError naming neither Open Babel nor a file.
+    "_internal\openbabel\bin\formats_common.obf",
+    "_internal\openbabel\bin\data\atomtyp.txt",
     # Plugins, staged above.
     "plugins\ai_assistant\plugin.py",
     "OpenChemStudio.exe"
