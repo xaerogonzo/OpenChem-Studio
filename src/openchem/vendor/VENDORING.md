@@ -8,6 +8,8 @@
 | commit | `c3eac17ffd110c7c5dd37aaad2955e06cf8c9303` |
 | licence | MIT — see `LICENSE.open-iupac-namer` (copyright retained) |
 | vendored | 2026-08-01 |
+| fork | https://github.com/xaerogonzo/open-iupac-namer (this project's fixes, standalone) |
+| offered upstream | https://github.com/leehiufung911/open-iupac-namer/pull/1 |
 
 ### Why vendored rather than depended on
 
@@ -104,6 +106,38 @@ and `benchmarks/naming` is the regression check on naming quality.
 
 ### Upgrading
 
-There is no upstream to upgrade from. If it ever revives, re-apply step 1 to a
-fresh checkout and re-run `benchmarks/naming` before accepting the change —
-the benchmark, not the diff, is what says whether it got better.
+**The fork is the upstream now.** Everything in `CHANGELOG.md` was published to
+https://github.com/xaerogonzo/open-iupac-namer as a standalone package — the
+same code with the import rewrite of step 1 reversed — and offered to the
+original author as
+[PR #1](https://github.com/leehiufung911/open-iupac-namer/pull/1). He may never
+see it; that changes nothing about what to do here.
+
+To re-vendor from the fork, or from the original repository if it ever revives,
+apply step 1 to a fresh checkout:
+
+```python
+re.sub(r"\b(from|import) iupac_namer\b", r"\1 openchem.vendor.iupac_namer", text)
+```
+
+and its exact inverse to go the other way. That is still the whole transform;
+nothing else diverges. Then re-run `benchmarks/naming` before accepting the
+change — the benchmark, not the diff, is what says whether it got better.
+
+Three things in the fork differ from what is here, and they are deliberate, so
+do not "fix" them on the way back in:
+
+* `OPENCHEM_NAMER_DEBUG` is `IUPAC_NAMER_DEBUG` there — an OpenChem-branded
+  environment variable has no business in someone else's package.
+* `tests/audit/_audit_helpers.py` calls `py2opsin` directly instead of
+  `openchem.chem.naming_providers`, which cannot exist standalone. `py2opsin`
+  is already in upstream's `test` extra, and the fork's copy skips rather than
+  fails when it is unavailable, matching the rest of that suite.
+* `tests/test_namer_known_defects.py` lives beside the vendored tests there
+  rather than in the default suite, because the fork has only one suite. Here
+  it stays in the default run for the reason its docstring gives.
+
+Known, and not ours: on **RDKit 2026.3.4** the two `test_trindene_indicated_h`
+cases fail with `Can't kekulize mol`. That reproduces on unmodified
+`c3eac17`, so it is an RDKit change rather than anything either repository did.
+This project pins 2025.9.6, where the suite is green.
