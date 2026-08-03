@@ -515,15 +515,16 @@ class QuantumChemistryService(QObject):
         """
         self._publish_state(key, CacheState.QUEUED)
 
-        # A space-free scratch directory is a hard requirement: ORCA's own
-        # documentation warns against running from a path containing
-        # spaces, and this project's own working directory (a checkout
-        # under "D:\...\OpenChem Studio\") does contain one — never derive
-        # the scratch dir from the project/source path.
-        # Follows the configured data root: an ORCA optimisation writes
-        # gigabytes of scratch, which is exactly what someone moving their
-        # data off the system drive meant to move.
-        cache_root = app_paths.cache_root()
+        # A space-free scratch directory is a hard requirement: ORCA
+        # truncates its input path at the first space and aborts. This used
+        # to derive straight from `cache_root()` on the reasoning that the
+        # source tree ("D:\...\OpenChem Studio\") was the only spaced path
+        # in play — but `cache_root()` follows the CONFIGURABLE data root,
+        # so pointing that at, say, "D:\Random Programs\..." put the space
+        # right back and every ORCA job failed. `space_free_cache_root()`
+        # enforces the requirement instead of assuming it, and stays on the
+        # same drive so the gigabytes still land where the user put them.
+        cache_root = app_paths.space_free_cache_root()
         cache_root.mkdir(parents=True, exist_ok=True)
         scratch_dir = Path(tempfile.mkdtemp(prefix="orca_job_", dir=str(cache_root)))
 
