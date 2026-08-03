@@ -21,7 +21,27 @@ from openchem import paths as app_paths
 
 logger = logging.getLogger("openchem.plugin")
 
-DEFAULT_PROJECT_PLUGINS_DIR = Path(__file__).resolve().parents[3] / "plugins"
+def _default_project_plugins_dir() -> Path:
+    """Where the plugins that ship with the application live.
+
+    From source that is the repository's top-level `plugins/`, four levels up
+    from this file (`src/openchem/plugins/manager.py`).
+
+    Frozen, `__file__` points inside PyInstaller's `_internal/` payload
+    directory, and four levels up from there happens to land beside the
+    executable -- the right answer by coincidence of depth, which is not
+    something to leave a build depending on silently. Say it outright
+    instead: plugins are user-editable *source* that deliberately ships
+    NEXT TO the exe rather than buried in the payload, precisely so that
+    someone can drop a new one in without a Python install. That is
+    `sys.executable`'s directory, whatever the payload depth happens to be.
+    """
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent / "plugins"
+    return Path(__file__).resolve().parents[3] / "plugins"
+
+
+DEFAULT_PROJECT_PLUGINS_DIR = _default_project_plugins_dir()
 DEBOUNCE_MS = 300
 
 # A multi-file plugin's sibling-module imports (`from . import helper`)

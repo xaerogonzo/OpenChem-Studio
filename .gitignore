@@ -20,8 +20,10 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Nuitka build output (root-anchored — do NOT match src/openchem/resources/ketcher/dist/,
-# which is the vendored, committed Ketcher bundle the app loads at runtime)
+# Frozen-build output: PyInstaller writes /dist and /build (root-anchored —
+# do NOT match src/openchem/resources/ketcher/dist/, which is the vendored,
+# committed Ketcher bundle the app loads at runtime). The *.build/ patterns
+# are left over from the Nuitka scaffolding build.ps1 replaced; harmless.
 *.onefile-build/
 *.build/
 /dist/
