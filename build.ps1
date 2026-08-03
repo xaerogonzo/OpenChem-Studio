@@ -53,6 +53,23 @@ if ($LASTEXITCODE -ne 0) {
     throw "The ai/network extras are missing. Run: uv sync --extra ai --extra network --extra openbabel --group build"
 }
 
+# ---------- Refuse to build over a running copy --------------------------------
+# Hit for real, and the raw failure names neither the app nor the fix: the
+# clean step below dies with "Access to the path
+# ...\_internal\numpy\...\_umath_linalg.cp313-win_amd64.pyd is denied".
+#
+# QtWebEngineProcess is checked separately and is the reason this is worth a
+# pre-flight at all -- closing the app's window does not always take its
+# Chromium helpers with it, and a stray helper holds the payload open just as
+# effectively as the app does while leaving no visible window to close.
+
+$running = @(Get-Process -Name "OpenChemStudio", "QtWebEngineProcess" -ErrorAction SilentlyContinue)
+if ($running.Count -gt 0) {
+    $names = ($running | Group-Object Name |
+        ForEach-Object { "$($_.Name) x$($_.Count)" }) -join ", "
+    throw "A previous build is still running ($names) and holds files in dist\ open. Close OpenChem Studio, then re-run. If no window is open, the leftovers are Chromium helpers: Stop-Process -Name OpenChemStudio,QtWebEngineProcess -Force"
+}
+
 # ---------- Clean -------------------------------------------------------------
 # A stale dist\ is actively misleading here: the failure mode being tested for
 # is a MISSING data file, and last build's copy of it sitting in place looks
