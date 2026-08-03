@@ -797,8 +797,8 @@ class ExternalToolsDialog(QDialog):
         why_note.setWordWrap(True)
 
         accuracy_note = QLabel(
-            "Held-out accuracy, measured on molecules excluded from the index: 1.17 ppm mean "
-            "error on atoms rated 'good', 3.38 on 'medium', 9.93 on 'rough'. The rating is "
+            "Held-out accuracy, measured on molecules excluded from the index: 1.12 ppm mean "
+            "error on atoms rated 'good', 3.36 on 'medium', 10.00 on 'rough'. The rating is "
             "worth reading - it is the difference between a number to trust and one to check. "
             "Coverage is not universal: an environment the database has never seen gets no "
             "prediction rather than a guess.",

@@ -27,9 +27,14 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 from rdkit import Chem
+from rdkit.Chem.MolStandardize import rdMolStandardize
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 from openchem.chem import naming_providers as n  # noqa: E402
+
+#: Built once -- constructing a TautomerEnumerator per call would
+#: dominate the runtime of a 181-molecule scoring pass.
+_TAUTOMERS = rdMolStandardize.TautomerEnumerator()
 
 # Outcome classes, best to worst. `EQUIVALENT` is a SUCCESS -- a valid
 # alternative name -- and is only separated from `EXACT` so that
@@ -37,15 +42,16 @@ from openchem.chem import naming_providers as n  # noqa: E402
 # failure.
 EXACT = "exact"                      # round-trips AND matches PubChem verbatim
 EQUIVALENT = "equivalent"            # round-trips; different valid wording
+TAUTOMER = "tautomer"                # same compound, different tautomer drawn
 GATE_DISAGREE = "gate_disagreement"  # SMILES and InChIKey gates disagree
 STEREO_LOST = "stereo_lost"          # right skeleton, stereochemistry dropped
 WRONG_STRUCTURE = "wrong_structure"  # parses, but to a different molecule
 UNPARSABLE = "unparsable"            # OPSIN cannot read it at all
 NO_PREDICTION = "no_prediction"      # the engine returned nothing
 
-SUCCESS = {EXACT, EQUIVALENT}
-ORDER = [EXACT, EQUIVALENT, GATE_DISAGREE, STEREO_LOST, WRONG_STRUCTURE,
-         UNPARSABLE, NO_PREDICTION]
+SUCCESS = {EXACT, EQUIVALENT, TAUTOMER}
+ORDER = [EXACT, EQUIVALENT, TAUTOMER, GATE_DISAGREE, STEREO_LOST,
+         WRONG_STRUCTURE, UNPARSABLE, NO_PREDICTION]
 
 
 def _key(smiles: str) -> str | None:
@@ -75,6 +81,32 @@ def _key(smiles: str) -> str | None:
     except Exception:
         return None
     return key or None
+
+
+def _canonical_tautomer(smiles: str) -> str | None:
+    """RDKit's canonical tautomer, or None if it cannot be produced.
+
+    Two drawings of the same compound that differ only in where a proton
+    and a double bond sit are the same substance, and a name for one is a
+    name for the other. Metformin is the case that forced this: the engine
+    answers `1,1-dimethylbiguanide` -- which IS metformin -- but OPSIN
+    parses it back to a different tautomer than the corpus stores, so the
+    SMILES gate said "different molecule".
+
+    Used ONLY together with an InChIKey match (see `classify`). On its own
+    this would be too loose -- keto/enol pairs canonicalise together while
+    having distinct InChIKeys -- and the point of the second gate is to be
+    strict about the charge defects this benchmark exists to catch.
+    """
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+    try:
+        return Chem.MolToSmiles(_TAUTOMERS.Canonicalize(mol))
+    except Exception:
+        # Enumeration can fail or blow its limits on unusual valences.
+        # A missing answer means "cannot adjudicate", never "same".
+        return None
 
 
 def _flat(smiles: str) -> str:
@@ -111,6 +143,25 @@ def classify(row: dict, predicted: str | None) -> str:
     got_key, want_key = _key(parsed.smiles), _key(row["smiles"])
     if got_key is not None and want_key is not None:
         if (got_key == want_key) != smiles_agrees:
+            # The gates disagree. One specific cause is benign and worth
+            # separating out: the same compound drawn as a different
+            # tautomer. InChI normalises tautomers away, canonical SMILES
+            # does not, so this shows up as exactly this disagreement.
+            #
+            # BOTH conditions are required. InChIKey alone would accept
+            # things InChI happens to normalise; canonical-tautomer alone
+            # accepts keto/enol pairs that are genuinely distinct species.
+            # Demanding both keeps guanidine/guanidinium and
+            # benzyl-cation/toluene -- the charge defects this benchmark
+            # was extended to catch -- firmly on the failing side.
+            got_taut = _canonical_tautomer(parsed.smiles)
+            want_taut = _canonical_tautomer(row["smiles"])
+            if (
+                got_key == want_key
+                and got_taut is not None
+                and got_taut == want_taut
+            ):
+                return TAUTOMER
             return GATE_DISAGREE
 
     if smiles_agrees:

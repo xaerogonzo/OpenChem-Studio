@@ -803,6 +803,68 @@ def compute_polar_surface_area(
     )
 
 
+
+def compute_admet_endpoints(mol, molecule_uuid, parameters=None, interpreter_path=None):
+    """ADMET-AI's hERG / CYP / Ames predictions, as an AlertResult.
+
+    An AlertResult rather than a PerAtomDataset because these are
+    whole-molecule probabilities with no per-atom meaning -- there is
+    nothing to colour on a structure, and pretending otherwise would
+    invite reading a molecular property as a local one.
+
+    The values are MODEL OUTPUTS. Each line says so by carrying its
+    probability rather than a verdict, and the rule-based
+    `hERG Risk Factors (not a prediction)` alert stays alongside it.
+    """
+    from openchem.chem.admet_providers import (
+        REPORTED_ENDPOINTS,
+        compute_admet,
+        describe_admet_status,
+    )
+    from openchem.domain.common import CacheState, Provenance
+    from openchem.domain.scientific_result import AlertResult
+
+    try:
+        endpoints = compute_admet(mol, interpreter_path)
+    except RuntimeError as exc:
+        return AlertResult(
+            alert_id="admet_ml", name="ADMET (ADMET-AI)", category="admet",
+            matched=[f"Prediction failed: {exc}"],
+            description="A configured ADMET environment did not produce a result.",
+            molecule_uuid=molecule_uuid, cache_state=CacheState.FAILED,
+            provenance=Provenance(created_by="admet_ai", method="chemprop multi-task"),
+        )
+
+    if endpoints is None:
+        return AlertResult(
+            alert_id="admet_ml", name="ADMET (ADMET-AI)", category="admet",
+            matched=[describe_admet_status(interpreter_path)],
+            description="Predicted hERG, CYP and Ames endpoints.",
+            molecule_uuid=molecule_uuid, cache_state=CacheState.FAILED,
+            provenance=Provenance(created_by="admet_ai", method="chemprop multi-task"),
+        )
+
+    # Sorted by probability so the liabilities surface first -- the whole
+    # reason someone opens this is to find out what is going to bite.
+    lines = [
+        f"{REPORTED_ENDPOINTS[key]}: {value:.2f}"
+        for key, value in sorted(endpoints.items(), key=lambda kv: -kv[1])
+    ]
+    return AlertResult(
+        alert_id="admet_ml", name="ADMET (ADMET-AI, predicted)", category="admet",
+        matched=lines or ["The model returned no reported endpoint."],
+        description=(
+            "Probabilities from ADMET-AI, a multi-task model trained on the "
+            "Therapeutics Data Commons ADMET suite. These are predictions with "
+            "real uncertainty, not measurements."
+        ),
+        molecule_uuid=molecule_uuid, cache_state=CacheState.COMPLETED,
+        provenance=Provenance(
+            created_by="admet_ai", method="chemprop multi-task (TDC ADMET)",
+            parameters={"endpoints": len(endpoints)},
+        ),
+    )
+
 CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     CalculatorDefinition(
         calculator_id="gasteiger_charge_at_ph",
@@ -840,6 +902,19 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         parameters=[
             decimal_places_parameter(),
         ],
+    ),
+    CalculatorDefinition(
+        calculator_id="admet_ml",
+        display_name="ADMET (hERG, CYP, Ames)",
+        category="admet",
+        description=(
+            "Predicted hERG blockade, CYP450 inhibition/substrate and Ames "
+            "mutagenicity via ADMET-AI, run out of process from its own "
+            "environment (configure it in Tools > External Tools). Complements "
+            "the rule-based hERG risk-factor checklist rather than replacing it."
+        ),
+        execution=RegistryExecution(compute=compute_admet_endpoints),
+        prediction_basis="empirical",
     ),
     CalculatorDefinition(
         calculator_id="pka",
@@ -1322,8 +1397,8 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "Predicts shifts by looking up each atom's environment in assigned experimental "
             "spectra from nmrshiftdb2, and reports a per-atom confidence earned from how many "
             "measurements matched and how well they agree. Instant, unlike the ab initio path, "
-            "but limited to environments the database has seen. Held-out accuracy: 1.17 ppm mean "
-            "error on atoms it rates 'good', 9.93 on atoms it rates 'rough' -- the rating is "
+            "but limited to environments the database has seen. Held-out accuracy: 1.12 ppm mean "
+            "error on atoms it rates 'good', 10.00 on atoms it rates 'rough' -- the rating is "
             "worth reading."
         ),
         execution=RegistryExecution(compute=compute_database_nmr),

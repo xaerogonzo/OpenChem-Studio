@@ -1,12 +1,12 @@
 [
  {
-  "label": "iupac_namer (vendored, in-tree @ 47e3531)",
+  "label": "iupac_namer (vendored, in-tree @ c0b0dd0)",
   "total": 181,
-  "correct": 180,
+  "correct": 181,
   "counts": {
    "exact": 82,
    "equivalent": 98,
-   "gate_disagreement": 1
+   "tautomer": 1
   },
   "outcomes": [
    "exact",
@@ -121,7 +121,7 @@
    "equivalent",
    "equivalent",
    "exact",
-   "gate_disagreement",
+   "tautomer",
    "exact",
    "equivalent",
    "equivalent",

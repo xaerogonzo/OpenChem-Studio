@@ -51,6 +51,14 @@ dev = [
 build = [
     "pyinstaller>=6.11",
 ]
+# Only `benchmarks/nmr` needs this, and it is a dependency GROUP rather than
+# an optional-dependency extra deliberately: an extra is something a user can
+# install to gain a feature, and there is no such feature. The shift model it
+# trains was measured against the HOSE lookup and lost, so nothing in `src/`
+# imports scikit-learn. See benchmarks/nmr/README.md.
+bench = [
+    "scikit-learn>=1.4",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

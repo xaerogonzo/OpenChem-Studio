@@ -6,6 +6,7 @@ from openchem.app.settings import Settings
 from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.orca_engine import CALC_TYPE_LABELS, METHOD_BASIS_PRESETS
+from openchem.chem.admet_providers import ADMET_PYTHON_SETTING
 from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING
 from openchem.chem.stout_providers import STOUT_PYTHON_SETTING
 from openchem.domain.calculator import (
@@ -115,43 +116,40 @@ for _label, _calc_type in CALC_TYPE_LABELS.items():
 # composition root -- `chem/` must not import `app/`, and
 # `CalculatorRegistry.compute` deliberately passes only
 # (mol, molecule_uuid, parameters).
-_SETTINGS_BOUND_CALCULATORS = frozenset(
-    {
-        "pka",
-        "logd",
-        "pka_microspecies",
-        "isoelectric_point",
-        "logd_curve",
-        "cns_mpo",
-        "bbb_descriptors",
-    }
-)
-# `iupac_name` needs a DIFFERENT interpreter (STOUT, not pkasolver), so it
-# gets its own binding rather than being folded into the set above.
-_STOUT_BOUND_CALCULATORS = frozenset({"iupac_name"})
+#
+# Three sidecars now, each with its own interpreter, so this is a mapping
+# from calculator to the setting holding ITS interpreter rather than one
+# branch per sidecar. The previous shape -- a frozenset per sidecar and an
+# if-block per set -- would have needed a third copy of the same six lines
+# to add ADMET.
+_CALCULATOR_INTERPRETER_SETTING: dict[str, str] = {
+    # pkasolver
+    "pka": PKASOLVER_PYTHON_SETTING,
+    "logd": PKASOLVER_PYTHON_SETTING,
+    "pka_microspecies": PKASOLVER_PYTHON_SETTING,
+    "isoelectric_point": PKASOLVER_PYTHON_SETTING,
+    "logd_curve": PKASOLVER_PYTHON_SETTING,
+    "cns_mpo": PKASOLVER_PYTHON_SETTING,
+    "bbb_descriptors": PKASOLVER_PYTHON_SETTING,
+    # STOUT (structure -> name)
+    "iupac_name": STOUT_PYTHON_SETTING,
+    # ADMET-AI (hERG / CYP / Ames)
+    "admet_ml": ADMET_PYTHON_SETTING,
+}
 
 
 def _bind_settings(definition: CalculatorDefinition, settings: Settings) -> CalculatorDefinition:
-    if definition.calculator_id in _STOUT_BOUND_CALCULATORS:
-        stout_inner = definition.execution.compute
-
-        def compute_with_stout(mol, molecule_uuid, parameters, _inner=stout_inner):
-            return _inner(
-                mol, molecule_uuid, parameters,
-                interpreter_path=settings.get(STOUT_PYTHON_SETTING, ""),
-            )
-
-        return dataclasses.replace(
-            definition, execution=RegistryExecution(compute=compute_with_stout)
-        )
-    if definition.calculator_id not in _SETTINGS_BOUND_CALCULATORS:
+    setting_key = _CALCULATOR_INTERPRETER_SETTING.get(definition.calculator_id)
+    if setting_key is None:
         return definition
     inner = definition.execution.compute
 
-    def compute(mol, molecule_uuid, parameters, _inner=inner):
+    # Read lazily, per call: reconfiguring the path in Tools > External
+    # Tools then takes effect without restarting the application.
+    def compute(mol, molecule_uuid, parameters, _inner=inner, _key=setting_key):
         return _inner(
             mol, molecule_uuid, parameters,
-            interpreter_path=settings.get(PKASOLVER_PYTHON_SETTING, ""),
+            interpreter_path=settings.get(_key, ""),
         )
 
     return dataclasses.replace(definition, execution=RegistryExecution(compute=compute))
