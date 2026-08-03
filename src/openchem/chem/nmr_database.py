@@ -48,6 +48,44 @@ A spot-check against literature values for common compounds gives 0.56
 ppm, but that number flatters: those compounds are themselves in the
 database. The held-out figures above are the ones to believe.
 
+A LEARNED CORRECTION WAS TRIED AGAINST THIS AND LOST. Recorded here
+because "we measured it and it was not better" is a result, and because
+the next person to have the idea should start from the numbers rather
+than repeat the work. A HistGradientBoostingRegressor was trained on the
+same nmrshiftdb2 download, on the identical held-out split, from the
+lookup's own statistics at all six sphere depths plus the usual cheap
+RDKit atom descriptors. Same atoms, same protocol:
+
+                    good      medium     rough        ALL
+    13C  HOSE       1.11       3.36      10.02       2.91
+         model      1.75       3.62       9.97       3.32
+         hybrid     1.11       3.36       9.97       2.91
+
+    1H   HOSE       0.10       0.26       0.77       0.31
+         model      0.15       0.28       0.75       0.33
+         hybrid     0.10       0.26       0.75       0.30
+
+The hybrid -- lookup where it rates itself good or medium, model where it
+rates itself rough -- TIES on carbon and gains 0.01 ppm on hydrogen. A
+paired bootstrap over molecules puts the carbon `rough` difference at
+-0.049 ppm, 95% CI [-0.13, +0.03]: not distinguishable from zero. The one
+band where the model genuinely wins is 1H `rough`, by 0.020 ppm, which is
+below the reproducibility of a proton shift between solvents.
+
+The reason is worth keeping. Disabling the leave-one-out correction --
+letting a training atom see its own measurement inside the index mean --
+makes the model score 2.89, i.e. the lookup's own 2.91, and it gets there
+in 49 iterations of 400. Its optimum is to COPY the lookup. Forced to
+predict for itself, it does worse. Permutation importance agrees: every
+atom descriptor lands at or below 0.01 ppm against 0.21 for the sphere-1
+lookup mean. These features hold nothing the lookup does not already
+have, and 3.75x the iterations does not change it.
+
+So nothing under `src/` imports scikit-learn. The full table, four
+ablations, and a separate finding about explicit hydrogens splitting the
+index into two incompatible code vocabularies are in
+`benchmarks/nmr/README.md`.
+
 STORAGE is SQLite in the app data directory, built once from the
 nmrshiftdb2 distribution. Parsing 150 MB of SDF per prediction is not an
 option, and an in-memory dict of every environment is not either. At six

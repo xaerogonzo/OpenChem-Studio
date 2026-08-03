@@ -309,56 +309,77 @@ on every `ScientificResult`) is where a plugin should report them, e.g.
 `Provenance(created_by="my_herg_plugin", method="hergpred-v1.2",
 parameters={"confidence": 0.87, "applicability_domain": "in"})`.
 
-### ML NMR shift prediction — attempted, NO-GO on Windows
+### ML NMR shift prediction — trained locally, measured, not adopted
 
-Recorded so the next attempt starts from the evidence rather than
-repeating the spike.
+**This section previously read "NO-GO on Windows" and that framing was
+wrong.** Windows was the wall the first spike happened to hit; it was
+never the binding constraint. Two things have since been established, and
+both outrank it.
 
-**respredict** (Jonas & Kuhn 2019, the obvious candidate — ~1.3 ppm on
-13C with calibrated uncertainty) **no longer exists**:
-`thejonaslab/respredict` is deleted. Two things descend from it:
+**First, every pretrained option is licence-blocked, which would have
+blocked on Linux too** (verified 2026-08-03):
 
-- `stefhk3/nmr-respredict-docker` vendors the original source and is
-  maintained by the paper's co-author, but declares **no license at all**
-  and ships only a 13C model. Not something to build on.
-- `thejonaslab/fullsspruce-public` (FullSSPrUCe) is the same lab's
-  successor, MIT licensed, bundling 1H, 13C and two coupling models, all
-  returning `pred_mu`/`pred_std`. This is the right target.
+- `thejonaslab/respredict` — the repository is now a **404**.
+- `thejonaslab/fullsspruce-public` — **no licence file of any kind**.
+  This document previously recorded it as MIT; that was simply wrong, and
+  it is the correction that matters most here. No licence means all
+  rights reserved: it cannot be vendored, shipped, or redistributed, on
+  any platform.
+- `stefhk3/nmr-respredict-docker` — likewise declares no licence, and
+  ships only a 13C model.
+- Hugging Face carries **no NMR shift model at all** (searched four
+  ways).
 
-FullSSPrUCe was taken as far as it goes here. Its own dependencies
-install cleanly on pip despite a conda-oriented `environment.yml` — a
-Python 3.9 venv with CPU torch 2.8, rdkit 2022.03.5, scipy 1.9.1 and
-numpy 1.24 all resolved. It fails on ONE transitive dependency:
+So WSL and Docker, offered above as the "real routes", would not have
+helped. They solve a compiler problem this project did not actually have.
 
-**`tinygraph`** (`thejonaslab/tinygraph`) has a mandatory C++ Cython
-extension and no wheel anywhere. Its single GitHub release carries zero
-assets, and the `tinygraph` on PyPI is an unrelated project by a
-different author — installing that would silently supply the wrong
-library. Building it needs MSVC, which this machine does not have; and
-even with Build Tools installed the build would still fail as written,
-because `setup.py` passes GCC/Clang flags (`-O3`, `-fPIC`,
-`-fno-omit-frame-pointer`, `-g3`) that MSVC rejects. It was never built
-for Windows.
+For the record, the Windows finding still stands on its own terms and is
+worth keeping: FullSSPrUCe's dependencies pip-install cleanly except
+**`tinygraph`** (`thejonaslab/tinygraph`), which has a mandatory C++
+Cython extension, no wheel anywhere, a single GitHub release carrying
+zero assets, and a `setup.py` passing GCC/Clang flags (`-O3`, `-fPIC`,
+`-fno-omit-frame-pointer`, `-g3`) that MSVC rejects — so even with Build
+Tools installed it would not build as written. The `tinygraph` on PyPI is
+an unrelated project by a different author and would silently supply the
+wrong library.
 
-Getting there would mean forking and patching a transitive dependency of
-a dependency, plus a multi-gigabyte compiler install — the same
-"fragile dependency chain" the pkasolver spike exists to catch, and the
-same MSVC wall that one hit.
+**Second, licensing was sidestepped by training locally, and the trained
+model then lost on merit.** Training on the user's own nmrshiftdb2
+download, on their own machine, redistributes nothing — the same posture
+the shift index already has. That was done: a HistGradientBoostingRegressor
+over the lookup's per-sphere statistics plus cheap RDKit atom descriptors,
+on the identical held-out split. Held-out MAE, carbon: lookup **2.91**,
+model **3.32**, best hybrid **2.91** — a tie. On hydrogen the hybrid gains
+0.01 ppm. The full table, four ablations and a paired bootstrap are in
+[benchmarks/nmr/README.md](benchmarks/nmr/README.md), and the summary is
+in `chem/nmr_database.py`'s docstring beside the lookup's own numbers.
 
-**Real routes if this is wanted later:** WSL or Docker (both sidestep
-the compiler entirely, and the app already invokes out-of-process tools),
-or upstream wheels appearing. The value has also shrunk since this was
-planned: `chem/nmr_database.py` already gives 1.17 ppm on well-covered
-atoms with an honest per-atom rating, and scaled ORCA covers what the
-database has not seen. What FullSSPrUCe would add is *universal*
-coverage, not better accuracy where evidence exists.
+The diagnosis is the useful part: with leakage left in, the model's
+optimum is to *copy* the lookup, and it reaches it in 49 of 400
+iterations. Every atom descriptor scores at or below 0.01 ppm on
+permutation importance. Boosted trees over per-atom descriptors have
+nothing to add to a HOSE lookup — the environment code already contains
+what they encode.
 
-ONNX Runtime specifically is worth preferring over shipping a full
-PyTorch/torch-geometric chain if/when a real model is identified — it's
-a much lighter, pure-pip-installable dependency with no compiler
-requirement, unlike the chain that blocked pkasolver's numeric pKa (see
-the pKa calculator's own deferred notes). Revisit when a specific,
-verified, redistributable model exists to point at — not before.
+**What would actually be needed** is a model that learns structure-to-shift
+rather than correcting a lookup, i.e. a message-passing GNN — which means
+torch (~490 MB) and a training run in a different league from the 59
+seconds this took. That is a deliberate decision about the dependency
+story, not an incremental step, and it should not be taken on the strength
+of this result.
+
+A cheaper lead exists first: **34.3% of nmrshiftdb2's records carry
+explicit hydrogens**, and `hose_code` walks them, so those records speak a
+code vocabulary the other two thirds cannot match. Normalising to heavy
+atoms on both sides takes held-out carbon from 2.91 to **2.85 ppm** and
+moves 555 atoms into the `good` band — a larger gain than the ML model
+achieved, from a one-line change and no new dependency. It is not adopted
+here only because it obsoletes every built index and needs its own tests;
+see the caveats in the benchmark README.
+
+ONNX Runtime remains worth preferring over a full PyTorch/torch-geometric
+chain if a redistributable pretrained model ever appears — lighter, pure
+pip, no compiler. Revisit when one exists to point at, not before.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for how the codebase is structured to
 make Phases 3-6 additive rather than requiring a rewrite.
