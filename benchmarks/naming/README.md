@@ -84,6 +84,7 @@ name denote this molecule*.
 |---|---|
 | `exact` | round-trips **and** matches PubChem verbatim |
 | `equivalent` | round-trips; different valid wording — also a success |
+| `tautomer` | same compound drawn as a different tautomer — also a success |
 | `stereo_lost` | right skeleton, stereochemistry silently dropped |
 | `wrong_structure` | parses, but to a different molecule |
 | `unparsable` | OPSIN cannot read it |

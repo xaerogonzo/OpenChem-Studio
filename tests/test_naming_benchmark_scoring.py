@@ -14,6 +14,8 @@ loaded by path here.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import importlib.util
 from pathlib import Path
 
@@ -135,3 +137,58 @@ class TestInChIKeyGate:
         apart. That divergence is real information, which is why the
         scorer surfaces it as `gate_disagreement` rather than deciding."""
         assert score._key("c1cn[nH]n1") == score._key("c1c[nH]nn1")
+
+
+class TestTautomerOutcome:
+    """The `tautomer` class exists for metformin, but the reason it is
+    safe is what it REFUSES to accept. Both halves are tested."""
+
+    @staticmethod
+    def _row(smiles: str, name: str | None = None) -> dict:
+        return {"smiles": smiles, "pubchem_name": name, "category": "t", "has_stereo": False}
+
+    def test_metformin_is_scored_as_a_tautomer_not_a_failure(self, score, monkeypatch):
+        """The engine answers `1,1-dimethylbiguanide`, which IS metformin.
+        OPSIN parses it back to a different tautomer than the corpus
+        stores, so the SMILES gate alone called it a different molecule."""
+
+        monkeypatch.setattr(
+            score.n, "opsin_structure_for_name",
+            lambda name: SimpleNamespace(smiles="CN(C(=N)NC(=N)N)C"),
+        )
+        outcome = score.classify(self._row("CN(C)C(=N)N=C(N)N"), "1,1-dimethylbiguanide")
+
+        assert outcome == score.TAUTOMER
+        assert outcome in score.SUCCESS
+
+    @pytest.mark.parametrize(
+        "expected, parsed_back, what",
+        [
+            ("NC(N)=N", "NC(N)=[NH2+]", "guanidine vs guanidinium"),
+            ("Cc1ccccc1", "[CH2+]c1ccccc1", "toluene vs benzyl cation"),
+        ],
+    )
+    def test_charge_defects_are_still_caught(self, score, monkeypatch, expected, parsed_back, what):
+        """These are the defects the corpus was EXTENDED to catch -- the
+        engine used to name the benzyl cation as toluene. If the tautomer
+        class ever swallowed one of these, the benchmark would stop
+        measuring the thing it was built for."""
+
+        monkeypatch.setattr(
+            score.n, "opsin_structure_for_name",
+            lambda name: SimpleNamespace(smiles=parsed_back),
+        )
+        outcome = score.classify(self._row(expected), "some name")
+
+        assert outcome not in score.SUCCESS, f"{what} must not be scored as a success"
+
+    def test_an_unadjudicable_tautomer_is_not_treated_as_a_match(self, score, monkeypatch):
+        """`_canonical_tautomer` returning None means "cannot tell", which
+        must never be read as "same"."""
+
+        monkeypatch.setattr(score, "_canonical_tautomer", lambda smiles: None)
+        monkeypatch.setattr(
+            score.n, "opsin_structure_for_name",
+            lambda name: SimpleNamespace(smiles="CN(C(=N)NC(=N)N)C"),
+        )
+        assert score.classify(self._row("CN(C)C(=N)N=C(N)N"), "x") == score.GATE_DISAGREE
