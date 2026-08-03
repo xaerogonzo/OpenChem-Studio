@@ -368,14 +368,21 @@ seconds this took. That is a deliberate decision about the dependency
 story, not an incremental step, and it should not be taken on the strength
 of this result.
 
-A cheaper lead exists first: **34.3% of nmrshiftdb2's records carry
-explicit hydrogens**, and `hose_code` walks them, so those records speak a
-code vocabulary the other two thirds cannot match. Normalising to heavy
-atoms on both sides takes held-out carbon from 2.91 to **2.85 ppm** and
-moves 555 atoms into the `good` band — a larger gain than the ML model
-achieved, from a one-line change and no new dependency. It is not adopted
-here only because it obsoletes every built index and needs its own tests;
-see the caveats in the benchmark README.
+**The cheap fix found alongside it is the one that shipped.** 34.3% of
+nmrshiftdb2's records carry explicit hydrogens, and `hose_code` walks
+them, so that third spoke a code vocabulary the other two thirds could not
+match — and a molecule drawn in this application, having no explicit
+hydrogens, could only ever reach the 65.7%. It was a live bug on the query
+side too: toluene's methyl read 8.89 ppm from `Chem.AddHs(...)` against a
+literature 21.4. Normalising both sides through `heavy_atom_view` (index
+format 2) takes held-out carbon from 2.91 to **2.85 ppm**, paired delta
+−0.092 with a 95% CI of [−0.122, −0.064], and moves 555 atoms into the
+`good` band.
+
+That is roughly five times the ML model's only statistically real effect,
+across every atom rather than one band, for a normalisation instead of
+130 MB of dependencies — which is the honest summary of this whole
+episode.
 
 ONNX Runtime remains worth preferring over a full PyTorch/torch-geometric
 chain if a redistributable pretrained model ever appears — lighter, pure

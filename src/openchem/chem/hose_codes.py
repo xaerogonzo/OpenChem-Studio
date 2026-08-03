@@ -34,6 +34,16 @@ WHAT MAKES IT WORK, and what the tests pin:
 Codes are generated at every sphere depth, largest first, so a lookup can
 fall back: an exact four-sphere match is a near-identical environment,
 while a two-sphere match is a looser one covering more of the database.
+
+CALL THESE ON A HEAVY-ATOM MOLECULE. The walk follows every bond, so an
+EXPLICIT hydrogen is written into the code and an implicit one is not --
+which means the same molecule drawn two ways produces two different
+codes, and neither matches the other. That is not hypothetical: 34.3% of
+nmrshiftdb2's records carry explicit hydrogens, so the shift index was
+really two indexes, and toluene's methyl looked up from `Chem.AddHs(...)`
+returned 8.89 ppm against a literature 21.4. `nmr_database.heavy_atom_view`
+is what both sides now normalise through; there is no reason to code from
+anything else.
 """
 
 from __future__ import annotations

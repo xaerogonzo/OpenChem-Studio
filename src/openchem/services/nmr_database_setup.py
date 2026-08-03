@@ -29,6 +29,7 @@ from openchem.chem.nmr_database import (
     default_database_path,
     connect,
     is_populated,
+    stale_format,
 )
 
 logger = logging.getLogger("openchem.services")
@@ -81,12 +82,22 @@ def describe_status() -> str:
     molecules = summary.get("molecules", "?")
     measurements = summary.get("measurements", "?")
     size_mb = path.stat().st_size / 1e6
-    return (
+    built = (
         f"Built: {int(molecules):,} molecules, {int(measurements):,} assigned shifts "
         f"({size_mb:.1f} MB index)."
         if molecules.isdigit() and measurements.isdigit()
         else f"Built: index present ({size_mb:.1f} MB)."
     )
+    if stale_format(path):
+        # Offered rather than forced: this index still answers correctly
+        # for the environments it can reach, so the cost of not rebuilding
+        # is accuracy, not correctness.
+        built += (
+            " This index predates the single-vocabulary environment codes, so about a third "
+            "of it cannot be matched. Rebuilding lowers mean error from 2.91 to 2.85 ppm on "
+            "carbon and moves ~2% of atoms into the 'good' band."
+        )
+    return built
 
 
 def build(

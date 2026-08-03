@@ -1397,8 +1397,8 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "Predicts shifts by looking up each atom's environment in assigned experimental "
             "spectra from nmrshiftdb2, and reports a per-atom confidence earned from how many "
             "measurements matched and how well they agree. Instant, unlike the ab initio path, "
-            "but limited to environments the database has seen. Held-out accuracy: 1.17 ppm mean "
-            "error on atoms it rates 'good', 9.93 on atoms it rates 'rough' -- the rating is "
+            "but limited to environments the database has seen. Held-out accuracy: 1.12 ppm mean "
+            "error on atoms it rates 'good', 10.00 on atoms it rates 'rough' -- the rating is "
             "worth reading."
         ),
         execution=RegistryExecution(compute=compute_database_nmr),

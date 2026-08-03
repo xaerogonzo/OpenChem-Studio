@@ -114,37 +114,61 @@ Two guesses were wrong and the measurements stand instead:
 - Leakage was expected to make held-out numbers collapse. It makes them
   *better*, by making the model a no-op.
 
-## A separate finding: explicit hydrogens split the index
+## What did work, and shipped: explicit hydrogens split the index
 
 **34.3% of nmrshiftdb2 records carry explicit hydrogens** and the rest do
 not. `hose_code` walks every bond, so an explicit H becomes part of the
-code — which means those records speak a different code vocabulary from
-the other two thirds, and neither can match the other. A molecule the user
-drew (no explicit H) can only ever match the 65.7%.
+code — which means those records spoke a different code vocabulary from
+the other two thirds, and neither could match the other. A molecule drawn
+in the application has no explicit hydrogens at all, so it could only ever
+match the 65.7%.
 
-Stripping to heavy atoms before coding, both when building the index and
-when querying it (`hydrogen_normalisation.py`), on the same held-out split:
+It was a live bug on the query side too: toluene's methyl carbon looked up
+from `Chem.AddHs(...)` returned **8.89 ppm** against a literature 21.4,
+and **21.52** from the same molecule without explicit hydrogens. Same
+index, same molecule, two answers, no error either way.
 
-| ¹³C | good | medium | rough | ALL | median |
+Both sides now normalise through `nmr_database.heavy_atom_view`
+(index format 2). Paired over the same held-out atoms, same download,
+scored through the shipping `lookup` (`score_lookup.py`,
+`compare_indexes.py`):
+
+| ¹³C (24,330 atoms) | good | medium | rough | ALL | median |
 |---|---|---|---|---|---|
-| as shipped | 1.11 (10,835) | 3.36 (11,421) | 10.02 (2,024) | 2.91 | 1.28 |
-| H-normalised | 1.12 (11,390) | 3.36 (10,933) | 10.00 (1,957) | **2.85** | **1.23** |
+| format 1 | 1.11 (10,835) | 3.36 (11,421) | 10.02 (2,024) | 2.91 | 1.28 |
+| format 2 | 1.12 (11,390) | 3.36 (10,933) | 10.00 (1,957) | **2.85** | **1.23** |
 
-The per-band accuracy is unchanged; what moves is *which band an atom
-lands in* — 555 more carbons rated `good`, 67 fewer `rough`. That is a
-larger overall gain than the ML model achieved, from a one-line
-normalisation and no new dependency.
+| ¹H (7,727 atoms) | good | medium | rough | ALL | median |
+|---|---|---|---|---|---|
+| format 1 | 0.10 (2,953) | 0.26 (3,105) | 0.77 (1,647) | 0.31 | 0.13 |
+| format 2 | 0.10 (3,052) | 0.26 (3,098) | 0.77 (1,555) | **0.30** | 0.13 |
 
-**Not shipped in this branch either**, because it is a change to the index
-format that obsoletes every built index and deserves its own tests. Two
-caveats a follow-up must settle first:
+Paired bootstrap over molecules: carbon **−0.092 ppm, 95% CI [−0.122,
+−0.064]**; hydrogen **−0.025, [−0.031, −0.019]**. Both clear of zero.
 
-- The ¹H side is not directly comparable above — normalising drops
-  assignments whose atom index *is* a hydrogen (7,935 measurements, and
-  1H records do index the heavy atom, so these need checking rather than
-  discarding).
-- Atom indices must be remapped, not trusted: `RemoveAllHs` renumbers, and
-  the assignments reference the original numbering.
+Per-band accuracy barely moves; what moves is *which band an atom lands
+in* — 555 more carbons rated `good`, 67 fewer `rough`. **That is roughly
+five times the ML model's only statistically real effect (−0.020 ppm on
+¹H `rough` alone), across every atom instead of one band, for a
+normalisation instead of 130 MB of dependencies.**
+
+Two things the fix had to get right, both silent when wrong:
+
+- **A hydrogen's own index maps to its parent heavy atom, not to
+  nothing.** nmrshiftdb2 files a proton's shift against its heavy atom
+  (6,987 of the held-out ¹H assignments do), but 444 point straight at an
+  explicit hydrogen. An early version of this experiment *dropped* those —
+  7,935 measurements across the training split — which is why its ¹H
+  numbers were not comparable. Remapping keeps the measurement count
+  identical at 605,374 before and after.
+- **Atom indices must be remapped, not trusted.** `RemoveAllHs` renumbers,
+  and the assignments reference the original numbering. `predict_spectrum`
+  also has to report results back in the *caller's* numbering, or every
+  label in the correlation plot lands on the wrong atom.
+
+An index built before this is detected (`stale_format`) and the user is
+offered a rebuild rather than refused a prediction — a format-1 index
+still answers correctly for the environments it can reach.
 
 ## Running it
 
@@ -177,11 +201,16 @@ python benchmarks/nmr/holdout.py train.npz heldout.npz --importance --out models
 python benchmarks/nmr/significance.py
 ```
 
-The separate hydrogen-normalisation measurement is two more steps, and
-does not depend on any of the above beyond `split.py`:
+Scoring the lookup alone needs no ML and no extraction — just a split and
+an index. This is the one to run after any change to the codes or the
+build:
 
 ```bash
-python benchmarks/nmr/hydrogen_normalisation.py build && python benchmarks/nmr/hydrogen_normalisation.py score
+python benchmarks/nmr/score_lookup.py split_index.sqlite
+```
+
+```bash
+python benchmarks/nmr/compare_indexes.py before.sqlite after.sqlite
 ```
 
 Training itself is the cheap part: **59 s** for carbon and **28 s** for
