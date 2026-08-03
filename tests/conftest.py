@@ -140,21 +140,48 @@ def qapp():
 
 @pytest.fixture(autouse=True)
 def isolated_settings(tmp_path, monkeypatch):
-    """`openchem.app.settings.Settings` wraps `QSettings(ORG_NAME, APP_NAME)`,
+    """Point `Settings` at a throwaway INI file under `tmp_path`.
+
+    `openchem.app.settings.Settings` wraps `QSettings(ORG_NAME, APP_NAME)`,
     which on Windows is backed by the real, persistent registry key this
-    app's actual installs use — not a throwaway store. Without this, any
-    test that writes a setting (e.g. `plugins/project_directory`, as the
-    plugin-manager tests do) permanently pollutes the real app's settings
-    on whatever machine runs the suite. Force IniFormat plus a per-test
-    unique org/app name so every test is fully isolated and nothing ever
-    touches the real "OpenChemStudio" store.
+    app's actual installs use. Without isolation, any test that writes a
+    setting (`plugins/project_directory`, as the main-window tests do)
+    pollutes the real app's settings on whatever machine runs the suite.
+
+    REPLACING THE CONSTRUCTOR IS THE POINT, and it is the second thing
+    tried. The obvious approach -- `setDefaultFormat(IniFormat)` plus a
+    per-test unique org/app name -- reads like it isolates and only half
+    does. `setDefaultFormat` is documented to apply to exactly the
+    `QSettings(organization, application)` constructor used here, and it
+    does not:
+
+        QSettings.setDefaultFormat(QSettings.Format.IniFormat)
+        QSettings.defaultFormat()          -> Format.IniFormat
+        QSettings("Org", "App").format()   -> Format.NativeFormat   # !
+        QSettings("Org", "App").fileName() -> \\HKEY_CURRENT_USER\\...
+
+    So writes still went to the registry, just under a per-test name --
+    which did protect the real "OpenChemStudio" key, and left **84 junk
+    keys per suite run** littered under HKCU\\Software instead, one per
+    test, named after the test, persisting forever. Measured by clearing
+    them and re-running.
+
+    Building the QSettings from an explicit file path sidesteps the format
+    question entirely: there is no org/app lookup and no registry to fall
+    back to, and `tmp_path` is cleaned up by pytest. See
+    `tests/test_settings_isolation.py`, which fails if this regresses.
     """
     import openchem.app.settings as settings_module
 
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    unique_name = f"OpenChemStudio-pytest-{tmp_path.name}"
-    monkeypatch.setattr(settings_module, "ORG_NAME", unique_name)
-    monkeypatch.setattr(settings_module, "APP_NAME", unique_name)
+    ini_path = tmp_path / "qsettings.ini"
+
+    # One file per test, shared by every Settings built during it -- several
+    # tests construct one directly and let MainWindow construct another, and
+    # they have always seen each other's writes.
+    def _file_backed_qsettings(*_args, **_kwargs):
+        return QSettings(str(ini_path), QSettings.Format.IniFormat)
+
+    monkeypatch.setattr(settings_module, "QSettings", _file_backed_qsettings)
 
 
 def synthetic_nmr_spectrum(mol, molecule_uuid: str = "mol-1"):
