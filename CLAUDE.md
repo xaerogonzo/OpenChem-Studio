@@ -6,7 +6,7 @@
 uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suite.log
 ```
 
-A clean run is **~1m40s**, ending at `1178 passed, 2 skipped`. Writing to a
+A clean run is **~1m40s**, ending at `1181 passed, 2 skipped`. Writing to a
 file rather than a pipe is worth doing because it lets you watch progress
 while it runs.
 
@@ -61,6 +61,37 @@ If a run ever stalls again, sample before assuming it is slow:
 
 ```bash
 powershell "(Get-CimInstance Win32_Process -Filter \"Name='QtWebEngineProcess.exe'\" | Measure-Object).Count"
+```
+
+### The suite must not touch the machine's real settings
+
+`Settings` wraps `QSettings`, which on Windows is the real registry key a
+shipped install uses. The autouse `isolated_settings` fixture redirects it to
+an INI file under `tmp_path`; `tests/test_settings_isolation.py` fails if that
+regresses.
+
+Worth knowing because the previous version of that fixture **looked** correct
+and half-worked. It called `QSettings.setDefaultFormat(IniFormat)` and gave
+each test a unique org/app name — but `setDefaultFormat` does not affect the
+`QSettings(organization, application)` constructor in practice, whatever the
+docs say:
+
+```python
+QSettings.setDefaultFormat(QSettings.Format.IniFormat)
+QSettings.defaultFormat()          # Format.IniFormat
+QSettings("Org", "App").format()   # Format.NativeFormat  <- still the registry
+```
+
+So the real `OpenChemStudio` key stayed clean (the unique name did that much)
+while every run deposited **84 junk keys** under `HKCU\Software`, one per
+test, named after the test, permanent. Nothing in the suite output showed it.
+Building the QSettings from an explicit file path avoids the format question
+entirely.
+
+If you touch that fixture, verify by counting, not by reading:
+
+```bash
+powershell "(Get-ChildItem 'HKCU:\Software' | Where-Object PSChildName -like 'OpenChemStudio-pytest-*' | Measure-Object).Count"
 ```
 
 ### The formerly-flaky webview test
