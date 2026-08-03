@@ -94,20 +94,25 @@ def test_ph_curve_calculators_get_the_pkasolver_interpreter_injected():
     """They take an extra `interpreter_path` argument that `chem/` cannot
     read itself -- the composition root closes over Settings. A missing
     binding would surface as a TypeError only at click time."""
-    from openchem.bootstrap import _SETTINGS_BOUND_CALCULATORS
+    from openchem.bootstrap import _CALCULATOR_INTERPRETER_SETTING
+    from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING
 
-    assert {"pka_microspecies", "isoelectric_point", "logd_curve"} <= _SETTINGS_BOUND_CALCULATORS
+    for calculator in ("pka_microspecies", "isoelectric_point", "logd_curve"):
+        assert _CALCULATOR_INTERPRETER_SETTING.get(calculator) == PKASOLVER_PYTHON_SETTING
 
 
 def test_naming_calculator_is_registered_and_stout_bound():
-    from openchem.bootstrap import _STOUT_BOUND_CALCULATORS
+    from openchem.bootstrap import _CALCULATOR_INTERPRETER_SETTING
+    from openchem.chem.stout_providers import STOUT_PYTHON_SETTING
 
     registry = build_service_container().calculator_registry
     assert "naming" in registry.categories()
     assert [d.calculator_id for d in registry.by_category("naming")] == ["iupac_name"]
-    # Needs the STOUT interpreter, NOT pkasolver's -- a wrong binding would
-    # hand it the wrong environment and fail only at click time.
-    assert "iupac_name" in _STOUT_BOUND_CALCULATORS
+    # Needs the STOUT interpreter, NOT pkasolver's. Now that one mapping
+    # serves three sidecars, asserting the exact setting key -- rather than
+    # mere membership -- is what catches a calculator being handed the
+    # wrong environment, which would fail only at click time.
+    assert _CALCULATOR_INTERPRETER_SETTING["iupac_name"] == STOUT_PYTHON_SETTING
 
 
 def test_phase30_calculators_are_registered():
@@ -123,3 +128,30 @@ def test_phase30_calculators_are_registered():
     }
     assert expected <= registered
     assert {"quantum", "dynamics"} <= set(registry.categories())
+
+
+def test_every_sidecar_calculator_is_bound_to_its_own_interpreter():
+    """Three sidecars share one mapping now. The failure this guards is a
+    calculator pointed at the wrong environment -- pkasolver's interpreter
+    cannot run ADMET-AI, and the error would appear only when clicked."""
+    from openchem.bootstrap import _CALCULATOR_INTERPRETER_SETTING
+    from openchem.chem.admet_providers import ADMET_PYTHON_SETTING
+    from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING
+    from openchem.chem.stout_providers import STOUT_PYTHON_SETTING
+
+    assert _CALCULATOR_INTERPRETER_SETTING["admet_ml"] == ADMET_PYTHON_SETTING
+    assert _CALCULATOR_INTERPRETER_SETTING["pka"] == PKASOLVER_PYTHON_SETTING
+    assert _CALCULATOR_INTERPRETER_SETTING["iupac_name"] == STOUT_PYTHON_SETTING
+    # Three distinct environments, not one shared by accident.
+    assert len(set(_CALCULATOR_INTERPRETER_SETTING.values())) == 3
+
+
+def test_the_admet_calculator_is_registered_and_declared_a_prediction():
+    registry = build_service_container().calculator_registry
+    definition = registry.get("admet_ml")
+
+    assert definition is not None
+    assert definition.category == "admet"
+    # hERG/CYP are model outputs. Labelling them anything else would put
+    # them on the same footing as the measured descriptors beside them.
+    assert definition.prediction_basis == "empirical"

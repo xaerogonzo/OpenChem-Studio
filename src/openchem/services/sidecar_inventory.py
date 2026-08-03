@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from openchem import paths as app_paths
+from openchem.chem.admet_providers import ADMET_PYTHON_SETTING
 from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING
 from openchem.chem.stout_providers import STOUT_PYTHON_SETTING
 from openchem.services import storage_service
@@ -159,9 +160,18 @@ def components(settings=None) -> list[Component]:
     and a tool can be installed or reconfigured between calls, and a
     stale inventory would offer to delete the wrong path.
     """
-    from openchem.services import pkasolver_setup, stout_setup
+    from openchem.services import admet_setup, pkasolver_setup, stout_setup
 
     items = [
+        Component(
+            key="admet",
+            label="ADMET environment",
+            description="hERG, CYP450 and Ames prediction (Python + PyTorch).",
+            paths=[admet_setup.default_install_root()],
+            settings_keys=(ADMET_PYTHON_SETTING,),
+            reinstall_hint="Re-installable from the ADMET tab; the rule-based hERG "
+            "risk-factor checklist keeps working without it.",
+        ),
         Component(
             key="pkasolver",
             label="pkasolver environment",
