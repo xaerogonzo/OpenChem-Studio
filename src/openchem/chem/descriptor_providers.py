@@ -709,13 +709,32 @@ def compute_pka_dataset(
         alert_id="pka",
         name="pKa",
         molecule_uuid=molecule_uuid,
-        matched=[
-            f"pKa {fmt(pka, parameters)}"
-            for _idx, pka in sorted(pairs or [], key=lambda p: p[1])
-        ],
+        matched=[_pka_line(prediction, parameters) for prediction in sorted(
+            pairs or [], key=lambda prediction: prediction.value
+        )],
         category="pka",
         provenance=Provenance(created_by="core", method="pkasolver"),
     )
+
+
+def _pka_line(prediction, parameters: dict[str, Any] | None) -> str:
+    """One pKa, with the ensemble spread when there is one to report.
+
+    The spread is pkasolver's own -- how far its fifty models disagreed --
+    so it is measured rather than invented, which is why it is worth
+    printing at all. It is shown ONLY when non-zero: a runner predating
+    the field reports 0.0, and printing "+/- 0.00" there would claim
+    perfect agreement that was never measured.
+
+    Deliberately NOT called a confidence interval. Fifty models trained on
+    shared data can agree closely and be wrong together -- see the
+    nitrophenols in `chem/pka_providers.py`, where the model is confident
+    and 2.7 units out.
+    """
+    value = fmt(prediction.value, parameters)
+    if not prediction.stddev:
+        return f"pKa {value}"
+    return f"pKa {value} +/- {fmt(prediction.stddev, parameters)} (ensemble spread)"
 
 
 def compute_logd(
@@ -743,7 +762,7 @@ def compute_logd(
         method = "rdkit"
     elif pka_predictor_available(interpreter_path):
         try:
-            pkas = [pka for _idx, pka in (compute_pka(mol, interpreter_path) or [])]
+            pkas = [p.value for p in (compute_pka(mol, interpreter_path) or [])]
         except RuntimeError as exc:
             return AlertResult(
                 alert_id="logd", name="LogD", molecule_uuid=molecule_uuid, matched=[], category="logd",

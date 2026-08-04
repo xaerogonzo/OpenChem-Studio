@@ -146,7 +146,7 @@ def _resolve_pkas(
         pairs = compute_pka(mol, interpreter_path) or []
     except RuntimeError as exc:
         return [], n_acids, n_bases, str(exc)
-    return sorted(pka for _index, pka in pairs), n_acids, n_bases, None
+    return sorted(p.value for p in pairs), n_acids, n_bases, None
 
 
 def _failed_curve(curve_id: str, name: str, molecule_uuid: str, message: str) -> PhCurveResult:

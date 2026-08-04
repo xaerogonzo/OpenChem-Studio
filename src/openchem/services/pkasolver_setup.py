@@ -285,7 +285,7 @@ def _verify(python: Path) -> None:
     # Acetic acid's real pKa is 4.76; the model predicts ~4.2. A wildly
     # different number means something is wrong with the install even
     # though it ran, so this is a sanity band rather than an accuracy check.
-    value = pkas[0][1]
+    value = pkas[0].value
     if not 2.0 <= value <= 8.0:
         raise PkasolverSetupError(
             f"Setup finished but the test prediction looks wrong: acetic acid pKa {value:.2f} "

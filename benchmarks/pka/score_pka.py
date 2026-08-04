@@ -55,15 +55,17 @@ for name, smiles, lit, kind in CASES:
     except Exception as exc:  # noqa: BLE001
         print(f"{name:<22} {lit:6.2f}  FAILED: {type(exc).__name__} {exc}"[:110])
         continue
-    values = sorted(v for _idx, v in (got or []))
+    predictions = sorted(got or [], key=lambda prediction: prediction.value)
+    values = [prediction.value for prediction in predictions]
     if not values:
         print(f"{name:<22} {lit:6.2f}  (no ionizable centre found)")
-        rows.append((name, lit, None, None, kind))
+        rows.append((name, lit, None, None, kind, 0.0))
         continue
-    nearest = min(values, key=lambda v: abs(v - lit))
+    nearest_prediction = min(predictions, key=lambda p: abs(p.value - lit))
+    nearest = nearest_prediction.value
     shown = ", ".join(f"{v:.2f}" for v in values)[:23]
     print(f"{name:<22} {lit:6.2f} {shown:<24} {nearest:>8.2f} {nearest-lit:>+7.2f} {len(values):>2}")
-    rows.append((name, lit, nearest, len(values), kind))
+    rows.append((name, lit, nearest, len(values), kind, nearest_prediction.stddev))
 
 scored = [r for r in rows if r[2] is not None]
 errs = [abs(r[2] - r[1]) for r in scored]
@@ -81,5 +83,37 @@ for kind in ("acid", "base"):
         print(f"  {kind:<5} n={len(k):>2}  MAE {sum(k)/len(k):.2f}  max {max(k):.2f}")
 worst = sorted(scored, key=lambda r: -abs(r[2] - r[1]))[:5]
 print("\nworst five:")
-for name, lit, nearest, n, _k in worst:
+for name, lit, nearest, n, _k, _sd in worst:
     print(f"  {name:<22} lit {lit:5.2f}  predicted {nearest:5.2f}  err {nearest-lit:+.2f}")
+
+
+# --- Is the ensemble spread worth anything as a warning signal? ---------
+#
+# The spread is REAL model-reported uncertainty, which is why it is now
+# carried through `PkaPrediction` and printed. But "the fifty models
+# agreed" is not "the answer is right" -- they share training data and can
+# agree while wrong together. Whether it behaves as a usable warning here
+# is measurable, so measure it.
+import statistics as _st
+
+with_spread = [(r[5], abs(r[2] - r[1])) for r in scored if r[5]]
+if with_spread:
+    spreads = [s for s, _e in with_spread]
+    errs = [e for _s, e in with_spread]
+    mean_s, mean_e = _st.fmean(spreads), _st.fmean(errs)
+    denom = _st.pstdev(spreads) * _st.pstdev(errs)
+    r_value = (
+        sum((s - mean_s) * (e - mean_e) for s, e in with_spread) / len(with_spread) / denom
+        if denom
+        else float("nan")
+    )
+    print(f"\nensemble spread, n={len(with_spread)}")
+    print(f"  mean spread {mean_s:.2f}   mean |error| {mean_e:.2f}")
+    print(f"  Pearson r(spread, |error|) = {r_value:+.2f}")
+    tight = [e for s, e in with_spread if s <= 0.3]
+    wide = [e for s, e in with_spread if s > 0.3]
+    if tight and wide:
+        print(f"  spread <= 0.30 (n={len(tight)}): mean |error| {_st.fmean(tight):.2f}")
+        print(f"  spread >  0.30 (n={len(wide)}): mean |error| {_st.fmean(wide):.2f}")
+    tightest_bad = max(with_spread, key=lambda pair: pair[1])
+    print(f"  worst error {tightest_bad[1]:.2f} came at a spread of only {tightest_bad[0]:.2f}")

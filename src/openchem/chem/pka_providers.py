@@ -34,6 +34,7 @@ from __future__ import annotations
 import json
 import logging
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
 
 from rdkit import Chem
@@ -100,11 +101,52 @@ def pka_predictor_available(interpreter_path: str | None) -> bool:
     return Path(interpreter_path).is_file()
 
 
-def compute_pka(mol: Chem.Mol, interpreter_path: str | None) -> list[tuple[int, float]] | None:
-    """Returns (reaction_center_atom_idx, predicted_pKa) pairs from
-    pkasolver, or `None` if no pkasolver environment is configured --
-    callers must treat `None` as "not installed," not "no ionizable atoms
-    found."
+@dataclass(frozen=True)
+class PkaPrediction:
+    """One predicted pKa, with the model's own spread on it.
+
+    A dataclass rather than the (index, value) tuple this used to be,
+    because `stddev` is the third thing and a three-wide tuple would have
+    every caller remembering which slot is which -- the same call
+    `CrossPeak` and `StructureEntry` already made here.
+
+    `stddev` is the spread across pkasolver's 50-model ensemble, which the
+    runner has always parsed and this layer used to discard. It is REAL
+    reported uncertainty, not a number this project invented, which makes
+    it worth carrying: it is the honest confidence signal that naming and
+    NMR predictions were repeatedly unable to offer.
+
+    IT IS A SPREAD, NOT A CALIBRATED CONFIDENCE INTERVAL -- but measured
+    against the 24-compound set in this module's docstring it earns its
+    place, which is more than was assumed:
+
+        Pearson r(spread, |error|)      +0.66
+        spread <= 0.30  (n=19)          mean |error| 0.15
+        spread >  0.30  (n= 5)          mean |error| 0.84
+
+    So a tight ensemble really does go with a better answer, by roughly
+    5x. Useful as a triage signal.
+
+    It is NOT a bound, and the failure that proves it is the same
+    nitrophenol case above: 2,4-dinitrophenol is 2.70 units wrong at a
+    spread of only 0.68, understating its own error four-fold. Fifty
+    models sharing training data can agree closely and be wrong together,
+    which is exactly what electron-poor phenols make them do. Read a wide
+    spread as a warning; do not read a narrow one as a guarantee.
+
+    Re-check with `benchmarks/pka/score_pka.py`, which reports these
+    numbers at the end of its run.
+    """
+
+    atom_index: int
+    value: float
+    stddev: float = 0.0
+
+
+def compute_pka(mol: Chem.Mol, interpreter_path: str | None) -> list[PkaPrediction] | None:
+    """Returns a `PkaPrediction` per ionizable centre pkasolver found, or
+    `None` if no pkasolver environment is configured -- callers must treat
+    `None` as "not installed," not "no ionizable atoms found."
 
     **The atom index is NOT reliable against `mol`'s own numbering.**
     Confirmed live: for ibuprofen pkasolver reports reaction centre 12,
@@ -138,7 +180,17 @@ def compute_pka(mol: Chem.Mol, interpreter_path: str | None) -> list[tuple[int, 
         raise RuntimeError(f"Could not run the configured pkasolver interpreter: {exc}") from exc
 
     payload = _parse_runner_output(completed.stdout, completed.stderr, completed.returncode)
-    return [(int(entry["atom_idx"]), float(entry["pka"])) for entry in payload["pkas"]]
+    return [
+        PkaPrediction(
+            atom_index=int(entry["atom_idx"]),
+            value=float(entry["pka"]),
+            # Older payloads predate the field; absent is not zero-spread,
+            # but 0.0 is the only honest default that cannot overstate
+            # confidence downstream (see how the pKa calculator prints it).
+            stddev=float(entry.get("stddev", 0.0)),
+        )
+        for entry in payload["pkas"]
+    ]
 
 
 def _parse_runner_output(stdout: str, stderr: str, returncode: int) -> dict:
@@ -195,7 +247,7 @@ def describe_pka_status(interpreter_path: str) -> str:
             return f"Configured but not working: {exc}"
         if not pkas:
             return f"Configured, but returned no pKa for {name} — check the install"
-        nearest = min((v for _i, v in pkas), key=lambda v: abs(v - literature))
+        nearest = min((p.value for p in pkas), key=lambda v: abs(v - literature))
         errors.append(abs(nearest - literature))
         parts.append(f"{name} {nearest:.2f} (lit {literature:.2f})")
     return (

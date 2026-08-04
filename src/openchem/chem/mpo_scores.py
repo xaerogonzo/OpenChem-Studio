@@ -98,7 +98,7 @@ def compute_cns_mpo(
         from openchem.chem.pka_providers import compute_pka, pka_predictor_available
 
         if pka_predictor_available(interpreter_path):
-            pkas = sorted(value for _index, value in (compute_pka(mol, interpreter_path) or []))
+            pkas = sorted(p.value for p in (compute_pka(mol, interpreter_path) or []))
             if pkas:
                 logd = logd_from_pkas(mol, 7.4, pkas)
                 acids, _bases = classify_ionizable_centres(mol)

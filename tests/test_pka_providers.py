@@ -92,3 +92,44 @@ def test_describe_pka_status_reports_not_configured():
     from openchem.chem.pka_providers import describe_pka_status
 
     assert "Not configured" in describe_pka_status("")
+
+
+def test_a_prediction_carries_the_ensemble_spread():
+    """The runner has always parsed pkasolver's `pka_stddev`; this layer
+    used to drop it on the floor between the subprocess and the caller."""
+    from openchem.chem.pka_providers import PkaPrediction
+
+    prediction = PkaPrediction(atom_index=3, value=4.19, stddev=0.27)
+
+    assert (prediction.value, prediction.stddev) == (4.19, 0.27)
+
+
+def test_a_payload_without_a_spread_reports_zero_not_a_guess():
+    """A runner predating the field says nothing about spread. Zero is the
+    only default that cannot overstate confidence -- and the calculator
+    prints nothing rather than '+/- 0.00' when it sees one."""
+    from openchem.chem.pka_providers import PkaPrediction
+
+    assert PkaPrediction(atom_index=0, value=1.0).stddev == 0.0
+
+
+def test_the_pka_line_shows_a_spread_only_when_there_is_one():
+    """"+/- 0.00" would claim perfect ensemble agreement that was never
+    measured, which is worse than saying nothing."""
+    from openchem.chem.descriptor_providers import _pka_line
+    from openchem.chem.pka_providers import PkaPrediction
+
+    with_spread = _pka_line(PkaPrediction(atom_index=3, value=4.19, stddev=0.27), {})
+    without = _pka_line(PkaPrediction(atom_index=3, value=4.19), {})
+
+    assert with_spread == "pKa 4.19 +/- 0.27 (ensemble spread)"
+    assert without == "pKa 4.19"
+
+
+def test_the_spread_is_formatted_at_the_requested_precision():
+    from openchem.chem.descriptor_providers import _pka_line
+    from openchem.chem.pka_providers import PkaPrediction
+
+    line = _pka_line(PkaPrediction(atom_index=3, value=4.19, stddev=0.27), {"decimal_places": 3})
+
+    assert "4.190" in line and "0.270" in line

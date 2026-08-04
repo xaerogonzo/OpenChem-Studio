@@ -96,7 +96,7 @@ def compute_bbb_descriptors(
         from openchem.chem.pka_providers import compute_pka, pka_predictor_available
 
         if pka_predictor_available(interpreter_path):
-            pkas = sorted(value for _index, value in (compute_pka(target, interpreter_path) or []))
+            pkas = sorted(p.value for p in (compute_pka(target, interpreter_path) or []))
             acids, _bases = classify_ionizable_centres(target)
             basic = pkas[acids:]
             most_basic_pka = max(basic) if basic else None
