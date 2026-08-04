@@ -78,15 +78,47 @@ class ChemistryEngine:
         from rdkit.Chem.Draw import rdMolDraw2D
 
         mol = self.mol_from_molblock(molblock)
+        atom_count = mol.GetNumAtoms()
+
+        def drawable(idx: int) -> bool:
+            """Whether `idx` addresses an atom this depiction actually has.
+
+            Callers legitimately hold data keyed to a DIFFERENT molecule than
+            the one drawn: several calculators run on `Chem.AddHs(mol)` and
+            return a value per hydrogen, while the depiction is the editor
+            molblock, whose hydrogens are implicit and so have no index at
+            all. Measured on ethanol: `compute_atomic_polarizability` (the
+            registered "Polarizability (per atom)" calculator) yields 9
+            values, indices 0-8, against 3 drawable atoms.
+
+            The two arguments fail differently and both are silent about the
+            real cause -- `atomNote` on a bad index raises straight out of
+            RDKit, and an out-of-range highlight makes
+            `PrepareAndDrawMolecule` reject the highlight list wholesale with
+            `ValueError: list element larger than allowed value`, losing the
+            entire depiction rather than the surplus atoms.
+
+            Out-of-range values are DROPPED, not folded onto the hydrogen's
+            heavy parent the way `nmr_signals.depiction_atoms` does. That
+            mapping is right for a 1H spectrum, where the proton's shift is
+            the only value its carbon has; here the heavy atom already
+            carries its own value at its own index, so painting a hydrogen's
+            colour over it would replace real data with a different atom's.
+            The hydrogen values are not lost to the user -- the Calculator
+            Inspector's 3D pane sits next to this one and is drawn from an
+            explicit-hydrogen conformer, which does have somewhere to put
+            them.
+            """
+            return 0 <= idx < atom_count
+
         if atom_labels:
             for idx, label in atom_labels.items():
-                if idx < mol.GetNumAtoms():
+                if drawable(idx):
                     mol.GetAtomWithIdx(idx).SetProp("atomNote", label)
         drawer = rdMolDraw2D.MolDraw2DSVG(width, height)
-        highlight_atoms = list(atom_colors) if atom_colors else []
-        highlight_colors = (
-            {idx: self._hex_to_rgb_fraction(color) for idx, color in atom_colors.items()} if atom_colors else {}
-        )
+        highlighted = {idx: color for idx, color in (atom_colors or {}).items() if drawable(idx)}
+        highlight_atoms = list(highlighted)
+        highlight_colors = {idx: self._hex_to_rgb_fraction(color) for idx, color in highlighted.items()}
         rdMolDraw2D.PrepareAndDrawMolecule(
             drawer, mol, highlightAtoms=highlight_atoms, highlightAtomColors=highlight_colors
         )
