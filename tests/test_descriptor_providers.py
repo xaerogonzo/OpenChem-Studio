@@ -97,17 +97,23 @@ def test_shape_descriptors_succeed_with_a_real_3d_conformer():
 def test_compute_alerts_flags_a_known_pains_scaffold():
     # Rhodanine is a textbook PAINS alert scaffold -- confirmed live against
     # RDKit's own 480-entry PAINS catalog. It also trips BRENK's
-    # "Thiocarbonyl_group" alert (Phase 19). compute_alerts() now returns
-    # four AlertResults total (Phase 20 adds functional_groups and
-    # herg_risk_factors alongside pains/brenk).
+    # "Thiocarbonyl_group" alert (Phase 19).
+    #
+    # Asserted as a SUBSET rather than an exact count. This test has now
+    # broken twice purely because a new alert family was added -- BRENK,
+    # then mutagenicity -- which tells you nothing about PAINS, the thing
+    # it exists to check. A missing family still fails here; an added one
+    # no longer does.
     rhodanine = Chem.MolFromSmiles("O=C1CSC(=S)N1")
     provider = RDKitDescriptorProvider()
 
     alerts = provider.compute_alerts(rhodanine, "mol-1")
 
-    assert len(alerts) == 4
     alerts_by_id = {a.alert_id: a for a in alerts}
-    assert set(alerts_by_id) == {"pains", "brenk", "functional_groups", "herg_risk_factors"}
+    assert {
+        "pains", "brenk", "functional_groups", "herg_risk_factors",
+        "mutagenicity_alerts",
+    } <= set(alerts_by_id)
     pains = alerts_by_id["pains"]
     assert pains.molecule_uuid == "mol-1"
     assert pains.matched  # at least one PAINS entry matched

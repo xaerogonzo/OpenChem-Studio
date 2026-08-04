@@ -33,74 +33,42 @@ import statistics as st
 
 from _config import admet_interpreter
 from openchem.chem.admet_providers import compute_admet
+from openchem.chem.descriptor_providers import (
+    _MUTAGENICITY_PATTERNS,
+    compute_mutagenicity_alerts,
+)
 from rdkit import Chem
 from rdkit.Chem import Crippen, Descriptors
 
 ADMET_PYTHON = admet_interpreter()
 
-#: Canonical mutagenicity alert classes. Deliberately a SMALL, textbook
-#: set -- the point is to represent what a cheap screen catches, not to
-#: reconstruct a commercial alert system.
-ALERTS: dict[str, str] = {
-    "aromatic nitro": "c[N+](=O)[O-]",
-    "aromatic amine": "[NX3;H2,H1;!$(NC=O)]c",
-    "N-aryl amide": "[NX3;H1](C=O)c",   # metabolised to the aromatic amine
-    "N-nitroso": "[NX3][NX2]=O",
-    "hydrazine": "[NX3;!$(N=*)][NX3;!$(N=*)]",
-    "epoxide": "C1OC1",
-    "aziridine": "C1CN1",
-    "azo": "c[NX2]=[NX2]c",
-}
-_COMPILED = {name: Chem.MolFromSmarts(s) for name, s in ALERTS.items()}
-
-#: Alerts must match what they claim and not what they do not. A pattern
-#: that silently matches nothing would flatter the model by default.
-ALERT_CHECKS = [
-    ("aromatic nitro", "2-nitrofluorene", True),
-    ("aromatic nitro", "aspirin", False),
-    ("aromatic amine", "benzidine", True),
-    ("aromatic amine", "paracetamol", False),   # its N is acylated
-    ("N-aryl amide", "paracetamol", True),
-    ("N-aryl amide", "ibuprofen", False),
-    ("N-nitroso", "N-nitrosodimethylamine", True),
-    ("N-nitroso", "metformin", False),
-    ("hydrazine", "procarbazine", True),
-    ("hydrazine", "aspirin", False),
-]
-
-
-def fused_aromatic_carbocycles(mol: Chem.Mol) -> int:
-    """Largest set of mutually fused all-carbon aromatic rings.
-
-    Polycyclic aromatic hydrocarbons are a major mutagen class carrying no
-    functional-group alert at all -- benzo[a]pyrene is pure carbon and
-    hydrogen. A SMARTS cannot express "three or more fused rings", so this
-    is computed from ring information instead.
-    """
-    rings = [r for r in mol.GetRingInfo().AtomRings()
-             if all(mol.GetAtomWithIdx(i).GetIsAromatic()
-                    and mol.GetAtomWithIdx(i).GetSymbol() == "C" for i in r)]
-    if not rings:
-        return 0
-    groups: list[set[int]] = []
-    for ring in rings:
-        atoms = set(ring)
-        merged = [g for g in groups if g & atoms]
-        for g in merged:
-            groups.remove(g)
-            atoms |= g
-        groups.append(atoms)
-    # Rings per fused system, from its atom count: a linear acene of n
-    # rings has 4n + 2 atoms.
-    return max((len(g) - 2) // 4 for g in groups)
+# The alert set and the fused-ring rule are the SHIPPED ones, imported
+# rather than copied. This benchmark exists to decide whether they earn
+# their place in the Properties panel, so measuring a private duplicate
+# would answer a question nobody asked -- and the two would drift.
+_COMPILED = _MUTAGENICITY_PATTERNS
 
 
 def alerts_for(mol: Chem.Mol) -> list[str]:
-    found = [name for name, patt in _COMPILED.items()
-             if patt is not None and mol.HasSubstructMatch(patt)]
-    if fused_aromatic_carbocycles(mol) >= 3:
-        found.append("PAH (3+ fused rings)")
-    return found
+    return compute_mutagenicity_alerts(mol, "benchmark").matched
+
+
+#: Each pattern must match something it should and miss something it
+#: should not. These duplicate `tests/test_mutagenicity_alerts.py` on
+#: purpose: a benchmark that silently measures a broken alert set would
+#: report a flattering tie.
+ALERT_CHECKS = [
+    ("Aromatic nitro", "2-nitrofluorene", True),
+    ("Aromatic nitro", "aspirin", False),
+    ("Aromatic amine", "benzidine", True),
+    ("Aromatic amine", "paracetamol", False),
+    ("N-aryl amide (aromatic amine precursor)", "paracetamol", True),
+    ("N-aryl amide (aromatic amine precursor)", "ibuprofen", False),
+    ("N-nitroso", "N-nitrosodimethylamine", True),
+    ("N-nitroso", "metformin", False),
+    ("Hydrazine", "procarbazine", True),
+    ("Hydrazine", "aspirin", False),
+]
 
 
 AMES_POSITIVE = [

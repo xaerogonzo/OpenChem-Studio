@@ -188,10 +188,12 @@ def test_request_descriptors_publishes_alert_computed(qapp):
     service.request_descriptors(model)
     _drain(qapp)
 
-    # Phase 19 adds BRENK ("Thiocarbonyl_group" alert here), Phase 20 adds
-    # functional_groups + herg_risk_factors -- four AlertResults total now.
-    assert len(alerts) == 4
+    # A subset, not a count: what this test is about is that alerts reach
+    # the bus at all, and pinning the exact number just makes it fail
+    # whenever a new alert family ships without saying anything about the
+    # publishing path.
     alerts_by_id = {a.alert_id: a for a in alerts}
+    assert {"pains", "brenk", "mutagenicity_alerts"} <= set(alerts_by_id)
     assert alerts_by_id["pains"].matched
     assert alerts_by_id["brenk"].matched
 

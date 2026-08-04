@@ -279,6 +279,119 @@ _BASIC_AMINE_SMARTS = Chem.MolFromSmarts("[NX3;H2,H1,H0;!$(NC=[O,S]);!$(N=*);!$(
 
 _HERG_RISK_NAME = "hERG Risk Factors (not a prediction)"
 
+MUTAGENICITY_ALERT_NAME = "Mutagenicity Structural Alerts"
+
+#: Canonical mutagenicity alert classes. Deliberately a SMALL textbook
+#: set rather than a reconstruction of a commercial alert system: the aim
+#: is the cheap screen a chemist would run mentally, not a proprietary
+#: catalogue this project has no licence to reproduce.
+#:
+#: UNLIKE THE hERG CHECKLIST ABOVE, THESE HAVE MEASURED PERFORMANCE. Over
+#: 26 compounds -- 15 standard reference mutagens and Ames-positive drugs
+#: against 11 with clean records -- they score 14 TP / 10 TN / 1 FP / 1 FN,
+#: which is exactly what the ~1 GB ADMET-AI model scores on the same set.
+#: They fail on DIFFERENT compounds, though, which is why both are worth
+#: having: see `chem/admet_providers.py` and
+#: `benchmarks/docking/ames_panel.py`.
+#:
+#: Every pattern is verified against compounds it must and must not match
+#: in `tests/test_mutagenicity_alerts.py`, because a plausible-looking
+#: SMARTS that quietly matches nothing would look identical to a clean
+#: molecule.
+_MUTAGENICITY_ALERTS: dict[str, str] = {
+    "Aromatic nitro": "c[N+](=O)[O-]",
+    "Aromatic amine": "[NX3;H2,H1;!$(NC=O)]c",
+    # Hydrolysed or N-deacetylated to the aromatic amine in vivo, which is
+    # the actual mutagen -- 2-acetylaminofluorene is the classic case.
+    "N-aryl amide (aromatic amine precursor)": "[NX3;H1](C=O)c",
+    "N-nitroso": "[NX3][NX2]=O",
+    "Hydrazine": "[NX3;!$(N=*)][NX3;!$(N=*)]",
+    "Epoxide": "C1OC1",
+    "Aziridine": "C1CN1",
+    "Azo": "c[NX2]=[NX2]c",
+}
+_MUTAGENICITY_PATTERNS = {
+    label: Chem.MolFromSmarts(smarts) for label, smarts in _MUTAGENICITY_ALERTS.items()
+}
+
+#: Fused all-carbon aromatic systems of at least this many rings count as
+#: a polycyclic-aromatic alert.
+_PAH_RING_THRESHOLD = 3
+
+
+def largest_fused_aromatic_carbocycle(mol: Chem.Mol) -> int:
+    """Rings in the largest set of mutually fused all-carbon aromatic rings.
+
+    Polycyclic aromatic hydrocarbons are a major mutagen class carrying no
+    functional group at all -- benzo[a]pyrene is carbon and hydrogen and
+    nothing else, so every SMARTS above misses it. "Three or more fused
+    rings" is not expressible as a substructure query, so it is computed
+    from ring membership instead.
+    """
+    rings = [
+        ring
+        for ring in mol.GetRingInfo().AtomRings()
+        if all(
+            mol.GetAtomWithIdx(i).GetIsAromatic() and mol.GetAtomWithIdx(i).GetSymbol() == "C"
+            for i in ring
+        )
+    ]
+    if not rings:
+        return 0
+    # (atoms in the system, rings in it). The ring COUNT is tracked
+    # explicitly rather than derived from the atom count: the tempting
+    # `(atoms - 2) // 4` inversion of "n fused rings have 4n + 2 atoms"
+    # only holds for catacondensed systems. Benzo[a]pyrene is
+    # pericondensed -- atoms shared by three rings at once -- so it has 20
+    # carbons across 5 rings, not 22, and that formula returned 4.
+    systems: list[tuple[set[int], int]] = []
+    for ring in rings:
+        atoms = set(ring)
+        count = 1
+        touching = [system for system in systems if system[0] & atoms]
+        for system in touching:
+            systems.remove(system)
+            atoms |= system[0]
+            count += system[1]
+        systems.append((atoms, count))
+    return max(count for _atoms, count in systems)
+
+
+def compute_mutagenicity_alerts(mol: Chem.Mol, molecule_uuid: str) -> AlertResult:
+    """Structural alerts associated with bacterial mutagenicity (Ames).
+
+    A SCREEN, NOT A VERDICT, but a better-evidenced one than the hERG
+    checklist beside it: measured against 26 compounds it matches the
+    trained ADMET model's accuracy exactly (see `_MUTAGENICITY_ALERTS`).
+
+    WHAT IT CANNOT DO, stated because the failure is systematic rather
+    than random: an alert is a substructure, so it only sees mutagens that
+    are already electrophilic or obviously become so. Aflatoxin B1 is
+    missed here and caught by the model, because its electrophile is an
+    epoxide formed by metabolism and simply is not present in the drawn
+    structure. Conversely the N-aryl amide alert fires on paracetamol,
+    which has a clean genotoxicity record.
+
+    So a hit means "worth an Ames test", not "mutagenic", and an empty
+    result does not mean safe.
+    """
+    matched = [
+        label
+        for label, pattern in _MUTAGENICITY_PATTERNS.items()
+        if pattern is not None and mol.HasSubstructMatch(pattern)
+    ]
+    rings = largest_fused_aromatic_carbocycle(mol)
+    if rings >= _PAH_RING_THRESHOLD:
+        matched.append(f"Polycyclic aromatic ({rings} fused rings)")
+    return AlertResult(
+        alert_id="mutagenicity_alerts",
+        name=MUTAGENICITY_ALERT_NAME,
+        molecule_uuid=molecule_uuid,
+        matched=matched,
+        provenance=Provenance(created_by="core", method="rdkit"),
+        category="admet",
+    )
+
 
 def compute_herg_risk_factors(mol: Chem.Mol, molecule_uuid: str) -> AlertResult:
     """Lists known STRUCTURAL CORRELATES of hERG channel liability --
@@ -532,6 +645,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
             ),
             compute_functional_groups(mol, molecule_uuid),
             compute_herg_risk_factors(mol, molecule_uuid),
+            compute_mutagenicity_alerts(mol, molecule_uuid),
         ]
 
     def compute_per_atom(self, mol: Chem.Mol, molecule_uuid: str) -> list[PerAtomDataset]:
