@@ -11,6 +11,15 @@ from openchem.chem.vina_engine import VinaEngine
 from openchem.domain.docking import DockingBox
 from openchem.services.progress import ProgressHandle
 
+#: Where the fixture receptor below actually sits. Every box in this file
+#: used to be centred on the ORIGIN, several Angstrom clear of it -- so
+#: these tests exercised the docking plumbing while docking into vacuum.
+#: That went unnoticed until `_require_receptor_in_box` refused it, which
+#: is the guard doing its job on its first outing. Pointed at the receptor
+#: rather than the guard being weakened: a box that contains no receptor
+#: is not a case worth keeping green.
+_RECEPTOR_CENTER = (12.0, 12.5, 2.7)
+
 # Real Vina output shape (confirmed against the official documented
 # format) for a single pose, fed through a FakeVinaEngine so this test
 # exercises the real Open Babel receptor/ligand/pose PDBQT conversion
@@ -92,7 +101,7 @@ class FakeVinaEngine(VinaEngine):
 def test_dock_with_no_engine_raises_clear_error():
     provider = VinaDockingProvider(engine=None)
     mol = Chem.MolFromSmiles("CCO")
-    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20, 20, 20))
 
     with pytest.raises(DockingProviderError, match="No Vina docking backend"):
         provider.dock(RECEPTOR_PDB, "pdb", mol, box, 9, ProgressHandle())
@@ -102,7 +111,7 @@ def test_dock_produces_poses_via_real_openbabel_conversion():
     engine = FakeVinaEngine()
     provider = VinaDockingProvider(engine=engine)
     mol = Chem.MolFromSmiles("CCO")
-    box = DockingBox(center=(1.0, 2.0, 3.0), size=(20.0, 20.0, 20.0))
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20.0, 20.0, 20.0))
 
     poses = provider.dock(RECEPTOR_PDB, "pdb", mol, box, 9, ProgressHandle())
 
@@ -120,7 +129,7 @@ def test_dock_wraps_engine_errors():
     engine = FakeVinaEngine(raise_error=True)
     provider = VinaDockingProvider(engine=engine)
     mol = Chem.MolFromSmiles("CCO")
-    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20, 20, 20))
 
     with pytest.raises(RuntimeError, match="boom"):
         provider.dock(RECEPTOR_PDB, "pdb", mol, box, 9, ProgressHandle())
@@ -130,7 +139,7 @@ def test_dock_with_bad_receptor_text_raises_docking_error():
     engine = FakeVinaEngine()
     provider = VinaDockingProvider(engine=engine)
     mol = Chem.MolFromSmiles("CCO")
-    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20, 20, 20))
 
     with pytest.raises(DockingProviderError, match="Failed to prepare receptor"):
         provider.dock("not a valid structure @#$%", "pdb", mol, box, 9, ProgressHandle())
@@ -175,7 +184,7 @@ def test_receptor_pdbqt_is_prepared_as_rigid_not_flexible():
     engine = FakeVinaEngine()
     provider = VinaDockingProvider(engine=engine)
     mol = Chem.MolFromSmiles("CCO")
-    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20, 20, 20))
 
     provider.dock(RECEPTOR_PDB, "pdb", mol, box, 9, ProgressHandle())
 
@@ -189,7 +198,7 @@ def test_receptor_prep_strips_waters_by_default():
     engine = FakeVinaEngine()
     provider = VinaDockingProvider(engine=engine)
     mol = Chem.MolFromSmiles("CCO")
-    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20, 20, 20))
 
     provider.dock(RECEPTOR_PDB_WITH_EXTRAS, "pdb", mol, box, 9, ProgressHandle())
 
@@ -201,7 +210,7 @@ def test_receptor_prep_keeps_waters_when_disabled():
     engine = FakeVinaEngine()
     provider = VinaDockingProvider(engine=engine)
     mol = Chem.MolFromSmiles("CCO")
-    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20, 20, 20))
 
     provider.dock(
         RECEPTOR_PDB_WITH_EXTRAS, "pdb", mol, box, 9, ProgressHandle(),
@@ -216,7 +225,7 @@ def test_receptor_prep_keeps_cofactors_by_default():
     engine = FakeVinaEngine()
     provider = VinaDockingProvider(engine=engine)
     mol = Chem.MolFromSmiles("CCO")
-    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20, 20, 20))
 
     provider.dock(RECEPTOR_PDB_WITH_EXTRAS, "pdb", mol, box, 9, ProgressHandle())
 
@@ -228,7 +237,7 @@ def test_receptor_prep_strips_cofactors_when_enabled():
     engine = FakeVinaEngine()
     provider = VinaDockingProvider(engine=engine)
     mol = Chem.MolFromSmiles("CCO")
-    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20, 20, 20))
 
     provider.dock(
         RECEPTOR_PDB_WITH_EXTRAS, "pdb", mol, box, 9, ProgressHandle(),
@@ -250,7 +259,7 @@ def test_receptor_prep_filters_duplicate_altlocs():
     engine = FakeVinaEngine()
     provider = VinaDockingProvider(engine=engine)
     mol = Chem.MolFromSmiles("CCO")
-    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20, 20, 20))
 
     provider.dock(RECEPTOR_PDB_WITH_EXTRAS, "pdb", mol, box, 9, ProgressHandle())
 
@@ -269,7 +278,7 @@ def test_receptor_prep_ph_is_passed_to_add_hydrogens():
     engine = FakeVinaEngine()
     provider = VinaDockingProvider(engine=engine)
     mol = Chem.MolFromSmiles("CCO")
-    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20, 20, 20))
 
     calls = []
     original = ob.OBMol.AddHydrogens
@@ -305,7 +314,7 @@ def test_last_resolved_engine_is_cached_after_dock_not_recomputed():
     engine = FakeVinaEngine()
     provider = VinaDockingProvider(executable_path_resolver=lambda: "")
     mol = Chem.MolFromSmiles("CCO")
-    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20, 20, 20))
 
     with patch.object(provider, "_resolve_engine", return_value=engine) as mock_resolve:
         provider.dock(RECEPTOR_PDB, "pdb", mol, box, 9, ProgressHandle())
@@ -326,7 +335,7 @@ def test_dock_raises_immediately_when_progress_already_cancelled():
     engine = FakeVinaEngine()
     provider = VinaDockingProvider(engine=engine)
     mol = Chem.MolFromSmiles("CCO")
-    box = DockingBox(center=(0, 0, 0), size=(20, 20, 20))
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20, 20, 20))
     progress = ProgressHandle()
     progress.cancel()
 

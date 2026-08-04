@@ -267,3 +267,77 @@ def test_the_docking_receptor_and_the_analysis_agree_on_the_same_chains():
     # if it does, the analysis is describing atoms Vina never saw.
     assert "STE" not in docked
     assert "HOH" not in docked
+
+
+# --- the empty-box guard --------------------------------------------------
+
+
+def _box(center, size=(10.0, 10.0, 10.0)):
+    from openchem.domain.docking import DockingBox
+
+    return DockingBox(center=center, size=size)
+
+
+def _prepared_receptor(structure: str, options: dict, scratch) -> "object":
+    import pathlib
+
+    from openbabel import pybel
+
+    from openchem.chem.docking_providers import VinaDockingProvider
+
+    out = pathlib.Path(scratch) / "receptor.pdbqt"
+    VinaDockingProvider()._convert_receptor_to_pdbqt(
+        pybel, structure, "pdb", out, options
+    )
+    return out
+
+
+def test_a_box_containing_receptor_atoms_is_allowed(tmp_path):
+    from openchem.chem.docking_providers import VinaDockingProvider
+
+    prepared = _prepared_receptor(_two_chain_structure(), {"strip_waters": True}, tmp_path)
+
+    # Chain A's atoms sit around the origin.
+    VinaDockingProvider()._require_receptor_in_box(prepared, _box((0.0, 0.0, 0.0)))
+
+
+def test_a_box_with_no_receptor_in_it_is_refused(tmp_path):
+    """Vina does not object to this: given a box in open solvent it
+    searches it, scores against nothing, and returns poses with plausible
+    affinities. The result looks exactly like a result, which is why this
+    has to refuse rather than warn."""
+    import pytest
+
+    from openchem.chem.docking_providers import DockingProviderError, VinaDockingProvider
+
+    prepared = _prepared_receptor(_two_chain_structure(), {"strip_waters": True}, tmp_path)
+
+    with pytest.raises(DockingProviderError, match="no receptor atoms"):
+        VinaDockingProvider()._require_receptor_in_box(prepared, _box((500.0, 500.0, 500.0)))
+
+
+def test_excluding_the_chain_the_box_sits_on_is_caught(tmp_path):
+    """The route that made this guard necessary, now that chains can be
+    excluded: a box placed from a ligand, then narrowed to a chain the
+    ligand does not sit on.
+
+    Confirmed on 3SN6 as well -- a box from its P0G ligand is allowed with
+    all chains and with chain D, and refused when only chain C (G-gamma,
+    across the complex) is kept.
+    """
+    import pytest
+
+    from openchem.chem.docking_providers import DockingProviderError, VinaDockingProvider
+
+    structure = _two_chain_structure()
+    # Chain B sits at y = 5; a box there is fine while B is included...
+    box = _box((0.5, 5.0, 0.0), size=(6.0, 6.0, 6.0))
+    with_b = _prepared_receptor(structure, {"strip_waters": True}, tmp_path)
+    VinaDockingProvider()._require_receptor_in_box(with_b, box)
+
+    # ...and empty once B is excluded.
+    only_a = _prepared_receptor(
+        structure, {"strip_waters": True, "keep_chains": ["A"]}, tmp_path
+    )
+    with pytest.raises(DockingProviderError, match="chain or cofactor"):
+        VinaDockingProvider()._require_receptor_in_box(only_a, box)

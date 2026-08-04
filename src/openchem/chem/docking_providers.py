@@ -147,6 +147,9 @@ class VinaDockingProvider(DockingProvider):
             )
 
             _raise_if_cancelled(progress)
+            self._require_receptor_in_box(receptor_pdbqt, box)
+
+            _raise_if_cancelled(progress)
             progress.report(0.15, "Preparing ligand")
             self._convert_ligand_to_pdbqt(pybel, ligand_mol, ligand_pdbqt)
 
@@ -196,6 +199,55 @@ class VinaDockingProvider(DockingProvider):
             mol.write("pdbqt", str(out_path), overwrite=True, opt={"r": None})
         except Exception as exc:  # noqa: BLE001 - surface as a clear docking-specific error
             raise DockingProviderError(f"Failed to prepare receptor: {exc}") from exc
+
+    def _require_receptor_in_box(self, receptor_pdbqt: Path, box: DockingBox) -> None:
+        """Refuse to dock into a box that holds no receptor.
+
+        Vina does not object: given a box in open solvent it searches it,
+        finds nothing to score against, and returns poses with plausible
+        affinities. The result looks exactly like a result.
+
+        The box can come to be empty without anyone doing something
+        obviously wrong. A box placed from a co-crystallised ligand and
+        then narrowed to a chain the ligand does not sit on is the
+        expected route now that chains can be excluded; stripping
+        cofactors out from under a box centred on one is another.
+
+        Read from the PREPARED PDBQT rather than from the source
+        structure, so the atoms counted are exactly the atoms Vina is
+        about to be handed -- after altloc filtering, symmetry-copy
+        removal, chain exclusion, residue stripping and hydrogen
+        addition. Checking the input file instead would answer a question
+        about a different receptor, which is the failure this module keeps
+        being bitten by.
+        """
+        cx, cy, cz = box.center
+        hx, hy, hz = (size / 2.0 for size in box.size)
+        inside = 0
+        for line in receptor_pdbqt.read_text().splitlines():
+            if not line.startswith(("ATOM", "HETATM")):
+                continue
+            try:
+                # PDBQT keeps PDB's fixed columns for coordinates.
+                x = float(line[30:38])
+                y = float(line[38:46])
+                z = float(line[46:54])
+            except ValueError:
+                continue
+            if abs(x - cx) <= hx and abs(y - cy) <= hy and abs(z - cz) <= hz:
+                inside += 1
+                # One atom is enough to know the box is not empty; the
+                # count is not otherwise interesting and a receptor can be
+                # 70,000 lines.
+                return
+        if not inside:
+            raise DockingProviderError(
+                f"The search box at ({cx:.1f}, {cy:.1f}, {cz:.1f}) contains no "
+                "receptor atoms after preparation. Docking into empty space "
+                "returns poses with meaningless scores, so it was not run. "
+                "Check the box position, and whether a chain or cofactor the "
+                "box was placed on has since been excluded."
+            )
 
     def _drop_symmetry_copies(self, obmol) -> None:
         """Delete the unit-cell copies Open Babel invents for structures
