@@ -78,6 +78,44 @@ to and nowhere else: molecules with poorly-covered environments, on an
 install whose calibration agrees with measured values. That is a
 narrower claim than "the hybrid is better", and it is the one the data
 supports.
+
+QUININE — WHERE THE GATE IS MEASURED TO BE WRONG. Scored against
+Moreland/Philip/Carroll's assigned CDCl3 table (J. Org. Chem. 1974, 39,
+2413, doi:10.1021/jo00930a020; the mapping onto atom indices lives in
+`benchmarks/nmr/literature_shifts.py`). 12 of quinine's 20 carbons are
+`rough`, and the lookup is badly wrong on them -- 12.50 ppm MAE, with
+single atoms off by 15-20.
+
+The gate REFUSED this merge: mean offset +3.00 ppm over the 7 trusted
+atoms, against a derived limit of 2.62. Scoring the merge it would have
+made shows the refusal cost a large real gain:
+
+    MAE over all 20 carbons   lookup 7.96   ORCA 4.30   hybrid 3.44
+    MAE over the 12 `rough`   lookup 12.50  ORCA 4.09   hybrid 4.09
+    vs lookup alone: 11 improved, 7 unchanged, 2 worsened
+
+WHY THE GATE MISFIRES HERE, and it is not a threshold that is slightly
+too tight. The offset is measured on `good` atoms -- which are exactly
+the atoms the lookup goes on to WIN. Quinine's largest computed
+deviations sit on C-2, C-8 and C-9 (+9.4, +8.1, +5.1), the carbons
+around the flexible carbinol/quinuclidine hinge, where one MMFF
+conformer is a poor model of a solution average. Those errors are
+discarded by the selection, then used to veto the merge on the twelve
+atoms where the calculation is four times better than the lookup.
+
+A true scale error and this are distinguishable in principle -- a
+systematic shift has |mean| close to the RMS, while quinine's is 3.00
+against an RMS of 5.36, i.e. scatter in both directions. But that rule
+would be built on two data points, so it is NOT implemented here.
+
+Note also what the refusals have actually bought so far: every carbon in
+aspirin and ethanol is `good`, so the merge those refusals blocked would
+have returned the lookup unchanged. Across five molecules the gate has
+prevented no measured harm and cost one real improvement. It is left in
+place pending a decision, because the failure it guards against -- a
+calculation whose per-molecule error far exceeds its calibration
+residual, on a molecule that HAS rough atoms -- is real and simply has
+not been observed yet.
 """
 
 from __future__ import annotations

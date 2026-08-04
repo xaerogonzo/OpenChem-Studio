@@ -290,3 +290,65 @@ def test_the_measured_aspirin_case_is_refused():
     assert check.compared == 9
     assert check.mean_offset == pytest.approx(4.10, abs=0.01)
     assert fuse({}, {}, "aspirin", "C", check).cache_state is CacheState.FAILED
+
+
+def test_quinine_the_case_where_the_gate_costs_a_real_gain():
+    """Real ORCA 6.1.1 at B3LYP/def2-SVP against Moreland's assigned CDCl3
+    table. Recorded as a fixture so the finding cannot quietly regress:
+    the gate refuses this merge, and the merge would have been much
+    better than the lookup.
+
+    Kept as a FAILING-gate test rather than being 'fixed' by loosening
+    the threshold, because the miscalibration is structural (the offset
+    is measured on atoms the lookup then wins) and two data points are
+    not enough to justify a redesign. See the module docstring.
+    """
+    lit = {
+        0: 55.44, 2: 157.44, 3: 118.30, 4: 130.89, 5: 143.67, 7: 147.01, 8: 121.09,
+        9: 148.33, 10: 126.43, 11: 101.40, 12: 71.51, 14: 59.85, 15: 21.44, 16: 27.71,
+        17: 27.46, 18: 43.00, 20: 56.86, 21: 39.76, 22: 141.66, 23: 114.08,
+    }
+    looked_up = {
+        0: 55.61, 2: 154.30, 3: 112.06, 4: 121.93, 5: 144.13, 7: 131.85, 8: 107.24,
+        9: 135.55, 10: 113.80, 11: 103.44, 12: 71.07, 14: 60.06, 15: 41.42, 16: 43.07,
+        17: 40.58, 18: 56.32, 20: 54.82, 21: 56.17, 22: 139.52, 23: 114.84,
+    }
+    orca = {
+        0: 55.77, 2: 157.28, 3: 113.64, 4: 135.56, 5: 141.12, 7: 149.84, 8: 122.88,
+        9: 151.84, 10: 127.63, 11: 113.92, 12: 76.13, 14: 68.19, 15: 30.09, 16: 29.56,
+        17: 34.77, 18: 46.91, 20: 64.22, 21: 43.86, 22: 146.30, 23: 113.09,
+    }
+    good = {0, 2, 5, 12, 14, 20, 23}
+    medium = {11}
+    qualities = {i: ("good" if i in good else "medium" if i in medium else "rough") for i in lit}
+    residual_rms = 2.339
+
+    lookup = _lookup(looked_up, qualities)
+    check = check_calibration(trusted_values(lookup), orca, "C", residual_rms)
+
+    # The refusal itself, and how narrow it is.
+    assert not check.passed
+    assert check.compared == len(good)
+    assert check.mean_offset == pytest.approx(3.00, abs=0.02)
+    # Scatter, not a systematic shift -- the RMS is far larger than the mean.
+    assert check.rms > 1.7 * abs(check.mean_offset)
+    assert fuse({}, {}, "quinine", "C", check).cache_state is CacheState.FAILED
+
+    lookups = lookup_candidates(lookup)
+    computed = computed_candidates(orca, _Factors(residual_rms))
+    would_be = fuse(
+        {i: [lookups[i], computed[i]] for i in lit},
+        dict.fromkeys(lit, "C"),
+        "quinine",
+        "C",
+        None,
+    )
+
+    def mae(values, keys):
+        return sum(abs(values[i] - lit[i]) for i in keys) / len(keys)
+
+    rough = [i for i in lit if qualities[i] == "rough"]
+    assert mae(looked_up, rough) == pytest.approx(12.50, abs=0.05)
+    assert mae(would_be.values, rough) == pytest.approx(4.09, abs=0.05)
+    assert mae(would_be.values, lit) == pytest.approx(3.44, abs=0.05)
+    assert mae(would_be.values, lit) < mae(looked_up, lit)  # 7.96
