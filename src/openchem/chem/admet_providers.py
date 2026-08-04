@@ -30,6 +30,47 @@ for QT prolongation via hERG block:
 
 An order of magnitude between known positives and known negatives, which
 is what justified shipping it at all.
+
+THAT SPIKE WAS EASIER THAN IT LOOKED, and the follow-up is the part worth
+reading before trusting a number. Those five compounds put every blocker
+among the large drugs and every non-blocker among the small ones, so the
+prediction correlated with heavy-atom count at **r = +0.98** -- a model
+that had learnt nothing but "big lipophilic molecules block hERG" scores
+identically on it.
+
+Re-measured on 19 compounds chosen to break that confound (large drugs
+with no hERG liability, small ones with real liability), 2026-08-04:
+
+    accuracy at a 0.5 threshold      15/19
+    r(prediction, heavy atoms)       +0.82
+    r(prediction, logP)              +0.75
+
+    false alarms   atorvastatin 0.766   fexofenadine 0.698   cetirizine 0.552
+    missed         sotalol      0.215
+
+**THE ERRORS ARE THE CONFOUND.** Every false alarm is a large, lipophilic
+molecule that does not block hERG; the single miss is a small, hydrophilic
+one that does -- sotalol, a class III antiarrhythmic whose therapeutic
+mechanism IS hERG block, scored 0.215. Where size and lipophilicity point
+the right way the model is excellent; where they mislead, it follows them.
+
+There IS signal beyond that, and the cleanest evidence is terfenadine
+0.970 against fexofenadine 0.698. Fexofenadine is terfenadine's own
+carboxylic-acid metabolite -- slightly larger, same scaffold -- marketed
+precisely because terfenadine's hERG block proved fatal. A pure
+size/scaffold model must score them alike; this one separates them by
+0.27. It still puts fexofenadine on the wrong side of 0.5.
+
+So: treat a high score on a large lipophilic compound as weak evidence,
+and do not read a low score on a small polar one as safety. The
+rule-based checklist is a useful second opinion precisely because it says
+which structural factors are present instead of folding them into one
+number. `benchmarks/docking/herg_sizematched.py` reruns the table.
+
+Note these figures are NOT comparable to ADMET-AI's own published
+performance, which is measured on TDC's held-out test set. This panel is
+small and deliberately adversarial; it is a probe for one specific
+failure mode, not an accuracy benchmark.
 """
 
 from __future__ import annotations

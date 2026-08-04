@@ -8,5 +8,17 @@
  "amiodarone": "CCCCC1=C(C2=CC=CC=C2O1)C(=O)C3=CC(=C(C(=C3)I)OCCN(CC)CC)I",
  "metformin": "CN(C)C(=N)N=C(N)N",
  "paracetamol": "CC(=O)NC1=CC=C(C=C1)O",
- "aspirin": "CC(=O)OC1=CC=CC=C1C(=O)O"
+ "aspirin": "CC(=O)OC1=CC=CC=C1C(=O)O",
+ "fexofenadine": "CC(C)(C1=CC=C(C=C1)C(CCCN2CCC(CC2)C(C3=CC=CC=C3)(C4=CC=CC=C4)O)O)C(=O)O",
+ "loratadine": "CCOC(=O)N1CCC(=C2C3=C(CCC4=C2N=CC=C4)C=C(C=C3)Cl)CC1",
+ "cetirizine": "C1CN(CCN1CCOCC(=O)O)C(C2=CC=CC=C2)C3=CC=C(C=C3)Cl",
+ "atorvastatin": "CC(C)C1=C(C(=C(N1CC[C@H](C[C@H](CC(=O)O)O)O)C2=CC=C(C=C2)F)C3=CC=CC=C3)C(=O)NC4=CC=CC=C4",
+ "haloperidol": "C1CN(CCC1(C2=CC=C(C=C2)Cl)O)CCCC(=O)C3=CC=C(C=C3)F",
+ "thioridazine": "CN1CCCCC1CCN2C3=CC=CC=C3SC4=C2C=C(C=C4)SC",
+ "pimozide": "C1CN(CCC1N2C3=CC=CC=C3NC2=O)CCCC(C4=CC=C(C=C4)F)C5=CC=C(C=C5)F",
+ "ranitidine": "CN/C(=C\\[N+](=O)[O-])/NCCSCC1=CC=C(O1)CN(C)C",
+ "naproxen": "C[C@@H](C1=CC2=C(C=C1)C=C(C=C2)OC)C(=O)O",
+ "diphenhydramine": "CN(C)CCOC(C1=CC=CC=C1)C2=CC=CC=C2",
+ "domperidone": "C1CN(CCC1N2C3=C(C=C(C=C3)Cl)NC2=O)CCCN4C5=CC=CC=C5NC4=O",
+ "ondansetron": "CC1=NC=CN1CC2CCC3=C(C2=O)C4=CC=CC=C4N3C"
 }

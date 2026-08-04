@@ -79,3 +79,57 @@ receptor did show the expected separation — naloxone −8.6, morphine −7.9,
 fentanyl −9.1 against caffeine −5.4 as a negative control, with the
 opioid poses contacting Asp147, His297, Trp293 and Tyr326 — but four
 compounds against one target is an anecdote, not a benchmark.
+
+## `dock_herg.py` / `herg_compare.py` / `herg_sizematched.py` — hERG
+
+Three scripts around one question, and the order matters because each
+undercuts the one before it.
+
+`dock_herg.py` docks a blocker/non-blocker panel into 8ZYO. Astemizole —
+the structure's own ligand — redocks to **0.53 Å** and contacts **Tyr652
+in all four subunits**, the recognised structural signature of a pore
+blocker. Blockers averaged −9.8 kcal/mol against −6.2 for non-blockers.
+
+`herg_compare.py` then checks whether that separation means anything.
+**It largely does not**: `r(heavy atoms, Vina affinity) = −0.91`, and
+ligand efficiency reverses the ranking (0.335 for blockers, 0.569 for
+non-blockers). The panel put every blocker among the large drugs. Vina
+cannot rank these compounds on hERG liability, and this run is not
+evidence that it can.
+
+The same script found the ADMET model separating them almost perfectly —
+and correlating with size at **r = +0.98**, which is worse, not better.
+A model that had learnt only "big lipophilic molecules block hERG" scores
+identically on such a panel.
+
+`herg_sizematched.py` is the panel built to break that: 19 compounds,
+large ones with no liability and small ones with real liability.
+
+    accuracy at 0.5      15/19
+    r(prediction, size)  +0.82      r(prediction, logP)  +0.75
+    false alarms  atorvastatin 0.766  fexofenadine 0.698  cetirizine 0.552
+    missed        sotalol      0.215
+
+**The errors are the confound.** Every false alarm is large and
+lipophilic without blocking; the one miss is small and hydrophilic and
+does block — sotalol, whose therapeutic mechanism *is* hERG block.
+
+The pair that settles whether there is any signal beyond size:
+
+| | heavy | MW | logP | prediction |
+|---|---|---|---|---|
+| terfenadine (withdrawn) | 35 | 471.7 | 6.45 | **0.970** |
+| fexofenadine (its safe metabolite) | 37 | 501.7 | 5.51 | **0.698** |
+
+Fexofenadine is terfenadine's own carboxylic-acid metabolite, slightly
+larger, same scaffold, and marketed precisely because terfenadine's hERG
+block was fatal. A pure size model must score them alike; this one
+separates them by 0.27 — real signal — while still putting fexofenadine
+on the wrong side of 0.5.
+
+These numbers are **not** comparable to ADMET-AI's published performance,
+which is measured on TDC's held-out test set. This is a small,
+deliberately adversarial probe for one failure mode.
+
+`herg_compare.py` and `herg_sizematched.py` need the ADMET sidecar
+installed; edit `ADMET_PYTHON` at the top of each.
