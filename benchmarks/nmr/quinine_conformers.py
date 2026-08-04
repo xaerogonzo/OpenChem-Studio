@@ -15,6 +15,31 @@ REPORTED PER ATOM, not just in aggregate. If averaging helps, it should
 help *on the hinge carbons specifically*. A global improvement with the
 hinge unchanged would mean something else is going on, and an aggregate
 number cannot tell those apart.
+
+THE ANSWER: NO. Nine conformers, B3LYP/def2-SVP, scored against
+Moreland's assigned table.
+
+    MAE over all 20 carbons     single 4.30  ->  Boltzmann 4.27 ppm
+    the three hinge carbons     single 6.77  ->  Boltzmann 7.13 ppm
+    the other seventeen         single 3.86  ->  Boltzmann 3.76 ppm
+
+Conformational averaging does not rescue this calculation, and the
+per-atom view is what shows why the aggregate would have misled: the
+hinge carbons the hypothesis named got slightly WORSE, so the mechanism
+proposed for quinine's poor agreement is not supported. Whatever limits
+the calculation here, it is not the choice of geometry.
+
+Two details worth keeping. First, the DFT populations are lopsided --
+one conformer carries 98.7% -- so this is closer to "a different single
+conformer" than to a real average, and the comparison is weaker than the
+conformer count suggests. Second, that dominant conformer is NOT the one
+MMFF ranked first, so the original quinine run used a geometry DFT says
+is essentially unpopulated; correcting that moved the MAE by 0.03 ppm.
+
+The one real change is C-5', which went from 12.52 ppm out to 1.66 --
+and that was precisely the atom responsible for the worst regret in the
+Phase 33 comparison. So conformer choice can fix an individual bad atom
+while leaving the spectrum as a whole where it was.
 """
 
 from __future__ import annotations

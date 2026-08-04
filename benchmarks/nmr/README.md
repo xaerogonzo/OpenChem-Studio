@@ -216,3 +216,125 @@ python benchmarks/nmr/compare_indexes.py before.sqlite after.sqlite
 Training itself is the cheap part: **59 s** for carbon and **28 s** for
 hydrogen on 438,795 and 135,838 rows; the resulting model is 3.8 MB. Every
 other minute is downloading, parsing and featurising.
+
+---
+
+# Phase 33 — which selection rule should the hybrid use?
+
+`chem/nmr_hybrid.py` merges the HOSE lookup with a scaled ORCA calculation
+per atom. Phase 32 shipped it with a **scale-agreement gate** that refused
+the whole merge when the calculation sat too far from trusted database
+values, and five molecules were not enough to say whether that gate helped.
+This is the comparison that settled it.
+
+## Ground truth
+
+**DELTA50** (*Molecules* **2023**, 28, 2449, CC BY 4.0) — 50 compounds,
+143 assigned ¹³C shifts, CDCl₃, 600 MHz, ambiguities resolved by
+gCOSY/gHSQC/gHMBC. Deliberately **not** nmrshiftdb2, which *is* the
+lookup's index and against which any comparison would be circular.
+
+Three compounds are excluded (`DMF`, `DMAc`, `2-Methyl-2-butene`): all
+have carbons the molecular graph makes equivalent but experiment
+resolves — restricted amide rotation, and E/Z methyls across a double
+bond — so nothing here could assign them better than a coin flip. Atom
+mapping comes from matching our computed shieldings to DELTA50's own,
+never from the lookup, so the truth stays independent of both methods
+under test. A compound whose correspondence cannot be established is
+dropped, not guessed at.
+
+Coverage was probed *before* spending ORCA time, since a set the lookup
+already nails cannot discriminate: **68.9% good, 24.9% medium, 6.2%
+rough**, with 23 of 47 molecules carrying at least one poorly-covered
+carbon.
+
+## Result — B3LYP/def2-SVP, 46 compounds, 207 atoms
+
+Paired bootstrap over **molecules** (atoms of one molecule share a
+structure and an assignment). Negative = better than what shipped.
+
+| strategy | MAE | sel. acc | worst regret | vs gate | verdict |
+|---|---|---|---|---|---|
+| `hard_gate` (shipped) | 1.46 | 77.8% | 10.94 | — | refused 13/46 |
+| **`warn_only`** | **1.33** | **80.2%** | **6.39** | −0.131 [−0.308, −0.017] | **better** |
+| `global_error` | 1.33 | 80.2% | 6.39 | −0.131 [−0.308, −0.017] | better |
+| `shrunk_error` | 1.33 | 77.3% | 6.39 | −0.130 [−0.308, −0.016] | better |
+| `per_molecule_error` | 1.34 | 74.9% | 6.39 | −0.115 [−0.288, +0.025] | not distinguishable |
+| `disagreement_defers` | 1.65 | 72.0% | 14.21 | +0.197 [−0.178, +0.665] | not distinguishable |
+| `lookup_only` | 2.33 | 72.0% | 30.95 | +0.874 [+0.258, +1.648] | worse |
+| `orca_only` | 2.68 | 28.0% | 7.85 | +1.223 [+0.856, +1.616] | worse |
+
+Confirmed on 14 held-out molecules the strategies never influenced, and
+repeated at **wB97X-D3/def2-SVP**, where the gate fires only 3 times in 42
+and removing it is *not distinguishable* rather than better — never worse.
+
+**Selection accuracy** and **regret** are the metrics that judge the rule
+rather than the predictors: for every atom we know both predictions *and*
+the truth, so we know whether the rule chose the closer source. A rule can
+lower MAE purely because the calculation is good while still choosing
+badly.
+
+## What shipped, and why it is the boring option
+
+`warn_only`: keep computing the calibration check, report it, **stop
+refusing**. Refusing was not a threshold that wanted loosening — selection
+already declines a bad calculation atom by atom, so a spectrum-wide veto
+can only remove atoms the selection would have got right.
+
+## Rejected, with numbers, so they are not re-invented
+
+- **`per_molecule_error`** — estimate the calculation's accuracy from the
+  atoms the lookup rates `good`, rather than trusting the install-wide
+  calibration residual. This was the phase's main hypothesis. Not
+  distinguishable, and *worse* at choosing (74.9% vs 80.2%): seven atoms
+  is too small a sample to pay for itself.
+- **`shrunk_error`** — the same, shrunk toward the global figure.
+  Identical to the simple rule.
+- **`disagreement_defers`** — when the two methods disagree beyond what
+  their errors explain, back the one with the better track record. Written
+  after looking at a single atom it fixed, in a 28-atom sample, where it
+  cut worst regret 8.80 → 1.17. On DELTA50 it is the **worst** hybrid at
+  both levels, and significantly worse than refusing at wB97X-D3. A clean
+  example of overfitting caught by a held-out split.
+
+## Two side findings
+
+**The band constants are corpus-specific.** `HELD_OUT_BAND_MAE` was
+measured on held-out nmrshiftdb2 as 1.12/3.36/10.00; on DELTA50 the
+observed errors are **0.67/4.06/13.51**. The ordering survives and every
+selection still lands the same way at realistic calculation accuracy, but
+these are not constants of nature.
+
+**The calibration residual is a poor accuracy proxy.** wB97X-D3/def2-SVP
+has a *worse* residual than B3LYP/def2-SVP (2.976 vs 2.339 ppm) while
+making *better* predictions (2.02 vs 2.68 ppm MAE). It is fitted on seven
+small reference molecules and does not transfer to drug-like ones.
+
+## Quinine conformers — hypothesis refuted
+
+Quinine's calculation was poor enough to trip the old gate, and the
+proposed explanation was that one MMFF conformer is a bad model of a
+floppy molecule. Nine conformers, Boltzmann-averaged:
+
+    MAE over all 20 carbons   single 4.30  ->  Boltzmann 4.27 ppm
+    the three "hinge" carbons single 6.77  ->  Boltzmann 7.13 ppm
+
+No. And the per-atom view is what shows it — the carbons the hypothesis
+named got slightly *worse*. The DFT populations are also lopsided (one
+conformer at 98.7%), so this is closer to "a different single conformer"
+than a real average. One atom did improve enormously (C-5′, 12.52 → 1.66
+ppm) and it was exactly the worst-regret atom, so conformer choice can fix
+an individual bad atom without moving the spectrum.
+
+## Running it
+
+Quantum chemistry happens once; every design question after it is
+arithmetic over the same shieldings, which are committed.
+
+```bash
+uv run --no-sync python benchmarks/nmr/run_shieldings.py "B3LYP def2-SVP" --literature --delta50
+uv run --no-sync python benchmarks/nmr/run_delta50.py "B3LYP def2-SVP"
+```
+
+The second needs no ORCA install. Reports, per-atom decision matrices and
+SVG plots land in `benchmarks/nmr/reports/`.
