@@ -82,14 +82,16 @@ class BindingSite:
     spanning 12 A reads as a real drug-like ligand, while 3 atoms spanning
     2 A says the code matched an ion and the box is meaningless.
 
-    `atom_count` OVER-REPORTS FOR mmCIF SOURCES, and the box does not.
-    Alternate locations are filtered only for PDB, where the format's
-    fixed columns make it a one-line slice; mmCIF's loop layout does not
-    (a pre-existing limit, noted in `VinaDockingProvider`). 7B6W is the
-    case in hand: its ligand is one 59-atom molecule refined in two
-    half-occupancy conformations, counted here as 118. The geometry is
-    unaffected because the two conformations occupy the same site -- so
-    the box is right and only the number beside it reads high.
+    `atom_count` counts ONE alternate location, in both formats. This
+    paragraph previously recorded the opposite -- that mmCIF sources
+    over-report because altlocs were filtered only for PDB, whose fixed
+    columns make it a one-line slice -- and named 7B6W as the case: one
+    59-atom ligand refined in two half-occupancy conformations, counted
+    as 118. That limit is gone; `pose_analysis.filter_altlocs` handles
+    mmCIF's loop layout too, reading the `label_alt_id` position from the
+    header rather than assuming it. Re-measured on the same entry: 118
+    raw `_atom_site` rows for T0B, every one carrying an altloc, and 59
+    reported here.
     """
 
     ligand_code: str

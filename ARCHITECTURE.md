@@ -337,11 +337,21 @@ it).
   building them now would mean guessing. See the "Explicitly deferred"
   reasoning preserved in `PLUGIN_SDK.md`'s "Known limitations" section.
 - `MacromoleculeModel` only stores raw PDB/mmCIF text — no structured
-  chain/residue/assembly parsing, no BinaryCIF/MMTF support yet (the
-  `structure_text`/`source_format` field split makes room for it later
-  without another schema change). Raw mmCIF text import into the Mol*
-  viewer already works; BinaryCIF/MMTF (binary formats) have no importer
-  or fetch path driving them yet.
+  chain/residue/assembly parsing. That part is still a real gap.
+
+  BinaryCIF is no longer: `chem/binarycif.py` decodes it and
+  `chem/structure_io.py` routes files by content (and gunzips) at import.
+  The `structure_text`/`source_format` split did prove sufficient, though
+  for a different reason than it was written for — decoding happens at the
+  boundary, so `structure_text` stays a `str` rather than growing a bytes
+  variant. That is also the correct call and not just the convenient one:
+  Open Babel prepares every docking receptor and reads neither BinaryCIF
+  nor MMTF, so a binary-carrying model would have been viewable and
+  un-dockable.
+
+  **MMTF is refused rather than deferred** — `mmtf.rcsb.org` no longer
+  resolves and the vendored Mol* bundle has no MMTF reader, so there is
+  neither a source nor a viewer for it.
 - `RDKitTemplateProvider`'s bundled-plus-user-dir templates are an
   extensibility point with nothing built on them yet: a formal
   `context.reactions.register(...)`-style plugin-provided-templates

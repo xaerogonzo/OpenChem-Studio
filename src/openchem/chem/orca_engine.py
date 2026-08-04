@@ -316,14 +316,16 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
         return NMRSpectrumResult(
             spectrum_type="nmr_raw_shielding",
             name="NMR Isotropic Shielding (raw, not yet referenced to TMS)",
-            # Deliberately NOT yet a chemical shift (delta, ppm relative to
-            # a reference compound like TMS) -- that needs a reference-
-            # compound calculation at the same method/basis, cached and
-            # reused rather than re-run per molecule (a real cost concern
-            # for a real ab initio calculation), which is real, separately
-            # scoped follow-up work, not built here. This is the engine's
-            # raw isotropic shielding constant per nucleus, confirmed live
-            # against a real ORCA run.
+            # Raw shielding, not a chemical shift, and that is still the
+            # right output HERE -- but the referencing it needs now exists
+            # and this comment used to say it did not. `chem/nmr_reference`
+            # runs TMS at the same method/basis and converts, and
+            # `QuantumChemistryService.request_reference_calibration`
+            # caches that per (method_basis, ORCA version) so it is not
+            # re-run per molecule. The engine stays reference-free because
+            # the cache lives at the service layer; when no reference has
+            # been calibrated yet, this raw result is what the panel shows,
+            # labelled as such. Confirmed live against a real ORCA run.
             units="ppm (isotropic shielding)",
             method=self.provider_id,
             molecule_uuid=molecule_uuid,

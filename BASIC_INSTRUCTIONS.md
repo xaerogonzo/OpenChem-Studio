@@ -19,7 +19,8 @@
 - `tests/` — pytest suite (chemistry engine, services, commands, layering rule). `tests/vendor/` holds the vendored nomenclature engine's own ~3,200 tests and is excluded from the default run
 - `benchmarks/naming/` — the naming regression benchmark, 181 molecules scored by OPSIN round-trip; the arbiter for any change to naming
 - `pyproject.toml` / `uv.lock` — uv-managed dependencies
-- `build.ps1` / `build.bat` — Nuitka packaging scripts; currently a generic template, not yet adapted for PySide6 (see TODO in ARCHITECTURE.md)
+- `build.ps1` / `build.bat` — **PyInstaller** packaging, driven by `packaging/openchem.spec`; freezes the app into a one-directory `dist/OpenChemStudio/`. PyInstaller over Nuitka deliberately — see ARCHITECTURE.md's packaging section for why, and for the four bundled items that fail *silently* when missing
+- `packaging/openchem.spec` — the real build definition, with a comment per bundled item
 - `.tokensave/`, `.codegraph/` — code-graph indexes, already initialized against this repo
 
 ---
