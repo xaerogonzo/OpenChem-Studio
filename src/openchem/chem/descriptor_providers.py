@@ -422,7 +422,7 @@ def compute_herg_risk_factors(mol: Chem.Mol, molecule_uuid: str) -> AlertResult:
     )
 
 
-def _compute_gasteiger_charges(mol: Chem.Mol, include_hydrogens: bool = False) -> dict[int, float]:
+def compute_gasteiger_charges(mol: Chem.Mol, include_hydrogens: bool = False) -> dict[int, float]:
     """Mutates `mol` in place (sets a "_GasteigerCharge" property per atom)
     -- harmless for every current caller, none of which reads `mol`
     again afterward expecting that property's absence. Shared by the
@@ -654,7 +654,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
         contribs = rdMolDescriptors._CalcCrippenContribs(mol)
         logp_contrib = {idx: logp for idx, (logp, _mr) in enumerate(contribs)}
         mr_contrib = {idx: mr for idx, (_logp, mr) in enumerate(contribs)}
-        gasteiger_charge = _compute_gasteiger_charges(mol)
+        gasteiger_charge = compute_gasteiger_charges(mol)
 
         return [
             PerAtomDataset(
@@ -710,7 +710,7 @@ def compute_gasteiger_charge_at_ph(
     ph = parameters.get("pH", 7.4)
     include_hydrogens = bool(parameters.get("include_hydrogens", False))
     protonated = protonate_at_ph(mol, ph)
-    charges = _compute_gasteiger_charges(protonated, include_hydrogens=include_hydrogens)
+    charges = compute_gasteiger_charges(protonated, include_hydrogens=include_hydrogens)
     suffix = " incl. H" if include_hydrogens else ""
     return PerAtomDataset(
         property_id="gasteiger_charge_at_ph",

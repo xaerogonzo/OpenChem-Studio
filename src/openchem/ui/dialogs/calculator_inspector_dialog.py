@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.chem.engine import ChemistryEngine
+from openchem.chem.descriptor_providers import compute_gasteiger_charges
 from openchem.chem.scalar_field import electrostatic_potential_for_conformer
 from openchem.domain.common import CacheState, ScientificResult
 from openchem.domain.molecule import MoleculeModel
@@ -129,13 +130,22 @@ class _CalculatorResultView(QWidget):
         self._colouring_combo.setEnabled(is_charge and bool(conformer_molblock))
         self._colouring_combo.currentIndexChanged.connect(self._on_surface_changed)
 
-        legend_label = QLabel(self)
-        if layer is not None and layer.color_scale is not None:
-            legend_label.setText(
-                f"{layer.color_scale.domain_min:.3f} to {layer.color_scale.domain_max:.3f}{units_suffix}"
-            )
+        # The legend describes whatever is CURRENTLY on screen, so it is
+        # rebuilt on every colouring change rather than fixed at
+        # construction. Fixing it was a real bug: with the potential
+        # selected the label still read the charge range in electrons,
+        # which is not merely stale -- it names a different physical
+        # quantity in different units, and reads as authoritative.
+        self._legend_label = QLabel(self)
+        self._per_atom_legend = (
+            f"{layer.color_scale.domain_min:.3f} to {layer.color_scale.domain_max:.3f}{units_suffix}"
+            if layer is not None and layer.color_scale is not None
+            else ""
+        )
+        if self._per_atom_legend:
+            self._legend_label.setText(self._per_atom_legend)
         elif not conformer_molblock:
-            legend_label.setText("No conformer generated yet -- 3D view is empty.")
+            self._legend_label.setText("No conformer generated yet -- 3D view is empty.")
 
         views_row = QHBoxLayout()
         views_row.addWidget(svg_widget)
@@ -152,23 +162,54 @@ class _CalculatorResultView(QWidget):
         layout.addWidget(summary_label)
         layout.addLayout(views_row)
         layout.addLayout(surface_row)
-        layout.addWidget(legend_label)
+        layout.addWidget(self._legend_label)
 
     def _on_surface_changed(self, _index: int) -> None:
         representation = self._surface_combo.currentData()
+        showing_potential = (
+            bool(representation)
+            and self._colouring_combo.currentData() == "esp"
+            and bool(self._conformer_molblock)
+        )
         if not representation or self._surface_result is None:
             self._viewer3d.apply_surface(None)
+            self._legend_label.setText(self._per_atom_legend)
             return
-        if self._colouring_combo.currentData() == "esp" and self._conformer_molblock:
+        if showing_potential:
+            # Charges are recomputed on the CONFORMER rather than reused
+            # from the dataset on screen, and the difference is not
+            # cosmetic. The dataset is computed on the implicit-hydrogen
+            # editor molecule and (matching Marvin) excludes each heavy
+            # atom's hydrogen charge, so it covers only heavy atoms and
+            # does not sum to the molecular charge. Feeding that to a
+            # field gave neutral acetic acid a net -0.40 e and painted
+            # the whole surface red. A potential needs charge and
+            # geometry to describe the SAME molecule; only recomputing
+            # on the conformer guarantees that.
             mol = self._engine.mol_from_molblock(self._conformer_molblock)
-            field = electrostatic_potential_for_conformer(mol, self._surface_result.values)
-            self._viewer3d.apply_surface(
-                build_scalar_field_surface_layer(field, representation=representation)
+            charges = compute_gasteiger_charges(mol)
+            field = electrostatic_potential_for_conformer(mol, charges)
+            layer = build_scalar_field_surface_layer(field, representation=representation)
+            self._viewer3d.apply_surface(layer)
+            low, high = layer.scalar_field_range
+            # The units come from the FIELD, not from the dataset that fed
+            # it: charges are in e, the potential they produce is not.
+            #
+            # The basis is spelled out because of a consequence a user
+            # would otherwise have to guess at: these charges come from
+            # the 3D conformer, so the pH this calculator was run at moves
+            # the per-atom numbers but does NOT move this surface. A
+            # control that silently stops applying is worse than one that
+            # says where it stops.
+            self._legend_label.setText(
+                f"{low:.1f} to {high:.1f} {field.units} "
+                "- Gasteiger charges on the 3D conformer, independent of the pH above"
             )
             return
         self._viewer3d.apply_surface(
             build_surface_layer(self._surface_result, representation=representation)
         )
+        self._legend_label.setText(self._per_atom_legend)
 
 
 class _PhCurveResultView(QWidget):

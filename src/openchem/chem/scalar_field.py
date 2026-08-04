@@ -141,22 +141,34 @@ def electrostatic_potential_for_conformer(
 ) -> ScalarField:
     """The potential around an RDKit conformer, given per-atom charges.
 
-    Takes the charges as a dict keyed by atom index rather than reading
-    them off the molecule, because the caller already has them as a
-    computed `PerAtomDataset` -- and because recomputing would risk
-    charging a DIFFERENT protonation state than the one on screen.
-
-    Atoms missing from `charges` contribute nothing (charge 0) rather
-    than raising: a dataset can legitimately cover a subset, and a hole
-    in the map is a weaker field, not a wrong molecule.
+    EVERY atom must have a charge, and a missing one raises rather than
+    defaulting to zero. An earlier version of this defaulted, on the
+    reasoning that "a hole in the map is a weaker field, not a wrong
+    molecule". That reasoning is FALSE and it shipped a wrong picture:
+    a per-atom charge dataset computed on an implicit-hydrogen molecule
+    covers only the heavy atoms, so every hydrogen silently took charge
+    0 and neutral acetic acid came out carrying a net -0.40 e. A net
+    charge is not a smaller effect than a neutral molecule's, it is a
+    DIFFERENT one -- a monopole potential falls off as 1/r where a
+    neutral molecule's falls off as 1/r^2 -- so the surface read as
+    uniformly electron-rich everywhere, including above the acidic
+    proton. It rendered beautifully and it was nonsense.
     """
+    missing = [i for i in range(mol.GetNumAtoms()) if i not in charges]
+    if missing:
+        raise ValueError(
+            f"no charge for {len(missing)} of {mol.GetNumAtoms()} atoms "
+            f"(first: index {missing[0]}) -- an incomplete map gives the "
+            "molecule a net charge it does not have"
+        )
+
     conformer = mol.GetConformer()
     positions = []
     values = []
     for index in range(mol.GetNumAtoms()):
         point = conformer.GetAtomPosition(index)
         positions.append((point.x, point.y, point.z))
-        values.append(float(charges.get(index, 0.0)))
+        values.append(float(charges[index]))
     return electrostatic_potential(positions, values, resolution, padding)
 
 

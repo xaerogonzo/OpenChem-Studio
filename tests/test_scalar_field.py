@@ -164,27 +164,51 @@ def test_the_conformer_helper_agrees_with_the_explicit_call():
     assert np.allclose(from_helper.values, explicit.values)
 
 
-def test_an_atom_missing_from_the_charge_map_contributes_nothing():
-    """A partial dataset is a weaker field, not a different molecule --
-    and it must not silently shift the remaining charges onto the wrong
-    atoms by falling back to positional order."""
+def test_an_incomplete_charge_map_is_refused():
+    """This shipped once, as a silent fallback to charge 0 for any atom
+    the map omitted, justified as "a hole is a weaker field". It is not.
+
+    A per-atom charge dataset is computed on the implicit-hydrogen
+    molecule and covers only heavy atoms, so every hydrogen took 0 and
+    neutral acetic acid came out at a net -0.40 e. That is a different
+    physical situation, not a fainter one: a monopole potential falls off
+    as 1/r and a neutral molecule's as 1/r^2, so the surface read as
+    electron-rich everywhere -- including above the acidic proton, where
+    the real molecule is positive. It rendered convincingly, which is
+    exactly why it needs to raise rather than cope.
+    """
     mol = _ethanol()
-    only_oxygen = {2: -0.4}
 
-    partial = electrostatic_potential_for_conformer(mol, only_oxygen, resolution=12)
-
-    assert partial.values.min() < 0
-    assert partial.values.max() <= 0, "one negative charge cannot make a positive region"
+    with pytest.raises(ValueError, match="net charge it does not have"):
+        electrostatic_potential_for_conformer(mol, {2: -0.4}, resolution=12)
 
 
-def test_the_grid_still_surrounds_every_atom_including_uncharged_ones():
-    """The box comes from the geometry, not the charge map -- otherwise a
-    sparse dataset would produce a surface the grid doesn't cover."""
+def test_a_neutral_charge_set_gives_a_region_of_each_sign():
+    """The check the silent-zero bug would have failed. A neutral molecule
+    has somewhere positive AND somewhere negative; one carrying a spurious
+    net charge is the same sign everywhere."""
+    mol = _ethanol()
+    from rdkit.Chem import rdPartialCharges
+
+    rdPartialCharges.ComputeGasteigerCharges(mol)
+    charges = {i: float(a.GetProp("_GasteigerCharge")) for i, a in enumerate(mol.GetAtoms())}
+    assert abs(sum(charges.values())) < 1e-6, "ethanol is neutral"
+
+    field = electrostatic_potential_for_conformer(mol, charges, resolution=24)
+
+    assert field.values.min() < 0
+    assert field.values.max() > 0
+
+
+def test_the_grid_surrounds_every_atom():
+    """The box comes from the geometry, so no atom sits outside the grid
+    the surface will be sampled against."""
     mol = _ethanol()
     conformer = mol.GetConformer()
     highest_x = max(conformer.GetAtomPosition(i).x for i in range(mol.GetNumAtoms()))
+    charges = {i: 0.0 for i in range(mol.GetNumAtoms())}
 
-    field = electrostatic_potential_for_conformer(mol, {0: 1.0}, resolution=12)
+    field = electrostatic_potential_for_conformer(mol, charges, resolution=12)
 
     span = field.origin[0] + 11 * field.spacing[0]
     assert span >= highest_x

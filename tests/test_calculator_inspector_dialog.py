@@ -297,6 +297,42 @@ def test_choosing_the_potential_sends_a_field_instead_of_atom_colours(qapp):
     assert layer.color_scale.domain_min == low
 
 
+def test_the_legend_names_the_quantity_actually_on_screen(qapp):
+    """Caught by looking at the running app rather than by a test: with the
+    potential selected, the legend still read the CHARGE range in
+    electrons. Not merely stale -- a different physical quantity in
+    different units, printed with the same authority as a correct one."""
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    mol = Chem.AddHs(Chem.MolFromSmiles("CC(=O)O"))
+    AllChem.EmbedMolecule(mol, randomSeed=7)
+    engine = ChemistryEngine()
+    molecule = MoleculeModel(display_name="Acetic acid")
+    engine.set_structure_from_smiles(molecule, "CC(=O)O")
+    dialog = CalculatorInspectorDialog(
+        engine,
+        molecule,
+        _dataset({0: -0.5, 3: 0.3}, units="e"),
+        conformer_molblock=Chem.MolToMolBlock(mol),
+    )
+    target = next(w for w in dialog.findChildren(QWidget) if hasattr(w, "_viewer3d"))
+    target._viewer3d.apply_surface = lambda _layer: None
+    legend = target._legend_label
+
+    dialog.findChildren(QComboBox)[0].setCurrentIndex(1)  # vdW, per-atom colouring
+    per_atom_text = legend.text()
+    _colouring_combo(dialog).setCurrentIndex(1)  # Electrostatic potential
+    potential_text = legend.text()
+
+    assert per_atom_text.endswith("e")
+    assert "kcal/(mol*e)" in potential_text
+    assert potential_text != per_atom_text
+
+    _colouring_combo(dialog).setCurrentIndex(0)  # back to per-atom
+    assert legend.text() == per_atom_text, "switching back must restore the charge legend"
+
+
 # --- Report results, copy, and taking a structure out ---------------------
 
 
