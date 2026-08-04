@@ -27,7 +27,6 @@ from pathlib import Path
 from openchem import paths as app_paths
 from openchem.chem.admet_providers import ADMET_PYTHON_SETTING
 from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING
-from openchem.chem.stout_providers import STOUT_PYTHON_SETTING
 from openchem.services import storage_service
 
 logger = logging.getLogger("openchem.services")
@@ -100,7 +99,7 @@ def _java_component() -> Component:
         return Component(
             key="java",
             label="Java runtime",
-            description="Needed by STOUT and OPSIN.",
+            description="Needed by OPSIN name-to-structure parsing.",
             paths=[],
             is_managed=False,
             unmanaged_reason=f"Using the system Java at {system} -- not installed by this app.",
@@ -108,7 +107,7 @@ def _java_component() -> Component:
     return Component(
         key="java",
         label="Java runtime (Temurin)",
-        description="Portable JRE used by STOUT and OPSIN.",
+        description="Portable JRE used by OPSIN name-to-structure parsing.",
         paths=[root],
         reinstall_hint="Re-installable from the Java tab in one click.",
     )
@@ -160,7 +159,7 @@ def components(settings=None) -> list[Component]:
     and a tool can be installed or reconfigured between calls, and a
     stale inventory would offer to delete the wrong path.
     """
-    from openchem.services import admet_setup, pkasolver_setup, stout_setup
+    from openchem.services import admet_setup, pkasolver_setup
 
     items = [
         Component(
@@ -181,14 +180,20 @@ def components(settings=None) -> list[Component]:
             reinstall_hint="Re-installable from the pkasolver tab; pKa falls back to "
             "ionizable-group detection without it.",
         ),
+        # STOUT itself is gone -- its weights were withdrawn and the
+        # vendored nomenclature engine names structures offline and better.
+        # This entry stays ONLY so anyone who installed it before the
+        # removal can reclaim the ~1.5 GB; it offers no reinstall because
+        # there is nothing left to install. The path is spelled out rather
+        # than imported now that stout_setup has been deleted.
         Component(
             key="stout",
-            label="STOUT environment",
-            description="Structure-to-name prediction (Python + TensorFlow).",
-            paths=[stout_setup.default_install_root()],
-            settings_keys=(STOUT_PYTHON_SETTING,),
-            reinstall_hint="Re-installable from the STOUT tab; PubChem still names known "
-            "compounds without it.",
+            label="STOUT environment (removed feature)",
+            description="Leftover from the withdrawn structure-to-name model. Safe to delete.",
+            paths=[app_paths.subdirectory("stout_env")],
+            settings_keys=("stout/stout_python_path",),
+            reinstall_hint="Not reinstallable -- STOUT's published weights no longer exist. "
+            "Naming is handled by the built-in nomenclature engine and PubChem.",
         ),
         _java_component(),
         Component(

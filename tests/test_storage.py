@@ -82,11 +82,10 @@ def test_the_pointer_lives_outside_the_data_directory(tmp_path, monkeypatch):
 
 def test_every_sidecar_follows_the_configured_root(isolated_root):
     from openchem.chem import nmr_database
-    from openchem.services import java_setup, pkasolver_setup, stout_setup
+    from openchem.services import java_setup, pkasolver_setup
 
     assert java_setup.default_install_root() == isolated_root / "jre"
     assert pkasolver_setup.default_install_root() == isolated_root / "pkasolver_env"
-    assert stout_setup.default_install_root() == isolated_root / "stout_env"
     assert nmr_database.default_database_path() == isolated_root / "nmrshiftdb.sqlite"
 
 

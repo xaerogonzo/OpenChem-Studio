@@ -1,16 +1,18 @@
-"""Provides a Java runtime, because two features need one and Windows
-ships none.
+"""Provides a Java runtime, because OPSIN needs one and Windows ships none.
 
-STOUT starts a JVM through jpype to reach CDK every time it loads, and
-OPSIN (name-to-structure) is a Java library outright. Without Java both
-are simply unavailable, and the error each produces on its own names
-neither Java nor the fix.
+OPSIN (name-to-structure) is a Java library outright, reached through
+py2opsin. Without Java it is simply unavailable, and the error it
+produces on its own names neither Java nor the fix.
+
+This used to serve STOUT as well, which is gone -- but Java is NOT
+removable along with it. OPSIN is the surviving consumer and it is the
+whole of the name-to-structure feature.
 
 WHY THIS CAN BE MANAGED RATHER THAN DELEGATED TO THE USER. Eclipse
 Temurin publishes PORTABLE archives -- a zip that is extracted, not
 installed. Nothing is registered, no installer runs, no system setting is
 touched, and removing the directory removes it completely. That makes it
-exactly the same shape as the pkasolver and STOUT environments this app
+exactly the same shape as the pkasolver and ADMET environments this app
 already manages, and it is why "install a JRE yourself" is not the only
 honest option.
 
@@ -172,7 +174,7 @@ def describe_status() -> str:
     if managed is not None:
         return f"Found: managed Temurin runtime at {managed}"
     return (
-        "Not found. STOUT (structure-to-name) and OPSIN (name-to-structure) both need Java. "
+        "Not found. OPSIN (name-to-structure) needs Java. "
         f"'Set Up Automatically' downloads a portable Temurin JRE (~{APPROX_DOWNLOAD_MB} MB) "
         "into this app's data directory -- extracted, not installed, and used only by this app."
     )
@@ -188,7 +190,7 @@ def install(root: Path | None = None, on_progress: ProgressCallback | None = Non
     if existing is not None:
         raise JavaSetupError(
             f"Java is already available at {existing} -- nothing to install. "
-            "If STOUT still fails, the problem is elsewhere."
+            "If OPSIN still fails, the problem is elsewhere."
         )
 
     root = root or default_install_root()

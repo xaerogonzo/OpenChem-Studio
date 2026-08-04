@@ -259,11 +259,29 @@ Structure-to-name went through three answers in one day. Recorded because
 each one was overturned by measurement, and the record is what makes the
 next reassessment cheap.
 
-**STOUT is dead.** The address compiled into `STOUT-pypi` 2.0.5 returns 404,
-the whole storage bucket 404s on a listing, and the upstream repository no
-longer exists on GitHub. Not recoverable from here. `services/stout_setup.py`
-checks this before spending ~600 MB on TensorFlow, and reports it as
-upstream's outage rather than as a local failure.
+**STOUT is dead, and has now been REMOVED from the codebase.** The address
+compiled into `STOUT-pypi` 2.0.5 returns 404, the whole storage bucket 404s
+on a listing, and the upstream repository no longer exists on GitHub. Not
+recoverable from here, and re-checked since.
+
+It is gone rather than merely disabled because it is also OBSOLETE: the
+vendored nomenclature engine names structures offline, deterministically,
+and scores 180/181 on `benchmarks/naming` — where STOUT was a neural model
+that produced a fluent, confident name for any input including a wrong one.
+Keeping a tab whose only button could never succeed, plus a sidecar
+installer for weights that do not exist, cost clarity for no capability.
+
+Deleted: `chem/stout_providers.py`, `chem/stout_runner.py`,
+`services/stout_setup.py`, the External Tools tab and its tests. Java STAYS
+— OPSIN (name-to-structure) is a Java library and is the surviving consumer.
+A cleanup-only entry remains in `services/sidecar_inventory.py` so anyone
+who installed the ~1.5 GB environment before the removal can still reclaim
+the disk from the Storage tab; it offers no reinstall, because there is
+nothing left to install.
+
+**Do not re-add it** unless upstream republishes weights AND it can be shown
+to beat the vendored engine on `benchmarks/naming`. The second condition is
+the harder one.
 
 **The ML replacement was rejected on evidence.** `SMILES2IUPAC-canonical-base`
 scored 71% against the benchmark below — but split by whether PubChem already

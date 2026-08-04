@@ -8,7 +8,7 @@ inhibition.
 WHY OUT OF PROCESS. It needs torch, pytorch-lightning and chemprop -- a
 ~1 GB environment. That has no business in this project's dependency tree
 or in the frozen PyInstaller build, so it lives in its own environment in
-the data directory, exactly as pkasolver and STOUT do. Unlike those two
+the data directory, exactly as pkasolver does. Unlike pkasolver
 it resolves cleanly against modern Python (verified on 3.12 and 3.13) and
 its weights ship inside the wheel, so there is no separate download and
 no version archaeology.

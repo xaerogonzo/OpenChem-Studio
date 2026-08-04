@@ -11,7 +11,7 @@ location, where the data actually is, rather than at a half-filled new
 one. The reverse order would produce an application that cannot find its
 own installs.
 
-STORED ABSOLUTE PATHS ARE REWRITTEN. The pkasolver and STOUT interpreter
+STORED ABSOLUTE PATHS ARE REWRITTEN. The pkasolver and ADMET interpreter
 paths live in Settings as absolute paths into the data directory; moving
 the files without updating them would leave both sidecars configured but
 broken -- exactly the failure mode a stale `.codecov.yml` path already
@@ -35,7 +35,6 @@ from typing import Callable
 
 from openchem import paths as app_paths
 from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING
-from openchem.chem.stout_providers import STOUT_PYTHON_SETTING
 
 logger = logging.getLogger("openchem.services")
 
@@ -50,7 +49,6 @@ logger = logging.getLogger("openchem.services")
 # constants makes the two impossible to disagree.
 _PATH_SETTINGS = (
     PKASOLVER_PYTHON_SETTING,
-    STOUT_PYTHON_SETTING,
     "docking/vina_executable_path",
 )
 

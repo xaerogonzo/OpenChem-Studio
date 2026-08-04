@@ -321,7 +321,7 @@ it).
   `plugins/` ships as source **beside** the exe rather than inside the
   payload, so a user can add one without a Python install;
   `PluginManager` looks there when `sys.frozen` is set. Sidecars (pkasolver,
-  STOUT, Temurin, ORCA, Vina) are not bundled and are still found in the
+  ADMET, Temurin, ORCA, Vina) are not bundled and are still found in the
   configurable data directory — confirmed in the frozen build, which located
   a real Vina 1.2.7 and a managed Temurin JRE.
 - `SimilarityService` doesn't exist yet; belongs to a later roadmap phase

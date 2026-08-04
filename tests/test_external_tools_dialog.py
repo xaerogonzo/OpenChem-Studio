@@ -15,10 +15,9 @@ def test_dialog_has_every_tool_tab_and_focuses_the_requested_one(qapp):
         "AutoDock Vina",
         "ORCA",
         "pkasolver (pKa)",
-        "STOUT (naming)",
         # These two OBTAIN a prerequisite rather than configure a tool the
-        # user already has: a portable Temurin runtime (STOUT and OPSIN
-        # are both dead without one) and the experimental shift index.
+        # user already has: a portable Temurin runtime (OPSIN is dead
+        # without one) and the experimental shift index.
         "Java (Temurin)",
         "NMR Database",
         # Not a tool at all -- where the tools' own multi-gigabyte
@@ -93,44 +92,15 @@ def test_dialog_prefills_paths_already_present_in_settings(qapp):
     assert dialog._orca_path_edit.text() == "C:/existing/orca.exe"
 
 
-def test_stout_tab_offers_setup_and_saves_its_path(qapp):
-    from openchem.chem.stout_providers import STOUT_PYTHON_SETTING
-
-    bus = EventBus()
-    settings = Settings(bus)
-    dialog = ExternalToolsDialog(settings, focus="orca")
-
-    dialog._stout_path_edit.setText(r"C:\some\stout\python.exe")
-    dialog._on_stout_path_edited()
-
-    assert settings.get(STOUT_PYTHON_SETTING, "") == r"C:\some\stout\python.exe"
-    assert dialog._stout_setup_button.isEnabled()
-
-
-def test_stout_tab_states_that_names_are_predictions(qapp):
-    """A wrong STOUT name looks exactly as authoritative as a right one, so
-    the dialog has to say so rather than leaving it to be discovered."""
-    from PySide6.QtWidgets import QLabel
-
-    bus = EventBus()
-    settings = Settings(bus)
-    dialog = ExternalToolsDialog(settings, focus="orca")
-
-    text = " ".join(label.text() for label in dialog.findChildren(QLabel))
-    assert "neural model" in text
-    assert "plausible name for ANY input" in text
-
-
 def test_each_sidecar_tab_can_remove_its_own_tool(qapp):
     """Remove has always worked -- but only from the Storage tab, and
-    nobody standing on the STOUT tab, having just read that STOUT cannot
-    work, goes hunting under Storage for it. Alex looked and reported
+    nobody standing on a tool's own tab, having just read that the tool is
+    missing, goes hunting under Storage for it. Alex looked and reported
     there was no uninstall.
     """
     dialog = ExternalToolsDialog(Settings(EventBus()))
 
     for attribute in (
-        "_stout_remove_button",
         "_pkasolver_remove_button",
         "_java_remove_button",
         "_nmr_db_remove_button",
@@ -147,10 +117,10 @@ def test_the_tab_buttons_reuse_the_storage_tabs_removal_path(qapp, monkeypatch):
     removed: list[str] = []
     monkeypatch.setattr(dialog, "_on_remove_component", removed.append)
     # Rebuild the buttons so they close over the patched method.
-    dialog._stout_remove_button = dialog._remove_button(dialog, "stout", "STOUT")
+    dialog._pkasolver_remove_button = dialog._remove_button(dialog, "pkasolver", "pkasolver")
     dialog._java_remove_button = dialog._remove_button(dialog, "java", "Java")
 
-    dialog._stout_remove_button.click()
+    dialog._pkasolver_remove_button.click()
     dialog._java_remove_button.click()
 
-    assert removed == ["stout", "java"]
+    assert removed == ["pkasolver", "java"]

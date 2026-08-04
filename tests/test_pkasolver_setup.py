@@ -106,52 +106,5 @@ def test_pinned_versions_are_the_verified_combination():
     assert pkasolver_setup._TARGET_PYTHON == "3.12"
 
 
-# --- STOUT prerequisites --------------------------------------------------
 
 
-def test_stout_refuses_to_install_without_java(monkeypatch, tmp_path):
-    """Checked BEFORE the ~600 MB TensorFlow download. Without this the
-    same unusable outcome cost a multi-gigabyte install and ended in an
-    OSError naming neither Java nor STOUT."""
-    from openchem.services import stout_setup
-
-    monkeypatch.setattr(stout_setup, "find_java", lambda: None)
-
-    with pytest.raises(stout_setup.StoutSetupError, match="No Java runtime found"):
-        stout_setup.install(tmp_path)
-
-    # Nothing was created, so a retry after installing Java starts clean.
-    assert not (tmp_path / ".venv").exists()
-
-
-def test_stout_prerequisites_lead_with_the_java_problem(monkeypatch):
-    """No amount of Python provisioning helps if the JVM is missing, and
-    it is the cheaper thing to fix."""
-    from openchem.services import stout_setup
-
-    monkeypatch.setattr(stout_setup, "find_java", lambda: None)
-    monkeypatch.setattr(stout_setup, "find_uv", lambda: "/usr/bin/uv")
-
-    message = stout_setup.describe_prerequisites()
-
-    assert message.startswith("Cannot set up:")
-    assert "Java" in message
-
-
-def test_stout_prerequisites_are_ready_once_java_exists(monkeypatch):
-    from openchem.services import stout_setup
-
-    monkeypatch.setattr(stout_setup, "find_java", lambda: "/usr/bin/java")
-    monkeypatch.setattr(stout_setup, "find_uv", lambda: "/usr/bin/uv")
-
-    assert stout_setup.describe_prerequisites().startswith("Ready:")
-
-
-def test_the_numpy_pin_is_installed_with_stout_not_after():
-    """TensorFlow 2.10's extensions are built against the NumPy 1.x C ABI
-    and its metadata does not cap the version, so an unpinned install
-    lands on NumPy 2 and cannot import at all. Confirmed live: the real
-    environment ended up on 2.2.6."""
-    from openchem.services import stout_setup
-
-    assert stout_setup.NUMPY_PIN == "numpy<2"

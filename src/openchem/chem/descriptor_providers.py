@@ -1244,7 +1244,8 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         category="naming",
         description=(
             "Reports the IUPAC name from every configured source, each labelled with its "
-            "origin and kind: PubChem records are exact, STOUT output is a neural prediction. "
+            "origin and kind: PubChem records are exact, the nomenclature engine derives "
+            "a name from the structure itself. "
             "PubChem lookup sends the structure to NCBI's public servers -- turn it off for "
             "confidential structures."
         ),

@@ -4,7 +4,7 @@ By default that is the per-user data directory the operating system
 nominates -- on Windows, `%LOCALAPPDATA%\\OpenChemStudio`. That default is
 correct and it is also, for this application, frequently the wrong place:
 the sidecar environments are large (a pkasolver install is ~2.3 GB and a
-STOUT one ~1.5 GB), AppData usually lives on the system SSD, and none of
+ADMET one ~1 GB), AppData usually lives on the system SSD, and none of
 it is data the OS needs to manage. Someone with a second drive should be
 able to say so.
 

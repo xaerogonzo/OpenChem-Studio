@@ -227,21 +227,3 @@ def synthetic_nmr_spectrum(mol, molecule_uuid: str = "mol-1"):
     )
 
 
-@pytest.fixture(autouse=True)
-def _stout_weights_assumed_reachable(monkeypatch):
-    """Two jobs, and the second is the important one.
-
-    STOUT's setup now probes whether upstream still publishes its model
-    weights. Left unstubbed, EVERY test that touches STOUT prerequisites
-    would make a real network request -- so the suite would be slower
-    offline and would give different answers depending on a third party.
-
-    Defaulting to True keeps every pre-existing test asserting what it
-    was written to assert (they are about the Java and uv preconditions,
-    which sit behind this one). Tests that are specifically about the
-    weights being gone override it explicitly.
-    """
-    from openchem.services import stout_setup
-
-    stout_setup.weights_available.cache_clear()
-    monkeypatch.setattr(stout_setup, "weights_available", lambda: True)

@@ -31,11 +31,6 @@ from openchem.chem.naming_providers import (
     pubchem_structure_for_name,
     verify_name_round_trip,
 )
-from openchem.chem.stout_providers import (
-    _parse_runner_output,
-    describe_stout_status,
-    stout_available,
-)
 from openchem.domain.common import CacheState
 
 ASPIRIN = "CC(=O)Oc1ccccc1C(=O)O"
@@ -153,29 +148,6 @@ def test_opsin_status_names_what_is_missing():
     assert opsin_available() or "Java" in status or "py2opsin" in status
 
 
-def test_stout_is_unavailable_without_a_configured_interpreter():
-    assert not stout_available("")
-    assert not stout_available(None)
-    assert "not configured" in describe_stout_status("").lower()
-
-
-def test_stout_runner_output_is_taken_from_the_last_brace_line():
-    """TensorFlow prints banners and progress bars to stdout on import, so
-    the JSON payload is never the only thing there."""
-    stdout = (
-        "2024-01-01 oneDNN custom operations are on...\n"
-        "{\"not\": \"the payload\"}\n"
-        "1/1 [==============================] - 0s\n"
-        '{"name": "ethanol"}\n'
-    )
-    assert _parse_runner_output(stdout, "", 0) == {"name": "ethanol"}
-
-
-def test_stout_runner_with_no_json_raises_with_the_tail():
-    with pytest.raises(RuntimeError, match="no usable output"):
-        _parse_runner_output("traceback nonsense\n", "boom", 1)
-
-
 # --- The calculator -----------------------------------------------------
 
 
@@ -218,19 +190,6 @@ def test_calculator_reports_why_each_source_produced_nothing():
     # ...and a structure PubChem cannot find still gets a name, which is the
     # entire reason for carrying a nomenclature engine.
     assert "Nomenclature engine" in joined
-
-
-def test_a_predicted_name_is_flagged_as_predicted():
-    with patch(
-        "openchem.chem.naming_providers.pubchem_name_for_structure",
-        side_effect=NamingError("nope"),
-    ), patch("openchem.chem.naming_providers.stout_is_configured", return_value=True), patch(
-        "openchem.chem.naming_providers.stout_name_for_structure",
-        return_value=NameResult(name="made up name", source="STOUT", kind=PREDICTED),
-    ):
-        result = compute_iupac_name(Chem.MolFromSmiles(ASPIRIN), "mol-1", {"use_pubchem": True})
-
-    assert any(PREDICTED in line for line in result.matched)
 
 
 def test_naming_results_carry_no_numeric_confidence():

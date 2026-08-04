@@ -90,18 +90,7 @@ def test_status_explains_what_is_missing_and_what_it_blocks(monkeypatch):
 
     status = java_setup.describe_status()
 
-    assert "STOUT" in status and "OPSIN" in status
+    assert "OPSIN" in status
     assert str(java_setup.APPROX_DOWNLOAD_MB) in status
 
 
-def test_stout_accepts_a_managed_runtime_as_java(monkeypatch, tmp_path):
-    """The Java gate must not be a permanent wall for anyone whose only
-    Java is the one this app installed."""
-    from openchem.services import stout_setup
-
-    monkeypatch.setattr(java_setup, "system_java_home", lambda: None)
-    monkeypatch.setattr(java_setup, "managed_java_home", lambda root=None: tmp_path / "jre")
-
-    assert stout_setup.find_java() == str(tmp_path / "jre")
-    monkeypatch.setattr(stout_setup, "find_uv", lambda: "/usr/bin/uv")
-    assert stout_setup.describe_prerequisites().startswith("Ready:")

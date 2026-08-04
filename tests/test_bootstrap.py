@@ -101,18 +101,17 @@ def test_ph_curve_calculators_get_the_pkasolver_interpreter_injected():
         assert _CALCULATOR_INTERPRETER_SETTING.get(calculator) == PKASOLVER_PYTHON_SETTING
 
 
-def test_naming_calculator_is_registered_and_stout_bound():
+def test_naming_calculator_is_registered_and_needs_no_sidecar():
     from openchem.bootstrap import _CALCULATOR_INTERPRETER_SETTING
-    from openchem.chem.stout_providers import STOUT_PYTHON_SETTING
 
     registry = build_service_container().calculator_registry
     assert "naming" in registry.categories()
     assert [d.calculator_id for d in registry.by_category("naming")] == ["iupac_name"]
-    # Needs the STOUT interpreter, NOT pkasolver's. Now that one mapping
-    # serves three sidecars, asserting the exact setting key -- rather than
-    # mere membership -- is what catches a calculator being handed the
-    # wrong environment, which would fail only at click time.
-    assert _CALCULATOR_INTERPRETER_SETTING["iupac_name"] == STOUT_PYTHON_SETTING
+    # Naming used to need STOUT's interpreter. STOUT is gone and the
+    # vendored nomenclature engine runs in-process, so the calculator must
+    # NOT be bound to any sidecar -- a stale binding would hand it an
+    # interpreter path it has no use for.
+    assert "iupac_name" not in _CALCULATOR_INTERPRETER_SETTING
 
 
 def test_phase30_calculators_are_registered():
@@ -131,19 +130,17 @@ def test_phase30_calculators_are_registered():
 
 
 def test_every_sidecar_calculator_is_bound_to_its_own_interpreter():
-    """Three sidecars share one mapping now. The failure this guards is a
+    """Two sidecars share one mapping. The failure this guards is a
     calculator pointed at the wrong environment -- pkasolver's interpreter
     cannot run ADMET-AI, and the error would appear only when clicked."""
     from openchem.bootstrap import _CALCULATOR_INTERPRETER_SETTING
     from openchem.chem.admet_providers import ADMET_PYTHON_SETTING
     from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING
-    from openchem.chem.stout_providers import STOUT_PYTHON_SETTING
 
     assert _CALCULATOR_INTERPRETER_SETTING["admet_ml"] == ADMET_PYTHON_SETTING
     assert _CALCULATOR_INTERPRETER_SETTING["pka"] == PKASOLVER_PYTHON_SETTING
-    assert _CALCULATOR_INTERPRETER_SETTING["iupac_name"] == STOUT_PYTHON_SETTING
-    # Three distinct environments, not one shared by accident.
-    assert len(set(_CALCULATOR_INTERPRETER_SETTING.values())) == 3
+    # Two distinct environments, not one shared by accident.
+    assert len(set(_CALCULATOR_INTERPRETER_SETTING.values())) == 2
 
 
 def test_the_admet_calculator_is_registered_and_declared_a_prediction():

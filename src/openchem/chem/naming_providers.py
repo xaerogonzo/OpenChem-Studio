@@ -4,14 +4,22 @@ Provider-shaped rather than a single answer, because the sources differ in
 kind and that difference matters more than the string they return:
 
     PubChem   exact      a database record for a compound someone curated
-    STOUT     predicted  a neural model's guess; can be fluently wrong
-    OPSIN     parsed     a deterministic grammar, name -> structure only
+    engine    derived     the vendored Blue Book namer, from the structure
+    OPSIN     parsed      a deterministic grammar, name -> structure only
 
 Every result carries `source` and `kind` so a UI can show which is which.
-There is deliberately NO numeric confidence field: STOUT reports no
-calibrated confidence, and manufacturing one would be the same
-fabricated precision this project refused for NMR RMSE and hERG
-probabilities. The field can be added the day an engine actually emits one.
+There is deliberately NO numeric confidence field: no engine here emits a
+calibrated confidence, and manufacturing one would be the same fabricated
+precision this project refused for NMR RMSE and hERG probabilities. The
+field can be added the day one actually does.
+
+STOUT WAS REMOVED, not merely disabled. It was a sequence-to-sequence
+neural namer run as a sidecar; its published weights were withdrawn (the
+download 404s, checked repeatedly) and the vendored nomenclature engine
+supersedes it anyway -- 180/181 on `benchmarks/naming`, deterministic,
+offline, and unable to invent a fluent wrong name the way STOUT could.
+A leftover-cleanup entry survives in `services/sidecar_inventory.py` so
+anyone who installed the old environment can reclaim the disk.
 
 NETWORK AND PRIVACY: the PubChem providers send the structure or name to
 NCBI's public servers. That is a third party receiving whatever molecule
@@ -269,32 +277,12 @@ def opsin_structure_for_name(name: str) -> StructureResult:
     return StructureResult(smiles=smiles, source="OPSIN", kind=PARSED)
 
 
-def stout_name_for_structure(mol: Chem.Mol, interpreter_path: str | None) -> NameResult:
-    """A predicted IUPAC name from STOUT, run out of process.
-
-    STOUT is a sequence-to-sequence neural model. It produces a
-    well-formed, plausible-looking name for ANY structure, including one
-    that is wrong -- there is no signal in the output distinguishing the
-    two. That is why the result is marked `predicted` and why the round
-    trip below exists.
-    """
-    from openchem.chem.stout_providers import run_stout
-
-    name = run_stout(mol, interpreter_path)
-    return NameResult(
-        name=name,
-        source="STOUT",
-        kind=PREDICTED,
-        note="Neural prediction -- verify before relying on it.",
-    )
-
-
 def verify_name_round_trip(name: str, original: Chem.Mol) -> bool | None:
     """Does parsing the name back give the structure we started from?
 
     The only real check available on a predicted name, and worth having
-    precisely because a wrong STOUT name looks exactly as authoritative as
-    a right one. Returns `None` when no parser is available to check with
+    precisely because a wrong generated name looks exactly as
+    authoritative as a right one. Returns `None` when no parser is available to check with
     -- which is honestly different from "checked and failed".
     """
     if not opsin_available():
@@ -320,8 +308,9 @@ def compute_iupac_name(
     Queries every available source and reports them ALL, each labelled with
     where it came from and what kind of answer it is. Sources are not
     merged into one "the name", because they genuinely differ in
-    authority: a PubChem record is a curated fact, a STOUT output is a
-    guess, and showing them as one string would erase that.
+    authority: a PubChem record is a curated fact, a derived name is
+    generated from the structure, and showing them as one string would
+    erase that.
 
     Network use is opt-in per run via the `use_pubchem` parameter, since a
     lookup sends the structure to NCBI.
@@ -340,22 +329,11 @@ def compute_iupac_name(
             lines.append(f"PubChem: {exc}")
 
     # After PubChem, because a curated record beats a generated name even
-    # when the generator is very good. Before STOUT, because it is.
+    # when the generator is very good.
     try:
         results.append(derived_name_for_structure(mol))
     except NamingError as exc:
         lines.append(f"Nomenclature engine: {exc}")
-
-    if stout_is_configured(interpreter_path):
-        try:
-            results.append(stout_name_for_structure(mol, interpreter_path))
-        except RuntimeError as exc:
-            lines.append(f"STOUT: {exc}")
-    # No "STOUT unavailable" line. It used to be worth saying, because
-    # STOUT was the only thing that could name a structure PubChem does
-    # not have. The nomenclature engine above now does that job, offline
-    # and better, so the notice would appear on every molecule forever to
-    # report the absence of something nobody needs.
 
     for result in results:
         line = f"{result.name}  [{result.source}, {result.kind}]"
@@ -369,7 +347,7 @@ def compute_iupac_name(
             # not the same as a failed check and is not claimed as one.
         lines.append(line)
 
-    if not results and not any(line for line in lines if not line.startswith(("PubChem:", "STOUT:"))):
+    if not results and not any(line for line in lines if not line.startswith("PubChem:")):
         return AlertResult(
             alert_id="iupac_name",
             name="IUPAC Name",
@@ -395,7 +373,3 @@ def compute_iupac_name(
     )
 
 
-def stout_is_configured(interpreter_path: str | None) -> bool:
-    from openchem.chem.stout_providers import stout_available
-
-    return stout_available(interpreter_path)

@@ -8,7 +8,6 @@ from openchem.chem.engine import ChemistryEngine
 from openchem.chem.orca_engine import CALC_TYPE_LABELS, METHOD_BASIS_PRESETS
 from openchem.chem.admet_providers import ADMET_PYTHON_SETTING
 from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING
-from openchem.chem.stout_providers import STOUT_PYTHON_SETTING
 from openchem.domain.calculator import (
     CalculatorDefinition,
     CalculatorParameter,
@@ -131,8 +130,6 @@ _CALCULATOR_INTERPRETER_SETTING: dict[str, str] = {
     "logd_curve": PKASOLVER_PYTHON_SETTING,
     "cns_mpo": PKASOLVER_PYTHON_SETTING,
     "bbb_descriptors": PKASOLVER_PYTHON_SETTING,
-    # STOUT (structure -> name)
-    "iupac_name": STOUT_PYTHON_SETTING,
     # ADMET-AI (hERG / CYP / Ames)
     "admet_ml": ADMET_PYTHON_SETTING,
 }

@@ -1,6 +1,6 @@
 """Shared checks for the out-of-process sidecar interpreters.
 
-pkasolver and STOUT both run in their own virtual environments, both
+pkasolver and ADMET both run in their own virtual environments, both
 store an interpreter path in Settings, and both can therefore be pointed
 at something that is not an interpreter at all. This turns that into a
 sentence a user can act on.
