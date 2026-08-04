@@ -19,6 +19,19 @@ _DIVERGING_PALETTE: list[tuple[float, str]] = [(0.0, "#d32f2f"), (0.5, "#f5f5f5"
 _SEQUENTIAL_PALETTE: list[tuple[float, str]] = [(0.0, "#fff3e0"), (1.0, "#e65100")]
 
 
+def _hex_to_rgb_fraction(color: str) -> tuple[float, float, float]:
+    return tuple(int(color[i : i + 2], 16) / 255.0 for i in (1, 3, 5))
+
+
+#: The diverging palette as RGB fractions, which is what RDKit's contour
+#: renderer takes. DERIVED from `_DIVERGING_PALETTE` rather than written
+#: out again, so the 2D heat map, the 2D atom colours and the 3D surface
+#: cannot drift into three nearly-identical reds.
+DIVERGING_COLOUR_MAP: list[tuple[float, float, float]] = [
+    _hex_to_rgb_fraction(color) for _stop, color in _DIVERGING_PALETTE
+]
+
+
 def _interpolate_hex(color_a: str, color_b: str, fraction: float) -> str:
     a = tuple(int(color_a[i : i + 2], 16) for i in (1, 3, 5))
     b = tuple(int(color_b[i : i + 2], 16) for i in (1, 3, 5))

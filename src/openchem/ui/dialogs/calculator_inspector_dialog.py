@@ -29,6 +29,7 @@ from openchem.domain.scientific_result import (
 )
 from openchem.ui.result_clipboard import result_to_text
 from openchem.ui.visualization import (
+    DIVERGING_COLOUR_MAP,
     SURFACE_REPRESENTATION_LABELS,
     SURFACE_REPRESENTATIONS,
     build_scalar_field_surface_layer,
@@ -90,11 +91,15 @@ class _CalculatorResultView(QWidget):
         summary_label.setWordWrap(True)
         summary_label.setVisible(bool(summary_text))
 
-        svg_widget = QSvgWidget(self)
-        if molecule.molblock and layer is not None:
-            svg = engine.render_2d_svg(molecule.molblock, layer.atom_colors, layer.atom_labels)
-            svg_widget.load(svg.encode("utf-8"))
-        svg_widget.setMinimumSize(360, 320)
+        self._engine = engine
+        self._molecule = molecule
+        self._layer = layer
+        self._conformer_molblock = conformer_molblock
+        self._surface_result = result if isinstance(result, PerAtomDataset) else None
+
+        self._svg_widget = QSvgWidget(self)
+        self._render_2d()
+        self._svg_widget.setMinimumSize(360, 320)
 
         self._viewer3d = Mol3DViewerBackend(self)
         if conformer_molblock and layer is not None:
@@ -110,7 +115,6 @@ class _CalculatorResultView(QWidget):
         self._surface_combo.addItem("No surface", "")
         for representation in SURFACE_REPRESENTATIONS:
             self._surface_combo.addItem(SURFACE_REPRESENTATION_LABELS[representation], representation)
-        self._surface_result = result if isinstance(result, PerAtomDataset) else None
         self._surface_combo.setEnabled(self._surface_result is not None and bool(conformer_molblock))
         self._surface_combo.currentIndexChanged.connect(self._on_surface_changed)
 
@@ -120,8 +124,6 @@ class _CalculatorResultView(QWidget):
         # would be a picture of a quantity nobody asked for. Keyed on
         # `units == "e"` rather than on a list of calculator ids, so a
         # future charge model qualifies without a code change here.
-        self._conformer_molblock = conformer_molblock
-        self._engine = engine
         self._colouring_combo = QComboBox(self)
         self._colouring_combo.addItem("Per-atom value", "atoms")
         is_charge = self._surface_result is not None and self._surface_result.units == "e"
@@ -148,10 +150,22 @@ class _CalculatorResultView(QWidget):
             self._legend_label.setText("No conformer generated yet -- 3D view is empty.")
 
         views_row = QHBoxLayout()
-        views_row.addWidget(svg_widget)
+        views_row.addWidget(self._svg_widget)
         views_row.addWidget(self._viewer3d.widget())
 
+        # The 2D counterpart of the 3D surface control beside it: the same
+        # data as either discrete atom highlights or a continuous field.
+        # Only meaningful for numeric per-atom data, so it is enabled on
+        # the same condition the surface is.
+        self._map_combo = QComboBox(self)
+        self._map_combo.addItem("Atom colours", "atoms")
+        self._map_combo.addItem("Heat map", "heatmap")
+        self._map_combo.setEnabled(self._surface_result is not None)
+        self._map_combo.currentIndexChanged.connect(self._on_map_changed)
+
         surface_row = QHBoxLayout()
+        surface_row.addWidget(QLabel("2D:", self))
+        surface_row.addWidget(self._map_combo)
         surface_row.addWidget(QLabel("3D surface:", self))
         surface_row.addWidget(self._surface_combo)
         surface_row.addWidget(QLabel("coloured by:", self))
@@ -163,6 +177,32 @@ class _CalculatorResultView(QWidget):
         layout.addLayout(views_row)
         layout.addLayout(surface_row)
         layout.addWidget(self._legend_label)
+
+    def _render_2d(self) -> None:
+        """Draws the 2D pane in whichever mode is selected.
+
+        Called from `__init__` before `_map_combo` exists, so the mode is
+        read defensively -- the first render is always the atom-colour one
+        and the combo only ever switches away from it.
+        """
+        if not self._molecule.molblock or self._layer is None:
+            return
+        combo = getattr(self, "_map_combo", None)
+        if combo is not None and combo.currentData() == "heatmap" and self._surface_result:
+            svg = self._engine.render_2d_heatmap_svg(
+                self._molecule.molblock,
+                self._surface_result.values,
+                colour_map=DIVERGING_COLOUR_MAP,
+                atom_labels=self._layer.atom_labels,
+            )
+        else:
+            svg = self._engine.render_2d_svg(
+                self._molecule.molblock, self._layer.atom_colors, self._layer.atom_labels
+            )
+        self._svg_widget.load(svg.encode("utf-8"))
+
+    def _on_map_changed(self, _index: int) -> None:
+        self._render_2d()
 
     def _on_surface_changed(self, _index: int) -> None:
         representation = self._surface_combo.currentData()

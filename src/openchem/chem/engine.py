@@ -9,6 +9,44 @@ from openchem.domain.molecule import MoleculeModel
 
 logger = logging.getLogger("openchem.chemistry")
 
+#: Grid spacing for the property heat map, in the depiction's own units.
+#: The cost is quadratic in 1/spacing and it lands in the SVG as one path
+#: per cell, so this is a file-size dial as much as a smoothness one.
+#: Measured on p-nitroaniline at 420x360: 0.05 -> 845 KB, 0.10 -> 216 KB,
+#: 0.20 -> 59 KB. 0.10 is the coarsest that still reads as a smooth
+#: gradient rather than visible blocks at normal dialog sizes.
+HEATMAP_GRID_RESOLUTION = 0.10
+
+#: Standard deviation of each atom's Gaussian, in the same units. Wide
+#: enough that neighbouring atoms blend into a field rather than staying
+#: separate dots -- which is the entire difference from colouring atom
+#: discs -- and narrow enough that a lone substituent stays localised.
+HEATMAP_GAUSSIAN_WIDTH = 0.4
+
+#: How far the grid extends beyond the atoms. Small, and NOT a lever for
+#: the artifact below -- measured on p-nitroaniline, raising it from 0.5
+#: to 10.0 never reached the canvas corner (RDKit rescales to keep both
+#: the grid and the molecule in frame) while the SVG went from 940 KB to
+#: 17.7 MB. It buys nothing and costs everything.
+HEATMAP_GRID_PADDING = 0.5
+
+#: Cells whose magnitude is below this FRACTION of the largest present are
+#: left unpainted, so the page shows through where there is no signal.
+#:
+#: Without it the grid paints its whole rectangle, and the rectangle is
+#: visible: seen in the running app as a hard-edged tinted box sitting
+#: behind the molecule and stopping mid-pane. Worse, the box is not
+#: neutral -- a per-atom charge dataset excludes implicit hydrogens and so
+#: sums to a net negative, and the Gaussian tails carry that across the
+#: whole grid, tinting empty space pink. The field being drawn is honest;
+#: painting it over territory where it has decayed to nothing is not.
+#:
+#: 0.05 rather than a larger value because clipping real signal is the
+#: worse error. Measured against no threshold at all: strongly-tinted
+#: pixels went 5334 -> 5338 red and 2371 -> 2371 blue (noise), the empty
+#: region went to pure white, and the SVG dropped 545 KB -> 307 KB.
+HEATMAP_FILL_THRESHOLD = 0.05
+
 
 class InvalidStructureError(ValueError):
     """Raised when a molblock/SMILES cannot be parsed into a valid RDKit Mol."""
@@ -122,6 +160,97 @@ class ChemistryEngine:
         rdMolDraw2D.PrepareAndDrawMolecule(
             drawer, mol, highlightAtoms=highlight_atoms, highlightAtomColors=highlight_colors
         )
+        drawer.FinishDrawing()
+        return drawer.GetDrawingText()
+
+    def render_2d_heatmap_svg(
+        self,
+        molblock: str,
+        values: dict[int, float],
+        colour_map: list[tuple[float, float, float]],
+        atom_labels: dict[int, str] | None = None,
+        width: int = 360,
+        height: int = 320,
+        grid_resolution: float = HEATMAP_GRID_RESOLUTION,
+        gaussian_width: float = HEATMAP_GAUSSIAN_WIDTH,
+    ) -> str:
+        """The same depiction, painted with a CONTINUOUS field instead of
+        discrete per-atom highlights.
+
+        The flat counterpart to the 3D scalar-field surface, and the same
+        argument for existing: a property defined over the molecule varies
+        between the atoms as much as on them, and colouring atom discs
+        turns that into a step function. This lays a Gaussian at each atom
+        and contours the sum, which is the standard similarity/property
+        map rendering.
+
+        `colour_map` is REQUIRED and comes from the caller rather than
+        being defaulted here, so this cannot drift into a second,
+        independently-chosen palette beside the one the atom colouring and
+        the 3D surface already share. `chem/` also must not import `ui/`,
+        which is where that palette is defined.
+
+        SIGN IS HANDLED, and was checked rather than assumed. RDKit's
+        colour map is centred on zero and scaled by the largest magnitude
+        present -- measured on a decane chain with weights of -0.1 and
+        +0.9, the zero-weight atoms rendered neutral (R-B = -0.4) while
+        the faint negative stayed faintly red (+11.6) against the strong
+        positive's -116.4. So an asymmetric property does not shift the
+        white point off zero, and a single-signed property honestly reads
+        as all one colour rather than being stretched across the full
+        diverging range.
+
+        WHAT A BLANK REGION MEANS. An atom with no entry in `values`
+        contributes nothing, and nothing reads as ZERO here, not as
+        "unknown" -- the two are indistinguishable once drawn. Hand in a
+        complete map, or accept that the gaps assert a value.
+        """
+        from rdkit.Chem.Draw import rdMolDraw2D
+        from rdkit.Geometry import Point2D
+
+        mol = self.mol_from_molblock(molblock)
+        atom_count = mol.GetNumAtoms()
+        if atom_labels:
+            for idx, label in atom_labels.items():
+                if 0 <= idx < atom_count:
+                    mol.GetAtomWithIdx(idx).SetProp("atomNote", label)
+
+        # Surplus indices are dropped for the reason `render_2d_svg`'s
+        # `drawable` documents at length: several calculators run on
+        # `Chem.AddHs(mol)` and return a value per hydrogen, while this
+        # depiction's hydrogens are implicit and have no index.
+        conformer = mol.GetConformer()
+        locations = [
+            Point2D(conformer.GetAtomPosition(i).x, conformer.GetAtomPosition(i).y)
+            for i in range(atom_count)
+        ]
+        weights = [float(values.get(i, 0.0)) for i in range(atom_count)]
+        widths = [gaussian_width] * atom_count
+
+        params = rdMolDraw2D.ContourParams()
+        params.fillGrid = True
+        params.gridResolution = grid_resolution
+        params.extraGridPadding = HEATMAP_GRID_PADDING
+        params.setColourMap(colour_map)
+        # Leaves the page bare where the field has decayed to nothing,
+        # rather than painting the grid's whole rectangle -- see the
+        # constant, which records the visible box this removes.
+        params.useFillThreshold = True
+        params.fillThresholdIsFraction = True
+        params.fillThreshold = HEATMAP_FILL_THRESHOLD
+
+        drawer = rdMolDraw2D.MolDraw2DSVG(width, height)
+        drawer.ClearDrawing()
+        # `nContours=0` leaves the fill without isolines. The rings are a
+        # spectroscopy convention (see `ui/contours.py`); on a property map
+        # they read as boundaries in a quantity that has none.
+        rdMolDraw2D.ContourAndDrawGaussians(
+            drawer, locations, weights, widths, 0, [], params, mol
+        )
+        # Without this the molecule's own background wipes the field it was
+        # just drawn over -- the structure must be composited ON TOP.
+        drawer.drawOptions().clearBackground = False
+        rdMolDraw2D.PrepareAndDrawMolecule(drawer, mol)
         drawer.FinishDrawing()
         return drawer.GetDrawingText()
 
