@@ -27,9 +27,14 @@ from rdkit import Chem
 
 from openchem.chem.geometry_analysis import NoConformerError, _require_conformer
 from openchem.chem.pose_analysis import (
+    CATION_PI_CUTOFF,
     CLASH_TOLERANCE,
     HBOND_DISTANCE_CUTOFF,
+    HYDROPHOBIC_CUTOFF,
+    PI_STACKING_CUTOFF,
+    SALT_BRIDGE_CUTOFF,
     _DEFAULT_VDW_RADIUS,
+    _METALS,
     _POLAR_ELEMENTS,
     _VDW_RADII,
 )
@@ -38,10 +43,11 @@ from openchem.domain.common import CacheState, Provenance
 from openchem.domain.scientific_result import AlertResult
 
 # Interaction-specific cutoffs, in Angstrom.
-SALT_BRIDGE_CUTOFF = 4.0  # charged-group centre separation
-PI_STACKING_CUTOFF = 5.5  # aromatic ring centroid separation
-CATION_PI_CUTOFF = 6.0  # cation to aromatic centroid
-HYDROPHOBIC_CUTOFF = 4.5  # apolar carbon to apolar carbon
+# The interaction cutoffs and the metals list are OWNED by
+# `pose_analysis` and imported above -- see the note there on why that
+# direction and not this one. Re-exported through this module's namespace
+# so existing importers of `interaction_analysis.SALT_BRIDGE_CUTOFF`
+# keep working.
 
 # Minimum bond-path separation for a heavy-atom pair to count, PER
 # INTERACTION TYPE. A single blanket value is wrong, which probing real
@@ -67,8 +73,6 @@ MIN_SEPARATION = {
     "hydrophobic": 4,
     "clashes": 4,
 }
-
-_METALS = {"ZN", "MG", "CA", "FE", "MN", "CU", "NA", "K", "CO", "NI"}
 
 
 def _vdw_radius(element: str) -> float:

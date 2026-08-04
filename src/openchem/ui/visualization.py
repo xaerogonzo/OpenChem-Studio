@@ -238,6 +238,10 @@ def build_visualization_layer(result: ScientificResult, include_labels: bool = F
 # them (and both layers carry `color_scale=None` for the same reason).
 _HBOND_COLOR = "#1976d2"  # blue -- favourable polar contact
 _CLASH_COLOR = "#d32f2f"  # red -- unfavourable steric overlap
+_HYDROPHOBIC_COLOR = "#f9a825"  # amber -- apolar burial
+_SALT_BRIDGE_COLOR = "#7b1fa2"  # purple -- charge pairing
+_PI_COLOR = "#00897b"  # teal -- aromatic (stacking and cation-pi)
+_METAL_COLOR = "#5d4037"  # brown -- metal coordination
 
 
 def build_interaction_layers(pose_metadata: dict) -> list[ResidueColorLayer]:
@@ -245,18 +249,29 @@ def build_interaction_layers(pose_metadata: dict) -> list[ResidueColorLayer]:
     which receptor residues hydrogen-bond with the ligand, and which clash.
 
     Consumes `DockingPoseModel.metadata` exactly as `analyze_pose`
-    (`chem/pose_analysis.py`) writes it: `{"hbonds": [...], "clashes":
-    [...]}`, each entry carrying `receptor_residue` like `"TYR652"`. This
-    is the real, already-computed data that residue targeting exists for.
+    (`chem/pose_analysis.py`) writes it -- one list per interaction type,
+    each entry carrying `receptor_residue` like `"TYR652"`. This is the
+    real, already-computed data that residue targeting exists for.
 
-    Returns only non-empty layers, and clashes last so that a residue
-    which both H-bonds AND clashes ends up flagged with the problem rather
-    than the favourable contact -- a backend compositing layers in order
-    lets the later one win, and a steric clash is the finding a user needs
-    to see.
+    ORDER IS THE WHOLE DESIGN HERE. A backend compositing layers in order
+    lets the later one win, so the list runs from least to most urgent and
+    CLASHES ARE LAST: a residue that both hydrogen-bonds and clashes ends
+    up flagged with the problem, which is the finding a user needs. The
+    favourable types are ordered by how specific they are -- hydrophobic
+    burial is the most common and least informative, so it sits first and
+    is overwritten by anything more particular.
+
+    Unknown keys are ignored rather than coloured, so a future interaction
+    type added to `analyze_pose` shows up here only once it has been given
+    a colour and a place in this order deliberately.
     """
     layers: list[ResidueColorLayer] = []
     for key, name, color in (
+        ("hydrophobic", "Hydrophobic contacts", _HYDROPHOBIC_COLOR),
+        ("pi_stacking", "Pi-stacking", _PI_COLOR),
+        ("cation_pi", "Cation-pi", _PI_COLOR),
+        ("salt_bridges", "Salt bridges", _SALT_BRIDGE_COLOR),
+        ("metal_coordination", "Metal coordination", _METAL_COLOR),
         ("hbonds", "H-bonds", _HBOND_COLOR),
         ("clashes", "Steric clashes", _CLASH_COLOR),
     ):
