@@ -94,6 +94,31 @@ If you touch that fixture, verify by counting, not by reading:
 powershell "(Get-ChildItem 'HKCU:\Software' | Where-Object PSChildName -like 'OpenChemStudio-pytest-*' | Measure-Object).Count"
 ```
 
+### `repaint()` does not paint a widget that was never shown
+
+A `paintEvent` test that constructs a widget, resizes it and calls
+`repaint()` proves nothing. Measured on a counting subclass:
+
+    repaint() on a never-shown widget    0 paintEvent calls
+    update() + processEvents             0
+    grab()                               1
+    repaint() AFTER show()               1
+
+So `widget.grab()` (or showing it first) is the only way to exercise the
+painter. Four such tests existed and were green without ever running the
+code they named -- including one called `test_highlighting_survives_a_repaint`,
+in which no repaint occurred.
+
+**Use `widget.grab()`**, as `tests/test_ph_curve_widget.py` already did.
+Where it matters, go further and assert something was actually drawn:
+`test_nmr_spectrum_widget.py` renders into a `QImage` and checks a pixel
+is non-transparent, because a `paintEvent` that returns early would
+otherwise pass just as quietly.
+
+Tests that assert on child-widget structure rather than drawing -- e.g.
+`test_structure_grid_widget.py` counting cells in a layout -- are not
+affected and do not need this.
+
 ### The formerly-flaky webview test
 
 `tests/test_mol3d_viewer_backend.py::test_apply_visualization_sets_atom_colors`

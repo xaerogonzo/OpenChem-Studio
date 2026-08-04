@@ -7,6 +7,19 @@ from openchem.chem.nmr_signals import NMRSignal
 from openchem.ui.widgets.nmr_spectrum_widget import NmrSpectrumWidget
 
 
+def _paint(widget) -> None:
+    """Force a real paint.
+
+    `repaint()` and `update()` are BOTH no-ops on a widget that was never
+    shown -- measured: zero paintEvent calls either way, against one for
+    `grab()`. Three tests here used to call `repaint()` and were passing
+    without the painter ever running, including one named "survives a
+    repaint". `grab()` renders into a pixmap, which really executes
+    paintEvent, and is what `test_ph_curve_widget.py` already uses.
+    """
+    widget.grab()
+
+
 def _signal(shift: float, integration: int = 1, atoms: list[int] | None = None) -> NMRSignal:
     return NMRSignal(
         shift=shift,
@@ -19,13 +32,13 @@ def _signal(shift: float, integration: int = 1, atoms: list[int] | None = None) 
 def test_empty_widget_renders_without_crashing(qapp):
     widget = NmrSpectrumWidget()
     widget.resize(400, 250)
-    widget.repaint()  # would raise if paintEvent crashed
+    _paint(widget)  # would raise if paintEvent crashed
 
 
 def test_signals_render_without_crashing(qapp):
     widget = NmrSpectrumWidget([_signal(7.2, 2, [1, 2]), _signal(1.4, 6, [3, 4, 5, 6, 7, 8])])
     widget.resize(400, 250)
-    widget.repaint()
+    _paint(widget)
 
 
 def test_set_signals_replaces_data(qapp):
@@ -85,7 +98,7 @@ def test_highlighting_survives_a_repaint(qapp):
     widget = NmrSpectrumWidget([_signal(7.2, 2, [11, 12]), _signal(1.4, 3, [20, 21, 22])])
     widget.resize(400, 250)
     widget.set_highlighted_atoms([21])
-    widget.repaint()
+    _paint(widget)  # a real one now -- repaint() never reached paintEvent
 
     assert widget._highlighted_atoms == {21}
 

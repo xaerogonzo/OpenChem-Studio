@@ -1,19 +1,18 @@
 from __future__ import annotations
 
-from PySide6.QtGui import QPixmap
-
 from openchem.ui.widgets.nmr_correlation_plot_widget import NmrCorrelationPlotWidget, Peak
 
 
 def _paint(widget) -> None:
     """Force a real paint.
 
-    `repaint()` is a no-op on a widget that was never shown, so the
-    "renders without crashing" tests below were passing without the
-    painter ever running. Rendering into a pixmap actually executes
-    `paintEvent`, which is the thing under test.
+    `repaint()` and `update()` are BOTH no-ops on a widget that was never
+    shown -- measured: zero paintEvent calls either way, against one for
+    `grab()`. The "renders without crashing" tests below were passing
+    without the painter ever running. `grab()` renders into a pixmap,
+    which really executes paintEvent.
     """
-    widget.render(QPixmap(widget.size()))
+    widget.grab()
 
 
 def test_empty_widget_renders_without_crashing(qapp):
