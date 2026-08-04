@@ -32,6 +32,64 @@ METAL_COORDINATION_CUTOFF = 2.8  # metal ion to coordinating N/O/S
 _METALS = {"ZN", "MG", "CA", "FE", "MN", "CU", "NA", "K", "CO", "NI"}
 _POLAR_ELEMENTS = {"N", "O", "F"}
 
+# Which residues receptor preparation removes. They live HERE, with the
+# cutoffs, for the same reason: `docking_providers` strips them before
+# handing a receptor to Vina, and this module must reach the SAME verdict
+# when deciding what a pose is allowed to interact with. Two copies of
+# these sets would drift, and the symptom would be silent -- an
+# interaction reported against an atom the docking never saw.
+WATER_RESIDUE_NAMES = {"HOH", "WAT", "H2O", "DOD", "TIP", "TIP3", "TIP4"}
+
+# Standard amino acids plus common alternate-protonation-state names some
+# tools/force fields emit (histidine tautomers, cysteine states, etc.) --
+# anything else non-water is a "cofactor" candidate. Deliberately
+# protein-only (no nucleotide residues): a docking receptor prepared
+# through this pipeline is a protein target.
+STANDARD_RECEPTOR_RESIDUES = {
+    "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE",
+    "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL",
+    "HID", "HIE", "HIP", "HSD", "HSE", "HSP", "CYX", "CYM", "ASH", "GLH", "LYN",
+}
+
+
+def filter_pdb_altlocs(pdb_text: str) -> str:
+    """Drop every alternate location except the first (blank or 'A').
+
+    Confirmed live that Open Babel's PDB reader does NOT dedupe these: a
+    two-altloc atom comes back as two full atoms at two positions, not one
+    occupancy-weighted atom. Column 17 (0-indexed 16) is the format's
+    fixed-width altLoc field; shorter lines and non-coordinate records
+    pass through untouched.
+
+    Lives here, next to the residue tables, for the reason they do -- both
+    receptor preparation and pose analysis must reach the same view of the
+    structure. 8ZYO is what this looks like when they do not: its
+    astemizole is one 34-atom molecule modelled in two conformations, and
+    an unfiltered read reports 68 atoms spread over both, which then
+    doubles the size of any box or contact set derived from it.
+    """
+    kept = []
+    for line in pdb_text.splitlines(keepends=True):
+        if line.startswith(("ATOM", "HETATM")) and len(line) > 16 and line[16] not in (" ", "A"):
+            continue
+        kept.append(line)
+    return "".join(kept)
+
+
+def is_stripped_residue(
+    residue_name: str, strip_waters: bool, strip_cofactors: bool
+) -> bool:
+    """Whether receptor preparation would delete this residue.
+
+    One predicate, two callers -- `docking_providers` deletes the atoms
+    before docking, and `receptor_atoms_from_structure` skips them before
+    analysis. Sharing the decision is the point.
+    """
+    name = residue_name.strip().upper()
+    if name in WATER_RESIDUE_NAMES:
+        return strip_waters
+    return strip_cofactors and name not in STANDARD_RECEPTOR_RESIDUES
+
 # Bondi van der Waals radii (Angstrom) for elements likely to appear in a
 # docking receptor/ligand -- anything else falls back to
 # _DEFAULT_VDW_RADIUS.
@@ -58,17 +116,48 @@ class ReceptorAtom:
     #: source had no atom names, in which case the detectors that need
     #: them simply find nothing rather than guessing.
     atom_name: str = ""
+    #: Chain identifier ("A", "B", ...). Needed to tell copies of the same
+    #: component apart: a ligand present in six chains is very often
+    #: numbered identically in all six, so residue number alone merges
+    #: them into one object spread across the whole structure. Empty when
+    #: the source has no chain labelling.
+    chain: str = ""
 
 
-def receptor_atoms_from_structure(structure_text: str, source_format: str) -> list[ReceptorAtom]:
+def receptor_atoms_from_structure(
+    structure_text: str,
+    source_format: str,
+    prep_options: dict[str, Any] | None = None,
+) -> list[ReceptorAtom]:
     """Plain (position, element, residue) data for the receptor, via Open
     Babel -- already this codebase's receptor parser
     (chem/docking_providers.py), format-agnostic across PDB/mmCIF, unlike
     RDKit's own `MolFromPDBBlock` (PDB only -- the installed RDKit version
     has no mmCIF block reader, confirmed directly). Parse once per docking
     job and reuse across every pose, not once per pose.
+
+    **`prep_options` must be the same options the docking used**, because
+    otherwise the analysis describes a different receptor than the one the
+    pose was produced against. Found live, docking naloxone into 4DKL with
+    waters and cofactors stripped: the pose came back with 195 clashes and
+    hydrogen bonds to `BF0601` and `HOH718` -- the co-crystallised
+    morphinan and two waters, all three deleted before Vina ever ran. The
+    numbers were not noise; they were confidently describing contacts with
+    atoms that were not there. Defaults to no stripping so an unprepared
+    receptor still parses whole.
     """
     from openbabel import pybel
+
+    options = prep_options or {}
+    strip_waters = bool(options.get("strip_waters", False))
+    strip_cofactors = bool(options.get("strip_cofactors", False))
+
+    # Unconditional, unlike the strips: receptor preparation ALWAYS drops
+    # alternate locations, so matching it needs no option. PDB only --
+    # mmCIF has no fixed columns to slice, which is a real gap rather than
+    # an oversight (see the note in `binding_site._single_copy`).
+    if source_format == "pdb":
+        structure_text = filter_pdb_altlocs(structure_text)
 
     table = Chem.GetPeriodicTable()
     mol = pybel.readstring(source_format, structure_text)
@@ -77,10 +166,15 @@ def receptor_atoms_from_structure(structure_text: str, source_format: str) -> li
         if atom.atomicnum == 0:
             continue
         residue = atom.residue
+        if residue is not None and is_stripped_residue(
+            residue.name or "", strip_waters, strip_cofactors
+        ):
+            continue
         # Open Babel keeps the PDB atom name on the residue, not the atom
         # -- confirmed live: `residue.OBResidue.GetAtomID(atom.OBAtom)`
         # returns " CD1" (padded, hence the strip).
         atom_name = ""
+        chain = ""
         if residue is not None:
             ob_residue = getattr(residue, "OBResidue", None)
             if ob_residue is not None:
@@ -88,6 +182,11 @@ def receptor_atoms_from_structure(structure_text: str, source_format: str) -> li
                     atom_name = ob_residue.GetAtomID(atom.OBAtom).strip()
                 except Exception:  # noqa: BLE001 - a nameless atom is still a usable atom
                     atom_name = ""
+                try:
+                    # Confirmed live: returns a plain str ("A", "B", ...).
+                    chain = str(ob_residue.GetChain()).strip()
+                except Exception:  # noqa: BLE001 - chainless sources are valid
+                    chain = ""
         atoms.append(
             ReceptorAtom(
                 element=table.GetElementSymbol(atom.atomicnum).upper(),
@@ -95,6 +194,7 @@ def receptor_atoms_from_structure(structure_text: str, source_format: str) -> li
                 residue_name=residue.name.strip() if residue else "",
                 residue_number=_residue_number(residue),
                 atom_name=atom_name,
+                chain=chain,
             )
         )
     return atoms

@@ -7,6 +7,7 @@ from typing import Any, Callable
 
 from rdkit import Chem
 
+from openchem.chem.pose_analysis import filter_pdb_altlocs, is_stripped_residue
 from openchem.chem.vina_engine import VinaEngine, parse_vina_output_pdbqt, select_vina_engine
 from openchem.domain.docking import DockingBox, DockingPoseModel
 from openchem.plugins.interfaces import DockingProvider
@@ -16,41 +17,6 @@ logger = logging.getLogger("openchem.chemistry")
 
 DEFAULT_EXHAUSTIVENESS = 8
 DEFAULT_RECEPTOR_PH = 7.4
-
-# PDB/mmCIF water residue names Open Babel's own reader passes through
-# unchanged from the source file -- not exhaustive of every convention in
-# the wild, but covers the common ones.
-_WATER_RESIDUE_NAMES = {"HOH", "WAT", "H2O", "DOD", "TIP", "TIP3", "TIP4"}
-
-# Standard amino acids plus common alternate-protonation-state names some
-# tools/force fields emit (histidine tautomers, cysteine states, etc.) --
-# anything else non-water is treated as a "cofactor" candidate for
-# strip_cofactors. Deliberately protein-only (no nucleotide residues): a
-# docking receptor prepared through this pipeline is a protein target.
-_STANDARD_RECEPTOR_RESIDUES = {
-    "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE",
-    "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL",
-    "HID", "HIE", "HIP", "HSD", "HSE", "HSP", "CYX", "CYM", "ASH", "GLH", "LYN",
-}
-
-
-def _filter_pdb_altlocs(pdb_text: str) -> str:
-    """Drops ATOM/HETATM lines for any alternate location except the first
-    (blank or 'A') -- confirmed live that Open Babel's PDB reader does NOT
-    dedupe altlocs itself (a two-altloc atom comes back as two full atoms
-    at two different positions, one occupancy-weighted position, not one).
-    Column 17 (0-indexed 16) is the PDB format's fixed-width altLoc field;
-    non-ATOM/HETATM lines and lines too short to have that column pass
-    through unchanged.
-    """
-    kept_lines = []
-    for line in pdb_text.splitlines(keepends=True):
-        if line.startswith(("ATOM", "HETATM")) and len(line) > 16:
-            altloc = line[16]
-            if altloc not in (" ", "A"):
-                continue
-        kept_lines.append(line)
-    return "".join(kept_lines)
 
 
 def _raise_if_cancelled(progress: ProgressHandle) -> None:
@@ -87,7 +53,7 @@ class VinaDockingProvider(DockingProvider):
     both through Open Babel (already a dependency) operating on the parsed
     `OBMol`, not raw text — format-agnostic across PDB/mmCIF. Alternate
     locations are handled separately, as a PDB-only fixed-width text
-    pre-filter (`_filter_pdb_altlocs`) *before* Open Babel ever reads the
+    pre-filter (`pose_analysis.filter_pdb_altlocs`) *before* Open Babel reads the
     structure: confirmed live that Open Babel's PDB reader does NOT dedupe
     altlocs on its own (a two-altloc atom comes back as two full atoms at
     two positions, not one) — mmCIF's tag/loop structure has no fixed
@@ -205,7 +171,7 @@ class VinaDockingProvider(DockingProvider):
     ) -> None:
         try:
             if source_format == "pdb":
-                structure_text = _filter_pdb_altlocs(structure_text)
+                structure_text = filter_pdb_altlocs(structure_text)
             mol = pybel.readstring(source_format, structure_text)
             self._strip_unwanted_residues(mol.OBMol, prep_options)
             # correctForPH=True + pH (default 7.4, physiological) replaces
@@ -241,11 +207,9 @@ class VinaDockingProvider(DockingProvider):
         atoms_to_delete = []
         for i in range(obmol.NumResidues()):
             residue = obmol.GetResidue(i)
-            name = residue.GetName().strip().upper()
-            is_water = name in _WATER_RESIDUE_NAMES
-            if strip_waters and is_water:
-                atoms_to_delete.extend(ob.OBResidueAtomIter(residue))
-            elif strip_cofactors and not is_water and name not in _STANDARD_RECEPTOR_RESIDUES:
+            # The same predicate `receptor_atoms_from_structure` uses, so
+            # what gets docked and what gets analysed cannot disagree.
+            if is_stripped_residue(residue.GetName(), strip_waters, strip_cofactors):
                 atoms_to_delete.extend(ob.OBResidueAtomIter(residue))
         for atom in atoms_to_delete:
             obmol.DeleteAtom(atom)

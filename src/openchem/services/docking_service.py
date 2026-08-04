@@ -145,10 +145,17 @@ class _DockingTask(QRunnable):
         docking result's critical path, so a parsing failure here (e.g. an
         unusual receptor structure) logs and leaves `metadata` empty
         rather than failing the whole docking job that already succeeded.
+
+        The SAME prep options the docking used are passed on, so the
+        analysis sees the receptor Vina saw. Without that it parsed the
+        raw file and reported contacts with stripped waters and
+        co-crystallised ligands -- see `receptor_atoms_from_structure`.
         """
         try:
             receptor_atoms = receptor_atoms_from_structure(
-                self._receptor_structure_text, self._receptor_source_format
+                self._receptor_structure_text,
+                self._receptor_source_format,
+                self._receptor_prep_options,
             )
             for pose in poses:
                 pose.metadata.update(analyze_pose(pose.pose_molblock, receptor_atoms))

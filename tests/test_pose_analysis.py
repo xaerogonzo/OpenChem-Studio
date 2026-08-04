@@ -243,3 +243,86 @@ def test_the_cutoffs_have_one_owner_across_both_analysers():
     for name in ("SALT_BRIDGE_CUTOFF", "PI_STACKING_CUTOFF", "CATION_PI_CUTOFF",
                  "HYDROPHOBIC_CUTOFF"):
         assert getattr(pose_analysis, name) is getattr(interaction_analysis, name)
+
+
+# --- The receptor the analysis sees must be the receptor that was docked ---
+
+# Column-exact PDB. A protein residue, a water, and a co-crystallised
+# ligand -- the three cases receptor preparation treats differently.
+# Modelled on 4DKL, where this bug was found: docking naloxone into the
+# mu-opioid receptor with stripping on reported 195 clashes and hydrogen
+# bonds to BF0601 and HOH718, none of which Vina had been given.
+MIXED_RECEPTOR_PDB = """HEADER    TEST
+ATOM      1  N   ASP A 147      11.104  13.207   2.845  1.00 20.00           N
+ATOM      2  OD1 ASP A 147      11.999  12.040   2.945  1.00 20.00           O
+HETATM    3  O   HOH A 718      13.398  12.442   2.508  1.00 20.00           O
+HETATM    4  C1  BF0 A 601      13.598  13.601   2.128  1.00 20.00           C
+HETATM    5  ZN   ZN A 900      14.100  14.100   2.100  1.00 20.00          ZN
+END
+"""
+
+
+def _residues(atoms):
+    return {atom.residue_name for atom in atoms}
+
+
+def test_without_prep_options_the_whole_structure_is_parsed():
+    """The default must not silently strip anything -- a receptor handed
+    over unprepared is analysed as it stands."""
+    atoms = receptor_atoms_from_structure(MIXED_RECEPTOR_PDB, "pdb")
+
+    assert _residues(atoms) == {"ASP", "HOH", "BF0", "ZN"}
+
+
+def test_stripped_waters_and_cofactors_are_absent_from_the_analysis():
+    atoms = receptor_atoms_from_structure(
+        MIXED_RECEPTOR_PDB, "pdb", {"strip_waters": True, "strip_cofactors": True}
+    )
+
+    assert _residues(atoms) == {"ASP"}, "only standard protein residues survive both strips"
+
+
+def test_stripping_waters_alone_keeps_the_cofactor():
+    """The two options are independent -- a metal or co-crystal ligand a
+    user deliberately kept must still be there to interact with."""
+    atoms = receptor_atoms_from_structure(
+        MIXED_RECEPTOR_PDB, "pdb", {"strip_waters": True, "strip_cofactors": False}
+    )
+
+    assert _residues(atoms) == {"ASP", "BF0", "ZN"}
+
+
+def test_an_interaction_is_not_reported_against_a_stripped_ligand():
+    """The actual defect, end to end. A pose sitting on top of the
+    co-crystallised ligand's position must report nothing there once that
+    ligand has been stripped -- previously it reported a clash and an
+    H-bond against an atom the docking never saw."""
+    molblock = _make_ligand_molblock([("N", (13.598, 13.601, 2.128))])
+    options = {"strip_waters": True, "strip_cofactors": True}
+
+    unprepared = analyze_pose(
+        molblock, receptor_atoms_from_structure(MIXED_RECEPTOR_PDB, "pdb")
+    )
+    prepared = analyze_pose(
+        molblock, receptor_atoms_from_structure(MIXED_RECEPTOR_PDB, "pdb", options)
+    )
+
+    assert any(c["receptor_residue"] == "BF0601" for c in unprepared["clashes"])
+    assert not any(c["receptor_residue"] == "BF0601" for c in prepared["clashes"])
+    assert not any(h["receptor_residue"] == "HOH718" for h in prepared["hbonds"])
+
+
+def test_both_strippers_agree_on_what_counts_as_removable():
+    """`docking_providers` deletes residues before docking and
+    `pose_analysis` skips them before analysis. They must reach the same
+    verdict, so they share the predicate rather than each holding a copy
+    of the residue tables."""
+    from openchem.chem import docking_providers, pose_analysis
+
+    assert docking_providers.is_stripped_residue is pose_analysis.is_stripped_residue
+    assert pose_analysis.is_stripped_residue("HOH", True, False) is True
+    assert pose_analysis.is_stripped_residue("HOH", False, True) is False, (
+        "a water is a water, not a cofactor -- strip_cofactors must not take it"
+    )
+    assert pose_analysis.is_stripped_residue("ASP", True, True) is False
+    assert pose_analysis.is_stripped_residue("BF0", False, True) is True
