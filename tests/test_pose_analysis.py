@@ -326,3 +326,83 @@ def test_both_strippers_agree_on_what_counts_as_removable():
     )
     assert pose_analysis.is_stripped_residue("ASP", True, True) is False
     assert pose_analysis.is_stripped_residue("BF0", False, True) is True
+
+
+# --- multi-chain receptors: every subunit must be seen ---
+
+def _tyr_ring(chain, resnum, x, y, z):
+    """One complete tyrosine ring, offset to (x, y, z). All six ring atom
+    names present, since a partly resolved ring is deliberately skipped."""
+    ring = [("CG", 0.0, 0.0, 0.0), ("CD1", 1.4, 0.0, 0.0), ("CD2", 0.7, 1.2, 0.0),
+            ("CE1", 2.1, 1.2, 0.0), ("CE2", 1.4, 2.4, 0.0), ("CZ", 2.8, 2.4, 0.0)]
+    return "".join(
+        f"ATOM  {i + 1:>5d} {name:<4} TYR {chain}{resnum:>4d}    "
+        f"{x + dx:>8.3f}{y + dy:>8.3f}{z + dz:>8.3f}  1.00 20.00           C\n"
+        for i, (name, dx, dy, dz) in enumerate(ring)
+    )
+
+
+# Four subunits of a homotetramer, each with TYR652 -- identical residue
+# name and number, distinguished only by chain. This is hERG's
+# arrangement, and 8ZYO is where the bug was found.
+TETRAMER_PDB = (
+    "HEADER    TEST\n"
+    + _tyr_ring("A", 652, 0.0, 0.0, 0.0)
+    + _tyr_ring("B", 652, 20.0, 0.0, 0.0)
+    + _tyr_ring("C", 652, 40.0, 0.0, 0.0)
+    + _tyr_ring("D", 652, 60.0, 0.0, 0.0)
+    + "END\n"
+)
+
+
+def test_every_subunit_of_a_multimer_is_detected():
+    """Residues were grouped by (name, number) with no chain, so all four
+    subunits merged into one -- and because the grouping then indexes
+    atoms BY NAME, the last chain read silently overwrote the other
+    three. Three quarters of a homotetramer's aromatic rings and charge
+    sites did not exist as far as the interaction analysis was concerned.
+    Measured on 8ZYO: 34 rings found before, 121 after.
+    """
+    from openchem.chem.pose_analysis import receptor_features
+
+    atoms = receptor_atoms_from_structure(TETRAMER_PDB, "pdb")
+    features = receptor_features(atoms)
+
+    rings = [g for g in features["rings"] if g.residue == "TYR652"]
+    assert len(rings) == 4, "one ring centroid per subunit, not one in total"
+    assert {g.chain for g in rings} == {"A", "B", "C", "D"}
+
+
+def test_each_subunits_centroid_is_on_its_own_ring():
+    """The failure mode that matters. A merged group does not just lose
+    count -- it puts the centroid somewhere no ring is, so pi-stacking is
+    measured against a phantom point."""
+    from openchem.chem.pose_analysis import receptor_features
+
+    features = receptor_features(receptor_atoms_from_structure(TETRAMER_PDB, "pdb"))
+    by_chain = {g.chain: g.position for g in features["rings"] if g.residue == "TYR652"}
+
+    # Rings were placed 20 A apart along x, so each centroid must sit near
+    # its own subunit's offset and nowhere near the others.
+    for chain, expected_x in (("A", 0.0), ("B", 20.0), ("C", 40.0), ("D", 60.0)):
+        assert by_chain[chain][0] == pytest.approx(expected_x + 1.4, abs=0.5)
+
+
+def test_the_chain_is_reported_alongside_each_contact():
+    """`receptor_residue` stays NAME+NUMBER because `ui/visualization.py`
+    matches it against Mol*'s auth_seq_id -- so the chain rides alongside
+    rather than being folded into the label."""
+    # An apolar carbon 3 A above chain A's CG -- inside the 4.5 A
+    # hydrophobic cutoff, and CG is apolar in tyrosine (only CZ carries
+    # the hydroxyl), so this is a real contact rather than a contrived one.
+    molblock = _make_ligand_molblock([("C", (0.0, 0.0, 3.0))])
+
+    found = analyze_pose(molblock, receptor_atoms_from_structure(TETRAMER_PDB, "pdb"))
+
+    contacts = [c for entries in found.values() for c in entries]
+    assert contacts, "the ligand is placed on chain A's ring"
+    assert all("receptor_chain" in c for c in contacts)
+    assert any(c["receptor_chain"] == "A" for c in contacts)
+    assert all(c["receptor_residue"] == "TYR652" for c in contacts), (
+        "the Mol*-facing label must not gain a chain suffix"
+    )

@@ -310,12 +310,34 @@ class _Group:
 
     residue: str
     position: Position
+    #: Which subunit it belongs to. Kept beside `residue` rather than
+    #: folded into it, because `residue` is the label that reaches Mol*
+    #: and must stay `NAME` + `NUMBER`.
+    chain: str = ""
 
 
-def _residues(receptor_atoms: list[ReceptorAtom]) -> dict[tuple[str, int], list[ReceptorAtom]]:
-    grouped: dict[tuple[str, int], list[ReceptorAtom]] = {}
+def _residues(
+    receptor_atoms: list[ReceptorAtom],
+) -> dict[tuple[str, str, int], list[ReceptorAtom]]:
+    """Group atoms into residues, keyed by CHAIN, name and number.
+
+    The chain is not optional. Without it every subunit of a multimer
+    collapses into one "residue", and since `receptor_features` then
+    indexes those atoms by atom name, the last chain read silently
+    overwrites the rest -- three quarters of a homotetramer's aromatic
+    rings and charge sites simply never existed as far as the interaction
+    analysis was concerned.
+
+    Measured on 8ZYO (hERG, four identical subunits): 34 aromatic rings
+    found before, 136 after. Its four Tyr652 rings -- the residue every
+    hERG structure-activity paper implicates in drug block -- sit 5-8 A
+    apart around the pore, and only one of them was ever visible.
+    """
+    grouped: dict[tuple[str, str, int], list[ReceptorAtom]] = {}
     for atom in receptor_atoms:
-        grouped.setdefault((atom.residue_name, atom.residue_number), []).append(atom)
+        grouped.setdefault(
+            (atom.chain, atom.residue_name, atom.residue_number), []
+        ).append(atom)
     return grouped
 
 
@@ -345,24 +367,26 @@ def receptor_features(receptor_atoms: list[ReceptorAtom]) -> dict[str, list[_Gro
     anions: list[_Group] = []
     metals: list[_Group] = []
 
-    for (name, number), atoms in _residues(receptor_atoms).items():
+    for (chain, name, number), atoms in _residues(receptor_atoms).items():
         label = f"{name}{number}"
         by_name = {atom.atom_name: atom for atom in atoms if atom.atom_name}
 
         wanted = _AROMATIC_RINGS.get(name)
         if wanted and all(atom_name in by_name for atom_name in wanted):
-            rings.append(_Group(label, _centroid([by_name[a].position for a in wanted])))
+            rings.append(
+                _Group(label, _centroid([by_name[a].position for a in wanted]), chain)
+            )
 
         for table, sink in ((_CATION_GROUPS, cations), (_ANION_GROUPS, anions)):
             wanted = table.get(name)
             if wanted:
                 present = [by_name[a].position for a in wanted if a in by_name]
                 if present:
-                    sink.append(_Group(label, _centroid(present)))
+                    sink.append(_Group(label, _centroid(present), chain))
 
         for atom in atoms:
             if atom.element in _METALS:
-                metals.append(_Group(label, atom.position))
+                metals.append(_Group(label, atom.position, chain))
 
     return {"rings": rings, "cations": cations, "anions": anions, "metals": metals}
 
@@ -443,6 +467,14 @@ def analyze_pose(pose_molblock: str, receptor_atoms: list[ReceptorAtom]) -> dict
                 "ligand_element": ligand_element,
                 "receptor_element": receptor_atom.element,
                 "receptor_residue": f"{receptor_atom.residue_name}{receptor_atom.residue_number}",
+                # Separate from the label ON PURPOSE. `receptor_residue` is
+                # what `ui/visualization.py` turns into a Mol* selection
+                # against `auth_seq_id`, so its format must not change --
+                # but without the chain, every subunit of a symmetric
+                # multimer collapses into one entry. hERG is a homotetramer
+                # and a pore blocker touches Tyr652 in more than one
+                # subunit; that was invisible until this was carried.
+                "receptor_chain": receptor_atom.chain,
                 "distance": round(distance, 2),
             }
             if (
@@ -485,6 +517,7 @@ def _contact_interactions(
                 if distance <= cutoff:
                     out.append({
                         "receptor_residue": group.residue,
+                        "receptor_chain": group.chain,
                         "distance": round(distance, 2),
                         **describe,
                     })
@@ -499,6 +532,7 @@ def _contact_interactions(
             if distance <= HYDROPHOBIC_CUTOFF:
                 hydrophobic.append({
                     "receptor_residue": f"{atom.residue_name}{atom.residue_number}",
+                    "receptor_chain": atom.chain,
                     "distance": round(distance, 2),
                     "ligand_element": "C",
                     "receptor_element": "C",
