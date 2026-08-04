@@ -109,11 +109,32 @@ painter. Four such tests existed and were green without ever running the
 code they named -- including one called `test_highlighting_survives_a_repaint`,
 in which no repaint occurred.
 
-**Use `widget.grab()`**, as `tests/test_ph_curve_widget.py` already did.
-Where it matters, go further and assert something was actually drawn:
-`test_nmr_spectrum_widget.py` renders into a `QImage` and checks a pixel
-is non-transparent, because a `paintEvent` that returns early would
-otherwise pass just as quietly.
+**Use `conftest.painted()` / `conftest.ink()`**, which render into a
+`QImage` and force the paint.
+
+ASSERTING THAT SOMETHING WAS DRAWN IS HARDER THAN IT LOOKS, and two
+plausible checks were tried and killed by mutation testing -- blanking a
+widget's peak-drawing loop and seeing which tests noticed:
+
+1. *"Some pixel is non-transparent."* Useless. Every one of these widgets
+   fills an opaque background before its first mark, so alpha is set
+   across all 30,000 sampled pixels even for an EMPTY spectrum.
+2. *"More ink than the same widget with no data."* Still passes a blanked
+   painter. Different data changes the axis range, so the tick labels
+   alone move the count.
+
+What works: **hold the axes fixed and vary only the content** -- two
+spectra sharing their extreme shifts, differing by one peak in the
+middle. Identical ticks and labels, so the ink difference can only be the
+peak. That took the number of tests catching a blanked painter from 1
+to 6.
+
+`ink()` counts pixels differing from the modal (background) colour, not
+transparent ones, for reason 1 above.
+
+Tests that assert on child-widget structure rather than drawing -- e.g.
+`test_structure_grid_widget.py` counting cells in a layout -- are not
+affected and do not need any of this.
 
 Tests that assert on child-widget structure rather than drawing -- e.g.
 `test_structure_grid_widget.py` counting cells in a layout -- are not

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from conftest import ink
+
 from openchem.ui.widgets.nmr_correlation_plot_widget import NmrCorrelationPlotWidget, Peak
 
 
@@ -15,23 +17,34 @@ def _paint(widget) -> None:
     widget.grab()
 
 
-def test_empty_widget_renders_without_crashing(qapp):
-    widget = NmrCorrelationPlotWidget()
-    widget.resize(300, 300)
-    _paint(widget)  # would raise if paintEvent crashed
+def test_empty_widget_draws_its_frame_and_nothing_else(qapp):
+    """Even with no peaks the painter must run and draw the chrome --
+    which is also the baseline every content test below measures against."""
+    assert ink(NmrCorrelationPlotWidget()) > 0
 
 
-def test_single_peak_renders_without_crashing(qapp):
-    widget = NmrCorrelationPlotWidget([Peak(x=5.0, y=5.0)])
-    widget.resize(300, 300)
-    _paint(widget)
+def test_an_extra_peak_puts_more_ink_on_the_canvas(qapp):
+    """Both plots share their extreme peaks, so the axes, ticks and labels
+    are identical and the ONLY difference is the peak in the middle.
+
+    Comparing against an empty plot instead would not prove this:
+    different data changes the axis range, so the tick labels alone move
+    the ink count. Verified by mutation -- blanking the peak-drawing loop
+    leaves this failing and the empty-plot comparison passing."""
+    two = [Peak(x=1.0, y=1.0), Peak(x=9.0, y=9.0)]
+    three = [Peak(x=1.0, y=1.0), Peak(x=5.0, y=5.0), Peak(x=9.0, y=9.0)]
+
+    assert ink(NmrCorrelationPlotWidget(three)) > ink(NmrCorrelationPlotWidget(two))
 
 
-def test_many_peaks_render_without_crashing(qapp):
+def test_a_crowded_plot_with_labels_renders(qapp):
+    """Twenty labelled peaks exercise the label path and the density grid
+    at a size the other tests do not reach. A smoke test on purpose --
+    the ink comparison that would prove content here is the one above,
+    which holds the axes fixed."""
     peaks = [Peak(x=float(i), y=float(i) * 2, label=f"p{i}") for i in range(20)]
-    widget = NmrCorrelationPlotWidget(peaks, x_label="1H (ppm)", y_label="13C (ppm)")
-    widget.resize(400, 400)
-    _paint(widget)
+
+    assert ink(NmrCorrelationPlotWidget(peaks, x_label="1H", y_label="13C")) > 0
 
 
 def test_set_peaks_replaces_data(qapp):
@@ -68,13 +81,19 @@ def test_contours_are_on_by_default_and_can_be_turned_off(qapp):
     """Contours are the default because that is how a 2D spectrum is read;
     the dot view stays reachable because it is genuinely clearer when the
     peaks are few and far apart."""
-    widget = NmrCorrelationPlotWidget([Peak(x=1.0, y=1.0)])
-    assert widget._show_contours is True
+    peaks = [Peak(x=1.0, y=1.0), Peak(x=2.0, y=2.5)]
+    assert NmrCorrelationPlotWidget(peaks)._show_contours is True
 
+    # Rings put down more ink than two dots, which is the visible
+    # difference between the modes rather than just a flag being flipped.
+    contoured = ink(NmrCorrelationPlotWidget(peaks))
+    dots = ink(NmrCorrelationPlotWidget(peaks, show_contours=False))
+    assert contoured > dots
+
+    widget = NmrCorrelationPlotWidget(peaks)
     widget.set_show_contours(False)
-    widget.resize(300, 300)
-    _paint(widget)  # the scatter path must still render
     assert widget._show_contours is False
+    assert ink(widget) == dots, "the setter must match construction"
 
 
 def test_the_density_grid_is_cached_until_the_peaks_change(qapp):

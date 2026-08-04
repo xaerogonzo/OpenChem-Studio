@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from conftest import ink
 
 from openchem.domain.common import CacheState
 from openchem.domain.scientific_result import PhCurveResult
@@ -32,14 +33,12 @@ def test_empty_result_does_not_crash_on_paint(qapp):
     or pkasolver not configured) -- that must render as 'No data', not
     raise inside paintEvent where the traceback would be swallowed by Qt."""
     widget = PhCurveWidget(PhCurveResult(curve_id="x", name="X", method="m", molecule_uuid="mol-1"))
-    widget.resize(400, 300)
-    widget.grab()  # forces a real paintEvent
+
+    assert ink(widget) > 0  # the "No data" chrome still has to be drawn
 
 
 def test_no_result_at_all_does_not_crash_on_paint(qapp):
-    widget = PhCurveWidget()
-    widget.resize(400, 300)
-    widget.grab()
+    assert ink(PhCurveWidget()) > 0
 
 
 def test_paints_a_real_multi_series_curve(qapp):
@@ -51,8 +50,9 @@ def test_paints_a_real_multi_series_curve(qapp):
             }
         )
     )
-    widget.resize(500, 360)
-    widget.grab()
+
+    # More than the axes alone: the curves genuinely reached the canvas.
+    assert ink(widget) > ink(PhCurveWidget())
 
 
 def test_more_series_than_palette_colors_still_paints(qapp):
@@ -61,8 +61,8 @@ def test_more_series_than_palette_colors_still_paints(qapp):
     widget = PhCurveWidget(
         _curve(series={f"species{i}": [float(i)] * 8 for i in range(12)})
     )
-    widget.resize(500, 360)
-    widget.grab()
+
+    assert ink(widget) > ink(PhCurveWidget())
 
 
 def test_readout_returns_every_series_at_the_nearest_sampled_ph(qapp):
@@ -82,9 +82,8 @@ def test_a_series_shorter_than_ph_values_draws_what_it_has(qapp):
     """A microspecies curve can stop partway through the pH range. zip()
     truncates rather than raising, so the partial curve still renders."""
     widget = PhCurveWidget(_curve(series={"partial": [1.0, 2.0, 3.0]}))
-    widget.resize(400, 300)
-    widget.grab()
 
+    assert ink(widget) > ink(PhCurveWidget()), "the partial curve must still be drawn"
     assert widget.readout_at(0.0) == {"partial": 1.0}
     # Index 7 is past the end of the series -- omitted, not zero-filled,
     # since a fabricated zero would read as a real measured value.
@@ -95,8 +94,8 @@ def test_flat_series_does_not_collapse_the_plot(qapp):
     """A constant curve (a molecule with no ionizable group) would give a
     zero-height value range and divide by zero without the padding."""
     widget = PhCurveWidget(_curve(series={"logD": [2.5] * 8}))
-    widget.resize(400, 300)
-    widget.grab()
+
+    assert ink(widget) > ink(PhCurveWidget()), "a flat line is still a line"
 
 
 def test_hover_emits_the_nearest_sampled_ph(qapp):

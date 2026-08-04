@@ -227,3 +227,47 @@ def synthetic_nmr_spectrum(mol, molecule_uuid: str = "mol-1"):
     )
 
 
+
+
+def painted(widget, width: int = 400, height: int = 300):
+    """Render `widget` and return the QImage, forcing a real paintEvent.
+
+    `repaint()` and `update()` are BOTH no-ops on a widget that was never
+    shown -- measured at zero paintEvent calls each. Rendering into an
+    image is what actually runs the painter. See CLAUDE.md.
+    """
+    from PySide6.QtGui import QImage
+
+    widget.resize(width, height)
+    image = QImage(width, height, QImage.Format.Format_ARGB32)
+    image.fill(0)
+    widget.render(image)
+    return image
+
+
+def ink(widget, width: int = 400, height: int = 300) -> int:
+    """How many sampled pixels differ from the background colour.
+
+    "Was anything drawn" cannot be answered by checking for a
+    non-transparent pixel: every one of these widgets fills an opaque
+    background first, so alpha is set everywhere before a single mark is
+    made, and such an assertion passes against a paintEvent that draws
+    nothing at all. Measured -- an EMPTY spectrum widget covers all 30,000
+    sampled pixels with alpha.
+
+    Counting pixels that differ from the most common colour measures marks
+    instead. Compare it against the same widget WITHOUT data rather than
+    against a fixed number: axes, frames and labels already account for
+    200-600 marks before any content exists, and that floor moves whenever
+    the chrome changes.
+    """
+    from collections import Counter
+
+    image = painted(widget, width, height)
+    pixels = [
+        image.pixelColor(x, y).rgba()
+        for x in range(0, width, 2)
+        for y in range(0, height, 2)
+    ]
+    background, _ = Counter(pixels).most_common(1)[0]
+    return sum(1 for pixel in pixels if pixel != background)
