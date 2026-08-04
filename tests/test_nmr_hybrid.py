@@ -129,10 +129,11 @@ def test_the_merge_summary_counts_each_source():
     assert merged.provenance.parameters["expected_average_error"] == pytest.approx(1.31)
 
 
-def test_a_calculation_on_a_different_scale_is_refused_not_spliced():
-    """The failure this gate exists for. A systematic offset means the
-    two sets of numbers are not the same quantity, and merging them
-    produces a step a chemist would read as real."""
+def test_a_calculation_on_a_different_scale_is_reported_not_refused():
+    """This USED to refuse the merge. DELTA50 says refusing costs accuracy
+    and buys nothing -- selection already declines a bad calculation atom
+    by atom, so a spectrum-wide veto only removes atoms the selection
+    would have got right. The check still runs and still says so."""
     trusted = {0: 128.0, 1: 20.0, 2: 60.0, 3: 100.0}
     computed = {index: value + 9.0 for index, value in trusted.items()}
     check = check_calibration(trusted, computed, "C")
@@ -142,10 +143,17 @@ def test_a_calculation_on_a_different_scale_is_refused_not_spliced():
     assert check.mean_offset == pytest.approx(9.0)
     assert check.max_deviation == pytest.approx(9.0)
 
-    merged = fuse({}, {}, "m", calibration=check)
-    assert merged.cache_state is CacheState.FAILED
-    assert "+9.00 ppm" in merged.error
-    assert merged.values == {}
+    # The disagreement is surfaced...
+    merged = fuse(
+        {0: [Candidate(value=128.0, method="trusted lookup", expected_error=1.12)]},
+        {0: "C"}, "m", calibration=check,
+    )
+    calibration = merged.provenance.parameters["calibration"]
+    assert not calibration["passed"]
+    assert "+9.00 ppm" in calibration["warning"]
+    # ...but the merge still happened.
+    assert merged.cache_state is CacheState.COMPLETED
+    assert merged.values == {0: 128.0}
 
 
 def test_a_well_calibrated_calculation_passes_and_reports_its_worst_atom():
@@ -274,11 +282,11 @@ def test_caffeine_the_real_measured_case():
     assert mae(merged.values) < mae(orca)  # 1.47
 
 
-def test_the_measured_aspirin_case_is_refused():
-    """The other half of the real run: on the same install, aspirin's
-    calculation sat +4.10 ppm from trusted values, and scaled ORCA really
-    was worse there than the lookup (3.75 vs 1.58 ppm MAE). The gate has
-    to catch that, or the hybrid degrades spectra it should leave alone.
+def test_the_measured_aspirin_case_still_flags_its_disagreement():
+    """Aspirin's calculation sat +4.10 ppm from trusted values on a real
+    run. The check must still detect that -- it is real information --
+    even though the merge now proceeds. Costs nothing there in practice:
+    every aspirin carbon is `good`, so the lookup wins them all anyway.
     """
     trusted = {
         0: 20.76, 1: 169.68, 4: 150.99, 5: 122.36, 6: 130.58,
@@ -294,19 +302,18 @@ def test_the_measured_aspirin_case_is_refused():
     assert not check.passed
     assert check.compared == 9
     assert check.mean_offset == pytest.approx(4.10, abs=0.01)
-    assert fuse({}, {}, "aspirin", "C", check).cache_state is CacheState.FAILED
 
 
-def test_quinine_the_case_where_the_gate_costs_a_real_gain():
+def test_quinine_merges_despite_a_failing_calibration_check():
     """Real ORCA 6.1.1 at B3LYP/def2-SVP against Moreland's assigned CDCl3
-    table. Recorded as a fixture so the finding cannot quietly regress:
-    the gate refuses this merge, and the merge would have been much
-    better than the lookup.
+    table -- the case that started the argument, kept as a fixture so it
+    cannot quietly regress.
 
-    Kept as a FAILING-gate test rather than being 'fixed' by loosening
-    the threshold, because the miscalibration is structural (the offset
-    is measured on atoms the lookup then wins) and two data points are
-    not enough to justify a redesign. See the module docstring.
+    The calibration check still FAILS here (+3.00 ppm against a 2.62 ppm
+    limit) and is still reported. What changed is that the merge now
+    proceeds anyway, and this is the evidence for why: it takes the
+    spectrum from 7.96 ppm MAE to 3.44, and the twelve `rough` carbons
+    from 12.50 to 4.09.
     """
     lit = {
         0: 55.44, 2: 157.44, 3: 118.30, 4: 130.89, 5: 143.67, 7: 147.01, 8: 121.09,
@@ -331,23 +338,27 @@ def test_quinine_the_case_where_the_gate_costs_a_real_gain():
     lookup = _lookup(looked_up, qualities)
     check = check_calibration(trusted_values(lookup), orca, "C", residual_rms)
 
-    # The refusal itself, and how narrow it is.
+    # The check still fails, and how narrowly.
     assert not check.passed
     assert check.compared == len(good)
     assert check.mean_offset == pytest.approx(3.00, abs=0.02)
     # Scatter, not a systematic shift -- the RMS is far larger than the mean.
     assert check.rms > 1.7 * abs(check.mean_offset)
-    assert fuse({}, {}, "quinine", "C", check).cache_state is CacheState.FAILED
 
     lookups = lookup_candidates(lookup)
     computed = computed_candidates(orca, _Factors(residual_rms))
-    would_be = fuse(
+    # Passing the FAILING check: the merge must go ahead regardless.
+    merged = fuse(
         {i: [lookups[i], computed[i]] for i in lit},
         dict.fromkeys(lit, "C"),
         "quinine",
         "C",
-        None,
+        check,
     )
+    assert merged.cache_state is CacheState.COMPLETED
+    assert not merged.provenance.parameters["calibration"]["passed"]
+    assert merged.provenance.parameters["calibration"]["warning"]
+    would_be = merged
 
     def mae(values, keys):
         return sum(abs(values[i] - lit[i]) for i in keys) / len(keys)

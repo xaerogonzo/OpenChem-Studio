@@ -66,57 +66,56 @@ it keeps the lookup's 0.1-0.7 ppm accuracy on covered atoms and replaces
 its one 29 ppm blunder with a 2.5 ppm answer. The calibration check
 passed here at an offset of -0.05 ppm over the 7 trusted atoms.
 
-THE GATE ALSO REFUSES, and that is not a defect. On the same install,
-aspirin's calculation sat +4.10 ppm from trusted values and ethanol's
-+4.66, both beyond what the two methods' errors can explain -- and
-scaled ORCA really was worse than the lookup there (aspirin 3.75 ppm MAE
-against 1.58). Merging would have degraded both spectra. Acetone (+1.07)
-and toluene (+0.69) passed and came out identical to the lookup, every
-carbon being `good`; no gain, no harm.
+THERE IS NO GATE ANY MORE, and removing it is the measured result of
+this work rather than a simplification. An earlier version refused the
+whole merge when the calculation sat too far from trusted database
+values. Scored on DELTA50 -- 131 assigned 13C shifts in CDCl3 over 46
+compounds (Molecules 2023, 28, 2449), independent of nmrshiftdb2, which
+IS this lookup's index -- that refusal was worse than doing nothing:
 
-So the honest summary is that this helps exactly where it was designed
-to and nowhere else: molecules with poorly-covered environments, on an
-install whose calibration agrees with measured values. That is a
-narrower claim than "the hybrid is better", and it is the one the data
-supports.
+    vs refusing (paired over molecules)   delta MAE   95% CI
+    report but merge anyway                  -0.131   [-0.308, -0.017]
 
-QUININE — WHERE THE GATE IS MEASURED TO BE WRONG. Scored against
-Moreland/Philip/Carroll's assigned CDCl3 table (J. Org. Chem. 1974, 39,
-2413, doi:10.1021/jo00930a020; the mapping onto atom indices lives in
-`benchmarks/nmr/literature_shifts.py`). 12 of quinine's 20 carbons are
-`rough`, and the lookup is badly wrong on them -- 12.50 ppm MAE, with
-single atoms off by 15-20.
+It refused 13 of 46 molecules to achieve that. The reason is structural,
+not a threshold that wanted loosening: selection already declines a bad
+calculation atom by atom, so a second, spectrum-wide veto can only remove
+atoms the selection would have got right. The check still runs and its
+numbers are still reported -- how far a calculation sits from trusted
+values is real information about the run -- it simply no longer decides
+anything.
 
-The gate REFUSED this merge: mean offset +3.00 ppm over the 7 trusted
-atoms, against a derived limit of 2.62. Scoring the merge it would have
-made shows the refusal cost a large real gain:
+QUININE is the case that exposed it, and is kept as a fixture in
+`tests/test_nmr_hybrid.py`. Scored against Moreland/Philip/Carroll's
+assigned CDCl3 table (J. Org. Chem. 1974, 39, 2413,
+doi:10.1021/jo00930a020), 12 of its 20 carbons are `rough` and the lookup
+is 12.50 ppm MAE on them. The old gate refused at +3.00 ppm against a
+2.62 limit, and merging anyway takes the spectrum from 7.96 to 3.44 ppm
+and those twelve carbons from 12.50 to 4.09.
 
-    MAE over all 20 carbons   lookup 7.96   ORCA 4.30   hybrid 3.44
-    MAE over the 12 `rough`   lookup 12.50  ORCA 4.09   hybrid 4.09
-    vs lookup alone: 11 improved, 7 unchanged, 2 worsened
+WHAT WAS TRIED AND REJECTED, recorded so it is not re-invented. All are
+in `benchmarks/nmr/hybrid_strategies.py` and can be re-scored without
+ORCA from the committed shieldings:
 
-WHY THE GATE MISFIRES HERE, and it is not a threshold that is slightly
-too tight. The offset is measured on `good` atoms -- which are exactly
-the atoms the lookup goes on to WIN. Quinine's largest computed
-deviations sit on C-2, C-8 and C-9 (+9.4, +8.1, +5.1), the carbons
-around the flexible carbinol/quinuclidine hinge, where one MMFF
-conformer is a poor model of a solution average. Those errors are
-discarded by the selection, then used to veto the merge on the twelve
-atoms where the calculation is four times better than the lookup.
+  * estimating the calculation's accuracy PER MOLECULE from the atoms the
+    lookup rates `good`, instead of trusting the install-wide calibration
+    residual. Not distinguishable from the simple rule (+0.017 ppm, CI
+    spanning zero) and notably worse at choosing (74.9% vs 80.2%): seven
+    atoms is too small a sample to pay for itself.
+  * the same, shrunk toward the install-wide figure. Identical.
+  * deferring to the lookup when the two methods disagree beyond what
+    their errors explain. This one was written after looking at a single
+    atom it fixed, in a 28-atom sample, and DELTA50 shows what that is
+    worth: the WORST hybrid at both levels of theory (1.65 ppm MAE
+    against 1.33, worst regret 14.21 against 6.39), and significantly
+    worse than refusing at wB97X-D3. Overfitting, caught by a held-out
+    split.
 
-A true scale error and this are distinguishable in principle -- a
-systematic shift has |mean| close to the RMS, while quinine's is 3.00
-against an RMS of 5.36, i.e. scatter in both directions. But that rule
-would be built on two data points, so it is NOT implemented here.
-
-Note also what the refusals have actually bought so far: every carbon in
-aspirin and ethanol is `good`, so the merge those refusals blocked would
-have returned the lookup unchanged. Across five molecules the gate has
-prevented no measured harm and cost one real improvement. It is left in
-place pending a decision, because the failure it guards against -- a
-calculation whose per-molecule error far exceeds its calibration
-residual, on a molecule that HAS rough atoms -- is real and simply has
-not been observed yet.
+A NOTE ON THE BAND CONSTANTS. `LOOKUP_EXPECTED_ERROR` was measured on
+held-out nmrshiftdb2, and it does not transfer exactly: on DELTA50 the
+observed errors are good 0.67, medium 4.06, rough 13.51 against the
+assumed 1.12/3.36/10.00. The ordering survives, and at the accuracy a
+real calculation achieves every selection still lands the same way -- but
+these are corpus-specific numbers, not constants of nature.
 """
 
 from __future__ import annotations
@@ -368,19 +367,12 @@ def fuse(
     from openchem.domain.common import CacheState, Provenance
     from openchem.domain.scientific_result import NMRSpectrumResult
 
-    if calibration is not None and not calibration.passed:
-        return NMRSpectrumResult(
-            spectrum_type="nmr_13c" if element == "C" else "nmr_1h",
-            name=f"{element} NMR (hybrid)",
-            units="ppm",
-            method="hybrid",
-            molecule_uuid=molecule_uuid,
-            values={},
-            elements={},
-            cache_state=CacheState.FAILED,
-            error=calibration.reason,
-            provenance=Provenance(created_by="core", method="hybrid"),
-        )
+    # A failing calibration check is REPORTED, not obeyed. It used to
+    # refuse the whole merge; DELTA50 says that costs accuracy and buys
+    # nothing (see the module docstring). Selection already declines a bad
+    # calculation atom by atom, so a second spectrum-wide veto can only
+    # remove atoms the selection would have got right.
+    warning = "" if calibration is None or calibration.passed else calibration.reason
 
     values: dict[int, float] = {}
     kept: dict[int, str] = {}
@@ -436,6 +428,10 @@ def fuse(
                         "rms": round(calibration.rms, 3),
                         "max_deviation": round(calibration.max_deviation, 3),
                         "passed": calibration.passed,
+                        # Carried so a caller can surface the disagreement
+                        # without re-deriving it. Advisory: the merge went
+                        # ahead regardless.
+                        "warning": warning,
                     }
                     if calibration
                     else None

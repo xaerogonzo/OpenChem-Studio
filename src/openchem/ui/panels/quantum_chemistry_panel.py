@@ -628,16 +628,32 @@ class QuantumChemistryPanel(QWidget):
 
     @staticmethod
     def _hybrid_summary(element: str, details: dict, check) -> str:
+        """The calibration check, reported either way.
+
+        A failing check no longer blocks the merge -- measured on DELTA50,
+        refusing cost accuracy and prevented no harm. It is still worth
+        showing: it says how far this calculation sits from values the
+        database is confident about, which is real information about the
+        run even when the merged spectrum is the better answer.
+        """
         if check is None:
             return (
                 f"{element}: no database values confident enough to check this "
                 "calculation against — the merge could not verify itself."
             )
-        return (
-            f"{element}: calibration check passed against {check.compared} trusted "
+        verdict = "passed" if check.passed else "DISAGREES"
+        note = (
+            f"{element}: calibration check {verdict} against {check.compared} trusted "
             f"values (offset {check.mean_offset:+.2f}, RMS {check.rms:.2f}, "
             f"max {check.max_deviation:.2f} ppm)"
         )
+        if not check.passed:
+            note += (
+                "\n   Merged anyway: each atom is still chosen by whichever method "
+                "expects to be less wrong, and refusing the whole spectrum was "
+                "measured to lose more than it saved."
+            )
+        return note
 
     def _populate_correlation_tab(
         self,
