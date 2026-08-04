@@ -195,13 +195,27 @@ def compute_stereo_descriptors(
             provenance=Provenance(created_by="core", method="rdkit_cip"),
         )
 
+    # Undefined centres are shown by DEFAULT and the option only hides
+    # them, never the reverse: a perceivable stereocentre carrying no
+    # assignment is the single most useful thing this calculator says, and
+    # a default that hid it would turn "I did not draw the wedge" into
+    # "there is nothing to draw".
+    show_undefined = (parameters or {}).get("show_undefined", True)
     lines = []
+    hidden = 0
     for index, kind, label in elements:
         where = f"atom {index}" if kind == "tetrahedral" else f"bond {index}"
         if label == "undefined":
+            if not show_undefined:
+                hidden += 1
+                continue
             lines.append(f"{where} ({kind}): undefined in this structure")
         else:
             lines.append(f"{where} ({kind}): {label}")
+    if hidden:
+        # Say they were hidden rather than let a filtered list read as
+        # a complete one.
+        lines.append(f"({hidden} undefined element(s) hidden by the current settings.)")
 
     undefined = sum(1 for _i, _k, label in elements if label == "undefined")
     lines.append(f"{len(elements)} stereo element(s), {undefined} undefined.")

@@ -29,6 +29,7 @@ from typing import Any
 from rdkit import Chem
 from rdkit.Chem import Crippen, Lipinski
 
+from openchem.chem.calculator_options import ph_grid_from
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.scientific_result import (
     AlertResult,
@@ -169,7 +170,7 @@ def compute_pka_distribution(
     if error:
         return _failed_curve("pka_microspecies", "Microspecies distribution", molecule_uuid, error)
 
-    grid = ph_grid()
+    grid = ph_grid_from(parameters)
     rows = [microspecies_fractions(ph, pkas) for ph in grid]
     charges = species_charges(n_acids, n_bases)
     series: dict[str, list[float]] = {}
@@ -206,7 +207,7 @@ def compute_isoelectric_point(
         return _failed_curve("isoelectric_point", "Isoelectric point", molecule_uuid, error)
 
     permanent = Chem.GetFormalCharge(mol)
-    grid = ph_grid()
+    grid = ph_grid_from(parameters)
     charges = [net_charge_at_ph(ph, pkas, n_acids, n_bases, permanent) for ph in grid]
     pi = isoelectric_point(pkas, n_acids, n_bases, permanent)
 
@@ -254,7 +255,7 @@ def compute_logd_curve(
     if error:
         return _failed_curve("logd_curve", "LogD vs pH", molecule_uuid, error)
 
-    grid = ph_grid()
+    grid = ph_grid_from(parameters)
     values = [logd_from_pkas(mol, ph, pkas) for ph in grid]
     if any(value is None for value in values):
         return _failed_curve(
@@ -295,7 +296,7 @@ def compute_hbond_vs_ph(
     # Coarser than the other curves: this one builds a real structure per
     # point rather than evaluating a closed form. Measured at ~2 ms per
     # call, so 29 points is still imperceptible.
-    grid = ph_grid(step=0.5)
+    grid = ph_grid_from(parameters, step=0.5)
     donors: list[float] = []
     acceptors: list[float] = []
     for ph in grid:

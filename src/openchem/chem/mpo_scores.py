@@ -168,7 +168,14 @@ def compute_structural_frameworks(
                 metadata={"smiles": Chem.MolToSmiles(scaffold), "kind": "scaffold"},
             )
         )
-        generic = MurckoScaffold.MakeScaffoldGeneric(scaffold)
+        # The generic framework answers a different question from the
+        # scaffold -- what SHAPE this is, ignoring element and bond order.
+        # Useful for grouping analogues, noise if you only wanted the core.
+        generic = (
+            MurckoScaffold.MakeScaffoldGeneric(scaffold)
+            if (parameters or {}).get("include_generic", True)
+            else None
+        )
         if generic is not None and generic.GetNumAtoms():
             prepared_generic = Chem.Mol(generic)
             AllChem.Compute2DCoords(prepared_generic)

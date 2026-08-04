@@ -17,7 +17,9 @@ from openchem.chem.markush import DEFAULT_MAX_STRUCTURES as MARKUSH_DEFAULT_MAX
 from openchem.chem.calculator_options import (
     decimal_places_parameter,
     decimals,
+    fmt,
     microspecies_parameters,
+    ph_range_parameters,
 )
 from openchem.chem.bbb_stereo import compute_bbb_descriptors, compute_stereo_descriptors
 from openchem.chem.nmr_database import compute_database_nmr
@@ -707,7 +709,10 @@ def compute_pka_dataset(
         alert_id="pka",
         name="pKa",
         molecule_uuid=molecule_uuid,
-        matched=[f"pKa {pka:.2f}" for _idx, pka in sorted(pairs or [], key=lambda p: p[1])],
+        matched=[
+            f"pKa {fmt(pka, parameters)}"
+            for _idx, pka in sorted(pairs or [], key=lambda p: p[1])
+        ],
         category="pka",
         provenance=Provenance(created_by="core", method="pkasolver"),
     )
@@ -847,7 +852,7 @@ def compute_admet_endpoints(mol, molecule_uuid, parameters=None, interpreter_pat
     # Sorted by probability so the liabilities surface first -- the whole
     # reason someone opens this is to find out what is going to bite.
     lines = [
-        f"{REPORTED_ENDPOINTS[key]}: {value:.2f}"
+        f"{REPORTED_ENDPOINTS[key]}: {fmt(value, parameters)}"
         for key, value in sorted(endpoints.items(), key=lambda kv: -kv[1])
     ]
     return AlertResult(
@@ -905,6 +910,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="admet_ml",
+        parameters=[decimal_places_parameter()],
         display_name="ADMET (hERG, CYP, Ames)",
         category="admet",
         description=(
@@ -918,6 +924,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="pka",
+        parameters=[decimal_places_parameter()],
         display_name="pKa",
         category="pka",
         description=(
@@ -1179,6 +1186,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     # ---- Phase 28: pH-dependent curves --------------------------------
     CalculatorDefinition(
         calculator_id="pka_microspecies",
+        parameters=ph_range_parameters(),
         display_name="Microspecies Distribution",
         category="pka",
         description=(
@@ -1202,6 +1210,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="isoelectric_point",
+        parameters=ph_range_parameters(),
         display_name="Isoelectric Point",
         category="charge",
         description=(
@@ -1214,6 +1223,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="logd_curve",
+        parameters=ph_range_parameters(),
         display_name="LogD vs pH",
         category="logd",
         description=(
@@ -1228,6 +1238,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="hbond_vs_ph",
+        parameters=ph_range_parameters(step=0.5),
         display_name="H-Bond Donors/Acceptors vs pH",
         category="topology",
         description=(
@@ -1433,6 +1444,14 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="stereo_descriptors",
+        parameters=[
+            CalculatorParameter(
+                name="show_undefined",
+                label="Show undefined elements",
+                kind="bool",
+                default=True,
+            )
+        ],
         display_name="Stereo Descriptors",
         category="stereochemistry",
         description=(
@@ -1445,6 +1464,14 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="structural_frameworks",
+        parameters=[
+            CalculatorParameter(
+                name="include_generic",
+                label="Include generic framework",
+                kind="bool",
+                default=True,
+            )
+        ],
         display_name="Structural Frameworks",
         category="structures",
         description="Bemis-Murcko scaffold and the generic (all-carbon, all-single-bond) framework.",

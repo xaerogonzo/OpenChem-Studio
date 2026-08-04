@@ -10,6 +10,9 @@ from __future__ import annotations
 
 import pytest
 from rdkit import Chem
+
+from openchem.chem.calculator_options import ph_grid_from
+from openchem.chem.ph_curves import compute_hbond_vs_ph
 from rdkit.Chem import AllChem
 
 from openchem.bootstrap import build_service_container
@@ -228,3 +231,71 @@ def test_a_dataset_without_provenance_still_labels_sensibly():
         include_labels=True,
     )
     assert layer.atom_labels == {0: "1.50", 1: "2.50"}
+
+
+def test_the_default_grid_is_what_the_curves_used_before_the_option_existed():
+    """Adding an option must not move anyone's existing answer."""
+    grid = ph_grid_from(None)
+
+    assert grid[0] == 0.0
+    assert grid[-1] == pytest.approx(14.0)
+    assert grid[1] - grid[0] == pytest.approx(0.25)
+
+
+def test_a_narrow_range_is_sampled_where_it_was_asked_for():
+    grid = ph_grid_from({"ph_min": 6.0, "ph_max": 8.0, "ph_step": 0.05})
+
+    assert grid[0] == 6.0
+    assert grid[-1] == pytest.approx(8.0)
+    assert len(grid) == 41  # 8 points at the default step, 41 here
+
+
+def test_a_reversed_range_is_swapped_rather_than_returning_nothing():
+    """These arrive from a dialog with two independent spin boxes, so
+    ph_min > ph_max is a couple of clicks away and must not silently
+    produce an empty curve."""
+    grid = ph_grid_from({"ph_min": 10.0, "ph_max": 4.0, "ph_step": 2.0})
+
+    assert grid[0] == 4.0 and grid[-1] == 10.0
+
+
+def test_a_zero_step_falls_back_instead_of_looping_forever():
+    assert len(ph_grid_from({"ph_step": 0.0})) == len(ph_grid_from(None))
+
+
+def test_an_absurdly_fine_step_is_capped():
+    """0-14 at 0.001 is 14,000 points to hand a QPainter."""
+    assert len(ph_grid_from({"ph_step": 0.001})) <= 1001
+
+
+def test_a_single_point_range_is_widened_into_a_curve():
+    grid = ph_grid_from({"ph_min": 7.0, "ph_max": 7.0})
+
+    assert len(grid) > 1
+
+
+def test_the_range_reaches_the_real_curve_not_just_the_dialog(qapp):
+    """The option is only worth having if it changes the computation."""
+    mol = Chem.MolFromSmiles("CC(C)Cc1ccc(cc1)C(C)C(=O)O")
+    narrow = compute_hbond_vs_ph(mol, "u", {"ph_min": 6.0, "ph_max": 8.0, "ph_step": 0.1})
+
+    assert narrow.ph_values[0] == 6.0
+    assert narrow.ph_values[-1] == pytest.approx(8.0)
+    assert set(narrow.series) == {"Donors", "Acceptors"}
+
+
+def test_every_registered_calculator_offers_at_least_one_option():
+    """ChemAxon puts controls on nearly every plugin; the gap here was 12
+    calculators with none, which made the settings step feel arbitrary --
+    some rows opened a dialog, others did nothing visible."""
+    from openchem.bootstrap import build_service_container
+
+    registry = build_service_container().calculator_registry
+    bare = [
+        definition.calculator_id
+        for category in registry.categories()
+        for definition in registry.by_category(category)
+        if not definition.parameters
+    ]
+
+    assert bare == []
