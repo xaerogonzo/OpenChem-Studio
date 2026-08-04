@@ -962,23 +962,32 @@ def compute_admet_endpoints(mol, molecule_uuid, parameters=None, interpreter_pat
     from openchem.domain.common import CacheState, Provenance
     from openchem.domain.scientific_result import AlertResult
 
+    # Everything the user must read goes in `matched` (what PropertyPanel
+    # and the clipboard render) or `error`. There is no `description`
+    # field on AlertResult, and adding one would have been invisible --
+    # no consumer reads it, so the model-output caveat below would never
+    # have reached a screen.
     try:
         endpoints = compute_admet(mol, interpreter_path)
     except RuntimeError as exc:
         return AlertResult(
             alert_id="admet_ml", name="ADMET (ADMET-AI)", category="admet",
             matched=[f"Prediction failed: {exc}"],
-            description="A configured ADMET environment did not produce a result.",
             molecule_uuid=molecule_uuid, cache_state=CacheState.FAILED,
+            error=str(exc),
             provenance=Provenance(created_by="admet_ai", method="chemprop multi-task"),
         )
 
     if endpoints is None:
+        # `compute_admet` returns None for exactly one reason -- no
+        # interpreter configured -- so `describe_admet_status` is
+        # guaranteed to take its "Not configured" branch here, and the
+        # install guidance it returns is the whole point of this path.
         return AlertResult(
             alert_id="admet_ml", name="ADMET (ADMET-AI)", category="admet",
             matched=[describe_admet_status(interpreter_path)],
-            description="Predicted hERG, CYP and Ames endpoints.",
             molecule_uuid=molecule_uuid, cache_state=CacheState.FAILED,
+            error="ADMET-AI is not configured.",
             provenance=Provenance(created_by="admet_ai", method="chemprop multi-task"),
         )
 
@@ -988,14 +997,20 @@ def compute_admet_endpoints(mol, molecule_uuid, parameters=None, interpreter_pat
         f"{REPORTED_ENDPOINTS[key]}: {fmt(value, parameters)}"
         for key, value in sorted(endpoints.items(), key=lambda kv: -kv[1])
     ]
-    return AlertResult(
-        alert_id="admet_ml", name="ADMET (ADMET-AI, predicted)", category="admet",
-        matched=lines or ["The model returned no reported endpoint."],
-        description=(
+    if lines:
+        # Caveat last, not first: putting it ahead of the numbers would bury
+        # the top liability under a disclaimer and undo the sort above. Only
+        # when there ARE numbers -- there is nothing to caveat otherwise.
+        lines.append(
             "Probabilities from ADMET-AI, a multi-task model trained on the "
             "Therapeutics Data Commons ADMET suite. These are predictions with "
             "real uncertainty, not measurements."
-        ),
+        )
+    else:
+        lines = ["The model returned no reported endpoint."]
+    return AlertResult(
+        alert_id="admet_ml", name="ADMET (ADMET-AI, predicted)", category="admet",
+        matched=lines,
         molecule_uuid=molecule_uuid, cache_state=CacheState.COMPLETED,
         provenance=Provenance(
             created_by="admet_ai", method="chemprop multi-task (TDC ADMET)",
