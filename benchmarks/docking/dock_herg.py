@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 
+from _config import vina_executable
 from openchem.chem.binding_site import box_from_ligand
 from openchem.chem.descriptor_providers import RDKitDescriptorProvider
 from openchem.chem.docking_providers import VinaDockingProvider
@@ -27,7 +28,7 @@ from openchem.services.receptor_library_service import fetch_structure
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
-VINA = r"C:/Program Files (x86)/The Scripps Research Institute/Vina/vina_1.2.7_win.exe"
+VINA = vina_executable()
 PREP = {"strip_waters": True, "strip_cofactors": True}
 
 # Clinical classification only -- "withdrawn or labelled for QT

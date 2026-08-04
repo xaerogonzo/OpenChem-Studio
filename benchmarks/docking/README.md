@@ -131,5 +131,17 @@ These numbers are **not** comparable to ADMET-AI's published performance,
 which is measured on TDC's held-out test set. This is a small,
 deliberately adversarial probe for one failure mode.
 
-`herg_compare.py` and `herg_sizematched.py` need the ADMET sidecar
-installed; edit `ADMET_PYTHON` at the top of each.
+## Configuring the tools
+
+Nothing here hardcodes a path any more. `_config.py` reads Vina and the
+ADMET interpreter from the **same Settings the application uses**, so a
+benchmark measures what the app actually runs and anyone who set the
+tools up through the UI can reproduce these tables without editing
+source. A script exits with a clear message naming the UI page to visit
+if a tool it needs is unconfigured.
+
+## Reproducibility
+
+The 19-compound panel was re-run against the configured sidecar and
+returned all 19 probabilities identical to three decimals, so the model
+is deterministic and these numbers are stable to compare against.

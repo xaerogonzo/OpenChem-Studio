@@ -18,10 +18,11 @@ import json
 import statistics as st
 import time
 
+from _config import admet_interpreter
 from openchem.chem.admet_providers import compute_admet
 from rdkit import Chem
 
-ADMET_PYTHON = r"D:/Random Programs/OpenChemStudio_Data/admet_env/.venv/Scripts/python.exe"
+ADMET_PYTHON = admet_interpreter()
 
 # Vina best-pose affinities and Tyr652 subunit counts from the 8ZYO run.
 DOCKED = {

@@ -23,11 +23,12 @@ from __future__ import annotations
 import json
 import statistics as st
 
+from _config import admet_interpreter
 from openchem.chem.admet_providers import compute_admet
 from rdkit import Chem
 from rdkit.Chem import Crippen, Descriptors
 
-ADMET_PYTHON = r"D:/Random Programs/OpenChemStudio_Data/admet_env/.venv/Scripts/python.exe"
+ADMET_PYTHON = admet_interpreter()
 
 # Clinical classification: withdrawn or carrying a QT/TdP label, versus
 # no recognised hERG liability. Compounds whose status is genuinely

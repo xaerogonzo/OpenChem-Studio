@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import math
 
+from _config import vina_executable
 from openchem.chem.binding_site import _single_copy, box_from_ligand
 from openchem.chem.docking_providers import VinaDockingProvider
 from openchem.chem.pose_analysis import receptor_atoms_from_structure
@@ -29,10 +30,7 @@ from openchem.services.receptor_library_service import fetch_structure
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
-#: Point this at your Vina executable, or read it from Settings under
-#: "docking/vina_executable_path" -- kept as a plain constant so the
-#: script runs standalone without constructing the app.
-VINA = r"C:/Program Files (x86)/The Scripps Research Institute/Vina/vina_1.2.7_win.exe"
+VINA = vina_executable()
 PREP = {"strip_waters": True, "strip_cofactors": True}
 
 # A spread: two GPCRs, an enzyme with a textbook answer, a nuclear
