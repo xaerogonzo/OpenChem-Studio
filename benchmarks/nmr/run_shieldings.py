@@ -137,11 +137,18 @@ def reference_jobs() -> list[Job]:
 
 if __name__ == "__main__":
     method = sys.argv[1] if len(sys.argv) > 1 else "B3LYP def2-SVP"
+    flags = set(sys.argv[2:])
+    sys.path.insert(0, str(HERE))
     extra: list[Job] = []
-    if len(sys.argv) > 2 and sys.argv[2] == "--literature":
-        sys.path.insert(0, str(HERE))
+    if "--literature" in flags:
         from literature_shifts import SPECTRA  # noqa: E402
 
-        extra = [Job(name=s.name, smiles=s.smiles) for s in SPECTRA.values()]
+        extra += [Job(name=s.name, smiles=s.smiles) for s in SPECTRA.values()]
+    if "--delta50" in flags:
+        import delta50  # noqa: E402
+
+        # Prefixed so a DELTA50 compound can never collide with a reference
+        # standard of the same name -- Benzene and Cyclohexane are both.
+        extra += [Job(name=f"d50_{c.name}", smiles=c.smiles) for c in delta50.load()]
     print(f"=== {method}", flush=True)
     run(reference_jobs() + extra, method)
