@@ -7,7 +7,7 @@ from typing import Any, Callable
 
 from rdkit import Chem
 
-from openchem.chem.pose_analysis import filter_pdb_altlocs, is_stripped_residue
+from openchem.chem.pose_analysis import filter_altlocs, is_stripped_residue
 from openchem.chem.vina_engine import VinaEngine, parse_vina_output_pdbqt, select_vina_engine
 from openchem.domain.docking import DockingBox, DockingPoseModel
 from openchem.plugins.interfaces import DockingProvider
@@ -52,15 +52,15 @@ class VinaDockingProvider(DockingProvider):
     protonation and water/cofactor stripping via `receptor_prep_options`,
     both through Open Babel (already a dependency) operating on the parsed
     `OBMol`, not raw text — format-agnostic across PDB/mmCIF. Alternate
-    locations are handled separately, as a PDB-only fixed-width text
-    pre-filter (`pose_analysis.filter_pdb_altlocs`) *before* Open Babel reads the
-    structure: confirmed live that Open Babel's PDB reader does NOT dedupe
-    altlocs on its own (a two-altloc atom comes back as two full atoms at
-    two positions, not one) — mmCIF's tag/loop structure has no fixed
-    column layout, so this pre-filter only applies to
-    `receptor_source_format == "pdb"`. **Still not built**: missing-residue
-    repair — a genuinely different problem (needs a dedicated
-    structure-repair library), left deferred.
+    locations are handled separately, as a text pre-filter
+    (`pose_analysis.filter_altlocs`) *before* Open Babel reads the
+    structure: confirmed live that Open Babel does NOT dedupe altlocs on
+    its own, in either format — a two-altloc atom comes back as two full
+    atoms at two positions. BOTH formats are covered now; the filter used
+    to be PDB-only, which meant an mmCIF receptor was docked with its
+    doubled atoms intact. **Still not built**: missing-residue repair — a
+    genuinely different problem (needs a dedicated structure-repair
+    library), left deferred.
     """
 
     provider_id = "vina"
@@ -170,8 +170,7 @@ class VinaDockingProvider(DockingProvider):
         prep_options: dict[str, Any],
     ) -> None:
         try:
-            if source_format == "pdb":
-                structure_text = filter_pdb_altlocs(structure_text)
+            structure_text = filter_altlocs(structure_text, source_format)
             mol = pybel.readstring(source_format, structure_text)
             self._strip_unwanted_residues(mol.OBMol, prep_options)
             # correctForPH=True + pH (default 7.4, physiological) replaces

@@ -249,9 +249,15 @@ explicitly out of scope.
       and still no concrete plugin needs them. BinaryCIF/MMTF import — no
       importer, no fetch path, no driving feature. Plugin-provided
       reaction-template registration. Missing-residue repair for docking
-      receptors. Pharmacophore/hydrophobic contact detection for docking
-      poses. Nuitka packaging (`build.ps1`/`build.bat`) — out of scope for
-      this phase, not needed until an actual release build.
+      receptors — still the one docking gap, and it needs a dedicated
+      structure-repair library rather than more work here.
+
+      **No longer deferred**, corrected because this list had gone stale:
+      hydrophobic/pi-stacking/cation-pi/salt-bridge/metal contact
+      detection all shipped (seven interaction types now); contour
+      rendering for the 2D NMR correlation plots shipped; every registered
+      calculator has options; hERG/CYP/Ames prediction shipped via the
+      ADMET sidecar; and packaging is done with PyInstaller, not Nuitka.
 
 ## Naming — resolved, and how
 

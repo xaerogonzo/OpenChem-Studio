@@ -76,6 +76,127 @@ def filter_pdb_altlocs(pdb_text: str) -> str:
     return "".join(kept)
 
 
+#: An alternate location that IS the one to keep -- unset, unknown, or the
+#: first labelled one. Shared by both format filters so "which copy wins"
+#: is decided once.
+_PRIMARY_ALTLOCS = frozenset({"", " ", ".", "?", "A"})
+
+
+def _cif_tokens(line: str) -> list[str]:
+    """Split one mmCIF data row into values.
+
+    Not a plain `.split()`: CIF values may be quoted, and nucleic-acid
+    atom names genuinely need it -- `O5'` is written `"O5'"`. Splitting on
+    whitespace alone would shift every later column by one on those rows,
+    which is exactly the kind of silent off-by-one that puts an altloc
+    check on the wrong field.
+    """
+    tokens: list[str] = []
+    index = 0
+    length = len(line)
+    while index < length:
+        while index < length and line[index] in " \t":
+            index += 1
+        if index >= length:
+            break
+        quote = line[index] if line[index] in "'\"" else ""
+        if quote:
+            index += 1
+            start = index
+            # A quote closes only when followed by whitespace or end of
+            # line -- that is what lets an apostrophe live inside a value.
+            while index < length and not (
+                line[index] == quote and (index + 1 >= length or line[index + 1] in " \t")
+            ):
+                index += 1
+            tokens.append(line[start:index])
+            index += 1
+        else:
+            start = index
+            while index < length and line[index] not in " \t":
+                index += 1
+            tokens.append(line[start:index])
+    return tokens
+
+
+def filter_mmcif_altlocs(mmcif_text: str) -> str:
+    """Drop every alternate location except the first, for mmCIF.
+
+    The PDB filter is a fixed-column slice and cannot be reused here --
+    mmCIF has no columns, only a `loop_` whose tag order the file itself
+    declares. So the `_atom_site.label_alt_id` position is READ from that
+    header rather than assumed, because the order is a convention and not
+    a rule.
+
+    Without this, an mmCIF receptor reached Vina with duplicated atoms:
+    7B6W's ligand is one 59-atom molecule refined in two half-occupancy
+    conformations, and Open Babel returns all 118. Docking against a
+    receptor whose atoms appear twice at slightly different positions is
+    wrong in a way nothing reports -- the steric term is simply counted
+    twice wherever a side chain was modelled in two states.
+
+    Anything that is not the atom_site loop passes through untouched, and
+    a file whose loop declares no `label_alt_id` is returned unchanged.
+    """
+    lines = mmcif_text.splitlines(keepends=True)
+    output: list[str] = []
+    index = 0
+    total = len(lines)
+
+    while index < total:
+        line = lines[index]
+        if line.strip() != "loop_":
+            output.append(line)
+            index += 1
+            continue
+
+        # Collect this loop's tag lines to learn its shape.
+        output.append(line)
+        index += 1
+        tags: list[str] = []
+        while index < total and lines[index].lstrip().startswith("_"):
+            tags.append(lines[index].strip())
+            output.append(lines[index])
+            index += 1
+
+        if not all(tag.startswith("_atom_site.") for tag in tags) or not tags:
+            continue  # some other loop; its rows are copied by the outer pass
+        try:
+            altloc_column = tags.index("_atom_site.label_alt_id")
+        except ValueError:
+            continue  # no alternate locations declared, nothing to filter
+
+        while index < total:
+            row = lines[index]
+            stripped = row.strip()
+            # The loop's rows end at a comment, another loop, a new
+            # category, or a new data block.
+            if not stripped or stripped.startswith(("#", "loop_", "_", "data_")):
+                break
+            tokens = _cif_tokens(stripped)
+            if len(tokens) > altloc_column and tokens[altloc_column] not in _PRIMARY_ALTLOCS:
+                index += 1
+                continue
+            output.append(row)
+            index += 1
+
+    return "".join(output)
+
+
+def filter_altlocs(structure_text: str, source_format: str) -> str:
+    """Drop alternate locations, whichever format the structure is in.
+
+    One entry point so receptor preparation and pose analysis cannot end
+    up handling different formats differently -- which is precisely how
+    the PDB-only version came to be applied on one path and not the other.
+    """
+    if source_format == "pdb":
+        return filter_pdb_altlocs(structure_text)
+    if source_format in ("mmcif", "cif"):
+        return filter_mmcif_altlocs(structure_text)
+    return structure_text
+
+
 def is_stripped_residue(
     residue_name: str, strip_waters: bool, strip_cofactors: bool
 ) -> bool:
@@ -153,11 +274,8 @@ def receptor_atoms_from_structure(
     strip_cofactors = bool(options.get("strip_cofactors", False))
 
     # Unconditional, unlike the strips: receptor preparation ALWAYS drops
-    # alternate locations, so matching it needs no option. PDB only --
-    # mmCIF has no fixed columns to slice, which is a real gap rather than
-    # an oversight (see the note in `binding_site._single_copy`).
-    if source_format == "pdb":
-        structure_text = filter_pdb_altlocs(structure_text)
+    # alternate locations, so matching it needs no option.
+    structure_text = filter_altlocs(structure_text, source_format)
 
     table = Chem.GetPeriodicTable()
     mol = pybel.readstring(source_format, structure_text)

@@ -406,3 +406,158 @@ def test_the_chain_is_reported_alongside_each_contact():
     assert all(c["receptor_residue"] == "TYR652" for c in contacts), (
         "the Mol*-facing label must not gain a chain suffix"
     )
+
+
+# --- mmCIF alternate locations -------------------------------------------
+
+# A minimal but real-shaped atom_site loop. The tag order is the one RCSB
+# actually writes, with label_alt_id fifth -- but the filter reads the
+# position from the header rather than assuming it, and
+# `test_the_altloc_column_is_read_from_the_header` moves it to prove that.
+MMCIF_WITH_ALTLOCS = """data_TEST
+#
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_alt_id
+_atom_site.label_comp_id
+_atom_site.label_asym_id
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+ATOM   1 N N   . MET A 1.000 2.000 3.000
+ATOM   2 C CA  A MET A 4.000 5.000 6.000
+ATOM   3 C CA  B MET A 4.500 5.500 6.500
+HETATM 4 O O1  A LIG B 7.000 8.000 9.000
+HETATM 5 O O1  B LIG B 7.500 8.500 9.500
+HETATM 6 C C1  ? LIG B 1.000 1.000 1.000
+#
+"""
+
+
+def _coordinate_rows(text: str) -> list[str]:
+    return [
+        line for line in text.splitlines()
+        if line.startswith(("ATOM", "HETATM"))
+    ]
+
+
+def test_only_the_first_alternate_location_survives_in_mmcif():
+    """The bug this fixes. An mmCIF receptor reached Vina with its atoms
+    doubled wherever a side chain was modelled in two states, which
+    double-counts the steric term and is reported by nothing."""
+    from openchem.chem.pose_analysis import filter_mmcif_altlocs
+
+    kept = _coordinate_rows(filter_mmcif_altlocs(MMCIF_WITH_ALTLOCS))
+
+    assert len(kept) == 4, kept
+    assert not any(" B MET " in row or " B LIG " in row for row in kept)
+    assert any(" A MET " in row for row in kept), "conformation A is the one kept"
+
+
+def test_unset_and_unknown_altlocs_are_kept():
+    """`.` and `?` mean 'no alternate location', not 'alternate B'. An
+    atom with either must never be dropped -- that is most of the file."""
+    from openchem.chem.pose_analysis import filter_mmcif_altlocs
+
+    kept = _coordinate_rows(filter_mmcif_altlocs(MMCIF_WITH_ALTLOCS))
+
+    assert any(row.startswith("ATOM   1") for row in kept), "'.' kept"
+    assert any(row.startswith("HETATM 6") for row in kept), "'?' kept"
+
+
+def test_the_altloc_column_is_read_from_the_header_not_assumed():
+    """Tag order is a convention, not a rule. A file that declares
+    label_alt_id somewhere else must still be filtered correctly, and a
+    hardcoded index would silently test the wrong field."""
+    from openchem.chem.pose_analysis import filter_mmcif_altlocs
+
+    reordered = """data_TEST
+loop_
+_atom_site.group_PDB
+_atom_site.label_alt_id
+_atom_site.id
+_atom_site.label_comp_id
+ATOM . 1 MET
+ATOM A 2 MET
+ATOM B 3 MET
+#
+"""
+    kept = _coordinate_rows(filter_mmcif_altlocs(reordered))
+
+    assert len(kept) == 2
+    assert not any(row.startswith("ATOM B") for row in kept)
+
+
+def test_a_quoted_value_containing_a_space_does_not_shift_the_columns():
+    """Why the tokenizer is not a plain split. mmCIF permits quoted values,
+    and one containing whitespace moves every later field along by one --
+    putting the altloc check on the wrong column and dropping atoms at
+    random. Nucleic-acid atom names are written `"O5'"` for the same
+    quoting reason."""
+    from openchem.chem.pose_analysis import filter_mmcif_altlocs
+
+    quoted = """data_TEST
+loop_
+_atom_site.group_PDB
+_atom_site.label_comp_id
+_atom_site.label_alt_id
+_atom_site.id
+ATOM 'MY RESIDUE' . 1
+ATOM 'MY RESIDUE' A 2
+ATOM 'MY RESIDUE' B 3
+#
+"""
+    kept = _coordinate_rows(filter_mmcif_altlocs(quoted))
+
+    assert len(kept) == 2, f"a naive split would mis-index and keep {len(kept)}"
+    assert not any(row.endswith(" 3") for row in kept)
+
+
+def test_a_loop_without_alternate_locations_is_untouched():
+    from openchem.chem.pose_analysis import filter_mmcif_altlocs
+
+    plain = """data_TEST
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.label_comp_id
+ATOM 1 MET
+ATOM 2 GLY
+#
+"""
+    assert filter_mmcif_altlocs(plain) == plain
+
+
+def test_other_categories_pass_through_unchanged():
+    """Only the atom_site loop is filtered. A citation or author loop with
+    a value that happens to look like an altloc must survive intact."""
+    from openchem.chem.pose_analysis import filter_mmcif_altlocs
+
+    result = filter_mmcif_altlocs(MMCIF_WITH_ALTLOCS)
+
+    assert result.startswith("data_TEST")
+    assert "_atom_site.label_alt_id" in result, "the header itself is preserved"
+
+
+def test_the_filter_dispatches_on_format():
+    """One entry point, so receptor preparation and pose analysis cannot
+    disagree about a format -- which is exactly how the PDB-only version
+    ended up applied on one path and not the other."""
+    from openchem.chem.pose_analysis import filter_altlocs
+
+    assert len(_coordinate_rows(filter_altlocs(MMCIF_WITH_ALTLOCS, "mmcif"))) == 4
+    assert len(_coordinate_rows(filter_altlocs(MMCIF_WITH_ALTLOCS, "cif"))) == 4
+    # A PDB filter applied to mmCIF text would do nothing useful; the
+    # dispatcher must not confuse them.
+    assert filter_altlocs(MMCIF_WITH_ALTLOCS, "pdb") == MMCIF_WITH_ALTLOCS
+    assert filter_altlocs("anything", "sdf") == "anything"
+
+
+def test_mmcif_altlocs_are_gone_by_the_time_atoms_are_parsed():
+    """End to end through the real parser, which is where it matters."""
+    atoms = receptor_atoms_from_structure(MMCIF_WITH_ALTLOCS, "mmcif")
+
+    assert len(atoms) == 4
