@@ -234,7 +234,21 @@ class QuantumChemistryPanel(QWidget):
             table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
             table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
             plot = NmrCorrelationPlotWidget(parent=tab)
+            # One checkbox per tab rather than one for the panel: HSQC is
+            # sparse enough to read as dots while HMBC on the same molecule
+            # is crowded enough to want contours, so the useful setting
+            # genuinely differs between them.
+            contour_toggle = QCheckBox("Contours", tab)
+            contour_toggle.setChecked(True)
+            contour_toggle.setToolTip(
+                "Draw cross peaks as contour rings rather than dots.\n\n"
+                "The rings show POSITION only. Predicted correlations carry no "
+                "intensity, so every peak is drawn the same height and width -- "
+                "unlike a measured spectrum, where contour height is peak volume."
+            )
+            contour_toggle.toggled.connect(plot.set_show_contours)
             tab_layout.addWidget(table)
+            tab_layout.addWidget(contour_toggle)
             tab_layout.addWidget(plot)
             self._correlation_tabs.addTab(tab, correlation_type.upper())
             self._correlation_tables[correlation_type] = table
