@@ -14,9 +14,17 @@ class MacromoleculeModel:
     small molecules are. Rendered via the Mol*-based `ViewerBackend`
     sibling implementation, not the 3Dmol.js one.
 
-    `structure_text`/`source_format` are split (rather than assuming raw
-    PDB text forever) so BinaryCIF/MMTF support can be added later without
-    another schema change — V1 only ever writes `source_format == "pdb"`.
+    `structure_text`/`source_format` are split rather than assuming raw PDB
+    text forever, and both `"pdb"` and `"mmcif"` are written today.
+
+    That split turned out to be enough for BinaryCIF WITHOUT the schema
+    change it was expected to need, but for a different reason than
+    anticipated: `chem/binarycif.py` decodes to mmCIF text at the import
+    boundary instead of storing the packed bytes, so `structure_text`
+    stays a `str`. Storing binary here would have been the wrong call
+    anyway — Open Babel prepares every docking receptor and reads neither
+    BinaryCIF nor MMTF, so a binary-carrying model could be viewed and not
+    docked.
     `source_format` values match Mol*'s own vocabulary directly (`"pdb"` or
     `"mmcif"` — confirmed against the installed `molstar` package's
     `BuiltInTrajectoryFormats`), not a separate naming scheme, so

@@ -434,18 +434,21 @@ class MainWindow(QMainWindow):
     def _import_macromolecule(self) -> None:
         if self._session.project is None:
             return
+        from openchem.chem.structure_io import STRUCTURE_FILE_FILTER, read_structure_file
+
         path_str, _ = QFileDialog.getOpenFileName(
-            self, "Import Macromolecule", filter="Structure files (*.pdb *.ent *.cif *.mmcif)"
+            self, "Import Macromolecule", filter=STRUCTURE_FILE_FILTER
         )
         if not path_str:
             return
         path = Path(path_str)
-        # Mol*'s own format vocabulary (see MacromoleculeModel's docstring)
-        # — no separate naming scheme to translate between.
-        source_format = "mmcif" if path.suffix.lower() in (".cif", ".mmcif") else "pdb"
+        # BinaryCIF and gzip are unpacked here rather than carried inward:
+        # `read_structure_file` returns Mol*'s own format vocabulary (see
+        # MacromoleculeModel's docstring), so there is still no naming
+        # scheme to translate between and no consumer learns a new format.
         try:
-            structure_text = path.read_text(encoding="utf-8")
-        except OSError as exc:
+            structure_text, source_format = read_structure_file(path)
+        except (OSError, ValueError) as exc:
             logger.exception("Failed to read macromolecule file")
             QMessageBox.critical(self, "Import failed", str(exc))
             return

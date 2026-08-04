@@ -92,11 +92,26 @@ Five largely independent sub-phases, built and verified in order (6.1-6.5).
 - [x] Retrofitting `Provenance` onto `ConformerModel`/`DescriptorValue` — built in
       Phase 9.5. `MacromoleculeModel` stays out of scope (imported user data, not a
       provider-computed result).
-- [ ] *Deferred, still*: full mmCIF/BinaryCIF/MMTF ingestion — raw mmCIF text
-      import into the Mol* viewer already worked before Phase 9; BinaryCIF/MMTF
-      (binary formats) have no importer or fetch path driving them yet. Plugin-
-      provided reaction templates (a formal `context.reactions.register(...)`-style
-      namespace). See ARCHITECTURE.md's design-decisions section.
+- [x] BinaryCIF ingestion — `chem/binarycif.py` decodes it to mmCIF text at the
+      import boundary (all seven encodings), and `chem/structure_io.py` routes
+      files by CONTENT rather than extension and transparently gunzips. Decoding
+      rather than carrying the binary inward is deliberate: Open Babel, which
+      preps every docking receptor, reads neither `bcif` nor `mmtf` (measured),
+      so binary would have produced a receptor you could view and not dock.
+      Validated against RCSB's own text mmCIF for the same entry — all 21
+      `_atom_site` columns across 3,518 rows, from two independent encoders
+      (RCSB's `python-mmcif` and Mol*'s `cif2bcif`, the latter exercising
+      `FixedPoint`), worst coordinate deviation 0.000000 Å; and the whole
+      downstream chain (receptor prep, pose analysis, ligand detection,
+      binding-site box) is identical from either source.
+- [ ] **MMTF: refused, not deferred.** `mmtf.rcsb.org` no longer resolves
+      (`getaddrinfo failed`, in a run where `files.rcsb.org` and
+      `models.rcsb.org` both resolved), and the vendored Mol* bundle contains
+      zero occurrences of "mmtf" — the viewer dropped it too. An importer would
+      read files nobody can obtain and display them in nothing.
+- [ ] *Deferred, still*: plugin-provided reaction templates (a formal
+      `context.reactions.register(...)`-style namespace). See ARCHITECTURE.md's
+      design-decisions section.
 
 ## Phase 7 — Stabilization (real-world usage fixes)
 
@@ -246,8 +261,7 @@ explicitly out of scope.
       (`ToolbarProvider`/`ContextMenuProvider`, a `RemoteServicePlugin` base
       class, numeric provider priority, declared permissions) — flagged in
       the code itself as "revisit if a fourth plugin needs the same shape,"
-      and still no concrete plugin needs them. BinaryCIF/MMTF import — no
-      importer, no fetch path, no driving feature. Plugin-provided
+      and still no concrete plugin needs them. Plugin-provided
       reaction-template registration. Missing-residue repair for docking
       receptors — still the one docking gap, and it needs a dedicated
       structure-repair library rather than more work here.
