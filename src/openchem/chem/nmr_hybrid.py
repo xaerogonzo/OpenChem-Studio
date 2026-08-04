@@ -2,8 +2,8 @@
 
 WHY THIS EXISTS. The database lookup and the ab initio path fail in
 opposite places. The lookup is excellent where the environment is
-well-represented (held-out MAE 1.17 ppm on its `good` band) and poor
-where it is not (9.93 ppm on `rough`, 7.5% of carbons even in ordinary
+well-represented (held-out MAE 1.12 ppm on its `good` band) and poor
+where it is not (10.0 ppm on `rough`, 7.5% of carbons even in ordinary
 drug-like molecules). ORCA has no database at all, so its accuracy does
 not care whether anyone has measured this environment before -- which is
 exactly the case a lookup cannot help with, and exactly what someone
@@ -18,8 +18,9 @@ hardcoded table ("good -> lookup") would bake today's benchmark into the
 code and keep choosing wrong once the index grows or the calibration
 improves. Both numbers here are MEASURED:
 
-  * lookup -- the per-band held-out MAE recorded in `nmr_database.py`,
-    from 24,046 carbons excluded from the index before predicting them.
+  * lookup -- `nmr_database.HELD_OUT_BAND_MAE`, imported rather than
+    copied, from 24,280 carbons excluded from the index before predicting
+    them.
   * ORCA -- the residual RMS of the user's own calibration fit
     (`nmr_scaling.ScalingFactors.residual_rms`), which is specific to
     their install, functional and basis.
@@ -124,17 +125,21 @@ import logging
 from dataclasses import dataclass, field
 from statistics import fmean
 
+from openchem.chem.nmr_database import HELD_OUT_BAND_MAE
+
 logger = logging.getLogger("openchem.chemistry")
 
-#: Per-band held-out MAE from `nmr_database.py`'s recorded benchmark, in
-#: ppm. Keyed by the rating `ShiftPrediction.quality` assigns itself.
-#: Measured, not estimated -- see that module's docstring for the protocol.
+#: Per-band held-out MAE, in ppm, keyed by the rating
+#: `ShiftPrediction.quality` assigns itself. Measured, not estimated.
 #:
-#: CARBON ONLY. That benchmark held out 24,046 carbons; no equivalent
-#: figure exists for protons, and reusing these would be nonsense at
-#: proton scale -- 1.17 ppm spans most of a 1H spectrum. Hence
-#: `MERGEABLE_ELEMENTS` below.
-LOOKUP_EXPECTED_ERROR: dict[str, float] = {"good": 1.17, "medium": 3.38, "rough": 9.93}
+#: IMPORTED rather than copied. These decide which method wins an atom, so
+#: a second copy is a way for predictions to change silently -- which had
+#: already happened: this file shipped 1.17/3.38/9.93 from an early run
+#: while `nmr_database` had since remeasured them at 1.12/3.36/10.00 on
+#: the format-2 index. One owner, no drift.
+#:
+#: CARBON ONLY, for the reason given at `MERGEABLE_ELEMENTS` below.
+LOOKUP_EXPECTED_ERROR = HELD_OUT_BAND_MAE
 
 #: Elements the merge will run on at all. Selection needs a measured
 #: expected error from BOTH methods, and only carbon has one on the

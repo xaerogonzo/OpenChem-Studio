@@ -125,8 +125,8 @@ def test_the_merge_summary_counts_each_source():
     )
 
     assert merged.provenance.parameters["sources"] == {"trusted lookup": 1, "ORCA (scaled)": 1}
-    # (1.17 + 1.5) / 2
-    assert merged.provenance.parameters["expected_average_error"] == pytest.approx(1.335)
+    # (1.12 good-band + 1.5 calibration residual) / 2
+    assert merged.provenance.parameters["expected_average_error"] == pytest.approx(1.31)
 
 
 def test_a_calculation_on_a_different_scale_is_refused_not_spliced():
@@ -189,12 +189,17 @@ def test_a_perfectly_linear_calibration_has_no_residual():
     assert factors.residual_rms == pytest.approx(0.0, abs=1e-9)
 
 
-def test_the_lookups_expected_errors_are_the_recorded_held_out_numbers():
-    """A guard, not a tautology: these three came from a held-out run of
-    24,046 carbons recorded in `nmr_database.py`. Changing them changes
-    which method wins atoms, so it should not be possible to do quietly.
+def test_the_lookup_expected_errors_have_exactly_one_owner():
+    """Not a tautology: which method wins an atom depends on these, so a
+    second copy is a way for predictions to drift silently -- and it had
+    already happened once, this module holding 1.17/3.38/9.93 while the
+    database had remeasured them on the format-2 index. The guard is that
+    there is one object, not two that happen to agree today.
     """
-    assert LOOKUP_EXPECTED_ERROR == {"good": 1.17, "medium": 3.38, "rough": 9.93}
+    from openchem.chem.nmr_database import HELD_OUT_BAND_MAE
+
+    assert LOOKUP_EXPECTED_ERROR is HELD_OUT_BAND_MAE
+    assert LOOKUP_EXPECTED_ERROR == {"good": 1.12, "medium": 3.36, "rough": 10.00}
 
 
 def test_the_tolerance_widens_with_the_calculations_own_stated_error():

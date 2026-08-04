@@ -149,6 +149,22 @@ MIN_MATCHES = 3
 # hidden, and used to prefer a different sphere depth where one exists.
 WIDE_SPREAD_PPM = {"C": 8.0, "H": 0.5}
 
+#: What each quality band was MEASURED to be worth, in ppm, on the format-2
+#: held-out run recorded at the top of this module (24,280 carbons, every
+#: twentieth molecule excluded from the index before predicting it).
+#:
+#: A constant rather than three numbers in a docstring because
+#: `chem/nmr_hybrid.py` SELECTS on them -- which method wins an atom
+#: depends on these values, so a copy that drifts changes predictions
+#: silently. It drifted once already: the hybrid shipped with 1.17/3.38/
+#: 9.93 from an earlier run while this module's own docstring said
+#: 1.12/3.36/10.00.
+#:
+#: CARBON ONLY. The held-out benchmark measured carbons; there is no
+#: equivalent figure for protons and inventing one would be nonsense at
+#: proton scale.
+HELD_OUT_BAND_MAE: dict[str, float] = {"good": 1.12, "medium": 3.36, "rough": 10.00}
+
 #: What generation of environment codes the index holds.
 #:
 #: 1 -- codes written from the record as deposited, so a record carrying
