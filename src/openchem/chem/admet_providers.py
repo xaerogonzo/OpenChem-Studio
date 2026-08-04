@@ -71,6 +71,43 @@ Note these figures are NOT comparable to ADMET-AI's own published
 performance, which is measured on TDC's held-out test set. This panel is
 small and deliberately adversarial; it is a probe for one specific
 failure mode, not an accuracy benchmark.
+
+THE CYP ENDPOINTS HOLD UP MUCH BETTER, which is worth saying plainly
+rather than letting the hERG caveat tar them. Measured 2026-08-04 on 22
+drugs, five isoforms each (`benchmarks/docking/cyp_panel.py`):
+
+    r(prediction, heavy atoms)   +0.24   (hERG: +0.82)
+    r(prediction, logP)          +0.54   (hERG: +0.75)
+    known inhibitors, mean peak   0.696
+    renally-cleared drugs         0.071
+
+The size confound that dominates hERG is largely absent here, and the
+residual logP correlation is chemically expected rather than an artefact
+-- lipophilicity genuinely drives CYP binding.
+
+**THE PREDICTIONS ARE ISOFORM-SPECIFIC**, which is the whole clinical
+point and did not have to be true. Correlations between the five isoform
+predictions across compounds average +0.40 and range from -0.10
+(1A2 vs 2C9, essentially independent) to +0.85 (2C19 vs 2C9). This is not
+one "CYP-ness" score wearing five labels. That test needs no ground truth
+at all -- it is computed from the model's own outputs. The isoforms that
+do move together (2C19/2C9/3A4) are the ones with genuinely overlapping
+substrate preferences.
+
+Asked which isoform a selective inhibitor hits hardest, it ranks 8 of 11
+correctly against about 2.2 by chance -- every azole and macrolide to
+3A4, three of four SSRIs to 2D6, fluvoxamine to 1A2.
+
+THE FAILURE MODE IS DETECTION, NOT RANKING. Two known inhibitors are
+scored inactive on every isoform: clarithromycin 0.05 and ciprofloxacin
+0.03. Clarithromycin is a textbook strong 3A4 inhibitor, and a ranking
+metric flatters it because 3A4 is still its highest of five near-zero
+numbers. So a LOW CYP score is the one to distrust; a high score is
+well supported here.
+
+One leak worth knowing: quinidine's SUBSTRATE prediction peaks on 2D6
+(0.62) when it is a 3A4 substrate that merely INHIBITS 2D6 -- so the
+substrate and inhibition endpoints are not perfectly disentangled.
 """
 
 from __future__ import annotations

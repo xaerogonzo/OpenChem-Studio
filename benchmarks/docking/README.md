@@ -145,3 +145,58 @@ if a tool it needs is unconfigured.
 The 19-compound panel was re-run against the configured sidecar and
 returned all 19 probabilities identical to three decimals, so the model
 is deterministic and these numbers are stable to compare against.
+
+## `cyp_panel.py` — CYP450, and the test hERG could not offer
+
+22 drugs, five inhibition isoforms each. CYP allows a sharper version of
+the hERG question, because five predictions per molecule make it possible
+to ask *which enzyme* rather than only *how strong*.
+
+**The headline test needs no ground truth.** If the five isoform
+predictions rose and fell together, the model would have learned "this
+molecule interacts with CYPs" rather than which one — measurable purely
+from its own outputs. They don't:
+
+```
+        1A2   2C19    2C9    2D6    3A4
+1A2    1.00   0.37  -0.10   0.53   0.18
+2C19   0.37   1.00   0.85   0.33   0.80
+2C9   -0.10   0.85   1.00   0.06   0.77
+2D6    0.53   0.33   0.06   1.00   0.25
+3A4    0.18   0.80   0.77   0.25   1.00
+```
+
+Mean off-diagonal **+0.40**, range −0.10 to +0.85. Genuinely
+isoform-specific. The three that do move together (2C19/2C9/3A4) are the
+ones with overlapping substrate preferences, which is chemistry rather
+than a defect.
+
+**The confound that ruins hERG is largely absent:**
+
+| | CYP | hERG |
+|---|---|---|
+| r(prediction, heavy atoms) | **+0.24** | +0.82 |
+| r(prediction, logP) | **+0.54** | +0.75 |
+
+The residual logP term is expected — lipophilicity really does drive CYP
+binding.
+
+**Selectivity: 8/11 ranked correctly** against ~2.2 by chance. Every azole
+and macrolide → 3A4; quinidine, paroxetine, fluoxetine → 2D6;
+fluvoxamine → 1A2. Inhibitors average 0.696 on their peak isoform against
+0.071 for renally-cleared drugs.
+
+**The real failure is detection, not ranking.** Two known inhibitors are
+scored inactive on every isoform — clarithromycin **0.05**, ciprofloxacin
+**0.03**. Clarithromycin is a textbook strong 3A4 inhibitor, and a
+peak-isoform metric flatters it because 3A4 is still the highest of five
+near-zero numbers. The script reports ranking and detection separately
+for exactly this reason.
+
+**So: distrust a low CYP score; a high one is well supported here.** That
+is the opposite shape of failure from hERG, where high scores on large
+lipophilic molecules are the weak ones.
+
+One leak: quinidine's *substrate* prediction peaks on 2D6 (0.62) when it
+is a 3A4 substrate that merely *inhibits* 2D6 — the inhibition and
+substrate endpoints are not perfectly disentangled.
