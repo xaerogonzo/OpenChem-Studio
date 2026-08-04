@@ -209,10 +209,25 @@ class Mol3DViewerBackend(ViewerBackend):
         if layer is None:
             self._page.runJavaScript("window.openchemViewer.clearSurface();")
             return
+        # The scalar field travels as OpenDX TEXT, which for the default
+        # 48^3 grid is roughly 1.4 MB of it. That is a lot to push through
+        # runJavaScript, but it is a one-shot cost per surface change and
+        # the alternative -- serving it over a local HTTP endpoint the page
+        # fetches -- would add a server to a widget that has never needed
+        # one. Revisit if the resolution ever climbs.
+        field = (
+            None
+            if layer.scalar_field_dx is None
+            else {
+                "dx": layer.scalar_field_dx,
+                "low": (layer.scalar_field_range or (-1.0, 1.0))[0],
+                "high": (layer.scalar_field_range or (-1.0, 1.0))[1],
+            }
+        )
         self._page.runJavaScript(
             f"window.openchemViewer.applySurface("
             f"{json.dumps(layer.representation)}, {json.dumps(layer.opacity)}, "
-            f"{json.dumps(layer.atom_colors)});"
+            f"{json.dumps(layer.atom_colors)}, {json.dumps(field)});"
         )
 
     def _run_apply_visualization(self, layer: VisualizationLayer | None) -> None:

@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+import json
 import time
+from dataclasses import replace
 
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
-from openchem.ui.visualization import SurfaceLayer, VisualizationLayer
+from openchem.ui.visualization import (
+    SurfaceLayer,
+    VisualizationLayer,
+    build_scalar_field_surface_layer,
+)
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
 
 _CURRENT_VISUALIZATION_JS = "JSON.stringify(currentVisualization)"
@@ -252,6 +258,122 @@ def test_apply_surface_carries_per_atom_colors(qapp):
     raw = _current_surface(qapp, backend)
     assert '"0":"#d32f2f"' in raw
     assert '"2":"#1976d2"' in raw
+
+
+def _tiny_field():
+    """A dipole: -1 e at the origin, +1 e four Angstrom away. Chosen over
+    a real molecule's charges because the SIGN at each end is then beyond
+    argument, and a low resolution keeps the OpenDX text small enough to
+    read back through runJavaScript in a test."""
+    from openchem.chem.scalar_field import electrostatic_potential
+
+    return electrostatic_potential(
+        [(0.0, 0.0, 0.0), (4.0, 0.0, 0.0)], [-1.0, 1.0], resolution=8, padding=3.0
+    )
+
+
+def test_a_scalar_field_reaches_the_page_with_its_colour_range(qapp):
+    backend = _ready_backend(qapp)
+
+    layer = build_scalar_field_surface_layer(_tiny_field(), representation="vdw")
+    backend.apply_surface(layer)
+
+    assert _wait_until(qapp, lambda: _current_surface(qapp, backend) not in (None, "null"))
+    raw = _current_surface(qapp, backend)
+    assert "gridpositions counts 8 8 8" in raw
+    low, high = layer.scalar_field_range
+    assert low == -high, "the range must stay centred on zero through the round trip"
+    assert f'"low":{low}' in raw
+
+
+def test_the_field_is_handed_to_3dmol_as_volume_data_not_atom_colours(qapp):
+    """The branch that matters, asserted where it can be: 3Dmol must
+    receive a real `VolumeData` plus an RWB gradient, NOT the per-atom
+    `colorfunc` path.
+
+    It stops there rather than checking the drawn vertices because this
+    backend's page is never shown, so no WebGL runs and the surface's
+    `geometryGroups` stays empty -- the same never-painted trap CLAUDE.md
+    records for `repaint()`. That the vertices genuinely follow the field
+    was established live instead, in a visible browser: acetic acid's
+    surface came back with 94 distinct colours over 302 vertices, and
+    correlating each rendered vertex colour against the potential at its
+    own position gave r = -0.95 (negative because RWB puts red at the low
+    end) with not one vertex coloured with the wrong sign.
+    """
+    backend = _ready_backend(qapp)
+    _run_js(
+        qapp,
+        backend,
+        """
+        window.__surfaceStyle = null;
+        var original = viewer.addSurface.bind(viewer);
+        viewer.addSurface = function (type, style) {
+          window.__surfaceStyle = {
+            voldata: style.voldata ? style.voldata.constructor.name : null,
+            volscheme: style.volscheme ? style.volscheme.constructor.name : null,
+            hasColorfunc: !!style.colorfunc,
+          };
+          return original(type, style);
+        };
+        """,
+    )
+
+    backend.apply_surface(
+        build_scalar_field_surface_layer(_tiny_field(), representation="vdw")
+    )
+
+    assert _wait_until(
+        qapp,
+        lambda: _run_js(qapp, backend, "JSON.stringify(window.__surfaceStyle)")
+        not in (None, "null"),
+    )
+    style = json.loads(_run_js(qapp, backend, "JSON.stringify(window.__surfaceStyle)"))
+    assert style["voldata"] == "VolumeData"
+    assert style["volscheme"] == "RWB"
+    assert not style["hasColorfunc"], "a field must not also install nearest-atom colouring"
+
+
+def test_a_field_wins_over_per_atom_colours_when_both_are_given(qapp):
+    """They are not two settings to combine -- one is a step function over
+    the atoms and the other is continuous, so showing both is impossible
+    and the more specific request has to win."""
+    backend = _ready_backend(qapp)
+    _run_js(
+        qapp,
+        backend,
+        "window.__usedColorfunc = null;"
+        "var original = viewer.addSurface.bind(viewer);"
+        "viewer.addSurface = function (t, s) { window.__usedColorfunc = !!s.colorfunc;"
+        " return original(t, s); };",
+    )
+
+    layer = build_scalar_field_surface_layer(_tiny_field())
+    backend.apply_surface(replace(layer, atom_colors={0: "#d32f2f"}))
+
+    assert _wait_until(
+        qapp,
+        lambda: _run_js(qapp, backend, "window.__usedColorfunc") is not None,
+    )
+    assert _run_js(qapp, backend, "window.__usedColorfunc") is False
+
+
+def test_loading_a_new_molecule_drops_the_field(qapp):
+    """A grid is pinned to the coordinates it was computed on. Carrying it
+    across a molecule change would drape one molecule's potential over
+    another's shape -- which renders perfectly happily and is nonsense."""
+    backend = _ready_backend(qapp)
+    backend.apply_surface(build_scalar_field_surface_layer(_tiny_field()))
+    assert _wait_until(qapp, lambda: "gridpositions" in str(_current_surface(qapp, backend)))
+
+    backend.load_conformer(_ethanol_molblock())
+
+    assert _wait_until(
+        qapp, lambda: "gridpositions" not in str(_current_surface(qapp, backend))
+    )
+    assert '"representation"' in str(_current_surface(qapp, backend)), (
+        "the surface itself should survive -- only its stale field goes"
+    )
 
 
 def test_apply_surface_none_clears(qapp):

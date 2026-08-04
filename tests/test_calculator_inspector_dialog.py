@@ -230,6 +230,73 @@ def test_selecting_no_surface_clears_it(qapp):
     assert applied[-1] is None
 
 
+def _colouring_combo(dialog):
+    return dialog.findChildren(QComboBox)[1]
+
+
+def test_electrostatic_potential_is_offered_only_for_charges(qapp):
+    """The potential is computed FROM partial charges -- there is nothing
+    to compute it from on a LogP-contribution dataset, and offering it
+    there would produce a picture of a quantity nobody asked for.
+
+    Keyed on the dataset's units rather than on a list of calculator ids,
+    so this test also pins down that a future charge model qualifies
+    without anyone editing the dialog.
+    """
+    engine = ChemistryEngine()
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+
+    charges = CalculatorInspectorDialog(
+        engine, molecule, _dataset({0: -0.2}, units="e"), conformer_molblock="fake"
+    )
+    logp = CalculatorInspectorDialog(
+        engine, molecule, _dataset({0: -0.2}, units=""), conformer_molblock="fake"
+    )
+
+    assert "esp" in [
+        _colouring_combo(charges).itemData(i)
+        for i in range(_colouring_combo(charges).count())
+    ]
+    assert "esp" not in [
+        _colouring_combo(logp).itemData(i) for i in range(_colouring_combo(logp).count())
+    ]
+    assert not _colouring_combo(logp).isEnabled()
+
+
+def test_choosing_the_potential_sends_a_field_instead_of_atom_colours(qapp):
+    """The two are alternatives, not a combination: nearest-atom colouring
+    steps between atoms, a field varies continuously through the space
+    between them."""
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+    AllChem.EmbedMolecule(mol, randomSeed=42)
+    engine = ChemistryEngine()
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    dialog = CalculatorInspectorDialog(
+        engine,
+        molecule,
+        _dataset({2: -0.4, 0: 0.2}, units="e"),
+        conformer_molblock=Chem.MolToMolBlock(mol),
+    )
+    target = next(w for w in dialog.findChildren(QWidget) if hasattr(w, "_viewer3d"))
+    applied = []
+    target._viewer3d.apply_surface = applied.append
+
+    _colouring_combo(dialog).setCurrentIndex(1)  # Electrostatic potential
+    dialog.findChildren(QComboBox)[0].setCurrentIndex(1)  # vdW
+
+    layer = applied[-1]
+    assert layer.scalar_field_dx and "gridpositions" in layer.scalar_field_dx
+    assert layer.atom_colors is None
+    low, high = layer.scalar_field_range
+    assert low == -high, "an off-centre range puts neutral space somewhere other than white"
+    assert layer.color_scale.domain_min == low
+
+
 # --- Report results, copy, and taking a structure out ---------------------
 
 

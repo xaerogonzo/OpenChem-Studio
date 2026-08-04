@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
+from openchem.chem.scalar_field import ScalarField, symmetric_range, to_dx
 from openchem.domain.common import ScientificResult
 from openchem.domain.scientific_result import NMRSpectrumResult, PerAtomDataset
 
@@ -124,6 +125,14 @@ class SurfaceLayer:
     a legitimate and common use. When present, surface vertices take the
     colour of the nearest atom, which is how a per-atom property such as
     partial charge gets mapped onto the surface the way Marvin shows it.
+
+    `scalar_field_dx` is the OTHER way to paint one, and it is not a
+    variation on `atom_colors`: nearest-atom colouring is a step function
+    over the atoms, while a scalar field is defined everywhere in space
+    and so varies BETWEEN them -- which is what an electrostatic potential
+    map actually is. Carried as OpenDX text because that is what the
+    viewer parses; `chem/scalar_field.py` produces it. When both are set
+    the field wins, since it is the more specific request.
     """
 
     name: str
@@ -131,6 +140,8 @@ class SurfaceLayer:
     opacity: float = 0.75
     atom_colors: dict[int, str] | None = None
     color_scale: ColorScale | None = None
+    scalar_field_dx: str | None = None
+    scalar_field_range: tuple[float, float] | None = None
 
 
 # Any layer a `ViewerBackend` may be handed. A backend is expected to
@@ -155,6 +166,37 @@ def build_surface_layer(
         opacity=opacity,
         atom_colors=atom_layer.atom_colors or None,
         color_scale=atom_layer.color_scale,
+    )
+
+
+def build_scalar_field_surface_layer(
+    field: ScalarField,
+    representation: str = "vdw",
+    opacity: float = 0.75,
+    percentile: float = 95.0,
+) -> SurfaceLayer:
+    """A surface coloured by a continuous field rather than by its atoms.
+
+    The colour range comes from `symmetric_range`, not from the field's
+    raw extremes: those sit at the grid points nearest the nuclei, which
+    are both the largest values and the least meaningful ones, and
+    scaling to them washes the whole surface out to white.
+
+    `_DIVERGING_PALETTE` runs red at the low end to blue at the high one,
+    which is the same direction as 3Dmol's `Gradient.RWB` -- so the legend
+    this layer carries describes what the surface actually shows rather
+    than being a second, independently-chosen scale beside it.
+    """
+    low, high = symmetric_range(field, percentile=percentile)
+    return SurfaceLayer(
+        name=field.name,
+        representation=representation,
+        opacity=opacity,
+        color_scale=ColorScale(
+            palette=_DIVERGING_PALETTE, domain_min=low, domain_max=high
+        ),
+        scalar_field_dx=to_dx(field),
+        scalar_field_range=(low, high),
     )
 
 

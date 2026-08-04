@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.chem.engine import ChemistryEngine
+from openchem.chem.scalar_field import electrostatic_potential_for_conformer
 from openchem.domain.common import CacheState, ScientificResult
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.scientific_result import (
@@ -29,6 +30,7 @@ from openchem.ui.result_clipboard import result_to_text
 from openchem.ui.visualization import (
     SURFACE_REPRESENTATION_LABELS,
     SURFACE_REPRESENTATIONS,
+    build_scalar_field_surface_layer,
     build_surface_layer,
     build_visualization_layer,
 )
@@ -111,6 +113,22 @@ class _CalculatorResultView(QWidget):
         self._surface_combo.setEnabled(self._surface_result is not None and bool(conformer_molblock))
         self._surface_combo.currentIndexChanged.connect(self._on_surface_changed)
 
+        # An electrostatic potential map is offered only for a dataset of
+        # partial CHARGES, because that is the only thing the potential
+        # can be computed from -- painting one over LogP contributions
+        # would be a picture of a quantity nobody asked for. Keyed on
+        # `units == "e"` rather than on a list of calculator ids, so a
+        # future charge model qualifies without a code change here.
+        self._conformer_molblock = conformer_molblock
+        self._engine = engine
+        self._colouring_combo = QComboBox(self)
+        self._colouring_combo.addItem("Per-atom value", "atoms")
+        is_charge = self._surface_result is not None and self._surface_result.units == "e"
+        if is_charge:
+            self._colouring_combo.addItem("Electrostatic potential", "esp")
+        self._colouring_combo.setEnabled(is_charge and bool(conformer_molblock))
+        self._colouring_combo.currentIndexChanged.connect(self._on_surface_changed)
+
         legend_label = QLabel(self)
         if layer is not None and layer.color_scale is not None:
             legend_label.setText(
@@ -126,6 +144,8 @@ class _CalculatorResultView(QWidget):
         surface_row = QHBoxLayout()
         surface_row.addWidget(QLabel("3D surface:", self))
         surface_row.addWidget(self._surface_combo)
+        surface_row.addWidget(QLabel("coloured by:", self))
+        surface_row.addWidget(self._colouring_combo)
         surface_row.addStretch()
 
         layout = QVBoxLayout(self)
@@ -138,6 +158,13 @@ class _CalculatorResultView(QWidget):
         representation = self._surface_combo.currentData()
         if not representation or self._surface_result is None:
             self._viewer3d.apply_surface(None)
+            return
+        if self._colouring_combo.currentData() == "esp" and self._conformer_molblock:
+            mol = self._engine.mol_from_molblock(self._conformer_molblock)
+            field = electrostatic_potential_for_conformer(mol, self._surface_result.values)
+            self._viewer3d.apply_surface(
+                build_scalar_field_surface_layer(field, representation=representation)
+            )
             return
         self._viewer3d.apply_surface(
             build_surface_layer(self._surface_result, representation=representation)

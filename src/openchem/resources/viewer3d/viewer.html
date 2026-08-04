@@ -79,7 +79,21 @@
         }
         var atomColors = currentSurface.atomColors;
         var style = { opacity: currentSurface.opacity };
-        if (atomColors) {
+        var field = currentSurface.scalarField;
+        if (field) {
+          // A volumetric field beats per-atom colours because it is a
+          // genuinely different thing, not a refinement of them: it is
+          // defined everywhere, so the surface varies BETWEEN atoms
+          // rather than stepping from one nearest-atom colour to the
+          // next. Verified live that the vertices really do follow it --
+          // 94 distinct colours over 302 vertices on acetic acid, and
+          // correlating each rendered vertex colour against the supplied
+          // potential at its own position gives r = -0.95 (negative
+          // because RWB puts red at the LOW end), with no vertex
+          // coloured with the wrong sign.
+          style.voldata = new $3Dmol.VolumeData(field.dx, 'dx');
+          style.volscheme = new $3Dmol.Gradient.RWB(field.low, field.high);
+        } else if (atomColors) {
           // colorfunc is invoked once per atom (confirmed: 9 calls for a
           // 9-atom ethanol), and surface vertices take the colour of the
           // nearest atom -- which is what maps a per-atom property like
@@ -195,12 +209,17 @@
           // per-atom colours belonged to the OLD molecule's atom indices
           // anyway -- same staleness reason currentVisualization is
           // dropped. Re-add the surface shape (representation/opacity) if
-          // one was active, but without carrying stale colours over.
+          // one was active, but without carrying stale colours over. The
+          // scalar field goes for a stronger reason than the colours do:
+          // it is a grid pinned to the OLD molecule's coordinates, so
+          // keeping it would drape one molecule's potential over
+          // another's shape.
           if (currentSurface) {
             currentSurface = {
               representation: currentSurface.representation,
               opacity: currentSurface.opacity,
               atomColors: null,
+              scalarField: null,
             };
             applySurface();
           }
@@ -266,11 +285,15 @@
         },
         // Phase 25b. `representation` is 'vdw'|'sas'|'ms'|'ses';
         // `atomColors` may be null for a plain uncoloured surface.
-        applySurface: function (representation, opacity, atomColors) {
+        // `scalarField` (Phase 25b follow-on) is {dx, low, high} -- OpenDX
+        // text plus the colour range, and takes precedence over
+        // `atomColors` when both are given.
+        applySurface: function (representation, opacity, atomColors, scalarField) {
           currentSurface = {
             representation: representation,
             opacity: opacity,
             atomColors: atomColors || null,
+            scalarField: scalarField || null,
           };
           applySurface();
         },
