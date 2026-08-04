@@ -175,6 +175,50 @@ def flagged(data: MoleculeInput) -> dict[int, AtomChoice]:
     return out
 
 
+def disagreement_defers(data: MoleculeInput) -> dict[int, AtomChoice]:
+    """`per_molecule_error`, but a surprise breaks toward the better
+    track record.
+
+    The case this exists for is a PER-ATOM failure, which no
+    molecule-level error estimate can see: quinine's C-5' is one carbon
+    where the calculation is ~11 ppm out while being fine everywhere else,
+    so its molecule-wide accuracy still looks good and it wins the atom.
+
+    When the two methods differ by more than their errors can explain, one
+    of them has failed beyond its stated accuracy and the disagreement
+    itself cannot say which. What CAN say is the prior: the lookup's
+    `good` and `medium` bands are measured at 1.1 and 3.4 ppm and rarely
+    blunder, while its `rough` band is measured at 10 ppm and blunders
+    routinely. So on a surprise, back the source with the better record --
+    lookup on `good`/`medium`, calculation on `rough`.
+
+    Checked against both quinine cases before being written: it keeps the
+    lookup at C-5' (medium, where the lookup is right) AND keeps ORCA at
+    C-2' (rough, disagreement 18 ppm, where ORCA is right and supplies the
+    biggest single gain). A rule that always deferred to the lookup would
+    get the second one wrong.
+    """
+    observed, n = _observed_orca_error(data)
+    error = observed if observed is not None else data.global_error
+    picked = _pick(data, error, f"disagreement_defers (n={n})")
+    out: dict[int, AtomChoice] = {}
+    for index, choice in picked.items():
+        both = index in data.lookup and index in data.orca
+        band = data.quality.get(index, "")
+        if both and choice.source == ORCA and band in ("good", "medium"):
+            combined = (LOOKUP_EXPECTED_ERROR.get(band, 0.0) ** 2 + error**2) ** 0.5
+            disagreement = abs(data.orca[index] - data.lookup[index])
+            if disagreement > combined:
+                out[index] = AtomChoice(
+                    LOOKUP, data.lookup[index], LOOKUP_EXPECTED_ERROR.get(band), True,
+                    f"methods differ by {disagreement:.1f} ppm against {combined:.1f} "
+                    f"explainable; deferring to the better-evidenced {band} lookup",
+                )
+                continue
+        out[index] = choice
+    return out
+
+
 #: Every rule the benchmark compares. `hard_gate` may return None (refused);
 #: the scorer treats that as "the lookup alone", which is what a user sees.
 STRATEGIES = {
@@ -184,6 +228,7 @@ STRATEGIES = {
     "per_molecule_error": per_molecule_error,
     "shrunk_error": shrunk_error,
     "flagged": flagged,
+    "disagreement_defers": disagreement_defers,
 }
 
 #: Reference points, not strategies -- the two inputs on their own. Scoring

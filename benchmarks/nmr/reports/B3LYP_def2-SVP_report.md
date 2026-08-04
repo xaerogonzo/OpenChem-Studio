@@ -1,4 +1,4 @@
-## B3LYP def2-SVP — all assigned carbons
+## B3LYP def2-SVP - all assigned carbons
 
 ```
 strategy                n    MAE           95% CI    med   RMSE    p95   worst  sel.acc  regret  worst reg  ref
@@ -11,6 +11,7 @@ global_error           28   2.75 [ 1.02,  3.44]    1.94   3.97   8.18   12.52   
 per_molecule_error     28   2.38 [ 1.02,  2.92]    1.94   3.21   6.39    8.65   85.7%    0.22       2.98    0
 shrunk_error           28   2.38 [ 1.02,  2.92]    1.94   3.21   6.39    8.65   85.7%    0.22       2.98    0
 flagged                28   2.38 [ 1.02,  2.92]    1.94   3.21   6.39    8.65   85.7%    0.22       2.98    0
+disagreement_defers    28   2.38 [ 1.02,  2.92]    1.94   3.21   6.39    8.65   85.7%    0.22       2.98    0
 ```
 
 ### good atoms
@@ -24,6 +25,7 @@ global_error           14   0.92    3.14   78.6%       2.98
 per_molecule_error     14   0.92    3.14   78.6%       2.98
 shrunk_error           14   0.92    3.14   78.6%       2.98
 flagged                14   0.92    3.14   78.6%       2.98
+disagreement_defers    14   0.92    3.14   78.6%       2.98
 ```
 
 ### medium atoms
@@ -37,6 +39,7 @@ global_error            1  12.52   12.52    0.0%      10.48
 per_molecule_error      1   2.04    2.04  100.0%       0.00
 shrunk_error            1   2.04    2.04  100.0%       0.00
 flagged                 1   2.04    2.04  100.0%       0.00
+disagreement_defers     1   2.04    2.04  100.0%       0.00
 ```
 
 ### rough atoms
@@ -50,4 +53,5 @@ global_error           13   3.97    8.65   92.3%       2.50
 per_molecule_error     13   3.97    8.65   92.3%       2.50
 shrunk_error           13   3.97    8.65   92.3%       2.50
 flagged                13   3.97    8.65   92.3%       2.50
+disagreement_defers    13   3.97    8.65   92.3%       2.50
 ```
