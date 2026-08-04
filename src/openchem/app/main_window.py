@@ -294,6 +294,7 @@ class MainWindow(QMainWindow):
         # are appended directly to this menu, below the separator above.
 
         help_menu = self.menuBar().addMenu("&Help")
+        help_menu.addAction("Open Log Folder", self._open_log_folder)
         help_menu.addAction("About OpenChem Studio", self._show_about)
 
     def _add_structure_display_toggle(
@@ -741,6 +742,20 @@ class MainWindow(QMainWindow):
     def _show_external_tools_dialog(self) -> None:
         dialog = ExternalToolsDialog(self._settings, self)
         dialog.exec()
+
+    def _open_log_folder(self) -> None:
+        """A log nobody can find is barely better than no log at all --
+        and the failure that motivated writing one to disk was reported by
+        a user who had no reason to know a `logs` directory existed."""
+        from openchem.app.logging_setup import log_directory
+
+        directory = log_directory()
+        try:
+            directory.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            QMessageBox.warning(self, "No log folder", f"Could not open {directory}: {exc}")
+            return
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(directory)))
 
     def _show_about(self) -> None:
         QMessageBox.about(
