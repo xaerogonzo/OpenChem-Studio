@@ -197,6 +197,42 @@ def filter_altlocs(structure_text: str, source_format: str) -> str:
     return structure_text
 
 
+def is_symmetry_generated(residue) -> bool:
+    """Whether this atom is a crystallographic copy Open Babel invented.
+
+    Open Babel expands the unit cell when it cannot recognise a space
+    group -- it says so ("Unknown space group error... Converting to P 1
+    cell using available symmetry transformations") and then returns the
+    symmetry mates as real atoms. Measured against the deposited files:
+    7M93 came back at 2.00x its own `_atom_site` row count and 6WGT at
+    8.00x, and the receptor actually handed to Vina for 6WGT held 73,707
+    atoms for an 8,100-atom deposit. That is not a crash, it is a
+    silently wrong receptor -- eight overlapping copies of the protein.
+
+    The generated copies carry NO residue record, which is what makes
+    them identifiable, and the arithmetic confirms the identification is
+    exact rather than approximate: dropping them leaves 5,812 atoms for
+    7M93 and 8,100 for 6WGT, each equal to that file's own row count to
+    the atom. Structures Open Babel handles correctly have none, so this
+    costs them nothing -- 8ZYO triggers the same warning and has zero.
+
+    The check is `residue.OBResidue is None`, NOT `residue is None`,
+    because pybel wraps the null pointer in a perfectly truthy `Residue`
+    object. That is why the existing `residue is not None` guard let
+    these through and `residue.name` then raised `AttributeError:
+    'NoneType' object has no attribute 'GetName'`, which is how this was
+    found at all.
+
+    There is no Open Babel read option to prevent the expansion -- its
+    mmCIF reader offers only `s`, `p`, `b` and `w` -- and stripping the
+    `_cell` records from the text to stop it SEGFAULTS the parser.
+    Filtering after the fact is what is left, and it is exact.
+    """
+    if residue is None:
+        return True
+    return getattr(residue, "OBResidue", None) is None
+
+
 def is_stripped_residue(
     residue_name: str, strip_waters: bool, strip_cofactors: bool
 ) -> bool:
@@ -284,6 +320,8 @@ def receptor_atoms_from_structure(
         if atom.atomicnum == 0:
             continue
         residue = atom.residue
+        if is_symmetry_generated(residue):
+            continue
         if residue is not None and is_stripped_residue(
             residue.name or "", strip_waters, strip_cofactors
         ):

@@ -172,6 +172,7 @@ class VinaDockingProvider(DockingProvider):
         try:
             structure_text = filter_altlocs(structure_text, source_format)
             mol = pybel.readstring(source_format, structure_text)
+            self._drop_symmetry_copies(mol.OBMol)
             self._strip_unwanted_residues(mol.OBMol, prep_options)
             # correctForPH=True + pH (default 7.4, physiological) replaces
             # the old bare mol.addh() (which pybel's own wrapper calls with
@@ -190,6 +191,32 @@ class VinaDockingProvider(DockingProvider):
             mol.write("pdbqt", str(out_path), overwrite=True, opt={"r": None})
         except Exception as exc:  # noqa: BLE001 - surface as a clear docking-specific error
             raise DockingProviderError(f"Failed to prepare receptor: {exc}") from exc
+
+    def _drop_symmetry_copies(self, obmol) -> None:
+        """Delete the unit-cell copies Open Babel invents for structures
+        whose space group it cannot recognise.
+
+        See `pose_analysis.is_symmetry_generated` for the measurements.
+        The short version: 6WGT's 8,100-atom deposit reached this method
+        as 64,764 atoms and left it as a 73,707-atom receptor, eight
+        overlapping copies of the protein, and Vina docked into that.
+
+        This runs BEFORE `_strip_unwanted_residues` and is not optional,
+        exactly like the altloc filter: no preparation setting should be
+        able to leave phantom copies in. It also has to be done here
+        rather than only in the analysis parser -- the whole point of the
+        shared `is_stripped_residue` predicate is that what gets docked
+        and what gets analysed cannot disagree, and a fix on one side
+        only would reintroduce that split.
+        """
+        from openbabel import openbabel as ob
+
+        # Collected before deleting: mutating while iterating the atom
+        # list invalidates the iteration, the same reason
+        # `_strip_unwanted_residues` gathers first.
+        doomed = [atom for atom in ob.OBMolAtomIter(obmol) if atom.GetResidue() is None]
+        for atom in doomed:
+            obmol.DeleteAtom(atom)
 
     def _strip_unwanted_residues(self, obmol, prep_options: dict[str, Any]) -> None:
         strip_waters = prep_options.get("strip_waters", True)

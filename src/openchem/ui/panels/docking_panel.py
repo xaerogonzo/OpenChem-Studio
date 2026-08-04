@@ -17,6 +17,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+import logging
+
 from openchem.app.settings import Settings
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.docking import DockingBox
@@ -25,6 +27,8 @@ from openchem.events.base import EventBus
 from openchem.events.events import DockingJobStateChanged, DockingResultReady
 from openchem.services.docking_service import DockingService
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
+
+logger = logging.getLogger("openchem.ui")
 
 _POSE_COLUMNS = ("Pose", "Binding Affinity (kcal/mol)", "RMSD l.b.", "RMSD u.b.")
 
@@ -61,6 +65,14 @@ class DockingPanel(QWidget):
         self._pending_receptor_uuid: str | None = None
 
         self._receptor_combo = QComboBox(self)
+        # Parsing a receptor is not free (Open Babel reads the whole file),
+        # so the summary is computed on demand from the button rather than
+        # on every combo change.
+        self._contents_button = QPushButton("Contents...", self)
+        self._contents_button.setToolTip(
+            "List the chains, ligands and waters in the selected receptor"
+        )
+        self._contents_button.clicked.connect(self._on_contents_clicked)
         self._ligand_combo = QComboBox(self)
 
         self._center_x = self._make_spin(-1000, 1000, 0.0)
@@ -98,8 +110,12 @@ class DockingPanel(QWidget):
         self._table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
+        receptor_row = QHBoxLayout()
+        receptor_row.addWidget(self._receptor_combo, 1)
+        receptor_row.addWidget(self._contents_button)
+
         selection_form = QFormLayout()
-        selection_form.addRow("Receptor:", self._receptor_combo)
+        selection_form.addRow("Receptor:", receptor_row)
         selection_form.addRow("Ligand:", self._ligand_combo)
 
         box_group = QGroupBox("Search box (Å)", self)
@@ -160,6 +176,34 @@ class DockingPanel(QWidget):
             self._receptor_combo.addItem(macromolecule.display_name, macromolecule.uuid)
         for molecule in self._project.molecules:
             self._ligand_combo.addItem(molecule.display_name, molecule.uuid)
+
+    def _on_contents_clicked(self) -> None:
+        """Summarise the selected receptor and show its chains.
+
+        Parsed here rather than cached on the model: the summary is a view
+        of the structure text, and caching it would give the model a
+        second copy of the truth that could go stale the moment the text
+        was replaced.
+        """
+        from openchem.chem.structure_summary import summarize_structure
+        from openchem.ui.dialogs.structure_contents_dialog import StructureContentsDialog
+
+        if self._project is None:
+            return
+        receptor_uuid = self._receptor_combo.currentData()
+        receptor = (
+            self._project.find_macromolecule(receptor_uuid) if receptor_uuid else None
+        )
+        if receptor is None:
+            self._status_label.setText("Select a receptor first.")
+            return
+        try:
+            summary = summarize_structure(receptor.structure_text, receptor.source_format)
+        except Exception as exc:  # noqa: BLE001 - surfaced, never a crash
+            logger.exception("Failed to summarise receptor")
+            self._status_label.setText(f"Could not read that receptor: {exc}")
+            return
+        StructureContentsDialog(receptor.display_name, summary, self).exec()
 
     def _on_configure_clicked(self) -> None:
         dialog = ExternalToolsDialog(self._settings, self, focus="vina")
