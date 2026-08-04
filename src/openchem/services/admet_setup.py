@@ -136,7 +136,14 @@ def _run(command: list[str], step: str, timeout: int = 3600) -> None:
 
 def install(root: Path | None = None, on_progress: ProgressCallback | None = None) -> Path:
     """Builds the environment and returns the interpreter path to store in
-    Settings. Safe to re-run: both steps overwrite or are idempotent."""
+    Settings.
+
+    Safe to re-run, and that is load-bearing rather than a nicety: a
+    re-run is what a user does after a failure, and the expensive part
+    (~1 GB of PyTorch) must not be redownloaded to retry a check that
+    takes seconds. An existing interpreter is reused; pip install is
+    idempotent; verification simply runs again.
+    """
     root = root or default_install_root()
     root.mkdir(parents=True, exist_ok=True)
     venv = root / ".venv"
@@ -155,15 +162,27 @@ def install(root: Path | None = None, on_progress: ProgressCallback | None = Non
     uv = find_uv()
 
     report(0)
-    if uv:
-        _run([uv, "venv", "--python", _TARGET_PYTHON, str(venv)], steps[0])
+    if python.is_file():
+        # REUSE, don't recreate. `uv venv` refuses to touch a directory
+        # that already holds an environment ("A virtual environment
+        # already exists ... Use --clear to replace it") and exits
+        # non-zero, so a re-run died at this first step -- which is
+        # exactly what a user does after any later step fails. The
+        # docstring claimed this was idempotent; it was not, and only the
+        # `python -m venv` fallback ever actually was.
+        logger.info("ADMET setup: reusing the existing environment at %s", python)
     else:
-        fallback = find_fallback_python()
-        if not fallback:
-            raise AdmetSetupError(describe_prerequisites())
-        _run([*fallback.split(), "-m", "venv", str(venv)], steps[0])
-    if not python.is_file():
-        raise AdmetSetupError(f"Environment created but no interpreter at {python}")
+        if uv:
+            # --clear covers a half-created venv: the directory exists,
+            # the interpreter does not.
+            _run([uv, "venv", "--python", _TARGET_PYTHON, "--clear", str(venv)], steps[0])
+        else:
+            fallback = find_fallback_python()
+            if not fallback:
+                raise AdmetSetupError(describe_prerequisites())
+            _run([*fallback.split(), "-m", "venv", str(venv)], steps[0])
+        if not python.is_file():
+            raise AdmetSetupError(f"Environment created but no interpreter at {python}")
 
     report(1)
     pip_install = ([uv, "pip", "install", "--python", str(python)] if uv

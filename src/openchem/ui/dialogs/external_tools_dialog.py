@@ -1117,7 +1117,44 @@ class ExternalToolsDialog(QDialog):
         )
 
     def _on_admet_setup_failed(self, message: str) -> None:
+        """A failed setup must not lose an environment that got built.
+
+        The expensive part is ~1 GB of PyTorch; verification is a few
+        seconds on top. When only the check fails -- a cold first model
+        load, a transient timeout -- the environment is on disk and
+        usable, and throwing its path away leaves the user to hunt for it
+        in a file browser. Recording it costs nothing and is honest,
+        because `describe_admet_status` already reports a configured but
+        non-working environment as exactly that rather than as working.
+
+        This is also the first place that writes the outcome to the log.
+        Nothing did before, so a failure left no trace anywhere once the
+        message box was dismissed -- and that is precisely the state that
+        made one real failure impossible to diagnose after the fact.
+        """
+        from openchem.services.admet_setup import default_install_root, interpreter_for
+
         self._admet_setup_button.setEnabled(True)
+        logger.error("ADMET setup failed: %s", message)
+
+        built = interpreter_for(default_install_root())
+        if built.is_file():
+            self._admet_path_edit.setText(str(built))
+            self._on_admet_path_edited()
+            self._admet_status_label.setText(
+                f"Setup reported a failure, but an environment exists at the path "
+                f"above - press Test to retry the check. ({message})"
+            )
+            logger.info("ADMET setup: keeping the built environment at %s", built)
+            QMessageBox.warning(
+                self,
+                "ADMET setup incomplete",
+                f"{message}\n\nThe environment itself was built, at:\n{built}\n\n"
+                "Its path has been kept, so press Test to retry the check, or "
+                "run Set Up again to repair it.",
+            )
+            return
+
         self._admet_status_label.setText(f"Setup failed: {message}")
         QMessageBox.critical(self, "ADMET setup failed", message)
 

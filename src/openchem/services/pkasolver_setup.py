@@ -206,15 +206,23 @@ def install(root: Path | None = None, on_progress: ProgressCallback | None = Non
 
     # 1. environment
     report(0)
-    if uv:
-        _run([uv, "venv", "--python", _TARGET_PYTHON, str(venv)], steps[0])
+    if python.is_file():
+        # Reuse rather than recreate -- see the note in `admet_setup.install`.
+        # `uv venv` exits non-zero on an existing environment, so the
+        # "repaired by running it again" promise above was not kept: a
+        # re-run died at this first step, before reaching whatever had
+        # actually failed.
+        logger.info("pkasolver setup: reusing the existing environment at %s", python)
     else:
-        fallback = find_fallback_python()
-        if not fallback:
-            raise PkasolverSetupError(describe_prerequisites())
-        _run([*fallback.split(), "-m", "venv", str(venv)], steps[0])
-    if not python.is_file():
-        raise PkasolverSetupError(f"Environment created but no interpreter at {python}")
+        if uv:
+            _run([uv, "venv", "--python", _TARGET_PYTHON, "--clear", str(venv)], steps[0])
+        else:
+            fallback = find_fallback_python()
+            if not fallback:
+                raise PkasolverSetupError(describe_prerequisites())
+            _run([*fallback.split(), "-m", "venv", str(venv)], steps[0])
+        if not python.is_file():
+            raise PkasolverSetupError(f"Environment created but no interpreter at {python}")
 
     pip_install = ([uv, "pip", "install", "--python", str(python)] if uv
                    else [str(python), "-m", "pip", "install"])
