@@ -200,3 +200,57 @@ lipophilic molecules are the weak ones.
 One leak: quinidine's *substrate* prediction peaks on 2D6 (0.62) when it
 is a 3A4 substrate that merely *inhibits* 2D6 — the inhibition and
 substrate endpoints are not perfectly disentangled.
+
+## `ames_panel.py` — the endpoint with a free alternative
+
+hERG and CYP have no honest rule-based substitute, which is what justifies
+a sidecar for them. **Ames is different.** Mutagenicity is where
+structural alerts genuinely work — a mutagen usually is or becomes an
+electrophile, and electrophiles have recognisable substructures. So the
+question is not "is the model good" but "does it beat what the app
+already has offline and instantly".
+
+26 compounds (15 standard reference mutagens and Ames-positive drugs, 11
+with clean records) against eight textbook alert classes plus a
+fused-ring rule for PAHs.
+
+| | TP | TN | FP | FN | accuracy |
+|---|---|---|---|---|---|
+| ADMET-AI model | 14 | 10 | 1 | 1 | **92%** |
+| structural alerts | 14 | 10 | 1 | 1 | **92%** |
+
+An exact tie — **but they fail on different compounds**, which is the
+useful part. All four disagreements are instructive:
+
+| compound | known | outcome |
+|---|---|---|
+| aflatoxin B1 | POS | **model right** — its electrophile is an epoxide formed *metabolically*, so no static alert can express it |
+| procarbazine | POS | **alerts right** (hydrazine); model scored 0.40 |
+| paracetamol | neg | **model right** — the N-aryl amide alert over-fires |
+| sucrose | neg | **alerts right**; model scored 0.53 |
+
+Complementary, not redundant. Combining them buys what neither has alone:
+
+```
+either flags it    sensitivity 100%   specificity  82%
+both must agree    sensitivity  87%   specificity 100%
+```
+
+For a genotoxicity screen sensitivity is what matters — a missed mutagen
+costs more than a compound needlessly re-tested — so **treat a hit from
+either source as the screen**. The model earns its place by catching
+metabolically-activated mutagens no substructure can express, not by
+being better across the board.
+
+**The alert patterns are verified, not asserted.** Ten match/no-match
+checks run before the table and abort the script if any pattern
+misbehaves — a plausible-looking SMARTS that quietly matches nothing
+would make the model look good for the wrong reason.
+
+Ames is also the cleanest of the three endpoints on the size confound:
+
+| endpoint | r(prediction, heavy atoms) | r(prediction, logP) |
+|---|---|---|
+| hERG | +0.82 | +0.75 |
+| CYP | +0.24 | +0.54 |
+| **Ames** | **−0.14** | **+0.32** |

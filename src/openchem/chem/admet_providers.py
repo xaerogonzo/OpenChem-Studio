@@ -108,6 +108,44 @@ well supported here.
 One leak worth knowing: quinidine's SUBSTRATE prediction peaks on 2D6
 (0.62) when it is a 3A4 substrate that merely INHIBITS 2D6 -- so the
 substrate and inhibition endpoints are not perfectly disentangled.
+
+AMES IS THE ONE ENDPOINT WITH A REAL FREE ALTERNATIVE, so it was measured
+against that rather than in isolation. Mutagenicity is where structural
+alerts genuinely work -- a mutagen usually is or becomes an electrophile,
+and electrophiles have recognisable substructures. Measured 2026-08-04
+over 26 compounds (15 standard reference mutagens and Ames-positive
+drugs, 11 with clean records), against eight textbook alert classes plus
+a fused-ring rule (`benchmarks/docking/ames_panel.py`):
+
+    ADMET-AI model      14 TP  10 TN  1 FP  1 FN     92%
+    structural alerts   14 TP  10 TN  1 FP  1 FN     92%
+
+An exact tie -- **but they fail on different compounds**, which is the
+useful part. All four disagreements are instructive:
+
+    aflatoxin B1   model right; no static alert catches it, because its
+                   electrophile is an epoxide formed metabolically
+    procarbazine   alerts right (hydrazine); model scored it 0.40
+    paracetamol    model right; the N-aryl amide alert over-fires on a
+                   drug with a clean genotoxicity record
+    sucrose        alerts right; model scored it 0.53
+
+So they are complementary rather than redundant, and combining them buys
+what neither has alone:
+
+    either flags it    sensitivity 100%   specificity  82%
+    both must agree    sensitivity  87%   specificity 100%
+
+For a genotoxicity screen sensitivity is what matters -- a missed mutagen
+costs more than a compound needlessly re-tested -- so **treat a hit from
+EITHER source as the screen**. The model earns its place here by catching
+metabolically-activated mutagens that no substructure can express, not by
+being better across the board.
+
+Ames is also the cleanest of the three endpoints on the confound that
+ruins hERG: r(prediction, heavy atoms) = -0.14, r(prediction, logP) =
++0.32. Ranked by how size-driven they are -- hERG +0.82, CYP +0.24,
+Ames -0.14.
 """
 
 from __future__ import annotations
