@@ -40,6 +40,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.chem.structure_assembly import AssemblyAnnotation
 from openchem.chem.structure_summary import StructureSummary
 
 _COLUMNS = ["Chain", "Type", "Contents", "Atoms", "Sequence"]
@@ -59,15 +60,47 @@ class StructureContentsDialog(QDialog):
         summary: StructureSummary,
         parent: QWidget | None = None,
         keep_chains: list[str] | None = None,
+        assembly: AssemblyAnnotation | None = None,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle(f"Contents of {display_name}")
         self._summary = summary
         self._checks: dict[str, QTableWidgetItem] = {}
+        self._assembly = assembly or AssemblyAnnotation()
+        primary = self._assembly.primary
+        self._surplus = set(
+            self._assembly.extra_chains([c.chain_id for c in summary.chains])
+        )
 
         headline = QLabel(
             f"{len(summary.chains)} chains, {summary.total_atoms:,} atoms", self
         )
+
+        # What the depositor said, which beats anything inferable from
+        # the atoms. Shown above the complex warning because it often
+        # ANSWERS it: "5 polymer chains" is a question, "the biological
+        # unit is a monomer of chain D" is the answer.
+        assembly_note = QLabel(self)
+        assembly_note.setWordWrap(True)
+        if primary is not None:
+            parts = []
+            if primary.oligomeric_details:
+                parts.append(f"Deposited biological unit: {primary.oligomeric_details}")
+            if self._surplus:
+                parts.append(
+                    f"Chains not part of it: {', '.join(sorted(self._surplus))} "
+                    "(marked below) — these are crystallisation extras or lattice "
+                    "neighbours and are usually worth excluding."
+                )
+            if primary.needs_generated_copies:
+                parts.append(
+                    f"It is built by applying {primary.operator_applications} "
+                    "transformations, so the full oligomer is not all present in "
+                    "this file. Nothing here generates the missing copies — that "
+                    "only matters if your site sits at the interface between them."
+                )
+            assembly_note.setText("  ".join(parts))
+        assembly_note.setVisible(bool(assembly_note.text()))
 
         warning = QLabel(self)
         warning.setWordWrap(True)
@@ -91,9 +124,15 @@ class StructureContentsDialog(QDialog):
             sequence = chain.sequence
             if len(sequence) > _SEQUENCE_PREVIEW:
                 sequence = f"{sequence[:_SEQUENCE_PREVIEW]}…"
+            kind = chain.kind
+            if chain.chain_id in self._surplus:
+                # Named on the row itself, not only in the paragraph
+                # above, so the chain to untick is identifiable at a
+                # glance in a table that can run to 25 rows.
+                kind = f"{kind} (not in assembly)"
             values = [
                 chain.chain_id,
-                chain.kind,
+                kind,
                 chain.describe(),
                 f"{chain.atom_count:,}",
                 sequence,
@@ -105,7 +144,14 @@ class StructureContentsDialog(QDialog):
                     # Ticked by default: an untouched dialog must leave
                     # docking exactly as it was.
                     item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-                    included = keep_chains is None or chain.chain_id in keep_chains
+                    if keep_chains is not None:
+                        included = chain.chain_id in keep_chains
+                    else:
+                        # First open with an annotation present:
+                        # pre-untick what the depositor excluded. Still
+                        # only a SUGGESTION -- nothing is applied until
+                        # OK, and Cancel leaves docking untouched.
+                        included = chain.chain_id not in self._surplus
                     item.setCheckState(
                         Qt.CheckState.Checked if included else Qt.CheckState.Unchecked
                     )
@@ -138,6 +184,7 @@ class StructureContentsDialog(QDialog):
 
         layout = QVBoxLayout(self)
         layout.addWidget(headline)
+        layout.addWidget(assembly_note)
         layout.addWidget(warning)
         layout.addWidget(table)
         layout.addWidget(note)

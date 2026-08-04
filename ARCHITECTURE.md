@@ -336,8 +336,23 @@ it).
   requirements would tell us what these abstractions should look like, so
   building them now would mean guessing. See the "Explicitly deferred"
   reasoning preserved in `PLUGIN_SDK.md`'s "Known limitations" section.
-- `MacromoleculeModel` only stores raw PDB/mmCIF text — no structured
-  chain/residue/assembly parsing. That part is still a real gap.
+- `MacromoleculeModel` only stores raw PDB/mmCIF text. Chains and residues
+  are no longer unreachable, though — `chem/structure_summary.py` derives
+  them on demand, and the Docking panel's "Contents..." both shows them and
+  lets chains be excluded from the receptor. Derived rather than stored
+  deliberately: the summary is a view of `structure_text`, and caching it
+  on the model would give the model a second copy of the truth that goes
+  stale the moment the text is replaced.
+
+  **BIOLOGICAL ASSEMBLY is the part still missing**, and it is not the same
+  question as the symmetry copies `is_symmetry_generated` now discards.
+  Those are junk Open Babel invents when it cannot parse a space group; an
+  assembly (`pdbx_struct_assembly` / `pdbx_struct_oper_list` in mmCIF,
+  `REMARK 350` in PDB) is curated depositor annotation saying which
+  transformations produce the biologically real oligomer. It matters for
+  docking because a deposited asymmetric unit is not always the functional
+  unit, and a binding site can sit at an interface that only exists once
+  the assembly is built.
 
   BinaryCIF is no longer: `chem/binarycif.py` decodes it and
   `chem/structure_io.py` routes files by content (and gunzips) at import.

@@ -193,6 +193,7 @@ class DockingPanel(QWidget):
         second copy of the truth that could go stale the moment the text
         was replaced.
         """
+        from openchem.chem.structure_assembly import parse_assembly
         from openchem.chem.structure_summary import summarize_structure
         from openchem.ui.dialogs.structure_contents_dialog import StructureContentsDialog
 
@@ -216,6 +217,11 @@ class DockingPanel(QWidget):
             summary,
             self,
             keep_chains=self._keep_chains or None,
+            # Parsed from the SAME text the chains came from -- mmCIF
+            # assembly records name label_asym_ids and PDB REMARK 350
+            # names author ids, so crossing the two formats would annotate
+            # chains that do not exist under those names.
+            assembly=parse_assembly(receptor.structure_text, receptor.source_format),
         )
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
