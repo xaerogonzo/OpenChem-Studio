@@ -7,6 +7,8 @@ from typing import Callable
 from PySide6.QtCore import QUrl, Qt
 from PySide6.QtGui import QAction, QCloseEvent, QDesktopServices, QUndoStack
 from PySide6.QtWidgets import (
+    QApplication,
+    QDialog,
     QDockWidget,
     QFileDialog,
     QMainWindow,
@@ -210,6 +212,7 @@ class MainWindow(QMainWindow):
         file_menu.addAction("Export Molecule...", self._export_molecule)
         file_menu.addSeparator()
         file_menu.addAction("Import Macromolecule...", self._import_macromolecule)
+        file_menu.addAction("Receptor Library...", self._open_receptor_library)
         file_menu.addSeparator()
         file_menu.addAction("Exit", self.close)
 
@@ -449,6 +452,52 @@ class MainWindow(QMainWindow):
             display_name=path.stem, structure_text=structure_text, source_format=source_format
         )
         self.add_macromolecule(macromolecule)
+
+    def _open_receptor_library(self) -> None:
+        """Browse the curated catalogue, then download and import a target.
+
+        The download happens HERE rather than in the dialog, so the dialog
+        stays a pure chooser and the import path is the same one
+        `_import_macromolecule` already uses. The structure is fetched only
+        after the user accepts -- browsing costs nothing.
+        """
+        if self._session.project is None:
+            return
+        from openchem.services.receptor_library_service import entry_metadata, fetch_structure
+        from openchem.ui.dialogs.receptor_library_dialog import ReceptorLibraryDialog
+
+        dialog = ReceptorLibraryDialog(self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        entry = dialog.selected_entry()
+        if entry is None:
+            return
+
+        # A first download of a large cryo-EM structure is a few seconds on
+        # a slow link, and it blocks the GUI thread. A busy cursor is the
+        # honest minimum; a JobManager job would be the right answer if
+        # this ever grew to fetching several at once.
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            structure_text, source_format = fetch_structure(entry.pdb_id)
+        except Exception as exc:  # noqa: BLE001 - reported, never crashes the window
+            logger.exception("Receptor library download failed for %s", entry.pdb_id)
+            QMessageBox.critical(self, "Download failed", str(exc))
+            return
+        finally:
+            QApplication.restoreOverrideCursor()
+
+        self.add_macromolecule(
+            MacromoleculeModel(
+                display_name=f"{entry.target} ({entry.pdb_id})",
+                structure_text=structure_text,
+                source_format=source_format,
+                # Carries `ligand_code`, which is what lets the docking
+                # panel place the search box without asking the user to
+                # remember which component defined the site.
+                metadata=entry_metadata(entry),
+            )
+        )
 
     def add_macromolecule(self, macromolecule: MacromoleculeModel) -> None:
         if self._session.project is None:
