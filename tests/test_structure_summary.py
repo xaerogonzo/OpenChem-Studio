@@ -177,3 +177,93 @@ def test_an_ordinary_structure_loses_no_atoms_to_the_symmetry_filter():
     )
 
     assert len(atoms) == 7
+
+
+# --- excluding chains from docking ----------------------------------------
+#
+# The rule these enforce is the one this codebase keeps relearning: the
+# receptor that gets DOCKED and the receptor that gets ANALYSED must be
+# the same receptor. `keep_chains` travels in `receptor_prep_options`,
+# which the service hands to both, and both consult `is_excluded_chain`.
+
+
+def test_no_selection_means_no_restriction():
+    """Backward compatibility, and the reason the dialog returns an empty
+    list rather than every chain id when all are ticked: an untouched
+    dialog must leave docking exactly as it was."""
+    from openchem.chem.pose_analysis import is_excluded_chain
+
+    assert not is_excluded_chain("A", [])
+    assert not is_excluded_chain("A", None)
+    assert not is_excluded_chain("", [])
+
+
+def test_a_chain_outside_the_selection_is_excluded():
+    from openchem.chem.pose_analysis import is_excluded_chain
+
+    assert is_excluded_chain("B", ["A"])
+    assert not is_excluded_chain("A", ["A"])
+    assert not is_excluded_chain("A", ["A", "B"])
+
+
+def test_chain_matching_is_exact_and_not_case_folded():
+    """mmCIF `label_asym_id` is case-sensitive and multi-character, and
+    files do carry both `A` and `a`. Folding case to be forgiving would
+    silently merge two different chains -- the same class of error as the
+    residue key that once merged a homotetramer's subunits."""
+    from openchem.chem.pose_analysis import is_excluded_chain
+
+    assert is_excluded_chain("a", ["A"])
+    assert not is_excluded_chain("AA", ["AA"])
+    assert is_excluded_chain("AA", ["A"])
+
+
+def test_excluding_a_chain_drops_exactly_that_chain_from_the_analysis():
+    structure = _two_chain_structure()
+
+    everything = receptor_atoms_from_structure(
+        structure, "pdb", {"strip_waters": False, "strip_cofactors": False}
+    )
+    only_a = receptor_atoms_from_structure(
+        structure,
+        "pdb",
+        {"strip_waters": False, "strip_cofactors": False, "keep_chains": ["A"]},
+    )
+
+    assert {a.chain for a in everything} == {"A", "B"}
+    assert {a.chain for a in only_a} == {"A"}
+    assert len(only_a) == sum(1 for a in everything if a.chain == "A")
+
+
+def test_the_docking_receptor_and_the_analysis_agree_on_the_same_chains():
+    """The whole point, asserted directly rather than trusted.
+
+    Measured live on 3SN6 (the beta2AR/Gs complex) as well: unrestricted
+    gives 10,274 analysis atoms against a 10,345-atom receptor, and
+    keeping only chain D gives 3,433 against 3,456 -- the receptor running
+    slightly higher throughout because preparation adds hydrogens. Here
+    the same agreement is checked without a network fetch.
+    """
+    import pathlib
+    import tempfile
+
+    from openbabel import pybel
+
+    from openchem.chem.docking_providers import VinaDockingProvider
+
+    structure = _two_chain_structure()
+    options = {"strip_waters": True, "keep_chains": ["A"]}
+
+    analysed = receptor_atoms_from_structure(structure, "pdb", options)
+    with tempfile.TemporaryDirectory() as scratch:
+        out = pathlib.Path(scratch) / "receptor.pdbqt"
+        VinaDockingProvider()._convert_receptor_to_pdbqt(
+            pybel, structure, "pdb", out, options
+        )
+        docked = out.read_text()
+
+    assert {a.chain for a in analysed} == {"A"}
+    # Chain B's ligand code must not survive into the docked receptor --
+    # if it does, the analysis is describing atoms Vina never saw.
+    assert "STE" not in docked
+    assert "HOH" not in docked

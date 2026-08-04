@@ -7,7 +7,11 @@ from typing import Any, Callable
 
 from rdkit import Chem
 
-from openchem.chem.pose_analysis import filter_altlocs, is_stripped_residue
+from openchem.chem.pose_analysis import (
+    filter_altlocs,
+    is_excluded_chain,
+    is_stripped_residue,
+)
 from openchem.chem.vina_engine import VinaEngine, parse_vina_output_pdbqt, select_vina_engine
 from openchem.domain.docking import DockingBox, DockingPoseModel
 from openchem.plugins.interfaces import DockingProvider
@@ -173,6 +177,7 @@ class VinaDockingProvider(DockingProvider):
             structure_text = filter_altlocs(structure_text, source_format)
             mol = pybel.readstring(source_format, structure_text)
             self._drop_symmetry_copies(mol.OBMol)
+            self._strip_unselected_chains(mol.OBMol, prep_options)
             self._strip_unwanted_residues(mol.OBMol, prep_options)
             # correctForPH=True + pH (default 7.4, physiological) replaces
             # the old bare mol.addh() (which pybel's own wrapper calls with
@@ -216,6 +221,42 @@ class VinaDockingProvider(DockingProvider):
         # `_strip_unwanted_residues` gathers first.
         doomed = [atom for atom in ob.OBMolAtomIter(obmol) if atom.GetResidue() is None]
         for atom in doomed:
+            obmol.DeleteAtom(atom)
+
+    def _strip_unselected_chains(self, obmol, prep_options: dict[str, Any]) -> None:
+        """Keep only the chains the user chose, if they chose any.
+
+        The reason this option exists: 32 of the 49 curated receptors are
+        multi-polymer complexes, and a deposited "receptor" routinely
+        includes things that are not the target. 3SN6 is five polymer
+        chains -- a T4-lysozyme-fused receptor, a Gs heterotrimer and a
+        nanobody -- so docking the whole file searches a box that may sit
+        against a G protein.
+
+        Uses `pose_analysis.is_excluded_chain`, the SAME predicate the
+        interaction analysis applies, for the reason
+        `_strip_unwanted_residues` records: a receptor prepared one way
+        and analysed another produces contacts with atoms that were not
+        there. Because `keep_chains` travels in `receptor_prep_options`,
+        which the service already hands to both, the two cannot be given
+        different answers.
+
+        An empty selection means keep everything, so this is inert unless
+        a user opts in.
+        """
+        keep_chains = prep_options.get("keep_chains") or ()
+        if not keep_chains:
+            return
+        from openbabel import openbabel as ob
+
+        # Same collect-then-delete shape as `_strip_unwanted_residues`:
+        # deleting while iterating invalidates the iteration.
+        atoms_to_delete = []
+        for i in range(obmol.NumResidues()):
+            residue = obmol.GetResidue(i)
+            if is_excluded_chain(str(residue.GetChain()), keep_chains):
+                atoms_to_delete.extend(ob.OBResidueAtomIter(residue))
+        for atom in atoms_to_delete:
             obmol.DeleteAtom(atom)
 
     def _strip_unwanted_residues(self, obmol, prep_options: dict[str, Any]) -> None:

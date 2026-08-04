@@ -3,6 +3,7 @@ from __future__ import annotations
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
+    QDialog,
     QDoubleSpinBox,
     QFormLayout,
     QGroupBox,
@@ -73,6 +74,13 @@ class DockingPanel(QWidget):
             "List the chains, ligands and waters in the selected receptor"
         )
         self._contents_button.clicked.connect(self._on_contents_clicked)
+        # Empty means "no restriction", never "no chains" -- see
+        # StructureContentsDialog.keep_chains. Reset whenever the receptor
+        # changes, because a chain id names a different thing in a
+        # different structure and carrying "keep A" across would silently
+        # dock against the wrong subunit.
+        self._keep_chains: list[str] = []
+        self._receptor_combo.currentIndexChanged.connect(self._on_receptor_changed)
         self._ligand_combo = QComboBox(self)
 
         self._center_x = self._make_spin(-1000, 1000, 0.0)
@@ -203,7 +211,34 @@ class DockingPanel(QWidget):
             logger.exception("Failed to summarise receptor")
             self._status_label.setText(f"Could not read that receptor: {exc}")
             return
-        StructureContentsDialog(receptor.display_name, summary, self).exec()
+        dialog = StructureContentsDialog(
+            receptor.display_name,
+            summary,
+            self,
+            keep_chains=self._keep_chains or None,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        self._keep_chains = dialog.keep_chains()
+        self._update_chain_status()
+
+    def _on_receptor_changed(self, _index: int) -> None:
+        self._keep_chains = []
+        self._update_chain_status()
+
+    def _update_chain_status(self) -> None:
+        """Say so on the panel when the receptor is being cut down.
+
+        A restriction chosen in a dialog that is then closed is invisible,
+        and this one changes what Vina sees -- the user should not have to
+        reopen the dialog to find out whether it is in effect.
+        """
+        if self._keep_chains:
+            self._status_label.setText(
+                f"Docking against chain(s) {', '.join(self._keep_chains)} only."
+            )
+        elif self._status_label.text().startswith("Docking against chain"):
+            self._status_label.setText("")
 
     def _on_configure_clicked(self) -> None:
         dialog = ExternalToolsDialog(self._settings, self, focus="vina")
@@ -255,6 +290,10 @@ class DockingPanel(QWidget):
                 "ph": self._ph_spin.value(),
                 "strip_waters": self._strip_waters_check.isChecked(),
                 "strip_cofactors": self._strip_cofactors_check.isChecked(),
+                # Travels in the SAME dict the service hands to both the
+                # receptor preparation and the interaction analysis, so
+                # they cannot be given different receptors.
+                "keep_chains": list(self._keep_chains),
             },
         )
 

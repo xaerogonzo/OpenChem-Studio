@@ -14,16 +14,21 @@ buried inside the largest chain, spliced to a lysozyme. Docking into that
 file without looking means docking into a G protein, and NAMING the
 chains by eye is only possible because the sequence is shown.
 
-The dialog does NOT let you delete chains yet. That is a real follow-on
-and deliberately not bundled here: changing what reaches Vina is a change
-to results, and it needs the same shared-predicate discipline that
-`is_stripped_residue` already enforces between preparation and analysis.
-Showing what is there is useful on its own, and is what tells a user
-their box needs checking.
+Chains can also be TICKED OFF, which excludes them from docking. That
+travels as `keep_chains` in `receptor_prep_options`, the same dict the
+service already hands to both the receptor preparation and the
+interaction analysis, so the two cannot be given different receptors --
+the discipline `is_stripped_residue` established and that the 195
+phantom-clash bug exists to remember.
+
+Everything ticked is the default and is treated as "no restriction"
+rather than as a list of every chain, so a user who never opens this
+dialog gets exactly the previous behaviour.
 """
 
 from __future__ import annotations
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -49,10 +54,16 @@ class StructureContentsDialog(QDialog):
     """A read-only chain table for one macromolecule."""
 
     def __init__(
-        self, display_name: str, summary: StructureSummary, parent: QWidget | None = None
+        self,
+        display_name: str,
+        summary: StructureSummary,
+        parent: QWidget | None = None,
+        keep_chains: list[str] | None = None,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle(f"Contents of {display_name}")
+        self._summary = summary
+        self._checks: dict[str, QTableWidgetItem] = {}
 
         headline = QLabel(
             f"{len(summary.chains)} chains, {summary.total_atoms:,} atoms", self
@@ -89,6 +100,16 @@ class StructureContentsDialog(QDialog):
             ]
             for column, value in enumerate(values):
                 item = QTableWidgetItem(value)
+                if column == 0:
+                    # The chain cell doubles as the include/exclude tick.
+                    # Ticked by default: an untouched dialog must leave
+                    # docking exactly as it was.
+                    item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                    included = keep_chains is None or chain.chain_id in keep_chains
+                    item.setCheckState(
+                        Qt.CheckState.Checked if included else Qt.CheckState.Unchecked
+                    )
+                    self._checks[chain.chain_id] = item
                 if column == 4 and chain.sequence:
                     # The cell is truncated; the tooltip is not, so a
                     # chain stays identifiable by BLASTing what is here.
@@ -100,14 +121,18 @@ class StructureContentsDialog(QDialog):
         table.horizontalHeader().setStretchLastSection(True)
 
         note = QLabel(
-            "Chains are described by size and sequence rather than named: the "
-            "depositor's own description lives in mmCIF entity records, and "
-            "half of these structures arrive as PDB.",
+            "Untick a chain to exclude it from docking. Chains are described by "
+            "size and sequence rather than named: the depositor's own "
+            "description lives in mmCIF entity records, and half of these "
+            "structures arrive as PDB.",
             self,
         )
         note.setWordWrap(True)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close, self)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
+            self,
+        )
         buttons.rejected.connect(self.reject)
         buttons.accepted.connect(self.accept)
 
@@ -118,3 +143,20 @@ class StructureContentsDialog(QDialog):
         layout.addWidget(note)
         layout.addWidget(buttons)
         self.resize(760, 420)
+
+    def keep_chains(self) -> list[str]:
+        """The ticked chains, or an EMPTY LIST when all of them are.
+
+        "Everything" is returned as empty rather than as the full list on
+        purpose: downstream, an empty `keep_chains` means "no restriction"
+        and skips the filter entirely. Returning every chain id instead
+        would make the filter run on every dock for no reason, and would
+        silently drop any atom whose chain label the parser reports
+        differently from this table -- a chainless HETATM, for one.
+        """
+        selected = [
+            chain_id
+            for chain_id, item in self._checks.items()
+            if item.checkState() == Qt.CheckState.Checked
+        ]
+        return [] if len(selected) == len(self._checks) else selected

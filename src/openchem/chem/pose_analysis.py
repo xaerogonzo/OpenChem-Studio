@@ -233,6 +233,24 @@ def is_symmetry_generated(residue) -> bool:
     return getattr(residue, "OBResidue", None) is None
 
 
+def is_excluded_chain(chain: str, keep_chains) -> bool:
+    """Whether receptor preparation would drop this chain.
+
+    An empty or absent `keep_chains` means keep everything, so the option
+    is off by default and every existing caller is unaffected.
+
+    Comparison is EXACT, deliberately not case-folded. mmCIF
+    `label_asym_id` is case-sensitive and multi-character, and files
+    genuinely do carry both `A` and `a` as separate chains; folding case
+    to be forgiving would silently merge two different chains, which is
+    the same class of error as the residue key that once merged a
+    homotetramer's subunits.
+    """
+    if not keep_chains:
+        return False
+    return (chain or "").strip() not in {str(c).strip() for c in keep_chains}
+
+
 def is_stripped_residue(
     residue_name: str, strip_waters: bool, strip_cofactors: bool
 ) -> bool:
@@ -308,6 +326,7 @@ def receptor_atoms_from_structure(
     options = prep_options or {}
     strip_waters = bool(options.get("strip_waters", False))
     strip_cofactors = bool(options.get("strip_cofactors", False))
+    keep_chains = options.get("keep_chains") or ()
 
     # Unconditional, unlike the strips: receptor preparation ALWAYS drops
     # alternate locations, so matching it needs no option.
@@ -343,6 +362,12 @@ def receptor_atoms_from_structure(
                     chain = str(ob_residue.GetChain()).strip()
                 except Exception:  # noqa: BLE001 - chainless sources are valid
                     chain = ""
+        # Checked here rather than beside the residue strips because the
+        # chain is only known once the residue has been read. Same
+        # predicate the docking preparation uses -- see
+        # `VinaDockingProvider._strip_unselected_chains`.
+        if is_excluded_chain(chain, keep_chains):
+            continue
         atoms.append(
             ReceptorAtom(
                 element=table.GetElementSymbol(atom.atomicnum).upper(),
