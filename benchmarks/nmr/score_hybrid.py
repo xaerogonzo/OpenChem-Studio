@@ -238,6 +238,33 @@ def report(evaluations: list[StrategyEvaluation], title: str) -> str:
     return "\n".join(lines)
 
 
+def paired(challenger: StrategyEvaluation, baseline: StrategyEvaluation) -> str:
+    """Compare two strategies atom by atom, which is far more sensitive
+    than comparing their separate intervals.
+
+    Both rules answered the SAME atoms, so most of the spread in either
+    one's MAE is the molecules, not the rule. Differencing per atom
+    removes that shared variation -- two strategies whose own intervals
+    overlap almost entirely can still differ with certainty.
+    """
+    theirs = {(r.molecule, r.atom): r.error for r in baseline.records}
+    groups: dict[str, list[float]] = {}
+    for record in challenger.records:
+        key = (record.molecule, record.atom)
+        if key in theirs:
+            groups.setdefault(record.molecule, []).append(record.error - theirs[key])
+    if not groups:
+        return f"{challenger.name} vs {baseline.name}: nothing comparable"
+    deltas = [d for row in groups.values() for d in row]
+    low, high = bs.resample(list(groups.values()), bs.mean, seed=13)
+    mean = sum(deltas) / len(deltas)
+    return (
+        f"{challenger.name:<20} vs {baseline.name:<20} "
+        f"delta {mean:+6.3f} ppm  95% CI [{low:+.3f}, {high:+.3f}]  "
+        f"{bs.paired_verdict(low, high)}"
+    )
+
+
 def decision_matrix(evaluation: StrategyEvaluation) -> str:
     rows = ["molecule,atom,label,quality,truth,lookup,orca,chosen,value,error,better,regret,flagged"]
     fmt = lambda v: "" if v is None else f"{v:.3f}"  # noqa: E731

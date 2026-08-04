@@ -87,7 +87,12 @@ def raw_output(job: Job, mol: Chem.Mol, method_basis: str) -> str:
     if path.exists():
         return path.read_text(encoding="utf-8", errors="replace")
     text = _provider.build_input(mol, 0, 1, method_basis, "nmr")
-    with tempfile.TemporaryDirectory(prefix=f"nmr_{job.name}_") as scratch:
+    # The scratch directory is named after the molecule, and ORCA truncates
+    # its input path at the first space -- "Maleic anhydride" died in
+    # startup with "Cannot open input file ...nmr_d50_Maleic". Same trap as
+    # ORCA needing a space-free install path.
+    safe = "".join(c if c.isalnum() else "_" for c in job.name)
+    with tempfile.TemporaryDirectory(prefix=f"nmr_{safe}_") as scratch:
         inp = Path(scratch) / "job.inp"
         inp.write_text(text, encoding="utf-8")
         done = subprocess.run(
@@ -109,7 +114,17 @@ def run(jobs: list[Job], method_basis: str) -> dict:
             print(f"  {job.name}: cached", flush=True)
             continue
         mol = geometry(job)
-        result = _provider.parse_spectrum_output(raw_output(job, mol, method_basis), mol, "b", "nmr")
+        try:
+            result = _provider.parse_spectrum_output(
+                raw_output(job, mol, method_basis), mol, "b", "nmr"
+            )
+        except Exception as exc:  # noqa: BLE001
+            # One molecule that will not converge must not abort a batch of
+            # fifty; the failure is recorded and the rest continue.
+            print(f"  {job.name}: FAILED ({type(exc).__name__})", flush=True)
+            store[job.name] = {"failed": True, "error": str(exc)[:200]}
+            out_path.write_text(json.dumps(store, indent=1, sort_keys=True), encoding="utf-8")
+            continue
         if result is None or not result.values:
             # Recorded rather than skipped silently: a molecule that will
             # not converge is a real fact about the benchmark set.
