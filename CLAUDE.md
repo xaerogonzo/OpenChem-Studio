@@ -137,11 +137,12 @@ drains every pending deferred delete in the process, including ones other
 test files left queued, which is the same double-free the webview fixture
 already documents.
 
-**This is now done for you**, by two autouse fixtures in `tests/conftest.py`
-(`dispose_app_widgets`, `flush_deferred_deletes`) that apply it to every
-widget and every `deleteLater()` in the suite. The per-file `widgets`
-fixtures that predate them are still correct and were left alone.
-`tests/test_qt_object_disposal.py` fails if either regresses.
+**Do this per file. There is no global version of it, and the attempt to
+build one is recorded below as a warning.** The autouse
+`flush_deferred_deletes` in `tests/conftest.py` handles only the
+`deleteLater()` half -- it stops a backlog accumulating, and does NOT
+destroy widgets a test walks away from.
+`tests/test_qt_object_disposal.py` fails if it regresses.
 
 #### How the ketcher crash was found, and the two things that were wrong about it
 
@@ -198,15 +199,46 @@ between + `test_ketcher_editor_backend.py`:
 | deferred deletes flushed only | crash 2 / 2, via `test_jobs_panel.py` |
 | both fixtures | pass 8 / 8 |
 
-That middle row is the point: **fixing only the mechanism the old account
-named left the crash fully intact.** Abandoned widgets, which it did not
-mention, were the larger half.
+That middle row looked like the whole story, and it was not.
 
-With both fixtures in place: the full suite forced to drain at the ketcher
-test passes 3 of 3 (it crashed 3 of 3 before), the plain full suite passes 11
-of 11, the leaked-widget census is 0 (was 112) and the undelivered-delete
-census is 0 (was 18). Wall clock went from a mean of 102s over 6 runs to
-106s over 11, inside the run-to-run spread.
+#### THE WIDGET-DISPOSAL FIXTURE WAS REVERTED. Do not rebuild it blind.
+
+`dispose_app_widgets` tracked every top-level widget of one of this app's
+classes and destroyed each at teardown, per object. Against the base it was
+developed on (`a85463f`) every number said it worked: the table above, plus
+the leaked-widget census 112 -> 0 and 11 of 11 plain full runs green.
+
+**It crashed the suite outright on master**, at `2dff778`, once the
+help-window work had added many more MainWindow-with-viewer tests. Measured
+by an interleaved A/B with a byte-identical file set, neutering the fixture
+in place rather than deleting its test file:
+
+| arm | full runs |
+| --- | --- |
+| both fixtures active | **access violation 8 / 8** |
+| `dispose_app_widgets` neutered, flush still on | complete 8 / 8 |
+| `flush_deferred_deletes` neutered, widgets still on | access violation 3 / 3 |
+
+So it is that one fixture, on its own. The crash sites were
+`test_main_window_docking_visualization.py` and
+`test_ketcher_editor_backend.py` -- the MainWindow-plus-webview tests that
+pump events, neither at fault. Re-ordering it to finalise after
+`dispose_web_engine_views` did NOT help (still 5 of 5), so "a live view was
+taken down as a child" is not the explanation, and why destroying an
+abandoned widget synchronously at teardown faults here is **still unknown**.
+
+**The original ketcher crash is therefore still open.** Two further things
+that were measured and do not fit together yet, for whoever picks this up:
+master at `a093912` crashed 3 of 3 in a clean worktree with none of these
+fixtures, while master at `2dff778` is green 8 of 8 in the main checkout
+with none of them. Same suite, opposite results -- so before trusting ANY
+result here, pin down the checkout and the commit, and never compare a run
+in one against a run in the other.
+
+Method note, learned the hard way: an early "before" measurement was taken
+in a checkout that was being edited by hand at the time, so the two arms
+were different trees and the comparison was worthless. Check `git status`
+and file mtimes before believing an A/B.
 
 One caveat worth knowing if you re-run that instrumentation: stacking BOTH
 diagnostic plugins on top of the now-permanent fixtures double-wraps every
