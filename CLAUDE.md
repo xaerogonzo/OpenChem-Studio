@@ -50,7 +50,7 @@ The binary is not on PATH; call it by full path.
 uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suite.log
 ```
 
-A clean run is **~2 minutes**, ending at `1490 passed, 2 skipped`. Writing to a
+A clean run is **~2 minutes**, ending at `1980 passed, 2 skipped`. Writing to a
 file rather than a pipe is worth doing because it lets you watch progress
 while it runs.
 
@@ -106,6 +106,36 @@ If a run ever stalls again, sample before assuming it is slow:
 ```bash
 powershell "(Get-CimInstance Win32_Process -Filter \"Name='QtWebEngineProcess.exe'\" | Measure-Object).Count"
 ```
+
+### A test that builds a panel must destroy it before the next one runs
+
+Same family as the webview leak above, different object, and it fails much
+louder. A test that constructs an unparented widget and then calls
+`QApplication.processEvents()` -- which any test of an event-driven panel has
+to, since `EventBus.publish` is a *queued* Qt signal and nothing has been
+delivered when `waitForDone()` returns -- can crash with a **Windows access
+violation inside `processEvents`**. The widget from an *earlier* test was
+collected by Python at some arbitrary later moment, and this
+`processEvents()` drains the `DeferredDelete` posted against it.
+
+Measured on `tests/test_batch_panel.py`: **3 of 3 full runs of the file
+crashed**, while running only some subsets of it passed -- because whether it
+fires depends on when the collector happened to run. That "sometimes"
+is exactly what makes it read as flakiness rather than as a bug in the test.
+
+The fix is a fixture that destroys each widget deterministically and flushes
+**that widget's** deferred delete:
+
+```python
+widget.setParent(None)
+widget.deleteLater()
+QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+```
+
+Per widget, never `sendPostedEvents(None, DeferredDelete)` -- the global form
+drains every pending deferred delete in the process, including ones other
+test files left queued, which is the same double-free the webview fixture
+already documents.
 
 ### The suite must not touch the machine's real settings
 

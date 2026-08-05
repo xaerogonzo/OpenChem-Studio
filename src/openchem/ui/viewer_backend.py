@@ -79,3 +79,17 @@ class ViewerBackend(QObject):
         which backend it happens to be talking to.
         """
         raise NotImplementedError
+
+    def apply_surface(self, layer) -> None:
+        """Apply a molecular surface coloured by a scalar field, or clear
+        the active one if `layer` is None.
+
+        Optional capability, declared here rather than only on
+        `Mol3DViewerBackend` for the reason `load_macromolecule` gives
+        above: this base is where an optional viewer capability is meant
+        to be announced, so a caller can see what a backend may be asked
+        for without reading each implementation. Mol* does not implement
+        it -- a volumetric field over a whole receptor is a different
+        problem from one over a small molecule.
+        """
+        raise NotImplementedError

@@ -247,3 +247,86 @@ def test_surface_representations_match_the_confirmed_3dmol_types():
 
     assert SURFACE_REPRESENTATIONS == ["vdw", "sas", "ms", "ses"]
     assert set(SURFACE_REPRESENTATION_LABELS) == set(SURFACE_REPRESENTATIONS)
+
+
+# --- Categorical per-atom data (ring systems, Thread 1) -----------------
+
+
+def _categorical(values, **parameters):
+    """A PerAtomDataset marked categorical the way compute_ring_systems
+    marks one."""
+    return PerAtomDataset(
+        property_id="ring_systems",
+        name="Ring Systems",
+        units="",
+        method="iupac-namer-perception",
+        molecule_uuid="mol-1",
+        values=values,
+        provenance=Provenance(
+            created_by="core",
+            method="iupac-namer-perception",
+            parameters={"scale": "categorical", **parameters},
+        ),
+    )
+
+
+def test_categorical_data_gets_distinct_colours_not_an_interpolated_ramp():
+    """Two ring systems are not 'one apart' in any meaningful sense, so
+    they must be indexed into a qualitative palette rather than blended
+    along a sequential one."""
+    layer = build_atom_color_layer(_categorical({0: 1.0, 1: 1.0, 2: 2.0, 3: 2.0}))
+
+    assert layer.atom_colors[0] == layer.atom_colors[1]
+    assert layer.atom_colors[2] == layer.atom_colors[3]
+    assert layer.atom_colors[0] != layer.atom_colors[2]
+
+
+def test_a_categorical_layer_carries_no_colour_scale():
+    """A ColorScale exists to draw a continuous legend, and there is no
+    continuum here to draw. Leaving it set would render a gradient bar
+    describing something the layer does not show."""
+    assert build_atom_color_layer(_categorical({0: 1.0})).color_scale is None
+
+
+def test_a_continuous_dataset_is_unaffected_by_the_categorical_branch():
+    """The hint is opt-in: everything already shipping carries no `scale`
+    parameter and must keep its diverging/sequential behaviour."""
+    dataset = PerAtomDataset(
+        property_id="gasteiger_charge",
+        name="Partial Charge",
+        units="e",
+        method="rdkit",
+        molecule_uuid="mol-1",
+        values={0: -0.5, 1: 0.5},
+    )
+    assert build_atom_color_layer(dataset).color_scale is not None
+
+
+def test_categorical_labels_prefer_the_per_atom_note():
+    """'4a' is what the atom IS; '1.00' is an implementation detail of how
+    it got its colour."""
+    layer = build_atom_color_layer(
+        _categorical({0: 1.0, 1: 1.0}, atom_notes={0: "4a"}),
+        include_labels=True,
+    )
+    assert layer.atom_labels[0] == "4a"
+
+
+def test_categorical_labels_fall_back_to_the_category_name():
+    layer = build_atom_color_layer(
+        _categorical({0: 1.0}, category_labels={1: "fused aromatic, 10 atoms"}),
+        include_labels=True,
+    )
+    assert layer.atom_labels[0] == "fused aromatic, 10 atoms"
+
+
+def test_the_qualitative_palette_cycles_rather_than_clamping():
+    """A molecule with more ring systems than palette entries is rare but
+    real. Cycling repeats a colour, which is a legible failure; clamping
+    would paint every system past the last one identically with no hint
+    that it had."""
+    values = {i: float(i + 1) for i in range(20)}
+    colours = build_atom_color_layer(_categorical(values)).atom_colors
+
+    assert len(set(colours.values())) > 1
+    assert colours[0] == colours[7]  # palette has 7 entries, so it wraps

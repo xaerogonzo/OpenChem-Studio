@@ -159,13 +159,13 @@ def components(settings=None) -> list[Component]:
     and a tool can be installed or reconfigured between calls, and a
     stale inventory would offer to delete the wrong path.
     """
-    from openchem.services import admet_setup, pkasolver_setup
+    from openchem.services import admet_setup, pkasolver_setup, result_cache
 
     items = [
         Component(
             key="admet",
             label="ADMET environment",
-            description="hERG, CYP450 and Ames prediction (Python + PyTorch).",
+            description="hERG, CYP450, Ames and ADME prediction (Python + PyTorch).",
             paths=[admet_setup.default_install_root()],
             settings_keys=(ADMET_PYTHON_SETTING,),
             reinstall_hint="Re-installable from the ADMET tab; the rule-based hERG "
@@ -210,6 +210,22 @@ def components(settings=None) -> list[Component]:
             description="Temporary ORCA job directories.",
             paths=[app_paths.cache_root()],
             reinstall_hint="Recreated automatically as needed -- always safe to remove.",
+        ),
+        # LISTED SEPARATELY FROM SCRATCH, and the distinction is real.
+        # Scratch is genuinely disposable -- it is deleted at the end of
+        # every job anyway. These are finished results kept so a surface
+        # can be plotted, or a calculation re-opened, without re-running
+        # it. Deleting them is safe in the sense that nothing is lost that
+        # cannot be recomputed, and expensive in the sense that recomputing
+        # is what it cost in the first place. Rolling the two together
+        # under "always safe to remove" would understate that.
+        Component(
+            key="results",
+            label="Cached results",
+            description="Finished calculations kept so they need not be re-run.",
+            paths=[result_cache.cache_root()],
+            reinstall_hint="Rebuilt by running the calculations again -- nothing is "
+            "lost, but an optimisation costs what it cost the first time.",
         ),
     ]
     return items

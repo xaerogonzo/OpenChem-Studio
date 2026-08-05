@@ -3,7 +3,83 @@ from __future__ import annotations
 import pytest
 from rdkit import Chem
 
-from openchem.chem.pka_providers import compute_pka, pka_predictor_available, protonate_at_ph
+from openchem.chem.pka_providers import (
+    compute_pka,
+    map_site_atom,
+    pka_predictor_available,
+    protonate_at_ph,
+)
+
+
+def _tagged(smiles: str) -> str:
+    """A microstate SMILES in the shape `pka_runner._indexed_smiles` sends:
+    every atom carrying its own index as an atom map number."""
+    mol = Chem.MolFromSmiles(smiles)
+    for atom in mol.GetAtoms():
+        atom.SetAtomMapNum(atom.GetIdx() + 1)
+    return Chem.MolToSmiles(mol)
+
+
+class TestSiteAtomMapping:
+    """pkasolver's reaction-centre index belongs to its own pH-7 microstate,
+    not to the molecule we handed it. Getting this wrong does not fail --
+    it names the wrong atom -- so these check the atom's IDENTITY rather
+    than the number, which is the only thing that means anything.
+
+    Measured against the real sidecar (see `compute_pka`'s docstring): for
+    4-aminobenzoic acid the carboxylic pKa reports index 7, which is a ring
+    carbon in our numbering and the carboxylate oxygen in pkasolver's.
+    """
+
+    def test_the_case_that_named_a_ring_carbon(self):
+        ours = Chem.MolFromSmiles("Nc1ccc(cc1)C(=O)O")
+        # The microstate as Dimorphite-DL builds it: same molecule,
+        # deprotonated, and renumbered by the SMILES round trip.
+        site = _tagged("Nc1ccc(C(=O)[O-])cc1")
+
+        mapped = map_site_atom(site, 7, ours)
+
+        assert mapped is not None
+        assert ours.GetAtomWithIdx(mapped).GetSymbol() == "O"
+
+    def test_a_charge_change_does_not_break_the_match(self):
+        """The whole difficulty: an acid and its conjugate base differ in
+        formal charge, hydrogen count and bond order at once."""
+        ours = Chem.MolFromSmiles("CC(=O)O")
+        site = _tagged("CC(=O)[O-]")
+
+        mapped = map_site_atom(site, 3, ours)
+
+        assert ours.GetAtomWithIdx(mapped).GetSymbol() == "O"
+
+    def test_an_aromatic_amine_maps_to_its_nitrogen(self):
+        ours = Chem.MolFromSmiles("Nc1ccccc1")
+
+        mapped = map_site_atom(_tagged("Nc1ccccc1"), 0, ours)
+
+        assert ours.GetAtomWithIdx(mapped).GetSymbol() == "N"
+
+    def test_explicit_hydrogens_on_our_side_do_not_shift_the_answer(self):
+        """A molecule that has been through AddHs for a 3D view is still
+        the same molecule, and must still map."""
+        ours = Chem.AddHs(Chem.MolFromSmiles("CC(=O)O"))
+
+        mapped = map_site_atom(_tagged("CC(=O)[O-]"), 3, ours)
+
+        assert mapped is not None
+        assert ours.GetAtomWithIdx(mapped).GetSymbol() == "O"
+
+    def test_a_different_molecule_maps_to_nothing(self):
+        """Better to name no atom than the wrong one."""
+        assert map_site_atom(_tagged("CCO"), 0, Chem.MolFromSmiles("c1ccccc1")) is None
+
+    def test_a_runner_that_sends_no_microstate_yields_no_atom(self):
+        """Payloads predating `site_smiles` cannot be mapped. None is the
+        honest answer; the raw index is the bug."""
+        assert map_site_atom("", 3, Chem.MolFromSmiles("CC(=O)O")) is None
+
+    def test_an_untagged_microstate_yields_no_atom(self):
+        assert map_site_atom("CC(=O)[O-]", 3, Chem.MolFromSmiles("CC(=O)O")) is None
 
 
 def test_acetic_acid_is_neutral_at_low_ph():
@@ -124,6 +200,27 @@ def test_the_pka_line_shows_a_spread_only_when_there_is_one():
 
     assert with_spread == "pKa 4.19 +/- 0.27 (ensemble spread)"
     assert without == "pKa 4.19"
+
+
+def test_the_pka_line_names_the_ionizable_atom():
+    """The visible payoff of the mapping fix: the line can now say WHERE
+    the proton comes off, which it could not honestly do before."""
+    from openchem.chem.descriptor_providers import _pka_line
+    from openchem.chem.pka_providers import PkaPrediction
+
+    acetic_acid = Chem.MolFromSmiles("CC(=O)O")
+    line = _pka_line(PkaPrediction(atom_index=3, value=4.19), {}, acetic_acid)
+
+    assert line == "pKa 4.19 at O3"
+
+
+def test_an_unmapped_pka_names_no_atom_rather_than_guessing():
+    from openchem.chem.descriptor_providers import _pka_line
+    from openchem.chem.pka_providers import PkaPrediction
+
+    line = _pka_line(PkaPrediction(atom_index=None, value=4.19), {}, Chem.MolFromSmiles("CC(=O)O"))
+
+    assert line == "pKa 4.19"
 
 
 def test_the_spread_is_formatted_at_the_requested_precision():

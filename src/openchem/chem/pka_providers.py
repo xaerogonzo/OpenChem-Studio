@@ -101,6 +101,95 @@ def pka_predictor_available(interpreter_path: str | None) -> bool:
     return Path(interpreter_path).is_file()
 
 
+def _connectivity_skeleton(mol: Chem.Mol) -> tuple[Chem.Mol, list[int]]:
+    """A heavy-atom, element-and-connectivity-only copy, plus the original
+    atom index of each of its atoms.
+
+    Every one of formal charge, hydrogen count, bond order and aromatic
+    perception can differ between a molecule and its own conjugate base --
+    a carboxylic acid and a carboxylate differ in all four at once -- so a
+    match that respects any of them can fail on exactly the atoms that
+    matter. Reducing both sides to "which elements, bonded to which" leaves
+    a graph that protonation cannot change.
+
+    Hydrogens are dropped rather than matched, since they are the thing
+    being added and taken away. They are dropped by FILTERING rather than
+    by `RemoveHs`, so that the returned index list can carry the original
+    numbering back: one side of this match is a molecule the caller holds,
+    and an answer in some intermediate numbering would just be the bug
+    again in a new place.
+    """
+    heavy = [atom for atom in mol.GetAtoms() if atom.GetAtomicNum() > 1]
+    original_index = [atom.GetIdx() for atom in heavy]
+    skeleton_index = {idx: position for position, idx in enumerate(original_index)}
+
+    skeleton = Chem.RWMol()
+    for atom in heavy:
+        fresh = Chem.Atom(atom.GetAtomicNum())
+        fresh.SetNoImplicit(True)  # or RDKit re-derives H counts from valence
+        skeleton.AddAtom(fresh)
+    for bond in mol.GetBonds():
+        begin = skeleton_index.get(bond.GetBeginAtomIdx())
+        end = skeleton_index.get(bond.GetEndAtomIdx())
+        if begin is not None and end is not None:
+            skeleton.AddBond(begin, end, Chem.BondType.SINGLE)
+
+    built = skeleton.GetMol()
+    # Substructure matching needs ring membership, which normally arrives
+    # via sanitization -- and sanitizing this deliberately wrong-valence
+    # graph would fail. FastFindRings supplies just that one piece.
+    Chem.FastFindRings(built)
+    return built, original_index
+
+
+def map_site_atom(site_smiles: str, site_atom_index: int, target: Chem.Mol) -> int | None:
+    """Translate one of pkasolver's reaction-centre indices onto `target`'s
+    own atom numbering, or None when it cannot be done honestly.
+
+    `site_smiles` is the microstate the index belongs to, tagged by
+    `pka_runner._indexed_smiles` with atom map numbers recording pkasolver's
+    numbering (RDKit renumbers on every SMILES round trip, so the tags are
+    what survives).
+
+    A None return means the caller must not claim an atom. That is the
+    behaviour worth protecting: the bug this replaces did not fail, it
+    pointed confidently at a ring carbon.
+
+    On a symmetric molecule several matches are equally valid and an
+    arbitrary one is taken. That is not a defect -- the alternatives are
+    the same atom by symmetry, so any of them labels the same chemistry.
+    """
+    if not site_smiles or site_atom_index < 0:
+        return None
+    site = Chem.MolFromSmiles(site_smiles)
+    if site is None:
+        return None
+
+    # Atom map number n was written for pkasolver index n-1.
+    parsed_for_site_index = {
+        atom.GetAtomMapNum() - 1: atom.GetIdx()
+        for atom in site.GetAtoms()
+        if atom.GetAtomMapNum() > 0
+    }
+    parsed_index = parsed_for_site_index.get(site_atom_index)
+    if parsed_index is None:
+        return None
+
+    site_skeleton, site_originals = _connectivity_skeleton(site)
+    target_skeleton, target_originals = _connectivity_skeleton(target)
+    if site_skeleton.GetNumAtoms() != target_skeleton.GetNumAtoms():
+        return None
+    try:
+        site_position = site_originals.index(parsed_index)
+    except ValueError:
+        return None  # the reaction centre came back as a hydrogen
+
+    match = target_skeleton.GetSubstructMatch(site_skeleton, useChirality=False)
+    if not match or site_position >= len(match):
+        return None
+    return int(target_originals[match[site_position]])
+
+
 @dataclass(frozen=True)
 class PkaPrediction:
     """One predicted pKa, with the model's own spread on it.
@@ -138,7 +227,11 @@ class PkaPrediction:
     numbers at the end of its run.
     """
 
-    atom_index: int
+    #: The ionizable atom, in the CALLER's numbering, or None when the
+    #: mapping could not be established. None is not "atom 0" and must not
+    #: be rendered as an atom -- the defect this replaced did exactly that,
+    #: pointing confidently at whichever atom happened to share the index.
+    atom_index: int | None
     value: float
     stddev: float = 0.0
 
@@ -148,16 +241,28 @@ def compute_pka(mol: Chem.Mol, interpreter_path: str | None) -> list[PkaPredicti
     `None` if no pkasolver environment is configured -- callers must treat
     `None` as "not installed," not "no ionizable atoms found."
 
-    **The atom index is NOT reliable against `mol`'s own numbering.**
-    Confirmed live: for ibuprofen pkasolver reports reaction centre 12,
-    which is a carbon in our input molecule, while the acidic proton is on
-    the carboxyl oxygen; aniline reports index 0 (a ring carbon) for both
-    of its pKa values. The index refers to pkasolver's internal
-    protonated/deprotonated microstate representation, not the caller's
-    mol. Consumers should therefore use the pKa VALUES (which are
-    accurate -- see `describe_pka_status`) and must not key a per-atom
-    visualization off these indices without first establishing a real
-    atom mapping, or they will highlight the wrong atoms.
+    `atom_index` is in `mol`'s OWN numbering, or None where that could not
+    be established. It used to be neither: pkasolver's raw
+    `reaction_center_idx` indexes the pH-7 microstate Dimorphite-DL built
+    by round-tripping the molecule through SMILES, so it silently named a
+    different atom.
+
+    Measured on the real sidecar, 2026-08-05, index against what it
+    selects in each molecule:
+
+        4-aminobenzoic acid  pKa 5.38  idx 7   ours: C     microstate: O
+        ibuprofen            pKa 4.82  idx 12  ours: C     microstate: O
+        acetic acid          pKa 4.19  idx  3  ours: O     microstate: O
+        aniline              pKa 4.99  idx  0  ours: N     microstate: N
+
+    The last two are the reason this went unnoticed for so long -- on a
+    small molecule the two numberings often coincide, so the index looks
+    right until the molecule is big enough to reorder. (An earlier revision
+    of this docstring cited aniline as a failing case. It is not one; the
+    measurement above is what the sidecar actually reports.)
+
+    `map_site_atom` does the translation, against the microstate the runner
+    now sends alongside each value.
 
     Raises `RuntimeError` when a pkasolver environment IS configured but
     the run fails, so a broken install is reported rather than silently
@@ -182,7 +287,12 @@ def compute_pka(mol: Chem.Mol, interpreter_path: str | None) -> list[PkaPredicti
     payload = _parse_runner_output(completed.stdout, completed.stderr, completed.returncode)
     return [
         PkaPrediction(
-            atom_index=int(entry["atom_idx"]),
+            # A runner predating `site_smiles` sends no microstate, so the
+            # index cannot be mapped and None is the only honest answer --
+            # NOT the raw index, which is what used to mislabel atoms.
+            atom_index=map_site_atom(
+                str(entry.get("site_smiles", "")), int(entry["atom_idx"]), mol
+            ),
             value=float(entry["pka"]),
             # Older payloads predate the field; absent is not zero-spread,
             # but 0.0 is the only honest default that cannot overstate

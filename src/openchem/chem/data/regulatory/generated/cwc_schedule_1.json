@@ -1,0 +1,374 @@
+{
+ "_comment": "GENERATED FILE -- DO NOT EDIT. Written by build_regulatory_rulesets.py; edit the matching file under sources/ and rebuild.",
+ "ruleset_id": "cwc-schedule-1",
+ "display_name": "CWC Schedule 1",
+ "domain": "chemical_weapons",
+ "jurisdiction": "international",
+ "version": "1",
+ "effective_date": "1997-04-29",
+ "supersedes": "",
+ "source_citation": "Convention on the Prohibition of the Development, Production, Stockpiling and Use of Chemical Weapons and on their Destruction, Annex on Chemicals, Schedule 1",
+ "known_limitations": [
+  "Schedule 1 also lists saxitoxin and ricin, identified by name rather than by structural family. Not encoded: a structural rule for a protein toxin is meaningless, and an identity rule needs a structure this file does not carry.",
+  "The 2019 additions (the Novichok families) are not encoded.",
+  "Entries 9-12 of Schedule 1 are PRECURSORS rather than toxic chemicals and are not in this file.",
+  "Size limits ('C10 or fewer, including cycloalkyl') are applied to the molecule's TOTAL carbon count rather than per substituent. Broader than the treaty in some cases and narrower in none, so it may over-report and will not under-report."
+ ],
+ "rules": [
+  {
+   "rule_id": "cwc-1-a-1",
+   "display_name": "Alkylphosphonofluoridates (Schedule 1, A.1)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "structural_family",
+   "description": "O-Alkyl alkylphosphonofluoridates. The P-C bond is the distinction from an ordinary phosphofluoridate: diisopropyl fluorophosphate has the same phosphoryl, fluorine and alkoxy and is NOT Schedule 1.",
+   "legitimate_uses": [],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 1, A.1",
+    "quote": "O-Alkyl (equal to or less than C10, including cycloalkyl) alkyl (Methyl, Ethyl, n-Propyl or Isopropyl) - phosphonofluoridate",
+    "citation_url": "https://www.international.gc.ca/controls-controles/notices_avis/exp/list_liste/105-ann1.aspx?lang=eng",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {}
+   },
+   "interpretation": {
+    "assumptions": [
+     "the size limit is applied to total carbon count, not per substituent"
+    ],
+    "limitations": [],
+    "confidence": "exact",
+    "interpreter_version": 1,
+    "expression": {
+     "op": "all",
+     "of": [
+      {
+       "op": "contains",
+       "smarts": "P=O",
+       "label": "phosphoryl (P=O)"
+      },
+      {
+       "op": "contains",
+       "smarts": "PF",
+       "label": "P-F bond"
+      },
+      {
+       "op": "contains",
+       "smarts": "PO[CX4]",
+       "label": "O-alkyl ester"
+      },
+      {
+       "op": "element_count",
+       "element": "C",
+       "max": 10,
+       "label": "total carbons <= 10"
+      },
+      {
+       "op": "any",
+       "label": "P-alkyl is methyl, ethyl, n-propyl or isopropyl",
+       "of": [
+        {
+         "op": "contains",
+         "smarts": "P[CH3]",
+         "label": "P-methyl"
+        },
+        {
+         "op": "contains",
+         "smarts": "P[CH2][CH3]",
+         "label": "P-ethyl"
+        },
+        {
+         "op": "contains",
+         "smarts": "P[CH2][CH2][CH3]",
+         "label": "P-n-propyl"
+        },
+        {
+         "op": "contains",
+         "smarts": "P[CH1]([CH3])[CH3]",
+         "label": "P-isopropyl"
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "rule_id": "cwc-1-a-2",
+   "display_name": "Phosphoramidocyanidates (Schedule 1, A.2)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "structural_family",
+   "description": "O-Alkyl N,N-dialkyl phosphoramidocyanidates. The nitrile on phosphorus alongside an amide nitrogen is the identifying combination.",
+   "legitimate_uses": [],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 1, A.2",
+    "quote": "O-Alkyl (equal to or less than C10, including cycloalkyl) N,N-dialkyl (Methyl, Ethyl, n-Propyl or Isopropyl) phosphoramidocyanidates",
+    "citation_url": "https://www.international.gc.ca/controls-controles/notices_avis/exp/list_liste/105-ann1.aspx?lang=eng",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {}
+   },
+   "interpretation": {
+    "assumptions": [
+     "'alkyl' read as any sp3 carbon substituent"
+    ],
+    "limitations": [
+     "the schedule restricts the N-alkyl groups to methyl, ethyl, n-propyl or isopropyl; this pattern accepts any sp3 carbon"
+    ],
+    "confidence": "exact",
+    "interpreter_version": 1,
+    "expression": {
+     "op": "all",
+     "of": [
+      {
+       "op": "contains",
+       "smarts": "P=O",
+       "label": "phosphoryl (P=O)"
+      },
+      {
+       "op": "contains",
+       "smarts": "PC#N",
+       "label": "P-CN (cyanide on phosphorus)"
+      },
+      {
+       "op": "contains",
+       "smarts": "PN([CX4])[CX4]",
+       "label": "N,N-dialkyl phosphoramide"
+      },
+      {
+       "op": "contains",
+       "smarts": "PO[CX4]",
+       "label": "O-alkyl ester"
+      },
+      {
+       "op": "element_count",
+       "element": "C",
+       "max": 12,
+       "label": "total carbons <= 12"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "rule_id": "cwc-1-a-3",
+   "display_name": "Aminoethyl phosphonothiolates (Schedule 1, A.3)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "structural_family",
+   "description": "O-Alkyl S-2-dialkylaminoethyl alkylphosphonothiolates. The S-CH2CH2-NR2 arm on a phosphonothiolate is the identifying feature.",
+   "legitimate_uses": [],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 1, A.3",
+    "quote": "O-Alkyl (H or equal to or less than C10, including cycloalkyl) S-2-dialkyl (Methyl, Ethyl, n-Propyl or Isopropyl)-aminoethyl alkyl (Methyl, Ethyl, n-Propyl or Isopropyl) phosphonothiolates",
+    "citation_url": "https://www.international.gc.ca/controls-controles/notices_avis/exp/list_liste/105-ann1.aspx?lang=eng",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {}
+   },
+   "interpretation": {
+    "assumptions": [],
+    "limitations": [
+     "no size limit is applied; the schedule bounds the O-alkyl group at C10"
+    ],
+    "confidence": "exact",
+    "interpreter_version": 1,
+    "expression": {
+     "op": "all",
+     "of": [
+      {
+       "op": "contains",
+       "smarts": "P=O",
+       "label": "phosphoryl (P=O)"
+      },
+      {
+       "op": "contains",
+       "smarts": "PSCCN([CX4])[CX4]",
+       "label": "S-2-(dialkylamino)ethyl thiolate arm"
+      },
+      {
+       "op": "contains",
+       "smarts": "PO[CX4]",
+       "label": "O-alkyl ester"
+      },
+      {
+       "op": "any",
+       "label": "P-alkyl is methyl, ethyl, n-propyl or isopropyl",
+       "of": [
+        {
+         "op": "contains",
+         "smarts": "P[CH3]",
+         "label": "P-methyl"
+        },
+        {
+         "op": "contains",
+         "smarts": "P[CH2][CH3]",
+         "label": "P-ethyl"
+        },
+        {
+         "op": "contains",
+         "smarts": "P[CH2][CH2][CH3]",
+         "label": "P-n-propyl"
+        },
+        {
+         "op": "contains",
+         "smarts": "P[CH1]([CH3])[CH3]",
+         "label": "P-isopropyl"
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "rule_id": "cwc-1-a-4",
+   "display_name": "Sulfur mustards (Schedule 1, A.4)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "structural_family",
+   "description": "The 2-chloroethyl thioether motif shared by the sulfur mustard family.",
+   "legitimate_uses": [],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 1, A.4",
+    "quote": "Sulphur mustards",
+    "citation_url": "https://www.international.gc.ca/controls-controles/notices_avis/exp/list_liste/105-ann1.aspx?lang=eng",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {}
+   },
+   "interpretation": {
+    "assumptions": [
+     "the family is identified by the 2-chloroethyl thioether arm rather than by enumerating each listed member"
+    ],
+    "limitations": [
+     "The entry is a HEADING followed by an enumeration of named members with CAS numbers, which is not reproduced here. A family pattern is therefore broader than the entry and is marked approximate for that reason."
+    ],
+    "confidence": "approximate",
+    "interpreter_version": 1,
+    "expression": {
+     "op": "all",
+     "of": [
+      {
+       "op": "contains",
+       "smarts": "SCCCl",
+       "label": "2-chloroethyl thioether",
+       "min": 1
+      },
+      {
+       "op": "element_count",
+       "element": "S",
+       "min": 1,
+       "label": "contains sulfur"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "rule_id": "cwc-1-a-5",
+   "display_name": "Lewisites (Schedule 1, A.5)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "structural_family",
+   "description": "Chlorovinyl arsenic compounds.",
+   "legitimate_uses": [],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 1, A.5",
+    "quote": "Lewisites",
+    "citation_url": "https://www.international.gc.ca/controls-controles/notices_avis/exp/list_liste/105-ann1.aspx?lang=eng",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {}
+   },
+   "interpretation": {
+    "assumptions": [],
+    "limitations": [
+     "The entry is a HEADING followed by an enumeration of named members with CAS numbers, which is not reproduced here. A family pattern is therefore broader than the entry and is marked approximate for that reason."
+    ],
+    "confidence": "approximate",
+    "interpreter_version": 1,
+    "expression": {
+     "op": "all",
+     "of": [
+      {
+       "op": "contains",
+       "smarts": "[As]",
+       "label": "arsenic"
+      },
+      {
+       "op": "contains",
+       "smarts": "[As]C=CCl",
+       "label": "chlorovinyl arsenic"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "rule_id": "cwc-1-a-6",
+   "display_name": "Nitrogen mustards (Schedule 1, A.6)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "structural_family",
+   "description": "Bis(2-chloroethyl)amine motif.",
+   "legitimate_uses": [],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 1, A.6",
+    "quote": "Nitrogen mustards",
+    "citation_url": "https://www.international.gc.ca/controls-controles/notices_avis/exp/list_liste/105-ann1.aspx?lang=eng",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {}
+   },
+   "interpretation": {
+    "assumptions": [],
+    "limitations": [
+     "The entry is a HEADING followed by an enumeration of named members with CAS numbers, which is not reproduced here. A family pattern is therefore broader than the entry and is marked approximate for that reason.",
+     "APPROXIMATE, and knowingly over-broad in a way worth stating: several nitrogen mustards are licensed cytotoxic medicines (chlorambucil, melphalan, cyclophosphamide) and share this motif. A match here is a prompt to check the schedule's enumeration, not a finding that a medicine is a chemical weapon.",
+     "Knowingly over-broad in a way worth stating: several nitrogen mustards are licensed cytotoxic medicines (chlorambucil, melphalan, cyclophosphamide) and share this motif. A match is a prompt to check the enumeration, not a finding that a medicine is a chemical weapon."
+    ],
+    "confidence": "approximate",
+    "interpreter_version": 1,
+    "expression": {
+     "op": "all",
+     "of": [
+      {
+       "op": "contains",
+       "smarts": "N(CCCl)CCCl",
+       "label": "bis(2-chloroethyl)amine"
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "coverage": {
+  "total_entries": 6,
+  "resolved": 6,
+  "unresolved": [],
+  "requires_review": [],
+  "manual_entries": 0
+ },
+ "provenance": {
+  "generator": "build_regulatory_rulesets.py",
+  "generator_version": "1",
+  "generated_at": "2026-08-05T18:32:12+00:00",
+  "source_document_sha256": "0008eac5c624cefc453097439c1d12d2aae07f30a39b4c755feb868a7be245dc",
+  "rdkit_version": "2025.09.6",
+  "opsin_version": "1.2.0",
+  "ruleset_sha256": "094a21848032a555ccd30873b515acd82cec7856afe7e4dd2647c2ff31bc3f12"
+ }
+}

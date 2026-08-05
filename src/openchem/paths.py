@@ -156,6 +156,25 @@ def space_free_cache_root() -> Path:
     return candidate
 
 
+def wavefunction_root() -> Path:
+    """Where a finished ORCA job's `.gbw` is kept so surfaces can be
+    plotted from it after the job's scratch directory is gone.
+
+    `quantum_chemistry_service` deletes each job's scratch directory in a
+    `finally`, which is right -- an optimisation leaves gigabytes behind.
+    But the wavefunction is the one small file that cannot be regenerated
+    without re-running the whole calculation, and every QM surface
+    (`chem/orca_surfaces.py`) is plotted FROM it, minutes or days later.
+    A few hundred kilobytes kept is the difference between "show me the
+    HOMO" costing a second and costing another geometry optimisation.
+
+    Under the SPACE-FREE root, not `cache_root()`, for the reason
+    `space_free_cache_root` documents at length: these paths are handed
+    to ORCA binaries.
+    """
+    return space_free_cache_root() / "wavefunctions"
+
+
 def subdirectory(name: str) -> Path:
     """A named directory under the data root, e.g. `subdirectory("jre")`."""
     return data_root() / name

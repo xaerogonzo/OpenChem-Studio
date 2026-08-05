@@ -157,6 +157,113 @@ of structural correlates, which is what the evidence supports.
 
 ---
 
+## IR spectra — 27.6 cm⁻¹ after scaling
+
+**Method.** 16 modes over water, CO₂ and methane, from real ORCA 6.1.1
+`opt_freq` runs at B3LYP/def2-SVP, scored against NIST CCCBDB experimental
+fundamentals.
+
+| | |
+|---|---|
+| MAE unscaled | 64.7 cm⁻¹ |
+| fitted scaling factor | **0.9666** |
+| MAE scaled | **27.6 cm⁻¹** |
+
+The scaling factor is the external corroboration: published B3LYP factors sit
+in the 0.961–0.975 band, and a parser written against raw output text landing
+inside it is evidence independent of any test here. It is **recorded, not
+applied** — ORCA states its own factor and double-applying would be silent.
+
+**Intensities are scored by symmetry, not against a table**, because group
+theory supplies an exact expected answer where a table supplies an
+approximate one. Every symmetry-forbidden band came back at **0.00**: CO₂'s
+symmetric stretch, methane's ν₁ and ν₂, and 20 of benzene's 30 modes.
+
+Acetone and benzene are run and parsed but **not scored on frequency** —
+their assignments are not one-to-one with a sorted list, so pairing by index
+would manufacture the comparison rather than measure it.
+
+→ [`benchmarks/ir/`](../benchmarks/ir/)
+
+---
+
+## Electrostatic potential — where the two methods disagree
+
+**Method.** Agreement would prove nothing: two methods that both put negative
+potential near oxygen correlate whatever their shape. So the ab initio ESP is
+scored against the point-charge one on the same conformer and grid, and the
+result is the **disagreement**.
+
+| | |
+|---|---|
+| surface correlation, 6 molecules | r = +0.80 to +0.99 |
+| bromobenzene sigma-hole cap (0–30°) | **+10.35** kcal/(mol·e) |
+| same molecule, point charges | **−5.69** |
+
+The ab initio potential **changes sign around one atom**. A point-charge
+model puts one charge there, so its potential cannot change sign with angle
+and reports bromine as uniformly negative.
+
+Three halobenzenes were run in place of the one asked for, specifically so
+this could come out wrong: the hole deepens F −4.03 < Cl +13.85 < Br +21.46,
+and **fluorobenzene has no sigma hole at all**, which is the textbook
+exception.
+
+→ [`benchmarks/esp/`](../benchmarks/esp/)
+
+---
+
+## Regulatory rules — scored per rule, and one is not perfect
+
+**Method.** 29 structures across four corpora — positives, negatives, edge
+cases and historical — with every rule reporting TP/FP/TN/FN rather than
+"matched". A rule with perfect recall and terrible precision passes any
+positives-only suite and is worse than useless in a screen.
+
+Five of six CWC Schedule 1 rules score precision 1.00 and recall 1.00. The
+sixth does not:
+
+| rule | precision | recall |
+|---|---|---|
+| `cwc-1-a-6` nitrogen mustards | **0.50** | 1.00 |
+
+It matches **chlorambucil** and **melphalan**, licensed cytotoxic medicines
+and neither among the HN1/HN2/HN3 the entry enumerates. Both are recorded as
+expecting no match, so the benchmark scores them as the false positives they
+are. The rule ships marked `approximate` with a limitation saying so —
+staying silent about nitrogen mustards would be worse, and reporting
+precision 1.00 would be worse still.
+
+The edge cases carry the weight. **Diisopropyl fluorophosphate** has sarin's
+phosphoryl, fluorine and alkoxy, no P–C bond, and is not Schedule 1; a rule
+that could not tell them apart would score perfectly on the positives alone.
+
+→ [`benchmarks/regulatory/`](../benchmarks/regulatory/)
+
+---
+
+## Structural annotation — coverage, measured before building on it
+
+**Method.** `annotate()` run over the 181-molecule naming corpus, counting
+what fraction of heavy atoms each annotation reaches.
+
+| annotation | coverage | every molecule? |
+|---|---|---|
+| ring systems | 45.3% | yes |
+| functional groups | 19.7% | yes |
+| IUPAC locants | **34.8%** | **no — 76 of 181 get none** |
+
+The asymmetry is why the features were built in that order. 95 of 181
+molecules name to a retained string carrying no atom indices at all, so
+locants are absent rather than approximate for them, and the UI states
+coverage instead of rendering a blank.
+
+Stereocentre detection agrees with RDKit **exactly** — 13 of 13 tetrahedral
+centres — so the engine's detector is used in preference to a second one
+rather than cross-checked against it.
+
+---
+
 ## Measured, and deliberately not shipped
 
 The most load-bearing results here.
@@ -184,6 +291,14 @@ could be validated against a theorem.
 **Missing-residue repair.** Spiked with PDBFixer, measured, and rejected:
 the rebuilt geometry is not trustworthy near a binding site, which is
 precisely where docking would use it.
+
+**TD-DFT / UV-Vis.** Scoped, measured, refused — and the retry disproved the
+first diagnosis. The note said benzene's strongly-allowed ¹E₁ᵤ band was
+missing because def2-SVP lacks diffuse functions; re-run with `nroots 15` it
+is there at 7.918 eV carrying f = 0.96 against an experimental ≈0.9. It was
+missing because eight roots were too few. Adding diffuse functions improves
+every position and **destroys the intensity** (0.96 → 0.083), which is the
+wrong trade for a spectrum whose question is which band is strongest.
 
 **The quinine conformer hypothesis** — that a single MMFF conformer was
 responsible for the hybrid's refusal — was tested with Boltzmann averaging

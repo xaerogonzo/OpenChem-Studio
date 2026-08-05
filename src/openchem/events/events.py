@@ -195,6 +195,23 @@ class StructureSetComputed(Event):
 
 
 @dataclass(frozen=True)
+class QmSurfaceComputed(Event):
+    """Published when `orca_plot` has produced a QM volumetric surface --
+    an ab initio ESP, electron density, spin density or molecular orbital.
+
+    Carries the failure inline (`field is None` with `error` set) rather
+    than as a separate event type, because every consumer that shows the
+    surface is also the one that must show why it is missing, and the two
+    arrive on the same subscription.
+    """
+
+    molecule_uuid: str
+    surface_id: str
+    field: object | None
+    error: str = ""
+
+
+@dataclass(frozen=True)
 class NmrReferenceCalibrated(Event):
     """Published when a TMS reference-shielding calibration job
     (`QuantumChemistryService.request_reference_calibration`, Phase 22)

@@ -16,7 +16,7 @@ field can be added the day one actually does.
 STOUT WAS REMOVED, not merely disabled. It was a sequence-to-sequence
 neural namer run as a sidecar; its published weights were withdrawn (the
 download 404s, checked repeatedly) and the vendored nomenclature engine
-supersedes it anyway -- 180/181 on `benchmarks/naming`, deterministic,
+supersedes it anyway -- 181/181 on `benchmarks/naming`, deterministic,
 offline, and unable to invent a fluent wrong name the way STOUT could.
 A leftover-cleanup entry survives in `services/sidecar_inventory.py` so
 anyone who installed the old environment can reclaim the disk.

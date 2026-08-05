@@ -291,6 +291,54 @@ rather than sequential phases. The detailed per-phase record lives in the
 plan file; what follows is what EXISTS, grouped by capability, so this
 document answers "what does the app do" without being a diary.
 
+### Batch mode and the analytics over it
+
+The app was single-molecule end to end: `ProjectModel.molecules` was
+already a list and nothing could act on it as a set. `BatchService` runs
+any chosen set of descriptors, alert catalogs and calculators across every
+molecule in a project through the existing `JobManager` single-flight
+machinery, publishing a partial table as it fills.
+
+**A calculator that reports several numbers becomes several columns.** Of
+the 50 registered calculators none returns a scalar; 17 return an
+`AlertResult` that is really a report, whose lines (`"Randic index: 9.52"`)
+are parsed rather than counted. Measured over the 16 report calculators on
+one molecule: **73 numeric columns extracted, 25 lines refused** —
+formulas, prose caveats, value lists, and lines carrying two numbers where
+neither is obviously the value. The parser is strict because a wrong column
+survives being looked at and a missing one does not. Scale: **181 molecules
+× 63 columns = 9,780 cells in 1.7 s.**
+
+Cells carry their `Provenance` and their empirical/ab-initio label, so the
+labelling the single-molecule views do is not lost in a table of 200 rows.
+CSV and Markdown-report export are a **second** path, separate from
+`ExportService`'s single-molecule chemical-format export.
+
+Over a finished table: **correlation** (Pearson, Spearman, n, and a ranking
+of every column against a chosen one), **PCA chemical space**
+(standardised, deterministic, with explained variance and loadings),
+**Butina clustering** over Morgan fingerprints, and **per-column
+distributions**. Each is checked against an independent implementation
+rather than a recorded value — `numpy.corrcoef`, `numpy.polyfit`, a
+separate rank transform, an eigendecomposition of the correlation matrix.
+
+The correlation view is a methodological tool, not a chart: it is the
+in-app form of the check that overturned this project's hERG result, where
+apparent separation turned out to be molecular size at r = +0.98. Measured
+on the 181-molecule corpus, molecular weight against Labute surface area
+comes out at **r = +0.984** — the same magnitude — so the instrument does
+resolve confounds at the scale that matters.
+
+**UMAP and t-SNE were not added.** PCA covers the requirement, needs no
+dependency, and gives one picture of a project rather than a different one
+per run.
+
+**Virtual screening** (`ScreeningService`) docks N ligands into one
+receptor by queueing them through the existing `DockingService` one at a
+time — handing it N at once would start N Vina processes — and ranks them.
+The queue advances on the terminal job-state event rather than on the
+result, so a ligand Vina refuses does not wedge it.
+
 ### Calculators
 
 Around 40 registry-executed calculators, all discoverable through
@@ -317,6 +365,107 @@ and a hybrid that selects per atom on measured expected error. Plus
 signal grouping with diastereotopic splitting, 1D peak spectra, and
 HSQC/HMBC/COSY correlation with contour rendering. The benchmark
 (`benchmarks/nmr/`) is the arbiter and has overturned conclusions twice.
+
+IR from the same `opt_freq` ORCA job that already produced the
+thermochemistry — harmonic frequencies, IR intensities, per-mode
+stretch/bend/torsion classification, normal-mode animation, and an
+imaginary-frequency warning that says the thermochemistry from the same
+job is invalid. Benchmarked in `benchmarks/ir/` (MAE 27.6 cm⁻¹ scaled,
+fitted factor 0.9666).
+
+#### TD-DFT / UV-Vis — SCOPED AND MEASURED, DELIBERATELY NOT SHIPPED
+
+Timed and checked against experiment on the installed ORCA 6.1.1 build
+(B3LYP/def2-SVP, `%tddft nroots 8`), 2026-08-05, while the IR parser work
+was fresh. **The cost is trivial. The science is not turnkey, and that is
+why this is a note rather than a feature.**
+
+Cost, wall clock on the reference machine — TD-DFT is a small addition on
+top of the ground-state optimisation it needs:
+
+| | ground-state Opt | TD-DFT single point |
+|---|---|---|
+| formaldehyde (4 atoms) | 20 s | **8 s** |
+| acetone (10 atoms) | 83 s | **13 s** |
+| benzene (12 atoms) | 43 s | **19 s** |
+
+Accuracy is excellent where the transition is a valence n→π\* and poor
+where it is not:
+
+| transition | computed | experiment | error |
+|---|---|---|---|
+| formaldehyde n→π\* | 4.078 eV (304 nm) | 4.07 eV | **+0.01 eV** |
+| acetone n→π\* | 4.444 eV (279 nm) | ~4.48 eV | **−0.04 eV** |
+| benzene ¹B₂ᵤ | 5.494 eV (226 nm) | 4.90 eV (253 nm) | **+0.59 eV** |
+
+Both carbonyl n→π\* bands also came back with essentially zero oscillator
+strength, which is correct — they are symmetry-forbidden — so the
+intensity column is being read right as well.
+
+Benzene is the reason this is not shipped. The error is more than half an
+electron-volt, and the spectrum a user would be shown has its strongest
+band missing from the first 8 roots. Shipping that would mean shipping a
+UV-Vis feature whose default settings are wrong for aromatics, which is
+most of medicinal chemistry.
+
+##### The diffuse-basis retry — run, and it does NOT rescue this
+
+The paragraph above used to continue "**def2-SVP has no diffuse functions,
+so the π→π\* and Rydberg states are misplaced**", naming that as the cause
+of the missing band. **That diagnosis was wrong**, and re-running it is what
+showed so. Measured 2026-08-05 on the same optimised geometries, B3LYP,
+`%tddft nroots 15`:
+
+| | ¹B₂ᵤ (exp 4.90, f≈0) | ¹B₁ᵤ (exp 6.20, f≈0) | strongest band (exp ¹E₁ᵤ 6.94, f≈0.9) |
+|---|---|---|---|
+| def2-SVP | 5.49 | 6.47 | **7.918 eV, f = 0.9607** |
+| def2-SVPD | 5.40 | 6.31 | **7.430 eV, f = 0.0832** |
+
+**The ¹E₁ᵤ band was never missing because of the basis set. It was missing
+because `nroots 8` was too few.** At def2-SVP with 15 roots it is right
+there, at 7.918 eV carrying f = 0.96 against an experimental ≈0.9 — the
+intensity is essentially correct and always was.
+
+Diffuse functions do improve every *position*: ¹B₂ᵤ +0.59 → +0.50 eV, ¹B₁ᵤ
++0.27 → +0.11, and the allowed band +0.98 → +0.49. **And they destroy the
+intensity**, collapsing f from 0.96 to 0.083, an order of magnitude too
+weak. This is the textbook diffuse-basis failure: the added functions
+introduce low-lying Rydberg states that mix with the valence π→π\* and
+fragment its oscillator strength across several near-degenerate roots.
+
+So the trade is a halved energy error for a tenfold intensity error, and
+for a UV-Vis spectrum that is the wrong way round — the question a spectrum
+answers is *which band is strongest*, and def2-SVPD gets that wrong while
+def2-SVP gets it right. Acetone's n→π\* is unmoved by the change (4.45 vs
+4.44 eV, f≈0 in both), so nothing is gained there either.
+
+**The refusal therefore stands, but the reason has changed.** It is not
+"the basis set is inadequate"; it is that the two error modes cannot be
+minimised by the same basis, so any shipped default is wrong for one of
+them, and picking per molecule is exactly the expertise a turnkey feature
+is supposed to remove. Raising `nroots` is free and correct and should be
+part of whatever ships — but on its own it fixes only the band's presence,
+not the +0.98 eV where def2-SVP puts it.
+
+One more thing measured rather than assumed: **`! ... Opt` together with a
+`%tddft` block does not run "optimise then compute the spectrum".** It
+requests an EXCITED-STATE geometry optimisation, which needs the third
+functional derivative of B88 and which this ORCA build refuses with
+"not available natively with ORCA. Please, use the LibXC version." The
+ground-state optimisation and the TD-DFT single point have to be two
+jobs.
+
+What shipping this would actually need: basis-set guidance per transition
+type — **not** "a default with diffuse functions", which this line used to
+suggest and which the retry above measured and ruled out — a root count
+chosen from the molecule rather than fixed at 8, and a benchmark of its
+own against experimental λ_max the way `benchmarks/ir/` was done. A
+functional better suited to charge-transfer and π→π\* states (a
+range-separated hybrid such as ωB97X-D) is the more promising lead than
+any basis change, and has not been tried.
+None of that is blocked — the `SpectrumResult` family was shaped so a
+`UvVisSpectrumResult` is an addition rather than a refactor, which is
+precisely what makes deferring it safe.
 
 ### ADMET
 
@@ -347,12 +496,55 @@ vertex colours against the supplied field, r = −0.96); a continuous 2D
 property heat map; residue colouring driven by real docking interaction
 data; and structure grids for multi-structure results.
 
-### Naming
+### Naming, and the annotation engine underneath it
 
 Structure-to-name offline and deterministically via the vendored IUPAC
 engine, plus PubChem lookup and OPSIN parsing, each result labelled with
 its source and exactness. See the section below — this one was overturned
 three times in a day.
+
+The engine also works out ring systems, functional groups, stereocentres
+and atom numbering on the way to a name, and all of that used to be
+discarded with the tree. `chem/structure_annotation.py` keeps it: four
+registered calculators colour those onto the 2D and 3D depictions,
+`name_fragment()` names a selected substructure as a substituent, and
+`name_derivation()` returns the parse tree a name was built from. An
+`explain_naming` tool hands the AI assistant that record so "why is this
+carbon numbered 4?" is answered from the engine rather than from
+recollection.
+
+Coverage was measured BEFORE any of it was built on, and the numbers
+decided the build order: ring systems reach 45.3% of heavy atoms and
+functional groups 19.7%, both on every molecule, while IUPAC locants reach
+34.8% and **76 of 181 corpus molecules get none at all** — a retained name
+carries no derived numbering. The three that work everywhere shipped
+first, and the locant view states its coverage rather than rendering a
+blank.
+
+### Regulatory intelligence
+
+Which frameworks have something to say about a structure — deliberately
+NOT whether it is legal. `chem/regulatory/` holds a rule language, a
+screening engine, an OPSIN-backed build step and the rulesets it produces.
+
+The shape worth knowing: a rule separates the regulation's **verbatim
+text** from our **machine reading** of it, carrying the assumptions made
+and limitations accepted, because clauses like "except", "other than" and
+"and its salts, isomers, and salts of isomers" become implementation
+decisions the moment they are turned into a pattern. Confidence is capped
+mechanically by whether the quote is present, so a rule cannot claim to be
+verified against a statute nobody pasted.
+
+Ships CWC Schedule 1 only. Every other domain — controlled substances,
+precursors, export controls, transport, occupational, environmental and
+the rest — registers EMPTY and says so in the coverage report, because an
+absent domain is invisible and reads as "nothing applies". Adding one is a
+JSON file and a build run, not a code change.
+
+Licensing shaped the data model and is recorded in
+`chem/data/regulatory/sources/README.md`: no CAS Registry (proprietary to
+ACS), no DrugBank (CC BY-NC, incompatible with GPL), no ACGIH TLVs (OSHA
+PELs are public instead), no IATA DGR (UN Model Regulations instead).
 
 ## Naming — resolved, and how
 

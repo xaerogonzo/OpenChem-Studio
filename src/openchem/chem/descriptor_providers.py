@@ -59,6 +59,18 @@ from openchem.chem.structure_generators import (
     compute_stereoisomers,
     compute_tautomers,
 )
+from openchem.chem.regulatory.calculator import (
+    JURISDICTION_CHOICES,
+    compute_regulatory_screen,
+)
+from openchem.chem.structure_annotation import (
+    FG_LABEL_MODES,
+    RING_LABEL_MODES,
+    compute_functional_groups,
+    compute_locants,
+    compute_ring_systems,
+    compute_stereocenters,
+)
 from openchem.chem.substructure import COMMON_PATTERNS, compute_substructure_search
 from openchem.chem.surface_analysis import compute_sasa_dataset, compute_surface_analysis
 from openchem.chem.topology_analysis import (
@@ -242,7 +254,7 @@ _FUNCTIONAL_GROUP_SPECS: list[tuple[str, str]] = [
 ]
 
 
-def compute_functional_groups(mol: Chem.Mol, molecule_uuid: str) -> AlertResult:
+def compute_fragment_group_alert(mol: Chem.Mol, molecule_uuid: str) -> AlertResult:
     """Which of a curated set of common functional groups are present
     (and how many), via RDKit's built-in `Fragments` module -- zero new
     dependencies, ChatGPT's "functional group intelligence" ask. Reuses
@@ -250,6 +262,17 @@ def compute_functional_groups(mol: Chem.Mol, molecule_uuid: str) -> AlertResult:
     though this isn't a toxicity alert -- `matched` holds formatted
     "name (count)" strings for every group with count > 0, same "empty
     list means checked, nothing found" convention as PAINS/BRENK.
+
+    NAMED FOR ITS BACKING, not for what it reports, because it used to be
+    called `compute_functional_groups` and that shadowed the same-named
+    import from `chem/structure_annotation` at the top of this file. The
+    `functional_groups` calculator registered below therefore bound THIS
+    two-argument alert instead of the intended three-argument per-atom
+    annotation, and raised `TypeError: takes 2 positional arguments but 3
+    were given` for every molecule -- the registration and the definition
+    are 1,000 lines apart, so nothing about either read as wrong. Found by
+    running all 50 registered calculators in one pass, which is what a
+    batch runner does by construction.
     """
     matched = []
     for fn_name, display_name in _FUNCTIONAL_GROUP_SPECS:
@@ -621,6 +644,19 @@ class RDKitDescriptorProvider(DescriptorProvider):
             for descriptor_id, name, units in _SHAPE_DESCRIPTOR_SPECS
         ]
 
+    def alert_ids(self) -> dict[str, str]:
+        """The five catalogs `compute_alerts` below returns, named without
+        running them. Kept adjacent to it so the two cannot drift; a new
+        catalog added below and not here is simply not offerable in a batch
+        run, which is a visible gap rather than a wrong answer."""
+        return {
+            "pains": "PAINS",
+            "brenk": "BRENK (Reactive/Unstable Groups)",
+            "functional_groups": "Functional Groups (fragment counts)",
+            "herg_risk_factors": _HERG_RISK_NAME,
+            "mutagenicity_alerts": MUTAGENICITY_ALERT_NAME,
+        }
+
     def compute_alerts(self, mol: Chem.Mol, molecule_uuid: str) -> list[AlertResult]:
         pains_catalog = _load_pains_catalog()
         pains_matched = [entry.GetDescription() for entry in pains_catalog.GetMatches(mol)]
@@ -643,7 +679,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
                 provenance=Provenance(created_by="core", method=self.provider_id),
                 category="admet",
             ),
-            compute_functional_groups(mol, molecule_uuid),
+            compute_fragment_group_alert(mol, molecule_uuid),
             compute_herg_risk_factors(mol, molecule_uuid),
             compute_mutagenicity_alerts(mol, molecule_uuid),
         ]
@@ -823,7 +859,7 @@ def compute_pka_dataset(
         alert_id="pka",
         name="pKa",
         molecule_uuid=molecule_uuid,
-        matched=[_pka_line(prediction, parameters) for prediction in sorted(
+        matched=[_pka_line(prediction, parameters, mol) for prediction in sorted(
             pairs or [], key=lambda prediction: prediction.value
         )],
         category="pka",
@@ -831,8 +867,15 @@ def compute_pka_dataset(
     )
 
 
-def _pka_line(prediction, parameters: dict[str, Any] | None) -> str:
-    """One pKa, with the ensemble spread when there is one to report.
+def _pka_line(prediction, parameters: dict[str, Any] | None, mol: Chem.Mol | None = None) -> str:
+    """One pKa, with the ionizable atom and the ensemble spread.
+
+    THE ATOM IS NEW AND WAS PREVIOUSLY UNSAYABLE. pkasolver's reaction
+    centre indexes its own pH-7 microstate, so printing it against our
+    numbering named a different atom -- for 4-aminobenzoic acid a ring
+    carbon rather than the carboxylate oxygen. `pka_providers.map_site_atom`
+    now translates it, and returns None where it cannot, which is why this
+    still has a branch for having no atom to name.
 
     The spread is pkasolver's own -- how far its fifty models disagreed --
     so it is measured rather than invented, which is why it is worth
@@ -846,9 +889,15 @@ def _pka_line(prediction, parameters: dict[str, Any] | None) -> str:
     and 2.7 units out.
     """
     value = fmt(prediction.value, parameters)
+    site = ""
+    if prediction.atom_index is not None and mol is not None:
+        if prediction.atom_index < mol.GetNumAtoms():
+            atom = mol.GetAtomWithIdx(prediction.atom_index)
+            site = f" at {atom.GetSymbol()}{prediction.atom_index}"
+    line = f"pKa {value}{site}"
     if not prediction.stddev:
-        return f"pKa {value}"
-    return f"pKa {value} +/- {fmt(prediction.stddev, parameters)} (ensemble spread)"
+        return line
+    return f"{line} +/- {fmt(prediction.stddev, parameters)} (ensemble spread)"
 
 
 def compute_logd(
@@ -955,12 +1004,15 @@ def compute_admet_endpoints(mol, molecule_uuid, parameters=None, interpreter_pat
     `hERG Risk Factors (not a prediction)` alert stays alongside it.
     """
     from openchem.chem.admet_providers import (
-        REPORTED_ENDPOINTS,
+        BASIC,
         compute_admet,
         describe_admet_status,
+        endpoint_lines,
     )
     from openchem.domain.common import CacheState, Provenance
     from openchem.domain.scientific_result import AlertResult
+
+    tier = str((parameters or {}).get("tier", BASIC))
 
     # Everything the user must read goes in `matched` (what PropertyPanel
     # and the clipboard render) or `error`. There is no `description`
@@ -968,7 +1020,7 @@ def compute_admet_endpoints(mol, molecule_uuid, parameters=None, interpreter_pat
     # no consumer reads it, so the model-output caveat below would never
     # have reached a screen.
     try:
-        endpoints = compute_admet(mol, interpreter_path)
+        endpoints = compute_admet(mol, interpreter_path, tier)
     except RuntimeError as exc:
         return AlertResult(
             alert_id="admet_ml", name="ADMET (ADMET-AI)", category="admet",
@@ -991,20 +1043,19 @@ def compute_admet_endpoints(mol, molecule_uuid, parameters=None, interpreter_pat
             provenance=Provenance(created_by="admet_ai", method="chemprop multi-task"),
         )
 
-    # Sorted by probability so the liabilities surface first -- the whole
-    # reason someone opens this is to find out what is going to bite.
-    lines = [
-        f"{REPORTED_ENDPOINTS[key]}: {fmt(value, parameters)}"
-        for key, value in sorted(endpoints.items(), key=lambda kv: -kv[1])
-    ]
+    lines = endpoint_lines(endpoints, parameters)
     if lines:
         # Caveat last, not first: putting it ahead of the numbers would bury
         # the top liability under a disclaimer and undo the sort above. Only
         # when there ARE numbers -- there is nothing to caveat otherwise.
+        # "Values", not "probabilities": since the Advanced tier the block
+        # also carries regressions (solubility, LD50, protein binding),
+        # and calling those probabilities would be wrong on its face.
         lines.append(
-            "Probabilities from ADMET-AI, a multi-task model trained on the "
-            "Therapeutics Data Commons ADMET suite. These are predictions with "
-            "real uncertainty, not measurements."
+            "Values from ADMET-AI, a multi-task model trained on the Therapeutics "
+            "Data Commons ADMET suite. These are predictions with real "
+            "uncertainty, not measurements. Percentiles compare this molecule "
+            "against ~2,500 approved drugs."
         )
     else:
         lines = ["The model returned no reported endpoint."]
@@ -1058,14 +1109,30 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="admet_ml",
-        parameters=[decimal_places_parameter()],
-        display_name="ADMET (hERG, CYP, Ames)",
+        parameters=[
+            decimal_places_parameter(),
+            CalculatorParameter(
+                # Not a display filter: the tier decides which of the
+                # model's 104 columns are shown AT ALL, and the default
+                # keeps the ten this calculator has always reported.
+                name="tier",
+                label="Endpoints (Research endpoints are not validated)",
+                kind="choice",
+                default="basic",
+                choices=["basic", "advanced", "research"],
+            ),
+        ],
+        display_name="ADMET (hERG, CYP, Ames, ADME)",
         category="admet",
         description=(
             "Predicted hERG blockade, CYP450 inhibition/substrate and Ames "
             "mutagenicity via ADMET-AI, run out of process from its own "
             "environment (configure it in Tools > External Tools). Complements "
-            "the rule-based hERG risk-factor checklist rather than replacing it."
+            "the rule-based hERG risk-factor checklist rather than replacing it. "
+            "The Advanced tier adds the ADME block benchmarked in "
+            "benchmarks/admet/ — Caco-2, solubility, BBB, plasma protein "
+            "binding, DILI, LD50, intestinal absorption — at no extra runtime "
+            "cost, since the model computes all of them either way."
         ),
         execution=RegistryExecution(compute=compute_admet_endpoints),
         prediction_basis="empirical",
@@ -1203,6 +1270,133 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             CalculatorParameter(name="pH", label="pH", kind="float", default=7.4, minimum=0.0, maximum=14.0)
         ],
         tags=["surface", "polarity", "ph"],
+    ),
+    CalculatorDefinition(
+        calculator_id="ring_systems",
+        display_name="Ring Systems",
+        category="topology",
+        description=(
+            "Which ring system each atom belongs to, classified as monocyclic, fused, "
+            "bridged or spiro, with fusion atoms, bridgeheads and spiro centres marked. "
+            "Perceived by the built-in nomenclature engine, so a ring system is one unit "
+            "the way it is named -- naphthalene is one fused system of 10 atoms, not two "
+            "benzenes. Works offline on any structure, with or without a conformer."
+        ),
+        execution=RegistryExecution(compute=compute_ring_systems),
+        parameters=[
+            CalculatorParameter(
+                name="label_mode",
+                label="Atom labels",
+                kind="choice",
+                default="Locants, with roles",
+                choices=list(RING_LABEL_MODES),
+            ),
+        ],
+        tags=["topology", "rings", "per-atom", "annotation"],
+    ),
+    CalculatorDefinition(
+        calculator_id="regulatory_screen",
+        display_name="Regulatory Screen",
+        category="regulatory",
+        description=(
+            "Which regulatory frameworks have something to say about this structure -- "
+            "chemical weapons schedules, controlled substances, precursors and the rest, "
+            "from whichever rulesets are loaded. NOT a compliance check and never says "
+            "whether anything is legal: it reports which rules matched, which nearly did "
+            "and why, and states the coverage of every ruleset consulted so that "
+            "'no matches' cannot be read as 'not regulated'. Add your own or your "
+            "organisation's rulesets as JSON in the app data directory."
+        ),
+        execution=RegistryExecution(compute=compute_regulatory_screen),
+        parameters=[
+            CalculatorParameter(
+                name="jurisdiction",
+                label="Jurisdiction",
+                kind="choice",
+                default="All jurisdictions",
+                choices=list(JURISDICTION_CHOICES),
+            ),
+            CalculatorParameter(
+                name="include_near_misses",
+                label="Explain near misses",
+                kind="bool",
+                default=True,
+            ),
+        ],
+        tags=["regulatory", "compliance", "screening", "safety"],
+    ),
+    CalculatorDefinition(
+        calculator_id="locants",
+        display_name="IUPAC Locants",
+        category="naming",
+        description=(
+            "The IUPAC numbering drawn onto the structure -- which atom is C-3. Coloured "
+            "by where the number came from: this structure's own parent numbering, or a "
+            "ring skeleton's conventional numbering. Note that a structure named by a "
+            "RETAINED name carries no derived numbering, so slightly over half of "
+            "molecules produce none at all; the result says so rather than showing a "
+            "blank structure."
+        ),
+        execution=RegistryExecution(compute=compute_locants),
+        parameters=[
+            CalculatorParameter(
+                name="include_element",
+                label="Include element symbol (N1 rather than 1)",
+                kind="bool",
+                default=False,
+            ),
+        ],
+        tags=["naming", "iupac", "per-atom", "annotation"],
+    ),
+    CalculatorDefinition(
+        calculator_id="functional_groups",
+        display_name="Functional Groups",
+        category="substructure",
+        description=(
+            "Every functional group the naming engine recognises, coloured by type and "
+            "labelled at its anchor atom -- the same detection that decides which group "
+            "becomes a name's suffix. Note that ring carbonyls next to a ring nitrogen "
+            "(lactams, uracil, caffeine) are claimed by no group, so an empty result "
+            "means nothing was matched rather than that the molecule is unfunctionalised."
+        ),
+        execution=RegistryExecution(compute=compute_functional_groups),
+        parameters=[
+            CalculatorParameter(
+                name="label_mode",
+                label="Atom labels",
+                kind="choice",
+                default="Group name",
+                choices=list(FG_LABEL_MODES),
+            ),
+            CalculatorParameter(
+                name="only_suffix_eligible",
+                label="Suffix-eligible groups only",
+                kind="bool",
+                default=False,
+            ),
+        ],
+        tags=["substructure", "functional-groups", "per-atom", "annotation"],
+    ),
+    CalculatorDefinition(
+        calculator_id="stereocenters",
+        display_name="Stereocentres",
+        category="geometry",
+        description=(
+            "Stereocentres coloured by CIP descriptor -- R against S at a glance, plus "
+            "E/Z double bonds and the lowercase pseudo-asymmetric r/s. Centres whose "
+            "configuration has not been drawn are shown separately in grey rather than "
+            "left unmarked, since an unspecified centre reads as no centre at all."
+        ),
+        execution=RegistryExecution(compute=compute_stereocenters),
+        parameters=[
+            CalculatorParameter(
+                name="include_unassigned",
+                label="Show unspecified stereocentres",
+                kind="bool",
+                default=True,
+            ),
+        ],
+        tags=["stereochemistry", "geometry", "per-atom", "annotation"],
     ),
     CalculatorDefinition(
         calculator_id="substructure_search",

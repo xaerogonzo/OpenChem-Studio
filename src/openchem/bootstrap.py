@@ -17,6 +17,7 @@ from openchem.domain.calculator import (
 from openchem.events.base import EventBus
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.alignment_service import AlignmentService
+from openchem.services.batch_service import BatchService
 from openchem.services.conformer_service import ConformerService
 from openchem.services.container import ServiceContainer
 from openchem.services.descriptor_service import DescriptorService
@@ -26,7 +27,10 @@ from openchem.services.import_service import ImportService
 from openchem.services.job_manager import JobManager
 from openchem.services.measurement_service import MeasurementService
 from openchem.services.project_service import ProjectService
+from openchem.services.qm_surface_service import QmSurfaceService
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
+from openchem.services.screening_service import ScreeningService
+from openchem.services.table_export_service import TableExportService
 
 # Discovery-only registrations (Phase 21): Docking and QuantumChemistry run
 # through their own services/panels, never through CalculatorRegistry.compute()
@@ -187,6 +191,11 @@ def build_service_container() -> ServiceContainer:
         calculator_registry.register(_bind_settings(definition, settings))
     for definition in _EXTERNAL_CALCULATOR_DEFINITIONS:
         calculator_registry.register(definition)
+    # Named rather than constructed inline like its siblings, because
+    # ScreeningService below drives THIS instance -- it queues ligands
+    # through the same service the Docking panel uses, so a screen and a
+    # one-off docking share one single-flight guard instead of racing.
+    docking_service = DockingService(event_bus, settings, job_manager=job_manager)
     return ServiceContainer(
         event_bus=event_bus,
         chemistry_engine=engine,
@@ -197,8 +206,19 @@ def build_service_container() -> ServiceContainer:
         conformer_service=ConformerService(event_bus, engine, job_manager=job_manager),
         alignment_service=AlignmentService(event_bus, engine, job_manager=job_manager),
         measurement_service=MeasurementService(engine),
-        docking_service=DockingService(event_bus, settings, job_manager=job_manager),
+        docking_service=docking_service,
         quantum_chemistry_service=QuantumChemistryService(event_bus, settings, job_manager=job_manager),
+        # Shares Settings with QuantumChemistryService so `orca_plot` is
+        # located beside the SAME configured `orca` executable -- a second
+        # path setting is a second thing to fall out of step with the first.
+        qm_surface_service=QmSurfaceService(event_bus, settings),
         job_manager=job_manager,
         calculator_registry=calculator_registry,
+        # Shares the JobManager so a batch run is listed and cancellable in
+        # the Jobs panel like every other long job, and shares the registry
+        # so "what can be computed in batch" cannot drift from "what can be
+        # computed at all".
+        batch_service=BatchService(event_bus, engine, calculator_registry, job_manager=job_manager),
+        table_export_service=TableExportService(),
+        screening_service=ScreeningService(event_bus, docking_service, engine, job_manager=job_manager),
     )

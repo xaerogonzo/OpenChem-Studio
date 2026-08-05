@@ -35,6 +35,8 @@ from openchem.ui.visualization import (
     build_scalar_field_surface_layer,
     build_surface_layer,
     build_visualization_layer,
+    is_categorical,
+    summary_note,
 )
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
 from openchem.ui.widgets.ph_curve_widget import PhCurveWidget
@@ -75,10 +77,22 @@ class _CalculatorResultView(QWidget):
         # Both PerAtomDataset and SpectrumResult carry `units`, so the
         # legend below gets its suffix either way -- only the *total* is
         # PerAtomDataset-only.
+        #
+        # CATEGORICAL results are excluded for the same reason (Thread 1):
+        # their values are category IDS, so a sum is "Overall: 15" for a
+        # molecule's three ring systems -- a number that looks like a
+        # measurement and means nothing. The sentence above ("Sum of the
+        # per-atom contributions IS the molecular total for every
+        # PerAtomDataset this dialog shows today") stopped being true the
+        # moment the annotation calculators landed.
         units = getattr(result, "units", "")
         units_suffix = f" {units}" if units else ""
         total: float | None = None
-        if isinstance(result, PerAtomDataset) and result.values:
+        if (
+            isinstance(result, PerAtomDataset)
+            and result.values
+            and not is_categorical(result)
+        ):
             total = sum(result.values.values())
 
         if result.cache_state == CacheState.FAILED:
@@ -86,7 +100,11 @@ class _CalculatorResultView(QWidget):
         elif total is not None:
             summary_text = f"Overall: {total:.4g}{units_suffix}"
         else:
-            summary_text = ""
+            # A producer that can explain an empty or category-valued result
+            # says so here. Without it an annotation that matched nothing
+            # renders as an uncoloured molecule beside a blank line, which
+            # reads as broken rather than as "nothing found".
+            summary_text = summary_note(result)
         summary_label = QLabel(summary_text, self)
         summary_label.setWordWrap(True)
         summary_label.setVisible(bool(summary_text))

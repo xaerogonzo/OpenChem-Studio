@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Iterable
 
 from rdkit import Chem
 
@@ -252,15 +252,48 @@ def is_excluded_chain(chain: str, keep_chains) -> bool:
 
 
 def is_stripped_residue(
-    residue_name: str, strip_waters: bool, strip_cofactors: bool
+    residue_name: str,
+    strip_waters: bool,
+    strip_cofactors: bool,
+    strip_ligand_codes: Iterable[str] = (),
 ) -> bool:
     """Whether receptor preparation would delete this residue.
 
     One predicate, two callers -- `docking_providers` deletes the atoms
     before docking, and `receptor_atoms_from_structure` skips them before
     analysis. Sharing the decision is the point.
+
+    `strip_ligand_codes` NAMES SPECIFIC RESIDUES and is independent of
+    `strip_cofactors`, which is the whole reason it exists rather than
+    being folded into that flag.
+
+    MEASURED, real Vina 1.2.7 against real 1HSG, everything identical
+    except this option:
+
+        indinavir, 1HSG's OWN co-crystallised ligand   -5.34  ->  -9.78
+        benzene                                        -2.97  ->  -4.08
+        wall clock                                     65.6s  ->  28.3s
+
+    The receptor library derives every binding-site box from a
+    co-crystallised ligand (`ReceptorEntry.ligand_code` ->
+    `binding_site.box_from_ligand`) and, before this, left that ligand
+    sitting in the pocket the box describes. Docking then searched an
+    occupied site: 4.4 kcal/mol too weak on the native ligand, and SLOWER,
+    because Vina was competing with it for space.
+
+    Widening the `strip_cofactors` default was the wrong fix. That flag
+    covers haem, catalytic zinc and the rest, which are genuinely part of
+    a site and must stay by default. What has to go is the one ligand
+    whose coordinates DEFINED the box -- so the caller names it.
+
+    The damage was never a constant offset, which is why this matters more
+    than the numbers above suggest: a small ligand fitting the leftover
+    space is penalised less than a large one that does not, so the RANKING
+    can invert -- and a ranking is the entire output of a virtual screen.
     """
     name = residue_name.strip().upper()
+    if name in {str(code).strip().upper() for code in strip_ligand_codes if code}:
+        return True
     if name in WATER_RESIDUE_NAMES:
         return strip_waters
     return strip_cofactors and name not in STANDARD_RECEPTOR_RESIDUES
@@ -327,6 +360,11 @@ def receptor_atoms_from_structure(
     strip_waters = bool(options.get("strip_waters", False))
     strip_cofactors = bool(options.get("strip_cofactors", False))
     keep_chains = options.get("keep_chains") or ()
+    # Read here too, and not optional: if docking strips the box-defining
+    # ligand and analysis does not, every pose is scored for contacts
+    # against an atom the docking never saw. That divergence is exactly
+    # what one shared predicate exists to prevent.
+    strip_ligand_codes = tuple(options.get("strip_ligand_codes", ()) or ())
 
     # Unconditional, unlike the strips: receptor preparation ALWAYS drops
     # alternate locations, so matching it needs no option.
@@ -342,7 +380,7 @@ def receptor_atoms_from_structure(
         if is_symmetry_generated(residue):
             continue
         if residue is not None and is_stripped_residue(
-            residue.name or "", strip_waters, strip_cofactors
+            residue.name or "", strip_waters, strip_cofactors, strip_ligand_codes
         ):
             continue
         # Open Babel keeps the PDB atom name on the residue, not the atom

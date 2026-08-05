@@ -7,9 +7,10 @@
 A desktop chemistry workbench that draws, visualises, computes, docks and
 names molecules in one offline application.
 
-It combines a 2D structure editor, two 3D viewers, 46 calculators, molecular
-docking, quantum chemistry and NMR prediction, and an offline IUPAC naming
-engine — no account, no network, no per-seat licence. What sets it apart is
+It combines a 2D structure editor, two 3D viewers, 51 calculators, molecular
+docking, quantum chemistry, IR and NMR prediction, batch screening over a
+whole project, regulatory intelligence, and an offline IUPAC naming engine —
+no account, no network, no per-seat licence. What sets it apart is
 not the feature count but the standard applied to it: every number the app
 reports is benchmarked against literature or a reference implementation
 before it ships, and each prediction is labelled with the confidence it has
@@ -51,9 +52,47 @@ binding-site boxes validated by redocking their own crystallographic ligands.
 Per-pose interaction analysis, chain exclusion, and a box that refuses to run
 when it contains no receptor.
 
-**46 calculators across 23 categories** — physicochemical, topological,
-geometric, surface, medicinal-chemistry, ADMET, quantum. Each is labelled
-`empirical` or `ab_initio` where a basis exists to state one.
+**51 calculators across 24 categories** — physicochemical, topological,
+geometric, surface, medicinal-chemistry, ADMET, quantum, stereochemical and
+regulatory. Each is labelled `empirical` or `ab_initio` where a basis exists
+to state one.
+
+**Batch mode over a whole project**, and the analytics that need it. Any set
+of calculators across every molecule, as a sortable table whose cells keep
+the provenance and the empirical/ab-initio label the single-molecule views
+carry — measured at **181 molecules × 63 columns in 1.7 s**. Then
+correlation with the coefficient stated, deterministic PCA over the
+descriptor matrix, Butina clustering, per-column distributions, and virtual
+screening against the curated receptors. The correlation view is the in-app
+form of the check that overturned this project's own hERG result: on a real
+181-molecule set it puts molecular weight against Labute surface area at
+**r = +0.984**, the same scale as the size confound it exists to catch.
+
+**IR spectra from a calculation already being run.** ORCA's `opt_freq`
+computes a full vibrational analysis and only its thermodynamic totals were
+being read. Frequencies, IR intensities and normal modes now come out of the
+same job, with each mode classified as a stretch, bend or torsion by
+internal-coordinate decomposition — methane's five bends and four stretches,
+acetone's two methyl rotors and no others. Benchmarked against NIST CCCBDB:
+MAE **64.7 → 27.6 cm⁻¹** with a fitted scaling factor of **0.9666**, which
+lands inside the published B3LYP band. Intensities are checked by symmetry
+rather than a table, because group theory gives an exact answer: every
+IR-silent band came back at **0.00**.
+
+**Structural annotation from the naming engine.** The IUPAC engine works out
+ring systems, functional groups, stereocentres and atom numbering on the way
+to a name, and all of it was discarded. Now surfaced as per-atom colouring on
+2D and 3D, plus a derivation tree showing how a name was built and an AI tool
+that answers "why is this carbon numbered 4?" from the engine's own record
+rather than from recollection.
+
+**Regulatory intelligence.** Which frameworks have something to say about a
+structure — never whether it is legal. Rules separate the regulation's
+verbatim text from our machine reading of it, carry assumptions and
+limitations, and explain a near miss: diisopropyl fluorophosphate reports
+*has phosphoryl, P–F, O-alkyl; lacks the P–C bond*, which is the whole
+distinction from a scheduled agent. A "no match" always states which rulesets
+ran and how complete they are. See [benchmarks/regulatory/](benchmarks/regulatory/).
 
 **Structure handling.** PDB, mmCIF, BinaryCIF and gzip, detected by content
 rather than extension, including the deposited biological assembly rather
@@ -70,14 +109,17 @@ The honest version of a comparison table: this one is about our own software.
 | Docking with validated binding-site boxes | redocking across 49 receptors |
 | 2D editing, 3D visualisation, macromolecules | Ketcher, 3Dmol, Mol\* |
 | Plugin extension without touching the core | [docs/PLUGIN_SDK.md](docs/PLUGIN_SDK.md) |
+| IR spectra with mode character | MAE 27.6 cm⁻¹ scaled, [benchmarks/ir/](benchmarks/ir/) |
+| Batch screening across a project | 181 molecules × 63 columns in 1.7 s |
 
 | Does, with stated caveats | The caveat |
 |---|---|
-| Electrostatic potential surfaces | point charges — no lone-pair directionality or sigma holes |
-| ADMET predictions | TDC test-set numbers, predictions with real uncertainty, not measurements |
-| pKa (optional sidecar) | no solvent model; reaction-centre indices do not map to our atom numbering |
+| Electrostatic potential surfaces | two methods, side by side and labelled: point charges (instant, no ORCA) still have no lone-pair directionality or sigma holes; the ab initio surface has both, [benchmarks/esp/](benchmarks/esp/) |
+| ADMET predictions | tiered Basic/Advanced/Research; accuracy is the vendor's held-out figure, not ours — the shipped model trained on all of TDC ([benchmarks/admet/](benchmarks/admet/)) |
+| pKa (optional sidecar) | no solvent model |
 | Molecular dynamics | vacuum, no thermostat, no solvent, no periodic boundaries |
 | hERG | a risk-factor checklist, explicitly not a prediction |
+| Regulatory screening | an intelligence report, NEVER a compliance determination. Ships CWC Schedule 1 only; every other domain registers empty and says so. One rule knowingly over-broad at precision 0.50, [benchmarks/regulatory/](benchmarks/regulatory/) |
 
 | Does not | Why |
 |---|---|

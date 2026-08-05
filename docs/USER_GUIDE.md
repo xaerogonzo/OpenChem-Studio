@@ -139,7 +139,111 @@ and shifts drawn on the 2D structure), plus **HSQC / HMBC / COSY** tabs with
 both a cross-peak table and a scatter plot. Clicking a peak highlights the
 atoms; clicking an atom selects the peak.
 
+### IR spectra and normal modes
+
+An **optimisation + frequencies** job fills the **IR** tab: a stick
+spectrum, and a table of every mode with its wavenumber, IR intensity and
+character (stretch / bend / torsion). Select a mode and press **Animate
+mode** to watch it — the optimised geometry is displaced along that mode's
+eigenvector and played through the 3D viewer.
+
+Two things the spectrum shows that are easy to miss elsewhere:
+
+- **Grey sticks at the baseline are IR-silent modes.** They are real
+  vibrations that symmetry forbids from absorbing (CO₂'s symmetric
+  stretch, 20 of benzene's 30 modes). "No mode here" and "a mode that
+  cannot absorb" are different facts.
+- **A red banner means imaginary frequencies**, and it is the most
+  important thing on the panel. A negative wavenumber means the geometry
+  is a saddle point rather than a minimum — so **every thermochemistry
+  number from that same job is invalid**, with nothing in the numbers
+  themselves to say so. Re-optimise before trusting the enthalpy or free
+  energy.
+
+The y-axis is absorption intensity in km/mol, not transmittance.
+Transmittance needs a path length and a concentration from a sample that
+was never prepared; choosing them would put an invented calibration on the
+axis. Frequencies are raw harmonic values, labelled as harmonic — see
+`benchmarks/ir/`.
+
+### Surfaces — point charge beside ab initio
+
+The **Surfaces** tab shows two electrostatic potential maps side by side,
+each labelled with its method.
+
+The **left** pane is the point-charge potential from Gasteiger charges. It
+is instant and needs no ORCA at all. The **right** pane is the ab initio
+one, plotted by `orca_plot` from the wavefunction the calculation left
+behind; the same control also plots the electron density, the HOMO or LUMO
+(named, not numbered — the index depends on the basis set), and the spin
+density.
+
+They are shown together rather than one replacing the other because they
+fail differently, and `benchmarks/esp/` measured how. They agree on gross
+polarity (r = +0.80 to +0.99 over surface points), but on bromobenzene the
+ab initio potential changes **sign** around the bromine — positive along
+the C–Br axis, negative around its belt — while the point-charge model
+reports that atom as uniformly negative, because one charge on one atom
+cannot change sign with angle. Water's lone pairs are the same story: the
+ab initio potential deepens out of the molecular plane and the
+point-charge one flattens.
+
+A QM surface needs a calculation to have been run on that molecule first —
+any type will do, including a plain single point. Asking for a spin
+density on a closed-shell molecule is refused rather than answered: ORCA
+would write a file containing a copy of the electron density under a
+spin-density name.
+
 Long jobs appear in the **Jobs** panel and can be cancelled from there.
+
+---
+
+## Batch mode
+
+Everything else in the app answers a question about the molecule you have
+selected. The **Batch** panel answers it about all of them.
+
+Tick any set of descriptors, structural-alert catalogs and calculators, and
+run them across every molecule in the project. The results arrive as a
+sortable table, filling row by row as it goes. Each cell keeps the
+provenance and the empirical/ab-initio label the single-molecule views
+carry — hover a cell to see what produced that number, with what
+parameters.
+
+A calculator that reports several numbers becomes several columns; Topology
+Analysis alone contributes 27. A calculator that reports prose (an IUPAC
+name, a stereo summary) becomes a text column and is not offered to the
+analytics, because a count of prose lines is not a property of a molecule.
+
+**Export** is a second, separate path from File > Export Molecule. CSV
+carries the numbers at full precision for the next tool; the Markdown
+report carries the table *plus* what produced every column, how it was
+parameterised, and how many molecules it failed for and why.
+
+**Analyse…** opens four views over the finished table:
+
+- **Correlation** — any numeric column against any other, with Pearson,
+  Spearman and n stated on the plot. "Correlate against everything" ranks
+  every other column by how strongly it tracks the one you picked. This is
+  the check that matters: a predicted property whose strongest correlate is
+  molecular weight is measuring size. Molecular weight and Labute surface
+  area come out at r = +0.98 across a real 181-molecule set, which is the
+  scale of confound this exists to find.
+- **Chemical space** — PCA over the numeric columns, standardised, so a
+  column measured in hundreds cannot become the first component by units
+  alone. The explained variance is stated, and so are the descriptors that
+  dominate each axis, because "PC1" on its own means nothing. Deterministic:
+  the same project always gives the same picture.
+- **Clustering** — Butina over Morgan fingerprints at a Tanimoto threshold
+  you choose. Higher is stricter. Cluster membership then colours the
+  chemical-space plot.
+- **Distributions** — a histogram and summary statistics for any column,
+  with the median drawn rather than only reported.
+
+**Virtual screening** docks every molecule in the project into one receptor,
+one at a time, and ranks them. Take a target from File > Receptor Library
+and the binding site comes with it. The scores rank ligands against one
+receptor; they are not binding free energies and do not convert to a Kd.
 
 ---
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import json
 import logging
 import shutil
 import tempfile
@@ -18,7 +19,7 @@ from openchem.chem.nmr_reference import (
     average_reference_shielding,
     tms_molecule,
 )
-from openchem.chem.orca_engine import OrcaQuantumEngineProvider
+from openchem.chem.orca_engine import OrcaQuantumEngineProvider, parse_frontier_orbitals
 from openchem import paths as app_paths
 from openchem.domain.common import CacheState, Provenance
 from openchem.events.base import EventBus
@@ -30,6 +31,7 @@ from openchem.events.events import (
     SpectrumComputed,
 )
 from openchem.plugins.interfaces import QuantumEngineProvider
+from openchem.services import result_cache
 from openchem.services.job_manager import JobManager
 
 logger = logging.getLogger("openchem.chemistry")
@@ -45,6 +47,27 @@ _SCALING_JOB_KIND = "quantum_chemistry_scaling"
 # method_basis varies per reference calibration request).
 _TMS_CHARGE = 0
 _TMS_MULTIPLICITY = 1
+
+
+def _structure_fingerprint(mol) -> str:
+    """A molecule's constitution, as the thing a retained result belongs to.
+
+    Canonical SMILES, so it is stable across atom ordering and independent
+    of geometry. That last part is the deliberate half: a STRUCTURE edit
+    must invalidate a retained wavefunction, while regenerating a conformer
+    of the same molecule need not, because the `.gbw` carries its own
+    geometry and every surface is plotted from that rather than from the
+    caller's molblock.
+
+    Returns "" for anything unreadable, which compares equal to nothing and
+    therefore reads as "cannot verify" rather than "verified".
+    """
+    if mol is None:
+        return ""
+    try:
+        return Chem.MolToSmiles(Chem.Mol(mol))
+    except Exception:  # noqa: BLE001 - an unverifiable structure is not fatal
+        return ""
 
 
 def _reference_job_key(method_basis: str) -> str:
@@ -695,6 +718,13 @@ class QuantumChemistryService(QObject):
 
     def _finish_calculation_job(self, job: _ActiveJob, output_text: str) -> None:
         molecule_uuid = job.molecule_uuid
+        # BEFORE the parse, and before `_on_finished`'s `finally` deletes
+        # the scratch directory. The wavefunction is the one artefact that
+        # cannot be recovered without re-running the calculation, and every
+        # QM surface is plotted from it. Retained even when the parse below
+        # fails: a job whose output this version cannot read may still have
+        # produced a perfectly good `.gbw`.
+        self._retain_wavefunction(job, output_text)
         try:
             descriptors, conformer = job.provider.parse_output(output_text, job.mol, molecule_uuid, job.calc_type)
         except Exception as exc:  # noqa: BLE001 - report failure, never crash
@@ -718,6 +748,23 @@ class QuantumChemistryService(QObject):
                     if couplings is not None:
                         spectrum = dataclasses.replace(spectrum, couplings=couplings)
                 self._event_bus.publish(SpectrumComputed(spectrum=self._maybe_calibrate(spectrum, job.method_basis)))
+        # The vibrational spectrum is a SEPARATE parse and a separate event,
+        # not folded into the branch above: an `opt_freq` job produces one
+        # and no NMR spectrum, an `nmr` job the reverse, and neither should
+        # have to know about the other's failure. Same enhancement contract
+        # -- a spectrum that will not parse must not fail a job whose
+        # energies and geometry were fine.
+        try:
+            vibrational = job.provider.parse_vibrational_spectrum(
+                output_text, job.mol, molecule_uuid, job.calc_type
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "Failed to parse vibrational spectrum for molecule %s", molecule_uuid
+            )
+        else:
+            if vibrational is not None and vibrational.modes:
+                self._event_bus.publish(SpectrumComputed(spectrum=vibrational))
         self._publish_state(molecule_uuid, CacheState.COMPLETED)
 
     def _finish_conformer_job(self, job: _ActiveJob, output_text: str) -> bool:
@@ -1019,6 +1066,136 @@ class QuantumChemistryService(QObject):
             NmrReferenceCalibrated(method_basis=method_basis, provider_id=job.provider.provider_id, values=averaged)
         )
         self._publish_state(job.key, CacheState.COMPLETED)
+
+    def _retain_wavefunction(self, job: _ActiveJob, output_text: str = "") -> Path | None:
+        """Copy this job's wavefunction out of the scratch directory.
+
+        ORCA 6 splits what used to be one file: the `.gbw` holds the basis
+        and orbitals, and the `.densities` container holds the SCF density
+        that `orca_plot`'s ESP and electron-density plots read. Copying
+        only the `.gbw` yields a directory in which orbitals plot and
+        every density-based surface reports the density "does not exist" --
+        which `orca_surfaces` turns into an error rather than a wrong
+        cube, but the fix is to copy the set.
+
+        Best-effort by design: a failure here must not fail a calculation
+        whose energies and geometry are fine, so it logs and returns None.
+        """
+        if not job.molecule_uuid:
+            # Reference/scaling jobs (TMS and friends) are not a user's
+            # molecule and have no surface anyone would ask for.
+            return None
+        source = job.scratch_dir / "job.gbw"
+        if not source.is_file():
+            return None
+        try:
+            destination = app_paths.wavefunction_root() / job.molecule_uuid
+            # Replaced rather than merged: a stale `.densities` beside a
+            # fresh `.gbw` is a mismatched pair, and orca_plot's own
+            # warning about that ("make sure that densities and gbw-file
+            # match") is printed where nothing reads it.
+            if destination.exists():
+                shutil.rmtree(destination, ignore_errors=True)
+            destination.mkdir(parents=True, exist_ok=True)
+            for path in job.scratch_dir.glob("job.*"):
+                if path.suffix in (".gbw", ".densities", ".densitiesinfo"):
+                    shutil.copy2(path, destination / path.name)
+            # The frontier orbital INDICES are retained alongside, because
+            # they are the only way to plot "the HOMO" later: orca_plot
+            # asks for an orbital by number and that number depends on the
+            # basis set (water's HOMO is 4, bromobenzene's is 37). Once
+            # this output text is gone the index is unrecoverable without
+            # re-running the job.
+            homo, lumo = parse_frontier_orbitals(output_text)
+            # THE STRUCTURE IS RECORDED BESIDE THE WAVEFUNCTION, and that
+            # is a correctness fix rather than metadata. This directory is
+            # keyed by `molecule_uuid`, and a uuid is STABLE ACROSS
+            # STRUCTURE EDITS -- `EditStructureCommand` clears a molecule's
+            # conformers when its structure changes (Phase 9.1: they
+            # described the old structure) and nothing ever gave the
+            # wavefunction the same treatment. So drawing benzene, running
+            # ORCA, editing to toluene and asking for the HOMO plotted
+            # benzene's orbitals against toluene, silently, because the
+            # only check was that a file existed under that uuid.
+            #
+            # Recording the constitution lets the lookup turn that into a
+            # MISS. Canonical SMILES rather than a geometry hash on
+            # purpose: a structure EDIT must invalidate, while regenerating
+            # a conformer of the same molecule need not, since the `.gbw`
+            # carries its own geometry and every surface is plotted from
+            # that rather than from the molblock.
+            (destination / "orbitals.json").write_text(
+                json.dumps(
+                    {
+                        "homo": homo,
+                        "lumo": lumo,
+                        "structure": _structure_fingerprint(getattr(job, "mol", None)),
+                        "method_basis": getattr(job, "method_basis", ""),
+                        "calc_type": getattr(job, "calc_type", ""),
+                    }
+                ),
+                encoding="utf-8",
+            )
+            # A second, content-addressed copy: keyed by structure+method
+            # rather than by uuid, so it survives the molecule being
+            # deleted, hits across projects, and is a re-openable record of
+            # what was run. Best-effort -- see `result_cache.store`.
+            result_cache.store(
+                "orca_wavefunction",
+                files={
+                    path.name: path
+                    for path in destination.glob("job.*")
+                },
+                metadata={"homo": homo, "lumo": lumo},
+                structure=_structure_fingerprint(getattr(job, "mol", None)),
+                method_basis=getattr(job, "method_basis", ""),
+                calc_type=getattr(job, "calc_type", ""),
+            )
+            return destination / "job.gbw"
+        except OSError:
+            logger.warning(
+                "Failed to retain the wavefunction for molecule %s", job.molecule_uuid
+            )
+            return None
+
+    def retained_wavefunction(
+        self, molecule_uuid: str, mol: Chem.Mol | None = None
+    ) -> Path | None:
+        """The retained `.gbw` for a molecule, or None if there is none.
+
+        Public because the surface service asks this rather than
+        reconstructing the path, which would duplicate the layout above.
+
+        Pass `mol` and the retained structure is CHECKED against it. A
+        mismatch returns None -- a miss, and therefore a recomputation --
+        rather than a wavefunction describing a structure the molecule no
+        longer has. See `_retain_wavefunction` for how that arose.
+
+        Omitting `mol` keeps the old unchecked behaviour, which is what a
+        caller with no structure to hand (a storage report counting bytes)
+        actually wants.
+        """
+        candidate = app_paths.wavefunction_root() / molecule_uuid / "job.gbw"
+        if not candidate.is_file():
+            return None
+        if mol is None:
+            return candidate
+        recorded = self._retained_structure(molecule_uuid)
+        if recorded is None:
+            # Retained before structures were recorded. Unverifiable rather
+            # than known-good, and refusing it costs one recalculation
+            # where trusting it risks a silently wrong picture.
+            return None
+        return candidate if recorded == _structure_fingerprint(mol) else None
+
+    def _retained_structure(self, molecule_uuid: str) -> str | None:
+        path = app_paths.wavefunction_root() / molecule_uuid / "orbitals.json"
+        if not path.is_file():
+            return None
+        try:
+            return json.loads(path.read_text(encoding="utf-8")).get("structure")
+        except (OSError, ValueError):
+            return None
 
     def _cleanup_scratch(self, scratch_dir: Path) -> None:
         try:

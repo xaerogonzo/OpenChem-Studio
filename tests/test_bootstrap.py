@@ -106,12 +106,18 @@ def test_naming_calculator_is_registered_and_needs_no_sidecar():
 
     registry = build_service_container().calculator_registry
     assert "naming" in registry.categories()
-    assert [d.calculator_id for d in registry.by_category("naming")] == ["iupac_name"]
+    registered = {d.calculator_id for d in registry.by_category("naming")}
+    # "locants" joined this category in Thread 1 -- it projects the same
+    # engine's numbering onto the structure. The assertion below used to
+    # pin the category to exactly ["iupac_name"], but exclusivity was never
+    # what this test was about; the sidecar binding is.
+    assert "iupac_name" in registered
     # Naming used to need STOUT's interpreter. STOUT is gone and the
-    # vendored nomenclature engine runs in-process, so the calculator must
-    # NOT be bound to any sidecar -- a stale binding would hand it an
-    # interpreter path it has no use for.
-    assert "iupac_name" not in _CALCULATOR_INTERPRETER_SETTING
+    # vendored nomenclature engine runs in-process, so NO calculator in this
+    # category may be bound to a sidecar -- a stale binding would hand one
+    # an interpreter path it has no use for.
+    for calculator_id in registered:
+        assert calculator_id not in _CALCULATOR_INTERPRETER_SETTING
 
 
 def test_phase30_calculators_are_registered():

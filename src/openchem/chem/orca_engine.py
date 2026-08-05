@@ -10,19 +10,184 @@ from rdkit.Geometry import Point3D
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
-from openchem.domain.scientific_result import NMRSpectrumResult
+from openchem.chem.vibrational_modes import classify_mode
+from openchem.domain.scientific_result import (
+    NMRSpectrumResult,
+    VibrationalMode,
+    VibrationalSpectrumResult,
+)
 from openchem.plugins.interfaces import QuantumEngineProvider
+
+
+def _section(text: str, start_marker: str, end_marker: str) -> str:
+    """The text between two markers, or from the start marker to the end.
+
+    Bounded rather than searched unbounded through the whole file, for the
+    reason `_SHIELDING_ROW_RE` already documents: an unbounded numeric-row
+    regex can false-positive-match an unrelated later table with the same
+    shape. ORCA output is long and contains several.
+    """
+    start = text.find(start_marker)
+    if start == -1:
+        return ""
+    end = text.find(end_marker, start + len(start_marker))
+    return text[start:] if end == -1 else text[start:end]
+
+
+def _mol_at_final_geometry(output_text: str, mol: Chem.Mol) -> Chem.Mol:
+    """`mol` carrying the LAST geometry ORCA printed, or `mol` unchanged.
+
+    Frequencies are computed at the optimised geometry, so anything that
+    reasons about bond directions has to use that one. Returns the original
+    molecule rather than None when no coordinate block is present (a plain
+    `Freq` job on a fixed geometry), since there the submitted geometry IS
+    the right one.
+    """
+    blocks = _CARTESIAN_BLOCK_RE.findall(output_text)
+    if not blocks:
+        return mol
+    rows = [line.split() for line in blocks[-1].strip().splitlines() if line.split()]
+    if len(rows) != mol.GetNumAtoms():
+        # A mismatch means this block is not this molecule. Using it would
+        # silently attach one structure's coordinates to another.
+        return mol
+    try:
+        updated = Chem.Mol(mol)
+        conformer = Chem.Conformer(updated.GetNumAtoms())
+        for index, row in enumerate(rows):
+            conformer.SetAtomPosition(
+                index, Point3D(float(row[1]), float(row[2]), float(row[3]))
+            )
+        updated.RemoveAllConformers()
+        updated.AddConformer(conformer, assignId=True)
+        return updated
+    except Exception:  # noqa: BLE001 - fall back to the submitted geometry
+        return mol
+
+
+def parse_frontier_orbitals(output_text: str) -> tuple[int | None, int | None]:
+    """(HOMO, LUMO) orbital indices from the ORBITAL ENERGIES table.
+
+    Needed because `orca_plot` asks for an orbital by NUMBER, and that
+    number is a property of the basis set rather than of the molecule:
+    water's HOMO is orbital 4 in def2-SVP and benzene's is 20. Asking a
+    user to type it is asking them to guess, and a wrong index plots a
+    real orbital that is not the one they wanted -- so it is read from the
+    job that will be plotted.
+
+    The LAST table in the file is used. A geometry optimisation prints one
+    per cycle, and the orbitals belong to the converged geometry; an
+    unbounded search would return the first SCF's.
+
+    ALPHA ORBITALS ONLY for an open-shell system. An unrestricted job
+    prints "SPIN UP ORBITALS" and "SPIN DOWN ORBITALS" under one
+    ORBITAL ENERGIES heading, and reading straight through both is not a
+    small error: on a real methyl-radical transcript it returned HOMO 3
+    from the spin-down block and LUMO 5 from the spin-up one, a frontier
+    pair that does not exist in either. Alpha is the right set to return
+    rather than merely the safe one -- `orca_plot`'s operator 0 IS the
+    alpha set, so these indices are the ones its default plot will use.
+
+    Returns (None, None) when there is no table, and a None LUMO when
+    every orbital in the basis is occupied -- which cannot happen for a
+    real basis set but is not worth crashing over.
+    """
+    # The LAST table, found from the last header: `_section` takes the
+    # first match, and a geometry optimisation prints one table per cycle.
+    last = output_text.rfind("ORBITAL ENERGIES")
+    if last == -1:
+        return None, None
+    end = output_text.find("MULLIKEN", last)
+    section = output_text[last:] if end == -1 else output_text[last:end]
+
+    spin_down = section.find("SPIN DOWN ORBITALS")
+    if spin_down != -1:
+        section = section[:spin_down]
+    if not section:
+        return None, None
+
+    homo: int | None = None
+    lumo: int | None = None
+    for match in _ORBITAL_ROW_RE.finditer(section):
+        index = int(match.group(1))
+        occupation = float(match.group(2))
+        if occupation > 0.0:
+            homo = index
+        elif lumo is None and homo is not None:
+            # The first empty orbital AFTER an occupied one. Guarding on
+            # `homo` matters for an open-shell beta block, whose table can
+            # begin with empty rows.
+            lumo = index
+    return homo, lumo
+
+
+def _parse_normal_modes(
+    output_text: str, atom_count: int
+) -> dict[int, tuple[tuple[float, float, float], ...]]:
+    """Mode index -> per-atom (dx, dy, dz), from the NORMAL MODES block.
+
+    The block is column-major in chunks: a header row of mode indices, then
+    3N rows where row index = 3*atom + component. Confirmed present in the
+    `.out` file on a real run, so the separate `.hess` file does not need
+    to be read.
+
+    Returned per ATOM rather than as ORCA's flat 3N vector because both
+    consumers -- animating a mode, and classifying it as a stretch or a
+    bend -- want it that way, and doing the regrouping once here keeps the
+    off-by-three risk in one place.
+    """
+    section = _section(output_text, _NORMAL_MODES_HEADER, "IR SPECTRUM")
+    if not section:
+        return {}
+
+    columns: dict[int, list[float]] = {}
+    current: list[int] = []
+    for line in section.splitlines():
+        parts = line.split()
+        if not parts:
+            continue
+        # A header row is all bare integers; a data row starts with the
+        # coordinate index and continues with signed decimals.
+        if all(part.isdigit() for part in parts):
+            current = [int(part) for part in parts]
+            for mode_index in current:
+                columns.setdefault(mode_index, [])
+            continue
+        if not current or not parts[0].isdigit():
+            continue
+        try:
+            values = [float(part) for part in parts[1:]]
+        except ValueError:
+            continue
+        if len(values) != len(current):
+            continue
+        for mode_index, value in zip(current, values):
+            columns[mode_index].append(value)
+
+    modes: dict[int, tuple[tuple[float, float, float], ...]] = {}
+    for mode_index, flat in columns.items():
+        if len(flat) != atom_count * 3:
+            # A partially-read column is worse than no column: it would
+            # animate the wrong atoms. Drop it rather than pad it.
+            continue
+        modes[mode_index] = tuple(
+            (flat[3 * i], flat[3 * i + 1], flat[3 * i + 2]) for i in range(atom_count)
+        )
+    return modes
 
 # ORCA's simple, well-documented "! <keywords>" / "* xyz <charge> <mult> ...
 # *" input format — the shape below is confirmed against ORCA's public
-# input manual. The SCF-energy/thermochemistry/cartesian-coordinates
-# output-parsing regexes below are NOT verified against a real ORCA run in
-# this project (ORCA is external, separately-licensed software this
-# session cannot install) — they target ORCA's well-known, stable output
-# markers, based on documented/widely-referenced ORCA output shape, not a
-# byte-perfect transcript. The NMR shielding-summary regex below IS
-# verified against a real ORCA 6.1.1 run (HF/STO-3G, water) — see
-# `_SHIELDING_HEADER_RE`'s own note.
+# input manual.
+#
+# THIS COMMENT USED TO SAY the output-parsing regexes were "NOT verified
+# against a real ORCA run in this project (ORCA is external, separately-
+# licensed software this session cannot install)". That has not been true
+# for some time: ORCA is installed on the reference machine, Phase 7.6
+# verified the SCF/thermochemistry/geometry path end-to-end against it, the
+# NMR shielding regex was confirmed live, and the vibrational regexes below
+# were driven by two real ORCA 6.1.1 transcripts. The caveat is removed
+# rather than softened, because a stale "unverified" note is worse than no
+# note -- it invites someone to re-do work that was already done.
 
 _CALC_TYPE_KEYWORDS = {"sp": "", "opt": "Opt", "opt_freq": "Opt Freq", "nmr": "NMR", "nmr_coupling": "NMR"}
 
@@ -36,6 +201,14 @@ _GIBBS_RE = re.compile(r"Final Gibbs free energy\s+\.\.\.\s+(-?\d+\.\d+)")
 # Confirmed live against a real ORCA 6.1.1 run's banner text: "Program
 # Version 6.1.1  -  RELEASE   -".
 _VERSION_RE = re.compile(r"Program Version\s+(\S+)\s*-\s*(\w+)")
+
+#: A row of the ORBITAL ENERGIES table: index, occupation, E(Eh), E(eV).
+#: Anchored to four columns so it cannot match the thermochemistry or
+#: population tables that also carry rows of numbers -- the same
+#: false-positive concern `_SHIELDING_ROW_RE` documents.
+_ORBITAL_ROW_RE = re.compile(
+    r"^\s*(\d+)\s+(\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$", re.MULTILINE
+)
 
 # Confirmed live against a real ORCA 6.1.1 `! NMR` run (HF/STO-3G, water):
 #
@@ -64,6 +237,65 @@ _SHIELDING_END_MARKER = "NMR shielding tensor and spin rotation calculation done
 # parse_spin_spin_coupling's own docstring for the exact captured format.
 _COUPLING_SUMMARY_HEADER_RE = re.compile(r"SUMMARY OF ISOTROPIC COUPLING CONSTANTS J \(Hz\)")
 _COUPLING_END_MARKER = "NMR spin-spin coupling calculation done"
+
+# Confirmed live against a real ORCA 6.1.1 `! B3LYP def2-SVP Opt Freq`
+# run on water, and a second `! Freq` run on a deliberately LINEAR water
+# to capture the saddle-point shape. Both transcripts drove these regexes;
+# none of it is from documentation.
+#
+#   VIBRATIONAL FREQUENCIES
+#   ------------------------
+#
+#   Scaling factor for frequencies =  1.000000000  (already applied!)
+#
+#        0:       0.00 cm**-1
+#        ...
+#        6:    1637.69 cm**-1
+#
+# and from the linear (saddle-point) run:
+#
+#        5:   -1436.35 cm**-1  ***imaginary mode***
+#
+# TWO THINGS THAT LOOK LIKE DETAILS AND ARE NOT:
+#
+# 1. THE ZERO-MODE COUNT IS NOT ALWAYS SIX. Nonlinear water reports six
+#    0.00 modes (3N-6); linear water reports FIVE (3N-5). Anything that
+#    hardcodes six silently mislabels a mode on every linear molecule.
+#    ORCA states the boundary itself -- "The first frequency considered
+#    to be a vibration is N" -- so that is read rather than derived.
+#
+# 2. THE IR SPECTRUM TABLE OMITS IMAGINARY MODES ENTIRELY. In the linear
+#    run, modes 5 and 6 are imaginary and the IR table starts at mode 7;
+#    ORCA counts them as non-vibrations. So frequencies MUST come from the
+#    VIBRATIONAL FREQUENCIES block and intensities be joined on by mode
+#    index. Building the spectrum from the IR table alone would report a
+#    clean spectrum for a saddle point -- which is the exact silent
+#    failure that makes every thermochemistry number from the same job
+#    meaningless without saying so.
+_FREQ_HEADER = "VIBRATIONAL FREQUENCIES"
+_FREQ_ROW_RE = re.compile(
+    r"^\s*(\d+):\s*(-?\d+\.\d+)\s*cm\*\*-1(\s*\*\*\*imaginary mode\*\*\*)?\s*$",
+    re.MULTILINE,
+)
+_FREQ_SCALING_RE = re.compile(
+    r"Scaling factor for frequencies\s*=\s*(\d+\.\d+)"
+)
+_FIRST_VIBRATION_RE = re.compile(
+    r"The first frequency considered to be a vibration is\s+(\d+)"
+)
+# " Mode   freq       eps      Int      T**2         TX        TY        TZ"
+# "  6:   1637.69   0.010942   55.30  0.002085  (-0.000862 -0.045655  0.000000)"
+# `Int` (3rd number) is the IR intensity in km/mol.
+_IR_HEADER = "IR SPECTRUM"
+_IR_ROW_RE = re.compile(
+    r"^\s*(\d+):\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*\(",
+    re.MULTILINE,
+)
+# The NORMAL MODES block is a set of column-major chunks: a header row of
+# mode indices, then one row per CARTESIAN COORDINATE (3N of them), where
+# row index = 3*atom + component. Confirmed present in the .out file, so
+# the .hess file does not need to be read.
+_NORMAL_MODES_HEADER = "NORMAL MODES"
 
 HARTREE_TO_KCAL_MOL = 627.5094740631
 
@@ -218,6 +450,102 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
             optimized_conformer = self._parse_optimized_conformer(output_text, mol, provenance)
 
         return descriptors, optimized_conformer
+
+    def parse_vibrational_spectrum(
+        self, output_text: str, mol: Chem.Mol, molecule_uuid: str, calc_type: str
+    ) -> "VibrationalSpectrumResult | None":
+        """The IR spectrum from a frequency job, or None if there is none.
+
+        Only `opt_freq` runs a vibrational analysis, so every other calc
+        type returns None rather than an empty spectrum -- "this job did
+        not compute one" and "this molecule has no modes" are different
+        statements and a view should not show the second for the first.
+
+        The frequency list and the intensity table are joined ON MODE
+        INDEX rather than zipped positionally. That is load-bearing: the
+        IR table omits imaginary modes, so the two lists have different
+        lengths exactly when something has gone wrong with the geometry.
+        """
+        if calc_type != "opt_freq":
+            return None
+        if _FREQ_HEADER not in output_text:
+            return None
+
+        scaling_match = _FREQ_SCALING_RE.search(output_text)
+        # ORCA applies its own factor before printing and says so. Recorded
+        # so nothing downstream applies it a second time.
+        scaling = float(scaling_match.group(1)) if scaling_match else 1.0
+
+        first_vibration_match = _FIRST_VIBRATION_RE.search(output_text)
+        # Fall back to "anything non-zero is a vibration" only if ORCA did
+        # not state the boundary; never to a hardcoded 6, which is wrong
+        # for every linear molecule (3N-5, confirmed on linear water).
+        first_vibration = (
+            int(first_vibration_match.group(1)) if first_vibration_match else None
+        )
+
+        frequencies: dict[int, float] = {}
+        for match in _FREQ_ROW_RE.finditer(
+            _section(output_text, _FREQ_HEADER, _NORMAL_MODES_HEADER)
+        ):
+            frequencies[int(match.group(1))] = float(match.group(2))
+
+        intensities: dict[int, float] = {}
+        ir_section = _section(output_text, _IR_HEADER, "THERMOCHEMISTRY")
+        for match in _IR_ROW_RE.finditer(ir_section):
+            intensities[int(match.group(1))] = float(match.group(4))
+
+        displacements = _parse_normal_modes(output_text, mol.GetNumAtoms())
+
+        # CLASSIFY AGAINST THE GEOMETRY THE MODES WERE COMPUTED AT, not the
+        # one that was submitted. An `opt_freq` optimises first and runs the
+        # frequency analysis on the RESULT, so `mol`'s conformer is the
+        # wrong geometry -- and mode character is decided by projecting
+        # displacements onto bond axes, which are exactly what moved.
+        # Caught on a real transcript: classifying a linear-water frequency
+        # run against a bent input labelled both O-H stretches "bend".
+        geometry = _mol_at_final_geometry(output_text, mol)
+
+        modes = []
+        for index in sorted(frequencies):
+            wavenumber = frequencies[index]
+            # Skip the translational/rotational modes ORCA reports as 0.00.
+            # An IMAGINARY mode is below the boundary too and must NOT be
+            # skipped -- it is the whole point of looking.
+            if first_vibration is not None and index < first_vibration:
+                if wavenumber >= 0.0:
+                    continue
+            elif wavenumber == 0.0:
+                continue
+            modes.append(
+                VibrationalMode(
+                    wavenumber_cm1=wavenumber,
+                    ir_intensity_km_mol=intensities.get(index),
+                    displacements=displacements.get(index, ()),
+                    character=classify_mode(geometry, displacements.get(index, ())),
+                )
+            )
+
+        imaginary = [mode for mode in modes if mode.is_imaginary]
+        warning = ""
+        if imaginary:
+            listed = ", ".join(f"{m.wavenumber_cm1:.1f}" for m in imaginary)
+            warning = (
+                f"{len(imaginary)} imaginary frequency/frequencies ({listed} cm-1): "
+                f"this geometry is a saddle point, not a minimum. The "
+                f"thermochemistry from this same job is not valid for it."
+            )
+
+        return VibrationalSpectrumResult(
+            spectrum_type="ir",
+            name="IR Spectrum (harmonic)",
+            units="cm-1",
+            method=self.provider_id,
+            molecule_uuid=molecule_uuid,
+            modes=tuple(modes),
+            scaling_factor=scaling,
+            imaginary_warning=warning,
+        )
 
     def _parse_thermochemistry(
         self, output_text: str, molecule_uuid: str, provenance: Provenance
