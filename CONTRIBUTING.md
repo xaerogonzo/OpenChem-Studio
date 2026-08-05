@@ -23,6 +23,18 @@ shipping it with a plausible-looking number attached.
 
 ## Running the tests
 
+CI runs the suite, the naming benchmark, the regulatory benchmark and
+ruleset validation on Windows for every pull request, so you do not have to
+remember all four. Run them locally anyway when you are changing anything
+they cover — a red tick twenty minutes after pushing is a slower way to
+learn the same thing.
+
+Six benchmarks CANNOT run in CI, because each needs a tool no hosted runner
+can install: `ir/` and `esp/` need ORCA, `nmr/` needs ORCA plus a 152 MB
+index, `docking/` needs AutoDock Vina and RCSB downloads, and `admet/` and
+`pka/` need their sidecar environments. If you touch what those measure,
+running them by hand is the only check there is.
+
 ```bash
 uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suite.log
 ```

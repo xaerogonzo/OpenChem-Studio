@@ -729,20 +729,65 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for how the codebase is structured so
 this has stayed additive — new content types get a sibling backend, new
 calculators get a registration, and neither requires a rewrite.
 
-## Continuous benchmarking in CI — a direction, explicitly not started
+## Continuous integration — built, and honest about its reach
 
 The benchmarks are the arbiter for every scientific claim this project
-makes, and today they are run by hand. Running them automatically, and
-publishing the results as release artefacts, would close the gap between
-"measured once" and "still true".
+makes. They used to be run entirely by hand; the cheap ones now gate every
+pull request.
 
-**Not started, and deliberately not started here.** The repository has no CI
-at all, so this is not a matter of adding a benchmark job to an existing
-pipeline — it is standing one up from nothing and then deciding what belongs
-in it. The naming benchmark is cheap enough to gate a pull request on. The
-NMR and docking benchmarks are not: they need ORCA and Vina, real receptor
-downloads, and minutes-to-hours of compute, which makes them a scheduled or
-manually-triggered job with published artefacts rather than a gate.
+**`.github/workflows/tests.yml`** runs on every PR and every push to master:
+the full suite, the naming benchmark, the regulatory benchmark, and
+`--check` validation of the shipped regulatory rulesets. All four need only
+Python, RDKit and OPSIN.
 
-That split, and where the artefacts live, is the design work. It is its own
-phase.
+**`.github/workflows/vendor-tests.yml`** runs the vendored namer's own suite
+behind a path filter on `src/openchem/vendor/**` — exactly when CLAUDE.md
+says to run it — so its ~15 minutes land on the PRs that can break it and
+on no others.
+
+**Windows only, and Linux deferred rather than rejected.** This application
+ships Windows-only, and the suite is webview-heavy, so a green tick means
+green on the platform users run. A Linux job would surface hidden
+environment assumptions and is worth adding as a NON-BLOCKING second
+runner; blocking a PR on a platform nobody ships is not worth the noise.
+The reasoning is written into the workflow header rather than left here,
+where whoever revisits it will not be looking.
+
+### What CI still cannot do, and why it is not a gap to close cheaply
+
+Six benchmarks stay hand-run, because each needs a tool that cannot be
+installed on a hosted runner:
+
+| benchmark | blocked on |
+|---|---|
+| `ir/`, `esp/` | ORCA — registration-gated, no public direct download |
+| `nmr/` | ORCA plus the 152 MB nmrshiftdb2 index |
+| `docking/` | AutoDock Vina plus RCSB receptor downloads |
+| `admet/` | the ~1 GB ADMET-AI sidecar environment |
+| `pka/` | the pkasolver sidecar environment |
+
+The workflow lists these by name so a green tick is not mistaken for full
+coverage, and `docs/VALIDATION.md` carries their measured results with the
+method and sample size behind each.
+
+**The remaining design work is where artefacts live**, not whether to run
+them: a self-hosted runner with ORCA and Vina installed could run the lot on
+a schedule and publish the numbers per release, which is what would close
+the gap between "measured once" and "still true". That is its own phase and
+is not started.
+
+### What standing it up cost, recorded because it was not free
+
+The first run went green, including the Qt and QtWebEngine tests on a
+Windows runner. Three bugs were found by RUNNING the naming gate rather
+than reading it — it created a scratch directory beside the repository,
+left an untracked predictions file, and churned a tracked `results.json` by
+using a different run label. None would have failed CI; all three would have
+annoyed a developer.
+
+CI then disproved a figure in CLAUDE.md on its first run. The vendored
+suite was documented as `3193 passed, 16 skipped`; it is `3209 passed, 0
+skipped`. 3193 + 16 = 3209, and those 16 are guarded by an ImportError on
+`py2opsin` — a declared dependency — so the old number came from an
+environment where the sync had not been done, and it contradicted the
+Java-on-PATH instruction two lines above it.

@@ -119,6 +119,7 @@ The honest version of a comparison table: this one is about our own software.
 | pKa (optional sidecar) | no solvent model |
 | Molecular dynamics | vacuum, no thermostat, no solvent, no periodic boundaries |
 | hERG | a risk-factor checklist, explicitly not a prediction |
+| Continuous integration | the suite and the naming, regulatory and ruleset checks gate every PR on Windows. Six benchmarks stay hand-run because they need ORCA, Vina or a multi-hundred-MB sidecar that no hosted runner can install |
 | Regulatory screening | an intelligence report, NEVER a compliance determination. Ships CWC Schedule 1 only; every other domain registers empty and says so. One rule knowingly over-broad at precision 0.50, [benchmarks/regulatory/](benchmarks/regulatory/) |
 
 | Does not | Why |
@@ -127,7 +128,6 @@ The honest version of a comparison table: this one is about our own software.
 | Solvent-dependent pKa | needs a QM/COSMO-RS-scale undertaking |
 | Missing-residue repair | measured and rejected — unsafe near a binding site |
 | macOS / Linux packaging | untested; source install may work, unverified |
-| Continuous integration | none configured yet |
 
 ## Why this is built differently
 
