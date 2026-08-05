@@ -73,15 +73,32 @@ textbook-exact. Benzene reports no torsions, correctly, having no rotatable
 bond. Acetone reports exactly two, at 36.4 and 138.8 cm⁻¹, which are its two
 methyl rotors.
 
-Two classifier bugs were found by these molecules rather than by tests, and
-both are recorded in `chem/vibrational_modes.py`:
+These molecules found two classifier bugs, and then forced the method to be
+replaced outright. All of it is recorded in `chem/vibrational_modes.py`.
 
-1. Requiring only two substituents *total* around a bond made every C–H bond
-   a dihedral candidate, so **methane's bends came back as torsions** — and
-   methane has no dihedral to twist.
-2. The geometric test alone called 11 of acetone's 24 modes torsional,
-   including bands at 1226 and 1372 cm⁻¹. A methyl deformation has nearly
-   the same displacement pattern as a methyl torsion; separating them needs
-   the change in dihedral *angle*, which this does not compute. The label is
-   therefore bounded to soft modes (≤ 500 cm⁻¹), where it is physically
-   defensible, rather than claiming a distinction the method cannot make.
+The original classifier compared displacement *magnitudes* at the ends of a
+bond against its centre. That made every C–H bond a dihedral candidate, so
+**methane's bends came back as torsions** — and methane has no dihedral to
+twist. Worse, it called 11 of acetone's 24 modes torsional, including bands
+at 1226 and 1372 cm⁻¹, when acetone has exactly two methyl rotors. A methyl
+*deformation* satisfies a magnitude test just as well as a methyl *torsion*:
+in both, the hydrogens move and the carbons do not. It had to be propped up
+with a "torsions are below 500 cm⁻¹" rule, which was a proxy standing in for
+a measurement it could not make.
+
+It is now a proper **internal-coordinate decomposition**: the geometry is
+displaced a little along the mode and the changes in bond lengths, bond
+angles and dihedral angles are measured directly, with the largest naming
+the mode and no clear winner leaving it unlabelled.
+
+The dihedral term is the **signed mean** per bond, not the sum of
+magnitudes, and that is what finally separates the two. A real torsion turns
+every dihedral about a bond the same way, so their signed mean is large; a
+deformation swings one hydrogen forward as another goes back and the mean
+cancels while the magnitudes do not. The frequency cutoff is gone —
+`classify_mode` no longer takes a wavenumber at all.
+
+Results above are from the current method. Benzene gained a label it
+previously could not assign (30 of 30 classified, none unlabelled), and the
+frequency and intensity numbers are unchanged, since classification does not
+feed them.

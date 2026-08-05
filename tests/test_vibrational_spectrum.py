@@ -3,7 +3,8 @@
 The fixtures under `tests/fixtures/orca/` are REAL ORCA 6.1.1 transcripts,
 trimmed to the vibrational section but otherwise verbatim -- produced by
 running `! B3LYP def2-SVP Opt Freq` on water, and `! B3LYP def2-SVP Freq`
-on a deliberately LINEAR water to get a saddle point. This project has
+on a deliberately LINEAR water to get a saddle point, plus acetone and
+methane for the mode-character checks. This project has
 three recorded bugs that only a real backend run exposed, and the ORCA
 output format is known to drift between versions, so a hand-written
 fixture would be testing an assumption rather than the program.
@@ -146,26 +147,73 @@ def test_classification_refuses_rather_than_guesses_without_geometry():
     """Bond axes are what displacements get projected onto. With no
     conformer the question cannot be asked, and silence beats a guess."""
     flat = Chem.AddHs(Chem.MolFromSmiles("O"))
-    assert classify_mode(flat, ((0.0, 1.0, 0.0),) * 3, 1600.0) == ""
+    assert classify_mode(flat, ((0.0, 1.0, 0.0),) * 3) == ""
 
 
 def test_classification_refuses_a_mismatched_displacement_count():
-    assert classify_mode(_water(), ((0.0, 1.0, 0.0),), 1600.0) == ""
+    assert classify_mode(_water(), ((0.0, 1.0, 0.0),)) == ""
 
 
 def test_classification_never_raises():
-    assert classify_mode(None, (), None) == ""
-    assert classify_mode(_water(), (), None) == ""
+    assert classify_mode(None, ()) == ""
+    assert classify_mode(_water(), ()) == ""
 
 
-@pytest.mark.parametrize("wavenumber,expected", [(120.0, True), (1372.0, False)])
-def test_only_soft_modes_may_be_called_torsions(wavenumber, expected):
-    """MEASURED. The geometric test alone labelled 11 of acetone's 24 modes
-    torsional, including bands at 1226 and 1372 cm-1 -- and acetone has
-    exactly two methyl rotors. A methyl deformation has nearly the same
-    displacement pattern as a methyl torsion, and separating them needs the
-    dihedral ANGLE change, which this module does not compute. So the label
-    is bounded to where it is physically defensible: torsions are soft."""
-    from openchem.chem.vibrational_modes import _is_soft
+def test_a_methyl_torsion_is_distinguished_from_a_methyl_deformation():
+    """THE CASE THE OLD HEURISTIC COULD NOT SEE, and it needs no frequency
+    cutoff any more.
 
-    assert _is_soft(wavenumber) is expected
+    Comparing displacement MAGNITUDES at a bond's ends against its centre
+    is satisfied equally by a methyl deformation and a methyl torsion --
+    the hydrogens move and the carbons do not, either way. It labelled 11
+    of acetone's 24 modes torsional, including 1226 and 1372 cm-1, and had
+    to be propped up by a "torsions are below 500 cm-1" rule.
+
+    The NET rotation about the bond tells them apart: a torsion turns every
+    dihedral the same way so their signed mean is large, while a
+    deformation swings one hydrogen forward as another goes back and the
+    mean cancels. Acetone has exactly two methyl rotors, and gets exactly
+    two torsions -- at the frequencies methyl rotation actually occurs."""
+
+    from rdkit.Chem import AllChem
+
+    fixture = FIXTURES / "acetone_freq.out"
+    if not fixture.is_file():
+        pytest.skip("acetone transcript not vendored")
+
+    mol = Chem.AddHs(Chem.MolFromSmiles("CC(C)=O"))
+    AllChem.EmbedMolecule(mol, randomSeed=0xF00D)
+    AllChem.MMFFOptimizeMolecule(mol)
+    result = OrcaQuantumEngineProvider().parse_vibrational_spectrum(
+        fixture.read_text(encoding="utf-8"), mol, "acetone", "opt_freq"
+    )
+
+    torsions = [m.wavenumber_cm1 for m in result.modes if m.character == "torsion"]
+    assert len(torsions) == 2
+    assert all(w < 200.0 for w in torsions)
+    # And nothing in the methyl-deformation region is called a torsion.
+    assert not [
+        m for m in result.modes if m.character == "torsion" and m.wavenumber_cm1 > 500
+    ]
+
+
+def test_methane_has_no_torsion_because_it_has_no_dihedral():
+    """Every C-H bond has a terminal hydrogen at one end, so there is no
+    four-atom path to twist. An earlier version counted every C-H bond as a
+    dihedral candidate and reported methane's bends as torsions."""
+    fixture = FIXTURES / "methane_freq.out"
+    if not fixture.is_file():
+        pytest.skip("methane transcript not vendored")
+
+    from rdkit.Chem import AllChem
+
+    mol = Chem.AddHs(Chem.MolFromSmiles("C"))
+    AllChem.EmbedMolecule(mol, randomSeed=0xF00D)
+    AllChem.MMFFOptimizeMolecule(mol)
+    result = OrcaQuantumEngineProvider().parse_vibrational_spectrum(
+        fixture.read_text(encoding="utf-8"), mol, "methane", "opt_freq"
+    )
+    characters = [m.character for m in result.modes]
+    assert "torsion" not in characters
+    assert characters.count("bend") == 5
+    assert characters.count("stretch") == 4

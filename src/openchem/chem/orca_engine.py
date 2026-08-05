@@ -522,9 +522,7 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
                     wavenumber_cm1=wavenumber,
                     ir_intensity_km_mol=intensities.get(index),
                     displacements=displacements.get(index, ()),
-                    character=classify_mode(
-                        geometry, displacements.get(index, ()), wavenumber
-                    ),
+                    character=classify_mode(geometry, displacements.get(index, ())),
                 )
             )
 
