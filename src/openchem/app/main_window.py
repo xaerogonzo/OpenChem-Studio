@@ -44,6 +44,7 @@ from openchem.events.events import (
 )
 from openchem.plugins.manager import PluginManager
 from openchem.services.container import ServiceContainer
+from openchem.ui.dialogs.about_dialog import AboutDialog
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
 from openchem.ui.panels.console_panel import ConsolePanel
 from openchem.ui.panels.alignment_panel import AlignmentPanel
@@ -761,8 +762,7 @@ class MainWindow(QMainWindow):
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(directory)))
 
     def _show_about(self) -> None:
-        QMessageBox.about(
-            self,
-            "About OpenChem Studio",
-            "OpenChem Studio\nAn open-source, plugin-based chemistry workstation.",
-        )
+        # Settings is passed through so the dialog can report which external
+        # tools are actually resolved -- a configured path that no longer
+        # exists reads identically to a working one until something looks.
+        AboutDialog(self._settings, self).exec()

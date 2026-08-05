@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+title: OpenChem Studio
+message: >-
+  If you use this software in work that you publish, please cite it
+  using the metadata below.
+type: software
+authors:
+  - alias: xaerogonzo
+    website: "https://github.com/xaerogonzo"
+repository-code: "https://github.com/xaerogonzo/OpenChem-Studio"
+url: "https://github.com/xaerogonzo/OpenChem-Studio"
+abstract: >-
+  A desktop chemistry workbench combining 2D structure editing, 3D and
+  macromolecular visualisation, ~46 calculators, molecular docking via
+  AutoDock Vina, quantum chemistry and NMR prediction via ORCA, and an
+  offline deterministic IUPAC naming engine. Predictions are benchmarked
+  against literature or reference implementations and labelled by the
+  level of confidence they have been shown to earn.
+keywords:
+  - cheminformatics
+  - computational-chemistry
+  - molecular-docking
+  - nmr-prediction
+  - iupac-nomenclature
+  - rdkit
+  - autodock-vina
+  - orca
+license: GPL-3.0-or-later
+version: 0.9.0
+date-released: "2026-08-04"

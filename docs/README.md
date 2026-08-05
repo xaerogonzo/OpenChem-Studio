@@ -13,6 +13,12 @@
 The root [`README.md`](../README.md) is the overview; everything above goes
 deeper.
 
-`../CHANGELOG.md`, `../CONTRIBUTING.md`, `../CODE_OF_CONDUCT.md` and
-`../CITATION.cff` stay in the repository root, where GitHub and packaging
-tools expect to find them.
+[`../CHANGELOG.md`](../CHANGELOG.md), [`../CONTRIBUTING.md`](../CONTRIBUTING.md),
+[`../CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md) and
+[`../CITATION.cff`](../CITATION.cff) stay in the repository root, where GitHub
+and packaging tools expect to find them.
+
+`build.ps1` copies this whole directory, plus the root `README.md` and
+`LICENSE`, into the distributable on every build — so a shipped zip carries
+its own documentation rather than pointing at a repository the user may not
+have.

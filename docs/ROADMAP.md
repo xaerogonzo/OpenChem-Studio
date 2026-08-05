@@ -470,7 +470,7 @@ over the lookup's per-sphere statistics plus cheap RDKit atom descriptors,
 on the identical held-out split. Held-out MAE, carbon: lookup **2.91**,
 model **3.32**, best hybrid **2.91** — a tie. On hydrogen the hybrid gains
 0.01 ppm. The full table, four ablations and a paired bootstrap are in
-[benchmarks/nmr/README.md](benchmarks/nmr/README.md), and the summary is
+[benchmarks/nmr/README.md](../benchmarks/nmr/README.md), and the summary is
 in `chem/nmr_database.py`'s docstring beside the lookup's own numbers.
 
 The diagnosis is the useful part: with leakage left in, the model's
@@ -536,3 +536,21 @@ and three were checked again recently rather than taken on trust.
 See [ARCHITECTURE.md](ARCHITECTURE.md) for how the codebase is structured so
 this has stayed additive — new content types get a sibling backend, new
 calculators get a registration, and neither requires a rewrite.
+
+## Continuous benchmarking in CI — a direction, explicitly not started
+
+The benchmarks are the arbiter for every scientific claim this project
+makes, and today they are run by hand. Running them automatically, and
+publishing the results as release artefacts, would close the gap between
+"measured once" and "still true".
+
+**Not started, and deliberately not started here.** The repository has no CI
+at all, so this is not a matter of adding a benchmark job to an existing
+pipeline — it is standing one up from nothing and then deciding what belongs
+in it. The naming benchmark is cheap enough to gate a pull request on. The
+NMR and docking benchmarks are not: they need ORCA and Vina, real receptor
+downloads, and minutes-to-hours of compute, which makes them a scheduled or
+manually-triggered job with published artefacts rather than a gate.
+
+That split, and where the artefacts live, is the design work. It is its own
+phase.
