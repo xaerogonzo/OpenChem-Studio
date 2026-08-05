@@ -22,6 +22,8 @@ plausible features were built, measured, and deliberately **not** shipped.
 |---|---|
 | ![Electrostatic potential mapped onto a surface](docs/images/esp-surface.png) | ![Docking poses with interaction analysis](docs/images/docking.png) |
 | A continuous scalar field painted onto a molecular surface | Docked poses, scores and per-pose interaction analysis |
+| ![Predicted NMR spectrum for caffeine](docs/images/nmr.png) | ![The contents of a receptor structure, chain by chain](docs/images/receptor-contents.png) |
+| Predicted ¹³C shifts on the structure, the peak spectrum and the signal table | Every chain in a deposit, before deciding what to dock against |
 
 ## Verified features
 
