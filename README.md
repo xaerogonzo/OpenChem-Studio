@@ -6,9 +6,9 @@ PySide6, RDKit, and Open Babel, with a layered architecture designed to
 support future plugins (descriptor providers, importers/exporters, panels)
 without restructuring the core.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the internal design,
-[ROADMAP.md](ROADMAP.md) for the phased development plan, and
-[PLUGIN_SDK.md](PLUGIN_SDK.md) for writing your own plugins.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the internal design,
+[docs/ROADMAP.md](docs/ROADMAP.md) for the phased development plan, and
+[docs/PLUGIN_SDK.md](docs/PLUGIN_SDK.md) for writing your own plugins.
 
 ## Naming molecules
 
@@ -59,7 +59,7 @@ whole directory; the `.exe` alone does nothing.
 pkasolver, STOUT, the Temurin JRE, ORCA and Vina are **not** bundled. They
 stay user-installed into the configurable data directory via Tools > External
 Tools, exactly as in a source checkout. See
-[ARCHITECTURE.md](ARCHITECTURE.md) for what the build has to get right and
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for what the build has to get right and
 why each part of it is there.
 
 ## License

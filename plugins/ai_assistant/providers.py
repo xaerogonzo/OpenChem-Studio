@@ -65,7 +65,7 @@ class AIProvider(ABC):
 
     Deliberately not part of `openchem.plugins.interfaces` — core never
     needs to know this exists, since the AI assistant is a bundled plugin,
-    not a core feature (see PLUGIN_SDK.md / ARCHITECTURE.md for why).
+    not a core feature (see docs/PLUGIN_SDK.md / docs/ARCHITECTURE.md for why).
     """
 
     provider_id: str

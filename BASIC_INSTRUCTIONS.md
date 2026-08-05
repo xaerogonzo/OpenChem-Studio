@@ -1,5 +1,12 @@
 # OpenChem Studio — Basic Instructions
 
+> **This is a tooling file, not documentation.** It is TokenSave Manager's
+> project baseline, and the `@` line below is a template include pointing at
+> an absolute path on the maintainer's machine — which is why it stays in
+> the repository root while the real documentation lives in [`docs/`](docs/).
+> If you are looking for user or developer documentation, start at
+> [`README.md`](README.md) or [`docs/`](docs/).
+
 @D:\Claude Co worker\Token Save Manager Source\templates\project-baseline.md
 
 ---
@@ -15,11 +22,11 @@
 
 ## Project Structure
 
-- `src/openchem/` — application source, `src`-layout package (see ARCHITECTURE.md for the full layered package map: `domain/`, `chem/`, `services/`, `commands/`, `plugins/`, `app/`, `ui/`, `events/`, `resources/ketcher/`, `vendor/` — third-party code owned in-tree)
+- `src/openchem/` — application source, `src`-layout package (see docs/ARCHITECTURE.md for the full layered package map: `domain/`, `chem/`, `services/`, `commands/`, `plugins/`, `app/`, `ui/`, `events/`, `resources/ketcher/`, `vendor/` — third-party code owned in-tree)
 - `tests/` — pytest suite (chemistry engine, services, commands, layering rule). `tests/vendor/` holds the vendored nomenclature engine's own ~3,200 tests and is excluded from the default run
 - `benchmarks/naming/` — the naming regression benchmark, 181 molecules scored by OPSIN round-trip; the arbiter for any change to naming
 - `pyproject.toml` / `uv.lock` — uv-managed dependencies
-- `build.ps1` / `build.bat` — **PyInstaller** packaging, driven by `packaging/openchem.spec`; freezes the app into a one-directory `dist/OpenChemStudio/`. PyInstaller over Nuitka deliberately — see ARCHITECTURE.md's packaging section for why, and for the four bundled items that fail *silently* when missing
+- `build.ps1` / `build.bat` — **PyInstaller** packaging, driven by `packaging/openchem.spec`; freezes the app into a one-directory `dist/OpenChemStudio/`. PyInstaller over Nuitka deliberately — see docs/ARCHITECTURE.md's packaging section for why, and for the four bundled items that fail *silently* when missing
 - `packaging/openchem.spec` — the real build definition, with a comment per bundled item
 - `.tokensave/`, `.codegraph/` — code-graph indexes, already initialized against this repo
 
@@ -30,8 +37,8 @@
 | File | Location | Purpose |
 |---|---|---|
 | README.md | `/README.md` | Project intro, dev setup |
-| ARCHITECTURE.md | `/ARCHITECTURE.md` | Layered architecture, package map, design decisions, known TODOs |
-| ROADMAP.md | `/ROADMAP.md` | Phased development plan, plus resolved investigations (naming) and documented extension points |
+| docs/ARCHITECTURE.md | `/docs/ARCHITECTURE.md` | Layered architecture, package map, design decisions, known TODOs |
+| docs/ROADMAP.md | `/docs/ROADMAP.md` | Phased development plan, plus resolved investigations (naming) and documented extension points |
 | CLAUDE.md | `/CLAUDE.md` | How to run the tests here, and the traps that cost real time |
 | VENDORING.md | `/src/openchem/vendor/VENDORING.md` | What is vendored, from where, at which commit, and what was changed |
 | LICENSE | `/LICENSE` | GPL-3.0-or-later (required for optional Open Babel bindings use) |
@@ -40,7 +47,7 @@
 
 ## Architecture
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the full picture. In short:
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full picture. In short:
 
 ```
 UI -> Commands (QUndoStack) -> Services (async, typed events) -> Domain models (UUID-identified) -> Chem engine (sole RDKit/Open Babel import site)

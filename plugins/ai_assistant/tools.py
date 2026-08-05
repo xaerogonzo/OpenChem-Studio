@@ -16,7 +16,7 @@ class ToolDefinition:
 def validate_smarts(pattern: str) -> str:
     """Validates a SMARTS substructure-query pattern via RDKit and reports
     the result as plain text for the assistant to read back to the user --
-    the exact "safe read operation like SMARTS validation" ARCHITECTURE.md
+    the exact "safe read operation like SMARTS validation" docs/ARCHITECTURE.md
     names as Phase 5's deferred tool-calling example. Read-only: never
     touches the user's project.
     """

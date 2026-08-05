@@ -6,7 +6,7 @@ nmrshiftdb2 and scored against the HOSE lookup on the held-out split
 `chem/nmr_database.py` records -- and it lost. The full table is in
 `README.md` beside this file. Kept so the negative result is reproducible
 and so a later attempt starts from the evidence instead of repeating the
-work; see ROADMAP.md.
+work; see docs/ROADMAP.md.
 
 WHAT WAS TRIED. The lookup fails in one specific way: when an environment
 has never been seen, widening the sphere depth pools an ever more generic

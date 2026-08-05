@@ -401,7 +401,7 @@ def compute_herg_risk_factors(mol: Chem.Mol, molecule_uuid: str) -> AlertResult:
     affinity or a pass/fail verdict. No trained model backs this; it's a
     checklist of factors the literature associates with risk, nothing
     more. Real hERG/CYP prediction remains deferred pending a verified,
-    redistributable model (see ROADMAP.md's "ML Calculator Plugins" note).
+    redistributable model (see docs/ROADMAP.md's "ML Calculator Plugins" note).
     """
     matched = []
     mol_logp = Crippen.MolLogP(mol)

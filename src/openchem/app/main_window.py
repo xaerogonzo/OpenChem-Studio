@@ -596,7 +596,7 @@ class MainWindow(QMainWindow):
         # (PropertyPanel already displays these) rather than inventing a
         # separate quantum-chemistry-specific display path -- descriptors
         # were never cached on the molecule to begin with (see
-        # ARCHITECTURE.md), so ORCA's results are just another provider's
+        # docs/ARCHITECTURE.md), so ORCA's results are just another provider's
         # values, not a special case.
         for descriptor in event.descriptors:
             self._services.event_bus.publish(DescriptorComputed(descriptor=descriptor))

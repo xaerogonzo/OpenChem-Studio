@@ -72,7 +72,7 @@ class RDKitTemplateProvider(ReactionPredictor):
     Loads templates from the bundled `reaction_templates.json` **and**, if
     present, an additional file under the user's app-data directory — so a
     user can add their own reactions without touching this plugin's code
-    (reaction-SMARTS libraries tend to grow; see PLUGIN_SDK.md's convention
+    (reaction-SMARTS libraries tend to grow; see docs/PLUGIN_SDK.md's convention
     of treating this kind of thing as data, not code).
     """
 

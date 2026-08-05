@@ -14,7 +14,7 @@ class HelloDescriptorProvider(DescriptorProvider):
 
     Descriptor id is namespaced ("hello.ring_fraction", not "ring_fraction")
     so it can never collide with another provider's descriptor of the same
-    short name — see PLUGIN_SDK.md.
+    short name — see docs/PLUGIN_SDK.md.
     """
 
     provider_id = "hello"
@@ -65,7 +65,7 @@ class HelloMenuProvider(MenuProvider):
 
 class HelloPlugin(Plugin):
     """Ties the descriptor/panel/menu providers together. See
-    PLUGIN_SDK.md for what each `context.*` namespace does.
+    docs/PLUGIN_SDK.md for what each `context.*` namespace does.
     """
 
     def activate(self, context: PluginContext) -> None:
