@@ -79,6 +79,63 @@ class NMRSpectrumResult(SpectrumResult):
 
 
 @dataclass(frozen=True, kw_only=True)
+class VibrationalMode:
+    """One normal mode of a harmonic vibrational analysis.
+
+    `displacements` is per ATOM -- (dx, dy, dz) in the order the molecule's
+    atoms appear -- rather than the flat 3N vector ORCA prints, because
+    every consumer (animation, mode classification) wants it per atom.
+
+    `wavenumber_cm1` is NEGATIVE for an imaginary mode. That is not a
+    corrupt value to be filtered out: it is the finding that the geometry
+    is a saddle point rather than a minimum, and it invalidates every
+    thermochemistry number from the same job. See `is_imaginary`.
+    """
+
+    wavenumber_cm1: float
+    ir_intensity_km_mol: float | None = None
+    #: Per-atom (dx, dy, dz). Empty when the source did not report modes.
+    displacements: tuple[tuple[float, float, float], ...] = ()
+    #: "stretch" / "bend" / "torsion" / "" when it could not be classified.
+    character: str = ""
+    raman_activity: float | None = None
+
+    @property
+    def is_imaginary(self) -> bool:
+        return self.wavenumber_cm1 < 0.0
+
+
+@dataclass(frozen=True, kw_only=True)
+class VibrationalSpectrumResult(SpectrumResult):
+    """A harmonic vibrational spectrum -- IR today, Raman on the same shape.
+
+    `values` AND `elements` ARE DELIBERATELY LEFT EMPTY. `SpectrumResult`
+    documents both as keyed by ATOM INDEX, and a vibrational peak is not a
+    property of an atom -- it is a property of a normal mode, which every
+    atom participates in. Putting mode data in `values` would type-check,
+    render as nonsense in every per-atom view, and silently sum to a
+    meaningless "Overall" total in the Calculator Inspector. Modes live in
+    their own field instead.
+
+    `scaling_factor` records what was applied to `modes` and by whom.
+    ORCA applies its own (and says so in the output: "Scaling factor for
+    frequencies = 1.000000000 (already applied!)"), so anything applied
+    here is on top of that -- carrying the number is what stops it being
+    applied twice by a later reader.
+    """
+
+    modes: tuple[VibrationalMode, ...] = ()
+    scaling_factor: float = 1.0
+    #: Set when the analysis describes a saddle point rather than a
+    #: minimum. Carried as text because it is shown to the user verbatim.
+    imaginary_warning: str = ""
+
+    @property
+    def imaginary_modes(self) -> tuple[VibrationalMode, ...]:
+        return tuple(mode for mode in self.modes if mode.is_imaginary)
+
+
+@dataclass(frozen=True, kw_only=True)
 class StructureEntry:
     """One generated structure inside a `StructureSetResult`.
 

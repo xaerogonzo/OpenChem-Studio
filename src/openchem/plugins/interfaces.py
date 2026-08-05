@@ -10,7 +10,12 @@ from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.docking import DockingBox, DockingPoseModel
 from openchem.domain.molecule import MoleculeModel
-from openchem.domain.scientific_result import AlertResult, PerAtomDataset, SpectrumResult
+from openchem.domain.scientific_result import (
+    AlertResult,
+    PerAtomDataset,
+    SpectrumResult,
+    VibrationalSpectrumResult,
+)
 from openchem.services.progress import ProgressHandle
 
 if TYPE_CHECKING:
@@ -237,6 +242,24 @@ class QuantumEngineProvider(ABC):
         `SpectrumResult`). Not abstract: most calc_types (`"sp"`/`"opt"`/
         `"opt_freq"`) have no spectrum to report, so the default is `None`
         rather than forcing every implementer to override it."""
+        return None
+
+    def parse_vibrational_spectrum(
+        self, output_text: str, mol: Chem.Mol, molecule_uuid: str, calc_type: str
+    ) -> "VibrationalSpectrumResult | None":
+        """Optional: the harmonic vibrational spectrum from a frequency job.
+
+        SEPARATE from `parse_spectrum_output` rather than another branch
+        inside it, because the two are indexed differently and cannot share
+        a return type honestly: an NMR spectrum is keyed by ATOM, a
+        vibrational one by NORMAL MODE. Folding them together is what would
+        force `SpectrumResult.values` to mean two things.
+
+        Default `None` -- an engine with no frequency analysis, or a calc
+        type that did not run one, reports nothing rather than an empty
+        spectrum. "This job computed no modes" and "this molecule has no
+        modes" are different statements.
+        """
         return None
 
     def parse_spin_spin_coupling(

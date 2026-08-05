@@ -1,0 +1,29 @@
+{
+  "_source": "NIST Computational Chemistry Comparison and Benchmark Database (CCCBDB), experimental vibrational fundamentals. Entered by hand from the standard literature values for these five molecules rather than scraped -- CCCBDB is form-driven and has no bulk API. Every value here is a textbook fundamental for a small, unambiguous molecule, chosen so a reader can check them without a database.",
+  "_units": "cm-1, experimental FUNDAMENTALS (anharmonic). Computed values are HARMONIC, which is why they run systematically high and why a scaling factor is fitted rather than assumed.",
+  "molecules": {
+    "water": {
+      "smiles": "O",
+      "fundamentals": [1595.0, 3657.0, 3756.0],
+      "assignments": ["bend (v2)", "symmetric stretch (v1)", "asymmetric stretch (v3)"]
+    },
+    "co2": {
+      "smiles": "O=C=O",
+      "fundamentals": [667.0, 667.0, 1333.0, 2349.0],
+      "assignments": ["bend (v2, degenerate)", "bend (v2, degenerate)", "symmetric stretch (v1)", "asymmetric stretch (v3)"]
+    },
+    "methane": {
+      "smiles": "C",
+      "fundamentals": [1306.0, 1306.0, 1306.0, 1534.0, 1534.0, 2917.0, 3019.0, 3019.0, 3019.0],
+      "assignments": ["v4 bend (x3)", "v4 bend", "v4 bend", "v2 bend (x2)", "v2 bend", "v1 symmetric stretch", "v3 asymmetric stretch (x3)", "v3", "v3"]
+    }
+  },
+  "_excluded": {
+    "acetone": "Run and parsed, but NOT scored. 24 modes, many of them mixed methyl rocks and deformations whose experimental assignment is not one-to-one with a sorted frequency list -- matching them by index would manufacture pairs rather than measure them. Its C=O stretch is checked separately as a single named band.",
+    "benzene": "Same reason, 30 modes with several degenerate pairs."
+  },
+  "named_bands": {
+    "acetone_C=O_stretch": 1731.0,
+    "benzene_CH_stretch": 3062.0
+  }
+}

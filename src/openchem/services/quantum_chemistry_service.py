@@ -718,6 +718,23 @@ class QuantumChemistryService(QObject):
                     if couplings is not None:
                         spectrum = dataclasses.replace(spectrum, couplings=couplings)
                 self._event_bus.publish(SpectrumComputed(spectrum=self._maybe_calibrate(spectrum, job.method_basis)))
+        # The vibrational spectrum is a SEPARATE parse and a separate event,
+        # not folded into the branch above: an `opt_freq` job produces one
+        # and no NMR spectrum, an `nmr` job the reverse, and neither should
+        # have to know about the other's failure. Same enhancement contract
+        # -- a spectrum that will not parse must not fail a job whose
+        # energies and geometry were fine.
+        try:
+            vibrational = job.provider.parse_vibrational_spectrum(
+                output_text, job.mol, molecule_uuid, job.calc_type
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "Failed to parse vibrational spectrum for molecule %s", molecule_uuid
+            )
+        else:
+            if vibrational is not None and vibrational.modes:
+                self._event_bus.publish(SpectrumComputed(spectrum=vibrational))
         self._publish_state(molecule_uuid, CacheState.COMPLETED)
 
     def _finish_conformer_job(self, job: _ActiveJob, output_text: str) -> bool:
