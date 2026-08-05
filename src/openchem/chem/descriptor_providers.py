@@ -59,6 +59,14 @@ from openchem.chem.structure_generators import (
     compute_stereoisomers,
     compute_tautomers,
 )
+from openchem.chem.structure_annotation import (
+    FG_LABEL_MODES,
+    RING_LABEL_MODES,
+    compute_functional_groups,
+    compute_locants,
+    compute_ring_systems,
+    compute_stereocenters,
+)
 from openchem.chem.substructure import COMMON_PATTERNS, compute_substructure_search
 from openchem.chem.surface_analysis import compute_sasa_dataset, compute_surface_analysis
 from openchem.chem.topology_analysis import (
@@ -1203,6 +1211,102 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             CalculatorParameter(name="pH", label="pH", kind="float", default=7.4, minimum=0.0, maximum=14.0)
         ],
         tags=["surface", "polarity", "ph"],
+    ),
+    CalculatorDefinition(
+        calculator_id="ring_systems",
+        display_name="Ring Systems",
+        category="topology",
+        description=(
+            "Which ring system each atom belongs to, classified as monocyclic, fused, "
+            "bridged or spiro, with fusion atoms, bridgeheads and spiro centres marked. "
+            "Perceived by the built-in nomenclature engine, so a ring system is one unit "
+            "the way it is named -- naphthalene is one fused system of 10 atoms, not two "
+            "benzenes. Works offline on any structure, with or without a conformer."
+        ),
+        execution=RegistryExecution(compute=compute_ring_systems),
+        parameters=[
+            CalculatorParameter(
+                name="label_mode",
+                label="Atom labels",
+                kind="choice",
+                default="Locants, with roles",
+                choices=list(RING_LABEL_MODES),
+            ),
+        ],
+        tags=["topology", "rings", "per-atom", "annotation"],
+    ),
+    CalculatorDefinition(
+        calculator_id="locants",
+        display_name="IUPAC Locants",
+        category="naming",
+        description=(
+            "The IUPAC numbering drawn onto the structure -- which atom is C-3. Coloured "
+            "by where the number came from: this structure's own parent numbering, or a "
+            "ring skeleton's conventional numbering. Note that a structure named by a "
+            "RETAINED name carries no derived numbering, so slightly over half of "
+            "molecules produce none at all; the result says so rather than showing a "
+            "blank structure."
+        ),
+        execution=RegistryExecution(compute=compute_locants),
+        parameters=[
+            CalculatorParameter(
+                name="include_element",
+                label="Include element symbol (N1 rather than 1)",
+                kind="bool",
+                default=False,
+            ),
+        ],
+        tags=["naming", "iupac", "per-atom", "annotation"],
+    ),
+    CalculatorDefinition(
+        calculator_id="functional_groups",
+        display_name="Functional Groups",
+        category="substructure",
+        description=(
+            "Every functional group the naming engine recognises, coloured by type and "
+            "labelled at its anchor atom -- the same detection that decides which group "
+            "becomes a name's suffix. Note that ring carbonyls next to a ring nitrogen "
+            "(lactams, uracil, caffeine) are claimed by no group, so an empty result "
+            "means nothing was matched rather than that the molecule is unfunctionalised."
+        ),
+        execution=RegistryExecution(compute=compute_functional_groups),
+        parameters=[
+            CalculatorParameter(
+                name="label_mode",
+                label="Atom labels",
+                kind="choice",
+                default="Group name",
+                choices=list(FG_LABEL_MODES),
+            ),
+            CalculatorParameter(
+                name="only_suffix_eligible",
+                label="Suffix-eligible groups only",
+                kind="bool",
+                default=False,
+            ),
+        ],
+        tags=["substructure", "functional-groups", "per-atom", "annotation"],
+    ),
+    CalculatorDefinition(
+        calculator_id="stereocenters",
+        display_name="Stereocentres",
+        category="geometry",
+        description=(
+            "Stereocentres coloured by CIP descriptor -- R against S at a glance, plus "
+            "E/Z double bonds and the lowercase pseudo-asymmetric r/s. Centres whose "
+            "configuration has not been drawn are shown separately in grey rather than "
+            "left unmarked, since an unspecified centre reads as no centre at all."
+        ),
+        execution=RegistryExecution(compute=compute_stereocenters),
+        parameters=[
+            CalculatorParameter(
+                name="include_unassigned",
+                label="Show unspecified stereocentres",
+                kind="bool",
+                default=True,
+            ),
+        ],
+        tags=["stereochemistry", "geometry", "per-atom", "annotation"],
     ),
     CalculatorDefinition(
         calculator_id="substructure_search",

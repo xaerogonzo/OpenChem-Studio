@@ -18,6 +18,37 @@ _DIVERGING_PALETTE: list[tuple[float, str]] = [(0.0, "#d32f2f"), (0.5, "#f5f5f5"
 # layer) without a data-shape change.
 _SEQUENTIAL_PALETTE: list[tuple[float, str]] = [(0.0, "#fff3e0"), (1.0, "#e65100")]
 
+#: Qualitative: for per-atom data whose values are CATEGORY IDs, not
+#: magnitudes -- which ring system an atom belongs to, later which
+#: functional group claims it. Interpolating between categories is
+#: meaningless, so these are picked to be distinguishable from each other
+#: rather than to form a ramp, and are indexed rather than blended.
+#:
+#: Chosen for distinguishability under the common colour-vision
+#: deficiencies (Okabe-Ito, which is designed for exactly that) rather than
+#: by eye. Grey is deliberately absent: it reads as "no data" against the
+#: uncoloured atoms these sit beside.
+_QUALITATIVE_PALETTE: list[str] = [
+    "#0072b2",  # blue
+    "#e69f00",  # orange
+    "#009e73",  # green
+    "#cc79a7",  # reddish purple
+    "#56b4e9",  # sky blue
+    "#d55e00",  # vermillion
+    "#f0e442",  # yellow
+]
+
+#: `Provenance.parameters["scale"]` value that routes a `PerAtomDataset`
+#: down the categorical path.
+#:
+#: Carried in provenance rather than as a new field on `PerAtomDataset` or
+#: a new result type, because the panels are typed to
+#: `PerAtomDataset | SpectrumResult` and a third kind would have to be
+#: taught to every one of them. `_label_decimals` below sets the precedent
+#: in as many words: provenance parameters are "already the free-form place
+#: this codebase puts exactly this kind of presentation metadata".
+CATEGORICAL_SCALE = "categorical"
+
 
 def _hex_to_rgb_fraction(color: str) -> tuple[float, float, float]:
     return tuple(int(color[i : i + 2], 16) / 255.0 for i in (1, 3, 5))
@@ -216,6 +247,108 @@ def build_scalar_field_surface_layer(
 _DEFAULT_LABEL_DECIMALS = 2
 
 
+def is_categorical(result) -> bool:
+    """Whether a result's per-atom values are category ids, not magnitudes.
+
+    Public because consumers outside this module have to know: summing
+    category ids produces a number ("Overall: 15" for a molecule's ring
+    systems) that looks like a measurement and means nothing, which is the
+    same misleading-total trap a summed spectrum would be.
+    """
+    return _provenance_parameter(result, "scale") == CATEGORICAL_SCALE
+
+
+def summary_note(result) -> str:
+    """A producer-supplied line for a result that has no meaningful total.
+
+    Exists for the empty case. A categorical result with no values renders
+    as an uncoloured molecule and a blank summary, which reads as broken
+    rather than as "nothing matched" -- the same class of bug as the
+    spectrum that showed "Overall: n/a". A producer that can explain its own
+    emptiness puts the sentence here.
+    """
+    return str(_provenance_parameter(result, "summary", "") or "")
+
+
+def _provenance_parameter(dataset: PerAtomDataset, key: str, default=None):
+    """One provenance parameter, or `default`.
+
+    Tolerant on purpose: most datasets carry no provenance at all, and a
+    missing presentation hint must fall back to the ordinary numeric path
+    rather than raise inside a render.
+    """
+    provenance = getattr(dataset, "provenance", None)
+    if provenance is None:
+        return default
+    try:
+        return provenance.parameters.get(key, default)
+    except AttributeError:
+        return default
+
+
+def _build_categorical_layer(
+    dataset: PerAtomDataset, include_labels: bool = False
+) -> VisualizationLayer:
+    """Colours atoms by CATEGORY MEMBERSHIP rather than by magnitude.
+
+    The values are category ids -- ring system 1, ring system 2 -- so they
+    are indexed into a qualitative palette, never interpolated. Two ring
+    systems being "1 apart" says nothing about how similar they are, and a
+    sequential ramp would quietly imply that it did.
+
+    `color_scale` is deliberately left None. A `ColorScale` exists to draw a
+    continuous legend, and there is no continuum here to draw; a view that
+    wants a key should read the category names out of provenance.
+
+    The palette CYCLES rather than clamping. A molecule with more ring
+    systems than palette entries is rare but real (and cycling repeats a
+    colour, which is a legible failure), whereas clamping would paint every
+    system past the seventh the same colour with no hint that it had.
+    """
+    categories = {int(round(v)) for v in dataset.values.values()}
+    ordered = sorted(categories)
+
+    # A FIXED colour per category, when the producer supplies one. This is
+    # not a nicety: positional assignment gives the first category present
+    # the first palette entry, so a molecule with only S centres would
+    # paint them the exact blue that R gets in a molecule that has both.
+    # For ring systems, whose ids are arbitrary and local to one molecule,
+    # positional is right; for a category with meaning that outlives the
+    # molecule, it is a correctness bug.
+    fixed = _provenance_parameter(dataset, "category_colors") or {}
+    colour_for_category = {}
+    for position, category in enumerate(ordered):
+        override = fixed.get(category, fixed.get(str(category)))
+        colour_for_category[category] = override or _QUALITATIVE_PALETTE[
+            position % len(_QUALITATIVE_PALETTE)
+        ]
+    atom_colors = {
+        idx: colour_for_category[int(round(v))] for idx, v in dataset.values.items()
+    }
+
+    atom_labels = None
+    if include_labels:
+        # Per-atom notes beat the raw category id: "4a" or "bridgehead" is
+        # what the atom actually is, where "1.00" is an implementation
+        # detail of how it got its colour.
+        notes = _provenance_parameter(dataset, "atom_notes") or {}
+        names = _provenance_parameter(dataset, "category_labels") or {}
+        atom_labels = {}
+        for idx, value in dataset.values.items():
+            category = int(round(value))
+            note = notes.get(idx) or notes.get(str(idx))
+            atom_labels[idx] = str(
+                note if note else names.get(category, names.get(str(category), category))
+            )
+
+    return VisualizationLayer(
+        name=dataset.name,
+        atom_colors=atom_colors,
+        color_scale=None,
+        atom_labels=atom_labels,
+    )
+
+
 def _label_decimals(dataset: PerAtomDataset) -> int:
     """Display precision, carried by the DATA rather than passed in.
 
@@ -245,6 +378,9 @@ def build_atom_color_layer(dataset: PerAtomDataset, include_labels: bool = False
     values = dataset.values
     if not values:
         return VisualizationLayer(name=dataset.name, atom_colors={})
+
+    if _provenance_parameter(dataset, "scale") == CATEGORICAL_SCALE:
+        return _build_categorical_layer(dataset, include_labels=include_labels)
 
     has_negative = any(v < 0 for v in values.values())
     has_positive = any(v > 0 for v in values.values())
