@@ -4,6 +4,7 @@ from PySide6.QtCore import QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
+from openchem.chem.spectrum_overlay import OverlaySeries, common_range, prepare_computed
 from openchem.domain.scientific_result import VibrationalMode
 
 _AXIS_COLOR = QColor(120, 120, 120)
@@ -33,6 +34,12 @@ _HIT_HALF_WIDTH = 6.0
 #: is being read correctly. Drawing them flush with the axis would hide
 #: the thing that was verified.
 _SILENT_STUB_HEIGHT = 4.0
+
+#: The measured overlay. Deliberately a muted grey-green drawn UNDER the
+#: computed sticks: the measurement is the reference the prediction is
+#: being judged against, so it should be legible without competing for
+#: attention with the thing under test.
+_MEASURED_COLOR = QColor(90, 140, 110)
 
 
 class IrSpectrumWidget(QWidget):
@@ -86,6 +93,7 @@ class IrSpectrumWidget(QWidget):
         self._modes: list[VibrationalMode] = list(modes or [])
         self._imaginary_warning = imaginary_warning
         self._highlighted: set[int] = set()
+        self._measured: OverlaySeries | None = None
         self._x_label = "Wavenumber (cm⁻¹)"
         self.setMinimumSize(320, 200)
 
@@ -98,6 +106,22 @@ class IrSpectrumWidget(QWidget):
         self._imaginary_warning = imaginary_warning
         self._highlighted.clear()
         self.update()
+
+    def set_measured(self, series: OverlaySeries | None) -> None:
+        """Show a measured spectrum behind the computed sticks, or clear it.
+
+        Takes an already-prepared `OverlaySeries` rather than a raw JCAMP
+        file, because every decision that makes the two comparable --
+        transmittance to absorbance, percent versus fraction, normalising
+        two axes that cannot be converted into one another -- belongs in
+        `chem/spectrum_overlay.py` where it can be tested without a
+        painter. This method only draws what it is given.
+        """
+        self._measured = series
+        self.update()
+
+    def measured(self) -> OverlaySeries | None:
+        return self._measured
 
     def set_highlighted_modes(self, indices: list[int]) -> None:
         """Highlights modes by index -- the inbound half of the link, so
@@ -133,6 +157,14 @@ class IrSpectrumWidget(QWidget):
 
     def _axis_range(self) -> tuple[float, float]:
         real = self._real_modes()
+        if self._measured is not None:
+            # The UNION of both, via the shared helper -- clipping to the
+            # computed modes would hide the parts of a measurement they do
+            # not cover, and a measured band with no computed counterpart
+            # is exactly what an overlay exists to reveal.
+            return common_range(
+                self._measured, prepare_computed([mode for _, mode in real])
+            )
         if not real:
             return 0.0, 1.0
         numbers = [mode.wavenumber_cm1 for _, mode in real]
@@ -212,6 +244,49 @@ class IrSpectrumWidget(QWidget):
             self._imaginary_warning,
         )
 
+    def _draw_measured(
+        self, painter: QPainter, plot_rect: QRectF, x_range: tuple[float, float]
+    ) -> None:
+        """Draw the measured spectrum as the continuous curve it is.
+
+        NO LINESHAPE IS APPLIED TO EITHER SIDE. Broadening the computed
+        sticks into peaks would make the two pictures superficially more
+        alike while encoding a linewidth this calculation has no basis to
+        choose -- and band width is information a reader takes from the
+        measured curve. So each side is drawn as what it actually is, and
+        the comparison the plot supports is of POSITION and RELATIVE
+        HEIGHT, which is what both sides genuinely have.
+
+        Both are normalised to their own maximum: km/mol and absorbance are
+        not convertible without a path length and concentration nobody
+        measured. That is why the y-axis label says relative.
+        """
+        series = self._measured
+        if series is None or series.point_count < 2:
+            return
+
+        usable = plot_rect.height() - 14.0
+        painter.setPen(QPen(_MEASURED_COLOR, 1.2))
+        previous = None
+        for wavenumber, value in zip(series.wavenumbers, series.relative_absorbance):
+            x = self._to_widget_x(wavenumber, plot_rect, x_range)
+            y = plot_rect.bottom() - usable * max(0.0, min(1.0, value))
+            if previous is not None:
+                painter.drawLine(previous[0], previous[1], x, y)
+            previous = (x, y)
+
+        label = series.title or "measured"
+        if series.was_percent:
+            label += " (%T → absorbance)"
+        elif "TRANS" in (series.source_units or "").upper():
+            label += " (T → absorbance)"
+        painter.setPen(QPen(_MEASURED_COLOR))
+        painter.drawText(
+            QRectF(plot_rect.left(), plot_rect.top() - 14.0, plot_rect.width(), 14.0),
+            Qt.AlignmentFlag.AlignRight,
+            label,
+        )
+
     def paintEvent(self, event) -> None:  # noqa: N802 - Qt override naming
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -230,11 +305,19 @@ class IrSpectrumWidget(QWidget):
         self._draw_imaginary_banner(painter)
 
         real = self._real_modes()
-        if not real:
+        if not real and self._measured is None:
             painter.end()
             return
 
         x_range = self._axis_range()
+        # Drawn FIRST so the computed sticks sit on top of it. The
+        # measurement is the reference; the prediction is the thing being
+        # read against it, and it should not be occluded.
+        self._draw_measured(painter, plot_rect, x_range)
+
+        if not real:
+            painter.end()
+            return
         painter.setPen(QPen(_AXIS_COLOR))
         # Left label is the HIGH wavenumber, right the low -- the axis runs
         # backwards, and printing them the other way round would silently

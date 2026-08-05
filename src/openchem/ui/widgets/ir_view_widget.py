@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
+    QFileDialog,
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QMessageBox,
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
@@ -12,8 +16,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.chem import jcamp
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.mode_animation import normal_mode_frames
+from openchem.chem.spectrum_overlay import prepare_measured
 from openchem.domain.scientific_result import VibrationalSpectrumResult
 from openchem.ui.viewer_backend import ViewerBackend
 from openchem.ui.widgets.ir_spectrum_widget import IrSpectrumWidget
@@ -87,6 +93,17 @@ class IrViewWidget(QWidget):
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self._table.itemSelectionChanged.connect(self._on_table_selection_changed)
 
+        self._import_button = QPushButton("Overlay measured spectrum...", self)
+        self._import_button.setToolTip(
+            "Load a measured IR spectrum (JCAMP-DX .jdx/.dx) and draw it "
+            "behind the computed bands"
+        )
+        self._import_button.clicked.connect(self._on_import_measured)
+
+        self._clear_measured_button = QPushButton("Clear overlay", self)
+        self._clear_measured_button.setEnabled(False)
+        self._clear_measured_button.clicked.connect(self._on_clear_measured)
+
         self._animate_button = QPushButton("Animate mode", self)
         self._animate_button.setCheckable(True)
         self._animate_button.setEnabled(False)
@@ -100,6 +117,8 @@ class IrViewWidget(QWidget):
 
         controls = QHBoxLayout()
         controls.addWidget(self._animate_button)
+        controls.addWidget(self._import_button)
+        controls.addWidget(self._clear_measured_button)
         controls.addStretch()
 
         layout = QVBoxLayout(self)
@@ -109,6 +128,59 @@ class IrViewWidget(QWidget):
         layout.addWidget(self._spectrum_widget)
         layout.addLayout(controls)
         layout.addWidget(self._table)
+
+    # -- measured overlay ------------------------------------------------
+
+    def _on_import_measured(self) -> None:
+        """Load a JCAMP-DX file and draw it behind the computed bands.
+
+        Every failure here is REPORTED, never absorbed into an empty plot.
+        JCAMP-DX is an old format with real vendor variation, and this
+        reader has been validated against the spec rather than against a
+        file any particular instrument wrote -- so a file that will not
+        load is information worth showing the user verbatim, and worth
+        their reporting.
+        """
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Open measured spectrum",
+            "",
+            "JCAMP-DX spectra (*.jdx *.dx *.jcm *.jcamp);;All files (*)",
+        )
+        if not path:
+            return
+        try:
+            text = Path(path).read_text(encoding="utf-8", errors="replace")
+            spectrum = jcamp.parse(text)
+            series = prepare_measured(spectrum)
+        except jcamp.JcampError as exc:
+            QMessageBox.warning(self, "Could not read spectrum", str(exc))
+            return
+        except OSError as exc:
+            QMessageBox.warning(self, "Could not open file", str(exc))
+            return
+
+        if series.point_count < 2:
+            QMessageBox.warning(
+                self,
+                "Nothing to overlay",
+                "That file parsed but contains fewer than two points.",
+            )
+            return
+
+        self._spectrum_widget.set_measured(series)
+        self._clear_measured_button.setEnabled(True)
+        low, high = min(series.wavenumbers), max(series.wavenumbers)
+        note = f"Overlaid {series.point_count} measured points, {low:.0f}-{high:.0f} cm-1"
+        if series.was_percent:
+            note += "; read as percent transmittance, converted to absorbance"
+        elif "TRANS" in (series.source_units or "").upper():
+            note += "; converted from transmittance to absorbance"
+        self._header_label.setText(note)
+
+    def _on_clear_measured(self) -> None:
+        self._spectrum_widget.set_measured(None)
+        self._clear_measured_button.setEnabled(False)
 
     # -- population ------------------------------------------------------
 
