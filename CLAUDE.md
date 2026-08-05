@@ -1,12 +1,56 @@
 # OpenChem Studio — notes for Claude
 
+## Working in a git worktree — do this before anything else
+
+A fresh worktree needs two things set up, and **both fail silently rather
+than loudly**, which is why they are the first thing in this file.
+
+```bash
+uv sync --extra ai --extra network --extra openbabel
+"D:/Claude Co worker/Token Save/tokensave.exe" init
+```
+
+**The venv.** A worktree has no `.venv`. `uv run` will happily create an
+empty one and then report `No module named pytest`, which reads like a
+broken checkout rather than a missing sync.
+
+**The tokensave index — the dangerous one.** The MCP server is registered
+globally as `tokensave.exe serve` with no `--root`, and finds its project
+by searching *upward* for a `.tokensave/` directory. A worktree created
+under `.claude/worktrees/` sits inside the main repo folder and has none
+of its own, so the search walks up and serves **the main checkout's
+code** — a different branch, without the files you just wrote. Measured
+2026-08-04: `tokensave_search` for a class written minutes earlier
+returned `[]`.
+
+Every call does carry a `worktree_mismatch` warning. **That warning is not
+cosmetic; it means the answers are about different code.** Never work past it.
+
+`init` costs about 2 seconds (343 files, ~8000 nodes) and leaves
+`git status` clean. Three things that cost real time when they were not
+known:
+
+- **`init` refuses to rebuild an existing index.** It prints a "use
+  `tokensave sync`" hint and exits 0, so a stale index looks like a
+  successful re-index. Use `sync --force` to actually rebuild.
+- **Initialising mid-session does NOT rebind the MCP tools.** The server
+  resolved its root when it started, so `tokensave_*` calls keep hitting
+  the old index. Until the session restarts, query through the CLI
+  instead: `tokensave.exe tool health --path src/openchem`,
+  `tokensave.exe tool search SomeClass`.
+- **`tokensave branch` does not solve this.** It tracks branches within
+  one checkout and syncs from that checkout's files, so it cannot see
+  another directory's working tree.
+
+The binary is not on PATH; call it by full path.
+
 ## Running the tests
 
 ```bash
 uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suite.log
 ```
 
-A clean run is **~1m40s**, ending at `1181 passed, 2 skipped`. Writing to a
+A clean run is **~2 minutes**, ending at `1490 passed, 2 skipped`. Writing to a
 file rather than a pipe is worth doing because it lets you watch progress
 while it runs.
 
