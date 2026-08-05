@@ -27,7 +27,7 @@ on it must not promise more than they support:
 
     ring systems       45.3% of heavy atoms     every molecule
     functional groups  19.7%                    every molecule
-    IUPAC locants      22.4%                    HALF of molecules, at best
+    IUPAC locants      34.8%                    105 of 181 molecules
 
 The locant asymmetry is the important one. Naming dispatches to several tree
 shapes, and only one of them carries a numbering:
@@ -44,27 +44,31 @@ because its naphthalene lives in a nested prefix subtree whose indices are
 FRAGMENT-LOCAL (`FreeValenceInfo.attachment_atoms_in_fragment`, named for
 exactly that reason) and mean nothing against the parent molecule.
 
-`_retained_ring_locants` is the partial mitigation, and is partial on
-purpose rather than by omission. The vendored ring table holds 371 entries,
-302 of them carrying an `atom_locants` map, keyed by the canonical SMILES of
-the ISOLATED ring system -- so a ring system can be cut out, looked up, and
-matched back onto the parent to recover its conventional numbering. Measured
-over the corpus, it lifts locant coverage from 22.4% to **32.2%** and is the
-ONLY source of locants for 18 molecules. Confirmed on purine, naphthalene,
-quinoline, indole, carbazole, pyridine and anthracene.
+`_retained_ring_locants` is the mitigation. The vendored ring table holds
+371 entries, 302 carrying an `atom_locants` map keyed by the canonical
+SMILES of the ISOLATED ring system, so a ring can be extracted, looked up,
+and matched back onto the parent to recover its conventional numbering.
+Measured over the corpus it lifts coverage from 22.4% to **34.8%** and is
+the ONLY source of locants for 24 molecules.
 
-WHERE IT FAILS, and why it is bare rings that it works on: cutting a ring
-system out of a SUBSTITUTED molecule strips the indicated hydrogen its
-aromatic nitrogens needed. Caffeine is the worked example -- its ring system
-extracts to `c1nc2ncncc2n1`, every nitrogen having been N-methylated or
-flanked by a C=O in the parent, and that fragment does not even parse, let
-alone match the table's `c1ncc2nc[nH]c2n1`. So caffeine gets NO locants,
-despite purine being in the table with a full locant map. This is the same
-phantom-NH hazard `ring_naming/common.py` documents on the engine's own
-side, and fixing it properly means going through that machinery rather than
-re-deriving indicated hydrogen here.
+THIS USED TO CARVE THE RING OUT ITSELF AND FAILED ON SUBSTITUTED
+HETEROCYCLES. `MolFragmentToSmiles` on a ring whose aromatic nitrogens are
+substituted in the parent drops the substituents and leaves bare `n` atoms
+that cannot be kekulised: caffeine came out as `c1nc2ncncc2n1`, which does
+not parse at all, so it got no locants despite purine being in the table
+with a full map. It now calls
+`ring_naming/common.get_ring_canonical_smiles`, the function the engine
+uses for exactly this, which carries four fallback strategies and -- more
+importantly -- a documented rule for when inserting a phantom `[nH]` is
+SAFE. Inserting one arbitrarily on a purine or xanthine selects the wrong
+tautomer key, whose locant map is then wrong for the actual substitution
+pattern.
 
-82 of 181 molecules still end up with no locants at all. `LocantSource`
+Caffeine now resolves to `9H-purine` and takes all nine ring locants,
+verified against the fact that it is 1,3,7-trimethylxanthine: the
+methylated nitrogens come back N1, N3 and N7 and the bare one N9.
+
+76 of 181 molecules still end up with no locants at all. `LocantSource`
 exists so a UI can say which mechanism produced a number rather than
 implying the two are equally authoritative, and `locant_coverage()` exists
 so it can decline to offer a numbering view instead of rendering a blank
@@ -296,7 +300,9 @@ def annotate(mol: Chem.Mol) -> StructureAnnotation:
     # Naming is a separate, more failure-prone pass than perception, and it
     # only contributes locants and decisions. A molecule the namer chokes on
     # still gets its rings, groups and stereocentres.
-    locants, decisions = _locants_and_decisions(mol, rings)
+    locants, decisions = _locants_and_decisions(
+        mol, perception.rings.ring_systems
+    )
 
     return StructureAnnotation(
         atom_count=atom_count,
@@ -1301,7 +1307,7 @@ def _stereocenters(perception) -> tuple[AnnotatedStereocenter, ...]:
 
 
 def _locants_and_decisions(
-    mol: Chem.Mol, rings: tuple[AnnotatedRing, ...]
+    mol: Chem.Mol, ring_systems
 ) -> tuple[tuple[AnnotatedLocant, ...], tuple[str, ...]]:
     """IUPAC numbering, from the naming tree and then from the ring table.
 
@@ -1328,7 +1334,7 @@ def _locants_and_decisions(
                 source=LocantSource.PARENT,
             )
 
-    for atom_idx, label in _retained_ring_locants(mol, rings).items():
+    for atom_idx, label in _retained_ring_locants(mol, ring_systems).items():
         # setdefault: never overwrite the molecule's own numbering with a
         # skeleton's conventional one.
         found.setdefault(
@@ -1347,46 +1353,56 @@ def _locants_and_decisions(
     return tuple(sorted(found.values(), key=lambda loc: loc.atom_index)), decisions
 
 
-def _retained_ring_locants(
-    mol: Chem.Mol, rings: tuple[AnnotatedRing, ...]
-) -> dict[int, str]:
+def _retained_ring_locants(mol: Chem.Mol, ring_systems) -> dict[int, str]:
     """Conventional ring numbering, recovered from the vendored ring table.
 
-    The table is keyed by the canonical SMILES of the ring system in
-    isolation and maps template atom index -> IUPAC locant. So the ring is
-    cut out, canonicalised, looked up, and the template is matched back onto
-    the parent to move those indices into the caller's numbering.
+    THE EXTRACTION IS THE ENGINE'S OWN, and that is the whole fix. This
+    used to carve the ring out with `MolFragmentToSmiles` and re-parse it,
+    which fails on any ring whose aromatic nitrogens are substituted in the
+    parent: caffeine's ring system comes out as `c1nc2ncncc2n1`, every N
+    having lost the indicated hydrogen it needed, and that does not parse
+    at all. `ring_naming/common.get_ring_canonical_smiles` is the function
+    the engine uses for exactly this, and it carries four fallback
+    strategies plus a documented rule for WHEN inserting a phantom [nH] is
+    safe -- inserting one arbitrarily on a purine or xanthine picks the
+    wrong tautomer key, whose locant map is then wrong for the actual
+    substitution pattern.
 
-    Measured: this is the only source of locants for 18 of the corpus's 181
-    molecules, and lifts overall coverage from 22.4% to 32.2%.
+    THE TEMPLATE IS PARSED UNSANITISED, which is not a shortcut. The table
+    key is a canonical form the engine produces through partial
+    sanitisation, and several keys -- purine's bare skeleton among them --
+    do not round-trip: `Chem.MolFromSmiles(key)` returns None. Parsing with
+    `sanitize=False` preserves the atom ORDER the locant map is keyed to,
+    which is all that is needed to carry the numbering across.
 
-    It reaches a minority of molecules on purpose. 302 of the table's 371
-    entries carry a locant map at all, and -- the bigger limit -- extracting
-    a ring out of a substituted parent drops the indicated hydrogen its
-    aromatic nitrogens need, so the fragment fails to parse and never
-    reaches the lookup. See the module docstring for caffeine worked
-    through. Callers get `LocantSource.RETAINED_RING` so they can say where
-    a number came from.
+    VERIFIED AGAINST KNOWN NUMBERING rather than against itself. Caffeine
+    is 1,3,7-trimethylxanthine, so every one of its nine ring locants is
+    pinned by the name: the methylated nitrogens are N1, N3 and N7 and the
+    bare one is N9. The mapping produced here reproduces that exactly. An
+    earlier attempt that assumed the locant map was keyed to the ring atoms
+    in sorted parent order returned a full set of confident, WRONG numbers
+    -- every atom labelled, nothing raised, N7 reported as position 2 --
+    which is the failure this docstring exists to stop anyone repeating.
+
+    WHAT IT STILL DOES NOT DO: this is the SKELETON's conventional
+    numbering, not the molecule's IUPAC-assigned numbering. For a
+    substituted ring those differ, because real numbering must give the
+    substituents the lowest locants and a table lookup cannot know where
+    they are. Callers get `LocantSource.RETAINED_RING` so a view can say
+    which of the two it is showing.
     """
     try:
         from openchem.vendor.iupac_namer.data_loader import _RING_CURATED_SMILES
+        from openchem.vendor.iupac_namer.ring_naming.common import (
+            get_ring_canonical_smiles,
+        )
     except Exception:  # noqa: BLE001
         return {}
 
     out: dict[int, str] = {}
-    for ring in rings:
-        atoms = sorted(ring.atoms)
-        if not atoms:
-            continue
+    for ring_system in ring_systems or ():
         try:
-            # MolFragmentToSmiles rather than deleting atoms from a copy:
-            # deletion leaves the ring's substituent bonds as open valences,
-            # and the resulting SMILES does not match the table's key.
-            key = Chem.MolToSmiles(
-                Chem.MolFromSmiles(
-                    Chem.MolFragmentToSmiles(mol, atomsToUse=atoms, canonical=True)
-                )
-            )
+            key = get_ring_canonical_smiles(ring_system, mol)
         except Exception:  # noqa: BLE001 - an unextractable ring is not fatal
             continue
         if not key:
@@ -1399,13 +1415,17 @@ def _retained_ring_locants(
         if not atom_locants:
             continue
 
-        template = Chem.MolFromSmiles(key)
+        # sanitize=False: see the docstring -- several curated keys do not
+        # re-parse, and only the atom order matters here.
+        template = Chem.MolFromSmiles(key, sanitize=False)
         if template is None:
             continue
-        match = mol.GetSubstructMatch(template)
+        try:
+            match = mol.GetSubstructMatch(template)
+        except Exception:  # noqa: BLE001
+            continue
         if not match:
             continue
-
         for template_idx, locant in atom_locants.items():
             if 0 <= template_idx < len(match):
                 out[match[template_idx]] = str(locant)

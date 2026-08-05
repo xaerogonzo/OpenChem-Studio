@@ -160,7 +160,7 @@ def test_a_retained_ring_recovers_locants_the_naming_tree_never_supplied():
     """Naphthalene names to a bare retained string, so the tree offers no
     numbering at all -- but the ring is in the vendored table with a full
     locant map, and matching that template back onto the molecule recovers
-    it. This is the only locant source for 18 corpus molecules."""
+    it. This is the only locant source for 24 corpus molecules."""
     result = annotate(_mol(NAPHTHALENE))
     assert len(result.locants) == 10
     assert all(
@@ -169,18 +169,43 @@ def test_a_retained_ring_recovers_locants_the_naming_tree_never_supplied():
     assert "4a" in result.locant_by_atom.values()
 
 
-def test_caffeine_gets_no_locants_although_purine_is_in_the_table():
-    """THE OTHER LIMIT, and the one most likely to be mistaken for a bug.
+def test_caffeine_takes_its_purine_numbering():
+    """THE FIX THE OLD VERSION OF THIS TEST ASKED FOR.
 
-    Purine carries a full locant map in the vendored ring table, so it looks
-    as though caffeine should inherit N1/N3/N7. It does not: extracting its
-    ring system strips the indicated hydrogen from nitrogens that are
-    N-methylated or flanked by C=O in the parent, giving `c1nc2ncncc2n1`,
-    which does not parse and so never reaches the lookup. Same phantom-NH
-    hazard the engine documents on its own side.
+    This used to assert caffeine got NO locants: carving the ring out with
+    `MolFragmentToSmiles` dropped the substituents from its N-methylated
+    nitrogens, giving `c1nc2ncncc2n1`, which does not parse. It now goes
+    through the engine's own `get_ring_canonical_smiles`, resolves to
+    `9H-purine`, and takes the whole map.
 
-    Pinned so that a future fix has to come with a deliberate change here."""
-    result = annotate(_mol(CAFFEINE))
+    VERIFIED AGAINST THE NAME, not against itself: caffeine is
+    1,3,7-trimethylxanthine, so the three methylated nitrogens must come
+    back N1, N3 and N7 and the bare one N9. An earlier attempt that assumed
+    the locant map was keyed to sorted parent order produced a complete set
+    of confident WRONG numbers -- N7 reported as position 2 -- which is
+    exactly what this assertion catches."""
+    mol = _mol(CAFFEINE)
+    locants = annotate(mol).locant_by_atom
+
+    assert locants == {
+        1: "7", 2: "8", 3: "9", 4: "4", 5: "5", 6: "6",
+        8: "1", 10: "2", 12: "3",
+    }
+    # The nitrogens carrying methyls are 1, 3 and 7; the bare one is 9.
+    methylated = {
+        locants[atom.GetIdx()]
+        for atom in mol.GetAtoms()
+        if atom.GetSymbol() == "N"
+        and any(n.GetSymbol() == "C" and n.GetDegree() == 1 for n in atom.GetNeighbors())
+    }
+    assert methylated == {"1", "3", "7"}
+
+
+def test_a_bridged_retained_skeleton_still_has_no_numbering():
+    """The limit that remains. Camphor names to a retained string and its
+    bridged skeleton is not a numbered entry in the ring table, so there is
+    nothing to recover -- 76 of the 181 corpus molecules are like this."""
+    result = annotate(_mol(CAMPHOR))
     assert result.locants == ()
     assert result.locant_coverage() == 0.0
 
@@ -188,7 +213,7 @@ def test_caffeine_gets_no_locants_although_purine_is_in_the_table():
 def test_locant_coverage_lets_a_caller_decline_to_show_a_numbering_view():
     """Half of all molecules produce no numbering. A UI needs to ask before
     offering the view, rather than rendering a blank one."""
-    assert annotate(_mol(CAFFEINE)).locant_coverage() == 0.0
+    assert annotate(_mol(CAMPHOR)).locant_coverage() == 0.0
     assert annotate(_mol(D_ALANINE)).locant_coverage() > 0.0
 
 
@@ -641,7 +666,7 @@ def test_a_molecule_with_no_numbering_explains_itself():
     unless told why."""
     from openchem.ui.visualization import summary_note
 
-    dataset = compute_locants(_mol(CAFFEINE), "u", {})
+    dataset = compute_locants(_mol(CAMPHOR), "u", {})
     assert dataset.values == {}
     assert dataset.error is None
     assert dataset.cache_state is not CacheState.FAILED
@@ -715,7 +740,7 @@ def test_every_annotation_calculator_explains_an_empty_result():
         (compute_ring_systems, "CCO"),
         (compute_stereocenters, "CCO"),
         (compute_functional_groups, CAFFEINE),
-        (compute_locants, CAFFEINE),
+        (compute_locants, CAMPHOR),
     ]
     for compute, smiles in cases:
         dataset = compute(_mol(smiles), "u", {})
