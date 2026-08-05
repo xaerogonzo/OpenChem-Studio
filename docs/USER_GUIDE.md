@@ -23,6 +23,71 @@ plus canonical SMILES/InChI/InChIKey and metadata, and the structure is
 rebuilt on load — so a project opened in a later version gets that version's
 chemistry perception rather than a frozen snapshot of an older one.
 
+**Every panel follows the selected molecule.** Selecting one in the Project
+Explorer moves the 2D editor, the 3D viewer, the Properties panel, the
+Quantum Chemistry panel's Molecule field and the Docking panel's Ligand
+field together. If a panel could sit on a different molecule from the one
+on screen, an operation could silently run on something you were not
+looking at — which is exactly the bug this behaviour exists to prevent.
+
+---
+
+<!-- help:structure-clipboard -->
+## Getting structures in and out
+
+The **Edit** menu carries the whole-structure clipboard. Everything here is
+also on the Project Explorer's right-click menu, deliberately: the context
+menu is faster once you know it exists, and the menu bar is how you find
+out that it does.
+
+| Action | Notes |
+|---|---|
+| **Copy Structure As ▸ SMILES / InChI / InChIKey / Molfile** | SMILES is canonical and isomeric, so stereochemistry survives the round trip |
+| **Paste Structure** (`Ctrl+Shift+V`) | accepts a molfile, an InChI or a SMILES without being told which |
+| **Duplicate Molecule** | copies the structure into a new molecule in the same project |
+| **Rename Molecule…** | also available by double-clicking the name in the Project Explorer |
+
+**Paste detects the format by parsing it**, not by looking at it — each
+reader is tried in turn and the first that yields a real molecule wins. A
+`.smi` line with a name after the SMILES (`CCO ethanol`) pastes fine; a
+paragraph of prose is refused rather than becoming a one-atom molecule.
+
+It is `Ctrl+Shift+V`, not `Ctrl+V`, because Ketcher owns `Ctrl+V` inside
+the drawing canvas for pasting fragments. Pasting replaces the selected
+molecule's structure and goes on the undo stack, so `Ctrl+Z` brings back
+what was there.
+
+**Duplicate is the "now make the other one" path** — draw aziridine,
+duplicate it, change one bond, and you have azirine beside it without
+redrawing. The copy does **not** inherit conformers, because those describe
+the geometry you are about to change.
+
+**InChIKey is the one to paste into a search engine.** It is fixed-length,
+survives a URL or a spreadsheet cell unmangled, and is what most databases
+index on. Most structures have no verified IUPAC name, so an identifier is
+often the only unambiguous way to refer to a molecule at all.
+
+### Identifying a structure online
+
+**Tools > Identify Structure Online…** asks PubChem what this exact
+structure is, and reports the CID, IUPAC name, formula, molecular weight
+and common synonyms.
+
+**Opening the dialog sends nothing.** It shows you exactly what would be
+sent and waits for the button, because a possibly-unpublished structure
+must not leave the machine as a side effect of opening a window.
+
+It is an **exact structure match**, so a no-match means "PubChem has no
+record of this precise connectivity and stereochemistry" — not "this
+compound is unknown". A different tautomer, a missing stereocentre or a
+salt form is a different query. The dialog says so rather than leaving you
+to guess.
+
+There is also an **Open in ChemSpider** button. That one is a browser
+link rather than a built-in lookup: ChemSpider's web service needs a
+per-user registered API key, so there is nothing the application can ship
+that queries it on your behalf.
+
 ---
 
 <!-- help:centre-tabs -->
@@ -40,6 +105,21 @@ distance/angle measurement readout, and molecular surfaces (vdW, SAS, MS)
 with an opacity control. Generate Conformers is here; conformers come back
 sorted by energy, so conformer 1 is the lowest.
 
+**You will often get fewer conformers than you asked for, and that is the
+answer rather than a failure.** Embedding is random, so asking for ten
+conformers of a molecule that has one shape produces ten copies of it.
+Duplicates are pruned, and the status line says what happened —
+"1 distinct conformer from 10 embedded". Aziridine and benzene have one
+conformer; butane has two. Requesting more does not create more.
+
+Two embeddings count as the same conformer when their heavy atoms and
+their polar hydrogens are within 0.5 Å RMSD, compared symmetry-aware so
+that the two ends of butane are not called different for having been
+numbered the other way round. Hydrogens on carbon are ignored — a rotated
+methyl is not a conformer — but hydrogens on N, O and S are kept, because
+an O–H orientation changes hydrogen bonding and changes the energy of any
+QM job you run afterwards.
+
 **Macromolecule Viewer** — Mol\*, for proteins and nucleic acids. Cartoon
 representations, chain colouring, and the receptor-residue highlighting that
 docking interaction analysis feeds.
@@ -49,8 +129,9 @@ docking interaction analysis feeds.
 <!-- help:properties -->
 ## Properties
 
-The Properties panel is where most calculation happens. It has **23
-collapsible categories**; Physicochemical and Identity are open by default.
+The Properties panel is where most calculation happens. It has **25
+collapsible categories** covering **51 registered calculators**;
+Physicochemical and Identity are open by default.
 
 Scalar descriptors compute eagerly — the whole batch finishes in well under
 a millisecond, so there is no waiting and no lazy-loading complexity.
@@ -86,10 +167,37 @@ views always agree.
 | ADMET / Toxicity | BRENK alerts, BBB, bioavailability, hERG risk factors, and ML predictions if the sidecar is installed |
 | pKa | ionizable groups, and numeric pKa if the sidecar is installed |
 | Substructure Search | match your own SMARTS, or browse the built-in validated patterns |
+| Regulatory | screen the structure against loaded regulatory rulesets — see [Regulatory screening](#regulatory-screening) |
+| NMR | the instant empirical shift estimate — *not* the ORCA calculation |
 
 Predictions are labelled `empirical` or `ab_initio` where there is a basis
-to state one — worth reading, because "Nmr" in this panel is the instant
-SMARTS estimate, not the ORCA calculation.
+to state one — worth reading, because the NMR row in this panel is the
+instant estimate, and real ab initio NMR lives in the Quantum Chemistry
+panel.
+
+### Structural annotation
+
+Four calculators answer "how is this molecule organised?" rather than
+"what number does it have", and all four render as per-atom colouring in
+the Calculator Inspector:
+
+| Calculator | What it colours |
+|---|---|
+| `ring_systems` | each ring system as one colour, with fused, bridged and spiro atoms distinguished |
+| `stereocenters` | R and S in fixed distinct colours, with unassigned centres in grey |
+| `functional_groups` | each detected group by type, labelled at its anchor atom |
+| `locants` | the IUPAC locant on each atom, coloured by where the number came from |
+
+These are **categorical, not continuous**, and the Inspector knows the
+difference: it does not print an "Overall" total for them, because summing
+category ids produces a number that looks like a measurement and is not
+one.
+
+`locants` is the one with a real coverage caveat, and it states it rather
+than rendering blank. Roughly half of all molecules name to a form that
+carries no atom indices at all, and for those the locants come from ring
+templates instead of from the name — so an empty or partial result is a
+property of the naming path, not a failure.
 
 ---
 
@@ -172,6 +280,14 @@ was never prepared; choosing them would put an invented calibration on the
 axis. Frequencies are raw harmonic values, labelled as harmonic — see
 `benchmarks/ir/`.
 
+**An experimental spectrum can be overlaid.** Import a JCAMP-DX file and it
+is drawn against the computed one on a shared axis. The reconciliation is
+done rather than assumed: a transmittance spectrum is converted to
+absorbance, percent and fractional scales are told apart, and the two
+series are put on a common wavenumber axis before anything is drawn. Where
+the computed peaks sit relative to the measured ones is then a real
+comparison rather than two plots that happen to share a picture.
+
 <!-- help:surfaces -->
 ### Surfaces — point charge beside ab initio
 
@@ -201,7 +317,84 @@ density on a closed-shell molecule is refused rather than answered: ORCA
 would write a file containing a copy of the electron density under a
 spin-density name.
 
-Long jobs appear in the **Jobs** panel and can be cancelled from there.
+**The wavefunction is kept after a job finishes**, in a content-addressed
+store keyed by structure, method/basis and calculation type rather than by
+the molecule's identity. So it survives the molecule being deleted, and the
+same structure computed the same way in another project lands on the same
+entry.
+
+Be clear about what that is and is not today: it is an **archive**, not a
+skip-the-work cache. Nothing currently reads an entry back to avoid
+re-running a calculation — the value it delivers now is that a finished
+wavefunction remains a re-openable record of what was computed, which is
+what surfaces are plotted from. NMR reference and scaling calibrations are
+separately cached per method/basis, and those *are* read back, which is why
+`Calibrate Reference (TMS)` is a one-off rather than a per-job cost.
+
+---
+
+<!-- help:alignment -->
+## 3D alignment
+
+The **3D Alignment** panel superimposes molecules onto a reference so their
+shapes can be compared directly.
+
+Pick a **reference** molecule, tick the **probes** to align onto it, choose
+a method and an accuracy level, and run. The reference is a deliberate
+choice and does *not* follow the Project Explorer selection — the probe
+checkboxes are defined against it, so re-pointing it whenever you clicked
+elsewhere would reshuffle your selection underneath you.
+
+Higher accuracy levels generate more conformers per probe and allow the
+maximum-common-substructure search more time. That is the trade: alignment
+quality against wall clock.
+
+---
+
+<!-- help:jobs -->
+## Jobs and the console
+
+Anything that takes real time — ORCA calculations, docking runs, conformer
+generation, batch runs, sidecar installs — is a **job**. Jobs appear in the
+**Jobs** panel with their state and a progress message, and can be
+cancelled from there.
+
+Cancellation is honest about being best-effort. A job is stopped between
+steps rather than mid-step, because the underlying tools are not
+preemptible in the middle of a call; a cancelled job reports as failed with
+"Cancelled by user" rather than as a short successful run.
+
+The **Console** panel is the application's log as it happens. It is worth
+looking at when something surprises you — the conformer pruner, for
+instance, records exactly how many embeddings collapsed into how many
+distinct shapes there.
+
+---
+
+<!-- help:in-app-help -->
+## Getting help inside the application
+
+Press **F1** for help on the panel you are working in, or click the **?**
+in any panel's title bar. **Help > User Guide** opens the same window at
+the top.
+
+The help window is not a separate manual. **It renders these documents
+directly** — this page is `docs/USER_GUIDE.md`, and the footer of every
+help page names the file it came from. There is exactly one copy of this
+text, which is the point: a documentation pass updates what the application
+shows, with no second place to remember.
+
+The search box searches the **body text**, not just the headings, and ranks
+what it finds. Searching "Vina" returns four sections including the one
+explaining why its score is not a binding free energy — a word that appears
+in no heading anywhere in these documents. Matches are highlighted in the
+page and the view scrolls to the first one.
+
+F1 and the **?** answer slightly different questions, which is worth
+knowing when they disagree. The **?** is bound to its own panel and is
+always right about which panel it belongs to. F1 follows **keyboard
+focus** — so if you click a panel's tab to bring it forward but then press
+F1 without clicking inside it, you get help for whatever you last typed in.
 
 ---
 
@@ -252,6 +445,62 @@ parameterised, and how many molecules it failed for and why.
 one at a time, and ranks them. Take a target from File > Receptor Library
 and the binding site comes with it. The scores rank ligands against one
 receptor; they are not binding free energies and do not convert to a Kd.
+
+---
+
+<!-- help:regulatory -->
+## Regulatory screening
+
+The **Regulatory** category in the Properties panel screens a structure
+against the regulatory rulesets that ship with the application, and reports
+what matched, from which instrument, and how confident that reading is.
+
+It answers **"what frameworks appear to apply to this structure?"** — not
+"is this legal?". That distinction runs through the whole feature, and the
+wording follows from it.
+
+**The result never says "not controlled", and never says "compliant".** It
+says *"No matches in the N rulesets consulted"*. Those are different
+claims: the first is a legal conclusion the application is in no position
+to reach, and the second would be read as one. What the engine actually
+knows is which rulesets it loaded and what they did or did not match.
+
+Each finding carries:
+
+- the **authority and instrument**, with the section cited and a verbatim
+  quote of the legal text
+- the **match type** — `identity` (this exact substance), `structural_family`
+  (the regulation defines a family and this is in it), `analogue` (close to
+  a listed substance, explicitly *not* a determination), or `precursor`
+- a **confidence** — `exact` where the regulation is itself a structural
+  specification, down to `requires_review` for anything unresolved
+- the **atoms that matched**, rendered through the same per-atom colouring
+  the rest of the panel uses
+
+**Near misses are reported as a predicate checklist**, and they are the most
+useful part for a legitimate user, because regulatory boundaries are exactly
+what a plain "no match" hides. Diisopropyl fluorophosphate screened against
+the chemical-weapons ruleset returns no match *and* an explanation:
+
+```
+No matches in the 1 ruleset consulted
+Near miss: Alkylphosphonofluoridates (Schedule 1, A.1)
+  - has phosphoryl (P=O), P-F bond, O-alkyl ester; lacks P-alkyl bond
+```
+
+That is the real distinction — DFP genuinely is not Schedule 1, and the
+missing P–C bond is why. Sarin, which has it, matches.
+
+A near miss is only offered when at least one predicate actually matched
+atoms in your structure. Without that rule, ethanol came back as a near
+miss to a nerve-agent schedule on the strength of a numeric bound it
+happened to satisfy, which is worse than saying nothing.
+
+**Coverage is stated, not implied.** The count of rulesets consulted is in
+the result, and rulesets carry their effective date, source citation and
+known limitations. What ships is only what could be verified and lawfully
+redistributed, so the honest reading of a clean result is "these rulesets
+did not match", never "nothing applies".
 
 ---
 
@@ -308,12 +557,23 @@ See [PLUGIN_SDK.md](PLUGIN_SDK.md) to write one.
 <!-- help:surprises -->
 ## Things that surprise people
 
-- **The Properties panel's Nmr row is the instant empirical estimate.** Real
+- **The Properties panel's NMR row is the instant empirical estimate.** Real
   ab initio NMR is in the Quantum Chemistry panel.
 - **Shape and Geometry descriptors need a conformer.** They show a "needs a
   conformer" state with a button rather than silently reporting nothing.
 - **Nothing computes over the network or spends real CPU without you asking.**
   PubChem lookups, ORCA jobs, docking and conformer generation are all
-  explicitly triggered.
+  explicitly triggered. Opening the Identify Structure Online dialog sends
+  nothing until you press the button.
 - **Conformers are invalidated when you edit the structure**, because they
-  no longer describe the molecule you have.
+  no longer describe the molecule you have. Duplicating a molecule does not
+  carry them across, for the same reason.
+- **Asking for ten conformers can correctly give you one.** Duplicates are
+  pruned; a rigid molecule has one shape however many times you embed it.
+- **A regulatory result of "no matches" is about the rulesets consulted**,
+  not about the law. The wording says which.
+- **`Ctrl+V` in the drawing canvas is Ketcher's paste, not the
+  application's.** Whole-structure paste is `Ctrl+Shift+V`.
+- **A molecule with no verified IUPAC name is normal.** The naming engine
+  stays silent rather than emitting a name that will not parse back, so an
+  empty Naming row is a refusal and not a failure.

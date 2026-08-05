@@ -104,6 +104,13 @@ compiled proves nothing — that check is why it exists.
 `packaging/openchem.spec` is the real build definition, with a comment
 explaining each bundled item.
 
+## Getting help while you use it
+
+Press **F1** for help on whatever panel you are working in, or click the
+**?** in a panel's title bar. The help window renders the documents in this
+directory directly, so what it shows and what you are reading now are the
+same text.
+
 ## Next
 
 - [User Guide](USER_GUIDE.md) — what each panel does and how to work with it

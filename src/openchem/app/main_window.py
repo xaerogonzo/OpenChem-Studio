@@ -85,7 +85,9 @@ HELP_TOPIC_BY_DOCK = {
     "Docking": "docking",
     "Quantum_Chemistry": "quantum-chemistry",
     "Batch": "batch",
-    "3D_Alignment": "centre-tabs",
+    "3D_Alignment": "alignment",
+    "Jobs": "jobs",
+    "Console": "jobs",
 }
 
 #: Centre tab label -> topic, for when no panel with help is in front.

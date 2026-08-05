@@ -91,6 +91,12 @@ _CATEGORY_LABELS = {
     "pka": "pKa",
     "admet": "ADMET / Toxicity",
     "shape": "Shape",
+    # Without these two the panel falls back to `category.title()`, which
+    # rendered the NMR section as "Nmr". Found during a documentation
+    # sweep: the guide had to describe a heading that was a formatting
+    # accident rather than a name anybody chose.
+    "nmr": "NMR",
+    "regulatory": "Regulatory",
 }
 _DEFAULT_EXPANDED = {"physicochemical", "identity"}
 

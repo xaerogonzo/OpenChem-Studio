@@ -209,6 +209,89 @@ the contents dialog shows you it is there.
 
 ---
 
+<!-- help:limits-conformers -->
+## Conformer generation
+
+**These are MMFF94 (or UFF) geometries, not QM ones.** They are good enough
+to start a calculation from and to compare shapes with; they are not the
+answer to "what is this molecule's geometry". An ORCA optimisation started
+from one will move it, sometimes a lot.
+
+**"Distinct" is a 0.5 Å RMSD judgement, not a physical fact.** Two
+embeddings are treated as the same conformer when their heavy atoms and
+polar hydrogens fall within that threshold, compared symmetry-aware. The
+number was checked rather than chosen: across 40 embeddings of butane every
+pair came out either below 0.5 Å or at 0.66 Å — two clean clusters, anti
+and gauche, with nothing between them — so 0.5 separates them with margin
+while 1.0 merges them and loses a real conformer.
+
+The threshold cuts both ways. It is coarse enough to hide conformers that
+differ by less than it, and any two shapes closer than 0.5 Å will be
+reported as one.
+
+**Carbon-bound hydrogens are ignored in that comparison and polar ones are
+not.** A rotated methyl is not a different conformer; an O–H orientation
+is, because it changes hydrogen bonding and the energy of anything computed
+afterwards. Heavy-atom-only comparison was tried first and was measurably
+worse: ethanol's heavy atoms are C–C–O, three points and therefore rigid by
+construction, so it reported one conformer for a molecule whose O–H
+rotamers are exactly what a conformer search is for.
+
+**The search is random, not exhaustive.** ETKDG embeds from random starting
+points, so the set you get is a sample. A molecule can have a conformer the
+search did not find, and asking for more embeddings is the only lever —
+there is no guarantee attached to any count.
+
+**Energies rank; they do not quantify populations.** Conformers are sorted
+by force-field energy so conformer 1 is the lowest found, but MMFF energies
+are not free energies and the differences between them do not convert into
+a Boltzmann population you should trust for anything quantitative.
+
+---
+
+<!-- help:limits-regulatory -->
+## Regulatory screening
+
+**This is not legal advice, and it is not a compliance determination.** The
+feature reports which of the loaded rulesets matched a structure. That is a
+statement about the rulesets, not about the law, and the wording is
+deliberate throughout: the result says *"no matches in the N rulesets
+consulted"* and never "not controlled" or "compliant".
+
+**Coverage is partial by construction.** What ships is what could be
+verified against primary text and lawfully redistributed. Several obvious
+sources cannot be shipped in a GPL application at all — CAS Registry
+Numbers as a database, DrugBank's non-commercial data, ACGIH TLVs, the IATA
+DGR — so their domains are either absent or represented only by a public
+equivalent. Registered-but-empty domains appear in the coverage report
+rather than being hidden, because an absent domain is invisible and an
+empty one is honest.
+
+**A structural family match is a reading of prose.** Regulations contain
+language that structure alone cannot carry — *"except…"*, *"other than…"*,
+*"when intended for…"*, *"and its salts, isomers, and salts of isomers"*.
+Every one of those became an implementation decision. That is why each rule
+keeps the verbatim legal quote beside the pattern and carries a separate
+confidence, and why `requires_review` exists as an outcome rather than
+being resolved silently.
+
+**An `analogue` match is a similarity number, not a probability.** It is
+reported as the fingerprint similarity it is, against a named listed
+substance. It is not a claim that anything is controlled, and it does not
+convert into one.
+
+**Salt and isomer handling is a stated policy.** Matching strips salts and
+compares on a normalised parent, with stereo-insensitive hits reported
+separately from exact ones. Getting this wrong in either direction is a
+real error: too strict misses a hydrochloride salt, too loose flags an
+unrelated stereoisomer.
+
+**Metabolites are not predicted.** Some parent compounds are unscheduled
+while their metabolites are not. The engine carries the match type so a
+curated list could populate it, and predicts nothing.
+
+---
+
 ## Where this is enforced
 
 Most of these limits are also written into the module that implements the
