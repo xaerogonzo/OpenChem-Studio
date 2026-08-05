@@ -90,6 +90,35 @@ full; the short version:
   docstring before changing it, since two plausible implementations of it
   crash.
 
+## The documentation IS the in-app help
+
+`docs/QUICKSTART.md`, `docs/USER_GUIDE.md` and
+`docs/SCIENTIFIC_LIMITATIONS.md` are rendered directly in the
+application's Help window. There is no second copy of this text anywhere,
+which is the point: editing one of those files during a documentation pass
+updates what users see.
+
+Sections are keyed by an HTML comment above the heading:
+
+```markdown
+<!-- help:docking -->
+## Docking
+```
+
+Panels point at those keys (`HELP_TOPIC_BY_DOCK` in `app/main_window.py`),
+and F1 opens the topic for whatever panel has focus.
+
+**Reword headings freely — the anchor travels with the section, not the
+title.** What you must not do silently is delete an anchor or move a
+section's prose out from under one. `tests/test_help.py` fails on both,
+and on a key a panel references that no longer resolves. That is
+deliberate: the alternative failure is an empty help window that nobody
+notices for months.
+
+If you add a `datas` entry or move `docs/`, note that the help window is
+the thing that breaks in a *release build only* — it reads from
+`openchem/docs` when frozen and from the repository otherwise.
+
 ## Architecture rules
 
 - UI code must never import `rdkit` or `openbabel` directly. `chem/` is the

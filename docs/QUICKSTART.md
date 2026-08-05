@@ -27,6 +27,7 @@ builds from source and needs Boost. Docking works fine through the Vina
 *executable* instead, configured under Tools > External Tools — the Python
 binding is an alternative, not a requirement.
 
+<!-- help:where-data-lives -->
 ## Where data lives
 
 Anything the app downloads or installs — the NMR index, sidecar Python
@@ -39,6 +40,7 @@ somewhere else (a bigger drive, usually — the sidecars are gigabytes), use
 **Tools > External Tools > Storage**, which writes a pointer file so the
 choice survives reinstalls.
 
+<!-- help:installing-external-tools -->
 ## Optional external tools
 
 All seven are installed from **Tools > External Tools**, and none of them are

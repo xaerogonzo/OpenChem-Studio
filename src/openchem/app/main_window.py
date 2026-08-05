@@ -53,6 +53,7 @@ from openchem.plugins.manager import PluginManager
 from openchem.services.container import ServiceContainer
 from openchem.ui.dialogs.about_dialog import AboutDialog
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
+from openchem.ui.dialogs.help_dialog import HelpDialog
 from openchem.ui.dialogs.structure_lookup_dialog import StructureLookupDialog
 from openchem.ui.panels.console_panel import ConsolePanel
 from openchem.ui.panels.alignment_panel import AlignmentPanel
@@ -68,6 +69,30 @@ from openchem.ui.widgets.molecule_viewer3d_widget import MoleculeViewer3DWidget
 from openchem.ui.widgets.molstar_viewer_backend import MolStarViewerBackend
 
 logger = logging.getLogger("openchem.ui")
+
+#: Dock objectName -> help topic key. Keyed on objectName rather than the
+#: dock title because the title is user-visible text and a rename would
+#: silently unwire the help; objectName is already load-bearing for Qt's
+#: own state save/restore.
+#:
+#: Every key here is checked against the documents by tests/test_help.py,
+#: so a topic anchor deleted during a documentation sweep fails the suite
+#: rather than producing an empty help window.
+HELP_TOPIC_BY_DOCK = {
+    "Project_Explorer": "projects",
+    "Properties": "properties",
+    "Docking": "docking",
+    "Quantum_Chemistry": "quantum-chemistry",
+    "Batch": "batch",
+    "3D_Alignment": "centre-tabs",
+}
+
+#: Centre tab label -> topic, for when no panel with help is in front.
+HELP_TOPIC_BY_CENTRE_TAB = {
+    "2D Editor": "centre-tabs",
+    "3D Viewer": "centre-tabs",
+    "Macromolecule Viewer": "docking",
+}
 
 
 class MainWindow(QMainWindow):
@@ -210,6 +235,66 @@ class MainWindow(QMainWindow):
         dock.setWidget(widget)
         self.addDockWidget(area, dock)
         return dock
+
+    def _show_help(self, topic_key: str = "") -> None:
+        """Open the help window, on `topic_key` or on whatever is in front.
+
+        One window, reused. A help dialog that stacks up a new copy per
+        press of F1 is its own small annoyance, and this one is
+        deliberately non-modal so it can be read while working.
+        """
+        if not isinstance(topic_key, str) or not topic_key:
+            topic_key = self._help_topic_for_visible_panel()
+        existing = getattr(self, "_help_dialog", None)
+        if existing is None:
+            existing = HelpDialog(self)
+            self._help_dialog = existing
+        existing.show_topic(topic_key)
+        existing.show()
+        existing.raise_()
+        existing.activateWindow()
+
+    def _help_topic_for_visible_panel(self) -> str:
+        """The topic for whatever the user is currently working in.
+
+        KEYBOARD FOCUS FIRST, not "the first visible dock". Several docks
+        are visible at once -- Project Explorer on the left and Console at
+        the bottom are always up, alongside whichever right-hand tab is
+        in front -- so scanning `findChildren` for the first visible one
+        returns whichever happened to be constructed first. Measured: it
+        answered "docking" while the Project Explorer was in front, and
+        "properties" while Docking was.
+
+        Falling back to the front tab of the right-hand group, and then to
+        the centre tab, means F1 always answers a question rather than
+        opening an index.
+        """
+        widget = QApplication.focusWidget()
+        while widget is not None:
+            if isinstance(widget, QDockWidget) and widget.objectName() in HELP_TOPIC_BY_DOCK:
+                return HELP_TOPIC_BY_DOCK[widget.objectName()]
+            if widget is self._center_tabs:
+                # Reached the editor/viewer without passing through a dock.
+                # Checked HERE rather than as a last resort: the right-hand
+                # panels are on screen too, so a plain "which dock is
+                # visible" scan answers "Properties" to someone who pressed
+                # F1 while drawing a structure.
+                return HELP_TOPIC_BY_CENTRE_TAB.get(
+                    self._center_tabs.tabText(self._center_tabs.currentIndex()), "centre-tabs"
+                )
+            widget = widget.parentWidget()
+
+        # Only the front member of a tabified group reports visible, so
+        # restricting the scan to that group makes `isVisible()` mean what
+        # it needs to mean here.
+        group = [self._properties_dock, *self.tabifiedDockWidgets(self._properties_dock)]
+        for dock in group:
+            if dock.isVisible() and dock.objectName() in HELP_TOPIC_BY_DOCK:
+                return HELP_TOPIC_BY_DOCK[dock.objectName()]
+
+        return HELP_TOPIC_BY_CENTRE_TAB.get(
+            self._center_tabs.tabText(self._center_tabs.currentIndex()), "projects"
+        )
 
     def _wrap_scrollable(self, widget: QWidget) -> QScrollArea:
         """Defensive floor for form-heavy panels (Docking, Quantum Chemistry):
@@ -362,6 +447,18 @@ class MainWindow(QMainWindow):
         # are appended directly to this menu, below the separator above.
 
         help_menu = self.menuBar().addMenu("&Help")
+        # F1 is the conventional key, and it opens help for whichever panel
+        # is in front rather than a table of contents -- the question being
+        # asked is almost always about the thing currently on screen.
+        contents_action = help_menu.addAction("Help for the Current Panel", self._show_help)
+        contents_action.setShortcut("F1")
+        for label, key in (
+            ("User Guide", "projects"),
+            ("Getting Started", "where-data-lives"),
+            ("Scientific Limitations", "limits-nmr"),
+        ):
+            help_menu.addAction(label, lambda key=key: self._show_help(key))
+        help_menu.addSeparator()
         help_menu.addAction("Open Log Folder", self._open_log_folder)
         help_menu.addAction("About OpenChem Studio", self._show_about)
 

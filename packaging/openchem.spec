@@ -47,6 +47,16 @@ datas += [(str(PKG / "resources"), "openchem/resources")]
 # during vendoring; see src/openchem/vendor/VENDORING.md.
 datas += [(str(PKG / "vendor" / "data"), "openchem/vendor/data")]
 
+# The user-facing documentation, which IS the in-application help --
+# `openchem/help.py` renders docs/USER_GUIDE.md and friends directly so a
+# documentation pass updates the help window with no second copy to
+# maintain. `docs/` lives beside `src/`, not inside the package, so unlike
+# every other entry here it cannot simply mirror its source path; it is
+# mapped to `openchem/docs`, which is the first location
+# `help.docs_directory()` looks in. Miss this and Help opens an empty
+# window in the frozen build while working perfectly from a checkout.
+datas += [(str(ROOT / "docs"), "openchem/docs")]
+
 # The regulatory rulesets. Only `generated/` is shipped: `sources/` is the
 # hand-edited input to `tools/build_regulatory_rulesets.py` and is of no use
 # to a frozen application, while shipping both would invite someone to edit

@@ -14,6 +14,7 @@ value without one**, and the app labels predictions `empirical` or
 
 ---
 
+<!-- help:limits-nmr -->
 ## NMR shift prediction
 
 Three predictors, three different failure modes.
@@ -79,6 +80,7 @@ carries its source and whether it is `exact`, `derived` or `parsed`.
 
 ---
 
+<!-- help:limits-docking -->
 ## Docking
 
 **Vina's score is not a binding free energy.** It is an empirical scoring
@@ -107,6 +109,7 @@ docking. Look at that dialog; the defaults are not always what you want.
 
 ---
 
+<!-- help:limits-esp -->
 ## Electrostatic potential surfaces
 
 **Computed from point charges.** Each atom is a single charge at the nuclear
@@ -141,6 +144,7 @@ as it.
 
 ---
 
+<!-- help:limits-admet -->
 ## ADMET
 
 **Predictions with real uncertainty, not measurements.** Every ADMET
@@ -165,6 +169,7 @@ primary sources than a threshold check.
 
 ---
 
+<!-- help:limits-pka -->
 ## pKa and logD
 
 **No solvent model.** Aqueous, room temperature, implicitly. There is no
@@ -185,6 +190,7 @@ equivalent.
 
 ---
 
+<!-- help:limits-structure -->
 ## Structure handling
 
 **The biological assembly is read from the deposit, not inferred.** Where a

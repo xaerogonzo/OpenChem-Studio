@@ -6,6 +6,7 @@ A working tour of the application. For installation see
 
 ---
 
+<!-- help:projects -->
 ## Projects and molecules
 
 Everything lives in a **project**, saved as a `.ocsproj` file. A project
@@ -24,6 +25,7 @@ chemistry perception rather than a frozen snapshot of an older one.
 
 ---
 
+<!-- help:centre-tabs -->
 ## The three centre tabs
 
 **2D Editor** — the embedded Ketcher editor. Draw, paste SMILES, import a
@@ -44,6 +46,7 @@ docking interaction analysis feeds.
 
 ---
 
+<!-- help:properties -->
 ## Properties
 
 The Properties panel is where most calculation happens. It has **23
@@ -90,6 +93,7 @@ SMARTS estimate, not the ORCA calculation.
 
 ---
 
+<!-- help:docking -->
 ## Docking
 
 In the **Docking** panel:
@@ -119,6 +123,7 @@ drawing conclusions from a score.
 
 ---
 
+<!-- help:quantum-chemistry -->
 ## Quantum chemistry
 
 The **Quantum Chemistry** panel drives ORCA. Pick a calculation type —
@@ -139,6 +144,7 @@ and shifts drawn on the 2D structure), plus **HSQC / HMBC / COSY** tabs with
 both a cross-peak table and a scatter plot. Clicking a peak highlights the
 atoms; clicking an atom selects the peak.
 
+<!-- help:ir-spectra -->
 ### IR spectra and normal modes
 
 An **optimisation + frequencies** job fills the **IR** tab: a stick
@@ -166,6 +172,7 @@ was never prepared; choosing them would put an invented calibration on the
 axis. Frequencies are raw harmonic values, labelled as harmonic — see
 `benchmarks/ir/`.
 
+<!-- help:surfaces -->
 ### Surfaces — point charge beside ab initio
 
 The **Surfaces** tab shows two electrostatic potential maps side by side,
@@ -198,6 +205,7 @@ Long jobs appear in the **Jobs** panel and can be cancelled from there.
 
 ---
 
+<!-- help:batch -->
 ## Batch mode
 
 Everything else in the app answers a question about the molecule you have
@@ -247,6 +255,7 @@ receptor; they are not binding free energies and do not convert to a Kd.
 
 ---
 
+<!-- help:naming -->
 ## Naming
 
 Structure-to-name works offline. Known compounds resolve against PubChem
@@ -264,6 +273,7 @@ External Tools.
 
 ---
 
+<!-- help:external-tools -->
 ## External tools
 
 **Tools > External Tools** has seven tabs: AutoDock Vina, ORCA, pkasolver,
@@ -279,6 +289,7 @@ installed" state.
 
 ---
 
+<!-- help:plugins -->
 ## Plugins
 
 Three plugins ship: **AI Assistant**, **Database Search** and **Reaction
@@ -294,6 +305,7 @@ See [PLUGIN_SDK.md](PLUGIN_SDK.md) to write one.
 
 ---
 
+<!-- help:surprises -->
 ## Things that surprise people
 
 - **The Properties panel's Nmr row is the instant empirical estimate.** Real
