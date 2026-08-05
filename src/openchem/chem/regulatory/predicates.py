@@ -92,13 +92,57 @@ def _op_all(expression: dict, mol: Chem.Mol) -> tuple[bool, list[PredicateOutcom
 
 
 def _op_any(expression: dict, mol: Chem.Mol) -> tuple[bool, list[PredicateOutcome]]:
-    outcomes: list[PredicateOutcome] = []
+    """One outcome for the GROUP, not one per alternative.
+
+    An `any` is a single condition -- "the P-alkyl is methyl, ethyl,
+    n-propyl or isopropyl" -- and reporting its branches individually is
+    wrong twice over. Measured on the real CWC Schedule 1.A.1 rule:
+
+      * SARIN MATCHED AND REPORTED THREE FAILURES, because it is
+        P-methyl and so the ethyl, n-propyl and isopropyl branches did
+        not fire. A successful match displaying three failed conditions
+        is nonsense to read.
+      * DFP's near-miss distance went from 1 to 4, pushing it past the
+        threshold so the one case the explainer exists for stopped being
+        reported at all.
+
+    Every branch is still EVALUATED -- nothing short-circuits -- and which
+    one fired is kept in `detail`, so no information is lost. What changes
+    is that the group counts once toward the distance, which is what makes
+    the distance mean anything.
+    """
+    # Two lists, not one. Conflating them produced "matched bromine,
+    # fluorine" for a molecule containing no bromine -- the failing branch
+    # was being recorded as if it had matched, because both were appended
+    # to the same list and only the wording differed at the end.
+    matched: list[str] = []
+    tried: list[str] = []
+    atoms: set[int] = set()
     passed = False
+
     for child in _children(expression):
         child_passed, child_outcomes = evaluate(child, mol)
-        outcomes.extend(child_outcomes)
-        passed = passed or child_passed
-    return passed, outcomes
+        for outcome in child_outcomes:
+            if outcome.label:
+                tried.append(outcome.label)
+        if child_passed:
+            passed = True
+            for outcome in child_outcomes:
+                if outcome.passed:
+                    atoms.update(outcome.atoms)
+                    if outcome.label:
+                        matched.append(outcome.label)
+
+    label = expression.get("label") or "one of several alternatives"
+    if passed:
+        detail = f"matched {', '.join(matched)}" if matched else ""
+    else:
+        detail = f"none of: {', '.join(tried)}" if tried else ""
+    return passed, [
+        PredicateOutcome(
+            label=label, passed=passed, detail=detail, atoms=frozenset(atoms)
+        )
+    ]
 
 
 def _op_not(expression: dict, mol: Chem.Mol) -> tuple[bool, list[PredicateOutcome]]:

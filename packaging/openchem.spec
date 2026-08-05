@@ -47,6 +47,18 @@ datas += [(str(PKG / "resources"), "openchem/resources")]
 # during vendoring; see src/openchem/vendor/VENDORING.md.
 datas += [(str(PKG / "vendor" / "data"), "openchem/vendor/data")]
 
+# The regulatory rulesets. Only `generated/` is shipped: `sources/` is the
+# hand-edited input to `tools/build_regulatory_rulesets.py` and is of no use
+# to a frozen application, while shipping both would invite someone to edit
+# the copy that is never read. Miss this and the regulatory engine loads
+# zero rulesets and reports "nothing was checked" -- honest, and useless.
+datas += [
+    (
+        str(PKG / "chem" / "data" / "regulatory" / "generated"),
+        "openchem/chem/data/regulatory/generated",
+    )
+]
+
 # Scripts that are never imported -- they are handed as argv to a *sidecar*
 # interpreter (the pkasolver and ADMET environments, which run their own
 # Python, not ours). PyInstaller's import analysis therefore never sees them,

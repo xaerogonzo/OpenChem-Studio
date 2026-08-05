@@ -103,9 +103,20 @@ def test_all_evaluates_every_child_even_after_one_fails():
     assert [o.passed for o in outcomes] == [False, True, True]
 
 
-def test_any_also_reports_every_branch():
+def test_any_reports_as_ONE_condition_not_one_per_branch():
+    """MEASURED ON THE REAL CWC RULE, and it was wrong twice over before.
+
+    An `any` is a single condition -- "the P-alkyl is methyl, ethyl,
+    n-propyl or isopropyl" -- so reporting its branches individually made
+    SARIN MATCH WHILE REPORTING THREE FAILURES (it is P-methyl, so the
+    other three branches did not fire), and pushed diisopropyl
+    fluorophosphate's near-miss distance from 1 to 4, past the threshold,
+    so the one case the explainer exists for stopped being reported.
+
+    Every branch is still evaluated; the group just counts once."""
     expression = {
         "op": "any",
+        "label": "halogen present",
         "of": [
             {"op": "contains", "smarts": "[Br]", "label": "bromine"},
             {"op": "contains", "smarts": "[F]", "label": "fluorine"},
@@ -113,7 +124,38 @@ def test_any_also_reports_every_branch():
     }
     passed, outcomes = evaluate(expression, _mol("FCCl"))
     assert passed
-    assert len(outcomes) == 2
+    assert len(outcomes) == 1
+    assert outcomes[0].label == "halogen present"
+
+
+def test_a_passing_any_names_only_the_branch_that_actually_matched():
+    """A BUG THIS CAUGHT. The detail listed every branch TRIED as though
+    each had matched, so a molecule with no bromine was reported as
+    "matched bromine, fluorine"."""
+    expression = {
+        "op": "any",
+        "of": [
+            {"op": "contains", "smarts": "[Br]", "label": "bromine"},
+            {"op": "contains", "smarts": "[F]", "label": "fluorine"},
+        ],
+    }
+    _, outcomes = evaluate(expression, _mol("FCCl"))
+    assert "fluorine" in outcomes[0].detail
+    assert "bromine" not in outcomes[0].detail
+
+
+def test_a_failing_any_lists_what_was_tried():
+    expression = {
+        "op": "any",
+        "of": [
+            {"op": "contains", "smarts": "[Br]", "label": "bromine"},
+            {"op": "contains", "smarts": "[I]", "label": "iodine"},
+        ],
+    }
+    passed, outcomes = evaluate(expression, _mol("FCCl"))
+    assert not passed
+    assert "none of" in outcomes[0].detail
+    assert "bromine" in outcomes[0].detail and "iodine" in outcomes[0].detail
 
 
 def test_not_keeps_the_reason_it_inverted():
