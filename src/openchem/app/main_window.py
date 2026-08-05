@@ -5,12 +5,13 @@ from pathlib import Path
 from typing import Callable
 
 from PySide6.QtCore import QUrl, Qt
-from PySide6.QtGui import QAction, QCloseEvent, QDesktopServices, QUndoStack
+from PySide6.QtGui import QAction, QCloseEvent, QDesktopServices, QGuiApplication, QUndoStack
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
     QDockWidget,
     QFileDialog,
+    QInputDialog,
     QMainWindow,
     QMenu,
     QMessageBox,
@@ -21,11 +22,17 @@ from PySide6.QtWidgets import (
 
 from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
+from openchem.chem.identifiers import identifier_for_molblock
+from openchem.chem.structure_clipboard import parse_structure_text
 from openchem.commands.conformer_commands import AddConformerCommand, SetConformersCommand
 from openchem.commands.docking_commands import SetDockingResultCommand
 from openchem.commands.import_export_commands import ExportMoleculeCommand, ImportMoleculeCommand
 from openchem.commands.macromolecule_commands import AddMacromoleculeCommand
-from openchem.commands.molecule_commands import AddMoleculeCommand
+from openchem.commands.molecule_commands import (
+    AddMoleculeCommand,
+    EditStructureCommand,
+    RenameMoleculeCommand,
+)
 from openchem.commands.project_commands import OpenProjectCommand, SaveProjectCommand
 from openchem.domain.macromolecule import MacromoleculeModel
 from openchem.domain.molecule import MoleculeModel
@@ -46,6 +53,7 @@ from openchem.plugins.manager import PluginManager
 from openchem.services.container import ServiceContainer
 from openchem.ui.dialogs.about_dialog import AboutDialog
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
+from openchem.ui.dialogs.structure_lookup_dialog import StructureLookupDialog
 from openchem.ui.panels.console_panel import ConsolePanel
 from openchem.ui.panels.alignment_panel import AlignmentPanel
 from openchem.ui.panels.batch_panel import BatchPanel
@@ -99,7 +107,13 @@ class MainWindow(QMainWindow):
         self._center_tabs.addTab(self._macromolecule_viewer.widget(), "Macromolecule Viewer")
         self.setCentralWidget(self._center_tabs)
 
-        self._project_explorer = ProjectExplorerPanel(services.event_bus, self._undo_stack, self)
+        self._project_explorer = ProjectExplorerPanel(
+            services.event_bus,
+            self._undo_stack,
+            self,
+            on_duplicate=self._duplicate_molecule,
+            on_identify=self._identify_structure,
+        )
         self._property_panel = PropertyPanel(
             services.event_bus,
             services.calculator_registry,
@@ -264,6 +278,38 @@ class MainWindow(QMainWindow):
         ):
             edit_menu.addAction(label, lambda test_id=test_id: self._editor.trigger_toolbar_action(test_id))
 
+        # Copying an identifier and renaming already existed, but ONLY on
+        # the Project Explorer's right-click menu, where they were reported
+        # as missing entirely -- a narrow dock with two entries gives you
+        # very little to right-click, and `itemAt()` returns nothing for the
+        # empty space below the list, so the menu simply never appeared.
+        # Duplicated here rather than moved: the context menu is the faster
+        # route once you know it exists, and the menu bar is how you find
+        # out it does.
+        edit_menu.addSeparator()
+        structure_menu = edit_menu.addMenu("Copy Structure As")
+        for label, kind in (
+            ("SMILES", "smiles"),
+            ("InChI", "inchi"),
+            ("InChIKey", "inchikey"),
+            ("Molfile (MDL molblock)", "molfile"),
+        ):
+            structure_menu.addAction(label, lambda kind=kind: self._copy_structure_as(kind))
+
+        paste_action = edit_menu.addAction("Paste Structure", self._paste_structure)
+        # NOT Ctrl+V. Ketcher owns that inside the drawing canvas for
+        # pasting fragments, and stealing it would break in-canvas editing
+        # to serve the rarer whole-structure case.
+        paste_action.setShortcut("Ctrl+Shift+V")
+
+        edit_menu.addSeparator()
+        # Wrapped in a lambda, not passed directly: QAction.triggered emits
+        # `checked` (False), which would arrive as the `molecule` argument
+        # and read as "a molecule was supplied" everywhere except an
+        # `is None` check.
+        edit_menu.addAction("Duplicate Molecule", lambda: self._duplicate_molecule())
+        edit_menu.addAction("Rename Molecule...", lambda: self._rename_molecule())
+
         self._view_menu = self.menuBar().addMenu("&View")
         for dock in self.findChildren(QDockWidget):
             self._view_menu.addAction(dock.toggleViewAction())
@@ -298,6 +344,7 @@ class MainWindow(QMainWindow):
         structure_display_menu.addAction("Send to 3D Viewer Tab", self._send_to_3d_viewer)
 
         tools_menu = self.menuBar().addMenu("&Tools")
+        tools_menu.addAction("Identify Structure Online...", lambda: self._identify_structure())
         tools_menu.addAction("External Tools...", self._show_external_tools_dialog)
 
         self._plugins_menu = self.menuBar().addMenu("&Plugins")
@@ -383,7 +430,9 @@ class MainWindow(QMainWindow):
     # --- molecule lifecycle --------------------------------------------------
 
     def _new_molecule(self) -> None:
-        self.add_molecule(MoleculeModel(display_name="New molecule"))
+        project = self._session.project
+        name = project.unique_molecule_name("New molecule") if project is not None else "New molecule"
+        self.add_molecule(MoleculeModel(display_name=name))
 
     def add_molecule(self, molecule: MoleculeModel) -> None:
         if self._session.project is None:
@@ -658,6 +707,128 @@ class MainWindow(QMainWindow):
             build_interaction_layers(best_pose.metadata)
         )
         self._center_tabs.setCurrentWidget(self._macromolecule_viewer.widget())
+
+    # --- structure clipboard ---------------------------------------------------
+
+    def _copy_structure_as(self, kind: str) -> None:
+        """Put one representation of the current structure on the clipboard.
+
+        Most structures have no verified IUPAC name (the naming benchmark
+        puts even PubChem's coverage well short of complete), so an
+        identifier is routinely the only way to refer to a molecule at
+        all -- which is why this is a menu action rather than an export
+        dialog.
+        """
+        molecule = self._current_molecule()
+        if molecule is None or not molecule.molblock:
+            self.statusBar().showMessage("Select a molecule with a structure first.", 5000)
+            return
+        if kind == "molfile":
+            text = molecule.molblock
+        else:
+            text = identifier_for_molblock(molecule.molblock, kind)
+        if not text:
+            # identifier_for_molblock returns "" for a structure it cannot
+            # parse rather than raising, so an empty result is the normal
+            # failure and belongs in the status bar, not a modal.
+            self.statusBar().showMessage(f"Could not produce a {kind} for this structure.", 5000)
+            return
+        QGuiApplication.clipboard().setText(text)
+        self.statusBar().showMessage(f"Copied {kind} to the clipboard.", 3000)
+
+    def _paste_structure(self) -> None:
+        """Replace the current molecule's structure with whatever is on the clipboard.
+
+        Accepts a molfile, an InChI or a SMILES without being told which
+        (see chem/structure_clipboard.py). Routed through
+        `EditStructureCommand` so it lands on the undo stack like any
+        in-canvas edit -- pasting over a structure you meant to keep has to
+        be Ctrl+Z-able.
+        """
+        molecule = self._current_molecule()
+        if molecule is None:
+            self.statusBar().showMessage("Select a molecule to paste into first.", 5000)
+            return
+        parsed = parse_structure_text(QGuiApplication.clipboard().text())
+        if parsed is None:
+            self.statusBar().showMessage(
+                "The clipboard does not contain a structure (expected SMILES, InChI or a molfile).",
+                6000,
+            )
+            return
+        self._undo_stack.push(
+            EditStructureCommand(
+                self._services.chemistry_engine, molecule, parsed.molblock, self._services.event_bus
+            )
+        )
+        self._editor.set_molecule(molecule)
+        self.statusBar().showMessage(f"Pasted a structure from {parsed.source_format}.", 3000)
+
+    def _duplicate_molecule(self, molecule: MoleculeModel | None = None) -> None:
+        """Copy `molecule` (default: the selected one) into a new one, structure and all.
+
+        This is the "draw aziridine, now make azirine from it" path: the
+        alternative was redrawing the second molecule from scratch,
+        because there was no way to get a structure out of one molecule
+        and into another at all.
+
+        Conformers are deliberately NOT copied. They belong to the
+        geometry that produced them, and the reason to duplicate a
+        molecule is almost always to change it -- carrying them over would
+        leave conformers describing a structure that no longer exists,
+        which is the same staleness `EditStructureCommand` already clears
+        on an edit.
+        """
+        molecule = molecule if molecule is not None else self._current_molecule()
+        if molecule is None:
+            self.statusBar().showMessage("Select a molecule to duplicate first.", 5000)
+            return
+        project = self._session.project
+        if project is None:
+            return
+        # "X copy", not "X 2": the plain numeric suffix is for new empty
+        # molecules, and applying it here produced "New molecule 3 2",
+        # which reads as a version number rather than a copy.
+        copy = MoleculeModel(
+            display_name=project.unique_molecule_name(f"{molecule.display_name} copy")
+        )
+        if molecule.molblock:
+            self._services.chemistry_engine.set_structure_from_molblock(copy, molecule.molblock)
+        self.add_molecule(copy)
+        self.statusBar().showMessage(f"Duplicated as '{copy.display_name}'.", 3000)
+
+    def _rename_molecule(self) -> None:
+        molecule = self._current_molecule()
+        if molecule is None:
+            self.statusBar().showMessage("Select a molecule to rename first.", 5000)
+            return
+        new_name, accepted = QInputDialog.getText(
+            self, "Rename Molecule", "Name:", text=molecule.display_name
+        )
+        new_name = new_name.strip()
+        if not accepted or not new_name or new_name == molecule.display_name:
+            return
+        self._undo_stack.push(
+            RenameMoleculeCommand(molecule, new_name, self._services.event_bus)
+        )
+
+    def _identify_structure(self, molecule: MoleculeModel | None = None) -> None:
+        """Ask PubChem what this structure is.
+
+        Opening the dialog sends nothing -- it shows what WOULD be sent and
+        waits for a button, per the privacy policy stated in
+        chem/naming_providers.py.
+        """
+        molecule = molecule if molecule is not None else self._current_molecule()
+        if molecule is None or not molecule.molblock:
+            self.statusBar().showMessage("Select a molecule with a structure first.", 5000)
+            return
+        smiles = identifier_for_molblock(molecule.molblock, "smiles")
+        inchikey = identifier_for_molblock(molecule.molblock, "inchikey")
+        if not smiles:
+            self.statusBar().showMessage("This structure could not be read for lookup.", 5000)
+            return
+        StructureLookupDialog(smiles, inchikey, self).exec()
 
     def _current_molecule(self) -> MoleculeModel | None:
         if self._session.project is None or self._session.selected_molecule_uuid is None:

@@ -36,6 +36,7 @@ from openchem.domain.scientific_result import (
 )
 from openchem.events.base import EventBus
 from openchem.events.events import (
+    MoleculeSelected,
     NmrReferenceCalibrated,
     NmrScalingCalibrated,
     QmSurfaceComputed,
@@ -45,6 +46,7 @@ from openchem.events.events import (
 )
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
+from openchem.ui.molecule_combo import repopulate, select
 from openchem.ui.widgets.esp_compare_widget import EspCompareWidget
 from openchem.ui.widgets.ir_view_widget import IrViewWidget
 from openchem.ui.widgets.nmr_correlation_plot_widget import NmrCorrelationPlotWidget, Peak
@@ -319,17 +321,26 @@ class QuantumChemistryPanel(QWidget):
         event_bus.subscribe(QmSurfaceComputed, self._on_qm_surface_computed)
         event_bus.subscribe(NmrReferenceCalibrated, self._on_reference_calibrated)
         event_bus.subscribe(NmrScalingCalibrated, self._on_scaling_calibrated)
+        event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
         self._refresh_molecule_combo()
 
     def _refresh_molecule_combo(self) -> None:
-        self._molecule_combo.clear()
-        if self._project is None:
-            return
-        for molecule in self._project.molecules:
-            self._molecule_combo.addItem(molecule.display_name, molecule.uuid)
+        molecules = self._project.molecules if self._project is not None else []
+        repopulate(self._molecule_combo, [(m.display_name, m.uuid) for m in molecules])
+
+    def _on_molecule_selected(self, event: MoleculeSelected) -> None:
+        """Follow the project tree, like the editor, the 3D viewer and the
+        Property panel already do.
+
+        Without this the panel silently computed on whichever molecule the
+        combo happened to land on, which is how a project with two
+        identically-named molecules turned into "ORCA refuses to run even
+        though the 3D viewer is showing ten conformers".
+        """
+        select(self._molecule_combo, event.molecule_uuid)
 
     def _current_molecule(self):
         if self._project is None:

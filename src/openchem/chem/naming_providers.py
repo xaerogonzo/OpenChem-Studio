@@ -150,6 +150,102 @@ def pubchem_structure_for_name(name: str) -> StructureResult:
     return StructureResult(smiles=smiles, source="PubChem", kind=EXACT, note=PUBCHEM_PRIVACY_NOTE)
 
 
+@dataclass(frozen=True)
+class StructureIdentification:
+    """What PubChem holds for a structure, or the fact that it holds nothing."""
+
+    cid: int
+    iupac_name: str
+    molecular_formula: str
+    molecular_weight: float | None
+    synonyms: tuple[str, ...]
+
+    @property
+    def url(self) -> str:
+        return f"https://pubchem.ncbi.nlm.nih.gov/compound/{self.cid}"
+
+
+def chemspider_search_url(inchikey: str) -> str:
+    """A ChemSpider search page for this structure.
+
+    A LINK RATHER THAN AN API CALL, deliberately. ChemSpider's web service
+    requires a per-user registered API key, so there is nothing this
+    application can ship that queries it on the user's behalf. Handing
+    them a working search URL costs nothing, needs no key, and is honest
+    about being a browser hand-off rather than an integration.
+    """
+    return f"https://www.chemspider.com/Search.aspx?q={urllib.parse.quote(inchikey, safe='')}"
+
+
+def pubchem_identify_smiles(smiles: str) -> StructureIdentification:
+    """`pubchem_identify` for callers that hold a SMILES rather than a Mol.
+
+    Exists so the UI never has to touch RDKit: `ui/` and `app/` must not
+    import a chemistry engine directly (enforced by
+    tests/test_layering.py), and the lookup dialog carries a SMILES string
+    across to a worker thread precisely because handing an RDKit Mol
+    between threads is not something to do casually.
+    """
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        raise NamingError("This structure could not be prepared for lookup.")
+    return pubchem_identify(mol)
+
+
+def pubchem_identify(mol: Chem.Mol) -> StructureIdentification:
+    """Find this exact structure on PubChem and report what is known about it.
+
+    EXACT STRUCTURE MATCH, not a similarity search. PubChem's `smiles`
+    namespace resolves the structure as given, so a different tautomer or
+    a missing stereocentre is a different query and can legitimately come
+    back "not found". That is the right behaviour for "is this the
+    compound I think it is" and worth stating in the UI, because a
+    no-match is easily misread as "this molecule is unknown to science"
+    when it means "not this exact connectivity and stereochemistry".
+
+    Two requests: the property table, then synonyms for the CID it
+    returns. Synonyms are the part users actually want -- a CID is not an
+    answer to "what is this called" -- and PubChem does not return them
+    from the property endpoint.
+    """
+    smiles = Chem.MolToSmiles(mol)
+    quoted = urllib.parse.quote(smiles, safe="")
+    record = _first_property_record(
+        _pubchem(f"compound/smiles/{quoted}/property/IUPACName,MolecularFormula,MolecularWeight/JSON")
+    )
+    cid = int(record.get("CID") or 0)
+    weight = record.get("MolecularWeight")
+    return StructureIdentification(
+        cid=cid,
+        iupac_name=str(record.get("IUPACName") or ""),
+        molecular_formula=str(record.get("MolecularFormula") or ""),
+        # Confirmed live: MolecularWeight comes back as a STRING ("180.16"),
+        # not a JSON number, so it needs converting rather than using.
+        molecular_weight=float(weight) if weight not in (None, "") else None,
+        synonyms=_pubchem_synonyms(cid),
+    )
+
+
+def _pubchem_synonyms(cid: int, limit: int = 8) -> tuple[str, ...]:
+    """Common names for a CID. Never raises -- this is the optional half.
+
+    A failed synonym lookup must not turn a successful identification into
+    an error: the CID, formula and IUPAC name are already in hand, and
+    they are the part that matters.
+    """
+    if cid <= 0:
+        return ()
+    try:
+        payload = _pubchem(f"compound/cid/{cid}/synonyms/JSON")
+    except NamingError:
+        logger.debug("PubChem returned no synonyms for CID %d", cid)
+        return ()
+    entries = payload.get("InformationList", {}).get("Information", [])
+    if not entries:
+        return ()
+    return tuple(str(s) for s in entries[0].get("Synonym", [])[:limit])
+
+
 @contextmanager
 def _java_on_path():
     """Puts a managed Java runtime on PATH for the duration of the block.

@@ -70,7 +70,16 @@ def test_conformer_job_lifecycle_reaches_completed(qapp):
     assert states[-1] == CacheState.COMPLETED
 
     conformers = ready_payload["conformers"]
-    assert len(conformers) == 3
+    # NOT `== 3`. Duplicate embeddings are pruned, so the count returned is
+    # how many DISTINCT shapes the molecule has, capped by how many were
+    # asked for. Ethanol has two (the O-H rotamers), so pinning this to the
+    # requested number is pinning the bug that made a rigid molecule report
+    # ten identical conformers. The exact figure lives in
+    # tests/test_conformer_dedup.py; what matters here is the contract.
+    assert 1 <= len(conformers) <= 3
+    parameters = conformers[0].provenance.parameters
+    assert parameters["conformers_embedded"] == 3
+    assert parameters["conformers_distinct"] == len(conformers)
     assert all(c.energy is not None for c in conformers)
     assert all(c.molblock for c in conformers)
 
@@ -134,7 +143,14 @@ def test_conformer_results_carry_provenance_and_round_trip(qapp):
         assert conformer.provenance is not None
         assert conformer.provenance.created_by == "core"
         assert conformer.provenance.method == "rdkit"
-        assert conformer.provenance.parameters == {"num_conformers": 2, "optimize": True}
+        # The request is recorded alongside what actually came back, so a
+        # result reading "1 conformer" can be told apart from "1 was asked
+        # for" -- 1 distinct out of 12 embedded is a statement about the
+        # molecule being rigid, and that is worth persisting.
+        assert conformer.provenance.parameters["num_conformers"] == 2
+        assert conformer.provenance.parameters["optimize"] is True
+        assert conformer.provenance.parameters["conformers_embedded"] == 2
+        assert conformer.provenance.parameters["conformers_distinct"] == len(conformers)
 
         round_tripped = type(conformer).from_dict(conformer.to_dict())
         assert round_tripped.provenance == conformer.provenance

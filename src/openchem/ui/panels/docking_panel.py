@@ -25,9 +25,10 @@ from openchem.chem.engine import ChemistryEngine
 from openchem.domain.docking import DockingBox
 from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
-from openchem.events.events import DockingJobStateChanged, DockingResultReady
+from openchem.events.events import DockingJobStateChanged, DockingResultReady, MoleculeSelected
 from openchem.services.docking_service import DockingService
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
+from openchem.ui.molecule_combo import repopulate, select
 
 logger = logging.getLogger("openchem.ui")
 
@@ -183,6 +184,7 @@ class DockingPanel(QWidget):
 
         event_bus.subscribe(DockingJobStateChanged, self._on_job_state_changed)
         event_bus.subscribe(DockingResultReady, self._on_result_ready)
+        event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
 
     def _make_spin(self, minimum: float, maximum: float, value: float) -> QDoubleSpinBox:
         spin = QDoubleSpinBox(self)
@@ -195,14 +197,20 @@ class DockingPanel(QWidget):
         self._refresh_combos()
 
     def _refresh_combos(self) -> None:
-        self._receptor_combo.clear()
-        self._ligand_combo.clear()
-        if self._project is None:
-            return
-        for macromolecule in self._project.macromolecules:
-            self._receptor_combo.addItem(macromolecule.display_name, macromolecule.uuid)
-        for molecule in self._project.molecules:
-            self._ligand_combo.addItem(molecule.display_name, molecule.uuid)
+        macromolecules = self._project.macromolecules if self._project is not None else []
+        molecules = self._project.molecules if self._project is not None else []
+        repopulate(self._receptor_combo, [(m.display_name, m.uuid) for m in macromolecules])
+        repopulate(self._ligand_combo, [(m.display_name, m.uuid) for m in molecules])
+
+    def _on_molecule_selected(self, event: MoleculeSelected) -> None:
+        """Follow the project tree for the LIGAND only.
+
+        The receptor combo lists macromolecules and is deliberately left
+        alone: a `MoleculeSelected` uuid is never in it, and blanking a
+        chosen receptor because the user clicked a small molecule would
+        throw away the search box that goes with it.
+        """
+        select(self._ligand_combo, event.molecule_uuid)
 
     def _on_contents_clicked(self) -> None:
         """Summarise the selected receptor and show its chains.

@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QGuiApplication, QKeySequence, QShortcut, QUndoStack
 from PySide6.QtWidgets import QListWidget, QListWidgetItem, QMenu, QVBoxLayout, QWidget
 
 from openchem.chem.identifiers import identifier_for_molblock
 from openchem.commands.molecule_commands import DeleteMoleculeCommand, RenameMoleculeCommand
+from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
 from openchem.events.events import MoleculeChanged, MoleculeSelected
@@ -21,10 +24,19 @@ class ProjectExplorerPanel(QWidget):
     `RenameMoleculeCommand` is new, same shape.
     """
 
-    def __init__(self, event_bus: EventBus, undo_stack: QUndoStack, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        event_bus: EventBus,
+        undo_stack: QUndoStack,
+        parent: QWidget | None = None,
+        on_duplicate: Callable[[MoleculeModel], None] | None = None,
+        on_identify: Callable[[MoleculeModel], None] | None = None,
+    ) -> None:
         super().__init__(parent)
         self._event_bus = event_bus
         self._undo_stack = undo_stack
+        self._on_duplicate = on_duplicate
+        self._on_identify = on_identify
         self._project: ProjectModel | None = None
         # Set while `refresh()` is rebuilding `_list` -- guards `_on_item_changed`
         # against firing a rename command for edits that aren't user-initiated
@@ -76,7 +88,12 @@ class ProjectExplorerPanel(QWidget):
         return self._project.find_molecule(item.data(Qt.ItemDataRole.UserRole))
 
     def _on_context_menu_requested(self, pos) -> None:
-        item = self._list.itemAt(pos)
+        # Falls back to the selected row when the click misses one. With a
+        # narrow dock holding a couple of entries most of the panel is
+        # empty space, and a menu that silently does not appear reads as
+        # "this panel has no context menu" rather than "aim at a row" --
+        # which is exactly how it was reported.
+        item = self._list.itemAt(pos) or self._list.currentItem()
         if item is None:
             return
         menu = QMenu(self._list)
@@ -87,7 +104,15 @@ class ProjectExplorerPanel(QWidget):
         copy_smiles_action = menu.addAction("Copy SMILES")
         copy_inchi_action = menu.addAction("Copy InChI")
         copy_key_action = menu.addAction("Copy InChIKey")
+        copy_molfile_action = menu.addAction("Copy Molfile")
         menu.addSeparator()
+        # Duplicating needs the ChemistryEngine to rebuild the identifiers
+        # on the copy, which this panel deliberately does not hold (UI
+        # never imports chem engines -- tests/test_layering.py). So it is a
+        # callback into MainWindow, the same shape PropertyPanel already
+        # uses for `on_add_structure`.
+        duplicate_action = menu.addAction("Duplicate") if self._on_duplicate else None
+        identify_action = menu.addAction("Identify Online...") if self._on_identify else None
         rename_action = menu.addAction("Rename")
         delete_action = menu.addAction("Delete")
         chosen = menu.exec(self._list.mapToGlobal(pos))
@@ -97,6 +122,18 @@ class ProjectExplorerPanel(QWidget):
             self._copy_identifier(item, "inchi")
         elif chosen is copy_key_action:
             self._copy_identifier(item, "inchikey")
+        elif chosen is copy_molfile_action:
+            molecule = self._molecule_for_item(item)
+            if molecule is not None and molecule.molblock:
+                QGuiApplication.clipboard().setText(molecule.molblock)
+        elif duplicate_action is not None and chosen is duplicate_action:
+            molecule = self._molecule_for_item(item)
+            if molecule is not None:
+                self._on_duplicate(molecule)
+        elif identify_action is not None and chosen is identify_action:
+            molecule = self._molecule_for_item(item)
+            if molecule is not None:
+                self._on_identify(molecule)
         elif chosen is rename_action:
             self._list.editItem(item)
         elif chosen is delete_action:

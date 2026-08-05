@@ -38,6 +38,7 @@ from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
 from openchem.events.events import AlignmentJobStateChanged, EnsembleAlignmentReady
 from openchem.services.alignment_service import AlignmentService
+from openchem.ui.molecule_combo import repopulate
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
 
 _RESULT_COLUMNS = ("Molecule", "Score", "RMSD (A)", "Paired atoms")
@@ -152,16 +153,13 @@ class AlignmentPanel(QWidget):
         self._project = project
         molecules = list(project.molecules) if project is not None else []
 
-        previous = self._reference_combo.currentData()
-        self._reference_combo.blockSignals(True)
-        self._reference_combo.clear()
-        for molecule in molecules:
-            self._reference_combo.addItem(molecule.display_name, molecule.uuid)
-        if previous is not None:
-            restored = self._reference_combo.findData(previous)
-            if restored >= 0:
-                self._reference_combo.setCurrentIndex(restored)
-        self._reference_combo.blockSignals(False)
+        # This panel got the preserve-by-uuid behaviour first; it now lives
+        # in ui/molecule_combo.py because the Quantum Chemistry and Docking
+        # panels were missing it and silently ran on the wrong molecule.
+        # The reference is NOT wired to MoleculeSelected: it is a deliberate
+        # pick that the probe list is defined against, so following the tree
+        # would reshuffle the checkboxes underneath the user.
+        repopulate(self._reference_combo, [(m.display_name, m.uuid) for m in molecules])
         self._rebuild_probe_list()
 
     def _rebuild_probe_list(self) -> None:

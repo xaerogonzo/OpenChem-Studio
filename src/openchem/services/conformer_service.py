@@ -5,7 +5,11 @@ import time
 
 from PySide6.QtCore import QRunnable, QThreadPool
 
-from openchem.chem.conformer_providers import RDKitConformerProvider
+from openchem.chem.conformer_providers import (
+    DEFAULT_RMS_THRESHOLD,
+    RDKitConformerProvider,
+    distinct_conformers,
+)
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.conformer import ConformerModel
@@ -90,6 +94,20 @@ class _ConformerGenerationTask(QRunnable):
             self._job_manager.finish(_JOB_KIND, self._model.uuid)
             return
 
+        # Embedding is random, so N requests for a molecule with fewer than
+        # N shapes returns copies. Reported here rather than in the
+        # provider because this is where both counts are known, and applied
+        # here rather than there so a plugin-supplied provider gets it too.
+        embedded = len(results)
+        results = distinct_conformers(results)
+        if len(results) < embedded:
+            logger.info(
+                "Kept %d distinct conformer(s) of %d embedded for molecule %s",
+                len(results),
+                embedded,
+                self._model.uuid,
+            )
+
         method = (
             f"{self._provider.provider_id}+MMFF94/UFF" if self._optimize else self._provider.provider_id
         )
@@ -97,7 +115,17 @@ class _ConformerGenerationTask(QRunnable):
         provenance = Provenance(
             created_by="core",
             method=self._provider.provider_id,
-            parameters={"num_conformers": self._num_conformers, "optimize": self._optimize},
+            parameters={
+                "num_conformers": self._num_conformers,
+                "optimize": self._optimize,
+                # Both counts, because "3 conformers" means something
+                # different when 3 were asked for than when 25 were and 22
+                # were the same shape -- the latter says the molecule is
+                # rigid, which is a result about the molecule.
+                "conformers_embedded": embedded,
+                "conformers_distinct": len(results),
+                "rms_threshold": DEFAULT_RMS_THRESHOLD,
+            },
             timestamp=now,
         )
         conformers = [
@@ -111,8 +139,21 @@ class _ConformerGenerationTask(QRunnable):
             for conf_mol, energy in results
         ]
         self._event_bus.publish(ConformersReady(molecule_uuid=self._model.uuid, conformers=conformers))
+        # Say so when fewer came back than were asked for, rather than
+        # leaving the user to notice "Conformer 1/1" after requesting ten
+        # and conclude something failed. Fewer is the correct answer for a
+        # rigid molecule, and it reads as a bug unless it is stated.
+        if len(conformers) < embedded:
+            message = (
+                f"{len(conformers)} distinct conformer(s) from {embedded} embedded "
+                f"- the rest were the same shape (RMSD < {DEFAULT_RMS_THRESHOLD} A)"
+            )
+        else:
+            message = f"{len(conformers)} conformer(s)"
         self._event_bus.publish(
-            ConformerJobStateChanged(molecule_uuid=self._model.uuid, state=CacheState.COMPLETED)
+            ConformerJobStateChanged(
+                molecule_uuid=self._model.uuid, state=CacheState.COMPLETED, message=message
+            )
         )
         self._job_manager.finish(_JOB_KIND, self._model.uuid)
 

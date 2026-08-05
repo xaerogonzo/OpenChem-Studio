@@ -77,6 +77,32 @@ class ProjectModel:
     def find_docking_result(self, docking_result_uuid: str) -> DockingResultModel | None:
         return _find_by_uuid(self.docking_results, docking_result_uuid)
 
+    def unique_molecule_name(self, base: str) -> str:
+        """`base`, or `base` with the lowest free number appended.
+
+        Every new molecule used to be called "New molecule", so a project
+        routinely held several with identical labels. That is not just
+        untidy: the panels that pick a molecule from a dropdown show only
+        the name, so an operation running on the wrong one looked
+        completely normal. It cost a real debugging session -- ORCA
+        appeared to refuse a molecule that plainly had conformers, because
+        the Quantum Chemistry panel was pointing at the OTHER "New
+        molecule".
+
+        Duplicate names are still allowed; a user can rename two molecules
+        to the same thing and that is their business. This only stops the
+        application from generating collisions on its own.
+        """
+        taken = {m.display_name for m in self.molecules}
+        if base not in taken:
+            return base
+        # Starts at 2 so the pair reads "New molecule" / "New molecule 2"
+        # rather than renaming the one that already exists.
+        suffix = 2
+        while f"{base} {suffix}" in taken:
+            suffix += 1
+        return f"{base} {suffix}"
+
     def record_history(self, action: str) -> None:
         self.history.append(HistoryEntry(timestamp=time.time(), action=action))
         self.modified_at = time.time()
