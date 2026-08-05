@@ -1,0 +1,108 @@
+# The PR gate: the test suite plus every benchmark that can honestly run on
+# a hosted runner.
+#
+# WINDOWS ONLY, DELIBERATELY. This application ships Windows-only -- the
+# README badge says so, packaging is PyInstaller/Windows, and macOS/Linux are
+# documented as untested. The suite is also webview-heavy (three QWebEngine
+# backends), which works on a Windows runner without the xvfb and sandbox
+# flags Linux would need. A green tick here therefore means green on the
+# platform users actually run.
+#
+# LINUX IS DEFERRED, NOT REJECTED. Adding it would surface hidden environment
+# assumptions, and hard experience says such bugs surface ONE AT A TIME, each
+# one unblocking the next. Worth doing eventually as a NON-BLOCKING job; not
+# worth blocking a PR on a platform nobody ships.
+#
+# THE SAME JOBS RUN ON PUSH AND ON PULL_REQUEST, on purpose. A workflow whose
+# job set differs between the two triggers produces the trap where a green
+# push run sits beside a red PR, because the two were never running the same
+# thing.
+
+name: tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  suite:
+    name: suite + gating benchmarks
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # OPSIN is a Java library and py2opsin shells out to a bare `java`.
+      # Without it the naming round-trip tests SKIP rather than fail, which
+      # would make this gate quietly weaker than it looks -- and the naming
+      # benchmark below could not run at all.
+      - name: Install Java (for OPSIN)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # NOT `--all-extras`. That pulls in `docking`, whose `vina` wheel builds
+      # from source and needs Boost; the reference environment does not have
+      # it either. These three are what the suite needs -- without them about
+      # 40 tests fail on missing imports and it reads as a broken checkout.
+      - name: Sync dependencies
+        run: uv sync --extra ai --extra network --extra openbabel
+
+      - name: Run the test suite
+        run: uv run --no-sync python -u -m pytest -q -ra
+
+      # Scored from a DIFFERENT WORKING DIRECTORY. py2opsin writes a fixed
+      # temp filename into the current directory, so two OPSIN callers in one
+      # directory crash each other -- and the suite above has just used it.
+      - name: Naming benchmark (must stay 181/181)
+        run: uv run --no-sync python .github/scripts/naming_gate.py
+
+      # Pure RDKit and OPSIN, no external tools, so it genuinely runs here.
+      # Reports per-rule TP/FP/TN/FN. The known 0.50 precision on
+      # `cwc-1-a-6` is documented rather than gated, so this checks that the
+      # benchmark RUNS and produces its table -- not that every rule is
+      # perfect. A gate there would push someone to delete the honest edge
+      # case rather than fix the rule.
+      - name: Regulatory benchmark
+        run: uv run --no-sync python benchmarks/regulatory/score.py
+
+      # Validates every shipped ruleset without writing: unknown predicate
+      # ops, and the quote gate that caps a rule's confidence when the
+      # regulation's verbatim text is missing. A typo'd op at screening time
+      # means a regulation that silently matches nothing, which looks exactly
+      # like a structure being unregulated.
+      - name: Validate regulatory rulesets
+        run: uv run --no-sync python tools/build_regulatory_rulesets.py --check
+
+      # NOT RUN HERE, stated so nobody reads a green tick as full coverage:
+      #
+      #   benchmarks/ir/      needs ORCA (registration-gated, no public
+      #                       direct download)
+      #   benchmarks/esp/     needs ORCA plus orca_plot
+      #   benchmarks/nmr/     needs ORCA and the 152 MB nmrshiftdb2 index
+      #   benchmarks/docking/ needs AutoDock Vina and RCSB receptor downloads
+      #   benchmarks/admet/   needs the ~1 GB ADMET-AI sidecar environment
+      #   benchmarks/pka/     needs the pkasolver sidecar environment
+      #
+      # These are run by hand against the real installed tools. Their numbers
+      # live in docs/VALIDATION.md with the method and sample size behind
+      # each one.
+      - name: Note the benchmarks this gate cannot run
+        if: always()
+        run: |
+          echo "Not covered by this gate: ir, esp, nmr, docking, admet, pka."
+          echo "Each needs an external tool that cannot be installed on a"
+          echo "hosted runner. See docs/VALIDATION.md for their measured"
+          echo "results and benchmarks/*/README.md to reproduce them."

@@ -1,0 +1,58 @@
+# The vendored nomenclature engine's own ~3,200 tests.
+#
+# A SEPARATE WORKFLOW WITH A PATH FILTER rather than a job inside tests.yml,
+# because they take roughly 10 minutes against that suite's 2 and they cover
+# the engine's internals rather than this application's integration with it.
+# CLAUDE.md's instruction is to run them whenever anything under
+# `src/openchem/vendor/` changes, which is exactly what the filter encodes --
+# so the cost lands on the PRs that can break them and on no others.
+
+name: vendor tests
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'src/openchem/vendor/**'
+      - 'tests/vendor/**'
+      - '.github/workflows/vendor-tests.yml'
+  pull_request:
+    paths:
+      - 'src/openchem/vendor/**'
+      - 'tests/vendor/**'
+      - '.github/workflows/vendor-tests.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vendor:
+    name: vendored IUPAC namer suite
+    runs-on: windows-latest
+    timeout-minutes: 40
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # Required here, not optional: these tests exercise OPSIN directly, and
+      # without Java the failure is a bare FileNotFoundError naming neither
+      # Java nor OPSIN.
+      - name: Install Java (for OPSIN)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Sync dependencies
+        run: uv sync --extra ai --extra network --extra openbabel
+
+      # Expect 3193 passed, 16 skipped. `norecursedirs` in pyproject.toml
+      # excludes this directory from the default run, so it is named here.
+      - name: Run the vendored engine's suite
+        run: uv run --no-sync python -u -m pytest tests/vendor -q -ra
