@@ -496,12 +496,55 @@ vertex colours against the supplied field, r = −0.96); a continuous 2D
 property heat map; residue colouring driven by real docking interaction
 data; and structure grids for multi-structure results.
 
-### Naming
+### Naming, and the annotation engine underneath it
 
 Structure-to-name offline and deterministically via the vendored IUPAC
 engine, plus PubChem lookup and OPSIN parsing, each result labelled with
 its source and exactness. See the section below — this one was overturned
 three times in a day.
+
+The engine also works out ring systems, functional groups, stereocentres
+and atom numbering on the way to a name, and all of that used to be
+discarded with the tree. `chem/structure_annotation.py` keeps it: four
+registered calculators colour those onto the 2D and 3D depictions,
+`name_fragment()` names a selected substructure as a substituent, and
+`name_derivation()` returns the parse tree a name was built from. An
+`explain_naming` tool hands the AI assistant that record so "why is this
+carbon numbered 4?" is answered from the engine rather than from
+recollection.
+
+Coverage was measured BEFORE any of it was built on, and the numbers
+decided the build order: ring systems reach 45.3% of heavy atoms and
+functional groups 19.7%, both on every molecule, while IUPAC locants reach
+34.8% and **76 of 181 corpus molecules get none at all** — a retained name
+carries no derived numbering. The three that work everywhere shipped
+first, and the locant view states its coverage rather than rendering a
+blank.
+
+### Regulatory intelligence
+
+Which frameworks have something to say about a structure — deliberately
+NOT whether it is legal. `chem/regulatory/` holds a rule language, a
+screening engine, an OPSIN-backed build step and the rulesets it produces.
+
+The shape worth knowing: a rule separates the regulation's **verbatim
+text** from our **machine reading** of it, carrying the assumptions made
+and limitations accepted, because clauses like "except", "other than" and
+"and its salts, isomers, and salts of isomers" become implementation
+decisions the moment they are turned into a pattern. Confidence is capped
+mechanically by whether the quote is present, so a rule cannot claim to be
+verified against a statute nobody pasted.
+
+Ships CWC Schedule 1 only. Every other domain — controlled substances,
+precursors, export controls, transport, occupational, environmental and
+the rest — registers EMPTY and says so in the coverage report, because an
+absent domain is invisible and reads as "nothing applies". Adding one is a
+JSON file and a build run, not a code change.
+
+Licensing shaped the data model and is recorded in
+`chem/data/regulatory/sources/README.md`: no CAS Registry (proprietary to
+ACS), no DrugBank (CC BY-NC, incompatible with GPL), no ACGIH TLVs (OSHA
+PELs are public instead), no IATA DGR (UN Model Regulations instead).
 
 ## Naming — resolved, and how
 
