@@ -1,0 +1,109 @@
+# The benchmarks a hosted runner cannot run, on a machine that has the tools.
+#
+# ############################################################################
+# # `workflow_dispatch` ONLY. NEVER ADD A `pull_request` TRIGGER.            #
+# ############################################################################
+#
+# This repository is PUBLIC and this job runs on somebody's own machine with
+# no sandbox, as whatever user started the runner. `workflow_dispatch` and
+# `schedule` run the workflow file from the DEFAULT BRANCH and cannot be
+# fired by a fork, so only somebody with write access to this repository can
+# send a job here. A `pull_request` trigger would hand shell access on that
+# machine to anybody on the internet with a GitHub account, because a fork's
+# PR would bring its own workflow file with it.
+#
+# There is no partial version of this rule. See docs/SELF_HOSTED_RUNNER.md.
+
+name: benchmarks (self-hosted)
+
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Run a single benchmark (blank = all)'
+        required: false
+        default: ''
+        type: choice
+        options: ['', 'ir', 'esp', 'nmr', 'docking', 'admet', 'pka']
+
+concurrency:
+  group: selfhosted-benchmarks
+  cancel-in-progress: false
+
+jobs:
+  benchmarks:
+    name: heavy benchmarks
+    # The `openchem-tools` label is what keeps this off any other
+    # self-hosted machine that happens to be registered and has no ORCA.
+    runs-on: [self-hosted, windows, openchem-tools]
+    timeout-minutes: 480
+
+    # Belt and braces alongside the trigger rule above: a fork that copies
+    # this file cannot run it even if it also registers a runner.
+    if: github.repository == 'xaerogonzo/OpenChem-Studio'
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Sync dependencies
+        run: uv sync --extra ai --extra network --extra openbabel
+
+      # EVERY BENCHMARK STEP IS `continue-on-error`. A partly-equipped
+      # machine should still produce the benchmarks it can, and report which
+      # tool was missing for the rest -- an all-or-nothing job on a box with
+      # five of six tools installed produces nothing and teaches nothing.
+      - name: IR - generate ORCA jobs
+        if: inputs.only == '' || inputs.only == 'ir'
+        continue-on-error: true
+        run: uv run --no-sync python benchmarks/ir/generate.py bench-out/ir
+
+      - name: IR - score against NIST CCCBDB
+        if: inputs.only == '' || inputs.only == 'ir'
+        continue-on-error: true
+        run: uv run --no-sync python benchmarks/ir/score.py bench-out/ir
+
+      - name: ESP - generate cubes
+        if: inputs.only == '' || inputs.only == 'esp'
+        continue-on-error: true
+        run: uv run --no-sync python benchmarks/esp/generate.py bench-out/esp
+
+      - name: ESP - score QM against point-charge
+        if: inputs.only == '' || inputs.only == 'esp'
+        continue-on-error: true
+        run: uv run --no-sync python benchmarks/esp/score.py bench-out/esp
+
+      # NMR, docking, ADMET and pKa have their own multi-script pipelines
+      # (`run_delta50.py`, `redock.py`, `predict.py` + `score.py`,
+      # `score_pka.py`) whose orchestration has NOT been verified unattended
+      # from this workflow. They are named rather than invented: a step that
+      # always fails is worse than an absent one, because it trains people to
+      # ignore red.
+      #
+      # Adding one means running its pipeline by hand on the runner machine
+      # first, then encoding exactly what worked -- which is how the IR step
+      # above got here, and it found a real gap doing it (score.py could
+      # score but nothing could GENERATE, so the benchmark was scoreable and
+      # not runnable).
+      - name: Not yet wired up
+        if: inputs.only == '' || inputs.only == 'nmr' || inputs.only == 'docking' || inputs.only == 'admet' || inputs.only == 'pka'
+        run: |
+          echo "nmr, docking, admet and pka are not wired into this workflow yet."
+          echo "Each has a multi-script pipeline that needs one verified"
+          echo "hand-run on this machine before it is encoded here."
+          echo "See docs/SELF_HOSTED_RUNNER.md."
+
+      # Published whatever happened, because a FAILED benchmark run is a
+      # result worth keeping -- it is the evidence for what broke and when.
+      - name: Publish results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ github.run_number }}
+          path: bench-out/
+          if-no-files-found: warn
+          retention-days: 90
