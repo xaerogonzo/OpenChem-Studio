@@ -64,6 +64,7 @@ from openchem.ui.panels.project_explorer_panel import ProjectExplorerPanel
 from openchem.ui.panels.property_panel import PropertyPanel
 from openchem.ui.panels.quantum_chemistry_panel import QuantumChemistryPanel
 from openchem.ui.visualization import build_interaction_layers
+from openchem.ui.widgets.dock_title_bar import DockTitleBar
 from openchem.ui.widgets.molecule_editor_widget import MoleculeEditorWidget
 from openchem.ui.widgets.molecule_viewer3d_widget import MoleculeViewer3DWidget
 from openchem.ui.widgets.molstar_viewer_backend import MolStarViewerBackend
@@ -234,6 +235,21 @@ class MainWindow(QMainWindow):
         dock.setObjectName(title.replace(" ", "_"))
         dock.setWidget(widget)
         self.addDockWidget(area, dock)
+
+        # A "?" in the title bar, for the panels that have a help topic.
+        # F1 already does this, but a keyboard shortcut is only useful to
+        # someone who knows it exists -- which is the same discoverability
+        # problem that made Copy SMILES look missing when it was there all
+        # along, just on a context menu.
+        #
+        # Only for docks WITH a topic: a "?" that opened the wrong section
+        # would be worse than none, and Console and Jobs have nothing
+        # written about them.
+        topic = HELP_TOPIC_BY_DOCK.get(dock.objectName())
+        if topic is not None:
+            title_bar = DockTitleBar(dock)
+            title_bar.help_requested.connect(lambda topic=topic: self._show_help(topic))
+            dock.setTitleBarWidget(title_bar)
         return dock
 
     def _show_help(self, topic_key: str = "") -> None:

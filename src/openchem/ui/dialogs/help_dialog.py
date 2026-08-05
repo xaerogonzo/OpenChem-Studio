@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 
 from PySide6.QtCore import QUrl, Qt
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtGui import QDesktopServices, QTextCharFormat, QTextCursor
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -33,6 +33,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSplitter,
     QTextBrowser,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -45,6 +46,14 @@ _DOCUMENT_LABELS = {
     "QUICKSTART.md": "Getting started",
     "USER_GUIDE.md": "Using the application",
     "SCIENTIFIC_LIMITATIONS.md": "What the numbers do and do not mean",
+}
+
+#: Short forms, for search-result rows where the full label would be
+#: longer than the topic title it is qualifying.
+_DOCUMENT_TAGS = {
+    "QUICKSTART.md": "Setup",
+    "USER_GUIDE.md": "Guide",
+    "SCIENTIFIC_LIMITATIONS.md": "Limitations",
 }
 
 
@@ -62,8 +71,11 @@ class HelpDialog(QDialog):
         self.resize(940, 680)
         self.setWindowFlag(Qt.WindowType.Window, True)
 
+        self._query = ""
+        self._current_key = ""
+        self._current_document = ""
         self._filter = QLineEdit(self)
-        self._filter.setPlaceholderText("Filter topics...")
+        self._filter.setPlaceholderText("Search the documentation...")
         self._filter.setClearButtonEnabled(True)
         self._filter.textChanged.connect(self._apply_filter)
 
@@ -137,29 +149,51 @@ class HelpDialog(QDialog):
             self._list.addItem(item)
 
     def _apply_filter(self, text: str) -> None:
-        """Hide non-matching topics, and any group left with no matches.
+        """Show topics matching `text` anywhere in their body, best first.
 
-        Keeping the headers is not decoration. Two documents legitimately
-        have a section called "Docking" -- how the panel works, and what
-        its scores are worth -- so filtering for "dock" without the group
-        labels produces two identical rows and no way to tell which is
-        which.
+        Two modes, because they want different layouts. With no query the
+        list is the table of contents -- grouped by document, in document
+        order, which is how you browse. With a query it becomes ranked
+        search results with snippets, because relevance beats document
+        order once you have asked a question.
+
+        Keeping the group headers in browse mode is not decoration: two
+        documents legitimately have a section called "Docking" -- how the
+        panel works, and what its scores are worth.
         """
-        needle = text.strip().lower()
-        matched_in_group = False
-        header: QListWidgetItem | None = None
-        for row in range(self._list.count() + 1):
-            item = self._list.item(row) if row < self._list.count() else None
-            is_header = item is not None and item.data(Qt.ItemDataRole.UserRole) is None
-            if item is None or is_header:
-                # Close off the previous group before starting the next.
-                if header is not None:
-                    header.setHidden(bool(needle) and not matched_in_group)
-                header, matched_in_group = item, False
-                continue
-            visible = not needle or needle in item.text().lower()
-            item.setHidden(not visible)
-            matched_in_group = matched_in_group or visible
+        query = text.strip()
+        self._query = query
+        if not query:
+            self._populate()
+            self.show_topic(self._current_key)
+            self._status.setText(self._source_note())
+            return
+
+        hits = help_docs.search(query)
+        self._list.clear()
+        for hit in hits:
+            # The document tag is on every row because search results have
+            # no group headers to carry it, and the two "Docking" sections
+            # -- how the panel works, and what its scores are worth -- are
+            # both legitimate answers to searching "vina". Without the tag
+            # they are two identical rows.
+            label = f"{hit.topic.title}  -  {_DOCUMENT_TAGS.get(hit.topic.document, hit.topic.document)}"
+            if not hit.in_title:
+                label = f"{label}  ({hit.occurrences})"
+            item = QListWidgetItem(label)
+            item.setData(Qt.ItemDataRole.UserRole, hit.topic.key)
+            # The snippet goes in the tooltip rather than the row: a
+            # two-line row makes the list unscannable, and the reason a
+            # result matched is a follow-up question, not the first one.
+            item.setToolTip(f"{_DOCUMENT_LABELS.get(hit.topic.document, hit.topic.document)}\n{hit.snippet}")
+            self._list.addItem(item)
+
+        if not hits:
+            self._view.setMarkdown(f"Nothing in the documentation matches **{query}**.")
+            self._status.setText("No matches.")
+            return
+        self._status.setText(f"{len(hits)} topic(s) mention '{query}'.")
+        self._list.setCurrentRow(0)
 
     # --- navigation --------------------------------------------------------
 
@@ -192,9 +226,55 @@ class HelpDialog(QDialog):
         except help_docs.HelpUnavailable as exc:
             self._view.setMarkdown(f"This help topic could not be loaded.\n\n`{exc}`")
             return
-        self._view.verticalScrollBar().setValue(0)
+        self._current_key = key
         self._current_document = topic.document
-        self._status.setText(f"docs/{topic.document} - edit that file to change this page.")
+        self._highlight_query()
+        if not self._query:
+            self._status.setText(self._source_note())
+
+    def _source_note(self) -> str:
+        if not self._current_document:
+            return ""
+        return f"docs/{self._current_document} - edit that file to change this page."
+
+    def _highlight_query(self) -> None:
+        """Mark every occurrence of the query and scroll to the first.
+
+        Without this a search result opens at the top of a section that
+        may be several screens long, leaving the reader to find the word
+        themselves -- which is most of the work they were asking the search
+        to do.
+        """
+        self._view.moveCursor(QTextCursor.MoveOperation.Start)
+        if not self._query:
+            self._view.setExtraSelections([])
+            self._view.verticalScrollBar().setValue(0)
+            return
+
+        palette = self._view.palette()
+        highlight = QTextCharFormat()
+        # The palette's own highlight colours, so this stays legible under
+        # a dark theme instead of being hard-coded yellow-on-black.
+        highlight.setBackground(palette.highlight())
+        highlight.setForeground(palette.highlightedText())
+
+        selections: list[QTextEdit.ExtraSelection] = []
+        cursor = QTextCursor(self._view.document())
+        while True:
+            cursor = self._view.document().find(self._query, cursor)
+            if cursor.isNull():
+                break
+            selection = QTextEdit.ExtraSelection()
+            selection.cursor = cursor
+            selection.format = highlight
+            selections.append(selection)
+        self._view.setExtraSelections(selections)
+        if selections:
+            # Scrolls the view to the first hit.
+            self._view.setTextCursor(selections[0].cursor)
+            self._view.ensureCursorVisible()
+        else:
+            self._view.verticalScrollBar().setValue(0)
 
     def _show_whole_document(self) -> None:
         document = getattr(self, "_current_document", "")

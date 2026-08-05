@@ -194,6 +194,84 @@ def document_markdown(document: str) -> str:
     return "\n".join(line for line in lines if _ANCHOR.match(line) is None).strip()
 
 
+@dataclass(frozen=True)
+class SearchHit:
+    topic: HelpTopic
+    #: How many times the query appears in the section body. Ranks the
+    #: results, and tells a reader whether a topic mentions the term once
+    #: in passing or is actually about it.
+    occurrences: int
+    #: True when the query is in the heading. Ranked above body matches:
+    #: someone typing "docking" wants the Docking section first, not the
+    #: batch section that mentions docking twice.
+    in_title: bool
+    #: One line of context, so a hit whose title looks unrelated explains
+    #: itself without being opened.
+    snippet: str
+
+
+def search(query: str) -> tuple[SearchHit, ...]:
+    """Topics matching `query`, best first.
+
+    Searches the SECTION BODIES, not just the headings. Title-only
+    filtering answers "what is this feature called", which is the question
+    a reader who already knows the answer would ask. The real one is "what
+    does it say about Vina" -- a word that appears in no heading in these
+    documents and in four separate sections of their text, including the
+    one that explains why its score is not a binding free energy.
+
+    Plain case-insensitive substring matching, deliberately: these are
+    three documents totalling a few thousand lines, so anything cleverer
+    (stemming, fuzzy distance) would add ways to be surprised without
+    adding reach.
+    """
+    needle = query.strip().lower()
+    if not needle:
+        return ()
+    hits: list[SearchHit] = []
+    for topic in topics():
+        body = topic_markdown(topic.key)
+        lowered = body.lower()
+        occurrences = lowered.count(needle)
+        in_title = needle in topic.title.lower()
+        if not occurrences and not in_title:
+            continue
+        hits.append(
+            SearchHit(
+                topic=topic,
+                occurrences=occurrences,
+                in_title=in_title,
+                snippet=_snippet(body, needle),
+            )
+        )
+    # Title matches first, then by how often the term appears, then by
+    # document order so the ranking is stable rather than arbitrary.
+    order = {topic.key: index for index, topic in enumerate(topics())}
+    hits.sort(key=lambda hit: (not hit.in_title, -hit.occurrences, order[hit.topic.key]))
+    return tuple(hits)
+
+
+def _snippet(body: str, needle: str, width: int = 90) -> str:
+    """The first line containing `needle`, trimmed around the match.
+
+    Line-based rather than a character window around the offset, because a
+    fixed window cuts words in half at both ends and reads like corruption.
+    """
+    for line in body.splitlines():
+        position = line.lower().find(needle)
+        if position < 0:
+            continue
+        stripped = line.strip("# ").strip()
+        if len(stripped) <= width:
+            return stripped
+        # Re-find in the stripped line; the offset moved.
+        position = max(stripped.lower().find(needle), 0)
+        start = max(0, position - width // 3)
+        end = min(len(stripped), start + width)
+        return ("..." if start else "") + stripped[start:end].strip() + ("..." if end < len(stripped) else "")
+    return ""
+
+
 def reload() -> None:
     """Drop the caches so an edited document is picked up.
 

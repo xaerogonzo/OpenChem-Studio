@@ -105,8 +105,13 @@ Sections are keyed by an HTML comment above the heading:
 ## Docking
 ```
 
-Panels point at those keys (`HELP_TOPIC_BY_DOCK` in `app/main_window.py`),
-and F1 opens the topic for whatever panel has focus.
+Panels point at those keys (`HELP_TOPIC_BY_DOCK` in `app/main_window.py`).
+F1 opens the topic for whatever panel has focus, and every panel with a
+topic carries a **?** in its dock title bar.
+
+The Help window searches the section **bodies**, not just the headings, so
+prose you write is reachable by the words in it -- "Vina" appears in no
+heading and in four sections of text.
 
 **Reword headings freely — the anchor travels with the section, not the
 title.** What you must not do silently is delete an anchor or move a

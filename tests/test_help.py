@@ -12,7 +12,7 @@ import re
 
 import pytest
 
-from PySide6.QtCore import QCoreApplication, QEvent
+from PySide6.QtCore import QCoreApplication, QEvent, Qt
 
 from openchem import help as help_docs
 from openchem.app.main_window import HELP_TOPIC_BY_CENTRE_TAB, HELP_TOPIC_BY_DOCK
@@ -196,3 +196,93 @@ class TestHelpRouting:
         window._center_tabs.setFocus()
         qapp.processEvents()
         assert window._help_topic_for_visible_panel() == "centre-tabs"
+
+
+class TestSearch:
+    """Search covers the section BODIES, which is the whole point.
+
+    Title-only filtering answers "what is this feature called" -- the
+    question of someone who already knows. "Vina" appears in no heading in
+    these documents and in four sections of their text.
+    """
+
+    def test_finds_a_word_that_appears_in_no_heading(self):
+        hits = help_docs.search("Vina")
+        assert len(hits) >= 3
+        assert all(not hit.in_title for hit in hits)
+
+    def test_a_title_match_outranks_a_busier_body_match(self):
+        """Someone typing "docking" wants the Docking section, not
+        whichever section happens to mention docking most often."""
+        hits = help_docs.search("docking")
+        assert hits[0].in_title
+
+    def test_body_hits_are_ranked_by_how_often_the_term_appears(self):
+        body_hits = [hit for hit in help_docs.search("Vina") if not hit.in_title]
+        counts = [hit.occurrences for hit in body_hits]
+        assert counts == sorted(counts, reverse=True)
+
+    def test_multi_word_phrases_work(self):
+        hits = help_docs.search("binding free energy")
+        assert hits
+        assert "limits-docking" in {hit.topic.key for hit in hits}
+
+    def test_search_is_case_insensitive(self):
+        assert {h.topic.key for h in help_docs.search("VINA")} == {
+            h.topic.key for h in help_docs.search("vina")
+        }
+
+    def test_every_hit_carries_a_snippet(self):
+        for hit in help_docs.search("conformer"):
+            assert hit.snippet.strip()
+            assert len(hit.snippet) <= 120
+
+    @pytest.mark.parametrize("query", ["", "   ", "qqqqzzzz"])
+    def test_no_matches_returns_empty_rather_than_everything(self, query):
+        assert help_docs.search(query) == ()
+
+    def test_every_search_row_names_its_document(self, qapp, help_widgets):
+        """Two documents have a section called "Docking", and search
+        results have no group headers to tell them apart.
+
+        Asserted as "every row carries its document tag" rather than "the
+        labels are all distinct". Distinctness passes by accident:
+        stripping the tag leaves `Docking` and `Docking  (1)`, which
+        differ only by an occurrence count and tell the reader nothing
+        about which document they are about. Mutation testing caught that
+        -- removing the tag entirely failed no test.
+        """
+        from openchem.ui.dialogs.help_dialog import HelpDialog
+        from openchem.ui.dialogs.help_dialog import _DOCUMENT_TAGS
+
+        dialog = HelpDialog()
+        help_widgets.append(dialog)
+        dialog._filter.setText("Vina")
+        assert dialog._list.count() >= 2
+        for row in range(dialog._list.count()):
+            item = dialog._list.item(row)
+            expected = _DOCUMENT_TAGS[help_docs.topic(item.data(Qt.ItemDataRole.UserRole)).document]
+            assert expected in item.text(), f"Row {item.text()!r} does not say which document it is from"
+
+    def test_matches_are_highlighted_in_the_rendered_page(self, qapp, help_widgets):
+        """A result opens at the top of a section that may be several
+        screens long; finding the word again is most of the work the
+        search was asked to do."""
+        from openchem.ui.dialogs.help_dialog import HelpDialog
+
+        dialog = HelpDialog()
+        help_widgets.append(dialog)
+        dialog._filter.setText("Vina")
+        assert len(dialog._view.extraSelections()) >= 1
+
+    def test_clearing_the_search_restores_the_table_of_contents(self, qapp, help_widgets):
+        from openchem.ui.dialogs.help_dialog import HelpDialog
+
+        dialog = HelpDialog()
+        help_widgets.append(dialog)
+        browse_rows = dialog._list.count()
+        dialog._filter.setText("Vina")
+        assert dialog._list.count() < browse_rows
+        dialog._filter.setText("")
+        assert dialog._list.count() == browse_rows
+        assert dialog._view.extraSelections() == []
