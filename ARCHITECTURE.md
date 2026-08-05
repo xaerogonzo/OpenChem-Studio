@@ -32,7 +32,7 @@ subscribe by event type rather than by ad-hoc signal name.
 | Package | Responsibility |
 |---|---|
 | `openchem.domain` | Pure data: `MoleculeModel`, `ProjectModel`, `DescriptorValue`, `ConformerModel`, `MacromoleculeModel`, `DockingBox`/`DockingPoseModel`/`DockingResultModel`, plus the shared `CacheState` enum and `Provenance` dataclass (`domain/common.py`). No RDKit, no Qt. Molecules (and macromolecules, and docking results) are identified by UUID, never filename or list position. |
-| `openchem.chem` | `ChemistryEngine` (MoleculeModel <-> RDKit Mol, canonicalization, 3D measurement via `rdMolTransforms`, and `formal_charge()` — the one place the UI layer can get a chemistry-derived default without importing rdkit itself), `DescriptorProvider`/`ConformerProvider`/`DockingProvider` implementations, `Importer`/`Exporter` backends, `vina_engine.py` (`VinaEngine` abstraction — see below), `orca_engine.py` (ORCA input building + output parsing), `naming_providers.py` (structure <-> name across PubChem, the vendored nomenclature engine, and OPSIN — each result labelled with its source and whether it is `exact`, `derived` or `parsed`), and `identifiers.py` (SMILES/InChI/InChIKey for a structure, which is how a compound with no verified name gets referred to at all). The only place `rdkit`/`openbabel` are imported. |
+| `openchem.chem` | The only place `rdkit`/`openbabel` are imported, and by some margin the largest package (49 modules). Grouped by what they are for, since the flat listing is no longer navigable: **core** — `engine.py` (`ChemistryEngine`: MoleculeModel <-> RDKit Mol, canonicalization, 2D depiction including the property heat map, 3D measurement, and `formal_charge()`, the one place UI gets a chemistry-derived default without importing rdkit), `identifiers.py`, `io_backends.py`. **Structure files** — `structure_io.py`, `binarycif.py`, `structure_summary.py`, `structure_assembly.py`; see the pipeline section below. **Docking** — `docking_providers.py`, `vina_engine.py`, `pose_analysis.py`, `binding_site.py`, `receptor_library.py`, `interaction_analysis.py`. **Quantum/spectroscopy** — `orca_engine.py`, the `nmr_*` family (database lookup, HOSE codes, scaling, TMS referencing, the lookup+ORCA hybrid, correlation, signals), `huckel.py`, `electronic_properties.py`, `dipole.py`, `boltzmann.py`. **Calculators** — `descriptor_providers.py` plus the per-topic modules it registers (`topology_analysis`, `geometry_analysis`, `surface_analysis`, `elemental_analysis`, `steric`, `substructure`, `structure_generators`, `markush`, `logd`, `ph_curves`, `mpo_scores`, `bbb_stereo`, `scalar_field`, `alignment`, `molecular_dynamics`, `calculator_options`). **Sidecars** — `pka_providers.py`/`pka_runner.py` and `admet_providers.py`/`admet_runner.py`, each a pair where the `_runner` is executed BY the sidecar's own interpreter and imports nothing from `openchem`. **Naming** — `naming_providers.py` (structure <-> name across PubChem, the vendored engine, and OPSIN, each result labelled with its source and whether it is `exact`, `derived` or `parsed`). |
 | `openchem.services` | `DescriptorService`, `ConformerService`, `MeasurementService`, `ImportService`, `ExportService`, `ProjectService`, `DockingService`, `QuantumChemistryService`, plus `ProgressHandle` for cancellable/progress-reporting long operations. All but `QuantumChemistryService` own `QThreadPool` execution and publish events — `QuantumChemistryService` is the one exception (see design decisions below). |
 | `openchem.commands` | `QUndoCommand` subclasses wrapping service calls, giving undo/redo for structure edits, conformer generation, docking results, quantum-chemistry conformers, and project operations from day one. |
 | `openchem.plugins` | `interfaces.py` (`Plugin`, `DescriptorProvider`, `ConformerProvider`, `DockingProvider`, `QuantumEngineProvider`, `PanelProvider`, `MenuProvider`, `Importer`, `Exporter`), `manifest.py` (`PluginManifest` + dependency topological sort), `context.py` (`PluginContext`, including the `context.secrets` namespace backed by the OS keychain via `keyring`, and `context.molecules`/`context.docking`/`context.quantum_chemistry`), `ui_registry.py` (`UIRegistry` protocol), `manager.py` (`PluginManager` — discovery, transactional load/unload/reload, hot-reload watcher). See `PLUGIN_SDK.md`. |
@@ -98,6 +98,56 @@ Two traps for anyone editing it:
 by OPSIN round-trip rather than string equality. It has twice overturned a
 conclusion reached without it, and it is what justified adopting this engine
 over a 1.1 GB ML alternative that scored 26 points lower.
+
+## The structure-file pipeline, and the invariant that runs through it
+
+A macromolecule takes a longer path than any other data in this app, and
+the same class of bug has been found on it five times. Recorded as a
+pipeline because the individual steps each look correct alone — the bugs
+all lived in the seams.
+
+```
+file on disk / RCSB
+   |  structure_io.read_structure_file   — sniffs CONTENT, gunzips
+   |  binarycif.to_mmcif                 — BinaryCIF decoded HERE, at the boundary
+   v
+MacromoleculeModel.structure_text  (always TEXT: "pdb" or "mmcif")
+   |
+   +-- structure_summary.summarize_structure   chains, sequences, ligands, waters
+   +-- structure_assembly.parse_assembly       what the depositor says is biological
+   +-- binding_site.box_from_ligand            a search box from a bound ligand
+   |
+   v  receptor_prep_options  { ph, strip_waters, strip_cofactors, keep_chains }
+   |
+   +-- docking_providers._convert_receptor_to_pdbqt  -> what VINA sees
+   +-- pose_analysis.receptor_atoms_from_structure   -> what the ANALYSIS sees
+```
+
+**THE INVARIANT: those last two must describe the same receptor.** They
+are separate code paths over separate libraries, and every time they have
+drifted the result was not a crash but a confident wrong answer:
+
+- Waters/cofactors stripped for docking but not for analysis — 195
+  reported clashes against atoms deleted before Vina ran.
+- Altlocs filtered for PDB only — an mmCIF receptor docked with doubled
+  atoms.
+- Residues keyed without a chain — a homotetramer's subunits merged, 34
+  rings instead of 121.
+- Open Babel's unit-cell expansion — 6WGT reached Vina as 73,707 atoms
+  for an 8,100-atom deposit, eight overlapping copies.
+- A search box left pointing where no receptor remained.
+
+The structural answer is that **every filter is one shared predicate,
+consulted by both paths**, and that the options controlling them travel
+in one dict the service hands to both: `is_stripped_residue`,
+`filter_altlocs`, `is_symmetry_generated`, `is_excluded_chain`. A new
+filter belongs there too, not in one path. `_require_receptor_in_box`
+then reads the PREPARED pdbqt rather than the source, so the last check
+before Vina is against the exact atoms Vina gets.
+
+BinaryCIF is decoded at the boundary rather than carried inward for the
+same reason: Open Babel reads neither `bcif` nor `mmtf` (measured), so a
+binary-carrying model would have been viewable and un-dockable.
 
 ## Vendored library maintenance
 

@@ -283,6 +283,77 @@ explicitly out of scope.
       calculator has options; hERG/CYP/Ames prediction shipped via the
       ADMET sidecar; and packaging is done with PyInstaller, not Nuitka.
 
+## After Phase 9 — by capability, not by phase
+
+Work past Phase 9 stopped fitting a numbered checklist: it arrived as
+several long parallel threads (calculators, NMR, ADMET, naming, docking)
+rather than sequential phases. The detailed per-phase record lives in the
+plan file; what follows is what EXISTS, grouped by capability, so this
+document answers "what does the app do" without being a diary.
+
+### Calculators
+
+Around 40 registry-executed calculators, all discoverable through
+`CalculatorRegistry` and rendered generically by the Property panel from
+`CalculatorDefinition` metadata — a new one is a registration, not a UI
+change. Physicochemical and medicinal-chemistry scalars, PAINS/BRENK
+alerts, per-atom datasets (Crippen contributions, partial charges,
+polarizability, Hückel π density, SASA), topology and geometry indices,
+elemental analysis, substructure search, structure generators
+(stereoisomers, tautomers, resonance, Markush), pH-dependent charge/logD/
+microspecies with curve output, vacuum molecular dynamics, and Hückel
+orbitals. Every one carries its options; none is unlabelled as to whether
+it is measured, empirical or ab initio.
+
+Several things were deliberately NOT shipped after measurement — TSEI,
+HLB, Miller polarizability, σ/π charge separation — and that is recorded
+in the modules themselves rather than left as silence.
+
+### Spectroscopy
+
+NMR via three routes that share one result shape: an offline HOSE-code
+database lookup, ORCA ab initio shielding with cached TMS referencing,
+and a hybrid that selects per atom on measured expected error. Plus
+signal grouping with diastereotopic splitting, 1D peak spectra, and
+HSQC/HMBC/COSY correlation with contour rendering. The benchmark
+(`benchmarks/nmr/`) is the arbiter and has overturned conclusions twice.
+
+### ADMET
+
+hERG, CYP and Ames prediction through an out-of-process ADMET-AI sidecar,
+alongside the rule-based hERG risk-factor checklist that needs no
+sidecar. Benchmarked rather than assumed: hERG's apparent separation
+turned out to be molecular size (r = +0.98), CYP survived the same check
+and is genuinely isoform-specific, Ames is cleanest and ties the free
+structural-alert alternative while failing on different compounds.
+
+### Structure handling and docking correctness
+
+A curated 49-receptor library with binding-site boxes validated by
+redocking; BinaryCIF and gzip ingestion; chain/residue/sequence
+summaries; deposited biological-assembly annotation; chain exclusion; and
+a guard refusing a search box that contains no receptor. See
+ARCHITECTURE.md's structure-file pipeline section for the invariant these
+share and the five bugs that motivated it — the most serious being Open
+Babel's silent unit-cell expansion, which handed Vina eight overlapping
+copies of one protein.
+
+### Visualization
+
+Per-atom colouring on 2D and 3D from one shared `ColorScale`; molecular
+surfaces (vdW/SAS/MS/SES); surfaces coloured by a continuous scalar field
+(point-charge electrostatic potential, verified by correlating rendered
+vertex colours against the supplied field, r = −0.96); a continuous 2D
+property heat map; residue colouring driven by real docking interaction
+data; and structure grids for multi-structure results.
+
+### Naming
+
+Structure-to-name offline and deterministically via the vendored IUPAC
+engine, plus PubChem lookup and OPSIN parsing, each result labelled with
+its source and exactness. See the section below — this one was overturned
+three times in a day.
+
 ## Naming — resolved, and how
 
 Structure-to-name went through three answers in one day. Recorded because
@@ -436,5 +507,32 @@ ONNX Runtime remains worth preferring over a full PyTorch/torch-geometric
 chain if a redistributable pretrained model ever appears — lighter, pure
 pip, no compiler. Revisit when one exists to point at, not before.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for how the codebase is structured to
-make Phases 3-6 additive rather than requiring a rewrite.
+## What is left, and why each one is left
+
+Nothing here is simply unstarted — each is blocked on something nameable,
+and three were checked again recently rather than taken on trust.
+
+- **Plugin-system extras** (`ToolbarProvider`/`ContextMenuProvider`, a
+  `RemoteServicePlugin` base, numeric priority, declared permissions) and
+  **plugin-provided reaction templates**. The recorded trigger is "a
+  fourth plugin whose real requirements tell us the shape". There are
+  still three. Building now means guessing.
+- **ChemSpider naming provider** — the RSC API returns 403 without a
+  registered developer key. `naming_providers.py` is provider-shaped so
+  it is a drop-in when a key exists.
+- **Missing-residue repair** — spiked and declined on evidence, not
+  blocked. See Phase 6's entry: the dependency turned out trivial, the
+  gaps are not near binding sites, and the rebuild lands a median 2.3 Å
+  from atoms actually observed.
+- **MMTF import** — refused; the service no longer resolves and the
+  vendored viewer dropped it.
+- **TSEI, HLB, Miller polarizability, σ/π charge separation** — measured
+  and not shippable honestly, each recorded where the code would have
+  gone.
+- **Ensemble alignment across a project** — `alignment.py` aligns onto a
+  reference SMILES; aligning a whole project needs its own panel, and
+  nothing is pushing on it.
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for how the codebase is structured so
+this has stayed additive — new content types get a sibling backend, new
+calculators get a registration, and neither requires a rewrite.
