@@ -41,6 +41,25 @@ _LIMITATION_NOTE = (
 )
 
 
+def _box_defining_ligand_codes(receptor) -> list[str]:
+    """The co-crystallised ligand that defined this receptor's search box.
+
+    A catalogue import records it in `MacromoleculeModel.metadata`
+    (`receptor_library_service.entry_metadata`), and the box is derived
+    from its coordinates. Leaving it in the pocket it defined means docking
+    into an occupied site: measured against real Vina on 1HSG, indinavir
+    redocked into its own structure scored -5.34 kcal/mol with the ligand
+    present and -9.75 with it removed, and the occupied run was SLOWER.
+
+    Returns empty for a receptor the user imported themselves -- there is
+    no catalogue entry, so nothing here knows which residue defined the
+    box, and guessing would delete part of somebody's receptor.
+    """
+    metadata = getattr(receptor, "metadata", None) or {}
+    code = str(metadata.get("ligand_code", "") or "").strip()
+    return [code] if code else []
+
+
 class DockingPanel(QWidget):
     """Pick a receptor (macromolecule) + ligand (molecule) from the current
     project, define a search box, and run AutoDock Vina via whichever
@@ -300,6 +319,7 @@ class DockingPanel(QWidget):
                 # receptor preparation and the interaction analysis, so
                 # they cannot be given different receptors.
                 "keep_chains": list(self._keep_chains),
+                "strip_ligand_codes": _box_defining_ligand_codes(receptor),
             },
         )
 

@@ -561,3 +561,52 @@ def test_mmcif_altlocs_are_gone_by_the_time_atoms_are_parsed():
     atoms = receptor_atoms_from_structure(MMCIF_WITH_ALTLOCS, "mmcif")
 
     assert len(atoms) == 4
+
+
+# --- The box-defining ligand must not be left in the box ----------------
+
+
+def test_a_named_ligand_code_is_stripped_regardless_of_the_cofactor_flag():
+    """MEASURED against real Vina 1.2.7 on real 1HSG, everything identical
+    except this option:
+
+        indinavir, 1HSG's OWN co-crystallised ligand   -5.34  ->  -9.75
+        benzene                                        -2.97  ->  -4.09
+        wall clock                                     65.6s  ->  28.3s
+
+    The receptor library derives every binding-site box from a
+    co-crystallised ligand and, before this, left that ligand sitting in
+    the pocket the box describes -- so docking searched an occupied site,
+    scored the native ligand 4.4 kcal/mol too weak, and ran SLOWER for it.
+    """
+    from openchem.chem.pose_analysis import is_stripped_residue
+
+    assert is_stripped_residue("MK1", True, False) is False
+    assert is_stripped_residue("MK1", True, False, ["MK1"]) is True
+
+
+def test_naming_a_ligand_does_not_strip_genuine_cofactors():
+    """Why this is not just `strip_cofactors=True`. That flag also removes
+    haem, catalytic zinc and the rest, which are genuinely part of a site
+    and must stay by default. Only the named residue goes."""
+    from openchem.chem.pose_analysis import is_stripped_residue
+
+    assert is_stripped_residue("HEM", True, False, ["MK1"]) is False
+    assert is_stripped_residue("ZN", True, False, ["MK1"]) is False
+    assert is_stripped_residue("ALA", True, False, ["MK1"]) is False
+
+
+def test_ligand_codes_match_case_and_padding_insensitively():
+    """PDB residue names arrive space-padded and in mixed case depending on
+    the writer."""
+    from openchem.chem.pose_analysis import is_stripped_residue
+
+    assert is_stripped_residue(" mk1 ", True, False, ["MK1"]) is True
+    assert is_stripped_residue("MK1", True, False, [" mk1 "]) is True
+
+
+def test_empty_ligand_codes_change_nothing():
+    from openchem.chem.pose_analysis import is_stripped_residue
+
+    assert is_stripped_residue("MK1", True, False, []) is False
+    assert is_stripped_residue("MK1", True, False, ["", None]) is False

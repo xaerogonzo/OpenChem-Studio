@@ -98,3 +98,24 @@ def test_dock_click_refuses_a_ligand_with_no_structure_at_all(qapp):
 
     assert docking_service.requests == []
     assert "no structure" in panel._status_label.text().lower()
+
+
+def test_the_panel_strips_the_ligand_that_defined_the_box():
+    """A catalogue receptor records `ligand_code` in its metadata precisely
+    so this can happen without the user knowing which residue defined the
+    site. See `pose_analysis.is_stripped_residue` for the measurement."""
+    from openchem.domain.macromolecule import MacromoleculeModel
+    from openchem.ui.panels.docking_panel import _box_defining_ligand_codes
+
+    catalogue = MacromoleculeModel(metadata={"ligand_code": "MK1"})
+    assert _box_defining_ligand_codes(catalogue) == ["MK1"]
+
+
+def test_a_user_imported_receptor_has_nothing_stripped():
+    """No catalogue entry means nothing knows which residue defined the
+    box, and guessing would delete part of somebody's receptor."""
+    from openchem.domain.macromolecule import MacromoleculeModel
+    from openchem.ui.panels.docking_panel import _box_defining_ligand_codes
+
+    assert _box_defining_ligand_codes(MacromoleculeModel()) == []
+    assert _box_defining_ligand_codes(MacromoleculeModel(metadata={"ligand_code": " "})) == []

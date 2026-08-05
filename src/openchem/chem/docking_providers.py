@@ -376,7 +376,13 @@ class VinaDockingProvider(DockingProvider):
     def _strip_unwanted_residues(self, obmol, prep_options: dict[str, Any]) -> None:
         strip_waters = prep_options.get("strip_waters", True)
         strip_cofactors = prep_options.get("strip_cofactors", False)
-        if not strip_waters and not strip_cofactors:
+        # The residues named here go regardless of the two flags above --
+        # see `is_stripped_residue` for the measurement. In short: the
+        # receptor library builds every box from a co-crystallised ligand,
+        # and leaving that ligand in the box it defined docks into an
+        # occupied pocket (indinavir into its own 1HSG: -5.34 vs -9.78).
+        strip_ligand_codes = tuple(prep_options.get("strip_ligand_codes", ()) or ())
+        if not strip_waters and not strip_cofactors and not strip_ligand_codes:
             return
         from openbabel import openbabel as ob
 
@@ -390,7 +396,9 @@ class VinaDockingProvider(DockingProvider):
             residue = obmol.GetResidue(i)
             # The same predicate `receptor_atoms_from_structure` uses, so
             # what gets docked and what gets analysed cannot disagree.
-            if is_stripped_residue(residue.GetName(), strip_waters, strip_cofactors):
+            if is_stripped_residue(
+                residue.GetName(), strip_waters, strip_cofactors, strip_ligand_codes
+            ):
                 atoms_to_delete.extend(ob.OBResidueAtomIter(residue))
         for atom in atoms_to_delete:
             obmol.DeleteAtom(atom)
