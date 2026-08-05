@@ -50,7 +50,7 @@ The binary is not on PATH; call it by full path.
 uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suite.log
 ```
 
-A clean run is **~1m40s**, ending at `1461 passed, 2 skipped`. Writing to a
+A clean run is **~2 minutes**, ending at `1490 passed, 2 skipped`. Writing to a
 file rather than a pipe is worth doing because it lets you watch progress
 while it runs.
 
