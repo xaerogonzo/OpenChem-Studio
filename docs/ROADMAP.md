@@ -403,12 +403,49 @@ strength, which is correct — they are symmetry-forbidden — so the
 intensity column is being read right as well.
 
 Benzene is the reason this is not shipped. The error is more than half an
-electron-volt, and worse, **the strongly allowed ¹E₁ᵤ band does not appear
-in the first 8 roots at all**: def2-SVP has no diffuse functions, so the
-π→π\* and Rydberg states are misplaced and the spectrum a user would be
-shown has its strongest band missing. Shipping that would mean shipping a
+electron-volt, and the spectrum a user would be shown has its strongest
+band missing from the first 8 roots. Shipping that would mean shipping a
 UV-Vis feature whose default settings are wrong for aromatics, which is
 most of medicinal chemistry.
+
+##### The diffuse-basis retry — run, and it does NOT rescue this
+
+The paragraph above used to continue "**def2-SVP has no diffuse functions,
+so the π→π\* and Rydberg states are misplaced**", naming that as the cause
+of the missing band. **That diagnosis was wrong**, and re-running it is what
+showed so. Measured 2026-08-05 on the same optimised geometries, B3LYP,
+`%tddft nroots 15`:
+
+| | ¹B₂ᵤ (exp 4.90, f≈0) | ¹B₁ᵤ (exp 6.20, f≈0) | strongest band (exp ¹E₁ᵤ 6.94, f≈0.9) |
+|---|---|---|---|
+| def2-SVP | 5.49 | 6.47 | **7.918 eV, f = 0.9607** |
+| def2-SVPD | 5.40 | 6.31 | **7.430 eV, f = 0.0832** |
+
+**The ¹E₁ᵤ band was never missing because of the basis set. It was missing
+because `nroots 8` was too few.** At def2-SVP with 15 roots it is right
+there, at 7.918 eV carrying f = 0.96 against an experimental ≈0.9 — the
+intensity is essentially correct and always was.
+
+Diffuse functions do improve every *position*: ¹B₂ᵤ +0.59 → +0.50 eV, ¹B₁ᵤ
++0.27 → +0.11, and the allowed band +0.98 → +0.49. **And they destroy the
+intensity**, collapsing f from 0.96 to 0.083, an order of magnitude too
+weak. This is the textbook diffuse-basis failure: the added functions
+introduce low-lying Rydberg states that mix with the valence π→π\* and
+fragment its oscillator strength across several near-degenerate roots.
+
+So the trade is a halved energy error for a tenfold intensity error, and
+for a UV-Vis spectrum that is the wrong way round — the question a spectrum
+answers is *which band is strongest*, and def2-SVPD gets that wrong while
+def2-SVP gets it right. Acetone's n→π\* is unmoved by the change (4.45 vs
+4.44 eV, f≈0 in both), so nothing is gained there either.
+
+**The refusal therefore stands, but the reason has changed.** It is not
+"the basis set is inadequate"; it is that the two error modes cannot be
+minimised by the same basis, so any shipped default is wrong for one of
+them, and picking per molecule is exactly the expertise a turnkey feature
+is supposed to remove. Raising `nroots` is free and correct and should be
+part of whatever ships — but on its own it fixes only the band's presence,
+not the +0.98 eV where def2-SVP puts it.
 
 One more thing measured rather than assumed: **`! ... Opt` together with a
 `%tddft` block does not run "optimise then compute the spectrum".** It
@@ -419,9 +456,13 @@ ground-state optimisation and the TD-DFT single point have to be two
 jobs.
 
 What shipping this would actually need: basis-set guidance per transition
-type (or a default with diffuse functions and the cost that brings), a
-root count chosen from the molecule rather than fixed, and a benchmark of
-its own against experimental λ_max the way `benchmarks/ir/` was done.
+type — **not** "a default with diffuse functions", which this line used to
+suggest and which the retry above measured and ruled out — a root count
+chosen from the molecule rather than fixed at 8, and a benchmark of its
+own against experimental λ_max the way `benchmarks/ir/` was done. A
+functional better suited to charge-transfer and π→π\* states (a
+range-separated hybrid such as ωB97X-D) is the more promising lead than
+any basis change, and has not been tried.
 None of that is blocked — the `SpectrumResult` family was shaped so a
 `UvVisSpectrumResult` is an addition rather than a refactor, which is
 precisely what makes deferring it safe.
