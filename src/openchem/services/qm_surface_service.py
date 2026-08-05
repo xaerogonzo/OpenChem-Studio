@@ -106,6 +106,23 @@ class _SurfaceTask(QRunnable):
         )
 
 
+def _fingerprint_of_molblock(molblock: str) -> str:
+    """The constitution a molblock describes, in the same form
+    `quantum_chemistry_service` records when it retains a wavefunction.
+
+    Both sides must produce the identical string for the comparison to mean
+    anything, which is why both are canonical SMILES from RDKit rather than
+    one being a hash of the file.
+    """
+    from rdkit import Chem
+
+    try:
+        mol = Chem.MolFromMolBlock(molblock, removeHs=False)
+        return Chem.MolToSmiles(mol) if mol is not None else ""
+    except Exception:  # noqa: BLE001 - unverifiable, not fatal
+        return ""
+
+
 class QmSurfaceService(QObject):
     """Turns a retained `.gbw` into a `ScalarField` the viewer can colour by."""
 
@@ -120,7 +137,7 @@ class QmSurfaceService(QObject):
         self._settings = settings
         self._pool = QThreadPool.globalInstance()
 
-    def is_available(self, molecule_uuid: str) -> bool:
+    def is_available(self, molecule_uuid: str, molblock: str = "") -> bool:
         """Whether a surface could be plotted for this molecule right now.
 
         Both halves matter and they fail for different reasons: no
@@ -128,12 +145,50 @@ class QmSurfaceService(QObject):
         means this particular molecule has never had a calculation. A UI
         that offers the control in either case is offering something that
         cannot work.
-        """
-        return bool(self._orca_plot_path()) and self.wavefunction_for(molecule_uuid) is not None
 
-    def wavefunction_for(self, molecule_uuid: str):
+        Pass `molblock` and a wavefunction retained for a DIFFERENT
+        structure counts as absent -- see `wavefunction_for`.
+        """
+        return (
+            bool(self._orca_plot_path())
+            and self.wavefunction_for(molecule_uuid, molblock) is not None
+        )
+
+    def wavefunction_for(self, molecule_uuid: str, molblock: str = ""):
+        """The retained `.gbw`, or None -- including when it is STALE.
+
+        A wavefunction is retained per molecule uuid, and a uuid survives a
+        structure edit. `EditStructureCommand` clears a molecule's
+        conformers when its structure changes because they described the
+        old structure; nothing gave the wavefunction the same treatment, so
+        drawing benzene, running ORCA, editing to toluene and asking for
+        the HOMO plotted benzene's orbitals against toluene in silence.
+
+        Given the current structure, this compares it against the one
+        recorded when the wavefunction was retained and returns None on a
+        mismatch -- a miss, and therefore a recalculation, rather than a
+        confident wrong picture. A wavefunction retained before structures
+        were recorded is unverifiable and is also refused: one wasted
+        recalculation against a silently wrong surface is not a close call.
+        """
         candidate = app_paths.wavefunction_root() / molecule_uuid / "job.gbw"
-        return candidate if candidate.is_file() else None
+        if not candidate.is_file():
+            return None
+        if not molblock:
+            return candidate
+        recorded = self._recorded_structure(molecule_uuid)
+        if not recorded:
+            return None
+        return candidate if recorded == _fingerprint_of_molblock(molblock) else None
+
+    def _recorded_structure(self, molecule_uuid: str) -> str:
+        path = app_paths.wavefunction_root() / molecule_uuid / "orbitals.json"
+        if not path.is_file():
+            return ""
+        try:
+            return str(json.loads(path.read_text(encoding="utf-8")).get("structure", ""))
+        except (OSError, ValueError):
+            return ""
 
     def frontier_orbitals(self, molecule_uuid: str) -> tuple[int | None, int | None]:
         """(HOMO, LUMO) indices retained from the job that produced the

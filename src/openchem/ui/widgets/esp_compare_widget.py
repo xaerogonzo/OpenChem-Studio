@@ -128,7 +128,12 @@ class EspCompareWidget(QWidget):
         self._render_point_charge()
         if conformer_molblock:
             self._qm_backend.load_conformer(conformer_molblock)
-        available = bool(conformer_molblock) and self._service.is_available(molecule_uuid)
+        # The molblock is passed so a wavefunction retained for a
+        # DIFFERENT structure counts as absent -- the button must not
+        # offer to plot benzene's orbitals against toluene.
+        available = bool(conformer_molblock) and self._service.is_available(
+            molecule_uuid, conformer_molblock
+        )
         self._compute_button.setEnabled(available)
         if not available:
             self._qm_caption.setText(_QM_CAPTION_IDLE)

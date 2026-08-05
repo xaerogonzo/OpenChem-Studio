@@ -31,6 +31,7 @@ from openchem.events.events import (
     SpectrumComputed,
 )
 from openchem.plugins.interfaces import QuantumEngineProvider
+from openchem.services import result_cache
 from openchem.services.job_manager import JobManager
 
 logger = logging.getLogger("openchem.chemistry")
@@ -46,6 +47,27 @@ _SCALING_JOB_KIND = "quantum_chemistry_scaling"
 # method_basis varies per reference calibration request).
 _TMS_CHARGE = 0
 _TMS_MULTIPLICITY = 1
+
+
+def _structure_fingerprint(mol) -> str:
+    """A molecule's constitution, as the thing a retained result belongs to.
+
+    Canonical SMILES, so it is stable across atom ordering and independent
+    of geometry. That last part is the deliberate half: a STRUCTURE edit
+    must invalidate a retained wavefunction, while regenerating a conformer
+    of the same molecule need not, because the `.gbw` carries its own
+    geometry and every surface is plotted from that rather than from the
+    caller's molblock.
+
+    Returns "" for anything unreadable, which compares equal to nothing and
+    therefore reads as "cannot verify" rather than "verified".
+    """
+    if mol is None:
+        return ""
+    try:
+        return Chem.MolToSmiles(Chem.Mol(mol))
+    except Exception:  # noqa: BLE001 - an unverifiable structure is not fatal
+        return ""
 
 
 def _reference_job_key(method_basis: str) -> str:
@@ -1085,8 +1107,49 @@ class QuantumChemistryService(QObject):
             # this output text is gone the index is unrecoverable without
             # re-running the job.
             homo, lumo = parse_frontier_orbitals(output_text)
+            # THE STRUCTURE IS RECORDED BESIDE THE WAVEFUNCTION, and that
+            # is a correctness fix rather than metadata. This directory is
+            # keyed by `molecule_uuid`, and a uuid is STABLE ACROSS
+            # STRUCTURE EDITS -- `EditStructureCommand` clears a molecule's
+            # conformers when its structure changes (Phase 9.1: they
+            # described the old structure) and nothing ever gave the
+            # wavefunction the same treatment. So drawing benzene, running
+            # ORCA, editing to toluene and asking for the HOMO plotted
+            # benzene's orbitals against toluene, silently, because the
+            # only check was that a file existed under that uuid.
+            #
+            # Recording the constitution lets the lookup turn that into a
+            # MISS. Canonical SMILES rather than a geometry hash on
+            # purpose: a structure EDIT must invalidate, while regenerating
+            # a conformer of the same molecule need not, since the `.gbw`
+            # carries its own geometry and every surface is plotted from
+            # that rather than from the molblock.
             (destination / "orbitals.json").write_text(
-                json.dumps({"homo": homo, "lumo": lumo}), encoding="utf-8"
+                json.dumps(
+                    {
+                        "homo": homo,
+                        "lumo": lumo,
+                        "structure": _structure_fingerprint(getattr(job, "mol", None)),
+                        "method_basis": getattr(job, "method_basis", ""),
+                        "calc_type": getattr(job, "calc_type", ""),
+                    }
+                ),
+                encoding="utf-8",
+            )
+            # A second, content-addressed copy: keyed by structure+method
+            # rather than by uuid, so it survives the molecule being
+            # deleted, hits across projects, and is a re-openable record of
+            # what was run. Best-effort -- see `result_cache.store`.
+            result_cache.store(
+                "orca_wavefunction",
+                files={
+                    path.name: path
+                    for path in destination.glob("job.*")
+                },
+                metadata={"homo": homo, "lumo": lumo},
+                structure=_structure_fingerprint(getattr(job, "mol", None)),
+                method_basis=getattr(job, "method_basis", ""),
+                calc_type=getattr(job, "calc_type", ""),
             )
             return destination / "job.gbw"
         except OSError:
@@ -1095,14 +1158,44 @@ class QuantumChemistryService(QObject):
             )
             return None
 
-    def retained_wavefunction(self, molecule_uuid: str) -> Path | None:
+    def retained_wavefunction(
+        self, molecule_uuid: str, mol: Chem.Mol | None = None
+    ) -> Path | None:
         """The retained `.gbw` for a molecule, or None if there is none.
 
         Public because the surface service asks this rather than
         reconstructing the path, which would duplicate the layout above.
+
+        Pass `mol` and the retained structure is CHECKED against it. A
+        mismatch returns None -- a miss, and therefore a recomputation --
+        rather than a wavefunction describing a structure the molecule no
+        longer has. See `_retain_wavefunction` for how that arose.
+
+        Omitting `mol` keeps the old unchecked behaviour, which is what a
+        caller with no structure to hand (a storage report counting bytes)
+        actually wants.
         """
         candidate = app_paths.wavefunction_root() / molecule_uuid / "job.gbw"
-        return candidate if candidate.is_file() else None
+        if not candidate.is_file():
+            return None
+        if mol is None:
+            return candidate
+        recorded = self._retained_structure(molecule_uuid)
+        if recorded is None:
+            # Retained before structures were recorded. Unverifiable rather
+            # than known-good, and refusing it costs one recalculation
+            # where trusting it risks a silently wrong picture.
+            return None
+        return candidate if recorded == _structure_fingerprint(mol) else None
+
+    def _retained_structure(self, molecule_uuid: str) -> str | None:
+        path = app_paths.wavefunction_root() / molecule_uuid / "orbitals.json"
+        if not path.is_file():
+            return None
+        try:
+            return json.loads(path.read_text(encoding="utf-8")).get("structure")
+        except (OSError, ValueError):
+            return None
 
     def _cleanup_scratch(self, scratch_dir: Path) -> None:
         try:

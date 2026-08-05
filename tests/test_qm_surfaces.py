@@ -145,7 +145,14 @@ def test_retention_records_the_frontier_orbital_indices(tmp_path, monkeypatch):
     service_module.QuantumChemistryService._retain_wavefunction(object(), job, output)
 
     recorded = json.loads((retained_root / "mol-1" / "orbitals.json").read_text())
-    assert recorded == {"homo": 1, "lumo": 2}
+    assert recorded["homo"] == 1
+    assert recorded["lumo"] == 2
+    # The structure is recorded alongside so a later lookup can tell
+    # whether this wavefunction still describes the molecule -- see
+    # `QmSurfaceService.wavefunction_for`. This job stub carries no mol, so
+    # the field is present and empty, which reads as "cannot verify" and is
+    # refused rather than trusted.
+    assert recorded["structure"] == ""
 
 
 def test_a_reference_job_retains_nothing(tmp_path, monkeypatch):
@@ -285,8 +292,13 @@ class _FakeSurfaceService:
     def __init__(self, available: bool = True) -> None:
         self.available = available
         self.requests: list[tuple] = []
+        self.availability_checks: list[tuple] = []
 
-    def is_available(self, molecule_uuid: str) -> bool:
+    def is_available(self, molecule_uuid: str, molblock: str = "") -> bool:
+        # Mirrors the real signature, including the molblock the widget now
+        # passes so a wavefunction retained for a DIFFERENT structure counts
+        # as absent. Recorded so a caller's argument can be asserted.
+        self.availability_checks.append((molecule_uuid, molblock))
         return self.available
 
     def request_surface(self, molecule_uuid, surface_id, *, orbital="", **kwargs) -> bool:
