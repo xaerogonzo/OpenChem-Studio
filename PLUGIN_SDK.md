@@ -206,8 +206,21 @@ copy the whole folder into your plugins directory as a starting point.
   plugin's `activate()` is expected to return quickly. Revisit if a real
   plugin needs to do slow work (loading an ML model, initializing an
   external process) at load time.
-- No `ToolbarProvider` or `ContextMenuProvider` — there's no toolbar or
-  context menus anywhere in the app yet for a plugin to extend.
+- No `ToolbarProvider` or `ContextMenuProvider`. These two now have
+  DIFFERENT reasons, and this entry used to give one blanket reason that
+  has since gone half-stale:
+  - *Toolbars*: still genuinely nothing to extend. There is no `QToolBar`
+    anywhere in the app — the 3D viewer's "toolbar" is a `QHBoxLayout`
+    row of widgets, which has no insertion point a plugin could target
+    without the widget cooperating.
+  - *Context menus*: the app DOES have one now (Project Explorer's
+    right-click menu, `ui/panels/project_explorer_panel.py`), so "nothing
+    to extend" is no longer true. What is still true is that one menu in
+    one panel does not tell us what the extension point should look like
+    — whether a plugin contributes to every menu, to named ones, or to
+    ones matching a selection type. That is the same "wait for a real
+    requirement rather than guess" reasoning as the rest of this list,
+    not an absence of anywhere to hook.
 - No numeric provider priority — for imports/exports, a plugin-registered
   backend is simply checked before the built-ins, in registration order.
 - No declared permissions (filesystem/network/etc.) — not sandboxing
