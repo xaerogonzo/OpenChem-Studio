@@ -53,7 +53,12 @@ class AboutDialog(QDialog):
         font.setFamily("Consolas")
         font.setStyleHint(font.StyleHint.Monospace)
         self._details.setFont(font)
-        self._details.setMinimumSize(520, 320)
+        # Sized against the real content rather than guessed: the sidecar
+        # interpreter paths are the longest lines and run past 90 characters,
+        # so a narrower box wraps each of them onto two lines and pushes the
+        # NMR index line below the fold. Measured in the frozen build, where
+        # every one of those paths is populated.
+        self._details.setMinimumSize(660, 430)
         layout.addWidget(self._details)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close, parent=self)
