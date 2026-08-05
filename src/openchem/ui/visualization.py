@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
-from openchem.chem.scalar_field import ScalarField, symmetric_range, to_dx
+from openchem.chem.scalar_field import ScalarField, display_range, to_dx
 from openchem.domain.common import CATEGORICAL_SCALE as _CATEGORICAL_SCALE
 from openchem.domain.common import ScientificResult
 from openchem.domain.scientific_result import NMRSpectrumResult, PerAtomDataset
@@ -227,8 +227,12 @@ def build_scalar_field_surface_layer(
     which is the same direction as 3Dmol's `Gradient.RWB` -- so the legend
     this layer carries describes what the surface actually shows rather
     than being a second, independently-chosen scale beside it.
+
+    The range comes from `display_range`, which centres on zero only for a
+    field that actually has both signs -- see its docstring for why an
+    electron density must not be centred.
     """
-    low, high = symmetric_range(field, percentile=percentile)
+    low, high = display_range(field, percentile=percentile)
     return SurfaceLayer(
         name=field.name,
         representation=representation,

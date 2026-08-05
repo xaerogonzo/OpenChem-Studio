@@ -65,6 +65,62 @@ def _mol_at_final_geometry(output_text: str, mol: Chem.Mol) -> Chem.Mol:
         return mol
 
 
+def parse_frontier_orbitals(output_text: str) -> tuple[int | None, int | None]:
+    """(HOMO, LUMO) orbital indices from the ORBITAL ENERGIES table.
+
+    Needed because `orca_plot` asks for an orbital by NUMBER, and that
+    number is a property of the basis set rather than of the molecule:
+    water's HOMO is orbital 4 in def2-SVP and benzene's is 20. Asking a
+    user to type it is asking them to guess, and a wrong index plots a
+    real orbital that is not the one they wanted -- so it is read from the
+    job that will be plotted.
+
+    The LAST table in the file is used. A geometry optimisation prints one
+    per cycle, and the orbitals belong to the converged geometry; an
+    unbounded search would return the first SCF's.
+
+    ALPHA ORBITALS ONLY for an open-shell system. An unrestricted job
+    prints "SPIN UP ORBITALS" and "SPIN DOWN ORBITALS" under one
+    ORBITAL ENERGIES heading, and reading straight through both is not a
+    small error: on a real methyl-radical transcript it returned HOMO 3
+    from the spin-down block and LUMO 5 from the spin-up one, a frontier
+    pair that does not exist in either. Alpha is the right set to return
+    rather than merely the safe one -- `orca_plot`'s operator 0 IS the
+    alpha set, so these indices are the ones its default plot will use.
+
+    Returns (None, None) when there is no table, and a None LUMO when
+    every orbital in the basis is occupied -- which cannot happen for a
+    real basis set but is not worth crashing over.
+    """
+    # The LAST table, found from the last header: `_section` takes the
+    # first match, and a geometry optimisation prints one table per cycle.
+    last = output_text.rfind("ORBITAL ENERGIES")
+    if last == -1:
+        return None, None
+    end = output_text.find("MULLIKEN", last)
+    section = output_text[last:] if end == -1 else output_text[last:end]
+
+    spin_down = section.find("SPIN DOWN ORBITALS")
+    if spin_down != -1:
+        section = section[:spin_down]
+    if not section:
+        return None, None
+
+    homo: int | None = None
+    lumo: int | None = None
+    for match in _ORBITAL_ROW_RE.finditer(section):
+        index = int(match.group(1))
+        occupation = float(match.group(2))
+        if occupation > 0.0:
+            homo = index
+        elif lumo is None and homo is not None:
+            # The first empty orbital AFTER an occupied one. Guarding on
+            # `homo` matters for an open-shell beta block, whose table can
+            # begin with empty rows.
+            lumo = index
+    return homo, lumo
+
+
 def _parse_normal_modes(
     output_text: str, atom_count: int
 ) -> dict[int, tuple[tuple[float, float, float], ...]]:
@@ -145,6 +201,14 @@ _GIBBS_RE = re.compile(r"Final Gibbs free energy\s+\.\.\.\s+(-?\d+\.\d+)")
 # Confirmed live against a real ORCA 6.1.1 run's banner text: "Program
 # Version 6.1.1  -  RELEASE   -".
 _VERSION_RE = re.compile(r"Program Version\s+(\S+)\s*-\s*(\w+)")
+
+#: A row of the ORBITAL ENERGIES table: index, occupation, E(Eh), E(eV).
+#: Anchored to four columns so it cannot match the thermochemistry or
+#: population tables that also carry rows of numbers -- the same
+#: false-positive concern `_SHIELDING_ROW_RE` documents.
+_ORBITAL_ROW_RE = re.compile(
+    r"^\s*(\d+)\s+(\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$", re.MULTILINE
+)
 
 # Confirmed live against a real ORCA 6.1.1 `! NMR` run (HF/STO-3G, water):
 #

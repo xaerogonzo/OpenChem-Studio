@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import json
 import logging
 import shutil
 import tempfile
@@ -18,7 +19,7 @@ from openchem.chem.nmr_reference import (
     average_reference_shielding,
     tms_molecule,
 )
-from openchem.chem.orca_engine import OrcaQuantumEngineProvider
+from openchem.chem.orca_engine import OrcaQuantumEngineProvider, parse_frontier_orbitals
 from openchem import paths as app_paths
 from openchem.domain.common import CacheState, Provenance
 from openchem.events.base import EventBus
@@ -695,6 +696,13 @@ class QuantumChemistryService(QObject):
 
     def _finish_calculation_job(self, job: _ActiveJob, output_text: str) -> None:
         molecule_uuid = job.molecule_uuid
+        # BEFORE the parse, and before `_on_finished`'s `finally` deletes
+        # the scratch directory. The wavefunction is the one artefact that
+        # cannot be recovered without re-running the calculation, and every
+        # QM surface is plotted from it. Retained even when the parse below
+        # fails: a job whose output this version cannot read may still have
+        # produced a perfectly good `.gbw`.
+        self._retain_wavefunction(job, output_text)
         try:
             descriptors, conformer = job.provider.parse_output(output_text, job.mol, molecule_uuid, job.calc_type)
         except Exception as exc:  # noqa: BLE001 - report failure, never crash
@@ -1036,6 +1044,65 @@ class QuantumChemistryService(QObject):
             NmrReferenceCalibrated(method_basis=method_basis, provider_id=job.provider.provider_id, values=averaged)
         )
         self._publish_state(job.key, CacheState.COMPLETED)
+
+    def _retain_wavefunction(self, job: _ActiveJob, output_text: str = "") -> Path | None:
+        """Copy this job's wavefunction out of the scratch directory.
+
+        ORCA 6 splits what used to be one file: the `.gbw` holds the basis
+        and orbitals, and the `.densities` container holds the SCF density
+        that `orca_plot`'s ESP and electron-density plots read. Copying
+        only the `.gbw` yields a directory in which orbitals plot and
+        every density-based surface reports the density "does not exist" --
+        which `orca_surfaces` turns into an error rather than a wrong
+        cube, but the fix is to copy the set.
+
+        Best-effort by design: a failure here must not fail a calculation
+        whose energies and geometry are fine, so it logs and returns None.
+        """
+        if not job.molecule_uuid:
+            # Reference/scaling jobs (TMS and friends) are not a user's
+            # molecule and have no surface anyone would ask for.
+            return None
+        source = job.scratch_dir / "job.gbw"
+        if not source.is_file():
+            return None
+        try:
+            destination = app_paths.wavefunction_root() / job.molecule_uuid
+            # Replaced rather than merged: a stale `.densities` beside a
+            # fresh `.gbw` is a mismatched pair, and orca_plot's own
+            # warning about that ("make sure that densities and gbw-file
+            # match") is printed where nothing reads it.
+            if destination.exists():
+                shutil.rmtree(destination, ignore_errors=True)
+            destination.mkdir(parents=True, exist_ok=True)
+            for path in job.scratch_dir.glob("job.*"):
+                if path.suffix in (".gbw", ".densities", ".densitiesinfo"):
+                    shutil.copy2(path, destination / path.name)
+            # The frontier orbital INDICES are retained alongside, because
+            # they are the only way to plot "the HOMO" later: orca_plot
+            # asks for an orbital by number and that number depends on the
+            # basis set (water's HOMO is 4, bromobenzene's is 37). Once
+            # this output text is gone the index is unrecoverable without
+            # re-running the job.
+            homo, lumo = parse_frontier_orbitals(output_text)
+            (destination / "orbitals.json").write_text(
+                json.dumps({"homo": homo, "lumo": lumo}), encoding="utf-8"
+            )
+            return destination / "job.gbw"
+        except OSError:
+            logger.warning(
+                "Failed to retain the wavefunction for molecule %s", job.molecule_uuid
+            )
+            return None
+
+    def retained_wavefunction(self, molecule_uuid: str) -> Path | None:
+        """The retained `.gbw` for a molecule, or None if there is none.
+
+        Public because the surface service asks this rather than
+        reconstructing the path, which would duplicate the layout above.
+        """
+        candidate = app_paths.wavefunction_root() / molecule_uuid / "job.gbw"
+        return candidate if candidate.is_file() else None
 
     def _cleanup_scratch(self, scratch_dir: Path) -> None:
         try:

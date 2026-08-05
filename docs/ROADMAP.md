@@ -366,6 +366,66 @@ signal grouping with diastereotopic splitting, 1D peak spectra, and
 HSQC/HMBC/COSY correlation with contour rendering. The benchmark
 (`benchmarks/nmr/`) is the arbiter and has overturned conclusions twice.
 
+IR from the same `opt_freq` ORCA job that already produced the
+thermochemistry — harmonic frequencies, IR intensities, per-mode
+stretch/bend/torsion classification, normal-mode animation, and an
+imaginary-frequency warning that says the thermochemistry from the same
+job is invalid. Benchmarked in `benchmarks/ir/` (MAE 27.6 cm⁻¹ scaled,
+fitted factor 0.9666).
+
+#### TD-DFT / UV-Vis — SCOPED AND MEASURED, DELIBERATELY NOT SHIPPED
+
+Timed and checked against experiment on the installed ORCA 6.1.1 build
+(B3LYP/def2-SVP, `%tddft nroots 8`), 2026-08-05, while the IR parser work
+was fresh. **The cost is trivial. The science is not turnkey, and that is
+why this is a note rather than a feature.**
+
+Cost, wall clock on the reference machine — TD-DFT is a small addition on
+top of the ground-state optimisation it needs:
+
+| | ground-state Opt | TD-DFT single point |
+|---|---|---|
+| formaldehyde (4 atoms) | 20 s | **8 s** |
+| acetone (10 atoms) | 83 s | **13 s** |
+| benzene (12 atoms) | 43 s | **19 s** |
+
+Accuracy is excellent where the transition is a valence n→π\* and poor
+where it is not:
+
+| transition | computed | experiment | error |
+|---|---|---|---|
+| formaldehyde n→π\* | 4.078 eV (304 nm) | 4.07 eV | **+0.01 eV** |
+| acetone n→π\* | 4.444 eV (279 nm) | ~4.48 eV | **−0.04 eV** |
+| benzene ¹B₂ᵤ | 5.494 eV (226 nm) | 4.90 eV (253 nm) | **+0.59 eV** |
+
+Both carbonyl n→π\* bands also came back with essentially zero oscillator
+strength, which is correct — they are symmetry-forbidden — so the
+intensity column is being read right as well.
+
+Benzene is the reason this is not shipped. The error is more than half an
+electron-volt, and worse, **the strongly allowed ¹E₁ᵤ band does not appear
+in the first 8 roots at all**: def2-SVP has no diffuse functions, so the
+π→π\* and Rydberg states are misplaced and the spectrum a user would be
+shown has its strongest band missing. Shipping that would mean shipping a
+UV-Vis feature whose default settings are wrong for aromatics, which is
+most of medicinal chemistry.
+
+One more thing measured rather than assumed: **`! ... Opt` together with a
+`%tddft` block does not run "optimise then compute the spectrum".** It
+requests an EXCITED-STATE geometry optimisation, which needs the third
+functional derivative of B88 and which this ORCA build refuses with
+"not available natively with ORCA. Please, use the LibXC version." The
+ground-state optimisation and the TD-DFT single point have to be two
+jobs.
+
+What shipping this would actually need: basis-set guidance per transition
+type (or a default with diffuse functions and the cost that brings), a
+root count chosen from the molecule rather than fixed, and a benchmark of
+its own against experimental λ_max the way `benchmarks/ir/` was done.
+None of that is blocked — the `SpectrumResult` family was shaped so a
+`UvVisSpectrumResult` is an addition rather than a refactor, which is
+precisely what makes deferring it safe.
+
 ### ADMET
 
 hERG, CYP and Ames prediction through an out-of-process ADMET-AI sidecar,

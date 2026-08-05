@@ -29,17 +29,24 @@ from openchem.chem.orca_engine import (
     SOLVENTS,
 )
 from openchem.domain.project import ProjectModel
-from openchem.domain.scientific_result import CrossPeak, SpectrumResult
+from openchem.domain.scientific_result import (
+    CrossPeak,
+    SpectrumResult,
+    VibrationalSpectrumResult,
+)
 from openchem.events.base import EventBus
 from openchem.events.events import (
     NmrReferenceCalibrated,
     NmrScalingCalibrated,
+    QmSurfaceComputed,
     QuantumChemistryJobStateChanged,
     QuantumChemistryResultReady,
     SpectrumComputed,
 )
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
+from openchem.ui.widgets.esp_compare_widget import EspCompareWidget
+from openchem.ui.widgets.ir_view_widget import IrViewWidget
 from openchem.ui.widgets.nmr_correlation_plot_widget import NmrCorrelationPlotWidget, Peak
 from openchem.ui.widgets.nmr_view_widget import NmrViewWidget
 
@@ -94,11 +101,17 @@ class QuantumChemistryPanel(QWidget):
         settings: Settings,
         event_bus: EventBus,
         parent: QWidget | None = None,
+        qm_surface_service=None,
     ) -> None:
         super().__init__(parent)
         self._quantum_chemistry_service = quantum_chemistry_service
         self._chemistry_engine = chemistry_engine
         self._settings = settings
+        # Optional, and after `parent` so every existing positional call
+        # site keeps working. Without it the Surfaces tab says why it is
+        # empty rather than not existing -- a missing tab reads as a
+        # version difference, an explained one reads as configuration.
+        self._qm_surface_service = qm_surface_service
         self._project: ProjectModel | None = None
         self._pending_molecule_uuid: str | None = None
         self._pending_mol = None  # rdkit.Chem.Mol, set in _on_run_clicked -- needed
@@ -110,6 +123,10 @@ class QuantumChemistryPanel(QWidget):
         # tangle), the 3D pane from the conformer.
         self._pending_molblock: str = ""
         self._pending_conformer_molblock: str = ""
+        #: The geometry ORCA optimised, once it arrives. Kept separate from
+        #: the submitted one because the normal modes describe motion about
+        #: THIS structure, not the one that was sent.
+        self._optimized_conformer_molblock: str = ""
 
         self._molecule_combo = QComboBox(self)
         self._molecule_combo.currentIndexChanged.connect(self._on_molecule_changed)
@@ -208,6 +225,22 @@ class QuantumChemistryPanel(QWidget):
         self._nmr_view_layout = QVBoxLayout(self._nmr_view_tab)
         self._correlation_tabs.addTab(self._nmr_view_tab, "1D Signals")
 
+        # IR, on the same deferred-construction pattern and for the same
+        # reason (a QWebEngineView for its 3D pane). Added AFTER the NMR
+        # tab rather than before it so existing tab positions do not move.
+        self._ir_view: IrViewWidget | None = None
+        self._ir_view_tab = QWidget(self._correlation_tabs)
+        self._ir_view_layout = QVBoxLayout(self._ir_view_tab)
+        self._correlation_tabs.addTab(self._ir_view_tab, "IR")
+
+        # Surfaces: the point-charge ESP beside the ab initio one. Same
+        # deferred construction -- it owns TWO QWebEngineViews, which is
+        # the most expensive tab here and the least often opened.
+        self._surfaces_view: EspCompareWidget | None = None
+        self._surfaces_tab = QWidget(self._correlation_tabs)
+        self._surfaces_layout = QVBoxLayout(self._surfaces_tab)
+        self._correlation_tabs.addTab(self._surfaces_tab, "Surfaces")
+
         # Hybrid: this calculation merged with the experimental-shift
         # lookup, per atom, choosing whichever expects to be less wrong.
         # Built here rather than on first result because it is a plain
@@ -283,6 +316,7 @@ class QuantumChemistryPanel(QWidget):
         event_bus.subscribe(QuantumChemistryJobStateChanged, self._on_job_state_changed)
         event_bus.subscribe(QuantumChemistryResultReady, self._on_result_ready)
         event_bus.subscribe(SpectrumComputed, self._on_spectrum_computed)
+        event_bus.subscribe(QmSurfaceComputed, self._on_qm_surface_computed)
         event_bus.subscribe(NmrReferenceCalibrated, self._on_reference_calibrated)
         event_bus.subscribe(NmrScalingCalibrated, self._on_scaling_calibrated)
 
@@ -350,6 +384,7 @@ class QuantumChemistryPanel(QWidget):
         self._pending_mol = mol
         self._pending_molblock = molecule.molblock
         self._pending_conformer_molblock = molblock
+        self._optimized_conformer_molblock = ""
         self._run_button.setEnabled(False)
         self._cancel_button.setEnabled(True)
         self._output_log.clear()
@@ -477,11 +512,33 @@ class QuantumChemistryPanel(QWidget):
         lines = [f"{d.name}: {d.value:.6f} {d.units}" for d in event.descriptors]
         if event.conformer is not None:
             lines.append("Optimized geometry added as a new conformer.")
+            # Held for the IR view, which must animate about the optimised
+            # geometry. `QuantumChemistryResultReady` is published before
+            # the vibrational `SpectrumComputed` from the same job
+            # (`_finish_calculation_job` parses descriptors first), so by
+            # the time the spectrum arrives this is already set.
+            self._optimized_conformer_molblock = event.conformer.molblock
         self._results_label.setText("\n".join(lines))
+        # After the conformer is recorded, so the surfaces are drawn on the
+        # optimised geometry when there is one.
+        self._update_surfaces_view()
 
     def _on_spectrum_computed(self, event: SpectrumComputed) -> None:
         spectrum = event.spectrum
         if spectrum.molecule_uuid != self._pending_molecule_uuid:
+            return
+        # A VIBRATIONAL SPECTRUM MUST NOT REACH THE NMR PATH BELOW, and
+        # this branch is the whole reason the method dispatches at all.
+        # `SpectrumComputed` carries every spectrum type, and everything
+        # after this point reads `spectrum.values` -- which
+        # `VibrationalSpectrumResult` documents as DELIBERATELY EMPTY,
+        # because an IR peak belongs to a normal mode rather than to an
+        # atom. Falling through produced no error and no empty state: an
+        # NMR table with zero rows, a "1D Signals" view built from no
+        # signals, and three correlation tabs computed over nothing, all
+        # presented as a successful result.
+        if isinstance(spectrum, VibrationalSpectrumResult):
+            self._update_ir_view(spectrum)
             return
         referencing = (
             spectrum.provenance.parameters.get("referencing") if spectrum.provenance else None
@@ -509,6 +566,54 @@ class QuantumChemistryPanel(QWidget):
         self._update_nmr_view(spectrum)
         self._update_correlation_tabs(spectrum)
         self._update_hybrid_tab(spectrum)
+
+    def _update_surfaces_view(self) -> None:
+        """Shows the point-charge ESP beside the ab initio one.
+
+        Populated on any completed calculation, not only a frequency job:
+        the wavefunction a single-point leaves behind is enough to plot
+        every surface, so requiring an `opt_freq` would withhold the
+        cheapest path to the most expensive picture.
+        """
+        molblock = self._optimized_conformer_molblock or self._pending_conformer_molblock
+        if not molblock or self._qm_surface_service is None:
+            return
+        if self._surfaces_view is None:
+            self._surfaces_view = EspCompareWidget(
+                self._chemistry_engine,
+                self._qm_surface_service,
+                parent=self._surfaces_tab,
+            )
+            self._surfaces_layout.addWidget(self._surfaces_view)
+        self._surfaces_view.set_molecule(self._pending_molecule_uuid or "", molblock)
+        self._correlation_tabs.setVisible(True)
+
+    def _on_qm_surface_computed(self, event) -> None:
+        if self._surfaces_view is None:
+            return
+        self._surfaces_view.on_surface_computed(
+            event.molecule_uuid, event.field, event.error
+        )
+
+    def _update_ir_view(self, spectrum: VibrationalSpectrumResult) -> None:
+        """Populates the IR tab, built on first result for the same reason
+        the 1D NMR view is: it owns a `QWebEngineView` for its 3D pane,
+        which is expensive to build for a user who never runs a frequency
+        job. The tab itself exists from the start so tab order never
+        shifts under the user."""
+        if self._ir_view is None:
+            self._ir_view = IrViewWidget(self._chemistry_engine, parent=self._ir_view_tab)
+            self._ir_view_layout.addWidget(self._ir_view)
+        # The OPTIMISED conformer, not the submitted structure: an
+        # `opt_freq` optimises first and the modes describe motion about
+        # the result. `_pending_conformer_molblock` is what was sent, so
+        # the optimised geometry published by the same job is preferred
+        # when it arrived.
+        self._ir_view.set_spectrum(
+            spectrum, self._optimized_conformer_molblock or self._pending_conformer_molblock or ""
+        )
+        self._correlation_tabs.setVisible(True)
+        self._correlation_tabs.setCurrentWidget(self._ir_view_tab)
 
     def _update_nmr_view(self, spectrum: SpectrumResult) -> None:
         """Populates the 1D signal view -- the same `NmrViewWidget` the

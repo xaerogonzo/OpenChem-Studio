@@ -84,7 +84,7 @@ The honest version of a comparison table: this one is about our own software.
 
 | Does, with stated caveats | The caveat |
 |---|---|
-| Electrostatic potential surfaces | point charges — no lone-pair directionality or sigma holes |
+| Electrostatic potential surfaces | two methods, side by side and labelled: point charges (instant, no ORCA) still have no lone-pair directionality or sigma holes; the ab initio surface has both, [benchmarks/esp/](benchmarks/esp/) |
 | ADMET predictions | tiered Basic/Advanced/Research; accuracy is the vendor's held-out figure, not ours — the shipped model trained on all of TDC ([benchmarks/admet/](benchmarks/admet/)) |
 | pKa (optional sidecar) | no solvent model |
 | Molecular dynamics | vacuum, no thermostat, no solvent, no periodic boundaries |

@@ -15,6 +15,7 @@ from openchem.services.import_service import ImportService
 from openchem.services.job_manager import JobManager
 from openchem.services.measurement_service import MeasurementService
 from openchem.services.project_service import ProjectService
+from openchem.services.qm_surface_service import QmSurfaceService
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.services.screening_service import ScreeningService
 from openchem.services.table_export_service import TableExportService
@@ -40,6 +41,7 @@ class ServiceContainer:
     measurement_service: MeasurementService
     docking_service: DockingService
     quantum_chemistry_service: QuantumChemistryService
+    qm_surface_service: QmSurfaceService
     job_manager: JobManager
     calculator_registry: CalculatorRegistry
     batch_service: BatchService

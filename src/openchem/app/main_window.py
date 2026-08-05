@@ -113,7 +113,12 @@ class MainWindow(QMainWindow):
             services.docking_service, services.chemistry_engine, self._settings, services.event_bus, self
         )
         self._quantum_chemistry_panel = QuantumChemistryPanel(
-            services.quantum_chemistry_service, services.chemistry_engine, self._settings, services.event_bus, self
+            services.quantum_chemistry_service,
+            services.chemistry_engine,
+            self._settings,
+            services.event_bus,
+            self,
+            qm_surface_service=services.qm_surface_service,
         )
         self._alignment_panel = AlignmentPanel(services.alignment_service, services.event_bus, self)
         self._jobs_panel = JobsPanel(services.job_manager, self)

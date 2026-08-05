@@ -82,6 +82,36 @@ class ScalarField:
         return float(self.values.min()), float(self.values.max())
 
 
+def potential_at_points(
+    points: np.ndarray,
+    positions: list[tuple[float, float, float]],
+    charges: list[float],
+) -> np.ndarray:
+    """The point-charge potential evaluated at arbitrary points.
+
+    Split out of `electrostatic_potential` so the same formula can be
+    sampled somewhere other than that function's own grid -- specifically
+    on the grid of a QM cube, which is what `benchmarks/esp/` needs to
+    compare the two methods point for point. Comparing against a
+    reimplementation of the formula would measure the reimplementation.
+
+    `points` is (n, 3) in Angstrom; the return is (n,) in kcal/(mol*e).
+    """
+    coordinates = np.asarray(positions, dtype=float)
+    charge_array = np.asarray(charges, dtype=float)
+    grid = np.asarray(points, dtype=float)
+
+    # One (points, 3) array rather than a triple loop: 48^3 points against
+    # 30 atoms is 3.3 million distances, which is a fraction of a second
+    # vectorised and several seconds in Python.
+    potential = np.zeros(grid.shape[0], dtype=float)
+    for centre, charge in zip(coordinates, charge_array, strict=True):
+        distance = np.linalg.norm(grid - centre, axis=1)
+        np.maximum(distance, _MIN_DISTANCE, out=distance)
+        potential += charge / distance
+    return potential * COULOMB_CONSTANT
+
+
 def electrostatic_potential(
     positions: list[tuple[float, float, float]],
     charges: list[float],
@@ -104,7 +134,6 @@ def electrostatic_potential(
         raise ValueError("no atoms to compute a potential around")
 
     coordinates = np.asarray(positions, dtype=float)
-    charge_array = np.asarray(charges, dtype=float)
 
     lower = coordinates.min(axis=0) - padding
     upper = coordinates.max(axis=0) + padding
@@ -113,16 +142,8 @@ def electrostatic_potential(
         float(axis[1] - axis[0]) if resolution > 1 else 1.0 for axis in axes
     )
 
-    # One (points, 3) array rather than a triple loop: 48^3 points against
-    # 30 atoms is 3.3 million distances, which is a fraction of a second
-    # vectorised and several seconds in Python.
     grid = np.stack(np.meshgrid(*axes, indexing="ij"), axis=-1).reshape(-1, 3)
-    potential = np.zeros(grid.shape[0], dtype=float)
-    for centre, charge in zip(coordinates, charge_array, strict=True):
-        distance = np.linalg.norm(grid - centre, axis=1)
-        np.maximum(distance, _MIN_DISTANCE, out=distance)
-        potential += charge / distance
-    potential *= COULOMB_CONSTANT
+    potential = potential_at_points(grid, positions, charges)
 
     return ScalarField(
         values=potential.reshape(resolution, resolution, resolution),
@@ -222,3 +243,33 @@ def symmetric_range(field: ScalarField, percentile: float = 95.0) -> tuple[float
     if limit <= 0.0:
         limit = float(np.abs(field.values).max()) or 1.0
     return -limit, limit
+
+
+def display_range(field: ScalarField, percentile: float = 95.0) -> tuple[float, float]:
+    """A colour range for `field`, centred on zero ONLY if it has both signs.
+
+    `symmetric_range` is right for a potential and wrong for a density,
+    and the difference is not cosmetic. An electron density is
+    non-negative everywhere, so centring it on zero spends half the
+    red/white/blue scale on values that cannot occur and renders every
+    real feature in one half of the palette. Measured on a real
+    bromobenzene density cube from `orca_plot`: the centred range came out
+    -0.0106 to +0.0106 with the entire negative half empty.
+
+    Decided from the DATA rather than from a flag the caller passes,
+    because "is this field signed" is a property of the field and the same
+    situation arises for a cation's all-positive electrostatic potential,
+    which no caller would think to flag.
+
+    Still percentile-clipped in every branch, for the reason
+    `symmetric_range` documents: the raw extremes sit at grid points
+    nearest the nuclei, where the values are largest and least meaningful.
+    """
+    minimum, maximum = field.extremes
+    if minimum < 0.0 < maximum:
+        return symmetric_range(field, percentile=percentile)
+    if minimum >= 0.0:
+        high = float(np.percentile(field.values, percentile))
+        return 0.0, high if high > 0.0 else (maximum or 1.0)
+    low = float(np.percentile(field.values, 100.0 - percentile))
+    return (low if low < 0.0 else (minimum or -1.0)), 0.0

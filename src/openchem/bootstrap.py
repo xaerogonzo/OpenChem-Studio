@@ -27,6 +27,7 @@ from openchem.services.import_service import ImportService
 from openchem.services.job_manager import JobManager
 from openchem.services.measurement_service import MeasurementService
 from openchem.services.project_service import ProjectService
+from openchem.services.qm_surface_service import QmSurfaceService
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.services.screening_service import ScreeningService
 from openchem.services.table_export_service import TableExportService
@@ -207,6 +208,10 @@ def build_service_container() -> ServiceContainer:
         measurement_service=MeasurementService(engine),
         docking_service=docking_service,
         quantum_chemistry_service=QuantumChemistryService(event_bus, settings, job_manager=job_manager),
+        # Shares Settings with QuantumChemistryService so `orca_plot` is
+        # located beside the SAME configured `orca` executable -- a second
+        # path setting is a second thing to fall out of step with the first.
+        qm_surface_service=QmSurfaceService(event_bus, settings),
         job_manager=job_manager,
         calculator_registry=calculator_registry,
         # Shares the JobManager so a batch run is listed and cancellable in

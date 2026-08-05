@@ -139,6 +139,61 @@ and shifts drawn on the 2D structure), plus **HSQC / HMBC / COSY** tabs with
 both a cross-peak table and a scatter plot. Clicking a peak highlights the
 atoms; clicking an atom selects the peak.
 
+### IR spectra and normal modes
+
+An **optimisation + frequencies** job fills the **IR** tab: a stick
+spectrum, and a table of every mode with its wavenumber, IR intensity and
+character (stretch / bend / torsion). Select a mode and press **Animate
+mode** to watch it — the optimised geometry is displaced along that mode's
+eigenvector and played through the 3D viewer.
+
+Two things the spectrum shows that are easy to miss elsewhere:
+
+- **Grey sticks at the baseline are IR-silent modes.** They are real
+  vibrations that symmetry forbids from absorbing (CO₂'s symmetric
+  stretch, 20 of benzene's 30 modes). "No mode here" and "a mode that
+  cannot absorb" are different facts.
+- **A red banner means imaginary frequencies**, and it is the most
+  important thing on the panel. A negative wavenumber means the geometry
+  is a saddle point rather than a minimum — so **every thermochemistry
+  number from that same job is invalid**, with nothing in the numbers
+  themselves to say so. Re-optimise before trusting the enthalpy or free
+  energy.
+
+The y-axis is absorption intensity in km/mol, not transmittance.
+Transmittance needs a path length and a concentration from a sample that
+was never prepared; choosing them would put an invented calibration on the
+axis. Frequencies are raw harmonic values, labelled as harmonic — see
+`benchmarks/ir/`.
+
+### Surfaces — point charge beside ab initio
+
+The **Surfaces** tab shows two electrostatic potential maps side by side,
+each labelled with its method.
+
+The **left** pane is the point-charge potential from Gasteiger charges. It
+is instant and needs no ORCA at all. The **right** pane is the ab initio
+one, plotted by `orca_plot` from the wavefunction the calculation left
+behind; the same control also plots the electron density, the HOMO or LUMO
+(named, not numbered — the index depends on the basis set), and the spin
+density.
+
+They are shown together rather than one replacing the other because they
+fail differently, and `benchmarks/esp/` measured how. They agree on gross
+polarity (r = +0.80 to +0.99 over surface points), but on bromobenzene the
+ab initio potential changes **sign** around the bromine — positive along
+the C–Br axis, negative around its belt — while the point-charge model
+reports that atom as uniformly negative, because one charge on one atom
+cannot change sign with angle. Water's lone pairs are the same story: the
+ab initio potential deepens out of the molecular plane and the
+point-charge one flattens.
+
+A QM surface needs a calculation to have been run on that molecule first —
+any type will do, including a plain single point. Asking for a spin
+density on a closed-shell molecule is refused rather than answered: ORCA
+would write a file containing a copy of the electron density under a
+spin-density name.
+
 Long jobs appear in the **Jobs** panel and can be cancelled from there.
 
 ---
