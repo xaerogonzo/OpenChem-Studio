@@ -11,7 +11,7 @@ dropped. Those are in the last section.
 
 ---
 
-## Naming — 180/181
+## Naming — 181/181
 
 **Method.** 181 molecules across 22 categories, ground truth from PubChem.
 Scored by **structural round-trip**, not string equality: the predicted name
@@ -19,14 +19,25 @@ is parsed back with OPSIN and the resulting structure compared to the input.
 A name that is correct but phrased differently passes; a name that is
 plausible and wrong does not.
 
-| | |
-|---|---|
-| Deterministic engine, 181-molecule corpus | **180/181 (99%)** |
-| Same engine as originally vendored | 148/165 (90%) |
+Re-run for this release against the 181-molecule corpus:
 
-The one failure is a tautomer case, classed separately and counted as a
-success only when both a canonical-tautomer match **and** an InChIKey match
-agree.
+| outcome | n |
+|---|---|
+| `exact` — the expected name, character for character | 82 |
+| `equivalent` — a different but correct name, confirmed by round-trip | 98 |
+| `tautomer` — round-trips to a different tautomer of the same compound | 1 |
+| **correct** | **181/181 (100%)** |
+| stereochemistry | **11/11, 0 silently flattened** |
+
+For comparison, the same engine as originally vendored scored 148/165 (90%)
+on the revision that existed then.
+
+The `tautomer` class is metformin, and it is deliberately kept visible
+rather than folded into `equivalent`. It is awarded only when a canonical
+tautomer match **and** an InChIKey match both agree — a deliberately strict
+pair, verified not to collapse on the charge defects the gate exists for
+(guanidine vs guanidinium and benzyl cation vs toluene both still fail, as
+they must).
 
 **Against the ML alternatives**, scored on the earlier 124-molecule revision
 — the only one all four engines were run on:

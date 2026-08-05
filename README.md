@@ -30,11 +30,10 @@ sizes are in [docs/VALIDATION.md](docs/VALIDATION.md).
 
 **Offline IUPAC naming.** A vendored deterministic engine names structures
 nothing has ever registered, with no model and no network. Every generated
-name is parsed back with OPSIN before it is shown. **180/181** on the naming
-benchmark, scored by structural round-trip rather than string equality — and
-11/11 on the stereochemistry subset of the earlier 124-molecule revision,
-the one every candidate engine was scored against, where the best ML
-alternative managed 5/11 and silently flattened three of them. Known
+name is parsed back with OPSIN before it is shown. **181/181** on the naming
+benchmark, scored by structural round-trip rather than string equality, with
+stereochemistry **11/11 and nothing silently flattened** — the best ML
+alternative managed 5/11 and quietly dropped three. Known
 compounds resolve against PubChem instead, and names
 carry their source and whether they are `exact`, `derived` or `parsed`.
 
@@ -64,7 +63,7 @@ The honest version of a comparison table: this one is about our own software.
 
 | Does | Evidence |
 |---|---|
-| Deterministic offline IUPAC naming | 180/181, [benchmarks/naming/](benchmarks/naming/) |
+| Deterministic offline IUPAC naming | 181/181, [benchmarks/naming/](benchmarks/naming/) |
 | NMR shift prediction with per-band error | 24,280 held-out carbons |
 | Docking with validated binding-site boxes | redocking across 49 receptors |
 | 2D editing, 3D visualisation, macromolecules | Ketcher, 3Dmol, Mol\* |

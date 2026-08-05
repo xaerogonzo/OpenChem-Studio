@@ -61,6 +61,14 @@ that same extended corpus gives the comparison that was missing:
 Both engines were run against both corpus revisions, so each pair is a like
 for like comparison. The 181-row revision is the current one.
 
+**These four figures are as scored at the time, deliberately.** The scorer
+has since gained a `tautomer` outcome class, under which this engine scores
+**181/181** on the 181-row corpus — metformin round-trips to a different
+tautomer of the same substance, which is a success. Restating only the row
+that benefits would break the like-for-like comparison, and rescoring the
+`as vendored` rows needs that engine re-run. The table stays as measured;
+the current number is in the dated log below.
+
 | category | as vendored | after |
 |---|---|---|
 | carbocation | 7/12 | **12/12** |
@@ -89,6 +97,7 @@ visible. That is the corpus doing its job: none of them was findable from the
 | 2026-08-01 | ring N-oxide substituents (D-024) | 163/165 | unchanged, and not in the corpus either. **Severity-A open list reaches empty** |
 | 2026-08-01 | indicated hydrogen preserved (D-026) | **164/165** | 1,2,3-triazole gate_disagreement -> equivalent. The one remaining failure, metformin, is a genuine depiction difference |
 | 2026-08-01 | corpus extended to 181 | **180/181** | +16 rows covering the last three fixes: n_oxide 6/6, guanidinium 5/5, tautomer 5/5 |
+| 2026-08-04 | `tautomer` scored as the success it is | **181/181** | no engine change. Metformin round-trips to a different tautomer of the same substance; the scorer now says so instead of counting it wrong. Awarded only when canonical-tautomer AND InChIKey both agree |
 
 The extension paid for itself immediately. Every defect fixed in the rows above
 was surfaced by the new categories or by the one corpus row that happened to

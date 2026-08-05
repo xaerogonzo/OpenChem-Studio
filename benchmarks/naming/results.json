@@ -1,6 +1,6 @@
 [
  {
-  "label": "iupac_namer (vendored, in-tree @ c0b0dd0)",
+  "label": "check",
   "total": 181,
   "correct": 181,
   "counts": {

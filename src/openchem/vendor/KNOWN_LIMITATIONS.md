@@ -89,8 +89,9 @@ to be **true of one of them and wrong about the other** — see below.
 (The corpus has since grown to 181 rows and now covers ring N-oxides,
 substituted guanidiniums and tautomer pairs — the families the last few fixes
 landed in, none of which the corpus could previously see. Current score
-**180/181**: zero wrong structures, zero refusals, zero unparsable names, and
-one `gate_disagreement` (metformin, below).)
+**181/181**: zero wrong structures, zero refusals, zero unparsable names, and
+one `tautomer` (metformin, below) -- an outcome class added after this was
+first written, which is why the number moved without the engine changing.)
 
 ### Tautomers — three different situations, not one
 

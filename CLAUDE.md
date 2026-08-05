@@ -197,7 +197,9 @@ PY
 uv run --no-sync python benchmarks/naming/score.py benchmarks/naming/predictions_check.json
 ```
 
-Current: **180/181**. If a change under `src/openchem/vendor/` drops this, that
+Current: **181/181** (82 exact, 98 equivalent, 1 tautomer — metformin, which
+counts as a success since the `tautomer` outcome class was added). If a
+change under `src/openchem/vendor/` drops this, that
 outranks any number of narrow tests it fixed.
 
 `score.py` takes exactly one predictions file. The committed

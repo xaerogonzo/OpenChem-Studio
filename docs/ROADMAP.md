@@ -367,7 +367,7 @@ recoverable from here, and re-checked since.
 
 It is gone rather than merely disabled because it is also OBSOLETE: the
 vendored nomenclature engine names structures offline, deterministically,
-and scores 180/181 on `benchmarks/naming` — where STOUT was a neural model
+and scores 181/181 on `benchmarks/naming` — where STOUT was a neural model
 that produced a fluent, confident name for any input including a wrong one.
 Keeping a tab whose only button could never succeed, plus a sidecar
 installer for weights that do not exist, cost clarity for no capability.
@@ -392,7 +392,7 @@ rules, and 1.1 GB of torch to be right one time in six on the only cases that
 matter is a bad trade. It also crashed on every stereochemical input.
 
 **What shipped is deterministic.** A vendored Blue Book engine
-(`src/openchem/vendor/`, see ARCHITECTURE.md) scores 180/181 with
+(`src/openchem/vendor/`, see ARCHITECTURE.md) scores 181/181 with
 stereochemistry 11/11, needs nothing beyond RDKit, and runs in ~12 ms.
 The stack is PubChem first (exact, curated), then the engine (derived,
 verified by OPSIN round-trip), with OPSIN also serving name-to-structure.

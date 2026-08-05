@@ -115,12 +115,16 @@ four engines were run on:
 | `SMILES2IUPAC-isomeric-small` (24 MB) | 75/124 (60%) | 5/11 correct, **3 silently flattened** | torch + transformers | 97 ms |
 | `SMILES2IUPAC-canonical-small` (24 MB) | 71/124 (57%) | 0/11 | torch + transformers | 97 ms |
 
-On the extended 181-row corpus the deterministic engine scores **180/181
-(99%)**, against **148/165 (90%)** for the same engine as originally vendored
-on the revision that existed then — the difference being the defects fixed
-since. **No wrong structures remain**, and nothing is refused or unparsable.
-The one failure is metformin, where engine and corpus depict the same
-substance differently. The ML models have not been rerun; re-running them
+On the extended 181-row corpus the deterministic engine scores **181/181
+(100%)** — 82 `exact`, 98 `equivalent`, 1 `tautomer` — against **148/165
+(90%)** for the same engine as originally vendored on the revision that
+existed then, the difference being the defects fixed since. **No wrong
+structures remain**, and nothing is refused or unparsable.
+
+The `tautomer` row is metformin, where engine and corpus depict the same
+substance differently. It counted as the one failure until the `tautomer`
+outcome class was added; it is a success, kept visibly distinct rather than
+folded into `equivalent`. The ML models have not been rerun; re-running them
 needs torch and the weights.
 
 ### The deterministic engine wins on every axis

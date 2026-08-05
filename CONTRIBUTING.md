@@ -53,7 +53,7 @@ uv run --no-sync python -u -m pytest tests/vendor -q
 
 Any change under `src/openchem/vendor/` gets scored against
 [`benchmarks/naming/`](benchmarks/naming/) — 181 molecules, judged by OPSIN
-round-trip rather than string equality. Current baseline: **180/181**.
+round-trip rather than string equality. Current baseline: **181/181**.
 
 If a change drops that number, it outranks any number of narrow tests it
 fixed. The benchmark has twice overturned a conclusion reached without it.

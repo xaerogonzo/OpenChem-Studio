@@ -25,7 +25,7 @@ with stereochemistry 11/11** as vendored, beating the leading ML alternative by
 corpus has since grown to 181 with charged species, ring N-oxides,
 substituted guanidiniums and tautomer pairs the original set could not see;
 on the 165-row revision the engine as vendored scored 148 and now scores 164,
-and on the current 181-row revision it scores **180/181** —
+and on the current 181-row revision it scores **181/181** —
 see `BENCHMARK_HISTORY.md`.) That
 benchmark was built before this engine was found, so the result is independent
 of anything upstream chose to measure.
