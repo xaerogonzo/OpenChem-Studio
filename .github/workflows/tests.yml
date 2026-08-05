@@ -36,10 +36,10 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
 
@@ -48,7 +48,7 @@ jobs:
       # would make this gate quietly weaker than it looks -- and the naming
       # benchmark below could not run at all.
       - name: Install Java (for OPSIN)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'

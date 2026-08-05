@@ -239,7 +239,12 @@ export PATH="/d/Random Programs/OpenChemStudio_Data/jre/jdk-21.0.12+8-jre/bin:$P
 uv run --no-sync python -u -m pytest tests/vendor -q > /tmp/vendor.log 2>&1; tail -4 /tmp/vendor.log
 ```
 
-Expect `3193 passed, 16 skipped`.
+Expect `3209 passed, 0 skipped` (~15 min). This file used to say
+`3193 passed, 16 skipped`, and CI disproved it on the first run: those
+16 are guarded by a plain `ImportError` on `py2opsin`, which is a
+declared dependency -- so the old figure was measured in an environment
+where the sync had not been done, and it contradicted the Java-on-PATH
+instruction two lines above it. 3193 + 16 = 3209 exactly.
 
 **Java must be on PATH** for these, and for any test that touches OPSIN. The
 app injects its managed Temurin per-subprocess (`naming_providers._java_on_path`),

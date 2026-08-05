@@ -33,10 +33,10 @@ jobs:
     timeout-minutes: 40
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
 
@@ -44,7 +44,7 @@ jobs:
       # without Java the failure is a bare FileNotFoundError naming neither
       # Java nor OPSIN.
       - name: Install Java (for OPSIN)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
@@ -52,7 +52,13 @@ jobs:
       - name: Sync dependencies
         run: uv sync --extra ai --extra network --extra openbabel
 
-      # Expect 3193 passed, 16 skipped. `norecursedirs` in pyproject.toml
-      # excludes this directory from the default run, so it is named here.
+      # MEASURED ON THIS RUNNER: 3209 passed, 0 skipped, about 15 minutes.
+      # `norecursedirs` in pyproject.toml excludes this directory from the
+      # default run, so it is named explicitly here.
+      #
+      # The 16 that skip in a half-synced environment are guarded by an
+      # ImportError on `py2opsin` -- a declared dependency -- so a run that
+      # reports skips here means the sync did not happen, not that something
+      # is unavailable.
       - name: Run the vendored engine's suite
         run: uv run --no-sync python -u -m pytest tests/vendor -q -ra
