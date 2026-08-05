@@ -371,10 +371,16 @@ it).
   extensibility point with nothing built on them yet: a formal
   `context.reactions.register(...)`-style plugin-provided-templates
   namespace is a real gap, not silently dropped.
-- Docking receptor prep (`VinaDockingProvider`, see Phase 9.3 in
-  ROADMAP.md) still has no missing-residue repair — needs a dedicated
-  structure-repair library, a genuinely different dependency/problem than
-  the pH/water/cofactor/altloc handling that IS built.
+- Docking receptor prep (`VinaDockingProvider`) has no missing-residue
+  repair, and after a spike that is a DECISION rather than a gap. The
+  dependency objection turned out to be obsolete — PDBFixer is three
+  packages and 125 MB with cp313 Windows wheels — but the gaps are not
+  near binding sites (zero of 49 curated receptors have a chain break
+  within 10 Å of their site; only 3 of 48 have incomplete side chains
+  there), and the repair is a template-built prediction that lands a
+  median 2.3 Å from atoms actually observed in sister chains of the same
+  receptor. See `chem/docking_providers.py`'s class docstring for the
+  numbers. Revisit if a method reports per-atom confidence.
 - `DockingPoseModel.metadata`'s H-bond/clash analysis (Phase 9.4) is a
   heavy-atom-distance heuristic only — pharmacophore/hydrophobic contact
   detection is a real gap, less standardized and meaningfully more work

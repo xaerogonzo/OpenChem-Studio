@@ -80,8 +80,20 @@ Five largely independent sub-phases, built and verified in order (6.1-6.5).
       service in this codebase using `QProcess` on the GUI thread instead of
       `QRunnable`/`QThreadPool`, for real cancellation and live-streamed output.
 - [x] Receptor preparation for docking (pH-correct protonation, water/cofactor
-      stripping, alternate-location filtering) — built in Phase 9.3. Missing-residue
-      repair stays deferred (needs a dedicated structure-repair library).
+      stripping, alternate-location filtering) — built in Phase 9.3, plus
+      symmetry-copy removal and chain exclusion later.
+- [x] **Missing-residue repair: spiked, measured, NOT shipped.** Carried for
+      many phases as "the one docking gap, blocked on a dependency". All
+      three assumptions were tested and only one held. The dependency is
+      trivial now (PDBFixer: 3 packages, 125 MB, cp313 Windows wheels, no
+      compiler). The gaps are not near binding sites — zero of 49 curated
+      receptors have a chain break within 10 Å of their site, median 30.6 Å,
+      and only 3 of 48 have incomplete side chains there. And the repair is
+      a template-built prediction: rebuilding 4DAJ's missing side chains and
+      comparing 374 atoms against the same residues observed in its sister
+      chains gave a median deviation of 2.30 Å, 58% beyond 2.0 Å, worst
+      8.9 Å on the LYS/ARG atoms that form salt bridges. Too loose to put
+      in a pocket. See `chem/docking_providers.py`'s class docstring.
 - [x] A shared `JobManager` across `ConformerService`/`DockingService`/
       `QuantumChemistryService` — built in Phase 9.2, scoped to a registry +
       single-flight guard rather than a full scheduling rewrite (each service
@@ -262,9 +274,7 @@ explicitly out of scope.
       class, numeric provider priority, declared permissions) — flagged in
       the code itself as "revisit if a fourth plugin needs the same shape,"
       and still no concrete plugin needs them. Plugin-provided
-      reaction-template registration. Missing-residue repair for docking
-      receptors — still the one docking gap, and it needs a dedicated
-      structure-repair library rather than more work here.
+      reaction-template registration.
 
       **No longer deferred**, corrected because this list had gone stale:
       hydrophobic/pi-stacking/cation-pi/salt-bridge/metal contact

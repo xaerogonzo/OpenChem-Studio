@@ -62,9 +62,42 @@ class VinaDockingProvider(DockingProvider):
     its own, in either format — a two-altloc atom comes back as two full
     atoms at two positions. BOTH formats are covered now; the filter used
     to be PDB-only, which meant an mmCIF receptor was docked with its
-    doubled atoms intact. **Still not built**: missing-residue repair — a
-    genuinely different problem (needs a dedicated structure-repair
-    library), left deferred.
+    doubled atoms intact.
+
+    **MISSING-RESIDUE REPAIR: MEASURED AND NOT SHIPPED.** This was carried
+    for many phases as "the one docking gap", on the assumption that the
+    blocker was a missing dependency. A spike settled all three questions
+    and only one of them the expected way.
+
+    *Installing it is easy now.* PDBFixer pulls three packages, 125 MB, and
+    OpenMM 8.5.2 publishes cp313 Windows wheels — no compiler, no conda.
+    Whatever was true before, the toolchain objection is gone.
+
+    *The gaps are not where docking cares.* Across the 49 curated
+    receptors: 47 have unobserved residues (12,615 of them), but they are
+    termini and distal loops. ZERO receptors have a chain break within
+    10 A of their binding site; the library minimum is 10.8 A and the
+    median 30.6 A. Counting incomplete SIDE CHAINS instead — a different
+    and more pocket-relevant defect — only 3 of 48 have any within 10 A.
+
+    *And the repair cannot be trusted where it would matter.* PDBFixer
+    BUILDS the missing atoms from templates, so the output is a
+    prediction. 4DAJ supplies ground truth for it: four crystallographic
+    copies of the same receptor, so a side chain unmodelled in one is
+    often observed in another. Rebuilding and comparing 374 atoms against
+    their observed counterparts gave a median deviation of 2.30 A, with
+    only 18% within 1.0 A and 58% beyond 2.0 A. A hydrogen bond is
+    2.8-3.2 A, and the worst cases (8.9 A) are LYS NZ and ARG NH2 — the
+    salt-bridging atoms docking depends on most. Some of that spread is
+    genuine conformational difference between copies rather than rebuild
+    error, so it is an upper bound on accuracy; it is still far too loose
+    to put into a pocket, where it would manufacture contacts that were
+    never observed.
+
+    So the honest summary is not "blocked" but "measured, low value, and
+    unsafe in the one place it would help". Revisit if a repair method
+    reports per-atom confidence, so rebuilt atoms near a site could be
+    excluded from scoring rather than silently trusted.
     """
 
     provider_id = "vina"
