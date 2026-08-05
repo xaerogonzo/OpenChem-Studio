@@ -341,3 +341,43 @@ def test_excluding_the_chain_the_box_sits_on_is_caught(tmp_path):
     )
     with pytest.raises(DockingProviderError, match="chain or cofactor"):
         VinaDockingProvider()._require_receptor_in_box(only_a, box)
+
+
+def test_an_atom_open_babel_cannot_type_is_dropped_before_docking(tmp_path):
+    """One untyped atom destroys the entire docking run.
+
+    Open Babel writes such an atom into the PDBQT with an empty AutoDock
+    type and the name `*`, and AutoDock Vina 1.2.7 refuses to parse the
+    file at all -- `parse_pdbqt.cpp(69)` -- so the whole receptor is
+    rejected, not just that atom. What reached the user was
+    `returned non-zero exit status 1`.
+
+    Measured on 4DKL, a receptor in the bundled catalogue: a single
+    chloride ion comes back with `atomicnum == 0`, and docking naloxone
+    into it failed outright. After the fix the same run completes with 9
+    poses, best -10.66 kcal/mol.
+
+    `receptor_atoms_from_structure` had always skipped these; only the
+    preparation path did not, which is the same two-paths-disagreeing
+    shape as the stripped residues, the altlocs and the symmetry copies.
+    """
+    import pathlib
+
+    from openbabel import openbabel as ob, pybel
+
+    from openchem.chem.docking_providers import VinaDockingProvider
+
+    structure = _two_chain_structure()
+    provider = VinaDockingProvider()
+    mol = pybel.readstring("pdb", structure)
+    # A dummy atom is exactly what Open Babel hands back for an element it
+    # cannot resolve; build one rather than depending on a network fetch.
+    dummy = mol.OBMol.NewAtom()
+    dummy.SetAtomicNum(0)
+    dummy.SetVector(50.0, 50.0, 50.0)
+    assert any(a.GetAtomicNum() == 0 for a in ob.OBMolAtomIter(mol.OBMol))
+
+    provider._drop_untyped_atoms(mol.OBMol)
+
+    assert not any(a.GetAtomicNum() == 0 for a in ob.OBMolAtomIter(mol.OBMol))
+    assert mol.OBMol.NumAtoms() == 7, "only the untyped atom should go"

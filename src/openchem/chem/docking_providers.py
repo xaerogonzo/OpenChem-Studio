@@ -213,6 +213,7 @@ class VinaDockingProvider(DockingProvider):
             structure_text = filter_altlocs(structure_text, source_format)
             mol = pybel.readstring(source_format, structure_text)
             self._drop_symmetry_copies(mol.OBMol)
+            self._drop_untyped_atoms(mol.OBMol)
             self._strip_unselected_chains(mol.OBMol, prep_options)
             self._strip_unwanted_residues(mol.OBMol, prep_options)
             # correctForPH=True + pH (default 7.4, physiological) replaces
@@ -281,6 +282,34 @@ class VinaDockingProvider(DockingProvider):
                 "Check the box position, and whether a chain or cofactor the "
                 "box was placed on has since been excluded."
             )
+
+    def _drop_untyped_atoms(self, obmol) -> None:
+        """Delete atoms Open Babel could not assign an element to.
+
+        ONE of them destroys the whole docking run. Open Babel writes such
+        an atom into the PDBQT with an empty AutoDock type and the name
+        `*`, and AutoDock Vina 1.2.7 refuses to parse the file at all --
+        "An internal error occurred in ... parse_pdbqt.cpp(69)" -- so the
+        receptor is rejected entire, not just that atom. What reaches the
+        user is `returned non-zero exit status 1`, which names neither the
+        atom nor the file.
+
+        Found on 4DKL, a receptor in the bundled catalogue: a single
+        chloride ion comes back with `atomicnum == 0`, and docking against
+        it failed outright. 3,674 good atoms discarded because of one.
+
+        This mirrors `receptor_atoms_from_structure`, which has always
+        skipped `atom.atomicnum == 0` -- the analysis path filtered these
+        and the preparation path did not, which is the same divergence
+        that `is_stripped_residue`, `filter_altlocs` and
+        `is_symmetry_generated` each exist to close. Here the two paths
+        disagreeing did not produce a wrong answer, it produced no answer.
+        """
+        from openbabel import openbabel as ob
+
+        doomed = [atom for atom in ob.OBMolAtomIter(obmol) if atom.GetAtomicNum() == 0]
+        for atom in doomed:
+            obmol.DeleteAtom(atom)
 
     def _drop_symmetry_copies(self, obmol) -> None:
         """Delete the unit-cell copies Open Babel invents for structures
