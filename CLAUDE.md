@@ -123,6 +123,21 @@ crashed**, while running only some subsets of it passed -- because whether it
 fires depends on when the collector happened to run. That "sometimes"
 is exactly what makes it read as flakiness rather than as a bug in the test.
 
+**STILL LIVE ELSEWHERE, measured 2026-08-05.** The same crash appears in the
+FULL suite at `test_ketcher_editor_backend.py`, whose `_wait_until` pumps
+`processEvents` in a loop. Three consecutive full runs died there with an
+access violation at ~30%, then **six consecutive full runs passed** with no
+change to the tree -- so do not trust a single green run as evidence it is
+gone. It reproduces only in the whole suite: the file alone passes, the 53
+files collected before it pass, and either half of the remainder plus that
+prefix passes. Nothing is wrong with the ketcher tests; they are the victim,
+draining a `DeferredDelete` some earlier test left queued on an object
+Python has since collected. The offender was NOT identified, and bisection
+cannot find it -- changing the file set changes allocation, which changes
+when the collector runs, which changes whether it fires. Confirmed
+pre-existing by stashing, and CI is green on the same commits, so it is
+local-timing dependent rather than a code regression.
+
 The fix is a fixture that destroys each widget deterministically and flushes
 **that widget's** deferred delete:
 

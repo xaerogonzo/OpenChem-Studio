@@ -770,11 +770,34 @@ The workflow lists these by name so a green tick is not mistaken for full
 coverage, and `docs/VALIDATION.md` carries their measured results with the
 method and sample size behind each.
 
-**The remaining design work is where artefacts live**, not whether to run
-them: a self-hosted runner with ORCA and Vina installed could run the lot on
-a schedule and publish the numbers per release, which is what would close
-the gap between "measured once" and "still true". That is its own phase and
-is not started.
+### The self-hosted phase — scaffolded, two of six wired
+
+`benchmarks-selfhosted.yml` runs these on a machine that has the tools and
+publishes the results as artefacts, which is what closes the gap between
+"measured once" and "still true".
+
+**`workflow_dispatch` only, and that is a safety requirement rather than a
+preference.** This repository is public and a self-hosted runner executes
+with no sandbox, as whatever user started it, so a `pull_request` trigger
+would hand shell access on that machine to anybody with a GitHub account —
+a fork's PR brings its own workflow file. Dispatch and schedule run the
+file from the default branch and cannot be fired by a fork. The reasoning,
+and the two settings that shrink the remaining exposure to near zero, are
+in [SELF_HOSTED_RUNNER.md](SELF_HOSTED_RUNNER.md).
+
+**IR and ESP are wired up. NMR, docking, ADMET and pKa are not**, and are
+named as such in the workflow rather than encoded on a guess — a step that
+always fails is worse than an absent one, because it trains people to
+ignore red. Each has a multi-script pipeline that needs one verified
+hand-run on the runner machine before it is encoded.
+
+Wiring IR up found a real gap: `score.py` could SCORE a directory of ORCA
+outputs but nothing could GENERATE them, so the benchmark was scoreable
+and not runnable. `benchmarks/ir/generate.py` is the missing half, and
+regenerating from scratch reproduced the published figures exactly — MAE
+64.7 → 27.6 cm⁻¹, fitted factor 0.9666 — which is the first confirmation
+those numbers have had from anything other than the run that produced
+them.
 
 ### What standing it up cost, recorded because it was not free
 
