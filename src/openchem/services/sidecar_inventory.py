@@ -165,7 +165,7 @@ def components(settings=None) -> list[Component]:
         Component(
             key="admet",
             label="ADMET environment",
-            description="hERG, CYP450 and Ames prediction (Python + PyTorch).",
+            description="hERG, CYP450, Ames and ADME prediction (Python + PyTorch).",
             paths=[admet_setup.default_install_root()],
             settings_keys=(ADMET_PYTHON_SETTING,),
             reinstall_hint="Re-installable from the ADMET tab; the rule-based hERG "

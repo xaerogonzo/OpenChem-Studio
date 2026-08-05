@@ -85,8 +85,8 @@ The honest version of a comparison table: this one is about our own software.
 | Does, with stated caveats | The caveat |
 |---|---|
 | Electrostatic potential surfaces | point charges — no lone-pair directionality or sigma holes |
-| ADMET predictions | TDC test-set numbers, predictions with real uncertainty, not measurements |
-| pKa (optional sidecar) | no solvent model; reaction-centre indices do not map to our atom numbering |
+| ADMET predictions | tiered Basic/Advanced/Research; accuracy is the vendor's held-out figure, not ours — the shipped model trained on all of TDC ([benchmarks/admet/](benchmarks/admet/)) |
+| pKa (optional sidecar) | no solvent model |
 | Molecular dynamics | vacuum, no thermostat, no solvent, no periodic boundaries |
 | hERG | a risk-factor checklist, explicitly not a prediction |
 

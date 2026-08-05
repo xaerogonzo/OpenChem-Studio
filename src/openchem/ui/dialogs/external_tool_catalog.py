@@ -292,8 +292,11 @@ def admet() -> InterpreterSidecar:
         failure_status_prefix="Setup failed",
         notes=(
             Note(
-                "ADMET-AI predicts hERG blockade, CYP450 inhibition and Ames mutagenicity "
-                "-- endpoints that genuinely need a trained model, with no honest "
+                "ADMET-AI predicts hERG blockade, CYP450 inhibition, Ames mutagenicity "
+                "and -- under the calculator's Advanced tier -- Caco-2 permeability, "
+                "aqueous solubility, blood-brain barrier penetration, plasma protein "
+                "binding, liver injury and LD50, at no extra runtime cost. Endpoints "
+                "that genuinely need a trained model, with no honest "
                 "rule-based substitute. Like pkasolver this is a Python interpreter rather "
                 "than an executable: it needs PyTorch (~490 MB), which has no business in "
                 "this application's own dependency tree or in the frozen build, so it runs "

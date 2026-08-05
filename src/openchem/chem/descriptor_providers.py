@@ -855,7 +855,7 @@ def compute_pka_dataset(
         alert_id="pka",
         name="pKa",
         molecule_uuid=molecule_uuid,
-        matched=[_pka_line(prediction, parameters) for prediction in sorted(
+        matched=[_pka_line(prediction, parameters, mol) for prediction in sorted(
             pairs or [], key=lambda prediction: prediction.value
         )],
         category="pka",
@@ -863,8 +863,15 @@ def compute_pka_dataset(
     )
 
 
-def _pka_line(prediction, parameters: dict[str, Any] | None) -> str:
-    """One pKa, with the ensemble spread when there is one to report.
+def _pka_line(prediction, parameters: dict[str, Any] | None, mol: Chem.Mol | None = None) -> str:
+    """One pKa, with the ionizable atom and the ensemble spread.
+
+    THE ATOM IS NEW AND WAS PREVIOUSLY UNSAYABLE. pkasolver's reaction
+    centre indexes its own pH-7 microstate, so printing it against our
+    numbering named a different atom -- for 4-aminobenzoic acid a ring
+    carbon rather than the carboxylate oxygen. `pka_providers.map_site_atom`
+    now translates it, and returns None where it cannot, which is why this
+    still has a branch for having no atom to name.
 
     The spread is pkasolver's own -- how far its fifty models disagreed --
     so it is measured rather than invented, which is why it is worth
@@ -878,9 +885,15 @@ def _pka_line(prediction, parameters: dict[str, Any] | None) -> str:
     and 2.7 units out.
     """
     value = fmt(prediction.value, parameters)
+    site = ""
+    if prediction.atom_index is not None and mol is not None:
+        if prediction.atom_index < mol.GetNumAtoms():
+            atom = mol.GetAtomWithIdx(prediction.atom_index)
+            site = f" at {atom.GetSymbol()}{prediction.atom_index}"
+    line = f"pKa {value}{site}"
     if not prediction.stddev:
-        return f"pKa {value}"
-    return f"pKa {value} +/- {fmt(prediction.stddev, parameters)} (ensemble spread)"
+        return line
+    return f"{line} +/- {fmt(prediction.stddev, parameters)} (ensemble spread)"
 
 
 def compute_logd(
@@ -987,12 +1000,15 @@ def compute_admet_endpoints(mol, molecule_uuid, parameters=None, interpreter_pat
     `hERG Risk Factors (not a prediction)` alert stays alongside it.
     """
     from openchem.chem.admet_providers import (
-        REPORTED_ENDPOINTS,
+        BASIC,
         compute_admet,
         describe_admet_status,
+        endpoint_lines,
     )
     from openchem.domain.common import CacheState, Provenance
     from openchem.domain.scientific_result import AlertResult
+
+    tier = str((parameters or {}).get("tier", BASIC))
 
     # Everything the user must read goes in `matched` (what PropertyPanel
     # and the clipboard render) or `error`. There is no `description`
@@ -1000,7 +1016,7 @@ def compute_admet_endpoints(mol, molecule_uuid, parameters=None, interpreter_pat
     # no consumer reads it, so the model-output caveat below would never
     # have reached a screen.
     try:
-        endpoints = compute_admet(mol, interpreter_path)
+        endpoints = compute_admet(mol, interpreter_path, tier)
     except RuntimeError as exc:
         return AlertResult(
             alert_id="admet_ml", name="ADMET (ADMET-AI)", category="admet",
@@ -1023,20 +1039,19 @@ def compute_admet_endpoints(mol, molecule_uuid, parameters=None, interpreter_pat
             provenance=Provenance(created_by="admet_ai", method="chemprop multi-task"),
         )
 
-    # Sorted by probability so the liabilities surface first -- the whole
-    # reason someone opens this is to find out what is going to bite.
-    lines = [
-        f"{REPORTED_ENDPOINTS[key]}: {fmt(value, parameters)}"
-        for key, value in sorted(endpoints.items(), key=lambda kv: -kv[1])
-    ]
+    lines = endpoint_lines(endpoints, parameters)
     if lines:
         # Caveat last, not first: putting it ahead of the numbers would bury
         # the top liability under a disclaimer and undo the sort above. Only
         # when there ARE numbers -- there is nothing to caveat otherwise.
+        # "Values", not "probabilities": since the Advanced tier the block
+        # also carries regressions (solubility, LD50, protein binding),
+        # and calling those probabilities would be wrong on its face.
         lines.append(
-            "Probabilities from ADMET-AI, a multi-task model trained on the "
-            "Therapeutics Data Commons ADMET suite. These are predictions with "
-            "real uncertainty, not measurements."
+            "Values from ADMET-AI, a multi-task model trained on the Therapeutics "
+            "Data Commons ADMET suite. These are predictions with real "
+            "uncertainty, not measurements. Percentiles compare this molecule "
+            "against ~2,500 approved drugs."
         )
     else:
         lines = ["The model returned no reported endpoint."]
@@ -1090,14 +1105,30 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="admet_ml",
-        parameters=[decimal_places_parameter()],
-        display_name="ADMET (hERG, CYP, Ames)",
+        parameters=[
+            decimal_places_parameter(),
+            CalculatorParameter(
+                # Not a display filter: the tier decides which of the
+                # model's 104 columns are shown AT ALL, and the default
+                # keeps the ten this calculator has always reported.
+                name="tier",
+                label="Endpoints (Research endpoints are not validated)",
+                kind="choice",
+                default="basic",
+                choices=["basic", "advanced", "research"],
+            ),
+        ],
+        display_name="ADMET (hERG, CYP, Ames, ADME)",
         category="admet",
         description=(
             "Predicted hERG blockade, CYP450 inhibition/substrate and Ames "
             "mutagenicity via ADMET-AI, run out of process from its own "
             "environment (configure it in Tools > External Tools). Complements "
-            "the rule-based hERG risk-factor checklist rather than replacing it."
+            "the rule-based hERG risk-factor checklist rather than replacing it. "
+            "The Advanced tier adds the ADME block benchmarked in "
+            "benchmarks/admet/ — Caco-2, solubility, BBB, plasma protein "
+            "binding, DILI, LD50, intestinal absorption — at no extra runtime "
+            "cost, since the model computes all of them either way."
         ),
         execution=RegistryExecution(compute=compute_admet_endpoints),
         prediction_basis="empirical",
