@@ -48,6 +48,7 @@ from openchem.ui.dialogs.about_dialog import AboutDialog
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
 from openchem.ui.panels.console_panel import ConsolePanel
 from openchem.ui.panels.alignment_panel import AlignmentPanel
+from openchem.ui.panels.batch_panel import BatchPanel
 from openchem.ui.panels.docking_panel import DockingPanel
 from openchem.ui.panels.jobs_panel import JobsPanel
 from openchem.ui.panels.project_explorer_panel import ProjectExplorerPanel
@@ -116,6 +117,16 @@ class MainWindow(QMainWindow):
         )
         self._alignment_panel = AlignmentPanel(services.alignment_service, services.event_bus, self)
         self._jobs_panel = JobsPanel(services.job_manager, self)
+        self._batch_panel = BatchPanel(
+            services.batch_service,
+            services.calculator_registry,
+            services.table_export_service,
+            services.event_bus,
+            services.chemistry_engine,
+            self,
+            on_analyse=self._show_batch_analysis,
+            on_screen=self._show_virtual_screening,
+        )
 
         self._add_dock("Project Explorer", self._project_explorer, Qt.DockWidgetArea.LeftDockWidgetArea)
         self._properties_dock = self._add_dock(
@@ -136,6 +147,9 @@ class MainWindow(QMainWindow):
             Qt.DockWidgetArea.RightDockWidgetArea,
         )
         jobs_dock = self._add_dock("Jobs", self._jobs_panel, Qt.DockWidgetArea.RightDockWidgetArea)
+        batch_dock = self._add_dock(
+            "Batch", self._wrap_scrollable(self._batch_panel), Qt.DockWidgetArea.RightDockWidgetArea
+        )
 
         # All right-side panels share one tab group instead of stacking
         # vertically -- six-plus docks sharing a single column (this trio
@@ -147,6 +161,7 @@ class MainWindow(QMainWindow):
         self.tabifyDockWidget(self._properties_dock, quantum_chemistry_dock)
         self.tabifyDockWidget(self._properties_dock, alignment_dock)
         self.tabifyDockWidget(self._properties_dock, jobs_dock)
+        self.tabifyDockWidget(self._properties_dock, batch_dock)
         self._properties_dock.raise_()
 
         self._build_menus()
@@ -330,6 +345,7 @@ class MainWindow(QMainWindow):
         self._quantum_chemistry_panel.set_project(project)
         self._property_panel.set_project(project)
         self._alignment_panel.set_project(project)
+        self._batch_panel.set_project(project)
         self.setWindowTitle(f"OpenChem Studio - {project.name}")
         if not project.molecules:
             # A brand-new (or loaded-but-empty) project has nothing selected,
@@ -530,6 +546,7 @@ class MainWindow(QMainWindow):
         self._docking_panel.set_project(self._session.project)
         self._quantum_chemistry_panel.set_project(self._session.project)
         self._alignment_panel.set_project(self._session.project)
+        self._batch_panel.set_project(self._session.project)
 
     # --- event handlers --------------------------------------------------------
 
@@ -742,6 +759,30 @@ class MainWindow(QMainWindow):
                 )
             )
             self._installed_plugins_menu.addAction(action)
+
+    def _show_batch_analysis(self, table) -> None:
+        """Correlation / chemical space / clustering / distributions.
+
+        Owned here rather than by `BatchPanel` for the same reason the
+        Receptor Library download is: a panel that lives in a dock should
+        not be the parent of a modal window, and the project the analytics
+        need to read structures from is the session's, not the panel's.
+        """
+        from openchem.ui.dialogs.batch_analysis_dialog import BatchAnalysisDialog
+
+        BatchAnalysisDialog(
+            table, self._services.chemistry_engine, self._session.project, self
+        ).exec()
+
+    def _show_virtual_screening(self) -> None:
+        from openchem.ui.dialogs.virtual_screening_dialog import VirtualScreeningDialog
+
+        VirtualScreeningDialog(
+            self._services.screening_service,
+            self._services.event_bus,
+            self._session.project,
+            self,
+        ).exec()
 
     def _show_external_tools_dialog(self) -> None:
         dialog = ExternalToolsDialog(self._settings, self)

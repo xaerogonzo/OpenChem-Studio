@@ -143,6 +143,55 @@ Long jobs appear in the **Jobs** panel and can be cancelled from there.
 
 ---
 
+## Batch mode
+
+Everything else in the app answers a question about the molecule you have
+selected. The **Batch** panel answers it about all of them.
+
+Tick any set of descriptors, structural-alert catalogs and calculators, and
+run them across every molecule in the project. The results arrive as a
+sortable table, filling row by row as it goes. Each cell keeps the
+provenance and the empirical/ab-initio label the single-molecule views
+carry — hover a cell to see what produced that number, with what
+parameters.
+
+A calculator that reports several numbers becomes several columns; Topology
+Analysis alone contributes 27. A calculator that reports prose (an IUPAC
+name, a stereo summary) becomes a text column and is not offered to the
+analytics, because a count of prose lines is not a property of a molecule.
+
+**Export** is a second, separate path from File > Export Molecule. CSV
+carries the numbers at full precision for the next tool; the Markdown
+report carries the table *plus* what produced every column, how it was
+parameterised, and how many molecules it failed for and why.
+
+**Analyse…** opens four views over the finished table:
+
+- **Correlation** — any numeric column against any other, with Pearson,
+  Spearman and n stated on the plot. "Correlate against everything" ranks
+  every other column by how strongly it tracks the one you picked. This is
+  the check that matters: a predicted property whose strongest correlate is
+  molecular weight is measuring size. Molecular weight and Labute surface
+  area come out at r = +0.98 across a real 181-molecule set, which is the
+  scale of confound this exists to find.
+- **Chemical space** — PCA over the numeric columns, standardised, so a
+  column measured in hundreds cannot become the first component by units
+  alone. The explained variance is stated, and so are the descriptors that
+  dominate each axis, because "PC1" on its own means nothing. Deterministic:
+  the same project always gives the same picture.
+- **Clustering** — Butina over Morgan fingerprints at a Tanimoto threshold
+  you choose. Higher is stricter. Cluster membership then colours the
+  chemical-space plot.
+- **Distributions** — a histogram and summary statistics for any column,
+  with the median drawn rather than only reported.
+
+**Virtual screening** docks every molecule in the project into one receptor,
+one at a time, and ranks them. Take a target from File > Receptor Library
+and the binding site comes with it. The scores rank ligands against one
+receptor; they are not binding free energies and do not convert to a Kd.
+
+---
+
 ## Naming
 
 Structure-to-name works offline. Known compounds resolve against PubChem

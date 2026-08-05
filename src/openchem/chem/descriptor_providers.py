@@ -250,7 +250,7 @@ _FUNCTIONAL_GROUP_SPECS: list[tuple[str, str]] = [
 ]
 
 
-def compute_functional_groups(mol: Chem.Mol, molecule_uuid: str) -> AlertResult:
+def compute_fragment_group_alert(mol: Chem.Mol, molecule_uuid: str) -> AlertResult:
     """Which of a curated set of common functional groups are present
     (and how many), via RDKit's built-in `Fragments` module -- zero new
     dependencies, ChatGPT's "functional group intelligence" ask. Reuses
@@ -258,6 +258,17 @@ def compute_functional_groups(mol: Chem.Mol, molecule_uuid: str) -> AlertResult:
     though this isn't a toxicity alert -- `matched` holds formatted
     "name (count)" strings for every group with count > 0, same "empty
     list means checked, nothing found" convention as PAINS/BRENK.
+
+    NAMED FOR ITS BACKING, not for what it reports, because it used to be
+    called `compute_functional_groups` and that shadowed the same-named
+    import from `chem/structure_annotation` at the top of this file. The
+    `functional_groups` calculator registered below therefore bound THIS
+    two-argument alert instead of the intended three-argument per-atom
+    annotation, and raised `TypeError: takes 2 positional arguments but 3
+    were given` for every molecule -- the registration and the definition
+    are 1,000 lines apart, so nothing about either read as wrong. Found by
+    running all 50 registered calculators in one pass, which is what a
+    batch runner does by construction.
     """
     matched = []
     for fn_name, display_name in _FUNCTIONAL_GROUP_SPECS:
@@ -629,6 +640,19 @@ class RDKitDescriptorProvider(DescriptorProvider):
             for descriptor_id, name, units in _SHAPE_DESCRIPTOR_SPECS
         ]
 
+    def alert_ids(self) -> dict[str, str]:
+        """The five catalogs `compute_alerts` below returns, named without
+        running them. Kept adjacent to it so the two cannot drift; a new
+        catalog added below and not here is simply not offerable in a batch
+        run, which is a visible gap rather than a wrong answer."""
+        return {
+            "pains": "PAINS",
+            "brenk": "BRENK (Reactive/Unstable Groups)",
+            "functional_groups": "Functional Groups (fragment counts)",
+            "herg_risk_factors": _HERG_RISK_NAME,
+            "mutagenicity_alerts": MUTAGENICITY_ALERT_NAME,
+        }
+
     def compute_alerts(self, mol: Chem.Mol, molecule_uuid: str) -> list[AlertResult]:
         pains_catalog = _load_pains_catalog()
         pains_matched = [entry.GetDescription() for entry in pains_catalog.GetMatches(mol)]
@@ -651,7 +675,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
                 provenance=Provenance(created_by="core", method=self.provider_id),
                 category="admet",
             ),
-            compute_functional_groups(mol, molecule_uuid),
+            compute_fragment_group_alert(mol, molecule_uuid),
             compute_herg_risk_factors(mol, molecule_uuid),
             compute_mutagenicity_alerts(mol, molecule_uuid),
         ]

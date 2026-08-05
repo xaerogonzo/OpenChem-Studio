@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 from openchem.chem.scalar_field import ScalarField, symmetric_range, to_dx
+from openchem.domain.common import CATEGORICAL_SCALE as _CATEGORICAL_SCALE
 from openchem.domain.common import ScientificResult
 from openchem.domain.scientific_result import NMRSpectrumResult, PerAtomDataset
 
@@ -38,16 +39,12 @@ _QUALITATIVE_PALETTE: list[str] = [
     "#f0e442",  # yellow
 ]
 
-#: `Provenance.parameters["scale"]` value that routes a `PerAtomDataset`
-#: down the categorical path.
-#:
-#: Carried in provenance rather than as a new field on `PerAtomDataset` or
-#: a new result type, because the panels are typed to
-#: `PerAtomDataset | SpectrumResult` and a third kind would have to be
-#: taught to every one of them. `_label_decimals` below sets the precedent
-#: in as many words: provenance parameters are "already the free-form place
-#: this codebase puts exactly this kind of presentation metadata".
-CATEGORICAL_SCALE = "categorical"
+#: Re-exported so this module's own readers see it where it is used. The
+#: definition moved to `domain/common.py` when `chem/result_reduction.py`
+#: needed it too -- `chem/` importing `ui/` would invert the layering, and
+#: the marker was never a UI concept: it is the producer's statement about
+#: what its own values MEAN.
+CATEGORICAL_SCALE = _CATEGORICAL_SCALE
 
 
 def _hex_to_rgb_fraction(color: str) -> tuple[float, float, float]:

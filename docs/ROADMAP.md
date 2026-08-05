@@ -291,6 +291,54 @@ rather than sequential phases. The detailed per-phase record lives in the
 plan file; what follows is what EXISTS, grouped by capability, so this
 document answers "what does the app do" without being a diary.
 
+### Batch mode and the analytics over it
+
+The app was single-molecule end to end: `ProjectModel.molecules` was
+already a list and nothing could act on it as a set. `BatchService` runs
+any chosen set of descriptors, alert catalogs and calculators across every
+molecule in a project through the existing `JobManager` single-flight
+machinery, publishing a partial table as it fills.
+
+**A calculator that reports several numbers becomes several columns.** Of
+the 50 registered calculators none returns a scalar; 17 return an
+`AlertResult` that is really a report, whose lines (`"Randic index: 9.52"`)
+are parsed rather than counted. Measured over the 16 report calculators on
+one molecule: **73 numeric columns extracted, 25 lines refused** —
+formulas, prose caveats, value lists, and lines carrying two numbers where
+neither is obviously the value. The parser is strict because a wrong column
+survives being looked at and a missing one does not. Scale: **181 molecules
+× 63 columns = 9,780 cells in 1.7 s.**
+
+Cells carry their `Provenance` and their empirical/ab-initio label, so the
+labelling the single-molecule views do is not lost in a table of 200 rows.
+CSV and Markdown-report export are a **second** path, separate from
+`ExportService`'s single-molecule chemical-format export.
+
+Over a finished table: **correlation** (Pearson, Spearman, n, and a ranking
+of every column against a chosen one), **PCA chemical space**
+(standardised, deterministic, with explained variance and loadings),
+**Butina clustering** over Morgan fingerprints, and **per-column
+distributions**. Each is checked against an independent implementation
+rather than a recorded value — `numpy.corrcoef`, `numpy.polyfit`, a
+separate rank transform, an eigendecomposition of the correlation matrix.
+
+The correlation view is a methodological tool, not a chart: it is the
+in-app form of the check that overturned this project's hERG result, where
+apparent separation turned out to be molecular size at r = +0.98. Measured
+on the 181-molecule corpus, molecular weight against Labute surface area
+comes out at **r = +0.984** — the same magnitude — so the instrument does
+resolve confounds at the scale that matters.
+
+**UMAP and t-SNE were not added.** PCA covers the requirement, needs no
+dependency, and gives one picture of a project rather than a different one
+per run.
+
+**Virtual screening** (`ScreeningService`) docks N ligands into one
+receptor by queueing them through the existing `DockingService` one at a
+time — handing it N at once would start N Vina processes — and ranks them.
+The queue advances on the terminal job-state event rather than on the
+result, so a ligand Vina refuses does not wedge it.
+
 ### Calculators
 
 Around 40 registry-executed calculators, all discoverable through

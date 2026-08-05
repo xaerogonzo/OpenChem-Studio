@@ -81,6 +81,21 @@ class DescriptorProvider(ABC):
         up-front placeholder benefit."""
         return {}
 
+    def alert_ids(self) -> dict[str, str]:
+        """Optional: alert_id -> display name, known WITHOUT computing.
+
+        The mirror of `descriptor_categories` above, and added (Phase 31)
+        for the same reason: a caller has to be able to offer a provider's
+        alerts as choices before running anything. `compute_alerts` answers
+        that only by doing the work, which for the built-in provider means
+        matching 480 PAINS and 105 BRENK patterns — acceptable to find out
+        what a molecule matches, absurd to find out what the catalogs are
+        called.
+
+        Empty by default, so a provider that emits no alerts (most of them)
+        is unaffected."""
+        return {}
+
     def compute_alerts(self, mol: Chem.Mol, molecule_uuid: str) -> list[AlertResult]:
         """Optional: structural-alert catalog results (e.g. PAINS) this
         provider can flag — a molecule either matches zero or more named

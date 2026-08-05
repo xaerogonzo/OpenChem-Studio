@@ -6,6 +6,24 @@ from enum import Enum
 from typing import Any
 
 
+#: `Provenance.parameters["scale"]` value by which a producer declares that
+#: its per-atom values are CATEGORY IDS, not magnitudes -- which ring system
+#: an atom belongs to, which functional group claims it.
+#:
+#: Carried in provenance rather than as a new field on `PerAtomDataset` or a
+#: new result type, because the panels are typed to
+#: `PerAtomDataset | SpectrumResult` and a third kind would have to be
+#: taught to every one of them.
+#:
+#: It lives HERE rather than beside its first consumer in `ui/visualization`
+#: because it is not a rendering hint: consumers in different layers have to
+#: agree on it or they disagree about what the numbers are. The batch table
+#: is the second such consumer, and summing category ids into a column total
+#: is the same "Overall: 15" trap the Calculator Inspector already had to
+#: close.
+CATEGORICAL_SCALE = "categorical"
+
+
 class CacheState(str, Enum):
     """Lifecycle of an asynchronously computed value (a descriptor, a batch
     of conformers, or any future long-running provider result).

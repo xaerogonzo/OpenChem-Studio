@@ -55,6 +55,17 @@ when it contains no receptor.
 geometric, surface, medicinal-chemistry, ADMET, quantum. Each is labelled
 `empirical` or `ab_initio` where a basis exists to state one.
 
+**Batch mode over a whole project**, and the analytics that need it. Any set
+of calculators across every molecule, as a sortable table whose cells keep
+the provenance and the empirical/ab-initio label the single-molecule views
+carry — measured at **181 molecules × 63 columns in 1.7 s**. Then
+correlation with the coefficient stated, deterministic PCA over the
+descriptor matrix, Butina clustering, per-column distributions, and virtual
+screening against the curated receptors. The correlation view is the in-app
+form of the check that overturned this project's own hERG result: on a real
+181-molecule set it puts molecular weight against Labute surface area at
+**r = +0.984**, the same scale as the size confound it exists to catch.
+
 **Structure handling.** PDB, mmCIF, BinaryCIF and gzip, detected by content
 rather than extension, including the deposited biological assembly rather
 than only the asymmetric unit.
