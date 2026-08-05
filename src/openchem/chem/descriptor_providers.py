@@ -59,6 +59,10 @@ from openchem.chem.structure_generators import (
     compute_stereoisomers,
     compute_tautomers,
 )
+from openchem.chem.regulatory.calculator import (
+    JURISDICTION_CHOICES,
+    compute_regulatory_screen,
+)
 from openchem.chem.structure_annotation import (
     FG_LABEL_MODES,
     RING_LABEL_MODES,
@@ -1289,6 +1293,37 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             ),
         ],
         tags=["topology", "rings", "per-atom", "annotation"],
+    ),
+    CalculatorDefinition(
+        calculator_id="regulatory_screen",
+        display_name="Regulatory Screen",
+        category="regulatory",
+        description=(
+            "Which regulatory frameworks have something to say about this structure -- "
+            "chemical weapons schedules, controlled substances, precursors and the rest, "
+            "from whichever rulesets are loaded. NOT a compliance check and never says "
+            "whether anything is legal: it reports which rules matched, which nearly did "
+            "and why, and states the coverage of every ruleset consulted so that "
+            "'no matches' cannot be read as 'not regulated'. Add your own or your "
+            "organisation's rulesets as JSON in the app data directory."
+        ),
+        execution=RegistryExecution(compute=compute_regulatory_screen),
+        parameters=[
+            CalculatorParameter(
+                name="jurisdiction",
+                label="Jurisdiction",
+                kind="choice",
+                default="All jurisdictions",
+                choices=list(JURISDICTION_CHOICES),
+            ),
+            CalculatorParameter(
+                name="include_near_misses",
+                label="Explain near misses",
+                kind="bool",
+                default=True,
+            ),
+        ],
+        tags=["regulatory", "compliance", "screening", "safety"],
     ),
     CalculatorDefinition(
         calculator_id="locants",
