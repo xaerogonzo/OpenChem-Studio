@@ -47,14 +47,21 @@ datas += [(str(PKG / "resources"), "openchem/resources")]
 # during vendoring; see src/openchem/vendor/VENDORING.md.
 datas += [(str(PKG / "vendor" / "data"), "openchem/vendor/data")]
 
-# Two scripts that are never imported -- they are handed as argv to a
-# *sidecar* interpreter (the pkasolver / STOUT conda environments, which run
-# their own Python, not ours). PyInstaller's import analysis therefore never
-# sees them, and they have to ship as plain source next to their callers,
-# which locate them with `Path(__file__).parent / "..._runner.py"`.
+# Scripts that are never imported -- they are handed as argv to a *sidecar*
+# interpreter (the pkasolver and ADMET environments, which run their own
+# Python, not ours). PyInstaller's import analysis therefore never sees them,
+# and they have to ship as plain source next to their callers, which locate
+# them with `Path(__file__).resolve().parent / "..._runner.py"`.
+#
+# KEEP THIS LIST IN STEP WITH `chem/*_runner.py`. Both ways of being wrong
+# have already happened here: a `stout_runner.py` entry outlived the file
+# (STOUT was removed, and a missing `datas` source aborts the build), while
+# `admet_runner.py` was added to the app and never added here -- which does
+# not fail the build at all, it fails the first time a user opens an ADMET
+# calculator in the frozen app.
 datas += [
     (str(PKG / "chem" / "pka_runner.py"), "openchem/chem"),
-    (str(PKG / "chem" / "stout_runner.py"), "openchem/chem"),
+    (str(PKG / "chem" / "admet_runner.py"), "openchem/chem"),
 ]
 
 # RDKit's own data: the atomic-properties table, ring templates and the

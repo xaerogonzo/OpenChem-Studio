@@ -14,8 +14,8 @@
 # for every bundled data file. This script is the parts that do not belong
 # in a spec: prerequisite checks, clean state, and staging plugins\.
 #
-# What is deliberately NOT bundled: pkasolver, STOUT, the Temurin JRE, ORCA
-# and Vina. Those are user-installed into the configurable data directory
+# What is deliberately NOT bundled: pkasolver, the ADMET model, the Temurin
+# JRE, ORCA and Vina. Those are user-installed into the configurable data directory
 # (src\openchem\paths.py) through the External Tools dialog -- they are
 # multi-gigabyte, individually optional, and several are separately licensed.
 # The frozen app finds them there exactly as the source build does.
@@ -137,9 +137,11 @@ $required = @(
     # than two, and a partially-copied tree would satisfy only the shallow one.
     "_internal\openchem\vendor\data\functional_groups.json",
     "_internal\openchem\vendor\data\bluebook",
-    # Sidecar runner scripts, which are data rather than imports.
+    # Sidecar runner scripts, which are data rather than imports. One entry
+    # per chem\*_runner.py; see the spec's note on why this list has been
+    # wrong in both directions.
     "_internal\openchem\chem\pka_runner.py",
-    "_internal\openchem\chem\stout_runner.py",
+    "_internal\openchem\chem\admet_runner.py",
     # OPSIN's jar.
     "_internal\py2opsin\opsin-cli-2.9.0-jar-with-dependencies.jar",
     # RDKit's synthetic-accessibility scorer: source imported by name off
