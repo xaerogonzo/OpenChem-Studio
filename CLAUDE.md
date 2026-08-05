@@ -50,7 +50,7 @@ The binary is not on PATH; call it by full path.
 uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suite.log
 ```
 
-A clean run is **~2 minutes**, ending at `1980 passed, 2 skipped`. Writing to a
+A clean run is **~2 minutes**, ending at `1989 passed, 2 skipped`. Writing to a
 file rather than a pipe is worth doing because it lets you watch progress
 while it runs.
 
@@ -110,36 +110,21 @@ powershell "(Get-CimInstance Win32_Process -Filter \"Name='QtWebEngineProcess.ex
 ### A test that builds a panel must destroy it before the next one runs
 
 Same family as the webview leak above, different object, and it fails much
-louder. A test that constructs an unparented widget and then calls
-`QApplication.processEvents()` -- which any test of an event-driven panel has
-to, since `EventBus.publish` is a *queued* Qt signal and nothing has been
-delivered when `waitForDone()` returns -- can crash with a **Windows access
-violation inside `processEvents`**. The widget from an *earlier* test was
-collected by Python at some arbitrary later moment, and this
-`processEvents()` drains the `DeferredDelete` posted against it.
+louder. A test that constructs an unparented widget and walks away leaves it
+with no owner, so Python destroys it at whatever arbitrary later moment the
+collector happens to run -- inside an unrelated test, from within Qt's own
+event dispatch. The result is a **Windows access violation**, and it surfaces
+in whichever test happens to be pumping events at the time (any test of an
+event-driven panel must, since `EventBus.publish` is a *queued* Qt signal and
+nothing has been delivered when `waitForDone()` returns).
 
 Measured on `tests/test_batch_panel.py`: **3 of 3 full runs of the file
 crashed**, while running only some subsets of it passed -- because whether it
 fires depends on when the collector happened to run. That "sometimes"
 is exactly what makes it read as flakiness rather than as a bug in the test.
 
-**STILL LIVE ELSEWHERE, measured 2026-08-05.** The same crash appears in the
-FULL suite at `test_ketcher_editor_backend.py`, whose `_wait_until` pumps
-`processEvents` in a loop. Three consecutive full runs died there with an
-access violation at ~30%, then **six consecutive full runs passed** with no
-change to the tree -- so do not trust a single green run as evidence it is
-gone. It reproduces only in the whole suite: the file alone passes, the 53
-files collected before it pass, and either half of the remainder plus that
-prefix passes. Nothing is wrong with the ketcher tests; they are the victim,
-draining a `DeferredDelete` some earlier test left queued on an object
-Python has since collected. The offender was NOT identified, and bisection
-cannot find it -- changing the file set changes allocation, which changes
-when the collector runs, which changes whether it fires. Confirmed
-pre-existing by stashing, and CI is green on the same commits, so it is
-local-timing dependent rather than a code regression.
-
-The fix is a fixture that destroys each widget deterministically and flushes
-**that widget's** deferred delete:
+The fix is to destroy each widget deterministically and flush **that
+widget's** deferred delete:
 
 ```python
 widget.setParent(None)
@@ -151,6 +136,83 @@ Per widget, never `sendPostedEvents(None, DeferredDelete)` -- the global form
 drains every pending deferred delete in the process, including ones other
 test files left queued, which is the same double-free the webview fixture
 already documents.
+
+**This is now done for you**, by two autouse fixtures in `tests/conftest.py`
+(`dispose_app_widgets`, `flush_deferred_deletes`) that apply it to every
+widget and every `deleteLater()` in the suite. The per-file `widgets`
+fixtures that predate them are still correct and were left alone.
+`tests/test_qt_object_disposal.py` fails if either regresses.
+
+#### How the ketcher crash was found, and the two things that were wrong about it
+
+Recorded because the version of this section written before it was solved
+named the wrong mechanism, and reasoning from that mechanism produced a fix
+that measurably did not work.
+
+The symptom: `test_ketcher_editor_backend.py` died with an access violation
+at ~30% of a full run, on 3 runs and then not on the next 6, with CI green
+throughout. **Do not trust green runs here** -- the corrected fix below was
+verified against a deterministic reproduction, not against a streak.
+
+What was wrong in the old account:
+
+1. *"`processEvents()` drains the `DeferredDelete`."* It does not. Measured
+   against this Qt build, a `DeferredDelete` posted at event-loop level 0 is
+   delivered only when an actual event loop at that level returns, and
+   `QApplication.processEvents()` never delivers one, however many times it
+   is called. A pytest run never enters such a loop, so **every**
+   `deleteLater()` in the suite sits in the process-wide queue until
+   something spins a NESTED event loop -- which drains the entire backlog at
+   once. QtWebEngine spins one internally while a page loads. That is the
+   whole reason the victim is always a webview test: it is not that its
+   `processEvents` pump is dangerous, it is that Chromium is the only thing
+   in the suite that lights the fuse.
+2. *"The widget's Python wrapper was already collected."* Not for the
+   deleteLater'd object itself -- PySide keeps that wrapper alive until the
+   event is delivered, so it is still weak-referenceable at session end,
+   which is what made a census possible at all.
+
+**Instrumentation found it in one run where bisection could not.** Wrapping
+`QObject.deleteLater` to record its receiver weakly, then reporting which
+receivers were still valid at each test boundary, named the offenders
+exactly: 18 undelivered deletes, of which the 9 `IrViewWidget`s from
+`test_ir_view_widget.py` (five files earlier) were the ones live while the
+ketcher tests ran. Wrapping widget constructors the same way found the
+second, larger half: **112 top-level widgets abandoned by 20 files**.
+
+**Forcing the drain turns the heisenbug into a 12-second reproduction.** Run
+one nested `QEventLoop` before each ketcher test and the crash is
+deterministic:
+
+```python
+loop = QEventLoop(); QTimer.singleShot(0, loop.quit); loop.exec()
+```
+
+Measured with that lever, on `test_ir_view_widget.py` + the four files
+between + `test_ketcher_editor_backend.py`:
+
+| tree | result |
+| --- | --- |
+| before the fix | crash 5 / 5 |
+| ketcher file alone (nothing queued) | pass |
+| deferred deletes flushed only | crash 2 / 2, via `test_jobs_panel.py` |
+| both fixtures | pass 8 / 8 |
+
+That middle row is the point: **fixing only the mechanism the old account
+named left the crash fully intact.** Abandoned widgets, which it did not
+mention, were the larger half.
+
+With both fixtures in place: the full suite forced to drain at the ketcher
+test passes 3 of 3 (it crashed 3 of 3 before), the plain full suite passes 11
+of 11, the leaked-widget census is 0 (was 112) and the undelivered-delete
+census is 0 (was 18). Wall clock went from a mean of 102s over 6 runs to
+106s over 11, inside the run-to-run spread.
+
+One caveat worth knowing if you re-run that instrumentation: stacking BOTH
+diagnostic plugins on top of the now-permanent fixtures double-wraps every
+widget constructor and destabilised a run by itself (a `Fatal Python error:
+Aborted` in `test_molstar_viewer_backend.py` that appears under no other
+configuration). Run one census at a time.
 
 ### The suite must not touch the machine's real settings
 
