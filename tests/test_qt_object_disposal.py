@@ -26,6 +26,8 @@ from __future__ import annotations
 
 import weakref
 
+import pytest
+
 import shiboken6
 from PySide6.QtCore import QObject
 
@@ -349,3 +351,54 @@ def test_closing_a_main_window_empties_its_undo_stack(qapp, tmp_path):
     window.close()
 
     assert window._undo_stack.count() == 0
+
+
+@pytest.fixture
+def a_main_window(qapp, tmp_path):
+    """Provided BY A FIXTURE on purpose.
+
+    That is the case the collect's placement is about: pytest caches a
+    fixture's value on its `SubRequest`/`TopRequest`/`Function` and holds
+    it for the whole item protocol. A window built as a plain local inside
+    a test is released when the function returns and would be collected
+    either way -- so a test written that way cannot tell the right hook
+    from the wrong one, which is exactly what happened on the first
+    attempt at this.
+    """
+    from openchem.app.main_window import MainWindow
+    from openchem.app.session import SessionManager
+    from openchem.app.settings import Settings
+    from openchem.bootstrap import build_service_container
+
+    services = build_service_container()
+    settings = Settings(services.event_bus)
+    settings.set("plugins/project_directory", str(tmp_path / "no_plugins"))
+    settings.set("plugins/user_directory", str(tmp_path / "no_user"))
+    window = MainWindow(services, settings, SessionManager())
+    yield window
+    window.close()
+
+
+def test_a_fixture_provided_window_is_gone_before_the_next_test(a_main_window):
+    """First half of an ordered pair; the next test checks it was destroyed.
+
+    This is what the collect's PLACEMENT buys. It used to run in
+    `pytest_runtest_teardown` with no ordering, which puts it BEFORE
+    pytest finalises fixtures -- and pytest still holds every fixture
+    value at that moment, so a window could not possibly be collected
+    there. Measured by listing the referrers of a window still alive at
+    teardown: `SubRequest`, `TopRequest`, `Function` and the fixture-name
+    cache. All pytest machinery; nothing in the application held it.
+
+    Moving the collect to after the protocol ends took late C++
+    destructions from 135 to 0.
+    """
+    _abandoned_subscribers.append(weakref.ref(a_main_window))
+
+
+def test_that_window_was_collected_between_the_tests(qapp):
+    assert _abandoned_subscribers, "the previous test did not run; the pair is broken"
+    assert all(ref() is None for ref in _abandoned_subscribers), (
+        "a MainWindow survived into the next test -- the gc.collect() in conftest.py "
+        "has moved back to a hook that runs while pytest still holds the fixture values"
+    )

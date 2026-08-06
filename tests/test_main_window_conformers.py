@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from PySide6.QtCore import QThreadPool
 
+import pytest
+
 from openchem.app.main_window import MainWindow
 from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
@@ -11,6 +13,21 @@ from openchem.domain.common import CacheState
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.molecule import MoleculeModel
 from openchem.events.events import ConformersReady, DescriptorComputed
+
+
+_WINDOWS: list = []
+
+
+def _track(window):
+    _WINDOWS.append(window)
+    return window
+
+
+@pytest.fixture(autouse=True)
+def _close_windows():
+    yield
+    while _WINDOWS:
+        _WINDOWS.pop().close()
 
 
 def _drain(qapp, iterations: int = 50) -> None:
@@ -25,7 +42,7 @@ def _build_window(qapp, tmp_path) -> tuple[MainWindow, object]:
     settings.set("plugins/project_directory", str(tmp_path / "no_plugins_here"))
     settings.set("plugins/user_directory", str(tmp_path / "no_user_plugins_here"))
     session = SessionManager()
-    window = MainWindow(services, settings, session)
+    window = _track(MainWindow(services, settings, session))
     return window, services
 
 

@@ -445,7 +445,7 @@ class MainWindow(QMainWindow):
             ("InChIKey", "inchikey"),
             ("Molfile (MDL molblock)", "molfile"),
         ):
-            structure_menu.addAction(label, lambda kind=kind: self._copy_structure_as(kind))
+            structure_menu.addAction(label, self._copy_structure_as_action).setData(kind)
 
         paste_action = edit_menu.addAction("Paste Structure", self._paste_structure)
         # NOT Ctrl+V. Ketcher owns that inside the drawing canvas for
@@ -458,8 +458,8 @@ class MainWindow(QMainWindow):
         # `checked` (False), which would arrive as the `molecule` argument
         # and read as "a molecule was supplied" everywhere except an
         # `is None` check.
-        edit_menu.addAction("Duplicate Molecule", lambda: self._duplicate_molecule())
-        edit_menu.addAction("Rename Molecule...", lambda: self._rename_molecule())
+        edit_menu.addAction("Duplicate Molecule", self._duplicate_molecule)
+        edit_menu.addAction("Rename Molecule...", self._rename_molecule)
 
         # --- Structure -------------------------------------------------------
         #
@@ -480,25 +480,19 @@ class MainWindow(QMainWindow):
             ("Aromatize", "Aromatize button"),
             ("Dearomatize", "Dearomatize button"),
         ):
-            self._structure_menu.addAction(
-                label, lambda test_id=test_id: self._editor.trigger_toolbar_action(test_id)
-            )
+            self._add_editor_action(self._structure_menu, label, test_id)
         self._structure_menu.addSeparator()
         for label, test_id in (
             ("Layout (Recalculate Coordinates)", "Layout button"),
             ("Clean Up", "Clean Up button"),
         ):
-            self._structure_menu.addAction(
-                label, lambda test_id=test_id: self._editor.trigger_toolbar_action(test_id)
-            )
+            self._add_editor_action(self._structure_menu, label, test_id)
         self._structure_menu.addSeparator()
-        self._structure_menu.addAction(
-            "Add/Remove Explicit Hydrogens",
-            lambda: self._editor.trigger_toolbar_action("Add/Remove explicit hydrogens button"),
+        self._add_editor_action(
+            self._structure_menu, "Add/Remove Explicit Hydrogens", "Add/Remove explicit hydrogens button"
         )
-        self._structure_menu.addAction(
-            "Calculate CIP (Stereo Descriptors)",
-            lambda: self._editor.trigger_toolbar_action("Calculate CIP button"),
+        self._add_editor_action(
+            self._structure_menu, "Calculate CIP (Stereo Descriptors)", "Calculate CIP button"
         )
         self._structure_menu.addSeparator()
         check_action = self._structure_menu.addAction("Check Structure...", self._show_structure_check_panel)
@@ -508,9 +502,8 @@ class MainWindow(QMainWindow):
         # able to read, and it must not be confused with ours, which
         # disagrees with it deliberately on iron oxides and hypervalent
         # iodine.
-        self._structure_menu.addAction(
-            "Check Structure in the Editor (Indigo)...",
-            lambda: self._editor.trigger_toolbar_action("Check Structure button"),
+        self._add_editor_action(
+            self._structure_menu, "Check Structure in the Editor (Indigo)...", "Check Structure button"
         )
 
         self._view_menu = self.menuBar().addMenu("&View")
@@ -537,13 +530,10 @@ class MainWindow(QMainWindow):
         # KetcherEditorBackend.trigger_toolbar_action for why these go
         # through Ketcher's own button rather than `set_render_option`
         # (there's no public API for either).
-        structure_display_menu.addAction(
-            "Toggle Explicit Hydrogens",
-            lambda: self._editor.trigger_toolbar_action("Add/Remove explicit hydrogens button"),
+        self._add_editor_action(
+            structure_display_menu, "Toggle Explicit Hydrogens", "Add/Remove explicit hydrogens button"
         )
-        structure_display_menu.addAction(
-            "Open 3D Viewer (Miew)...", lambda: self._editor.trigger_toolbar_action("3D Viewer button")
-        )
+        self._add_editor_action(structure_display_menu, "Open 3D Viewer (Miew)...", "3D Viewer button")
         structure_display_menu.addAction("Send to 3D Viewer Tab", self._send_to_3d_viewer)
         structure_display_menu.addSeparator()
         # NOT a Ketcher render option, unlike the toggles above: the canvas
@@ -560,16 +550,16 @@ class MainWindow(QMainWindow):
 
         tools_menu = self.menuBar().addMenu("&Tools")
         tools_menu.addAction("Periodic Table...", self._show_periodic_table)
-        tools_menu.addAction("Identify Structure Online...", lambda: self._identify_structure())
+        tools_menu.addAction("Identify Structure Online...", self._identify_structure)
         tools_menu.addAction("External Tools...", self._show_external_tools_dialog)
 
         self._plugins_menu = self.menuBar().addMenu("&Plugins")
         self._plugins_menu.addAction("Reload Plugins", self._reload_plugins)
         self._plugins_menu.addAction(
-            "Open Project Plugins Folder", lambda: self._open_plugins_folder(project=True)
+            "Open Project Plugins Folder", self._open_project_plugins_folder
         )
         self._plugins_menu.addAction(
-            "Open User Plugins Folder", lambda: self._open_plugins_folder(project=False)
+            "Open User Plugins Folder", self._open_user_plugins_folder
         )
         self._plugins_menu.addSeparator()
         self._installed_plugins_menu = self._plugins_menu.addMenu("Installed Plugins")
@@ -588,10 +578,73 @@ class MainWindow(QMainWindow):
             ("Getting Started", "where-data-lives"),
             ("Scientific Limitations", "limits-nmr"),
         ):
-            help_menu.addAction(label, lambda key=key: self._show_help(key))
+            help_menu.addAction(label, self._show_help_action).setData(key)
         help_menu.addSeparator()
         help_menu.addAction("Open Log Folder", self._open_log_folder)
         help_menu.addAction("About OpenChem Studio", self._show_about)
+
+    # --- menu plumbing -------------------------------------------------------
+    #
+    # EVERY MENU ACTION CONNECTS A BOUND METHOD, NEVER A LAMBDA THAT
+    # CAPTURES `self`. PySide6 holds a connected plain callable strongly and
+    # a QObject's bound method weakly, so the lambda form rooted this window
+    # for the life of the process -- past refcounting and past the cyclic
+    # collector. Whatever the action needs to know travels on the QAction
+    # itself, via `setData`, and comes back through `sender()`.
+    #
+    # Two facts worth having, both measured here rather than assumed,
+    # because the file used to say the opposite of the first one:
+    #
+    #   menu.addAction(label, callable)   calls it with NO arguments,
+    #                                     whatever its signature
+    #   action.triggered.connect(callable) passes `checked`
+    #
+    # So a handler reached through `addAction` keeps its own defaults --
+    # `_duplicate_molecule(molecule=None)` really does receive None -- and
+    # only the `toggled`/`triggered` connections below have to take the bool.
+
+    def _add_editor_action(self, menu: QMenu, label: str, test_id: str) -> None:
+        """One of Ketcher's own toolbar buttons, by its stable `data-testid`.
+
+        There is no public API for these; `trigger_toolbar_action` clicks
+        the real button. Ketcher reports the resulting change through its
+        normal `change` event, which already reaches the undo stack.
+        """
+        menu.addAction(label, self._trigger_editor_action).setData(test_id)
+
+    def _trigger_editor_action(self) -> None:
+        action = self.sender()
+        if action is not None:
+            self._editor.trigger_toolbar_action(action.data())
+
+    def _copy_structure_as_action(self) -> None:
+        action = self.sender()
+        if action is not None:
+            self._copy_structure_as(action.data())
+
+    def _show_help_action(self) -> None:
+        action = self.sender()
+        if action is not None:
+            self._show_help(action.data())
+
+    def _open_project_plugins_folder(self) -> None:
+        self._open_plugins_folder(project=True)
+
+    def _open_user_plugins_folder(self) -> None:
+        self._open_plugins_folder(project=False)
+
+    def _on_render_option_toggled(self, checked: bool) -> None:
+        """`toggled` DOES pass the bool, unlike `addAction`."""
+        action = self.sender()
+        if action is None:
+            return
+        option_name, checked_value, unchecked_value = action.data()
+        self._editor.set_render_option(option_name, checked_value if checked else unchecked_value)
+
+    def _on_plugin_enabled_toggled(self, checked: bool) -> None:
+        action = self.sender()
+        if action is not None:
+            self._plugin_manager.set_enabled(action.data(), checked)
 
     def _add_structure_display_toggle(
         self, menu: QMenu, label: str, option_name: str, checked_value: object, unchecked_value: object
@@ -606,11 +659,8 @@ class MainWindow(QMainWindow):
         """
         action = QAction(label, self)
         action.setCheckable(True)
-        action.toggled.connect(
-            lambda checked: self._editor.set_render_option(
-                option_name, checked_value if checked else unchecked_value
-            )
-        )
+        action.setData((option_name, checked_value, unchecked_value))
+        action.toggled.connect(self._on_render_option_toggled)
         menu.addAction(action)
 
     # --- project lifecycle --------------------------------------------------
@@ -1366,11 +1416,8 @@ class MainWindow(QMainWindow):
             action = QAction(manifest.display_name, self)
             action.setCheckable(True)
             action.setChecked(manifest.plugin_id not in disabled)
-            action.toggled.connect(
-                lambda checked, plugin_id=manifest.plugin_id: self._plugin_manager.set_enabled(
-                    plugin_id, checked
-                )
-            )
+            action.setData(manifest.plugin_id)
+            action.toggled.connect(self._on_plugin_enabled_toggled)
             self._installed_plugins_menu.addAction(action)
 
     def _show_batch_analysis(self, table) -> None:

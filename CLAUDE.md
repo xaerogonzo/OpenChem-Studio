@@ -334,6 +334,124 @@ all three viewers together in a `QTabWidget`, `DockTitleBar`,
 `CheckerStatusIndicator`, `QScrollArea` + `tabifyDockWidget`, menus,
 `PluginManager`, and `_restore_window_state`.
 
+##### The full fix IS shipped, once the collect was moved
+
+The first attempt looked like a disaster and was reverted: menu lambdas
+removed + this clear + the seven `test_main_window_*` files closing their
+windows made the suite green 2/2 while late C++ destructions went from 8
+to **1190**. The open question was "after `window.close()`, what still
+references the window?"
+
+**Nothing in the application does.** Listing the referrers of a window
+still alive at teardown found only pytest: `SubRequest`, `TopRequest`,
+`_pytest.python.Function`, and the fixture-name cache. Pytest holds every
+fixture value for the whole item protocol, so a `gc.collect()` running in
+`pytest_runtest_teardown` CANNOT collect a fixture-provided window -- and
+the conftest hook had no `trylast`, so it ran before fixtures were even
+finalised.
+
+    collect in pytest_runtest_teardown, unordered   1190 late
+    collect in pytest_runtest_teardown, trylast      135 late
+    collect in pytest_runtest_logfinish                0 late
+
+Zero, with 3587 destroyed inside their own test, the suite green 3/3, the
+forced-drain reproduction 0/10, and the run slightly FASTER than before.
+
+The trap worth remembering: a test that builds its window as a plain local
+cannot tell the right hook from the wrong one, because the local is
+released when the function returns either way. The guard in
+`tests/test_qt_object_disposal.py` takes its window from a FIXTURE for
+exactly that reason -- the first version of it did not, and the mutation
+survived.
+
+#### MainWindow's menu lambdas ARE fixed now (an earlier note said not to)
+
+They were reverted once, with the note "the leak is load-bearing", because
+removing them made the window collectable and destroying a MainWindow
+crashed. Both halves of that are now solved and the fix is in:
+
+- `closeEvent` empties the undo stack, which is what made destruction
+  safe (see the section above it);
+- the collect runs after the item protocol, so windows are collected at
+  the right moment (see below).
+
+Menu actions carry their payload on the `QAction` via `setData` and connect
+bound methods that read it back through `sender()`. Two facts about Qt that
+this depends on, measured rather than assumed, because the file previously
+asserted the opposite of the first:
+
+    menu.addAction(label, callable)     calls it with NO arguments,
+                                        whatever its signature
+    action.triggered.connect(callable)  passes `checked`
+
+So a handler reached through `addAction` keeps its own defaults --
+`_duplicate_molecule(molecule=None)` really does receive None -- and only
+`toggled`/`triggered` connections have to take the bool.
+
+#### The root of the cycles: `EventBus` now holds bound methods weakly
+
+`EventBus.subscribe` used to store the handler in a plain list. A bound
+method holds its object, so the bus owned every panel that ever subscribed
+and the panel owned the bus -- a cycle nothing could break by reference
+counting, leaving the whole graph to the cyclic collector.
+
+Bound methods are held with `weakref.WeakMethod` now; everything else is
+still held strongly, and that asymmetry is the load-bearing part. A lambda
+usually has no other reference, so held weakly it would be collected the
+instant `subscribe` returned and the subscription would silently never
+fire -- worse than a leak, because nothing looks wrong. Measured when the
+change was made: production code subscribes 38 bound methods and ZERO
+lambdas, while the tests subscribe 74 lambdas.
+
+Measured effect, per panel:
+
+| | before | after |
+| --- | --- | --- |
+| `JobsPanel` | refcounting | refcounting |
+| `DockingPanel` | needed the cyclic collector | **refcounting** |
+| `PropertyPanel` | leaked outright | **refcounting** |
+
+**It does NOT replace the teardown `gc.collect()`, and the numbers say so
+plainly.** With weak handlers and no collect, late C++ destructions went
+UP -- 138 before, 177 after -- because more objects are now destructible
+at all rather than leaked. With both, 8, against 2352 destroyed inside
+their own test. Keep both.
+
+It also moved MainWindow, without fixing it: with weak handlers AND the
+menu lambdas removed, the first window is destroyed cleanly and the
+SECOND construction segfaults, 5/5. So destroying a MainWindow leaves
+something process-global in a state the next one trips over. That is the
+next thread to pull; the section below still applies until it is pulled.
+
+#### What makes MainWindow destruction fault: the undo stack
+
+Bisected against the real window, by disabling one piece at a time:
+
+| window | destroyed |
+| --- | --- |
+| as built | **segfault 5/5** |
+| `_new_molecule` suppressed (nothing ever pushed) | clean 3/3 |
+| `_undo_stack.clear()` before dropping | clean 5/5 |
+| `close()` alone, before `closeEvent` cleared the stack | **segfault** |
+
+So commands sitting on the stack are what makes destruction fatal, and
+clearing it first is what makes destruction safe. `closeEvent` now clears
+it, which is why that line is there.
+
+**The mechanism is NOT understood, and nothing here should pretend
+otherwise.** A synthetic `QUndoCommand` on a `QUndoStack` destroys fine, so
+does the real `AddMoleculeCommand` in a minimal harness, and so does a
+hand-built `QMainWindow` carrying every panel, all three web views, custom
+dock title bars, a status-bar widget, scroll areas, menus and a plugin
+manager -- 3/3 each. It takes the whole real window. The commands are
+necessary but not sufficient.
+
+Ruled out along the way, each measured 3-5 times: `QWebEngineView`,
+`MoleculeEditorWidget`, `MoleculeViewer3DWidget`, `MolStarViewerBackend`,
+all three viewers together in a `QTabWidget`, `DockTitleBar`,
+`CheckerStatusIndicator`, `QScrollArea` + `tabifyDockWidget`, menus,
+`PluginManager`, and `_restore_window_state`.
+
 ##### The full fix was built, measured, and NOT shipped
 
 Menu lambdas removed + `closeEvent` clearing the stack + the seven

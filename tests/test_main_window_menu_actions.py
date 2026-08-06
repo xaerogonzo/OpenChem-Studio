@@ -9,6 +9,21 @@ from openchem.bootstrap import build_service_container
 from openchem.domain.molecule import MoleculeModel
 
 
+_WINDOWS: list = []
+
+
+def _track(window):
+    _WINDOWS.append(window)
+    return window
+
+
+@pytest.fixture(autouse=True)
+def _close_windows():
+    yield
+    while _WINDOWS:
+        _WINDOWS.pop().close()
+
+
 def test_add_menu_action_callback_receives_no_arguments(qapp, tmp_path):
     """Regression test: QAction.triggered emits `triggered(checked: bool)`.
     Connecting it directly to a plugin-supplied callback would silently pass
@@ -22,7 +37,7 @@ def test_add_menu_action_callback_receives_no_arguments(qapp, tmp_path):
     settings.set("plugins/project_directory", str(tmp_path / "no_plugins_here"))
     settings.set("plugins/user_directory", str(tmp_path / "no_user_plugins_here"))
     session = SessionManager()
-    window = MainWindow(services, settings, session)
+    window = _track(MainWindow(services, settings, session))
 
     received: list[object] = []
 
@@ -54,7 +69,7 @@ def _build_window(tmp_path):
     settings.set("plugins/project_directory", str(tmp_path / "no_plugins_here"))
     settings.set("plugins/user_directory", str(tmp_path / "no_user_plugins_here"))
     session = SessionManager()
-    return MainWindow(services, settings, session)
+    return _track(MainWindow(services, settings, session))
 
 
 def _structure_display_menu(window):

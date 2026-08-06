@@ -2,10 +2,27 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+import pytest
+
 from openchem.app.main_window import MainWindow
 from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
 from openchem.bootstrap import build_service_container
+
+
+_WINDOWS: list = []
+
+
+def _track(window):
+    _WINDOWS.append(window)
+    return window
+
+
+@pytest.fixture(autouse=True)
+def _close_windows():
+    yield
+    while _WINDOWS:
+        _WINDOWS.pop().close()
 
 
 def _make_window(tmp_path):
@@ -14,7 +31,7 @@ def _make_window(tmp_path):
     settings.set("plugins/project_directory", str(tmp_path / "no_plugins_here"))
     settings.set("plugins/user_directory", str(tmp_path / "no_user_plugins_here"))
     session = SessionManager()
-    window = MainWindow(services, settings, session)
+    window = _track(MainWindow(services, settings, session))
     return window, session, settings
 
 
@@ -155,7 +172,7 @@ def test_existing_window_geometry_and_state_are_restored_on_init(qapp, tmp_path)
         patch.object(MainWindow, "restoreGeometry") as mock_restore_geometry,
         patch.object(MainWindow, "restoreState") as mock_restore_state,
     ):
-        MainWindow(services2, settings, session2)
+        _track(MainWindow(services2, settings, session2))
 
     mock_restore_geometry.assert_called_once()
     mock_restore_state.assert_called_once()

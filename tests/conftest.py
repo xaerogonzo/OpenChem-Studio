@@ -365,7 +365,16 @@ def ink(widget, width: int = 400, height: int = 300) -> int:
     return sum(1 for pixel in pixels if pixel != background)
 
 
+#: Whether the test that just finished used Qt at all.
+_used_qt = [False]
+
+
+@pytest.hookimpl(trylast=True)
 def pytest_runtest_teardown(item, nextitem):
+    _used_qt[0] = "qapp" in getattr(item, "fixturenames", ())
+
+
+def pytest_runtest_logfinish(nodeid, location):
     """Collect Python's cycles between tests, not during a later one.
 
     THE MEASUREMENT THIS COMES FROM. Instrumenting `QObject.destroyed` --
@@ -404,5 +413,6 @@ def pytest_runtest_teardown(item, nextitem):
     not worth it for four same-file destructions when the crash being
     chased was cross-file.
     """
-    if "qapp" in getattr(item, "fixturenames", ()):
+    if _used_qt[0]:
+        _used_qt[0] = False
         gc.collect()

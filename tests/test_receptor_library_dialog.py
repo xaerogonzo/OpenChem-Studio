@@ -21,6 +21,21 @@ from openchem.chem.receptor_library import RECEPTOR_LIBRARY, find
 from openchem.ui.dialogs.receptor_library_dialog import ReceptorLibraryDialog
 
 
+_WINDOWS: list = []
+
+
+def _track(window):
+    _WINDOWS.append(window)
+    return window
+
+
+@pytest.fixture(autouse=True)
+def _close_windows():
+    yield
+    while _WINDOWS:
+        _WINDOWS.pop().close()
+
+
 @pytest.fixture
 def window(qapp, tmp_path):
     """A real MainWindow, following `test_main_window_docking_visualization`.
@@ -31,7 +46,7 @@ def window(qapp, tmp_path):
     settings.set("plugins/project_directory", str(tmp_path / "no_plugins_here"))
     settings.set("plugins/user_directory", str(tmp_path / "no_user_plugins_here"))
     session = SessionManager()
-    return MainWindow(services, settings, session)
+    return _track(MainWindow(services, settings, session))
 
 
 def _entry_items(dialog: ReceptorLibraryDialog) -> list:

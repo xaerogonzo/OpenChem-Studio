@@ -5,6 +5,8 @@ import time
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
+import pytest
+
 from openchem.app.main_window import MainWindow
 from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
@@ -20,6 +22,21 @@ _RECEPTOR_PDB = (
     "ATOM      3  N   PHE A 656      18.104  13.207   2.845  1.00 20.00           N\n"
     "END\n"
 )
+
+
+_WINDOWS: list = []
+
+
+def _track(window):
+    _WINDOWS.append(window)
+    return window
+
+
+@pytest.fixture(autouse=True)
+def _close_windows():
+    yield
+    while _WINDOWS:
+        _WINDOWS.pop().close()
 
 
 def _wait_until(qapp, predicate, timeout_seconds=20):
@@ -38,7 +55,7 @@ def _window(tmp_path):
     settings.set("plugins/project_directory", str(tmp_path / "no_plugins_here"))
     settings.set("plugins/user_directory", str(tmp_path / "no_user_plugins_here"))
     session = SessionManager()
-    return MainWindow(services, settings, session), services, session
+    return _track(MainWindow(services, settings, session)), services, session
 
 
 def _pose(metadata: dict) -> DockingPoseModel:
