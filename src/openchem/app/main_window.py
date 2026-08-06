@@ -175,6 +175,9 @@ class MainWindow(QMainWindow):
             on_screen=self._show_virtual_screening,
         )
 
+        # Connected after the panels exist, since the handler reads them.
+        self._undo_stack.indexChanged.connect(self._on_undo_index_changed)
+
         self._add_dock("Project Explorer", self._project_explorer, Qt.DockWidgetArea.LeftDockWidgetArea)
         self._properties_dock = self._add_dock(
             "Properties", self._property_panel, Qt.DockWidgetArea.RightDockWidgetArea
@@ -699,6 +702,28 @@ class MainWindow(QMainWindow):
             macromolecule.structure_text, macromolecule.source_format
         )
         self._center_tabs.setCurrentWidget(self._macromolecule_viewer.widget())
+        self._refresh_molecule_combos()
+
+    def _on_undo_index_changed(self, _index: int) -> None:
+        """Re-read the project into every dropdown after an undo or a redo.
+
+        The panels are refreshed imperatively by whichever method pushed a
+        command -- `add_molecule`, `add_macromolecule` and the import paths
+        all call `_refresh_molecule_combos` themselves. Undo and redo do
+        not go through any of those, so nothing told the panels the project
+        had changed back.
+
+        Measured: importing a receptor and pressing Ctrl+Z removed it from
+        the project and LEFT IT IN the Docking panel's receptor list, where
+        it could still be selected and docked against. `AddMacromoleculeCommand`
+        publishes no event at all -- unlike its molecule counterpart -- so
+        there was nothing to subscribe to.
+
+        Hooked to the stack rather than fixing that one command, because
+        this is a whole class: any command that changes what a dropdown
+        lists has the same hole, and `repopulate` restores the current
+        selection by uuid so a spurious refresh costs nothing.
+        """
         self._refresh_molecule_combos()
 
     def _refresh_molecule_combos(self) -> None:
