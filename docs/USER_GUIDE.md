@@ -668,6 +668,48 @@ External Tools.
 
 ---
 
+<!-- help:periodic-table -->
+## The periodic table
+
+**Tools ▸ Periodic Table…** opens a reference table. It stays open while you
+work, and selecting an element shows:
+
+- its electron configuration, in the conventional shell order (iron reads
+  `[Ar] 3d⁶ 4s²`, not the order the shells are filled in)
+- group, period, block and category
+- relative atomic mass, van der Waals and covalent radii
+- Pauling electronegativity
+- the oxidation states it is commonly found in
+- **its naturally occurring isotopes, with abundances** — ⁵⁶Fe 91.75%, and so on
+
+That last one is the part most periodic tables in drawing programs leave out.
+It came free: RDKit's own tables carry the full abundance data, so none of it
+is hand-entered.
+
+**This is not the table you draw with.** The 2D editor's toolbar has its own,
+which places atoms and can express query forms (Single / List / Not List) that
+a reference table has no way to say. This one answers questions instead; it
+offers **Copy symbol** and nothing that would place an atom.
+
+### It says when something is not known
+
+Oganesson has been made a handful of atoms at a time. Its common oxidation
+states are **not established**, it has **no accepted electronegativity value**,
+and it has **no naturally occurring isotopes** — and the table says each of
+those in words, because a blank row would read as a bug rather than as a fact.
+
+Technetium is the more familiar case: element 43 has no stable isotope, which
+is why there is a gap in the table where you would expect one.
+
+Iron reads "no defined valence", which is normal for a metal and is the same
+fact the structure checker acts on when it declines to do octet arithmetic on
+iron oxides.
+
+Colour marks category, but never on its own — the category is written out in
+the detail pane and in every cell's tooltip.
+
+---
+
 <!-- help:external-tools -->
 ## External tools
 

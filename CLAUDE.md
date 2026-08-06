@@ -240,6 +240,50 @@ in a checkout that was being edited by hand at the time, so the two arms
 were different trees and the comparison was worthless. Check `git status`
 and file mtimes before believing an A/B.
 
+#### Confirmed again, independently, at the Structure Check work
+
+The reverted fixture's central finding was re-derived from scratch by
+somebody who had not yet connected it to this section, which is worth
+recording because it means the result is real and not an artefact of how
+`dispose_app_widgets` happened to be written.
+
+Adding `tests/test_structure_check_panel.py` (which builds a MainWindow and
+pumps events) gave **1 access violation in 5 full runs**, at
+`test_a_quick_fix_lands_on_the_undo_stack`. That file inserts ~50 tests
+ahead of the panel tests and so shifts collection timing; it does not
+introduce anything new. Note `pytest-randomly` IS NOT INSTALLED here, so
+file order is deterministic and adding a file is the only thing that
+reorders anything.
+
+Seven files build a MainWindow and abandon it -- `test_main_window_*.py`
+(six of them) and `test_receptor_library_dialog.py`. Giving each the
+per-file disposal recipe from the section above, so the abandoned windows
+are destroyed deterministically at teardown, produced:
+
+| arm | forced-drain subset |
+| --- | --- |
+| abandoned, as today | crash 3/3, then 0/10 on the same tree |
+| explicitly disposed | **crash 6/6** |
+
+So **destroying them is worse than leaving them**, which is exactly what
+the `dispose_app_widgets` table already said and is now confirmed by a
+second, differently-written implementation. Do not try this a third time.
+
+The middle row is the other lesson: an unchanged tree gave 3/3 and then
+0/10. The rate itself moves between batches, so **no A/B here is worth
+anything below about n=10 per arm**, and a 3-run comparison -- which is
+what most of the earlier work in this section used -- can say the opposite
+of the truth.
+
+The forced-drain lever from the ketcher section works on this crash too and
+is the only reason any of the above could be measured at all:
+
+```python
+loop = QEventLoop(); QTimer.singleShot(0, loop.quit); loop.exec()
+```
+
+run as an autouse fixture before each test of the victim file.
+
 One caveat worth knowing if you re-run that instrumentation: stacking BOTH
 diagnostic plugins on top of the now-permanent fixtures double-wraps every
 widget constructor and destabilised a run by itself (a `Fatal Python error:

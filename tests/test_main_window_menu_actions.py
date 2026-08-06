@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from openchem.app.main_window import MainWindow
 from openchem.app.session import SessionManager
 from openchem.app.settings import Settings

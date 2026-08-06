@@ -55,6 +55,7 @@ from openchem.services.container import ServiceContainer
 from openchem.ui.dialogs.about_dialog import AboutDialog
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
 from openchem.ui.dialogs.help_dialog import HelpDialog
+from openchem.ui.dialogs.periodic_table_dialog import PeriodicTableDialog
 from openchem.ui.dialogs.structure_lookup_dialog import StructureLookupDialog
 from openchem.ui.panels.console_panel import ConsolePanel
 from openchem.ui.panels.alignment_panel import AlignmentPanel
@@ -513,6 +514,7 @@ class MainWindow(QMainWindow):
         self._oxidation_states_action = oxidation_action
 
         tools_menu = self.menuBar().addMenu("&Tools")
+        tools_menu.addAction("Periodic Table...", self._show_periodic_table)
         tools_menu.addAction("Identify Structure Online...", lambda: self._identify_structure())
         tools_menu.addAction("External Tools...", self._show_external_tools_dialog)
 
@@ -942,6 +944,24 @@ class MainWindow(QMainWindow):
         if molecule is None or molecule.uuid != event.result.molecule_uuid:
             return
         self._checker_indicator.show_result(event.result)
+
+    def _show_periodic_table(self) -> None:
+        """The reference table, under Tools.
+
+        One window, reused and non-modal, like the help window -- it is
+        something to read WHILE working, and a modal table you have to
+        dismiss before drawing would be useless for the thing it is for.
+
+        Distinct from the periodic table in the editor's own toolbar, which
+        is Ketcher's and inserts atoms. This one answers questions.
+        """
+        existing = getattr(self, "_periodic_table_dialog", None)
+        if existing is None:
+            existing = PeriodicTableDialog(self)
+            self._periodic_table_dialog = existing
+        existing.show()
+        existing.raise_()
+        existing.activateWindow()
 
     def _toggle_oxidation_states(self, checked: bool) -> None:
         """Mirror of the panel's own checkbox.
