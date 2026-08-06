@@ -318,3 +318,34 @@ def test_a_subscriber_collected_during_dispatch_is_not_called(qapp):
     bus._dispatch(MoleculeChanged(molecule_uuid="u"))
 
     assert seen == ["killer"], "the victim was collected mid-dispatch and must not be called"
+
+
+def test_closing_a_main_window_empties_its_undo_stack(qapp, tmp_path):
+    """Not tidiness -- destruction safety.
+
+    A MainWindow whose stack still holds commands faults when it is
+    destroyed. Measured against the real window: suppress `_new_molecule`
+    so nothing is ever pushed and it destroys cleanly 3/3; clear the stack
+    first and it destroys cleanly 5/5; drop it as-is and it segfaults 5/5.
+    `close()` alone is not enough, so `closeEvent` does the clearing.
+
+    The mechanism is not understood. A synthetic QUndoCommand on a
+    QUndoStack destroys fine, and so does the real `AddMoleculeCommand` in
+    a minimal harness -- it takes the whole window. Recorded in CLAUDE.md.
+    """
+    from openchem.app.main_window import MainWindow
+    from openchem.app.session import SessionManager
+    from openchem.app.settings import Settings
+    from openchem.bootstrap import build_service_container
+
+    services = build_service_container()
+    settings = Settings(services.event_bus)
+    settings.set("plugins/project_directory", str(tmp_path / "no_plugins"))
+    settings.set("plugins/user_directory", str(tmp_path / "no_user"))
+    window = MainWindow(services, settings, SessionManager())
+    # The auto-created molecule puts one command on the stack.
+    assert window._undo_stack.count() > 0
+
+    window.close()
+
+    assert window._undo_stack.count() == 0

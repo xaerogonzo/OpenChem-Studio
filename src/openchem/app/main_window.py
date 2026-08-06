@@ -390,6 +390,21 @@ class MainWindow(QMainWindow):
             return
         self._settings.set_window_geometry(self.saveGeometry())
         self._settings.set_window_state(self.saveState())
+        # EMPTY THE UNDO STACK BEFORE THE WINDOW GOES.
+        #
+        # Destroying a MainWindow whose stack still holds commands faults.
+        # Bisected against the real window: suppress `_new_molecule` (so
+        # nothing is ever pushed) and it destroys cleanly 3/3; clear the
+        # stack first and it destroys cleanly 5/5; drop it as-is and it
+        # segfaults 5/5. `close()` alone is NOT enough -- the stack has to
+        # be emptied -- which is why this line is here and not left to Qt.
+        #
+        # The mechanism is NOT understood, and that is worth writing down:
+        # a synthetic QUndoCommand on a QUndoStack destroys fine, and so
+        # does the real `AddMoleculeCommand` in a minimal harness. It takes
+        # the whole window, so the commands are necessary but not
+        # sufficient. See CLAUDE.md before building on this.
+        self._undo_stack.clear()
         super().closeEvent(event)
 
     def _build_menus(self) -> None:

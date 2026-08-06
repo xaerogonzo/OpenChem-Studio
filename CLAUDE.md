@@ -305,6 +305,50 @@ SECOND construction segfaults, 5/5. So destroying a MainWindow leaves
 something process-global in a state the next one trips over. That is the
 next thread to pull; the section below still applies until it is pulled.
 
+#### What makes MainWindow destruction fault: the undo stack
+
+Bisected against the real window, by disabling one piece at a time:
+
+| window | destroyed |
+| --- | --- |
+| as built | **segfault 5/5** |
+| `_new_molecule` suppressed (nothing ever pushed) | clean 3/3 |
+| `_undo_stack.clear()` before dropping | clean 5/5 |
+| `close()` alone, before `closeEvent` cleared the stack | **segfault** |
+
+So commands sitting on the stack are what makes destruction fatal, and
+clearing it first is what makes destruction safe. `closeEvent` now clears
+it, which is why that line is there.
+
+**The mechanism is NOT understood, and nothing here should pretend
+otherwise.** A synthetic `QUndoCommand` on a `QUndoStack` destroys fine, so
+does the real `AddMoleculeCommand` in a minimal harness, and so does a
+hand-built `QMainWindow` carrying every panel, all three web views, custom
+dock title bars, a status-bar widget, scroll areas, menus and a plugin
+manager -- 3/3 each. It takes the whole real window. The commands are
+necessary but not sufficient.
+
+Ruled out along the way, each measured 3-5 times: `QWebEngineView`,
+`MoleculeEditorWidget`, `MoleculeViewer3DWidget`, `MolStarViewerBackend`,
+all three viewers together in a `QTabWidget`, `DockTitleBar`,
+`CheckerStatusIndicator`, `QScrollArea` + `tabifyDockWidget`, menus,
+`PluginManager`, and `_restore_window_state`.
+
+##### The full fix was built, measured, and NOT shipped
+
+Menu lambdas removed + `closeEvent` clearing the stack + the seven
+`test_main_window_*` files closing their windows: **the suite went green
+2/2**, and late C++ destructions went from 8 to **1190**. Closing a window
+does not lead to it being destroyed in its own test, and what still holds
+it was not identified. Trading a leak for a 150x increase in exactly the
+quantity that predicts this crash is not a trade worth making on a green
+run alone, so it was reverted. The `closeEvent` clear was kept: it is
+correct on its own and costs nothing.
+
+If someone picks this up, the open question is narrow and stated: after
+`window.close()` and a `gc.collect()` at teardown, what still references
+the window?
+
 #### DO NOT "FIX" MAINWINDOW'S MENU LAMBDAS. THE LEAK IS LOAD-BEARING.
 
 `MainWindow` leaks the same way, through about a dozen
