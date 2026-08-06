@@ -37,6 +37,7 @@ from openchem.chem.electronic_properties import (
     compute_polarizability,
 )
 from openchem.chem.huckel import compute_huckel_analysis, compute_pi_electron_density
+from openchem.chem.lewis import compute_lewis_sites
 from openchem.chem.markush import compute_markush_enumeration
 from openchem.chem.molecular_dynamics import DEFAULT_FRAME_INTERVAL as MD_DEFAULT_FRAME_INTERVAL
 from openchem.chem.molecular_dynamics import DEFAULT_STEP_FS as MD_DEFAULT_STEP_FS
@@ -1635,6 +1636,35 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             )
         ],
         tags=["naming", "iupac", "identity"],
+    ),
+    # ---- Lewis acid/base ---------------------------------------------
+    CalculatorDefinition(
+        calculator_id="lewis_sites",
+        display_name="Lewis Sites",
+        category="lewis",
+        description=(
+            "Donor and acceptor sites from the structure as drawn, each with the rule that "
+            "found it. Acceptors are found by mechanism -- empty valence orbital, low-lying "
+            "pi* or sigma*, vacant coordination site -- rather than by looking only for an "
+            "empty p orbital, which misses metals, SO3 and carbonyls. "
+            "Strength is deliberately not reported: nothing offline can rank two donors, and "
+            "carbon monoxide reports two candidate donor atoms without guessing between them."
+        ),
+        execution=RegistryExecution(compute=compute_lewis_sites),
+        prediction_basis="empirical",
+        tags=["lewis", "acid", "base", "donor", "acceptor", "per-atom"],
+        parameters=[
+            # Protonation genuinely changes the answer rather than
+            # restating it: an ammonium ion has no lone pair and is not a
+            # donor at all.
+            *microspecies_parameters(),
+            CalculatorParameter(
+                name="include_heuristic",
+                label="Include motif-based sites (pi*, sigma hole, coordination)",
+                kind="bool",
+                default=True,
+            ),
+        ],
     ),
     # ---- Phase 30: quantum, dynamics, dipole, MPO --------------------
     CalculatorDefinition(

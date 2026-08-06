@@ -141,7 +141,7 @@ def assign(mol: Any) -> OxidationStates:
 
     structural = _structural_refusal(mol, table)
     if structural is not None:
-        return structural
+        return _refuse(structural.reason, structural.atom_indices)
 
     states = {atom.GetIdx(): _state_of(atom, table) for atom in mol.GetAtoms()}
 
@@ -179,7 +179,32 @@ def _state_of(atom: Any, table: dict[str, dict[str, Any]]) -> int:
     return int(round(state))
 
 
-def _structural_refusal(mol: Any, table: dict[str, dict[str, Any]]) -> OxidationStates | None:
+@dataclass(frozen=True)
+class BondingRefusal:
+    """A bonding situation where the classical two-centre model breaks down.
+
+    Shared rather than private because it is not a fact about oxidation
+    states -- it is a fact about the molecule. A 3c-2e bridge, a metal
+    cluster and a transition-metal-carbon bond defeat oxidation-state
+    partitioning AND Lewis donor/acceptor assignment AND anything else
+    built on "each bond has two centres and one pair". Defining it twice
+    invites the two definitions to drift.
+    """
+
+    reason: str
+    atom_indices: tuple[int, ...]
+
+
+def classical_bonding_refusal(mol: Any) -> BondingRefusal | None:
+    """The three bonding situations a two-centre model cannot describe.
+
+    Callers add their own consequence; this only names what is true of the
+    structure. Returns None when the classical picture holds.
+    """
+    return _structural_refusal(mol, electronegativity_table())
+
+
+def _structural_refusal(mol: Any, table: dict[str, dict[str, Any]]) -> BondingRefusal | None:
     """The three bonding situations the partition rule cannot describe."""
 
     # 3c-2e bridges. A hydrogen bonded to two heavy atoms is not sharing a
@@ -192,11 +217,13 @@ def _structural_refusal(mol: Any, table: dict[str, dict[str, Any]]) -> Oxidation
         if atom.GetAtomicNum() == 1 and atom.GetDegree() > 1
     ]
     if bridging:
-        return _refuse(
-            "A hydrogen here bridges two atoms (a three-centre two-electron bond, as in "
-            "the boranes). Electron-deficient bonding cannot be described by giving each "
-            "bond's pair to one atom.",
-            tuple(bridging),
+        return BondingRefusal(
+            reason=(
+                "A hydrogen here bridges two atoms (a three-centre two-electron bond, as "
+                "in the boranes). Electron-deficient bonding cannot be described by "
+                "giving each bond's pair to one atom."
+            ),
+            atom_indices=tuple(bridging),
         )
 
     # Metal clusters, but not dimers. Calomel's Hg-Hg gives +1 on each
@@ -210,11 +237,13 @@ def _structural_refusal(mol: Any, table: dict[str, dict[str, Any]]) -> Oxidation
         and sum(1 for n in atom.GetNeighbors() if _is_metal(n, table)) >= 2
     ]
     if cluster:
-        return _refuse(
-            "This is a metal cluster: at least one metal atom is bonded to two others. "
-            "Cluster bonding is delocalised over the metal framework, so there is no "
-            "per-atom partition to make.",
-            tuple(cluster),
+        return BondingRefusal(
+            reason=(
+                "This is a metal cluster: at least one metal atom is bonded to two "
+                "others. Cluster bonding is delocalised over the metal framework, so "
+                "there is no per-atom partition to make."
+            ),
+            atom_indices=tuple(cluster),
         )
 
     # Transition-metal-carbon bonds. THIS is the boundary the measurement
@@ -231,11 +260,14 @@ def _structural_refusal(mol: Any, table: dict[str, dict[str, Any]]) -> Oxidation
     ]
     if organometallic:
         symbols = sorted({mol.GetAtomWithIdx(i).GetSymbol() for i in organometallic})
-        return _refuse(
-            f"{', '.join(symbols)} is bonded directly to carbon. In transition-metal "
-            "organometallics the metal donates electrons back to the ligand, which this "
-            "rule cannot see -- it gives Cr(CO)6 a chromium of +6, where the answer is 0.",
-            tuple(organometallic),
+        return BondingRefusal(
+            reason=(
+                f"{', '.join(symbols)} is bonded directly to carbon. In transition-metal "
+                "organometallics the metal donates electrons back to the ligand, which a "
+                "two-centre model cannot see -- it gives Cr(CO)6 a chromium of +6, where "
+                "the answer is 0."
+            ),
+            atom_indices=tuple(organometallic),
         )
 
     return None

@@ -64,6 +64,10 @@ _CATEGORY_ORDER = [
     "stereochemistry",
     "medicinal_chemistry",
     "pka",
+    # Directly after pKa on purpose. Somebody reading "how basic is this"
+    # is standing exactly where the Bronsted answer stops being the whole
+    # answer, and carbon monoxide is the case that proves it.
+    "lewis",
     "admet",
     "shape",
 ]
@@ -89,6 +93,7 @@ _CATEGORY_LABELS = {
     "stereochemistry": "Stereochemistry",
     "medicinal_chemistry": "Medicinal Chemistry",
     "pka": "pKa",
+    "lewis": "Lewis Acid/Base",
     "admet": "ADMET / Toxicity",
     "shape": "Shape",
     # Without these two the panel falls back to `category.title()`, which
