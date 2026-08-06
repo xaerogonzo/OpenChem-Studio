@@ -837,3 +837,105 @@ def test_the_real_registry_wires_both_lewis_calculators(qapp):
     registry = build_service_container().calculator_registry
     ids = {d.calculator_id for d in registry.by_category("lewis")}
     assert ids == {"lewis_sites", "lewis_hsab", "lewis_adduct"}
+
+
+def _long_alert(category: str, alert_id: str):
+    from openchem.domain.common import CacheState, Provenance
+    from openchem.domain.scientific_result import AlertResult
+    from openchem.events.events import AlertComputed
+
+    return AlertComputed(alert=AlertResult(
+        alert_id=alert_id, name=alert_id, molecule_uuid="m1", category=category,
+        matched=[
+            "Pi system: 6 atoms, 6 pi electrons",
+            "Total pi energy: 8.0000 beta",
+            "Orbital energies (beta): +2.0000, +1.0000, +1.0000, -1.0000, -1.0000, -2.0000",
+            "Note: simple Huckel treats every pi centre as an identical carbon. This molecule "
+            "contains heteroatoms, whose real alpha/beta parameters differ -- densities on "
+            "those atoms are indicative only.",
+        ],
+        cache_state=CacheState.COMPLETED,
+        provenance=Provenance(created_by="core", method="x"),
+    ))
+
+
+def _panel_in_a_scroll_area(qapp):
+    """The real arrangement: the panel inside a height-limited scroll area,
+    which is what MainWindow's `_wrap_scrollable` builds."""
+    from PySide6.QtWidgets import QScrollArea
+    from openchem.bootstrap import build_service_container
+
+    container = build_service_container()
+    panel = PropertyPanel(
+        container.event_bus, container.calculator_registry,
+        container.descriptor_service, container.chemistry_engine,
+    )
+    area = QScrollArea()
+    area.setWidget(panel)
+    area.setWidgetResizable(True)
+    area.resize(340, 700)
+    area.show()
+    container.event_bus.publish(MoleculeSelected(molecule_uuid="m1"))
+    return panel, container.event_bus, area
+
+
+def test_a_long_result_does_not_squeeze_the_calculator_buttons(qapp):
+    """A wrapped QLabel claims it needs ONE LINE however much text it has.
+
+    That made the panel under-report its minimum height, so the scroll
+    area pinned it to the viewport and the layout squeezed everything
+    compressible instead: the "Open [Calculator]..." buttons dropped from
+    20 pixels to 13, below their own minimum size hint.
+
+    TWO sections expanded is the smallest case that reproduces it -- with
+    one, nothing compresses and this test passes against the bug. See
+    `_WrappedLabel` for why all three of its overrides are needed.
+    """
+    from PySide6.QtWidgets import QPushButton
+
+    panel, bus, _area = _panel_in_a_scroll_area(qapp)
+    for category in ("quantum", "lewis"):
+        panel._sections[category]._toggle_button.setChecked(True)
+    qapp.processEvents()
+
+    bus.publish(_long_alert("quantum", "huckel_analysis"))
+    bus.publish(_long_alert("lewis", "lewis_sites"))
+    for _ in range(3):
+        qapp.processEvents()
+
+    for category in ("quantum", "lewis"):
+        layout = panel._sections[category]._calculators_layout
+        heights = [
+            layout.itemAt(i).widget().height()
+            for i in range(layout.count())
+            if isinstance(layout.itemAt(i).widget(), QPushButton)
+        ]
+        assert heights, category
+        for height in heights:
+            assert height >= 20, f"{category} button squeezed to {height}px"
+
+
+
+def test_a_long_result_is_not_silently_clipped(qapp):
+    """The second half of the same bug, and the worse half: part of a
+    result was cut off with nothing to indicate it."""
+    from PySide6.QtWidgets import QLabel
+
+    panel, bus, _area = _panel_in_a_scroll_area(qapp)
+    for category in ("quantum", "lewis"):
+        panel._sections[category]._toggle_button.setChecked(True)
+    qapp.processEvents()
+
+    bus.publish(_long_alert("quantum", "huckel_analysis"))
+    bus.publish(_long_alert("lewis", "lewis_sites"))
+    for _ in range(3):
+        qapp.processEvents()
+
+    clipped = [
+        label.text()[:40]
+        for label in panel.findChildren(QLabel)
+        if label.isVisible() and label.wordWrap() and label.width() > 0
+        and label.height() < label.heightForWidth(label.width())
+    ]
+    assert clipped == []
+

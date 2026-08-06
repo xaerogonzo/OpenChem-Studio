@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (
     QDialog,
     QFormLayout,
@@ -112,6 +112,75 @@ _DEFAULT_EXPANDED = {"physicochemical", "identity"}
 # (splitting one provider's `compute()` by category, or threading a
 # category filter through DescriptorService) to solve a performance
 # problem that doesn't exist. Collapsing is purely a decluttering aid.
+
+
+class _WrappedLabel(QLabel):
+    """A word-wrapped label that tells its layout how tall it really is.
+
+    **A wrapped `QLabel` reports a ONE-LINE minimum height however much
+    text it holds.** Qt has always done this, and normally nothing
+    notices, because a layout with room to spare gives the label its
+    (correct) size hint rather than its minimum.
+
+    This panel is the case where it does notice. Every section lives in
+    one `QVBoxLayout` inside a `QScrollArea` with `setWidgetResizable`,
+    and that scroll area sizes the panel to `max(viewport,
+    minimumSizeHint)`. With the minimum under-reported -- measured at 78
+    pixels for a panel whose content needed far more -- the panel was
+    pinned to exactly the viewport height and NEVER SCROLLED. The layout
+    then squeezed every compressible child to make the content fit, and
+    the "Open [Calculator]..." buttons went from 20 pixels to 13, below
+    their own minimum size hint.
+
+    **All three of the overrides below are required, and NONE of them
+    works alone.** Measured with two sections expanded and a long result
+    in each, which is the smallest case that reproduces it:
+
+        plain QLabel (what shipped)   buttons 13 px, 2 labels clipped
+        size policy only              buttons 13 px, 2 labels clipped
+        hasHeightForWidth only        buttons 13 px, 2 labels clipped
+        minimumSizeHint only          buttons 13 px, 2 labels clipped
+        all three                     buttons 20 px, nothing clipped
+
+    They are three halves of one mechanism: `minimumSizeHint` supplies an
+    honest minimum, `hasHeightForWidth` is what lets the layout ask for
+    it during its minimum calculation, and the `MinimumExpanding` policy
+    is what makes that minimum BINDING rather than a suggestion the
+    layout may shrink past. Remove any one and the label goes back to
+    claiming it needs one line.
+
+    Note the second symptom in that table. The old behaviour did not only
+    squeeze the buttons -- it CLIPPED the text, silently, so part of a
+    result was simply not on screen.
+
+    `QLayout.SizeConstraint.SetMinimumSize` on the panel does NOT fix it,
+    also measured: the under-reporting is in the labels, so the panel's
+    own minimum stays 78 whatever constraint it is given.
+
+    A method note, because it nearly produced a wrong answer here: with
+    only ONE section expanded, nothing compresses and every arm looks
+    identical. An A/B run in that configuration says the fix does nothing.
+    Reproduce the failure first, then compare.
+    """
+
+    def __init__(self, text: str = "", parent: QWidget | None = None) -> None:
+        super().__init__(text, parent)
+        self.setWordWrap(True)
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.MinimumExpanding)
+
+    def hasHeightForWidth(self) -> bool:  # noqa: N802 - Qt's own casing
+        return True
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802 - Qt's own casing
+        """The height this text actually needs at the width it has.
+
+        Falls back to Qt's answer before the first layout pass, when the
+        width is not yet known and `heightForWidth` would be meaningless.
+        """
+        width = self.width()
+        if width <= 0:
+            return super().minimumSizeHint()
+        return QSize(0, self.heightForWidth(width))
 
 
 class _CollapsibleSection(QWidget):
@@ -369,8 +438,7 @@ class PropertyPanel(QWidget):
         # plugin-reduced registry cannot leave a pointer to nowhere.
         if not self._calculator_registry.by_category(other):
             return
-        hint = QLabel(message, section.content)
-        hint.setWordWrap(True)
+        hint = _WrappedLabel(message, section.content)
         hint.setStyleSheet("color: #666666; font-style: italic;")
         section.add_calculator_widget(hint)
 
@@ -408,12 +476,11 @@ class PropertyPanel(QWidget):
         if not ab_initio:
             return
         panel_name = ab_initio[0].execution.panel_name
-        hint = QLabel(
+        hint = _WrappedLabel(
             f"Estimate above is empirical (instant). For a real ab initio "
             f"calculation, use the {panel_name}.",
             section.content,
         )
-        hint.setWordWrap(True)
         hint.setStyleSheet("color: #666666; font-style: italic;")
         section.add_calculator_widget(hint)
 
@@ -490,8 +557,7 @@ class PropertyPanel(QWidget):
 
         value_label = self._alert_labels.get(row_key)
         if value_label is None:
-            value_label = QLabel(section.content)
-            value_label.setWordWrap(True)
+            value_label = _WrappedLabel("", section.content)
             section.content_layout().addRow(alert.name, value_label)
             self._alert_labels[row_key] = value_label
 
