@@ -84,6 +84,9 @@ class DockingPanel(QWidget):
         self._project: ProjectModel | None = None
         self._pending_ligand_uuid: str | None = None
         self._pending_receptor_uuid: str | None = None
+        #: Which docking result the pose table is showing, so an undo
+        #: that removes it can be told apart from a redo that restores it.
+        self._displayed_result_uuid: str | None = None
 
         self._receptor_combo = QComboBox(self)
         # Parsing a receptor is not free (Open Babel reads the whole file),
@@ -344,10 +347,44 @@ class DockingPanel(QWidget):
         if event.state.value in ("completed", "failed"):
             self._dock_button.setEnabled(True)
 
-    def _on_result_ready(self, event: DockingResultReady) -> None:
-        result = event.result
-        if not self._is_pending(result.ligand_molecule_uuid, result.receptor_macromolecule_uuid):
-            return
+    def sync_with_project(self, project: ProjectModel | None) -> None:
+        """Make the pose table agree with the project's docking results.
+
+        The table was filled from the `DockingResultReady` event and never
+        read back from the project, so it only ever reflected what had just
+        finished. Undoing a dock removed the result and left the poses on
+        screen -- binding affinities, to two decimal places, for a run the
+        project no longer contains. Measured: two rows still listed after
+        the undo that emptied `project.docking_results`.
+
+        Symmetric on purpose. Clearing on undo without restoring on redo
+        would trade one wrong state for another, so this resolves the table
+        from the project every time: the newest result for the currently
+        selected receptor/ligand pair, or nothing.
+        """
+        self._table.setRowCount(0)
+        self._displayed_result_uuid = None
+        result = self._latest_result_for_selection(project)
+        if result is not None:
+            self._show_result(result)
+
+    def _latest_result_for_selection(self, project: ProjectModel | None):
+        if project is None:
+            return None
+        receptor_uuid = self._receptor_combo.currentData()
+        ligand_uuid = self._ligand_combo.currentData()
+        matching = [
+            result
+            for result in project.docking_results
+            if result.receptor_macromolecule_uuid == receptor_uuid
+            and result.ligand_molecule_uuid == ligand_uuid
+        ]
+        # Newest wins: re-docking the same pair should show the run just
+        # made, not the first one ever made.
+        return max(matching, key=lambda r: r.timestamp) if matching else None
+
+    def _show_result(self, result) -> None:
+        self._displayed_result_uuid = result.uuid
         self._table.setRowCount(len(result.poses))
         for row, pose in enumerate(result.poses):
             values = (
@@ -358,3 +395,9 @@ class DockingPanel(QWidget):
             )
             for col, value in enumerate(values):
                 self._table.setItem(row, col, QTableWidgetItem(value))
+
+    def _on_result_ready(self, event: DockingResultReady) -> None:
+        result = event.result
+        if not self._is_pending(result.ligand_molecule_uuid, result.receptor_macromolecule_uuid):
+            return
+        self._show_result(result)

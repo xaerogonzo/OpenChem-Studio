@@ -114,6 +114,10 @@ class MainWindow(QMainWindow):
         self._undo_stack = QUndoStack(self)
         self._plugin_panels: dict[str, QDockWidget] = {}
         self._plugin_menu_actions: dict[str, list[QAction]] = {}
+        #: Whether a docked pose is currently drawn into the
+        #: macromolecule viewer, and which receptor it went into.
+        self._showed_a_pose = False
+        self._last_pose_receptor_uuid: str | None = None
 
         self.setWindowTitle("OpenChem Studio")
         self.resize(1280, 800)
@@ -725,6 +729,36 @@ class MainWindow(QMainWindow):
         selection by uuid so a spurious refresh costs nothing.
         """
         self._refresh_molecule_combos()
+        # The pose table is not a dropdown and is not rebuilt from the
+        # project, so it needs telling separately.
+        self._docking_panel.sync_with_project(self._session.project)
+        self._clear_stale_pose_overlay()
+
+    def _clear_stale_pose_overlay(self) -> None:
+        """Drop the docked ligand and its binding-site colouring when the
+        result they came from has been undone.
+
+        The receptor itself is left loaded: it is still in the project, and
+        reloading it would throw away the camera position for no reason.
+        What must go is the pose drawn into it and the interaction layers
+        painted from that pose -- a ligand shown sitting in a binding site
+        is a claim, and it should not outlive the result that made it.
+        """
+        project = self._session.project
+        if project is None or project.docking_results:
+            return
+        if not self._showed_a_pose:
+            return
+        self._showed_a_pose = False
+        receptor_uuid = self._last_pose_receptor_uuid
+        receptor = project.find_macromolecule(receptor_uuid) if receptor_uuid else None
+        if receptor is not None:
+            self._macromolecule_viewer.load_macromolecule(
+                receptor.structure_text, receptor.source_format
+            )
+        else:
+            self._macromolecule_viewer.clear()
+        self._macromolecule_viewer.apply_visualizations([])
 
     def _refresh_molecule_combos(self) -> None:
         """DockingPanel's receptor/ligand combos and QuantumChemistryPanel's
@@ -846,6 +880,8 @@ class MainWindow(QMainWindow):
         self._macromolecule_viewer.apply_visualizations(
             build_interaction_layers(best_pose.metadata)
         )
+        self._showed_a_pose = True
+        self._last_pose_receptor_uuid = receptor.uuid
         self._center_tabs.setCurrentWidget(self._macromolecule_viewer.widget())
 
     # --- structure clipboard ---------------------------------------------------
