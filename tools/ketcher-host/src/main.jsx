@@ -30,6 +30,44 @@ function tryWireBridge() {
   } catch (e) {
     console.error('[ketcher-host] failed to subscribe to change event', e)
   }
+
+  // Which atom is selected, for the Atom Inspector.
+  //
+  // `selectionChange` is NOT on ketcher.subscribe's switch -- that facade
+  // only knows 'change' and 'libraryUpdate' -- but it IS on the editor's
+  // own event object, confirmed by probing the real vendored build rather
+  // than by reading the minified bundle. `editor.selection()` returns null
+  // when nothing is selected, so the payload is nullable and the guard
+  // below is load-bearing.
+  //
+  // Only single-atom selections are forwarded. The inspector describes ONE
+  // atom, and a marquee across half the structure is a different gesture
+  // that would otherwise make it flicker through whatever came last.
+  // THE DISPATCHED ARGUMENT IS USELESS HERE -- read the selection back off
+  // the editor instead. `selectionChange` is a PipelineSubscription, which
+  // feeds each handler the PREVIOUS handler's return value rather than the
+  // original payload. Ketcher registers its own handler first and that one
+  // returns nothing, so anything added afterwards receives `undefined`.
+  // Measured: a probe handler saw `typeof sel === 'undefined'` on every
+  // dispatch while the event itself fired correctly.
+  //
+  // 'change' above does not have this problem because it is a plain
+  // Subscription, which is why the two look like they should behave the
+  // same and do not.
+  try {
+    ketcherInstance.editor.event.selectionChange.add(() => {
+      const selection = ketcherInstance.editor.selection()
+      const atoms = selection && selection.atoms
+      // Single atoms only: the inspector describes ONE atom, and a marquee
+      // across half the structure would make it flicker through whatever
+      // came last.
+      if (atoms && atoms.length === 1) {
+        bridgeObject.atomSelected(atoms[0])
+      }
+    })
+  } catch (e) {
+    console.error('[ketcher-host] failed to subscribe to selectionChange', e)
+  }
 }
 
 function handleKetcherInit(ketcher) {

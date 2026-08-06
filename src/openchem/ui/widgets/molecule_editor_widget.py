@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from PySide6.QtCore import Signal
+
 from PySide6.QtGui import QUndoStack
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
@@ -33,6 +35,9 @@ class MoleculeEditorWidget(QWidget):
     KetcherEditorBackend.trigger_toolbar_action).
     """
 
+    #: One atom, when the user selects exactly one on the 2D canvas.
+    atom_selected = Signal(int)
+
     def __init__(
         self,
         engine: ChemistryEngine,
@@ -58,6 +63,9 @@ class MoleculeEditorWidget(QWidget):
         layout.addWidget(self._backend.widget())
 
         self._backend.edited.connect(self._on_editor_edited)
+        # Straight through: the widget adds nothing to an atom index,
+        # and a consumer should not have to reach for the backend.
+        self._backend.atom_selected.connect(self.atom_selected)
         # The canvas has to follow changes it did not make. Undo is the one
         # that matters: `EditStructureCommand` reverts the model and
         # publishes `MoleculeChanged`, and nothing was listening -- so

@@ -811,6 +811,49 @@ length guard rather than silently mis-scored — that guard is deliberate, not a
 bug. They are kept as the record of what the ML alternatives scored at the
 time; compare them only against the corpus revision they were made for.
 
+## Ketcher CAN report atom selection, with one trap
+
+The 2D editor was assumed to expose nothing for selection -- its Python
+backend has only `load_molblock`, `set_render_option`,
+`trigger_toolbar_action` and `get_molblock`. That is a fact about **our
+wrapper**, not about Ketcher, and reading the wrapper is what made it look
+impossible.
+
+Probing the real vendored build (load `resources/ketcher/dist/index.html`
+in a bare `QWebEngineView` and evaluate JS -- far faster than driving the
+app) found:
+
+- `ketcher.subscribe(name, handler)` is a **switch** that accepts only
+  `'change'` and `'libraryUpdate'`. This is the dead end that makes
+  selection look unavailable.
+- `editor.subscribe` is a DIFFERENT method and does exist.
+- `editor.event` carries ~30 events including **`selectionChange`**, plus
+  `click`/`mousedown`/`mousemove` added at runtime by `domEventSetup` --
+  so the live object has more than the `this.event = {...}` literal in the
+  bundle shows.
+- `editor.selection()` reads the current selection synchronously and
+  returns `null` when nothing is selected. `editor.selection({atoms:[1]})`
+  sets it and dispatches the event, which is how to test this without
+  synthesising canvas clicks.
+
+**THE TRAP: `selectionChange` hands your handler `undefined`.** It is a
+`PipelineSubscription`, which feeds each handler the PREVIOUS handler's
+RETURN VALUE rather than the original payload. Ketcher registers its own
+handler first and that one returns nothing, so anything subscribed
+afterwards receives `undefined` forever. Measured: a probe handler saw
+`typeof sel === 'undefined'` on every dispatch while the event itself was
+firing correctly, which reads exactly like "the event does not work".
+
+`change` does NOT behave this way -- it is a plain `Subscription` -- so the
+two look interchangeable and are not.
+
+The fix is one line: ignore the argument and call
+`ketcherInstance.editor.selection()` inside the handler.
+
+Editing `tools/ketcher-host/src/main.jsx` requires `npm run build` in that
+directory for anything to change; `resources/ketcher/dist/` is build
+output. node and npm are installed, and a build takes about 25 seconds.
+
 ## Verification standard
 
 This project's convention, established across many sessions: **claims are

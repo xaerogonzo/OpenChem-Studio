@@ -47,12 +47,14 @@ class _Bridge(QObject):
         on_ketcher_ready: Callable[[], None],
         on_molfile_ready: Callable[[str, str], None],
         on_load_complete: Callable[[str], None] | None = None,
+        on_atom_selected: Callable[[int], None] | None = None,
     ) -> None:
         super().__init__()
         self._on_structure_edited = on_structure_edited
         self._on_ketcher_ready = on_ketcher_ready
         self._on_molfile_ready = on_molfile_ready
         self._on_load_complete = on_load_complete
+        self._on_atom_selected = on_atom_selected
 
     @Slot(str)
     def structureEdited(self, molblock: str) -> None:  # noqa: N802 - called from JS by this exact name
@@ -61,6 +63,11 @@ class _Bridge(QObject):
     @Slot()
     def ketcherReady(self) -> None:  # noqa: N802
         self._on_ketcher_ready()
+
+    @Slot(int)
+    def atomSelected(self, atom_index: int) -> None:  # noqa: N802 - called from JS by this exact name
+        if self._on_atom_selected is not None:
+            self._on_atom_selected(atom_index)
 
     @Slot(str, str)
     def molfileReady(self, request_id: str, molblock: str) -> None:  # noqa: N802
@@ -115,6 +122,7 @@ class KetcherEditorBackend(EditorBackend):
             self._on_ketcher_ready,
             self._on_molfile_ready,
             self._on_load_complete,
+            self._on_atom_selected,
         )
         self._channel.registerObject("bridge", self._bridge)
         self._page.setWebChannel(self._channel)
@@ -145,6 +153,16 @@ class KetcherEditorBackend(EditorBackend):
         self._pending_requests: dict[str, Callable[[str | None], None]] = {}
 
         self._page.load(QUrl.fromLocalFile(str(_DIST_INDEX)))
+
+    def _on_atom_selected(self, atom_index: int) -> None:
+        """One atom picked on the 2D canvas.
+
+        Ketcher's `selectionChange` fires for marquee selections too; the
+        JS side forwards only single-atom selections, because the inspector
+        describes ONE atom and a drag across half the structure would
+        otherwise make it flicker through whatever came last.
+        """
+        self.atom_selected.emit(atom_index)
 
     def _on_ketcher_ready(self) -> None:
         self._ketcher_ready = True

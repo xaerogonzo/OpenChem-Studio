@@ -192,6 +192,10 @@ class MainWindow(QMainWindow):
         # molecule just drawn has no conformer, which is exactly when
         # somebody wants to inspect an atom.
         self._viewer3d.atom_clicked.connect(self._atom_inspector_panel.select_atom)
+        # And the 2D canvas, which turned out to be possible after all --
+        # Ketcher's editor carries a `selectionChange` event even though
+        # its public `subscribe()` facade does not accept that name.
+        self._editor.atom_selected.connect(self._atom_inspector_panel.select_atom)
         self._jobs_panel = JobsPanel(services.job_manager, self)
         self._structure_check_panel = StructureCheckPanel(
             services.structure_check_service,

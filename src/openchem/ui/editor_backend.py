@@ -20,6 +20,12 @@ class EditorBackend(QObject):
     """
 
     edited = Signal()  # emitted whenever the user changes the structure
+    #: One atom index, when the user selects exactly one atom on the canvas.
+    #: Declared on the INTERFACE rather than on the Ketcher subclass because
+    #: "which atom is selected" is a property of a 2D editor, not of this
+    #: particular engine -- a replacement backend owes the same signal.
+    #: A backend whose engine cannot report selection simply never emits it.
+    atom_selected = Signal(int)
 
     def load_molblock(self, molblock: str) -> None:
         """Load a structure (as a V2000/V3000 molblock) into the editor."""
