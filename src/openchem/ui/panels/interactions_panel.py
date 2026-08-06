@@ -46,7 +46,17 @@ from openchem.events.base import EventBus
 from openchem.events.events import QuantumChemistryResultReady
 from openchem.ui.molecule_combo import repopulate
 
-_COLUMNS = ("Evidence", "Value", "Units", "Basis", "What it means")
+#: Three columns, both omissions measured rather than guessed.
+#:
+#: The NOTE is not a column. It runs to a couple of hundred characters,
+#: and as a wrapped cell it made every row taller than the whole table --
+#: 481 pixels of row inside a 106-pixel viewport, so the panel rendered
+#: correct data as three blank lines. It rides as a row tooltip and in
+#: full in the notes pane below.
+#:
+#: UNITS are not a column either. "12.12 kcal/mol" is how the number gets
+#: read aloud, and splitting it cost 103 pixels of a dock that has 314.
+_COLUMNS = ("Evidence", "Value", "Basis")
 
 #: descriptor_id suffix -> the keyword `predict` takes it as. delta-SCF is
 #: listed first for hardness and wins, because Koopmans hardness inverts
@@ -88,12 +98,23 @@ class InteractionsPanel(QWidget):
 
         self._table = QTableWidget(0, len(_COLUMNS), self)
         self._table.setHorizontalHeaderLabels(_COLUMNS)
-        self._table.horizontalHeader().setSectionResizeMode(
-            QHeaderView.ResizeMode.ResizeToContents
-        )
-        self._table.horizontalHeader().setStretchLastSection(True)
+        # The short columns size to their contents and the label column
+        # takes what is left. Three real columns still want about 520
+        # pixels in a dock that has 314, so this scrolls sideways at the
+        # default width and that is fine -- the dock is resizable and the
+        # full text of every cell is in its tooltip. Lowering the header's
+        # minimum section size does NOT help, measured: Stretch cannot
+        # shrink column 0 when the two fixed columns alone already exceed
+        # the viewport.
+        header = self._table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        for column in range(1, len(_COLUMNS)):
+            header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
         self._table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self._table.setWordWrap(True)
+        # No wrapping: one line per row keeps the table scannable, which is
+        # the only reason to use a table rather than prose.
+        self._table.setWordWrap(False)
+        self._table.verticalHeader().setVisible(False)
 
         self._notes = QTextEdit(self)
         self._notes.setReadOnly(True)
@@ -218,21 +239,30 @@ class InteractionsPanel(QWidget):
         self._table.setRowCount(len(result.evidence))
         for row, item in enumerate(result.evidence):
             # An unavailable line stays VISIBLE, with its reason in the
-            # last column. Dropping the row would read as "this does not
-            # apply here" when it means "run a quantum job".
-            cells = (
-                item.label,
-                "--" if item.value is None else f"{item.value:.2f}",
-                item.units,
-                item.basis.value,
-                item.note,
+            # tooltip and the notes pane. Dropping the row would read as
+            # "this does not apply here" when it means "run a quantum job".
+            value = (
+                "--" if item.value is None else f"{item.value:.2f} {item.units}".strip()
             )
+            cells = (item.label, value, item.basis.value)
             for column, text in enumerate(cells):
-                self._table.setItem(row, column, QTableWidgetItem(text))
-        self._table.resizeRowsToContents()
+                cell = QTableWidgetItem(text)
+                cell.setToolTip(item.note)
+                self._table.setItem(row, column, cell)
 
     def _fill_notes(self, result) -> None:
-        lines = [f"Assumption: {text}" for text in result.assumptions]
+        """Every note in full, below the table.
+
+        The notes are here as well as on the tooltips because a tooltip
+        cannot be read without knowing there is something to hover over,
+        and the reason a line is unavailable is exactly what somebody who
+        does not know their way around the panel needs.
+        """
+        lines = []
+        for item in result.evidence:
+            value = "not available" if item.value is None else f"{item.value:.2f} {item.units}"
+            lines.append(f"{item.label} -- {value}\n{item.note}")
+        lines.extend(f"Assumption: {text}" for text in result.assumptions)
         lines.extend(f"Limitation: {text}" for text in result.limitations)
         self._notes.setPlainText("\n\n".join(lines))
 

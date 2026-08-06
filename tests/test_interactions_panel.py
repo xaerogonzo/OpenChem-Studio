@@ -112,8 +112,10 @@ def test_a_parameterised_pair_shows_its_enthalpy(panel):
     widget._on_predict_clicked()
 
     rows = {row[0]: row for row in table_rows(widget)}
-    assert rows["Drago-Wayland enthalpy"][1] == "12.12"
-    assert rows["Drago-Wayland enthalpy"][2] == "kcal/mol"
+    # Units ride WITH the value: "12.12 kcal/mol" is how it is read aloud,
+    # and a separate column cost a third of the dock's width.
+    assert rows["Drago-Wayland enthalpy"][1] == "12.12 kcal/mol"
+    assert rows["Drago-Wayland enthalpy"][2] == "deterministic"
     assert "iodine + triethylamine" in widget._status_label.text()
 
 
@@ -130,7 +132,12 @@ def test_an_unavailable_line_stays_visible_with_its_reason(panel):
     rows = {row[0]: row for row in table_rows(widget)}
     assert len(rows) == 3
     assert rows["Frontier orbital gap"][1] == "--"
-    assert "quantum chemistry job" in rows["Frontier orbital gap"][4]
+    # The reason is NOT a table column -- as a wrapped cell it made rows
+    # taller than the whole table and the panel rendered blank. It is on
+    # the row's tooltip and in full in the notes pane.
+    tooltip = widget._table.item(1, 0).toolTip()
+    assert "quantum chemistry job" in tooltip
+    assert "quantum chemistry job" in widget._notes.toPlainText()
 
 
 def test_the_panel_states_its_assumptions_and_limitations(panel):
@@ -163,8 +170,8 @@ def test_a_quantum_run_fills_in_the_orbital_lines(panel):
     widget._on_predict_clicked()
 
     rows = {row[0]: row for row in table_rows(widget)}
-    assert rows["Frontier orbital gap"][1] == "7.82"
-    assert rows["HSAB hardness match"][1] == "1.95"
+    assert rows["Frontier orbital gap"][1] == "7.82 eV"
+    assert rows["HSAB hardness match"][1] == "1.95 eV"
 
 
 def test_delta_scf_hardness_wins_over_koopmans(panel):
@@ -185,7 +192,7 @@ def test_delta_scf_hardness_wins_over_koopmans(panel):
     widget._on_predict_clicked()
 
     rows = {row[0]: row for row in table_rows(widget)}
-    assert rows["HSAB hardness match"][1] == "1.79"  # |9.00 - 7.21|, not |6.11 - 4.16|
+    assert rows["HSAB hardness match"][1] == "1.79 eV"  # |9.00-7.21|, not |6.11-4.16|
 
 
 def test_quantum_numbers_are_kept_per_molecule(panel):
@@ -274,3 +281,46 @@ def test_neither_combo_follows_the_tree_selection(panel):
 
     assert widget._acid_combo.currentData(Qt.ItemDataRole.UserRole) == amine.uuid
     assert widget._base_combo.currentData(Qt.ItemDataRole.UserRole) == iodine.uuid
+
+
+def test_every_row_fits_inside_the_table(panel):
+    """The bug this file exists to stop coming back.
+
+    With `setWordWrap(True)` and `resizeRowsToContents()`, the note column
+    made row 0 **481 pixels tall inside a 106-pixel viewport**. Every test
+    above passed -- the model held the right strings -- and the panel
+    showed three blank lines in the running app. Only opening it caught
+    it, so this asserts the GEOMETRY rather than the contents.
+    """
+    widget, _bus = panel
+    iodine, amine = molecule("iodine", "II"), molecule("triethylamine", "CCN(CC)CC")
+    widget.set_project(ProjectModel(molecules=[iodine, amine]))
+    select(widget, iodine.uuid, amine.uuid)
+    widget.resize(360, 700)
+    widget.show()
+
+    widget._on_predict_clicked()
+    QCoreApplication.processEvents()
+
+    heights = [widget._table.rowHeight(r) for r in range(widget._table.rowCount())]
+    assert heights, "no rows"
+    # A single line of text, not a wrapped paragraph.
+    assert max(heights) < 60, heights
+    assert sum(heights) <= widget._table.viewport().height()
+
+
+def test_the_full_note_is_reachable_without_the_column(panel):
+    """Dropping the note column only works if the text is still findable.
+    It is in two places: the row's tooltip, and the notes pane."""
+    widget, _bus = panel
+    iodine, amine = molecule("iodine", "II"), molecule("triethylamine", "CCN(CC)CC")
+    widget.set_project(ProjectModel(molecules=[iodine, amine]))
+    select(widget, iodine.uuid, amine.uuid)
+
+    widget._on_predict_clicked()
+
+    assert "1965 paper" in widget._table.item(0, 0).toolTip()
+    assert "1965 paper" in widget._notes.toPlainText()
+    # Every cell in a row carries it, so hovering anywhere on the row works.
+    tooltips = {widget._table.item(0, c).toolTip() for c in range(widget._table.columnCount())}
+    assert len(tooltips) == 1
