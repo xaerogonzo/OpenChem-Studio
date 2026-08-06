@@ -573,3 +573,76 @@ def test_the_view_menu_item_mirrors_the_panel_checkbox(window):
     window._oxidation_states_action.setChecked(False)
 
     assert not window._structure_check_panel.oxidation_states_visible()
+
+
+# --- suppression, which the context menu is the only route to ---------------
+
+
+def test_suppressing_a_check_moves_it_to_not_checked_rather_than_hiding_it(panel, service, qapp):
+    """`CheckerResult.suppressed` existed from the engine's first commit --
+    query atoms, reaction templates and teaching examples are drawn wrong
+    on purpose -- but nothing in the UI could set it, which made the field
+    a promise the app did not keep. The findings context menu is that
+    route.
+
+    Waiving has to stay visible, or a later reader cannot tell a waived
+    check from a passed one.
+    """
+    molblock = molblock_for("C[N](C)(C)(C)C")
+    panel.set_molblock(molblock)
+    panel._on_recheck = lambda: panel.show_result(service.check("uuid", molblock))
+    panel.show_result(service.check("uuid", molblock))
+    assert "valence" in {issue.checker_id for issue in panel._result.issues}
+
+    panel._suppress("valence")
+    qapp.processEvents()
+
+    assert "valence" not in {issue.checker_id for issue in panel._result.issues}
+    assert panel._result.suppressed == ("valence",)
+    skipped = {s.checker_id: s.reason for s in panel._result.skipped}
+    assert skipped["valence"] == "suppressed for this molecule"
+
+
+def test_suppression_does_not_leak_to_another_molecule(panel, service):
+    molblock = molblock_for("C[N](C)(C)(C)C")
+    panel.set_molblock(molblock)
+    panel._on_recheck = lambda: None
+    panel.show_result(service.check("uuid", molblock))
+
+    panel._suppress("valence")
+
+    assert service.check("a-different-molecule", molblock).errors
+
+
+def test_suppressing_with_no_result_on_screen_does_nothing(panel, service):
+    """Right-clicking before anything has been checked must not raise."""
+    panel._suppress("valence")
+
+    assert service.suppressed_for("uuid") == frozenset()
+
+
+# --- the menus --------------------------------------------------------------
+
+
+def test_structure_operations_live_in_their_own_menu(window):
+    """Following Marvin: Edit is for the document -- undo, clipboard, which
+    molecule -- and Structure is for operating on the structure. These used
+    to sit between "Redo" and "Copy Structure As", where neither group was
+    easy to find."""
+    labels = {action.text() for action in window._structure_menu.actions()}
+
+    assert {"Aromatize", "Clean Up", "Check Structure...", "Add/Remove Explicit Hydrogens"} <= labels
+
+    edit_menu = next(
+        m for m in window.menuBar().findChildren(type(window._view_menu)) if m.title() == "&Edit"
+    )
+    edit_labels = {action.text() for action in edit_menu.actions()}
+    assert "Aromatize" not in edit_labels
+    assert {"Paste Structure", "Duplicate Molecule", "Rename Molecule..."} <= edit_labels
+
+
+def test_the_explorer_context_menu_can_reach_the_checker(window):
+    """The redundancy rule: the menu bar is how you find out something
+    exists, the right-click is how you use it afterwards. Copy SMILES was
+    reported as missing when it lived in only one of the two."""
+    assert window._project_explorer._on_check is not None

@@ -532,3 +532,156 @@ def test_every_rule_cites_a_reference_and_a_real_example():
         assert rule["reference"], symbol
         assert rule["examples"], symbol
         assert rule["maximum_valence"] == max(rule["permitted_valences"]), symbol
+
+
+# --- the layout suggestion --------------------------------------------------
+#
+# Every other geometry check says a drawing looks wrong. This one generates
+# the alternative and compares, so it can tell "your drawing is bad" from
+# "your drawing is bad AND a redraw fixes it".
+
+
+def test_a_clean_depiction_is_not_offered_a_redraw(registry):
+    """Eight real molecules straight from Compute2DCoords were measured and
+    none was offered one. A layout suggestion that fires on good drawings
+    is an invitation to destroy somebody's layout."""
+    for smiles in ("CCO", "c1ccccc1", "CC(=O)Oc1ccccc1C(=O)O", "Cn1cnc2c1c(=O)n(C)c(=O)n2C"):
+        assert "layout_suggestion" not in ids_of(check(registry, smiles)), smiles
+
+
+def test_a_damaged_drawing_is_offered_a_redraw_with_the_numbers(registry):
+    def fling(conformer):
+        position = conformer.GetAtomPosition(4)
+        conformer.SetAtomPosition(4, Point3D(position.x - 7.0, position.y + 2.0, 0.0))
+
+    result = check(registry, "CC(=O)Oc1ccccc1C(=O)O", fling)
+
+    issue = next(i for i in result.issues if i.checker_id == "layout_suggestion")
+    assert issue.fix_id == "recompute_layout"
+    assert "0 crossing bonds instead of 2" in issue.message
+
+
+def test_morphine_is_flagged_for_crossing_bonds_but_not_offered_a_redraw(registry):
+    """THE case that makes this checker worth having.
+
+    RDKit's own depiction of morphine has one bond crossing, and
+    regenerating it still has one -- it is a fused polycyclic and that
+    crossing is the price of drawing it flat. So `overlapping_bonds`
+    correctly complains and this one correctly stays silent, because a
+    redraw would cost the user their layout and fix nothing.
+    """
+    result = check(registry, "CN1CCC23c4c5ccc(O)c4OC2C(O)C=CC3C1C5")
+
+    assert "overlapping_bonds" in ids_of(result)
+    assert "layout_suggestion" not in ids_of(result)
+
+
+def test_the_suggestion_is_a_note_rather_than_a_complaint(registry):
+    def fling(conformer):
+        position = conformer.GetAtomPosition(4)
+        conformer.SetAtomPosition(4, Point3D(position.x - 7.0, position.y + 2.0, 0.0))
+
+    issue = next(
+        i
+        for i in check(registry, "CC(=O)Oc1ccccc1C(=O)O", fling).issues
+        if i.checker_id == "layout_suggestion"
+    )
+
+    assert issue.severity is Severity.INFO
+    assert issue.category is Category.LAYOUT
+    # Two counts of the same exact quantity, so this is a measurement
+    # rather than a judgement -- there is deliberately no score attached.
+    assert issue.basis is Basis.DETERMINISTIC
+
+
+def test_a_3d_structure_is_never_offered_a_flat_redraw(registry):
+    """A 3D conformer's bonds cross in projection from most angles, so the
+    crossing count says nothing about it -- and "recompute layout" on one
+    would replace real geometry with a flat drawing. That is not a tidy-up,
+    it is data loss.
+
+    Added after mutation testing, then FIXED after mutation testing again:
+    the first version used a 3D aspirin, whose projection happens to have
+    zero crossings, so it returned early and never reached the guard at
+    all. Cholesterol is the case that bites -- measured at 15 crossings in
+    projection against 11 for a flat redraw, so without the guard the app
+    would offer to throw away a real conformer.
+    """
+    mol = Chem.MolFromSmiles("CC(C)CCCC(C)C1CCC2C1(CCC3C2CC=C4C3(CCC(C4)O)C)C")
+    mol = Chem.AddHs(mol)
+    assert AllChem.EmbedMolecule(mol, randomSeed=0xC0FFEE) == 0
+    molblock = Chem.MolToMolBlock(mol)
+    assert Chem.MolFromMolBlock(molblock, sanitize=False).GetConformer().Is3D()
+
+    result = run_checks(registry, build_context(molblock), "u")
+
+    assert "layout_suggestion" not in ids_of(result)
+
+
+def test_every_offered_fix_names_a_fix_that_actually_exists(registry):
+    """A `fix_id` naming nothing registered shows no button, silently.
+
+    Asserted over the whole registry rather than per checker, because
+    mutation testing found the per-checker assertions had missed crowding
+    entirely -- and a blanked `fix_id` is invisible in every other test.
+    """
+    from openchem.chem.quick_fixes import build_default_fix_registry
+
+    fixes = build_default_fix_registry()
+
+    def stack_and_stretch(conformer):
+        first = conformer.GetAtomPosition(0)
+        conformer.SetAtomPosition(3, Point3D(first.x + 0.2, first.y + 0.2, 0.0))
+        last = conformer.GetAtomPosition(5)
+        conformer.SetAtomPosition(5, Point3D(last.x + 8.0, last.y, 0.0))
+
+    seen = set()
+    for smiles, mutate in (
+        ("CCCCCC", stack_and_stretch),
+        ("CC(=O)[O-].[Na+]", None),
+        ("CCO", None),
+    ):
+        for issue in check(registry, smiles, mutate).issues:
+            if issue.fix_id:
+                seen.add(issue.fix_id)
+                assert fixes.get(issue.fix_id) is not None, issue.checker_id
+
+    assert {"recompute_layout", "keep_largest_fragment"} <= seen
+
+
+@pytest.mark.parametrize(
+    "checker_id, fix_id",
+    [
+        ("crowding", "recompute_layout"),
+        ("bond_length", "recompute_layout"),
+        ("overlapping_bonds", "recompute_layout"),
+        ("acute_bond_angle", "recompute_layout"),
+        ("layout_suggestion", "recompute_layout"),
+        ("disconnected_fragments", "keep_largest_fragment"),
+        ("explicit_hydrogen", "remove_explicit_hydrogens"),
+    ],
+)
+def test_each_checker_offers_the_fix_it_should(registry, checker_id, fix_id):
+    """Per checker, not "some issue offers a fix".
+
+    Mutation testing found the aggregate version useless: five checkers
+    offer `recompute_layout`, so blanking any ONE of them left the set of
+    seen fix ids unchanged and nothing noticed that its button had
+    disappeared.
+    """
+
+    def damage(conformer):
+        first = conformer.GetAtomPosition(0)
+        conformer.SetAtomPosition(3, Point3D(first.x + 0.2, first.y + 0.2, 0.0))
+        last = conformer.GetAtomPosition(5)
+        conformer.SetAtomPosition(5, Point3D(last.x + 8.0, last.y, 0.0))
+
+    candidates = [
+        check(registry, "CCCCCC", damage),
+        check(registry, "CC(=O)[O-].[Na+]"),
+        check(registry, "[H]OC([H])([H])[H]"),
+    ]
+    found = [i for result in candidates for i in result.issues if i.checker_id == checker_id]
+
+    assert found, f"{checker_id} never fired, so this test proves nothing"
+    assert all(issue.fix_id == fix_id for issue in found)

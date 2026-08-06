@@ -24,10 +24,12 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
+    QMenu,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -107,6 +109,8 @@ class StructureCheckPanel(QWidget):
         self._tree.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self._tree.setRootIsDecorated(True)
         self._tree.itemSelectionChanged.connect(self._on_selection_changed)
+        self._tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._tree.customContextMenuRequested.connect(self._on_context_menu_requested)
         self._tree.setColumnWidth(0, 360)
 
         self._depiction = QSvgWidget(self)
@@ -332,6 +336,57 @@ class StructureCheckPanel(QWidget):
             self._depiction.load(b"")
             return
         self._depiction.load(svg.encode("utf-8"))
+
+    # --- the findings context menu -------------------------------------------
+
+    def _on_context_menu_requested(self, position) -> None:
+        """Right-click a finding.
+
+        This is the only place suppression can be reached. `CheckerResult`
+        has carried `suppressed` since the engine was written -- query
+        atoms, reaction templates and teaching examples are drawn wrong on
+        purpose -- but until now nothing in the UI could set it, which made
+        the field a promise the app did not keep.
+        """
+        item = self._tree.itemAt(position)
+        if item is not None:
+            self._tree.setCurrentItem(item)
+        issue = self._selected_issue()
+        if issue is None:
+            return
+
+        menu = QMenu(self._tree)
+        fix = self._service.fix_for(issue.fix_id)
+        fix_action = (
+            menu.addAction(f"{fix.label} ({fix.safety.value})")
+            if fix is not None and self._molblock
+            else None
+        )
+        copy_action = menu.addAction("Copy message")
+        menu.addSeparator()
+        suppress_action = menu.addAction(f"Ignore '{issue.checker_id}' for this molecule")
+
+        chosen = menu.exec(self._tree.mapToGlobal(position))
+        if chosen is None:
+            return
+        if chosen is fix_action:
+            self._apply_selected_fix()
+        elif chosen is copy_action:
+            QGuiApplication.clipboard().setText(issue.message)
+        elif chosen is suppress_action:
+            self._suppress(issue.checker_id)
+
+    def _suppress(self, checker_id: str) -> None:
+        """Waive a check for the molecule on screen, and re-check at once.
+
+        Waiving is recorded rather than hidden -- the checker reappears
+        under "Not checked" with "suppressed for this molecule", so a later
+        reader can tell a waived check from a passed one.
+        """
+        if self._result is None:
+            return
+        self._service.suppress(self._result.molecule_uuid, checker_id)
+        self._request_recheck()
 
     # --- actions ------------------------------------------------------------
 

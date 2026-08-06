@@ -99,22 +99,28 @@ def test_structure_display_submenu_actions_proxy_to_the_real_ketcher_buttons(qap
     assert calls == ["Add/Remove explicit hydrogens button", "3D Viewer button"]
 
 
-def test_edit_menu_structure_actions_proxy_to_the_real_ketcher_buttons(qapp, tmp_path):
-    """Regression test for the follow-up bridges: Aromatize/Dearomatize/
-    Layout/Clean Up/Calculate CIP/Check Structure all go through the same
-    confirmed-live `trigger_toolbar_action` mechanism as the explicit-
-    hydrogens/3D-viewer actions, not a reimplementation."""
+def test_structure_menu_actions_proxy_to_the_real_ketcher_buttons(qapp, tmp_path):
+    """Regression test for the bridges: Aromatize/Dearomatize/Layout/Clean
+    Up/Calculate CIP/explicit hydrogens/Check Structure all go through the
+    same confirmed-live `trigger_toolbar_action` mechanism, not a
+    reimplementation.
+
+    They moved out of Edit into their own Structure menu, following
+    Marvin -- Edit is for the document (undo, clipboard, which molecule),
+    Structure is for operating on the structure.
+    """
     window = _build_window(tmp_path)
     calls: list[str] = []
     window._editor.trigger_toolbar_action = lambda action_id: calls.append(action_id)
 
-    edit_menu = next(m for m in window.menuBar().findChildren(type(window._view_menu)) if m.title() == "&Edit")
+    edit_menu = window._structure_menu
     expected = {
         "Aromatize": "Aromatize button",
         "Dearomatize": "Dearomatize button",
         "Layout (Recalculate Coordinates)": "Layout button",
         "Clean Up": "Clean Up button",
         "Calculate CIP (Stereo Descriptors)": "Calculate CIP button",
+        "Add/Remove Explicit Hydrogens": "Add/Remove explicit hydrogens button",
         "Check Structure in the Editor (Indigo)...": "Check Structure button",
     }
     for label, test_id in expected.items():
@@ -125,6 +131,7 @@ def test_edit_menu_structure_actions_proxy_to_the_real_ketcher_buttons(qapp, tmp
 
 def test_the_two_structure_checkers_are_distinct_menu_entries(qapp, tmp_path):
     """There are two opinions about a structure and they disagree on purpose.
+
 
     Ketcher's is Indigo's, and it is the one the CANVAS draws in red -- so
     it stays reachable. Ours is the panel, which accepts iron oxides and
@@ -138,8 +145,7 @@ def test_the_two_structure_checkers_are_distinct_menu_entries(qapp, tmp_path):
     calls: list[str] = []
     window._editor.trigger_toolbar_action = lambda action_id: calls.append(action_id)
 
-    edit_menu = next(m for m in window.menuBar().findChildren(type(window._view_menu)) if m.title() == "&Edit")
-    ours = next(a for a in edit_menu.actions() if a.text() == "Check Structure...")
+    ours = next(a for a in window._structure_menu.actions() if a.text() == "Check Structure...")
     ours.trigger()
 
     assert calls == [], "the app's own checker must not proxy to Ketcher's"

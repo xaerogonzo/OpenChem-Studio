@@ -31,12 +31,14 @@ class ProjectExplorerPanel(QWidget):
         parent: QWidget | None = None,
         on_duplicate: Callable[[MoleculeModel], None] | None = None,
         on_identify: Callable[[MoleculeModel], None] | None = None,
+        on_check: Callable[[], None] | None = None,
     ) -> None:
         super().__init__(parent)
         self._event_bus = event_bus
         self._undo_stack = undo_stack
         self._on_duplicate = on_duplicate
         self._on_identify = on_identify
+        self._on_check = on_check
         self._project: ProjectModel | None = None
         # Set while `refresh()` is rebuilding `_list` -- guards `_on_item_changed`
         # against firing a rename command for edits that aren't user-initiated
@@ -113,9 +115,17 @@ class ProjectExplorerPanel(QWidget):
         # uses for `on_add_structure`.
         duplicate_action = menu.addAction("Duplicate") if self._on_duplicate else None
         identify_action = menu.addAction("Identify Online...") if self._on_identify else None
+        # Same redundancy as Copy SMILES: the Structure menu is how you
+        # find out this exists, the right-click is how you use it after
+        # that. Reported as missing once already when it lived in only one
+        # of the two places.
+        check_action = menu.addAction("Check Structure...") if self._on_check else None
         rename_action = menu.addAction("Rename")
         delete_action = menu.addAction("Delete")
         chosen = menu.exec(self._list.mapToGlobal(pos))
+        if chosen is not None and chosen is check_action:
+            self._on_check()
+            return
         if chosen is copy_smiles_action:
             self._copy_identifier(item, "smiles")
         elif chosen is copy_inchi_action:

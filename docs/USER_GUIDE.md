@@ -584,6 +584,34 @@ charge was typed. A rule refusing "a charge on an aromatic ring" would also
 refuse pyridinium, where the charge really is on the nitrogen, and nothing
 here separates the two cases.
 
+### It offers a redraw only when a redraw would help
+
+Every other drawing complaint says something looks wrong. **Layout
+suggestion** generates the alternative and compares, so it can tell "this
+drawing is bad" from "this drawing is bad *and I can do better*" — and it
+reports both counts rather than a score:
+
+> A fresh layout would draw this with 0 crossing bonds instead of 2.
+
+Morphine is the case that shows why it matters. Its standard depiction has one
+bond crossing — that is the price of drawing a fused polycyclic flat — and
+regenerating it still has one. So the crossing is flagged, and no redraw is
+offered, because accepting one would cost you your layout and fix nothing.
+
+A structure with 3D coordinates is never offered a flat redraw. Its bonds
+cross in projection from most angles, and replacing real geometry with a
+drawing is data loss rather than a tidy-up.
+
+### Ignoring a check
+
+Right-click a finding to **Fix** it, **Copy message**, or **ignore that check
+for this molecule**. Query atoms, reaction templates and teaching examples are
+drawn wrong on purpose, and there has to be a way to say so.
+
+Ignoring is recorded, not hidden: the check reappears under **Not checked**
+with "suppressed for this molecule", so a later reader can tell a waived check
+from a passed one. It applies to that molecule alone.
+
 ### Checks that did not run
 
 A structure that will not sanitize makes every aromaticity and stereo
@@ -665,6 +693,31 @@ sources disagree, you see that.
 The reverse direction (paste an IUPAC name, get a structure) is available as
 an import affordance, via OPSIN. Both directions need Java, installable from
 External Tools.
+
+---
+
+<!-- help:menus -->
+## Where things live in the menus
+
+Following Marvin, **Edit** is about the document and **Structure** is about
+the structure:
+
+| Menu | Holds |
+|---|---|
+| **Edit** | Undo/redo, Copy Structure As, Paste Structure, Duplicate, Rename |
+| **Structure** | Aromatize/Dearomatize, Layout, Clean Up, explicit hydrogens, Calculate CIP, Check Structure |
+| **View** | Which panels are shown, and 2D Structure Display toggles |
+| **Tools** | Periodic Table, Identify Structure Online, External Tools |
+
+The structure operations used to sit under Edit, between "Redo" and "Copy
+Structure As", where neither group was easy to find.
+
+**Several things are deliberately reachable more than one way.** Check
+Structure is on the Structure menu, on the Project Explorer's right-click menu,
+and by clicking the status-bar indicator. Copy SMILES is on the Edit menu and
+the right-click menu. The menu bar is how you find out something exists; the
+right-click is how you use it afterwards. Copy SMILES was reported as missing
+back when it lived in only one of the two.
 
 ---
 

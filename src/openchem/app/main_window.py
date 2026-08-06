@@ -150,6 +150,7 @@ class MainWindow(QMainWindow):
             self,
             on_duplicate=self._duplicate_molecule,
             on_identify=self._identify_structure,
+            on_check=self._show_structure_check_panel,
         )
         self._property_panel = PropertyPanel(
             services.event_bus,
@@ -408,34 +409,6 @@ class MainWindow(QMainWindow):
         redo_action.setShortcut("Ctrl+Y")
         edit_menu.addAction(undo_action)
         edit_menu.addAction(redo_action)
-        edit_menu.addSeparator()
-        # Real Ketcher toolbar actions, same `trigger_toolbar_action`
-        # bridge as the explicit-hydrogens/3D-viewer ones -- these mutate
-        # the structure (Aromatize/Dearomatize/Layout/Clean Up) or run a
-        # real calculation on it (Calculate CIP, Check Structure), so they
-        # belong under Edit, not View. Ketcher reports the resulting
-        # structure change through its own normal `change` event, which
-        # already flows back through EditorBackend.edited ->
-        # EditStructureCommand -> the undo stack, same as any in-canvas
-        # edit -- no separate command needed here.
-        for label, test_id in (
-            ("Aromatize", "Aromatize button"),
-            ("Dearomatize", "Dearomatize button"),
-            ("Layout (Recalculate Coordinates)", "Layout button"),
-            ("Clean Up", "Clean Up button"),
-            ("Calculate CIP (Stereo Descriptors)", "Calculate CIP button"),
-            # Ketcher's own checker, kept and relabelled. It is Indigo's
-            # opinion, which is the one the CANVAS draws in red -- so it is
-            # worth being able to read, and it must not be confused with
-            # ours, which disagrees with it deliberately on iron oxides and
-            # hypervalent iodine.
-            ("Check Structure in the Editor (Indigo)...", "Check Structure button"),
-        ):
-            edit_menu.addAction(label, lambda test_id=test_id: self._editor.trigger_toolbar_action(test_id))
-
-        check_action = edit_menu.addAction("Check Structure...", self._show_structure_check_panel)
-        check_action.setShortcut("Ctrl+Shift+K")
-
         # Copying an identifier and renaming already existed, but ONLY on
         # the Project Explorer's right-click menu, where they were reported
         # as missing entirely -- a narrow dock with two entries gives you
@@ -467,6 +440,58 @@ class MainWindow(QMainWindow):
         # `is None` check.
         edit_menu.addAction("Duplicate Molecule", lambda: self._duplicate_molecule())
         edit_menu.addAction("Rename Molecule...", lambda: self._rename_molecule())
+
+        # --- Structure -------------------------------------------------------
+        #
+        # Its own menu, following Marvin, which separates editing the
+        # DOCUMENT (undo, clipboard, which molecule) from operating on the
+        # STRUCTURE. These all lived under Edit, where six Ketcher bridges
+        # sat between "Redo" and "Copy Structure As" and neither group was
+        # easy to find.
+        #
+        # Every one of these is a real Ketcher toolbar action reached by its
+        # stable `data-testid` -- there is no public API for them. Ketcher
+        # reports the resulting change through its own `change` event, which
+        # already flows back through EditorBackend.edited ->
+        # EditStructureCommand -> the undo stack, so no separate command is
+        # needed and Ctrl+Z works on all of them.
+        self._structure_menu = self.menuBar().addMenu("&Structure")
+        for label, test_id in (
+            ("Aromatize", "Aromatize button"),
+            ("Dearomatize", "Dearomatize button"),
+        ):
+            self._structure_menu.addAction(
+                label, lambda test_id=test_id: self._editor.trigger_toolbar_action(test_id)
+            )
+        self._structure_menu.addSeparator()
+        for label, test_id in (
+            ("Layout (Recalculate Coordinates)", "Layout button"),
+            ("Clean Up", "Clean Up button"),
+        ):
+            self._structure_menu.addAction(
+                label, lambda test_id=test_id: self._editor.trigger_toolbar_action(test_id)
+            )
+        self._structure_menu.addSeparator()
+        self._structure_menu.addAction(
+            "Add/Remove Explicit Hydrogens",
+            lambda: self._editor.trigger_toolbar_action("Add/Remove explicit hydrogens button"),
+        )
+        self._structure_menu.addAction(
+            "Calculate CIP (Stereo Descriptors)",
+            lambda: self._editor.trigger_toolbar_action("Calculate CIP button"),
+        )
+        self._structure_menu.addSeparator()
+        check_action = self._structure_menu.addAction("Check Structure...", self._show_structure_check_panel)
+        check_action.setShortcut("Ctrl+Shift+K")
+        # Ketcher's own checker, kept and clearly relabelled. It is Indigo's
+        # opinion -- the one the CANVAS draws in red -- so it is worth being
+        # able to read, and it must not be confused with ours, which
+        # disagrees with it deliberately on iron oxides and hypervalent
+        # iodine.
+        self._structure_menu.addAction(
+            "Check Structure in the Editor (Indigo)...",
+            lambda: self._editor.trigger_toolbar_action("Check Structure button"),
+        )
 
         self._view_menu = self.menuBar().addMenu("&View")
         for dock in self.findChildren(QDockWidget):
