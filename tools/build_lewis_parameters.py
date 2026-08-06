@@ -8,19 +8,36 @@ That is the whole reason the model outperforms a single-scale ordering:
 "hard" and "soft" stop being two ends of one axis and become two
 independent coordinates.
 
-**Provenance, stated plainly.** The values were taken from the Wikipedia
-ECW model compilation, which cites:
+**Provenance, stated plainly.** The E and C VALUES were taken from the
+Wikipedia ECW model compilation of:
 
     Vogel, G. C.; Drago, R. S. J. Chem. Educ. 1996, 73 (8), 701-707
     Drago, R. S. et al. Inorg. Chem. 1992, 32 (11), 2473-2479
-    Drago, R. S.; Wayland, B. B. J. Am. Chem. Soc. 1965, 87, 3571
-        doi:10.1021/ja01094a008   (the original two-term paper)
 
-They were NOT read out of those papers, all three of which are paywalled.
-What makes them shippable anyway is `check_reproduces_measured_enthalpies`
-below: the parameters predict eight independently tabulated donor-iodine
-adduct enthalpies to a mean absolute error of 0.27 kcal/mol across a
-1.4-12.0 kcal/mol range. A mistyped table does not do that.
+They were not read out of those two papers. The original paper HAS since
+been read:
+
+    Drago, R. S.; Wayland, B. B. J. Am. Chem. Soc. 1965, 87, 3571
+        doi:10.1021/ja01094a008
+
+and its parameters are deliberately NOT used, because they are on a
+different scale: that paper normalises iodine to E_A = C_A = 1.000
+("the values reported in Tables V and VI are relative to E_A and C_A of
+iodine being 1"), while the modern compilation puts iodine at
+E_A = 0.50, C_A = 2.0. Mixing the two would be silently wrong. What the
+1965 paper contributes instead is its EXPERIMENTAL enthalpies, which are
+scale-independent and were not used to fit the modern values.
+
+Two independent checks therefore run below, and the file is not written
+if either fails:
+
+- `check_reproduces_measured_enthalpies` -- eight donor-iodine adducts,
+  mean absolute error 0.27 kcal/mol over a 1.4-12.0 range.
+- `check_reproduces_the_original_paper` -- twelve observed enthalpies
+  read from Tables I, II and III of the 1965 paper itself.
+
+The second is the one the plan for this work actually asked for, and it
+also reproduces a measured FAILURE of the model: see that function.
 
 **Entries deliberately omitted.** The source tables include metal
 complexes -- Cu(HFacac)2, ZnTPP, CoPPIX-DME, the rhodium and palladium
@@ -174,6 +191,72 @@ def check_reproduces_measured_enthalpies(acids: dict, bases: dict) -> float:
     return mean_error
 
 
+#: Observed (not calculated) enthalpies from Drago & Wayland 1965, read
+#: from the paper: Table I (iodine), Table II (phenol), Table III
+#: (trimethylborane), all with the same four amines. These did not go into
+#: fitting the modern parameters, so they are a genuinely independent test.
+ORIGINAL_PAPER_ENTHALPIES: dict[str, tuple[str, dict[str, float]]] = {
+    "iodine": ("II", {"ammonia": 4.8, "methylamine": 7.1, "dimethylamine": 9.8, "trimethylamine": 12.1}),
+    "phenol": ("Oc1ccccc1", {"ammonia": 8.0, "methylamine": 9.3, "dimethylamine": 9.3, "trimethylamine": 9.5}),
+    "trimethylborane": ("CB(C)C", {"ammonia": 13.75, "methylamine": 17.64, "dimethylamine": 19.26, "trimethylamine": 17.62}),
+}
+
+#: The paper's own attribution of the trimethylborane discrepancies to
+#: F-strain: 1.5 kcal/mol for dimethylamine and 8.2 for trimethylamine,
+#: the latter agreeing with an independently reported 7.8.
+PAPER_STERIC_EFFECTS = {"dimethylamine": 1.5, "trimethylamine": 8.2}
+
+
+def _predict(acids: dict, bases: dict, acid_smiles: str, base_name: str) -> float:
+    acid = acids[canonical(acid_smiles)]
+    base = bases[canonical(BASES[base_name][0])]
+    return acid["E"] * base["E"] + acid["C"] * base["C"] + acid.get("W", 0.0)
+
+
+def check_reproduces_the_original_paper(acids: dict, bases: dict) -> None:
+    """The 1965 paper's own observed enthalpies, in three acid series.
+
+    Iodine and phenol are ordinary agreement checks. **Trimethylborane is
+    not, and is the point of including it**: the paper reports that its
+    amine adducts are destabilised by F-strain, by 1.5 kcal/mol for
+    dimethylamine and 8.2 for trimethylamine. An E and C equation has no
+    steric term, so the model MUST over-predict those two -- and this
+    application's `lewis_adduct` names sterics as a limitation partly on
+    the strength of it.
+
+    So the assertion is not "trimethylborane agrees". It is that the two
+    unhindered adducts agree and the two hindered ones over-predict, in
+    the order and roughly the magnitude the paper measured. A table that
+    happened to fit all four would mean the parameters had absorbed a
+    steric effect they are not supposed to contain.
+    """
+    for acid_name, (acid_smiles, observed) in ORIGINAL_PAPER_ENTHALPIES.items():
+        errors = []
+        for base_name, measured in observed.items():
+            predicted = _predict(acids, bases, acid_smiles, base_name)
+            error = predicted - measured
+            errors.append((base_name, error))
+            steric = PAPER_STERIC_EFFECTS.get(base_name, 0.0) if acid_name == "trimethylborane" else 0.0
+            flag = f"  (paper's steric effect {steric:.1f})" if steric else ""
+            print(f"  {acid_name:16s} + {base_name:14s} {predicted:6.2f} vs {measured:6.2f} observed  {error:+5.2f}{flag}")
+
+        if acid_name == "trimethylborane":
+            by_base = dict(errors)
+            if not by_base["ammonia"] < 1.0 or not by_base["methylamine"] < 1.0:
+                raise SystemExit("the UNHINDERED trimethylborane adducts should agree and do not")
+            if not by_base["trimethylamine"] > by_base["dimethylamine"] > 0.5:
+                raise SystemExit(
+                    "the hindered trimethylborane adducts should be over-predicted, "
+                    "trimethylamine worst -- the parameters may have absorbed a steric effect"
+                )
+            continue
+
+        mean_error = sum(abs(e) for _n, e in errors) / len(errors)
+        if mean_error > 1.0:
+            raise SystemExit(f"{acid_name}: mean error {mean_error:.2f} against the 1965 paper")
+        print(f"  {acid_name:16s} mean absolute error {mean_error:.2f} kcal/mol")
+
+
 def main() -> None:
     acids = {
         canonical(smiles): {"name": name, "E": ea, "C": ca, "W": w}
@@ -190,6 +273,9 @@ def main() -> None:
     mean_error = check_reproduces_measured_enthalpies(acids, bases)
     print(f"  mean absolute error {mean_error:.2f} kcal/mol over {len(MEASURED_IODINE_ADDUCTS)} adducts")
 
+    print("\nAgainst the 1965 paper's own observed enthalpies:")
+    check_reproduces_the_original_paper(acids, bases)
+
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(
         json.dumps(
@@ -200,6 +286,13 @@ def main() -> None:
                     "against": "measured donor-iodine adduct enthalpies",
                     "adducts": len(MEASURED_IODINE_ADDUCTS),
                     "mean_absolute_error_kcal_mol": round(mean_error, 3),
+                    "also_checked_against": (
+                        "the observed enthalpies in Tables I, II and III of "
+                        "Drago & Wayland 1965 -- iodine 0.36 and phenol 0.77 "
+                        "kcal/mol mean error, with the two sterically hindered "
+                        "trimethylborane adducts over-predicted as that paper's "
+                        "own measured F-strain requires"
+                    ),
                 },
                 "acids": acids,
                 "bases": bases,

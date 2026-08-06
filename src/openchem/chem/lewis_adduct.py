@@ -74,7 +74,7 @@ def _canonical(mol: Any) -> str:
 
 
 def _drago_line(acid: Any, base: Any) -> AdductEvidence:
-    """-dH = E_A*E_B + C_A*C_B - W, in kcal/mol.
+    """-dH = E_A*E_B + C_A*C_B + W, in kcal/mol.
 
     Lookup is BY STRUCTURE rather than by name: the table is keyed on
     canonical SMILES, so a molecule drawn in the editor matches without
@@ -120,9 +120,11 @@ def _drago_line(acid: Any, base: Any) -> AdductEvidence:
         value=value,
         units="kcal/mol",
         note=(
-            f"{acid_entry['name']} + {base_entry['name']}. Fitted parameters "
-            "reproduce measured donor-iodine enthalpies to about 0.3 kcal/mol; "
-            "this is an empirical model, not a calculation from first principles."
+            f"{acid_entry['name']} + {base_entry['name']}. An empirical model, not "
+            "a calculation from first principles: the parameters reproduce measured "
+            "donor-iodine enthalpies to about 0.3 kcal/mol, and the observed values "
+            "in Drago and Wayland's original 1965 paper to 0.36 (iodine) and 0.77 "
+            "(phenol) kcal/mol."
         ),
     )
 
@@ -182,6 +184,15 @@ def _hsab_line(acid_hardness: float | None, base_hardness: float | None) -> Addu
     lands near BF3's (9.29) rather than reflecting the softness that the
     qualitative argument assigns it. A single number on the eta scale is
     not the same thing as Pearson's soft/hard classification.
+
+    **It is the metric, not the calculation.** Pearson's own experimental
+    values (Inorg. Chem. 1988, 27, 734, Table II) put carbon monoxide at
+    eta = 7.9 eV and boron trifluoride at 9.7 -- 1.8 eV apart, with CO
+    genuinely high on the scale. So substituting perfect hardness numbers
+    would not rescue this line: a single point on the eta axis is not
+    Pearson's soft/hard classification, and CO is the case that shows the
+    difference. The delta-SCF values used above (8.40 and 9.29) are within
+    0.5 eV of those experimental ones.
 
     That disagreement is REPORTED rather than resolved, and it is the
     strongest argument for the no-combined-score design: an average of
@@ -386,9 +397,12 @@ def _summarise(evidence: tuple[AdductEvidence, ...]) -> str:
 
 def _limitations(evidence: tuple[AdductEvidence, ...]) -> tuple[str, ...]:
     limitations = [
-        "Sterics are not considered. Two partners can be perfectly matched "
-        "electronically and still not reach each other -- 2,6-di-tert-butylpyridine "
-        "is the standard demonstration.",
+        "Sterics are not considered, and the size of that gap is measured rather "
+        "than hypothetical. Drago and Wayland's own 1965 paper reports "
+        "trimethylborane binding trimethylamine 8.2 kcal/mol more weakly than the "
+        "electronics predict, because the methyl groups collide; the same table "
+        "gives 1.5 kcal/mol for dimethylamine and nothing for the two smaller "
+        "amines. An E and C equation has no term for it.",
         "A 1:1 adduct is assumed. Nothing here predicts stoichiometry, and several "
         "of these acids are dimers until a base breaks them apart.",
     ]

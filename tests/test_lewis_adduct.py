@@ -602,3 +602,78 @@ def test_the_disagreement_is_visible_rather_than_averaged_away():
     borane = _co_adduct("B", BORANE_LUMO_EV, BORANE_HARDNESS)
     assert {e.line for e in borane.available()} == {"frontier_gap", "hsab_match"}
     assert not hasattr(borane, "score")
+
+
+# --- against the primary sources -------------------------------------------
+
+#: Observed enthalpies read from Drago & Wayland, J. Am. Chem. Soc. 1965,
+#: 87, 3571 (doi:10.1021/ja01094a008) -- Table I (iodine), Table II
+#: (phenol), Table III (trimethylborane). These did NOT go into fitting the
+#: modern parameters this application ships, so they are independent.
+#:
+#: The paper's own E and C values are deliberately not used: it normalises
+#: iodine to E_A = C_A = 1.000 and the modern compilation puts it at 0.50
+#: and 2.0, so the two scales cannot be mixed.
+PAPER_1965 = {
+    "II": {"N": 4.8, "CN": 7.1, "CNC": 9.8, "CN(C)C": 12.1},
+    "Oc1ccccc1": {"N": 8.0, "CN": 9.3, "CNC": 9.3, "CN(C)C": 9.5},
+    "CB(C)C": {"N": 13.75, "CN": 17.64, "CNC": 19.26, "CN(C)C": 17.62},
+}
+
+
+@pytest.mark.parametrize(
+    ("acid", "base", "observed"),
+    [(a, b, v) for a, row in PAPER_1965.items() if a != "CB(C)C" for b, v in row.items()],
+)
+def test_the_shipped_table_reproduces_the_1965_papers_observed_values(acid, base, observed):
+    """Iodine and phenol against the original paper, within 1.1 kcal/mol.
+
+    Independent of the donor-iodine set used elsewhere in this file: these
+    are the amine series, read from the paper itself.
+    """
+    assert drago(acid, base) == pytest.approx(observed, abs=1.1)
+
+
+def test_the_model_over_predicts_exactly_the_adducts_the_paper_calls_hindered():
+    """The most useful test here, because it asserts a FAILURE.
+
+    Drago and Wayland report that trimethylborane's amine adducts are
+    destabilised by F-strain -- 1.5 kcal/mol for dimethylamine and 8.2 for
+    trimethylamine, the latter agreeing with an independently measured
+    7.8. An E and C equation has no steric term, so it MUST over-predict
+    those two and agree on the two smaller amines.
+
+    A table that fitted all four would mean the parameters had absorbed a
+    steric effect they are not supposed to contain, so this is the shape
+    the result should have rather than a shortcoming to fix.
+    """
+    errors = {b: drago("CB(C)C", b) - v for b, v in PAPER_1965["CB(C)C"].items()}
+    assert abs(errors["N"]) < 1.0
+    assert abs(errors["CN"]) < 1.0
+    assert errors["CN(C)C"] > errors["CNC"] > 0.5
+    # The paper attributes 8.2 kcal/mol to sterics for trimethylamine; the
+    # modern parameters put the discrepancy at about 6.
+    assert 4.0 < errors["CN(C)C"] < 8.5
+
+
+def test_the_sterics_limitation_cites_the_measured_case():
+    """It used to name 2,6-di-tert-butylpyridine, which is the textbook
+    example and not one anybody here measured. The trimethylborane number
+    comes from the source paper of the model doing the predicting."""
+    result = predict(mol_for(IODINE), mol_for("c1ccncc1"))
+    sterics = next(t for t in result.limitations if "Sterics" in t)
+    assert "8.2 kcal/mol" in sterics
+    assert "trimethylamine" in sterics
+
+
+def test_experimental_hardness_confirms_the_hsab_line_cannot_be_rescued():
+    """Pearson's measured values, Inorg. Chem. 1988, 27, 734, Table II:
+    CO 7.9 eV and BF3 9.7 eV. Only 1.8 apart, with CO high on the scale --
+    so better hardness numbers would not fix the |d eta| verdict on
+    CO/BF3. The failure is in the metric, and the caveat says so.
+    """
+    experimental_co, experimental_bf3 = 7.9, 9.7
+    assert abs(experimental_co - experimental_bf3) < 2.0
+    # And the delta-SCF values this file uses are close to them.
+    assert CO_HARDNESS == pytest.approx(experimental_co, abs=0.6)
+    assert BF3_HARDNESS == pytest.approx(experimental_bf3, abs=0.6)

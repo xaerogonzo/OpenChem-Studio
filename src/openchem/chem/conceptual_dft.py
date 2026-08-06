@@ -32,10 +32,25 @@ anion is no better described.
 So `KOOPMANS` is offered because it is free from a job that has already
 run, and it carries this warning wherever it is reported.
 
-The experimental column is quoted for orientation only and is NOT
-asserted anywhere in the tests. Pearson's tabulated values are in
-Inorg. Chem. 1988, 27, 734 (doi:10.1021/ic00277a030), which is paywalled;
-the tests pin ORDERINGS measured from real runs instead.
+The experimental column is READ FROM THE PRIMARY SOURCE, not quoted from
+memory: Pearson, Inorg. Chem. 1988, 27, 734 (doi:10.1021/ic00277a030),
+Table II, "Experimental Parameters for Molecules (eV)". Those values are
+asserted in `test_conceptual_dft.py`, so the accuracy claims below are
+checked rather than described.
+
+Against that table, delta-SCF is good where it matters and honest about
+where it is not:
+
+    ionization potential   within 0.5 eV of experiment on all four
+    hardness               mean error 1.05 eV, orderings preserved
+    electron affinity      off by roughly 2 eV, always too positive
+
+The electron affinity is the weak half and the caveat says so. Pearson
+gives A(water) = -6.4 eV and A(ammonia) = -5.6 eV; delta-SCF/def2-SVP
+returns about -3.8 for both, because a basis with no diffuse functions
+cannot describe an unbound anion. The error is similar in every molecule,
+which is why hardness ORDERINGS survive despite it -- and Koopmans, which
+reads an orbital energy straight out, does not get that cancellation.
 """
 
 from __future__ import annotations

@@ -909,5 +909,54 @@ Two measurement traps from the same work, both already paid for once:
   `W = 0` — only two entries in the whole table have one. Coverage of a
   parameter's *common* value is not coverage of the parameter.
 
-A clean run now ends at `2517 passed, 2 skipped` (2026-08-06, master, clean
+A clean run now ends at `2542 passed, 2 skipped` (2026-08-06, master, clean
 tree), so the figure earlier in this file is the one to update if it drifts.
+
+### Alex has the paywalled papers. Ask before hedging around one.
+
+Three primary sources that this work had been treating as unobtainable are
+on disk at `D:\Xaero Stuff\Documents\Sci Downloads\`: Drago & Wayland 1965,
+Parr & Pearson 1983, and Pearson 1988. **Reading them changed real claims**,
+so when a source is needed, ask rather than write "paywalled, orderings
+pinned instead".
+
+There is no PDF text extractor in the project venv and `pdftoppm` is not
+installed, so `Read` on a PDF fails. `uv pip install --system pymupdf` and
+`fitz` works.
+
+What the papers changed:
+
+- **The 1965 E/C parameters are on a DIFFERENT SCALE from the shipped ones**
+  and must not be mixed. That paper normalises iodine to E_A = C_A = 1.000
+  ("relative to E_A and C_A of iodine being 1"); the modern compilation puts
+  iodine at 0.50 and 2.0. Its *observed enthalpies* are scale-free, and are
+  now a second, independent validation set — 12 values across three acid
+  series.
+- **The model's best test is one it fails.** The paper measures F-strain in
+  trimethylborane's amine adducts: 8.2 kcal/mol for trimethylamine, 1.5 for
+  dimethylamine, nothing for the two smaller ones. An E/C equation has no
+  steric term, so it *must* over-predict exactly those two — and does, by
+  6.1 and 1.1. A table that fitted all four would mean the parameters had
+  absorbed a steric effect they are not supposed to contain.
+- **Every hardness value quoted from memory was right**, and none of them
+  should have been quoted from memory. η(H₂O)=9.5, η(NH₃)=8.2, η(H₂S)=6.2,
+  η(PH₃)=6.0, all confirmed in Pearson 1988 Table II. They are asserted now.
+- **A claim in this file's own tests was wrong.** ΔSCF's electron-affinity
+  error is NOT one-directional. ΔSCF returns −3.6 to −3.8 eV for all four
+  molecules, whose true affinities span −1.9 to −6.4: the unbound anion
+  barely knows which molecule it is on. That *compresses* the hardness
+  scale, and the NH₃/PH₃ ordering it gets right survives by **0.19 eV**
+  where experiment separates them by 2.2. The ordering is correct; the
+  margin is not something to lean on.
+- **Pearson's own rows round to ±0.1** — H₂S's (I−A)/2 gives 6.3 against a
+  printed η of 6.2 — so a self-consistency check on transcription needs
+  `abs=0.15`, not `0.05`.
+
+Gutmann donor/acceptor numbers were assessed and **not shipped**. The
+accessible source (Frontiers in Chemistry 2022, 10.3389/fchem.2022.861379)
+tabulates ionic liquids and deep eutectic solvents rather than the classical
+molecular table, and reports its own acceptor-number model failing outright
+("no correlation could be found"), concluding it supports "qualitative and
+relative criteria but not an absolute and quantitative model". Note the
+donor number is *defined* as −ΔH against SbCl₅, which is already in the
+Drago table — so that line is partly available already.

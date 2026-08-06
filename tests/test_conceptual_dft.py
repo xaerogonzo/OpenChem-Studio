@@ -196,3 +196,118 @@ def test_delta_scf_names_which_of_the_three_jobs_is_missing(
     r = from_delta_scf(neutral, cation, anion)
     assert r.refused
     assert named in r.reason, label
+
+
+# ---------------------------------------------------------------------------
+# Against the primary source.
+#
+# Pearson, "Absolute electronegativity and hardness: application to
+# inorganic chemistry", Inorg. Chem. 1988, 27, 734
+# (doi:10.1021/ic00277a030), Table II "Experimental Parameters for
+# Molecules (eV)". Read from the paper, not quoted from memory -- an
+# earlier version of this file said these were paywalled and pinned only
+# orderings.
+# ---------------------------------------------------------------------------
+
+#: molecule -> (I, A, chi, eta) in eV, verbatim from Pearson's Table II.
+PEARSON_EXPERIMENTAL = {
+    "water": (12.6, -6.4, 3.1, 9.5),
+    "hydrogen_sulfide": (10.5, -2.1, 4.2, 6.2),
+    "ammonia": (10.7, -5.6, 2.6, 8.2),
+    "phosphine": (10.0, -1.9, 4.1, 6.0),
+}
+
+
+@pytest.mark.parametrize("name", list(MEASURED))
+def test_delta_scf_ionization_potentials_match_experiment(name):
+    """Within 0.5 eV on every one. This is the half of delta-SCF that is
+    genuinely good, and the reason it is the recommended path."""
+    expected = PEARSON_EXPERIMENTAL[name][0]
+    assert delta_scf(name).ionization_potential == pytest.approx(expected, abs=0.5), name
+
+
+@pytest.mark.parametrize("name", list(MEASURED))
+def test_koopmans_ionization_potentials_do_not(name):
+    """The near-miss that gives the test above its meaning. Koopmans is
+    off by 3-4.5 eV on the same molecules, always too small."""
+    expected = PEARSON_EXPERIMENTAL[name][0]
+    assert koopmans(name).ionization_potential < expected - 2.0, name
+
+
+def test_delta_scf_hardness_is_within_about_one_electron_volt():
+    errors = [
+        abs(delta_scf(name).hardness - PEARSON_EXPERIMENTAL[name][3])
+        for name in MEASURED
+    ]
+    assert sum(errors) / len(errors) < 1.5
+
+
+def test_koopmans_hardness_is_far_too_small_on_every_molecule():
+    """Not a near miss. Koopmans returns 48-71% of the experimental
+    hardness -- it halves water's -- and the caveat riding on every
+    Koopmans descriptor exists because of this."""
+    for name in MEASURED:
+        ratio = koopmans(name).hardness / PEARSON_EXPERIMENTAL[name][3]
+        assert 0.45 < ratio < 0.75, f"{name}: {ratio:.2f}"
+
+
+def test_delta_scf_returns_nearly_the_same_electron_affinity_for_everything():
+    """The unbound-anion artefact, made visible.
+
+    Experimentally these four affinities span -1.9 to -6.4 eV. Delta-SCF
+    returns -3.6 to -3.8 for all of them: without diffuse functions the
+    "anion" is a basis-set artefact whose energy barely depends on which
+    molecule it is attached to.
+
+    An earlier version of this test asserted the error was one-directional
+    and about +2 eV. It is not -- it is too positive for the very-negative
+    affinities and too negative for the mild ones, which is precisely what
+    a near-constant output looks like.
+    """
+    affinities = [delta_scf(name).electron_affinity for name in MEASURED]
+    assert max(affinities) - min(affinities) < 0.5
+
+    experimental = [PEARSON_EXPERIMENTAL[name][1] for name in MEASURED]
+    assert max(experimental) - min(experimental) > 4.0
+
+
+def test_delta_scf_compresses_the_hardness_scale():
+    """The consequence of the affinity above, and the caveat on the
+    orderings this module recommends.
+
+    Hard molecules come out too soft and soft ones too hard, so the
+    ORDER survives while the SPREAD does not. Ammonia and phosphine are
+    2.2 eV apart experimentally and 0.19 eV apart here -- the right
+    answer, on a margin thin enough that it should not be leaned on.
+    """
+    for name in ("water", "ammonia"):
+        assert delta_scf(name).hardness < PEARSON_EXPERIMENTAL[name][3]
+    for name in ("hydrogen_sulfide", "phosphine"):
+        assert delta_scf(name).hardness > PEARSON_EXPERIMENTAL[name][3]
+
+    computed = delta_scf("ammonia").hardness - delta_scf("phosphine").hardness
+    experimental = PEARSON_EXPERIMENTAL["ammonia"][3] - PEARSON_EXPERIMENTAL["phosphine"][3]
+    assert 0 < computed < 0.5
+    assert experimental > 2.0
+
+
+def test_experimental_hardness_orders_both_textbook_pairs():
+    """Sanity on the transcription itself: if these numbers were typed
+    wrong, the orderings the rest of this file is about would not hold in
+    the reference data either."""
+    eta = {name: values[3] for name, values in PEARSON_EXPERIMENTAL.items()}
+    assert eta["water"] > eta["hydrogen_sulfide"]
+    assert eta["ammonia"] > eta["phosphine"]
+
+
+def test_pearson_relates_his_own_columns_consistently():
+    """chi = (I + A)/2 and eta = (I - A)/2 must hold within rounding for
+    every row -- the strongest available check that the four columns were
+    read off the page correctly."""
+    # 0.15 rather than 0.05: Pearson prints I and A to one decimal and
+    # evidently computed chi and eta before rounding, so hydrogen
+    # sulfide's row is internally off by 0.10. That is the source's
+    # rounding, not a transcription error.
+    for name, (i, a, chi, eta) in PEARSON_EXPERIMENTAL.items():
+        assert (i + a) / 2 == pytest.approx(chi, abs=0.15), name
+        assert (i - a) / 2 == pytest.approx(eta, abs=0.15), name
