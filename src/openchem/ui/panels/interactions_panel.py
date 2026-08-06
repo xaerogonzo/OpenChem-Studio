@@ -144,6 +144,7 @@ class InteractionsPanel(QWidget):
 
         self._tabs = QTabWidget(self)
         self._tabs.addTab(lewis_tab, "Lewis Adduct")
+        self._tabs.addTab(self._build_intramolecular_tab(), "Intramolecular")
 
         layout = QVBoxLayout(self)
         layout.addWidget(self._tabs)
@@ -162,6 +163,7 @@ class InteractionsPanel(QWidget):
         # silently change what the table on screen describes.
         repopulate(self._acid_combo, entries)
         repopulate(self._base_combo, entries)
+        repopulate(self._contacts_combo, entries)
 
     def _on_quantum_result(self, event: QuantumChemistryResultReady) -> None:
         """Remember every quantum number, keyed by molecule.
@@ -174,6 +176,105 @@ class InteractionsPanel(QWidget):
         values = self._quantum.setdefault(event.molecule_uuid, {})
         for descriptor in event.descriptors:
             values[descriptor.descriptor_id] = descriptor.value
+
+    # --- intramolecular contacts -------------------------------------------
+
+    def _build_intramolecular_tab(self) -> QWidget:
+        """Hydrogen bonds, pi-stacking and metal contacts WITHIN one molecule.
+
+        The panel was named "Interactions" rather than "Lewis Adduct" so
+        this could move in without a rename, and this is that move. It is
+        the same subject -- what touches what -- seen from one molecule
+        instead of two.
+
+        Built from `find_interactions`' structured output rather than from
+        the calculator's rendered lines: the calculator flattens each
+        contact to a sentence for the property panel, and a table wants the
+        kind, the atoms and the distance in their own columns.
+        """
+        self._contacts_combo = QComboBox(self)
+        self._contacts_button = QPushButton("Find contacts", self)
+        self._contacts_button.clicked.connect(self._on_find_contacts)
+        self._contacts_status = QLabel("", self)
+        self._contacts_status.setWordWrap(True)
+
+        self._contacts_table = QTableWidget(0, 3, self)
+        self._contacts_table.setHorizontalHeaderLabels(("Interaction", "Where", "Distance"))
+        contacts_header = self._contacts_table.horizontalHeader()
+        contacts_header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        for column in (0, 2):
+            contacts_header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
+        self._contacts_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self._contacts_table.setWordWrap(False)
+        self._contacts_table.verticalHeader().setVisible(False)
+
+        note = QLabel(
+            "Contacts within ONE molecule, measured on its current 3D conformer. "
+            "A molecule with no conformer has no geometry to measure, so generate "
+            "one first.",
+            self,
+        )
+        note.setWordWrap(True)
+
+        form = QFormLayout()
+        form.addRow("Molecule:", self._contacts_combo)
+
+        tab = QWidget(self)
+        layout = QVBoxLayout(tab)
+        layout.addLayout(form)
+        layout.addWidget(note)
+        buttons = QHBoxLayout()
+        buttons.addWidget(self._contacts_button)
+        buttons.addStretch(1)
+        layout.addLayout(buttons)
+        layout.addWidget(self._contacts_status)
+        layout.addWidget(self._contacts_table, 1)
+        return tab
+
+    def _on_find_contacts(self) -> None:
+        from openchem.chem.interaction_analysis import _LABELS, find_interactions
+
+        model, mol = self._molecule_for(self._contacts_combo)
+        self._contacts_table.setRowCount(0)
+        if mol is None:
+            self._contacts_status.setText("Pick a molecule from the project.")
+            return
+        try:
+            found = find_interactions(mol)
+        except Exception as exc:  # noqa: BLE001 - a missing conformer is a status
+            self._contacts_status.setText(str(exc))
+            return
+
+        rows: list[tuple[str, str, float]] = []
+        for kind, entries in found.items():
+            for entry in entries:
+                if "rings" in entry:
+                    ring_a, ring_b = entry["rings"]
+                    where = f"rings {sorted(ring_a)} / {sorted(ring_b)}"
+                elif "ring" in entry:
+                    where = f"atom {entry['atom'] + 1} / ring {sorted(entry['ring'])}"
+                else:
+                    first, second = entry["atoms"]
+                    where = f"atoms {first + 1}-{second + 1}"
+                rows.append((_LABELS[kind], where, float(entry["distance"])))
+
+        if not rows:
+            # A real finding, not a failure -- said so explicitly, the same
+            # way the calculator does.
+            self._contacts_status.setText(
+                f"{model.display_name}: no intramolecular contacts in this conformer."
+            )
+            return
+
+        self._contacts_table.setRowCount(len(rows))
+        for row, (kind, where, distance) in enumerate(rows):
+            self._contacts_table.setItem(row, 0, QTableWidgetItem(kind))
+            self._contacts_table.setItem(row, 1, QTableWidgetItem(where))
+            self._contacts_table.setItem(row, 2, QTableWidgetItem(f"{distance:.2f} A"))
+        kinds = len({kind for kind, _w, _d in rows})
+        self._contacts_status.setText(
+            f"{model.display_name}: {len(rows)} contacts across {kinds} kinds."
+        )
 
     # --- prediction --------------------------------------------------------
 

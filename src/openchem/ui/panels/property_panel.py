@@ -4,7 +4,9 @@ from collections.abc import Callable
 
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (
+    QCheckBox,
     QDialog,
+    QHBoxLayout,
     QFormLayout,
     QLabel,
     QPushButton,
@@ -203,8 +205,30 @@ class PropertyPanel(QWidget):
         scroll_area.setWidgetResizable(True)
         scroll_area.setWidget(self._sections_container)
 
+        # Panel-wide rather than per-section: a selection routinely spans
+        # categories ("charges and SASA and the ring systems"), and a Run
+        # button inside one section could not express that.
+        self._calculator_ticks: dict[str, QCheckBox] = {}
+        #: Ticked calculators currently in flight, so one cannot be
+        #: queued twice from repeated clicks.
+        self._running_calculator_ids: set[str] = set()
+        self._run_selected_button = QPushButton("Run selected", self)
+        self._run_selected_button.setEnabled(False)
+        self._run_selected_button.clicked.connect(self._on_run_selected)
+        self._clear_selection_button = QPushButton("Clear", self)
+        self._clear_selection_button.setEnabled(False)
+        self._clear_selection_button.clicked.connect(self._on_clear_selection)
+        self._batch_status = _WrappedLabel("", self)
+        self._batch_status.setStyleSheet("color: #666666;")
+
+        batch_row = QHBoxLayout()
+        batch_row.addWidget(self._run_selected_button)
+        batch_row.addWidget(self._clear_selection_button)
+        batch_row.addWidget(self._batch_status, 1)
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
+        layout.addLayout(batch_row)
         layout.addWidget(scroll_area)
 
         # Eagerly create a section (with its "Open..." buttons) for every
@@ -238,6 +262,13 @@ class PropertyPanel(QWidget):
     def _on_molecule_selected(self, event: MoleculeSelected) -> None:
         self._selected_molecule_uuid = event.molecule_uuid
         self._pending_calculator_id = None
+        # The backstop. `_finish_batch_run` clears ids as results arrive by
+        # matching the result's own id against the calculator's, which is
+        # only best-effort: nothing guarantees a calculator names its result
+        # after itself. Clearing on molecule change means the worst case is
+        # "cannot re-run until you switch molecule", not "stuck forever".
+        self._running_calculator_ids.clear()
+        self._batch_status.setText("")
         self._value_labels.clear()
         self._alert_labels.clear()
         self._row_sections.clear()
@@ -275,7 +306,23 @@ class PropertyPanel(QWidget):
             # source of truth for what is registered anyway.
             button.setProperty(_CALCULATOR_ID_PROPERTY, definition.calculator_id)
             button.clicked.connect(self._on_calculator_button_clicked)
-            section.add_calculator_widget(button)
+
+            # The tick box runs this calculator as part of a batch. The
+            # engine has always been able to run several at once --
+            # `run_calculator` dispatches to `QThreadPool.globalInstance()`
+            # with no serialisation -- so this is the affordance, not new
+            # machinery.
+            row = QWidget(section.content)
+            row_layout = QHBoxLayout(row)
+            row_layout.setContentsMargins(0, 0, 0, 0)
+            tick = QCheckBox(row)
+            tick.setToolTip("Include in 'Run selected'")
+            tick.setProperty(_CALCULATOR_ID_PROPERTY, definition.calculator_id)
+            tick.toggled.connect(self._on_selection_toggled)
+            self._calculator_ticks[definition.calculator_id] = tick
+            row_layout.addWidget(tick)
+            row_layout.addWidget(button, 1)
+            section.add_calculator_widget(row)
         self._add_service_execution_hint(section, category)
         self._add_cross_theory_hint(section, category)
         self._reorder_sections()
@@ -420,8 +467,19 @@ class PropertyPanel(QWidget):
             value_label.setStyleSheet(style)
             value_label.setToolTip("")
 
+    def _finish_batch_run(self, result_id: str) -> None:
+        """A ticked calculator's result arrived, so it is no longer running.
+
+        Matches the result's own id against the calculator id. Most
+        calculators name their result after themselves (`lewis_sites`,
+        `gasteiger_charge`, `huckel_analysis`), but nothing enforces it, so
+        this is best-effort and `_on_molecule_selected` is the backstop.
+        """
+        self._running_calculator_ids.discard(result_id)
+
     def _on_alert_computed(self, event: AlertComputed) -> None:
         alert = event.alert
+        self._finish_batch_run(alert.alert_id)
         if alert.molecule_uuid != self._selected_molecule_uuid:
             return
         # Phase 19: routed via alert.category (PAINS -> medicinal_chemistry,
@@ -444,6 +502,7 @@ class PropertyPanel(QWidget):
 
     def _on_per_atom_data_computed(self, event: PerAtomDataComputed) -> None:
         dataset = event.dataset
+        self._finish_batch_run(dataset.property_id)
         if (
             self._pending_calculator_id is not None
             and dataset.property_id == self._pending_calculator_id
@@ -511,6 +570,76 @@ class PropertyPanel(QWidget):
         definition = self._calculator_registry.get(calculator_id) if calculator_id else None
         if definition is not None:
             self._open_calculator(definition)
+
+    # --- running several at once -------------------------------------------
+
+    def _selected_calculator_ids(self) -> list[str]:
+        return [cid for cid, tick in self._calculator_ticks.items() if tick.isChecked()]
+
+    def _on_selection_toggled(self, _checked: bool = False) -> None:
+        count = len(self._selected_calculator_ids())
+        self._run_selected_button.setEnabled(count > 0)
+        self._clear_selection_button.setEnabled(count > 0)
+        self._run_selected_button.setText(
+            f"Run selected ({count})" if count else "Run selected"
+        )
+
+    def _on_clear_selection(self, _checked: bool = False) -> None:
+        for tick in self._calculator_ticks.values():
+            tick.setChecked(False)
+        self._batch_status.setText("")
+
+    def _on_run_selected(self, _checked: bool = False) -> None:
+        """Dispatch every ticked calculator for the selected molecule.
+
+        **Default parameters, no dialogs.** Each calculator that has
+        settings would otherwise open its own, and answering six dialogs to
+        avoid clicking six buttons is not a saving. Somebody who needs
+        non-default settings still has the per-calculator button, which is
+        exactly what it is for.
+
+        Results arrive through the existing `PerAtomDataComputed` /
+        `AlertComputed` events like any other run, so nothing downstream
+        knows this happened. `_pending_calculator_id` is deliberately NOT
+        set: it exists to pop an inspector open when a result lands, and
+        six inspectors stacking up is not what anybody asked for.
+        """
+        if self._project is None or self._selected_molecule_uuid is None:
+            self._batch_status.setText("Select a molecule first.")
+            return
+        molecule = self._project.find_molecule(self._selected_molecule_uuid)
+        if molecule is None:
+            return
+
+        started: list[str] = []
+        for calculator_id in self._selected_calculator_ids():
+            definition = self._calculator_registry.get(calculator_id)
+            if definition is None or not isinstance(definition.execution, RegistryExecution):
+                continue
+            # Same calculator ticked and already running is the one
+            # re-entrancy worth guarding: the pool would happily run it
+            # twice and publish two results for one molecule.
+            if calculator_id in self._running_calculator_ids:
+                continue
+            self._running_calculator_ids.add(calculator_id)
+            parameters = {p.name: p.default for p in definition.parameters}
+            self._descriptor_service.run_calculator(
+                molecule,
+                CalculationRequest(
+                    calculator_id=calculator_id,
+                    molecule_uuid=molecule.uuid,
+                    parameters=parameters,
+                ),
+            )
+            started.append(definition.display_name)
+
+        if not started:
+            self._batch_status.setText("Those are already running.")
+            return
+        self._batch_status.setText(
+            f"Running {len(started)} with default settings: {', '.join(started[:4])}"
+            + ("..." if len(started) > 4 else "")
+        )
 
     def _open_calculator(self, definition: CalculatorDefinition) -> None:
         if self._project is None or self._selected_molecule_uuid is None:

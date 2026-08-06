@@ -255,15 +255,16 @@ def test_predicting_with_no_project_asks_for_a_pair(panel):
 # --- naming and shape -------------------------------------------------------
 
 
-def test_the_only_tab_today_is_the_lewis_one(panel):
-    """Named Interactions rather than "Lewis Adduct" on purpose: the
-    existing intramolecular `interaction_analysis` is the obvious second
-    tab, and the panel should not need renaming when it moves in. Tabbed
-    from the first commit so adding it is one line rather than a
-    restructure."""
+def test_both_subjects_live_under_one_panel(panel):
+    """The panel was named "Interactions" rather than "Lewis Adduct" so the
+    intramolecular analysis could move in without a rename. It has, and
+    adding it really was one line plus its tab -- which is what tabbing
+    from the first commit bought."""
     widget, _bus = panel
-    assert widget._tabs.count() == 1
-    assert widget._tabs.tabText(0) == "Lewis Adduct"
+    assert [widget._tabs.tabText(i) for i in range(widget._tabs.count())] == [
+        "Lewis Adduct",
+        "Intramolecular",
+    ]
 
 
 def test_neither_combo_follows_the_tree_selection(panel):
@@ -324,3 +325,88 @@ def test_the_full_note_is_reachable_without_the_column(panel):
     # Every cell in a row carries it, so hovering anywhere on the row works.
     tooltips = {widget._table.item(0, c).toolTip() for c in range(widget._table.columnCount())}
     assert len(tooltips) == 1
+
+
+# --- the intramolecular tab -------------------------------------------------
+
+
+def _with_conformer(name: str, smiles: str) -> MoleculeModel:
+    """A molecule that actually has 3D geometry -- contacts are measured on
+    a conformer, and without one there is nothing to measure."""
+    from rdkit.Chem import AllChem
+
+    mol = Chem.AddHs(Chem.MolFromSmiles(smiles))
+    assert AllChem.EmbedMolecule(mol, randomSeed=0xC0FFEE) == 0, smiles
+    AllChem.MMFFOptimizeMolecule(mol)
+    return MoleculeModel(
+        display_name=name, molblock=Chem.MolToMolBlock(mol),
+        canonical_smiles=Chem.MolToSmiles(mol),
+    )
+
+
+def test_contacts_are_listed_per_kind(panel):
+    """Salicylic acid's intramolecular hydrogen bond is the standard case --
+    the OH and the carbonyl are held together by the ring."""
+    widget, _bus = panel
+    model = _with_conformer("salicylic acid", "OC(=O)c1ccccc1O")
+    widget.set_project(ProjectModel(molecules=[model]))
+    index = widget._contacts_combo.findData(model.uuid, Qt.ItemDataRole.UserRole)
+    widget._contacts_combo.setCurrentIndex(index)
+
+    widget._on_find_contacts()
+
+    assert widget._contacts_table.rowCount() > 0
+    kinds = {
+        widget._contacts_table.item(r, 0).text()
+        for r in range(widget._contacts_table.rowCount())
+    }
+    assert kinds, "no interaction kinds reported"
+    assert "contacts across" in widget._contacts_status.text()
+
+
+def test_a_molecule_with_no_conformer_says_what_is_missing(panel):
+    """Not a crash and not an empty table: geometry is the thing absent,
+    and the message has to name it or the empty result reads as 'none'."""
+    widget, _bus = panel
+    flat = molecule("ethanol", "CCO")   # no conformer
+    widget.set_project(ProjectModel(molecules=[flat]))
+    index = widget._contacts_combo.findData(flat.uuid, Qt.ItemDataRole.UserRole)
+    widget._contacts_combo.setCurrentIndex(index)
+
+    widget._on_find_contacts()
+
+    assert widget._contacts_table.rowCount() == 0
+    assert widget._contacts_status.text(), "a silent empty table hides the reason"
+
+
+def test_no_contacts_is_reported_as_a_finding_not_a_failure(panel):
+    """"Nothing touches anything" is an answer. The calculator already says
+    so explicitly and the panel must not regress to a blank table."""
+    widget, _bus = panel
+    model = _with_conformer("methane", "C")
+    widget.set_project(ProjectModel(molecules=[model]))
+    index = widget._contacts_combo.findData(model.uuid, Qt.ItemDataRole.UserRole)
+    widget._contacts_combo.setCurrentIndex(index)
+
+    widget._on_find_contacts()
+
+    assert "no intramolecular contacts" in widget._contacts_status.text()
+
+
+def test_contact_rows_are_single_line(panel):
+    """Same geometry guard as the Lewis table -- wrapped cells are what made
+    that one render as blank rows."""
+    widget, _bus = panel
+    model = _with_conformer("salicylic acid", "OC(=O)c1ccccc1O")
+    widget.set_project(ProjectModel(molecules=[model]))
+    index = widget._contacts_combo.findData(model.uuid, Qt.ItemDataRole.UserRole)
+    widget._contacts_combo.setCurrentIndex(index)
+    widget.resize(360, 700)
+    widget.show()
+
+    widget._on_find_contacts()
+    QCoreApplication.processEvents()
+
+    heights = [widget._contacts_table.rowHeight(r) for r in range(widget._contacts_table.rowCount())]
+    assert heights
+    assert max(heights) < 60, heights

@@ -904,11 +904,15 @@ def test_a_long_result_does_not_squeeze_the_calculator_buttons(qapp):
         qapp.processEvents()
 
     for category in ("quantum", "lewis"):
-        layout = panel._sections[category]._calculators_layout
+        # findChildren, not direct layout items: each calculator button now
+        # shares a row widget with its "run in a batch" tick box, so it is a
+        # grandchild of the layout rather than a child. The guard is about
+        # the BUTTON's height either way.
+        section = panel._sections[category]
         heights = [
-            layout.itemAt(i).widget().height()
-            for i in range(layout.count())
-            if isinstance(layout.itemAt(i).widget(), QPushButton)
+            button.height()
+            for button in section.content.findChildren(QPushButton)
+            if button.text().startswith("Open ")
         ]
         assert heights, category
         for height in heights:
@@ -939,3 +943,166 @@ def test_a_long_result_is_not_silently_clipped(qapp):
     ]
     assert clipped == []
 
+
+
+# --- running several calculators at once ------------------------------------
+
+
+class _RecordingService:
+    """Records dispatches instead of running anything.
+
+    The engine's concurrency is not under test here -- `run_calculator`
+    already dispatches to `QThreadPool.globalInstance()` and always has.
+    What is under test is the affordance on top of it.
+    """
+
+    def __init__(self) -> None:
+        self.requests: list = []
+
+    def run_calculator(self, model, request) -> None:
+        self.requests.append(request)
+
+    def request_descriptors(self, *args, **kwargs) -> None:
+        pass
+
+
+def _panel_with_recorder(qapp):
+    from openchem.bootstrap import build_service_container
+
+    container = build_service_container()
+    service = _RecordingService()
+    panel = PropertyPanel(
+        container.event_bus, container.calculator_registry, service, container.chemistry_engine
+    )
+    return panel, container.event_bus, service
+
+
+def _select_molecule(panel, bus):
+    from openchem.domain.molecule import MoleculeModel
+    from openchem.domain.project import ProjectModel
+
+    model = MoleculeModel(display_name="ethanol", canonical_smiles="CCO")
+    panel.set_project(ProjectModel(molecules=[model]))
+    bus.publish(MoleculeSelected(molecule_uuid=model.uuid))
+    return model
+
+
+def test_ticking_calculators_enables_running_them_together(qapp):
+    panel, bus, service = _panel_with_recorder(qapp)
+    _select_molecule(panel, bus)
+    assert not panel._run_selected_button.isEnabled()
+
+    chosen = list(panel._calculator_ticks)[:3]
+    for calculator_id in chosen:
+        panel._calculator_ticks[calculator_id].setChecked(True)
+
+    assert panel._run_selected_button.isEnabled()
+    assert "(3)" in panel._run_selected_button.text()
+
+    panel._on_run_selected()
+    assert {r.calculator_id for r in service.requests} == set(chosen)
+
+
+def test_a_batch_run_uses_declared_defaults_and_opens_no_dialog(qapp):
+    """Answering six settings dialogs to avoid clicking six buttons is not
+    a saving. The per-calculator button is still there for anyone who needs
+    non-default settings."""
+    panel, bus, service = _panel_with_recorder(qapp)
+    _select_molecule(panel, bus)
+
+    with_params = next(
+        cid for cid in panel._calculator_ticks
+        if panel._calculator_registry.get(cid).parameters
+    )
+    panel._calculator_ticks[with_params].setChecked(True)
+    panel._on_run_selected()
+
+    request = next(r for r in service.requests if r.calculator_id == with_params)
+    definition = panel._calculator_registry.get(with_params)
+    assert request.parameters == {p.name: p.default for p in definition.parameters}
+
+
+def test_the_same_calculator_is_not_queued_twice(qapp):
+    """The pool would happily run it again and publish two results for one
+    molecule."""
+    panel, bus, service = _panel_with_recorder(qapp)
+    _select_molecule(panel, bus)
+    calculator_id = list(panel._calculator_ticks)[0]
+    panel._calculator_ticks[calculator_id].setChecked(True)
+
+    panel._on_run_selected()
+    panel._on_run_selected()
+
+    assert len(service.requests) == 1
+    assert "already running" in panel._batch_status.text()
+
+
+def test_a_result_arriving_lets_it_run_again(qapp):
+    from openchem.domain.common import CacheState, Provenance
+    from openchem.domain.scientific_result import AlertResult
+
+    panel, bus, service = _panel_with_recorder(qapp)
+    model = _select_molecule(panel, bus)
+    calculator_id = "lewis_sites"
+    panel._calculator_ticks[calculator_id].setChecked(True)
+    panel._on_run_selected()
+
+    bus.publish(AlertComputed(alert=AlertResult(
+        alert_id=calculator_id, name="Lewis Sites", molecule_uuid=model.uuid,
+        matched=["a line"], category="lewis",
+        cache_state=CacheState.COMPLETED,
+        provenance=Provenance(created_by="core", method="x"))))
+
+    panel._on_run_selected()
+    assert len(service.requests) == 2
+
+
+def test_switching_molecule_clears_a_stuck_run(qapp):
+    """Result ids are matched to calculator ids best-effort, so the backstop
+    matters: the worst case must be "re-run after switching molecule", not
+    "stuck for the session"."""
+    panel, bus, service = _panel_with_recorder(qapp)
+    _select_molecule(panel, bus)
+    calculator_id = list(panel._calculator_ticks)[0]
+    panel._calculator_ticks[calculator_id].setChecked(True)
+    panel._on_run_selected()
+    assert panel._running_calculator_ids
+
+    _select_molecule(panel, bus)
+    assert not panel._running_calculator_ids
+
+    panel._on_run_selected()
+    assert len(service.requests) == 2
+
+
+def test_clearing_the_selection_unticks_everything(qapp):
+    panel, bus, service = _panel_with_recorder(qapp)
+    _select_molecule(panel, bus)
+    for calculator_id in list(panel._calculator_ticks)[:2]:
+        panel._calculator_ticks[calculator_id].setChecked(True)
+
+    panel._on_clear_selection()
+
+    assert not panel._selected_calculator_ids()
+    assert not panel._run_selected_button.isEnabled()
+
+
+def test_running_with_no_molecule_says_so(qapp):
+    panel, _bus, service = _panel_with_recorder(qapp)
+    panel._calculator_ticks[list(panel._calculator_ticks)[0]].setChecked(True)
+    panel._on_run_selected()
+    assert service.requests == []
+    assert "Select a molecule" in panel._batch_status.text()
+
+
+def test_a_batch_run_does_not_pop_open_inspectors(qapp):
+    """`_pending_calculator_id` exists to open an inspector when a result
+    lands. Six inspectors stacking up is not what anybody asked for."""
+    panel, bus, service = _panel_with_recorder(qapp)
+    _select_molecule(panel, bus)
+    for calculator_id in list(panel._calculator_ticks)[:2]:
+        panel._calculator_ticks[calculator_id].setChecked(True)
+
+    panel._on_run_selected()
+
+    assert panel._pending_calculator_id is None
