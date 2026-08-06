@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 from typing import Callable
 
-from PySide6.QtCore import QObject, QUrl, Slot
+from PySide6.QtCore import QObject, QTimer, QUrl, Slot
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineCore import QWebEnginePage
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -14,6 +14,15 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from openchem.ui.editor_backend import EditorBackend
 
 logger = logging.getLogger("openchem.ui")
+
+#: How long after `setMolecule` resolves to keep ignoring change events.
+#:
+#: Measured, not chosen: Ketcher's echoes arrived ~80 ms after the promise
+#: resolved (5.21s/5.25s loadComplete, 5.29s structureEdited). 400 ms is
+#: five times that, and still far below the time a human needs to move to
+#: the canvas and draw -- so a real edit within the window is not a case
+#: that occurs, while a slow machine stretching the layout pass is.
+_LOAD_SETTLE_MS = 400
 
 _DIST_INDEX = (
     Path(__file__).resolve().parent.parent.parent
@@ -37,11 +46,13 @@ class _Bridge(QObject):
         on_structure_edited: Callable[[str], None],
         on_ketcher_ready: Callable[[], None],
         on_molfile_ready: Callable[[str, str], None],
+        on_load_complete: Callable[[str], None] | None = None,
     ) -> None:
         super().__init__()
         self._on_structure_edited = on_structure_edited
         self._on_ketcher_ready = on_ketcher_ready
         self._on_molfile_ready = on_molfile_ready
+        self._on_load_complete = on_load_complete
 
     @Slot(str)
     def structureEdited(self, molblock: str) -> None:  # noqa: N802 - called from JS by this exact name
@@ -54,6 +65,18 @@ class _Bridge(QObject):
     @Slot(str, str)
     def molfileReady(self, request_id: str, molblock: str) -> None:  # noqa: N802
         self._on_molfile_ready(request_id, molblock)
+
+    @Slot(str)
+    def loadComplete(self, token: str) -> None:  # noqa: N802 - called from JS by this exact name
+        """Ketcher's `setMolecule` promise has resolved for this load.
+
+        Exists so the host can tell its OWN loads apart from a user's
+        edits. Ketcher fires `change` for both, and the vendored bundle
+        reports every one through `structureEdited` -- so loading a
+        structure looked exactly like the user drawing it.
+        """
+        if self._on_load_complete is not None:
+            self._on_load_complete(token)
 
 
 class _LoggingPage(QWebEnginePage):
@@ -88,13 +111,19 @@ class KetcherEditorBackend(EditorBackend):
         self._view.setPage(self._page)
         self._channel = QWebChannel(self._page)
         self._bridge = _Bridge(
-            self._on_structure_edited, self._on_ketcher_ready, self._on_molfile_ready
+            self._on_structure_edited,
+            self._on_ketcher_ready,
+            self._on_molfile_ready,
+            self._on_load_complete,
         )
         self._channel.registerObject("bridge", self._bridge)
         self._page.setWebChannel(self._channel)
 
         self._ketcher_ready = False
         self._pending_molblock: str | None = None
+        #: Non-None while one of OUR loads is settling; see
+        #: `_on_structure_edited`.
+        self._loading_token: str | None = None
         self._pending_requests: dict[str, Callable[[str | None], None]] = {}
 
         self._page.load(QUrl.fromLocalFile(str(_DIST_INDEX)))
@@ -106,7 +135,50 @@ class KetcherEditorBackend(EditorBackend):
             self._pending_molblock = None
 
     def _on_structure_edited(self, molblock: str) -> None:
+        if self._loading_token is not None:
+            # Our own `setMolecule` echoing back, not the user drawing.
+            # Ketcher fires `change` while it lays the loaded structure
+            # out, and the vendored bundle reports every one of those --
+            # so ONE paste pushed four undo commands, all carrying the
+            # same molecule, and Ctrl+Z appeared to do nothing twice
+            # before anything moved. Measured before this guard: stack
+            # depth 4 after one paste, three of the entries redundant.
+            logger.debug("Ignoring a change event from our own load")
+            return
         self.edited.emit()
+
+    def _on_load_complete(self, token: str) -> None:
+        """Stop suppressing shortly after Ketcher says this load finished.
+
+        NOT IMMEDIATELY, and that is the whole subtlety. `setMolecule`'s
+        promise resolves when the structure has been set, and Ketcher emits
+        its `change` events AFTERWARDS, while it lays the structure out.
+        Traced with timestamps:
+
+            5.21s  loadComplete
+            5.25s  loadComplete
+            5.29s  structureEdited   <- token already cleared
+            5.29s  structureEdited
+
+        Clearing on the promise therefore suppressed nothing: the echoes
+        arrived about 80 ms late and still reached the undo stack. The
+        grace period below is longer than that gap by a wide margin, and
+        is the one piece of timing here -- the promise is still what
+        starts the clock, so this is not a guess at how long a layout
+        takes.
+
+        Keyed on the token so a load starting while another is still
+        settling is not cleared early by the older one finishing.
+        """
+        if token != self._loading_token:
+            return
+        QTimer.singleShot(
+            _LOAD_SETTLE_MS, lambda: self._clear_loading_token(token)
+        )
+
+    def _clear_loading_token(self, token: str) -> None:
+        if token == self._loading_token:
+            self._loading_token = None
 
     def _on_molfile_ready(self, request_id: str, molblock: str) -> None:
         callback = self._pending_requests.pop(request_id, None)
@@ -120,10 +192,37 @@ class KetcherEditorBackend(EditorBackend):
             self._pending_molblock = molblock
 
     def _run_set_molecule(self, molblock: str) -> None:
+        # The token is generated HERE and closed by Ketcher's own promise
+        # rather than by a timer. A timeout would be a guess about how
+        # long a layout takes on an unknown machine with an unknown
+        # structure; the promise is the actual end of the load.
+        token = str(uuid.uuid4())
+        self._loading_token = token
         script = f"""
         (function() {{
-          if (!window.ketcher) return;
-          window.ketcher.setMolecule({json.dumps(molblock)});
+          var done = function() {{
+            window.__openchemBridge.loadComplete({json.dumps(token)});
+          }};
+          // Every path below must reach `done()`. A token that is never
+          // cleared suppresses the user's real edits for the rest of the
+          // session, which is far worse than the redundant undo entries
+          // this exists to remove -- so the "no ketcher yet" case reports
+          // completion rather than returning early.
+          if (!window.ketcher) {{ done(); return; }}
+          try {{
+            var result = window.ketcher.setMolecule({json.dumps(molblock)});
+            // setMolecule returns a promise in this build, but guard for a
+            // synchronous return rather than assuming -- a `.then` on
+            // undefined would leave the host suppressing edits forever,
+            // which is a far worse failure than one spurious undo entry.
+            if (result && typeof result.then === "function") {{
+              result.then(done).catch(done);
+            }} else {{
+              done();
+            }}
+          }} catch (e) {{
+            done();
+          }}
         }})();
         """
         self._page.runJavaScript(script)
