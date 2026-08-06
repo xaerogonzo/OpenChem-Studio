@@ -59,6 +59,7 @@ from openchem.ui.dialogs.periodic_table_dialog import PeriodicTableDialog
 from openchem.ui.dialogs.structure_lookup_dialog import StructureLookupDialog
 from openchem.ui.panels.console_panel import ConsolePanel
 from openchem.ui.panels.alignment_panel import AlignmentPanel
+from openchem.ui.panels.atom_inspector_panel import AtomInspectorPanel
 from openchem.ui.panels.interactions_panel import InteractionsPanel
 from openchem.ui.panels.batch_panel import BatchPanel
 from openchem.ui.panels.docking_panel import DockingPanel
@@ -177,6 +178,20 @@ class MainWindow(QMainWindow):
         self._interactions_panel = InteractionsPanel(
             services.chemistry_engine, services.event_bus, self
         )
+        self._atom_inspector_panel = AtomInspectorPanel(
+            services.chemistry_engine,
+            services.event_bus,
+            atom_fact_service=services.atom_fact_service,
+            structure_check_service=services.structure_check_service,
+            parent=self,
+        )
+        self._atom_inspector_panel.link_activated.connect(self._on_atom_fact_link)
+        # The 3D viewer already reports clicks -- it has since the distance
+        # measurement was built -- so this is a connection, not new
+        # integration. The atom TABLE stays the primary navigation: a
+        # molecule just drawn has no conformer, which is exactly when
+        # somebody wants to inspect an atom.
+        self._viewer3d.atom_clicked.connect(self._atom_inspector_panel.select_atom)
         self._jobs_panel = JobsPanel(services.job_manager, self)
         self._structure_check_panel = StructureCheckPanel(
             services.structure_check_service,
@@ -218,6 +233,11 @@ class MainWindow(QMainWindow):
             self._wrap_scrollable(self._alignment_panel),
             Qt.DockWidgetArea.RightDockWidgetArea,
         )
+        atom_inspector_dock = self._add_dock(
+            "Atom Inspector",
+            self._wrap_scrollable(self._atom_inspector_panel),
+            Qt.DockWidgetArea.RightDockWidgetArea,
+        )
         interactions_dock = self._add_dock(
             "Interactions",
             self._wrap_scrollable(self._interactions_panel),
@@ -242,6 +262,7 @@ class MainWindow(QMainWindow):
         self.tabifyDockWidget(self._properties_dock, docking_dock)
         self.tabifyDockWidget(self._properties_dock, quantum_chemistry_dock)
         self.tabifyDockWidget(self._properties_dock, alignment_dock)
+        self.tabifyDockWidget(self._properties_dock, atom_inspector_dock)
         self.tabifyDockWidget(self._properties_dock, interactions_dock)
         self.tabifyDockWidget(self._properties_dock, jobs_dock)
         self.tabifyDockWidget(self._properties_dock, batch_dock)
@@ -724,6 +745,7 @@ class MainWindow(QMainWindow):
         self._property_panel.set_project(project)
         self._alignment_panel.set_project(project)
         self._interactions_panel.set_project(project)
+        self._atom_inspector_panel.set_project(project)
         self._batch_panel.set_project(project)
         self.setWindowTitle(f"OpenChem Studio - {project.name}")
         if not project.molecules:
@@ -995,6 +1017,7 @@ class MainWindow(QMainWindow):
         self._quantum_chemistry_panel.set_project(self._session.project)
         self._alignment_panel.set_project(self._session.project)
         self._interactions_panel.set_project(self._session.project)
+        self._atom_inspector_panel.set_project(self._session.project)
         self._batch_panel.set_project(self._session.project)
 
     # --- event handlers --------------------------------------------------------
@@ -1069,6 +1092,27 @@ class MainWindow(QMainWindow):
         existing.show()
         existing.raise_()
         existing.activateWindow()
+
+    def _on_atom_fact_link(self, link) -> None:
+        """Follow a fact's cross-link to the tool that produced it.
+
+        The inspector answers "what is known"; each tool still owns "show
+        me that properly". Routing lives here because the panel should not
+        have to know how to open a dialog -- that keeps it constructible
+        in a test without a window.
+        """
+        if link.target == "periodic_table":
+            self._show_periodic_table()
+            dialog = getattr(self, "_periodic_table_dialog", None)
+            symbol = link.params.get("symbol")
+            if dialog is not None and symbol:
+                dialog.select(symbol)
+        elif link.target == "structure_check":
+            self._structure_check_dock.show()
+            self._structure_check_dock.raise_()
+        elif link.target == "interactions":
+            self._interactions_panel.parentWidget().show()
+            self._interactions_panel.parentWidget().raise_()
 
     def _toggle_oxidation_states(self, checked: bool) -> None:
         """Mirror of the panel's own checkbox.

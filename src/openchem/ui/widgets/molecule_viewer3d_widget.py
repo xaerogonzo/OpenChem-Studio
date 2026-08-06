@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
@@ -41,6 +42,12 @@ class MoleculeViewer3DWidget(QWidget):
     Inspector now supersedes generically — every calculator gets a real
     2D+3D projection there instead of two of them getting one here.
     """
+
+    #: One atom, each time the user clicks one in the 3D view. The
+    #: backend already reported clicks for the distance measurement;
+    #: this exposes them to anything else that wants them, without
+    #: a second consumer having to reach for the private backend.
+    atom_clicked = Signal(int)
 
     def __init__(
         self,
@@ -157,6 +164,16 @@ class MoleculeViewer3DWidget(QWidget):
             self._refresh_view()
 
     def _on_atoms_selected(self, indices: list[int]) -> None:
+        # Re-emitted BEFORE the measurement logic and regardless of whether
+        # a conformer exists, because the two uses of a click do not
+        # conflict and no mode switch is needed to keep them apart: the
+        # inspector wants each atom as it is clicked, the measurement wants
+        # consecutive pairs. Clicking two atoms shows the second in the
+        # inspector and completes a distance, which is a reasonable reading
+        # of what the user asked for rather than a collision.
+        for index in indices:
+            self.atom_clicked.emit(index)
+
         if self._molecule is None or not self._molecule.conformers:
             return
         self._selected_atoms.extend(indices)

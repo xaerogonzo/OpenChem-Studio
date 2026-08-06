@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from rdkit import Chem
 
+from openchem.domain.atom_report import AtomFact
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.docking import DockingBox, DockingPoseModel
@@ -305,3 +306,33 @@ class Exporter(ABC):
 
     @abstractmethod
     def export_file(self, model: MoleculeModel, path: Path, fmt: str) -> None: ...
+
+
+class AtomFactProvider(ABC):
+    """Contributes per-atom facts to the Atom Inspector.
+
+    A plugin implementing this appears in the inspector without the
+    inspector knowing the plugin exists -- the same arrangement the eight
+    other provider types already have, so there is nothing new to learn.
+
+    `collect_atom_facts` is called with the molecule, the atom index, and
+    the same `context` the built-in collectors receive (already-computed
+    `per_atom` datasets, `spectra`, checker `issues`). **It must not start
+    a calculation.** The inspector's guarantee is that opening it is free;
+    a provider that dispatches work breaks that for everybody, and the
+    provider is called on every atom the user clicks.
+
+    Raising is safe -- `build_atom_report` isolates each provider, so a
+    broken one costs its own facts and nothing else. That is a courtesy,
+    not a licence: a provider that raises silently contributes nothing and
+    gives no clue why.
+    """
+
+    provider_id: str
+
+    @abstractmethod
+    def collect_atom_facts(
+        self, mol: Chem.Mol, atom_index: int, context: dict
+    ) -> list["AtomFact"]:
+        """Facts about `atom_index`, or an empty list if this provider has
+        nothing to say about it."""

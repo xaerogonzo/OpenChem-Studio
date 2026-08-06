@@ -12,6 +12,7 @@ from openchem.domain.molecule import MoleculeModel
 from openchem.events.base import Event, EventBus
 from openchem.plugins.interfaces import (
     ConformerProvider,
+    AtomFactProvider,
     DescriptorProvider,
     DockingProvider,
     Exporter,
@@ -88,6 +89,16 @@ class _DescriptorRegistrar:
         self._rollbacks = rollbacks
 
     def register(self, provider: DescriptorProvider) -> None:
+        self._service.register_provider(provider)
+        self._rollbacks.append(lambda: self._service.unregister_provider(provider.provider_id))
+
+
+class _AtomFactRegistrar:
+    def __init__(self, service, rollbacks: list[Rollback]) -> None:
+        self._service = service
+        self._rollbacks = rollbacks
+
+    def register(self, provider: AtomFactProvider) -> None:
         self._service.register_provider(provider)
         self._rollbacks.append(lambda: self._service.unregister_provider(provider.provider_id))
 
@@ -221,6 +232,7 @@ class PluginContext:
 
         self.descriptors = _DescriptorRegistrar(services.descriptor_service, self._rollbacks)
         self.conformers = _ConformerRegistrar(services.conformer_service, self._rollbacks)
+        self.atom_facts = _AtomFactRegistrar(services.atom_fact_service, self._rollbacks)
         self.docking = _DockingRegistrar(services.docking_service, self._rollbacks)
         self.quantum_chemistry = _QuantumChemistryRegistrar(services.quantum_chemistry_service, self._rollbacks)
         self.importers = _ImporterRegistrar(services.import_service, self._rollbacks)
