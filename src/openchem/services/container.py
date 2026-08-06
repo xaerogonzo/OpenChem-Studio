@@ -18,6 +18,7 @@ from openchem.services.project_service import ProjectService
 from openchem.services.qm_surface_service import QmSurfaceService
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.services.screening_service import ScreeningService
+from openchem.services.structure_check_service import StructureCheckService
 from openchem.services.table_export_service import TableExportService
 
 
@@ -47,3 +48,4 @@ class ServiceContainer:
     batch_service: BatchService
     table_export_service: TableExportService
     screening_service: ScreeningService
+    structure_check_service: StructureCheckService

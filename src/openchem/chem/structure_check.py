@@ -10,86 +10,49 @@ Pure and Qt-free. RDKit is allowed here (this is the chemistry layer); Qt
 is not, so the engine can run in a worker, in a batch job, or in a test
 with no application object.
 
-Three deliberate absences, each of which had an argument for it:
-
-**No numeric confidence.** A `WARNING 70%` on a bond-length heuristic is a
-number nobody measured, and this project has thrown away work rather than
-ship one (Miller polarizability, HLB, TSEI). The real distinction -- some
-checks are arithmetic, some are judgement -- is `Basis`, and the panel says
-it in words.
-
-**No health score.** Same reason. The useful half, a per-category count, is
-free from `CheckerResult.by_category()`.
-
-**No new result base class.** `CheckerResult` joins the existing
-`ScientificResult` hierarchy, so batch export, the clipboard path and
-provenance display all work already.
+The findings themselves live in `domain/structure_issue.py` and are
+re-exported below. They are split off for the same reason
+`domain/docking.py` is split from `chem/docking_providers.py`: a result
+travels further than the thing that produced it, and an event or a panel
+should not have to import the chemistry layer to name its type. Checker
+authors still get one import site, which is what the re-export is for.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Sequence
-from dataclasses import dataclass, field
-from enum import Enum
+from dataclasses import dataclass
 from typing import Any
 
-from openchem.domain.common import Provenance, ScientificResult
-
-
-class Severity(str, Enum):
-    """How much a reader should care.
-
-    ERROR is reserved for "this cannot be a real molecule" -- an impossible
-    valence, a structure that will not sanitize. Everything a chemist might
-    legitimately have meant is a WARNING or INFO, because a checker that
-    calls a deliberate drawing an error teaches people to ignore errors.
-    """
-
-    ERROR = "error"
-    WARNING = "warning"
-    INFO = "info"
-
-
-class Basis(str, Enum):
-    """Whether the verdict is arithmetic or judgement.
-
-    This is the honest form of the "confidence percentage" idea. A valence
-    count is DETERMINISTIC: it is right or the periodic table is wrong. A
-    bond that looks too short for its order is HEURISTIC: it depends on a
-    threshold somebody chose, and reasonable drawings will trip it.
-    """
-
-    DETERMINISTIC = "deterministic"
-    HEURISTIC = "heuristic"
-
-
-class Category(str, Enum):
-    """What kind of claim the issue is making.
-
-    VALIDITY and LAYOUT are separate on purpose. "This valence is
-    impossible" and "these two labels overlap" are not the same kind of
-    statement, and filing both under one heading is how the serious one
-    gets missed in a list of forty.
-    """
-
-    VALIDITY = "validity"  # chemically impossible
-    GEOMETRY = "geometry"  # the coordinates, as coordinates
-    REPRESENTATION = "representation"  # how it is written down
-    LAYOUT = "layout"  # drawing quality only
-    REGULATORY = "regulatory"
-    PLUGIN = "plugin"
-
-
-#: Display order for categories. Not alphabetical -- most serious first,
-#: so a panel that simply iterates this puts VALIDITY at the top.
-CATEGORY_ORDER: tuple[Category, ...] = (
-    Category.VALIDITY,
-    Category.REPRESENTATION,
-    Category.GEOMETRY,
-    Category.LAYOUT,
-    Category.REGULATORY,
-    Category.PLUGIN,
+from openchem.domain.common import Provenance
+from openchem.domain.structure_issue import (
+    CATEGORY_ORDER,
+    Basis,
+    Category,
+    CheckerResult,
+    Severity,
+    SkippedChecker,
+    StructureIssue,
 )
+
+__all__ = [
+    "CATEGORY_ORDER",
+    "COORDINATES",
+    "PARSED_MOLECULE",
+    "SANITIZED_MOLECULE",
+    "Basis",
+    "Category",
+    "CheckContext",
+    "CheckerDefinition",
+    "CheckerRegistry",
+    "CheckerResult",
+    "Severity",
+    "SkippedChecker",
+    "StructureIssue",
+    "build_context",
+    "build_default_registry",
+    "run_checks",
+]
 
 
 # --- capabilities -----------------------------------------------------------
@@ -118,46 +81,6 @@ _MISSING_CAPABILITY_REASON = {
     SANITIZED_MOLECULE: "the structure does not sanitize",
     COORDINATES: "no coordinates",
 }
-
-
-@dataclass(frozen=True, kw_only=True)
-class StructureIssue:
-    """One finding about one structure.
-
-    `atom_indices` and `bond_indices` are what lets a panel highlight the
-    offending part in our own depiction. They may be empty: "this molecule
-    carries a net charge" is about the whole thing.
-
-    `fix_id` names an available repair or is empty. It is deliberately not
-    a callable: an issue is data, it travels through events and gets
-    exported, and a bound method would not survive either.
-    """
-
-    checker_id: str
-    category: Category
-    severity: Severity
-    basis: Basis
-    message: str
-    atom_indices: tuple[int, ...] = ()
-    bond_indices: tuple[int, ...] = ()
-    fix_id: str = ""
-    #: Set when we deliberately accept something the 2D editor flags. The
-    #: canvas draws its own valence warnings from Indigo and we cannot turn
-    #: those off or enumerate them, so the honest move is to explain the
-    #: disagreement rather than pretend it is not on screen.
-    explains_editor_warning: bool = False
-
-
-@dataclass(frozen=True, kw_only=True)
-class SkippedChecker:
-    """A checker that could not run, and why.
-
-    Reported rather than dropped. "No answer" is part of the answer here,
-    the same way the oxidation-state code refuses rather than guesses.
-    """
-
-    checker_id: str
-    reason: str
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -203,56 +126,6 @@ class CheckContext:
 
     def has(self, capability: str) -> bool:
         return capability in self.capabilities
-
-
-@dataclass(frozen=True, kw_only=True)
-class CheckerResult(ScientificResult):
-    """The outcome of one analysis pass over one structure.
-
-    `structure_version` is the anti-staleness field. Every structure change
-    increments a counter; a panel holding a result whose version is behind
-    the current one must discard it rather than display it. This session
-    produced two bugs of exactly that shape already (a canvas showing the
-    pre-undo structure, a pose table showing a deleted result), and while
-    somebody is drawing quickly is precisely when a highlight pointing at
-    the previous structure is most confusing.
-    """
-
-    molecule_uuid: str
-    structure_version: int = 0
-    issues: tuple[StructureIssue, ...] = ()
-    skipped: tuple[SkippedChecker, ...] = ()
-    #: Checker ids the caller waived for this molecule or project. Recorded
-    #: rather than silently honoured, so a later reader can tell a check
-    #: that was waived from one that passed.
-    suppressed: tuple[str, ...] = ()
-
-    @property
-    def errors(self) -> tuple[StructureIssue, ...]:
-        return tuple(i for i in self.issues if i.severity is Severity.ERROR)
-
-    @property
-    def warnings(self) -> tuple[StructureIssue, ...]:
-        return tuple(i for i in self.issues if i.severity is Severity.WARNING)
-
-    def by_category(self) -> dict[Category, tuple[StructureIssue, ...]]:
-        """Issues grouped for display, in `CATEGORY_ORDER`, omitting
-        categories with nothing in them."""
-        grouped: dict[Category, tuple[StructureIssue, ...]] = {}
-        for category in CATEGORY_ORDER:
-            found = tuple(i for i in self.issues if i.category is category)
-            if found:
-                grouped[category] = found
-        return grouped
-
-    @property
-    def worst_severity(self) -> Severity | None:
-        """The most serious thing found, or None for a clean structure --
-        what the status-bar indicator colours itself from."""
-        for severity in (Severity.ERROR, Severity.WARNING, Severity.INFO):
-            if any(i.severity is severity for i in self.issues):
-                return severity
-        return None
 
 
 class CheckerRegistry:

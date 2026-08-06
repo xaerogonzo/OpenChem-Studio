@@ -8,6 +8,7 @@ from openchem.domain.nmr import ScalingFactors
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.docking import DockingResultModel
+from openchem.domain.structure_issue import CheckerResult
 from openchem.domain.scientific_result import (
     AlertResult,
     PerAtomDataset,
@@ -268,3 +269,21 @@ class NmrScalingCalibrated(Event):
     provider_id: str
     factors: dict[str, ScalingFactors]
     error: str | None = None
+
+
+@dataclass(frozen=True)
+class StructureChecked(Event):
+    """A structure-analysis pass finished for one molecule.
+
+    Carries the whole `CheckerResult` rather than a summary, so the panel,
+    the status-bar indicator and any plugin listening all read the same
+    object instead of three consumers re-deriving counts from each other.
+
+    `result.structure_version` is what makes this safe to act on: a
+    listener that has since seen a newer edit must discard this rather than
+    display it. Editing is faster than checking, and a highlight pointing
+    at the previous structure is at its most confusing exactly while
+    somebody is drawing.
+    """
+
+    result: CheckerResult

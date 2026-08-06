@@ -20,6 +20,7 @@ from openchem.services.alignment_service import AlignmentService
 from openchem.services.batch_service import BatchService
 from openchem.services.conformer_service import ConformerService
 from openchem.services.container import ServiceContainer
+from openchem.services.structure_check_service import StructureCheckService
 from openchem.services.descriptor_service import DescriptorService
 from openchem.services.docking_service import DEFAULT_NUM_POSES, DockingService
 from openchem.services.export_service import ExportService
@@ -221,4 +222,11 @@ def build_service_container() -> ServiceContainer:
         batch_service=BatchService(event_bus, engine, calculator_registry, job_manager=job_manager),
         table_export_service=TableExportService(),
         screening_service=ScreeningService(event_bus, docking_service, engine, job_manager=job_manager),
+        # No JobManager: nine checkers over a drawing-sized molecule is
+        # arithmetic over a few dozen atoms, and a thread would add a
+        # second source of stale results to the one this service exists
+        # to prevent. It subscribes to MoleculeChanged itself, so its
+        # version counter is right from construction rather than from
+        # whenever a panel first asks.
+        structure_check_service=StructureCheckService(event_bus),
     )

@@ -463,6 +463,86 @@ receptor; they are not binding free energies and do not convert to a Kd.
 
 ---
 
+<!-- help:structure-check -->
+## The structure checker
+
+The **Structure Check** panel says what is wrong with a structure, why it
+thinks so, and — where a repair exists — offers it as a button. The light in
+the status bar tells you there is something to look at; clicking it opens the
+panel. `Ctrl+Shift+K` and **Edit ▸ Check Structure…** do the same.
+
+Checks run on every edit, so what you are reading always describes the
+structure in front of you rather than the one you had five edits ago.
+
+### Red, amber and blue mean different things
+
+- **Error** is reserved for structures that cannot exist — an impossible
+  valence, two atoms drawn at the same point.
+- **Warning** is for things a chemist does on purpose *sometimes*: a carbene,
+  a net charge, an undefined stereocentre, a bond that looks too short.
+- **Note** is information — an isotope label, explicit hydrogens, an
+  expanded octet we accepted and want to explain.
+
+A checker that called every deliberate drawing an error would teach you to
+ignore errors, which is why the line is drawn there.
+
+### "Definite" and "judgement"
+
+Every finding says which it is. **Definite** means it follows from the
+structure itself: a valence count is right or the periodic table is wrong.
+**Judgement** means a threshold somebody chose is involved — bond lengths,
+crowding, bond angles — and a perfectly good drawing can trip it.
+
+There is no percentage anywhere in this panel. A "70% confident" on a
+bond-length heuristic would be a number nobody measured.
+
+### Where it disagrees with the drawing canvas
+
+The 2D editor is Ketcher, and the red circles it draws come from Indigo's
+valence model, which we cannot change or even read. So the panel is a second
+opinion, and it says so when it differs:
+
+- **Iron oxides.** FeO, Fe₂O₃ and Fe₃O₄ are all flagged in the canvas and
+  are all fine. A transition metal has no defined valence, so main-group
+  octet arithmetic does not apply to it.
+- **Hypervalent iodine.** IF₇ is a real compound that RDKit itself refuses;
+  the panel accepts it and cites the rule. I(CH₃)₆ is refused, because
+  ligands are added in pairs and iodine reaches 1, 3, 5 or 7 but never 6.
+  I(CH₃)₇ is refused for a different reason: iodine only reaches 7 with
+  fluorine, chlorine or oxygen around it.
+
+When a structure is accepted here but RDKit will not sanitize it, you get a
+second, separate warning — because descriptors, naming and 3D generation all
+go through sanitization, and "this is fine" followed by a page of blank
+properties would be misleading.
+
+**Edit ▸ Check Structure in the Editor (Indigo)…** opens Ketcher's own
+checker if you want to see the canvas's reasoning directly.
+
+### Fixes
+
+Each fix says what it costs before you press it:
+
+| Safety | Meaning |
+|---|---|
+| **Safe** | the structure means the same thing afterwards |
+| **Reversible** | it changes the drawing, not the chemistry |
+| **Lossy** | atoms or bonds go away |
+
+"Keep the largest fragment" is lossy — on a salt it removes the counter-ion,
+changing the compound's identity, formula and mass. Every fix goes on the
+undo stack, so `Ctrl+Z` brings back exactly what was there.
+
+### Checks that did not run
+
+A structure that will not sanitize makes every aromaticity and stereo
+question downstream of it meaningless. Rather than answer them badly, the
+panel lists those checkers under **Not checked** with the reason — usually
+RDKit's own sentence, which is normally the most useful thing available
+about a structure it refuses.
+
+---
+
 <!-- help:regulatory -->
 ## Regulatory screening
 

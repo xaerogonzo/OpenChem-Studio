@@ -44,6 +44,7 @@ from openchem.events.events import (
     DockingResultReady,
     MoleculeChanged,
     MoleculeSelected,
+    StructureChecked,
     MoleculeSnapshotUpdated,
     PluginLoaded,
     PluginUnloaded,
@@ -64,6 +65,8 @@ from openchem.ui.panels.project_explorer_panel import ProjectExplorerPanel
 from openchem.ui.panels.property_panel import PropertyPanel
 from openchem.ui.panels.quantum_chemistry_panel import QuantumChemistryPanel
 from openchem.ui.visualization import build_interaction_layers
+from openchem.ui.panels.structure_check_panel import StructureCheckPanel
+from openchem.ui.widgets.checker_status_indicator import CheckerStatusIndicator
 from openchem.ui.widgets.dock_title_bar import DockTitleBar
 from openchem.ui.widgets.molecule_editor_widget import MoleculeEditorWidget
 from openchem.ui.widgets.molecule_viewer3d_widget import MoleculeViewer3DWidget
@@ -85,6 +88,7 @@ HELP_TOPIC_BY_DOCK = {
     "Docking": "docking",
     "Quantum_Chemistry": "quantum-chemistry",
     "Batch": "batch",
+    "Structure_Check": "structure-check",
     "3D_Alignment": "alignment",
     "Jobs": "jobs",
     "Console": "jobs",
@@ -168,6 +172,14 @@ class MainWindow(QMainWindow):
         )
         self._alignment_panel = AlignmentPanel(services.alignment_service, services.event_bus, self)
         self._jobs_panel = JobsPanel(services.job_manager, self)
+        self._structure_check_panel = StructureCheckPanel(
+            services.structure_check_service,
+            services.chemistry_engine,
+            services.event_bus,
+            self,
+            on_apply_fix=self._apply_structure_fix,
+            on_recheck=self._check_current_structure,
+        )
         self._batch_panel = BatchPanel(
             services.batch_service,
             services.calculator_registry,
@@ -204,6 +216,11 @@ class MainWindow(QMainWindow):
         batch_dock = self._add_dock(
             "Batch", self._wrap_scrollable(self._batch_panel), Qt.DockWidgetArea.RightDockWidgetArea
         )
+        self._structure_check_dock = self._add_dock(
+            "Structure Check",
+            self._wrap_scrollable(self._structure_check_panel),
+            Qt.DockWidgetArea.RightDockWidgetArea,
+        )
 
         # All right-side panels share one tab group instead of stacking
         # vertically -- six-plus docks sharing a single column (this trio
@@ -216,7 +233,16 @@ class MainWindow(QMainWindow):
         self.tabifyDockWidget(self._properties_dock, alignment_dock)
         self.tabifyDockWidget(self._properties_dock, jobs_dock)
         self.tabifyDockWidget(self._properties_dock, batch_dock)
+        self.tabifyDockWidget(self._properties_dock, self._structure_check_dock)
         self._properties_dock.raise_()
+
+        # A structure-check light in the corner, following Marvin's. The
+        # panel is only useful to someone who opens it; this is how you
+        # find out there is something to open it for.
+        self._checker_indicator = CheckerStatusIndicator(self)
+        self._checker_indicator.clicked.connect(self._show_structure_check_panel)
+        self.statusBar().addPermanentWidget(self._checker_indicator)
+        services.event_bus.subscribe(StructureChecked, self._on_structure_checked)
 
         self._build_menus()
         self._restore_window_state()
@@ -397,9 +423,17 @@ class MainWindow(QMainWindow):
             ("Layout (Recalculate Coordinates)", "Layout button"),
             ("Clean Up", "Clean Up button"),
             ("Calculate CIP (Stereo Descriptors)", "Calculate CIP button"),
-            ("Check Structure...", "Check Structure button"),
+            # Ketcher's own checker, kept and relabelled. It is Indigo's
+            # opinion, which is the one the CANVAS draws in red -- so it is
+            # worth being able to read, and it must not be confused with
+            # ours, which disagrees with it deliberately on iron oxides and
+            # hypervalent iodine.
+            ("Check Structure in the Editor (Indigo)...", "Check Structure button"),
         ):
             edit_menu.addAction(label, lambda test_id=test_id: self._editor.trigger_toolbar_action(test_id))
+
+        check_action = edit_menu.addAction("Check Structure...", self._show_structure_check_panel)
+        check_action.setShortcut("Ctrl+Shift+K")
 
         # Copying an identifier and renaming already existed, but ONLY on
         # the Project Explorer's right-click menu, where they were reported
@@ -852,6 +886,7 @@ class MainWindow(QMainWindow):
         if molecule is not None:
             self._services.descriptor_service.request_descriptors(molecule)
             self._publish_molecule_snapshot(molecule)
+        self._check_current_structure()
 
     def _on_molecule_changed(self, event: MoleculeChanged) -> None:
         self._session.mark_dirty()
@@ -859,6 +894,77 @@ class MainWindow(QMainWindow):
         if molecule is not None and molecule.uuid == event.molecule_uuid:
             self._services.descriptor_service.request_descriptors(molecule)
             self._publish_molecule_snapshot(molecule)
+        # After the snapshot, not before: the service bumps this molecule's
+        # version from its own MoleculeChanged subscription, and checking
+        # against the version it had a moment ago would produce a result
+        # that is stale the instant it is published.
+        self._check_current_structure()
+
+    # --- structure checking ----------------------------------------------------
+
+    def _check_current_structure(self) -> None:
+        """Analyse the selected molecule, or clear the indicator.
+
+        Called on selection and on every edit. Cheap enough to run on both
+        -- the alternative, a button somebody has to remember to press,
+        is a checker that reports on the structure you had five edits ago.
+        """
+        molecule = self._current_molecule()
+        if molecule is None or not molecule.molblock:
+            self._structure_check_panel.set_molblock("")
+            self._checker_indicator.set_disabled()
+            return
+        self._structure_check_panel.set_molblock(molecule.molblock)
+        self._services.structure_check_service.check(molecule.uuid, molecule.molblock)
+
+    def _on_structure_checked(self, event: StructureChecked) -> None:
+        """Update the corner light.
+
+        Guarded on the version like the panel is: a result that arrives
+        after the next edit describes a structure that is no longer on
+        screen, and a stale "3 errors" is worse than no light at all.
+        """
+        if not self._services.structure_check_service.is_current(event.result):
+            return
+        molecule = self._current_molecule()
+        if molecule is None or molecule.uuid != event.result.molecule_uuid:
+            return
+        self._checker_indicator.show_result(event.result)
+
+    def _show_structure_check_panel(self) -> None:
+        self._structure_check_dock.show()
+        self._structure_check_dock.raise_()
+        self._check_current_structure()
+
+    def _apply_structure_fix(self, fix_id: str, molblock: str) -> None:
+        """Run a quick fix, through the undo stack.
+
+        Every fix goes through `EditStructureCommand` for the same reason
+        paste does: a repair that cannot be undone is worse than the issue
+        it fixed, and this is the one place the app rewrites somebody's
+        structure without them drawing anything.
+        """
+        molecule = self._current_molecule()
+        if molecule is None:
+            return
+        service = self._services.structure_check_service
+        fix = service.fix_for(fix_id)
+        try:
+            repaired = service.apply_fix(fix_id, molblock)
+        except Exception as exc:
+            self.statusBar().showMessage(f"That fix could not be applied: {exc}", 6000)
+            return
+        if repaired == molblock:
+            self.statusBar().showMessage("That fix would not change this structure.", 4000)
+            return
+        self._undo_stack.push(
+            EditStructureCommand(
+                self._services.chemistry_engine, molecule, repaired, self._services.event_bus
+            )
+        )
+        self._editor.set_molecule(molecule)
+        label = fix.label if fix is not None else fix_id
+        self.statusBar().showMessage(f"Applied '{label}'. Ctrl+Z undoes it.", 4000)
 
     def _publish_molecule_snapshot(self, molecule: MoleculeModel) -> None:
         """Gives plugins (which have no access to SessionManager/ProjectModel)

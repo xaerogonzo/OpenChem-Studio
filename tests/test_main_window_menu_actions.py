@@ -113,12 +113,37 @@ def test_edit_menu_structure_actions_proxy_to_the_real_ketcher_buttons(qapp, tmp
         "Layout (Recalculate Coordinates)": "Layout button",
         "Clean Up": "Clean Up button",
         "Calculate CIP (Stereo Descriptors)": "Calculate CIP button",
-        "Check Structure...": "Check Structure button",
+        "Check Structure in the Editor (Indigo)...": "Check Structure button",
     }
     for label, test_id in expected.items():
         action = next(a for a in edit_menu.actions() if a.text() == label)
         action.trigger()
         assert calls[-1] == test_id
+
+
+def test_the_two_structure_checkers_are_distinct_menu_entries(qapp, tmp_path):
+    """There are two opinions about a structure and they disagree on purpose.
+
+    Ketcher's is Indigo's, and it is the one the CANVAS draws in red -- so
+    it stays reachable. Ours is the panel, which accepts iron oxides and
+    hypervalent iodine that Indigo flags. Sharing one menu label would make
+    the disagreement look like a bug in whichever one you opened.
+    """
+    window = _build_window(tmp_path)
+    molecule = MoleculeModel(display_name="Aspirin")
+    window._services.chemistry_engine.set_structure_from_smiles(molecule, "CC(=O)Oc1ccccc1C(=O)O")
+    window.add_molecule(molecule)
+    calls: list[str] = []
+    window._editor.trigger_toolbar_action = lambda action_id: calls.append(action_id)
+
+    edit_menu = next(m for m in window.menuBar().findChildren(type(window._view_menu)) if m.title() == "&Edit")
+    ours = next(a for a in edit_menu.actions() if a.text() == "Check Structure...")
+    ours.trigger()
+
+    assert calls == [], "the app's own checker must not proxy to Ketcher's"
+    # It ran a check of its own. `isVisible()` would prove nothing here --
+    # the test window is never shown, so every dock in it reports False.
+    assert window._structure_check_panel._molblock == molecule.molblock
 
 
 def test_send_to_3d_viewer_switches_the_center_tab(qapp, tmp_path):
