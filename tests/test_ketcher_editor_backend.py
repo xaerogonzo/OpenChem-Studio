@@ -162,3 +162,25 @@ def test_the_settle_timer_only_clears_its_own_load(qapp):
     assert backend._loading_token == "newer"
     backend._clear_loading_token("newer")
     assert backend._loading_token is None
+
+
+def test_the_canvas_can_reach_the_system_clipboard(qapp):
+    """Ctrl+C / Ctrl+V inside the canvas.
+
+    QtWebEngine defaults BOTH of these to off -- measured on this build,
+    a bare QWebEnginePage reports False for each. Ketcher's copy handler
+    runs, produces a molfile and then cannot hand it to the clipboard,
+    which is exactly the reported symptom: "something flashes for a
+    second then nothing".
+
+    Asserted on the real page rather than on a flag we set ourselves, so
+    a rename of the attribute fails here rather than in the app.
+    """
+    from PySide6.QtWebEngineCore import QWebEngineSettings
+
+    attribute = QWebEngineSettings.WebAttribute
+    backend = KetcherEditorBackend()
+    settings = backend._page.settings()
+
+    assert settings.testAttribute(attribute.JavascriptCanAccessClipboard)
+    assert settings.testAttribute(attribute.JavascriptCanPaste)

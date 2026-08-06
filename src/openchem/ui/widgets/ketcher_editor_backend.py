@@ -8,7 +8,7 @@ from typing import Callable
 
 from PySide6.QtCore import QObject, QTimer, QUrl, Slot
 from PySide6.QtWebChannel import QWebChannel
-from PySide6.QtWebEngineCore import QWebEnginePage
+from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from openchem.ui.editor_backend import EditorBackend
@@ -118,6 +118,24 @@ class KetcherEditorBackend(EditorBackend):
         )
         self._channel.registerObject("bridge", self._bridge)
         self._page.setWebChannel(self._channel)
+
+        # WITHOUT THESE TWO, Ctrl+C AND Ctrl+V DO NOTHING IN THE CANVAS.
+        # Both default to FALSE in QtWebEngine, and the symptom is exactly
+        # what gets reported: something flashes for a moment and no
+        # structure appears. Ketcher's copy/paste is ordinary web
+        # clipboard access, so with the permissions off its handler runs,
+        # is refused, and fails silently -- there is no error dialog and
+        # nothing in the application log.
+        #
+        # Scoped to this page rather than set globally on the default
+        # profile: the only web content this application hosts that a user
+        # types into is the editor. The 3D viewers have no clipboard need.
+        settings = self._page.settings()
+        settings.setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanAccessClipboard, True)
+        # `JavascriptCanPaste` is separate and is the one that matters for
+        # Ctrl+V: clipboard ACCESS alone still refuses a paste, because
+        # reading the clipboard is the half that can exfiltrate.
+        settings.setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanPaste, True)
 
         self._ketcher_ready = False
         self._pending_molblock: str | None = None

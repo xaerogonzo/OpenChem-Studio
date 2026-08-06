@@ -55,7 +55,14 @@ paragraph of prose is refused rather than becoming a one-atom molecule.
 It is `Ctrl+Shift+V`, not `Ctrl+V`, because Ketcher owns `Ctrl+V` inside
 the drawing canvas for pasting fragments. Pasting replaces the selected
 molecule's structure and goes on the undo stack, so `Ctrl+Z` brings back
-what was there.
+what was there — **one** `Ctrl+Z`, not several.
+
+**Inside the canvas, `Ctrl+C` and `Ctrl+V` copy and paste a selection**
+rather than the whole molecule: select part of a structure, copy it, and
+`Ctrl+V` gives you a floating copy that drops where you next click. It
+works between two molecules as well as within one. The clipboard carries a
+molfile, so a fragment copied here also pastes into any other program that
+reads one.
 
 **Duplicate is the "now make the other one" path** — draw aziridine,
 duplicate it, change one bond, and you have azirine beside it without
