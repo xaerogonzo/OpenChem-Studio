@@ -55,18 +55,15 @@ def test_that_deferred_delete_was_flushed_before_this_test_started(qapp):
 # --- why a panel outlives its test, and what the teardown collect fixes ----
 
 
-def test_subscribing_to_the_event_bus_makes_a_reference_cycle(qapp):
-    """The cause, pinned.
+def test_subscribing_does_not_keep_the_subscriber_alive(qapp):
+    """The contract `EventBus` now holds itself to.
 
-    `EventBus.subscribe` stores the BOUND METHOD, so the bus holds the
-    subscriber and the subscriber holds the bus. Reference counting cannot
-    break that, so nothing is freed when a test's locals go out of scope --
-    it waits for the cyclic collector, which runs whenever it likes,
-    including from inside Qt's event dispatch in a completely unrelated
-    test. On Windows that is an access violation.
-
-    Measured before the fix: 138 widgets per full run had their C++
-    destructor run in a LATER test than the one that built them.
+    It used to store the BOUND METHOD, so the bus held the subscriber and
+    the subscriber held the bus: nothing could be freed by reference
+    counting, and the pair waited for the cyclic collector, which runs at a
+    moment nobody chooses -- including inside Qt's event dispatch during an
+    unrelated test. Bound methods are held weakly now, so a subscriber dies
+    with its last real reference.
     """
     import gc
 
@@ -83,14 +80,88 @@ def test_subscribing_to_the_event_bus_makes_a_reference_cycle(qapp):
 
     gc.collect()
     bus = EventBus()
-    subscriber = Subscriber(bus)
-    ref = weakref.ref(subscriber)
-    del bus, subscriber
+    ref = weakref.ref(Subscriber(bus))
 
-    assert ref() is not None, "refcounting freed it; the cycle this guards is gone"
+    assert ref() is None, "refcounting alone must free a subscriber"
 
-    gc.collect()
-    assert ref() is None, "the cyclic collector must be able to free it"
+
+def test_a_lambda_handler_is_still_held_strongly(qapp):
+    """The deliberate asymmetry, and the reason it is not a bug.
+
+    A lambda usually has no other reference. Held weakly it would be
+    collected the instant `subscribe` returned and the subscription would
+    silently never fire -- which is far worse than a leak, because nothing
+    would look wrong. Only bound methods are weak, because only they have
+    an owner whose lifetime is the right answer.
+    """
+    from openchem.events.base import EventBus
+    from openchem.events.events import MoleculeChanged
+
+    bus = EventBus()
+    seen = []
+    bus.subscribe(MoleculeChanged, lambda event: seen.append(event))
+
+    bus._dispatch(MoleculeChanged(molecule_uuid="u"))
+
+    assert len(seen) == 1
+
+
+def test_a_dead_subscriber_is_dropped_rather_than_raising(qapp):
+    """Nothing has to unsubscribe on the way out."""
+    from openchem.events.base import EventBus
+    from openchem.events.events import MoleculeChanged
+
+    class Subscriber:
+        def __init__(self, bus, seen):
+            self._seen = seen
+            bus.subscribe(MoleculeChanged, self._on_changed)
+
+        def _on_changed(self, event):
+            self._seen.append(event)
+
+    bus = EventBus()
+    seen = []
+    kept = Subscriber(bus, seen)
+    Subscriber(bus, seen)  # dropped immediately
+
+    bus._dispatch(MoleculeChanged(molecule_uuid="u"))
+
+    assert len(seen) == 1, "the collected subscriber must not have been called"
+    assert kept is not None
+    # And the dead entry is REMOVED, not merely skipped. Skipping is
+    # invisible to a behavioural test and would let `_handlers` grow for
+    # the life of the process.
+    assert len(bus._handlers[MoleculeChanged]) == 1
+
+
+def test_unsubscribe_still_removes_exactly_one_subscription(qapp):
+    """A bound method is a fresh object each time it is looked up, so
+    `unsubscribe` has to compare by equality; an identity test would
+    silently do nothing. One occurrence, matching the old behaviour --
+    `PluginContext` records one rollback per subscribe."""
+    from openchem.events.base import EventBus
+    from openchem.events.events import MoleculeChanged
+
+    class Subscriber:
+        def __init__(self, seen):
+            self._seen = seen
+
+        def on_changed(self, event):
+            self._seen.append(event)
+
+    bus = EventBus()
+    seen = []
+    subscriber = Subscriber(seen)
+    for _ in range(3):
+        bus.subscribe(MoleculeChanged, subscriber.on_changed)
+
+    bus.unsubscribe(MoleculeChanged, subscriber.on_changed)
+    bus._dispatch(MoleculeChanged(molecule_uuid="u"))
+
+    # THREE subscriptions, not two: with only two, a loop that deleted
+    # every match still ended up removing one (it mutates the list it is
+    # enumerating and falls off the end), so the test passed either way.
+    assert len(seen) == 2
 
 
 def test_a_subscriber_left_behind_is_gone_before_the_next_test(qapp):
@@ -205,3 +276,45 @@ def test_the_periodic_table_dialog_does_not_leak(qapp):
     from openchem.ui.dialogs.periodic_table_dialog import PeriodicTableDialog
 
     assert not _survives_collection(PeriodicTableDialog)
+
+
+def test_a_subscriber_collected_during_dispatch_is_not_called(qapp):
+    """The narrow race the None check in `_dispatch` exists for.
+
+    Pruning happens before any handler runs, so an entry can be alive at
+    prune time and dead by the time the loop reaches it -- which is exactly
+    what happens when one handler drops the last reference to another
+    subscriber. Without the guard that is a call through a dead weakref.
+
+    Written after mutation testing: removing the check failed nothing,
+    because every other test prunes and dispatches with a stable set.
+    """
+    import gc
+
+    from openchem.events.base import EventBus
+    from openchem.events.events import MoleculeChanged
+
+    bus = EventBus()
+    seen = []
+    holder = {}
+
+    class Victim:
+        def on_changed(self, event):
+            seen.append("victim")
+
+    class Killer:
+        def on_changed(self, event):
+            seen.append("killer")
+            holder.clear()  # drops the only reference to the victim
+            gc.collect()
+
+    killer = Killer()
+    victim = Victim()
+    holder["victim"] = victim
+    bus.subscribe(MoleculeChanged, killer.on_changed)
+    bus.subscribe(MoleculeChanged, victim.on_changed)
+    del victim
+
+    bus._dispatch(MoleculeChanged(molecule_uuid="u"))
+
+    assert seen == ["killer"], "the victim was collected mid-dispatch and must not be called"

@@ -270,6 +270,41 @@ button as a Qt property and a bound method reading it back through
 asserts the leak itself as well: if a future PySide6 stops leaking here,
 that test fails and the workarounds can go.
 
+#### The root of the cycles: `EventBus` now holds bound methods weakly
+
+`EventBus.subscribe` used to store the handler in a plain list. A bound
+method holds its object, so the bus owned every panel that ever subscribed
+and the panel owned the bus -- a cycle nothing could break by reference
+counting, leaving the whole graph to the cyclic collector.
+
+Bound methods are held with `weakref.WeakMethod` now; everything else is
+still held strongly, and that asymmetry is the load-bearing part. A lambda
+usually has no other reference, so held weakly it would be collected the
+instant `subscribe` returned and the subscription would silently never
+fire -- worse than a leak, because nothing looks wrong. Measured when the
+change was made: production code subscribes 38 bound methods and ZERO
+lambdas, while the tests subscribe 74 lambdas.
+
+Measured effect, per panel:
+
+| | before | after |
+| --- | --- | --- |
+| `JobsPanel` | refcounting | refcounting |
+| `DockingPanel` | needed the cyclic collector | **refcounting** |
+| `PropertyPanel` | leaked outright | **refcounting** |
+
+**It does NOT replace the teardown `gc.collect()`, and the numbers say so
+plainly.** With weak handlers and no collect, late C++ destructions went
+UP -- 138 before, 177 after -- because more objects are now destructible
+at all rather than leaked. With both, 8, against 2352 destroyed inside
+their own test. Keep both.
+
+It also moved MainWindow, without fixing it: with weak handlers AND the
+menu lambdas removed, the first window is destroyed cleanly and the
+SECOND construction segfaults, 5/5. So destroying a MainWindow leaves
+something process-global in a state the next one trips over. That is the
+next thread to pull; the section below still applies until it is pulled.
+
 #### DO NOT "FIX" MAINWINDOW'S MENU LAMBDAS. THE LEAK IS LOAD-BEARING.
 
 `MainWindow` leaks the same way, through about a dozen
