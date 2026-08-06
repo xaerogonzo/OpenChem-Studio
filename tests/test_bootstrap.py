@@ -19,10 +19,33 @@ def test_calculator_registry_includes_docking_and_quantum_chemistry_categories(q
     assert docking_ids == {"docking.vina"}
 
     qm_ids = {d.calculator_id for d in registry.by_category("quantum_chemistry")}
-    assert qm_ids == {"orca.sp", "orca.opt", "orca.opt_freq", "orca.nmr", "orca.nmr_coupling"}
+    assert qm_ids == {
+        "orca.sp",
+        "orca.opt",
+        "orca.opt_freq",
+        "orca.nmr",
+        "orca.nmr_coupling",
+        # Three single points in one compound job, giving vertical I and A
+        # as energy DIFFERENCES rather than from orbital energies.
+        "orca.delta_scf",
+    }
 
     for definition in registry.by_category("docking") + registry.by_category("quantum_chemistry"):
         assert isinstance(definition.execution, ServiceExecution)
+
+
+def test_the_lewis_category_is_registered_with_both_its_calculators(qapp):
+    """The same guard, for the Lewis work: an empirical site analysis that
+    runs anywhere, and a discovery-only entry for the hardness/softness
+    quantities that need a real quantum run."""
+    registry = build_service_container().calculator_registry
+
+    assert "lewis" in registry.categories()
+    by_id = {d.calculator_id: d for d in registry.by_category("lewis")}
+    assert set(by_id) == {"lewis_sites", "lewis_hsab"}
+    assert by_id["lewis_sites"].prediction_basis == "empirical"
+    assert by_id["lewis_hsab"].prediction_basis == "ab_initio"
+    assert isinstance(by_id["lewis_hsab"].execution, ServiceExecution)
 
 
 def test_calculator_registry_still_has_the_four_registry_execution_calculators(qapp):

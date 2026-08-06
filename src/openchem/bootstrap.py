@@ -74,6 +74,15 @@ _QM_CALC_TYPE_DESCRIPTIONS = {
         "More expensive than plain NMR (couples every nucleus pair) -- produces per-atom "
         "shielding plus real Hz coupling values feeding the HSQC/HMBC/COSY correlation tables."
     ),
+    "delta_scf": (
+        "Chemical hardness and softness from vertical ionization potential and "
+        "electron affinity, computed as energy DIFFERENCES between the neutral, "
+        "cation and anion rather than from orbital energies. Three single points in "
+        "one job, all at the geometry as supplied -- optimize first if you need a "
+        "relaxed geometry, since optimizing here would give adiabatic rather than "
+        "vertical quantities. Slower than reading the frontier orbitals, and the "
+        "one that reproduces the textbook hard/soft orderings."
+    ),
 }
 
 for _label, _calc_type in CALC_TYPE_LABELS.items():
@@ -105,6 +114,52 @@ for _label, _calc_type in CALC_TYPE_LABELS.items():
             ],
         )
     )
+
+
+# Conceptual-DFT descriptors are produced by ANY ORCA job (see
+# `OrcaQuantumEngineProvider._parse_conceptual_dft`), so this entry runs no
+# new kind of calculation. It exists so the quantities Pearson's HSAB
+# principle is stated in are findable from the Lewis section rather than
+# only under quantum chemistry, and so the empirical Lewis site analysis
+# gets an automatic pointer to its ab initio counterpart -- the same
+# mechanism that points the SMARTS NMR estimate at a real ORCA run.
+#
+# There is deliberately no "this molecule is hard" verdict. HSAB is a
+# COMPARATIVE principle: hard and soft are only meaningful between two
+# species, and no cutoff on the Pearson scale separates them. Comparing a
+# pair is what the Interactions work is for.
+_EXTERNAL_CALCULATOR_DEFINITIONS.append(
+    CalculatorDefinition(
+        calculator_id="lewis_hsab",
+        display_name="Hardness / Softness (HSAB)",
+        category="lewis",
+        description=(
+            "Chemical hardness, softness, electronegativity, chemical potential and "
+            "the electrophilicity index, from the frontier orbital energies of a "
+            "quantum chemistry run. These are the quantities Pearson's hard/soft "
+            "acid-base principle is stated in. "
+            "Run any ORCA job from the Quantum Chemistry panel and they appear "
+            "automatically -- no separate calculation. "
+            "Koopmans values carry a caveat worth reading: measured against real "
+            "B3LYP/def2-SVP runs they invert the hardness of ammonia and phosphine, "
+            "which is one of the most-used hard/soft orderings there is."
+        ),
+        execution=ServiceExecution(
+            service_name="quantum_chemistry_service", panel_name="Quantum Chemistry panel"
+        ),
+        prediction_basis="ab_initio",
+        tags=["lewis", "hsab", "hardness", "softness", "electrophilicity"],
+        parameters=[
+            CalculatorParameter(
+                name="method_basis",
+                label="Method/basis",
+                kind="choice",
+                default=METHOD_BASIS_PRESETS[0],
+                choices=METHOD_BASIS_PRESETS,
+            )
+        ],
+    )
+)
 
 
 # Calculators whose compute function needs the configured pkasolver

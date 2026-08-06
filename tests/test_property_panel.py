@@ -756,3 +756,84 @@ def test_pfizer_gsk_rule_of_three_land_in_medicinal_chemistry(qapp):
 
     for descriptor_id in ("pfizer_375_pass", "gsk_400_pass", "rule_of_three_pass"):
         assert panel._row_sections[("rdkit", descriptor_id)] is panel._sections["medicinal_chemistry"]
+
+
+def _lewis_registry(*, with_lewis: bool = True) -> CalculatorRegistry:
+    registry = CalculatorRegistry()
+    registry.register(
+        CalculatorDefinition(
+            calculator_id="pka", display_name="pKa", category="pka",
+            description="", execution=RegistryExecution(compute=lambda m, u, p: None),
+        )
+    )
+    if with_lewis:
+        registry.register(
+            CalculatorDefinition(
+                calculator_id="lewis_sites", display_name="Lewis Sites", category="lewis",
+                description="", execution=RegistryExecution(compute=lambda m, u, p: None),
+                prediction_basis="empirical",
+            )
+        )
+    return registry
+
+
+def test_the_pka_section_points_at_the_lewis_section(qapp):
+    """The whole reason the Lewis work exists: pKa answers whether
+    something gives up a proton, and someone reading "pKa 15, not acidic"
+    can reasonably conclude the molecule is unreactive. Carbon monoxide is
+    a negligible Bronsted base and forms an isolable adduct with borane."""
+    panel, _bus, _service = _make_panel(qapp, _lewis_registry())
+
+    hints = _hint_texts(panel._sections["pka"])
+    assert len(hints) == 1
+    assert "PROTON" in hints[0]
+    assert "Lewis" in hints[0]
+
+
+def test_no_lewis_pointer_when_nothing_implements_lewis(qapp):
+    """A stripped or plugin-reduced registry must not be left pointing at
+    a section that does not exist."""
+    panel, _bus, _service = _make_panel(qapp, _lewis_registry(with_lewis=False))
+
+    assert _hint_texts(panel._sections["pka"]) == []
+
+
+def test_the_lewis_section_does_not_point_back_at_pka(qapp):
+    """One direction only. The pointer says "this answers a narrower
+    question than you think"; the reverse is not true and two sections
+    pointing at each other is noise."""
+    panel, _bus, _service = _make_panel(qapp, _lewis_registry())
+
+    assert not any("PROTON" in text for text in _hint_texts(panel._sections["lewis"]))
+
+
+def test_the_lewis_section_points_at_its_ab_initio_counterpart(qapp):
+    """Hardness and softness need a real quantum run, and `lewis_hsab` is
+    registered so the existing empirical -> ab initio mechanism finds it by
+    the shared "lewis" id prefix."""
+    registry = _lewis_registry()
+    registry.register(
+        CalculatorDefinition(
+            calculator_id="lewis_hsab", display_name="Hardness / Softness (HSAB)",
+            category="lewis", description="",
+            execution=ServiceExecution(
+                service_name="quantum_chemistry_service", panel_name="Quantum Chemistry panel"
+            ),
+            prediction_basis="ab_initio",
+        )
+    )
+
+    panel, _bus, _service = _make_panel(qapp, registry)
+
+    hints = _hint_texts(panel._sections["lewis"])
+    assert any("Quantum Chemistry panel" in text for text in hints)
+
+
+def test_the_real_registry_wires_both_lewis_calculators(qapp):
+    """Registered rather than merely defined -- through the real bootstrap,
+    since a definition that never reaches the registry is invisible."""
+    from openchem.bootstrap import build_service_container
+
+    registry = build_service_container().calculator_registry
+    ids = {d.calculator_id for d in registry.by_category("lewis")}
+    assert ids == {"lewis_sites", "lewis_hsab"}

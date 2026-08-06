@@ -334,8 +334,45 @@ class PropertyPanel(QWidget):
             button.clicked.connect(self._on_calculator_button_clicked)
             section.add_calculator_widget(button)
         self._add_service_execution_hint(section, category)
+        self._add_cross_theory_hint(section, category)
         self._reorder_sections()
         return section
+
+    #: Category -> (category it should point at, the sentence to show).
+    #: ONE entry, and deliberately not generalised into a registry field.
+    #: There is exactly one pair of acid-base theories in this application
+    #: and inventing a mechanism for a single case is the premature
+    #: generalisation this project has declined twice before. A second
+    #: entry here is the signal to reconsider, not the first.
+    _CROSS_THEORY_HINTS = {
+        "pka": (
+            "lewis",
+            "pKa answers whether this gives up a PROTON. Something can be a "
+            "negligible Bronsted base and still a strong Lewis base -- carbon "
+            "monoxide is both -- so see the Lewis Acid/Base section too.",
+        ),
+    }
+
+    def _add_cross_theory_hint(self, section: _CollapsibleSection, category: str) -> None:
+        """Point the pKa section at the Lewis one.
+
+        Not the same relationship as `_add_service_execution_hint`, which
+        says "a more accurate version of this calculation exists". This one
+        says "this calculation answers a narrower QUESTION than you may
+        think it does", which is a different and more easily missed error.
+        """
+        target = self._CROSS_THEORY_HINTS.get(category)
+        if target is None:
+            return
+        other, message = target
+        # Silent when nothing implements the other theory, so a stripped or
+        # plugin-reduced registry cannot leave a pointer to nowhere.
+        if not self._calculator_registry.by_category(other):
+            return
+        hint = QLabel(message, section.content)
+        hint.setWordWrap(True)
+        hint.setStyleSheet("color: #666666; font-style: italic;")
+        section.add_calculator_widget(hint)
 
     def _add_service_execution_hint(self, section: _CollapsibleSection, category: str) -> None:
         """Phase 23: a section whose runnable calculators are all

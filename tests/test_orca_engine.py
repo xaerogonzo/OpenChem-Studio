@@ -419,3 +419,288 @@ def test_parse_spin_spin_coupling_missing_summary_raises():
 
     with pytest.raises(OrcaOutputError):
         provider.parse_spin_spin_coupling("ORCA crashed, no coupling results here", "nmr_coupling")
+
+
+# ---------------------------------------------------------------------------
+# Frontier orbital energies and the conceptual-DFT descriptors built on them.
+# ---------------------------------------------------------------------------
+
+# VERBATIM from a real ORCA 6.1.1 run on this machine -- `! B3LYP def2-SVP
+# Opt` on water -- copied exactly, trailing spaces and all, not
+# reconstructed. This is the LAST orbital table in that file, i.e. the one
+# belonging to the converged geometry.
+REAL_ORBITAL_ENERGIES = """
+FINAL SINGLE POINT ENERGY       -76.321269385381
+
+ORBITAL ENERGIES
+----------------
+
+  NO   OCC          E(Eh)            E(eV) 
+   0   2.0000     -19.116101      -520.1756 
+   1   2.0000      -0.976138       -26.5621 
+   2   2.0000      -0.508032       -13.8242 
+   3   2.0000      -0.364388        -9.9155 
+   4   2.0000      -0.288145        -7.8408 
+   5   0.0000       0.047713         1.2983 
+   6   0.0000       0.126622         3.4455 
+   7   0.0000       0.558300        15.1921 
+
+MULLIKEN ATOMIC CHARGES
+"""
+
+
+def test_frontier_energies_come_off_the_real_orbital_table():
+    from openchem.chem.orca_engine import parse_frontier_energies
+
+    homo, lumo = parse_frontier_energies(REAL_ORBITAL_ENERGIES)
+    assert homo == pytest.approx(-7.8408)
+    assert lumo == pytest.approx(1.2983)
+
+
+def test_frontier_indices_and_energies_describe_the_same_two_orbitals():
+    """Two entry points over one table, so they must not drift: orbital 4
+    is the HOMO and its energy is the HOMO energy."""
+    from openchem.chem.orca_engine import parse_frontier_energies, parse_frontier_orbitals
+
+    assert parse_frontier_orbitals(REAL_ORBITAL_ENERGIES) == (4, 5)
+    assert parse_frontier_energies(REAL_ORBITAL_ENERGIES) == (
+        pytest.approx(-7.8408),
+        pytest.approx(1.2983),
+    )
+
+
+def test_frontier_energies_use_the_last_table_not_the_first():
+    """A geometry optimisation prints one table per cycle and the orbitals
+    belong to the CONVERGED geometry -- the same rule the index parser
+    already documents, re-checked here because both now share it."""
+    from openchem.chem.orca_engine import parse_frontier_energies
+
+    earlier = REAL_ORBITAL_ENERGIES.replace("-7.8408", "-9.9999").replace("1.2983", "2.2222")
+    assert parse_frontier_energies(earlier + REAL_ORBITAL_ENERGIES) == (
+        pytest.approx(-7.8408),
+        pytest.approx(1.2983),
+    )
+
+
+def test_frontier_energies_read_alpha_orbitals_only():
+    """An unrestricted job prints both spin blocks under one heading.
+    Reading through both once produced a frontier pair existing in
+    neither, which is why the section stops at SPIN DOWN ORBITALS."""
+    from openchem.chem.orca_engine import parse_frontier_energies
+
+    with_beta = REAL_ORBITAL_ENERGIES.replace(
+        "MULLIKEN ATOMIC CHARGES",
+        "SPIN DOWN ORBITALS\n"
+        "  NO   OCC          E(Eh)            E(eV) \n"
+        "   0   1.0000      -0.500000       -13.6057 \n"
+        "   1   0.0000       0.000000         0.0000 \n"
+        "MULLIKEN ATOMIC CHARGES",
+    )
+    assert parse_frontier_energies(with_beta) == (
+        pytest.approx(-7.8408),
+        pytest.approx(1.2983),
+    )
+
+
+def test_a_run_with_no_orbital_table_yields_no_energies():
+    from openchem.chem.orca_engine import parse_frontier_energies
+
+    assert parse_frontier_energies("FINAL SINGLE POINT ENERGY  -1.0") == (None, None)
+
+
+def _conceptual_descriptors(output_text: str, calc_type: str = "sp"):
+    mol = Chem.AddHs(Chem.MolFromSmiles("O"))
+    AllChem.EmbedMolecule(mol, randomSeed=0xC0FFEE)
+    values, _conformer = OrcaQuantumEngineProvider().parse_output(
+        output_text, mol, "mol-1", calc_type
+    )
+    return {d.descriptor_id: d for d in values}
+
+
+def test_conceptual_dft_descriptors_come_out_of_an_ordinary_run():
+    """No dedicated calc type: any job that reaches an SCF prints the
+    orbital table, so these cost one pass over text already in memory."""
+    found = _conceptual_descriptors(REAL_ORBITAL_ENERGIES)
+    assert found["orca.homo_energy"].value == pytest.approx(-7.8408)
+    assert found["orca.hardness"].value == pytest.approx(4.5696, abs=1e-3)
+    assert found["orca.softness"].units == "1/eV"
+    assert found["orca.electrophilicity"].value == pytest.approx(1.1709, abs=1e-3)
+
+
+@pytest.mark.parametrize("calc_type", ["sp", "opt", "opt_freq", "nmr"])
+def test_every_calc_type_produces_them(calc_type):
+    found = _conceptual_descriptors(REAL_ORBITAL_ENERGIES, calc_type)
+    assert "orca.hardness" in found, calc_type
+
+
+def test_the_koopmans_caveat_travels_on_the_descriptor():
+    """The inversion warning has to reach whoever reads the number, not
+    just whoever reads the source. It rides on provenance rather than the
+    display name so the labels stay readable."""
+    found = _conceptual_descriptors(REAL_ORBITAL_ENERGIES)
+    caveat = found["orca.hardness"].provenance.parameters["caveat"]
+    assert "ammonia" in caveat and "phosphine" in caveat
+
+
+def test_a_run_without_an_orbital_table_still_yields_its_scf_energy():
+    """The descriptors are additive. A job whose table could not be read
+    must not lose the energy it did produce."""
+    found = _conceptual_descriptors("FINAL SINGLE POINT ENERGY       -76.321269385381")
+    assert "orca.scf_energy" in found
+    assert "orca.hardness" not in found
+
+
+# ---------------------------------------------------------------------------
+# delta-SCF: three single points in one compound job.
+# ---------------------------------------------------------------------------
+
+def _delta_scf_mol():
+    mol = Chem.AddHs(Chem.MolFromSmiles("N"))
+    AllChem.EmbedMolecule(mol, randomSeed=7)
+    return mol
+
+
+def test_delta_scf_writes_three_jobs_at_one_geometry():
+    """Vertical I and A are DEFINED at a single geometry. Three blocks,
+    charge 0/+1/-1, and the coordinates identical in all three."""
+    text = OrcaQuantumEngineProvider().build_input(
+        _delta_scf_mol(), 0, 1, "B3LYP def2-SVP", "delta_scf"
+    )
+    assert text.count("$new_job") == 2
+    assert "* xyz 0 1" in text and "* xyz 1 2" in text and "* xyz -1 2" in text
+
+    blocks = text.split("$new_job")
+    coordinates = [
+        [line for line in block.splitlines() if line.startswith(("N ", "H "))]
+        for block in blocks
+    ]
+    assert coordinates[0] == coordinates[1] == coordinates[2]
+
+
+def test_delta_scf_never_optimizes():
+    """Optimizing the ions would give ADIABATIC values -- a different and
+    smaller quantity -- and optimizing only the neutral would leave the
+    ions at a geometry that is no longer the neutral's, which is the
+    silent version of the same error."""
+    text = OrcaQuantumEngineProvider().build_input(
+        _delta_scf_mol(), 0, 1, "B3LYP def2-SVP", "delta_scf"
+    )
+    assert "Opt" not in text
+    assert "Freq" not in text
+
+
+def test_delta_scf_carries_a_non_zero_charge_through():
+    """A calculation on an anion has ion charges -2 and 0, not -1 and +1."""
+    text = OrcaQuantumEngineProvider().build_input(
+        _delta_scf_mol(), -1, 1, "B3LYP def2-SVP", "delta_scf"
+    )
+    assert "* xyz -1 1" in text and "* xyz 0 2" in text and "* xyz -2 2" in text
+
+
+@pytest.mark.parametrize(
+    ("neutral", "expected"),
+    [(1, 2), (2, 1), (3, 2), (4, 3)],
+)
+def test_ion_multiplicity(neutral, expected):
+    """A closed shell is unambiguous -- no unpaired electrons becomes
+    exactly one, so a singlet gives doublet ions. Above that it is a
+    guess between two spin states and the lower is taken."""
+    assert OrcaQuantumEngineProvider._ion_multiplicity(neutral) == expected
+
+
+# VERBATIM from a real ORCA 6.1.1 compound run built by `build_input`
+# above -- `! B3LYP def2-SVP` delta-SCF on ammonia at its ORCA-optimized
+# geometry. Only the three energy lines are kept; they appear in the order
+# the jobs were written, which is what the parser relies on.
+REAL_DELTA_SCF_OUTPUT = """
+                         Program Version 6.1.1  -  RELEASE   -
+
+FINAL SINGLE POINT ENERGY       -56.473161171246
+
+FINAL SINGLE POINT ENERGY       -56.081184680585
+
+FINAL SINGLE POINT ENERGY       -56.335220730864
+"""
+
+
+def test_delta_scf_descriptors_from_a_real_compound_run():
+    """Ammonia, measured: I = 10.67 eV and eta = 7.21 eV. Koopmans on the
+    same molecule gives 6.82 and 4.16 -- see test_conceptual_dft.py for
+    why the difference decides which one is usable."""
+    values, _conformer = OrcaQuantumEngineProvider().parse_output(
+        REAL_DELTA_SCF_OUTPUT, _delta_scf_mol(), "mol-1", "delta_scf"
+    )
+    found = {d.descriptor_id: d.value for d in values}
+    # Tight tolerances on purpose. A first version of this fixture had
+    # energies typed from memory rather than copied, and loose tolerances
+    # let the wrong numbers pass -- the arithmetic was being checked
+    # against itself instead of against the run.
+    assert found["orca.dscf_ionization_potential"] == pytest.approx(10.666224, abs=1e-6)
+    assert found["orca.dscf_electron_affinity"] == pytest.approx(-3.753551, abs=1e-6)
+    assert found["orca.dscf_hardness"] == pytest.approx(7.209887, abs=1e-6)
+    assert found["orca.dscf_softness"] == pytest.approx(0.138698, abs=1e-6)
+
+
+def test_delta_scf_does_not_emit_koopmans_descriptors():
+    """The output holds THREE orbital tables and the frontier parsers take
+    the last one, which is the ANION's. Koopmans numbers computed from it
+    would be silently about a different species."""
+    values, _conformer = OrcaQuantumEngineProvider().parse_output(
+        REAL_DELTA_SCF_OUTPUT, _delta_scf_mol(), "mol-1", "delta_scf"
+    )
+    ids = {d.descriptor_id for d in values}
+    assert "orca.dscf_hardness" in ids
+    assert "orca.hardness" not in ids
+    assert "orca.homo_energy" not in ids
+
+
+def test_a_delta_scf_job_missing_an_ion_fails_loudly():
+    """Two energies means an ion did not converge. Computing I from the
+    two that did would produce a real-looking number for the wrong pair,
+    so this raises rather than returning less."""
+    truncated = REAL_DELTA_SCF_OUTPUT.rsplit("FINAL SINGLE POINT ENERGY", 1)[0]
+    with pytest.raises(OrcaOutputError, match="three SCF energies"):
+        OrcaQuantumEngineProvider().parse_output(
+            truncated, _delta_scf_mol(), "mol-1", "delta_scf"
+        )
+
+
+def test_delta_scf_is_offered_in_the_panel_and_described():
+    from openchem.bootstrap import _QM_CALC_TYPE_DESCRIPTIONS
+    from openchem.chem.orca_engine import CALC_TYPE_LABELS
+
+    assert CALC_TYPE_LABELS["Hardness / Softness (delta-SCF)"] == "delta_scf"
+    # Every calc type needs a description or the bootstrap loop raises.
+    assert set(_QM_CALC_TYPE_DESCRIPTIONS) == set(CALC_TYPE_LABELS.values())
+
+
+def test_the_three_delta_scf_blocks_are_written_in_parser_order():
+    """ORDER is load-bearing, and this test exists because a mutation that
+    swapped the cation and anion blocks survived everything else here.
+
+    ORCA gives no way to tell the three FINAL SINGLE POINT ENERGY lines
+    apart, so `_parse_delta_scf` reads them positionally. Swapping the ions
+    flips the sign of both I and A and yields numbers that look entirely
+    reasonable -- a hardness for water of the wrong sign is obvious, but a
+    plausible one for the wrong species is not.
+    """
+    text = OrcaQuantumEngineProvider().build_input(
+        _delta_scf_mol(), 0, 1, "B3LYP def2-SVP", "delta_scf"
+    )
+    charges = [
+        line.split()[2]
+        for line in text.splitlines()
+        if line.startswith("* xyz")
+    ]
+    assert charges == ["0", "1", "-1"]
+
+
+def test_the_delta_scf_caveat_travels_on_its_descriptors():
+    """Reproducing both textbook orderings does not make the electron
+    affinity trustworthy -- every anion here is unbound in a basis with no
+    diffuse functions, and whoever reads the number has to be told."""
+    values, _conformer = OrcaQuantumEngineProvider().parse_output(
+        REAL_DELTA_SCF_OUTPUT, _delta_scf_mol(), "mol-1", "delta_scf"
+    )
+    caveats = {d.provenance.parameters.get("caveat", "") for d in values}
+    assert any("diffuse" in caveat for caveat in caveats)

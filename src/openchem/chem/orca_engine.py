@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import time
+from dataclasses import replace
 from pathlib import Path
 
 from rdkit import Chem
@@ -10,6 +11,7 @@ from rdkit.Geometry import Point3D
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
+from openchem.chem.conceptual_dft import from_delta_scf, from_frontier_energies
 from openchem.chem.vibrational_modes import classify_mode
 from openchem.domain.scientific_result import (
     NMRSpectrumResult,
@@ -92,33 +94,76 @@ def parse_frontier_orbitals(output_text: str) -> tuple[int | None, int | None]:
     every orbital in the basis is occupied -- which cannot happen for a
     real basis set but is not worth crashing over.
     """
-    # The LAST table, found from the last header: `_section` takes the
-    # first match, and a geometry optimisation prints one table per cycle.
+    section = _frontier_section(output_text)
+    if section is None:
+        return None, None
+    homo, lumo = _scan_frontier(section)
+    return (homo[0] if homo else None), (lumo[0] if lumo else None)
+
+
+def _frontier_section(output_text: str) -> str | None:
+    """The alpha block of the LAST ORBITAL ENERGIES table, or None.
+
+    Shared by both frontier parsers so the last-table and alpha-only rules
+    -- each of which was got wrong once, and the second of which returned a
+    frontier pair that exists in neither spin block -- are stated once.
+    """
+    # `_section` takes the FIRST match, and a geometry optimisation prints
+    # one table per cycle; the orbitals belong to the converged geometry.
     last = output_text.rfind("ORBITAL ENERGIES")
     if last == -1:
-        return None, None
+        return None
     end = output_text.find("MULLIKEN", last)
     section = output_text[last:] if end == -1 else output_text[last:end]
 
     spin_down = section.find("SPIN DOWN ORBITALS")
     if spin_down != -1:
         section = section[:spin_down]
-    if not section:
-        return None, None
+    return section or None
 
-    homo: int | None = None
-    lumo: int | None = None
+
+def _scan_frontier(
+    section: str,
+) -> tuple[tuple[int, float] | None, tuple[int, float] | None]:
+    """(index, E in eV) for the HOMO and the LUMO of one orbital table.
+
+    The energies were captured by `_ORBITAL_ROW_RE` and thrown away from
+    the first version of this parser onwards. Frontier energies are what
+    conceptual-DFT descriptors are built from, so keeping group 4 costs
+    nothing and saves a second pass over the same table.
+    """
+    homo: tuple[int, float] | None = None
+    lumo: tuple[int, float] | None = None
     for match in _ORBITAL_ROW_RE.finditer(section):
         index = int(match.group(1))
         occupation = float(match.group(2))
+        electron_volts = float(match.group(4))
         if occupation > 0.0:
-            homo = index
+            homo = (index, electron_volts)
         elif lumo is None and homo is not None:
             # The first empty orbital AFTER an occupied one. Guarding on
             # `homo` matters for an open-shell beta block, whose table can
             # begin with empty rows.
-            lumo = index
+            lumo = (index, electron_volts)
     return homo, lumo
+
+
+def parse_frontier_energies(output_text: str) -> tuple[float | None, float | None]:
+    """(E_HOMO, E_LUMO) in eV from the ORBITAL ENERGIES table.
+
+    Same table, same last-table and alpha-only rules as
+    `parse_frontier_orbitals` -- see that function for why both matter.
+    Separate entry point because the two callers want different things: a
+    plot needs the orbital NUMBER, and a descriptor needs the ENERGY.
+
+    Measured on a real ORCA 6.1.1 B3LYP/def2-SVP run of water: HOMO is
+    orbital 4 at -7.8408 eV and LUMO orbital 5 at +1.2983 eV.
+    """
+    section = _frontier_section(output_text)
+    if section is None:
+        return None, None
+    homo, lumo = _scan_frontier(section)
+    return (homo[1] if homo else None), (lumo[1] if lumo else None)
 
 
 def _parse_normal_modes(
@@ -189,7 +234,16 @@ def _parse_normal_modes(
 # rather than softened, because a stale "unverified" note is worse than no
 # note -- it invites someone to re-do work that was already done.
 
-_CALC_TYPE_KEYWORDS = {"sp": "", "opt": "Opt", "opt_freq": "Opt Freq", "nmr": "NMR", "nmr_coupling": "NMR"}
+_CALC_TYPE_KEYWORDS = {
+    "sp": "",
+    "opt": "Opt",
+    "opt_freq": "Opt Freq",
+    "nmr": "NMR",
+    "nmr_coupling": "NMR",
+    # Three single points, no Opt: see `_build_delta_scf_input` for why
+    # optimizing here would silently make the answer something else.
+    "delta_scf": "",
+}
 
 _SCF_ENERGY_RE = re.compile(r"FINAL SINGLE POINT ENERGY\s+(-?\d+\.\d+)")
 _CARTESIAN_BLOCK_RE = re.compile(
@@ -299,7 +353,7 @@ _NORMAL_MODES_HEADER = "NORMAL MODES"
 
 HARTREE_TO_KCAL_MOL = 627.5094740631
 
-_CALC_TYPES = ("sp", "opt", "opt_freq", "nmr", "nmr_coupling")
+_CALC_TYPES = ("sp", "opt", "opt_freq", "nmr", "nmr_coupling", "delta_scf")
 
 # Public, chemistry-layer source of truth for calc_type display names and
 # real method/basis presets -- both used to live UI-panel-private in
@@ -315,6 +369,7 @@ CALC_TYPE_LABELS = {
     "Optimization + Frequency": "opt_freq",
     "NMR (raw shielding)": "nmr",
     "NMR + Spin-Spin Coupling": "nmr_coupling",
+    "Hardness / Softness (delta-SCF)": "delta_scf",
 }
 # General-purpose presets first, then two aimed specifically at NMR.
 #
@@ -368,11 +423,18 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
         header = f"! {method_basis} {keywords}".strip()
 
         conf = mol.GetConformer()
-        lines = [header, f"* xyz {charge} {multiplicity}"]
-        for atom in mol.GetAtoms():
-            pos = conf.GetAtomPosition(atom.GetIdx())
-            lines.append(f"{atom.GetSymbol():<3}{pos.x:>14.6f}{pos.y:>14.6f}{pos.z:>14.6f}")
-        lines.append("*")
+        coordinates = [
+            f"{atom.GetSymbol():<3}"
+            f"{conf.GetAtomPosition(atom.GetIdx()).x:>14.6f}"
+            f"{conf.GetAtomPosition(atom.GetIdx()).y:>14.6f}"
+            f"{conf.GetAtomPosition(atom.GetIdx()).z:>14.6f}"
+            for atom in mol.GetAtoms()
+        ]
+
+        if calc_type == "delta_scf":
+            return self._build_delta_scf_input(header, coordinates, charge, multiplicity)
+
+        lines = [header, f"* xyz {charge} {multiplicity}", *coordinates, "*"]
         if calc_type == "nmr_coupling":
             # Confirmed live against a real ORCA 6.1.1 run: the %eprnmr
             # block MUST come AFTER the coordinate (`* xyz ... *`) block --
@@ -392,6 +454,54 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
                     "end",
                 ]
             )
+        return "\n".join(lines) + "\n"
+
+    @staticmethod
+    def _ion_multiplicity(multiplicity: int) -> int:
+        """Spin multiplicity of the molecule with one electron added or removed.
+
+        A closed-shell neutral is unambiguous: no unpaired electrons
+        becomes exactly one, so a singlet gives doublet ions and that is
+        the case essentially every use of this hits.
+
+        For an OPEN-shell neutral it is a guess. A doublet's cation can be
+        a singlet or a triplet and nothing in the structure says which is
+        lower, so the lower-spin state is taken and the result says so
+        rather than presenting a choice as a fact.
+        """
+        return multiplicity + 1 if multiplicity == 1 else multiplicity - 1
+
+    def _build_delta_scf_input(
+        self, header: str, coordinates: list[str], charge: int, multiplicity: int
+    ) -> str:
+        """Neutral, cation and anion in ONE input, via ORCA's `$new_job`.
+
+        Confirmed live against ORCA 6.1.1: a compound input runs all three
+        and prints three FINAL SINGLE POINT ENERGY lines in order, so this
+        stays one job with one output and the service needs no notion of
+        chained runs.
+
+        **All three use the geometry as supplied, and none of them
+        optimizes.** That is what makes I and A VERTICAL, which is what
+        the descriptors are defined against. Optimizing the ions would
+        give adiabatic values -- a different and smaller quantity -- and
+        optimizing only the neutral would leave the ions at a geometry
+        that is no longer the neutral's, which is the silent version of
+        the same error. Run a geometry optimization first if the drawn
+        geometry is not good enough; this deliberately will not do it for
+        you.
+        """
+        ion_multiplicity = self._ion_multiplicity(multiplicity)
+        blocks = [
+            (charge, multiplicity),
+            (charge + 1, ion_multiplicity),
+            (charge - 1, ion_multiplicity),
+        ]
+        lines: list[str] = []
+        for index, (job_charge, job_multiplicity) in enumerate(blocks):
+            if index:
+                lines.extend(["", "$new_job"])
+            lines.extend([header, f"* xyz {job_charge} {job_multiplicity}", *coordinates, "*"])
         return "\n".join(lines) + "\n"
 
     def command_args(self, executable_path: str, input_path: Path) -> list[str]:
@@ -442,6 +552,17 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
             )
         ]
 
+        if calc_type == "delta_scf":
+            descriptors.extend(self._parse_delta_scf(output_text, molecule_uuid, provenance))
+        else:
+            # NOT for delta_scf. That output holds three orbital tables and
+            # the frontier parsers take the LAST one, which is the ANION's
+            # -- Koopmans numbers computed from it would be silently about
+            # a different species. Every other calc type has one table.
+            descriptors.extend(
+                self._parse_conceptual_dft(output_text, molecule_uuid, provenance)
+            )
+
         if calc_type == "opt_freq":
             descriptors.extend(self._parse_thermochemistry(output_text, molecule_uuid, provenance))
 
@@ -450,6 +571,128 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
             optimized_conformer = self._parse_optimized_conformer(output_text, mol, provenance)
 
         return descriptors, optimized_conformer
+
+    #: (descriptor id suffix, display name, units, attribute on ConceptualDFT).
+    _CONCEPTUAL_DFT_FIELDS = (
+        ("homo_energy", "E(HOMO)", "eV", None),
+        ("lumo_energy", "E(LUMO)", "eV", None),
+        ("ionization_potential", "Ionization Potential (Koopmans)", "eV", "ionization_potential"),
+        ("electron_affinity", "Electron Affinity (Koopmans)", "eV", "electron_affinity"),
+        ("electronegativity", "Electronegativity", "eV", "electronegativity"),
+        ("chemical_potential", "Chemical Potential", "eV", "chemical_potential"),
+        ("hardness", "Chemical Hardness", "eV", "hardness"),
+        ("softness", "Chemical Softness", "1/eV", "softness"),
+        ("electrophilicity", "Electrophilicity Index", "eV", "electrophilicity"),
+    )
+
+    #: delta-SCF reports the same descriptor names as Koopmans, minus the
+    #: orbital energies -- there is no single HOMO here, and I and A did
+    #: not come from one. The ids differ so a molecule can carry both sets
+    #: and a reader can tell which is which.
+    _DELTA_SCF_FIELDS = (
+        ("dscf_ionization_potential", "Ionization Potential (delta-SCF)", "eV", "ionization_potential"),
+        ("dscf_electron_affinity", "Electron Affinity (delta-SCF)", "eV", "electron_affinity"),
+        ("dscf_electronegativity", "Electronegativity (delta-SCF)", "eV", "electronegativity"),
+        ("dscf_chemical_potential", "Chemical Potential (delta-SCF)", "eV", "chemical_potential"),
+        ("dscf_hardness", "Chemical Hardness (delta-SCF)", "eV", "hardness"),
+        ("dscf_softness", "Chemical Softness (delta-SCF)", "1/eV", "softness"),
+        ("dscf_electrophilicity", "Electrophilicity Index (delta-SCF)", "eV", "electrophilicity"),
+    )
+
+    def _parse_delta_scf(
+        self, output_text: str, molecule_uuid: str, provenance: Provenance
+    ) -> list[DescriptorValue]:
+        """Vertical I and A from the three energies of a compound job.
+
+        The three FINAL SINGLE POINT ENERGY lines are in the order the
+        jobs were written -- neutral, cation, anion. Positional, because
+        ORCA gives no other way to tell them apart, which is exactly why
+        `_build_delta_scf_input` is the only thing that writes this input.
+        """
+        energies = [float(value) for value in _SCF_ENERGY_RE.findall(output_text)]
+        if len(energies) < 3:
+            raise OrcaOutputError(
+                "A delta-SCF job must produce three SCF energies (neutral, cation, "
+                f"anion) and this output has {len(energies)}. One of the ion "
+                "calculations most likely failed to converge."
+            )
+        result = from_delta_scf(*energies[:3])
+        if not result:
+            return []
+
+        annotated = replace(
+            provenance,
+            parameters={**provenance.parameters, "caveat": " ".join(result.caveats)},
+        )
+        return [
+            DescriptorValue(
+                descriptor_id=f"orca.{suffix}",
+                name=name,
+                units=units,
+                category="quantum_chemistry",
+                provider="orca",
+                molecule_uuid=molecule_uuid,
+                value=getattr(result, attribute),
+                timestamp=provenance.timestamp,
+                cache_state=CacheState.COMPLETED,
+                provenance=annotated,
+            )
+            for suffix, name, units, attribute in self._DELTA_SCF_FIELDS
+        ]
+
+    def _parse_conceptual_dft(
+        self, output_text: str, molecule_uuid: str, provenance: Provenance
+    ) -> list[DescriptorValue]:
+        """Frontier energies and the Koopmans descriptors built on them.
+
+        Emitted from EVERY calc type rather than a dedicated one: the
+        orbital energy table is printed by any job that reaches an SCF, so
+        these cost one extra pass over text already in memory and ride the
+        existing descriptor path -- stored, cached and reused with nothing
+        bespoke.
+
+        Reporting hardness from Koopmans at all is a deliberate call rather
+        than an oversight. Measured against real B3LYP/def2-SVP runs it
+        INVERTS ammonia against phosphine, so `conceptual_dft` attaches a
+        caveat naming that failure and it travels with the number.
+        """
+        homo_ev, lumo_ev = parse_frontier_energies(output_text)
+        if homo_ev is None or lumo_ev is None:
+            return []
+
+        result = from_frontier_energies(homo_ev, lumo_ev)
+        values: dict[str, float] = {"homo_energy": homo_ev, "lumo_energy": lumo_ev}
+        if result:
+            values.update(
+                {
+                    suffix: getattr(result, attribute)
+                    for suffix, _name, _units, attribute in self._CONCEPTUAL_DFT_FIELDS
+                    if attribute is not None
+                }
+            )
+
+        # The caveat rides on provenance rather than the descriptor name so
+        # it reaches the inspector without making every label unreadable.
+        annotated = replace(
+            provenance,
+            parameters={**provenance.parameters, "caveat": " ".join(result.caveats)},
+        )
+        return [
+            DescriptorValue(
+                descriptor_id=f"orca.{suffix}",
+                name=name,
+                units=units,
+                category="quantum_chemistry",
+                provider="orca",
+                molecule_uuid=molecule_uuid,
+                value=values[suffix],
+                timestamp=provenance.timestamp,
+                cache_state=CacheState.COMPLETED,
+                provenance=annotated,
+            )
+            for suffix, name, units, _attribute in self._CONCEPTUAL_DFT_FIELDS
+            if suffix in values
+        ]
 
     def parse_vibrational_spectrum(
         self, output_text: str, mol: Chem.Mol, molecule_uuid: str, calc_type: str
