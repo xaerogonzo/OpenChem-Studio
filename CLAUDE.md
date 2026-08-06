@@ -50,10 +50,10 @@ The binary is not on PATH; call it by full path.
 uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suite.log
 ```
 
-A clean run is **~3 minutes**, ending at `2425 passed, 2 skipped` (measured
-2026-08-06 on master at `05dad7a`, working tree clean). Writing to a file
-rather than a pipe is worth doing because it lets you watch progress while it
-runs.
+A clean run is **~3 minutes**, ending at `2547 passed, 2 skipped` (measured
+2026-08-06 on master at `3125c56`, working tree clean, bytecode cleared).
+Writing to a file rather than a pipe is worth doing because it lets you watch
+progress while it runs.
 
 **One test fails against the network, not against the code.**
 `test_pubchem_name_round_trips_back_through_opsin` returns `HTTP 400` from
@@ -744,21 +744,35 @@ engine's internals rather than our integration with it.
 Run them whenever you change anything under `src/openchem/vendor/`:
 
 ```bash
-export PATH="/d/Random Programs/OpenChemStudio_Data/jre/jdk-21.0.12+8-jre/bin:$PATH"
+export JAVA_HOME="/d/Random Programs/OpenChemStudio_Data/jre/jdk-21.0.12+8-jre"
+export PATH="$JAVA_HOME/bin:$PATH"
 uv run --no-sync python -u -m pytest tests/vendor -q > /tmp/vendor.log 2>&1; tail -4 /tmp/vendor.log
 ```
 
-Expect `3209 passed, 0 skipped` (~15 min). This file used to say
-`3193 passed, 16 skipped`, and CI disproved it on the first run: those
-16 are guarded by a plain `ImportError` on `py2opsin`, which is a
-declared dependency -- so the old figure was measured in an environment
-where the sync had not been done, and it contradicted the Java-on-PATH
-instruction two lines above it. 3193 + 16 = 3209 exactly.
+Expect `3209 passed, 0 skipped` (~10 min).
 
-**Java must be on PATH** for these, and for any test that touches OPSIN. The
-app injects its managed Temurin per-subprocess (`naming_providers._java_on_path`),
-but py2opsin shells out to a bare `java` and pytest does not inherit that.
-Without it you get a bare `FileNotFoundError` naming neither Java nor OPSIN.
+**`JAVA_HOME` AND `PATH`, and they are not the same requirement.** Setting
+only PATH gives `3193 passed, 16 skipped` -- which is the figure this file
+carried for a long time, then "corrected" to blame an `ImportError` on
+`py2opsin`. That attribution was wrong, and measuring it rather than
+reasoning about it is what showed the difference:
+
+    py2opsin imports fine, java on PATH   3193 passed, 16 skipped
+    JAVA_HOME set as well                 3209 passed, 0 skipped
+
+All 16 live in `tests/vendor/iupac_namer/test_tautomer_alignment.py`, whose
+`_java_available()` reads the JAVA_HOME **environment variable** and does not
+look at PATH at all. CI sets JAVA_HOME as a side effect of its setup-java
+step, which is why CI saw 3209 and a PATH-only local run never could.
+
+Finding them took mapping the `s` characters in pytest's `-q` progress output
+back onto `--collect-only` order; `-rs` on the whole suite is another ten
+minutes, and the skip reasons are not in a `-q` log.
+
+PATH is still needed on its own: py2opsin shells out to a bare `java`, and
+pytest does not inherit the managed Temurin the app injects per-subprocess
+(`naming_providers._java_on_path`). Without PATH you get a bare
+`FileNotFoundError` naming neither Java nor OPSIN.
 
 ## The naming benchmark
 
@@ -917,9 +931,6 @@ Two measurement traps from the same work, both already paid for once:
   subtracted. Every test passed, because every acid the tests touch has
   `W = 0` — only two entries in the whole table have one. Coverage of a
   parameter's *common* value is not coverage of the parameter.
-
-A clean run now ends at `2542 passed, 2 skipped` (2026-08-06, master, clean
-tree), so the figure earlier in this file is the one to update if it drifts.
 
 ### Alex has the paywalled papers. Ask before hedging around one.
 
