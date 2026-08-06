@@ -270,13 +270,58 @@ button as a Qt property and a bound method reading it back through
 asserts the leak itself as well: if a future PySide6 stops leaking here,
 that test fails and the workarounds can go.
 
-**Still outstanding: `MainWindow`, through about a dozen
-`menu.addAction(label, lambda: self._foo())` calls in `_build_menus`.**
-Not fixed because the file already documents why the obvious conversion is
-unsafe -- `QAction.triggered` emits `checked`, which a bare bound method
-would receive as its first real argument -- so each handler's signature
-has to change with it. One window per app run makes this cheap in
-practice; it is the test suite where they accumulate.
+#### DO NOT "FIX" MAINWINDOW'S MENU LAMBDAS. THE LEAK IS LOAD-BEARING.
+
+`MainWindow` leaks the same way, through about a dozen
+`menu.addAction(label, lambda: self._foo())` calls in `_build_menus`. It
+was fixed -- payload on the QAction via `setData`, bound dispatchers
+reading `sender()` -- and the fix was reverted, because removing the leak
+made the window collectable and **a MainWindow cannot be destroyed
+without corrupting the heap**:
+
+| tree | outcome |
+| --- | --- |
+| lambdas present | window LEAKED, never destroyed, 3/3 |
+| lambdas removed | really destroyed -> **segfault 8 / 8** |
+
+In the suite it surfaces as `Windows fatal exception: code 0xc0000374`
+(heap corruption) inside the teardown `gc.collect()`.
+
+**This is not a new bug and it was never a lambda bug.** MainWindow has
+never been destructible; the leak has always hidden it. That also explains
+the two earlier attempts to dispose abandoned MainWindows in the tests,
+which crashed 6/6 and 8/8 -- they were not causing a crash, they were
+DESTROYING A MAINWINDOW, which is the crash.
+
+Two measurement traps that wasted an hour here, both worth avoiding:
+
+- **A probe that prints "destroyed" after `del` + `gc.collect()` proves
+  nothing.** It has to assert with a weakref that the object really died.
+  Without that, a leaked window reads as a successful destruction, and a
+  bisect across eight commits reported "destructible" everywhere while
+  destroying nothing at all.
+- **Reverting any ONE piece of the fix appeared to cure the crash.** It
+  did not -- it just left one lambda still leaking, so nothing was
+  destroyed. Any partial revert looks like a fix, which makes bisecting
+  within the change actively misleading.
+
+The individual children are fine: `QWebEngineView`, `MoleculeEditorWidget`,
+`MoleculeViewer3DWidget`, `MolStarViewerBackend`, and all three viewers
+together in a `QTabWidget`, destroy cleanly 3-5 times each. It is
+MainWindow as a whole.
+
+The likely mechanism, not yet confirmed: MainWindow, the service
+container, the EventBus and every panel form ONE cycle, so the collector
+takes them together in an order nobody controls, and Qt objects are
+finalised while other Qt objects still point at them. If that is right,
+the real fix is at the root -- `EventBus._handlers` holding bound methods
+STRONGLY is what welds the graph into a single cycle, and holding them
+weakly would let the pieces die by refcounting in a controlled order.
+That is a change to core event semantics and needs its own careful pass.
+
+A deterministic 20-line reproduction exists; rebuild it by constructing a
+MainWindow, dropping every reference, calling `gc.collect()`, and
+asserting with a weakref that it died.
 
 #### SOLVED. The census named it, and the fix is one line of timing.
 
