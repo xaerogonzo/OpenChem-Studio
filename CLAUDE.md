@@ -903,6 +903,15 @@ Two measurement traps from the same work, both already paid for once:
   the original is returned. Two mutations written that way reported a
   confident SURVIVED for changes never applied. A mutation script must verify
   its edit changed behaviour, not merely that the pattern matched.
+- **A restored file can still run as the MUTATED one, from stale bytecode.**
+  Python validates a `.pyc` against the source's mtime and size, both of
+  which a write-mutate-restore cycle can leave unchanged within one mtime
+  tick. Seen live: a restored `chem/lewis.py` read `0` on disk and in
+  `inspect.getsource`, while the imported module held the mutated `1` — the
+  test "failed after restore" and the source was innocent. Any mutation
+  script should `rm -rf` the `__pycache__` directories between arms, or run
+  with `PYTHONDONTWRITEBYTECODE=1`, and a surprising post-restore result
+  should be re-checked with the cache cleared before it is believed.
 - **A surviving mutation found a real sign error nobody would have read.**
   The Drago W term is ADDED (`−ΔH = E_A·E_B + C_A·C_B + W`) and was written
   subtracted. Every test passed, because every acid the tests touch has

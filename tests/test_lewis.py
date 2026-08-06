@@ -475,3 +475,34 @@ def test_the_lewis_category_has_a_label_and_a_place_in_the_order():
     # Immediately after pKa: the Bronsted answer and the point where it
     # stops being the whole answer belong next to each other.
     assert _CATEGORY_ORDER.index("lewis") == _CATEGORY_ORDER.index("pka") + 1
+
+
+def test_chalcone_gets_both_electrophilic_carbons_and_not_the_third():
+    """A real Michael acceptor, verified in the running app before it was
+    written down here.
+
+    Chalcone is PhCH=CH-C(=O)-Ph. Three carbons are plausible targets and
+    only two of them are:
+
+        C6  beta carbon      acceptor -- this is where a nucleophile adds
+        C7  alpha carbon     NOT an acceptor
+        C8  carbonyl carbon  acceptor -- direct 1,2-addition
+        O9  carbonyl oxygen  donor
+
+    The alpha carbon is the discriminator. A rule that simply flagged
+    every carbon of a conjugated enone would light it up too, and 1,3-
+    addition is not a thing. Methyl vinyl ketone covers the same rule in
+    the table above but has no aromatic ring and only one plausible wrong
+    answer; this is the case somebody would actually draw.
+    """
+    result = analyse(mol_for("c1ccc(cc1)C=CC(=O)c1ccccc1"))
+
+    assert {s.atom_index for s in result.acceptors()} == {6, 8}
+    assert {s.atom_index for s in result.donors()} == {9}
+
+    alpha = result.site_for(7)
+    assert alpha is None, "the alpha carbon is not an electrophile"
+
+    for index in (6, 8):
+        rules = {e.rule for e in result.site_for(index).evidence}
+        assert rules == {"low-lying pi* orbital"}
