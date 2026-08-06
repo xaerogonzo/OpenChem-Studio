@@ -46,6 +46,10 @@ from openchem.ui.dialogs.external_tool_tabs import (
 logger = logging.getLogger("openchem.ui")
 
 
+#: Qt property carrying which sidecar a "Remove from Disk" button removes.
+_COMPONENT_KEY_PROPERTY = "openchem_component_key"
+
+
 class _AdmetSidecarTab(InterpreterSidecarTab):
     """ADMET, plus the one thing it does differently from every other tab.
 
@@ -382,8 +386,19 @@ class ExternalToolsDialog(QDialog):
         """
         button = QPushButton("Remove from Disk...", parent)
         button.setToolTip(f"Delete {label} and free the space it uses.")
-        button.clicked.connect(lambda _checked=False: self._on_remove_component(key))
+        # A bound method, never a lambda capturing `self`: PySide6 holds a
+        # connected plain callable strongly and a QObject's bound method
+        # weakly, so the lambda form roots this object for the life of the
+        # process -- past refcounting AND past the cyclic collector. See
+        # property_panel._section_for for the measurement.
+        button.setProperty(_COMPONENT_KEY_PROPERTY, key)
+        button.clicked.connect(self._on_remove_button_clicked)
         return button
+
+    def _on_remove_button_clicked(self, _checked: bool = False) -> None:
+        button = self.sender()
+        if button is not None:
+            self._on_remove_component(button.property(_COMPONENT_KEY_PROPERTY))
 
     def _on_remove_component(self, key: str) -> None:
         from openchem.services import sidecar_inventory
@@ -565,9 +580,10 @@ class ExternalToolsDialog(QDialog):
             self._components_table.setItem(row, 1, QTableWidgetItem(size_text))
             if component.present:
                 button = QPushButton("Remove", self._components_table)
-                button.clicked.connect(
-                    lambda _checked=False, key=component.key: self._on_remove_component(key)
-                )
+                # Same reason as the other button above: a lambda capturing
+                # `self` here roots this dialog permanently.
+                button.setProperty(_COMPONENT_KEY_PROPERTY, component.key)
+                button.clicked.connect(self._on_remove_button_clicked)
                 self._components_table.setCellWidget(row, 2, button)
             else:
                 self._components_table.setCellWidget(row, 2, None)

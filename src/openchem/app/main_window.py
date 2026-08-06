@@ -284,8 +284,13 @@ class MainWindow(QMainWindow):
         # written about them.
         topic = HELP_TOPIC_BY_DOCK.get(dock.objectName())
         if topic is not None:
-            title_bar = DockTitleBar(dock)
-            title_bar.help_requested.connect(lambda topic=topic: self._show_help(topic))
+            # The topic travels on the title bar and comes back through the
+            # signal. A `lambda topic=topic: self._show_help(topic)` here
+            # leaked this window permanently -- PySide6 holds a connected
+            # plain callable strongly, so the closure's captured `self`
+            # survives refcounting AND the cyclic collector.
+            title_bar = DockTitleBar(dock, help_topic=topic)
+            title_bar.help_requested.connect(self._show_help)
             dock.setTitleBarWidget(title_bar)
         return dock
 

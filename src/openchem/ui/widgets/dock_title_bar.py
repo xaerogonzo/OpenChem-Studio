@@ -34,11 +34,18 @@ from PySide6.QtWidgets import (
 class DockTitleBar(QWidget):
     """Title text, a help button, and the float/close buttons put back."""
 
-    help_requested = Signal()
+    #: Carries the help topic, so the listener needs no closure over it.
+    #: A `lambda topic=topic: self._show_help(topic)` in MainWindow leaked
+    #: the whole window: PySide6 holds a connected plain callable strongly
+    #: and a QObject's bound method weakly, so the lambda form survives both
+    #: refcounting and the cyclic collector. Putting the payload in the
+    #: signal is what lets the receiver connect a bound method.
+    help_requested = Signal(str)
 
-    def __init__(self, dock: QDockWidget, show_help: bool = True) -> None:
+    def __init__(self, dock: QDockWidget, show_help: bool = True, help_topic: str = "") -> None:
         super().__init__(dock)
         self._dock = dock
+        self._help_topic = help_topic
 
         self._label = QLabel(dock.windowTitle(), self)
         # Mouse-transparent so a press on the title reaches the dock and
@@ -55,7 +62,7 @@ class DockTitleBar(QWidget):
             self._help_button = self._make_button(
                 "?",
                 "Help for this panel (F1)",
-                self.help_requested.emit,
+                self._emit_help_requested,
             )
             layout.addWidget(self._help_button)
 
@@ -80,6 +87,9 @@ class DockTitleBar(QWidget):
         # must not keep offering buttons that no longer do anything.
         dock.featuresChanged.connect(self._sync_features)
         self._sync_features(dock.features())
+
+    def _emit_help_requested(self) -> None:
+        self.help_requested.emit(self._help_topic)
 
     def _make_button(self, text, tooltip, slot, icon=None) -> QToolButton:
         button = QToolButton(self)

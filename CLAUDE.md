@@ -242,6 +242,42 @@ in a checkout that was being edited by hand at the time, so the two arms
 were different trees and the comparison was worthless. Check `git status`
 and file mtimes before believing an A/B.
 
+#### A `lambda` that captures `self` in a `connect()` leaks the widget forever
+
+Found while chasing the above, and it is a separate bug with a separate
+fix. **PySide6 holds a connected plain callable STRONGLY and a QObject's
+bound method weakly.** So this roots its widget for the life of the
+process -- past refcounting AND past the cyclic collector, which cannot
+see through the internal map the callable is kept in:
+
+```python
+button.clicked.connect(lambda _checked=False, d=definition: self._open(d))
+```
+
+Measured on a three-button minimal case: the self-capturing lambda leaks,
+the same widget with `connect(self._go)` is freed by refcounting alone,
+and a lambda capturing only plain data is also fine. It is `self` in the
+closure that does it, not the lambda.
+
+`PropertyPanel` was the worst of it -- one such connection per registered
+calculator, 22 on a default registry -- so every panel ever built stayed
+in memory for the session. Fixed, with the payload travelling on the
+button as a Qt property and a bound method reading it back through
+`sender()`. Same fix in `PeriodicTableDialog` (118 cells) and
+`ExternalToolsDialog`.
+
+`tests/test_qt_object_disposal.py` guards all of it, and deliberately
+asserts the leak itself as well: if a future PySide6 stops leaking here,
+that test fails and the workarounds can go.
+
+**Still outstanding: `MainWindow`, through about a dozen
+`menu.addAction(label, lambda: self._foo())` calls in `_build_menus`.**
+Not fixed because the file already documents why the obvious conversion is
+unsafe -- `QAction.triggered` emits `checked`, which a bare bound method
+would receive as its first real argument -- so each handler's signature
+has to change with it. One window per app run makes this cheap in
+practice; it is the test suite where they accumulate.
+
 #### SOLVED. The census named it, and the fix is one line of timing.
 
 Read this before touching anything above: the two sections that follow are

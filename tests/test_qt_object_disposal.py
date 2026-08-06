@@ -122,3 +122,86 @@ def test_the_abandoned_subscriber_was_collected_at_the_previous_teardown(qapp):
         "conftest.py has regressed, and its destructor will now run at an "
         "arbitrary later moment"
     )
+
+
+# --- the leak a self-capturing lambda creates -------------------------------
+
+
+def _survives_collection(factory) -> bool:
+    """True if the object is still alive after the cyclic collector has run.
+
+    Built inside this helper so the caller keeps no local: an object the
+    test itself still references is trivially alive, which is how two
+    earlier attempts at this measurement fooled themselves.
+    """
+    import gc
+
+    gc.collect()
+    gc.collect()
+    ref = weakref.ref(factory())
+    for _ in range(3):
+        gc.collect()
+    return ref() is not None
+
+
+def test_connecting_a_self_capturing_lambda_leaks_its_widget(qapp):
+    """The mechanism, pinned so the fixes below have something to point at.
+
+    PySide6 holds a connected plain callable STRONGLY and a QObject's bound
+    method weakly. So a `lambda: self._handler(x)` connected to a signal
+    roots its widget for the life of the process -- past refcounting and
+    past the cyclic collector, which cannot see through the map the
+    callable is kept in.
+
+    This asserts the leak deliberately. If a future PySide6 stops leaking
+    here, this test fails and the workarounds it justifies can go.
+    """
+    from PySide6.QtWidgets import QPushButton, QWidget
+
+    class SelfCapturing(QWidget):
+        def __init__(self):
+            super().__init__()
+            button = QPushButton(self)
+            button.clicked.connect(lambda _checked=False: self._go())
+
+        def _go(self):
+            pass
+
+    class BoundMethod(QWidget):
+        def __init__(self):
+            super().__init__()
+            button = QPushButton(self)
+            button.clicked.connect(self._go)
+
+        def _go(self, _checked=False):
+            pass
+
+    assert _survives_collection(SelfCapturing), "PySide6 no longer leaks here"
+    assert not _survives_collection(BoundMethod)
+
+
+def test_the_property_panel_does_not_leak(qapp):
+    """Measured before the fix: it survived refcounting AND three cycles of
+    the collector, because `_section_for` connected one self-capturing
+    lambda per registered calculator -- 22 of them on a default registry.
+    Every panel ever built stayed in memory for the session."""
+    from openchem.bootstrap import build_service_container
+    from openchem.ui.panels.property_panel import PropertyPanel
+
+    def build():
+        services = build_service_container()
+        return PropertyPanel(
+            services.event_bus,
+            services.calculator_registry,
+            services.descriptor_service,
+            services.chemistry_engine,
+        )
+
+    assert not _survives_collection(build)
+
+
+def test_the_periodic_table_dialog_does_not_leak(qapp):
+    """118 cells, each of which was connecting a self-capturing lambda."""
+    from openchem.ui.dialogs.periodic_table_dialog import PeriodicTableDialog
+
+    assert not _survives_collection(PeriodicTableDialog)

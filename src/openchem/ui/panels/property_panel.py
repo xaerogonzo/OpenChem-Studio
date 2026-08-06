@@ -182,6 +182,10 @@ def _format_value(value: object) -> tuple[str, str]:
     return str(value), ""
 
 
+#: Qt property carrying which calculator a section button opens.
+_CALCULATOR_ID_PROPERTY = "openchem_calculator_id"
+
+
 class PropertyPanel(QWidget):
     """Categorized, collapsible descriptor view.
 
@@ -306,7 +310,23 @@ class PropertyPanel(QWidget):
                 # registered for discovery only, run from their own panel.
                 continue
             button = QPushButton(f"Open {definition.display_name}...", section.content)
-            button.clicked.connect(lambda _checked=False, d=definition: self._open_calculator(d))
+            # A BOUND METHOD, never a lambda that captures `self`.
+            #
+            # PySide6 holds a connected plain callable STRONGLY and holds a
+            # bound method of a QObject weakly, so
+            # `connect(lambda ...: self._open_calculator(d))` roots the
+            # panel for the life of the process -- past refcounting and
+            # past the cyclic collector, which cannot see through the
+            # internal map the callable is kept in. Measured on a minimal
+            # case: three buttons with a self-capturing lambda leak their
+            # widget; the same widget with a bound method is freed by
+            # refcounting alone.
+            #
+            # Which calculator a button means travels on the button
+            # instead, resolved back through the registry -- the single
+            # source of truth for what is registered anyway.
+            button.setProperty(_CALCULATOR_ID_PROPERTY, definition.calculator_id)
+            button.clicked.connect(self._on_calculator_button_clicked)
             section.add_calculator_widget(button)
         self._add_service_execution_hint(section, category)
         self._reorder_sections()
@@ -494,6 +514,21 @@ class PropertyPanel(QWidget):
         ):
             self._pending_calculator_id = None
             self._open_inspector(curve)
+
+    def _on_calculator_button_clicked(self, _checked: bool = False) -> None:
+        """Resolve the button that was pressed back to its calculator.
+
+        Deliberately reads the sender rather than closing over the
+        definition -- see `_section_for` for why a capturing lambda cannot
+        be used here.
+        """
+        button = self.sender()
+        if button is None:
+            return
+        calculator_id = button.property(_CALCULATOR_ID_PROPERTY)
+        definition = self._calculator_registry.get(calculator_id) if calculator_id else None
+        if definition is not None:
+            self._open_calculator(definition)
 
     def _open_calculator(self, definition: CalculatorDefinition) -> None:
         if self._project is None or self._selected_molecule_uuid is None:

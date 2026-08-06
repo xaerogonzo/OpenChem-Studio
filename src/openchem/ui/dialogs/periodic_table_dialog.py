@@ -54,6 +54,9 @@ _CATEGORY_STYLE: dict[str, tuple[str, str]] = {
 
 _UNKNOWN = "not established"
 
+#: Qt property carrying which element a grid cell stands for.
+_SYMBOL_PROPERTY = "openchem_element_symbol"
+
 
 class PeriodicTableDialog(QDialog):
     """The table, plus everything known about whichever element is selected."""
@@ -138,7 +141,13 @@ class PeriodicTableDialog(QDialog):
             f"QToolButton:checked {{ border: 2px solid #000; font-weight: bold; }}"
         )
         button.setCheckable(True)
-        button.clicked.connect(lambda _=False, s=facts.symbol: self.select(s))
+        # A bound method, never a lambda capturing `self`: PySide6 holds a
+        # connected plain callable strongly and a QObject's bound method
+        # weakly, so the lambda form roots this object for the life of the
+        # process -- past refcounting AND past the cyclic collector. See
+        # property_panel._section_for for the measurement.
+        button.setProperty(_SYMBOL_PROPERTY, facts.symbol)
+        button.clicked.connect(self._on_cell_clicked)
         self._buttons[facts.symbol] = button
         return button
 
@@ -167,6 +176,11 @@ class PeriodicTableDialog(QDialog):
             button.setChecked(other == symbol)
         self._selected = symbol
         self._detail.setText(describe(facts))
+
+    def _on_cell_clicked(self, _checked: bool = False) -> None:
+        button = self.sender()
+        if button is not None:
+            self.select(button.property(_SYMBOL_PROPERTY))
 
     def _copy_symbol(self) -> None:
         if self._selected:
