@@ -59,6 +59,7 @@ from openchem.ui.dialogs.periodic_table_dialog import PeriodicTableDialog
 from openchem.ui.dialogs.structure_lookup_dialog import StructureLookupDialog
 from openchem.ui.panels.console_panel import ConsolePanel
 from openchem.ui.panels.alignment_panel import AlignmentPanel
+from openchem.ui.panels.interactions_panel import InteractionsPanel
 from openchem.ui.panels.batch_panel import BatchPanel
 from openchem.ui.panels.docking_panel import DockingPanel
 from openchem.ui.panels.jobs_panel import JobsPanel
@@ -173,6 +174,9 @@ class MainWindow(QMainWindow):
             qm_surface_service=services.qm_surface_service,
         )
         self._alignment_panel = AlignmentPanel(services.alignment_service, services.event_bus, self)
+        self._interactions_panel = InteractionsPanel(
+            services.chemistry_engine, services.event_bus, self
+        )
         self._jobs_panel = JobsPanel(services.job_manager, self)
         self._structure_check_panel = StructureCheckPanel(
             services.structure_check_service,
@@ -214,6 +218,11 @@ class MainWindow(QMainWindow):
             self._wrap_scrollable(self._alignment_panel),
             Qt.DockWidgetArea.RightDockWidgetArea,
         )
+        interactions_dock = self._add_dock(
+            "Interactions",
+            self._wrap_scrollable(self._interactions_panel),
+            Qt.DockWidgetArea.RightDockWidgetArea,
+        )
         jobs_dock = self._add_dock("Jobs", self._jobs_panel, Qt.DockWidgetArea.RightDockWidgetArea)
         batch_dock = self._add_dock(
             "Batch", self._wrap_scrollable(self._batch_panel), Qt.DockWidgetArea.RightDockWidgetArea
@@ -233,6 +242,7 @@ class MainWindow(QMainWindow):
         self.tabifyDockWidget(self._properties_dock, docking_dock)
         self.tabifyDockWidget(self._properties_dock, quantum_chemistry_dock)
         self.tabifyDockWidget(self._properties_dock, alignment_dock)
+        self.tabifyDockWidget(self._properties_dock, interactions_dock)
         self.tabifyDockWidget(self._properties_dock, jobs_dock)
         self.tabifyDockWidget(self._properties_dock, batch_dock)
         self.tabifyDockWidget(self._properties_dock, self._structure_check_dock)
@@ -713,6 +723,7 @@ class MainWindow(QMainWindow):
         self._quantum_chemistry_panel.set_project(project)
         self._property_panel.set_project(project)
         self._alignment_panel.set_project(project)
+        self._interactions_panel.set_project(project)
         self._batch_panel.set_project(project)
         self.setWindowTitle(f"OpenChem Studio - {project.name}")
         if not project.molecules:
@@ -983,6 +994,7 @@ class MainWindow(QMainWindow):
         self._docking_panel.set_project(self._session.project)
         self._quantum_chemistry_panel.set_project(self._session.project)
         self._alignment_panel.set_project(self._session.project)
+        self._interactions_panel.set_project(self._session.project)
         self._batch_panel.set_project(self._session.project)
 
     # --- event handlers --------------------------------------------------------

@@ -159,3 +159,62 @@ class LewisAnalysis(ScientificResult):
 
     def site_for(self, atom_index: int) -> LewisSite | None:
         return next((s for s in self.sites if s.atom_index == atom_index), None)
+
+
+@dataclass(frozen=True)
+class AdductEvidence:
+    """One line of evidence about a specific acid-base pair.
+
+    Deliberately NOT ranked. The three lines answer different questions --
+    how much enthalpy, whether the pairing is favoured at all, and how
+    strong the orbital interaction is -- and which one is informative
+    depends on the pair. Collapsing them into a single score would force
+    an ordering that does not exist, and would also make it impossible to
+    add electrostatic, dispersion, Pauli and charge-transfer terms later
+    without changing what the number means.
+    """
+
+    #: Short id: "drago_wayland", "frontier_gap", "hsab_match".
+    line: str
+    label: str
+    basis: Basis
+    #: The number, in `units`. None when the line applies but could not be
+    #: evaluated -- `note` says why.
+    value: float | None = None
+    units: str = ""
+    note: str = ""
+
+    def __bool__(self) -> bool:
+        return self.value is not None
+
+
+@dataclass(frozen=True, kw_only=True)
+class LewisAdduct(ScientificResult):
+    """What can be said about one acid binding one base.
+
+    There is no `score` field and that is the point. `evidence` holds
+    every line that could be evaluated, each with its own units and
+    basis, and a reader compares them rather than trusting an aggregate
+    nobody defined.
+    """
+
+    acid_uuid: str = ""
+    base_uuid: str = ""
+    acid_label: str = ""
+    base_label: str = ""
+    evidence: tuple[AdductEvidence, ...] = ()
+    refused: bool = False
+    reason: str = ""
+    summary: str = ""
+    assumptions: tuple[str, ...] = ()
+    limitations: tuple[str, ...] = ()
+
+    def __bool__(self) -> bool:
+        return not self.refused
+
+    def line(self, name: str) -> AdductEvidence | None:
+        return next((e for e in self.evidence if e.line == name), None)
+
+    def available(self) -> tuple[AdductEvidence, ...]:
+        """Only the lines that produced a number."""
+        return tuple(e for e in self.evidence if e.value is not None)

@@ -143,14 +143,10 @@ def _vacant_coordination_sites(mol: Any) -> dict[int, LewisEvidence]:
     see -- so it reports the opportunity rather than a coordination number.
     """
     table = electronegativity_table()
-    metal_categories = {
-        "alkali", "alkaline_earth", "transition", "post_transition",
-        "lanthanide", "actinide",
-    }
     found: dict[int, LewisEvidence] = {}
     for atom in mol.GetAtoms():
         entry = table.get(atom.GetSymbol())
-        if entry is None or entry.get("category") not in metal_categories:
+        if entry is None or entry.get("category") not in _METAL_CATEGORIES:
             continue
         coordination = atom.GetDegree()
         if coordination >= 6:
@@ -179,6 +175,11 @@ _PI_STAR_PATTERNS: tuple[tuple[str, int, str], ...] = (
     ("[CX2]#[NX1]", 0, "nitrile carbon"),
     ("[CX3]=[CX3][CX3]=[OX1]", 0, "Michael acceptor beta carbon"),
     ("[SX3](=[OX1])(=[OX1])=[OX1]", 0, "sulfur trioxide"),
+    # Sulfur dioxide keeps a lone pair, so the octet arithmetic calls it
+    # complete and the expandable-shell rule skips it -- yet it forms
+    # isolable adducts with amines. It comes out AMBIPHILIC, which is
+    # right: it donates through that lone pair too.
+    ("[SX2](=[OX1])=[OX1]", 0, "sulfur dioxide"),
     # Carbon monoxide and the isocyanides: a terminal carbon triple-bonded
     # to a more electronegative partner. These are THE textbook pi-acceptor
     # ligands, and without this rule carbon monoxide reads as a pure donor
@@ -250,6 +251,169 @@ _SIGMA_HOLE_PATTERNS: tuple[tuple[str, int, str], ...] = (
 )
 
 
+#: Handled by `_vacant_coordination_sites`, which says the same thing with
+#: a better note. The expandable-shell rule below defers to it rather than
+#: firing alongside it -- aluminium in AlCl3 was collecting three pieces of
+#: evidence for what is really two facts.
+_METAL_CATEGORIES = frozenset(
+    {"alkali", "alkaline_earth", "transition", "post_transition", "lanthanide", "actinide"}
+)
+
+#: Highest atomic number in each period, for "can this expand its shell".
+_PERIOD_LIMITS = (2, 10, 18, 36, 54, 86)
+
+
+def _period(atomic_number: int) -> int:
+    return next(
+        (index + 1 for index, limit in enumerate(_PERIOD_LIMITS) if atomic_number <= limit),
+        7,
+    )
+
+
+def _hydrogen_bond_donor_sites(mol: Any) -> dict[int, LewisEvidence]:
+    """An X-H bond accepts a lone pair into its sigma* orbital.
+
+    **This is the same mechanism as a halogen bond, not a separate kind of
+    thing.** A hydrogen bond and a halogen bond are both donation into the
+    sigma* of a polarised single bond; only the identity of the heavy atom
+    differs. Sharing `LOW_LYING_SIGMA_STAR` between them is the honest
+    description rather than a convenience.
+
+    Found because the adduct engine refused fourteen of the twenty-four
+    acids in its OWN Drago-Wayland table -- phenol, the alcohols, pyrrole,
+    chloroform. Those are hydrogen-bond donors, and Drago's calorimetry
+    treats them as acids because they are.
+
+    An alcohol comes out AMBIPHILIC: its oxygen donates lone pairs and its
+    O-H accepts. Water is the textbook case of exactly that.
+
+    The site is the HEAVY atom, not the hydrogen. RDKit hydrogens are
+    usually implicit and have no index to report, and a highlight on the
+    oxygen is what a reader is looking for anyway.
+    """
+    from rdkit import Chem
+
+    found: dict[int, LewisEvidence] = {}
+    # An H on carbon only counts when the carbon is polarised by halogens
+    # -- chloroform is a real hydrogen-bond donor and methane is not.
+    patterns = (
+        # NX2 as well as NX3: isocyanic acid's nitrogen has one heavy
+        # neighbour and one hydrogen, and SMARTS X counts hydrogens.
+        ("[$([OX2,NX2,NX3,SX2,nX3;!H0])]", "electronegative atom"),
+        ("[$([CX4;!H0]([F,Cl,Br,I])[F,Cl,Br,I])]", "polyhalogenated carbon"),
+    )
+    for smarts, description in patterns:
+        pattern = Chem.MolFromSmarts(smarts)
+        if pattern is None:
+            continue
+        for (index,) in mol.GetSubstructMatches(pattern, uniquify=False):
+            if index in found:
+                continue
+            atom = mol.GetAtomWithIdx(index)
+            found[index] = LewisEvidence(
+                rule="hydrogen-bond donor",
+                basis=Basis.HEURISTIC,
+                mechanism=AcceptorMechanism.LOW_LYING_SIGMA_STAR,
+                supporting={"hydrogens": float(atom.GetTotalNumHs())},
+                note=(
+                    f"{atom.GetSymbol()}{index + 1} is a {description} carrying "
+                    "hydrogen; a lone pair is accepted into the X-H sigma*, the "
+                    "same mechanism as a halogen bond."
+                ),
+            )
+    return found
+
+
+def _dihalogen_sites(mol: Any) -> dict[int, LewisEvidence]:
+    """The sigma hole in a halogen-halogen bond.
+
+    Molecular iodine is THE textbook halogen-bond acceptor -- most of the
+    Drago-Wayland calorimetry is iodine adducts -- and the carbon-bound
+    patterns miss it entirely, because there is no carbon. Found when the
+    adduct engine refused I2 + benzene, which is a pair in its own
+    validation set.
+
+    **The hole is on the LESS electronegative halogen**, so this is not a
+    symmetric SMARTS. In iodine monochloride the iodine is the acceptor
+    end and the chlorine is the donor end; flagging both would invert the
+    chemistry of every interhalogen while looking right for I2.
+    """
+    table = electronegativity_table()
+    found: dict[int, LewisEvidence] = {}
+    for bond in mol.GetBonds():
+        begin, end = bond.GetBeginAtom(), bond.GetEndAtom()
+        entries = [table.get(a.GetSymbol()) for a in (begin, end)]
+        if any(e is None or e.get("category") != "halogen" for e in entries):
+            continue
+        first, second = entries[0]["pauling"], entries[1]["pauling"]
+        if first < second:
+            holes = [begin]
+        elif second < first:
+            holes = [end]
+        else:
+            holes = [begin, end]
+        for atom in holes:
+            partner = end if atom is begin else begin
+            found[atom.GetIdx()] = LewisEvidence(
+                rule="sigma hole",
+                basis=Basis.HEURISTIC,
+                mechanism=AcceptorMechanism.LOW_LYING_SIGMA_STAR,
+                note=(
+                    f"{atom.GetSymbol()}{atom.GetIdx() + 1} is the less "
+                    f"electronegative end of a {atom.GetSymbol()}-{partner.GetSymbol()} "
+                    "bond; it accepts along the extension of that bond."
+                ),
+            )
+    return found
+
+
+def _expandable_shell_sites(mol: Any) -> dict[int, LewisEvidence]:
+    """A heavy main-group centre that can hold more than eight electrons.
+
+    Antimony pentachloride takes a chloride to give SbCl6-, and it is one
+    of the strongest acids in the Drago table; phosphorus pentafluoride
+    gives PF6-, silicon tetrafluoride gives SiF6(2-). None of them is
+    octet-deficient, none is a metal, and none has a pi* -- so every
+    other detector here misses them, which is how this one came to be
+    written.
+
+    Period 3 or below is the load-bearing condition: it is what makes
+    d orbitals and an expanded shell available at all. Carbon
+    tetrafluoride has the same electron count as silicon tetrafluoride
+    and cannot do this, and the period test is the only thing separating
+    them.
+    """
+    table = electronegativity_table()
+    found: dict[int, LewisEvidence] = {}
+    for atom in mol.GetAtoms():
+        if _period(atom.GetAtomicNum()) < 3:
+            continue
+        entry = table.get(atom.GetSymbol())
+        if entry is not None and entry.get("category") in _METAL_CATEGORIES:
+            continue  # `_vacant_coordination_sites` owns these.
+        pairs = lone_pairs(atom)
+        # None means a metal, which `_vacant_coordination_sites` owns.
+        # A remaining lone pair means the atom is a donor, not an acceptor
+        # -- triphenylphosphine has one and must not land here.
+        if pairs is None or pairs != 0:
+            continue
+        degree = atom.GetDegree()
+        if degree < 2 or degree >= 6:
+            continue
+        found[atom.GetIdx()] = LewisEvidence(
+            rule="expandable valence shell",
+            basis=Basis.HEURISTIC,
+            mechanism=AcceptorMechanism.VACANT_COORDINATION_SITE,
+            supporting={"coordination_number": float(degree)},
+            note=(
+                f"{atom.GetSymbol()}{atom.GetIdx() + 1} is a period-"
+                f"{_period(atom.GetAtomicNum())} main-group centre with no lone "
+                f"pair and {degree} bonds; it can hold more than eight electrons."
+            ),
+        )
+    return found
+
+
 def _sigma_star_sites(mol: Any) -> dict[int, LewisEvidence]:
     """The sigma hole behind a polarised single bond -- halogen bonding.
 
@@ -270,8 +434,11 @@ def _sigma_star_sites(mol: Any) -> dict[int, LewisEvidence]:
 _ACCEPTOR_DETECTORS = (
     _empty_orbital_sites,
     _vacant_coordination_sites,
+    _expandable_shell_sites,
     _pi_star_sites,
     _sigma_star_sites,
+    _dihalogen_sites,
+    _hydrogen_bond_donor_sites,
 )
 
 
@@ -302,6 +469,47 @@ def _donor_evidence(atom: Any) -> LewisEvidence | None:
 
 
 # --- the analysis ------------------------------------------------------------
+
+
+def pi_donor_atoms(mol: Any) -> tuple[int, ...]:
+    """Atoms carrying a pi system that can donate to an acceptor.
+
+    **Deliberately NOT reported as `LewisSite`s**, and the reason is the
+    whole design of this module. Benzene really is a pi donor -- its
+    iodine adduct is measured at 1.4 kcal/mol, the weakest entry in the
+    Drago table -- but listing every aromatic carbon as a donor site
+    would put a dozen sites on every drug-like molecule and bury the
+    lone-pair donors that anybody actually wants to see.
+
+    So the two questions are separated. "Which atoms are donor sites"
+    means lone pairs, and stays clean enough to read. "Can this molecule
+    act as a base at all" includes pi donation, and is what the adduct
+    engine asks before refusing a pair.
+
+    That split is also why `test_a_saturated_hydrocarbon_has_no_lewis_site_at_all`
+    still holds for benzene: it has no lone pair, and that test is the
+    control stopping a rule that flags everything.
+    """
+    donors: set[int] = set()
+    for bond in mol.GetBonds():
+        from rdkit import Chem
+
+        aromatic = bond.GetIsAromatic()
+        multiple = bond.GetBondType() in (
+            Chem.BondType.DOUBLE,
+            Chem.BondType.TRIPLE,
+        )
+        if not (aromatic or multiple):
+            continue
+        begin, end = bond.GetBeginAtom(), bond.GetEndAtom()
+        # Carbon-carbon only. A C=O pi bond is polarised the other way --
+        # the carbon is the ACCEPTOR there, which `_pi_star_sites`
+        # already reports, and calling the same bond a donor would be
+        # saying both things about one thing.
+        if {begin.GetSymbol(), end.GetSymbol()} != {"C"}:
+            continue
+        donors.update((begin.GetIdx(), end.GetIdx()))
+    return tuple(sorted(donors))
 
 
 def _refuse(molecule_uuid: str, reason: str) -> LewisAnalysis:

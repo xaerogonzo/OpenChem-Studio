@@ -845,6 +845,53 @@ POSITION, which is why `test_the_three_delta_scf_blocks_are_written_in_parser_or
 exists: swapping the cation and anion blocks flips the sign of both I and A,
 still produces plausible numbers, and survived every other test in the file.
 
+### An engine and its own data table have to be run against each other
+
+The Lewis adduct work shipped a Drago-Wayland parameter table and an
+acceptor-detection engine that were each individually tested and green.
+Run together, **the engine refused 14 of the 24 acids in its own table** --
+every alcohol and phenol, pyrrole, chloroform. Nothing but running the two
+against each other revealed it, and the fix was three new acceptor rules,
+not a tweak.
+
+Iodine and benzene were among the refused, and both are pairs in the
+table's *own validation set* — so the engine could not reproduce the data
+that justified shipping the table.
+
+`test_every_acid_in_the_shipped_table_passes_the_acceptor_gate` is the
+guard. Any future data table should get the equivalent.
+
+The most useful of the three rules is worth knowing on its own: **a
+hydrogen bond and a halogen bond are the same mechanism**, donation into
+the sigma* of a polarised single bond, differing only in the heavy atom.
+They share `LOW_LYING_SIGMA_STAR` because that is accurate, not
+convenient. A consequence: alcohols and amines come out AMBIPHILIC, since
+the oxygen donates its lone pairs while its O-H accepts. Water is the
+textbook case, and several tests had to be updated to say `ambiphilic`
+where they had said `donor` — the behaviour change was correct.
+
+### The two orbital measures disagree on the motivating case
+
+Measured on real ORCA delta-SCF runs of the pair the whole feature exists
+for:
+
+| | frontier gap | HSAB \|Δη\| |
+| --- | --- | --- |
+| BH₃ + CO | **8.13 eV** | 1.63 eV |
+| BF₃ + CO | 10.90 eV | **0.89 eV** |
+
+Borane binds CO strongly enough to isolate the adduct; BF₃ barely binds it.
+The frontier gap says so. **The |Δη| proxy says the opposite**, because
+CO's computed hardness (8.40) lands near BF₃'s (9.29) rather than
+reflecting the softness the qualitative argument gives it — a single
+number on the η scale is not Pearson's classification.
+
+This is reported, not resolved, and it is the strongest justification for
+the no-combined-score design: an average would have split the difference
+on a case where one line is simply right.
+`test_the_two_orbital_lines_disagree_on_carbon_monoxide` asserts it on
+purpose.
+
 Two measurement traps from the same work, both already paid for once:
 
 - **A fixture labelled "verbatim from a real run" had energies typed from
@@ -856,3 +903,11 @@ Two measurement traps from the same work, both already paid for once:
   the original is returned. Two mutations written that way reported a
   confident SURVIVED for changes never applied. A mutation script must verify
   its edit changed behaviour, not merely that the pattern matched.
+- **A surviving mutation found a real sign error nobody would have read.**
+  The Drago W term is ADDED (`−ΔH = E_A·E_B + C_A·C_B + W`) and was written
+  subtracted. Every test passed, because every acid the tests touch has
+  `W = 0` — only two entries in the whole table have one. Coverage of a
+  parameter's *common* value is not coverage of the parameter.
+
+A clean run now ends at `2517 passed, 2 skipped` (2026-08-06, master, clean
+tree), so the figure earlier in this file is the one to update if it drifts.

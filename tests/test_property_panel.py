@@ -836,4 +836,4 @@ def test_the_real_registry_wires_both_lewis_calculators(qapp):
 
     registry = build_service_container().calculator_registry
     ids = {d.calculator_id for d in registry.by_category("lewis")}
-    assert ids == {"lewis_sites", "lewis_hsab"}
+    assert ids == {"lewis_sites", "lewis_hsab", "lewis_adduct"}

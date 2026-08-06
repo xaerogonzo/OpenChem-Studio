@@ -42,8 +42,12 @@ def test_the_lewis_category_is_registered_with_both_its_calculators(qapp):
 
     assert "lewis" in registry.categories()
     by_id = {d.calculator_id: d for d in registry.by_category("lewis")}
-    assert set(by_id) == {"lewis_sites", "lewis_hsab"}
+    assert set(by_id) == {"lewis_sites", "lewis_hsab", "lewis_adduct"}
     assert by_id["lewis_sites"].prediction_basis == "empirical"
+    # Two molecules, so it takes its partner as a typed SMILES the way
+    # `alignment_3d` does -- that is what lets an adduct prediction be a
+    # batch-table column rather than only a panel action.
+    assert by_id["lewis_adduct"].prediction_basis == "empirical"
     assert by_id["lewis_hsab"].prediction_basis == "ab_initio"
     assert isinstance(by_id["lewis_hsab"].execution, ServiceExecution)
 

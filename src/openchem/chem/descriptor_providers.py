@@ -38,6 +38,7 @@ from openchem.chem.electronic_properties import (
 )
 from openchem.chem.huckel import compute_huckel_analysis, compute_pi_electron_density
 from openchem.chem.lewis import compute_lewis_sites
+from openchem.chem.lewis_adduct import ROLE_ACID, ROLE_BASE, compute_lewis_adduct
 from openchem.chem.markush import compute_markush_enumeration
 from openchem.chem.molecular_dynamics import DEFAULT_FRAME_INTERVAL as MD_DEFAULT_FRAME_INTERVAL
 from openchem.chem.molecular_dynamics import DEFAULT_STEP_FS as MD_DEFAULT_STEP_FS
@@ -1663,6 +1664,39 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
                 label="Include motif-based sites (pi*, sigma hole, coordination)",
                 kind="bool",
                 default=True,
+            ),
+        ],
+    ),
+    CalculatorDefinition(
+        calculator_id="lewis_adduct",
+        display_name="Lewis Adduct",
+        category="lewis",
+        description=(
+            "Whether this molecule and a partner form a Lewis adduct, and what can be "
+            "said about how strongly. Reports every applicable line of evidence side "
+            "by side -- a Drago-Wayland enthalpy in kcal/mol where both species are "
+            "parameterised, and orbital-based measures where a quantum job has run -- "
+            "and deliberately gives no combined score, because the lines answer "
+            "different questions and no accepted way of weighing them exists. "
+            "The classic demonstration is carbon monoxide, which no pKa table has "
+            "anything useful to say about and which forms an isolable adduct with borane."
+        ),
+        execution=RegistryExecution(compute=compute_lewis_adduct),
+        prediction_basis="empirical",
+        tags=["lewis", "adduct", "acid", "base", "two-molecule"],
+        parameters=[
+            CalculatorParameter(
+                name="partner_smiles",
+                label="Partner molecule (SMILES)",
+                kind="text",
+                default="",
+            ),
+            CalculatorParameter(
+                name="role",
+                label="Role of this molecule",
+                kind="choice",
+                default=ROLE_ACID,
+                choices=[ROLE_ACID, ROLE_BASE],
             ),
         ],
     ),

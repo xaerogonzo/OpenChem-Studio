@@ -448,19 +448,24 @@ def test_protonation_state_changes_the_donor_set():
     (`microspecies_ph`), which `apply_microspecies` ignored silently: the
     run looked identical to the neutral one and the option was dead. The
     real names are `major_microspecies` and `pH`.
+
+    Methylamine's nitrogen reads AMBIPHILIC rather than plain donor: it
+    carries a lone pair and its N-H accepts a hydrogen bond, which is the
+    same sigma* mechanism as a halogen bond. Protonating it removes the
+    lone pair and the site disappears entirely.
     """
     neutral = compute_lewis_sites(mol_for("CN"), "u", {})
-    assert any("N2: donor" in line for line in neutral.matched)
+    assert any("N2: ambiphilic" in line for line in neutral.matched)
 
     acidic = compute_lewis_sites(mol_for("CN"), "u", {"major_microspecies": True, "pH": 2.0})
     assert any("microspecies at pH 2" in line for line in acidic.matched), (
         "microspecies never ran, so the chemistry below would be vacuous"
     )
-    assert not any("N2: donor" in line for line in acidic.matched)
-    assert not any(line.startswith("Donor sites:") for line in acidic.matched)
+    assert any("No Lewis donor or acceptor sites found" in line for line in acidic.matched)
+    assert not any("N2:" in line for line in acidic.matched)
 
     basic = compute_lewis_sites(mol_for("CN"), "u", {"major_microspecies": True, "pH": 11.0})
-    assert any("N2: donor" in line for line in basic.matched)
+    assert any("N2: ambiphilic" in line for line in basic.matched)
 
 
 def test_the_lewis_category_has_a_label_and_a_place_in_the_order():
