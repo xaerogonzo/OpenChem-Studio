@@ -117,3 +117,89 @@ def test_trigger_toolbar_action_delegates_to_the_backend(qapp):
     widget.trigger_toolbar_action("Add/Remove explicit hydrogens button")
 
     assert backend.toolbar_action_calls == ["Add/Remove explicit hydrogens button"]
+
+
+# --- the canvas must follow changes it did not make -------------------------
+
+
+def _widget_with_molecule():
+    engine, widget, backend = _make_widget()
+    molecule = MoleculeModel(display_name="Test")
+    widget.set_molecule(molecule)
+    return engine, widget, backend, molecule
+
+
+def _external_edit(widget, engine, molecule, smiles):
+    """Change the model the way Paste Structure does: through a command,
+    not through the editor."""
+    from rdkit import Chem
+
+    from openchem.commands.molecule_commands import EditStructureCommand
+
+    molblock = Chem.MolToMolBlock(Chem.MolFromSmiles(smiles))
+    widget._undo_stack.push(
+        EditStructureCommand(engine, molecule, molblock, widget._event_bus)
+    )
+
+
+def test_undo_reloads_the_canvas(qapp):
+    """The bug this exists for.
+
+    `EditStructureCommand` reverts the model and publishes MoleculeChanged;
+    nothing was listening, so pasting a structure and pressing Ctrl+Z
+    emptied the molecule while the editor went on drawing it. Confirmed
+    live: Properties read mol_wt 0 with a blank formula and aspirin was
+    still on screen.
+    """
+    engine, widget, backend, molecule = _widget_with_molecule()
+    _external_edit(widget, engine, molecule, "CC(=O)Oc1ccccc1C(=O)O")
+    after_paste = len(backend.load_calls)
+
+    widget._undo_stack.undo()
+
+    assert not molecule.canonical_smiles
+    assert len(backend.load_calls) > after_paste, "the model reverted and the canvas was not told"
+    assert backend.load_calls[-1] == "", "an emptied molecule must clear the canvas"
+
+
+def test_redo_reloads_the_canvas(qapp):
+    engine, widget, backend, molecule = _widget_with_molecule()
+    _external_edit(widget, engine, molecule, "C1CN1")
+    widget._undo_stack.undo()
+    before = len(backend.load_calls)
+
+    widget._undo_stack.redo()
+
+    assert molecule.canonical_smiles == "C1CN1"
+    assert len(backend.load_calls) > before
+
+
+def test_the_users_own_edit_does_not_reload_the_canvas(qapp):
+    """THIS MATTERS MORE THAN THE FIX ITSELF.
+
+    Reloading on every MoleculeChanged would pull the drawing out from
+    under someone mid-structure. The comparison is on constitution, so the
+    model holding what the user just drew is a no-op here.
+    """
+    from rdkit import Chem
+
+    engine, widget, backend, molecule = _widget_with_molecule()
+    backend.load_calls.append(Chem.MolToMolBlock(Chem.MolFromSmiles("CCO")))
+    before = len(backend.load_calls)
+
+    widget._on_editor_edited()
+
+    assert molecule.canonical_smiles == "CCO"
+    assert len(backend.load_calls) == before, "reloaded the canvas during the user own edit"
+
+
+def test_a_change_to_another_molecule_is_ignored(qapp):
+    from openchem.events.events import MoleculeChanged
+
+    engine, widget, backend, molecule = _widget_with_molecule()
+    before = len(backend.load_calls)
+
+    widget._event_bus.publish(MoleculeChanged(molecule_uuid="a-different-molecule"))
+    qapp.processEvents()
+
+    assert len(backend.load_calls) == before
