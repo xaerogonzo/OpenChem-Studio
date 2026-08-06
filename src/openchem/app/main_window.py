@@ -342,6 +342,19 @@ class MainWindow(QMainWindow):
             self.restoreState(state)
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 - Qt override
+        # Only ask a user who can see the question. A window that was never
+        # shown is being torn down by code -- a test fixture, or a headless
+        # run -- and a modal dialog there blocks forever with nobody to
+        # answer it. Measured: adding this guard without the visibility
+        # check hung the suite on the first fixture that closed a window
+        # with unsaved changes, and six test files close one.
+        #
+        # It does not weaken the real case. A minimised window still
+        # reports visible in Qt, so anyone actually quitting the
+        # application gets asked.
+        if self.isVisible() and not self._confirm_discarding_unsaved_changes():
+            event.ignore()
+            return
         self._settings.set_window_geometry(self.saveGeometry())
         self._settings.set_window_state(self.saveState())
         super().closeEvent(event)
@@ -509,10 +522,48 @@ class MainWindow(QMainWindow):
 
     # --- project lifecycle --------------------------------------------------
 
+    def _confirm_discarding_unsaved_changes(self) -> bool:
+        """True if it is safe to throw away the current project.
+
+        New Project, Open Project and quitting all replaced or dropped the
+        session with no prompt at all, so unsaved work went silently. The
+        session has tracked a dirty flag the whole time; nothing asked it.
+
+        Save routes through the normal Save Project path, which prompts for
+        a location and can itself be cancelled -- so its result is what
+        decides, not the fact that the button was pressed.
+        """
+        if self._session.project is None or not self._session.is_dirty:
+            return True
+        choice = QMessageBox.warning(
+            self,
+            "Unsaved changes",
+            f"'{self._session.project.name}' has unsaved changes.",
+            QMessageBox.StandardButton.Save
+            | QMessageBox.StandardButton.Discard
+            | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Save,
+        )
+        if choice == QMessageBox.StandardButton.Discard:
+            return True
+        if choice == QMessageBox.StandardButton.Save:
+            return self._save_project()
+        return False
+
     def _new_project(self) -> None:
+        if not self._confirm_discarding_unsaved_changes():
+            return
         self._set_project(ProjectModel(name="Untitled project"))
 
     def _set_project(self, project: ProjectModel) -> None:
+        # THE UNDO STACK BELONGS TO THE DOCUMENT, and every command holds a
+        # direct reference to the project it was built against. Without
+        # this, opening a second project left the first one's commands
+        # undoable: measured, three Ctrl+Z presses after File > New Project
+        # walked back into the PREVIOUS project and emptied it, from
+        # ['New molecule', 'A-one', 'A-two'] to [], while the Project
+        # Explorer showed the new one and nothing appeared to happen.
+        self._undo_stack.clear()
         self._session.set_project(project)
         self._project_explorer.set_project(project)
         self._docking_panel.set_project(project)
@@ -528,8 +579,14 @@ class MainWindow(QMainWindow):
             # when self._molecule is None) until the user does File > New
             # Molecule by hand. Auto-create one so drawing works immediately.
             self._new_molecule()
+        # Cleared AFTER the auto-create, which itself marks the session
+        # dirty. A project the user has not touched yet must not prompt
+        # "you have unsaved changes" the moment they open the next one.
+        self._session.mark_clean()
 
     def _open_project(self) -> None:
+        if not self._confirm_discarding_unsaved_changes():
+            return
         path_str, _ = QFileDialog.getOpenFileName(self, "Open Project", filter="OpenChem Project (*.ocsproj)")
         if not path_str:
             return
@@ -538,16 +595,25 @@ class MainWindow(QMainWindow):
         if command.loaded_project is not None:
             self._set_project(command.loaded_project)
 
-    def _save_project(self) -> None:
+    def _save_project(self) -> bool:
+        """True when the project reached disk.
+
+        Reports its outcome because `_confirm_discarding_unsaved_changes`
+        offers Save as the way out of losing work, and a save the user
+        cancelled at the file dialog must NOT then be treated as permission
+        to discard.
+        """
         if self._session.project is None:
-            return
+            return False
         path_str, _ = QFileDialog.getSaveFileName(self, "Save Project", filter="OpenChem Project (*.ocsproj)")
         if not path_str:
-            return
+            return False
         if not path_str.endswith(".ocsproj"):
             path_str += ".ocsproj"
         command = SaveProjectCommand(self._services.project_service, self._session.project, Path(path_str))
         self._undo_stack.push(command)
+        self._session.mark_clean()
+        return True
 
     # --- molecule lifecycle --------------------------------------------------
 
