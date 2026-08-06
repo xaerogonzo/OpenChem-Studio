@@ -259,6 +259,43 @@ and shifts drawn on the 2D structure), plus **HSQC / HMBC / COSY** tabs with
 both a cross-peak table and a scatter plot. Clicking a peak highlights the
 atoms; clicking an atom selects the peak.
 
+<!-- help:led -->
+### Breaking an interaction energy apart (LED)
+
+**Interaction energy breakdown (LED)** answers "*why* do these two stick
+together" rather than "how strongly". It splits the interaction into
+electrostatics, exchange, dispersion, charge transfer, and the cost of
+distorting each partner from its isolated shape — so an adduct held by
+dispersion and one held by electrostatics look different even when the
+total is the same.
+
+**Draw the two partners as separate species.** They are the fragments: a
+Lewis acid and its base, a hydrogen-bonded pair. A single connected
+molecule is refused, because there are then no partners to decompose an
+interaction between.
+
+The job runs the complex *and* both partners on their own, in one go. That
+is not optional thoroughness — a decomposition of the complex by itself is
+not a binding energy, and ORCA's own "total interaction" line for BH₃·CO
+reads −428 kcal/mol against a real bond enthalpy near −25.
+
+Three things the result tells you that are easy to skip past:
+
+- **The terms are shown with a residual.** They should add up to the
+  interaction energy; the small leftover is reported rather than hidden, so
+  you can see the decomposition is complete rather than take it on trust.
+- **The partitioning is arbitrary and says so.** ORCA's own wording is
+  carried on the result: only the total energy is an observable. Compare
+  terms *between* similar systems rather than reading one in isolation.
+- **No counterpoise correction**, and the fragments are held at their
+  geometry in the complex. So this is a vertical interaction energy, and it
+  is more negative than a bond dissociation energy would be.
+
+**Check the cost estimate before starting.** DLPNO-CCSD(T) is steep:
+measured, BH₃·CO took 15 seconds, while a benzene–water pair took 10
+minutes and **1.9 GB of scratch disk**. Anything drug-sized is not a
+candidate, and the panel says so rather than letting you find out hours in.
+
 <!-- help:ir-spectra -->
 ### IR spectra and normal modes
 

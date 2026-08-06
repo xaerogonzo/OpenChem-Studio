@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QMessageBox,
     QPlainTextEdit,
     QPushButton,
     QSpinBox,
@@ -391,6 +392,9 @@ class QuantumChemistryPanel(QWidget):
             self._status_label.setText("Enter a method/basis (e.g. 'B3LYP def2-SVP').")
             return
 
+        if calc_type == "led" and not self._confirm_led_cost(self, mol):
+            return
+
         self._pending_molecule_uuid = molecule.uuid
         self._pending_mol = mol
         self._pending_molblock = molecule.molblock
@@ -447,6 +451,58 @@ class QuantumChemistryPanel(QWidget):
             return ""
         solvent = self._solvent_combo.currentData()
         return f"{method_basis} CPCM({solvent})" if solvent else method_basis
+
+    @staticmethod
+    def _confirm_led_cost(parent, mol) -> bool:
+        """Show what an LED job will cost BEFORE it starts. True to proceed.
+
+        Before, not after, because the two ways this job goes wrong are both
+        unrecoverable once it is running: it takes days, or it fills the
+        scratch disk. Measured, benzene-water is the case that makes the
+        second one real -- ten minutes and 1.9 GB, so a time-only warning
+        would wave through the job most likely to fill a laptop.
+
+        A structure that is not two species is refused here rather than at
+        input-building time, so the message arrives as a dialog instead of a
+        failed job in the log.
+
+        A staticmethod taking `parent` explicitly, because the decision it
+        makes is worth testing on its own and a Qt widget cannot be
+        instantiated without its whole service container.
+
+        The fragment count comes from the chem layer rather than from a
+        local `Chem.GetMolFrags` call: `tests/test_layering.py` forbids a UI
+        module importing RDKit, and caught the first version of this doing
+        exactly that.
+        """
+        from openchem.chem.orca_led import estimate_led_cost_for
+
+        estimate = estimate_led_cost_for(mol)
+        if not estimate.runnable:
+            QMessageBox.information(
+                parent,
+                "Two partners needed",
+                "An interaction breakdown needs exactly two separate species — "
+                "they are the fragments it decomposes the interaction between.\n\n"
+                "Draw the two partners as separate molecules (a Lewis acid and "
+                "its base, a hydrogen-bonded pair) rather than joined by a bond.",
+            )
+            return False
+
+        if not estimate.should_warn:
+            return True
+        answer = QMessageBox.question(
+            parent,
+            "This calculation is expensive",
+            f"{estimate.advice}\n\n"
+            f"{estimate.atoms} atoms, {estimate.basis_functions} basis functions, "
+            f"DLPNO-CCSD(T).\n\n"
+            "The estimate is scaled from two measured jobs and is a guide to the "
+            "order of the cost, not a prediction.\n\nStart it anyway?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        return answer == QMessageBox.StandardButton.Yes
 
     def _on_calc_type_changed(self, label: str) -> None:
         """Steers NMR runs onto an NMR-appropriate basis.

@@ -12,6 +12,7 @@ from openchem.domain.common import CacheState, Provenance
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
 from openchem.chem.conceptual_dft import from_delta_scf, from_frontier_energies
+from openchem.chem.orca_led import build_led_input, parse_led
 from openchem.chem.vibrational_modes import classify_mode
 from openchem.domain.scientific_result import (
     NMRSpectrumResult,
@@ -243,6 +244,10 @@ _CALC_TYPE_KEYWORDS = {
     # Three single points, no Opt: see `_build_delta_scf_input` for why
     # optimizing here would silently make the answer something else.
     "delta_scf": "",
+    # The whole keyword line comes from `chem/orca_led.py` -- LED is
+    # defined on DLPNO-CCSD(T) with two auxiliary bases, so the caller's
+    # method/basis choice does not apply.
+    "led": "",
 }
 
 _SCF_ENERGY_RE = re.compile(r"FINAL SINGLE POINT ENERGY\s+(-?\d+\.\d+)")
@@ -353,7 +358,7 @@ _NORMAL_MODES_HEADER = "NORMAL MODES"
 
 HARTREE_TO_KCAL_MOL = 627.5094740631
 
-_CALC_TYPES = ("sp", "opt", "opt_freq", "nmr", "nmr_coupling", "delta_scf")
+_CALC_TYPES = ("sp", "opt", "opt_freq", "nmr", "nmr_coupling", "delta_scf", "led")
 
 # Public, chemistry-layer source of truth for calc_type display names and
 # real method/basis presets -- both used to live UI-panel-private in
@@ -370,6 +375,11 @@ CALC_TYPE_LABELS = {
     "NMR (raw shielding)": "nmr",
     "NMR + Spin-Spin Coupling": "nmr_coupling",
     "Hardness / Softness (delta-SCF)": "delta_scf",
+    # Named for what it answers rather than for the method, like every
+    # other entry here. The method/basis combo is IGNORED for this one --
+    # LED is defined on DLPNO-CCSD(T) and picking B3LYP would produce a
+    # job ORCA refuses.
+    "Interaction energy breakdown (LED)": "led",
 }
 # General-purpose presets first, then two aimed specifically at NMR.
 #
@@ -433,6 +443,9 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
 
         if calc_type == "delta_scf":
             return self._build_delta_scf_input(header, coordinates, charge, multiplicity)
+
+        if calc_type == "led":
+            return self._build_led_input(mol, charge, multiplicity)
 
         lines = [header, f"* xyz {charge} {multiplicity}", *coordinates, "*"]
         if calc_type == "nmr_coupling":
@@ -504,6 +517,49 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
             lines.extend([header, f"* xyz {job_charge} {job_multiplicity}", *coordinates, "*"])
         return "\n".join(lines) + "\n"
 
+    def _build_led_input(self, mol: Chem.Mol, charge: int, multiplicity: int) -> str:
+        """The two fragments are the molecule's DISCONNECTED COMPONENTS.
+
+        That is not a shortcut, it is what LED is for: an interaction energy
+        is between two species held together by something other than a
+        covalent bond, and in RDKit that is exactly two fragments. It also
+        makes the refusal below correct rather than arbitrary -- a single
+        connected molecule has no partners to decompose an interaction
+        between, whatever the user hoped.
+
+        Drawing the partners as separate species is therefore the input
+        format, and the message says so rather than reporting a failure the
+        user cannot act on.
+        """
+        pieces = Chem.GetMolFrags(mol)
+        if len(pieces) != 2:
+            raise ValueError(
+                f"An LED interaction breakdown needs exactly two separate species; "
+                f"this structure has {len(pieces)}. Draw the two partners as "
+                "separate molecules (a Lewis acid and its base, a hydrogen-bonded "
+                "pair) rather than joined by a bond."
+            )
+
+        fragment_of = {index: 1 for index in pieces[0]}
+        fragment_of.update({index: 2 for index in pieces[1]})
+
+        conf = mol.GetConformer()
+        coordinates = [
+            (
+                atom.GetSymbol(),
+                conf.GetAtomPosition(atom.GetIdx()).x,
+                conf.GetAtomPosition(atom.GetIdx()).y,
+                conf.GetAtomPosition(atom.GetIdx()).z,
+            )
+            for atom in mol.GetAtoms()
+        ]
+        return build_led_input(
+            coordinates,
+            [fragment_of[atom.GetIdx()] for atom in mol.GetAtoms()],
+            charge=charge,
+            multiplicity=multiplicity,
+        )
+
     def command_args(self, executable_path: str, input_path: Path) -> list[str]:
         # ORCA's own invocation convention: `orca job.inp`, writing its
         # full output to stdout (no separate --out file argument, unlike
@@ -554,11 +610,15 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
 
         if calc_type == "delta_scf":
             descriptors.extend(self._parse_delta_scf(output_text, molecule_uuid, provenance))
+        elif calc_type == "led":
+            descriptors.extend(self._parse_led(output_text, molecule_uuid, provenance))
         else:
-            # NOT for delta_scf. That output holds three orbital tables and
-            # the frontier parsers take the LAST one, which is the ANION's
-            # -- Koopmans numbers computed from it would be silently about
-            # a different species. Every other calc type has one table.
+            # NOT for delta_scf, and NOT for led. Both write COMPOUND inputs,
+            # so their output holds three orbital tables and the frontier
+            # parsers take the LAST one -- the ANION's for delta-SCF, the
+            # second FRAGMENT's for LED. Koopmans numbers computed from
+            # either would be silently about a different species, and would
+            # look entirely reasonable. Every other calc type has one table.
             descriptors.extend(
                 self._parse_conceptual_dft(output_text, molecule_uuid, provenance)
             )
@@ -598,6 +658,62 @@ class OrcaQuantumEngineProvider(QuantumEngineProvider):
         ("dscf_softness", "Chemical Softness (delta-SCF)", "1/eV", "softness"),
         ("dscf_electrophilicity", "Electrophilicity Index (delta-SCF)", "eV", "electrophilicity"),
     )
+
+    def _parse_led(
+        self, output_text: str, molecule_uuid: str, provenance: Provenance
+    ) -> list[DescriptorValue]:
+        """The interaction energy and its terms, one descriptor each.
+
+        Every term is reported, including the total, and NOTHING here
+        combines them into a score. That is the same choice `AdductEvidence`
+        makes and for the same reason: the terms answer different questions,
+        and the one that matters depends on the pair.
+        """
+        decomposition = parse_led(output_text)
+        if not decomposition:
+            raise OrcaOutputError(decomposition.error)
+
+        caveat = " ".join(decomposition.limitations + decomposition.warnings)
+        annotated = replace(
+            provenance,
+            parameters={
+                **provenance.parameters,
+                "caveat": caveat,
+                # So a reader can see how completely the terms account for
+                # the total without recomputing it.
+                "residual_kcal": round(decomposition.residual_kcal, 4),
+            },
+        )
+        descriptors = [
+            DescriptorValue(
+                descriptor_id="orca.led_interaction",
+                name="Interaction energy (LED)",
+                units="kcal/mol",
+                category="quantum_chemistry",
+                provider="orca",
+                molecule_uuid=molecule_uuid,
+                value=decomposition.interaction_kcal,
+                timestamp=provenance.timestamp,
+                cache_state=CacheState.COMPLETED,
+                provenance=annotated,
+            )
+        ]
+        descriptors.extend(
+            DescriptorValue(
+                descriptor_id=f"orca.led_{term.label.split()[0].lower()}",
+                name=term.label,
+                units="kcal/mol",
+                category="quantum_chemistry",
+                provider="orca",
+                molecule_uuid=molecule_uuid,
+                value=term.kcal,
+                timestamp=provenance.timestamp,
+                cache_state=CacheState.COMPLETED,
+                provenance=annotated,
+            )
+            for term in decomposition.terms
+        )
+        return descriptors
 
     def _parse_delta_scf(
         self, output_text: str, molecule_uuid: str, provenance: Provenance

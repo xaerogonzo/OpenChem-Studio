@@ -53,39 +53,20 @@ from openchem.events.base import EventBus
 from openchem.services.batch_service import BatchProgress, BatchService
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.table_export_service import TableExportService
+from openchem.ui.widgets.sortable_item import SORT_ROLE, SortableItem
 
 logger = logging.getLogger("openchem.ui")
 
 _FAILED_BRUSH = QBrush(QColor(150, 150, 150))
 _MISSING = "—"
 
-_SORT_ROLE = Qt.ItemDataRole.UserRole + 1
 _UUID_ROLE = Qt.ItemDataRole.UserRole + 2
 
-
-class _SortableItem(QTableWidgetItem):
-    """A cell that sorts by its VALUE rather than by its printed text.
-
-    `QTableWidget.setSortingEnabled` sorts through `QTableWidgetItem.__lt__`,
-    whose default compares `DisplayRole` -- a string. So a molecular-weight
-    column sorts "1000" before "200", and a LogP column sorts "-1.03" before
-    "-0.5" before "1.31" only by accident of digit order. Storing the float
-    under a private role is not enough on its own: without this override,
-    Qt never looks at it.
-
-    Mixed types are compared as strings rather than raising. A column can
-    legitimately hold floats for most rows and the infinity that marks a
-    failed cell, and `float('inf') < 'text'` is a TypeError that would
-    propagate out of a header click.
-    """
-
-    def __lt__(self, other: QTableWidgetItem) -> bool:
-        mine = self.data(_SORT_ROLE)
-        theirs = other.data(_SORT_ROLE)
-        try:
-            return mine < theirs
-        except TypeError:
-            return str(mine) < str(theirs)
+# Moved to `ui/widgets/sortable_item.py` once the per-atom comparison table
+# needed the same thing. Aliased rather than renamed at every call site --
+# the names are private to this module and the move is not worth the churn.
+_SORT_ROLE = SORT_ROLE
+_SortableItem = SortableItem
 
 
 class BatchPanel(QWidget):

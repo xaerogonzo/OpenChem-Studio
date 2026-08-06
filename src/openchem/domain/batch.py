@@ -113,6 +113,17 @@ class BatchTable:
     row_labels: dict[str, str] = field(default_factory=dict)
     columns: list[BatchColumn] = field(default_factory=list)
     cells: dict[tuple[str, str], BatchCell] = field(default_factory=dict)
+    #: (molecule_uuid, calculator_id) -> the un-reduced per-atom result.
+    #:
+    #: A cell keeps ONE number, which is right for a 200-row survey and
+    #: throws away the only thing a difference map can be built from --
+    #: aspirin against salicylic acid coloured by delta charge is a question
+    #: about atom 7 against atom 7, and the mean has no atoms left in it.
+    #: Kept here because the run already computed it and the alternative is
+    #: recomputing every calculator to ask a follow-up question.
+    #: `chem/comparison.py` is the consumer. Typed loosely to keep `domain`
+    #: free of a `scientific_result` import it otherwise does not need.
+    per_atom: dict[tuple[str, str], object] = field(default_factory=dict)
 
     def add_row(self, molecule_uuid: str, label: str) -> None:
         if molecule_uuid not in self.row_labels:
@@ -142,6 +153,28 @@ class BatchTable:
             if column.column_id == column_id:
                 return column
         return None
+
+    def set_per_atom(self, molecule_uuid: str, calculator_id: str, result: object) -> None:
+        self.per_atom[(molecule_uuid, calculator_id)] = result
+
+    def per_atom_for(self, molecule_uuid: str, calculator_id: str) -> object | None:
+        return self.per_atom.get((molecule_uuid, calculator_id))
+
+    def per_atom_calculators(self) -> list[str]:
+        """Calculator ids with per-atom data for at least TWO molecules.
+
+        One molecule cannot be compared against anything, and offering it
+        produces an empty table -- the same reason `numeric_columns` demands
+        two values rather than one.
+        """
+        counts: dict[str, int] = {}
+        for _uuid, calculator_id in self.per_atom:
+            counts[calculator_id] = counts.get(calculator_id, 0) + 1
+        seen: list[str] = []
+        for _uuid, calculator_id in self.per_atom:
+            if counts[calculator_id] >= 2 and calculator_id not in seen:
+                seen.append(calculator_id)
+        return seen
 
     def numeric_columns(self) -> list[BatchColumn]:
         """Columns the analytics can consume -- declared numeric AND with

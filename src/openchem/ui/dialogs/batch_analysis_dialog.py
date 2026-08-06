@@ -41,9 +41,11 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.chem.analytics import correlate, describe, pca
+from openchem.chem.comparison import atom_correspondence, build_comparison, deltas_against
 from openchem.domain.batch import BatchColumn, BatchTable
 from openchem.ui.widgets.histogram_widget import HistogramWidget
 from openchem.ui.widgets.scatter_plot_widget import ScatterPlotWidget, ScatterPoint
+from openchem.ui.widgets.sortable_item import SortableItem as _SortableItem
 
 
 class BatchAnalysisDialog(QDialog):
@@ -77,6 +79,13 @@ class BatchAnalysisDialog(QDialog):
         self._tabs.addTab(self._build_space_tab(), "Chemical space")
         self._tabs.addTab(self._build_cluster_tab(), "Clustering")
         self._tabs.addTab(self._build_statistics_tab(), "Distributions")
+        # Only when there IS per-atom data for two molecules. An empty
+        # fifth tab advertising a comparison that cannot be made is worse
+        # than no tab -- the same judgement the "no numeric columns"
+        # message above makes.
+        self._has_atom_tab = bool(table.per_atom_calculators()) and len(table.row_uuids) >= 2
+        if self._has_atom_tab:
+            self._tabs.addTab(self._build_atoms_tab(), "Per-atom")
         layout.addWidget(self._tabs)
 
         close = QPushButton("Close", self)
@@ -89,6 +98,8 @@ class BatchAnalysisDialog(QDialog):
         self._update_correlation()
         self._update_space()
         self._update_statistics()
+        if self._has_atom_tab:
+            self._update_atoms()
 
     # -- correlation ------------------------------------------------------
 
@@ -347,6 +358,168 @@ class BatchAnalysisDialog(QDialog):
             note += f"\n{missing} molecule(s) have no value in this column."
         self._stat_note.setText(note)
 
+    # -- per-atom comparison ----------------------------------------------
+
+    def _build_atoms_tab(self) -> QWidget:
+        """Two molecules, one per-atom property, atom by atom.
+
+        Separate from Correlation rather than folded into it because the
+        question is different in kind: correlation asks which COLUMNS move
+        together across the project, this asks which ATOMS differ between
+        two structures. Sharing a tab would mean one of them borrowing the
+        other's controls.
+        """
+        widget = QWidget(self)
+        layout = QVBoxLayout(widget)
+
+        controls = QHBoxLayout()
+        self._atom_property = QComboBox(widget)
+        for calculator_id in self._table.per_atom_calculators():
+            self._atom_property.addItem(self._per_atom_label(calculator_id), calculator_id)
+        self._atom_reference = _row_combo(self._table, widget)
+        self._atom_other = _row_combo(self._table, widget)
+        if self._atom_other.count() > 1:
+            self._atom_other.setCurrentIndex(1)
+        for combo in (self._atom_property, self._atom_reference, self._atom_other):
+            combo.currentIndexChanged.connect(self._update_atoms)
+        controls.addWidget(QLabel("Property:"))
+        controls.addWidget(self._atom_property, stretch=1)
+        controls.addWidget(QLabel("Reference:"))
+        controls.addWidget(self._atom_reference, stretch=1)
+        controls.addWidget(QLabel("Against:"))
+        controls.addWidget(self._atom_other, stretch=1)
+        layout.addLayout(controls)
+
+        self._atom_table = QTableWidget(0, 5, widget)
+        self._atom_table.setHorizontalHeaderLabels(
+            ["Atom", "Element", "Reference", "Against", "Difference"]
+        )
+        self._atom_table.setSortingEnabled(True)
+        self._atom_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self._atom_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self._atom_table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Stretch
+        )
+        layout.addWidget(self._atom_table, stretch=1)
+
+        self._atom_note = QLabel("", widget)
+        self._atom_note.setWordWrap(True)
+        self._atom_note.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        layout.addWidget(self._atom_note)
+        return widget
+
+    def _per_atom_label(self, calculator_id: str) -> str:
+        for column in self._table.columns:
+            if column.source_id == calculator_id:
+                return column.label
+        return calculator_id
+
+    def _update_atoms(self) -> None:
+        self._atom_table.setRowCount(0)
+        calculator_id = self._atom_property.currentData()
+        reference_uuid = self._atom_reference.currentData()
+        other_uuid = self._atom_other.currentData()
+        if not calculator_id or not reference_uuid or not other_uuid:
+            self._atom_note.setText("Choose a property and two molecules.")
+            return
+        if reference_uuid == other_uuid:
+            self._atom_note.setText("Choose two different molecules.")
+            return
+
+        results = {
+            uuid: self._table.per_atom_for(uuid, calculator_id)
+            for uuid in (reference_uuid, other_uuid)
+        }
+        comparison = build_comparison(
+            results,
+            {uuid: self._table.row_labels.get(uuid, uuid) for uuid in results},
+            calculator_id=calculator_id,
+            calculator_name=self._per_atom_label(calculator_id),
+            order=[reference_uuid, other_uuid],
+        )
+        if comparison.categorical:
+            # Return here rather than falling through. `deltas_against`
+            # refuses a categorical dataset anyway, so continuing would
+            # compute an MCS nothing uses and then overwrite this
+            # explanation with a less specific one.
+            self._atom_note.setText(
+                "\n".join(comparison.limitations)
+                + "\nNo differences are shown, because subtracting two "
+                "category identifiers gives a number that means nothing."
+            )
+            return
+
+        reference_mol = self._mol(reference_uuid)
+        other_mol = self._mol(other_uuid)
+        if reference_mol is None or other_mol is None:
+            self._atom_note.setText(
+                "The structures for these molecules are not available in this "
+                "dialog, so their atoms cannot be matched up."
+            )
+            return
+
+        mapping = atom_correspondence(reference_mol, other_mol)
+        if not mapping:
+            self._atom_note.setText(
+                "These two molecules share no common substructure, so there are "
+                "no corresponding atoms to compare. A difference here would be "
+                "between atoms that are not the same site."
+            )
+            return
+
+        deltas = deltas_against(
+            comparison, reference_uuid, other_uuid, mapping, reference_mol=reference_mol
+        )
+        if not deltas and not comparison.categorical:
+            self._atom_note.setText(
+                "The two molecules correspond, but this property has no values "
+                "for the atoms they share."
+            )
+            return
+
+        self._atom_table.setSortingEnabled(False)
+        self._atom_table.setRowCount(len(deltas))
+        for row, delta in enumerate(deltas):
+            self._atom_table.setItem(row, 0, _SortableItem(str(delta.reference_index), float(delta.reference_index)))
+            self._atom_table.setItem(row, 1, QTableWidgetItem(delta.element))
+            self._atom_table.setItem(row, 2, _SortableItem(f"{delta.reference_value:.4g}", delta.reference_value))
+            self._atom_table.setItem(row, 3, _SortableItem(f"{delta.other_value:.4g}", delta.other_value))
+            self._atom_table.setItem(row, 4, _SortableItem(f"{delta.delta:+.4g}", delta.delta))
+        self._atom_table.setSortingEnabled(True)
+
+        if not comparison.categorical:
+            unmatched = reference_mol.GetNumAtoms() - len(deltas)
+            note = (
+                f"{len(deltas)} of {reference_mol.GetNumAtoms()} atoms in the "
+                f"reference have a counterpart with a value."
+            )
+            if unmatched:
+                # Saying so matters: the atoms that DIFFER are exactly the
+                # ones with no counterpart, and a table that silently omits
+                # them reads as "these molecules are nearly identical".
+                note += (
+                    f" The other {unmatched} are absent from the comparison "
+                    "because they have no matching atom -- those are where the "
+                    "two structures genuinely differ."
+                )
+            self._atom_note.setText(note)
+
+    def _mol(self, molecule_uuid: str):
+        """The RDKit molecule for a row, or None.
+
+        Goes through the project because a `BatchTable` holds results, not
+        structures -- and rebuilding one from a name would be guessing.
+        """
+        if self._project is None:
+            return None
+        for molecule in getattr(self._project, "molecules", []):
+            if molecule.uuid == molecule_uuid:
+                try:
+                    return self._engine.mol_from_model(molecule)
+                except Exception:  # noqa: BLE001 - an unparseable row is "no structure"
+                    return None
+        return None
+
     # -- shared -----------------------------------------------------------
 
     def _selected(self, combo: QComboBox) -> BatchColumn | None:
@@ -358,4 +531,11 @@ def _column_combo(columns: list[BatchColumn], parent: QWidget) -> QComboBox:
     combo = QComboBox(parent)
     for column in columns:
         combo.addItem(column.header, column.column_id)
+    return combo
+
+
+def _row_combo(table: BatchTable, parent: QWidget) -> QComboBox:
+    combo = QComboBox(parent)
+    for molecule_uuid in table.row_uuids:
+        combo.addItem(table.row_labels.get(molecule_uuid, molecule_uuid), molecule_uuid)
     return combo

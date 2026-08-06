@@ -84,6 +84,16 @@ _QM_CALC_TYPE_DESCRIPTIONS = {
         "vertical quantities. Slower than reading the frontier orbitals, and the "
         "one that reproduces the textbook hard/soft orderings."
     ),
+    "led": (
+        "Breaks a non-covalent interaction energy into electrostatics, exchange, "
+        "dispersion, charge transfer and the cost of distorting each partner, via "
+        "ORCA's Local Energy Decomposition on DLPNO-CCSD(T). Needs the two partners "
+        "drawn as SEPARATE species -- they are the fragments. Runs the complex and "
+        "both partners in one job, because the decomposition of a complex on its own "
+        "is not a binding energy. Expensive and steeply so: measured 15 seconds for "
+        "BH3-CO but 10 minutes and 1.9 GB of scratch disk for benzene-water, and it "
+        "is not usable on anything drug-sized."
+    ),
 }
 
 for _label, _calc_type in CALC_TYPE_LABELS.items():

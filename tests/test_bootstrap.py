@@ -28,6 +28,9 @@ def test_calculator_registry_includes_docking_and_quantum_chemistry_categories(q
         # Three single points in one compound job, giving vertical I and A
         # as energy DIFFERENCES rather than from orbital energies.
         "orca.delta_scf",
+        # Also a compound job: the complex plus both isolated fragments,
+        # because decomposing the complex alone is not a binding energy.
+        "orca.led",
     }
 
     for definition in registry.by_category("docking") + registry.by_category("quantum_chemistry"):

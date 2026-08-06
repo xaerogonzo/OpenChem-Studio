@@ -50,10 +50,14 @@ The binary is not on PATH; call it by full path.
 uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suite.log
 ```
 
-A clean run is **~3 minutes**, ending at `2547 passed, 2 skipped` (measured
-2026-08-06 on master at `3125c56`, working tree clean, bytecode cleared).
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
+
+A clean run is **~4.5 minutes**, ending at `2695 passed, 2 skipped,
+1 deselected` (measured 2026-08-06 with the comparison and LED work applied,
+bytecode cleared). **That figure is from the DESELECTED form below, not the
+command above** -- run it bare and the same tree reports one FAILURE, from
+the network test explained next.
 
 **One test fails against the network, not against the code.**
 `test_pubchem_name_round_trips_back_through_opsin` returns `HTTP 400` from
@@ -901,6 +905,74 @@ service. The three `FINAL SINGLE POINT ENERGY` lines are told apart only by
 POSITION, which is why `test_the_three_delta_scf_blocks_are_written_in_parser_order`
 exists: swapping the cation and anion blocks flips the sign of both I and A,
 still produces plausible numbers, and survived every other test in the file.
+
+### ORCA's LED summary block does not mean what it looks like it means
+
+Recorded because a plan written without running it specified parsing the
+wrong block, and the wrong numbers are plausible rather than absurd.
+
+**`FINAL SUMMARY DLPNO-CCSD ENERGY DECOMPOSITION` is not an interaction
+decomposition.** Its correlation lines split the complex's TOTAL
+correlation energy into dispersive and non-dispersive parts, intra-fragment
+correlation included. Verified by arithmetic against the same output, exact
+to the last digit:
+
+    Non dispersion (strong pairs)  =  intra strong pairs
+                                    + (inter strong - dispersion strong)
+                                    + singles
+    -0.414932699                   =  -0.394372938 - 0.020556328 - 0.000003433
+
+So that line reads **-260 kcal/mol** where the real non-dispersive
+interaction is **-12.9**. Only the REF lines are what they appear to be:
+`Electrostatics (REF.) + Exchange (REF.)` does equal the inter-fragment
+reference interaction exactly.
+
+**And `Total interaction` is not a binding energy** -- ORCA reports
+**-428 kcal/mol** for BH3-CO, whose bond enthalpy is near -25. A
+single-point LED partitions the complex's own energy, so the inter-fragment
+part carries all the nuclear-electron attraction between fragments. A
+binding energy needs the ISOLATED fragments, which is why `chem/orca_led.py`
+writes three jobs.
+
+With those, it reconciles: the six terms sum to -36.58 kcal/mol against a
+supermolecular -36.62. **The 0.05 residual is nameable, not slop** -- it is
+exactly the gap between the LED's own total and `FINAL SINGLE POINT ENERGY`,
+i.e. how DLPNO splits the (T) correction. It is reported rather than hidden.
+
+**`$new_job` does NOT generalise from delta-SCF.** Inside a compound job
+ORCA restarts from the previous job's orbitals, which is valid for
+delta-SCF (same geometry, different charges) and fatal here, because a
+fragment has fewer atoms:
+
+    Error: Input geometry does not match current geometry
+    ORCA finished by error termination in GUESS       -- exit 55, 1 energy of 3
+
+`PModel` on the fragment blocks fixes it. **`NOAUTOSTART` looks like the fix
+and is not** -- it governs picking up a `.gbw` left on disk, not the restart
+from the preceding block, and the run failed identically with it in place.
+
+Two measurement traps from the cost estimate, both paid for once:
+
+- **Residual disk is not peak disk, by a factor of 575.** benzene-water
+  leaves 3.3 MB behind and used **1899 MB while running**. The first
+  estimator was anchored on residual and under-predicted the thing that
+  fills a drive by three orders of magnitude. Sample during the run.
+- **The textbook cc-pVDZ contraction is wrong for this job.** 14 per
+  first-row atom predicts 57 functions for BH3-CO; ORCA reports 75. Solving
+  the two measured totals gives 20 and 5, confirmed against a third job it
+  was not fitted to (BH3 alone: predicted 35, reported 35).
+
+Measured anchors, same sampling harness: BH3-CO 6 atoms/75 functions, 15 s,
+102 MB peak; benzene-water 15 atoms/180 functions, 595 s, 1899 MB peak.
+Two points determine a power law exactly and cannot validate it, so the
+estimator is a guide for "minutes vs hours vs do not start it".
+
+One more thing this work paid for, and it was a GUARD that found it rather
+than review: `tests/test_layering.py` forbids a `ui/` module importing
+RDKit, and the pre-launch cost dialog did exactly that to count fragments
+with `Chem.GetMolFrags`. It reads as obviously fine in isolation, which is
+the point -- the count now comes from `estimate_led_cost_for` in the chem
+layer and the UI imports nothing chemical.
 
 ### An engine and its own data table have to be run against each other
 

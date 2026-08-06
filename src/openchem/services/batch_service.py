@@ -53,6 +53,7 @@ from openchem.domain.batch import (
 )
 from openchem.domain.common import CacheState
 from openchem.domain.molecule import MoleculeModel
+from openchem.domain.scientific_result import PerAtomDataset
 from openchem.events.base import Event, EventBus
 from openchem.plugins.interfaces import DescriptorProvider
 from openchem.services.calculator_registry import CalculatorRegistry
@@ -281,6 +282,12 @@ class _BatchTask(QRunnable):
                 )
                 continue
             logger.debug("batch %s on %s took %.3fs", calculator_id, molecule.uuid, time.time() - started)
+            # Keep the un-reduced per-atom result before `reduce_result`
+            # collapses it to one number. The comparison view is built from
+            # this; without it, asking a per-atom follow-up means running
+            # every calculator again.
+            if isinstance(result, PerAtomDataset):
+                table.set_per_atom(molecule.uuid, calculator_id, result)
             for column, cell in reduce_result(
                 result,
                 calculator_id,

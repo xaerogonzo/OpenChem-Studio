@@ -286,3 +286,159 @@ def test_a_table_with_nothing_numeric_says_why_rather_than_opening_empty_tabs(
     assert any(
         "No numeric columns" in label.text() for label in dialog.findChildren(QLabel)
     )
+
+
+# --- the per-atom comparison -------------------------------------------
+
+
+def test_the_run_keeps_the_per_atom_values_the_cells_throw_away(panel):
+    """A cell holds the aggregate. The comparison needs the vector, and
+    re-running every calculator to get it back is the alternative."""
+    table = _run(panel, ["crippen_logp_contrib"])
+
+    aspirin = table.row_uuids[0]
+    retained = table.per_atom_for(aspirin, "crippen_logp_contrib")
+    assert retained is not None
+    assert len(retained.values) > 1, "a per-atom result reduced to one number"
+
+    cell = table.cell(aspirin, "calculator:crippen_logp_contrib")
+    assert cell is not None and cell.value is not None
+    assert cell.value == pytest.approx(
+        sum(retained.values.values()) / len(retained.values)
+    )
+
+
+def test_the_per_atom_tab_appears_only_when_there_is_per_atom_data(
+    panel, services, project, widgets
+):
+    """A tab advertising a comparison that cannot be made is worse than no
+    tab -- the same judgement the 'no numeric columns' message makes."""
+    table = _run(panel, ["mol_wt"])
+    dialog = _dialog(widgets, table, services, project)
+    titles = {dialog._tabs.tabText(i) for i in range(dialog._tabs.count())}
+    assert "Per-atom" not in titles
+
+
+def test_the_per_atom_tab_compares_corresponding_atoms(
+    panel, services, project, widgets
+):
+    table = _run(panel, ["crippen_logp_contrib"])
+    dialog = _dialog(widgets, table, services, project)
+    titles = {dialog._tabs.tabText(i) for i in range(dialog._tabs.count())}
+    assert "Per-atom" in titles
+
+    # Aspirin against ibuprofen -- two real molecules sharing a benzene ring
+    # and a carboxyl, differing everywhere else.
+    aspirin = next(m.uuid for m in project.molecules if m.display_name == "aspirin")
+    ibuprofen = next(m.uuid for m in project.molecules if m.display_name == "ibuprofen")
+    dialog._atom_reference.setCurrentIndex(dialog._atom_reference.findData(aspirin))
+    dialog._atom_other.setCurrentIndex(dialog._atom_other.findData(ibuprofen))
+
+    assert dialog._atom_table.rowCount() > 0, "no corresponding atoms were found"
+    # The difference column really is the difference of the two beside it.
+    for row in range(dialog._atom_table.rowCount()):
+        reference = float(dialog._atom_table.item(row, 2).text())
+        other = float(dialog._atom_table.item(row, 3).text())
+        difference = float(dialog._atom_table.item(row, 4).text())
+        assert difference == pytest.approx(other - reference, abs=1e-3)
+
+
+def test_the_comparison_says_how_many_atoms_went_unmatched(
+    panel, services, project, widgets
+):
+    """The atoms with no counterpart are exactly where the two structures
+    differ. A table that silently omits them reads as 'nearly identical'."""
+    table = _run(panel, ["crippen_logp_contrib"])
+    dialog = _dialog(widgets, table, services, project)
+
+    aspirin = next(m.uuid for m in project.molecules if m.display_name == "aspirin")
+    ibuprofen = next(m.uuid for m in project.molecules if m.display_name == "ibuprofen")
+    dialog._atom_reference.setCurrentIndex(dialog._atom_reference.findData(aspirin))
+    dialog._atom_other.setCurrentIndex(dialog._atom_other.findData(ibuprofen))
+
+    note = dialog._atom_note.text()
+    assert "atoms in the reference" in note
+    assert "genuinely differ" in note
+
+
+def test_comparing_a_molecule_against_itself_is_refused_not_all_zeroes(
+    panel, services, project, widgets
+):
+    table = _run(panel, ["crippen_logp_contrib"])
+    dialog = _dialog(widgets, table, services, project)
+
+    aspirin = next(m.uuid for m in project.molecules if m.display_name == "aspirin")
+    dialog._atom_reference.setCurrentIndex(dialog._atom_reference.findData(aspirin))
+    dialog._atom_other.setCurrentIndex(dialog._atom_other.findData(aspirin))
+
+    assert dialog._atom_table.rowCount() == 0
+    assert "two different molecules" in dialog._atom_note.text()
+
+
+def test_a_categorical_per_atom_property_is_not_subtracted(
+    panel, services, project, widgets
+):
+    """Ring-system id 3 minus id 1 is 2, which is a number and means
+    nothing."""
+    table = _run(panel, ["ring_systems"])
+    dialog = _dialog(widgets, table, services, project)
+    if "Per-atom" not in {dialog._tabs.tabText(i) for i in range(dialog._tabs.count())}:
+        pytest.skip("ring_systems produced no per-atom data for two molecules")
+
+    aspirin = next(m.uuid for m in project.molecules if m.display_name == "aspirin")
+    caffeine = next(m.uuid for m in project.molecules if m.display_name == "caffeine")
+    dialog._atom_reference.setCurrentIndex(dialog._atom_reference.findData(aspirin))
+    dialog._atom_other.setCurrentIndex(dialog._atom_other.findData(caffeine))
+
+    assert dialog._atom_table.rowCount() == 0
+    assert "not measurements" in dialog._atom_note.text()
+    assert "means nothing" in dialog._atom_note.text()
+
+
+def test_every_comparison_row_fits_inside_its_table(
+    panel, services, project, widgets
+):
+    """The Interactions bug was correct data rendered as blank rows -- row 0
+    was 481px in a 106px viewport -- and only opening the app found it."""
+    table = _run(panel, ["crippen_logp_contrib"])
+    dialog = _dialog(widgets, table, services, project)
+    dialog.resize(880, 680)
+    dialog.show()
+
+    # Qt does not lay out a tab that has never been current, so a table
+    # measured while another tab is showing reports a 0px viewport and the
+    # assertion below passes or fails for the wrong reason.
+    atoms_index = next(
+        index for index in range(dialog._tabs.count())
+        if dialog._tabs.tabText(index) == "Per-atom"
+    )
+    dialog._tabs.setCurrentIndex(atoms_index)
+    QApplication.instance().processEvents()
+
+    aspirin = next(m.uuid for m in project.molecules if m.display_name == "aspirin")
+    ibuprofen = next(m.uuid for m in project.molecules if m.display_name == "ibuprofen")
+    dialog._atom_reference.setCurrentIndex(dialog._atom_reference.findData(aspirin))
+    dialog._atom_other.setCurrentIndex(dialog._atom_other.findData(ibuprofen))
+    QApplication.instance().processEvents()
+
+    viewport_height = dialog._atom_table.viewport().height()
+    assert viewport_height > 0, "the table was measured before it was laid out"
+    for row in range(dialog._atom_table.rowCount()):
+        height = dialog._atom_table.rowHeight(row)
+        assert 0 < height <= viewport_height, (
+            f"row {row} is {height}px inside a {viewport_height}px viewport"
+        )
+
+
+def test_the_comparison_says_so_when_the_structures_are_unavailable(
+    panel, services, widgets
+):
+    """A table with no rows and no explanation reads as "these molecules are
+    identical". The dialog is built without a project here, which is what a
+    molecule deleted after the run looks like."""
+    table = _run(panel, ["crippen_logp_contrib"])
+    dialog = BatchAnalysisDialog(table, services.chemistry_engine, None)
+    widgets.append(dialog)
+
+    assert dialog._atom_table.rowCount() == 0
+    assert "cannot be matched up" in dialog._atom_note.text()
