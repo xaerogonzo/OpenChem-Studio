@@ -323,13 +323,21 @@ the molecule's identity. So it survives the molecule being deleted, and the
 same structure computed the same way in another project lands on the same
 entry.
 
-Be clear about what that is and is not today: it is an **archive**, not a
-skip-the-work cache. Nothing currently reads an entry back to avoid
-re-running a calculation — the value it delivers now is that a finished
-wavefunction remains a re-openable record of what was computed, which is
-what surfaces are plotted from. NMR reference and scaling calibrations are
-separately cached per method/basis, and those *are* read back, which is why
-`Calibrate Reference (TMS)` is a one-off rather than a per-job cost.
+**That store is read back when the per-molecule copy misses.** Re-import a
+compound, open another project containing it, or delete and re-add a
+molecule, and the new molecule has no wavefunction of its own — but the
+store may hold one for exactly that structure, and a surface plots from it
+instead of costing another ORCA run.
+
+The match is on the **exact structure**, never on the molecule. That is
+what keeps it safe: edit a molecule from benzene to toluene and the
+wavefunction retained under its own id is refused as stale, and a stored
+one only serves if it was computed for toluene. A structure miss stays a
+miss and you get a recalculation, which is the right answer.
+
+NMR reference and scaling calibrations are cached separately per
+method/basis, which is why `Calibrate Reference (TMS)` is a one-off rather
+than a per-job cost.
 
 ---
 

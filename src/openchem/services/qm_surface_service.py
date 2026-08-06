@@ -38,6 +38,7 @@ from openchem.chem.orca_surfaces import (
 from openchem.chem.scalar_field import ScalarField
 from openchem.events.base import EventBus
 from openchem.events.events import QmSurfaceComputed
+from openchem.services import result_cache
 
 logger = logging.getLogger("openchem.chemistry")
 
@@ -172,14 +173,34 @@ class QmSurfaceService(QObject):
         recalculation against a silently wrong surface is not a close call.
         """
         candidate = app_paths.wavefunction_root() / molecule_uuid / "job.gbw"
-        if not candidate.is_file():
-            return None
+        if candidate.is_file():
+            if not molblock:
+                return candidate
+            recorded = self._recorded_structure(molecule_uuid)
+            if recorded and recorded == _fingerprint_of_molblock(molblock):
+                return candidate
+        # The per-molecule copy missed. Every job also stores its
+        # wavefunction content-addressed by structure, so a calculation run
+        # on this SAME structure from a different molecule -- an
+        # accidentally re-imported duplicate, the same compound in another
+        # project, a molecule that was deleted and brought back -- can serve
+        # it here instead of costing another ORCA run.
+        #
+        # Only ever on an exact structure match, so this cannot reintroduce
+        # the stale-wavefunction bug the check above exists for: a miss on
+        # structure stays a miss.
+        return self._wavefunction_from_store(molblock)
+
+    def _wavefunction_from_store(self, molblock: str):
         if not molblock:
-            return candidate
-        recorded = self._recorded_structure(molecule_uuid)
-        if not recorded:
+            # With no structure to match on there is nothing to be sure
+            # about, and guessing here is exactly what the uuid path was
+            # doing wrong.
             return None
-        return candidate if recorded == _fingerprint_of_molblock(molblock) else None
+        entry = result_cache.find(
+            "orca_wavefunction", structure=_fingerprint_of_molblock(molblock)
+        )
+        return entry.file("job.gbw") if entry is not None else None
 
     def _recorded_structure(self, molecule_uuid: str) -> str:
         path = app_paths.wavefunction_root() / molecule_uuid / "orbitals.json"
@@ -190,22 +211,40 @@ class QmSurfaceService(QObject):
         except (OSError, ValueError):
             return ""
 
-    def frontier_orbitals(self, molecule_uuid: str) -> tuple[int | None, int | None]:
-        """(HOMO, LUMO) indices retained from the job that produced the
-        wavefunction, or (None, None).
+    def frontier_orbitals(
+        self, molecule_uuid: str, molblock: str = ""
+    ) -> tuple[int | None, int | None]:
+        """(HOMO, LUMO) indices for the wavefunction that will actually be plotted.
 
         Read from disk rather than remembered in memory, so a surface can
         still be plotted in a later session from a wavefunction that is
         still there -- which is the whole reason it is retained.
+
+        THESE MUST COME FROM THE SAME PLACE THE `.gbw` DOES. An orbital
+        index only means anything against the wavefunction it was recorded
+        with -- HOMO is orbital 20 for one molecule and orbital 34 for
+        another -- so serving a stored wavefunction while reading the index
+        from a different job would plot the wrong orbital and label it
+        confidently. `molblock` is threaded through for exactly that
+        reason: it selects the same entry `wavefunction_for` selects.
         """
         path = app_paths.wavefunction_root() / molecule_uuid / "orbitals.json"
-        if not path.is_file():
+        recorded = self._recorded_structure(molecule_uuid)
+        fingerprint = _fingerprint_of_molblock(molblock) if molblock else ""
+        uuid_copy_is_usable = path.is_file() and (not fingerprint or recorded == fingerprint)
+        if uuid_copy_is_usable:
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                return None, None
+            return data.get("homo"), data.get("lumo")
+
+        if not fingerprint:
             return None, None
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
+        entry = result_cache.find("orca_wavefunction", structure=fingerprint)
+        if entry is None:
             return None, None
-        return data.get("homo"), data.get("lumo")
+        return entry.metadata.get("homo"), entry.metadata.get("lumo")
 
     def request_surface(
         self,
@@ -215,8 +254,18 @@ class QmSurfaceService(QObject):
         orbital: str = "",
         orbital_index: int | None = None,
         resolution: int = 60,
+        molblock: str = "",
     ) -> bool:
         """Queue one surface. Returns False when it cannot be attempted.
+
+        `molblock` selects the wavefunction the same way `is_available`
+        does, and passing it matters for two separate reasons. It lets a
+        wavefunction stored for this exact structure under a different
+        molecule be used, so the button `is_available` enabled does not
+        then fail. And it applies the stale-structure check HERE too --
+        without it this method would happily plot a wavefunction for a
+        structure the molecule no longer has, which is the check
+        `is_available` performs and this one skipped.
 
         `orbital` names a frontier orbital ("homo"/"lumo") and is resolved
         against the indices retained from the job -- which is the only way
@@ -233,12 +282,12 @@ class QmSurfaceService(QObject):
         if kind is None:
             raise ValueError(f"unknown surface kind {surface_id!r}")
         executable = self._orca_plot_path()
-        gbw = self.wavefunction_for(molecule_uuid)
+        gbw = self.wavefunction_for(molecule_uuid, molblock)
         if not executable or gbw is None:
             return False
 
         if kind.needs_orbital and orbital_index is None:
-            homo, lumo = self.frontier_orbitals(molecule_uuid)
+            homo, lumo = self.frontier_orbitals(molecule_uuid, molblock)
             orbital_index = {"homo": homo, "lumo": lumo}.get(orbital.lower())
             if orbital_index is None:
                 # Refused rather than defaulted to orbital 0, which is a

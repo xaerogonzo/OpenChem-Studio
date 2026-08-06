@@ -198,6 +198,31 @@ def store(
     return entry_for(key)
 
 
+def find(kind: str, **must_match: Any) -> CacheEntry | None:
+    """The newest entry whose inputs include these values, or None.
+
+    A PARTIAL-key search, and deliberately separate from `lookup`, which
+    needs every input that went into the key. Both exist because callers
+    genuinely differ: the code that stores a wavefunction knows the
+    structure, the method and the calculation type, while the code that
+    later wants to plot a surface from one knows only the structure.
+
+    Restricting a search to "same structure" is not a weakening. The
+    per-molecule retention this backs up never matched on method at all --
+    it serves whatever was last run on that molecule -- so a match on
+    structure alone is exactly as strong, and turns misses into hits
+    without making any hit less true.
+
+    Newest first, because when the same structure has been computed
+    several ways the most recent is the one the user was working on.
+    """
+    wanted = {str(k): _stringify(v) for k, v in must_match.items()}
+    for entry in entries(kind):
+        if all(entry.inputs.get(k) == v for k, v in wanted.items()):
+            return entry
+    return None
+
+
 def entries(kind: str | None = None) -> list[CacheEntry]:
     """Every stored entry, newest first."""
     root = cache_root()

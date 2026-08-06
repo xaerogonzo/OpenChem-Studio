@@ -179,7 +179,13 @@ class EspCompareWidget(QWidget):
         # job that produced the wavefunction -- the only place they are
         # knowable.
         started = self._service.request_surface(
-            self._molecule_uuid, surface_id, orbital=self.selected_orbital()
+            self._molecule_uuid,
+            surface_id,
+            orbital=self.selected_orbital(),
+            # Same structure the availability check used, so the button
+            # cannot enable off one wavefunction and then run against
+            # another -- or against a structure that has since changed.
+            molblock=self._conformer_molblock,
         )
         if not started:
             self._qm_caption.setText(
