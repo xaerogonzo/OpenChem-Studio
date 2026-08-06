@@ -533,6 +533,57 @@ Each fix says what it costs before you press it:
 changing the compound's identity, formula and mass. Every fix goes on the
 undo stack, so `Ctrl+Z` brings back exactly what was there.
 
+### Oxidation states
+
+Tick **Show oxidation states** in the panel — or **View ▸ Structure Display ▸
+Show Oxidation States** — and the depiction labels every heavy atom. Iron(III)
+oxide reads `Fe +3` and `O −2`; iron(II) oxide reads `Fe +2`.
+
+They are labelled on *our* depiction rather than in the drawing canvas,
+because the canvas is Ketcher and cannot be annotated. **Oxidation States**
+is also a calculator in the Properties panel, where it renders the same way
+every other per-atom property does.
+
+**An oxidation state is a bookkeeping formalism, not a measurement.** No
+instrument reads +3 off an iron atom. The rule is IUPAC's: give each bond's
+electrons to the more electronegative atom, split bonds between like atoms
+evenly, add the formal charge. It describes the structure *as drawn*.
+
+#### It refuses rather than guesses
+
+That refusal is the feature, and magnetite is why. Fe₃O₄ is one Fe(II) and two
+Fe(III); the rule reports **+3, +4, +3** — inventing an oxidation state iron
+does not have here, missing the mixed valence, and putting the wrong number on
+whichever iron the structure happened to be drawn around. So instead of a
+number you get the reason there isn't one.
+
+Four situations are declined, each found by measurement rather than assumed:
+
+| Declined | Because |
+|---|---|
+| Mixed-valence frameworks (Fe₃O₄) | the rule cannot resolve them, and its answer depends on the drawing |
+| Transition-metal organometallics (Cr(CO)₆, ferrocene) | back-bonding is invisible to it — it gives Cr(CO)₆ a chromium of +6, where the answer is 0 |
+| Electron-deficient bridges (the boranes) | a bridging hydrogen is not sharing a pair with either neighbour |
+| Metal clusters | the bonding is delocalised over the metal framework |
+
+Equally deliberately, four things are *not* declined, because the rule gets
+them right: **Hg₂Cl₂** at Hg(+1) each, **methyllithium** at Li(+1),
+**Grignards** at Mg(+2), and **Fe₂O₃** at Fe(+3) each. Refusing every
+metal–metal bond would have thrown away calomel; refusing every metal–carbon
+bond would have thrown away methyllithium. The line falls where the
+measurements put it.
+
+Ferrocene shows the "as drawn" point plainly. Written as an ion pair — a bare
+Fe²⁺ beside two cyclopentadienide anions — it is a classical ionic description
+and iron is +2, correctly. Written with iron bonded into the rings it is η⁵
+coordination, which this rule cannot describe, and it is declined.
+
+One limitation is documented rather than ruled on: a charge drawn on one atom
+of a delocalised ring makes that ring's per-atom states depend on where the
+charge was typed. A rule refusing "a charge on an aromatic ring" would also
+refuse pyridinium, where the charge really is on the nitrogen, and nothing
+here separates the two cases.
+
 ### Checks that did not run
 
 A structure that will not sanitize makes every aromaticity and stereo

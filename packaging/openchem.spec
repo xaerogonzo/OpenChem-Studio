@@ -80,6 +80,11 @@ datas += [
 # checkout. Same failure shape as `admet_runner.py` two blocks down.
 datas += [(str(PKG / "chem" / "data" / "hypervalent_rules.json"), "openchem/chem/data")]
 
+# The oxidation-state electronegativity table, for the same reason and with
+# the same failure mode: it works from a checkout and raises
+# FileNotFoundError in the frozen app the first time anybody asks.
+datas += [(str(PKG / "chem" / "data" / "electronegativity.json"), "openchem/chem/data")]
+
 # Scripts that are never imported -- they are handed as argv to a *sidecar*
 # interpreter (the pkasolver and ADMET environments, which run their own
 # Python, not ours). PyInstaller's import analysis therefore never sees them,

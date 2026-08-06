@@ -503,3 +503,73 @@ def test_the_check_panel_has_a_help_topic(window):
     from openchem.app.main_window import HELP_TOPIC_BY_DOCK
 
     assert HELP_TOPIC_BY_DOCK[window._structure_check_dock.objectName()] == "structure-check"
+
+
+# --- the oxidation-state overlay -------------------------------------------
+
+
+def test_the_overlay_labels_the_depiction(panel, qapp):
+    """RDKit draws SVG text as bezier PATHS rather than <text> nodes, so a
+    string search for "+3" would prove nothing (engine.py records this).
+    The labels themselves are asserted instead, and the drawing is compared
+    by path count.
+    """
+    panel.set_molblock(molblock_for("O=[Fe]O[Fe]=O"))
+
+    labels = panel._oxidation_labels()
+
+    assert sorted(labels.values()) == ["+3", "+3", "-2", "-2", "-2"]
+
+
+def test_the_overlay_actually_changes_what_is_drawn(panel, qapp):
+    """The complement, and the one that catches a toggle wired to nothing.
+
+    Measured: iron(III) oxide renders 19 path elements plain and 29 with
+    the states on, the difference being the glyphs.
+    """
+    molblock = molblock_for("O=[Fe]O[Fe]=O")
+    panel.set_molblock(molblock)
+    engine = panel._engine
+
+    plain = engine.render_2d_svg(molblock)
+    labelled = engine.render_2d_svg(molblock, atom_labels=panel._oxidation_labels())
+
+    assert labelled.count("<path") > plain.count("<path")
+
+
+def test_a_refusal_is_shown_rather_than_drawn_as_nothing(panel, qapp):
+    """An overlay that silently draws nothing is indistinguishable from one
+    that is broken. Magnetite has no assignment, and the reason is the
+    answer."""
+    panel.set_molblock(molblock_for("O=[Fe]O[Fe](O[Fe]=O)=O"))
+
+    panel.set_oxidation_states_visible(True)
+
+    assert panel._oxidation_labels() == {}
+    assert "mixed-valence" in panel._refusal
+    assert "not assigned" in panel._detail.text().lower()
+
+
+def test_the_overlay_is_off_until_asked_for(panel):
+    assert not panel.oxidation_states_visible()
+
+
+def test_the_overlay_survives_a_structure_it_cannot_read(panel, qapp):
+    panel.set_molblock("this is not a molfile")
+
+    panel.set_oxidation_states_visible(True)
+
+    assert panel._oxidation_labels() == {}
+    assert panel._refusal
+
+
+def test_the_view_menu_item_mirrors_the_panel_checkbox(window):
+    """The redundancy the user asked for: the checkbox is faster once you
+    know it is there, and the menu is how you find out."""
+    window._oxidation_states_action.setChecked(True)
+
+    assert window._structure_check_panel.oxidation_states_visible()
+
+    window._oxidation_states_action.setChecked(False)
+
+    assert not window._structure_check_panel.oxidation_states_visible()

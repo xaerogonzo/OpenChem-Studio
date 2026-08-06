@@ -63,6 +63,7 @@ from openchem.chem.regulatory.calculator import (
     JURISDICTION_CHOICES,
     compute_regulatory_screen,
 )
+from openchem.chem.oxidation_states import compute_oxidation_states
 from openchem.chem.structure_annotation import (
     FG_LABEL_MODES,
     RING_LABEL_MODES,
@@ -1293,6 +1294,30 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             ),
         ],
         tags=["topology", "rings", "per-atom", "annotation"],
+    ),
+    CalculatorDefinition(
+        calculator_id="oxidation_states",
+        display_name="Oxidation States",
+        category="charge",
+        description=(
+            "Oxidation state per atom, by the IUPAC electronegativity-partition rule: "
+            "each bond's electrons go to the more electronegative atom, homonuclear "
+            "bonds are split evenly. A formalism for electron bookkeeping, not a "
+            "measurement, and it describes the structure as drawn. REFUSES rather than "
+            "guesses on mixed-valence frameworks (magnetite), transition-metal "
+            "organometallics (metal carbonyls, sandwich compounds), electron-deficient "
+            "bridges (the boranes) and metal clusters -- the reason is reported."
+        ),
+        execution=RegistryExecution(compute=compute_oxidation_states),
+        parameters=[
+            CalculatorParameter(
+                name="show_hydrogens",
+                label="Include hydrogens",
+                kind="bool",
+                default=False,
+            ),
+        ],
+        tags=["charge", "per-atom", "annotation", "inorganic", "formalism"],
     ),
     CalculatorDefinition(
         calculator_id="regulatory_screen",

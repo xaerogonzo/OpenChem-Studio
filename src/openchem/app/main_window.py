@@ -499,6 +499,18 @@ class MainWindow(QMainWindow):
             "Open 3D Viewer (Miew)...", lambda: self._editor.trigger_toolbar_action("3D Viewer button")
         )
         structure_display_menu.addAction("Send to 3D Viewer Tab", self._send_to_3d_viewer)
+        structure_display_menu.addSeparator()
+        # NOT a Ketcher render option, unlike the toggles above: the canvas
+        # is Ketcher's and cannot be annotated, so this overlays the states
+        # on the app's own depiction in the Structure Check panel. Kept in
+        # this menu anyway, beside the other structure-display toggles,
+        # because that is where somebody looks for it -- the same
+        # redundancy Copy SMILES needed.
+        oxidation_action = QAction("Show Oxidation States", self)
+        oxidation_action.setCheckable(True)
+        oxidation_action.toggled.connect(self._toggle_oxidation_states)
+        structure_display_menu.addAction(oxidation_action)
+        self._oxidation_states_action = oxidation_action
 
         tools_menu = self.menuBar().addMenu("&Tools")
         tools_menu.addAction("Identify Structure Online...", lambda: self._identify_structure())
@@ -930,6 +942,18 @@ class MainWindow(QMainWindow):
         if molecule is None or molecule.uuid != event.result.molecule_uuid:
             return
         self._checker_indicator.show_result(event.result)
+
+    def _toggle_oxidation_states(self, checked: bool) -> None:
+        """Mirror of the panel's own checkbox.
+
+        Raises the panel when switched on: an overlay nobody can see is
+        indistinguishable from one that does not work, and the panel may
+        well be behind another tab when this is chosen from the menu.
+        """
+        self._structure_check_panel.set_oxidation_states_visible(checked)
+        if checked:
+            self._structure_check_dock.show()
+            self._structure_check_dock.raise_()
 
     def _show_structure_check_panel(self) -> None:
         self._structure_check_dock.show()

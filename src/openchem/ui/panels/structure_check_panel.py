@@ -27,6 +27,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QCheckBox,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -95,6 +96,8 @@ class StructureCheckPanel(QWidget):
         self._on_recheck = on_recheck
         self._result: CheckerResult | None = None
         self._molblock = ""
+        #: Why oxidation states were not assigned, when they were not.
+        self._refusal = ""
 
         self._summary = QLabel(_EMPTY_MESSAGE, self)
         self._summary.setWordWrap(True)
@@ -113,6 +116,14 @@ class StructureCheckPanel(QWidget):
         self._detail.setWordWrap(True)
         self._detail.setTextFormat(Qt.TextFormat.RichText)
 
+        # The oxidation-state overlay lives here rather than in the drawing
+        # canvas because the canvas is Ketcher and cannot be annotated. It
+        # is mirrored as a View menu item, which is the same redundancy
+        # Copy SMILES needed: the checkbox is faster once you know it is
+        # here, and the menu is how you find out.
+        self._oxidation_states = QCheckBox("Show oxidation states", self)
+        self._oxidation_states.toggled.connect(self._on_oxidation_states_toggled)
+
         self._fix_button = QPushButton("Fix", self)
         self._fix_button.setEnabled(False)
         self._fix_button.clicked.connect(self._apply_selected_fix)
@@ -129,6 +140,7 @@ class StructureCheckPanel(QWidget):
         layout.addWidget(self._summary)
         layout.addWidget(self._tree, 1)
         layout.addWidget(self._depiction)
+        layout.addWidget(self._oxidation_states)
         layout.addWidget(self._detail)
         layout.addLayout(buttons)
 
@@ -250,6 +262,55 @@ class StructureCheckPanel(QWidget):
         data = items[0].data(0, Qt.ItemDataRole.UserRole)
         return data if isinstance(data, StructureIssue) else None
 
+    # --- the oxidation-state overlay ----------------------------------------
+
+    def set_oxidation_states_visible(self, visible: bool) -> None:
+        """For the View menu item, which mirrors the checkbox."""
+        if self._oxidation_states.isChecked() != visible:
+            self._oxidation_states.setChecked(visible)
+
+    def oxidation_states_visible(self) -> bool:
+        return self._oxidation_states.isChecked()
+
+    def _on_oxidation_states_toggled(self, checked: bool) -> None:
+        issue = self._selected_issue()
+        colors = (
+            {index: _HIGHLIGHT[issue.severity] for index in issue.atom_indices}
+            if issue is not None
+            else {}
+        )
+        self._render_depiction(colors)
+        if checked and self._refusal:
+            # A refusal is the answer, so it has to be visible. Silently
+            # drawing nothing would read as the toggle being broken.
+            self._detail.setText(
+                f"<b>Oxidation states not assigned.</b><br>{self._refusal}"
+                "<br><small>An oxidation state is a bookkeeping formalism, not a "
+                "measurement, and it describes the structure as drawn.</small>"
+            )
+
+    def _oxidation_labels(self) -> dict[int, str]:
+        """Atom labels for the overlay, or nothing plus a recorded reason."""
+        self._refusal = ""
+        if not self._molblock:
+            return {}
+        try:
+            from openchem.chem.oxidation_states import assign, format_state
+
+            mol = self._engine.mol_from_molblock(self._molblock)
+            result = assign(mol)
+        except Exception as exc:
+            self._refusal = f"This structure could not be read for it ({exc})."
+            return {}
+        if result.refused:
+            self._refusal = result.reason
+            return {}
+        return {
+            index: format_state(state)
+            for index, state in result.states.items()
+            if mol.GetAtomWithIdx(index).GetAtomicNum() != 1
+        }
+
     def _render_depiction(self, atom_colors: dict[int, str]) -> None:
         """Draw the structure with the selected issue's atoms picked out.
 
@@ -262,8 +323,11 @@ class StructureCheckPanel(QWidget):
         if not self._molblock:
             self._depiction.load(b"")
             return
+        labels = self._oxidation_labels() if self._oxidation_states.isChecked() else {}
         try:
-            svg = self._engine.render_2d_svg(self._molblock, atom_colors=atom_colors or None)
+            svg = self._engine.render_2d_svg(
+                self._molblock, atom_colors=atom_colors or None, atom_labels=labels or None
+            )
         except Exception:
             self._depiction.load(b"")
             return
