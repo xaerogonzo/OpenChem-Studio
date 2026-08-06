@@ -50,9 +50,23 @@ The binary is not on PATH; call it by full path.
 uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suite.log
 ```
 
-A clean run is **~2 minutes**, ending at `1989 passed, 2 skipped`. Writing to a
-file rather than a pipe is worth doing because it lets you watch progress
-while it runs.
+A clean run is **~3 minutes**, ending at `2425 passed, 2 skipped` (measured
+2026-08-06 on master at `05dad7a`, working tree clean). Writing to a file
+rather than a pipe is worth doing because it lets you watch progress while it
+runs.
+
+**One test fails against the network, not against the code.**
+`test_pubchem_name_round_trips_back_through_opsin` returns `HTTP 400` from
+NCBI and does so on trees predating the work that was running when it was
+first seen -- confirmed by stashing. Deselect it when you need a clean signal:
+
+```bash
+uv run --no-sync python -u -m pytest -q --deselect tests/test_naming_providers.py::test_pubchem_name_round_trips_back_through_opsin
+```
+
+Take the count on a **clean tree**. The main checkout often carries
+work-in-progress tests, and a figure measured there is inflated -- which has
+already produced one wrong edit to this file.
 
 The suite also needs the optional extras installed, or ~40 tests fail on
 missing imports and it looks like something is badly broken when nothing is:
@@ -794,3 +808,51 @@ outcome here, not a failure.
 
 Comments explain **why**, especially where something is non-obvious or was got
 wrong once. A comment restating the code is noise.
+
+### Koopmans hardness is wrong for the pair people actually use it on
+
+Recorded here rather than only in `chem/conceptual_dft.py` because the trap is
+general: an approximation that reproduces the first case you try is not
+validated, and the second case is where it breaks.
+
+Measured on real ORCA 6.1.1 B3LYP/def2-SVP runs of both textbook hard/soft
+pairs:
+
+| η (eV) | Koopmans | ΔSCF |
+| --- | --- | --- |
+| water | 4.57 | 8.06 |
+| hydrogen sulfide | 3.90 | 6.93 |
+| ammonia | 4.16 | 7.21 |
+| phosphine | 4.27 | **7.02** |
+
+Koopmans gets water/hydrogen sulfide right and **inverts ammonia against
+phosphine**, making phosphine the harder — when hard nitrogen against soft
+phosphorus is one of the most-used orderings in coordination chemistry. Every
+molecule here has a NEGATIVE electron affinity, so its "LUMO" is an unbound
+state belonging to the basis set rather than the molecule, and Koopmans reads
+that number straight out.
+
+Both ship. Koopmans is genuinely free from any job that has already run and
+carries a caveat naming this failure on every descriptor;
+`test_koopmans_inverts_ammonia_against_phosphine` asserts the inversion **on
+purpose**, so if a future method stops inverting it the test fails and the
+caveat can come off.
+
+**ORCA compound jobs (`$new_job`) run all three ΔSCF calculations in one
+input**, confirmed live — so this needed no notion of chained runs in the
+service. The three `FINAL SINGLE POINT ENERGY` lines are told apart only by
+POSITION, which is why `test_the_three_delta_scf_blocks_are_written_in_parser_order`
+exists: swapping the cation and anion blocks flips the sign of both I and A,
+still produces plausible numbers, and survived every other test in the file.
+
+Two measurement traps from the same work, both already paid for once:
+
+- **A fixture labelled "verbatim from a real run" had energies typed from
+  memory.** The assertions used `abs=0.01` tolerances, which were loose enough
+  to hide it — so the arithmetic was being checked against itself rather than
+  against the run. Copy the numbers, and assert tightly enough that a wrong
+  fixture cannot pass.
+- **`X = '' or (...)` mutates nothing**, since the empty string is falsy and
+  the original is returned. Two mutations written that way reported a
+  confident SURVIVED for changes never applied. A mutation script must verify
+  its edit changed behaviour, not merely that the pattern matched.
