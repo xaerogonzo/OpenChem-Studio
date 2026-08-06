@@ -1,0 +1,58 @@
+{
+  "_about": {
+    "purpose": "Which expanded-octet valences are legitimate, and under what ligands. Consulted only when an atom's valence is not already in RDKit's list for that element, so this file is a set of exceptions, not a valence table.",
+    "why_data_and_not_code": "Same call the regulatory rulesets made: adding an element is a data edit, and every verdict can cite the rule that produced it rather than a branch in a function.",
+    "convention": "The lambda-convention (IUPAC Nomenclature of Organic Chemistry, Recommendations and Preferred Names 2013, P-14.1) names these states -- lambda-3, lambda-5 and lambda-7 iodanes and so on. The permitted_valences lists below follow it: a hypervalent centre gains ligands in pairs, so the halogens step 1, 3, 5, 7 and never reach an even count.",
+    "what_is_actually_verified": "The examples named against each element are real, characterised compounds; they are the evidence for the maximum_valence given. The reference line names the convention that organises them. No page-level citation is claimed for a specific number, and nothing here was taken from a source this project has not read -- where a case could not be justified that way (silicon in hexafluorosilicate, boron ate-complexes) the element was left out rather than guessed at.",
+    "expanded_octet_requires_ligands": "An expanded octet is stabilised by electronegative substituents. That is the whole reason IF7 exists and I(CH3)7 does not, and it is what makes the ligand list a real test rather than a formality."
+  },
+
+  "I": {
+    "preferred_valence": 1,
+    "maximum_valence": 7,
+    "permitted_valences": [1, 3, 5, 7],
+    "expanded_octet_requires_ligands": ["F", "Cl", "O"],
+    "examples": ["IF7", "IF5", "periodate IO4-", "PhI(OAc)2 (lambda-3)"],
+    "reference": "lambda-convention, IUPAC 2013 P-14.1; iodanes"
+  },
+  "Br": {
+    "preferred_valence": 1,
+    "maximum_valence": 7,
+    "permitted_valences": [1, 3, 5, 7],
+    "expanded_octet_requires_ligands": ["F", "O"],
+    "examples": ["BrF5", "BrF3", "perbromate BrO4-"],
+    "reference": "lambda-convention, IUPAC 2013 P-14.1"
+  },
+  "Cl": {
+    "preferred_valence": 1,
+    "maximum_valence": 7,
+    "permitted_valences": [1, 3, 5, 7],
+    "expanded_octet_requires_ligands": ["F", "O"],
+    "examples": ["ClF5", "ClF3", "perchlorate ClO4-", "HClO4"],
+    "reference": "lambda-convention, IUPAC 2013 P-14.1"
+  },
+  "Xe": {
+    "preferred_valence": 0,
+    "maximum_valence": 8,
+    "permitted_valences": [0, 2, 4, 6, 8],
+    "expanded_octet_requires_ligands": ["F", "O"],
+    "examples": ["XeF2", "XeF4", "XeF6", "XeO4"],
+    "reference": "noble-gas fluorides and oxides; IUPAC Red Book 2005"
+  },
+  "S": {
+    "preferred_valence": 2,
+    "maximum_valence": 6,
+    "permitted_valences": [2, 4, 6],
+    "expanded_octet_requires_ligands": ["F", "Cl", "O", "N", "C"],
+    "examples": ["SF6", "H2SO4", "sulfonamides"],
+    "reference": "lambda-convention, IUPAC 2013 P-14.1; already in RDKit's own list, kept here so the ligand rule can explain it"
+  },
+  "P": {
+    "preferred_valence": 3,
+    "maximum_valence": 5,
+    "permitted_valences": [3, 5],
+    "expanded_octet_requires_ligands": ["F", "Cl", "O", "N", "C"],
+    "examples": ["PF5", "PCl5", "H3PO4", "phosphine oxides"],
+    "reference": "lambda-convention, IUPAC 2013 P-14.1; already in RDKit's own list"
+  }
+}
