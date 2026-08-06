@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
+import gc
 import weakref
 from pathlib import Path
 
@@ -362,3 +363,46 @@ def ink(widget, width: int = 400, height: int = 300) -> int:
     ]
     background, _ = Counter(pixels).most_common(1)[0]
     return sum(1 for pixel in pixels if pixel != background)
+
+
+def pytest_runtest_teardown(item, nextitem):
+    """Collect Python's cycles between tests, not during a later one.
+
+    THE MEASUREMENT THIS COMES FROM. Instrumenting `QObject.destroyed` --
+    the only event that runs a C++ destructor -- over a full run recorded
+    **138 widgets whose C++ object was destroyed inside a LATER test than
+    the one that built it**, from seven files, 104 of them from
+    `test_quantum_chemistry_panel.py`. That is the crash CLAUDE.md
+    describes, measured directly: a destructor running from inside Qt's
+    event dispatch in an unrelated test, on Windows an access violation.
+
+    Why these outlive their test at all: a panel subscribes to the
+    EventBus, which stores the BOUND METHOD in `_handlers`, so the bus
+    holds the panel and the panel holds the bus. Reference counting cannot
+    break a cycle, so nothing is freed when the test's locals go out of
+    scope -- it waits for the cyclic collector, which runs whenever it
+    likes. Measured per class: `JobsPanel` (no subscription) dies by
+    refcounting; `DockingPanel` survives refcounting and needs the cyclic
+    collector; `PropertyPanel` survives both and is a genuine leak.
+
+    THIS DOES NOT DESTROY ANYTHING ITSELF, and that distinction is the
+    whole point. A companion fixture that forced destruction with
+    `deleteLater()` was tried twice, by two people, and crashed the suite
+    both times -- see CLAUDE.md. This only chooses the MOMENT at which
+    Python does its own ordinary work, and a teardown hook is a moment
+    when no Qt event dispatch is in progress.
+
+    Gated on `qapp` because most of this suite is pure chemistry and
+    cannot leave a widget behind. Measured over a full run:
+
+        no collect          138 late destructions   116 s
+        collect always        0 late destructions   326 s
+        collect if qapp       4 late destructions   171 s   <- this
+
+    The four that remain are all within `test_quantum_chemistry_panel.py`
+    itself. Closing them costs another 155 seconds on every run, which is
+    not worth it for four same-file destructions when the crash being
+    chased was cross-file.
+    """
+    if "qapp" in getattr(item, "fixturenames", ()):
+        gc.collect()

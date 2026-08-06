@@ -227,7 +227,9 @@ pump events, neither at fault. Re-ordering it to finalise after
 taken down as a child" is not the explanation, and why destroying an
 abandoned widget synchronously at teardown faults here is **still unknown**.
 
-**The original ketcher crash is therefore still open.** Two further things
+**The original ketcher crash was open when this was written; it is now
+solved -- skip to "SOLVED. The census named it" below before acting on
+anything in this subsection.** Two further things
 that were measured and do not fit together yet, for whoever picks this up:
 master at `a093912` crashed 3 of 3 in a clean worktree with none of these
 fixtures, while master at `2dff778` is green 8 of 8 in the main checkout
@@ -239,6 +241,68 @@ Method note, learned the hard way: an early "before" measurement was taken
 in a checkout that was being edited by hand at the time, so the two arms
 were different trees and the comparison was worthless. Check `git status`
 and file mtimes before believing an A/B.
+
+#### SOLVED. The census named it, and the fix is one line of timing.
+
+Read this before touching anything above: the two sections that follow are
+kept as the record of how it was chased, but the cause is now measured and
+the fix is in `tests/conftest.py`.
+
+**Census A (undelivered deletes) found nothing** -- 0 outstanding at every
+test boundary and at session end. `flush_deferred_deletes` had already
+closed that half completely, so every hypothesis built on the delete
+backlog was chasing a queue that is empty.
+
+**Census B (widgets alive at session end) measured the wrong population.**
+It reported 65 live parentless panels, which looks damning and is
+irrelevant: a widget still alive has never been destroyed, so it cannot be
+the thing that faults. Those 65 are a LEAK, not a landmine.
+
+**Census C, then D, found it.** Instrumenting `QObject.destroyed` -- the
+only event that runs a C++ destructor -- and recording the test that was
+running at that instant against the test that built the widget:
+
+    destroyed inside their own test : 2003
+    destroyed in a LATER test       : 138   <- the landmine, measured
+
+138 from seven files, 104 of them `test_quantum_chemistry_panel.py`. (Do
+NOT use a weakref callback for this, as census C did: it counts Python
+wrappers, over-reports by an order of magnitude -- 1406 -- because a
+wrapper collected after Qt already destroyed the C++ object is harmless.)
+
+**Why they outlive their test.** `EventBus.subscribe` stores the BOUND
+METHOD in `_handlers`, so the bus holds the panel and the panel holds the
+bus. Reference counting cannot break a cycle; nothing is freed when the
+test's locals go out of scope, and it waits for the cyclic collector,
+which runs whenever it likes -- including inside Qt's event dispatch in an
+unrelated test. Measured per class: `JobsPanel` (subscribes to nothing)
+dies by refcounting, `DockingPanel` needs the cyclic collector,
+`PropertyPanel` survives both and is a real leak.
+
+**The fix is `gc.collect()` in a teardown hook, gated on `qapp`.** It
+destroys nothing itself -- that distinction is the whole point, since
+forcing destruction with `deleteLater()` has now crashed the suite twice
+under two different implementations. It only chooses the MOMENT at which
+Python does its own ordinary work, and a teardown hook is a moment with no
+Qt event dispatch in progress.
+
+| arm | late C++ destructions | full run |
+| --- | --- | --- |
+| before | 138 | 116 s |
+| `gc.collect()` after every test | **0** | 326 s |
+| `gc.collect()` only after `qapp` tests | **4** | 171 s |
+
+The last row is what shipped. The four that remain are all inside
+`test_quantum_chemistry_panel.py` itself; closing them costs another 155
+seconds on every run, which is not worth it for four same-file
+destructions when the crash being chased was cross-file.
+
+Corroboration, given how unreliable crash-rate arms are here: the
+forced-drain reproduction went **0 crashes in 10** with the fix, and three
+plain full runs were green. Neither is proof on its own -- the whole
+lesson below is that these arms move between batches -- which is why the
+deterministic 138 -> 4 is the number to trust and to re-measure if this
+ever comes back.
 
 #### Confirmed again, independently, at the Structure Check work
 
