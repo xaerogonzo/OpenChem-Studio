@@ -54,6 +54,36 @@ class RDKitImporter(Importer):
         return self._engine.canonicalize(model)
 
 
+def mol_for_export(engine: ChemistryEngine, model: MoleculeModel):
+    """The molecule to write out: its computed 3D geometry when it has one.
+
+    `MoleculeModel.molblock` is the 2D structure the editor drew, so every
+    exporter that built from it wrote a FLAT molecule -- measured: aspirin
+    exported to `.xyz` had all 13 atoms at z = 0.0, and did so even when
+    the molecule had a real MMFF-optimised conformer sitting beside it.
+
+    That is worst for the formats people export FOR. `.xyz` and `.pdb`
+    exist to carry 3D coordinates into another program; a planar one is
+    syntactically valid, silently wrong, and re-imports as something that
+    is not the molecule (aspirin came back as
+    `[C]C(=O)Oc1[c][c][c][c]c1C([O])=O`, because bond perception from flat
+    coordinates has nothing to work with).
+
+    Using the conformer also gets EXPLICIT HYDROGENS for free -- conformers
+    are embedded after `AddHs`, so the exported file has the 21 atoms of
+    aspirin rather than its 13 heavy ones, which is what any downstream QM
+    or docking tool needs.
+
+    Conformer 1 rather than an arbitrary one: the provider sorts ascending
+    by energy, so the first is the lowest-energy geometry found.
+    """
+    if model.conformers:
+        molblock = model.conformers[0].molblock
+        if molblock:
+            return engine.mol_from_molblock(molblock)
+    return engine.mol_from_model(model)
+
+
 class RDKitExporter(Exporter):
     def __init__(self, engine: ChemistryEngine) -> None:
         self._engine = engine
@@ -62,7 +92,7 @@ class RDKitExporter(Exporter):
         return set(RDKIT_EXPORT_FORMATS)
 
     def export_file(self, model: MoleculeModel, path: Path, fmt: str) -> None:
-        mol = self._engine.mol_from_model(model)
+        mol = mol_for_export(self._engine, model)
         if fmt == "mol":
             Chem.MolToMolFile(mol, str(path))
         elif fmt == "sdf":
@@ -113,6 +143,9 @@ class OpenBabelExporter(Exporter):
     def export_file(self, model: MoleculeModel, path: Path, fmt: str) -> None:
         from openbabel import pybel
 
-        mol = self._engine.mol_from_model(model)
+        # These are the 3D formats -- xyz, pdb, mol2 -- so this is where
+        # writing the editor's flat 2D layout did the most damage. See
+        # `mol_for_export`.
+        mol = mol_for_export(self._engine, model)
         obmol = pybel.readstring("mol", Chem.MolToMolBlock(mol))
         obmol.write(fmt, str(path), overwrite=True)
