@@ -1020,43 +1020,99 @@ it, which is what let the three mechanisms below coexist behind one
 guard. Verified by simulating the mistake: removing one tab's placeholder
 fails naming the tab.
 
-#### ADDING WIDGETS TO `QuantumChemistryPanel` CORRUPTS THE HEAP
+#### READ THIS BEFORE ADDING A WIDGET TO `QuantumChemistryPanel`
 
-Windows fatal exception `0xc0000374`, raised inside the teardown
-`gc.collect()`, in a test hundreds of tests away from the panel that
-built the widget. **It is deterministic**, which is what makes it
-tractable -- unlike the access violations elsewhere in this file, whose
-rate moves between batches.
+**Adding widgets to that panel's tree corrupts the heap.** Windows fatal
+exception `0xc0000374`, raised inside the teardown `gc.collect()`, in a
+test hundreds of tests away from the change. It is deterministic -- the
+same test index every run -- which is the one merciful thing about it and
+the only reason it is tractable.
 
-**That panel is the census's own worst offender**: 104 of the 138 late
-destructions come from `test_quantum_chemistry_panel.py`. Every widget
-added to its tree enlarges a graph that already outlives itself, and past
-some margin the collect goes over.
+**This has cost about fifteen full suite runs across two phases.** Every
+one of them looked at first like an unrelated failure somewhere else.
 
-    +7 placeholder widgets across its tab pages    full suite dead
+What is measured:
+
+    +7 placeholder widgets across its tab pages    full suite dead @1150
     +3 placeholder widgets (empty tabs only)       full suite green
-    +1 CollapsibleSection in its main layout       full suite dead
+    +1 CollapsibleSection anywhere in it           full suite dead @1152
     reparenting an existing widget into a tab      full suite green
     a much larger composite added to a TOOLBAR     full suite green
 
-An earlier version of this section said the rule was about TAB PAGES.
-That was wrong, on thinner evidence: the log's `CollapsibleSection` went
-into the panel's main layout and died just the same, while the whole
-navigation rail -- bigger than any of these -- went into a toolbar and
-cost nothing.
+**The working rule: prefer a change that adds no widget.** Reparent
+something that already exists, paint into a widget that is already there,
+or use a native affordance (`QPlainTextEdit.setPlaceholderText`,
+`QListWidget` rows). All four of this panel's empty-state mechanisms
+follow it.
 
-**The working rule: in `QuantumChemistryPanel`, prefer a change that adds
-no widget.** The three deferred quantum tabs are genuinely empty and can
-afford one placeholder each; Hybrid says it through the
-`_hybrid_summary_label` that already existed; the correlation tabs PAINT
-the message inside `NmrCorrelationPlotWidget`; and the Log tab is the
-existing `QPlainTextEdit` reparented, with Qt's native
-`setPlaceholderText`. Painting it also lands the message where the peaks
-would be, which is better drawing anyway.
+##### SEVEN hypotheses have been tested and are WRONG
 
-Fixing the leak is the real answer, and is not attempted -- this file
-already records that closing that test file's leaks costs 155 seconds on
-every run.
+Recorded so nobody pays for them again. Each was tested against the FULL
+suite, because no shorter arm settles it:
+
+1. *The `dict[QWidget, ...]` holding the placeholders* (PySide hashes on
+   the C++ pointer, which Qt frees with the parent). Removed it -- still
+   dead, same test index.
+2. *Hiding the sibling content.* Suppressed every visibility change --
+   still dead, same index.
+3. *The new test file shifting collection order.* Removed it -- still
+   dead, four tests earlier.
+4. *"A placeholder in a tab page that already holds widgets."* This was
+   written into this file as the rule and is **wrong**: the log's
+   `CollapsibleSection` went into the panel's MAIN LAYOUT and died the
+   same way.
+5. *Python-derived widget subclasses.* `WrappedLabel` and
+   `CollapsibleSection` are Python-derived and live happily elsewhere; a
+   plain `QLabel` still killed the suite.
+6. *This panel being the census's worst leaker* (104 of 138 late
+   destructions from `test_quantum_chemistry_panel.py`). Gave that file
+   the per-widget disposal recipe for all 15 panels it abandons, then
+   re-added the known-fatal `CollapsibleSection`: **still dead at 1152.**
+   Disposal was reverted, since it fixed nothing and this file already
+   records explicit disposal making things worse twice.
+7. *Destroying a MainWindow that contains the extra widget.* Built, shown,
+   closed and force-collected three windows in a row with the fatal change
+   in place: no crash. It needs the accumulated state of ~1150 preceding
+   tests, which is why no small reproduction has been found.
+
+**The mechanism is still unknown.** What tracks it exactly is only "a
+widget was added to this panel".
+
+##### How to find it fast when it happens
+
+The signature is a truncated `-q` progress line followed by
+`Windows fatal exception: code 0xc0000374` and a traceback whose top
+frame is `conftest.py ... pytest_runtest_logfinish` / `Garbage-collecting`.
+
+Count how far it got, and name the test:
+
+```bash
+awk '/^[.sFEx]+/ {gsub(/[^.sFEx]/,"",$0); n+=length($0)} END {print n}' /tmp/suite.log
+```
+
+```bash
+uv run --no-sync python -m pytest -q --collect-only --deselect tests/test_naming_providers.py::test_pubchem_name_round_trips_back_through_opsin 2>/dev/null | grep "::" | sed -n "$((N+1))p"
+```
+
+**Pin the baseline before blaming yourself OR the suite.** `git stash`
+everything and run master: it is clean at the count in this file. This
+file's own warnings about flaky access violations would otherwise excuse
+a crash that is entirely reproducible and entirely yours.
+
+Sometimes a two-file pair reproduces it in 12 seconds, which makes
+bisection cheap -- worth trying before committing to 3.5-minute arms:
+
+```bash
+uv run --no-sync python -m pytest -q tests/test_main_window_conformers.py tests/test_main_window_docking_visualization.py
+```
+
+That pair caught the placeholder-widget version. It did NOT catch the
+`CollapsibleSection` one, so a clean canary is not a clean bill of health.
+
+**Any bisect script MUST assert its edit landed.** Three arms were once
+run from a Git-Bash `/tmp` path the Windows Python could not read, so all
+three silently tested the unmodified file and reported a confident CRASH
+-- the control, three times.
 
 **Three hypotheses were tested against the full suite and are wrong** --
 recorded so nobody pays for them twice:

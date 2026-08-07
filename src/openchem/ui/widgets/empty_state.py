@@ -26,11 +26,13 @@ Windows fatal exception `0xc0000374`, raised inside the teardown
 `gc.collect()` -- and never in a test of that panel, but hundreds of
 tests later, wherever the next collection happens to land.
 
-**That panel is already the suite's worst leaker.** CLAUDE.md's own
-census: `test_quantum_chemistry_panel.py` accounts for 104 of the 138
-objects destroyed outside the test that made them. Every widget added to
-its tree enlarges a graph that is already outliving itself, and past some
-margin the teardown collect goes over.
+That panel IS the suite's worst leaker -- CLAUDE.md's census puts 104 of
+138 late destructions in `test_quantum_chemistry_panel.py` -- and the
+obvious story is that each extra widget enlarges a graph already
+outliving itself until the teardown collect goes over. **That story was
+tested and is wrong**: giving that file the per-widget disposal recipe
+for all 15 panels it abandons, and then re-adding the known-fatal
+widget, killed the suite at the same test index. See hypothesis 6 below.
 
 Measured, and the shape of the result is what matters more than any one
 number:
@@ -53,22 +55,17 @@ tabs PAINT their message inside `NmrCorrelationPlotWidget`; and the Log
 tab is the existing `QPlainTextEdit`, reparented, using Qt's native
 `setPlaceholderText`.
 
-Three hypotheses were tested against the full suite and are WRONG, so
-nobody need pay for them again: it is not the `dict[QWidget, ...]` that
-held the placeholders (removing it changed nothing), not hiding the
-sibling content (suppressing every visibility change changed nothing),
-and not the new test file (removing it changed nothing).
+**SEVEN hypotheses have been tested against the full suite and are
+wrong**, including two this docstring previously asserted as the rule.
+They are listed in CLAUDE.md under "READ THIS BEFORE ADDING A WIDGET TO
+`QuantumChemistryPanel`" rather than repeated here, because they are not
+about empty states -- they are about that panel. The short version: it is
+not the container that held the placeholders, not hiding siblings, not
+the test file, not "tab pages", not Python-derived subclasses, not that
+panel's own leaked test widgets, and not MainWindow destruction.
 
-**The mechanism is still not understood.** "Python-derived widget" is not
-the answer -- `WrappedLabel` and `CollapsibleSection` are Python-derived
-and live happily elsewhere. The honest statement is that this panel sits
-near a limit nobody has characterised, and the cheap way past it is not
-to spend the margin.
-
-Fixing the leak itself is the real answer and is not attempted here;
-CLAUDE.md records that closing that file's leaks costs 155 seconds on
-every run. `tests/test_empty_states.py` asks each tab what it SHOWS
-rather than how, so whoever does fix it can simplify all of this freely.
+**The mechanism is unknown.** What tracks the crash exactly is only "a
+widget was added to this panel".
 
 The marker is a Qt property, the same idiom `property_panel.py` uses to
 carry a calculator id on a button: it needs no custom class, and it is
