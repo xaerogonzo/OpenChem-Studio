@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from functools import partial
+
 import logging
 from pathlib import Path
 from typing import Callable
@@ -37,6 +39,7 @@ from openchem.commands.molecule_commands import (
 from openchem.commands.project_commands import OpenProjectCommand, SaveProjectCommand
 from openchem.domain.macromolecule import MacromoleculeModel
 from openchem.domain.molecule import MoleculeModel
+from openchem.domain.calculator import RegistryExecution
 from openchem.domain.project import ProjectModel
 from openchem.events.events import (
     ConformersChanged,
@@ -95,6 +98,23 @@ logger = logging.getLogger("openchem.ui")
 #: options are "restore it" and "do not".
 #:
 #: "2" is the rail: the right-hand panels stopped being tabified.
+def _bind(method, argument):
+    """A no-argument callable for the palette.
+
+    `functools.partial` over a bound method, which DOES hold the window
+    strongly -- and is fine here, unlike in a `connect()`. The difference
+    is lifetime: a connected callable is held by PySide for as long as the
+    sender exists, which is what rooted a whole window once. These live on
+    a `Command` inside one modal dialog and die with it.
+    """
+    return partial(method, argument)
+
+
+#: Set on a menu action so the palette can say which menu it came
+#: from. A Qt property rather than a dict keyed by the action, for
+#: the reason `empty_state.py` records at length.
+_MENU_SOURCE_PROPERTY = "openchem_menu_source"
+
 _LAYOUT_VERSION = "2"
 _LAYOUT_VERSION_KEY = "ui/layout_version"
 
@@ -360,6 +380,11 @@ class MainWindow(QMainWindow):
         search_facts.triggered.connect(self._focus_fact_search)
         self.addAction(search_facts)
 
+        palette = QAction("Command Palette", self)
+        palette.setShortcut("Ctrl+Shift+P")
+        palette.triggered.connect(self._show_command_palette)
+        self.addAction(palette)
+
         self._build_menus()
         self._restore_window_state()
         self._restore_pinned_panels()
@@ -456,6 +481,137 @@ class MainWindow(QMainWindow):
         stored = self._settings.get("ui/pinned_panels", "")
         if stored:
             self._panel_rail.set_favourites([p for p in str(stored).split(",") if p])
+
+    # --- the command palette -------------------------------------------------
+
+    def _collect_commands(self) -> list:
+        """Everything the app can do, read off the three indexes it has.
+
+        **Nothing registers itself here.** A fourth list would be a fourth
+        thing to keep in step, and the one that falls out of step is
+        always the one nobody remembers to update. A new calculator or
+        menu item appears in the palette because it exists, not because
+        somebody added it twice.
+
+        Order matters and is preserved through ties: panels first, then
+        calculators, then menu actions. Typing "batch" should land on the
+        Batch panel rather than on File > Export Batch.
+        """
+        from openchem.ui.dialogs.command_palette import Command
+
+        commands: list[Command] = []
+
+        for panel_id in self._panel_rail.panel_ids():
+            dock = self._dock_by_panel_id(panel_id)
+            title = dock.windowTitle() if dock is not None else panel_id
+            commands.append(
+                Command(
+                    label=title,
+                    source="Panel",
+                    run=_bind(self._on_panel_chosen, panel_id),
+                )
+            )
+
+        for category in self._services.calculator_registry.categories():
+            for definition in self._services.calculator_registry.by_category(category):
+                if not isinstance(definition.execution, RegistryExecution):
+                    # ServiceExecution-backed ones run from their own
+                    # panel, not from a settings dialog -- offering them
+                    # here would produce a click that raises.
+                    continue
+                commands.append(
+                    Command(
+                        label=definition.display_name,
+                        source="Calculator",
+                        run=_bind(self._run_calculator_by_id, definition.calculator_id),
+                    )
+                )
+
+        # A dock's `toggleViewAction` sits in the View menu under the same
+        # name as its panel, so every panel would appear twice. The panel
+        # command is strictly the better one -- it SHOWS the panel, where
+        # the toggle can just as easily hide it, which from a palette is a
+        # surprising thing to have asked for.
+        #
+        # Only exact duplicates are dropped: Console is a dock with a
+        # toggle and no rail entry, so its View item is the only way to
+        # reach it and must survive.
+        panel_labels = {c.label for c in commands if c.source == "Panel"}
+        for label, source, action in self._menu_actions():
+            if label in panel_labels:
+                continue
+            commands.append(Command(label=label, source=source, run=action.trigger))
+        return commands
+
+    def _menu_actions(self) -> list[tuple[str, str, object]]:
+        """Every leaf action on the live menu bar, as (label, menu, action).
+
+        Walked off the real `QMenuBar` rather than recorded while building
+        it: `_build_menus` is not the only thing that adds actions --
+        plugins add their own through `add_menu_action`, and the View menu
+        grows a toggle per dock. Reading the bar catches all of them.
+
+        Separators and submenu headers are skipped; a disabled action is
+        skipped too, since offering something that cannot run is worse
+        than not offering it.
+        """
+        found: list = []
+        for top in self.menuBar().actions():
+            menu = top.menu()
+            if menu is None:
+                continue
+            self._collect_menu_actions(menu, top.text().replace("&", ""), found)
+        return found
+
+    def _collect_menu_actions(self, menu, title: str, found: list, depth: int = 0) -> None:
+        """One menu's leaf actions, recursing into submenus.
+
+        **Walks `menuBar().actions()` rather than `findChildren(QMenu)`.**
+        The latter is recursive over the whole object tree and returns
+        wrappers for menus whose C++ side Qt has already freed -- reading
+        `.title()` off one raises `Internal C++ object already deleted`,
+        which is how this was found. Going through the actions only ever
+        yields menus that are still attached.
+
+        Depth-limited because a submenu chain is a tree and nothing here
+        should be able to loop.
+        """
+        import shiboken6
+
+        if depth > 2 or not shiboken6.isValid(menu):
+            return
+        for action in menu.actions():
+            # A menu can hold wrappers for actions whose C++ side Qt has
+            # already freed -- `add_menu_action`/`remove_menu_actions`
+            # churn them on every plugin reload, and reading `.text()` off
+            # a dead one raises `Internal C++ object already deleted`.
+            # Asked rather than assumed; that is how this was found.
+            if not shiboken6.isValid(action) or action.isSeparator():
+                continue
+            submenu = action.menu()
+            if submenu is not None:
+                self._collect_menu_actions(
+                    submenu, f"{title} > {action.text()}".replace("&", ""), found, depth + 1
+                )
+                continue
+            if not action.text() or not action.isEnabled():
+                continue
+            # Text captured HERE, where the wrapper has just been checked
+            # -- not read back later. One was observed dying between the
+            # walk and the read, and a label is cheaper to keep than a
+            # second validity check at every use.
+            found.append((action.text().replace("&", ""), title, action))
+
+    def _run_calculator_by_id(self, calculator_id: str) -> None:
+        definition = self._services.calculator_registry.get(calculator_id)
+        if definition is not None:
+            self._on_panel_chosen("Properties")
+            self._property_panel._open_calculator(definition)
+
+    def _show_command_palette(self, _checked: bool = False) -> None:
+        from openchem.ui.dialogs.command_palette import CommandPalette
+
+        CommandPalette(self._collect_commands(), self).exec()
 
     def _focus_fact_search(self, _checked: bool = False) -> None:
         """Ctrl+Shift+F: show the inspector and put the cursor in its filter

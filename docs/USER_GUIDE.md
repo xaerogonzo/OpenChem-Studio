@@ -160,6 +160,21 @@ you saw `Qu...`, `J...`, `B...`. If you are upgrading, your saved panel
 layout is reset once so the old arrangement does not come back; your
 window size and position are kept.
 
+### Ctrl+Shift+P — type what you want
+
+Press **Ctrl+Shift+P** and start typing. It searches every panel, every
+calculator and every menu command at once — 113 of them — so you never have
+to remember which group a panel is filed under or which menu holds a command.
+
+Type initials: `qc` finds Quantum Chemistry, `sck` finds Structure Check.
+Arrow keys move the selection without leaving the box, and Enter runs it.
+
+Each row says where it came from, because a name alone is ambiguous —
+"Geometry" is a panel, a calculator and a menu item.
+
+**Ctrl+Shift+F** is the companion: it opens the Atom Inspector with the
+cursor already in its filter box.
+
 ## Properties
 
 The Properties panel is where most calculation happens. It has **25

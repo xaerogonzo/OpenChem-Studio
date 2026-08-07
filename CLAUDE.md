@@ -53,8 +53,8 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **3-4.5 minutes**, ending at `2877 passed, 2 skipped,
-1 deselected` (measured 2026-08-07 with the presentation-layer Phase 0-5
+A clean run is **3-4.5 minutes**, ending at `2894 passed, 2 skipped,
+1 deselected` (measured 2026-08-07 with the presentation-layer Phase 0-6
 work applied, bytecode cleared; it was 2788 before that). **That figure is
 from the DESELECTED form below, not the command above** -- run it bare and
 the same tree reports one FAILURE, from the network test explained next.
@@ -951,6 +951,48 @@ duplicates on screen.
 
 Hit immediately, in a scratchpad script that printed the panel back:
 `UnicodeEncodeError: 'charmap' codec can't encode character '✕'`.
+
+### The command palette introduces no registry, deliberately
+
+`Ctrl+Shift+P` reads three indexes the app already has -- the rail's panel
+list, `CalculatorRegistry`, and the live `QMenuBar` -- for **113 commands
+with nothing registering itself**. A palette that required each feature to
+register would be a fourth list to keep in step, and the one that falls
+out of step is always the one nobody remembers to update. A new
+calculator or menu item is in the palette because it exists.
+
+`score()` is a pure function so the ranking is testable without a dialog,
+which matters because ranking is the only part of a palette that can be
+subtly WRONG rather than broken. Four tiers -- exact, prefix, word start,
+subsequence -- with subsequence last because it matches almost everything
+and would otherwise drown a real prefix. Ties keep the caller's order, so
+panels beat calculators beat menu items and "batch" lands on the panel.
+
+#### PySide invalidates a wrapper reached through a TEMPORARY list
+
+Hit twice in one hour, in production code and then in a test:
+
+```python
+menu = next(a.menu() for a in bar.actions() if ...)   # menu is DEAD here
+```
+
+The C++ object is fine; the wrapper is not. `bar.actions()` is a
+temporary, and releasing it invalidates every wrapper obtained from it --
+the next line raises `Internal C++ object already deleted`. Hold the
+parent list, or read what you need while you still have it.
+
+`_menu_actions` does the latter: it captures each label DURING the walk
+and returns `(label, source, action)`, rather than handing back a wrapper
+for the caller to read later. `findChildren(QMenu)` is worse still and is
+avoided -- it is recursive over the whole object tree and returns wrappers
+for menus Qt has already freed.
+
+A dock's `toggleViewAction` carries the panel's own name, so every panel
+appeared twice until exact duplicates were dropped. The panel command
+wins because it SHOWS the panel; a toggle can hide it, which from a
+palette is a surprising thing to have asked for. Only exact duplicates go
+-- Console is a dock with a toggle and no rail entry, and its View item is
+the only way to reach it.
 
 ### Comparison: the engine existed, the way in did not
 

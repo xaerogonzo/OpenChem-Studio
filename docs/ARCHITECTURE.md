@@ -407,6 +407,13 @@ it).
   `app/main_window.py` discards a saved layout from before the change,
   because `restoreState` restores tabification.
 
+- **The command palette reads, never registers.** `Ctrl+Shift+P` builds
+  its list from the rail's panels, `CalculatorRegistry` and the live
+  `QMenuBar` -- 113 commands with nothing registering itself, so a new
+  calculator or menu item is present because it exists. `score()` in
+  `ui/dialogs/command_palette.py` is a pure function so the ranking is
+  testable without a dialog.
+
 - **Comparison is a destination and a lens.** `chem/comparison.py`'s
   `compare_values`/`differing_rows` put molecules in columns and
   properties in rows, from values other panels have already published;
