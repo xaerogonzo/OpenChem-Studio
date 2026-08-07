@@ -153,12 +153,8 @@ def test_the_log_is_the_last_tab_not_the_biggest_widget(quantum_panel):
     a wall of scrolling SCF iterations above a cramped band of the numbers
     somebody ran it for.
 
-    It is a tab now, and LAST. Wrapping it in a `CollapsibleSection`
-    instead was tried and corrupted the heap: the full suite died at test
-    1152 and was green the moment the section came out, measured both
-    ways. `addTab` reparents the log that already exists, so the widget
-    count of this panel -- already the suite's worst leaker -- does not
-    change at all.
+    It is a tab now, and LAST -- "results outrank the log" is an ordering
+    claim as much as a layout one.
     """
     tabs = quantum_panel.findChild(QTabWidget)
     assert tabs.tabText(tabs.count() - 1) == "Log"

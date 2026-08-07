@@ -443,12 +443,26 @@ def pytest_runtest_logfinish(nodeid, location):
     refcounting; `DockingPanel` survives refcounting and needs the cyclic
     collector; `PropertyPanel` survives both and is a genuine leak.
 
-    THIS DOES NOT DESTROY ANYTHING ITSELF, and that distinction is the
-    whole point. A companion fixture that forced destruction with
+    **THIS DOES DESTROY THINGS, and a previous version of this docstring
+    said otherwise for three phases of UI work.** Freeing a PySide wrapper
+    that owns its C++ object deletes that object, and a widget a test
+    builds without a Qt parent IS Python-owned. So this collect is not
+    merely choosing a moment; it is the thing that frees them.
+
+    That mattered enormously in one case. Destroying a `MainWindow`
+    corrupts the heap, and this hook was destroying every one the suite
+    built -- which is why `_retained_windows` above exists and why
+    fifteen full runs went into blaming widget counts instead. CLAUDE.md
+    has it under "SOLVED: the teardown collect was DESTROYING
+    MainWindows".
+
+    What IS true, and is the reason to keep it: a teardown hook is a
+    moment with no Qt event dispatch in progress, so an ordinary panel is
+    destroyed somewhere safe rather than inside an unrelated test's event
+    loop. A companion fixture that instead forced destruction with
     `deleteLater()` was tried twice, by two people, and crashed the suite
-    both times -- see CLAUDE.md. This only chooses the MOMENT at which
-    Python does its own ordinary work, and a teardown hook is a moment
-    when no Qt event dispatch is in progress.
+    both times -- see CLAUDE.md. Choosing the moment is right; claiming
+    nothing happens at that moment was not.
 
     Gated on `qapp` because most of this suite is pure chemistry and
     cannot leave a widget behind. Measured over a full run:

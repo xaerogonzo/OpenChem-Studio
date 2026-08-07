@@ -9,13 +9,28 @@ every one of those answers can be wrong in a way that looks right.
 
 THE RULES, and why each is what it is:
 
-`AlertResult` is the interesting case, because 17 calculators return one
-and most of them are really REPORTS: `matched` holds lines like
-``"Randic index: 9.52"``. Counting the lines would throw the numbers away,
-so those lines are PARSED, and one report calculator becomes many numeric
-columns -- 27 of them for `topology_analysis` alone. That expansion is
-most of what makes 46 calculators tabulate into something worth analysing.
-The parser is deliberately strict; see `parse_reported_numbers`.
+A REPORT is the interesting case, because one report calculator becomes
+many numeric columns -- 27 of them for `topology_analysis` alone -- and
+that expansion is most of what makes 46 calculators tabulate into
+something worth analysing.
+
+There are two paths into it, and the contrast is worth keeping.
+
+`_reduce_report` takes a `ReportResult` and reads the label, value and
+units straight off each `Fact`. Nothing is parsed, because nothing was
+ever flattened.
+
+`_reduce_alert` takes an `AlertResult`, whose `matched` is a `list[str]`,
+and has to PARSE `"Randic index: 9.52"` back into those three pieces. It
+is deliberately strict (see `parse_reported_numbers`) and it necessarily
+loses whatever does not fit that shape. It still runs, for the four real
+alert catalogs and for any plugin that returns one -- `AlertResult` is
+part of the plugin API and is not going away.
+
+WHAT THE PARSING COST, which is the argument for `ReportResult`. Measured
+on four calculators after the migration: 45 facts giving 43 numeric
+columns, the two text ones being a formula and a direction vector. The
+figures below are the same job done by parsing, from before it.
 
 MEASURED, 2026-08-05, over the 16 report calculators run on aspirin with a
 conformer and both sidecars configured: **73 numeric columns extracted, 25

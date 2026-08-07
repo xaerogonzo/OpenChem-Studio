@@ -31,7 +31,7 @@ subscribe by event type rather than by ad-hoc signal name.
 
 | Package | Responsibility |
 |---|---|
-| `openchem.domain` | Pure data: `MoleculeModel`, `ProjectModel`, `DescriptorValue`, `ConformerModel`, the report types (`Fact`/`AtomReport`/`BondReport`/`MoleculeReport`), `MacromoleculeModel`, `DockingBox`/`DockingPoseModel`/`DockingResultModel`, plus the shared `CacheState` enum and `Provenance` dataclass (`domain/common.py`). No RDKit, no Qt. Molecules (and macromolecules, and docking results) are identified by UUID, never filename or list position. |
+| `openchem.domain` | Pure data: `MoleculeModel`, `ProjectModel`, `DescriptorValue`, `ConformerModel`, the report types (`Fact`/`Detail`/`AtomReport`/`BondReport`/`MoleculeReport`/`ReportResult`), `MacromoleculeModel`, `DockingBox`/`DockingPoseModel`/`DockingResultModel`, plus the shared `CacheState` enum and `Provenance` dataclass (`domain/common.py`). No RDKit, no Qt. Molecules (and macromolecules, and docking results) are identified by UUID, never filename or list position. |
 | `openchem.chem` | The only place `rdkit`/`openbabel` are imported, and by some margin the largest package (59 modules, plus the `regulatory/` subpackage). Grouped by what they are for, since the flat listing is no longer navigable: **core** — `engine.py` (`ChemistryEngine`: MoleculeModel <-> RDKit Mol, canonicalization, 2D depiction including the property heat map, 3D measurement, and `formal_charge()`, the one place UI gets a chemistry-derived default without importing rdkit), `identifiers.py`, `io_backends.py`. **Structure files** — `structure_io.py`, `binarycif.py`, `structure_summary.py`, `structure_assembly.py`; see the pipeline section below. **Docking** — `docking_providers.py`, `vina_engine.py`, `pose_analysis.py`, `binding_site.py`, `receptor_library.py`, `interaction_analysis.py`. **Quantum/spectroscopy** — `orca_engine.py`, the `nmr_*` family (database lookup, HOSE codes, scaling, TMS referencing, the lookup+ORCA hybrid, correlation, signals), `huckel.py`, `electronic_properties.py`, `dipole.py`, `boltzmann.py`, `vibrational_modes.py` (normal-mode character by internal-coordinate decomposition), `mode_animation.py`, `orca_surfaces.py` + `cube.py` (driving `orca_plot` and reading Gaussian cubes into the existing `ScalarField`), and `jcamp.py` + `spectrum_overlay.py` (reading a measured spectrum and reconciling it with a computed one). **Calculators** — `descriptor_providers.py` plus the per-topic modules it registers (`topology_analysis`, `geometry_analysis`, `surface_analysis`, `elemental_analysis`, `steric`, `substructure`, `structure_generators`, `markush`, `logd`, `ph_curves`, `mpo_scores`, `bbb_stereo`, `scalar_field`, `alignment`, `molecular_dynamics`, `calculator_options`). **Sidecars** — `pka_providers.py`/`pka_runner.py` and `admet_providers.py`/`admet_runner.py`, each a pair where the `_runner` is executed BY the sidecar's own interpreter and imports nothing from `openchem`. **Naming** — `naming_providers.py` (structure <-> name across PubChem, the vendored engine, and OPSIN, each result labelled with its source and whether it is `exact`, `derived` or `parsed`) and `structure_annotation.py`, which takes the SECOND return value the naming engine always had: ring systems, functional groups, stereocentres and atom numbering, as plain atom-indexed data no vendor type escapes from. **Batch** — `result_reduction.py` (every result shape collapsed to table cells), `analytics.py`, `clustering.py`. **Regulatory** — the `regulatory/` subpackage: `types.py` (the legal-source / machine-interpretation split), `predicates.py` (the rule language), `engine.py`, `loader.py`, `calculator.py`. It is a subpackage rather than flat modules because it is the only part of `chem` with its own data format, build step and on-disk rulesets. |
 | `openchem.services` | `DescriptorService`, `ConformerService`, `MeasurementService`, `ImportService`, `ExportService`, `ProjectService`, `DockingService`, `QuantumChemistryService`, plus `ProgressHandle` for cancellable/progress-reporting long operations. All but `QuantumChemistryService` own `QThreadPool` execution and publish events — `QuantumChemistryService` is the one exception (see design decisions below). **Set-of-molecules services:** `BatchService` (runs chosen descriptors/calculators across a whole project as ONE pooled task, so "molecule 47 of 200" is reportable and one cancel flag stops it), `ScreeningService` (queues N ligands through `DockingService` one at a time rather than starting N Vina processes; it advances by *listening* for each job's terminal event, so no thread blocks), and `TableExportService` (`BatchTable` -> CSV/Markdown; deliberately not folded into `ExportService`, which is constructed with a `ChemistryEngine` and dispatches by chemical format — there is no chemical format whose subject is a table). |
 | `openchem.commands` | `QUndoCommand` subclasses wrapping service calls, giving undo/redo for structure edits, conformer generation, docking results, quantum-chemistry conformers, and project operations from day one. |
@@ -365,6 +365,52 @@ it).
   were never cached on the molecule to begin with (see above) — ORCA's
   values are just another provider's `DescriptorValue`s, and `PropertyPanel`
   already displays whatever it's given.
+
+### The presentation layer (Phases 0-4)
+
+- **One renderer for every report.** `ui/widgets/fact_view.py` takes
+  anything with `facts`/`by_category()`/`find()` and draws it: grouped
+  sections, search, a depth filter, per-fact basis and evidence, a
+  uniform Copy/Export/Compare/Open-in-window menu, and a detached window.
+  It knows no chemistry. The Atom Inspector was its first consumer and
+  kept only navigation; the Property panel opens reports in it through
+  "Details...". Hyperlinks, copy formatting, units and filtering are one
+  widget to change rather than eight panels.
+
+- **`ReportResult` replaced `AlertResult` for reports, not for alerts.**
+  `AlertResult.matched` is a `list[str]` and had become the generic line
+  carrier: 25 `alert_id`s, only four of them real catalogs, so four
+  fifths of the app's output rendered as warnings. A `Fact` carries
+  units, basis, evidence, limitations, which atoms it is about and how
+  specialist it is -- all of which was already computed and flattened
+  away. `AlertResult` stays for PAINS/BRENK and for the plugin API;
+  `chem/report_adapter.py` converts one to facts permanently, not as a
+  shim.
+
+- **The batch table shows what flattening cost.** `_reduce_alert` has to
+  PARSE `"Randic index: 9.52"` back apart, and refused 25 of 98 lines
+  when measured. `_reduce_report` has nothing to recover. Column ids are
+  byte-identical across the change, so saved tables and exports survive.
+
+- **Colour means one thing.** Red is failed, dangerous or invalid;
+  amber is "look at this"; green is a verdict only a catalog may give;
+  everything else is neutral. Each carries a glyph as well, so the
+  meaning survives colour-blindness and a plain-text paste -- and the
+  glyphs are stripped at every exit, because non-ASCII in a Windows
+  cp1252 stream raises.
+
+- **Navigation is a rail, not a tab bar.** Twelve tabified panels give Qt
+  one `QTabBar` needing 1992 px in about 920, so every label elided.
+  `tabifyDockWidget` is what creates that bar, so the panels are no
+  longer tabified: one right-hand dock is visible at a time and
+  `ui/widgets/panel_rail.py` chooses which. `_LAYOUT_VERSION` in
+  `app/main_window.py` discards a saved layout from before the change,
+  because `restoreState` restores tabification.
+
+- **Empty states are derived, never registered.** Every surface answers
+  "what do you show when you have nothing", and the guard asks the panel
+  rather than reading a list beside it -- so a tab that shows nothing
+  fails whichever mechanism it was meant to use.
 
 ## Known TODOs
 

@@ -53,8 +53,8 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **3-4.5 minutes**, ending at `2845 passed, 2 skipped,
-1 deselected` (measured 2026-08-07 with the presentation-layer Phase 0-2
+A clean run is **3-4.5 minutes**, ending at `2858 passed, 2 skipped,
+1 deselected` (measured 2026-08-07 with the presentation-layer Phase 0-4
 work applied, bytecode cleared; it was 2788 before that). **That figure is
 from the DESELECTED form below, not the command above** -- run it bare and
 the same tree reports one FAILURE, from the network test explained next.

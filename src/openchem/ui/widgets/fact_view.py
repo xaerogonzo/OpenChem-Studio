@@ -2,9 +2,13 @@
 
 Lifted out of `AtomInspectorPanel`, which was its only consumer and had
 grown the whole thing inline: sections, search, per-fact basis, tooltips,
-cross-links and copy. Bonds and molecules already reuse it through that
-panel; Lewis, regulatory, geometry and the ORCA summary are next, and
-without this each would have arrived with its own bespoke rendering.
+cross-links and copy.
+
+Its consumers now: the Atom Inspector (atoms, bonds and molecules), and
+the Property panel's "Details..." for every calculator that returns a
+`ReportResult` -- sixteen of them, including geometry, regulatory,
+topology and Lewis. Without this, each would have arrived with its own
+bespoke rendering.
 
 **IT KNOWS NO CHEMISTRY.** It takes a `StructureReport` -- anything with
 `facts`, `by_category()` and `find()` -- and renders it. That is the whole

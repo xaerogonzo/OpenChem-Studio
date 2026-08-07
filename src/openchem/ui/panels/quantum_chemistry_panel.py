@@ -244,7 +244,7 @@ class QuantumChemistryPanel(QWidget):
         self._nmr_view: NmrViewWidget | None = None
         self._nmr_view_tab = QWidget(self._correlation_tabs)
         self._nmr_view_layout = QVBoxLayout(self._nmr_view_tab)
-        # THE LOG IS A TAB, AND IT ADDS NO WIDGET.
+        # THE LOG IS A TAB.
         #
         # `_output_log` is a `QPlainTextEdit` whose default Expanding
         # policy took the largest share of the panel, so a finished
@@ -252,15 +252,16 @@ class QuantumChemistryPanel(QWidget):
         # of the numbers it was run for. Alex: "completed calculations
         # should emphasize results rather than console output".
         #
-        # Wrapping it in a `CollapsibleSection` was tried first and
-        # **corrupted the heap** -- full suite dead at test 1152, green the
-        # moment the section came out, measured both ways. This panel is
-        # already the suite's worst leaker (CLAUDE.md: 104 of 138 late
-        # destructions), and adding containers to its tree tips it over.
-        # `addTab` REPARENTS the log that already exists, so the widget
-        # count does not change at all.
+        # A tab rather than a collapsible section, which is the shape Alex
+        # offered -- "or a separate Log tab" -- and which reparents the
+        # widget that already exists rather than wrapping it in a new one.
         #
-        # It is also the shape Alex offered: "or a separate Log tab".
+        # (Wrapping it DID crash the suite when this was written, and the
+        # comment here used to explain that at length. The cause was the
+        # test harness collecting MainWindows, not this panel; see
+        # CLAUDE.md, "SOLVED: the teardown collect was DESTROYING
+        # MainWindows". A section would be safe now. A tab is still the
+        # better answer, so it stays.)
         self._correlation_tabs.addTab(self._nmr_view_tab, "1D Signals")
         self._add_empty_state(
             self._nmr_view_tab,
