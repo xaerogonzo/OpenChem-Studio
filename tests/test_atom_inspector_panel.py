@@ -386,3 +386,141 @@ def test_copying_with_no_atom_selected_says_so(panel):
     showing(widget, molecule())
     widget._on_copy_clicked()
     assert "Select an atom" in widget._status.text()
+
+
+# --- bonds and molecules ----------------------------------------------------
+#
+# `AtomReport`'s siblings arrived and reused the whole rendering half of
+# this panel unchanged -- sections, search, copy, links. What is new is
+# only which subjects the table lists and which report gets built, so that
+# is what these cover.
+
+
+def show_subject(panel: AtomInspectorPanel, model: MoleculeModel, subject: str):
+    panel.set_project(ProjectModel(molecules=[model]))
+    panel._on_molecule_selected(MoleculeSelected(molecule_uuid=model.uuid))
+    panel._subject_combo.setCurrentText(subject)
+    QCoreApplication.processEvents()
+
+
+def test_the_table_lists_bonds_when_the_subject_is_bonds(panel):
+    widget, _bus = panel
+    model = molecule()
+    show_subject(widget, model, "Bond")
+    assert widget._atom_table.rowCount() == Chem.MolFromSmiles(CHALCONE).GetNumBonds()
+
+
+def test_the_bond_rows_are_labelled_readably(panel):
+    """"C1:C2" rather than a bare index -- an index alone tells nobody
+    which bond they are looking at."""
+    widget, _bus = panel
+    show_subject(widget, molecule(), "Bond")
+    labels = [
+        widget._atom_table.item(row, 1).text()
+        for row in range(widget._atom_table.rowCount())
+    ]
+    assert all(label for label in labels)
+    assert any(":" in label for label in labels), "chalcone has aromatic bonds"
+    assert any("=" in label for label in labels), "and a carbonyl"
+
+
+def test_selecting_a_bond_row_shows_that_bonds_facts(panel):
+    widget, _bus = panel
+    show_subject(widget, molecule(), "Bond")
+    # By index, not by row -- the table keeps whatever sort order was last
+    # applied, and row 0 held bond 16 the first time this was written.
+    widget.select_bond(0)
+    QCoreApplication.processEvents()
+    assert widget._bond_index == 0
+    assert "Bond 1" in widget._title.text()
+    assert section_titles(widget), "a bond must render some facts"
+
+
+def test_selecting_a_bond_does_not_emit_an_atom_highlight(panel):
+    """The viewers highlight ATOMS. Emitting a bond row's index as an atom
+    would highlight an unrelated atom, which is worse than highlighting
+    nothing."""
+    widget, _bus = panel
+    seen: list[int] = []
+    widget.atom_selected.connect(seen.append)
+    show_subject(widget, molecule(), "Bond")
+    widget.select_bond(3)
+    QCoreApplication.processEvents()
+    assert seen == []
+
+
+def test_the_molecule_subject_hides_the_row_list(panel):
+    """One subject, so a table would be a single inert row inviting a
+    click that does nothing."""
+    widget, _bus = panel
+    show_subject(widget, molecule(), "Molecule")
+    assert not widget._atom_table.isVisible() or widget._atom_table.rowCount() == 0
+
+
+def test_the_molecule_subject_needs_no_selection(panel):
+    widget, _bus = panel
+    show_subject(widget, molecule(), "Molecule")
+    assert "chalcone" in widget._title.text()
+    assert section_titles(widget), "the molecule report must render"
+
+
+def test_switching_subject_re_renders_rather_than_keeping_the_old_facts(panel):
+    widget, _bus = panel
+    model = molecule()
+    showing(widget, model, CARBONYL_O)
+    atom_titles = section_titles(widget)
+    assert atom_titles
+
+    widget._subject_combo.setCurrentText("Molecule")
+    QCoreApplication.processEvents()
+    assert "chalcone" in widget._title.text()
+    assert "Atom" not in widget._title.text()
+
+
+def test_each_subject_is_cached_separately(panel):
+    """One cache keyed by subject as well as version. Keyed on the index
+    alone, an atom report would be served for a bond of the same number."""
+    widget, _bus = panel
+    model = molecule()
+    showing(widget, model, 0)
+    widget._subject_combo.setCurrentText("Bond")
+    QCoreApplication.processEvents()
+    widget.select_bond(0)
+    QCoreApplication.processEvents()
+
+    subjects = {key[2] for key in widget._cache}
+    assert {"Atom", "Bond"} <= subjects
+
+
+@pytest.mark.parametrize("fmt", ["Markdown", "Plain text", "JSON", "CSV"])
+def test_every_format_handles_every_subject(fmt):
+    """`format_report` used to read `report.atom_index` unconditionally,
+    which would raise on the other two the first time Copy was pressed."""
+    from rdkit.Chem import AllChem
+
+    from openchem.chem.bond_report import build_bond_report
+    from openchem.chem.molecule_report import build_molecule_report
+
+    mol = Chem.MolFromSmiles(CHALCONE)
+    AllChem.Compute2DCoords(mol)
+    for report in (
+        build_bond_report(mol, 0, molecule_uuid="m"),
+        build_molecule_report(mol, molecule_uuid="m", context={"display_name": "chalcone"}),
+    ):
+        text = format_report(report, fmt)
+        assert text.strip(), f"{fmt} produced nothing"
+        if fmt == "JSON":
+            payload = json.loads(text)
+            assert payload["subject"] in {"bond", "molecule"}
+
+
+def test_the_json_export_names_its_subject():
+    """A consumer receiving a report needs to know what it is about
+    without guessing from which keys are present."""
+    from openchem.chem.bond_report import build_bond_report
+
+    mol = Chem.MolFromSmiles(CHALCONE)
+    payload = json.loads(format_report(build_bond_report(mol, 0), "JSON"))
+    assert payload["subject"] == "bond"
+    assert "bond_index" in payload
+    assert "atom_index" not in payload

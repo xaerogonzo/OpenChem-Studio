@@ -1,4 +1,4 @@
-"""Holds the plugin-supplied `AtomFactProvider`s.
+"""Holds the plugin-supplied `FactProvider`s.
 
 Deliberately tiny. It exists so the Atom Inspector does not have to know
 which plugins are loaded, and so plugin registration goes through the
@@ -6,18 +6,24 @@ same `register_provider`/`unregister_provider` pair every other provider
 type already uses -- `PluginContext`'s registrars are all the same three
 lines, and a service with a different shape would need a special one.
 
+One service for all three report kinds, not three services. A provider
+implements whichever of `collect_atom_facts` / `collect_bond_facts` /
+`collect_molecule_facts` it has something to say through, and registering
+once is enough -- three registries would mean a plugin contributing to two
+of them registering twice and being able to get that wrong.
+
 There is no compute here on purpose. Facts are gathered by
-`chem.atom_report.build_atom_report`, which is a pure function of the
-molecule and whatever results were handed to it; this class only answers
-"who else has something to say".
+`build_atom_report`, `build_bond_report` and `build_molecule_report`, each
+a pure function of the molecule and whatever results were handed to it;
+this class only answers "who else has something to say".
 """
 
 from __future__ import annotations
 
-from openchem.plugins.interfaces import AtomFactProvider
+from openchem.plugins.interfaces import AtomFactProvider, FactProvider
 
 
-class AtomFactService:
+class FactService:
     def __init__(self, providers: list[AtomFactProvider] | None = None) -> None:
         self._providers: list[AtomFactProvider] = list(providers or [])
 
@@ -31,3 +37,7 @@ class AtomFactService:
         """A snapshot, so a provider registering while a report is being
         built cannot mutate the list mid-iteration."""
         return tuple(self._providers)
+
+
+#: The name the container, bootstrap and `PluginContext` already use.
+AtomFactService = FactService

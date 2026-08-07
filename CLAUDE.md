@@ -53,7 +53,7 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **3-4.5 minutes**, ending at `2714 passed, 2 skipped,
+A clean run is **3-4.5 minutes**, ending at `2764 passed, 2 skipped,
 1 deselected` (measured 2026-08-06 with the comparison and LED work applied,
 bytecode cleared). **That figure is from the DESELECTED form below, not the
 command above** -- run it bare and the same tree reports one FAILURE, from
@@ -735,6 +735,45 @@ The fix is one line: ignore the argument and call
 Editing `tools/ketcher-host/src/main.jsx` requires `npm run build` in that
 directory for anything to change; `resources/ketcher/dist/` is build
 output. node and npm are installed, and a build takes about 25 seconds.
+
+## The bond and molecule reports, and what generalising cost
+
+`AtomReport` was written with `AtomFact`/`FactCategory` deliberately free
+of anything atom-specific, on the stated bet that bonds and molecules would
+want the same shape. **The bet paid: they moved to `domain/report.py`
+UNCHANGED**, `AtomReport` lost only its identity fields to a shared
+`StructureReport`, and every existing import still works through aliases
+(`AtomFact = Fact`, `AtomFactProvider = FactProvider`,
+`AtomFactService = FactService`). The panel's whole rendering half --
+sections, search, copy, links -- needed no change at all.
+
+Three things measured while building them:
+
+- **A 2D depiction has coordinates, and they are not measurements.** Every
+  bond in a layout comes out about the same length whatever its order:
+  aspirin's 2D C=O reads 1.5 "units" against a real 1.264 A. So the bond
+  report emits NO length from a 2D conformer rather than a wrong one, and
+  the molecule report says outright which kind of coordinates exist.
+- **RDKit's strict rotatable-bond definition could not be reconstructed.**
+  Excluding amides leaves aspirin at 3 against `CalcNumRotatableBonds`'s 2;
+  excluding all conjugated bonds drops biphenyl's central bond, which RDKit
+  DOES count. Two attempts, both wrong, so the bond report reports "single,
+  acyclic, non-terminal" -- the thing it can stand behind -- and names the
+  gap rather than shipping a "rotatable" verdict that contradicts the
+  molecule's own descriptor.
+- **BRICS bonds are a synthesis statement, not a stability one.** A bond
+  BRICS would cut is one a known reaction class could FORM. It says nothing
+  about strength, and the fact carries that.
+
+Two mutations survived the first pass, and both were tests that could not
+discriminate rather than code that was wrong:
+
+- **A monocyclic molecule has as many bonds as atoms.** Aspirin is 13 and
+  13, so swapping `atom_count` and `bond_count` was invisible. Assert
+  counts on an ACYCLIC molecule.
+- **Overlapping atom and bond indices hide which field is being read.** A
+  fixture with `atom_indices=(0, 1)` and `bond_indices=(0,)` gives the same
+  answer either way. Make them disjoint.
 
 ## A new panel needs a help topic, and nothing was checking
 

@@ -252,8 +252,31 @@ select this nucleus, highlight its peak". The search box filters by text
 **Copy report** exports the whole thing as Markdown, plain text, JSON or
 CSV.
 
-Plugins can contribute here: an `AtomFactProvider` appears in the inspector
-alongside the built-in facts without either side knowing about the other.
+### Bonds and molecules
+
+The **Show** selector switches the same view between three subjects.
+
+**Bond** lists every bond as `C3=O4` and reports its order, aromaticity and
+conjugation, which rings it belongs to and whether it is where two are
+fused, its measured length, and whether BRICS would cut there — that last
+one meaning a known reaction class could *form* the bond, which is a
+synthesis statement and not a claim that it is weak. Each end links
+straight to that atom's own report.
+
+**A bond length appears only when the coordinates are genuinely 3D.** A 2D
+depiction has coordinates too and they are drawing units — every bond in a
+layout comes out about the same length whatever its order — so a flat
+structure shows no length rather than a fabricated one.
+
+**Molecule** is everything at once: formula, mass and identifiers, the
+counts, whatever descriptors have been computed, structural alerts, a
+one-line structure-check summary, Lewis character, and which spectra exist.
+It needs no selection, so the row list is hidden for it.
+
+Plugins can contribute to all three: a `FactProvider` implements whichever
+of the atom, bond and molecule hooks it has something to say through, and
+appears alongside the built-in facts without either side knowing about the
+other.
 
 ---
 

@@ -308,8 +308,8 @@ class Exporter(ABC):
     def export_file(self, model: MoleculeModel, path: Path, fmt: str) -> None: ...
 
 
-class AtomFactProvider(ABC):
-    """Contributes per-atom facts to the Atom Inspector.
+class FactProvider(ABC):
+    """Contributes facts to an atom, bond or molecule report.
 
     A plugin implementing this appears in the inspector without the
     inspector knowing the plugin exists -- the same arrangement the eight
@@ -330,9 +330,33 @@ class AtomFactProvider(ABC):
 
     provider_id: str
 
-    @abstractmethod
+    #: **All three are optional and default to nothing.** A provider that
+    #: only knows about atoms implements one method and is complete; the
+    #: alternative -- three abstract methods -- would make every plugin
+    #: write two empty ones. The cost is that a provider implementing none
+    #: registers successfully and contributes nothing, which is visible the
+    #: first time somebody looks for its facts.
+
     def collect_atom_facts(
         self, mol: Chem.Mol, atom_index: int, context: dict
     ) -> list["AtomFact"]:
         """Facts about `atom_index`, or an empty list if this provider has
         nothing to say about it."""
+        return []
+
+    def collect_bond_facts(
+        self, mol: Chem.Mol, bond_index: int, context: dict
+    ) -> list["AtomFact"]:
+        """Facts about `bond_index`. Same contract, same prohibition on
+        starting work."""
+        return []
+
+    def collect_molecule_facts(self, mol: Chem.Mol, context: dict) -> list["AtomFact"]:
+        """Facts about the molecule as a whole."""
+        return []
+
+
+#: The name a dozen call sites and any existing plugin already use. It was
+#: only ever atom-specific in its name -- bonds and molecules wanted the
+#: identical registration, so the class grew rather than being copied.
+AtomFactProvider = FactProvider

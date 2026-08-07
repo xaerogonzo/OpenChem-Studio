@@ -42,7 +42,11 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.chem.atom_report import build_atom_report
+from openchem.chem.bond_report import bond_label, build_bond_report
+from openchem.chem.molecule_report import build_molecule_report
 from openchem.chem.engine import ChemistryEngine
+from openchem.domain.bond_report import BondReport
+from openchem.domain.molecule_report import MoleculeReport
 from openchem.domain.atom_report import (
     CATEGORY_LABELS,
     DEFAULT_EXPANDED,
@@ -61,6 +65,12 @@ from openchem.events.events import (
 from openchem.ui.widgets.collapsible_section import CollapsibleSection, WrappedLabel
 
 _ATOM_COLUMNS = ("#", "Element", "Facts")
+_BOND_COLUMNS = ("#", "Bond", "Facts")
+
+#: What the report is ABOUT. A molecule has exactly one subject, so it
+#: has no table -- selecting it hides the list rather than showing a
+#: one-row table that cannot be interacted with.
+_SUBJECTS = ("Atom", "Bond", "Molecule")
 
 _INTRO = (
     "Everything already known about the selected atom. Nothing here runs a "
@@ -98,11 +108,16 @@ class AtomInspectorPanel(QWidget):
         self._project: ProjectModel | None = None
         self._molecule_uuid: str | None = None
         self._atom_index: int | None = None
+        self._bond_index: int | None = None
+        self._subject = "Atom"
 
         #: molecule uuid -> everything that has arrived by event for it.
         self._context: dict[str, dict] = {}
-        #: (molecule uuid, structure version, atom index) -> report.
-        self._cache: dict[tuple[str, int, int], AtomReport] = {}
+        #: (molecule uuid, structure version, subject, index) -> report.
+        #: One cache for all three kinds: the key already had to carry
+        #: the version, and adding the subject to it is cheaper than
+        #: three dicts that can fall out of step on invalidation.
+        self._cache: dict[tuple[str, int, str, int], object] = {}
         self._sections: dict[str, CollapsibleSection] = {}
 
         self._atom_table = QTableWidget(0, len(_ATOM_COLUMNS), self)
@@ -122,6 +137,10 @@ class AtomInspectorPanel(QWidget):
         self._atom_table.verticalHeader().setVisible(False)
         self._atom_table.setMaximumHeight(220)
         self._atom_table.itemSelectionChanged.connect(self._on_row_selected)
+
+        self._subject_combo = QComboBox(self)
+        self._subject_combo.addItems(_SUBJECTS)
+        self._subject_combo.currentTextChanged.connect(self._on_subject_changed)
 
         self._search = QLineEdit(self)
         self._search.setPlaceholderText("Filter facts (element, lewis, ring...)")
@@ -148,6 +167,8 @@ class AtomInspectorPanel(QWidget):
         intro.setStyleSheet("color: #666666; font-style: italic;")
 
         controls = QHBoxLayout()
+        controls.addWidget(QLabel("Show:", self))
+        controls.addWidget(self._subject_combo)
         controls.addWidget(self._search, 1)
         controls.addWidget(self._copy_format)
         controls.addWidget(self._copy_button)
@@ -230,7 +251,30 @@ class AtomInspectorPanel(QWidget):
             self._atom_table.setSortingEnabled(True)
             return
 
-        report_cache_hits = self._context_for(model.uuid)
+        if self._subject == "Molecule":
+            # One subject, so no list. Hidden rather than shown as a single
+            # inert row that invites a click doing nothing.
+            self._atom_table.setSortingEnabled(True)
+            return
+
+        if self._subject == "Bond":
+            self._atom_table.setHorizontalHeaderLabels(_BOND_COLUMNS)
+            self._atom_table.setRowCount(mol.GetNumBonds())
+            for row in range(mol.GetNumBonds()):
+                number = QTableWidgetItem()
+                number.setData(Qt.ItemDataRole.DisplayRole, row + 1)
+                number.setData(Qt.ItemDataRole.UserRole, row)
+                self._atom_table.setItem(row, 0, number)
+                self._atom_table.setItem(row, 1, QTableWidgetItem(bond_label(mol, row)))
+                count = QTableWidgetItem()
+                count.setData(
+                    Qt.ItemDataRole.DisplayRole, len(self._report_for(row).facts)
+                )
+                self._atom_table.setItem(row, 2, count)
+            self._atom_table.setSortingEnabled(True)
+            return
+
+        self._atom_table.setHorizontalHeaderLabels(_ATOM_COLUMNS)
         self._atom_table.setRowCount(mol.GetNumAtoms())
         for row, atom in enumerate(mol.GetAtoms()):
             index = atom.GetIdx()
@@ -245,25 +289,29 @@ class AtomInspectorPanel(QWidget):
             count.setData(Qt.ItemDataRole.DisplayRole, len(self._report_for(index).facts))
             self._atom_table.setItem(row, 2, count)
         self._atom_table.setSortingEnabled(True)
-        _ = report_cache_hits
 
-    def _report_for(self, atom_index: int) -> AtomReport:
-        """The report for one atom, cached by structure version.
+    def _report_for(self, index: int):
+        """The report for one subject, cached by structure version.
 
         The version comes from `StructureCheckService`, the counter that
         already exists and already increments on every structure change.
         Reusing it means a report cannot outlive the structure it
         describes, and means there is one such mechanism rather than two.
+
+        One function for all three kinds because the caching, the version
+        and the provider list are identical for each -- only the builder
+        differs, and branching on that is smaller than three copies of the
+        surrounding logic.
         """
         model, mol = self._molecule()
         if mol is None or model is None:
-            return AtomReport(molecule_uuid="", atom_index=atom_index)
+            return AtomReport(molecule_uuid="", atom_index=index)
 
         version = 0
         if self._structure_check_service is not None:
             version = self._structure_check_service.current_version(model.uuid)
 
-        key = (model.uuid, version, atom_index)
+        key = (model.uuid, version, self._subject, index)
         cached = self._cache.get(key)
         if cached is not None:
             return cached
@@ -271,14 +319,21 @@ class AtomInspectorPanel(QWidget):
         providers = ()
         if self._atom_fact_service is not None:
             providers = self._atom_fact_service.providers()
-        report = build_atom_report(
-            mol,
-            atom_index,
-            molecule_uuid=model.uuid,
-            structure_version=version,
-            context=self._context_for(model.uuid),
-            providers=providers,
-        )
+        context = self._context_for(model.uuid)
+        common = {
+            "molecule_uuid": model.uuid,
+            "structure_version": version,
+            "context": context,
+            "providers": providers,
+        }
+        if self._subject == "Bond":
+            report = build_bond_report(mol, index, **common)
+        elif self._subject == "Molecule":
+            report = build_molecule_report(
+                mol, **{**common, "context": {**context, "display_name": model.display_name}}
+            )
+        else:
+            report = build_atom_report(mol, index, **common)
         self._cache[key] = report
         return report
 
@@ -290,8 +345,15 @@ class AtomInspectorPanel(QWidget):
         cell = self._atom_table.item(row, 0)
         if cell is None:
             return
-        self._atom_index = cell.data(Qt.ItemDataRole.UserRole)
-        self.atom_selected.emit(self._atom_index)
+        index = cell.data(Qt.ItemDataRole.UserRole)
+        if self._subject == "Bond":
+            self._bond_index = index
+        else:
+            self._atom_index = index
+            # Only atoms drive the viewers' highlight. Emitting a bond row
+            # as an atom index would highlight an unrelated atom, which is
+            # worse than highlighting nothing.
+            self.atom_selected.emit(index)
         self._render_facts()
 
     def select_atom(self, atom_index: int) -> None:
@@ -301,11 +363,43 @@ class AtomInspectorPanel(QWidget):
         because the table is sortable and the two stop matching the moment
         somebody sorts by element.
         """
+        self._select_row_for(atom_index)
+
+    def select_bond(self, bond_index: int) -> None:
+        """Select a bond from outside, by index rather than by row.
+
+        Same reason as `select_atom`, and it is not hypothetical here: a
+        test that assumed row 0 held bond 0 got bond 16, because the table
+        keeps whatever sort order was last applied.
+        """
+        self._select_row_for(bond_index)
+
+    def _select_row_for(self, index: int) -> None:
         for row in range(self._atom_table.rowCount()):
             cell = self._atom_table.item(row, 0)
-            if cell is not None and cell.data(Qt.ItemDataRole.UserRole) == atom_index:
+            if cell is not None and cell.data(Qt.ItemDataRole.UserRole) == index:
                 self._atom_table.selectRow(row)
                 return
+
+    def _selected_index(self) -> int | None:
+        """Which subject is showing, or None when nothing is selected.
+
+        A molecule always has one, so it needs no selection -- returning 0
+        here is what lets the render path stay identical for all three.
+        """
+        if self._subject == "Molecule":
+            return 0 if self._molecule()[1] is not None else None
+        if self._subject == "Bond":
+            return self._bond_index
+        return self._atom_index
+
+    def _on_subject_changed(self, subject: str) -> None:
+        self._subject = subject
+        # A molecule has one subject, so the row list is meaningless for it
+        # and is hidden rather than shown holding a single inert row.
+        self._atom_table.setVisible(subject != "Molecule")
+        self._rebuild_atom_table()
+        self._render_facts()
 
     # --- rendering ---------------------------------------------------------
 
@@ -317,13 +411,21 @@ class AtomInspectorPanel(QWidget):
 
     def _render_facts(self) -> None:
         self._clear_sections()
-        if self._atom_index is None:
-            self._title.setText("No atom selected")
-            self._status.setText("Select an atom above to see what is known about it.")
+        index = self._selected_index()
+        if index is None:
+            noun = self._subject.lower()
+            self._title.setText(f"No {noun} selected")
+            self._status.setText(f"Select a {noun} above to see what is known about it.")
             return
 
-        report = self._report_for(self._atom_index)
-        self._title.setText(f"Atom {report.atom_index + 1} — {report.symbol}")
+        report = self._report_for(index)
+        if isinstance(report, MoleculeReport):
+            name = report.display_name or report.formula or "Molecule"
+            self._title.setText(f"{name} — {report.formula}")
+        elif isinstance(report, BondReport):
+            self._title.setText(f"Bond {report.bond_index + 1} — {report.label}")
+        else:
+            self._title.setText(f"Atom {report.atom_index + 1} — {report.symbol}")
 
         needle = self._search.text()
         # By identity, NOT by hashing. `AtomFact` is a frozen dataclass and
@@ -409,8 +511,48 @@ class AtomInspectorPanel(QWidget):
         )
 
 
-def format_report(report: AtomReport, fmt: str) -> str:
-    """One atom's report as text.
+def report_header(report) -> str:
+    """How a report names its own subject.
+
+    One function so a title, a Markdown heading and a plain-text banner
+    cannot disagree about what the report is about.
+    """
+    if isinstance(report, MoleculeReport):
+        name = report.display_name or report.formula or "Molecule"
+        return f"{name} ({report.formula})" if report.formula else name
+    if isinstance(report, BondReport):
+        return f"Bond {report.bond_index + 1} ({report.label})"
+    return f"Atom {report.atom_index + 1} ({report.symbol})"
+
+
+def _subject_fields(report) -> dict:
+    """The identity keys for JSON, which differ per subject.
+
+    Kept separate from the fact serialisation because the facts are the
+    same shape for all three and only the subject is not -- "anything else
+    that grows a report" was the stated reason these formats were a module
+    function, and this is that."""
+    if isinstance(report, MoleculeReport):
+        return {
+            "subject": "molecule",
+            "display_name": report.display_name,
+            "formula": report.formula,
+            "atom_count": report.atom_count,
+            "bond_count": report.bond_count,
+        }
+    if isinstance(report, BondReport):
+        return {
+            "subject": "bond",
+            "bond_index": report.bond_index,
+            "label": report.label,
+            "begin_atom_index": report.begin_atom_index,
+            "end_atom_index": report.end_atom_index,
+        }
+    return {"subject": "atom", "atom_index": report.atom_index, "symbol": report.symbol}
+
+
+def format_report(report, fmt: str) -> str:
+    """One report as text, whatever its subject.
 
     Four formats because the destinations differ: Markdown for an issue or
     a notebook, plain text for an email, JSON for a script or an LLM, CSV
@@ -418,15 +560,14 @@ def format_report(report: AtomReport, fmt: str) -> str:
     formats are testable without constructing a panel -- and so anything
     else that grows a report can reuse them.
     """
-    header = f"Atom {report.atom_index + 1} ({report.symbol})"
+    header = report_header(report)
     grouped = report.by_category()
 
     if fmt == "JSON":
         return json.dumps(
             {
                 "molecule_uuid": report.molecule_uuid,
-                "atom_index": report.atom_index,
-                "symbol": report.symbol,
+                **_subject_fields(report),
                 "structure_version": report.structure_version,
                 "facts": [
                     {
