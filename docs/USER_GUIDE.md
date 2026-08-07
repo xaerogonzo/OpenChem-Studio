@@ -637,6 +637,36 @@ F1 without clicking inside it, you get help for whatever you last typed in.
 
 ---
 
+<!-- help:compare -->
+## Compare
+
+Tick two or more molecules and see their values side by side — one row per
+property, one column per molecule.
+
+**It never calculates anything.** The values are the ones other panels have
+already computed, so opening Compare is free and a blank cell means *that
+calculator has not run for that molecule* — not that it has no value. Run
+what you want in Properties first; the columns fill in as results arrive.
+
+**Differences only** is the reason to open it. Two related structures agree
+on most of a long table, so hiding the rows where they match leaves the
+handful that answer the question. Aspirin against salicylic acid comes down
+to a few rows rather than sixty.
+
+A property one molecule has and another does not counts as a difference, and
+stays visible — a missing value is usually the interesting thing.
+
+If every property matches, the panel says so rather than looking empty: two
+molecules agreeing on everything computed is a result, not a blank screen.
+
+**Copy table** puts the whole thing on the clipboard as tab-separated text,
+which pastes straight into a spreadsheet.
+
+You can also reach this from any report: right-click it and choose
+**Compare with…**.
+
+---
+
 <!-- help:batch -->
 ## Batch mode
 

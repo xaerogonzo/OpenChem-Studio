@@ -72,6 +72,7 @@ from openchem.ui.visualization import build_interaction_layers
 from openchem.ui.panels.structure_check_panel import StructureCheckPanel
 from openchem.ui.widgets.checker_status_indicator import CheckerStatusIndicator
 from openchem.ui.widgets.dock_title_bar import DockTitleBar
+from openchem.ui.panels.comparison_panel import ComparisonPanel
 from openchem.ui.widgets.panel_rail import DEFAULT_GROUP, PanelRail
 from openchem.ui.widgets.molecule_editor_widget import MoleculeEditorWidget
 from openchem.ui.widgets.molecule_viewer3d_widget import MoleculeViewer3DWidget
@@ -103,6 +104,7 @@ HELP_TOPIC_BY_DOCK = {
     "Docking": "docking",
     "Quantum_Chemistry": "quantum-chemistry",
     "Batch": "batch",
+    "Compare": "compare",
     "Structure_Check": "structure-check",
     "3D_Alignment": "alignment",
     "Atom_Inspector": "atom-inspector",
@@ -201,6 +203,7 @@ class MainWindow(QMainWindow):
         )
         self._atom_inspector_panel.link_activated.connect(self._on_atom_fact_link)
         self._atom_inspector_panel.atoms_highlighted.connect(self._on_facts_highlighted)
+        self._atom_inspector_panel._facts.compare_requested.connect(self._on_compare_requested)
         # The 3D viewer already reports clicks -- it has since the distance
         # measurement was built -- so this is a connection, not new
         # integration. The atom TABLE stays the primary navigation: a
@@ -285,6 +288,12 @@ class MainWindow(QMainWindow):
         batch_dock = self._add_dock(
             "Batch", self._wrap_scrollable(self._batch_panel), Qt.DockWidgetArea.RightDockWidgetArea
         )
+        self._comparison_panel = ComparisonPanel(services.event_bus, self)
+        compare_dock = self._add_dock(
+            "Compare",
+            self._wrap_scrollable(self._comparison_panel),
+            Qt.DockWidgetArea.RightDockWidgetArea,
+        )
         self._structure_check_dock = self._add_dock(
             "Structure Check",
             self._wrap_scrollable(self._structure_check_panel),
@@ -319,6 +328,7 @@ class MainWindow(QMainWindow):
             alignment_dock,
             jobs_dock,
             batch_dock,
+            compare_dock,
         ]
         for dock, group in (
             (self._properties_dock, "analysis"),
@@ -330,6 +340,7 @@ class MainWindow(QMainWindow):
             (alignment_dock, "compute"),
             (jobs_dock, "compute"),
             (batch_dock, "compare"),
+            (compare_dock, "compare"),
         ):
             self._panel_rail.register(dock.objectName(), dock.windowTitle(), group)
         self._show_only_right_dock(self._properties_dock)
@@ -430,6 +441,13 @@ class MainWindow(QMainWindow):
             return
         self._show_only_right_dock(dock)
         dock.setFocus()
+        # Keep the rail agreeing with the screen. Reached from a rail
+        # click this is a no-op; reached from anywhere ELSE -- "Compare
+        # with...", a plugin revealing its panel, the command palette --
+        # it is what stops the rail highlighting one group while a panel
+        # from another is on screen. `select_panel` does not re-emit, so
+        # this cannot loop.
+        self._panel_rail.select_panel(panel_id)
 
     def _on_favourite_toggled(self, _panel_id: str = "", _pinned: bool = False) -> None:
         self._settings.set("ui/pinned_panels", ",".join(self._panel_rail.favourites()))
@@ -445,6 +463,27 @@ class MainWindow(QMainWindow):
         panel is indistinguishable from the shortcut not working."""
         self._on_panel_chosen("Atom_Inspector")
         self._atom_inspector_panel.focus_search()
+
+    def _on_compare_requested(self, report) -> None:
+        """"Compare with..." on a report opens Compare, already loaded.
+
+        The lens half of the hybrid: comparison is a destination of its
+        own AND something you reach from whatever you are already looking
+        at. Pre-ticking the report's molecule plus the selected one means
+        the table is populated on arrival rather than an empty grid to
+        reconstruct -- which is the difference between a feature people
+        use and one they find once.
+
+        Falls back to just the report's own molecule when there is nothing
+        obvious to pair it with; the panel then says what to tick.
+        """
+        uuid = getattr(report, "molecule_uuid", "")
+        chosen = [uuid] if uuid else []
+        selected = self._session.selected_molecule_uuid
+        if selected and selected != uuid:
+            chosen.append(selected)
+        self._comparison_panel.compare_with(chosen)
+        self._on_panel_chosen("Compare")
 
     def _on_facts_highlighted(self, atom_indices: tuple) -> None:
         """Paint the atoms a hovered fact is about.
@@ -899,6 +938,7 @@ class MainWindow(QMainWindow):
         self._alignment_panel.set_project(project)
         self._interactions_panel.set_project(project)
         self._atom_inspector_panel.set_project(project)
+        self._comparison_panel.set_project(project)
         self._batch_panel.set_project(project)
         self.setWindowTitle(f"OpenChem Studio - {project.name}")
         if not project.molecules:

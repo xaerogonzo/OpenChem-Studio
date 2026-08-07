@@ -301,3 +301,59 @@ def test_every_right_hand_dock_is_reachable_from_the_rail(qapp, tmp_path):
             f'"{dock.windowTitle()}" is a right-hand dock that the rail '
             "does not list, so nothing can open it"
         )
+
+
+def test_compare_with_opens_the_panel_already_loaded(qapp, tmp_path):
+    """The lens half of the hybrid: comparison is a destination of its own
+    AND something you reach from whatever you are looking at.
+
+    Arriving at an empty grid you have to reconstruct is the difference
+    between a feature people use and one they find once.
+    """
+    from openchem.domain.report import ReportResult
+
+    window, session, _ = _make_window(tmp_path)
+    window._new_molecule()
+    first, second = session.project.molecules[0], session.project.molecules[1]
+    session.select_molecule(second.uuid)
+
+    window._on_compare_requested(
+        ReportResult(molecule_uuid=first.uuid, report_id="x", name="X")
+    )
+
+    assert window._comparison_panel._chosen == [first.uuid, second.uuid]
+    visible = [d.windowTitle() for d in window._right_docks if not d.isHidden()]
+    assert visible == ["Compare"], visible
+
+
+def test_compare_with_falls_back_to_one_molecule_rather_than_failing(qapp, tmp_path):
+    """When there is nothing obvious to pair it with, the panel then says
+    what to tick -- which beats refusing to open."""
+    from openchem.domain.report import ReportResult
+
+    window, session, _ = _make_window(tmp_path)
+    only = session.project.molecules[0]
+    session.select_molecule(only.uuid)
+
+    window._on_compare_requested(
+        ReportResult(molecule_uuid=only.uuid, report_id="x", name="X")
+    )
+
+    assert window._comparison_panel._chosen == [only.uuid]
+    assert "Tick two or more" in window._comparison_panel.empty_message()
+
+
+def test_the_rail_follows_a_panel_opened_from_somewhere_else(qapp, tmp_path):
+    """"Compare with..." showed the Compare panel while the rail still
+    highlighted Analysis -- navigation claiming one thing while the screen
+    shows another, which is worse than either alone."""
+    from openchem.domain.report import ReportResult
+
+    window, session, _ = _make_window(tmp_path)
+    assert window._panel_rail.current_group() == "analysis"
+
+    window._on_compare_requested(
+        ReportResult(molecule_uuid=session.project.molecules[0].uuid, report_id="x", name="X")
+    )
+
+    assert window._panel_rail.current_group() == "compare"

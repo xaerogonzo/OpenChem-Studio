@@ -30,6 +30,7 @@ from openchem.domain.comparison import (
 )
 from openchem.domain.common import CATEGORICAL_SCALE, CacheState, Provenance
 from openchem.domain.scientific_result import PerAtomDataset
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
@@ -302,3 +303,99 @@ def _summary_note(result: PerAtomDataset) -> str:
         return str(provenance.parameters.get("summary", "") or "")
     except AttributeError:
         return ""
+
+
+# --- comparing molecules on their reported VALUES ---------------------------
+#
+# The existing machinery above compares one calculator's PER-ATOM data
+# between two structures, which needs atom correspondence and is the hard
+# case. This is the everyday one: aspirin against salicylic acid, on
+# molecular weight and TPSA and LogP, side by side.
+#
+# Kept in `chem/` rather than in the panel so it is testable without Qt,
+# and so the AI assistant and any export can reach the same rows.
+
+
+@dataclass(frozen=True)
+class ValueRow:
+    """One property across every molecule being compared.
+
+    `values` is positional and always the same length as the molecule
+    list, with `""` where a molecule has no such value -- a ragged row
+    would put a number under the wrong heading, which is the one failure
+    mode a comparison table must not have.
+    """
+
+    label: str
+    units: str
+    values: tuple[str, ...]
+    #: Whether the molecules disagree. Absence counts as disagreement: a
+    #: property one molecule has and another does not IS a difference, and
+    #: hiding that row under "differences only" would be the more
+    #: misleading of the two choices.
+    differs: bool
+
+    def numeric_values(self) -> tuple[float | None, ...]:
+        """The values as numbers where they are numbers.
+
+        Offered rather than stored: a row is built from display strings so
+        it can carry "C9H8O4" and "ambiphilic" as readily as "180.16", and
+        a consumer that wants to sort or plot asks for the numbers.
+        """
+        out: list[float | None] = []
+        for text in self.values:
+            try:
+                out.append(float(text.split()[0]) if text else None)
+            except (ValueError, IndexError):
+                out.append(None)
+        return tuple(out)
+
+
+def compare_values(
+    columns: list[tuple[str, dict[str, tuple[str, str]]]],
+) -> list[ValueRow]:
+    """Molecules side by side, one row per property.
+
+    `columns` is ordered `(molecule_name, {label: (display_value, units)})`.
+    Ordered rather than a mapping because the caller chose the column
+    order and a dict would silently reorder it.
+
+    **Rows come out in first-seen order, not sorted.** A calculator emits
+    its facts in a deliberate order -- formula before mass before
+    composition -- and alphabetising would scatter that. A property only
+    the third molecule has appears after the ones the first two share,
+    which is also the order somebody added them.
+    """
+    order: list[str] = []
+    units_by_label: dict[str, str] = {}
+    for _name, values in columns:
+        for label, (_display, units) in values.items():
+            if label not in units_by_label:
+                order.append(label)
+                units_by_label[label] = units
+            elif not units_by_label[label]:
+                units_by_label[label] = units
+
+    rows: list[ValueRow] = []
+    for label in order:
+        cells = tuple(values.get(label, ("", ""))[0] for _name, values in columns)
+        rows.append(
+            ValueRow(
+                label=label,
+                units=units_by_label[label],
+                values=cells,
+                differs=len(set(cells)) > 1,
+            )
+        )
+    return rows
+
+
+def differing_rows(rows: list[ValueRow]) -> list[ValueRow]:
+    """Only the rows where the molecules disagree.
+
+    THE FEATURE THAT MAKES A COMPARISON WORTH OPENING. Aspirin against
+    salicylic acid share most of a sixty-row table; the four rows that
+    differ are the answer, and finding them by eye is the work the table
+    was supposed to save.
+    """
+    return [row for row in rows if row.differs]

@@ -407,6 +407,15 @@ it).
   `app/main_window.py` discards a saved layout from before the change,
   because `restoreState` restores tabification.
 
+- **Comparison is a destination and a lens.** `chem/comparison.py`'s
+  `compare_values`/`differing_rows` put molecules in columns and
+  properties in rows, from values other panels have already published;
+  `ui/panels/comparison_panel.py` is the surface and "Compare with..." on
+  any report is the way in. The panel never computes -- a blank cell means
+  that calculator has not run. Absence counts as a difference, rows keep
+  producer order, and "everything agrees" is reported as a result rather
+  than an empty table.
+
 - **Empty states are derived, never registered.** Every surface answers
   "what do you show when you have nothing", and the guard asks the panel
   rather than reading a list beside it -- so a tab that shows nothing

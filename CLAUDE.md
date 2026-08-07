@@ -53,8 +53,8 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **3-4.5 minutes**, ending at `2858 passed, 2 skipped,
-1 deselected` (measured 2026-08-07 with the presentation-layer Phase 0-4
+A clean run is **3-4.5 minutes**, ending at `2877 passed, 2 skipped,
+1 deselected` (measured 2026-08-07 with the presentation-layer Phase 0-5
 work applied, bytecode cleared; it was 2788 before that). **That figure is
 from the DESELECTED form below, not the command above** -- run it bare and
 the same tree reports one FAILURE, from the network test explained next.
@@ -951,6 +951,54 @@ duplicates on screen.
 
 Hit immediately, in a scratchpad script that printed the panel back:
 `UnicodeEncodeError: 'charmap' codec can't encode character '✕'`.
+
+### Comparison: the engine existed, the way in did not
+
+`chem/comparison.py` had `atom_correspondence`, `build_comparison` and
+`deltas_against` since the LED work, reachable from exactly one place --
+a tab inside `BatchAnalysisDialog`, behind building a batch table first.
+So "how do these two molecules differ", which is a question people ask
+constantly, required a workflow nobody would guess at.
+
+`compare_values` is the everyday case beside that per-atom machinery:
+molecules in columns, properties in rows, built from the values other
+panels have already published. **The panel never computes** -- a blank
+cell means that calculator has not run for that molecule, and the intro
+says so, because a comparison view that silently launches forty
+calculators is one people stop opening.
+
+**"Differences only" is the feature, not a filter.** Measured live on the
+motivating pair: aspirin against salicylic acid is **15 differing rows
+out of 29**, and finding those 15 by eye is exactly the work the table was
+supposed to save.
+
+Three decisions worth keeping:
+
+- **Absence counts as a difference.** A property one molecule has and
+  another does not stays visible under "differences only" -- a missing
+  value is usually the interesting thing, and hiding it would be the more
+  misleading of the two choices.
+- **Rows keep producer order, never alphabetical.** A calculator emits
+  formula before mass before composition deliberately, and sorting
+  scatters that.
+- **Agreeing on everything is a RESULT, not an empty table.** Two
+  molecules matching on every property known says something, so that
+  empty state differs from "nothing computed yet".
+
+The ticks do NOT follow the tree selection, for the same reason the
+Interactions panel's two combos do not: the comparison is a deliberate
+choice, and reshuffling it because somebody clicked elsewhere would
+silently change what the table on screen describes.
+
+#### The rail must follow a panel opened from anywhere
+
+"Compare with..." showed the Compare panel while the rail still
+highlighted Analysis. `_on_panel_chosen` now calls
+`PanelRail.select_panel`, which is a no-op when the rail itself was the
+caller and is what keeps the two in step for every other route -- a
+plugin revealing its panel, a cross-link, the command palette. Navigation
+claiming one thing while the screen shows another is worse than either
+alone.
 
 ### `AlertResult` was carrying twenty reports and five alerts
 
