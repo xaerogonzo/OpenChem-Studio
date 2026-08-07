@@ -776,11 +776,22 @@ The toolchain moved from vite 5.4.21 to 6.4.3 to clear six dependabot
 alerts, and the dist was regenerated on it. Worth knowing before the next
 bundler bump:
 
-**It costs about 35 MB of permanent git history**, because the dist is
-one 34 MB bundled JS file and a bundler major rewrites all of it. Against
-a `.git` of roughly 40 MB that roughly doubles the repository. Only the
-CSS survived unchanged (`index-DaFekdiN.css`, byte-identical hash); all
-three JS chunks were replaced.
+**It costs almost nothing, and the obvious estimate is wrong by two
+orders of magnitude.** Measured, `git count-objects -vH` before and after
+the commit plus a `gc`:
+
+    size-pack  15.27 MiB  ->  15.59 MiB      +0.32 MB
+
+against a rewritten 34 MB JS file. Reasoning from FILE SIZE predicted
+~35 MB and talked this rebuild out of happening once; the pack barely
+moved because **minification is disabled here** (a TDZ bug in
+ketcher-core's circular imports, see the config) so the bundle is
+line-structured text that deltas against its predecessor almost
+perfectly. Git even records the assets as renames-with-changes rather
+than new blobs. Only the CSS was byte-identical
+(`index-DaFekdiN.css`); all three JS chunks were replaced.
+
+Measure the pack, not the file, before refusing a rebuild on size.
 
 **No security depended on it.** All four vite/esbuild advisories are
 DEV-SERVER issues -- `server.fs.deny` bypass, launch-editor NTLM, `.map`
