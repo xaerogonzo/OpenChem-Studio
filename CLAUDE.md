@@ -770,6 +770,34 @@ directory for anything to change; `resources/ketcher/dist/` is build
 output. node and npm are installed, and a build takes about a minute
 (measured 54 s and 1m00 on two bond-selection rebuilds).
 
+#### The committed bundle is older than the toolchain that would rebuild it
+
+**Deliberate, and not drift.** `package-lock.json` was moved to vite 6.4.3
+to clear six dependabot alerts; the committed dist under
+`src/openchem/resources/ketcher/dist/` is still the vite 5.4.21 output and
+was NOT regenerated.
+
+The reason is a measurement: that dist is **34 MB in a single bundled JS
+file**, and a bundler major bump rewrites all of it. Against a `.git` of
+about 40 MB, committing a rebuild costs ~35 MB of permanent history --
+and buys nothing, because **all four vite/esbuild advisories are
+dev-server issues** (`server.fs.deny` bypass, launch-editor NTLM, `.map`
+path traversal, dev-server CORS) and this project has no dev server:
+`package.json` declares exactly one script, `build`. The output bundle is
+not affected by any of them.
+
+The vite 6 build WAS verified rather than assumed, so the next person to
+edit the JSX is not the one who finds out whether it works: it compiles
+(39.6 s, and the CSS asset hash comes out byte-identical), and all 8 of
+`tests/test_ketcher_editor_backend.py` pass against it through the real
+QtWebEngine, molblock round-trips included. Repoint `_DIST_INDEX` with a
+one-line pytest plugin (`-p`) to re-run that check; no repo mutation is
+needed.
+
+`brace-expansion`, `uuid` and `nanoid` are pinned through npm `overrides`
+because they arrive transitively (via `dpdm`, `vite-plugin-top-level-await`
+and `postcss`) and their own CVEs are not dev-server-only.
+
 **Forgetting the rebuild is silent** -- the tests pass, the app starts, and
 the feature is simply absent. `tests/test_ketcher_bundle_is_current.py`
 catches it: it extracts every `bridgeObject.foo(` from the JSX and asserts
