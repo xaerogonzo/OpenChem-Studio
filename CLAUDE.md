@@ -1020,175 +1020,121 @@ it, which is what let the three mechanisms below coexist behind one
 guard. Verified by simulating the mistake: removing one tab's placeholder
 fails naming the tab.
 
-#### READ THIS BEFORE ADDING A WIDGET TO ANY PANEL MainWindow BUILDS
+#### SOLVED: the teardown collect was DESTROYING MainWindows
 
-**Adding widgets to a panel corrupts the heap.** Windows fatal exception
-`0xc0000374`, raised inside the teardown `gc.collect()`, in a test
-hundreds of tests away from the change. It is deterministic -- the same
-test index every run -- which is the one merciful thing about it and the
-only reason it is tractable.
+Windows fatal exception `0xc0000374` (heap corruption), raised inside the
+`gc.collect()` in `pytest_runtest_logfinish`, in whichever test was
+unlucky. **It cost about fifteen full suite runs across three phases of
+UI work**, and every appearance looked at first like an unrelated failure
+somewhere else.
 
-**It is NOT confined to `QuantumChemistryPanel`**, which is what this
-section said until the `FactView` extraction hit exactly the same wall in
-the ATOM INSPECTOR. Whatever it is, it is about panels a MainWindow
-builds, and this is now the third distinct panel and the fourth distinct
-shape of change to trigger it.
+**Collecting a `MainWindow` corrupts the heap.** A window a test builds
+has no Qt parent, so PySide gives Python ownership, and freeing the
+wrapper deletes the C++ window. The window sits in a reference cycle
+nothing else breaks, so the thing that eventually frees it is the
+teardown collect. `tests/conftest.py` now retains every MainWindow for
+the session, and `test_main_windows_are_deliberately_never_collected`
+fails if that retainer is removed.
 
-**This has cost about fifteen full suite runs across two phases.** Every
-one of them looked at first like an unrelated failure somewhere else.
+**This is the project's own conclusion, finally made true.** The sections
+below record two earlier attempts to destroy abandoned MainWindows, both
+of which made the suite crash MORE, and both concluded "leave them". What
+nobody had noticed was that the collect was destroying them anyway --
+`pytest_runtest_logfinish`'s own docstring asserted it "does not destroy
+anything itself", which was wrong.
 
-What is measured:
+##### Why it looked like "adding a widget breaks it"
 
-    +7 placeholder widgets across its tab pages    full suite dead @1150
-    +3 placeholder widgets (empty tabs only)       full suite green
-    +1 CollapsibleSection anywhere in it           full suite dead @1152
-    reparenting an existing widget into a tab      full suite green
-    a much larger composite added to a TOOLBAR     full suite green
+Because the crash is **non-monotonic in widget count**, which is the tell
+that it is a corrupting free whose VICTIM depends on heap layout, not a
+capacity being exceeded. Measured with a tunable probe that adds N empty
+`QLabel`s to a panel, on the 20-second reproduction:
 
-**The working rule: prefer a change that adds no widget.** Reparent
-something that already exists, paint into a widget that is already there,
-or use a native affordance (`QPlainTextEdit.setPlaceholderText`,
-`QListWidget` rows). All four of this panel's empty-state mechanisms
-follow it.
+    0, 1, 2, 4 extra labels    clean
+    8, 16 extra labels         CRASH
+    32 extra labels            clean
 
-##### SEVEN hypotheses have been tested and are WRONG
+So the widgets never caused anything; they shuffled the heap until the
+freed window's memory happened to be adjacent to something that mattered.
+Every "prefer a change that adds no widget" rule written into this file
+across two commits was a superstition that worked by luck, and all of it
+has been deleted.
 
-Recorded so nobody pays for them again. Each was tested against the FULL
-suite, because no shorter arm settles it:
+##### How it was found, in the order that worked
 
-1. *The `dict[QWidget, ...]` holding the placeholders* (PySide hashes on
-   the C++ pointer, which Qt frees with the parent). Removed it -- still
-   dead, same test index.
-2. *Hiding the sibling content.* Suppressed every visibility change --
-   still dead, same index.
-3. *The new test file shifting collection order.* Removed it -- still
-   dead, four tests earlier.
-4. *"A placeholder in a tab page that already holds widgets."* This was
-   written into this file as the rule and is **wrong**: the log's
-   `CollapsibleSection` went into the panel's MAIN LAYOUT and died the
-   same way.
-5. *Python-derived widget subclasses.* `WrappedLabel` and
-   `CollapsibleSection` are Python-derived and live happily elsewhere; a
-   plain `QLabel` still killed the suite.
-6. *This panel being the census's worst leaker* (104 of 138 late
-   destructions from `test_quantum_chemistry_panel.py`). Gave that file
-   the per-widget disposal recipe for all 15 panels it abandons, then
-   re-added the known-fatal `CollapsibleSection`: **still dead at 1152.**
-   Disposal was reverted, since it fixed nothing and this file already
-   records explicit disposal making things worse twice.
-7. *Destroying a MainWindow that contains the extra widget.* Built, shown,
-   closed and force-collected three windows in a row with the fatal change
-   in place: no crash. It needs the accumulated state of ~1150 preceding
-   tests, which is why no small reproduction has been found.
+1. **A tunable probe driven by an environment variable**, so an A/B needs
+   no file edit at all. Three arms in an earlier bisect had silently
+   tested an unmodified file.
+2. **`PYTHONMALLOC=debug` reported nothing**, which rules out Python's
+   allocator and says the corruption is in the C++ heap.
+3. **`gc.DEBUG_SAVEALL` made it clean.** That is the decisive step: with
+   nothing freed there is no crash, so the crash is in FREEING a member
+   of a cycle, and `gc.garbage` then holds the exact candidates.
+4. **Retaining one class at a time** named it. Patching `__init__` to
+   append to a global list prevents collection at the source:
 
-**The mechanism is still unknown.** What tracks it exactly is only "a
-widget was added to this panel".
+        retain nothing                          crashed
+        retain MainWindow                       clean
+        retain the three viewer backends        crashed
+        retain QWebEngineView + QWebChannel     crashed
 
-##### It cost `FactView`, and that is the shape of the problem now
+Retaining the windows also made the reproduction **twice as fast** (1.76 s
+to 0.85 s), because destroying them was expensive. Full suite: 2846
+passed, peak working set 760 MB.
 
-Phase 3 of the presentation work extracted the report renderer into one
-widget. `AtomInspectorPanel` was converted to use it and **all 45 of its
-tests passed** -- the extraction is correct. The full suite then died.
+##### Six hypotheses that are WRONG
 
-Measured on a 20-second two-file reproduction
-(`test_receptor_library_dialog.py` + `test_regulatory_calculator.py`),
-against 0/3 on master:
+Recorded so nobody pays for them again. Each was tested against the full
+suite; two of them this file previously asserted as the rule.
 
-    panel adopts FactView                       crashed 3/3
-    ... no `_FactRow` subclass (no hover)        crashed 3/3
-    ... no Ctrl+Shift+F QAction                  crashed 3/3
-    ... summary and filter never added to a layout   crashed 3/3
-    ... FactView built but never added to the panel  crashed 3/3
-    formatters shared, no widget change          clean 3/3
-
-So it is CONSTRUCTING widgets that matters, not where they are put. The
-widget-free half of the extraction (`ui/report_format.py`) shipped;
-`ui/widgets/fact_view.py` ships tested but wired to nothing, and its
-docstring says so.
+1. *The `dict[QWidget, ...]` holding placeholders.* Removed -- still dead.
+2. *Hiding sibling content.* Suppressed every visibility change -- still
+   dead.
+3. *A new test file shifting collection order.* Removed -- still dead.
+4. *"A placeholder in a tab page that already holds widgets."* The log's
+   `CollapsibleSection` went into a main layout and died the same way.
+5. *Python-derived widget subclasses.* A plain `QLabel` killed it too.
+6. *That panel's leaked test widgets.* `test_quantum_chemistry_panel.py`
+   abandons 15 panels and accounts for 104 of 138 late destructions;
+   giving it the per-widget disposal recipe and re-adding the fatal
+   widget **still died at the same test index**.
 
 ##### AN ARM THAT DOES NOT RUN IS NOT AN ARM
 
-Three arms in that bisect reported a comfortable "no crash" and were
-worthless, for a reason worth knowing in advance: **removing the widget
-under test usually breaks MainWindow construction**, so the tests ERROR
-instead of running -- and the crash needs a MainWindow to exist. A
-harness that only greps for `fatal exception` scores that as a pass.
-
-Check that the arm produced the SAME NUMBER OF PASSING TESTS as the
-control, not merely that it did not crash:
+Three arms reported a comfortable "no crash" and were worthless.
+**Removing the widget under test usually breaks MainWindow
+construction**, so the tests ERROR instead of running -- and the crash
+needs a MainWindow to exist. A harness that only greps for
+`fatal exception` scores that as a pass. Check the passing-test COUNT
+against the control:
 
 ```bash
 uv run --no-sync python -m pytest -q tests/test_receptor_library_dialog.py tests/test_regulatory_calculator.py 2>&1 | tail -1
 ```
 
-This is the second version of the same lesson. The first was a mutation
-script whose edit never landed; this one is a mutation whose edit landed
-and whose TEST never ran.
+That pair is the **20-second reproduction**, and having one is what made
+the root cause findable at all after three phases of 3.5-minute arms.
 
-##### How to find it fast when it happens
+This is the second version of a lesson already in this file. The first
+was a mutation script whose edit never landed; this is an edit that
+landed and a test that never ran.
 
-The signature is a truncated `-q` progress line followed by
-`Windows fatal exception: code 0xc0000374` and a traceback whose top
+##### If it ever comes back
+
+The signature is a truncated `-q` progress line, then
+`Windows fatal exception: code 0xc0000374`, then a traceback whose top
 frame is `conftest.py ... pytest_runtest_logfinish` / `Garbage-collecting`.
 
-Count how far it got, and name the test:
+Count how far it got and name the test:
 
 ```bash
 awk '/^[.sFEx]+/ {gsub(/[^.sFEx]/,"",$0); n+=length($0)} END {print n}' /tmp/suite.log
 ```
 
-```bash
-uv run --no-sync python -m pytest -q --collect-only --deselect tests/test_naming_providers.py::test_pubchem_name_round_trips_back_through_opsin 2>/dev/null | grep "::" | sed -n "$((N+1))p"
-```
-
-**Pin the baseline before blaming yourself OR the suite.** `git stash`
-everything and run master: it is clean at the count in this file. This
-file's own warnings about flaky access violations would otherwise excuse
-a crash that is entirely reproducible and entirely yours.
-
-Sometimes a two-file pair reproduces it in 12 seconds, which makes
-bisection cheap -- worth trying before committing to 3.5-minute arms:
-
-```bash
-uv run --no-sync python -m pytest -q tests/test_main_window_conformers.py tests/test_main_window_docking_visualization.py
-```
-
-That pair caught the placeholder-widget version. It did NOT catch the
-`CollapsibleSection` one, so a clean canary is not a clean bill of health.
-
-**Any bisect script MUST assert its edit landed.** Three arms were once
-run from a Git-Bash `/tmp` path the Windows Python could not read, so all
-three silently tested the unmodified file and reported a confident CRASH
--- the control, three times.
-
-**Three hypotheses were tested against the full suite and are wrong** --
-recorded so nobody pays for them twice:
-
-- not the `dict[QWidget, ...]` holding the placeholders (removing it:
-  still crashed, same test index)
-- not hiding the sibling content (suppressing every visibility change:
-  still crashed, same test index)
-- not the new test file (removing it: still crashed, four tests earlier)
-
-The mechanism is **not understood**. "Python-derived widget" is not it:
-`WrappedLabel` and `CollapsibleSection` are Python-derived and live in
-these same panels. Nor is it the widget class, since a plain `QLabel`
-still killed the full suite. What tracks the crash exactly is *where* the
-widget is added.
-
-Two method notes, both of which nearly produced wrong answers:
-
-- **Pin the baseline before blaming yourself, and before blaming the
-  suite.** `git stash`-ing everything and running master gave a clean
-  2788, which is what turned "probably the documented flakiness" into
-  "definitely mine". CLAUDE.md's own warning that the rate moves would
-  otherwise have excused it.
-- **A mutation script must verify its edit LANDED.** Three arms were run
-  from a Git-Bash `/tmp` path that the Windows Python could not read, so
-  all three silently tested the unmodified file and reported a confident
-  CRASH -- the control, three times. Every arm since asserts the edit is
-  present in the file before running.
-
+**Pin the baseline before blaming yourself OR the suite**: `git stash`
+everything and run master. This file's warnings about flaky access
+violations elsewhere would otherwise excuse a crash that is entirely
+reproducible and entirely yours.
 ## Verification standard
 
 This project's convention, established across many sessions: **claims are

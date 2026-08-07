@@ -354,17 +354,82 @@ def test_closing_a_main_window_empties_its_undo_stack(qapp, tmp_path):
 
 
 @pytest.fixture
-def a_main_window(qapp, tmp_path):
+def a_fixture_provided_panel(qapp):
     """Provided BY A FIXTURE on purpose.
 
     That is the case the collect's placement is about: pytest caches a
     fixture's value on its `SubRequest`/`TopRequest`/`Function` and holds
-    it for the whole item protocol. A window built as a plain local inside
-    a test is released when the function returns and would be collected
-    either way -- so a test written that way cannot tell the right hook
-    from the wrong one, which is exactly what happened on the first
-    attempt at this.
+    it for the whole item protocol. An object built as a plain local
+    inside a test is released when the function returns and would be
+    collected either way -- so a test written that way cannot tell the
+    right hook from the wrong one, which is exactly what happened on the
+    first attempt at this.
+
+    **A PANEL, NOT A MainWindow, and that is the point of this rewrite.**
+    This pair used to use a MainWindow, and asserted that the collect
+    destroyed it. Destroying one turns out to CORRUPT THE HEAP -- so
+    MainWindows are now retained for the session (see `conftest.py`) and
+    cannot be the probe. A panel is still collected, still fixture-held,
+    and still proves what this pair is really about: that the collect runs
+    after pytest finalises fixtures rather than before.
     """
+    from openchem.events.base import EventBus
+    from openchem.ui.panels.property_panel import PropertyPanel
+    from openchem.services.calculator_registry import CalculatorRegistry
+    from openchem.chem.engine import ChemistryEngine
+
+    class _Service:
+        def request_descriptors(self, *a, **k):
+            pass
+
+        def run_calculator(self, *a, **k):
+            pass
+
+    bus = EventBus()
+    yield PropertyPanel(bus, CalculatorRegistry(), _Service(), ChemistryEngine())
+
+
+def test_a_fixture_provided_object_is_gone_before_the_next_test(a_fixture_provided_panel):
+    """First half of an ordered pair; the next test checks it was destroyed.
+
+    This is what the collect's PLACEMENT buys. It used to run in
+    `pytest_runtest_teardown` with no ordering, which puts it BEFORE
+    pytest finalises fixtures -- and pytest still holds every fixture
+    value at that moment, so the object could not possibly be collected
+    there. Measured by listing the referrers of one still alive at
+    teardown: `SubRequest`, `TopRequest`, `Function` and the fixture-name
+    cache. All pytest machinery; nothing in the application held it.
+
+    Moving the collect to after the protocol ends took late C++
+    destructions from 135 to 0.
+    """
+    _abandoned_subscribers.append(weakref.ref(a_fixture_provided_panel))
+
+
+def test_that_object_was_collected_between_the_tests(qapp):
+    assert _abandoned_subscribers, "the previous test did not run; the pair is broken"
+    assert all(ref() is None for ref in _abandoned_subscribers), (
+        "a fixture-provided panel survived into the next test -- the gc.collect() in "
+        "conftest.py has moved back to a hook that runs while pytest still holds the "
+        "fixture values"
+    )
+
+
+def test_main_windows_are_deliberately_never_collected(qapp, tmp_path):
+    """The opposite policy, for the one class where collecting is fatal.
+
+    Collecting a MainWindow corrupts the heap -- 0xc0000374, raised inside
+    the collect, in whichever test is unlucky. Measured on a two-file
+    reproduction: retaining MainWindow made it clean, retaining the viewer
+    backends or the web-engine objects did not, and `gc.DEBUG_SAVEALL`
+    (free nothing at all) also made it clean.
+
+    So `conftest.py` holds every one for the session. This asserts that,
+    because the retainer is easy to remove while reading the file as
+    scaffolding.
+    """
+    import gc
+
     from openchem.app.main_window import MainWindow
     from openchem.app.session import SessionManager
     from openchem.app.settings import Settings
@@ -375,30 +440,12 @@ def a_main_window(qapp, tmp_path):
     settings.set("plugins/project_directory", str(tmp_path / "no_plugins"))
     settings.set("plugins/user_directory", str(tmp_path / "no_user"))
     window = MainWindow(services, settings, SessionManager())
-    yield window
+    reference = weakref.ref(window)
     window.close()
+    del window, services, settings
+    gc.collect()
 
-
-def test_a_fixture_provided_window_is_gone_before_the_next_test(a_main_window):
-    """First half of an ordered pair; the next test checks it was destroyed.
-
-    This is what the collect's PLACEMENT buys. It used to run in
-    `pytest_runtest_teardown` with no ordering, which puts it BEFORE
-    pytest finalises fixtures -- and pytest still holds every fixture
-    value at that moment, so a window could not possibly be collected
-    there. Measured by listing the referrers of a window still alive at
-    teardown: `SubRequest`, `TopRequest`, `Function` and the fixture-name
-    cache. All pytest machinery; nothing in the application held it.
-
-    Moving the collect to after the protocol ends took late C++
-    destructions from 135 to 0.
-    """
-    _abandoned_subscribers.append(weakref.ref(a_main_window))
-
-
-def test_that_window_was_collected_between_the_tests(qapp):
-    assert _abandoned_subscribers, "the previous test did not run; the pair is broken"
-    assert all(ref() is None for ref in _abandoned_subscribers), (
-        "a MainWindow survived into the next test -- the gc.collect() in conftest.py "
-        "has moved back to a hook that runs while pytest still holds the fixture values"
+    assert reference() is not None, (
+        "a MainWindow was collected -- the retainer in conftest.py is gone, and "
+        "the suite will start corrupting the heap at an unrelated test"
     )

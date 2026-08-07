@@ -19,41 +19,15 @@ calculation is a calculator launcher people stop trusting. And it never
 edits: it is a read-only lens, and mutation has undo implications that
 belong in their own change.
 
-NOT YET ADOPTED BY ANY PANEL, AND THAT IS NOT AN OVERSIGHT
---------------------------------------------------------------------------
+`AtomInspectorPanel` is its first consumer and its 45 tests pass against
+it unchanged, which is the proof the extraction is honest.
 
-`AtomInspectorPanel` was converted to use this and every one of its 45
-tests passed against it -- the extraction is correct. **Then the full
-suite died**, deterministically, with the heap corruption CLAUDE.md
-documents under "READ THIS BEFORE ADDING A WIDGET TO
-`QuantumChemistryPanel`".
-
-That section's rule was too narrow. Measured on a 20-second two-file
-reproduction (`test_receptor_library_dialog.py` +
-`test_regulatory_calculator.py`), 3/3 against 0/3 on master:
-
-    panel adopts FactView                          crashed 3/3
-    ... with no `_FactRow` subclass (no hover)      crashed 3/3
-    ... with no Ctrl+Shift+F action                 crashed 3/3
-    ... with the summary and filter unparented      crashed 3/3
-    ... with FactView built but never added         crashed 3/3
-    formatters shared, no widget change             clean 3/3
-
-So it is CONSTRUCTING the widgets that matters, not where they go, and it
-is not specific to the quantum panel: this is the atom inspector.
-
-**Three further arms were INVALID and are recorded so they are not
-believed.** Removing FactView from the panel breaks MainWindow
-construction, so the receptor tests error instead of running and report a
-comfortable "no crash" -- the crash needs a MainWindow to exist. Any arm
-here must be checked for "N passed", not merely for the absence of a
-fatal exception.
-
-So this ships tested and unwired. `tests/test_fact_view.py` covers it,
-including the two model fields it introduced (`Detail`, `Fact.highlight`);
-Phase 4 can adopt it the moment somebody understands the crash. What
-DID ship from the extraction is the half that adds no widget:
-`ui/report_format.py`, which both this and the panel now share.
+**Adopting it was blocked for one commit by a heap corruption**, and the
+cause turned out to have nothing to do with this widget: the teardown
+`gc.collect()` was destroying MainWindows, which corrupts the heap, and
+adding any widget merely shifted the layout enough to change whether the
+corruption landed on something fatal. `tests/conftest.py` retains
+MainWindows now, and CLAUDE.md has the measurements.
 """
 
 from __future__ import annotations

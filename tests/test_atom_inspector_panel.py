@@ -71,7 +71,7 @@ def showing(panel: AtomInspectorPanel, model: MoleculeModel, atom: int | None = 
 
 
 def section_titles(panel: AtomInspectorPanel) -> list[str]:
-    return [s._toggle_button.text() for s in panel._sections.values()]
+    return [s._toggle_button.text() for s in panel._facts._sections.values()]
 
 
 # --- navigation -------------------------------------------------------------
@@ -92,7 +92,7 @@ def test_the_table_works_without_a_3d_conformer(panel):
     model = molecule()
     assert not model.conformers
     showing(widget, model, CARBONYL_O)
-    assert "Atom 10" in widget._title.text()
+    assert "Atom 10" in widget.title_text()
 
 
 def test_selecting_an_atom_shows_its_facts(panel):
@@ -112,7 +112,7 @@ def test_select_atom_finds_the_row_rather_than_assuming_the_index(panel):
     widget.select_atom(CARBONYL_O)
     QCoreApplication.processEvents()
     assert widget._atom_index == CARBONYL_O
-    assert "Atom 10" in widget._title.text()
+    assert "Atom 10" in widget.title_text()
 
 
 def test_selecting_a_row_announces_the_atom(panel):
@@ -146,9 +146,9 @@ def test_most_categories_start_collapsed(panel):
     # with an unshown ancestor as invisible, so on an unshown panel every
     # section looks collapsed and the assertion would pass for the wrong
     # reason.
-    expanded = {name for name, s in widget._sections.items() if s._toggle_button.isChecked()}
+    expanded = {name for name, s in widget._facts._sections.items() if s._toggle_button.isChecked()}
     assert expanded == {"identity", "electronic"}
-    assert len(widget._sections) > len(expanded), "something must be collapsed"
+    assert len(widget._facts._sections) > len(expanded), "something must be collapsed"
 
 
 # --- search -----------------------------------------------------------------
@@ -157,10 +157,10 @@ def test_most_categories_start_collapsed(panel):
 def test_search_filters_to_matching_facts(panel):
     widget, _bus = panel
     showing(widget, molecule(), CARBONYL_O)
-    widget._search.setText("lewis")
+    widget.set_search_text("lewis")
     QCoreApplication.processEvents()
     assert section_titles(widget) == ["Electronic (1)"]
-    assert "1 of" in widget._status.text()
+    assert "1 of" in widget.status_text()
 
 
 def test_search_expands_what_it_matched(panel):
@@ -172,21 +172,21 @@ def test_search_expands_what_it_matched(panel):
     # default. An earlier version searched "ring", which matches nothing
     # on this atom -- zero sections, and `all([])` is vacuously true, so
     # the test passed without exercising anything.
-    widget._search.setText("oxidation")
+    widget.set_search_text("oxidation")
     QCoreApplication.processEvents()
-    assert widget._sections, "the search matched nothing, so this proves nothing"
-    assert all(s._toggle_button.isChecked() for s in widget._sections.values())
+    assert widget._facts._sections, "the search matched nothing, so this proves nothing"
+    assert all(s._toggle_button.isChecked() for s in widget._facts._sections.values())
 
 
 def test_clearing_the_search_restores_everything(panel):
     widget, _bus = panel
     showing(widget, molecule(), CARBONYL_O)
-    before = len(widget._sections)
-    widget._search.setText("lewis")
+    before = len(widget._facts._sections)
+    widget.set_search_text("lewis")
     QCoreApplication.processEvents()
-    widget._search.setText("")
+    widget.set_search_text("")
     QCoreApplication.processEvents()
-    assert len(widget._sections) == before
+    assert len(widget._facts._sections) == before
 
 
 # --- cross-links ------------------------------------------------------------
@@ -200,7 +200,7 @@ def test_a_fact_links_to_the_tool_that_produced_it(panel):
     followed: list = []
     widget.link_activated.connect(followed.append)
 
-    buttons = [b for s in widget._sections.values() for b in s.findChildren(QPushButton)]
+    buttons = [b for s in widget._facts._sections.values() for b in s.findChildren(QPushButton)]
     assert buttons, "no cross-link buttons rendered"
     buttons[0].click()
     QCoreApplication.processEvents()
@@ -217,7 +217,7 @@ def test_link_payloads_ride_on_the_button_not_a_capturing_lambda(panel):
     through `sender()`."""
     widget, _bus = panel
     showing(widget, molecule(), CARBONYL_O)
-    buttons = [b for s in widget._sections.values() for b in s.findChildren(QPushButton)]
+    buttons = [b for s in widget._facts._sections.values() for b in s.findChildren(QPushButton)]
     assert buttons[0].property("fact_link") is not None
 
 
@@ -293,7 +293,7 @@ def test_opening_the_inspector_starts_no_calculation(qapp):
     widget.resize(380, 800)
     widget._descriptor_service = SpyService()
     showing(widget, molecule(), CARBONYL_O)
-    widget._search.setText("lewis")
+    widget.set_search_text("lewis")
     QCoreApplication.processEvents()
 
     assert widget._report_for(CARBONYL_O).facts, "it should still show facts"
@@ -385,7 +385,7 @@ def test_copying_with_no_atom_selected_says_so(panel):
     widget, _bus = panel
     showing(widget, molecule())
     widget._on_copy_clicked()
-    assert "Select an atom" in widget._status.text()
+    assert "Select an atom" in widget.status_text()
 
 
 # --- bonds and molecules ----------------------------------------------------
@@ -432,7 +432,7 @@ def test_selecting_a_bond_row_shows_that_bonds_facts(panel):
     widget.select_bond(0)
     QCoreApplication.processEvents()
     assert widget._bond_index == 0
-    assert "Bond 1" in widget._title.text()
+    assert "Bond 1" in widget.title_text()
     assert section_titles(widget), "a bond must render some facts"
 
 
@@ -460,7 +460,7 @@ def test_the_molecule_subject_hides_the_row_list(panel):
 def test_the_molecule_subject_needs_no_selection(panel):
     widget, _bus = panel
     show_subject(widget, molecule(), "Molecule")
-    assert "chalcone" in widget._title.text()
+    assert "chalcone" in widget.title_text()
     assert section_titles(widget), "the molecule report must render"
 
 
@@ -473,8 +473,8 @@ def test_switching_subject_re_renders_rather_than_keeping_the_old_facts(panel):
 
     widget._subject_combo.setCurrentText("Molecule")
     QCoreApplication.processEvents()
-    assert "chalcone" in widget._title.text()
-    assert "Atom" not in widget._title.text()
+    assert "chalcone" in widget.title_text()
+    assert "Atom" not in widget.title_text()
 
 
 def test_each_subject_is_cached_separately(panel):
@@ -538,7 +538,7 @@ def test_a_ketcher_bond_selection_reaches_the_panel(panel):
     widget.select_bond(2)
     QCoreApplication.processEvents()
     assert widget._bond_index == 2
-    assert "Bond 3" in widget._title.text()
+    assert "Bond 3" in widget.title_text()
 
 
 def test_two_bonded_atom_clicks_select_the_bond_between_them(panel):
@@ -633,7 +633,7 @@ def test_clicking_a_hydrogen_in_3d_does_not_crash_the_bond_pick(panel):
     QCoreApplication.processEvents()
 
     assert widget._bond_index is None
-    assert "not in the structure as drawn" in widget._status.text()
+    assert "not in the structure as drawn" in widget.status_text()
 
 
 def test_an_out_of_range_atom_does_not_become_a_pending_pick(panel):
@@ -658,7 +658,7 @@ def test_clicking_a_hydrogen_in_atom_mode_explains_itself(panel):
     widget.select_atom(6)
     QCoreApplication.processEvents()
     assert widget._atom_index is None
-    assert "Pick a heavy atom" in widget._status.text()
+    assert "Pick a heavy atom" in widget.status_text()
 
 
 def test_a_heavy_atom_still_selects_normally(panel):
@@ -680,4 +680,35 @@ def test_an_out_of_range_bond_index_is_refused_too(panel):
     widget.select_bond(9)
     QCoreApplication.processEvents()
     assert widget._bond_index is None
-    assert "not in the structure as drawn" in widget._status.text()
+    assert "not in the structure as drawn" in widget.status_text()
+
+
+def test_a_hovered_fact_is_bounds_checked_before_it_reaches_a_viewer(panel):
+    """The 3D viewer carries EXPLICIT hydrogens and a report does not.
+
+    Ethanol is 3 atoms in a report and 9 in the viewer, so a fact claiming
+    atom 7 would ask the viewer to paint something the report never
+    described. The mirror image of this mismatch raised
+    `RuntimeError: Range Error` inside a Qt signal handler when it was
+    assumed rather than checked.
+    """
+    widget, _bus = panel
+    showing(widget, molecule("CCO", "ethanol"), atom=0)
+    seen: list[tuple] = []
+    widget.atoms_highlighted.connect(seen.append)
+
+    widget._on_highlight_requested((0, 1, 7, 99))
+
+    assert seen == [(0, 1)], "out-of-range indices must be dropped, not forwarded"
+
+
+def test_a_hover_that_clears_forwards_an_empty_tuple(panel):
+    """Otherwise the last fact's atoms stay lit after the pointer leaves."""
+    widget, _bus = panel
+    showing(widget, molecule("CCO", "ethanol"), atom=0)
+    seen: list[tuple] = []
+    widget.atoms_highlighted.connect(seen.append)
+
+    widget._on_highlight_requested(())
+
+    assert seen == [()]

@@ -66,7 +66,9 @@ from openchem.events.events import (
     SpectrumComputed,
     StructureChecked,
 )
-from openchem.ui.widgets.collapsible_section import CollapsibleSection, WrappedLabel
+from openchem.ui.report_format import report_header
+from openchem.ui.widgets.collapsible_section import WrappedLabel
+from openchem.ui.widgets.fact_view import FactView
 
 _ATOM_COLUMNS = ("#", "Element", "Facts")
 _BOND_COLUMNS = ("#", "Bond", "Facts")
@@ -94,6 +96,9 @@ class AtomInspectorPanel(QWidget):
     link_activated = Signal(object)
     #: Emitted when the selected atom changes, so viewers can highlight it.
     atom_selected = Signal(int)
+    #: The atoms a hovered fact is ABOUT, or `()` on the way out.
+    #: Always bounds-checked; see `_on_highlight_requested`.
+    atoms_highlighted = Signal(tuple)
 
     def __init__(
         self,
@@ -150,35 +155,15 @@ class AtomInspectorPanel(QWidget):
         self._subject_combo.addItems(_SUBJECTS)
         self._subject_combo.currentTextChanged.connect(self._on_subject_changed)
 
-        self._search = QLineEdit(self)
-        self._search.setPlaceholderText("Filter facts (element, lewis, ring...)")
-        self._search.textChanged.connect(self._render_facts)
-
-        self._copy_format = QComboBox(self)
-        self._copy_format.addItems(_COPY_FORMATS)
-        self._copy_button = QPushButton("Copy report", self)
-        self._copy_button.clicked.connect(self._on_copy_clicked)
-
-        self._title = QLabel("No atom selected", self)
-        self._title.setStyleSheet("font-weight: bold;")
-        # Says something from the very first frame. Every other branch of
-        # this panel sets a status, but the panel opened BLANK before a
-        # molecule existed -- the one moment a new user is most likely to
-        # be looking at it.
-        self._status = WrappedLabel(
-            "Draw or open a molecule, then pick an atom or bond here to see "
-            "everything already known about it. Nothing is calculated by "
-            "opening this panel.",
-            self,
-        )
-
-        self._facts_container = QWidget(self)
-        self._facts_layout = QVBoxLayout(self._facts_container)
-        self._facts_layout.setContentsMargins(0, 0, 0, 0)
-        self._facts_layout.addStretch(1)
-        self._facts_area = QScrollArea(self)
-        self._facts_area.setWidget(self._facts_container)
-        self._facts_area.setWidgetResizable(True)
+        # THE RENDERING IS NOT THIS PANEL'S ANY MORE. Sections, search,
+        # the depth filter, per-fact basis, cross-links, copy, export and
+        # the detached window all live in `FactView`, which knows no
+        # chemistry and is shared with every other report surface. What is
+        # left here is navigation: which subject, which atom or bond, and
+        # building the report for it.
+        self._facts = FactView(self)
+        self._facts.link_activated.connect(self.link_activated)
+        self._facts.highlight_requested.connect(self._on_highlight_requested)
 
         intro = WrappedLabel(_INTRO, self)
         intro.setStyleSheet("color: #666666; font-style: italic;")
@@ -186,22 +171,47 @@ class AtomInspectorPanel(QWidget):
         controls = QHBoxLayout()
         controls.addWidget(QLabel("Show:", self))
         controls.addWidget(self._subject_combo)
-        controls.addWidget(self._search, 1)
-        controls.addWidget(self._copy_format)
-        controls.addWidget(self._copy_button)
+        controls.addStretch(1)
 
         layout = QVBoxLayout(self)
         layout.addWidget(intro)
         layout.addWidget(self._atom_table)
-        layout.addWidget(self._title)
         layout.addLayout(controls)
-        layout.addWidget(self._facts_area, 1)
-        layout.addWidget(self._status)
+        layout.addWidget(self._facts, 1)
+
+        self._facts.clear(
+            "No atom selected",
+            "Draw or open a molecule, then pick an atom or bond here to see "
+            "everything already known about it. Nothing is calculated by "
+            "opening this panel.",
+        )
 
         event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
         event_bus.subscribe(PerAtomDataComputed, self._on_per_atom_data)
         event_bus.subscribe(SpectrumComputed, self._on_spectrum)
         event_bus.subscribe(StructureChecked, self._on_structure_checked)
+
+    # --- what it is showing -------------------------------------------------
+    #
+    # The panel still HAS a title and a status; `FactView` just draws them
+    # now. Delegating keeps the two facts callers care about on the panel.
+
+    def title_text(self) -> str:
+        return self._facts.title_text()
+
+    def status_text(self) -> str:
+        return self._facts.status_text()
+
+    def search_text(self) -> str:
+        return self._facts.search_box().text()
+
+    def set_search_text(self, text: str) -> None:
+        self._facts.search_box().setText(text)
+
+    def focus_search(self) -> None:
+        box = self._facts.search_box()
+        box.setFocus()
+        box.selectAll()
 
     # --- project and events ------------------------------------------------
 
@@ -263,7 +273,6 @@ class AtomInspectorPanel(QWidget):
         self._atom_table.setSortingEnabled(False)
         self._atom_table.setRowCount(0)
         if mol is None:
-            self._title.setText("No atom selected")
             self._render_facts()
             self._atom_table.setSortingEnabled(True)
             return
@@ -412,7 +421,7 @@ class AtomInspectorPanel(QWidget):
             return False
         if 0 <= atom_index < mol.GetNumAtoms():
             return True
-        self._status.setText(
+        self._facts.set_status(
             f"Atom {atom_index + 1} is in the 3D structure but not in the "
             "structure as drawn — the report covers heavy atoms and treats "
             "hydrogens as implicit. Pick a heavy atom."
@@ -449,7 +458,7 @@ class AtomInspectorPanel(QWidget):
                 self.select_bond(bond.GetIdx())
                 return
         self._pending_bond_atom = atom_index
-        self._status.setText(
+        self._facts.set_status(
             f"Atom {atom_index + 1} picked. Click an atom bonded to it to "
             "select the bond between them."
         )
@@ -468,7 +477,7 @@ class AtomInspectorPanel(QWidget):
             # against a shared molblock). Guarded anyway because the atom
             # side turned out NOT to agree, and the failure there was a
             # crash rather than a wrong answer.
-            self._status.setText(
+            self._facts.set_status(
                 f"Bond {bond_index + 1} is not in the structure as drawn."
             )
             return
@@ -504,120 +513,77 @@ class AtomInspectorPanel(QWidget):
 
     # --- rendering ---------------------------------------------------------
 
-    def _clear_sections(self) -> None:
-        for section in self._sections.values():
-            section.setParent(None)
-            section.deleteLater()
-        self._sections.clear()
-
     def _render_facts(self) -> None:
-        self._clear_sections()
+        """Hand the current report to the view. That is the whole method.
+
+        It used to be ninety lines of sections, filtering and rows, all of
+        which now lives in `FactView`, where the bond, molecule, Lewis and
+        regulatory surfaces get it too.
+        """
         index = self._selected_index()
         if index is None:
             noun = self._subject.lower()
-            self._title.setText(f"No {noun} selected")
-            self._status.setText(f"Select a {noun} above to see what is known about it.")
-            return
-
-        report = self._report_for(index)
-        if isinstance(report, MoleculeReport):
-            name = report.display_name or report.formula or "Molecule"
-            self._title.setText(f"{name} — {report.formula}")
-        elif isinstance(report, BondReport):
-            self._title.setText(f"Bond {report.bond_index + 1} — {report.label}")
-        else:
-            self._title.setText(f"Atom {report.atom_index + 1} — {report.symbol}")
-
-        needle = self._search.text()
-        # By identity, NOT by hashing. `AtomFact` is a frozen dataclass and
-        # so looks hashable, but a fact carrying a `FactLink` holds a dict
-        # of link parameters, and hashing one raises TypeError. Found by
-        # opening the panel: every fact with a cross-link is exactly the
-        # kind that has one.
-        visible = {id(fact) for fact in report.find(needle)}
-        shown = 0
-        for category, facts in report.by_category().items():
-            matching = [fact for fact in facts if id(fact) in visible]
-            if not matching:
-                continue
-            shown += len(matching)
-            # Expanded when filtering: a search that hides its own results
-            # behind a collapsed header is worse than no search.
-            expanded = bool(needle.strip()) or category in DEFAULT_EXPANDED
-            section = CollapsibleSection(
-                f"{CATEGORY_LABELS[category]} ({len(matching)})", expanded, self._facts_container
+            self._facts.clear(
+                f"No {noun} selected",
+                f"Select a {noun} above to see what is known about it.",
             )
-            for fact in matching:
-                self._add_fact_row(section, fact)
-            self._facts_layout.insertWidget(self._facts_layout.count() - 1, section)
-            self._sections[category.value] = section
-
-        self._status.setText(self._status_text(report, shown, needle))
-
-    def _add_fact_row(self, section: CollapsibleSection, fact: AtomFact) -> None:
-        value = WrappedLabel(fact.display_value, section.content)
-        tooltip = "\n".join(
-            [f"Source: {fact.source}", f"Basis: {fact.basis.value}", *fact.evidence, *fact.limitations]
-        )
-        value.setToolTip(tooltip)
-        if fact.link is None:
-            section.content_layout().addRow(fact.label, value)
             return
+        report = self._report_for(index)
+        self._facts.set_report(report, report_header(report), _summary_line(report))
 
-        row = QWidget(section.content)
-        row_layout = QHBoxLayout(row)
-        row_layout.setContentsMargins(0, 0, 0, 0)
-        row_layout.addWidget(value, 1)
-        open_button = QPushButton(">", row)
-        open_button.setToolTip(fact.link.label or "Open the tool this came from")
-        open_button.setMaximumWidth(28)
-        # The payload rides on the button and a bound method reads it back
-        # through sender(). A lambda capturing self is held STRONGLY by
-        # PySide6 and would root this panel for the life of the process.
-        open_button.setProperty("fact_link", fact.link)
-        open_button.clicked.connect(self._on_link_clicked)
-        row_layout.addWidget(open_button)
-        section.content_layout().addRow(fact.label, row)
+    def _on_highlight_requested(self, atom_indices: tuple) -> None:
+        """Paint the atoms a hovered fact is about.
 
-    def _on_link_clicked(self) -> None:
-        button = self.sender()
-        if button is None:
-            return
-        link = button.property("fact_link")
-        if isinstance(link, FactLink):
-            self.link_activated.emit(link)
-
-    def _status_text(self, report: AtomReport, shown: int, needle: str) -> str:
-        if needle.strip() and shown != len(report.facts):
-            return f"{shown} of {len(report.facts)} facts match {needle.strip()!r}."
-        parts = [f"{len(report.facts)} facts."]
-        parts.extend(report.limitations)
-        return " ".join(parts)
+        BOUNDS-CHECKED against the report, not passed straight through. A
+        conformer carries explicit hydrogens and a report usually does not
+        -- ethanol is 3 atoms in a report and 9 in the 3D viewer -- and an
+        out-of-range index raised `RuntimeError: Range Error` inside a Qt
+        signal handler the last time this was assumed.
+        """
+        safe = tuple(i for i in atom_indices if self._atom_is_in_report(i))
+        self.atoms_highlighted.emit(safe)
 
     # --- export ------------------------------------------------------------
 
     def _on_copy_clicked(self) -> None:
-        if self._atom_index is None:
-            self._status.setText("Select an atom first.")
-            return
-        report = self._report_for(self._atom_index)
-        text = format_report(report, self._copy_format.currentText())
-        from PySide6.QtWidgets import QApplication
+        """Copy, with a message the view could not have written.
 
-        clipboard = QApplication.clipboard()
-        if clipboard is not None:
-            clipboard.setText(text)
-        self._status.setText(
-            f"Copied {len(report.facts)} facts as {self._copy_format.currentText()}."
-        )
+        `FactView` knows no chemistry, so with nothing to show it can only
+        say "Nothing selected." This panel knows whether the subject is an
+        atom, a bond or a molecule, and says which.
+        """
+        if self._selected_index() is None:
+            noun = self._subject.lower()
+            article = "an" if noun[0] in "aeiou" else "a"
+            self._facts.set_status(f"Select {article} {noun} first.")
+            return
+        self._facts._on_copy_clicked()
+
 
 
 # The formatters moved to `ui/report_format.py` so `FactView` can reach
 # them without importing a panel. Re-exported here so every existing
 # `atom_inspector_panel.format_report` import keeps working.
-from openchem.ui.report_format import (  # noqa: E402  (deliberately last)
-    format_report,
-    report_header,
-)
+from openchem.ui.report_format import format_report  # noqa: E402  (deliberately last)
 
 __all__ = ["AtomInspectorPanel", "format_report", "report_header"]
+
+
+#: The handful of values people want before anything else. Read off the
+#: report's own facts by label -- NOT recomputed, so this cannot become a
+#: second source of truth about what a molecule weighs.
+_SUMMARY_LABELS = ("Formula", "Molecular weight", "TPSA", "LogP", "HBA", "HBD")
+
+
+def _summary_line(report) -> str:
+    """The pinned headline above the sections.
+
+    Scientists want formula, weight and a few descriptors immediately, not
+    after opening a category. Empty for atoms and bonds: their identity is
+    already in the title, and repeating it would be noise.
+    """
+    if not isinstance(report, MoleculeReport):
+        return ""
+    by_label = {fact.label: fact.display_value for fact in report.facts}
+    parts = [f"{label}: {by_label[label]}" for label in _SUMMARY_LABELS if label in by_label]
+    return "   ".join(parts)

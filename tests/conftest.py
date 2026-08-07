@@ -365,6 +365,55 @@ def ink(widget, width: int = 400, height: int = 300) -> int:
     return sum(1 for pixel in pixels if pixel != background)
 
 
+#: Every `MainWindow` the suite builds, held for the whole session.
+#:
+#: THE TEARDOWN COLLECT DESTROYS MAIN WINDOWS, and until this was measured
+#: nobody knew it did. `pytest_runtest_logfinish`'s docstring said the
+#: collect "does not destroy anything itself" -- it does: a MainWindow a
+#: test builds has no Qt parent, so PySide gives Python ownership, and
+#: freeing the wrapper deletes the C++ window. The collect is what frees
+#: it, because the window sits in a reference cycle nothing else breaks.
+#:
+#: Destroying one corrupts the heap. Windows fatal exception 0xc0000374,
+#: raised inside the collect, in whichever test is unlucky. Measured on a
+#: two-file, 20-second reproduction:
+#:
+#:     retain nothing                            crashed
+#:     retain MainWindow                         clean
+#:     retain the viewer backends                crashed
+#:     retain QWebEngineView + QWebChannel       crashed
+#:     gc.DEBUG_SAVEALL (free nothing at all)    clean
+#:
+#: `PYTHONMALLOC=debug` reports nothing, so the corruption is in the C++
+#: heap rather than Python's allocator.
+#:
+#: **Leaving them alive is this project's own measured conclusion**, twice
+#: over: CLAUDE.md records two separate attempts to destroy abandoned
+#: MainWindows, both of which made the suite crash MORE. What was missing
+#: was the realisation that the collect was destroying them anyway. This
+#: makes "leave them" true rather than aspirational.
+_retained_windows: list = []
+
+
+def _retain_main_windows() -> None:
+    """Hold every MainWindow, so the teardown collect cannot free one."""
+    from openchem.app.main_window import MainWindow
+
+    if getattr(MainWindow, "_openchem_retained", False):
+        return
+    original = MainWindow.__init__
+
+    def __init__(self, *args, **kwargs):
+        original(self, *args, **kwargs)
+        _retained_windows.append(self)
+
+    MainWindow.__init__ = __init__
+    MainWindow._openchem_retained = True
+
+
+_retain_main_windows()
+
+
 #: Whether the test that just finished used Qt at all.
 _used_qt = [False]
 

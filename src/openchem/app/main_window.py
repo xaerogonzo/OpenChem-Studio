@@ -200,6 +200,7 @@ class MainWindow(QMainWindow):
             parent=self,
         )
         self._atom_inspector_panel.link_activated.connect(self._on_atom_fact_link)
+        self._atom_inspector_panel.atoms_highlighted.connect(self._on_facts_highlighted)
         # The 3D viewer already reports clicks -- it has since the distance
         # measurement was built -- so this is a connection, not new
         # integration. The atom TABLE stays the primary navigation: a
@@ -341,6 +342,13 @@ class MainWindow(QMainWindow):
         self.statusBar().addPermanentWidget(self._checker_indicator)
         services.event_bus.subscribe(StructureChecked, self._on_structure_checked)
 
+        # Focus the report search from anywhere. A power user should not
+        # have to find the box with the mouse first.
+        search_facts = QAction("Search facts", self)
+        search_facts.setShortcut("Ctrl+Shift+F")
+        search_facts.triggered.connect(self._focus_fact_search)
+        self.addAction(search_facts)
+
         self._build_menus()
         self._restore_window_state()
         self._restore_pinned_panels()
@@ -430,6 +438,23 @@ class MainWindow(QMainWindow):
         stored = self._settings.get("ui/pinned_panels", "")
         if stored:
             self._panel_rail.set_favourites([p for p in str(stored).split(",") if p])
+
+    def _focus_fact_search(self, _checked: bool = False) -> None:
+        """Ctrl+Shift+F: show the inspector and put the cursor in its filter
+        box. Shows the panel first, because focusing a box on a hidden
+        panel is indistinguishable from the shortcut not working."""
+        self._on_panel_chosen("Atom_Inspector")
+        self._atom_inspector_panel.focus_search()
+
+    def _on_facts_highlighted(self, atom_indices: tuple) -> None:
+        """Paint the atoms a hovered fact is about.
+
+        Hover "Charge -0.42" and that atom lights up; hover "Ring system"
+        and the ring does. The indices arrive already bounds-checked
+        against the report -- see
+        `AtomInspectorPanel._on_highlight_requested` for why that matters.
+        """
+        self._viewer3d.highlight_atoms(atom_indices)
 
     def _show_help(self, topic_key: str = "") -> None:
         """Open the help window, on `topic_key` or on whatever is in front.
