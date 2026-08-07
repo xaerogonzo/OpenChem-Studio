@@ -53,11 +53,11 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **3-4.5 minutes**, ending at `2788 passed, 2 skipped,
-1 deselected` (measured 2026-08-06 with the comparison and LED work applied,
-bytecode cleared). **That figure is from the DESELECTED form below, not the
-command above** -- run it bare and the same tree reports one FAILURE, from
-the network test explained next.
+A clean run is **3-4.5 minutes**, ending at `2803 passed, 2 skipped,
+1 deselected` (measured 2026-08-07 with the presentation-layer Phase 0/1
+work applied, bytecode cleared; it was 2788 before that). **That figure is
+from the DESELECTED form below, not the command above** -- run it bare and
+the same tree reports one FAILURE, from the network test explained next.
 
 **One test fails against the network, not against the code.**
 `test_pubchem_name_round_trips_back_through_opsin` returns `HTTP 400` from
@@ -864,6 +864,154 @@ old one:
 ```bash
 rg -n "^#{2,5} " CLAUDE.md | awk -F': ' '{print $2}' | sort | uniq -d
 ```
+
+## The presentation layer, and four things measured while fixing it
+
+The app's chemistry was correct and its presentation was not, which is a
+different kind of bug and needs a different kind of evidence. Recorded
+here because three of these four cost real time and two contradict what
+the obvious approach would have been.
+
+### `WrappedLabel` is load-bearing in one place and catastrophic in another
+
+`ui/widgets/collapsible_section.py`'s `WrappedLabel` overrides
+`minimumSizeHint`, `hasHeightForWidth` and the size policy so a wrapped
+label reports its true height. Inside the property panel's scroll area
+that is what stops the calculator buttons being squeezed to 13 px -- its
+own docstring has the table.
+
+Used for a **one-line status in a top-level row it is the opposite**, and
+by a wide margin. Measured on a bare Qt reproduction at 900x950:
+
+    WrappedLabel batch status   461 px tall, scroll area starts at y=478
+    plain QLabel                 20 px tall, scroll area starts at y=37
+
+`MinimumExpanding` makes the row claim the panel's vertical stretch, so a
+third of the Properties panel was one line of transient status. The rule
+is not "always use WrappedLabel" -- it is "use it where a label's true
+height must survive a squeeze", and a status line is not that.
+
+### 20 of 25 `AlertResult`s were never alerts
+
+`AlertResult.matched` is a `list[str]`, and it became the generic line
+carrier for anything that was not a single scalar -- `topology_analysis`
+puts `"Szeged index: 12"` in it, `regulatory/calculator.py` documents
+doing so deliberately. The panel rendered any non-empty `matched` as
+`"N alert(s): "` + a comma-join, in `#c62828`.
+
+Counted rather than estimated: **25 distinct `alert_id`s, of which only
+`pains`, `brenk`, `mutagenicity_alerts`, `herg_risk_factors` and a
+regulatory screen WITH findings are warnings.** So four fifths of the
+app's results were painted as though the molecule were flagged, and an
+elemental analysis read `8 alert(s): Formula: CHNO, Mass: 43.025, ...`.
+
+The fix is `AlertResult.severity`, declared by the PRODUCER, defaulting to
+INFO. Guessing from the id would have been a heuristic; the producer
+knows. `Severity` already existed in `domain/structure_issue.py` and is
+already rendered by the structure-check panel -- reused rather than
+paralleled, which is this project's most repeatable mistake.
+
+**An empty `matched` was rendered as a green "Clean" without checking
+`cache_state` first.** Geometry with no 3D conformer returns FAILED
+carrying "This calculation needs a 3D conformer", and the panel reported
+success while discarding the message that said what to do. "Clean" is a
+verdict and only a catalog is entitled to give one; a report with nothing
+to say has cleared the molecule of nothing.
+
+### `QFontMetrics.inFont()` does not answer "will this glyph render"
+
+Needed for the status glyphs, since colour alone is invisible to a
+colour-blind reader and is lost entirely in copied text. The obvious check
+is wrong:
+
+    inFont('✕') -> False     and it renders perfectly
+    inFont('△') -> False     and it renders perfectly
+    inFont('✓') -> False     and it renders perfectly
+
+It asks about the one nominated font, not the fallback chain Qt actually
+paints with. **Painting is the only honest test**, and "it drew some ink"
+is not enough either, because a tofu box is ink.
+
+The control is a Private Use Area codepoint, which no font assigns. It
+turned out to render as **nothing at all** here, byte-identical to a
+space -- not as tofu, which was the guess. That is asserted in
+`test_the_status_glyphs_really_render` rather than assumed, so a platform
+change that starts drawing tofu fails there naming the reason instead of
+quietly weakening the test.
+
+### The cp1252 rule reaches further than `matched`
+
+`regulatory/calculator.py` already records that result lines hit Windows
+console streams and that a tick RAISES there -- three times in one
+session. The status glyphs are non-ASCII, so they are produced at RENDER
+time and stripped at every exit (`_without_glyphs`, used by the panel's
+"Copy all"). A glyph is decoration: somebody pasting into a paper wants
+`Pass`, not `✓ Pass`, and the word already carries what the glyph
+duplicates on screen.
+
+Hit immediately, in a scratchpad script that printed the panel back:
+`UnicodeEncodeError: 'charmap' codec can't encode character '✕'`.
+
+### Empty states: iterate over what is BUILT
+
+There was no empty-state text anywhere in `ui/` -- a search for any
+placeholder string over the whole package matched two files, neither a
+panel. So "not run yet", "ran and found nothing", "failed" and "not
+applicable to this job" all rendered identically as blankness, and an ESP
+single point left six of seven quantum tabs looking broken.
+
+`tests/test_empty_states.py` walks the tabs **the panel actually builds**,
+never a list kept beside it -- the same direction that caught the two
+missing help topics. It asks each tab what it SHOWS, not how it stores
+it, which is what let the three mechanisms below coexist behind one
+guard. Verified by simulating the mistake: removing one tab's placeholder
+fails naming the tab.
+
+#### A PLACEHOLDER WIDGET IN A TAB THAT ALREADY HOLDS WIDGETS CORRUPTS THE HEAP
+
+Windows fatal exception `0xc0000374`, raised inside the teardown
+`gc.collect()`, in a test hundreds of tests away from the panel that
+built the widget. **It is deterministic**, which is what makes it
+tractable -- unlike the access violations elsewhere in this file, whose
+rate moves between batches.
+
+    placeholder in a tab that is otherwise EMPTY        safe
+    placeholder in a tab that already holds widgets     corrupts the heap
+
+So the three deferred quantum tabs (1D Signals, IR, Surfaces) get a real
+placeholder; Hybrid says it through the `_hybrid_summary_label` that
+already existed, and the correlation tabs PAINT the message inside
+`NmrCorrelationPlotWidget`. Neither of the latter two adds a widget, and
+painting it lands the message where the peaks would be, which is better
+drawing anyway.
+
+**Three hypotheses were tested against the full suite and are wrong** --
+recorded so nobody pays for them twice:
+
+- not the `dict[QWidget, ...]` holding the placeholders (removing it:
+  still crashed, same test index)
+- not hiding the sibling content (suppressing every visibility change:
+  still crashed, same test index)
+- not the new test file (removing it: still crashed, four tests earlier)
+
+The mechanism is **not understood**. "Python-derived widget" is not it:
+`WrappedLabel` and `CollapsibleSection` are Python-derived and live in
+these same panels. Nor is it the widget class, since a plain `QLabel`
+still killed the full suite. What tracks the crash exactly is *where* the
+widget is added.
+
+Two method notes, both of which nearly produced wrong answers:
+
+- **Pin the baseline before blaming yourself, and before blaming the
+  suite.** `git stash`-ing everything and running master gave a clean
+  2788, which is what turned "probably the documented flakiness" into
+  "definitely mine". CLAUDE.md's own warning that the rate moves would
+  otherwise have excused it.
+- **A mutation script must verify its edit LANDED.** Three arms were run
+  from a Git-Bash `/tmp` path that the Windows Python could not read, so
+  all three silently tested the unmodified file and reported a confident
+  CRASH -- the control, three times. Every arm since asserts the edit is
+  present in the file before running.
 
 ## Verification standard
 

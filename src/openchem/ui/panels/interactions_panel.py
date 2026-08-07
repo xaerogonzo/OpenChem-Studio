@@ -93,7 +93,11 @@ class InteractionsPanel(QWidget):
         self._predict_button = QPushButton("Predict", self)
         self._predict_button.clicked.connect(self._on_predict_clicked)
 
-        self._status_label = QLabel("", self)
+        self._status_label = QLabel(
+            "Pick an acid and a base above, then Predict. Nothing runs until "
+            "you do.",
+            self,
+        )
         self._status_label.setWordWrap(True)
 
         self._table = QTableWidget(0, len(_COLUMNS), self)
@@ -195,7 +199,11 @@ class InteractionsPanel(QWidget):
         self._contacts_combo = QComboBox(self)
         self._contacts_button = QPushButton("Find contacts", self)
         self._contacts_button.clicked.connect(self._on_find_contacts)
-        self._contacts_status = QLabel("", self)
+        self._contacts_status = QLabel(
+            'Select a molecule and press "Find contacts" to list its '
+            "intramolecular hydrogen bonds, pi-stacking and metal contacts.",
+            self,
+        )
         self._contacts_status.setWordWrap(True)
 
         self._contacts_table = QTableWidget(0, 3, self)

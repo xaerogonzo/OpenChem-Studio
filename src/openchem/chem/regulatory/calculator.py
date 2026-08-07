@@ -38,6 +38,7 @@ from openchem.chem.regulatory.loader import load_all
 from openchem.chem.regulatory.types import Jurisdiction, MatchType, ScreeningReport
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.scientific_result import AlertResult
+from openchem.domain.structure_issue import Severity
 
 #: Jurisdiction filter offered in the UI. "All" first, because a user who
 #: has not said where they are should see more rather than less.
@@ -113,6 +114,12 @@ def compute_regulatory_screen(
         molecule_uuid=molecule_uuid,
         matched=lines,
         category="regulatory",
+        # The one producer whose severity depends on its own content. A
+        # finding is something to act on; "no matches in the 3 rulesets
+        # consulted" is a coverage statement and must not be painted as
+        # though the molecule were flagged -- which is exactly how it
+        # read before severity existed.
+        severity=Severity.WARNING if report.findings else Severity.INFO,
         cache_state=CacheState.COMPLETED,
         provenance=Provenance(
             created_by="core",

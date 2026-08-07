@@ -85,6 +85,7 @@ from openchem.domain.calculator import CalculatorDefinition, CalculatorParameter
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.scientific_result import AlertResult, PerAtomDataset
+from openchem.domain.structure_issue import Severity
 from openchem.plugins.interfaces import DescriptorProvider
 
 # RDKitDescriptorProvider implements the same DescriptorProvider ABC a future
@@ -414,6 +415,10 @@ def compute_mutagenicity_alerts(mol: Chem.Mol, molecule_uuid: str) -> AlertResul
         name=MUTAGENICITY_ALERT_NAME,
         molecule_uuid=molecule_uuid,
         matched=matched,
+        # A genuine catalog: a match here is something to look at, which
+        # is what AlertResult was written for. Most other producers now
+        # borrow it to carry report lines and stay at the INFO default.
+        severity=Severity.WARNING,
         provenance=Provenance(created_by="core", method="rdkit"),
         category="admet",
     )
@@ -443,6 +448,7 @@ def compute_herg_risk_factors(mol: Chem.Mol, molecule_uuid: str) -> AlertResult:
         name=_HERG_RISK_NAME,
         molecule_uuid=molecule_uuid,
         matched=matched,
+        severity=Severity.WARNING,
         provenance=Provenance(created_by="core", method="rdkit"),
         category="admet",
     )
@@ -671,6 +677,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
                 name="PAINS",
                 molecule_uuid=molecule_uuid,
                 matched=pains_matched,
+                severity=Severity.WARNING,
                 provenance=Provenance(created_by="core", method=self.provider_id),
                 category="medicinal_chemistry",
             ),
@@ -679,6 +686,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
                 name="BRENK (Reactive/Unstable Groups)",
                 molecule_uuid=molecule_uuid,
                 matched=brenk_matched,
+                severity=Severity.WARNING,
                 provenance=Provenance(created_by="core", method=self.provider_id),
                 category="admet",
             ),

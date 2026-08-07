@@ -48,6 +48,7 @@ from openchem.events.events import (
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
 from openchem.ui.molecule_combo import repopulate, select
+from openchem.ui.widgets.empty_state import empty_state, empty_state_text, is_empty_state
 from openchem.ui.widgets.esp_compare_widget import EspCompareWidget
 from openchem.ui.widgets.ir_view_widget import IrViewWidget
 from openchem.ui.widgets.nmr_correlation_plot_widget import NmrCorrelationPlotWidget, Peak
@@ -223,10 +224,27 @@ class QuantumChemistryPanel(QWidget):
         # expensive enough not to build for every user who never runs an NMR
         # calculation -- the tab exists from the start (so tab order never
         # shifts under the user), the widget lands in it on first result.
+        # Every tab below carries a placeholder saying why it is blank and
+        # what would fill it. A job populates the tabs relevant to ITS
+        # calculation type and leaves the rest untouched, so most of these
+        # are empty most of the time -- an ESP single point lights up
+        # Surfaces and nothing else. With nothing on screen to say so, all
+        # six other tabs read as broken.
+        #
+        # They are deliberately NOT collected into a dict here; see
+        # `_content_of` for the heap corruption that caused.
+
         self._nmr_view: NmrViewWidget | None = None
         self._nmr_view_tab = QWidget(self._correlation_tabs)
         self._nmr_view_layout = QVBoxLayout(self._nmr_view_tab)
         self._correlation_tabs.addTab(self._nmr_view_tab, "1D Signals")
+        self._add_empty_state(
+            self._nmr_view_tab,
+            self._nmr_view_layout,
+            "No NMR signals for this molecule yet.",
+            'Choose an NMR calculation in "Calculation" above and press Run. '
+            "Grouped signals, integrations and multiplicities appear here.",
+        )
 
         # IR, on the same deferred-construction pattern and for the same
         # reason (a QWebEngineView for its 3D pane). Added AFTER the NMR
@@ -235,6 +253,13 @@ class QuantumChemistryPanel(QWidget):
         self._ir_view_tab = QWidget(self._correlation_tabs)
         self._ir_view_layout = QVBoxLayout(self._ir_view_tab)
         self._correlation_tabs.addTab(self._ir_view_tab, "IR")
+        self._add_empty_state(
+            self._ir_view_tab,
+            self._ir_view_layout,
+            "No vibrational spectrum yet.",
+            'Run an "Optimisation + Frequencies" calculation. The modes come '
+            "from the frequency step, so a single point cannot produce them.",
+        )
 
         # Surfaces: the point-charge ESP beside the ab initio one. Same
         # deferred construction -- it owns TWO QWebEngineViews, which is
@@ -243,6 +268,14 @@ class QuantumChemistryPanel(QWidget):
         self._surfaces_tab = QWidget(self._correlation_tabs)
         self._surfaces_layout = QVBoxLayout(self._surfaces_tab)
         self._correlation_tabs.addTab(self._surfaces_tab, "Surfaces")
+        self._add_empty_state(
+            self._surfaces_tab,
+            self._surfaces_layout,
+            "No surface computed yet.",
+            "Run any calculation that keeps its wavefunction, then pick a "
+            "surface type above and press Compute QM surface. The instant "
+            "point-charge map needs no calculation at all.",
+        )
 
         # Hybrid: this calculation merged with the experimental-shift
         # lookup, per atom, choosing whichever expects to be less wrong.
@@ -259,6 +292,15 @@ class QuantumChemistryPanel(QWidget):
         hybrid_layout.addWidget(self._hybrid_summary_label)
         hybrid_layout.addWidget(self._hybrid_table)
         self._correlation_tabs.addTab(hybrid_tab, "Hybrid")
+        # The hybrid tab needs no placeholder WIDGET: `_hybrid_summary_label`
+        # already exists to carry exactly this kind of note, and already
+        # shows `_HYBRID_UNAVAILABLE_NOTE` when a run produces no rows. It
+        # only ever started blank, so it is given its message up front.
+        self._hybrid_summary_label.setText(
+            "No hybrid shifts yet. Run an NMR calculation -- this tab merges "
+            "it with the experimental-shift lookup, per atom, choosing "
+            "whichever expects to be less wrong."
+        )
 
         self._correlation_tables: dict[str, QTableWidget] = {}
         self._correlation_plots: dict[str, NmrCorrelationPlotWidget] = {}
@@ -289,6 +331,15 @@ class QuantumChemistryPanel(QWidget):
             self._correlation_tabs.addTab(tab, correlation_type.upper())
             self._correlation_tables[correlation_type] = table
             self._correlation_plots[correlation_type] = plot
+            # Painted into the plot rather than added as a placeholder
+            # widget -- see `ui/widgets/empty_state.py` for the heap
+            # corruption that a placeholder in a content-bearing tab
+            # caused, measured 5/5. The message also lands exactly where
+            # the peaks would be, which is where somebody is looking.
+            plot.set_empty_message(
+                f"No {correlation_type.upper()} cross peaks yet.\n"
+                "Run an NMR calculation."
+            )
 
         form = QFormLayout()
         form.addRow("Molecule:", self._molecule_combo)
@@ -315,6 +366,8 @@ class QuantumChemistryPanel(QWidget):
         layout.addWidget(self._spectrum_note_label)
         layout.addWidget(self._spectrum_table)
         layout.addWidget(self._correlation_tabs)
+
+        self._reset_empty_states()
 
         event_bus.subscribe(QuantumChemistryJobStateChanged, self._on_job_state_changed)
         event_bus.subscribe(QuantumChemistryResultReady, self._on_result_ready)
@@ -408,6 +461,10 @@ class QuantumChemistryPanel(QWidget):
         self._spectrum_table.setVisible(False)
         self._spectrum_note_label.setVisible(False)
         self._correlation_tabs.setVisible(False)
+        # Back to placeholders. A second job of a different type must not
+        # leave the first job's tables sitting under the new job's heading,
+        # which would be worse than a blank tab -- it would be wrong.
+        self._reset_empty_states()
         self._status_label.setText("queued")
 
         if self._boltzmann_check.isChecked() and len(molecule.conformers) > 1:
@@ -662,7 +719,126 @@ class QuantumChemistryPanel(QWidget):
             )
             self._surfaces_layout.addWidget(self._surfaces_view)
         self._surfaces_view.set_molecule(self._pending_molecule_uuid or "", molblock)
+        self._fill_tab(self._surfaces_tab)
         self._correlation_tabs.setVisible(True)
+
+    # --- empty states --------------------------------------------------------
+
+    def _add_empty_state(
+        self,
+        tab: QWidget,
+        layout: QVBoxLayout,
+        headline: str,
+        action: str,
+    ) -> None:
+        """Give `tab` a placeholder standing in for its content.
+
+        **NOTHING IS STORED.** The placeholder and the content it replaces
+        are both found through Qt's own parent/child tree whenever they
+        are needed -- see `_content_of` for why, which is a heap
+        corruption this cost three full suite runs to pin down.
+
+        The content is "every direct child of the tab that is not the
+        placeholder", which is exactly right here and needs no list: an
+        empty `QTableWidget` still draws its header strip, so a populated
+        header sitting above the words "nothing here yet" is the failure
+        this hides. The three deferred tabs (1D Signals, IR, Surfaces)
+        simply have no content yet, and the same rule gives an empty list.
+        """
+        layout.addWidget(empty_state(headline, action, tab))
+
+    def empty_message_for_tab(self, index: int) -> str:
+        """What this tab tells a reader when it has nothing to show.
+
+        **Derived from the widgets, never from a list kept alongside
+        them.** A tab that displays nothing must be able to fail the guard
+        in `tests/test_empty_states.py`, and it cannot if the guard reads a
+        registry of messages somebody remembered to update -- the same
+        direction that let two panels ship with no help topic.
+
+        Three mechanisms, because one size did not fit:
+
+        - a placeholder label, for the three deferred tabs whose content
+          does not exist until a result arrives;
+        - `_hybrid_summary_label`, which already existed to carry notes;
+        - text painted inside `NmrCorrelationPlotWidget`, for the
+          correlation tabs.
+
+        The split is not stylistic. A placeholder WIDGET added to a tab
+        that already holds content widgets corrupted the heap during the
+        teardown collect, 5 runs out of 5 -- see
+        `ui/widgets/empty_state.py`. So only the genuinely-empty tabs get
+        one, and the rest say it through a widget that is already there.
+        """
+        tab = self._correlation_tabs.widget(index)
+        if tab is None:
+            return ""
+        for child in tab.findChildren(QWidget):
+            if is_empty_state(child):
+                return empty_state_text(child)
+        for plot in tab.findChildren(NmrCorrelationPlotWidget):
+            if plot.empty_message():
+                return plot.empty_message()
+        if self._hybrid_summary_label in tab.findChildren(QLabel):
+            return self._hybrid_summary_label.text()
+        return ""
+
+    @staticmethod
+    def _content_of(tab: QWidget) -> tuple[QWidget | None, list[QWidget]]:
+        """This tab's placeholder, and the widgets it stands in for.
+
+        DISCOVERED, never remembered, and that distinction is load-bearing.
+
+        The first version kept `dict[QWidget, tuple[EmptyState, ...]]` on
+        the panel. **That crashed the suite with a Windows heap corruption
+        (0xc0000374), deterministically, 3 runs out of 3**, inside the
+        teardown `gc.collect()` -- and NOT in a test of this panel, but in
+        `test_main_window_conformers.py`, five hundred tests after the
+        window that built it went away.
+
+        A dict keyed by a QWidget has to HASH that widget, and PySide
+        hashes on the underlying C++ pointer. Qt deletes a parent's
+        children C++-side, so by collection time those keys address freed
+        memory. Reading it to hash or to decref is the corruption.
+
+        The rule for anything holding Qt objects in this codebase: keep
+        them where Qt already keeps them. The parent/child tree is valid
+        for exactly as long as the widgets are, which a Python container
+        cannot promise.
+        """
+        state: QWidget | None = None
+        content: list[QWidget] = []
+        for child in tab.children():
+            if not isinstance(child, QWidget):
+                continue  # the layout itself is a QObject, not a QWidget
+            if is_empty_state(child):
+                state = child
+            else:
+                content.append(child)
+        return state, content
+
+    def _fill_tab(self, tab: QWidget) -> None:
+        """This tab now has real content: retire its placeholder."""
+        state, content = self._content_of(tab)
+        if state is None:
+            return
+        state.setVisible(False)
+        for widget in content:
+            widget.setVisible(True)
+
+    def _reset_empty_states(self) -> None:
+        """Back to placeholders, for a fresh job.
+
+        Walks the tab widget rather than a stored collection, for the
+        reason in `_content_of`.
+        """
+        for index in range(self._correlation_tabs.count()):
+            state, content = self._content_of(self._correlation_tabs.widget(index))
+            if state is None:
+                continue
+            state.setVisible(True)
+            for widget in content:
+                widget.setVisible(False)
 
     def _on_qm_surface_computed(self, event) -> None:
         if self._surfaces_view is None:
@@ -688,6 +864,7 @@ class QuantumChemistryPanel(QWidget):
         self._ir_view.set_spectrum(
             spectrum, self._optimized_conformer_molblock or self._pending_conformer_molblock or ""
         )
+        self._fill_tab(self._ir_view_tab)
         self._correlation_tabs.setVisible(True)
         self._correlation_tabs.setCurrentWidget(self._ir_view_tab)
 
@@ -703,6 +880,7 @@ class QuantumChemistryPanel(QWidget):
         self._nmr_view.set_spectrum(
             self._pending_molblock, spectrum, self._pending_conformer_molblock or None
         )
+        self._fill_tab(self._nmr_view_tab)
         self._correlation_tabs.setVisible(True)
 
     def _update_correlation_tabs(self, spectrum: SpectrumResult) -> None:
@@ -816,6 +994,12 @@ class QuantumChemistryPanel(QWidget):
             average = f"{sum(errors) / len(errors):.2f} ppm" if errors else "unknown"
             notes.insert(0, f"{len(rows)} atoms      {totals}\nexpected average error   {average}")
         self._hybrid_summary_label.setText("\n".join(notes) or _HYBRID_UNAVAILABLE_NOTE)
+        # No `_fill_tab` here: this tab has no placeholder WIDGET to
+        # retire. `_hybrid_summary_label` IS the placeholder, and the line
+        # above has just overwritten it -- with the real summary when
+        # there are rows, or `_HYBRID_UNAVAILABLE_NOTE` when a run
+        # produced none, which is a more specific answer than the opening
+        # message for somebody who has already run something.
         self._hybrid_table.setRowCount(len(rows))
         for row, values in enumerate(rows):
             for col, text in enumerate(values):
@@ -859,6 +1043,8 @@ class QuantumChemistryPanel(QWidget):
         y_label: str,
     ) -> None:
         table = self._correlation_tables[correlation_type]
+        # No `_fill_tab` here either -- the plot paints its own empty
+        # message and stops as soon as it has peaks.
         table.setRowCount(len(cross_peaks))
         peaks: list[Peak] = []
         for row, cross_peak in enumerate(cross_peaks):

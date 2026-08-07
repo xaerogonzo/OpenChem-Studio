@@ -156,6 +156,36 @@ calculator declares), and then a **Calculator Inspector** showing:
 The colour scale is computed once and drives both panes, so the 2D and 3D
 views always agree.
 
+### Reading a result: what the colours mean
+
+Every result in the panel is one of four things, and the colour and the
+symbol always agree — so the meaning survives colour-blindness, a
+screenshot, and a copy-paste into plain text.
+
+| | Meaning |
+|---|---|
+| plain grey | **Information.** A value. Molecular weight, an elemental composition, a Szeged index, a Lewis role. Most results are this. |
+| ✓ green | **Checked, nothing flagged.** Only an alert catalog says this — PAINS, BRENK, mutagenicity, hERG. A report with nothing to say does not clear your molecule of anything, and says "Nothing to report." instead. |
+| △ amber | **It worked, and you should look.** A catalog matched, or a regulatory screen found something. |
+| ✕ red | **It failed, or the structure is invalid** — and the message says why, e.g. a 3D-only calculation on a structure with no conformer. |
+
+Right-click anywhere in the panel for **Copy all properties**, or select
+any single value with the mouse. The copied text keeps the headings and
+drops the symbols.
+
+### Running several calculators at once
+
+Tick the box beside any **Open …** buttons you want and press **Run
+selected**. They run concurrently with their default settings — no
+dialogs, because answering six of those to avoid clicking six buttons is
+not a saving. Use the individual button when you need non-default
+settings.
+
+Each result appears in its own category as a one-line summary
+("22 atoms, −0.41 to 0.33 e"); open the calculator's button for the full
+per-atom detail. The status line beside the buttons says what is running
+and reads **Finished.** when the last one lands.
+
 ### Categories worth knowing about
 
 | Category | What's in it |

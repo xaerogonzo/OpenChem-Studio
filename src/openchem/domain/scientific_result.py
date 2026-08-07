@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from openchem.domain.common import ScientificResult
+from openchem.domain.structure_issue import Severity
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -11,12 +12,27 @@ class AlertResult(ScientificResult):
     matched, not a single scalar, so it doesn't fit `DescriptorValue`.
     `matched` empty means "checked, nothing flagged," distinct from not
     having run at all (`cache_state` covers that).
+
+    **`matched` long ago stopped being only "alerts".** 20 of the 25
+    `alert_id`s in this codebase are reports that borrow it as a line
+    carrier — elemental analysis, topology indices, Huckel orbital
+    energies, the IUPAC name — because it was the one result shape that
+    took a list of strings. That is why `severity` exists: without it a
+    renderer cannot tell "this molecule contains a PAINS substructure"
+    from "this molecule weighs 43.025", and painted both alert red.
+
+    Phase 4 replaces the carrier entirely with `ReportResult`. Until
+    then, `severity` is the honest signal, declared by the producer
+    rather than guessed from the id.
     """
 
     alert_id: str  # e.g. "pains", "brenk"
     name: str  # display name, e.g. "PAINS"
     molecule_uuid: str
     matched: list[str] = field(default_factory=list)
+    #: INFO by default because most producers are reporting, not warning.
+    #: A catalog whose match means "look at this" declares WARNING.
+    severity: Severity = Severity.INFO
     # Default matches PAINS, this field's only caller before Phase 19 --
     # additive, backward-compatible. Lets PropertyPanel route an alert to
     # the right section via `alert.category` instead of a hardcoded

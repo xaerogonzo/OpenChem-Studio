@@ -195,4 +195,7 @@ def test_a_clean_molecule_reads_as_clean_in_the_panel(qapp):
         AlertComputed(alert=compute_mutagenicity_alerts(Chem.MolFromSmiles(SMILES["aspirin"]), "mol-1"))
     )
 
-    assert panel._alert_labels[("core", "mutagenicity_alerts")].text() == "Clean"
+    # "Clean" now carries a check glyph as well as the green: colour
+    # alone is invisible to a colour-blind reader and is lost entirely
+    # in a copied plain-text export.
+    assert "Clean" in panel._alert_labels[("core", "mutagenicity_alerts")].text()

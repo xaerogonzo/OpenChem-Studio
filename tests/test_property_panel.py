@@ -130,7 +130,12 @@ def test_boolean_descriptor_renders_as_pass_fail(qapp):
         )
     )
     pass_label = panel._value_labels[("rdkit", "lipinski_pass")]
-    assert pass_label.text() == "Pass"
+    # A glyph as well as the colour: colour alone is invisible to a
+    # colour-blind reader and is lost entirely in a copied plain-text
+    # export, where "Pass" and "Fail" would otherwise be indistinguishable
+    # from any other word.
+    assert "Pass" in pass_label.text()
+    assert pass_label.text().startswith("✓")
 
     bus.publish(
         DescriptorComputed(
@@ -140,7 +145,8 @@ def test_boolean_descriptor_renders_as_pass_fail(qapp):
         )
     )
     fail_label = panel._value_labels[("rdkit", "ghose_pass")]
-    assert fail_label.text() == "Fail"
+    assert "Fail" in fail_label.text()
+    assert fail_label.text().startswith("✕")
 
 
 def test_failed_descriptor_shows_error_message(qapp):
@@ -164,6 +170,15 @@ def test_failed_descriptor_shows_error_message(qapp):
 
 
 def test_alert_computed_shows_clean_when_nothing_matched(qapp):
+    """"Clean" is a VERDICT, and only a catalog is entitled to give one.
+
+    PAINS declares `Severity.WARNING`, so an empty match list really does
+    mean "checked, nothing flagged". A report that happens to produce no
+    lines has not cleared the molecule of anything -- see
+    `test_a_report_with_nothing_to_say_does_not_claim_the_molecule_is_clean`.
+    """
+    from openchem.domain.structure_issue import Severity
+
     panel, bus, _service = _make_panel(qapp)
     bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
 
@@ -174,14 +189,39 @@ def test_alert_computed_shows_clean_when_nothing_matched(qapp):
                 name="PAINS",
                 molecule_uuid="mol-1",
                 matched=[],
+                severity=Severity.WARNING,
                 provenance=Provenance(created_by="core", method="rdkit"),
             )
         )
     )
 
     label = panel._alert_labels[("core", "pains")]
-    assert label.text() == "Clean"
+    assert "Clean" in label.text()
     assert "medicinal_chemistry" in panel._sections
+
+
+def test_a_report_with_nothing_to_say_does_not_claim_the_molecule_is_clean(qapp):
+    """The other side of the verdict rule. An elemental analysis that
+    produced no lines has checked nothing and cleared nothing, so it must
+    not borrow the catalogs' green "Clean"."""
+    panel, bus, _service = _make_panel(qapp)
+    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+
+    bus.publish(
+        AlertComputed(
+            alert=AlertResult(
+                alert_id="elemental_analysis",
+                name="Elemental Analysis",
+                molecule_uuid="mol-1",
+                matched=[],
+                category="identity",
+                provenance=Provenance(created_by="core", method="rdkit"),
+            )
+        )
+    )
+
+    label = panel._alert_labels[("core", "elemental_analysis")]
+    assert "Clean" not in label.text()
 
 
 def test_alert_computed_lists_matches(qapp):
@@ -419,7 +459,13 @@ def test_clicking_open_on_a_zero_parameter_calculator_runs_it_directly(qapp):
     assert panel._pending_calculator_id == "crippen_logp_contrib"
 
 
-def test_clicking_open_with_no_project_or_selection_is_a_no_op(qapp):
+def test_clicking_open_with_no_selection_says_so_instead_of_doing_nothing(qapp):
+    """It still runs nothing -- but it no longer runs nothing SILENTLY.
+
+    A button that produces no dialog, no message and no log line is
+    indistinguishable from a broken one, which is the same complaint as
+    "I can hit run on several things and nothing noticeable happens".
+    """
     registry = CalculatorRegistry()
     definition = _calculator_definition("crippen_logp_contrib", category="logp")
     registry.register(definition)
@@ -428,6 +474,7 @@ def test_clicking_open_with_no_project_or_selection_is_a_no_op(qapp):
     panel._open_calculator(definition)  # no project set, no molecule selected
 
     assert service.calls == []
+    assert "Select a molecule" in panel._batch_status.text()
 
 
 def test_clicking_open_on_a_parameterized_calculator_uses_the_settings_dialog(qapp, monkeypatch):
@@ -1106,3 +1153,265 @@ def test_a_batch_run_does_not_pop_open_inspectors(qapp):
     panel._on_run_selected()
 
     assert panel._pending_calculator_id is None
+
+
+# --- Phase 0: the panel says what happened ----------------------------------
+#
+# Every test below reproduces something Alex hit by running the app. Each
+# failed before the fix it guards; the numbers in the docstrings were
+# measured, not estimated.
+
+
+def test_the_batch_row_does_not_swallow_the_panel(qapp):
+    """The status label must not claim the panel's vertical space.
+
+    `WrappedLabel`'s `MinimumExpanding` policy is load-bearing INSIDE the
+    scroll area -- it is what stops the calculator buttons being squeezed
+    (see `test_a_long_result_does_not_squeeze_the_calculator_buttons`).
+    In the top-level batch row it does the opposite: the row claims the
+    stretch and the sections are pushed off-screen.
+
+    Measured on a bare Qt reproduction at 900x950: the same label is
+    **461 px** tall with the policy and **20 px** without, moving the
+    scroll area's top from y=478 to y=37. On screen that is a third of
+    the panel occupied by one line of status text.
+    """
+    panel, bus, _area = _panel_in_a_scroll_area(qapp)
+    panel._batch_status.setText(
+        "Running 2 with default settings: Elemental Analysis, Regulatory Screen"
+    )
+    for _ in range(3):
+        qapp.processEvents()
+
+    assert panel._batch_status.height() <= 40, (
+        f"the batch status label is {panel._batch_status.height()}px tall; "
+        "it is a one-line status, not a panel"
+    )
+
+
+def test_a_failed_alert_shows_its_reason_rather_than_clean(qapp):
+    """A FAILED result has an empty `matched` list, and empty used to mean
+    "Clean" -- in green, with the real message discarded.
+
+    Geometry is the case Alex hit: no 3D conformer, so
+    `compute_geometry_analysis` returns FAILED carrying "This calculation
+    needs a 3D conformer", and the panel reported success.
+    """
+    panel, bus, _service = _make_panel(qapp)
+    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+
+    bus.publish(
+        AlertComputed(
+            alert=AlertResult(
+                alert_id="geometry_analysis",
+                name="Geometry",
+                molecule_uuid="mol-1",
+                matched=[],
+                category="geometry",
+                cache_state=CacheState.FAILED,
+                error="This calculation needs a 3D conformer.",
+                provenance=Provenance(created_by="core", method="rdkit"),
+            )
+        )
+    )
+
+    label = panel._alert_labels[("core", "geometry_analysis")]
+    assert "3D conformer" in label.text()
+    assert "Clean" not in label.text()
+
+
+def test_an_informational_result_is_not_dressed_up_as_alerts(qapp):
+    """20 of the 25 `alert_id`s in this codebase are reports, not alert
+    catalogs -- elemental analysis, topology indices, Huckel energies,
+    the IUPAC name. All of them rendered as
+    `"8 alert(s): Formula: CHNO, Mass: 43.025, ..."` in alert red.
+
+    Red is reserved for failed, dangerous or invalid. An elemental
+    analysis is none of those.
+    """
+    panel, bus, _service = _make_panel(qapp)
+    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+
+    bus.publish(
+        AlertComputed(
+            alert=AlertResult(
+                alert_id="elemental_analysis",
+                name="Elemental Analysis",
+                molecule_uuid="mol-1",
+                matched=["Formula: CHNO", "Mass: 43.025", "C: 27.92%"],
+                category="identity",
+                provenance=Provenance(created_by="core", method="rdkit"),
+            )
+        )
+    )
+
+    label = panel._alert_labels[("core", "elemental_analysis")]
+    assert "alert(s)" not in label.text()
+    assert "Formula: CHNO" in label.text()
+    assert "#c62828" not in label.styleSheet(), "informational results must not be alert red"
+
+
+def test_a_real_alert_catalog_still_reads_as_a_warning(qapp):
+    """The other half of the same change: PAINS is what `AlertResult` was
+    written for, and a match there really is something to look at. It
+    declares `Severity.WARNING` and keeps a warning colour."""
+    from openchem.domain.structure_issue import Severity
+
+    panel, bus, _service = _make_panel(qapp)
+    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+
+    bus.publish(
+        AlertComputed(
+            alert=AlertResult(
+                alert_id="pains",
+                name="PAINS",
+                molecule_uuid="mol-1",
+                matched=["rhod_sat_A(33)"],
+                severity=Severity.WARNING,
+                provenance=Provenance(created_by="core", method="rdkit"),
+            )
+        )
+    )
+
+    label = panel._alert_labels[("core", "pains")]
+    assert "rhod_sat_A(33)" in label.text()
+    assert "1 alert(s)" in label.text()
+    assert label.styleSheet() != ""
+
+
+def test_a_batch_result_is_visible_without_opening_anything(qapp):
+    """"I can hit run on several things, and nothing noticeable happens."
+
+    `_on_run_selected` does not set `_pending_calculator_id` (six stacked
+    inspectors is not a saving), and every per-atom handler returned
+    early without it -- so a batch-run result was computed, published,
+    and then rendered nowhere at all.
+    """
+    panel, bus, service = _panel_with_recorder(qapp)
+    model = _select_molecule(panel, bus)
+
+    bus.publish(
+        PerAtomDataComputed(
+            dataset=PerAtomDataset(
+                property_id="gasteiger_charge",
+                name="Partial Charge (Gasteiger)",
+                units="e",
+                method="rdkit",
+                molecule_uuid=model.uuid,
+                values={0: -0.4, 1: 0.1, 2: 0.3},
+                provenance=Provenance(created_by="core", method="rdkit"),
+            )
+        )
+    )
+    qapp.processEvents()
+
+    texts = [label.text() for label in panel._result_labels.values()]
+    assert texts, "a batch result left no trace in the panel"
+    assert any("3 atoms" in text for text in texts), texts
+
+
+def test_a_batch_run_says_when_it_has_finished(qapp):
+    """The status read "Running 2 with default settings: ..." forever --
+    it was set on dispatch and never updated when the results landed."""
+    panel, bus, service = _panel_with_recorder(qapp)
+    model = _select_molecule(panel, bus)
+
+    # A really-registered calculator, taken from the registry rather than
+    # spelled by hand -- a direct-import test once passed here against an
+    # id nothing was registered under.
+    calculator_id = "gasteiger_charge_at_ph"
+    panel._calculator_ticks[calculator_id].setChecked(True)
+    panel._on_run_selected()
+    assert "Running" in panel._batch_status.text()
+
+    bus.publish(
+        PerAtomDataComputed(
+            dataset=PerAtomDataset(
+                property_id=calculator_id,
+                name="Partial Charge (Gasteiger)",
+                units="e",
+                method="rdkit",
+                molecule_uuid=model.uuid,
+                values={0: -0.4},
+                provenance=Provenance(created_by="core", method="rdkit"),
+            )
+        )
+    )
+    qapp.processEvents()
+
+    assert "Running" not in panel._batch_status.text()
+
+
+def test_a_value_can_be_selected_and_copied(qapp):
+    """Nothing in the panel was copyable: plain QLabels are not even
+    text-selectable, and there was no context menu. `result_to_text`
+    already existed and five other surfaces already used it."""
+    from PySide6.QtCore import Qt
+
+    panel, bus, _service = _make_panel(qapp)
+    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+    bus.publish(DescriptorComputed(descriptor=_descriptor()))
+
+    label = panel._value_labels[("rdkit", "mol_wt")]
+    assert label.textInteractionFlags() & Qt.TextInteractionFlag.TextSelectableByMouse
+    assert panel.contextMenuPolicy() == Qt.ContextMenuPolicy.CustomContextMenu
+
+
+def test_the_status_glyphs_really_render(qapp):
+    """A glyph is only accessible if something in the font chain HAS it.
+
+    Qt falls back per font on Windows, and a codepoint no font supplies
+    draws as a tofu box -- worse than no glyph, because it reads as a
+    rendering bug rather than as a status.
+
+    TWO THINGS THIS TEST HAD TO GET PAST, both measured:
+
+    1. `QFontMetrics.inFont()` is NOT the answer. It reports **False for
+       all three of these glyphs** even though they render perfectly,
+       because it asks about the one nominated font rather than the
+       fallback chain Qt actually paints with.
+    2. "it drew some ink" is not the answer either -- a tofu box is ink.
+
+    So the control is a Private Use Area codepoint, which by definition no
+    font assigns. Whatever tofu looks like on this machine, that is what it
+    looks like; a real glyph must render DIFFERENTLY from it.
+    """
+    from PySide6.QtWidgets import QLabel
+
+    from openchem.ui.panels.property_panel import (
+        _FAILURE_GLYPH,
+        _SUCCESS_GLYPH,
+        _WARNING_GLYPH,
+    )
+    from tests.conftest import painted
+
+    def pixels(text: str) -> bytes:
+        image = painted(QLabel(text), 60, 28)
+        return image.constBits().tobytes()
+
+    unsupported = pixels("")
+    blank = pixels(" ")
+    # THE CONTROL, and it did not say what was expected. A Private Use Area
+    # codepoint has no glyph in any font, and the guess was that it would
+    # draw the familiar tofu box -- in which case "some ink was drawn"
+    # would be a useless assertion, since tofu is ink.
+    #
+    # Measured: on this platform Qt draws **nothing at all** for it,
+    # byte-identical to a space. That is what makes the far simpler check
+    # below sound, and it is asserted rather than assumed so that a Qt or
+    # platform change which starts drawing tofu fails HERE, naming the
+    # reason, instead of quietly weakening the three assertions after it.
+    assert unsupported == blank, (
+        "an unsupported codepoint now draws something (tofu?), so "
+        "'differs from blank' no longer proves a glyph is real"
+    )
+
+    for name, glyph in (
+        ("failure", _FAILURE_GLYPH),
+        ("warning", _WARNING_GLYPH),
+        ("success", _SUCCESS_GLYPH),
+    ):
+        assert pixels(glyph) != blank, (
+            f"the {name} glyph {glyph!r} drew nothing -- no font in the "
+            "fallback chain supplies it, so the status is invisible"
+        )

@@ -165,7 +165,16 @@ class AtomInspectorPanel(QWidget):
 
         self._title = QLabel("No atom selected", self)
         self._title.setStyleSheet("font-weight: bold;")
-        self._status = WrappedLabel("", self)
+        # Says something from the very first frame. Every other branch of
+        # this panel sets a status, but the panel opened BLANK before a
+        # molecule existed -- the one moment a new user is most likely to
+        # be looking at it.
+        self._status = WrappedLabel(
+            "Draw or open a molecule, then pick an atom or bond here to see "
+            "everything already known about it. Nothing is calculated by "
+            "opening this panel.",
+            self,
+        )
 
         self._facts_container = QWidget(self)
         self._facts_layout = QVBoxLayout(self._facts_container)

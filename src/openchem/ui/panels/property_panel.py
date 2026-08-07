@@ -3,12 +3,14 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
     QHBoxLayout,
     QFormLayout,
     QLabel,
+    QMenu,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -24,8 +26,10 @@ from openchem.domain.calculator import (
     RegistryExecution,
     ServiceExecution,
 )
+from openchem.domain.common import CacheState
 from openchem.domain.project import ProjectModel
 from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
+from openchem.domain.structure_issue import Severity
 from openchem.events.base import EventBus
 from openchem.events.events import (
     AlertComputed,
@@ -118,6 +122,34 @@ _DEFAULT_EXPANDED = {"physicochemical", "identity"}
 # problem that doesn't exist. Collapsing is purely a decluttering aid.
 
 
+# THE COLOUR VOCABULARY. Red means failed, dangerous or invalid -- nothing
+# else. It previously meant "this result has content", which is why a
+# molecular weight, a Szeged index and an elemental analysis all arrived in
+# alert red and the app read as though it were constantly complaining.
+#
+# Counted while fixing it: **20 of the 25 `alert_id`s in this codebase are
+# reports rather than alert catalogs.** Only pains, brenk,
+# mutagenicity_alerts, herg_risk_factors and a regulatory screen WITH
+# findings are warnings.
+#
+# Colour never carries meaning on its own -- each state has a glyph too,
+# for colour-blind readers and for anyone reading a copied plain-text
+# export where the styling is gone.
+_FAILURE_STYLE = "color: #c62828;"  # red: it did not work, or it is invalid
+_WARNING_STYLE = "color: #ef6c00;"  # amber: it worked, and you should look
+_SUCCESS_STYLE = "color: #2e7d32;"  # green: checked, nothing flagged
+_INFORMATION_STYLE = "color: #666666;"  # neutral: it is simply a value
+
+_FAILURE_GLYPH = "✕ "  # ballot X
+_WARNING_GLYPH = "△ "  # white up-pointing triangle
+_SUCCESS_GLYPH = "✓ "  # check mark
+
+#: Plain BMP glyphs, not emoji. Qt's emoji rendering on Windows falls back
+#: per font and can produce a tofu box where a symbol was intended; these
+#: three are in every shipped UI font. Verified by painting, not assumed --
+#: see `test_property_panel.py`.
+
+
 def _format_value(value: object) -> tuple[str, str]:
     """Returns (text, stylesheet) for a descriptor's value -- dispatches on
     the Python type of the value itself (bool vs. number vs. text) rather
@@ -126,10 +158,110 @@ def _format_value(value: object) -> tuple[str, str]:
     if value is None:
         return "", ""
     if isinstance(value, bool):
-        return ("Pass", "color: #2e7d32;") if value else ("Fail", "color: #c62828;")
+        return (_SUCCESS_GLYPH + "Pass", _SUCCESS_STYLE) if value else (_FAILURE_GLYPH + "Fail", _FAILURE_STYLE)
     if isinstance(value, float):
         return f"{value:.4g}", ""
     return str(value), ""
+
+
+def _make_copyable(label: QLabel) -> None:
+    """Let the mouse select this label's text.
+
+    A `QLabel` is not selectable by default, so every number in this panel
+    used to be look-only -- you could read a partial charge but not paste
+    it into a notebook, an issue or a message. Five other surfaces already
+    reach `ui/result_clipboard.py`; this panel reached nothing.
+
+    `LinksAccessibleByMouse` is preserved because fact links depend on it.
+    """
+    label.setTextInteractionFlags(
+        label.textInteractionFlags() | Qt.TextInteractionFlag.TextSelectableByMouse
+    )
+
+
+def _without_glyphs(text: str) -> str:
+    """Strip the status glyphs for anything leaving the GUI.
+
+    Two reasons, and the second one is a rule this project learned the
+    hard way. A glyph is DECORATION -- somebody pasting a result into a
+    paper wants "Pass", not "✓ Pass", and the word already carries the
+    meaning the glyph duplicates on screen.
+
+    And these three are non-ASCII. `regulatory/calculator.py`'s docstring
+    records that result text reaches Qt, logs and console streams, and
+    that a Windows cp1252 stream RAISES on a tick -- hit three times in
+    one session, which is why `test_naming_result_lines_stay_ascii`
+    exists. Producing them at render time and dropping them at the exit is
+    what keeps the glyphs on screen without putting them in the pipe.
+    """
+    for glyph in (_FAILURE_GLYPH, _WARNING_GLYPH, _SUCCESS_GLYPH):
+        text = text.replace(glyph, "")
+    return text
+
+
+def _present_alert(alert) -> tuple[str, str, str]:
+    """How one `AlertResult` should read: (text, stylesheet, tooltip).
+
+    Pulled out of the panel so the decision is testable on its own and so
+    the four states are visible together rather than spread through an
+    if-chain in a Qt slot.
+
+    THE ORDER MATTERS. `cache_state` is checked BEFORE `matched`, because a
+    failure carries no matches -- and an empty `matched` used to fall
+    straight through to a green "Clean". Geometry without a 3D conformer
+    therefore reported success while discarding the message that said what
+    to do about it, which is the worst of both: wrong, and silent.
+    """
+    if alert.cache_state is CacheState.FAILED:
+        reason = alert.error or "Failed"
+        return _FAILURE_GLYPH + reason, _FAILURE_STYLE, reason
+    if alert.cache_state in (CacheState.QUEUED, CacheState.RUNNING):
+        return alert.cache_state.value.capitalize() + "...", _INFORMATION_STYLE, ""
+
+    if not alert.matched:
+        # "Clean" is a verdict, and only a catalog is entitled to give one.
+        # An elemental analysis with nothing to say has not cleared the
+        # molecule of anything.
+        if alert.severity is Severity.WARNING:
+            return _SUCCESS_GLYPH + "Clean", _SUCCESS_STYLE, "Checked, nothing flagged."
+        return "Nothing to report.", _INFORMATION_STYLE, ""
+
+    joined = "\n".join(alert.matched)
+    if alert.severity is Severity.ERROR:
+        return _FAILURE_GLYPH + joined, _FAILURE_STYLE, joined
+    if alert.severity is Severity.WARNING:
+        return (
+            f"{_WARNING_GLYPH}{len(alert.matched)} alert(s): {', '.join(alert.matched)}",
+            _WARNING_STYLE,
+            joined,
+        )
+    # INFO: a report. One line per line -- comma-joining them produced the
+    # "8 alert(s): Formula: CHNO, Mass: 43.025, Exact mass: ..." run that
+    # made a composition table look like a toxicity finding.
+    return joined, _INFORMATION_STYLE, joined
+
+
+def _summarise(result: object) -> str:
+    """A one-line "what arrived" for a result whose detail lives in a
+    dialog. Enough to show the run happened and produced something, with
+    the shape of it, so "nothing noticeable happens" cannot recur.
+    """
+    values = getattr(result, "values", None)
+    if isinstance(values, dict) and values:
+        numbers = [v for v in values.values() if isinstance(v, (int, float))]
+        if numbers:
+            return (
+                f"{len(values)} atoms, {min(numbers):.4g} to {max(numbers):.4g}"
+                f"{' ' + result.units if getattr(result, 'units', '') else ''}"
+            )
+        return f"{len(values)} atoms"
+    structures = getattr(result, "structures", None)
+    if structures is not None:
+        return f"{len(structures)} structures"
+    points = getattr(result, "points", None)
+    if points is not None:
+        return f"{len(points)} points"
+    return "Ready"
 
 
 #: Qt property carrying which calculator a section button opens.
@@ -189,6 +321,12 @@ class PropertyPanel(QWidget):
         # pick the same short name and silently collide.
         self._value_labels: dict[tuple[str, str], QLabel] = {}
         self._alert_labels: dict[tuple[str, str], QLabel] = {}
+        #: Results whose detail lives in a dialog -- per-atom datasets,
+        #: spectra, structure sets, pH curves. Before these existed a
+        #: batch run computed them, published them, and rendered nothing
+        #: whatsoever, which is exactly what "I can hit run on several
+        #: things and nothing noticeable happens" was describing.
+        self._result_labels: dict[str, QLabel] = {}
         self._sections: dict[str, _CollapsibleSection] = {}
         # Which section each row currently lives in -- lets
         # _on_descriptor_computed detect a category change and re-parent the
@@ -218,8 +356,24 @@ class PropertyPanel(QWidget):
         self._clear_selection_button = QPushButton("Clear", self)
         self._clear_selection_button.setEnabled(False)
         self._clear_selection_button.clicked.connect(self._on_clear_selection)
-        self._batch_status = _WrappedLabel("", self)
-        self._batch_status.setStyleSheet("color: #666666;")
+        # A PLAIN QLabel, deliberately, where every other multi-line label
+        # in this panel is a `_WrappedLabel`.
+        #
+        # `_WrappedLabel`'s `MinimumExpanding` vertical policy is
+        # load-bearing INSIDE the scroll area -- it is what stops the
+        # calculator buttons being squeezed to 13px (see its docstring).
+        # In this top-level row it does the exact opposite: the row claims
+        # the stretch and pushes the sections off the bottom of the panel.
+        # Measured on a bare Qt reproduction at 900x950: **461px tall with
+        # the policy, 20px without**, moving the scroll area's top from
+        # y=478 to y=37.
+        #
+        # One line, with the full text on hover, because this is transient
+        # status and not a result.
+        self._batch_status = QLabel("", self)
+        self._batch_status.setWordWrap(False)
+        self._batch_status.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self._batch_status.setStyleSheet(_INFORMATION_STYLE)
 
         batch_row = QHBoxLayout()
         batch_row.addWidget(self._run_selected_button)
@@ -230,6 +384,13 @@ class PropertyPanel(QWidget):
         layout.setContentsMargins(4, 4, 4, 4)
         layout.addLayout(batch_row)
         layout.addWidget(scroll_area)
+
+        # Right-click anywhere to copy. Selecting text with the mouse works
+        # too (see `_make_copyable`), but a panel of forty short values is
+        # awkward to drag across, and "copy the whole thing" is what people
+        # actually want when pasting into a notebook or an issue.
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._on_context_menu)
 
         # Eagerly create a section (with its "Open..." buttons) for every
         # registered calculator category, even one with no matching scalar
@@ -271,6 +432,7 @@ class PropertyPanel(QWidget):
         self._batch_status.setText("")
         self._value_labels.clear()
         self._alert_labels.clear()
+        self._result_labels.clear()
         self._row_sections.clear()
         for section in self._sections.values():
             section.clear_rows()
@@ -436,6 +598,7 @@ class PropertyPanel(QWidget):
         if value_label is None:
             value_label = QLabel(section.content)
             value_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+            _make_copyable(value_label)
             section.content_layout().addRow(label, value_label)
             self._value_labels[row_key] = value_label
         elif self._row_sections.get(row_key) is not section:
@@ -455,11 +618,11 @@ class PropertyPanel(QWidget):
 
         if descriptor.cache_state.value == "failed":
             value_label.setText(descriptor.error or "Failed")
-            value_label.setStyleSheet("color: #c62828;")
+            value_label.setStyleSheet(_FAILURE_STYLE)
             value_label.setToolTip(descriptor.error or "")
         elif descriptor.cache_state.value in ("queued", "running"):
             value_label.setText(descriptor.cache_state.value.capitalize() + "...")
-            value_label.setStyleSheet("color: #888888;")
+            value_label.setStyleSheet(_INFORMATION_STYLE)
             value_label.setToolTip("")
         else:
             text, style = _format_value(descriptor.value)
@@ -475,7 +638,56 @@ class PropertyPanel(QWidget):
         `gasteiger_charge`, `huckel_analysis`), but nothing enforces it, so
         this is best-effort and `_on_molecule_selected` is the backstop.
         """
+        was_running = result_id in self._running_calculator_ids
         self._running_calculator_ids.discard(result_id)
+        # The status used to be written once on dispatch and never
+        # revisited, so it read "Running 2 with default settings: ..."
+        # indefinitely -- including in the screenshot where both results
+        # were already on screen behind it.
+        if was_running and not self._running_calculator_ids:
+            self._batch_status.setText("Finished.")
+
+    def _show_result(self, result_id: str, name: str, category: str, result: object) -> None:
+        """Render a result whose detail belongs in a dialog.
+
+        Called for EVERY such result, not only the one the user clicked a
+        button for. That distinction is the bug: `_on_run_selected`
+        deliberately leaves `_pending_calculator_id` unset (six stacked
+        inspectors is not a saving), and every handler below used to
+        return early without it -- so a batch run produced no visible
+        change anywhere in the panel.
+
+        The row is a summary plus a link, not the data itself. A hundred
+        per-atom values do not belong in a form row, and the Calculator
+        Inspector already renders them properly.
+        """
+        section = self._section_for(category or "other")
+        label = self._result_labels.get(result_id)
+        if label is None:
+            label = _WrappedLabel("", section.content)
+            _make_copyable(label)
+            section.content_layout().addRow(name, label)
+            self._result_labels[result_id] = label
+        if getattr(result, "cache_state", None) is CacheState.FAILED:
+            reason = getattr(result, "error", None) or "Failed"
+            label.setText(_FAILURE_GLYPH + reason)
+            label.setStyleSheet(_FAILURE_STYLE)
+            label.setToolTip(reason)
+            return
+        label.setText(_summarise(result))
+        label.setStyleSheet(_INFORMATION_STYLE)
+        label.setToolTip("Open the calculator's button above to see the detail.")
+
+    def _category_of(self, calculator_id: str) -> str:
+        """Which section a result belongs in.
+
+        `PerAtomDataset` and `SpectrumResult` carry no category of their
+        own -- only `AlertResult` does -- so it comes from the registry,
+        which is the single source of truth for what a calculator is and
+        where it lives.
+        """
+        definition = self._calculator_registry.get(calculator_id)
+        return definition.category if definition is not None else "other"
 
     def _on_alert_computed(self, event: AlertComputed) -> None:
         alert = event.alert
@@ -490,19 +702,23 @@ class PropertyPanel(QWidget):
         value_label = self._alert_labels.get(row_key)
         if value_label is None:
             value_label = _WrappedLabel("", section.content)
+            _make_copyable(value_label)
             section.content_layout().addRow(alert.name, value_label)
             self._alert_labels[row_key] = value_label
 
-        if alert.matched:
-            value_label.setText(f"{len(alert.matched)} alert(s): {', '.join(alert.matched)}")
-            value_label.setStyleSheet("color: #c62828;")
-        else:
-            value_label.setText("Clean")
-            value_label.setStyleSheet("color: #2e7d32;")
+        text, style, tooltip = _present_alert(alert)
+        value_label.setText(text)
+        value_label.setStyleSheet(style)
+        value_label.setToolTip(tooltip)
 
     def _on_per_atom_data_computed(self, event: PerAtomDataComputed) -> None:
         dataset = event.dataset
         self._finish_batch_run(dataset.property_id)
+        if dataset.molecule_uuid == self._selected_molecule_uuid:
+            self._show_result(
+                dataset.property_id, dataset.name,
+                self._category_of(dataset.property_id), dataset,
+            )
         if (
             self._pending_calculator_id is not None
             and dataset.property_id == self._pending_calculator_id
@@ -519,6 +735,12 @@ class PropertyPanel(QWidget):
         # above (the two calculators that use this path name their
         # calculator_id and spectrum_type identically).
         spectrum = event.spectrum
+        self._finish_batch_run(spectrum.spectrum_type)
+        if spectrum.molecule_uuid == self._selected_molecule_uuid:
+            self._show_result(
+                spectrum.spectrum_type, spectrum.name,
+                self._category_of(spectrum.spectrum_type), spectrum,
+            )
         if (
             self._pending_calculator_id is not None
             and spectrum.spectrum_type == self._pending_calculator_id
@@ -535,6 +757,12 @@ class PropertyPanel(QWidget):
         # its registered calculator_id so no mapping table is needed -- they
         # were aligned before shipping rather than bridged afterwards.
         structure_set = event.structure_set
+        self._finish_batch_run(structure_set.set_id)
+        if structure_set.molecule_uuid == self._selected_molecule_uuid:
+            self._show_result(
+                structure_set.set_id, getattr(structure_set, 'name', structure_set.set_id),
+                self._category_of(structure_set.set_id), structure_set,
+            )
         if (
             self._pending_calculator_id is not None
             and structure_set.set_id == self._pending_calculator_id
@@ -548,6 +776,12 @@ class PropertyPanel(QWidget):
         # equal to its registered calculator_id -- same convention the
         # structure-set and spectrum paths use.
         curve = event.curve
+        self._finish_batch_run(curve.curve_id)
+        if curve.molecule_uuid == self._selected_molecule_uuid:
+            self._show_result(
+                curve.curve_id, getattr(curve, 'name', curve.curve_id),
+                self._category_of(curve.curve_id), curve,
+            )
         if (
             self._pending_calculator_id is not None
             and curve.curve_id == self._pending_calculator_id
@@ -641,11 +875,64 @@ class PropertyPanel(QWidget):
             + ("..." if len(started) > 4 else "")
         )
 
+    # --- copying out ---------------------------------------------------------
+
+    def _on_context_menu(self, position) -> None:
+        menu = QMenu(self)
+        menu.addAction("Copy all properties").triggered.connect(self._on_copy_all)
+        menu.exec(self.mapToGlobal(position))
+
+    def _on_copy_all(self, _checked: bool = False) -> None:
+        QGuiApplication.clipboard().setText(self.as_text())
+
+    def as_text(self) -> str:
+        """Everything currently on screen, as plain text.
+
+        Walks the SECTIONS rather than the three label dictionaries, so the
+        output carries the same headings and the same order the reader is
+        looking at. Reading it out of the dicts would silently reorder it
+        and drop the groupings, which is most of what makes it legible.
+        """
+        lines: list[str] = []
+        for category in sorted(
+            self._sections,
+            key=lambda cat: (
+                _CATEGORY_ORDER.index(cat) if cat in _CATEGORY_ORDER else len(_CATEGORY_ORDER),
+                cat,
+            ),
+        ):
+            section = self._sections[category]
+            form = section.content_layout()
+            rows: list[str] = []
+            for row in range(form.rowCount()):
+                label_item = form.itemAt(row, QFormLayout.ItemRole.LabelRole)
+                field_item = form.itemAt(row, QFormLayout.ItemRole.FieldRole)
+                if label_item is None or field_item is None:
+                    continue
+                name_widget = label_item.widget()
+                value_widget = field_item.widget()
+                if name_widget is None or value_widget is None:
+                    continue
+                value = _without_glyphs(value_widget.text()).replace("\n", "; ")
+                rows.append(f"  {name_widget.text()}: {value}")
+            if rows:
+                lines.append(_CATEGORY_LABELS.get(category, category.title()))
+                lines.extend(rows)
+                lines.append("")
+        return "\n".join(lines).rstrip()
+
     def _open_calculator(self, definition: CalculatorDefinition) -> None:
+        # Says so, rather than returning silently. Clicking an "Open..."
+        # button with nothing selected used to do NOTHING AT ALL -- no
+        # dialog, no message, no log line -- which is indistinguishable
+        # from a broken button and is the same complaint as "I can hit run
+        # on several things and nothing noticeable happens".
         if self._project is None or self._selected_molecule_uuid is None:
+            self._batch_status.setText("Select a molecule first.")
             return
         molecule = self._project.find_molecule(self._selected_molecule_uuid)
         if molecule is None:
+            self._batch_status.setText("That molecule is no longer in the project.")
             return
         parameters: dict[str, object] = {}
         if definition.parameters:

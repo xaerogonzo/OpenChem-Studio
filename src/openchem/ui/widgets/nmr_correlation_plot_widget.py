@@ -65,7 +65,24 @@ class NmrCorrelationPlotWidget(QWidget):
         # the peak list invalidates it. Rebuilding a 200x200 grid on every
         # repaint would be work that changes nothing.
         self._grid: contours.DensityGrid | None = None
+        #: Shown in the plot area while there are no peaks. Settable so the
+        #: panel can name the experiment ("No HSQC cross peaks yet.")
+        #: rather than this widget guessing which one it is drawing.
+        self._empty_message = "No cross peaks yet."
         self.setMinimumSize(280, 280)
+
+    def set_empty_message(self, message: str) -> None:
+        self._empty_message = message
+        self.update()
+
+    def empty_message(self) -> str:
+        """What is painted here while there are no peaks.
+
+        Readable so the panel's own `empty_message_for_tab` can derive a
+        tab's explanation from the widgets rather than from a list kept
+        beside them.
+        """
+        return self._empty_message
 
     def set_peaks(self, peaks: list[Peak], x_label: str = "", y_label: str = "") -> None:
         self._peaks = list(peaks)
@@ -128,6 +145,25 @@ class NmrCorrelationPlotWidget(QWidget):
 
         painter.setPen(QPen(QColor(120, 120, 120)))
         painter.drawRect(plot_rect)
+
+        # The empty state, PAINTED rather than added as a placeholder
+        # widget. An empty plot is axes around nothing, which reads as
+        # broken; saying so costs one drawText.
+        #
+        # It is drawn instead of using a placeholder widget for a measured
+        # reason, not a stylistic one: adding a placeholder QLabel to a tab
+        # page that already holds content widgets corrupted the heap during
+        # the teardown collect. See `ui/widgets/empty_state.py`, which has
+        # the numbers. Painting into a widget that already exists sidesteps
+        # it entirely, and is the better drawing anyway -- the message
+        # lands where the peaks would be.
+        if not self._peaks:
+            painter.setPen(QPen(QColor(120, 120, 120)))
+            painter.drawText(
+                plot_rect,
+                Qt.AlignmentFlag.AlignCenter,
+                self._empty_message,
+            )
 
         painter.drawText(
             QRectF(0, self.height() - self._MARGIN / 2, self.width(), self._MARGIN / 2),
