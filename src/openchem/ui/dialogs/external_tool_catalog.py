@@ -26,6 +26,7 @@ from openchem.ui.dialogs.external_tool_tabs import (
     Blocked,
     InterpreterSidecar,
     ManagedAsset,
+    ManagedExecutable,
     Note,
 )
 
@@ -315,6 +316,168 @@ def admet() -> InterpreterSidecar:
                 "checklist still works -- it reports which structural correlates of hERG "
                 "liability are present, offline and instantly, instead of guessing a "
                 "probability. The two answer different questions and both stay available."
+            ),
+        ),
+    )
+
+
+#: Why the ORCA tab has no Set Up button. Stated once so the refusal, the
+#: dialog title and the failure status cannot drift apart.
+_ORCA_NO_AUTOMATION = (
+    "ORCA's licence does not permit automated or redirected downloads, so "
+    "this app cannot fetch it for you. Use the FACCTS link below, then "
+    "Locate Installed or Browse."
+)
+
+
+def _find(root, names: tuple[str, ...]):
+    """`PathRow`'s finder: the executable inside a folder the user picked.
+
+    Imported lazily because `sidecar_env` pulls in subprocess machinery
+    the catalog otherwise has no use for at import time.
+    """
+    from openchem.services.sidecar_env import find_program
+
+    return find_program(root, names)
+
+
+def vina() -> ManagedExecutable:
+    """AutoDock Vina: the app can fetch this one.
+
+    Its releases are public, Apache-2.0 executables published by the
+    Scripps team on GitHub, so "Download" here really is the same file
+    you would fetch from the releases page yourself.
+    """
+    import openchem.services.sidecar_inventory as sidecar_inventory
+    import openchem.services.tool_download_service as tools
+
+    def confirm_body() -> str:
+        # The asset is looked up inside `run` rather than here, because
+        # this text is built before any network call -- the size and
+        # filename this app's download policy requires are shown in the
+        # SECOND confirmation, once the release metadata is known.
+        return (
+            "Look up the latest AutoDock Vina release?\n\n"
+            f"Source: {tools.VINA_RELEASES_PAGE}\n"
+            "This only reads the release list. Nothing is downloaded until "
+            "you confirm the exact file, its size and its URL.\n\n"
+            "Continue?"
+        )
+
+    return ManagedExecutable(
+        key="vina",
+        title="AutoDock Vina",
+        setting_key=sidecar_inventory.VINA_SETTING,
+        browse_title="Select the folder containing Vina",
+        finder=lambda root: _find(root, ("vina",)),
+        path_description="Vina executable",
+        describe_status=tools.describe_vina_status,
+        locate=lambda: tools.locate_executable(("vina",), validate=tools.responds_as_vina),
+        locate_hint="Look for Vina where installers usually put it.",
+        test_label="Test (runs vina --version)...",
+        testing_status="Running Vina...",
+        describe_test=tools.verify_vina,
+        test_errors=tools.ToolVerificationError,
+        action_label="Check for Updates / Download...",
+        remove_label="the AutoDock Vina download",
+        confirm_title="Download AutoDock Vina",
+        confirm_body=confirm_body,
+        # Unused: `_VinaTab` overrides the setup click to keep the
+        # two-step confirmation this app's download policy requires --
+        # look up the release, THEN show the exact file, size and URL.
+        run=lambda _on_progress: None,
+        errors=RuntimeError,
+        finished_status=lambda path: f"Installed: {path}",
+        success_title="Download complete",
+        success_message=lambda path: f"AutoDock Vina installed to:\n{path}",
+        failure_title="Download failed",
+        failure_status_prefix="Download failed",
+        notes=(
+            Note(
+                "AutoDock Vina's official releases are public, Apache-2.0-licensed "
+                "executables published on GitHub (ccsb-scripps/AutoDock-Vina) -- "
+                "downloading one here is the same file you would get from the "
+                "releases page yourself."
+            ),
+            Note(
+                "Remove from Disk only ever deletes a copy this app downloaded. If you "
+                "pointed the path at your own Vina, it is left alone and the Storage tab "
+                "says so.",
+                MUTED,
+            ),
+        ),
+    )
+
+
+def orca() -> ManagedExecutable:
+    """ORCA: the app can NOT fetch this one, and says so instead.
+
+    **No Set Up button, deliberately.** ORCA's licence does not permit
+    automated or redirected downloads, so a button here could only open a
+    browser -- and a "Set Up Automatically" that cannot is worse than an
+    honest link. Everything else it shares with the other tabs: a status
+    line, Locate, and a Test that runs a real calculation.
+
+    Remove from Disk is absent for the same class of reason: this app never
+    installed ORCA, so nothing here has the right to delete it.
+    """
+    import openchem.services.tool_download_service as tools
+
+    return ManagedExecutable(
+        key="orca",
+        title="ORCA",
+        setting_key="orca/executable_path",
+        browse_title="Select the folder ORCA is installed in",
+        finder=lambda root: _find(root, ("orca",)),
+        path_description="ORCA executable",
+        describe_status=tools.describe_orca_status,
+        locate=lambda: tools.locate_executable(("orca",), validate=tools.responds_as_orca),
+        locate_hint=(
+            "Search the usual install locations. Each candidate is RUN before "
+            'being accepted -- "ORCA" is a common name and this machine has an '
+            "unrelated Orca.exe that would otherwise be picked."
+        ),
+        test_label="Test (runs a 2-atom calculation)...",
+        testing_status="Running a test calculation...",
+        describe_test=tools.verify_orca,
+        test_errors=tools.ToolVerificationError,
+        obtainable=False,
+        removable=False,
+        vendor_links=(
+            ("Get ORCA (FACCTS account required)...", tools.ORCA_DOWNLOAD_PAGE),
+            ("ORCA Documentation...", tools.ORCA_DOCS_PAGE),
+        ),
+        # Unused by a tab that cannot obtain, but `_ToolBase` requires
+        # them. Pointed at a refusal rather than at a plausible-looking
+        # no-op, so a future change that shows the button fails loudly.
+        action_label="Set Up Automatically...",
+        remove_label="ORCA",
+        confirm_title="ORCA cannot be downloaded automatically",
+        confirm_body=lambda: _ORCA_NO_AUTOMATION,
+        run=lambda _on_progress: (_ for _ in ()).throw(RuntimeError(_ORCA_NO_AUTOMATION)),
+        errors=RuntimeError,
+        finished_status=lambda _result: "",
+        success_title="",
+        success_message=lambda _result: "",
+        failure_title="ORCA cannot be downloaded automatically",
+        failure_status_prefix="Not available",
+        notes=(
+            Note(
+                'This is the quantum-chemistry program named "ORCA" from FACCTS GmbH -- a '
+                "genuinely generic name, easy to confuse with unrelated software. Its "
+                'downloads used to live on a Max Planck-hosted "orcaforum" site; that link '
+                "is now dead. FACCTS' own customer portal (free registration required) is "
+                "the current, correct source -- OpenChem Studio can't fetch it "
+                "automatically because ORCA's license doesn't allow automated/redirected "
+                "downloads."
+            ),
+            Note(tools.describe_orca_platform_hint()),
+            Note(
+                "After installing, use Locate Installed or Browse to point at the ORCA "
+                'executable above -- usually "orca.exe" (Windows) or "orca" (Linux/macOS) '
+                "inside wherever you extracted it. Install it somewhere with no spaces in "
+                "the path: ORCA's own launcher mis-handles them.",
+                MUTED,
             ),
         ),
     )

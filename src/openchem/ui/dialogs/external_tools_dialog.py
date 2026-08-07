@@ -38,9 +38,11 @@ from openchem.ui.dialogs import external_tool_catalog as catalog
 from openchem.ui.dialogs.external_tool_tabs import (
     InterpreterSidecarTab,
     ManagedAssetTab,
+    ManagedExecutableTab,
     PathRow,
     ToolTab,
     progress_reporter,
+    run_async,
 )
 
 logger = logging.getLogger("openchem.ui")
@@ -99,6 +101,81 @@ class _AdmetSidecarTab(InterpreterSidecarTab):
         super()._failed(message)
 
 
+class _VinaTab(ManagedExecutableTab):
+    """Vina, whose download needs TWO confirmations rather than one.
+
+    `ToolTab`'s cycle asks once and then runs. That is right for a fetch
+    whose size and source are known up front, and wrong here: the release
+    list has to be read before this app can say which file, from where and
+    how big -- which is exactly what its download policy requires it to
+    say before fetching anything. So the first confirmation covers reading
+    the release list, and the second covers the file itself.
+    """
+
+    def _on_setup_clicked(self) -> None:
+        answer = QMessageBox.question(
+            self,
+            self.descriptor.confirm_title,
+            self.descriptor.confirm_body(),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        self.setup_button.setEnabled(False)
+        self.setup_button.setText("Checking GitHub for the latest release...")
+        run_async(
+            fetch_latest_vina_release,
+            RuntimeError,
+            self._on_release_fetched,
+            self._on_download_failed,
+        )
+
+    def _restore_button(self) -> None:
+        self.setup_button.setEnabled(True)
+        self.setup_button.setText(self.descriptor.action_label)
+
+    def _on_release_fetched(self, asset: VinaReleaseAsset) -> None:
+        self._restore_button()
+        # Nothing has been downloaded yet -- the call above only read
+        # release METADATA. This is the confirmation that names the file.
+        size_mb = asset.size_bytes / (1024 * 1024)
+        answer = QMessageBox.question(
+            self,
+            "Download AutoDock Vina",
+            (
+                f"Download AutoDock Vina {asset.version}?\n\n"
+                f"File: {asset.name}\n"
+                f"Source: {asset.download_url}\n"
+                f"Size: {size_mb:.1f} MB\n\n"
+                "It will be saved to OpenChem Studio's own tools folder and "
+                "configured automatically."
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        self.setup_button.setEnabled(False)
+        self.setup_button.setText(f"Downloading {asset.name}...")
+        run_async(
+            lambda: download_vina_asset(asset),
+            RuntimeError,
+            self._on_download_finished,
+            self._on_download_failed,
+        )
+
+    def _on_download_finished(self, path: Path) -> None:
+        self._restore_button()
+        self.path_row.set_path(str(path))
+        self._refresh_status()
+        QMessageBox.information(self, "Download complete", f"AutoDock Vina installed to:\n{path}")
+
+    def _on_download_failed(self, message: str) -> None:
+        self._restore_button()
+        self.status_label.setText(f"Download failed: {message}")
+        QMessageBox.critical(self, "Download failed", message)
+
+
 class ExternalToolsDialog(QDialog):
     """Single home for configuring/obtaining external chemistry tools --
     replaces the two previously-separate `_VinaPathDialog`
@@ -130,8 +207,12 @@ class ExternalToolsDialog(QDialog):
         self._tool_tabs: list[ToolTab] = []
 
         self._tabs = QTabWidget(self)
-        self._tabs.addTab(self._build_vina_tab(), "AutoDock Vina")
-        self._tabs.addTab(self._build_orca_tab(), "ORCA")
+        # Vina and ORCA were the first two external tools and predate
+        # the descriptor system, so they were hand-built and lacked
+        # Locate, Test and Remove -- and ORCA lacked a status line.
+        # They go through the same path as everything else now.
+        self._add_executable_tab(catalog.vina(), _VinaTab)
+        self._add_executable_tab(catalog.orca(), ManagedExecutableTab)
         self._add_sidecar_tab(catalog.pkasolver(), InterpreterSidecarTab)
         # Grouped with pkasolver rather than with the executables above:
         # both are "a Python interpreter, not an executable", and making
@@ -154,12 +235,20 @@ class ExternalToolsDialog(QDialog):
         layout.addWidget(self._tabs)
         layout.addWidget(buttons)
 
-        self._refresh_vina_status()
 
     # --- Descriptor-driven tabs ---------------------------------------------
 
     def _add_managed_asset_tab(self, descriptor) -> None:
         tab = ManagedAssetTab(descriptor, self, remove_button_factory=self._remove_button)
+        self._register_tab(descriptor, tab)
+
+    def _add_executable_tab(self, descriptor, tab_class) -> None:
+        tab = tab_class(
+            descriptor,
+            self,
+            settings=self._settings,
+            remove_button_factory=self._remove_button,
+        )
         self._register_tab(descriptor, tab)
 
     def _add_sidecar_tab(self, descriptor, tab_class) -> None:
@@ -186,6 +275,8 @@ class ExternalToolsDialog(QDialog):
         "admet": "_admet",
         "java": "_java",
         "nmr_index": "_nmr_db",
+        "vina": "_vina",
+        "orca": "_orca",
     }
 
     def _alias_widgets(self, key: str, tab: ToolTab) -> None:
@@ -193,7 +284,7 @@ class ExternalToolsDialog(QDialog):
         setattr(self, f"{prefix}_status_label", tab.status_label)
         setattr(self, f"{prefix}_setup_button", tab.setup_button)
         setattr(self, f"{prefix}_remove_button", tab.remove_button)
-        if isinstance(tab, InterpreterSidecarTab):
+        if isinstance(tab, (InterpreterSidecarTab, ManagedExecutableTab)):
             setattr(self, f"{prefix}_path_edit", tab.path_row.edit)
             setattr(self, f"{prefix}_locate_button", tab.locate_button)
 
@@ -208,166 +299,6 @@ class ExternalToolsDialog(QDialog):
 
     def _on_admet_path_edited(self) -> None:
         self._tab_for("admet").path_row.commit()
-
-    # --- Vina tab -----------------------------------------------------------
-
-    def _build_vina_tab(self) -> QWidget:
-        from openchem.services.sidecar_env import find_program
-
-        tab = QWidget(self)
-
-        self._vina_row = PathRow(
-            tab,
-            settings=self._settings,
-            setting_key="docking/vina_executable_path",
-            browse_title="Select the folder containing Vina",
-            finder=lambda root: find_program(root, ("vina",)),
-            description="Vina executable",
-            on_changed=self._refresh_vina_status,
-        )
-        self._vina_path_edit = self._vina_row.edit
-
-        self._vina_status_label = QLabel("Checking...", tab)
-        self._vina_download_button = QPushButton("Check for Updates / Download...", tab)
-        self._vina_download_button.clicked.connect(self._on_vina_download_clicked)
-
-        note = QLabel(
-            "AutoDock Vina's official releases are public, Apache-2.0-licensed "
-            "executables published on GitHub (ccsb-scripps/AutoDock-Vina) -- "
-            "downloading one here is the same file you'd get from the releases "
-            "page yourself.",
-            tab,
-        )
-        note.setWordWrap(True)
-
-        form = QFormLayout()
-        form.addRow("Executable:", self._vina_row)
-        form.addRow("Status:", self._vina_status_label)
-
-        layout = QVBoxLayout(tab)
-        layout.addLayout(form)
-        layout.addWidget(self._vina_download_button)
-        layout.addWidget(note)
-        layout.addStretch(1)
-        return tab
-
-    def _refresh_vina_status(self) -> None:
-        self._vina_status_label.setText(describe_vina_status(self._vina_row.text()))
-
-    def _on_vina_download_clicked(self) -> None:
-        self._vina_download_button.setEnabled(False)
-        self._vina_download_button.setText("Checking GitHub for the latest release...")
-        run_async(
-            fetch_latest_vina_release,
-            RuntimeError,
-            self._on_vina_release_fetched,
-            self._on_vina_download_failed,
-        )
-
-    def _on_vina_release_fetched(self, asset: VinaReleaseAsset) -> None:
-        self._vina_download_button.setEnabled(True)
-        self._vina_download_button.setText("Check for Updates / Download...")
-
-        # Per this app's own download policy: never fetch a file without
-        # showing the exact filename/source/size and getting an explicit
-        # yes first -- run_async's background fetch above only *looked up*
-        # release metadata, nothing has been downloaded yet.
-        size_mb = asset.size_bytes / (1024 * 1024)
-        answer = QMessageBox.question(
-            self,
-            "Download AutoDock Vina",
-            (
-                f"Download AutoDock Vina {asset.version}?\n\n"
-                f"File: {asset.name}\n"
-                f"Source: {asset.download_url}\n"
-                f"Size: {size_mb:.1f} MB\n\n"
-                "It will be saved to OpenChem Studio's own tools folder and "
-                "configured automatically."
-            ),
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
-        if answer != QMessageBox.StandardButton.Yes:
-            return
-
-        self._vina_download_button.setEnabled(False)
-        self._vina_download_button.setText(f"Downloading {asset.name}...")
-        run_async(
-            lambda: download_vina_asset(asset),
-            RuntimeError,
-            self._on_vina_download_finished,
-            self._on_vina_download_failed,
-        )
-
-    def _on_vina_download_finished(self, path: Path) -> None:
-        self._vina_download_button.setEnabled(True)
-        self._vina_download_button.setText("Check for Updates / Download...")
-        self._vina_row.set_path(str(path))
-        QMessageBox.information(self, "Download complete", f"AutoDock Vina installed to:\n{path}")
-
-    def _on_vina_download_failed(self, message: str) -> None:
-        self._vina_download_button.setEnabled(True)
-        self._vina_download_button.setText("Check for Updates / Download...")
-        QMessageBox.critical(self, "Download failed", message)
-
-    # --- ORCA tab -------------------------------------------------------------
-
-    def _build_orca_tab(self) -> QWidget:
-        from openchem.services.sidecar_env import find_program
-
-        tab = QWidget(self)
-
-        self._orca_row = PathRow(
-            tab,
-            settings=self._settings,
-            setting_key="orca/executable_path",
-            browse_title="Select the folder ORCA is installed in",
-            finder=lambda root: find_program(root, ("orca",)),
-            description="ORCA executable",
-        )
-        self._orca_path_edit = self._orca_row.edit
-
-        get_orca_button = QPushButton("Get ORCA (FACCTS account required)...", tab)
-        get_orca_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(ORCA_DOWNLOAD_PAGE)))
-        docs_button = QPushButton("ORCA Documentation...", tab)
-        docs_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(ORCA_DOCS_PAGE)))
-        get_orca_row = QHBoxLayout()
-        get_orca_row.addWidget(get_orca_button)
-        get_orca_row.addWidget(docs_button)
-
-        identity_note = QLabel(
-            'This is the quantum-chemistry program named "ORCA" from FACCTS '
-            "GmbH -- a genuinely generic name, easy to confuse with unrelated "
-            "software. Its downloads used to live on a Max Planck-hosted "
-            '"orcaforum" site; that link is now dead. FACCTS\' own customer '
-            "portal (free registration required) is the current, correct "
-            "source -- OpenChem Studio can't fetch it automatically because "
-            "ORCA's license doesn't allow automated/redirected downloads.",
-            tab,
-        )
-        identity_note.setWordWrap(True)
-
-        which_build_note = QLabel(describe_orca_platform_hint(), tab)
-        which_build_note.setWordWrap(True)
-
-        after_download_note = QLabel(
-            "After installing, Browse to the ORCA executable above -- it's "
-            'usually named "orca.exe" (Windows) or "orca" (Linux/macOS) '
-            "inside wherever you extracted/installed it.",
-            tab,
-        )
-        after_download_note.setWordWrap(True)
-
-        form = QFormLayout()
-        form.addRow("Executable:", self._orca_row)
-
-        layout = QVBoxLayout(tab)
-        layout.addLayout(form)
-        layout.addLayout(get_orca_row)
-        layout.addWidget(identity_note)
-        layout.addWidget(which_build_note)
-        layout.addWidget(after_download_note)
-        layout.addStretch(1)
-        return tab
 
     # --- Removal, shared by the tool tabs and the Storage table ---------------
 
@@ -446,10 +377,12 @@ class ExternalToolsDialog(QDialog):
         left its own tab showing the path that had just been deleted --
         exactly the state this method exists to prevent.
         """
+        # Vina is IN this loop now, so the two hand-written lines that
+        # used to follow it are gone. Their existence was the bug this
+        # docstring describes, one tool later: a list maintained by
+        # hand omits something eventually.
         for tab in self._tool_tabs:
             tab.refresh()
-        self._vina_row.reload()
-        self._refresh_vina_status()
 
     # --- Storage ------------------------------------------------------------
 

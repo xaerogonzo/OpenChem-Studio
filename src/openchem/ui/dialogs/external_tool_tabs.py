@@ -53,6 +53,10 @@ from openchem.plugins.async_task import run_async
 # Secondary explanation, and a warning that is not an error. Named
 # because the same two greys were pasted as literals into six labels.
 MUTED = "color: #666666;"
+
+#: Where a vendor-link button keeps its URL, so the handler can be a bound
+#: method reading `sender()` rather than a lambda capturing `self`.
+_VENDOR_URL_PROPERTY = "openchem_vendor_url"
 CAUTION = "color: #8a6d3b;"
 
 
@@ -467,3 +471,204 @@ class InterpreterSidecarTab(ToolTab):
             self.status_label.setText,
             lambda message: self.status_label.setText(f"Test failed: {message}"),
         )
+
+
+@dataclass(frozen=True, kw_only=True)
+class ManagedExecutable(_ToolBase):
+    """A native program the user points at, which this app may also fetch.
+
+    The third shape, after `ManagedAsset` (the app obtains it, nothing to
+    configure) and `InterpreterSidecar` (the app builds an environment).
+    Vina and ORCA were the first two external tools and predate both, so
+    they were hand-built and never gained Locate, Test, Remove or -- in
+    ORCA's case -- even a status line.
+
+    **The two differ in one way that must not be smoothed over:** this app
+    can download Vina and cannot download ORCA, whose licence forbids
+    automated fetching. `obtainable` says which, and a tab that cannot
+    obtain shows vendor links instead of a Set Up button, rather than a
+    button whose only job would be to apologise.
+    """
+
+    setting_key: str
+    browse_title: str
+    finder: Callable[[Path], Any]
+    describe_status: Callable[[str], str]
+    locate: Callable[[], Any]
+    locate_hint: str
+    test_label: str
+    testing_status: str
+    describe_test: Callable[[str], str]
+    test_errors: type[Exception] | tuple[type[Exception], ...]
+    path_description: str
+    form_label: str = "Executable:"
+    obtainable: bool = True
+    #: (label, url) pairs, shown when this app cannot fetch the tool.
+    vendor_links: tuple[tuple[str, str], ...] = ()
+    removable: bool = True
+
+
+class ManagedExecutableTab(ToolTab):
+    """Vina and ORCA, with the same controls as every other tool tab.
+
+    Status, Locate Installed and Test are the three the hand-built tabs
+    lacked, and Test is the one that matters most: a path that exists
+    proves nothing, and both tools fail in ways a file check cannot see --
+    a wrong build, a missing MPI runtime, or an unrelated program that
+    happens to share the name.
+    """
+
+    descriptor: ManagedExecutable
+
+    def __init__(
+        self,
+        descriptor: ManagedExecutable,
+        parent: QWidget,
+        *,
+        settings,
+        remove_button_factory: Callable[[QWidget, str, str], QPushButton],
+    ) -> None:
+        super().__init__(descriptor, parent, remove_button_factory=remove_button_factory)
+
+        self.path_row = PathRow(
+            self,
+            settings=settings,
+            setting_key=descriptor.setting_key,
+            browse_title=descriptor.browse_title,
+            finder=descriptor.finder,
+            description=descriptor.path_description,
+            on_changed=self._on_path_changed,
+        )
+
+        self.locate_button = QPushButton("Locate Installed", self)
+        self.locate_button.setToolTip(descriptor.locate_hint)
+        self.locate_button.clicked.connect(self._on_locate_clicked)
+        self.test_button = QPushButton(descriptor.test_label, self)
+        self.test_button.clicked.connect(self._on_test_clicked)
+
+        form = QFormLayout()
+        form.addRow(descriptor.form_label, self.path_row)
+        form.addRow("Status:", self.status_label)
+
+        row = QHBoxLayout()
+        # Hidden rather than never created: `ToolTab.__init__` builds both
+        # buttons, and a widget left without a parent layout is exactly
+        # the leak this project has already measured.
+        if descriptor.obtainable:
+            row.addWidget(self.setup_button)
+        else:
+            self.setup_button.setVisible(False)
+        if descriptor.removable:
+            row.addWidget(self.remove_button)
+        else:
+            self.remove_button.setVisible(False)
+        row.addWidget(self.locate_button)
+        row.addWidget(self.test_button)
+        row.addStretch()
+
+        layout = QVBoxLayout(self)
+        layout.addLayout(form)
+        layout.addLayout(row)
+
+        if descriptor.vendor_links:
+            links = QHBoxLayout()
+            for label, url in descriptor.vendor_links:
+                button = QPushButton(label, self)
+                # The payload rides on the button and comes back through
+                # `sender()`. A lambda capturing `self` would root this
+                # dialog for the life of the process -- measured, and
+                # documented in `property_panel._section_for`.
+                button.setProperty(_VENDOR_URL_PROPERTY, url)
+                button.clicked.connect(self._on_vendor_link_clicked)
+                links.addWidget(button)
+            links.addStretch()
+            layout.addLayout(links)
+
+        _add_notes(layout, self, descriptor.notes)
+        layout.addStretch(1)
+        self._refresh_status()
+
+    def _initial_status(self) -> str:
+        # `ToolTab.__init__` calls this before `path_row` exists, so the
+        # real status is filled in at the end of __init__ instead.
+        return "Checking..."
+
+    def refresh(self) -> None:
+        self.path_row.reload()
+        self._refresh_status()
+
+    def _refresh_status(self) -> None:
+        self.status_label.setText(self.descriptor.describe_status(self.path_row.text()))
+
+    def _on_path_changed(self) -> None:
+        self._refresh_status()
+
+    def _on_install_finished(self, result: Any) -> None:
+        if result is not None:
+            self.path_row.set_path(str(result))
+        self.status_label.setText(self.descriptor.finished_status(result))
+
+    def _on_vendor_link_clicked(self, _checked: bool = False) -> None:
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
+
+        button = self.sender()
+        if button is None:
+            return
+        url = button.property(_VENDOR_URL_PROPERTY)
+        if url:
+            QDesktopServices.openUrl(QUrl(str(url)))
+
+    def _on_locate_clicked(self) -> None:
+        """Search the usual install locations, off the UI thread.
+
+        **Asynchronous because it RUNS each candidate**, and it has to:
+        searching this machine for "orca" turns up an unrelated `Orca.exe`
+        in a Windows Installer cache before the real one. See
+        `tool_download_service.responds_as_orca`.
+        """
+        self.locate_button.setEnabled(False)
+        self.status_label.setText("Looking in the usual install locations...")
+        run_async(
+            self.descriptor.locate,
+            (OSError, RuntimeError),
+            self._on_located,
+            self._on_locate_failed,
+        )
+
+    def _on_located(self, found: Any) -> None:
+        self.locate_button.setEnabled(True)
+        if found is None:
+            self.status_label.setText("Not found in the usual places")
+            QMessageBox.information(
+                self,
+                "Not found automatically",
+                "Nothing matching was found where this kind of tool is normally "
+                "installed.\n\nUse Browse if it is somewhere else.",
+            )
+            return
+        self.path_row.set_path(str(found))
+        self._refresh_status()
+
+    def _on_locate_failed(self, message: str) -> None:
+        self.locate_button.setEnabled(True)
+        self.status_label.setText(f"Search failed: {message}")
+
+    def _on_test_clicked(self) -> None:
+        self.test_button.setEnabled(False)
+        self.status_label.setText(self.descriptor.testing_status)
+        path = self.path_row.text()
+        run_async(
+            lambda: self.descriptor.describe_test(path),
+            self.descriptor.test_errors,
+            self._on_test_finished,
+            self._on_test_failed,
+        )
+
+    def _on_test_finished(self, message: str) -> None:
+        self.test_button.setEnabled(True)
+        self.status_label.setText(message)
+
+    def _on_test_failed(self, message: str) -> None:
+        self.test_button.setEnabled(True)
+        self.status_label.setText(f"Test failed: {message}")

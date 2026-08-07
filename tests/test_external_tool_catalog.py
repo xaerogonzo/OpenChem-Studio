@@ -266,7 +266,12 @@ def test_removing_a_component_refreshes_every_tool_tab(qapp, monkeypatch):
 
     dialog._refresh_tool_tabs()
 
-    assert set(refreshed) == {"java", "nmr_index", "pkasolver", "admet"}
+    # Compared against the tabs the dialog ACTUALLY built, never a
+    # hardcoded list -- a fixed set here would be the same hazard the
+    # docstring describes, and it went stale exactly once, when Vina
+    # and ORCA joined the descriptor system.
+    assert set(refreshed) == {tab.descriptor.key for tab in dialog._tool_tabs}
+    assert {"java", "nmr_index", "pkasolver", "admet", "vina", "orca"} <= set(refreshed)
 
 
 @pytest.mark.parametrize("key", ["pkasolver", "admet"])

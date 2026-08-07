@@ -1062,9 +1062,26 @@ the detail pane and in every cell's tooltip.
 ADMET, Java (Temurin), NMR Database, and Storage.
 
 Each tab tells you what is currently detected, installs or configures the
-tool, and has a Test button that runs a real calculation rather than just
-checking a file exists. Storage lets you move the data directory and uninstall
-any sidecar.
+tool, and has a **Test** button that runs the tool for real rather than
+checking a file exists — ORCA's runs a two-atom calculation and reports the
+version it got back, Vina's runs `--version`, pkasolver's predicts acetic
+acid's pKa. A path that exists proves nothing; these prove the tool works.
+
+**Locate Installed** searches the usual install locations for you. It *runs*
+each candidate before accepting it, which matters more than it sounds: "ORCA"
+is a common name, and on a real machine this search found an unrelated
+`Orca.exe` in a Windows Installer cache before the right one.
+
+**Remove from Disk** appears only where this app installed the tool itself.
+Vina it downloads, so it can remove it — and if you pointed the path at your
+own Vina instead, it leaves that alone and says so. ORCA has no Remove button
+at all: you installed it, so nothing here will delete it.
+
+**ORCA is the one tool this app cannot fetch for you.** Its licence does not
+permit automated or redirected downloads, so that tab offers a link to FACCTS'
+customer portal rather than a Set Up button that could only apologise.
+
+Storage lets you move the data directory and uninstall any sidecar.
 
 None are required. The features they unlock degrade to a labelled "not
 installed" state.

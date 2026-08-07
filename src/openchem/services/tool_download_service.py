@@ -65,6 +65,217 @@ def describe_vina_status(configured_path: str) -> str:
     return f"Found: {engine.engine_id} {engine.version()}"
 
 
+#: What ORCA prints when run with no input file. Used to tell the real
+#: program from something else of the same name -- "ORCA" is a genuinely
+#: generic name and this app already warns about the confusion elsewhere.
+#: Measured against ORCA 6.1.1: exit code 0, this text on stdout.
+_ORCA_NO_INPUT_MARKER = "requires the name of a parameterfile"
+
+#: A hydrogen molecule at HF/STO-3G -- the smallest job that still proves
+#: ORCA can run one. Measured at **2.9 s** end to end on ORCA 6.1.1,
+#: which is what makes a Test button viable at all; anything needing a
+#: real basis set would take long enough that nobody would press it.
+_ORCA_TEST_INPUT = "! HF STO-3G\n* xyz 0 1\nH 0 0 0\nH 0 0 0.74\n*\n"
+
+#: The reference energy for that job, in Hartree. Checked rather than
+#: merely "did it print a number": a build that runs and computes the
+#: wrong answer is the failure worth catching, and it is the one a
+#: file-exists check cannot see.
+_ORCA_TEST_ENERGY = -1.116759
+_ORCA_TEST_TOLERANCE = 1e-4
+
+
+def describe_orca_status(configured_path: str) -> str:
+    """One-line status for the ORCA tab, mirroring `describe_vina_status`.
+
+    **Deliberately does NOT run ORCA.** A status line is read on every
+    visit to the tab and ORCA has no `--version` flag -- it wants an input
+    file, so the cheapest real check is a whole calculation. That belongs
+    behind the Test button, which the user presses on purpose; see
+    `verify_orca`.
+    """
+    if not configured_path:
+        return "Not configured"
+    path = Path(configured_path)
+    if not path.is_file():
+        return f"Configured, but no file at {path}"
+    return f"Configured: {path.name} in {path.parent}"
+
+
+def verify_orca(configured_path: str) -> str:
+    """Run a real calculation and report the version, or raise.
+
+    The counterpart to pkasolver's "predicts acetic acid's pKa" test: the
+    point is to prove the tool WORKS, which a path check cannot. ORCA
+    prints its version only inside a run, so this gets the version and the
+    proof from the same three seconds.
+    """
+    import re
+    import subprocess
+    import tempfile
+
+    path = Path(configured_path or "")
+    if not path.is_file():
+        raise ToolVerificationError(f"No ORCA executable at {path}")
+
+    with tempfile.TemporaryDirectory(prefix="openchem-orca-test-") as scratch:
+        job = Path(scratch) / "test.inp"
+        job.write_text(_ORCA_TEST_INPUT, encoding="utf-8")
+        try:
+            completed = subprocess.run(
+                [str(path), job.name],
+                cwd=scratch,
+                capture_output=True,
+                text=True,
+                timeout=180,
+            )
+        except OSError as exc:
+            raise ToolVerificationError(f"Could not run {path}: {exc}") from exc
+        except subprocess.TimeoutExpired as exc:
+            raise ToolVerificationError(
+                "ORCA did not finish a two-atom test job within 3 minutes."
+            ) from exc
+
+    output = completed.stdout or ""
+    version = re.search(r"Program Version\s+(\S+)", output)
+    energy = re.search(r"FINAL SINGLE POINT ENERGY\s+(-?\d+\.\d+)", output)
+    if energy is None:
+        tail = "\n".join(output.strip().splitlines()[-8:])
+        raise ToolVerificationError(
+            f"ORCA ran but produced no energy. Its last words were:\n{tail}"
+        )
+
+    value = float(energy.group(1))
+    if abs(value - _ORCA_TEST_ENERGY) > _ORCA_TEST_TOLERANCE:
+        raise ToolVerificationError(
+            f"ORCA ran but computed {value:.6f} Eh for H2 at HF/STO-3G, where "
+            f"{_ORCA_TEST_ENERGY:.6f} is expected. The executable works but is "
+            "not giving the right answer."
+        )
+    named = f"ORCA {version.group(1)}" if version else "ORCA"
+    return f"{named} ran a test calculation correctly (H2 at HF/STO-3G, {value:.6f} Eh)."
+
+
+class ToolVerificationError(RuntimeError):
+    """A configured tool is present but did not work when asked to."""
+
+
+def verify_vina(configured_path: str) -> str:
+    """Run the configured Vina and report what it says it is.
+
+    Cheaper than ORCA's test because Vina HAS a `--version`, so there is
+    no calculation to run -- but it is still a run rather than a file
+    check, for the same reason: a path that exists proves nothing about
+    what is at the end of it.
+    """
+    if not configured_path:
+        raise ToolVerificationError("No Vina executable configured.")
+    if not Path(configured_path).is_file():
+        raise ToolVerificationError(f"No file at {configured_path}")
+    engine = select_vina_engine(configured_path)
+    if engine is None:
+        raise ToolVerificationError(
+            f"{Path(configured_path).name} did not identify itself as Vina or QuickVina."
+        )
+    return f"Works: {engine.engine_id} {engine.version()}"
+
+
+def _search_roots() -> list[Path]:
+    """Where a user-installed program plausibly lives on this platform.
+
+    Only ordinary install locations -- this never walks a whole drive,
+    because a scan that takes a minute is one people cancel and then
+    distrust.
+    """
+    roots: list[Path] = []
+    system = platform.system()
+    if system == "Windows":
+        drives = [Path(f"{letter}:/") for letter in "CDEFG" if Path(f"{letter}:/").exists()]
+        for drive in drives:
+            roots.extend([drive, drive / "Program Files", drive / "Program Files (x86)"])
+    else:
+        roots.extend([Path("/opt"), Path("/usr/local"), Path("/usr/local/bin"), Path.home()])
+    roots.append(app_paths.subdirectory("tools"))
+    return [root for root in roots if root.is_dir()]
+
+
+def responds_as_orca(path: Path | str) -> bool:
+    """Whether this really is FACCTS' ORCA, asked by running it.
+
+    **A NAME MATCH IS NOT ENOUGH, and this is not hypothetical.** Searching
+    this machine for "orca" found
+
+        C:\\Windows\\Installer\\{62A84A8B-...}\\Orca.exe
+
+    before it found the real one -- an unrelated program in an MSI cache.
+    Configuring that would produce a quantum-chemistry tool that fails in
+    a way naming neither the cause nor the fix, which is exactly the
+    confusion the ORCA tab already warns about in prose.
+
+    Run with no arguments ORCA asks for an input file and exits 0, so this
+    costs no calculation.
+    """
+    import subprocess
+
+    try:
+        completed = subprocess.run(
+            [str(path)], capture_output=True, text=True, timeout=20
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return _ORCA_NO_INPUT_MARKER in ((completed.stdout or "") + (completed.stderr or ""))
+
+
+def responds_as_vina(path: Path | str) -> bool:
+    """Whether this is really AutoDock Vina.
+
+    `select_vina_engine` already runs `--version` and recognises both Vina
+    and QuickVina, so identity is its question rather than a second one
+    asked differently here.
+    """
+    return select_vina_engine(str(path)) is not None
+
+
+def locate_executable(
+    names: tuple[str, ...],
+    *,
+    validate: Callable[[Path], bool],
+    extra_roots: tuple[Path, ...] = (),
+    search_roots: tuple[Path, ...] | None = None,
+) -> Path | None:
+    """Find an already-installed executable, and CHECK it is the right one.
+
+    `validate` is required rather than optional on purpose -- see
+    `responds_as_orca` for the wrong file this returned when identity was
+    taken on trust. `find_program` does the per-directory work and knows
+    the platform's suffix rules, so this only decides where to look.
+
+    `search_roots` replaces the platform's usual install locations. It
+    exists for tests: one that leaves it out walks real drives, and the
+    first version of `test_locating_runs_each_candidate...` did exactly
+    that -- **14 s warm and four minutes cold**, for a question about a
+    single temporary directory.
+    """
+    from openchem.services.sidecar_env import find_program
+
+    roots = _search_roots() if search_roots is None else list(search_roots)
+    seen: set[Path] = set()
+    for root in (*extra_roots, *roots):
+        try:
+            found = find_program(root, names)
+        except OSError:
+            continue
+        if found is None:
+            continue
+        candidate = Path(found)
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        if validate(candidate):
+            return candidate
+    return None
+
+
 def describe_orca_platform_hint() -> str:
     """OS/architecture-specific pointer for which ORCA build to pick on the
     FACCTS download portal -- "ORCA" alone is too generic a name to know
