@@ -109,6 +109,37 @@ docking. Look at that dialog; the defaults are not always what you want.
 
 ---
 
+<!-- help:limits-force-fields -->
+## Force field energies
+
+**A force field energy has no absolute meaning.** It is the strain of one
+geometry measured against that force field's own idea of an unstrained one,
+so the only valid comparison is the *same* force field on conformers of the
+*same* molecule. The Geometry panel reports three — MMFF94, UFF and
+Dreiding — and they are on **three different scales**. Comparing across them,
+or across two different molecules, is meaningless in all three cases. Each
+number carries that warning in its own tooltip.
+
+**Dreiding is implemented here rather than imported**, because no Python
+chemistry library has it: neither RDKit nor OpenBabel. It follows the
+original paper (Mayo, Olafson & Goddard 1990) and reproduces **all eight of
+the rotational barriers that paper computes with Dreiding**, worst deviation
+0.008 kcal/mol. That is a stronger check than agreement with experiment
+would be: those are the force field's own published values, so reproducing
+them tests this implementation rather than the model.
+
+**It omits charges and the explicit hydrogen-bond term.** That is the
+configuration the paper reports its own results in, and it is what makes
+those barriers reproducible — but it means a polar molecule's Dreiding
+energy is missing an electrostatic contribution. Treat it as a
+conformational strain number, not an interaction energy.
+
+Dreiding covers 37 atom types and **refuses outside them** rather than
+guessing a radius. A molecule containing an element it does not cover simply
+gets no Dreiding row.
+
+---
+
 <!-- help:limits-esp -->
 ## Electrostatic potential surfaces
 
@@ -148,16 +179,10 @@ Velocity-Verlet over MMFF94 or UFF gradients.
 This is useful for looking at conformational motion and for animation. It is
 not a simulation you should draw thermodynamic conclusions from.
 
-The force field is **MMFF94 or UFF, never Dreiding** — Dreiding is not
-available here, and its numbers are not comparable, so nothing is relabelled
-as it.
+The dynamics integrator uses **MMFF94 or UFF**, not Dreiding.
 
-Neither RDKit nor OpenBabel implements Dreiding, so this is a gap rather than
-a choice between libraries. It is not permanent: the primary source (Mayo,
-Olafson & Goddard 1990) has been read and the work is scoped in the repo at
-`docs/DREIDING_ASSESSMENT.md` — including the eight rotational barriers the
-paper prints for its own force field, which any implementation here would
-have to reproduce before being believed.
+Dreiding *is* available for single-point energies — see below — but it is
+not wired into the integrator, so a trajectory is on one of the other two.
 
 ---
 

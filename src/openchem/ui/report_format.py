@@ -23,7 +23,7 @@ import json
 
 from openchem.domain.bond_report import BondReport
 from openchem.domain.molecule_report import MoleculeReport
-from openchem.domain.report import CATEGORY_LABELS
+from openchem.domain.report import CATEGORY_LABELS, ReportResult
 
 
 def report_header(report) -> str:
@@ -37,6 +37,14 @@ def report_header(report) -> str:
         return f"{name} ({report.formula})" if report.formula else name
     if isinstance(report, BondReport):
         return f"Bond {report.bond_index + 1} ({report.label})"
+    # A CALCULATOR's report -- Geometry, Topology, Regulatory and the
+    # rest. It names itself, and it has no atom index to fall through to:
+    # `property_panel` puts one of these in a FactView, so before this
+    # branch existed "Open in window" then Copy raised
+    # `AttributeError: 'ReportResult' object has no attribute
+    # 'atom_index'` on every calculator result.
+    if isinstance(report, ReportResult):
+        return report.name or "Result"
     return f"Atom {report.atom_index + 1} ({report.symbol})"
 
 
@@ -63,6 +71,8 @@ def _subject_fields(report) -> dict:
             "begin_atom_index": report.begin_atom_index,
             "end_atom_index": report.end_atom_index,
         }
+    if isinstance(report, ReportResult):
+        return {"subject": "result", "report_id": report.report_id, "name": report.name}
     return {"subject": "atom", "atom_index": report.atom_index, "symbol": report.symbol}
 
 

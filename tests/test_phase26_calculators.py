@@ -232,33 +232,78 @@ def test_molecular_radii_are_ordered_and_positive():
     assert 0 < radii["min_radius"] <= radii["mean_radius"] <= radii["max_radius"]
 
 
-def test_geometry_reports_mmff_and_uff_and_never_calls_them_dreiding():
-    """RDKit has no Dreiding. Reporting MMFF94/UFF under Marvin's label
-    would produce a number that looks authoritative and cross-references
-    to nothing."""
+def test_geometry_reports_all_three_force_fields_separately():
+    """MMFF94, UFF and Dreiding side by side, each under its own name.
+
+    Dreiding used to be absent because no Python library implements it;
+    `chem/dreiding/` now does, validated against the eight rotational
+    barriers its paper publishes. The three are NEVER blended or
+    substituted for one another -- see the caveat test below for why.
+    """
     report = compute_geometry_analysis(_embed("CCCC", seed=3), "mol-1")
     labels = [fact.label for fact in report.facts]
 
     assert "MMFF94 energy" in labels
     assert "UFF energy" in labels
-    # The caveat is a per-fact LIMITATION now rather than a line of prose
-    # in a string list, so it travels with the number it qualifies -- into
-    # the tooltip and every export -- instead of sitting three rows below
-    # it and being read as a separate result.
+    assert "Dreiding energy" in labels
+
+    energies = [f for f in report.facts if f.label.endswith("energy")]
+    assert all(f.units == "kcal/mol" for f in energies)
+
+
+def test_every_energy_says_it_cannot_be_compared_across_force_fields():
+    """**The thing a reader most needs telling with three numbers on
+    screen.** They are three different scales, so the only valid
+    comparison is the same force field on conformers of the same
+    molecule. Carried as a per-fact limitation rather than as prose, so
+    it travels into the tooltip and every export instead of sitting three
+    rows below the number and reading as a separate result."""
+    report = compute_geometry_analysis(_embed("CCCC", seed=3), "mol-1")
+
     energies = [f for f in report.facts if f.label.endswith("energy")]
     assert energies
-    assert all("not Dreiding" in " ".join(f.limitations) for f in energies)
-    assert all(f.units == "kcal/mol" for f in energies)
+    assert all("three different scales" in " ".join(f.limitations) for f in energies)
+
+
+def test_the_dreiding_energy_carries_what_it_leaves_out():
+    """It is computed without charges or an explicit hydrogen-bond term.
+    That is the configuration the paper reports its own results in --
+    which is what makes Table XI reproducible -- but it means a polar
+    molecule is missing an electrostatic contribution, and a number
+    presented without that is a number people will over-read."""
+    report = compute_geometry_analysis(_embed("CCO", seed=3), "mol-1")
+
+    dreiding = next(f for f in report.facts if f.label == "Dreiding energy")
+    caveats = " ".join(dreiding.limitations)
+
+    assert "without charges" in caveats
+    assert "Table XI" in caveats
+
+
+def test_the_three_force_fields_disagree_on_the_same_geometry():
+    """Asserted ON PURPOSE. If they ever agreed closely it would mean two
+    of them were the same calculation wearing different labels, which is
+    exactly the mistake the old code was written to avoid when it refused
+    to relabel UFF as Dreiding."""
+    report = compute_geometry_analysis(_embed("CCCC", seed=3), "mol-1")
+    values = {f.label: f.value for f in report.facts if f.label.endswith("energy")}
+
+    assert len({round(v, 3) for v in values.values()}) == 3, values
 
 
 def test_force_field_energies_degrade_to_none_for_unparameterised_elements():
     """An exotic element must yield None rather than crashing, and must not
-    silently substitute the other force field's number -- they are on
-    different scales."""
+    silently substitute another force field's number -- they are on
+    different scales.
+
+    Xenon is outside all three: MMFF and UFF have no parameters, and
+    DREIDING covers 37 atom types and REFUSES rather than guessing a
+    radius. Its refusal is an exception, so this also pins that the
+    exception is caught here rather than reaching a panel."""
     xenon = Chem.AddHs(Chem.MolFromSmiles("[Xe]"))
     AllChem.EmbedMolecule(xenon, randomSeed=1)
 
-    assert force_field_energies(xenon) == {"mmff94": None, "uff": None}
+    assert force_field_energies(xenon) == {"mmff94": None, "uff": None, "dreiding": None}
 
 
 # --- Surface areas ------------------------------------------------------
@@ -409,3 +454,44 @@ def test_no_interactions_reads_as_a_finding_not_a_failure():
 def test_interaction_analysis_needs_a_conformer():
     result = compute_interaction_analysis(Chem.MolFromSmiles("CCO"), "mol-1")
     assert result.cache_state == CacheState.FAILED
+
+
+def test_a_calculator_result_can_be_copied_and_exported():
+    """**Found by walking the adjacent case while wiring Dreiding in.**
+
+    `property_panel` puts a `ReportResult` into a FactView for "Open in
+    window", and that view's Copy and Export call `format_report`. Its
+    header helper fell through to `report.atom_index` for anything that
+    was not a molecule or bond report, so every calculator result raised
+    `AttributeError: 'ReportResult' object has no attribute 'atom_index'`
+    the moment somebody pressed Copy.
+
+    Nothing caught it because the formats had only ever been exercised
+    with atom reports -- the panel path and the formatter path were each
+    tested, and the join between them was not.
+    """
+    from openchem.ui.report_format import format_report, report_header
+
+    report = compute_geometry_analysis(_embed("CCO", seed=3), "mol-1")
+
+    assert report_header(report) == "Geometry"
+    for fmt in ("Plain text", "Markdown", "JSON", "CSV"):
+        text = format_report(report, fmt)
+        assert "Dreiding energy" in text, fmt
+        # These reach Windows console streams, which are cp1252.
+        text.encode("cp1252")
+
+
+def test_the_json_export_says_what_kind_of_subject_it_is():
+    """An atom report carries an atom index, a bond report a bond index,
+    and a calculator result neither -- it carries its own id. A consumer
+    reading the JSON has to be able to tell which it received."""
+    import json
+
+    from openchem.ui.report_format import format_report
+
+    report = compute_geometry_analysis(_embed("CCO", seed=3), "mol-1")
+    payload = json.loads(format_report(report, "JSON"))
+
+    assert payload["subject"] == "result"
+    assert payload["report_id"] == "geometry_analysis"

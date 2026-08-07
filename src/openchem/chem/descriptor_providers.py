@@ -1237,10 +1237,13 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         category="geometry",
         description=(
             "3D extent (min/max/mean radius from the centroid), projection area and "
-            "radius on the principal planes, and force field energy of the current "
-            "conformer. Reports MMFF94/UFF -- neither RDKit nor OpenBabel has Dreiding, "
-            "so these are NOT comparable to MarvinSketch's Dreiding energy; see "
-            "docs/DREIDING_ASSESSMENT.md. Needs a conformer."
+            "radius on the principal planes, and the force field energy of the current "
+            "conformer in MMFF94, UFF and Dreiding. The three are on different scales "
+            "and are never comparable with each other -- compare one of them across "
+            "conformers of the same molecule. Dreiding is implemented here from the "
+            "original paper and reproduces all eight rotational barriers that paper "
+            "publishes; it omits charges and hydrogen bonds, as the paper's own "
+            "reported results do. Needs a conformer."
         ),
         execution=RegistryExecution(compute=compute_geometry_analysis),
         tags=["geometry", "3d", "energy"],

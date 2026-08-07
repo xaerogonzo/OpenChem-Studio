@@ -15,8 +15,11 @@
 > | CH3–CH2F | 3.172 | 3.172 | 3.287 |
 > | CH3–CH2Cl | 3.483 | 3.487 | 3.68 |
 >
-> Still to do: wiring the energy into the geometry report. Until that
-> lands the app reports MMFF94/UFF only.
+> **It is wired into the Geometry panel**, beside MMFF94 and UFF. All
+> three carry a per-fact caveat that they are on different scales and are
+> never comparable with one another; Dreiding carries two more, naming
+> what it omits (charges, explicit hydrogen bonds) and what it was
+> validated against.
 >
 > The rest of this document is the assessment written before the work,
 > kept because its scoping held up and its warning about the PDF was

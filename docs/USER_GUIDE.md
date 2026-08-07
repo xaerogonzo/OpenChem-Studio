@@ -247,7 +247,7 @@ and reads **Finished.** when the last one lands.
 | Charge | Gasteiger partial charges, and charges at a chosen pH |
 | LogP / LogD / Molar Refractivity | per-atom contributions, and pH-dependent logD |
 | Topology | Wiener, Randić, Balaban, Platt, Szeged, Harary, per-atom eccentricity |
-| Geometry (3D) | radius of gyration, molecular radii, projection area and radius, MMFF94 and UFF energies |
+| Geometry (3D) | radius of gyration, molecular radii, projection area and radius, MMFF94/UFF/Dreiding energies |
 | Surface Area | SASA (total and per-atom), vdW surface, molecular volume |
 | Structure Generators | stereoisomers, tautomers, resonance forms, conformers |
 | Quantum (Hückel) | orbital energies, π densities, HOMO/LUMO and the gap |
@@ -1099,10 +1099,16 @@ See [PLUGIN_SDK.md](PLUGIN_SDK.md) to write one.
   view lies off-axis reads a little high. Each of those facts says so in its
   own tooltip, and the figures are exact for the case with a closed form —
   a single atom's shadow comes out as πr² to within 0.13%.
-- **Marvin's Geometry plugin reports a Dreiding energy and this does not.**
-  No Python chemistry library implements Dreiding. MMFF94 and UFF are
-  reported instead, labelled as such, because relabelling one of them
-  "Dreiding" would give a number that cross-references to nothing.
+- **Three force field energies are shown, and none of them is comparable
+  to another.** MMFF94, UFF and Dreiding are three different scales. Use
+  one of them to compare conformers of the same molecule; comparing
+  across the three, or between two different molecules, says nothing.
+- **The Dreiding energy is computed here, not by a library.** No Python
+  chemistry package implements Dreiding, so it is implemented from the
+  1990 paper and checked against all eight rotational barriers that
+  paper publishes. It leaves out charges and hydrogen bonds — as the
+  paper's own reported results do — so read it as conformational strain
+  rather than as an interaction energy.
 - **Nothing computes over the network or spends real CPU without you asking.**
   PubChem lookups, ORCA jobs, docking and conformer generation are all
   explicitly triggered. Opening the Identify Structure Online dialog sends
