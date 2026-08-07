@@ -1,16 +1,22 @@
 # DREIDING: the assessment, and what the implementation measured
 
-> **Status: the force field is implemented and passes its gate.**
-> `src/openchem/chem/dreiding/` reproduces the paper's own ethane
-> rotational barrier — **2.8959 against the published 2.896** — which
-> validates the additive bond radii, the angle term, the torsion barrier
-> with its renormalisation, and the van der Waals term with its
-> combination rules, all at once.
+> **Status: implemented, and validated against all eight of the paper's
+> own rotational barriers.** `src/openchem/chem/dreiding/` reproduces
+> Table XI with a worst deviation of **0.008 kcal/mol**:
 >
-> Not yet done: the other seven barriers of Table XI (they need a general
-> constrained optimiser, where ethane needed only its three symmetry
-> parameters), and wiring the energy into the geometry report. Until that
-> second step the app still reports MMFF94/UFF only.
+> | molecule | this | paper | experiment |
+> | --- | --- | --- | --- |
+> | CH3–CH3 | 2.896 | 2.896 | 2.882 |
+> | CH3–CH2CH3 | 3.368 | 3.376 | 3.4 |
+> | CH3–CH2CH2CH3 | 3.408 | 3.410 | 3.4 |
+> | CH3CH2–CH2CH3 | 3.816 | 3.822 | 3.8 |
+> | CH3–CH(CH3)2 | 3.989 | 3.995 | 3.9 |
+> | CH3–C(CH3)3 | 5.073 | 5.071 | 4.7 |
+> | CH3–CH2F | 3.172 | 3.172 | 3.287 |
+> | CH3–CH2Cl | 3.483 | 3.487 | 3.68 |
+>
+> Still to do: wiring the energy into the geometry report. Until that
+> lands the app reports MMFF94/UFF only.
 >
 > The rest of this document is the assessment written before the work,
 > kept because its scoping held up and its warning about the PDF was
@@ -223,3 +229,54 @@ and a differing case for each rule.
 - **`H__b` and `H___HB` are never assigned automatically.** Bridging and
   hydrogen-bonding hydrogens are modelling choices, not something
   connectivity determines.
+
+### The gradient had to be solved for, not recalled
+
+The barriers are differences between optimised structures, so they need a
+gradient. A numerical one costs 2×3N energy evaluations — **252 ms for
+neopentane** — which puts a few hundred optimiser steps at a minute per
+structure and the whole table at an hour. Analytic derivatives make it
+11 seconds.
+
+**The first torsion derivative was wrong, and nothing about it looked
+wrong.** It was self-consistent, it summed to zero as translation
+invariance requires, and it produced an optimiser that converged
+smoothly — to a geometry that was not a stationary point of the energy.
+The barrier it gave was plausible.
+
+Textbook statements of ∂φ/∂r differ by the direction convention of `b1`
+and by the argument order inside `atan2`, so a formula lifted from one
+source into another's convention is exactly this: self-consistent and
+wrong. The fix was to **solve for the coefficients against a central
+difference** by least squares, which returned them exactly:
+
+    dphi/dr_i =  A                  A = |b2| n1 / |n1|^2
+    dphi/dr_j = -(1 + p) A - q B    B = |b2| n2 / |n2|^2
+    dphi/dr_k =  p A + (1 + q) B    p = (b1 . b2) / |b2|^2
+    dphi/dr_l = -B                  q = (b3 . b2) / |b2|^2
+
+Bond, angle and van der Waals were all exact to 1e-8 at the time, so only
+a **term-by-term** check found it — a total that matches can hide two
+errors cancelling. `tests/test_dreiding_gradient.py` checks each term
+separately and the dihedral derivative directly.
+
+### Butane's barrier depends on which conformer you start in
+
+The terminal-methyl barrier came out at **3.171 against the paper's
+3.410**, alone among the eight in being wrong, and by an amount small
+enough to argue about.
+
+The cause was not the force field: `EmbedMolecule` plus an MMFF cleanup
+landed butane in the **gauche** well at −65°, and a methyl barrier
+measured on the gauche conformer is a different quantity from one
+measured on the anti. Forcing the backbone to 180° first gives **3.408**.
+
+It is worth recording because the wrong number was believable — the tell
+was that it came out *below* propane's, and adding a remote methyl
+should not lower a local barrier. A tolerance wide enough to accept it
+would have hidden a real modelling error.
+
+Table XI's eighth row is the same molecule's **central** bond (3.822),
+which is not a methyl rotation at all: anti to the eclipsed maximum at
+120°. The syn maximum at 0° is a different and much higher barrier —
+5.81 here — so "the butane barrier" is ambiguous until you say which.

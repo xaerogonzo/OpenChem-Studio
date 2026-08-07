@@ -53,7 +53,7 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **3-6 minutes**, ending at `2975 passed, 2 skipped,
+A clean run is **3-6 minutes**, ending at `3001 passed, 2 skipped,
 1 deselected` (measured 2026-08-07 with the presentation-layer Phase 0-8
 work applied, bytecode cleared; it was 2788 before that). **That figure is
 from the DESELECTED form below, not the command above** -- run it bare and
@@ -1333,6 +1333,44 @@ That is the correct trade and not merely the cheap one: grid error is set by
 the shape's perimeter-to-area ratio, so a larger molecule tolerates a coarser
 grid at the same relative accuracy. Accuracy is preserved exactly where it is
 hardest to get.
+
+### A derivative can be self-consistent, symmetric, and wrong
+
+DREIDING's optimiser needed an analytic gradient (a numerical one is
+252 ms per step for neopentane -- an hour for the barrier set against
+11 seconds). The first torsion derivative was wrong, and **every cheap
+check it could have failed, it passed**: it summed to zero as translation
+invariance requires, it was smooth, and the optimiser converged happily
+to a geometry that was not a stationary point. The barrier it produced
+was plausible.
+
+Textbook forms of `dphi/dr` differ by the direction convention of `b1`
+and by the argument order inside `atan2`, so a formula lifted from one
+source into another's convention is exactly this failure. **Solve for the
+coefficients against a central difference** rather than recalling them --
+least squares on a random geometry returned them exactly, and took less
+time than reading two more sources.
+
+Two habits that fell out of it, both general:
+
+- **Check each term separately, not just the total.** Bond, angle and
+  van der Waals were exact to 1e-8 while torsion was out by a sign; a
+  matching total can hide two errors cancelling.
+- **Translation invariance is necessary and NOT sufficient.** The wrong
+  version satisfied it, which is why it survived inspection.
+
+### A conformer search result is part of the question, not the setup
+
+Butane's methyl rotation barrier came out at 3.171 against DREIDING's
+published 3.410 -- alone among eight molecules, and by an amount small
+enough to argue about. The force field was fine: `EmbedMolecule` plus an
+MMFF cleanup had landed butane in the **gauche** well at -65 degrees, and
+a methyl barrier measured there is a different quantity from one measured
+on the anti conformer. Forcing the backbone to 180 first gives 3.408.
+
+The tell was not the size of the error but its DIRECTION -- the barrier
+came out below propane's, and adding a remote methyl cannot lower a local
+barrier. A tolerance wide enough to accept 3.171 would have hidden it.
 
 ### Koopmans hardness is wrong for the pair people actually use it on
 
