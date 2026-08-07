@@ -53,8 +53,8 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **3-6 minutes**, ending at `2924 passed, 2 skipped,
-1 deselected` (measured 2026-08-07 with the presentation-layer Phase 0-7
+A clean run is **3-6 minutes**, ending at `2932 passed, 2 skipped,
+1 deselected` (measured 2026-08-07 with the presentation-layer Phase 0-8
 work applied, bytecode cleared; it was 2788 before that). **That figure is
 from the DESELECTED form below, not the command above** -- run it bare and
 the same tree reports one FAILURE, from the network test explained next.
@@ -1369,6 +1369,53 @@ service. The three `FINAL SINGLE POINT ENERGY` lines are told apart only by
 POSITION, which is why `test_the_three_delta_scf_blocks_are_written_in_parser_order`
 exists: swapping the cation and anion blocks flips the sign of both I and A,
 still produces plausible numbers, and survived every other test in the file.
+
+### A gbw remembers where it was born, and orca_plot goes there
+
+Every ESP surface in the app failed -- `orca_plot exited 64 without
+writing job.scfp.esp.cube` -- and the recorded hypothesis was that the
+cube had been written under a name `_output_name` did not predict. **That
+was wrong. No cube existed under any name.**
+
+The real message, once the run was reproduced by hand:
+
+    CANNOT OPEN FILE
+    Filename: D:\OpenChemStudio-scratch\orca_job_933toma8\job.densitiesinfo
+
+**A `.gbw` carries the ABSOLUTE path of the directory it was created in**
+-- twice in the gbw, three times in the `.densitiesinfo` -- and orca_plot
+follows it rather than looking in the working directory. Retaining a
+wavefunction copies the files out of the scratch job directory and
+deletes the directory, so the path is dead and type 43 dies with it.
+Measured A/B, byte-identical files in the working directory both times:
+
+    baked directory present   exit 0, job.scfp.esp.cube written
+    baked directory absent    exit 64, no cube at all
+
+Only ESP. Orbitals and electron density were re-measured in the broken
+directory and produce their cubes normally, which is exactly why it read
+as "the ESP feature is broken" rather than "the wavefunction store is".
+
+Two traps while fixing it, both worth knowing generally:
+
+- **Restoring only the two SMALL companions is enough.** `job.densities`
+  and `job.densitiesinfo` are 35 KB and 1.8 KB against a 1.0 MB gbw; the
+  gbw is read from the working directory and does not need copying. Test
+  the cheap repair before building the expensive one.
+- **The density name must match orca_plot's listing EXACTLY, and the
+  listing is fully qualified** -- `D:\...\orca_job_x\job.scfp`, not
+  `job.scfp`. The bare name is refused with `Wrong Density Name
+  selected`, and this had been shipped for months because **a refused
+  name still writes a cube** from the fallback density, which on a
+  single-density job is the same one. The values were right; only the
+  explicitness was missing. A qualified name also moves the OUTPUT, since
+  ESP names its cube after the density.
+
+**A probe that leaves state behind will lie to the next probe.** Having
+recreated the baked directory to prove the hypothesis, three subsequent
+"cold" runs in fresh directories all passed -- because that directory was
+still there, process-wide, invisible to the test. The control that
+mattered was deleting it and re-running.
 
 ### ORCA's LED summary block does not mean what it looks like it means
 

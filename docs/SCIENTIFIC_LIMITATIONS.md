@@ -122,6 +122,16 @@ It is a good picture of gross charge distribution and a bad picture of
 directional non-covalent interaction. For the latter you need a real
 wavefunction.
 
+**The app has one, and shows both side by side.** The Quantum Chemistry
+panel's Surfaces tab plots the ab initio potential with `orca_plot` from
+the wavefunction a completed ORCA job leaves behind, beside the
+point-charge map, each labelled with its method. They are shown together
+rather than one replacing the other because they fail differently — on
+bromobenzene the ab initio potential changes sign around the halogen and
+the point-charge one cannot, since a single charge on a single atom has
+no angular dependence at all. Everything above still applies to the
+left-hand pane.
+
 The charges are recomputed on the 3D conformer being displayed rather than
 reused from a flat structure, and an incomplete charge map is refused rather
 than defaulted to zero — a missing charge silently treated as zero gives a

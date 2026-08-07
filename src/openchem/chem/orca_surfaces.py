@@ -30,7 +30,7 @@ density, 3 = SCF spin density, and **43 = Electrostatic Potential**.
 43 is the last entry of a 43-item list that scrolls well past a screen,
 which is exactly why it is written down here.
 
-FOUR THINGS THAT WOULD HAVE BEEN GOT WRONG, ALL FOUND BY RUNNING IT:
+SIX THINGS THAT WOULD HAVE BEEN GOT WRONG, ALL FOUND BY RUNNING IT:
 
 1. **Three of the four kinds ask a follow-up question, and they ask
    DIFFERENT ones.** This is the trap, because an unanswered prompt does
@@ -65,6 +65,28 @@ FOUR THINGS THAT WOULD HAVE BEEN GOT WRONG, ALL FOUND BY RUNNING IT:
    entered is the number of POINTS, not intervals: entering 40 yields a
    40x40x40 grid whose spacing is range/39.
 
+5. **A gbw remembers the directory it was born in, and orca_plot goes
+   there** for the density index, ignoring the working directory. This
+   is what broke every ESP surface in the app: retaining a wavefunction
+   copies the files out of the scratch job directory and deletes it, so
+   type 43 died with `CANNOT OPEN FILE ... job.densitiesinfo`, exit 64,
+   no cube. Measured A/B with identical files in the working directory --
+   directory present, exit 0 and a cube; absent, exit 64. Orbitals and
+   electron density never consult that file and were unaffected, which
+   is why only one of the four kinds appeared broken. `baked_job_directory`
+   reads the path back out and the two small companions are restored for
+   the call.
+
+6. **The density name must match orca_plot's listing EXACTLY, and the
+   listing is fully qualified.** It prints
+   `0:  D:\\...\\orca_job_x\\job.scfp` and refuses the bare `job.scfp`
+   with `Wrong Density Name selected`. This hid behind point 1's other
+   half for a long time: a refused name still writes a cube, from the
+   fallback density, which on a single-density job is the same one. So
+   the numbers were right and only the explicitness was missing.
+   A qualified name also moves the OUTPUT, since ESP names its cube after
+   the density -- `run_orca_plot` moves it back beside the gbw.
+
 A rejected density NAME (type 43 given something that is not a listed
 density) prints `Wrong Density Name selected` / `WARNING: Density NOT
 assigned` and also still writes a cube at exit 0. Measured, that file was
@@ -81,7 +103,9 @@ already documents.
 
 from __future__ import annotations
 
+import shutil
 import subprocess
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -115,6 +139,113 @@ DENSITY_PROMPT_NAME = "name"  # "Enter Name for an STATE Density:"
 _MISSING_DENSITY_MARKER = "does not exist"
 #: Printed when a type-43 density name is not one of the listed densities.
 _REJECTED_NAME_MARKER = "Wrong Density Name selected"
+
+#: The two small files orca_plot needs beside the ORIGINAL job path. See
+#: `baked_job_directory` -- the `.gbw` is read from the working directory
+#: and is deliberately NOT copied, because it is the large one.
+_DENSITY_COMPANIONS = ("densitiesinfo", "densities")
+
+
+def baked_job_directory(gbw_path: Path | str) -> Path | None:
+    """The absolute directory ORCA recorded inside the gbw, if any.
+
+    **A gbw remembers where it was created, and orca_plot follows that
+    path rather than the working directory.** Measured on ORCA 6.1.1: the
+    file carries its own job path as a null-terminated ASCII string,
+
+        D:\\OpenChemStudio-scratch\\orca_job_933toma8\\job
+
+    twice in the gbw and three times in the `.densitiesinfo`. Selecting
+    plot type 43 (ESP) opens `<that directory>/job.densitiesinfo`, and
+    when the directory is gone it is a FATAL error -- exit 64, no cube,
+    no fallback to the working directory.
+
+    That is exactly what retaining a wavefunction does: the files are
+    copied out of the scratch job directory and the directory is deleted,
+    so every ESP surface for every stored wavefunction failed. Measured
+    A/B with the identical three files in the working directory:
+
+        baked directory present   exit 0, job.scfp.esp.cube written
+        baked directory absent    exit 64, CANNOT OPEN FILE
+
+    Only ESP is affected. Molecular orbitals and electron density were
+    both re-measured in the broken directory and produce their cubes
+    normally, so they never consult this file.
+
+    Returns None when no path can be read, which is the honest answer for
+    a gbw from another ORCA version rather than a guess.
+    """
+    gbw = Path(gbw_path)
+    try:
+        data = gbw.read_bytes()
+    except OSError:
+        return None
+
+    # The stem appears as `...\<stem>` at the end of the recorded path.
+    # Searched as bytes rather than decoded, because the surrounding
+    # content is binary and will not decode as text.
+    needle = f"\\{gbw.stem}".encode("ascii", errors="ignore")
+    index = data.find(needle)
+    while index != -1:
+        # Walk back over printable ASCII to the start of the string. The
+        # real file has a null immediately before it, but scanning for the
+        # printable run costs nothing and does not depend on that.
+        start = index
+        while start > 0 and 0x20 <= data[start - 1] < 0x7F:
+            start -= 1
+        try:
+            text = data[start : index + len(needle)].decode("ascii")
+        except UnicodeDecodeError:  # pragma: no cover - the walk guarantees ASCII
+            text = ""
+        # A drive letter and a colon is what distinguishes a real recorded
+        # path from an incidental byte sequence -- `\job` turns up in
+        # binary by chance.
+        if len(text) > 3 and text[1:3] == ":\\":
+            return Path(text).parent
+        index = data.find(needle, index + 1)
+    return None
+
+
+@contextmanager
+def _density_files_where_orca_expects_them(gbw: Path):
+    """Put the density companions back at the path baked into the gbw.
+
+    Yields the restored directory, or None when nothing was restored --
+    either because no path could be read, or because it still exists and
+    is somebody else's to manage.
+
+    Copies only `job.densitiesinfo` and `job.densities`, measured at
+    1.8 KB and 35 KB against a 1.0 MB gbw. The gbw itself is read from
+    the working directory and is deliberately left there, since it is the
+    large one and copying it per surface would be the real cost.
+
+    Removes only a directory it created itself. A pre-existing one may
+    belong to a job still running.
+    """
+    target = baked_job_directory(gbw)
+    if target is None or target.exists():
+        yield None
+        return
+
+    created = None
+    try:
+        target.mkdir(parents=True, exist_ok=True)
+        created = target
+        for suffix in _DENSITY_COMPANIONS:
+            source = gbw.with_suffix(f".{suffix}")
+            if source.is_file():
+                shutil.copy2(source, target / source.name)
+    except OSError:
+        # The recorded path can be on a drive that no longer exists or is
+        # not writable. Nothing is lost by carrying on: the run proceeds
+        # and, if it needed this, fails with the error it would have had.
+        yield None
+        return
+
+    try:
+        yield created
+    finally:
+        shutil.rmtree(created, ignore_errors=True)
 
 
 @dataclass(frozen=True)
@@ -248,12 +379,26 @@ def _output_name(
 
 
 def default_density_name(gbw_path: Path | str) -> str:
-    """The SCF density name for a job, which is the gbw stem + `.scfp`.
+    """The SCF density name for a job: the gbw's own path, stem + `.scfp`.
 
-    Confirmed against `orca_plot job.densities`, which listed exactly
-    `job.scfp` and `job.P0.tmp` for a normal closed-shell SCF run.
+    **FULLY QUALIFIED, because orca_plot compares against its own listing
+    and its listing is fully qualified.** It prints
+
+        List of density names
+        Index:                          Name of Density
+        0:      D:\\...\\orca_job_933toma8\\job.scfp
+
+    and the bare `job.scfp` this used to return is refused with
+    `Wrong Density Name selected` / `WARNING: Density NOT assigned`.
+
+    That was invisible for a long time because **a refused name still
+    produces a cube**: orca_plot falls back to the default density, which
+    on a single-density job is the same one, so the values were right and
+    only the explicitness was missing. `_REJECTED_NAME_MARKER` is what
+    turns it into an error rather than a silent fallback.
     """
-    return f"{Path(gbw_path).stem}.scfp"
+    gbw = Path(gbw_path)
+    return str(gbw.parent / f"{gbw.stem}.scfp")
 
 
 def run_orca_plot(
@@ -275,39 +420,67 @@ def run_orca_plot(
     if not gbw.is_file():
         raise OrcaPlotError(f"no gbw file at {gbw}")
 
-    if kind.density_prompt == DENSITY_PROMPT_NAME and density_name is None:
-        density_name = default_density_name(gbw)
-
-    commands = build_plot_commands(
-        kind,
-        orbital_index=orbital_index,
-        density_name=density_name or "",
-        resolution=resolution,
-    )
-    expected = gbw.parent / _output_name(
-        kind,
-        gbw.stem,
-        orbital_index=orbital_index,
-        density_name=density_name or "",
-    )
-    # Removed first so a stale cube from an earlier run cannot be mistaken
-    # for this one's output -- the failure mode that "check the file, not
-    # the exit code" would otherwise introduce.
-    if expected.exists():
-        expected.unlink()
-
+    # A retained wavefunction has been copied away from the scratch
+    # directory whose path is baked into the gbw, and orca_plot follows
+    # that path for the density index. Restored for the call and removed
+    # after it -- see `baked_job_directory`.
     try:
-        completed = subprocess.run(
-            [str(orca_plot_executable), gbw.name, "-i"],
-            input=commands,
-            capture_output=True,
-            text=True,
-            # Bare filename + cwd, so a space anywhere in the absolute
-            # path cannot reach ORCA's argument parsing.
-            cwd=str(gbw.parent),
-            timeout=timeout,
-            check=False,
-        )
+        with _density_files_where_orca_expects_them(gbw) as restored:
+            caller_named_density = density_name is not None
+            if kind.density_prompt == DENSITY_PROMPT_NAME and not caller_named_density:
+                # **THE NAME MUST MATCH THE LISTING EXACTLY, AND THE
+                # LISTING IS FULLY QUALIFIED.** orca_plot prints
+                #
+                #     0:   D:\...\orca_job_933toma8\job.scfp
+                #
+                # and compares the answer against that string, so the
+                # bare `job.scfp` is refused with "Wrong Density Name
+                # selected". It then falls back to the default density
+                # and still writes a cube, which is why this was invisible
+                # until the marker was checked for.
+                density_name = default_density_name(
+                    gbw if restored is None else restored / gbw.name
+                )
+
+            commands = build_plot_commands(
+                kind,
+                orbital_index=orbital_index,
+                density_name=density_name or "",
+                resolution=resolution,
+            )
+            # ESP names its output after the DENSITY, so a qualified
+            # density name puts the cube in the restored directory rather
+            # than beside the gbw. `Path.__truediv__` keeps an absolute
+            # right-hand side, so this is the real location either way and
+            # the file is moved back below.
+            expected = gbw.parent / _output_name(
+                kind,
+                gbw.stem,
+                orbital_index=orbital_index,
+                density_name=density_name or "",
+            )
+            # Removed first so a stale cube from an earlier run cannot be
+            # mistaken for this one's output -- the failure mode that
+            # "check the file, not the exit code" would otherwise
+            # introduce.
+            if expected.exists():
+                expected.unlink()
+
+            completed = subprocess.run(
+                [str(orca_plot_executable), gbw.name, "-i"],
+                input=commands,
+                capture_output=True,
+                text=True,
+                # Bare filename + cwd, so a space anywhere in the absolute
+                # path cannot reach ORCA's argument parsing.
+                cwd=str(gbw.parent),
+                timeout=timeout,
+                check=False,
+            )
+            # Moved out BEFORE the restored directory is torn down, or the
+            # cleanup takes the cube with it.
+            if expected.is_file() and expected.parent != gbw.parent:
+                expected = Path(shutil.move(str(expected), gbw.parent / expected.name))
     except subprocess.TimeoutExpired as exc:
         raise OrcaPlotError(f"orca_plot timed out after {timeout}s") from exc
 
