@@ -9,6 +9,7 @@ from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.docking import DockingResultModel
 from openchem.domain.structure_issue import CheckerResult
+from openchem.domain.report import ReportResult
 from openchem.domain.scientific_result import (
     AlertResult,
     PerAtomDataset,
@@ -74,6 +75,19 @@ class DescriptorComputed(Event):
 @dataclass(frozen=True)
 class AlertComputed(Event):
     alert: AlertResult
+
+
+@dataclass(frozen=True)
+class ReportComputed(Event):
+    """A calculator produced a fact-based report.
+
+    Separate from `AlertComputed` rather than replacing it: an alert
+    catalog and a report are different claims, and one event carrying both
+    would put the distinction back into a field that consumers have to
+    remember to read. See `domain/report.ReportResult`.
+    """
+
+    report: ReportResult
 
 
 @dataclass(frozen=True)

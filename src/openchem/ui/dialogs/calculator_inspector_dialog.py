@@ -20,6 +20,7 @@ from openchem.chem.descriptor_providers import compute_gasteiger_charges
 from openchem.chem.scalar_field import electrostatic_potential_for_conformer
 from openchem.domain.common import CacheState, ScientificResult
 from openchem.domain.molecule import MoleculeModel
+from openchem.domain.report import ReportResult
 from openchem.domain.scientific_result import (
     AlertResult,
     PerAtomDataset,
@@ -380,6 +381,7 @@ _RESULT_VIEW_FACTORIES: dict[type, Callable[..., QWidget]] = {
     PhCurveResult: _build_ph_curve_view,
     StructureSetResult: _build_structure_grid_view,
     AlertResult: _build_text_view,
+    ReportResult: _build_text_view,
 }
 
 

@@ -11,6 +11,7 @@ from openchem.domain.calculator import CalculationRequest
 from openchem.domain.common import CacheState
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.molecule import MoleculeModel
+from openchem.domain.report import ReportResult
 from openchem.domain.scientific_result import (
     AlertResult,
     PerAtomDataset,
@@ -22,6 +23,7 @@ from openchem.domain.scientific_result import (
 from openchem.events.base import EventBus
 from openchem.events.events import (
     AlertComputed,
+    ReportComputed,
     DescriptorComputed,
     PerAtomDataComputed,
     PhCurveComputed,
@@ -154,6 +156,11 @@ class _CalculationTask(QRunnable):
             return
         if isinstance(result, PerAtomDataset):
             self._event_bus.publish(PerAtomDataComputed(dataset=result))
+        elif isinstance(result, ReportResult):
+            # BEFORE AlertResult, not after: nothing subclasses the other
+            # today, but the ordering says which is the specific case if
+            # one ever does.
+            self._event_bus.publish(ReportComputed(report=result))
         elif isinstance(result, AlertResult):
             self._event_bus.publish(AlertComputed(alert=result))
         elif isinstance(result, SpectrumResult):

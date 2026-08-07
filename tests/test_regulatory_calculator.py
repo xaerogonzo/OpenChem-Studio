@@ -44,7 +44,7 @@ def _run(registry, smiles: str, **overrides):
 def test_it_runs_through_the_registry(registry):
     result = _run(registry, SARIN)
     assert result.cache_state is CacheState.COMPLETED
-    assert result.alert_id == "regulatory_screen"
+    assert result.report_id == "regulatory_screen"
 
 
 def test_a_scheduled_structure_is_reported_with_its_framework(registry):
@@ -100,8 +100,13 @@ def test_an_approximate_rule_carries_its_limitation_into_the_result(registry):
     """Chlorambucil is a licensed medicine that the nitrogen-mustard pattern
     matches. The finding must arrive with the caveat -- a bare match here
     would read as an accusation."""
-    lines = _run(registry, "OC(=O)CCCc1ccc(cc1)N(CCCl)CCCl").matched
-    assert any("limitation:" in line for line in lines)
+    result = _run(registry, "OC(=O)CCCc1ccc(cc1)N(CCCl)CCCl")
+
+    # A fact with its own label now, rather than an indented line of prose
+    # in a string list -- so a reader can see it is a caveat rather than
+    # a second finding, and an export keeps them apart.
+    caveats = [fact for fact in result.facts if fact.label == "Limitation"]
+    assert caveats, [fact.label for fact in result.facts]
 
 
 # --- Provenance ---------------------------------------------------------

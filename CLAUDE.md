@@ -952,6 +952,61 @@ duplicates on screen.
 Hit immediately, in a scratchpad script that printed the panel back:
 `UnicodeEncodeError: 'charmap' codec can't encode character '✕'`.
 
+### `AlertResult` was carrying twenty reports and five alerts
+
+`AlertResult.matched` is a `list[str]`, and it became the generic line
+carrier for anything that was not a single scalar. Counted: **25 distinct
+`alert_id`s, of which only pains, brenk, mutagenicity_alerts and
+herg_risk_factors are catalogs.** The panel rendered every non-empty
+`matched` as `"N alert(s): "` in red, so four fifths of the app's output
+looked like a warning.
+
+`ReportResult` carries `Fact`s instead -- label, value, units, basis,
+evidence, limitations, which atoms it is about, how specialist it is. All
+of that was already being computed and flattened away at the last step.
+
+Measured after the migration: **16 fact-based reports, 4 alert catalogs.**
+
+**`AlertResult` is not deprecated and must not be.** It is in the plugin
+API, and for a real catalog "N alert(s)" in red is the correct rendering.
+`chem/report_adapter.py` converts one to facts for anything that has not
+migrated -- permanently, not as a shim.
+
+#### The batch table shows what a string cost
+
+`result_reduction.py` had to PARSE `"Randic index: 9.52"` back into a
+label, a number and a unit, with a deliberately strict regex. Measured
+when it was written: 73 numeric columns extracted and **25 lines refused**
+-- formulas, prose caveats, value lists, all correctly refused and all
+genuinely lost.
+
+A `Fact` was never flattened, so `_reduce_report` has nothing to recover:
+45 facts give 43 numeric columns on the same four calculators, the two
+text ones being a formula and a direction vector. **The column ids are
+byte-identical**, so saved tables, charts and exports survive.
+
+#### `ReportResult.matched` is a DERIVED view, kept on purpose
+
+Composed from the facts on demand, never stored. It exists because
+`matched` is in the plugin API and because a large number of assertions
+read it -- "does the topology calculator report a Randic index" is a real
+question whose answer does not change with the shape it arrives in.
+
+Regulatory's lines were already self-labelling (`"Near miss: ..."`), so
+they are split at that colon and `matched` recomposes them byte-for-byte.
+That is what let 13 modules migrate without rewriting their tests.
+
+#### Regulatory finally says what it did NOT check
+
+It computed the rulesets consulted, the coverage notes and the unchecked
+domains into `Provenance.parameters` and **displayed none of it** -- the
+panel showed `1 alert(s): No matches in the 1 ruleset consulted`. They
+are facts now: aspirin's screen lists twelve domains with no ruleset
+loaded, each carrying "this screen says nothing about it either way".
+Ruleset versions and coverage notes are marked ADVANCED so they do not
+bury the findings; "NOT checked" is deliberately STANDARD, because a gap
+in coverage is not specialist information.
+
 ### The right-hand panels are NOT tabified, and must not become so again
 
 Twelve panels shared one tabified dock group, and Qt gives such a group a

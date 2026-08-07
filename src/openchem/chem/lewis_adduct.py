@@ -37,7 +37,8 @@ from typing import Any
 from openchem.chem.lewis import analyse, pi_donor_atoms
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.lewis import AdductEvidence, LewisAdduct
-from openchem.domain.scientific_result import AlertResult
+from openchem.domain.report import ReportResult
+from openchem.chem.report_adapter import report_fields
 from openchem.domain.structure_issue import Basis
 
 _DATA = Path(__file__).resolve().parent / "data" / "lewis_parameters.json"
@@ -314,7 +315,7 @@ ROLE_BASE = "This molecule is the base"
 
 def compute_lewis_adduct(
     mol: Any, molecule_uuid: str, parameters: dict[str, Any] | None = None
-) -> AlertResult:
+) -> ReportResult:
     """The "lewis" category's two-molecule calculator.
 
     Takes the partner as a typed SMILES, the way `alignment_3d` takes its
@@ -327,8 +328,8 @@ def compute_lewis_adduct(
     provenance = Provenance(created_by="core", method="lewis_adduct")
     partner_smiles = str(parameters.get("partner_smiles") or "").strip()
 
-    def failed(error: str) -> AlertResult:
-        return AlertResult(
+    def failed(error: str) -> ReportResult:
+        return _report(
             alert_id="lewis_adduct",
             name="Lewis Adduct",
             molecule_uuid=molecule_uuid,
@@ -374,7 +375,7 @@ def compute_lewis_adduct(
     lines.extend(f"Assumption: {text}" for text in result.assumptions)
     lines.extend(f"Limitation: {text}" for text in result.limitations)
 
-    return AlertResult(
+    return _report(
         alert_id="lewis_adduct",
         name="Lewis Adduct",
         molecule_uuid=molecule_uuid,
@@ -413,3 +414,18 @@ def _limitations(evidence: tuple[AdductEvidence, ...]) -> tuple[str, ...]:
             "forms."
         )
     return tuple(limitations)
+
+
+def _report(**fields) -> ReportResult:
+    """One `AlertResult(...)` call site, as a `ReportResult`.
+
+    The keyword names are unchanged -- `alert_id`, `name`, `matched`,
+    `category` -- so the call sites above read as they always did and the
+    diff stays small. `report_fields` does the translation and turns each
+    line into a `Fact`; see `chem/report_adapter.py` for what a string can
+    and cannot carry.
+
+    A calculator that wants real units, evidence or limitations on a fact
+    builds `Fact`s directly instead, as `geometry_analysis` now does.
+    """
+    return ReportResult(**report_fields(**fields))

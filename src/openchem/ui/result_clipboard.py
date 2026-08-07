@@ -20,6 +20,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from openchem.domain.common import ScientificResult
+from openchem.domain.report import ReportResult
 from openchem.domain.scientific_result import (
     AlertResult,
     PerAtomDataset,
@@ -32,6 +33,18 @@ from openchem.domain.scientific_result import (
 def _units_suffix(result: ScientificResult) -> str:
     units = getattr(result, "units", "")
     return f" ({units})" if units else ""
+
+
+def _report_to_text(result: ReportResult) -> str:
+    """A fact-based report, as label/value lines.
+
+    Reuses `ui/report_format.py` rather than formatting facts a second
+    way -- the Atom Inspector, `FactView` and this all reach the same four
+    formats, so a report copied from any of them is byte-identical.
+    """
+    from openchem.ui.report_format import format_report
+
+    return format_report(result, "Plain text")
 
 
 def _alert_to_text(result: AlertResult) -> str:
@@ -90,6 +103,7 @@ def _structure_set_to_text(result: StructureSetResult) -> str:
 
 _TEXT_ADAPTERS: dict[type, Callable[..., str]] = {
     AlertResult: _alert_to_text,
+    ReportResult: _report_to_text,
     PerAtomDataset: _per_atom_to_text,
     PhCurveResult: _ph_curve_to_text,
     StructureSetResult: _structure_set_to_text,

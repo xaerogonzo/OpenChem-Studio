@@ -28,7 +28,9 @@ from rdkit.Chem import Crippen, Descriptors, Lipinski, rdMolDescriptors
 from rdkit.Chem.Scaffolds import MurckoScaffold
 
 from openchem.domain.common import Provenance
-from openchem.domain.scientific_result import AlertResult, StructureEntry, StructureSetResult
+from openchem.domain.report import ReportResult
+from openchem.chem.report_adapter import report_fields
+from openchem.domain.scientific_result import StructureEntry, StructureSetResult
 
 
 def _ramp(value: float, good: float, bad: float) -> float:
@@ -89,7 +91,7 @@ def compute_cns_mpo(
     molecule_uuid: str,
     parameters: dict[str, Any] | None = None,
     interpreter_path: str | None = None,
-) -> AlertResult:
+) -> ReportResult:
     """The "admet" category's CNS MPO calculator."""
     logd = None
     most_basic_pka = None
@@ -129,7 +131,7 @@ def compute_cns_mpo(
         lines.append("LogD approximated by LogP (no pKa predictor configured).")
     lines.append("Favourable is generally taken as >= 4.0 (Wager et al.).")
 
-    return AlertResult(
+    return _report(
         alert_id="cns_mpo",
         name="CNS MPO Score",
         molecule_uuid=molecule_uuid,
@@ -196,3 +198,18 @@ def compute_structural_frameworks(
         entries=entries,
         provenance=Provenance(created_by="core", method="murcko"),
     )
+
+
+def _report(**fields) -> ReportResult:
+    """One `AlertResult(...)` call site, as a `ReportResult`.
+
+    The keyword names are unchanged -- `alert_id`, `name`, `matched`,
+    `category` -- so the call sites above read as they always did and the
+    diff stays small. `report_fields` does the translation and turns each
+    line into a `Fact`; see `chem/report_adapter.py` for what a string can
+    and cannot carry.
+
+    A calculator that wants real units, evidence or limitations on a fact
+    builds `Fact`s directly instead, as `geometry_analysis` now does.
+    """
+    return ReportResult(**report_fields(**fields))

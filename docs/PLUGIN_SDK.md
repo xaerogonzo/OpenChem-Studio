@@ -150,7 +150,49 @@ run_async(
 )
 ```
 
-### Contributing facts to the inspector
+### Returning a report rather than a list of strings
+
+A calculator that produces several values should return a `ReportResult`
+of `Fact`s rather than an `AlertResult` of strings:
+
+```python
+from openchem.domain.report import Fact, FactCategory, ReportResult
+from openchem.domain.structure_issue import Basis
+
+def compute(mol, molecule_uuid, parameters=None):
+    return ReportResult(
+        molecule_uuid=molecule_uuid,
+        report_id="my_calculator",
+        name="My Calculator",
+        category="topology",
+        facts=(
+            Fact(
+                category=FactCategory.TOPOLOGY,
+                label="Some index",
+                value=9.52,
+                display_value="9.52",
+                source="My Calculator",
+                basis=Basis.DETERMINISTIC,
+                units="",
+                limitations=("Only valid for acyclic structures.",),
+            ),
+        ),
+    )
+```
+
+A `Fact` carries what a string cannot: units, a basis, evidence,
+limitations, which atoms it is about (`highlight`) and how specialist it
+is (`detail`). The batch table turns each into a column without parsing,
+and the Details view shows the limitations beside the number they
+qualify.
+
+**`AlertResult` still works and is not deprecated.** For a real alert
+CATALOG -- where a match means "look at this" -- it is the right type,
+and it should declare `severity=Severity.WARNING` so the panel colours it
+as a warning rather than as a value. Anything else is rendered through
+`chem/report_adapter.py`, which recovers a label and units where it can.
+
+## Contributing facts to the inspector
 
 A `FactProvider` puts your own findings in the Atom Inspector beside the
 built-in ones, without either side knowing about the other.

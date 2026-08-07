@@ -236,12 +236,19 @@ def test_geometry_reports_mmff_and_uff_and_never_calls_them_dreiding():
     """RDKit has no Dreiding. Reporting MMFF94/UFF under Marvin's label
     would produce a number that looks authoritative and cross-references
     to nothing."""
-    lines = compute_geometry_analysis(_embed("CCCC", seed=3), "mol-1").matched
-    joined = "\n".join(lines)
+    report = compute_geometry_analysis(_embed("CCCC", seed=3), "mol-1")
+    labels = [fact.label for fact in report.facts]
 
-    assert "MMFF94 energy" in joined
-    assert "UFF energy" in joined
-    assert "not Dreiding" in joined
+    assert "MMFF94 energy" in labels
+    assert "UFF energy" in labels
+    # The caveat is a per-fact LIMITATION now rather than a line of prose
+    # in a string list, so it travels with the number it qualifies -- into
+    # the tooltip and every export -- instead of sitting three rows below
+    # it and being read as a separate result.
+    energies = [f for f in report.facts if f.label.endswith("energy")]
+    assert energies
+    assert all("not Dreiding" in " ".join(f.limitations) for f in energies)
+    assert all(f.units == "kcal/mol" for f in energies)
 
 
 def test_force_field_energies_degrade_to_none_for_unparameterised_elements():

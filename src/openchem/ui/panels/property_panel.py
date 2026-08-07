@@ -29,11 +29,14 @@ from openchem.domain.calculator import (
 from openchem.domain.common import CacheState
 from openchem.domain.project import ProjectModel
 from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
+from openchem.chem.report_adapter import report_from_alert
+from openchem.domain.report import ReportResult
 from openchem.domain.structure_issue import Severity
 from openchem.events.base import EventBus
 from openchem.events.events import (
     AlertComputed,
     DescriptorComputed,
+    ReportComputed,
     MoleculeSelected,
     PerAtomDataComputed,
     PhCurveComputed,
@@ -47,6 +50,7 @@ from openchem.ui.dialogs.calculator_settings_dialog import CalculatorSettingsDia
 from openchem.ui.dialogs.nmr_view_dialog import NmrViewDialog
 from openchem.ui.widgets.collapsible_section import CollapsibleSection as _CollapsibleSection
 from openchem.ui.widgets.collapsible_section import WrappedLabel as _WrappedLabel
+from openchem.ui.widgets.fact_view import FactView
 
 # Preferred display order -- any category not listed here (e.g. a future
 # plugin-supplied one) is appended alphabetically after these, not dropped.
@@ -199,6 +203,12 @@ def _without_glyphs(text: str) -> str:
     return text
 
 
+def _is_catalog(alert) -> bool:
+    from openchem.chem.report_adapter import is_catalog
+
+    return is_catalog(alert)
+
+
 def _present_alert(alert) -> tuple[str, str, str]:
     """How one `AlertResult` should read: (text, stylesheet, tooltip).
 
@@ -266,6 +276,8 @@ def _summarise(result: object) -> str:
 
 #: Qt property carrying which calculator a section button opens.
 _CALCULATOR_ID_PROPERTY = "openchem_calculator_id"
+#: ... and which report a "Details..." button opens.
+_REPORT_ID_PROPERTY = "openchem_report_id"
 
 
 class PropertyPanel(QWidget):
@@ -327,6 +339,11 @@ class PropertyPanel(QWidget):
         #: whatsoever, which is exactly what "I can hit run on several
         #: things and nothing noticeable happens" was describing.
         self._result_labels: dict[str, QLabel] = {}
+        #: Fact-based reports, kept so "Details..." can open one after the
+        #: fact. Plain data keyed by string -- never a dict keyed by a
+        #: QWidget, which hashes on a C++ pointer Qt frees with the parent.
+        self._reports: dict[str, ReportResult] = {}
+        self._report_labels: dict[str, QLabel] = {}
         self._sections: dict[str, _CollapsibleSection] = {}
         # Which section each row currently lives in -- lets
         # _on_descriptor_computed detect a category change and re-parent the
@@ -412,6 +429,7 @@ class PropertyPanel(QWidget):
         event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
         event_bus.subscribe(DescriptorComputed, self._on_descriptor_computed)
         event_bus.subscribe(AlertComputed, self._on_alert_computed)
+        event_bus.subscribe(ReportComputed, self._on_report_computed)
         event_bus.subscribe(PerAtomDataComputed, self._on_per_atom_data_computed)
         event_bus.subscribe(SpectrumComputed, self._on_spectrum_computed)
         event_bus.subscribe(StructureSetComputed, self._on_structure_set_computed)
@@ -433,6 +451,8 @@ class PropertyPanel(QWidget):
         self._value_labels.clear()
         self._alert_labels.clear()
         self._result_labels.clear()
+        self._reports.clear()
+        self._report_labels.clear()
         self._row_sections.clear()
         for section in self._sections.values():
             section.clear_rows()
@@ -710,6 +730,88 @@ class PropertyPanel(QWidget):
         value_label.setText(text)
         value_label.setStyleSheet(style)
         value_label.setToolTip(tooltip)
+        # An unmigrated result is still a report; it just has to be
+        # reconstructed from its strings. Held so "Details..." works for
+        # it exactly as it does for a migrated one.
+        if not _is_catalog(alert):
+            self._reports[alert.alert_id] = report_from_alert(alert)
+
+    def _on_report_computed(self, event: ReportComputed) -> None:
+        """A calculator produced facts rather than a list of strings.
+
+        Rendered as one row per fact, in the calculator's own section --
+        which is what `AlertResult` could never do, because a string list
+        has no labels to make rows out of. "Details..." opens the whole
+        thing in a `FactView` with search, the depth filter, provenance
+        and export.
+        """
+        report = event.report
+        self._finish_batch_run(report.report_id)
+        if report.molecule_uuid != self._selected_molecule_uuid:
+            return
+        self._reports[report.report_id] = report
+        section = self._section_for(report.category)
+
+        if report.cache_state is CacheState.FAILED:
+            self._report_row(section, report.report_id, report.name).setText(
+                _FAILURE_GLYPH + (report.error or "Failed")
+            )
+            self._report_row(section, report.report_id, report.name).setStyleSheet(_FAILURE_STYLE)
+            return
+
+        label = self._report_row(section, report.report_id, report.name)
+        if not report.facts:
+            label.setText("Nothing to report.")
+            label.setStyleSheet(_INFORMATION_STYLE)
+            return
+        label.setText("\n".join(f"{f.label}: {f.display_value}" for f in report.facts[:6]))
+        label.setStyleSheet(_INFORMATION_STYLE)
+        if len(report.facts) > 6:
+            label.setToolTip(f"{len(report.facts)} facts. Open Details for all of them.")
+
+    def _report_row(self, section, report_id: str, name: str):
+        """The label for one report, created once and reused.
+
+        Paired with a "Details..." button that opens the report in a
+        `FactView` -- the same widget the Atom Inspector uses, so search,
+        the depth filter, evidence, limitations and export come along
+        without this panel implementing any of it.
+        """
+        existing = self._report_labels.get(report_id)
+        if existing is not None:
+            return existing
+        row = QWidget(section.content)
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(0, 0, 0, 0)
+        value = _WrappedLabel("", row)
+        _make_copyable(value)
+        row_layout.addWidget(value, 1)
+        details = QPushButton("Details...", row)
+        details.setMaximumWidth(80)
+        # The payload rides on the button; a lambda capturing self is held
+        # STRONGLY by PySide6 and would root this panel for the process.
+        details.setProperty(_REPORT_ID_PROPERTY, report_id)
+        details.clicked.connect(self._on_details_clicked)
+        row_layout.addWidget(details)
+        section.content_layout().addRow(name, row)
+        self._report_labels[report_id] = value
+        return value
+
+    def _on_details_clicked(self, _checked: bool = False) -> None:
+        button = self.sender()
+        if button is None:
+            return
+        report = self._reports.get(button.property(_REPORT_ID_PROPERTY))
+        if report is None:
+            return
+        dialog = QDialog(self)
+        dialog.setWindowTitle(report.name)
+        dialog.resize(520, 620)
+        view = FactView(dialog)
+        view.set_report(report, report.name)
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(view)
+        dialog.exec()
 
     def _on_per_atom_data_computed(self, event: PerAtomDataComputed) -> None:
         dataset = event.dataset

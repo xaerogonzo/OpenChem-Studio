@@ -49,7 +49,9 @@ from rdkit.Chem import Descriptors, rdMolDescriptors
 
 from openchem.chem.calculator_options import decimals
 from openchem.domain.common import Provenance
-from openchem.domain.scientific_result import AlertResult, PerAtomDataset
+from openchem.domain.report import ReportResult
+from openchem.chem.report_adapter import report_fields
+from openchem.domain.scientific_result import PerAtomDataset
 
 
 def _distance_matrix(mol: Chem.Mol):
@@ -209,7 +211,7 @@ def stereo_counts(mol: Chem.Mol) -> dict[str, int]:
 
 def compute_topology_analysis(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None
-) -> AlertResult:
+) -> ReportResult:
     """The "topology" category's Topology Analysis calculator -- the whole
     index set as one readout, the way Marvin's own window presents it."""
     places = decimals(parameters)
@@ -244,7 +246,7 @@ def compute_topology_analysis(
         f"Chiral center count: {stereo['chiral_center_count']}",
         f"Rotatable bond count: {rdMolDescriptors.CalcNumRotatableBonds(mol)}",
     ]
-    return AlertResult(
+    return _report(
         alert_id="topology_analysis",
         name="Topology Analysis",
         molecule_uuid=molecule_uuid,
@@ -285,3 +287,18 @@ def compute_distance_degree_dataset(
         values=distance_degree(mol),
         provenance=Provenance(created_by="core", method="rdkit", parameters={"decimal_places": _places}),
     )
+
+
+def _report(**fields) -> ReportResult:
+    """One `AlertResult(...)` call site, as a `ReportResult`.
+
+    The keyword names are unchanged -- `alert_id`, `name`, `matched`,
+    `category` -- so the call sites above read as they always did and the
+    diff stays small. `report_fields` does the translation and turns each
+    line into a `Fact`; see `chem/report_adapter.py` for what a string can
+    and cannot carry.
+
+    A calculator that wants real units, evidence or limitations on a fact
+    builds `Fact`s directly instead, as `geometry_analysis` now does.
+    """
+    return ReportResult(**report_fields(**fields))

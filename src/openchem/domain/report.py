@@ -16,6 +16,7 @@ things computed. Nothing here triggers work.
 
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -237,6 +238,10 @@ class StructureReport(ScientificResult):
     def facts_from(self, source: str) -> tuple[Fact, ...]:
         return tuple(fact for fact in self.facts if fact.source == source)
 
+    def with_facts(self, facts: tuple[Fact, ...]) -> StructureReport:
+        """A copy showing only `facts`. Frozen, so filtering makes a new one."""
+        return dataclasses.replace(self, facts=facts)
+
     def find(self, text: str) -> tuple[Fact, ...]:
         """Facts matching `text`, for a search box.
 
@@ -254,3 +259,60 @@ class StructureReport(ScientificResult):
             or needle in fact.display_value.lower()
             or any(needle in item.lower() for item in fact.evidence)
         )
+
+
+@dataclass(frozen=True, kw_only=True)
+class ReportResult(StructureReport):
+    """A CALCULATOR's output, as facts rather than a list of strings.
+
+    This is what `AlertResult` had quietly become. `matched` is a
+    `list[str]`, and it turned into the generic line carrier for anything
+    that was not a single scalar: `topology_analysis` puts
+    `"Szeged index: 12"` in it, `regulatory/calculator.py` documents doing
+    so deliberately. Counted before this existed: **25 distinct
+    `alert_id`s, of which only five are alerts.** The other twenty were
+    reports wearing an alert's clothes, and the panel painted every one of
+    them in warning red.
+
+    A `Fact` carries what a string cannot: units, basis, evidence,
+    limitations, which atoms it is about, and how specialist it is. All of
+    that was already being computed and then flattened away at the last
+    step.
+
+    **`AlertResult` is NOT deprecated.** PAINS, BRENK, mutagenicity and
+    hERG really are catalogs where a match is a warning, and "N alert(s)"
+    in red is the right rendering for them. This is for everything else.
+
+    The three identity fields mirror `AlertResult`'s so a migrating
+    calculator changes its return type and nothing else -- the id it
+    already publishes under, the display name, and the category the panel
+    files it in.
+    """
+
+    report_id: str  # e.g. "geometry_analysis", matching the calculator id
+    name: str  # display name, e.g. "Geometry"
+    category: str = "other"
+
+    @property
+    def matched(self) -> list[str]:
+        """The facts as lines, for anything still expecting `AlertResult`.
+
+        **Derived, never stored.** A fact already holds its label, value
+        and units separately, so this composes them on demand; there is no
+        second copy to fall out of step with the facts, and nothing can
+        write to it.
+
+        Kept because `matched` is in the plugin API and is what a large
+        number of existing assertions read. A test asking "does the
+        topology calculator report a Randic index" is asking a real
+        question, and the answer is the same whichever shape it arrives
+        in -- so those tests keep working and keep meaning something.
+
+        New code should read `facts`: this cannot express units, basis,
+        evidence, limitations or which atoms a value is about, which is
+        the entire reason for the migration.
+        """
+        return [
+            f"{fact.label}: {fact.display_value}" if fact.label != self.name else fact.display_value
+            for fact in self.facts
+        ]

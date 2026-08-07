@@ -42,7 +42,9 @@ from rdkit import Chem
 
 from openchem.chem.calculator_options import apply_microspecies, decimals, microspecies_note
 from openchem.domain.common import CacheState, Provenance
-from openchem.domain.scientific_result import AlertResult, PerAtomDataset
+from openchem.domain.report import ReportResult
+from openchem.chem.report_adapter import report_fields
+from openchem.domain.scientific_result import PerAtomDataset
 
 # Two electrons per filled orbital.
 _ELECTRONS_PER_ORBITAL = 2
@@ -172,14 +174,14 @@ _HETEROATOM_CAVEAT = (
 
 def compute_huckel_analysis(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None
-) -> AlertResult:
+) -> ReportResult:
     """The "quantum" category's Huckel calculator."""
     parameters = parameters or {}
     target = apply_microspecies(mol, parameters)
     override = parameters.get("pi_electrons", 0)
     result = solve_huckel(target, pi_electrons=int(override) or None)
     if result is None:
-        return AlertResult(
+        return _report(
             alert_id="huckel_analysis",
             name="Huckel Analysis",
             molecule_uuid=molecule_uuid,
@@ -209,7 +211,7 @@ def compute_huckel_analysis(
     if _heteroatoms_present(target, result.atom_indices):
         lines.append(_HETEROATOM_CAVEAT)
 
-    return AlertResult(
+    return _report(
         alert_id="huckel_analysis",
         name="Huckel Analysis",
         molecule_uuid=molecule_uuid,
@@ -257,3 +259,18 @@ def compute_pi_electron_density(
         values=result.electron_density,
         provenance=Provenance(created_by="core", method="huckel", parameters={"decimal_places": _places}),
     )
+
+
+def _report(**fields) -> ReportResult:
+    """One `AlertResult(...)` call site, as a `ReportResult`.
+
+    The keyword names are unchanged -- `alert_id`, `name`, `matched`,
+    `category` -- so the call sites above read as they always did and the
+    diff stays small. `report_fields` does the translation and turns each
+    line into a `Fact`; see `chem/report_adapter.py` for what a string can
+    and cannot carry.
+
+    A calculator that wants real units, evidence or limitations on a fact
+    builds `Fact`s directly instead, as `geometry_analysis` now does.
+    """
+    return ReportResult(**report_fields(**fields))

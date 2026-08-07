@@ -46,7 +46,9 @@ from rdkit.Chem import rdPartialCharges
 
 from openchem.chem.calculator_options import decimals
 from openchem.domain.common import CacheState, Provenance
-from openchem.domain.scientific_result import AlertResult, PerAtomDataset
+from openchem.domain.report import ReportResult
+from openchem.chem.report_adapter import report_fields
+from openchem.domain.scientific_result import PerAtomDataset
 
 # Jensen et al. (2002) atomic polarizabilities, cubic angstroms.
 JENSEN_POLARIZABILITY: dict[str, float] = {
@@ -120,13 +122,13 @@ def _unparameterised_elements(mol: Chem.Mol) -> list[str]:
 
 def compute_polarizability(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None
-) -> AlertResult:
+) -> ReportResult:
     """The "electronic" category's Polarizability calculator."""
     parameters = parameters or {}
     target = _maybe_microspecies(mol, parameters)
     total = molecular_polarizability(target)
     if total is None:
-        return AlertResult(
+        return _report(
             alert_id="polarizability",
             name="Polarizability",
             molecule_uuid=molecule_uuid,
@@ -148,7 +150,7 @@ def compute_polarizability(
         "accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an "
         "atom-additive scheme has no hybridization dependence."
     )
-    return AlertResult(
+    return _report(
         alert_id="polarizability",
         name="Polarizability",
         molecule_uuid=molecule_uuid,
@@ -275,3 +277,18 @@ def compute_orbital_electronegativity(
             },
         ),
     )
+
+
+def _report(**fields) -> ReportResult:
+    """One `AlertResult(...)` call site, as a `ReportResult`.
+
+    The keyword names are unchanged -- `alert_id`, `name`, `matched`,
+    `category` -- so the call sites above read as they always did and the
+    diff stays small. `report_fields` does the translation and turns each
+    line into a `Fact`; see `chem/report_adapter.py` for what a string can
+    and cannot carry.
+
+    A calculator that wants real units, evidence or limitations on a fact
+    builds `Fact`s directly instead, as `geometry_analysis` now does.
+    """
+    return ReportResult(**report_fields(**fields))

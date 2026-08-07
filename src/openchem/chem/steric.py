@@ -58,7 +58,8 @@ from rdkit.Chem import AllChem
 
 from openchem.chem.calculator_options import decimals
 from openchem.domain.common import CacheState, Provenance
-from openchem.domain.scientific_result import AlertResult
+from openchem.domain.report import ReportResult
+from openchem.chem.report_adapter import report_fields
 
 _PERIODIC_TABLE = Chem.GetPeriodicTable()
 
@@ -285,7 +286,7 @@ def _ensemble(mol: Chem.Mol, conformers: int, seed: int = 0xF00D):
 
 def compute_steric_analysis(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None
-) -> AlertResult:
+) -> ReportResult:
     """The "geometry" category's ligand-bulk calculator."""
     parameters = parameters or {}
     places = decimals(parameters)
@@ -299,7 +300,7 @@ def compute_steric_analysis(
         cones = [exact_cone_angle(prepared, donor, c, metal_distance) for c in ids]
         volumes = [buried_volume(prepared, donor, c, sphere_radius, metal_distance) for c in ids]
     except (NoDonorError, NoConformerError, ValueError) as exc:
-        return AlertResult(
+        return _report(
             alert_id="steric_analysis",
             name="Ligand Steric Bulk",
             molecule_uuid=molecule_uuid,
@@ -338,7 +339,7 @@ def compute_steric_analysis(
         f"r = 0.98 against Tolman's series) but are not directly comparable to those tables."
     )
 
-    return AlertResult(
+    return _report(
         alert_id="steric_analysis",
         name="Ligand Steric Bulk",
         molecule_uuid=molecule_uuid,
@@ -359,3 +360,18 @@ def compute_steric_analysis(
             },
         ),
     )
+
+
+def _report(**fields) -> ReportResult:
+    """One `AlertResult(...)` call site, as a `ReportResult`.
+
+    The keyword names are unchanged -- `alert_id`, `name`, `matched`,
+    `category` -- so the call sites above read as they always did and the
+    diff stays small. `report_fields` does the translation and turns each
+    line into a `Fact`; see `chem/report_adapter.py` for what a string can
+    and cannot carry.
+
+    A calculator that wants real units, evidence or limitations on a fact
+    builds `Fact`s directly instead, as `geometry_analysis` now does.
+    """
+    return ReportResult(**report_fields(**fields))

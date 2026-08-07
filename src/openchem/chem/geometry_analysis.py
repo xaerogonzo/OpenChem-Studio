@@ -34,7 +34,8 @@ from rdkit.Chem import AllChem, rdMolTransforms
 
 from openchem.chem.calculator_options import decimals
 from openchem.domain.common import CacheState, Provenance
-from openchem.domain.scientific_result import AlertResult
+from openchem.domain.report import Fact, FactCategory, ReportResult
+from openchem.domain.structure_issue import Basis
 
 
 class NoConformerError(ValueError):
@@ -119,44 +120,87 @@ def dihedral_angle(mol: Chem.Mol, atom_a: int, atom_b: int, atom_c: int, atom_d:
 
 def compute_geometry_analysis(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None
-) -> AlertResult:
-    """The "geometry" category's calculator."""
+) -> ReportResult:
+    """The "geometry" category's calculator.
+
+    Returns FACTS, not a list of strings. Each carries its own units and
+    basis, which a `matched` line could not: "Max radius (from centroid):
+    2.35 A" was one opaque string, and the panel rendered eight of them as
+    "8 alert(s)" in warning red.
+    """
     places = decimals(parameters)
     try:
         radii = molecular_radii(mol)
         energies = force_field_energies(mol)
     except NoConformerError as exc:
-        return AlertResult(
-            alert_id="geometry_analysis",
-            name="Geometry",
+        return ReportResult(
             molecule_uuid=molecule_uuid,
-            matched=[],
+            report_id="geometry_analysis",
+            name="Geometry",
             category="geometry",
             cache_state=CacheState.FAILED,
             error=str(exc),
             provenance=Provenance(created_by="core", method="rdkit"),
         )
 
-    lines = [
-        f"Max radius (from centroid): {radii['max_radius']:.{places}f} Å",
-        f"Min radius (from centroid): {radii['min_radius']:.{places}f} Å",
-        f"Mean radius (from centroid): {radii['mean_radius']:.{places}f} Å",
-    ]
-    # Named explicitly so nobody reads these as Marvin's Dreiding value.
-    if energies["mmff94"] is not None:
-        lines.append(f"MMFF94 energy: {energies['mmff94']:.{places}f} kcal/mol")
-    if energies["uff"] is not None:
-        lines.append(f"UFF energy: {energies['uff']:.{places}f} kcal/mol")
-    if energies["mmff94"] is None and energies["uff"] is None:
-        lines.append("No force field parameters available for this molecule.")
-    else:
-        lines.append("(MMFF94/UFF — not Dreiding; values are not comparable to MarvinSketch's.)")
+    def _radius(label: str, key: str) -> Fact:
+        return Fact(
+            category=FactCategory.GEOMETRY,
+            label=label,
+            value=radii[key],
+            display_value=f"{radii[key]:.{places}f}",
+            source="Geometry",
+            basis=Basis.DETERMINISTIC,
+            units="A",
+        )
 
-    return AlertResult(
-        alert_id="geometry_analysis",
-        name="Geometry",
+    facts = [
+        _radius("Max radius (from centroid)", "max_radius"),
+        _radius("Min radius (from centroid)", "min_radius"),
+        _radius("Mean radius (from centroid)", "mean_radius"),
+    ]
+
+    # NAMED EXPLICITLY so nobody reads these as Marvin's Dreiding value.
+    # That caveat used to be an extra line of prose in `matched`; as a
+    # per-fact limitation it travels with the number it qualifies, into
+    # the tooltip and every export.
+    not_dreiding = (
+        "MMFF94/UFF, not Dreiding. Not comparable to MarvinSketch's "
+        "Geometry plugin, which reports a Dreiding energy RDKit cannot "
+        "compute.",
+    )
+    for key, label in (("mmff94", "MMFF94 energy"), ("uff", "UFF energy")):
+        if energies[key] is None:
+            continue
+        facts.append(
+            Fact(
+                category=FactCategory.GEOMETRY,
+                label=label,
+                value=energies[key],
+                display_value=f"{energies[key]:.{places}f}",
+                source="Geometry",
+                basis=Basis.DETERMINISTIC,
+                units="kcal/mol",
+                limitations=not_dreiding,
+            )
+        )
+    if energies["mmff94"] is None and energies["uff"] is None:
+        facts.append(
+            Fact(
+                category=FactCategory.GEOMETRY,
+                label="Force field energy",
+                value=None,
+                display_value="No force field parameters for this molecule.",
+                source="Geometry",
+                basis=Basis.DETERMINISTIC,
+            )
+        )
+
+    return ReportResult(
         molecule_uuid=molecule_uuid,
-        matched=lines,
+        report_id="geometry_analysis",
+        name="Geometry",
         category="geometry",
+        facts=tuple(facts),
         provenance=Provenance(created_by="core", method="rdkit"),
     )

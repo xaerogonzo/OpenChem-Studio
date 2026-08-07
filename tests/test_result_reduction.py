@@ -92,14 +92,24 @@ def test_a_repeated_label_is_kept_once():
 def test_the_parser_survives_the_whole_registry():
     """Every report calculator, on a real molecule with a conformer.
 
-    A regression here means either a producer changed its wording or the
-    parser got looser; both are worth failing on. The floor is deliberately
-    well below the 73 measured at the time of writing, so that adding one
-    caveat sentence to one calculator does not break the suite.
+    A regression here means either a producer stopped emitting a fact or
+    the reduction got looser; both are worth failing on.
+
+    **This used to measure the string PARSER**, because these calculators
+    returned `matched` lines and one report had to be re-parsed back into
+    labels and numbers. Measured then: 73 numeric columns extracted across
+    16 calculators, and **25 lines refused** -- formulas, prose caveats,
+    value lists, all correctly refused but all genuinely lost.
+
+    Now they return facts, which were never flattened, so there is nothing
+    to recover. Measured on these four: 45 facts giving 43 numeric
+    columns, the two non-numeric ones being a formula and a direction
+    vector, which are text and always were.
     """
     from rdkit.Chem import AllChem
 
     from openchem.bootstrap import build_service_container
+    from openchem.domain.report import ReportResult
 
     registry = build_service_container().calculator_registry
     mol = Chem.AddHs(Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O"))
@@ -112,9 +122,15 @@ def test_the_parser_survives_the_whole_registry():
         result = registry.compute(
             calculator_id, mol, "m", {p.name: p.default for p in definition.parameters}
         )
-        total += len(parse_reported_numbers(result.matched))
-    # topology alone contributed 27 when this was measured.
-    assert total >= 35
+        assert isinstance(result, ReportResult), (
+            f"{calculator_id} still returns {type(result).__name__} -- it was migrated"
+        )
+        columns = reduce_result(result, calculator_id, definition.display_name, None)
+        total += sum(1 for column, _cell in columns if column.numeric)
+
+    # Floor well below the 43 measured, so adding one caveat to one
+    # calculator does not break the suite.
+    assert total >= 35, total
 
 
 # --- descriptors --------------------------------------------------------

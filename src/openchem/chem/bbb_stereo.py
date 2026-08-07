@@ -47,7 +47,8 @@ from rdkit.Chem import Descriptors, Lipinski, rdMolDescriptors
 
 from openchem.chem.calculator_options import apply_microspecies, decimals, microspecies_note
 from openchem.domain.common import Provenance
-from openchem.domain.scientific_result import AlertResult
+from openchem.domain.report import ReportResult
+from openchem.chem.report_adapter import report_fields
 
 # Gupta et al.'s bands. Reported because they are the useful part of the
 # paper that IS published, even without the weight functions.
@@ -83,7 +84,7 @@ def compute_bbb_descriptors(
     molecule_uuid: str,
     parameters: dict[str, Any] | None = None,
     interpreter_path: str | None = None,
-) -> AlertResult:
+) -> ReportResult:
     """The "admet" category's BBB Score input calculator."""
     parameters = parameters or {}
     target = apply_microspecies(mol, parameters)
@@ -121,7 +122,7 @@ def compute_bbb_descriptors(
         "in ChemAxon's documentation, and one worked example cannot validate five unknown "
         "curves. For reference, that score runs 0-6 with 4-6 indicating a CNS drug."
     )
-    return AlertResult(
+    return _report(
         alert_id="bbb_descriptors",
         name="BBB Score Descriptors",
         molecule_uuid=molecule_uuid,
@@ -176,7 +177,7 @@ def stereo_descriptors(mol: Chem.Mol) -> list[tuple[int, str, str]]:
 
 def compute_stereo_descriptors(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None
-) -> AlertResult:
+) -> ReportResult:
     """The "stereochemistry" category's Stereo Analysis calculator.
 
     Complements the existing stereo COUNTS in Topology Analysis by naming
@@ -186,7 +187,7 @@ def compute_stereo_descriptors(
     parameters = parameters or {}
     elements = stereo_descriptors(mol)
     if not elements:
-        return AlertResult(
+        return _report(
             alert_id="stereo_descriptors",
             name="Stereo Descriptors",
             molecule_uuid=molecule_uuid,
@@ -219,7 +220,7 @@ def compute_stereo_descriptors(
 
     undefined = sum(1 for _i, _k, label in elements if label == "undefined")
     lines.append(f"{len(elements)} stereo element(s), {undefined} undefined.")
-    return AlertResult(
+    return _report(
         alert_id="stereo_descriptors",
         name="Stereo Descriptors",
         molecule_uuid=molecule_uuid,
@@ -231,3 +232,18 @@ def compute_stereo_descriptors(
             parameters={"element_count": len(elements), "undefined": undefined},
         ),
     )
+
+
+def _report(**fields) -> ReportResult:
+    """One `AlertResult(...)` call site, as a `ReportResult`.
+
+    The keyword names are unchanged -- `alert_id`, `name`, `matched`,
+    `category` -- so the call sites above read as they always did and the
+    diff stays small. `report_fields` does the translation and turns each
+    line into a `Fact`; see `chem/report_adapter.py` for what a string can
+    and cannot carry.
+
+    A calculator that wants real units, evidence or limitations on a fact
+    builds `Fact`s directly instead, as `geometry_analysis` now does.
+    """
+    return ReportResult(**report_fields(**fields))

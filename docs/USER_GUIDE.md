@@ -199,6 +199,16 @@ Right-click anywhere in the panel for **Copy all properties**, or select
 any single value with the mouse. The copied text keeps the headings and
 drops the symbols.
 
+Most calculators now report a **list of named values** rather than one run-on
+line — each with its own units, and its caveats attached to the number they
+qualify rather than three rows below it. Press **Details…** beside any of them
+for the full report: every value, its source and basis, the evidence behind it,
+and Copy/Export in Markdown, plain text, JSON or CSV.
+
+The **Regulatory Screen** now says what it did *not* check. A molecule with no
+matches lists every domain for which no ruleset is loaded, because "no matches"
+without its scope is the silence that reads as reassurance.
+
 ### Running several calculators at once
 
 Tick the box beside any **Open …** buttons you want and press **Run

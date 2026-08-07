@@ -50,6 +50,8 @@ from dataclasses import dataclass
 from rdkit import Chem
 
 from openchem.net import open_url
+from openchem.chem.report_adapter import report_fields
+from openchem.domain.report import ReportResult
 
 logger = logging.getLogger("openchem.chemistry")
 
@@ -412,7 +414,6 @@ def compute_iupac_name(
     lookup sends the structure to NCBI.
     """
     from openchem.domain.common import CacheState, Provenance
-    from openchem.domain.scientific_result import AlertResult
 
     parameters = parameters or {}
     lines: list[str] = []
@@ -444,7 +445,7 @@ def compute_iupac_name(
         lines.append(line)
 
     if not results and not any(line for line in lines if not line.startswith("PubChem:")):
-        return AlertResult(
+        return _report(
             alert_id="iupac_name",
             name="IUPAC Name",
             molecule_uuid=molecule_uuid,
@@ -455,7 +456,7 @@ def compute_iupac_name(
             provenance=Provenance(created_by="core", method="naming"),
         )
 
-    return AlertResult(
+    return _report(
         alert_id="iupac_name",
         name="IUPAC Name",
         molecule_uuid=molecule_uuid,
@@ -469,3 +470,16 @@ def compute_iupac_name(
     )
 
 
+def _report(**fields) -> ReportResult:
+    """One `AlertResult(...)` call site, as a `ReportResult`.
+
+    The keyword names are unchanged -- `alert_id`, `name`, `matched`,
+    `category` -- so the call sites above read as they always did and the
+    diff stays small. `report_fields` does the translation and turns each
+    line into a `Fact`; see `chem/report_adapter.py` for what a string can
+    and cannot carry.
+
+    A calculator that wants real units, evidence or limitations on a fact
+    builds `Fact`s directly instead, as `geometry_analysis` now does.
+    """
+    return ReportResult(**report_fields(**fields))

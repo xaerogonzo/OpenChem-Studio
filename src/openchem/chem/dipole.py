@@ -30,7 +30,8 @@ from rdkit.Chem import rdPartialCharges
 from openchem.chem.geometry_analysis import NoConformerError, _require_conformer
 from openchem.chem.calculator_options import decimals
 from openchem.domain.common import CacheState, Provenance
-from openchem.domain.scientific_result import AlertResult
+from openchem.domain.report import ReportResult
+from openchem.chem.report_adapter import report_fields
 
 # elementary charge * angstrom -> Debye. 1 D = 3.33564e-30 C*m;
 # e*A = 1.602176634e-19 * 1e-10 C*m.
@@ -70,14 +71,14 @@ def dipole_vector(mol: Chem.Mol) -> tuple[np.ndarray, float, bool]:
 
 def compute_dipole_moment(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None
-) -> AlertResult:
+) -> ReportResult:
     """The "charge" category's Dipole Moment calculator. Needs a conformer:
     a dipole is a property of a 3D arrangement, and computing one from flat
     2D coordinates would produce a confident, meaningless number."""
     try:
         vector, magnitude, origin_independent = dipole_vector(mol)
     except NoConformerError as exc:
-        return AlertResult(
+        return _report(
             alert_id="dipole_moment",
             name="Dipole Moment",
             molecule_uuid=molecule_uuid,
@@ -104,7 +105,7 @@ def compute_dipole_moment(
         "From Gasteiger (PEOE) partial charges and this conformer's geometry. Direction and "
         "symmetry are reliable; the magnitude inherits the charge model's accuracy."
     )
-    return AlertResult(
+    return _report(
         alert_id="dipole_moment",
         name="Dipole Moment",
         molecule_uuid=molecule_uuid,
@@ -120,3 +121,18 @@ def compute_dipole_moment(
             },
         ),
     )
+
+
+def _report(**fields) -> ReportResult:
+    """One `AlertResult(...)` call site, as a `ReportResult`.
+
+    The keyword names are unchanged -- `alert_id`, `name`, `matched`,
+    `category` -- so the call sites above read as they always did and the
+    diff stays small. `report_fields` does the translation and turns each
+    line into a `Fact`; see `chem/report_adapter.py` for what a string can
+    and cannot carry.
+
+    A calculator that wants real units, evidence or limitations on a fact
+    builds `Fact`s directly instead, as `geometry_analysis` now does.
+    """
+    return ReportResult(**report_fields(**fields))

@@ -21,10 +21,18 @@ of a batch table is noise that trains people to stop reading. So:
     exactly this kind of metadata, and which a view can show ONCE per
     screen instead of once per row.
 
-EVERY LINE IS ASCII. These reach `AlertResult.matched`, which goes to Qt,
-to logs and to console streams, and a Windows cp1252 stream raises on an
-em-dash or a tick. `test_naming_result_lines_stay_ascii` exists because
-that was hit three times in one session.
+EVERY LINE IS ASCII. These reach Qt, logs and console streams, and a
+Windows cp1252 stream raises on an em-dash or a tick.
+`test_naming_result_lines_stay_ascii` exists because that was hit three
+times in one session.
+
+**The scope is no longer invisible.** This used to bury the rulesets
+consulted, the coverage notes and the unchecked domains in
+`Provenance.parameters`, where nothing displayed them -- the panel showed
+`1 alert(s): No matches in the 1 ruleset consulted` and stopped. They are
+facts now, so the screen reads as the document it always was. The ruleset
+versions and coverage notes are marked ADVANCED, so they are there for
+somebody who needs them without burying the findings.
 """
 
 from __future__ import annotations
@@ -37,8 +45,8 @@ from openchem.chem.regulatory.engine import RegulatoryEngine
 from openchem.chem.regulatory.loader import load_all
 from openchem.chem.regulatory.types import Jurisdiction, MatchType, ScreeningReport
 from openchem.domain.common import CacheState, Provenance
-from openchem.domain.scientific_result import AlertResult
-from openchem.domain.structure_issue import Severity
+from openchem.domain.report import Detail, Fact, FactCategory, ReportResult
+from openchem.domain.structure_issue import Basis
 
 #: Jurisdiction filter offered in the UI. "All" first, because a user who
 #: has not said where they are should see more rather than less.
@@ -85,7 +93,7 @@ def compute_regulatory_screen(
     mol: Chem.Mol,
     molecule_uuid: str,
     parameters: dict[str, Any] | None = None,
-) -> AlertResult:
+) -> ReportResult:
     """Which regulatory frameworks have something to say about this structure.
 
     NOT a compliance check, and the result never says one way or the other.
@@ -108,19 +116,62 @@ def compute_regulatory_screen(
         # The one case where a blank cell would be actively misleading.
         lines.insert(0, report.summary())
 
-    return AlertResult(
-        alert_id="regulatory_screen",
-        name="Regulatory Screen",
+    facts = [_line_fact(line) for line in lines]
+
+    # WHAT USED TO BE INVISIBLE. All of this was already computed into
+    # `Provenance.parameters` and NONE of it reached the screen: the panel
+    # showed "1 alert(s): No matches in the 1 ruleset consulted" and
+    # nothing else. A regulatory answer without its scope is the
+    # silence-read-as-reassurance this engine exists to prevent, so the
+    # scope is now facts of its own.
+    for ruleset in report.rulesets_consulted:
+        facts.append(
+            Fact(
+                category=FactCategory.REGULATORY,
+                label="Ruleset consulted",
+                value=ruleset.ruleset_id,
+                display_value=f"{ruleset.ruleset_id} v{ruleset.version}",
+                source="Regulatory",
+                basis=Basis.DETERMINISTIC,
+                detail=Detail.ADVANCED,
+            )
+        )
+    for note in report.coverage_notes():
+        facts.append(
+            Fact(
+                category=FactCategory.REGULATORY,
+                label="Coverage",
+                value=note,
+                display_value=note,
+                source="Regulatory",
+                basis=Basis.DETERMINISTIC,
+                detail=Detail.ADVANCED,
+            )
+        )
+    for domain in report.domains_without_rulesets:
+        facts.append(
+            Fact(
+                category=FactCategory.REGULATORY,
+                label="NOT checked",
+                value=domain.value,
+                display_value=domain.value,
+                source="Regulatory",
+                basis=Basis.DETERMINISTIC,
+                limitations=(
+                    "No ruleset is loaded for this domain, so this screen "
+                    "says nothing about it either way.",
+                ),
+            )
+        )
+
+    return ReportResult(
         molecule_uuid=molecule_uuid,
-        matched=lines,
+        report_id="regulatory_screen",
+        name="Regulatory Screen",
         category="regulatory",
-        # The one producer whose severity depends on its own content. A
-        # finding is something to act on; "no matches in the 3 rulesets
-        # consulted" is a coverage statement and must not be painted as
-        # though the molecule were flagged -- which is exactly how it
-        # read before severity existed.
-        severity=Severity.WARNING if report.findings else Severity.INFO,
+        facts=tuple(facts),
         cache_state=CacheState.COMPLETED,
+        limitations=tuple(problems),
         provenance=Provenance(
             created_by="core",
             method="regulatory-intelligence",
@@ -141,6 +192,40 @@ def compute_regulatory_screen(
                 ],
             },
         ),
+    )
+
+
+def _line_fact(line: str) -> Fact:
+    """One screen line as a fact, keeping the label it already carried.
+
+    These lines were written to be self-labelling -- `"Near miss: ..."`,
+    `"    limitation: ..."` -- so the label is taken from the line rather
+    than invented, and `ReportResult.matched` recomposes the original text
+    byte-for-byte. That is what lets the existing assertions, the batch
+    columns and any downstream export survive the migration unchanged.
+    """
+    stripped = line.strip()
+    for prefix, label in (
+        ("Near miss: ", "Near miss"),
+        ("also used legitimately for: ", "Legitimate uses"),
+        ("limitation: ", "Limitation"),
+    ):
+        if stripped.startswith(prefix):
+            return Fact(
+                category=FactCategory.REGULATORY,
+                label=label,
+                value=stripped[len(prefix):],
+                display_value=stripped[len(prefix):],
+                source="Regulatory",
+                basis=Basis.DETERMINISTIC,
+            )
+    return Fact(
+        category=FactCategory.REGULATORY,
+        label="Regulatory Screen",
+        value=stripped,
+        display_value=stripped,
+        source="Regulatory",
+        basis=Basis.DETERMINISTIC,
     )
 
 

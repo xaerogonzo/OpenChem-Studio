@@ -62,6 +62,7 @@ from openchem.domain.batch import (
 )
 from openchem.domain.common import CATEGORICAL_SCALE, CacheState, ScientificResult
 from openchem.domain.descriptor import DescriptorValue
+from openchem.domain.report import ReportResult
 from openchem.domain.scientific_result import (
     AlertResult,
     PerAtomDataset,
@@ -296,11 +297,77 @@ def reduce_result(
                 ),
             )
         ]
+    if isinstance(result, ReportResult):
+        return _reduce_report(result, calculator_id, display_name, prediction_basis)
     if isinstance(result, AlertResult):
         return _reduce_alert(result, calculator_id, display_name, prediction_basis)
     if isinstance(result, PerAtomDataset):
         return _reduce_per_atom(result, calculator_id, display_name, prediction_basis, per_atom_aggregate)
     return _reduce_descriptive(result, calculator_id, display_name, prediction_basis)
+
+
+def _reduce_report(
+    result: ReportResult, calculator_id: str, display_name: str, prediction_basis: str | None
+) -> list[tuple[BatchColumn, BatchCell]]:
+    """A fact-based report as batch columns.
+
+    **This is the easy version of `_reduce_alert`**, and the contrast is
+    the argument for the whole migration. That function has to PARSE
+    `"Randic index: 9.52"` back into a label, a number and a unit, with a
+    deliberately strict regex that refused 25 of 98 lines when it was
+    measured -- formulas, prose caveats, value lists, all correctly
+    refused but all genuinely lost. A `Fact` was never flattened, so
+    there is nothing to recover: the label, the value and the units are
+    already separate fields.
+
+    The column ids are byte-identical to the ones `_reduce_alert` produced
+    for the same calculator, so a saved batch table, a chart column and an
+    exported CSV all keep working across the migration.
+    """
+    rows: list[tuple[BatchColumn, BatchCell]] = []
+    for fact in result.facts:
+        numeric = _as_float(fact.value)
+        rows.append(
+            (
+                BatchColumn(
+                    column_id=f"{SOURCE_CALCULATOR}:{calculator_id}:{fact.label}",
+                    label=fact.label,
+                    units=fact.units,
+                    source=SOURCE_CALCULATOR,
+                    source_id=calculator_id,
+                    prediction_basis=prediction_basis,
+                    numeric=numeric is not None,
+                ),
+                BatchCell(
+                    text=fact.display_value,
+                    value=numeric,
+                    cache_state=result.cache_state,
+                    provenance=result.provenance,
+                ),
+            )
+        )
+    if rows:
+        return rows
+    # A report with no facts still needs a column, or the calculator
+    # vanishes from the table rather than showing that it ran.
+    return _reduce_descriptive(result, calculator_id, display_name, prediction_basis)
+
+
+def _as_float(value) -> float | None:
+    """A fact's value as a number, when it is one.
+
+    `Fact.value` is deliberately `Any` -- it holds floats, enums, lists of
+    locants and spectral peaks -- so this asks rather than assumes, and a
+    non-numeric fact simply becomes a text column.
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    try:
+        return float(str(value))
+    except (TypeError, ValueError):
+        return None
 
 
 def _reduce_alert(
