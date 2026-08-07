@@ -378,9 +378,15 @@ Three things the result tells you that are easy to skip past:
   is more negative than a bond dissociation energy would be.
 
 **Check the cost estimate before starting.** DLPNO-CCSD(T) is steep:
-measured, BH₃·CO took 15 seconds, while a benzene–water pair took 10
-minutes and **1.9 GB of scratch disk**. Anything drug-sized is not a
-candidate, and the panel says so rather than letting you find out hours in.
+measured, a water dimer took 15 seconds, a pentane dimer 21 minutes, and a
+benzene dimer 44 minutes and **6 GB of scratch disk**. Anything drug-sized
+is not a candidate, and the panel says so rather than letting you find out
+hours in — refusing outright when the job would need more disk than a
+machine is likely to have.
+
+**Aromatic partners cost about three times what their size suggests.** The
+estimate knows this, but it is worth knowing yourself: a π-stacked pair is
+the expensive case, and it is usually the one you want.
 
 <!-- help:ir-spectra -->
 ### IR spectra and normal modes

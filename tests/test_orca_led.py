@@ -312,9 +312,16 @@ def test_the_cost_estimate_grows_steeply_with_size():
 
 
 def test_a_job_too_large_to_run_says_so_rather_than_starting():
+    """Refused on scratch, not on time.
+
+    With the time model corrected this system is 10.7 hours -- survivable --
+    and 78 GB of scratch, which is not, on most machines. Disk became the
+    binding constraint at the top end once time stopped being over-predicted.
+    """
     estimate = estimate_led_cost(["C"] * 40 + ["H"] * 40 + ["N"] * 10)
     assert estimate.should_warn
     assert "too large" in estimate.advice
+    assert estimate.scratch_mb > 50_000
 
 
 def test_the_estimate_names_scratch_disk_not_just_time():
@@ -350,41 +357,109 @@ def test_the_basis_function_count_matches_what_orca_reported(label, symbols, fun
     assert estimate_led_cost(symbols).basis_functions == functions
 
 
-def test_the_runtime_estimate_reproduces_the_measured_jobs():
-    """BH3-CO ran in 15 s (23 s for the whole compound input) and
-    benzene-water's complex in 595 s. Within a factor of two is all this
-    claims; the exponents come from two points and cannot do better."""
-    small = estimate_led_cost(["B", "H", "H", "H", "C", "O"])
-    large = estimate_led_cost(["C"] * 6 + ["H"] * 6 + ["O", "H", "H"])
-    assert 0.5 < small.minutes / (23.0 / 60) < 2.0
-    assert 0.5 < large.minutes / (595.0 * 1.5 / 60) < 2.0
+#: The whole measured set. Compound jobs (complex + both fragments), wall
+#: clock, peak disk polled DURING the run -- the quantity the estimate
+#: predicts, which the first version of this got wrong twice over.
+MEASURED_JOBS = [
+    # label,          symbols,                                    rings, sec,  MB
+    ("water dimer",   ["O", "H", "H"] * 2,                            0,   15,   35),
+    ("BH3-CO",        ["B", "H", "H", "H", "C", "O"],                 0,   23,  103),
+    ("methanol dimer", ["C", "O", "H", "H", "H", "H"] * 2,            0,   48,  220),
+    ("benzene-water", ["C"] * 6 + ["H"] * 6 + ["O", "H", "H"],        1,  644, 1852),
+    ("benzene dimer", (["C"] * 6 + ["H"] * 6) * 2,                    2, 2648, 5564),
+    ("pentane dimer", ["C"] * 5 + ["H"] * 12 + ["C"] * 5 + ["H"] * 12, 0, 1291, 2872),
+]
 
 
-def test_the_scratch_estimate_reproduces_the_measured_peaks():
-    """102 MB and 1899 MB, sampled while the jobs RAN. The residual left
-    on disk afterwards is 3.3 MB for benzene-water -- a factor of 575 out,
-    and what the first version of this was anchored on."""
-    small = estimate_led_cost(["B", "H", "H", "H", "C", "O"])
-    large = estimate_led_cost(["C"] * 6 + ["H"] * 6 + ["O", "H", "H"])
-    assert small.scratch_mb == pytest.approx(102, rel=0.2)
-    assert large.scratch_mb == pytest.approx(1899, rel=0.2)
+@pytest.mark.parametrize(
+    "label,symbols,rings,seconds,scratch", MEASURED_JOBS, ids=[j[0] for j in MEASURED_JOBS]
+)
+def test_the_estimate_reproduces_every_measured_job(label, symbols, rings, seconds, scratch):
+    """Six jobs, 60 to 320 basis functions.
+
+    The tolerance is x1.7 rather than anything tighter because the noise
+    floor is about x1.2: the SAME benzene fragment measured 280 s in one run
+    and 342 s in another. Asserting more precisely than the machine
+    reproduces would be asserting the noise.
+    """
+    estimate = estimate_led_cost(symbols, rings)
+    assert 1 / 1.7 < (estimate.minutes * 60) / seconds < 1.7
+    assert 1 / 1.7 < estimate.scratch_mb / scratch < 1.7
 
 
-def test_a_short_job_with_a_large_scratch_footprint_still_warns():
-    """benzene-water is the measured case: ten minutes and 1.9 GB. Time
-    alone would wave it through, and a full disk mid-run loses the job."""
-    estimate = estimate_led_cost(["C"] * 6 + ["H"] * 6 + ["O", "H", "H"])
-    assert estimate.minutes < 30
-    assert estimate.scratch_mb > 1024
-    assert estimate.should_warn
-    assert "GB of scratch disk" in estimate.advice
+def test_a_saturated_system_is_not_charged_the_aromatic_penalty():
+    """The bug the third datapoint existed to find.
+
+    The previous exponent of 4.20 was fitted on two points spanning BH3-CO
+    to benzene-water -- and benzene-water is aromatic, so the fit absorbed
+    the aromatic penalty into the exponent and applied it to everything. On
+    the saturated pentane dimer it predicted 9960 s against a measured 1291:
+    7.7x too high, which is the difference between "start it" and "do not
+    bother".
+    """
+    pentane_dimer = ["C"] * 5 + ["H"] * 12 + ["C"] * 5 + ["H"] * 12
+    estimate = estimate_led_cost(pentane_dimer, aromatic_rings=0)
+    assert estimate.basis_functions == 320
+    assert estimate.minutes * 60 < 2000, "the old 4.20 exponent gave 9960 s here"
+    # It still WARNS -- 2.8 GB of scratch is worth saying -- but it must not
+    # be the "too large, do not start it" refusal the old model produced.
+    assert "too large" not in estimate.advice
+    assert "hours" not in estimate.advice
+
+
+def test_an_aromatic_system_costs_about_three_times_a_saturated_one():
+    """Not a size effect: the methanol dimer has 28 correlated electrons and
+    takes 23 s, benzene has 30 and takes 280. Same electron count, twelve
+    times the cost -- delocalisation defeats DLPNO's locality screening."""
+    symbols = ["C"] * 6 + ["H"] * 6 + ["O", "H", "H"]
+    saturated = estimate_led_cost(symbols, aromatic_rings=0)
+    aromatic = estimate_led_cost(symbols, aromatic_rings=1)
+    assert aromatic.minutes / saturated.minutes == pytest.approx(2.88, rel=0.05)
+    assert aromatic.scratch_mb / saturated.scratch_mb == pytest.approx(2.51, rel=0.05)
+
+
+def test_the_aromatic_penalty_does_not_compound_with_ring_count():
+    """Measured against the saturated law: benzene-water (1 ring) x2.82,
+    benzene dimer (2 rings) x2.94. A per-ring model would have predicted
+    7246 s for the benzene dimer against a measured 2648."""
+    symbols = (["C"] * 6 + ["H"] * 6) * 2
+    one = estimate_led_cost(symbols, aromatic_rings=1)
+    two = estimate_led_cost(symbols, aromatic_rings=2)
+    four = estimate_led_cost(symbols, aromatic_rings=4)
+    assert one.minutes == pytest.approx(two.minutes)
+    assert one.minutes == pytest.approx(four.minutes)
+
+
+def test_the_ring_count_is_read_off_the_molecule():
+    """So the panel does not have to decide anything, and cannot forget."""
+    from rdkit import Chem
+
+    from openchem.chem.orca_led import estimate_led_cost_for
+
+    aromatic = estimate_led_cost_for(Chem.AddHs(Chem.MolFromSmiles("c1ccccc1.O")))
+    saturated = estimate_led_cost_for(Chem.AddHs(Chem.MolFromSmiles("C1CCCCC1.O")))
+    assert aromatic.fields["aromatic_rings"] == 1
+    assert saturated.fields["aromatic_rings"] == 0
+    # Same atom count, and cyclohexane is the cheaper one.
+    assert aromatic.minutes > saturated.minutes
 
 
 def test_the_estimate_records_what_it_was_anchored_on():
     """A number with no provenance cannot be re-checked when it drifts."""
     estimate = estimate_led_cost(["C", "O"])
-    assert "BH3-CO" in estimate.fields["anchors"]
-    assert "benzene-water" in estimate.fields["anchors"]
+    assert "60-320 basis functions" in estimate.fields["anchors"]
+    assert "pentane dimer" in estimate.fields["anchors"]
+    assert "noise floor" in estimate.fields["worst_residual"]
+
+
+def test_a_short_job_with_a_large_scratch_footprint_still_warns():
+    """benzene-water is the measured case: 11 minutes and 1.9 GB. Time alone
+    would wave it through, and a full disk mid-run loses the job."""
+    estimate = estimate_led_cost(["C"] * 6 + ["H"] * 6 + ["O", "H", "H"], 1)
+    assert estimate.minutes < 30
+    assert estimate.scratch_mb > 1024
+    assert estimate.should_warn
+    assert "GB of scratch disk" in estimate.advice
 
 
 # --- through the real engine --------------------------------------------

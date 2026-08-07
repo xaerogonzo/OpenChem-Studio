@@ -490,57 +490,99 @@ _BASIS_FUNCTIONS = {
 }
 _DEFAULT_FUNCTIONS = 20
 
-# Two jobs measured on this machine with the same sampling harness, disk
-# polled while the job RAN:
+# Six jobs measured on this machine with one harness: whole compound input
+# (complex + both fragments), wall clock, and peak disk polled WHILE the job
+# ran. All six are what this function predicts, which the first version of
+# it got wrong in two separate ways.
 #
-#   system          atoms   basis functions   wall     peak scratch
-#   BH3-CO            6            75           15 s        102 MB
-#   benzene...H2O    15           180          595 s       1899 MB
+#   system            atoms  functions  aromatic rings   wall   peak scratch
+#   water dimer          6       60           0            15 s      35 MB
+#   BH3-CO               6       75           0            23 s     103 MB
+#   methanol dimer      12      120           0            48 s     220 MB
+#   benzene...H2O       15      180           1           644 s    1852 MB
+#   benzene dimer       24      300           2          2648 s    5564 MB
+#   pentane dimer       34      320           0          1291 s    2872 MB
 #
 # **Peak, not residual, and the difference is not small.** benzene-water
-# leaves 3.3 MB behind after ORCA cleans up, having used 1899 MB while
-# running -- a factor of 575. An estimate anchored on what is left on disk
-# afterwards (as the first version of this was) under-predicts the thing
-# that actually fills a drive by nearly three orders of magnitude.
+# leaves 3.3 MB behind after ORCA cleans up, having used 1852 MB while
+# running -- a factor of 575. The first estimator was anchored on residual
+# and under-predicted the thing that fills a drive by nearly three orders of
+# magnitude. Sample during the run.
 #
-# The exponents below are what those two points give: DLPNO-CCSD(T) is
-# asymptotically linear-scaling and these systems are nowhere near that
-# regime. Two points determine a power law exactly and cannot validate it,
-# so this is a guide for choosing between "minutes", "hours" and "do not
-# start it", not a prediction. It errs high, which is the safe direction.
-_ANCHOR_FUNCTIONS = 75
-_ANCHOR_MINUTES = 15.0 / 60
-_ANCHOR_SCRATCH_MB = 102.0
-_TIME_EXPONENT = 4.20
-_SCRATCH_EXPONENT = 3.34
+# **THE PREVIOUS EXPONENT OF 4.20 WAS AN ARTEFACT OF FITTING TWO POINTS.**
+# It spanned BH3-CO to benzene-water, and benzene-water is aromatic -- so the
+# fit absorbed the aromatic penalty below into the exponent and then applied
+# it to everything. On the saturated pentane dimer it predicted 9960 s
+# against a measured 1291: **7.7x too high**, which is the difference between
+# "start it" and "do not bother".
+#
+# Two further traps, both of which produced a wrong exponent before they
+# were noticed:
+#
+# - **A complex costs less than a monomer of the same size.** Half of its
+#   electron pairs are inter-fragment and long-range, so DLPNO screens them
+#   out: methanol MONOMER at 60 functions takes 7 s where the water DIMER at
+#   60 takes 4.6. Fitting the two populations together gave an exponent of
+#   1.72 that then under-predicted 320 functions sevenfold. These constants
+#   are fitted on COMPLEXES only, because that is what an LED job is.
+# - **The fragment jobs are not a fixed fraction.** A x1.5 multiplier was
+#   derived from BH3-CO (23 s compound against 15 s complex) and is wrong at
+#   the other end, where benzene-water is 644 against 595 -- x1.08. No
+#   multiplier is applied now; the fit is on whole compound jobs directly.
+_TIME_COEFFICIENT = 2.0064e-04
+_TIME_EXPONENT = 2.69
+_SCRATCH_COEFFICIENT = 1.5004e-03
+_SCRATCH_EXPONENT = 2.51
+
+#: What an aromatic ring costs, over a saturated system of the same size.
+#:
+#: Delocalisation defeats DLPNO's locality screening -- far more pairs
+#: survive it -- and this is NOT a size effect: the methanol dimer has 28
+#: correlated electrons and takes 23 s, while benzene has 30 and takes 280.
+#: Same electron count, twelve times the cost.
+#:
+#: **It does not compound with ring count**, which is why it is a flat
+#: multiplier and not a per-ring one. Measured against the saturated law:
+#: benzene-water (1 ring) x2.82, benzene dimer (2 rings) x2.94. A per-ring
+#: model would have predicted 7246 s for the benzene dimer against a
+#: measured 2648.
+_AROMATIC_TIME_PENALTY = 2.88
+_AROMATIC_SCRATCH_PENALTY = 2.51
 
 
-def estimate_led_cost(symbols: list[str]) -> LedCostEstimate:
+def estimate_led_cost(symbols: list[str], aromatic_rings: int = 0) -> LedCostEstimate:
     """Runtime, memory and scratch for a DLPNO-CCSD(T) LED job.
 
-    Scaled from two measured jobs, so this is a guide to the ORDER of the
-    cost, not a prediction. It exists to stop someone starting a week-long
-    run by accident, which it can do while being a factor of three out.
+    Fitted on six measured jobs spanning 60 to 320 basis functions, with a
+    worst residual of x1.6 on time and x1.4 on scratch -- against a
+    run-to-run noise floor of about x1.2 (the same benzene fragment measured
+    280 s in one run and 342 s in another). So it is close to as good as
+    this can get without controlling the machine, and it is still a guide to
+    the ORDER of the cost rather than a prediction.
 
-    Takes only the element symbols: the cost depends on how many basis
-    functions there are, not on how they are split into fragments.
+    `aromatic_rings` only has to be nonzero or not: the penalty does not
+    compound with ring count. It is a count rather than a bool so a caller
+    reads it straight off the structure without deciding anything.
+
+    Takes symbols rather than a molecule so it stays usable without RDKit;
+    `estimate_led_cost_for` is the version that reads both off a molecule.
     """
     atoms = len(symbols)
     functions = sum(_BASIS_FUNCTIONS.get(symbol, _DEFAULT_FUNCTIONS) for symbol in symbols)
-    ratio = functions / _ANCHOR_FUNCTIONS if _ANCHOR_FUNCTIONS else 1.0
 
-    minutes = _ANCHOR_MINUTES * ratio**_TIME_EXPONENT
-    # The whole input is three jobs. Measured on BH3-CO: 15 s for the
-    # complex alone against 23 s for the compound input, so the two
-    # fragments together cost about half the complex again.
-    minutes *= 1.5
-    # Scratch is NOT multiplied by three. The jobs run one after another
-    # and ORCA clears up between them, so the peak is the biggest single
-    # job -- the complex.
-    scratch_mb = _ANCHOR_SCRATCH_MB * ratio**_SCRATCH_EXPONENT
+    seconds = _TIME_COEFFICIENT * functions**_TIME_EXPONENT
+    scratch_mb = _SCRATCH_COEFFICIENT * functions**_SCRATCH_EXPONENT
+    if aromatic_rings:
+        seconds *= _AROMATIC_TIME_PENALTY
+        scratch_mb *= _AROMATIC_SCRATCH_PENALTY
+    minutes = seconds / 60
     memory_mb = max(2000, int(functions * 30))
 
-    if minutes > 720:
+    # Scratch is a refusal reason in its own right. With the time model
+    # corrected the disk became the binding constraint at the top end: a
+    # 1200-function job is 10.7 hours (survivable) and 78 GB (not, on most
+    # machines).
+    if minutes > 720 or scratch_mb > 50_000:
         advice = (
             f"This job is estimated at {minutes / 60:.0f} hours and about "
             f"{_disk(scratch_mb)} of scratch disk. That is not a "
@@ -583,11 +625,15 @@ def estimate_led_cost(symbols: list[str]) -> LedCostEstimate:
         should_warn=should_warn,
         fields={
             "anchors": (
-                "BH3-CO 6 atoms/75 functions: 15 s, 102 MB peak; "
-                "benzene-water 15 atoms/180 functions: 595 s, 1899 MB peak"
+                "six compound jobs, 60-320 basis functions: water dimer, "
+                "BH3-CO, methanol dimer, benzene-water, benzene dimer, "
+                "pentane dimer"
             ),
             "time_exponent": _TIME_EXPONENT,
             "scratch_exponent": _SCRATCH_EXPONENT,
+            "aromatic_rings": aromatic_rings,
+            "aromatic_penalty": _AROMATIC_TIME_PENALTY if aromatic_rings else 1.0,
+            "worst_residual": "x1.6 time, x1.4 scratch (noise floor x1.2)",
         },
     )
 
@@ -671,7 +717,15 @@ def estimate_led_cost_for(mol) -> LedCostEstimate:
     """
     from rdkit import Chem
 
-    estimate = estimate_led_cost([atom.GetSymbol() for atom in mol.GetAtoms()])
+    ring_info = mol.GetRingInfo()
+    aromatic_rings = sum(
+        1
+        for ring in ring_info.AtomRings()
+        if all(mol.GetAtomWithIdx(i).GetIsAromatic() for i in ring)
+    )
+    estimate = estimate_led_cost(
+        [atom.GetSymbol() for atom in mol.GetAtoms()], aromatic_rings
+    )
     pieces = Chem.GetMolFrags(mol)
     contact, problem = _geometry_problem(mol, pieces)
     return replace(

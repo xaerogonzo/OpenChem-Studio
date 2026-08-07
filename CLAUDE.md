@@ -53,7 +53,7 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **3-4.5 minutes**, ending at `2706 passed, 2 skipped,
+A clean run is **3-4.5 minutes**, ending at `2714 passed, 2 skipped,
 1 deselected` (measured 2026-08-06 with the comparison and LED work applied,
 bytecode cleared). **That figure is from the DESELECTED form below, not the
 command above** -- run it bare and the same tree reports one FAILURE, from
@@ -870,10 +870,51 @@ Two measurement traps from the cost estimate, both paid for once:
   the two measured totals gives 20 and 5, confirmed against a third job it
   was not fitted to (BH3 alone: predicted 35, reported 35).
 
-Measured anchors, same sampling harness: BH3-CO 6 atoms/75 functions, 15 s,
-102 MB peak; benzene-water 15 atoms/180 functions, 595 s, 1899 MB peak.
-Two points determine a power law exactly and cannot validate it, so the
-estimator is a guide for "minutes vs hours vs do not start it".
+#### The two-point cost fit was an artefact. Six points, and it changed shape
+
+The estimator was first fitted on BH3-CO and benzene-water, giving an
+exponent of 4.20. **benzene-water is aromatic**, so the fit absorbed an
+aromatic penalty into the exponent and then charged it to everything. On a
+saturated pentane dimer it predicted 9960 s against a measured 1291 --
+**7.7x too high**, the difference between "start it" and "do not bother".
+
+Six compound jobs, one harness, peak disk sampled DURING the run:
+
+    system            atoms  functions  aromatic   wall   peak scratch
+    water dimer          6       60        0        15 s      35 MB
+    BH3-CO               6       75        0        23 s     103 MB
+    methanol dimer      12      120        0        48 s     220 MB
+    benzene...H2O       15      180        1       644 s    1852 MB
+    benzene dimer       24      300        2      2648 s    5564 MB
+    pentane dimer       34      320        0      1291 s    2872 MB
+
+    time    = 2.0064e-04 * f^2.69     worst residual x1.60
+    scratch = 1.5004e-03 * f^2.51     worst residual x1.37
+
+**The noise floor is x1.2** -- the same benzene fragment measured 280 s in
+one run and 342 s in another -- so the fit is close to as good as this gets
+without controlling the machine. Do not assert more tightly than that.
+
+Three things that each produced a wrong exponent before being noticed:
+
+- **A complex costs less than a monomer of the same size.** Half its
+  electron pairs are inter-fragment and long-range, so DLPNO screens them
+  out: methanol MONOMER at 60 functions takes 7 s where the water DIMER at
+  60 takes 4.6. Fitting both populations together gave 1.72, which then
+  under-predicted 320 functions sevenfold. Fit on complexes only.
+- **Aromaticity is a x2.9 penalty and is NOT a size effect.** The methanol
+  dimer has 28 correlated electrons and takes 23 s; benzene has 30 and takes
+  280. Same electron count, twelve times the cost -- delocalisation defeats
+  DLPNO's locality screening. It does **not** compound with ring count
+  (1 ring x2.82, 2 rings x2.94), so it is a flat multiplier; a per-ring
+  model predicted 7246 s for the benzene dimer against a measured 2648.
+- **The fragment jobs are not a fixed fraction.** A x1.5 multiplier from
+  BH3-CO (23 s compound vs 15 s complex) is wrong at the other end, where
+  benzene-water is 644 vs 595 -- x1.08. Fit whole compound jobs directly.
+
+With time no longer over-predicted, **scratch became the binding
+constraint** at the top end: a 1200-function job is 10.7 hours (survivable)
+and 78 GB (not, on most machines), so the refusal now triggers on either.
 
 One more thing this work paid for, and it was a GUARD that found it rather
 than review: `tests/test_layering.py` forbids a `ui/` module importing

@@ -275,11 +275,21 @@ terms are reported alongside how far they miss the total — a few hundredths
 of a kcal/mol in the reference case, arising from how DLPNO splits the
 triples correction. If that residual is large the result says so.
 
-**Not usable on anything drug-sized.** DLPNO-CCSD(T) cost rises very
-steeply: measured, 15 seconds for BH₃·CO (6 atoms) against 10 minutes and
-1.9 GB of scratch disk for a benzene–water pair (15 atoms). The estimate
-shown before launching is scaled from those two points — a guide to the
-order of the cost, not a prediction.
+**Not usable on anything drug-sized.** DLPNO-CCSD(T) cost rises steeply —
+roughly with the cube of the basis-set size. Measured: 15 seconds for a
+water dimer, 21 minutes for a pentane dimer, 44 minutes and 6 GB of scratch
+for a benzene dimer. The estimate shown before launching is fitted on six
+measured jobs and is a guide to the order of the cost, not a prediction; it
+is accurate to about a factor of 1.6, against run-to-run variation on the
+same job of about 1.2.
+
+**Aromatic rings cost about three times what their size suggests**, and the
+estimate accounts for it. This is not a size effect: a methanol dimer and a
+benzene molecule have almost the same number of correlated electrons (28 and
+30), and benzene takes twelve times as long. Delocalised π systems defeat
+the locality approximations DLPNO depends on. Conjugated and aromatic
+partners are therefore the expensive case, which is unfortunate, because
+they are also the interesting one for π-stacking.
 
 **The result is only as good as the geometry you give it.** Two fragments
 placed on top of each other produce a large, confident and meaningless
