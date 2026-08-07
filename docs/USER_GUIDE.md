@@ -263,6 +263,12 @@ one meaning a known reaction class could *form* the bond, which is a
 synthesis statement and not a claim that it is weak. Each end links
 straight to that atom's own report.
 
+**You can pick a bond in either viewer.** In the 2D editor, click it — the
+selection comes straight through. In the 3D viewer, click its two atoms in
+turn: 3Dmol can only report atoms, so two bonded ones is how a bond gets
+named there. Clicking an atom that is not bonded to the first simply
+starts the pick over.
+
 **A bond length appears only when the coordinates are genuinely 3D.** A 2D
 depiction has coordinates too and they are drawing units — every bond in a
 layout comes out about the same length whatever its order — so a flat

@@ -10,13 +10,21 @@ are all free. An inspector that launches ORCA when you click an atom is a
 calculator launcher, and people stop trusting it -- so the guarantee is
 asserted in the tests rather than described here.
 
-The atom TABLE is the primary navigation, not the 3D viewer. Clicking in
-3D works and is wired below, but a molecule you have just drawn has no
-conformer, which is exactly when somebody wants to look at an atom. The
-2D editor cannot report a selection at all -- vendored Ketcher exposes
-`load_molblock`, `set_render_option`, `trigger_toolbar_action` and
-`get_molblock`, and nothing for selection -- so depending on either viewer
+The TABLE is the primary navigation, not either viewer. Both viewers are
+wired, but a molecule you have just drawn has no conformer -- which is
+exactly when somebody wants to look at an atom -- so depending on them
 would leave the panel unusable in the common case.
+
+**What each viewer can actually report, measured against the real
+builds rather than read off the wrappers:**
+
+- Ketcher reports both ATOMS and BONDS, through `editor.selection()` on
+  its `selectionChange` event. An earlier version of this docstring said
+  it could report nothing, which was a fact about our wrapper and not
+  about Ketcher.
+- 3Dmol reports ATOMS ONLY. `setClickable` hands back an atom, and bonds
+  drawn in stick mode are not separately selectable. So a bond is named in
+  3D by clicking its two atoms -- see `_note_atom_for_bond`.
 """
 
 from __future__ import annotations
@@ -109,6 +117,10 @@ class AtomInspectorPanel(QWidget):
         self._molecule_uuid: str | None = None
         self._atom_index: int | None = None
         self._bond_index: int | None = None
+        #: First atom of a two-click bond pick in 3D, where the viewer can
+        #: only report atoms. Cleared whenever the subject changes, so a
+        #: half-finished pick cannot complete against a later click.
+        self._pending_bond_atom: int | None = None
         self._subject = "Atom"
 
         #: molecule uuid -> everything that has arrived by event for it.
@@ -362,8 +374,50 @@ class AtomInspectorPanel(QWidget):
         Finds the ROW holding that atom rather than assuming row == index,
         because the table is sortable and the two stop matching the moment
         somebody sorts by element.
+
+        **In Bond mode this picks a BOND instead**, from two clicks. See
+        `_note_atom_for_bond` for why that is the only option in 3D.
         """
+        if self._subject == "Bond":
+            self._note_atom_for_bond(atom_index)
+            return
+        self._pending_bond_atom = None
         self._select_row_for(atom_index)
+
+    def _note_atom_for_bond(self, atom_index: int) -> None:
+        """Resolve a bond from two clicked atoms.
+
+        **3Dmol has no bond picking.** Its `setClickable` callback receives
+        an ATOM -- bonds drawn in stick mode are not separately selectable,
+        and a click near one resolves to the nearest atom. So the only way
+        to name a bond in 3D, using what the library actually provides, is
+        two atoms that happen to be bonded.
+
+        Deliberately NOT built on the viewer's existing multi-atom
+        selection, which drives distance measurement: sharing that would
+        make one gesture mean two things depending on a mode nobody set.
+        This lives entirely in the inspector, and the subject selector
+        already says which one the user wants.
+
+        A second click on an atom that is NOT bonded to the first starts
+        over from the new atom rather than failing, because that is what
+        somebody who changed their mind mid-pick did.
+        """
+        _model, mol = self._molecule()
+        if mol is None:
+            return
+        first = self._pending_bond_atom
+        if first is not None and first != atom_index:
+            bond = mol.GetBondBetweenAtoms(first, atom_index)
+            if bond is not None:
+                self._pending_bond_atom = None
+                self.select_bond(bond.GetIdx())
+                return
+        self._pending_bond_atom = atom_index
+        self._status.setText(
+            f"Atom {atom_index + 1} picked. Click an atom bonded to it to "
+            "select the bond between them."
+        )
 
     def select_bond(self, bond_index: int) -> None:
         """Select a bond from outside, by index rather than by row.
@@ -372,6 +426,7 @@ class AtomInspectorPanel(QWidget):
         test that assumed row 0 held bond 0 got bond 16, because the table
         keeps whatever sort order was last applied.
         """
+        self._pending_bond_atom = None
         self._select_row_for(bond_index)
 
     def _select_row_for(self, index: int) -> None:
@@ -395,6 +450,7 @@ class AtomInspectorPanel(QWidget):
 
     def _on_subject_changed(self, subject: str) -> None:
         self._subject = subject
+        self._pending_bond_atom = None
         # A molecule has one subject, so the row list is meaningless for it
         # and is hidden rather than shown holding a single inert row.
         self._atom_table.setVisible(subject != "Molecule")

@@ -26,6 +26,10 @@ class EditorBackend(QObject):
     #: particular engine -- a replacement backend owes the same signal.
     #: A backend whose engine cannot report selection simply never emits it.
     atom_selected = Signal(int)
+    #: One bond picked on the canvas. Ketcher reports this through the same
+    #: `selectionChange` event as atoms; a backend that cannot report bonds
+    #: simply never emits it.
+    bond_selected = Signal(int)
 
     def load_molblock(self, molblock: str) -> None:
         """Load a structure (as a V2000/V3000 molblock) into the editor."""

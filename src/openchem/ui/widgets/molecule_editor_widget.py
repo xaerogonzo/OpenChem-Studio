@@ -37,6 +37,8 @@ class MoleculeEditorWidget(QWidget):
 
     #: One atom, when the user selects exactly one on the 2D canvas.
     atom_selected = Signal(int)
+    #: One bond, likewise. Ketcher reports both through the same event.
+    bond_selected = Signal(int)
 
     def __init__(
         self,
@@ -66,6 +68,7 @@ class MoleculeEditorWidget(QWidget):
         # Straight through: the widget adds nothing to an atom index,
         # and a consumer should not have to reach for the backend.
         self._backend.atom_selected.connect(self.atom_selected)
+        self._backend.bond_selected.connect(self.bond_selected)
         # The canvas has to follow changes it did not make. Undo is the one
         # that matters: `EditStructureCommand` reverts the model and
         # publishes `MoleculeChanged`, and nothing was listening -- so

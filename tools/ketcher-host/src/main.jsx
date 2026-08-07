@@ -57,12 +57,25 @@ function tryWireBridge() {
   try {
     ketcherInstance.editor.event.selectionChange.add(() => {
       const selection = ketcherInstance.editor.selection()
-      const atoms = selection && selection.atoms
-      // Single atoms only: the inspector describes ONE atom, and a marquee
-      // across half the structure would make it flicker through whatever
-      // came last.
+      if (!selection) return
+      const atoms = selection.atoms
+      const bonds = selection.bonds
+      // Single atoms and single bonds only: the inspector describes ONE
+      // subject, and a marquee across half the structure would make it
+      // flicker through whatever came last.
+      //
+      // The selection object carries ONLY the keys that have something in
+      // them -- clicking a bond gives `{bonds: [0]}` with no `atoms` key at
+      // all -- so both are checked rather than assuming one shape.
+      // Confirmed against the real vendored build.
       if (atoms && atoms.length === 1) {
         bridgeObject.atomSelected(atoms[0])
+      }
+      if (bonds && bonds.length === 1) {
+        // Ketcher's bond ids are dense and in molfile order, which is the
+        // order RDKit reads them in too -- verified by loading the same
+        // molblock into both and comparing every (begin, end) pair.
+        bridgeObject.bondSelected(bonds[0])
       }
     })
   } catch (e) {

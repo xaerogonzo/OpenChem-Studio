@@ -198,6 +198,11 @@ class MainWindow(QMainWindow):
         # Ketcher's editor carries a `selectionChange` event even though
         # its public `subscribe()` facade does not accept that name.
         self._editor.atom_selected.connect(self._atom_inspector_panel.select_atom)
+        # And bonds, through the same Ketcher event. `select_bond` had no
+        # caller until this line existed; the 3D viewer cannot supply one,
+        # because 3Dmol's setClickable resolves a click to an ATOM and has
+        # no bond picking at all.
+        self._editor.bond_selected.connect(self._atom_inspector_panel.select_bond)
         self._jobs_panel = JobsPanel(services.job_manager, self)
         self._structure_check_panel = StructureCheckPanel(
             services.structure_check_service,

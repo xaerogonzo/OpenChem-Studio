@@ -53,7 +53,7 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **3-4.5 minutes**, ending at `2764 passed, 2 skipped,
+A clean run is **3-4.5 minutes**, ending at `2769 passed, 2 skipped,
 1 deselected` (measured 2026-08-06 with the comparison and LED work applied,
 bytecode cleared). **That figure is from the DESELECTED form below, not the
 command above** -- run it bare and the same tree reports one FAILURE, from
@@ -693,7 +693,7 @@ length guard rather than silently mis-scored — that guard is deliberate, not a
 bug. They are kept as the record of what the ML alternatives scored at the
 time; compare them only against the corpus revision they were made for.
 
-## Ketcher CAN report atom selection, with one trap
+## Ketcher CAN report atom AND bond selection, with one trap
 
 The 2D editor was assumed to expose nothing for selection -- its Python
 backend has only `load_molblock`, `set_render_option`,
@@ -717,6 +717,16 @@ app) found:
   returns `null` when nothing is selected. `editor.selection({atoms:[1]})`
   sets it and dispatches the event, which is how to test this without
   synthesising canvas clicks.
+- **Bonds work identically**: `editor.selection({bonds:[0]})` round-trips
+  as `{bonds: [0]}`. The selection object carries ONLY the keys with
+  something in them -- a bond click has no `atoms` key at all -- so a
+  handler must check both rather than assume one shape.
+- **Ketcher's bond ids are RDKit's bond indices.** Both are dense and in
+  molfile order; verified by loading one molblock into each and comparing
+  every (begin, end) pair, and again end-to-end through the real backend
+  (selecting Ketcher bond 1 of ethanol arrived in Python as index 1, the
+  C-O bond). No translation table is needed, and one would be a place for
+  a silent off-by-one to live.
 
 **THE TRAP: `selectionChange` hands your handler `undefined`.** It is a
 `PipelineSubscription`, which feeds each handler the PREVIOUS handler's
@@ -732,9 +742,19 @@ two look interchangeable and are not.
 The fix is one line: ignore the argument and call
 `ketcherInstance.editor.selection()` inside the handler.
 
+**3Dmol, by contrast, reports ATOMS ONLY.** Its `setClickable` callback
+receives an atom, and bonds drawn in stick mode are not separately
+selectable -- a click near one resolves to the nearest atom. So the 3D
+viewer names a bond by its two atoms: the inspector takes two clicks and
+resolves the bond between them, which uses only what the library provides.
+That is deliberately NOT built on the viewer's existing multi-atom
+selection, which drives distance measurement -- sharing it would make one
+gesture mean two things depending on a mode nobody set.
+
 Editing `tools/ketcher-host/src/main.jsx` requires `npm run build` in that
 directory for anything to change; `resources/ketcher/dist/` is build
-output. node and npm are installed, and a build takes about 25 seconds.
+output. node and npm are installed, and a build takes about 25 seconds
+(measured 54 s on the bond-selection rebuild -- budget a minute).
 
 ## The bond and molecule reports, and what generalising cost
 

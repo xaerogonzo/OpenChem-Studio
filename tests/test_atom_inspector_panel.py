@@ -524,3 +524,79 @@ def test_the_json_export_names_its_subject():
     assert payload["subject"] == "bond"
     assert "bond_index" in payload
     assert "atom_index" not in payload
+
+
+# --- picking a bond from the viewers ----------------------------------------
+
+
+def test_a_ketcher_bond_selection_reaches_the_panel(panel):
+    """Ketcher reports bonds through the same `selectionChange` event as
+    atoms, and its bond ids are RDKit's -- both dense and in molfile
+    order, verified by loading one molblock into each."""
+    widget, _bus = panel
+    show_subject(widget, molecule(), "Bond")
+    widget.select_bond(2)
+    QCoreApplication.processEvents()
+    assert widget._bond_index == 2
+    assert "Bond 3" in widget._title.text()
+
+
+def test_two_bonded_atom_clicks_select_the_bond_between_them(panel):
+    """3Dmol has no bond picking -- `setClickable` hands back an ATOM -- so
+    two atoms that happen to be bonded is the only way to name a bond in
+    3D using what the library provides."""
+    widget, _bus = panel
+    show_subject(widget, molecule(), "Bond")
+
+    mol = Chem.MolFromSmiles(CHALCONE)
+    bond = mol.GetBondWithIdx(4)
+    widget.select_atom(bond.GetBeginAtomIdx())
+    widget.select_atom(bond.GetEndAtomIdx())
+    QCoreApplication.processEvents()
+
+    assert widget._bond_index == 4
+
+
+def test_two_unbonded_atom_clicks_start_over_rather_than_failing(panel):
+    """Somebody who changed their mind mid-pick clicked a second atom on
+    purpose; treating that as an error would be wrong."""
+    widget, _bus = panel
+    show_subject(widget, molecule(), "Bond")
+
+    mol = Chem.MolFromSmiles(CHALCONE)
+    far_apart = [
+        (i, j)
+        for i in range(mol.GetNumAtoms())
+        for j in range(mol.GetNumAtoms())
+        if i != j and mol.GetBondBetweenAtoms(i, j) is None
+    ][0]
+    widget.select_atom(far_apart[0])
+    widget.select_atom(far_apart[1])
+    QCoreApplication.processEvents()
+
+    assert widget._bond_index is None, "no bond joins them, so none is selected"
+    assert widget._pending_bond_atom == far_apart[1], "the pick restarted here"
+
+
+def test_a_half_finished_pick_does_not_survive_a_subject_change(panel):
+    """Otherwise a stray click made in Bond mode completes against an
+    unrelated one after the user has moved on."""
+    widget, _bus = panel
+    show_subject(widget, molecule(), "Bond")
+    widget.select_atom(0)
+    assert widget._pending_bond_atom == 0
+
+    widget._subject_combo.setCurrentText("Atom")
+    QCoreApplication.processEvents()
+    assert widget._pending_bond_atom is None
+
+
+def test_atom_clicks_still_select_atoms_when_the_subject_is_atoms(panel):
+    """The two-click behaviour must be confined to Bond mode -- it would
+    otherwise break the shipped 3D atom picking."""
+    widget, _bus = panel
+    showing(widget, molecule())
+    widget.select_atom(CARBONYL_O)
+    QCoreApplication.processEvents()
+    assert widget._atom_index == CARBONYL_O
+    assert widget._pending_bond_atom is None

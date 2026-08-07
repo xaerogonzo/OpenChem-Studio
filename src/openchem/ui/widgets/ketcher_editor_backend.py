@@ -48,6 +48,7 @@ class _Bridge(QObject):
         on_molfile_ready: Callable[[str, str], None],
         on_load_complete: Callable[[str], None] | None = None,
         on_atom_selected: Callable[[int], None] | None = None,
+        on_bond_selected: Callable[[int], None] | None = None,
     ) -> None:
         super().__init__()
         self._on_structure_edited = on_structure_edited
@@ -55,6 +56,7 @@ class _Bridge(QObject):
         self._on_molfile_ready = on_molfile_ready
         self._on_load_complete = on_load_complete
         self._on_atom_selected = on_atom_selected
+        self._on_bond_selected = on_bond_selected
 
     @Slot(str)
     def structureEdited(self, molblock: str) -> None:  # noqa: N802 - called from JS by this exact name
@@ -68,6 +70,11 @@ class _Bridge(QObject):
     def atomSelected(self, atom_index: int) -> None:  # noqa: N802 - called from JS by this exact name
         if self._on_atom_selected is not None:
             self._on_atom_selected(atom_index)
+
+    @Slot(int)
+    def bondSelected(self, bond_index: int) -> None:  # noqa: N802 - called from JS by this exact name
+        if self._on_bond_selected is not None:
+            self._on_bond_selected(bond_index)
 
     @Slot(str, str)
     def molfileReady(self, request_id: str, molblock: str) -> None:  # noqa: N802
@@ -123,6 +130,7 @@ class KetcherEditorBackend(EditorBackend):
             self._on_molfile_ready,
             self._on_load_complete,
             self._on_atom_selected,
+            self._on_bond_selected,
         )
         self._channel.registerObject("bridge", self._bridge)
         self._page.setWebChannel(self._channel)
@@ -163,6 +171,22 @@ class KetcherEditorBackend(EditorBackend):
         otherwise make it flicker through whatever came last.
         """
         self.atom_selected.emit(atom_index)
+
+    def _on_bond_selected(self, bond_index: int) -> None:
+        """One bond picked on the 2D canvas.
+
+        Ketcher reports bonds through the same `selectionChange` event as
+        atoms, in a selection object that carries ONLY the keys with
+        something in them -- a bond click gives `{bonds: [0]}` with no
+        `atoms` key. Confirmed against the real vendored build rather than
+        assumed from the wrapper, which is what got the atom path wrong the
+        first time.
+
+        The id is usable as an RDKit bond index directly: both are dense
+        and in molfile order, verified by loading one molblock into each
+        and comparing every (begin, end) pair.
+        """
+        self.bond_selected.emit(bond_index)
 
     def _on_ketcher_ready(self) -> None:
         self._ketcher_ready = True
