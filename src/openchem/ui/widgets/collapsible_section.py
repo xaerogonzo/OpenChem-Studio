@@ -133,6 +133,20 @@ class CollapsibleSection(QWidget):
         layout.addWidget(self._toggle_button)
         layout.addWidget(self.content)
 
+    def set_expanded(self, expanded: bool) -> None:
+        """Open or close it in code.
+
+        Goes through the toggle button rather than `content.setVisible`
+        directly, so the arrow and the button's checked state cannot drift
+        out of step with what is on screen -- a section showing a
+        right-pointing arrow above visible content is a small thing that
+        makes a UI feel broken.
+        """
+        self._toggle_button.setChecked(expanded)
+
+    def is_expanded(self) -> bool:
+        return self._toggle_button.isChecked()
+
     def _on_toggled(self, checked: bool) -> None:
         self._toggle_button.setArrowType(Qt.ArrowType.DownArrow if checked else Qt.ArrowType.RightArrow)
         self.content.setVisible(checked)

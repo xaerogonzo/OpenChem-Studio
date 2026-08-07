@@ -53,8 +53,8 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **3-4.5 minutes**, ending at `2803 passed, 2 skipped,
-1 deselected` (measured 2026-08-07 with the presentation-layer Phase 0/1
+A clean run is **3-4.5 minutes**, ending at `2828 passed, 2 skipped,
+1 deselected` (measured 2026-08-07 with the presentation-layer Phase 0-2
 work applied, bytecode cleared; it was 2788 before that). **That figure is
 from the DESELECTED form below, not the command above** -- run it bare and
 the same tree reports one FAILURE, from the network test explained next.
@@ -952,6 +952,59 @@ duplicates on screen.
 Hit immediately, in a scratchpad script that printed the panel back:
 `UnicodeEncodeError: 'charmap' codec can't encode character '✕'`.
 
+### The right-hand panels are NOT tabified, and must not become so again
+
+Twelve panels shared one tabified dock group, and Qt gives such a group a
+single `QTabBar`. **That bar wanted 1992 px and had about 920**, so every
+label elided to two or three characters -- `"Qu..."`, `"J..."`, `"B..."`.
+Widening the dock cannot fix it: a bar wide enough for twelve labels is
+wider than the window.
+
+`tabifyDockWidget` is what creates that bar, so the fix is not to hide it
+but to stop tabifying. One right-hand dock is visible at a time and
+`ui/widgets/panel_rail.py` chooses which. That also answers the reason
+they were tabified in the first place -- the visible panel gets the whole
+column, instead of nine slivers.
+
+**Hiding Qt's bar does not work**, tried first: `setVisible(False)` on the
+live one reads back `True` after the next relayout, because the dock area
+re-shows it.
+
+`test_the_right_hand_panels_have_no_tab_bar_to_elide` fails if a
+`QTabBar` parented to the WINDOW comes back. The ones parented to a
+`QTabWidget` belong to individual panels and are fine.
+
+#### `restoreState` restores TABIFICATION, so old layouts are discarded
+
+This is the part that a test would not have caught, and did not. Every
+`tabifyDockWidget` call was gone and the elided nine-tab bar was **still
+there** on a real install, because `QMainWindow.restoreState` had put it
+back from the saved layout.
+
+`_LAYOUT_VERSION` in `app/main_window.py` gates it: a state saved under an
+older arrangement is dropped. There is nothing to migrate -- `saveState`
+is an opaque blob with no readable structure -- so the only honest
+options are restore it or do not. **The geometry is kept either way**; it
+carries no dock arrangement, and discarding somebody's window size to fix
+their panel layout would be a gratuitous second change.
+
+Bump `_LAYOUT_VERSION` for any future change a saved layout cannot
+express, and probe a REAL install rather than trusting the suite: every
+test builds a window with no prior state, which is exactly the case that
+cannot see this.
+
+#### `isVisible()` is False for every child of an unshown window
+
+Bit twice in two phases, in production code and in a test. A dock that
+has been `setVisible(True)` on a window nobody showed still reports
+`isVisible() == False`, so a check written that way answers "none of
+them" under a test harness while looking right in the running app --
+the same blindness as `repaint()` on a widget that was never shown.
+
+`isHidden()` reads the explicit flag and is the one to use. Both
+`_help_topic_for_visible_panel` and
+`test_only_one_right_side_dock_is_visible_at_a_time` had to change.
+
 ### Empty states: iterate over what is BUILT
 
 There was no empty-state text anywhere in `ui/` -- a search for any
@@ -967,7 +1020,7 @@ it, which is what let the three mechanisms below coexist behind one
 guard. Verified by simulating the mistake: removing one tab's placeholder
 fails naming the tab.
 
-#### A PLACEHOLDER WIDGET IN A TAB THAT ALREADY HOLDS WIDGETS CORRUPTS THE HEAP
+#### ADDING WIDGETS TO `QuantumChemistryPanel` CORRUPTS THE HEAP
 
 Windows fatal exception `0xc0000374`, raised inside the teardown
 `gc.collect()`, in a test hundreds of tests away from the panel that
@@ -975,15 +1028,35 @@ built the widget. **It is deterministic**, which is what makes it
 tractable -- unlike the access violations elsewhere in this file, whose
 rate moves between batches.
 
-    placeholder in a tab that is otherwise EMPTY        safe
-    placeholder in a tab that already holds widgets     corrupts the heap
+**That panel is the census's own worst offender**: 104 of the 138 late
+destructions come from `test_quantum_chemistry_panel.py`. Every widget
+added to its tree enlarges a graph that already outlives itself, and past
+some margin the collect goes over.
 
-So the three deferred quantum tabs (1D Signals, IR, Surfaces) get a real
-placeholder; Hybrid says it through the `_hybrid_summary_label` that
-already existed, and the correlation tabs PAINT the message inside
-`NmrCorrelationPlotWidget`. Neither of the latter two adds a widget, and
-painting it lands the message where the peaks would be, which is better
-drawing anyway.
+    +7 placeholder widgets across its tab pages    full suite dead
+    +3 placeholder widgets (empty tabs only)       full suite green
+    +1 CollapsibleSection in its main layout       full suite dead
+    reparenting an existing widget into a tab      full suite green
+    a much larger composite added to a TOOLBAR     full suite green
+
+An earlier version of this section said the rule was about TAB PAGES.
+That was wrong, on thinner evidence: the log's `CollapsibleSection` went
+into the panel's main layout and died just the same, while the whole
+navigation rail -- bigger than any of these -- went into a toolbar and
+cost nothing.
+
+**The working rule: in `QuantumChemistryPanel`, prefer a change that adds
+no widget.** The three deferred quantum tabs are genuinely empty and can
+afford one placeholder each; Hybrid says it through the
+`_hybrid_summary_label` that already existed; the correlation tabs PAINT
+the message inside `NmrCorrelationPlotWidget`; and the Log tab is the
+existing `QPlainTextEdit` reparented, with Qt's native
+`setPlaceholderText`. Painting it also lands the message where the peaks
+would be, which is better drawing anyway.
+
+Fixing the leak is the real answer, and is not attempted -- this file
+already records that closing that test file's leaks costs 155 seconds on
+every run.
 
 **Three hypotheses were tested against the full suite and are wrong** --
 recorded so nobody pays for them twice:

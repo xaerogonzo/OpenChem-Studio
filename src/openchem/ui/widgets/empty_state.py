@@ -19,57 +19,56 @@ headline says what is missing; the action says the one thing that would
 fill it. A placeholder that only says "No data" has told the reader
 something they could already see.
 
-WHERE A PLACEHOLDER MAY GO, AND WHERE IT MAY NOT
+ADDING WIDGETS TO THE QUANTUM CHEMISTRY PANEL CORRUPTS THE HEAP
 --------------------------------------------------------------------------
 
-**Adding a placeholder widget to a tab page that already contains content
-widgets corrupts the heap.** Windows fatal exception `0xc0000374`, raised
-inside the teardown `gc.collect()` -- and not in a test of the panel that
-built it, but hundreds of tests later, first in
-`test_main_window_docking_visualization.py` and then, once that was
-addressed, in `test_regulatory_calculator.py`.
+Windows fatal exception `0xc0000374`, raised inside the teardown
+`gc.collect()` -- and never in a test of that panel, but hundreds of
+tests later, wherever the next collection happens to land.
 
-This is the rule that came out of it, and it is the only one supported by
-the measurements:
+**That panel is already the suite's worst leaker.** CLAUDE.md's own
+census: `test_quantum_chemistry_panel.py` accounts for 104 of the 138
+objects destroyed outside the test that made them. Every widget added to
+its tree enlarges a graph that is already outliving itself, and past some
+margin the teardown collect goes over.
 
-    placeholder in a tab that is otherwise EMPTY        safe
-    placeholder in a tab that already holds widgets     corrupts the heap
+Measured, and the shape of the result is what matters more than any one
+number:
 
-The three deferred tabs (1D Signals, IR, Surfaces) hold nothing until a
-result arrives, so they get a real placeholder. The Hybrid tab says it
-through `_hybrid_summary_label`, which already existed for notes, and the
-three correlation tabs paint the message inside
-`NmrCorrelationPlotWidget`. Neither adds a widget.
+    +7 placeholder widgets across its tab pages    full suite dead
+    +3 placeholder widgets (empty tabs only)       full suite green
+    +1 CollapsibleSection in its main layout       full suite dead
+    reparenting an existing widget into a tab      full suite green
+    a much larger composite added to a TOOLBAR     full suite green
 
-Measured, on a 12-second two-file reproduction
-(`test_main_window_conformers.py` +
-`test_main_window_docking_visualization.py`) once the arms were shown
-reliable rather than trusted at n=1:
+So it is not about tab pages, which an earlier version of this docstring
+claimed on thinner evidence. The rail -- a bigger widget than any of
+these -- was added outside this panel and cost nothing.
 
-    placeholder in all 7 tabs, QWidget subclass    crashed 5 / 5
-    placeholder in all 7 tabs, plain QLabel        crashed 0 / 5 here,
-                                                   but the full suite
-                                                   still died at 2229
-    placeholder in the 3 empty tabs only           full suite green
-    no placeholders at all                         full suite green
+**The working rule: in `QuantumChemistryPanel`, prefer a change that adds
+no widget at all.** All three mechanisms here follow it. The three
+deferred tabs are genuinely empty and can afford one placeholder each;
+Hybrid uses the `_hybrid_summary_label` it already had; the correlation
+tabs PAINT their message inside `NmrCorrelationPlotWidget`; and the Log
+tab is the existing `QPlainTextEdit`, reparented, using Qt's native
+`setPlaceholderText`.
 
 Three hypotheses were tested against the full suite and are WRONG, so
 nobody need pay for them again: it is not the `dict[QWidget, ...]` that
-held them (removing it changed nothing), not hiding the sibling content
-(suppressing every visibility change changed nothing), and not the new
-test file (removing it changed nothing).
+held the placeholders (removing it changed nothing), not hiding the
+sibling content (suppressing every visibility change changed nothing),
+and not the new test file (removing it changed nothing).
 
-**The mechanism is still not understood, and this docstring will not
-pretend otherwise.** "Python-derived widget" is not the answer --
-`WrappedLabel` and `CollapsibleSection` are Python-derived and live
-happily in these same panels. Nor is it the widget class at all, since
-the plain-`QLabel` arm still killed the full suite. What tracks the
-crash exactly is WHERE the widget is added.
+**The mechanism is still not understood.** "Python-derived widget" is not
+the answer -- `WrappedLabel` and `CollapsibleSection` are Python-derived
+and live happily elsewhere. The honest statement is that this panel sits
+near a limit nobody has characterised, and the cheap way past it is not
+to spend the margin.
 
-So this avoids the trigger rather than explaining it. If somebody works
-out why, both the class form and the simpler "placeholder everywhere"
-shape can come back; `tests/test_empty_states.py` asks each tab what it
-shows rather than how, so it will not stand in the way.
+Fixing the leak itself is the real answer and is not attempted here;
+CLAUDE.md records that closing that file's leaks costs 155 seconds on
+every run. `tests/test_empty_states.py` asks each tab what it SHOWS
+rather than how, so whoever does fix it can simplify all of this freely.
 
 The marker is a Qt property, the same idiom `property_panel.py` uses to
 carry a calculator id on a button: it needs no custom class, and it is

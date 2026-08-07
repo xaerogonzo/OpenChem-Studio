@@ -142,3 +142,79 @@ def test_a_headline_with_html_characters_is_not_swallowed(qapp):
     assert "<or>" in empty_state_text(state)
     assert "&lt;or&gt;" in state.text()
     _dispose(state)
+
+
+# --- the log must not outrank the results -----------------------------------
+
+
+def test_the_log_is_the_last_tab_not_the_biggest_widget(quantum_panel):
+    """`_output_log` is a `QPlainTextEdit`, whose default Expanding policy
+    took the largest share of the panel -- so a finished calculation showed
+    a wall of scrolling SCF iterations above a cramped band of the numbers
+    somebody ran it for.
+
+    It is a tab now, and LAST. Wrapping it in a `CollapsibleSection`
+    instead was tried and corrupted the heap: the full suite died at test
+    1152 and was green the moment the section came out, measured both
+    ways. `addTab` reparents the log that already exists, so the widget
+    count of this panel -- already the suite's worst leaker -- does not
+    change at all.
+    """
+    tabs = quantum_panel.findChild(QTabWidget)
+    assert tabs.tabText(tabs.count() - 1) == "Log"
+    assert tabs.widget(tabs.count() - 1) is quantum_panel._output_log
+
+    layout = quantum_panel.layout()
+    direct = [layout.itemAt(i).widget() for i in range(layout.count())]
+    assert quantum_panel._output_log not in direct, (
+        "the log is back in the panel's own layout, where its Expanding "
+        "policy outranks the results"
+    )
+
+
+def test_the_log_is_shown_while_a_job_runs_and_the_results_sit_above_it(quantum_panel):
+    """A panel that sits silent through a ten-minute ORCA run reads as a
+    hang, so the log is what you are looking at while there is nothing
+    else -- and is not what you are left staring at once there is."""
+    from openchem.events.events import QuantumChemistryJobStateChanged
+
+    class _State:
+        def __init__(self, value):
+            self.value = value
+
+    tabs = quantum_panel.findChild(QTabWidget)
+    quantum_panel._pending_molecule_uuid = "m1"
+
+    quantum_panel._on_job_state_changed(
+        QuantumChemistryJobStateChanged(molecule_uuid="m1", state=_State("running"), message="")
+    )
+    assert tabs.currentWidget() is quantum_panel._output_log
+
+    # Nothing is forced on success. The numbers land in `_results_label`,
+    # which is ABOVE the tabs and always visible, and each result handler
+    # selects its own tab when it has something -- being yanked to a tab
+    # reading "no NMR signals yet" after an ESP run would be worse than
+    # staying put.
+    quantum_panel._on_job_state_changed(
+        QuantumChemistryJobStateChanged(molecule_uuid="m1", state=_State("completed"), message="")
+    )
+    layout = quantum_panel.layout()
+    order = [layout.itemAt(i).widget() for i in range(layout.count())]
+    assert order.index(quantum_panel._results_label) < order.index(tabs)
+
+
+def test_a_failed_job_leaves_you_on_the_log(quantum_panel):
+    """The log is where the reason is, and every other tab is empty for a
+    job that produced nothing."""
+    from openchem.events.events import QuantumChemistryJobStateChanged
+
+    class _State:
+        def __init__(self, value):
+            self.value = value
+
+    tabs = quantum_panel.findChild(QTabWidget)
+    quantum_panel._pending_molecule_uuid = "m1"
+    quantum_panel._on_job_state_changed(
+        QuantumChemistryJobStateChanged(molecule_uuid="m1", state=_State("failed"), message="boom")
+    )
+    assert tabs.currentWidget() is quantum_panel._output_log

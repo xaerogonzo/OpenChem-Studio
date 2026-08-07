@@ -134,6 +134,32 @@ docking interaction analysis feeds.
 ---
 
 <!-- help:properties -->
+## Finding your way around
+
+The right-hand side has a **navigation rail**: a column of group icons,
+and beside it the full names of that group's panels.
+
+| Group | Panels |
+|---|---|
+| Analysis | Properties, Atom Inspector, Interactions, Structure Check |
+| Compute | Quantum Chemistry, Docking, 3D Alignment, Jobs |
+| Compare | Batch |
+| AI | assistant panels, when a plugin provides one |
+| Extensions | everything else a plugin adds |
+
+One panel is shown at a time and it gets the whole column. Right-click any
+name and **Pin to top** to keep it above the groups, so a panel you use
+constantly does not need you to remember which group it is filed under.
+Pins survive a restart.
+
+("Compute" rather than "Quantum" because the group holds docking and
+alignment too, and neither is quantum chemistry.)
+
+Panels used to share one row of tabs, which could not fit their names —
+you saw `Qu...`, `J...`, `B...`. If you are upgrading, your saved panel
+layout is reset once so the old arrangement does not come back; your
+window size and position are kept.
+
 ## Properties
 
 The Properties panel is where most calculation happens. It has **25

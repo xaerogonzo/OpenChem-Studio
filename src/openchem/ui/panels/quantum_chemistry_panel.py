@@ -201,6 +201,13 @@ class QuantumChemistryPanel(QWidget):
         self._status_label = QLabel("", self)
         self._output_log = QPlainTextEdit(self)
         self._output_log.setReadOnly(True)
+        # `QPlainTextEdit` has placeholder text natively, so the Log tab
+        # explains itself without adding a widget to a panel that cannot
+        # afford one -- see the `addTab` comment below.
+        self._output_log.setPlaceholderText(
+            "Nothing has run yet. Press Run above and ORCA's output streams "
+            "here as it works."
+        )
         self._results_label = QLabel("", self)
         self._results_label.setWordWrap(True)
 
@@ -237,6 +244,23 @@ class QuantumChemistryPanel(QWidget):
         self._nmr_view: NmrViewWidget | None = None
         self._nmr_view_tab = QWidget(self._correlation_tabs)
         self._nmr_view_layout = QVBoxLayout(self._nmr_view_tab)
+        # THE LOG IS A TAB, AND IT ADDS NO WIDGET.
+        #
+        # `_output_log` is a `QPlainTextEdit` whose default Expanding
+        # policy took the largest share of the panel, so a finished
+        # calculation showed a wall of SCF iterations above a cramped band
+        # of the numbers it was run for. Alex: "completed calculations
+        # should emphasize results rather than console output".
+        #
+        # Wrapping it in a `CollapsibleSection` was tried first and
+        # **corrupted the heap** -- full suite dead at test 1152, green the
+        # moment the section came out, measured both ways. This panel is
+        # already the suite's worst leaker (CLAUDE.md: 104 of 138 late
+        # destructions), and adding containers to its tree tips it over.
+        # `addTab` REPARENTS the log that already exists, so the widget
+        # count does not change at all.
+        #
+        # It is also the shape Alex offered: "or a separate Log tab".
         self._correlation_tabs.addTab(self._nmr_view_tab, "1D Signals")
         self._add_empty_state(
             self._nmr_view_tab,
@@ -341,6 +365,12 @@ class QuantumChemistryPanel(QWidget):
                 "Run an NMR calculation."
             )
 
+        # LAST, deliberately -- "results outrank the log" is an ordering
+        # claim as much as a layout one, and every existing tab keeps its
+        # index so nothing shifts under somebody who has learned where
+        # things are.
+        self._correlation_tabs.addTab(self._output_log, "Log")
+
         form = QFormLayout()
         form.addRow("Molecule:", self._molecule_combo)
         form.addRow("Calculation:", self._calc_type_combo)
@@ -357,11 +387,23 @@ class QuantumChemistryPanel(QWidget):
         run_row.addWidget(self._run_button)
         run_row.addWidget(self._cancel_button)
 
+        # THE RESULTS COME FIRST, AND THE LOG IS COLLAPSED UNDERNEATH.
+        #
+        # `_output_log` is a `QPlainTextEdit`, whose default Expanding
+        # policy took the largest share of the panel -- so a finished
+        # calculation showed a wall of scrolling SCF iterations above a
+        # cramped band of the numbers somebody actually ran it for. Alex,
+        # reading a completed job: "completed calculations should
+        # emphasize results rather than console output".
+        #
+        # It expands by itself while a job runs, because then the log IS
+        # the interesting thing -- there is nothing else yet, and a silent
+        # panel during a ten-minute ORCA run reads as a hang.
+
         layout = QVBoxLayout(self)
         layout.addLayout(form)
         layout.addLayout(run_row)
         layout.addWidget(self._status_label)
-        layout.addWidget(self._output_log)
         layout.addWidget(self._results_label)
         layout.addWidget(self._spectrum_note_label)
         layout.addWidget(self._spectrum_table)
@@ -635,9 +677,28 @@ class QuantumChemistryPanel(QWidget):
         self._status_label.setText(event.state.value)
         if event.message:
             self._output_log.appendPlainText(event.message)
+        if event.state.value == "running":
+            # Shown and selected while there is nothing else yet: a panel
+            # that sits silent through a ten-minute ORCA run reads as a
+            # hang, and the log is the only evidence anything is happening.
+            self._correlation_tabs.setVisible(True)
+            self._correlation_tabs.setCurrentWidget(self._output_log)
         if event.state.value in ("completed", "failed"):
             self._run_button.setEnabled(True)
             self._cancel_button.setEnabled(False)
+            if event.state.value == "failed":
+                # Stay on the log: it is where the reason is, and every
+                # other tab is empty for a job that produced nothing.
+                #
+                # On SUCCESS nothing is forced. The numbers land in
+                # `_results_label`, which sits above the tabs and is always
+                # visible, and each `_update_*` selects its own tab when it
+                # has something to show -- yanking the user to a tab that
+                # says "no NMR signals yet" after an ESP run would be worse
+                # than leaving them where they were.
+                self._correlation_tabs.setCurrentWidget(self._output_log)
+            # Failed keeps it OPEN: the log is where the reason is, and
+            # collapsing it would hide the one thing worth reading.
 
     def _on_result_ready(self, event: QuantumChemistryResultReady) -> None:
         if event.molecule_uuid != self._pending_molecule_uuid:
@@ -781,6 +842,8 @@ class QuantumChemistryPanel(QWidget):
                 return plot.empty_message()
         if self._hybrid_summary_label in tab.findChildren(QLabel):
             return self._hybrid_summary_label.text()
+        if tab is self._output_log:
+            return self._output_log.placeholderText()
         return ""
 
     @staticmethod

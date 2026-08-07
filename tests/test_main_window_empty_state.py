@@ -178,15 +178,126 @@ def test_existing_window_geometry_and_state_are_restored_on_init(qapp, tmp_path)
     mock_restore_state.assert_called_once()
 
 
-def test_right_side_docks_are_tabified_not_stacked(qapp, tmp_path):
-    """Regression test for the 'garbled text' layout bug: Properties,
-    Docking, and Quantum Chemistry used to all get addDockWidget'd to the
-    same RightDockWidgetArea with no tabbing, so six-plus docks (once
-    plugin panels join in) shared one vertical column."""
+def test_only_one_right_side_dock_is_visible_at_a_time(qapp, tmp_path):
+    """The 'garbled text' layout bug, guarded a second way.
+
+    Originally: Properties, Docking and Quantum Chemistry were all
+    `addDockWidget`'d into the same area with no tabbing, so six-plus
+    docks shared one vertical column and each was a sliver too short to
+    render its own controls. Tabifying fixed that, and this test asserted
+    the tabification.
+
+    **Tabifying then caused a worse problem of its own** -- Qt gives a
+    tabified group one `QTabBar`, and with twelve panels that bar needed
+    1992 px in about 920, so every label elided to "Qu...", "J...", "B...".
+    So the panels are no longer tabified; one is visible at a time and the
+    rail chooses which.
+
+    The test now asserts the PROPERTY the original was protecting -- no
+    panel is squeezed by its neighbours -- rather than the mechanism,
+    which has now changed twice.
+    """
     window, _, _ = _make_window(tmp_path)
 
-    tabified = window.tabifiedDockWidgets(window._properties_dock)
-    titles = {dock.windowTitle() for dock in tabified}
+    # `isHidden()`, not `isVisible()`. **`isVisible()` is False for every
+    # child of a window that was never shown**, so it answers "none" in
+    # both arms and the assertion could not fail -- the same blindness as
+    # calling `repaint()` on a widget that was never shown.
+    visible = [d.windowTitle() for d in window._right_docks if not d.isHidden()]
+    assert visible == ["Properties"], visible
 
-    assert "Docking" in titles
-    assert "Quantum Chemistry" in titles
+    docking = next(d for d in window._right_docks if d.windowTitle() == "Docking")
+    window._on_panel_chosen(docking.objectName())
+
+    visible = [d.windowTitle() for d in window._right_docks if not d.isHidden()]
+    assert visible == ["Docking"], visible
+
+
+def test_the_right_hand_panels_have_no_tab_bar_to_elide(qapp, tmp_path):
+    """The bar Alex was reading. Measured before the rail: nine tabified
+    docks give one `QTabBar` wanting 1368 px, twelve give 1992, and the
+    dock had about 920 -- so the labels were two or three characters.
+
+    A `QTabBar` parented to the WINDOW is the tabified-dock bar; the ones
+    inside a `QTabWidget` belong to individual panels and are fine.
+    """
+    from PySide6.QtWidgets import QTabBar
+
+    window, _, _ = _make_window(tmp_path)
+
+    dock_bars = [
+        bar for bar in window.findChildren(QTabBar)
+        if isinstance(bar.parent(), type(window))
+    ]
+    assert dock_bars == [], (
+        "a tabified-dock tab bar exists again: "
+        f"{[[b.tabText(i) for i in range(b.count())] for b in dock_bars]}"
+    )
+
+
+def test_a_layout_saved_before_the_rail_is_discarded(qapp, tmp_path):
+    """`restoreState` restores TABIFICATION, not just sizes.
+
+    So an existing install would come back with the nine right-hand panels
+    tabified again -- rebuilding the very `QTabBar` the rail exists to
+    remove, on top of a rail that then disagrees with the screen. Found by
+    probing a real install, not by a test: the elided nine-tab bar was
+    still there after every `tabifyDockWidget` call had been deleted.
+
+    There is nothing to migrate -- `saveState` is an opaque blob with no
+    readable structure -- so the only honest options are restore it or do
+    not.
+    """
+    window, _, settings = _make_window(tmp_path)
+    window.close()
+    assert settings.window_state(), "the window should have saved a layout"
+
+    # Exactly what an install upgrading from the tabbed build looks like:
+    # a saved layout, and no version key beside it.
+    settings.set("ui/layout_version", "")
+
+    services2 = build_service_container()
+    with patch.object(MainWindow, "restoreState") as mock_restore_state:
+        _track(MainWindow(services2, settings, SessionManager()))
+
+    mock_restore_state.assert_not_called()
+
+
+def test_the_window_size_survives_a_discarded_layout(qapp, tmp_path):
+    """Only the dock ARRANGEMENT is version-gated. Geometry carries no
+    dock information, and throwing away somebody's window size to fix
+    their panel layout would be a gratuitous second change."""
+    window, _, settings = _make_window(tmp_path)
+    window.close()
+    settings.set("ui/layout_version", "")
+
+    services2 = build_service_container()
+    with patch.object(MainWindow, "restoreGeometry") as mock_restore_geometry:
+        _track(MainWindow(services2, settings, SessionManager()))
+
+    mock_restore_geometry.assert_called_once()
+
+
+def test_a_pinned_panel_survives_a_restart(qapp, tmp_path):
+    window, _, settings = _make_window(tmp_path)
+    window._panel_rail.toggle_favourite("Batch")
+    window.close()
+
+    services2 = build_service_container()
+    second = _track(MainWindow(services2, settings, SessionManager()))
+
+    assert second._panel_rail.favourites() == ["Batch"]
+
+
+def test_every_right_hand_dock_is_reachable_from_the_rail(qapp, tmp_path):
+    """A panel the rail cannot reach is unreachable, full stop -- there is
+    no tab bar to fall back on any more. Walks the docks the window
+    BUILDS, not a list kept beside them."""
+    window, _, _ = _make_window(tmp_path)
+
+    registered = set(window._panel_rail.panel_ids())
+    for dock in window._right_docks:
+        assert dock.objectName() in registered, (
+            f'"{dock.windowTitle()}" is a right-hand dock that the rail '
+            "does not list, so nothing can open it"
+        )

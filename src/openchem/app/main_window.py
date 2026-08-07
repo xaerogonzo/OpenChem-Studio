@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QScrollArea,
     QTabWidget,
+    QToolBar,
     QWidget,
 )
 
@@ -71,6 +72,7 @@ from openchem.ui.visualization import build_interaction_layers
 from openchem.ui.panels.structure_check_panel import StructureCheckPanel
 from openchem.ui.widgets.checker_status_indicator import CheckerStatusIndicator
 from openchem.ui.widgets.dock_title_bar import DockTitleBar
+from openchem.ui.widgets.panel_rail import DEFAULT_GROUP, PanelRail
 from openchem.ui.widgets.molecule_editor_widget import MoleculeEditorWidget
 from openchem.ui.widgets.molecule_viewer3d_widget import MoleculeViewer3DWidget
 from openchem.ui.widgets.molstar_viewer_backend import MolStarViewerBackend
@@ -85,6 +87,16 @@ logger = logging.getLogger("openchem.ui")
 #: Every key here is checked against the documents by tests/test_help.py,
 #: so a topic anchor deleted during a documentation sweep fails the suite
 #: rather than producing an empty help window.
+#: Bumped whenever the dock ARRANGEMENT changes in a way a saved layout
+#: cannot express. A stored state from an older arrangement is discarded
+#: rather than migrated: `QMainWindow.saveState` is an opaque blob with no
+#: readable structure, so there is nothing to migrate -- the only honest
+#: options are "restore it" and "do not".
+#:
+#: "2" is the rail: the right-hand panels stopped being tabified.
+_LAYOUT_VERSION = "2"
+_LAYOUT_VERSION_KEY = "ui/layout_version"
+
 HELP_TOPIC_BY_DOCK = {
     "Project_Explorer": "projects",
     "Properties": "properties",
@@ -226,6 +238,20 @@ class MainWindow(QMainWindow):
         # Connected after the panels exist, since the handler reads them.
         self._undo_stack.indexChanged.connect(self._on_undo_index_changed)
 
+        # The rail lives in a TOOLBAR, not a dock. A toolbar area is the
+        # one place in a QMainWindow that is not part of the dock system,
+        # so navigation cannot end up as one of the things it navigates --
+        # and it saves and restores with the window state for free.
+        self._panel_rail = PanelRail(self)
+        self._panel_rail.panel_chosen.connect(self._on_panel_chosen)
+        self._panel_rail.favourite_toggled.connect(self._on_favourite_toggled)
+        rail_bar = QToolBar("Panels", self)
+        rail_bar.setObjectName("Panel_Rail")
+        rail_bar.setMovable(False)
+        rail_bar.setFloatable(False)
+        rail_bar.addWidget(self._panel_rail)
+        self.addToolBar(Qt.ToolBarArea.RightToolBarArea, rail_bar)
+
         self._add_dock("Project Explorer", self._project_explorer, Qt.DockWidgetArea.LeftDockWidgetArea)
         self._properties_dock = self._add_dock(
             "Properties", self._property_panel, Qt.DockWidgetArea.RightDockWidgetArea
@@ -264,21 +290,48 @@ class MainWindow(QMainWindow):
             Qt.DockWidgetArea.RightDockWidgetArea,
         )
 
-        # All right-side panels share one tab group instead of stacking
-        # vertically -- six-plus docks sharing a single column (this trio
-        # plus every plugin panel added via add_panel()) left each one a
-        # sliver too short to render its own controls without overlapping.
-        # Tabbing keeps whichever panel is active at full height; plugin
-        # panels join the same group below, in add_panel().
-        self.tabifyDockWidget(self._properties_dock, docking_dock)
-        self.tabifyDockWidget(self._properties_dock, quantum_chemistry_dock)
-        self.tabifyDockWidget(self._properties_dock, alignment_dock)
-        self.tabifyDockWidget(self._properties_dock, atom_inspector_dock)
-        self.tabifyDockWidget(self._properties_dock, interactions_dock)
-        self.tabifyDockWidget(self._properties_dock, jobs_dock)
-        self.tabifyDockWidget(self._properties_dock, batch_dock)
-        self.tabifyDockWidget(self._properties_dock, self._structure_check_dock)
-        self._properties_dock.raise_()
+        # THE RIGHT-HAND PANELS ARE NO LONGER TABIFIED, and the tab bar is
+        # gone with them.
+        #
+        # They were tabified because six-plus docks sharing one column left
+        # each a sliver too short to render its own controls. Tabbing fixed
+        # that and created a worse problem: Qt gives a tabified group ONE
+        # `QTabBar`, and by the time there were twelve panels that bar
+        # **needed 1992 px and had about 920**, so every label elided to
+        # two or three characters -- "Qu...", "J...", "B...". Widening the
+        # dock cannot fix it; a bar wide enough for twelve labels is wider
+        # than the window.
+        #
+        # Hiding Qt's bar was tried and does not stick: `setVisible(False)`
+        # on the live one reads back True after the next relayout, because
+        # the dock area re-shows it. Removing the cause beats fighting it,
+        # and showing ONE panel at a time also answers the original
+        # complaint -- the visible panel gets the whole column, which is
+        # exactly what tabifying was working around.
+        self._right_docks: list[QDockWidget] = [
+            self._properties_dock,
+            atom_inspector_dock,
+            interactions_dock,
+            self._structure_check_dock,
+            quantum_chemistry_dock,
+            docking_dock,
+            alignment_dock,
+            jobs_dock,
+            batch_dock,
+        ]
+        for dock, group in (
+            (self._properties_dock, "analysis"),
+            (atom_inspector_dock, "analysis"),
+            (interactions_dock, "analysis"),
+            (self._structure_check_dock, "analysis"),
+            (quantum_chemistry_dock, "compute"),
+            (docking_dock, "compute"),
+            (alignment_dock, "compute"),
+            (jobs_dock, "compute"),
+            (batch_dock, "compare"),
+        ):
+            self._panel_rail.register(dock.objectName(), dock.windowTitle(), group)
+        self._show_only_right_dock(self._properties_dock)
 
         # A structure-check light in the corner, following Marvin's. The
         # panel is only useful to someone who opens it; this is how you
@@ -290,6 +343,7 @@ class MainWindow(QMainWindow):
 
         self._build_menus()
         self._restore_window_state()
+        self._restore_pinned_panels()
 
         services.event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
         services.event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
@@ -335,6 +389,47 @@ class MainWindow(QMainWindow):
             title_bar.help_requested.connect(self._show_help)
             dock.setTitleBarWidget(title_bar)
         return dock
+
+    # --- which right-hand panel is in front ----------------------------------
+
+    def _show_only_right_dock(self, chosen: QDockWidget) -> None:
+        """Exactly one right-hand panel visible, and it is `chosen`.
+
+        This replaces `raise_()` on a tabified group. Hiding the rest is
+        what gives the visible one the whole column -- the thing tabifying
+        was for -- and is why no tab bar exists to elide anything.
+
+        A dock the user has floated is left alone: they have deliberately
+        pulled it out to see it alongside something else, and yanking it
+        back would undo that.
+        """
+        for dock in self._right_docks:
+            if dock.isFloating():
+                continue
+            dock.setVisible(dock is chosen)
+        if not chosen.isFloating():
+            chosen.raise_()
+
+    def _dock_by_panel_id(self, panel_id: str) -> QDockWidget | None:
+        for dock in self._right_docks:
+            if dock.objectName() == panel_id:
+                return dock
+        return self._plugin_panels.get(panel_id)
+
+    def _on_panel_chosen(self, panel_id: str) -> None:
+        dock = self._dock_by_panel_id(panel_id)
+        if dock is None:
+            return
+        self._show_only_right_dock(dock)
+        dock.setFocus()
+
+    def _on_favourite_toggled(self, _panel_id: str = "", _pinned: bool = False) -> None:
+        self._settings.set("ui/pinned_panels", ",".join(self._panel_rail.favourites()))
+
+    def _restore_pinned_panels(self) -> None:
+        stored = self._settings.get("ui/pinned_panels", "")
+        if stored:
+            self._panel_rail.set_favourites([p for p in str(stored).split(",") if p])
 
     def _show_help(self, topic_key: str = "") -> None:
         """Open the help window, on `topic_key` or on whatever is in front.
@@ -384,12 +479,16 @@ class MainWindow(QMainWindow):
                 )
             widget = widget.parentWidget()
 
-        # Only the front member of a tabified group reports visible, so
-        # restricting the scan to that group makes `isVisible()` mean what
-        # it needs to mean here.
-        group = [self._properties_dock, *self.tabifiedDockWidgets(self._properties_dock)]
-        for dock in group:
-            if dock.isVisible() and dock.objectName() in HELP_TOPIC_BY_DOCK:
+        # Exactly one right-hand dock is visible now that they are no
+        # longer tabified, so `isVisible()` means precisely "the panel the
+        # user is looking at" -- which is what this needed all along and
+        # had to approximate with `tabifiedDockWidgets` before.
+        # `isHidden()` rather than `isVisible()`: the latter is False for
+        # every child of a window that has not been shown, which makes this
+        # answer nothing at all under a test harness while looking correct
+        # in the running app.
+        for dock in self._right_docks:
+            if not dock.isHidden() and dock.objectName() in HELP_TOPIC_BY_DOCK:
                 return HELP_TOPIC_BY_DOCK[dock.objectName()]
 
         return HELP_TOPIC_BY_CENTRE_TAB.get(
@@ -408,10 +507,27 @@ class MainWindow(QMainWindow):
     def _restore_window_state(self) -> None:
         """Mirror image of closeEvent()'s save -- both go through the same
         Settings.window_geometry/window_state keys, which existed since an
-        earlier phase but were never actually wired up until now."""
+        earlier phase but were never actually wired up until now.
+
+        **A layout saved before the rail is DISCARDED, and that is not
+        optional.** `QMainWindow.restoreState` restores tabification as
+        well as sizes, so an existing install would come back with the
+        nine right-hand panels tabified again -- rebuilding the very
+        `QTabBar` this phase removed, on top of a rail that then disagrees
+        with the screen. Caught by probing a real install rather than a
+        test: the elided nine-tab bar was still there after every
+        `tabifyDockWidget` call had gone.
+
+        The geometry (window size and position) is kept either way. It
+        carries no dock arrangement, and throwing away somebody's window
+        size to fix their panel layout would be a gratuitous second
+        change.
+        """
         geometry = self._settings.window_geometry()
         if geometry:
             self.restoreGeometry(geometry)
+        if str(self._settings.get(_LAYOUT_VERSION_KEY, "")) != _LAYOUT_VERSION:
+            return
         state = self._settings.window_state()
         if state:
             self.restoreState(state)
@@ -432,6 +548,7 @@ class MainWindow(QMainWindow):
             return
         self._settings.set_window_geometry(self.saveGeometry())
         self._settings.set_window_state(self.saveState())
+        self._settings.set(_LAYOUT_VERSION_KEY, _LAYOUT_VERSION)
         # EMPTY THE UNDO STACK BEFORE THE WINDOW GOES.
         #
         # Destroying a MainWindow whose stack still holds commands faults.
@@ -1410,21 +1527,33 @@ class MainWindow(QMainWindow):
     # MainWindow itself. `add_molecule` is the fifth one, defined above under
     # "molecule lifecycle" since it shares `_new_molecule`'s implementation.
 
-    def add_panel(self, panel_id: str, widget_factory: Callable[[], QWidget]) -> None:
+    def add_panel(
+        self,
+        panel_id: str,
+        widget_factory: Callable[[], QWidget],
+        group: str = DEFAULT_GROUP,
+    ) -> None:
         if panel_id in self._plugin_panels:
             self.remove_panel(panel_id)
         widget = widget_factory()
         dock = self._add_dock(panel_id, widget, Qt.DockWidgetArea.RightDockWidgetArea)
-        # Join the same tab group as Properties/Docking/Quantum Chemistry
-        # rather than taking a fresh vertical slice of the right dock area.
-        self.tabifyDockWidget(self._properties_dock, dock)
         self._plugin_panels[panel_id] = dock
+        self._right_docks.append(dock)
+        # `group` is optional and defaults to Extensions, so the
+        # `UIRegistry` signature this promises plugins does not change and
+        # a plugin that knows nothing about groups is still reachable the
+        # moment it loads.
+        self._panel_rail.register(panel_id, panel_id, group)
         self._view_menu.addAction(dock.toggleViewAction())
+        dock.setVisible(False)
 
     def remove_panel(self, panel_id: str) -> None:
         dock = self._plugin_panels.pop(panel_id, None)
         if dock is None:
             return
+        if dock in self._right_docks:
+            self._right_docks.remove(dock)
+        self._panel_rail.unregister(panel_id)
         self.removeDockWidget(dock)
         dock.deleteLater()
 
@@ -1438,8 +1567,12 @@ class MainWindow(QMainWindow):
         dock = self._plugin_panels.get(panel_id)
         if dock is None:
             return
-        dock.show()
-        dock.raise_()
+        # Routed through the same path a rail click takes, so the rail's
+        # highlight agrees with what is actually on screen. `show()` alone
+        # would leave a second panel visible beside it and split the
+        # column -- the crowding that tabifying originally existed to fix.
+        self._show_only_right_dock(dock)
+        self._panel_rail.select_panel(panel_id)
 
     def add_menu_action(self, plugin_id: str, label: str, callback: Callable[[], None]) -> None:
         action = QAction(label, self)
