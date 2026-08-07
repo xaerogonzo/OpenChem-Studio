@@ -117,6 +117,7 @@ The honest version of a comparison table: this one is about our own software.
 | Electrostatic potential surfaces | two methods, side by side and labelled: point charges (instant, no ORCA) still have no lone-pair directionality or sigma holes; the ab initio surface has both, [benchmarks/esp/](benchmarks/esp/) |
 | ADMET predictions | tiered Basic/Advanced/Research; accuracy is the vendor's held-out figure, not ours — the shipped model trained on all of TDC ([benchmarks/admet/](benchmarks/admet/)) |
 | pKa (optional sidecar) | no solvent model |
+| Interaction energy decomposition (LED) | only the total energy is an observable — ORCA's own words — and the split into electrostatics/dispersion/charge transfer is scheme-dependent. No counterpoise correction, so binding is over-estimated (BH₃·CO: −36.6 kcal/mol against ~−25 experimental). Aromatic partners cost ~3× their size, and nothing drug-sized is a candidate |
 | Molecular dynamics | vacuum, no thermostat, no solvent, no periodic boundaries |
 | hERG | a risk-factor checklist, explicitly not a prediction |
 | Continuous integration | the suite and the naming, regulatory and ruleset checks gate every PR on Windows. Six benchmarks stay hand-run because they need ORCA, Vina or a multi-hundred-MB sidecar that no hosted runner can install |

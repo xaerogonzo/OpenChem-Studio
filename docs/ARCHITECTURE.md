@@ -31,11 +31,11 @@ subscribe by event type rather than by ad-hoc signal name.
 
 | Package | Responsibility |
 |---|---|
-| `openchem.domain` | Pure data: `MoleculeModel`, `ProjectModel`, `DescriptorValue`, `ConformerModel`, `MacromoleculeModel`, `DockingBox`/`DockingPoseModel`/`DockingResultModel`, plus the shared `CacheState` enum and `Provenance` dataclass (`domain/common.py`). No RDKit, no Qt. Molecules (and macromolecules, and docking results) are identified by UUID, never filename or list position. |
+| `openchem.domain` | Pure data: `MoleculeModel`, `ProjectModel`, `DescriptorValue`, `ConformerModel`, the report types (`Fact`/`AtomReport`/`BondReport`/`MoleculeReport`), `MacromoleculeModel`, `DockingBox`/`DockingPoseModel`/`DockingResultModel`, plus the shared `CacheState` enum and `Provenance` dataclass (`domain/common.py`). No RDKit, no Qt. Molecules (and macromolecules, and docking results) are identified by UUID, never filename or list position. |
 | `openchem.chem` | The only place `rdkit`/`openbabel` are imported, and by some margin the largest package (59 modules, plus the `regulatory/` subpackage). Grouped by what they are for, since the flat listing is no longer navigable: **core** — `engine.py` (`ChemistryEngine`: MoleculeModel <-> RDKit Mol, canonicalization, 2D depiction including the property heat map, 3D measurement, and `formal_charge()`, the one place UI gets a chemistry-derived default without importing rdkit), `identifiers.py`, `io_backends.py`. **Structure files** — `structure_io.py`, `binarycif.py`, `structure_summary.py`, `structure_assembly.py`; see the pipeline section below. **Docking** — `docking_providers.py`, `vina_engine.py`, `pose_analysis.py`, `binding_site.py`, `receptor_library.py`, `interaction_analysis.py`. **Quantum/spectroscopy** — `orca_engine.py`, the `nmr_*` family (database lookup, HOSE codes, scaling, TMS referencing, the lookup+ORCA hybrid, correlation, signals), `huckel.py`, `electronic_properties.py`, `dipole.py`, `boltzmann.py`, `vibrational_modes.py` (normal-mode character by internal-coordinate decomposition), `mode_animation.py`, `orca_surfaces.py` + `cube.py` (driving `orca_plot` and reading Gaussian cubes into the existing `ScalarField`), and `jcamp.py` + `spectrum_overlay.py` (reading a measured spectrum and reconciling it with a computed one). **Calculators** — `descriptor_providers.py` plus the per-topic modules it registers (`topology_analysis`, `geometry_analysis`, `surface_analysis`, `elemental_analysis`, `steric`, `substructure`, `structure_generators`, `markush`, `logd`, `ph_curves`, `mpo_scores`, `bbb_stereo`, `scalar_field`, `alignment`, `molecular_dynamics`, `calculator_options`). **Sidecars** — `pka_providers.py`/`pka_runner.py` and `admet_providers.py`/`admet_runner.py`, each a pair where the `_runner` is executed BY the sidecar's own interpreter and imports nothing from `openchem`. **Naming** — `naming_providers.py` (structure <-> name across PubChem, the vendored engine, and OPSIN, each result labelled with its source and whether it is `exact`, `derived` or `parsed`) and `structure_annotation.py`, which takes the SECOND return value the naming engine always had: ring systems, functional groups, stereocentres and atom numbering, as plain atom-indexed data no vendor type escapes from. **Batch** — `result_reduction.py` (every result shape collapsed to table cells), `analytics.py`, `clustering.py`. **Regulatory** — the `regulatory/` subpackage: `types.py` (the legal-source / machine-interpretation split), `predicates.py` (the rule language), `engine.py`, `loader.py`, `calculator.py`. It is a subpackage rather than flat modules because it is the only part of `chem` with its own data format, build step and on-disk rulesets. |
 | `openchem.services` | `DescriptorService`, `ConformerService`, `MeasurementService`, `ImportService`, `ExportService`, `ProjectService`, `DockingService`, `QuantumChemistryService`, plus `ProgressHandle` for cancellable/progress-reporting long operations. All but `QuantumChemistryService` own `QThreadPool` execution and publish events — `QuantumChemistryService` is the one exception (see design decisions below). **Set-of-molecules services:** `BatchService` (runs chosen descriptors/calculators across a whole project as ONE pooled task, so "molecule 47 of 200" is reportable and one cancel flag stops it), `ScreeningService` (queues N ligands through `DockingService` one at a time rather than starting N Vina processes; it advances by *listening* for each job's terminal event, so no thread blocks), and `TableExportService` (`BatchTable` -> CSV/Markdown; deliberately not folded into `ExportService`, which is constructed with a `ChemistryEngine` and dispatches by chemical format — there is no chemical format whose subject is a table). |
 | `openchem.commands` | `QUndoCommand` subclasses wrapping service calls, giving undo/redo for structure edits, conformer generation, docking results, quantum-chemistry conformers, and project operations from day one. |
-| `openchem.plugins` | `interfaces.py` (`Plugin`, `DescriptorProvider`, `ConformerProvider`, `DockingProvider`, `QuantumEngineProvider`, `PanelProvider`, `MenuProvider`, `Importer`, `Exporter`), `manifest.py` (`PluginManifest` + dependency topological sort), `context.py` (`PluginContext`, including the `context.secrets` namespace backed by the OS keychain via `keyring`, and `context.molecules`/`context.docking`/`context.quantum_chemistry`), `ui_registry.py` (`UIRegistry` protocol), `manager.py` (`PluginManager` — discovery, transactional load/unload/reload, hot-reload watcher). See `PLUGIN_SDK.md`. |
+| `openchem.plugins` | `interfaces.py` (`Plugin`, `DescriptorProvider`, `ConformerProvider`, `DockingProvider`, `QuantumEngineProvider`, `FactProvider`, `PanelProvider`, `MenuProvider`, `Importer`, `Exporter`), `manifest.py` (`PluginManifest` + dependency topological sort), `context.py` (`PluginContext`, including the `context.secrets` namespace backed by the OS keychain via `keyring`, and `context.molecules`/`context.docking`/`context.quantum_chemistry`), `ui_registry.py` (`UIRegistry` protocol), `manager.py` (`PluginManager` — discovery, transactional load/unload/reload, hot-reload watcher). See `PLUGIN_SDK.md`. |
 | `openchem.app` | Composition: `MainWindow`, typed `Settings`, `SessionManager`, structured logging setup. `MainWindow` implements the `UIRegistry` protocol and constructs `PluginManager` at the end of `__init__`. |
 | `openchem.ui` | Widgets and dock panels. `EditorBackend`/`KetcherEditorBackend` (2D, `resources/ketcher/dist/`), `ViewerBackend`/`Mol3DViewerBackend` (3D small molecules, `resources/viewer3d/`, 3Dmol.js), and `ViewerBackend`/`MolStarViewerBackend` (macromolecules/crystallography, `resources/molstar/`, Mol*) are interface + implementation pairs — new content types get a sibling implementation, or a new optional capability method on the shared `ViewerBackend` base, without touching chemistry, services, or commands. `panels/docking_panel.py` and `panels/quantum_chemistry_panel.py` are core (not plugin) panels, same tier as `PropertyPanel`. |
 | `openchem.vendor` | Third-party code owned in-tree rather than depended on. Currently one entry: `iupac_namer`, a deterministic IUPAC nomenclature engine (structure -> name). Reached only through `chem/naming_providers.py`; nothing else imports it. See below and `vendor/VENDORING.md`. |
@@ -163,6 +163,33 @@ it).
 
 ## Design decisions worth remembering
 
+- **A report is an assembly, never a calculation.** `AtomReport`,
+  `BondReport` and `MoleculeReport` (in `domain/report.py`, built by
+  `chem/atom_report.py`, `chem/bond_report.py`, `chem/molecule_report.py`)
+  answer "tell me everything already known about this subject" by gathering
+  results other things computed. **Nothing in a collector starts work** --
+  opening the inspector, clicking an atom and switching molecules are all
+  free, and a property that has not been run is ABSENT rather than zero. An
+  inspector that launched ORCA on a click would be a calculator launcher,
+  and people stop trusting those.
+- **The report vocabulary says nothing about atoms, and that was the point.**
+  `Fact`, `FactCategory` and `FactLink` describe a FINDING. `AtomReport` was
+  written that way on the bet that bonds and molecules would want the same
+  shape; when they arrived the types moved to `domain/report.py` UNCHANGED
+  and only the identity fields differed. Facts group by CATEGORY (Electronic,
+  Topology) rather than by producing module, because grouping by producer
+  puts four consecutive "Lewis" headings on screen -- an implementation
+  detail leaking into the UI.
+- **A collector that raises is skipped, not fatal.** One analysis that
+  dislikes an exotic structure, or one plugin `FactProvider`, costs its own
+  facts and no others.
+- **Reports are cached per `(molecule_uuid, structure_version, subject,
+  index)`.** The version is `StructureCheckService.current_version()` -- the
+  counter that already exists and already increments on every structure
+  change -- so a report cannot outlive the structure it describes and there
+  is one such mechanism rather than two. Keying on a version rather than a
+  timestamp also leaves diffing two reports of one subject as a comparison
+  rather than a new subsystem.
 - **Descriptors are not cached on the molecule.** `DescriptorValue` records
   (id, name, units, category, provider, value, timestamp, cache_state) live
   in the descriptor service/providers, so a future plugin-provided descriptor

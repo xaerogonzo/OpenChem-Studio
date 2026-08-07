@@ -112,6 +112,7 @@ tracked, so it can be reversed automatically (see "Unload and hot reload").
 |---|---|---|
 | `context.descriptors` | `.register(provider: DescriptorProvider)` | Add computed molecule properties, shown in the Properties panel. |
 | `context.conformers` | `.register(provider: ConformerProvider)` | Add a conformer-generation method (used via its `provider_id`). |
+| `context.atom_facts` | `.register(provider: FactProvider)` | Contribute facts to the **Atom Inspector** — for an atom, a bond, or the molecule as a whole. See below. |
 | `context.docking` | `.register(provider: DockingProvider)` | Add a docking algorithm (used via its `provider_id`) — `"vina"` is the only built-in one. |
 | `context.quantum_chemistry` | `.register(provider: QuantumEngineProvider)` | Add a quantum-chemistry engine (used via its `provider_id`) — `"orca"` is the only built-in one. |
 | `context.importers` | `.register(importer: Importer)` | Add a file-import format, checked before the built-in RDKit/Open Babel backends. |
@@ -148,6 +149,52 @@ run_async(
     self._on_error,
 )
 ```
+
+### Contributing facts to the inspector
+
+A `FactProvider` puts your own findings in the Atom Inspector beside the
+built-in ones, without either side knowing about the other.
+
+```python
+from openchem.plugins.interfaces import FactProvider
+from openchem.domain.report import Fact, FactCategory
+from openchem.domain.structure_issue import Basis
+
+class MyFacts(FactProvider):
+    provider_id = "my_plugin"
+
+    def collect_atom_facts(self, mol, atom_index, context):
+        return [Fact(
+            category=FactCategory.ELECTRONIC,
+            label="My property",
+            value=1.23,                 # structured -- keep the real object
+            display_value="1.23",       # what the panel renders
+            source="my_plugin",
+            basis=Basis.HEURISTIC,      # or DETERMINISTIC
+            units="eV",
+        )]
+```
+
+**All three methods are optional** — `collect_atom_facts`,
+`collect_bond_facts(mol, bond_index, context)` and
+`collect_molecule_facts(mol, context)` each default to returning nothing.
+Implement only the ones you have something to say through; a provider that
+implements one is complete. Register once and all three are picked up.
+
+`value` is deliberately untyped and sits beside `display_value`, so you can
+carry a list, an enum or a whole result object for other consumers while
+the panel renders a string. `basis` is the app's `DETERMINISTIC` /
+`HEURISTIC` vocabulary rather than a confidence number, on the view that a
+percentage nobody measured is worse than an honest label.
+
+**Your provider must not start a calculation.** The inspector's guarantee is
+that opening it is free, and it is called for every atom the user clicks. If
+you need a computed value, register a `DescriptorProvider` for the work and
+read the result out of `context` here.
+
+Raising is survivable — each provider is isolated, so a broken one costs its
+own facts and nothing else — but a provider that raises contributes nothing
+and says nothing about why.
 
 ### Descriptor IDs must be namespaced
 
