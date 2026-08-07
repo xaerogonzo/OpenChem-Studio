@@ -1,4 +1,20 @@
-# DREIDING: what it would take, and why it is not shipped yet
+# DREIDING: the assessment, and what the implementation measured
+
+> **Status: the force field is implemented and passes its gate.**
+> `src/openchem/chem/dreiding/` reproduces the paper's own ethane
+> rotational barrier — **2.8959 against the published 2.896** — which
+> validates the additive bond radii, the angle term, the torsion barrier
+> with its renormalisation, and the van der Waals term with its
+> combination rules, all at once.
+>
+> Not yet done: the other seven barriers of Table XI (they need a general
+> constrained optimiser, where ethane needed only its three symmetry
+> parameters), and wiring the energy into the geometry report. Until that
+> second step the app still reports MMFF94/UFF only.
+>
+> The rest of this document is the assessment written before the work,
+> kept because its scoping held up and its warning about the PDF was
+> exactly right. Findings from the implementation are at the end.
 
 Every previous note in this repo said Dreiding energy was unavailable and
 stopped there. That was never a finding — it was the absence of one. This
@@ -128,3 +144,82 @@ to the number rather than in a separate paragraph they may never see.
 `benchmarks/` is where the Table XI set belongs when the work starts —
 alongside the naming corpus, which is the model for "a benchmark that can
 overturn a conclusion".
+
+---
+
+## What the implementation measured
+
+### The gate: ethane, to four decimals
+
+| geometry | barrier (kcal/mol) |
+| --- | --- |
+| rigid, at DREIDING's ideal geometry | 3.170 |
+| **relaxed, both stationary points** | **2.8959** |
+| paper, Table XI | 2.896 |
+| experiment | 2.882 |
+
+**The relaxation is not a detail.** Held rigid the answer is 9% high; the
+eclipsed form pays for its torsion by lengthening C–C from 1.530 to 1.545 Å
+and opening H–C–C from 109.47° to 110.46°, and that is the whole
+difference between "close" and "the same force field". Ethane's D3d/D3h
+symmetry means three parameters — C–C, C–H, the H–C–C angle — describe
+each stationary point exactly, so the relaxation is complete rather than
+restricted, which is what makes it comparable to the paper's number.
+
+The barrier decomposes exactly as predicted: **2.000 from torsion**
+(analytically, since nine dihedrals each contribute 2.0/9 at the eclipsed
+maximum) and the balance from 1-4 hydrogen repulsion.
+
+### Four things the paper hides in plain sight
+
+Each would produce a plausible wrong answer rather than an error.
+
+- **The torsion barrier is renormalised by the dihedral count.** V_JK is
+  the *total* for the central bond, shared among every I–J–K–L across it:
+  "the program uses a barrier of V_IJKL = 2/9 for each of the nine
+  possibilities". Skip the division and ethane's barrier is 18, not 2.
+- **The combination rules are mixed, and the paper develops the wrong one
+  first.** It presents a geometric mean for both parameters, then says:
+  *"for DREIDING we use (36a) with (36c) as defaults"* — geometric for
+  the well depth, **arithmetic** for the radius. The geometric radius
+  belongs to X6.
+- **LJ 12-6 is the default, not exponential-6.** "We consider the LJ as
+  the default and use DREIDING/X6 to denote cases where the
+  exponential-6 form is used." Likewise harmonic bonds, not Morse — that
+  is DREIDING/M.
+- **1-4 pairs are included in full.** 1-2 and 1-3 are excluded as
+  contained in the bond and angle terms, and there is no 1-4 scale
+  factor of the kind AMBER applies. On ethane those 1-4 hydrogens are
+  the entire non-torsional part of the barrier.
+
+### A test that passed for the wrong reason
+
+The torsion rules were written against `{type_j, type_k}` — a **set**,
+which collapses to one element whenever both central atoms are the same
+type. Every "are both of these sp3" test therefore answered 1, no rule
+matched, and everything fell through to the Table IV fallback.
+
+**Ethane still came out at 2.0, by luck**, so the gate passed while
+hydrogen peroxide was silently getting a 3-fold 180° torsion instead of
+its 2-fold 90° one — the parameter that makes HOOH sit near 90° at all.
+It was caught by biphenyl, whose exocyclic rule (10 kcal/mol) has no
+fallback that happens to agree.
+
+The lesson is the general one: a symmetric test case cannot distinguish
+"the rule fired" from "the fallback agreed with the rule". The
+parametrised cases in `tests/test_dreiding.py` now cover an asymmetric
+and a differing case for each rule.
+
+### Gaps recorded rather than filled
+
+- **Table IV has no row for `B_2`.** That is the paper's gap, not a
+  transcription slip. It is listed in `TORSION_TABLE_OMISSIONS` so the
+  completeness guard still fails on a *new* gap; the general rules cover
+  trigonal boron by hybridisation.
+- **No charges and no explicit hydrogen bonds.** Both are the paper's own
+  default for the results it reports ("charges are not included"), which
+  is what makes Table XI reproducible at all. Named in
+  `UNSUPPORTED_TERMS` rather than silently absent.
+- **`H__b` and `H___HB` are never assigned automatically.** Bridging and
+  hydrogen-bonding hydrogens are modelling choices, not something
+  connectivity determines.
