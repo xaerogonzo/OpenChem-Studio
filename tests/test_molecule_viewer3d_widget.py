@@ -117,3 +117,23 @@ def test_molecule_with_no_conformers_reports_none(qapp):
 
     assert widget._status_label.text() == "No conformers"
     assert backend.loaded_molblocks == []
+
+
+def test_highlight_atoms_paints_and_clears(qapp):
+    """The viewer half of hover-to-highlight.
+
+    Wired to nothing yet -- see `ui/widgets/fact_view.py` for why the panel
+    that would drive it is not adopted. Tested now so the API is known to
+    work when it is.
+
+    Safe to drive from a hover because this viewer applies no atom
+    colouring of its own; there is no "Color by" layer to clobber and then
+    fail to restore.
+    """
+    widget, backend, _bus = _make_widget(qapp)
+
+    widget.highlight_atoms((1, 3))
+    assert backend.applied_layers[-1].atom_colors == {1: "#ffb300", 3: "#ffb300"}
+
+    widget.highlight_atoms(())
+    assert backend.applied_layers[-1] is None

@@ -53,7 +53,7 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **3-4.5 minutes**, ending at `2828 passed, 2 skipped,
+A clean run is **3-4.5 minutes**, ending at `2845 passed, 2 skipped,
 1 deselected` (measured 2026-08-07 with the presentation-layer Phase 0-2
 work applied, bytecode cleared; it was 2788 before that). **That figure is
 from the DESELECTED form below, not the command above** -- run it bare and
@@ -1020,13 +1020,19 @@ it, which is what let the three mechanisms below coexist behind one
 guard. Verified by simulating the mistake: removing one tab's placeholder
 fails naming the tab.
 
-#### READ THIS BEFORE ADDING A WIDGET TO `QuantumChemistryPanel`
+#### READ THIS BEFORE ADDING A WIDGET TO ANY PANEL MainWindow BUILDS
 
-**Adding widgets to that panel's tree corrupts the heap.** Windows fatal
-exception `0xc0000374`, raised inside the teardown `gc.collect()`, in a
-test hundreds of tests away from the change. It is deterministic -- the
-same test index every run -- which is the one merciful thing about it and
-the only reason it is tractable.
+**Adding widgets to a panel corrupts the heap.** Windows fatal exception
+`0xc0000374`, raised inside the teardown `gc.collect()`, in a test
+hundreds of tests away from the change. It is deterministic -- the same
+test index every run -- which is the one merciful thing about it and the
+only reason it is tractable.
+
+**It is NOT confined to `QuantumChemistryPanel`**, which is what this
+section said until the `FactView` extraction hit exactly the same wall in
+the ATOM INSPECTOR. Whatever it is, it is about panels a MainWindow
+builds, and this is now the third distinct panel and the fourth distinct
+shape of change to trigger it.
 
 **This has cost about fifteen full suite runs across two phases.** Every
 one of them looked at first like an unrelated failure somewhere else.
@@ -1077,6 +1083,47 @@ suite, because no shorter arm settles it:
 
 **The mechanism is still unknown.** What tracks it exactly is only "a
 widget was added to this panel".
+
+##### It cost `FactView`, and that is the shape of the problem now
+
+Phase 3 of the presentation work extracted the report renderer into one
+widget. `AtomInspectorPanel` was converted to use it and **all 45 of its
+tests passed** -- the extraction is correct. The full suite then died.
+
+Measured on a 20-second two-file reproduction
+(`test_receptor_library_dialog.py` + `test_regulatory_calculator.py`),
+against 0/3 on master:
+
+    panel adopts FactView                       crashed 3/3
+    ... no `_FactRow` subclass (no hover)        crashed 3/3
+    ... no Ctrl+Shift+F QAction                  crashed 3/3
+    ... summary and filter never added to a layout   crashed 3/3
+    ... FactView built but never added to the panel  crashed 3/3
+    formatters shared, no widget change          clean 3/3
+
+So it is CONSTRUCTING widgets that matters, not where they are put. The
+widget-free half of the extraction (`ui/report_format.py`) shipped;
+`ui/widgets/fact_view.py` ships tested but wired to nothing, and its
+docstring says so.
+
+##### AN ARM THAT DOES NOT RUN IS NOT AN ARM
+
+Three arms in that bisect reported a comfortable "no crash" and were
+worthless, for a reason worth knowing in advance: **removing the widget
+under test usually breaks MainWindow construction**, so the tests ERROR
+instead of running -- and the crash needs a MainWindow to exist. A
+harness that only greps for `fatal exception` scores that as a pass.
+
+Check that the arm produced the SAME NUMBER OF PASSING TESTS as the
+control, not merely that it did not crash:
+
+```bash
+uv run --no-sync python -m pytest -q tests/test_receptor_library_dialog.py tests/test_regulatory_calculator.py 2>&1 | tail -1
+```
+
+This is the second version of the same lesson. The first was a mutation
+script whose edit never landed; this one is a mutation whose edit landed
+and whose TEST never ran.
 
 ##### How to find it fast when it happens
 

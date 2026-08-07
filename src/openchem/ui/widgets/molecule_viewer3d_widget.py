@@ -22,8 +22,14 @@ from openchem.ui.visualization import (
     SURFACE_REPRESENTATION_LABELS,
     SURFACE_REPRESENTATIONS,
     SurfaceLayer,
+    VisualizationLayer,
 )
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
+
+
+#: Amber, which is not on the diverging red/blue scale the per-atom
+#: layers use -- so a transient hover cannot be mistaken for data.
+_HIGHLIGHT_COLOUR = "#ffb300"
 
 
 class MoleculeViewer3DWidget(QWidget):
@@ -188,6 +194,28 @@ class MoleculeViewer3DWidget(QWidget):
             self._measurement_label.setText(f"Could not measure atoms {atom_1}-{atom_2}")
             return
         self._measurement_label.setText(f"Distance atoms {atom_1}-{atom_2}: {distance:.3f} Å")
+
+    def highlight_atoms(self, indices: tuple[int, ...]) -> None:
+        """Light up some atoms; an empty tuple puts it back.
+
+        Used by the Atom Inspector while the pointer is over a fact --
+        hover "Charge -0.42" and that atom lights up, hover "Ring system"
+        and the ring does.
+
+        Safe to drive from a hover because this viewer applies no atom
+        colouring of its own: there is no "Color by" layer here to
+        clobber and then fail to restore. If one is ever added, this must
+        remember and reinstate it rather than clearing.
+        """
+        if not indices:
+            self._backend.apply_visualization(None)
+            return
+        self._backend.apply_visualization(
+            VisualizationLayer(
+                name="Hovered fact",
+                atom_colors={int(index): _HIGHLIGHT_COLOUR for index in indices},
+            )
+        )
 
     def _refresh_view(self) -> None:
         if self._molecule is None or not self._molecule.conformers:

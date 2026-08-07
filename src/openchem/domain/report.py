@@ -88,6 +88,31 @@ DEFAULT_EXPANDED: frozenset[FactCategory] = frozenset(
 )
 
 
+class Detail(str, Enum):
+    """How much of a specialist a fact is for.
+
+    **Two values, not five.** The obvious design was Basic / Physical /
+    Electronic / Quantum / Everything, and that conflates two different
+    axes: Physical, Electronic and Quantum are already `FactCategory`, and
+    only "how deep" is new. Building the five-way version would have baked
+    the confusion into the model, and a UI can still present exactly that
+    control by composing the two.
+
+    Two rather than three or four for the same reason `Basis` has two: an
+    audience taxonomy nobody validated is the same mistake as a confidence
+    percentage, which this project has built and declined to ship more
+    than once. A third value becomes justified when a real case demands
+    it, not in advance.
+    """
+
+    #: Anybody reading a structure wants this: element, charge, ring
+    #: membership, a chemical shift.
+    STANDARD = "standard"
+    #: Real, and specialist. Fukui indices, the dual descriptor, local
+    #: softness -- a beginner handed all of them at once learns nothing.
+    ADVANCED = "advanced"
+
+
 @dataclass(frozen=True)
 class FactLink:
     """Where to go to see the tool this fact came from.
@@ -148,6 +173,24 @@ class Fact:
     #: Set when the value is a number, so a consumer can format or compare
     #: without re-parsing `display_value`.
     units: str = ""
+    #: How specialist this is. Defaults to STANDARD, so every existing
+    #: producer keeps its current behaviour and only facts that really are
+    #: specialist have to say so.
+    detail: Detail = Detail.STANDARD
+    #: Which atoms this fact is ABOUT, for highlighting it on the structure
+    #: when the reader hovers it.
+    #:
+    #: A separate field rather than something derived from `value`, because
+    #: `value` may be a float, an enum, a list of locants or a spectral
+    #: peak -- there is no general way to ask it "which atoms?". Empty
+    #: means no highlight, so nothing existing changes.
+    #:
+    #: **Consumers must bounds-check these against whatever they are
+    #: painting.** A conformer carries explicit hydrogens and a report
+    #: usually does not: ethanol is 3 atoms in a report and 9 in the 3D
+    #: viewer, and an out-of-range index raised `RuntimeError: Range Error`
+    #: inside a Qt signal handler the last time this was assumed.
+    highlight: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True, kw_only=True)
