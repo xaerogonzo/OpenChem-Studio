@@ -1236,9 +1236,11 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         display_name="Geometry",
         category="geometry",
         description=(
-            "3D extent (min/max/mean radius from the centroid) and force field energy of "
-            "the current conformer. Reports MMFF94/UFF -- RDKit has no Dreiding, so these "
-            "are NOT comparable to MarvinSketch's Dreiding energy. Needs a conformer."
+            "3D extent (min/max/mean radius from the centroid), projection area and "
+            "radius on the principal planes, and force field energy of the current "
+            "conformer. Reports MMFF94/UFF -- neither RDKit nor OpenBabel has Dreiding, "
+            "so these are NOT comparable to MarvinSketch's Dreiding energy; see "
+            "docs/DREIDING_ASSESSMENT.md. Needs a conformer."
         ),
         execution=RegistryExecution(compute=compute_geometry_analysis),
         tags=["geometry", "3d", "energy"],

@@ -5,11 +5,21 @@ Requires real 3D coordinates -- everything here is meaningless on the flat
 returning a number computed from a degenerate geometry.
 
 ON "DREIDING ENERGY": Marvin's Geometry plugin reports a Dreiding force
-field energy. RDKit does not implement Dreiding. This module reports
-MMFF94 and UFF energies instead, LABELLED AS SUCH -- they are real,
-well-defined force field energies, but they are not comparable to
+field energy. Neither RDKit nor OpenBabel implements Dreiding (checked:
+OpenBabel offers GAFF, Ghemical, MMFF94, MMFF94s and UFF). This module
+reports MMFF94 and UFF energies instead, LABELLED AS SUCH -- they are
+real, well-defined force field energies, but they are not comparable to
 Marvin's numbers, and relabelling either as "Dreiding" would produce a
 figure that looks authoritative and cross-references to nothing.
+
+That gap is now SCOPED rather than merely asserted. The primary source
+(Mayo, Olafson & Goddard 1990) has been read, the force field is a few
+hundred lines of standard terms, and the paper prints eight rotational
+barriers computed with DREIDING itself -- so an implementation can be
+validated against the paper rather than against ambiguous experiment.
+`docs/DREIDING_ASSESSMENT.md` has the numbers and the reason it is not a
+quick job: the PDF's text layer corrupts atom-type labels (`C_3` reads as
+`C.3`), so every parameter needs verifying against the rendered page.
 
 ON STERIC HINDRANCE: two real measures now ship, in `chem/steric.py`
 -- the exact cone angle and percent buried volume. What unblocked them
@@ -33,6 +43,11 @@ from rdkit import Chem
 from rdkit.Chem import AllChem, rdMolTransforms
 
 from openchem.chem.calculator_options import decimals
+from openchem.chem.projection_geometry import (
+    _FRAGMENT_CONTACT_FLOOR,
+    closest_fragment_approach,
+    shape_descriptors,
+)
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.report import Fact, FactCategory, ReportResult
 from openchem.domain.structure_issue import Basis
@@ -159,6 +174,65 @@ def compute_geometry_analysis(
         _radius("Min radius (from centroid)", "min_radius"),
         _radius("Mean radius (from centroid)", "mean_radius"),
     ]
+
+    # The shape half of Marvin's Geometry plugin. Volume and surface come
+    # from `surface_analysis`, which already reports them -- repeating a
+    # number in two panels invites the two to drift apart, which is the
+    # failure a shared module exists to prevent.
+    on_principal_planes = [
+        "Measured on the three principal planes rather than optimised over "
+        "all orientations, so a shape whose true extreme lies off-axis "
+        "reads slightly high.",
+    ]
+    # A structure drawn as two species and given a conformer comes back
+    # with the fragments packed at the origin -- `EmbedMolecule` applies no
+    # constraints between them. Their spheres then fuse and every shape
+    # figure is too SMALL, by 21-44% on the cases measured. Reported, not
+    # suppressed: a genuine short contact is legitimate, and the number is
+    # only misleading if nobody says which situation this is.
+    approach = closest_fragment_approach(mol)
+    if approach is not None and approach < _FRAGMENT_CONTACT_FLOOR:
+        on_principal_planes.append(
+            f"This structure has separate fragments only {approach:.2f} A apart, "
+            "which is closer than any real contact -- 3D generation does not "
+            "push disconnected fragments apart. Their surfaces overlap, so "
+            "every figure here is smaller than the true one. Position the "
+            "fragments deliberately before trusting these."
+        )
+    on_principal_planes = tuple(on_principal_planes)
+    shape = shape_descriptors(mol)
+    for label, value in (
+        ("Min projection area", shape.min_projection_area),
+        ("Max projection area", shape.max_projection_area),
+    ):
+        facts.append(
+            Fact(
+                category=FactCategory.GEOMETRY,
+                label=label,
+                value=value,
+                display_value=f"{value:.{places}f}",
+                source="Geometry",
+                basis=Basis.DETERMINISTIC,
+                units="A^2",
+                limitations=on_principal_planes,
+            )
+        )
+    for label, value in (
+        ("Min projection radius", shape.min_projection_radius),
+        ("Max projection radius", shape.max_projection_radius),
+    ):
+        facts.append(
+            Fact(
+                category=FactCategory.GEOMETRY,
+                label=label,
+                value=value,
+                display_value=f"{value:.{places}f}",
+                source="Geometry",
+                basis=Basis.DETERMINISTIC,
+                units="A",
+                limitations=on_principal_planes,
+            )
+        )
 
     # NAMED EXPLICITLY so nobody reads these as Marvin's Dreiding value.
     # That caveat used to be an extra line of prose in `matched`; as a

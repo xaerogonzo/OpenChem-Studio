@@ -142,6 +142,13 @@ The force field is **MMFF94 or UFF, never Dreiding** — Dreiding is not
 available here, and its numbers are not comparable, so nothing is relabelled
 as it.
 
+Neither RDKit nor OpenBabel implements Dreiding, so this is a gap rather than
+a choice between libraries. It is not permanent: the primary source (Mayo,
+Olafson & Goddard 1990) has been read and the work is scoped in the repo at
+`docs/DREIDING_ASSESSMENT.md` — including the eight rotational barriers the
+paper prints for its own force field, which any implementation here would
+have to reproduce before being believed.
+
 ---
 
 <!-- help:limits-admet -->

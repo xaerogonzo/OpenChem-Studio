@@ -22,6 +22,7 @@ from rdkit.Chem import AllChem, rdFreeSASA
 
 from openchem.chem.geometry_analysis import NoConformerError, _require_conformer
 from openchem.chem.calculator_options import decimals
+from openchem.chem.projection_geometry import van_der_waals_volume
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.report import ReportResult
 from openchem.chem.report_adapter import report_fields
@@ -88,7 +89,12 @@ def surface_areas(mol: Chem.Mol) -> dict[str, float]:
         "asa_negative": negative,
         "asa_hydrophobic": hydrophobic,
         "asa_polar": polar,
-        "vdw_volume": float(AllChem.ComputeMolVolume(mol)),
+        # Was `AllChem.ComputeMolVolume(mol)` -- the GRID routine, which
+        # measures about 0.5% high on aspirin and 5% low on a lone atom.
+        # `van_der_waals_volume` returns the analytic one and cross-checks
+        # it against that same grid, so this is the identical quantity
+        # computed exactly rather than a second, disagreeing estimate.
+        "vdw_volume": van_der_waals_volume(mol)[0],
     }
 
 

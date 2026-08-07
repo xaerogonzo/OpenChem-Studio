@@ -53,8 +53,8 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **3-4.5 minutes**, ending at `2894 passed, 2 skipped,
-1 deselected` (measured 2026-08-07 with the presentation-layer Phase 0-6
+A clean run is **3-6 minutes**, ending at `2924 passed, 2 skipped,
+1 deselected` (measured 2026-08-07 with the presentation-layer Phase 0-7
 work applied, bytecode cleared; it was 2788 before that). **That figure is
 from the DESELECTED form below, not the command above** -- run it bare and
 the same tree reports one FAILURE, from the network test explained next.
@@ -1292,6 +1292,48 @@ outcome here, not a failure.
 Comments explain **why**, especially where something is non-obvious or was got
 wrong once. A comment restating the code is noise.
 
+### A library DEFAULT can be a different quantity, not a tuning knob
+
+`rdMolDescriptors.DoubleCubicLatticeVolume` computes a **solvent-accessible**
+volume unless told otherwise: its probe radius defaults to 1.4 A. Called as
+its name suggests and read as a van der Waals volume, it is wrong by 700%:
+
+    helium, analytic 4/3 pi r^3          11.494
+    DoubleCubicLatticeVolume()           91.952   <- r + 1.4, a DIFFERENT quantity
+    DoubleCubicLatticeVolume(probeRadius=0.0)     11.494
+
+The danger is that 91.952 is not absurd. On any molecule without a closed
+form it is simply a larger number, and nothing anywhere says which quantity
+you asked for. **A one-atom test catches this and nothing else does**, because
+one atom is the only case with an exact answer to compare against.
+
+Two more measured facts from the same work, both the opposite of the obvious
+reading:
+
+- **`DoubleCubicLatticeVolume` is the ANALYTIC routine and `ComputeMolVolume`
+  is the grid one**, despite the names. DCLV matches 4/3 pi r^3 to four
+  decimals instantly; `ComputeMolVolume` is 5% low on a lone atom at its
+  default spacing and needs 0.89 s to reach 0.04%. `surface_analysis.py` had
+  shipped the grid one.
+- **The cross-check is weakest where the answer is most certain.** The grid
+  routine's error tracks the surface-to-volume ratio, so across ten molecules
+  the worst BONDED case is 1.53% while a bare atom is 4.99%. A tolerance
+  fitted to real molecules will flag a lone atom, and that is the check
+  failing, not the value.
+
+### Bound the grid, not the resolution
+
+A projection measured at a fixed 60 samples/A cost **4.27 s** for a 92-atom
+molecule -- unusable in a panel that recomputes on every selection change.
+Capping total cells instead of lowering resolution everywhere took it to
+**0.80 s** while leaving small molecules untouched (aspirin identical, helium
+still pi r^2 to 0.13%).
+
+That is the correct trade and not merely the cheap one: grid error is set by
+the shape's perimeter-to-area ratio, so a larger molecule tolerates a coarser
+grid at the same relative accuracy. Accuracy is preserved exactly where it is
+hardest to get.
+
 ### Koopmans hardness is wrong for the pair people actually use it on
 
 Recorded here rather than only in `chem/conceptual_dft.py` because the trap is
@@ -1542,7 +1584,12 @@ Two measurement traps from the same work, both already paid for once:
 
 Three primary sources that this work had been treating as unobtainable are
 on disk at `D:\Xaero Stuff\Documents\Sci Downloads\`: Drago & Wayland 1965,
-Parr & Pearson 1983, and Pearson 1988. **Reading them changed real claims**,
+Parr & Pearson 1983, Pearson 1988, and **Mayo, Olafson & Goddard 1990** (the
+DREIDING paper — this file and three others had asserted for months that
+Dreiding was simply unavailable, which was the absence of a finding rather
+than one; see `docs/DREIDING_ASSESSMENT.md`, and note the PDF's text layer
+corrupts the atom-type labels `C_3`/`C_R` that the parameters key on).
+**Reading them changed real claims**,
 so when a source is needed, ask rather than write "paywalled, orderings
 pinned instead".
 

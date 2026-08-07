@@ -247,7 +247,7 @@ and reads **Finished.** when the last one lands.
 | Charge | Gasteiger partial charges, and charges at a chosen pH |
 | LogP / LogD / Molar Refractivity | per-atom contributions, and pH-dependent logD |
 | Topology | Wiener, Randić, Balaban, Platt, Szeged, Harary, per-atom eccentricity |
-| Geometry (3D) | radius of gyration, molecular radii, MMFF94 and UFF energies |
+| Geometry (3D) | radius of gyration, molecular radii, projection area and radius, MMFF94 and UFF energies |
 | Surface Area | SASA (total and per-atom), vdW surface, molecular volume |
 | Structure Generators | stereoisomers, tautomers, resonance forms, conformers |
 | Quantum (Hückel) | orbital energies, π densities, HOMO/LUMO and the gap |
@@ -1094,6 +1094,15 @@ See [PLUGIN_SDK.md](PLUGIN_SDK.md) to write one.
   ab initio NMR is in the Quantum Chemistry panel.
 - **Shape and Geometry descriptors need a conformer.** They show a "needs a
   conformer" state with a button rather than silently reporting nothing.
+- **"Min/max projection area" is measured on the three principal planes**,
+  not searched over every orientation, so a molecule whose true narrowest
+  view lies off-axis reads a little high. Each of those facts says so in its
+  own tooltip, and the figures are exact for the case with a closed form —
+  a single atom's shadow comes out as πr² to within 0.13%.
+- **Marvin's Geometry plugin reports a Dreiding energy and this does not.**
+  No Python chemistry library implements Dreiding. MMFF94 and UFF are
+  reported instead, labelled as such, because relabelling one of them
+  "Dreiding" would give a number that cross-references to nothing.
 - **Nothing computes over the network or spends real CPU without you asking.**
   PubChem lookups, ORCA jobs, docking and conformer generation are all
   explicitly triggered. Opening the Identify Structure Online dialog sends
