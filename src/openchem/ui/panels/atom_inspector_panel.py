@@ -378,11 +378,41 @@ class AtomInspectorPanel(QWidget):
         **In Bond mode this picks a BOND instead**, from two clicks. See
         `_note_atom_for_bond` for why that is the only option in 3D.
         """
+        if not self._atom_is_in_report(atom_index):
+            return
         if self._subject == "Bond":
             self._note_atom_for_bond(atom_index)
             return
         self._pending_bond_atom = None
         self._select_row_for(atom_index)
+
+    def _atom_is_in_report(self, atom_index: int) -> bool:
+        """Is this index one the report's molecule actually has?
+
+        **The 3D viewer and the report do not always share an index space.**
+        A conformer carries EXPLICIT hydrogens; the structure as drawn has
+        implicit ones. Ethanol is 3 atoms in the report and 9 in the
+        viewer, so clicking a hydrogen in 3D sends index 3-8 -- past the
+        end. The heavy atoms line up only because `AddHs` appends, which is
+        why the first three agree and nothing warned about the rest.
+
+        Unguarded this is not a silent mismatch but a crash:
+        `GetBondBetweenAtoms(1, 5)` raises `RuntimeError: Range Error`
+        inside a Qt signal handler. Found by asking what a click on a
+        hydrogen would do, during a live check that had not happened to hit
+        one.
+        """
+        _model, mol = self._molecule()
+        if mol is None:
+            return False
+        if 0 <= atom_index < mol.GetNumAtoms():
+            return True
+        self._status.setText(
+            f"Atom {atom_index + 1} is in the 3D structure but not in the "
+            "structure as drawn — the report covers heavy atoms and treats "
+            "hydrogens as implicit. Pick a heavy atom."
+        )
+        return False
 
     def _note_atom_for_bond(self, atom_index: int) -> None:
         """Resolve a bond from two clicked atoms.
@@ -427,6 +457,16 @@ class AtomInspectorPanel(QWidget):
         keeps whatever sort order was last applied.
         """
         self._pending_bond_atom = None
+        _model, mol = self._molecule()
+        if mol is not None and not (0 <= bond_index < mol.GetNumBonds()):
+            # Ketcher and the report agree on bond indices today (verified
+            # against a shared molblock). Guarded anyway because the atom
+            # side turned out NOT to agree, and the failure there was a
+            # crash rather than a wrong answer.
+            self._status.setText(
+                f"Bond {bond_index + 1} is not in the structure as drawn."
+            )
+            return
         self._select_row_for(bond_index)
 
     def _select_row_for(self, index: int) -> None:

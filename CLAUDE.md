@@ -53,7 +53,7 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **3-4.5 minutes**, ending at `2782 passed, 2 skipped,
+A clean run is **3-4.5 minutes**, ending at `2788 passed, 2 skipped,
 1 deselected` (measured 2026-08-06 with the comparison and LED work applied,
 bytecode cleared). **That figure is from the DESELECTED form below, not the
 command above** -- run it bare and the same tree reports one FAILURE, from
@@ -741,6 +741,20 @@ two look interchangeable and are not.
 
 The fix is one line: ignore the argument and call
 `ketcherInstance.editor.selection()` inside the handler.
+
+**THE 3D VIEWER AND A REPORT DO NOT SHARE AN INDEX SPACE**, and the
+mismatch is a crash rather than a wrong answer. A conformer carries
+EXPLICIT hydrogens; the structure as drawn has implicit ones. Ethanol is 3
+atoms in a report and 9 in the viewer, so clicking a hydrogen in 3D sends
+index 3-8 -- past the end. `GetBondBetweenAtoms(1, 5)` raises
+`RuntimeError: Range Error` inside a Qt signal handler.
+
+The heavy atoms agree ONLY because `AddHs` appends, so indices 0..n-1 line
+up and nothing warns about the rest. That is why a live check that clicked
+only heavy atoms found nothing, and why the bug was found by asking what a
+hydrogen click would do rather than by hitting one. Anything wiring a
+viewer click to a structure index needs the same bounds check;
+`_atom_is_in_report` is the one in the inspector.
 
 **3Dmol, by contrast, reports ATOMS ONLY.** Its `setClickable` callback
 receives an atom, and bonds drawn in stick mode are not separately

@@ -600,3 +600,84 @@ def test_atom_clicks_still_select_atoms_when_the_subject_is_atoms(panel):
     QCoreApplication.processEvents()
     assert widget._atom_index == CARBONYL_O
     assert widget._pending_bond_atom is None
+
+
+# --- the index spaces do not always match -----------------------------------
+#
+# A 3D conformer carries EXPLICIT hydrogens; the structure as drawn has
+# implicit ones. Ethanol is 3 atoms in the report and 9 in the viewer, so a
+# click on a hydrogen sends an index past the end. The heavy atoms agree
+# only because `AddHs` appends -- which is why the first three line up and
+# nothing warned about the rest.
+
+
+def test_rdkit_really_raises_on_an_out_of_range_atom_pair():
+    """Anchors why the guard exists. If a future RDKit returned None here
+    instead, the guard would be belt-and-braces rather than load-bearing,
+    and this test says which."""
+    mol = Chem.MolFromSmiles("CCO")
+    assert mol.GetNumAtoms() == 3
+    with pytest.raises(RuntimeError):
+        mol.GetBondBetweenAtoms(1, 5)
+
+
+def test_clicking_a_hydrogen_in_3d_does_not_crash_the_bond_pick(panel):
+    """The bug this closes: unguarded, the second click raised
+    `RuntimeError: Range Error` inside a Qt signal handler."""
+    widget, _bus = panel
+    model = molecule("CCO", "ethanol")
+    show_subject(widget, model, "Bond")
+
+    widget.select_atom(1)          # a real carbon
+    widget.select_atom(5)          # a hydrogen: only exists in the 3D mol
+    QCoreApplication.processEvents()
+
+    assert widget._bond_index is None
+    assert "not in the structure as drawn" in widget._status.text()
+
+
+def test_an_out_of_range_atom_does_not_become_a_pending_pick(panel):
+    """Otherwise it sits there and completes against the NEXT click,
+    naming a bond the user never pointed at."""
+    widget, _bus = panel
+    show_subject(widget, molecule("CCO", "ethanol"), "Bond")
+
+    widget.select_atom(7)
+    QCoreApplication.processEvents()
+    assert widget._pending_bond_atom is None
+
+
+def test_clicking_a_hydrogen_in_atom_mode_explains_itself(panel):
+    """It used to no-op in silence, which is indistinguishable from a
+    broken handler -- exactly the ambiguity that made two mis-aimed clicks
+    hard to interpret during the live check."""
+    widget, _bus = panel
+    model = molecule("CCO", "ethanol")
+    showing(widget, model)
+
+    widget.select_atom(6)
+    QCoreApplication.processEvents()
+    assert widget._atom_index is None
+    assert "Pick a heavy atom" in widget._status.text()
+
+
+def test_a_heavy_atom_still_selects_normally(panel):
+    """The guard must not cost the case that works -- heavy atoms line up
+    across both index spaces because AddHs appends."""
+    widget, _bus = panel
+    model = molecule("CCO", "ethanol")
+    showing(widget, model)
+
+    widget.select_atom(2)
+    QCoreApplication.processEvents()
+    assert widget._atom_index == 2
+
+
+def test_an_out_of_range_bond_index_is_refused_too(panel):
+    widget, _bus = panel
+    show_subject(widget, molecule("CCO", "ethanol"), "Bond")
+
+    widget.select_bond(9)
+    QCoreApplication.processEvents()
+    assert widget._bond_index is None
+    assert "not in the structure as drawn" in widget._status.text()
