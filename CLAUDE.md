@@ -53,7 +53,7 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **3-4.5 minutes**, ending at `2769 passed, 2 skipped,
+A clean run is **3-4.5 minutes**, ending at `2782 passed, 2 skipped,
 1 deselected` (measured 2026-08-06 with the comparison and LED work applied,
 bytecode cleared). **That figure is from the DESELECTED form below, not the
 command above** -- run it bare and the same tree reports one FAILURE, from
@@ -753,8 +753,34 @@ gesture mean two things depending on a mode nobody set.
 
 Editing `tools/ketcher-host/src/main.jsx` requires `npm run build` in that
 directory for anything to change; `resources/ketcher/dist/` is build
-output. node and npm are installed, and a build takes about 25 seconds
-(measured 54 s on the bond-selection rebuild -- budget a minute).
+output. node and npm are installed, and a build takes about a minute
+(measured 54 s and 1m00 on two bond-selection rebuilds).
+
+**Forgetting the rebuild is silent** -- the tests pass, the app starts, and
+the feature is simply absent. `tests/test_ketcher_bundle_is_current.py`
+catches it: it extracts every `bridgeObject.foo(` from the JSX and asserts
+the name appears in the committed bundle, then that a `_Bridge` method of
+that name exists to receive it. Verified by simulating the mistake -- adding
+a call without rebuilding fails with the method named and the fix printed.
+
+**It is a string check, not a rebuild-and-diff, and that was measured
+rather than assumed.** The build IS byte-for-byte reproducible on one
+machine (snapshot the dist, rebuild, diff: 5 files, zero differences, git
+clean). But CI is Linux on a different node, and reproducibility across
+toolchains is a much stronger claim -- one byte from a minifier would fail
+every PR, and a check that cries wolf gets deleted. Bridge method names
+cannot be minified (they are properties of the object Qt injects), so they
+fingerprint the build for free and with no platform sensitivity. It needs
+no node in CI, and `tests.yml` runs bare `pytest`, so it was picked up
+without touching the workflow.
+
+**Building the dist in CI instead was considered and rejected**, with
+numbers: the whole `.git` is 40 MB, only 10 MB of it large blobs, and the
+dist has been rebuilt 3 times in the project's life. Moving the build out
+would cost node in CI, a build step on every fresh clone, and 19 tests that
+construct `KetcherEditorBackend` (which raises `FileNotFoundError` without
+a dist) -- to save single-digit megabytes. Git also records the rebuilds as
+99% renames, so successive versions barely cost anything.
 
 ## The bond and molecule reports, and what generalising cost
 
