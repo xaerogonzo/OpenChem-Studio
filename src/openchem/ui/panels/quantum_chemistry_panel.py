@@ -478,7 +478,7 @@ class QuantumChemistryPanel(QWidget):
         from openchem.chem.orca_led import estimate_led_cost_for
 
         estimate = estimate_led_cost_for(mol)
-        if not estimate.runnable:
+        if estimate.fragment_count != 2:
             QMessageBox.information(
                 parent,
                 "Two partners needed",
@@ -486,6 +486,15 @@ class QuantumChemistryPanel(QWidget):
                 "they are the fragments it decomposes the interaction between.\n\n"
                 "Draw the two partners as separate molecules (a Lewis acid and "
                 "its base, a hydrogen-bonded pair) rather than joined by a bond.",
+            )
+            return False
+        if estimate.geometry_problem:
+            # Refused, not warned. A live run of an overlapping pair produced
+            # +40619 kcal/mol -- arithmetically correct, physically
+            # meaningless, and indistinguishable from a real result once it
+            # is just a number on the panel.
+            QMessageBox.warning(
+                parent, "This geometry cannot be decomposed", estimate.geometry_problem
             )
             return False
 

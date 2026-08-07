@@ -93,6 +93,8 @@ HELP_TOPIC_BY_DOCK = {
     "Batch": "batch",
     "Structure_Check": "structure-check",
     "3D_Alignment": "alignment",
+    "Atom_Inspector": "atom-inspector",
+    "Interactions": "interactions",
     "Jobs": "jobs",
     "Console": "jobs",
 }

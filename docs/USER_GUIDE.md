@@ -206,6 +206,84 @@ carries no atom indices at all, and for those the locants come from ring
 templates instead of from the name — so an empty or partial result is a
 property of the naming path, not a failure.
 
+### Running several calculators at once
+
+Each calculator row has a tick box, and **Run selected** runs everything
+ticked. The selection spans categories, so you can tick something from
+Charge and something from Topology and run both together — they were
+already running on a thread pool, so this is genuinely concurrent rather
+than a queue.
+
+Batch runs use each calculator's **declared defaults and open no dialogs**.
+Six settings dialogs to avoid six clicks is not a saving, and no inspector
+windows are opened either — the results land in the panel as usual. If you
+want to configure one, run it on its own with **Open …**.
+
+---
+
+<!-- help:atom-inspector -->
+## Atom Inspector
+
+Everything the app knows about **one atom**, gathered in one place. Sixteen
+per-atom properties already existed across eight different panels and
+dialogs; this is the view that answers "tell me everything about atom 7"
+without visiting each of them.
+
+**It never calculates.** Opening it starts nothing and costs nothing — it
+shows what has already been computed, gathered as results arrive. An
+inspector that launched ORCA when you clicked an atom would be a
+calculator launcher, and you would stop trusting it.
+
+The atom table on the left is the primary navigation and works with no 3D
+structure at all, which is the normal state right after drawing something.
+Selecting an atom in the 3D viewer, or in the 2D editor, selects its row.
+
+Facts are grouped by **what kind of fact they are** — Identity, Electronic,
+Topology, Spectroscopy and so on — not by which calculator produced them,
+because four consecutive "Lewis" headings is not how anyone thinks about an
+atom. Identity and Electronic are open by default and the rest are
+collapsed; there can be well over a hundred facts on a well-studied atom.
+
+Each fact carries its basis and, where one exists, a link to the tool that
+owns it — with the parameters filled in, so "open NMR" means "open NMR,
+select this nucleus, highlight its peak". The search box filters by text
+("ring", "aromatic", "Lewis") once scrolling becomes the bottleneck.
+
+**Copy report** exports the whole thing as Markdown, plain text, JSON or
+CSV.
+
+Plugins can contribute here: an `AtomFactProvider` appears in the inspector
+alongside the built-in facts without either side knowing about the other.
+
+---
+
+<!-- help:interactions -->
+## Interactions
+
+Two questions about how a structure interacts, one panel.
+
+**Between two molecules** — pick a Lewis acid and a base and get three
+independent lines of evidence: a Drago–Wayland enthalpy estimate where both
+partners are in the parameter table, whether the HSAB hard/soft pairing is
+favourable, and the frontier-orbital gap where a quantum calculation has
+run.
+
+**There is deliberately no combined score.** The three answer different
+questions and which one is informative depends on the pair — and on the
+case the feature was built for they *disagree*: borane and BF₃ against
+carbon monoxide come out opposite ways on the orbital gap and the hardness
+proxy. Averaging them would have split the difference on a case where one
+line is simply right.
+
+**Within one molecule** — the Intramolecular tab finds internal hydrogen
+bonds, π-stacking and metal contacts, listing each with what kind it is,
+which atoms are involved and how far apart they are.
+
+Finding nothing is a result and says so. If there is no 3D conformer the
+panel names *that* as what is missing, rather than reporting no contacts —
+a molecule with no geometry has not been checked, which is a different
+statement from a molecule with no contacts.
+
 ---
 
 <!-- help:docking -->
@@ -273,6 +351,14 @@ total is the same.
 Lewis acid and its base, a hydrogen-bonded pair. A single connected
 molecule is refused, because there are then no partners to decompose an
 interaction between.
+
+**Then put them where they actually sit.** Generating 3D coordinates for a
+structure drawn as two separate species does *not* push them apart — there
+is nothing connecting them for the embedder to work with, so they come out
+stacked on top of each other. A run like that is refused rather than
+computed: the numbers it would produce are arithmetically correct and
+physically meaningless (measured: an interaction energy of +40 619
+kcal/mol from partners 0.15 Å apart).
 
 The job runs the complex *and* both partners on their own, in one go. That
 is not optional thoroughness — a decomposition of the complex by itself is
@@ -492,6 +578,29 @@ parameterised, and how many molecules it failed for and why.
   chemical-space plot.
 - **Distributions** — a histogram and summary statistics for any column,
   with the median drawn rather than only reported.
+- **Per-atom** — two molecules, one per-atom property, compared atom by
+  atom. Appears when the run produced per-atom data for at least two
+  molecules.
+
+The Per-atom tab answers a different question from the rest of the dialog:
+not "which columns move together across the project" but "which *atoms*
+differ between these two structures". Aspirin against salicylic acid shows
+`+0` down the shared benzene ring and the real difference at the one oxygen
+that changes — the ester against the phenol.
+
+**The atoms are matched by structure, not by index.** Aspirin's carbonyl
+carbon is atom 8 and salicylic acid's is atom 2; lining up index against
+index would subtract an oxygen from a carbon and report a confident number
+for it. Matching is by maximum common substructure, and aromatic bonds only
+match aromatic ones — so benzene will not map onto a sugar chain, and a
+comparison between molecules with nothing in common comes back nearly
+empty rather than nearly identical.
+
+Atoms with no counterpart are **left out and counted**, not shown as zero:
+the note under the table says how many matched and reminds you that the
+rest are exactly where the two structures genuinely differ. Categorical
+properties (ring system, functional group) are shown but never subtracted —
+the difference between two category ids is a number that means nothing.
 
 **Virtual screening** docks every molecule in the project into one receptor,
 one at a time, and ranks them. Take a target from File > Receptor Library
@@ -855,3 +964,8 @@ See [PLUGIN_SDK.md](PLUGIN_SDK.md) to write one.
 - **A molecule with no verified IUPAC name is normal.** The naming engine
   stays silent rather than emitting a name that will not parse back, so an
   empty Naming row is a refusal and not a failure.
+- **Generating 3D coordinates for two separate species does not push them
+  apart.** There is nothing connecting them, so they come out stacked on
+  top of each other rather than side by side. Anything that reasons about
+  how two partners sit together — the LED breakdown most of all — needs you
+  to place them yourself.

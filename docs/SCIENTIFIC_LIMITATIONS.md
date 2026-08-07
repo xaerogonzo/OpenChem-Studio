@@ -249,6 +249,45 @@ a Boltzmann population you should trust for anything quantitative.
 
 ---
 
+<!-- help:limits-led -->
+## Interaction energy decomposition (LED)
+
+**Only the total energy is an observable; the decomposition is, to some
+extent, arbitrary.** That is ORCA's own wording, and it is carried on every
+result rather than paraphrased here. There is no unique way to divide an
+interaction into "electrostatics" and "charge transfer" — the split depends
+on the scheme. Compare terms *between* similar systems, where the scheme is
+held constant; do not read a single term in isolation as a measured
+quantity.
+
+**No counterpoise correction.** Each fragment is computed in its own basis,
+so basis-set superposition error inflates the binding. Measured on BH₃·CO in
+cc-pVDZ: −36.6 kcal/mol against an experimental bond enthalpy near −25. The
+error is in a known direction (too negative) but is not corrected for.
+
+**A vertical interaction energy, not a bond dissociation energy.** The
+fragments are held at the geometry they have in the complex and never
+relaxed, so the number does not include the energy either partner recovers
+by relaxing once separated.
+
+**The decomposition is complete only to within a stated residual.** The
+terms are reported alongside how far they miss the total — a few hundredths
+of a kcal/mol in the reference case, arising from how DLPNO splits the
+triples correction. If that residual is large the result says so.
+
+**Not usable on anything drug-sized.** DLPNO-CCSD(T) cost rises very
+steeply: measured, 15 seconds for BH₃·CO (6 atoms) against 10 minutes and
+1.9 GB of scratch disk for a benzene–water pair (15 atoms). The estimate
+shown before launching is scaled from those two points — a guide to the
+order of the cost, not a prediction.
+
+**The result is only as good as the geometry you give it.** Two fragments
+placed on top of each other produce a large, confident and meaningless
+number; the app refuses those rather than reporting them, but it cannot
+tell a merely poor geometry from a good one.
+
+---
+
 <!-- help:limits-regulatory -->
 ## Regulatory screening
 

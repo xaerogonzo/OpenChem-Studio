@@ -190,6 +190,29 @@ class TestHelpRouting:
         qapp.processEvents()
         assert window._help_topic_for_visible_panel() == expected
 
+    def test_every_dock_the_window_builds_has_a_help_topic(
+        self, qapp, tmp_path, help_widgets
+    ):
+        """The guard that goes the OTHER way.
+
+        Both tests above iterate over `HELP_TOPIC_BY_DOCK`, so a panel
+        MISSING from the map is invisible to them -- its `?` button opens
+        help with nothing selected and no test notices. The Atom Inspector
+        and the Interactions panel both shipped that way and were only
+        found by reading the map against the docks by hand.
+        """
+        from PySide6.QtWidgets import QDockWidget
+
+        window = self._window(qapp, tmp_path, help_widgets)
+        docks = {
+            dock.objectName()
+            for dock in window.findChildren(QDockWidget)
+            if dock.objectName()
+        }
+        assert docks, "no docks found -- the traversal, not the map, is wrong"
+        missing = sorted(docks - set(HELP_TOPIC_BY_DOCK))
+        assert not missing, f"docks with no help topic: {missing}"
+
     def test_focus_in_the_editor_beats_a_visible_side_panel(self, qapp, tmp_path, help_widgets):
         window = self._window(qapp, tmp_path, help_widgets)
         window._center_tabs.setCurrentIndex(0)

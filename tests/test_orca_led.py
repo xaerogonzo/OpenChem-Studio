@@ -664,3 +664,113 @@ def test_the_fragment_count_comes_from_the_chem_layer():
     # The cost fields are still filled in, so a caller that ignores
     # `runnable` gets numbers rather than zeros.
     assert one.basis_functions > 0
+
+
+# --- the geometry gate, which a live run needed ---------------------------
+#
+# `EmbedMolecule` does not separate disconnected fragments -- there are no
+# constraints between them, so it packs them at the origin. Building an
+# ammonia/borane pair exactly as a user would put the N and the B 0.15 A
+# apart, and the app reported an interaction energy of +40619 kcal/mol as a
+# plain number. Right arithmetic, meaningless answer.
+
+_AMMONIA_BORANE = """
+     RDKit          3D
+
+  8  6  0  0  0  0  0  0  0  0999 V2000
+    0.0000    0.0000    0.8300 N   0  0  0  0  0  0  0  0  0  0  0  0
+    0.0000    0.9450    1.1800 H   0  0  0  0  0  0  0  0  0  0  0  0
+    0.8180   -0.4720    1.1800 H   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.8180   -0.4720    1.1800 H   0  0  0  0  0  0  0  0  0  0  0  0
+    0.0000    0.0000   -0.8300 B   0  0  0  0  0  0  0  0  0  0  0  0
+    0.0000   -1.0300   -1.1800 H   0  0  0  0  0  0  0  0  0  0  0  0
+    0.8920    0.5150   -1.1800 H   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.8920    0.5150   -1.1800 H   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0
+  1  3  1  0
+  1  4  1  0
+  5  6  1  0
+  5  7  1  0
+  5  8  1  0
+M  END
+"""
+
+
+def _pair(z_shift: float = 0.0):
+    """Ammonia and borane, with the borane moved along z by `z_shift`."""
+    from rdkit import Chem
+    from rdkit.Geometry import Point3D
+
+    mol = Chem.MolFromMolBlock(_AMMONIA_BORANE, removeHs=False)
+    if z_shift:
+        conformer = mol.GetConformer()
+        for index in (4, 5, 6, 7):
+            p = conformer.GetAtomPosition(index)
+            conformer.SetAtomPosition(index, Point3D(p.x, p.y, p.z + z_shift))
+    return mol
+
+
+def test_a_sensible_pair_has_no_geometry_problem():
+    from openchem.chem.orca_led import estimate_led_cost_for
+
+    estimate = estimate_led_cost_for(_pair())
+    assert estimate.fragment_count == 2
+    assert estimate.closest_contact == pytest.approx(1.66, abs=0.01)
+    assert estimate.geometry_problem == ""
+    assert estimate.runnable
+
+
+def test_overlapping_partners_are_refused_before_the_job_runs():
+    """The measured live failure. Nothing legitimate trips this: the H-H
+    bond is 0.74 A and ammonia borane's dative B-N is 1.66."""
+    from openchem.chem.orca_led import estimate_led_cost_for
+
+    estimate = estimate_led_cost_for(_pair(z_shift=1.5))
+    assert estimate.closest_contact < 0.7
+    assert not estimate.runnable
+    assert "overlap" in estimate.geometry_problem
+    # Names the cause, because "invalid geometry" is not actionable.
+    assert "two separate species" in estimate.geometry_problem
+
+
+def test_partners_too_far_apart_are_refused_too():
+    from openchem.chem.orca_led import estimate_led_cost_for
+
+    estimate = estimate_led_cost_for(_pair(z_shift=-20.0))
+    assert estimate.closest_contact > 8
+    assert not estimate.runnable
+    assert "too far to interact" in estimate.geometry_problem
+
+
+def test_a_structure_with_no_conformer_reports_no_geometry_problem():
+    """A missing conformer is not a geometry PROBLEM -- the panel refuses
+    that earlier with its own message, and claiming the partners overlap
+    would be a wrong explanation."""
+    from rdkit import Chem
+
+    from openchem.chem.orca_led import estimate_led_cost_for
+
+    estimate = estimate_led_cost_for(Chem.AddHs(Chem.MolFromSmiles("N.B")))
+    assert estimate.fragment_count == 2
+    assert estimate.geometry_problem == ""
+    assert estimate.closest_contact == 0.0
+
+
+def test_an_impossible_interaction_energy_is_called_out():
+    """The backstop. A bad geometry is the common cause but not the only
+    way to reach a number no chemistry can produce, and +40619 kcal/mol
+    reported as a plain number is indistinguishable from a real result."""
+    absurd = REAL_LED_OUTPUT.replace(
+        "FINAL SINGLE POINT ENERGY       -26.476269996270",
+        "FINAL SINGLE POINT ENERGY      -126.476269996270",
+    )
+    result = parse_led(absurd)
+    assert result
+    assert any("not physically possible" in note for note in result.limitations)
+    assert any("Do not use these numbers" in note for note in result.limitations)
+
+
+def test_a_normal_interaction_energy_is_not_called_out():
+    result = parse_led(REAL_LED_OUTPUT)
+    assert result.interaction_kcal == pytest.approx(-36.62, abs=0.01)
+    assert not any("not physically possible" in note for note in result.limitations)

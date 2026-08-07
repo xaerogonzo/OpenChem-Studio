@@ -53,7 +53,7 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **~4.5 minutes**, ending at `2695 passed, 2 skipped,
+A clean run is **3-4.5 minutes**, ending at `2706 passed, 2 skipped,
 1 deselected` (measured 2026-08-06 with the comparison and LED work applied,
 bytecode cleared). **That figure is from the DESELECTED form below, not the
 command above** -- run it bare and the same tree reports one FAILURE, from
@@ -406,143 +406,24 @@ So a handler reached through `addAction` keeps its own defaults --
 `_duplicate_molecule(molecule=None)` really does receive None -- and only
 `toggled`/`triggered` connections have to take the bool.
 
-#### The root of the cycles: `EventBus` now holds bound methods weakly
-
-`EventBus.subscribe` used to store the handler in a plain list. A bound
-method holds its object, so the bus owned every panel that ever subscribed
-and the panel owned the bus -- a cycle nothing could break by reference
-counting, leaving the whole graph to the cyclic collector.
-
-Bound methods are held with `weakref.WeakMethod` now; everything else is
-still held strongly, and that asymmetry is the load-bearing part. A lambda
-usually has no other reference, so held weakly it would be collected the
-instant `subscribe` returned and the subscription would silently never
-fire -- worse than a leak, because nothing looks wrong. Measured when the
-change was made: production code subscribes 38 bound methods and ZERO
-lambdas, while the tests subscribe 74 lambdas.
-
-Measured effect, per panel:
-
-| | before | after |
-| --- | --- | --- |
-| `JobsPanel` | refcounting | refcounting |
-| `DockingPanel` | needed the cyclic collector | **refcounting** |
-| `PropertyPanel` | leaked outright | **refcounting** |
-
-**It does NOT replace the teardown `gc.collect()`, and the numbers say so
-plainly.** With weak handlers and no collect, late C++ destructions went
-UP -- 138 before, 177 after -- because more objects are now destructible
-at all rather than leaked. With both, 8, against 2352 destroyed inside
-their own test. Keep both.
-
-It also moved MainWindow, without fixing it: with weak handlers AND the
-menu lambdas removed, the first window is destroyed cleanly and the
-SECOND construction segfaults, 5/5. So destroying a MainWindow leaves
-something process-global in a state the next one trips over. That is the
-next thread to pull; the section below still applies until it is pulled.
-
-#### What makes MainWindow destruction fault: the undo stack
-
-Bisected against the real window, by disabling one piece at a time:
-
-| window | destroyed |
-| --- | --- |
-| as built | **segfault 5/5** |
-| `_new_molecule` suppressed (nothing ever pushed) | clean 3/3 |
-| `_undo_stack.clear()` before dropping | clean 5/5 |
-| `close()` alone, before `closeEvent` cleared the stack | **segfault** |
-
-So commands sitting on the stack are what makes destruction fatal, and
-clearing it first is what makes destruction safe. `closeEvent` now clears
-it, which is why that line is there.
-
-**The mechanism is NOT understood, and nothing here should pretend
-otherwise.** A synthetic `QUndoCommand` on a `QUndoStack` destroys fine, so
-does the real `AddMoleculeCommand` in a minimal harness, and so does a
-hand-built `QMainWindow` carrying every panel, all three web views, custom
-dock title bars, a status-bar widget, scroll areas, menus and a plugin
-manager -- 3/3 each. It takes the whole real window. The commands are
-necessary but not sufficient.
-
-Ruled out along the way, each measured 3-5 times: `QWebEngineView`,
-`MoleculeEditorWidget`, `MoleculeViewer3DWidget`, `MolStarViewerBackend`,
-all three viewers together in a `QTabWidget`, `DockTitleBar`,
-`CheckerStatusIndicator`, `QScrollArea` + `tabifyDockWidget`, menus,
-`PluginManager`, and `_restore_window_state`.
-
-##### The full fix was built, measured, and NOT shipped
-
-Menu lambdas removed + `closeEvent` clearing the stack + the seven
-`test_main_window_*` files closing their windows: **the suite went green
-2/2**, and late C++ destructions went from 8 to **1190**. Closing a window
-does not lead to it being destroyed in its own test, and what still holds
-it was not identified. Trading a leak for a 150x increase in exactly the
-quantity that predicts this crash is not a trade worth making on a green
-run alone, so it was reverted. The `closeEvent` clear was kept: it is
-correct on its own and costs nothing.
-
-If someone picks this up, the open question is narrow and stated: after
-`window.close()` and a `gc.collect()` at teardown, what still references
-the window?
-
-#### DO NOT "FIX" MAINWINDOW'S MENU LAMBDAS. THE LEAK IS LOAD-BEARING.
-
-`MainWindow` leaks the same way, through about a dozen
-`menu.addAction(label, lambda: self._foo())` calls in `_build_menus`. It
-was fixed -- payload on the QAction via `setData`, bound dispatchers
-reading `sender()` -- and the fix was reverted, because removing the leak
-made the window collectable and **a MainWindow cannot be destroyed
-without corrupting the heap**:
-
-| tree | outcome |
-| --- | --- |
-| lambdas present | window LEAKED, never destroyed, 3/3 |
-| lambdas removed | really destroyed -> **segfault 8 / 8** |
-
-In the suite it surfaces as `Windows fatal exception: code 0xc0000374`
-(heap corruption) inside the teardown `gc.collect()`.
-
-**This is not a new bug and it was never a lambda bug.** MainWindow has
-never been destructible; the leak has always hidden it. That also explains
-the two earlier attempts to dispose abandoned MainWindows in the tests,
-which crashed 6/6 and 8/8 -- they were not causing a crash, they were
-DESTROYING A MAINWINDOW, which is the crash.
-
-Two measurement traps that wasted an hour here, both worth avoiding:
+Two measurement traps from the attempt that got reverted, both general:
 
 - **A probe that prints "destroyed" after `del` + `gc.collect()` proves
   nothing.** It has to assert with a weakref that the object really died.
   Without that, a leaked window reads as a successful destruction, and a
   bisect across eight commits reported "destructible" everywhere while
   destroying nothing at all.
-- **Reverting any ONE piece of the fix appeared to cure the crash.** It
-  did not -- it just left one lambda still leaking, so nothing was
-  destroyed. Any partial revert looks like a fix, which makes bisecting
-  within the change actively misleading.
-
-The individual children are fine: `QWebEngineView`, `MoleculeEditorWidget`,
-`MoleculeViewer3DWidget`, `MolStarViewerBackend`, and all three viewers
-together in a `QTabWidget`, destroy cleanly 3-5 times each. It is
-MainWindow as a whole.
-
-The likely mechanism, not yet confirmed: MainWindow, the service
-container, the EventBus and every panel form ONE cycle, so the collector
-takes them together in an order nobody controls, and Qt objects are
-finalised while other Qt objects still point at them. If that is right,
-the real fix is at the root -- `EventBus._handlers` holding bound methods
-STRONGLY is what welds the graph into a single cycle, and holding them
-weakly would let the pieces die by refcounting in a controlled order.
-That is a change to core event semantics and needs its own careful pass.
-
-A deterministic 20-line reproduction exists; rebuild it by constructing a
-MainWindow, dropping every reference, calling `gc.collect()`, and
-asserting with a weakref that it died.
+- **Reverting any ONE piece of the fix appeared to cure the crash.** It did
+  not -- it just left one lambda still leaking, so nothing was destroyed.
+  Any partial revert looks like a fix, which makes bisecting within the
+  change actively misleading.
 
 #### SOLVED. The census named it, and the fix is one line of timing.
 
-Read this before touching anything above: the two sections that follow are
-kept as the record of how it was chased, but the cause is now measured and
-the fix is in `tests/conftest.py`.
+Read this before acting on anything above it. The sections above are kept
+as the record of how it was chased and several of their intermediate
+conclusions were later reversed; the cause is now measured and the fix is
+in `tests/conftest.py`.
 
 **Census A (undelivered deletes) found nothing** -- 0 outstanding at every
 test boundary and at session end. `flush_deferred_deletes` had already
@@ -693,8 +574,9 @@ A `paintEvent` test that constructs a widget, resizes it and calls
 
 So `widget.grab()` (or showing it first) is the only way to exercise the
 painter. Four such tests existed and were green without ever running the
-code they named -- including one called `test_highlighting_survives_a_repaint`,
-in which no repaint occurred.
+code they named -- including one then called
+`test_highlighting_survives_a_repaint`, in which no repaint occurred. (That
+name is history, not a test to go and find; all four were rewritten.)
 
 **Use `conftest.painted()` / `conftest.ink()`**, which render into a
 `QImage` and force the paint.
@@ -722,10 +604,6 @@ transparent ones, for reason 1 above.
 Tests that assert on child-widget structure rather than drawing -- e.g.
 `test_structure_grid_widget.py` counting cells in a layout -- are not
 affected and do not need any of this.
-
-Tests that assert on child-widget structure rather than drawing -- e.g.
-`test_structure_grid_widget.py` counting cells in a layout -- are not
-affected and do not need this.
 
 ### The formerly-flaky webview test
 
@@ -858,6 +736,36 @@ Editing `tools/ketcher-host/src/main.jsx` requires `npm run build` in that
 directory for anything to change; `resources/ketcher/dist/` is build
 output. node and npm are installed, and a build takes about 25 seconds.
 
+## A new panel needs a help topic, and nothing was checking
+
+`HELP_TOPIC_BY_DOCK` in `app/main_window.py` maps a dock's object name to a
+section anchor in `docs/`. Both guards in `tests/test_help.py` iterated
+**over the map**, so a panel MISSING from it was invisible to them: its `?`
+button opened help with nothing selected, and the suite stayed green.
+
+The Atom Inspector and the Interactions panel both shipped that way and
+were found by reading the map against the docks by hand during a
+documentation sweep. `test_every_dock_the_window_builds_has_a_help_topic`
+now goes the other direction and names the offending dock.
+
+A documentation sweep is worth doing for the same reason: it found four
+shipped features with no user-facing documentation at all, and an LED
+section missing from `SCIENTIFIC_LIMITATIONS.md` -- the file that exists
+precisely to say what the app cannot honestly tell you.
+
+**CLAUDE.md itself had drifted badly.** 132 lines were a stale duplicate of
+the four sections above them, reaching the OPPOSITE conclusions: an
+all-caps "DO NOT 'FIX' MAINWINDOW'S MENU LAMBDAS. THE LEAK IS
+LOAD-BEARING." sat directly below "MainWindow's menu lambdas ARE fixed
+now". Anyone reading top-to-bottom hit the correct account and then a
+shoutier contradiction of it. Check for this when adding to a long
+troubleshooting file -- appending a corrected account does not remove the
+old one:
+
+```bash
+rg -n "^#{2,5} " CLAUDE.md | awk -F': ' '{print $2}' | sort | uniq -d
+```
+
 ## Verification standard
 
 This project's convention, established across many sessions: **claims are
@@ -973,6 +881,34 @@ RDKit, and the pre-launch cost dialog did exactly that to count fragments
 with `Chem.GetMolFrags`. It reads as obviously fine in isolation, which is
 the point -- the count now comes from `estimate_led_cost_for` in the chem
 layer and the UI imports nothing chemical.
+
+#### `EmbedMolecule` does NOT separate disconnected fragments
+
+Found by running the app, after every test was green, and it is the best
+argument in this file for doing live checks at all.
+
+Building an ammonia/borane pair the way a user would -- draw two species,
+generate 3D -- put the **N and the B 0.15 A apart**, interpenetrating.
+There are no constraints between disconnected fragments, so the embedder
+packs them at the origin. ORCA then ran the job perfectly happily and the
+panel reported:
+
+    Interaction energy (LED): 40619.295952 kcal/mol
+    Electrostatics:            8251.870486 kcal/mol     (should be negative)
+
+**Correct arithmetic, meaningless answer, presented as a plain number** --
+the worst combination, and nothing anywhere said so. The parser was fine:
+the same pair at a real geometry (B-N 1.66 A) gives -52.76 kcal/mol with a
+0.006 residual, matching the offline run to every digit.
+
+Two guards now, and the split matters. `estimate_led_cost_for` measures the
+closest inter-fragment approach and REFUSES below 0.7 A (shorter than any
+real bond -- H-H is 0.74) or beyond 8 A, before any compute. `parse_led`
+adds a limitation past 300 kcal/mol, since a bad geometry is the common
+cause of an impossible number but not the only one.
+
+Anything else that consumes a drawn multi-fragment structure has the same
+exposure. The embedder will not tell you.
 
 ### An engine and its own data table have to be run against each other
 

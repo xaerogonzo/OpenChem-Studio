@@ -104,6 +104,12 @@ _FINAL_SP_RE = re.compile(r"FINAL SINGLE POINT ENERGY\s+(-?\d+\.\d+)")
 _REF_ENERGY_RE = re.compile(r"E\(0\)\s+\.\.\.\s+(-?\d+\.\d+)")
 _FINAL_CORR_RE = re.compile(r"Final correlation energy\s+\.\.\.\s+(-?\d+\.\d+)")
 
+#: Beyond this magnitude the "interaction energy" is not one. A dative bond
+#: like ammonia borane's is around -50 kcal/mol and the strongest single
+#: covalent bonds reach roughly -200, so this refuses to call anything an
+#: interaction that no chemistry could produce.
+_IMPLAUSIBLE_KCAL = 300.0
+
 #: ORCA prints this when the orbital localisation hits its iteration cap.
 #: It appeared TWICE in the reference BH3-CO run and the job still finished
 #: with a plausible answer, which is exactly why it must be surfaced -- a
@@ -405,6 +411,19 @@ def parse_led(output_text: str) -> LedDecomposition:
             f"by {residual * HARTREE_KCAL:.2f} kcal/mol. Treat the "
             "decomposition as unreliable."
         )
+    if abs(interaction * HARTREE_KCAL) > _IMPLAUSIBLE_KCAL:
+        # The backstop for the geometry check in `estimate_led_cost_for`.
+        # That one runs before the job and catches the common cause;
+        # this one catches whatever else produced a number no chemical
+        # interaction can reach. Measured live: overlapping fragments gave
+        # +40619 kcal/mol, reported as a plain number with nothing to say
+        # it could not be real.
+        limitations.append(
+            f"An interaction energy of {interaction * HARTREE_KCAL:,.0f} kcal/mol "
+            "is not physically possible -- the strongest single bonds are near "
+            "-200. The input geometry is almost certainly wrong; the usual cause "
+            "is two fragments overlapping. Do not use these numbers."
+        )
 
     return LedDecomposition(
         terms=terms,
@@ -439,11 +458,16 @@ class LedCostEstimate:
     #: RDKit to find out -- `tests/test_layering.py` forbids that, and
     #: caught it.
     fragment_count: int = 2
+    #: Closest approach between the two fragments, in angstroms. 0.0 when
+    #: there are not two fragments to measure between.
+    closest_contact: float = 0.0
+    #: Why the geometry cannot give a meaningful answer, or "".
+    geometry_problem: str = ""
     fields: dict = field(default_factory=dict)
 
     @property
     def runnable(self) -> bool:
-        return self.fragment_count == 2
+        return self.fragment_count == 2 and not self.geometry_problem
 
 
 #: Basis functions per element in the basis this job actually uses, taken
@@ -619,17 +643,75 @@ def led_evidence(decomposition: LedDecomposition) -> list[AdductEvidence]:
     return lines
 
 
+#: Below this separation the two fragments are not two species in contact,
+#: they are overlapping. Shorter than any real bond -- H-H is 0.74 A and
+#: the B-N dative bond of ammonia borane is 1.66 -- so nothing legitimate
+#: trips it.
+_OVERLAP_ANGSTROM = 0.7
+
+#: Past this there is nothing to decompose. Van der Waals contact is 3-4 A.
+_TOO_FAR_ANGSTROM = 8.0
+
+
 def estimate_led_cost_for(mol) -> LedCostEstimate:
-    """`estimate_led_cost` for an RDKit molecule, with its fragment count.
+    """`estimate_led_cost` for an RDKit molecule, plus what is wrong with it.
 
     Exists so the UI can decide whether to run an LED job without importing
     RDKit -- `tests/test_layering.py` forbids that, and caught it when the
     panel's confirmation dialog did exactly that to count fragments.
+
+    **The geometry check is here because a live run needed it.** RDKit's
+    `EmbedMolecule` does not separate disconnected fragments -- there are no
+    constraints between them, so it packs them at the origin. Measured on an
+    ammonia/borane pair built exactly as a user would: the N and the B came
+    out **0.15 A apart**, interpenetrating. ORCA ran it happily and the app
+    reported an interaction energy of **+40619 kcal/mol** as a plain number.
+    The arithmetic was right and the answer was meaningless, which is the
+    worst combination and the one this catches.
     """
     from rdkit import Chem
 
     estimate = estimate_led_cost([atom.GetSymbol() for atom in mol.GetAtoms()])
-    return replace(estimate, fragment_count=len(Chem.GetMolFrags(mol)))
+    pieces = Chem.GetMolFrags(mol)
+    contact, problem = _geometry_problem(mol, pieces)
+    return replace(
+        estimate,
+        fragment_count=len(pieces),
+        closest_contact=contact,
+        geometry_problem=problem,
+    )
+
+
+def _geometry_problem(mol, pieces) -> tuple[float, str]:
+    """Closest inter-fragment approach, and why it is unusable.
+
+    Returns (0.0, "") when there is nothing to measure -- no conformer, or
+    not exactly two fragments. A missing conformer is not a geometry
+    PROBLEM: the panel refuses that earlier, with its own message.
+    """
+    if len(pieces) != 2 or mol.GetNumConformers() == 0:
+        return 0.0, ""
+
+    conformer = mol.GetConformer()
+    positions = [conformer.GetAtomPosition(i) for i in range(mol.GetNumAtoms())]
+    closest = min(
+        positions[i].Distance(positions[j]) for i in pieces[0] for j in pieces[1]
+    )
+
+    if closest < _OVERLAP_ANGSTROM:
+        return closest, (
+            f"The two partners overlap -- their closest atoms are {closest:.2f} A "
+            "apart, shorter than any real bond. Generating 3D coordinates for a "
+            "structure drawn as two separate species does NOT push them apart, "
+            "so they end up stacked at the origin. Place them in contact "
+            "yourself, or optimise the pair first."
+        )
+    if closest > _TOO_FAR_ANGSTROM:
+        return closest, (
+            f"The two partners are {closest:.1f} A apart at their closest, which "
+            "is too far to interact. There would be nothing to decompose."
+        )
+    return closest, ""
 
 
 def _runtime(minutes: float) -> str:
