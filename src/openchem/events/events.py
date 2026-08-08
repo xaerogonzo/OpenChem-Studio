@@ -47,6 +47,19 @@ class CrystalSelected(Event):
 
 
 @dataclass(frozen=True)
+class CrystalChanged(Event):
+    """A crystal was renamed, added or removed.
+
+    Its own event rather than `MoleculeChanged`, on the same reasoning as
+    `CrystalSelected`: a panel refreshing on a molecule change should not
+    be woken by a crystal, and a crystal uuid must never be looked up in
+    `project.molecules`.
+    """
+
+    crystal_uuid: str | None
+
+
+@dataclass(frozen=True)
 class MoleculeSnapshotUpdated(Event):
     """A lightweight, read-only snapshot of a molecule's identity fields.
 

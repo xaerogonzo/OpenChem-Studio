@@ -657,12 +657,6 @@ document may cite a file or a test that does not exist.
   lattice-energy fact at all rather than a guessed one. The volume comes
   from the cell, so no ionic radius is involved and a complex ion works
   as readily as a monatomic one.
-- **OPEN** -- a crystal cannot be renamed or deleted from the project
-  tree. Its row is deliberately not editable, because rename resolves
-  through `RenameMoleculeCommand` and a crystal is not a molecule; a
-  `RenameCrystalCommand`/`DeleteCrystalCommand` pair would close it.
-  Documented as a limitation in `USER_GUIDE.md` rather than left to be
-  discovered.
 - **DECISION** -- a calculation cannot be ADDRESSED to a crystal.
   `CalculationRequest` carries a `molecule_uuid` and nothing else, which
   makes the mistake unrepresentable rather than merely discouraged;

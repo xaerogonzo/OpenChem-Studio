@@ -7,11 +7,17 @@ from PySide6.QtGui import QGuiApplication, QKeySequence, QShortcut, QUndoStack
 from PySide6.QtWidgets import QListWidget, QListWidgetItem, QMenu, QVBoxLayout, QWidget
 
 from openchem.chem.identifiers import identifier_for_molblock
+from openchem.commands.crystal_commands import DeleteCrystalCommand, RenameCrystalCommand
 from openchem.commands.molecule_commands import DeleteMoleculeCommand, RenameMoleculeCommand
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
-from openchem.events.events import CrystalSelected, MoleculeChanged, MoleculeSelected
+from openchem.events.events import (
+    CrystalChanged,
+    CrystalSelected,
+    MoleculeChanged,
+    MoleculeSelected,
+)
 
 
 #: Second data role on each row, saying what kind of thing it is. The
@@ -21,6 +27,9 @@ from openchem.events.events import CrystalSelected, MoleculeChanged, MoleculeSel
 _KIND_ROLE = Qt.ItemDataRole.UserRole + 1
 _MOLECULE = "molecule"
 _CRYSTAL = "crystal"
+#: Appended to a crystal row so one flat list stays readable. Chrome,
+#: never part of the stored name -- see `_on_item_changed`.
+_CRYSTAL_SUFFIX = "  [crystal]"
 
 
 class ProjectExplorerPanel(QWidget):
@@ -69,6 +78,7 @@ class ProjectExplorerPanel(QWidget):
             Qt.ShortcutContext.WidgetShortcut
         )
         event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
+        event_bus.subscribe(CrystalChanged, self._on_molecule_changed)
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
@@ -86,14 +96,15 @@ class ProjectExplorerPanel(QWidget):
                 item.setData(_KIND_ROLE, _MOLECULE)
                 self._list.addItem(item)
             for crystal in self._project.crystals:
-                item = QListWidgetItem(f"{crystal.display_name}  [crystal]")
-                # **Deliberately NOT editable.** Renaming goes through
-                # `RenameMoleculeCommand`, which looks its uuid up in
-                # `project.molecules`; a crystal row would either do
-                # nothing or rename whatever molecule sorted alongside.
-                # The suffix is what distinguishes it, since this is one
-                # flat list and an unlabelled row would read as a
-                # molecule.
+                item = QListWidgetItem(f"{crystal.display_name}{_CRYSTAL_SUFFIX}")
+                # Editable now that `RenameCrystalCommand` exists. Before
+                # it did, an editable row would have reached
+                # `RenameMoleculeCommand`, which resolves its uuid against
+                # `project.molecules` -- so it would either do nothing or
+                # rename an unrelated molecule.
+                item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
+                # The suffix distinguishes it, since this is one flat list
+                # and an unlabelled row would read as a molecule.
                 item.setData(Qt.ItemDataRole.UserRole, crystal.uuid)
                 item.setData(_KIND_ROLE, _CRYSTAL)
                 self._list.addItem(item)
@@ -111,6 +122,12 @@ class ProjectExplorerPanel(QWidget):
 
     def _on_molecule_changed(self, event: MoleculeChanged) -> None:
         self.refresh()
+
+    def _crystal_for_item(self, item: QListWidgetItem):
+        """The crystal a row stands for, or None for a molecule row."""
+        if self._project is None or item.data(_KIND_ROLE) != _CRYSTAL:
+            return None
+        return self._project.find_crystal(item.data(Qt.ItemDataRole.UserRole))
 
     def _molecule_for_item(self, item: QListWidgetItem):
         """The molecule a row stands for, or None.
@@ -208,13 +225,34 @@ class ProjectExplorerPanel(QWidget):
             self._delete_item(item)
 
     def _delete_item(self, item: QListWidgetItem) -> None:
+        if self._project is None:
+            return
+        crystal = self._crystal_for_item(item)
+        if crystal is not None:
+            self._undo_stack.push(
+                DeleteCrystalCommand(self._project, crystal, self._event_bus)
+            )
+            return
         molecule = self._molecule_for_item(item)
-        if molecule is None or self._project is None:
+        if molecule is None:
             return
         self._undo_stack.push(DeleteMoleculeCommand(self._project, molecule, self._event_bus))
 
     def _on_item_changed(self, item: QListWidgetItem) -> None:
         if self._refreshing:
+            return
+        crystal = self._crystal_for_item(item)
+        if crystal is not None:
+            # The row carries the "  [crystal]" suffix, which is chrome
+            # rather than part of the name -- editing the row hands it
+            # back, and storing it would grow one suffix per rename.
+            new_name = item.text().removesuffix(_CRYSTAL_SUFFIX).strip()
+            if not new_name or new_name == crystal.display_name:
+                self.refresh()
+                return
+            self._undo_stack.push(
+                RenameCrystalCommand(crystal, new_name, self._event_bus)
+            )
             return
         molecule = self._molecule_for_item(item)
         if molecule is None:

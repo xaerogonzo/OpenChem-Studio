@@ -1313,8 +1313,11 @@ Two consequences worth knowing:
   means a project saved today reads *better* tomorrow if the CIF reader
   improves, and nothing the reader currently ignores is thrown away.
 
-Crystals cannot be renamed or deleted from the tree yet; remove one by
-starting a new project.
+Rename a crystal by double-clicking its row, and delete it with the
+Delete key or the context menu — both undoable, and undo puts a deleted
+crystal back where it was rather than at the bottom. The `[crystal]`
+marker is part of the display, not the name: editing the row hands the
+whole string back and the marker is stripped before saving.
 
 ### Clicking an atom in the cell
 

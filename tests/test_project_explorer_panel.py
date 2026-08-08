@@ -173,27 +173,71 @@ def test_selecting_a_crystal_publishes_its_own_event(qapp):
     assert all(e.molecule_uuid != project.crystals[0].uuid for e in molecule_events)
 
 
-def test_a_crystal_row_is_not_renameable(qapp):
-    """Rename goes through `RenameMoleculeCommand`, which resolves its
-    uuid against `project.molecules`. A crystal row reaching it would
-    either do nothing or rename an unrelated molecule."""
-    panel, _project, _undo, _bus = _panel_with_a_crystal(qapp)
-    crystal_row = panel._list.item(1)
+def test_a_crystal_row_can_be_renamed_through_its_own_command(qapp):
+    """It could NOT be, until `RenameCrystalCommand` existed: rename went
+    through `RenameMoleculeCommand`, which resolves its uuid against
+    `project.molecules`, so an editable crystal row would either do
+    nothing or rename an unrelated molecule. The flag was the guard; the
+    command is the fix."""
+    panel, project, undo, _bus = _panel_with_a_crystal(qapp)
+    row = panel._list.item(1)
+    assert row.flags() & Qt.ItemFlag.ItemIsEditable
 
-    # The flag is the load-bearing half -- removing it fails here.
-    assert not (crystal_row.flags() & Qt.ItemFlag.ItemIsEditable)
-    # This also holds, but for a second reason (a crystal uuid is not in
-    # `project.molecules`), so it does not discriminate on its own.
-    assert panel._molecule_for_item(crystal_row) is None
+    row.setText("Rock salt  [crystal]")
+
+    assert project.crystals[0].display_name == "Rock salt"
+    assert project.molecules[0].display_name == "Codeine"  # untouched
+    undo.undo()
+    assert project.crystals[0].display_name == "Halite"
 
 
-def test_deleting_a_crystal_row_does_not_touch_the_molecules(qapp):
-    """The delete path resolves a molecule first, so a crystal row is
-    inert rather than destructive."""
+def test_the_crystal_suffix_is_chrome_and_never_becomes_part_of_the_name(qapp):
+    """The row reads "Halite  [crystal]" and editing hands that whole
+    string back. Storing it would grow one suffix per rename."""
     panel, project, _undo, _bus = _panel_with_a_crystal(qapp)
-    panel._list.setCurrentRow(1)
 
-    panel._delete_selected()  # must not raise
+    panel._list.item(1).setText("Rock salt  [crystal]")
+    panel.refresh()
+    panel._list.item(1).setText(panel._list.item(1).text())  # a no-op edit
 
+    assert project.crystals[0].display_name == "Rock salt"
+
+
+def test_deleting_a_crystal_removes_only_it_and_is_undoable(qapp):
+    """Its own command, so the molecules are untouched -- and undo puts
+    it back WHERE IT WAS, the lesson `DeleteMoleculeCommand` records."""
+    from openchem.domain.crystal import CrystalModel
+
+    panel, project, undo, _bus = _panel_with_a_crystal(qapp)
+    project.crystals.insert(0, CrystalModel(display_name="Quartz", cif_text="data_q"))
+    panel.refresh()
+    panel._list.setCurrentRow(2)  # row 0 is the molecule, 1 Quartz, 2 Halite
+
+    panel._delete_selected()
+
+    assert [c.display_name for c in project.crystals] == ["Quartz"]
     assert len(project.molecules) == 1
-    assert len(project.crystals) == 1
+
+    undo.undo()
+
+    assert [c.display_name for c in project.crystals] == ["Quartz", "Halite"]
+
+
+def test_undo_restores_a_crystal_to_its_ORIGINAL_position(qapp):
+    """Undo has to be a true inverse. Appending would move a crystal
+    deleted from the middle to the bottom, which is also a diff in every
+    saved project file."""
+    from openchem.domain.crystal import CrystalModel
+
+    panel, project, undo, _bus = _panel_with_a_crystal(qapp)
+    project.crystals[:] = [
+        CrystalModel(display_name=name, cif_text="data_x")
+        for name in ("First", "Middle", "Last")
+    ]
+    panel.refresh()
+    panel._list.setCurrentRow(2)  # one molecule row, then "Middle"
+
+    panel._delete_selected()
+    undo.undo()
+
+    assert [c.display_name for c in project.crystals] == ["First", "Middle", "Last"]
