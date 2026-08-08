@@ -577,6 +577,38 @@ distances are the measurement; the count is an interpretation of them.**
 plane. Any rotation of that is equally valid crystallography and will not
 match these coordinates.
 
+### Clicking a site, and what its geometry does and does not mean
+
+Clicking an atom in the unit cell reports that crystallographic site's
+first coordination shell: the neighbours, their distances, and the
+coordination polyhedron. The polyhedron uses **the same classifier as the
+molecular path**, with the same 10° tolerance and the same references —
+one answer computed one way, whether the subject is a metal complex or a
+lattice site. Halite's sodium comes out octahedral at 0.0° RMSD, six
+chlorides at 2.820 Å.
+
+**The geometry describes whatever the shell rule returned, and the shell
+rule is not a bond-finder.** The shell is cut at the largest relative gap
+in the sorted distances, which works for the ionic and mineral structures
+it was built for and less well wherever hydrogen and heavy atoms mix: the
+biggest gap is then usually the one between the hydrogens and everything
+else. Measured on COD 1511792, a methyl carbon's shell is its three
+hydrogens at 0.986–0.996 Å, with the C–C bond at 1.47 Å beyond a 47.6%
+jump. Three hydrogens 109° apart score 11.0° against trigonal planar and
+are reported irregular — correct for that set of neighbours, and
+misleading only if you cannot see what the set is. **That is why the
+neighbour composition is always named** ("3 (3 H)") rather than only
+counted.
+
+**A neighbour is a contact, not a bond.** Nothing in a site report
+asserts that two atoms are bonded, and several neighbours of any site
+normally belong to adjacent unit cells — they are found as explicit
+periodic images.
+
+**A crystal click and a molecule click are different index spaces.** They
+travel on separate signals and reach separate consumers; a crystal atom
+and a molecular atom that share index 7 are not the same object.
+
 ### What the CIF reader does not do
 
 Anisotropic displacement parameters, disorder groups, restraints and

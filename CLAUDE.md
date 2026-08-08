@@ -1578,14 +1578,70 @@ So a genuinely planar complex from a 3D source is accepted, and a 2D
 drawing still is not. `GetNumConformers() > 0` remains useless as a check
 -- it is true for every drawn structure.
 
-#### `CoordinationShell` keeps distances and DISCARDS positions
+#### `CoordinationShell` used to keep distances and DISCARD positions
 
-`chem/crystal_analysis.Neighbour` carries `element`, `site_label` and
-`distance` only, so the crystal path cannot currently report an angle at
-all. `classify_coordination_geometry` takes bare coordinates rather than
-an RDKit molecule precisely so it can serve that path once the positions
-are carried -- but they are not carried yet. Anything wanting crystal
-coordination geometry has to widen `Neighbour` first.
+FIXED. `Neighbour` now carries the Cartesian position of the periodic
+IMAGE that is actually close -- not the asymmetric-unit atom's, which
+would point half of any shell in the wrong direction -- and
+`CoordinationShell` carries the centre's. `coordination_shell` had both
+in hand the whole time and threw them away, which is the only reason the
+crystal path could not report an angle.
+
+`classify_coordination_geometry` takes bare coordinates rather than an
+RDKit molecule precisely so both paths share it. Halite's sodium comes
+out octahedral at 0.0 RMSD, six chlorides at 2.820 A, verified live.
+
+`test_a_neighbour_carries_the_position_of_the_IMAGE_that_is_close`
+asserts `dist(neighbour.position, shell.centre) == neighbour.distance`
+for every neighbour, which catches the untranslated-original mutation.
+
+#### A crystal click DID reach the molecular measurement, and it shipped
+
+`MoleculeViewer3DWidget.show_crystal` did not clear `_molecule`, so
+`_on_atoms_selected` ran the distance measurement on whatever conformer
+was loaded, using indices that came from the unit cell. Correct
+arithmetic on the wrong object, printed as a plain number -- the same
+shape as the 40619 kcal/mol interaction energy.
+
+The Atom Inspector was spared only by luck: `_atom_is_in_report` refuses
+out-of-range indices, so a crystal click into it silently did nothing.
+
+Fixed with a separate `crystal_site_clicked` signal and a
+`_crystal_scene` flag that `show_crystal` sets and `set_molecule`
+clears -- both halves, because a molecule shown after a cell was the
+same confusion in mirror image.
+
+#### The crystal click index DOES address the scene atoms, measured
+
+`scene_as_xyz` writes atoms in `scene["atoms"]` order and 3Dmol preserves
+it, so `atom.index` from a click indexes that list directly. **Checked
+against the real vendored bundle rather than assumed** -- 60 atoms of COD
+1504676, element AND x-coordinate -- because the Ketcher work proved the
+identical assumption wrong there (a pool id is not a molfile position).
+No translation table is needed here, and now that is a measurement.
+
+Probe recipe, if it ever needs re-checking: build the backend, **size and
+show its widget** (`drawWhenSized` waits for 200x150, so a bare unsized
+view never draws), `load_crystal`, pump ~4 s, then
+`JSON.stringify(viewer.getModel().selectedAtoms({}).map(...))`.
+
+#### The shell rule is not a bond-finder, and hydrogens break it
+
+The shell is cut at the largest RELATIVE gap in the sorted distances,
+which suits the ionic structures it was built for. In anything with
+hydrogens the biggest gap is usually between the hydrogens and everything
+else. Measured on COD 1511792:
+
+    C1 (methyl)   H 0.986, H 0.989, H 0.996 | 47.6% gap | C-C at 1.47 cut
+    B1            F 1.361, F 1.368, O 1.502, O 1.503 -> tetrahedral 2.9
+
+So a methyl carbon reports three hydrogens at 109 deg, scores 11.0
+against trigonal planar, and comes out irregular. That is correct for
+that set of neighbours and misleading only if you cannot see what the set
+IS -- which is why the composition is always named ("3 (3 H)") and not
+merely counted. **Do not widen the geometry tolerance to make this read
+better**: 12 deg would break the trigonal-bipyramidal/square-pyramidal
+uniqueness bound and the site would still be wrong.
 
 ### A library DEFAULT can be a different quantity, not a tuning knob
 

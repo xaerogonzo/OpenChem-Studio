@@ -1295,3 +1295,27 @@ derived from.
 The cell is fitted to the viewer when it is drawn. It sits a little above
 centre in the panel; scroll to zoom and drag to rotate as with any
 structure.
+
+### Clicking an atom in the cell
+
+**Click any sphere** and the status bar names that site's coordination
+environment in one line:
+
+    Na1 (Na): 6 neighbours (6 Cl), octahedral, nearest Na-Cl 2.820 A
+
+A window opens alongside it with the full detail — every neighbour and
+its distance, the mean, the coordination polyhedron and, under
+*Everything*, all the neighbour–site–neighbour angles. Clicking a second
+atom **replaces** what that window shows rather than opening another, so
+you can walk around a structure comparing sites.
+
+Two things worth knowing about the answer:
+
+- **The neighbours are named, not just counted.** "6 (6 Cl)" and
+  "3 (3 H)" are very different environments, and the composition is what
+  tells you which you are looking at. If a geometry looks odd, the
+  neighbour list usually explains it — see the coordination note in
+  `SCIENTIFIC_LIMITATIONS.md`.
+- **Several neighbours belong to next-door cells.** They are found as
+  real periodic images, which is why halite's sodium has six chlorides
+  even though the asymmetric unit holds one.

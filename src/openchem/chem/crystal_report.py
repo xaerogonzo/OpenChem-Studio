@@ -287,3 +287,113 @@ def build_crystal_report(crystal: Crystal, *, report_id: str = "crystal") -> Rep
         ),
         provenance=Provenance(created_by="core", method="crystallography"),
     )
+
+
+def build_site_report(environment, *, report_id: str = "crystal_site") -> ReportResult:
+    """What one crystallographic site is surrounded by.
+
+    Built for a CLICK on the picture, and so it answers "what is this
+    atom" rather than "what is this structure". Reuses `ReportResult` and
+    `FactView` for the same reason `build_crystal_report` does: somebody
+    who has learned the report surface once should not learn a second one
+    because the subject is periodic.
+    """
+    from openchem.domain.common import Provenance
+
+    shell = environment.shell
+    geometry = environment.geometry
+    facts: list[Fact] = [
+        _fact(FactCategory.IDENTITY, "Site", environment.site_label, environment.site_label),
+        _fact(FactCategory.IDENTITY, "Element", environment.element, environment.element),
+        _fact(
+            FactCategory.STRUCTURE,
+            "Neighbours",
+            shell.coordination_number,
+            f"{shell.coordination_number} ({environment.composition})"
+            if shell.neighbours
+            else "none found",
+            evidence=(
+                f"within {shell.search_radius:.1f} A, cut at the largest relative "
+                "gap in the sorted distances",
+            ),
+            limitations=(
+                ()
+                if shell.is_clear_cut
+                else (
+                    f"The gap that ended this shell is only {shell.gap_fraction:.0%}, "
+                    "so the coordination number here depends on the threshold and is "
+                    "genuinely arguable.",
+                )
+            ),
+        ),
+    ]
+
+    if shell.neighbours:
+        facts.append(
+            _fact(
+                FactCategory.GEOMETRY,
+                "Neighbour distances",
+                [round(n.distance, 4) for n in shell.neighbours],
+                ", ".join(
+                    f"{n.element}{n.site_label} {n.distance:.3f}" for n in shell.neighbours
+                ),
+                units="A",
+            )
+        )
+        facts.append(
+            _fact(
+                FactCategory.GEOMETRY,
+                "Mean distance",
+                round(shell.mean_distance, 4),
+                f"{shell.mean_distance:.3f}",
+                units="A",
+            )
+        )
+        facts.append(
+            _fact(
+                FactCategory.GEOMETRY,
+                "Coordination geometry",
+                geometry.name,
+                geometry.summary,
+                # HEURISTIC, matching the molecular path: the angles are
+                # trigonometry but naming a polyhedron takes a chosen
+                # tolerance. Same classifier, same basis.
+                basis=Basis.HEURISTIC,
+                evidence=(
+                    "RMS deviation over every neighbour-site-neighbour angle, "
+                    "against the reference polyhedron with the same neighbour count",
+                ),
+                limitations=(
+                    "The shell is cut at the largest relative distance gap, and in "
+                    "a structure containing hydrogen that gap usually falls between "
+                    "the hydrogens and the heavy atoms. A light-atom site can "
+                    "therefore report its hydrogens alone -- the neighbour list "
+                    "above says which, and the geometry describes exactly that set.",
+                ),
+            )
+        )
+        if geometry.angles:
+            facts.append(
+                _fact(
+                    FactCategory.GEOMETRY,
+                    "Neighbour-site-neighbour angles",
+                    [round(a, 1) for a in geometry.angles],
+                    ", ".join(f"{a:.1f}" for a in geometry.angles),
+                    units="degrees",
+                    detail=Detail.ADVANCED,
+                )
+            )
+
+    return ReportResult(
+        molecule_uuid="",
+        report_id=report_id,
+        name=f"Site {environment.site_label}",
+        category="structure",
+        facts=tuple(facts),
+        limitations=(
+            "Neighbours are found as explicit periodic images, so several of them "
+            "usually belong to neighbouring unit cells. A contact is not a bond: "
+            "nothing here asserts that these atoms are bonded.",
+        ),
+        provenance=Provenance(created_by="core", method="crystallography"),
+    )

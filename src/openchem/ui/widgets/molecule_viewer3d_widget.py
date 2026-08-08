@@ -55,6 +55,15 @@ class MoleculeViewer3DWidget(QWidget):
     #: a second consumer having to reach for the private backend.
     atom_clicked = Signal(int)
 
+    #: An index into the CRYSTAL scene's atom list, when a unit cell is
+    #: what is on screen. **A separate signal on purpose**: a crystal
+    #: atom and a molecular atom that share index 7 are not the same
+    #: object, and the consumers differ -- the Atom Inspector wants a
+    #: molecule's report, a crystal click wants a coordination shell.
+    #: Routing one into the other is the class of bug that crashed on a
+    #: hydrogen click; see `_atom_is_in_report` in the inspector.
+    crystal_site_clicked = Signal(int)
+
     def __init__(
         self,
         conformer_service: ConformerService,
@@ -69,6 +78,10 @@ class MoleculeViewer3DWidget(QWidget):
         self._molecule: MoleculeModel | None = None
         self._conformer_index = 0
         self._selected_atoms: list[int] = []
+        # The unit cell currently on screen, or None when this is showing
+        # a molecule. It is what tells a click which index space it is in;
+        # the two are NOT interchangeable.
+        self._crystal_scene: dict | None = None
 
         self._backend: ViewerBackend = backend or Mol3DViewerBackend(self)
         self._backend.atoms_selected.connect(self._on_atoms_selected)
@@ -117,6 +130,14 @@ class MoleculeViewer3DWidget(QWidget):
         event_bus.subscribe(ConformerJobStateChanged, self._on_job_state_changed)
 
     def set_molecule(self, molecule: MoleculeModel | None) -> None:
+        """Show a molecule, replacing any unit cell that was on screen.
+
+        Clearing `_crystal_scene` is the other half of `show_crystal`
+        setting it. Without it a molecule loaded after a crystal would
+        keep routing clicks as crystal-site clicks, into a scene that is
+        no longer being drawn -- the same confusion in mirror image.
+        """
+        self._crystal_scene = None
         self._molecule = molecule
         self._conformer_index = 0
         self._selected_atoms.clear()
@@ -170,6 +191,19 @@ class MoleculeViewer3DWidget(QWidget):
             self._refresh_view()
 
     def _on_atoms_selected(self, indices: list[int]) -> None:
+        # **A crystal click leaves here immediately.** The viewer holds
+        # whatever molecule was last loaded, and `show_crystal` does not
+        # clear it, so without this the measurement below happily
+        # measured a distance in the MOLECULE using indices that came
+        # from the unit cell -- correct arithmetic on the wrong object,
+        # reported as a plain number. The inspector was spared only by
+        # `_atom_is_in_report` refusing out-of-range indices, which is
+        # luck rather than design.
+        if self._crystal_scene is not None:
+            for index in indices:
+                self.crystal_site_clicked.emit(index)
+            return
+
         # Re-emitted BEFORE the measurement logic and regardless of whether
         # a conformer exists, because the two uses of a click do not
         # conflict and no mode switch is needed to keep them apart: the
@@ -208,6 +242,11 @@ class MoleculeViewer3DWidget(QWidget):
             raise NotImplementedError(
                 f"{type(self._backend).__name__} cannot display a crystal structure."
             )
+        # Set BEFORE the load, so a click that arrives while the page is
+        # still drawing is already routed as a crystal click.
+        self._crystal_scene = scene
+        self._selected_atoms.clear()
+        self._measurement_label.setText("")
         loader(scene)
 
     def highlight_atoms(self, indices: tuple[int, ...]) -> None:

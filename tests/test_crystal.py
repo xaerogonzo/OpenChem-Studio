@@ -13,7 +13,10 @@ from pathlib import Path
 import pytest
 
 from openchem.chem.cif import CifError, element_of, parse_number, read_cif
+from openchem.chem.crystal_report import build_site_report
+from openchem.chem.substance import IRREGULAR
 from openchem.chem.crystal_analysis import (
+    describe_site,
     CrystalAnalysisError,
     conversion_determinant,
     coordination_shell,
@@ -935,3 +938,97 @@ def test_a_name_the_depositor_truncated_is_reported_as_deposited():
     right; quietly substituting `_chemical_name_systematic` would be the
     reader deciding it knows better than the deposition."""
     assert _cod("1004002").name == "Tungsten sulfide cluster with"
+
+
+# --- a click on the unit cell -----------------------------------------------
+
+
+def _fixture(name: str):
+    from pathlib import Path
+
+    return read_cif(
+        (Path(__file__).resolve().parent / "fixtures" / "cif" / name).read_text(
+            encoding="utf-8"
+        )
+    )
+
+
+def test_a_neighbour_carries_the_position_of_the_IMAGE_that_is_close():
+    """`Neighbour` used to carry a distance and nothing else, which is
+    what stopped the crystal path reporting a geometry at all --
+    `coordination_shell` had the positions in hand and threw them away.
+
+    The position must be the periodic IMAGE's, not the asymmetric unit
+    atom's: half a coordination shell lies in neighbouring cells, and
+    using the untranslated original would point those neighbours in the
+    wrong direction entirely.
+    """
+    crystal = _fixture("1511792.cif")
+    shell = coordination_shell(crystal, "B1")
+
+    assert shell.neighbours
+    for neighbour in shell.neighbours:
+        offset = math.dist(neighbour.position, shell.centre)
+        assert offset == pytest.approx(neighbour.distance, abs=1e-6), (
+            f"{neighbour.site_label} is {neighbour.distance:.3f} A away but its "
+            f"reported position is {offset:.3f} A from the centre"
+        )
+
+
+def test_a_real_deposition_gives_a_real_polyhedron():
+    """COD 1511792's boron is a genuine tetrahedral centre -- two
+    fluorines and two oxygens -- and the whole point of carrying the
+    positions is that this can now be said. Ground truth from a
+    deposition nobody in this project produced."""
+    environment = describe_site(_fixture("1511792.cif"), "B1")
+
+    assert environment.element == "B"
+    assert environment.shell.coordination_number == 4
+    assert environment.composition == "2 F, 2 O"
+    assert environment.geometry.name == "tetrahedral"
+    assert environment.geometry.rmsd_degrees < 5
+
+
+def test_a_light_atom_site_says_what_its_neighbours_ARE():
+    """**The shell is cut at the largest relative distance gap**, and in
+    a structure with hydrogens that gap falls between the hydrogens and
+    the heavy atoms. Measured on the same deposition: C1 is a methyl
+    carbon whose shell is its three hydrogens at 0.986-0.996 A, with the
+    C-C bond at 1.47 A beyond a 47.6% jump.
+
+    Three hydrogens at 109 degrees compared against trigonal planar's 120
+    is 11.0 deg RMSD, so it reports irregular -- correct for that set of
+    neighbours, and misleading only if you cannot see what the set IS.
+    Naming the composition is what makes it read correctly.
+    """
+    environment = describe_site(_fixture("1511792.cif"), "C1")
+
+    assert environment.composition == "3 H"
+    assert "3 H" in environment.summary
+    assert environment.geometry.name == IRREGULAR
+    assert environment.geometry.closest_reference == "trigonal planar"
+
+
+def test_a_site_summary_survives_a_windows_console():
+    """It goes to the status bar, and from there to logs and exports."""
+    for label in ("B1", "C1"):
+        describe_site(_fixture("1511792.cif"), label).summary.encode("cp1252")
+
+
+def test_a_site_report_never_claims_the_neighbours_are_bonded():
+    """A contact is not a bond. This is the same discipline
+    `domain/crystal.py` is built on, and the report has to carry it or
+    somebody will read a neighbour list as a bond table."""
+    report = build_site_report(describe_site(_fixture("1511792.cif"), "B1"))
+
+    assert any("not a bond" in limitation for limitation in report.limitations)
+
+
+def test_an_arguable_shell_says_so_in_the_report():
+    """A small gap means the coordination number depends on the
+    threshold. COD 1511792's C10 ends on a 17.8% gap."""
+    report = build_site_report(describe_site(_fixture("1511792.cif"), "C10"))
+
+    neighbours = next(f for f in report.facts if f.label == "Neighbours")
+    assert neighbours.limitations
+    assert "arguable" in neighbours.limitations[0]

@@ -174,6 +174,13 @@ class MainWindow(QMainWindow):
         self._viewer3d = MoleculeViewer3DWidget(
             services.conformer_service, services.measurement_service, services.event_bus, parent=self
         )
+        # The imported unit cell, retained so a click on it can be
+        # answered. Deliberately NOT in the project tree -- see
+        # `_import_crystal` for why a crystal is not a molecule.
+        self._crystal = None
+        self._crystal_scene: dict | None = None
+        #: The one site-environment dialog, reused across clicks.
+        self._site_dialog: tuple[QDialog, object] | None = None
         # Sibling to Mol3DViewerBackend (small molecules) — Mol* is for
         # macromolecular/crystallographic structures (MacromoleculeModel),
         # a genuinely different content shape, so it gets its own tab
@@ -233,6 +240,12 @@ class MainWindow(QMainWindow):
         # molecule just drawn has no conformer, which is exactly when
         # somebody wants to inspect an atom.
         self._viewer3d.atom_clicked.connect(self._atom_inspector_panel.select_atom)
+        # A crystal click goes somewhere else entirely, and deliberately
+        # NOT to `select_atom`: a crystal atom and a molecular atom that
+        # share index 7 are not the same object. The inspector only
+        # survived crystal clicks before this because `_atom_is_in_report`
+        # happens to refuse out-of-range indices.
+        self._viewer3d.crystal_site_clicked.connect(self._on_crystal_site_clicked)
         # And the 2D canvas, which turned out to be possible after all --
         # Ketcher's editor carries a `selectionChange` event even though
         # its public `subscribe()` facade does not accept that name.
@@ -1255,12 +1268,78 @@ class MainWindow(QMainWindow):
         # 1800x1400), so the drawing code was never the problem and a
         # deferred load is the honest fix rather than more JS gymnastics.
         self._center_tabs.setCurrentWidget(self._viewer3d)
+        # Retained so a click on the picture can be answered. The SCENE
+        # alone is not enough -- it holds positions but not the lattice,
+        # and a coordination shell needs the periodic images.
+        self._crystal = crystal
+        self._crystal_scene = scene
         # Deferred by one event-loop turn so the tab is current before
         # the draw. A longer delay was tried and changed nothing, which
         # is what established that the container size was never the
         # problem -- see `drawCrystal` in viewer.html for what was.
         QTimer.singleShot(0, lambda: self._viewer3d.show_crystal(scene))
         self._show_crystal_report(build_crystal_report(crystal), Path(path_str).name)
+        self.statusBar().showMessage(
+            "Click an atom in the unit cell to see its coordination environment.", 15000
+        )
+
+    def _on_crystal_site_clicked(self, scene_index: int) -> None:
+        """Answer a click on the unit cell.
+
+        The index addresses `scene["atoms"]` directly -- verified against
+        the real vendored 3Dmol bundle rather than assumed, on all 60
+        atoms of COD 1504676 by element AND coordinate. `scene_as_xyz`
+        writes the atoms in scene order and 3Dmol preserves it. The
+        Ketcher work is why that was checked instead of taken on trust.
+        """
+        from openchem.chem.crystal_analysis import CrystalAnalysisError, describe_site
+
+        if self._crystal is None or self._crystal_scene is None:
+            return
+        atoms = self._crystal_scene["atoms"]
+        if not 0 <= scene_index < len(atoms):
+            # Out of range means the picture and the scene have diverged;
+            # say so rather than raising inside a Qt signal handler.
+            logger.warning("crystal click index %d outside a %d-atom scene",
+                           scene_index, len(atoms))
+            return
+        site_label = atoms[scene_index]["site"]
+        try:
+            environment = describe_site(self._crystal, site_label)
+        except CrystalAnalysisError as exc:
+            self.statusBar().showMessage(f"{site_label}: {exc}", 10000)
+            return
+        self.statusBar().showMessage(environment.summary, 20000)
+        self._show_site_environment(environment)
+
+    def _show_site_environment(self, environment) -> None:
+        """The clicked site's neighbours, in the same FactView as
+        everything else.
+
+        **One dialog, updated in place.** A new window per click would
+        bury the screen after five atoms, and comparing two sites is the
+        normal reason to click a second one -- so the title carries which
+        site is showing and the content is replaced.
+        """
+        from openchem.chem.crystal_report import build_site_report
+        from openchem.ui.widgets.fact_view import FactView
+
+        if self._site_dialog is None:
+            dialog = QDialog(self)
+            dialog.resize(520, 560)
+            view = FactView(dialog)
+            layout = QVBoxLayout(dialog)
+            layout.addWidget(view)
+            close = QPushButton("Close", dialog)
+            close.clicked.connect(dialog.close)
+            layout.addWidget(close)
+            self._site_dialog = (dialog, view)
+        dialog, view = self._site_dialog
+        report = build_site_report(environment)
+        dialog.setWindowTitle(f"Site {environment.site_label} - {environment.element}")
+        view.set_report(report, title=report.name)
+        dialog.show()
+        dialog.raise_()
 
     def _show_crystal_report(self, report, filename: str) -> None:
         """The report, in the same FactView every other report uses.

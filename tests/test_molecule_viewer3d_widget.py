@@ -137,3 +137,105 @@ def test_highlight_atoms_paints_and_clears(qapp):
 
     widget.highlight_atoms(())
     assert backend.applied_layers[-1] is None
+
+
+# --- a crystal is a different index space, and clicks must not cross ---------
+
+
+class CrystalCapableBackend(FakeViewerBackend):
+    """`load_crystal` is optional on a ViewerBackend -- Mol* predates
+    crystals and simply does not have it -- so the fake needs its own
+    subclass rather than growing the method for everybody."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.loaded_scenes: list[dict] = []
+
+    def load_crystal(self, scene: dict) -> None:
+        self.loaded_scenes.append(scene)
+
+
+_SCENE = {
+    "atoms": [
+        {"element": "Na", "x": 0.0, "y": 0.0, "z": 0.0, "site": "Na1", "occupancy": 1.0},
+        {"element": "Cl", "x": 2.8, "y": 0.0, "z": 0.0, "site": "Cl1", "occupancy": 1.0},
+    ],
+    "edges": [],
+    "axes": [],
+    "name": "fixture",
+}
+
+
+def _crystal_widget(qapp):
+    bus = EventBus()
+    engine = ChemistryEngine()
+    widget = MoleculeViewer3DWidget(
+        ConformerService(bus, engine),
+        MeasurementService(engine),
+        bus,
+        backend=CrystalCapableBackend(),
+    )
+    return widget, widget._backend
+
+
+def test_a_crystal_click_never_reaches_the_molecular_measurement(qapp):
+    """**This was live.** `show_crystal` did not clear the molecule, so
+    two clicks on a unit cell ran the distance measurement against
+    whatever conformer happened to be loaded -- correct arithmetic on the
+    wrong object, reported as a plain number in the readout."""
+    widget, backend = _crystal_widget(qapp)
+    widget.set_molecule(_molecule_with_conformer())
+    widget.show_crystal(_SCENE)
+
+    backend.atoms_selected.emit([0])
+    backend.atoms_selected.emit([1])
+
+    assert widget._measurement_label.text() == ""
+
+
+def test_a_crystal_click_does_not_reach_the_atom_inspector(qapp):
+    """A crystal atom and a molecular atom that share index 7 are not the
+    same object. The inspector was spared before this only because
+    `_atom_is_in_report` refuses out-of-range indices, which is luck."""
+    widget, backend = _crystal_widget(qapp)
+    atom_clicks: list[int] = []
+    site_clicks: list[int] = []
+    widget.atom_clicked.connect(atom_clicks.append)
+    widget.crystal_site_clicked.connect(site_clicks.append)
+    widget.show_crystal(_SCENE)
+
+    backend.atoms_selected.emit([1])
+
+    assert atom_clicks == []
+    assert site_clicks == [1]
+
+
+def test_a_molecule_loaded_after_a_crystal_gets_its_clicks_back(qapp):
+    """The mirror image of the bug above, and the reason `set_molecule`
+    clears the scene: a molecule shown after a unit cell must stop
+    routing clicks into a scene nobody is drawing."""
+    widget, backend = _crystal_widget(qapp)
+    atom_clicks: list[int] = []
+    site_clicks: list[int] = []
+    widget.atom_clicked.connect(atom_clicks.append)
+    widget.crystal_site_clicked.connect(site_clicks.append)
+
+    widget.show_crystal(_SCENE)
+    widget.set_molecule(_molecule_with_conformer())
+    backend.atoms_selected.emit([1])
+
+    assert site_clicks == []
+    assert atom_clicks == [1]
+
+
+def test_showing_a_crystal_drops_a_half_finished_measurement(qapp):
+    """One click on a molecule, then a crystal import: the pending atom
+    must not pair up with a crystal index on the next click."""
+    widget, backend = _crystal_widget(qapp)
+    widget.set_molecule(_molecule_with_conformer())
+    backend.atoms_selected.emit([0])
+    assert widget._selected_atoms == [0]
+
+    widget.show_crystal(_SCENE)
+
+    assert widget._selected_atoms == []

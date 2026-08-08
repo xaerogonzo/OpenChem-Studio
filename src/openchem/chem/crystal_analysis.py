@@ -76,6 +76,16 @@ class Neighbour:
     element: str
     site_label: str
     distance: float
+    #: Cartesian position, in Angstroms, of the periodic IMAGE that is
+    #: actually this close -- not of the atom in the asymmetric unit.
+    #:
+    #: Carried because a distance alone cannot answer "what shape is this
+    #: site": `chem/substance.classify_coordination_geometry` needs
+    #: directions. It was omitted originally and that omission is what
+    #: stopped the crystal path reporting a geometry at all, while
+    #: `coordination_shell` had the positions in hand the whole time and
+    #: threw them away.
+    position: tuple[float, float, float] = (0.0, 0.0, 0.0)
 
 
 @dataclass(frozen=True)
@@ -89,6 +99,9 @@ class CoordinationShell:
     #: the search radius was found to compare against.
     gap_fraction: float
     search_radius: float
+    #: Cartesian position of the central atom, so the neighbour positions
+    #: above mean something on their own.
+    centre: tuple[float, float, float] = (0.0, 0.0, 0.0)
 
     @property
     def coordination_number(self) -> int:
@@ -108,6 +121,88 @@ class CoordinationShell:
         threshold, and a reader deserves to know that before quoting it.
         """
         return self.gap_fraction >= 2 * SHELL_GAP_FRACTION
+
+    def geometry(self):
+        """The coordination polyhedron, from the neighbour directions.
+
+        Deliberately the SAME classifier the molecular path uses --
+        `chem/substance.classify_coordination_geometry` takes bare
+        coordinates precisely so a crystallographic site and a metal
+        complex get one answer computed one way. Reusing rather than
+        paralleling is this project's most repeatable mistake to avoid.
+        """
+        from openchem.chem.substance import classify_coordination_geometry
+
+        return classify_coordination_geometry(
+            self.centre, [n.position for n in self.neighbours]
+        )
+
+
+@dataclass(frozen=True)
+class SiteEnvironment:
+    """What one crystallographic site is surrounded by.
+
+    Built for the question a click asks -- "what is this atom?" -- and so
+    it carries the shell, the polyhedron and a one-line summary together
+    rather than making three calls line up at the call site.
+    """
+
+    site_label: str
+    element: str
+    shell: CoordinationShell
+    geometry: object  # substance.CoordinationGeometry; imported lazily
+
+    @property
+    def composition(self) -> str:
+        """The neighbour elements, e.g. "3 H" or "2 F, 2 O".
+
+        **Named, never just counted.** The shell is cut at the largest
+        relative gap, and in a structure with hydrogens that gap usually
+        falls between the H shell and the heavy-atom shell -- so a methyl
+        carbon's shell is its three hydrogens and nothing else. Measured
+        on COD 1511792's C1: three H at 0.986-0.996 A, with the C-C bond
+        at 1.47 A beyond a 47.6% jump. Seeing "3 H" makes the resulting
+        "irregular, closest to trigonal planar" read correctly instead of
+        looking like a broken classifier.
+        """
+        tally: dict[str, int] = {}
+        for neighbour in self.shell.neighbours:
+            tally[neighbour.element] = tally.get(neighbour.element, 0) + 1
+        return ", ".join(f"{count} {element}" for element, count in sorted(tally.items()))
+
+    @property
+    def summary(self) -> str:
+        """One ASCII line, for a status bar. See `Component.label` in
+        `chem/substance.py` for why this side of the split is ASCII."""
+        if not self.shell.neighbours:
+            return (
+                f"{self.site_label} ({self.element}): nothing within "
+                f"{self.shell.search_radius:.1f} A"
+            )
+        nearest = self.shell.neighbours[0]
+        shape = self.geometry.name or "no polyhedron at this count"
+        arguable = "" if self.shell.is_clear_cut else ", shell boundary arguable"
+        return (
+            f"{self.site_label} ({self.element}): {self.shell.coordination_number} "
+            f"neighbours ({self.composition}), {shape}, nearest "
+            f"{self.element}-{nearest.element} {nearest.distance:.3f} A{arguable}"
+        )
+
+
+def describe_site(
+    crystal: Crystal,
+    site_label: str,
+    *,
+    search_radius: float = DEFAULT_SEARCH_RADIUS,
+) -> SiteEnvironment:
+    """Everything a click on one site can be answered with."""
+    shell = coordination_shell(crystal, site_label, search_radius=search_radius)
+    return SiteEnvironment(
+        site_label=shell.site_label,
+        element=shell.element,
+        shell=shell,
+        geometry=shell.geometry(),
+    )
 
 
 def atomic_masses() -> dict[str, float]:
@@ -250,15 +345,29 @@ def coordination_shell(
             f"{', '.join(sorted({a.site_label for a in atoms}))}."
         )
 
+    centre_cartesian = crystal.lattice.to_cartesian(*centre.position)
     found: list[Neighbour] = []
     for atom, position in _images(atoms, reach=reach):
         distance = crystal.lattice.distance(centre.position, position, periodic=False)
         if 1e-6 < distance <= search_radius:
-            found.append(Neighbour(atom.element, atom.site_label, distance))
+            found.append(
+                Neighbour(
+                    atom.element,
+                    atom.site_label,
+                    distance,
+                    # The IMAGE's position, not the asymmetric unit's --
+                    # `position` is already the translated copy, and using
+                    # the untranslated original would put half the shell
+                    # in the wrong direction.
+                    tuple(crystal.lattice.to_cartesian(*position)),
+                )
+            )
     found.sort(key=lambda n: n.distance)
 
     if not found:
-        return CoordinationShell(site_label, centre.element, (), 0.0, search_radius)
+        return CoordinationShell(
+            site_label, centre.element, (), 0.0, search_radius, tuple(centre_cartesian)
+        )
 
     # Cut at the first relative jump larger than the threshold.
     cut = len(found)
@@ -275,6 +384,7 @@ def coordination_shell(
         neighbours=tuple(found[:cut]),
         gap_fraction=biggest,
         search_radius=search_radius,
+        centre=tuple(centre_cartesian),
     )
 
 
