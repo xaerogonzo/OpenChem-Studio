@@ -1232,3 +1232,93 @@ def test_a_project_with_both_keeps_them_apart_through_a_round_trip(tmp_path):
     assert reopened.find_molecule(reopened.crystals[0].uuid) is None
     assert reopened.find_crystal(reopened.molecules[0].uuid) is None
     assert read_cif(reopened.crystals[0].cif_text).lattice.volume > 0
+
+
+# --- ion charges from a CIF, and the lattice energy they unlock ------------
+
+
+_HALITE = Path(__file__).resolve().parent.parent / "spikes" / "crystallography" / "halite.cif"
+
+
+def _halite_text(charged: bool) -> str:
+    text = _HALITE.read_text(encoding="utf-8")
+    if charged:
+        text = text.replace("  Na1  Na ", "  Na1  Na+ ").replace("  Cl1  Cl ", "  Cl1  Cl- ")
+    return text
+
+
+@pytest.mark.parametrize(
+    "symbol,expected",
+    [("Na+", 1), ("O2-", -2), ("Fe2+", 2), ("N3-", -3),
+     ("Na", None), ("Cl", None), ("", None)],
+)
+def test_a_charge_is_read_from_the_type_symbol(symbol, expected):
+    from openchem.chem.cif import charge_of
+
+    assert charge_of(symbol) == expected
+
+
+def test_a_site_LABEL_is_never_read_as_a_charge():
+    """`Na1` is the first sodium site, not Na(I). Reading the digit would
+    invent an oxidation state for every mineral file in existence."""
+    from openchem.chem.cif import charge_of
+
+    assert charge_of("Na1") is None
+    assert charge_of("O3") is None
+
+
+def test_no_stated_charge_is_not_the_same_as_neutral():
+    """**The distinction the whole feature rests on.** A deposition
+    silent about oxidation states has not claimed its atoms are neutral,
+    and halite's own file is silent -- bare `Na` and `Cl`."""
+    from openchem.chem.crystal_analysis import ionic_formula_unit
+
+    bare = read_cif(_halite_text(charged=False))
+
+    assert all(site.charge is None for site in bare.sites)
+    assert ionic_formula_unit(bare) is None
+
+
+def test_stated_charges_give_the_formula_unit():
+    from openchem.chem.crystal_analysis import ionic_formula_unit
+
+    charged = read_cif(_halite_text(charged=True))
+
+    assert {(s.label, s.charge) for s in charged.sites} == {("Na1", 1), ("Cl1", -1)}
+    assert sorted(ionic_formula_unit(charged)) == [(1.0, -1), (1.0, 1)]
+
+
+def test_a_crystal_that_states_its_charges_gets_a_lattice_energy():
+    """The point of the whole change: the volume comes from the cell, so
+    no ionic radius is needed and a complex ion would work too. Halite is
+    the case with an independent check -- 764 kJ/mol against the
+    Born-Haber 787, -2.9%."""
+    from openchem.chem.crystal_report import build_crystal_report
+
+    report = build_crystal_report(read_cif(_halite_text(charged=True)))
+
+    fact = next(f for f in report.facts if f.label.startswith("Lattice energy"))
+    assert 700 < fact.value < 830
+    assert fact.units == "kJ/mol"
+    assert any("no ionic radii" in e for e in fact.evidence)
+
+
+def test_a_crystal_silent_about_charges_gets_no_lattice_energy_at_all():
+    """Not a zero, not a guess, not a default -- absent. Guessing would
+    produce exactly the confident wrong number this report exists to
+    avoid."""
+    from openchem.chem.crystal_report import build_crystal_report
+
+    report = build_crystal_report(read_cif(_halite_text(charged=False)))
+
+    assert not [f for f in report.facts if f.label.startswith("Lattice energy")]
+
+
+def test_mixed_valence_is_refused_rather_than_averaged():
+    """Two sites of one element with different charges is magnetite's
+    case. Picking one would be a number nothing supports."""
+    from openchem.chem.crystal_analysis import ionic_formula_unit
+
+    text = _halite_text(charged=True).replace("  Cl1  Cl- ", "  Cl1  Cl2- ")
+
+    assert ionic_formula_unit(read_cif(text)) is None  # charges no longer balance

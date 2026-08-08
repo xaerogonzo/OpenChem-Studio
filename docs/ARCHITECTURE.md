@@ -647,17 +647,16 @@ document may cite a file or a test that does not exist.
   median 2.3 Å from atoms actually observed in sister chains of the same
   receptor. See `chem/docking_providers.py`'s class docstring for the
   numbers. Revisit if a method reports per-atom confidence.
-- **OPEN** -- a CIF's ion CHARGES are parsed and then discarded.
-  `chem/cif.py` reads `_atom_site_type_symbol` (`Na+`, `O2-`) to get the
-  element and throws the charge away, so `Site` cannot carry it. That is
-  the one thing standing between an imported crystal and a lattice
-  energy: `chem/lattice_energy.volume_based_lattice_energy` needs the
-  charges and everything else it needs (the formula-unit volume) the app
-  already measures. Guessing charges is not an option -- halite's own
-  deposition carries bare `Na` and `Cl`, and a guess would produce
-  exactly the confident wrong number `SCIENTIFIC_LIMITATIONS.md` exists
-  to prevent. Same shape as the `Neighbour` position that used to be
-  computed and dropped, which Phase 4 fixed.
+- **SETTLED** -- a CIF's ion charges are read and used. `chem/cif.py`'s
+  `charge_of` parses `_atom_site_type_symbol` (`Na+`, `O2-`) onto
+  `Site.charge`, and `crystal_analysis.ionic_formula_unit` reduces a cell
+  to `[(count, charge)]` so `volume_based_lattice_energy` can answer.
+  **`None` means "the file did not say", never "neutral"** -- the two are
+  different claims, and most depositions are silent (halite's own carries
+  bare `Na` and `Cl`), so a crystal without stated charges gets no
+  lattice-energy fact at all rather than a guessed one. The volume comes
+  from the cell, so no ionic radius is involved and a complex ion works
+  as readily as a monatomic one.
 - **OPEN** -- a crystal cannot be renamed or deleted from the project
   tree. Its row is deliberately not editable, because rename resolves
   through `RenameMoleculeCommand` and a crystal is not a molecule; a

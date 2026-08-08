@@ -237,6 +237,14 @@ class Site:
     #: Fractional occupancy. Below 1 means the site is shared or partly
     #: vacant, which is ordinary in minerals and is NOT an error.
     occupancy: float = 1.0
+    #: Formal charge, when the file states one (`Na+`, `O2-`).
+    #:
+    #: **None means "the file did not say", not "neutral".** They are
+    #: different claims, and collapsing them would let a structure that
+    #: is silent about its ions be treated as a set of neutral atoms.
+    #: Most depositions are silent -- halite's own carries bare `Na` and
+    #: `Cl` -- so this is absent far more often than it is present.
+    charge: int | None = None
 
     @property
     def is_fully_occupied(self) -> bool:

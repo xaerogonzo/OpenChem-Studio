@@ -510,3 +510,48 @@ def scene_as_xyz(scene: dict) -> str:
         for atom in atoms
     )
     return "\n".join(lines)
+
+
+def ionic_formula_unit(crystal: Crystal) -> list[tuple[float, int]] | None:
+    """The formula unit as `[(count, charge), ...]`, or None.
+
+    What the volume-based lattice energy needs, and the reason it could
+    not previously be computed for an imported crystal: a CIF states ion
+    charges only when the depositor wrote them into
+    `_atom_site_type_symbol`, and most do not -- halite's own carries
+    bare `Na` and `Cl`.
+
+    Returns None rather than guessing whenever it cannot be sure:
+
+    - any site silent about its charge (None is "not stated", NOT
+      "neutral" -- see `Site.charge`);
+    - no `Z`, so a cell cannot be reduced to a formula unit;
+    - charges that do not balance, which means the file, the occupancies
+      and the charges disagree and something is wrong with at least one.
+    """
+    if not crystal.formula_units_z:
+        return None
+    # No early "any site is silent" check: the expansion loop below
+    # already returns None for an unstated charge, and a second guard
+    # that cannot fail on its own is one a reader has to verify twice.
+    # Measured -- mutating that early return away killed no test.
+    charge_of_element = {site.element: site.charge for site in crystal.sites}
+    # **A charge is per SITE, and two sites of one element may differ** --
+    # magnetite's Fe(II) and Fe(III) are the case. Refuse rather than
+    # pick one.
+    for site in crystal.sites:
+        if charge_of_element[site.element] != site.charge:
+            return None
+
+    totals: dict[int, float] = {}
+    for atom in crystal.expand():
+        charge = charge_of_element.get(atom.element)
+        if charge is None:
+            return None
+        totals[charge] = totals.get(charge, 0.0) + atom.occupancy
+
+    z = crystal.formula_units_z
+    ions = [(count / z, charge) for charge, count in sorted(totals.items())]
+    if abs(sum(count * charge for count, charge in ions)) > 1e-6:
+        return None
+    return ions

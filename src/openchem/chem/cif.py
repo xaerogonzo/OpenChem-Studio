@@ -67,6 +67,10 @@ _KNOWN_PREFIXES = (
 
 _UNCERTAINTY = re.compile(r"\(\d+\)\s*$")
 _ELEMENT = re.compile(r"^([A-Z][a-z]?)")
+#: The charge suffix of a type symbol: `Na+`, `O2-`, `Fe2+`.
+#: Digits BEFORE the sign, which is the CIF convention and the
+#: opposite of how SMILES writes it.
+_CHARGE = re.compile(r"^[A-Z][a-z]?(\d*)([+-])$")
 
 
 class CifError(ValueError):
@@ -89,6 +93,26 @@ def parse_number(text: str) -> float | None:
         return float(cleaned)
     except ValueError:
         return None
+
+
+def charge_of(symbol: str) -> int | None:
+    """`'Na+'` -> `1`, `'O2-'` -> `-2`, `'Na'` -> `None`.
+
+    **None is "the file did not say", never "neutral".** A deposition
+    that states no oxidation state has not claimed the atom is neutral,
+    and treating the two alike is how a lattice energy gets computed for
+    a structure nothing said was ionic.
+
+    Deliberately NOT read from the site label: `Na1` means the first
+    sodium site, and reading its `1` as a charge would invent one for
+    every mineral file in existence.
+    """
+    cleaned = (symbol or "").strip().strip("'\"")
+    match = _CHARGE.match(cleaned)
+    if match is None:
+        return None
+    magnitude = int(match.group(1)) if match.group(1) else 1
+    return magnitude if match.group(2) == "+" else -magnitude
 
 
 def element_of(symbol: str, fallback_label: str = "") -> str:
@@ -291,6 +315,9 @@ def _sites_from(loops: list[dict[str, list[str]]]) -> tuple[Site, ...]:
                     element=element,
                     position=position,
                     occupancy=1.0 if occupancy is None else occupancy,
+                    # From the type symbol only -- see `charge_of` for why
+                    # the site LABEL is not consulted.
+                    charge=charge_of(symbols[index]) if index < len(symbols) else None,
                 )
             )
         return tuple(sites)

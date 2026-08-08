@@ -534,10 +534,15 @@ What it will not do:
 - **Only MX, MX₂ and M₂X were fitted.** A 3:2 salt is refused rather
   than extrapolated — running a two-parameter empirical correlation past
   its data is how a plausible wrong number ships.
-- **It is not yet wired to the crystal report.** The equation needs the
-  ion charges and a CIF usually does not state them: halite's own
-  deposition carries bare `Na` and `Cl`. Guessing them would produce
-  exactly the confident wrong answer this file exists to prevent.
+- **An imported crystal gets it only when the file states its ion
+  charges.** The equation needs them, and a CIF supplies them only if the
+  depositor wrote them into `_atom_site_type_symbol` — halite's own
+  carries bare `Na` and `Cl`, and most depositions are the same. A
+  structure silent about its charges gets **no lattice-energy line at
+  all**: not a zero, not a default, absent. "The file did not say" and
+  "the atoms are neutral" are different claims, and guessing between them
+  would produce exactly the confident wrong number this file exists to
+  prevent.
 
 ### Lattice energy
 

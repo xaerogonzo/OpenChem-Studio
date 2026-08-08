@@ -27,6 +27,7 @@ from typing import Any
 
 from openchem.chem.crystal_analysis import (
     CrystalAnalysisError,
+    ionic_formula_unit,
     coordination_shell,
     density,
     describe_cell,
@@ -260,6 +261,53 @@ def build_crystal_report(crystal: Crystal, *, report_id: str = "crystal") -> Rep
                 detail=Detail.ADVANCED,
             )
         )
+
+    # A lattice energy, when the file states its ion charges.
+    #
+    # **The volume comes from the structure, not from a table.** That is
+    # the whole reason this is answerable for a salt with complex ions:
+    # Kapustinskii needs a thermochemical radius for a nitrate and the
+    # shipped table has none, while the volume-based route needs only the
+    # formula-unit volume, which the cell and Z already give.
+    ions = ionic_formula_unit(crystal)
+    volume = volume_per_formula_unit(crystal)
+    if ions is not None and volume:
+        from openchem.chem.lattice_energy import volume_based_lattice_energy
+
+        estimate = volume_based_lattice_energy(volume / 1000.0, ions)
+        if estimate.refused:
+            facts.append(
+                _fact(
+                    FactCategory.GEOMETRY,
+                    "Lattice energy",
+                    None,
+                    estimate.reason,
+                    basis=Basis.DETERMINISTIC,
+                )
+            )
+        else:
+            facts.append(
+                _fact(
+                    FactCategory.GEOMETRY,
+                    "Lattice energy (volume-based)",
+                    round(estimate.value, 1),
+                    f"{estimate.value:.0f}",
+                    units="kJ/mol",
+                    basis=Basis.HEURISTIC,
+                    evidence=(
+                        "U = 2I(alpha/V^(1/3) + beta), from the formula-unit volume "
+                        "measured off this cell -- no ionic radii involved",
+                        "Jenkins, Roobottom, Passmore & Glasser, Inorg. Chem. 1999, "
+                        "38, 3609",
+                    ),
+                    limitations=(
+                        "An empirical correlation, validated over 26 salts to a mean "
+                        "3.3% and a worst 7.7% against Born-Haber values. It is an "
+                        "estimate of the lattice potential energy, not a measurement "
+                        "of one.",
+                    ),
+                )
+            )
 
     # **Say what was NOT run.** This was computed and thrown away before:
     # `inapplicable_calculators` existed, had a guard test, and had no
