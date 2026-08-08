@@ -673,16 +673,44 @@ document may cite a file or a test that does not exist.
   told which? That changes what every 3D-dependent number in the app
   means, so it is decided deliberately rather than by whichever is
   easiest to wire.
-- **OPEN** -- the Properties panel clips its content instead of
-  scrolling it. There IS a `QScrollArea` with `setWidgetResizable(True)`,
-  so something inside is refusing to report its true height; CLAUDE.md
-  already records `_WrappedLabel` as load-bearing in one place and
-  catastrophic in another, with numbers, which is the thread to pull.
-  The visible consequence is worse than clipped text: a report row below
-  the fold takes its "Details..." button with it, so the panel LOOKS as
-  though only the first calculator in a section has one. Confirmed the
-  binding itself is correct -- `bbb_descriptors` really does return a
-  6-fact report with its own button, it is simply out of reach.
+- **OPEN** -- the Properties panel CLIPS long result values. Confirmed
+  from the running app: Functional Groups, BBB Score Descriptors and CNS
+  MPO Score each show about two and a half lines of a six-line value,
+  cut mid-glyph, with the section expanded and the panel scrolling
+  normally.
+
+  **The in-process probe that said "ok" was CIRCULAR and must not be
+  repeated.** It compared each label's `height()` against its own
+  `minimumSizeHint()`. If the hint under-reports, the actual height
+  matches it and the check passes while the text is still cut off. A
+  real check has to measure against the font metrics for the string at
+  the label's true width, not against the number the label itself
+  supplied. Four "clean" measurements were taken this way before the
+  flaw was noticed, and one earlier "reproduction" was a transient
+  mid-relayout state -- so trust the screenshots over the probe until
+  the probe is rewritten.
+
+  The Details buttons are NOT implicated: the app shows one per report
+  row, correctly bound, exactly as the code intends.
+- **OPEN** -- conformer generation returns implausibly few. A morphine
+  derivative (C19H23NO3, several rotatable bonds) gave "Kept 2 distinct
+  conformer(s) of 10 embedded", and 3 on an earlier run. The RMSD
+  de-duplication in `ConformerService` is the suspect; it needs the
+  threshold measured against a molecule whose conformer count is known
+  rather than tuned by eye.
+- **OPEN** -- the ADMET calculator appears to produce nothing. Its
+  options dialog opens and accepts a tier, and no result row follows. It
+  runs out of process through a sidecar, so the first question is
+  whether the sidecar is being found and what it returns, not what the
+  panel does with it.
+- **OPEN, possibly correct behaviour** -- IUPAC Name reports
+  "A name was derived but did not parse back to this structure, so it is
+  being withheld" on a morphine derivative. That is the namer's honest
+  round-trip refusal working as designed, but on a real drug-like
+  molecule it reads as a broken feature. Worth deciding whether to show
+  the withheld name marked as unverified rather than nothing at all.
+  IUPAC Locants on the same molecule DOES work (18 of 23 atoms numbered,
+  rendered in the Calculator Inspector with both depictions).
 - **DECISION** -- a calculation cannot be ADDRESSED to a crystal.
   `CalculationRequest` carries a `molecule_uuid` and nothing else, which
   makes the mistake unrepresentable rather than merely discouraged;
