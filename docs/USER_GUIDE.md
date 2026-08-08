@@ -1263,6 +1263,6 @@ The report gives the cell, the space group, the atoms per unit cell
 coordination number per crystallographic site with the distances it was
 derived from.
 
-**A note on the initial view:** the cell is fitted to the viewer when it
-is drawn, which can leave it smaller than the available space. Scroll to
-zoom, or resize the window, and it will fit properly.
+The cell is fitted to the viewer when it is drawn. It sits a little above
+centre in the panel; scroll to zoom and drag to rotate as with any
+structure.
