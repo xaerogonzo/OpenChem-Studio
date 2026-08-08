@@ -45,7 +45,10 @@ the namer cannot name is still classified rather than collapsing to
 
 from __future__ import annotations
 
+import itertools
+import math
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -166,6 +169,192 @@ _SUPERSCRIPT = {1: "¹", 2: "²", 3: "³", 4: "⁴",
                 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸"}
 
 
+_SIN_60 = math.sqrt(3) / 2
+
+#: The reference polyhedra, as unit vectors from the metal to each donor.
+#:
+#: **Vectors rather than a list of "ideal angles", because the angle set
+#: is DERIVED from them** -- writing 90/180 by hand for an octahedron is
+#: an invitation to get the multiplicities wrong (it is twelve 90s and
+#: three 180s, not "some 90s and some 180s"), and a wrong multiset would
+#: still score plausibly.
+#:
+#: Square pyramidal is here even though the plan named four geometries:
+#: it is the alternative to trigonal bipyramidal at five donors, and
+#: without it every square-pyramidal complex would either be called
+#: irregular or, worse, matched to the only five-donor reference present.
+#: Linear and trigonal planar are here because reporting "irregular" for
+#: a linear Ag(I) complex would read as a failure of the classifier
+#: rather than as a description of the structure.
+_REFERENCE_GEOMETRIES: dict[str, tuple[tuple[float, float, float], ...]] = {
+    "linear": ((1, 0, 0), (-1, 0, 0)),
+    "trigonal planar": ((1, 0, 0), (-0.5, _SIN_60, 0), (-0.5, -_SIN_60, 0)),
+    "tetrahedral": ((1, 1, 1), (1, -1, -1), (-1, 1, -1), (-1, -1, 1)),
+    "square planar": ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0)),
+    "trigonal bipyramidal": (
+        (0, 0, 1), (0, 0, -1), (1, 0, 0), (-0.5, _SIN_60, 0), (-0.5, -_SIN_60, 0),
+    ),
+    "square pyramidal": ((0, 0, 1), (1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0)),
+    "octahedral": ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)),
+}
+
+#: How close the measured angles must be to a reference, as the RMS
+#: deviation in degrees over the WHOLE sorted angle list.
+#:
+#: **Both bounds were measured, and they leave a narrow window.**
+#:
+#:   lower  a tris-chelate octahedron with en/bipy bite angles (78 deg)
+#:          scores 7.58, and [Co(en)3]3+ is octahedral by any account, so
+#:          anything below ~7.6 would refuse the textbook case
+#:   upper  the closest two references are trigonal bipyramidal and square
+#:          pyramidal at 23.24 deg apart, so a tolerance at or above 11.62
+#:          could match both and the answer would depend on dict order
+#:
+#: 10.0 sits inside [7.6, 11.6) with margin at each end. It accepts bite
+#: angles down to about 74 deg; a tris-acetate complex (65 deg, RMSD
+#: 15.75) comes out irregular WITH its closest reference named, which is
+#: the honest description of a genuinely squashed octahedron.
+GEOMETRY_MATCH_TOLERANCE_DEGREES = 10.0
+
+#: Two donors closer together than this are not two directions. Real
+#: bidentate ligands reach about 60 deg (acetate, nitrate) and side-on
+#: eta-2 binding about 40; anything far below that means the same
+#: position modelled twice. Measured on the disordered lithium site of
+#: COD 1511792, whose two modelled nitrogen positions subtend 14 deg --
+#: without this guard it scores as a five-coordinate complex.
+MIN_DISTINCT_DONOR_ANGLE_DEGREES = 30.0
+
+#: Reported when the angles match no reference within tolerance. Not a
+#: failure: it is a statement about the structure, and it travels with
+#: the closest reference and the deviation so the reader can judge.
+IRREGULAR = "irregular"
+
+
+def _angle_multiset(vectors: Sequence[tuple[float, float, float]]) -> list[float]:
+    """Every pairwise angle, in degrees, sorted ascending.
+
+    Sorted because the classification must not depend on which donor is
+    numbered first, and ascending order is what makes two angle sets
+    comparable term by term -- see `_rmsd_degrees`.
+    """
+    units = []
+    for vector in vectors:
+        norm = math.sqrt(sum(component * component for component in vector))
+        if norm <= 0:
+            continue
+        units.append(tuple(component / norm for component in vector))
+    angles = []
+    for first, second in itertools.combinations(units, 2):
+        dot = sum(a * b for a, b in zip(first, second))
+        angles.append(math.degrees(math.acos(max(-1.0, min(1.0, dot)))))
+    return sorted(angles)
+
+
+def _rmsd_degrees(measured: Sequence[float], ideal: Sequence[float]) -> float:
+    """RMS deviation between two sorted angle lists of the same length.
+
+    **Pairing the two sorted lists term by term is the optimal pairing**,
+    not merely a convenient one: for a squared-error cost on the real
+    line the monotone coupling minimises the total. Checked rather than
+    cited -- brute force over every permutation beat sorted order in 0 of
+    2000 random cases.
+    """
+    return math.sqrt(
+        sum((a - b) ** 2 for a, b in zip(measured, ideal)) / len(ideal)
+    )
+
+
+@dataclass(frozen=True)
+class CoordinationGeometry:
+    """What the donor angles say the shape is, and how strongly.
+
+    `name` is a reference geometry, `IRREGULAR`, or None when no
+    comparison was possible at all -- and the three are different
+    statements. None always carries a `note` saying which case it was.
+    """
+
+    name: str | None
+    #: The nearest reference whatever the tolerance, so "irregular" can
+    #: still say what it is nearest to. None when no reference exists at
+    #: this donor count.
+    closest_reference: str | None
+    rmsd_degrees: float | None
+    #: Why there is no name. None when there is one.
+    note: str | None = None
+    #: Every donor-metal-donor angle, sorted. Kept so the report can show
+    #: the spread rather than only a verdict.
+    angles: tuple[float, ...] = ()
+
+    @property
+    def summary(self) -> str:
+        if self.name and self.name != IRREGULAR:
+            return f"{self.name} (RMSD {self.rmsd_degrees:.1f}° from ideal)"
+        if self.name == IRREGULAR:
+            return (
+                f"irregular — closest to {self.closest_reference}, "
+                f"RMSD {self.rmsd_degrees:.1f}°"
+            )
+        return self.note or "not determined"
+
+
+def classify_coordination_geometry(
+    metal_position: tuple[float, float, float],
+    donor_positions: Sequence[tuple[float, float, float]],
+) -> CoordinationGeometry:
+    """Name the coordination polyhedron from real angles.
+
+    **Pure geometry, deliberately.** It takes coordinates rather than an
+    RDKit molecule so the same criteria can serve a crystallographic site,
+    where the donors come from symmetry images and there is no molecule to
+    hand at all.
+
+    **The donor count never decides on its own.** Six things attached in a
+    bizarre arrangement can produce several 90° angles without being
+    octahedral, so the comparison is over the whole angle distribution.
+    """
+    vectors = [
+        tuple(d[i] - metal_position[i] for i in range(3)) for d in donor_positions
+    ]
+    if len(vectors) < 2:
+        return CoordinationGeometry(
+            name=None, closest_reference=None, rmsd_degrees=None,
+            note=f"{len(vectors)} donor atom(s) — an angle needs two",
+        )
+    angles = _angle_multiset(vectors)
+    if len(angles) != len(vectors) * (len(vectors) - 1) // 2:
+        return CoordinationGeometry(
+            name=None, closest_reference=None, rmsd_degrees=None,
+            note="a donor atom sits on the metal — no direction to measure",
+        )
+    if angles[0] < MIN_DISTINCT_DONOR_ANGLE_DEGREES:
+        return CoordinationGeometry(
+            name=None, closest_reference=None, rmsd_degrees=None,
+            note=(
+                f"two donor atoms are only {angles[0]:.0f}° apart, which is "
+                "one position modelled twice rather than two donors"
+            ),
+            angles=tuple(angles),
+        )
+    candidates = [
+        (_rmsd_degrees(angles, _angle_multiset(vs)), name)
+        for name, vs in _REFERENCE_GEOMETRIES.items()
+        if len(vs) == len(vectors)
+    ]
+    if not candidates:
+        return CoordinationGeometry(
+            name=None, closest_reference=None, rmsd_degrees=None,
+            note=f"no reference polyhedron for {len(vectors)} donor atoms",
+            angles=tuple(angles),
+        )
+    rmsd, closest = min(candidates)
+    return CoordinationGeometry(
+        name=closest if rmsd <= GEOMETRY_MATCH_TOLERANCE_DEGREES else IRREGULAR,
+        closest_reference=closest,
+        rmsd_degrees=rmsd,
+        angles=tuple(angles),
+    )
+
+
 @dataclass(frozen=True)
 class Coordination:
     """A metal centre and what is attached to it.
@@ -177,14 +366,17 @@ class Coordination:
 
     `geometry` is None unless a real 3D conformer was available. Six
     things attached does not make something octahedral; that is a claim
-    about angles, and a flat drawing has none.
+    about angles, and a flat drawing has none. When there ARE coordinates
+    it carries the measurement rather than a bare word -- see
+    `CoordinationGeometry`, which can also say "irregular" and name what
+    the structure is nearest to.
     """
 
     metal_symbol: str
     metal_index: int | None
     ligands: tuple[Ligand, ...]
     oxidation_state: int | None = None
-    geometry: str | None = None
+    geometry: CoordinationGeometry | None = None
 
     @property
     def ligand_count(self) -> int:
@@ -440,12 +632,15 @@ def perceive(mol: Chem.Mol) -> Substance:
 def _coordination_from_connectivity(mol: Chem.Mol, metal_index: int) -> Coordination:
     """Ligands read off the metal's actual bonds.
 
-    Each neighbour is one donor atom of one ligand. **No geometry** -- see
-    `Coordination`; six neighbours is not octahedral until something has
+    Each neighbour is one donor atom of one ligand. The geometry is
+    measured when -- and only when -- a real 3D conformer is there to
+    measure; six neighbours is not octahedral until something has
     measured an angle.
     """
+    donor_indices = []
     ligands = []
     for neighbour in mol.GetAtomWithIdx(metal_index).GetNeighbors():
+        donor_indices.append(neighbour.GetIdx())
         ligands.append(
             Ligand(atom_indices=(neighbour.GetIdx(),), name=neighbour.GetSymbol())
         )
@@ -453,7 +648,34 @@ def _coordination_from_connectivity(mol: Chem.Mol, metal_index: int) -> Coordina
         metal_symbol=mol.GetAtomWithIdx(metal_index).GetSymbol(),
         metal_index=metal_index,
         ligands=tuple(ligands),
+        geometry=_geometry_from_conformer(mol, metal_index, donor_indices),
     )
+
+
+def _geometry_from_conformer(
+    mol: Chem.Mol, metal_index: int, donor_indices: Sequence[int]
+) -> CoordinationGeometry | None:
+    """The polyhedron, or None when there are no 3D coordinates at all.
+
+    **`GetNumConformers() > 0` is not the check.** A molblock written by
+    the 2D editor always parses into exactly one conformer with flat
+    z-coordinates, so that test is true for every drawn structure and
+    would report a geometry for a flat drawing. `Conformer.Is3D()` is the
+    one that distinguishes them -- the same rule the shape descriptors
+    use, and the reason a 2D structure still gets no geometry at all
+    rather than a confidently wrong one.
+    """
+    if mol.GetNumConformers() == 0:
+        return None
+    conformer = mol.GetConformer()
+    if not conformer.Is3D():
+        return None
+    position = conformer.GetAtomPosition(metal_index)
+    donors = []
+    for index in donor_indices:
+        donor = conformer.GetAtomPosition(index)
+        donors.append((donor.x, donor.y, donor.z))
+    return classify_coordination_geometry((position.x, position.y, position.z), donors)
 
 
 # ---------------------------------------------------------------------------
@@ -651,18 +873,8 @@ def compute_substance_analysis(
                 evidence=("how many ligand atoms are bound to the metal",),
             )
         )
-        if coordination.geometry:
-            facts.append(
-                Fact(
-                    category=FactCategory.GEOMETRY,
-                    label="Coordination geometry",
-                    value=coordination.geometry,
-                    display_value=coordination.geometry,
-                    source="Substance",
-                    basis=Basis.HEURISTIC,
-                )
-            )
-        else:
+        geometry = coordination.geometry
+        if geometry is None:
             # **Six things attached is not octahedral.** That is a claim
             # about angles, and a flat drawing has none -- the same rule
             # the bond report applies to 2D bond lengths.
@@ -681,6 +893,60 @@ def compute_substance_analysis(
                     ),
                 )
             )
+        else:
+            limitations = []
+            if geometry.name is None:
+                limitations.append(
+                    "The donor atoms were measured, but no polyhedron could be "
+                    f"named: {geometry.note}."
+                )
+            elif geometry.name == IRREGULAR:
+                limitations.append(
+                    "No reference polyhedron fits within "
+                    f"{GEOMETRY_MATCH_TOLERANCE_DEGREES:.0f}° RMSD. The nearest "
+                    f"is {geometry.closest_reference}; the deviation is reported "
+                    "so the distortion can be judged rather than rounded away."
+                )
+            facts.append(
+                Fact(
+                    category=FactCategory.GEOMETRY,
+                    label="Coordination geometry",
+                    value=geometry.name,
+                    display_value=geometry.summary,
+                    source="Substance",
+                    # HEURISTIC even though the angles below are not: the
+                    # ANGLES are trigonometry, but turning them into a name
+                    # takes a chosen tolerance, and a structure 0.1 deg the
+                    # wrong side of it gets a different word. The vocabulary
+                    # has two members and this is the honest one.
+                    basis=Basis.HEURISTIC,
+                    evidence=(
+                        "RMS deviation over every donor-metal-donor angle, "
+                        "against the reference polyhedron with the same donor "
+                        "count",
+                    ),
+                    limitations=tuple(limitations),
+                )
+            )
+            if geometry.angles:
+                facts.append(
+                    Fact(
+                        category=FactCategory.GEOMETRY,
+                        label="Donor-metal-donor angles",
+                        value=[round(angle, 1) for angle in geometry.angles],
+                        display_value=", ".join(
+                            f"{angle:.1f}°" for angle in geometry.angles
+                        ),
+                        source="Substance",
+                        # DETERMINISTIC, unlike the name above: an angle
+                        # between three known positions involves no
+                        # threshold and no judgement.
+                        basis=Basis.DETERMINISTIC,
+                        # The spread is what makes "irregular" a measurement
+                        # rather than a shrug, so it is shown, not summarised.
+                        detail=Detail.ADVANCED,
+                    )
+                )
 
     return ReportResult(
         molecule_uuid=molecule_uuid,

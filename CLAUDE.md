@@ -1491,6 +1491,61 @@ outcome here, not a failure.
 Comments explain **why**, especially where something is non-obvious or was got
 wrong once. A comment restating the code is noise.
 
+### A threshold with two measured bounds is not a taste question
+
+The coordination-geometry tolerance could have been picked by feel. It
+was instead squeezed between two numbers, and the window turned out to be
+narrow enough that feel would probably have missed it:
+
+    lower  a tris-chelate octahedron at en/bipy bite angles (78 deg)
+           scores 7.58 RMSD, and [Co(en)3]3+ is octahedral by any
+           account, so anything stricter refuses the textbook case
+    upper  trigonal bipyramidal and square pyramidal are 23.24 deg
+           apart, the closest pair of references, so 11.62 or above
+           can match BOTH and the winner comes down to dict order
+
+10.0 sits inside `[7.6, 11.6)`. `test_the_tolerance_stays_below_half_the_`
+`closest_reference_separation` recomputes the upper bound from the
+reference table itself, so widening the tolerance fails **naming the pair
+that would collide** -- a guard on the constant, not on the code.
+
+Three things worth carrying:
+
+- **Store reference SHAPES, not reference ANGLES.** Writing "90 and 180"
+  for an octahedron by hand invites the wrong multiplicities -- it is
+  twelve 90s and three 180s -- and a wrong multiset still scores
+  plausibly. Unit vectors derive the angle set correctly by construction.
+- **Sorted-order pairing of two angle lists is the OPTIMAL pairing**, not
+  just a convenient one (1-D optimal transport). Checked rather than
+  cited: brute force over every permutation beat it in 0 of 2000 random
+  cases. The mutation that removes the sort is caught.
+- **The count must never decide.** A pentagonal pyramid has six donors
+  and five angles within 5 deg of 90 -- exactly what a "six donors and
+  some right angles" rule falls for. It scores 27.5 and is irregular.
+
+#### `Conformer.Is3D()` follows the molblock HEADER, not the coordinates
+
+Measured in all four combinations, because a square-planar complex is
+flat by definition and the obvious reading would refuse it:
+
+    header 2D, all z = 0     Is3D() False
+    header 3D, all z = 0     Is3D() True     <- flat but genuinely 3D
+    header 2D, one z != 0    Is3D() True     (RDKit warns and overrides)
+    header 3D, one z != 0    Is3D() True
+
+So a genuinely planar complex from a 3D source is accepted, and a 2D
+drawing still is not. `GetNumConformers() > 0` remains useless as a check
+-- it is true for every drawn structure.
+
+#### `CoordinationShell` keeps distances and DISCARDS positions
+
+`chem/crystal_analysis.Neighbour` carries `element`, `site_label` and
+`distance` only, so the crystal path cannot currently report an angle at
+all. `classify_coordination_geometry` takes bare coordinates rather than
+an RDKit molecule precisely so it can serve that path once the positions
+are carried -- but they are not carried yet. Anything wanting crystal
+coordination geometry has to widen `Neighbour` first.
+
 ### A library DEFAULT can be a different quantity, not a tuning knob
 
 `rdMolDescriptors.DoubleCubicLatticeVolume` computes a **solvent-accessible**

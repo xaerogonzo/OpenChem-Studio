@@ -399,6 +399,53 @@ and a flat drawing has none. A coordination environment perceived from a
 says "not determined" for geometry. The same rule the bond report already
 applies to 2D bond lengths.
 
+### Coordination geometry, when there ARE coordinates
+
+With a real 3D conformer the polyhedron is named from every
+donor–metal–donor angle, as the RMS deviation from a reference geometry
+with the same donor count. Seven references are known: linear, trigonal
+planar, tetrahedral, square planar, trigonal bipyramidal, square
+pyramidal, octahedral.
+
+**The match threshold is 10° RMSD, and both of its bounds were
+measured.** A tris-chelate octahedron with ethylenediamine or bipyridine
+bite angles (78°) scores 7.58, so anything stricter would refuse the
+textbook octahedral complexes. Trigonal bipyramidal and square pyramidal
+— the closest pair of references anywhere — are only 23.24° apart, so
+anything at or above 11.62° could match both and the answer would depend
+on the order the references happen to be listed in. 10° is the middle of
+a genuinely narrow window.
+
+**"Irregular" is a result, not a failure.** A complex outside tolerance
+is reported as irregular together with the nearest reference and the
+deviation, so a squashed octahedron reads as a squashed octahedron
+rather than being rounded to "octahedral" or shrugged at. A tris-acetate
+complex, biting at 60–65°, lands here at 18.9° and 15.8° respectively.
+
+**The count alone never decides, and that is a real trap rather than a
+theoretical one.** A pentagonal pyramid has six donors and five angles
+within 5° of 90°; a rule keyed on "six donors, some right angles" would
+call it octahedral. It scores 27.5° and is reported irregular.
+
+**Nothing is reported for donor counts outside the table.** A
+seven-coordinate uranyl centre or a nine-coordinate cluster gets "no
+reference polyhedron at this donor count", which is a different
+statement from "irregular" — the latter would imply a comparison that
+never happened.
+
+**Two donors closer than 30° are treated as one position modelled
+twice.** This is disorder, not coordination: the lithium site of COD
+1511792 has two modelled nitrogen positions 14° apart, and without the
+guard it scores as a five-coordinate complex and earns a polyhedron name
+it should not have.
+
+**A perfectly planar complex from the 2D editor is indistinguishable
+from a drawing, and is treated as one.** Square planar is flat by
+definition, so coordinates alone cannot separate it from a flat sketch;
+the check is RDKit's `Conformer.Is3D()`, which follows the molblock's
+declared dimensionality. A square-planar complex from a genuine 3D
+source is classified normally.
+
 **Two counts, and neither is "the coordination number".** Ferrocene's
 ligand coordination is 2 and its donor-atom count is 10. A single figure
 of 10 invites the reader to supply the wrong convention, so the two are
