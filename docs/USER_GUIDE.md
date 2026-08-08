@@ -227,10 +227,15 @@ without its scope is the silence that reads as reassurance.
 ### Running several calculators at once
 
 Tick the box beside any **Open …** buttons you want and press **Run
-selected**. They run concurrently with their default settings — no
-dialogs, because answering six of those to avoid clicking six buttons is
-not a saving. Use the individual button when you need non-default
-settings.
+selected**. The selection spans categories, so you can tick something from
+Charge and something from Topology and run both together — they were
+already running on a thread pool, so this is genuinely concurrent rather
+than a queue.
+
+Batch runs use each calculator's **declared defaults and open no dialogs**,
+because answering six settings dialogs to avoid six clicks is not a saving.
+No inspector windows open either. Use the individual **Open …** button when
+you need non-default settings.
 
 Each result appears in its own category as a one-line summary
 ("22 atoms, −0.41 to 0.33 e"); open the calculator's button for the full
@@ -286,19 +291,6 @@ than rendering blank. Roughly half of all molecules name to a form that
 carries no atom indices at all, and for those the locants come from ring
 templates instead of from the name — so an empty or partial result is a
 property of the naming path, not a failure.
-
-### Running several calculators at once
-
-Each calculator row has a tick box, and **Run selected** runs everything
-ticked. The selection spans categories, so you can tick something from
-Charge and something from Topology and run both together — they were
-already running on a thread pool, so this is genuinely concurrent rather
-than a queue.
-
-Batch runs use each calculator's **declared defaults and open no dialogs**.
-Six settings dialogs to avoid six clicks is not a saving, and no inspector
-windows are opened either — the results land in the panel as usual. If you
-want to configure one, run it on its own with **Open …**.
 
 ---
 
@@ -1035,6 +1027,43 @@ is hand-entered.
 which places atoms and can express query forms (Single / List / Not List) that
 a reference table has no way to say. This one answers questions instead; it
 offers **Copy symbol** and nothing that would place an atom.
+
+### The atom, drawn
+
+Above the facts table the selected element is **drawn**: shell rings around
+a nucleus labelled with its protons and neutrons, and the same
+configuration again as orbital boxes with spin arrows — `1s ↑↓ | 2s ↑↓ |
+2p ↑ ↑ ↑`. The picture sits above the table rather than below it because
+the configuration string in that table is the same information, and a
+diagram explaining a line of text belongs beside it.
+
+**The + and − buttons make ions**, and this is the part worth knowing
+about. Removing an electron does *not* take one off the end of the written
+configuration, because that is wrong for exactly the elements people try
+first:
+
+    Fe     [Ar] 3d⁶ 4s²
+    Fe²⁺   [Ar] 3d⁶        ← 4s empties first, though it filled last
+    Fe³⁺   [Ar] 3d⁵
+
+**The diagram says where each configuration came from** — one quiet line,
+so you can tell a curated value from a derived one without the interface
+making a fuss about it. In practice every *ion* currently reads "general
+ionisation rule": the rule was checked against 23 ions and got all of
+them, so there was nothing left for a lookup table to correct and it
+ships empty. Neutral atoms are the curated ones, anomalies included —
+chromium is `[Ar] 3d⁵ 4s¹` and copper `[Ar] 3d¹⁰ 4s¹` because the shipped
+element data says so, not because a rule derived it.
+
+It also reports an **isoelectronic noble gas** where there is one: Na⁺, F⁻
+and O²⁻ are all isoelectronic with neon. Fe²⁺ gets nothing, because
+matching an electron count is not the same as being isoelectronic with
+something noble — 24 electrons would make it "isoelectronic with
+chromium", which is true and not what the control is offering.
+
+**The neutron count belongs to an isotope, not an element**, so it is
+labelled with the isotope it came from — silicon's nucleus is drawn with
+14 neutrons and says "most abundant isotope, ²⁸Si".
 
 ### It says when something is not known
 
