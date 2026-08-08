@@ -415,6 +415,14 @@ class AtomInspectorPanel(QWidget):
         inside a Qt signal handler. Found by asking what a click on a
         hydrogen would do, during a live check that had not happened to hit
         one.
+
+        **The 2D editor is no longer a source of out-of-range indices, and
+        this message must not be read as saying it is.** It was: Ketcher
+        sent pool ids rather than molfile positions, so clicking a CARBON in
+        a benzene drawn after erasing another ring reported "Atom 9 ... pick
+        a heavy atom". That is fixed in the editor's JS (`molfilePosition`
+        in tools/ketcher-host/src/main.jsx). Anything still reaching here
+        with a bad index is coming from the 3D viewer.
         """
         _model, mol = self._molecule()
         if mol is None:
@@ -473,10 +481,13 @@ class AtomInspectorPanel(QWidget):
         self._pending_bond_atom = None
         _model, mol = self._molecule()
         if mol is not None and not (0 <= bond_index < mol.GetNumBonds()):
-            # Ketcher and the report agree on bond indices today (verified
-            # against a shared molblock). Guarded anyway because the atom
-            # side turned out NOT to agree, and the failure there was a
-            # crash rather than a wrong answer.
+            # This guard cannot catch the mismatch that actually happened:
+            # Ketcher used to send POOL IDS rather than molfile positions,
+            # and a wrong bond index usually stays in range, so the panel
+            # described a DIFFERENT bond and looked as though it worked.
+            # Fixed in the editor's JS (`molfilePosition` in
+            # tools/ketcher-host/src/main.jsx); kept here for the 3D
+            # viewer, whose explicit hydrogens really do run off the end.
             self._facts.set_status(
                 f"Bond {bond_index + 1} is not in the structure as drawn."
             )
