@@ -53,7 +53,7 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **3-8 minutes**, ending at `3298 passed, 2 skipped,
+A clean run is **3-8 minutes**, ending at `3311 passed, 2 skipped,
 1 deselected` (measured 2026-08-08 after the crystallography work, in the main
 checkout with nothing dirty; it was 3236 before that, 3155 before the
 polarity/lattice-energy work, 3081 before the

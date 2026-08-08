@@ -542,11 +542,26 @@ Standard uncertainty is stripped, not parsed: `5.6393(2)` becomes 5.6393.
 Propagating it would only be worth doing everywhere, and a half-propagated
 uncertainty is worse than none.
 
-**The reader has been exercised against one hand-assembled file.** Real
-depositions carry multi-line text fields, disorder, unusual tag orders and
-vendor quirks that nothing here has yet seen. The three structures above
-validate the *arithmetic*, keyed in from their papers; they do not
-validate the *parser*.
+**The reader is exercised against two real depositions**, public domain
+from the Crystallography Open Database and committed as fixtures:
+`1504676` (a perfluorophenyl-capped polyyne, Kendall et al., *Org. Lett.*
+2008, **10**, 2163) and `7717378` (a uranium complex, 120 sites). Both are
+**triclinic** — all three angles off 90 — and both carry what a
+hand-written file never does: multi-line `;` fields, quoted values with
+commas, extra `_atom_site_` columns, anisotropic and geometry loops, tags
+containing slashes, and negative fractional coordinates.
+
+Each file states its own `_cell_volume` and `_exptl_crystal_density_diffrn`,
+computed by the depositor's software from the depositor's structure, and
+both are reproduced to four significant figures — 768.527 against 768.5
+and 1.4703 against 1.470; 1955.152 against 1955.15 and 1.5525 against
+1.552. That exercises parsing, expansion, wrapping, deduplication,
+composition and volume together against numbers this project did not
+produce.
+
+What remains untested: **disorder groups and partially occupied sites in a
+real file**. Both fixtures are fully ordered, so the occupancy path is
+covered only by synthetic cases.
 
 ## Where this is enforced
 

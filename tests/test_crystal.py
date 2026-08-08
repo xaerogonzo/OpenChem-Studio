@@ -628,3 +628,130 @@ def test_the_conversion_matrix_is_right_for_every_published_cell():
     ):
         crystal = Crystal(lattice=lattice, sites=(Site("X", "Si", (0, 0, 0)),))
         assert conversion_determinant(crystal) == pytest.approx(lattice.volume, rel=1e-12)
+
+
+# --- real COD depositions, which is what tests the READER ------------------
+#
+# The three structures above were keyed in from their papers, so they check
+# the arithmetic and not the parsing. These two are files as deposited,
+# public domain from the Crystallography Open Database, and they carry the
+# things a hand-written CIF never does: multi-line `;` fields, quoted
+# values with commas in them, extra _atom_site_ columns, anisotropic and
+# geometry loops, tags with slashes in, and negative fractional
+# coordinates.
+#
+#   1504676  Kendall, McDonald, Ferguson & Tykwinski, Org. Lett. 2008,
+#            10, 2163 (doi 10.1021/ol800583r) -- a perfluorophenyl-capped
+#            polyyne, triclinic P-1
+#   7717378  a uranium complex, triclinic P-1, 120 sites
+#
+# **Each file states its own volume and X-ray density**, computed by the
+# depositor's software from the depositor's structure. Reproducing those
+# exercises the entire chain at once -- parse, expand, wrap, deduplicate,
+# compose, volume, density -- against a number this project did not
+# produce.
+
+COD = Path("tests/fixtures/cif")
+
+
+def _cod(code: str):
+    return read_cif((COD / f"{code}.cif").read_text(encoding="utf-8", errors="replace"))
+
+
+def _stated(code: str, tag: str) -> float:
+    import re
+
+    text = (COD / f"{code}.cif").read_text(encoding="utf-8", errors="replace")
+    match = re.search(rf"{tag}\s+([\d.]+)", text)
+    assert match, f"{tag} not present in {code}"
+    return float(match.group(1))
+
+
+@pytest.mark.parametrize("code", ["1504676", "7717378"])
+def test_a_real_deposition_parses_at_all(code):
+    crystal = _cod(code)
+
+    assert crystal.space_group == "P -1"
+    assert crystal.space_group_number == 2
+    assert crystal.sites
+    assert len(crystal.operations) == 2
+
+
+@pytest.mark.parametrize("code", ["1504676", "7717378"])
+def test_the_computed_volume_matches_the_one_the_file_states(code):
+    """Both cells are TRICLINIC -- all three angles off 90 -- which is the
+    shape the orthogonal shortcut cannot fake."""
+    crystal = _cod(code)
+
+    assert not crystal.lattice.is_orthogonal
+    assert crystal.lattice.volume == pytest.approx(_stated(code, "_cell_volume"), abs=0.05)
+
+
+@pytest.mark.parametrize("code", ["1504676", "7717378"])
+def test_the_computed_density_matches_the_depositors_own(code):
+    """**The strongest check in this file.** `_exptl_crystal_density_diffrn`
+    was computed by somebody else's software from the same structure, so
+    matching it exercises parsing, expansion, wrapping, deduplication,
+    composition and volume together against an independent number."""
+    crystal = _cod(code)
+
+    assert density(crystal) == pytest.approx(
+        _stated(code, "_exptl_crystal_density_diffrn"), abs=0.001
+    )
+
+
+def test_the_polyyne_expands_to_twice_its_asymmetric_unit():
+    """P-1 has two operations and no site here sits on the inversion
+    centre, so every site doubles -- and the composition must come out at
+    Z x the published moiety, C20H5F5."""
+    crystal = _cod("1504676")
+
+    assert len(crystal.expand()) == 2 * len(crystal.sites)
+    assert crystal.composition() == {"C": 40.0, "H": 10.0, "F": 10.0}
+    assert crystal.formula_units_z == 2
+
+
+def test_an_element_outside_the_organic_set_is_read():
+    """The uranium file. An element regex that assumed one or two letters
+    of organic chemistry would quietly drop it."""
+    assert "U" in _cod("7717378").composition()
+
+
+def test_negative_fractional_coordinates_wrap_into_the_cell():
+    """A deposition writes coordinates in whatever range the refinement
+    produced; this file has y = -0.0870 among others. Every one has to
+    come back inside the cell."""
+    for atom in _cod("1504676").expand():
+        for value in atom.position:
+            assert 0.0 <= value < 1.0
+
+
+def test_a_multi_line_text_field_does_not_derail_the_reader():
+    """`_publ_section_title` and `_cod_depositor_comments` are `;`-delimited
+    blocks running over several lines, one of them containing a bare
+    `loop_`-looking indent. Getting this wrong swallows the atom loop."""
+    crystal = _cod("1504676")
+
+    assert len(crystal.sites) == 30
+
+
+def test_a_quoted_value_containing_a_comma_stays_one_token():
+    """`'Kendall, Jamie'` is one author, not two. A naive whitespace split
+    would not care, but a comma-aware one would break here."""
+    from openchem.chem.cif import _tokenise
+
+    assert _tokenise("'Kendall, Jamie' 'McDonald, Robert'") == [
+        "Kendall, Jamie",
+        "McDonald, Robert",
+    ]
+
+
+@pytest.mark.parametrize("code", ["1504676", "7717378"])
+def test_the_fields_the_reader_ignores_are_counted_not_silently_dropped(code):
+    """A real deposition is mostly metadata -- 116 and 172 fields here.
+    Recording them is what stops the app implying it understood the
+    anisotropic displacement parameters it did not read."""
+    crystal = _cod(code)
+
+    assert len(crystal.unhandled) > 50
+    assert any(tag.startswith("_atom_site_aniso") for tag in crystal.unhandled)
