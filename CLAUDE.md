@@ -1634,6 +1634,41 @@ does parse a charge when `_atom_site_type_symbol` gives one (`Na+`,
 position it used to throw away. Carrying it through is the next step;
 guessing charges is not.
 
+### Normalise the DRAWING, do not fork the vendor
+
+The vendored organometallic perception recognises a sandwich only as
+`[cH-]1cccc1.[cH-]1cccc1.[Fe+2]`. Ferrocene drawn the way most people
+draw it -- bonds from the iron to both rings -- returned None, and the
+plan for fixing it said to work inside
+`vendor/.../organometallic.py`, which is 5,020 lines this project does
+not own.
+
+**It did not need touching.** `_as_ionic_sandwich` in
+`chem/organometallic_adapter.py` converts the bonded drawing into the
+ionic form and hands THAT over: metal-ring bonds removed, rings made
+aromatic anions, metal given the balancing charge. Ferrocene,
+ruthenocene, cobaltocene and methylferrocene all work from a bonded
+drawing now, retained names included.
+
+Three things that made it safe:
+
+- **The ionic path runs FIRST and unchanged.** Normalisation only ever
+  sees a molecule the vendor has already declined, so nothing that
+  worked before can regress.
+- **Removing a bond does not renumber atoms**, so reported indices still
+  address the caller's molecule. Asserted, not assumed -- an index that
+  quietly means something else is the bug this project hit in Ketcher's
+  pool ids and again in the crystal viewer.
+- **Hydrogen counts are per atom, not one each.** A substituted ring
+  carbon has none, and forcing one made methylferrocene fail to sanitise
+  while plain ferrocene worked -- the confusing kind of bug rather than
+  the obvious kind.
+
+**Pentamethylferrocene is a VENDOR limit, and a test says so.**
+Normalisation produces a correct ionic form for it and the vendor
+declines that too. Asserting both halves keeps "our conversion failed"
+and "their perception declined" from ever being confused.
+
 ### A threshold with two measured bounds is not a taste question
 
 The coordination-geometry tolerance could have been picked by feel. It

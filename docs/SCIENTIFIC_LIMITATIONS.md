@@ -472,12 +472,22 @@ is spread over all five, and a per-atom state there depends on which atom
 the charge happened to be typed on — the delocalisation limitation this
 file and `chem/oxidation_states.py` already record.
 
-**Only the ionic DRAWING is recognised.** The vendored perception was
-measured against five variants with the metal bonded into its rings
-(single, alternating and aromatic ring bonds; single and dative metal-carbon
-bonds) and classified none of them. A sandwich drawn that way still hits
-the metal-carbon refusal, and that refusal now names the drawing that can
-be assigned.
+**A sigma-bonded drawing now works too.** The vendored perception still
+recognises only the ionic form, so a sandwich drawn the ordinary way —
+bonds from the metal to both rings — is *converted* to that form before
+being handed over. The metal–ring bonds are removed, the rings made
+aromatic anions and the metal given the balancing charge; the vendored
+code is not modified, because a change inside 5,000 lines of vendored
+perception has to be re-applied every time the vendor moves. Ferrocene,
+ruthenocene, cobaltocene and methylferrocene are all assigned from a
+bonded drawing, and the atom indices reported still address the molecule
+you passed in.
+
+**Pentamethylferrocene is still refused, and that is an upstream limit
+rather than this one.** The conversion produces a correct ionic form for
+it; the vendored perception declines that form as well. A test asserts
+both halves so the two are never confused — if the vendor learns the
+structure, the test fails and this paragraph comes off.
 
 Metal carbonyls remain refused. Cr(CO)6 comes out at Cr(+6) where the
 answer is 0, and nothing here can see the back-donation that makes it so.
