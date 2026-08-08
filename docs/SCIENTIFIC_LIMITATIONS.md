@@ -487,6 +487,67 @@ the accepted 1.74756) — two independent routes agreeing to 0.6%, which
 catches a wrong prefactor or a unit slip that an experimental comparison
 could hide.
 
+## Crystal structures
+
+A periodic solid is **not a molecule**, and `domain/crystal.py` does not
+inherit from the molecule model in either direction. Most molecular
+calculators mean nothing for one — a molecular weight, a logP, a
+rotatable-bond count — so the crystal report names them as inapplicable
+rather than leaving a reader to wonder why the Properties panel is empty.
+That list is read from the live calculator registry, so a calculator added
+later is covered without anyone remembering to update it.
+
+**What is computed, and how it was checked.** The cell volume uses the
+general triclinic expression, which for an orthogonal cell reduces to
+`abc` — so a cubic structure cannot tell the real formula from a bare
+multiplication. Three published structures spanning three crystal systems
+were used instead:
+
+| structure | source | cell volume | density |
+| --- | --- | --- | --- |
+| Halite, Fm-3m | Walker et al. 2004 | 179.339 vs 179.34 Å³ | 2.1645 vs 2.165 |
+| Gypsum, I2/a | Cole & Lancucki 1974 | 494.372 vs 494.37 Å³ | 2.3132 vs 2.31 |
+| Low quartz, P3₁21 | Baur 2009 | 112.9785 (3 routes) | 2.6493 vs 2.65 |
+
+Independently, `det(M)` — the determinant of the fractional-to-Cartesian
+matrix that actually places atoms — equals the closed-form volume exactly
+for every cell shape. The two share no code, so a wrong conversion matrix
+cannot hide behind a right volume.
+
+**Density is the X-ray density of an ideal cell.** A measured density is
+lower wherever the real material has vacancies, porosity or inclusions,
+and nothing here can see any of those. Occupancies below 1 are honoured,
+so a partly-vacant site lowers it exactly as it does in the material.
+
+**Coordination number is a judgement, and is reported as one.** There is
+no measurement saying where a shell ends; the rule used here is the first
+jump in sorted neighbour distances larger than 15%. Halite is unambiguous
+— six neighbours at 2.820 Å and the next shell 41% further out — and the
+report says whether a given case was that clear-cut or not. **The
+distances are the measurement; the count is an interpretation of them.**
+
+**The Cartesian convention is fixed and stated**: a along x, b in the xy
+plane. Any rotation of that is equally valid crystallography and will not
+match these coordinates.
+
+### What the CIF reader does not do
+
+Anisotropic displacement parameters, disorder groups, restraints and
+refinement statistics are **recorded in `Crystal.unhandled` rather than
+dropped**, because a structure with disorder is still worth showing and
+silently ignoring the fields is how a tool starts implying it understood
+more than it did.
+
+Standard uncertainty is stripped, not parsed: `5.6393(2)` becomes 5.6393.
+Propagating it would only be worth doing everywhere, and a half-propagated
+uncertainty is worse than none.
+
+**The reader has been exercised against one hand-assembled file.** Real
+depositions carry multi-line text fields, disorder, unusual tag orders and
+vendor quirks that nothing here has yet seen. The three structures above
+validate the *arithmetic*, keyed in from their papers; they do not
+validate the *parser*.
+
 ## Where this is enforced
 
 Most of these limits are also written into the module that implements the
