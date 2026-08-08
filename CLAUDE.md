@@ -635,6 +635,47 @@ the error was thrown on every launch for months. And a `clear` that queues
 must CANCEL the pending payloads rather than queue itself, or it is
 overtaken on replay by the very structure it was meant to remove.
 
+#### Ketcher had the same two holes, and a WIDER window than the viewer
+
+`KetcherEditorBackend.set_render_option` and `trigger_toolbar_action` called
+`runJavaScript` unguarded while `load_molblock` and `get_molblock` both
+checked `_ketcher_ready`. Same bug class, and the exposure is larger rather
+than smaller: **Ketcher's ready signal is a JS callback (`ketcherReady`), not
+`loadFinished`**, so it fires after the page exists — the window in which a
+call is reachable and silently dropped outlasts the one the 3D viewer had.
+
+Neither is reachable at construction today (the View menu's toggles are never
+`setChecked`, so nothing emits `toggled` until a user clicks), so this is the
+same latent-ordering case `set_style` was, not a daily error.
+
+**Queue state, drop gestures**, and say which a thing is. A render option is
+state: dropped, the menu checkbox and the canvas disagree with nothing on
+screen to say which is real, so it queues. A toolbar action is a transient
+gesture: replayed, "Add/Remove explicit hydrogens" would mutate a structure
+the user never saw (the canvas is empty until `_pending_molblock` replays a
+moment later) and "3D Viewer" would open a dialog seconds after the click
+that asked for it. It is dropped deliberately, and a test asserts the drop so
+the asymmetry reads as a decision.
+
+**The queue is a dict, and the test that proves it must use TWO different
+options.** "The same option toggled twice applies once with the last value"
+passes just as happily against a single `(name, value)` slot, which silently
+discards every option but the most recent — and the menu offers two side by
+side. Measured: the single-slot mutation kills only
+`test_two_different_options_queued_before_ready_both_survive`, and nothing
+else in the file notices.
+
+**The two backends drain their queues in OPPOSITE orders, and both are
+right.** 3Dmol's `loadMolblock` clears layers and surfaces, so
+`Mol3DViewerBackend` replays those last. Ketcher's `setMolecule` does not
+touch `render.options` — measured against the real bundle — so options go
+first there and are laid out with the structure rather than re-rendering it
+a frame later. Do not copy one ordering to the other on the strength of the
+shape looking the same; check what the engine's own load actually resets.
+For Ketcher it is a preference and not a constraint, which is worth stating
+because inverting the replay breaks no test: a mutation of the order passed
+all 14.
+
 #### The render flakiness that could not be reproduced
 
 Recorded so the next person does not re-derive the same non-conclusion.

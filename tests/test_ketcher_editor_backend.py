@@ -72,9 +72,109 @@ def test_set_render_option_updates_ketchers_own_render_options(qapp):
     )
 
 
-def test_set_render_option_before_ketcher_is_ready_does_not_raise(qapp):
+def _record_page_calls(backend: KetcherEditorBackend, action) -> list[str]:
+    """Run `action`, returning the scripts it pushed into the page.
+
+    Asserting on the recorded calls rather than on the JS console, because
+    `_LoggingPage` forwards the console at DEBUG -- which is exactly what
+    hid the 3D viewer's equivalent bug through nine of nine cold launches.
+    A call that reaches an unloaded page is discarded in JS, so from
+    Python it looks identical to one that was never made; recording at the
+    boundary is what tells the two apart.
+    """
+    calls: list[str] = []
+    original = backend._page.runJavaScript
+    backend._page.runJavaScript = lambda script, *a, **k: calls.append(script)  # type: ignore[method-assign]
+    try:
+        action()
+    finally:
+        backend._page.runJavaScript = original  # type: ignore[method-assign]
+    return calls
+
+
+def test_a_render_option_set_before_ketcher_is_ready_never_calls_into_the_page(qapp):
+    """Every other entry point on this backend queues; these two did not.
+
+    Ketcher's ready signal is a JS callback (`ketcherReady`) rather than
+    `loadFinished`, so it arrives later than the page does -- the window
+    in which a call is reachable and dropped is WIDER here than the one
+    the 3D viewer had, not narrower.
+    """
     backend = KetcherEditorBackend()
-    backend.set_render_option("showHydrogenLabels", "All")  # must not raise even pre-ready
+    assert not backend._ketcher_ready
+
+    calls = _record_page_calls(
+        backend, lambda: backend.set_render_option("showHydrogenLabels", "All")
+    )
+
+    assert calls == []
+    assert backend._pending_render_options == {"showHydrogenLabels": "All"}
+
+
+def test_a_render_option_chosen_before_ketcher_is_ready_reaches_the_real_editor(qapp):
+    """The replay, against the real bundle rather than a recorded call.
+
+    No caller reaches this before ready today -- the View menu's toggles
+    are never `setChecked` at construction, so nothing emits `toggled`
+    until a user clicks one. But the menu is on screen and clickable while
+    Ketcher is still booting, and dropping the call is the silent kind of
+    failure: the checkbox shows one thing and the canvas does another,
+    with nothing on screen to say which is real.
+    """
+    backend = KetcherEditorBackend()
+    assert not backend._ketcher_ready
+
+    backend.set_render_option("showHydrogenLabels", "All")
+
+    assert _wait_until(qapp, lambda: backend._ketcher_ready)
+    assert _wait_until(
+        qapp,
+        lambda: _run_js(
+            qapp, backend, "window.ketcher.editor.render.options.showHydrogenLabels"
+        ) == "All",
+    )
+
+
+def test_one_option_toggled_twice_before_ready_is_applied_once_with_the_last_value(qapp):
+    """Why the queue is a dict and not a list of calls.
+
+    An option toggled twice before the page is up is one option whose
+    value the user changed their mind about. Replayed as a list it would
+    be set and then unset, leaving the canvas disagreeing with the menu
+    checkbox -- the very failure the queue exists to prevent.
+    """
+    backend = KetcherEditorBackend()
+    backend.set_render_option("showHydrogenLabels", "All")
+    backend.set_render_option("showHydrogenLabels", "Terminal")
+
+    assert backend._pending_render_options == {"showHydrogenLabels": "Terminal"}
+
+    calls = _record_page_calls(backend, backend._on_ketcher_ready)
+
+    assert len(calls) == 1, f"expected one replayed call, got {len(calls)}: {calls}"
+    assert "Terminal" in calls[0]
+    assert "All" not in calls[0], "the superseded value was replayed too"
+    assert backend._pending_render_options == {}
+
+
+def test_two_different_options_queued_before_ready_both_survive(qapp):
+    """The complement, and the one a single-slot queue would fail.
+
+    Keeping one `(name, value)` pair satisfies the last-value-wins test
+    above completely, while silently discarding every option but the most
+    recent -- and the View menu offers two of them side by side, so
+    toggling both before Ketcher boots is the ordinary case rather than a
+    contrived one.
+    """
+    backend = KetcherEditorBackend()
+    backend.set_render_option("showHydrogenLabels", "All")
+    backend.set_render_option("carbonExplicitly", True)
+
+    calls = _record_page_calls(backend, backend._on_ketcher_ready)
+
+    assert len(calls) == 2, f"expected both options replayed, got {calls}"
+    assert any("showHydrogenLabels" in script for script in calls)
+    assert any("carbonExplicitly" in script for script in calls)
 
 
 _ETHANOL_MOLBLOCK_NO_EXPLICIT_H = (
@@ -100,6 +200,43 @@ def _atom_count(molblock: str) -> int:
     return int(molblock.splitlines()[3][:3])
 
 
+def test_an_option_queued_alongside_a_structure_survives_the_load(qapp):
+    """The two queues drain in one pass, and an option must survive it.
+
+    `Mol3DViewerBackend` has to replay its layers and surfaces AFTER the
+    structure, because its `loadMolblock` genuinely clears them. Ketcher's
+    `setMolecule` does not touch `render.options`, which is what this
+    measures against the real bundle -- so the option is still in effect
+    on the loaded structure.
+
+    **It does not pin the ORDER, and deliberately says so rather than
+    implying it.** Measured by inverting the replay in `_on_ketcher_ready`
+    (structure first, options after): all 14 tests in this file still
+    pass. Options-first is the better arrangement -- the structure is laid
+    out the way the user asked instead of drawn once and re-rendered a
+    frame later -- but it is a preference, not a correctness constraint,
+    and a test claiming otherwise would be claiming more than it checks.
+    """
+    backend = KetcherEditorBackend()
+    assert not backend._ketcher_ready
+
+    backend.set_render_option("showHydrogenLabels", "All")
+    backend.load_molblock(_ETHANOL_MOLBLOCK_NO_EXPLICIT_H)
+
+    assert _wait_until(qapp, lambda: backend._ketcher_ready)
+    # The structure really did arrive -- otherwise the option assertion
+    # below would hold vacuously, on a canvas nothing was loaded into.
+    assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
+    assert _atom_count(_get_molblock_sync(qapp, backend)) == 3
+
+    assert _wait_until(
+        qapp,
+        lambda: _run_js(
+            qapp, backend, "window.ketcher.editor.render.options.showHydrogenLabels"
+        ) == "All",
+    ), "the load reset a render option applied before it"
+
+
 def test_trigger_toolbar_action_adds_explicit_hydrogens(qapp):
     """End-to-end regression test for the Phase 17 audit correction: the
     "Add/Remove explicit hydrogens" button is a real, working Ketcher
@@ -123,9 +260,31 @@ def test_trigger_toolbar_action_adds_explicit_hydrogens(qapp):
     backend.widget().hide()
 
 
-def test_trigger_toolbar_action_before_ketcher_is_ready_does_not_raise(qapp):
+def test_a_toolbar_action_before_ketcher_is_ready_is_dropped_not_queued(qapp):
+    """The deliberate asymmetry with `set_render_option`, asserted so it
+    reads as a decision rather than an oversight.
+
+    A toolbar action is a transient GESTURE, not a piece of state.
+    Replaying it would perform it against a structure the user had not
+    seen when they clicked -- the canvas is empty until `_pending_molblock`
+    replays a moment later -- so "Add/Remove explicit hydrogens" would
+    mutate that structure unasked and "3D Viewer" would open a dialog
+    seconds after the click that asked for it. Both are worse than nothing
+    happening on a blank canvas, which the user can see and simply repeat.
+    """
     backend = KetcherEditorBackend()
-    backend.trigger_toolbar_action("Add/Remove explicit hydrogens button")  # must not raise
+    assert not backend._ketcher_ready
+
+    calls = _record_page_calls(
+        backend,
+        lambda: backend.trigger_toolbar_action("Add/Remove explicit hydrogens button"),
+    )
+    assert calls == []
+
+    # Dropped, NOT queued -- the half that makes it a choice. If it were
+    # merely deferred, this would fire it at ready and the two clauses
+    # above would both still pass.
+    assert _record_page_calls(backend, backend._on_ketcher_ready) == []
 
 
 # --- our own loads must not look like the user drawing ----------------------

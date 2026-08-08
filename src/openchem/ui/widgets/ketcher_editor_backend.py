@@ -155,6 +155,15 @@ class KetcherEditorBackend(EditorBackend):
 
         self._ketcher_ready = False
         self._pending_molblock: str | None = None
+        #: Render options chosen before Ketcher reported ready, replayed
+        #: when it does.
+        #:
+        #: A DICT, not a list of calls: an option toggled twice before the
+        #: page is up is one option whose value the user changed their mind
+        #: about, and replaying both would set it and then unset it. Keyed
+        #: by option name, last value wins -- which is what the menu's own
+        #: checkbox will be showing by then.
+        self._pending_render_options: dict[str, object] = {}
         #: Non-None while one of OUR loads is settling; see
         #: `_on_structure_edited`.
         self._loading_token: str | None = None
@@ -205,6 +214,18 @@ class KetcherEditorBackend(EditorBackend):
 
     def _on_ketcher_ready(self) -> None:
         self._ketcher_ready = True
+        # Options before the structure, so it is laid out the way the user
+        # asked rather than drawn once and re-rendered a frame later.
+        # Applying them to a still-empty canvas holds for whatever is
+        # loaded next -- measured, `setMolecule` does not reset
+        # `render.options`, unlike 3Dmol's `loadMolblock`, which clears the
+        # layers and surfaces Mol3DViewerBackend therefore replays LAST.
+        # A preference, not a constraint: inverting it breaks no test, and
+        # `test_an_option_queued_alongside_a_structure_survives_the_load`
+        # says so rather than pretending to pin it.
+        for name, value in self._pending_render_options.items():
+            self._run_set_render_option(name, value)
+        self._pending_render_options.clear()
         if self._pending_molblock is not None:
             self._run_set_molecule(self._pending_molblock)
             self._pending_molblock = None
@@ -303,6 +324,25 @@ class KetcherEditorBackend(EditorBackend):
         self._page.runJavaScript(script)
 
     def set_render_option(self, name: str, value: object) -> None:
+        # Queued like `load_molblock`, and for the same reason: a
+        # `runJavaScript` issued before the page exists is silently
+        # discarded. Ketcher's ready signal is a JS callback rather than
+        # `loadFinished`, so it arrives LATER than the page does and the
+        # window in which this is reachable-but-dropped is wider than the
+        # one the 3D viewer had.
+        #
+        # No caller reaches it before ready today -- the View menu's
+        # toggles are never `setChecked` at construction, so nothing emits
+        # `toggled` until a user clicks one. But the menu is on screen and
+        # clickable while Ketcher is still booting, and a dropped call is
+        # the silent kind of failure: the checkbox shows one thing and the
+        # canvas does another, with nothing to suggest which is real.
+        if not self._ketcher_ready:
+            self._pending_render_options[name] = value
+            return
+        self._run_set_render_option(name, value)
+
+    def _run_set_render_option(self, name: str, value: object) -> None:
         # `window.ketcher.editor.setOptions` takes a JSON STRING (confirmed
         # live against this vendored build: `ketcher.editor.render.options`
         # exposes ~88 keys including `showHydrogenLabels`, `carbonExplicitly`,
@@ -346,6 +386,22 @@ class KetcherEditorBackend(EditorBackend):
         # theoretical one -- `console.warn` here at least surfaces it in
         # the JS console (forwarded to Python logging by `_LoggingPage`)
         # instead of failing completely silently.
+        #
+        # DROPPED before Ketcher is ready, deliberately, whereas a render
+        # option is queued. A toolbar action is a transient GESTURE, not a
+        # piece of state: replaying it means performing it against a
+        # structure the user had not seen when they clicked, because the
+        # canvas is empty until `_pending_molblock` replays a moment later.
+        # "Add/Remove explicit hydrogens" would then mutate that structure
+        # unasked, and "3D Viewer" would open a dialog seconds after the
+        # click that asked for it. Both are worse than nothing happening on
+        # a blank canvas, which is what the user is looking at and can
+        # simply repeat. DEBUG rather than a warning because the drop is
+        # correct here, not a fault -- and it is traceable in the same log
+        # as the load-echo suppression above.
+        if not self._ketcher_ready:
+            logger.debug("Dropping toolbar action %r -- Ketcher is not ready", action_id)
+            return
         script = f"""
         (function() {{
           var btn = document.querySelector('[data-testid={json.dumps(action_id)}]');

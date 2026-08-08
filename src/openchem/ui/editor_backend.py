@@ -52,6 +52,13 @@ class EditorBackend(QObject):
         capability, not every backend has a settable-options surface.
         Fire-and-forget, same as `load_molblock`: no confirmation, the
         backend is expected to apply it immediately.
+
+        A backend that is not yet ready must QUEUE this and replay it, as
+        `load_molblock` does -- an option is durable state, and dropping it
+        leaves the caller's own UI (a checked menu item) claiming something
+        the canvas is not doing, with nothing on screen to say which is
+        real. An option set twice before ready is one option: apply the
+        last value once.
         """
         raise NotImplementedError
 
@@ -63,6 +70,12 @@ class EditorBackend(QObject):
         mutating actions triggered this way still end up going through the
         normal `edited` signal -> EditStructureCommand path, same as any
         other in-canvas edit.
+
+        A backend that is not yet ready should DROP this rather than queue
+        it -- the deliberate opposite of `set_render_option` above. An
+        action is a transient gesture, and replaying one performs it
+        against whatever structure loaded in the meantime, which is not
+        the one the user was looking at when they asked.
         """
         raise NotImplementedError
 
