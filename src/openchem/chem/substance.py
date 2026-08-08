@@ -54,7 +54,7 @@ from rdkit import Chem
 from rdkit.Chem import rdMolDescriptors
 
 from openchem.chem.organometallic_adapter import Metallocene, metallocene
-from openchem.domain.report import Basis, Fact, FactCategory, ReportResult
+from openchem.domain.report import Basis, Detail, Fact, FactCategory, ReportResult
 
 #: Elements treated as a metal centre for coordination purposes. Broad on
 #: purpose: the question here is "does this look like a coordination
@@ -567,6 +567,9 @@ def compute_substance_analysis(
             )
         )
 
+    if substance.kind is SubstanceKind.IONIC_SALT:
+        facts.extend(_lattice_energy_facts(substance))
+
     for association in substance.associations:
         facts.append(
             Fact(
@@ -721,3 +724,74 @@ def _summary_line(substance: Substance) -> str:
     if substance.formula_unit:
         return f"{substance.kind.label}: {substance.formula_unit}"
     return substance.kind.label
+
+
+def _lattice_energy_facts(substance: Substance) -> list[Fact]:
+    """A Kapustinskii estimate, for a salt of two monatomic ions.
+
+    **An ESTIMATE, and the fact says so in the value itself** -- not in a
+    footnote somebody has to open. Validated against 36 experimental
+    Born-Haber values (Kaya et al. 2022, Table 3): every one inside 7.3%,
+    and the error is systematic rather than random, which is what makes it
+    usable at all.
+
+    Silent rather than approximate when it cannot be done. A salt of
+    polyatomic ions needs thermochemical radii, which are a different
+    measurement from a different source; producing a number anyway would
+    be the plausible-but-meaningless failure this project keeps refusing.
+    """
+    from openchem.chem.lattice_energy import kapustinskii
+
+    cations = [c for c in substance.components if c.charge > 0]
+    anions = [c for c in substance.components if c.charge < 0]
+    if len(cations) != 1 or len(anions) != 1:
+        return []
+    # Monatomic only: a formula like "Na" with nothing after it. `formula`
+    # has had its charge stripped, so this is purely the composition.
+    if not (re.fullmatch(r"[A-Z][a-z]?", cations[0].formula) and
+            re.fullmatch(r"[A-Z][a-z]?", anions[0].formula)):
+        return []
+
+    result = kapustinskii(
+        cations[0].formula, cations[0].charge, anions[0].formula, anions[0].charge
+    )
+    if result.refused:
+        return []
+
+    # 1:1 alkali halides come out 4-7% low; 2:2 oxides and sulfides land
+    # inside 2%. Naming which regime this is beats one averaged caveat.
+    singly_charged = abs(cations[0].charge) == 1 and abs(anions[0].charge) == 1
+    accuracy = (
+        "Measured against experiment for salts of this type: 4-7% BELOW the "
+        "Born-Haber value, consistently."
+        if singly_charged
+        else "Measured against experiment for salts of this type: within 2%."
+    )
+    return [
+        Fact(
+            category=FactCategory.ELECTRONIC,
+            label="Lattice energy (estimated)",
+            value=round(result.value),
+            display_value=f"~{result.value:.0f}",
+            units="kJ/mol",
+            source="Kapustinskii",
+            basis=Basis.HEURISTIC,
+            evidence=(
+                f"Kapustinskii from Shannon six-coordinate radii: "
+                f"{result.cation} {result.cation_radius:.2f} A, "
+                f"{result.anion} {result.anion_radius:.2f} A, "
+                f"{result.ion_count} ions per formula unit",
+                accuracy,
+            ),
+            limitations=(
+                "An estimate from ionic radii alone, not a measurement. It knows "
+                "nothing about the actual crystal structure -- the equation works "
+                "without one because the Madelung constant per ion barely varies "
+                "between the common structure types.",
+                "It omits the dispersion and zero-point terms, which is why it "
+                "runs low, and it assumes the bonding is fully ionic. Any covalent "
+                "character makes it worse in a direction it cannot report.",
+            ),
+            detail=Detail.ADVANCED,
+        )
+    ]

@@ -435,6 +435,58 @@ be assigned.
 Metal carbonyls remain refused. Cr(CO)6 comes out at Cr(+6) where the
 answer is 0, and nothing here can see the back-donation that makes it so.
 
+### Bond polarity
+
+Reported as an **electronegativity difference (Δχ)** and a direction, never
+as a percentage of ionic character. The Pauling transform
+`1 − exp(−(Δχ)²/4)` would turn Δχ = 0.89 into "18.3% ionic", and that is two
+decimal places on a quantity nobody measured. The formula is named in the
+fact's limitations so a reader knows exactly what is withheld.
+
+Δχ is a difference of **tabulated atomic values**, not a measurement on the
+bond. The real charge separation depends on everything else attached.
+
+The wording — "essentially non-polar", "polar covalent", "usually described
+as ionic" — is a convention with its thresholds stated (0.4 and 1.7).
+Textbooks put the ionic boundary at 1.7 or at 2.0, so a bond near it is
+described differently by different sources.
+
+### Lattice energy
+
+A **Kapustinskii estimate from Shannon six-coordinate ionic radii**, and it
+ships because it cleared a gate set before it was built.
+
+Validated against 36 experimental Born–Haber values (Kaya, Robles-Navarro,
+Mejía, Gómez & Cardenas, *J. Phys. Chem. A* 2022, **126**, 4507, Table 3):
+
+| set | deviation |
+| --- | --- |
+| 20 alkali halides (1:1) | −4% to −7%, every one LOW |
+| 7 oxides and sulfides (2:2) | within 2% |
+| all 36 | worst 7.3%, mean −3.7% |
+
+**The error is systematic, not random**, which is what makes a 5% estimate
+usable — a reader who knows the answer runs low can correct for it. The
+reported fact states which regime the salt is in rather than giving one
+averaged caveat.
+
+It runs low because it omits the dispersion and zero-point terms, and it
+assumes fully ionic bonding: any covalent character makes it worse in a
+direction it cannot report. It knows nothing about the actual crystal
+structure — Kapustinskii works without one precisely because the Madelung
+constant per ion barely varies between the common structure types.
+
+**It refuses rather than approximating.** A salt of polyatomic ions
+(sodium acetate, ammonium nitrate) needs *thermochemical* radii, which are
+a different measurement from a different source, so no estimate is given at
+all. Ions outside the shipped table are refused by name.
+
+The implementation is also checked against Born–Landé built on a Madelung
+constant this suite computes by Evjen lattice summation (1.74757 against
+the accepted 1.74756) — two independent routes agreeing to 0.6%, which
+catches a wrong prefactor or a unit slip that an experimental comparison
+could hide.
+
 ## Where this is enforced
 
 Most of these limits are also written into the module that implements the

@@ -1207,3 +1207,37 @@ in normal use, and the change lands on the undo stack like any other.
 
 The app never applies it for you. Perception describes what you drew; a
 quick fix is an offer.
+
+### Bond polarity, and what it is not
+
+Select a bond and the Bond Inspector reports the **electronegativity
+difference** across it and which end carries the negative charge — for
+C–Li that is the *carbon*, which is the whole reason organolithiums behave
+as they do.
+
+It does not report a "percentage ionic character". That number comes from a
+rule of thumb, and printing it to two decimals would claim a precision
+nobody measured. The formula is named in the fact's limitations if you want
+to apply it yourself.
+
+### Ions that do not add up
+
+If you draw charged components whose charges do not cancel — two sodiums
+against one chloride — Structure Check says so specifically:
+
+    The charged components do not cancel: +2 from the cations against
+    -1 from the anions, leaving +1.
+
+A single charged species is different and gets the ordinary "net charge"
+note instead; a deliberate ammonium ion is not an error.
+
+### Lattice energy
+
+For a salt of two simple monatomic ions the Substance & Bonding result
+carries an estimated lattice energy, marked with a `~` because it is an
+estimate. It is accurate to about 5% for alkali halides — consistently on
+the low side — and to about 2% for oxides and sulfides.
+
+You will not get one for sodium acetate or ammonium nitrate. Polyatomic
+ions need a different kind of radius, and the app would rather say nothing
+than give you a number that looks right.

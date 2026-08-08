@@ -16,6 +16,7 @@ from openchem.chem.substance import compute_substance_analysis
 FERROCENE = "[Fe+2].[cH-]1cccc1.[cH-]1cccc1"
 SODIUM_CHLORIDE = "[Na+].[Cl-]"
 FOUR_IONS = "[Na+].[Cl-].[K+].[Br-]"
+ASPIRIN = "CC(=O)Oc1ccccc1C(=O)O"
 
 
 def _report(smiles: str):
@@ -227,3 +228,61 @@ def test_the_surviving_refusal_names_the_drawing_that_would_work():
 
     assert result.refused
     assert "ion pair" in result.reason
+
+
+# --- the lattice-energy estimate --------------------------------------------
+
+
+def test_a_simple_salt_gets_a_lattice_energy_estimate():
+    fact = _fact(_report(SODIUM_CHLORIDE), "Lattice energy (estimated)")
+
+    assert fact is not None
+    assert fact.units == "kJ/mol"
+    assert 700 < fact.value < 800
+
+
+def test_the_estimate_looks_like_an_estimate_in_the_value_itself():
+    """Not in a footnote somebody has to open. "~746" cannot be mistaken
+    for a measurement the way "746.3" can."""
+    fact = _fact(_report(SODIUM_CHLORIDE), "Lattice energy (estimated)")
+
+    assert fact.display_value.startswith("~")
+    assert "estimated" in fact.label
+
+
+def test_the_estimate_states_the_direction_of_its_error():
+    """**Measured, not hedged.** A reader who knows it is consistently
+    4-7% low can correct for it; "approximate" tells them nothing."""
+    evidence = " ".join(_fact(_report(SODIUM_CHLORIDE), "Lattice energy (estimated)").evidence)
+
+    assert "4-7% BELOW" in evidence
+
+
+def test_a_dipositive_salt_gets_the_other_accuracy_statement():
+    """One averaged caveat would be wrong for both regimes: the 2:2 salts
+    land inside 2% where the alkali halides are 4-7% low."""
+    evidence = " ".join(
+        _fact(compute_substance_analysis(Chem.MolFromSmiles("[Mg+2].[O-2]"), "u"),
+              "Lattice energy (estimated)").evidence
+    )
+
+    assert "within 2%" in evidence
+
+
+def test_a_salt_of_polyatomic_ions_gets_no_estimate():
+    """Sodium acetate. A polyatomic ion needs a THERMOCHEMICAL radius,
+    which is a different measurement from a different source -- and a
+    number produced anyway would be plausible and meaningless."""
+    assert _fact(_report("[Na+].CC(=O)[O-]"), "Lattice energy (estimated)") is None
+
+
+def test_a_molecule_gets_no_lattice_energy():
+    assert _fact(_report(ASPIRIN), "Lattice energy (estimated)") is None
+
+
+def test_the_estimate_says_it_knows_nothing_about_the_crystal():
+    """It is computed from radii alone. Somebody reading it beside a real
+    structure must not take it as describing that structure."""
+    fact = _fact(_report(SODIUM_CHLORIDE), "Lattice energy (estimated)")
+
+    assert any("nothing about the actual crystal structure" in t for t in fact.limitations)

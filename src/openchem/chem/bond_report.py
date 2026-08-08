@@ -17,7 +17,7 @@ from rdkit import Chem
 from rdkit.Chem import BRICS, Lipinski
 
 from openchem.domain.bond_report import BondReport
-from openchem.domain.report import Fact, FactCategory, FactLink
+from openchem.domain.report import Detail, Fact, FactCategory, FactLink
 from openchem.domain.structure_issue import Basis
 
 _ASSUMPTIONS: tuple[str, ...] = (
@@ -53,6 +53,7 @@ def _fact(
     limitations: tuple[str, ...] = (),
     link: FactLink | None = None,
     units: str = "",
+    detail: Detail = Detail.STANDARD,
 ) -> Fact:
     return Fact(
         category=category,
@@ -65,6 +66,7 @@ def _fact(
         limitations=limitations,
         link=link,
         units=units,
+        detail=detail,
     )
 
 
@@ -307,6 +309,140 @@ def collect_lewis(mol: Any, index: int, _context: dict) -> list[Fact]:
     return facts
 
 
+#: Where the conventional descriptions change, on the Pauling scale.
+#: **These are a CONVENTION, not a measurement**, and different textbooks
+#: draw them differently -- 1.7 and 2.0 are both in common use for the
+#: ionic boundary. They are named here rather than buried so a reader can
+#: disagree with the wording without doubting the number it came from.
+_POLARITY_BANDS: tuple[tuple[float, str], ...] = (
+    (0.4, "essentially non-polar"),
+    (1.7, "polar covalent"),
+    (float("inf"), "usually described as ionic"),
+)
+
+
+def _polarity_band(delta: float) -> str:
+    return next(word for threshold, word in _POLARITY_BANDS if delta < threshold)
+
+
+def collect_polarity(mol: Any, index: int, _context: dict) -> list[Fact]:
+    """Electronegativity difference across the bond, and which end is
+    negative.
+
+    **Reported as Δχ, never as a percentage of ionic character.** The
+    Pauling transform 1 - exp(-(Δχ)²/4) exists and would turn 0.9 into
+    "18.3%", which is two digits of precision nobody measured on a
+    quantity that is not observable. The formula is named in the fact's
+    limitations so a reader who wants it knows exactly what is being
+    withheld and why, rather than finding a suspiciously precise number.
+
+    The DIRECTION is worth more than the magnitude for most purposes --
+    "which end is δ-" is what somebody predicting a reaction actually
+    needs -- so it is its own fact rather than something to infer.
+    """
+    from openchem.chem.oxidation_states import electronegativity_table
+
+    table = electronegativity_table()
+    bond = mol.GetBondWithIdx(index)
+    begin, end = bond.GetBeginAtom(), bond.GetEndAtom()
+    left = table.get(begin.GetSymbol(), {}).get("pauling")
+    right = table.get(end.GetSymbol(), {}).get("pauling")
+    if left is None or right is None:
+        # A query atom, or an element with no accepted value. Saying so
+        # beats an absent row, which reads as "this bond has no polarity".
+        missing = sorted(
+            {
+                atom.GetSymbol()
+                for atom, value in ((begin, left), (end, right))
+                if value is None
+            }
+        )
+        return [
+            _fact(
+                FactCategory.ELECTRONIC,
+                "Electronegativity difference",
+                None,
+                f"No accepted Pauling value for {', '.join(missing)}",
+                "Pauling",
+                basis=Basis.DETERMINISTIC,
+            )
+        ]
+
+    delta = abs(left - right)
+    facts = [
+        _fact(
+            FactCategory.ELECTRONIC,
+            "Electronegativity difference",
+            round(delta, 2),
+            f"{delta:.2f}",
+            "Pauling",
+            evidence=(
+                f"{begin.GetSymbol()} {left:.2f}, {end.GetSymbol()} {right:.2f} "
+                "on the Pauling scale",
+            ),
+            limitations=(
+                "This is a difference of tabulated atomic values, not a property "
+                "measured on this bond. It says nothing about the actual charge "
+                "separation, which depends on everything else attached.",
+                "No percentage of ionic character is given. The Pauling transform "
+                "1 - exp(-(dX)^2/4) would render this as a two-decimal percentage, "
+                "and that precision is not something anybody measured.",
+            ),
+        )
+    ]
+
+    if delta == 0:
+        facts.append(
+            _fact(
+                FactCategory.ELECTRONIC,
+                "Bond polarity",
+                "none",
+                # A homonuclear bond is non-polar for a REASON that a
+                # threshold does not capture, so it is not run through the
+                # bands: the two atoms are the same element.
+                "Non-polar -- both atoms are the same element",
+                "Pauling",
+            )
+        )
+        return facts
+
+    negative, positive = (end, begin) if right > left else (begin, end)
+    facts.append(
+        _fact(
+            FactCategory.ELECTRONIC,
+            "Bond polarity",
+            f"{negative.GetSymbol()}{negative.GetIdx() + 1}",
+            f"{positive.GetSymbol()}{positive.GetIdx() + 1}(d+) -> "
+            f"{negative.GetSymbol()}{negative.GetIdx() + 1}(d-)",
+            "Pauling",
+            evidence=(
+                f"{negative.GetSymbol()} is the more electronegative of the two",
+            ),
+        )
+    )
+    facts.append(
+        _fact(
+            FactCategory.ELECTRONIC,
+            "Polarity description",
+            _polarity_band(delta),
+            _polarity_band(delta),
+            "Pauling",
+            basis=Basis.HEURISTIC,
+            evidence=(
+                f"dX = {delta:.2f}; the conventional boundaries used here are "
+                f"{_POLARITY_BANDS[0][0]} and {_POLARITY_BANDS[1][0]}",
+            ),
+            limitations=(
+                "A wording convention, not a result. Textbooks place the ionic "
+                "boundary at 1.7 or at 2.0, so a bond near it will be described "
+                "differently by different sources.",
+            ),
+            detail=Detail.ADVANCED,
+        )
+    )
+    return facts
+
+
 _COLLECTORS: tuple[Callable[[Any, int, dict], list[Fact]], ...] = (
     collect_intrinsic,
     collect_ring_membership,
@@ -315,6 +451,7 @@ _COLLECTORS: tuple[Callable[[Any, int, dict], list[Fact]], ...] = (
     collect_retrosynthesis,
     collect_structure_issues,
     collect_lewis,
+    collect_polarity,
 )
 
 

@@ -50,10 +50,17 @@ def _check_fragments(context: CheckContext) -> list[StructureIssue]:
 
 
 def _check_charge(context: CheckContext) -> list[StructureIssue]:
+    """A net charge on a SINGLE species.
+
+    Hands the multi-component case to `charge_balance`, which can say what
+    is actually wrong -- "two cations against one anion" rather than "net
+    charge +1". Without this hand-off both fire, and the general message
+    reads as a second, vaguer problem.
+    """
     from rdkit import Chem
 
     total = Chem.GetFormalCharge(context.mol)
-    if total == 0:
+    if total == 0 or len(Chem.GetMolFrags(context.mol, asMols=False, sanitizeFrags=False)) > 1:
         return []
     charged = tuple(a.GetIdx() for a in context.mol.GetAtoms() if a.GetFormalCharge() != 0)
     return [
@@ -65,6 +72,60 @@ def _check_charge(context: CheckContext) -> list[StructureIssue]:
             message=(
                 f"Net charge {total:+d}. Deliberate for an ion; otherwise a missing "
                 "counter-ion or a charge left behind by an edit."
+            ),
+            atom_indices=charged,
+        )
+    ]
+
+
+def _check_charge_balance(context: CheckContext) -> list[StructureIssue]:
+    """Charged components that do not cancel.
+
+    Distinct from `molecule_charge`, and it OWNS the multi-component case
+    so the two never both fire. A lone ammonium ion is a deliberate
+    species and "net charge +1" is the right thing to say about it. Two
+    sodiums against one chloride is a different statement entirely -- a
+    salt whose ions have to balance and do not -- and "net charge +1"
+    describes it without naming what is wrong.
+
+    Deliberately silent when the charges DO cancel, however exotic the
+    components. `[Na+].[Cl-].[K+].[Br-]` balances, and which ion pairs
+    with which is a question for `chem/substance.py`, which refuses it
+    with a reason rather than treating it as an error.
+    """
+    from rdkit import Chem
+
+    fragments = Chem.GetMolFrags(context.mol, asMols=False, sanitizeFrags=False)
+    if len(fragments) < 2:
+        return []
+
+    charges = [
+        sum(context.mol.GetAtomWithIdx(i).GetFormalCharge() for i in fragment)
+        for fragment in fragments
+    ]
+    total = sum(charges)
+    if total == 0 or not any(charges):
+        return []
+
+    cations = sum(charge for charge in charges if charge > 0)
+    anions = sum(charge for charge in charges if charge < 0)
+    charged = tuple(
+        index
+        for fragment, charge in zip(fragments, charges)
+        if charge
+        for index in fragment
+    )
+    return [
+        StructureIssue(
+            checker_id="charge_balance",
+            category=Category.REPRESENTATION,
+            severity=Severity.WARNING,
+            basis=Basis.DETERMINISTIC,
+            message=(
+                f"The charged components do not cancel: {cations:+d} from the "
+                f"cations against {anions:+d} from the anions, leaving {total:+d}. "
+                "A salt's ions must balance, so this is usually a counter-ion that "
+                "was never drawn or one copy too many."
             ),
             atom_indices=charged,
         )
@@ -232,6 +293,7 @@ def _check_metal_donor_bonds(context: CheckContext) -> list[StructureIssue]:
 _CHECKERS = (
     ("disconnected_fragments", "Disconnected fragments", _check_fragments, PARSED_MOLECULE),
     ("molecule_charge", "Net charge", _check_charge, PARSED_MOLECULE),
+    ("charge_balance", "Charge balance", _check_charge_balance, PARSED_MOLECULE),
     ("explicit_hydrogen", "Explicit hydrogens", _check_explicit_hydrogens, PARSED_MOLECULE),
     ("isotope", "Isotopes", _check_isotopes, PARSED_MOLECULE),
     ("radical", "Radicals", _check_radicals, PARSED_MOLECULE),
