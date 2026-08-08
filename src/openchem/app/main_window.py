@@ -1255,6 +1255,10 @@ class MainWindow(QMainWindow):
         # 1800x1400), so the drawing code was never the problem and a
         # deferred load is the honest fix rather than more JS gymnastics.
         self._center_tabs.setCurrentWidget(self._viewer3d)
+        # Deferred by one event-loop turn so the tab is current before
+        # the draw. A longer delay was tried and changed nothing, which
+        # is what established that the container size was never the
+        # problem -- see `drawCrystal` in viewer.html for what was.
         QTimer.singleShot(0, lambda: self._viewer3d.show_crystal(scene))
         self._show_crystal_report(build_crystal_report(crystal), Path(path_str).name)
 

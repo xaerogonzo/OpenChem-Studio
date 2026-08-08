@@ -7,7 +7,7 @@ from typing import Callable
 
 from PySide6.QtCore import QObject, QUrl, Slot
 from PySide6.QtWebChannel import QWebChannel
-from PySide6.QtWebEngineCore import QWebEnginePage
+from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from openchem.ui.viewer_backend import ViewerBackend
@@ -59,6 +59,16 @@ class Mol3DViewerBackend(ViewerBackend):
         if not _VIEWER_HTML.exists():
             raise FileNotFoundError(f"3D viewer page not found at {_VIEWER_HTML}")
         self._view = QWebEngineView(parent)
+        # **Do not cache the viewer page.** It is loaded from file://
+        # and Chromium will happily serve a stale copy, so an edit to
+        # viewer.html can appear to take effect on one run and not the
+        # next. That cost a long, confusing debugging session: the same
+        # code rendered correctly, small, and blank across restarts,
+        # while an isolated QWebEngineView loading the same file was
+        # perfectly repeatable every time.
+        QWebEngineProfile.defaultProfile().setHttpCacheType(
+            QWebEngineProfile.HttpCacheType.NoCache
+        )
         self._page = _LoggingPage(self._view)
         self._view.setPage(self._page)
         self._channel = QWebChannel(self._page)
