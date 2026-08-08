@@ -538,7 +538,22 @@ engine's ring and functional-group perception.
 
 ## Known TODOs
 
-- ~~Packaging~~ **Done.** `build.ps1` freezes the app with **PyInstaller**
+**Every item carries a verdict**, because this list had become half
+changelog: three of its eight entries described finished work while
+sitting under a heading that says TODO, and a reader could not tell open
+from closed at a glance. The detail under a settled item is kept rather
+than deleted -- most of it is measurements that cost real time -- but the
+label says what it is.
+
+    OPEN        not built, and nobody has decided not to
+    DECISION    looked at, deliberately not built, reason recorded
+    SETTLED     done; the text below is the record of how
+
+`tests/test_docs_are_current.py` guards the mechanical half of this: no
+document may cite a file or a test that does not exist.
+
+
+- **SETTLED** -- Packaging. `build.ps1` freezes the app with **PyInstaller**
   into a ~650 MB one-directory `dist\OpenChemStudio\`, driven by
   `packaging\openchem.spec`. PyInstaller over Nuitka deliberately: nearly
   every packaging failure here is a missing data file that produces a
@@ -571,9 +586,9 @@ engine's ring and functional-group perception.
   ADMET, Temurin, ORCA, Vina) are not bundled and are still found in the
   configurable data directory — confirmed in the frozen build, which located
   a real Vina 1.2.7 and a managed Temurin JRE.
-- `SimilarityService` doesn't exist yet; belongs to a later roadmap phase
+- **OPEN** -- `SimilarityService` doesn't exist yet; belongs to a later roadmap phase
   and would currently have no callers.
-- Plugin loading has no async/background state, no `ToolbarProvider`/
+- **DECISION** -- plugin loading has no async/background state, no `ToolbarProvider`/
   `ContextMenuProvider`, no numeric provider priority, and no declared
   permissions, and no `RemoteServicePlugin` base class exists for the
   network/async/settings/secrets boilerplate common to
@@ -583,7 +598,7 @@ engine's ring and functional-group perception.
   requirements would tell us what these abstractions should look like, so
   building them now would mean guessing. See the "Explicitly deferred"
   reasoning preserved in `PLUGIN_SDK.md`'s "Known limitations" section.
-- `MacromoleculeModel` only stores raw PDB/mmCIF text. Chains and residues
+- **OPEN (partly)** -- `MacromoleculeModel` only stores raw PDB/mmCIF text. Chains and residues
   are no longer unreachable, though — `chem/structure_summary.py` derives
   them on demand, and the Docking panel's "Contents..." both shows them and
   lets chains be excluded from the receptor. Derived rather than stored
@@ -614,7 +629,7 @@ engine's ring and functional-group perception.
   **MMTF is refused rather than deferred** — `mmtf.rcsb.org` no longer
   resolves and the vendored Mol* bundle has no MMTF reader, so there is
   neither a source nor a viewer for it.
-- `RDKitTemplateProvider` now has THREE template sources, not two: the
+- **SETTLED** -- `RDKitTemplateProvider` now has THREE template sources, not two: the
   bundled file, the user's app-data file, and `context.reactions`, so a
   plugin can contribute reaction SMARTS. The registry lives in core
   (`services/reaction_template_service.py`) rather than in the reaction
@@ -622,7 +637,7 @@ engine's ring and functional-group perception.
   extend it. Templates are read LIVE rather than snapshotted at
   construction, so load order is not something a template author has to
   reason about.
-- Docking receptor prep (`VinaDockingProvider`) has no missing-residue
+- **DECISION** -- docking receptor prep (`VinaDockingProvider`) has no missing-residue
   repair, and after a spike that is a DECISION rather than a gap. The
   dependency objection turned out to be obsolete — PDBFixer is three
   packages and 125 MB with cp313 Windows wheels — but the gaps are not
@@ -632,11 +647,48 @@ engine's ring and functional-group perception.
   median 2.3 Å from atoms actually observed in sister chains of the same
   receptor. See `chem/docking_providers.py`'s class docstring for the
   numbers. Revisit if a method reports per-atom confidence.
-- `DockingPoseModel.metadata`'s H-bond/clash analysis (Phase 9.4) is a
+- **OPEN** -- a CIF's ion CHARGES are parsed and then discarded.
+  `chem/cif.py` reads `_atom_site_type_symbol` (`Na+`, `O2-`) to get the
+  element and throws the charge away, so `Site` cannot carry it. That is
+  the one thing standing between an imported crystal and a lattice
+  energy: `chem/lattice_energy.volume_based_lattice_energy` needs the
+  charges and everything else it needs (the formula-unit volume) the app
+  already measures. Guessing charges is not an option -- halite's own
+  deposition carries bare `Na` and `Cl`, and a guess would produce
+  exactly the confident wrong number `SCIENTIFIC_LIMITATIONS.md` exists
+  to prevent. Same shape as the `Neighbour` position that used to be
+  computed and dropped, which Phase 4 fixed.
+- **OPEN** -- a crystal cannot be renamed or deleted from the project
+  tree. Its row is deliberately not editable, because rename resolves
+  through `RenameMoleculeCommand` and a crystal is not a molecule; a
+  `RenameCrystalCommand`/`DeleteCrystalCommand` pair would close it.
+  Documented as a limitation in `USER_GUIDE.md` rather than left to be
+  discovered.
+- **DECISION** -- a calculation cannot be ADDRESSED to a crystal.
+  `CalculationRequest` carries a `molecule_uuid` and nothing else, which
+  makes the mistake unrepresentable rather than merely discouraged;
+  `CalculatorDefinition.applies_to` describes the intent alongside it. If
+  that field ever becomes a `structure_uuid`, every calculator's
+  declaration becomes load-bearing at runtime and
+  `test_a_calculation_cannot_even_be_ADDRESSED_to_a_crystal` is the place
+  that says so.
+- **OPEN** -- no shipped plugin calls `context.reactions`. The namespace
+  and its rollback are covered by tests including an end-to-end one, but
+  the third-party story would be more convincing with an `examples/`
+  plugin that actually registers a template.
+- **OPEN, cause unknown** -- the 3D viewer rendered a black half-height
+  canvas in 3 of 5 and then 4 of 5 cold launches, then went 9 of 9 and 5
+  of 5 clean with no relevant change. **No cause was established and the
+  sizing fixes are not claimed to be one.** Recorded here rather than
+  quietly forgotten: if it returns, `spikes/crystallography/`
+  `render_reproducibility.ps1` is the harness, and CLAUDE.md carries the
+  measurement trap that made the first attempt worthless (a black canvas
+  scores as heavily INKED, so a failed render read as a success).
+- **OPEN** -- `DockingPoseModel.metadata`'s H-bond/clash analysis (Phase 9.4) is a
   heavy-atom-distance heuristic only — pharmacophore/hydrophobic contact
   detection is a real gap, less standardized and meaningfully more work
   than what's built.
-- **Vina and ORCA execution are now verified against real installed
+- **SETTLED** -- Vina and ORCA execution are verified against real installed
   backends** (issue #2): a real `vina_1.2.7_win.exe` and a real ORCA 6.1.1
   install were pointed at end-to-end through `DockingPanel`/
   `QuantumChemistryPanel` — real docking poses, and real single-point/
