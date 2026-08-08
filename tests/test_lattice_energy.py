@@ -12,9 +12,14 @@ from __future__ import annotations
 
 import math
 import statistics
+from pathlib import Path
 
 import pytest
 
+from openchem.chem.lattice_energy import (
+    ionic_strength_term,
+    volume_based_lattice_energy,
+)
 from openchem.chem.lattice_energy import kapustinskii, shannon_radii
 
 #: Experimental lattice energies, kJ/mol, from Kaya, Robles-Navarro,
@@ -206,3 +211,156 @@ def test_the_formula_unit_counts_its_ions():
     assert kapustinskii("Na", 1, "Cl", -1).ion_count == 2
     assert kapustinskii("Ca", 2, "Cl", -1).ion_count == 3
     assert kapustinskii("Mg", 2, "O", -2).ion_count == 2
+
+
+# --- the volume route, for salts a radius cannot describe -------------------
+#
+# Jenkins, Roobottom, Passmore & Glasser, Inorg. Chem. 1999, 38, 3609-3620.
+# Tables 2 and 3: the EXPERIMENTAL lattice potential energy (their ref 40,
+# the CRC Handbook) and the crystallographic cube root of the formula-unit
+# volume (their ref 41, Donnay). Their own estimate column is deliberately
+# NOT used as the target -- that would check arithmetic against the fit
+# rather than against experiment.
+
+#: (salt, U_experimental kJ/mol, V^(1/3) nm). MX2 salts, Table 2.
+_JENKINS_TABLE_2 = [
+    ("BaF2", 2341, 0.3903), ("BaCl2", 2033, 0.4442), ("BaBr2", 1950, 0.4751),
+    ("BaI2", 1831, 0.5020), ("CaF2", 2609, 0.3442), ("CaCl2", 2223, 0.4384),
+    ("CaBr2", 2132, 0.4614), ("CaI2", 1905, 0.4946), ("MgCl2", 2326, 0.4031),
+    ("MgBr2", 2097, 0.4288), ("MgI2", 1944, 0.4674), ("Ca(NO3)2", 2209, 0.4788),
+]
+
+#: M2X salts, Table 3. Twelve of these fourteen carry a complex ion.
+_JENKINS_TABLE_3 = [
+    ("Cs2CoCl4", 1391, 0.6157), ("Cs2CuCl4", 1393, 0.6126), ("Cs2GeF6", 1573, 0.5675),
+    ("Cs2MoCl6", 1347, 0.6470), ("Cs2ZnBr4", 1454, 0.6445), ("Cs2ZnCl4", 1429, 0.6157),
+    ("K2S", 1979, 0.4637), ("K2MoCl6", 1418, 0.6205), ("K2PtCl4", 1574, 0.5881),
+    ("Li2CO3", 2523, 0.3832), ("Na2CO3", 2301, 0.4079), ("Na2S", 2192, 0.4119),
+    ("Rb2MoCl6", 1399, 0.6293), ("Rb2S", 1929, 0.4832),
+]
+
+
+def _percent_off(predicted: float, experimental: float) -> float:
+    """Named to avoid the file's own `_deviation(salt)`, which takes a
+    salt name and uses Kapustinskii. Shadowing it broke 41 tests."""
+    return 100.0 * (predicted - experimental) / experimental
+
+
+def test_twice_the_ionic_strength_equals_kapustinskiis_own_term():
+    """**The whole generalisation rests on this identity**, so it is
+    checked rather than cited: for any neutral binary salt,
+    `sum(n_k z_k^2)` equals `nu * |z+ z-|`, the term Kapustinskii
+    introduced. Glasser (Inorg. Chem. 1995, 34, 4935) notes it "seems not
+    to have previously been noted"; it is what lets one equation cover
+    salts with more than two kinds of ion."""
+    cases = {
+        "NaCl": [(1, +1), (1, -1)],
+        "CaF2": [(1, +2), (2, -1)],
+        "MgO": [(1, +2), (1, -2)],
+        "Al2O3": [(2, +3), (3, -2)],
+        "Na2SO4": [(2, +1), (1, -2)],
+    }
+    for name, ions in cases.items():
+        nu = sum(count for count, _ in ions)
+        cation = next(z for _, z in ions if z > 0)
+        anion = next(z for _, z in ions if z < 0)
+        assert ionic_strength_term(ions) == pytest.approx(nu * abs(cation * anion)), name
+
+
+def test_the_volume_route_reproduces_experimental_lattice_energies():
+    """**The bar Phase 6 was given**: ship only if it reproduces
+    Born-Haber values as Kapustinskii did, which was 7.3% worst over 36
+    monatomic salts. Measured here over 26 salts, fourteen of them
+    carrying a complex ion no radius-based route can describe."""
+    deviations = []
+    for _salt, experimental, v_cube_root in _JENKINS_TABLE_2:
+        result = volume_based_lattice_energy(v_cube_root ** 3, [(1, +2), (2, -1)])
+        deviations.append(abs(_percent_off(result.value, experimental)))
+    for _salt, experimental, v_cube_root in _JENKINS_TABLE_3:
+        result = volume_based_lattice_energy(v_cube_root ** 3, [(2, +1), (1, -2)])
+        deviations.append(abs(_percent_off(result.value, experimental)))
+
+    assert len(deviations) == 26
+    assert max(deviations) < 8.0, f"worst {max(deviations):.2f}%"
+    assert sum(deviations) / len(deviations) < 4.0
+
+
+def test_the_complex_ion_salts_are_the_point_and_they_work():
+    """Kapustinskii refuses every one of these by name -- a nitrate, a
+    carbonate and a hexachlorometallate have thermochemical radii, which
+    are a different measurement from a different source and are not in
+    the shipped table. A volume does not care how many atoms an ion has."""
+    for salt, experimental, v_cube_root in _JENKINS_TABLE_3:
+        if salt not in ("Li2CO3", "Na2CO3", "K2PtCl4", "Cs2GeF6"):
+            continue
+        result = volume_based_lattice_energy(v_cube_root ** 3, [(2, +1), (1, -2)])
+        assert abs(_percent_off(result.value, experimental)) < 5.0, salt
+
+    # And the radius route still refuses them, which is correct: it has
+    # no radius for a carbonate and must not invent one.
+    assert kapustinskii("Na", 1, "CO3", -2).refused
+
+
+def test_MX2_and_M2X_are_not_interchangeable_despite_equal_ionic_strength():
+    """Both have `2I = 6`, and they have different fitted coefficients --
+    which is why the coefficient table is keyed on the charges rather
+    than on the ionic strength.
+
+    **The two fits CROSS**, and that is why this test does not pick a
+    single volume. MX2's larger beta offsets M2X's larger alpha, so near
+    V^(1/3) = 0.34 they agree to 10 kJ/mol; out where the real M2X salts
+    live (0.6 and above) they differ by more than 200. An earlier version
+    of this test asserted a large gap at CaF2's volume and failed --
+    correctly, because the claim was wrong rather than the code.
+    """
+    def pair(v_cube_root):
+        v = v_cube_root ** 3
+        return (volume_based_lattice_energy(v, [(1, +2), (2, -1)]).value,
+                volume_based_lattice_energy(v, [(2, +1), (1, -2)]).value)
+
+    assert ionic_strength_term([(1, +2), (2, -1)]) == ionic_strength_term([(2, +1), (1, -2)])
+
+    near_crossing = pair(0.3442)                    # CaF2
+    assert abs(near_crossing[0] - near_crossing[1]) < 20
+
+    where_m2x_salts_live = pair(0.6470)             # Cs2MoCl6
+    assert abs(where_m2x_salts_live[0] - where_m2x_salts_live[1]) > 200
+
+
+def test_a_measured_cell_volume_reproduces_a_born_haber_value():
+    """**The chain that needs no shipped parameters at all.** The volume
+    comes from a CIF this app parsed; the target is the experimental
+    value already in this file's Kapustinskii validation set. Neither
+    came from the paper the coefficients came from."""
+    from openchem.chem.cif import read_cif
+    from openchem.chem.crystal_analysis import volume_per_formula_unit
+
+    crystal = read_cif(
+        (Path(__file__).resolve().parent.parent
+         / "spikes" / "crystallography" / "halite.cif").read_text(encoding="utf-8")
+    )
+    volume_nm3 = volume_per_formula_unit(crystal) / 1000.0
+
+    result = volume_based_lattice_energy(volume_nm3, [(1, +1), (1, -1)])
+
+    assert abs(_percent_off(result.value, EXPERIMENTAL["NaCl"])) < 5.0
+
+
+def test_a_mixed_valence_structure_is_refused_rather_than_averaged():
+    """Magnetite has Fe(II) and Fe(III). The correlation was fitted to
+    one cation charge and one anion charge, and picking a mean would give
+    a plausible number the fit says nothing about."""
+    result = volume_based_lattice_energy(0.0739, [(1, +2), (2, +3), (4, -2)])
+
+    assert result.refused
+    assert "mixed-valence" in result.reason
+
+
+def test_a_charge_combination_outside_the_published_fits_is_refused():
+    """MX, MX2 and M2X are what were fitted. A 3:2 salt is not, and
+    extrapolating a two-parameter empirical correlation past its data is
+    how a plausible wrong number gets shipped."""
+    result = volume_based_lattice_energy(0.05, [(2, +3), (3, -2)])
+
+    assert result.refused
+    assert "MX, MX2 and M2X" in result.reason

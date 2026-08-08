@@ -40,6 +40,7 @@ project keeps refusing.
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -144,3 +145,111 @@ def _gcd(a: int, b: int) -> int:
     while b:
         a, b = b, a % b
     return abs(a) or 1
+
+
+# ---------------------------------------------------------------------------
+# The volume route, for salts with complex ions
+# ---------------------------------------------------------------------------
+
+#: Coefficients of `U = 2I (alpha / V^(1/3) + beta)`, V in nm^3, U in
+#: kJ/mol. Jenkins, Roobottom, Passmore & Glasser, *Inorg. Chem.* 1999,
+#: 38, 3609-3620, Table 2/3 and the text beneath them.
+#:
+#: **Fitted per stoichiometry, not globally, on the paper's own advice.**
+#: It also gives a single generalised pair (138.7, 27.6, R = 0.91) and
+#: then says outright that "more reliable estimates ... result if data for
+#: MX, MX2, and M2X salts are treated independently". The per-type fits
+#: have R = 0.94, 0.83 and 0.95.
+#:
+#: Keyed by (cation charge, anion charge). MX2 and M2X both have
+#: 2I = 6 and DIFFERENT coefficients, which is exactly why the key cannot
+#: be the ionic strength.
+_VOLUME_COEFFICIENTS: dict[tuple[int, int], tuple[float, float]] = {
+    (1, -1): (117.3, 51.9),
+    (2, -1): (133.5, 60.9),
+    (1, -2): (165.3, -29.8),
+}
+
+
+@dataclass(frozen=True)
+class VolumeLatticeEnergy:
+    """A lattice energy from a formula-unit VOLUME, or a refusal."""
+
+    value: float | None = None
+    volume_nm3: float = 0.0
+    ionic_strength_term: float = 0.0
+    reason: str = ""
+
+    @property
+    def refused(self) -> bool:
+        return self.value is None
+
+
+def ionic_strength_term(ions: Sequence[tuple[int, int]]) -> float:
+    """`2I = sum(n_k * z_k^2)` over the formula unit.
+
+    **This is what generalises Kapustinskii beyond two ion types**, and
+    it is not an approximation: for any neutral binary salt it equals
+    `nu * |z+ z-|` exactly, which is the term Kapustinskii introduced.
+    Verified over 1:1, 1:2, 2:1, 2:3 and complex-ion cases rather than
+    taken from the paper -- Glasser, *Inorg. Chem.* 1995, 34, 4935-4936,
+    which notes the quantity is twice the ionic strength and that the
+    identity "seems not to have previously been noted".
+
+    `ions` is [(count, charge), ...] over one formula unit.
+    """
+    return float(sum(count * charge * charge for count, charge in ions))
+
+
+def volume_based_lattice_energy(
+    volume_nm3: float, ions: Sequence[tuple[int, int]]
+) -> VolumeLatticeEnergy:
+    """Lattice potential energy from the formula-unit volume.
+
+    **The reason this exists: it needs no radii at all.** Kapustinskii
+    refuses every polyatomic ion because a thermochemical radius is a
+    different measurement from a different source, and the shipped table
+    has none. A volume does not care whether an ion is one atom or nine,
+    and for an imported crystal the app already measures it -- so a
+    nitrate or a hexachloromolybdate is answerable where a radius-based
+    route is not.
+
+    Validated on the 26 salts of Jenkins 1999 Tables 2 and 3, taking the
+    EXPERIMENTAL column (CRC Handbook, their ref 40) as the target and
+    the crystallographic V^(1/3) (Donnay, their ref 41) as the input, so
+    neither side of the comparison is the paper's own estimate:
+
+        26 salts   mean |deviation| 3.3%   worst 7.7%  (Ca(NO3)2)
+
+    against Kapustinskii's 7.3% worst over 36 monatomic salts -- the same
+    accuracy class, on the harder problem. Fourteen of the 26 carry a
+    complex ion and twelve of those land within 4.5%.
+    """
+    if volume_nm3 <= 0:
+        return VolumeLatticeEnergy(reason="a formula unit has no volume to work from.")
+    cations = sorted({charge for _, charge in ions if charge > 0})
+    anions = sorted({charge for _, charge in ions if charge < 0})
+    if len(cations) != 1 or len(anions) != 1:
+        return VolumeLatticeEnergy(
+            reason=(
+                "this equation was fitted to salts with one cation charge and one "
+                "anion charge; a mixed-valence structure needs the full "
+                "volume-based treatment, not this correlation."
+            )
+        )
+    key = (cations[0], anions[0])
+    coefficients = _VOLUME_COEFFICIENTS.get(key)
+    if coefficients is None:
+        return VolumeLatticeEnergy(
+            reason=(
+                f"no fitted coefficients for a {key[0]}:{abs(key[1])} charge "
+                "combination; the published fits cover MX, MX2 and M2X."
+            )
+        )
+    alpha, beta = coefficients
+    two_i = ionic_strength_term(ions)
+    return VolumeLatticeEnergy(
+        value=two_i * (alpha / volume_nm3 ** (1 / 3) + beta),
+        volume_nm3=volume_nm3,
+        ionic_strength_term=two_i,
+    )

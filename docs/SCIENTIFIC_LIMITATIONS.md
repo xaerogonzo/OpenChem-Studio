@@ -498,6 +498,37 @@ as ionic" — is a convention with its thresholds stated (0.4 and 1.7).
 Textbooks put the ionic boundary at 1.7 or at 2.0, so a bond near it is
 described differently by different sources.
 
+### Lattice energy for salts with complex ions
+
+Kapustinskii refuses every polyatomic ion, because a nitrate or a
+carbonate has a *thermochemical* radius — a different measurement from a
+different source, absent from the shipped table. A second route answers
+those: the volume-based correlation of Jenkins, Roobottom, Passmore &
+Glasser (*Inorg. Chem.* 1999, 38, 3609), `U = 2I(α/V^⅓ + β)`, which
+needs only the formula-unit volume and does not care how many atoms an
+ion contains.
+
+**Validated on 26 salts, mean deviation 3.3%, worst 7.7%** — against
+Kapustinskii's 7.3% worst over 36 monatomic salts, so the same accuracy
+class on the harder problem. Fourteen of the 26 carry a complex ion and
+twelve of those land within 4.5%. The worst case is Ca(NO₃)₂, the one
+markedly non-spherical anion in the set. The targets are CRC Handbook
+Born–Haber values and the inputs are crystallographic volumes, so
+neither side of that comparison is the source paper's own estimate.
+
+What it will not do:
+
+- **Mixed valence is refused, not averaged.** Magnetite has Fe(II) and
+  Fe(III); the correlation was fitted to one cation charge and one anion
+  charge, and a mean would be a number the fit says nothing about.
+- **Only MX, MX₂ and M₂X were fitted.** A 3:2 salt is refused rather
+  than extrapolated — running a two-parameter empirical correlation past
+  its data is how a plausible wrong number ships.
+- **It is not yet wired to the crystal report.** The equation needs the
+  ion charges and a CIF usually does not state them: halite's own
+  deposition carries bare `Na` and `Cl`. Guessing them would produce
+  exactly the confident wrong answer this file exists to prevent.
+
 ### Lattice energy
 
 A **Kapustinskii estimate from Shannon six-coordinate ionic radii**, and it

@@ -1588,6 +1588,52 @@ outcome here, not a failure.
 Comments explain **why**, especially where something is non-obvious or was got
 wrong once. A comment restating the code is noise.
 
+### Two empirical fits can CROSS, so one test point proves nothing
+
+The volume-based lattice-energy correlation has separate coefficients
+for MX2 and M2X salts, and both have `2I = 6` -- the coefficient table
+is keyed on the charges for that reason. A test asserted "swapping them
+moves CaF2 by hundreds of kJ/mol" and FAILED, correctly: the claim was
+wrong, not the code.
+
+    V^(1/3)   MX2     M2X    difference
+    0.3000   3035    3127        +92
+    0.3442   2693    2703        +10   <- CaF2, where they cross
+    0.6470   1598    1347       -251   <- Cs2MoCl6, real M2X territory
+
+M2X's larger alpha is offset by its negative beta, so the two agree to
+10 kJ/mol near 0.34 and diverge past 200 where the M2X salts actually
+sit. **Pick the test point from where the data lives**, or assert the
+crossing deliberately as that test now does.
+
+#### The volume route needs no radii, which is the whole point
+
+Kapustinskii refuses every polyatomic ion by name -- a thermochemical
+radius is a different measurement from a different source and the
+shipped table has none. `U = 2I(alpha/V^(1/3) + beta)` needs only the
+formula-unit volume, so a nitrate or a hexachloromolybdate is
+answerable. Measured over Jenkins 1999 Tables 2 and 3, taking the CRC
+Handbook column as the target and the crystallographic volume as the
+input so neither side is the paper's own estimate:
+
+    26 salts   mean |deviation| 3.3%   worst 7.7% (Ca(NO3)2)
+
+against Kapustinskii's 7.3% over 36 monatomic salts.
+
+**`2I = sum(n_k z_k^2)` equals Kapustinskii's `nu |z+ z-|` exactly** for
+any neutral binary salt -- verified over 1:1, 1:2, 2:1 and 2:3 rather
+than taken from Glasser 1995, which is where the identity is noted. That
+is what makes the generalisation strictly backward compatible: the
+existing 36-salt validation carries over untouched.
+
+**It is NOT wired to the crystal report, and the reason is data not
+effort.** The equation needs ion charges; a CIF usually does not state
+them, and halite's own deposition carries bare `Na` and `Cl`. The reader
+does parse a charge when `_atom_site_type_symbol` gives one (`Na+`,
+`O2-`) and then discards it -- the same shape as the `Neighbour`
+position it used to throw away. Carrying it through is the next step;
+guessing charges is not.
+
 ### A threshold with two measured bounds is not a taste question
 
 The coordination-geometry tolerance could have been picked by feel. It
