@@ -119,11 +119,44 @@ class OrbitalBoxes(QWidget):
         self._configuration = configuration
         self.update()
 
+    def _paint_message(self, painter: QPainter, headline: str, action: str) -> None:
+        """Two lines, the second naming what would fill the space.
+
+        The project's own rule: "an empty state is two sentences, and the
+        second one is the point". A placeholder saying only "nothing here"
+        has told the reader what they could already see.
+        """
+        painter.setPen(QPen(QColor("#666666")))
+        text = f"{headline}\n{action}" if action else headline
+        painter.drawText(
+            self.rect().adjusted(12, 12, -12, -12),
+            int(Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap),
+            text,
+        )
+
     def paintEvent(self, _event) -> None:  # noqa: N802 - Qt override naming
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.fillRect(self.rect(), self.palette().base())
+
+        # Painted where the boxes would be, following
+        # `NmrCorrelationPlotWidget` -- a message in the space the data
+        # would occupy is where the reader is already looking.
+        #
+        # **Zero electrons is a RESULT, not missing data.** H+ really is a
+        # bare nucleus, so the wording says that rather than implying
+        # something failed, and the second line still names the one action
+        # that changes it.
         if self._configuration is None:
+            self._paint_message(painter, "Select an element.", "")
+            painter.end()
+            return
+        if self._configuration.electrons == 0:
+            self._paint_message(
+                painter,
+                "No electrons — a bare nucleus.",
+                'Press "+ electron" or "Neutral" to put one back.',
+            )
             painter.end()
             return
 

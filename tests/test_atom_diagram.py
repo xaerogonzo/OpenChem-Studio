@@ -154,11 +154,27 @@ def test_the_boxes_draw_more_for_more_subshells(qapp):
     _dispose(widget)
 
 
-def test_an_empty_box_view_draws_nothing_but_background(qapp):
+def test_an_empty_box_view_says_why_it_is_empty(qapp):
+    """It used to draw a blank rectangle. Four different situations look
+    identical when they are all blank, which is the failure the project's
+    empty-state work exists to prevent."""
     widget = OrbitalBoxes()
     widget.set_configuration(None)
 
-    assert ink(widget) == 0
+    assert ink(widget) > 0
+    _dispose(widget)
+
+
+def test_a_bare_nucleus_is_reported_as_a_result_not_as_missing_data(qapp):
+    """H+ genuinely has no electrons. That is the ANSWER, so the wording
+    must not imply something failed to load -- and the second line still
+    names the one action that changes it."""
+    from openchem.chem.electron_shells import ion_configuration
+
+    widget = OrbitalBoxes()
+    widget.set_configuration(ion_configuration("H", 1).configuration)
+
+    assert ink(widget) > 0
     _dispose(widget)
 
 
@@ -204,3 +220,16 @@ def test_choosing_a_new_element_returns_to_neutral(qapp):
     assert dialog._diagram.charge() == 0
     assert dialog._diagram.title.text() == "O"
     _dispose(dialog)
+
+
+
+def test_the_facts_table_says_its_configuration_is_the_neutral_atom(qapp):
+    """The diagram above can be showing an ion. Iron beside Fe2+ reads as
+    a contradiction -- [Ar] 3d6 4s2 against [Ar] 3d6 -- unless the table
+    says which species it describes."""
+    from openchem.ui.dialogs.periodic_table_dialog import describe
+    from openchem.chem.element_reference import facts_for
+
+    text = describe(facts_for("Fe"))
+
+    assert "Electron configuration (neutral atom)" in text

@@ -214,7 +214,13 @@ def describe(facts: ElementFacts) -> str:
         f"<p><b>{category_label}</b> &middot; {group} &middot; period {facts.period} "
         f"&middot; {facts.block}-block</p>",
         "<table cellpadding='3'>",
-        _row("Electron configuration", facts.electron_configuration),
+        # "(neutral atom)" because the diagram above can be showing an ION.
+        # Iron beside Fe2+ reads as a contradiction otherwise -- [Ar] 3d6
+        # 4s2 here against [Ar] 3d6 there -- when both are right about
+        # different species. Saying so in the label keeps this table
+        # independent of whatever the diagram is currently displaying,
+        # which is better than teaching the two to talk to each other.
+        _row("Electron configuration (neutral atom)", facts.electron_configuration),
         # .6g, not .4g: four significant figures renders uranium as "238"
         # and iron as "55.84", which is a reference table losing the
         # digits somebody opened it for.
