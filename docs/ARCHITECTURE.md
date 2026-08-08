@@ -657,6 +657,32 @@ document may cite a file or a test that does not exist.
   lattice-energy fact at all rather than a guessed one. The volume comes
   from the cell, so no ionic radius is involved and a complex ion works
   as readily as a monatomic one.
+- **OPEN, and the largest of these** -- every calculator computes on the
+  2D DRAWING, never on a generated conformer.
+  `ChemistryEngine.mol_from_model` reads `model.molblock` and never looks
+  at `model.conformers`, so the Properties panel reports "The available
+  conformer is 2D" while the 3D viewer is showing "Conformer 3/3".
+  Measured: `dipole_moment` handed a real 3D conformer returns COMPLETED
+  with 5 facts, including through a molblock round trip -- the
+  calculator is correct and the molecule reaching it is not. Every
+  conformer-dependent calculator has the same exposure: shape
+  descriptors, geometry, surface area, the DREIDING energy, ESP.
+
+  **Closing it is a DESIGN decision, not a repair.** Should a calculator
+  get the selected conformer, the lowest-energy one, or refuse until
+  told which? That changes what every 3D-dependent number in the app
+  means, so it is decided deliberately rather than by whichever is
+  easiest to wire.
+- **OPEN** -- the Properties panel clips its content instead of
+  scrolling it. There IS a `QScrollArea` with `setWidgetResizable(True)`,
+  so something inside is refusing to report its true height; CLAUDE.md
+  already records `_WrappedLabel` as load-bearing in one place and
+  catastrophic in another, with numbers, which is the thread to pull.
+  The visible consequence is worse than clipped text: a report row below
+  the fold takes its "Details..." button with it, so the panel LOOKS as
+  though only the first calculator in a section has one. Confirmed the
+  binding itself is correct -- `bbb_descriptors` really does return a
+  6-fact report with its own button, it is simply out of reach.
 - **DECISION** -- a calculation cannot be ADDRESSED to a crystal.
   `CalculationRequest` carries a `molecule_uuid` and nothing else, which
   makes the mistake unrepresentable rather than merely discouraged;
