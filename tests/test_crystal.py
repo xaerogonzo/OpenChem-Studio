@@ -755,3 +755,147 @@ def test_the_fields_the_reader_ignores_are_counted_not_silently_dropped(code):
 
     assert len(crystal.unhandled) > 50
     assert any(tag.startswith("_atom_site_aniso") for tag in crystal.unhandled)
+
+
+# --- disorder and partial occupancy, in real files --------------------------
+#
+# The gap the docs named after the first two depositions: both of those
+# were fully ordered, so occupancy was covered by synthetic cases only.
+# These four are not, and between them they carry every awkward thing the
+# reader had been claiming to survive. See tests/fixtures/cif/SOURCES.md
+# for provenance and licences -- 1569411 is IUCr-sourced and its use is
+# conditional on citing Bravetti et al., IUCrJ 10 (2023) 448.
+
+DISORDERED = ["1511792", "1569411", "1004002", "1502211"]
+
+
+@pytest.mark.parametrize("code", DISORDERED)
+def test_a_disordered_deposition_still_reproduces_its_stated_density(code):
+    """**The whole chain, against somebody else's number.** Partial
+    occupancies feed straight into the mass, so a file with a 0.42-occupied
+    water cannot match unless the occupancy was read, expanded and weighted
+    correctly."""
+    crystal = _cod(code)
+
+    # Half of the last printed digit. These files give the volume to one
+    # decimal -- 1650.9(11), where the (11) is an uncertainty of 1.1 -- so
+    # a tighter tolerance would be testing the printout, not the cell.
+    assert crystal.lattice.volume == pytest.approx(_stated(code, "_cell_volume"), abs=0.05)
+    assert density(crystal) == pytest.approx(
+        _stated(code, "_exptl_crystal_density_diffrn"), abs=0.001
+    )
+
+
+@pytest.mark.parametrize("code", DISORDERED)
+def test_partial_occupancies_are_read_rather_than_rounded_to_one(code):
+    crystal = _cod(code)
+    occupancies = {site.occupancy for site in crystal.sites}
+
+    assert any(occupancy < 1.0 for occupancy in occupancies)
+
+
+def test_a_partly_occupied_water_gives_a_fractional_composition():
+    """Leucopterin's O1W refines to 0.4212(76). Rounding that to 1 would
+    turn a variable hydrate into a stoichiometric monohydrate, and rounding
+    it to 0 would lose the water entirely."""
+    composition = _cod("1569411").composition()
+
+    assert composition["O"] != int(composition["O"])
+    assert composition["O"] == pytest.approx(12.842, abs=0.01)
+
+
+def test_the_partly_occupied_water_sits_on_a_special_position():
+    """**Deduplication earning its keep on a real structure.** O1W is at
+    (1/2, y, 1/4), on the twofold axis of P2/c, so the four operations
+    generate only two distinct images. Twenty sites and four operations
+    would give 80 atoms if images piled up; the answer is 78."""
+    crystal = _cod("1569411")
+
+    assert len(crystal.sites) == 20
+    assert len(crystal.operations) == 4
+    assert len(crystal.expand()) == 78
+
+    waters = [atom for atom in crystal.expand() if atom.site_label == "O1W"]
+    assert len(waters) == 2
+
+
+def test_matching_the_density_pins_which_of_the_files_own_numbers_is_computed():
+    """The file states BOTH `_chemical_formula_sum 'C6 H5.34 N5 O3.17'`
+    (giving 12.68 O per cell at Z=4) and a density of 1.888. They are not
+    quite consistent: 12.68 O would give 1.882.
+
+    The reading here gives 12.842 O and 1.8878, so it agrees with the
+    DENSITY. That is the right one to agree with -- the formula is rounded
+    for display, and the file's own remark calls the water content "very
+    uncertain". A fixture that only checked the formula string would have
+    called this a failure.
+    """
+    crystal = _cod("1569411")
+    from_formula = 4 * 3.17
+
+    assert crystal.composition()["O"] > from_formula
+    assert density(crystal) == pytest.approx(1.888, abs=0.001)
+
+
+def test_an_atom_label_containing_an_apostrophe_does_not_swallow_the_line():
+    """**The trap this file exists for.** Disorder alternatives are named
+    `N2'`, `C6'`, `H6'1`, and the tokeniser treats `'` as an opening quote
+    -- so a naive split would consume the rest of the row and every
+    coordinate on it."""
+    crystal = _cod("1511792")
+    labels = {site.label for site in crystal.sites}
+
+    assert "N2'" in labels
+    assert "H6'1" in labels
+    assert len(crystal.sites) == 61
+
+
+def test_two_site_disorder_sums_back_to_the_published_formula():
+    """LiDFOB's amine disorders over two positions at 0.897 and 0.103.
+    They sum to 1, so the cell composition must come out INTEGER despite
+    every contributing site being fractional -- C11 H23 B F2 Li N3 O4 at
+    Z = 4."""
+    composition = _cod("1511792").composition()
+
+    # **Approximately integer, not exactly.** Summing 0.897 and 0.103
+    # ninety-two times accumulates to 91.9999999999999, and asserting
+    # exact equality would be asserting a property of binary floating
+    # point rather than of the structure.
+    expected = {"Li": 4, "B": 4, "C": 44, "N": 12, "O": 16, "F": 8, "H": 92}
+    assert set(composition) == set(expected)
+    for element, count in expected.items():
+        assert composition[element] == pytest.approx(count, abs=1e-9)
+
+
+def test_a_centred_group_expands_every_site_by_all_eight_operations():
+    """C222(1): 186 sites, 8 operations, 1488 atoms, and heavily
+    disordered solvent -- five distinct partial occupancies. The largest
+    structure here, and the one that would notice an expansion that
+    silently truncated."""
+    crystal = _cod("1502211")
+
+    assert crystal.space_group == "C 2 2 21"
+    assert len(crystal.operations) == 8
+    assert len(crystal.expand()) == 8 * len(crystal.sites) == 1488
+    assert len({site.occupancy for site in crystal.sites}) > 4
+
+
+def test_the_modern_space_group_tags_are_read():
+    """1569411 uses `_space_group_symop_operation_xyz` and
+    `_space_group_name_H-M_alt`; the older files use the `_symmetry_`
+    spellings. Reading only one family is a silent way to get an
+    unexpanded structure."""
+    crystal = _cod("1569411")
+
+    assert crystal.space_group == "P 1 2/c 1"
+    assert crystal.space_group_number == 13
+    assert len(crystal.operations) == 4
+
+
+@pytest.mark.parametrize("code", ["1004002", "1502211"])
+def test_the_larger_depositions_expand_without_help(code):
+    """238 and 186 sites. Nothing here is tuned for small structures, and
+    a quadratic step in the expansion would show up first at this size."""
+    crystal = _cod(code)
+
+    assert len(crystal.expand()) == len(crystal.operations) * len(crystal.sites)

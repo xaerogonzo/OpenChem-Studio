@@ -1,0 +1,236 @@
+#------------------------------------------------------------------------------
+#$Date: 2023-12-01 15:23:56 +0200 (Fri, 01 Dec 2023) $
+#$Revision: 287932 $
+#$URL: file:///home/coder/svn-repositories/_RELOADED_COD/cod-reloaded/cif/1/56/94/1569411.cif $
+#------------------------------------------------------------------------------
+#
+# This file is available in the Crystallography Open Database (COD),
+# http://www.crystallography.net/. The original data for this entry
+# were provided by IUCr Journals, http://journals.iucr.org/.
+#
+# The file may be used within the scientific community so long as
+# proper attribution is given to the journal article from which the
+# data were obtained.
+#
+data_1569411
+loop_
+_publ_author_name
+'Bravetti, Federica'
+'Tapmeyer, Lukas'
+'Skorodumov, Kathrin'
+'Alig, Edith'
+'Habermehl, Stefan'
+'H&#xfc;hn, Robert'
+'Bordignon, Simone'
+'Gallo, Angelo'
+'Nervi, Carlo'
+'Chierotti, Michele R.'
+'Schmidt, Martin U.'
+_publ_section_title
+;
+ Leucopterin, the white pigment in butterfly wings: structural analysis by
+ PDF fit, FIDEL fit, Rietveld refinement, solid-state NMR and DFT-D.
+;
+_journal_coeditor_code           LT5058
+_journal_issue                   4
+_journal_name_full               IUCrJ
+_journal_page_first              448
+_journal_page_last               463
+_journal_paper_doi               10.1107/S2052252523004281
+_journal_volume                  10
+_journal_year                    2023
+_chemical_formula_moiety         'C6 H5 N5 O3, 0.17(H2O)'
+_chemical_formula_sum            'C6 H5.34 N5 O3.17'
+_chemical_formula_weight         198.52
+_chemical_melting_point          'decomposition at about 410 C'
+_chemical_name_common
+;
+Leucopterin (variable hydrate)
+
+Remark: According to Rietveld refinement, the structure contains a partially 
+occupied H2O molecule, which is represented by a single oxygen atom O1W. 
+Its occupancy value Occ(O1W) = 0.421(8) corresponds to 0.17 H2O per 
+leucopterin molecule. But this value is very uncertain (Powder data 
+of limited quality).
+Hence, the water content of this structure should be regarded as being 
+between 0 and 0.2 molecules of water per leucopterin molecule.
+The crystal structure and the tautomeric state were confirmed by DFT-D
+and SSNMR.
+;
+_space_group_crystal_system      monoclinic
+_space_group_IT_number           13
+_space_group_name_Hall           '-P 2yc'
+_space_group_name_H-M_alt        'P 1 2/c 1'
+_cell_angle_alpha                90
+_cell_angle_beta                 88.5310(42)
+_cell_angle_gamma                90
+_cell_formula_units_Z            4
+_cell_length_a                   8.10257(40)
+_cell_length_b                   4.83656(29)
+_cell_length_c                   17.8289(14)
+_cell_measurement_reflns_used    310
+_cell_measurement_temperature    296(2)
+_cell_measurement_theta_max      70
+_cell_measurement_theta_min      4
+_cell_volume                     698.46(8)
+_computing_structure_refinement  'TOPAS Academic 4.2 (Coelho, 2018)'
+_computing_structure_solution
+'FIDEL (Habermehl et al., Acta Cryst. 2014, B70, 347.)'
+_diffrn_ambient_temperature      296(2)
+_diffrn_measurement_device_type
+'STOE Stadi-P with Ge(111) monochromator and linear PSD'
+_diffrn_radiation_type           'Cu K\a~1~'
+_diffrn_radiation_wavelength     1.54056
+_diffrn_reflns_limit_h_max       9
+_diffrn_reflns_limit_h_min       -9
+_diffrn_reflns_limit_k_max       5
+_diffrn_reflns_limit_k_min       -5
+_diffrn_reflns_limit_l_max       21
+_diffrn_reflns_limit_l_min       -21
+_diffrn_reflns_theta_full        70
+_diffrn_reflns_theta_max         70
+_diffrn_reflns_theta_min         4
+_diffrn_source                   'Cu tube'
+_exptl_absorpt_coefficient_mu    1.365
+_exptl_absorpt_correction_type   none
+_exptl_crystal_colour            white
+_exptl_crystal_density_diffrn    1.888
+_exptl_crystal_density_meas      'about 1.83'
+_exptl_crystal_density_method    'suspension in iodobenzene does not separate'
+_exptl_crystal_description       powder
+_exptl_crystal_F_000             406.7
+_pd_calc_method                  'Rietveld Refinement'
+_pd_proc_2theta_range_inc        0.01
+_pd_proc_2theta_range_max        70.
+_pd_proc_2theta_range_min        4.
+_pd_proc_ls_background_function  'Chebyshev polynomial with 20 terms'
+_pd_proc_ls_pref_orient_corr     none
+_pd_proc_ls_profile_function     'fundamental parameters'
+_pd_proc_ls_prof_R_factor        0.10091
+_pd_proc_ls_prof_wR_expected     0.06609
+_pd_proc_ls_prof_wR_factor       0.10517
+_pd_proc_wavelength              1.54056
+_pd_spec_mounting                '0.7 mm capillary'
+_pd_spec_mount_mode              transmission
+_refine_ls_extinction_method     none
+_refine_ls_goodness_of_fit_all   1.591
+_refine_ls_hydrogen_treatment    refall
+_refine_ls_number_parameters     101
+_refine_ls_number_reflns         310
+_refine_ls_number_restraints     52
+_refine_ls_R_factor_all          0.01192
+_refine_ls_shift/su_max          0.01
+_refine_ls_structure_factor_coef Fsqd
+_reflns_number_total             1325
+_cod_data_source_file            lt5058.cif
+_cod_data_source_block           Leuco_hydrate
+_cod_original_cell_volume        698.461(77)
+_cod_original_sg_symbol_H-M      'P 2/c'
+_cod_database_code               1569411
+loop_
+_space_group_symop_operation_xyz
+'x, y, z'
+'-x, y, -z+1/2'
+'-x, -y, -z'
+'x, -y, z-1/2'
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_occupancy
+_atom_site_B_iso_or_equiv
+_atom_site_U_iso_or_equiv
+O7 O 0.87133(43) 0.20507(74) 0.18912(21) 1 2.558(92) 0.03240
+O4 O 0.55650(40) -0.34170(67) -0.08674(25) 1 2.558(92) 0.03240
+O6 O 0.65943(48) -0.22944(75) 0.18761(21) 1 2.558(92) 0.03240
+N8 N 0.86917(31) 0.23675(55) 0.06521(13) 1 2.558(92) 0.03240
+N1 N 0.87674(30) 0.30472(56) -0.06511(17) 1 2.558(92) 0.03240
+N3 N 0.70871(32) -0.00800(54) -0.13788(14) 1 2.558(92) 0.03240
+N5 N 0.65723(35) -0.19376(52) 0.05818(13) 1 2.558(92) 0.03240
+N2 N 0.86966(37) 0.35002(56) -0.19151(13) 1 2.558(92) 0.03240
+C7 C 0.81872(37) 0.11369(59) 0.12931(14) 1 2.558(92) 0.03240
+C2 C 0.81422(34) 0.20792(53) -0.12874(14) 1 2.558(92) 0.03240
+C4 C 0.65468(29) -0.14455(48) -0.07749(14) 1 2.558(92) 0.03240
+C6 C 0.70423(38) -0.11798(61) 0.12792(14) 1 2.558(92) 0.03240
+C10 C 0.70473(21) -0.06742(36) -0.00927(15) 1 2.558(92) 0.03240
+C9 C 0.81427(19) 0.15662(40) -0.00561(14) 1 2.558(92) 0.03240
+H2a H 0.9467(15) 0.5106(23) -0.18679(55) 1 3.07(11) 0.03888
+H2b H 0.8346(13) 0.2930(19) -0.24210(93) 1 3.07(11) 0.03888
+H3 H 0.6699(12) -0.0732(24) -0.18846(56) 1 3.07(11) 0.03888
+H5 H 0.5818(16) -0.3547(21) 0.05670(56) 1 3.07(11) 0.03888
+H8 H 0.9447(13) 0.3945(23) 0.06712(53) 1 3.07(11) 0.03888
+O1W O 0.5 0.3135(36) 0.25 0.4212(76) 2.558(92) 0.03240
+loop_
+_atom_type_symbol
+_atom_type_description
+_atom_type_scat_dispersion_real
+_atom_type_scat_dispersion_imag
+_atom_type_scat_source
+C C 0.0181 0.0091 'International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
+H H 0.0000 0.0000 'International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
+N N 0.0311 0.0180 'International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
+O O 0.0492 0.0322 'International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
+loop_
+_geom_angle_id
+_geom_angle_atom_site_label_1
+_geom_angle_atom_site_label_2
+_geom_angle_atom_site_label_3
+_geom_angle
+1 C7 N8 C9 123.1(2)
+2 C7 N8 H8 119.5(7)
+3 C9 N8 H8 117.3(6)
+4 C2 N1 C9 109.5(2)
+5 C2 N3 C4 118.6(2)
+6 C2 N3 H3 123.7(6)
+7 C4 N3 H3 117.6(6)
+8 C6 N5 C10 126.4(2)
+9 C6 N5 H5 115.1(7)
+10 C10 N5 H5 118.6(7)
+11 C2 N2 H2a 120.6(7)
+12 C2 N2 H2b 120.3(7)
+13 H2a N2 H2b 119(1)
+14 O7 C7 N8 118.0(3)
+15 O7 C7 C6 121.5(3)
+16 N8 C7 C6 120.5(3)
+17 N1 C2 N3 128.4(3)
+18 N1 C2 N2 113.0(2)
+19 N3 C2 N2 118.5(2)
+20 O4 C4 N3 117.9(3)
+21 O4 C4 C10 122.4(3)
+22 N3 C4 C10 119.6(2)
+23 O6 C6 N5 125.8(3)
+24 O6 C6 C7 119.6(3)
+25 N5 C6 C7 114.6(2)
+26 N5 C10 C4 125.1(2)
+27 N5 C10 C9 117.3(2)
+28 C4 C10 C9 117.5(2)
+29 N8 C9 N1 115.7(2)
+30 N8 C9 C10 118.1(2)
+31 N1 C9 C10 126.2(2)
+loop_
+_geom_bond_id
+_geom_bond_atom_site_label_1
+_geom_bond_atom_site_label_2
+_geom_bond_distance
+1 O7 C7 1.240(5)
+2 O4 C4 1.255(4)
+3 O6 C6 1.239(5)
+4 N8 C7 1.343(4)
+5 N8 C9 1.404(3)
+6 N8 H8 0.98(1)
+7 N1 C2 1.339(4)
+8 N1 C9 1.366(4)
+9 N3 C2 1.362(4)
+10 N3 C4 1.328(3)
+11 N3 H3 1.01(1)
+12 N5 C6 1.360(4)
+13 N5 C10 1.394(3)
+14 N5 H5 0.99(1)
+15 N2 C2 1.379(4)
+16 N2 H2a 1.00(1)
+17 N2 H2b 0.99(2)
+18 C7 C6 1.455(4)
+19 C4 C10 1.345(4)
+20 C10 C9 1.403(2)
