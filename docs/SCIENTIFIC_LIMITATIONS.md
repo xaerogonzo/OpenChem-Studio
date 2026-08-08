@@ -383,6 +383,58 @@ curated list could populate it, and predicts nothing.
 
 ---
 
+## Substance classification and coordination
+
+`chem/substance.py` says what kind of thing a structure represents. It is
+graph perception, and the honest boundaries are these.
+
+**It describes the structure as drawn, and never alters it.** An ionic
+association is reported without adding a bond; a dative reading of a
+metal-ligand bond is offered as a quick fix rather than applied.
+
+**A geometry is never inferred from a count.** Six things attached to a
+metal does not make something octahedral — that is a claim about angles,
+and a flat drawing has none. A coordination environment perceived from a
+2D structure reports its ligands, their hapticity and both counts, and
+says "not determined" for geometry. The same rule the bond report already
+applies to 2D bond lengths.
+
+**Two counts, and neither is "the coordination number".** Ferrocene's
+ligand coordination is 2 and its donor-atom count is 10. A single figure
+of 10 invites the reader to supply the wrong convention, so the two are
+reported separately and never merged.
+
+**A disconnected structure with charged components may be refused.**
+`[Na+].[Cl-]` is a confident 1:1 salt. `[Na+].[Cl-].[K+].[Br-]` is not
+classified at all — it could be NaCl + KBr, or NaBr + KCl, or a mixture of
+four ions, and nothing in the graph decides. The refusal carries that
+reason, which is the useful half of it.
+
+**"Ambiguous" and "mixture" are different statements.** A disconnected
+graph is not one substance merely because its charges happen to cancel.
+
+### Oxidation states of sandwich complexes
+
+A metallocene's metal is now assigned, from the ionic ligand convention:
+each eta-5 cyclopentadienide counts as -1 and the metal takes whatever
+balances the total charge. Ferrocene gives Fe(+2), ferrocenium Fe(+3),
+cobaltocene Co(+2).
+
+**The ring carbons are deliberately left unassigned.** The negative charge
+is spread over all five, and a per-atom state there depends on which atom
+the charge happened to be typed on — the delocalisation limitation this
+file and `chem/oxidation_states.py` already record.
+
+**Only the ionic DRAWING is recognised.** The vendored perception was
+measured against five variants with the metal bonded into its rings
+(single, alternating and aromatic ring bonds; single and dative metal-carbon
+bonds) and classified none of them. A sandwich drawn that way still hits
+the metal-carbon refusal, and that refusal now names the drawing that can
+be assigned.
+
+Metal carbonyls remain refused. Cr(CO)6 comes out at Cr(+6) where the
+answer is 0, and nothing here can see the back-donation that makes it so.
+
 ## Where this is enforced
 
 Most of these limits are also written into the module that implements the

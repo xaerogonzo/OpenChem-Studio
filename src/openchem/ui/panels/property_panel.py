@@ -48,6 +48,7 @@ from openchem.services.descriptor_service import DescriptorService
 from openchem.ui.dialogs.calculator_inspector_dialog import CalculatorInspectorDialog
 from openchem.ui.dialogs.calculator_settings_dialog import CalculatorSettingsDialog
 from openchem.ui.dialogs.nmr_view_dialog import NmrViewDialog
+from openchem.ui.widgets.substance_card import SubstanceCard, card_data_from_report
 from openchem.ui.widgets.collapsible_section import CollapsibleSection as _CollapsibleSection
 from openchem.ui.widgets.collapsible_section import WrappedLabel as _WrappedLabel
 from openchem.ui.widgets.fact_view import FactView
@@ -397,8 +398,14 @@ class PropertyPanel(QWidget):
         batch_row.addWidget(self._clear_selection_button)
         batch_row.addWidget(self._batch_status, 1)
 
+        # A PERSISTENT header, not a result row. What the app should call
+        # a structure changes with what kind of thing it is, and that
+        # answer belongs above the properties rather than among them.
+        self._substance_card = SubstanceCard(self)
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
+        layout.addWidget(self._substance_card)
         layout.addLayout(batch_row)
         layout.addWidget(scroll_area)
 
@@ -456,6 +463,8 @@ class PropertyPanel(QWidget):
         self._row_sections.clear()
         for section in self._sections.values():
             section.clear_rows()
+        self._substance_card.clear()
+        self._request_substance_perception()
 
     def _section_for(self, category: str) -> _CollapsibleSection:
         section = self._sections.get(category)
@@ -736,6 +745,46 @@ class PropertyPanel(QWidget):
         if not _is_catalog(alert):
             self._reports[alert.alert_id] = report_from_alert(alert)
 
+    def _selected_molecule_name(self) -> str:
+        """What the app calls the selected molecule, or "".
+
+        **Independent of the classification**, deliberately. The card reads
+        the two from different sources so that a structure nothing can name
+        still gets its header -- "Organometallic / (not named) / C10H10Fe"
+        is worth far more than collapsing the card because one source came
+        up empty.
+        """
+        if self._project is None or self._selected_molecule_uuid is None:
+            return ""
+        molecule = self._project.find_molecule(self._selected_molecule_uuid)
+        return getattr(molecule, "name", "") if molecule is not None else ""
+
+    def _request_substance_perception(self) -> None:
+        """Run the one calculator the header is made of.
+
+        Auto-run because the card is a HEADER: a persistent identity
+        strip that only appears once somebody thinks to tick a box is not
+        a header, it is a result. This is the only calculator dispatched
+        without being asked for, and it is cheap -- graph perception, no
+        conformer, no external tool.
+        """
+        if self._project is None or self._selected_molecule_uuid is None:
+            return
+        molecule = self._project.find_molecule(self._selected_molecule_uuid)
+        if molecule is None:
+            return
+        definition = self._calculator_registry.get("substance_analysis")
+        if definition is None or not isinstance(definition.execution, RegistryExecution):
+            return
+        self._descriptor_service.run_calculator(
+            molecule,
+            CalculationRequest(
+                calculator_id="substance_analysis",
+                molecule_uuid=molecule.uuid,
+                parameters={p.name: p.default for p in definition.parameters},
+            ),
+        )
+
     def _on_report_computed(self, event: ReportComputed) -> None:
         """A calculator produced facts rather than a list of strings.
 
@@ -750,6 +799,10 @@ class PropertyPanel(QWidget):
         if report.molecule_uuid != self._selected_molecule_uuid:
             return
         self._reports[report.report_id] = report
+        if report.report_id == "substance_analysis":
+            self._substance_card.set_data(
+                card_data_from_report(report, name=self._selected_molecule_name())
+            )
         section = self._section_for(report.category)
 
         if report.cache_state is CacheState.FAILED:

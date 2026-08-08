@@ -1147,3 +1147,63 @@ See [PLUGIN_SDK.md](PLUGIN_SDK.md) to write one.
   top of each other rather than side by side. Anything that reasons about
   how two partners sit together — the LED breakdown most of all — needs you
   to place them yourself.
+
+## Knowing what a structure IS
+
+The Properties panel carries an identity header above the results, and it
+changes shape with what you have drawn:
+
+    Sodium chloride                    Ferrocene
+    NaCl          Ionic salt           C10H10Fe      Organometallic
+    Formula unit  Na+ - Cl-            Metal centre  Fe(II)
+    Charge        0                    Ligands       2 x eta5-Cp
+    Components    2                    Donor atoms   10
+
+The header is always there — you do not have to run anything to get it.
+The full **Substance & Bonding** result, with the evidence behind the
+verdict, is in the Structure section of the panel like any other
+calculator.
+
+### It tells you what it cannot tell you
+
+Draw `[Na+].[Cl-].[K+].[Br-]` and the header refuses:
+
+    Ambiguous ionic components
+    the structure does not encode which ions constitute the same formula
+    unit
+
+That is not a bug. It could be NaCl + KBr, or NaBr + KCl, or a mixture of
+four ions, and nothing in a drawing decides between them. Two disconnected
+neutral components (`CCO.c1ccccc1`) get a third answer again — a mixture,
+which is a different statement from "ambiguous".
+
+### Ionic associations are not bonds
+
+`[Na+].[Cl-]` has no bond in it, and the app will not add one. The
+relationship between the two ions is reported as an *association*, and it
+never carries a length: a distance between ions needs a real 3D structure,
+and even then it is a contact measurement rather than a bond length.
+
+### Coordination without geometry
+
+From a flat drawing the app reports a complex's metal, its ligands, their
+hapticity, and two separate counts — how many ligands are bound, and how
+many ligand atoms are bound. It does **not** report "octahedral", because
+that is a claim about angles and a 2D drawing has none. Generate a 3D
+structure if you need a geometry.
+
+Ferrocene is the case that shows why the two counts are separate: two
+ligands, ten donor atoms. A single "coordination number: 10" would invite
+you to read it as ten ligands.
+
+### Metal-ligand bonds drawn as plain bonds
+
+If you draw a metal complex with ordinary single bonds to its donor atoms
+— as you might for Amavadin's vanadium — the Structure Check panel offers
+**"Draw metal bonds as coordinate bonds"**. It marks each metal-ligand
+bond as dative, which is the usual convention and stops the metal's
+valence being over-counted. Nothing is added or removed, both drawings are
+in normal use, and the change lands on the undo stack like any other.
+
+The app never applies it for you. Perception describes what you drew; a
+quick fix is an offer.

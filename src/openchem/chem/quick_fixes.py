@@ -188,6 +188,78 @@ def merge_coincident_atoms(molblock: str) -> str:
     return _write(editable.GetMol())
 
 
+#: Elements that donate a lone pair to a metal. Deliberately NOT the
+#: halogens: an alkali halide is ionic, and offering to redraw Na-Cl as a
+#: coordinate bond would be wrong about the commonest salt there is.
+_DATIVE_DONORS = frozenset({"N", "O", "S", "P", "Se", "As"})
+
+
+def _coordinating_metals() -> frozenset[str]:
+    """Transition metals and the f-block, by the shipped element data.
+
+    Not every metal: an alkali or alkaline-earth halide is ionic rather
+    than coordinate, and the same `_BACKBONDING_CATEGORIES` boundary is
+    the one `oxidation_states` already measured and drew.
+    """
+    from openchem.chem.oxidation_states import _BACKBONDING_CATEGORIES, electronegativity_table
+
+    return frozenset(
+        symbol
+        for symbol, facts in electronegativity_table().items()
+        if facts.get("category") in _BACKBONDING_CATEGORIES
+    )
+
+
+def metal_bonds_to_dative(molblock: str) -> str:
+    """Redraw a metal's plain single bonds to its donors as coordinate bonds.
+
+    **Amavadin is the motivating case** -- a vanadium bound by nitrogen
+    and oxygen donors, which drawn with plain single bonds over-counts the
+    metal's valence. The chemistry is unchanged: a coordinate bond IS a
+    single bond in which the ligand supplied both electrons, and this only
+    says which.
+
+    **Only bond types change.** No atom is added, removed or recharged.
+    Neutralising the formal charges that a plain-bond drawing often
+    carries would be a second, separate edit, and one fix doing two things
+    is a fix nobody can predict.
+
+    Two things measured rather than assumed:
+
+    - **A DATIVE bond survives a molblock round-trip**, in both V2000 and
+      V3000. Worth checking before building on it, since the fix's whole
+      contract is molblock in, molblock out.
+    - **The edits must be collected before any are applied.** Mutating
+      while iterating `GetBonds()` invalidates the iteration, and a
+      vanadium with four identical V-O bonds came back as a DATIVE/SINGLE
+      mix -- a silent half-conversion rather than an error.
+    """
+    from rdkit import Chem
+
+    metals = _coordinating_metals()
+    mol = _read(molblock)
+    editable = Chem.RWMol(mol)
+
+    conversions: list[tuple[int, int, int, int]] = []
+    for bond in editable.GetBonds():
+        if bond.GetBondType() is not Chem.BondType.SINGLE:
+            continue
+        begin, end = bond.GetBeginAtom(), bond.GetEndAtom()
+        # The dative bond BEGINS at the donor: that is how RDKit records
+        # which way the pair went.
+        if begin.GetSymbol() in metals and end.GetSymbol() in _DATIVE_DONORS:
+            conversions.append((begin.GetIdx(), end.GetIdx(), end.GetIdx(), begin.GetIdx()))
+        elif end.GetSymbol() in metals and begin.GetSymbol() in _DATIVE_DONORS:
+            conversions.append((begin.GetIdx(), end.GetIdx(), begin.GetIdx(), end.GetIdx()))
+
+    if not conversions:
+        return molblock
+    for begin_index, end_index, donor, metal in conversions:
+        editable.RemoveBond(begin_index, end_index)
+        editable.AddBond(donor, metal, Chem.BondType.DATIVE)
+    return _write(editable.GetMol())
+
+
 _CORE_FIXES = (
     QuickFix(
         fix_id="remove_explicit_hydrogens",
@@ -209,6 +281,16 @@ _CORE_FIXES = (
         safety=FixSafety.LOSSY,
         apply=keep_largest_fragment,
         description="Discards the other fragments. For a salt this removes the counter-ion.",
+    ),
+    QuickFix(
+        fix_id="metal_bonds_to_dative",
+        label="Draw metal bonds as coordinate bonds",
+        safety=FixSafety.REVERSIBLE,
+        apply=metal_bonds_to_dative,
+        description=(
+            "Marks each metal-ligand bond as dative. The connectivity is unchanged; "
+            "only which atom supplied the electrons."
+        ),
     ),
     QuickFix(
         fix_id="merge_coincident_atoms",

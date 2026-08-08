@@ -139,6 +139,13 @@ def assign(mol: Any) -> OxidationStates:
             "and therefore no electronegativity."
         )
 
+    # BEFORE the structural refusals, because a metallocene trips the
+    # metal-carbon one and the vendored perception can answer where the
+    # partition rule cannot. See `_metallocene_states`.
+    sandwich = _metallocene_states(mol)
+    if sandwich is not None:
+        return sandwich
+
     structural = _structural_refusal(mol, table)
     if structural is not None:
         return _refuse(structural.reason, structural.atom_indices)
@@ -204,6 +211,84 @@ def classical_bonding_refusal(mol: Any) -> BondingRefusal | None:
     return _structural_refusal(mol, electronegativity_table())
 
 
+def _metallocene_states(mol: Any) -> OxidationStates | None:
+    """A sandwich complex's metal, from the ionic ligand convention.
+
+    The partition rule genuinely cannot describe eta-5 coordination, and
+    that refusal stands. What changed is that the vendored perception
+    KNOWS the structure is a metallocene, so the answer does not have to
+    come from partitioning bonds at all: each eta-5 Cp is a
+    cyclopentadienide, and the metal takes whatever charge balances it.
+
+        metal = total charge - sum(ligand charges)
+              = total charge + (number of Cp rings)
+
+    Ferrocene 0 + 2 -> Fe(+2), ferrocenium +1 + 2 -> Fe(+3), cobaltocene
+    0 + 2 -> Co(+2).
+
+    **The ring carbons are deliberately left unassigned.** They are the
+    delocalised case this module's docstring already declines to rule on:
+    a charge typed on one atom of a five-fold-symmetric ring makes that
+    atom's state depend on where somebody clicked. Reporting the metal and
+    saying nothing about the ring is the honest half of the answer, and it
+    is the half anybody asks a metallocene about.
+
+    **The vendored perception only recognises the IONIC drawing**, which
+    is a constraint on the asset rather than on the adapter and is worth
+    knowing before anybody assumes this covers ferrocene generally.
+    Measured on five hand-built bonded variants, none classified:
+
+        single ring bonds, single Fe-C          not perceived
+        alternating ring bonds, single Fe-C     not perceived
+        aromatic ring, single Fe-C              not perceived
+        aromatic ring, DATIVE Fe-C              not perceived
+        [Fe+2].[cH-]1cccc1.[cH-]1cccc1          perceived
+
+    So a structure drawn with the metal bonded into the rings still hits
+    the metal-carbon refusal below, and that refusal now says the ionic
+    drawing is assignable -- which is actionable where "cannot describe
+    eta-5" was not.
+
+    What this does fix is the ionic drawing's per-atom answer. It gave
+    Fe(+2) with ring carbons at -2, -1, -1, -1, -1, the state of each
+    carbon depending on which one the charge was typed on.
+    """
+    from openchem.chem.organometallic_adapter import metallocene
+
+    perceived = metallocene(mol)
+    if perceived is None or perceived.metal_index is None or not perceived.rings:
+        return None
+
+    total_charge = sum(atom.GetFormalCharge() for atom in mol.GetAtoms())
+    ring_atoms = {index for ring in perceived.rings for index in ring.atom_indices}
+    # Ring hydrogens go with their carbons: an explicit H on an unassigned
+    # carbon has nothing to be -1 relative to.
+    for index in tuple(ring_atoms):
+        for neighbour in mol.GetAtomWithIdx(index).GetNeighbors():
+            if neighbour.GetAtomicNum() == 1:
+                ring_atoms.add(neighbour.GetIdx())
+
+    table = electronegativity_table()
+    states = {
+        atom.GetIdx(): _state_of(atom, table)
+        for atom in mol.GetAtoms()
+        if atom.GetIdx() not in ring_atoms and atom.GetIdx() != perceived.metal_index
+    }
+    states[perceived.metal_index] = total_charge + len(perceived.rings)
+
+    rings = "ring" if len(perceived.rings) == 1 else "rings"
+    return OxidationStates(
+        states=states,
+        reason=(
+            f"{perceived.metal_symbol} is assigned from the ionic ligand convention: "
+            f"{len(perceived.rings)} eta-5 cyclopentadienide {rings} at -1 each, "
+            "balanced against the total charge. The ring carbons are left "
+            "unassigned -- the negative charge is spread over all five of them, and "
+            "a per-atom state there would depend on where the charge was drawn."
+        ),
+    )
+
+
 def _structural_refusal(mol: Any, table: dict[str, dict[str, Any]]) -> BondingRefusal | None:
     """The three bonding situations the partition rule cannot describe."""
 
@@ -265,7 +350,9 @@ def _structural_refusal(mol: Any, table: dict[str, dict[str, Any]]) -> BondingRe
                 f"{', '.join(symbols)} is bonded directly to carbon. In transition-metal "
                 "organometallics the metal donates electrons back to the ligand, which a "
                 "two-centre model cannot see -- it gives Cr(CO)6 a chromium of +6, where "
-                "the answer is 0."
+                "the answer is 0. A sandwich complex drawn instead as an ion pair "
+                "(the metal cation and separate cyclopentadienide rings) can be "
+                "assigned, because the ligand charges are then explicit."
             ),
             atom_indices=tuple(organometallic),
         )

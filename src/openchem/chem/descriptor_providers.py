@@ -76,6 +76,7 @@ from openchem.chem.structure_annotation import (
 )
 from openchem.chem.substructure import COMMON_PATTERNS, compute_substructure_search
 from openchem.chem.surface_analysis import compute_sasa_dataset, compute_surface_analysis
+from openchem.chem.substance import compute_substance_analysis
 from openchem.chem.topology_analysis import (
     compute_distance_degree_dataset,
     compute_eccentricity_dataset,
@@ -1190,6 +1191,34 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         parameters=[
             decimal_places_parameter(),
             *microspecies_parameters(),
+        ],
+    ),
+    CalculatorDefinition(
+        calculator_id="substance_analysis",
+        display_name="Substance & Bonding",
+        category="structure",
+        description=(
+            "What the structure IS rather than what it contains: ionic salt, "
+            "molecule, coordination compound, organometallic or mixture, with the "
+            "evidence for the verdict. Reports ionic associations WITHOUT adding "
+            "bonds, and refuses -- with its reason -- when the structure does not "
+            "encode which ions constitute one formula unit. Coordination geometry "
+            "is reported only from a real 3D conformer."
+        ),
+        execution=RegistryExecution(compute=compute_substance_analysis),
+        tags=["structure", "bonding", "ionic", "coordination", "organometallic"],
+        parameters=[
+            CalculatorParameter(
+                # Off by default because the formula unit already says it
+                # for a two-ion salt: "Na+ . Cl-" and two component rows
+                # are the same sentence twice. It earns its place on a
+                # mixture, where the components are the answer and each
+                # one can be highlighted in the drawing.
+                name="list_components",
+                label="List each component separately",
+                kind="bool",
+                default=False,
+            ),
         ],
     ),
     CalculatorDefinition(

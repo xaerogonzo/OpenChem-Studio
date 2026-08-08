@@ -180,6 +180,55 @@ def _check_unknown_stereo(context: CheckContext) -> list[StructureIssue]:
     ]
 
 
+def _check_metal_donor_bonds(context: CheckContext) -> list[StructureIssue]:
+    """A metal-ligand bond drawn as a plain single bond.
+
+    **Amavadin is the case this exists for.** Its vanadium is held by
+    nitrogen and oxygen donors, and drawn with plain single bonds the
+    metal's valence is over-counted -- a coordinate bond is one where the
+    ligand supplies BOTH electrons, and a plain bond says the metal
+    supplied one.
+
+    INFO rather than WARNING, and this is the point of the three-layer
+    rule: both drawings appear in the literature and neither is an error.
+    Perception reports what is there, this offers the alternative, and
+    only the user changes the structure.
+    """
+    from openchem.chem.quick_fixes import _DATIVE_DONORS, _coordinating_metals
+
+    metals = _coordinating_metals()
+    involved: set[int] = set()
+    for bond in context.mol.GetBonds():
+        if str(bond.GetBondType()) != "SINGLE":
+            continue
+        begin, end = bond.GetBeginAtom(), bond.GetEndAtom()
+        if (begin.GetSymbol() in metals and end.GetSymbol() in _DATIVE_DONORS) or (
+            end.GetSymbol() in metals and begin.GetSymbol() in _DATIVE_DONORS
+        ):
+            involved.update({begin.GetIdx(), end.GetIdx()})
+    if not involved:
+        return []
+
+    symbols = sorted({context.mol.GetAtomWithIdx(i).GetSymbol() for i in involved} & metals)
+    return [
+        StructureIssue(
+            checker_id="metal_donor_bond",
+            category=Category.REPRESENTATION,
+            severity=Severity.INFO,
+            basis=Basis.HEURISTIC,
+            message=(
+                f"{', '.join(symbols)} is bonded to donor atoms by plain single bonds. "
+                "A metal-ligand bond is usually a coordinate (dative) bond, in which the "
+                "ligand supplies both electrons -- drawn as a plain bond the metal's "
+                "valence is over-counted. Both drawings are used, so this is a choice "
+                "rather than an error."
+            ),
+            atom_indices=tuple(sorted(involved)),
+            fix_id="metal_bonds_to_dative",
+        )
+    ]
+
+
 _CHECKERS = (
     ("disconnected_fragments", "Disconnected fragments", _check_fragments, PARSED_MOLECULE),
     ("molecule_charge", "Net charge", _check_charge, PARSED_MOLECULE),
@@ -187,6 +236,7 @@ _CHECKERS = (
     ("isotope", "Isotopes", _check_isotopes, PARSED_MOLECULE),
     ("radical", "Radicals", _check_radicals, PARSED_MOLECULE),
     ("query_atom", "Query atoms", _check_query_atoms, PARSED_MOLECULE),
+    ("metal_donor_bond", "Metal-ligand bonds", _check_metal_donor_bonds, PARSED_MOLECULE),
     ("unknown_stereo", "Undefined stereocentres", _check_unknown_stereo, SANITIZED_MOLECULE),
 )
 

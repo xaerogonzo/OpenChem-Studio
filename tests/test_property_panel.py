@@ -1009,6 +1009,18 @@ class _RecordingService:
     def run_calculator(self, model, request) -> None:
         self.requests.append(request)
 
+    @property
+    def requested_by_the_button(self) -> list:
+        """Everything except the identity card's own dispatch.
+
+        The card auto-runs `substance_analysis` on every molecule
+        selection, because a header that appears only once somebody ticks
+        a box is a result rather than a header. These tests are about the
+        Run button, so they say so rather than counting whatever happens
+        to be in the list.
+        """
+        return [r for r in self.requests if r.calculator_id != "substance_analysis"]
+
     def request_descriptors(self, *args, **kwargs) -> None:
         pass
 
@@ -1047,7 +1059,7 @@ def test_ticking_calculators_enables_running_them_together(qapp):
     assert "(3)" in panel._run_selected_button.text()
 
     panel._on_run_selected()
-    assert {r.calculator_id for r in service.requests} == set(chosen)
+    assert {r.calculator_id for r in service.requested_by_the_button} == set(chosen)
 
 
 def test_a_batch_run_uses_declared_defaults_and_opens_no_dialog(qapp):
@@ -1080,7 +1092,7 @@ def test_the_same_calculator_is_not_queued_twice(qapp):
     panel._on_run_selected()
     panel._on_run_selected()
 
-    assert len(service.requests) == 1
+    assert len(service.requested_by_the_button) == 1
     assert "already running" in panel._batch_status.text()
 
 
@@ -1101,7 +1113,7 @@ def test_a_result_arriving_lets_it_run_again(qapp):
         provenance=Provenance(created_by="core", method="x"))))
 
     panel._on_run_selected()
-    assert len(service.requests) == 2
+    assert len(service.requested_by_the_button) == 2
 
 
 def test_switching_molecule_clears_a_stuck_run(qapp):
@@ -1119,7 +1131,7 @@ def test_switching_molecule_clears_a_stuck_run(qapp):
     assert not panel._running_calculator_ids
 
     panel._on_run_selected()
-    assert len(service.requests) == 2
+    assert len(service.requested_by_the_button) == 2
 
 
 def test_clearing_the_selection_unticks_everything(qapp):

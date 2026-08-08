@@ -428,6 +428,72 @@ it).
   rather than reading a list beside it -- so a tab that shows nothing
   fails whichever mechanism it was meant to use.
 
+### Perception interprets, QuickFix suggests, only the user changes the structure
+
+Three layers, kept distinct in the code and on screen:
+
+    Structure as drawn        the user's graph, never silently altered
+            |
+    Perceived chemistry       what it represents, with the evidence
+            |
+    Suggested representation  an OFFER, applied only on request
+
+"This molecule contains a dative bond" and "the user's graph contains a
+dative bond" are different statements, and conflating them is how a
+program starts rewriting people's structures. `chem/substance.py`
+perceives; `chem/quick_fixes.py` offers; nothing between them writes.
+
+The Amavadin case is the worked example. Its vanadium is held by nitrogen
+and oxygen donors, which drawn with plain single bonds over-counts the
+metal's valence. The coordination is *reported* from the structure as
+drawn, and the dative reading is offered as `metal_bonds_to_dative`
+through the existing `QuickFix` mechanism — opt-in and undoable, with no
+new machinery.
+
+### Four relationships, deliberately not one
+
+    Bond          an actual graph edge: covalent, dative, aromatic
+    Association   component <-> component, e.g. Na+ <-> Cl-. NO edge
+    Coordination  a PERCEIVED metal-ligand relationship, which may or may
+                  not be represented by explicit graph edges
+    Hapticity     one ligand bound through a SET of atoms (eta-5)
+
+`[Na+].[Cl-]` has no RDKit bond and **must never grow a fake one**.
+
+**An `Association` carries no number, and must not acquire one.** It is
+qualitative — "ionic, evidenced by opposite formal charges". A distance
+between two ions is a *contact* measurement, needs a real 3D structure,
+and belongs to whatever reports contacts. That discipline is what keeps
+the model coherent if crystal structures are ever added, where the same
+pair has many distances and no single bond at all.
+
+### Classification is not naming
+
+`chem/substance.py` says what KIND of thing a structure is; the vendored
+namer says what it is called. They are read from independent sources and
+the name never decides the classification, so a bizarre organometallic
+nothing can name still gets its identity header:
+
+    Classification: Organometallic     <- from perception
+    Name:           (not named)        <- from the namer
+    Formula:        C10H10Fe
+
+which is worth far more than collapsing the card to "unknown" because one
+of the two came up empty.
+
+### A vendored module is not an API
+
+`chem/organometallic_adapter.py` is the only place that reaches into
+`vendor/iupac_namer/perception/organometallic.py`, and it deliberately
+touches private, underscore-prefixed functions of a file this project does
+not own. One adapter is one place to repair when the vendored namer
+changes; without it, `substance`, `oxidation_states` and `bond_report`
+each grow their own coupling. Everything there fails soft — a namer that
+cannot classify something must not take a calculator down with it.
+
+The same move `chem/structure_annotation.py` already made for that
+engine's ring and functional-group perception.
+
 ## Known TODOs
 
 - ~~Packaging~~ **Done.** `build.ps1` freezes the app with **PyInstaller**
