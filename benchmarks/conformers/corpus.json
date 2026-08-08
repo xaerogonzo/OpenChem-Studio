@@ -1,0 +1,124 @@
+{
+  "_readme": [
+    "Reference conformer counts for the de-duplication benchmark.",
+    "",
+    "TWO KINDS OF KNOWLEDGE LIVE HERE AND THEY ARE NOT INTERCHANGEABLE.",
+    "'textbook' is a count somebody established independently of this code.",
+    "'computational_lower_bound' means: at least this many distinct minima",
+    "were FOUND under the sampling protocol below. It is NOT the number of",
+    "conformers the molecule has, and scoring must never treat it as an",
+    "exact target. Ethylmorphine's 12 means '>=12 found', not '12 exist'.",
+    "",
+    "ENANTIOMER POLICY. rdMolAlign.GetBestRMS does not reflect, so",
+    "mirror-image conformers of an achiral molecule are counted",
+    "SEPARATELY by this pipeline. Pentane's textbook 4 unique conformers",
+    "(TT, TG, G+G+, G+G-) therefore reads as 5-6 here, because G+G+ and",
+    "G-G- are enantiomeric and cannot be superimposed by a proper",
+    "rotation. This is understood behaviour, not noise -- see the",
+    "'convention' field on each entry.",
+    "",
+    "Every SMILES is stereochemically defined. Racemic input embeds BOTH",
+    "enantiomers, which inflates the RMSD count and deflates the",
+    "energy-derived bound at the same time: measured on racemic ibuprofen,",
+    "19 'distinct' shapes against 5 distinct energies, neither meaningful."
+  ],
+  "sampling_protocol": {
+    "embedder": "ETKDGv3",
+    "force_field": "MMFF94, UFF fallback",
+    "max_iters": 2000,
+    "optimisation_attempts": 2,
+    "convergence": "rc == 0 required; non-converged embeddings are discarded",
+    "embeddings": 50,
+    "note": "The lower bounds below were derived from distinct converged energies (0.05 kcal/mol apart) over runs of this protocol, which is independent of the RMSD comparison being benchmarked."
+  },
+  "molecules": [
+    {
+      "name": "aziridine",
+      "smiles": "C1CN1",
+      "reference": 1,
+      "reference_type": "textbook",
+      "convention": "a three-membered ring has one shape",
+      "notes": "The original bug: ten embeddings returned ten copies and the viewer reported 'Conformer 1/10' for every one."
+    },
+    {
+      "name": "2H-azirine",
+      "smiles": "C1=NC1",
+      "reference": 1,
+      "reference_type": "textbook",
+      "convention": "a three-membered ring has one shape",
+      "notes": "THE OVER-COUNT CASE. About 2% of embeddings converge to a distorted minimum 10.7 kcal/mol up -- same connectivity and torsions, C=N stretched to 1.339 A from 1.246. The energy veto promoted that force-field artefact to a second conformer until _IDENTICAL_SHAPE_RMSD was added. Present so the corpus covers over-counting as well as under-counting."
+    },
+    {
+      "name": "benzene",
+      "smiles": "c1ccccc1",
+      "reference": 1,
+      "reference_type": "textbook",
+      "convention": "planar and rigid",
+      "notes": "A rigid case with no ring strain, so an over-count here would mean something different from azirine's."
+    },
+    {
+      "name": "ethanol",
+      "smiles": "CCO",
+      "reference": 2,
+      "reference_type": "textbook",
+      "convention": "anti and gauche; the two gauche forms are mirror images",
+      "notes": "One of the two molecules the shipped 0.5 A threshold was calibrated on, and one it gets right. Present to catch a regression, not to prove anything new."
+    },
+    {
+      "name": "butane",
+      "smiles": "CCCC",
+      "reference": 2,
+      "reference_type": "textbook",
+      "convention": "anti and gauche; the two gauche forms are mirror images",
+      "notes": "The calibration molecule. Its pairwise RMSDs are BIMODAL -- below 0.5 A or at 0.66 A, nothing between -- which is a property of butane and is why a threshold fitted here generalised badly."
+    },
+    {
+      "name": "1,2-dichloroethane",
+      "smiles": "ClCCCl",
+      "reference": 2,
+      "reference_type": "textbook",
+      "convention": "anti and gauche",
+      "notes": "A second small anti/gauche case with heavier substituents, so the check does not rest on hydrogen positions alone."
+    },
+    {
+      "name": "cyclohexane",
+      "smiles": "C1CCCCC1",
+      "reference": 2,
+      "reference_type": "textbook",
+      "convention": "chair and twist-boat",
+      "notes": "THE MOTIVATING FAILURE. The 0.5 A RMSD criterion alone reports 1 -- it merges the twist-boat into the chair, calling a textbook two-conformer molecule rigid. This is the row the energy veto has to earn."
+    },
+    {
+      "name": "pentane",
+      "smiles": "CCCCC",
+      "reference": 4,
+      "reference_type": "textbook",
+      "convention": "TT, TG, G+G+, G+G- as UNIQUE conformers; this pipeline separates enantiomeric pairs and so reports more",
+      "notes": "Deliberately kept despite the convention mismatch: it is the clearest case of the enantiomer policy above, and a run that suddenly reports 4 would mean GetBestRMS had started reflecting."
+    },
+    {
+      "name": "ethylene glycol",
+      "smiles": "OCCO",
+      "reference": 6,
+      "reference_type": "computational_lower_bound",
+      "convention": "mirror images counted separately",
+      "notes": "Two rotatable O-H plus the C-C torsion. The classic case for keeping polar hydrogens in the comparison: heavy-atom-only RMSD collapses it to 2."
+    },
+    {
+      "name": "(S)-ibuprofen",
+      "smiles": "CC(C)Cc1ccc(cc1)[C@@H](C)C(=O)O",
+      "reference": 5,
+      "reference_type": "computational_lower_bound",
+      "convention": "mirror images counted separately",
+      "notes": "Stereochemically defined on purpose. The racemic SMILES embeds both enantiomers and makes both metrics meaningless -- see the readme."
+    },
+    {
+      "name": "ethylmorphine",
+      "smiles": "CN1CC[C@]23[C@@H]4[C@H]1CC5=C2C(=C(C=C5)OCC)O[C@H]3[C@H](C=C4)O",
+      "reference": 12,
+      "reference_type": "computational_lower_bound",
+      "convention": "mirror images counted separately",
+      "notes": "The C19H23NO3 morphine derivative from the bug report, which generated 'Kept 2 distinct conformer(s) of 10 embedded'. BOTH geometric measures are blind here: for the extreme pair (dE 17.87 kcal/mol) the ten largest displacements are all hydrogens, TFD reads 0.038 against a literature cut of 0.2, and the heavy atoms barely move."
+    }
+  ]
+}

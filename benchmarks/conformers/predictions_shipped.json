@@ -1,0 +1,4197 @@
+{
+ "label": "shipped",
+ "environment": {
+  "rdkit_version": "2025.09.6",
+  "python_version": "3.13.7",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "embedder": "ETKDGv3",
+  "force_field": "MMFF94 (UFF fallback)",
+  "rms_threshold": 0.5,
+  "energy_window": 1.0,
+  "seeds": 5,
+  "embeddings_per_seed": 50,
+  "generated_at": "2026-08-08 17:36:43"
+ },
+ "predictions": [
+  {
+   "name": "aziridine",
+   "runs": [
+    {
+     "seed": 0,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 1,
+     "distinct_energies": 1,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.35": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.50": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 49,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 100003,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 1,
+     "distinct_energies": 1,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.35": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.50": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 49,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 200006,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 1,
+     "distinct_energies": 1,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.35": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.50": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 49,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 300009,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 1,
+     "distinct_energies": 1,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.35": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.50": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 49,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 400012,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 1,
+     "distinct_energies": 1,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.35": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.50": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 49,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "2H-azirine",
+   "runs": [
+    {
+     "seed": 0,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 1,
+     "distinct_energies": 1,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.35": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.50": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 49,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 100003,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 1,
+     "distinct_energies": 1,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.35": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.50": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 49,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 200006,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 1,
+     "distinct_energies": 1,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.35": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.50": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 49,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 300009,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 1,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.35": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.50": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 49,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0807,
+        "energy_difference": 10.729,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 400012,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 1,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.35": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.50": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 49,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0807,
+        "energy_difference": 10.729,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0807,
+        "energy_difference": 10.729,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0807,
+        "energy_difference": 10.729,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0807,
+        "energy_difference": 10.729,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0807,
+        "energy_difference": 10.729,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "benzene",
+   "runs": [
+    {
+     "seed": 0,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 1,
+     "distinct_energies": 1,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.35": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.50": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 49,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 100003,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 1,
+     "distinct_energies": 1,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.35": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.50": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 49,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 200006,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 1,
+     "distinct_energies": 1,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.35": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.50": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 49,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 300009,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 1,
+     "distinct_energies": 1,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.35": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.50": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 49,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 400012,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 1,
+     "distinct_energies": 1,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.35": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.50": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 49,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "ethanol",
+   "runs": [
+    {
+     "seed": 0,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 2,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.35": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.50": {
+       "veto": 2,
+       "rmsd_only": 2
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 48,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.3971,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       },
+       {
+        "rmsd": 0.3971,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       },
+       {
+        "rmsd": 0.3971,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 100003,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 2,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.35": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.50": {
+       "veto": 2,
+       "rmsd_only": 2
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 48,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.3971,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       },
+       {
+        "rmsd": 0.3971,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       },
+       {
+        "rmsd": 0.3971,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 200006,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 2,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.35": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.50": {
+       "veto": 2,
+       "rmsd_only": 2
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 48,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 300009,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 2,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.35": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.50": {
+       "veto": 2,
+       "rmsd_only": 2
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 48,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       },
+       {
+        "rmsd": 0.3971,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       },
+       {
+        "rmsd": 0.3971,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 400012,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 2,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.35": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.50": {
+       "veto": 2,
+       "rmsd_only": 2
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 48,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       },
+       {
+        "rmsd": 0.3971,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": null,
+        "max_dihedral_change": null,
+        "merged": true
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "butane",
+   "runs": [
+    {
+     "seed": 0,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 2,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.35": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.50": {
+       "veto": 2,
+       "rmsd_only": 2
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 48,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 100003,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 2,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.35": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.50": {
+       "veto": 2,
+       "rmsd_only": 2
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 48,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4767,
+        "energy_difference": 0.0,
+        "tfd": 0.7255,
+        "max_dihedral_change": 130.6,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4767,
+        "energy_difference": 0.0,
+        "tfd": 0.7255,
+        "max_dihedral_change": 130.6,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 200006,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 2,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.35": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.50": {
+       "veto": 2,
+       "rmsd_only": 2
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 48,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4767,
+        "energy_difference": 0.0,
+        "tfd": 0.7255,
+        "max_dihedral_change": 130.6,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4767,
+        "energy_difference": 0.0,
+        "tfd": 0.7255,
+        "max_dihedral_change": 130.6,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 300009,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 2,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.35": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.50": {
+       "veto": 2,
+       "rmsd_only": 2
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 48,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.4767,
+        "energy_difference": 0.0,
+        "tfd": 0.7255,
+        "max_dihedral_change": 130.6,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4767,
+        "energy_difference": 0.0,
+        "tfd": 0.7255,
+        "max_dihedral_change": 130.6,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4767,
+        "energy_difference": 0.0,
+        "tfd": 0.7255,
+        "max_dihedral_change": 130.6,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4767,
+        "energy_difference": 0.0,
+        "tfd": 0.7255,
+        "max_dihedral_change": 130.6,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 400012,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 2,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.35": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.50": {
+       "veto": 2,
+       "rmsd_only": 2
+      },
+      "0.75": {
+       "veto": 1,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 1,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 48,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "1,2-dichloroethane",
+   "runs": [
+    {
+     "seed": 0,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 3,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.35": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.50": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.75": {
+       "veto": 2,
+       "rmsd_only": 2
+      },
+      "1.00": {
+       "veto": 2,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 47,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 100003,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 3,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.35": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.50": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.75": {
+       "veto": 2,
+       "rmsd_only": 2
+      },
+      "1.00": {
+       "veto": 2,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 47,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 200006,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 3,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.35": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.50": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.75": {
+       "veto": 2,
+       "rmsd_only": 2
+      },
+      "1.00": {
+       "veto": 2,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 47,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 300009,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 3,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.35": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.50": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.75": {
+       "veto": 2,
+       "rmsd_only": 2
+      },
+      "1.00": {
+       "veto": 2,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 47,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 400012,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 3,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.35": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.50": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.75": {
+       "veto": 2,
+       "rmsd_only": 2
+      },
+      "1.00": {
+       "veto": 2,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 47,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "cyclohexane",
+   "runs": [
+    {
+     "seed": 0,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 2,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.35": {
+       "veto": 2,
+       "rmsd_only": 2
+      },
+      "0.50": {
+       "veto": 2,
+       "rmsd_only": 1
+      },
+      "0.75": {
+       "veto": 2,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 2,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 59,
+      "vetoed": 11,
+      "vetoed_rmsd_min": 0.3747,
+      "vetoed_rmsd_max": 0.3747,
+      "worst": [
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       }
+      ]
+     }
+    },
+    {
+     "seed": 100003,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 2,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.35": {
+       "veto": 2,
+       "rmsd_only": 2
+      },
+      "0.50": {
+       "veto": 2,
+       "rmsd_only": 1
+      },
+      "0.75": {
+       "veto": 2,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 2,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 58,
+      "vetoed": 10,
+      "vetoed_rmsd_min": 0.3747,
+      "vetoed_rmsd_max": 0.3747,
+      "worst": [
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       }
+      ]
+     }
+    },
+    {
+     "seed": 200006,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 2,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.35": {
+       "veto": 2,
+       "rmsd_only": 2
+      },
+      "0.50": {
+       "veto": 2,
+       "rmsd_only": 1
+      },
+      "0.75": {
+       "veto": 2,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 2,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 57,
+      "vetoed": 9,
+      "vetoed_rmsd_min": 0.3747,
+      "vetoed_rmsd_max": 0.3747,
+      "worst": [
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       }
+      ]
+     }
+    },
+    {
+     "seed": 300009,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 2,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 3,
+       "rmsd_only": 3
+      },
+      "0.35": {
+       "veto": 2,
+       "rmsd_only": 2
+      },
+      "0.50": {
+       "veto": 2,
+       "rmsd_only": 1
+      },
+      "0.75": {
+       "veto": 2,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 2,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 59,
+      "vetoed": 11,
+      "vetoed_rmsd_min": 0.3747,
+      "vetoed_rmsd_max": 0.3747,
+      "worst": [
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       }
+      ]
+     }
+    },
+    {
+     "seed": 400012,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 2,
+     "distinct_energies": 2,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 2,
+       "rmsd_only": 2
+      },
+      "0.35": {
+       "veto": 2,
+       "rmsd_only": 2
+      },
+      "0.50": {
+       "veto": 2,
+       "rmsd_only": 1
+      },
+      "0.75": {
+       "veto": 2,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 2,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 53,
+      "vetoed": 5,
+      "vetoed_rmsd_min": 0.3747,
+      "vetoed_rmsd_max": 0.3747,
+      "worst": [
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.3747,
+        "energy_difference": 5.93,
+        "tfd": 0.4068,
+        "max_dihedral_change": 114.4,
+        "merged": false
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "pentane",
+   "runs": [
+    {
+     "seed": 0,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 4,
+     "distinct_energies": 4,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 6,
+       "rmsd_only": 6
+      },
+      "0.35": {
+       "veto": 5,
+       "rmsd_only": 5
+      },
+      "0.50": {
+       "veto": 4,
+       "rmsd_only": 4
+      },
+      "0.75": {
+       "veto": 3,
+       "rmsd_only": 2
+      },
+      "1.00": {
+       "veto": 3,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 48,
+      "vetoed": 2,
+      "vetoed_rmsd_min": 0.4961,
+      "vetoed_rmsd_max": 0.4961,
+      "worst": [
+       {
+        "rmsd": 0.4961,
+        "energy_difference": 2.277,
+        "tfd": 0.2401,
+        "max_dihedral_change": 124.7,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4961,
+        "energy_difference": 2.277,
+        "tfd": 0.2401,
+        "max_dihedral_change": 124.7,
+        "merged": false
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 100003,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 4,
+     "distinct_energies": 4,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 5,
+       "rmsd_only": 5
+      },
+      "0.35": {
+       "veto": 5,
+       "rmsd_only": 5
+      },
+      "0.50": {
+       "veto": 4,
+       "rmsd_only": 4
+      },
+      "0.75": {
+       "veto": 3,
+       "rmsd_only": 2
+      },
+      "1.00": {
+       "veto": 3,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 46,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4796,
+        "energy_difference": 0.0,
+        "tfd": 0.1099,
+        "max_dihedral_change": 131.3,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4796,
+        "energy_difference": 0.0,
+        "tfd": 0.1099,
+        "max_dihedral_change": 131.3,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 200006,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 5,
+     "distinct_energies": 4,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 7,
+       "rmsd_only": 7
+      },
+      "0.35": {
+       "veto": 6,
+       "rmsd_only": 6
+      },
+      "0.50": {
+       "veto": 5,
+       "rmsd_only": 4
+      },
+      "0.75": {
+       "veto": 4,
+       "rmsd_only": 3
+      },
+      "1.00": {
+       "veto": 3,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 48,
+      "vetoed": 3,
+      "vetoed_rmsd_min": 0.4961,
+      "vetoed_rmsd_max": 0.4961,
+      "worst": [
+       {
+        "rmsd": 0.4961,
+        "energy_difference": 2.277,
+        "tfd": 0.6477,
+        "max_dihedral_change": 124.7,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4961,
+        "energy_difference": 2.277,
+        "tfd": 0.2401,
+        "max_dihedral_change": 124.7,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4961,
+        "energy_difference": 2.277,
+        "tfd": 0.6477,
+        "max_dihedral_change": 124.7,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4795,
+        "energy_difference": 0.0,
+        "tfd": 0.6675,
+        "max_dihedral_change": 131.3,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 300009,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 5,
+     "distinct_energies": 4,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 7,
+       "rmsd_only": 7
+      },
+      "0.35": {
+       "veto": 6,
+       "rmsd_only": 6
+      },
+      "0.50": {
+       "veto": 5,
+       "rmsd_only": 4
+      },
+      "0.75": {
+       "veto": 4,
+       "rmsd_only": 3
+      },
+      "1.00": {
+       "veto": 3,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 49,
+      "vetoed": 4,
+      "vetoed_rmsd_min": 0.4961,
+      "vetoed_rmsd_max": 0.4961,
+      "worst": [
+       {
+        "rmsd": 0.4961,
+        "energy_difference": 2.277,
+        "tfd": 0.6477,
+        "max_dihedral_change": 124.7,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4961,
+        "energy_difference": 2.277,
+        "tfd": 0.2401,
+        "max_dihedral_change": 124.7,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4961,
+        "energy_difference": 2.277,
+        "tfd": 0.6477,
+        "max_dihedral_change": 124.7,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4961,
+        "energy_difference": 2.277,
+        "tfd": 0.6477,
+        "max_dihedral_change": 124.7,
+        "merged": false
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 400012,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 5,
+     "distinct_energies": 4,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 7,
+       "rmsd_only": 7
+      },
+      "0.35": {
+       "veto": 6,
+       "rmsd_only": 6
+      },
+      "0.50": {
+       "veto": 5,
+       "rmsd_only": 4
+      },
+      "0.75": {
+       "veto": 4,
+       "rmsd_only": 3
+      },
+      "1.00": {
+       "veto": 3,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 48,
+      "vetoed": 3,
+      "vetoed_rmsd_min": 0.4961,
+      "vetoed_rmsd_max": 0.4961,
+      "worst": [
+       {
+        "rmsd": 0.4961,
+        "energy_difference": 2.277,
+        "tfd": 0.6477,
+        "max_dihedral_change": 124.7,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4961,
+        "energy_difference": 2.277,
+        "tfd": 0.2401,
+        "max_dihedral_change": 124.7,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4961,
+        "energy_difference": 2.277,
+        "tfd": 0.2401,
+        "max_dihedral_change": 124.7,
+        "merged": false
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.0,
+        "energy_difference": 0.0,
+        "tfd": 0.0,
+        "max_dihedral_change": 0.0,
+        "merged": true
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "ethylene glycol",
+   "runs": [
+    {
+     "seed": 0,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 7,
+     "distinct_energies": 7,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 12,
+       "rmsd_only": 12
+      },
+      "0.35": {
+       "veto": 12,
+       "rmsd_only": 12
+      },
+      "0.50": {
+       "veto": 7,
+       "rmsd_only": 4
+      },
+      "0.75": {
+       "veto": 7,
+       "rmsd_only": 2
+      },
+      "1.00": {
+       "veto": 5,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 68,
+      "vetoed": 25,
+      "vetoed_rmsd_min": 0.4466,
+      "vetoed_rmsd_max": 0.4963,
+      "worst": [
+       {
+        "rmsd": 0.4601,
+        "energy_difference": 1.576,
+        "tfd": 0.0134,
+        "max_dihedral_change": 2.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4731,
+        "energy_difference": 1.24,
+        "tfd": 0.0058,
+        "max_dihedral_change": 1.0,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4731,
+        "energy_difference": 1.24,
+        "tfd": 0.0058,
+        "max_dihedral_change": 1.0,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4731,
+        "energy_difference": 1.24,
+        "tfd": 0.0058,
+        "max_dihedral_change": 1.0,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4731,
+        "energy_difference": 1.24,
+        "tfd": 0.0058,
+        "max_dihedral_change": 1.0,
+        "merged": false
+       }
+      ]
+     }
+    },
+    {
+     "seed": 100003,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 8,
+     "distinct_energies": 8,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 11,
+       "rmsd_only": 11
+      },
+      "0.35": {
+       "veto": 11,
+       "rmsd_only": 11
+      },
+      "0.50": {
+       "veto": 8,
+       "rmsd_only": 4
+      },
+      "0.75": {
+       "veto": 6,
+       "rmsd_only": 2
+      },
+      "1.00": {
+       "veto": 5,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 76,
+      "vetoed": 34,
+      "vetoed_rmsd_min": 0.4466,
+      "vetoed_rmsd_max": 0.4963,
+      "worst": [
+       {
+        "rmsd": 0.4601,
+        "energy_difference": 1.576,
+        "tfd": 0.0134,
+        "max_dihedral_change": 2.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4731,
+        "energy_difference": 1.24,
+        "tfd": 0.0058,
+        "max_dihedral_change": 1.0,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4731,
+        "energy_difference": 1.24,
+        "tfd": 0.0058,
+        "max_dihedral_change": 1.0,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4543,
+        "energy_difference": 1.197,
+        "tfd": 0.0188,
+        "max_dihedral_change": 3.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4542,
+        "energy_difference": 1.197,
+        "tfd": 0.0188,
+        "max_dihedral_change": 3.4,
+        "merged": false
+       }
+      ]
+     }
+    },
+    {
+     "seed": 200006,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 7,
+     "distinct_energies": 7,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 12,
+       "rmsd_only": 12
+      },
+      "0.35": {
+       "veto": 12,
+       "rmsd_only": 12
+      },
+      "0.50": {
+       "veto": 7,
+       "rmsd_only": 5
+      },
+      "0.75": {
+       "veto": 6,
+       "rmsd_only": 2
+      },
+      "1.00": {
+       "veto": 4,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 66,
+      "vetoed": 23,
+      "vetoed_rmsd_min": 0.4466,
+      "vetoed_rmsd_max": 0.4963,
+      "worst": [
+       {
+        "rmsd": 0.4601,
+        "energy_difference": 1.576,
+        "tfd": 0.0134,
+        "max_dihedral_change": 2.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4731,
+        "energy_difference": 1.24,
+        "tfd": 0.0058,
+        "max_dihedral_change": 1.0,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4963,
+        "energy_difference": 1.153,
+        "tfd": 0.6555,
+        "max_dihedral_change": 118.0,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4466,
+        "energy_difference": 1.153,
+        "tfd": 0.0004,
+        "max_dihedral_change": 0.1,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4466,
+        "energy_difference": 1.153,
+        "tfd": 0.0004,
+        "max_dihedral_change": 0.1,
+        "merged": false
+       }
+      ]
+     }
+    },
+    {
+     "seed": 300009,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 8,
+     "distinct_energies": 7,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 13,
+       "rmsd_only": 13
+      },
+      "0.35": {
+       "veto": 13,
+       "rmsd_only": 13
+      },
+      "0.50": {
+       "veto": 8,
+       "rmsd_only": 6
+      },
+      "0.75": {
+       "veto": 5,
+       "rmsd_only": 2
+      },
+      "1.00": {
+       "veto": 4,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 70,
+      "vetoed": 28,
+      "vetoed_rmsd_min": 0.4466,
+      "vetoed_rmsd_max": 0.4963,
+      "worst": [
+       {
+        "rmsd": 0.4601,
+        "energy_difference": 1.576,
+        "tfd": 0.0134,
+        "max_dihedral_change": 2.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4731,
+        "energy_difference": 1.24,
+        "tfd": 0.0058,
+        "max_dihedral_change": 1.0,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4731,
+        "energy_difference": 1.24,
+        "tfd": 0.0058,
+        "max_dihedral_change": 1.0,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4466,
+        "energy_difference": 1.153,
+        "tfd": 0.0004,
+        "max_dihedral_change": 0.1,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4963,
+        "energy_difference": 1.153,
+        "tfd": 0.6555,
+        "max_dihedral_change": 118.0,
+        "merged": false
+       }
+      ]
+     }
+    },
+    {
+     "seed": 400012,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 7,
+     "distinct_energies": 7,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 11,
+       "rmsd_only": 11
+      },
+      "0.35": {
+       "veto": 11,
+       "rmsd_only": 11
+      },
+      "0.50": {
+       "veto": 7,
+       "rmsd_only": 3
+      },
+      "0.75": {
+       "veto": 7,
+       "rmsd_only": 2
+      },
+      "1.00": {
+       "veto": 5,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 75,
+      "vetoed": 32,
+      "vetoed_rmsd_min": 0.4466,
+      "vetoed_rmsd_max": 0.4963,
+      "worst": [
+       {
+        "rmsd": 0.4601,
+        "energy_difference": 1.576,
+        "tfd": 0.0134,
+        "max_dihedral_change": 2.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4601,
+        "energy_difference": 1.576,
+        "tfd": 0.0134,
+        "max_dihedral_change": 2.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4731,
+        "energy_difference": 1.24,
+        "tfd": 0.0058,
+        "max_dihedral_change": 1.0,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4542,
+        "energy_difference": 1.197,
+        "tfd": 0.0188,
+        "max_dihedral_change": 3.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4542,
+        "energy_difference": 1.197,
+        "tfd": 0.0188,
+        "max_dihedral_change": 3.4,
+        "merged": false
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "(S)-ibuprofen",
+   "runs": [
+    {
+     "seed": 0,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 10,
+     "distinct_energies": 6,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 18,
+       "rmsd_only": 18
+      },
+      "0.35": {
+       "veto": 18,
+       "rmsd_only": 18
+      },
+      "0.50": {
+       "veto": 10,
+       "rmsd_only": 10
+      },
+      "0.75": {
+       "veto": 4,
+       "rmsd_only": 4
+      },
+      "1.00": {
+       "veto": 4,
+       "rmsd_only": 4
+      }
+     },
+     "merge_candidates": {
+      "examined": 40,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.4826,
+        "energy_difference": 0.273,
+        "tfd": 0.0039,
+        "max_dihedral_change": 60.6,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4941,
+        "energy_difference": 0.272,
+        "tfd": 0.0041,
+        "max_dihedral_change": 179.9,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4941,
+        "energy_difference": 0.272,
+        "tfd": 0.0041,
+        "max_dihedral_change": 60.8,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4817,
+        "energy_difference": 0.271,
+        "tfd": 0.0039,
+        "max_dihedral_change": 126.2,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4938,
+        "energy_difference": 0.271,
+        "tfd": 0.0046,
+        "max_dihedral_change": 122.1,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 100003,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 8,
+     "distinct_energies": 6,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 15,
+       "rmsd_only": 15
+      },
+      "0.35": {
+       "veto": 15,
+       "rmsd_only": 15
+      },
+      "0.50": {
+       "veto": 8,
+       "rmsd_only": 8
+      },
+      "0.75": {
+       "veto": 4,
+       "rmsd_only": 4
+      },
+      "1.00": {
+       "veto": 3,
+       "rmsd_only": 3
+      }
+     },
+     "merge_candidates": {
+      "examined": 42,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.4826,
+        "energy_difference": 0.273,
+        "tfd": 0.0039,
+        "max_dihedral_change": 60.6,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4826,
+        "energy_difference": 0.273,
+        "tfd": 0.0039,
+        "max_dihedral_change": 180.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4826,
+        "energy_difference": 0.273,
+        "tfd": 0.0039,
+        "max_dihedral_change": 180.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4817,
+        "energy_difference": 0.271,
+        "tfd": 0.0039,
+        "max_dihedral_change": 60.6,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4938,
+        "energy_difference": 0.271,
+        "tfd": 0.0046,
+        "max_dihedral_change": 60.8,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 200006,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 9,
+     "distinct_energies": 6,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 16,
+       "rmsd_only": 16
+      },
+      "0.35": {
+       "veto": 16,
+       "rmsd_only": 16
+      },
+      "0.50": {
+       "veto": 9,
+       "rmsd_only": 9
+      },
+      "0.75": {
+       "veto": 4,
+       "rmsd_only": 4
+      },
+      "1.00": {
+       "veto": 3,
+       "rmsd_only": 3
+      }
+     },
+     "merge_candidates": {
+      "examined": 41,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.4826,
+        "energy_difference": 0.273,
+        "tfd": 0.0039,
+        "max_dihedral_change": 122.1,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4826,
+        "energy_difference": 0.273,
+        "tfd": 0.0039,
+        "max_dihedral_change": 60.6,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4826,
+        "energy_difference": 0.273,
+        "tfd": 0.0039,
+        "max_dihedral_change": 180.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4941,
+        "energy_difference": 0.272,
+        "tfd": 0.0041,
+        "max_dihedral_change": 179.9,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4938,
+        "energy_difference": 0.271,
+        "tfd": 0.0046,
+        "max_dihedral_change": 60.8,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 300009,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 10,
+     "distinct_energies": 6,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 18,
+       "rmsd_only": 18
+      },
+      "0.35": {
+       "veto": 18,
+       "rmsd_only": 18
+      },
+      "0.50": {
+       "veto": 10,
+       "rmsd_only": 10
+      },
+      "0.75": {
+       "veto": 4,
+       "rmsd_only": 4
+      },
+      "1.00": {
+       "veto": 4,
+       "rmsd_only": 4
+      }
+     },
+     "merge_candidates": {
+      "examined": 40,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.4826,
+        "energy_difference": 0.273,
+        "tfd": 0.0039,
+        "max_dihedral_change": 180.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4826,
+        "energy_difference": 0.273,
+        "tfd": 0.0039,
+        "max_dihedral_change": 60.6,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4826,
+        "energy_difference": 0.273,
+        "tfd": 0.0039,
+        "max_dihedral_change": 60.6,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4941,
+        "energy_difference": 0.272,
+        "tfd": 0.0041,
+        "max_dihedral_change": 179.9,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4817,
+        "energy_difference": 0.271,
+        "tfd": 0.0039,
+        "max_dihedral_change": 126.2,
+        "merged": true
+       }
+      ]
+     }
+    },
+    {
+     "seed": 400012,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 9,
+     "distinct_energies": 6,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 17,
+       "rmsd_only": 17
+      },
+      "0.35": {
+       "veto": 17,
+       "rmsd_only": 17
+      },
+      "0.50": {
+       "veto": 9,
+       "rmsd_only": 9
+      },
+      "0.75": {
+       "veto": 4,
+       "rmsd_only": 4
+      },
+      "1.00": {
+       "veto": 3,
+       "rmsd_only": 3
+      }
+     },
+     "merge_candidates": {
+      "examined": 41,
+      "vetoed": 0,
+      "vetoed_rmsd_min": 0.0,
+      "vetoed_rmsd_max": 0.0,
+      "worst": [
+       {
+        "rmsd": 0.4826,
+        "energy_difference": 0.273,
+        "tfd": 0.0039,
+        "max_dihedral_change": 60.6,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4826,
+        "energy_difference": 0.273,
+        "tfd": 0.0039,
+        "max_dihedral_change": 180.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4826,
+        "energy_difference": 0.273,
+        "tfd": 0.0039,
+        "max_dihedral_change": 180.0,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4941,
+        "energy_difference": 0.272,
+        "tfd": 0.0041,
+        "max_dihedral_change": 179.9,
+        "merged": true
+       },
+       {
+        "rmsd": 0.4817,
+        "energy_difference": 0.271,
+        "tfd": 0.0039,
+        "max_dihedral_change": 179.6,
+        "merged": true
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "ethylmorphine",
+   "runs": [
+    {
+     "seed": 0,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 10,
+     "distinct_energies": 11,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 13,
+       "rmsd_only": 8
+      },
+      "0.35": {
+       "veto": 13,
+       "rmsd_only": 6
+      },
+      "0.50": {
+       "veto": 10,
+       "rmsd_only": 2
+      },
+      "0.75": {
+       "veto": 9,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 9,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 178,
+      "vetoed": 138,
+      "vetoed_rmsd_min": 0.2066,
+      "vetoed_rmsd_max": 0.4962,
+      "worst": [
+       {
+        "rmsd": 0.4373,
+        "energy_difference": 15.789,
+        "tfd": 0.0369,
+        "max_dihedral_change": 104.3,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4373,
+        "energy_difference": 15.789,
+        "tfd": 0.0369,
+        "max_dihedral_change": 104.3,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4384,
+        "energy_difference": 15.767,
+        "tfd": 0.0378,
+        "max_dihedral_change": 104.3,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4383,
+        "energy_difference": 15.767,
+        "tfd": 0.0378,
+        "max_dihedral_change": 104.3,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4383,
+        "energy_difference": 15.767,
+        "tfd": 0.0378,
+        "max_dihedral_change": 104.3,
+        "merged": false
+       }
+      ]
+     }
+    },
+    {
+     "seed": 100003,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 14,
+     "distinct_energies": 16,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 18,
+       "rmsd_only": 13
+      },
+      "0.35": {
+       "veto": 18,
+       "rmsd_only": 8
+      },
+      "0.50": {
+       "veto": 14,
+       "rmsd_only": 4
+      },
+      "0.75": {
+       "veto": 11,
+       "rmsd_only": 2
+      },
+      "1.00": {
+       "veto": 11,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 198,
+      "vetoed": 162,
+      "vetoed_rmsd_min": 0.2066,
+      "vetoed_rmsd_max": 0.4998,
+      "worst": [
+       {
+        "rmsd": 0.4373,
+        "energy_difference": 15.789,
+        "tfd": 0.0369,
+        "max_dihedral_change": 104.3,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4373,
+        "energy_difference": 15.789,
+        "tfd": 0.0369,
+        "max_dihedral_change": 104.3,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4383,
+        "energy_difference": 15.767,
+        "tfd": 0.0378,
+        "max_dihedral_change": 104.3,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4383,
+        "energy_difference": 15.767,
+        "tfd": 0.0378,
+        "max_dihedral_change": 104.3,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4383,
+        "energy_difference": 15.767,
+        "tfd": 0.0378,
+        "max_dihedral_change": 104.3,
+        "merged": false
+       }
+      ]
+     }
+    },
+    {
+     "seed": 200006,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 14,
+     "distinct_energies": 16,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 18,
+       "rmsd_only": 12
+      },
+      "0.35": {
+       "veto": 18,
+       "rmsd_only": 6
+      },
+      "0.50": {
+       "veto": 14,
+       "rmsd_only": 5
+      },
+      "0.75": {
+       "veto": 11,
+       "rmsd_only": 2
+      },
+      "1.00": {
+       "veto": 10,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 216,
+      "vetoed": 180,
+      "vetoed_rmsd_min": 0.2066,
+      "vetoed_rmsd_max": 0.4999,
+      "worst": [
+       {
+        "rmsd": 0.4373,
+        "energy_difference": 15.789,
+        "tfd": 0.0369,
+        "max_dihedral_change": 104.3,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4373,
+        "energy_difference": 15.789,
+        "tfd": 0.0369,
+        "max_dihedral_change": 104.3,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4384,
+        "energy_difference": 15.767,
+        "tfd": 0.0378,
+        "max_dihedral_change": 104.3,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4384,
+        "energy_difference": 15.767,
+        "tfd": 0.0378,
+        "max_dihedral_change": 104.3,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4383,
+        "energy_difference": 15.767,
+        "tfd": 0.0378,
+        "max_dihedral_change": 104.3,
+        "merged": false
+       }
+      ]
+     }
+    },
+    {
+     "seed": 300009,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 12,
+     "distinct_energies": 13,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 16,
+       "rmsd_only": 12
+      },
+      "0.35": {
+       "veto": 16,
+       "rmsd_only": 6
+      },
+      "0.50": {
+       "veto": 12,
+       "rmsd_only": 3
+      },
+      "0.75": {
+       "veto": 10,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 10,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 188,
+      "vetoed": 150,
+      "vetoed_rmsd_min": 0.2065,
+      "vetoed_rmsd_max": 0.4984,
+      "worst": [
+       {
+        "rmsd": 0.4649,
+        "energy_difference": 20.448,
+        "tfd": 0.0523,
+        "max_dihedral_change": 93.4,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4372,
+        "energy_difference": 15.789,
+        "tfd": 0.0369,
+        "max_dihedral_change": 104.3,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4373,
+        "energy_difference": 15.789,
+        "tfd": 0.0369,
+        "max_dihedral_change": 104.3,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4373,
+        "energy_difference": 15.789,
+        "tfd": 0.0369,
+        "max_dihedral_change": 104.3,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4755,
+        "energy_difference": 13.846,
+        "tfd": 0.0679,
+        "max_dihedral_change": 93.7,
+        "merged": false
+       }
+      ]
+     }
+    },
+    {
+     "seed": 400012,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 14,
+     "distinct_energies": 16,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 17,
+       "rmsd_only": 13
+      },
+      "0.35": {
+       "veto": 17,
+       "rmsd_only": 7
+      },
+      "0.50": {
+       "veto": 14,
+       "rmsd_only": 3
+      },
+      "0.75": {
+       "veto": 10,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 10,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 197,
+      "vetoed": 161,
+      "vetoed_rmsd_min": 0.2066,
+      "vetoed_rmsd_max": 0.4998,
+      "worst": [
+       {
+        "rmsd": 0.4373,
+        "energy_difference": 15.789,
+        "tfd": 0.0369,
+        "max_dihedral_change": 104.3,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4373,
+        "energy_difference": 15.789,
+        "tfd": 0.0369,
+        "max_dihedral_change": 104.3,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4384,
+        "energy_difference": 15.767,
+        "tfd": 0.0378,
+        "max_dihedral_change": 104.3,
+        "merged": false
+       },
+       {
+        "rmsd": 0.4476,
+        "energy_difference": 13.795,
+        "tfd": 0.0668,
+        "max_dihedral_change": 93.7,
+        "merged": false
+       },
+       {
+        "rmsd": 0.498,
+        "energy_difference": 13.385,
+        "tfd": 0.038,
+        "max_dihedral_change": 96.8,
+        "merged": false
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ]
+}

@@ -94,3 +94,39 @@ def test_future_schema_version_rejected(tmp_path: Path, qapp):
 
     with pytest.raises(ValueError):
         service.load(path)
+
+
+def test_a_conformers_identity_survives_a_save_and_reload(tmp_path):
+    """A stable id, or provenance citing a conformer means nothing.
+
+    Provenance that named a conformer by INDEX would be wrong the moment
+    anything re-sorted the list -- index 0 today is index 3 tomorrow. The
+    id has to be the thing that travels, and an id that is only stable in
+    memory is not stable at all: this is the round trip that proves it.
+    """
+    from openchem.domain.conformer import ConformerModel
+    from openchem.domain.molecule import MoleculeModel
+    from openchem.domain.project import ProjectModel
+
+    conformers = [
+        ConformerModel(molblock="a\n", energy=3.0, method="rdkit"),
+        ConformerModel(molblock="b\n", energy=1.0, method="rdkit"),
+        ConformerModel(molblock="c\n", energy=2.0, method="rdkit"),
+    ]
+    molecule = MoleculeModel(display_name="m", molblock="x\n", conformers=conformers)
+    project = ProjectModel(name="p", molecules=[molecule])
+
+    service = ProjectService(EventBus())
+    path = tmp_path / "project.ocsproj"
+    service.save(project, path)
+    reloaded = service.load(path)
+
+    restored = reloaded.molecules[0].conformers
+    assert [c.conformer_id for c in restored] == [c.conformer_id for c in conformers]
+
+    # ...and it still identifies the right geometry after a re-sort, which
+    # is the case an index cannot survive.
+    by_energy = sorted(restored, key=lambda c: c.energy)
+    target = next(c for c in by_energy if c.conformer_id == conformers[0].conformer_id)
+    assert target.molblock == "a\n"
+    assert by_energy.index(target) != 0, "the re-sort must actually move it, or this proves nothing"

@@ -692,12 +692,44 @@ document may cite a file or a test that does not exist.
 
   The Details buttons are NOT implicated: the app shows one per report
   row, correctly bound, exactly as the code intends.
-- **OPEN** -- conformer generation returns implausibly few. A morphine
-  derivative (C19H23NO3, several rotatable bonds) gave "Kept 2 distinct
-  conformer(s) of 10 embedded", and 3 on an earlier run. The RMSD
-  de-duplication in `ConformerService` is the suspect; it needs the
-  threshold measured against a molecule whose conformer count is known
-  rather than tuned by eye.
+- **SETTLED** -- conformer generation returned implausibly few. A morphine
+  derivative (C19H23NO3) gave "Kept 2 distinct conformer(s) of 10
+  embedded", and 3 on an earlier run. `benchmarks/conformers/` is the
+  regression check that did not exist; the same molecule now returns
+  10-14 across five seeds against a reference lower bound of 12.
+
+  **The de-duplication threshold was the suspect and was not the
+  cause.** 0.5 Å was calibrated on butane, whose pairwise RMSDs are
+  genuinely bimodal -- "below 0.5 or at 0.66, nothing between". That
+  bimodality is a property of butane. Ethylmorphine's are a continuum,
+  so no threshold works: 0.35 saves cyclohexane's twist-boat (which 0.5
+  merges, calling a textbook two-conformer molecule rigid) and breaks
+  ethanol and butane. **Every purely geometric criterion tested failed
+  the validation set**, all-atom RMSD included.
+
+  **Both geometric measures are blind to what these molecules do.** On a
+  fused polycyclic a ring puckers through >100 degrees while the heavy
+  atoms barely move -- 100 of 108 vetoed pairs had a torsion beyond 60
+  degrees while sitting under both cut-offs (RMSD 0.207-0.496, TFD
+  0.008-0.072 against a literature cut of 0.2). An energy term breaks
+  the tie, strictly as a **merge veto**: it declines to merge on
+  insufficient evidence and never claims two structures ARE different
+  conformers. Below 0.15 Å it is not consulted at all, because ~2% of
+  2H-azirine embeddings converge to a distorted minimum 10.7 kcal/mol up
+  (C=N stretched to 1.339 Å) and an energy gap must not promote a
+  bond-length artefact to a conformer. An energy CEILING was measured as
+  the alternative and cannot work -- that artefact sits inside
+  ethylmorphine's genuine 17.9 kcal/mol span.
+
+  Two secondary defects fixed alongside: `MMFFOptimizeMolecule` ran at
+  RDKit's default 200 iterations with its return code discarded (1 in 10
+  embeddings did not converge and sat 3.67 kcal/mol high while being
+  ranked as "lowest in energy"), and the dialog's "Number of conformers"
+  was passed to the EMBEDDER, so 10 requested meant 10 random attempts.
+
+  **This is not solved, and `SCIENTIFIC_LIMITATIONS.md` says so.** It is
+  the best-performing heuristic on eleven molecules, half of whose
+  references are computational lower bounds.
 - **OPEN** -- the ADMET calculator appears to produce nothing. Its
   options dialog opens and accepts a tier, and no result row follows. It
   runs out of process through a sidecar, so the first question is
