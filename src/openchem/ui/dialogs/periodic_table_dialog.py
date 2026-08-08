@@ -35,6 +35,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.ui.widgets.atom_diagram import AtomDiagram
 from openchem.chem.element_reference import ElementFacts, all_symbols, facts_for, grid_position
 
 #: Category -> (fill, human label). Muted fills so black symbol text stays
@@ -71,6 +72,14 @@ class PeriodicTableDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.addWidget(self._build_grid())
         layout.addWidget(self._build_legend())
+
+        # The drawing sits ABOVE the facts table rather than below it: the
+        # configuration string in that table is the same information, and
+        # a picture that explains a line of text belongs beside it rather
+        # than after everything else.
+        self._diagram = AtomDiagram(self)
+        self._diagram.setMinimumHeight(240)
+        layout.addWidget(self._diagram)
 
         self._detail = QLabel("Select an element.", self)
         self._detail.setWordWrap(True)
@@ -176,6 +185,10 @@ class PeriodicTableDialog(QDialog):
             button.setChecked(other == symbol)
         self._selected = symbol
         self._detail.setText(describe(facts))
+        # Always back to neutral on a new element. Carrying a charge
+        # across would silently answer a question about a different
+        # species than the one just clicked.
+        self._diagram.set_element(symbol, charge=0)
 
     def _on_cell_clicked(self, _checked: bool = False) -> None:
         button = self.sender()
