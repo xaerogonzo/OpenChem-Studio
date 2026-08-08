@@ -11,11 +11,21 @@ from openchem.commands.molecule_commands import DeleteMoleculeCommand, RenameMol
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
-from openchem.events.events import MoleculeChanged, MoleculeSelected
+from openchem.events.events import CrystalSelected, MoleculeChanged, MoleculeSelected
+
+
+#: Second data role on each row, saying what kind of thing it is. The
+#: uuid alone is not enough: a crystal uuid handed to `find_molecule`
+#: returns None, and every path that follows would then act on whatever
+#: was selected before.
+_KIND_ROLE = Qt.ItemDataRole.UserRole + 1
+_MOLECULE = "molecule"
+_CRYSTAL = "crystal"
 
 
 class ProjectExplorerPanel(QWidget):
-    """Lists the active project's molecules. Selecting one publishes MoleculeSelected.
+    """Lists the active project's molecules and crystals. Selecting one
+    publishes `MoleculeSelected` or `CrystalSelected` respectively.
 
     Delete (context menu or the Delete key) and rename (double-click or
     context menu) both go through `DeleteMoleculeCommand`/
@@ -73,11 +83,29 @@ class ProjectExplorerPanel(QWidget):
                 item = QListWidgetItem(molecule.display_name)
                 item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
                 item.setData(Qt.ItemDataRole.UserRole, molecule.uuid)
+                item.setData(_KIND_ROLE, _MOLECULE)
+                self._list.addItem(item)
+            for crystal in self._project.crystals:
+                item = QListWidgetItem(f"{crystal.display_name}  [crystal]")
+                # **Deliberately NOT editable.** Renaming goes through
+                # `RenameMoleculeCommand`, which looks its uuid up in
+                # `project.molecules`; a crystal row would either do
+                # nothing or rename whatever molecule sorted alongside.
+                # The suffix is what distinguishes it, since this is one
+                # flat list and an unlabelled row would read as a
+                # molecule.
+                item.setData(Qt.ItemDataRole.UserRole, crystal.uuid)
+                item.setData(_KIND_ROLE, _CRYSTAL)
                 self._list.addItem(item)
         self._list.blockSignals(False)
         self._refreshing = False
 
     def _on_selection_changed(self, current: QListWidgetItem | None, _previous: QListWidgetItem | None) -> None:
+        if current is not None and current.data(_KIND_ROLE) == _CRYSTAL:
+            self._event_bus.publish(
+                CrystalSelected(crystal_uuid=current.data(Qt.ItemDataRole.UserRole))
+            )
+            return
         molecule_uuid = current.data(Qt.ItemDataRole.UserRole) if current is not None else None
         self._event_bus.publish(MoleculeSelected(molecule_uuid=molecule_uuid))
 
@@ -85,7 +113,17 @@ class ProjectExplorerPanel(QWidget):
         self.refresh()
 
     def _molecule_for_item(self, item: QListWidgetItem):
-        if self._project is None:
+        """The molecule a row stands for, or None.
+
+        A crystal row yields None for two independent reasons, and only
+        the second is load-bearing: this kind check, and `find_molecule`
+        never matching a crystal uuid anyway. **Mutating the kind check
+        away does not fail any test**, measured -- it is kept as a
+        statement of intent and because a future row keyed on something
+        other than a uuid would need it. What actually keeps rename off a
+        crystal is the missing `ItemIsEditable` flag, which IS covered.
+        """
+        if self._project is None or item.data(_KIND_ROLE) != _MOLECULE:
             return None
         return self._project.find_molecule(item.data(Qt.ItemDataRole.UserRole))
 

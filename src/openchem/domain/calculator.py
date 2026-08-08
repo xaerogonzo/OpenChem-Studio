@@ -55,6 +55,17 @@ class CalculatorParameter:
     choices: list[str] | None = None
 
 
+#: The kinds of structure a calculator can be asked about. A small,
+#: closed vocabulary -- unlike `category` and `tags`, which are free
+#: strings -- because a typo here would silently make a calculator apply
+#: to nothing, and `test_every_calculator_declares_a_known_structure_kind`
+#: turns that into a failure instead.
+MOLECULE = "molecule"
+CRYSTAL = "crystal"
+MACROMOLECULE = "macromolecule"
+STRUCTURE_KINDS = frozenset({MOLECULE, CRYSTAL, MACROMOLECULE})
+
+
 @dataclass(frozen=True, kw_only=True)
 class CalculatorDefinition:
     """Metadata for one registered calculator (`CalculatorRegistry`) —
@@ -68,6 +79,25 @@ class CalculatorDefinition:
     description: str
     execution: CalculatorExecution
     parameters: list[CalculatorParameter] = field(default_factory=list)
+    #: Which structure kinds this calculator can honestly be run on.
+    #:
+    #: **The default is the restrictive one, and that is the whole
+    #: point.** This replaced a hand-maintained blocklist of category
+    #: names in `chem/crystal_report.py`, which had rotted in both
+    #: directions -- measured before the change: 49 registered
+    #: calculators, 22 correctly listed as inapplicable to a crystal, 27
+    #: silently treated as applicable (IUPAC Name, Tautomers, Molecular
+    #: Dynamics, NMR Shifts among them), and 3 of the 13 blocked category
+    #: names matching no live category at all.
+    #:
+    #: It rotted because `category` is deliberately a free string, so
+    #: adding one "needs no code change" -- and therefore nothing ever
+    #: forced anyone back to the blocklist. Declaring capability here
+    #: inverts that: a calculator registered without a thought is
+    #: molecule-only, which is the answer that cannot be wrong about a
+    #: periodic solid. Applying to a crystal is an opt-in somebody had to
+    #: mean.
+    applies_to: frozenset[str] = frozenset({MOLECULE})
     # "empirical" | "ab_initio" | None (Phase 22) -- lets a UI badge how
     # trustworthy a result is, same honesty spirit as the hERG risk-factor
     # checklist's "not a prediction" label. Populated only where it's

@@ -40,11 +40,13 @@ from openchem.commands.molecule_commands import (
     RenameMoleculeCommand,
 )
 from openchem.commands.project_commands import OpenProjectCommand, SaveProjectCommand
+from openchem.domain.crystal import CrystalModel
 from openchem.domain.macromolecule import MacromoleculeModel
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.calculator import RegistryExecution
 from openchem.domain.project import ProjectModel
 from openchem.events.events import (
+    CrystalSelected,
     ConformersChanged,
     ConformersReady,
     DescriptorComputed,
@@ -179,6 +181,8 @@ class MainWindow(QMainWindow):
         # `_import_crystal` for why a crystal is not a molecule.
         self._crystal = None
         self._crystal_scene: dict | None = None
+        #: Which CrystalModel the viewer is currently showing.
+        self._crystal_uuid: str | None = None
         #: The one site-environment dialog, reused across clicks.
         self._site_dialog: tuple[QDialog, object] | None = None
         # Sibling to Mol3DViewerBackend (small molecules) — Mol* is for
@@ -246,6 +250,12 @@ class MainWindow(QMainWindow):
         # survived crystal clicks before this because `_atom_is_in_report`
         # happens to refuse out-of-range indices.
         self._viewer3d.crystal_site_clicked.connect(self._on_crystal_site_clicked)
+        # Selecting a crystal in the tree redraws it. Its OWN event: a
+        # crystal uuid published as `MoleculeSelected` would be looked up
+        # in `project.molecules` by every subscriber, found missing, and
+        # leave each panel showing the previous molecule beside a
+        # crystal's name.
+        services.event_bus.subscribe(CrystalSelected, self._on_crystal_selected)
         # And the 2D canvas, which turned out to be possible after all --
         # Ketcher's editor carries a `selectionChange` event even though
         # its public `subscribe()` facade does not accept that name.
@@ -1220,14 +1230,14 @@ class MainWindow(QMainWindow):
         self._refresh_molecule_combos()
 
     def _import_crystal(self) -> None:
-        """Read a CIF, draw its unit cell, and report what can be said.
+        """Read a CIF, draw its unit cell, report it, and KEEP it.
 
-        Deliberately NOT an entry in the project tree. A crystal is not a
-        molecule (see `domain/crystal.py`), and adding one to a list that
-        every molecular calculator iterates over would invite exactly the
-        answers `chem/crystal_report.py` exists to refuse. It is shown and
-        reported; making it a first-class project object is a larger piece
-        of work with a data model behind it.
+        It joins the project as a `CrystalModel` in `project.crystals` --
+        its own list, never `molecules`, because everything that iterates
+        that list is a molecular calculator and would be handed something
+        it cannot honestly answer about. Applicability is declared per
+        calculator now (`CalculatorDefinition.applies_to`) rather than
+        depending on a crystal simply never being reachable.
         """
         from openchem.chem.cif import CifError, read_cif
         from openchem.chem.crystal_analysis import scene_for
@@ -1273,6 +1283,20 @@ class MainWindow(QMainWindow):
         # and a coordination shell needs the periodic images.
         self._crystal = crystal
         self._crystal_scene = scene
+
+        # And kept, as a document. The CIF TEXT rather than the parse --
+        # see `CrystalModel` for why, the short version being that a
+        # reader improvement then reaches projects already saved.
+        project = self._session.project
+        if project is not None:
+            model = CrystalModel(
+                display_name=crystal.name or Path(path_str).stem,
+                cif_text=text,
+                source_name=Path(path_str).name,
+            )
+            project.crystals.append(model)
+            self._crystal_uuid = model.uuid
+            self._project_explorer.refresh()
         # Deferred by one event-loop turn so the tab is current before
         # the draw. A longer delay was tried and changed nothing, which
         # is what established that the container size was never the
@@ -1281,6 +1305,41 @@ class MainWindow(QMainWindow):
         self._show_crystal_report(build_crystal_report(crystal), Path(path_str).name)
         self.statusBar().showMessage(
             "Click an atom in the unit cell to see its coordination environment.", 15000
+        )
+
+    def _on_crystal_selected(self, event) -> None:
+        """Show a crystal picked from the project tree.
+
+        Reparses the stored CIF rather than keeping a parsed structure
+        beside it -- see `CrystalModel`, which deliberately has no parse
+        method because `domain/` may not import `openchem.chem`. A CIF
+        that no longer parses is reported and does not take the window
+        down with it.
+        """
+        from openchem.chem.cif import CifError, read_cif
+        from openchem.chem.crystal_analysis import scene_for
+        from openchem.chem.crystal_report import build_crystal_report
+
+        project = self._session.project
+        if project is None or event.crystal_uuid is None:
+            return
+        model = project.find_crystal(event.crystal_uuid)
+        if model is None:
+            return
+        try:
+            crystal = read_cif(model.cif_text)
+            scene = scene_for(crystal)
+        except CifError as exc:
+            self.statusBar().showMessage(f"{model.display_name}: {exc}", 15000)
+            return
+        self._crystal = crystal
+        self._crystal_scene = scene
+        self._crystal_uuid = model.uuid
+        self._center_tabs.setCurrentWidget(self._viewer3d)
+        QTimer.singleShot(0, lambda: self._viewer3d.show_crystal(scene))
+        self.statusBar().showMessage(
+            f"{model.display_name} - click an atom to see its coordination environment.",
+            15000,
         )
 
     def _on_crystal_site_clicked(self, scene_index: int) -> None:

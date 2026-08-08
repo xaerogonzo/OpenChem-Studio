@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, TypeVar
 
+from openchem.domain.crystal import CrystalModel
 from openchem.domain.docking import DockingResultModel
 from openchem.domain.macromolecule import MacromoleculeModel
 from openchem.domain.molecule import MoleculeModel
@@ -57,6 +58,13 @@ class ProjectModel:
     name: str = "Untitled project"
     molecules: list[MoleculeModel] = field(default_factory=list)
     macromolecules: list[MacromoleculeModel] = field(default_factory=list)
+    # A crystal is NOT a molecule and gets its own list rather than being
+    # squeezed into one of the two above -- see `domain/crystal.py` for
+    # why there is no inheritance in either direction. Putting one in
+    # `molecules` would hand it to every molecular calculator that
+    # iterates that list, which is exactly what `chem/crystal_report.py`
+    # exists to refuse.
+    crystals: list[CrystalModel] = field(default_factory=list)
     docking_results: list[DockingResultModel] = field(default_factory=list)
     notes: str = ""
     tags: list[str] = field(default_factory=list)
@@ -73,6 +81,9 @@ class ProjectModel:
 
     def find_macromolecule(self, macromolecule_uuid: str) -> MacromoleculeModel | None:
         return _find_by_uuid(self.macromolecules, macromolecule_uuid)
+
+    def find_crystal(self, crystal_uuid: str) -> CrystalModel | None:
+        return _find_by_uuid(self.crystals, crystal_uuid)
 
     def find_docking_result(self, docking_result_uuid: str) -> DockingResultModel | None:
         return _find_by_uuid(self.docking_results, docking_result_uuid)
@@ -113,6 +124,7 @@ class ProjectModel:
             "name": self.name,
             "molecules": [m.to_dict() for m in self.molecules],
             "macromolecules": [m.to_dict() for m in self.macromolecules],
+            "crystals": [c.to_dict() for c in self.crystals],
             "docking_results": [d.to_dict() for d in self.docking_results],
             "notes": self.notes,
             "tags": list(self.tags),
@@ -134,6 +146,10 @@ class ProjectModel:
             macromolecules=[
                 MacromoleculeModel.from_dict(m) for m in data.get("macromolecules", [])
             ],
+            # `.get` with a default, like every sibling: a project saved
+            # before crystals existed loads with an empty list rather
+            # than a KeyError, so no schema bump is needed.
+            crystals=[CrystalModel.from_dict(c) for c in data.get("crystals", [])],
             docking_results=[
                 DockingResultModel.from_dict(d) for d in data.get("docking_results", [])
             ],

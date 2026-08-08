@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import math
 import re
+import uuid
 from dataclasses import dataclass, field
 
 #: How close two fractional coordinates must be to count as the same
@@ -334,3 +335,66 @@ def _same_position(
     return all(
         min(abs(f - s), 1.0 - abs(f - s)) < tolerance for f, s in zip(first, second)
     )
+
+
+@dataclass(slots=True)
+class CrystalModel:
+    """A crystal as a project DOCUMENT: identity, a name, and its source.
+
+    Separate from `Crystal` above, which is the crystallography and has no
+    business carrying a uuid. The split mirrors `MoleculeModel` beside an
+    RDKit `Mol`, and `MacromoleculeModel` beside a structure file.
+
+    **It stores the CIF TEXT, not the parsed `Crystal`**, following
+    `MacromoleculeModel.structure_text`. Three reasons, and the third
+    decided it:
+
+    - a round trip through `Lattice`/`Site`/`SymmetryOperation` would need
+      four more `to_dict`/`from_dict` pairs to serialise something the
+      file already states perfectly well;
+    - `Crystal.unhandled` records what the reader could not use, and
+      freezing a parse would freeze that ignorance with it;
+    - **a reader improvement then reaches projects already saved.**
+      Reparse and an old project gains whatever the reader learned since;
+      store the parse and it is stuck with the reader that first read it.
+
+    The cost is reparsing on load, which is milliseconds.
+
+    **There is deliberately no `to_crystal()` here.** `domain/` may not
+    import `openchem.chem` -- `test_the_crystal_domain_model_imports_no_`
+    `chemistry_toolkit` enforces it, and caught the first version of this
+    class doing exactly that behind a deferred import. Callers already
+    hold the chem layer, so they call `read_cif(model.cif_text)`
+    themselves. Not caching a parse beside the text is right for a second
+    reason anyway: two answers to the same question the moment either
+    changed.
+    """
+
+    uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
+    display_name: str = "Untitled crystal"
+    #: The CIF exactly as read, including everything the reader ignored.
+    cif_text: str = ""
+    #: Where it came from, for a report header. Deliberately a NAME and
+    #: not a live path -- a project must open on a machine that never had
+    #: the original file.
+    source_name: str = ""
+    metadata: dict = field(default_factory=dict)
+
+    def to_dict(self) -> dict:
+        return {
+            "uuid": self.uuid,
+            "display_name": self.display_name,
+            "cif_text": self.cif_text,
+            "source_name": self.source_name,
+            "metadata": dict(self.metadata),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> CrystalModel:
+        return cls(
+            uuid=data["uuid"],
+            display_name=data.get("display_name", "Untitled crystal"),
+            cif_text=data.get("cif_text", ""),
+            source_name=data.get("source_name", ""),
+            metadata=dict(data.get("metadata", {})),
+        )

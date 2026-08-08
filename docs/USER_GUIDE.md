@@ -1273,7 +1273,7 @@ than give you a number that looks right.
 
 ## Opening a crystal structure
 
-**File → Import Crystal Structure...** reads a CIF, draws one unit cell in
+**File → Import Crystal Structure...** reads a CIF, adds it to the project beside your molecules, draws one unit cell in
 the 3D Viewer, and opens a report of what can be said about it.
 
 It is a separate action from *Import Molecule* on purpose. A crystal is
@@ -1295,6 +1295,26 @@ derived from.
 The cell is fitted to the viewer when it is drawn. It sits a little above
 centre in the panel; scroll to zoom and drag to rotate as with any
 structure.
+
+### A crystal is part of the project
+
+An imported crystal appears in the Project Explorer marked `[crystal]`,
+and is **saved with the project**. Close the app, reopen the file, click
+the entry, and the cell is drawn again.
+
+Two consequences worth knowing:
+
+- **It is not in the molecule lists.** Compare, batch analysis and every
+  calculator work from the project's molecules, and a crystal is not one
+  — a molecular weight or a logP is a property of a discrete molecule
+  and a periodic solid has none. The crystal report says how many
+  calculators were skipped and why.
+- **What is stored is the CIF text**, not a processed version of it. That
+  means a project saved today reads *better* tomorrow if the CIF reader
+  improves, and nothing the reader currently ignores is thrown away.
+
+Crystals cannot be renamed or deleted from the tree yet; remove one by
+starting a new project.
 
 ### Clicking an atom in the cell
 

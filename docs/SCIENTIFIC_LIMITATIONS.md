@@ -609,6 +609,29 @@ periodic images.
 travel on separate signals and reach separate consumers; a crystal atom
 and a molecular atom that share index 7 are not the same object.
 
+### Which calculators a crystal is offered, and why it is none of them
+
+Every calculator declares the structure kinds it applies to, and the
+default is molecule-only. Today **none of the 49 registered calculators
+declares a crystal**, so the crystal report says so outright rather than
+implying some subset applies. That is not a gap being admitted — a
+molecular weight, a logP or a rotatable-bond count is a property of a
+discrete molecule, and running one on a single arbitrary formula unit
+would give an arithmetically correct number about a species that does
+not exist in the material.
+
+The declaration replaced a hand-maintained list of category names, which
+had drifted badly: 27 of the 49 were silently treated as applicable —
+IUPAC Name, Tautomers, Molecular Dynamics and NMR Shifts among them —
+while three of the thirteen blocked names matched no live category at
+all. A calculator that genuinely applies to a periodic solid can opt in;
+one registered without a thought cannot claim one by accident.
+
+**A crystal is saved as its CIF text, not as a parsed structure.**
+Reopening a project reparses it, so a project saved today reads better
+tomorrow if the CIF reader improves — and nothing the reader currently
+ignores is lost by being written out in a reduced form.
+
 ### What the CIF reader does not do
 
 Anisotropic displacement parameters, disorder groups, restraints and

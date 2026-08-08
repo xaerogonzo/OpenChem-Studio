@@ -32,29 +32,10 @@ from openchem.chem.crystal_analysis import (
     describe_cell,
     volume_per_formula_unit,
 )
+from openchem.domain.calculator import CRYSTAL, MOLECULE
 from openchem.domain.crystal import Crystal
 from openchem.domain.report import Basis, Detail, Fact, FactCategory, ReportResult
 
-#: Categories whose calculators are about a discrete molecule and have no
-#: meaning for an infinite periodic structure. Everything registered under
-#: these is listed as inapplicable.
-_MOLECULAR_CATEGORIES = frozenset(
-    {
-        "physicochemical",
-        "logp",
-        "logd",
-        "medicinal_chemistry",
-        "admet",
-        "pka",
-        "topology",
-        "shape",
-        "surface",
-        "molar_refractivity",
-        "lewis",
-        "stereochemistry",
-        "regulatory",
-    }
-)
 
 
 def _fact(
@@ -86,8 +67,19 @@ def _fact(
 def inapplicable_calculators(registry: Any = None) -> list[str]:
     """Which registered calculators do not apply to a periodic solid.
 
-    Read from the registry rather than listed here, so nothing has to be
-    remembered when a calculator is added.
+    **Read from each calculator's own declaration, not from a list kept
+    beside them.** The previous version matched `category` against a
+    hand-written set of thirteen category names, and it had rotted in
+    both directions: 27 of 49 calculators were silently treated as
+    applicable to a crystal -- IUPAC Name, Tautomers, Molecular Dynamics
+    and NMR Shifts among them -- while 3 of the 13 blocked names matched
+    no live category at all.
+
+    It rotted for a structural reason, not a careless one. `category` is
+    a free string precisely so that adding one needs no code change, so
+    nothing ever brought anybody back to the blocklist. See
+    `CalculatorDefinition.applies_to`, whose default is molecule-only for
+    exactly that reason.
     """
     if registry is None:
         from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
@@ -102,7 +94,7 @@ def inapplicable_calculators(registry: Any = None) -> list[str]:
     return sorted(
         definition.display_name
         for definition in definitions
-        if getattr(definition, "category", "") in _MOLECULAR_CATEGORIES
+        if CRYSTAL not in getattr(definition, "applies_to", frozenset({MOLECULE}))
     )
 
 
@@ -265,6 +257,41 @@ def build_crystal_report(crystal: Crystal, *, report_id: str = "crystal") -> Rep
                     "statistics are carried but not interpreted. Nothing above "
                     "depends on them; nothing above accounts for them either.",
                 ),
+                detail=Detail.ADVANCED,
+            )
+        )
+
+    # **Say what was NOT run.** This was computed and thrown away before:
+    # `inapplicable_calculators` existed, had a guard test, and had no
+    # production consumer at all, so the refusal the module docstring
+    # describes was never actually shown to anybody.
+    not_applicable = inapplicable_calculators()
+    if not_applicable:
+        facts.append(
+            _fact(
+                FactCategory.IDENTITY,
+                "Molecular calculators not run",
+                len(not_applicable),
+                f"{len(not_applicable)} of the app's calculators do not apply here",
+                evidence=(
+                    "each calculator declares which structure kinds it applies to; "
+                    "none of these declares a crystal",
+                ),
+                limitations=(
+                    "Not a failure. A molecular weight, a logP or a rotatable-bond "
+                    "count is a property of a discrete molecule, and a periodic "
+                    "solid has none -- running them on one arbitrary formula unit "
+                    "would give arithmetically correct numbers about a species "
+                    "that does not exist in the material.",
+                ),
+            )
+        )
+        facts.append(
+            _fact(
+                FactCategory.IDENTITY,
+                "Which calculators were skipped",
+                not_applicable,
+                ", ".join(not_applicable),
                 detail=Detail.ADVANCED,
             )
         )

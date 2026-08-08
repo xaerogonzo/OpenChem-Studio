@@ -1105,6 +1105,62 @@ old one:
 rg -n "^#{2,5} " CLAUDE.md | awk -F': ' '{print $2}' | sort | uniq -d
 ```
 
+## A blocklist of category NAMES rots; a declared capability does not
+
+`chem/crystal_report.inapplicable_calculators` matched each calculator's
+`category` against a hand-written set of thirteen names. Measured before
+replacing it, and it had rotted in both directions at once:
+
+    registered calculators                              49
+    correctly listed as inapplicable to a crystal       22
+    silently treated as APPLICABLE                      27
+    blocked category names matching no live category     3 of 13
+
+The 27 included IUPAC Name, Tautomers, Molecular Dynamics and NMR
+Shifts. **It rotted for a structural reason, not a careless one.**
+`CalculatorDefinition.category` is deliberately a free string -- its own
+docstring says a new category "needs no code change, just a new
+registration" -- so nothing ever brought anybody back to the list.
+
+`CalculatorDefinition.applies_to` replaces it, and **the default is the
+restrictive one**: `frozenset({MOLECULE})`. A calculator registered
+without a thought is molecule-only, which is the answer that cannot be
+wrong about a periodic solid; applying to a crystal is an opt-in
+somebody had to mean. Unlike `category` and `tags` it is a CLOSED
+vocabulary, because a typo would make a calculator apply to nothing and
+look fine.
+
+The answer today is 49 of 49 inapplicable, which is honest: the crystal
+report computes its own facts and no molecular calculator claims one.
+
+**`inapplicable_calculators` had a guard test and NO production
+consumer.** It was computed and thrown away, so the refusal the module
+docstring describes was never shown to anybody. The guard asserted
+`len(names) > 10`, which passed comfortably on a list more than half
+wrong -- a threshold assertion where a derived one belonged. The
+replacement recomputes the expected set from the same declarations.
+
+### A crystal in a project stores its CIF TEXT, not its parse
+
+Following `MacromoleculeModel.structure_text`. The deciding reason is
+not tidiness: **a reader improvement then reaches projects already
+saved.** Reparse and an old project gains whatever `chem/cif.py` learned
+since; store the parse and it is stuck with the reader that first read
+it, `Crystal.unhandled` included.
+
+`CrystalModel` therefore has **no `to_crystal()` method**, and the first
+version that did was caught by
+`test_the_crystal_domain_model_imports_no_chemistry_toolkit` -- `domain/`
+may not import `openchem.chem`, and a deferred import inside a method is
+still an import. Callers hold the chem layer already and call
+`read_cif(model.cif_text)`.
+
+Selection publishes **`CrystalSelected`, not `MoleculeSelected` with a
+crystal uuid**. Every subscriber to the latter looks the uuid up in
+`project.molecules`, finds nothing, and leaves its panel showing the
+previous molecule beside a crystal's name -- the same index-space
+confusion as a crystal click reaching the molecular measurement.
+
 ## The presentation layer, and four things measured while fixing it
 
 The app's chemistry was correct and its presentation was not, which is a

@@ -1032,3 +1032,203 @@ def test_an_arguable_shell_says_so_in_the_report():
     neighbours = next(f for f in report.facts if f.label == "Neighbours")
     assert neighbours.limitations
     assert "arguable" in neighbours.limitations[0]
+
+
+# --- a crystal is a project object, and survives a restart ------------------
+
+
+def _cif_text(name: str = "1504676.cif") -> str:
+    from pathlib import Path as _Path
+
+    return (
+        _Path(__file__).resolve().parent / "fixtures" / "cif" / name
+    ).read_text(encoding="utf-8")
+
+
+def _service():
+    from openchem.events.base import EventBus
+    from openchem.services.project_service import ProjectService
+
+    return ProjectService(EventBus())
+
+
+def test_a_crystal_survives_save_close_and_reopen(tmp_path):
+    """**Not "it appears in the tree".** Serialisation bugs hide until a
+    restart, so the round trip through disk is the test that matters."""
+    from openchem.chem.cif import read_cif
+    from openchem.domain.crystal import CrystalModel
+    from openchem.domain.project import ProjectModel
+
+    project = ProjectModel(name="With a crystal")
+    project.crystals.append(
+        CrystalModel(display_name="Perfluoro", cif_text=_cif_text(), source_name="1504676.cif")
+    )
+    path = tmp_path / "p.ocsproj"
+    _service().save(project, path)
+
+    reopened = _service().load(path)
+
+    assert len(reopened.crystals) == 1
+    restored = reopened.crystals[0]
+    assert restored.uuid == project.crystals[0].uuid
+    assert restored.display_name == "Perfluoro"
+    assert restored.source_name == "1504676.cif"
+    # And it is still a crystal, not just a string that came back.
+    assert len(read_cif(restored.cif_text).sites) == 30
+
+
+def test_a_project_saved_before_crystals_existed_still_loads(tmp_path):
+    """`from_dict` uses `.get` with a default like every sibling, so an
+    older file needs no schema bump and no migration."""
+    import json
+
+    from openchem.domain.project import ProjectModel
+
+    path = tmp_path / "old.ocsproj"
+    _service().save(ProjectModel(name="Older"), path)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    del data["crystals"]  # exactly what an older save looks like
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+    reopened = _service().load(path)
+
+    assert reopened.crystals == []
+    assert reopened.name == "Older"
+
+
+def test_a_crystal_is_never_put_in_the_molecule_list():
+    """The whole reason for a separate list. Anything iterating
+    `project.molecules` is a molecular calculator, and handing it a
+    periodic solid is what `chem/crystal_report.py` exists to refuse."""
+    from openchem.domain.crystal import CrystalModel
+    from openchem.domain.project import ProjectModel
+
+    project = ProjectModel()
+    project.crystals.append(CrystalModel(display_name="Halite", cif_text=_cif_text()))
+
+    assert project.molecules == []
+    assert project.find_crystal(project.crystals[0].uuid) is not None
+    assert project.find_molecule(project.crystals[0].uuid) is None
+
+
+def test_the_stored_text_is_the_cif_not_a_parse():
+    """A reader improvement then reaches projects already saved, and
+    `Crystal.unhandled` does not freeze somebody's ignorance into the
+    file. Verified by looking for a tag the reader ignores."""
+    from openchem.domain.crystal import CrystalModel
+
+    model = CrystalModel(cif_text=_cif_text())
+
+    assert "_atom_site_aniso" in model.to_dict()["cif_text"]  # a field the reader skips
+
+
+# --- applicability is declared by the calculator, not guessed from category --
+
+
+def test_a_calculator_is_molecule_only_unless_it_says_otherwise():
+    """**The default has to be the restrictive one.** This replaced a
+    blocklist of category names that had rotted both ways -- 27 of 49
+    calculators silently applicable to a crystal, and 3 of the 13 blocked
+    names matching no live category. It rotted because `category` is a
+    free string, so adding one needs no code change and nothing brought
+    anybody back to the list."""
+    from openchem.domain.calculator import CalculatorDefinition, MOLECULE, RegistryExecution
+
+    definition = CalculatorDefinition(
+        calculator_id="thoughtless",
+        display_name="Registered Without A Thought",
+        category="brand_new_category",
+        description="declares nothing",
+        execution=RegistryExecution(compute=lambda mol, uuid, params=None: None),
+    )
+
+    assert definition.applies_to == frozenset({MOLECULE})
+
+
+def test_every_registered_calculator_declares_a_known_structure_kind():
+    """`applies_to` is a closed vocabulary, unlike `category` and `tags`:
+    a typo would make a calculator apply to nothing and look fine."""
+    from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
+    from openchem.domain.calculator import STRUCTURE_KINDS
+
+    for definition in CALCULATOR_DEFINITIONS:
+        assert definition.applies_to, definition.calculator_id
+        unknown = set(definition.applies_to) - STRUCTURE_KINDS
+        assert not unknown, f"{definition.calculator_id} declares {unknown}"
+
+
+def test_the_inapplicable_list_covers_every_calculator_that_did_not_opt_in():
+    """The old guard asserted `len(names) > 10`, which passed on a list
+    that was more than half wrong. This one is derived from the same
+    source it is checking against, so it cannot drift."""
+    from openchem.chem.crystal_report import inapplicable_calculators
+    from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
+    from openchem.domain.calculator import CRYSTAL
+
+    listed = set(inapplicable_calculators())
+    expected = {
+        d.display_name for d in CALCULATOR_DEFINITIONS if CRYSTAL not in d.applies_to
+    }
+
+    assert listed == expected
+    # No molecular calculator claims a crystal today, and the report is
+    # honest about that rather than implying some subset applies.
+    assert listed == {d.display_name for d in CALCULATOR_DEFINITIONS}
+
+
+def test_the_crystal_report_says_what_it_did_not_run():
+    """`inapplicable_calculators` had a guard test and NO production
+    consumer -- the refusal the module docstring describes was computed
+    and thrown away."""
+    from openchem.chem.cif import read_cif
+    from openchem.chem.crystal_report import build_crystal_report
+
+    report = build_crystal_report(read_cif(_cif_text()))
+
+    labels = {fact.label for fact in report.facts}
+    assert "Molecular calculators not run" in labels
+    fact = next(f for f in report.facts if f.label == "Molecular calculators not run")
+    assert fact.value > 40
+    assert fact.limitations and "does not exist in the material" in fact.limitations[0]
+
+
+def test_a_calculation_cannot_even_be_ADDRESSED_to_a_crystal():
+    """The structural half of the refusal, and the stronger half.
+
+    `CalculationRequest` carries a `molecule_uuid` and nothing else, so
+    there is no way to ask for a calculator to be run on a crystal --
+    `applies_to` describes the intent, this makes the mistake
+    unrepresentable. If a `structure_uuid` ever replaces it, every
+    calculator's declaration becomes load-bearing at runtime and this
+    test is the place that says so.
+    """
+    from openchem.domain.calculator import CalculationRequest
+
+    fields = set(CalculationRequest.__dataclass_fields__)
+
+    assert "molecule_uuid" in fields
+    assert not {"crystal_uuid", "structure_uuid"} & fields
+
+
+def test_a_project_with_both_keeps_them_apart_through_a_round_trip(tmp_path):
+    """The whole phase in one: a molecule and a crystal in one project,
+    saved, reopened, and still the kinds they were."""
+    from openchem.chem.cif import read_cif
+    from openchem.domain.crystal import CrystalModel
+    from openchem.domain.molecule import MoleculeModel
+    from openchem.domain.project import ProjectModel
+
+    project = ProjectModel(name="Both")
+    project.molecules.append(MoleculeModel(display_name="Aspirin"))
+    project.crystals.append(CrystalModel(display_name="Perfluoro", cif_text=_cif_text()))
+    path = tmp_path / "both.ocsproj"
+    _service().save(project, path)
+
+    reopened = _service().load(path)
+
+    assert [m.display_name for m in reopened.molecules] == ["Aspirin"]
+    assert [c.display_name for c in reopened.crystals] == ["Perfluoro"]
+    # Neither list leaked into the other, and the crystal is still one.
+    assert reopened.find_molecule(reopened.crystals[0].uuid) is None
+    assert reopened.find_crystal(reopened.molecules[0].uuid) is None
+    assert read_cif(reopened.crystals[0].cif_text).lattice.volume > 0

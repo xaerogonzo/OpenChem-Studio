@@ -32,6 +32,21 @@ class MoleculeSelected(Event):
 
 
 @dataclass(frozen=True)
+class CrystalSelected(Event):
+    """A crystal was picked in the project tree.
+
+    **Its own event, not `MoleculeSelected` with a crystal's uuid.** A
+    crystal is not a molecule (see `domain/crystal.py`), and every panel
+    that subscribes to `MoleculeSelected` would look the uuid up in
+    `project.molecules`, find nothing, and quietly show the previous
+    molecule's results beside a crystal's name. That is the same
+    index-space confusion a crystal click in the 3D viewer already had.
+    """
+
+    crystal_uuid: str | None
+
+
+@dataclass(frozen=True)
 class MoleculeSnapshotUpdated(Event):
     """A lightweight, read-only snapshot of a molecule's identity fields.
 
