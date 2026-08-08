@@ -73,6 +73,10 @@ class Mol3DViewerBackend(ViewerBackend):
         # queueing one clears the other. Whichever call came last is what
         # the user asked for.
         self._pending_ensemble: list[dict[str, str]] | None = None
+        # A crystal is a THIRD mutually exclusive thing the viewer can
+        # be showing. It shares the exclusion with the other two -- one
+        # molecule, one ensemble, or one unit cell, never a mixture.
+        self._pending_crystal: dict | None = None
         self._pending_layer: VisualizationLayer | None = None
         # `_NOTHING_PENDING` rather than None, because None is itself a
         # meaningful queued VALUE for a surface -- it means "clear". The
@@ -93,6 +97,9 @@ class Mol3DViewerBackend(ViewerBackend):
         if self._pending_ensemble is not None:
             self._run_load_ensemble(self._pending_ensemble)
             self._pending_ensemble = None
+        if self._pending_crystal is not None:
+            self._run_load_crystal(self._pending_crystal)
+            self._pending_crystal = None
         # Replayed AFTER the molblock, never before: viewer.html's
         # loadMolblock() resets any active visualization, so applying the
         # layer first would immediately be undone.
@@ -110,6 +117,7 @@ class Mol3DViewerBackend(ViewerBackend):
 
     def load_conformer(self, molblock: str) -> None:
         self._pending_ensemble = None
+        self._pending_crystal = None
         if self._page_ready:
             self._run_load(molblock)
         else:
@@ -117,6 +125,32 @@ class Mol3DViewerBackend(ViewerBackend):
 
     def _run_load(self, molblock: str) -> None:
         self._page.runJavaScript(f"window.openchemViewer.loadMolblock({json.dumps(molblock)});")
+
+    def load_crystal(self, scene: dict) -> None:
+        """Draw one unit cell of a periodic solid.
+
+        `scene` is plain data from `chem.crystal_analysis.scene_for` --
+        atoms already expanded, wrapped and deduplicated, plus the twelve
+        cell edges and three axis labels. **This widget computes nothing
+        about the structure**, which is what keeps `ui/` free of the
+        chemistry layer and what stops the picture and the report
+        disagreeing about where the atoms are.
+
+        Queued like `load_conformer` if the page has not finished loading,
+        for the same reason: a `runJavaScript` before `loadFinished` is
+        silently dropped.
+        """
+        self._pending_ensemble = None
+        self._pending_molblock = None
+        if self._page_ready:
+            self._run_load_crystal(scene)
+        else:
+            self._pending_crystal = scene
+
+    def _run_load_crystal(self, scene: dict) -> None:
+        self._page.runJavaScript(
+            f"window.openchemViewer.loadCrystal({json.dumps(scene)});"
+        )
 
     def load_ensemble(self, entries: list[tuple[str, str]]) -> None:
         """Superimpose several structures, each in its own colour.
@@ -128,6 +162,7 @@ class Mol3DViewerBackend(ViewerBackend):
         """
         payload = [{"molblock": molblock, "color": color} for molblock, color in entries]
         self._pending_molblock = None
+        self._pending_crystal = None
         if self._page_ready:
             self._run_load_ensemble(payload)
         else:

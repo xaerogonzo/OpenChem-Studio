@@ -195,6 +195,21 @@ class MoleculeViewer3DWidget(QWidget):
             return
         self._measurement_label.setText(f"Distance atoms {atom_1}-{atom_2}: {distance:.3f} Å")
 
+    def show_crystal(self, scene: dict) -> None:
+        """Draw one unit cell of a periodic solid.
+
+        Takes an already-built scene rather than a `Crystal`, so this
+        widget -- like every other in `ui/` -- computes nothing chemical.
+        Backends that predate crystals simply do not have the method, and
+        saying so beats an AttributeError from inside a signal handler.
+        """
+        loader = getattr(self._backend, "load_crystal", None)
+        if loader is None:
+            raise NotImplementedError(
+                f"{type(self._backend).__name__} cannot display a crystal structure."
+            )
+        loader(scene)
+
     def highlight_atoms(self, indices: tuple[int, ...]) -> None:
         """Light up some atoms; an empty tuple puts it back.
 

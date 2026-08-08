@@ -899,3 +899,39 @@ def test_the_larger_depositions_expand_without_help(code):
     crystal = _cod(code)
 
     assert len(crystal.expand()) == len(crystal.operations) * len(crystal.sites)
+
+
+def test_a_name_field_that_is_a_text_block_yields_a_name_not_a_paragraph():
+    """**Found by running the app.** Leucopterin's `_chemical_name_common`
+    is a `;` block whose first line is the name and whose remainder is a
+    400-character remark about the refinement. The block parser had joined
+    those lines with spaces, so the whole paragraph arrived as the
+    structure's name and filled the report's Structure row.
+
+    The file's own line structure is what separates them -- there is a
+    blank line after the name -- so the fix was to stop destroying it.
+    """
+    crystal = _cod("1569411")
+
+    assert crystal.name == "Leucopterin (variable hydrate)"
+    assert "Remark" not in crystal.name
+
+
+def test_a_multi_line_text_field_keeps_its_line_structure():
+    """The general form of the same thing: a `;` block is text, and its
+    newlines mean something."""
+    from openchem.chem.cif import _blocks
+
+    text = (COD / "1569411.cif").read_text(encoding="utf-8", errors="replace")
+    tags, _loops = next(iter(_blocks(text).values()))
+
+    assert "\n" in tags["_chemical_name_common"]
+    assert tags["_chemical_name_common"].splitlines()[0] == "Leucopterin (variable hydrate)"
+
+
+def test_a_name_the_depositor_truncated_is_reported_as_deposited():
+    """1004002 states `_chemical_name_common 'Tungsten sulfide cluster
+    with'` -- a fragment, in the file itself. Reading it faithfully is
+    right; quietly substituting `_chemical_name_systematic` would be the
+    reader deciding it knows better than the deposition."""
+    assert _cod("1004002").name == "Tungsten sulfide cluster with"

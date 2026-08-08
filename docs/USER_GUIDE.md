@@ -1241,3 +1241,28 @@ the low side — and to about 2% for oxides and sulfides.
 You will not get one for sodium acetate or ammonium nitrate. Polyatomic
 ions need a different kind of radius, and the app would rather say nothing
 than give you a number that looks right.
+
+## Opening a crystal structure
+
+**File → Import Crystal Structure...** reads a CIF, draws one unit cell in
+the 3D Viewer, and opens a report of what can be said about it.
+
+It is a separate action from *Import Molecule* on purpose. A crystal is
+not a molecule: it has no bonds, no molecular weight and no logP, and
+putting one into the project tree would invite every molecular calculator
+to answer about it. The report says which calculators do not apply rather
+than leaving you wondering why the Properties panel is empty.
+
+The picture shows **one unit cell**, with the cell edges and the a/b/c
+axes. Atoms are drawn as spheres and **no bonds are drawn**, because a
+periodic solid does not have them — the Na–Cl contact in halite is an
+ionic association, not a bond.
+
+The report gives the cell, the space group, the atoms per unit cell
+(fractional where a site is partly occupied), the X-ray density, and a
+coordination number per crystallographic site with the distances it was
+derived from.
+
+**A note on the initial view:** the cell is fitted to the viewer when it
+is drawn, which can leave it smaller than the available space. Scroll to
+zoom, or resize the window, and it will fit properly.

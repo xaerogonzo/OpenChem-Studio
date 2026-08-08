@@ -213,7 +213,13 @@ def _blocks(text: str) -> dict[str, tuple[dict[str, str], list[dict[str, list[st
                 elif index < len(lines):
                     collected.extend(_tokenise(lines[index].strip()))
                     index += 1
-                tags[tag] = " ".join(part.strip() for part in collected).strip()
+                # **Newlines, not spaces.** A `;` field is a text block and
+                # its line structure is meaningful -- leucopterin's
+                # `_chemical_name_common` is a name on the first line
+                # followed by a paragraph of explanation. Joining with
+                # spaces destroyed that, and the whole paragraph became the
+                # structure's name in the report. Found by running the app.
+                tags[tag] = "\n".join(part.rstrip() for part in collected).strip()
                 continue
             index += 1
             continue
@@ -291,6 +297,35 @@ def _sites_from(loops: list[dict[str, list[str]]]) -> tuple[Site, ...]:
     return ()
 
 
+#: A name longer than this is prose, not a name. Chosen from the real
+#: case: leucopterin's is "Leucopterin (variable hydrate)" at 29
+#: characters, followed by 400 more of explanation.
+_MAX_NAME = 80
+
+
+def _short_name(text: str) -> str:
+    """The first line of a name field, and nothing after it.
+
+    `_chemical_name_common` is often a `;` block whose first line is the
+    name and whose remainder is a paragraph about the refinement. Taking
+    the lot put 400 characters of prose in the report's Structure row,
+    which is where running the app found it.
+
+    The remainder is not lost -- it stays in the file, and the fields the
+    reader did not interpret are already listed in `Crystal.unhandled`.
+    """
+    lines = [line.strip() for line in (text or "").strip().splitlines()]
+    first = next((line for line in lines if line), "")
+    if len(first) <= _MAX_NAME:
+        return first
+    # A single run-on line: cut at a sentence end if there is one nearby,
+    # so the result reads as a name rather than a truncation.
+    stop = first.find(". ")
+    if 0 < stop <= _MAX_NAME:
+        return first[:stop].strip()
+    return first[:_MAX_NAME].rstrip() + "..."
+
+
 def read_cif(text: str, *, block: str = "") -> Crystal:
     """Read one data block into a `Crystal`.
 
@@ -350,11 +385,11 @@ def read_cif(text: str, *, block: str = "") -> Crystal:
         ).strip(),
         space_group_number=int(number) if number else None,
         formula_units_z=int(z) if z else None,
-        name=(
+        name=_short_name(
             tags.get("_chemical_name_mineral")
             or tags.get("_chemical_name_common")
             or name
-        ).strip(),
+        ),
         source=tags.get("_chemical_formula_sum", "").strip(),
         unhandled=tuple(unhandled),
     )

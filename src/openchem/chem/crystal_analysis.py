@@ -311,3 +311,92 @@ def volume_per_formula_unit(crystal: Crystal) -> float | None:
     if not crystal.formula_units_z:
         return None
     return crystal.lattice.volume / crystal.formula_units_z
+
+
+#: The twelve edges of a parallelepiped, as pairs of corners in fractional
+#: coordinates. Written out rather than derived because a derivation here
+#: would be three lines of index arithmetic that nobody could check by
+#: eye, and this can be read against a drawing of a box.
+_CELL_EDGES: tuple[tuple[tuple[int, int, int], tuple[int, int, int]], ...] = (
+    ((0, 0, 0), (1, 0, 0)), ((0, 0, 0), (0, 1, 0)), ((0, 0, 0), (0, 0, 1)),
+    ((1, 0, 0), (1, 1, 0)), ((1, 0, 0), (1, 0, 1)),
+    ((0, 1, 0), (1, 1, 0)), ((0, 1, 0), (0, 1, 1)),
+    ((0, 0, 1), (1, 0, 1)), ((0, 0, 1), (0, 1, 1)),
+    ((1, 1, 0), (1, 1, 1)), ((1, 0, 1), (1, 1, 1)), ((0, 1, 1), (1, 1, 1)),
+)
+
+
+def scene_for(crystal: Crystal) -> dict:
+    """Everything a viewer needs to draw one unit cell, as plain data.
+
+    **The expansion happens HERE, not in the viewer.** The spike measured
+    3Dmol expanding a CIF's symmetry and leaving 3 of halite's 4 chlorides
+    at or outside the cell -- the right set of atoms, the wrong
+    representatives, and a picture that is not the conventional cell. So
+    the viewer is handed atoms that are already expanded, wrapped and
+    deduplicated, and draws exactly what it is given.
+
+    That also keeps one source of truth. The atoms in the picture are the
+    same objects the density and the coordination numbers were computed
+    from, so the report and the render cannot disagree.
+
+    Returns plain lists and dicts -- no domain objects -- because this
+    crosses into `ui/` and then into JavaScript.
+    """
+    lattice = crystal.lattice
+    atoms = [
+        {
+            "element": atom.element,
+            "x": round(x, 6),
+            "y": round(y, 6),
+            "z": round(z, 6),
+            "site": atom.site_label,
+            "occupancy": round(atom.occupancy, 4),
+        }
+        for atom in crystal.expand()
+        for x, y, z in (lattice.to_cartesian(*atom.position),)
+    ]
+    edges = [
+        [
+            [round(value, 6) for value in lattice.to_cartesian(*start)],
+            [round(value, 6) for value in lattice.to_cartesian(*end)],
+        ]
+        for start, end in _CELL_EDGES
+    ]
+    scene = {
+        "atoms": atoms,
+        "edges": edges,
+        "name": crystal.name,
+        "spaceGroup": crystal.space_group,
+        # The three cell vectors, for axis labels. Kept separate from the
+        # edges so a viewer can draw them differently without unpicking
+        # which of the twelve lines happened to start at the origin.
+        "axes": [
+            {"label": label, "vector": [round(v, 6) for v in lattice.to_cartesian(*basis)]}
+            for label, basis in (("a", (1, 0, 0)), ("b", (0, 1, 0)), ("c", (0, 0, 1)))
+        ],
+    }
+    # Built here rather than by the caller so the payload is complete and
+    # the viewer backend stays a pass-through that computes nothing.
+    scene["xyz"] = scene_as_xyz(scene)
+    return scene
+
+
+def scene_as_xyz(scene: dict) -> str:
+    """The scene's atoms as an XYZ block.
+
+    XYZ rather than a molblock because a unit cell has **no bonds** -- a
+    molblock would have to invent a bond table, and inventing bonds for a
+    periodic solid is exactly the mistake `domain/crystal.py` exists to
+    avoid. 3Dmol reads XYZ directly and draws unbonded atoms happily.
+
+    Occupancy is not expressible in XYZ and is dropped here; it survives
+    in the scene dict for anything that wants it.
+    """
+    atoms = scene["atoms"]
+    lines = [str(len(atoms)), scene.get("name", "") or "unit cell"]
+    lines.extend(
+        f"{atom['element']} {atom['x']:.6f} {atom['y']:.6f} {atom['z']:.6f}"
+        for atom in atoms
+    )
+    return "\n".join(lines)

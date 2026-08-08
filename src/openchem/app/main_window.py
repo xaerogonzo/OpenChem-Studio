@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Callable
 
 from PySide6.QtCore import QUrl, Qt
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QAction, QCloseEvent, QDesktopServices, QGuiApplication, QUndoStack
 from PySide6.QtWidgets import (
     QApplication,
@@ -17,9 +18,11 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
+    QPushButton,
     QScrollArea,
     QTabWidget,
     QToolBar,
+    QVBoxLayout,
     QWidget,
 )
 
@@ -797,6 +800,13 @@ class MainWindow(QMainWindow):
         file_menu.addAction("Export Molecule...", self._export_molecule)
         file_menu.addSeparator()
         file_menu.addAction("Import Macromolecule...", self._import_macromolecule)
+        # Its OWN action rather than another extension on "Import
+        # Molecule". A CIF does not become a molecule -- it has no
+        # bonds and no molecular weight -- so routing it through the
+        # molecule importer would put a periodic solid into the
+        # project tree as something every molecular calculator would
+        # then try to answer about.
+        file_menu.addAction("Import Crystal Structure...", self._import_crystal)
         file_menu.addAction("Receptor Library...", self._open_receptor_library)
         file_menu.addSeparator()
         file_menu.addAction("Exit", self.close)
@@ -1195,6 +1205,79 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Import failed", str(exc))
         self._project_explorer.refresh()
         self._refresh_molecule_combos()
+
+    def _import_crystal(self) -> None:
+        """Read a CIF, draw its unit cell, and report what can be said.
+
+        Deliberately NOT an entry in the project tree. A crystal is not a
+        molecule (see `domain/crystal.py`), and adding one to a list that
+        every molecular calculator iterates over would invite exactly the
+        answers `chem/crystal_report.py` exists to refuse. It is shown and
+        reported; making it a first-class project object is a larger piece
+        of work with a data model behind it.
+        """
+        from openchem.chem.cif import CifError, read_cif
+        from openchem.chem.crystal_analysis import scene_for
+        from openchem.chem.crystal_report import build_crystal_report
+
+        path_str, _ = QFileDialog.getOpenFileName(
+            self, "Import Crystal Structure", filter="Crystallographic Information File (*.cif)"
+        )
+        if not path_str:
+            return
+        try:
+            # errors="replace" because a deposited CIF may carry a stray
+            # byte in an author name or a comment, and refusing to show a
+            # structure over one character in the metadata would be a
+            # worse failure than the mojibake.
+            text = Path(path_str).read_text(encoding="utf-8", errors="replace")
+            crystal = read_cif(text)
+            scene = scene_for(crystal)
+        except CifError as exc:
+            QMessageBox.warning(self, "Cannot read this CIF", str(exc))
+            return
+        except Exception as exc:  # noqa: BLE001 - surface it, do not crash
+            logger.exception("CIF import failed")
+            QMessageBox.critical(self, "Import failed", str(exc))
+            return
+
+        # **Show the tab, let Qt lay it out, and only then draw.**
+        #
+        # 3Dmol reads its canvas size from the container when it draws, and
+        # a QTabWidget page that has just been made current has not been
+        # resized yet -- `setCurrentWidget` schedules that, it does not do
+        # it. Drawing immediately fitted the whole unit cell into a 40 px
+        # corner; forcing a resize first instead made it vanish, because
+        # the zero got committed.
+        #
+        # Measured in isolation: the same scene in a bare, shown
+        # QWebEngineView renders correctly (8 atoms, 12 shapes, canvas
+        # 1800x1400), so the drawing code was never the problem and a
+        # deferred load is the honest fix rather than more JS gymnastics.
+        self._center_tabs.setCurrentWidget(self._viewer3d)
+        QTimer.singleShot(0, lambda: self._viewer3d.show_crystal(scene))
+        self._show_crystal_report(build_crystal_report(crystal), Path(path_str).name)
+
+    def _show_crystal_report(self, report, filename: str) -> None:
+        """The report, in the same FactView every other report uses.
+
+        Reusing it is the point: a crystal's facts are Facts, and somebody
+        who has learned the report surface once should not learn a second
+        one because the subject is periodic.
+        """
+        from openchem.ui.widgets.fact_view import FactView
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Crystal Structure - {filename}")
+        dialog.resize(560, 620)
+        view = FactView(dialog)
+        view.set_report(report, title=report.name)
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(view)
+        close = QPushButton("Close", dialog)
+        close.clicked.connect(dialog.close)
+        layout.addWidget(close)
+        dialog.exec()
 
     def _export_molecule(self) -> None:
         molecule = self._current_molecule()

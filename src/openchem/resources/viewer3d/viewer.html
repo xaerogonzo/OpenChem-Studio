@@ -301,16 +301,154 @@
           currentSurface = null;
           applySurface();
         },
+        // A periodic solid: one unit cell, already expanded and wrapped
+        // by the Python side.
+        //
+        // It does NOT go through addModel(cif, 'cif'). 3Dmol can parse a
+        // CIF and apply its symmetry, but it leaves the results wherever
+        // the operators put them -- measured on halite, 3 of the 4
+        // chlorides landed at or outside the cell. The right set of
+        // atoms, the wrong representatives, and a picture that is not the
+        // conventional cell. So the atoms arrive here already correct and
+        // this draws exactly what it is given.
+        //
+        // XYZ, not a molblock, because a unit cell has no bonds and a
+        // molblock would have to invent a bond table.
+        loadCrystal: function (scene) {
+          // **Wait for the container to have a size before drawing.**
+          //
+          // This view lives in a tab. Qt makes the tab current
+          // asynchronously, so a draw issued right after the switch runs
+          // against a container that is still 0x0 -- and 3Dmol reads its
+          // canvas dimensions from the container at draw time. Both
+          // failure modes were seen live: without resize() the whole unit
+          // cell rendered into a 40px corner (3Dmol kept a stale size),
+          // and WITH resize() it vanished entirely, because resize()
+          // faithfully committed the zero.
+          //
+          // Retrying on the next frame costs nothing when the container is
+          // already laid out, which is the common case.
+          // Wait for the container to have a size at all. Qt lays a
+          // freshly-shown tab out asynchronously, so a draw issued right
+          // after the switch runs against a 0x0 container and 3Dmol reads
+          // its canvas size from the container at draw time.
+          //
+          // **Threading the widget's expected width through and waiting
+          // for the container to match it was tried and blanked the view**
+          // -- the container's CSS width never equals the Qt widget's, so
+          // the wait always timed out. This is the version measured to
+          // work; see `_import_crystal` for the deferral that pairs with
+          // it.
+          var attempts = 0;
+          function draw() {
+            var host = document.getElementById('viewer-container');
+            if ((!host.clientWidth || !host.clientHeight) && attempts < 30) {
+              attempts += 1;
+              window.requestAnimationFrame(draw);
+              return;
+            }
+            viewer.resize();
+            drawCrystal(scene);
+          }
+          draw();
+        },
         clear: function () {
           currentVisualization = null;
           currentLabels = null;
           currentModel = null;
           currentSurface = null;
           viewer.clear();
+          viewer.removeAllShapes();
           viewer.removeAllLabels();
           viewer.render();
         },
       };
+
+      // The crystal draw itself, split out so loadCrystal can retry it on
+      // the next frame while the container is still being laid out.
+      function drawCrystal(scene) {
+          viewer.clear();
+          viewer.removeAllShapes();
+          viewer.removeAllLabels();
+          currentVisualization = null;
+          currentLabels = null;
+          currentEnsemble = null;
+          currentSurface = null;
+
+          var model = viewer.addModel(scene.xyz, 'xyz');
+          currentModel = model;
+          // Spheres only. Sticks would draw 3Dmol's guessed bonds, and
+          // guessing bonds across a lattice is the one thing this whole
+          // path exists to avoid -- an Na-Cl contact is not a bond.
+          viewer.setStyle({}, { sphere: { scale: 0.35 } });
+
+          scene.edges.forEach(function (edge) {
+            viewer.addLine({
+              start: { x: edge[0][0], y: edge[0][1], z: edge[0][2] },
+              end: { x: edge[1][0], y: edge[1][1], z: edge[1][2] },
+              color: 'grey',
+              dashed: false,
+            });
+          });
+          scene.axes.forEach(function (axis) {
+            viewer.addLabel(axis.label, {
+              position: { x: axis.vector[0], y: axis.vector[1], z: axis.vector[2] },
+              fontSize: 12,
+              backgroundOpacity: 0.0,
+              fontColor: 'black',
+            });
+          });
+
+          model.setClickable({}, true, function (atom) {
+            if (bridge) {
+              bridge.atomClicked(atom.index);
+            }
+          });
+          viewer.zoomTo();
+          viewer.render();
+      }
+
+      // **The page is laid out before Qt has finished sizing the view.**
+      //
+      // This viewer lives in a tab. When the tab becomes current Qt
+      // resizes the QWebEngineView, and that reaches the page
+      // asynchronously -- so a structure drawn immediately after a tab
+      // switch is fitted to whatever size the page happened to have,
+      // which was measured live at about 40px. 3Dmol caches its canvas
+      // dimensions, so it never recovers on its own.
+      //
+      // Correcting on the page's own resize event fixes it whenever the
+      // real size arrives, however late, and fixes the ordinary case of
+      // the user resizing the window too. Cheap: 3Dmol's resize() is a
+      // no-op when the dimensions have not changed.
+      // The camera has to be re-fitted as well, but ONLY when the canvas
+      // was never properly sized -- a structure fitted to a 40px view is
+      // off-screen at 1200px, which is how this looked after the resize
+      // alone was added. Re-fitting on every resize would fight a user who
+      // had zoomed in and then dragged the window edge, so the threshold
+      // distinguishes "we were never laid out" from "the user resized".
+      // **Re-fit only out of a degenerate size.** A structure fitted to a
+      // 40px view is off-screen at 1200px, so the camera has to be reset
+      // when the real size finally arrives -- but re-fitting on EVERY
+      // resize would fight a user who had zoomed in and then dragged the
+      // window edge.
+      //
+      // A tempting refinement -- "re-fit whenever the view grew by more
+      // than half" -- was tried and blanked the view again, so this stays
+      // as the version measured to work.
+      var lastGoodWidth = 0;
+      window.addEventListener('resize', function () {
+        var host = document.getElementById('viewer-container');
+        var wasDegenerate = lastGoodWidth < 200;
+        viewer.resize();
+        if (host.clientWidth >= 200) {
+          lastGoodWidth = host.clientWidth;
+          if (wasDegenerate) {
+            viewer.zoomTo();
+          }
+        }
+        viewer.render();
+      });
 
       if (window.qt && window.qt.webChannelTransport) {
         // eslint-disable-next-line no-undef
