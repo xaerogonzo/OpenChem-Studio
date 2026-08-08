@@ -721,12 +721,13 @@ app) found:
   as `{bonds: [0]}`. The selection object carries ONLY the keys with
   something in them -- a bond click has no `atoms` key at all -- so a
   handler must check both rather than assume one shape.
-- **Ketcher's bond ids are RDKit's bond indices.** Both are dense and in
-  molfile order; verified by loading one molblock into each and comparing
-  every (begin, end) pair, and again end-to-end through the real backend
-  (selecting Ketcher bond 1 of ethanol arrived in Python as index 1, the
-  C-O bond). No translation table is needed, and one would be a place for
-  a silent off-by-one to live.
+- **A SELECTION REPORTS POOL IDS, NOT MOLFILE POSITIONS.** This was
+  previously recorded here as "Ketcher's bond ids are RDKit's bond
+  indices... no translation table is needed, and one would be a place for
+  a silent off-by-one to live". That is wrong, and the section below is
+  the correction. The verification behind it was real but was performed on
+  a freshly LOADED molblock -- the one state in which a pool has never had
+  anything removed from it and the two agree by coincidence.
 
 **THE TRAP: `selectionChange` hands your handler `undefined`.** It is a
 `PipelineSubscription`, which feeds each handler the PREVIOUS handler's
@@ -741,6 +742,89 @@ two look interchangeable and are not.
 
 The fix is one line: ignore the argument and call
 `ketcherInstance.editor.selection()` inside the handler.
+
+#### A POOL ID IS NOT A MOLFILE POSITION, and a fresh load hides it
+
+Reported from the running app: drawing a benzene and clicking a ring vertex
+answered **"Atom 9 is in the 3D structure but not in the structure as drawn
+-- the report covers heavy atoms and treats hydrogens as implicit. Pick a
+heavy atom."** A second vertex gave atom 11. Benzene as drawn has six atoms,
+and the molecule really was C6H6.
+
+`Pool` extends `Map` and hands out ids from a counter that only ever
+increments -- `add` and `newId` both `return this.nextId++` (read in the
+bundle, then measured). **An id is a permanent identity handle and a freed
+one is never reused**, while the molfile is positional and RDKit numbers its
+atoms by reading it in order. The two agree only until something is deleted.
+
+Reproduced through Ketcher's own API in about 20 seconds: draw two rings,
+select the first and press Delete, and the surviving six-atom ring carries
+pool ids **6..11** against a molfile of six atoms numbered 1..6. Every
+vertex was off by six; clicking two of them sends 8 and 10, which is exactly
+the report.
+
+    molfile position  0  1  2  3  4   5
+    what was sent     6  7  8  9  10  11     atoms AND bonds, both
+
+**Bonds had the identical offset and were the worse half.** A wrong bond
+index usually stays in range, so no guard fires and the panel silently
+describes a DIFFERENT bond. The atom side was only ever visible because
+`_atom_is_in_report` happened to catch it and say something.
+
+Two reasons this shipped, both worth knowing:
+
+- **A fresh `setMolecule` rebuilds the pool from zero.** Every probe that
+  established the old claim loaded a molblock and read the ids straight
+  back, so all of them saw a dense pool. **Any check of an index space has
+  to run against an EDITED structure, never a freshly loaded one.**
+- **A full erase resets it too**, so "draw, clear the canvas, draw again"
+  looks fine. It takes a PARTIAL deletion -- which is the ordinary case,
+  not the exotic one.
+
+**It is NOT the vite 6 rebuild** (`001bd63`), which was the first
+suspicion. The previous bundle, restored with `git archive 2768ee8`, gives a
+byte-identical verdict: 6/6 atoms and 6/6 bonds wrong. This is Ketcher's
+data model, and the bug is as old as the selection feature.
+
+The fix is `molfilePosition()` in `tools/ketcher-host/src/main.jsx`, which
+translates before the value crosses the bridge -- so Python's contract stays
+"this is an RDKit index" and the one place that knows Ketcher exists is the
+one place that knows about pools.
+
+**INSERTION ORDER, NEVER SORTED, and this is the trap inside the fix.**
+`indexOf` on `Array.from(pool.keys())` looks interchangeable with sorting the
+ids, and is not. Undo re-inserts a deleted atom under its ORIGINAL id at the
+END of the Map. Measured on a C-N-O-F-S-P chain with the carbon deleted and
+restored:
+
+    pool insertion order   [1, 2, 3, 4, 5, 0]
+    molfile atom order      N  O  F  S  P  C     <- follows insertion order
+    sorted by id           [0, 1, 2, 3, 4, 5]    <- wrong in all 6 positions
+
+Bonds behave the same way and the case is sharper, because a bond pool can
+be out of numeric order without any atom being: the same edit left bond ids
+`[0, 4, 1, 2, 3]`, and RDKit's bond order matched that exactly, checked pair
+by pair. A sorted implementation produces perfectly plausible indices and is
+wrong, which is why `test_a_selection_is_never_forwarded_as_a_raw_ketcher_id`
+asserts the absence of a `.sort(` by name.
+
+Two guards, deliberately split. `tests/test_ketcher_editor_backend.py::`
+`test_a_selection_arrives_as_a_molfile_position_not_a_ketcher_pool_id`
+builds the real two-ring-minus-one state against the real bundle and asserts
+what Python receives -- it must, since a stale dist leaves the app broken
+with every Python test green. It **asserts its own setup** (pool ids really
+are `[6..11]`) first, because if the Delete hotkey ever stops erasing, the
+pool stays dense and the test would pass while testing nothing. Verified by
+running it against the vite 5 bundle: fails, `assert [6,...] == [0,...]`.
+The cheap half is a source check in `test_ketcher_bundle_is_current.py`,
+confirmed to catch both a raw-id regression and a sorted one.
+
+**`runJavaScript` on this Qt build returns PRIMITIVES ONLY.** Numbers and
+strings arrive intact; an array or a plain object arrives as `''`,
+indistinguishable from a script that returned nothing. This cost the first
+probe run entirely -- every result read as empty and looked like Ketcher
+failing rather than marshalling failing. Wrap anything structural in
+`JSON.stringify`; `_run_js_json` in the test file does.
 
 **THE 3D VIEWER AND A REPORT DO NOT SHARE AN INDEX SPACE**, and the
 mismatch is a crash rather than a wrong answer. A conformer carries
@@ -847,6 +931,14 @@ cannot be minified (they are properties of the object Qt injects), so they
 fingerprint the build for free and with no platform sensitivity. It needs
 no node in CI, and `tests.yml` runs bare `pytest`, so it was picked up
 without touching the workflow.
+
+Reproducibility confirmed a second time, and with it something that saves a
+rebuild: **a COMMENT-ONLY edit to `main.jsx` does not stale the dist.**
+Comments do not survive the build even though minification is off -- a
+distinctive phrase added to a comment appears 0 times in the 35 MB bundle --
+so rewording one and rebuilding produced a byte-identical asset, same
+content hash (`ea091b8d...`, `index-E55nh8EI.js`). Rebuild for a code
+change; a comment is free.
 
 **Building the dist in CI instead was considered and rejected**, with
 numbers: the whole `.git` is 40 MB, only 10 MB of it large blobs, and the

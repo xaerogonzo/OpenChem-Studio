@@ -129,6 +129,51 @@ def test_every_bridge_call_has_a_python_method_to_receive_it(name):
     )
 
 
+def test_a_selection_is_never_forwarded_as_a_raw_ketcher_id():
+    """The pool-id bug, guarded at the source where it is cheap to catch.
+
+    `tests/test_ketcher_editor_backend.py` asserts the real behaviour against
+    the real bundle, which costs a QtWebEngine page. This is the fast half:
+    it fails the moment somebody "simplifies" the translation away, and it
+    reads as a deliberate rule rather than as noise in a 35 MB diff.
+
+    Ketcher's selection reports POOL IDS -- identity handles from a counter
+    that only ever increments -- while the molfile is positional. Sending one
+    where the other is expected made the Atom Inspector tell a user who had
+    clicked a carbon to "pick a heavy atom".
+    """
+    source = jsx_source()
+
+    for name, key in (("atomSelected", "atoms"), ("bondSelected", "bonds")):
+        assert not re.search(rf"bridgeObject\.{name}\(\s*{key}\[", source), (
+            f"main.jsx passes a raw Ketcher pool id to bridgeObject.{name}(). "
+            f"Pool ids are not molfile positions -- they diverge as soon as "
+            f"anything is deleted. Translate with molfilePosition() first."
+        )
+        assert f"bridgeObject.{name}(position)" in source, (
+            f"expected bridgeObject.{name}() to forward a translated position"
+        )
+
+    assert "function molfilePosition(" in source, "molfilePosition() is gone"
+    for pool in ("struct.atoms", "struct.bonds"):
+        assert f"molfilePosition({pool}," in source, (
+            f"{pool} selections are not being translated"
+        )
+
+    # INSERTION ORDER, NOT SORTED, and this is the one that would regress
+    # silently. Undo re-inserts a deleted atom under its original id at the
+    # END of the Map, so ids can run [1,2,3,4,5,0]; the molfile follows that
+    # same order (measured: N O F S P C on a C-N-O-F-S-P chain with the
+    # carbon deleted and restored), so sorting would be wrong in every
+    # position while still producing entirely plausible indices.
+    helper = source.split("function molfilePosition(")[1].split("\n}")[0]
+    assert ".sort(" not in helper, (
+        "molfilePosition() sorts the pool keys. The molfile follows the "
+        "pool's INSERTION order, which undo can leave out of numeric order "
+        "-- sorting reintroduces the off-by-one this function exists to fix."
+    )
+
+
 def test_the_bundle_index_points_at_a_file_that_exists():
     """A rebuild renames assets by content hash. If `index.html` were
     committed pointing at a file that was not, the editor would load blank

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import time
 
 from openchem.ui.widgets.ketcher_editor_backend import KetcherEditorBackend
@@ -20,6 +21,26 @@ def _run_js(qapp, backend: KetcherEditorBackend, script: str, timeout_seconds: f
     backend._page.runJavaScript(script, lambda value: result.__setitem__("value", value))
     _wait_until(qapp, lambda: "value" in result, timeout_seconds=timeout_seconds)
     return result.get("value")
+
+
+def _run_js_json(qapp, backend: KetcherEditorBackend, body: str, timeout_seconds: float = 10):
+    """Evaluate a JS function body and marshal its return value as JSON.
+
+    **`runJavaScript` on this Qt build returns PRIMITIVES ONLY** -- measured:
+    a number or string arrives intact, while an array or a plain object
+    arrives as the empty string, indistinguishable from a script that
+    returned nothing. Anything structural has to cross as a JSON string, so
+    a probe reading a list of ids straight back reads `''` and looks like a
+    Ketcher failure rather than a marshalling one.
+    """
+    script = (
+        "(function(){ try { return JSON.stringify((function(){ %s })()); }"
+        "catch (e) { return JSON.stringify({__error: String(e)}); } })()" % body
+    )
+    raw = _run_js(qapp, backend, script, timeout_seconds=timeout_seconds)
+    if not raw:
+        return {"__error": f"no serialisable result: {raw!r}"}
+    return json.loads(raw)
 
 
 def _ready_backend(qapp, shown: bool = False) -> KetcherEditorBackend:
@@ -162,6 +183,165 @@ def test_the_settle_timer_only_clears_its_own_load(qapp):
     assert backend._loading_token == "newer"
     backend._clear_loading_token("newer")
     assert backend._loading_token is None
+
+
+# --- a selection must arrive as a MOLFILE POSITION, not a Ketcher pool id ---
+
+
+_BENZENE = (
+    "\n  Mrv\n\n"
+    "  6  6  0  0  0  0            999 V2000\n"
+    "    0.0000    1.4000    0.0000 C   0  0\n"
+    "    1.2124    0.7000    0.0000 C   0  0\n"
+    "    1.2124   -0.7000    0.0000 C   0  0\n"
+    "    0.0000   -1.4000    0.0000 C   0  0\n"
+    "   -1.2124   -0.7000    0.0000 C   0  0\n"
+    "   -1.2124    0.7000    0.0000 C   0  0\n"
+    "  1  2  2  0\n  2  3  1  0\n  3  4  2  0\n"
+    "  4  5  1  0\n  5  6  2  0\n  6  1  1  0\nM  END\n"
+)
+#: The same ring, translated well clear of the first so nothing merges.
+_BENZENE_OFFSET = (
+    "\n  Mrv\n\n"
+    "  6  6  0  0  0  0            999 V2000\n"
+    "   10.0000    1.4000    0.0000 C   0  0\n"
+    "   11.2124    0.7000    0.0000 C   0  0\n"
+    "   11.2124   -0.7000    0.0000 C   0  0\n"
+    "   10.0000   -1.4000    0.0000 C   0  0\n"
+    "    8.7876   -0.7000    0.0000 C   0  0\n"
+    "    8.7876    0.7000    0.0000 C   0  0\n"
+    "  1  2  2  0\n  2  3  1  0\n  3  4  2  0\n"
+    "  4  5  1  0\n  5  6  2  0\n  6  1  1  0\nM  END\n"
+)
+
+
+def _draw_two_rings_and_erase_the_first(qapp, backend) -> dict:
+    """Leave one six-atom ring on the canvas whose pool ids start at 6.
+
+    Erasure goes through Ketcher's own Delete hotkey rather than by poking
+    the pool, so the state under test is one the real editor produces.
+    """
+    _run_js_json(qapp, backend, "window.ketcher.setMolecule(%s); return 1;" % json.dumps(_BENZENE))
+    _wait_until(qapp, lambda: False, timeout_seconds=1.5)
+    _run_js_json(
+        qapp, backend, "window.ketcher.addFragment(%s); return 1;" % json.dumps(_BENZENE_OFFSET)
+    )
+    _wait_until(qapp, lambda: False, timeout_seconds=1.5)
+    _run_js_json(qapp, backend, """
+      var e = window.ketcher.editor, s = e.struct();
+      var atoms = Array.from(s.atoms.keys()).slice(0, 6);
+      var bonds = Array.from(s.bonds.keys()).filter(function(b){
+        var bd = s.bonds.get(b);
+        return atoms.indexOf(bd.begin) >= 0 && atoms.indexOf(bd.end) >= 0; });
+      e.selection({atoms: atoms, bonds: bonds});
+      return 1;
+    """)
+    _wait_until(qapp, lambda: False, timeout_seconds=0.5)
+    _run_js_json(qapp, backend, """
+      var el = document.querySelector('.Ketcher-root') || document.body;
+      ['keydown','keyup'].forEach(function(t){
+        el.dispatchEvent(new KeyboardEvent(t, {key:'Delete', code:'Delete',
+          bubbles:true, cancelable:true, keyCode:46, which:46})); });
+      return 1;
+    """)
+    _wait_until(qapp, lambda: False, timeout_seconds=1.5)
+    return _run_js_json(qapp, backend, """
+      var s = window.ketcher.editor.struct();
+      return {atoms: Array.from(s.atoms.keys()), bonds: Array.from(s.bonds.keys())};
+    """)
+
+
+def _select_and_collect(qapp, backend, key: str, pool_ids, received: list) -> list:
+    got = []
+    for pool_id in pool_ids:
+        _run_js_json(qapp, backend, "window.ketcher.editor.selection(null); return 1;")
+        _wait_until(qapp, lambda: False, timeout_seconds=0.25)
+        received.clear()
+        _run_js_json(
+            qapp, backend,
+            "window.ketcher.editor.selection({%s: [%d]}); return 1;" % (key, pool_id),
+        )
+        _wait_until(qapp, lambda: bool(received), timeout_seconds=5)
+        got.append(received[-1] if received else None)
+    return got
+
+
+def test_a_selection_arrives_as_a_molfile_position_not_a_ketcher_pool_id(qapp):
+    """Clicking a carbon said "pick a heavy atom". THE INDEX WAS A POOL ID.
+
+    Ketcher's `Pool` extends Map and allocates from a counter that only ever
+    increments, so an id is a permanent identity handle and a freed one is
+    never reused -- while the molfile is positional and RDKit numbers atoms
+    by reading it in order. The two agree only until something is deleted.
+
+    Reproduced exactly as reported: two rings drawn, the first erased, and
+    the surviving benzene's six carbons carried pool ids 6..11 against a
+    six-atom molfile. Clicking two vertices sent 8 and 10, and the Atom
+    Inspector answered "Atom 9 is in the 3D structure but not in the
+    structure as drawn -- pick a heavy atom" about a carbon.
+
+    Bonds had the identical offset and were WORSE: a wrong bond index stays
+    in range, so the panel silently described a different bond. Both are
+    asserted here.
+
+    This must run against the real bundle, because the fix lives in JS and a
+    stale dist would leave the app broken with every Python test green.
+    """
+    backend = _ready_backend(qapp, shown=True)
+    atoms_received: list[int] = []
+    bonds_received: list[int] = []
+    backend.atom_selected.connect(atoms_received.append)
+    backend.bond_selected.connect(bonds_received.append)
+
+    pool = _draw_two_rings_and_erase_the_first(qapp, backend)
+
+    # ASSERT THE SETUP, or the test proves nothing. If the Delete hotkey
+    # ever stops erasing, the pool stays dense, pool ids equal positions by
+    # accident and the assertions below pass while testing nothing at all.
+    assert pool.get("atoms") == [6, 7, 8, 9, 10, 11], (
+        f"setup did not produce non-dense pool ids, so this test would pass "
+        f"vacuously: {pool}"
+    )
+    assert pool.get("bonds") == [6, 7, 8, 9, 10, 11], f"bond setup failed: {pool}"
+
+    assert _select_and_collect(qapp, backend, "atoms", pool["atoms"], atoms_received) == [
+        0, 1, 2, 3, 4, 5
+    ], "atom pool ids reached Python untranslated"
+    assert _select_and_collect(qapp, backend, "bonds", pool["bonds"], bonds_received) == [
+        0, 1, 2, 3, 4, 5
+    ], "bond pool ids reached Python untranslated"
+
+    backend.widget().hide()
+
+
+def test_a_freshly_loaded_structure_still_reports_the_same_indices(qapp):
+    """The common path, and the one the translation could quietly break.
+
+    A fresh `setMolecule` rebuilds the pool from zero, so ids and positions
+    coincide and `molfilePosition` must be an identity here. Worth its own
+    test because the regression test above deliberately works only on an
+    EDITED structure -- a translation that returned, say, the id minus six
+    would satisfy it and break every molecule nobody had edited yet.
+    """
+    backend = _ready_backend(qapp, shown=True)
+    atoms_received: list[int] = []
+    bonds_received: list[int] = []
+    backend.atom_selected.connect(atoms_received.append)
+    backend.bond_selected.connect(bonds_received.append)
+
+    backend.load_molblock(_ETHANOL_MOLBLOCK_NO_EXPLICIT_H)
+    assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
+
+    pool = _run_js_json(qapp, backend, """
+      var s = window.ketcher.editor.struct();
+      return {atoms: Array.from(s.atoms.keys()), bonds: Array.from(s.bonds.keys())};
+    """)
+    assert pool.get("atoms") == [0, 1, 2], f"expected a dense pool after a load: {pool}"
+
+    assert _select_and_collect(qapp, backend, "atoms", pool["atoms"], atoms_received) == [0, 1, 2]
+    assert _select_and_collect(qapp, backend, "bonds", pool["bonds"], bonds_received) == [0, 1]
+
+    backend.widget().hide()
 
 
 def test_the_canvas_can_reach_the_system_clipboard(qapp):

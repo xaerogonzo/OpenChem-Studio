@@ -163,17 +163,26 @@ class KetcherEditorBackend(EditorBackend):
         self._page.load(QUrl.fromLocalFile(str(_DIST_INDEX)))
 
     def _on_atom_selected(self, atom_index: int) -> None:
-        """One atom picked on the 2D canvas.
+        """One atom picked on the 2D canvas, as a MOLFILE POSITION.
 
         Ketcher's `selectionChange` fires for marquee selections too; the
         JS side forwards only single-atom selections, because the inspector
         describes ONE atom and a drag across half the structure would
         otherwise make it flicker through whatever came last.
+
+        **The index arriving here has already been translated out of
+        Ketcher's own id space**, by `molfilePosition` in
+        tools/ketcher-host/src/main.jsx -- read that comment before
+        trusting any index from this editor. Ketcher's selection reports
+        POOL IDS, which are permanent identity handles from a
+        never-reused counter, not positions; they match molfile order only
+        until the first atom is deleted. So this value is directly usable
+        as an RDKit atom index and the raw selection value was not.
         """
         self.atom_selected.emit(atom_index)
 
     def _on_bond_selected(self, bond_index: int) -> None:
-        """One bond picked on the 2D canvas.
+        """One bond picked on the 2D canvas, as a MOLFILE POSITION.
 
         Ketcher reports bonds through the same `selectionChange` event as
         atoms, in a selection object that carries ONLY the keys with
@@ -182,9 +191,15 @@ class KetcherEditorBackend(EditorBackend):
         assumed from the wrapper, which is what got the atom path wrong the
         first time.
 
-        The id is usable as an RDKit bond index directly: both are dense
-        and in molfile order, verified by loading one molblock into each
-        and comparing every (begin, end) pair.
+        Translated the same way as the atom index above, and it needs it
+        just as badly. This file previously claimed Ketcher's bond ids were
+        "dense and in molfile order" -- that was verified on a freshly
+        LOADED molblock, which is precisely the case where a pool has
+        never had anything removed from it and the two agree by accident.
+        Measured after erasing one of two drawn rings: bond pool ids 6..11
+        against a molfile of six bonds. Bonds fail worse than atoms, too --
+        a wrong bond index usually stays in range, so the panel reported
+        facts about a DIFFERENT bond instead of declining.
         """
         self.bond_selected.emit(bond_index)
 
