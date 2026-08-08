@@ -161,3 +161,56 @@ def test_the_widget_imports_no_chemistry():
     # text and failed on the COMMENT saying RDKit must not be imported --
     # a check that cannot tell an import from a sentence about one.
     assert not any(name.startswith(("rdkit", "openchem.chem")) for name in imported)
+
+
+# --- three things only the running app found ---------------------------------
+
+
+def test_the_subtitle_formula_is_not_the_formula_unit():
+    """They are different facts. The first version fell back to the
+    formula unit when no formula was given, so the card read
+    "Na+ · Cl-  Ionic salt" above a row saying "Formula unit  Na+ · Cl-"
+    -- two lines for one thing."""
+    data = _data(SODIUM_CHLORIDE, name="Sodium chloride")
+
+    assert data.formula == "ClNa"
+    assert ("Formula unit", "Na+ · Cl-") in data.rows
+    assert data.formula != dict(data.rows)["Formula unit"]
+
+
+def test_the_report_carries_both_formulas():
+    """ClNa is what the atoms add up to; Na+ · Cl- is what the substance
+    is made of. A card can only show the distinction if the report makes
+    it."""
+    report = compute_substance_analysis(Chem.MolFromSmiles(SODIUM_CHLORIDE), "uuid")
+    facts = {fact.label: fact.display_value for fact in report.facts}
+
+    assert facts["Formula"] == "ClNa"
+    assert facts["Formula unit"] == "Na+ · Cl-"
+
+
+def test_the_refusal_reason_reports_its_wrapped_height(card):
+    """A plain word-wrapped `QLabel` does not, so the card -- which is
+    Fixed vertically -- sized itself from the UNWRAPPED hint and clipped
+    the last line. Caught by screenshotting the running app: the four-ion
+    refusal ended "...belong to the same" with "formula unit." cut off.
+
+    Asserting `hasHeightForWidth` rather than a pixel count because that
+    is the property whose absence caused it, and a pixel count would be
+    a different number on every machine.
+    """
+    card.set_data(_data(FOUR_IONS))
+
+    assert card._reason.hasHeightForWidth()
+    assert card._reason.isVisibleTo(card)
+
+
+def test_a_long_reason_makes_the_card_taller(card):
+    """The height hint has to grow with the text, or a Fixed card cannot
+    be tall enough for it however well the label reports itself."""
+    card.set_data(_data(SODIUM_CHLORIDE, name="Sodium chloride"))
+    without_reason = card.sizeHint().height()
+
+    card.set_data(_data(FOUR_IONS))
+
+    assert card.sizeHint().height() > without_reason

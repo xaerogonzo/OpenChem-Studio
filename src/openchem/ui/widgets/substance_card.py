@@ -29,6 +29,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from PySide6.QtCore import Qt
+from openchem.ui.widgets.collapsible_section import WrappedLabel
 from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
@@ -112,9 +113,16 @@ def card_data_from_report(report, *, name: str = "", formula: str = "") -> Subst
     rows = tuple(
         (label, facts[label].display_value) for label in wanted if label in facts
     )
+    # The plain formula, NOT the formula unit. They are different facts and
+    # the subtitle showing the same string as the row under it was a live
+    # check's finding: "Na+ - Cl-  Ionic salt / Formula unit  Na+ - Cl-"
+    # spends two lines saying one thing.
+    if not formula and "Formula" in facts:
+        formula = facts["Formula"].display_value
+
     return SubstanceCardData(
         name=name,
-        formula=formula or (facts["Formula unit"].display_value if "Formula unit" in facts else ""),
+        formula=formula,
         classification=classification,
         rows=rows,
         reason=reason,
@@ -155,8 +163,19 @@ class SubstanceCard(QFrame):
         self._rows.setVerticalSpacing(1)
         layout.addWidget(self._rows_container)
 
-        self._reason = QLabel("", self)
-        self._reason.setWordWrap(True)
+        # **`WrappedLabel`, not a plain wrapped `QLabel`.** A plain one does
+        # not report its wrapped height, so the card -- which is Fixed
+        # vertically -- sized itself from the unwrapped hint and CLIPPED the
+        # last line. Caught by screenshotting the running app: the four-ion
+        # refusal ended "...belong to the same" with "formula unit." cut
+        # off, which turns a careful explanation into a confusing fragment.
+        #
+        # This is the one place in this widget that needs it. Its
+        # MinimumExpanding policy is safe here because the card itself is
+        # Fixed, so the policy only corrects the height hint rather than
+        # claiming the panel's stretch -- the failure mode recorded against
+        # the batch status line.
+        self._reason = WrappedLabel("", self)
         self._reason.setStyleSheet("color: #8a6d00;")
         self._reason.hide()
         layout.addWidget(self._reason)

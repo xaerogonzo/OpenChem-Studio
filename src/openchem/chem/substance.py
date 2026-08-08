@@ -494,6 +494,20 @@ def compute_substance_analysis(
         facts.append(
             Fact(
                 category=FactCategory.IDENTITY,
+                label="Formula",
+                value=rdMolDescriptors.CalcMolFormula(mol),
+                display_value=rdMolDescriptors.CalcMolFormula(mol),
+                source="Substance",
+                basis=Basis.DETERMINISTIC,
+                # Distinct from the formula unit below, and the pair is
+                # the point: ClNa is what the atoms add up to, Na+ . Cl-
+                # is what the substance is made of.
+                evidence=("what the atoms add up to, ignoring how they associate",),
+            )
+        )
+        facts.append(
+            Fact(
+                category=FactCategory.IDENTITY,
                 label="Formula unit",
                 value=substance.formula_unit,
                 display_value=substance.formula_unit,

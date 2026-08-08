@@ -995,6 +995,19 @@ def test_a_long_result_is_not_silently_clipped(qapp):
 # --- running several calculators at once ------------------------------------
 
 
+#: Two atoms and no bonds -- enough to be a structure, small enough to
+#: read. Used where a test needs a molecule that HAS a molblock.
+_MINIMAL_MOLBLOCK = """
+  Mrv  
+
+  2  0  0  0  0  0            999 V2000
+    0.0000    0.0000    0.0000 Na  0  3  0  0  0  0  0  0  0  0  0  0
+    1.5000    0.0000    0.0000 Cl  0  5  0  0  0  0  0  0  0  0  0  0
+M  CHG  2   1   1   2  -1
+M  END
+"""
+
+
 class _RecordingService:
     """Records dispatches instead of running anything.
 
@@ -1427,3 +1440,52 @@ def test_the_status_glyphs_really_render(qapp):
             f"the {name} glyph {glyph!r} drew nothing -- no font in the "
             "fallback chain supplies it, so the status is invisible"
         )
+
+
+def test_the_identity_card_uses_the_molecule_s_real_name(qapp):
+    """**A `getattr` default hid a typo.** The first version read
+    `getattr(molecule, "name", "")` -- the field is `display_name` -- so
+    every card rendered "(not named)" for a molecule the project explorer
+    was calling "New molecule" three inches away, and nothing raised.
+    """
+    panel, bus, _service = _panel_with_recorder(qapp)
+    model = _select_molecule(panel, bus)
+
+    assert model.display_name
+    assert panel._selected_molecule_name() == model.display_name
+
+
+def test_editing_a_structure_re_perceives_it(qapp):
+    """Found by running the app. A new molecule has no molblock, so the
+    header is correctly empty; pasting a structure into it fires
+    `MoleculeChanged`, NOT `MoleculeSelected`. Without this the card read
+    "No structure selected" while the properties below it showed
+    Mwt 58.44 and formula ClNa.
+
+    Every other test publishes a selection for a molecule that already has
+    its molblock -- the one order in which this cannot happen.
+    """
+    from openchem.events.events import MoleculeChanged
+
+    panel, bus, service = _panel_with_recorder(qapp)
+    model = _select_molecule(panel, bus)
+    before = [r for r in service.requests if r.calculator_id == "substance_analysis"]
+
+    model.molblock = _MINIMAL_MOLBLOCK
+    bus.publish(MoleculeChanged(molecule_uuid=model.uuid))
+    qapp.processEvents()
+
+    after = [r for r in service.requests if r.calculator_id == "substance_analysis"]
+    assert len(after) > len(before)
+
+
+def test_a_molecule_with_no_structure_is_not_dispatched(qapp):
+    """This is the only calculator that runs unasked, so it is the only
+    one that can be handed a molecule with nothing in it. Live, that
+    logged `InvalidStructureError: Molecule ... has no molblock` as a
+    calculator FAILURE and printed the traceback in red in the Console
+    panel, on every startup."""
+    panel, bus, service = _panel_with_recorder(qapp)
+    _select_molecule(panel, bus)
+
+    assert not [r for r in service.requests if r.calculator_id == "substance_analysis"]

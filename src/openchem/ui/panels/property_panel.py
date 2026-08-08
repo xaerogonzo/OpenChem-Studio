@@ -37,6 +37,7 @@ from openchem.events.events import (
     AlertComputed,
     DescriptorComputed,
     ReportComputed,
+    MoleculeChanged,
     MoleculeSelected,
     PerAtomDataComputed,
     PhCurveComputed,
@@ -434,6 +435,7 @@ class PropertyPanel(QWidget):
                 self._section_for(category)
 
         event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
+        event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
         event_bus.subscribe(DescriptorComputed, self._on_descriptor_computed)
         event_bus.subscribe(AlertComputed, self._on_alert_computed)
         event_bus.subscribe(ReportComputed, self._on_report_computed)
@@ -745,6 +747,22 @@ class PropertyPanel(QWidget):
         if not _is_catalog(alert):
             self._reports[alert.alert_id] = report_from_alert(alert)
 
+    def _on_molecule_changed(self, event: MoleculeChanged) -> None:
+        """Re-perceive when the STRUCTURE changes, not only when the
+        selection does.
+
+        Found by running the app. Selecting the empty starter molecule
+        leaves nothing to perceive, and pasting a structure into it fires
+        `MoleculeChanged` rather than `MoleculeSelected` -- so the header
+        read "No structure selected" while the properties below it showed
+        Mwt 58.44 and formula ClNa. Every test builds a molecule that
+        already has its molblock and publishes a selection, which is the
+        one order in which this cannot happen.
+        """
+        if event.molecule_uuid != self._selected_molecule_uuid:
+            return
+        self._request_substance_perception()
+
     def _selected_molecule_name(self) -> str:
         """What the app calls the selected molecule, or "".
 
@@ -757,7 +775,12 @@ class PropertyPanel(QWidget):
         if self._project is None or self._selected_molecule_uuid is None:
             return ""
         molecule = self._project.find_molecule(self._selected_molecule_uuid)
-        return getattr(molecule, "name", "") if molecule is not None else ""
+        # `display_name`, read directly. The first version was
+        # `getattr(molecule, "name", "")`, and the DEFAULT hid the typo:
+        # every card rendered "(not named)" for a molecule the project
+        # explorer was calling "New molecule" three inches away, with
+        # nothing raising.
+        return molecule.display_name if molecule is not None else ""
 
     def _request_substance_perception(self) -> None:
         """Run the one calculator the header is made of.
@@ -772,6 +795,15 @@ class PropertyPanel(QWidget):
             return
         molecule = self._project.find_molecule(self._selected_molecule_uuid)
         if molecule is None:
+            return
+        # **A new molecule has no molblock yet, and this is the only
+        # calculator that runs without being asked.** Found by launching
+        # the app: selecting the empty starter molecule logged
+        # `InvalidStructureError: Molecule ... has no molblock` as a
+        # calculator FAILURE, once per selection. Every other calculator
+        # waits for a click, so nothing had ever dispatched against a
+        # structure that does not exist yet.
+        if not molecule.molblock:
             return
         definition = self._calculator_registry.get("substance_analysis")
         if definition is None or not isinstance(definition.execution, RegistryExecution):
