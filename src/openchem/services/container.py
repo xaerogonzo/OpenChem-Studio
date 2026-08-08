@@ -19,6 +19,7 @@ from openchem.services.qm_surface_service import QmSurfaceService
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.services.screening_service import ScreeningService
 from openchem.services.atom_fact_service import AtomFactService
+from openchem.services.reaction_template_service import ReactionTemplateService
 from openchem.services.structure_check_service import StructureCheckService
 from openchem.services.table_export_service import TableExportService
 
@@ -51,3 +52,4 @@ class ServiceContainer:
     screening_service: ScreeningService
     structure_check_service: StructureCheckService
     atom_fact_service: AtomFactService
+    reaction_template_service: ReactionTemplateService

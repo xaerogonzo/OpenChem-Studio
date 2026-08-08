@@ -23,6 +23,7 @@ from openchem.plugins.interfaces import (
 )
 from openchem.plugins.ui_registry import UIRegistry
 from openchem.services.container import ServiceContainer
+from openchem.services.reaction_template_service import ReactionTemplate
 
 TEvent = TypeVar("TEvent", bound=Event)
 Rollback = Callable[[], None]
@@ -101,6 +102,34 @@ class _AtomFactRegistrar:
     def register(self, provider: AtomFactProvider) -> None:
         self._service.register_provider(provider)
         self._rollbacks.append(lambda: self._service.unregister_provider(provider.provider_id))
+
+
+class _ReactionTemplateRegistrar:
+    """`context.reactions.register([...])`.
+
+    Takes a LIST rather than one template at a time: a reaction-SMARTS
+    library is data that grows, and registering thirty rules should be
+    one call and one rollback, not thirty of each.
+    """
+
+    def __init__(self, service, plugin_id: str, rollbacks: list[Rollback]) -> None:
+        self._service = service
+        self._plugin_id = plugin_id
+        self._rollbacks = rollbacks
+
+    def register(self, templates: list[ReactionTemplate]) -> None:
+        self._service.register(self._plugin_id, list(templates))
+        self._rollbacks.append(lambda: self._service.unregister_source(self._plugin_id))
+
+    def all_templates(self) -> list[ReactionTemplate]:
+        """Every registered template, including other plugins'.
+
+        Read access is deliberate rather than an oversight: the bundled
+        reaction plugin has to APPLY what others registered, and a
+        registration namespace that could only write would make the
+        feature unusable by the one plugin that needs it.
+        """
+        return self._service.all_templates()
 
 
 class _ConformerRegistrar:
@@ -208,7 +237,8 @@ class PluginContext:
 
     Grouped into small namespaces (`descriptors`, `conformers`, `docking`,
     `quantum_chemistry`, `importers`, `exporters`, `panels`, `menus`,
-    `events`, `settings`, `secrets`, `molecules`) rather than one flat pile
+    `events`, `settings`, `secrets`, `molecules`, `reactions`) rather than
+    one flat pile
     of `register_*` methods on this class directly.
 
     Deliberately does not expose the raw `EventBus`, `ServiceContainer`, or
@@ -242,6 +272,9 @@ class PluginContext:
         self.events = _EventRegistrar(services.event_bus, self._rollbacks)
         self.settings = _PluginSettings(settings, plugin_id)
         self.secrets = _PluginSecrets(plugin_id)
+        self.reactions = _ReactionTemplateRegistrar(
+            services.reaction_template_service, plugin_id, self._rollbacks
+        )
         self.molecules = _PluginMolecules(ui_registry)
 
     def resource_path(self, relative: str) -> Path:

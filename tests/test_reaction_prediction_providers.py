@@ -110,3 +110,143 @@ def test_remote_api_provider_wraps_request_exceptions():
 def test_build_default_providers_has_two_methods():
     provider_map = providers_mod.build_default_providers(BUNDLED_TEMPLATES)
     assert set(provider_map) == {"Templates", "Remote API"}
+
+
+# --- templates contributed by a plugin --------------------------------------
+#
+# `ARCHITECTURE.md` recorded this as "an extensibility point with nothing
+# built on them yet ... a real gap, not silently dropped". These cover the
+# third source: bundled file, user file, and now another plugin.
+
+_ESTERIFICATION = "[C:1](=O)[OH:2].[OH:3][C:4]>>[C:1](=O)[O:3][C:4]"
+
+
+def _service():
+    from openchem.services.reaction_template_service import ReactionTemplateService
+
+    return ReactionTemplateService()
+
+
+def _template(name="Esterification", smarts=_ESTERIFICATION):
+    from openchem.services.reaction_template_service import ReactionTemplate
+
+    return ReactionTemplate(name=name, smarts=smarts)
+
+
+def test_a_registered_template_carries_the_plugin_that_supplied_it():
+    """A prediction has to be able to say which rule produced it, and
+    "Esterification" alone does not distinguish two plugins shipping a
+    template of that name."""
+    service = _service()
+    service.register("acme_reactions", [_template()])
+
+    stored = service.all_templates()[0]
+
+    assert stored.source_id == "acme_reactions"
+    assert stored.source_label == "Esterification (acme_reactions)"
+    stored.source_label.encode("cp1252")  # it reaches a result line
+
+
+def test_registering_again_replaces_that_plugins_set_and_no_others():
+    """Re-registering is how a plugin updates its library. It must not
+    disturb anybody else's."""
+    service = _service()
+    service.register("first", [_template("A")])
+    service.register("second", [_template("B")])
+
+    service.register("first", [_template("A2"), _template("A3")])
+
+    names = sorted(t.name for t in service.all_templates())
+    assert names == ["A2", "A3", "B"]
+
+
+def test_two_plugins_may_ship_the_same_NAME_without_one_disappearing():
+    """Different SMARTS under one name is a real case, and collapsing
+    them would silently lose a rule somebody installed. De-duplication
+    belongs at the PRODUCT level, which the provider already does."""
+    service = _service()
+    service.register("one", [_template("Esterification", _ESTERIFICATION)])
+    service.register("two", [_template("Esterification", "[C:1]=[O:2]>>[C:1][O:2]")])
+
+    assert len(service.all_templates()) == 2
+    assert len({t.source_label for t in service.all_templates()}) == 2
+
+
+def test_unloading_a_plugin_removes_exactly_its_templates():
+    """The transactional unwind every other registrar gets."""
+    service = _service()
+    service.register("stays", [_template("Kept")])
+    service.register("goes", [_template("Removed")])
+
+    service.unregister_source("goes")
+
+    assert [t.name for t in service.all_templates()] == ["Kept"]
+
+
+def test_the_provider_applies_a_template_a_plugin_registered(tmp_path):
+    """End to end: the namespace is decorative unless the provider
+    actually reacts with what was registered."""
+    bundled = tmp_path / "empty.json"
+    bundled.write_text("[]", encoding="utf-8")
+    service = _service()
+    service.register("acme", [_template()])
+    provider = providers_mod.RDKitTemplateProvider(bundled, service)
+
+    predictions = provider.predict(["CC(=O)O", "CCO"])
+
+    assert predictions
+    assert any("acme" in p.source_label for p in predictions)
+    # Deterministic, so no invented confidence -- unchanged by this work.
+    assert all(p.confidence is None for p in predictions)
+
+
+def test_a_template_registered_AFTER_the_provider_is_built_still_applies(tmp_path):
+    """**Why the templates are read live rather than snapshotted.**
+    Plugin load order is not something a template author should have to
+    reason about, and a provider built before the contributing plugin
+    activates would silently ignore it."""
+    bundled = tmp_path / "empty.json"
+    bundled.write_text("[]", encoding="utf-8")
+    service = _service()
+    provider = providers_mod.RDKitTemplateProvider(bundled, service)
+    assert provider.predict(["CC(=O)O", "CCO"]) == []
+
+    service.register("late_plugin", [_template()])
+
+    assert provider.predict(["CC(=O)O", "CCO"])
+
+
+def test_a_provider_with_no_registry_still_works(tmp_path):
+    """The service is optional so the providers stay constructible
+    without a whole ServiceContainer -- the same reason `kapustinskii`
+    takes ions rather than a molecule."""
+    bundled = tmp_path / "one.json"
+    bundled.write_text(
+        json.dumps([{"name": "Esterification", "smarts": _ESTERIFICATION}]), encoding="utf-8"
+    )
+
+    provider = providers_mod.RDKitTemplateProvider(bundled)
+
+    assert provider.predict(["CC(=O)O", "CCO"])
+
+
+def test_the_registrar_records_a_rollback_so_unload_removes_the_templates():
+    """**The claim that matters for a plugin namespace**: everything
+    registered through the context is unwound exactly on unload, or a
+    disabled plugin keeps reacting. Tested on the registrar directly --
+    building a whole `PluginContext` needs a ServiceContainer, a
+    UIRegistry and Settings, and the rollback is the part under test."""
+    from openchem.plugins.context import _ReactionTemplateRegistrar
+
+    service = _service()
+    rollbacks: list = []
+    registrar = _ReactionTemplateRegistrar(service, "acme", rollbacks)
+
+    registrar.register([_template()])
+    assert len(rollbacks) == 1
+    assert registrar.all_templates()  # readable, so the reaction plugin can apply them
+
+    for rollback in rollbacks:
+        rollback()
+
+    assert service.all_templates() == []

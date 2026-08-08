@@ -69,19 +69,39 @@ class RDKitTemplateProvider(ReactionPredictor):
     `confidence` is always `None` — a template match isn't a scored
     prediction, and inventing a confidence number would be misleading.
 
-    Loads templates from the bundled `reaction_templates.json` **and**, if
-    present, an additional file under the user's app-data directory — so a
-    user can add their own reactions without touching this plugin's code
+    THREE sources, in increasing specificity: the bundled
+    `reaction_templates.json`, an optional file under the user's app-data
+    directory, and any template another plugin registered through
+    `context.reactions.register(...)`.
+
+    The third was the gap `ARCHITECTURE.md` recorded as "an extensibility
+    point with nothing built on them yet". It is read LIVE rather than
+    snapshotted at construction, because a plugin may activate after this
+    one -- load order is not something a template author should have to
+    reason about, and a snapshot would silently drop whatever came later.
+
     (reaction-SMARTS libraries tend to grow; see docs/PLUGIN_SDK.md's convention
     of treating this kind of thing as data, not code).
     """
 
     provider_id = "rdkit_templates"
 
-    def __init__(self, bundled_templates_path: Path) -> None:
-        self._templates = _load_templates_file(bundled_templates_path) + _load_templates_file(
-            USER_TEMPLATES_PATH
-        )
+    def __init__(self, bundled_templates_path: Path, template_service=None) -> None:
+        self._file_templates = _load_templates_file(
+            bundled_templates_path
+        ) + _load_templates_file(USER_TEMPLATES_PATH)
+        self._template_service = template_service
+
+    @property
+    def _templates(self) -> list[_ReactionTemplate]:
+        """File templates plus whatever plugins have registered right now."""
+        if self._template_service is None:
+            return self._file_templates
+        registered = [
+            _ReactionTemplate(name=t.source_label, smarts=t.smarts)
+            for t in self._template_service.all_templates()
+        ]
+        return self._file_templates + registered
 
     def predict(self, reactant_smiles: list[str]) -> list[ReactionPrediction]:
         from rdkit import Chem
@@ -195,8 +215,13 @@ class RemoteReactionAPIProvider(ReactionPredictor):
         ]
 
 
-def build_default_providers(bundled_templates_path: Path) -> dict[str, ReactionPredictor]:
+def build_default_providers(
+    bundled_templates_path: Path, template_service=None
+) -> dict[str, ReactionPredictor]:
+    """`template_service` is optional so the providers stay constructible
+    in a test without a whole ServiceContainer -- the same reason
+    `kapustinskii` takes ions rather than a molecule."""
     return {
-        "Templates": RDKitTemplateProvider(bundled_templates_path),
+        "Templates": RDKitTemplateProvider(bundled_templates_path, template_service),
         "Remote API": RemoteReactionAPIProvider(),
     }

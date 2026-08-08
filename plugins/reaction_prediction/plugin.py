@@ -46,7 +46,11 @@ class ReactionPredictionPlugin(Plugin):
         context.events.subscribe(MoleculeSnapshotUpdated, cache.on_snapshot_updated)
 
         bundled_templates_path = context.resource_path("reaction_templates.json")
-        provider_map = providers_module.build_default_providers(bundled_templates_path)
+        # Handed the live registry, so a template registered by ANOTHER
+        # plugin is applied even if that plugin activates after this one.
+        provider_map = providers_module.build_default_providers(
+            bundled_templates_path, context.reactions
+        )
 
         panel_provider = ReactionPredictionPanelProvider(context, provider_map, cache)
         context.panels.register(panel_provider)

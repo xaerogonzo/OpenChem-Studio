@@ -614,10 +614,14 @@ engine's ring and functional-group perception.
   **MMTF is refused rather than deferred** — `mmtf.rcsb.org` no longer
   resolves and the vendored Mol* bundle has no MMTF reader, so there is
   neither a source nor a viewer for it.
-- `RDKitTemplateProvider`'s bundled-plus-user-dir templates are an
-  extensibility point with nothing built on them yet: a formal
-  `context.reactions.register(...)`-style plugin-provided-templates
-  namespace is a real gap, not silently dropped.
+- `RDKitTemplateProvider` now has THREE template sources, not two: the
+  bundled file, the user's app-data file, and `context.reactions`, so a
+  plugin can contribute reaction SMARTS. The registry lives in core
+  (`services/reaction_template_service.py`) rather than in the reaction
+  plugin, because a plugin must not have to import another plugin to
+  extend it. Templates are read LIVE rather than snapshotted at
+  construction, so load order is not something a template author has to
+  reason about.
 - Docking receptor prep (`VinaDockingProvider`) has no missing-residue
   repair, and after a spike that is a DECISION rather than a gap. The
   dependency objection turned out to be obsolete — PDBFixer is three

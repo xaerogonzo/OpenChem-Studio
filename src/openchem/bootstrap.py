@@ -21,6 +21,7 @@ from openchem.services.batch_service import BatchService
 from openchem.services.conformer_service import ConformerService
 from openchem.services.container import ServiceContainer
 from openchem.services.atom_fact_service import AtomFactService
+from openchem.services.reaction_template_service import ReactionTemplateService
 from openchem.services.structure_check_service import StructureCheckService
 from openchem.services.descriptor_service import DescriptorService
 from openchem.services.docking_service import DEFAULT_NUM_POSES, DockingService
@@ -299,4 +300,5 @@ def build_service_container() -> ServiceContainer:
         # lazily so `PluginContext` always has something to hand a
         # registrar, exactly like every other provider service.
         atom_fact_service=AtomFactService(),
+        reaction_template_service=ReactionTemplateService(),
     )
