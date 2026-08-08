@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import time
 from dataclasses import replace
+from pathlib import Path
 
 from rdkit import Chem
 from rdkit.Chem import AllChem
@@ -556,3 +557,91 @@ def test_queueing_an_ensemble_replaces_a_queued_single_molecule(qapp):
     assert _wait_until(qapp, lambda: backend._page_ready)
     assert _wait_until(qapp, lambda: _model_count(qapp, backend) == 1)
     assert _run_js(qapp, backend, "JSON.stringify(currentEnsemble)") == '["#d55e00"]'
+
+
+def test_clearing_before_the_page_loads_never_calls_into_the_page(qapp):
+    """`MoleculeViewer3DWidget._refresh_view` calls `clear()` during its
+    own construction, when the starter molecule has no conformers -- long
+    before `loadFinished`. Unguarded that threw
+
+        Uncaught TypeError: Cannot read properties of undefined
+        (reading 'clear')
+
+    on EVERY cold launch, measured on 9 of 9 while instrumenting the
+    viewer, and invisible in normal use because the page's console logs
+    at DEBUG. Nothing needs replaying -- the page starts empty, so a
+    clear that arrives before it loads has already happened."""
+    backend = Mol3DViewerBackend()
+    assert not backend._page_ready  # exactly the widget's situation
+
+    calls: list[str] = []
+    original = backend._page.runJavaScript
+    backend._page.runJavaScript = lambda script, *a, **k: calls.append(script)  # type: ignore[method-assign]
+    backend.clear()
+    backend._page.runJavaScript = original  # type: ignore[method-assign]
+
+    assert calls == []
+
+
+def test_a_clear_before_the_page_loads_cancels_the_queued_structure(qapp):
+    """The hazard the early return creates and must not leave open: a
+    clear issued between a load and `loadFinished` would otherwise be
+    overtaken on replay by the very structure it was meant to remove."""
+    backend = Mol3DViewerBackend()
+    backend.load_conformer(_ethanol_molblock())
+    assert backend._pending_molblock is not None
+
+    backend.clear()
+    assert backend._pending_molblock is None
+
+    assert _wait_until(qapp, lambda: backend._page_ready)
+    assert _run_js(qapp, backend, "viewer.getModel() ? 1 : 0") in (0, None)
+
+
+def test_a_style_chosen_before_the_page_loads_is_not_lost(qapp):
+    """`set_style` was the second unguarded entry point, and the damaging
+    one: `clear` merely threw, but a dropped style leaves the viewer
+    rendering in the default representation while the combo box shows the
+    one the user picked.
+
+    No caller reaches it before `loadFinished` today -- both run
+    `addItems` before connecting, so the default selection emits
+    nothing -- but the combo box is on screen and clickable while the page
+    is still loading, and that ordering is not something a future edit
+    would know to preserve."""
+    backend = Mol3DViewerBackend()
+    assert not backend._page_ready
+
+    backend.set_style("sphere")
+    assert backend._pending_style == "sphere"
+
+    assert _wait_until(qapp, lambda: backend._page_ready)
+    assert _wait_until(qapp, lambda: _run_js(qapp, backend, "currentStyle") == "sphere")
+
+
+def test_every_draw_path_waits_for_a_sized_container(qapp):
+    """Qt lays a freshly-shown tab out asynchronously, so a draw issued
+    right after the switch runs against a 0x0 container and 3Dmol reads
+    its canvas size from the container at draw time. `loadCrystal`
+    learned this over five cold launches; `loadMolblock` and
+    `loadEnsemble` shipped without it for far longer.
+
+    A source check rather than a render check, because the failure is a
+    scheduling race that a test cannot reliably provoke -- and because
+    what must not regress is a FOURTH load path being added without the
+    wait."""
+    page = (
+        Path(__file__).resolve().parent.parent
+        / "src/openchem/resources/viewer3d/viewer.html"
+    ).read_text(encoding="utf-8")
+
+    for name in ("loadMolblock", "loadEnsemble", "loadCrystal"):
+        start = page.index(f"{name}: function")
+        body = page[start : page.index("\n        },", start)]
+        assert "drawWhenSized(" in body, f"{name} draws without waiting for a size"
+
+    # rAF is suspended for content the browser considers not visible, so
+    # the callback can simply never fire and nothing is ever drawn.
+    helper = page[page.index("function drawWhenSized") :][:600]
+    assert "setTimeout" in helper
+    assert "requestAnimationFrame" not in helper

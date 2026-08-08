@@ -187,6 +187,54 @@
         viewer.render();
       }
 
+      // Run `fn` once the container has a plausible size, resizing the
+      // viewer first. Every draw path needs this, and each learned it
+      // separately -- the crystal path the hard way, over five cold
+      // launches.
+      //
+      // This view lives in a tab. Qt makes a tab current asynchronously,
+      // so a draw issued right after the switch runs against a container
+      // that is still 0x0, and 3Dmol reads its canvas dimensions from the
+      // container at draw time. Both failure modes were seen live:
+      // without resize() a whole unit cell rendered into a 40px corner
+      // (3Dmol kept a stale size), and WITH resize() it vanished, because
+      // resize() faithfully committed the zero.
+      //
+      // **setTimeout, NOT requestAnimationFrame.** rAF is suspended for
+      // content the browser considers not visible, so when the first
+      // synchronous attempt finds a 0x0 container the callback can simply
+      // never fire and nothing is ever drawn. Measured over five cold
+      // launches of the crystal path: 3 drew, 2 drew nothing, and every
+      // drawing run produced an IDENTICAL image -- deterministic
+      // rendering, nondeterministic scheduling, which is the signature of
+      // a suspended callback rather than a race in the drawing code.
+      //
+      // **Wait for a PLAUSIBLE size, not merely a non-zero one.** A 40px
+      // container is non-zero and still wrong; one run in five drew the
+      // whole cell at a 44-pixel scale because the old check accepted any
+      // non-zero width. After a bounded wait it falls through and draws
+      // anyway, so a genuinely small panel still gets a picture.
+      //
+      // **Threading the widget's expected width through and waiting for
+      // the container to match it was tried and blanked the view** -- the
+      // container's CSS width never equals the Qt widget's, so the wait
+      // always timed out.
+      function drawWhenSized(fn) {
+        var attempts = 0;
+        function attempt() {
+          var host = document.getElementById('viewer-container');
+          var big = host.clientWidth >= 200 && host.clientHeight >= 150;
+          if (!big && attempts < 60) {
+            attempts += 1;
+            window.setTimeout(attempt, 25);
+            return;
+          }
+          viewer.resize();
+          fn();
+        }
+        attempt();
+      }
+
       // Exposed for Python's fire-and-forget runJavaScript calls (see
       // ui/widgets/mol3d_viewer_backend.py). None of these need a return
       // value round-tripped back to Python, unlike Ketcher's getMolfile(),
@@ -232,8 +280,13 @@
               bridge.atomClicked(atom.index);
             }
           });
-          viewer.zoomTo();
-          viewer.render();
+          // Only the camera and the draw wait for a size; the model is
+          // built synchronously above so a setStyle arriving in between
+          // cannot act on a half-loaded viewer.
+          drawWhenSized(function () {
+            viewer.zoomTo();
+            viewer.render();
+          });
         },
         // 3D alignment: several structures superimposed in ONE coordinate
         // frame, each its own model so it keeps its own colour. Distinct
@@ -257,8 +310,10 @@
           // rather than labelling the wrong atoms.
           currentModel = null;
           applyStyle();
-          viewer.zoomTo();
-          viewer.render();
+          drawWhenSized(function () {
+            viewer.zoomTo();
+            viewer.render();
+          });
         },
         setStyle: function (styleName) {
           currentStyle = styleName;
@@ -320,58 +375,12 @@
         // XYZ, not a molblock, because a unit cell has no bonds and a
         // molblock would have to invent a bond table.
         loadCrystal: function (scene) {
-          // **Wait for the container to have a size before drawing.**
-          //
-          // This view lives in a tab. Qt makes the tab current
-          // asynchronously, so a draw issued right after the switch runs
-          // against a container that is still 0x0 -- and 3Dmol reads its
-          // canvas dimensions from the container at draw time. Both
-          // failure modes were seen live: without resize() the whole unit
-          // cell rendered into a 40px corner (3Dmol kept a stale size),
-          // and WITH resize() it vanished entirely, because resize()
-          // faithfully committed the zero.
-          //
-          // Retrying on the next frame costs nothing when the container is
-          // already laid out, which is the common case.
-          // Wait for the container to have a size at all. Qt lays a
-          // freshly-shown tab out asynchronously, so a draw issued right
-          // after the switch runs against a 0x0 container and 3Dmol reads
-          // its canvas size from the container at draw time.
-          //
-          // **setTimeout, NOT requestAnimationFrame.** rAF is suspended
-          // for content the browser considers not visible, so when the
-          // first synchronous attempt found a 0x0 container the callback
-          // could simply never fire and nothing was ever drawn. Measured
-          // over five cold launches: 3 drew, 2 drew nothing, and every
-          // drawing run produced an IDENTICAL image -- deterministic
-          // rendering, nondeterministic scheduling, which is the
-          // signature of a suspended callback rather than a race in the
-          // drawing code.
-          //
-          // **Threading the widget's expected width through and waiting
-          // for the container to match it was tried and blanked the view**
-          // -- the container's CSS width never equals the Qt widget's, so
-          // the wait always timed out. This is the version measured to
-          // work; see `_import_crystal` for the deferral that pairs with
-          // it.
-          var attempts = 0;
-          function draw() {
-            var host = document.getElementById('viewer-container');
-            // A container that is 40px wide is non-zero and still
-            // wrong -- measured: one run in five drew the whole cell at a
-            // 44-pixel scale because the old check accepted any non-zero
-            // width. Wait for a plausible one, then fall through so a
-            // genuinely small panel still gets a picture.
-            var big = host.clientWidth >= 200 && host.clientHeight >= 150;
-            if (!big && attempts < 60) {
-              attempts += 1;
-              window.setTimeout(draw, 25);
-              return;
-            }
-            viewer.resize();
+          // The whole build is deferred, not merely the camera: a unit
+          // cell's shapes are laid out against the viewer's dimensions.
+          // See `_import_crystal` for the deferral that pairs with this.
+          drawWhenSized(function () {
             drawCrystal(scene);
-          }
-          draw();
+          });
         },
         clear: function () {
           crystalShown = false;

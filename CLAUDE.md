@@ -609,6 +609,49 @@ Tests that assert on child-widget structure rather than drawing -- e.g.
 `test_structure_grid_widget.py` counting cells in a layout -- are not
 affected and do not need any of this.
 
+### The 3D viewer's JS console logs at DEBUG, and hid a daily error
+
+`_LoggingPage.javaScriptConsoleMessage` forwards the page's console to
+`logger.debug`, so **an exception thrown inside viewer.html is invisible in
+normal use.** Raising it to WARNING for one measurement run found this on
+**9 of 9 cold launches**:
+
+    Uncaught TypeError: Cannot read properties of undefined (reading 'clear')
+
+`::1` with no filename is how QtWebEngine reports a `runJavaScript` string,
+which is what named the caller: Python, calling into the page before the
+page existed. `MoleculeViewer3DWidget._refresh_view` runs during its own
+construction, the starter molecule has no conformers, so it calls
+`clear()` — and every load path in `Mol3DViewerBackend` queued behind
+`loadFinished` while `clear()` and `set_style()` did not.
+
+`clear()` merely threw. **`set_style()` was the damaging one**: a style
+chosen before the page loads is silently dropped, leaving the viewer
+rendering in the default representation with the combo box showing the one
+the user picked. Both are queued now.
+
+Two general points. **Raise a log level before concluding a page is fine** —
+the error was thrown on every launch for months. And a `clear` that queues
+must CANCEL the pending payloads rather than queue itself, or it is
+overtaken on replay by the very structure it was meant to remove.
+
+#### The render flakiness that could not be reproduced
+
+Recorded so the next person does not re-derive the same non-conclusion.
+Driving the app 5x per arm, the molecule path rendered a **black
+half-height canvas** in 3 of 5 and then 4 of 5 runs — then 9 of 9 clean
+with only a `console.log` added, and 5 of 5 clean after the fixes. **No
+cause was established** and the fixes below are not claimed to be one.
+
+The two things that DID come out of it are worth keeping:
+
+- **A black canvas scores as heavily inked.** The `Count-Ink` helper counts
+  any pixel darker than 240, so a failed render measured 94875 against a
+  successful one's 3067 — 30x — and read as "drew". Measure a black
+  fraction separately, or the metric reports failure as success.
+- **The rate moves between batches**, exactly as the access-violation
+  section already warns. Three arms of five said three different things.
+
 ### The formerly-flaky webview test
 
 `tests/test_mol3d_viewer_backend.py::test_apply_visualization_sets_atom_colors`

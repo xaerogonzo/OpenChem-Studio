@@ -93,6 +93,9 @@ class Mol3DViewerBackend(ViewerBackend):
         # same ambiguity was a real bug in MolStarViewerBackend, where
         # using None for both silently swallowed queued clears.
         self._pending_surface: SurfaceLayer | None | object = _NOTHING_PENDING
+        # The style is a plain preference, so unlike the payloads above it
+        # has a sensible default and only needs queueing when it differs.
+        self._pending_style: str | None = None
         self._page.loadFinished.connect(self._on_load_finished)
         self._page.load(QUrl.fromLocalFile(str(_VIEWER_HTML)))
 
@@ -101,6 +104,11 @@ class Mol3DViewerBackend(ViewerBackend):
             logger.error("Failed to load 3D viewer page from %s", _VIEWER_HTML)
             return
         self._page_ready = True
+        # Before any payload, so the structure is drawn in the style the
+        # user already chose rather than being restyled a frame later.
+        if self._pending_style is not None:
+            self._run_set_style(self._pending_style)
+            self._pending_style = None
         if self._pending_molblock is not None:
             self._run_load(self._pending_molblock)
             self._pending_molblock = None
@@ -182,9 +190,43 @@ class Mol3DViewerBackend(ViewerBackend):
         self._page.runJavaScript(f"window.openchemViewer.loadEnsemble({json.dumps(payload)});")
 
     def set_style(self, style: str) -> None:
+        # Queued like every other call for the reason in `clear` below.
+        # Today nothing sets a style before the page loads -- both callers
+        # (`MoleculeViewer3DWidget`, `AlignmentPanel`) run `addItems`
+        # BEFORE connecting, so the default selection emits nothing. That
+        # is an ordering nobody would think to preserve, and the combo box
+        # exists and is clickable while the page is still loading, so the
+        # call is reachable either way. Dropping it is the silent kind of
+        # failure: the viewer renders in the default representation while
+        # the combo box shows what the user picked.
+        if self._page_ready:
+            self._run_set_style(style)
+        else:
+            self._pending_style = style
+
+    def _run_set_style(self, style: str) -> None:
         self._page.runJavaScript(f"window.openchemViewer.setStyle({json.dumps(style)});")
 
     def clear(self) -> None:
+        # `MoleculeViewer3DWidget._refresh_view` calls this during its own
+        # construction, when the molecule has no conformers -- long before
+        # the page has loaded. Unguarded, it threw
+        # `Uncaught TypeError: Cannot read properties of undefined
+        # (reading 'clear')` on EVERY launch, measured on 9 of 9 cold
+        # starts, invisible because JS console output logs at DEBUG.
+        #
+        # Nothing needs replaying: the page starts empty, so a clear that
+        # arrives before it loads has already happened. It does have to
+        # CANCEL the queued payloads, or a clear issued between a load and
+        # `loadFinished` would be overtaken by the very structure it was
+        # meant to remove.
+        if not self._page_ready:
+            self._pending_molblock = None
+            self._pending_ensemble = None
+            self._pending_crystal = None
+            self._pending_layer = None
+            self._pending_surface = _NOTHING_PENDING
+            return
         self._page.runJavaScript("window.openchemViewer.clear();")
 
     def apply_visualizations(self, layers: list[AnyVisualizationLayer]) -> None:
