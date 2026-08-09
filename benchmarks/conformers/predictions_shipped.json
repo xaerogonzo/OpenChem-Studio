@@ -10,7 +10,7 @@
   "energy_window": 1.0,
   "seeds": 5,
   "embeddings_per_seed": 50,
-  "generated_at": "2026-08-08 17:36:43"
+  "generated_at": "2026-08-08 23:22:22"
  },
  "predictions": [
   {
@@ -391,7 +391,15 @@
       ]
      }
     }
-   ]
+   ],
+   "set_overlap": {
+    "union": 1,
+    "mean_per_seed": 1.0,
+    "coverage": 1.0,
+    "jaccard_mean": 1.0,
+    "jaccard_min": 1.0,
+    "pairs": 10
+   }
   },
   {
    "name": "2H-azirine",
@@ -771,7 +779,15 @@
       ]
      }
     }
-   ]
+   ],
+   "set_overlap": {
+    "union": 1,
+    "mean_per_seed": 1.0,
+    "coverage": 1.0,
+    "jaccard_mean": 1.0,
+    "jaccard_min": 1.0,
+    "pairs": 10
+   }
   },
   {
    "name": "benzene",
@@ -1151,7 +1167,15 @@
       ]
      }
     }
-   ]
+   ],
+   "set_overlap": {
+    "union": 1,
+    "mean_per_seed": 1.0,
+    "coverage": 1.0,
+    "jaccard_mean": 1.0,
+    "jaccard_min": 1.0,
+    "pairs": 10
+   }
   },
   {
    "name": "ethanol",
@@ -1531,7 +1555,15 @@
       ]
      }
     }
-   ]
+   ],
+   "set_overlap": {
+    "union": 2,
+    "mean_per_seed": 2.0,
+    "coverage": 1.0,
+    "jaccard_mean": 1.0,
+    "jaccard_min": 1.0,
+    "pairs": 10
+   }
   },
   {
    "name": "butane",
@@ -1911,7 +1943,15 @@
       ]
      }
     }
-   ]
+   ],
+   "set_overlap": {
+    "union": 2,
+    "mean_per_seed": 2.0,
+    "coverage": 1.0,
+    "jaccard_mean": 1.0,
+    "jaccard_min": 1.0,
+    "pairs": 10
+   }
   },
   {
    "name": "1,2-dichloroethane",
@@ -2291,7 +2331,15 @@
       ]
      }
     }
-   ]
+   ],
+   "set_overlap": {
+    "union": 3,
+    "mean_per_seed": 3.0,
+    "coverage": 1.0,
+    "jaccard_mean": 1.0,
+    "jaccard_min": 1.0,
+    "pairs": 10
+   }
   },
   {
    "name": "cyclohexane",
@@ -2671,7 +2719,15 @@
       ]
      }
     }
-   ]
+   ],
+   "set_overlap": {
+    "union": 2,
+    "mean_per_seed": 2.0,
+    "coverage": 1.0,
+    "jaccard_mean": 1.0,
+    "jaccard_min": 1.0,
+    "pairs": 10
+   }
   },
   {
    "name": "pentane",
@@ -3051,7 +3107,15 @@
       ]
      }
     }
-   ]
+   ],
+   "set_overlap": {
+    "union": 5,
+    "mean_per_seed": 4.6,
+    "coverage": 0.92,
+    "jaccard_mean": 0.88,
+    "jaccard_min": 0.8,
+    "pairs": 10
+   }
   },
   {
    "name": "ethylene glycol",
@@ -3431,7 +3495,15 @@
       ]
      }
     }
-   ]
+   ],
+   "set_overlap": {
+    "union": 9,
+    "mean_per_seed": 7.4,
+    "coverage": 0.822,
+    "jaccard_mean": 0.79,
+    "jaccard_min": 0.667,
+    "pairs": 10
+   }
   },
   {
    "name": "(S)-ibuprofen",
@@ -3811,7 +3883,15 @@
       ]
      }
     }
-   ]
+   ],
+   "set_overlap": {
+    "union": 10,
+    "mean_per_seed": 9.2,
+    "coverage": 0.92,
+    "jaccard_mean": 0.859,
+    "jaccard_min": 0.7,
+    "pairs": 10
+   }
   },
   {
    "name": "ethylmorphine",
@@ -4191,7 +4271,15 @@
       ]
      }
     }
-   ]
+   ],
+   "set_overlap": {
+    "union": 17,
+    "mean_per_seed": 12.8,
+    "coverage": 0.753,
+    "jaccard_mean": 0.662,
+    "jaccard_min": 0.5,
+    "pairs": 10
+   }
   }
  ]
 }

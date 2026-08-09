@@ -118,7 +118,8 @@
       "reference": 12,
       "reference_type": "computational_lower_bound",
       "convention": "mirror images counted separately",
-      "notes": "The C19H23NO3 morphine derivative from the bug report, which generated 'Kept 2 distinct conformer(s) of 10 embedded'. BOTH geometric measures are blind here: for the extreme pair (dE 17.87 kcal/mol) the ten largest displacements are all hydrogens, TFD reads 0.038 against a literature cut of 0.2, and the heavy atoms barely move."
+      "notes": "The C19H23NO3 morphine derivative from the bug report, which generated 'Kept 2 distinct conformer(s) of 10 embedded'. BOTH geometric measures are blind here: for the extreme pair (dE 17.87 kcal/mol) the ten largest displacements are all hydrogens, TFD reads 0.038 against a literature cut of 0.2, and the heavy atoms barely move.",
+      "tighter_bound_note": "12 is what a SINGLE run of the protocol below finds. Pooling five seeds finds 17, so the true count is at least 17 -- the reference is deliberately left at the single-run figure, because that is what the scorer compares a single run against. This is also the molecule with the weakest seed-to-seed set agreement in the corpus (coverage 0.75), so its union grows fastest with sampling budget."
     }
   ]
 }

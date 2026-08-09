@@ -15,10 +15,12 @@ It also reports what the counts alone hide:
     geometrically to be merge candidates -- the population the veto acts
     on, and the only one whose diagnosis says anything;
   * seed-to-seed stability as numbers, with NO hardcoded verdict about
-    what "stable" is. A human reads it. Counts alone can also hide
-    instability: five seeds returning 14-16 conformers whose SETS overlap
-    poorly is not stable, and comparing retained sets across seeds is
-    deliberately left to a later change.
+    what "stable" is. A human reads it. That is reported two ways,
+    because counts alone hide the interesting failure: five seeds each
+    returning 14 conformers looks stable and is not, if they are 14
+    DIFFERENT conformers every time. So the SETS are compared as well --
+    `union` is what all seeds found pooled, and `coverage` is the
+    fraction of it a single run typically finds.
 
 Usage:
     python score.py predictions_shipped.json
@@ -111,9 +113,9 @@ def main(argv: list[str]) -> int:
         )
 
     print()
-    print("seed stability (distinct conformers per seed)")
+    print("seed stability, COUNTS (distinct conformers per seed)")
     print(f"{'molecule':<20} {'mean':>6} {'min':>5} {'max':>5} {'range':>6} {'stdev':>6}   runs")
-    print("-" * 72)
+    print("-" * 78)
     for entry, prediction in zip(molecules, predictions):
         found = [r["distinct"] for r in prediction["runs"] if "error" not in r]
         if not found:
@@ -122,6 +124,25 @@ def main(argv: list[str]) -> int:
         print(
             f"{entry['name']:<20} {statistics.mean(found):>6.1f} {min(found):>5} "
             f"{max(found):>5} {max(found) - min(found):>6} {stdev:>6.2f}   {found}"
+        )
+
+    print()
+    print("seed stability, SETS -- do the seeds find the SAME conformers?")
+    print("  union    distinct conformers found by all seeds pooled")
+    print("  coverage mean per seed / union. 1.00 = every run finds the whole set;")
+    print("           1/nseeds = every run finds its own private set.")
+    print("  jaccard  |A n B| / |A u B| over seed pairs, same sameness rule as the dedup")
+    print(f"{'molecule':<20} {'union':>6} {'mean/seed':>10} {'coverage':>9} {'jacc mean':>10} {'jacc min':>9}")
+    print("-" * 78)
+    for entry, prediction in zip(molecules, predictions):
+        overlap = prediction.get("set_overlap") or {}
+        if not overlap:
+            print(f"{entry['name']:<20} {'(needs >=2 seeds)':>6}")
+            continue
+        print(
+            f"{entry['name']:<20} {overlap['union']:>6} {overlap['mean_per_seed']:>10.2f} "
+            f"{overlap['coverage']:>9.2f} {overlap['jaccard_mean']:>10.3f} "
+            f"{overlap['jaccard_min']:>9.3f}"
         )
 
     print()

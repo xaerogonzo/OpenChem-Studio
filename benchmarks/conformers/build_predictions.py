@@ -78,10 +78,16 @@ def _environment(seeds: int, embeddings: int) -> dict:
     }
 
 
-def _one_seed(smiles: str, seed: int, embeddings: int) -> dict:
+def _one_seed(smiles: str, seed: int, embeddings: int) -> tuple[dict, list]:
+    """`(what to record, the conformers it retained)`.
+
+    The retained conformers come back so the caller can compare SETS
+    across seeds -- they are RDKit mols and never reach the predictions
+    file, which stores the resulting statistics instead.
+    """
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
-        return {"error": "SMILES did not parse"}
+        return {"error": "SMILES did not parse"}, []
     batch = RDKitConformerProvider(random_seed=seed).generate_conformer_batch(
         mol, embeddings, optimize=True
     )
@@ -100,6 +106,7 @@ def _one_seed(smiles: str, seed: int, embeddings: int) -> dict:
         if energy is not None and not any(abs(energy - seen) < 0.05 for seen in energies):
             energies.append(energy)
     candidates = merge_candidates(batch.results, with_torsions=True)
+    retained = distinct_conformers(batch.results)
     return {
         "seed": seed,
         "attempted": batch.attempted,
@@ -107,10 +114,57 @@ def _one_seed(smiles: str, seed: int, embeddings: int) -> dict:
         "converged": batch.converged,
         "embedding_failures": batch.embedding_failures,
         "convergence_failures": batch.convergence_failures,
-        "distinct": len(distinct_conformers(batch.results)),
+        "distinct": len(retained),
         "distinct_energies": len(energies),
         "threshold_sweep": sweep,
         "merge_candidates": _summarise(candidates),
+    }, retained
+
+
+def _set_overlap(per_seed: list[list]) -> dict:
+    """How much the conformers found by different seeds are the SAME ones.
+
+    WHY COUNTS ARE NOT ENOUGH. Five seeds each returning 14 conformers
+    looks stable and is not, if they are 14 DIFFERENT conformers every
+    time -- the search would then be sampling a different slice of the
+    space on each run and no single run would be representative. The
+    counts cannot tell those apart; this can.
+
+    THE SAME CRITERION DECIDES SAMENESS WITHIN A RUN AND ACROSS RUNS, and
+    that falls out for free rather than needing a second matching
+    implementation: pooling two seeds and de-duplicating gives the union
+    under exactly the shipped rule, so
+
+        |A n B| = |A| + |B| - |A u B|
+
+    is exact. A parallel matcher would be a second definition of "the
+    same conformer" free to drift from the first.
+
+    `union` pools every seed: it is the total the search found across all
+    runs, and `coverage` (mean per seed / union) is the fraction of that
+    one run typically finds. Coverage near 1.0 means the runs agree and
+    a single run is representative; near 1/n means each run is finding
+    its own private set.
+    """
+    runs = [r for r in per_seed if r]
+    if len(runs) < 2:
+        return {}
+    pooled = distinct_conformers([item for run in runs for item in run])
+    jaccards = []
+    for i in range(len(runs)):
+        for j in range(i + 1, len(runs)):
+            union = len(distinct_conformers(runs[i] + runs[j]))
+            intersection = len(runs[i]) + len(runs[j]) - union
+            jaccards.append(intersection / union if union else 1.0)
+    mean_per_seed = sum(len(r) for r in runs) / len(runs)
+    return {
+        "union": len(pooled),
+        "mean_per_seed": round(mean_per_seed, 2),
+        # 1.0 = every seed finds the whole discovered set.
+        "coverage": round(mean_per_seed / len(pooled), 3) if pooled else None,
+        "jaccard_mean": round(sum(jaccards) / len(jaccards), 3),
+        "jaccard_min": round(min(jaccards), 3),
+        "pairs": len(jaccards),
     }
 
 
@@ -160,13 +214,21 @@ def main() -> int:
     predictions = []
     for entry in corpus["molecules"]:
         started = time.time()
-        runs = [
+        pairs = [
             _one_seed(entry["smiles"], index * SEED_STRIDE, args.embeddings)
             for index in range(args.seeds)
         ]
-        predictions.append({"name": entry["name"], "runs": runs})
+        runs = [record for record, _retained in pairs]
+        overlap = _set_overlap([retained for _record, retained in pairs])
+        predictions.append({"name": entry["name"], "runs": runs, "set_overlap": overlap})
         counts = [r.get("distinct") for r in runs]
-        print(f"  {entry['name']:<20} {counts}  ({time.time() - started:.1f}s)", flush=True)
+        summary = (
+            f" union {overlap['union']:>3} coverage {overlap['coverage']:.2f}" if overlap else ""
+        )
+        print(
+            f"  {entry['name']:<20} {str(counts):<24}{summary}  ({time.time() - started:.1f}s)",
+            flush=True,
+        )
 
     out = HERE / f"predictions_{args.label}.json"
     out.write_text(

@@ -34,11 +34,24 @@ the scorer does not treat it as one.
   cannot: a pair kept apart with a *large* torsion change is a real
   conformational difference both geometric metrics missed; one with a
   *small* one would be a force-field artefact.
-- **Seed stability** as mean/min/max/range/stdev, with no hardcoded
-  verdict. A human reads it. Note that counts alone can hide instability
-  — five seeds returning 14–16 conformers whose *sets* overlap poorly is
-  not stable, and comparing retained sets across seeds is left to a
-  later change.
+- **Seed stability, two ways**, with no hardcoded verdict — a human reads
+  it. Counts (mean/min/max/range/stdev) *and* set agreement, because
+  counts alone hide the interesting failure: five seeds each returning 14
+  conformers looks stable and is not, if they are 14 *different*
+  conformers every time.
+
+  `union` is what all seeds found pooled; `coverage` is the fraction of
+  it a single run typically finds. **1.00 means every run finds the whole
+  discovered set; 1/nseeds means every run finds its own private set.**
+  Sameness across runs is decided by the same criterion the
+  de-duplication uses, and that comes for free rather than needing a
+  second matcher — pooling two runs and de-duplicating gives the union,
+  so `|A ∩ B| = |A| + |B| − |A ∪ B|` is exact.
+
+  Measured on the shipped criterion: everything rigid scores 1.00,
+  pentane and ibuprofen 0.92, ethylene glycol 0.82, and ethylmorphine
+  **0.75** — the weakest agreement in the corpus, and the reason its
+  union (17) exceeds its single-run reference (12).
 
 ## Two traps already paid for
 
