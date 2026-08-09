@@ -1588,6 +1588,50 @@ outcome here, not a failure.
 Comments explain **why**, especially where something is non-obvious or was got
 wrong once. A comment restating the code is noise.
 
+### A threshold fitted to a BIMODAL molecule is not validated
+
+The conformer de-duplication threshold was measured honestly, on real
+data, documented with its numbers -- and still did not generalise,
+because of the SHAPE of the calibration data rather than the care taken
+over it.
+
+0.5 A was fitted to butane, whose 40 pairwise RMSDs really are bimodal:
+"every pair either below 0.5 or at 0.66, nothing in between". **That
+bimodality is a property of butane, not of molecules.** A drug-like
+molecule's are a flat continuum -- ethylmorphine's 276 pairs run 0.21 to
+0.61 with no gap anywhere -- so the same number that cleanly separates
+butane's two clusters cuts a continuum arbitrarily, which is exactly why
+its count moved between 2 and 3 across runs.
+
+**Before trusting a threshold, tabulate the underlying distribution on a
+case from the population you care about, and look for the gap the
+threshold is supposed to sit in.** If there is no gap, no value of the
+constant is right and the answer is a different criterion, not a better
+number. Measured across the validation set, every purely geometric
+criterion failed it; the fix was a second, independent signal.
+
+Three corollaries from the same work, each paid for once:
+
+- **Arguing from numbers your own pipeline produced can be circular.**
+  The first evidence here used force-field energies from a path that did
+  not converge -- the very defect being fixed elsewhere in the same
+  change. Re-measured at convergence the claim survived, but only by
+  luck. Check that the inputs to an argument are not the thing under
+  repair.
+- **Fixing an under-count can create an over-count, and an EXISTING test
+  is what catches it.** The new criterion made 2H-azirine, a rigid
+  three-membered ring, report two conformers: ~2% of embeddings converge
+  to a distorted minimum 10.7 kcal/mol up with the C=N stretched to
+  1.339 A. Conformers differ by torsion and ring pucker, never by bond
+  length, so that is a force-field artefact and no energy gap should
+  promote it.
+- **A diagnostic that silently reports zero is worse than none**, because
+  it gets quoted as evidence. `TorsionFingerprints.CalculateTorsionLists`
+  returns `(non-ring, ring)` and reading only the first made a
+  chair/twist-boat pair score "0.0 degrees" against a TFD of 0.407 --
+  cyclohexane has ZERO non-ring torsions. That number reached a written
+  conclusion before the contradiction was noticed.
+
 ### Two empirical fits can CROSS, so one test point proves nothing
 
 The volume-based lattice-energy correlation has separate coefficients
