@@ -66,6 +66,30 @@ MACROMOLECULE = "macromolecule"
 STRUCTURE_KINDS = frozenset({MOLECULE, CRYSTAL, MACROMOLECULE})
 
 
+#: Which molecular representation a calculator should be handed. Closed,
+#: for the same reason `STRUCTURE_KINDS` is: a typo would silently route a
+#: calculator to the wrong structure and still look fine.
+#:
+#: **GEOMETRY AND HYDROGEN REPRESENTATION ARE ONE AXIS HERE AND THAT IS
+#: DELIBERATE**, because a conformer molblock carries explicit hydrogens
+#: -- ethylmorphine is 23 atoms as drawn and 46 as a conformer. Measured
+#: over all 49 registered calculators, run once on the drawing and once on
+#: a real conformer with timestamps normalised, plus a third run with the
+#: hydrogens folded back to implicit to separate the two causes:
+#:
+#:     unchanged                            30
+#:     changed ONLY by explicit hydrogens    8   <- the regression risk
+#:     changed by the geometry              11   <- the point of the fix
+#:
+#: The eight are topological -- a Wiener index over 46 atoms is a
+#: different number from one over 23, and neither is wrong for its input.
+#: So "hand everyone the conformer" is unsafe and stripping the hydrogens
+#: is too, since geometry, SASA and dipole need hydrogen positions.
+DRAWING = "drawing"
+GEOMETRY = "geometry"
+CALCULATION_INPUTS = frozenset({DRAWING, GEOMETRY})
+
+
 @dataclass(frozen=True, kw_only=True)
 class CalculatorDefinition:
     """Metadata for one registered calculator (`CalculatorRegistry`) —
@@ -98,6 +122,31 @@ class CalculatorDefinition:
     #: periodic solid. Applying to a crystal is an opt-in somebody had to
     #: mean.
     applies_to: frozenset[str] = frozenset({MOLECULE})
+    #: Which molecular representation this calculator is handed.
+    #:
+    #: **The default is today's behaviour**, for the same reason
+    #: `applies_to` defaults to molecule-only: a calculator registered
+    #: without a thought keeps getting the drawn structure, and asking
+    #: for real 3D coordinates is an opt-in somebody had to mean. That
+    #: matters more than usual here, because the alternative is not
+    #: "slightly worse input" -- eight registered calculators return a
+    #: DIFFERENT NUMBER when handed a conformer, purely because it
+    #: carries explicit hydrogens. See `CALCULATION_INPUTS`.
+    #:
+    #: `GEOMETRY` means "prefer real 3D coordinates when they exist", and
+    #: deliberately does NOT mean "refuse without them". The refusal
+    #: already exists where it belongs, inside the calculators that need
+    #: it -- `geometry_analysis._require_conformer` and
+    #: `descriptor_providers._compute_shape_descriptors` both check
+    #: `Is3D()` and say what the user should do about it. Duplicating
+    #: that into the routing policy would give two places to drift apart.
+    #:
+    #: Two members and no speculative third: a representation with the
+    #: original graph semantics AND coordinates is what the eight
+    #: topological calculators would need if they ever wanted geometry,
+    #: and nothing asks for it today. The vocabulary is extensible; it is
+    #: not extended in advance.
+    calculation_input: str = DRAWING
     # "empirical" | "ab_initio" | None (Phase 22) -- lets a UI badge how
     # trustworthy a result is, same honesty spirit as the hERG risk-factor
     # checklist's "not a prediction" label. Populated only where it's

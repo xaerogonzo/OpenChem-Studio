@@ -259,30 +259,92 @@ to start a calculation from and to compare shapes with; they are not the
 answer to "what is this molecule's geometry". An ORCA optimisation started
 from one will move it, sometimes a lot.
 
-**"Distinct" is a 0.5 Å RMSD judgement, not a physical fact.** Two
-embeddings are treated as the same conformer when their heavy atoms and
-polar hydrogens fall within that threshold, compared symmetry-aware. The
-number was checked rather than chosen: across 40 embeddings of butane every
-pair came out either below 0.5 Å or at 0.66 Å — two clean clusters, anti
-and gauche, with nothing between them — so 0.5 separates them with margin
-while 1.0 merges them and loses a real conformer.
+**"Distinct" is a heuristic judgement, not a physical fact, and this is
+the part of conformer generation that is least solved.** Two embeddings
+are treated as the same conformer when their heavy atoms and polar
+hydrogens fall within 0.5 Å, compared symmetry-aware — *unless* their
+force-field energies differ by more than 1 kcal/mol, which keeps them
+apart.
 
-The threshold cuts both ways. It is coarse enough to hide conformers that
-differ by less than it, and any two shapes closer than 0.5 Å will be
-reported as one.
+**Why the energy term is there.** The geometric comparison has a measured
+blind spot. On a fused polycyclic — a morphine derivative was the case
+that exposed it — a ring can pucker through more than 100° while the
+heavy atoms barely move, because the cage constrains them and the
+displacement lands on the hydrogens. Across 108 such pairs, 100 had a
+torsion moving more than 60° while every one sat under the 0.5 Å cut-off.
+The standard torsion fingerprint (TFD) misses them too, reading 0.008 to
+0.072 against a literature cut of 0.2, because one torsion out of ~30
+gets averaged away. Without the energy term the molecule reported 2 to 4
+conformers where at least 12 were found; cyclohexane lost its twist-boat
+and was reported as rigid.
+
+**The energy term is a veto, not a definition.** It declines to merge two
+structures on insufficient evidence; it never claims that two structures
+with different energies *are* different conformers. A difference below
+the window does not establish that two shapes are the same conformer, and
+one above it does not establish that they are different. Below 0.15 Å the
+energy is not consulted at all — structures that close are the same shape,
+and an energy gap there is a force-field artefact rather than a
+conformational difference. That floor exists because without it about 2%
+of 2H-azirine embeddings, a rigid three-membered ring, converged to a
+distorted minimum 10.7 kcal/mol up with a stretched C=N and were reported
+as a second conformer.
+
+**None of this makes the count correct in general.** It is the
+best-performing heuristic on an eleven-molecule validation set
+(`benchmarks/conformers/`), where half the references are textbook counts
+and half are computational lower bounds — "at least this many minima were
+found", not "this many exist". Every purely geometric criterion tested
+failed that set, and there may be no single scalar
+conformer-difference metric that works across arbitrary chemistry.
 
 **Carbon-bound hydrogens are ignored in that comparison and polar ones are
-not.** A rotated methyl is not a different conformer; an O–H orientation
-is, because it changes hydrogen bonding and the energy of anything computed
+not.** An O–H orientation is a real conformational degree of freedom,
+because it changes hydrogen bonding and the energy of anything computed
 afterwards. Heavy-atom-only comparison was tried first and was measurably
 worse: ethanol's heavy atoms are C–C–O, three points and therefore rigid by
 construction, so it reported one conformer for a molecule whose O–H
 rotamers are exactly what a conformer search is for.
 
+Carbon-bound hydrogens were originally dropped on the grounds that a
+rotated methyl is not a different conformer. That reasoning turned out to
+be unnecessary — the comparison is symmetry-aware, so it already scores a
+pure methyl rotation at 0.0095 Å — but dropping them is kept because
+including them measurably reads worse across the set. The cost is the
+ring-pucker blindness described above.
+
+**Mirror-image conformers are counted separately.** The comparison does
+not reflect, so pentane reports 5 where the textbook says 4 unique
+conformers: G+G+ and G−G− are enantiomeric and cannot be superimposed by
+a rotation.
+
+**A conformer that would not minimise is discarded, not shown.** Roughly
+1 in 10 embeddings of a drug-like molecule failed to converge at the
+library's default iteration limit and sat several kcal/mol above its own
+minimum while being presented as part of an energy ranking.
+
 **The search is random, not exhaustive.** ETKDG embeds from random starting
 points, so the set you get is a sample. A molecule can have a conformer the
 search did not find, and asking for more embeddings is the only lever —
 there is no guarantee attached to any count.
+
+That is why the dialog asks for two numbers. **Embeddings to try** is how
+many random attempts to make; **conformers to keep** is how many distinct
+shapes to return from them. They are not the same quantity and the gap
+between them is large: measured across five independent seeds of 50
+embeddings, the morphine derivative returned 10, 14, 14, 12 and 14 distinct
+conformers — so the count varies by 4 between runs of the *same* request,
+and 10 embeddings could not find its minima at any threshold.
+
+**A 3D-dependent calculation uses one conformer, and says which.**
+Geometry, surface area, SASA, the dipole and the steric parameters are
+computed on the lowest-MMFF94-energy conformer *among those this sampling
+run retained* — not "the lowest-energy conformer", which would be a claim
+about the molecule rather than about one random search under one force
+field. Each result records the conformer's id, so a number can be traced
+back to the geometry it came from even after the list is re-sorted. A
+molecule with no conformers is unchanged: those calculators say they need
+one, as they always did.
 
 **Energies rank; they do not quantify populations.** Conformers are sorted
 by force-field energy so conformer 1 is the lowest found, but MMFF energies

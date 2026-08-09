@@ -3,9 +3,11 @@ from __future__ import annotations
 import logging
 import time
 
+import rdkit
 from PySide6.QtCore import QRunnable, QThreadPool
 
 from openchem.chem.conformer_providers import (
+    DEFAULT_ENERGY_WINDOW,
     DEFAULT_RMS_THRESHOLD,
     RDKitConformerProvider,
     distinct_conformers,
@@ -45,12 +47,18 @@ class _ConformerGenerationTask(QRunnable):
         event_bus: EventBus,
         job_manager: JobManager,
         progress: ProgressHandle,
+        num_embeddings: int | None = None,
     ) -> None:
         super().__init__()
         self._provider = provider
         self._engine = engine
         self._model = model
+        # Two different numbers, and conflating them is what made the UI
+        # ask for "10 conformers" and hand 10 to the EMBEDDER. Even at a
+        # perfect threshold, 10 embeddings of ethylmorphine found at most
+        # 6 distinct geometries against a reference lower bound of 12.
         self._num_conformers = num_conformers
+        self._num_embeddings = num_embeddings if num_embeddings is not None else num_conformers
         self._optimize = optimize
         self._event_bus = event_bus
         self._job_manager = job_manager
@@ -66,9 +74,10 @@ class _ConformerGenerationTask(QRunnable):
         )
         try:
             mol = self._engine.mol_from_model(self._model)
-            results = self._provider.generate_conformers(
-                mol, self._num_conformers, self._optimize, on_progress=self._on_progress
+            batch = self._provider.generate_conformer_batch(
+                mol, self._num_embeddings, self._optimize, on_progress=self._on_progress
             )
+            results = batch.results
         except Exception as exc:  # noqa: BLE001 - report failure, never crash the pool
             logger.exception("Conformer generation failed for molecule %s", self._model.uuid)
             self._event_bus.publish(
@@ -95,16 +104,20 @@ class _ConformerGenerationTask(QRunnable):
             return
 
         # Embedding is random, so N requests for a molecule with fewer than
-        # N shapes returns copies. Reported here rather than in the
-        # provider because this is where both counts are known, and applied
-        # here rather than there so a plugin-supplied provider gets it too.
-        embedded = len(results)
+        # N shapes returns copies. Applied here rather than in the provider
+        # so a plugin-supplied provider gets it too, and reported here
+        # because this is where every count is known.
+        converged = len(results)
         results = distinct_conformers(results)
-        if len(results) < embedded:
+        distinct = len(results)
+        # Sorted ascending by energy, so truncating to the requested count
+        # keeps the lowest-energy members rather than an arbitrary slice.
+        results = results[: self._num_conformers]
+        if distinct < converged:
             logger.info(
-                "Kept %d distinct conformer(s) of %d embedded for molecule %s",
-                len(results),
-                embedded,
+                "Kept %d distinct conformer(s) of %d converged for molecule %s",
+                distinct,
+                converged,
                 self._model.uuid,
             )
 
@@ -117,14 +130,31 @@ class _ConformerGenerationTask(QRunnable):
             method=self._provider.provider_id,
             parameters={
                 "num_conformers": self._num_conformers,
+                "num_embeddings": self._num_embeddings,
                 "optimize": self._optimize,
-                # Both counts, because "3 conformers" means something
+                # EVERY count, because "3 conformers" means something
                 # different when 3 were asked for than when 25 were and 22
                 # were the same shape -- the latter says the molecule is
-                # rigid, which is a result about the molecule.
-                "conformers_embedded": embedded,
-                "conformers_distinct": len(results),
+                # rigid, which is a result about the molecule. And an
+                # embedding failure is not a convergence failure: one
+                # "13 disappeared" figure has two different answers, so
+                # both are recorded even though the UI shows neither.
+                "conformers_attempted": batch.attempted,
+                "conformers_embedded": batch.embedded,
+                "conformers_converged": batch.converged,
+                "embedding_failures": batch.embedding_failures,
+                "convergence_failures": batch.convergence_failures,
+                "conformers_distinct": distinct,
                 "rms_threshold": DEFAULT_RMS_THRESHOLD,
+                # A merge VETO, never a claim that two structures with
+                # different energies are different conformers. See
+                # DEFAULT_ENERGY_WINDOW.
+                "energy_window": DEFAULT_ENERGY_WINDOW if self._optimize else None,
+                "force_field": "MMFF94/UFF" if self._optimize else None,
+                # An RDKit upgrade can move every number above; without
+                # this there is nothing to say whether the toolkit or the
+                # algorithm changed.
+                "rdkit_version": rdkit.__version__,
             },
             timestamp=now,
         )
@@ -143,19 +173,41 @@ class _ConformerGenerationTask(QRunnable):
         # leaving the user to notice "Conformer 1/1" after requesting ten
         # and conclude something failed. Fewer is the correct answer for a
         # rigid molecule, and it reads as a bug unless it is stated.
-        if len(conformers) < embedded:
-            message = (
-                f"{len(conformers)} distinct conformer(s) from {embedded} embedded "
-                f"- the rest were the same shape (RMSD < {DEFAULT_RMS_THRESHOLD} A)"
-            )
-        else:
-            message = f"{len(conformers)} conformer(s)"
+        #
+        # NEVER phrased as "different conformers because their energies
+        # differ" -- the energy term declines to merge on insufficient
+        # evidence, it does not classify. See DEFAULT_ENERGY_WINDOW.
+        message = self._completion_message(batch, distinct, len(conformers))
         self._event_bus.publish(
             ConformerJobStateChanged(
                 molecule_uuid=self._model.uuid, state=CacheState.COMPLETED, message=message
             )
         )
         self._job_manager.finish(_JOB_KIND, self._model.uuid)
+
+    def _completion_message(self, batch, distinct: int, returned: int) -> str:
+        """What the status line says. Three numbers, not one.
+
+        "100 -> 23" cannot distinguish 77 duplicates from 77 failures, and
+        those call for completely different responses from the user --
+        nothing, versus a structure that will not embed.
+        """
+        parts = [f"{returned} conformer(s)"]
+        if distinct > returned:
+            parts.append(f"{distinct} distinct found, showing the {returned} lowest in energy")
+        elif distinct < batch.converged:
+            parts.append(
+                f"from {batch.converged} converged - the rest were the same shape "
+                f"(within {DEFAULT_RMS_THRESHOLD} A and {DEFAULT_ENERGY_WINDOW} kcal/mol)"
+            )
+        failures = []
+        if batch.embedding_failures:
+            failures.append(f"{batch.embedding_failures} failed to embed")
+        if batch.convergence_failures:
+            failures.append(f"{batch.convergence_failures} failed to converge")
+        if failures:
+            parts.append("; ".join(failures))
+        return " - ".join(parts)
 
     def _on_progress(self, done: int, total: int) -> bool | None:
         message = f"{done}/{total} conformers"
@@ -204,8 +256,24 @@ class ConformerService:
         self._providers.pop(provider_id, None)
 
     def request_conformers(
-        self, model: MoleculeModel, num_conformers: int, optimize: bool, provider_id: str = "rdkit"
+        self,
+        model: MoleculeModel,
+        num_conformers: int,
+        optimize: bool,
+        provider_id: str = "rdkit",
+        num_embeddings: int | None = None,
     ) -> None:
+        """`num_conformers` is how many distinct conformers to KEEP;
+        `num_embeddings` is how many random embeddings to try in order to
+        find them.
+
+        They are separate because a random search finds fewer distinct
+        shapes than it takes samples -- 10 embeddings of a drug-like
+        molecule found at most 6 distinct geometries against a reference
+        lower bound of 12. `None` means "try exactly as many as asked
+        for", which is what this method did when it had one number, so an
+        existing caller keeps its behaviour.
+        """
         provider = self._providers.get(provider_id)
         if provider is None:
             self._event_bus.publish(
@@ -242,5 +310,6 @@ class ConformerService:
                 self._event_bus,
                 self._job_manager,
                 progress,
+                num_embeddings=num_embeddings,
             )
         )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -119,6 +120,29 @@ class DescriptorProvider(ABC):
         return []
 
 
+@dataclass(frozen=True)
+class ConformerBatch:
+    """`generate_conformers`' results, plus why the rest are missing.
+
+    EMBEDDING FAILURE IS NOT CONVERGENCE FAILURE. A single "13 of 100
+    disappeared" figure has two completely different answers — ETKDG
+    could not find coordinates at all, or the force field could not
+    minimise them — and six months later nobody can tell which happened.
+    They are counted separately even though the UI shows only totals.
+
+    `converged` equals `len(results)`: a conformer that did not converge
+    is discarded rather than returned, so everything here reached a
+    minimum.
+    """
+
+    results: list[tuple[Chem.Mol, float | None]] = field(default_factory=list)
+    attempted: int = 0
+    embedded: int = 0
+    converged: int = 0
+    embedding_failures: int = 0
+    convergence_failures: int = 0
+
+
 class ConformerProvider(ABC):
     provider_id: str
 
@@ -132,6 +156,11 @@ class ConformerProvider(ABC):
     ) -> list[tuple[Chem.Mol, float | None]]:
         """Return up to `num_conformers` (conformer_mol, energy) pairs.
 
+        `num_conformers` is how many embeddings to ATTEMPT, not how many
+        distinct conformers to return — de-duplication happens above this
+        (see `ConformerService`), so a rigid molecule legitimately yields
+        fewer than asked for.
+
         `energy` (kcal/mol) is None when `optimize` is False. `on_progress`,
         if given, is called as `on_progress(done, total)` after each
         conformer so callers can report incremental progress. If it
@@ -139,6 +168,29 @@ class ConformerProvider(ABC):
         next conformer (best-effort cancellation, checked between
         conformers — a `None` return, the common case, means "keep
         going")."""
+
+    def generate_conformer_batch(
+        self,
+        mol: Chem.Mol,
+        num_conformers: int,
+        optimize: bool,
+        on_progress: Callable[[int, int], bool | None] | None = None,
+    ) -> ConformerBatch:
+        """`generate_conformers` plus the counts behind it.
+
+        NOT abstract, so a provider written against the original
+        interface keeps working untouched. The default reports the counts
+        it can honestly derive and zero for the two it cannot know —
+        which is accurate for a provider that does not distinguish them,
+        rather than a guess.
+        """
+        results = self.generate_conformers(mol, num_conformers, optimize, on_progress)
+        return ConformerBatch(
+            results=results,
+            attempted=num_conformers,
+            embedded=len(results),
+            converged=len(results),
+        )
 
 
 class DockingProvider(ABC):

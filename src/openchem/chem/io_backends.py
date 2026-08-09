@@ -4,7 +4,9 @@ from pathlib import Path
 
 from rdkit import Chem
 
+from openchem.chem.calculation_input import select_calculation_input
 from openchem.chem.engine import ChemistryEngine
+from openchem.domain.calculator import GEOMETRY
 from openchem.domain.molecule import MoleculeModel
 from openchem.plugins.interfaces import Exporter, Importer
 
@@ -77,11 +79,12 @@ def mol_for_export(engine: ChemistryEngine, model: MoleculeModel):
     Conformer 1 rather than an arbitrary one: the provider sorts ascending
     by energy, so the first is the lowest-energy geometry found.
     """
-    if model.conformers:
-        molblock = model.conformers[0].molblock
-        if molblock:
-            return engine.mol_from_molblock(molblock)
-    return engine.mol_from_model(model)
+    # The selection policy itself lives in `chem/calculation_input.py`, so
+    # that "which conformer" is decided in exactly one place. This used to
+    # be `conformers[0]`, which is the same answer only while the list
+    # happens to be sorted by energy -- and nothing guaranteed that for a
+    # project saved by an older version.
+    return select_calculation_input(engine, model, GEOMETRY)
 
 
 class RDKitExporter(Exporter):

@@ -3,8 +3,8 @@ from __future__ import annotations
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QComboBox,
+    QDialog,
     QHBoxLayout,
-    QInputDialog,
     QLabel,
     QPushButton,
     QVBoxLayout,
@@ -17,6 +17,7 @@ from openchem.events.base import EventBus
 from openchem.events.events import ConformerJobStateChanged, ConformersChanged
 from openchem.services.conformer_service import ConformerService
 from openchem.services.measurement_service import MeasurementService
+from openchem.ui.dialogs.conformer_options_dialog import ConformerOptionsDialog
 from openchem.ui.viewer_backend import ViewerBackend
 from openchem.ui.visualization import (
     SURFACE_REPRESENTATION_LABELS,
@@ -160,12 +161,15 @@ class MoleculeViewer3DWidget(QWidget):
     def _on_generate_clicked(self) -> None:
         if self._molecule is None:
             return
-        count, ok = QInputDialog.getInt(
-            self, "Generate Conformers", "Number of conformers:", 10, 1, 200
-        )
-        if not ok:
+        dialog = ConformerOptionsDialog(self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
-        self._conformer_service.request_conformers(self._molecule, count, optimize=True)
+        self._conformer_service.request_conformers(
+            self._molecule,
+            dialog.conformers_to_keep(),
+            optimize=True,
+            num_embeddings=dialog.embeddings_to_try(),
+        )
 
     def _on_conformers_changed(self, event: ConformersChanged) -> None:
         if self._molecule is not None and event.molecule_uuid == self._molecule.uuid:

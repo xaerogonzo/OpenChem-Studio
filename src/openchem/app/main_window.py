@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.chem.calculation_input import canonical_conformer
 from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
 from openchem.chem.identifiers import identifier_for_molblock
@@ -1774,7 +1775,8 @@ class MainWindow(QMainWindow):
         molecule = self._current_molecule()
         if molecule is None or molecule.uuid != event.molecule_uuid:
             return
-        best_molblock = molecule.conformers[0].molblock if molecule.conformers else None
+        best = canonical_conformer(molecule)
+        best_molblock = best.molblock if best is not None else None
         self._services.descriptor_service.request_descriptors(molecule, molblock=best_molblock)
         self._publish_molecule_snapshot(molecule)
 

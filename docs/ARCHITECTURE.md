@@ -657,22 +657,86 @@ document may cite a file or a test that does not exist.
   lattice-energy fact at all rather than a guessed one. The volume comes
   from the cell, so no ionic radius is involved and a complex ion works
   as readily as a monatomic one.
-- **OPEN, and the largest of these** -- every calculator computes on the
-  2D DRAWING, never on a generated conformer.
-  `ChemistryEngine.mol_from_model` reads `model.molblock` and never looks
-  at `model.conformers`, so the Properties panel reports "The available
-  conformer is 2D" while the 3D viewer is showing "Conformer 3/3".
-  Measured: `dipole_moment` handed a real 3D conformer returns COMPLETED
-  with 5 facts, including through a molblock round trip -- the
-  calculator is correct and the molecule reaching it is not. Every
-  conformer-dependent calculator has the same exposure: shape
-  descriptors, geometry, surface area, the DREIDING energy, ESP.
+- **SETTLED** -- every calculator computed on the 2D DRAWING, never on a
+  generated conformer. `ChemistryEngine.mol_from_model` reads
+  `model.molblock` and never `model.conformers`, so the Properties panel
+  reported "The available conformer is 2D" while the 3D viewer showed
+  "Conformer 3/3".
 
-  **Closing it is a DESIGN decision, not a repair.** Should a calculator
-  get the selected conformer, the lowest-energy one, or refuse until
-  told which? That changes what every 3D-dependent number in the app
-  means, so it is decided deliberately rather than by whichever is
-  easiest to wire.
+  **The design question was already answered six times over.**
+  `io_backends.mol_for_export` plus five inline copies
+  (`main_window`, `property_panel`, `docking_panel`,
+  `quantum_chemistry_panel`, `batch_service`) all did
+  `conformers[0] if conformers else the drawing`. That is now one pure
+  function, `chem/calculation_input.select_calculation_input`, and the
+  six call it -- six copies is not six bugs today, it is one bug the day
+  the policy changes to "the conformer the user is looking at".
+
+  **The blanket swap would have been a regression, and the numbers say
+  so.** A conformer molblock carries EXPLICIT HYDROGENS: ethylmorphine is
+  23 atoms as drawn and 46 as a conformer. Measured across all 49
+  registered calculators, run on the drawing and on a conformer with
+  timestamps normalised, plus a third run with hydrogens folded back to
+  implicit to separate the causes:
+
+        unchanged                            30
+        changed ONLY by explicit hydrogens    8   <- the regression risk
+        changed by the geometry              11   <- the point of the fix
+
+  The eight are topological -- a Wiener index over 46 atoms is a
+  different number from one over 23, and neither is wrong for its input.
+  So `CalculatorDefinition.calculation_input` declares `DRAWING`
+  (the default, today's behaviour) or `GEOMETRY`, exactly as `applies_to`
+  declares structure kinds and for the same reason.
+
+  **Four of the eleven candidates were rejected**, and re-checking them
+  found the first recorded reason ("they only echo coordinates into their
+  own output") was far too weak. A conformer does not merely fail to help
+  the structure generators, it **breaks** them. Measured on alanine drawn
+  with its stereocentre left undefined:
+
+        stereoisomers   drawing 2 forms   conformer 1     feature stops working
+        tautomers       drawing 4 forms   conformer 10    garbage forms
+
+  `stereoisomers` collapses because a conformer carries stereo PERCEIVED
+  FROM ITS COORDINATES, so `onlyUnassigned=True` finds nothing left to
+  vary and returns whichever configuration the embedder happened to
+  produce -- "what are the stereoisomers of what I drew" is the question,
+  and only the drawing can answer it. `tautomers` is corrupted by the
+  explicit hydrogens, emitting `[H]O=C(O)...` and `[CH]([H])...`, which
+  are not tautomers of anything.
+
+  A third, separate reason: `structure_generators._entry` computes 2D
+  coordinates only when the molecule has NO conformer, so a 3D input
+  propagates into the structure grid -- which that module's own docstring
+  says renders as "a pile". `structural_frameworks` is immune (it calls
+  `Compute2DCoords` unconditionally) and is topological besides. Seven
+  declare `GEOMETRY`.
+
+  **`GEOMETRY` means prefer, not require**, and the refusal stays where
+  it already worked -- `geometry_analysis._require_conformer` and
+  `descriptor_providers._compute_shape_descriptors` check `Is3D()` and
+  say what to do about it. Duplicating that into the routing policy would
+  give two places to drift apart.
+
+  Verified by logging what each calculator RECEIVES, not what it
+  returns -- output can look plausible when the wrong molecule went in:
+
+        topology_analysis     drawing    23 atoms   0 H   Is3D False
+        geometry_analysis     geometry   46 atoms  23 H   Is3D True    conf 33be70ce, 109.52 kcal/mol
+
+  Before the change, `geometry_analysis`, `surface_analysis`,
+  `dipole_moment` and `atom_sasa` returned FAILED ("The available
+  conformer is 2D") on every molecule however many conformers it had.
+  **`steric_analysis` was worse: it returned COMPLETED**, computing a
+  cone angle and %Vbur on a flat structure and reporting a plausible
+  number -- correct arithmetic on the wrong object, the same shape as the
+  40619 kcal/mol interaction energy.
+
+  Each result now records `geometry_source`, `conformer_id` and
+  `conformer_index`. The ID, not only the index: index 0 today is index 3
+  after the next regeneration, so a result citing a position cannot be
+  traced back to a geometry.
 - **OPEN** -- the Properties panel CLIPS long result values. Confirmed
   from the running app: Functional Groups, BBB Score Descriptors and CNS
   MPO Score each show about two and a half lines of a six-line value,
@@ -692,12 +756,44 @@ document may cite a file or a test that does not exist.
 
   The Details buttons are NOT implicated: the app shows one per report
   row, correctly bound, exactly as the code intends.
-- **OPEN** -- conformer generation returns implausibly few. A morphine
-  derivative (C19H23NO3, several rotatable bonds) gave "Kept 2 distinct
-  conformer(s) of 10 embedded", and 3 on an earlier run. The RMSD
-  de-duplication in `ConformerService` is the suspect; it needs the
-  threshold measured against a molecule whose conformer count is known
-  rather than tuned by eye.
+- **SETTLED** -- conformer generation returned implausibly few. A morphine
+  derivative (C19H23NO3) gave "Kept 2 distinct conformer(s) of 10
+  embedded", and 3 on an earlier run. `benchmarks/conformers/` is the
+  regression check that did not exist; the same molecule now returns
+  10-14 across five seeds against a reference lower bound of 12.
+
+  **The de-duplication threshold was the suspect and was not the
+  cause.** 0.5 Å was calibrated on butane, whose pairwise RMSDs are
+  genuinely bimodal -- "below 0.5 or at 0.66, nothing between". That
+  bimodality is a property of butane. Ethylmorphine's are a continuum,
+  so no threshold works: 0.35 saves cyclohexane's twist-boat (which 0.5
+  merges, calling a textbook two-conformer molecule rigid) and breaks
+  ethanol and butane. **Every purely geometric criterion tested failed
+  the validation set**, all-atom RMSD included.
+
+  **Both geometric measures are blind to what these molecules do.** On a
+  fused polycyclic a ring puckers through >100 degrees while the heavy
+  atoms barely move -- 100 of 108 vetoed pairs had a torsion beyond 60
+  degrees while sitting under both cut-offs (RMSD 0.207-0.496, TFD
+  0.008-0.072 against a literature cut of 0.2). An energy term breaks
+  the tie, strictly as a **merge veto**: it declines to merge on
+  insufficient evidence and never claims two structures ARE different
+  conformers. Below 0.15 Å it is not consulted at all, because ~2% of
+  2H-azirine embeddings converge to a distorted minimum 10.7 kcal/mol up
+  (C=N stretched to 1.339 Å) and an energy gap must not promote a
+  bond-length artefact to a conformer. An energy CEILING was measured as
+  the alternative and cannot work -- that artefact sits inside
+  ethylmorphine's genuine 17.9 kcal/mol span.
+
+  Two secondary defects fixed alongside: `MMFFOptimizeMolecule` ran at
+  RDKit's default 200 iterations with its return code discarded (1 in 10
+  embeddings did not converge and sat 3.67 kcal/mol high while being
+  ranked as "lowest in energy"), and the dialog's "Number of conformers"
+  was passed to the EMBEDDER, so 10 requested meant 10 random attempts.
+
+  **This is not solved, and `SCIENTIFIC_LIMITATIONS.md` says so.** It is
+  the best-performing heuristic on eleven molecules, half of whose
+  references are computational lower bounds.
 - **OPEN** -- the ADMET calculator appears to produce nothing. Its
   options dialog opens and accepts a tier, and no result row follows. It
   runs out of process through a sidecar, so the first question is
