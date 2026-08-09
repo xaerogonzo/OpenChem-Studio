@@ -125,6 +125,24 @@ class CollapsibleSection(QWidget):
         self._calculators_layout = QVBoxLayout()
         content_layout.addLayout(self._calculators_layout)
         self._content_layout = QFormLayout()
+        # A LONG VALUE GETS THE FULL WIDTH; a short one still shares its
+        # row with its label. Qt wraps a row when the field's minimum will
+        # not fit beside the label, so this does nothing on its own -- it
+        # is half of a mechanism whose other half is the minimum width
+        # `PropertyPanel` puts on multi-line values.
+        #
+        # WHY NOT `WrapAllRows`, which needs no second half: it wraps
+        # EVERY row, and this panel is mostly short scalars. Measured on a
+        # realistic section (ten scalars plus one six-line report), at a
+        # 240 px panel:
+        #
+        #     policy                        long value   section height
+        #     DontWrapRows (was shipped)     22 lines      324 px
+        #     WrapAllRows                     6 lines      566 px  (+75%)
+        #     WrapLongRows + minimum width    6 lines      324 px
+        #
+        # Six lines is the right answer -- the value has six lines in it.
+        self._content_layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
         content_layout.addLayout(self._content_layout)
 
         layout = QVBoxLayout(self)

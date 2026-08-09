@@ -282,6 +282,95 @@ _CALCULATOR_ID_PROPERTY = "openchem_calculator_id"
 #: ... and which report a "Details..." button opens.
 _REPORT_ID_PROPERTY = "openchem_report_id"
 
+#: Pixels a MULTI-LINE value asks for before the layout is allowed to
+#: squeeze it. The other half of `CollapsibleSection`'s `WrapLongRows`:
+#: Qt wraps a row when the field's minimum will not fit beside its label,
+#: so without a minimum nothing ever wraps, and with one only the long
+#: values do.
+#:
+#: WHAT IT IS FOR. This panel is a narrow side dock, and the field column
+#: is what is left after the label column takes the widest label in the
+#: section. Measured with the panel at 170 px -- the width the running
+#: app gave it -- a six-line Geometry result rendered as 33 lines, and
+#: for a REPORT row the field column also holds an 80 px "Details..."
+#: button, leaving about 22 px for the text: a one-word-per-line ribbon
+#: with the button itself cut off.
+#:
+#: 200 rather than a rounder number, from the real distribution: 112
+#: result lines across the 15 calculators that produce them, measured at
+#: the app's own font.
+#:
+#:     median 130 px | 75th 230 | 90th 718 | max 2083
+#:
+#:     minimum   lines that fit on one line
+#:       160 px            62%
+#:       180 px            67%
+#:       200 px            75%
+#:       260 px            79%
+#:
+#: 200 is where the return stops: the remaining quarter are prose
+#: sentences (caveats, coverage notes) that SHOULD wrap, and chasing them
+#: would push every panel wider for no gain.
+_MULTILINE_VALUE_MIN_WIDTH = 200
+
+#: The panel refuses to be narrower than this.
+#:
+#: IT IS PART OF THE SAME FIX AND NOT A SEPARATE OPINION. A minimum on
+#: the value is a minimum on the CONTENT, and a scroll area whose content
+#: cannot fit scrolls SIDEWAYS -- which is worse than the wrapping it
+#: replaced, and is what the first version of this shipped as a "fix":
+#: the value read correctly at six lines while the panel needed a
+#: horizontal scrollbar at every width below 360.
+#:
+#: So the panel's own minimum has to be at least the value's, with room
+#: for the label column's indent and the vertical scrollbar. Measured
+#: across the widths the dock produces, on a six-line result whose
+#: longest line needs 187 px:
+#:
+#:     arm                       170   240   300   360   460
+#:     shipped                    24L   12L   10L    6L    6L
+#:     value>=140, no panel min   10L    6L   10L    6L    6L
+#:     value>=200, panel>=240      6L    6L    6L    6L    6L   <- no h-scroll
+#:
+#: Six lines is the right answer at every width -- the value has six
+#: lines in it. The middle row is why the panel minimum is needed rather
+#: than just a smaller value minimum: without it there is a dead zone
+#: around 300 px where the field column is too narrow to fit the text and
+#: too wide to trigger the wrap.
+#:
+#: 280 AND NOT 240, AND THE DIFFERENCE IS THE VERTICAL SCROLLBAR. 240 was
+#: derived against one short section, which never grew one -- so the
+#: viewport was the whole panel. The real panel always scrolls, and the
+#: scrollbar plus frame take 24 px off the width the content actually
+#: gets. Shipped at 240 it produced exactly the horizontal scrollbar this
+#: constant exists to prevent, confirmed by driving the app:
+#:
+#:     panel min  value min  content  viewport  h-scroll
+#:         240       200       224      216      YES
+#:         260       200       236      236      no
+#:         280       200       256      256      no
+#:
+#: The requirement is panel >= 248. 280 leaves headroom for a wider
+#: scrollbar at another DPI or theme, which 260 does not.
+#:
+#: The lesson generalises: a scroll area's VIEWPORT is not its width, and
+#: a harness whose content is too short to scroll measures the wrong one.
+_PANEL_MIN_WIDTH = 280
+
+
+def _fit_multiline(field: QWidget, text: str) -> None:
+    """Let a multi-line value claim `_MULTILINE_VALUE_MIN_WIDTH`.
+
+    Applied to the widget in the form's FIELD column, which for a report
+    row is the container holding the label and its "Details..." button,
+    not the label -- the button is part of what has to fit.
+
+    A single-line value is left alone deliberately. Giving every field a
+    minimum would wrap the short scalar rows too, which is the
+    `WrapAllRows` behaviour measured at +75% panel height.
+    """
+    field.setMinimumWidth(_MULTILINE_VALUE_MIN_WIDTH if "\n" in text else 0)
+
 
 class PropertyPanel(QWidget):
     """Categorized, collapsible descriptor view.
@@ -362,6 +451,11 @@ class PropertyPanel(QWidget):
         scroll_area = QScrollArea(self)
         scroll_area.setWidgetResizable(True)
         scroll_area.setWidget(self._sections_container)
+        # See `_PANEL_MIN_WIDTH`: a minimum on the values is a minimum on
+        # the content, and content the panel cannot fit makes it scroll
+        # SIDEWAYS. The dock gave this panel 170 px in the running app,
+        # which is narrower than a single result line.
+        self.setMinimumWidth(_PANEL_MIN_WIDTH)
 
         # Panel-wide rather than per-section: a selection routinely spans
         # categories ("charges and SASA and the ring systems"), and a Run
@@ -659,6 +753,7 @@ class PropertyPanel(QWidget):
         else:
             text, style = _format_value(descriptor.value)
             value_label.setText(text)
+            _fit_multiline(value_label, text)
             value_label.setStyleSheet(style)
             value_label.setToolTip("")
 
@@ -706,7 +801,9 @@ class PropertyPanel(QWidget):
             label.setStyleSheet(_FAILURE_STYLE)
             label.setToolTip(reason)
             return
-        label.setText(_summarise(result))
+        summary = _summarise(result)
+        label.setText(summary)
+        _fit_multiline(label, summary)
         label.setStyleSheet(_INFORMATION_STYLE)
         label.setToolTip("Open the calculator's button above to see the detail.")
 
@@ -740,6 +837,7 @@ class PropertyPanel(QWidget):
 
         text, style, tooltip = _present_alert(alert)
         value_label.setText(text)
+        _fit_multiline(value_label, text)
         value_label.setStyleSheet(style)
         value_label.setToolTip(tooltip)
         # An unmigrated result is still a report; it just has to be
@@ -862,6 +960,34 @@ class PropertyPanel(QWidget):
         `FactView` -- the same widget the Atom Inspector uses, so search,
         the depth filter, evidence, limitations and export come along
         without this panel implementing any of it.
+
+        THIS ROW IS THE OPEN HALF OF THE PANEL-CLIPPING FIX, and the
+        container below is why. The label sits inside a `QWidget` so it
+        can share a row with the button, and `WrappedLabel`'s
+        height-for-width chain does not survive that container: the form
+        layout gives the row ONE LINE whatever the text. Live, a
+        seven-line elemental analysis renders as
+        `"Elemental Analysis: Formula:"` while the ALERT rows beside it,
+        whose labels sit directly in the field column, render all seven.
+
+        TWO FIXES WERE TRIED AND BOTH MADE IT WORSE OR NO BETTER. Do not
+        repeat them without reading the Known TODO:
+
+        1. Teaching the container to delegate `hasHeightForWidth` /
+           `heightForWidth` / `minimumSizeHint` to its layout. No change
+           in the running app.
+        2. Removing the container -- label straight into the field
+           column, button on its own `addRow` beneath. The value did get
+           more text, and the section's rows then OVERLAPPED each other,
+           which is worse than one clean truncated line. A forced
+           relayout did not settle it, so it is not a repaint artefact.
+
+        The remaining idea, untried: drop the second widget entirely and
+        carry "Details..." as a link at the end of the label's own text,
+        so the field column holds nothing but the `WrappedLabel` -- the
+        exact shape that already works for alerts. That means rich text,
+        which touches copy behaviour and `_without_glyphs`, so it is a
+        real change rather than a tweak.
         """
         existing = self._report_labels.get(report_id)
         if existing is not None:
@@ -881,6 +1007,10 @@ class PropertyPanel(QWidget):
         row_layout.addWidget(details)
         section.content_layout().addRow(name, row)
         self._report_labels[report_id] = value
+        # NOT `+ details.maximumWidth()`: any row minimum above
+        # `_PANEL_MIN_WIDTH` makes the content wider than the panel can
+        # ever be, and the panel scrolls SIDEWAYS.
+        row.setMinimumWidth(_MULTILINE_VALUE_MIN_WIDTH)
         return value
 
     def _on_details_clicked(self, _checked: bool = False) -> None:

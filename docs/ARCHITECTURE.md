@@ -753,22 +753,58 @@ document may cite a file or a test that does not exist.
   a sweep over every calculator, which is why
   `test_no_calculator_provenance_key_collides_with_the_routing_layer`
   iterates the whole registry rather than the names anybody noticed.
-- **OPEN** -- the Properties panel CLIPS long result values. Confirmed
-  from the running app: Functional Groups, BBB Score Descriptors and CNS
-  MPO Score each show about two and a half lines of a six-line value,
-  cut mid-glyph, with the section expanded and the panel scrolling
-  normally.
+- **OPEN (partly fixed)** -- the Properties panel CLIPS long result
+  values. **There is no height clipping**: `WrappedLabel` already closed
+  that, and a font-metrics probe (self-tested, so it can see a clip)
+  finds none at any width. What the panel actually did was STARVE the
+  value -- the label column sizes to the widest label, so at the 170 px
+  the dock gave it, a six-line result rendered as 24 lines.
 
-  **The in-process probe that said "ok" was CIRCULAR and must not be
-  repeated.** It compared each label's `height()` against its own
-  `minimumSizeHint()`. If the hint under-reports, the actual height
-  matches it and the check passes while the text is still cut off. A
-  real check has to measure against the font metrics for the string at
-  the label's true width, not against the number the label itself
-  supplied. Four "clean" measurements were taken this way before the
-  flaw was noticed, and one earlier "reproduction" was a transient
-  mid-relayout state -- so trust the screenshots over the probe until
-  the probe is rewritten.
+  **Fixed for ordinary result rows**, verified by driving the app:
+  `WrapLongRows` on the section's form layout, a 200 px minimum on
+  multi-line values, and a 280 px minimum on the panel. Six lines render
+  as six at every width, with no vertical cost -- `WrapAllRows` also
+  fixes it and was measured at +75% section height, because this panel
+  is mostly short scalars.
+
+        arm                       170   240   300   360
+        shipped                    24L   12L   10L    6L
+        value>=140, no panel min   10L    6L   10L    6L
+        value>=200, panel>=280      6L    6L    6L    6L
+
+  **STILL OPEN: a REPORT row truncates to one line.** Those are the rows
+  with a "Details..." button, so the label sits inside a `QWidget`
+  container to share the row -- and the height-for-width chain
+  `WrappedLabel` depends on does not survive that container. Confirmed
+  live: a seven-line elemental analysis renders as
+  `"Elemental Analysis: Formula:"` and nothing else, while alert rows
+  beside it render all seven. Delegating
+  `hasHeightForWidth`/`heightForWidth`/`minimumSizeHint` from the
+  container to its layout was tried and **did not fix it in the running
+  app**, so it was reverted rather than shipped. The next thing to try is
+  removing the container: put the label directly in the field column and
+  move "Details..." somewhere else.
+
+  Two measurement traps paid for here, both general:
+
+  - **A scroll area's content gets its VIEWPORT width, not the widget's.**
+    The panel minimum was first derived against a section short enough
+    not to scroll; the real panel always has a vertical scrollbar, which
+    takes 24 px. Shipped at 240 it produced exactly the horizontal
+    scrollbar the constant exists to prevent -- a panel that scrolls
+    sideways being worse than one that wraps.
+  - **The suite's `QT_QPA_PLATFORM=offscreen` uses a different font.** The
+    same line needs 187 px on the platform a user sees and 420 px
+    offscreen, so a "renders in six lines" assertion measures the test
+    environment. `tests/test_property_panel_long_values.py` asserts the
+    WRAP instead, which is font-independent. Note it does NOT catch the
+    240 px case -- the live check did, and that gap is why the panel
+    minimum needs re-checking in the app rather than in the suite.
+
+  The in-process probe that once said "ok" was CIRCULAR and must not be
+  repeated: it compared each label's `height()` against its own
+  `minimumSizeHint()`, which `WrappedLabel` computes FROM its width, so
+  an under-reporting hint passes while the text is cut off.
 
   The Details buttons are NOT implicated: the app shows one per report
   row, correctly bound, exactly as the code intends.
