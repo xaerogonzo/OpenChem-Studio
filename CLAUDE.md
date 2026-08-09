@@ -53,13 +53,23 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **3-8 minutes**, ending at `3350 passed, 2 skipped,
-1 deselected` (measured 2026-08-08 after the crystallography work, in the main
-checkout with nothing dirty; it was 3236 before that, 3155 before the
-polarity/lattice-energy work, 3081 before the
-substance-perception work, 3019 before the
+A clean run is **3-8 minutes**, ending at `3501 passed, 2 skipped,
+1 deselected` (measured 2026-08-09 on clean master at `77ad231`, 5m03s,
+after the conformer de-duplication and calculator-routing work; it was
+3446 immediately before that at `14e5d08`, 3350 after the crystallography
+work, 3236 before that, 3155 before the polarity/lattice-energy work,
+3081 before the substance-perception work, 3019 before the
 Ketcher pool-id merge,
-and 2788 before the presentation-layer Phase 0-8 work). **That figure is
+and 2788 before the presentation-layer Phase 0-8 work).
+
+**THE FIGURE DRIFTS AND THIS LIST IS THE EVIDENCE.** The 3350 entry was
+stale by 96 tests before anybody noticed, because a count is only
+refreshed when somebody happens to take one. Treat a mismatch as "the
+number is old" and re-measure before treating it as "something is
+missing" -- and take that measurement on a CLEAN checkout, never a
+working tree, which is a mistake this file has already recorded once.
+
+**That figure is
 from the DESELECTED form below, not the command above** -- run it bare and
 the same tree reports one FAILURE, from the network test explained next.
 
