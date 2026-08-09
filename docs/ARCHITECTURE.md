@@ -772,44 +772,43 @@ document may cite a file or a test that does not exist.
         value>=140, no panel min   10L    6L   10L    6L
         value>=200, panel>=280      6L    6L    6L    6L
 
-  **STILL OPEN: a REPORT row truncates. THE CAUSE IS NOW MEASURED and
-  it is not what the first three attempts assumed.** Instrumenting an
-  alert row and a report row holding identical text in the same section,
-  at a 300 px panel:
+  **STILL OPEN: a REPORT row truncates. FOUR FIXES AND TWO DIAGNOSES
+  HAVE BEEN WRONG. Read all of this before touching it.**
 
-        widget                  width  height  sizeHint  minSizeH  hasHfW  hfw
-        alert label (field)       218     182        96        96    True   96
-        report field container    218     182        96       192    True   96
-        report label INSIDE       132     182        96        96    True   96
+  Measured IN THE RUNNING APP with `OPENCHEM_INSTRUMENT_PANEL=1`
+  (`property_panel._dump_panel_metrics`), which is the only measurement
+  here that describes the panel a user sees:
 
-  **Height-for-width propagates fine.** `hasHeightForWidth` is True on
-  every widget including the container, and `heightForWidth` returns 96
-  on all three. Nothing is swallowed, and the earlier claim in this file
-  that "the height-for-width chain does not survive the container" was
-  simply WRONG -- three structural fixes were designed against it, which
-  is why none of them worked.
+        row                       width  height  sizeHint  minSizeH  hasHfW  hfw
+        Elemental Analysis (row)    238      14        96       144    True  112
+            inside -> QLabel        152      14        96       112    True  112
+        mol_wt -> QLabel            173      16        16        16   False   -1
 
-  The real cause is WIDTH. The report label is 132 px against the alert's
-  218, because the `QHBoxLayout` gives 80 px to "Details..." plus
-  spacing: 218 - 86 = 132, and 132 px cannot hold a line needing ~200.
-  The 200 px minimum is on the CONTAINER (`minimumWidth` 200) and the
-  label's own is **0**, so nothing stops the squeeze.
+  **The container asks for 144 px of height and is GIVEN 14.** It
+  reports `hasHeightForWidth` True and `minimumSizeHint` 144 perfectly
+  well, and `QFormLayout` ignores it -- while honouring every plain
+  descriptor row's `sizeHint` exactly. That is the open question: why
+  does this one field get 14 px when it asks for 144?
 
-  Two ways out, and both have a measured cost:
+  The label inside is also 152 px against an alert's ~218, because the
+  button takes the rest. Real, but SECONDARY: at 14 px nothing renders
+  whatever the width.
 
-  - **Put the minimum on the LABEL.** The container's minimum then
-    becomes 200 + 80 + spacing = 286, and the content must fit the
-    viewport, which is the panel minus 24 px of scrollbar and frame. So
-    `_PANEL_MIN_WIDTH` would have to rise from 280 to about 330 -- wide
-    for a side dock, and a real imposition on somebody's layout.
-  - **Move "Details..." out of the row**, so the label is the only thing
-    in the field column and inherits the alert row's behaviour exactly.
-    Attempts 2 and 3 both tried placements for it and both regressed
-    something else, so this needs a placement nobody has tried rather
-    than a repeat.
+  **Two diagnoses were published in this file and both were wrong.**
+  First "the height-for-width chain does not survive the container" --
+  it survives, the container reports correctly. Then "the cause is
+  width, not height" -- that came from an out-of-app harness and the app
+  contradicts it. Four fixes were designed against those two claims and
+  none worked: delegating height-for-width from the container, removing
+  the container with the button on its own row (rows overlapped),
+  carrying "Details..." as a link in rich text, and moving the button
+  into the label column (harness showed full parity with an alert row;
+  the app still truncated).
 
-  Whichever is chosen, **the height was never the problem** and any fix
-  framed around it will fail as the first three did.
+  **DO NOT TRUST AN OUT-OF-APP HARNESS FOR THIS PANEL.** It said there
+  was no clipping while the app clipped, no horizontal scrollbar while
+  the app had one, and a full-width label while the app truncated. Use
+  the env var.
 
   Two measurement traps paid for here, both general:
 
