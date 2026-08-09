@@ -5,7 +5,7 @@ import os
 from collections.abc import Callable
 
 from PySide6.QtCore import QPoint, QSize, Qt, QTimer
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QFontMetrics, QGuiApplication
 from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
@@ -308,6 +308,14 @@ _INSTRUMENT_DELAY_MS = 1500
 
 _REPORT_ID_PROPERTY = "openchem_report_id"
 
+#: An elided calculator button never shrinks below this, so it stays a
+#: button rather than a sliver at any panel width.
+_ELIDED_BUTTON_MIN_WIDTH = 80
+
+#: Room the button's own frame and padding take off its width before
+#: there is anywhere to put text.
+_ELIDED_BUTTON_PADDING = 16
+
 #: Pixels of headroom left above a revealed row, so it lands inside the
 #: viewport rather than flush against its bottom edge.
 _REVEAL_MARGIN = 24
@@ -508,6 +516,49 @@ def _dump_ancestors(field: QWidget, panel: QWidget) -> None:
         widget = widget.parentWidget()
 
 
+def _dump_width_budget(panel: QWidget) -> None:
+    """Name whatever makes the panel's content wider than its viewport.
+
+    A scroll area sizes its content to `max(viewport, minimum)`, so ONE
+    widget with a large minimum width pushes every row past the right
+    edge and the text is clipped there -- measured at content 287 against
+    a 256 viewport. Heights were the whole story for the report row, so
+    the height dump was built first; this is the same question sideways.
+    """
+    from PySide6.QtWidgets import QFormLayout, QScrollArea
+
+    scroll = panel.findChild(QScrollArea)
+    viewport = scroll.viewport().width() if scroll is not None else 0
+    logger.warning("width budget (viewport %d px) -- anything wider is overflow:", viewport)
+    for category, section in getattr(panel, "_sections", {}).items():
+        if section.isHidden() or not section.is_expanded():
+            continue
+        form = section.content_layout()
+        logger.warning(
+            "  %-22s section min %-5d content min %-5d form min %-5d",
+            category[:22],
+            section.minimumSizeHint().width(),
+            section.content.minimumSizeHint().width(),
+            form.minimumSize().width(),
+        )
+        for row in range(form.rowCount()):
+            item = form.itemAt(row, QFormLayout.ItemRole.SpanningRole) or form.itemAt(
+                row, QFormLayout.ItemRole.FieldRole
+            )
+            widget = item.widget() if item is not None else None
+            if widget is None or widget.isHidden():
+                continue
+            for child in [widget, *widget.findChildren(QLabel)]:
+                wanted = child.minimumSizeHint().width()
+                if wanted > viewport:
+                    logger.warning(
+                        "      OVERFLOW %-14s min %-5d  %r",
+                        type(child).__name__[:14],
+                        wanted,
+                        (child.text()[:48] if hasattr(child, "text") else ""),
+                    )
+
+
 def _dump_container_items(panel: QWidget) -> None:
     """What the sections container's own layout thinks each section needs.
 
@@ -615,6 +666,52 @@ def _dump_panel_metrics(panel: QWidget) -> None:
                     child.heightForWidth(child.width()) if child.hasHeightForWidth() else -1,
                     child.minimumWidth(),
                 )
+
+
+class _ElidingPushButton(QPushButton):
+    """An "Open [Calculator]..." button that may be narrower than its label.
+
+    **A `QPushButton` REFUSES TO BE NARROWER THAN ITS TEXT**, and one of
+    these is the widest thing in the Properties panel. Measured in the
+    running app with the ADMET section open, the panel at its 280 px
+    minimum:
+
+        viewport                    256 px
+        scroll content              287 px   <- 31 px of overflow
+        admet section minimum       287
+          its form's minimum        184      <- the rows were never the problem
+        "Open ADMET (hERG, CYP, Ames, ADME)..."  269
+
+    A scroll area sizes its content to `max(viewport, minimum)`, so that
+    one button pushed every row 31 px past the right edge and the text was
+    clipped there -- `(93rd percentile amo` where a wrap was expected. It
+    looks like a wrapping bug in the value and is nothing of the kind.
+
+    Eliding rather than wrapping the button, because a two-line button in
+    a list of one-line buttons reads as a different kind of control; the
+    full name stays in the tooltip, and the section header already says
+    which category it belongs to.
+    """
+
+    def __init__(self, text: str, parent: QWidget | None = None) -> None:
+        super().__init__(text, parent)
+        self._full_text = text
+        self.setToolTip(text)
+        # `Ignored` horizontally is what drops the minimum to zero, which
+        # is the whole point: `Preferred` keeps the text's width as a
+        # floor however the text is painted.
+        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        self.setMinimumWidth(_ELIDED_BUTTON_MIN_WIDTH)
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 - Qt's own casing
+        super().resizeEvent(event)
+        metrics = QFontMetrics(self.font())
+        available = max(0, self.width() - _ELIDED_BUTTON_PADDING)
+        elided = metrics.elidedText(self._full_text, Qt.TextElideMode.ElideRight, available)
+        # Guarded: `setText` re-lays-out the button, and assigning the same
+        # string every pass is a loop with no exit condition.
+        if elided != self.text():
+            super().setText(elided)
 
 
 def _add_wide_row(section, name: str, field: QWidget) -> None:
@@ -860,7 +957,7 @@ class PropertyPanel(QWidget):
                 # ServiceExecution-backed (Docking, QuantumChemistry) --
                 # registered for discovery only, run from their own panel.
                 continue
-            button = QPushButton(f"Open {definition.display_name}...", section.content)
+            button = _ElidingPushButton(f"Open {definition.display_name}...", section.content)
             # A BOUND METHOD, never a lambda that captures `self`.
             #
             # PySide6 holds a connected plain callable STRONGLY and holds a

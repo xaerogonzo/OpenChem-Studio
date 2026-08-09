@@ -19,9 +19,9 @@ label's real width is the reference here.
 
 from __future__ import annotations
 
-from PySide6.QtCore import QRect, Qt
+from PySide6.QtCore import QCoreApplication, QEvent, QRect, Qt
 from PySide6.QtGui import QFontMetrics
-from PySide6.QtWidgets import QLabel
+from PySide6.QtWidgets import QLabel, QScrollArea
 
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.common import CacheState, Provenance
@@ -53,6 +53,18 @@ SHORT = [
     ("logp", "LogP", 1.53),
     ("rings", "Ring Count", 5),
 ]
+
+
+def _calculator_definition_with_name(calculator_id: str, category: str, display_name: str):
+    from openchem.domain.calculator import CalculatorDefinition, RegistryExecution
+
+    return CalculatorDefinition(
+        calculator_id=calculator_id,
+        display_name=display_name,
+        category=category,
+        description=display_name,
+        execution=RegistryExecution(compute=lambda mol, uuid, params: None),
+    )
 
 
 class _FakeService:
@@ -374,3 +386,50 @@ def test_the_panel_never_scrolls_sideways(qapp):
             assert scroll.horizontalScrollBar().maximum() == 0, width
         finally:
             _dispose(panel, qapp)
+
+
+def test_a_long_calculator_name_does_not_widen_the_panel(qapp):
+    """The widest thing in this panel is a BUTTON, not a value.
+
+    `QPushButton` refuses to be narrower than its text, and a scroll area
+    sizes its content to `max(viewport, minimum)` -- so one long
+    "Open [Calculator]..." label pushes every row past the right edge and
+    the values are clipped there. Measured in the running app with the
+    ADMET section open at the panel's 280 px minimum: viewport 256,
+    content 287, that section's minimum 287 while its form's was 184.
+    The rows were never the problem, and the symptom
+    (`(93rd percentile amo` where a wrap belonged) reads exactly like one.
+
+    `test_the_panel_never_scrolls_sideways` cannot catch this: it builds
+    the panel with a registry holding only what it registers, so no
+    long-named button ever exists. This one registers the long name on
+    purpose.
+    """
+    from openchem.services.calculator_registry import CalculatorRegistry
+    from openchem.ui.panels.property_panel import PropertyPanel
+
+    registry = CalculatorRegistry()
+    registry.register(
+        _calculator_definition_with_name(
+            "monstrous", "physicochemical",
+            "Absolutely Enormous Calculator Name (hERG, CYP, Ames, ADME, and more)",
+        )
+    )
+    bus = EventBus()
+    panel = PropertyPanel(bus, registry, _FakeService(), ChemistryEngine())
+    try:
+        panel.resize(280, 400)
+        panel.show()
+        qapp.processEvents()
+        scroll = panel.findChild(QScrollArea)
+        assert scroll is not None
+        content = scroll.widget().minimumSizeHint().width()
+        viewport = scroll.viewport().width()
+        assert content <= viewport, (
+            f"content needs {content} px against a {viewport} px viewport, so every "
+            f"row is clipped on the right"
+        )
+    finally:
+        panel.setParent(None)
+        panel.deleteLater()
+        QCoreApplication.sendPostedEvents(panel, QEvent.Type.DeferredDelete)

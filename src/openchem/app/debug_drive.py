@@ -231,6 +231,21 @@ class _Driver:
         self._window.grab().save(str(path))
         logger.warning("OPENCHEM_DRIVE: wrote %s", path)
 
+    def _do_dump(self, step: dict[str, Any]) -> None:
+        """Dump the Properties panel's row geometry to the log.
+
+        The same measurement `OPENCHEM_INSTRUMENT_PANEL` produces, but at
+        a moment the script chooses. That variable fires the dump from
+        inside `_report_row`, which only ever catches a REPORT row -- an
+        alert row could not be measured at all without either editing the
+        panel or clicking through by hand.
+        """
+        from openchem.ui.panels import property_panel
+
+        property_panel._dump_panel_metrics(self._window._property_panel)
+        property_panel._dump_height_budget(self._window._property_panel)
+        property_panel._dump_width_budget(self._window._property_panel)
+
     def _do_wait(self, step: dict[str, Any]) -> None:
         """Nothing; the pause is `after_ms`. Present so a script can say
         it is waiting rather than hiding it in the previous step."""
