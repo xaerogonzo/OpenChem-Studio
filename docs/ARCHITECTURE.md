@@ -778,12 +778,32 @@ document may cite a file or a test that does not exist.
   `WrappedLabel` depends on does not survive that container. Confirmed
   live: a seven-line elemental analysis renders as
   `"Elemental Analysis: Formula:"` and nothing else, while alert rows
-  beside it render all seven. Delegating
-  `hasHeightForWidth`/`heightForWidth`/`minimumSizeHint` from the
-  container to its layout was tried and **did not fix it in the running
-  app**, so it was reverted rather than shipped. The next thing to try is
-  removing the container: put the label directly in the field column and
-  move "Details..." somewhere else.
+  beside it render all seven.
+
+  **THREE FIXES HAVE BEEN TRIED AND NONE WORKS. Read this before a
+  fourth.** Each passed its tests and each was refuted by driving the
+  app; all three were reverted rather than shipped:
+
+  1. Container delegates `hasHeightForWidth`/`heightForWidth`/
+     `minimumSizeHint` to its layout -- no change on screen.
+  2. Remove the container, "Details..." on its own `addRow` beneath --
+     the value gained text and the section's rows then OVERLAPPED each
+     other, which is worse than one clean truncated line. A forced
+     relayout did not settle it, so not a repaint artefact.
+  3. Remove the second widget entirely and carry "Details..." as a LINK
+     in the label's own rich text, so the field column holds exactly one
+     widget -- the shape that already works for alerts. Still one line
+     live. (That attempt also needs HTML-escaping the value and a plain
+     form for "Copy all", so it is not free even if it had worked.)
+
+  So **the container is not the whole story**, and whatever differs from
+  an alert row has not been identified. The next person should
+  INSTRUMENT rather than try a fourth structural variant: log what the
+  form layout actually asks the field for -- `sizeHint`,
+  `minimumSizeHint`, `hasHeightForWidth`, `heightForWidth` at the real
+  width -- on an alert row and a report row side by side, and find where
+  the two diverge. Three guesses have cost more than one measurement
+  would have.
 
   Two measurement traps paid for here, both general:
 
