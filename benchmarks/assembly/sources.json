@@ -1,0 +1,62 @@
+{
+ "1A34-assembly1.cif": {
+  "bytes": 24788865,
+  "fetched": "2026-08-09",
+  "sha256": "bb626ffdc9742c07bac72ae47c36f611fe1abb6c5fbb7d5bcc3b6bcf05813310",
+  "url": "https://files.rcsb.org/download/1A34-assembly1.cif"
+ },
+ "1A34.pdb": {
+  "bytes": 341901,
+  "fetched": "2026-08-09",
+  "sha256": "cf70d460d9b113945458ad6114b399357b4ed332248504ad6d51009bb81705cc",
+  "url": "https://files.rcsb.org/download/1A34.pdb"
+ },
+ "2OMF-assembly1.cif": {
+  "bytes": 943903,
+  "fetched": "2026-08-09",
+  "sha256": "167c75644542be6a12465a889d6d3b4d567e4be30fe7e19b814a51423e3728b4",
+  "url": "https://files.rcsb.org/download/2OMF-assembly1.cif"
+ },
+ "2OMF.pdb": {
+  "bytes": 274104,
+  "fetched": "2026-08-09",
+  "sha256": "40d7701d5bf44857759606b44b2b60e0c1edc79519a2521f8d33e08ae6342d45",
+  "url": "https://files.rcsb.org/download/2OMF.pdb"
+ },
+ "4DKL-assembly1.cif": {
+  "bytes": 1560321,
+  "fetched": "2026-08-09",
+  "sha256": "f5c8d8ac9c182334f23521163842024055aa16877a0fa040b31aee41901bbace",
+  "url": "https://files.rcsb.org/download/4DKL-assembly1.cif"
+ },
+ "4DKL.pdb": {
+  "bytes": 647514,
+  "fetched": "2026-08-09",
+  "sha256": "8d5a935aa0c541a8f91073b5784ac17cfe8f982b5df4274abea198d2d24fd549",
+  "url": "https://files.rcsb.org/download/4DKL.pdb"
+ },
+ "4EA3-assembly1.cif": {
+  "bytes": 1104046,
+  "fetched": "2026-08-09",
+  "sha256": "e6f89946b71667f3a511a776881de5b35d79a9e22218ebe2d738748248dc3fff",
+  "url": "https://files.rcsb.org/download/4EA3-assembly1.cif"
+ },
+ "4EA3.pdb": {
+  "bytes": 897885,
+  "fetched": "2026-08-09",
+  "sha256": "0e6e58445b153573a94f797eeab9db81a8b5e5c071f363912232dd5432b9cb9a",
+  "url": "https://files.rcsb.org/download/4EA3.pdb"
+ },
+ "5I6X-assembly1.cif": {
+  "bytes": 1690564,
+  "fetched": "2026-08-09",
+  "sha256": "084af79282bb073f056e032517dc55a600fb7239471bf1d2b435797a8f4b6c67",
+  "url": "https://files.rcsb.org/download/5I6X-assembly1.cif"
+ },
+ "5I6X.pdb": {
+  "bytes": 1295514,
+  "fetched": "2026-08-09",
+  "sha256": "1bd000fd0c3fde3d8f4ad3a0b0a69ccacb583d5532418b55fef0c3c7b34a75ee",
+  "url": "https://files.rcsb.org/download/5I6X.pdb"
+ }
+}

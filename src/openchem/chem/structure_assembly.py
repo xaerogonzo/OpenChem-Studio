@@ -35,6 +35,24 @@ deposited -- which is precisely why it is the CONTROL for the builder
 (building must not move a result that should not move) rather than a
 demonstration of it.
 
+VERIFIED AGAINST RCSB, not only against itself. `benchmarks/assembly/`
+compares what this builds from `REMARK 350` against the assemblies RCSB
+generates from the mmCIF `_pdbx_struct_oper_list` -- an independent
+reading of the same annotation. 4DKL, 4EA3 and 5I6X agree on every atom
+to the written digit; 1A34 is refused at 208,440 atoms and RCSB's file
+confirms that count exactly. 2OMF's 115 differing atoms are the deposit's
+own precision, not a defect: `-0.866025` here against `-0.8660254038`
+there, which only reaches the third decimal at a rounding boundary.
+
+**A transposed matrix is invisible to almost everything.** Every operator
+in the bundled 49-receptor catalogue is axis-aligned, so transposing one
+changes nothing; measured through the gate, a transposed builder still
+matches 4DKL, 4EA3 and 5I6X byte for byte and is caught only by 2OMF's
+3-fold, by 118.5 A. Any future corpus, fixture or spot-check that means
+to exercise a rotation needs a DENSE one -- `tests/test_assembly_gate.py`
+enforces that on the gate's corpus and checks the claim against the real
+matrix rather than a flag.
+
 ID SPACES. mmCIF assembly records reference `label_asym_id`, and PDB
 `REMARK 350` references author chain ids. Those are different id spaces --
 4DAJ has 18 label ids and 4 author ids for the same atoms. Confirmed live

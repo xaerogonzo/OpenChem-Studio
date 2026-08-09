@@ -1662,6 +1662,37 @@ outcome here, not a failure.
 Comments explain **why**, especially where something is non-obvious or was got
 wrong once. A comment restating the code is noise.
 
+### A whole CORPUS can be degenerate, and then size proves nothing
+
+Same family as the bimodal threshold below, one level up: it is not only
+a calibration molecule that can have the wrong shape, it is every case
+you have.
+
+**All 49 receptors in the bundled catalogue carry axis-aligned assembly
+operators.** So a builder that TRANSPOSES its rotation matrix produces
+byte-identical output for all 49, and "verified against 49 real deposits"
+is worth exactly nothing against that bug. Measured through
+`benchmarks/assembly/`, with the transpose applied on purpose:
+
+    4DKL   pass      4EA3   pass      5I6X   pass
+    2OMF   FAIL by 118.5 A            <- the only dense rotation in reach
+
+`swap-translation`, by contrast, is caught by all four. So the corpus was
+blind to one operation and fine on another, which is invisible until you
+mutate for each separately -- **a corpus is not "big enough" or "small",
+it is degenerate or not with respect to a specific mutation.**
+
+Two habits from it:
+
+- **Add the non-degenerate case deliberately and say why**, in the corpus
+  itself. 2OMF is in that gate for no other reason, and
+  `tests/test_assembly_gate.py` fails if it is removed.
+- **Check the declaration against the data.** That test requires an entry
+  claiming to catch a transpose AND asserts the real matrix is
+  non-symmetric, because a flag on a symmetric matrix would leave the
+  gate exactly as blind while looking guarded -- how
+  `inapplicable_calculators` rotted.
+
 ### A threshold fitted to a BIMODAL molecule is not validated
 
 The conformer de-duplication threshold was measured honestly, on real

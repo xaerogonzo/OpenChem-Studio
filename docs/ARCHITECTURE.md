@@ -631,11 +631,31 @@ document may cite a file or a test that does not exist.
     general rotation (2OMF's 3-fold) and why the composition test uses
     non-commuting operators.
 
+  **The RCSB gate has landed and the builder passes it**,
+  `benchmarks/assembly/`: fetch, build and score against the assemblies
+  RCSB generates from the mmCIF `_pdbx_struct_oper_list` where we build
+  from `REMARK 350`. 4DKL, 4EA3 and 5I6X match **every atom to the
+  written digit**; 1A34 is refused at 208,440 atoms, which RCSB's own
+  file confirms to the atom. 2OMF differs on 115 of 8,481 atoms by
+  exactly 0.001 A, and that is the deposit rather than either builder:
+  the PDB states the matrix to six decimals (`-0.866025`) where the mmCIF
+  carries ten (`-0.8660254038`), which moves only atoms sitting within
+  ~3e-5 A of a rounding boundary.
+
+  The gate has been shown to FAIL, which is the half that makes it
+  evidence. `build.py --mutate transpose` is caught **only by 2OMF**
+  (118.5 A) -- 4DKL, 4EA3 and 5I6X pass transposed, for the same reason
+  all 49 catalogue deposits do. `tests/test_assembly_gate.py` guards that
+  offline: it requires a corpus entry declaring it catches a transpose,
+  and then checks the declaration against the real matrix rather than
+  trusting the flag.
+
   Still open: **building from mmCIF** (PDB refuses assemblies its
-  single-character chain id or 99,999-serial limit cannot express, and
-  mmCIF is exactly the format for those), and the **RCSB gate** in
-  `benchmarks/assembly/` -- until that lands, the builder is verified
-  against this project's own reading of the format and nothing else.
+  single-character chain id or 99,999-serial limit cannot express, mmCIF
+  is exactly the format for those, and it is also the only way to remove
+  2OMF's 0.001 and to exercise a product expression at all -- `REMARK
+  350` has no expression syntax, so right-to-left composition stays
+  unit-tested until then).
 
   BinaryCIF is no longer: `chem/binarycif.py` decodes it and
   `chem/structure_io.py` routes files by content (and gunzips) at import.

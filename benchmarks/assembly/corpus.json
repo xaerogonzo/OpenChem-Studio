@@ -1,0 +1,43 @@
+{
+  "corpus_version": 1,
+  "recorded": "2026-08-09",
+  "reference": {
+    "source": "RCSB generated biological assemblies",
+    "url_template": "https://files.rcsb.org/download/{pdb_id}-assembly{assembly_id}.cif",
+    "note": "RCSB builds these from the mmCIF _pdbx_struct_oper_list. We build from the PDB REMARK 350 BIOMT records. The two are independent readings of the same deposited annotation, which is what makes this an external check rather than a self-comparison."
+  },
+  "structures": [
+    {
+      "pdb_id": "4DKL",
+      "assembly_id": "1",
+      "expect": "built",
+      "why": "In the bundled receptor catalogue and flagged needs_generated_copies. The mu-opioid receptor: its pocket sits INSIDE the monomer, so building must not move a docking result. The control for the live check, and the reason the catalogue cannot be the gate."
+    },
+    {
+      "pdb_id": "4EA3",
+      "assembly_id": "1",
+      "expect": "built",
+      "why": "The per-BIOMOLECULE operator-id scoping case. Its operator 2 translates by +14.85678 in assembly 1 and by -27.24922 in assembly 2; reading the ids globally placed a chain 42 A from where the depositor put it. This is that bug's external witness."
+    },
+    {
+      "pdb_id": "5I6X",
+      "assembly_id": "1",
+      "expect": "built",
+      "why": "The third catalogue entry holding LESS than its biological unit. Included so the gate covers every curated receptor that needs generated copies, not a sample of them."
+    },
+    {
+      "pdb_id": "2OMF",
+      "assembly_id": "1",
+      "expect": "built",
+      "catches_transpose": true,
+      "why": "A GENERAL ROTATION, deliberately. Maltoporin's trimer is a 3-fold, so its matrix is dense and asymmetric -- every catalogue matrix is axis-aligned, which means a transposed implementation passes all 49 of them. This is the only entry whose transpose is a different structure, so it is the only one that can catch it."
+    },
+    {
+      "pdb_id": "1A34",
+      "assembly_id": "1",
+      "expect": "refused",
+      "expect_atoms": 208440,
+      "why": "60 operators on a satellite tobacco mosaic virus asymmetric unit. The builder REFUSES it over the atom limit, and RCSB's own assembly confirms the count it refuses on is right to the atom. A refusal branch that nothing external checks is a branch that can drift."
+    }
+  ]
+}
