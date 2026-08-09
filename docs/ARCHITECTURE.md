@@ -657,22 +657,69 @@ document may cite a file or a test that does not exist.
   lattice-energy fact at all rather than a guessed one. The volume comes
   from the cell, so no ionic radius is involved and a complex ion works
   as readily as a monatomic one.
-- **OPEN, and the largest of these** -- every calculator computes on the
-  2D DRAWING, never on a generated conformer.
-  `ChemistryEngine.mol_from_model` reads `model.molblock` and never looks
-  at `model.conformers`, so the Properties panel reports "The available
-  conformer is 2D" while the 3D viewer is showing "Conformer 3/3".
-  Measured: `dipole_moment` handed a real 3D conformer returns COMPLETED
-  with 5 facts, including through a molblock round trip -- the
-  calculator is correct and the molecule reaching it is not. Every
-  conformer-dependent calculator has the same exposure: shape
-  descriptors, geometry, surface area, the DREIDING energy, ESP.
+- **SETTLED** -- every calculator computed on the 2D DRAWING, never on a
+  generated conformer. `ChemistryEngine.mol_from_model` reads
+  `model.molblock` and never `model.conformers`, so the Properties panel
+  reported "The available conformer is 2D" while the 3D viewer showed
+  "Conformer 3/3".
 
-  **Closing it is a DESIGN decision, not a repair.** Should a calculator
-  get the selected conformer, the lowest-energy one, or refuse until
-  told which? That changes what every 3D-dependent number in the app
-  means, so it is decided deliberately rather than by whichever is
-  easiest to wire.
+  **The design question was already answered six times over.**
+  `io_backends.mol_for_export` plus five inline copies
+  (`main_window`, `property_panel`, `docking_panel`,
+  `quantum_chemistry_panel`, `batch_service`) all did
+  `conformers[0] if conformers else the drawing`. That is now one pure
+  function, `chem/calculation_input.select_calculation_input`, and the
+  six call it -- six copies is not six bugs today, it is one bug the day
+  the policy changes to "the conformer the user is looking at".
+
+  **The blanket swap would have been a regression, and the numbers say
+  so.** A conformer molblock carries EXPLICIT HYDROGENS: ethylmorphine is
+  23 atoms as drawn and 46 as a conformer. Measured across all 49
+  registered calculators, run on the drawing and on a conformer with
+  timestamps normalised, plus a third run with hydrogens folded back to
+  implicit to separate the causes:
+
+        unchanged                            30
+        changed ONLY by explicit hydrogens    8   <- the regression risk
+        changed by the geometry              11   <- the point of the fix
+
+  The eight are topological -- a Wiener index over 46 atoms is a
+  different number from one over 23, and neither is wrong for its input.
+  So `CalculatorDefinition.calculation_input` declares `DRAWING`
+  (the default, today's behaviour) or `GEOMETRY`, exactly as `applies_to`
+  declares structure kinds and for the same reason.
+
+  **Four of the eleven candidates were rejected on measurement.**
+  `resonance_forms`, `stereoisomers`, `tautomers` and
+  `structural_frameworks` differ only because their `StructureSetResult`
+  echoes coordinates into its own output; destroying the geometry while
+  keeping the same atoms and hydrogens leaves their chemistry identical.
+  Seven declare `GEOMETRY`.
+
+  **`GEOMETRY` means prefer, not require**, and the refusal stays where
+  it already worked -- `geometry_analysis._require_conformer` and
+  `descriptor_providers._compute_shape_descriptors` check `Is3D()` and
+  say what to do about it. Duplicating that into the routing policy would
+  give two places to drift apart.
+
+  Verified by logging what each calculator RECEIVES, not what it
+  returns -- output can look plausible when the wrong molecule went in:
+
+        topology_analysis     drawing    23 atoms   0 H   Is3D False
+        geometry_analysis     geometry   46 atoms  23 H   Is3D True    conf 33be70ce, 109.52 kcal/mol
+
+  Before the change, `geometry_analysis`, `surface_analysis`,
+  `dipole_moment` and `atom_sasa` returned FAILED ("The available
+  conformer is 2D") on every molecule however many conformers it had.
+  **`steric_analysis` was worse: it returned COMPLETED**, computing a
+  cone angle and %Vbur on a flat structure and reporting a plausible
+  number -- correct arithmetic on the wrong object, the same shape as the
+  40619 kcal/mol interaction energy.
+
+  Each result now records `geometry_source`, `conformer_id` and
+  `conformer_index`. The ID, not only the index: index 0 today is index 3
+  after the next regeneration, so a result citing a position cannot be
+  traced back to a geometry.
 - **OPEN** -- the Properties panel CLIPS long result values. Confirmed
   from the running app: Functional Groups, BBB Score Descriptors and CNS
   MPO Score each show about two and a half lines of a six-line value,

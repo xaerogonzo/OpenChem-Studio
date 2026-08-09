@@ -82,7 +82,12 @@ from openchem.chem.topology_analysis import (
     compute_eccentricity_dataset,
     compute_topology_analysis,
 )
-from openchem.domain.calculator import CalculatorDefinition, CalculatorParameter, RegistryExecution
+from openchem.domain.calculator import (
+    GEOMETRY,
+    CalculatorDefinition,
+    CalculatorParameter,
+    RegistryExecution,
+)
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.scientific_result import AlertResult, PerAtomDataset
@@ -1262,6 +1267,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="geometry_analysis",
+        calculation_input=GEOMETRY,
         display_name="Geometry",
         category="geometry",
         description=(
@@ -1282,6 +1288,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="surface_analysis",
+        calculation_input=GEOMETRY,
         display_name="Molecular Surface Area (3D)",
         category="surface",
         description=(
@@ -1296,6 +1303,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="atom_sasa",
+        calculation_input=GEOMETRY,
         display_name="Accessible Surface Area (per atom)",
         category="surface",
         description="Per-atom solvent-accessible surface -- which atoms are actually exposed. Needs a conformer.",
@@ -1491,6 +1499,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="interaction_analysis",
+        calculation_input=GEOMETRY,
         display_name="Interaction Analysis",
         category="interactions",
         description=(
@@ -1782,6 +1791,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="dipole_moment",
+        calculation_input=GEOMETRY,
         display_name="Dipole Moment",
         category="charge",
         description=(
@@ -1797,6 +1807,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="molecular_dynamics",
+        calculation_input=GEOMETRY,
         display_name="Molecular Dynamics (vacuum)",
         category="dynamics",
         description=(
@@ -1848,6 +1859,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="steric_analysis",
+        calculation_input=GEOMETRY,
         display_name="Ligand Steric Bulk",
         category="geometry",
         description=(

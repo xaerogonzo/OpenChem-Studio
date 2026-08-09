@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.chem.calculation_input import canonical_conformer
 from openchem.app.settings import Settings
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.nmr_correlation import compute_cosy_pairs, compute_hmbc_pairs, compute_hsqc_pairs
@@ -479,7 +480,10 @@ class QuantumChemistryPanel(QWidget):
             )
             return
 
-        molblock = molecule.conformers[0].molblock
+        # `canonical_conformer` rather than `conformers[0]`: the two agree
+        # only while the list happens to be energy-sorted, which a project
+        # saved by an older version does not guarantee.
+        molblock = canonical_conformer(molecule).molblock
         mol = self._chemistry_engine.mol_from_molblock(molblock)
 
         calc_type = CALC_TYPE_LABELS[self._calc_type_combo.currentText()]

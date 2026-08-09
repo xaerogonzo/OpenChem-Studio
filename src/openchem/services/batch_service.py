@@ -36,7 +36,9 @@ from dataclasses import dataclass
 from PySide6.QtCore import QRunnable, QThreadPool
 
 from openchem.chem.descriptor_providers import RDKitDescriptorProvider
+from openchem.chem.calculation_input import select_calculation_input
 from openchem.chem.engine import ChemistryEngine
+from openchem.domain.calculator import GEOMETRY
 from openchem.chem.result_reduction import (
     alert_catalog_columns,
     descriptor_cell,
@@ -184,11 +186,9 @@ class _BatchTask(QRunnable):
         # passes one to `request_descriptors`: shape and surface descriptors
         # compute for real against a real conformer and report "needs a
         # conformer" against the flat 2D molblock.
-        if molecule.conformers:
-            try:
-                mol = self._engine.mol_from_molblock(molecule.conformers[0].molblock)
-            except Exception:  # noqa: BLE001 - the 2D structure remains a valid answer
-                logger.exception("Conformer molblock unusable for %s; using the 2D structure", molecule.uuid)
+        # `select_calculation_input` owns the choice and the fallback,
+        # including the unusable-molblock case this used to handle inline.
+        mol = select_calculation_input(self._engine, molecule, GEOMETRY)
         self._run_descriptors(table, molecule, mol)
         self._run_calculators(table, molecule, mol)
 

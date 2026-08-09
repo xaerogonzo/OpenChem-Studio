@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 
 import logging
 
+from openchem.chem.calculation_input import canonical_conformer
 from openchem.app.settings import Settings
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.docking import DockingBox
@@ -305,7 +306,8 @@ class DockingPanel(QWidget):
         # docking a flat structure against a 3D receptor is meaningless, not
         # just lower quality. Mirrors QuantumChemistryPanel._on_run_clicked's
         # identical preference.
-        ligand_molblock = ligand.conformers[0].molblock if ligand.conformers else ligand.molblock
+        best = canonical_conformer(ligand)
+        ligand_molblock = best.molblock if best is not None else ligand.molblock
         ligand_mol = self._chemistry_engine.mol_from_molblock(ligand_molblock)
 
         self._pending_ligand_uuid = ligand_uuid

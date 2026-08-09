@@ -336,6 +336,16 @@ embeddings, the morphine derivative returned 10, 14, 14, 12 and 14 distinct
 conformers — so the count varies by 4 between runs of the *same* request,
 and 10 embeddings could not find its minima at any threshold.
 
+**A 3D-dependent calculation uses one conformer, and says which.**
+Geometry, surface area, SASA, the dipole and the steric parameters are
+computed on the lowest-MMFF94-energy conformer *among those this sampling
+run retained* — not "the lowest-energy conformer", which would be a claim
+about the molecule rather than about one random search under one force
+field. Each result records the conformer's id, so a number can be traced
+back to the geometry it came from even after the list is re-sorted. A
+molecule with no conformers is unchanged: those calculators say they need
+one, as they always did.
+
 **Energies rank; they do not quantify populations.** Conformers are sorted
 by force-field energy so conformer 1 is the lowest found, but MMFF energies
 are not free energies and the differences between them do not convert into

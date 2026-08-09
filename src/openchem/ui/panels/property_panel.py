@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.chem.calculation_input import canonical_conformer
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.calculator import (
     CalculationRequest,
@@ -1139,7 +1140,8 @@ class PropertyPanel(QWidget):
         molecule = self._project.find_molecule(result.molecule_uuid)
         if molecule is None:
             return
-        conformer_molblock = molecule.conformers[0].molblock if molecule.conformers else None
+        best = canonical_conformer(molecule)
+        conformer_molblock = best.molblock if best is not None else None
         # A spectrum goes to the dedicated NMR view (Phase 23c): grouped
         # signals, integrations and multiplicities have nowhere to live in
         # the generic inspector's one-colour-per-atom layout.

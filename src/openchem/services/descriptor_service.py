@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import logging
 import time
+from dataclasses import replace
 
 from PySide6.QtCore import QRunnable, QThreadPool
 
+from openchem.chem.calculation_input import geometry_provenance, select_calculation_input
 from openchem.chem.descriptor_providers import DescriptorProvider, RDKitDescriptorProvider
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.calculator import CalculationRequest
@@ -116,6 +118,28 @@ class _DescriptorComputeTask(QRunnable):
         )
 
 
+def _with_geometry_provenance(result, model: MoleculeModel, calculation_input: str):
+    """`result` with which-geometry-was-used merged into its provenance.
+
+    Additive and non-destructive: the calculator's own parameters win on
+    a key collision, since it knows what it computed and this only knows
+    what it was computed ON. A result whose provenance cannot be replaced
+    (no `provenance` field, or a shape that will not take it) is returned
+    untouched -- recording where a number came from must never be able to
+    lose the number.
+    """
+    provenance = getattr(result, "provenance", None)
+    if provenance is None:
+        return result
+    try:
+        merged = dict(geometry_provenance(model, calculation_input))
+        merged.update(provenance.parameters)
+        return replace(result, provenance=replace(provenance, parameters=merged))
+    except Exception:  # noqa: BLE001 - never lose a result over its metadata
+        logger.exception("Could not record geometry provenance for %s", model.uuid)
+        return result
+
+
 class _CalculationTask(QRunnable):
     """Runs one registered calculator's `compute` off the GUI thread --
     Phase 18's on-demand path, separate from `_DescriptorComputeTask`'s
@@ -146,9 +170,27 @@ class _CalculationTask(QRunnable):
             self._publish_failed(f"Unknown calculator: {self._request.calculator_id}")
             return
         try:
-            mol = self._engine.mol_from_model(self._model)
+            # THE GAP THIS CLOSES: every registered calculator ran on the
+            # 2D DRAWING, so the Properties panel reported "The available
+            # conformer is 2D" while the 3D viewer showed "Conformer 3/3".
+            # `_DescriptorComputeTask` 78 lines above has supported a
+            # conformer override since Phase 14; this path never did.
+            #
+            # Only calculators that DECLARE they want geometry get it --
+            # eight of the 49 return a different number when handed a
+            # conformer purely because it carries explicit hydrogens.
+            mol = select_calculation_input(self._engine, self._model, definition.calculation_input)
             result = self._registry.compute(
                 self._request.calculator_id, mol, self._model.uuid, self._request.parameters
+            )
+            # Which geometry produced this, recorded on the way out rather
+            # than asked of each calculator -- they are handed a molecule
+            # and have no idea where it came from. Without it a steric
+            # number cannot answer "which of my 23 conformers is this",
+            # and the answer has to be an ID: index 0 today is index 3
+            # after the next regeneration.
+            result = _with_geometry_provenance(
+                result, self._model, definition.calculation_input
             )
         except Exception as exc:  # noqa: BLE001 - a bad calculator must not kill the pool
             logger.exception("Calculator %s failed", self._request.calculator_id)
