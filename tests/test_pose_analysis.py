@@ -610,3 +610,275 @@ def test_empty_ligand_codes_change_nothing():
 
     assert is_stripped_residue("MK1", True, False, []) is False
     assert is_stripped_residue("MK1", True, False, ["", None]) is False
+
+
+# --- mmCIF element symbols ------------------------------------------------
+
+#: A PDB-format receptor carrying a zinc, for the control half of the
+#: asymmetry: the same element, the reader that was never wrong.
+RECEPTOR_PDB_WITH_ZINC = (
+    "HEADER    TEST\n"
+    "ATOM      1  N   ALA A   1      11.104  13.207   2.845  1.00 20.00           N\n"
+    "HETATM    2 ZN   ZN  A   2      25.000  25.000  25.000  1.00 20.00          ZN\n"
+    "END\n"
+)
+
+
+def _mmcif_with_symbol(symbol: str, comp: str = "LIG") -> str:
+    """One atom, in the atom_site tag order RCSB actually writes.
+
+    `type_symbol` is passed in verbatim so a test can put an UPPERCASE
+    two-letter element there -- which is what the archive writes, and the
+    whole bug.
+    """
+    return f"""data_TEST
+#
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_alt_id
+_atom_site.label_comp_id
+_atom_site.label_asym_id
+_atom_site.label_entity_id
+_atom_site.label_seq_id
+_atom_site.pdbx_PDB_ins_code
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+_atom_site.occupancy
+_atom_site.B_iso_or_equiv
+_atom_site.pdbx_formal_charge
+_atom_site.auth_seq_id
+_atom_site.auth_comp_id
+_atom_site.auth_asym_id
+_atom_site.auth_atom_id
+_atom_site.pdbx_PDB_model_num
+HETATM 1 {symbol} {symbol} . {comp} A 1 . ? 0.000 0.000 0.000 1.00 20.00 ? 1 {comp} A {symbol} 1
+#
+"""
+
+
+#: Every two-letter element the PDB archive routinely writes uppercase,
+#: with the atomic number it must come back as. Not a sample -- the
+#: reader's lookup is case-sensitive, so this is the whole class, and the
+#: eight the bug was first reported for were only the ones somebody
+#: happened to name.
+TWO_LETTER_SYMBOLS = [
+    ("ZN", "ZN"), ("FE", "FE"), ("MG", "MG"), ("MN", "MN"),
+    ("CU", "CU"), ("CL", "CL"), ("BR", "BR"), ("SE", "SE"),
+    ("CA", "CA"), ("NA", "NA"), ("NI", "NI"), ("CO", "CO"),
+]
+
+
+@pytest.mark.parametrize("symbol,expected", TWO_LETTER_SYMBOLS)
+def test_an_uppercase_two_letter_element_keeps_its_identity(symbol, expected):
+    """THE BUG. Open Babel's mmCIF reader matches `type_symbol` case
+    sensitively while the archive writes `CL`, so every two-letter element
+    arrived as atomic number 0 -- element unknown -- and was then removed
+    by the `atomicnum == 0` skip. A zinc metalloprotease imported as
+    mmCIF silently lost its catalytic zinc; measured over the bundled
+    catalogue in mmCIF form, 30 atoms across 16 of the 49 receptors.
+
+    Read through `receptor_atoms_from_structure`, not through the string
+    transform, because the claim is about what the READER produces.
+    """
+    from openchem.chem.pose_analysis import receptor_atoms_from_structure
+
+    atoms = receptor_atoms_from_structure(_mmcif_with_symbol(symbol), "mmcif")
+
+    assert len(atoms) == 1, f"{symbol} was dropped entirely, not merely mistyped"
+    assert atoms[0].element == expected
+
+
+@pytest.mark.parametrize("symbol", ["C", "N", "O", "S", "P", "F", "W", "I"])
+def test_a_one_letter_element_is_left_exactly_as_written(symbol):
+    """One-letter symbols were never broken -- case cannot differ -- so
+    normalising must not touch them. `W` and `I` are here deliberately:
+    both are real one-letter elements, and a rule keyed on token length
+    rather than on the symbol table would mangle them."""
+    from openchem.chem.pose_analysis import normalise_mmcif_element_symbols
+
+    text = _mmcif_with_symbol(symbol)
+
+    assert normalise_mmcif_element_symbols(text) == text
+
+
+def test_an_already_correct_symbol_is_not_rewritten():
+    """A file written `Cl` is already right, and rewriting it would be
+    churn a byte comparison downstream would notice."""
+    from openchem.chem.pose_analysis import normalise_mmcif_element_symbols
+
+    text = _mmcif_with_symbol("Cl")
+
+    assert normalise_mmcif_element_symbols(text) == text
+
+
+def test_nothing_but_the_element_column_changes():
+    """The load-bearing constraint. `CL` appears three MORE times in the
+    same row here -- as the atom name, the residue name and the auth atom
+    name -- exactly as it does in a real deposit, so a normaliser that
+    rewrote any other field would corrupt the structure while still
+    reporting the right element."""
+    from openchem.chem.pose_analysis import _cif_tokens, normalise_mmcif_element_symbols
+
+    text = _mmcif_with_symbol("CL", comp="CL")
+    result = normalise_mmcif_element_symbols(text)
+
+    assert len(result) == len(text), "case never changes length; alignment must survive"
+    before = _cif_tokens(text.splitlines()[-2])
+    after = _cif_tokens(result.splitlines()[-2])
+    assert before[2] == "CL", "the fixture really did start uppercase"
+    assert after[2] == "Cl", "the type_symbol is normalised"
+    assert before[:2] == after[:2] and before[3:] == after[3:], (
+        f"only the element column may change, got {before} -> {after}"
+    )
+    # label_atom_id, label_comp_id, auth_comp_id, auth_atom_id.
+    assert after.count("CL") == 4, "atom, residue and auth names all untouched"
+
+
+def test_an_element_in_the_last_column_is_normalised_too():
+    """The case that caught a real bug in the tokeniser. Splitting on
+    space and tab alone folds the line terminator into the row's FINAL
+    token, so `type_symbol` declared last read as `"NA\\n"` and matched no
+    element -- while every fixture with a column after it passed. RCSB
+    puts `pdbx_PDB_model_num` last, so the shape that fails is exactly the
+    one a hand-written or trimmed file has."""
+    from openchem.chem.pose_analysis import normalise_mmcif_element_symbols
+
+    last = """data_TEST
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+HETATM 1 NA
+#
+"""
+    assert "HETATM 1 Na" in normalise_mmcif_element_symbols(last)
+
+
+def test_a_windows_line_ending_does_not_hide_the_last_column():
+    """`structure_io` decodes bytes itself rather than going through
+    universal newlines, so a CRLF deposit reaches the tokeniser with its
+    `\\r` intact -- which folds into the last token the same way."""
+    from openchem.chem.pose_analysis import normalise_mmcif_element_symbols
+
+    crlf = (
+        "data_TEST\r\nloop_\r\n_atom_site.group_PDB\r\n_atom_site.id\r\n"
+        "_atom_site.type_symbol\r\nHETATM 1 ZN\r\n#\r\n"
+    )
+    result = normalise_mmcif_element_symbols(crlf)
+
+    assert "HETATM 1 Zn\r\n" in result, repr(result)
+
+
+def test_the_element_column_is_read_from_the_header_not_assumed():
+    """Tag order is a convention, not a rule. A hardcoded index would
+    normalise some other field, and every value it then failed to
+    recognise would pass through -- so the damage stays invisible on any
+    file whose columns happen to sit where RCSB puts them."""
+    from openchem.chem.pose_analysis import normalise_mmcif_element_symbols
+
+    reordered = """data_TEST
+loop_
+_atom_site.group_PDB
+_atom_site.label_comp_id
+_atom_site.id
+_atom_site.type_symbol
+HETATM NA 1 NA
+#
+"""
+    result = normalise_mmcif_element_symbols(reordered)
+
+    assert "HETATM NA 1 Na" in result, result
+
+
+def test_a_quoted_element_row_does_not_shift_the_columns():
+    """Same reason the altloc filter tokenises rather than splitting: a
+    quoted value containing whitespace moves every later field along by
+    one, and the element check would then land on the wrong column."""
+    from openchem.chem.pose_analysis import normalise_mmcif_element_symbols
+
+    quoted = """data_TEST
+loop_
+_atom_site.group_PDB
+_atom_site.label_comp_id
+_atom_site.type_symbol
+_atom_site.id
+HETATM 'MY RESIDUE' ZN 1
+#
+"""
+    result = normalise_mmcif_element_symbols(quoted)
+
+    assert "'MY RESIDUE' Zn 1" in result, f"a naive split would mis-index: {result}"
+
+
+@pytest.mark.parametrize("value", ["?", ".", "XX", "Unl", "D"])
+def test_an_unrecognised_element_value_is_left_alone(value):
+    """Only a value that IS an element once normalised is rewritten. `?`
+    and `.` are mmCIF's own placeholders, `D` is deuterium (which the
+    element table does not carry), `XX` is nothing at all -- guessing at
+    any of them would invent an element the file never claimed."""
+    from openchem.chem.pose_analysis import normalise_mmcif_element_symbols
+
+    text = _mmcif_with_symbol(value)
+
+    assert normalise_mmcif_element_symbols(text) == text
+
+
+def test_another_categorys_type_symbol_column_is_not_rewritten():
+    """`_atom_site` is not the only mmCIF category with a `type_symbol`.
+    `_chem_comp_atom.type_symbol` is the chemical component dictionary's,
+    and a real deposit can carry it -- so the tag lookup must be an EXACT
+    match and not a suffix one. Open Babel types atoms from coordinates
+    alone, so the coordinate loop is the only thing worth touching."""
+    from openchem.chem.pose_analysis import normalise_mmcif_element_symbols
+
+    other = """data_TEST
+loop_
+_chem_comp_atom.comp_id
+_chem_comp_atom.atom_id
+_chem_comp_atom.type_symbol
+CL CL CL
+ZN ZN ZN
+#
+"""
+    assert normalise_mmcif_element_symbols(other) == other
+
+
+def test_pdb_text_is_returned_unchanged():
+    """The PDB reader already matches case-insensitively -- measured on
+    the same twelve symbols -- so normalising it would be a rewrite with
+    no defect behind it.
+
+    HONEST LIMIT: this test cannot fail today, and mutation testing said
+    so -- deleting the format check leaves it green. The mmCIF walker is
+    inert on PDB text (it needs a bare `loop_` line followed by
+    `_atom_site.type_symbol`, which no PDB file has), so the dispatch is
+    a guard against cost and against a future third format, not against a
+    reachable corruption. Kept as the statement of intent, deliberately
+    not propped up with a fixture no real file resembles."""
+    from openchem.chem.pose_analysis import normalise_element_symbols
+
+    assert normalise_element_symbols(RECEPTOR_PDB_WITH_ZINC, "pdb") == RECEPTOR_PDB_WITH_ZINC
+
+
+def test_open_babel_really_does_lose_an_uppercase_symbol_without_the_fix():
+    """Asserts the DEFECT, on purpose, so the workaround has an expiry.
+
+    `normalise_mmcif_element_symbols` only earns its place while Open
+    Babel's mmCIF reader is case-sensitive. If a future version stops
+    losing `CL`, this fails, the normalisation and its two call sites can
+    go, and nobody has to rediscover why they were there. The PDB half is
+    the control: same element, a reader that was never wrong.
+    """
+    from openbabel import pybel
+
+    mmcif = pybel.readstring("mmcif", _mmcif_with_symbol("CL"))
+    assert [a.atomicnum for a in mmcif.atoms] == [0], (
+        "Open Babel now reads uppercase mmCIF elements -- delete the workaround"
+    )
+
+    pdb = pybel.readstring("pdb", RECEPTOR_PDB_WITH_ZINC)
+    assert 30 in [a.atomicnum for a in pdb.atoms], "PDB was never affected"

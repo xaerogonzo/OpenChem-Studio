@@ -11,6 +11,7 @@ from openchem.chem.pose_analysis import (
     filter_altlocs,
     is_excluded_chain,
     is_stripped_residue,
+    normalise_element_symbols,
 )
 from openchem.chem.vina_engine import VinaEngine, parse_vina_output_pdbqt, select_vina_engine
 from openchem.domain.docking import DockingBox, DockingPoseModel
@@ -211,11 +212,19 @@ class VinaDockingProvider(DockingProvider):
     ) -> None:
         try:
             structure_text = filter_altlocs(structure_text, source_format)
+            # Before the read, not after: an atom Open Babel could not
+            # type is deleted a line below, so a receptor's zinc or
+            # chloride would simply be absent from the PDBQT. See
+            # `pose_analysis.normalise_mmcif_element_symbols`.
+            structure_text = normalise_element_symbols(structure_text, source_format)
             mol = pybel.readstring(source_format, structure_text)
             self._drop_symmetry_copies(mol.OBMol)
             self._drop_untyped_atoms(mol.OBMol)
             self._strip_unselected_chains(mol.OBMol, prep_options)
             self._strip_unwanted_residues(mol.OBMol, prep_options)
+            # AFTER the strips, because deleting an atom changes what its
+            # neighbours need, and before AddHydrogens, which reads it.
+            self._assign_implicit_hydrogens(mol.OBMol)
             # correctForPH=True + pH (default 7.4, physiological) replaces
             # the old bare mol.addh() (which pybel's own wrapper calls with
             # correctForPH=False) -- confirmed live that OBMol.AddHydrogens
@@ -304,12 +313,86 @@ class VinaDockingProvider(DockingProvider):
         that `is_stripped_residue`, `filter_altlocs` and
         `is_symmetry_generated` each exist to close. Here the two paths
         disagreeing did not produce a wrong answer, it produced no answer.
+
+        **THE 4DKL CASE IS NOW FIXED UPSTREAM, and this is no longer the
+        thing standing between that chloride and Vina.** Its element was
+        lost because Open Babel's mmCIF reader is case-sensitive and the
+        archive writes `CL`; `normalise_element_symbols`, applied before
+        the read above, means the atom arrives typed. Measured over the
+        49-receptor catalogue in mmCIF form: 30 atoms reached here
+        untyped before that normalisation and 0 do after, so what this
+        deleted was a chloride in seven entries, a sodium in five, a
+        zinc in two, and a calcium and a cobalt in one each.
+
+        It stays because deleting is still the right answer for an atom
+        whose element genuinely cannot be established -- a truncated file,
+        a bespoke exporter, an element symbol no table knows. What
+        changed is that it should now be RARE, and an atom disappearing
+        from a receptor is silent. If this starts firing again, the
+        question is what upstream stopped naming the element, not whether
+        to delete harder.
         """
         from openbabel import openbabel as ob
 
         doomed = [atom for atom in ob.OBMolAtomIter(obmol) if atom.GetAtomicNum() == 0]
         for atom in doomed:
             obmol.DeleteAtom(atom)
+
+    def _assign_implicit_hydrogens(self, obmol) -> None:
+        """Work out how many hydrogens each atom is missing.
+
+        **Open Babel's mmCIF reader leaves every implicit hydrogen count
+        at zero**, so `AddHydrogens` had almost nothing to add and an
+        mmCIF receptor reached Vina essentially unprotonated. The PDB
+        reader has always filled these in. Measured on 4DKL, the same
+        deposit, same pH, after altloc filtering:
+
+            pdb     implicit H 3,740   3,690 -> 7,444 atoms  (+3,754)
+            mmcif   implicit H     0   3,690 -> 3,731 atoms  (+41)
+
+        It is not bond perception, which was the obvious suspect and is
+        wrong: both formats give byte-identical connectivity (3,726 bonds,
+        {single: 2,919, double: 807}). It is the implicit count alone --
+        and aromaticity, which comes back with it (270 aromatic bonds
+        against 0), because both are assigned in the same pass the mmCIF
+        reader never runs.
+
+        That reaches the score. Vina reads AutoDock types, which encode
+        hydrogen bonding, so a backbone nitrogen typed `N` from PDB came
+        out `NA` -- an acceptor with no attached hydrogen -- from mmCIF.
+        The same structure was being docked as a different molecule.
+
+        **Applied unconditionally rather than only to mmCIF, because it is
+        a no-op where the reader already did the work.** Hydrogens added
+        at pH 7.4, after altloc filtering, over seven catalogue deposits
+        -- note the PDB column does not move at all:
+
+            deposit   mmCIF before   mmCIF after   PDB before   PDB after
+            4DKL              +41        +3,754       +3,754      +3,754
+            3HS4              +32        +2,800       +2,800      +2,800
+            1HSG              +24        +1,917       +1,917      +1,917
+            2RH1              +47        +3,909       +3,909      +3,909
+            6HUP             +205       +15,034      +15,034     +15,034
+            4PE5              +97       +19,126      +19,126     +19,126
+            5KIR             +158          +579         +574        +574
+
+        So a format branch here would buy nothing and would be one more
+        place for the two paths to drift -- which is the failure mode
+        `filter_altlocs` and `is_stripped_residue` both exist to prevent.
+
+        5KIR is the one that does not match exactly: +579 against +574,
+        five hydrogens. That residual is NOT this. The two formats differ
+        by 4 BONDS there (18,303 against 18,307), all in its NAG/MAN
+        glycan chains, so mmCIF leaves four glycosidic linkages unformed
+        and the freed oxygens ask for hydrogens -- Open Babel reads PDB
+        `CONECT` records and evidently not mmCIF's `_struct_conn`
+        equivalent. Recorded rather than fixed here, so nobody
+        re-attributes it to hydrogens.
+        """
+        from openbabel import openbabel as ob
+
+        for atom in ob.OBMolAtomIter(obmol):
+            ob.OBAtomAssignTypicalImplicitHydrogens(atom)
 
     def _drop_symmetry_copies(self, obmol) -> None:
         """Delete the unit-cell copies Open Babel invents for structures

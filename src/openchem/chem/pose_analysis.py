@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Any, Iterable
 
 from rdkit import Chem
@@ -82,20 +83,39 @@ def filter_pdb_altlocs(pdb_text: str) -> str:
 _PRIMARY_ALTLOCS = frozenset({"", " ", ".", "?", "A"})
 
 
-def _cif_tokens(line: str) -> list[str]:
-    """Split one mmCIF data row into values.
+#: What separates two CIF values. The line terminators are in here for
+#: the reason `_cif_token_spans` gives: a value can never contain one, and
+#: leaving them out silently glues `\n` onto a row's last token.
+_CIF_WHITESPACE = " \t\r\n"
 
-    Not a plain `.split()`: CIF values may be quoted, and nucleic-acid
-    atom names genuinely need it -- `O5'` is written `"O5'"`. Splitting on
-    whitespace alone would shift every later column by one on those rows,
-    which is exactly the kind of silent off-by-one that puts an altloc
-    check on the wrong field.
+
+def _cif_token_spans(line: str) -> list[tuple[int, int]]:
+    """`(start, end)` of each value in one mmCIF data row.
+
+    The tokeniser proper, which `_cif_tokens` reads through. Split out
+    because `normalise_mmcif_element_symbols` has to REWRITE one value and
+    leave every other byte of the row alone, and it can only do that if it
+    knows where the value sits. A second tokeniser written for that would
+    be the off-by-one this one exists to prevent.
+
+    For a quoted value the span covers the CONTENT, not the quotes, so
+    `tokens[i] == line[start:end]` holds either way.
+
+    THE LINE TERMINATOR IS A DELIMITER, and that is not cosmetic. A CIF
+    value cannot contain a raw newline, but a tokeniser that only split on
+    space and tab folded one into the LAST token of a row -- so
+    `type_symbol` in the final column read as `"NA\\n"` and matched no
+    element. Every existing caller passes a line already stripped (or from
+    `splitlines()`), which is why nothing had noticed; the normaliser must
+    keep the terminator, because its spans index into the row it returns.
+    A CRLF file reaches here intact too, since `structure_io` decodes bytes
+    itself rather than going through universal newlines.
     """
-    tokens: list[str] = []
+    spans: list[tuple[int, int]] = []
     index = 0
     length = len(line)
     while index < length:
-        while index < length and line[index] in " \t":
+        while index < length and line[index] in _CIF_WHITESPACE:
             index += 1
         if index >= length:
             break
@@ -106,17 +126,30 @@ def _cif_tokens(line: str) -> list[str]:
             # A quote closes only when followed by whitespace or end of
             # line -- that is what lets an apostrophe live inside a value.
             while index < length and not (
-                line[index] == quote and (index + 1 >= length or line[index + 1] in " \t")
+                line[index] == quote
+                and (index + 1 >= length or line[index + 1] in _CIF_WHITESPACE)
             ):
                 index += 1
-            tokens.append(line[start:index])
+            spans.append((start, index))
             index += 1
         else:
             start = index
-            while index < length and line[index] not in " \t":
+            while index < length and line[index] not in _CIF_WHITESPACE:
                 index += 1
-            tokens.append(line[start:index])
-    return tokens
+            spans.append((start, index))
+    return spans
+
+
+def _cif_tokens(line: str) -> list[str]:
+    """Split one mmCIF data row into values.
+
+    Not a plain `.split()`: CIF values may be quoted, and nucleic-acid
+    atom names genuinely need it -- `O5'` is written `"O5'"`. Splitting on
+    whitespace alone would shift every later column by one on those rows,
+    which is exactly the kind of silent off-by-one that puts an altloc
+    check on the wrong field.
+    """
+    return [line[start:end] for start, end in _cif_token_spans(line)]
 
 
 def filter_mmcif_altlocs(mmcif_text: str) -> str:
@@ -194,6 +227,123 @@ def filter_altlocs(structure_text: str, source_format: str) -> str:
         return filter_pdb_altlocs(structure_text)
     if source_format in ("mmcif", "cif"):
         return filter_mmcif_altlocs(structure_text)
+    return structure_text
+
+
+@lru_cache(maxsize=1)
+def _symbols_by_uppercase() -> dict[str, str]:
+    """Every element symbol, indexed by its uppercase form.
+
+    Built from `element_reference` rather than written out here, so it
+    cannot fall behind the table the rest of the app answers element
+    questions from -- and so a symbol this does not know is a symbol the
+    app does not know, rather than a second opinion. Imported inside the
+    function because that module reads a JSON data file, which is not
+    work this module should do just to be imported.
+    """
+    from openchem.chem.element_reference import all_symbols
+
+    return {symbol.upper(): symbol for symbol in all_symbols()}
+
+
+def normalise_mmcif_element_symbols(mmcif_text: str) -> str:
+    """Case-normalise `_atom_site.type_symbol`, for Open Babel's benefit.
+
+    **Open Babel's mmCIF reader looks up `type_symbol` case-sensitively,
+    and the PDB archive writes two-letter symbols in UPPERCASE.** So every
+    such atom arrives with atomic number 0 -- element unknown -- while the
+    same deposit in PDB format reads correctly. Measured on Open Babel
+    3.1.0, one atom per minimal mmCIF, varying nothing but the symbol:
+
+        CL CA NA ZN FE MG MN CU BR SE NI CO   ->  0     (12 of 12)
+        Cl Ca Na Zn Fe Mg Mn Cu Br Se Ni Co   ->  correct
+        C N O S P F                           ->  correct either way
+
+    It is not eight elements or twelve: it is EVERY two-letter symbol, and
+    one-letter symbols are unaffected because case cannot differ.
+
+    THIS IS NOT REWRITING THE DEPOSIT. The uppercase file is correct
+    mmCIF -- `type_symbol` is case-insensitive in the format, and Mol*
+    reads it perfectly. Only the copy handed to Open Babel is normalised,
+    which is why this lives here beside `filter_altlocs` and NOT in
+    `chem/structure_io.py`: that text becomes
+    `MacromoleculeModel.structure_text`, which is what the viewer renders
+    and what a saved project stores, and altering a correct deposit on
+    disk to work around one consumer's lookup is a different and worse
+    change. There is no Open Babel read option for this -- the mmCIF
+    format offers only `s`, `p`, `b` and `w`, none about element typing.
+
+    CONSERVATIVE BY CONSTRUCTION: a value is rewritten only when it is
+    **not** an element symbol as written and **is** one after
+    normalisation. So `C`, `W` and `Cl` pass through untouched, and so do
+    `?`, `.` and anything unrecognised -- a symbol this cannot name is
+    left for Open Babel to reject rather than guessed at.
+
+    The substitution is length-preserving (case never changes a string's
+    length), so the row's column alignment survives byte for byte.
+    """
+    lookup = _symbols_by_uppercase()
+    lines = mmcif_text.splitlines(keepends=True)
+    output: list[str] = []
+    index = 0
+    total = len(lines)
+
+    while index < total:
+        line = lines[index]
+        if line.strip() != "loop_":
+            output.append(line)
+            index += 1
+            continue
+
+        output.append(line)
+        index += 1
+        tags: list[str] = []
+        while index < total and lines[index].lstrip().startswith("_"):
+            tags.append(lines[index].strip())
+            output.append(lines[index])
+            index += 1
+
+        try:
+            # The EXACT tag is what identifies the loop -- there is no
+            # separate "is this atom_site" test, deliberately. mmCIF has
+            # other categories with a `type_symbol` column
+            # (`_chem_comp_atom.type_symbol` is the component dictionary's),
+            # and a suffix match would rewrite those too. Coordinates are
+            # the only thing Open Babel types atoms from, so they are the
+            # only thing this touches.
+            symbol_column = tags.index("_atom_site.type_symbol")
+        except ValueError:
+            continue  # some other loop, or no element column in this one
+
+        while index < total:
+            row = lines[index]
+            stripped = row.strip()
+            if not stripped or stripped.startswith(("#", "loop_", "_", "data_")):
+                break
+            spans = _cif_token_spans(row)
+            if len(spans) > symbol_column:
+                start, end = spans[symbol_column]
+                written = row[start:end]
+                canonical = lookup.get(written.upper())
+                if canonical is not None and canonical != written:
+                    row = row[:start] + canonical + row[end:]
+            output.append(row)
+            index += 1
+
+    return "".join(output)
+
+
+def normalise_element_symbols(structure_text: str, source_format: str) -> str:
+    """Make element symbols legible to Open Babel, whichever format.
+
+    One entry point, for the reason `filter_altlocs` has one: receptor
+    preparation and pose analysis must reach the same view of a structure,
+    and a normalisation applied on one path only is the divergence this
+    module keeps being bitten by. PDB needs nothing -- its reader already
+    matches case-insensitively, measured on the same twelve symbols.
+    """
+    if source_format in ("mmcif", "cif"):
+        return normalise_mmcif_element_symbols(structure_text)
     return structure_text
 
 
@@ -369,6 +519,10 @@ def receptor_atoms_from_structure(
     # Unconditional, unlike the strips: receptor preparation ALWAYS drops
     # alternate locations, so matching it needs no option.
     structure_text = filter_altlocs(structure_text, source_format)
+    # Likewise unconditional -- an uppercase two-letter symbol reads as
+    # element 0 and is then skipped below, which silently deletes the
+    # atom. See `normalise_mmcif_element_symbols`.
+    structure_text = normalise_element_symbols(structure_text, source_format)
 
     table = Chem.GetPeriodicTable()
     mol = pybel.readstring(source_format, structure_text)

@@ -161,6 +161,214 @@ def test_the_same_structure_always_gives_the_same_box():
     assert len(boxes) == 1
 
 
+# --- which copy: burial, not the depositor's chain letter ----------------
+
+def _atom(serial, name, code, chain, resnum, x, y, z, element, record="ATOM  "):
+    return (
+        f"{record}{serial:>5d} {name:<4} {code:>3} {chain}{resnum:>4d}    "
+        f"{x:>8.3f}{y:>8.3f}{z:>8.3f}  1.00 20.00          {element:>2}\n"
+    )
+
+
+def _two_copies_one_buried(first_chain: str, second_chain: str) -> str:
+    """Two identical 3-atom ligand copies 60 A apart, one packed inside a
+    shell of protein atoms and one alone in solvent.
+
+    The chain letters are parameters so the same physical structure can be
+    written with the labels either way round -- which is exactly what the
+    two file formats do, and what used to decide the answer.
+    """
+    lines = [
+        _hetatm(1, "C1", "LIG", first_chain, 1, 0.0, 0.0, 0.0, "C"),
+        _hetatm(2, "C2", "LIG", first_chain, 1, 2.0, 0.0, 0.0, "C"),
+        _hetatm(3, "C3", "LIG", first_chain, 1, 1.0, 2.0, 0.0, "C"),
+        _hetatm(4, "C1", "LIG", second_chain, 1, 60.0, 0.0, 0.0, "C"),
+        _hetatm(5, "C2", "LIG", second_chain, 1, 62.0, 0.0, 0.0, "C"),
+        _hetatm(6, "C3", "LIG", second_chain, 1, 61.0, 2.0, 0.0, "C"),
+    ]
+    # A shell of alanine atoms around the FIRST copy only. Every one is
+    # within 4.5 A of it and none is within 4.5 A of the other.
+    serial = 100
+    for dx, dy, dz in (
+        (-3.0, 0.0, 0.0), (5.0, 0.0, 0.0), (1.0, -3.0, 0.0), (1.0, 5.0, 0.0),
+        (1.0, 1.0, 3.0), (1.0, 1.0, -3.0), (-2.0, 3.0, 0.0), (4.0, 3.0, 0.0),
+    ):
+        serial += 1
+        lines.append(_atom(serial, "CA", "ALA", "P", serial, dx, dy, dz, "C"))
+    return _structure(lines)
+
+
+def test_the_more_buried_copy_is_the_one_boxed():
+    """3HS4 is why. Carbonic anhydrase II holds three acetazolamides, and
+    only one is the pharmacology -- it coordinates the catalytic zinc at
+    1.94 A. The other two are surface-bound crystallisation artefacts
+    16-17 A away. All three have 13 atoms, so size cannot separate them
+    and the tie-break decides which site gets docked.
+
+    Measured on the real deposit: 45 protein atoms within 4.5 A of the
+    active-site copy, against 34 and 22 for the other two."""
+    site = box_from_ligand(_two_copies_one_buried("A", "B"), "pdb", "LIG")
+
+    assert site.box.center[0] == pytest.approx(1.0), (
+        "the copy packed against protein, not the one alone in solvent"
+    )
+
+
+def test_relabelling_the_chains_does_not_move_the_box():
+    """THE BUG. Open Babel hands us `label_asym_id` from mmCIF and the
+    AUTHOR chain id from PDB, and reports no residue number at all from
+    mmCIF -- so a tie-break that sorted on those picked a different
+    PHYSICAL copy depending only on which format RCSB happened to serve.
+    Measured on real deposits: 3HS4's two boxes were 17.96 A apart and
+    8EF5's were 36.08 A apart, and for 3HS4 the mmCIF arm was boxing a
+    surface artefact.
+
+    The labels are swapped here rather than the coordinates, so the two
+    inputs describe the identical structure and any difference in the
+    answer can only have come from the naming."""
+    forwards = box_from_ligand(_two_copies_one_buried("A", "B"), "pdb", "LIG")
+    backwards = box_from_ligand(_two_copies_one_buried("B", "A"), "pdb", "LIG")
+
+    assert forwards.box.center == backwards.box.center, (
+        "the chain letters decided the site"
+    )
+
+
+def test_a_draw_still_resolves_the_same_way_every_time():
+    """Two copies of equal size and equal burial genuinely are equivalent
+    sites, so either is a correct answer -- but it must be the SAME one
+    every run, or a docking result is irreproducible. The final tie-break
+    is geometric for that reason, and geometry is the one thing the two
+    formats agree on exactly (verified atom for atom to three decimals on
+    both deposits above)."""
+    near = [
+        _hetatm(1, "C1", "LIG", "A", 1, 0.0, 0.0, 0.0, "C"),
+        _hetatm(2, "C2", "LIG", "A", 1, 2.0, 0.0, 0.0, "C"),
+    ]
+    far = [
+        _hetatm(3, "C1", "LIG", "B", 1, 60.0, 0.0, 0.0, "C"),
+        _hetatm(4, "C2", "LIG", "B", 1, 62.0, 0.0, 0.0, "C"),
+    ]
+
+    centres = {tuple(box_from_ligand(_structure(near + far), "pdb", "LIG").box.center)
+               for _ in range(5)}
+    assert len(centres) == 1
+
+    # WRITTEN IN THE OTHER ORDER, which is the part that bites: copies go
+    # into a dict in the order their atoms are read, and `max` keeps the
+    # FIRST maximal key -- so with no tie-break of its own, the answer is
+    # decided by where in the file a copy happens to sit. Swapping the
+    # chain letters alone would not have exposed that.
+    reordered = box_from_ligand(_structure(far + near), "pdb", "LIG")
+    assert tuple(reordered.box.center) == centres.pop(), (
+        "the answer followed the order the atoms appear in the file"
+    )
+
+
+def test_waters_do_not_make_a_copy_look_buried():
+    """Burial counts the STRUCTURE, not the solvent. An exposed copy is
+    the one with the most ordered waters around it almost by definition,
+    so counting them would inverse the ranking this exists to get right --
+    and 3HS4, the motivating case, is a 1.10 A structure with waters
+    modelled everywhere."""
+    lines = [
+        _hetatm(1, "C1", "LIG", "A", 1, 0.0, 0.0, 0.0, "C"),
+        _hetatm(2, "C2", "LIG", "A", 1, 2.0, 0.0, 0.0, "C"),
+        _hetatm(3, "C3", "LIG", "A", 1, 1.0, 2.0, 0.0, "C"),
+        _hetatm(4, "C1", "LIG", "B", 1, 60.0, 0.0, 0.0, "C"),
+        _hetatm(5, "C2", "LIG", "B", 1, 62.0, 0.0, 0.0, "C"),
+        _hetatm(6, "C3", "LIG", "B", 1, 61.0, 2.0, 0.0, "C"),
+    ]
+    # Four protein atoms on copy A; TWICE as many waters on copy B.
+    serial = 100
+    for dx, dy, dz in ((-3.0, 0.0, 0.0), (5.0, 0.0, 0.0), (1.0, 5.0, 0.0), (1.0, 1.0, 3.0)):
+        serial += 1
+        lines.append(_atom(serial, "CA", "ALA", "P", serial, dx, dy, dz, "C"))
+    for dx, dy, dz in ((57.0, 0.0, 0.0), (65.0, 0.0, 0.0), (61.0, 5.0, 0.0),
+                       (61.0, 1.0, 3.0), (61.0, 1.0, -3.0), (61.0, -3.0, 0.0),
+                       (58.0, 3.0, 0.0), (64.0, 3.0, 0.0)):
+        serial += 1
+        lines.append(_hetatm(serial, "O", "HOH", "W", serial, dx, dy, dz, "O"))
+
+    site = box_from_ligand(_structure(lines), "pdb", "LIG")
+
+    assert site.box.center[0] == pytest.approx(1.0), (
+        "the copy with protein around it, not the one with more waters"
+    )
+
+
+def test_the_neighbour_grid_counts_exactly_what_is_within_the_cutoff():
+    """The burial count itself, against an arithmetic answer.
+
+    The ranking tests above cannot check this: they only care which copy
+    scores higher, so a grid that systematically undercounts still orders
+    two very different copies correctly. Mutation testing found exactly
+    that -- shrinking the grid search to the atom's own cell, and dropping
+    the distance check altogether, both left every ranking test green.
+    A cell is `_BURIAL_CUTOFF` across, so a neighbour 4.0 A away in x is
+    routinely in the NEXT cell, which is what makes the 27-cell sweep
+    load-bearing rather than defensive."""
+    from openchem.chem.binding_site import _BURIAL_CUTOFF, _NeighbourGrid
+
+    class _At:
+        def __init__(self, position):
+            self.position = position
+
+    ligand = [_At((0.0, 0.0, 0.0))]
+    environment = [
+        _At((4.4, 0.0, 0.0)),    # just inside, and in a different cell
+        _At((4.6, 0.0, 0.0)),    # just outside
+        _At((0.0, -4.4, 0.0)),   # inside, negative direction
+        _At((-9.0, 0.0, 0.0)),   # two cells away, well outside
+        _At((2.5, 2.5, 2.5)),    # inside (4.33 A), diagonal
+    ]
+
+    grid = _NeighbourGrid(environment, _BURIAL_CUTOFF)
+
+    assert grid.count_near(ligand) == 3
+    assert grid.count_near([_At((100.0, 100.0, 100.0))]) == 0, "nothing is near"
+
+
+def test_an_environment_atom_near_two_ligand_atoms_counts_once():
+    """Otherwise burial rewards a copy for being large a second time, on
+    top of the atom count that already ranks ahead of it."""
+    from openchem.chem.binding_site import _BURIAL_CUTOFF, _NeighbourGrid
+
+    class _At:
+        def __init__(self, position):
+            self.position = position
+
+    grid = _NeighbourGrid([_At((0.0, 0.0, 0.0))], _BURIAL_CUTOFF)
+
+    assert grid.count_near([_At((1.0, 0.0, 0.0)), _At((2.0, 0.0, 0.0))]) == 1
+
+
+def test_size_still_outranks_burial():
+    """Burial is the TIE-break, not the rule. A partly-resolved copy
+    defines a site worse than a complete one however well packed it is,
+    and that ordering is the behaviour this file already asserted before
+    burial existed -- so it is pinned here against the copy that would
+    win on contacts alone."""
+    lines = [
+        _hetatm(1, "C1", "LIG", "A", 1, 0.0, 0.0, 0.0, "C"),
+        _hetatm(2, "C2", "LIG", "A", 1, 1.0, 0.0, 0.0, "C"),
+        _hetatm(3, "C1", "LIG", "B", 1, 50.0, 0.0, 0.0, "C"),
+        _hetatm(4, "C2", "LIG", "B", 1, 51.0, 0.0, 0.0, "C"),
+        _hetatm(5, "C3", "LIG", "B", 1, 52.0, 0.0, 0.0, "C"),
+    ]
+    # Bury the SMALLER copy, so burial and size disagree outright.
+    serial = 100
+    for dx, dy, dz in ((-3.0, 0.0, 0.0), (4.0, 0.0, 0.0), (0.5, 3.0, 0.0),
+                       (0.5, -3.0, 0.0), (0.5, 0.0, 3.0), (0.5, 0.0, -3.0)):
+        serial += 1
+        lines.append(_atom(serial, "CA", "ALA", "P", serial, dx, dy, dz, "C"))
+
+    site = box_from_ligand(_structure(lines), "pdb", "LIG")
+
+    assert site.atom_count == 3, "the three-atom copy, despite being the exposed one"
+    assert site.box.center[0] == pytest.approx(51.0)
+
+
 def test_alternate_locations_are_not_counted_twice():
     """8ZYO's astemizole is one 34-atom molecule refined in two
     conformations; read unfiltered it is 34 atoms at A plus 34 at B, and

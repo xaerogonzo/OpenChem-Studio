@@ -20,9 +20,8 @@ import json
 import math
 
 from _config import vina_executable
-from openchem.chem.binding_site import _single_copy, box_from_ligand
+from openchem.chem.binding_site import box_from_ligand
 from openchem.chem.docking_providers import VinaDockingProvider
-from openchem.chem.pose_analysis import receptor_atoms_from_structure
 from openchem.chem.receptor_library import find
 from openchem.net import open_url
 from openchem.services.progress import ProgressHandle
@@ -107,17 +106,24 @@ for pdb_id in TARGETS:
     dy = sum(p.y for p in heavy) / len(heavy)
     dz = sum(p.z for p in heavy) / len(heavy)
 
-    # MUST use the same single-copy choice the box used. Comparing
-    # against every copy's combined centroid is how this script first
-    # reported estradiol 47 A "wrong" -- 1ERE has six copies, and their
-    # shared centroid is in solvent, nowhere near the site the box (and
-    # the pose) correctly used.
-    crystal = [
-        a
-        for a in receptor_atoms_from_structure(text, source_format)
-        if a.residue_name.strip().upper() == entry.ligand_code and a.element != "H"
-    ]
-    crystal = [a.position for a in _single_copy(crystal)]
+    # MUST be the same single-copy choice the box used. Comparing against
+    # every copy's combined centroid is how this script first reported
+    # estradiol 47 A "wrong" -- 1ERE has six copies, and their shared
+    # centroid is in solvent, nowhere near the site the box (and the
+    # pose) correctly used.
+    #
+    # TAKEN FROM THE SITE, not re-derived. This used to call
+    # `_single_copy` a second time, which was correct only for as long as
+    # that function needed nothing the box had and this did not. Once the
+    # choice began to depend on how buried a copy is, the second call --
+    # which has no receptor to measure burial against -- could pick a
+    # DIFFERENT copy, and the shift would come out large and read as a
+    # bad box rather than as two functions disagreeing.
+    #
+    # These are every atom of the chosen copy. None of the corpus's eight
+    # ligands is deposited with hydrogens (checked), so this is already
+    # the heavy-atom set the docked centroid above is built from.
+    crystal = site.ligand_positions
     cx = sum(p[0] for p in crystal) / len(crystal)
     cy = sum(p[1] for p in crystal) / len(crystal)
     cz = sum(p[2] for p in crystal) / len(crystal)

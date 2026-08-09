@@ -194,6 +194,196 @@ def test_receptor_pdbqt_is_prepared_as_rigid_not_flexible():
     assert "TORSDOF" not in receptor_text
 
 
+#: The same alanine as RECEPTOR_PDB plus a chloride, written as mmCIF the
+#: way RCSB writes it -- `type_symbol` uppercase for a two-letter element.
+#: Coordinates match `_RECEPTOR_CENTER` so the box actually contains it.
+RECEPTOR_MMCIF_WITH_CHLORIDE = """data_TEST
+#
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_alt_id
+_atom_site.label_comp_id
+_atom_site.label_asym_id
+_atom_site.label_entity_id
+_atom_site.label_seq_id
+_atom_site.pdbx_PDB_ins_code
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+_atom_site.occupancy
+_atom_site.B_iso_or_equiv
+_atom_site.pdbx_formal_charge
+_atom_site.auth_seq_id
+_atom_site.auth_comp_id
+_atom_site.auth_asym_id
+_atom_site.auth_atom_id
+_atom_site.pdbx_PDB_model_num
+ATOM   1 N  N  . ALA A 1 1 ? 11.104 13.207 2.845 1.00 20.00 ? 1 ALA A N  1
+ATOM   2 C  CA . ALA A 1 1 ? 11.999 12.040 2.945 1.00 20.00 ? 1 ALA A CA 1
+ATOM   3 C  C  . ALA A 1 1 ? 13.398 12.442 2.508 1.00 20.00 ? 1 ALA A C  1
+ATOM   4 O  O  . ALA A 1 1 ? 13.598 13.601 2.128 1.00 20.00 ? 1 ALA A O  1
+HETATM 5 CL CL . CL  B 2 . ? 12.500 12.500 4.500 1.00 20.00 ? 2 CL  A CL 1
+#
+"""
+
+
+def test_an_mmcif_receptors_chloride_reaches_vina_typed_not_deleted():
+    """The damage this bug did, at the end of the pipeline it did it in.
+
+    Open Babel's mmCIF reader is case-sensitive about `type_symbol` and
+    the archive writes `CL`, so the ion arrived as element 0 --
+    whereupon `_drop_untyped_atoms` DELETED it, because Open Babel writes
+    an untyped atom into the PDBQT with the name `*` and an empty AutoDock
+    type, and Vina 1.2.7 then refuses the whole file. So the receptor
+    Vina saw was silently missing an atom rather than obviously broken,
+    which is the worse of the two failures.
+
+    The same deposit as PDB was always correct, which is why this asserts
+    the mmCIF arm against the PDB arm rather than against a literal: the
+    two formats of one structure must reach Vina as the same receptor.
+    """
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20, 20, 20))
+    prepared = {}
+    for label, text, source_format in (
+        ("mmcif", RECEPTOR_MMCIF_WITH_CHLORIDE, "mmcif"),
+        ("pdb", RECEPTOR_PDB_WITH_CHLORIDE, "pdb"),
+    ):
+        engine = FakeVinaEngine()
+        VinaDockingProvider(engine=engine).dock(
+            text, source_format, Chem.MolFromSmiles("CCO"), box, 9, ProgressHandle()
+        )
+        prepared[label] = engine.dock_calls[0]["receptor_pdbqt_text"]
+
+    chloride = [
+        line for line in prepared["mmcif"].splitlines()
+        if line.startswith(("ATOM", "HETATM")) and line.rstrip().endswith("Cl")
+    ]
+    assert len(chloride) == 1, (
+        "the chloride is missing from the receptor Vina was handed:\n"
+        + prepared["mmcif"]
+    )
+    assert " * " not in prepared["mmcif"], "an untyped atom makes Vina refuse the file"
+
+    def atom_types(text: str) -> list[str]:
+        return sorted(
+            line.split()[-1]
+            for line in text.splitlines()
+            if line.startswith(("ATOM", "HETATM"))
+        )
+
+    # AutoDock types, not merely elements. These encode hydrogen bonding
+    # (`NA` is an acceptor nitrogen with no attached H, `OA` an acceptor
+    # oxygen, `HD` a polar hydrogen) and Vina scores against them, so
+    # matching here is the strongest available statement that the two
+    # formats reach Vina as the same receptor. It only became assertable
+    # once `_assign_implicit_hydrogens` closed the protonation gap -- the
+    # backbone nitrogen came out `NA` from mmCIF and `N` from PDB before.
+    assert atom_types(prepared["mmcif"]) == atom_types(prepared["pdb"]), (
+        "the same structure in two formats must reach Vina as the same receptor"
+    )
+    assert "Cl" in atom_types(prepared["pdb"]), "the control arm really has one"
+
+
+RECEPTOR_PDB_WITH_CHLORIDE = """HEADER    TEST
+ATOM      1  N   ALA A   1      11.104  13.207   2.845  1.00 20.00           N
+ATOM      2  CA  ALA A   1      11.999  12.040   2.945  1.00 20.00           C
+ATOM      3  C   ALA A   1      13.398  12.442   2.508  1.00 20.00           C
+ATOM      4  O   ALA A   1      13.598  13.601   2.128  1.00 20.00           O
+HETATM    5 CL   CL  A   2      12.500  12.500   4.500  1.00 20.00          CL
+END
+"""
+
+
+def test_an_mmcif_receptor_is_protonated_not_left_bare():
+    """Open Babel's mmCIF reader leaves every implicit hydrogen count at
+    zero, so `AddHydrogens` had almost nothing to add and an mmCIF
+    receptor reached Vina essentially unprotonated -- 41 hydrogens on
+    4DKL against 3,754 from the same deposit as PDB.
+
+    Asserted as a COUNT matching the PDB arm rather than as a threshold,
+    because "some hydrogens were added" was already true of the broken
+    behaviour: 41 is not zero, and a `> 0` assertion would have passed
+    throughout. Bond perception is deliberately not the thing under test
+    here -- it was the obvious suspect and is identical between the two
+    formats (3,726 bonds either way on 4DKL)."""
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20, 20, 20))
+    counts = {}
+    for label, text, source_format in (
+        ("mmcif", RECEPTOR_MMCIF_WITH_CHLORIDE, "mmcif"),
+        ("pdb", RECEPTOR_PDB_WITH_CHLORIDE, "pdb"),
+    ):
+        engine = FakeVinaEngine()
+        VinaDockingProvider(engine=engine).dock(
+            text, source_format, Chem.MolFromSmiles("CCO"), box, 9, ProgressHandle()
+        )
+        receptor = engine.dock_calls[0]["receptor_pdbqt_text"]
+        counts[label] = sum(
+            1 for line in receptor.splitlines()
+            if line.startswith(("ATOM", "HETATM")) and line.split()[-1] == "HD"
+        )
+
+    assert counts["pdb"] > 0, "the control arm must actually gain hydrogens"
+    assert counts["mmcif"] == counts["pdb"], (
+        f"mmCIF was protonated differently from PDB: {counts}"
+    )
+
+
+#: A ligand carbon bonded to a lysine NZ -- which is 4DKL's arrangement,
+#: where beta-FNA is covalently bound to Lys233 and the catalogue records
+#: it as a caveat. The attachment is to a NITROGEN on purpose: a freed
+#: carbon valence takes a nonpolar hydrogen, which the rigid PDBQT writer
+#: merges away, so an otherwise identical fixture built on a CB produces
+#: byte-identical output either way and tests nothing.
+RECEPTOR_PDB_WITH_COVALENT_LIGAND = """HEADER    TEST
+ATOM      1  N   LYS A   1      11.104  13.207   2.845  1.00 20.00           N
+ATOM      2  CA  LYS A   1      11.999  12.040   2.945  1.00 20.00           C
+ATOM      3  C   LYS A   1      13.398  12.442   2.508  1.00 20.00           C
+ATOM      4  O   LYS A   1      13.598  13.601   2.128  1.00 20.00           O
+ATOM      5  CB  LYS A   1      11.500  10.800   2.000  1.00 20.00           C
+ATOM      6  NZ  LYS A   1      11.000   9.600   2.700  1.00 20.00           N
+HETATM    7  C1  LIG A   2      10.500   8.400   1.900  1.00 20.00           C
+END
+"""
+
+
+def test_hydrogens_are_counted_after_the_strips_not_before():
+    """Stripping a COVALENTLY bound ligand frees a valence, and the atom
+    it was attached to then needs one more hydrogen. Assigning implicit
+    counts before the strips records the pre-strip number, and that
+    hydrogen is never added.
+
+    Not hypothetical for the bundled catalogue: 4DKL's beta-FNA is
+    covalently bound to Lys233, and every catalogue box strips its own
+    defining ligand -- leaving it in would dock into an occupied pocket
+    (indinavir into its own 1HSG: -5.34 against -9.78).
+
+    Measured on this fixture: the lysine reaches Vina with 4 polar
+    hydrogens when the counts are assigned after the strips and 3 when
+    they are assigned before."""
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20, 20, 20))
+    engine = FakeVinaEngine()
+
+    VinaDockingProvider(engine=engine).dock(
+        RECEPTOR_PDB_WITH_COVALENT_LIGAND, "pdb", Chem.MolFromSmiles("CCO"),
+        box, 9, ProgressHandle(),
+        receptor_prep_options={"strip_ligand_codes": ["LIG"]},
+    )
+
+    atoms = [
+        line for line in engine.dock_calls[0]["receptor_pdbqt_text"].splitlines()
+        if line.startswith(("ATOM", "HETATM"))
+    ]
+    assert not any(" LIG " in line for line in atoms), "the ligand really was stripped"
+    polar = [line for line in atoms if line.split()[-1] == "HD"]
+    assert len(polar) == 4, (
+        "the lysine nitrogen did not get the hydrogen the stripped ligand "
+        f"was occupying:\n" + "\n".join(atoms)
+    )
+
+
 def test_receptor_prep_strips_waters_by_default():
     engine = FakeVinaEngine()
     provider = VinaDockingProvider(engine=engine)

@@ -117,14 +117,21 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **3-8 minutes**, ending at `3501 passed, 2 skipped,
-1 deselected` (measured 2026-08-09 on clean master at `77ad231`, 5m03s,
-after the conformer de-duplication and calculator-routing work; it was
-3446 immediately before that at `14e5d08`, 3350 after the crystallography
-work, 3236 before that, 3155 before the polarity/lattice-energy work,
-3081 before the substance-perception work, 3019 before the
-Ketcher pool-id merge,
-and 2788 before the presentation-layer Phase 0-8 work).
+A clean run is **3-8 minutes**, ending at `3611 passed, 2 skipped,
+1 deselected` (measured 2026-08-09, 6m30s, after the mmCIF element-symbol,
+ligand-copy and protonation work; the branch it landed on collected 3570,
+so those changes are +44 together -- +35 for the element symbols and +9
+for the other two).
+Before it: 3501 on clean master at `77ad231` after the conformer
+de-duplication and calculator-routing work, 3446 at `14e5d08`, 3350 after
+the crystallography work, 3236 before that, 3155 before the
+polarity/lattice-energy work, 3081 before the substance-perception work,
+3019 before the Ketcher pool-id merge, and 2788 before the
+presentation-layer Phase 0-8 work.
+
+The 3501 -> 3570 step is a worked example of the warning below: nothing
+in this file recorded the assembly work's 69 tests, and a count taken
+against 3501 would have read as 69 tests missing.
 
 **THE FIGURE DRIFTS AND THIS LIST IS THE EVIDENCE.** The 3350 entry was
 stale by 96 tests before anybody noticed, because a count is only
@@ -1744,6 +1751,211 @@ Two habits from it:
   non-symmetric, because a flag on a symmetric matrix would leave the
   gate exactly as blind while looking guarded -- how
   `inapplicable_calculators` rotted.
+
+### Open Babel reads mmCIF elements CASE-SENSITIVELY, and the archive is uppercase
+
+The same deposit in two formats was not the same molecule.
+`_atom_site.type_symbol` is written `CL`, `ZN`, `SE` throughout the PDB
+archive; Open Babel 3.1.0's mmCIF reader matches that against its element
+table case-sensitively and comes back with atomic number **0**, element
+unknown. The PDB reader has always matched case-insensitively.
+
+    minimal mmCIF, one atom, nothing varied but the symbol
+    CL CA NA ZN FE MG MN CU BR SE NI CO   ->  0            12 of 12
+    Cl Ca Na Zn Fe Mg Mn Cu Br Se Ni Co   ->  correct
+    C N O S P F W I                       ->  correct either way
+
+**It is not the eight elements it was reported for -- it is EVERY
+two-letter symbol.** One-letter symbols cannot differ in case and were
+never affected, which is why nothing noticed for so long: a protein is
+C, N, O and S.
+
+**The atom was then DELETED, not mistyped**, which is the worse of the
+two failures and the reason it was invisible. Both Open Babel paths drop
+`atomicnum == 0` -- `receptor_atoms_from_structure` skips it, and
+`VinaDockingProvider._drop_untyped_atoms` deletes it because Open Babel
+writes an untyped atom into a PDBQT as `*` with an empty AutoDock type
+and Vina 1.2.7 then refuses the entire file. So a receptor reached Vina
+silently one atom short rather than obviously broken. Measured over the
+bundled catalogue in mmCIF form:
+
+    49 receptors, 30 atoms lost, 16 entries affected
+    the same 49 as PDB                            0 lost
+    inside the entry's binding-site box            7 entries
+
+**The strict in-box count UNDER-reports it, in both directions, and the
+proximity measurement is the one to read.** Five of those seven are not
+ions near the site at all -- the box-defining LIGAND loses its own
+halogen (eticlopride, nemonapride, AM6538, diazepam, baclofen all carry
+chlorine), so the box was computed from an incomplete molecule and came
+out up to **0.86 A off centre with a different size**. And 3HS4's
+catalytic zinc scores as OUTSIDE the box while sitting **1.94 A from the
+acetazolamide that coordinates it** -- the single most important atom in
+that site, on the one catalogue entry whose own caveat says binding
+requires it. A binary in-or-out test cannot see either case.
+
+The fix is `pose_analysis.normalise_element_symbols`, applied beside
+`filter_altlocs` on **both** Open Babel paths -- the same
+analysis-and-preparation-must-not-diverge rule that `is_stripped_residue`,
+`filter_altlocs` and `is_symmetry_generated` each exist for. There is no
+Open Babel read option for it (mmCIF offers only `s`, `p`, `b`, `w`).
+
+**NOT at the `structure_io` boundary, and that is the load-bearing
+choice.** The uppercase file is CORRECT mmCIF -- `type_symbol` is
+case-insensitive in the format and Mol* reads it perfectly. Normalising
+at import would rewrite the text that becomes
+`MacromoleculeModel.structure_text`, which the viewer renders and a saved
+project STORES, so a correct deposit would be permanently altered on disk
+to work around one consumer's lookup. Only the copy handed to Open Babel
+is touched. It also covers routes `structure_io` never sees:
+`receptor_library_service`'s mmCIF fallback, and `build_assembly`, which
+copies `type_symbol` verbatim and so carries the problem into every built
+assembly.
+
+Rewriting is conservative by construction -- a value is changed only when
+it is **not** an element as written and **is** one after normalising, so
+`?`, `.`, `D` and anything unrecognised are left for Open Babel to
+reject rather than guessed at. The substitution is length-preserving, so
+column alignment survives byte for byte.
+
+`test_open_babel_really_does_lose_an_uppercase_symbol_without_the_fix`
+asserts the DEFECT on purpose: if a future Open Babel stops losing `CL`,
+it fails and the workaround can go.
+
+#### Two things this cost, both general
+
+- **A fixture with a column after the one under test proves less than it
+  looks.** `_cif_tokens` split on space and tab only, so the line
+  terminator folded into a row's LAST token -- `type_symbol` declared
+  last read as `"NA\n"` and matched no element. Every existing caller
+  strips first, so nothing had ever hit it, and every fixture built in
+  RCSB's tag order (where `pdbx_PDB_model_num` is last) passed while the
+  bug was live. Found only by writing the minimal reordered case.
+- **Two of eight mutations survived, and both were EQUIVALENT rather than
+  uncaught.** One removed a redundant `all(tag.startswith("_atom_site."))`
+  guard that `tags.index` already implied -- deleted, and replaced with a
+  suffix-match mutation that is real (`_chem_comp_atom.type_symbol` is a
+  genuine category) and is caught. The other removed the PDB/mmCIF
+  dispatch, which cannot be caught because the mmCIF walker is inert on
+  PDB text. That limit is written into the test rather than papered over
+  with a fixture no real file resembles. **A surviving mutation is a
+  question, not automatically a verdict on the test.**
+
+#### Two SEPARATE format divergences found beside it, both now fixed
+
+Found while measuring the element bug, diagnosed separately, and fixed in
+the same branch. Neither is caused by the element bug and neither was
+fixed by it -- each was measured before and after to be sure.
+
+##### `_single_copy` picked a different ligand copy per format
+
+mmCIF gives Open Babel `label_asym_id` and PDB gives author chain ids,
+and the tie-break sorted on the chain. It also reports **no residue
+number at all** from mmCIF. 3HS4's three acetazolamides are chains D/E/F
+numbered 0 in mmCIF and A/701, A/702, A/703 in PDB, so the two formats
+boxed **17.96 A apart**; 8EF5 was **36.08 A** apart, with the two copies
+ordered in opposite directions by the two formats.
+
+**And one of the two answers was simply wrong.** 3HS4 is carbonic
+anhydrase II, where acetazolamide binds by coordinating the catalytic
+zinc, so exactly one of its three copies is the pharmacology:
+
+    copy    protein atoms within 4.5 A    nearest Zn
+    A/701                          46        1.94 A   <- the real site
+    A/703                          34       16.62 A
+    A/702                          22       17.31 A
+
+The mmCIF arm was boxing A/703 -- a surface crystallisation artefact.
+Ties are the NORMAL case here, not the exotic one (equivalent copies have
+equal atom counts by construction), so the tie-break decides most
+multi-copy structures rather than a rare few.
+
+The fix ranks on `(atom count, burial, centroid)`: size first, as before;
+then how many non-water atoms lie within 4.5 A
+(`pose_analysis.HYDROPHOBIC_CUTOFF`, reused rather than reinvented); then
+a geometric tie-break so a genuine draw still resolves the same way every
+run. **Coordinates are the one thing the two formats agree on exactly** --
+verified atom for atom to three decimals -- which is what makes a
+geometric criterion reproducible where a label is not.
+
+**Waters are excluded from burial deliberately.** An exposed copy is the
+one with the most ordered waters around it almost by definition, so
+counting them inverts the ranking; 3HS4 is a 1.10 A structure with waters
+modelled everywhere.
+
+**IT MOVES 13 OF 48 CATALOGUE BOXES, by 27 to 76 A, and that is not a
+regression** -- it is which equivalent copy gets docked. Checked entry by
+entry against two signals the rule does not optimise (nearest metal, and
+distinct residues contacted): in every moved case the copies are
+near-equivalent (contacts within a few percent) and the new choice is
+equal or better. 3HS4's PDB arm already picked the right copy; only the
+mmCIF arm changed there.
+
+Confirmed by redocking with real Vina, one before arm and two after --
+see `chem/binding_site.py` for the table. All seven targets land in the
+same pocket in every arm, run-to-run scatter is ~0.03 A, and 4EY7 (whose
+box moved to a more buried copy) improves **0.69 -> 0.37 A**, twenty
+times the noise. The docstring's old 3.90 A for 3EML **does not
+reproduce**: the before arm on unchanged code gives 2.59 A.
+
+**`benchmarks/docking/redock.py` had to change with it.** It called
+`_single_copy` a SECOND time to find the crystal pose to measure against
+-- with no receptor, so no burial -- and would have compared a docked
+pose against a different copy than it docked into, reporting a large
+shift that reads as a bad box. `BindingSite.ligand_positions` now carries
+the chosen copy, so there is one answer rather than two derivations.
+
+##### Open Babel leaves every implicit hydrogen count at zero from mmCIF
+
+4DKL gained **3,754 hydrogens** through the PDB reader and **41** through
+the mmCIF one at the same pH. It reaches the score: Vina reads AutoDock
+types, which encode hydrogen bonding, so a backbone nitrogen came out `N`
+from PDB and `NA` -- acceptor, no attached hydrogen -- from mmCIF.
+
+**It is not bond perception, which was the obvious suspect.** Both
+formats give byte-identical connectivity (3,726 bonds, 2,919 single and
+807 double). It is the implicit count alone, and aromaticity comes back
+with it (270 aromatic bonds against 0), because both are assigned in a
+pass the mmCIF reader never runs.
+
+`OBAtomAssignTypicalImplicitHydrogens` per atom fixes it exactly, and is
+**applied unconditionally because it is a no-op where the reader already
+did the work** -- verified on seven deposits, the PDB arm identical with
+and without it. A format branch would be one more place for the two paths
+to drift.
+
+It must run AFTER the strips: deleting a covalently bound ligand frees a
+valence, and 4DKL's beta-FNA is bonded to Lys233 while every catalogue
+box strips its own defining ligand. Measured, the lysine reaches Vina
+with 4 polar hydrogens when assignment follows the strips and 3 when it
+precedes them.
+
+**A fixture built on a CARBON cannot test that ordering.** The rigid
+PDBQT writer merges nonpolar hydrogens into their heavy atom, so an
+otherwise identical covalent fixture on a CB produces byte-identical
+output either way -- the first version of that test asserted nothing, and
+the mutation survived. The attachment has to be to a nitrogen, where the
+freed hydrogen is polar and appears as its own `HD` line.
+
+5KIR is the one deposit that still differs, by 5 hydrogens in ~18,700,
+and the cause is named rather than absorbed: its two formats differ by 4
+BONDS in the NAG/MAN glycan chains, so mmCIF leaves four glycosidic
+linkages unformed. Open Babel reads PDB `CONECT` records and evidently
+not mmCIF's `_struct_conn` equivalent.
+
+##### A mutation that ADDS a call is not a mutation that MOVES it
+
+The "assign hydrogens before the strips" arm reported a confident
+SURVIVED against a test that does catch the real thing. The arm inserted
+a second call early and left the real one in place, so the correct
+assignment still ran last and the behaviour never changed. The bytes
+changed, which is all the harness was checking.
+
+This is the third time this file has recorded a version of the same
+lesson (a mutation script whose edit never landed; an arm that errored
+instead of running). **Verify the BEHAVIOUR moved, not the bytes** -- and
+for a reordering, the mutation must delete from one place as well as
+insert into the other.
 
 ### A threshold fitted to a BIMODAL molecule is not validated
 
