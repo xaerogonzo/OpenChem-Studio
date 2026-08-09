@@ -81,6 +81,99 @@ def test_the_declared_entry_really_has_a_non_symmetric_matrix():
     )
 
 
+#: 1A34's `_pdbx_struct_oper_list` row for X0, verbatim, so the claim
+#: below is checked against the deposit rather than against a flag.
+_1A34_X0 = (
+    "loop_\n"
+    "_pdbx_struct_oper_list.id\n"
+    "_pdbx_struct_oper_list.type\n"
+    "_pdbx_struct_oper_list.name\n"
+    "_pdbx_struct_oper_list.symmetry_operation\n"
+    "_pdbx_struct_oper_list.matrix[1][1]\n"
+    "_pdbx_struct_oper_list.matrix[1][2]\n"
+    "_pdbx_struct_oper_list.matrix[1][3]\n"
+    "_pdbx_struct_oper_list.vector[1]\n"
+    "_pdbx_struct_oper_list.matrix[2][1]\n"
+    "_pdbx_struct_oper_list.matrix[2][2]\n"
+    "_pdbx_struct_oper_list.matrix[2][3]\n"
+    "_pdbx_struct_oper_list.vector[2]\n"
+    "_pdbx_struct_oper_list.matrix[3][1]\n"
+    "_pdbx_struct_oper_list.matrix[3][2]\n"
+    "_pdbx_struct_oper_list.matrix[3][3]\n"
+    "_pdbx_struct_oper_list.vector[3]\n"
+    "X0 'identity operation' 1_555 x,y,z "
+    "1.00000000 0.00000000 0.00000000 0.00000 "
+    "0.00000000 1.00000000 0.00000000 0.00000 "
+    "0.00000000 0.00000000 1.00000000 0.00000\n"
+    "#\n"
+)
+
+
+#: Outer operator of each declared product expression, keyed by
+#: `(pdb_id, operator id)`. A new product entry has to add its own row
+#: here, which is the point: the composition-order claim is then DERIVED
+#: from the deposit's own matrix instead of read off a flag.
+_OUTER_OPERATOR_FIXTURES = {("1A34", "X0"): _1A34_X0}
+
+
+def test_the_gate_corpus_contains_a_product_expression():
+    """`(A)(B)` is an mmCIF-only construct -- `REMARK 350` enumerates
+    operators and has no expression syntax at all -- so without an entry
+    that uses one, nothing external exercises product expansion."""
+    declared = [e for e in _corpus()["structures"] if e.get("has_product_expression")]
+    assert declared, "no corpus entry uses a product expression"
+    for entry in declared:
+        assert ")(" in entry["has_product_expression"], entry
+        assert entry.get("source_formats") == ["mmcif"], (
+            f"{entry['pdb_id']} claims a product expression but is not restricted to "
+            "mmCIF; REMARK 350 cannot state one"
+        )
+
+
+def test_the_composition_order_GAP_is_declared_and_justified():
+    """**The gap is recorded because it is real, and the reason is CHECKED.**
+
+    Measured through the gate: `build.py --mutate reverse-composition`
+    passes every entry, because the only product expression reachable
+    against RCSB coordinates has the IDENTITY as its outer group, and
+    composing the identity with anything is order-independent. Every
+    product whose outer group is non-identity (1M4X assembly 7, 1AL0
+    assembly 6, 1NOV assembly 6) lives in an assembly RCSB does not
+    pre-generate, and the one that is served -- 1M4X assembly 1
+    `(1-60)(61-88)` -- is 16,284,240 atoms.
+
+    A corpus that merely FAILED to cover this would look the same as one
+    that had decided not to. The declaration plus this check is what
+    tells them apart, and it fails loudly if somebody claims the coverage
+    without changing the corpus.
+    """
+    from openchem.chem.structure_assembly import operator_transforms
+
+    declared = [e for e in _corpus()["structures"] if e.get("has_product_expression")]
+    for entry in declared:
+        assert "catches_composition_order" in entry, entry["pdb_id"]
+        outer = entry["has_product_expression"].split(")(")[0].lstrip("(")
+        evidence = _OUTER_OPERATOR_FIXTURES.get((entry["pdb_id"], outer))
+        assert evidence is not None, (
+            f"{entry['pdb_id']}'s outer group {outer!r} has no bundled "
+            f"_pdbx_struct_oper_list fixture, so its composition-order claim cannot "
+            f"be checked. Add one, verbatim from the deposit."
+        )
+        identity = operator_transforms(evidence, "mmcif")[outer].is_identity
+        # DERIVED, never trusted. Composing the identity with anything is
+        # order-independent, so an entry whose outer group is the identity
+        # CANNOT catch a reversed composition however the flag is set --
+        # and flipping the flag to claim coverage the corpus does not have
+        # is exactly the rot this check exists to stop.
+        assert entry["catches_composition_order"] == (not identity), (
+            f"{entry['pdb_id']} declares catches_composition_order="
+            f"{entry['catches_composition_order']} but its outer group {outer!r} "
+            f"{'IS' if identity else 'is NOT'} the identity"
+        )
+        if not entry["catches_composition_order"]:
+            assert entry.get("why_not_composition_order", "").strip(), entry["pdb_id"]
+
+
 def test_every_corpus_entry_says_why_it_is_there():
     """A gate corpus is a set of decisions, and an entry nobody can
     justify is one nobody will defend when it starts failing."""

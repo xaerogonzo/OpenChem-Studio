@@ -1745,6 +1745,25 @@ Two habits from it:
   gate exactly as blind while looking guarded -- how
   `inapplicable_calculators` rotted.
 
+**A gap you cannot close should be DECLARED, and the reason DERIVED.**
+The same corpus has a product expression (1A34 assembly 6,
+`(X0)(1-10,21-25)`) which cannot catch a reversed composition, because
+that deposit defines X0 as the exact identity and composing the identity
+is order-independent. Measured, not assumed: `--mutate
+reverse-composition` passes the entire corpus while `--mutate
+union-product` fails it by 81.7 A. Nothing better is reachable -- every
+product with a non-identity outer group sits in an assembly RCSB does not
+pre-generate, and the one it does serve is 16 million atoms.
+
+A corpus that merely FAILED to cover something looks identical to one
+that decided it could not. The entry therefore carries
+`catches_composition_order: false` with its justification, and the guard
+**derives** that flag's correct value from the deposit's own matrix
+rather than reading it -- so flipping it to claim coverage fails. The
+first version of that guard skipped the `true` branch instead of checking
+it, which a mutation caught: the docstring promised it would fail loudly
+and the code returned early.
+
 ### A threshold fitted to a BIMODAL molecule is not validated
 
 The conformer de-duplication threshold was measured honestly, on real

@@ -1,10 +1,10 @@
 {
-  "corpus_version": 1,
+  "corpus_version": 2,
   "recorded": "2026-08-09",
   "reference": {
     "source": "RCSB generated biological assemblies",
     "url_template": "https://files.rcsb.org/download/{pdb_id}-assembly{assembly_id}.cif",
-    "note": "RCSB builds these from the mmCIF _pdbx_struct_oper_list. We build from the PDB REMARK 350 BIOMT records. The two are independent readings of the same deposited annotation, which is what makes this an external check rather than a self-comparison."
+    "note": "RCSB builds these from the mmCIF _pdbx_struct_oper_list. We build from either deposited form. The PDB arm is an independent reading of the same annotation; the mmCIF arm reads the same matrices RCSB does and so isolates the builder from the parser."
   },
   "structures": [
     {
@@ -30,7 +30,7 @@
       "assembly_id": "1",
       "expect": "built",
       "catches_transpose": true,
-      "why": "A GENERAL ROTATION, deliberately. Maltoporin's trimer is a 3-fold, so its matrix is dense and asymmetric -- every catalogue matrix is axis-aligned, which means a transposed implementation passes all 49 of them. This is the only entry whose transpose is a different structure, so it is the only one that can catch it."
+      "why": "A GENERAL ROTATION, deliberately. Maltoporin's trimer is a 3-fold, so its matrix is dense and asymmetric -- every catalogue matrix is axis-aligned, which means a transposed implementation passes all 49 deposits. This is the only entry whose transpose is a different structure, so it is the only one that can catch it."
     },
     {
       "pdb_id": "1A34",
@@ -38,6 +38,19 @@
       "expect": "refused",
       "expect_atoms": 208440,
       "why": "60 operators on a satellite tobacco mosaic virus asymmetric unit. The builder REFUSES it over the atom limit, and RCSB's own assembly confirms the count it refuses on is right to the atom. A refusal branch that nothing external checks is a branch that can drift."
+    },
+    {
+      "pdb_id": "1A34",
+      "assembly_id": "6",
+      "source_formats": ["mmcif"],
+      "expect": "built",
+      "has_product_expression": "(X0)(1-10,21-25)",
+      "catches_composition_order": false,
+      "reference_assembly_id": "1",
+      "reference_mode": "subset",
+      "atom_limit": 1000000,
+      "why": "THE PRODUCT EXPRESSION, and the only one in reach that can be checked against real coordinates. Two groups, the second carrying a range AND a comma list, expanding to 15 placements over 8 chains. Scored as a SUBSET of assembly 1 because RCSB pre-generates only assembly 1 for this entry, and 1-10,21-25 are 15 of that assembly's 60 operators; measured, all 52,110 of our atoms appear in their 208,440. mmCIF only -- REMARK 350 has no expression syntax, so the PDB form of this deposit cannot state a product at all. atom_limit is raised because the 100,000 default is a DOCKING preparation guard and this entry exists to check coordinates, not that guard; 1A34 assembly 1 above is what checks the guard.",
+      "why_not_composition_order": "Its outer group is X0, which this deposit defines as the exact identity, so composing X0 with k gives k in either order. The entry covers product PARSING and the placement set; it cannot catch a reversed composition. Every product expression whose outer group is non-identity (1M4X assembly 7 (P)(61-88), 1AL0 assembly 6, 1NOV assembly 6) lives in an assembly RCSB does not pre-generate, and the one product that IS in a served assembly, 1M4X assembly 1 (1-60)(61-88), is 16,284,240 atoms. So composition ORDER has no external witness and stays unit-tested; see test_assembly_gate.py, which asserts that gap is declared rather than forgotten."
     }
   ]
 }
