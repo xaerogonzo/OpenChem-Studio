@@ -1489,3 +1489,104 @@ def test_a_molecule_with_no_structure_is_not_dispatched(qapp):
     _select_molecule(panel, bus)
 
     assert not [r for r in service.requests if r.calculator_id == "substance_analysis"]
+
+
+def test_an_explicitly_run_row_result_is_scrolled_into_view(qapp):
+    """The ADMET complaint: "the calculator produces nothing".
+
+    It produced everything -- the sidecar ran, the model returned its
+    endpoints, and the row rendered correctly about 900 px down a panel
+    whose viewport is 372 px, inside a section collapsed by default near
+    the bottom of twenty-odd others. Confirmed by driving the app and
+    scrolling down to find `hERG blockade: 0.82` sitting there.
+
+    Four of the six result shapes already answer a button press
+    unmissably -- a per-atom dataset, a spectrum, a structure set and a pH
+    curve each open a dialog when they match `_pending_calculator_id`. The
+    two that render INLINE had no such handling, so the more a result had
+    to say, the better it was hidden.
+    """
+    registry = CalculatorRegistry()
+    definition = _calculator_definition("admet_ml", category="admet")
+    registry.register(definition)
+    panel, bus, service = _make_panel(qapp, registry)
+    molecule = MoleculeModel(display_name="Ethanol")
+    panel.set_project(ProjectModel(molecules=[molecule]))
+    bus.publish(MoleculeSelected(molecule_uuid=molecule.uuid))
+
+    section = panel._section_for("admet")
+    section.set_expanded(False)
+    panel._open_calculator(definition)
+    assert panel._pending_calculator_id == "admet_ml"
+
+    # Spy on the CALL, not on `valueChanged`: an unshown panel has no
+    # scroll range, so a real setValue would be a silent no-op here and
+    # the test would pass whatever the code did.
+    revealed: list[int] = []
+    panel._scroll_area.verticalScrollBar().setValue = revealed.append
+    horizontal: list[int] = []
+    panel._scroll_area.horizontalScrollBar().setValue = horizontal.append
+
+    bus.publish(
+        AlertComputed(
+            alert=AlertResult(
+                alert_id="admet_ml",
+                name="ADMET (ADMET-AI)",
+                category="admet",
+                matched=["hERG blockade: 0.82"],
+                molecule_uuid=molecule.uuid,
+                cache_state=CacheState.COMPLETED,
+                provenance=Provenance(created_by="admet_ai", method="chemprop"),
+            )
+        )
+    )
+    qapp.processEvents()
+    qapp.processEvents()
+
+    assert section.is_expanded(), "a collapsed section hides the result it was asked for"
+    assert revealed, "the row was never scrolled into view"
+    assert not horizontal, (
+        "the panel scrolled SIDEWAYS, which this project treats as worse "
+        "than the invisibility it is fixing"
+    )
+    assert panel._pending_calculator_id is None, "the request was not consumed"
+
+
+def test_a_result_nobody_asked_for_does_not_hijack_the_scroll(qapp):
+    """A batch run publishes many results and must not yank the panel
+    around per result -- `_on_run_selected` deliberately leaves
+    `_pending_calculator_id` unset, and that is what distinguishes the
+    two cases."""
+    registry = CalculatorRegistry()
+    definition = _calculator_definition("admet_ml", category="admet")
+    registry.register(definition)
+    panel, bus, service = _make_panel(qapp, registry)
+    molecule = MoleculeModel(display_name="Ethanol")
+    panel.set_project(ProjectModel(molecules=[molecule]))
+    bus.publish(MoleculeSelected(molecule_uuid=molecule.uuid))
+
+    # Spy on the CALL, not on `valueChanged`: an unshown panel has no
+    # scroll range, so a real setValue would be a silent no-op here and
+    # the test would pass whatever the code did.
+    revealed: list[int] = []
+    panel._scroll_area.verticalScrollBar().setValue = revealed.append
+    horizontal: list[int] = []
+    panel._scroll_area.horizontalScrollBar().setValue = horizontal.append
+
+    bus.publish(
+        AlertComputed(
+            alert=AlertResult(
+                alert_id="admet_ml",
+                name="ADMET (ADMET-AI)",
+                category="admet",
+                matched=["hERG blockade: 0.82"],
+                molecule_uuid=molecule.uuid,
+                cache_state=CacheState.COMPLETED,
+                provenance=Provenance(created_by="admet_ai", method="chemprop"),
+            )
+        )
+    )
+    qapp.processEvents()
+    qapp.processEvents()
+
+    assert not revealed

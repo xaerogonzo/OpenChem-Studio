@@ -4,7 +4,7 @@ import logging
 import os
 from collections.abc import Callable
 
-from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtCore import QPoint, QSize, Qt, QTimer
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -307,6 +307,10 @@ _INSTRUMENT = bool(os.environ.get("OPENCHEM_INSTRUMENT_PANEL"))
 _INSTRUMENT_DELAY_MS = 1500
 
 _REPORT_ID_PROPERTY = "openchem_report_id"
+
+#: Pixels of headroom left above a revealed row, so it lands inside the
+#: viewport rather than flush against its bottom edge.
+_REVEAL_MARGIN = 24
 
 #: How a wide row's name is drawn, now that it is a caption above its
 #: value rather than a `QFormLayout` label beside it. Muted and small so
@@ -695,6 +699,9 @@ class PropertyPanel(QWidget):
         # see compute_crippen_logp_contrib_calculator's docstring), which
         # must not silently pop the inspector open on its own.
         self._pending_calculator_id: str | None = None
+        #: The row `_reveal_pending_result` scrolls to on the next turn
+        #: of the event loop, once its geometry has settled.
+        self._reveal_target: QWidget | None = None
         # Keyed on (provider, descriptor_id) rather than bare descriptor_id:
         # two providers (e.g. a plugin and the built-in one) could otherwise
         # pick the same short name and silently collide.
@@ -723,7 +730,9 @@ class PropertyPanel(QWidget):
         self._sections_layout.setContentsMargins(0, 0, 0, 0)
         self._sections_layout.addStretch()
 
-        scroll_area = QScrollArea(self)
+        # Held rather than left a local: `_reveal_pending_result` scrolls a
+        # freshly-arrived row into view through it.
+        self._scroll_area = scroll_area = QScrollArea(self)
         scroll_area.setWidgetResizable(True)
         scroll_area.setWidget(self._sections_container)
         # See `_PANEL_MIN_WIDTH`: a minimum on the values is a minimum on
@@ -1112,6 +1121,7 @@ class PropertyPanel(QWidget):
         value_label.setText(text)
         value_label.setStyleSheet(style)
         value_label.setToolTip(tooltip)
+        self._reveal(alert.alert_id, section, value_label.parentWidget())
         # An unmigrated result is still a report; it just has to be
         # reconstructed from its strings. Held so "Details..." works for
         # it exactly as it does for a migrated one.
@@ -1208,22 +1218,23 @@ class PropertyPanel(QWidget):
             )
         section = self._section_for(report.category)
 
-        if report.cache_state is CacheState.FAILED:
-            self._report_row(section, report.report_id, report.name).setText(
-                _FAILURE_GLYPH + (report.error or "Failed")
-            )
-            self._report_row(section, report.report_id, report.name).setStyleSheet(_FAILURE_STYLE)
-            return
-
         label = self._report_row(section, report.report_id, report.name)
-        if not report.facts:
+        if report.cache_state is CacheState.FAILED:
+            label.setText(_FAILURE_GLYPH + (report.error or "Failed"))
+            label.setStyleSheet(_FAILURE_STYLE)
+        elif not report.facts:
             label.setText("Nothing to report.")
             label.setStyleSheet(_INFORMATION_STYLE)
-            return
-        label.setText("\n".join(f"{f.label}: {f.display_value}" for f in report.facts[:6]))
-        label.setStyleSheet(_INFORMATION_STYLE)
-        if len(report.facts) > 6:
-            label.setToolTip(f"{len(report.facts)} facts. Open Details for all of them.")
+        else:
+            label.setText("\n".join(f"{f.label}: {f.display_value}" for f in report.facts[:6]))
+            label.setStyleSheet(_INFORMATION_STYLE)
+            if len(report.facts) > 6:
+                label.setToolTip(f"{len(report.facts)} facts. Open Details for all of them.")
+        # Every branch, including the failures -- a run that failed is
+        # exactly the case where being shown the answer matters most, and
+        # the early returns this replaced meant a FAILED report scrolled
+        # nowhere and read as nothing having happened.
+        self._reveal(report.report_id, section, label.parentWidget())
 
     def _report_row(self, section, report_id: str, name: str):
         """The label for one report, created once and reused.
@@ -1233,11 +1244,12 @@ class PropertyPanel(QWidget):
         the depth filter, evidence, limitations and export come along
         without this panel implementing any of it.
 
-        THIS ROW STILL TRUNCATES, AND NOTHING ON THIS ROW IS THE CAUSE.
-        Measured in the running app, the field asks for 144 px of height
-        and is given 14 -- but so is the plain `formula` row above it,
-        which drops from 16 px to 14 the moment this row appears. An
-        unrelated scalar cannot be shortened by a report row; only a
+        THIS ROW USED TO TRUNCATE TO ONE LINE, and nothing on the row
+        was ever the cause. Measured in the running app, the field
+        asked for 144 px of height and was given 14 -- but so was the
+        plain `formula` row above it, which dropped from 16 px to 14
+        the moment this row appeared. An unrelated scalar cannot be
+        shortened by a report row; only a
         container short of space can shorten both.
 
         The shortfall is at the SECTION: it is given 113 px while asking
@@ -1571,6 +1583,71 @@ class PropertyPanel(QWidget):
             molecule,
             CalculationRequest(calculator_id=definition.calculator_id, molecule_uuid=molecule.uuid, parameters=parameters),
         )
+
+    def _reveal(self, calculator_id: str, section, row: QWidget | None) -> None:
+        """Bring an explicitly-requested ROW result onto the screen.
+
+        **THIS IS WHY THE ADMET CALCULATOR "PRODUCED NOTHING".** It
+        produced everything: the sidecar ran, the model returned its
+        endpoints and the row was rendered correctly -- about 900 px below
+        the top of a panel whose viewport is 372 px, inside a section that
+        is collapsed by default and sits near the bottom of twenty-odd
+        others. Confirmed by driving the app and scrolling down to find
+        `hERG blockade: 0.82` sitting there.
+
+        Four of the six result shapes already answer a button press
+        unmissably: a per-atom dataset, a spectrum, a structure set and a
+        pH curve all open a dialog when they match
+        `_pending_calculator_id`. The two that render INLINE -- an alert
+        and a report -- had no such handling, so the louder the result the
+        better it was hidden. That asymmetry, not the sidecar, is the bug.
+
+        Deliberately NOT a dialog. A row-shaped result belongs in its row;
+        popping a window for it would stack windows during a batch run and
+        would answer a different question from the one the user asked.
+        """
+        if self._pending_calculator_id != calculator_id:
+            return
+        self._pending_calculator_id = None
+        section.set_expanded(True)
+        self._reveal_target = row
+        # Deferred by one turn because the row was created or re-texted a
+        # moment ago and its geometry is not settled: asked now,
+        # `ensureWidgetVisible` scrolls to where the row used to be. A
+        # BOUND METHOD, never a lambda capturing self -- PySide6 holds a
+        # plain callable strongly (see tests/test_qt_object_disposal.py).
+        QTimer.singleShot(0, self._reveal_pending_result)
+
+    def _reveal_pending_result(self) -> None:
+        """Put the row's TOP near the top of the viewport.
+
+        **NOT `ensureWidgetVisible`, for two measured reasons.**
+
+        It moves BOTH axes, and a row a little wider than the viewport
+        makes it scroll right as well -- in the app that left every label
+        clipped on its left edge ("bb_permeant", "unctional Groups"). A
+        properties panel scrolled sideways is the failure this project
+        already calls worse than the one being fixed. Setting the vertical
+        bar alone cannot do that.
+
+        And it scrolls the MINIMUM distance, measured against a height
+        that is not settled yet: an `ExplicitHeightLabel` fixes its height
+        from its width during the layout pass, so a moment after the row
+        is added it is still short. The result was the caption arriving
+        flush against the bottom edge with its values below the fold --
+        the same invisibility this whole fix is about. Anchoring the row's
+        TOP does not depend on its final height at all, so it is right
+        whenever it runs.
+        """
+        row = self._reveal_target
+        self._reveal_target = None
+        if row is None:
+            return
+        container = self._scroll_area.widget()
+        if container is None:
+            return
+        top = row.mapTo(container, QPoint(0, 0)).y()
+        self._scroll_area.verticalScrollBar().setValue(max(0, top - _REVEAL_MARGIN))
 
     def _open_inspector(self, result: PerAtomDataset | SpectrumResult) -> None:
         if self._project is None:

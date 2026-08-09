@@ -1067,11 +1067,58 @@ document may cite a file or a test that does not exist.
   **This is not solved, and `SCIENTIFIC_LIMITATIONS.md` says so.** It is
   the best-performing heuristic on eleven molecules, half of whose
   references are computational lower bounds.
-- **OPEN** -- the ADMET calculator appears to produce nothing. Its
-  options dialog opens and accepts a tier, and no result row follows. It
-  runs out of process through a sidecar, so the first question is
-  whether the sidecar is being found and what it returns, not what the
-  panel does with it.
+- **SETTLED** -- the ADMET calculator "produced nothing". **It produced
+  everything, off the bottom of the screen.** This entry used to say the
+  first question was whether the sidecar was being found; it was found,
+  and asking that first is what kept the answer hidden.
+
+  Checked in order, each measured rather than assumed:
+
+        the sidecar interpreter is configured      yes
+        running admet_runner.py by hand            exit 0, 104 columns
+        the tier filter matches the columns        10/10, 17/17, 39/39
+        the interpreter path reaches the calculator yes -- bootstrap
+                                                   binds it per call
+        the calculator through the REAL registry   COMPLETED, 12 lines
+        the app log after a run in the GUI         nothing at all
+
+  That last line is the one that misleads: only a FAILURE logs, so an
+  empty log means "no exception", not "never ran". Sampling for the
+  subprocess DURING a run showed it spawning normally. The row was there
+  the whole time -- scrolling the panel down found
+  `hERG blockade: 0.82` sitting in the ADMET / Toxicity section, which is
+  collapsed by default and sits near the bottom of twenty-odd sections in
+  a ~1000 px content area behind a 372 px viewport.
+
+  **The real defect is an asymmetry in how results announce
+  themselves.** Four of the six result shapes already answer a button
+  press unmissably -- a per-atom dataset, a spectrum, a structure set and
+  a pH curve each open a dialog when they match
+  `_pending_calculator_id`. The two that render INLINE, an alert and a
+  report, had no such handling, so the more a result had to say the
+  better it was hidden. `PropertyPanel._reveal` expands the section and
+  scrolls the row to the top of the viewport; a result nobody asked for
+  (a batch run leaves `_pending_calculator_id` unset, deliberately) does
+  not move the view.
+
+  Two things measured while fixing it, both worth keeping:
+
+  - **`ensureWidgetVisible` moves BOTH axes.** A row a little wider than
+    the viewport made the panel scroll sideways, leaving every label
+    clipped on its left edge ("bb_permeant", "unctional Groups") --
+    the failure this file already calls worse than the one being fixed.
+    Setting the vertical bar alone cannot do that.
+  - **It also scrolls the MINIMUM distance, against a height that is not
+    settled.** An `ExplicitHeightLabel` fixes its height from its width
+    during the layout pass, so just after a row is added it is still
+    short, and the caption arrived flush against the bottom edge with the
+    values below the fold -- the same invisibility, one step smaller.
+    Anchoring the row's TOP does not depend on its final height, so it is
+    right whenever it runs.
+
+  Guards: `test_an_explicitly_run_row_result_is_scrolled_into_view` and
+  `test_a_result_nobody_asked_for_does_not_hijack_the_scroll`. Both
+  mutation-tested, including against the `ensureWidgetVisible` version.
 - **OPEN, possibly correct behaviour** -- IUPAC Name reports
   "A name was derived but did not parse back to this structure, so it is
   being withheld" on a morphine derivative. That is the namer's honest
