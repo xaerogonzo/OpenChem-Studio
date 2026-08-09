@@ -606,15 +606,36 @@ document may cite a file or a test that does not exist.
   on the model would give the model a second copy of the truth that goes
   stale the moment the text is replaced.
 
-  **BIOLOGICAL ASSEMBLY is the part still missing**, and it is not the same
-  question as the symmetry copies `is_symmetry_generated` now discards.
-  Those are junk Open Babel invents when it cannot parse a space group; an
-  assembly (`pdbx_struct_assembly` / `pdbx_struct_oper_list` in mmCIF,
-  `REMARK 350` in PDB) is curated depositor annotation saying which
-  transformations produce the biologically real oligomer. It matters for
-  docking because a deposited asymmetric unit is not always the functional
-  unit, and a binding site can sit at an interface that only exists once
-  the assembly is built.
+  **BIOLOGICAL ASSEMBLY is built now**, from PDB, and docking can be
+  aimed at it. It is not the same question as the symmetry copies
+  `is_symmetry_generated` discards -- those are junk Open Babel invents
+  when it cannot parse a space group, while an assembly
+  (`pdbx_struct_assembly`/`pdbx_struct_oper_list`, or `REMARK 350`) is
+  curated depositor annotation. `chem/structure_assembly.py` parses the
+  matrices, composes operator expressions right-to-left, and
+  `build_assembly` returns an `AssemblyBuildResult` in which partial
+  output is not representable. `DockingJob` builds ONCE and hands the
+  identical text to both `dock()` and `receptor_atoms_from_structure`;
+  the opt-in is in the Contents dialog, off by default, and a build that
+  fails **fails the job** rather than quietly docking the asymmetric unit.
+
+  Three things that were wrong before this landed, each found by writing
+  a test rather than by reading:
+
+  - `_loop_rows` dropped any CIF row that WRAPPED across lines, so 1A34's
+    60-operator list read as zero operators, silently.
+  - PDB operator ids are scoped per `BIOMOLECULE:`, and reading them
+    globally put 4EA3's second chain 42 A from where the depositor put it.
+  - Every matrix in the catalogue is axis-aligned, so a TRANSPOSED
+    implementation passes all 49 deposits. That is why the gate needs a
+    general rotation (2OMF's 3-fold) and why the composition test uses
+    non-commuting operators.
+
+  Still open: **building from mmCIF** (PDB refuses assemblies its
+  single-character chain id or 99,999-serial limit cannot express, and
+  mmCIF is exactly the format for those), and the **RCSB gate** in
+  `benchmarks/assembly/` -- until that lands, the builder is verified
+  against this project's own reading of the format and nothing else.
 
   BinaryCIF is no longer: `chem/binarycif.py` decodes it and
   `chem/structure_io.py` routes files by content (and gunzips) at import.

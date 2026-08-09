@@ -3,31 +3,37 @@
 WHAT THIS IS FOR. A deposited file holds the ASYMMETRIC UNIT, which is a
 crystallographic convenience, not a biological claim. The depositor
 separately annotates which chains and which transformations produce the
-functional molecule. The two differ often enough to matter: measured
-across the 49 curated receptors, 9 disagree, in both directions.
+functional molecule. The two differ often enough to matter: re-derived
+over the 48 PDB deposits in the bundled catalogue, comparing each file's
+chains against its PRIMARY assembly, **11 disagree, in both directions**.
 
-    file holds MORE than the biological unit   6 entries
-        e.g. 4DAJ, muscarinic M3 -- 4 chains in the file, and the
-        annotated assembly is a MONOMER. The extra chains are lattice
-        neighbours, and docking the file whole searches against protein
-        that is not part of the target.
+    file holds MORE than the biological unit   8 entries
+        1ERE 2VT4 3PBL 4DAJ 6A93 6B73 6WGT 7M93. 4DAJ, muscarinic M3,
+        is the clearest: 4 chains in the file and a MONOMER annotated.
+        The extras are lattice neighbours, and docking the file whole
+        searches against protein that is not part of the target.
 
-    file holds LESS                            1 entry
-        4DKL, mu-opioid -- one chain in the file, annotated as a DIMER.
-        The partner exists only once the deposited operator is applied.
+    file holds LESS                            3 entries
+        4DKL 4EA3 5I6X. 4DKL, mu-opioid, is one chain in the file
+        annotated as a DIMER; its partner exists only once the deposited
+        operator is applied.
 
-THIS ANNOTATES, IT DOES NOT BUILD. No coordinates are generated and no
-transformation is applied. Naming which chains belong turns the chain
-exclusion in the Docking panel from guesswork into something the
-depositor already answered, which is the whole value here; generating the
-missing partner is a separate step that would create atoms Vina has to
-see and the interaction analysis has to agree about, and it is not done
-here for exactly that reason.
+(An earlier version of this said "9 ... 6 and 1". That counted operators
+across EVERY biomolecule in a file rather than the primary assembly's, so
+it credited entries whose alternative assemblies need copies their
+primary does not. The primary is the one docking uses.)
+
+THIS ANNOTATES **AND NOW ALSO BUILDS.** `build_assembly` applies the
+transformations and returns structure text; `parse_assembly` and the
+`AssemblyAnnotation` half remain exactly what they were, for callers that
+only want to know what the depositor said.
 
 Read a caveat with the "less" case before acting on it: a missing partner
 invalidates docking only when the site is AT the interface. Mu-opioid's
-orthosteric pocket sits inside the monomer, so 4DKL docks fine as
-deposited -- the annotation is information, not an error to fix.
+orthosteric pocket sits inside the monomer, so 4DKL docks correctly as
+deposited -- which is precisely why it is the CONTROL for the builder
+(building must not move a result that should not move) rather than a
+demonstration of it.
 
 ID SPACES. mmCIF assembly records reference `label_asym_id`, and PDB
 `REMARK 350` references author chain ids. Those are different id spaces --
@@ -583,9 +589,10 @@ def _from_pdb(text: str) -> AssemblyAnnotation:
     """`REMARK 350`, the PDB-format equivalent.
 
     Chains are author ids here, not the mmCIF label ids -- see the module
-    docstring. The `BIOMT1` lines are counted rather than parsed: how many
-    transformations there are is the question this answers, and their
-    contents would only matter to a builder, which this is not.
+    docstring. The `BIOMT1` lines are COUNTED here and parsed elsewhere:
+    this function answers "how many transformations", which is all the
+    annotation needs. `_transforms_from_pdb` reads their contents for the
+    builder, and scopes them per biomolecule, which this does not have to.
     """
     assemblies: list[BiologicalAssembly] = []
     current_id = ""
