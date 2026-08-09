@@ -1960,6 +1960,37 @@ explained. The glycan observation was real; the sentence generalising it
 to `_struct_conn` was invented, and it survived review because it sounded
 like a mechanism.
 
+##### The parity sweep: 0 of 48 before, 38 of 48 after
+
+The single number that says what the three fixes together bought. For
+each catalogue receptor, prepare the PDBQT from BOTH formats through the
+real `_convert_receptor_to_pdbqt` (altlocs, elements, symmetry copies,
+strips, implicit H, protonation, rigid write) and compare the AutoDock
+type histogram -- which is what Vina scores against, so it subsumes every
+individual fix:
+
+    before (190e552)   identical 0 of 48    e.g. 4DKL 4,120 vs 3,496
+                       aromatic carbon `A` present in PDB, ZERO in mmCIF
+                       on every entry; 6JP5 differed by 3,966 atoms
+    after              identical 38 of 48
+
+**The 10 that still differ do so ONLY in `HD`/`N`/`NA`** -- polar
+hydrogens and nitrogen typing. No heavy-atom element differs anywhere in
+the catalogue any more, which is the element fix being complete.
+
+The residue is a genuine Open Babel perception difference and is NOT
+fixed: on 4M48 the two formats hold the same 7,488 atoms and the same
+1,186 nitrogens with identical explicit degrees, yet assign 641 implicit
+hydrogens to nitrogen from PDB and 955 from mmCIF, with 9 bonds and the
+residue grouping (998 residues against 969) differing underneath. Which
+arm is right is not established -- for a ~900-residue protein the mmCIF
+figure is the more plausible of the two, which is worth knowing before
+anyone "fixes" it toward the PDB answer.
+
+Run it with `benchmarks/`-style throwaway harnesses; there is no
+committed script, because it needs all 49 deposits in both formats and
+the catalogue cache holds only one.
+
 ##### A mutation that ADDS a call is not a mutation that MOVES it
 
 The "assign hydrogens before the strips" arm reported a confident
