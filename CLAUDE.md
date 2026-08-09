@@ -1662,6 +1662,38 @@ outcome here, not a failure.
 Comments explain **why**, especially where something is non-obvious or was got
 wrong once. A comment restating the code is noise.
 
+### A docking A/B needs a pinned seed AND its own noise floor
+
+`VinaDockingProvider` passes `seed=None`, so the shipped app runs Vina
+with a **random seed** and two runs of the same receptor already differ.
+Any A/B on a receptor change is measuring the search wandering until the
+seed is pinned -- and pinning alone is still not enough, because changing
+the receptor changes the pdbqt and so the search trajectory even at a
+fixed seed. **Measure the same-receptor spread as the control's control**
+or there is no scale to read the difference against.
+
+Both halves, on 4DKL with the same box:
+
+    pinned seed, deposited vs built    dRMSD 0.33-0.54 A
+    unpinned, same receptor twice      dRMSD 0.24-0.41 A
+
+Those overlap, which is the finding: building the dimer does not move a
+pose whose pocket is inside the monomer. Reported as overlapping rather
+than as "identical" -- at n=3 and n=2 there is nothing else to claim.
+
+The contrast case is what proves the measurement can detect anything at
+all. HIV-1 protease (1HHP) deposits one chain and annotates a dimer, and
+its site sits ON the 2-fold with one catalytic aspartate from each chain:
+monomer vs dimer moves the pose **2.6-9.1 A** and scores 0.9-1.3 kcal/mol
+better on every seed. **A control that cannot fail is not a control**, so
+run the case where the answer must change alongside the case where it
+must not.
+
+To pin the seed without bypassing the code under test, wrap
+`ExecutableVinaEngine.dock` and inject it. Note the provider calls that
+method **by keyword**, so a positional wrapper raises `unexpected keyword
+argument 'seed'` -- accept `**kwargs`.
+
 ### A whole CORPUS can be degenerate, and then size proves nothing
 
 Same family as the bimodal threshold below, one level up: it is not only

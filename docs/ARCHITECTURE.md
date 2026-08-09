@@ -650,6 +650,29 @@ document may cite a file or a test that does not exist.
   and then checks the declaration against the real matrix rather than
   trusting the flag.
 
+  **Docked for real, both directions, against a live Vina 1.2.7.** The
+  control and the demonstration are separate structures and they separate
+  by an order of magnitude:
+
+      4DKL, pocket INSIDE the monomer, same box
+          deposited vs built   dRMSD 0.33-0.54 A   dScore 0.008-0.014
+          same receptor twice  dRMSD 0.24-0.41 A   dScore 0.005-0.008
+
+      1HHP, HIV-1 protease, site ON the dimer 2-fold, same box
+          monomer vs dimer     dRMSD 2.64-9.10 A   dimer better by
+                                                   0.92-1.33 kcal/mol
+
+  So building moves 4DKL's pose no more than the search moves against
+  itself, and changes 1HHP's binding mode outright while scoring better
+  on every seed. 1HHP deposits ONE chain and annotates a dimer, and its
+  two catalytic Asp25 come out 5.36 A apart in a clean 2-fold once built,
+  which is a check on the build as well as the docking.
+
+  **The seed has to be pinned for any of that to mean anything** --
+  `VinaDockingProvider` passes `seed=None`, so the shipped app runs a
+  random seed and the same receptor already differs run to run. The
+  unpinned spread above is what makes the pinned numbers readable.
+
   Still open: **building from mmCIF** (PDB refuses assemblies its
   single-character chain id or 99,999-serial limit cannot express, mmCIF
   is exactly the format for those, and it is also the only way to remove
