@@ -227,36 +227,124 @@ def test_a_short_value_still_shares_its_row_with_its_label(qapp):
         _dispose(panel, qapp)
 
 
-def test_the_form_layout_wraps_long_rows_only(qapp):
-    """Both halves of the mechanism, asserted where they live.
+def test_no_layout_in_a_section_offers_a_height_for_width(qapp):
+    """The mechanism that makes long values work, asserted where it lives.
 
-    Neither works alone: the policy without a minimum width never
-    triggers (Qt wraps when the FIELD's minimum will not fit beside the
-    label), and a minimum width without the policy just forces the panel
-    wider.
+    **A vertical `QBoxLayout` OVERWRITES a height-for-width item's minimum
+    with its `heightForWidth` before distributing space.** One such widget
+    anywhere inside a section makes every ancestor layout height-for-width
+    carrying, and from there no minimum stated anywhere can win: measured
+    in the running app, a section asked for 225 px and was given 113 while
+    its own layout item reported `minSize=225 hfw=75`. Its report row got
+    14 px of the 144 it needed, and an unrelated `formula` row in the same
+    section dropped from 16 px to 14 -- the tell that the field was never
+    the problem.
+
+    Eight fixes were designed against the field before this was measured.
+    This test is the guard on the answer, so it checks the whole chain
+    rather than one widget.
+    """
+    panel = _panel_with_a_long_result(qapp, width=280)
+    try:
+        for name, section in panel._sections.items():
+            if section.isHidden() or not section.is_expanded():
+                continue
+            assert not section.content_layout().hasHeightForWidth(), (
+                f"the {name} form offers a height-for-width, so every section "
+                f"above it loses its minimum"
+            )
+            assert not section.content.layout().hasHeightForWidth(), name
+            assert not section.layout().hasHeightForWidth(), name
+    finally:
+        _dispose(panel, qapp)
+
+
+def test_the_wrap_policy_is_the_one_that_can_be_free_of_height_for_width(qapp):
+    """`WrapLongRows` is height-for-width WHATEVER its children are.
+
+    Whether a row wraps depends on the width, so the form's height does
+    too -- which is why the policy itself, not any label, is half of what
+    truncated report rows. Measured across all three:
+
+        policy          hfw items   non-hfw items
+        DontWrapRows    True        False
+        WrapLongRows    True        True     <- unavoidable
+        WrapAllRows     True        False
+
+    `WrapAllRows` is the other safe one and is rejected for a different,
+    measured reason: it moves every short scalar onto two rows, +75%
+    section height, and this panel is mostly short scalars.
     """
     from PySide6.QtWidgets import QFormLayout
-
-    from openchem.ui.panels.property_panel import (
-        _MULTILINE_VALUE_MIN_WIDTH,
-        _PANEL_MIN_WIDTH,
-    )
 
     section = CollapsibleSection("Test", expanded=True)
     try:
         assert (
             section.content_layout().rowWrapPolicy()
-            == QFormLayout.RowWrapPolicy.WrapLongRows
+            == QFormLayout.RowWrapPolicy.DontWrapRows
         )
     finally:
         section.deleteLater()
 
-    # THE THIRD HALF, and the one the first attempt got wrong. A minimum
-    # on the value is a minimum on the CONTENT, so if the panel can be
-    # narrower than the value demands, it scrolls SIDEWAYS instead of
-    # wrapping -- measured as a horizontal scrollbar at every width below
-    # 360 px. The panel's own minimum has to cover the value's.
-    assert 0 < _MULTILINE_VALUE_MIN_WIDTH <= _PANEL_MIN_WIDTH
+
+def test_a_long_value_is_added_as_a_spanning_row(qapp):
+    """The full width comes from a SPANNING row now, not from the wrap
+    policy -- so it must actually be one.
+
+    The old mechanism forced the field's minimum wide enough that Qt had
+    to wrap the row. That minimum was also a minimum on the CONTENT, so
+    below ~360 px the panel scrolled sideways instead of wrapping. Asking
+    for a spanning row says the same thing with nothing forced wide, and
+    `test_the_panel_never_scrolls_sideways` is what holds that gain.
+    """
+    from PySide6.QtWidgets import QFormLayout
+
+    panel = _panel_with_a_long_result(qapp, width=280)
+    try:
+        long_value = next(iter(panel._alert_labels.values()))
+        form = None
+        for section in panel._sections.values():
+            if long_value in section.content.findChildren(type(long_value)):
+                form = section.content_layout()
+                break
+        assert form is not None, "the long value is not in any section"
+        spanning = [
+            form.itemAt(row, QFormLayout.ItemRole.SpanningRole)
+            for row in range(form.rowCount())
+        ]
+        holders = [item.widget() for item in spanning if item is not None]
+        assert any(long_value in holder.findChildren(type(long_value)) for holder in holders), (
+            "the long value is not in a spanning row, so it only has the "
+            "field column's width"
+        )
+    finally:
+        _dispose(panel, qapp)
+
+
+def test_an_explicit_height_label_never_offers_a_height_for_width_after_setText(qapp):
+    """The trap that made a half-applied fix WORSE than none.
+
+    `QLabelPrivate::updateLabel()` re-derives the size policy's
+    height-for-width flag from the word-wrap flag on every label update,
+    so clearing it in `__init__` is silently undone by the first
+    `setText`. Measured when this was got wrong: the label held a correct
+    fixed height while the chain stayed height-for-width carrying, the
+    section collapsed to 75 px and its rows were crushed to 3 px each,
+    against 14 before.
+    """
+    from openchem.ui.widgets.collapsible_section import ExplicitHeightLabel
+
+    label = ExplicitHeightLabel("")
+    try:
+        assert not label.sizePolicy().hasHeightForWidth()
+        label.setText("a value\nwith several\nlines in it")
+        assert not label.sizePolicy().hasHeightForWidth(), (
+            "setText put the height-for-width flag back -- see "
+            "ExplicitHeightLabel._stop_offering_height_for_width"
+        )
+        assert not label.hasHeightForWidth()
+    finally:
+        label.deleteLater()
 
 
 def test_the_panel_never_scrolls_sideways(qapp):

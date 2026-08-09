@@ -753,8 +753,7 @@ document may cite a file or a test that does not exist.
   a sweep over every calculator, which is why
   `test_no_calculator_provenance_key_collides_with_the_routing_layer`
   iterates the whole registry rather than the names anybody noticed.
-- **OPEN (partly fixed)** -- the Properties panel CLIPS long result
-  values. **There is no height clipping**: `WrappedLabel` already closed
+- **SETTLED** -- the Properties panel CLIPPED long result values. **There is no height clipping**: `WrappedLabel` already closed
   that, and a font-metrics probe (self-tested, so it can see a clip)
   finds none at any width. What the panel actually did was STARVE the
   value -- the label column sizes to the widest label, so at the 170 px
@@ -772,8 +771,39 @@ document may cite a file or a test that does not exist.
         value>=140, no panel min   10L    6L   10L    6L
         value>=200, panel>=280      6L    6L    6L    6L
 
-  **STILL OPEN: a REPORT row truncates. FOUR FIXES AND TWO DIAGNOSES
-  HAVE BEEN WRONG. Read all of this before touching it.**
+  **THE REPORT ROW IS FIXED. It took NINE attempts and three published
+  diagnoses, all of which blamed the field, and the field was never the
+  problem.** The account below is kept in full because every wrong turn
+  in it was expensive and several of them look reasonable.
+
+  **The fix, in three parts, all of which are required:**
+
+  1. `ExplicitHeightLabel` -- a wrapped label that states a fixed height
+     and reports NO height-for-width, used for every long value inside a
+     `CollapsibleSection` (property panel alerts, results, reports and
+     hints; `fact_view`'s `_FactRow`, which had the identical latent
+     bug).
+  2. `DontWrapRows` on the section's form, because `WrapLongRows` is
+     height-for-width whatever its children are.
+  3. `PropertyPanel._add_wide_row` -- a genuine spanning row, which is
+     what gives a long value the full width now that the wrap policy no
+     longer does. It also removed the minimum-width hack, and with it the
+     sideways scroll that hack caused.
+
+  Measured in the running app, Identity section with one report row,
+  panel at 280 px:
+
+        level                  before        after
+        report row container   14 of 144     172 ok
+        section content        94 of 206     249 ok
+        CollapsibleSection    113 of 225     268 ok
+        the value's WIDTH      152 px        238 px  (full width)
+
+  Verified on screen as well as in the numbers: six lines, nothing
+  truncated, the Naming section below it rather than through it. Suite
+  3504 passed.
+
+  **The old account follows. Read it before touching this again.**
 
   Measured IN THE RUNNING APP with `OPENCHEM_INSTRUMENT_PANEL=1`
   (`property_panel._dump_panel_metrics`), which is the only measurement
@@ -784,26 +814,170 @@ document may cite a file or a test that does not exist.
             inside -> QLabel        152      14        96       112    True  112
         mol_wt -> QLabel            173      16        16        16   False   -1
 
-  **The container asks for 144 px of height and is GIVEN 14.** It
-  reports `hasHeightForWidth` True and `minimumSizeHint` 144 perfectly
-  well, and `QFormLayout` ignores it -- while honouring every plain
-  descriptor row's `sizeHint` exactly. That is the open question: why
-  does this one field get 14 px when it asks for 144?
+  **THE STARVATION IS AT THE SECTION, NOT THE FIELD.** Every number in
+  that table is correct and none of it is the bug. One level up:
 
-  The label inside is also 152 px against an alert's ~218, because the
-  button takes the rest. Real, but SECONDARY: at 14 px nothing renders
-  whatever the width.
+        section          height  minSizeH  content h  content m  form min
+        identity            113       225         94        206       166
+        physicochemical     109       109         90         90        82
 
-  **Two diagnoses were published in this file and both were wrong.**
-  First "the height-for-width chain does not survive the container" --
-  it survives, the container reports correctly. Then "the cause is
-  width, not height" -- that came from an out-of-app harness and the app
-  contradicts it. Four fixes were designed against those two claims and
-  none worked: delegating height-for-width from the container, removing
-  the container with the button on its own row (rows overlapped),
-  carrying "Details..." as a link in rich text, and moving the button
-  into the label column (harness showed full parity with an alert row;
-  the app still truncated).
+  The Identity section is given 113 px while asking 225, its content 94
+  of the 206 it asks for, and the form then shares that shortfall out
+  among its rows. `form min` 166 is exactly right -- `formula` 16 +
+  report row 144 + spacing 6 -- and is simply not honoured.
+
+  **The tell had been sitting in the log for a session.** In the dump
+  taken BEFORE the report row exists, `formula` is 16 px tall; in the one
+  after, it is 14. Nothing about a report row can shorten an unrelated
+  scalar row -- only a container short of space can, by shrinking
+  everything inside it. Compare the two dumps before theorising about the
+  field.
+
+  **The mechanism: a vertical `QBoxLayout` holding a height-for-width
+  item uses that item's `heightForWidth` IN PLACE OF its minimum**, and
+  one `WrappedLabel` anywhere inside makes every ancestor layout
+  height-for-width carrying. Asked directly, the container's own layout
+  item says so:
+
+        item CollapsibleSection  geom_h=113  minSize=225  hfw=75
+
+  225 is right and unused. 75 is the height the section needed BEFORE the
+  report row's text arrived. `physicochemical` is fine for the reason
+  this predicts -- it holds only plain labels, so its minimum and its
+  `heightForWidth` agree at 109 and there is nothing to substitute.
+
+  **THREE DIAGNOSES HAVE BEEN PUBLISHED HERE AND ALL THREE WERE WRONG.**
+  First "the height-for-width chain does not survive the container" -- it
+  survives. Then "the cause is width, not height" -- that came from an
+  out-of-app harness and the app contradicts it. Then "`QFormLayout`
+  ignores the field's minimum" -- it does not; the form never had the
+  space to give.
+
+  **Six fixes, each falsified by measurement rather than by argument:**
+
+  1. Delegating height-for-width from the container. No change.
+  2. Removing the container, button on its own row. Rows overlapped.
+  3. "Details..." as a link in rich text. Still one line.
+  4. Moving the button into the label column. The harness showed full
+     parity with an alert row; the app still truncated.
+  5. `heightForWidth` on `CollapsibleSection`. Never consulted --
+     `QWidgetItem.heightForWidth` routes through the widget's LAYOUT and
+     only falls back to the widget's own virtual when it has none.
+     Measured: the item answered 75 while the widget answered 215.
+  6. `heightForWidth` on the section's layout, floored at
+     `minimumSize()`. It IS consulted, and it cannot help. Traced at the
+     deciding call: `natural=75 floor=75`. The layout's cached geometry
+     is stale during the pass that assigns the height and fresh
+     immediately afterwards, so a floor read from it is stale in exactly
+     the same way.
+
+  **A relayout is NOT the answer, and this was tested properly.**
+  Invalidating every layout in the panel, pumping the queue to
+  completion and calling `activate()` on each leaves the section at 113.
+  An earlier version of that probe pumped `processEvents()` once, which
+  cannot tell "the relayout does not help" from "the relayout never
+  finished" -- do not accept a single pump as an arm.
+
+  **ONE LEVER WORKS AND IT IS NOT SUFFICIENT.** An explicit
+  `setMinimumHeight` on the section survives the substitution, and fixes
+  every number: section 225/225, report row 14 px -> 112, `formula`
+  14 -> 16. But the parent layout still positions the SIBLINGS from the
+  stale 75, so the section paints straight over the Naming, Charge and
+  LogP headers below it. Confirmed by forcing a repaint and
+  re-screenshotting -- it is a real overlap, not stale paint, and it is
+  the same failure mode as fix 2 above. An overlap is worse than a
+  truncation, so this was reverted rather than shipped.
+
+  Two further fixes were built on that lever and BOTH still overlap:
+
+  7. explicit minimum + `parent.layout().invalidate()`;
+  8. the same plus an immediate `parent.layout().activate()`.
+
+  **SO THE MINIMUM CAN NEVER WIN, AND THAT IS THE ANSWER TO "WHY IS THE
+  HEIGHT-FOR-WIDTH STALE".** `QBoxLayout::setGeometry` assigns
+  `a[i].sizeHint = a[i].minimumSize = item->heightForWidth(width)` for
+  every height-for-width item before it distributes space. The minimum is
+  not consulted, ignored or lost -- it is OVERWRITTEN. An explicit
+  `minimumHeight` changes the widget's own size (which is why the rows
+  render) without changing its ALLOCATION, and a widget larger than its
+  allocation is exactly an overlap. No amount of invalidating,
+  activating or re-pumping changes that, because nothing there is stale
+  in the sense that a refresh would fix.
+
+  **`physicochemical` is the control that proves it.** It holds only
+  plain labels, so nothing in it is height-for-width, no substitution
+  happens, its minimum is used, and it has never once misrendered.
+
+  So a fix has to make `heightForWidth` itself correct at the moment the
+  parent lays out, or take the report row out of the height-for-width
+  chain so the section behaves like `physicochemical`. The root of the
+  inconsistency is that **`WrappedLabel.minimumSizeHint()` computes a
+  height from `self.width()` -- a layout OUTPUT used as a layout INPUT**,
+  so every cached minimum in the chain is a function of whatever width a
+  previous pass happened to assign. It is wrong in both directions at
+  once, measured in the same dump: at the ROW, `minSizeH` 144 is the
+  stale one and `hfw` 112 is right (112 is what the row rendered at when
+  it worked); at the SECTION, `minSize` 225 is right and `hfw` 75 is
+  stale.
+
+  **THE CAUSE IS NOW PROVEN, BY REMOVING IT.** That candidate was built
+  -- `ExplicitHeightLabel`, a wrapped label that states a fixed height
+  and clears its height-for-width flag -- and it was not enough on its
+  own, because **`QFormLayout`'s `WrapLongRows` policy makes the FORM
+  height-for-width carrying whatever its children are.** Whether a row
+  wraps depends on the width, so the form's height does too. With both
+  the label and that policy changed, nothing in the chain offers a
+  height-for-width, and every level comes right at once:
+
+        level                 with WrapLongRows      without
+        report row container    3 of 144 px          144 ok
+        section content        56 of 206             206 ok
+        CollapsibleSection     75 of 225             225 ok
+        sections container    990 ok                 990 ok
+
+  Confirmed on screen as well as in the numbers: the value renders in
+  full and the Naming section sits below it rather than through it.
+
+  **IT IS NOT SHIPPED, AND THE REASON IS A TRADE ALEX SHOULD MAKE.**
+  Turning off `WrapLongRows` takes the full-width treatment away from
+  every long value in the panel -- Elemental Analysis renders in 9 lines
+  where 6 would fit -- and it fails five guards in
+  `tests/test_property_panel_long_values.py`, one of them substantively:
+  at 170 px the panel scrolls SIDEWAYS, which this file already calls
+  worse than the wrapping it replaced. So it swaps one documented
+  behaviour for another rather than fixing both.
+
+  Three options were weighed and the third was built -- it is the one
+  described at the top of this entry. The other two are recorded because
+  each is a trap that looks like a fix:
+
+  1. Leave it. Long values get the full width; report rows truncate.
+  2. `ExplicitHeightLabel` + `DontWrapRows` ALONE. Nothing truncates, and
+     long values lose the full width because nothing replaces the wrap --
+     they render in 9 lines where 6 fit, and the panel scrolls sideways
+     below ~200 px. Five guards fail. This is option 3 with its third
+     part missing, and it is why `_add_wide_row` exists.
+
+  **A `WrappedLabel` ANYWHERE in a section puts the height-for-width
+  back and the substitution with it**, so the migration had to include
+  alert rows, result rows, the hint labels and `fact_view`'s `_FactRow`.
+  Half a migration leaves any section that mixes the two broken exactly
+  as before. `test_no_layout_in_a_section_offers_a_height_for_width`
+  walks every expanded section's three layers and is the guard on that;
+  it fails if a `WrappedLabel` comes back.
+
+  One Qt fact worth keeping regardless, which cost a run on its own:
+  **`QLabelPrivate::updateLabel()` re-derives the size policy's
+  height-for-width flag from the word-wrap flag on every label update**,
+  so clearing it in `__init__` is undone by the first `setText`:
+
+        after __init__ sequence   False
+        after setText             True
+
+  Clearing it once made things WORSE than not trying -- the label held a
+  correct fixed height while the chain stayed height-for-width carrying,
+  so the section collapsed to 75 px and crushed its rows to 3 px each,
+  against 14 before.
 
   **DO NOT TRUST AN OUT-OF-APP HARNESS FOR THIS PANEL.** It said there
   was no clipping while the app clipped, no horizontal scrollbar while
@@ -830,6 +1004,28 @@ document may cite a file or a test that does not exist.
   repeated: it compared each label's `height()` against its own
   `minimumSizeHint()`, which `WrappedLabel` computes FROM its width, so
   an under-reporting hint passes while the text is cut off.
+
+  Four more traps paid for while measuring this, all general:
+
+  - **ASK THE LAYOUT ITEM, NOT THE WIDGET.** A layout consults
+    `QLayoutItem`, and the two disagree here: the item answered
+    `heightForWidth` 75 where the widget answered 215. Every recorded
+    measurement before this one printed the widget's numbers, which is
+    why the field looked guilty for three diagnoses running.
+  - **An unparented widget is a WINDOW, so `QWidgetItem` treats it as
+    empty** and answers `hasHeightForWidth() == False` and
+    `heightForWidth() == -1` whatever the widget overrides. One probe
+    "proved" the virtual is never called purely because of this. Parent
+    the widget before asking a layout question about it.
+  - **`awk`-ing the log for "the second dump" reads across SESSIONS.**
+    The log is append-only and holds every run, so a naive filter
+    silently mixed a fixed session with an old broken one and produced
+    one wrong verdict about a fix. Cut from the last
+    `session started` banner every time.
+  - **A screenshot is not a repaint.** The first look at the working
+    lever showed text over the sections below it, which could equally
+    have been stale paint. Scrolling the panel and re-capturing is what
+    made it a finding.
 
   The Details buttons are NOT implicated: the app shows one per report
   row, correctly bound, exactly as the code intends.

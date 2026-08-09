@@ -93,6 +93,101 @@ class WrappedLabel(QLabel):
         return QSize(0, self.heightForWidth(width))
 
 
+class ExplicitHeightLabel(QLabel):
+    """A wrapped label that STATES a height instead of offering a
+    height-for-width. Use this for any long value inside a
+    `CollapsibleSection`.
+
+    `WrappedLabel` above is still right for a label sitting directly in a
+    panel, where nothing squeezes it. Inside a section it is actively
+    harmful, and the difference is not stylistic -- it truncated every
+    report row for eight attempted fixes.
+
+    **`QBoxLayout.setGeometry` OVERWRITES a height-for-width item's
+    minimum with its `heightForWidth` before it distributes space.** One
+    height-for-width widget anywhere inside a section makes every
+    ancestor layout height-for-width carrying, and from there no minimum
+    stated anywhere on the chain can win. Measured in the running app,
+    Identity section holding one report row, panel at 280 px:
+
+        item CollapsibleSection  geom_h=113  minSize=225  hfw=75
+
+    225 was right and unused; 75 was the height the section needed before
+    the row's text arrived. The section got 113, its content 94 of the
+    206 it asked for, and the form shared that out -- which is why an
+    unrelated `formula` row dropped from 16 px to 14 at the same moment.
+
+    A `heightForWidth` is an OFFER a layout may recompute and get wrong;
+    a fixed height is a fact. So this label reports no height-for-width
+    at all and keeps its own fixed height correct, on every text change
+    and every resize.
+
+    Proven by removal: with this label AND `DontWrapRows` (see
+    `CollapsibleSection`, whose policy makes the form height-for-width by
+    itself) every level of the chain reports `ok` and the value renders
+    in full.
+    """
+
+    def __init__(self, text: str = "", parent: QWidget | None = None) -> None:
+        super().__init__(text, parent)
+        self.setWordWrap(True)
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        # TOP-aligned because the height is stated rather than negotiated.
+        # A `QLabel` centres vertically by default, so wherever the stated
+        # height exceeds what the text draws -- `heightForWidth` reserves
+        # 144 px for the Elemental Analysis report where the glyphs use
+        # about 96 -- the slack appears as a gap ABOVE the first line,
+        # which reads as a broken row. Top-aligned it becomes trailing
+        # space, which reads as nothing at all.
+        self.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self._match_height_to_text()
+
+    def setText(self, text: str) -> None:  # noqa: N802 - Qt's own casing
+        super().setText(text)
+        self._match_height_to_text()
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 - Qt's own casing
+        """A wrapped label's height depends on the width it was GIVEN, so
+        the only honest moment to recompute is once the layout has
+        assigned one."""
+        super().resizeEvent(event)
+        self._match_height_to_text()
+
+    def _match_height_to_text(self) -> None:
+        self._stop_offering_height_for_width()
+        width = self.width()
+        # Before the first layout pass there is no width to wrap against,
+        # and `heightForWidth` would be answering about nothing.
+        if width <= 0:
+            return
+        wanted = self.heightForWidth(width)
+        # Guarded because `setFixedHeight` triggers another resize; with
+        # the width unchanged the second pass agrees and it settles.
+        if wanted > 0 and wanted != self.minimumHeight():
+            self.setFixedHeight(wanted)
+
+    def _stop_offering_height_for_width(self) -> None:
+        """Clear the size policy's height-for-width flag HERE, not in
+        `__init__`.
+
+        **`QLabelPrivate::updateLabel()` re-derives that flag from the
+        word-wrap flag on every label update**, so a policy set once at
+        construction is silently undone by the first `setText`:
+
+            after __init__ sequence   False
+            after setText             True
+
+        Clearing it only once made things WORSE than not trying at all --
+        the label held a correct fixed height while the chain stayed
+        height-for-width carrying, so the section collapsed to 75 px and
+        crushed its rows to 3 px each, against 14 before.
+        """
+        policy = self.sizePolicy()
+        if policy.hasHeightForWidth():
+            policy.setHeightForWidth(False)
+            self.setSizePolicy(policy)
+
+
 class CollapsibleSection(QWidget):
     """A titled section that shows/hides its content on click — no native
     Qt widget does this, so a `QToolButton` (checkable, arrow icon) plus a
@@ -125,24 +220,25 @@ class CollapsibleSection(QWidget):
         self._calculators_layout = QVBoxLayout()
         content_layout.addLayout(self._calculators_layout)
         self._content_layout = QFormLayout()
-        # A LONG VALUE GETS THE FULL WIDTH; a short one still shares its
-        # row with its label. Qt wraps a row when the field's minimum will
-        # not fit beside the label, so this does nothing on its own -- it
-        # is half of a mechanism whose other half is the minimum width
-        # `PropertyPanel` puts on multi-line values.
+        # **`WrapLongRows` IS HEIGHT-FOR-WIDTH WHATEVER ITS CHILDREN ARE**,
+        # and that is what truncated report rows through eight attempted
+        # fixes. Whether a row wraps depends on the width, so the form's
+        # height does too, and every section above it then inherits the
+        # substitution described in `ExplicitHeightLabel`. Measured:
         #
-        # WHY NOT `WrapAllRows`, which needs no second half: it wraps
-        # EVERY row, and this panel is mostly short scalars. Measured on a
-        # realistic section (ten scalars plus one six-line report), at a
-        # 240 px panel:
+        #     policy          form hfw with     form hfw with
+        #                     hfw items         non-hfw items
+        #     DontWrapRows    True              False
+        #     WrapLongRows    True              True     <- unavoidable
+        #     WrapAllRows     True              False
         #
-        #     policy                        long value   section height
-        #     DontWrapRows (was shipped)     22 lines      324 px
-        #     WrapAllRows                     6 lines      566 px  (+75%)
-        #     WrapLongRows + minimum width    6 lines      324 px
-        #
-        # Six lines is the right answer -- the value has six lines in it.
-        self._content_layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        # So the wrap policy cannot be the thing that gives a long value
+        # the full width. `PropertyPanel._add_wide_row` does it instead,
+        # with a genuine spanning row -- explicit, and free of any
+        # width-dependent height. `WrapAllRows` is the other non-hfw
+        # option and is still wrong for this panel: it moves EVERY short
+        # scalar onto two rows, measured at +75% section height.
+        self._content_layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.DontWrapRows)
         content_layout.addLayout(self._content_layout)
 
         layout = QVBoxLayout(self)

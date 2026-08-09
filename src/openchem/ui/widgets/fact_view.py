@@ -58,7 +58,11 @@ from openchem.domain.report import (
     Fact,
     FactLink,
 )
-from openchem.ui.widgets.collapsible_section import CollapsibleSection, WrappedLabel
+from openchem.ui.widgets.collapsible_section import (
+    CollapsibleSection,
+    ExplicitHeightLabel,
+    WrappedLabel,
+)
 
 COPY_FORMATS = ("Markdown", "Plain text", "JSON", "CSV")
 
@@ -69,7 +73,7 @@ _FACT_PROPERTY = "openchem_fact"
 _LINK_PROPERTY = "fact_link"
 
 
-class _FactRow(WrappedLabel):
+class _FactRow(ExplicitHeightLabel):
     """A fact's value, which reports when the pointer is over it.
 
     A `QLabel` subclass rather than an event filter on each row: the

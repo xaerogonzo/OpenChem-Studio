@@ -54,6 +54,7 @@ from openchem.ui.dialogs.calculator_settings_dialog import CalculatorSettingsDia
 from openchem.ui.dialogs.nmr_view_dialog import NmrViewDialog
 from openchem.ui.widgets.substance_card import SubstanceCard, card_data_from_report
 from openchem.ui.widgets.collapsible_section import CollapsibleSection as _CollapsibleSection
+from openchem.ui.widgets.collapsible_section import ExplicitHeightLabel as _ExplicitHeightLabel
 from openchem.ui.widgets.collapsible_section import WrappedLabel as _WrappedLabel
 from openchem.ui.widgets.fact_view import FactView
 
@@ -307,36 +308,10 @@ _INSTRUMENT_DELAY_MS = 1500
 
 _REPORT_ID_PROPERTY = "openchem_report_id"
 
-#: Pixels a MULTI-LINE value asks for before the layout is allowed to
-#: squeeze it. The other half of `CollapsibleSection`'s `WrapLongRows`:
-#: Qt wraps a row when the field's minimum will not fit beside its label,
-#: so without a minimum nothing ever wraps, and with one only the long
-#: values do.
-#:
-#: WHAT IT IS FOR. This panel is a narrow side dock, and the field column
-#: is what is left after the label column takes the widest label in the
-#: section. Measured with the panel at 170 px -- the width the running
-#: app gave it -- a six-line Geometry result rendered as 33 lines, and
-#: for a REPORT row the field column also holds an 80 px "Details..."
-#: button, leaving about 22 px for the text: a one-word-per-line ribbon
-#: with the button itself cut off.
-#:
-#: 200 rather than a rounder number, from the real distribution: 112
-#: result lines across the 15 calculators that produce them, measured at
-#: the app's own font.
-#:
-#:     median 130 px | 75th 230 | 90th 718 | max 2083
-#:
-#:     minimum   lines that fit on one line
-#:       160 px            62%
-#:       180 px            67%
-#:       200 px            75%
-#:       260 px            79%
-#:
-#: 200 is where the return stops: the remaining quarter are prose
-#: sentences (caveats, coverage notes) that SHOULD wrap, and chasing them
-#: would push every panel wider for no gain.
-_MULTILINE_VALUE_MIN_WIDTH = 200
+#: How a wide row's name is drawn, now that it is a caption above its
+#: value rather than a `QFormLayout` label beside it. Muted and small so
+#: the value stays the thing being read.
+_WIDE_ROW_CAPTION_STYLE = "color: #555; font-size: 11px;"
 
 #: The panel refuses to be narrower than this.
 #:
@@ -383,6 +358,186 @@ _MULTILINE_VALUE_MIN_WIDTH = 200
 _PANEL_MIN_WIDTH = 280
 
 
+def _starved(widget: QWidget) -> str:
+    """`STARVED` when a widget is shorter than the minimum it asks for.
+
+    A layout given less than its minimum does not refuse: it shrinks its
+    items anyway, so a starved ANCESTOR is what makes a field 14 px tall
+    while that field's own numbers all look correct. Naming the level the
+    shortfall first appears at is the whole point of the ancestor walk.
+    """
+    return "STARVED" if widget.height() < widget.minimumSizeHint().height() else "ok"
+
+
+def _dump_height_budget(panel: QWidget) -> None:
+    """Walk out from each section to the panel, printing who is starved.
+
+    WHY THIS AND NOT MORE FIELD COLUMNS. The recorded measurements all
+    describe the field -- it asks for 144 px and is given 14 -- and four
+    fixes were designed around that field. But the same run shows a plain
+    `formula` row dropping from 16 px to 14 the moment the report row is
+    added, and nothing about a report row can make an unrelated scalar
+    shorter. Only a container short of space can, by shrinking everything
+    in it. This finds that container.
+    """
+    from PySide6.QtWidgets import QScrollArea
+
+    scroll = panel.findChild(QScrollArea)
+    if scroll is not None:
+        content = scroll.widget()
+        logger.warning(
+            "scroll: viewport %dx%d | content %dx%d minSizeH %d %s | widgetResizable %s",
+            scroll.viewport().width(),
+            scroll.viewport().height(),
+            content.width(),
+            content.height(),
+            content.minimumSizeHint().height(),
+            _starved(content),
+            scroll.widgetResizable(),
+        )
+    logger.warning(
+        "%-24s %-8s %-8s %-9s %-9s %-9s %-8s",
+        "section", "height", "minSizeH", "content h", "content m", "form min", "verdict",
+    )
+    for category, section in getattr(panel, "_sections", {}).items():
+        if section.isHidden() or not section.is_expanded():
+            continue
+        form = section.content_layout()
+        logger.warning(
+            "%-24s %-8d %-8d %-9d %-9d %-9d %-8s",
+            category[:24],
+            section.height(),
+            section.minimumSizeHint().height(),
+            section.content.height(),
+            section.content.minimumSizeHint().height(),
+            form.minimumSize().height(),
+            _starved(section.content),
+        )
+
+
+def _force_relayout(panel: QWidget) -> None:
+    """Invalidate every layout in the panel and let them re-run.
+
+    THE ARM THAT TELLS TWO CAUSES APART. The section is 113 px tall while
+    asking 225, and there are only two ways that happens: the layout ran
+    against minimums that were smaller AT THE TIME and nothing re-ran it,
+    or something is capping the height and a re-run changes nothing. This
+    destroys nothing and moves nothing permanently -- it only re-asks.
+    """
+    from PySide6.QtWidgets import QApplication
+
+    for child in panel.findChildren(QWidget):
+        layout = child.layout()
+        if layout is not None:
+            layout.invalidate()
+    if panel.layout() is not None:
+        panel.layout().invalidate()
+    # THREE ROUNDS, NOT ONE. `invalidate()` POSTS a LayoutRequest rather
+    # than laying out, delivering it can post more, and the first version
+    # of this probe pumped once -- which cannot tell "the relayout does
+    # not help" from "the relayout never finished".
+    for _ in range(3):
+        QApplication.sendPostedEvents()
+        QApplication.processEvents()
+    for child in panel.findChildren(QWidget):
+        layout = child.layout()
+        if layout is not None:
+            layout.activate()
+    QApplication.processEvents()
+
+
+def _force_section_minimums(panel: QWidget) -> None:
+    """Pin every starved section to the height it asks for.
+
+    Not a candidate fix -- a control. If the rows render at their full
+    height once the section is simply given the height it already asks
+    for, then every number in the chain is right and only the geometry is
+    wrong. If they still do not, the minimum is not what is being ignored
+    and no amount of relayout would have helped.
+    """
+    from PySide6.QtWidgets import QApplication
+
+    for section in getattr(panel, "_sections", {}).values():
+        if section.isHidden() or not section.is_expanded():
+            continue
+        wanted = section.minimumSizeHint().height()
+        if section.height() < wanted:
+            section.setMinimumHeight(wanted)
+    QApplication.processEvents()
+
+
+def _dump_ancestors(field: QWidget, panel: QWidget) -> None:
+    """From one field up to the panel: height against the height asked for.
+
+    Each level also reports what its own LAYOUT would answer, because a
+    vertical `QBoxLayout` holding a height-for-width item does not use
+    that item's minimum -- it substitutes `heightForWidth`. Printing
+    `totalMinimumSize` beside `totalHeightForWidth` is what makes that
+    substitution visible instead of inferred.
+    """
+    logger.warning("ancestors of the report row's field:")
+    widget: QWidget | None = field
+    while widget is not None:
+        layout = widget.layout()
+        if layout is None:
+            extra = "no layout"
+        else:
+            extra = "layout: hfw=%s totalMin=%d totalHint=%d totalHfw=%s" % (
+                layout.hasHeightForWidth(),
+                layout.totalMinimumSize().height(),
+                layout.totalSizeHint().height(),
+                layout.totalHeightForWidth(widget.width()) if layout.hasHeightForWidth() else "-",
+            )
+        logger.warning(
+            "    %-20s h=%-5d minSizeH=%-5d sizeHint=%-5d maxH=%-9d hfw=%-5s %-8s | %s",
+            type(widget).__name__[:20],
+            widget.height(),
+            widget.minimumSizeHint().height(),
+            widget.sizeHint().height(),
+            widget.maximumHeight(),
+            widget.heightForWidth(widget.width()) if widget.hasHeightForWidth() else "-",
+            _starved(widget),
+            extra,
+        )
+        if widget is panel:
+            break
+        widget = widget.parentWidget()
+
+
+def _dump_container_items(panel: QWidget) -> None:
+    """What the sections container's own layout thinks each section needs.
+
+    The container is 990 px tall and asks for 990, so by its own numbers
+    it has room to give every section its minimum -- and one section is
+    given half. A layout consults the ITEM, so the item is what has to be
+    asked.
+    """
+    container = getattr(panel, "_sections_container", None)
+    layout = container.layout() if container is not None else None
+    if layout is None:
+        return
+    logger.warning(
+        "sections container: h=%d layout hfw=%s totalMin=%d",
+        container.height(),
+        layout.hasHeightForWidth(),
+        layout.totalMinimumSize().height(),
+    )
+    for index in range(layout.count()):
+        item = layout.itemAt(index)
+        widget = item.widget()
+        if widget is None or widget.isHidden():
+            continue
+        logger.warning(
+            "    item %-18s geom_h=%-5d minSize=%-5d sizeHint=%-5d hfw=%-5s hfw(w)=%s",
+            type(widget).__name__[:18],
+            item.geometry().height(),
+            item.minimumSize().height(),
+            item.sizeHint().height(),
+            item.hasHeightForWidth(),
+            item.heightForWidth(container.width()) if item.hasHeightForWidth() else "-",
+        )
+
+
 def _dump_panel_metrics(panel: QWidget) -> None:
     """Log what every form row's FIELD widget reports about itself.
 
@@ -404,6 +559,11 @@ def _dump_panel_metrics(panel: QWidget) -> None:
         for row in range(form.rowCount()):
             label_item = form.itemAt(row, QFormLayout.ItemRole.LabelRole)
             field_item = form.itemAt(row, QFormLayout.ItemRole.FieldRole)
+            # A wide row occupies SpanningRole and has no field at all,
+            # so a dump that only reads FieldRole silently omits exactly
+            # the rows this instrumentation exists for.
+            if field_item is None:
+                field_item = form.itemAt(row, QFormLayout.ItemRole.SpanningRole)
             if field_item is None:
                 continue
             field = field_item.widget()
@@ -424,6 +584,20 @@ def _dump_panel_metrics(panel: QWidget) -> None:
                 field.heightForWidth(width) if field.hasHeightForWidth() else -1,
                 field.minimumWidth(),
             )
+            # WHAT THE LAYOUT ACTUALLY ASKS. A layout consults the ITEM,
+            # never the widget: `QWidgetItem.hasHeightForWidth` reads the
+            # SIZE POLICY flag, not the `hasHeightForWidth()` override the
+            # line above prints. The two can disagree, and every recorded
+            # measurement of this row so far has printed the widget's.
+            logger.warning(
+                "      item: hfw=%-6s minSize=%-5d sizeHint=%-5d hfw(w)=%-5d | policy hfw=%s v=%s",
+                field_item.hasHeightForWidth(),
+                field_item.minimumSize().height(),
+                field_item.sizeHint().height(),
+                field_item.heightForWidth(width) if field_item.hasHeightForWidth() else -1,
+                field.sizePolicy().hasHeightForWidth(),
+                field.sizePolicy().verticalPolicy().name,
+            )
             # A container hides the widget that actually holds the text.
             for child in field.findChildren(QLabel):
                 logger.warning(
@@ -439,18 +613,38 @@ def _dump_panel_metrics(panel: QWidget) -> None:
                 )
 
 
-def _fit_multiline(field: QWidget, text: str) -> None:
-    """Let a multi-line value claim `_MULTILINE_VALUE_MIN_WIDTH`.
+def _add_wide_row(section, name: str, field: QWidget) -> None:
+    """Add a value that can be long, spanning BOTH form columns.
 
-    Applied to the widget in the form's FIELD column, which for a report
-    row is the container holding the label and its "Details..." button,
-    not the label -- the button is part of what has to fit.
+    This replaces the `WrapLongRows` + minimum-width pair that used to
+    give long values the full width. That mechanism worked by making the
+    field's minimum too wide to sit beside its label, so Qt wrapped the
+    row -- which meant the form's height depended on its width, which
+    made the form height-for-width, which is what truncated report rows
+    (see `ExplicitHeightLabel`). Asking for a spanning row outright says
+    the same thing with no width-dependent height in it.
 
-    A single-line value is left alone deliberately. Giving every field a
-    minimum would wrap the short scalar rows too, which is the
-    `WrapAllRows` behaviour measured at +75% panel height.
+    **It also removes the minimum width, and with it the sideways
+    scroll.** That minimum existed only to TRIGGER the wrap, and a
+    minimum on the value is a minimum on the CONTENT: below about 360 px
+    the panel scrolled horizontally instead of wrapping. Nothing needs
+    to be forced wide now, so nothing can overflow.
+
+    The caption is a plain label with wrapping OFF, deliberately -- a
+    wrapped one would be height-for-width and would put the whole
+    problem back one level down.
     """
-    field.setMinimumWidth(_MULTILINE_VALUE_MIN_WIDTH if "\n" in text else 0)
+    holder = QWidget(section.content)
+    box = QVBoxLayout(holder)
+    box.setContentsMargins(0, 0, 0, 0)
+    box.setSpacing(0)
+    caption = QLabel(name, holder)
+    caption.setWordWrap(False)
+    caption.setStyleSheet(_WIDE_ROW_CAPTION_STYLE)
+    box.addWidget(caption)
+    field.setParent(holder)
+    box.addWidget(field)
+    section.content_layout().addRow(holder)
 
 
 class PropertyPanel(QWidget):
@@ -728,7 +922,7 @@ class PropertyPanel(QWidget):
         # plugin-reduced registry cannot leave a pointer to nowhere.
         if not self._calculator_registry.by_category(other):
             return
-        hint = _WrappedLabel(message, section.content)
+        hint = _ExplicitHeightLabel(message, section.content)
         hint.setStyleSheet("color: #666666; font-style: italic;")
         section.add_calculator_widget(hint)
 
@@ -766,7 +960,7 @@ class PropertyPanel(QWidget):
         if not ab_initio:
             return
         panel_name = ab_initio[0].execution.panel_name
-        hint = _WrappedLabel(
+        hint = _ExplicitHeightLabel(
             f"Estimate above is empirical (instant). For a real ab initio "
             f"calculation, use the {panel_name}.",
             section.content,
@@ -834,7 +1028,6 @@ class PropertyPanel(QWidget):
         else:
             text, style = _format_value(descriptor.value)
             value_label.setText(text)
-            _fit_multiline(value_label, text)
             value_label.setStyleSheet(style)
             value_label.setToolTip("")
 
@@ -872,9 +1065,9 @@ class PropertyPanel(QWidget):
         section = self._section_for(category or "other")
         label = self._result_labels.get(result_id)
         if label is None:
-            label = _WrappedLabel("", section.content)
+            label = _ExplicitHeightLabel("", section.content)
             _make_copyable(label)
-            section.content_layout().addRow(name, label)
+            _add_wide_row(section, name, label)
             self._result_labels[result_id] = label
         if getattr(result, "cache_state", None) is CacheState.FAILED:
             reason = getattr(result, "error", None) or "Failed"
@@ -884,7 +1077,6 @@ class PropertyPanel(QWidget):
             return
         summary = _summarise(result)
         label.setText(summary)
-        _fit_multiline(label, summary)
         label.setStyleSheet(_INFORMATION_STYLE)
         label.setToolTip("Open the calculator's button above to see the detail.")
 
@@ -911,14 +1103,13 @@ class PropertyPanel(QWidget):
 
         value_label = self._alert_labels.get(row_key)
         if value_label is None:
-            value_label = _WrappedLabel("", section.content)
+            value_label = _ExplicitHeightLabel("", section.content)
             _make_copyable(value_label)
-            section.content_layout().addRow(alert.name, value_label)
+            _add_wide_row(section, alert.name, value_label)
             self._alert_labels[row_key] = value_label
 
         text, style, tooltip = _present_alert(alert)
         value_label.setText(text)
-        _fit_multiline(value_label, text)
         value_label.setStyleSheet(style)
         value_label.setToolTip(tooltip)
         # An unmigrated result is still a report; it just has to be
@@ -1042,50 +1233,61 @@ class PropertyPanel(QWidget):
         the depth filter, evidence, limitations and export come along
         without this panel implementing any of it.
 
-THIS ROW IS THE OPEN HALF OF THE PANEL-CLIPPING FIX,
-        AND THE CAUSE IS WIDTH, NOT HEIGHT. Measured against an alert row
-        holding identical text in the same section, at a 300 px panel:
+        THIS ROW STILL TRUNCATES, AND NOTHING ON THIS ROW IS THE CAUSE.
+        Measured in the running app, the field asks for 144 px of height
+        and is given 14 -- but so is the plain `formula` row above it,
+        which drops from 16 px to 14 the moment this row appears. An
+        unrelated scalar cannot be shortened by a report row; only a
+        container short of space can shorten both.
 
-            widget                  width  minSizeH  hasHfW  hfw
-            alert label (field)       218        96    True   96
-            report field container    218       192    True   96
-            report label INSIDE       132        96    True   96
+        The shortfall is at the SECTION: it is given 113 px while asking
+        225, because a vertical `QBoxLayout` holding a height-for-width
+        item substitutes that item's `heightForWidth` for its minimum,
+        and one `WrappedLabel` inside makes every ancestor layout
+        height-for-width carrying.
 
-        Height-for-width propagates fine -- True everywhere, 96
-        everywhere, container included. The label is simply 132 px wide
-        against the alert's 218, because the QHBoxLayout gives 80 px to
-        the button plus spacing, and 132 cannot hold a line needing 200.
-        The minimum below is on the CONTAINER; the label's own is 0.
+        EIGHT FIXES HAVE BEEN TRIED, four of them against this row, and
+        all eight failed. Do not design a ninth here -- the numbers on
+        this row are correct.
 
-        THREE FIXES WERE TRIED AGAINST THE WRONG CAUSE and all failed --
-        delegating height-for-width from the container (no change),
-        removing the container with the button on its own row (rows
-        overlapped), and carrying "Details..." as a link in rich text
-        (still one line). Do not design a fourth around height. See the
-        Known TODO for the two width-based options and what each costs.
+        THIS ROW TRUNCATED FOR NINE ATTEMPTED FIXES, four of them aimed
+        at this row, whose numbers were correct the whole time.
+        `QBoxLayout.setGeometry` OVERWRITES a height-for-width item's
+        minimum with its `heightForWidth` before distributing space, so
+        no minimum stated anywhere on the chain could win. The fix is to
+        leave the chain with no height-for-width in it at all, which
+        takes all three of `ExplicitHeightLabel`, `DontWrapRows` and
+        `_add_wide_row` -- see `docs/ARCHITECTURE.md`'s Known TODO.
+
+        The value is a `_ExplicitHeightLabel` and NOT a `_WrappedLabel`
+        for that reason, and one `_WrappedLabel` anywhere in this section
+        would put the truncation back.
         """
         existing = self._report_labels.get(report_id)
         if existing is not None:
             return existing
         row = QWidget(section.content)
-        row_layout = QHBoxLayout(row)
+        row_layout = QVBoxLayout(row)
         row_layout.setContentsMargins(0, 0, 0, 0)
-        value = _WrappedLabel("", row)
+        row_layout.setSpacing(2)
+        value = _ExplicitHeightLabel("", row)
         _make_copyable(value)
-        row_layout.addWidget(value, 1)
+        row_layout.addWidget(value)
         details = QPushButton("Details...", row)
         details.setMaximumWidth(80)
         # The payload rides on the button; a lambda capturing self is held
         # STRONGLY by PySide6 and would root this panel for the process.
         details.setProperty(_REPORT_ID_PROPERTY, report_id)
         details.clicked.connect(self._on_details_clicked)
-        row_layout.addWidget(details)
-        section.content_layout().addRow(name, row)
+        # UNDER the value, not beside it. Beside it, the button took 80 px
+        # plus spacing off a field column that was already the narrow half
+        # of a 280 px dock, leaving the text about 22 px -- a
+        # one-word-per-line ribbon. The row spans the full width now, so
+        # the value gets all of it and the button costs a row of its own
+        # rather than two thirds of the line.
+        row_layout.addWidget(details, 0, Qt.AlignmentFlag.AlignRight)
+        _add_wide_row(section, name, row)
         self._report_labels[report_id] = value
-        # NOT `+ details.maximumWidth()`: any row minimum above
-        # `_PANEL_MIN_WIDTH` makes the content wider than the panel can
-        # ever be, and the panel scrolls SIDEWAYS.
-        row.setMinimumWidth(_MULTILINE_VALUE_MIN_WIDTH)
         # Triggered HERE rather than at construction: at startup the
         # panel is empty and every row it could measure does not exist
         # yet. A report row is exactly the case under investigation.
@@ -1102,6 +1304,22 @@ THIS ROW IS THE OPEN HALF OF THE PANEL-CLIPPING FIX,
         """Log this panel's row geometry. Only reachable with
         `OPENCHEM_INSTRUMENT_PANEL` set -- see `_INSTRUMENT`."""
         _dump_panel_metrics(self)
+        _dump_height_budget(self)
+        _dump_container_items(self)
+        for report_id, value in self._report_labels.items():
+            container = value.parentWidget()
+            if container is not None:
+                logger.warning("--- report row %r ---", report_id)
+                _dump_ancestors(container, self)
+        if os.environ.get("OPENCHEM_INSTRUMENT_RELAYOUT"):
+            logger.warning("=== ARM 1: relayout, pumped to completion ===")
+            _force_relayout(self)
+            _dump_panel_metrics(self)
+            _dump_height_budget(self)
+            logger.warning("=== ARM 2: pin starved sections to their own minimum ===")
+            _force_section_minimums(self)
+            _dump_panel_metrics(self)
+            _dump_height_budget(self)
 
     def _on_details_clicked(self, _checked: bool = False) -> None:
         button = self.sender()
