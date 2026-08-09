@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import logging
+import os
 from collections.abc import Callable
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -280,6 +282,29 @@ def _summarise(result: object) -> str:
 #: Qt property carrying which calculator a section button opens.
 _CALCULATOR_ID_PROPERTY = "openchem_calculator_id"
 #: ... and which report a "Details..." button opens.
+logger = logging.getLogger("openchem.ui")
+
+#: Set `OPENCHEM_INSTRUMENT_PANEL=1` to dump this panel's row geometry.
+#:
+#: WHY IT EXISTS IN THE SHIPPED CODE rather than as a scratch script.
+#: The report-row truncation was chased through four fixes and one
+#: instrumentation run, every one of which passed in an out-of-app
+#: harness and failed in the app. The harness said there was no clipping
+#: while the app clipped, no horizontal scrollbar while the app had one,
+#: and a full-width label while the app still truncated. **A harness
+#: nobody uses is not evidence about the panel a user sees**, and the
+#: only way to stop paying for that is to be able to measure inside the
+#: running application.
+#:
+#: Off unless the variable is set, so it costs a single `os.environ`
+#: read at import and nothing at runtime.
+_INSTRUMENT = bool(os.environ.get("OPENCHEM_INSTRUMENT_PANEL"))
+
+#: How long to wait before dumping. The layout needs to settle -- read
+#: too early and you measure a transient mid-relayout state, which has
+#: already produced one false "reproduction" of this bug.
+_INSTRUMENT_DELAY_MS = 1500
+
 _REPORT_ID_PROPERTY = "openchem_report_id"
 
 #: Pixels a MULTI-LINE value asks for before the layout is allowed to
@@ -356,6 +381,62 @@ _MULTILINE_VALUE_MIN_WIDTH = 200
 #: The lesson generalises: a scroll area's VIEWPORT is not its width, and
 #: a harness whose content is too short to scroll measures the wrong one.
 _PANEL_MIN_WIDTH = 280
+
+
+def _dump_panel_metrics(panel: QWidget) -> None:
+    """Log what every form row's FIELD widget reports about itself.
+
+    The columns are the ones that decide whether a wrapped value gets the
+    height and width it needs -- and comparing an ALERT row against a
+    REPORT row holding the same text is the specific comparison the
+    truncation bug needs, so the kind of each row is named.
+    """
+    from PySide6.QtWidgets import QFormLayout
+
+    logger.warning("panel width=%d  (OPENCHEM_INSTRUMENT_PANEL)", panel.width())
+    logger.warning(
+        "%-28s %-7s %-7s %-9s %-9s %-7s %-7s %-9s",
+        "row (label -> field kind)", "width", "height", "sizeHint", "minSizeH",
+        "hasHfW", "hfw(w)", "minWidth",
+    )
+    for category, section in getattr(panel, "_sections", {}).items():
+        form = section.content_layout()
+        for row in range(form.rowCount()):
+            label_item = form.itemAt(row, QFormLayout.ItemRole.LabelRole)
+            field_item = form.itemAt(row, QFormLayout.ItemRole.FieldRole)
+            if field_item is None:
+                continue
+            field = field_item.widget()
+            if field is None or not field.isVisibleTo(panel):
+                continue
+            label = label_item.widget() if label_item is not None else None
+            name = getattr(label, "text", lambda: "")() or category
+            kind = type(field).__name__
+            width = field.width()
+            logger.warning(
+                "%-28s %-7d %-7d %-9d %-9d %-7s %-7d %-9d",
+                f"{name[:18]} -> {kind[:8]}",
+                width,
+                field.height(),
+                field.sizeHint().height(),
+                field.minimumSizeHint().height(),
+                field.hasHeightForWidth(),
+                field.heightForWidth(width) if field.hasHeightForWidth() else -1,
+                field.minimumWidth(),
+            )
+            # A container hides the widget that actually holds the text.
+            for child in field.findChildren(QLabel):
+                logger.warning(
+                    "%-28s %-7d %-7d %-9d %-9d %-7s %-7d %-9d",
+                    "    inside -> QLabel",
+                    child.width(),
+                    child.height(),
+                    child.sizeHint().height(),
+                    child.minimumSizeHint().height(),
+                    child.hasHeightForWidth(),
+                    child.heightForWidth(child.width()) if child.hasHeightForWidth() else -1,
+                    child.minimumWidth(),
+                )
 
 
 def _fit_multiline(field: QWidget, text: str) -> None:
@@ -1005,7 +1086,22 @@ THIS ROW IS THE OPEN HALF OF THE PANEL-CLIPPING FIX,
         # `_PANEL_MIN_WIDTH` makes the content wider than the panel can
         # ever be, and the panel scrolls SIDEWAYS.
         row.setMinimumWidth(_MULTILINE_VALUE_MIN_WIDTH)
+        # Triggered HERE rather than at construction: at startup the
+        # panel is empty and every row it could measure does not exist
+        # yet. A report row is exactly the case under investigation.
+        if _INSTRUMENT:
+            # A BOUND METHOD, not a lambda capturing self. `singleShot`
+            # releases its callable after firing so this one would not
+            # leak permanently, but PySide6 holds a plain callable
+            # STRONGLY and this codebase has already paid for that once
+            # -- see CLAUDE.md and tests/test_qt_object_disposal.py.
+            QTimer.singleShot(_INSTRUMENT_DELAY_MS, self._dump_metrics)
         return value
+
+    def _dump_metrics(self) -> None:
+        """Log this panel's row geometry. Only reachable with
+        `OPENCHEM_INSTRUMENT_PANEL` set -- see `_INSTRUMENT`."""
+        _dump_panel_metrics(self)
 
     def _on_details_clicked(self, _checked: bool = False) -> None:
         button = self.sender()
