@@ -525,3 +525,130 @@ def test_a_built_copy_is_not_mistaken_for_a_crystal_copy():
 
     # And the whole built assembly survives the real receptor path.
     assert len(receptor_atoms_from_structure(result.output_text, "pdb")) == 6
+
+
+# --- generation rows, and the id scoping under them -------------------------
+
+#: 4EA3's real shape, with its real numbers: two chain groups inside
+#: BIOMOLECULE 1, and a SECOND biomolecule that reuses operator id 2 for a
+#: different translation.
+_TWO_BIOMOLECULES = (
+    "REMARK 350 BIOMOLECULE: 1\n"
+    "REMARK 350 APPLY THE FOLLOWING TO CHAINS: A\n"
+    "REMARK 350   BIOMT1   1  1.000000  0.000000  0.000000        0.00000\n"
+    "REMARK 350   BIOMT2   1  0.000000  1.000000  0.000000        0.00000\n"
+    "REMARK 350   BIOMT3   1  0.000000  0.000000  1.000000        0.00000\n"
+    "REMARK 350 APPLY THE FOLLOWING TO CHAINS: B\n"
+    "REMARK 350   BIOMT1   2  1.000000  0.000000  0.000000       14.85678\n"
+    "REMARK 350   BIOMT2   2  0.000000  1.000000  0.000000        0.00000\n"
+    "REMARK 350   BIOMT3   2  0.000000  0.000000  1.000000      -63.64189\n"
+    "REMARK 350 BIOMOLECULE: 2\n"
+    "REMARK 350 APPLY THE FOLLOWING TO CHAINS: A\n"
+    "REMARK 350   BIOMT1   1  1.000000  0.000000  0.000000        0.00000\n"
+    "REMARK 350   BIOMT2   1  0.000000  1.000000  0.000000        0.00000\n"
+    "REMARK 350   BIOMT3   1  0.000000  0.000000  1.000000        0.00000\n"
+    "REMARK 350 APPLY THE FOLLOWING TO CHAINS: B\n"
+    "REMARK 350   BIOMT1   2  1.000000  0.000000  0.000000      -27.24922\n"
+    "REMARK 350   BIOMT2   2  0.000000  1.000000  0.000000        0.00000\n"
+    "REMARK 350   BIOMT3   2  0.000000  0.000000  1.000000      -63.64189\n"
+)
+
+_TWO_CHAINS = (
+    "ATOM      1  N   ALA A   1       1.000   2.000   3.000  1.00 20.00           N\n"
+    "ATOM      2  N   ALA B   1       0.000   0.000   0.000  1.00 20.00           N\n"
+)
+
+
+def test_pdb_operator_ids_are_scoped_to_their_biomolecule():
+    """**Reading them globally silently builds the wrong structure.**
+
+    Every `BIOMOLECULE:` block restarts its operator numbering, so the
+    same id means different things in different blocks. 4EA3, in the
+    bundled catalogue, is the live case -- its operator 2 translates by
+    +14.85678 in assembly 1 and by -27.24922 in assembly 2. A global map
+    keeps whichever came last, which placed assembly 1's second chain
+    42 A from where the depositor put it: a plausible dimer, in the wrong
+    place, with nothing at all to say so.
+    """
+    from openchem.chem.structure_assembly import operator_transforms
+
+    assert operator_transforms(_TWO_BIOMOLECULES, "pdb", "1")["2"].vector[0] == pytest.approx(14.85678)
+    assert operator_transforms(_TWO_BIOMOLECULES, "pdb", "2")["2"].vector[0] == pytest.approx(-27.24922)
+
+
+def test_building_uses_the_operators_of_the_assembly_asked_for():
+    """The same check one level up, on the coordinates that come out."""
+    from openchem.chem.structure_assembly import build_assembly
+
+    text = _pdb(_TWO_BIOMOLECULES, _TWO_CHAINS)
+    first = _atom_lines(build_assembly(text, "pdb", "1").output_text)
+    second = _atom_lines(build_assembly(text, "pdb", "2").output_text)
+
+    # Compared at the FORMAT's precision, not the transform's: PDB writes
+    # three decimals, so 14.85678 is serialised as 14.857. Asserting the
+    # unrounded value here would be asserting something the file cannot
+    # express -- the transform's own accuracy is a separate measurement,
+    # made before serialisation.
+    assert _coords(first[1])[0] == pytest.approx(14.85678, abs=5e-4)
+    assert _coords(second[1])[0] == pytest.approx(-27.24922, abs=5e-4)
+
+
+def test_several_chain_groups_in_one_assembly_are_unioned():
+    """4DAJ writes five groups, each naming different chains with their
+    own operators. Applying every operator to every chain would be a
+    different structure, and assuming one group per assembly is a very
+    plausible parser mistake."""
+    from openchem.chem.structure_assembly import build_assembly
+
+    result = build_assembly(_pdb(_TWO_BIOMOLECULES, _TWO_CHAINS), "pdb", "1")
+    assert result.ok
+    assert [(i.source_chain, i.operator_id) for i in result.instances] == [("A", "1"), ("B", "2")]
+
+
+def test_a_repeated_chain_and_operator_is_placed_once():
+    """Overlapping groups must not double the atoms. The same
+    `(assembly, source chain, operator)` is ONE copy however many rows
+    happen to name it."""
+    from openchem.chem.structure_assembly import build_assembly
+
+    overlapping = (
+        "REMARK 350 BIOMOLECULE: 1\n"
+        "REMARK 350 APPLY THE FOLLOWING TO CHAINS: A, B\n"
+        "REMARK 350   BIOMT1   1  1.000000  0.000000  0.000000        0.00000\n"
+        "REMARK 350   BIOMT2   1  0.000000  1.000000  0.000000        0.00000\n"
+        "REMARK 350   BIOMT3   1  0.000000  0.000000  1.000000        0.00000\n"
+        "REMARK 350 APPLY THE FOLLOWING TO CHAINS: B\n"
+        "REMARK 350   BIOMT1   1  1.000000  0.000000  0.000000        0.00000\n"
+        "REMARK 350   BIOMT2   1  0.000000  1.000000  0.000000        0.00000\n"
+        "REMARK 350   BIOMT3   1  0.000000  0.000000  1.000000        0.00000\n"
+    )
+    result = build_assembly(_pdb(overlapping, _TWO_CHAINS), "pdb")
+
+    assert result.ok
+    assert len(result.instances) == 2, [i.source_chain for i in result.instances]
+    assert len(_atom_lines(result.output_text)) == 2
+
+
+def test_alternate_locations_survive_the_build_untouched():
+    """The builder PRESERVES altlocs and does not choose between them.
+
+    Selection belongs to `pose_analysis.filter_altlocs`, which sits
+    immediately upstream of the receptor path; a builder that also picked
+    would mean two things deciding the same question. Both conformations
+    have to come through, keeping their identifiers and occupancies, and
+    both have to be transformed.
+    """
+    from openchem.chem.structure_assembly import build_assembly
+
+    altloc = (
+        "ATOM      1  N  AALA A   1       1.000   2.000   3.000  0.60 20.00           N\n"
+        "ATOM      2  N  BALA A   1       1.500   2.500   3.500  0.40 20.00           N\n"
+    )
+    produced = _atom_lines(build_assembly(_pdb(_TWO_OPERATORS, altloc), "pdb").output_text)
+
+    assert len(produced) == 4
+    assert [line[16] for line in produced] == ["A", "B", "A", "B"]
+    assert [line[54:60] for line in produced] == ["  0.60", "  0.40", "  0.60", "  0.40"]
+    # ...and the generated pair moved, both of them: (x, y, z) -> (-x + 10, y, -z).
+    assert _coords(produced[2]) == pytest.approx((9.0, 2.0, -3.0))
+    assert _coords(produced[3]) == pytest.approx((8.5, 2.5, -3.5))

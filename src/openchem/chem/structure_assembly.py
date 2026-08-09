@@ -457,21 +457,44 @@ def _transforms_from_mmcif(text: str) -> dict[str, Transform]:
     return transforms
 
 
-def _transforms_from_pdb(text: str) -> dict[str, Transform]:
+def _transforms_from_pdb(text: str, assembly_id: str | None = None) -> dict[str, Transform]:
     """`REMARK 350 BIOMT1/2/3` as `{id: Transform}`.
+
+    **PDB OPERATOR IDS ARE SCOPED PER BIOMOLECULE, and reading them
+    globally silently builds the wrong structure.** Each `BIOMOLECULE:`
+    block restarts its numbering, so the same id means different things in
+    different blocks. 4EA3, in the bundled catalogue, is the case:
+
+        BIOMOLECULE 1, operator 2   translation x = +14.85678
+        BIOMOLECULE 2, operator 2   translation x = -27.24922
+
+    A global map keeps whichever came last, so building assembly 1 placed
+    its second chain 42 A from where the depositor put it -- a plausible
+    dimer, in the wrong place, with nothing to say so. `assembly_id`
+    restricts the read to one block; `None` keeps the FIRST definition of
+    each id and is for inspection only, never for building.
 
     Three lines make one operator and all three are required: a matrix
     missing a row is a broken record, not a two-dimensional rotation.
     """
     rows: dict[str, dict[int, list[float]]] = {}
+    current = ""
     for line in text.splitlines():
+        if line.startswith("REMARK 350"):
+            body = line[10:].strip()
+            if body.startswith("BIOMOLECULE:"):
+                current = body.split(":", 1)[1].strip()
         if not line.startswith("REMARK 350   BIOMT"):
+            continue
+        if assembly_id is not None and current != assembly_id:
             continue
         parts = line.split()
         if len(parts) < 8:
             continue
         which = parts[2][-1]
         operator_id = parts[3]
+        if assembly_id is None and operator_id in rows and int(which) in rows[operator_id]:
+            continue  # first definition wins; see the docstring
         try:
             rows.setdefault(operator_id, {})[int(which)] = [float(v) for v in parts[4:8]]
         except ValueError as exc:
@@ -494,11 +517,20 @@ def _transforms_from_pdb(text: str) -> dict[str, Transform]:
     return transforms
 
 
-def operator_transforms(structure_text: str, source_format: str) -> dict[str, Transform]:
-    """Every transformation the file declares, by operator id."""
+def operator_transforms(
+    structure_text: str, source_format: str, assembly_id: str | None = None
+) -> dict[str, Transform]:
+    """Every transformation available to one assembly, by operator id.
+
+    `assembly_id` matters for PDB and not for mmCIF: `REMARK 350` restarts
+    its operator numbering in every `BIOMOLECULE:` block, while
+    `_pdbx_struct_oper_list` is one global list with unique ids that
+    expressions reference. See `_transforms_from_pdb` for what reading PDB
+    globally costs.
+    """
     if source_format in ("mmcif", "cif"):
         return _transforms_from_mmcif(structure_text)
-    return _transforms_from_pdb(structure_text)
+    return _transforms_from_pdb(structure_text, assembly_id)
 
 
 def _from_mmcif(text: str) -> AssemblyAnnotation:
@@ -985,7 +1017,7 @@ def build_assembly(
             failure_reason=f"Assembly {assembly_id} carries no generation rows to build from.",
         )
     try:
-        transforms = operator_transforms(structure_text, source_format)
+        transforms = operator_transforms(structure_text, source_format, assembly_id)
     except AssemblyError as exc:
         return AssemblyBuildResult(ok=False, failure_reason=str(exc))
 
