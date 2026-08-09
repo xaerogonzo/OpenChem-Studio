@@ -88,6 +88,29 @@ DEFAULT_RMS_THRESHOLD = 0.5
 #: -- ZERO non-ring torsions, so a chair/twist-boat pair scored 0.0
 #: degrees against a TFD of 0.407.
 #:
+#: SO "EVERY PURELY GEOMETRIC CRITERION FAILED" WAS CONCLUDED WITH A
+#: BROKEN INSTRUMENT, AND HAS NOW BEEN RE-MEASURED WITH A WORKING ONE.
+#: The conclusion survives, and it fails in the OPPOSITE direction from
+#: the one that motivated this module. A torsion veto -- merge candidates
+#: kept apart when their largest dihedral moved more than the window --
+#: swept over the corpus at 30 embeddings x 3 seeds, through the real
+#: `_merge_scan` rather than a re-implementation of it:
+#:
+#:     arm                butane  cyclohexane  pentane  ethylmorphine
+#:     (reference)             2            2        4           >=12
+#:     energy (shipped)        2            2        4          8..13
+#:     torsion > 30 deg        3            3      5-6           6..9
+#:     torsion > 60 deg        3          2-3      5-6           6..9
+#:     torsion > 90 deg        3          2-3      5-6           6..8
+#:     energy + torsion > 60   3          2-3      5-6         10..14
+#:
+#: Torsion alone OVER-counts the simple molecules while still
+#: under-counting ethylmorphine, and combining it with the energy veto
+#: inherits the over-counting. A 60-degree torsion change is real and
+#: unimportant for butane's methyl or pentane's mirror images, which is
+#: precisely what a magnitude threshold cannot tell apart. The
+#: diagnostics stay diagnostic.
+#:
 #: Measured over the validation set, this is the only arm that passes:
 #:
 #:     criterion                ethanol  butane  cyclohexane  ethylmorphine
@@ -296,31 +319,7 @@ def distinct_conformers(
     5 against a textbook 4. Understood behaviour, asserted in the
     benchmark rather than tolerated as noise.
     """
-    kept: list[tuple[Chem.Mol, float | None]] = []
-    kept_heavy: list[Chem.Mol] = []
-    for mol, energy in _in_comparison_order(results):
-        try:
-            heavy = comparison_skeleton(mol)
-        except Exception:  # noqa: BLE001 - a shape we cannot compare is one we keep
-            kept.append((mol, energy))
-            continue
-        duplicate = False
-        for (_kept_mol, kept_energy), other in zip(kept, kept_heavy):
-            try:
-                rmsd = rdMolAlign.GetBestRMS(heavy, other)
-            except (RuntimeError, ValueError):
-                # GetBestRMS raises when it cannot match the two graphs.
-                # Keeping the conformer is the safe direction: showing one
-                # too many is a far smaller error than silently discarding
-                # a real minimum.
-                continue
-            close = rmsd < rms_threshold
-            if close and _permits_merge(rmsd, energy, kept_energy, energy_window):
-                duplicate = True
-                break
-        if not duplicate:
-            kept.append((mol, energy))
-            kept_heavy.append(heavy)
+    kept, _candidates = _merge_scan(results, rms_threshold, energy_window, with_torsions=False)
     return kept
 
 
@@ -338,6 +337,15 @@ class MergeCandidate:
 
     `max_dihedral_change` and `largest_torsion` name which torsion moved
     most, so the second case can be recognised rather than guessed at.
+
+    **DIAGNOSTIC, AND THAT IS A MEASURED DECISION RATHER THAN AN
+    OVERSIGHT.** Nothing here feeds the merge rule, which invites the
+    question of why it is computed at all. It was evaluated as a
+    criterion once the measure was fixed, and it loses to the energy
+    veto on every molecule that separates them -- the table on
+    `DEFAULT_ENERGY_WINDOW` has the numbers. It earns its place by
+    telling two identical-looking outcomes apart after the fact, not by
+    deciding anything.
     """
 
     rmsd: float
@@ -407,13 +415,40 @@ def merge_candidates(
     `with_torsions=False` skips the expensive half; the benchmark wants
     the torsions, a routine generation run does not always.
     """
-    candidates: list[MergeCandidate] = []
+    _kept, candidates = _merge_scan(results, rms_threshold, energy_window, with_torsions)
+    return candidates
+
+
+def _merge_scan(
+    results: list[tuple[Chem.Mol, float | None]],
+    rms_threshold: float,
+    energy_window: float,
+    with_torsions: bool,
+) -> tuple[list[tuple[Chem.Mol, float | None]], list[MergeCandidate]]:
+    """One pass: what is kept, and what every merge candidate looked like.
+
+    **THE DECISION AND THE DIAGNOSTIC HAVE TO COME OUT OF THE SAME LOOP.**
+    `distinct_conformers` and `merge_candidates` were two copies of this
+    walk -- same ordering, same skeleton, same `GetBestRMS`, same
+    threshold, same `_permits_merge` -- one returning the survivors and
+    one returning the reasons. Nothing tied them together, so the day the
+    merge rule changed in one, the other would have gone on describing an
+    algorithm that no longer ran, and a diagnostic that describes the
+    wrong algorithm is worse than none: `DEFAULT_ENERGY_WINDOW`'s own
+    comment records a conclusion that had already been reached and
+    written down from a torsion number that was measuring the wrong
+    thing.
+
+    Returning both is what makes the single loop possible; each caller
+    drops the half it does not want.
+    """
     kept: list[tuple[Chem.Mol, float | None]] = []
     kept_heavy: list[Chem.Mol] = []
+    candidates: list[MergeCandidate] = []
     for mol, energy in _in_comparison_order(results):
         try:
             heavy = comparison_skeleton(mol)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001 - a shape we cannot compare is one we keep
             kept.append((mol, energy))
             continue
         duplicate = False
@@ -421,10 +456,18 @@ def merge_candidates(
             try:
                 rmsd = rdMolAlign.GetBestRMS(heavy, other)
             except (RuntimeError, ValueError):
+                # GetBestRMS raises when it cannot match the two graphs.
+                # Keeping the conformer is the safe direction: showing one
+                # too many is a far smaller error than silently discarding
+                # a real minimum.
                 continue
             if rmsd >= rms_threshold:
                 continue
             merged = _permits_merge(rmsd, energy, kept_energy, energy_window)
+            # The CANDIDATE is always recorded; only the torsion analysis
+            # is optional. Recording it only when torsions were asked for
+            # would make `with_torsions=False` return an empty list rather
+            # than a cheaper one, which is a different function.
             tfd, worst, atoms = (
                 _torsion_deviation(mol, kept_mol) if with_torsions else (None, None, None)
             )
@@ -446,7 +489,7 @@ def merge_candidates(
         if not duplicate:
             kept.append((mol, energy))
             kept_heavy.append(heavy)
-    return candidates
+    return kept, candidates
 
 
 # RDKitConformerProvider implements the same ConformerProvider ABC a future

@@ -323,3 +323,35 @@ def test_the_same_shape_floor_stays_between_its_measured_bounds():
             f"the floor {_IDENTICAL_SHAPE_RMSD} no longer covers the azirine "
             f"artefact at {max(artefacts):.4f} -- rigid rings will split again"
         )
+
+
+def test_the_diagnostic_and_the_decision_come_from_the_same_scan():
+    """`merge_candidates` must describe the run `distinct_conformers` did.
+
+    They were two copies of one loop -- same ordering, same skeleton, same
+    GetBestRMS, same threshold, same `_permits_merge` -- one returning the
+    survivors and one the reasons, with nothing tying them together. The
+    day the merge rule changed in one, the other would have gone on
+    describing an algorithm that no longer ran, and a diagnostic that
+    describes the wrong algorithm is worse than none: this module's own
+    history has a conclusion reached and written down from a torsion
+    number that was measuring the wrong thing.
+
+    The invariant that ties them: every pair `merge_candidates` reports as
+    merged is one conformer `distinct_conformers` dropped, so the counts
+    have to agree exactly.
+    """
+    from openchem.chem.conformer_providers import distinct_conformers, merge_candidates
+
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCCCO"))
+    batch = RDKitConformerProvider(random_seed=11).generate_conformer_batch(
+        mol, 12, optimize=True
+    )
+    kept = distinct_conformers(batch.results)
+    candidates = merge_candidates(batch.results, with_torsions=False)
+
+    merged = [c for c in candidates if c.merged]
+    assert len(batch.results) - len(merged) == len(kept), (
+        f"{len(merged)} merges reported against {len(batch.results) - len(kept)} conformers "
+        f"actually dropped -- the diagnostic is describing a different run"
+    )
