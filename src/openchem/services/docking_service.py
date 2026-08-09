@@ -9,6 +9,7 @@ from rdkit import Chem
 from openchem.app.settings import Settings
 from openchem.chem.docking_providers import VinaDockingProvider
 from openchem.chem.pose_analysis import analyze_pose, receptor_atoms_from_structure
+from openchem.chem.structure_assembly import PRIMARY_ASSEMBLY_ID
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.docking import DockingBox, DockingPoseModel, DockingResultModel
 from openchem.events.base import EventBus
@@ -21,6 +22,24 @@ logger = logging.getLogger("openchem.chemistry")
 
 DEFAULT_NUM_POSES = 9
 _JOB_KIND = "docking"
+
+
+class AssemblyRefused(RuntimeError):
+    """The requested biological assembly could not be built.
+
+    Its own type rather than a bare RuntimeError so the no-fallback rule
+    is enforceable rather than conventional: a caller cannot mistake it
+    for a docking failure and retry with the deposited structure.
+    """
+
+
+#: Prefix for the assembly keys merged into a docking result's provenance.
+#:
+#: PREFIXED FOR THE REASON `chem/calculation_input.INPUT_PREFIX` records:
+#: these keys join a dict the provider also writes, and two layers
+#: describing different things in the same words collided silently there
+#: twice before anybody noticed.
+_ASSEMBLY_PREFIX = "assembly_"
 
 
 def _job_key(ligand_molecule_uuid: str, receptor_macromolecule_uuid: str) -> str:
@@ -71,6 +90,10 @@ class _DockingTask(QRunnable):
         # anything to cancel.
         self._progress = progress
         self._progress.on_progress = self._on_progress
+        #: What happened to the assembly request, merged into the
+        #: result's provenance. Set before any early return so a
+        #: result is always able to say which object it docked.
+        self._assembly_provenance: dict[str, Any] = {f"{_ASSEMBLY_PREFIX}requested": False}
 
     def run(self) -> None:
         self._event_bus.publish(
@@ -81,6 +104,29 @@ class _DockingTask(QRunnable):
             )
         )
         progress = self._progress
+        try:
+            self._build_requested_assembly()
+        except AssemblyRefused as exc:
+            # **NO SILENT FALLBACK.** The asymmetric unit is a perfectly
+            # dockable structure and docking it here would return a
+            # plausible, scientifically wrong answer to a question the
+            # user did not ask -- the same shape as this codebase's
+            # 40619 kcal/mol interaction energy and its crystal click
+            # reaching the molecular measurement. Someone who asked for
+            # the biological assembly gets it or gets nothing.
+            logger.error("Assembly build refused for ligand %s: %s", self._ligand_molecule_uuid, exc)
+            self._event_bus.publish(
+                DockingJobStateChanged(
+                    ligand_molecule_uuid=self._ligand_molecule_uuid,
+                    receptor_macromolecule_uuid=self._receptor_macromolecule_uuid,
+                    state=CacheState.FAILED,
+                    message=str(exc),
+                )
+            )
+            self._job_manager.finish(
+                _JOB_KIND, _job_key(self._ligand_molecule_uuid, self._receptor_macromolecule_uuid)
+            )
+            return
         try:
             poses = self._provider.dock(
                 self._receptor_structure_text,
@@ -116,7 +162,7 @@ class _DockingTask(QRunnable):
             provenance=Provenance(
                 created_by="core",
                 method=self._provider.provider_id,
-                parameters={"num_poses": self._num_poses},
+                parameters={"num_poses": self._num_poses, **self._assembly_provenance},
             ),
             engine=getattr(self._provider, "engine_id", self._provider.provider_id),
             engine_version=(
@@ -138,6 +184,54 @@ class _DockingTask(QRunnable):
         self._job_manager.finish(
             _JOB_KIND, _job_key(self._ligand_molecule_uuid, self._receptor_macromolecule_uuid)
         )
+
+    def _build_requested_assembly(self) -> None:
+        """Replace the receptor with its biological assembly, ONCE.
+
+        **Built here and assigned back, so `dock()` and
+        `receptor_atoms_from_structure()` are handed the identical text.**
+        Two callers each building their own would be the same split that
+        `is_stripped_residue`, `filter_altlocs` and `is_symmetry_generated`
+        each exist to close -- and it would be the worst version of it,
+        because the analysis would be describing a different oligomer from
+        the one Vina searched.
+
+        Records what happened either way. "I asked for the biological
+        assembly" and "the assembly actually differed from what I had" are
+        different facts, and a result nobody can distinguish between them
+        six months later cannot say which object it docked against --
+        especially with the option off by default.
+        """
+        from openchem.chem.structure_assembly import build_assembly
+
+        self._assembly_provenance = {f"{_ASSEMBLY_PREFIX}requested": False}
+        if not self._receptor_prep_options.get("build_assembly"):
+            return
+
+        assembly_id = str(self._receptor_prep_options.get("assembly_id") or PRIMARY_ASSEMBLY_ID)
+        result = build_assembly(
+            self._receptor_structure_text, self._receptor_source_format, assembly_id
+        )
+        if not result.ok:
+            raise AssemblyRefused(
+                f"The biological assembly could not be built, so nothing was docked: "
+                f"{result.failure_reason}"
+            )
+
+        self._receptor_structure_text = result.output_text
+        self._assembly_provenance = {
+            f"{_ASSEMBLY_PREFIX}requested": True,
+            f"{_ASSEMBLY_PREFIX}id": result.assembly_id,
+            # Whether building CHANGED anything, kept apart from whether it
+            # was asked for: an assembly the file already held is a no-op,
+            # not a different receptor.
+            f"{_ASSEMBLY_PREFIX}built": result.changed_the_structure,
+            f"{_ASSEMBLY_PREFIX}instances": len(result.instances),
+            f"{_ASSEMBLY_PREFIX}generated_copies": result.generated_copies,
+            f"{_ASSEMBLY_PREFIX}chains": ",".join(i.generated_chain_id for i in result.instances),
+        }
+        for warning in result.warnings:
+            logger.warning("Assembly %s: %s", assembly_id, warning)
 
     def _annotate_poses_with_interactions(self, poses: list[DockingPoseModel]) -> None:
         """Populates each pose's `metadata` with H-bond/clash data (see

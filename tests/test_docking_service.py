@@ -324,3 +324,136 @@ def test_cancel_via_job_manager_stops_docking(qapp):
 
     assert results == []
     assert not job_manager.is_active("docking", "lig-1:rec-1")
+
+
+# --- biological assembly ----------------------------------------------------
+
+_ASSEMBLY_PDB = (
+    "HEADER    TEST\n"
+    "REMARK 350 BIOMOLECULE: 1\n"
+    "REMARK 350 APPLY THE FOLLOWING TO CHAINS: A\n"
+    "REMARK 350   BIOMT1   1  1.000000  0.000000  0.000000        0.00000\n"
+    "REMARK 350   BIOMT2   1  0.000000  1.000000  0.000000        0.00000\n"
+    "REMARK 350   BIOMT3   1  0.000000  0.000000  1.000000        0.00000\n"
+    "REMARK 350   BIOMT1   2 -1.000000  0.000000  0.000000       10.00000\n"
+    "REMARK 350   BIOMT2   2  0.000000  1.000000  0.000000        0.00000\n"
+    "REMARK 350   BIOMT3   2  0.000000  0.000000 -1.000000        0.00000\n"
+    "ATOM      1  N   ALA A   1       1.000   2.000   3.000  1.00 20.00           N\n"
+    "ATOM      2  CA  ALA A   1       4.000   5.000   6.000  1.00 20.00           C\n"
+    "END\n"
+)
+
+
+class _RecordingProvider:
+    """A provider that records exactly what receptor text it was handed."""
+
+    provider_id = "recording"
+    engine_id = "recording"
+
+    def __init__(self) -> None:
+        self.seen_text: str | None = None
+
+    def dock(self, receptor_structure_text, receptor_source_format, ligand_mol, box,
+             num_poses, progress, receptor_prep_options=None):
+        self.seen_text = receptor_structure_text
+        return []
+
+    def engine_version(self) -> str:
+        return "test"
+
+
+def _task(provider, prep_options):
+    from openchem.domain.docking import DockingBox
+    from openchem.services.docking_service import _DockingTask
+    from openchem.services.job_manager import JobManager
+    from openchem.services.progress import ProgressHandle
+
+    bus = EventBus()
+    return bus, _DockingTask(
+        provider=provider,
+        ligand_molecule_uuid="lig-1",
+        ligand_mol=Chem.MolFromSmiles("CCO"),
+        receptor_macromolecule_uuid="rec-1",
+        receptor_structure_text=_ASSEMBLY_PDB,
+        receptor_source_format="pdb",
+        box=DockingBox(center=(0.0, 0.0, 0.0), size=(10.0, 10.0, 10.0)),
+        num_poses=1,
+        event_bus=bus,
+        job_manager=JobManager(),
+        receptor_prep_options=prep_options,
+        progress=ProgressHandle(),
+    )
+
+
+def test_docking_uses_the_deposited_structure_by_default(qapp):
+    """Default-off, asserted on the TEXT the provider receives.
+
+    This is what protects the 49-receptor catalogue: every existing
+    result was produced against the deposited asymmetric unit, and
+    nothing about adding a builder may change that silently.
+    """
+    provider = _RecordingProvider()
+    _bus, task = _task(provider, {})
+    task.run()
+
+    assert provider.seen_text == _ASSEMBLY_PDB
+
+
+def test_asking_for_the_assembly_docks_the_built_one(qapp):
+    provider = _RecordingProvider()
+    _bus, task = _task(provider, {"build_assembly": True})
+    task.run()
+
+    assert provider.seen_text is not None
+    atoms = [l for l in provider.seen_text.splitlines() if l.startswith(("ATOM  ", "HETATM"))]
+    assert len(atoms) == 4, "the dimer was not built"
+    assert {l[21] for l in atoms} == {"A", "B"}
+
+
+def test_a_refused_assembly_fails_the_job_and_docks_nothing(qapp):
+    """**NO SILENT FALLBACK**, and this is the test that enforces it.
+
+    The asymmetric unit is a perfectly dockable structure, so falling
+    back to it would return a plausible, scientifically wrong answer to
+    a question the user did not ask -- the same shape as this codebase's
+    40619 kcal/mol interaction energy. Someone who asked for the
+    biological assembly gets it or gets nothing.
+    """
+    states: list[tuple[CacheState, str]] = []
+    provider = _RecordingProvider()
+    bus, task = _task(provider, {"build_assembly": True, "assembly_id": "7"})
+    bus.subscribe(DockingJobStateChanged, lambda e: states.append((e.state, e.message or "")))
+    task.run()
+
+    assert provider.seen_text is None, "it docked the deposited structure after refusing to build"
+    assert CacheState.FAILED in [s for s, _ in states]
+    message = next(m for s, m in states if s is CacheState.FAILED)
+    assert "declares no assembly" in message, message
+
+
+def test_the_result_records_which_object_was_docked(qapp):
+    """With the option off by default, "I asked for the assembly" and "the
+    assembly differed from what I had" have to be separable facts, or a
+    result cannot say what it was computed against."""
+    results: list = []
+    provider = _RecordingProvider()
+    bus, task = _task(provider, {"build_assembly": True})
+    bus.subscribe(DockingResultReady, lambda e: results.append(e.result))
+    task.run()
+
+    parameters = results[0].provenance.parameters
+    assert parameters["assembly_requested"] is True
+    assert parameters["assembly_built"] is True
+    assert parameters["assembly_id"] == "1"
+    assert parameters["assembly_generated_copies"] == 1
+    assert parameters["assembly_chains"] == "A,B"
+
+
+def test_a_default_run_says_it_did_not_use_an_assembly(qapp):
+    results: list = []
+    provider = _RecordingProvider()
+    bus, task = _task(provider, {})
+    bus.subscribe(DockingResultReady, lambda e: results.append(e.result))
+    task.run()
+
+    assert results[0].provenance.parameters["assembly_requested"] is False

@@ -30,6 +30,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QCheckBox,
     QDialog,
     QDialogButtonBox,
     QHeaderView,
@@ -96,8 +97,9 @@ class StructureContentsDialog(QDialog):
                 parts.append(
                     f"It is built by applying {primary.operator_applications} "
                     "transformations, so the full oligomer is not all present in "
-                    "this file. Nothing here generates the missing copies — that "
-                    "only matters if your site sits at the interface between them."
+                    "this file. Tick the box below to generate the missing copies "
+                    "before docking — that only matters if your site sits at the "
+                    "interface between them."
                 )
             assembly_note.setText("  ".join(parts))
         assembly_note.setVisible(bool(assembly_note.text()))
@@ -175,6 +177,30 @@ class StructureContentsDialog(QDialog):
         )
         note.setWordWrap(True)
 
+        # OFF BY DEFAULT, and offered only where it would change
+        # something. Building silently would alter what a saved docking
+        # box means without anybody asking for it, and offering the
+        # choice on a file that already holds its whole biological unit
+        # is an invitation to wonder what it does.
+        self._build_assembly_check = QCheckBox(
+            "Build the biological assembly before docking", self
+        )
+        self._build_assembly_check.setChecked(False)
+        self._build_assembly_check.setToolTip(
+            "Applies the depositor's transformations to generate the missing "
+            "copies. Only matters when your site sits at the interface between "
+            "them. If the assembly cannot be built, docking stops rather than "
+            "quietly using the deposited structure instead."
+        )
+        # An EXPLICIT flag, not `isVisible()`. A child of a window
+        # nobody has shown reports `isVisible() == False` whatever it was
+        # set to, so deriving the answer from visibility would make this
+        # return False under any test harness while looking right in the
+        # running app -- the same blindness this project already records
+        # for `repaint()` and for `_help_topic_for_visible_panel`.
+        self._assembly_can_be_built = bool(primary is not None and primary.needs_generated_copies)
+        self._build_assembly_check.setVisible(self._assembly_can_be_built)
+
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
             self,
@@ -188,8 +214,18 @@ class StructureContentsDialog(QDialog):
         layout.addWidget(warning)
         layout.addWidget(table)
         layout.addWidget(note)
+        layout.addWidget(self._build_assembly_check)
         layout.addWidget(buttons)
         self.resize(760, 420)
+
+    def build_assembly(self) -> bool:
+        """Whether to generate the annotated assembly before docking.
+
+        False unless the file needs generated copies AND the user asked
+        for them -- the checkbox is hidden otherwise, so this cannot come
+        back True for a structure where it would be a no-op.
+        """
+        return self._assembly_can_be_built and self._build_assembly_check.isChecked()
 
     def keep_chains(self) -> list[str]:
         """The ticked chains, or an EMPTY LIST when all of them are.

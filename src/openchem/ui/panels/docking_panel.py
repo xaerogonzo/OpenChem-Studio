@@ -104,6 +104,11 @@ class DockingPanel(QWidget):
         # different structure and carrying "keep A" across would silently
         # dock against the wrong subunit.
         self._keep_chains: list[str] = []
+        #: Reset with the receptor for the same reason `_keep_chains`
+        #: is: an assembly annotation belongs to one deposit, and
+        #: carrying "build it" across would apply another structure's
+        #: answer to this one.
+        self._build_assembly = False
         self._receptor_combo.currentIndexChanged.connect(self._on_receptor_changed)
         self._ligand_combo = QComboBox(self)
 
@@ -257,10 +262,12 @@ class DockingPanel(QWidget):
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
         self._keep_chains = dialog.keep_chains()
+        self._build_assembly = dialog.build_assembly()
         self._update_chain_status()
 
     def _on_receptor_changed(self, _index: int) -> None:
         self._keep_chains = []
+        self._build_assembly = False
         self._update_chain_status()
 
     def _update_chain_status(self) -> None:
@@ -332,6 +339,10 @@ class DockingPanel(QWidget):
                 # receptor preparation and the interaction analysis, so
                 # they cannot be given different receptors.
                 "keep_chains": list(self._keep_chains),
+                # Same dict, same reason: the service builds the
+                # assembly ONCE from this and hands the identical text
+                # to both the docking and the interaction analysis.
+                "build_assembly": self._build_assembly,
                 "strip_ligand_codes": _box_defining_ligand_codes(receptor),
             },
         )
