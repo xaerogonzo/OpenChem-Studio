@@ -44,6 +44,70 @@ known:
 
 The binary is not on PATH; call it by full path.
 
+## Driving the app for a live check -- do NOT use the mouse
+
+Several findings in this file could only be made in the running
+application, so live checks are routine here. **They used to make the
+machine unusable**, because every one drove the real input queue with
+`SetCursorPos` + `mouse_event` + `SendKeys`: the cursor jumps, the app
+must hold focus for every step, and Alex cannot work for the length of a
+run. It was also fragile in a way that reads as an app bug -- a console
+window stealing focus mid-sequence sent a paste into the wrong window and
+the run looked like "the app ignored the import".
+
+**Script the app from inside instead.** `OPENCHEM_DRIVE` names a JSON
+file of steps (`src/openchem/app/debug_drive.py` documents the shape),
+which run on a `QTimer` inside the process:
+
+```bash
+OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
+```
+
+    {"do": "import",     "path": "..."}      no file dialog
+    {"do": "select",     "molecule": -1}
+    {"do": "panel",      "id": "Properties"}
+    {"do": "expand",     "section": "admet"}
+    {"do": "calculator", "id": "admet_ml", "parameters": {...}}
+    {"do": "shot",       "path": "..."}
+    {"do": "wait"} {"do": "quit"}
+
+`after_ms` on any step is how long to wait before the next, which is how
+an asynchronous calculator is waited on. Measured on the ADMET case: the
+whole import-to-screenshot run is **55 seconds unattended**, with the
+window sitting behind whatever Alex is working in.
+
+This is the real `MainWindow` with its real docks, fonts and DPI, which is
+what the four "the harness said the opposite of the app" entries in this
+file demand. Only the INPUT is skipped.
+
+When a click really is needed, `spikes/gui_drive/drive.ps1` posts it to
+the window handle rather than through the machine:
+
+- `Save-AppShot` uses `PrintWindow(PW_RENDERFULLCONTENT)` -- captures the
+  window while it is BEHIND other windows, and crops to the app instead
+  of photographing the whole desktop. Verified with the app deliberately
+  put behind Notepad++.
+- `Invoke-AppClick -FromCapture` posts `WM_LBUTTONDOWN`/`UP` with
+  coordinates read straight off that capture. Verified: it switched the
+  right-hand panel while the app stayed in the background and the cursor
+  never moved.
+- `Assert-AppWindow` replaces the old "is the app in front" guard and is
+  strictly better -- that one was a race, this asks whether the handle
+  belongs to the expected pid, which cannot be.
+
+Three things that cost a run each:
+
+- **`quit()` closes all windows in Qt 6**, so a scripted run ended on a
+  modal "Unsaved changes" box with nobody to answer it -- and removing
+  the explicit `window.close()` changed nothing, because `quit()` was
+  doing it. `exit(0)` leaves the loop without closing anything.
+- **Skipping `closeEvent` is a feature.** It saves window geometry and
+  dock state, so a diagnostic run would otherwise overwrite the layout
+  Alex has arranged, every time.
+- **Do not `Set-StrictMode` in a dot-sourced module.** It applies to the
+  caller's session; here it broke the harness's own exit-code handling
+  and read as a failure of a capture that had just succeeded.
+
 ## Running the tests
 
 ```bash
