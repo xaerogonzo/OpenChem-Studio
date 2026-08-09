@@ -48,7 +48,15 @@ DEFAULT_MAX_STRUCTURES = 200
 
 def _entry(mol: Chem.Mol, label: str, **extra: Any) -> StructureEntry:
     """Serializes to a molblock with 2D coordinates, which is what the grid
-    depiction needs -- a molblock with no coordinates renders as a pile."""
+    depiction needs -- a molblock with no coordinates renders as a pile.
+
+    IT ONLY COMPUTES THEM WHEN THERE ARE NONE, so whatever coordinates the
+    caller's molecule carries propagate straight into the depiction. That
+    is one of three reasons the generators in this module declare
+    `CalculationInput.DRAWING` and must not be given a 3D conformer to be
+    helpful -- the other two are worse, and are recorded on
+    `enumerate_stereoisomers` and `enumerate_tautomers`.
+    `tests/test_calculation_input.py` guards all three."""
     prepared = Chem.Mol(mol)
     if prepared.GetNumConformers() == 0:
         AllChem.Compute2DCoords(prepared)
@@ -67,6 +75,15 @@ def enumerate_stereoisomers(
     user actually drew and varies only the centres left unspecified --
     which is almost always what someone asking "what are the stereoisomers"
     of a partly-defined structure means.
+
+    THIS MUST BE GIVEN THE DRAWING, NEVER A 3D CONFORMER. A conformer
+    carries stereo PERCEIVED FROM ITS COORDINATES, so every centre is
+    assigned and `only_unassigned` finds nothing left to vary. Measured on
+    alanine with its stereocentre unspecified: the drawing enumerates 2
+    isomers, a conformer of it enumerates 1 -- whichever configuration the
+    embedder happened to produce. That is not a lower-quality answer, it
+    is the feature silently not working, and only the drawing can answer
+    the question that was asked.
     """
     options = StereoEnumerationOptions(maxIsomers=max_isomers, onlyUnassigned=only_unassigned)
     isomers = list(EnumerateStereoisomers(mol, options=options))
@@ -92,7 +109,15 @@ def enumerate_tautomers(
 ) -> StructureSetResult:
     """Every tautomer RDKit's standardizer can reach, with the canonical
     one flagged -- which is the one a database would store, so it is worth
-    pointing at rather than leaving the user to guess."""
+    pointing at rather than leaving the user to guess.
+
+    THIS MUST BE GIVEN THE DRAWING, NEVER A 3D CONFORMER, and here the
+    failure is corruption rather than collapse. A conformer's EXPLICIT
+    HYDROGENS send the enumerator into structures that are not tautomers
+    of anything -- measured on alanine, 4 sensible forms from the drawing
+    against 10 from a conformer of it, including `[H]O=C(O)...` and
+    `[CH]([H])...`. More results, all worse, which is the shape of bug
+    that gets shipped."""
     enumerator = rdMolStandardize.TautomerEnumerator()
     enumerator.SetMaxTautomers(max_tautomers)
     tautomers = list(enumerator.Enumerate(mol))

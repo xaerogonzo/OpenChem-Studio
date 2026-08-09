@@ -689,12 +689,29 @@ document may cite a file or a test that does not exist.
   (the default, today's behaviour) or `GEOMETRY`, exactly as `applies_to`
   declares structure kinds and for the same reason.
 
-  **Four of the eleven candidates were rejected on measurement.**
-  `resonance_forms`, `stereoisomers`, `tautomers` and
-  `structural_frameworks` differ only because their `StructureSetResult`
-  echoes coordinates into its own output; destroying the geometry while
-  keeping the same atoms and hydrogens leaves their chemistry identical.
-  Seven declare `GEOMETRY`.
+  **Four of the eleven candidates were rejected**, and re-checking them
+  found the first recorded reason ("they only echo coordinates into their
+  own output") was far too weak. A conformer does not merely fail to help
+  the structure generators, it **breaks** them. Measured on alanine drawn
+  with its stereocentre left undefined:
+
+        stereoisomers   drawing 2 forms   conformer 1     feature stops working
+        tautomers       drawing 4 forms   conformer 10    garbage forms
+
+  `stereoisomers` collapses because a conformer carries stereo PERCEIVED
+  FROM ITS COORDINATES, so `onlyUnassigned=True` finds nothing left to
+  vary and returns whichever configuration the embedder happened to
+  produce -- "what are the stereoisomers of what I drew" is the question,
+  and only the drawing can answer it. `tautomers` is corrupted by the
+  explicit hydrogens, emitting `[H]O=C(O)...` and `[CH]([H])...`, which
+  are not tautomers of anything.
+
+  A third, separate reason: `structure_generators._entry` computes 2D
+  coordinates only when the molecule has NO conformer, so a 3D input
+  propagates into the structure grid -- which that module's own docstring
+  says renders as "a pile". `structural_frameworks` is immune (it calls
+  `Compute2DCoords` unconditionally) and is topological besides. Seven
+  declare `GEOMETRY`.
 
   **`GEOMETRY` means prefer, not require**, and the refusal stays where
   it already worked -- `geometry_analysis._require_conformer` and
