@@ -590,6 +590,133 @@ def _from_pdb(text: str) -> AssemblyAnnotation:
     return AssemblyAnnotation(assemblies=tuple(assemblies))
 
 
+@dataclass(frozen=True)
+class AssemblyInstance:
+    """One placed copy: a source chain under one composed operator.
+
+    **THE IDENTITY IS `(source_chain, operator_id)`, NOT THE CHAIN NAME.**
+    `generated_chain_id` is a serialisation detail — the name the copy
+    happens to carry in the emitted text — and nothing may recover the
+    relationship by parsing it back out. That distinction stops mattering
+    only until an assembly applies sixty operators to one chain, which
+    1A34 does.
+    """
+
+    source_chain: str
+    operator_id: str
+    generated_chain_id: str
+
+    @property
+    def is_original(self) -> bool:
+        """True when this copy sits exactly where the deposit put it."""
+        return self.source_chain == self.generated_chain_id
+
+
+@dataclass(frozen=True)
+class AssemblyBuildResult:
+    """What a build produced, or why it produced nothing.
+
+    A result rather than a bare string so **partial output is not
+    representable**: a caller cannot accidentally dock half an assembly,
+    because a failure carries no text at all.
+    """
+
+    ok: bool
+    output_text: str = ""
+    assembly_id: str = ""
+    instances: tuple[AssemblyInstance, ...] = ()
+    warnings: tuple[str, ...] = ()
+    failure_reason: str = ""
+
+    @property
+    def generated_copies(self) -> int:
+        """Copies that are not the deposited chains themselves."""
+        return sum(1 for instance in self.instances if not instance.is_original)
+
+    @property
+    def changed_the_structure(self) -> bool:
+        """Whether building actually produced something different.
+
+        "I asked for the biological assembly" and "the biological
+        assembly differed from what I had" are different facts, and a
+        result has to be able to tell them apart six months later.
+        """
+        return self.generated_copies > 0
+
+
+#: Chain ids available to generated copies, in order. PDB gives the field
+#: ONE column, so this is the whole alphabet there is -- 62 names, and an
+#: assembly needing a 63rd cannot be written as PDB at all.
+_PDB_CHAIN_IDS = (
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "abcdefghijklmnopqrstuvwxyz" "0123456789"
+)
+
+#: PDB's atom serial field is five columns.
+_PDB_MAX_SERIAL = 99_999
+
+#: Above this many atoms a built assembly is not something the rest of
+#: the application can use: Vina will not dock it and the viewer will not
+#: survive it. 1A34 is 60 operators over 3,474 atoms = 208,440, and 2BTV
+#: reaches 2.9 million -- both real entries in the corpus, which is why
+#: the guard exists rather than being hypothetical.
+#:
+#: Atom count is the first gate and deliberately not the only conceivable
+#: one; residue count, chain count and preparation cost are the obvious
+#: next terms if one turns out to bind first.
+DEFAULT_ATOM_LIMIT = 100_000
+
+
+def _generation_rows(text: str, source_format: str, assembly_id: str) -> list[tuple[list[str], str]]:
+    """`[(chain ids, oper_expression)]` for one assembly, in written order.
+
+    Separate from `parse_assembly`, which accumulates chains across rows
+    to answer "which chains belong". A builder needs the PAIRING that
+    accumulation throws away: 4DAJ writes five rows, each naming a
+    different chain group with its own operators, and applying every
+    operator to every chain would be a different structure.
+    """
+    rows: list[tuple[list[str], str]] = []
+    if source_format in ("mmcif", "cif"):
+        names, gen_rows = _loop_rows(text, "_pdbx_struct_assembly_gen.")
+        for row in gen_rows:
+            cell = dict(zip(names, row))
+            if cell.get("assembly_id", "").strip() != assembly_id:
+                continue
+            chains = [c.strip() for c in cell.get("asym_id_list", "").split(",") if c.strip()]
+            rows.append((chains, cell.get("oper_expression", "").strip()))
+        return rows
+
+    current_id, chains = "", []
+    operators: list[str] = []
+    for line in text.splitlines():
+        if not line.startswith("REMARK 350"):
+            continue
+        body = line[10:].strip()
+        if body.startswith("BIOMOLECULE:"):
+            if current_id == assembly_id and chains:
+                rows.append((chains, ",".join(operators)))
+            current_id = body.split(":", 1)[1].strip()
+            chains, operators = [], []
+        elif "CHAINS:" in body:
+            if operators and current_id == assembly_id and chains:
+                # A second `APPLY THE FOLLOWING TO CHAINS` inside one
+                # biomolecule starts a new group, exactly like an extra
+                # mmCIF gen row. 4EA3 is the entry that does this.
+                rows.append((chains, ",".join(operators)))
+                chains, operators = [], []
+            for chain in body.split("CHAINS:", 1)[1].split(","):
+                chain = chain.strip()
+                if chain and chain not in chains:
+                    chains.append(chain)
+        elif body.startswith("BIOMT1"):
+            parts = body.split()
+            if len(parts) > 1:
+                operators.append(parts[1])
+    if current_id == assembly_id and chains:
+        rows.append((chains, ",".join(operators)))
+    return rows
+
+
 def parse_assembly(structure_text: str, source_format: str) -> AssemblyAnnotation:
     """Read the deposited assembly annotation, or an empty one.
 
@@ -602,3 +729,272 @@ def parse_assembly(structure_text: str, source_format: str) -> AssemblyAnnotatio
     if source_format in ("mmcif", "cif"):
         return _from_mmcif(structure_text)
     return _from_pdb(structure_text)
+
+
+#: Records dropped from a built assembly, and why each one.
+#:
+#: **ANISOU** carries an anisotropic displacement TENSOR, which under a
+#: rotation R transforms as R.U.Rt. Carried through untouched it would
+#: describe the wrong orientation for every generated copy -- a wrong
+#: number rather than a missing one. It is refinement metadata neither
+#: Vina nor the viewer reads, and it is 125,545 lines across the 25 corpus
+#: deposits that carry it. Rotating it is the correct fix if anything ever
+#: needs it.
+#:
+#: **MASTER** counts the records of the file it was written for. After
+#: building, every one of its numbers is wrong.
+#:
+#: **REMARK 350** is the build instruction itself. A built assembly that
+#: still carries it tells the next reader to build it AGAIN -- feed the
+#: output back through `parse_assembly` and it reports a multiplicity the
+#: structure already has. Re-entrancy, not tidiness.
+_DROPPED_PDB_RECORDS = ("ANISOU", "MASTER", "REMARK 350")
+
+
+def _build_pdb(
+    text: str,
+    assembly_id: str,
+    rows: list[tuple[list[str], str]],
+    transforms: dict[str, Transform],
+    atom_limit: int,
+) -> AssemblyBuildResult:
+    lines = text.splitlines()
+    if any(line.startswith("MODEL ") for line in lines):
+        return AssemblyBuildResult(
+            ok=False,
+            failure_reason=(
+                "This deposit holds several models (MODEL/ENDMDL) and the assembly "
+                "annotation does not say which one to transform."
+            ),
+        )
+
+    by_chain: dict[str, list[str]] = {}
+    for line in lines:
+        if line.startswith(("ATOM  ", "HETATM")):
+            by_chain.setdefault(line[21], []).append(line)
+    if not by_chain:
+        return AssemblyBuildResult(ok=False, failure_reason="This file contains no atoms.")
+
+    # Placements, deduplicated: the same (source chain, operator) is ONE
+    # copy however many generation rows happen to name it.
+    placements: list[tuple[str, tuple[str, ...]]] = []
+    seen: set[tuple[str, tuple[str, ...]]] = set()
+    warnings: list[str] = []
+    for chains, expression in rows:
+        for combination in expand_expression(expression):
+            for chain in chains:
+                key = (chain, combination)
+                if key not in seen:
+                    seen.add(key)
+                    placements.append(key)
+    if not placements:
+        return AssemblyBuildResult(
+            ok=False, failure_reason=f"Assembly {assembly_id} names no chains to place."
+        )
+
+    # Resolve and compose. Everything that can refuse does so HERE, before
+    # a single line is written, so a failure leaves nothing half-built.
+    composed: dict[tuple[str, ...], Transform] = {}
+    for _chain, combination in placements:
+        if combination in composed:
+            continue
+        resolved: Transform | None = None
+        for operator_id in reversed(combination):  # the right-hand group goes first
+            operator = transforms.get(operator_id)
+            if operator is None:
+                declared = ", ".join(sorted(transforms)) or "none"
+                return AssemblyBuildResult(
+                    ok=False,
+                    failure_reason=(
+                        f"Assembly {assembly_id} references operator {operator_id!r}, which "
+                        f"is absent from this file's transformation list (it declares "
+                        f"{declared})."
+                    ),
+                )
+            try:
+                kind = operator.validate()
+            except AssemblyError as exc:
+                return AssemblyBuildResult(ok=False, failure_reason=str(exc))
+            if kind == "reflection":
+                warnings.append(
+                    f"Operator {operator_id} is a reflection (determinant -1). No deposit in "
+                    f"the reference corpus contains one, so this path is untested against "
+                    f"real data."
+                )
+            resolved = operator if resolved is None else compose(resolved, operator)
+        if resolved is None:
+            resolved = Transform("identity", ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)), (0.0, 0.0, 0.0))
+        composed[combination] = resolved
+
+    missing = sorted({chain for chain, _ in placements if chain not in by_chain})
+    if missing:
+        held = ", ".join(sorted(by_chain))
+        return AssemblyBuildResult(
+            ok=False,
+            failure_reason=(
+                f"Assembly {assembly_id} names chain(s) {', '.join(missing)}, which this file "
+                f"does not contain (it holds {held})."
+            ),
+        )
+
+    total_atoms = sum(len(by_chain[chain]) for chain, _ in placements)
+    if total_atoms > atom_limit:
+        return AssemblyBuildResult(
+            ok=False,
+            failure_reason=(
+                f"Assembly {assembly_id} would contain {total_atoms:,} atoms, over the "
+                f"{atom_limit:,} limit for docking preparation."
+            ),
+        )
+    if total_atoms > _PDB_MAX_SERIAL:
+        return AssemblyBuildResult(
+            ok=False,
+            failure_reason=(
+                f"Assembly {assembly_id} would contain {total_atoms:,} atoms, more than PDB's "
+                f"{_PDB_MAX_SERIAL:,} atom serial limit can express. Use the mmCIF form."
+            ),
+        )
+
+    # Chain names. **THE IDENTITY KEEPS THE DEPOSITED NAME**, so a saved
+    # docking box, an excluded chain and every existing reference still
+    # address exactly what they addressed before the build.
+    # A source chain keeps its deposited name for ONE of its placements:
+    # the identity if it has one, otherwise its first. Only the extra
+    # copies need invented names. Renaming a chain that is placed just
+    # once would break addressability for nothing -- 4EA3 places chain B
+    # only under a translation, and calling that `C` would mean somebody
+    # excluding "chain B" no longer finds it.
+    assigned: dict[tuple[str, tuple[str, ...]], str] = {}
+    keeps_name: dict[str, tuple[str, ...]] = {}
+    for chain, combination in placements:
+        if chain in keeps_name and not composed[combination].is_identity:
+            continue
+        if chain not in keeps_name or composed[combination].is_identity:
+            keeps_name[chain] = combination
+    for chain, combination in keeps_name.items():
+        assigned[(chain, combination)] = chain
+    spare = [c for c in _PDB_CHAIN_IDS if c not in set(by_chain)]
+    for key in placements:
+        if key in assigned:
+            continue
+        if not spare:
+            return AssemblyBuildResult(
+                ok=False,
+                failure_reason=(
+                    f"Assembly {assembly_id} needs more chain names than PDB's single column "
+                    f"can express ({len(placements)} copies against {len(_PDB_CHAIN_IDS)} "
+                    f"available names). Use the mmCIF form."
+                ),
+            )
+        assigned[key] = spare.pop(0)
+
+    # Header records survive verbatim apart from those dropped above.
+    # CRYST1 STAYS: it is genuine crystallographic metadata, and
+    # `pose_analysis.is_symmetry_generated` already removes the copies
+    # Open Babel invents -- they carry no residue record, and these do.
+    out: list[str] = [
+        line
+        for line in lines
+        if not line.startswith(("ATOM  ", "HETATM", "TER   ", "CONECT", "END"))
+        and not line.startswith(_DROPPED_PDB_RECORDS)
+    ]
+
+    serial = 0
+    serial_map: dict[tuple[str, tuple[str, ...], str], int] = {}
+    instances: list[AssemblyInstance] = []
+    blank3 = " " * 3
+    for chain, combination in placements:
+        transform = composed[combination]
+        new_chain = assigned[(chain, combination)]
+        instances.append(
+            AssemblyInstance(
+                source_chain=chain,
+                operator_id="x".join(combination) if combination else "identity",
+                generated_chain_id=new_chain,
+            )
+        )
+        for line in by_chain[chain]:
+            serial += 1
+            serial_map[(chain, combination, line[6:11].strip())] = serial
+            x, y, z = float(line[30:38]), float(line[38:46]), float(line[46:54])
+            nx, ny, nz = transform.apply(x, y, z)
+            out.append(
+                f"{line[:6]}{serial:>5}{line[11:21]}{new_chain}{line[22:30]}"
+                f"{nx:>8.3f}{ny:>8.3f}{nz:>8.3f}{line[54:]}"
+            )
+        serial += 1
+        out.append(f"TER   {serial:>5}      {blank3} {new_chain}")
+
+    # CONECT is REWRITTEN, not dropped: Open Babel perceives HETATM bonds
+    # from it, so losing it would silently change the cofactors and
+    # ligands in the receptor. 53 of 56 corpus deposits carry one.
+    for line in lines:
+        if not line.startswith("CONECT"):
+            continue
+        fields = [f for f in (line[i : i + 5].strip() for i in range(6, min(len(line), 31), 5)) if f]
+        if not fields:
+            continue
+        for chain, combination in placements:
+            mapped = [serial_map.get((chain, combination, field)) for field in fields]
+            if all(m is not None for m in mapped):
+                out.append("CONECT" + "".join(f"{m:>5}" for m in mapped))
+    out.append("END")
+
+    return AssemblyBuildResult(
+        ok=True,
+        output_text="\n".join(out) + "\n",
+        assembly_id=assembly_id,
+        instances=tuple(instances),
+        warnings=tuple(dict.fromkeys(warnings)),
+    )
+
+
+def build_assembly(
+    structure_text: str,
+    source_format: str,
+    assembly_id: str = PRIMARY_ASSEMBLY_ID,
+    atom_limit: int = DEFAULT_ATOM_LIMIT,
+) -> AssemblyBuildResult:
+    """The deposited biological assembly, as structure text.
+
+    Emits the SAME format it was handed, because `source_format` travels
+    with the text to Mol*, Open Babel and Vina alike.
+
+    Fails whole or not at all -- see `AssemblyBuildResult`. Every refusal
+    names what is wrong and where, because whoever reads it is looking at
+    a file they did not write.
+    """
+    annotation = parse_assembly(structure_text, source_format)
+    if not annotation.assemblies:
+        return AssemblyBuildResult(
+            ok=False, failure_reason="This file carries no biological assembly annotation."
+        )
+    if not any(a.assembly_id == assembly_id for a in annotation.assemblies):
+        declared = ", ".join(a.assembly_id for a in annotation.assemblies)
+        return AssemblyBuildResult(
+            ok=False,
+            failure_reason=(
+                f"This file declares no assembly {assembly_id!r} (it declares {declared})."
+            ),
+        )
+
+    rows = _generation_rows(structure_text, source_format, assembly_id)
+    if not rows:
+        return AssemblyBuildResult(
+            ok=False,
+            failure_reason=f"Assembly {assembly_id} carries no generation rows to build from.",
+        )
+    try:
+        transforms = operator_transforms(structure_text, source_format)
+    except AssemblyError as exc:
+        return AssemblyBuildResult(ok=False, failure_reason=str(exc))
+
+    if source_format in ("mmcif", "cif"):
+        return AssemblyBuildResult(
+            ok=False,
+            failure_reason=(
+                "Building from mmCIF is not implemented yet -- the PDB form of this "
+                "deposit can be built."
+            ),
+        )
+    return _build_pdb(structure_text, assembly_id, rows, transforms, atom_limit)
