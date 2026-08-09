@@ -961,33 +961,27 @@ class PropertyPanel(QWidget):
         the depth filter, evidence, limitations and export come along
         without this panel implementing any of it.
 
-        THIS ROW IS THE OPEN HALF OF THE PANEL-CLIPPING FIX, and the
-        container below is why. The label sits inside a `QWidget` so it
-        can share a row with the button, and `WrappedLabel`'s
-        height-for-width chain does not survive that container: the form
-        layout gives the row ONE LINE whatever the text. Live, a
-        seven-line elemental analysis renders as
-        `"Elemental Analysis: Formula:"` while the ALERT rows beside it,
-        whose labels sit directly in the field column, render all seven.
+THIS ROW IS THE OPEN HALF OF THE PANEL-CLIPPING FIX,
+        AND THE CAUSE IS WIDTH, NOT HEIGHT. Measured against an alert row
+        holding identical text in the same section, at a 300 px panel:
 
-        TWO FIXES WERE TRIED AND BOTH MADE IT WORSE OR NO BETTER. Do not
-        repeat them without reading the Known TODO:
+            widget                  width  minSizeH  hasHfW  hfw
+            alert label (field)       218        96    True   96
+            report field container    218       192    True   96
+            report label INSIDE       132        96    True   96
 
-        1. Teaching the container to delegate `hasHeightForWidth` /
-           `heightForWidth` / `minimumSizeHint` to its layout. No change
-           in the running app.
-        2. Removing the container -- label straight into the field
-           column, button on its own `addRow` beneath. The value did get
-           more text, and the section's rows then OVERLAPPED each other,
-           which is worse than one clean truncated line. A forced
-           relayout did not settle it, so it is not a repaint artefact.
+        Height-for-width propagates fine -- True everywhere, 96
+        everywhere, container included. The label is simply 132 px wide
+        against the alert's 218, because the QHBoxLayout gives 80 px to
+        the button plus spacing, and 132 cannot hold a line needing 200.
+        The minimum below is on the CONTAINER; the label's own is 0.
 
-        The remaining idea, untried: drop the second widget entirely and
-        carry "Details..." as a link at the end of the label's own text,
-        so the field column holds nothing but the `WrappedLabel` -- the
-        exact shape that already works for alerts. That means rich text,
-        which touches copy behaviour and `_without_glyphs`, so it is a
-        real change rather than a tweak.
+        THREE FIXES WERE TRIED AGAINST THE WRONG CAUSE and all failed --
+        delegating height-for-width from the container (no change),
+        removing the container with the button on its own row (rows
+        overlapped), and carrying "Details..." as a link in rich text
+        (still one line). Do not design a fourth around height. See the
+        Known TODO for the two width-based options and what each costs.
         """
         existing = self._report_labels.get(report_id)
         if existing is not None:

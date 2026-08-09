@@ -772,38 +772,44 @@ document may cite a file or a test that does not exist.
         value>=140, no panel min   10L    6L   10L    6L
         value>=200, panel>=280      6L    6L    6L    6L
 
-  **STILL OPEN: a REPORT row truncates to one line.** Those are the rows
-  with a "Details..." button, so the label sits inside a `QWidget`
-  container to share the row -- and the height-for-width chain
-  `WrappedLabel` depends on does not survive that container. Confirmed
-  live: a seven-line elemental analysis renders as
-  `"Elemental Analysis: Formula:"` and nothing else, while alert rows
-  beside it render all seven.
+  **STILL OPEN: a REPORT row truncates. THE CAUSE IS NOW MEASURED and
+  it is not what the first three attempts assumed.** Instrumenting an
+  alert row and a report row holding identical text in the same section,
+  at a 300 px panel:
 
-  **THREE FIXES HAVE BEEN TRIED AND NONE WORKS. Read this before a
-  fourth.** Each passed its tests and each was refuted by driving the
-  app; all three were reverted rather than shipped:
+        widget                  width  height  sizeHint  minSizeH  hasHfW  hfw
+        alert label (field)       218     182        96        96    True   96
+        report field container    218     182        96       192    True   96
+        report label INSIDE       132     182        96        96    True   96
 
-  1. Container delegates `hasHeightForWidth`/`heightForWidth`/
-     `minimumSizeHint` to its layout -- no change on screen.
-  2. Remove the container, "Details..." on its own `addRow` beneath --
-     the value gained text and the section's rows then OVERLAPPED each
-     other, which is worse than one clean truncated line. A forced
-     relayout did not settle it, so not a repaint artefact.
-  3. Remove the second widget entirely and carry "Details..." as a LINK
-     in the label's own rich text, so the field column holds exactly one
-     widget -- the shape that already works for alerts. Still one line
-     live. (That attempt also needs HTML-escaping the value and a plain
-     form for "Copy all", so it is not free even if it had worked.)
+  **Height-for-width propagates fine.** `hasHeightForWidth` is True on
+  every widget including the container, and `heightForWidth` returns 96
+  on all three. Nothing is swallowed, and the earlier claim in this file
+  that "the height-for-width chain does not survive the container" was
+  simply WRONG -- three structural fixes were designed against it, which
+  is why none of them worked.
 
-  So **the container is not the whole story**, and whatever differs from
-  an alert row has not been identified. The next person should
-  INSTRUMENT rather than try a fourth structural variant: log what the
-  form layout actually asks the field for -- `sizeHint`,
-  `minimumSizeHint`, `hasHeightForWidth`, `heightForWidth` at the real
-  width -- on an alert row and a report row side by side, and find where
-  the two diverge. Three guesses have cost more than one measurement
-  would have.
+  The real cause is WIDTH. The report label is 132 px against the alert's
+  218, because the `QHBoxLayout` gives 80 px to "Details..." plus
+  spacing: 218 - 86 = 132, and 132 px cannot hold a line needing ~200.
+  The 200 px minimum is on the CONTAINER (`minimumWidth` 200) and the
+  label's own is **0**, so nothing stops the squeeze.
+
+  Two ways out, and both have a measured cost:
+
+  - **Put the minimum on the LABEL.** The container's minimum then
+    becomes 200 + 80 + spacing = 286, and the content must fit the
+    viewport, which is the panel minus 24 px of scrollbar and frame. So
+    `_PANEL_MIN_WIDTH` would have to rise from 280 to about 330 -- wide
+    for a side dock, and a real imposition on somebody's layout.
+  - **Move "Details..." out of the row**, so the label is the only thing
+    in the field column and inherits the alert row's behaviour exactly.
+    Attempts 2 and 3 both tried placements for it and both regressed
+    something else, so this needs a placement nobody has tried rather
+    than a repeat.
+
+  Whichever is chosen, **the height was never the problem** and any fix
+  framed around it will fail as the first three did.
 
   Two measurement traps paid for here, both general:
 
