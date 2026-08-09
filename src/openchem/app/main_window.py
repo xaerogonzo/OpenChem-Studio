@@ -26,7 +26,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from openchem.chem.calculation_input import canonical_conformer
 from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
 from openchem.chem.identifiers import identifier_for_molblock
@@ -44,7 +43,7 @@ from openchem.commands.project_commands import OpenProjectCommand, SaveProjectCo
 from openchem.domain.crystal import CrystalModel
 from openchem.domain.macromolecule import MacromoleculeModel
 from openchem.domain.molecule import MoleculeModel
-from openchem.domain.calculator import RegistryExecution
+from openchem.domain.calculator import GEOMETRY, RegistryExecution
 from openchem.domain.project import ProjectModel
 from openchem.events.events import (
     CrystalSelected,
@@ -1765,19 +1764,22 @@ class MainWindow(QMainWindow):
         # undo, and after ConformersInvalidated's own ConformersChanged
         # (EditStructureCommand) -- one handler covers "conformers just
         # appeared," "conformer generation was undone," and "structure
-        # edited, conformers cleared" alike. Shape descriptors (Phase 10a)
-        # need a real 3D conformer, not the flat 2D molblock, to compute for
-        # real (see Phase 14b) -- RDKitConformerProvider sorts its results
-        # ascending by energy (Phase 14c), so conformers[0] is the best one
-        # to use when one exists; falling back to the plain molblock when
-        # the list is empty naturally reverts descriptors to "needs a
-        # conformer."
+        # edited, conformers cleared" alike. Shape descriptors need a real
+        # 3D conformer rather than the flat 2D molblock to compute for
+        # real, which is what `GEOMETRY` asks for.
+        #
+        # ASKS FOR A POLICY, DOES NOT PICK A STRUCTURE. This used to call
+        # `canonical_conformer(molecule)` and pass `.molblock` -- half of
+        # `select_calculation_input`, reimplemented here, without its
+        # validation: an unparseable conformer took every descriptor down
+        # as FAILED instead of falling back to the drawing, and a stored
+        # conformer that was not actually 3D was used anyway. With no
+        # conformers `GEOMETRY` returns the drawing, so this still reverts
+        # to "needs a conformer" exactly as before.
         molecule = self._current_molecule()
         if molecule is None or molecule.uuid != event.molecule_uuid:
             return
-        best = canonical_conformer(molecule)
-        best_molblock = best.molblock if best is not None else None
-        self._services.descriptor_service.request_descriptors(molecule, molblock=best_molblock)
+        self._services.descriptor_service.request_descriptors(molecule, GEOMETRY)
         self._publish_molecule_snapshot(molecule)
 
     def _on_quantum_chemistry_result_ready(self, event: QuantumChemistryResultReady) -> None:

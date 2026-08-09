@@ -231,6 +231,29 @@ class _Driver:
         self._window.grab().save(str(path))
         logger.warning("OPENCHEM_DRIVE: wrote %s", path)
 
+    def _do_conformers(self, step: dict[str, Any]) -> None:
+        """Generate conformers through the real service.
+
+        Goes through `ConformerService`, so the whole chain a user gets
+        runs: the service publishes `ConformersReady`, `MainWindow` pushes
+        `SetConformersCommand`, that publishes `ConformersChanged`, and
+        the descriptor request follows. That chain is the reason this step
+        exists -- it is the only route to the `GEOMETRY` descriptor path,
+        and nothing shorter exercises it.
+        """
+        window = self._window
+        molecule = window._session.project.find_molecule(
+            window._property_panel._selected_molecule_uuid
+        )
+        if molecule is None:
+            logger.error("OPENCHEM_DRIVE: no molecule selected for conformers")
+            return
+        window._services.conformer_service.request_conformers(
+            molecule,
+            num_conformers=int(step.get("count", 3)),
+            optimize=bool(step.get("optimize", True)),
+        )
+
     def _do_dump(self, step: dict[str, Any]) -> None:
         """Dump the Properties panel's row geometry to the log.
 

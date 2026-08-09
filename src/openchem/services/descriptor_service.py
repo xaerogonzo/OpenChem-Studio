@@ -9,7 +9,7 @@ from PySide6.QtCore import QRunnable, QThreadPool
 from openchem.chem.calculation_input import geometry_provenance, select_calculation_input
 from openchem.chem.descriptor_providers import DescriptorProvider, RDKitDescriptorProvider
 from openchem.chem.engine import ChemistryEngine
-from openchem.domain.calculator import CalculationRequest
+from openchem.domain.calculator import DRAWING, CalculationRequest
 from openchem.domain.common import CacheState
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.molecule import MoleculeModel
@@ -53,24 +53,23 @@ class _DescriptorComputeTask(QRunnable):
         engine: ChemistryEngine,
         model: MoleculeModel,
         event_bus: EventBus,
-        molblock: str | None = None,
+        calculation_input: str = DRAWING,
     ) -> None:
         super().__init__()
         self._provider = provider
         self._engine = engine
         self._model = model
         self._event_bus = event_bus
-        # Overrides `model.molblock` (the flat 2D structure) when given --
-        # e.g. a conformer's molblock, so shape descriptors see a real 3D
-        # structure. See DescriptorService.request_descriptors.
-        self._molblock = molblock
+        # WHICH STRUCTURE, stated as a POLICY rather than handed in as a
+        # resolved molblock. See DescriptorService.request_descriptors.
+        self._calculation_input = calculation_input
 
     def run(self) -> None:
         categories = self._provider.descriptor_categories()
         for descriptor_id in self._provider.descriptor_ids():
             self._publish(descriptor_id, CacheState.RUNNING, category=categories.get(descriptor_id, ""))
         try:
-            mol = self._engine.mol_from_molblock(self._molblock or self._model.molblock)
+            mol = select_calculation_input(self._engine, self._model, self._calculation_input)
             values = self._provider.compute(mol, self._model.uuid)
         except Exception as exc:  # noqa: BLE001 - a bad provider must not kill the pool
             logger.exception("Descriptor provider %s failed", self._provider.provider_id)
@@ -292,14 +291,35 @@ class DescriptorService:
     def unregister_provider(self, provider_id: str) -> None:
         self._providers = [p for p in self._providers if p.provider_id != provider_id]
 
-    def request_descriptors(self, model: MoleculeModel, molblock: str | None = None) -> None:
-        """Computes descriptors for `model`. `molblock`, when given,
-        overrides `model.molblock` for this request only (e.g. a
-        conformer's molblock, so shape descriptors that need a real 3D
-        structure see one) -- the descriptors are still stamped with
-        `model.uuid` either way."""
-        if not model.molblock and molblock is None:
-            # A freshly-created molecule with no structure yet can't produce
+    def request_descriptors(self, model: MoleculeModel, calculation_input: str = DRAWING) -> None:
+        """Computes descriptors for `model` against `calculation_input`.
+
+        **SAY WHICH STRUCTURE YOU WANT, DO NOT RESOLVE ONE AND HAND IT
+        OVER.** This used to take a raw `molblock` override, and the only
+        production caller built it by doing half of
+        `select_calculation_input` inline -- `canonical_conformer(model)`
+        then `.molblock` -- which is exactly the duplication
+        `chem/calculation_input.py` exists to end. The sibling path
+        (`run_calculator`, 100 lines up) had already moved.
+
+        It is not only tidier, and the difference is what the caller's
+        copy left out:
+
+        - a conformer whose molblock will not parse now falls back to the
+          drawing with a log line, where before it raised and took every
+          descriptor from that provider down with it as FAILED;
+        - a stored conformer that is not actually 3D is refused, because
+          a 2D molblock parses into a conformer with flat z, so
+          `GetNumConformers() > 0` is true and useless as a check.
+
+        `DRAWING` is the default and is byte-for-byte the old
+        no-override behaviour: `mol_from_model` is
+        `mol_from_molblock(model.molblock)` with a clearer error when
+        there is none.
+        """
+        if not model.molblock and not model.conformers:
+            # No structure of ANY kind -- neither a drawing nor a
+            # conformer. A freshly-created molecule can't produce
             # descriptors -- publishing QUEUED/FAILED for it would just show
             # a permanent "failed" row in the Properties panel before the
             # user has drawn anything. Silently do nothing instead; a real
@@ -323,4 +343,6 @@ class DescriptorService:
                         )
                     )
                 )
-            self._pool.start(_DescriptorComputeTask(provider, self._engine, model, self._event_bus, molblock))
+            self._pool.start(
+                _DescriptorComputeTask(provider, self._engine, model, self._event_bus, calculation_input)
+            )

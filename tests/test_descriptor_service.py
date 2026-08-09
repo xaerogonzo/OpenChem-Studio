@@ -4,8 +4,14 @@ from PySide6.QtCore import QThreadPool
 
 from openchem.chem.conformer_providers import RDKitConformerProvider
 from openchem.chem.engine import ChemistryEngine
-from openchem.domain.calculator import CalculationRequest, CalculatorDefinition, RegistryExecution
+from openchem.domain.calculator import (
+    GEOMETRY,
+    CalculationRequest,
+    CalculatorDefinition,
+    RegistryExecution,
+)
 from openchem.domain.common import CacheState
+from openchem.domain.conformer import ConformerModel
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.scientific_result import AlertResult, PerAtomDataset
 from openchem.events.base import EventBus
@@ -138,12 +144,16 @@ def test_queued_and_running_placeholders_carry_the_real_category(qapp):
     assert categories_seen["num_rotatable_bonds"] == {"topology"}
 
 
-def test_request_descriptors_with_molblock_override_uses_the_given_structure(qapp):
-    """Shape descriptors need a real 3D conformer (Is3D()) -- passing a
-    conformer's molblock as an override (rather than the flat 2D
-    model.molblock) is what lets them compute for real instead of
-    permanently reporting "needs a conformer" (see MainWindow's
-    _on_conformers_changed, Phase 14b)."""
+def test_requesting_GEOMETRY_computes_against_the_conformer(qapp):
+    """Shape descriptors need a real 3D conformer (Is3D()) -- asking for
+    GEOMETRY is what lets them compute for real instead of permanently
+    reporting "needs a conformer" (see MainWindow's
+    _on_conformers_changed).
+
+    The caller used to resolve the conformer itself and hand over a raw
+    molblock. It now states the policy and `select_calculation_input`
+    owns the choice, the validation and the fallback -- one selector for
+    this path and for `run_calculator`, which had already moved."""
     bus = EventBus()
     engine = ChemistryEngine()
     service = DescriptorService(bus, engine)
@@ -155,7 +165,9 @@ def test_request_descriptors_with_molblock_override_uses_the_given_structure(qap
     conformer_mol, _energy = RDKitConformerProvider().generate_conformers(
         engine.mol_from_model(model), num_conformers=1, optimize=False
     )[0]
-    conformer_molblock = engine.mol_to_molblock(conformer_mol)
+    model.conformers.append(
+        ConformerModel(molblock=engine.mol_to_molblock(conformer_mol), energy=-1.0)
+    )
 
     completed_values: dict[str, object] = {}
     completed_states: dict[str, CacheState] = {}
@@ -166,12 +178,12 @@ def test_request_descriptors_with_molblock_override_uses_the_given_structure(qap
             completed_states[event.descriptor.descriptor_id] = event.descriptor.cache_state
 
     bus.subscribe(DescriptorComputed, handler)
-    service.request_descriptors(model, molblock=conformer_molblock)
+    service.request_descriptors(model, GEOMETRY)
     _drain(qapp)
 
     assert completed_states["radius_of_gyration"] == CacheState.COMPLETED
     assert isinstance(completed_values["radius_of_gyration"], float)
-    # The override is request-scoped -- model.molblock itself is untouched.
+    # Request-scoped -- the drawing itself is untouched.
     assert model.molblock == original_molblock
 
 
@@ -405,3 +417,41 @@ def test_run_calculator_end_to_end_with_the_real_charge_at_ph_calculator(qapp):
     assert datasets[0].cache_state == CacheState.COMPLETED
     assert datasets[0].property_id == "gasteiger_charge_at_ph"
     assert len(datasets[0].values) > 0
+
+
+def test_an_unusable_conformer_falls_back_instead_of_failing_every_descriptor(qapp):
+    """What the caller's inline copy left out.
+
+    It resolved `canonical_conformer(model).molblock` and handed the
+    string over, so a conformer that would not parse raised inside the
+    task and took EVERY descriptor from that provider down as FAILED.
+    `select_calculation_input` logs it and computes on the drawing, which
+    is the answer the user can still use.
+    """
+    bus = EventBus()
+    engine = ChemistryEngine()
+    service = DescriptorService(bus, engine)
+
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "CCO")
+    model.conformers.append(ConformerModel(molblock="not a molblock at all", energy=-1.0))
+
+    states: dict[str, CacheState] = {}
+
+    def handler(event: DescriptorComputed) -> None:
+        if event.descriptor.cache_state in (CacheState.COMPLETED, CacheState.FAILED):
+            states[event.descriptor.descriptor_id] = event.descriptor.cache_state
+
+    bus.subscribe(DescriptorComputed, handler)
+    service.request_descriptors(model, GEOMETRY)
+    _drain(qapp)
+
+    # The whole provider used to go down together. The descriptors that
+    # need no geometry must survive an unusable conformer.
+    assert states["mol_wt"] == CacheState.COMPLETED
+    assert states["formula"] == CacheState.COMPLETED
+    # The SHAPE descriptors still fail, and that is correct rather than a
+    # weaker result: falling back to the drawing means there is genuinely
+    # no 3D geometry, and `GEOMETRY` means prefer, not require. They say
+    # "needs a conformer", which is the honest answer.
+    assert states["radius_of_gyration"] == CacheState.FAILED
