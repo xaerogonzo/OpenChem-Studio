@@ -381,13 +381,39 @@ class VinaDockingProvider(DockingProvider):
         `filter_altlocs` and `is_stripped_residue` both exist to prevent.
 
         5KIR is the one that does not match exactly: +579 against +574,
-        five hydrogens. That residual is NOT this. The two formats differ
-        by 4 BONDS there (18,303 against 18,307), all in its NAG/MAN
-        glycan chains, so mmCIF leaves four glycosidic linkages unformed
-        and the freed oxygens ask for hydrogens -- Open Babel reads PDB
-        `CONECT` records and evidently not mmCIF's `_struct_conn`
-        equivalent. Recorded rather than fixed here, so nobody
-        re-attributes it to hydrogens.
+        five hydrogens. That residual is NOT this -- the two formats
+        disagree about six BONDS there, and the hydrogens follow. Named
+        atom by atom, because an earlier version of this paragraph
+        inferred the cause instead of measuring it and got it wrong:
+
+            in PDB only    NAG1 C  O4 -- NAG2 C  C1     1.442 A
+                           NAG2 C  O4 -- MAN3 C  C1     1.447 A
+                           NAG1 D  O4 -- NAG2 D  C1     1.436 A
+                           NAG2 D  O4 -- MAN3 D  C1     1.456 A
+                           NAG606 A C6 -- NAG606 A O6   1.422 A
+            in mmCIF only  GLU416 A OE1 -- NAG606 A O6  1.270 A
+
+        So the mmCIF arm both MISSES four real glycosidic linkages and
+        INVENTS one bond that cannot exist -- two oxygens 1.270 A apart,
+        shorter than a peroxide -- and that false bond displaces the real
+        C6-O6 it competes with. The coordinates are identical in both
+        files; only the perception differs.
+
+        **The blanket claim that Open Babel ignores mmCIF connectivity is
+        WRONG, and disulfides are the counter-example.** Every S-S pair
+        within 2.5 A is bonded in BOTH formats, including all ten of
+        5KIR's own -- checked against the geometry rather than against the
+        bond list, on eight deposits:
+
+            4EY7 6/6   2RH1 2/2   4DKL 1/1   5KIR 10/10
+            1ERE, 3HS4, 8ZYO, 1HSG have none, and both formats agree
+
+        Distance-based perception finds a disulfide regardless, so what
+        the two readers disagree about is the cases distance alone gets
+        wrong. **The mechanism is NOT established** and is deliberately
+        not guessed at here; the six bonds above are what was measured.
+        Recorded rather than fixed -- it is Open Babel's perception, not
+        ours -- so nobody re-attributes it to hydrogens.
         """
         from openbabel import openbabel as ob
 

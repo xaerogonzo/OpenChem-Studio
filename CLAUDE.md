@@ -1938,10 +1938,27 @@ the mutation survived. The attachment has to be to a nitrogen, where the
 freed hydrogen is polar and appears as its own `HD` line.
 
 5KIR is the one deposit that still differs, by 5 hydrogens in ~18,700,
-and the cause is named rather than absorbed: its two formats differ by 4
-BONDS in the NAG/MAN glycan chains, so mmCIF leaves four glycosidic
-linkages unformed. Open Babel reads PDB `CONECT` records and evidently
-not mmCIF's `_struct_conn` equivalent.
+and the bonds behind it are named atom by atom in
+`_assign_implicit_hydrogens`. The mmCIF arm misses four real glycosidic
+linkages AND invents one bond that cannot exist -- two oxygens 1.270 A
+apart, shorter than a peroxide -- which displaces the real C6-O6 it
+competes with. Same coordinates in both files; only the perception
+differs.
+
+**"Open Babel ignores mmCIF connectivity" is WRONG, and disulfides are
+the counter-example.** That was written here as a fact on the strength of
+the glycan result alone, and measuring it killed it: every S-S pair
+within 2.5 A is bonded in BOTH formats, including all ten of 5KIR's own,
+checked against the geometry rather than against the bond list across
+eight deposits. Distance perception finds a disulfide regardless. What
+the two readers disagree about is the cases distance alone gets wrong,
+and **the mechanism is not established** -- which is the honest state,
+and better than the tidy explanation that was there before.
+
+The lesson is the file's own: a residual explained by inference is not
+explained. The glycan observation was real; the sentence generalising it
+to `_struct_conn` was invented, and it survived review because it sounded
+like a mechanism.
 
 ##### A mutation that ADDS a call is not a mutation that MOVES it
 
