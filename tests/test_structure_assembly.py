@@ -10,6 +10,8 @@ constructs that broke on the way there, pinned as fixtures.
 
 from __future__ import annotations
 
+import pytest
+
 from openchem.chem.structure_assembly import (
     AssemblyAnnotation,
     BiologicalAssembly,
@@ -161,3 +163,150 @@ def test_no_annotation_claims_nothing_is_surplus():
 
     assert empty.primary is None
     assert empty.extra_chains(["A", "B"]) == ()
+
+
+# --- transformations -------------------------------------------------------
+#
+# The annotation half of this module only ever COUNTED operators. These
+# cover reading them, which is what a builder needs.
+
+_NON_COMMUTING_CIF = """\
+data_TEST
+loop_
+_pdbx_struct_oper_list.id
+_pdbx_struct_oper_list.matrix[1][1]
+_pdbx_struct_oper_list.matrix[1][2]
+_pdbx_struct_oper_list.matrix[1][3]
+_pdbx_struct_oper_list.vector[1]
+_pdbx_struct_oper_list.matrix[2][1]
+_pdbx_struct_oper_list.matrix[2][2]
+_pdbx_struct_oper_list.matrix[2][3]
+_pdbx_struct_oper_list.vector[2]
+_pdbx_struct_oper_list.matrix[3][1]
+_pdbx_struct_oper_list.matrix[3][2]
+_pdbx_struct_oper_list.matrix[3][3]
+_pdbx_struct_oper_list.vector[3]
+A 0.0 -1.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0
+B 1.0 0.0 0.0 0.0 0.0 0.0 -1.0 0.0 0.0 1.0 0.0 0.0
+#
+"""
+
+
+def test_operator_expression_composition_order_is_right_to_left():
+    """`(A)(B)` applies B FIRST. Asserted against non-commuting rotations.
+
+    mmCIF defines a product expression so that the right-hand group is
+    applied first. The count this module already published is
+    order-independent, so nothing before now could catch the order being
+    wrong -- and composing the other way round produces a perfectly
+    plausible assembly in the wrong place.
+
+    A is +90 degrees about z, B is +90 degrees about x, and they do not
+    commute. Hand-calculated for the point (1, 2, 3):
+
+        B(p)        = (1, -3, 2)
+        A(B(p))     = (3, 1, 2)     <- (A)(B), the correct reading
+        A(p)        = (-2, 1, 3)
+        B(A(p))     = (-2, -3, 1)   <- the transposed reading
+
+    A test using two rotations about the same axis would pass either way,
+    which is the whole reason these were chosen.
+    """
+    from openchem.chem.structure_assembly import compose, expand_expression, operator_transforms
+
+    transforms = operator_transforms(_NON_COMMUTING_CIF, "mmcif")
+    a, b = transforms["A"], transforms["B"]
+
+    assert b.apply(1, 2, 3) == pytest.approx((1, -3, 2))
+    assert a.apply(1, 2, 3) == pytest.approx((-2, 1, 3))
+
+    # The expression is written left-to-right...
+    assert expand_expression("(A)(B)") == [("A", "B")]
+    # ...and composed right-to-left, so B moves the point first.
+    outer, inner = transforms["A"], transforms["B"]
+    assert compose(outer, inner).apply(1, 2, 3) == pytest.approx((3, 1, 2))
+    # The other order is a different, equally plausible-looking answer.
+    assert compose(inner, outer).apply(1, 2, 3) == pytest.approx((-2, -3, 1))
+
+
+def test_a_wrapped_oper_list_row_is_not_silently_dropped():
+    """A loop body is a TOKEN STREAM, not one row per line.
+
+    `_loop_rows` required `len(tokens) == len(names)` on a single physical
+    line, so a row wrapped across two lines failed the test and vanished.
+    1A34 writes all 60 of its operator rows that way: the category came
+    back EMPTY for a 60-operator entry, silently, which is the same shape
+    as the 4PE5 case this module already records.
+    """
+    from openchem.chem.structure_assembly import operator_transforms
+
+    wrapped = _NON_COMMUTING_CIF.replace(
+        "A 0.0 -1.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0",
+        "A 0.0 -1.0 0.0 0.0 1.0 0.0\n0.0 0.0 0.0 0.0 1.0 0.0",
+    )
+    assert len(operator_transforms(wrapped, "mmcif")) == 2
+    assert operator_transforms(wrapped, "mmcif")["A"].apply(1, 2, 3) == pytest.approx((-2, 1, 3))
+
+
+def test_an_operator_id_is_a_label_not_a_number():
+    """1A34 uses `P` and `X0` beside `1`..`60`. Only a RANGE is numeric."""
+    from openchem.chem.structure_assembly import expand_expression
+
+    assert expand_expression("X0") == [("X0",)]
+    assert expand_expression("P,X0") == [("P",), ("X0",)]
+    assert expand_expression("(X0)(1-3)") == [("X0", "1"), ("X0", "2"), ("X0", "3")]
+
+
+def test_the_enumerator_and_the_shipped_count_agree():
+    """`operator_applications` is published behaviour and must not drift.
+
+    The enumerator replaces the counter, so the count has to remain the
+    length of what it enumerates -- for every expression shape the corpus
+    contains, including the product with a non-numeric id.
+    """
+    from openchem.chem.structure_assembly import _count_operators, expand_expression
+
+    for expression in ["1", "1,2,3", "1-60", "(1-60)", "(1-5)", "(X0)(1-10,21-25)", "", "?", "."]:
+        assert len(expand_expression(expression)) == _count_operators(expression), expression
+
+
+def test_a_matrix_that_is_not_a_rotation_is_refused_by_name():
+    """Scaling and shearing are not rigid-body placements, and the message
+    has to say which operator and why -- somebody is looking at a file
+    they did not write."""
+    from openchem.chem.structure_assembly import AssemblyError, operator_transforms
+
+    scaled = _NON_COMMUTING_CIF.replace(
+        "B 1.0 0.0 0.0 0.0 0.0 0.0 -1.0 0.0 0.0 1.0 0.0 0.0",
+        "B 2.0 0.0 0.0 0.0 0.0 2.0 0.0 0.0 0.0 0.0 2.0 0.0",
+    )
+    with pytest.raises(AssemblyError) as raised:
+        operator_transforms(scaled, "mmcif")["B"].validate()
+    assert "B" in str(raised.value)
+
+
+def test_a_reflection_is_reported_rather_than_refused():
+    """**No deposit in the corpus contains one**, so this branch is
+    untested against real data and says so. Detected rather than refused
+    because absence in one corpus is not proof the format forbids it, and
+    refusing an operator a depositor wrote is the worse mistake."""
+    from openchem.chem.structure_assembly import operator_transforms
+
+    reflected = _NON_COMMUTING_CIF.replace(
+        "B 1.0 0.0 0.0 0.0 0.0 0.0 -1.0 0.0 0.0 1.0 0.0 0.0",
+        "B -1.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 1.0 0.0",
+    )
+    assert operator_transforms(reflected, "mmcif")["B"].validate() == "reflection"
+
+
+def test_pdb_biomt_needs_all_three_rows():
+    """A matrix missing a row is a broken record, not a 2-D rotation."""
+    from openchem.chem.structure_assembly import AssemblyError, operator_transforms
+
+    truncated = (
+        "REMARK 350   BIOMT1   2 -1.000000  0.000000  0.000000      -70.88200\n"
+        "REMARK 350   BIOMT2   2  0.000000  1.000000  0.000000        0.00000\n"
+    )
+    with pytest.raises(AssemblyError) as raised:
+        operator_transforms(truncated, "pdb")
+    assert "BIOMT" in str(raised.value)
