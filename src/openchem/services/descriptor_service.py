@@ -121,12 +121,22 @@ class _DescriptorComputeTask(QRunnable):
 def _with_geometry_provenance(result, model: MoleculeModel, calculation_input: str):
     """`result` with which-geometry-was-used merged into its provenance.
 
-    Additive and non-destructive: the calculator's own parameters win on
-    a key collision, since it knows what it computed and this only knows
-    what it was computed ON. A result whose provenance cannot be replaced
-    (no `provenance` field, or a shape that will not take it) is returned
-    untouched -- recording where a number came from must never be able to
-    lose the number.
+    THE KEYS DO NOT COLLIDE BY CONSTRUCTION -- `geometry_provenance`
+    prefixes all of its own (see `INPUT_PREFIX`), because this layer
+    records what a calculator was HANDED while the calculator records
+    what it DID, and the two want the same words. Two really did collide
+    before the prefix: `steric_analysis.geometry_source` and
+    `molecular_dynamics.force_field`.
+
+    The calculator still wins on any collision that somehow remains --
+    it knows what it computed and this only knows what it was computed
+    ON -- but that is now a safety net rather than the mechanism, and
+    `test_no_calculator_provenance_key_collides_with_the_routing_layer`
+    fails if it ever becomes load-bearing again.
+
+    A result whose provenance cannot be replaced (no `provenance` field,
+    or a shape that will not take it) is returned untouched -- recording
+    where a number came from must never be able to lose the number.
     """
     provenance = getattr(result, "provenance", None)
     if provenance is None:

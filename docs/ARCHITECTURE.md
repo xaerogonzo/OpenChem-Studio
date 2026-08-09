@@ -733,10 +733,26 @@ document may cite a file or a test that does not exist.
   number -- correct arithmetic on the wrong object, the same shape as the
   40619 kcal/mol interaction energy.
 
-  Each result now records `geometry_source`, `conformer_id` and
-  `conformer_index`. The ID, not only the index: index 0 today is index 3
-  after the next regeneration, so a result citing a position cannot be
-  traced back to a geometry.
+  Each result now records `input_source`, `input_conformer_id` and
+  `input_conformer_index`. The ID, not only the index: index 0 today is
+  index 3 after the next regeneration, so a result citing a position
+  cannot be traced back to a geometry.
+
+  **The `input_` prefix is a collision fix, not a style choice.** These
+  keys merge into a provenance the CALCULATOR also writes, and the two
+  describe different things in the same words -- this layer records what
+  a calculator was HANDED, the calculator records what it DID.
+  Unprefixed, two of the 49 collided silently, the calculator's value
+  winning and the routing layer's simply vanishing:
+
+        steric_analysis     geometry_source = "free_ligand_mmff"
+        molecular_dynamics  force_field     = "MMFF94"
+
+  Neither is wrong; both wanted the same words for a different thing.
+  Only the first was found by reading the code -- the second came out of
+  a sweep over every calculator, which is why
+  `test_no_calculator_provenance_key_collides_with_the_routing_layer`
+  iterates the whole registry rather than the names anybody noticed.
 - **OPEN** -- the Properties panel CLIPS long result values. Confirmed
   from the running app: Functional Groups, BBB Score Descriptors and CNS
   MPO Score each show about two and a half lines of a six-line value,

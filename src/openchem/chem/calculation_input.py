@@ -100,8 +100,37 @@ def select_calculation_input(
     return engine.mol_from_model(model)
 
 
+#: Every key `geometry_provenance` adds carries this prefix.
+#:
+#: **IT IS NOT COSMETIC.** These keys are merged into a provenance the
+#: CALCULATOR also writes, and the two describe different things that
+#: want the same words: this layer records what the calculator was
+#: HANDED, the calculator records what it DID. Unprefixed, two collided
+#: on the 49 registered calculators:
+#:
+#:     steric_analysis     geometry_source = "free_ligand_mmff"
+#:                         (how its cone-angle scan built its OWN
+#:                          conformers, not which stored one it was given)
+#:     molecular_dynamics  force_field = "MMFF94"
+#:                         (what it ran the trajectory with, not what the
+#:                          conformer was minimised with)
+#:
+#: Only one of those was found by reading the code; the other came out of
+#: a sweep over every calculator, which is why the guard in
+#: `tests/test_calculation_input.py` iterates the whole registry rather
+#: than checking the names anybody happened to notice.
+#:
+#: Prefixing rather than renaming case by case means a calculator may use
+#: any parameter name it likes without this layer having to know.
+INPUT_PREFIX = "input_"
+
+
 def geometry_provenance(model: MoleculeModel, calculation_input: str) -> dict[str, object]:
     """What to record about which geometry a result was computed on.
+
+    Every key is prefixed (see `INPUT_PREFIX`) because these are merged
+    into the calculator's own provenance and the two vocabularies
+    overlap.
 
     THE ID, NOT ONLY THE INDEX. Index 0 today is index 3 tomorrow -- the
     list is re-sorted whenever conformers are regenerated -- so a result
@@ -110,14 +139,19 @@ def geometry_provenance(model: MoleculeModel, calculation_input: str) -> dict[st
     "conformer 1 of 23" is how a person will describe it.
     """
     if calculation_input != GEOMETRY:
-        return {"geometry_source": "drawing"}
+        return {f"{INPUT_PREFIX}source": "drawing"}
     conformer = canonical_conformer(model)
     if conformer is None:
-        return {"geometry_source": "drawing", "geometry_reason": "no conformer available"}
+        return {
+            f"{INPUT_PREFIX}source": "drawing",
+            f"{INPUT_PREFIX}reason": "no conformer available",
+        }
     return {
-        "geometry_source": "automatic_lowest_energy",
-        "conformer_id": conformer.conformer_id,
-        "conformer_index": model.conformers.index(conformer),
-        "conformer_energy": conformer.energy,
-        "force_field": (conformer.provenance.parameters.get("force_field") if conformer.provenance else None),
+        f"{INPUT_PREFIX}source": "automatic_lowest_energy",
+        f"{INPUT_PREFIX}conformer_id": conformer.conformer_id,
+        f"{INPUT_PREFIX}conformer_index": model.conformers.index(conformer),
+        f"{INPUT_PREFIX}conformer_energy": conformer.energy,
+        f"{INPUT_PREFIX}force_field": (
+            conformer.provenance.parameters.get("force_field") if conformer.provenance else None
+        ),
     }

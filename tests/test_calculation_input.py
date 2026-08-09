@@ -229,18 +229,90 @@ def test_provenance_names_the_conformer_by_id_not_only_by_position():
     ]
     model = _model(conformers)
     recorded = geometry_provenance(model, GEOMETRY)
-    assert recorded["geometry_source"] == "automatic_lowest_energy"
-    assert recorded["conformer_id"] == conformers[1].conformer_id
-    assert recorded["conformer_index"] == 1
-    assert recorded["conformer_energy"] == -4.0
+    assert recorded["input_source"] == "automatic_lowest_energy"
+    assert recorded["input_conformer_id"] == conformers[1].conformer_id
+    assert recorded["input_conformer_index"] == 1
+    assert recorded["input_conformer_energy"] == -4.0
 
 
 def test_provenance_says_drawing_when_that_is_what_was_used():
     model = _model()
-    assert geometry_provenance(model, DRAWING)["geometry_source"] == "drawing"
+    assert geometry_provenance(model, DRAWING)["input_source"] == "drawing"
     without = geometry_provenance(model, GEOMETRY)
-    assert without["geometry_source"] == "drawing"
-    assert "no conformer" in without["geometry_reason"]
+    assert without["input_source"] == "drawing"
+    assert "no conformer" in without["input_reason"]
+
+
+def test_every_routing_provenance_key_is_prefixed():
+    """The prefix is the collision fix, so it has to hold for every key
+    this layer emits -- including the two only reachable on the
+    no-conformer path, which a happy-path test never sees.
+
+    ASSERTS THE PREFIX IS NON-EMPTY FIRST, and that line is not
+    ceremony: `"anything".startswith("")` is True, so an empty
+    `INPUT_PREFIX` makes the loop below pass vacuously. Caught by
+    mutation -- setting the constant to `""` left this test green while
+    the collision guard correctly failed.
+    """
+    from openchem.chem.calculation_input import INPUT_PREFIX
+
+    assert INPUT_PREFIX, "an empty prefix makes every key below pass trivially"
+
+    emitted = set()
+    emitted |= set(geometry_provenance(_model(), DRAWING))
+    emitted |= set(geometry_provenance(_model(), GEOMETRY))
+    emitted |= set(
+        geometry_provenance(_model([ConformerModel(molblock=_conformer_molblock(1), energy=1.0)]), GEOMETRY)
+    )
+    assert emitted, "nothing was emitted -- the check would be vacuous"
+    unprefixed = sorted(k for k in emitted if not k.startswith(INPUT_PREFIX))
+    assert not unprefixed, f"routing keys must be namespaced: {unprefixed}"
+
+
+def test_no_calculator_provenance_key_collides_with_the_routing_layer():
+    """Iterates the WHOLE REGISTRY, not the names anybody noticed.
+
+    Two calculators collided before the prefix and only one was found by
+    reading the code -- `steric_analysis` wrote `geometry_source` meaning
+    how its cone-angle scan built its own conformers, and
+    `molecular_dynamics` wrote `force_field` meaning what it ran the
+    trajectory with. Neither is wrong; both wanted the same words for a
+    different thing. A collision is silent: the calculator's value wins
+    and the routing layer's is simply gone.
+    """
+    from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
+    from openchem.services.calculator_registry import CalculatorRegistry
+
+    engine = ChemistryEngine()
+    model = _model([ConformerModel(molblock=_conformer_molblock(1), energy=-1.0)])
+    routing_keys = set(geometry_provenance(model, GEOMETRY)) | set(
+        geometry_provenance(model, DRAWING)
+    )
+
+    registry = CalculatorRegistry()
+    for definition in CALCULATOR_DEFINITIONS:
+        try:
+            registry.register(definition)
+        except Exception:  # noqa: BLE001 - duplicate ids across runs
+            pass
+
+    checked, collisions = 0, []
+    for definition in CALCULATOR_DEFINITIONS:
+        mol = select_calculation_input(engine, model, definition.calculation_input)
+        try:
+            result = registry.compute(definition.calculator_id, mol, "u", {})
+        except Exception:  # noqa: BLE001 - a calculator that refuses this molecule proves nothing
+            continue
+        provenance = getattr(result, "provenance", None)
+        if provenance is None:
+            continue
+        checked += 1
+        clash = routing_keys & set(provenance.parameters)
+        if clash:
+            collisions.append((definition.calculator_id, sorted(clash)))
+
+    assert checked > 20, f"only {checked} calculators produced provenance -- the sweep is too thin"
+    assert not collisions, f"calculator provenance keys collide with the routing layer: {collisions}"
 
 
 # --------------------------------------------------------------------------
