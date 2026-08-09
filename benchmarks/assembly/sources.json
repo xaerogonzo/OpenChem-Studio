@@ -5,6 +5,12 @@
   "sha256": "bb626ffdc9742c07bac72ae47c36f611fe1abb6c5fbb7d5bcc3b6bcf05813310",
   "url": "https://files.rcsb.org/download/1A34-assembly1.cif"
  },
+ "1A34.cif": {
+  "bytes": 438031,
+  "fetched": "2026-08-09",
+  "sha256": "981e7605461c59eb95870c72a20ea896c0c148e0f5861fc674b100f5c5c5e6be",
+  "url": "https://files.rcsb.org/download/1A34.cif"
+ },
  "1A34.pdb": {
   "bytes": 341901,
   "fetched": "2026-08-09",

@@ -35,14 +35,26 @@ deposited -- which is precisely why it is the CONTROL for the builder
 (building must not move a result that should not move) rather than a
 demonstration of it.
 
+BOTH FORMATS BUILD. `_build_pdb` and `_build_mmcif` share their
+placement, composition and validation logic (`_resolve_placements`) and
+differ only in what the format can express: PDB refuses an assembly
+needing a 63rd chain name or a 100,000th atom serial, and mmCIF has
+neither limit. Those refusals are why the mmCIF path exists -- the
+assemblies that hit them are the ones least like their deposited file.
+
 VERIFIED AGAINST RCSB, not only against itself. `benchmarks/assembly/`
-compares what this builds from `REMARK 350` against the assemblies RCSB
-generates from the mmCIF `_pdbx_struct_oper_list` -- an independent
-reading of the same annotation. 4DKL, 4EA3 and 5I6X agree on every atom
-to the written digit; 1A34 is refused at 208,440 atoms and RCSB's file
-confirms that count exactly. 2OMF's 115 differing atoms are the deposit's
-own precision, not a defect: `-0.866025` here against `-0.8660254038`
-there, which only reaches the third decimal at a rounding boundary.
+compares what this builds against the assemblies RCSB generates from the
+mmCIF `_pdbx_struct_oper_list`, scoring both arms. 1A34 is refused at
+208,440 atoms and RCSB's file confirms that count exactly; **every other
+corpus entry agrees on every atom to the written digit when built from
+mmCIF**, and all but 2OMF do from PDB as well.
+
+2OMF's 115 differing atoms under PDB input are the deposit's own
+precision, not a defect: `-0.866025` there against `-0.8660254038` in the
+mmCIF, ~3e-5 A at a 60 A coordinate, which reaches the third decimal only
+at a rounding boundary. That was a PREDICTION before the mmCIF path
+existed, and building from the ten-decimal matrix removed it exactly as
+it said it would -- 0.0010 to 0.0000.
 
 **A transposed matrix is invisible to almost everything.** Every operator
 in the bundled 49-receptor catalogue is axis-aligned, so transposing one
@@ -808,30 +820,51 @@ def parse_assembly(structure_text: str, source_format: str) -> AssemblyAnnotatio
 _DROPPED_PDB_RECORDS = ("ANISOU", "MASTER", "REMARK 350")
 
 
-def _build_pdb(
-    text: str,
+#: mmCIF categories a built assembly must not carry forward.
+#:
+#: **`_pdbx_struct_assembly*` and `_pdbx_struct_oper_list`** are the build
+#: instruction itself, exactly as `REMARK 350` is for PDB. Left in place,
+#: the output tells the next reader to build it AGAIN --
+#: `test_a_built_mmcif_carries_no_instruction_to_build_it_again` feeds the
+#: result back through `parse_assembly` and requires no annotation.
+#:
+#: **`_atom_site_anisotrop`** is the ANISOU tensor under another name, and
+#: transforms as R.U.Rt. Carried through untouched it describes the wrong
+#: orientation for every generated copy -- a wrong number rather than a
+#: missing one.
+#:
+#: `_struct_conn` is deliberately NOT here. Its references are chain,
+#: residue and atom NAMES rather than serial numbers, so they stay true of
+#: the copies that keep their deposited names and simply say nothing about
+#: the generated ones -- incomplete, never wrong. Measured on 4DKL, which
+#: carries 35 of its tags: stripping the whole category changes neither
+#: the atom count nor the bond count Open Babel reads (3,690 and 3,726
+#: either way), because it perceives mmCIF bonds from geometry. That is
+#: the OPPOSITE of the PDB path, where CONECT has to be rewritten because
+#: Open Babel does read it. Rewriting it per copy is the correct fix if a
+#: viewer ever needs the disulfides drawn in generated copies.
+_MMCIF_DROPPED_CATEGORIES = (
+    "_pdbx_struct_assembly.",
+    "_pdbx_struct_assembly_gen.",
+    "_pdbx_struct_assembly_prop.",
+    "_pdbx_struct_oper_list.",
+    "_atom_site_anisotrop.",
+)
+
+
+def _resolve_placements(
     assembly_id: str,
     rows: list[tuple[list[str], str]],
     transforms: dict[str, Transform],
-    atom_limit: int,
-) -> AssemblyBuildResult:
-    lines = text.splitlines()
-    if any(line.startswith("MODEL ") for line in lines):
-        return AssemblyBuildResult(
-            ok=False,
-            failure_reason=(
-                "This deposit holds several models (MODEL/ENDMDL) and the assembly "
-                "annotation does not say which one to transform."
-            ),
-        )
+) -> tuple[list[tuple[str, tuple[str, ...]]], dict[tuple[str, ...], Transform], list[str]] | AssemblyBuildResult:
+    """Which copies to make and the transform for each, or a refusal.
 
-    by_chain: dict[str, list[str]] = {}
-    for line in lines:
-        if line.startswith(("ATOM  ", "HETATM")):
-            by_chain.setdefault(line[21], []).append(line)
-    if not by_chain:
-        return AssemblyBuildResult(ok=False, failure_reason="This file contains no atoms.")
-
+    Shared by both formats deliberately. The composition order, the
+    operator-missing refusal and the rigid-body validation are the part of
+    this that is hard to get right and the part the RCSB gate actually
+    exercises; forking it per format would leave the mmCIF path unchecked
+    by everything that has already been measured against real deposits.
+    """
     # Placements, deduplicated: the same (source chain, operator) is ONE
     # copy however many generation rows happen to name it.
     placements: list[tuple[str, tuple[str, ...]]] = []
@@ -880,8 +913,72 @@ def _build_pdb(
                 )
             resolved = operator if resolved is None else compose(resolved, operator)
         if resolved is None:
-            resolved = Transform("identity", ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)), (0.0, 0.0, 0.0))
+            resolved = Transform(
+                "identity", ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)), (0.0, 0.0, 0.0)
+            )
         composed[combination] = resolved
+    return placements, composed, warnings
+
+
+def _keeps_deposited_name(
+    placements: list[tuple[str, tuple[str, ...]]],
+    composed: dict[tuple[str, ...], Transform],
+) -> dict[str, tuple[str, ...]]:
+    """Which placement of each source chain keeps the deposited chain id.
+
+    **THE IDENTITY KEEPS THE DEPOSITED NAME**, so a saved docking box, an
+    excluded chain and every existing reference still address exactly what
+    they addressed before the build. A source chain placed just once keeps
+    its name whether or not that placement is the identity -- 4EA3 places
+    chain B only under a translation, and renaming it would mean somebody
+    excluding "chain B" no longer finds it.
+
+    **This is a deliberate divergence from RCSB**, which names that case
+    `B-2` (chain B under operator 2) and reserves the bare name for
+    operator 1. Their convention is better provenance and worse
+    addressability, and `keep_chains` addresses chains by name, so the
+    app's own consistency wins -- the same receptor must exclude the same
+    chains whether it was imported as PDB or as mmCIF. The RCSB gate pairs
+    chains by composition and never by id, so it cannot false-negative on
+    this.
+    """
+    keeps: dict[str, tuple[str, ...]] = {}
+    for chain, combination in placements:
+        if chain in keeps and not composed[combination].is_identity:
+            continue
+        if chain not in keeps or composed[combination].is_identity:
+            keeps[chain] = combination
+    return keeps
+
+
+def _build_pdb(
+    text: str,
+    assembly_id: str,
+    rows: list[tuple[list[str], str]],
+    transforms: dict[str, Transform],
+    atom_limit: int,
+) -> AssemblyBuildResult:
+    lines = text.splitlines()
+    if any(line.startswith("MODEL ") for line in lines):
+        return AssemblyBuildResult(
+            ok=False,
+            failure_reason=(
+                "This deposit holds several models (MODEL/ENDMDL) and the assembly "
+                "annotation does not say which one to transform."
+            ),
+        )
+
+    by_chain: dict[str, list[str]] = {}
+    for line in lines:
+        if line.startswith(("ATOM  ", "HETATM")):
+            by_chain.setdefault(line[21], []).append(line)
+    if not by_chain:
+        return AssemblyBuildResult(ok=False, failure_reason="This file contains no atoms.")
+
+    resolved_placements = _resolve_placements(assembly_id, rows, transforms)
+    if isinstance(resolved_placements, AssemblyBuildResult):
+        return resolved_placements
+    placements, composed, warnings = resolved_placements
 
     missing = sorted({chain for chain, _ in placements if chain not in by_chain})
     if missing:
@@ -912,22 +1009,11 @@ def _build_pdb(
             ),
         )
 
-    # Chain names. **THE IDENTITY KEEPS THE DEPOSITED NAME**, so a saved
-    # docking box, an excluded chain and every existing reference still
-    # address exactly what they addressed before the build.
-    # A source chain keeps its deposited name for ONE of its placements:
-    # the identity if it has one, otherwise its first. Only the extra
-    # copies need invented names. Renaming a chain that is placed just
-    # once would break addressability for nothing -- 4EA3 places chain B
-    # only under a translation, and calling that `C` would mean somebody
-    # excluding "chain B" no longer finds it.
+    # Chain names -- see `_keeps_deposited_name` for the policy. PDB's
+    # field is one column wide, so the extra copies get a single spare
+    # letter rather than mmCIF's `A-2`.
     assigned: dict[tuple[str, tuple[str, ...]], str] = {}
-    keeps_name: dict[str, tuple[str, ...]] = {}
-    for chain, combination in placements:
-        if chain in keeps_name and not composed[combination].is_identity:
-            continue
-        if chain not in keeps_name or composed[combination].is_identity:
-            keeps_name[chain] = combination
+    keeps_name = _keeps_deposited_name(placements, composed)
     for chain, combination in keeps_name.items():
         assigned[(chain, combination)] = chain
     spare = [c for c in _PDB_CHAIN_IDS if c not in set(by_chain)]
@@ -1006,6 +1092,243 @@ def _build_pdb(
     )
 
 
+def _category_span(lines: list[str], prefix: str) -> tuple[int, int] | None:
+    """The line range one mmCIF category occupies, `loop_` header included.
+
+    Needed because building splices the `_atom_site` loop out and a new
+    one in, leaving every other category verbatim -- the mmCIF equivalent
+    of the PDB path keeping its header records. Both CIF forms have to be
+    recognised for the same reason `_loop_rows` does, and a `;` block in
+    the body is one value however many lines it spans.
+    """
+    start = next((i for i, line in enumerate(lines) if line.startswith(prefix)), None)
+    if start is None:
+        return None
+    back = start - 1
+    while back >= 0 and not lines[back].strip():
+        back -= 1
+    looped = back >= 0 and lines[back].strip() == "loop_"
+    if looped:
+        start = back
+
+    index = start + 1 if looped else start
+    while index < len(lines) and lines[index].startswith(prefix):
+        if looped:
+            index += 1
+            continue
+        # Single-row form: the value is inline, or a `;` block below.
+        inline = len(_cif_tokens(lines[index])) > 1
+        index += 1
+        if not inline:
+            while index < len(lines) and not lines[index].strip():
+                index += 1
+            if index < len(lines) and lines[index].startswith(";"):
+                _, index = _read_text_field(lines, index)
+    if looped:
+        while index < len(lines):
+            line = lines[index]
+            if not line.strip() or line.startswith(("#", "_", "loop_", "data_")):
+                break
+            if line.startswith(";"):
+                _, index = _read_text_field(lines, index)
+            else:
+                index += 1
+    return start, index
+
+
+def _cif_value(value: str) -> str:
+    """One `_atom_site` value, quoted only where CIF requires it.
+
+    `_cif_tokens` strips quotes on the way in, so anything written back
+    bare that needs them would change the token count of the row and shift
+    every column after it. The case this really matters for is a sugar or
+    nucleotide atom name carrying a prime -- `C1'` -- which is why the
+    RCSB gate's own scorer had to learn the same lesson.
+    """
+    if value == "":
+        return "."
+    needs_quoting = (
+        any(character.isspace() for character in value)
+        or value[0] in "_#$[];"
+        # A QUOTE ANYWHERE, not only at the start. `C1'` happens to be
+        # legal bare -- CIF only treats a quote as a delimiter after
+        # whitespace -- and it survived a round trip through this module's
+        # own tokeniser, so a test asserting the round trip passed while
+        # the quoting it named was never exercised. It is written quoted
+        # because that is what RCSB writes and because leaning on the
+        # bare-token rule is a bet on every downstream reader agreeing.
+        or "'" in value
+        or '"' in value
+    )
+    if not needs_quoting:
+        return value
+    return f'"{value}"' if '"' not in value else f"'{value}'"
+
+
+def _build_mmcif(
+    text: str,
+    assembly_id: str,
+    rows: list[tuple[list[str], str]],
+    transforms: dict[str, Transform],
+    atom_limit: int,
+) -> AssemblyBuildResult:
+    """The mmCIF form, which has none of PDB's field-width limits.
+
+    That is the whole reason it exists: PDB refuses an assembly needing a
+    63rd chain name or a 100,000th atom serial, and those are exactly the
+    assemblies most worth building.
+    """
+    lines = text.splitlines()
+    names, atom_rows = _loop_rows(text, "_atom_site.")
+    if not names or not atom_rows:
+        return AssemblyBuildResult(ok=False, failure_reason="This file contains no atoms.")
+    column = {name: position for position, name in enumerate(names)}
+    required = ("label_asym_id", "Cartn_x", "Cartn_y", "Cartn_z")
+    absent = [name for name in required if name not in column]
+    if absent:
+        return AssemblyBuildResult(
+            ok=False,
+            failure_reason=(
+                f"This file's atom records are missing {', '.join(absent)}, which the "
+                f"assembly cannot be built without."
+            ),
+        )
+    if "pdbx_PDB_model_num" in column:
+        models = {row[column["pdbx_PDB_model_num"]] for row in atom_rows}
+        if len(models) > 1:
+            return AssemblyBuildResult(
+                ok=False,
+                failure_reason=(
+                    f"This deposit holds {len(models)} models and the assembly annotation "
+                    f"does not say which one to transform."
+                ),
+            )
+
+    by_chain: dict[str, list[list[str]]] = {}
+    for row in atom_rows:
+        by_chain.setdefault(row[column["label_asym_id"]], []).append(row)
+
+    resolved_placements = _resolve_placements(assembly_id, rows, transforms)
+    if isinstance(resolved_placements, AssemblyBuildResult):
+        return resolved_placements
+    placements, composed, warnings = resolved_placements
+
+    missing = sorted({chain for chain, _ in placements if chain not in by_chain})
+    if missing:
+        held = ", ".join(sorted(by_chain))
+        return AssemblyBuildResult(
+            ok=False,
+            failure_reason=(
+                f"Assembly {assembly_id} names chain(s) {', '.join(missing)}, which this file "
+                f"does not contain (it holds {held}). mmCIF assembly records name "
+                f"label_asym_ids, not author chain ids."
+            ),
+        )
+
+    total_atoms = sum(len(by_chain[chain]) for chain, _ in placements)
+    if total_atoms > atom_limit:
+        return AssemblyBuildResult(
+            ok=False,
+            failure_reason=(
+                f"Assembly {assembly_id} would contain {total_atoms:,} atoms, over the "
+                f"{atom_limit:,} limit for docking preparation."
+            ),
+        )
+
+    # Chain names. The suffix is the OPERATOR, following RCSB: 2OMF's one
+    # chain under operators 1, 2 and 3 becomes `A`, `A-2`, `A-3` there and
+    # here. See `_keeps_deposited_name` for which placement keeps the bare
+    # name, and for the one place this deliberately differs from theirs.
+    keeps_name = _keeps_deposited_name(placements, composed)
+    assigned: dict[tuple[str, tuple[str, ...]], str] = {
+        (chain, combination): chain for chain, combination in keeps_name.items()
+    }
+    for chain, combination in placements:
+        if (chain, combination) in assigned:
+            continue
+        assigned[(chain, combination)] = f"{chain}-{'x'.join(combination)}"
+
+    auth_column = column.get("auth_asym_id")
+    out_rows: list[list[str]] = []
+    instances: list[AssemblyInstance] = []
+    serial = 0
+    for chain, combination in placements:
+        transform = composed[combination]
+        new_chain = assigned[(chain, combination)]
+        generated = new_chain != chain
+        instances.append(
+            AssemblyInstance(
+                source_chain=chain,
+                operator_id="x".join(combination) if combination else "identity",
+                generated_chain_id=new_chain,
+            )
+        )
+        for row in by_chain[chain]:
+            serial += 1
+            copied = list(row)
+            if "id" in column:
+                copied[column["id"]] = str(serial)
+            copied[column["label_asym_id"]] = new_chain
+            if auth_column is not None and generated:
+                # Suffixed the same way, so the two id spaces stay in
+                # step. Several label ids can share one author id (4DKL
+                # has 20 to 1), and suffixing by the OPERATOR rather than
+                # by a copy ordinal is what keeps that consistent.
+                copied[auth_column] = f"{row[auth_column]}-{'x'.join(combination)}"
+            x, y, z = (
+                float(row[column["Cartn_x"]]),
+                float(row[column["Cartn_y"]]),
+                float(row[column["Cartn_z"]]),
+            )
+            nx, ny, nz = transform.apply(x, y, z)
+            copied[column["Cartn_x"]] = f"{nx:.3f}"
+            copied[column["Cartn_y"]] = f"{ny:.3f}"
+            copied[column["Cartn_z"]] = f"{nz:.3f}"
+            out_rows.append(copied)
+
+    rendered = [[_cif_value(value) for value in row] for row in out_rows]
+    widths = [
+        max((len(row[position]) for row in rendered), default=1) for position in range(len(names))
+    ]
+    loop = ["loop_"] + [f"_atom_site.{name}" for name in names]
+    loop += [
+        " ".join(value.ljust(width) for value, width in zip(row, widths)).rstrip()
+        for row in rendered
+    ]
+
+    # Everything else verbatim, minus the categories a built assembly must
+    # not carry -- the same contract as the PDB path's dropped records.
+    spans: list[tuple[int, int]] = []
+    atom_span = _category_span(lines, "_atom_site.")
+    if atom_span is None:
+        return AssemblyBuildResult(ok=False, failure_reason="This file contains no atoms.")
+    spans.append(atom_span)
+    for prefix in _MMCIF_DROPPED_CATEGORIES:
+        span = _category_span(lines, prefix)
+        if span is not None:
+            spans.append(span)
+
+    out: list[str] = []
+    index = 0
+    while index < len(lines):
+        span = next((s for s in spans if s[0] == index), None)
+        if span is None:
+            out.append(lines[index])
+            index += 1
+            continue
+        if span is atom_span:
+            out.extend(loop)
+        index = span[1]
+
+    return AssemblyBuildResult(
+        ok=True,
+        output_text="\n".join(out) + "\n",
+        assembly_id=assembly_id,
+        instances=tuple(instances),
+        warnings=tuple(dict.fromkeys(warnings)),
+    )
+
+
 def build_assembly(
     structure_text: str,
     source_format: str,
@@ -1047,11 +1370,5 @@ def build_assembly(
         return AssemblyBuildResult(ok=False, failure_reason=str(exc))
 
     if source_format in ("mmcif", "cif"):
-        return AssemblyBuildResult(
-            ok=False,
-            failure_reason=(
-                "Building from mmCIF is not implemented yet -- the PDB form of this "
-                "deposit can be built."
-            ),
-        )
+        return _build_mmcif(structure_text, assembly_id, rows, transforms, atom_limit)
     return _build_pdb(structure_text, assembly_id, rows, transforms, atom_limit)

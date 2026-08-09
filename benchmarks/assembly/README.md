@@ -19,7 +19,17 @@ second is slow, following `benchmarks/naming` and
 `benchmarks/conformers`. `score.py` refuses a predictions file built
 against a different corpus version rather than mis-scoring it.
 
+`--format mmcif` scores the other arm: the builder reads both deposited
+forms, and RCSB's reference is mmCIF either way.
+
+```bash
+uv run --no-sync python benchmarks/assembly/build.py --label mmcif --format mmcif
+uv run --no-sync python benchmarks/assembly/score.py benchmarks/assembly/predictions_mmcif.json
+```
+
 ## Current result
+
+Built from **PDB** (`REMARK 350`):
 
     structure      atoms  chains   max dev  transform   serial     rmsd
     4DKL           7,380       2    0.0000   0.000000 0.000000  0.00000
@@ -28,26 +38,38 @@ against a different corpus version rather than mis-scoring it.
     2OMF           8,481       3    0.0010   0.000524 0.000500  0.00012
     1A34               refused; RCSB's own assembly has 208,440 atoms
 
-Three of the four buildable structures agree with RCSB **to the written
-digit** — every atom, exactly. 1A34 is the size guard: the builder
-refuses it at 208,440 atoms, and RCSB's own file confirms that is the
-count to the atom, so the refusal branch is checked against something
-external rather than against its own arithmetic.
+Built from **mmCIF** (`_pdbx_struct_oper_list`):
 
-## What 2OMF's 0.001 is, and why it is not a defect
+    4DKL           7,380       2    0.0000   0.000000 0.000000  0.00000
+    4EA3           5,130       2    0.0000   0.000223 0.000223  0.00000
+    5I6X           7,631       3    0.0000   0.000000 0.000000  0.00000
+    2OMF           8,481       3    0.0000   0.000500 0.000500  0.00000
+    1A34               refused; RCSB's own assembly has 208,440 atoms
 
-115 of its 8,481 atoms differ from RCSB in the last written decimal. The
-cause is in the deposit, not in either builder: **the PDB states each
-matrix to six decimals where the mmCIF carries ten.**
+1A34 is the size guard: the builder refuses it at 208,440 atoms, and
+RCSB's own file confirms that is the count to the atom, so the refusal
+branch is checked against something external rather than against its own
+arithmetic.
+
+## 2OMF's 0.001 was a PREDICTION, and building from mmCIF removed it
+
+115 of its 8,481 atoms differed from RCSB in the last written decimal.
+The diagnosis was that the cause sits in the deposit rather than in
+either builder — **the PDB states each matrix to six decimals where the
+mmCIF carries ten**:
 
     PDB  REMARK 350 BIOMT   -0.866025      102.62401
     mmCIF _pdbx_struct_oper -0.8660254038  102.6240103485
 
 At a 60 Å coordinate that is ~3×10⁻⁵ Å, which changes nothing unless an
-atom sits within that distance of a rounding boundary. 115 of them do.
-Building from the mmCIF instead would remove it — which is one concrete
-argument for that work, and the only place this gate can currently see
-the difference between the two formats at all.
+atom sits within that distance of a rounding boundary. 115 of them did.
+
+That made a falsifiable prediction: read the same ten-decimal matrix RCSB
+reads and the difference should vanish entirely. It did — **0.0010 →
+0.0000**, with the transform error settling at exactly 0.000500, which is
+the half-unit of RCSB's own write rounding and cannot go lower. All four
+buildable structures now agree with RCSB on every atom to the written
+digit from mmCIF input.
 
 ## The tolerances are derived, not chosen
 
@@ -94,20 +116,23 @@ mutation escaping.
 
 ## What this gate does NOT cover
 
-- **mmCIF input.** The builder reads PDB only, so the gate compares a
-  PDB-derived build against an mmCIF-derived reference. That asymmetry is
-  what surfaces the 2OMF precision finding, and it means nothing here
-  exercises our mmCIF reading of `_pdbx_struct_oper_list`.
-- **Product expressions.** `(X0)(1-60)` is an mmCIF construct;
+- **A product expression.** `(X0)(1-60)` is an mmCIF construct;
   `REMARK 350` enumerates every operator explicitly and has no expression
-  syntax at all. So from PDB input `expand_expression` never sees a
-  product, and right-to-left composition stays unit-tested until mmCIF
-  building lands.
+  syntax at all. None of the five corpus entries uses one from either
+  format, so right-to-left composition is still unit-tested only. A
+  deposit that uses one belongs in this corpus.
 - **A site at an interface.** None of the curated 49 receptors has one,
   which is exactly why the catalogue could not be the gate. Building
   changes zero docking outcomes on the catalogue; 4DKL is the control for
   that (its pocket is inside the monomer, so a built assembly must *not*
-  move its pose).
+  move its pose). `spikes/assembly_docking/` covers both directions
+  against a live Vina.
+- **Chain naming.** Deliberately: chains are paired by composition, so
+  the gate is blind to what they are called. Our generated copies follow
+  RCSB's `A-2` convention, but a chain placed only under a non-identity
+  operator keeps its bare deposited name where RCSB would suffix it —
+  `keep_chains` addresses chains by name, and the same receptor must
+  exclude the same chains whichever format it was imported from.
 
 ## Files
 

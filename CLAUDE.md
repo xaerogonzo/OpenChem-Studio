@@ -1662,6 +1662,26 @@ outcome here, not a failure.
 Comments explain **why**, especially where something is non-obvious or was got
 wrong once. A comment restating the code is noise.
 
+### A ROUND TRIP can pass without exercising what it is named for
+
+`_cif_value` writes an mmCIF token back out, quoting where CIF needs it.
+The test for it built an atom named `C1'`, rebuilt, and asserted the name
+came back as `C1'`. It passed. **Mutating `_cif_value` to quote nothing
+at all left it passing**, because `C1'` is legal bare -- CIF only treats
+a quote as a delimiter after whitespace -- so this module's own tokeniser
+returned it correctly either way.
+
+A round trip through ONE reader tests the pair, not the writer, and a
+symmetric bug is invisible to it. The fix was to assert the bytes as
+well: `"C1'"` appears quoted in the output, which is what RCSB writes and
+what stops the correctness resting on every downstream reader agreeing
+about a bare apostrophe.
+
+**A test naming a behaviour is not a test of it**, and a mutation is the
+only thing that tells the two apart. Two of the three mutations run over
+that change were caught immediately; this was the one that was not, and
+it was the one whose test read most convincingly.
+
 ### A docking A/B needs a pinned seed AND its own noise floor
 
 `VinaDockingProvider` passes `seed=None`, so the shipped app runs Vina

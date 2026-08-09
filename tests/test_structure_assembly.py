@@ -652,3 +652,295 @@ def test_alternate_locations_survive_the_build_untouched():
     # ...and the generated pair moved, both of them: (x, y, z) -> (-x + 10, y, -z).
     assert _coords(produced[2]) == pytest.approx((9.0, 2.0, -3.0))
     assert _coords(produced[3]) == pytest.approx((8.5, 2.5, -3.5))
+
+
+# --- building from mmCIF ----------------------------------------------------
+#
+# The format PDB refuses into. Everything below exists because a
+# single-character chain id and a five-column atom serial cannot express
+# the assemblies most worth building.
+
+_OPER_COLUMNS = (
+    "id type name symmetry_operation "
+    "matrix[1][1] matrix[1][2] matrix[1][3] vector[1] "
+    "matrix[2][1] matrix[2][2] matrix[2][3] vector[2] "
+    "matrix[3][1] matrix[3][2] matrix[3][3] vector[3]"
+).split()
+
+#: Identity, then a 2-fold about z with a translation -- a matrix whose
+#: transpose is a DIFFERENT rotation, so these tests can catch what an
+#: axis-aligned one cannot.
+_OPERATORS = (
+    "1 'identity operation' 1_555 x,y,z "
+    "1.0000000000 0.0000000000 0.0000000000 0.0000000000 "
+    "0.0000000000 1.0000000000 0.0000000000 0.0000000000 "
+    "0.0000000000 0.0000000000 1.0000000000 0.0000000000",
+    "2 'crystal symmetry operation' 2_555 -y,x,z "
+    "0.0000000000 -1.0000000000 0.0000000000 10.0000000000 "
+    "1.0000000000 0.0000000000 0.0000000000 0.0000000000 "
+    "0.0000000000 0.0000000000 1.0000000000 0.0000000000",
+)
+
+_ATOM_COLUMNS = (
+    "group_PDB id type_symbol label_atom_id label_alt_id label_comp_id "
+    "label_asym_id label_entity_id label_seq_id pdbx_PDB_ins_code "
+    "Cartn_x Cartn_y Cartn_z occupancy B_iso_or_equiv "
+    "auth_seq_id auth_comp_id auth_asym_id auth_atom_id pdbx_PDB_model_num"
+).split()
+
+
+def _mmcif(
+    atoms: tuple[str, ...],
+    asym_id_list: str = "A",
+    oper_expression: str = "1,2",
+    extra: str = "",
+) -> str:
+    """A minimal but REAL-SHAPED mmCIF: looped categories, `#` separators.
+
+    Written out rather than trimmed from a deposit because every column
+    here is one the builder reads or must carry through untouched, and a
+    fixture nobody can read line by line hides which is which.
+    """
+    lines = ["data_TEST", "#", "loop_"]
+    lines += [
+        "_pdbx_struct_assembly.id",
+        "_pdbx_struct_assembly.details",
+        "_pdbx_struct_assembly.oligomeric_details",
+        "_pdbx_struct_assembly.oligomeric_count",
+        "1 author_defined_assembly dimeric 2",
+        "#",
+        "loop_",
+        "_pdbx_struct_assembly_gen.assembly_id",
+        "_pdbx_struct_assembly_gen.oper_expression",
+        "_pdbx_struct_assembly_gen.asym_id_list",
+        f"1 {oper_expression} {asym_id_list}",
+        "#",
+        "loop_",
+    ]
+    lines += [f"_pdbx_struct_oper_list.{name}" for name in _OPER_COLUMNS]
+    lines += list(_OPERATORS)
+    lines += ["#"]
+    if extra:
+        lines += extra.splitlines() + ["#"]
+    lines += ["loop_"]
+    lines += [f"_atom_site.{name}" for name in _ATOM_COLUMNS]
+    lines += list(atoms)
+    lines += ["#", ""]
+    return "\n".join(lines)
+
+
+def _atom(
+    serial: int,
+    chain: str,
+    x: float,
+    y: float,
+    z: float,
+    atom_name: str = "N",
+    auth_chain: str | None = None,
+) -> str:
+    auth = auth_chain if auth_chain is not None else chain
+    return (
+        f"ATOM {serial} N {atom_name} . ALA {chain} 1 1 ? "
+        f"{x:.3f} {y:.3f} {z:.3f} 1.00 20.00 1 ALA {auth} {atom_name} 1"
+    )
+
+
+def _cif_atoms(text: str) -> list[list[str]]:
+    from openchem.chem.structure_assembly import _loop_rows
+
+    return _loop_rows(text, "_atom_site.")[1]
+
+
+def _cif_column(text: str, name: str) -> list[str]:
+    from openchem.chem.structure_assembly import _loop_rows
+
+    names, rows = _loop_rows(text, "_atom_site.")
+    position = names.index(name)
+    return [row[position] for row in rows]
+
+
+def test_an_mmcif_assembly_applies_the_operator_to_the_named_chains():
+    """The 2-fold above sends (x, y, z) to (-y + 10, x, z)."""
+    from openchem.chem.structure_assembly import build_assembly
+
+    result = build_assembly(_mmcif((_atom(1, "A", 1.0, 2.0, 3.0),)), "mmcif")
+
+    assert result.ok, result.failure_reason
+    xs = _cif_column(result.output_text, "Cartn_x")
+    ys = _cif_column(result.output_text, "Cartn_y")
+    assert [float(v) for v in xs] == [1.0, 8.0]
+    assert [float(v) for v in ys] == [2.0, 1.0]
+
+
+def test_a_generated_mmcif_chain_is_named_after_its_operator():
+    """RCSB's own convention, and it was MEASURED rather than guessed.
+
+    2OMF's single chain under operators 1, 2 and 3 is `A`, `A-2`, `A-3` in
+    RCSB's generated file, so the suffix is the operator id and not a copy
+    ordinal. Both id spaces are suffixed together, because several
+    label_asym_ids can share one auth_asym_id (4DKL has 20 to 1) and only
+    an operator-derived suffix stays consistent across that.
+    """
+    from openchem.chem.structure_assembly import build_assembly
+
+    result = build_assembly(_mmcif((_atom(1, "A", 1.0, 2.0, 3.0),)), "mmcif")
+
+    assert [i.generated_chain_id for i in result.instances] == ["A", "A-2"]
+    assert _cif_column(result.output_text, "label_asym_id") == ["A", "A-2"]
+    assert _cif_column(result.output_text, "auth_asym_id") == ["A", "A-2"]
+
+
+def test_mmcif_has_no_chain_name_limit_where_pdb_refuses():
+    """**THE WHOLE REASON THIS PATH EXISTS.**
+
+    PDB gives the chain field one column, so 62 names is all there is and
+    a 63rd copy cannot be written at all. mmCIF has no such limit, and the
+    assemblies that need a 63rd copy -- capsids, spindles, filaments --
+    are exactly the ones where the deposited file is least like the
+    biological unit.
+    """
+    from openchem.chem.structure_assembly import build_assembly
+
+    chains = [chr(ord("A") + i) for i in range(26)] + [
+        f"A{chr(ord('A') + i)}" for i in range(26)
+    ] + [f"B{chr(ord('A') + i)}" for i in range(11)]
+    assert len(chains) == 63
+    atoms = tuple(_atom(n + 1, chain, 1.0, 2.0, 3.0) for n, chain in enumerate(chains))
+
+    result = build_assembly(
+        _mmcif(atoms, asym_id_list=",".join(chains), oper_expression="1,2"), "mmcif"
+    )
+
+    assert result.ok, result.failure_reason
+    assert len(result.instances) == 126
+    assert len(_cif_atoms(result.output_text)) == 126
+
+
+def test_a_built_mmcif_carries_no_instruction_to_build_it_again():
+    """Re-entrancy, the same contract `REMARK 350` has on the PDB side.
+
+    Left in place, `_pdbx_struct_assembly_gen` tells the next reader to
+    apply the operators to a structure that has already had them applied.
+    """
+    from openchem.chem.structure_assembly import build_assembly, parse_assembly
+
+    result = build_assembly(_mmcif((_atom(1, "A", 1.0, 2.0, 3.0),)), "mmcif")
+
+    assert parse_assembly(result.output_text, "mmcif").assemblies == ()
+    for category in ("_pdbx_struct_assembly", "_pdbx_struct_oper_list", "_atom_site_anisotrop"):
+        assert category not in result.output_text
+
+
+def test_the_anisotropic_tensor_category_is_dropped_not_carried():
+    """`_atom_site_anisotrop` is ANISOU under another name: it transforms
+    as R.U.Rt, so a copy carrying it unrotated states the WRONG
+    orientation rather than a missing one."""
+    from openchem.chem.structure_assembly import build_assembly
+
+    anisotrop = (
+        "loop_\n"
+        "_atom_site_anisotrop.id\n"
+        "_atom_site_anisotrop.U[1][1]\n"
+        "1 0.1234\n"
+    )
+    result = build_assembly(
+        _mmcif((_atom(1, "A", 1.0, 2.0, 3.0),), extra=anisotrop), "mmcif"
+    )
+
+    assert result.ok, result.failure_reason
+    assert "_atom_site_anisotrop" not in result.output_text
+    assert "0.1234" not in result.output_text
+
+
+def test_an_atom_name_carrying_a_prime_survives_the_rebuild():
+    """CIF QUOTES a value containing a prime, and `_cif_tokens` strips the
+    quotes on the way in. Written back bare, `C1'` would change the token
+    count of its row and shift every column after it -- which is the same
+    trap that made 11 of 5I6X's atoms look like a composition mismatch in
+    the RCSB gate's own scorer.
+    """
+    from openchem.chem.structure_assembly import build_assembly
+
+    text = _mmcif((_atom(1, "A", 1.0, 2.0, 3.0, atom_name='"C1\'"'),))
+    result = build_assembly(text, "mmcif")
+
+    assert result.ok, result.failure_reason
+    rows = _cif_atoms(result.output_text)
+    assert all(len(row) == len(_ATOM_COLUMNS) for row in rows), rows
+    assert _cif_column(result.output_text, "label_atom_id") == ["C1'", "C1'"]
+    # ...and it is WRITTEN quoted, which the round trip above does not
+    # prove. `C1'` is legal bare and survives this module's own tokeniser
+    # either way, so the first version of this test passed while the
+    # quoting it was named for was never exercised -- caught by mutating
+    # `_cif_value` to quote nothing and watching every test still pass.
+    assert "\"C1'\"" in result.output_text
+
+
+def test_a_chain_named_by_the_assembly_but_absent_says_which_id_space():
+    """mmCIF assembly records name label_asym_ids and PDB REMARK 350 names
+    author ids, and confusing the two is the failure this message exists
+    to shorten."""
+    from openchem.chem.structure_assembly import build_assembly
+
+    result = build_assembly(
+        _mmcif((_atom(1, "A", 1.0, 2.0, 3.0),), asym_id_list="A,Z"), "mmcif"
+    )
+
+    assert not result.ok
+    assert "Z" in result.failure_reason
+    assert "label_asym_id" in result.failure_reason
+
+
+def test_several_models_are_refused_rather_than_merged():
+    """An NMR ensemble has no single structure to transform, and silently
+    transforming all of them would multiply the atom count by the model
+    count without saying so."""
+    from openchem.chem.structure_assembly import build_assembly
+
+    two_models = (
+        _atom(1, "A", 1.0, 2.0, 3.0),
+        _atom(1, "A", 1.5, 2.5, 3.5).rsplit(" ", 1)[0] + " 2",
+    )
+    result = build_assembly(_mmcif(two_models), "mmcif")
+
+    assert not result.ok
+    assert "models" in result.failure_reason
+
+
+def test_the_mmcif_build_keeps_every_other_category_verbatim():
+    """The analogue of the PDB path keeping its header records: a built
+    assembly is the same deposit with different coordinates, not a
+    stripped one."""
+    from openchem.chem.structure_assembly import build_assembly
+
+    extra = (
+        "loop_\n"
+        "_struct_conn.id\n"
+        "_struct_conn.ptnr1_label_asym_id\n"
+        "disulf1 A\n"
+    )
+    result = build_assembly(
+        _mmcif((_atom(1, "A", 1.0, 2.0, 3.0),), extra=extra), "mmcif"
+    )
+
+    assert result.ok, result.failure_reason
+    # Kept, deliberately: its references are chain/residue/atom NAMES, so
+    # they stay true of the copy that keeps its deposited name and simply
+    # say nothing about the generated one -- incomplete, never wrong.
+    assert "_struct_conn.id" in result.output_text
+    assert "disulf1" in result.output_text
+
+
+def test_the_atom_limit_refuses_before_anything_is_written():
+    """Same guard as the PDB path, and it has to be on this side too --
+    mmCIF's lack of field-width limits removes the OTHER two refusals, so
+    without this one an icosahedral capsid would build silently."""
+    from openchem.chem.structure_assembly import build_assembly
+
+    result = build_assembly(
+        _mmcif((_atom(1, "A", 1.0, 2.0, 3.0),)), "mmcif", atom_limit=1
+    )
+
+    assert not result.ok
+    assert "2 atoms" in result.failure_reason
+    assert result.output_text == ""

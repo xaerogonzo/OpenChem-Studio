@@ -219,7 +219,14 @@ def _pair_chains(
     return pairs, ""
 
 
-def _unrounded(source_text: str, instances: list[list[str]], assembly_id: str) -> dict:
+def _atoms(text: str, source_format: str) -> dict:
+    """chain -> {identity key -> coordinates}, whichever format it is in."""
+    return _pdb_atoms(text) if source_format == "pdb" else _reference_atoms(text)
+
+
+def _unrounded(
+    source_text: str, source_format: str, instances: list[list[str]], assembly_id: str
+) -> dict:
     """chain -> {key -> coordinates}, recomputed WITHOUT serialization.
 
     Deliberately re-derived here rather than carried through the manifest:
@@ -227,8 +234,8 @@ def _unrounded(source_text: str, instances: list[list[str]], assembly_id: str) -
     transform, so a serializer that drops a digit is visible as itself
     rather than absorbed into the comparison.
     """
-    transforms = operator_transforms(source_text, "pdb", assembly_id)
-    source = _pdb_atoms(source_text)
+    transforms = operator_transforms(source_text, source_format, assembly_id)
+    source = _atoms(source_text, source_format)
     out: dict[str, dict[tuple, tuple[float, float, float]]] = {}
     for source_chain, operator_id, generated in instances:
         transform = transforms[operator_id]
@@ -263,9 +270,10 @@ def _score_one(entry: dict, record: dict) -> dict:
     if not record["ok"]:
         return {"pass": False, "note": f"refused: {record['failure_reason']}"}
 
-    built = (CACHE / f"built_{LABEL}" / f"{pdb_id}.pdb").read_text(errors="ignore")
-    source = (CACHE / f"{pdb_id}.pdb").read_text(errors="ignore")
-    mine = _pdb_atoms(built)
+    suffix = "pdb" if SOURCE_FORMAT == "pdb" else "cif"
+    built = (CACHE / f"built_{LABEL}" / f"{pdb_id}.{suffix}").read_text(errors="ignore")
+    source = (CACHE / f"{pdb_id}.{suffix}").read_text(errors="ignore")
+    mine = _atoms(built, SOURCE_FORMAT)
     theirs = _reference_atoms(
         (CACHE / f"{pdb_id}-assembly{assembly_id}.cif").read_text(errors="ignore")
     )
@@ -285,7 +293,7 @@ def _score_one(entry: dict, record: dict) -> dict:
     if problem:
         return {**result, "pass": False, "note": problem}
 
-    unrounded = _unrounded(source, record["instances"], assembly_id)
+    unrounded = _unrounded(source, SOURCE_FORMAT, record["instances"], assembly_id)
 
     worst = worst_transform = worst_serialisation = 0.0
     square_sum = 0.0
@@ -328,10 +336,11 @@ def _score_one(entry: dict, record: dict) -> dict:
 
 
 LABEL = ""
+SOURCE_FORMAT = "pdb"
 
 
 def main() -> int:
-    global LABEL
+    global LABEL, SOURCE_FORMAT
     if len(sys.argv) != 2:
         print(__doc__)
         return 2
@@ -345,9 +354,10 @@ def main() -> int:
         )
         return 2
     LABEL = payload["label"]
+    SOURCE_FORMAT = payload.get("source_format", "pdb")
 
-    print(f"label={payload['label']}  mutation={payload['mutation']}  "
-          f"built={payload['environment']['built']}")
+    print(f"label={payload['label']}  built FROM {SOURCE_FORMAT}  "
+          f"mutation={payload['mutation']}  built={payload['environment']['built']}")
     print(
         f"{'structure':<10} {'atoms':>9} {'chains':>7} {'max dev':>9} "
         f"{'transform':>10} {'serial':>8} {'rmsd':>8}  verdict"

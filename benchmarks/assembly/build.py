@@ -75,6 +75,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--label", required=True, help="names the output files")
     parser.add_argument("--mutate", choices=_MUTATIONS, default=None)
+    parser.add_argument(
+        "--format",
+        choices=("pdb", "mmcif"),
+        default="pdb",
+        help="which deposited form to build FROM; the reference is mmCIF either way",
+    )
     args = parser.parse_args()
 
     corpus = json.loads((HERE / "corpus.json").read_text(encoding="utf-8"))
@@ -87,12 +93,13 @@ def main() -> int:
     predictions = {}
     for entry in corpus["structures"]:
         pdb_id, assembly_id = entry["pdb_id"], entry["assembly_id"]
-        source = CACHE / f"{pdb_id}.pdb"
+        suffix = "pdb" if args.format == "pdb" else "cif"
+        source = CACHE / f"{pdb_id}.{suffix}"
         if not source.exists():
             print(f"  MISSING {source.name} -- run fetch.py first", file=sys.stderr)
             return 2
         result = build_assembly(
-            source.read_text(errors="ignore"), "pdb", assembly_id=assembly_id
+            source.read_text(errors="ignore"), args.format, assembly_id=assembly_id
         )
         record = {
             "ok": result.ok,
@@ -104,12 +111,12 @@ def main() -> int:
             ],
         }
         if result.ok:
-            path = out_dir / f"{pdb_id}.pdb"
+            path = out_dir / f"{pdb_id}.{suffix}"
             path.write_text(result.output_text, encoding="utf-8")
             record["atom_count"] = sum(
                 1
                 for line in result.output_text.splitlines()
-                if line.startswith(("ATOM  ", "HETATM"))
+                if line.startswith(("ATOM ", "HETATM"))
             )
             record["sha256"] = hashlib.sha256(
                 result.output_text.encode("utf-8")
@@ -121,6 +128,7 @@ def main() -> int:
 
     payload = {
         "label": args.label,
+        "source_format": args.format,
         "mutation": args.mutate,
         "corpus_version": corpus["corpus_version"],
         "environment": {

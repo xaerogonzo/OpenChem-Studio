@@ -52,6 +52,9 @@ def _wanted(corpus: dict) -> list[tuple[str, str]]:
     for entry in corpus["structures"]:
         pdb_id, assembly_id = entry["pdb_id"], entry["assembly_id"]
         out.append((f"{pdb_id}.pdb", f"https://files.rcsb.org/download/{pdb_id}.pdb"))
+        # The mmCIF deposit as well: the builder reads both, and the gate
+        # scores both arms against the same RCSB reference.
+        out.append((f"{pdb_id}.cif", f"https://files.rcsb.org/download/{pdb_id}.cif"))
         out.append(
             (
                 f"{pdb_id}-assembly{assembly_id}.cif",

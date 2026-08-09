@@ -673,12 +673,28 @@ document may cite a file or a test that does not exist.
   random seed and the same receptor already differs run to run. The
   unpinned spread above is what makes the pinned numbers readable.
 
-  Still open: **building from mmCIF** (PDB refuses assemblies its
-  single-character chain id or 99,999-serial limit cannot express, mmCIF
-  is exactly the format for those, and it is also the only way to remove
-  2OMF's 0.001 and to exercise a product expression at all -- `REMARK
-  350` has no expression syntax, so right-to-left composition stays
-  unit-tested until then).
+  **mmCIF builds too**, and it removed the 0.001 exactly as predicted.
+  `_build_mmcif` shares `_resolve_placements` with the PDB path, so the
+  composition order, the operator-missing refusal and the rigid-body
+  validation are one implementation checked by one gate; the two differ
+  only in what the format can express. PDB refuses a 63rd chain name or a
+  100,000th atom serial and mmCIF has neither limit, which is the whole
+  reason for the second path. Scored built-from-mmCIF, **all four
+  buildable entries match RCSB on every atom to the written digit**, with
+  2OMF's transform error settling at 0.000500 -- the half-unit of RCSB's
+  own write rounding, which cannot go lower.
+
+  Its generated chains follow RCSB's convention, `A-2` being chain A
+  under operator 2 (measured: 2OMF's one chain under operators 1, 2, 3 is
+  `A`, `A-2`, `A-3` in their file). One deliberate divergence: a chain
+  placed only under a non-identity operator keeps its bare deposited name
+  where RCSB suffixes it, because `keep_chains` addresses chains by name
+  and the same receptor must exclude the same chains whichever format it
+  was imported from.
+
+  Still open: **a product expression** (`(X0)(1-60)`) has no deposit in
+  the corpus from either format -- `REMARK 350` has no expression syntax
+  at all -- so right-to-left composition remains unit-tested only.
 
   BinaryCIF is no longer: `chem/binarycif.py` decodes it and
   `chem/structure_io.py` routes files by content (and gunzips) at import.

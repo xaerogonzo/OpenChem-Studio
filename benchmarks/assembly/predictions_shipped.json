@@ -1,5 +1,6 @@
 {
  "label": "shipped",
+ "source_format": "pdb",
  "mutation": null,
  "corpus_version": 1,
  "environment": {
