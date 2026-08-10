@@ -1080,6 +1080,44 @@ directory for anything to change; `resources/ketcher/dist/` is build
 output. node and npm are installed, and a build takes about a minute
 (measured 54 s and 1m00 on two bond-selection rebuilds).
 
+#### KETCHER KEEPS 3D COORDINATES, including through an edit
+
+Measured, because the whole "show the conformer's real shape in the 2D
+editor" feature is unreachable if it does not, and because the failure
+would have been silent and compounding: `main.jsx` forwards every canvas
+change as `structureEdited(ketcher.getMolfile())`, which becomes an
+`EditStructureCommand`, and that command CLEARS the conformer set. So a
+Ketcher that flattened z would mean
+
+    adopt a 3D structure -> click anything -> molblock flattened to z = 0
+                                              AND conformers = []
+
+one click destroying both the view and the geometry behind it.
+
+It does not. `tests/test_ketcher_holds_3d_coordinates.py`, against the
+real vendored bundle:
+
+    xy pairwise distance ratio    0.7993 .. 0.7993   spread 1.0000
+    3D pairwise distance ratio    0.6943 .. 0.6944   spread 1.0001
+    z spread, cyclohexane chair   0.9832 A in -> 0.6828 A out
+    after deleting an atom (6 -> 5)                  0.6828 A
+
+So Ketcher applies **one uniform 3D scale** and nothing else -- no
+re-layout, no flattening, and z is scaled by the same factor as x and y.
+Bond lengths and angles survive exactly.
+
+**A non-zero z is not the same as an intact geometry**, and the test that
+only checks z would pass against an anisotropic scale that silently
+changes every bond length. Assert that all pairwise 3D distances share
+ONE ratio.
+
+**Two scale factors from two different molecules are not evidence of
+anisotropy.** 0.6943 and 0.7993 above look like a discrepancy and are
+not: Ketcher normalises to its own bond length per structure, so an
+aromatic molecule and cyclohexane get different factors. 0.9832 x 0.6943
+= 0.6826, which is the 0.6828 measured. Nearly wrote up a bug that was
+not there.
+
 #### The bundle was rebuilt on vite 6, and what that cost
 
 The toolchain moved from vite 5.4.21 to 6.4.3 to clear six dependabot
