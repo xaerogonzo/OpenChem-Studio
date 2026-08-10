@@ -315,3 +315,177 @@ def test_adopting_does_not_change_which_geometry_a_calculation_uses(engine):
     AdoptConformerCommand(engine, molecule, high.molblock, EventBus()).redo()
 
     assert canonical_conformer(molecule) is low
+
+
+# --- the drawing follows the camera ------------------------------------------
+
+#: A stereocentre whose FOURTH SUBSTITUENT IS AN EXPLICIT HYDROGEN, which
+#: is the case that makes the perceive-then-remove ordering matter.
+ALANINE = "C[C@@H](N)C(=O)O"
+
+_HALF = math.sqrt(0.5)
+#: 90 degrees about y, and the same rotation from a panned, zoomed camera.
+VIEW_Y90 = [0.0, 0.0, 0.0, 0.0, 0.0, _HALF, 0.0, _HALF]
+VIEW_Y90_ZOOMED = [9.0, -3.0, 1.5, 88.0, 0.0, _HALF, 0.0, _HALF]
+VIEW_X40 = [0.0, 0.0, 0.0, 0.0, 0.342, 0.0, 0.0, 0.940]
+
+
+def _z_spread(molblock: str) -> float:
+    zs = [z for _x, _y, z in _xyz(molblock)]
+    return max(zs) - min(zs)
+
+
+def _xyz(molblock: str) -> list[tuple[float, float, float]]:
+    mol = Chem.MolFromMolBlock(molblock, removeHs=False, sanitize=False)
+    conformer = mol.GetConformer()
+    return [
+        (p.x, p.y, p.z)
+        for p in (conformer.GetAtomPosition(i) for i in range(mol.GetNumAtoms()))
+    ]
+
+
+def test_an_oriented_drawing_keeps_its_third_dimension(engine):
+    """THE FEATURE ITSELF: "the structure is not in a *literal* 3d shape,
+    which is the entire point of what I'm trying to do".
+
+    The molblock stays 3D and the editor draws its x/y, so what lands on
+    the canvas is a projection of the real geometry -- which is what
+    MarvinSketch shows for buckminsterfullerene. Ketcher holds those
+    coordinates through an edit; that was gated before this was written.
+    """
+    molecule = _molecule(engine, CHOLESTEROL)
+    conformer = _conformer_molblock(engine, molecule)
+
+    drawing = engine.drawing_from_conformer(conformer, view=VIEW_Y90)
+
+    assert _z_spread(drawing.molblock) > 1.0
+    assert drawing.follows_geometry
+
+
+def test_an_oriented_drawing_still_drops_the_hydrogens(engine):
+    """The original defect does not come back through the new path.
+    Aspirin's conformer is 21 atoms; the drawing must be 13."""
+    molecule = _molecule(engine, ASPIRIN)
+
+    drawing = engine.drawing_from_conformer(
+        _conformer_molblock(engine, molecule), view=VIEW_Y90
+    )
+
+    assert _atom_count(drawing.molblock) == 13
+    assert engine.molblock_to_smiles(drawing.molblock) == molecule.canonical_smiles
+
+
+def test_turning_the_camera_never_turns_R_into_S(engine):
+    """**THE INVARIANT WORTH HAVING**, and the reason the stereo is
+    perceived before the hydrogens come off.
+
+    Alanine's stereocentre has an explicit hydrogen as its fourth ligand,
+    so perceiving after removal would make the answer depend on how RDKit
+    reconstructs it rather than on the geometry that is present.
+
+    Checked across several cameras, because a transform that mirrored the
+    molecule would flip the assignment while preserving every bond length
+    and angle -- invisible to any geometric check. (A mutation mirroring
+    the matrix through z fails ten tests, this among them.)
+
+    **The perceive-before-remove ORDERING is not what this catches**, and
+    a mutation deleting the explicit perception survived. Measured on this
+    molecule with the tags wiped first, both orders give (1, 'R') -- three
+    heavy neighbours and their coordinates already determine the fourth
+    direction. The invariant is still worth having; the mechanism behind
+    it was not what it was assumed to be.
+    """
+    molecule = _molecule(engine, ALANINE)
+    conformer = _conformer_molblock(engine, molecule)
+    expected = molecule.canonical_smiles
+    assert "@" in expected, "the fixture lost its stereocentre"
+
+    for view in (None, VIEW_Y90, VIEW_X40, VIEW_Y90_ZOOMED):
+        drawing = engine.drawing_from_conformer(conformer, view=view)
+        assert engine.molblock_to_smiles(drawing.molblock) == expected, f"view={view}"
+
+
+def test_the_camera_changes_the_projection_and_nothing_else(engine):
+    """Two cameras must give different x/y -- otherwise the button is not
+    using the camera at all -- and identical 3D geometry, which is what
+    catches an accidental flattening inside the projection step."""
+    molecule = _molecule(engine, CHOLESTEROL)
+    conformer = _conformer_molblock(engine, molecule)
+
+    a = _xyz(engine.drawing_from_conformer(conformer, view=VIEW_Y90).molblock)
+    b = _xyz(engine.drawing_from_conformer(conformer, view=VIEW_X40).molblock)
+
+    assert max(math.dist(p[:2], q[:2]) for p, q in zip(a, b)) > 0.5, "the camera did nothing"
+
+    for i in range(len(a)):
+        for j in range(i + 1, len(a)):
+            assert math.dist(a[i], a[j]) == pytest.approx(math.dist(b[i], b[j]), abs=5e-4)
+
+
+def test_zoom_and_pan_do_not_reach_the_drawing(engine):
+    """Asserted end to end as well as on the matrix, because this is the
+    path where a rescaled or displaced structure would actually be
+    written to disk."""
+    molecule = _molecule(engine, ASPIRIN)
+    conformer = _conformer_molblock(engine, molecule)
+
+    plain = _xyz(engine.drawing_from_conformer(conformer, view=VIEW_Y90).molblock)
+    zoomed = _xyz(engine.drawing_from_conformer(conformer, view=VIEW_Y90_ZOOMED).molblock)
+
+    for p, q in zip(plain, zoomed):
+        assert p == pytest.approx(q, abs=5e-4)
+
+
+def test_a_crowded_projection_is_reported_rather_than_repaired(engine):
+    """When the orientation came from the user's own camera, substituting
+    a different one would be the silent-substitution failure this line of
+    work keeps finding. It is flagged instead, so the app can say "rotate
+    the view and try again" -- something they can act on.
+
+    Both directions, or a flag that is always True would pass.
+    """
+    molecule = _molecule(engine, REPORTED)
+    conformer = _conformer_molblock(engine, molecule)
+
+    crowded = [
+        engine.drawing_from_conformer(conformer, view=v).crowded
+        for v in (VIEW_Y90, VIEW_X40, [0.0] * 4 + [0.0, 0.0, 0.0, 1.0])
+    ]
+
+    assert any(not flag for flag in crowded), "every angle was called crowded"
+    # And whatever it reports, it still hands back the orientation asked for.
+    assert all(
+        engine.drawing_from_conformer(conformer, view=v).follows_geometry
+        for v in (VIEW_Y90, VIEW_X40)
+    )
+
+
+def test_the_drawing_still_claims_a_single_enantiomer(engine):
+    """A DRAWING THAT LOSES ITS CHIRAL FLAG SAYS SOMETHING DIFFERENT.
+
+    The molfile chiral flag is what distinguishes "this exact enantiomer"
+    from "this relative arrangement, either hand". RDKit writes 0 by
+    default, and Ketcher renders 0 as **"AND Enantiomer"** against 1 as
+    **"ABS"** -- seen in the running app, where an adopted drawing of a
+    resolved molecule started describing a racemate while its SMILES kept
+    the @ and every calculator went on treating it as resolved.
+
+    Both paths, because the oriented one is new and the flat one had the
+    same defect all along.
+    """
+    molecule = _molecule(engine, REPORTED)
+    conformer = _conformer_molblock(engine, molecule)
+
+    for view in (None, VIEW_Y90):
+        drawing = engine.drawing_from_conformer(conformer, view=view)
+        assert drawing.molblock.splitlines()[3][12:15].strip() == "1", f"view={view}"
+
+
+def test_a_molecule_with_no_stereocentre_makes_no_such_claim(engine):
+    """Flagging an achiral structure as absolute would assert more than
+    the structure says. Benzene has nothing to be absolute about."""
+    molecule = _molecule(engine, "c1ccccc1")
+
+    drawing = engine.drawing_from_conformer(_conformer_molblock(engine, molecule))
+
+    assert drawing.molblock.splitlines()[3][12:15].strip() == "0"

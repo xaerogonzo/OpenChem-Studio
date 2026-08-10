@@ -2,10 +2,14 @@ from __future__ import annotations
 
 import logging
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from rdkit import Chem
 from rdkit.Chem import AllChem, rdMolTransforms
+from rdkit.Geometry import Point3D
+
+from openchem.chem.camera_orientation import camera_to_model_transform, rotate
 
 from openchem.domain.molecule import MoleculeModel
 
@@ -73,20 +77,66 @@ HEATMAP_FILL_THRESHOLD = 0.05
 #: fails if it leaves that window.
 READABLE_LAYOUT_FRACTION = 0.6
 
+#: Closest approach, in molblock units, below which a projection is called
+#: crowded. A normal bond is ~1.5, so a third of one means two atoms are
+#: hard to tell apart. Reported to the user rather than repaired -- see
+#: `ConformerDrawing.crowded`.
+_CROWDED_APPROACH = 0.5
+
 
 @dataclass(frozen=True)
 class ConformerDrawing:
-    """A drawing made from a conformer, and whether it kept its orientation.
+    """A drawing made from a conformer, and what it managed to keep.
 
-    The flag is not a detail: when it is False the drawing is a correct
-    depiction of the right molecule that says nothing about the conformer
-    chosen, and the user pressed a button asking for exactly that. Saying
-    so is the difference between "this molecule cannot show its geometry
-    flat" and "the button did nothing".
+    Neither flag is a detail. `follows_geometry` False means the drawing is
+    a correct depiction of the right molecule that says nothing about the
+    conformer chosen, and the user pressed a button asking for exactly
+    that -- saying so is the difference between "this molecule cannot show
+    its geometry flat" and "the button did nothing".
+
+    `crowded` means atoms are drawn close enough to be hard to tell apart.
+    It is reported rather than repaired: when the orientation came from the
+    user's own camera, quietly substituting a different one would be the
+    same silent-substitution failure in a new place, and "rotate the view a
+    little and try again" is something they can act on.
     """
 
     molblock: str
     follows_geometry: bool
+    crowded: bool = False
+
+
+def _claim_absolute_stereochemistry(mol: Chem.Mol) -> None:
+    """Mark the drawing as ONE enantiomer, when it has a defined centre.
+
+    The molfile chiral flag is what says whether a drawing means "this
+    exact enantiomer" or "this relative arrangement, either hand". RDKit
+    writes 0 by default, and Ketcher renders 0 as **"AND Enantiomer"** and
+    1 as **"ABS"** -- so a drawing derived from a conformer silently
+    stopped claiming which enantiomer it was, while its SMILES kept the
+    @ and every calculator went on treating it as resolved.
+
+    Only when there is something to claim: flagging a molecule with no
+    defined stereocentre as absolute would be asserting more than the
+    structure says.
+    """
+    if Chem.FindMolChiralCenters(mol, useLegacyImplementation=False):
+        mol.SetProp("_MolFileChiralFlag", "1")
+
+
+def _cip_labels(mol: Chem.Mol) -> tuple[tuple[int, str], ...]:
+    """Every assigned CIP code, by atom index.
+
+    Compared before and after orienting, because a rotation must not
+    change one. NOT a sufficient check for a reflection on its own -- a
+    mirror can leave particular assignments intact -- which is why
+    `camera_to_model_transform` is separately held to det(R) = +1.
+    """
+    return tuple(
+        (atom.GetIdx(), atom.GetProp("_CIPCode"))
+        for atom in mol.GetAtoms()
+        if atom.HasProp("_CIPCode")
+    )
 
 
 def _closest_approach(mol: Chem.Mol) -> float:
@@ -144,10 +194,27 @@ class ChemistryEngine:
     def mol_to_molblock(self, mol: Chem.Mol) -> str:
         return Chem.MolToMolBlock(mol)
 
-    def drawing_from_conformer(self, molblock: str) -> ConformerDrawing:
-        """A 2D drawing of a 3D conformer: heavy atoms, laid out to match it.
+    def drawing_from_conformer(
+        self, molblock: str, view: Sequence[float] | None = None
+    ) -> ConformerDrawing:
+        """A drawing of a 3D conformer: heavy atoms, oriented as asked.
 
-        A conformer cannot simply BE a drawing, for two measured reasons.
+        **With a `view`, this keeps the 3D geometry and simply turns it.**
+        That is the whole point of the feature -- reported as "the
+        structure is not in a *literal* 3d shape, which is the entire point
+        of what I'm trying to do", against a MarvinSketch screenshot of
+        buckminsterfullerene drawn in perspective inside a 2D editor. The
+        molblock stays 3D and the editor draws its x/y, so crossing bonds
+        are not a defect: they are what the projection of a real geometry
+        looks like. Ketcher holds those coordinates through an edit --
+        measured, see `tests/test_ketcher_holds_3d_coordinates.py`.
+
+        Without a `view` it falls back to a flat depiction laid out to
+        match the conformer, which is what shipped before a camera was
+        available. Everything below is about that path.
+
+        A conformer cannot simply BE a flat drawing, for two measured
+        reasons.
 
         **Its hydrogens are explicit.** Conformers are embedded after
         `Chem.AddHs`, so aspirin's is 21 atoms against the 13 that were
@@ -195,7 +262,11 @@ class ChemistryEngine:
         0.000 every time, for all five degenerate cases. The fallback is
         the only answer this function leaves.
         """
+        if view is not None:
+            return self._oriented_drawing(molblock, view)
+
         heavy = Chem.RemoveHs(self.mol_from_molblock(molblock))
+        _claim_absolute_stereochemistry(heavy)
 
         plain = Chem.Mol(heavy)
         AllChem.Compute2DCoords(plain)
@@ -222,6 +293,75 @@ class ChemistryEngine:
             )
             return ConformerDrawing(Chem.MolToMolBlock(plain), follows_geometry=False)
         return ConformerDrawing(Chem.MolToMolBlock(oriented), follows_geometry=True)
+
+    def _oriented_drawing(self, molblock: str, view: Sequence[float]) -> ConformerDrawing:
+        """The conformer turned to face the camera, still in 3D.
+
+        Stereo is perceived before the hydrogens come off. **That ordering
+        turns out NOT to be load-bearing, and saying so is the point.**
+        The worry was that a hydrogen is frequently the fourth ligand of a
+        tetrahedral centre, so removing it first would leave the answer
+        depending on how RDKit reconstructs the implicit H. Measured on
+        alanine, with the tags wiped first so neither run could inherit an
+        earlier assignment:
+
+            wiped -> RemoveHs -> perceive     (1, 'R')
+            wiped -> perceive -> RemoveHs     (1, 'R')
+
+        Three heavy neighbours and their coordinates already determine the
+        fourth direction. The call stays because it makes the CIP
+        comparison below meaningful whatever produced the molblock -- a 2D
+        one would otherwise give an empty `before` and compare nothing --
+        not because the sequence is delicate.
+
+        **Keeping z preserves the GEOMETRY, not the stereochemistry.**
+        Stereo is an annotation on the graph; z only makes it derivable.
+        So it is re-perceived and then CHECKED against the source, because
+        the useful invariant is that turning the camera can never turn R
+        into S -- and a rotation that quietly mirrored the molecule would
+        do exactly that while preserving every bond length.
+
+        The centroid is subtracted before rotating and not added back:
+        rotation is about the origin, and a molecule centred on it is what
+        the editor wants anyway.
+        """
+        source = self.mol_from_molblock(molblock)
+        Chem.AssignStereochemistryFrom3D(source)
+        before = _cip_labels(source)
+
+        turned = Chem.Mol(source)
+        conformer = turned.GetConformer()
+        points = [conformer.GetAtomPosition(i) for i in range(turned.GetNumAtoms())]
+        centre = (
+            sum(p.x for p in points) / len(points),
+            sum(p.y for p in points) / len(points),
+            sum(p.z for p in points) / len(points),
+        )
+        rotated = rotate(
+            [(p.x - centre[0], p.y - centre[1], p.z - centre[2]) for p in points],
+            camera_to_model_transform(view),
+        )
+        for index, (x, y, z) in enumerate(rotated):
+            conformer.SetAtomPosition(index, Point3D(x, y, z))
+
+        drawing = Chem.RemoveHs(turned)
+        Chem.AssignStereochemistryFrom3D(drawing)
+        after = _cip_labels(drawing)
+        if before and after != before:
+            # Loud, because it means the geometry and the graph now
+            # disagree about what molecule this is -- and every other
+            # symptom of that is invisible.
+            logger.warning(
+                "Orienting the conformer changed its stereochemistry: %s -> %s",
+                before,
+                after,
+            )
+        _claim_absolute_stereochemistry(drawing)
+        return ConformerDrawing(
+            Chem.MolToMolBlock(drawing),
+            follows_geometry=True,
+            crowded=_closest_approach(drawing) < _CROWDED_APPROACH,
+        )
 
     def molblock_to_smiles(self, molblock: str) -> str:
         """Isomeric SMILES for a structure held as a molblock.

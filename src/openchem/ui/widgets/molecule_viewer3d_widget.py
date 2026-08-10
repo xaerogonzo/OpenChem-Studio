@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QComboBox,
@@ -27,6 +29,8 @@ from openchem.ui.visualization import (
 )
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
 
+
+logger = logging.getLogger("openchem.ui")
 
 #: Amber, which is not on the diverging red/blue scale the per-atom
 #: layers use -- so a transient hover cannot be mistaken for data.
@@ -64,12 +68,16 @@ class MoleculeViewer3DWidget(QWidget):
     #: Routing one into the other is the class of bug that crashed on a
     #: hydrogen click; see `_atom_is_in_report` in the inspector.
     crystal_site_clicked = Signal(int)
-    #: The 2D drawing should be redrawn from the conformer on screen.
+    #: The 2D drawing should be redrawn from what is on screen: the
+    #: display-aligned molblock, and the camera state it is drawn under
+    #: (3Dmol's `getView()` array, or None when there is no camera).
     #:
-    #: Carries the molblock rather than an index, so the receiver does not
-    #: have to reach back in and re-derive which conformer was showing --
-    #: the same reason `FactLink` carries its parameters.
-    conformer_adopted = Signal(str)
+    #: Both, and captured together: the orientation is only meaningful
+    #: against the frame it was read for. Carrying the molblock rather
+    #: than an index also means the receiver does not have to re-derive
+    #: which conformer was showing -- the same reason `FactLink` carries
+    #: its parameters.
+    conformer_adopted = Signal(str, object)
 
     def __init__(
         self,
@@ -295,7 +303,7 @@ class MoleculeViewer3DWidget(QWidget):
         )
 
     def _on_use_clicked(self, _checked: bool = False) -> None:
-        """Hand the conformer on screen back to whoever owns the project.
+        """Hand what is on screen back to whoever owns the project.
 
         The widget does not apply it itself: redrawing the molecule has
         to be undoable, and the undo stack belongs to the window. Same
@@ -305,11 +313,44 @@ class MoleculeViewer3DWidget(QWidget):
         the first one.** Sending `conformers[0]` would work perfectly for
         anyone who never pressed `>`, and silently redraw the wrong
         geometry for anyone who did.
+
+        **The DISPLAY-ALIGNED copy, not the retained conformer**, because
+        the camera orientation composes with the frame that is actually
+        drawn. The retained conformer sits in its own arbitrary embedding
+        frame; rotating that by the camera would produce a structure at
+        some unrelated angle while looking entirely plausible.
+
+        **ONE SNAPSHOT.** Reading the camera is a round trip into a web
+        page, and the user can press `>` while it is in flight -- which
+        would adopt conformer 4 with conformer 3's camera, a wrong answer
+        that nothing downstream could detect. The index and the structure
+        key are captured first and re-checked when the view arrives, and
+        the button is disabled meanwhile so the gesture cannot be repeated
+        into the gap.
         """
         if self._molecule is None or not self._molecule.conformers:
             return
-        conformer = self._molecule.conformers[self._conformer_index]
-        self.conformer_adopted.emit(conformer.molblock)
+        index = self._conformer_index
+        key = self._structure_key()
+        molblocks = self._conformer_service.display_molblocks(self._molecule)
+        molblock = (
+            molblocks[index]
+            if index < len(molblocks)
+            else self._molecule.conformers[index].molblock
+        )
+        self._use_button.setEnabled(False)
+
+        def with_view(view: list[float] | None) -> None:
+            self._use_button.setEnabled(True)
+            if self._conformer_index != index or self._structure_key() != key:
+                logger.info(
+                    "The selection moved while the camera was being read; "
+                    "not adopting a conformer nobody is looking at."
+                )
+                return
+            self.conformer_adopted.emit(molblock, view)
+
+        self._backend.current_view(with_view)
 
     def _refresh_view(self) -> None:
         if self._molecule is None or not self._molecule.conformers:

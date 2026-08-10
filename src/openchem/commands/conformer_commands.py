@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 from openchem.chem.engine import ChemistryEngine
 from openchem.commands.base import OpenChemCommand
@@ -46,6 +46,7 @@ class AdoptConformerCommand(OpenChemCommand):
         conformer_molblock: str,
         event_bus: EventBus,
         on_applied: Callable[[MoleculeModel], None] | None = None,
+        view: Sequence[float] | None = None,
     ) -> None:
         super().__init__(f"Use conformer as the drawing for '{molecule.display_name}'")
         self._engine = engine
@@ -66,13 +67,16 @@ class AdoptConformerCommand(OpenChemCommand):
         # an equivalent mutation and no test can catch it. Deriving it
         # from `self._molecule.molblock` -- which after an undo is the
         # original drawing -- is a real bug and is caught.
-        drawing = engine.drawing_from_conformer(conformer_molblock)
+        drawing = engine.drawing_from_conformer(conformer_molblock, view=view)
         self._new_molblock = drawing.molblock
         #: False when this molecule's geometry cannot be drawn flat
         #: without atoms overlapping, so the drawing is a plain layout
         #: that says nothing about which conformer was chosen. The caller
         #: is expected to SAY so -- see `ConformerDrawing`.
         self.follows_geometry = drawing.follows_geometry
+        #: True when atoms are drawn close enough to be hard to tell
+        #: apart at the angle asked for. Also for the caller to say.
+        self.crowded = drawing.crowded
 
     def redo(self) -> None:
         self._engine.set_structure_from_molblock(self._molecule, self._new_molblock)

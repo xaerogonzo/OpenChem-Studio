@@ -1850,7 +1850,7 @@ class MainWindow(QMainWindow):
             return
         handler()
 
-    def _adopt_conformer(self, molblock: str) -> None:
+    def _adopt_conformer(self, molblock: str, view: object = None) -> None:
         """Redraw the molecule from the conformer shown in the 3D viewer.
 
         **STRUCTURES ONLY EVER WENT ONE WAY.** "Send to 3D Viewer Tab"
@@ -1888,6 +1888,7 @@ class MainWindow(QMainWindow):
                 molecule,
                 molblock,
                 self._services.event_bus,
+                view=view,
                 # The editor's own method rather than one of this window's:
                 # the command outlives this call on the undo stack, and a
                 # bound method of the window would be a new reference into
@@ -1910,13 +1911,20 @@ class MainWindow(QMainWindow):
         # the geometry. Reported as "it didn't really do anything" on a
         # benzobicyclo[2.2.2]octane, where the honest answer is that this
         # shape has no flat orientation -- but nothing said so.
-        if command.follows_geometry:
-            message = f"{molecule.display_name}: redrawn from the conformer in the 3D viewer."
-        else:
+        if not command.follows_geometry:
             message = (
                 f"{molecule.display_name}: redrawn, but this shape cannot be drawn flat "
                 "without atoms overlapping, so the layout does not follow the 3D view."
             )
+        elif command.crowded:
+            # Actionable, which is why the orientation they chose is kept
+            # rather than quietly replaced with a tidier one.
+            message = (
+                f"{molecule.display_name}: redrawn as you have it rotated -- but some "
+                "atoms overlap at this angle. Turn the 3D view a little and try again."
+            )
+        else:
+            message = f"{molecule.display_name}: redrawn as you have it rotated in 3D."
         self.statusBar().showMessage(message, 8000)
 
     def _insert_element_into_drawing(self, symbol: str) -> None:

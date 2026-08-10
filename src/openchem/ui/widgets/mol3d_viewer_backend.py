@@ -164,6 +164,42 @@ class Mol3DViewerBackend(ViewerBackend):
         else:
             self._pending_molblock = (molblock, keep_camera)
 
+    def current_view(self, callback: Callable[[list[float] | None], None]) -> None:
+        """The camera's current state, as 3Dmol's `getView()` array.
+
+        **JSON round-tripped, because `runJavaScript` on this Qt build
+        returns PRIMITIVES ONLY** -- an array arrives as the empty string,
+        indistinguishable from a script that failed. Every structural
+        probe in this project has to cross as a string; this one is no
+        exception, and reading `''` as "no camera" would silently drop
+        every rotation the user made.
+
+        `None` when the page is not ready or the result cannot be read, so
+        the caller falls back to an unrotated drawing rather than to
+        nothing.
+        """
+        if not self._page_ready:
+            callback(None)
+            return
+
+        def done(raw: object) -> None:
+            if not raw:
+                callback(None)
+                return
+            try:
+                view = json.loads(str(raw))
+            except (TypeError, ValueError):
+                logger.warning("Could not read the 3D viewer camera: %r", raw)
+                callback(None)
+                return
+            callback(view if isinstance(view, list) else None)
+
+        self._page.runJavaScript(
+            "(typeof viewer !== 'undefined' && viewer)"
+            " ? JSON.stringify(viewer.getView()) : ''",
+            done,
+        )
+
     def _run_load(self, molblock: str, keep_camera: bool = False) -> None:
         self._page.runJavaScript(
             f"window.openchemViewer.loadMolblock("

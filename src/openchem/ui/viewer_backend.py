@@ -34,6 +34,17 @@ class ViewerBackend(QObject):
         """
         raise NotImplementedError
 
+    def current_view(self, callback) -> None:
+        """Report the camera's current state, or None if there is not one.
+
+        Asynchronous because reading it means a round trip into a web
+        page. Concrete rather than abstract, and answering None, so a
+        backend with no camera to report -- or a test double -- needs no
+        change: the caller then produces an unrotated structure, which is
+        a correct answer rather than a failure.
+        """
+        callback(None)
+
     def set_style(self, style: str) -> None:
         """Set the render style: 'stick', 'sphere', 'line', or 'ballstick'."""
         raise NotImplementedError

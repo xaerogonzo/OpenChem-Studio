@@ -143,11 +143,27 @@ methyl is not a conformer — but hydrogens on N, O and S are kept, because
 an O–H orientation changes hydrogen bonding and changes the energy of any
 QM job you run afterwards.
 
-**Use in 2D Editor** takes the conformer currently on screen — the one you
-navigated to, not the first — and redraws the 2D structure to match it,
-then switches to the editor. It is a single undoable step.
+**Comparing conformers.** Every conformer is superimposed on the
+lowest-energy one for display, and stepping between them with `<` and `>`
+keeps the camera exactly where you put it. So arranging a view and then
+flipping through the set shows you the difference in shape and nothing
+else. The coordinates that get saved and exported are untouched — the
+superposition is a viewing aid, recomputed each time.
 
-Three things it deliberately does *not* do:
+The energy shown is relative to the lowest (`+0.55 kcal/mol`), because the
+raw force-field number is not a quantity anybody compares to anything. The
+absolute value is in the tooltip.
+
+**Use in 2D Editor** takes the conformer on screen — the one you navigated
+to, not the first — and hands the 2D editor **the 3D structure as you have
+it rotated**. The molblock keeps its z, the editor draws its x and y, so
+what you get is a projection of the geometry you were just looking at,
+the way MarvinSketch draws buckminsterfullerene in perspective. Crossing
+bonds are not a fault: that is what a projection of a real 3D shape looks
+like. It is a single undoable step, and Ketcher holds those coordinates
+through subsequent edits.
+
+Two things it deliberately does *not* do:
 
 - **It does not put the conformer's hydrogens in your drawing.** A
   conformer is embedded with explicit hydrogens (aspirin's is 21 atoms
@@ -155,26 +171,26 @@ Three things it deliberately does *not* do:
   structure to everything that compares one — eight of the registered
   calculators report different numbers for it. The drawing keeps its
   implicit hydrogens.
-- **It does not use the conformer's x and y directly.** Those are a 3D
-  geometry seen flat, and for anything non-planar that overlaps: two of
-  cholesterol's atoms land 0.219 units apart where a real depiction has
-  1.500. The drawing is laid out properly, oriented to follow the 3D one.
 - **It does not throw away your conformers.** The structure has not
   changed, so they are all still valid and the 3D viewer keeps showing
   them.
 
 It changes the drawing, and only the drawing. What a calculation computes
 with is unaffected: anything needing 3D already uses the lowest-energy
-conformer automatically, and still does.
+conformer automatically, and still does. Stereochemistry survives the
+round trip — turning the camera can never change an R centre into an S
+one, and the drawing still declares itself a single enantiomer rather
+than a relative arrangement.
 
-**Some shapes have no flat orientation, and it will say so.** A
-bicyclo[2.2.2] cage — quinuclidine, DABCO, a benzobicyclo[2.2.2]octane —
-superimposes its two bridges exactly when seen down the bridgehead axis,
-so a drawing that followed the 3D view would put atoms on top of each
-other and hide the bridge. Those get a plain, readable layout instead,
-and the status bar says the layout does not follow the 3D view. Fused
-polycycles are not affected: cholesterol, strychnine, morphine,
-norbornane, adamantane and cubane all keep their orientation.
+**Some angles put atoms on top of each other, and it will say so.** Look
+down the bridgehead axis of a bicyclo[2.2.2] cage — quinuclidine, DABCO, a
+benzobicyclo[2.2.2]octane — and its two bridges superimpose exactly. You
+still get the view you asked for, with the status bar telling you to turn
+the view a little and try again, rather than being given some other
+orientation you did not choose.
+
+If the viewer cannot report a camera at all, the drawing falls back to a
+flat depiction laid out to follow the conformer, and says so.
 
 **Macromolecule Viewer** — Mol\*, for proteins and nucleic acids. Cartoon
 representations, chain colouring, and the receptor-residue highlighting that

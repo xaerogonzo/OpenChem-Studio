@@ -138,13 +138,13 @@ def test_use_in_2d_editor_offers_the_conformer_that_is_on_screen(qapp):
         ConformerModel(molblock="conf-2", method="rdkit"),
     ]
     widget.set_molecule(molecule)
-    offered: list[str] = []
-    widget.conformer_adopted.connect(offered.append)
+    offered: list[tuple] = []
+    widget.conformer_adopted.connect(lambda mb, view: offered.append((mb, view)))
 
     widget._show_next_conformer()
     widget._use_button.click()
 
-    assert offered == ["conf-2"]
+    assert [mb for mb, _view in offered] == ["conf-2"]
 
 
 def test_use_in_2d_editor_is_disabled_with_nothing_to_use(qapp):
@@ -439,3 +439,144 @@ def test_the_viewer_shows_the_display_aligned_copy_not_the_stored_one(qapp):
     assert molecule.conformers[1].molblock == molblocks[1], (
         "the stored conformer was mutated; display alignment must not do that"
     )
+
+
+# --- the camera travels with the conformer, atomically -----------------------
+
+
+class DeferredViewBackend(FakeViewerBackend):
+    """A backend whose camera read does not answer until told to.
+
+    Reading the camera is a round trip into a web page, so it IS
+    asynchronous in production; a fake that answers immediately cannot
+    exercise anything that happens in the gap.
+    """
+
+    def __init__(self, view=None) -> None:
+        super().__init__()
+        self.view = view
+        self._pending = None
+
+    def current_view(self, callback) -> None:
+        self._pending = callback
+
+    def answer(self) -> None:
+        callback, self._pending = self._pending, None
+        assert callback is not None, "nothing was waiting on the camera"
+        callback(self.view)
+
+
+def _deferred_widget(qapp, view=None):
+    bus = EventBus()
+    engine = ChemistryEngine()
+    backend = DeferredViewBackend(view)
+    widget = MoleculeViewer3DWidget(
+        ConformerService(bus, engine), MeasurementService(engine), bus, backend=backend
+    )
+    return widget, backend
+
+
+def test_the_camera_is_handed_over_with_the_conformer(qapp):
+    """The whole of Phase 2: the drawing is made from what is on screen,
+    which means the geometry AND the angle it is being viewed at."""
+    camera = [0.0, 0.0, 0.0, 0.0, 0.0, 0.7071, 0.0, 0.7071]
+    widget, backend = _deferred_widget(qapp, view=camera)
+    widget.set_molecule(_two_conformers())
+    adopted: list[tuple] = []
+    widget.conformer_adopted.connect(lambda mb, v: adopted.append((mb, v)))
+
+    widget._use_button.click()
+    backend.answer()
+
+    assert len(adopted) == 1
+    assert adopted[0][1] == camera
+
+
+def test_changing_conformer_while_the_camera_is_read_adopts_nothing(qapp):
+    """THE RACE, and it is not detectable downstream.
+
+    Pressing `>` while the camera read is in flight would otherwise adopt
+    conformer 2 with conformer 1's camera -- a structure at an angle
+    nobody was ever looking at, which is chemically valid and silently
+    wrong. The snapshot is re-checked when the answer comes back.
+    """
+    widget, backend = _deferred_widget(qapp, view=[0.0] * 4 + [0.0, 0.0, 0.0, 1.0])
+    widget.set_molecule(_two_conformers())
+    adopted: list[tuple] = []
+    widget.conformer_adopted.connect(lambda mb, v: adopted.append((mb, v)))
+
+    widget._use_button.click()
+    widget._show_next_conformer()
+    backend.answer()
+
+    assert adopted == []
+
+
+def test_the_button_is_disabled_while_the_camera_is_being_read(qapp):
+    """So the gesture cannot be repeated into the gap and queue two
+    adoptions of the same thing. Re-enabled when the answer arrives,
+    which is asserted too -- a button that never comes back is worse."""
+    widget, backend = _deferred_widget(qapp)
+    widget.set_molecule(_two_conformers())
+
+    widget._use_button.click()
+    assert not widget._use_button.isEnabled()
+
+    backend.answer()
+    assert widget._use_button.isEnabled()
+
+
+def test_a_backend_with_no_camera_still_adopts(qapp):
+    """`ViewerBackend.current_view` answers None by default, so a viewer
+    that cannot report a camera produces an unrotated drawing rather than
+    a dead button."""
+    widget, _backend, _bus = _make_widget(qapp)
+    widget.set_molecule(_two_conformers())
+    adopted: list[tuple] = []
+    widget.conformer_adopted.connect(lambda mb, v: adopted.append((mb, v)))
+
+    widget._use_button.click()
+
+    assert len(adopted) == 1
+    assert adopted[0][1] is None
+
+
+def test_adoption_hands_over_the_aligned_copy_not_the_stored_one(qapp):
+    """The camera composes with the frame that is actually DRAWN.
+
+    The viewer shows the display-aligned copy, so rotating the retained
+    conformer -- which sits in its own arbitrary embedding frame -- by the
+    on-screen camera would give a structure at some unrelated angle, while
+    looking entirely plausible.
+
+    Real embedded conformers, because a placeholder molblock does not
+    parse and the aligner returns it untouched: with `"conf-1"` the
+    aligned and retained copies are the same string and a mutation
+    bypassing alignment passes. That is exactly what happened here.
+    """
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCCCCCO"))
+    params = AllChem.ETKDGv3()
+    params.randomSeed = 0xC0FFEE
+    AllChem.EmbedMultipleConfs(mol, numConfs=2, params=params)
+    AllChem.MMFFOptimizeMoleculeConfs(mol)
+    molblocks = [Chem.MolToMolBlock(mol, confId=c.GetId()) for c in mol.GetConformers()]
+
+    widget, backend = _deferred_widget(qapp)
+    molecule = MoleculeModel(display_name="Hexanol")
+    molecule.conformers = [
+        ConformerModel(molblock=mb, method="rdkit", energy=float(i), timestamp=1.0)
+        for i, mb in enumerate(molblocks)
+    ]
+    widget.set_molecule(molecule)
+    adopted: list[tuple] = []
+    widget.conformer_adopted.connect(lambda mb, v: adopted.append((mb, v)))
+
+    widget._show_next_conformer()
+    widget._use_button.click()
+    backend.answer()
+
+    assert len(adopted) == 1
+    assert adopted[0][0] != molblocks[1], "the retained conformer was handed over unaligned"

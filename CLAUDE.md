@@ -117,11 +117,12 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-9.5 minutes**, ending at `3790 passed, 2 skipped,
+A clean run is **6-9.5 minutes**, ending at `3819 passed, 2 skipped,
 1 deselected` (measured 2026-08-10 on branch `conformer-comparison`,
-after making conformers comparable: +4 for the Ketcher 3D gate and +21
-for display alignment, camera retention and relative energies, over the
-3765 below).
+after making conformers comparable and putting the 3D shape into the 2D
+editor: +4 for the Ketcher 3D gate, +21 for display alignment, camera
+retention and relative energies, and +29 for the camera-oriented drawing,
+over the 3765 below).
 
 Before it: 3765 on branch `ketcher-overrule`, after the Ketcher overrule
 and the conformer round trip: +24 for intercepting Ketcher's duplicated
@@ -1586,6 +1587,75 @@ by mutation:
 - **A heavy-atom fit does not align all-atom centroids**, and asserting
   that it does fails at ~0.17 A on hexanol -- fourteen hydrogens are
   exactly what varies between conformers.
+
+#### The drawing can BE the 3D structure, turned to face the camera
+
+"the structure is not in a *literal* 3d shape, which is the entire point
+of what I'm trying to do" -- against a MarvinSketch screenshot of
+buckminsterfullerene drawn in perspective inside a 2D editor. The flat
+depiction that shipped first was the wrong target: **crossing bonds are
+not a defect, they are what a projection of a real geometry looks like.**
+
+`drawing_from_conformer(molblock, view=...)` rotates the conformer by the
+camera and writes a **3D** molblock; the editor draws its x and y. Live,
+comparing the adopted drawing against `modelToScreen` for the same atoms:
+**agreement +0.9966**.
+
+**`camera_to_model_transform` is a pure function and det(R) is asserted,
+because a reflection preserves every interatomic distance** and so hides
+from anything measuring geometry. The point set in its tests is
+deliberately asymmetric -- a symmetric one makes an inverted transform
+look correct.
+
+**THE OBVIOUS ORACLE FOR THE DIRECTION IS WRONG.** Asking 3Dmol to apply
+its own quaternion, via `$3Dmol.Vector3.applyQuaternion`, DISAGREES with
+the standard convention: for `q = (0, sin35, 0, cos35)` it returns the -70
+degree rotation where the standard form gives +70. Settled against where
+atoms are really drawn, with `viewer.modelToScreen`:
+
+    70 deg about y    matrix +0.9989   transpose +0.5441
+    40 deg about x    matrix +0.9994   transpose +0.6598
+    55 deg about z    matrix +0.9993   transpose -0.3351
+
+Give each rotation a FRESH viewer -- rotating one through all three in
+turn composes them, and scored 0.83 on a case that is really 0.9994.
+
+**A degenerate ANGLE is reported, not repaired.** The bicyclo[2.2.2]
+fallback still exists for the no-camera path, but when the orientation
+came from the user's own camera, substituting a tidier one would be the
+same silent-substitution failure in a new place. `ConformerDrawing.crowded`
+says so and the status bar suggests turning the view.
+
+**A drawing that loses its chiral flag says something different.** RDKit
+writes 0 by default and Ketcher renders 0 as **"AND Enantiomer"** against
+1 as **"ABS"** -- so a drawing derived from a conformer quietly stopped
+claiming which enantiomer it was, while its SMILES kept the @ and every
+calculator went on treating it as resolved. Set
+`_MolFileChiralFlag` when the molecule has a defined centre, and only
+then. This was PRE-EXISTING in the flat path, not introduced by the
+camera work.
+
+**"Perceive stereo before RemoveHs" is NOT load-bearing here**, though it
+sounds as though it must be. `MolFromMolBlock` already assigns from 3D at
+parse time, and measured on alanine with the tags wiped first, both orders
+give `(1, 'R')` -- three heavy neighbours and their coordinates determine
+the fourth direction. A mutation deleting the explicit call survives, and
+the docstring says so rather than claiming a delicate sequence.
+
+**Reading the camera is asynchronous, so the adoption is a SNAPSHOT.**
+Pressing `>` while the read is in flight would otherwise adopt conformer 2
+with conformer 1's camera -- a structure at an angle nobody ever looked
+at, chemically valid and undetectable downstream. The index and structure
+key are captured first and re-checked on the way back, and the button is
+disabled meanwhile.
+
+**And the camera composes with the DISPLAYED frame, not the stored one.**
+The viewer shows the display-aligned copy, so rotating the retained
+conformer by the on-screen camera gives some unrelated angle. Caught by a
+mutation -- and only after the test was rewritten with real embedded
+conformers, because placeholder molblocks do not parse and make aligned
+and retained the same string. That is the SECOND time that trap fired in
+this work.
 
 #### Camera retention keys on a viewer-SESSION identity
 
