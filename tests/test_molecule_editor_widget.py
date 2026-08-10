@@ -23,6 +23,7 @@ class _RecordingEditorBackend(EditorBackend):
         self.load_calls: list[str] = []
         self.render_option_calls: list[tuple[str, object]] = []
         self.toolbar_action_calls: list[str] = []
+        self.atom_tool_calls: list[str] = []
 
     def load_molblock(self, molblock: str) -> None:
         self.load_calls.append(molblock)
@@ -35,6 +36,9 @@ class _RecordingEditorBackend(EditorBackend):
 
     def trigger_toolbar_action(self, action_id):
         self.toolbar_action_calls.append(action_id)
+
+    def set_atom_tool(self, symbol):
+        self.atom_tool_calls.append(symbol)
 
     def widget(self):
         return self._widget
@@ -203,3 +207,26 @@ def test_a_change_to_another_molecule_is_ignored(qapp):
     qapp.processEvents()
 
     assert len(backend.load_calls) == before
+
+
+def test_the_widget_forwards_the_editors_own_periodic_table_button(qapp):
+    """Ketcher's `PT` button is answered by the APPLICATION's table, so
+    the request has to survive the trip backend -> widget -> window.
+    Forwarded straight through, which makes a break here silent: the
+    button simply stops doing anything at all."""
+    _engine, widget, backend = _make_widget()
+    seen: list[bool] = []
+    widget.periodic_table_requested.connect(lambda: seen.append(True))
+
+    backend.periodic_table_requested.emit()
+
+    assert seen == [True]
+
+
+def test_the_widget_arms_the_canvas_with_a_chosen_element(qapp):
+    """"Insert into drawing" reaches the backend as an atom tool."""
+    _engine, widget, backend = _make_widget()
+
+    widget.set_atom_tool("Fe")
+
+    assert backend.atom_tool_calls == ["Fe"]

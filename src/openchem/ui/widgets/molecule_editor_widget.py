@@ -39,6 +39,10 @@ class MoleculeEditorWidget(QWidget):
     atom_selected = Signal(int)
     #: One bond, likewise. Ketcher reports both through the same event.
     bond_selected = Signal(int)
+    #: The user pressed the engine's own periodic-table button. Forwarded
+    #: so the window can answer with the application's table -- see
+    #: `EditorBackend.periodic_table_requested`.
+    periodic_table_requested = Signal()
 
     def __init__(
         self,
@@ -69,6 +73,7 @@ class MoleculeEditorWidget(QWidget):
         # and a consumer should not have to reach for the backend.
         self._backend.atom_selected.connect(self.atom_selected)
         self._backend.bond_selected.connect(self.bond_selected)
+        self._backend.periodic_table_requested.connect(self.periodic_table_requested)
         # The canvas has to follow changes it did not make. Undo is the one
         # that matters: `EditStructureCommand` reverts the model and
         # publishes `MoleculeChanged`, and nothing was listening -- so
@@ -96,6 +101,12 @@ class MoleculeEditorWidget(QWidget):
         menu reach a capability Ketcher already has, without MainWindow
         reaching past this widget into `_backend` directly."""
         self._backend.set_render_option(name, value)
+
+    def set_atom_tool(self, symbol: str) -> None:
+        """Arm the canvas to draw `symbol` on the next click -- what the
+        application's periodic table does with "Insert into drawing". See
+        `EditorBackend.set_atom_tool` for why it arms rather than places."""
+        self._backend.set_atom_tool(symbol)
 
     def trigger_toolbar_action(self, test_id: str) -> None:
         """Proxies to one of Ketcher's own real toolbar buttons (e.g. "Add/

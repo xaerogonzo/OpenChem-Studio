@@ -1,12 +1,27 @@
-"""A periodic table that answers questions, not just one that inserts atoms.
+"""The periodic table: one of them, that answers questions AND draws.
 
-Ketcher has its own, and it stays: it inserts QUERY atoms (Single / List /
-Not List) and belongs to the drawing canvas. This one is a reference under
-Tools, and the difference is the detail pane -- selecting an element shows
-its configuration, radii, electronegativity, the oxidation states it is
-actually found in, and its naturally occurring isotopes with abundances.
-That last one is the part Marvin's own table does not really do, and it
-came free: RDKit's periodic table carries the full abundance data.
+**THERE USED TO BE TWO, AND THAT WAS THE BUG.** Ketcher ships its own,
+and the split looked principled -- Ketcher's inserts atoms and belongs to
+the canvas, this one is a reference under Tools. In the product it read
+as a single table that had lost half its features, depending which door
+you came through: the editor's `PT` button gave a plain grid with no
+facts, and reported as "the periodic table reverted to vanilla".
+
+The editor's button is intercepted now (`tools/ketcher-host/src/main.jsx`)
+and answered with this dialog, so there is one table however you reach
+it. It gained "Insert into drawing" in the same move, because taking a
+button over without taking its job over is just breaking the button.
+
+What Ketcher's could do and this cannot is QUERY atoms -- any-atom, and
+list/not-list. That is named on the dialog itself rather than quietly
+dropped; the editor's own tools still draw them.
+
+The detail pane is the reason this table exists at all -- selecting an
+element shows its configuration, radii, electronegativity, the oxidation
+states it is actually found in, and its naturally occurring isotopes with
+abundances. That last one is the part Marvin's own table does not really
+do, and it came free: RDKit's periodic table carries the full abundance
+data.
 
 Colour marks category, and never carries a fact on its own -- the category
 is written out in the detail pane and in every cell's tooltip, because a
@@ -20,7 +35,7 @@ answer and a blank row would read as a bug.
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import (
     QDialog,
@@ -62,6 +77,12 @@ _SYMBOL_PROPERTY = "openchem_element_symbol"
 class PeriodicTableDialog(QDialog):
     """The table, plus everything known about whichever element is selected."""
 
+    #: An element was chosen for the drawing canvas. Carries the symbol
+    #: rather than acting, so this dialog needs to know nothing about the
+    #: editor -- `MainWindow` owns that wiring, and the dialog stays
+    #: constructible in a test with no editor anywhere.
+    insert_requested = Signal(str)
+
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Periodic Table")
@@ -91,17 +112,40 @@ class PeriodicTableDialog(QDialog):
         detail_area.setMinimumHeight(190)
         layout.addWidget(detail_area, 1)
 
-        # No "insert" button. Placing an atom is the drawing canvas's job,
-        # and Ketcher's own periodic table already does it properly --
-        # including the query forms (Single / List / Not List) that this
-        # one has no way to express. A disabled button promising otherwise
-        # would be worse than not offering it.
+        # THIS IS NOW THE ONLY PERIODIC TABLE THE PRODUCT OFFERS, so it
+        # has to be able to draw as well as explain. The editor's own `PT`
+        # button is intercepted and answered with this dialog (see
+        # `tools/ketcher-host/src/main.jsx`), which means the previous
+        # arrangement -- a reference table here, an insertion table there,
+        # and a line of text pointing from one to the other -- is gone.
+        #
+        # It was a reasonable split and it did not survive contact: two
+        # tables that look alike and know different things read as one
+        # table that has lost half its features.
+        #
+        # Insertion ARMS THE CANVAS rather than placing an atom
+        # immediately, because that is the gesture Ketcher's own table
+        # performs and the one the canvas is built around -- pick an
+        # element, then click where it goes. Inserting at some chosen
+        # coordinate would be a second way for an atom to appear.
         buttons = QHBoxLayout()
+        self._insert_button = QPushButton("Insert into drawing", self)
+        self._insert_button.setToolTip(
+            "Arm the 2D editor with this element, then click the canvas to place it."
+        )
+        self._insert_button.clicked.connect(self._insert_symbol)
+        buttons.addWidget(self._insert_button)
         self._copy_button = QPushButton("Copy symbol", self)
         self._copy_button.clicked.connect(self._copy_symbol)
         buttons.addWidget(self._copy_button)
+        # QUERY ATOMS ARE NOT HERE AND THE TABLE SAYS SO. Ketcher can draw
+        # a list/not-list query atom and this dialog has no way to express
+        # one (measured: `atomList` appears 149 times in the vendored
+        # bundle, "Not List" twice). Naming the gap is the honest half of
+        # taking the button over -- silently dropping a capability is how
+        # a consolidation turns into a regression.
         buttons.addWidget(
-            QLabel("To draw with an element, use the periodic table in the 2D editor's toolbar.", self)
+            QLabel("For query atoms (any-atom, lists), use the 2D editor's own tools.", self)
         )
         buttons.addStretch(1)
         close = QPushButton("Close", self)
@@ -198,6 +242,16 @@ class PeriodicTableDialog(QDialog):
     def _copy_symbol(self) -> None:
         if self._selected:
             QGuiApplication.clipboard().setText(self._selected)
+
+    def _insert_symbol(self, _checked: bool = False) -> None:
+        """Hand the chosen element to whoever owns the canvas.
+
+        The dialog stays OPEN. Somebody placing three heteroatoms should
+        not have to reopen the table between each, and this window is
+        non-modal precisely so it can be read while working.
+        """
+        if self._selected:
+            self.insert_requested.emit(self._selected)
 
 
 def describe(facts: ElementFacts) -> str:

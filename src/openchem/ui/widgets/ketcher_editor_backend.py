@@ -49,6 +49,7 @@ class _Bridge(QObject):
         on_load_complete: Callable[[str], None] | None = None,
         on_atom_selected: Callable[[int], None] | None = None,
         on_bond_selected: Callable[[int], None] | None = None,
+        on_periodic_table_requested: Callable[[], None] | None = None,
     ) -> None:
         super().__init__()
         self._on_structure_edited = on_structure_edited
@@ -57,6 +58,7 @@ class _Bridge(QObject):
         self._on_load_complete = on_load_complete
         self._on_atom_selected = on_atom_selected
         self._on_bond_selected = on_bond_selected
+        self._on_periodic_table_requested = on_periodic_table_requested
 
     @Slot(str)
     def structureEdited(self, molblock: str) -> None:  # noqa: N802 - called from JS by this exact name
@@ -75,6 +77,14 @@ class _Bridge(QObject):
     def bondSelected(self, bond_index: int) -> None:  # noqa: N802 - called from JS by this exact name
         if self._on_bond_selected is not None:
             self._on_bond_selected(bond_index)
+
+    @Slot()
+    def periodicTableRequested(self) -> None:  # noqa: N802 - called from JS by this exact name
+        """Ketcher's own periodic-table button was clicked, and the host
+        suppressed Ketcher's dialog so this application can answer with
+        its own -- see the interception in `tools/ketcher-host/src/main.jsx`."""
+        if self._on_periodic_table_requested is not None:
+            self._on_periodic_table_requested()
 
     @Slot(str, str)
     def molfileReady(self, request_id: str, molblock: str) -> None:  # noqa: N802
@@ -131,6 +141,7 @@ class KetcherEditorBackend(EditorBackend):
             self._on_load_complete,
             self._on_atom_selected,
             self._on_bond_selected,
+            self.periodic_table_requested.emit,
         )
         self._channel.registerObject("bridge", self._bridge)
         self._page.setWebChannel(self._channel)
@@ -356,6 +367,43 @@ class KetcherEditorBackend(EditorBackend):
         (function() {{
           if (!window.ketcher) return;
           window.ketcher.editor.setOptions({json.dumps(payload)});
+        }})();
+        """
+        self._page.runJavaScript(script)
+
+    def set_atom_tool(self, symbol: str) -> None:
+        """Arm Ketcher to draw `symbol` on the next canvas click.
+
+        `ketcher.editor.tool(name, options)` is a real public method on the
+        live editor -- PROBED against the vendored bundle rather than read
+        out of it, because 35 MB of generated JS has already produced one
+        confidently wrong claim in this codebase. Measured:
+
+            typeof ketcher.editor.tool                'function', arity 2
+            ketcher.editor.tool('atom', {label:'Na'}) returns an object,
+                                                      active tool AtomTool2
+
+        That is precisely what Ketcher's own periodic table does with a
+        chosen element, so the application's table produces the identical
+        gesture rather than a parallel insertion path -- there is one way
+        an atom reaches the canvas, and this is it.
+
+        DROPPED before Ketcher is ready, never queued, for the reason
+        `trigger_toolbar_action` gives: arming a tool is a transient
+        gesture. Replayed a second later it would leave the canvas primed
+        with an element the user has stopped thinking about, and the next
+        click anywhere would deposit it.
+        """
+        if not self._ketcher_ready:
+            logger.debug("Dropping atom tool %r -- Ketcher is not ready", symbol)
+            return
+        script = f"""
+        (function() {{
+          try {{
+            window.ketcher.editor.tool('atom', {{ label: {json.dumps(symbol)} }});
+          }} catch (e) {{
+            console.warn('[ketcher-host] could not arm the atom tool: ' + e);
+          }}
         }})();
         """
         self._page.runJavaScript(script)

@@ -14,6 +14,7 @@ const structServiceProvider = new StandaloneStructServiceProvider()
 let ketcherInstance = null
 let bridgeObject = null
 let notifiedReady = false
+let periodicTableIntercepted = false
 
 // Where does this pool id sit in the molfile Ketcher would write?
 //
@@ -51,6 +52,13 @@ function tryWireBridge() {
   if (!notifiedReady) {
     notifiedReady = true
     bridgeObject.ketcherReady()
+  }
+  // Guarded: `tryWireBridge` runs from BOTH sides (whichever of Ketcher
+  // and the QWebChannel finishes last), so an unguarded listener would be
+  // registered twice and open two dialogs from one click.
+  if (!periodicTableIntercepted) {
+    periodicTableIntercepted = true
+    interceptPeriodicTableButton()
   }
   try {
     ketcherInstance.editor.subscribe('change', () => {
@@ -115,6 +123,44 @@ function tryWireBridge() {
   } catch (e) {
     console.error('[ketcher-host] failed to subscribe to selectionChange', e)
   }
+}
+
+// ONE PERIODIC TABLE, NOT TWO.
+//
+// Ketcher ships its own periodic table on the left toolbar, and the
+// application has a much richer one under Tools -- configuration, radii,
+// isotope abundances, a shell diagram. Two tables that look alike and know
+// different things read as one table that has lost half its features
+// depending which button you pressed, and that is exactly how it was
+// reported: "the periodic table reverted to vanilla".
+//
+// So the button is intercepted here and answered by the Python side.
+//
+// CAPTURE PHASE, and `stopPropagation` rather than only `preventDefault`.
+// The handler is React's, bound at the root, so a bubble-phase listener
+// runs AFTER Ketcher has already opened its dialog and `preventDefault`
+// alone would leave both tables on screen. Capturing on `document` runs
+// first and stopping propagation there means React's synthetic handler
+// never fires at all.
+//
+// `period-table` is the button's own `data-testid`, read off the live
+// DOM rather than the bundle -- Ketcher's e2e tests key on these, so they
+// are as stable as anything in a vendored build gets. Measured on the
+// shipped dist alongside `any-atom`, which is deliberately NOT
+// intercepted: query atoms are the one thing our table cannot express.
+function interceptPeriodicTableButton() {
+  document.addEventListener(
+    'click',
+    (event) => {
+      if (!bridgeObject) return
+      const button = event.target.closest?.('[data-testid="period-table"]')
+      if (!button) return
+      event.preventDefault()
+      event.stopPropagation()
+      bridgeObject.periodicTableRequested()
+    },
+    true,
+  )
 }
 
 function handleKetcherInit(ketcher) {

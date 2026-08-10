@@ -265,6 +265,11 @@ class MainWindow(QMainWindow):
         # because 3Dmol's setClickable resolves a click to an ATOM and has
         # no bond picking at all.
         self._editor.bond_selected.connect(self._atom_inspector_panel.select_bond)
+        # The editor's own `PT` button, answered with THIS application's
+        # periodic table. The Ketcher host suppresses the engine's dialog
+        # so the two never both appear -- see
+        # `tools/ketcher-host/src/main.jsx`.
+        self._editor.periodic_table_requested.connect(self._show_periodic_table)
         self._jobs_panel = JobsPanel(services.job_manager, self)
         self._structure_check_panel = StructureCheckPanel(
             services.structure_check_service,
@@ -1650,22 +1655,43 @@ class MainWindow(QMainWindow):
         self._checker_indicator.show_result(event.result)
 
     def _show_periodic_table(self) -> None:
-        """The reference table, under Tools.
+        """THE periodic table -- the only one the product has.
 
-        One window, reused and non-modal, like the help window -- it is
-        something to read WHILE working, and a modal table you have to
+        One window, reused and non-modal, like the help window: it is
+        something to read WHILE working, and a modal table you had to
         dismiss before drawing would be useless for the thing it is for.
 
-        Distinct from the periodic table in the editor's own toolbar, which
-        is Ketcher's and inserts atoms. This one answers questions.
+        Reached from Tools, from an atom fact's cross-link, and from the
+        2D editor's own `PT` button, which the Ketcher host intercepts and
+        forwards here. Every door leads to the same table, which is the
+        whole point -- two tables that looked alike and knew different
+        things is what got reported as "the periodic table reverted to
+        vanilla".
         """
         existing = getattr(self, "_periodic_table_dialog", None)
         if existing is None:
             existing = PeriodicTableDialog(self)
+            existing.insert_requested.connect(self._insert_element_into_drawing)
             self._periodic_table_dialog = existing
         existing.show()
         existing.raise_()
         existing.activateWindow()
+
+    def _insert_element_into_drawing(self, symbol: str) -> None:
+        """Arm the 2D editor with an element chosen in the periodic table.
+
+        Routed through the window rather than handing the dialog an editor
+        reference, for the reason `_on_atom_fact_link` gives: a dialog that
+        knows how to reach the canvas is a dialog that cannot be built in a
+        test without one.
+
+        The editor tab is REVEALED as well as armed. Arming a canvas the
+        user cannot see is the same navigation-claims-one-thing-screen-
+        shows-another problem the panel rail already exists to avoid --
+        they would click the visible tab expecting an atom and get nothing.
+        """
+        self._editor.set_atom_tool(symbol)
+        self._center_tabs.setCurrentWidget(self._editor)
 
     def _on_atom_fact_link(self, link) -> None:
         """Follow a fact's cross-link to the tool that produced it.

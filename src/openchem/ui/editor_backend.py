@@ -30,6 +30,15 @@ class EditorBackend(QObject):
     #: `selectionChange` event as atoms; a backend that cannot report bonds
     #: simply never emits it.
     bond_selected = Signal(int)
+    #: The user asked for a periodic table from the editor's OWN toolbar.
+    #:
+    #: The application answers this with its own table rather than letting
+    #: the engine open one, so there is a single periodic table in the
+    #: product instead of two that look alike and know different things.
+    #: On the interface because "the user wants to pick an element" is a
+    #: property of a 2D editor; a backend with no such control never
+    #: emits it, and the Tools menu still reaches the same dialog.
+    periodic_table_requested = Signal()
 
     def load_molblock(self, molblock: str) -> None:
         """Load a structure (as a V2000/V3000 molblock) into the editor."""
@@ -59,6 +68,22 @@ class EditorBackend(QObject):
         the canvas is not doing, with nothing on screen to say which is
         real. An option set twice before ready is one option: apply the
         last value once.
+        """
+        raise NotImplementedError
+
+    def set_atom_tool(self, symbol: str) -> None:
+        """Arm the editor to draw `symbol` on the next canvas click.
+
+        The same gesture the engine's own periodic table performs -- pick
+        an element, then click where it goes -- exposed so the
+        application's periodic table can drive the canvas instead of the
+        engine needing a second table of its own.
+
+        A GESTURE, not state, so a backend that is not ready must DROP it
+        rather than queue it, exactly as `trigger_toolbar_action` does:
+        replayed later it would arm a tool the user asked for seconds ago
+        and has since moved on from, and the next click anywhere on the
+        canvas would deposit an atom they did not ask for.
         """
         raise NotImplementedError
 

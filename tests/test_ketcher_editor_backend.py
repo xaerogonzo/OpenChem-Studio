@@ -287,6 +287,44 @@ def test_a_toolbar_action_before_ketcher_is_ready_is_dropped_not_queued(qapp):
     assert _record_page_calls(backend, backend._on_ketcher_ready) == []
 
 
+def test_arming_an_atom_tool_before_ketcher_is_ready_is_dropped_not_queued(qapp):
+    """Same asymmetry as the toolbar action above, and for the same
+    reason: "Insert into drawing" is a GESTURE.
+
+    Replayed when Ketcher comes up, it would leave the canvas primed with
+    an element the user chose seconds ago and has since moved on from, and
+    the next click ANYWHERE on the canvas would deposit it. Nothing on
+    screen would say the canvas was armed, which makes it the silent kind
+    of wrong -- an atom appears where the user was only trying to select.
+    """
+    backend = KetcherEditorBackend()
+    assert not backend._ketcher_ready
+
+    assert _record_page_calls(backend, lambda: backend.set_atom_tool("Na")) == []
+
+    # Dropped, NOT deferred. Without this line a queued implementation
+    # passes the assertion above and still misbehaves at ready.
+    assert _record_page_calls(backend, backend._on_ketcher_ready) == []
+
+
+def test_arming_an_atom_tool_when_ready_asks_ketcher_for_that_element(qapp):
+    """`ketcher.editor.tool('atom', {label: ...})` is the real public API
+    -- probed against the vendored bundle (arity 2; the active tool
+    becomes `AtomTool2`), not read out of 35 MB of generated JS.
+
+    The SYMBOL is asserted, not merely that a call happened: arming the
+    wrong element still draws, just not what was asked for.
+    """
+    backend = KetcherEditorBackend()
+    assert _wait_until(qapp, lambda: backend._ketcher_ready)
+
+    calls = _record_page_calls(backend, lambda: backend.set_atom_tool("Fe"))
+
+    assert len(calls) == 1
+    assert "editor.tool" in calls[0]
+    assert '"Fe"' in calls[0]
+
+
 # --- our own loads must not look like the user drawing ----------------------
 
 
