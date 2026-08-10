@@ -22,6 +22,7 @@ from PySide6.QtCore import QCoreApplication, QEvent
 
 from openchem.bootstrap import build_service_container
 from openchem.domain.calculator import RegistryExecution
+from openchem.domain.common import CacheState
 from openchem.ui.panels.property_panel import _CATEGORY_LABELS, _CATEGORY_ORDER
 
 #: The one category that may hold a single calculator, and why.
@@ -62,6 +63,54 @@ def button_counts(registry) -> Counter:
     return counts
 
 
+def _every_reachable_category() -> set[str]:
+    """Every category that can reach `_section_for`, from all four sources.
+
+    The registry and the two descriptor spec tables are lists and can be
+    read. A PROVIDER's alert categories are not -- they are literals
+    inside `compute_alerts` -- so that one is derived by RUNNING it,
+    which is the only way to enumerate them without a hand-written copy
+    that would rot the way this whole file is about.
+
+    A calculator's RESULT category is deliberately not read here:
+    `test_a_calculators_result_lands_in_its_own_section` already forbids
+    it differing from its definition's, so it adds nothing new.
+
+    **THE ALERT BRANCH CATCHES NOTHING TODAY, and that is said rather
+    than hidden.** Measured: every category a provider's alerts carry
+    (medicinal_chemistry, admet, shape, lipophilicity, pka, surface) also
+    comes from the registry or a spec table, so removing this branch
+    changes no result. It is here because those literals are enumerated
+    by nothing else -- the moment a provider introduces a category of its
+    own, this is the only source that would see it.
+    """
+    from rdkit import Chem, RDLogger
+
+    from openchem.chem.descriptor_providers import (
+        _DESCRIPTOR_SPECS,
+        _SHAPE_DESCRIPTOR_SPECS,
+        RDKitDescriptorProvider,
+    )
+
+    RDLogger.DisableLog("rdApp.*")
+    registry = _real_registry()
+    categories = {
+        d.category
+        for c in registry.categories()
+        for d in registry.by_category(c)
+        if isinstance(d.execution, RegistryExecution)
+    }
+    categories |= {spec[3] for spec in _DESCRIPTOR_SPECS if spec[3]}
+    if _SHAPE_DESCRIPTOR_SPECS:
+        categories.add("shape")
+
+    mol = Chem.AddHs(Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O"))
+    for alert in RDKitDescriptorProvider().compute_alerts(mol, "uuid"):
+        if alert.category:
+            categories.add(alert.category)
+    return categories
+
+
 def test_no_category_holds_a_single_calculator(button_counts):
     singletons = {c for c, n in button_counts.items() if n == 1}
 
@@ -93,19 +142,17 @@ def test_every_section_has_a_heading_somebody_chose(button_counts):
     fallback stays -- a plugin category must not crash the panel -- but
     nothing WE ship may rely on it.
 
-    **DESCRIPTORS MAKE SECTIONS TOO, and the first version of this test
-    missed them.** It checked only the calculator registry, passed, and
+    **FOUR SOURCES FEED `_section_for` AND EARLY VERSIONS READ ONE OR
+    TWO.** The first checked only the calculator registry, passed, and
     the running app showed a section headed "Logp" -- because
-    `_on_descriptor_computed` files a `DescriptorValue` by ITS category,
-    and the descriptor table is a separate list from the registrations.
-    Both sources are read here for that reason.
+    `_on_descriptor_computed` files a `DescriptorValue` by ITS category
+    and the descriptor table is a separate list. The second added that
+    table and still missed the alerts a PROVIDER publishes (PAINS ->
+    medicinal_chemistry, BRENK -> admet), which are literals scattered
+    through `descriptor_providers.py` that no list enumerates. Those were
+    covered by coincidence until this read them too.
     """
-    from openchem.chem.descriptor_providers import _DESCRIPTOR_SPECS
-
-    descriptor_categories = {spec[3] for spec in _DESCRIPTOR_SPECS if spec[3]}
-    missing = sorted(
-        c for c in set(button_counts) | descriptor_categories if c not in _CATEGORY_LABELS
-    )
+    missing = sorted(c for c in _every_reachable_category() if c not in _CATEGORY_LABELS)
 
     assert not missing, (
         f"{missing} would be title-cased into a heading nobody chose. "
@@ -401,3 +448,83 @@ def test_the_panels_button_label_is_the_calculator_name_and_nothing_else(qapp):
         panel.setParent(None)
         panel.deleteLater()
         QCoreApplication.sendPostedEvents(panel, QEvent.Type.DeferredDelete)
+
+
+def test_the_heading_and_the_copied_text_agree(qapp):
+    """One function decides what a section is called, because there were
+    TWO and they disagreed.
+
+    The heading fell back to `category.replace("_", " ").title()` and
+    `as_text()` to `category.title()`, so an unlabelled
+    `medicinal_chemistry` would read "Medicinal Chemistry" on screen and
+    copy as "Medicinal_Chemistry" -- two names for one section, in one
+    panel. Latent rather than shipped: every category in the app has a
+    chosen label, so neither fallback runs today.
+
+    **Exercised through the real panel and the real `as_text()`.** The
+    first version of this test called `_category_label` directly, which
+    is the shared helper -- so putting the old expression back in
+    `as_text` left it green. It asserted that the two agreed by asking
+    only one of them.
+
+    A category NOBODY has named is the only way to reach the fallback at
+    all, so the descriptor carries an invented one.
+    """
+    from openchem.chem.engine import ChemistryEngine
+    from openchem.domain.descriptor import DescriptorValue
+    from openchem.events.base import EventBus
+    from openchem.events.events import DescriptorComputed, MoleculeSelected
+    from openchem.services.calculator_registry import CalculatorRegistry
+    from openchem.ui.panels.property_panel import (
+        _CATEGORY_LABELS,
+        PropertyPanel,
+        _category_label,
+    )
+
+    category = "plugin_supplied_tools"
+    assert category not in _CATEGORY_LABELS, "pick a category nobody has named"
+
+    class _Service:
+        def run_calculator(self, model, request) -> None:
+            pass
+
+    bus = EventBus()
+    panel = PropertyPanel(bus, CalculatorRegistry(), _Service(), ChemistryEngine())
+    try:
+        bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+        bus.publish(
+            DescriptorComputed(
+                descriptor=DescriptorValue(
+                    descriptor_id="whatever",
+                    name="Whatever",
+                    units="",
+                    category=category,
+                    provider="plugin",
+                    molecule_uuid="mol-1",
+                    value=1.0,
+                    cache_state=CacheState.COMPLETED,
+                )
+            )
+        )
+
+        heading = panel._sections[category]._toggle_button.text()
+        copied = panel.as_text()
+
+        assert heading == "Plugin Supplied Tools", heading
+        assert heading in copied, copied
+        assert "Plugin_Supplied_Tools" not in copied
+        assert _category_label(category) == heading
+    finally:
+        panel.setParent(None)
+        panel.deleteLater()
+        QCoreApplication.sendPostedEvents(panel, QEvent.Type.DeferredDelete)
+
+
+def test_a_named_category_is_not_title_cased(qapp):
+    """`nmr` becoming "Nmr" is how this finding was noticed. A chosen
+    label must survive the fallback path untouched."""
+    from openchem.ui.panels.property_panel import _category_label
+
+    assert _category_label("nmr") == "NMR"
+    assert _category_label("pka") == "pKa"
+    assert _category_label("") == "Other"

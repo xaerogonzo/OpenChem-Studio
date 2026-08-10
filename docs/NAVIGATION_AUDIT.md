@@ -92,7 +92,7 @@ with the ampersand simply gone, and "Identity & Composition" as
 "Identity ...mposition". Measured ceiling at the panel's real width is
 **21 characters**, and both are now guarded.
 
-## Finding 2 — a category name is not a heading
+## Finding 2 — SOLVED: a category name is not a heading, and there were two fallbacks
 
 `_CATEGORY_LABELS` in
 [property_panel.py](../src/openchem/ui/panels/property_panel.py) maps a
@@ -103,6 +103,33 @@ chose: NMR rendered as "Nmr" until a documentation sweep caught it.
 The map is hand-maintained against an open vocabulary, so it is a
 blocklist by another name. A registration with a new category gets a
 title-cased heading and nothing fails.
+
+**FOUR SOURCES CAN CREATE A SECTION, and the guard read one, then two.**
+`_section_for` is reached from the calculator registry, from both
+descriptor spec tables, from a calculator's own result, and from the
+alerts a PROVIDER publishes -- the last being literals scattered through
+`descriptor_providers.py` that no list enumerates. Measured across all
+four: **19 categories reachable, 0 without a chosen heading.** So the
+shipped app is clean, but it was clean by coincidence for the provider
+alerts, and the guard now derives them by RUNNING `compute_alerts`.
+
+**THERE WERE TWO FALLBACKS AND THEY DISAGREED.** The heading fell back to
+`category.replace("_", " ").title()`; `as_text()`, which builds the
+"Copy all" output, fell back to `category.title()`. An unlabelled
+`medicinal_chemistry` would read "Medicinal Chemistry" on screen and copy
+as "Medicinal_Chemistry" -- two names for one section, in one panel.
+Latent rather than shipped, since no category reaches either fallback
+today, which is exactly why a guard is worth more than noticing it.
+`_category_label` is the one function that decides now.
+
+**The plugin exposure is theoretical, and measured to be so.** No bundled
+plugin registers a calculator or a category at all. The fallback stays
+for one that might, and it reads `my_tools` as "My Tools" correctly; what
+it cannot do is acronyms, and `nmr` becoming "Nmr" is how this finding
+was noticed in the first place. A plugin wanting an acronym has no way to
+say so -- declared here rather than solved, because building an API for a
+case with no instances is the premature generalisation this codebase has
+declined before.
 
 ## Finding 3 — SOLVED: seven names did not fit, and the wrapper was why
 
@@ -437,10 +464,9 @@ and has no honest way to be reached or read.** Finding 7 was the sharpest
 form of it -- a "Running..." state that was written, correct, and
 unreachable -- and is now fixed.
 
-Findings 1, 3, 4, 5, 6 and 7 are done. 2 is closed for everything we
-ship (the fallback stays for plugins). What remains open is the
-descriptor half of 4: descriptors are not in the palette at all, so
-`solubility` still finds nothing.
+**All seven findings are done.** The one declared limit that remains is
+a plugin's inability to name a section containing an acronym; there are
+no such plugins, and the fallback is correct for everything else.
 
 **Three of the seven findings had something wrong in them** -- finding
 1's "a registration change, not a code one", finding 3's count and its

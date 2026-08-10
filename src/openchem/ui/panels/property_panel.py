@@ -162,6 +162,30 @@ _CATEGORY_LABELS = {
     "docking": "Docking",
     "quantum_chemistry": "Quantum Chemistry",
 }
+def _category_label(category: str) -> str:
+    """What a section is called, in the ONE place that decides.
+
+    **THERE WERE TWO OF THESE AND THEY DISAGREED.** The heading fell back
+    to `category.replace("_", " ").title()` and the "Copy all" text fell
+    back to `category.title()`, so an unlabelled `medicinal_chemistry`
+    would show as "Medicinal Chemistry" on screen and copy as
+    "Medicinal_Chemistry" -- two names for one section, in one panel.
+
+    Latent rather than shipped: measured across all four sources that can
+    reach `_section_for` (the registry, both descriptor spec tables, a
+    calculator's result, and a provider's alerts), every category in the
+    app today HAS a chosen label, so neither fallback runs. It is unified
+    because a divergence that only appears for the next category added is
+    the kind this document is about.
+
+    The fallback stays for plugins, which may register a category nobody
+    here has named. It reads `my_tools` as "My Tools", which is right;
+    what it cannot do is acronyms, and `nmr` becoming "Nmr" is exactly
+    how this finding was noticed.
+    """
+    return _CATEGORY_LABELS.get(category) or category.replace("_", " ").title() or "Other"
+
+
 _DEFAULT_EXPANDED = {"physicochemical", "identity"}
 
 # Sections are collapsed/expanded up front, computation is NOT deferred
@@ -1094,7 +1118,7 @@ class PropertyPanel(QWidget):
         if section is not None:
             return section
         expanded = category in _DEFAULT_EXPANDED
-        title = _CATEGORY_LABELS.get(category, category.replace("_", " ").title() or "Other")
+        title = _category_label(category)
         section = _CollapsibleSection(title, expanded, self._sections_container)
         self._sections[category] = section
         for definition in self._calculator_registry.by_category(category):
@@ -1925,7 +1949,7 @@ class PropertyPanel(QWidget):
                 value = _without_glyphs(value_widget.text()).replace("\n", "; ")
                 rows.append(f"  {name_widget.text()}: {value}")
             if rows:
-                lines.append(_CATEGORY_LABELS.get(category, category.title()))
+                lines.append(_category_label(category))
                 lines.extend(rows)
                 lines.append("")
         return "\n".join(lines).rstrip()
