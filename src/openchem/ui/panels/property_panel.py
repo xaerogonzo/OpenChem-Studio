@@ -395,6 +395,30 @@ _REPORT_ID_PROPERTY = "openchem_report_id"
 #: button rather than a sliver at any panel width.
 _ELIDED_BUTTON_MIN_WIDTH = 80
 
+#: The longest a calculator's display name may be before its button
+#: elides at the panel's minimum width.
+#:
+#: **MEASURED, in the running app, not chosen.** The button is 208 px at
+#: the 280 px panel minimum, leaving 192 px for text. With the old
+#: `Open {name}...` wrapper -- 46 px of every button -- SEVEN names
+#: elided; without it, one. The survivor was "NMR Shifts (experimental
+#: database)" at 197 px against 192.
+#:
+#: A CHARACTER COUNT IS A PROXY FOR A PIXEL WIDTH and an imperfect one,
+#: because the font is proportional: "Accessible Surface Area (per atom)"
+#: and the old NMR name are both 34 characters and differ by 5 px. A
+#: pixel assertion is deliberately NOT used -- CI is Linux with different
+#: fonts, and a guard that fails there for a reason nobody can reproduce
+#: locally gets deleted rather than fixed.
+#:
+#: 34 is the widest name measured to fit, and it fits by NOTHING:
+#: "Accessible Surface Area (per atom)..." needs exactly the 192 px
+#: available. It is kept at that length rather than mangled, because it
+#: is the standard term for the quantity and eliding is graceful -- the
+#: full name stays in the tooltip. The guard's job is to stop the NEXT
+#: name being longer than anything that has been shown to fit.
+_MAX_CALCULATOR_NAME = 34
+
 #: Room the button's own frame and padding take off its width before
 #: there is anywhere to put text.
 _ELIDED_BUTTON_PADDING = 16
@@ -751,6 +775,23 @@ def _dump_panel_metrics(panel: QWidget) -> None:
                 )
 
 
+def _mnemonic_safe(text: str) -> str:
+    """Escape `&` so a QAbstractButton shows it instead of eating it.
+
+    **"Substance & Bonding" rendered as "Substance  Bonding"** -- the
+    ampersand simply gone, with the gap left behind, and `B` quietly
+    underlined as an accelerator nobody asked for. Qt reads `&` in any
+    button or menu label as a mnemonic marker, and `&&` is its escape.
+
+    Seen in the running app, on the one calculator of 49 whose name
+    contains an ampersand. The section headings hit the identical bug and
+    were reworded instead, because those are our own words and shorter is
+    better there anyway; a calculator name is chemistry vocabulary, so it
+    gets escaped rather than bent to suit a Qt convention.
+    """
+    return text.replace("&", "&&")
+
+
 class _ElidingPushButton(QPushButton):
     """An "Open [Calculator]..." button that may be narrower than its label.
 
@@ -777,8 +818,13 @@ class _ElidingPushButton(QPushButton):
     """
 
     def __init__(self, text: str, parent: QWidget | None = None) -> None:
-        super().__init__(text, parent)
+        super().__init__(_mnemonic_safe(text), parent)
         self._full_text = text
+        #: The last text handed to `setText`, UNESCAPED. Compared against
+        #: rather than `self.text()`, which comes back escaped and would
+        #: never equal the elided string -- turning the guard below into a
+        #: relayout every pass.
+        self._shown_text = text
         self.setToolTip(text)
         # `Ignored` horizontally is what drops the minimum to zero, which
         # is the whole point: `Preferred` keeps the text's width as a
@@ -792,9 +838,11 @@ class _ElidingPushButton(QPushButton):
         available = max(0, self.width() - _ELIDED_BUTTON_PADDING)
         elided = metrics.elidedText(self._full_text, Qt.TextElideMode.ElideRight, available)
         # Guarded: `setText` re-lays-out the button, and assigning the same
-        # string every pass is a loop with no exit condition.
-        if elided != self.text():
-            super().setText(elided)
+        # string every pass is a loop with no exit condition. Compared
+        # against `_shown_text`, not `self.text()` -- see there.
+        if elided != self._shown_text:
+            self._shown_text = elided
+            super().setText(_mnemonic_safe(elided))
 
 
 def _add_wide_row(section, name: str, field: QWidget) -> None:
@@ -1054,7 +1102,25 @@ class PropertyPanel(QWidget):
                 # ServiceExecution-backed (Docking, QuantumChemistry) --
                 # registered for discovery only, run from their own panel.
                 continue
-            button = _ElidingPushButton(f"Open {definition.display_name}...", section.content)
+            # NO "Open " PREFIX. The label used to be `Open {name}...`,
+            # which spent about 32 px of a 192 px button on the same five
+            # characters forty-nine times over -- measured in the running
+            # app, and enough on its own to elide SEVEN names where one
+            # elides now. "Open" says nothing a button under a section
+            # heading does not already say, and the tooltip still spells
+            # the action out in full.
+            #
+            # THE TRAILING ELLIPSIS STAYS ON ALL OF THEM, and that is a
+            # measurement rather than an oversight. It promises a further
+            # dialog, `_open_calculator` shows one `if
+            # definition.parameters`, and the obvious next thought is that
+            # the parameterless ones are lying. They are not: all 49
+            # registry calculators declare parameters, most of them a
+            # decimal-places setting, so every one of these buttons really
+            # does open a dialog. Making it conditional would have added a
+            # branch that never runs.
+            button = _ElidingPushButton(f"{definition.display_name}...", section.content)
+            button.setToolTip(f"Open {definition.display_name} — choose settings, then run.")
             # A BOUND METHOD, never a lambda that captures `self`.
             #
             # PySide6 holds a connected plain callable STRONGLY and holds a

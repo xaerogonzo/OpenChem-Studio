@@ -104,7 +104,7 @@ The map is hand-maintained against an open vocabulary, so it is a
 blocklist by another name. A registration with a new category gets a
 title-cased heading and nothing fails.
 
-## Finding 3 — eight calculator names do not fit their button
+## Finding 3 — SOLVED: seven names did not fit, and the wrapper was why
 
 `_ElidingPushButton` elides rather than clipping, which was the right fix
 for the layout. It means these are read truncated:
@@ -118,10 +118,73 @@ for the layout. It means these are read truncated:
     29  H-Bond Donors/Acceptors vs pH
     29  Partial Charge (pH-dependent)
 
-8 of 58. The full name is in the tooltip and the section header already
-names the category, so several of these are carrying their category in
-their own name as well — "NMR Shifts (experimental database)" sits under
-a heading that says NMR.
+**THAT COUNT WAS WRONG AND SO WAS ITS DIAGNOSIS.** It counted characters
+across all 58 display names, including the ORCA jobs, which are
+ServiceExecution and have no button in the panel at all. Measured in the
+running app against real pixels:
+
+    7 of 49 buttons elide, at 192 px of available label width
+
+    +37 px  NMR Shifts (experimental database)
+    +32 px  Accessible Surface Area (per atom)
+    +31 px  ADMET (hERG, CYP, Ames, ADME)
+    +23 px  H-Bond Donors/Acceptors vs pH
+    +13 px  Molar Refractivity Contribution
+    +12 px  Partial Charge (pH-dependent)
+    +11 px  Molecular Dynamics (vacuum)      <- the audit missed this one
+
+**The names were barely the problem. The WRAPPER was.** Every button read
+`Open {name}...`, and `Open ` alone is ~32 px of a 192 px button, spent
+identically forty-nine times. Removing it took the count from **7 to 1**
+without touching a single name. One rename finished it — "NMR Shifts
+(experimental database)" to "NMR Shifts (experimental)", 5 px over — for
+**0 of 49 eliding**.
+
+`_MAX_CALCULATOR_NAME` guards it at 34 characters, which is the widest
+name measured to fit; "Accessible Surface Area (per atom)..." fits by
+exactly nothing, needing all 192 px. It is kept at that length rather
+than mangled: it is the standard term, and eliding is graceful because
+the tooltip carries the full name. A character count is a proxy for a
+pixel width and an imperfect one in a proportional font — a pixel
+assertion is deliberately avoided, because CI is Linux with different
+fonts and a guard that fails only there gets deleted rather than fixed.
+
+**THE "CARRYING THEIR CATEGORY" SUGGESTION IS REJECTED**, and this is the
+reason rather than an omission. Under a heading that says Surface Area,
+"Molecular (3D)" and "Accessible (per atom)" would read beautifully — on
+the button. But `display_name` also IS the palette entry, where there is
+no heading for context, and finding 4 was just spent making that search
+work. "Accessible (per atom)" is meaningless in a search box. The
+duplication is the price of one string serving two places, and the button
+is the one with context to spare.
+
+**Two things only looking at it showed.** The trailing `...` was assumed
+to be lying on the calculators that run immediately — it is not; all 49
+declare parameters, so every one really does open a dialog, and a
+conditional ellipsis would have been a branch that never runs. And
+"Substance & Bonding" rendered as "Substance  Bonding": a `QPushButton`
+eats `&` as a mnemonic, the same bug the section headings had. Headings
+were reworded because those are our own words; a calculator name is
+chemistry vocabulary, so `_mnemonic_safe` escapes it instead.
+
+**FOUR GUARDS IN A ROW HERE PASSED WHILE TESTING NOTHING**, which is
+worth more than the fix. Mutation testing caught every one:
+
+1. a wrapper test that built its own string and asserted THAT had no
+   `Open ` prefix, so it tested the test;
+2. a relayout test asserting the label was unchanged after two resizes,
+   which is true either way (the loop wastes work, it does not change
+   the answer);
+3. the same test counting `setText` calls but resizing to the SAME size
+   twice, where Qt sends no `resizeEvent`;
+4. the same again at two different sizes, on a widget that was NEVER
+   SHOWN. `resize()` on a hidden widget delivers no `resizeEvent` at
+   all. Measured: 0 events hidden, 2 shown.
+
+The last is the exact sibling of this codebase's `repaint()` lesson, in a
+different Qt event. **A widget that was never shown runs almost none of
+its own code**, and a test that skips `show()` measures construction
+while claiming to measure behaviour.
 
 ## Finding 4 — SOLVED: one door, and the wrong word finds nothing
 
@@ -335,9 +398,17 @@ and has no honest way to be reached or read.** Finding 7 was the sharpest
 form of it -- a "Running..." state that was written, correct, and
 unreachable -- and is now fixed.
 
-Findings 1, 4, 5, 6 and 7 are done. 2 is closed for everything we ship
-(the fallback stays for plugins). 3 is open, and so is the descriptor
-half of 4 -- descriptors are not searchable at all. None of them is a chemistry bug and none was visible to 3613
+Findings 1, 3, 4, 5, 6 and 7 are done. 2 is closed for everything we
+ship (the fallback stays for plugins). What remains open is the
+descriptor half of 4: descriptors are not in the palette at all, so
+`solubility` still finds nothing.
+
+**Three of the seven findings had something wrong in them** -- finding
+1's "a registration change, not a code one", finding 3's count and its
+proposed fix, and finding 4's claim about the Receptor Library. All three
+were written from reading rather than from running, and all three were
+corrected by measuring. That is the pattern worth taking from this
+document, more than any individual count in it. None of them is a chemistry bug and none was visible to 3613
 passing tests, because a test asserts that a value is correct and never
 that a person could find it.
 

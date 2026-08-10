@@ -18,6 +18,8 @@ from collections import Counter
 
 import pytest
 
+from PySide6.QtCore import QCoreApplication, QEvent
+
 from openchem.bootstrap import build_service_container
 from openchem.domain.calculator import RegistryExecution
 from openchem.ui.panels.property_panel import _CATEGORY_LABELS, _CATEGORY_ORDER
@@ -32,9 +34,14 @@ from openchem.ui.panels.property_panel import _CATEGORY_LABELS, _CATEGORY_ORDER
 _ALLOWED_SINGLETONS = {"nmr"}
 
 
+def _real_registry():
+    """The live registry, for a test that needs one outside the fixture."""
+    return build_service_container().calculator_registry
+
+
 @pytest.fixture(scope="module")
 def registry():
-    return build_service_container().calculator_registry
+    return _real_registry()
 
 
 @pytest.fixture(scope="module")
@@ -233,3 +240,164 @@ def test_a_calculators_result_lands_in_its_own_section(computed_results):
     # into an assertion about an empty list -- "an arm that does not run
     # is not an arm", one level up.
     assert len(compared) >= 10, f"only compared {compared}"
+
+
+def test_no_calculator_name_is_wider_than_its_button(registry):
+    """A name longer than anything measured to fit will elide.
+
+    Elision is graceful -- `_ElidingPushButton` keeps the full name in the
+    tooltip -- but a truncated label is still a label somebody has to
+    hover to read, and SEVEN of them were truncated before the
+    `Open {name}...` wrapper came off the buttons.
+
+    The ceiling is a character count standing in for a pixel width, which
+    is imprecise in a proportional font; see `_MAX_CALCULATOR_NAME` for
+    why a pixel assertion would be worse. ServiceExecution entries are
+    excluded because they have no button.
+    """
+    from openchem.ui.panels.property_panel import _MAX_CALCULATOR_NAME
+
+    too_long = sorted(
+        (len(d.display_name), d.display_name)
+        for category in registry.categories()
+        for d in registry.by_category(category)
+        if isinstance(d.execution, RegistryExecution)
+        and len(d.display_name) > _MAX_CALCULATOR_NAME
+    )
+
+    assert not too_long, f"these will elide on their button: {too_long}"
+
+
+def test_every_calculator_button_really_does_open_a_dialog(registry):
+    """The trailing ellipsis on every button promises one, so it had
+    better be true.
+
+    Written after the opposite was assumed: that some calculators run
+    immediately and their ellipsis was a lie. `_open_calculator` shows a
+    settings dialog `if definition.parameters`, and ALL 49 declare
+    parameters -- so the promise holds and a conditional ellipsis would
+    have been a branch that never runs. If a parameterless calculator is
+    ever registered this fails, and the label needs to become
+    conditional after all.
+    """
+    parameterless = sorted(
+        d.calculator_id
+        for category in registry.categories()
+        for d in registry.by_category(category)
+        if isinstance(d.execution, RegistryExecution) and not d.parameters
+    )
+
+    assert not parameterless, (
+        f"{parameterless} run with no dialog, but their button ends in '...' -- "
+        "make the ellipsis conditional on definition.parameters"
+    )
+
+
+def test_a_calculator_name_keeps_its_ampersand_on_the_button(qapp):
+    """"Substance & Bonding" rendered as "Substance  Bonding".
+
+    Qt reads `&` in a button label as a mnemonic marker and swallows it.
+
+    **SHOWN, then resized.** The escape happens in two places -- the
+    constructor and `resizeEvent` -- and `resizeEvent` NEVER FIRES on a
+    widget that was never shown, so a test that only constructs covers
+    half of it. That is the same trap as `repaint()` on an unshown widget
+    calling no `paintEvent`, which this project already records.
+    """
+    from openchem.ui.panels.property_panel import _ElidingPushButton
+
+    button = _ElidingPushButton("Substance & Bonding")
+    button.show()
+    button.resize(400, 24)
+    qapp.processEvents()
+    try:
+        assert "&&" in button.text(), button.text()
+        assert button._full_text == "Substance & Bonding"
+        assert button._shown_text == "Substance & Bonding"
+    finally:
+        button.hide()
+        button.setParent(None)
+        button.deleteLater()
+
+
+def test_a_resize_that_changes_nothing_does_not_call_setText(qapp, monkeypatch):
+    """The guard compares against `_shown_text`, NOT `self.text()`.
+
+    `text()` comes back ESCAPED, so comparing an unescaped elided string
+    to it is never equal and every resize calls `setText` again -- a
+    relayout on every layout pass, forever.
+
+    **THREE EARLIER VERSIONS OF THIS TEST CAUGHT NOTHING**, each looking
+    right:
+
+    1. asserted the text was unchanged after two resizes -- true either
+       way, since the loop wastes work rather than changing the answer;
+    2. counted `setText` calls but resized to the SAME size twice, and Qt
+       sends no `resizeEvent` when nothing moved;
+    3. resized to two different sizes, on a widget that was NEVER SHOWN
+       -- where `resize()` delivers no `resizeEvent` at all, so the code
+       under test never ran. Measured: 0 events hidden, 2 events shown.
+
+    Shown, then two different widths, both wide enough that the label
+    does not elide: the rendered label is identical at both, so correct
+    code sets nothing while the mutation sets it every time.
+    """
+    from PySide6.QtWidgets import QPushButton
+
+    from openchem.ui.panels.property_panel import _ElidingPushButton
+
+    button = _ElidingPushButton("Substance & Bonding")
+    button.show()
+    button.resize(400, 24)          # settle; nothing elides at this width
+    qapp.processEvents()
+
+    calls: list[str] = []
+    original = QPushButton.setText
+    monkeypatch.setattr(
+        QPushButton, "setText", lambda self, text: (calls.append(text), original(self, text))[1]
+    )
+    try:
+        button.resize(420, 24)      # real resizeEvents, same rendered label
+        button.resize(440, 24)
+        qapp.processEvents()
+
+        assert calls == [], f"setText called {len(calls)}x for an unchanged label"
+        assert button._shown_text == "Substance & Bonding"
+    finally:
+        button.hide()
+        button.setParent(None)
+        button.deleteLater()
+
+
+def test_the_panels_button_label_is_the_calculator_name_and_nothing_else(qapp):
+    """It used to read `Open {name}...`, and `Open ` alone was ~32 px of a
+    192 px button -- spent identically 49 times, and enough on its own to
+    elide seven names where none elide now.
+
+    **Reads the button THE PANEL BUILT.** The first version of this test
+    constructed its own `_ElidingPushButton` from a display name and
+    asserted that string had no prefix -- which tested the test. Putting
+    the wrapper back left it green.
+    """
+    from openchem.chem.engine import ChemistryEngine
+    from openchem.events.base import EventBus
+    from openchem.services.calculator_registry import CalculatorRegistry
+    from openchem.ui.panels.property_panel import PropertyPanel, _ElidingPushButton
+
+    class _Service:
+        def run_calculator(self, model, request) -> None:
+            pass
+
+    panel = PropertyPanel(EventBus(), _real_registry(), _Service(), ChemistryEngine())
+    try:
+        panel._section_for("identity")
+        labels = [b._full_text for b in panel.findChildren(_ElidingPushButton)]
+
+        assert labels, "the panel built no calculator buttons"
+        offenders = [label for label in labels if label.startswith("Open ")]
+        assert not offenders, offenders
+        assert "Elemental Analysis..." in labels
+    finally:
+        panel.setParent(None)
+        panel.deleteLater()
+        QCoreApplication.sendPostedEvents(panel, QEvent.Type.DeferredDelete)

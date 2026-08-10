@@ -956,10 +956,16 @@ def test_a_long_result_does_not_squeeze_the_calculator_buttons(qapp):
         # grandchild of the layout rather than a child. The guard is about
         # the BUTTON's height either way.
         section = panel._sections[category]
+        # Identified by the CALCULATOR ID it carries, not by its label.
+        # This used to look for text starting "Open ", which coupled a
+        # test about button HEIGHT to the button's wording -- and broke
+        # the moment the wording changed, reporting an empty list rather
+        # than a squeezed button. The property is what the button is;
+        # the text is what it happens to say today.
         heights = [
             button.height()
             for button in section.content.findChildren(QPushButton)
-            if button.text().startswith("Open ")
+            if button.property("openchem_calculator_id")
         ]
         assert heights, category
         for height in heights:

@@ -1893,7 +1893,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="nmr_database",
-        display_name="NMR Shifts (experimental database)",
+        display_name="NMR Shifts (experimental)",
         category="nmr",
         description=(
             "Predicts shifts by looking up each atom's environment in assigned experimental "
