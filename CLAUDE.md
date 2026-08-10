@@ -117,13 +117,17 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-9.5 minutes**, ending at `3765 passed, 2 skipped,
-1 deselected` (measured 2026-08-10 on branch `ketcher-overrule`, after
-the Ketcher overrule and the conformer round trip: +24 for intercepting
-Ketcher's duplicated controls and +17 for "Use in 2D Editor", four of
-those seventeen added after it was reported broken on a bridged cage, plus
-+4 for the Atom Inspector bounds check found in the same report,
-over the 3720 below).
+A clean run is **6-9.5 minutes**, ending at `3790 passed, 2 skipped,
+1 deselected` (measured 2026-08-10 on branch `conformer-comparison`,
+after making conformers comparable: +4 for the Ketcher 3D gate and +21
+for display alignment, camera retention and relative energies, over the
+3765 below).
+
+Before it: 3765 on branch `ketcher-overrule`, after the Ketcher overrule
+and the conformer round trip: +24 for intercepting Ketcher's duplicated
+controls and +17 for "Use in 2D Editor", four of those seventeen added
+after it was reported broken on a bridged cage, plus +4 for the Atom
+Inspector bounds check found in the same report, over the 3720 below.
 
 Before it: 3720 on branch `Fix-A`, after the navigation-audit work: the
 calculator-presentation fixes, the periodic table merge, the waiting
@@ -1532,6 +1536,86 @@ identical bytes, because RDKit's depiction is deterministic. Deriving it
 from `self._molecule.molblock` -- which after an undo is the ORIGINAL
 drawing -- is a real bug and is caught. The distinction is written into
 the test rather than left as a green tick.
+
+### Conformers are aligned for DISPLAY, and the copy is never stored
+
+`EmbedMolecule` leaves every conformer in its own arbitrary frame -- a
+gauge choice carrying no information -- so stepping between them in the
+viewer changed the orientation as much as the shape. Reported as "It is
+extremely difficult to compare different conformers... I arranged the
+first conformer in 1 row, then in the second conformer I moved it a
+certain way, then moved back to the first conformer, and it was once
+again in a different way."
+
+**The cause had been sitting in plain sight**: `GetBestRMS` computes the
+optimal superposition during de-duplication and throws the transform
+away -- the same shape as `CoordinationShell` discarding the positions it
+already held.
+
+`align_conformers_for_display` in `chem/alignment.py` recomputes it;
+`ConformerModel.molblock` is never touched. A transform field on the
+model was rejected because every consumer would have to remember to apply
+it, and the one that forgets shows exactly the unaligned view the whole
+thing exists to fix.
+
+**IDENTITY ATOM MAP, NOT `GetBestRMS`.** Conformers of one molecule
+already share an ordering, so identity is deterministic. `GetBestRMS`
+searches symmetry-equivalent permutations, and on a symmetric core it can
+pick one that flips the whole structure between conformers -- replacing
+the jump being fixed with a different one.
+
+**Fit on heavy atoms, apply to all.** A rotating methyl otherwise drags
+the fit and swings the ring to chase three hydrogens nobody is comparing.
+
+Four things the invariants had to be shaped around, three of them found
+by mutation:
+
+- **A reflection preserves every interatomic distance**, so a distance
+  test cannot see one. Chirality can: the signed volume of four
+  non-coplanar atoms keeps its sign under any proper rotation. Both are
+  asserted, and the mirror mutation kills 4 tests.
+- **"Common frame" and "idempotent" do not pin down the reference.**
+  Chaining each conformer to its predecessor satisfies both, distorts
+  nothing, and passed every invariant -- a surviving mutation. What it
+  breaks is that a conformer's orientation then depends on which others
+  are in the list, which matters because the gallery pages through
+  SUBSETS. The guard aligns `[A,B,C]` and `[A,C]` and requires C to come
+  out identical.
+- **Compare within molblock precision, not bitwise.** Coordinates go
+  through a four-decimal text format, so 5e-4 is the floor.
+- **A heavy-atom fit does not align all-atom centroids**, and asserting
+  that it does fails at ~0.17 A on hexanol -- fourteen hydrogens are
+  exactly what varies between conformers.
+
+#### Camera retention keys on a viewer-SESSION identity
+
+`viewer.zoomTo()` ran on every `loadMolblock`, so the camera was re-fitted
+on every conformer step. `loadMolblock(molblock, keepCamera)` now takes
+the decision from Python, because only Python knows whether this is the
+same molecule and the same batch.
+
+**Not the molblock, and not the model object.** Molblock equality would
+let an imported structure with a matching graph inherit an unrelated
+camera; an object identity cannot survive the model being rebuilt. The
+key is `(molecule.uuid, tuple of conformer timestamps)` --
+`_ConformerGenerationTask` stamps one `Provenance` across a whole run, so
+a regenerated set correctly re-fits and a conformer appended later by
+`AddConformerCommand` changes the tuple rather than slipping in unseen.
+
+Verified live on Alex's own sequence, reading `getView()` rather than
+comparing screenshots:
+
+    as generated       [0,0,0,0,0,0,    0,1    ]
+    arranged by hand   [0,0,0,0,0,0.574,0,0.819]
+    stepped to conf 2  [0,0,0,0,0,0.574,0,0.819]
+    stepped back to 1  [0,0,0,0,0,0.574,0,0.819]
+
+**A placeholder molblock makes an alignment test vacuous.** Every test in
+`test_molecule_viewer3d_widget.py` used strings like `"conf-1"`, which do
+not parse -- so the aligner returns them untouched and "aligned" and
+"retained" are the same string. A mutation that bypassed alignment
+entirely passed all of them. One test now builds real embedded
+conformers, which is the only thing that tells the two apart.
 
 ### A CACHE can make a guard pass while the code under test never runs
 

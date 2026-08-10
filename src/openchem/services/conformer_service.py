@@ -12,6 +12,7 @@ from openchem.chem.conformer_providers import (
     RDKitConformerProvider,
     distinct_conformers,
 )
+from openchem.chem.alignment import align_conformers_for_display
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.conformer import ConformerModel
@@ -248,6 +249,8 @@ class ConformerService:
         )
         self._pool = QThreadPool.globalInstance()
         self._job_manager = job_manager if job_manager is not None else JobManager()
+        #: (molecule uuid, conformer molblocks) -> display-aligned copies.
+        self._display_cache: dict[tuple, list[str]] = {}
 
     def register_provider(self, provider: ConformerProvider) -> None:
         self._providers[provider.provider_id] = provider
@@ -313,3 +316,34 @@ class ConformerService:
                 num_embeddings=num_embeddings,
             )
         )
+
+    def display_molblocks(self, model: MoleculeModel) -> list[str]:
+        """This molecule's conformers, superimposed for viewing.
+
+        **The viewer cannot do this itself.** `tests/test_layering.py`
+        forbids a `ui/` module importing RDKit, and a rigid superposition is
+        chemistry-layer work; this is the seam the widget already has to
+        reach it through.
+
+        **Recomputed, never stored.** `ConformerModel.molblock` keeps the
+        coordinates the generator produced. See
+        `chem/alignment.py::align_conformers_for_display` for why the
+        alternative -- a transform carried on the model -- was rejected.
+
+        Cached against the identity of the conformer set rather than
+        recomputed per frame, because the viewer asks on every navigation
+        and a superposition of a large set is not free. The key is the list
+        of molblocks itself, so a regenerated set misses and an unchanged
+        one hits.
+        """
+        molblocks = [conformer.molblock for conformer in model.conformers if conformer.molblock]
+        if not molblocks:
+            return []
+        key = (model.uuid, tuple(molblocks))
+        cached = self._display_cache.get(key)
+        if cached is None:
+            cached = align_conformers_for_display(molblocks)
+            # One entry: the viewer looks at one molecule at a time, and an
+            # unbounded cache of molblock lists is a real amount of memory.
+            self._display_cache = {key: cached}
+        return cached

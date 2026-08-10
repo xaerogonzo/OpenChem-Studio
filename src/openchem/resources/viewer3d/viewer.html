@@ -240,7 +240,20 @@
       // value round-tripped back to Python, unlike Ketcher's getMolfile(),
       // so no QWebChannel request/response dance is needed here.
       window.openchemViewer = {
-        loadMolblock: function (molblock) {
+        // `keepCamera` is what makes conformers comparable. Stepping from
+        // one conformer to the next re-fitted the camera every time, so
+        // the molecule appeared to jump and the only thing a reader could
+        // compare was two unrelated views. Reported as: "I arranged the
+        // first conformer in 1 row, then in the second conformer I moved
+        // it a certain way, then moved back to the first conformer, and it
+        // was once again in a different way."
+        //
+        // The caller decides, because only Python knows whether this is
+        // the same molecule and the same conformer batch -- see
+        // `Mol3DViewerBackend.load_conformer`. Captured BEFORE clear(),
+        // which resets the view.
+        loadMolblock: function (molblock, keepCamera) {
+          var savedView = keepCamera ? viewer.getView() : null;
           crystalShown = false;
           viewer.clear();
           // A new molecule's atom indices have nothing to do with
@@ -284,7 +297,11 @@
           // built synchronously above so a setStyle arriving in between
           // cannot act on a half-loaded viewer.
           drawWhenSized(function () {
-            viewer.zoomTo();
+            if (savedView) {
+              viewer.setView(savedView);
+            } else {
+              viewer.zoomTo();
+            }
             viewer.render();
           });
         },

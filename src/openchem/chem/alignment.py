@@ -28,7 +28,7 @@ Conflating them would invert the meaning of a result.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -334,3 +334,82 @@ def compute_3d_alignment(
             },
         ),
     )
+
+
+# --- conformers of ONE molecule, aligned for display -------------------------
+#
+# A DIFFERENT PROBLEM FROM EVERYTHING ABOVE, and kept here so there is one
+# place to look for "how does this project align things" rather than a
+# fourth. O3A and MCS exist because two different molecules have no given
+# atom correspondence. Conformers of one molecule have the identity
+# correspondence for free, so none of that machinery applies.
+
+
+def align_conformers_for_display(molblocks: Sequence[str]) -> list[str]:
+    """Superimpose conformers of one molecule onto the first of them.
+
+    **THIS IS PRESENTATION, NOT CHEMISTRY.** `EmbedMolecule` puts every
+    conformer in its own arbitrary frame -- a gauge choice carrying no
+    information -- so stepping from one to the next in the viewer changes
+    the orientation as much as the shape, and comparing them by eye is
+    impossible. Reported exactly that way: "It is extremely difficult to
+    compare different conformers... I arranged the first conformer in 1
+    row, then in the second conformer I moved it a certain way, then moved
+    back to the first conformer, and it was once again in a different way."
+
+    **The result is never stored.** `ConformerModel.molblock` keeps the
+    coordinates the generator produced; this is recomputed for display. A
+    rigid rotation changes no chemistry, but "recompute a view" and
+    "overwrite the scientific result" are different things and only one of
+    them is reversible. The alternative -- a transform field on the model --
+    was rejected because every consumer would then have to remember to
+    apply it, and the one that forgets shows exactly the unaligned view
+    this exists to fix.
+
+    **The identity atom map, deliberately, NOT `GetBestRMS`.** Conformers of
+    one molecule already share an atom ordering, so the identity
+    correspondence is well defined and deterministic. `GetBestRMS` searches
+    symmetry-equivalent permutations for the lowest RMSD, and on a molecule
+    with a symmetric core it can pick a permutation that flips the whole
+    structure between one conformer and the next -- replacing the visual
+    jump being fixed here with a different one.
+
+    **Fitted on heavy atoms, applied to every atom.** A rotating methyl's
+    hydrogens would otherwise drag the fit and rotate the whole molecule to
+    chase three atoms that are not what anybody is comparing.
+
+    Returns the input unchanged if there is nothing to align, or if the
+    molblocks disagree about how many atoms the molecule has -- which means
+    they are not conformers of one molecule and no correspondence exists.
+    """
+    if len(molblocks) < 2:
+        return list(molblocks)
+
+    mols = []
+    for molblock in molblocks:
+        mol = Chem.MolFromMolBlock(molblock, removeHs=False)
+        if mol is None or mol.GetNumConformers() == 0:
+            return list(molblocks)
+        mols.append(mol)
+
+    counts = {mol.GetNumAtoms() for mol in mols}
+    if len(counts) != 1:
+        return list(molblocks)
+
+    reference = mols[0]
+    heavy = [
+        atom.GetIdx() for atom in reference.GetAtoms() if atom.GetAtomicNum() > 1
+    ]
+    # Degenerate fits are the failure mode a fixed correspondence does not
+    # by itself rule out. Three points define a plane and fewer define
+    # nothing, so below that the rotation is not determined and the honest
+    # answer is to leave the coordinates alone.
+    if len(heavy) < 3:
+        return list(molblocks)
+    atom_map = [(index, index) for index in heavy]
+
+    aligned = [molblocks[0]]
+    for mol in mols[1:]:
+        rdMolAlign.AlignMol(mol, reference, atomMap=atom_map)
+        aligned.append(Chem.MolToMolBlock(mol))
+    return aligned

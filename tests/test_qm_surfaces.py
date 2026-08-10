@@ -272,7 +272,7 @@ class FakeBackend(ViewerBackend):
         self.loaded: list[str] = []
         self.surfaces: list[object] = []
 
-    def load_conformer(self, molblock: str) -> None:
+    def load_conformer(self, molblock: str, structure_key: object = None) -> None:
         self.loaded.append(molblock)
 
     def apply_surface(self, layer) -> None:

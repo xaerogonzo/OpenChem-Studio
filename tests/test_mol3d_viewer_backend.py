@@ -645,3 +645,63 @@ def test_every_draw_path_waits_for_a_sized_container(qapp):
     helper = page[page.index("function drawWhenSized") :][:600]
     assert "setTimeout" in helper
     assert "requestAnimationFrame" not in helper
+
+
+# --- keeping the camera between conformers -----------------------------------
+
+
+def _loads_fired(backend) -> list[str]:
+    """Capture the `loadMolblock` calls this backend emits.
+
+    Asserted on the JS itself because the decision under test is a boolean
+    the page receives -- there is no Python state that records it, and a
+    test on `_structure_key` would only be re-reading the input.
+    """
+    fired: list[str] = []
+    original = backend._page.runJavaScript
+    backend._page.runJavaScript = lambda js, *a, **k: (fired.append(js), original(js, *a, **k))[1]
+    return fired
+
+
+def test_the_camera_is_kept_when_the_structure_key_repeats(qapp):
+    """Two conformers of one molecule share a key, so the second load must
+    tell the page to keep the camera -- which is the whole mechanism behind
+    "stepping between conformers no longer jumps"."""
+    backend = _ready_backend(qapp)
+    fired = _loads_fired(backend)
+
+    backend.load_conformer(_ethanol_molblock(), structure_key=("mol", (1.0,)))
+    backend.load_conformer(_ethanol_molblock(), structure_key=("mol", (1.0,)))
+
+    loads = [js for js in fired if "loadMolblock" in js]
+    assert len(loads) == 2
+    assert loads[0].rstrip().endswith("false);"), loads[0][-40:]
+    assert loads[1].rstrip().endswith("true);"), loads[1][-40:]
+
+
+def test_the_camera_is_refitted_when_the_structure_key_changes(qapp):
+    """A different molecule must NOT inherit the previous camera -- there
+    is no guarantee it is even in frame at that angle."""
+    backend = _ready_backend(qapp)
+    fired = _loads_fired(backend)
+
+    backend.load_conformer(_ethanol_molblock(), structure_key=("mol-a", (1.0,)))
+    backend.load_conformer(_ethanol_molblock(), structure_key=("mol-b", (1.0,)))
+
+    loads = [js for js in fired if "loadMolblock" in js]
+    assert loads[1].rstrip().endswith("false);"), loads[1][-40:]
+
+
+def test_a_caller_with_no_structure_key_always_refits(qapp):
+    """`None` means "I have not thought about this", and re-fitting is the
+    answer that cannot strand a structure off screen. Two identical calls,
+    because `None == None` would keep the camera if the guard were written
+    as a plain equality."""
+    backend = _ready_backend(qapp)
+    fired = _loads_fired(backend)
+
+    backend.load_conformer(_ethanol_molblock())
+    backend.load_conformer(_ethanol_molblock())
+
+    loads = [js for js in fired if "loadMolblock" in js]
+    assert all(js.rstrip().endswith("false);") for js in loads), loads

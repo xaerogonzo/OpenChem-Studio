@@ -22,9 +22,13 @@ class FakeViewerBackend(ViewerBackend):
         super().__init__()
         self.applied_layers: list[VisualizationLayer | None] = []
         self.loaded_molblocks: list[str] = []
+        #: One entry per load, so a test can assert whether the camera was
+        #: to be kept -- the whole of what makes conformers comparable.
+        self.structure_keys: list[object] = []
 
-    def load_conformer(self, molblock: str) -> None:
+    def load_conformer(self, molblock: str, structure_key: object = None) -> None:
         self.loaded_molblocks.append(molblock)
+        self.structure_keys.append(structure_key)
 
     def set_style(self, style: str) -> None:
         pass
@@ -277,3 +281,161 @@ def test_showing_a_crystal_drops_a_half_finished_measurement(qapp):
     widget.show_crystal(_SCENE)
 
     assert widget._selected_atoms == []
+
+
+# --- comparing conformers ---------------------------------------------------
+
+
+def _two_conformers(energies=(70.95, 71.50), stamps=(1.0, 1.0)) -> MoleculeModel:
+    molecule = MoleculeModel(display_name="Test")
+    molecule.conformers = [
+        ConformerModel(molblock=f"conf-{i}", method="rdkit", energy=e, timestamp=t)
+        for i, (e, t) in enumerate(zip(energies, stamps), start=1)
+    ]
+    return molecule
+
+
+def test_stepping_between_conformers_keeps_the_camera(qapp):
+    """THE DEFECT THIS EXISTS FOR.
+
+    Reported as: "I arranged the first conformer in 1 row, then in the
+    second conformer I moved it a certain way, then moved back to the first
+    conformer, and it was once again in a different way."
+
+    The backend keeps the camera when consecutive loads carry the SAME
+    structure key, so the assertion is that stepping does not change it.
+    Asserted as equality across all three loads rather than 'not None',
+    which would pass against a key that changed every time.
+    """
+    widget, backend, _bus = _make_widget(qapp)
+    widget.set_molecule(_two_conformers())
+
+    widget._show_next_conformer()
+    widget._show_previous_conformer()
+
+    assert len(backend.structure_keys) == 3
+    assert len(set(backend.structure_keys)) == 1, backend.structure_keys
+    assert backend.structure_keys[0] is not None
+
+
+def test_a_different_molecule_does_not_inherit_the_camera(qapp):
+    """The other half, and the reason the key is not simply a constant.
+
+    A key that never changed would keep the camera forever, so an
+    unrelated molecule would arrive at whatever angle the last one was
+    left at -- with no guarantee it is even in frame.
+    """
+    widget, backend, _bus = _make_widget(qapp)
+    widget.set_molecule(_two_conformers())
+    first = backend.structure_keys[-1]
+
+    widget.set_molecule(_two_conformers())
+
+    assert backend.structure_keys[-1] != first
+
+
+def test_regenerating_conformers_does_not_inherit_the_camera(qapp):
+    """Same molecule, new batch. The timestamps are what tell them apart --
+    `_ConformerGenerationTask` stamps one `Provenance` across a run, so a
+    fresh run carries different ones.
+
+    Without this the key would be the molecule uuid alone, and a
+    regenerated set of a DIFFERENT shape would be drawn at the old
+    camera, possibly off screen.
+    """
+    widget, backend, _bus = _make_widget(qapp)
+    molecule = _two_conformers(stamps=(1.0, 1.0))
+    widget.set_molecule(molecule)
+    before = backend.structure_keys[-1]
+
+    molecule.conformers = _two_conformers(stamps=(2.0, 2.0)).conformers
+    widget.set_molecule(molecule)
+
+    assert backend.structure_keys[-1] != before
+
+
+def test_the_energy_shown_is_relative_to_the_lowest(qapp):
+    """`70.95` and `71.50` are raw MMFF numbers; nobody compares those to
+    anything. The interesting figure is the 0.55 between them, and the
+    reader should not have to do the subtraction."""
+    widget, _backend, _bus = _make_widget(qapp)
+    widget.set_molecule(_two_conformers(energies=(70.95, 71.50)))
+
+    assert "lowest energy" in widget._status_label.text()
+
+    widget._show_next_conformer()
+
+    assert "+0.55 kcal/mol" in widget._status_label.text()
+    assert "71.50" not in widget._status_label.text()
+
+
+def test_the_absolute_energy_is_kept_in_the_tooltip(qapp):
+    """Moved, not dropped -- it is what a force-field log would print, and
+    somebody reconciling against one needs it."""
+    widget, _backend, _bus = _make_widget(qapp)
+    widget.set_molecule(_two_conformers(energies=(70.95, 71.50)))
+
+    assert "70.95" in widget._status_label.toolTip()
+
+
+def test_a_conformer_with_no_energy_says_so_rather_than_computing_a_delta(qapp):
+    """A missing energy is not zero, and `+0.00 kcal/mol` would claim it
+    is the lowest.
+
+    **The set MIXES energies with a missing one**, which is what makes this
+    discriminating. With every energy missing, "is this one None" and "are
+    there any energies at all" are the same question, and a version that
+    checked only the second passed -- measured, as a surviving mutation.
+    Here the second is False and the first is True, so they come apart.
+    """
+    widget, _backend, _bus = _make_widget(qapp)
+    molecule = MoleculeModel(display_name="Test")
+    molecule.conformers = [
+        ConformerModel(molblock="c1", method="rdkit", energy=70.95),
+        ConformerModel(molblock="c2", method="rdkit", energy=None),
+    ]
+
+    widget.set_molecule(molecule)
+    widget._show_next_conformer()
+
+    assert "n/a" in widget._status_label.text()
+
+
+def test_the_viewer_shows_the_display_aligned_copy_not_the_stored_one(qapp):
+    """THE PHASE-1 FIX, asserted where it is observable.
+
+    Every other test in this file uses placeholder molblocks like
+    "conf-1", which do not parse -- so the aligner returns them untouched
+    and "aligned" and "retained" are the same string. A mutation that
+    bypassed alignment entirely passed all of them.
+
+    Real embedded conformers, in their own arbitrary frames, are the only
+    thing that tells the two apart: what reaches the backend must differ
+    from what is stored, and the stored copy must be unchanged.
+    """
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    mol = Chem.AddHs(Chem.MolFromSmiles("CCCCCCO"))
+    params = AllChem.ETKDGv3()
+    params.randomSeed = 0xC0FFEE
+    AllChem.EmbedMultipleConfs(mol, numConfs=2, params=params)
+    AllChem.MMFFOptimizeMoleculeConfs(mol)
+    molblocks = [Chem.MolToMolBlock(mol, confId=c.GetId()) for c in mol.GetConformers()]
+
+    widget, backend, _bus = _make_widget(qapp)
+    molecule = MoleculeModel(display_name="Hexanol")
+    molecule.conformers = [
+        ConformerModel(molblock=mb, method="rdkit", energy=float(i))
+        for i, mb in enumerate(molblocks)
+    ]
+
+    widget.set_molecule(molecule)
+    widget._show_next_conformer()
+
+    assert backend.loaded_molblocks[-1] != molblocks[1], (
+        "the viewer showed the stored conformer, so nothing was aligned"
+    )
+    assert molecule.conformers[1].molblock == molblocks[1], (
+        "the stored conformer was mutated; display alignment must not do that"
+    )

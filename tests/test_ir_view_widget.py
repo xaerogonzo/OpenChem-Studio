@@ -46,7 +46,7 @@ class FakeViewerBackend(ViewerBackend):
         super().__init__()
         self.loaded_molblocks: list[str] = []
 
-    def load_conformer(self, molblock: str) -> None:
+    def load_conformer(self, molblock: str, structure_key: object = None) -> None:
         self.loaded_molblocks.append(molblock)
 
     def set_style(self, style: str) -> None:

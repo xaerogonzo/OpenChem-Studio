@@ -315,15 +315,75 @@ class MoleculeViewer3DWidget(QWidget):
         if self._molecule is None or not self._molecule.conformers:
             self._backend.clear()
             self._status_label.setText("No conformers")
+            self._status_label.setToolTip("")
             # Enabled only when there is something to adopt. A button that
             # is present but does nothing is the failure this whole line
             # of work keeps finding.
             self._use_button.setEnabled(False)
             return
         conformer = self._molecule.conformers[self._conformer_index]
-        self._backend.load_conformer(conformer.molblock)
-        self._use_button.setEnabled(True)
-        energy_text = f"{conformer.energy:.2f} kcal/mol" if conformer.energy is not None else "n/a"
-        self._status_label.setText(
-            f"Conformer {self._conformer_index + 1}/{len(self._molecule.conformers)} - {energy_text}"
+        # THE DISPLAY-ALIGNED COPY, not the retained conformer. Every
+        # conformer is embedded in its own arbitrary frame, so stepping
+        # between them otherwise changes the orientation as much as the
+        # shape -- which is what made comparing them impossible. The
+        # retained coordinates are untouched; see
+        # `ConformerService.display_molblocks`.
+        display = self._conformer_service.display_molblocks(self._molecule)
+        molblock = (
+            display[self._conformer_index]
+            if self._conformer_index < len(display)
+            else conformer.molblock
         )
+        self._backend.load_conformer(molblock, structure_key=self._structure_key())
+        self._use_button.setEnabled(True)
+        self._status_label.setText(self._conformer_label(conformer))
+        self._status_label.setToolTip(
+            f"Absolute energy {conformer.energy:.4f} kcal/mol"
+            if conformer.energy is not None
+            else "This conformer has no computed energy."
+        )
+
+    def _structure_key(self) -> tuple | None:
+        """What the viewer treats as "still the same thing on screen".
+
+        Camera retention hangs off this, so it has to mean "another
+        conformer of the same batch of the same molecule" and nothing
+        looser. The batch is identified by the conformers' timestamps --
+        `_ConformerGenerationTask` stamps one `Provenance` across a whole
+        run, so a regenerated set has different ones and correctly re-fits
+        the camera, and a conformer appended later (ORCA, via
+        `AddConformerCommand`) changes the tuple rather than slipping in
+        unnoticed.
+
+        NOT the molblock and NOT the model object: the first would let an
+        imported structure with the same graph inherit an unrelated
+        camera, and the second cannot survive the model being rebuilt.
+        """
+        if self._molecule is None or not self._molecule.conformers:
+            return None
+        return (
+            self._molecule.uuid,
+            tuple(conformer.timestamp for conformer in self._molecule.conformers),
+        )
+
+    def _conformer_label(self, conformer) -> str:
+        """`Conformer 2/11 - +0.55 kcal/mol`.
+
+        **RELATIVE TO THE LOWEST, not the raw force-field number.** The
+        absolute MMFF energy of a conformer is not a quantity anybody
+        compares against anything -- `70.95` and `71.50` differ by an
+        amount the reader has to work out, and the interesting figure is
+        the 0.55. The absolute value moves to the tooltip rather than
+        being dropped, because it is what a force-field log would show.
+        """
+        total = len(self._molecule.conformers)
+        position = f"Conformer {self._conformer_index + 1}/{total}"
+        energies = [c.energy for c in self._molecule.conformers if c.energy is not None]
+        if conformer.energy is None or not energies:
+            return f"{position} - energy n/a"
+        relative = conformer.energy - min(energies)
+        # "lowest" rather than "+0.00", so the reference is named rather
+        # than left to be inferred from a zero.
+        if relative < 0.005:
+            return f"{position} - lowest energy"
+        return f"{position} - +{relative:.2f} kcal/mol"

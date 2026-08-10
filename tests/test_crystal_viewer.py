@@ -194,7 +194,10 @@ def test_loading_a_molecule_cancels_a_queued_crystal(backend):
     backend.load_conformer("dummy molblock")
 
     assert backend._pending_crystal is None
-    assert backend._pending_molblock == "dummy molblock"
+    # A queued load carries its camera decision with it, since the
+    # structure key it was compared against will have moved on by the time
+    # the page is ready. The molblock is the half this test is about.
+    assert backend._pending_molblock[0] == "dummy molblock"
 
 
 def test_loading_a_crystal_cancels_a_queued_molecule(backend):

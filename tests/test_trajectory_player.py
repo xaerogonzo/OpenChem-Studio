@@ -31,7 +31,7 @@ class _RecordingBackend:
         self.loaded: list[str] = []
         self._widget = QWidget()
 
-    def load_conformer(self, molblock: str) -> None:
+    def load_conformer(self, molblock: str, structure_key: object = None) -> None:
         self.loaded.append(molblock)
 
     def set_style(self, style: str) -> None:

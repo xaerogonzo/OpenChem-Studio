@@ -22,8 +22,16 @@ class ViewerBackend(QObject):
 
     atoms_selected = Signal(list)  # list[int] atom indices, for measurement tools
 
-    def load_conformer(self, molblock: str) -> None:
-        """Render a 3D conformer (a molblock carrying 3D coordinates)."""
+    def load_conformer(self, molblock: str, structure_key: object = None) -> None:
+        """Render a 3D conformer (a molblock carrying 3D coordinates).
+
+        `structure_key` identifies what is on screen for the viewer
+        SESSION, so a backend that can keep its camera knows whether this
+        structure belongs with the last one -- two conformers of one
+        molecule share a key. Optional and defaulting to None, which means
+        "treat this as new", because a backend is free to ignore it and
+        most callers have no opinion.
+        """
         raise NotImplementedError
 
     def set_style(self, style: str) -> None:

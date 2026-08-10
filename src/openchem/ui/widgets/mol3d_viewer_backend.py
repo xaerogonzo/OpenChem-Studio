@@ -77,7 +77,11 @@ class Mol3DViewerBackend(ViewerBackend):
         self._page.setWebChannel(self._channel)
 
         self._page_ready = False
-        self._pending_molblock: str | None = None
+        #: (molblock, keep_camera) queued until the page is ready.
+        self._pending_molblock: tuple[str, bool] | None = None
+        #: The viewer-session identity of what is on screen; see
+        #: `load_conformer`. None means 'nothing comparable yet'.
+        self._structure_key: object = None
         # Mutually exclusive with _pending_molblock: the viewer shows
         # either one molecule or one superimposed ensemble, never both, so
         # queueing one clears the other. Whichever call came last is what
@@ -110,7 +114,7 @@ class Mol3DViewerBackend(ViewerBackend):
             self._run_set_style(self._pending_style)
             self._pending_style = None
         if self._pending_molblock is not None:
-            self._run_load(self._pending_molblock)
+            self._run_load(*self._pending_molblock)
             self._pending_molblock = None
         if self._pending_ensemble is not None:
             self._run_load_ensemble(self._pending_ensemble)
@@ -133,16 +137,38 @@ class Mol3DViewerBackend(ViewerBackend):
     def _on_atom_clicked(self, atom_index: int) -> None:
         self.atoms_selected.emit([atom_index])
 
-    def load_conformer(self, molblock: str) -> None:
+    def load_conformer(self, molblock: str, structure_key: object = None) -> None:
+        """Draw one structure, keeping the camera if it belongs with the last.
+
+        **`structure_key` is a viewer-session identity, not a structure
+        comparison.** Two conformers of one molecule share a key, so
+        stepping between them keeps whatever orientation the user has
+        arranged -- which is the whole of what makes them comparable. A
+        different molecule gets a different key and the camera is re-fitted.
+
+        It is deliberately NOT the molblock, and not the model object: an
+        imported structure that happens to have the same graph would
+        silently inherit an unrelated camera under the first, and the
+        second cannot survive the model being rebuilt. The widget builds it
+        from the molecule's uuid and the identity of the conformer batch.
+
+        `None` always re-fits, which is the safe answer for every caller
+        that has not thought about it.
+        """
         self._pending_ensemble = None
         self._pending_crystal = None
+        keep_camera = structure_key is not None and structure_key == self._structure_key
+        self._structure_key = structure_key
         if self._page_ready:
-            self._run_load(molblock)
+            self._run_load(molblock, keep_camera)
         else:
-            self._pending_molblock = molblock
+            self._pending_molblock = (molblock, keep_camera)
 
-    def _run_load(self, molblock: str) -> None:
-        self._page.runJavaScript(f"window.openchemViewer.loadMolblock({json.dumps(molblock)});")
+    def _run_load(self, molblock: str, keep_camera: bool = False) -> None:
+        self._page.runJavaScript(
+            f"window.openchemViewer.loadMolblock("
+            f"{json.dumps(molblock)}, {json.dumps(bool(keep_camera))});"
+        )
 
     def load_crystal(self, scene: dict) -> None:
         """Draw one unit cell of a periodic solid.
