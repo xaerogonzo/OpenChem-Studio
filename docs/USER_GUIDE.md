@@ -103,8 +103,24 @@ that queries it on your behalf.
 **2D Editor** — the embedded Ketcher editor. Draw, paste SMILES, import a
 file. The app's own Edit and View menus proxy Ketcher's real actions
 (Aromatize, Layout, Clean Up, Calculate CIP, Check Structure, Add/Remove
-explicit hydrogens, its Miew 3D preview), so they are reachable from the
-menu bar rather than only from the canvas.
+explicit hydrogens), so they are reachable from the menu bar rather than
+only from the canvas.
+
+**Ketcher's own toolbar answers with this application, not with Ketcher.**
+The editor ships a periodic table, file open/save, About, Help and a 3D
+viewer, all of which this application already has — so pressing one of
+them opens *ours*. There is one of each rather than two that look alike
+and know different things. Its own periodic table used to open a plainer
+one, which is how this was first noticed; its About showed Ketcher's
+version number, and its save dialog defaulted to `.ket`, a format this
+application cannot read back into a project.
+
+Deliberately left alone, because replacing them would remove something
+rather than de-duplicate it: **query atoms** (any / list / not-list),
+Ketcher's **template library**, **clear canvas**, its **Settings** (render
+options this app only partly mirrors under View ▸ 2D Structure Display),
+and **polymer mode** — Ketcher can *draw* RNA/DNA/peptides, where the
+Macromolecule Viewer only shows one.
 
 **3D Viewer** — 3Dmol, showing conformers. Style selector
 (stick / ball-and-stick / spacefill / line), conformer navigation, a
@@ -1218,6 +1234,13 @@ See [PLUGIN_SDK.md](PLUGIN_SDK.md) to write one.
   not about the law. The wording says which.
 - **`Ctrl+V` in the drawing canvas is Ketcher's paste, not the
   application's.** Whole-structure paste is `Ctrl+Shift+V`.
+- **`Ctrl+Z` is the application's undo everywhere, including inside the
+  canvas.** Ketcher binds it too, and its undo used to *add* to the
+  application's history rather than unwind it — measured, the stack grew
+  from 3 to 4 on an undo — while undoing past the point where the
+  structure was loaded emptied the canvas and the molecule with it. Both
+  the shortcut and the toolbar button are answered by the application
+  now, so there is one history.
 - **A molecule with no verified IUPAC name is normal.** The naming engine
   stays silent rather than emitting a name that will not parse back, so an
   empty Naming row is a refusal and not a failure.

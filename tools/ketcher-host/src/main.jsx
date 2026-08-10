@@ -14,7 +14,7 @@ const structServiceProvider = new StandaloneStructServiceProvider()
 let ketcherInstance = null
 let bridgeObject = null
 let notifiedReady = false
-let periodicTableIntercepted = false
+let controlsIntercepted = false
 
 // Where does this pool id sit in the molfile Ketcher would write?
 //
@@ -54,11 +54,12 @@ function tryWireBridge() {
     bridgeObject.ketcherReady()
   }
   // Guarded: `tryWireBridge` runs from BOTH sides (whichever of Ketcher
-  // and the QWebChannel finishes last), so an unguarded listener would be
-  // registered twice and open two dialogs from one click.
-  if (!periodicTableIntercepted) {
-    periodicTableIntercepted = true
-    interceptPeriodicTableButton()
+  // and the QWebChannel finishes last), so unguarded listeners would be
+  // registered twice and answer one click twice.
+  if (!controlsIntercepted) {
+    controlsIntercepted = true
+    interceptDuplicatedControls()
+    interceptUndoShortcuts()
   }
   try {
     ketcherInstance.editor.subscribe('change', () => {
@@ -125,39 +126,112 @@ function tryWireBridge() {
   }
 }
 
-// ONE PERIODIC TABLE, NOT TWO.
+// ONE OF EACH, NOT TWO.
 //
-// Ketcher ships its own periodic table on the left toolbar, and the
-// application has a much richer one under Tools -- configuration, radii,
-// isotope abundances, a shell diagram. Two tables that look alike and know
-// different things read as one table that has lost half its features
-// depending which button you pressed, and that is exactly how it was
-// reported: "the periodic table reverted to vanilla".
+// Ketcher ships its own periodic table, file open/save, About, Help,
+// settings and 3D viewer, and the application has all of them already.
+// Two controls that look alike and behave differently read as one
+// feature that has lost half its capability depending which you pressed
+// -- which is exactly how the first of them was reported: "the periodic
+// table reverted to vanilla".
 //
-// So the button is intercepted here and answered by the Python side.
+// Each entry is a `data-testid` -> bridge call. The ids are read off the
+// live DOM rather than the bundle; Ketcher's own e2e tests key on them,
+// so they are as stable as anything in a vendored build gets.
 //
-// CAPTURE PHASE, and `stopPropagation` rather than only `preventDefault`.
-// The handler is React's, bound at the root, so a bubble-phase listener
-// runs AFTER Ketcher has already opened its dialog and `preventDefault`
-// alone would leave both tables on screen. Capturing on `document` runs
-// first and stopping propagation there means React's synthetic handler
-// never fires at all.
+// WHAT IS DELIBERATELY ABSENT, because replacing it would lose a
+// capability rather than a duplicate:
 //
-// `period-table` is the button's own `data-testid`, read off the live
-// DOM rather than the bundle -- Ketcher's e2e tests key on these, so they
-// are as stable as anything in a vendored build gets. Measured on the
-// shipped dist alongside `any-atom`, which is deliberately NOT
-// intercepted: query atoms are the one thing our table cannot express.
-function interceptPeriodicTableButton() {
+//   any-atom        query atoms (any / list / not-list), which the
+//                   application's periodic table cannot express
+//   template-lib    Ketcher's template library, which has no equivalent
+//   clear-canvas    emptying the drawing is a drawing operation, and its
+//                   `change` already flows into the application's undo
+//                   stack, so it is undoable rather than destructive
+//   polymer-toggler Ketcher can DRAW rna/dna/peptide; the Macromolecule
+//                   Viewer only shows one. Intercepting would remove the
+//                   only way to draw a polymer in this application.
+//   settings-button Ketcher's Settings holds render options -- bond
+//                   thickness, fonts, stereo labels -- of which this
+//                   application proxies only a few under View > 2D
+//                   Structure Display. There is no dialog here to route
+//                   it to, and sending it to External Tools (ORCA and
+//                   Vina paths) would answer a different question. It is
+//                   a duplicate only in name.
+const INTERCEPTED = {
+  'period-table': 'periodicTableRequested',
+  'open-file-button': 'importRequested',
+  'save-file-button': 'exportRequested',
+  'about-button': 'aboutRequested',
+  'help-button': 'helpRequested',
+  '3D Viewer button': 'viewer3dRequested',
+  // Undo and redo are the two that are not merely duplication. Measured:
+  // Ketcher's undo does NOT unwind the application's QUndoStack -- it
+  // edits the canvas, which fires `change`, which pushes a NEW
+  // EditStructureCommand. The stack grew 3 -> 4 on an undo. And undoing
+  // past our own `setMolecule` empties the canvas, with the project
+  // model following it to zero atoms.
+  undo: 'undoRequested',
+  redo: 'redoRequested',
+}
+
+// CAPTURE PHASE, and `stopPropagation` rather than only
+// `preventDefault`. The handler is React's, bound at the root, so a
+// bubble-phase listener runs AFTER Ketcher has already acted, and
+// `preventDefault` alone would leave both the application's answer and
+// Ketcher's on screen.
+function interceptDuplicatedControls() {
   document.addEventListener(
     'click',
     (event) => {
       if (!bridgeObject) return
-      const button = event.target.closest?.('[data-testid="period-table"]')
-      if (!button) return
+      for (const testid of Object.keys(INTERCEPTED)) {
+        // `closest` because the click usually lands on an icon INSIDE
+        // the button, not on the button itself.
+        if (event.target.closest?.(`[data-testid="${CSS.escape(testid)}"]`)) {
+          event.preventDefault()
+          event.stopPropagation()
+          bridgeObject[INTERCEPTED[testid]]()
+          return
+        }
+      }
+    },
+    true,
+  )
+}
+
+// THE KEYBOARD IS THE PATH A USER ACTUALLY TAKES, and it is a separate
+// interception because a shortcut never goes near a button.
+//
+// Ketcher binds `Mod+z` and `Mod+Shift+z` itself (both present in the
+// vendored bundle) while the application binds Ctrl+Z to its own undo
+// action. Whichever has focus wins, which is the same collision that
+// already forced paste onto Ctrl+Shift+V. With the canvas focused --
+// the normal case while drawing -- Ketcher's wins, and Ketcher's undo is
+// the one measured above that grows the application's stack instead of
+// unwinding it.
+//
+// Captured on `document` for the same reason as the clicks, and BEFORE
+// Ketcher's own handler: it registers on the editor element, which is a
+// descendant.
+function interceptUndoShortcuts() {
+  document.addEventListener(
+    'keydown',
+    (event) => {
+      if (!bridgeObject) return
+      if (!(event.ctrlKey || event.metaKey)) return
+      if (event.key.toLowerCase() !== 'z' && event.key.toLowerCase() !== 'y') return
       event.preventDefault()
       event.stopPropagation()
-      bridgeObject.periodicTableRequested()
+      // Ctrl+Y as well as Ctrl+Shift+Z: the application's redo is bound
+      // to Ctrl+Y, and somebody who has learned that should not find it
+      // doing nothing inside the canvas.
+      const redo = event.key.toLowerCase() === 'y' || event.shiftKey
+      if (redo) {
+        bridgeObject.redoRequested()
+      } else {
+        bridgeObject.undoRequested()
+      }
     },
     true,
   )

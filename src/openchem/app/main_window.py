@@ -329,11 +329,12 @@ class MainWindow(QMainWindow):
         # because 3Dmol's setClickable resolves a click to an ATOM and has
         # no bond picking at all.
         self._editor.bond_selected.connect(self._atom_inspector_panel.select_bond)
-        # The editor's own `PT` button, answered with THIS application's
-        # periodic table. The Ketcher host suppresses the engine's dialog
-        # so the two never both appear -- see
-        # `tools/ketcher-host/src/main.jsx`.
-        self._editor.periodic_table_requested.connect(self._show_periodic_table)
+        # Every control on the editor's own toolbar that this application
+        # already provides is answered HERE -- the Ketcher host swallows
+        # the click so the engine's version never appears. See
+        # `tools/ketcher-host/src/main.jsx` for the list and for what is
+        # deliberately left alone.
+        self._editor.editor_action_requested.connect(self._on_editor_action)
         self._jobs_panel = JobsPanel(services.job_manager, self)
         self._structure_check_panel = StructureCheckPanel(
             services.structure_check_service,
@@ -1809,6 +1810,39 @@ class MainWindow(QMainWindow):
         existing.show()
         existing.raise_()
         existing.activateWindow()
+
+    def _on_editor_action(self, action: str) -> None:
+        """Answer a control the user pressed on the editor's own toolbar.
+
+        A dict rather than an if-chain so the whole set is readable at
+        once, and so an action arriving with no handler is a logged
+        no-op rather than a silent one -- a swallowed click that answers
+        nothing is worse than the duplicate it replaced.
+
+        **UNDO AND REDO ARE NOT COSMETIC.** Measured before this existed:
+        Ketcher's undo does not unwind this window's `QUndoStack` -- it
+        edits the canvas, which fires `change`, which pushes a NEW
+        `EditStructureCommand`. The stack GREW from 3 to 4 on an undo.
+        Worse, undoing past our own `setMolecule` empties the canvas and
+        the project model follows it to zero atoms. Routing both here
+        means there is one history, and Ctrl+Z means the same thing
+        whether the canvas has focus or not.
+        """
+        handlers = {
+            "periodic_table": self._show_periodic_table,
+            "import": self._import_molecule,
+            "export": self._export_molecule,
+            "about": self._show_about,
+            "help": self._show_help,
+            "viewer_3d": self._send_to_3d_viewer,
+            "undo": self._undo_stack.undo,
+            "redo": self._undo_stack.redo,
+        }
+        handler = handlers.get(action)
+        if handler is None:
+            logger.warning("No handler for editor action %r", action)
+            return
+        handler()
 
     def _insert_element_into_drawing(self, symbol: str) -> None:
         """Arm the 2D editor with an element chosen in the periodic table.

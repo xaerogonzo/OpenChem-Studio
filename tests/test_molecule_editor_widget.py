@@ -209,18 +209,27 @@ def test_a_change_to_another_molecule_is_ignored(qapp):
     assert len(backend.load_calls) == before
 
 
-def test_the_widget_forwards_the_editors_own_periodic_table_button(qapp):
-    """Ketcher's `PT` button is answered by the APPLICATION's table, so
-    the request has to survive the trip backend -> widget -> window.
+def test_the_widget_forwards_the_editors_intercepted_controls(qapp):
+    """Ketcher's own toolbar controls are answered by the APPLICATION, so
+    each request has to survive the trip backend -> widget -> window.
     Forwarded straight through, which makes a break here silent: the
-    button simply stops doing anything at all."""
+    button simply stops doing anything at all.
+
+    The ACTION NAME is asserted, not merely that something arrived --
+    every one of these travels on the same signal, so a forwarder that
+    dropped or rewrote the payload would route every control to whichever
+    handler happened to be first.
+    """
     _engine, widget, backend = _make_widget()
-    seen: list[bool] = []
-    widget.periodic_table_requested.connect(lambda: seen.append(True))
+    seen: list[str] = []
+    widget.editor_action_requested.connect(seen.append)
 
-    backend.periodic_table_requested.emit()
+    for action in ("periodic_table", "import", "export", "about", "help", "viewer_3d",
+                   "undo", "redo"):
+        backend.editor_action_requested.emit(action)
 
-    assert seen == [True]
+    assert seen == ["periodic_table", "import", "export", "about", "help", "viewer_3d",
+                    "undo", "redo"]
 
 
 def test_the_widget_arms_the_canvas_with_a_chosen_element(qapp):

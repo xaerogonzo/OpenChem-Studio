@@ -30,15 +30,20 @@ class EditorBackend(QObject):
     #: `selectionChange` event as atoms; a backend that cannot report bonds
     #: simply never emits it.
     bond_selected = Signal(int)
-    #: The user asked for a periodic table from the editor's OWN toolbar.
+    #: The user pressed a control on the editor's OWN toolbar that this
+    #: application already provides, and the application should answer it.
     #:
-    #: The application answers this with its own table rather than letting
-    #: the engine open one, so there is a single periodic table in the
-    #: product instead of two that look alike and know different things.
-    #: On the interface because "the user wants to pick an element" is a
-    #: property of a 2D editor; a backend with no such control never
-    #: emits it, and the Tools menu still reaches the same dialog.
-    periodic_table_requested = Signal()
+    #: Carries a short action name -- "periodic_table", "import",
+    #: "export", "about", "help", "settings", "viewer_3d", "undo",
+    #: "redo" -- rather than one signal per control. Nine signals whose
+    #: only difference is a name is the shape this whole line of work is
+    #: removing, and the receiving end is a dict either way.
+    #:
+    #: On the INTERFACE because "the user wants the thing this
+    #: application already has" is a property of an embedded editor, not
+    #: of one engine. A backend with no such controls never emits it, and
+    #: every one of these is still reachable from the menus.
+    editor_action_requested = Signal(str)
 
     def load_molblock(self, molblock: str) -> None:
         """Load a structure (as a V2000/V3000 molblock) into the editor."""

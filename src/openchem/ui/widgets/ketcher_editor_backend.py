@@ -49,7 +49,7 @@ class _Bridge(QObject):
         on_load_complete: Callable[[str], None] | None = None,
         on_atom_selected: Callable[[int], None] | None = None,
         on_bond_selected: Callable[[int], None] | None = None,
-        on_periodic_table_requested: Callable[[], None] | None = None,
+        on_editor_action: Callable[[str], None] | None = None,
     ) -> None:
         super().__init__()
         self._on_structure_edited = on_structure_edited
@@ -58,7 +58,7 @@ class _Bridge(QObject):
         self._on_load_complete = on_load_complete
         self._on_atom_selected = on_atom_selected
         self._on_bond_selected = on_bond_selected
-        self._on_periodic_table_requested = on_periodic_table_requested
+        self._on_editor_action = on_editor_action
 
     @Slot(str)
     def structureEdited(self, molblock: str) -> None:  # noqa: N802 - called from JS by this exact name
@@ -78,13 +78,61 @@ class _Bridge(QObject):
         if self._on_bond_selected is not None:
             self._on_bond_selected(bond_index)
 
+    # --- controls intercepted from Ketcher's own UI --------------------
+    #
+    # Each of these fires because `tools/ketcher-host/src/main.jsx`
+    # swallowed the click (or the shortcut) before React saw it, so
+    # Ketcher's own answer never appears and the application's does.
+    #
+    # SEPARATE NAMED SLOTS, not one parameterised one: QWebChannel
+    # matches by name, and `test_ketcher_bundle_is_current` derives a
+    # test per name from the JSX -- so a new interception arrives with
+    # its coverage already attached.
+
     @Slot()
     def periodicTableRequested(self) -> None:  # noqa: N802 - called from JS by this exact name
-        """Ketcher's own periodic-table button was clicked, and the host
-        suppressed Ketcher's dialog so this application can answer with
-        its own -- see the interception in `tools/ketcher-host/src/main.jsx`."""
-        if self._on_periodic_table_requested is not None:
-            self._on_periodic_table_requested()
+        """Answered with its periodic table."""
+        self._emit_editor_action("periodic_table")
+
+    @Slot()
+    def importRequested(self) -> None:  # noqa: N802 - called from JS by this exact name
+        """Answered with File > Import Molecule."""
+        self._emit_editor_action("import")
+
+    @Slot()
+    def exportRequested(self) -> None:  # noqa: N802 - called from JS by this exact name
+        """Answered with File > Export Molecule."""
+        self._emit_editor_action("export")
+
+    @Slot()
+    def aboutRequested(self) -> None:  # noqa: N802 - called from JS by this exact name
+        """Answered with Help > About OpenChem Studio."""
+        self._emit_editor_action("about")
+
+    @Slot()
+    def helpRequested(self) -> None:  # noqa: N802 - called from JS by this exact name
+        """Answered with the Help menu."""
+        self._emit_editor_action("help")
+
+    @Slot()
+    def viewer3dRequested(self) -> None:  # noqa: N802 - called from JS by this exact name
+        """Answered with the 3D Viewer tab."""
+        self._emit_editor_action("viewer_3d")
+
+    @Slot()
+    def undoRequested(self) -> None:  # noqa: N802 - called from JS by this exact name
+        """Answered with the application's undo stack."""
+        self._emit_editor_action("undo")
+
+    @Slot()
+    def redoRequested(self) -> None:  # noqa: N802 - called from JS by this exact name
+        """Answered with the application's undo stack."""
+        self._emit_editor_action("redo")
+
+    def _emit_editor_action(self, action: str) -> None:
+        if self._on_editor_action is not None:
+            self._on_editor_action(action)
+
 
     @Slot(str, str)
     def molfileReady(self, request_id: str, molblock: str) -> None:  # noqa: N802
@@ -141,7 +189,7 @@ class KetcherEditorBackend(EditorBackend):
             self._on_load_complete,
             self._on_atom_selected,
             self._on_bond_selected,
-            self.periodic_table_requested.emit,
+            self.editor_action_requested.emit,
         )
         self._channel.registerObject("bridge", self._bridge)
         self._page.setWebChannel(self._channel)

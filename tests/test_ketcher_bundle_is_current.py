@@ -42,6 +42,39 @@ _BACKEND = _ROOT / "src" / "openchem" / "ui" / "widgets" / "ketcher_editor_backe
 
 #: `bridgeObject.foo(` in the JSX -- the calls that end up inside the bundle.
 _JSX_CALL = re.compile(r"bridgeObject\.([A-Za-z_][A-Za-z0-9_]*)\s*\(")
+#: Bridge methods reached through the `INTERCEPTED` table rather than by
+#: name -- `bridgeObject[INTERCEPTED[testid]]()`.
+#:
+#: **WITHOUT THIS THE GUARD SEES TWO OF NINE.** The interceptions were a
+#: single hard-coded button, then a table; the table dispatches
+#: dynamically, so `_JSX_CALL` stopped matching seven of them and the
+#: test count went 16 -> 18 where it should have gone to 30. A guard
+#: that silently narrows as the code generalises is worse than one that
+#: was never written, because the count still goes up.
+_JSX_TABLE_CALL = re.compile(r"^\s*'?[^']*'?\s*:\s*'([A-Za-z_][A-Za-z0-9_]*)',\s*$", re.MULTILINE)
+
+
+def _bridge_slot_names(python_source: str) -> set[str]:
+    """`_Bridge` methods named `...Requested` -- the interception slots.
+
+    An INDEPENDENT source, used to notice the JSX parser narrowing. A
+    parametrised guard shrinks silently when its input shrinks: measured,
+    breaking `_bridge_names` took this file from 39 tests to 27 with
+    nothing failing, because twelve tests simply stopped existing.
+    """
+    # `[A-Za-z0-9_]`, not `[A-Za-z_]`: `viewer3dRequested` carries a
+    # DIGIT, and the first version of this regex silently missed it --
+    # caught immediately by the cross-check below, which is the whole
+    # point of having an independent source.
+    return set(
+        re.findall(r"^    def ([A-Za-z_][A-Za-z0-9_]*Requested)\(self\)",
+                   python_source, re.MULTILINE)
+    )
+
+
+def _bridge_names(source: str) -> set[str]:
+    """Every `_Bridge` method the JSX can reach, however it reaches it."""
+    return set(_JSX_CALL.findall(source)) | set(_JSX_TABLE_CALL.findall(source))
 #: `__openchemBridge.foo(` in the Python file -- calls injected at runtime
 #: through `runJavaScript`, which are NOT in the bundle and so are checked
 #: only against the Python side.
@@ -81,10 +114,10 @@ def test_the_jsx_actually_calls_the_bridge():
     """Another guard on the guard: if the JSX stopped using `bridgeObject`
     the extraction would find nothing and the staleness test would pass
     trivially forever."""
-    assert _JSX_CALL.findall(jsx_source()), "no bridgeObject calls found in main.jsx"
+    assert _bridge_names(jsx_source()), "no bridgeObject calls found in main.jsx"
 
 
-@pytest.mark.parametrize("name", sorted(set(_JSX_CALL.findall(_MAIN_JSX.read_text(encoding="utf-8")))))
+@pytest.mark.parametrize("name", sorted(_bridge_names(_MAIN_JSX.read_text(encoding="utf-8"))))
 def test_every_bridge_call_in_the_source_is_present_in_the_built_bundle(name):
     """THE STALENESS CHECK.
 
@@ -109,7 +142,7 @@ def test_every_bridge_call_in_the_source_is_present_in_the_built_bundle(name):
 @pytest.mark.parametrize(
     "name",
     sorted(
-        set(_JSX_CALL.findall(_MAIN_JSX.read_text(encoding="utf-8")))
+        _bridge_names(_MAIN_JSX.read_text(encoding="utf-8"))
         | set(_INJECTED_CALL.findall(_BACKEND.read_text(encoding="utf-8")))
     ),
 )
@@ -189,3 +222,22 @@ def test_the_bundle_index_points_at_a_file_that_exists():
             "A rebuild renames assets by content hash -- commit all of dist/, "
             "not just index.html."
         )
+
+
+def test_the_jsx_parser_sees_every_interception_slot():
+    """The guard above is parametrised over what the JSX parser finds, so
+    if that parser narrows, tests VANISH rather than fail -- and the count
+    going down is the only symptom. Measured: 39 -> 27 when the dispatch
+    table stopped being read.
+
+    `_Bridge`'s own `...Requested` slots are an independent source: every
+    one exists to receive an interception, so the two sets must match.
+    """
+    from_jsx = {n for n in _bridge_names(_MAIN_JSX.read_text(encoding="utf-8"))
+                if n.endswith("Requested")}
+    from_python = _bridge_slot_names(_BACKEND.read_text(encoding="utf-8"))
+
+    assert from_jsx == from_python, (
+        f"only in the JSX: {sorted(from_jsx - from_python)}; "
+        f"only in _Bridge: {sorted(from_python - from_jsx)}"
+    )

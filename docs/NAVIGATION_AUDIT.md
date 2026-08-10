@@ -460,6 +460,58 @@ state -- so the first scripted run showed no indicator at all and the
 feature looked broken when it was simply not being driven. Anything
 `_open_calculator` sets before dispatch has to be set there too.
 
+## Follow-on — the rest of the Ketcher overrule
+
+Finding 6 removed one duplicate periodic table. The instruction behind it
+was broader: *"the Ketcher stuff should definitely all be overwritten,
+maybe not deleted, but definitely just overruled"*. Nine other controls on
+the embedded editor's toolbar duplicated an application feature, measured
+one per run in the running app:
+
+    control              what pressing it did
+    open-file-button     "Open Structure", bypassing the project entirely
+    save-file-button     "save structure", default format .ket
+    about-button         "KetcherVersion 3.17.0" -- the wrong product
+    help-button          NOTHING AT ALL
+    settings-button      Ketcher's render settings
+    3D Viewer button     Miew, beside this application's own 3D viewer
+    clear-canvas         no response to synthetic events
+    polymer-toggler      switched the canvas into macromolecule mode
+    undo / redo          see below
+
+**UNDO WAS A DEFECT, NOT CLUTTER.** Ketcher's undo does not unwind this
+application's `QUndoStack`: it edits the canvas, which fires `change`,
+which pushes a NEW `EditStructureCommand`. Measured, the stack GREW from
+3 to 4 on an undo. And undoing past our own `setMolecule` empties the
+canvas, with the project model following it to zero atoms. Ketcher binds
+`Mod+z` and `Mod+Shift+z` itself while the application binds `Ctrl+Z`, so
+both a button and a shortcut reached it -- the same collision that had
+already forced paste onto `Ctrl+Shift+V`.
+
+Eight controls are answered by the application now, verified live in both
+directions: all eight actions arrived, and Ketcher opened nothing
+(`dialogs: 0, modals: 0`) where four of them previously opened its own.
+
+**Four are deliberately left alone, because replacing them would remove a
+capability rather than a duplicate** -- query atoms, the template
+library, clear-canvas (whose change is already undoable), and polymer
+mode, which is the only way to DRAW a polymer here. Ketcher's Settings
+stays for the same reason: this application mirrors only part of it, and
+routing it to External Tools would answer a different question.
+
+**Intercepting beats hiding**, and the measurements say why. A hidden
+button returns in the responsive toolbar's overflow menu, where a
+selector finds nothing; and `undo` and `clear-canvas` did not respond to
+synthetic clicks at all, while a capture-phase listener on `document`
+catches every one of them regardless of how the press arrives.
+
+**A guard narrowed silently while the code generalised.** The bundle
+check derives a test per `bridgeObject.foo(` in the JSX. Moving from one
+hard-coded button to a dispatch table made seven of the nine calls
+dynamic, so the check stopped seeing them -- and the test count still
+went UP, 16 to 18, which is exactly how a shrinking guard hides. It reads
+the table as well now: 30.
+
 ## The pattern
 
 Six of the seven findings are the same failure: **a thing exists, works,

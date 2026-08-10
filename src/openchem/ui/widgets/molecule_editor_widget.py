@@ -39,10 +39,10 @@ class MoleculeEditorWidget(QWidget):
     atom_selected = Signal(int)
     #: One bond, likewise. Ketcher reports both through the same event.
     bond_selected = Signal(int)
-    #: The user pressed the engine's own periodic-table button. Forwarded
-    #: so the window can answer with the application's table -- see
-    #: `EditorBackend.periodic_table_requested`.
-    periodic_table_requested = Signal()
+    #: The user pressed one of the engine's own controls that this
+    #: application already provides. Forwarded so the window can answer
+    #: it -- see `EditorBackend.editor_action_requested`.
+    editor_action_requested = Signal(str)
 
     def __init__(
         self,
@@ -73,7 +73,7 @@ class MoleculeEditorWidget(QWidget):
         # and a consumer should not have to reach for the backend.
         self._backend.atom_selected.connect(self.atom_selected)
         self._backend.bond_selected.connect(self.bond_selected)
-        self._backend.periodic_table_requested.connect(self.periodic_table_requested)
+        self._backend.editor_action_requested.connect(self.editor_action_requested)
         # The canvas has to follow changes it did not make. Undo is the one
         # that matters: `EditStructureCommand` reverts the model and
         # publishes `MoleculeChanged`, and nothing was listening -- so
