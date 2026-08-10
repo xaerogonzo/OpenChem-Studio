@@ -38,6 +38,7 @@ from openchem.domain.structure_issue import Severity
 from openchem.events.base import EventBus
 from openchem.events.events import (
     AlertComputed,
+    CalculationFinished,
     DescriptorComputed,
     ReportComputed,
     MoleculeChanged,
@@ -888,6 +889,12 @@ class PropertyPanel(QWidget):
         #: Ticked calculators currently in flight, so one cannot be
         #: queued twice from repeated clicks.
         self._running_calculator_ids: set[str] = set()
+        #: calculator_id -> the "Running..." label on that calculator's own
+        #: row. Built with the row and hidden, rather than inserted and
+        #: removed around each run: this panel's layout is delicate enough
+        #: that adding and deleting form rows mid-life is a worse risk than
+        #: one permanently-parked label, and a hidden widget costs no space.
+        self._calculator_status: dict[str, QLabel] = {}
         self._run_selected_button = QPushButton("Run selected", self)
         self._run_selected_button.setEnabled(False)
         self._run_selected_button.clicked.connect(self._on_run_selected)
@@ -963,6 +970,7 @@ class PropertyPanel(QWidget):
         event_bus.subscribe(StructureSetComputed, self._on_structure_set_computed)
         event_bus.subscribe(PhCurveComputed, self._on_ph_curve_computed)
         event_bus.subscribe(TrajectoryComputed, self._on_trajectory_computed)
+        event_bus.subscribe(CalculationFinished, self._on_calculation_finished)
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
@@ -976,6 +984,12 @@ class PropertyPanel(QWidget):
         # after itself. Clearing on molecule change means the worst case is
         # "cannot re-run until you switch molecule", not "stuck forever".
         self._running_calculator_ids.clear()
+        # The indicators go with them. The rows themselves SURVIVE a
+        # molecule change (they are the calculator buttons, not results),
+        # so a "Running..." left visible here would sit beside a different
+        # molecule's name claiming work that is no longer happening.
+        for status in self._calculator_status.values():
+            status.setVisible(False)
         self._batch_status.setText("")
         self._value_labels.clear()
         self._alert_labels.clear()
@@ -1035,6 +1049,31 @@ class PropertyPanel(QWidget):
             self._calculator_ticks[definition.calculator_id] = tick
             row_layout.addWidget(tick)
             row_layout.addWidget(button, 1)
+
+            # THE WAITING INDICATOR, on the row the user just clicked.
+            #
+            # Clicking a calculator used to produce NOTHING for as long as
+            # it ran -- measured at 6.5 s for ADMET, sampling the panel
+            # every 250 ms: no row, no status, no change of any kind, and
+            # then the result and its dialog together. From the outside
+            # that is indistinguishable from a slow dialog, which is
+            # exactly how it was reported ("Details itself has a loading
+            # time").
+            #
+            # `_present_alert` has rendered a "Running..." state since
+            # Phase 18 AND IT COULD NEVER APPEAR, because a result row is
+            # created when the first RESULT arrives -- there was nothing
+            # on screen to put it in. Same wording here, deliberately, so
+            # the two paths say one thing.
+            #
+            # ASCII dots, matching `_present_alert`: result text reaches
+            # Windows console streams, where a non-ASCII ellipsis raises
+            # (see regulatory/calculator.py, three times in one session).
+            status = QLabel("Running...", row)
+            status.setStyleSheet(_INFORMATION_STYLE)
+            status.setVisible(False)
+            self._calculator_status[definition.calculator_id] = status
+            row_layout.addWidget(status)
             section.add_calculator_widget(row)
         self._add_service_execution_hint(section, category)
         self._add_cross_theory_hint(section, category)
@@ -1196,6 +1235,44 @@ class PropertyPanel(QWidget):
         # indefinitely -- including in the screenshot where both results
         # were already on screen behind it.
         if was_running and not self._running_calculator_ids:
+            self._batch_status.setText("Finished.")
+
+    def _set_running(self, calculator_id: str, running: bool) -> None:
+        """Say, on the calculator's own row, whether it is working.
+
+        One place, so the button path and "Run selected" cannot drift --
+        the batch path used to own `_running_calculator_ids` alone, which
+        is why a single click showed nothing at all.
+        """
+        if running:
+            self._running_calculator_ids.add(calculator_id)
+        else:
+            self._running_calculator_ids.discard(calculator_id)
+        status = self._calculator_status.get(calculator_id)
+        if status is not None:
+            status.setVisible(running)
+
+    def _on_calculation_finished(self, event) -> None:
+        """A dispatched run is over, whatever it produced.
+
+        **This is the authoritative signal and the result events are
+        not.** A result is named after itself, and the two are not always
+        the same -- `nmr_database` publishes `nmr_13c`, and
+        `gasteiger_charge_at_ph` publishes `gasteiger_charge` -- so
+        clearing on the result's id leaves those two showing "Running..."
+        for the rest of the session. `_finish_batch_run` documents itself
+        as best-effort for exactly this reason; it stays, because results
+        also arrive from the descriptor providers at selection time
+        without any dispatch behind them, and that path has no
+        `CalculationFinished` to fire.
+
+        `CalculationFinished` is published in a `finally`, so a calculator
+        that failed or raised clears too. Those are the runs whose
+        indicator would otherwise be stuck permanently, which is worse
+        than never having shown one.
+        """
+        self._set_running(event.calculator_id, False)
+        if not self._running_calculator_ids and self._batch_status.text().startswith("Running"):
             self._batch_status.setText("Finished.")
 
     def _show_result(self, result_id: str, name: str, category: str, result: object) -> None:
@@ -1685,7 +1762,7 @@ class PropertyPanel(QWidget):
             # twice and publish two results for one molecule.
             if calculator_id in self._running_calculator_ids:
                 continue
-            self._running_calculator_ids.add(calculator_id)
+            self._set_running(calculator_id, True)
             parameters = {p.name: p.default for p in definition.parameters}
             self._descriptor_service.run_calculator(
                 molecule,
@@ -1771,6 +1848,12 @@ class PropertyPanel(QWidget):
                 return
             parameters = dialog.parameters()
         self._pending_calculator_id = definition.calculator_id
+        # Shown BEFORE dispatch, not after: `run_calculator` hands the job
+        # to a thread pool and returns immediately, but the settings dialog
+        # above can have held the GUI thread for a while, and a user who
+        # has just dismissed it should see the state change on the same
+        # click rather than a frame later.
+        self._set_running(definition.calculator_id, True)
         self._descriptor_service.run_calculator(
             molecule,
             CalculationRequest(calculator_id=definition.calculator_id, molecule_uuid=molecule.uuid, parameters=parameters),

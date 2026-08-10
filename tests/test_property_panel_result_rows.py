@@ -39,6 +39,7 @@ from openchem.domain.scientific_result import (
 from openchem.domain.structure_issue import Basis
 from openchem.events.base import EventBus
 from openchem.events.events import (
+    CalculationFinished,
     MoleculeSelected,
     PerAtomDataComputed,
     PhCurveComputed,
@@ -336,3 +337,126 @@ def test_a_trajectory_does_not_open_an_inspector_it_has_no_view_for(panel, bus, 
     # ...and the pending id is cleared, so the NEXT explicit run is not
     # answered by a stale one.
     assert panel._pending_calculator_id is None
+
+
+# --- the waiting indicator ---------------------------------------------
+
+
+def _definition(calculator_id: str, category: str = "topology"):
+    from openchem.domain.calculator import CalculatorDefinition, RegistryExecution
+
+    return CalculatorDefinition(
+        calculator_id=calculator_id,
+        display_name=calculator_id,
+        category=category,
+        description=calculator_id,
+        execution=RegistryExecution(compute=lambda mol, uuid, params: None),
+    )
+
+
+@pytest.fixture
+def running_panel(qapp, bus):
+    """A panel with one registered calculator, so a row exists to show
+    the indicator on."""
+    from openchem.domain.project import ProjectModel
+    from openchem.domain.molecule import MoleculeModel
+
+    registry = CalculatorRegistry()
+    registry.register(_definition("nmr_database", category="nmr"))
+    registry.register(_definition("topology_analysis"))
+
+    dispatched: list[str] = []
+
+    class _Service:
+        def run_calculator(self, model, request) -> None:
+            dispatched.append(request.calculator_id)
+
+    built = PropertyPanel(bus, registry, _Service(), ChemistryEngine())
+    project = ProjectModel()
+    molecule = MoleculeModel()
+    project.molecules.append(molecule)
+    built.set_project(project)
+    bus.publish(MoleculeSelected(molecule_uuid=molecule.uuid))
+    # Build the rows.
+    built._section_for("nmr")
+    built._section_for("topology")
+    yield built, molecule, dispatched
+    built.setParent(None)
+    built.deleteLater()
+    QCoreApplication.sendPostedEvents(built, QEvent.Type.DeferredDelete)
+
+
+def test_a_dispatched_calculator_says_it_is_running(running_panel):
+    """Clicking a calculator produced NOTHING for as long as it ran --
+    measured at 6.5 s for ADMET, with no row, no status and no change of
+    any kind until the result and its dialog arrived together."""
+    panel, _molecule, _dispatched = running_panel
+    status = panel._calculator_status["topology_analysis"]
+    assert not status.isVisible() or status.isHidden()
+
+    panel._open_calculator(panel._calculator_registry.get("topology_analysis"))
+
+    assert not status.isHidden()
+    assert status.text() == "Running..."
+
+
+def test_the_indicator_clears_when_the_calculation_finishes(running_panel):
+    panel, molecule, _dispatched = running_panel
+    panel._open_calculator(panel._calculator_registry.get("topology_analysis"))
+
+    panel._on_calculation_finished(
+        CalculationFinished(calculator_id="topology_analysis", molecule_uuid=molecule.uuid)
+    )
+
+    assert panel._calculator_status["topology_analysis"].isHidden()
+    assert "topology_analysis" not in panel._running_calculator_ids
+
+
+def test_the_indicator_clears_for_a_calculator_whose_result_is_named_differently(running_panel):
+    """THE REASON `CalculationFinished` EXISTS.
+
+    `nmr_database` publishes a spectrum called `nmr_13c`, so anything
+    clearing on the RESULT's id leaves this one showing "Running..." for
+    the rest of the session. Asserted with the real mismatch rather than
+    an invented one, because an id that happens to match proves nothing.
+    """
+    panel, molecule, _dispatched = running_panel
+    panel._open_calculator(panel._calculator_registry.get("nmr_database"))
+    assert not panel._calculator_status["nmr_database"].isHidden()
+
+    # The result arrives under a DIFFERENT name -- this must not be what
+    # clears it, and on its own it does not.
+    panel._finish_batch_run("nmr_13c")
+    assert not panel._calculator_status["nmr_database"].isHidden()
+
+    panel._on_calculation_finished(
+        CalculationFinished(calculator_id="nmr_database", molecule_uuid=molecule.uuid)
+    )
+    assert panel._calculator_status["nmr_database"].isHidden()
+
+
+def test_a_failed_calculation_still_clears_its_indicator(running_panel):
+    """`CalculationFinished` is published in a `finally`, so a calculator
+    that raised clears too. Those are precisely the runs whose indicator
+    would otherwise stick permanently."""
+    panel, molecule, _dispatched = running_panel
+    panel._open_calculator(panel._calculator_registry.get("topology_analysis"))
+
+    panel._on_calculation_finished(
+        CalculationFinished(calculator_id="topology_analysis", molecule_uuid=molecule.uuid)
+    )
+
+    assert panel._calculator_status["topology_analysis"].isHidden()
+
+
+def test_switching_molecule_clears_a_stale_indicator(running_panel):
+    """The calculator ROWS survive a molecule change -- they are buttons,
+    not results -- so a "Running..." left visible would sit beside a
+    different molecule claiming work that is not happening."""
+    panel, _molecule, _dispatched = running_panel
+    panel._open_calculator(panel._calculator_registry.get("topology_analysis"))
+
+    panel._on_molecule_selected(MoleculeSelected(molecule_uuid="some-other-molecule"))
+
+    assert panel._calculator_status["topology_analysis"].isHidden()
+    assert not panel._running_calculator_ids

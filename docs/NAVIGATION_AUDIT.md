@@ -138,7 +138,7 @@ quietly dropped. `test_the_query_atom_gap_is_named_on_the_dialog` in
 [tests/test_periodic_table_is_the_only_one.py](../tests/test_periodic_table_is_the_only_one.py)
 fails if the sentence goes.
 
-## Finding 7 — 6.5 seconds of nothing, and the "Running..." state is dead code
+## Finding 7 — SOLVED: 6.5 seconds of nothing, and a "Running..." that could never appear
 
 Reported as "Details itself has a loading time, there should probably be
 some kind of waiting indicator". **Details is not slow.** Timed in the
@@ -164,16 +164,49 @@ it can never appear**, because the row is created when the first RESULT
 arrives. There is nothing on screen to put "Running..." into. The state
 is written, correct, and unreachable.
 
-The fix is to create the row at DISPATCH rather than at first result, so
-the thing the panel already knows how to say has somewhere to be said.
-That is a change to when a row is built, not new machinery.
+**Fixed by putting the indicator on the calculator's own row**, which
+already exists and never moves -- a hidden `QLabel` beside the button,
+rather than inserting and removing a form row around every run. This
+panel's layout is delicate enough that one parked label is the smaller
+risk, and a hidden widget costs no space.
+
+**The clearing signal had to be new, and that is the interesting part.**
+No result event can carry it: a result is named after ITSELF, and the two
+are not always the same -- `nmr_database` publishes a spectrum called
+`nmr_13c`, `gasteiger_charge_at_ph` publishes `gasteiger_charge`. Anything
+clearing on the result's id leaves those showing "Running..." for the rest
+of the session, which is worse than never having shown one.
+`_finish_batch_run` has described itself as best-effort for exactly this
+reason since it was written.
+
+`CalculationFinished(calculator_id, molecule_uuid)` is published by
+`_CalculatorTask` **in a `finally`**, so it fires for a run that failed,
+raised, or returned an unpublishable type. Those are precisely the runs
+whose indicator would otherwise stick forever.
+
+Measured in the running app across a real ADMET run, sampling every
+250 ms:
+
+    t = 0.0 s   hidden
+    t = 0.3 s   shown: "Running..."
+    t = 6.3 s   hidden
+
+`_finish_batch_run` stays. Results also arrive from the descriptor
+providers at selection time with no dispatch behind them, and that path
+has no `CalculationFinished` to fire.
+
+A trap worth recording: `OPENCHEM_DRIVE`'s `calculator` step reproduces
+`_open_calculator` minus its settings dialog, and did not set the running
+state -- so the first scripted run showed no indicator at all and the
+feature looked broken when it was simply not being driven. Anything
+`_open_calculator` sets before dispatch has to be set there too.
 
 ## The pattern
 
 Six of the seven findings are the same failure: **a thing exists, works,
-and has no honest way to be reached or read.** Finding 7 is the sharpest
-form of it -- a "Running..." state that is written, correct, and
-unreachable. None of them is a chemistry bug and none was visible to 3613
+and has no honest way to be reached or read.** Finding 7 was the sharpest
+form of it -- a "Running..." state that was written, correct, and
+unreachable -- and is now fixed. None of them is a chemistry bug and none was visible to 3613
 passing tests, because a test asserts that a value is correct and never
 that a person could find it.
 

@@ -230,6 +230,27 @@ class TrajectoryComputed(Event):
 
 
 @dataclass(frozen=True)
+class CalculationFinished(Event):
+    """A dispatched calculator has stopped running, whatever it produced.
+
+    **Carries the CALCULATOR's id, which no result event can.** A result
+    is named after itself and the two are not always the same:
+    `nmr_database` publishes a spectrum called `nmr_13c`, and
+    `gasteiger_charge_at_ph` publishes `gasteiger_charge`. Anything
+    tracking "what did I dispatch, and is it still going" therefore
+    cannot use the result's id, which is why `_finish_batch_run` in the
+    Properties panel had to describe itself as best-effort.
+
+    Published in a `finally`, so it fires for a calculator that failed,
+    raised, or returned an unpublishable type -- those are exactly the
+    runs whose indicator would otherwise stick on screen forever.
+    """
+
+    calculator_id: str
+    molecule_uuid: str
+
+
+@dataclass(frozen=True)
 class StructureSetComputed(Event):
     """Published when a calculator produces a SET of structures (Phase 27)
     -- stereoisomers, tautomers, resonance forms, a Markush library."""

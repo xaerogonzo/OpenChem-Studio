@@ -191,6 +191,13 @@ class _Driver:
         sets it, so the result is REVEALED the way a button press reveals
         it. Skipping that would make the driver measure a path no user
         takes.
+
+        **`_set_running` is set here for the same reason, and its absence
+        was already a hole.** This step reproduces `_open_calculator`
+        minus the settings dialog; when that function gained the waiting
+        indicator, a scripted run showed no indicator at all and the
+        feature looked broken when it was simply not being driven. Any
+        state `_open_calculator` sets before dispatch belongs here too.
         """
         from openchem.domain.calculator import CalculationRequest
 
@@ -208,6 +215,7 @@ class _Driver:
         parameters: dict[str, Any] = {p.name: p.default for p in definition.parameters}
         parameters.update(step.get("parameters") or {})
         panel._pending_calculator_id = calculator_id
+        panel._set_running(calculator_id, True)
         window._services.descriptor_service.run_calculator(
             molecule,
             CalculationRequest(

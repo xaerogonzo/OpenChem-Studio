@@ -25,6 +25,7 @@ from openchem.domain.scientific_result import (
 from openchem.events.base import EventBus
 from openchem.events.events import (
     AlertComputed,
+    CalculationFinished,
     ReportComputed,
     DescriptorComputed,
     PerAtomDataComputed,
@@ -173,6 +174,26 @@ class _CalculationTask(QRunnable):
         self._event_bus = event_bus
 
     def run(self) -> None:
+        """Compute, publish, and ALWAYS say when the run is over.
+
+        The `finally` is load-bearing: `CalculationFinished` is what lets
+        a caller stop showing "Running..." for a calculator, and the runs
+        that most need it are the ones that end badly -- a failure, a
+        raise, or a result type nothing knows how to publish. Announcing
+        completion only on the happy path would leave exactly those
+        spinning forever.
+        """
+        try:
+            self._run()
+        finally:
+            self._event_bus.publish(
+                CalculationFinished(
+                    calculator_id=self._request.calculator_id,
+                    molecule_uuid=self._model.uuid,
+                )
+            )
+
+    def _run(self) -> None:
         definition = self._registry.get(self._request.calculator_id)
         if definition is None:
             logger.error("Unknown calculator_id: %s", self._request.calculator_id)
