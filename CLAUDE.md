@@ -117,11 +117,12 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-9.5 minutes**, ending at `3761 passed, 2 skipped,
+A clean run is **6-9.5 minutes**, ending at `3765 passed, 2 skipped,
 1 deselected` (measured 2026-08-10 on branch `ketcher-overrule`, after
 the Ketcher overrule and the conformer round trip: +24 for intercepting
 Ketcher's duplicated controls and +17 for "Use in 2D Editor", four of
-those seventeen added after it was reported broken on a bridged cage,
+those seventeen added after it was reported broken on a bridged cage, plus
++4 for the Atom Inspector bounds check found in the same report,
 over the 3720 below).
 
 Before it: 3720 on branch `Fix-A`, after the navigation-audit work: the
@@ -1493,6 +1494,34 @@ identical bytes, because RDKit's depiction is deterministic. Deriving it
 from `self._molecule.molblock` -- which after an undo is the ORIGINAL
 drawing -- is a real bug and is caught. The distinction is written into
 the test rather than left as a green tick.
+
+### A CACHE can make a guard pass while the code under test never runs
+
+Third instance of "a test naming a behaviour is not a test of it", and a
+new mechanism for it. The Atom Inspector's report cache is keyed on
+`(uuid, structure_version, subject, index)`, and the version comes from
+`StructureCheckService` -- which is **None in a plain panel fixture**, so
+the version is 0 forever.
+
+Two guards for a stale-index crash therefore edited the molecule, called
+`_render_facts()`, and got the CACHED report back. The builder never ran,
+so `build_atom_report` was never reached, so nothing could raise. Both
+passed against a panel with no bounds check at all; a mutation removing
+the check outright left the file green.
+
+The fix is a fixture supplying a version counter and bumping it on every
+edit, which is what the application does. **If a panel caches, a test
+that mutates state must move whatever the cache is keyed on**, or it is
+testing the cache.
+
+The same run produced a second, smaller lesson worth keeping: the
+`0 <=` half of `0 <= index < limit` is **not reachable** through the
+panel -- no caller produces a negative index -- so a mutation deleting it
+survived every end-to-end test. It is asserted directly on the predicate
+instead of being deleted, because the predicate's contract is "does this
+name something in the molecule" and answering True for -1 is wrong on its
+own terms. **An unreachable branch is a question about where to assert,
+not automatically dead code.**
 
 ### The command palette introduces no registry, deliberately
 

@@ -316,6 +316,21 @@ class AtomInspectorPanel(QWidget):
             self._atom_table.setItem(row, 2, count)
         self._atom_table.setSortingEnabled(True)
 
+    def _index_is_addressable(self, mol, index: int) -> bool:
+        """Does `index` name something in `mol`, for the current subject?
+
+        Bonds are counted separately from atoms on purpose: a structure
+        commonly has a different number of each, so an atom-only check
+        would still let a stale bond index through on most molecules --
+        and a bond report is the half where a wrong-but-in-range index
+        describes a DIFFERENT bond rather than raising, which is the
+        quieter failure.
+        """
+        if self._subject == "Molecule":
+            return True
+        limit = mol.GetNumBonds() if self._subject == "Bond" else mol.GetNumAtoms()
+        return 0 <= index < limit
+
     def _report_for(self, index: int):
         """The report for one subject, cached by structure version.
 
@@ -332,6 +347,25 @@ class AtomInspectorPanel(QWidget):
         model, mol = self._molecule()
         if mol is None or model is None:
             return AtomReport(molecule_uuid="", atom_index=index)
+
+        # THE SELECTED INDEX CAN OUTLIVE THE STRUCTURE IT CAME FROM, and
+        # the builders index straight into the molecule. Every structure
+        # change -- an edit, an undo, adopting a conformer -- arrives here
+        # through `_invalidate` while the previous selection is still
+        # held, so `RuntimeError: Range Error` is raised from inside a Qt
+        # signal handler and the whole dispatch unwinds.
+        #
+        # Seen in a real session as a wall of `Failed Expression: 8 < 6`
+        # (atom 8 of a 6-atom structure) and `19 < 0` (any atom of an
+        # empty one), repeated for every subscriber on the bus.
+        #
+        # `_on_highlight_requested` already learned this and bounds-checks
+        # its own indices; this is the same lesson at the other entry
+        # point, which is why the fix is a check and not a try/except --
+        # there is a correct answer here, and it is "nothing is known
+        # about that subject any more".
+        if not self._index_is_addressable(mol, index):
+            return AtomReport(molecule_uuid=model.uuid, atom_index=index)
 
         version = 0
         if self._structure_check_service is not None:

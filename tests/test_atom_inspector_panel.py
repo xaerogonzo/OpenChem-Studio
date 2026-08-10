@@ -712,3 +712,124 @@ def test_a_hover_that_clears_forwards_an_empty_tuple(panel):
     widget._on_highlight_requested(())
 
     assert seen == [()]
+
+
+# --- a selected index can outlive the structure it came from ----------------
+
+
+class _VersionedStructure:
+    """The counter `StructureCheckService` supplies, as the panel uses it.
+
+    **The report cache is keyed on that version**, so a test that edits a
+    molecule without bumping it gets the CACHED report back and the
+    builder never runs -- which is how the first version of the three
+    tests below passed against a panel with no bounds check at all. Two
+    mutations survived and said so.
+    """
+
+    def __init__(self) -> None:
+        self.version = 1
+
+    def current_version(self, _uuid) -> int:
+        return self.version
+
+
+@pytest.fixture
+def versioned_panel(qapp):
+    bus = EventBus()
+    versions = _VersionedStructure()
+    widget = AtomInspectorPanel(ChemistryEngine(), bus, structure_check_service=versions)
+    widget.resize(380, 800)
+    yield widget, versions
+    dispose(widget)
+
+
+def _replace_structure(model: MoleculeModel, versions, smiles: str):
+    """Edit a molecule the way the application does: new structure, new
+    version -- so the panel's cache misses and the report is rebuilt."""
+    mol = Chem.MolFromSmiles(smiles)
+    model.molblock = Chem.MolToMolBlock(mol)
+    model.canonical_smiles = Chem.MolToSmiles(mol)
+    versions.version += 1
+    return mol
+
+
+def test_a_stale_atom_index_does_not_raise_when_the_structure_shrinks(versioned_panel):
+    """SEEN IN A REAL SESSION as a wall of RDKit `Range Error` tracebacks.
+
+    Every structure change reaches this panel while the previous
+    selection is still held, and the report builders index straight into
+    the molecule. Editing a large structure down to a small one -- or
+    undoing, or adopting a conformer -- left atom 8 selected on a 6-atom
+    molecule, and `build_atom_report` raised `RuntimeError: Range Error`
+    from inside a Qt signal handler, unwinding the whole bus dispatch for
+    every subscriber after it.
+
+    `_on_highlight_requested` already bounds-checks for exactly this
+    reason; this is the same lesson at the other entry point.
+    """
+    widget, versions = versioned_panel
+    model = molecule()
+    showing(widget, model, atom=CARBONYL_O)
+
+    small = _replace_structure(model, versions, "CCO")
+
+    assert CARBONYL_O >= small.GetNumAtoms(), "the fixture no longer goes out of range"
+    widget._render_facts()  # must not raise
+
+
+def test_a_stale_index_against_an_empty_structure_does_not_raise(versioned_panel):
+    """The `19 < 0` half of the same log: a molecule with NO atoms.
+
+    A separate case from the one above because an empty structure is
+    reached differently -- a transient during a structure swap rather
+    than an edit -- and because `GetNumAtoms() == 0` is the boundary the
+    upper bound is least likely to be written correctly for.
+    """
+    widget, versions = versioned_panel
+    model = molecule()
+    showing(widget, model, atom=CARBONYL_O)
+
+    _replace_structure(model, versions, "")
+
+    widget._render_facts()  # must not raise
+
+
+def test_the_lower_bound_is_asserted_directly_because_nothing_else_can(panel):
+    """`0 <= index` is NOT reachable through `_render_facts`, and a
+    mutation proved it: removing the lower bound left every other test in
+    this file green, because no caller produces a negative index today.
+
+    It is asserted here rather than deleted because the predicate's
+    contract is "does this name something in the molecule", and a
+    half-open check that answers True for -1 is wrong on its own terms --
+    RDKit would then be handed it. Asserted at the predicate, which is
+    the only level where it is observable.
+    """
+    widget, _bus = panel
+
+    assert not widget._index_is_addressable(Chem.MolFromSmiles("CCO"), -1)
+
+
+def test_a_stale_BOND_index_is_bounded_against_the_bonds(panel):
+    """Counted against bonds, not atoms.
+
+    A structure usually has a different number of each, so an atom-only
+    bound still lets a stale bond index through on most molecules -- and
+    a bond report is the half where an in-range-but-wrong index silently
+    describes a DIFFERENT bond instead of raising.
+    """
+    widget, _bus = panel
+    model = molecule()
+    showing(widget, model)
+    widget._subject = "Bond"
+
+    ethanol = Chem.MolFromSmiles("CCO")
+    model.molblock = Chem.MolToMolBlock(ethanol)
+    model.canonical_smiles = Chem.MolToSmiles(ethanol)
+
+    # Ethanol: 3 atoms, 2 bonds. An index of 2 is a legal ATOM and not a
+    # legal bond, so an atom-bounded check would let it through.
+    assert ethanol.GetNumBonds() == 2 and ethanol.GetNumAtoms() == 3
+    assert not widget._index_is_addressable(ethanol, 2)
+    assert widget._index_is_addressable(ethanol, 1)
