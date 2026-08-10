@@ -31,6 +31,7 @@ _ROOT = Path(__file__).resolve().parent.parent
 DOCS = [
     "CLAUDE.md",
     "docs/ARCHITECTURE.md",
+    "docs/NAVIGATION_AUDIT.md",
     "docs/SCIENTIFIC_LIMITATIONS.md",
     "docs/USER_GUIDE.md",
     "docs/PLUGIN_SDK.md",

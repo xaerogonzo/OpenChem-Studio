@@ -553,43 +553,60 @@ label says what it is.
 document may cite a file or a test that does not exist.
 
 
-- **OPEN** -- **Two regressions reported in the running app on
-  2026-08-10, at `6c52492`, and NEITHER HAS BEEN INVESTIGATED.** They are
-  recorded here as reported symptoms, in the reporter's own words, so
-  that nobody mistakes a guess for a diagnosis:
+- **SETTLED** -- Two regressions reported in the running app on
+  2026-08-10, at `6c52492`. Both are diagnosed and fixed, and **neither
+  was what any of the three recorded leads guessed** -- which is the
+  reason the leads were labelled as leads.
 
       "major problems with all the calculators"
       "the periodic table no longer shows all the atom drawing,
        it's reverted to vanilla"
 
-  **The suite is green on the same tree** -- 3613 passed. So these are
-  not suite-visible, which points at runtime or rendering rather than at
-  logic, and this file already records why a drawing regression can hide:
-  `repaint()` on a never-shown widget calls no `paintEvent` at all, so a
-  test can name a painting behaviour without ever exercising it. Use
-  `conftest.painted()` / `ink()` when writing the test that should have
-  caught it.
+  **The chemistry was never at fault.** Running all 49 registry
+  calculators on aspirin and caffeine: 44 compute correctly, 4 fail with
+  a reason naming what to supply, and `stereocenters` is legitimately
+  empty for aspirin. The Properties panel was discarding the output, in
+  four separate ways:
 
-  **Reproduce before proposing anything.** `OPENCHEM_DRIVE` rather than
-  the mouse, and `OPENCHEM_INSTRUMENT_PANEL=1` for anything about the
-  Properties panel -- an out-of-app Qt harness has already reported the
-  opposite of the app four times for that one panel.
+      facts[:6]                7 calculators, 50 of 126 facts (40%)
+                               never rendered; topology showed 6 of 27
+      _summarise field names   9 calculators rendered as the bare word
+                               "Ready" -- it probed for `structures` and
+                               `points`, which no result type has ever
+                               had (`entries`, `ph_values`)
+      TrajectoryComputed       published since Phase 30 with NO
+                               subscriber; molecular_dynamics produced
+                               101 frames and no row at all
+      empty payload            "Ready", where "None found." was the answer
 
-  Three leads, none confirmed, listed newest-change-first rather than
-  most-likely-first:
+  **The periodic table was never broken.** Measured in the real dialog:
+  118 coloured cells, the shell diagram painting 1139 -> 1770 ink pixels
+  for C -> Fe, all 7 of iron's subshells drawn at every dialog height.
+  The reporter had clicked **Ketcher's** periodic table on the editor
+  toolbar, which is a different, plainer table. There were two, and that
+  was the whole defect. The editor's button is intercepted now and
+  answered with this application's dialog, which gained "Insert into
+  drawing" in the same move -- see `docs/NAVIGATION_AUDIT.md`.
 
-  - The **Properties panel** is where every calculator renders, and it
-    was changed for the report-row truncation fix (`ExplicitHeightLabel`,
-    a `DontWrapRows` form policy, `_add_wide_row` spanning rows). "All
-    the calculators" fits one panel change better than it fits 49
-    calculators.
-  - **`PeriodicTableDialog`** had its 118 self-capturing cell lambdas
-    replaced during the Qt-disposal work, with the payload moved onto the
-    button as a Qt property. "Reverted to vanilla" is what a lost custom
-    cell paint would look like.
-  - The **mmCIF element-symbol, ligand-copy and protonation fixes**
-    (`87711e6`) landed the same day. They were about docking receptors,
-    but they are in `chem`, so they are in scope for a calculator fault.
+  **NONE OF IT NEEDED `painted()` / `ink()`, and the instinct to reach
+  for them was wrong.** This entry previously advised exactly that, on
+  the strength of "a drawing regression can hide". The panel was building
+  the wrong STRING; `label.text()` catches all four, and a pixel helper
+  would have measured a perfectly-painted wrong answer. The pixel helpers
+  were the right tool for the periodic table, where they proved a
+  NEGATIVE -- that nothing was wrong.
+
+  **Nothing in 3613 tests published a `ReportComputed` into
+  `PropertyPanel`.** `_on_report_computed` had zero coverage, which is
+  why four defects shipped green. `tests/test_property_panel_result_rows.py`
+  covers it now, mutation-tested against all four.
+
+  The three leads recorded here, for the record of how leads mislead:
+  the report-row truncation fix (wrong -- it was the earlier
+  `ReportResult` migration, `f8a3cdc`); the `PeriodicTableDialog` lambda
+  replacement (impossible -- `b37b3ee` PREDATES the atom drawing it was
+  accused of removing, which one `git log` on the file settles); and the
+  mmCIF fixes (irrelevant -- the chemistry was correct throughout).
 
 - **SETTLED** -- Packaging. `build.ps1` freezes the app with **PyInstaller**
   into a ~650 MB one-directory `dist\OpenChemStudio\`, driven by
