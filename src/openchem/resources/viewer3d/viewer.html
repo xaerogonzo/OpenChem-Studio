@@ -4,12 +4,38 @@
     <meta charset="utf-8" />
     <title>OpenChem Studio - 3D Viewer</title>
     <style>
-      html, body, #viewer-container { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
+      html, body, #viewer-container, #grid-container {
+        width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;
+      }
+      /* The gallery is a SECOND container rather than a reused one:
+         createViewerGrid builds its own canvas and cell divs, and tearing
+         those out of the single viewer's container each time is more
+         fragile than showing one of two. */
+      #grid-container { display: none; position: relative; }
+      /* One overlay per cell, positioned over the grid's own layout.
+         `pointer-events: none` on the box and `auto` on the controls, so
+         a drag still reaches the viewer underneath -- otherwise the
+         label would swallow the rotation the gallery exists for. */
+      .cell-overlay {
+        position: absolute; pointer-events: none;
+        font: 12px system-ui, sans-serif; color: #222;
+        padding: 4px 6px; box-sizing: border-box;
+      }
+      .cell-overlay label { pointer-events: auto; cursor: pointer;
+                            background: rgba(255,255,255,0.82); padding: 1px 5px;
+                            border-radius: 3px; }
+      .cell-overlay input { pointer-events: auto; vertical-align: -1px; margin-right: 4px; }
+      /* The selected cell is the one `<` `>` and "Use in 2D Editor" act
+         on, so it has to be visible without hovering. */
+      .cell-frame { position: absolute; pointer-events: none;
+                    border: 2px solid transparent; box-sizing: border-box; }
+      .cell-frame.selected { border-color: #1976d2; }
     </style>
     <script src="3Dmol-min.js"></script>
   </head>
   <body>
     <div id="viewer-container"></div>
+    <div id="grid-container"></div>
     <!--
       qwebchannel.js is served from Qt's own qrc:// resource scheme and only
       resolves when this page is loaded inside a QWebEngineView that has
@@ -410,7 +436,273 @@
           viewer.removeAllLabels();
           viewer.render();
         },
+
+        // --- the conformer gallery -------------------------------------
+        //
+        // "all separate images possible... you could check several ones to
+        // be visible at a time if wanted, and on the screen at the same
+        // time, yet independently rotatable."
+        //
+        // ONE WebGL CONTEXT FOR THE WHOLE GRID, which is the property that
+        // makes this affordable: measured, `document.querySelectorAll
+        // ('canvas').length` stays at 2 (the single viewer plus the grid)
+        // whether the grid is 2x2 or 10x10. A QWebEngineView per conformer
+        // would instead be a Chromium helper set per conformer, and
+        // CLAUDE.md records those accumulating into a 40-minute hang.
+        //
+        // Build cost is linear and small -- 4 cells 91 ms, 12 cells 175 ms,
+        // 100 cells 1481 ms -- and REDRAW is free, 1 ms at 12 cells and
+        // 5 ms at 100. So the ceiling is legibility, not performance:
+        // 100 cells in a 1000x700 pane is 100x70 px each, which nobody can
+        // compare shapes in.
+        // **BUILT ONLY ONCE THE CONTAINER HAS A SIZE**, which is not the
+        // same moment as being made visible. Setting `display: block` does
+        // not reflow within the same synchronous script, so
+        // `createViewerGrid` called straight afterwards builds into a
+        // 0x0 box and returns cells that never draw: measured under
+        // pytest as `clientWidth 0`, then zero overlays and an empty
+        // `gridViews()`, while the identical sequence in a standalone
+        // script happened to work. Same trap `drawWhenSized` exists for.
+        loadGrid: function (entries, rows, cols, linked, selected) {
+          gridEntries = entries;
+          gridSelectedCell = 0;
+          document.getElementById('viewer-container').style.display = 'none';
+          gridContainer.style.display = 'block';
+          whenGridSized(function () {
+            // **A GALLERY NEEDS A SECOND WebGL CONTEXT, and not every
+            // environment grants one.** Measured: under Qt's `offscreen`
+            // platform the page's first context works and a second one
+            // comes back null, so `createViewerGrid` throws
+            // "Cannot read properties of null (reading 'clearDepth')" --
+            // and releasing the first context does not help. Software
+            // rendering and remote sessions can behave the same way.
+            // Unhandled that is an empty pane, which reads as the feature
+            // being broken rather than unavailable; reported instead, so
+            // the widget can go back to the single view and say why.
+            try {
+              buildGrid(rows, cols, linked);
+            } catch (e) {
+              gridCells = [];
+              gridContainer.style.display = 'none';
+              document.getElementById('viewer-container').style.display = 'block';
+              viewer.resize();
+              viewer.render();
+              if (bridge) bridge.gridFailed(String(e && e.message ? e.message : e));
+              return;
+            }
+            entries.forEach(function (entry, index) {
+              var cell = gridCells[index];
+              if (!cell) return;
+              cell.addModel(entry.molblock, 'mol');
+              cell.setStyle({}, styleSpecFor(currentStyle));
+              cell.zoomTo();
+              cell.render();
+            });
+            gridShape = [rows, cols];
+            gridSelectedIndices = selected || [];
+            drawOverlays(rows, cols, gridSelectedIndices);
+          });
+        },
+
+        // Copy one cell's camera to every other. NOT the same as locking:
+        // this is "everybody look at it from here, now let me turn them
+        // separately again", which is the move a comparison actually
+        // needs. Locking keeps them tied together afterwards.
+        matchGridViews: function (index) {
+          if (!gridCells.length) return;
+          var source = gridCells[index] || gridCells[0];
+          var view = source.getView();
+          gridCells.forEach(function (cell) {
+            if (cell === source) return;
+            cell.setView(view);
+            cell.render();
+          });
+        },
+
+        selectGridCell: function (index) {
+          gridSelectedCell = index;
+          markSelectedCell();
+        },
+
+        // Every cell's camera, as JSON. The only way to ask whether the
+        // cells are pointing the same way -- which is what "Lock views"
+        // has to mean, and what a test asserting merely that they all
+        // MOVED would not establish.
+        gridViews: function () {
+          return JSON.stringify(gridCells.map(function (cell) {
+            return cell.getView().map(function (n) { return Math.round(n * 1e4) / 1e4; });
+          }));
+        },
+
+        // Test and diagnostic seam: turn one cell, the way a drag would.
+        // Production rotates by dragging, which no script can do.
+        rotateGridCell: function (index, degrees, axis) {
+          var cell = gridCells[index];
+          if (!cell) return;
+          cell.rotate(degrees, axis);
+          cell.render();
+        },
+
+        leaveGrid: function () {
+          gridContainer.style.display = 'none';
+          document.getElementById('viewer-container').style.display = 'block';
+          gridCells = [];
+          gridEntries = [];
+          gridShape = null;
+          gridSelectedIndices = [];
+          clearOverlays();
+          viewer.resize();
+          viewer.render();
+        },
       };
+
+      var gridContainer = document.getElementById('grid-container');
+      var gridCells = [];
+      var gridEntries = [];
+      var gridSelectedCell = 0;
+      var gridOverlays = [];
+      // The layout the gallery was built with, so a resize can redraw
+      // the overlays over the same cells.
+      var gridShape = null;
+      var gridSelectedIndices = [];
+
+      // `drawWhenSized` for the gallery's container. Separate rather than
+      // parameterised because the two wait on different elements and the
+      // single viewer's version also calls `viewer.resize()`, which would
+      // be wrong here -- the grid owns its own canvas.
+      function whenGridSized(fn) {
+        // **WAITS FOR THE SIZE TO SETTLE, not merely to be non-zero.**
+        // `createViewerGrid` fixes each cell's canvas at build time and
+        // does not re-fit, so building while the pane is still growing
+        // leaves the gallery drawn into the top half of it -- seen in the
+        // running app, six cells crammed into 360 px of a 680 px pane.
+        // A size repeated across two frames is laid out; one that is
+        // merely big enough may still be on its way.
+        var attempts = 0;
+        var last = -1;
+        function attempt() {
+          var height = gridContainer.clientHeight;
+          var big = gridContainer.clientWidth >= 200 && height >= 150;
+          var settled = big && height === last;
+          last = height;
+          if (!settled && attempts < 60) {
+            attempts += 1;
+            window.setTimeout(attempt, 25);
+            return;
+          }
+          fn();
+        }
+        attempt();
+      }
+
+      // Keep the gallery in step with the window, for the same reason:
+      // the cells' canvases are fixed at build time, so without this a
+      // resized window leaves them the old size with the overlays --
+      // which ARE recomputed -- no longer over them.
+      function resizeGrid() {
+        if (!gridCells.length) return;
+        gridCells.forEach(function (cell) {
+          cell.resize();
+          cell.render();
+        });
+        if (gridShape) drawOverlays(gridShape[0], gridShape[1], gridSelectedIndices);
+      }
+
+      function buildGrid(rows, cols, linked) {
+        gridContainer.innerHTML = '';
+        gridCells = [];
+        // **`control_all` IS NOT THE LOCK, and looked like it.** It ties
+        // mouse INPUT together and does nothing for a view changed any
+        // other way -- measured: with `control_all: true`, turning one
+        // cell programmatically left the others at the identity, so the
+        // cells pointed two different ways.
+        //
+        // `linkViewer` propagates a view change however it was made.
+        // Linked in BOTH directions for every pair, so any cell can be
+        // the one you drag; measured on four cells, no loop and no
+        // measurable cost. There is no unlink, which is why the lock is a
+        // rebuild rather than a toggle -- 175 ms at 12 cells.
+        var grid = $3Dmol.createViewerGrid(
+          gridContainer,
+          { rows: rows, cols: cols, control_all: false },
+          { backgroundColor: 'white' }
+        );
+        for (var r = 0; r < grid.length; r++) {
+          for (var c = 0; c < grid[r].length; c++) {
+            gridCells.push(grid[r][c]);
+          }
+        }
+        if (linked) {
+          gridCells.forEach(function (cell) {
+            gridCells.forEach(function (other) {
+              if (cell !== other) cell.linkViewer(other);
+            });
+          });
+        }
+      }
+
+      function clearOverlays() {
+        gridOverlays.forEach(function (node) { node.remove(); });
+        gridOverlays = [];
+      }
+
+      function drawOverlays(rows, cols, selected) {
+        clearOverlays();
+        var width = gridContainer.clientWidth / cols;
+        var height = gridContainer.clientHeight / rows;
+        gridEntries.forEach(function (entry, index) {
+          var row = Math.floor(index / cols);
+          var col = index % cols;
+          if (row >= rows) return;
+
+          var frame = document.createElement('div');
+          frame.className = 'cell-frame';
+          frame.dataset.index = index;
+          position(frame, col * width, row * height, width, height);
+          gridContainer.appendChild(frame);
+          gridOverlays.push(frame);
+
+          var box = document.createElement('div');
+          box.className = 'cell-overlay';
+          position(box, col * width, row * height, width, 26);
+          var label = document.createElement('label');
+          var tick = document.createElement('input');
+          tick.type = 'checkbox';
+          tick.checked = selected.indexOf(index) >= 0;
+          tick.addEventListener('change', function () {
+            if (bridge) bridge.gridCellToggled(index, tick.checked);
+          });
+          label.appendChild(tick);
+          label.appendChild(document.createTextNode(entry.label || ''));
+          // Clicking the label selects the cell as well as ticking it --
+          // the two gestures are different and both are wanted, so the
+          // tick reports separately above.
+          label.addEventListener('click', function () {
+            gridSelectedCell = index;
+            markSelectedCell();
+            if (bridge) bridge.gridCellClicked(index);
+          });
+          box.appendChild(label);
+          gridContainer.appendChild(box);
+          gridOverlays.push(box);
+        });
+        markSelectedCell();
+      }
+
+      function position(node, left, top, width, height) {
+        node.style.left = left + 'px';
+        node.style.top = top + 'px';
+        node.style.width = width + 'px';
+        node.style.height = height + 'px';
+      }
+
+      function markSelectedCell() {
+        gridOverlays.forEach(function (node) {
+          if (node.className.indexOf('cell-frame') !== 0) return;
+          var mine = Number(node.dataset.index) === gridSelectedCell;
+          node.className = mine ? 'cell-frame selected' : 'cell-frame';
+        });
+      }
 
       // The crystal draw itself, split out so loadCrystal can retry it on
       // the next frame while the container is still being laid out.
@@ -500,6 +792,7 @@
       window.addEventListener('resize', function () {
         viewer.resize();
         viewer.render();
+        resizeGrid();
       });
 
       if (window.qt && window.qt.webChannelTransport) {

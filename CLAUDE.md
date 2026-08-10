@@ -117,12 +117,17 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-9.5 minutes**, ending at `3819 passed, 2 skipped,
+A clean run is **6-9.5 minutes**, ending at `3832 passed, 7 skipped,
 1 deselected` (measured 2026-08-10 on branch `conformer-comparison`,
-after making conformers comparable and putting the 3D shape into the 2D
-editor: +4 for the Ketcher 3D gate, +21 for display alignment, camera
-retention and relative energies, and +29 for the camera-oriented drawing,
-over the 3765 below).
+after making conformers comparable, putting the 3D shape into the 2D
+editor, and the gallery: +4 for the Ketcher 3D gate, +21 for display
+alignment, camera retention and relative energies, +29 for the
+camera-oriented drawing, and +13 for the gallery, over the 3765 below).
+
+**The skip count went 2 -> 7, and the five are deliberate.** The
+page-level gallery tests need a second WebGL context, which Qt's
+`offscreen` platform does not grant; run them with
+`QT_QPA_PLATFORM=windows`. See the gallery section below.
 
 Before it: 3765 on branch `ketcher-overrule`, after the Ketcher overrule
 and the conformer round trip: +24 for intercepting Ketcher's duplicated
@@ -1656,6 +1661,78 @@ mutation -- and only after the test was rewritten with real embedded
 conformers, because placeholder molblocks do not parse and make aligned
 and retained the same string. That is the SECOND time that trap fired in
 this work.
+
+#### The conformer gallery: one WebGL context, and four traps
+
+"all separate images possible... you could check several ones to be
+visible at a time if wanted, and on the screen at the same time, yet
+independently rotatable." `$3Dmol.createViewerGrid` gives exactly that,
+and **the whole grid shares ONE WebGL context** -- measured,
+`querySelectorAll('canvas').length` stays at 2 (single viewer plus grid)
+from 2x2 to 10x10. A `QWebEngineView` per conformer would instead be a
+Chromium helper set per conformer, which this file already records
+accumulating into a 40-minute hang.
+
+**Cost does not set the ceiling; legibility does.**
+
+    cells   build     redraw
+        4    91 ms      1 ms
+       12   175 ms      1 ms
+       25   373 ms      1 ms
+      100  1481 ms      5 ms
+
+100 cells in a 1000x700 pane is 100x70 px each. It stops at 12 and pages.
+
+**`control_all` IS NOT THE LOCK, and it looks like it is.** It ties mouse
+INPUT together and does nothing for a view changed any other way:
+measured with `control_all: true`, turning one cell programmatically left
+the others at the identity and the cells pointed two different ways.
+`linkViewer` propagates a view change however it was made -- linked in
+both directions for every pair, no loop, no measurable cost. There is no
+unlink, so the lock is a rebuild.
+
+**A SECOND WebGL CONTEXT IS NOT ALWAYS AVAILABLE.** Under Qt's
+`offscreen` platform -- which `tests/conftest.py` sets -- the page's first
+context works and a second returns null, so `createViewerGrid` throws
+`Cannot read properties of null (reading 'clearDepth')`. Not fixable from
+here:
+
+    offscreen                                       throws
+    offscreen + --use-angle=swiftshader             throws
+    offscreen, first context explicitly released    throws
+    ordinary windowed platform                      4 cells, 2 canvases
+
+So the page reports the failure and the widget falls back to the single
+view saying why, rather than leaving an empty pane -- a user on software
+rendering hits the same wall. The page-level gallery tests skip unless a
+display is available (`QT_QPA_PLATFORM=windows pytest ...` runs them);
+the fallback path is tested where the rest of the suite runs.
+
+**Wait for the container size to SETTLE, not merely to be non-zero.**
+`createViewerGrid` fixes each cell's canvas at build time and never
+re-fits, so building while the pane is still growing leaves the gallery
+in the top half of it. `display: block` does not reflow within the same
+synchronous script either -- measured `clientWidth 0`, zero overlays and
+an empty `gridViews()`, while the identical sequence in a standalone
+script happened to work.
+
+##### The 3D viewer had been HALF THE SIZE IT SHOULD BE
+
+Found while wondering why the gallery filled only the top of the pane,
+and it was never the gallery. A `QWebEngineView` and a `QLabel` both
+report a `Preferred` vertical policy, so `QVBoxLayout` split the spare
+height evenly:
+
+    tab               1418 x 728
+    viewer widget     1412 x 698
+    the 3D view       1412 x 330   <- half
+    measurement label 1412 x 330   <- a ONE-LINE readout
+
+`addWidget(view, 1)` takes it to 644 against the label's 16. **Same shape
+as the `WrappedLabel` finding in the Properties panel** -- a one-line
+status claiming a panel's vertical stretch -- and it had been shipping
+for as long as that label has existed, invisible until something needed
+the space.
 
 #### Camera retention keys on a viewer-SESSION identity
 

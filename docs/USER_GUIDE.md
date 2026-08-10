@@ -154,6 +154,30 @@ The energy shown is relative to the lowest (`+0.55 kcal/mol`), because the
 raw force-field number is not a quantity anybody compares to anything. The
 absolute value is in the tooltip.
 
+**The gallery** shows several conformers at once, each in its own cell and
+each rotatable on its own — tick *Gallery* in the 3D Viewer's toolbar. Six
+cells by default (2 x 3), with 2 x 2, 3 x 3 and 3 x 4 available; `<` and `>`
+page through the set rather than stepping one conformer at a time. Clicking
+a cell's label selects that conformer, which is what "Use in 2D Editor"
+then acts on.
+
+Three controls make it a comparison rather than a contact sheet:
+
+- **Lock views** ties the cells together, so turning one turns all of them.
+  With the conformers already superimposed, that leaves the difference in
+  shape as the only thing changing between cells.
+- **Match all to selected** points every cell where the selected one is
+  pointing and then lets go, so you can line them up and still inspect one
+  on its own afterwards.
+- **Superimpose ticked** draws the ticked conformers in one frame, each a
+  different colour. Ticking is separate from clicking: one marks a
+  conformer for superimposition, the other chooses which conformer the rest
+  of the toolbar acts on.
+
+The gallery needs a second 3D drawing surface from your display. Where one
+is not available — some remote sessions and software renderers — it says so
+and goes back to showing one conformer at a time.
+
 **Use in 2D Editor** takes the conformer on screen — the one you navigated
 to, not the first — and hands the 2D editor **the 3D structure as you have
 it rotated**. The molblock keeps its z, the editor draws its x and y, so

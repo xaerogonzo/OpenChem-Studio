@@ -25,16 +25,39 @@ _NOTHING_PENDING = object()
 
 
 class _Bridge(QObject):
-    """QWebChannel-exposed object. viewer.html's JS calls atomClicked()
-    whenever the user clicks an atom in the 3D view."""
+    """QWebChannel-exposed object. viewer.html's JS calls these by name."""
 
-    def __init__(self, on_atom_clicked: Callable[[int], None]) -> None:
+    def __init__(
+        self,
+        on_atom_clicked: Callable[[int], None],
+        on_grid_cell_clicked: Callable[[int], None] | None = None,
+        on_grid_cell_toggled: Callable[[int, bool], None] | None = None,
+        on_grid_failed: Callable[[str], None] | None = None,
+    ) -> None:
         super().__init__()
         self._on_atom_clicked = on_atom_clicked
+        self._on_grid_cell_clicked = on_grid_cell_clicked
+        self._on_grid_cell_toggled = on_grid_cell_toggled
+        self._on_grid_failed = on_grid_failed
 
     @Slot(int)
     def atomClicked(self, atom_index: int) -> None:  # noqa: N802 - called from JS by this exact name
         self._on_atom_clicked(atom_index)
+
+    @Slot(int)
+    def gridCellClicked(self, index: int) -> None:  # noqa: N802 - called from JS by this exact name
+        if self._on_grid_cell_clicked is not None:
+            self._on_grid_cell_clicked(index)
+
+    @Slot(int, bool)
+    def gridCellToggled(self, index: int, checked: bool) -> None:  # noqa: N802 - from JS
+        if self._on_grid_cell_toggled is not None:
+            self._on_grid_cell_toggled(index, checked)
+
+    @Slot(str)
+    def gridFailed(self, message: str) -> None:  # noqa: N802 - called from JS by this name
+        if self._on_grid_failed is not None:
+            self._on_grid_failed(message)
 
 
 class _LoggingPage(QWebEnginePage):
@@ -72,7 +95,12 @@ class Mol3DViewerBackend(ViewerBackend):
         self._page = _LoggingPage(self._view)
         self._view.setPage(self._page)
         self._channel = QWebChannel(self._page)
-        self._bridge = _Bridge(self._on_atom_clicked)
+        self._bridge = _Bridge(
+            self._on_atom_clicked,
+            self._on_grid_cell_clicked,
+            self._on_grid_cell_toggled,
+            self._on_grid_failed,
+        )
         self._channel.registerObject("bridge", self._bridge)
         self._page.setWebChannel(self._channel)
 
@@ -82,6 +110,10 @@ class Mol3DViewerBackend(ViewerBackend):
         #: The viewer-session identity of what is on screen; see
         #: `load_conformer`. None means 'nothing comparable yet'.
         self._structure_key: object = None
+        #: (entries, rows, cols, linked, selected) while the gallery is
+        #: showing, or None. Queued like every other payload, because a
+        #: runJavaScript before `loadFinished` is silently dropped.
+        self._grid: tuple | None = None
         # Mutually exclusive with _pending_molblock: the viewer shows
         # either one molecule or one superimposed ensemble, never both, so
         # queueing one clears the other. Whichever call came last is what
@@ -122,6 +154,8 @@ class Mol3DViewerBackend(ViewerBackend):
         if self._pending_crystal is not None:
             self._run_load_crystal(self._pending_crystal)
             self._pending_crystal = None
+        if self._grid is not None:
+            self._run_load_grid()
         # Replayed AFTER the molblock, never before: viewer.html's
         # loadMolblock() resets any active visualization, so applying the
         # layer first would immediately be undone.
@@ -136,6 +170,59 @@ class Mol3DViewerBackend(ViewerBackend):
 
     def _on_atom_clicked(self, atom_index: int) -> None:
         self.atoms_selected.emit([atom_index])
+
+    def _on_grid_cell_clicked(self, index: int) -> None:
+        self.grid_cell_clicked.emit(index)
+
+    def _on_grid_cell_toggled(self, index: int, checked: bool) -> None:
+        self.grid_cell_toggled.emit(index, checked)
+
+    def _on_grid_failed(self, message: str) -> None:
+        logger.warning("The conformer gallery could not be created: %s", message)
+        self._grid = None
+        self.grid_failed.emit(message)
+
+    def load_conformer_grid(
+        self,
+        entries: list[tuple[str, str]],
+        rows: int,
+        cols: int,
+        linked: bool = False,
+        selected: list[int] | None = None,
+    ) -> None:
+        """Show several conformers at once, each independently rotatable.
+
+        `entries` is (molblock, label) in reading order. One WebGL context
+        serves the whole grid -- see `loadGrid` in viewer.html for the
+        measurements, and for why a QWebEngineView per conformer is not an
+        option.
+        """
+        payload = [{"molblock": molblock, "label": label} for molblock, label in entries]
+        self._grid = (payload, rows, cols, linked, list(selected or []))
+        if self._page_ready:
+            self._run_load_grid()
+
+    def _run_load_grid(self) -> None:
+        payload, rows, cols, linked, selected = self._grid
+        self._page.runJavaScript(
+            f"window.openchemViewer.loadGrid({json.dumps(payload)}, {rows}, {cols}, "
+            f"{json.dumps(bool(linked))}, {json.dumps(selected)});"
+        )
+
+    def match_grid_views(self, index: int) -> None:
+        """Point every cell where cell `index` is pointing.
+
+        Distinct from locking: this is a one-off, after which the cells go
+        back to turning independently.
+        """
+        self._page.runJavaScript(f"window.openchemViewer.matchGridViews({int(index)});")
+
+    def select_grid_cell(self, index: int) -> None:
+        self._page.runJavaScript(f"window.openchemViewer.selectGridCell({int(index)});")
+
+    def leave_grid(self) -> None:
+        self._grid = None
+        self._page.runJavaScript("window.openchemViewer.leaveGrid();")
 
     def load_conformer(self, molblock: str, structure_key: object = None) -> None:
         """Draw one structure, keeping the camera if it belongs with the last.

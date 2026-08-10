@@ -4,6 +4,7 @@ import logging
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QHBoxLayout,
@@ -32,9 +33,35 @@ from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
 
 logger = logging.getLogger("openchem.ui")
 
+#: Gallery layouts, label -> (rows, cols).
+#:
+#: **The ceiling is legibility, not performance.** Measured against the
+#: real bundle: the whole grid shares ONE WebGL context at every size, and
+#: redraw costs 1 ms at 12 cells and 5 ms at 100. Building is linear and
+#: small (4 cells 91 ms, 12 cells 175 ms, 100 cells 1481 ms). What breaks
+#: down is the picture -- 100 cells in a 1000x700 pane is 100x70 px each,
+#: which nobody can compare shapes in. So this stops at 12 and pages.
+_GALLERY_SIZES = {
+    "2 x 2": (2, 2),
+    "2 x 3": (2, 3),
+    "3 x 3": (3, 3),
+    "3 x 4": (3, 4),
+}
+
+#: 2 x 3. The complaint was about COMPARING, so the default favours cells
+#: big enough to compare in over the largest number of thumbnails.
+_DEFAULT_GALLERY_SIZE = "2 x 3"
+
 #: Amber, which is not on the diverging red/blue scale the per-atom
 #: layers use -- so a transient hover cannot be mistaken for data.
 _HIGHLIGHT_COLOUR = "#ffb300"
+
+#: Colours for superimposed conformers. Qualitative and colour-blind safe
+#: (Okabe-Ito), because the whole point is telling several structures
+#: apart at a glance.
+_ENSEMBLE_COLOURS = (
+    "#0072b2", "#d55e00", "#009e73", "#cc79a7", "#e69f00", "#56b4e9",
+)
 
 
 class MoleculeViewer3DWidget(QWidget):
@@ -97,9 +124,20 @@ class MoleculeViewer3DWidget(QWidget):
         # a molecule. It is what tells a click which index space it is in;
         # the two are NOT interchangeable.
         self._crystal_scene: dict | None = None
+        #: Gallery mode: several conformers at once, each independently
+        #: rotatable. False means the single-conformer view.
+        self._gallery = False
+        #: Index of the first conformer on the current gallery page.
+        self._page_start = 0
+        #: Conformers ticked for superimposition. A SET rather than a
+        #: list because ticking is idempotent and order means nothing.
+        self._superimposed: set[int] = set()
 
         self._backend: ViewerBackend = backend or Mol3DViewerBackend(self)
         self._backend.atoms_selected.connect(self._on_atoms_selected)
+        self._backend.grid_cell_clicked.connect(self._on_grid_cell_clicked)
+        self._backend.grid_cell_toggled.connect(self._on_grid_cell_toggled)
+        self._backend.grid_failed.connect(self._on_grid_failed)
 
         self._style_combo = QComboBox(self)
         self._style_combo.addItems(["stick", "ballstick", "sphere", "line"])
@@ -129,6 +167,41 @@ class MoleculeViewer3DWidget(QWidget):
         self._use_button.clicked.connect(self._on_use_clicked)
         self._use_button.setEnabled(False)
 
+        # THE GALLERY. "all separate images possible... you could check
+        # several ones to be visible at a time if wanted, and on the screen
+        # at the same time, yet independently rotatable."
+        self._gallery_check = QCheckBox("Gallery", self)
+        self._gallery_check.setToolTip(
+            "Show several conformers at once, each rotatable on its own."
+        )
+        self._gallery_check.toggled.connect(self._on_gallery_toggled)
+
+        self._size_combo = QComboBox(self)
+        for label, (rows, cols) in _GALLERY_SIZES.items():
+            self._size_combo.addItem(label, (rows, cols))
+        self._size_combo.setCurrentText(_DEFAULT_GALLERY_SIZE)
+        self._size_combo.currentIndexChanged.connect(self._refresh_view)
+
+        self._lock_check = QCheckBox("Lock views", self)
+        self._lock_check.setToolTip(
+            "Turn every conformer together, so they stay in the same "
+            "orientation. Off, each one turns on its own."
+        )
+        self._lock_check.toggled.connect(self._refresh_view)
+
+        self._match_button = QPushButton("Match all to selected", self)
+        self._match_button.setToolTip(
+            "Point every conformer the way the selected one is pointing, "
+            "then leave them free to turn separately again."
+        )
+        self._match_button.clicked.connect(self._on_match_clicked)
+
+        self._superimpose_button = QPushButton("Superimpose ticked", self)
+        self._superimpose_button.setToolTip(
+            "Draw the ticked conformers in one frame, each a different colour."
+        )
+        self._superimpose_button.clicked.connect(self._on_superimpose_clicked)
+
         self._prev_button = QPushButton("<", self)
         self._prev_button.clicked.connect(self._show_previous_conformer)
         self._next_button = QPushButton(">", self)
@@ -144,6 +217,11 @@ class MoleculeViewer3DWidget(QWidget):
         toolbar.addWidget(self._generate_button)
         toolbar.addWidget(self._use_button)
         toolbar.addStretch()
+        toolbar.addWidget(self._gallery_check)
+        toolbar.addWidget(self._size_combo)
+        toolbar.addWidget(self._lock_check)
+        toolbar.addWidget(self._match_button)
+        toolbar.addWidget(self._superimpose_button)
         toolbar.addWidget(self._prev_button)
         toolbar.addWidget(self._status_label)
         toolbar.addWidget(self._next_button)
@@ -151,8 +229,20 @@ class MoleculeViewer3DWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addLayout(toolbar)
-        layout.addWidget(self._backend.widget())
-        layout.addWidget(self._measurement_label)
+        # **STRETCH 1 ON THE VIEW, and it is not cosmetic.** A
+        # QWebEngineView and a QLabel both report a `Preferred` vertical
+        # policy, so QVBoxLayout split the spare height EVENLY between
+        # them: measured in the running app, a 698 px pane gave the 3D
+        # view 330 px and the one-line measurement readout the other 330.
+        # The viewer had been half the size it should be for as long as
+        # that label has existed, which is invisible until you put six
+        # conformers in the space and find each cell half as tall as it
+        # should be.
+        #
+        # Same shape as the `WrappedLabel` finding in the Properties
+        # panel: a one-line status claiming a panel's vertical stretch.
+        layout.addWidget(self._backend.widget(), 1)
+        layout.addWidget(self._measurement_label, 0)
 
         event_bus.subscribe(ConformersChanged, self._on_conformers_changed)
         event_bus.subscribe(ConformerJobStateChanged, self._on_job_state_changed)
@@ -168,6 +258,11 @@ class MoleculeViewer3DWidget(QWidget):
         self._crystal_scene = None
         self._molecule = molecule
         self._conformer_index = 0
+        # The ticks and the page belong to the molecule that was showing;
+        # carrying them over would superimpose conformer indices that mean
+        # something else now.
+        self._superimposed.clear()
+        self._page_start = 0
         self._selected_atoms.clear()
         self._measurement_label.setText("")
         self._refresh_view()
@@ -212,12 +307,33 @@ class MoleculeViewer3DWidget(QWidget):
             self._status_label.setText(f"Failed: {event.message}")
 
     def _show_previous_conformer(self) -> None:
-        if self._molecule and self._conformer_index > 0:
+        if self._molecule is None:
+            return
+        if self._gallery:
+            if self._page_start > 0:
+                self._page_start = max(0, self._page_start - self._page_size())
+                self._refresh_view()
+            return
+        if self._conformer_index > 0:
             self._conformer_index -= 1
             self._refresh_view()
 
     def _show_next_conformer(self) -> None:
-        if self._molecule and self._conformer_index < len(self._molecule.conformers) - 1:
+        """One conformer forward, or one PAGE forward in the gallery.
+
+        The buttons keep their meaning -- "show me the next thing" -- and
+        what "thing" means follows what is on screen. Stepping one
+        conformer at a time through a gallery would move the highlight
+        without changing the picture for five presses out of six.
+        """
+        if self._molecule is None:
+            return
+        if self._gallery:
+            if self._page_start + self._page_size() < len(self._molecule.conformers):
+                self._page_start += self._page_size()
+                self._refresh_view()
+            return
+        if self._conformer_index < len(self._molecule.conformers) - 1:
             self._conformer_index += 1
             self._refresh_view()
 
@@ -362,6 +478,10 @@ class MoleculeViewer3DWidget(QWidget):
             # of work keeps finding.
             self._use_button.setEnabled(False)
             return
+        if self._gallery and hasattr(self._backend, "load_conformer_grid"):
+            self._refresh_gallery()
+            self._use_button.setEnabled(True)
+            return
         conformer = self._molecule.conformers[self._conformer_index]
         # THE DISPLAY-ALIGNED COPY, not the retained conformer. Every
         # conformer is embedded in its own arbitrary frame, so stepping
@@ -383,6 +503,130 @@ class MoleculeViewer3DWidget(QWidget):
             if conformer.energy is not None
             else "This conformer has no computed energy."
         )
+
+    # --- the gallery ---------------------------------------------------
+
+    def _gallery_shape(self) -> tuple[int, int]:
+        return self._size_combo.currentData() or _GALLERY_SIZES[_DEFAULT_GALLERY_SIZE]
+
+    def _page_size(self) -> int:
+        rows, cols = self._gallery_shape()
+        return rows * cols
+
+    def _on_gallery_toggled(self, on: bool) -> None:
+        self._gallery = on
+        self._page_start = 0
+        if not on:
+            leave = getattr(self._backend, "leave_grid", None)
+            if leave is not None:
+                leave()
+        self._refresh_view()
+
+    def _on_grid_cell_clicked(self, index: int) -> None:
+        """A cell click chooses which conformer `<`, `>` and "Use in 2D
+        Editor" act on. It does NOT tick it -- ticking is for
+        superimposition and is a separate gesture, reported separately."""
+        absolute = self._page_start + index
+        if self._molecule and 0 <= absolute < len(self._molecule.conformers):
+            self._conformer_index = absolute
+            self._status_label.setText(
+                self._conformer_label(self._molecule.conformers[absolute])
+            )
+
+    def _on_grid_cell_toggled(self, index: int, checked: bool) -> None:
+        absolute = self._page_start + index
+        if checked:
+            self._superimposed.add(absolute)
+        else:
+            self._superimposed.discard(absolute)
+
+    def _on_grid_failed(self, message: str) -> None:
+        """The gallery needs a second WebGL context and did not get one.
+
+        Measured under Qt's `offscreen` platform, and reachable on
+        software rendering or a remote session: `createViewerGrid` throws
+        and the pane is left empty, which reads as the feature being
+        broken rather than unavailable. Going back to the single view and
+        saying so is the honest answer -- and the checkbox is unticked, so
+        the state on screen matches the state of the control.
+        """
+        self._gallery = False
+        self._gallery_check.blockSignals(True)
+        self._gallery_check.setChecked(False)
+        self._gallery_check.blockSignals(False)
+        self._measurement_label.setText(
+            "The gallery needs a second 3D drawing surface, which this display "
+            "did not provide. Showing one conformer at a time instead."
+        )
+        self._refresh_view()
+
+    def _on_match_clicked(self, _checked: bool = False) -> None:
+        match = getattr(self._backend, "match_grid_views", None)
+        if match is not None:
+            match(self._conformer_index - self._page_start)
+
+    def _on_superimpose_clicked(self, _checked: bool = False) -> None:
+        """Draw the ticked conformers in one frame, each its own colour.
+
+        Reuses `load_ensemble`, which the Alignment panel already drives --
+        superimposing structures in one coordinate frame is the same
+        operation whether they are different molecules or conformers of
+        one, and the display alignment has already put these in a common
+        frame.
+        """
+        if self._molecule is None or len(self._superimposed) < 2:
+            self._measurement_label.setText(
+                "Tick two or more conformers in the gallery to superimpose them."
+            )
+            return
+        molblocks = self._conformer_service.display_molblocks(self._molecule)
+        entries = [
+            (molblocks[index], _ENSEMBLE_COLOURS[position % len(_ENSEMBLE_COLOURS)])
+            for position, index in enumerate(sorted(self._superimposed))
+            if index < len(molblocks)
+        ]
+        loader = getattr(self._backend, "load_ensemble", None)
+        if loader is None or not entries:
+            return
+        self._gallery_check.setChecked(False)
+        loader(entries)
+        self._measurement_label.setText(
+            f"{len(entries)} conformers superimposed."
+        )
+
+    def _refresh_gallery(self) -> None:
+        molblocks = self._conformer_service.display_molblocks(self._molecule)
+        total = len(molblocks)
+        rows, cols = self._gallery_shape()
+        size = rows * cols
+        self._page_start = max(0, min(self._page_start, max(0, total - 1)))
+        page = list(range(self._page_start, min(self._page_start + size, total)))
+        entries = [
+            (molblocks[index], self._cell_label(index))
+            for index in page
+        ]
+        self._backend.load_conformer_grid(
+            entries,
+            rows,
+            cols,
+            linked=self._lock_check.isChecked(),
+            selected=[i - self._page_start for i in sorted(self._superimposed) if i in page],
+        )
+        last = page[-1] + 1 if page else 0
+        self._status_label.setText(
+            f"Conformers {self._page_start + 1}-{last} of {total}"
+        )
+        self._status_label.setToolTip("")
+
+    def _cell_label(self, index: int) -> str:
+        conformer = self._molecule.conformers[index]
+        energies = [c.energy for c in self._molecule.conformers if c.energy is not None]
+        if conformer.energy is None or not energies:
+            return f"{index + 1}"
+        relative = conformer.energy - min(energies)
+        if relative < 0.005:
+            return f"{index + 1} - lowest"
+        return f"{index + 1} - +{relative:.2f}"
 
     def _structure_key(self) -> tuple | None:
         """What the viewer treats as "still the same thing on screen".

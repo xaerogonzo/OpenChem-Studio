@@ -580,3 +580,245 @@ def test_adoption_hands_over_the_aligned_copy_not_the_stored_one(qapp):
 
     assert len(adopted) == 1
     assert adopted[0][0] != molblocks[1], "the retained conformer was handed over unaligned"
+
+
+# --- the gallery -------------------------------------------------------------
+
+
+class GridBackend(FakeViewerBackend):
+    """Records what the gallery asks the page to draw."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.grids: list[dict] = []
+        self.matched: list[int] = []
+        self.ensembles: list[list[tuple[str, str]]] = []
+        self.left_grid = 0
+
+    def load_conformer_grid(self, entries, rows, cols, linked=False, selected=None):
+        self.grids.append(
+            {"entries": list(entries), "rows": rows, "cols": cols,
+             "linked": linked, "selected": list(selected or [])}
+        )
+
+    def match_grid_views(self, index: int) -> None:
+        self.matched.append(index)
+
+    def load_ensemble(self, entries) -> None:
+        self.ensembles.append(list(entries))
+
+    def leave_grid(self) -> None:
+        self.left_grid += 1
+
+
+def _gallery_widget(qapp, count: int = 8):
+    bus = EventBus()
+    engine = ChemistryEngine()
+    backend = GridBackend()
+    widget = MoleculeViewer3DWidget(
+        ConformerService(bus, engine), MeasurementService(engine), bus, backend=backend
+    )
+    molecule = MoleculeModel(display_name="Test")
+    molecule.conformers = [
+        ConformerModel(molblock=f"conf-{i}", method="rdkit", energy=70.0 + i * 0.5,
+                       timestamp=1.0)
+        for i in range(count)
+    ]
+    widget.set_molecule(molecule)
+    return widget, backend, molecule
+
+
+def test_the_gallery_shows_a_page_of_conformers_at_once(qapp):
+    """The ask: "all separate images possible... on the screen at the same
+    time". Six by default, because the complaint was about comparing and
+    six cells are big enough to compare in."""
+    widget, backend, _molecule = _gallery_widget(qapp, count=8)
+
+    widget._gallery_check.setChecked(True)
+
+    assert backend.grids, "nothing was drawn"
+    grid = backend.grids[-1]
+    assert (grid["rows"], grid["cols"]) == (2, 3)
+    assert len(grid["entries"]) == 6
+
+
+def test_the_gallery_pages_rather_than_stepping_one_at_a_time(qapp):
+    """`>` moves a PAGE in the gallery. Stepping one conformer would move
+    the highlight without changing the picture five presses out of six."""
+    widget, backend, _molecule = _gallery_widget(qapp, count=8)
+    widget._gallery_check.setChecked(True)
+
+    widget._show_next_conformer()
+
+    grid = backend.grids[-1]
+    assert [label for _mb, label in grid["entries"]][0].startswith("7")
+    assert len(grid["entries"]) == 2, "the last page should hold what is left"
+
+
+def test_paging_stops_at_the_ends(qapp):
+    """Both ends, because an off-by-one at either produces an empty grid
+    that looks like the gallery breaking."""
+    widget, backend, _molecule = _gallery_widget(qapp, count=8)
+    widget._gallery_check.setChecked(True)
+
+    widget._show_previous_conformer()
+    assert widget._page_start == 0
+
+    widget._show_next_conformer()
+    widget._show_next_conformer()
+    assert widget._page_start == 6, "paged past the end"
+
+
+def test_paging_at_an_end_does_not_rebuild_the_gallery(qapp):
+    """**A REBUILD RESETS EVERY CELL'S CAMERA**, so pressing `<` on the
+    first page must not trigger one -- it would wipe the arrangement the
+    user had just made, in response to a key that did nothing.
+
+    `_refresh_gallery` clamps the page as well, so the guard in the
+    navigation looks redundant and a mutation removing it survived every
+    other test here: the page index ends up identical either way. What
+    differs is whether the grid is torn down and rebuilt, which is the
+    thing worth asserting.
+    """
+    widget, backend, _molecule = _gallery_widget(qapp, count=8)
+    widget._gallery_check.setChecked(True)
+    drawn = len(backend.grids)
+
+    widget._show_previous_conformer()
+
+    assert len(backend.grids) == drawn, "the gallery was rebuilt for a no-op"
+
+
+def test_lock_views_is_passed_through_and_is_off_by_default(qapp):
+    """Independent rotation is the default -- it is what was asked for --
+    and locking is the opt-in for comparing."""
+    widget, backend, _molecule = _gallery_widget(qapp)
+    widget._gallery_check.setChecked(True)
+    assert backend.grids[-1]["linked"] is False
+
+    widget._lock_check.setChecked(True)
+
+    assert backend.grids[-1]["linked"] is True
+
+
+def test_match_all_acts_on_the_selected_cell_in_page_coordinates(qapp):
+    """The page holds cells 0..5 whatever conformers they are, so a
+    selected conformer on the second page must not ask the page for a
+    cell index it does not have."""
+    widget, backend, _molecule = _gallery_widget(qapp, count=12)
+    widget._gallery_check.setChecked(True)
+    widget._show_next_conformer()          # page 2: conformers 6..11
+    widget._on_grid_cell_clicked(2)        # the third cell of that page
+
+    widget._match_button.click()
+
+    assert widget._conformer_index == 8, "the click did not select conformer 9"
+    assert backend.matched == [2], "match was asked for an absolute index"
+
+
+def test_ticking_a_cell_is_not_the_same_as_selecting_it(qapp):
+    """Two different gestures on one control. Clicking chooses what `<`,
+    `>` and "Use in 2D Editor" act on; ticking marks a conformer for
+    superimposition. Conflating them would make one impossible."""
+    widget, _backend, _molecule = _gallery_widget(qapp)
+    widget._gallery_check.setChecked(True)
+
+    widget._on_grid_cell_toggled(1, True)
+
+    assert widget._superimposed == {1}
+    assert widget._conformer_index == 0, "ticking moved the selection"
+
+
+def test_superimposing_ticked_conformers_uses_the_ensemble_path(qapp):
+    """Reuses `load_ensemble`, which the Alignment panel already drives --
+    superimposing structures in one frame is the same operation whether
+    they are different molecules or conformers of one."""
+    widget, backend, _molecule = _gallery_widget(qapp)
+    widget._gallery_check.setChecked(True)
+    widget._on_grid_cell_toggled(0, True)
+    widget._on_grid_cell_toggled(2, True)
+
+    widget._superimpose_button.click()
+
+    assert len(backend.ensembles) == 1
+    entries = backend.ensembles[0]
+    assert len(entries) == 2
+    assert len({colour for _mb, colour in entries}) == 2, "both drawn the same colour"
+
+
+def test_superimposing_fewer_than_two_says_so_rather_than_drawing_nothing(qapp):
+    """One structure superimposed on nothing is a blank change that reads
+    as the button being broken."""
+    widget, backend, _molecule = _gallery_widget(qapp)
+    widget._gallery_check.setChecked(True)
+    widget._on_grid_cell_toggled(0, True)
+
+    widget._superimpose_button.click()
+
+    assert backend.ensembles == []
+    assert "two or more" in widget._measurement_label.text()
+
+
+def test_leaving_the_gallery_tells_the_page(qapp):
+    """The grid has its own container and canvas; without this the single
+    viewer stays hidden behind it."""
+    widget, backend, _molecule = _gallery_widget(qapp)
+    widget._gallery_check.setChecked(True)
+
+    widget._gallery_check.setChecked(False)
+
+    assert backend.left_grid == 1
+
+
+def test_a_new_molecule_clears_the_ticks_and_the_page(qapp):
+    """Conformer indices mean something different for a different
+    molecule, so carrying ticks over would superimpose whatever happened
+    to sit at those positions."""
+    widget, _backend, _molecule = _gallery_widget(qapp, count=12)
+    widget._gallery_check.setChecked(True)
+    widget._on_grid_cell_toggled(1, True)
+    widget._show_next_conformer()
+
+    widget.set_molecule(_two_conformers())
+
+    assert widget._superimposed == set()
+    assert widget._page_start == 0
+
+
+def test_the_3d_view_gets_the_height_not_the_status_label(qapp):
+    """THE VIEWER HAD BEEN HALF THE SIZE IT SHOULD BE.
+
+    A QWebEngineView and a QLabel both report a `Preferred` vertical
+    policy, so QVBoxLayout split the spare height evenly between them.
+    Measured in the running app: a 698 px pane gave the 3D view 330 px and
+    the one-line measurement readout the other 330. Nobody noticed until
+    six conformers went into that space and every cell came out half as
+    tall as it should be.
+
+    Same shape as the `WrappedLabel` finding in the Properties panel: a
+    one-line status claiming a panel's vertical stretch.
+
+    **The widget is SHOWN and given a size**, because a layout that was
+    never laid out reports nothing -- the same reason `repaint()` on an
+    unshown widget paints nothing.
+    """
+    widget, _backend, _bus = _make_widget(qapp)
+    widget.resize(900, 700)
+    widget.show()
+    qapp.processEvents()
+    try:
+        view_height = widget._backend.widget().height()
+        label_height = widget._measurement_label.height()
+
+        assert view_height > 4 * label_height, (
+            f"the 3D view got {view_height} px against the label's {label_height}"
+        )
+        # Most of what is left after the toolbar. Not a tighter number,
+        # because the toolbar's own height depends on the platform's
+        # metrics and this fake backend's widget is not a real web view.
+        # In the running app the figure is 644 of 698.
+        assert view_height > 0.6 * widget.height(), (
+            f"the 3D view got {view_height} px of {widget.height()}"
+        )
+    finally:
+        widget.hide()

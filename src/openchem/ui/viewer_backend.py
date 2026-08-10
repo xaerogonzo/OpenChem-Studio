@@ -21,6 +21,16 @@ class ViewerBackend(QObject):
     """
 
     atoms_selected = Signal(list)  # list[int] atom indices, for measurement tools
+    #: A gallery cell was clicked -- it becomes the selected conformer.
+    grid_cell_clicked = Signal(int)
+    #: A gallery cell's tick box changed: (index, checked). Ticking marks
+    #: a conformer for superimposition, which is a DIFFERENT gesture from
+    #: selecting it, so it is a different signal.
+    grid_cell_toggled = Signal(int, bool)
+    #: The gallery could not be built, with the reason. A second WebGL
+    #: context is not available in every environment, and an empty pane
+    #: reads as the feature being broken rather than unavailable.
+    grid_failed = Signal(str)
 
     def load_conformer(self, molblock: str, structure_key: object = None) -> None:
         """Render a 3D conformer (a molblock carrying 3D coordinates).

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from dataclasses import replace
 from pathlib import Path
 
+import pytest
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
@@ -705,3 +707,177 @@ def test_a_caller_with_no_structure_key_always_refits(qapp):
 
     loads = [js for js in fired if "loadMolblock" in js]
     assert all(js.rstrip().endswith("false);") for js in loads), loads
+
+
+# --- the conformer gallery, against the real 3Dmol grid ----------------------
+
+#: **THE GALLERY NEEDS A SECOND WebGL CONTEXT, and the test suite runs
+#: without one.** `tests/conftest.py` sets `QT_QPA_PLATFORM=offscreen`,
+#: where the page's FIRST context works and a second comes back null, so
+#: `$3Dmol.createViewerGrid` throws "Cannot read properties of null
+#: (reading 'clearDepth')". Measured, and not fixable from here:
+#:
+#:     offscreen                                       throws
+#:     offscreen + --use-angle=swiftshader             throws
+#:     offscreen, first context explicitly released    throws
+#:     ordinary windowed platform                      4 cells, 2 canvases
+#:
+#: So these run only where a display is available -- deliberately kept
+#: rather than deleted, because they are the only thing that exercises the
+#: real grid, and `QT_QPA_PLATFORM` is set with `setdefault`, so
+#: `QT_QPA_PLATFORM=windows pytest ...` runs them.
+#:
+#: What DOES run everywhere is `test_a_gallery_that_cannot_be_built_is_reported`
+#: below, which is the path this environment takes.
+_OFFSCREEN = os.environ.get("QT_QPA_PLATFORM") == "offscreen"
+_needs_a_display = pytest.mark.skipif(
+    _OFFSCREEN, reason="a gallery needs a second WebGL context; offscreen grants one"
+)
+
+
+def _grid_backend(qapp, cells: int = 4, rows: int = 2, cols: int = 2, linked: bool = False):
+    """A real grid, sized and shown.
+
+    Shown because `drawWhenSized` and the overlay layout both need a real
+    viewport, and settled for a moment after `loadFinished` -- the page is
+    parsed by then but the container has not been laid out, and a grid
+    built into a zero-sized box produces no cells.
+    """
+    backend = Mol3DViewerBackend()
+    backend.widget().resize(800, 600)
+    backend.widget().show()
+    assert _wait_until(qapp, lambda: backend._page_ready)
+    _wait_until(qapp, lambda: False, timeout_seconds=1.0)
+    entries = [(_ethanol_molblock(), f"{i + 1}") for i in range(cells)]
+    backend.load_conformer_grid(entries, rows, cols, linked=linked)
+    assert _wait_until(
+        qapp,
+        lambda: _run_js(qapp, backend, "document.querySelectorAll('.cell-overlay').length") == cells,
+        timeout_seconds=20,
+    ), "the gallery never drew its cells"
+    return backend
+
+
+def _grid_views(qapp, backend) -> list[list[float]]:
+    import json
+
+    raw = _run_js(qapp, backend, "window.openchemViewer.gridViews()", timeout_seconds=10)
+    return json.loads(raw) if raw else []
+
+
+@_needs_a_display
+def test_the_gallery_builds_a_cell_per_conformer_sharing_one_canvas(qapp):
+    """Against the real bundle, because `createViewerGrid` is the whole
+    mechanism and a Python-side test would only re-read its own input.
+
+    **The canvas count is the load-bearing half.** One context for the
+    whole grid is what makes this affordable; a QWebEngineView per
+    conformer would be a Chromium helper set per conformer, and CLAUDE.md
+    records those accumulating into a 40-minute hang.
+    """
+    backend = _grid_backend(qapp, cells=4, rows=2, cols=2)
+
+    assert len(_grid_views(qapp, backend)) == 4
+    canvases = _run_js(qapp, backend, "document.querySelectorAll('canvas').length")
+    assert canvases <= 2, f"{canvases} canvases; the grid should share one"
+
+
+@_needs_a_display
+def test_unlocked_cells_turn_independently(qapp):
+    """The ask, in one sentence: "independently rotatable"."""
+    backend = _grid_backend(qapp, cells=4, rows=2, cols=2, linked=False)
+    before = _grid_views(qapp, backend)
+
+    _run_js(qapp, backend, "window.openchemViewer.rotateGridCell(0, 60, 'y'); 1")
+    _wait_until(qapp, lambda: False, timeout_seconds=1.0)
+    after = _grid_views(qapp, backend)
+
+    assert after[0] != before[0], "the cell that was turned did not move"
+    assert after[1:] == before[1:], "turning one cell moved the others"
+
+
+@_needs_a_display
+def test_locked_cells_move_by_the_SAME_transform(qapp):
+    """**Not merely that they all moved.** "Everything changed" passes
+    against a scramble; what makes conformers comparable is that the cells
+    end up pointing the SAME way, which is an equality rather than an
+    inequality.
+    """
+    backend = _grid_backend(qapp, cells=4, rows=2, cols=2, linked=True)
+
+    _run_js(qapp, backend, "window.openchemViewer.rotateGridCell(0, 60, 'y'); 1")
+    _wait_until(qapp, lambda: False, timeout_seconds=1.0)
+    views = _grid_views(qapp, backend)
+
+    # The quaternion is what orientation means; the pan and zoom depend on
+    # each cell's own viewport and are not expected to match.
+    orientations = {tuple(view[4:]) for view in views}
+    assert len(orientations) == 1, f"locked cells point {len(orientations)} different ways"
+    assert orientations != {(0.0, 0.0, 0.0, 1.0)}, "nothing actually turned"
+
+
+@_needs_a_display
+def test_match_all_points_every_cell_where_the_selected_one_points(qapp):
+    """Different from locking: a one-off, after which the cells are free
+    to turn separately again. Starts from cells that genuinely disagree,
+    or the assertion would hold before the button was pressed."""
+    backend = _grid_backend(qapp, cells=4, rows=2, cols=2, linked=False)
+    _run_js(qapp, backend, "window.openchemViewer.rotateGridCell(0, 55, 'x'); 1")
+    _wait_until(qapp, lambda: False, timeout_seconds=1.0)
+    before = _grid_views(qapp, backend)
+    assert len({tuple(v[4:]) for v in before}) > 1, "the cells already agreed"
+
+    backend.match_grid_views(0)
+    _wait_until(qapp, lambda: False, timeout_seconds=1.5)
+
+    orientations = {tuple(view[4:]) for view in _grid_views(qapp, backend)}
+    assert len(orientations) == 1, "match-all left the cells pointing different ways"
+
+
+@_needs_a_display
+def test_leaving_the_gallery_puts_the_single_viewer_back(qapp):
+    """The grid has its own container; without this the single viewer
+    stays hidden behind it and the tab looks empty."""
+    backend = _grid_backend(qapp, cells=4, rows=2, cols=2)
+    assert _run_js(qapp, backend, "getComputedStyle(document.getElementById"
+                                  "('grid-container')).display") == "block"
+
+    backend.leave_grid()
+    _wait_until(qapp, lambda: False, timeout_seconds=1.0)
+
+    assert _run_js(qapp, backend, "getComputedStyle(document.getElementById"
+                                  "('grid-container')).display") == "none"
+    assert _run_js(qapp, backend, "getComputedStyle(document.getElementById"
+                                  "('viewer-container')).display") == "block"
+
+
+@pytest.mark.skipif(not _OFFSCREEN, reason="only offscreen refuses the second context")
+def test_a_gallery_that_cannot_be_built_is_reported(qapp):
+    """THE PATH THIS ENVIRONMENT TAKES, and a real user might too.
+
+    An unbuildable gallery used to leave the pane empty with a JS
+    exception in a debug log -- indistinguishable from the feature being
+    broken. It reports instead, so the widget can go back to the single
+    view and say why.
+
+    Asserted here rather than only in the widget tests because the failure
+    originates in the page, and a Python-side fake would be asserting that
+    a signal this file emits reaches a slot this file connects.
+    """
+    backend = Mol3DViewerBackend()
+    backend.widget().resize(800, 600)
+    backend.widget().show()
+    assert _wait_until(qapp, lambda: backend._page_ready)
+    _wait_until(qapp, lambda: False, timeout_seconds=1.0)
+
+    failures: list[str] = []
+    backend.grid_failed.connect(failures.append)
+    backend.load_conformer_grid([(_ethanol_molblock(), "1")], 1, 1)
+
+    assert _wait_until(qapp, lambda: bool(failures), timeout_seconds=20), (
+        "the gallery failed silently"
+    )
+    assert "clearDepth" in failures[0] or "null" in failures[0], failures[0]
+    # And the single viewer is back, rather than a hidden container.
+    assert _run_js(qapp, backend, "getComputedStyle(document.getElementById"
+                                  "('viewer-container')).display") == "block"
