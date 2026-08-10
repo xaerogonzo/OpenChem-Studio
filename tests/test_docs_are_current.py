@@ -17,6 +17,13 @@ across five documents, and **zero genuinely stale**. Both initial hits
 were the scanner misreading a legitimate reference, which is why the
 allowlists below exist and why each entry carries its reason -- an
 unexplained exemption is how a guard gets hollowed out.
+
+**IT COVERED 6 OF THE 17 MARKDOWN FILES IN THE REPO**, which a sweep
+found by listing them rather than by trusting the list. README.md and
+QUICKSTART.md are the first things anybody reads and neither was
+guarded. All 15 that cite anything are covered now; the two that do not
+(CHANGELOG.md, CODE_OF_CONDUCT.md) are left out because adding a file
+with nothing to check makes the list look more thorough than it is.
 """
 
 from __future__ import annotations
@@ -30,11 +37,20 @@ _ROOT = Path(__file__).resolve().parent.parent
 
 DOCS = [
     "CLAUDE.md",
+    "README.md",
+    "BASIC_INSTRUCTIONS.md",
+    "CONTRIBUTING.md",
     "docs/ARCHITECTURE.md",
     "docs/NAVIGATION_AUDIT.md",
     "docs/SCIENTIFIC_LIMITATIONS.md",
     "docs/USER_GUIDE.md",
     "docs/PLUGIN_SDK.md",
+    "docs/QUICKSTART.md",
+    "docs/README.md",
+    "docs/ROADMAP.md",
+    "docs/VALIDATION.md",
+    "docs/DREIDING_ASSESSMENT.md",
+    "docs/SELF_HOSTED_RUNNER.md",
 ]
 
 #: Backticked paths that deliberately do NOT resolve in this repo, each
@@ -43,6 +59,14 @@ ALLOWED_MISSING_PATHS = {
     # A path inside the upstream molstar npm package, cited to say where
     # our viewer.html was adapted from. It is not ours and never will be.
     "build/viewer/embedded.html",
+    # The three STOUT modules, named by ROADMAP.md on the line that says
+    # "Deleted:". A document recording a removal has to be able to say
+    # what it removed, and the absence is the point rather than a stale
+    # reference -- the same reason `test_highlighting_survives_a_repaint`
+    # is allowed below.
+    "chem/stout_providers.py",
+    "chem/stout_runner.py",
+    "services/stout_setup.py",
 }
 
 #: Test names cited as HISTORY rather than as tests to go and find.

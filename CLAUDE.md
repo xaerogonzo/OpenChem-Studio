@@ -117,14 +117,34 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **3-8 minutes**, ending at `3613 passed, 2 skipped,
-1 deselected` (measured 2026-08-09, 5m25s, on the MERGE of the mmCIF
-element-symbol/ligand-copy/protonation work into master -- which is the
-number that matters, and it is not either side's: that branch alone gave
-3611 against the 3570 it started from (+44, being +35 for the element
-symbols and +9 for the other two), and master's assembly-gate work
-contributed the last 2 independently).
-Before it: 3501 on clean master at `77ad231` after the conformer
+A clean run is **6-9.5 minutes**, ending at `3720 passed, 2 skipped,
+1 deselected` (measured 2026-08-10 on branch `Fix-A`, after the
+navigation-audit work: the calculator-presentation fixes, the periodic
+table merge, the waiting indicator, the section merge, the trajectory
+player, the palette vocabulary and the documentation sweep. +107 over the
+3613 it started from, and every one of those a guard -- the last 18 being
+the doc-currency check widening from 6 of the repo's markdown files to
+15).
+
+**THE 3-8 MINUTE BAND WAS UNDERSTATED and the spread is real.** Measured
+across eight full runs of essentially the same tree on this machine:
+361, 365, 367, 389, 389, 416, 490, 534, 554, 568 seconds -- and one that
+blew a ten-minute wall at 89%. Do not read a slow run as a hang without
+sampling; do not read a fast one as a speed-up either.
+
+The single slowest test is deliberate and says so:
+`test_a_calculators_result_lands_in_its_own_section` runs all 49 registry
+calculators (~35 s warm, ~76 s in a full run, against a next-slowest of
+14 s) because it is the only thing standing between a category merge and
+a calculator whose button is in one section while its answer is in
+another. Its cost lives in a module-scoped fixture so it is paid once and
+is attributed to setup rather than hidden in a test body.
+
+Before it: 3613 on the merge of the mmCIF element-symbol/ligand-copy/
+protonation work (measured 2026-08-09, 5m25s -- the number that mattered
+then, and not either side's: that branch alone gave 3611 against the 3570
+it started from, and master's assembly-gate work contributed the last 2).
+Before that: 3501 on clean master at `77ad231` after the conformer
 de-duplication and calculator-routing work, 3446 at `14e5d08`, 3350 after
 the crystallography work, 3236 before that, 3155 before the
 polarity/lattice-energy work, 3081 before the substance-perception work,
@@ -648,6 +668,35 @@ If you touch that fixture, verify by counting, not by reading:
 ```bash
 powershell "(Get-ChildItem 'HKCU:\Software' | Where-Object PSChildName -like 'OpenChemStudio-pytest-*' | Measure-Object).Count"
 ```
+
+### `resize()` does not resize a widget that was never shown, either
+
+The same trap in a different Qt event, found a year of sessions later and
+recorded beside its sibling because the first one did not generalise on
+its own. Measured on a counting subclass of `_ElidingPushButton`:
+
+    resize(400) then resize(420), never shown    0 resizeEvent calls
+    show(), then the same two resizes           2
+
+So a test that constructs a widget, resizes it and asserts on whatever
+`resizeEvent` was supposed to do is asserting on the CONSTRUCTOR. Three
+successive versions of one guard passed that way -- the last of them
+counting `QPushButton.setText` calls, which is a genuinely sharp probe
+aimed at code that never ran.
+
+**A widget that was never shown runs almost none of its own code.** If a
+test names an event handler, `show()` it first, or use
+`conftest.painted()` where a paint is what matters.
+
+Two smaller shapes of the same mistake, both from the same afternoon and
+both caught only by mutation:
+
+- A resize to the SAME size sends no `resizeEvent` at all. Two different
+  widths, chosen so the rendered text is identical at both, is what makes
+  "did it do redundant work" observable.
+- `super().setText()` inside a widget method bypasses a subclass
+  override, so a spy has to go on the Qt class rather than on a subclass
+  of the widget under test.
 
 ### `repaint()` does not paint a widget that was never shown
 

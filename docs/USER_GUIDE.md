@@ -163,8 +163,17 @@ window size and position are kept.
 ### Ctrl+Shift+P — type what you want
 
 Press **Ctrl+Shift+P** and start typing. It searches every panel, every
-calculator and every menu command at once — 113 of them — so you never have
-to remember which group a panel is filed under or which menu holds a command.
+calculator, every computed property and every menu command at once — 142 of
+them — so you never have to remember which group a panel is filed under or
+which menu holds a command.
+
+It also searches words that are *not* on screen: file formats find the
+importer that reads them (`cif`, `sdf`, `xyz`, `mmcif`, `pdb`), and a
+calculator's own tags find it by subject, so `toxicity` reaches ADMET and
+`screening` reaches Virtual Screening. A **computed property** cannot be
+run — the whole batch is computed when you select a molecule — so choosing
+one scrolls the Properties panel to its row instead, which is the useful
+answer to "where is ESOL?".
 
 Type initials: `qc` finds Quantum Chemistry, `sck` finds Structure Check.
 Arrow keys move the selection without leaving the box, and Enter runs it.
@@ -184,10 +193,11 @@ Physicochemical and Identity are open by default.
 Scalar descriptors compute eagerly — the whole batch finishes in well under
 a millisecond, so there is no waiting and no lazy-loading complexity.
 Anything that needs a parameter, or that produces per-atom data worth
-looking at, gets an **Open …** button instead.
+looking at, gets a **button of its own** instead, labelled with the
+calculator's name and a trailing `…`.
 
-That button opens a **settings dialog built from the calculator's own
-parameter list** (pH, decimal places, a SMARTS string, whatever that
+That ellipsis is a promise and it is kept: every one of them opens a
+**settings dialog built from the calculator's own parameter list** (pH, decimal places, a SMARTS string, whatever that
 calculator declares), and then a **Calculator Inspector** showing:
 
 - the overall molecular value, where summing one is meaningful
@@ -226,21 +236,27 @@ without its scope is the silence that reads as reassurance.
 
 ### Running several calculators at once
 
-Tick the box beside any **Open …** buttons you want and press **Run
-selected**. The selection spans categories, so you can tick something from
+Tick the box beside any calculator you want and press **Run selected**. The selection spans categories, so you can tick something from
 Charge and something from Topology and run both together — they were
 already running on a thread pool, so this is genuinely concurrent rather
 than a queue.
 
 Batch runs use each calculator's **declared defaults and open no dialogs**,
 because answering six settings dialogs to avoid six clicks is not a saving.
-No inspector windows open either. Use the individual **Open …** button when
+No inspector windows open either. Press the calculator's own button when
 you need non-default settings.
 
 Each result appears in its own category as a one-line summary
-("22 atoms, −0.41 to 0.33 e"); open the calculator's button for the full
+("22 atoms, −0.41 to 0.33 e"); press the calculator's button for the full
 per-atom detail. The status line beside the buttons says what is running
 and reads **Finished.** when the last one lands.
+
+**A calculator that is working says so on its own row**, whether you
+started it from its button or from Run selected: the row reads
+*Running…* until the result lands. Some of them take real time — the
+ADMET model is about six seconds — and before this the panel showed
+nothing at all for that whole stretch, then the result and its window
+arrived together. It reads as a slow dialog and is not one.
 
 ### Categories worth knowing about
 
@@ -250,17 +266,18 @@ and reads **Finished.** when the last one lands.
 | Identity | formula, exact mass, elemental composition, InChI/InChIKey |
 | Naming | IUPAC name with its source and exactness label |
 | Charge | Gasteiger partial charges, and charges at a chosen pH |
-| LogP / LogD / Molar Refractivity | per-atom contributions, and pH-dependent logD |
+| Lipophilicity | logP per-atom contributions, and pH-dependent logD with its curve |
 | Topology | Wiener, Randić, Balaban, Platt, Szeged, Harary, per-atom eccentricity |
-| Geometry (3D) | radius of gyration, molecular radii, projection area and radius, MMFF94/UFF/Dreiding energies |
+| Geometry (3D) | radius of gyration, molecular radii, projection area, MMFF94/UFF/Dreiding energies, 3D alignment, molecular dynamics and intramolecular contacts |
 | Surface Area | SASA (total and per-atom), vdW surface, molecular volume |
 | Structure Generators | stereoisomers, tautomers, resonance forms, conformers |
 | Quantum (Hückel) | orbital energies, π densities, HOMO/LUMO and the gap |
+| Electronic Properties | polarizability (molecular and per-atom), orbital electronegativity, molar refractivity |
+| Stereochemistry | CIP descriptors and the stereocentres they label |
 | Medicinal Chemistry | Lipinski, Veber, Ghose, Egan, Pfizer 3/75, GSK 4/400, Rule of Three, QED, PAINS |
-| ADMET / Toxicity | BRENK alerts, BBB, bioavailability, hERG risk factors, and ML predictions if the sidecar is installed |
+| ADMET / Regulatory | BRENK alerts, BBB, bioavailability, hERG risk factors, ML predictions if the sidecar is installed, and the regulatory ruleset screen |
 | pKa | ionizable groups, and numeric pKa if the sidecar is installed |
 | Substructure Search | match your own SMARTS, or browse the built-in validated patterns |
-| Regulatory | screen the structure against loaded regulatory rulesets — see [Regulatory screening](#regulatory-screening) |
 | NMR | the instant empirical shift estimate — *not* the ORCA calculation |
 
 Predictions are labelled `empirical` or `ab_initio` where there is a basis
@@ -576,6 +593,26 @@ miss and you get a recalculation, which is the right answer.
 NMR reference and scaling calibrations are cached separately per
 method/basis, which is why `Calibrate Reference (TMS)` is a one-off rather
 than a per-job cost.
+
+---
+
+## Molecular dynamics
+
+**Geometry (3D) ▸ Molecular Dynamics (vacuum)** runs a short MMFF94
+trajectory and opens a **player**: the frame in 3D, a scrubber, play and
+pause, and the energy trace underneath with a marker on the frame you are
+looking at. Clicking the trace jumps to that frame, which is usually what
+you want — the interesting moment is a spike, and hunting for it again on
+the slider is busywork.
+
+**It is a vacuum run at a force field level.** No solvent, no periodic
+box, no thermostat beyond the initial temperature. It is for seeing how a
+structure moves and where it is floppy, not for a free energy.
+
+A 2D depiction would have been the cheap way to show this and a useless
+one: dynamics moves atoms without changing what is bonded to what, so
+every frame of a vacuum run draws the same picture. The motion only exists
+in three dimensions.
 
 ---
 
@@ -991,7 +1028,7 @@ the structure:
 | **Edit** | Undo/redo, Copy Structure As, Paste Structure, Duplicate, Rename |
 | **Structure** | Aromatize/Dearomatize, Layout, Clean Up, explicit hydrogens, Calculate CIP, Check Structure |
 | **View** | Which panels are shown, and 2D Structure Display toggles |
-| **Tools** | Periodic Table, Identify Structure Online, External Tools |
+| **Tools** | Periodic Table, Identify Structure Online, Virtual Screening, External Tools |
 
 The structure operations used to sit under Edit, between "Redo" and "Copy
 Structure As", where neither group was easy to find.
@@ -1023,10 +1060,23 @@ That last one is the part most periodic tables in drawing programs leave out.
 It came free: RDKit's own tables carry the full abundance data, so none of it
 is hand-entered.
 
-**This is not the table you draw with.** The 2D editor's toolbar has its own,
-which places atoms and can express query forms (Single / List / Not List) that
-a reference table has no way to say. This one answers questions instead; it
-offers **Copy symbol** and nothing that would place an atom.
+**There used to be two of these, and now there is one.** The 2D editor's
+toolbar has a periodic table button of its own; pressing it opens *this*
+table. Before, it opened Ketcher's plainer one, and which table you got
+depended on which button you happened to press — reported, reasonably, as
+the periodic table having "reverted to vanilla".
+
+So it draws as well as explains. **Insert into drawing** arms the 2D
+editor with the selected element: press it, then click the canvas where
+the atom goes. That is the same gesture the editor's own table used, so
+there is one way an atom reaches the canvas rather than two. The dialog
+stays open, because placing three heteroatoms should not mean reopening
+it between each.
+
+**Query atoms are the one thing it cannot do.** Any-atom, and list /
+not-list forms, are drawing constructs a reference table has no way to
+express; the editor's own tools still place those. The dialog says so
+rather than leaving you to find out.
 
 ### The atom, drawn
 

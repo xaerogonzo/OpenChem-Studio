@@ -16,12 +16,15 @@ repeats elsewhere and finding it by waiting for a report is expensive.
 **Everything here is counted, not estimated.** Where a number is
 uncomfortable it is still the number.
 
-## What exists
+## What existed when this was written
+
+The starting state, kept as the baseline every finding below is
+measured against. Where a number moved, the finding says so.
 
 | | count |
 | --- | --- |
-| menu actions | 25 |
-| calculators | 58, in 26 categories |
+| menu actions | 25 (26 now: Virtual Screening gained one) |
+| calculators | 58, in 26 categories (18 now) |
 | panel modules | 12 |
 | dialog modules | 16 |
 

@@ -1239,9 +1239,10 @@ document may cite a file or a test that does not exist.
   empty log means "no exception", not "never ran". Sampling for the
   subprocess DURING a run showed it spawning normally. The row was there
   the whole time -- scrolling the panel down found
-  `hERG blockade: 0.82` sitting in the ADMET / Toxicity section, which is
-  collapsed by default and sits near the bottom of twenty-odd sections in
-  a ~1000 px content area behind a 372 px viewport.
+  `hERG blockade: 0.82` sitting in the ADMET section (then headed
+  "ADMET / Toxicity", and one of twenty-six -- both since changed, see
+  `docs/NAVIGATION_AUDIT.md`), collapsed by default and near the bottom
+  of a ~1000 px content area behind a 372 px viewport.
 
   **The real defect is an asymmetry in how results announce
   themselves.** Four of the six result shapes already answer a button
