@@ -154,35 +154,33 @@ def test_every_ordered_category_still_has_a_heading():
     )
 
 
-def test_a_calculators_result_lands_in_its_own_section(registry):
-    """THE TRAP IN MERGING CATEGORIES, and the reason this file exists.
+@pytest.fixture(scope="module")
+def computed_results(registry):
+    """Every registry calculator run once, on a molecule with a conformer.
 
-    A `ReportResult` and an `AlertResult` carry their OWN `category` --
-    the panel files them with `report.category`, not with the definition's
-    -- while everything else is filed by registry lookup. So moving a
-    calculator to a new section without moving the category its result
-    carries puts the BUTTON in one section and its ANSWER in another,
-    with nothing failing anywhere.
+    **THIS IS THE SLOWEST TEST IN THE SUITE and the cost is deliberate.**
+    Measured: ~35 s warm standalone, ~76 s inside a full run, against a
+    next-slowest of 14 s. Roughly 12 s of it is spent on calculators
+    whose result carries no category and is therefore discarded here --
+    unavoidable, because the result TYPE is only knowable by running it.
+    Most of the remainder is sidecars: the ADMET model (7.7 s), pkasolver
+    (pka, logd, microspecies) and OPSIN's JVM.
 
-    Checked by running each calculator, because the two values live in
-    different files and only agree if somebody kept them in step.
+    Module-scoped so the sweep happens once however many assertions are
+    made over it. WITH A CONFORMER, or every 3D-dependent calculator
+    comes back FAILED and is skipped -- `interaction_analysis` is one the
+    section merge moved, so without geometry this would not cover the
+    change it exists for.
     """
     from rdkit import Chem, RDLogger
     from rdkit.Chem import AllChem
 
-    from openchem.domain.common import CacheState
-
     RDLogger.DisableLog("rdApp.*")
     mol = Chem.AddHs(Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O"))
-    # WITH A CONFORMER, or the 3D-dependent calculators all come back
-    # FAILED and are skipped -- `interaction_analysis` is one of the
-    # categories this merge moved, so without geometry the guard would
-    # not cover the very change it was written for.
     AllChem.EmbedMolecule(mol, randomSeed=0xF00D)
     AllChem.MMFFOptimizeMolecule(mol)
 
-    mismatched = []
-    compared: list[str] = []
+    results = []
     for category in registry.categories():
         for definition in registry.by_category(category):
             if not isinstance(definition.execution, RegistryExecution):
@@ -194,22 +192,44 @@ def test_a_calculators_result_lands_in_its_own_section(registry):
                     "uuid",
                     {p.name: p.default for p in definition.parameters},
                 )
-            except Exception:  # noqa: BLE001 - a calculator that raises is not this test's subject
+            except Exception:  # noqa: BLE001 - a calculator that raises is not the subject
                 continue
-            carried = getattr(result, "category", None)
-            if carried is None or getattr(result, "cache_state", None) is CacheState.FAILED:
-                continue
-            compared.append(definition.calculator_id)
-            if carried != definition.category:
-                mismatched.append(
-                    f"{definition.calculator_id}: button in {definition.category!r}, "
-                    f"result in {carried!r}"
-                )
+            results.append((definition, result))
+    return results
 
-    assert not mismatched, "\n".join(mismatched)
+
+def test_a_calculators_result_lands_in_its_own_section(computed_results):
+    """THE TRAP IN MERGING CATEGORIES, and the reason this file exists.
+
+    A `ReportResult` and an `AlertResult` carry their OWN `category` --
+    the panel files them with `report.category`, not with the
+    definition's -- while everything else is filed by registry lookup. So
+    moving a calculator to a new section without moving the category its
+    result carries puts the BUTTON in one section and its ANSWER in
+    another, with nothing failing anywhere.
+
+    Checked by RUNNING each calculator, because the two values live in
+    different files and only agree if somebody kept them in step.
+    """
+    from openchem.domain.common import CacheState
+
+    mismatched = []
+    compared: list[str] = []
+    for definition, result in computed_results:
+        carried = getattr(result, "category", None)
+        if carried is None or getattr(result, "cache_state", None) is CacheState.FAILED:
+            continue
+        compared.append(definition.calculator_id)
+        if carried != definition.category:
+            mismatched.append(
+                f"{definition.calculator_id}: button in {definition.category!r}, "
+                f"result in {carried!r}"
+            )
+
+    assert not mismatched, "; ".join(mismatched)
     # A FLOOR, because a guard that silently compares nothing passes.
     # Every result that fails or carries no category of its own is
     # skipped above, so a change that made them all fail would turn this
-    # into an assertion about an empty list -- which is the shape of
-    # "an arm that does not run is not an arm", one level up.
+    # into an assertion about an empty list -- "an arm that does not run
+    # is not an arm", one level up.
     assert len(compared) >= 10, f"only compared {compared}"

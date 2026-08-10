@@ -60,6 +60,32 @@ def _trajectory(frames: int = 5, *, energies: bool = True) -> TrajectoryResult:
 
 
 @pytest.fixture
+def trace(qapp):
+    """Disposed deterministically, like every widget in this file.
+
+    A test that constructs an unparented widget and walks away leaves it
+    to be destroyed at whatever arbitrary later moment the collector
+    runs -- inside an unrelated test, from within Qt's event dispatch,
+    which is an access violation that reads as flakiness somewhere else.
+    CLAUDE.md records three full-file crashes from exactly this.
+    """
+    built: list[EnergyTrace] = []
+
+    def make(energies=(), frame: int = 0) -> EnergyTrace:
+        widget = EnergyTrace()
+        widget.set_energies(energies)
+        widget.set_frame(frame)
+        built.append(widget)
+        return widget
+
+    yield make
+    for widget in built:
+        widget.setParent(None)
+        widget.deleteLater()
+        QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+
+
+@pytest.fixture
 def player(qapp):
     built: list[TrajectoryPlayerWidget] = []
 
@@ -217,7 +243,7 @@ def test_an_empty_trajectory_does_not_build_dead_controls(player):
 # --- the energy trace ---------------------------------------------------
 
 
-def test_the_trace_draws_the_energies(qapp):
+def test_the_trace_draws_the_energies(trace):
     """AXES HELD FIXED, CONTENT VARIED -- the technique CLAUDE.md records
     after two plausible ink checks were killed by mutation testing.
 
@@ -225,51 +251,42 @@ def test_the_trace_draws_the_energies(qapp):
     range are pixel-identical and the only thing that can differ is the
     line itself.
     """
-    flat = EnergyTrace()
-    flat.set_energies([0.0, 5.0, 0.0, 5.0, 0.0])
-    spiky = EnergyTrace()
-    spiky.set_energies([0.0, 5.0, 2.5, 5.0, 0.0])
+    flat = trace([0.0, 5.0, 0.0, 5.0, 0.0])
+    spiky = trace([0.0, 5.0, 2.5, 5.0, 0.0])
 
     assert ink(flat) != ink(spiky)
 
 
-def test_an_empty_trace_still_draws_its_frame_but_no_line(qapp):
+def test_an_empty_trace_still_draws_its_frame_but_no_line(trace):
     """The control for the test above: a trace with nothing in it must
     ink LESS than one with data, or "it drew something" is measuring the
     box rather than the trace."""
-    empty = EnergyTrace()
-    empty.set_energies([])
-    filled = EnergyTrace()
-    filled.set_energies([0.0, 5.0, 1.0, 4.0, 0.0])
+    empty = trace([])
+    filled = trace([0.0, 5.0, 1.0, 4.0, 0.0])
 
     assert ink(empty) < ink(filled)
 
 
-def test_the_trace_marks_the_frame_being_shown(qapp):
+def test_the_trace_marks_the_frame_being_shown(trace):
     """The marker is the only difference between these two, so if it were
     not drawn the counts would match."""
-    left = EnergyTrace()
-    left.set_energies([0.0, 5.0, 1.0, 4.0, 0.0])
-    left.set_frame(0)
-    middle = EnergyTrace()
-    middle.set_energies([0.0, 5.0, 1.0, 4.0, 0.0])
-    middle.set_frame(2)
+    left = trace([0.0, 5.0, 1.0, 4.0, 0.0], frame=0)
+    middle = trace([0.0, 5.0, 1.0, 4.0, 0.0], frame=2)
 
     assert painted(left) != painted(middle)
 
 
-def test_clicking_the_trace_picks_that_frame(qapp):
+def test_clicking_the_trace_picks_that_frame(trace):
     """The trace navigates as well as reads -- an energy spike is the
     thing somebody wants to look at, and making them find it again on the
     slider is busywork."""
     from PySide6.QtCore import QPointF, Qt
     from PySide6.QtGui import QMouseEvent
 
-    trace = EnergyTrace()
-    trace.set_energies([float(n) for n in range(11)])
-    trace.resize(200, 64)
+    widget = trace([float(n) for n in range(11)])
+    widget.resize(200, 64)
     picked: list[int] = []
-    trace.frame_picked.connect(picked.append)
+    widget.frame_picked.connect(picked.append)
 
     # Right-hand edge of the plot area -> the last frame.
     event = QMouseEvent(
@@ -279,6 +296,6 @@ def test_clicking_the_trace_picks_that_frame(qapp):
         Qt.MouseButton.LeftButton,
         Qt.KeyboardModifier.NoModifier,
     )
-    trace.mousePressEvent(event)
+    widget.mousePressEvent(event)
 
     assert picked == [10]
