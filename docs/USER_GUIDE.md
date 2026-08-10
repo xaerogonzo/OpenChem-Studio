@@ -143,6 +143,30 @@ methyl is not a conformer — but hydrogens on N, O and S are kept, because
 an O–H orientation changes hydrogen bonding and changes the energy of any
 QM job you run afterwards.
 
+**Use in 2D Editor** takes the conformer currently on screen — the one you
+navigated to, not the first — and redraws the 2D structure to match it,
+then switches to the editor. It is a single undoable step.
+
+Three things it deliberately does *not* do:
+
+- **It does not put the conformer's hydrogens in your drawing.** A
+  conformer is embedded with explicit hydrogens (aspirin's is 21 atoms
+  against the 13 you drew), and a drawing carrying them is a different
+  structure to everything that compares one — eight of the registered
+  calculators report different numbers for it. The drawing keeps its
+  implicit hydrogens.
+- **It does not use the conformer's x and y directly.** Those are a 3D
+  geometry seen flat, and for anything non-planar that overlaps: two of
+  cholesterol's atoms land 0.219 units apart where a real depiction has
+  1.500. The drawing is laid out properly, oriented to follow the 3D one.
+- **It does not throw away your conformers.** The structure has not
+  changed, so they are all still valid and the 3D viewer keeps showing
+  them.
+
+It changes the drawing, and only the drawing. What a calculation computes
+with is unaffected: anything needing 3D already uses the lowest-energy
+conformer automatically, and still does.
+
 **Macromolecule Viewer** — Mol\*, for proteins and nucleic acids. Cartoon
 representations, chain colouring, and the receptor-residue highlighting that
 docking interaction analysis feeds.

@@ -30,7 +30,11 @@ from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
 from openchem.chem.identifiers import identifier_for_molblock
 from openchem.chem.structure_clipboard import parse_structure_text
-from openchem.commands.conformer_commands import AddConformerCommand, SetConformersCommand
+from openchem.commands.conformer_commands import (
+    AdoptConformerCommand,
+    AddConformerCommand,
+    SetConformersCommand,
+)
 from openchem.commands.docking_commands import SetDockingResultCommand
 from openchem.commands.import_export_commands import ExportMoleculeCommand, ImportMoleculeCommand
 from openchem.commands.macromolecule_commands import AddMacromoleculeCommand
@@ -335,6 +339,8 @@ class MainWindow(QMainWindow):
         # `tools/ketcher-host/src/main.jsx` for the list and for what is
         # deliberately left alone.
         self._editor.editor_action_requested.connect(self._on_editor_action)
+        # The way back from the 3D viewer -- see `_adopt_conformer`.
+        self._viewer3d.conformer_adopted.connect(self._adopt_conformer)
         self._jobs_panel = JobsPanel(services.job_manager, self)
         self._structure_check_panel = StructureCheckPanel(
             services.structure_check_service,
@@ -1843,6 +1849,65 @@ class MainWindow(QMainWindow):
             logger.warning("No handler for editor action %r", action)
             return
         handler()
+
+    def _adopt_conformer(self, molblock: str) -> None:
+        """Redraw the molecule from the conformer shown in the 3D viewer.
+
+        **STRUCTURES ONLY EVER WENT ONE WAY.** "Send to 3D Viewer Tab"
+        has existed since the viewer did, and nothing came back -- so a
+        conformer you had generated and chosen could not become the thing
+        you were drawing on. Reported as "there doesn't seem to be an
+        easy way to directly copy a conformer from our 3d viewer back
+        into the 2d editor".
+
+        **NOT `EditStructureCommand`**, which is what the first version
+        of this used and which clears the conformer set. See
+        `AdoptConformerCommand` for the measurement: it blanked the very
+        viewer the button lives in.
+
+        **THE EDITOR IS RELOADED EXPLICITLY, and that is load-bearing.**
+        `MoleculeEditorWidget._on_molecule_changed` compares CANONICAL
+        SMILES, deliberately, so that moving an atom does not yank the
+        drawing out from under someone. Adopting changes coordinates and
+        nothing else -- that is the whole design, since explicit
+        hydrogens in the drawing would change what eight calculators
+        report -- so the constitution is identical and that comparison
+        correctly declines to reload. Without a reload the feature does
+        nothing visible.
+
+        It is handed to the COMMAND rather than done here, because undo
+        and redo need it too and neither comes back through this method.
+        See `AdoptConformerCommand._redraw`.
+        """
+        molecule = self._current_molecule()
+        if molecule is None or not molblock:
+            return
+        try:
+            command = AdoptConformerCommand(
+                self._services.chemistry_engine,
+                molecule,
+                molblock,
+                self._services.event_bus,
+                # The editor's own method rather than one of this window's:
+                # the command outlives this call on the undo stack, and a
+                # bound method of the window would be a new reference into
+                # it from something the window owns. `closeEvent` clears
+                # the stack, which is what makes destruction safe here.
+                on_applied=self._editor.set_molecule,
+            )
+        except Exception as exc:  # noqa: BLE001 - a bad conformer must not kill the window
+            logger.exception("Could not adopt the conformer")
+            QMessageBox.warning(self, "Use in 2D Editor", f"Could not use this conformer: {exc}")
+            return
+        self._undo_stack.push(command)
+        # Shown, not merely loaded. The whole point is to carry on working
+        # on it, and leaving the user on the 3D tab after a button called
+        # "Use in 2D Editor" would be the navigation-claims-one-thing
+        # problem the panel rail exists to avoid.
+        self._center_tabs.setCurrentWidget(self._editor)
+        self.statusBar().showMessage(
+            f"{molecule.display_name}: redrawn from the conformer in the 3D viewer.", 5000
+        )
 
     def _insert_element_into_drawing(self, symbol: str) -> None:
         """Arm the 2D editor with an element chosen in the periodic table.

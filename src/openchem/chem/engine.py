@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 from rdkit import Chem
-from rdkit.Chem import rdMolTransforms
+from rdkit.Chem import AllChem, rdMolTransforms
 
 from openchem.domain.molecule import MoleculeModel
 
@@ -84,6 +84,59 @@ class ChemistryEngine:
 
     def mol_to_molblock(self, mol: Chem.Mol) -> str:
         return Chem.MolToMolBlock(mol)
+
+    def drawing_from_conformer(self, molblock: str) -> str:
+        """A 2D drawing of a 3D conformer: heavy atoms, laid out to match it.
+
+        A conformer cannot simply BE a drawing, for two measured reasons.
+
+        **Its hydrogens are explicit.** Conformers are embedded after
+        `Chem.AddHs`, so aspirin's is 21 atoms against the 13 that were
+        drawn -- and handing those to the drawing changes the canonical
+        SMILES to `[H]OC(=O)c1c([H])c([H])...`, which is a different
+        structure to everything that compares one. Eight of the 49
+        registered calculators return a different number for a molecule
+        carrying explicit hydrogens, which is exactly why `DRAWING` is
+        the default in `select_calculation_input` rather than a fallback.
+
+        **Its x and y are a projection, not a layout.** Taking the
+        conformer's own coordinates puts two of cholesterol's heavy atoms
+        0.219 units apart where a real depiction has 1.500 -- on top of
+        each other, so the canvas would be unusable for exactly the
+        molecules a 3D geometry matters most for.
+        `GenerateDepictionMatching3DStructure` lays out a proper drawing
+        whose orientation still follows the 3D one, which is the point of
+        bringing it across at all.
+
+            case                    drawn   projected   matched
+            aspirin (flat)          1.500       0.701     1.500
+            cyclohexane (chair)     1.500       1.331     1.500
+            camphor (bicyclic)      0.781       0.476     0.624
+            cholesterol (steroid)   1.500       0.219     1.500
+            sucrose (two rings)     1.500       0.241     1.500
+
+        (Closest approach between any two heavy atoms. Camphor is
+        bicyclic and its ORDINARY depiction is already 0.781, so 0.624 is
+        that molecule being cramped rather than this being wrong.) The
+        canonical SMILES is unchanged on all five, which is what makes
+        the result adoptable at all.
+        """
+        heavy = Chem.RemoveHs(self.mol_from_molblock(molblock))
+        depiction = Chem.Mol(heavy)
+        try:
+            AllChem.GenerateDepictionMatching3DStructure(depiction, heavy)
+        except (ValueError, RuntimeError):
+            # A plain depiction is still a correct drawing of the same
+            # structure -- it just no longer echoes the 3D orientation.
+            # Refusing here would mean the button did nothing, which this
+            # line of work keeps finding to be the worse failure.
+            logger.warning(
+                "Could not orient the drawing to the conformer; laying it out plainly.",
+                exc_info=True,
+            )
+            depiction = Chem.Mol(heavy)
+            AllChem.Compute2DCoords(depiction)
+        return Chem.MolToMolBlock(depiction)
 
     def molblock_to_smiles(self, molblock: str) -> str:
         """Isomeric SMILES for a structure held as a molblock.

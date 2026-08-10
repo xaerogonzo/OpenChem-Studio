@@ -512,6 +512,53 @@ dynamic, so the check stopped seeing them -- and the test count still
 went UP, 16 to 18, which is exactly how a shrinking guard hides. It reads
 the table as well now: 30.
 
+## Finding 8 — structures only ever went one way
+
+Reported alongside the Ketcher overrule: *"there doesn't seem to be an
+easy way to directly copy a conformer from our 3d viewer back into the 2d
+editor still"*, with the wider point that the 2D editor should be the
+base of operations rather than somewhere you leave to get work done.
+
+"Send to 3D Viewer Tab" had existed since the viewer did and nothing came
+back. **Use in 2D Editor** in the 3D viewer's toolbar closes it, on the
+conformer currently on screen, as one undoable step.
+
+**The obvious implementation is wrong three separate ways**, and all
+three were measured rather than reasoned about — the first version did it
+and each defect is now a test:
+
+| | |
+| --- | --- |
+| a conformer is embedded after `AddHs` | aspirin 21 atoms against the 13 drawn, and the canonical SMILES becomes `[H]OC(=O)c1c([H])...` — eight of the 49 calculators report different numbers for a drawing with explicit hydrogens |
+| a conformer's x,y is a projection | cholesterol's closest heavy-atom approach 0.219 against 1.500 in a real depiction — atoms on top of each other, on exactly the molecules whose 3D geometry is worth having |
+| `EditStructureCommand` clears conformers | correctly, for a structure edit; this edits no structure. Measured live: the count went 1 → 0, so the button blanked the viewer it lives in |
+
+The last one is the one worth remembering, because the command was doing
+its documented job. **Reusing a command whose invariants do not apply is
+not reuse.**
+
+A fourth was found only by driving the real app, after the tests were
+green: the canvas reload had to move into the command, because
+`_on_molecule_changed` compares canonical SMILES and a coordinates-only
+change correctly does not reload. Done once at the call site, adopting
+worked and **Ctrl+Z reverted the model while the canvas kept the adopted
+drawing** — first atom at 17.6739, -6.2560 in both states. An undo that
+visibly does nothing is worse than the change it failed to reverse.
+
+    state            model                canvas               conformers
+    loaded           -0.1507  -2.5113     14.8592  -9.7269     0
+    generated        -0.1507  -2.5113     14.8592  -9.7269     1
+    adopted           2.7760   0.0000     17.6739  -6.2560     1
+    undone           -0.1507  -2.5113     14.8592  -9.7269     1
+    redone            2.7760   0.0000     17.6739  -6.2560     1
+
+**What it does not do is change what anything computes with.** Export and
+every `GEOMETRY` calculator already go through `canonical_conformer`,
+which picks the lowest MMFF energy and not a position in a list, so they
+used a conformer before this existed and use the same one after it. Said
+out loud in the command's docstring, the user guide and a test, because
+"adopt" reads like it should mean more.
+
 ## The pattern
 
 Six of the seven findings are the same failure: **a thing exists, works,
@@ -519,9 +566,12 @@ and has no honest way to be reached or read.** Finding 7 was the sharpest
 form of it -- a "Running..." state that was written, correct, and
 unreachable -- and is now fixed.
 
-**All seven findings are done.** The one declared limit that remains is
+**All eight findings are done.** The one declared limit that remains is
 a plugin's inability to name a section containing an acronym; there are
 no such plugins, and the fallback is correct for everything else.
+
+Finding 8 is the same failure in mirror image: not a thing that could not
+be reached, but a direction that did not exist at all.
 
 **Three of the seven findings had something wrong in them** -- finding
 1's "a registration change, not a code one", finding 3's count and its

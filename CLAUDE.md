@@ -117,14 +117,18 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-9.5 minutes**, ending at `3720 passed, 2 skipped,
-1 deselected` (measured 2026-08-10 on branch `Fix-A`, after the
-navigation-audit work: the calculator-presentation fixes, the periodic
-table merge, the waiting indicator, the section merge, the trajectory
-player, the palette vocabulary and the documentation sweep. +107 over the
-3613 it started from, and every one of those a guard -- the last 18 being
-the doc-currency check widening from 6 of the repo's markdown files to
-15).
+A clean run is **6-9.5 minutes**, ending at `3757 passed, 2 skipped,
+1 deselected` (measured 2026-08-10 on branch `ketcher-overrule`, after
+the Ketcher overrule and the conformer round trip: +24 for intercepting
+Ketcher's duplicated controls and +13 for "Use in 2D Editor", over the
+3720 below).
+
+Before it: 3720 on branch `Fix-A`, after the navigation-audit work: the
+calculator-presentation fixes, the periodic table merge, the waiting
+indicator, the section merge, the trajectory player, the palette
+vocabulary and the documentation sweep. +107 over the 3613 it started
+from, and every one of those a guard -- the last 18 being the
+doc-currency check widening from 6 of the repo's markdown files to 15.
 
 **THE 3-8 MINUTE BAND WAS UNDERSTATED and the spread is real.** Measured
 across eight full runs of essentially the same tree on this machine:
@@ -1379,6 +1383,72 @@ duplicates on screen.
 
 Hit immediately, in a scratchpad script that printed the panel back:
 `UnicodeEncodeError: 'charmap' codec can't encode character '✕'`.
+
+### Reusing a command whose invariants do not apply is not reuse
+
+"Use in 2D Editor" -- the way back from the 3D viewer, which had never
+existed -- was first built on `EditStructureCommand`, because pushing a
+molblock onto the undo stack is exactly what that command is for. It is
+also wrong, and the three ways it is wrong were each invisible to the
+tests and visible in the running app.
+
+`EditStructureCommand.redo` **clears the conformer set**, correctly: a
+structure edit invalidates geometries computed for the old structure.
+Adopting a conformer edits no structure. Measured live: the count went
+1 -> 0, and `_refresh_view` answers an empty list by clearing the backend
+and disabling the button -- so the control **blanked the very viewer it
+lives in** and discarded the set the user had just generated.
+
+The other two are about what a conformer IS, and both are worth knowing
+anywhere a geometry meets a drawing:
+
+    aspirin as drawn                       13 atoms
+    a conformer of it                      21 atoms   embedded after AddHs
+    naively adopted                        21 atoms
+      canonical SMILES becomes  [H]OC(=O)c1c([H])c([H])c([H])c([H])c1...
+
+so the drawing becomes a different structure to everything that compares
+one -- and `select_calculation_input` already records that eight of the
+49 registered calculators return a different number for a molecule
+carrying explicit hydrogens. That is why `DRAWING` is its default.
+
+    closest heavy-atom approach in the drawing
+    case                    proper   conformer x,y   laid out
+    aspirin (flat)           1.500           0.701      1.500
+    cyclohexane (chair)      1.500           1.331      1.500
+    camphor (bicyclic)       0.781           0.476      0.624
+    cholesterol (steroid)    1.500           0.219      1.500
+    sucrose (two rings)      1.500           0.241      1.500
+
+**A conformer's x and y are a projection, not a layout**, and it fails
+worst on exactly the molecules whose 3D geometry is worth having.
+`AllChem.GenerateDepictionMatching3DStructure` lays out a real drawing
+that still follows the 3D orientation. **A test on a FLAT molecule cannot
+see this** -- aspirin projects to something usable by accident -- which
+is why the guard uses cholesterol and asserts the projection really does
+overlap first.
+
+**The fourth defect was found only by driving the app, with every test
+green.** `MoleculeEditorWidget._on_molecule_changed` compares canonical
+SMILES and deliberately ignores a coordinates-only change, so the canvas
+has to be reloaded explicitly -- and doing that at the call site covers
+the button press but NOT undo or redo, neither of which comes back
+through it:
+
+    state       model              canvas             conformers
+    adopted      2.7760   0.0000    17.6739  -6.2560      1
+    undone      -0.1507  -2.5113    17.6739  -6.2560      1   <- disagree
+    undone (fixed)         -0.1507  -2.5113  both          1
+
+The reload belongs in the command, which is the only thing that knows
+about all three transitions.
+
+One mutation SURVIVED and is genuinely equivalent: deriving the drawing
+inside `redo` from the conformer instead of in the constructor produces
+identical bytes, because RDKit's depiction is deterministic. Deriving it
+from `self._molecule.molblock` -- which after an undo is the ORIGINAL
+drawing -- is a real bug and is caught. The distinction is written into
+the test rather than left as a green tick.
 
 ### The command palette introduces no registry, deliberately
 

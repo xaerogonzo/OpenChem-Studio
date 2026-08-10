@@ -119,6 +119,44 @@ def test_molecule_with_no_conformers_reports_none(qapp):
     assert backend.loaded_molblocks == []
 
 
+def test_use_in_2d_editor_offers_the_conformer_that_is_on_screen(qapp):
+    """The way back, and the failure mode it has to avoid.
+
+    Emitting `conformers[0]` works perfectly for anyone who never pressed
+    `>`, and silently hands over the wrong geometry for anyone who did --
+    a redraw that succeeds while describing a different conformer than
+    the one on screen. So this navigates first.
+    """
+    widget, _backend, _bus = _make_widget(qapp)
+    molecule = MoleculeModel(display_name="Test")
+    molecule.conformers = [
+        ConformerModel(molblock="conf-1", method="rdkit"),
+        ConformerModel(molblock="conf-2", method="rdkit"),
+    ]
+    widget.set_molecule(molecule)
+    offered: list[str] = []
+    widget.conformer_adopted.connect(offered.append)
+
+    widget._show_next_conformer()
+    widget._use_button.click()
+
+    assert offered == ["conf-2"]
+
+
+def test_use_in_2d_editor_is_disabled_with_nothing_to_use(qapp):
+    """A button that is present and does nothing is the failure this
+    whole line of work keeps finding -- it is how the duplicated periodic
+    table was reported. Both directions, because a gate that never opens
+    passes an assertion written one way."""
+    widget, _backend, _bus = _make_widget(qapp)
+
+    widget.set_molecule(MoleculeModel(display_name="Empty"))
+    assert not widget._use_button.isEnabled()
+
+    widget.set_molecule(_molecule_with_conformer())
+    assert widget._use_button.isEnabled()
+
+
 def test_highlight_atoms_paints_and_clears(qapp):
     """The viewer half of hover-to-highlight.
 

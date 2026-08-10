@@ -64,6 +64,12 @@ class MoleculeViewer3DWidget(QWidget):
     #: Routing one into the other is the class of bug that crashed on a
     #: hydrogen click; see `_atom_is_in_report` in the inspector.
     crystal_site_clicked = Signal(int)
+    #: The 2D drawing should be redrawn from the conformer on screen.
+    #:
+    #: Carries the molblock rather than an index, so the receiver does not
+    #: have to reach back in and re-derive which conformer was showing --
+    #: the same reason `FactLink` carries its parameters.
+    conformer_adopted = Signal(str)
 
     def __init__(
         self,
@@ -103,6 +109,18 @@ class MoleculeViewer3DWidget(QWidget):
         self._generate_button = QPushButton("Generate Conformers...", self)
         self._generate_button.clicked.connect(self._on_generate_clicked)
 
+        # THE WAY BACK. Structures went one way -- "Send to 3D Viewer Tab"
+        # exists and nothing returned -- so a conformer you had generated
+        # and picked could not become the structure you were working on.
+        self._use_button = QPushButton("Use in 2D Editor", self)
+        self._use_button.setToolTip(
+            "Redraw the 2D structure to match this conformer's geometry, and switch "
+            "to the editor.\n"
+            "The drawing keeps its implicit hydrogens, and the conformers are kept."
+        )
+        self._use_button.clicked.connect(self._on_use_clicked)
+        self._use_button.setEnabled(False)
+
         self._prev_button = QPushButton("<", self)
         self._prev_button.clicked.connect(self._show_previous_conformer)
         self._next_button = QPushButton(">", self)
@@ -116,6 +134,7 @@ class MoleculeViewer3DWidget(QWidget):
         toolbar.addWidget(QLabel("Surface:"))
         toolbar.addWidget(self._surface_combo)
         toolbar.addWidget(self._generate_button)
+        toolbar.addWidget(self._use_button)
         toolbar.addStretch()
         toolbar.addWidget(self._prev_button)
         toolbar.addWidget(self._status_label)
@@ -275,13 +294,35 @@ class MoleculeViewer3DWidget(QWidget):
             )
         )
 
+    def _on_use_clicked(self, _checked: bool = False) -> None:
+        """Hand the conformer on screen back to whoever owns the project.
+
+        The widget does not apply it itself: redrawing the molecule has
+        to be undoable, and the undo stack belongs to the window. Same
+        split as the periodic table's insert.
+
+        **The conformer ON SCREEN, which is `_conformer_index` and not
+        the first one.** Sending `conformers[0]` would work perfectly for
+        anyone who never pressed `>`, and silently redraw the wrong
+        geometry for anyone who did.
+        """
+        if self._molecule is None or not self._molecule.conformers:
+            return
+        conformer = self._molecule.conformers[self._conformer_index]
+        self.conformer_adopted.emit(conformer.molblock)
+
     def _refresh_view(self) -> None:
         if self._molecule is None or not self._molecule.conformers:
             self._backend.clear()
             self._status_label.setText("No conformers")
+            # Enabled only when there is something to adopt. A button that
+            # is present but does nothing is the failure this whole line
+            # of work keeps finding.
+            self._use_button.setEnabled(False)
             return
         conformer = self._molecule.conformers[self._conformer_index]
         self._backend.load_conformer(conformer.molblock)
+        self._use_button.setEnabled(True)
         energy_text = f"{conformer.energy:.2f} kcal/mol" if conformer.energy is not None else "n/a"
         self._status_label.setText(
             f"Conformer {self._conformer_index + 1}/{len(self._molecule.conformers)} - {energy_text}"
