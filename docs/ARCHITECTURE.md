@@ -553,6 +553,44 @@ label says what it is.
 document may cite a file or a test that does not exist.
 
 
+- **OPEN** -- **Two regressions reported in the running app on
+  2026-08-10, at `6c52492`, and NEITHER HAS BEEN INVESTIGATED.** They are
+  recorded here as reported symptoms, in the reporter's own words, so
+  that nobody mistakes a guess for a diagnosis:
+
+      "major problems with all the calculators"
+      "the periodic table no longer shows all the atom drawing,
+       it's reverted to vanilla"
+
+  **The suite is green on the same tree** -- 3613 passed. So these are
+  not suite-visible, which points at runtime or rendering rather than at
+  logic, and this file already records why a drawing regression can hide:
+  `repaint()` on a never-shown widget calls no `paintEvent` at all, so a
+  test can name a painting behaviour without ever exercising it. Use
+  `conftest.painted()` / `ink()` when writing the test that should have
+  caught it.
+
+  **Reproduce before proposing anything.** `OPENCHEM_DRIVE` rather than
+  the mouse, and `OPENCHEM_INSTRUMENT_PANEL=1` for anything about the
+  Properties panel -- an out-of-app Qt harness has already reported the
+  opposite of the app four times for that one panel.
+
+  Three leads, none confirmed, listed newest-change-first rather than
+  most-likely-first:
+
+  - The **Properties panel** is where every calculator renders, and it
+    was changed for the report-row truncation fix (`ExplicitHeightLabel`,
+    a `DontWrapRows` form policy, `_add_wide_row` spanning rows). "All
+    the calculators" fits one panel change better than it fits 49
+    calculators.
+  - **`PeriodicTableDialog`** had its 118 self-capturing cell lambdas
+    replaced during the Qt-disposal work, with the payload moved onto the
+    button as a Qt property. "Reverted to vanilla" is what a lost custom
+    cell paint would look like.
+  - The **mmCIF element-symbol, ligand-copy and protonation fixes**
+    (`87711e6`) landed the same day. They were about docking receptors,
+    but they are in `chem`, so they are in scope for a calculator fault.
+
 - **SETTLED** -- Packaging. `build.ps1` freezes the app with **PyInstaller**
   into a ~650 MB one-directory `dist\OpenChemStudio\`, driven by
   `packaging\openchem.spec`. PyInstaller over Nuitka deliberately: nearly
