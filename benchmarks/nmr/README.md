@@ -170,7 +170,7 @@ An index built before this is detected (`stale_format`) and the user is
 offered a rebuild rather than refused a prediction — a format-1 index
 still answers correctly for the environments it can reach.
 
-## Running it
+## Running it — the shift-model training
 
 Needs `uv sync --group bench` for scikit-learn, and about 45 minutes.
 
@@ -326,7 +326,7 @@ than a real average. One atom did improve enormously (C-5′, 12.52 → 1.66
 ppm) and it was exactly the worst-regret atom, so conformer choice can fix
 an individual bad atom without moving the spectrum.
 
-## Running it
+## Running it — the DELTA50 comparison
 
 Quantum chemistry happens once; every design question after it is
 arithmetic over the same shieldings, which are committed.

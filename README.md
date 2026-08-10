@@ -7,7 +7,7 @@
 A desktop chemistry workbench that draws, visualises, computes, docks and
 names molecules in one offline application.
 
-It combines a 2D structure editor, two 3D viewers, 51 calculators, molecular
+It combines a 2D structure editor, two 3D viewers, 58 calculators, molecular
 docking, quantum chemistry, IR and NMR prediction, batch screening over a
 whole project, regulatory intelligence, and an offline IUPAC naming engine —
 no account, no network, no per-seat licence. What sets it apart is
@@ -52,7 +52,7 @@ binding-site boxes validated by redocking their own crystallographic ligands.
 Per-pose interaction analysis, chain exclusion, and a box that refuses to run
 when it contains no receptor.
 
-**51 calculators across 24 categories** — physicochemical, topological,
+**58 calculators across 26 categories** — physicochemical, topological,
 geometric, surface, medicinal-chemistry, ADMET, quantum, stereochemical and
 regulatory. Each is labelled `empirical` or `ab_initio` where a basis exists
 to state one.
@@ -106,7 +106,7 @@ The honest version of a comparison table: this one is about our own software.
 |---|---|
 | Deterministic offline IUPAC naming | 181/181, [benchmarks/naming/](benchmarks/naming/) |
 | NMR shift prediction with per-band error | 24,280 held-out carbons |
-| Docking with validated binding-site boxes | redocking across 49 receptors |
+| Docking with validated binding-site boxes | 49 curated receptors; redocking 7 of them, 0.16–0.71 Å |
 | 2D editing, 3D visualisation, macromolecules | Ketcher, 3Dmol, Mol\* |
 | Plugin extension without touching the core | [docs/PLUGIN_SDK.md](docs/PLUGIN_SDK.md) |
 | IR spectra with mode character | MAE 27.6 cm⁻¹ scaled, [benchmarks/ir/](benchmarks/ir/) |

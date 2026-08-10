@@ -5,6 +5,76 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+155 commits since 0.9.0. Summarised by capability, matching the entry
+below; the git log is the per-commit record.
+
+### Added
+
+**Crystallography**
+- Open a CIF, draw its unit cell, and report what the structure is.
+- A crystal is a first-class project object — renameable, deletable,
+  undoable — and stores its CIF *text*, so a later reader improvement
+  reaches projects already saved.
+- Clicking a site in the cell answers what that site is: the coordination
+  polyhedron named from real angles, with the tolerance derived from the
+  reference geometries rather than chosen.
+- Lattice energy for salts with complex ions, from formula-unit volume
+  rather than from ionic radii, so nitrates and hexachlorometallates are
+  answerable at all.
+- Ion charges are read from the CIF where the deposit states them.
+
+**Biological assemblies**
+- Read, validate and *build* the assembly a depositor annotated, from
+  both PDB `REMARK 350` and mmCIF `_pdbx_struct_oper_list`.
+- Dock against the built assembly, opt-in and with no silent fallback.
+- An external gate scores what is built against RCSB's own generated
+  assemblies.
+
+**Chemistry**
+- Lewis acid/base adduct prediction on evidence rather than a score, with
+  conceptual-DFT descriptors and ΔSCF (Koopmans inverts the ammonia /
+  phosphine ordering, so it is reported with that caveat attached).
+- Metallocenes drawn the way people actually draw them — bonds from the
+  metal to both rings — are now perceived, by normalising the drawing
+  rather than forking the vendored engine.
+- Oxidation states, built around refusing to answer where it cannot.
+- A molecule analysis engine, with the Structure Check panel as its first
+  consumer.
+
+**Elsewhere**
+- A `?` on every panel, with help search that reads the document text
+  rather than only the headings.
+- A periodic table that answers questions; a Structure menu and context
+  menus; batch operations over the project.
+- Plugins can contribute reaction templates.
+
+### Fixed
+
+- **The same deposit loaded as mmCIF and as PDB was not the same
+  receptor.** Two-letter element symbols (Zn, Cl, Fe, Se, Na) were
+  silently dropped from mmCIF because the element lookup is
+  case-sensitive and the PDB archive writes them uppercase; which copy of
+  a repeated ligand defined the docking box depended on chain labels that
+  mean different things in the two formats; and no hydrogens were added
+  to an mmCIF receptor at all. Prepared-receptor parity across the 48
+  curated targets went from **0 of 48 to 38 of 48**; the remainder differ
+  only in polar hydrogens and nitrogen typing, which is documented rather
+  than claimed fixed. See `docs/VALIDATION.md`.
+- The conformer de-duplication threshold had been calibrated on a
+  molecule whose distance distribution is bimodal, and did not
+  generalise.
+- Results were cached under a key that survived editing the molecule.
+- The docking box was drawn around a ligand that was then left in it.
+- Undo now reaches the panels and the docking poses, not just the
+  project; the undo stack belongs to the document, and unsaved work is
+  asked about.
+- Numerous Qt lifetime bugs that crashed the test suite: self-capturing
+  lambdas leaking their widgets, the undo stack making window destruction
+  fatal, and garbage collection running inside another test's event
+  dispatch.
+
 ## [0.9.0] — 2026-08-04
 
 First public release. The history behind it is 153 commits; this entry

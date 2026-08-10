@@ -92,9 +92,15 @@ ligand that would fit a real, breathing protein can be rejected by a frozen
 one.
 
 **Poses are not affinities**, and a redocking benchmark cannot show
-otherwise. The measured 0.18–0.73 Å centroid displacements say the search
-finds the right *pocket* for ligands that came out of that pocket. They say
+otherwise. The measured 0.16–0.71 Å centroid displacements (plus one
+2.5 Å outlier that is reported rather than hidden) say the search finds
+the right *pocket* for ligands that came out of that pocket. They say
 nothing about a novel ligand's real affinity.
+
+**Vina is run with a random seed**, as it ships. Two runs of the same
+receptor and ligand differ — measured at about 0.03 Å of centroid
+scatter on the redocking set. Do not read a difference smaller than that
+as a difference.
 
 **Receptor preparation changes results, and it is not automatic.** Which
 chains you keep, whether symmetry-generated copies are present, which
@@ -248,6 +254,37 @@ that, and a duplicated receptor silently doubles your binding site.
 the rebuilt geometry is not trustworthy near a binding site, which is
 exactly where docking would rely on it. A gap in a chain stays a gap, and
 the contents dialog shows you it is there.
+
+**The file format you load a structure from can still change the
+answer — slightly.** The same deposit is available from the PDB as
+fixed-column `.pdb` and as `.cif`/`.bcif` (mmCIF), and the app reads both
+through the same chemistry toolkit. That toolkit does not perceive them
+identically.
+
+Most of the gap is closed. Measured across all 48 curated docking targets,
+preparing each from both formats and comparing the atom types Vina is
+handed: **0 of 48 matched before this was chased, 38 of 48 match now.**
+Three causes were found and fixed — two-letter element symbols (Zn, Cl,
+Fe, Se, Na) were silently *dropped* from mmCIF because the element lookup
+is case-sensitive and the archive writes them uppercase; which copy of a
+repeated ligand defined the search box depended on chain labels that mean
+different things in the two formats; and no hydrogens at all were added to
+an mmCIF receptor.
+
+**What remains, and it is not fixed:** 10 of the 48 still differ in polar
+hydrogens and nitrogen typing. No *heavy* atom differs anywhere any more,
+so the structures agree — the protonation does not. **Which of the two is
+right has not been established**, and the more plausible of the two is not
+always the one you would guess. So:
+
+- a docking score from an mmCIF-loaded receptor is not guaranteed
+  bit-identical to one from the same entry loaded as PDB;
+- if you are comparing runs, keep the source format constant;
+- if a result is load-bearing, say which format it came from.
+
+This is the honest state rather than a claim of parity. The app's own
+receptor library downloads `.pdb` and falls back to mmCIF only for entries
+too large for that format, so the common path is consistent by default.
 
 ---
 

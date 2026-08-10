@@ -117,25 +117,68 @@ Centroid rather than symmetry-corrected RMSD deliberately: RMSD needs an
 atom correspondence this does not have, and the question being asked is
 "did it find the right pocket", which a centroid answers.
 
-| PDB | ligand | affinity | centroid shift | target |
-|---|---|---|---|---|
-| 1HSG | MK1 | −10.5 | **0.18 Å** | indinavir / HIV-1 protease |
-| 2RH1 | CAU | −10.1 | **0.35 Å** | carazolol / β2-adrenergic |
-| 1ERE | EST | −10.8 | **0.49 Å** | estradiol / estrogen receptor α |
-| 8ZYO | XB7 | −12.3 | **0.53 Å** | astemizole / hERG |
-| 4DKL | BF0 | −8.4 | **0.71 Å** | β-FNA / μ-opioid |
-| 4EY7 | E20 | −11.1 | **0.73 Å** | donepezil / acetylcholinesterase |
-| 3EML | ZMA | −8.9 | 3.90 Å | ZM241385 / adenosine A2A |
+**The seed is not pinned.** The app runs Vina as shipped, which means a
+random seed, so two runs of the same receptor already differ. The table
+below is therefore three whole runs — one before a change to which
+copy of a multi-copy ligand gets boxed, two after — rather than one
+column of single measurements. **The run-to-run scatter is about
+0.03 Å**, and that is the scale any difference here has to be read
+against.
+
+| PDB | ligand | before | after | after | target |
+|---|---|---|---|---|---|
+| 1HSG | MK1 | 0.17 Å | **0.17 Å** | **0.16 Å** | indinavir / HIV-1 protease |
+| 2RH1 | CAU | 0.39 Å | **0.33 Å** | **0.33 Å** | carazolol / β2-adrenergic |
+| 1ERE | EST | 0.50 Å | **0.46 Å** | **0.48 Å** | estradiol / estrogen receptor α |
+| 8ZYO | XB7 | 0.56 Å | **0.55 Å** | **0.52 Å** | astemizole / hERG |
+| 4DKL | BF0 | 0.83 Å | **0.70 Å** | **0.71 Å** | β-FNA / μ-opioid |
+| 4EY7 | E20 | 0.69 Å | **0.37 Å** | **0.39 Å** | donepezil / acetylcholinesterase |
+| 3EML | ZMA | 2.59 Å | 2.54 Å | 2.48 Å | ZM241385 / adenosine A2A |
+
+All seven land in the same pocket in every arm. 4EY7 is the one real
+movement — 0.69 → 0.37 Å is twenty times the noise, and it is one of the
+entries whose box moved to a more buried copy of its ligand.
 
 The 3EML row is reported rather than hidden: a ligand can move several Å
 within the same pocket and still score well, and the number is more useful
-visible than tidied away.
+visible than tidied away. **An earlier revision of this table recorded
+3.90 Å for it. That does not reproduce** — the before arm above, on
+unchanged code, gives 2.59 Å. Treat the old figure as one draw from a
+wide distribution rather than as something that was repaired.
 
 **What this does not measure:** whether Vina's affinities correspond to real
 binding free energies. They do not, and no redocking experiment can show
 that.
 
 → [`benchmarks/docking/`](../benchmarks/docking/)
+
+### The same deposit in two file formats
+
+A receptor can be loaded as PDB or as mmCIF, and until recently those were
+not the same receptor. Measured by preparing every one of the 48 curated
+targets from **both** formats through the real docking preparation and
+comparing the AutoDock atom-type histogram — which is what Vina scores
+against:
+
+| | receptors with an identical prepared receptor |
+|---|---|
+| before | **0 of 48** |
+| after | **38 of 48** |
+
+Before, aromatic carbon was typed on every PDB receptor and on *no* mmCIF
+one, and the two forms of 6JP5 differed by 3,966 atoms. Three separate
+causes: Open Babel reads mmCIF element symbols case-sensitively while the
+archive writes them uppercase (so every two-letter element — Zn, Cl, Fe,
+Se — was silently dropped); which copy of a repeated ligand got boxed
+depended on chain labels that differ between the formats; and Open Babel
+assigns no implicit hydrogens at all from mmCIF.
+
+**The 10 that still differ do so only in polar hydrogens and nitrogen
+typing.** No heavy atom differs anywhere in the catalogue. That residue is
+a genuine Open Babel perception difference, it is *not* fixed, and **which
+of the two is correct has not been established** — so a receptor loaded as
+mmCIF and the same one loaded as PDB can still be protonated slightly
+differently. If a result matters, note which format you loaded.
 
 ---
 
