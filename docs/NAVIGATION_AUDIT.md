@@ -552,6 +552,23 @@ visibly does nothing is worse than the change it failed to reverse.
     undone           -0.1507  -2.5113     14.8592  -9.7269     1
     redone            2.7760   0.0000     17.6739  -6.2560     1
 
+**A fifth was reported by Alex against the shipped version**, and it is
+the one worth keeping: *"I tried to use a send to 2d editor, and it
+didn't really do anything"*, on a benzobicyclo[2.2.2]octane. Seen down
+its bridgehead axis a bicyclo[2.2.2] cage superimposes its two bridges
+exactly, so a layout that follows the 3D orientation drew the bridge
+underneath itself — closest approach **0.000**, two atoms at the same
+point, and the structure read as a plain fused bicyclic.
+
+**The warning was in the validation set and was explained away.** Camphor
+was the only bridged molecule of the five, it scored worst at 0.624, and
+that was written off as camphor being cramped. Re-measured over 29
+molecules the ratio is sharply bimodal, and the fix is a threshold in the
+0.41-wide gap plus a `follows_geometry` flag the status bar reports.
+Rotating the reference first — the obvious alternative — was measured and
+does not help: the function normalises orientation, and 25 rotations gave
+byte-identical layouts.
+
 **What it does not do is change what anything computes with.** Export and
 every `GEOMETRY` calculator already go through `canonical_conformer`,
 which picks the lowest MMFF energy and not a position in a list, so they

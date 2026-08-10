@@ -66,7 +66,13 @@ class AdoptConformerCommand(OpenChemCommand):
         # an equivalent mutation and no test can catch it. Deriving it
         # from `self._molecule.molblock` -- which after an undo is the
         # original drawing -- is a real bug and is caught.
-        self._new_molblock = engine.drawing_from_conformer(conformer_molblock)
+        drawing = engine.drawing_from_conformer(conformer_molblock)
+        self._new_molblock = drawing.molblock
+        #: False when this molecule's geometry cannot be drawn flat
+        #: without atoms overlapping, so the drawing is a plain layout
+        #: that says nothing about which conformer was chosen. The caller
+        #: is expected to SAY so -- see `ConformerDrawing`.
+        self.follows_geometry = drawing.follows_geometry
 
     def redo(self) -> None:
         self._engine.set_structure_from_molblock(self._molecule, self._new_molblock)

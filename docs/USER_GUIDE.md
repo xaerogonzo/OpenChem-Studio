@@ -167,6 +167,15 @@ It changes the drawing, and only the drawing. What a calculation computes
 with is unaffected: anything needing 3D already uses the lowest-energy
 conformer automatically, and still does.
 
+**Some shapes have no flat orientation, and it will say so.** A
+bicyclo[2.2.2] cage — quinuclidine, DABCO, a benzobicyclo[2.2.2]octane —
+superimposes its two bridges exactly when seen down the bridgehead axis,
+so a drawing that followed the 3D view would put atoms on top of each
+other and hide the bridge. Those get a plain, readable layout instead,
+and the status bar says the layout does not follow the 3D view. Fused
+polycycles are not affected: cholesterol, strychnine, morphine,
+norbornane, adamantane and cubane all keep their orientation.
+
 **Macromolecule Viewer** — Mol\*, for proteins and nucleic acids. Cartoon
 representations, chain colouring, and the receptor-residue highlighting that
 docking interaction analysis feeds.

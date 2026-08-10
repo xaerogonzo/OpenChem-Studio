@@ -1905,9 +1905,19 @@ class MainWindow(QMainWindow):
         # "Use in 2D Editor" would be the navigation-claims-one-thing
         # problem the panel rail exists to avoid.
         self._center_tabs.setCurrentWidget(self._editor)
-        self.statusBar().showMessage(
-            f"{molecule.display_name}: redrawn from the conformer in the 3D viewer.", 5000
-        )
+        # A molecule whose geometry cannot be drawn flat still gets a
+        # correct drawing, and the user still pressed a button asking for
+        # the geometry. Reported as "it didn't really do anything" on a
+        # benzobicyclo[2.2.2]octane, where the honest answer is that this
+        # shape has no flat orientation -- but nothing said so.
+        if command.follows_geometry:
+            message = f"{molecule.display_name}: redrawn from the conformer in the 3D viewer."
+        else:
+            message = (
+                f"{molecule.display_name}: redrawn, but this shape cannot be drawn flat "
+                "without atoms overlapping, so the layout does not follow the 3D view."
+            )
+        self.statusBar().showMessage(message, 8000)
 
     def _insert_element_into_drawing(self, symbol: str) -> None:
         """Arm the 2D editor with an element chosen in the periodic table.

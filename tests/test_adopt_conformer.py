@@ -41,6 +41,11 @@ from openchem.events.base import EventBus
 CHOLESTEROL = "CC(C)CCCC(C)C1CCC2C1(C)CCC1C2CC=C2CC(O)CCC12C"
 ASPIRIN = "CC(=O)Oc1ccccc1C(=O)O"
 
+#: The molecule this was reported broken on -- a benzobicyclo[2.2.2]
+#: octane, C17H25NO2. Its two -CH2CH2- bridges superimpose exactly when
+#: the drawing follows the 3D orientation.
+REPORTED = "COc1cc(C[C@@H](C)N)c2c(c1OC)C1CCC2CC1"
+
 
 @pytest.fixture(scope="module")
 def engine():
@@ -102,7 +107,7 @@ def test_the_drawing_does_not_gain_the_conformers_explicit_hydrogens(engine):
 
     drawing = engine.drawing_from_conformer(conformer)
 
-    assert _atom_count(drawing) == 13
+    assert _atom_count(drawing.molblock) == 13
 
 
 def test_the_canonical_smiles_survives_being_redrawn(engine):
@@ -117,7 +122,7 @@ def test_the_canonical_smiles_survives_being_redrawn(engine):
 
     drawing = engine.drawing_from_conformer(_conformer_molblock(engine, molecule))
 
-    assert engine.molblock_to_smiles(drawing) == before
+    assert engine.molblock_to_smiles(drawing.molblock) == before
 
 
 def test_the_drawing_is_laid_out_rather_than_projected(engine):
@@ -142,7 +147,85 @@ def test_the_drawing_is_laid_out_rather_than_projected(engine):
     drawn = engine.drawing_from_conformer(conformer)
 
     assert projected < 0.5, "cholesterol's projection stopped overlapping -- re-derive this"
-    assert _closest_approach(drawn) >= _closest_approach(molecule.molblock) * 0.75
+    assert _closest_approach(drawn.molblock) >= _closest_approach(molecule.molblock) * 0.75
+    assert drawn.follows_geometry
+
+
+# --- the shape that has no flat orientation ----------------------------------
+
+
+def test_a_symmetric_bridge_falls_back_to_a_readable_layout(engine):
+    """THE DEFECT REPORTED FROM THE RUNNING APP, as "it didn't really do
+    anything" on a benzobicyclo[2.2.2]octane.
+
+    Viewed down the bridgehead-to-bridgehead axis of a bicyclo[2.2.2]
+    system the two bridges superimpose EXACTLY, so a depiction that
+    follows the 3D orientation draws the bridge underneath itself. The
+    structure then reads as a plain fused bicyclic, and RDKit logs
+    "ambiguous stereochemistry - overlapping neighbors" -- which is what
+    named this in the user's log.
+
+    Measured closest approach of the oriented layout: **0.000**. Two
+    atoms at identical coordinates.
+    """
+    molecule = _molecule(engine, REPORTED)
+    conformer = _conformer_molblock(engine, molecule)
+
+    drawing = engine.drawing_from_conformer(conformer)
+
+    assert not drawing.follows_geometry, "the degenerate layout was accepted"
+    # And what came back is genuinely readable, not merely flagged.
+    assert _closest_approach(drawing.molblock) > 0.5
+
+
+def test_the_degenerate_layout_really_is_degenerate(engine):
+    """Asserts the DEFECT, so this stops being a workaround if RDKit ever
+    starts laying these out sensibly -- the same reason the Open Babel
+    element test asserts Open Babel's own bug.
+
+    Without it, the guard above would keep passing on a fallback that had
+    become unnecessary, and nobody would know.
+    """
+    from rdkit.Chem import AllChem
+
+    molecule = _molecule(engine, REPORTED)
+    heavy = Chem.RemoveHs(
+        Chem.MolFromMolBlock(_conformer_molblock(engine, molecule), removeHs=False)
+    )
+    oriented = Chem.Mol(heavy)
+    AllChem.GenerateDepictionMatching3DStructure(oriented, heavy)
+
+    assert _closest_approach(Chem.MolToMolBlock(oriented)) < 0.01
+
+
+def test_the_readable_layout_threshold_sits_between_the_two_populations(engine):
+    """A constant with two measured bounds is not a taste question.
+
+    Across 29 molecules the ratio is sharply bimodal: five symmetric
+    bridges at 0.000, then tropinone 0.239 and morphine 0.392, then a
+    0.41-wide gap, then camphor 0.799 and twenty at 1.000. Any value in
+    [0.40, 0.79] separates them identically, so leaving that window is a
+    decision rather than a tweak -- and this fails naming it.
+    """
+    from openchem.chem.engine import READABLE_LAYOUT_FRACTION
+
+    assert 0.40 <= READABLE_LAYOUT_FRACTION <= 0.79
+
+
+def test_a_fused_polycycle_still_keeps_its_orientation(engine):
+    """The fallback must not swallow the feature.
+
+    A test that only checked the bridged case would pass just as happily
+    against a `drawing_from_conformer` that had given up and always
+    returned a plain layout -- which is the whole feature gone. Morphine
+    and strychnine are polycyclic and NOT degenerate; cholesterol keeps
+    its orientation at ratio 1.000.
+    """
+    molecule = _molecule(engine, CHOLESTEROL)
+
+    drawing = engine.drawing_from_conformer(_conformer_molblock(engine, molecule))
+
+    assert drawing.follows_geometry
 
 
 # --- the command -------------------------------------------------------------

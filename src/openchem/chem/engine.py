@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+import math
+from dataclasses import dataclass
 
 from rdkit import Chem
 from rdkit.Chem import AllChem, rdMolTransforms
@@ -48,6 +50,63 @@ HEATMAP_GRID_PADDING = 0.5
 HEATMAP_FILL_THRESHOLD = 0.05
 
 
+#: How readable an orientation-following depiction has to be, as a
+#: fraction of the closest approach in the plain depiction of the same
+#: molecule, before it is preferred to the plain one.
+#:
+#: **Bracketed by measurement, not chosen by feel**, across 29 molecules
+#: from benzene to strychnine. The ratio is sharply bimodal and the
+#: threshold sits in the largest gap in the whole set:
+#:
+#:     0.000  bicyclo[2.2.2]octane, quinuclidine, DABCO, barrelene, and
+#:            the benzobicyclo[2.2.2]octane this was reported on
+#:     0.239  tropinone
+#:     0.392  morphine
+#:            <-- the gap, 0.41 wide
+#:     0.799  camphor
+#:     1.000  twenty others, norbornane / adamantane / cubane / strychnine
+#:            among them
+#:     1.388  sucrose, where the oriented layout is BETTER than the plain
+#:
+#: Anything in [0.40, 0.79] separates the two populations identically;
+#: `test_the_readable_layout_threshold_sits_between_the_two_populations`
+#: fails if it leaves that window.
+READABLE_LAYOUT_FRACTION = 0.6
+
+
+@dataclass(frozen=True)
+class ConformerDrawing:
+    """A drawing made from a conformer, and whether it kept its orientation.
+
+    The flag is not a detail: when it is False the drawing is a correct
+    depiction of the right molecule that says nothing about the conformer
+    chosen, and the user pressed a button asking for exactly that. Saying
+    so is the difference between "this molecule cannot show its geometry
+    flat" and "the button did nothing".
+    """
+
+    molblock: str
+    follows_geometry: bool
+
+
+def _closest_approach(mol: Chem.Mol) -> float:
+    """Smallest distance between any two atoms in the 2D layout.
+
+    How readable a depiction is, in one number. A normal bond is 1.5 in
+    these units; two atoms at 0.0 are drawn on top of each other.
+    """
+    conformer = mol.GetConformer()
+    points = [conformer.GetAtomPosition(i) for i in range(mol.GetNumAtoms())]
+    return min(
+        (
+            math.hypot(points[i].x - points[j].x, points[i].y - points[j].y)
+            for i in range(len(points))
+            for j in range(i + 1, len(points))
+        ),
+        default=0.0,
+    )
+
+
 class InvalidStructureError(ValueError):
     """Raised when a molblock/SMILES cannot be parsed into a valid RDKit Mol."""
 
@@ -85,7 +144,7 @@ class ChemistryEngine:
     def mol_to_molblock(self, mol: Chem.Mol) -> str:
         return Chem.MolToMolBlock(mol)
 
-    def drawing_from_conformer(self, molblock: str) -> str:
+    def drawing_from_conformer(self, molblock: str) -> ConformerDrawing:
         """A 2D drawing of a 3D conformer: heavy atoms, laid out to match it.
 
         A conformer cannot simply BE a drawing, for two measured reasons.
@@ -108,23 +167,42 @@ class ChemistryEngine:
         whose orientation still follows the 3D one, which is the point of
         bringing it across at all.
 
-            case                    drawn   projected   matched
-            aspirin (flat)          1.500       0.701     1.500
-            cyclohexane (chair)     1.500       1.331     1.500
-            camphor (bicyclic)      0.781       0.476     0.624
-            cholesterol (steroid)   1.500       0.219     1.500
-            sucrose (two rings)     1.500       0.241     1.500
+        **AND THAT LAYOUT IS ITSELF DEGENERATE FOR A SYMMETRIC BRIDGE,
+        which is why the result is checked rather than trusted.** Viewed
+        down the bridgehead-to-bridgehead axis of a bicyclo[2.2.2]
+        system the two bridges superimpose EXACTLY, and a depiction that
+        follows the 3D orientation reproduces that faithfully: measured
+        closest approach **0.000** -- two atoms at identical coordinates
+        -- for bicyclo[2.2.2]octane, quinuclidine, DABCO and barrelene.
+        Reported from the running app on a benzobicyclo[2.2.2]octane,
+        where the bridge was drawn underneath itself so the structure
+        read as a plain fused bicyclic, and RDKit logged "ambiguous
+        stereochemistry - overlapping neighbors" twice.
 
-        (Closest approach between any two heavy atoms. Camphor is
-        bicyclic and its ORDINARY depiction is already 0.781, so 0.624 is
-        that molecule being cramped rather than this being wrong.) The
-        canonical SMILES is unchanged on all five, which is what makes
-        the result adoptable at all.
+        So the oriented layout is used only when it is about as readable
+        as the plain one, and `follows_geometry` says which was used. It
+        is NOT a "bridged" test -- norbornane, adamantane, cubane and
+        strychnine all keep their orientation; it is the symmetric
+        two-bridge case that collapses.
+
+        **ROTATING THE REFERENCE FIRST DOES NOT HELP**, which is the
+        obvious idea and was measured before the fallback was accepted:
+        the degeneracy looks like a viewpoint problem, since a
+        bicyclo[2.2.2] only superimposes seen down its bridge axis.
+        `GenerateDepictionMatching3DStructure` normalises orientation
+        internally, so all 25 combinations of rotating the conformer by
+        0-90 degrees about two axes returned byte-identical layouts --
+        0.000 every time, for all five degenerate cases. The fallback is
+        the only answer this function leaves.
         """
         heavy = Chem.RemoveHs(self.mol_from_molblock(molblock))
-        depiction = Chem.Mol(heavy)
+
+        plain = Chem.Mol(heavy)
+        AllChem.Compute2DCoords(plain)
+
+        oriented = Chem.Mol(heavy)
         try:
-            AllChem.GenerateDepictionMatching3DStructure(depiction, heavy)
+            AllChem.GenerateDepictionMatching3DStructure(oriented, heavy)
         except (ValueError, RuntimeError):
             # A plain depiction is still a correct drawing of the same
             # structure -- it just no longer echoes the 3D orientation.
@@ -134,9 +212,16 @@ class ChemistryEngine:
                 "Could not orient the drawing to the conformer; laying it out plainly.",
                 exc_info=True,
             )
-            depiction = Chem.Mol(heavy)
-            AllChem.Compute2DCoords(depiction)
-        return Chem.MolToMolBlock(depiction)
+            return ConformerDrawing(Chem.MolToMolBlock(plain), follows_geometry=False)
+
+        readable = _closest_approach(plain)
+        if _closest_approach(oriented) < READABLE_LAYOUT_FRACTION * readable:
+            logger.info(
+                "The conformer's orientation cannot be drawn without overlap; "
+                "using a plain layout instead."
+            )
+            return ConformerDrawing(Chem.MolToMolBlock(plain), follows_geometry=False)
+        return ConformerDrawing(Chem.MolToMolBlock(oriented), follows_geometry=True)
 
     def molblock_to_smiles(self, molblock: str) -> str:
         """Isomeric SMILES for a structure held as a molblock.

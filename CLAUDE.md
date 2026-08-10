@@ -117,11 +117,12 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-9.5 minutes**, ending at `3757 passed, 2 skipped,
+A clean run is **6-9.5 minutes**, ending at `3761 passed, 2 skipped,
 1 deselected` (measured 2026-08-10 on branch `ketcher-overrule`, after
 the Ketcher overrule and the conformer round trip: +24 for intercepting
-Ketcher's duplicated controls and +13 for "Use in 2D Editor", over the
-3720 below).
+Ketcher's duplicated controls and +17 for "Use in 2D Editor", four of
+those seventeen added after it was reported broken on a bridged cage,
+over the 3720 below).
 
 Before it: 3720 on branch `Fix-A`, after the navigation-audit work: the
 calculator-presentation fixes, the periodic table merge, the waiting
@@ -1427,6 +1428,49 @@ that still follows the 3D orientation. **A test on a FLAT molecule cannot
 see this** -- aspirin projects to something usable by accident -- which
 is why the guard uses cholesterol and asserts the projection really does
 overlap first.
+
+#### AND THAT LAID-OUT COLUMN IS ITSELF DEGENERATE FOR A SYMMETRIC BRIDGE
+
+The table above shipped, and was reported broken the same day: "I tried
+to use a send to 2d editor, and it didn't really do anything", on a
+benzobicyclo[2.2.2]octane. **Camphor's 0.624 was the warning and it was
+explained away** as that molecule being cramped -- it was the only
+bridged case in a five-molecule set, and it scored worst.
+
+Seen down the bridgehead-to-bridgehead axis of a bicyclo[2.2.2] system
+the two `-CH2CH2-` bridges superimpose EXACTLY, and a depiction that
+follows the 3D orientation reproduces that faithfully. Measured over 29
+molecules, as the ratio of the oriented layout's closest approach to the
+plain depiction's:
+
+    0.000  bicyclo[2.2.2]octane, quinuclidine, DABCO, barrelene, and the
+           reported benzobicyclo[2.2.2]octane   <- two atoms AT THE SAME POINT
+    0.239  tropinone
+    0.392  morphine
+           <-- the gap, 0.41 wide, the largest in the set
+    0.799  camphor
+    1.000  twenty others, norbornane / adamantane / cubane / strychnine
+           among them
+    1.388  sucrose, where the oriented layout BEATS the plain one
+
+So it is **not** a "bridged" test -- norbornane and adamantane are fine.
+It is the symmetric two-bridge case. The tell in a user's log is RDKit's
+`Warning: ambiguous stereochemistry - overlapping neighbors`, which is it
+saying two atoms share a coordinate.
+
+`READABLE_LAYOUT_FRACTION = 0.6` sits in that gap and a guard fails if it
+leaves `[0.40, 0.79]`. Below it the plain layout is used and
+`ConformerDrawing.follows_geometry` is False, which the status bar says
+out loud -- a correct drawing that ignores the conformer is exactly the
+"did nothing" the report was about, so it has to announce itself.
+
+**ROTATING THE REFERENCE FIRST DOES NOT HELP.** The obvious reading is
+that this is a viewpoint problem, since the cage only superimposes along
+one axis. `GenerateDepictionMatching3DStructure` normalises orientation
+internally: all 25 combinations of rotating the conformer 0-90 degrees
+about two axes returned byte-identical layouts, 0.000 every time, on all
+five degenerate cases. Measured before accepting the fallback, because
+"why not just rotate it" is the first thing anybody will ask.
 
 **The fourth defect was found only by driving the app, with every test
 green.** `MoleculeEditorWidget._on_molecule_changed` compares canonical
