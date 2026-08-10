@@ -1106,6 +1106,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="crippen_logp_contrib",
+        tags=['logp', 'lipophilicity', 'partition', 'crippen', 'per-atom'],
         display_name="LogP Contribution",
         category="lipophilicity",
         description="Per-atom Crippen LogP contribution -- which atoms increase vs. decrease LogP.",
@@ -1116,6 +1117,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="crippen_mr_contrib",
+        tags=['refractivity', 'polarizability', 'crippen', 'per-atom'],
         display_name="Molar Refractivity Contribution",
         category="electronic",
         description="Per-atom Crippen molar refractivity contribution.",
@@ -1126,6 +1128,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="admet_ml",
+        tags=['admet', 'toxicity', 'herg', 'cyp', 'ames', 'absorption', 'metabolism'],
         parameters=[
             decimal_places_parameter(),
             CalculatorParameter(
@@ -1156,6 +1159,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="pka",
+        tags=['pka', 'acidity', 'basicity', 'ionisation', 'ionization', 'ph'],
         parameters=[decimal_places_parameter()],
         display_name="pKa",
         category="pka",
@@ -1168,6 +1172,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="logd",
+        tags=['logd', 'lipophilicity', 'partition', 'ph', 'distribution'],
         display_name="LogD (pH-dependent)",
         category="lipophilicity",
         description=(

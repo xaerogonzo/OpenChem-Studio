@@ -112,12 +112,33 @@ def test_the_phase_geometry_calculators_are_registered_and_filed():
         assert definition.category, f"{calculator_id} has no category to file it under"
 
 
-def test_registered_calculators_carry_tags():
-    """Tags exist to make ~15 calculators searchable. A definition without
-    them still works, but the Phase 26 batch should have them."""
+def test_every_searchable_calculator_carries_tags():
+    """Tags are how the command palette finds a calculator by anything
+    other than its display name, so an untagged one is reachable only by
+    people who already know what it is called.
+
+    **THIS USED TO NAME TWO CALCULATORS AND PASS WHILE FIVE HAD NONE** --
+    including `admet_ml`, where the consequence was that searching
+    "toxicity" returned "Toggle Explicit Hydrogens" (the palette's
+    subsequence tier answering with noise) and the actual toxicity
+    calculator did not appear at all. Two hand-picked examples cannot see
+    that; the whole registry can.
+
+    ServiceExecution entries are excluded because the palette excludes
+    them -- Docking and the ORCA jobs run from their own panels, and
+    offering them here would produce a click that raises.
+    """
+    from openchem.domain.calculator import RegistryExecution
+
     registry = build_service_container().calculator_registry
-    assert registry.get("topology_analysis").tags
-    assert registry.get("interaction_analysis").tags
+    untagged = sorted(
+        definition.calculator_id
+        for category in registry.categories()
+        for definition in registry.by_category(category)
+        if isinstance(definition.execution, RegistryExecution) and not definition.tags
+    )
+
+    assert not untagged, f"{untagged} can only be found by their exact display name"
 
 
 def test_phase27_and_28_calculators_are_registered():

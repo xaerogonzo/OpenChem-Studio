@@ -681,6 +681,42 @@ could hide.
 
 ## Crystal structures
 
+### A crystal has to be MEASURED. You cannot get one from a SMILES.
+
+Stated first because it is the question people actually arrive with —
+"how do I turn the SMILES for table salt into a crystallography
+structure" — and because the honest answer is no, in a way that is easy
+to mistake for a missing feature.
+
+**Going from a molecular graph to a lattice is crystal structure
+prediction**, and it is an open research problem, not a menu item this
+app is missing. It means searching the space of packing arrangements and
+ranking them by lattice energy, where the relevant energy differences
+between real polymorphs are often under 1 kJ/mol — smaller than the error
+of the methods doing the ranking. Blind tests run by the CCDC have been
+the field's benchmark for it precisely because the answer is so often
+wrong. Nothing in this application attempts it, and a tool that produced
+a lattice from a SMILES without saying which of those assumptions it had
+made would be worse than one that declines.
+
+So a crystal enters this app **only as a measured structure**, through
+`File ▸ Import Crystal Structure...`, which reads a CIF. Where CIFs come
+from:
+
+| source | covers | access |
+| --- | --- | --- |
+| COD (Crystallography Open Database) | small molecules, minerals | open |
+| ICSD | inorganic, including simple salts | subscription |
+| CCDC / CSD | organic and metal-organic | subscription |
+| RCSB PDB | macromolecules, as mmCIF | open |
+
+Sodium chloride is in COD, which is where the two CIFs in
+`tests/fixtures/cif` came from.
+
+**What this app then does with it is read it, not refine it.** Everything
+below is about a structure somebody else measured, and none of it
+improves on the deposited coordinates.
+
 A periodic solid is **not a molecule**, and `domain/crystal.py` does not
 inherit from the molecule model in either direction. Most molecular
 calculators mean nothing for one — a molecular weight, a logP, a

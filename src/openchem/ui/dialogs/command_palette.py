@@ -48,6 +48,23 @@ class Command:
     #: between a panel, a calculator and a menu item.
     source: str
     run: Callable[[], None]
+    #: Other words that should find this, none of them shown.
+    #:
+    #: **THE PALETTE USED TO SEARCH DISPLAY NAMES ONLY**, which made it
+    #: useless for the vocabulary people actually arrive with. Measured
+    #: against the real ranker before this existed:
+    #:
+    #:     cif        -> "Scientific Limitations", "Open Plugins Folder"
+    #:     toxicity   -> "Toggle Explicit Hydrogens"
+    #:     pdb        -> "Periodic Table..."
+    #:     sdf, xyz, mmcif, protein, lattice, spectrum, energy -> NOTHING
+    #:
+    #: The first three are the subsequence tier answering with confident
+    #: noise, which is worse than an empty list: it looks like the app
+    #: considered the question. Keywords are what let a real match outrank
+    #: that, and 45 of the 58 calculators already carry `tags` that were
+    #: being ignored entirely.
+    keywords: tuple[str, ...] = ()
 
 
 def score(query: str, text: str) -> int:
@@ -87,6 +104,27 @@ def score(query: str, text: str) -> int:
     return 100 - len(hay)
 
 
+#: A keyword match scores below every LABEL tier, so a command named for
+#: what you typed always wins. "Batch" the panel must beat a calculator
+#: that merely lists "batch" among its tags, whatever the tiers would say
+#: about the two strings on their own.
+#:
+#: Above the label's SUBSEQUENCE tier (100 - len) on purpose, though: a
+#: real keyword hit is a better answer than "toxicity" reaching "Toggle
+#: Explicit Hydrogens" one letter at a time.
+_KEYWORD_CEILING = 250
+
+
+def _command_score(query: str, command: Command) -> int:
+    """The best of the label and the keywords, keywords capped."""
+    best = score(query, command.label)
+    for keyword in command.keywords:
+        matched = score(query, keyword)
+        if matched > 0:
+            best = max(best, min(matched, _KEYWORD_CEILING))
+    return best
+
+
 def rank(query: str, commands: list[Command]) -> list[Command]:
     """The matching commands, best first.
 
@@ -95,7 +133,7 @@ def rank(query: str, commands: list[Command]) -> list[Command]:
     survives into the list. Python's sort is stable, which is what makes
     that free.
     """
-    scored = [(score(query, c.label), c) for c in commands]
+    scored = [(_command_score(query, c), c) for c in commands]
     matching = [(s, c) for s, c in scored if s > 0]
     matching.sort(key=lambda pair: -pair[0])
     return [c for _s, c in matching]

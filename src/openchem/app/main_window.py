@@ -120,6 +120,47 @@ def _bind(method, argument):
 #: the reason `empty_state.py` records at length.
 _MENU_SOURCE_PROPERTY = "openchem_menu_source"
 
+#: Menu label -> other words that should find it in the command palette.
+#:
+#: **THE FILE FORMATS ARE THE POINT.** Somebody arrives holding a `.cif`
+#: and types "cif"; before this the palette answered "Scientific
+#: Limitations" and "Open Project Plugins Folder", because its only index
+#: was the display name and the subsequence tier will match almost
+#: anything. Measured against the real ranker: `sdf`, `xyz`, `mmcif`,
+#: `protein`, `lattice` and `unit cell` returned NOTHING, and `pdb`
+#: returned "Periodic Table...".
+#:
+#: Calculators need no entry here -- they carry `tags`, which the palette
+#: now reads. This map exists only because a `QAction` has nowhere to put
+#: one, and it is deliberately small: format names and the domain word
+#: for features whose label is a different word entirely.
+#:
+#: A HAND-WRITTEN MAP KEYED ON A LABEL IS THE SHAPE THAT ROTS -- it is
+#: how `inapplicable_calculators` went 22-of-49 correct -- so
+#: `test_every_menu_keyword_names_a_live_action` fails if a key stops
+#: matching a real menu item, naming the stale key.
+_MENU_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "Import Molecule...": ("molfile", "sdf", "sdfile", "xyz", "smi", "open structure"),
+    "Export Molecule...": ("molfile", "sdf", "xyz", "save structure"),
+    "Import Macromolecule...": ("pdb", "mmcif", "protein", "receptor", "biomolecule"),
+    "Import Crystal Structure...": ("cif", "mmcif", "lattice", "unit cell", "solid", "xrd"),
+    "Receptor Library...": ("pdb", "protein", "target", "docking"),
+    "Periodic Table...": ("element", "isotope", "atomic number", "electron configuration"),
+    "Identify Structure Online...": ("pubchem", "lookup", "search online", "name"),
+    "External Tools...": ("orca", "vina", "sidecar", "executable", "path"),
+    "Check Structure...": ("valence", "sanitise", "sanitize", "validate", "problems"),
+    # `crystal`, `cif` and `smiles` deliberately point HERE as well as at
+    # the importer. "How do I turn a SMILES into a crystal structure" is a
+    # question with a real answer -- you cannot, it has to be measured --
+    # and that answer now opens this document rather than living nowhere.
+    # The importer still wins the ranking, because its LABEL matches and a
+    # keyword never outranks a label.
+    "Scientific Limitations": (
+        "cannot", "caveat", "accuracy", "trust", "limits",
+        "crystal", "cif", "smiles", "lattice", "polymorph", "prediction",
+    ),
+}
+
 _LAYOUT_VERSION = "2"
 _LAYOUT_VERSION_KEY = "ui/layout_version"
 
@@ -555,6 +596,15 @@ class MainWindow(QMainWindow):
                         label=definition.display_name,
                         source="Calculator",
                         run=_bind(self._run_calculator_by_id, definition.calculator_id),
+                        # FREE, AND WAS BEING THROWN AWAY. 45 of the 58
+                        # calculators already carry tags -- 94 distinct
+                        # ones, including `energy`, `screening`,
+                        # `database`, `experimental` -- and the palette
+                        # searched display names only, so none of that
+                        # vocabulary reached anybody. Derived from the
+                        # registry, so a new calculator's tags are
+                        # searchable the moment it registers.
+                        keywords=tuple(definition.tags or ()),
                     )
                 )
 
@@ -571,7 +621,14 @@ class MainWindow(QMainWindow):
         for label, source, action in self._menu_actions():
             if label in panel_labels:
                 continue
-            commands.append(Command(label=label, source=source, run=action.trigger))
+            commands.append(
+                Command(
+                    label=label,
+                    source=source,
+                    run=action.trigger,
+                    keywords=_MENU_KEYWORDS.get(label, ()),
+                )
+            )
         return commands
 
     def _menu_actions(self) -> list[tuple[str, str, object]]:
@@ -968,6 +1025,16 @@ class MainWindow(QMainWindow):
         tools_menu = self.menuBar().addMenu("&Tools")
         tools_menu.addAction("Periodic Table...", self._show_periodic_table)
         tools_menu.addAction("Identify Structure Online...", self._identify_structure)
+        # THE ONLY DOOR THIS FEATURE HAS OTHERWISE IS A BUTTON INSIDE THE
+        # BATCH PANEL, which means it is in no menu and therefore in no
+        # palette either -- the palette indexes panels, calculators and
+        # the menu bar, and this is none of the three. Measured before
+        # this line existed: searching "screening" or "virtual" returned
+        # NOTHING, so a whole feature was reachable only by knowing where
+        # it already was. `_show_virtual_screening` opens the same dialog
+        # the Batch panel's button does; the button stays, because that is
+        # where somebody with a table in front of them will reach for it.
+        tools_menu.addAction("Virtual Screening...", self._show_virtual_screening)
         tools_menu.addAction("External Tools...", self._show_external_tools_dialog)
 
         self._plugins_menu = self.menuBar().addMenu("&Plugins")

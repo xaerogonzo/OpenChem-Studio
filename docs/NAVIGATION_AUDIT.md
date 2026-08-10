@@ -123,7 +123,7 @@ names the category, so several of these are carrying their category in
 their own name as well — "NMR Shifts (experimental database)" sits under
 a heading that says NMR.
 
-## Finding 4 — features with one door, and no sign pointing at it
+## Finding 4 — SOLVED: one door, and the wrong word finds nothing
 
 **A crystal can only arrive through `File ▸ Import Crystal Structure...`**
 and it must already be a CIF. This is the honest answer to "how do I turn
@@ -134,9 +134,73 @@ not a missing menu item. What is missing is anywhere that *says* so.
 Nothing in the app connects "I have a SMILES" to "you need a CIF, and
 here is where they come from".
 
-The same shape, less severely: the Receptor Library, virtual screening
-and batch analysis each have exactly one entry point and no cross-link
-from the place a user would be standing when they wanted them.
+**PART OF THE ORIGINAL FINDING WAS WRONG AND IS CORRECTED HERE.** It
+said the Receptor Library and batch analysis each had "exactly one entry
+point". Measured against the live palette, both are findable: the
+Receptor Library is a File menu item, and the Batch panel is on the rail.
+The palette indexes panels, calculators and the menu bar, so anything in
+one of those has a second door for free -- a mitigation the audit failed
+to weigh.
+
+**Virtual Screening really did have one door**: a button inside the Batch
+panel, in no menu and therefore in no palette. Searching "screening" or
+"virtual" returned NOTHING. It has a Tools entry now; the button stays,
+because that is where somebody with a table in front of them reaches.
+
+### The real gap was VOCABULARY, and it was worse than a missing door
+
+The palette searched display names only. Measured against its own ranker:
+
+    cif        -> "Scientific Limitations", "Open Project Plugins Folder"
+    pdb        -> "Periodic Table..."
+    toxicity   -> "Toggle Explicit Hydrogens"
+    sdf xyz mmcif protein lattice "unit cell" energy spectrum -> NOTHING
+
+The first three are the subsequence tier answering with confident
+nonsense, which is **worse than an empty list**: it looks like the app
+considered the question. Someone arriving with a `.cif` file was told
+about Scientific Limitations.
+
+`Command.keywords` fixes it from two sources, only one hand-written:
+
+- **Calculator `tags`, which already existed and were being ignored** --
+  45 of 58 carried them, 94 distinct, and the palette read none. Derived
+  from the registry, so a new calculator is searchable by its tags the
+  moment it registers. The other 5 registry calculators had NO tags at
+  all, `admet_ml` among them, which is why "toxicity" found nothing real;
+  they are tagged now and a derived guard fails if any goes untagged.
+- **A small map for menu actions**, because a `QAction` has nowhere to
+  put one. Keyed on the label, which is the shape that rots, so
+  `test_every_menu_keyword_names_a_live_action` fails naming the stale
+  key.
+
+A keyword never outranks a label match -- "Batch" the panel still beats a
+calculator merely tagged `batch` -- but it does outrank the subsequence
+tier, which is what demotes the noise. After:
+
+    cif       -> Import Crystal Structure...   (then Scientific Limitations)
+    pdb       -> Import Macromolecule...
+    toxicity  -> ADMET (hERG, CYP, Ames, ADME)
+    virtual   -> Virtual Screening...
+    sdf xyz mmcif protein lattice "unit cell" energy -> all correct
+
+`solubility` still returns nothing: ESOL is a DESCRIPTOR, and descriptors
+are not in the palette at all. That is a real remaining gap, left rather
+than papered over.
+
+### The crystal question now has a written answer
+
+"How do I turn the SMILES for table salt into a crystallography
+structure" is answered in `docs/SCIENTIFIC_LIMITATIONS.md`, as the FIRST
+thing under Crystal structures: you cannot, it has to be measured,
+because crystal structure prediction is an open research problem where
+real polymorphs differ by less than the error of the methods ranking
+them. It names where CIFs come from (COD, ICSD, CCDC, RCSB) and that the
+fixtures in this repo came from COD.
+
+`crystal`, `cif` and `smiles` point at that document as well as at the
+importer, so the question reaches the answer. The importer still ranks
+first, because a keyword never beats a label.
 
 ## Finding 5 — SOLVED: a result type with no view
 
@@ -271,8 +335,9 @@ and has no honest way to be reached or read.** Finding 7 was the sharpest
 form of it -- a "Running..." state that was written, correct, and
 unreachable -- and is now fixed.
 
-Findings 1, 5, 6 and 7 are done. 2 is closed for everything we ship (the
-fallback stays for plugins). 3 and 4 are open. None of them is a chemistry bug and none was visible to 3613
+Findings 1, 4, 5, 6 and 7 are done. 2 is closed for everything we ship
+(the fallback stays for plugins). 3 is open, and so is the descriptor
+half of 4 -- descriptors are not searchable at all. None of them is a chemistry bug and none was visible to 3613
 passing tests, because a test asserts that a value is correct and never
 that a person could find it.
 
