@@ -161,6 +161,29 @@ _MENU_KEYWORDS: dict[str, tuple[str, ...]] = {
     ),
 }
 
+def _descriptor_names() -> list[tuple[str, str]]:
+    """(descriptor_id, display name) for every computed property.
+
+    Both spec tables, because the providers publish from both and a
+    reader looking for "Radius of Gyration" does not know or care that
+    the shape descriptors live in a second list.
+
+    Imported here rather than at module scope: `tests/test_layering.py`
+    forbids a `ui/` module importing RDKit, and `descriptor_providers`
+    pulls it in at import time. `app/` is not `ui/`, but keeping the
+    chemistry import inside the function is the same courtesy and costs
+    nothing -- this runs once per palette open.
+    """
+    from openchem.chem.descriptor_providers import (
+        _DESCRIPTOR_SPECS,
+        _SHAPE_DESCRIPTOR_SPECS,
+    )
+
+    return [(spec[0], spec[1]) for spec in _DESCRIPTOR_SPECS] + [
+        (spec[0], spec[1]) for spec in _SHAPE_DESCRIPTOR_SPECS
+    ]
+
+
 _LAYOUT_VERSION = "2"
 _LAYOUT_VERSION_KEY = "ui/layout_version"
 
@@ -608,6 +631,37 @@ class MainWindow(QMainWindow):
                     )
                 )
 
+        # PROPERTIES, WHICH CANNOT BE RUN AND SO HAD NO COMMANDS AT ALL.
+        #
+        # The palette's three indexes are all things you DO, and a
+        # descriptor is not one -- the 36 of them are computed as a batch
+        # when a molecule is selected. So the palette knew nothing about
+        # Aqueous Solubility, QED, Lipinski, Veber, Ghose, Egan, Pfizer
+        # 3/75 or GSK 4/400, and searching "solubility" returned nothing.
+        # Recorded as the open remainder of finding 4 in
+        # `docs/NAVIGATION_AUDIT.md`; this closes it.
+        #
+        # The action is to REVEAL the row, which is exactly what a palette
+        # is for -- the value is already on screen somewhere, possibly a
+        # thousand pixels down inside a collapsed section. Nothing is
+        # computed: an entry that silently started work would be the
+        # surprise this panel refuses elsewhere.
+        #
+        # Read from the same two spec tables the providers publish from,
+        # so a new descriptor is searchable the moment it exists.
+        for descriptor_id, name in _descriptor_names():
+            commands.append(
+                Command(
+                    label=name,
+                    source="Property",
+                    run=_bind(self._reveal_descriptor, descriptor_id),
+                    # The id, because it is the short handle people carry:
+                    # "esol", "qed", "bbb", "npr1". The display name covers
+                    # the long form.
+                    keywords=(descriptor_id,),
+                )
+            )
+
         # A dock's `toggleViewAction` sits in the View menu under the same
         # name as its panel, so every panel would appear twice. The panel
         # command is strictly the better one -- it SHOWS the panel, where
@@ -630,6 +684,18 @@ class MainWindow(QMainWindow):
                 )
             )
         return commands
+
+    def _reveal_descriptor(self, descriptor_id: str) -> None:
+        """Show the Properties panel and scroll to one computed value.
+
+        Routed through the window rather than the palette reaching into
+        the panel, for the reason `_on_atom_fact_link` gives: the panel
+        should not have to know how to reveal itself, and the rail has to
+        be told too or navigation claims one thing while the screen shows
+        another.
+        """
+        self._on_panel_chosen("Properties")
+        self._property_panel.reveal_descriptor(descriptor_id)
 
     def _menu_actions(self) -> list[tuple[str, str, object]]:
         """Every leaf action on the live menu bar, as (label, menu, action).

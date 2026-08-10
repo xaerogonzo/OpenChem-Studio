@@ -467,3 +467,64 @@ def test_switching_molecule_clears_a_stale_indicator(running_panel):
 
     assert panel._calculator_status["topology_analysis"].isHidden()
     assert not panel._running_calculator_ids
+
+
+# --- revealing a computed property ---------------------------------------
+
+
+def _descriptor(descriptor_id: str, name: str, category: str):
+    from openchem.domain.descriptor import DescriptorValue
+
+    return DescriptorValue(
+        descriptor_id=descriptor_id,
+        name=name,
+        units="",
+        category=category,
+        provider="rdkit",
+        molecule_uuid=MOLECULE,
+        value=1.23,
+        cache_state=CacheState.COMPLETED,
+    )
+
+
+def test_revealing_a_property_expands_its_section_and_scrolls(panel, bus):
+    """A descriptor cannot be run, so REVEALING it is the action the
+    palette offers -- the value is already on screen somewhere, possibly
+    far down inside a collapsed section."""
+    from openchem.events.events import DescriptorComputed
+
+    bus.publish(DescriptorComputed(descriptor=_descriptor("esol_logs", "Aqueous Solubility", "admet")))
+    section = panel._sections["admet"]
+    section.set_expanded(False)
+
+    found = panel.reveal_descriptor("esol_logs")
+
+    assert found
+    assert section.is_expanded()
+    assert panel._reveal_target is panel._value_labels[("rdkit", "esol_logs")]
+
+
+def test_revealing_a_property_computes_nothing(panel, bus):
+    """A palette entry that silently started a calculation would be the
+    surprise this panel refuses elsewhere."""
+    from openchem.events.events import DescriptorComputed
+
+    bus.publish(DescriptorComputed(descriptor=_descriptor("qed", "QED", "medicinal_chemistry")))
+    panel._descriptor_service.run_calculator = _fail_if_called
+
+    panel.reveal_descriptor("qed")
+
+
+def _fail_if_called(*_args, **_kwargs):
+    raise AssertionError("revealing a property must not compute anything")
+
+
+def test_a_property_that_is_not_there_says_why(panel, bus):
+    """Two different reasons, and they are not the same message: nothing
+    selected is a different problem from selected-but-not-computed."""
+    assert not panel.reveal_descriptor("esol_logs")
+    assert "not been computed" in panel._batch_status.text()
+
+    panel._selected_molecule_uuid = None
+    assert not panel.reveal_descriptor("esol_logs")
+    assert "Select a molecule" in panel._batch_status.text()

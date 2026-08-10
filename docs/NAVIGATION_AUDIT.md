@@ -248,8 +248,47 @@ tier, which is what demotes the noise. After:
     sdf xyz mmcif protein lattice "unit cell" energy -> all correct
 
 `solubility` still returns nothing: ESOL is a DESCRIPTOR, and descriptors
-are not in the palette at all. That is a real remaining gap, left rather
-than papered over.
+were not in the palette at all.
+
+### SOLVED: properties, which cannot be run
+
+The palette's three indexes are all things you DO, and a descriptor is
+not one -- the 36 of them are computed as a batch the moment a molecule
+is selected, so there is no per-descriptor action to offer. The palette
+therefore knew nothing about **Aqueous Solubility, QED, Lipinski, Veber,
+Ghose, Egan, Pfizer 3/75, GSK 4/400, Radius of Gyration** or the other 27.
+36 real features, invisible to search.
+
+The action that DOES exist is to reveal the row, and it is exactly what a
+palette is for: the value is already on screen somewhere, possibly a
+thousand pixels down inside a collapsed section -- the same invisibility
+`_reveal` was written for when ADMET "produced nothing".
+
+`reveal_descriptor` expands the section and scrolls, computes NOTHING
+(an entry that silently started work would be the surprise this panel
+refuses elsewhere), and returns whether it found the row so the caller
+can say something honest when it did not. The two failures are different
+messages, because "no molecule selected" is a different problem from
+"selected, but not computed".
+
+Measured in the running app, 105 commands -> 142:
+
+    solubility  -> Aqueous Solubility (ESOL, log mol/L)   (was NOTHING)
+    lipinski veber ghose qed gyration asphericity
+    "rule of three" pfizer                                (all were NOTHING)
+    bbb         -> BBB Score Descriptors [Calculator] first, then the
+                   property -- ties keep panels, calculators, properties,
+                   menu items in that order
+
+    reveal_descriptor('esol_logs') -> True, scroll 0 -> 660, row visible
+
+**A guard here was CIRCULAR and a mutation caught it.**
+`test_every_computed_property_has_a_command` derived its expectation from
+`_descriptor_names()`, the same helper the production code uses -- so
+dropping the shape table from that helper lost the same 10 descriptors on
+both sides and the test stayed green. It reads the two SPEC TABLES now,
+which are what the providers publish from. A derived guard that derives
+from the code it is guarding is not derived at all.
 
 ### The crystal question now has a written answer
 
@@ -408,7 +447,13 @@ descriptor half of 4: descriptors are not in the palette at all, so
 proposed fix, and finding 4's claim about the Receptor Library. All three
 were written from reading rather than from running, and all three were
 corrected by measuring. That is the pattern worth taking from this
-document, more than any individual count in it. None of them is a chemistry bug and none was visible to 3613
+document, more than any individual count in it.
+
+The same applies to the guards written while closing them. Between them,
+**one test derived its expectation from the code it was guarding, and
+four in a row passed while exercising nothing** -- every one found by
+mutation rather than by review. A guard is not a guard until something
+has been broken in front of it. None of them is a chemistry bug and none was visible to 3613
 passing tests, because a test asserts that a value is correct and never
 that a person could find it.
 

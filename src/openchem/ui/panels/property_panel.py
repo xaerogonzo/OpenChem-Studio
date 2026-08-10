@@ -1995,6 +1995,50 @@ class PropertyPanel(QWidget):
         # plain callable strongly (see tests/test_qt_object_disposal.py).
         QTimer.singleShot(0, self._reveal_pending_result)
 
+    def reveal_descriptor(self, descriptor_id: str) -> bool:
+        """Scroll a computed property's row into view, and say so if it
+        is not there.
+
+        **A DESCRIPTOR CANNOT BE "RUN", which is why the command palette
+        had none of them.** The 36 of them are computed as a batch the
+        moment a molecule is selected, so there is no per-descriptor
+        action to offer -- and the palette, which only knew how to offer
+        actions, therefore knew nothing about Aqueous Solubility, QED,
+        Lipinski, Veber, Ghose, Egan, Pfizer 3/75 or GSK 4/400. Searching
+        "solubility" returned nothing at all.
+
+        Revealing is the action that does exist, and it is the one the
+        palette is for: "type what you want instead of remembering where
+        it lives". The row is already on screen somewhere -- possibly a
+        thousand pixels down, inside a collapsed section, which is the
+        same invisibility `_reveal` was written for.
+
+        Returns whether the row was found, so the caller can say
+        something honest when it was not. Nothing is computed here: a
+        palette entry that silently launched a calculation would be the
+        surprise this panel already refuses elsewhere.
+        """
+        matches = [key for key in self._value_labels if key[1] == descriptor_id]
+        if not matches:
+            self._batch_status.setText(
+                "Select a molecule to see its properties."
+                if self._selected_molecule_uuid is None
+                else "That property has not been computed for this molecule."
+            )
+            return False
+
+        row_key = matches[0]
+        label = self._value_labels[row_key]
+        section = self._row_sections.get(row_key)
+        if section is not None:
+            section.set_expanded(True)
+        # Same one-turn deferral `_reveal` uses: the section was expanded a
+        # moment ago and the row's geometry is not settled, so asking now
+        # scrolls to where it used to be.
+        self._reveal_target = label
+        QTimer.singleShot(0, self._reveal_pending_result)
+        return True
+
     def _reveal_pending_result(self) -> None:
         """Put the row's TOP near the top of the viewport.
 

@@ -183,3 +183,58 @@ def test_virtual_screening_is_reachable_at_all(qapp, main_window):
     ordered = rank("virtual", main_window._collect_commands())
 
     assert "Virtual Screening..." in [c.label for c in ordered]
+
+
+# --- properties, which cannot be run -------------------------------------
+
+
+def test_every_computed_property_has_a_command(qapp, main_window):
+    """**A DESCRIPTOR CANNOT BE "RUN", which is why the palette had none.**
+
+    Its three indexes are all things you DO, and the 36 descriptors are
+    computed as a batch when a molecule is selected. So the palette knew
+    nothing about Aqueous Solubility, QED, Lipinski, Veber, Ghose, Egan,
+    Pfizer 3/75 or GSK 4/400 -- 36 real features invisible to search.
+
+    Derived from the same two spec tables the providers publish from, so
+    a new descriptor is searchable the moment it exists.
+    """
+    from openchem.chem.descriptor_providers import (
+        _DESCRIPTOR_SPECS,
+        _SHAPE_DESCRIPTOR_SPECS,
+    )
+
+    # THE SPEC TABLES, not `_descriptor_names()`. Deriving the expectation
+    # from the same helper the production code uses is circular: a
+    # mutation that dropped the shape table from that helper left this
+    # test green, because both sides lost the same 10 descriptors. The
+    # tables are what the PROVIDERS publish from, so they are the
+    # independent source.
+    expected = {spec[1] for spec in _DESCRIPTOR_SPECS}
+    expected |= {spec[1] for spec in _SHAPE_DESCRIPTOR_SPECS}
+
+    labels = {c.label for c in main_window._collect_commands() if c.source == "Property"}
+    missing = sorted(expected - labels)
+
+    assert not missing, f"{missing} are computed but cannot be searched for"
+
+
+def test_solubility_finds_the_solubility_descriptor(qapp, main_window):
+    """The query left open at the end of finding 4: ESOL is a descriptor,
+    descriptors were not in the palette, and "solubility" returned
+    nothing at all."""
+    ordered = rank("solubility", main_window._collect_commands())
+
+    assert ordered, "'solubility' still finds nothing"
+    assert "Solubility" in ordered[0].label, [c.label for c in ordered[:3]]
+
+
+def test_a_property_never_outranks_a_calculator_of_the_same_name(qapp, main_window):
+    """Ties keep the caller's order -- panels, then calculators, then
+    properties, then menu items. Somebody typing "bbb" more likely wants
+    the calculator that computes the score than the row showing one
+    heuristic flag."""
+    ordered = [c for c in rank("bbb", main_window._collect_commands())]
+    sources = [c.source for c in ordered if c.source in ("Calculator", "Property")]
+
+    assert sources[:1] == ["Calculator"], [(c.label, c.source) for c in ordered[:3]]
