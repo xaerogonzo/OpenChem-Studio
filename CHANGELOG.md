@@ -12,6 +12,31 @@ below; the git log is the per-commit record.
 
 ### Added
 
+**Working with conformers**
+- Conformers are superimposed on the lowest-energy one for display, and
+  stepping between them keeps the camera where you put it — so flipping
+  through a set shows the difference in shape and nothing else. The stored
+  coordinates are untouched; the superposition is recomputed for viewing.
+- The energy shown is relative to the lowest rather than the raw
+  force-field number, with the absolute in the tooltip.
+- **Use in 2D Editor** hands the editor the 3D structure *as you have it
+  rotated*, keeping z, so the canvas shows a projection of the geometry
+  you were looking at. Crossing bonds are what that looks like. Ketcher
+  holds those coordinates through subsequent edits.
+- An angle whose projection puts atoms on top of each other is reported
+  rather than silently replaced with a tidier one.
+
+### Fixed
+
+- A drawing derived from a conformer no longer loses its chiral flag,
+  which had it describing a resolved molecule as a relative arrangement
+  ("AND Enantiomer" rather than "ABS") while its SMILES kept the
+  stereocentre.
+- The Atom Inspector no longer raises when the structure changes while an
+  atom is selected — a stale index reached RDKit and unwound the whole
+  event dispatch.
+
+
 **Crystallography**
 - Open a CIF, draw its unit cell, and report what the structure is.
 - A crystal is a first-class project object — renameable, deletable,

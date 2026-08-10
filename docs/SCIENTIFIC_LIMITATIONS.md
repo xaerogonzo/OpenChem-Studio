@@ -327,6 +327,25 @@ of 2H-azirine embeddings, a rigid three-membered ring, converged to a
 distorted minimum 10.7 kcal/mol up with a stretched C=N and were reported
 as a second conformer.
 
+**What the 3D viewer shows is superimposed for display, and that is a
+viewing aid rather than a result.** Conformers come out of the embedder in
+unrelated coordinate frames, so they are rigidly rotated onto the
+lowest-energy one before being drawn — otherwise stepping between them
+changes the orientation as much as the shape. The rotation changes no
+chemistry (every bond length, angle, torsion and energy is identical), it
+is recomputed rather than stored, and the coordinates that get saved,
+exported or handed to a calculation are the ones the generator produced.
+If you compare an exported conformer against what was on screen, expect
+the same molecule in a different frame.
+
+**A conformer brought into the 2D editor is a projection, not a
+depiction.** "Use in 2D Editor" keeps the geometry and turns it to face
+the camera, so bonds cross and atoms can sit close together — that is what
+a 3D shape looks like drawn flat, and it is the point rather than a fault.
+Some angles are genuinely unreadable: seen down its bridgehead axis a
+bicyclo[2.2.2] cage superimposes its two bridges exactly. The application
+says so and leaves the choice of angle to you.
+
 **None of this makes the count correct in general.** It is the
 best-performing heuristic on an eleven-molecule validation set
 (`benchmarks/conformers/`), where half the references are textbook counts

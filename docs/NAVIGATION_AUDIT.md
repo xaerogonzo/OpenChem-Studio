@@ -569,6 +569,14 @@ Rotating the reference first — the obvious alternative — was measured and
 does not help: the function normalises orientation, and 25 rotations gave
 byte-identical layouts.
 
+**Reported again against the shipped version**, twice more: that the
+adopted drawing "is not in a *literal* 3d shape, which is the entire point
+of what I'm trying to do", and that comparing conformers was "extremely
+difficult". Both are fixed. The detail lives in `ARCHITECTURE.md`'s Known
+TODOs rather than being repeated here; the short version is that the flat
+depiction was aimed at the wrong target, and that conformers were never
+superimposed on one another at all.
+
 **What it does not do is change what anything computes with.** Export and
 every `GEOMETRY` calculator already go through `canonical_conformer`,
 which picks the lowest MMFF energy and not a position in a list, so they
