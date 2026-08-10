@@ -27,6 +27,7 @@ from openchem.domain.scientific_result import (
     PhCurveResult,
     StructureEntry,
     StructureSetResult,
+    TrajectoryResult,
 )
 from openchem.ui.result_clipboard import result_to_text
 from openchem.ui.visualization import (
@@ -355,6 +356,25 @@ def _build_text_view(
     return _TextResultView(result, parent)
 
 
+def _build_trajectory_view(
+    engine: ChemistryEngine,
+    molecule: MoleculeModel,
+    result: ScientificResult,
+    conformer_molblock: str | None,
+    parent: QWidget | None,
+) -> QWidget:
+    """A trajectory is MOTION, so it gets a player rather than a picture.
+
+    Without this entry the dispatch fell back to the single-molecule
+    2D+3D view, which would have depicted the input molecule and none of
+    the 101 frames -- so the Properties panel deliberately opened nothing
+    at all rather than open that.
+    """
+    from openchem.ui.widgets.trajectory_player import TrajectoryPlayerWidget
+
+    return TrajectoryPlayerWidget(result, parent=parent)
+
+
 def _build_structure_grid_view(
     engine: ChemistryEngine,
     molecule: MoleculeModel,
@@ -380,6 +400,7 @@ def _build_structure_grid_view(
 _RESULT_VIEW_FACTORIES: dict[type, Callable[..., QWidget]] = {
     PhCurveResult: _build_ph_curve_view,
     StructureSetResult: _build_structure_grid_view,
+    TrajectoryResult: _build_trajectory_view,
     AlertResult: _build_text_view,
     ReportResult: _build_text_view,
 }

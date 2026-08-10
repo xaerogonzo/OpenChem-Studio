@@ -306,12 +306,17 @@ def test_a_trajectory_reaches_the_panel_at_all(panel, bus):
     assert panel._result_labels["molecular_dynamics"].text() == "101 frames"
 
 
-def test_a_trajectory_does_not_open_an_inspector_it_has_no_view_for(panel, bus, monkeypatch):
-    """`_RESULT_VIEW_FACTORIES` has no `TrajectoryResult` entry, so the
-    inspector would fall back to the per-atom molecular view and depict a
-    trajectory as an empty structure. The row is deliberately the whole
-    of it until a trajectory view exists -- asserted so the omission
-    reads as a decision rather than as something forgotten."""
+def test_a_trajectory_opens_the_player_now_that_one_exists(panel, bus, monkeypatch):
+    """This asserted the OPPOSITE until `TrajectoryPlayerWidget` was
+    built, and the inversion is the point rather than an edit.
+
+    `_RESULT_VIEW_FACTORIES` had no `TrajectoryResult` entry, so opening
+    the inspector would have fallen back to the single-molecule view and
+    depicted the input rather than any of the frames. The panel therefore
+    opened nothing ON PURPOSE, and this test asserted that so the
+    omission read as a decision. There is a view now, so a trajectory
+    behaves like every other explicitly-run result.
+    """
     opened: list[object] = []
     monkeypatch.setattr(
         PropertyPanel, "_open_inspector", lambda self, result: opened.append(result)
@@ -333,10 +338,12 @@ def test_a_trajectory_does_not_open_an_inspector_it_has_no_view_for(panel, bus, 
         )
     )
 
-    assert opened == []
+    assert len(opened) == 1
+    assert isinstance(opened[0], TrajectoryResult)
     # ...and the pending id is cleared, so the NEXT explicit run is not
     # answered by a stale one.
     assert panel._pending_calculator_id is None
+
 
 
 # --- the waiting indicator ---------------------------------------------

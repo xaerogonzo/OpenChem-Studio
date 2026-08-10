@@ -138,7 +138,7 @@ The same shape, less severely: the Receptor Library, virtual screening
 and batch analysis each have exactly one entry point and no cross-link
 from the place a user would be standing when they wanted them.
 
-## Finding 5 — a result type with no view
+## Finding 5 — SOLVED: a result type with no view
 
 `molecular_dynamics` computes a 101-frame trajectory and
 `_RESULT_VIEW_FACTORIES` in
@@ -147,11 +147,36 @@ has no entry for a `TrajectoryResult`. Until this sweep, `TrajectoryComputed`
 had no subscriber anywhere, so the calculator produced no row at all —
 indistinguishable from never having run.
 
-It now reports what it produced and deliberately opens no inspector,
-because the fallback view would depict a trajectory as an empty
-structure. **A trajectory player is the missing feature**, and it is the
-one place in the audit where the gap is a real build rather than a
-rearrangement.
+For a while it reported what it produced and deliberately opened no
+inspector, because the fallback view would have depicted the input
+molecule rather than any of the frames.
+
+**`TrajectoryPlayerWidget` is that view**: the frame in 3D, a scrubber, a
+play/pause loop at ~12 fps, and the energy trace underneath with a marker
+on the frame being shown. Clicking the trace jumps to that frame, because
+an energy spike is the thing somebody wants to look at and making them
+find it again on the slider is busywork.
+
+**A 2D grid would have been the cheap answer and a wrong one.** Molecular
+dynamics moves atoms; it does not change what is bonded to what. Every
+frame of a vacuum run has identical connectivity, so a grid of 2D
+depictions shows 101 copies of one picture and reads as "the calculator
+produced nothing" -- the exact failure the rest of this document is
+about. The motion is only visible in 3D.
+
+The backend is INJECTED, so the 16 tests start no Chromium at all --
+the same reason `ir_view_widget` and `nmr_view_widget` take theirs.
+
+Verified in the running app on a real 101-frame run: frames 1, 41 and 101
+scrub correctly with their own times and energies (0/200/500 fs,
+-115.66/-115.64/-115.65 kcal/mol), and play/pause toggles.
+
+**A defect the tests caught that a lazier fixture would not have.** Every
+frame was loaded TWICE -- `setValue` on the slider re-enters `show_frame`,
+and guarding the value stops the recursion but not the second
+`load_conformer`, doubling the JavaScript calls at twelve frames a
+second. It was visible only because the test's frames are
+distinguishable; a fixture of identical frames would have shown nothing.
 
 ## Finding 6 — SOLVED: two periodic tables
 
@@ -246,8 +271,8 @@ and has no honest way to be reached or read.** Finding 7 was the sharpest
 form of it -- a "Running..." state that was written, correct, and
 unreachable -- and is now fixed.
 
-Findings 1, 6 and 7 are done. 2 is closed for everything we ship (the
-fallback stays for plugins). 3, 4 and 5 are open. None of them is a chemistry bug and none was visible to 3613
+Findings 1, 5, 6 and 7 are done. 2 is closed for everything we ship (the
+fallback stays for plugins). 3 and 4 are open. None of them is a chemistry bug and none was visible to 3613
 passing tests, because a test asserts that a value is correct and never
 that a person could find it.
 

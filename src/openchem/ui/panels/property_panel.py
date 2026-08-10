@@ -1710,14 +1710,12 @@ class PropertyPanel(QWidget):
         started. Found by running every registered calculator and asking
         which ones reach the screen.
 
-        **A row, and deliberately NO inspector.**
-        `_RESULT_VIEW_FACTORIES` has no view for a `TrajectoryResult`, so
-        `_open_inspector` would fall back to the per-atom molecular view
-        and depict a trajectory as an empty structure -- the "right
-        machinery, wrong object" failure this codebase has already paid
-        for in the crystal click and the 3D-viewer index space. A
-        trajectory player is a feature; saying what was produced is the
-        fix, and the honest state until that view exists.
+        It used to get a row and deliberately NO inspector, because
+        `_RESULT_VIEW_FACTORIES` had no view for a `TrajectoryResult` and
+        the fallback would have depicted the input molecule rather than
+        any of the frames. **That view exists now**
+        (`TrajectoryPlayerWidget`), so an explicitly-run trajectory opens
+        it like every other result.
         """
         trajectory = event.trajectory
         self._finish_batch_run(trajectory.trajectory_id)
@@ -1732,9 +1730,8 @@ class PropertyPanel(QWidget):
             self._pending_calculator_id == trajectory.trajectory_id
             and trajectory.molecule_uuid == self._selected_molecule_uuid
         ):
-            # Cleared without opening anything, so the next explicit run
-            # is not answered by a stale pending id.
             self._pending_calculator_id = None
+            self._open_inspector(trajectory)
 
     def _on_calculator_button_clicked(self, _checked: bool = False) -> None:
         """Resolve the button that was pressed back to its calculator.
