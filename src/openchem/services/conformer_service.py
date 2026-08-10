@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import logging
 import time
 
@@ -9,6 +10,7 @@ from PySide6.QtCore import QRunnable, QThreadPool
 from openchem.chem.conformer_providers import (
     DEFAULT_ENERGY_WINDOW,
     DEFAULT_RMS_THRESHOLD,
+    GenerationOptions,
     RDKitConformerProvider,
     distinct_conformers,
 )
@@ -24,6 +26,14 @@ from openchem.services.job_manager import JobManager
 from openchem.services.progress import ProgressHandle
 
 _JOB_KIND = "conformer"
+
+
+def _accepts_options(provider) -> bool:
+    """Does this provider's `generate_conformer_batch` take `options`?"""
+    try:
+        return "options" in inspect.signature(provider.generate_conformer_batch).parameters
+    except (TypeError, ValueError):  # builtins and C callables have no signature
+        return False
 
 logger = logging.getLogger("openchem.chemistry")
 
@@ -49,6 +59,7 @@ class _ConformerGenerationTask(QRunnable):
         job_manager: JobManager,
         progress: ProgressHandle,
         num_embeddings: int | None = None,
+        options: GenerationOptions | None = None,
     ) -> None:
         super().__init__()
         self._provider = provider
@@ -60,6 +71,7 @@ class _ConformerGenerationTask(QRunnable):
         # 6 distinct geometries against a reference lower bound of 12.
         self._num_conformers = num_conformers
         self._num_embeddings = num_embeddings if num_embeddings is not None else num_conformers
+        self._options = options or GenerationOptions()
         self._optimize = optimize
         self._event_bus = event_bus
         self._job_manager = job_manager
@@ -75,8 +87,19 @@ class _ConformerGenerationTask(QRunnable):
         )
         try:
             mol = self._engine.mol_from_model(self._model)
+            # **ASKED, NOT ASSUMED.** `options` is new on the provider
+            # interface and `ConformerProvider` is a published plugin API,
+            # so a provider written against the earlier signature is
+            # called without it. Checked with `inspect` rather than by
+            # catching TypeError, which would also swallow a real one
+            # raised from inside the provider.
+            extra = {"options": self._options} if _accepts_options(self._provider) else {}
             batch = self._provider.generate_conformer_batch(
-                mol, self._num_embeddings, self._optimize, on_progress=self._on_progress
+                mol,
+                self._num_embeddings,
+                self._optimize,
+                on_progress=self._on_progress,
+                **extra,
             )
             results = batch.results
         except Exception as exc:  # noqa: BLE001 - report failure, never crash the pool
@@ -109,7 +132,7 @@ class _ConformerGenerationTask(QRunnable):
         # so a plugin-supplied provider gets it too, and reported here
         # because this is where every count is known.
         converged = len(results)
-        results = distinct_conformers(results)
+        results = distinct_conformers(results, rms_threshold=self._options.diversity_rmsd)
         distinct = len(results)
         # Sorted ascending by energy, so truncating to the requested count
         # keeps the lowest-energy members rather than an arbitrary slice.
@@ -146,7 +169,17 @@ class _ConformerGenerationTask(QRunnable):
                 "embedding_failures": batch.embedding_failures,
                 "convergence_failures": batch.convergence_failures,
                 "conformers_distinct": distinct,
-                "rms_threshold": DEFAULT_RMS_THRESHOLD,
+                "rms_threshold": self._options.diversity_rmsd,
+                "optimisation_level": self._options.optimisation,
+                "time_limit_seconds": self._options.time_limit_seconds,
+                # **NEVER "hyperfine".** Marvin's hyperfine is short
+                # molecular dynamics followed by strict optimisation;
+                # this is a second minimisation pass and nothing more.
+                # A stored property outlives every UI that wrote it,
+                # so the name has to be honest here above all.
+                "refinement_method": (
+                    "enhanced_optimization" if self._options.enhanced_refinement else "none"
+                ),
                 # A merge VETO, never a claim that two structures with
                 # different energies are different conformers. See
                 # DEFAULT_ENERGY_WINDOW.
@@ -265,6 +298,7 @@ class ConformerService:
         optimize: bool,
         provider_id: str = "rdkit",
         num_embeddings: int | None = None,
+        options: GenerationOptions | None = None,
     ) -> None:
         """`num_conformers` is how many distinct conformers to KEEP;
         `num_embeddings` is how many random embeddings to try in order to
@@ -314,6 +348,7 @@ class ConformerService:
                 self._job_manager,
                 progress,
                 num_embeddings=num_embeddings,
+                options=options,
             )
         )
 

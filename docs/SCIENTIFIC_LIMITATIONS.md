@@ -327,6 +327,17 @@ of 2H-azirine embeddings, a rigid three-membered ring, converged to a
 distorted minimum 10.7 kcal/mol up with a stretched C=N and were reported
 as a second conformer.
 
+**The generation controls emulate Marvin's, not its algorithms.** The
+diversity threshold, optimisation level, time limit and refinement pass
+are modelled on ChemAxon's Generate3D options because those are the knobs
+people expect; none of them reproduces ChemAxon's implementation, and
+ChemAxon publishes no default values for any of them, so the defaults here
+are this application's own. In particular **"enhanced refinement" is not
+"hyperfine"** — that runs short molecular dynamics before a strict
+optimisation, and repeated minimisation is not an approximation of
+trajectory sampling. It is recorded in a conformer's provenance as
+`enhanced_optimization`, never as `hyperfine`.
+
 **What the 3D viewer shows is superimposed for display, and that is a
 viewing aid rather than a result.** Conformers come out of the embedder in
 unrelated coordinate frames, so they are rigidly rotated onto the

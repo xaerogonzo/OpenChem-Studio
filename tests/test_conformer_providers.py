@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+
 from rdkit.Chem import AllChem
 
 from openchem.chem.conformer_providers import (
@@ -97,6 +99,37 @@ def test_on_progress_returning_none_keeps_going():
 # --------------------------------------------------------------------------
 
 
+@contextlib.contextmanager
+def _never_converging(calls: list | None = None):
+    """A force field whose `Minimize` never reports convergence.
+
+    Wraps the REAL force field so energies stay real and only the
+    convergence answer is forced -- a stub returning a fake energy would
+    also disable the ranking these tests do not mean to touch.
+    """
+    original = AllChem.MMFFGetMoleculeForceField
+
+    def wrapped(*args, **kwargs):
+        field = original(*args, **kwargs)
+
+        class _Stubborn:
+            def Minimize(self, **minimise_kwargs):  # noqa: N802 - RDKit's name
+                if calls is not None:
+                    calls.append(minimise_kwargs)
+                return 1
+
+            def CalcEnergy(self):  # noqa: N802 - RDKit's name
+                return field.CalcEnergy()
+
+        return _Stubborn()
+
+    AllChem.MMFFGetMoleculeForceField = wrapped
+    try:
+        yield
+    finally:
+        AllChem.MMFFGetMoleculeForceField = original
+
+
 def test_a_conformer_that_never_converges_is_discarded():
     """Not kept-and-marked. A geometry that did not reach a minimum is not
     a candidate for ranking, for the energy veto, for de-duplication, or
@@ -106,12 +139,12 @@ def test_a_conformer_that_never_converges_is_discarded():
     mol = engine.mol_from_smiles("CCO")
     provider = RDKitConformerProvider(random_seed=0)
 
-    original = AllChem.MMFFOptimizeMolecule
-    try:
-        AllChem.MMFFOptimizeMolecule = lambda *args, **kwargs: 1  # never converges
+    # Patched at the FORCE FIELD, not at `MMFFOptimizeMolecule`: the
+    # optimisation goes through `ForceField.Minimize` now, because that is
+    # the only entry point taking a force tolerance -- and a gradient
+    # criterion is what an optimisation LEVEL has to vary.
+    with _never_converging():
         batch = provider.generate_conformer_batch(mol, num_conformers=4, optimize=True)
-    finally:
-        AllChem.MMFFOptimizeMolecule = original
 
     assert batch.results == []
     assert batch.attempted == 4
@@ -136,22 +169,14 @@ def test_optimisation_is_retried_a_bounded_number_of_times():
     mol = engine.mol_from_smiles("CCO")
     calls: list[dict] = []
 
-    original = AllChem.MMFFOptimizeMolecule
-    try:
-        def _never_converges(*args, **kwargs):
-            calls.append(kwargs)
-            return 1
-
-        AllChem.MMFFOptimizeMolecule = _never_converges
+    with _never_converging(calls):
         RDKitConformerProvider(random_seed=0).generate_conformer_batch(
             mol, num_conformers=1, optimize=True
         )
-    finally:
-        AllChem.MMFFOptimizeMolecule = original
 
     assert len(calls) == _MAX_OPTIMISATION_ATTEMPTS
     # The library default of 200 is what shipped and was not enough.
-    assert all(call["maxIters"] == _OPTIMISATION_MAX_ITERS for call in calls)
+    assert all(call["maxIts"] == _OPTIMISATION_MAX_ITERS for call in calls)
     assert _OPTIMISATION_MAX_ITERS > 200
 
 

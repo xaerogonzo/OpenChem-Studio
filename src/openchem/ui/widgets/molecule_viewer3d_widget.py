@@ -291,6 +291,7 @@ class MoleculeViewer3DWidget(QWidget):
             dialog.conformers_to_keep(),
             optimize=True,
             num_embeddings=dialog.embeddings_to_try(),
+            options=dialog.options(),
         )
 
     def _on_conformers_changed(self, event: ConformersChanged) -> None:

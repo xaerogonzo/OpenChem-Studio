@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass
 from typing import Callable
 
@@ -178,6 +179,67 @@ _OPTIMISATION_MAX_ITERS = 2000
 #: call is normally enough. A non-converged geometry must not reach the
 #: ranking, the veto, de-duplication, or a calculator.
 _MAX_OPTIMISATION_ATTEMPTS = 2
+
+#: Optimisation strictness, inspired by Marvin's `[o]{1}{3}` control and
+#: **NOT numerically equivalent to it** -- ChemAxon documents theirs as a
+#: gradient convergence criterion but publishes no values, so a claim of
+#: parity would be unfounded. These are OpenChem's levels.
+#:
+#: `(max iterations, force tolerance, attempts)`. The force tolerance is
+#: the real convergence criterion -- `MMFFOptimizeMolecule` does not
+#: expose one, so the force field's own `Minimize` is used instead.
+#:
+#: "Normal" reproduces what shipped before this control existed, so a user
+#: who never touches it gets the behaviour the 150/150 convergence
+#: measurement was taken against.
+OPTIMISATION_LEVELS: dict[str, tuple[int, float, int]] = {
+    "Loose": (200, 1e-2, 1),
+    "Normal": (_OPTIMISATION_MAX_ITERS, 1e-4, _MAX_OPTIMISATION_ATTEMPTS),
+    "Strict": (10000, 1e-5, 3),
+    "Very strict": (20000, 1e-6, 4),
+}
+DEFAULT_OPTIMISATION_LEVEL = "Normal"
+
+#: **A NON-CONVERGED GEOMETRY IS DISCARDED AT EVERY LEVEL**, and the
+#: strictness deliberately does not change that. It decides how hard the
+#: minimiser tries, not what counts as a conformer. Keeping one would put
+#: a structure that never reached a minimum into the energy ranking, the
+#: 1 kcal/mol veto, the de-duplication and any geometry calculator -- and
+#: "did not converge" and "is a conformer" is an incoherent pair to hold
+#: at once.
+_DISCARD_NON_CONVERGED = True
+
+
+@dataclass(frozen=True)
+class GenerationOptions:
+    """What a conformer run was asked for, beyond how many to make.
+
+    One object rather than five parameters threaded through four layers,
+    because every one of them has to reach `RDKitConformerProvider` and
+    two of them also reach `distinct_conformers`.
+    """
+
+    #: RMSD below which two embeddings are the same shape. **A sampling
+    #: parameter, not a definition of conformer identity** -- see
+    #: `DEFAULT_RMS_THRESHOLD` for why no value of it is universally right.
+    diversity_rmsd: float = DEFAULT_RMS_THRESHOLD
+    #: A key of `OPTIMISATION_LEVELS`.
+    optimisation: str = DEFAULT_OPTIMISATION_LEVEL
+    #: Stop STARTING new embeddings once this many seconds have passed.
+    #: `None` means no limit. Not a hard ceiling -- see `_out_of_time`.
+    time_limit_seconds: float | None = None
+    #: A second, stricter optimisation pass over the survivors.
+    #: **This is not Marvin's `hyperfine`**, which samples trajectories
+    #: with molecular dynamics; there is no MD engine here and repeated
+    #: minimisation does not approximate one. Serialised as
+    #: `enhanced_optimization`, never as `hyperfine`, because an SDF
+    #: property outlives every UI that wrote it.
+    enhanced_refinement: bool = False
+
+    def level(self) -> tuple[int, float, int]:
+        return OPTIMISATION_LEVELS.get(
+            self.optimisation, OPTIMISATION_LEVELS[DEFAULT_OPTIMISATION_LEVEL]
+        )
 
 
 #: Hydrogens on these keep their orientation for comparison; see
@@ -533,8 +595,11 @@ class RDKitConformerProvider(ConformerProvider):
         num_conformers: int,
         optimize: bool,
         on_progress: Callable[[int, int], bool | None] | None = None,
+        options: GenerationOptions | None = None,
     ) -> list[tuple[Chem.Mol, float | None]]:
-        return self.generate_conformer_batch(mol, num_conformers, optimize, on_progress).results
+        return self.generate_conformer_batch(
+            mol, num_conformers, optimize, on_progress, options
+        ).results
 
     def generate_conformer_batch(
         self,
@@ -542,16 +607,35 @@ class RDKitConformerProvider(ConformerProvider):
         num_conformers: int,
         optimize: bool,
         on_progress: Callable[[int, int], bool | None] | None = None,
+        options: GenerationOptions | None = None,
     ) -> ConformerBatch:
+        options = options or GenerationOptions()
+        deadline = (
+            time.monotonic() + options.time_limit_seconds
+            if options.time_limit_seconds
+            else None
+        )
         results: list[tuple[Chem.Mol, float | None]] = []
         attempted = embedding_failures = convergence_failures = 0
         for i in range(num_conformers):
+            # **CHECKED BEFORE STARTING, never mid-embedding.** Neither
+            # `EmbedMolecule` nor a minimisation is interruptible, so the
+            # promise this can keep is "stop starting new work once the
+            # time is up", with an overshoot of at most one embedding. A
+            # tighter claim would be a lie about a library that does not
+            # offer it.
+            if deadline is not None and time.monotonic() >= deadline and results:
+                logger.info(
+                    "Stopped starting embeddings after %.1f s (%d of %d attempted)",
+                    options.time_limit_seconds, i, num_conformers,
+                )
+                break
             attempted += 1
             conf_mol = self._embed_one(mol, attempt=i)
             if conf_mol is None:
                 embedding_failures += 1
             elif optimize:
-                energy, converged = self._optimize_one(conf_mol)
+                energy, converged = self._optimize_one(conf_mol, options.level())
                 if converged:
                     results.append((conf_mol, energy))
                 else:
@@ -577,6 +661,8 @@ class RDKitConformerProvider(ConformerProvider):
         # `distinct_conformers` re-sorts into the same order for itself
         # rather than trusting this, since the ordering is part of its
         # contract (see `_in_comparison_order`).
+        if optimize and options.enhanced_refinement:
+            results = self._refine(results)
         results.sort(key=lambda item: item[1] if item[1] is not None else float("inf"))
         return ConformerBatch(
             results=results,
@@ -606,36 +692,86 @@ class RDKitConformerProvider(ConformerProvider):
             return None
         return conf_mol
 
-    def _optimize_one(self, conf_mol: Chem.Mol) -> tuple[float | None, bool]:
+    def _optimize_one(
+        self, conf_mol: Chem.Mol, level: tuple[int, float, int] | None = None
+    ) -> tuple[float | None, bool]:
         """`(energy, converged)`. See `_OPTIMISATION_MAX_ITERS` for why the
         library default was not enough, and why the caller discards rather
-        than keeps a `False`."""
-        mmff_props = AllChem.MMFFGetMoleculeProperties(conf_mol)
-        if mmff_props is not None:
+        than keeps a `False`.
+
+        **Minimised through the force field rather than through
+        `MMFFOptimizeMolecule`**, because that convenience wrapper exposes
+        no force tolerance -- and a gradient criterion is exactly what an
+        optimisation LEVEL has to vary. `ForceField.Minimize` takes
+        `(maxIts, forceTol, energyTol)` and returns 0 on convergence, the
+        same contract the wrapper had.
+        """
+        max_iters, force_tol, attempts = level or OPTIMISATION_LEVELS[
+            DEFAULT_OPTIMISATION_LEVEL
+        ]
+        force_field = self._force_field(conf_mol)
+        if force_field is None:
+            return None, False
+        converged = self._minimise(
+            lambda: force_field.Minimize(maxIts=max_iters, forceTol=force_tol), attempts
+        )
+        return force_field.CalcEnergy(), converged
+
+    def _refine(
+        self, results: list[tuple[Chem.Mol, float | None]]
+    ) -> list[tuple[Chem.Mol, float | None]]:
+        """A second, stricter minimisation over the survivors.
+
+        **THIS IS NOT MARVIN'S `hyperfine`.** ChemAxon describes that as
+        short low-temperature molecular dynamics followed by strict
+        optimisation. There is no MD engine here, and repeated
+        minimisation is not an approximation of trajectory sampling --
+        a minimiser cannot leave the basin it is already in, which is the
+        whole point of the dynamics. It is called "enhanced refinement"
+        everywhere it is named, including in provenance, so that nobody
+        reading a stored property six months from now concludes the
+        ChemAxon algorithm ran.
+
+        What it can honestly do is take each survivor to a tighter
+        gradient than the run's own level asked for, which drops
+        geometries that were sitting just inside a loose tolerance. A
+        conformer that then fails to converge is discarded, on the same
+        grounds as anywhere else.
+        """
+        max_iters, force_tol, attempts = OPTIMISATION_LEVELS["Very strict"]
+        refined: list[tuple[Chem.Mol, float | None]] = []
+        for conf_mol, energy in results:
+            force_field = self._force_field(conf_mol)
+            if force_field is None:
+                refined.append((conf_mol, energy))
+                continue
             converged = self._minimise(
-                lambda: AllChem.MMFFOptimizeMolecule(
-                    conf_mol, confId=0, maxIters=_OPTIMISATION_MAX_ITERS
-                )
+                lambda field=force_field: field.Minimize(
+                    maxIts=max_iters, forceTol=force_tol
+                ),
+                attempts,
             )
-            force_field = AllChem.MMFFGetMoleculeForceField(conf_mol, mmff_props, confId=0)
-        else:
-            # MMFF94 has no parameters for some elements/charges — UFF covers
-            # a much broader range of the periodic table as a fallback.
-            converged = self._minimise(
-                lambda: AllChem.UFFOptimizeMolecule(
-                    conf_mol, confId=0, maxIters=_OPTIMISATION_MAX_ITERS
-                )
-            )
-            force_field = AllChem.UFFGetMoleculeForceField(conf_mol, confId=0)
-        energy = force_field.CalcEnergy() if force_field is not None else None
-        return energy, converged
+            if converged:
+                refined.append((conf_mol, force_field.CalcEnergy()))
+            else:
+                logger.info("Enhanced refinement discarded a conformer that would not settle")
+        return refined
 
     @staticmethod
-    def _minimise(step: Callable[[], int]) -> bool:
-        """Run `step` until it reports convergence (0), at most
-        `_MAX_OPTIMISATION_ATTEMPTS` times. Each call continues from the
-        previous one's coordinates, since RDKit minimises in place."""
-        for _attempt in range(_MAX_OPTIMISATION_ATTEMPTS):
+    def _force_field(conf_mol: Chem.Mol):
+        """MMFF94 where it has parameters, UFF otherwise -- UFF covers a
+        much broader range of the periodic table."""
+        mmff_props = AllChem.MMFFGetMoleculeProperties(conf_mol)
+        if mmff_props is not None:
+            return AllChem.MMFFGetMoleculeForceField(conf_mol, mmff_props, confId=0)
+        return AllChem.UFFGetMoleculeForceField(conf_mol, confId=0)
+
+    @staticmethod
+    def _minimise(step: Callable[[], int], attempts: int = _MAX_OPTIMISATION_ATTEMPTS) -> bool:
+        """Run `step` until it reports convergence (0), at most `attempts`
+        times. Each call continues from the previous one's coordinates,
+        since RDKit minimises in place."""
+        for _attempt in range(attempts):
             if step() == 0:
                 return True
         return False

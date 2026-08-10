@@ -143,6 +143,35 @@ methyl is not a conformer — but hydrogens on N, O and S are kept, because
 an O–H orientation changes hydrogen bonding and changes the energy of any
 QM job you run afterwards.
 
+**Generate Conformers** asks for six things. Two are counts —
+embeddings to try, and distinct conformers to keep. The other four are
+modelled on the controls in ChemAxon's Generate3D calculator, and are
+emulations of those controls rather than of the algorithms behind them:
+
+- **Diversity threshold (RMSD)** — how far apart two embeddings must be to
+  count as different shapes. This is a sampling and de-duplication
+  parameter, *not* a definition of what makes two conformers different;
+  no single value is right for every molecule. 0.5 Å was fitted to butane,
+  whose pairwise RMSDs really are bimodal, while a drug-like molecule's
+  are a flat continuum with no gap for a threshold to sit in.
+- **Optimisation** — Loose, Normal, Strict or Very strict, setting how many
+  iterations and how tight a gradient each embedding is minimised to.
+  These are OpenChem's levels, not numerical equivalents of Marvin's.
+  Measured over 30 embeddings each of seven molecules, every level
+  converged 30 of 30 and the retained count differed on only one
+  molecule — ethylmorphine, where Loose found 8 against 9 elsewhere. A
+  geometry that does not converge is discarded at every level.
+- **Time limit** — stops *starting* new embeddings once the time is up.
+  Not a hard ceiling: neither RDKit's embedder nor its minimiser can be
+  interrupted part-way, so a run can overshoot by one embedding.
+- **Enhanced refinement** — a second, stricter minimisation over the
+  survivors. **This is not Marvin's "hyperfine"**, which runs short
+  molecular dynamics before its strict optimisation; there is no MD engine
+  here, and a minimiser cannot leave the basin it is already in. Measured,
+  it changes nothing at Normal or above, and its one visible effect was
+  recovering what a Loose run had lost, at about 25% more time. It is not
+  a way to find more conformers.
+
 **Comparing conformers.** Every conformer is superimposed on the
 lowest-energy one for display, and stepping between them with `<` and `>`
 keeps the camera exactly where you put it. So arranging a view and then

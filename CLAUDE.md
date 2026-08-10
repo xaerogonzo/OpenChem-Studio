@@ -117,12 +117,13 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-9.5 minutes**, ending at `3832 passed, 7 skipped,
+A clean run is **6-9.5 minutes**, ending at `3845 passed, 7 skipped,
 1 deselected` (measured 2026-08-10 on branch `conformer-comparison`,
 after making conformers comparable, putting the 3D shape into the 2D
 editor, and the gallery: +4 for the Ketcher 3D gate, +21 for display
 alignment, camera retention and relative energies, +29 for the
-camera-oriented drawing, and +13 for the gallery, over the 3765 below).
+camera-oriented drawing, +13 for the gallery and +13 for the
+generation controls, over the 3765 below).
 
 **The skip count went 2 -> 7, and the five are deliberate.** The
 page-level gallery tests need a second WebGL context, which Qt's
@@ -1661,6 +1662,71 @@ mutation -- and only after the test was rewritten with real embedded
 conformers, because placeholder molblocks do not parse and make aligned
 and retained the same string. That is the SECOND time that trap fired in
 this work.
+
+#### Marvin-parity generation: emulate the CONTROLS, never claim the algorithm
+
+"make it resemble marvin's conformer generator calculator much more
+closely". Four controls now exist -- diversity threshold, optimisation
+level, time limit, enhanced refinement -- and the discipline that matters
+is what is NOT claimed.
+
+**ChemAxon publishes no default values.** Fetched twice and confirmed:
+the Generate3D page states none for diversity, `[o]`, timelimit or
+hyperfine. A reported figure of 0.1 for diversity could not be confirmed,
+so nothing here presents 0.5 as matching theirs.
+
+**"hyperfine" may be EXPLAINED but never SHOWN or WRITTEN.** ChemAxon's
+hyperfine is short molecular dynamics followed by strict optimisation; a
+minimiser cannot leave the basin it is already in, which is the whole
+point of the dynamics. Provenance records `enhanced_optimization`,
+because a stored SDF property outlives every UI that wrote it. The guard
+walks the AST and checks STRING LITERALS only -- the first version
+forbade the word outright and failed on the very comments that exist to
+prevent the confusion.
+
+**The strictness decides how hard to try, NOT what counts as a
+conformer.** The plan for this work said the level should decide whether
+to keep a non-converged geometry; it must not, and this file already
+records why -- such a structure corrupts the ranking, the veto, the
+de-duplication and any geometry calculator. Discarded at every level, and
+a test asserts it at every level.
+
+**Minimise through the FORCE FIELD, not `MMFFOptimizeMolecule`.** That
+wrapper exposes no force tolerance, and a gradient criterion is exactly
+what an optimisation level has to vary. `ForceField.Minimize(maxIts,
+forceTol)` returns 0 on convergence, the same contract.
+
+##### What the four controls actually do, measured
+
+30 embeddings each of seven molecules from the de-duplication corpus:
+
+    molecule         Loose  Loose+refine  Normal  Very strict
+    ethylmorphine        8             9       9            9
+    the other six     same          same    same         same
+
+Every level converged 30 of 30. So **the strictness is visible on exactly
+one molecule**, and **enhanced refinement's only measurable effect is
+recovering what a loose first pass lost** -- nothing at Normal or above,
+at about 25% more time. That is what its tooltip says, rather than
+implying it improves sampling.
+
+**A from-memory SMILES nearly produced a different story.** The first run
+of that benchmark used an ibuprofen and an ethylmorphine typed from
+memory; the ethylmorphine did not parse and the ibuprofen showed Loose
+finding 16 against 14, which reads as "Loose over-counts". Re-run with
+the corpus SMILES, ibuprofen is 8 everywhere and the effect is somewhere
+else entirely. **Take benchmark inputs from the corpus file, not from
+memory.**
+
+##### The plugin interface gained a parameter without breaking anybody
+
+`ConformerProvider.generate_conformer_batch` now takes `options`, and
+`ConformerProvider` is a published plugin API. The service asks
+`inspect.signature` whether a provider accepts it rather than passing and
+catching `TypeError` -- which would also swallow a real one raised from
+inside the provider. Same instinct as the `NOT abstract, so a provider
+written against the original interface keeps working` note already on
+that method.
 
 #### The conformer gallery: one WebGL context, and four traps
 

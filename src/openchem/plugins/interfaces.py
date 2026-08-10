@@ -175,8 +175,18 @@ class ConformerProvider(ABC):
         num_conformers: int,
         optimize: bool,
         on_progress: Callable[[int, int], bool | None] | None = None,
+        options: GenerationOptions | None = None,
     ) -> ConformerBatch:
         """`generate_conformers` plus the counts behind it.
+
+        `options` carries the diversity threshold, optimisation level,
+        time limit and refinement flag -- see
+        `chem.conformer_providers.GenerationOptions`. **A provider that
+        does not accept it is called without it**, so one written against
+        the earlier signature keeps working; `ConformerService` checks
+        rather than passing and hoping, because swallowing the resulting
+        `TypeError` would also swallow a real one from inside the
+        provider.
 
         NOT abstract, so a provider written against the original
         interface keeps working untouched. The default reports the counts
