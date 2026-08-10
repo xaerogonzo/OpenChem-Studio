@@ -109,7 +109,7 @@ _DESCRIPTOR_SPECS: list[tuple[str, str, str, str]] = [
     ("mol_wt", "Molecular Weight", "g/mol", "physicochemical"),
     ("exact_mass", "Exact Mass", "g/mol", "physicochemical"),
     ("formula", "Molecular Formula", "", "identity"),
-    ("mol_logp", "LogP", "", "logp"),
+    ("mol_logp", "LogP", "", "lipophilicity"),
     ("tpsa", "TPSA", "Å²", "physicochemical"),
     ("num_rotatable_bonds", "Rotatable Bonds", "", "topology"),
     ("num_hbd", "H-Bond Donors", "", "topology"),
@@ -119,7 +119,7 @@ _DESCRIPTOR_SPECS: list[tuple[str, str, str, str]] = [
     ("heavy_atom_count", "Heavy Atom Count", "", "topology"),
     ("num_stereocenters", "Stereocenters", "", "stereochemistry"),
     # Phase 10a additions below — all zero-new-dependency RDKit calls.
-    ("molar_refractivity", "Molar Refractivity", "", "molar_refractivity"),
+    ("molar_refractivity", "Molar Refractivity", "", "electronic"),
     ("labute_asa", "Approx. Surface Area (Labute)", "Å²", "physicochemical"),
     ("qed", "QED (Drug-likeness)", "", "medicinal_chemistry"),
     ("sa_score", "Synthetic Accessibility", "", "medicinal_chemistry"),
@@ -945,7 +945,7 @@ def compute_logd(
             pkas = [p.value for p in (compute_pka(mol, interpreter_path) or [])]
         except RuntimeError as exc:
             return AlertResult(
-                alert_id="logd", name="LogD", molecule_uuid=molecule_uuid, matched=[], category="logd",
+                alert_id="logd", name="LogD", molecule_uuid=molecule_uuid, matched=[], category="lipophilicity",
                 provenance=Provenance(created_by="core", method="pkasolver"),
                 cache_state=CacheState.FAILED, error=str(exc),
             )
@@ -971,7 +971,7 @@ def compute_logd(
         name=f"LogD at pH {ph:g}",
         molecule_uuid=molecule_uuid,
         matched=lines,
-        category="logd",
+        category="lipophilicity",
         provenance=Provenance(created_by="core", method=method, parameters={"pH": ph}),
     )
 
@@ -1107,7 +1107,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     CalculatorDefinition(
         calculator_id="crippen_logp_contrib",
         display_name="LogP Contribution",
-        category="logp",
+        category="lipophilicity",
         description="Per-atom Crippen LogP contribution -- which atoms increase vs. decrease LogP.",
         execution=RegistryExecution(compute=compute_crippen_logp_contrib_calculator),
         parameters=[
@@ -1117,7 +1117,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     CalculatorDefinition(
         calculator_id="crippen_mr_contrib",
         display_name="Molar Refractivity Contribution",
-        category="molar_refractivity",
+        category="electronic",
         description="Per-atom Crippen molar refractivity contribution.",
         execution=RegistryExecution(compute=compute_crippen_mr_contrib_calculator),
         parameters=[
@@ -1169,7 +1169,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     CalculatorDefinition(
         calculator_id="logd",
         display_name="LogD (pH-dependent)",
-        category="logd",
+        category="lipophilicity",
         description=(
             "Distribution coefficient at a given pH. Real Henderson-Hasselbalch when a "
             "pkasolver environment is configured; otherwise the LogP of the dominant "
@@ -1201,7 +1201,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     CalculatorDefinition(
         calculator_id="substance_analysis",
         display_name="Substance & Bonding",
-        category="structure",
+        category="identity",
         description=(
             "What the structure IS rather than what it contains: ionic salt, "
             "molecule, coordination compound, organometallic or mixture, with the "
@@ -1374,7 +1374,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     CalculatorDefinition(
         calculator_id="regulatory_screen",
         display_name="Regulatory Screen",
-        category="regulatory",
+        category="admet",
         description=(
             "Which regulatory frameworks have something to say about this structure -- "
             "chemical weapons schedules, controlled substances, precursors and the rest, "
@@ -1457,7 +1457,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     CalculatorDefinition(
         calculator_id="stereocenters",
         display_name="Stereocentres",
-        category="geometry",
+        category="stereochemistry",
         description=(
             "Stereocentres coloured by CIP descriptor -- R against S at a glance, plus "
             "E/Z double bonds and the lowercase pseudo-asymmetric r/s. Centres whose "
@@ -1501,7 +1501,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         calculator_id="interaction_analysis",
         calculation_input=GEOMETRY,
         display_name="Interaction Analysis",
-        category="interactions",
+        category="geometry",
         description=(
             "Intramolecular non-covalent contacts in the current conformer: hydrogen "
             "bonds, salt bridges, π-π stacking, cation-π, hydrophobic contacts, metal "
@@ -1570,7 +1570,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     CalculatorDefinition(
         calculator_id="markush_enumeration",
         display_name="Markush Enumeration",
-        category="markush",
+        category="structures",
         description=(
             "Enumerate the library of a Markush structure. Draw the core with dummy-atom "
             "attachment points ([*:1], [*:2]) and define substituents as \"R1: Cl, F, Br; "
@@ -1645,7 +1645,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         calculator_id="logd_curve",
         parameters=ph_range_parameters(),
         display_name="LogD vs pH",
-        category="logd",
+        category="lipophilicity",
         description=(
             "The distribution coefficient across pH 0-14 by Henderson-Hasselbalch. Needs a "
             "configured pkasolver environment. Note: Henderson-Hasselbalch under-predicts logD "
@@ -1809,7 +1809,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         calculator_id="molecular_dynamics",
         calculation_input=GEOMETRY,
         display_name="Molecular Dynamics (vacuum)",
-        category="dynamics",
+        category="geometry",
         description=(
             "Velocity-Verlet dynamics over MMFF94/UFF forces. VACUUM only: no thermostat, no "
             "barostat, no constraints, no periodic boundaries, no solvent. Not Dreiding, so "
@@ -2047,7 +2047,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     CalculatorDefinition(
         calculator_id="alignment_3d",
         display_name="3D Alignment",
-        category="alignment",
+        category="geometry",
         description=(
             "Aligns this molecule onto a reference structure in 3D. \"Extended atom types\" "
             "pairs atoms by MMFF type (atomic number, hybridization and aromaticity), so an "

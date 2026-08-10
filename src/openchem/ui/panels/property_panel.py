@@ -67,20 +67,14 @@ _CATEGORY_ORDER = [
     "identity",
     "naming",
     "charge",
-    "logp",
-    "logd",
-    "molar_refractivity",
+    "lipophilicity",
     "structures",
-    "markush",
     "quantum",
     "electronic",
-    "alignment",
-    "dynamics",
     "topology",
     "geometry",
     "surface",
     "substructure",
-    "interactions",
     "stereochemistry",
     "medicinal_chemistry",
     "pka",
@@ -91,37 +85,82 @@ _CATEGORY_ORDER = [
     "admet",
     "shape",
 ]
+#: **26 SECTIONS HELD 49 BUTTONS, AND ELEVEN OF THEM HELD EXACTLY ONE.**
+#: Finding a calculator meant scrolling twenty-six headings, most
+#: concealing a single item -- counted in `docs/NAVIGATION_AUDIT.md`, and
+#: the strongest single number behind "this is extremely difficult
+#: software to use".
+#:
+#: The merge is a taxonomy decision, so each one is justified where it is
+#: not obvious:
+#:
+#: - `structure` (Substance & Bonding) joined `identity`. Both answer
+#:   "what IS this", and the old pair rendered as "Structure" beside
+#:   "Structure Generators" -- two headings a page apart, one of which
+#:   was `category.title()` rather than a name anybody chose.
+#: - `logp` + `logd` became `lipophilicity`. `logd` was NOT a singleton
+#:   and is merged anyway, because logP contributions in one section and
+#:   logD in another is the split that made no sense to begin with.
+#: - `molar_refractivity` went to `electronic`, NOT to lipophilicity with
+#:   the rest of the Crippen family. Molar refractivity is molar
+#:   POLARIZABILITY by Lorentz-Lorenz, so it belongs beside the two
+#:   polarizability calculators; filing it under lipophilicity would have
+#:   put a heading on the section that was not true of its contents.
+#:
+#: **A HEADING MAY NOT CONTAIN `&`, AND MUST BE SHORT.** The section
+#: header is a `QToolButton`, which eats `&` as a mnemonic -- "Lipophilicity
+#: & Refractivity" rendered as "Lipophilicity  Refractivity", with the
+#: ampersand simply gone -- and elides when too long, which turned
+#: "Identity & Composition" into "Identity ...mposition". Both were caught
+#: by looking at the running app after a merge that every test passed.
+#: - `alignment`, `dynamics` and `interactions` joined `geometry`: a
+#:   superposition, a trajectory and a contact map are all things you can
+#:   only ask of a 3D structure.
+#: - `stereocenters` moved OUT of `geometry` to sit with
+#:   `stereo_descriptors`. A CIP label and the centre it labels belong
+#:   together, and this is the one move that gives a singleton a partner
+#:   rather than absorbing it.
+#: - `regulatory` joined `admet`. Costs nothing in the fact view: those
+#:   Facts carry `FactCategory.REGULATORY` themselves, so only the
+#:   section changed.
+#:
+#: `nmr` IS STILL A SINGLETON AND DELIBERATELY SO. `nmr_database` has no
+#: registry sibling -- the ORCA NMR jobs are ServiceExecution and live in
+#: their own panel -- and filing a spectroscopic measurement under a
+#: structural heading to flatten a count would be worse than the count.
+#: `test_no_category_holds_a_single_calculator` asserts the exception BY
+#: NAME, so a second one cannot arrive quietly.
 _CATEGORY_LABELS = {
     "physicochemical": "Physicochemical",
     "identity": "Identity",
     "naming": "Naming",
     "charge": "Charge",
-    "logp": "LogP",
-    "logd": "LogD (pH-dependent)",
-    "molar_refractivity": "Molar Refractivity",
+    "lipophilicity": "Lipophilicity",
     "structures": "Structure Generators",
     "quantum": "Quantum (Huckel)",
     "electronic": "Electronic Properties",
-    "alignment": "3D Alignment",
-    "dynamics": "Dynamics",
-    "markush": "Markush Enumeration",
     "topology": "Topology",
     "geometry": "Geometry (3D)",
     "surface": "Surface Area",
     "substructure": "Substructure Search",
-    "interactions": "Interactions",
     "stereochemistry": "Stereochemistry",
     "medicinal_chemistry": "Medicinal Chemistry",
     "pka": "pKa",
     "lewis": "Lewis Acid/Base",
-    "admet": "ADMET / Toxicity",
+    "admet": "ADMET / Regulatory",
     "shape": "Shape",
-    # Without these two the panel falls back to `category.title()`, which
+    # Without these the panel falls back to `category.title()`, which
     # rendered the NMR section as "Nmr". Found during a documentation
     # sweep: the guide had to describe a heading that was a formatting
     # accident rather than a name anybody chose.
     "nmr": "NMR",
-    "regulatory": "Regulatory",
+    # These two hold no buttons at all -- both are ServiceExecution, run
+    # from their own panels, and the section exists only to carry the
+    # hint that says so. They were relying on `category.title()` giving
+    # the right answer by luck, which is the same accident as "Nmr" with
+    # a happier outcome.
+    "docking": "Docking",
+    "quantum_chemistry": "Quantum Chemistry",
 }
 _DEFAULT_EXPANDED = {"physicochemical", "identity"}
 

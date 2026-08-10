@@ -234,7 +234,7 @@ def compute_interaction_analysis(
             name="Interaction Analysis",
             molecule_uuid=molecule_uuid,
             matched=[],
-            category="interactions",
+            category="geometry",
             cache_state=CacheState.FAILED,
             error=str(exc),
             provenance=Provenance(created_by="core", method="rdkit"),
@@ -265,7 +265,7 @@ def compute_interaction_analysis(
         name="Interaction Analysis",
         molecule_uuid=molecule_uuid,
         matched=lines,
-        category="interactions",
+        category="geometry",
         provenance=Provenance(created_by="core", method="rdkit"),
     )
 

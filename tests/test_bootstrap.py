@@ -92,9 +92,24 @@ def test_phase26_calculators_are_registered():
     assert expected <= registered
 
 
-def test_new_categories_appear_in_the_registry():
+def test_the_phase_geometry_calculators_are_registered_and_filed():
+    """Asserts the CALCULATORS exist and have a home, not that a
+    particular category STRING does.
+
+    This used to require `{"geometry", "surface", "substructure",
+    "interactions"}` to be live categories, and broke when
+    `interaction_analysis` moved into `geometry` -- a section merge, with
+    the calculator entirely intact. The registry's category vocabulary is
+    deliberately open and re-groupable; pinning a test to one arrangement
+    of it makes tidying the panel look like a regression.
+    """
     registry = build_service_container().calculator_registry
-    assert {"geometry", "surface", "substructure", "interactions"} <= set(registry.categories())
+
+    for calculator_id in ("geometry_analysis", "surface_analysis",
+                          "substructure_search", "interaction_analysis"):
+        definition = registry.get(calculator_id)
+        assert definition is not None, f"{calculator_id} is not registered"
+        assert definition.category, f"{calculator_id} has no category to file it under"
 
 
 def test_registered_calculators_carry_tags():
@@ -162,7 +177,12 @@ def test_phase30_calculators_are_registered():
         for definition in registry.by_category(category)
     }
     assert expected <= registered
-    assert {"quantum", "dynamics"} <= set(registry.categories())
+    # Their CATEGORIES are not asserted by name. This line required
+    # `dynamics` to be a live category and broke when
+    # `molecular_dynamics` joined `geometry` -- the calculator was never
+    # touched. What matters is that each one is filed somewhere the panel
+    # will build a section for.
+    assert all(registry.get(cid).category for cid in expected)
 
 
 def test_every_sidecar_calculator_is_bound_to_its_own_interpreter():

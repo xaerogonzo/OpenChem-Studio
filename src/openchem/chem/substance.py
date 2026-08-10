@@ -952,7 +952,7 @@ def compute_substance_analysis(
         molecule_uuid=molecule_uuid,
         report_id="substance_analysis",
         name="Substance & Bonding",
-        category="structure",
+        category="identity",
         facts=tuple(facts),
         limitations=(
             "Perception describes the structure AS DRAWN. It never alters it: an "

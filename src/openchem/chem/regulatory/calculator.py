@@ -168,7 +168,7 @@ def compute_regulatory_screen(
         molecule_uuid=molecule_uuid,
         report_id="regulatory_screen",
         name="Regulatory Screen",
-        category="regulatory",
+        category="admet",
         facts=tuple(facts),
         cache_state=CacheState.COMPLETED,
         limitations=tuple(problems),

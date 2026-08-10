@@ -25,7 +25,7 @@ uncomfortable it is still the number.
 | panel modules | 12 |
 | dialog modules | 16 |
 
-## Finding 1 — 26 sections for 49 buttons
+## Finding 1 — SOLVED: 26 sections for 49 buttons, now 18
 
 The Properties panel builds one collapsible section per calculator
 *category*. Measured over the live registry:
@@ -50,9 +50,47 @@ registration needs no code change) and nothing has ever pushed back on
 adding one — the same structural reason the `inapplicable_calculators`
 blocklist rotted.
 
-This is the strongest single candidate for the "labyrinth" complaint, and
-it needs no new mechanism to fix: merging the eleven singletons into the
-categories they are closest to is a registration change, not a code one.
+This was the strongest single candidate for the "labyrinth" complaint.
+
+**MERGED: 26 categories -> 18, singletons 11 -> 1.**
+
+    1 button    11 sections  ->   1   (nmr, declared)
+    2 buttons    5 sections  ->   6
+    3 buttons    5 sections  ->   3
+    4 buttons    2 sections  ->   3
+    5 buttons    1 section   ->   3
+
+`nmr` stays a singleton on purpose: `nmr_database` has no registry
+sibling (the ORCA NMR jobs are ServiceExecution, in their own panel), and
+filing a spectroscopic measurement under a structural heading to flatten
+a count would be worse than the count.
+`test_no_category_holds_a_single_calculator` asserts the exception BY
+NAME, and a companion test fails if it ever stops being true.
+
+**"A registration change, not a code one" was WRONG**, and this sentence
+is kept as the correction. Three things move together, in three
+different files, and nothing links them:
+
+- `CalculatorDefinition.category`, which places the BUTTON;
+- the `category=` on the `ReportResult`/`AlertResult` the calculator
+  RETURNS, which places its ANSWER (the panel files those by
+  `report.category`, not by the definition's) -- so moving one without
+  the other puts a calculator's button in one section and its result in
+  another, silently;
+- the descriptor table's own category, which is a separate list again.
+  Missing it shipped a section headed **"Logp"** to the running app while
+  every test passed, because the first guard read only the registry.
+
+`test_a_calculators_result_lands_in_its_own_section` closes the second by
+running each calculator and comparing the two values; it compares 19 of
+them and asserts a floor, so it cannot silently compare nothing.
+
+**Two heading defects only the running app showed.** The section header
+is a `QToolButton`, which treats `&` as a mnemonic and ELIDES when long:
+"Lipophilicity & Refractivity" rendered as "Lipophilicity  Refractivity"
+with the ampersand simply gone, and "Identity & Composition" as
+"Identity ...mposition". Measured ceiling at the panel's real width is
+**21 characters**, and both are now guarded.
 
 ## Finding 2 — a category name is not a heading
 
@@ -206,7 +244,10 @@ feature looked broken when it was simply not being driven. Anything
 Six of the seven findings are the same failure: **a thing exists, works,
 and has no honest way to be reached or read.** Finding 7 was the sharpest
 form of it -- a "Running..." state that was written, correct, and
-unreachable -- and is now fixed. None of them is a chemistry bug and none was visible to 3613
+unreachable -- and is now fixed.
+
+Findings 1, 6 and 7 are done. 2 is closed for everything we ship (the
+fallback stays for plugins). 3, 4 and 5 are open. None of them is a chemistry bug and none was visible to 3613
 passing tests, because a test asserts that a value is correct and never
 that a person could find it.
 
