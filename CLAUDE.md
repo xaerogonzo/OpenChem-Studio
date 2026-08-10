@@ -117,11 +117,13 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **3-8 minutes**, ending at `3611 passed, 2 skipped,
-1 deselected` (measured 2026-08-09, 6m30s, after the mmCIF element-symbol,
-ligand-copy and protonation work; the branch it landed on collected 3570,
-so those changes are +44 together -- +35 for the element symbols and +9
-for the other two).
+A clean run is **3-8 minutes**, ending at `3613 passed, 2 skipped,
+1 deselected` (measured 2026-08-09, 5m25s, on the MERGE of the mmCIF
+element-symbol/ligand-copy/protonation work into master -- which is the
+number that matters, and it is not either side's: that branch alone gave
+3611 against the 3570 it started from (+44, being +35 for the element
+symbols and +9 for the other two), and master's assembly-gate work
+contributed the last 2 independently).
 Before it: 3501 on clean master at `77ad231` after the conformer
 de-duplication and calculator-routing work, 3446 at `14e5d08`, 3350 after
 the crystallography work, 3236 before that, 3155 before the
