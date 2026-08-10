@@ -55,7 +55,6 @@ import json
 import math
 import sys
 from collections import Counter, defaultdict
-from itertools import permutations
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -64,7 +63,7 @@ CACHE = HERE / "cache"
 sys.path.insert(0, str(HERE.parents[1] / "src"))
 
 from openchem.chem.pose_analysis import _cif_tokens  # noqa: E402
-from openchem.chem.structure_assembly import operator_transforms  # noqa: E402
+from openchem.chem.structure_assembly import compose, operator_transforms  # noqa: E402
 
 #: Half of the last written decimal. Rounding to three places cannot move
 #: a value further than this, so exceeding it means the serializer is
@@ -161,17 +160,34 @@ def _pdb_atoms(text: str) -> dict[str, dict[tuple, tuple[float, float, float]]]:
     return dict(out)
 
 
+def _centroid(atoms: dict) -> tuple[float, float, float]:
+    n = len(atoms)
+    return tuple(sum(xyz[i] for xyz in atoms.values()) / n for i in range(3))
+
+
 def _pair_chains(
-    mine: dict[str, dict], theirs: dict[str, dict]
+    mine: dict[str, dict], theirs: dict[str, dict], subset: bool = False
 ) -> tuple[list[tuple[str, str]], str]:
-    """Pair our chains to theirs by COMPOSITION, then by coordinates.
+    """Pair our chains to theirs by COMPOSITION, then by position.
 
     Composition alone cannot separate the copies of a homo-oligomer --
     which is every structure in this corpus -- so within a group of
-    identical compositions the assignment minimising the worst deviation
-    is chosen. That is coordinates BREAKING A TIE between candidates
-    identity has already narrowed, not coordinates establishing the
-    match.
+    identical compositions each of our chains takes the nearest unused
+    reference centroid. That is position BREAKING A TIE between
+    candidates identity has already narrowed, never establishing the
+    match, and the per-atom check afterwards is what confirms it: a
+    mispairing puts whole chains angstroms apart and fails loudly.
+
+    Centroids rather than the exhaustive minimax the first version used.
+    That version refused above six identical chains because the search is
+    factorial, which was fine for a corpus of dimers and trimers and is
+    not for 1A34's assembly 6 -- 120 chains, 15 copies of each
+    composition. 15! is 1.3e12.
+
+    `subset` is for an entry scored against a LARGER reference: 1A34's
+    assembly 6 is 15 of the 60 operators its assembly 1 applies, and RCSB
+    pre-generates only assembly 1. Every chain of ours must find a
+    partner; theirs may have many left over.
     """
     def composition(atoms: dict) -> tuple:
         return tuple(sorted(atoms))
@@ -183,9 +199,16 @@ def _pair_chains(
     for chain, atoms in theirs.items():
         reference[composition(atoms)].append(chain)
 
-    if Counter({k: len(v) for k, v in ours.items()}) != Counter(
-        {k: len(v) for k, v in reference.items()}
-    ):
+    our_counts = Counter({k: len(v) for k, v in ours.items()})
+    their_counts = Counter({k: len(v) for k, v in reference.items()})
+    if subset:
+        short = [k for k, n in our_counts.items() if their_counts.get(k, 0) < n]
+        if short:
+            return [], (
+                f"{len(short)} chain composition(s) appear more often here than in "
+                f"the reference, so this is not a subset of it"
+            )
+    elif our_counts != their_counts:
         return [], (
             f"chain composition multiset differs: {len(mine)} chains here "
             f"against {len(theirs)} there"
@@ -193,29 +216,16 @@ def _pair_chains(
 
     pairs: list[tuple[str, str]] = []
     for comp, our_chains in ours.items():
-        candidates = reference[comp]
-        if len(our_chains) > 6:
-            # Exhaustive assignment is factorial; nothing in this corpus
-            # comes close, and silently degrading to a greedy match would
-            # make a failure unexplainable.
-            return [], f"{len(our_chains)} identical chains is too many to assign"
-        best, best_cost = None, math.inf
-        for order in permutations(candidates):
-            cost = 0.0
-            for ours_chain, theirs_chain in zip(our_chains, order):
-                a, b = mine[ours_chain], theirs[theirs_chain]
-                cost = max(
-                    cost,
-                    max(
-                        max(abs(p - q) for p, q in zip(a[key], b[key]))
-                        for key in a
-                    ),
-                )
-                if cost >= best_cost:
-                    break
-            if cost < best_cost:
-                best, best_cost = order, cost
-        pairs.extend(zip(our_chains, best))
+        available = list(reference[comp])
+        centroids = {chain: _centroid(theirs[chain]) for chain in available}
+        for our_chain in our_chains:
+            here = _centroid(mine[our_chain])
+            nearest = min(
+                available,
+                key=lambda c: sum((p - q) ** 2 for p, q in zip(here, centroids[c])),
+            )
+            available.remove(nearest)
+            pairs.append((our_chain, nearest))
     return pairs, ""
 
 
@@ -238,7 +248,16 @@ def _unrounded(
     source = _atoms(source_text, source_format)
     out: dict[str, dict[tuple, tuple[float, float, float]]] = {}
     for source_chain, operator_id, generated in instances:
-        transform = transforms[operator_id]
+        # A product expression gives a COMPOSED placement, which the
+        # manifest records joined with `x` -- `X0x1`. Recomposed here from
+        # the individual operators rather than looked up, right-to-left as
+        # the format defines, so the scorer's arithmetic is a second
+        # opinion on the builder's composition and not a copy of it.
+        transform = None
+        for part in reversed(operator_id.split("x")):
+            operator = transforms[part]
+            transform = operator if transform is None else compose(transform, operator)
+        assert transform is not None
         out[generated] = {
             key: transform.apply(*xyz)
             for key, xyz in source.get(source_chain, {}).items()
@@ -248,13 +267,16 @@ def _unrounded(
 
 def _score_one(entry: dict, record: dict) -> dict:
     pdb_id, assembly_id = entry["pdb_id"], entry["assembly_id"]
+    case_id = f"{pdb_id}-a{assembly_id}"
+    reference_id = entry.get("reference_assembly_id", assembly_id)
+    subset = entry.get("reference_mode") == "subset"
     expect = entry["expect"]
 
     if expect == "refused":
         if record["ok"]:
             return {"pass": False, "note": "built, but the corpus expects a refusal"}
         reference = _cif_atom_site_rows(
-            (CACHE / f"{pdb_id}-assembly{assembly_id}.cif").read_text(errors="ignore")
+            (CACHE / f"{pdb_id}-assembly{reference_id}.cif").read_text(errors="ignore")
         )
         stated = entry.get("expect_atoms")
         # The refusal names the count it refuses on. RCSB's file is the
@@ -271,11 +293,11 @@ def _score_one(entry: dict, record: dict) -> dict:
         return {"pass": False, "note": f"refused: {record['failure_reason']}"}
 
     suffix = "pdb" if SOURCE_FORMAT == "pdb" else "cif"
-    built = (CACHE / f"built_{LABEL}" / f"{pdb_id}.{suffix}").read_text(errors="ignore")
+    built = (CACHE / f"built_{LABEL}" / f"{case_id}.{suffix}").read_text(errors="ignore")
     source = (CACHE / f"{pdb_id}.{suffix}").read_text(errors="ignore")
     mine = _atoms(built, SOURCE_FORMAT)
     theirs = _reference_atoms(
-        (CACHE / f"{pdb_id}-assembly{assembly_id}.cif").read_text(errors="ignore")
+        (CACHE / f"{pdb_id}-assembly{reference_id}.cif").read_text(errors="ignore")
     )
 
     n_mine = sum(len(v) for v in mine.values())
@@ -286,10 +308,17 @@ def _score_one(entry: dict, record: dict) -> dict:
         "chains": len(mine),
         "reference_chains": len(theirs),
     }
-    if n_mine != n_theirs:
+    if subset:
+        # A subset entry is scored against a LARGER assembly, so equality
+        # is the wrong test. What must hold is that every atom of ours is
+        # in theirs, which the per-atom check below establishes, and that
+        # we produced the placements the expression calls for.
+        if n_mine >= n_theirs:
+            return {**result, "pass": False, "note": "not smaller than its reference"}
+    elif n_mine != n_theirs:
         return {**result, "pass": False, "note": "atom count differs"}
 
-    pairs, problem = _pair_chains(mine, theirs)
+    pairs, problem = _pair_chains(mine, theirs, subset=subset)
     if problem:
         return {**result, "pass": False, "note": problem}
 
@@ -359,15 +388,20 @@ def main() -> int:
     print(f"label={payload['label']}  built FROM {SOURCE_FORMAT}  "
           f"mutation={payload['mutation']}  built={payload['environment']['built']}")
     print(
-        f"{'structure':<10} {'atoms':>9} {'chains':>7} {'max dev':>9} "
+        f"{'case':<12} {'atoms':>9} {'chains':>7} {'max dev':>9} "
         f"{'transform':>10} {'serial':>8} {'rmsd':>8}  verdict"
     )
-    failures = 0
+    failures = skipped = 0
     for entry in corpus["structures"]:
-        pdb_id = entry["pdb_id"]
-        record = payload["predictions"].get(pdb_id)
+        case_id = f"{entry['pdb_id']}-a{entry['assembly_id']}"
+        allowed = entry.get("source_formats")
+        if allowed and SOURCE_FORMAT not in allowed:
+            print(f"{case_id:<12} {'-':>9} {'-':>7} not buildable from {SOURCE_FORMAT}")
+            skipped += 1
+            continue
+        record = payload["predictions"].get(case_id)
         if record is None:
-            print(f"{pdb_id:<10} not in predictions")
+            print(f"{case_id:<12} not in predictions")
             failures += 1
             continue
         scored = _score_one(entry, record)
@@ -375,22 +409,24 @@ def main() -> int:
             failures += 1
         if "max_deviation" in scored:
             print(
-                f"{pdb_id:<10} {scored['atoms']:>9,} {scored['chains']:>7} "
+                f"{case_id:<12} {scored['atoms']:>9,} {scored['chains']:>7} "
                 f"{scored['max_deviation']:>9.4f} {scored['transform_error']:>10.6f} "
                 f"{scored['serialisation_error']:>8.6f} {scored['rmsd']:>8.5f}  "
                 f"{'PASS' if scored['pass'] else 'FAIL'}"
             )
         else:
             print(
-                f"{pdb_id:<10} {'-':>9} {'-':>7} {'-':>9} {'-':>10} {'-':>8} "
+                f"{case_id:<12} {'-':>9} {'-':>7} {'-':>9} {'-':>10} {'-':>8} "
                 f"{'-':>8}  {'PASS' if scored['pass'] else 'FAIL'}  {scored['note']}"
             )
 
     print()
+    scored = len(corpus["structures"]) - skipped
+    tail = f" ({skipped} not applicable to {SOURCE_FORMAT})" if skipped else ""
     if failures:
-        print(f"{failures} of {len(corpus['structures'])} FAILED")
+        print(f"{failures} of {scored} FAILED{tail}")
     else:
-        print(f"all {len(corpus['structures'])} agree with RCSB")
+        print(f"all {scored} agree with RCSB{tail}")
     return 1 if failures else 0
 
 

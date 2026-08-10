@@ -2,14 +2,14 @@
  "label": "shipped",
  "source_format": "pdb",
  "mutation": null,
- "corpus_version": 1,
+ "corpus_version": 2,
  "environment": {
   "built": "2026-08-09",
   "python": "3.13.7",
   "platform": "Windows-11-10.0.26200-SP0"
  },
  "predictions": {
-  "4DKL": {
+  "4DKL-a1": {
    "ok": true,
    "failure_reason": "",
    "warnings": [],
@@ -28,7 +28,7 @@
    "atom_count": 7380,
    "sha256": "d561c55a26fd839358f95ffd6a4d49a2f13a49c3d0ffd764ea380c6679c25867"
   },
-  "4EA3": {
+  "4EA3-a1": {
    "ok": true,
    "failure_reason": "",
    "warnings": [],
@@ -47,7 +47,7 @@
    "atom_count": 5130,
    "sha256": "a3ef92a945848541982f5b7ccc1d516d2b6fab4e05d1695d1fe3756b5373286b"
   },
-  "5I6X": {
+  "5I6X-a1": {
    "ok": true,
    "failure_reason": "",
    "warnings": [],
@@ -71,7 +71,7 @@
    "atom_count": 7631,
    "sha256": "baaba4e99acf804afaeb204f54ad9a9d497fd40e75b656cb2840c9367621cccc"
   },
-  "2OMF": {
+  "2OMF-a1": {
    "ok": true,
    "failure_reason": "",
    "warnings": [],
@@ -95,7 +95,7 @@
    "atom_count": 8481,
    "sha256": "1ae059709c0200fbb79ad72604b246fe320871d27e6c94b848d70a04924828b2"
   },
-  "1A34": {
+  "1A34-a1": {
    "ok": false,
    "failure_reason": "Assembly 1 would contain 208,440 atoms, over the 100,000 limit for docking preparation.",
    "warnings": [],

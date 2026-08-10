@@ -8,7 +8,7 @@ nothing in this repository changed. Every file's sha256, size and fetch
 date go into `sources.json`, which IS committed; a later fetch that finds
 different bytes says so instead of overwriting the record.
 
-The cached structures themselves are NOT committed -- 10 files and 40 MB,
+The cached structures themselves are NOT committed -- 15 files and 81 MB,
 24 MB of it 1A34's 208,440-atom assembly alone, all re-fetchable from a
 stable public URL.
 
@@ -48,20 +48,25 @@ def _digest(payload: bytes) -> str:
 def _wanted(corpus: dict) -> list[tuple[str, str]]:
     """(filename, url) for everything the gate needs."""
     template = corpus["reference"]["url_template"]
-    out = []
+    out: list[tuple[str, str]] = []
     for entry in corpus["structures"]:
-        pdb_id, assembly_id = entry["pdb_id"], entry["assembly_id"]
+        pdb_id = entry["pdb_id"]
+        # The REFERENCE assembly, which is not always the one being built:
+        # RCSB pre-generates only assembly 1 for some entries, so 1A34's
+        # assembly 6 is scored against assembly 1 as a subset of it.
+        reference_id = entry.get("reference_assembly_id", entry["assembly_id"])
         out.append((f"{pdb_id}.pdb", f"https://files.rcsb.org/download/{pdb_id}.pdb"))
         # The mmCIF deposit as well: the builder reads both, and the gate
         # scores both arms against the same RCSB reference.
         out.append((f"{pdb_id}.cif", f"https://files.rcsb.org/download/{pdb_id}.cif"))
         out.append(
             (
-                f"{pdb_id}-assembly{assembly_id}.cif",
-                template.format(pdb_id=pdb_id, assembly_id=assembly_id),
+                f"{pdb_id}-assembly{reference_id}.cif",
+                template.format(pdb_id=pdb_id, assembly_id=reference_id),
             )
         )
-    return out
+    # One deposit can appear under several assemblies; download each once.
+    return list(dict.fromkeys(out))
 
 
 def main() -> int:

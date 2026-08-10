@@ -1,7 +1,7 @@
 # Biological assembly gate
 
 The external check on `chem/structure_assembly.py`'s builder. Everything
-else that tests it — 30 unit tests, hand-calculated rotations, refusal
+else that tests it — 40 unit tests, hand-calculated rotations, refusal
 cases — tests it against *this project's own reading* of the PDB and
 mmCIF formats, and a misreading is invisible to that. RCSB generates its
 assembly files from the mmCIF `_pdbx_struct_oper_list`; we build ours
@@ -31,20 +31,22 @@ uv run --no-sync python benchmarks/assembly/score.py benchmarks/assembly/predict
 
 Built from **PDB** (`REMARK 350`):
 
-    structure      atoms  chains   max dev  transform   serial     rmsd
-    4DKL           7,380       2    0.0000   0.000000 0.000000  0.00000
-    4EA3           5,130       2    0.0000   0.000220 0.000220  0.00000
-    5I6X           7,631       3    0.0000   0.000000 0.000000  0.00000
-    2OMF           8,481       3    0.0010   0.000524 0.000500  0.00012
-    1A34               refused; RCSB's own assembly has 208,440 atoms
+    case             atoms  chains   max dev  transform   serial     rmsd
+    4DKL-a1          7,380       2    0.0000   0.000000 0.000000  0.00000
+    4EA3-a1          5,130       2    0.0000   0.000220 0.000220  0.00000
+    5I6X-a1          7,631       3    0.0000   0.000000 0.000000  0.00000
+    2OMF-a1          8,481       3    0.0010   0.000524 0.000500  0.00012
+    1A34-a1              refused; RCSB's own assembly has 208,440 atoms
+    1A34-a6              not buildable from pdb
 
 Built from **mmCIF** (`_pdbx_struct_oper_list`):
 
-    4DKL           7,380       2    0.0000   0.000000 0.000000  0.00000
-    4EA3           5,130       2    0.0000   0.000223 0.000223  0.00000
-    5I6X           7,631       3    0.0000   0.000000 0.000000  0.00000
-    2OMF           8,481       3    0.0000   0.000500 0.000500  0.00000
-    1A34               refused; RCSB's own assembly has 208,440 atoms
+    4DKL-a1          7,380       2    0.0000   0.000000 0.000000  0.00000
+    4EA3-a1          5,130       2    0.0000   0.000223 0.000223  0.00000
+    5I6X-a1          7,631       3    0.0000   0.000000 0.000000  0.00000
+    2OMF-a1          8,481       3    0.0000   0.000500 0.000500  0.00000
+    1A34-a1              refused; RCSB's own assembly has 208,440 atoms
+    1A34-a6         52,110      45    0.0000   0.000500 0.000500  0.00000
 
 1A34 is the size guard: the builder refuses it at 208,440 atoms, and
 RCSB's own file confirms that is the count to the atom, so the refusal
@@ -98,10 +100,12 @@ than editing the module — this project has twice been misled by a
 mutation that never landed and by a restored file running from stale
 bytecode.
 
-| mutation | 4DKL | 4EA3 | 5I6X | 2OMF |
-| --- | --- | --- | --- | --- |
-| `transpose` | pass | pass | pass | **FAIL, 118.5 Å** |
-| `swap-translation` | **FAIL, 70.9 Å** | **FAIL, 14.9 Å** | **FAIL, 129.2 Å** | **FAIL, 161.9 Å** |
+| mutation | 4DKL | 4EA3 | 5I6X | 2OMF | 1A34-a6 |
+| --- | --- | --- | --- | --- | --- |
+| `transpose` | pass | pass | pass | **FAIL, 118.5 Å** | — |
+| `swap-translation` | **FAIL, 70.9 Å** | **FAIL, 14.9 Å** | **FAIL, 129.2 Å** | **FAIL, 161.9 Å** | — |
+| `union-product` | — | — | — | — | **FAIL, 81.7 Å** |
+| `reverse-composition` | — | — | — | — | pass — see below |
 
 **That top row is the whole reason 2OMF is in the corpus, and it is now
 measured rather than argued.** Every matrix in the bundled receptor
@@ -114,13 +118,38 @@ thing in reach that can tell the difference.
 which a corrupted matrix does not change. Do not read that as the
 mutation escaping.
 
+## The product expression, and the one thing it cannot check
+
+**1A34 assembly 6 is `(X0)(1-10,21-25)`** — two groups, the second
+carrying a range *and* a comma list, expanding to 15 placements over 8
+chains. It is scored as a **subset** of assembly 1, because RCSB
+pre-generates only assembly 1 for this entry and `1-10,21-25` are 15 of
+that assembly's 60 operators. All 52,110 of our atoms appear among their
+208,440, exactly.
+
+`REMARK 350` has no expression syntax at all, so this case is mmCIF-only
+and the PDB arm reports it as not applicable rather than skipping it
+silently.
+
+**It does not catch a reversed composition, and that is measured rather
+than assumed.** `--mutate reverse-composition` passes it: 1A34 defines
+`X0` as the exact identity, and composing the identity with anything is
+order-independent. `--mutate union-product` — reading `(A)(B)` as *A and
+B* instead of *A after B* — **is** caught, at 81.7 Å, because it changes
+the placement count from 15 to 16.
+
+Nothing better is reachable. Every product expression whose outer group
+is non-identity — 1M4X assembly 7 `(P)(61-88)`, 1AL0 assembly 6, 1NOV
+assembly 6 — lives in an assembly RCSB does not pre-generate, and the one
+product that *is* in a served assembly, 1M4X assembly 1 `(1-60)(61-88)`,
+is 16,284,240 atoms. So composition **order** has no external witness and
+stays unit-tested. `tests/test_assembly_gate.py` derives that conclusion
+from the deposit's own X0 matrix rather than trusting the corpus flag, so
+claiming the coverage without adding a better entry fails.
+
 ## What this gate does NOT cover
 
-- **A product expression.** `(X0)(1-60)` is an mmCIF construct;
-  `REMARK 350` enumerates every operator explicitly and has no expression
-  syntax at all. None of the five corpus entries uses one from either
-  format, so right-to-left composition is still unit-tested only. A
-  deposit that uses one belongs in this corpus.
+- **Composition order**, for the reason set out just above.
 - **A site at an interface.** None of the curated 49 receptors has one,
   which is exactly why the catalogue could not be the gate. Building
   changes zero docking outcomes on the catalogue; 4DKL is the control for
@@ -140,6 +169,6 @@ mutation escaping.
 records the sha256, size and fetch date of every downloaded file — RCSB
 regenerates assemblies when a deposit is revised, and `fetch.py --recheck`
 reports changed bytes rather than silently absorbing them. The structures
-themselves are not committed: 10 files and 40 MB, of which 1A34's
+themselves are not committed: 15 files and 81 MB, of which 1A34's
 208,440-atom assembly is 24 MB on its own — larger than the entire `.git`
 — and all of it re-fetchable from a stable public URL.

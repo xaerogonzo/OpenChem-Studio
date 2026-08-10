@@ -692,9 +692,27 @@ document may cite a file or a test that does not exist.
   and the same receptor must exclude the same chains whichever format it
   was imported from.
 
-  Still open: **a product expression** (`(X0)(1-60)`) has no deposit in
-  the corpus from either format -- `REMARK 350` has no expression syntax
-  at all -- so right-to-left composition remains unit-tested only.
+  **A product expression is in the corpus now**: 1A34 assembly 6,
+  `(X0)(1-10,21-25)` -- two groups, the second carrying a range and a
+  comma list, 15 placements over 8 chains, mmCIF-only because `REMARK
+  350` has no expression syntax at all. It is scored as a SUBSET of
+  assembly 1, since RCSB pre-generates only assembly 1 for that entry and
+  those 15 operators are among its 60; all 52,110 of our atoms appear
+  among their 208,440, exactly.
+
+  Still open, and now DECLARED rather than merely absent: **composition
+  order has no external witness.** Measured -- `--mutate
+  reverse-composition` passes the whole corpus, because 1A34 defines X0
+  as the exact identity and composing the identity is order-independent.
+  Nothing better is reachable: every product whose outer group is
+  non-identity (1M4X assembly 7 `(P)(61-88)`, 1AL0 assembly 6, 1NOV
+  assembly 6) sits in an assembly RCSB does not pre-generate, and the one
+  served product, 1M4X assembly 1 `(1-60)(61-88)`, is 16,284,240 atoms.
+  `tests/test_assembly_gate.py` DERIVES that conclusion from the
+  deposit's own X0 matrix rather than trusting a flag, so claiming the
+  coverage without adding a better entry fails. `--mutate union-product`
+  -- reading `(A)(B)` as A and B rather than A after B -- IS caught, at
+  81.7 A.
 
   BinaryCIF is no longer: `chem/binarycif.py` decodes it and
   `chem/structure_io.py` routes files by content (and gunzips) at import.

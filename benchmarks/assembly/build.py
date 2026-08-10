@@ -33,9 +33,13 @@ CACHE = HERE / "cache"
 sys.path.insert(0, str(HERE.parents[1] / "src"))
 
 from openchem.chem import structure_assembly  # noqa: E402
-from openchem.chem.structure_assembly import Transform, build_assembly  # noqa: E402
+from openchem.chem.structure_assembly import (  # noqa: E402
+    DEFAULT_ATOM_LIMIT,
+    Transform,
+    build_assembly,
+)
 
-_MUTATIONS = ("transpose", "swap-translation")
+_MUTATIONS = ("transpose", "swap-translation", "union-product", "reverse-composition")
 
 
 def _apply_mutation(kind: str) -> None:
@@ -65,10 +69,45 @@ def _apply_mutation(kind: str) -> None:
             )
         return out
 
-    structure_assembly.operator_transforms = mutated
+    if kind in ("transpose", "swap-translation"):
+        structure_assembly.operator_transforms = mutated
+    else:
+        _mutate_expression(kind)
     # `build_assembly` resolved the name at import time in this module's
     # namespace only; the builder itself calls it through the module.
     print(f"MUTATED: {kind}")
+
+
+def _mutate_expression(kind: str) -> None:
+    """Corrupt how a PRODUCT expression expands.
+
+    Two different mistakes, deliberately separated, because they are
+    caught by different things:
+
+      union-product        reads `(A)(B)` as A and B rather than A after
+                           B, which changes the NUMBER of placements and
+                           so the atom count.
+      reverse-composition  keeps the placements and applies them in the
+                           wrong order. Invisible whenever the outer
+                           group is the identity, which is the case for
+                           every product expression this corpus can
+                           reach -- see corpus.json's
+                           `why_not_composition_order`.
+    """
+    original = structure_assembly.expand_expression
+
+    def mutated(expression):
+        combinations = original(expression)
+        if kind == "union-product":
+            flattened = []
+            for combination in combinations:
+                for operator_id in combination:
+                    if (operator_id,) not in flattened:
+                        flattened.append((operator_id,))
+            return flattened
+        return [tuple(reversed(combination)) for combination in combinations]
+
+    structure_assembly.expand_expression = mutated
 
 
 def main() -> int:
@@ -93,13 +132,25 @@ def main() -> int:
     predictions = {}
     for entry in corpus["structures"]:
         pdb_id, assembly_id = entry["pdb_id"], entry["assembly_id"]
+        # One deposit can appear under several assemblies, so the key is
+        # the CASE and not the entry -- 1A34 is in this corpus twice.
+        case_id = f"{pdb_id}-a{assembly_id}"
+        allowed = entry.get("source_formats")
+        if allowed and args.format not in allowed:
+            # A product expression has no PDB form to build: REMARK 350
+            # enumerates operators and has no expression syntax at all.
+            print(f"  {case_id}: skipped, {args.format} cannot state this assembly")
+            continue
         suffix = "pdb" if args.format == "pdb" else "cif"
         source = CACHE / f"{pdb_id}.{suffix}"
         if not source.exists():
             print(f"  MISSING {source.name} -- run fetch.py first", file=sys.stderr)
             return 2
         result = build_assembly(
-            source.read_text(errors="ignore"), args.format, assembly_id=assembly_id
+            source.read_text(errors="ignore"),
+            args.format,
+            assembly_id=assembly_id,
+            atom_limit=entry.get("atom_limit", DEFAULT_ATOM_LIMIT),
         )
         record = {
             "ok": result.ok,
@@ -111,7 +162,7 @@ def main() -> int:
             ],
         }
         if result.ok:
-            path = out_dir / f"{pdb_id}.{suffix}"
+            path = out_dir / f"{case_id}.{suffix}"
             path.write_text(result.output_text, encoding="utf-8")
             record["atom_count"] = sum(
                 1
@@ -121,10 +172,10 @@ def main() -> int:
             record["sha256"] = hashlib.sha256(
                 result.output_text.encode("utf-8")
             ).hexdigest()
-            print(f"  {pdb_id}: built {record['atom_count']:,} atoms")
+            print(f"  {case_id}: built {record['atom_count']:,} atoms")
         else:
-            print(f"  {pdb_id}: refused -- {result.failure_reason}")
-        predictions[pdb_id] = record
+            print(f"  {case_id}: refused -- {result.failure_reason}")
+        predictions[case_id] = record
 
     payload = {
         "label": args.label,
