@@ -46,6 +46,7 @@ from openchem.events.events import (
     PhCurveComputed,
     SpectrumComputed,
     StructureSetComputed,
+    TrajectoryComputed,
 )
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.descriptor_service import DescriptorService
@@ -257,26 +258,68 @@ def _present_alert(alert) -> tuple[str, str, str]:
     return joined, _INFORMATION_STYLE, joined
 
 
+#: The attribute each result type carries its payload in -> the noun for a
+#: count of it. ORDERED, because a subclass can carry more than one: an
+#: `NMRSpectrumResult` has `values`, `ranges` AND `couplings`, and `values`
+#: is the one its view renders, so the first match is the right one.
+#:
+#: **THE PREVIOUS VERSION PROBED FOR NAMES NO RESULT TYPE HAS EVER HAD.**
+#: It asked for `structures` and `points`; `StructureSetResult` calls it
+#: `entries` and `PhCurveResult` calls it `ph_values`. Both probes missed
+#: on every result, so nine calculators rendered as the bare word "Ready"
+#: -- the calculator ran, the payload was there, and the panel said
+#: nothing about it. Measured on aspirin: 11 of 26 dialog-detail
+#: calculators, `major_microspecies` and `tautomers` among them.
+#:
+#: Same failure as the `inapplicable_calculators` blocklist: a name
+#: written once, against a shape nobody re-checked. `test_summarise.py`
+#: derives this table's correctness FROM the dataclasses, so a renamed
+#: field fails there instead of silently reverting to "Ready".
+#: The noun is SINGULAR and pluralised at the point of use -- "1
+#: structures" is the kind of blemish that makes a panel read as
+#: unfinished, and every one of these counts can legitimately be 1
+#: (a molecule with one tautomer, a single-frame trajectory).
+_PAYLOAD_FIELDS: tuple[tuple[str, str], ...] = (
+    ("values", "atom"),
+    ("entries", "structure"),
+    ("ph_values", "pH point"),
+    ("frames", "frame"),
+)
+
+
+def _counted(count: int, noun: str) -> str:
+    """`3 structures`, `1 structure`. Every noun in `_PAYLOAD_FIELDS`
+    pluralises regularly, so there is nothing to look up."""
+    return f"{count} {noun}" if count == 1 else f"{count} {noun}s"
+
+
 def _summarise(result: object) -> str:
     """A one-line "what arrived" for a result whose detail lives in a
     dialog. Enough to show the run happened and produced something, with
     the shape of it, so "nothing noticeable happens" cannot recur.
+
+    **An EMPTY payload says so rather than falling through to "Ready".**
+    `stereocenters` on a molecule with none is a real answer, and "Ready"
+    is indistinguishable from the panel having failed to render one. The
+    row is captioned with the result's own name, so "None found." reads
+    as "Stereocenters: None found."
     """
-    values = getattr(result, "values", None)
-    if isinstance(values, dict) and values:
-        numbers = [v for v in values.values() if isinstance(v, (int, float))]
-        if numbers:
-            return (
-                f"{len(values)} atoms, {min(numbers):.4g} to {max(numbers):.4g}"
-                f"{' ' + result.units if getattr(result, 'units', '') else ''}"
-            )
-        return f"{len(values)} atoms"
-    structures = getattr(result, "structures", None)
-    if structures is not None:
-        return f"{len(structures)} structures"
-    points = getattr(result, "points", None)
-    if points is not None:
-        return f"{len(points)} points"
+    for attribute, noun in _PAYLOAD_FIELDS:
+        payload = getattr(result, attribute, None)
+        if payload is None:
+            continue
+        if not payload:
+            return "None found."
+        if isinstance(payload, dict):
+            numbers = [v for v in payload.values() if isinstance(v, (int, float))]
+            if numbers:
+                units = getattr(result, "units", "")
+                return (
+                    f"{_counted(len(payload), noun)}, "
+                    f"{min(numbers):.4g} to {max(numbers):.4g}"
+                    f"{' ' + units if units else ''}"
+                )
+        return _counted(len(payload), noun)
     return "Ready"
 
 
@@ -919,6 +962,7 @@ class PropertyPanel(QWidget):
         event_bus.subscribe(SpectrumComputed, self._on_spectrum_computed)
         event_bus.subscribe(StructureSetComputed, self._on_structure_set_computed)
         event_bus.subscribe(PhCurveComputed, self._on_ph_curve_computed)
+        event_bus.subscribe(TrajectoryComputed, self._on_trajectory_computed)
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
@@ -1323,10 +1367,25 @@ class PropertyPanel(QWidget):
             label.setText("Nothing to report.")
             label.setStyleSheet(_INFORMATION_STYLE)
         else:
-            label.setText("\n".join(f"{f.label}: {f.display_value}" for f in report.facts[:6]))
+            # EVERY fact, never a slice. This read `report.facts[:6]` from
+            # the ReportResult migration (f8a3cdc) until it was measured:
+            # 7 calculators over the cap, 50 of 126 facts never rendered,
+            # `topology_analysis` showing 6 of 27. The only signal was a
+            # tooltip nobody hovers, so a calculator that had computed 27
+            # values looked like one that computed 6.
+            #
+            # The path this replaced -- `_present_alert`, still live for
+            # the four catalogs -- has always joined its lines uncapped,
+            # so this restores parity rather than inventing a policy. A
+            # long report is a tall row in a section that collapses, in a
+            # panel that already scrolls; that is a layout question, and
+            # discarding the values is not an answer to it.
+            label.setText("\n".join(f"{f.label}: {f.display_value}" for f in report.facts))
             label.setStyleSheet(_INFORMATION_STYLE)
-            if len(report.facts) > 6:
-                label.setToolTip(f"{len(report.facts)} facts. Open Details for all of them.")
+            label.setToolTip(
+                f"{len(report.facts)} facts. "
+                "Details... for evidence, limitations and export."
+            )
         # Every branch, including the failures -- a run that failed is
         # exactly the case where being shown the answer matters most, and
         # the early returns this replaced meant a FAILED report scrolled
@@ -1524,6 +1583,42 @@ class PropertyPanel(QWidget):
         ):
             self._pending_calculator_id = None
             self._open_inspector(curve)
+
+    def _on_trajectory_computed(self, event: TrajectoryComputed) -> None:
+        """A trajectory is a result, and it used to arrive NOWHERE.
+
+        `DescriptorService` has published `TrajectoryComputed` since Phase
+        30 and nothing anywhere subscribed to it, so `molecular_dynamics`
+        ran for nine seconds, produced 101 frames, and the panel showed no
+        row at all -- indistinguishable from the calculator never having
+        started. Found by running every registered calculator and asking
+        which ones reach the screen.
+
+        **A row, and deliberately NO inspector.**
+        `_RESULT_VIEW_FACTORIES` has no view for a `TrajectoryResult`, so
+        `_open_inspector` would fall back to the per-atom molecular view
+        and depict a trajectory as an empty structure -- the "right
+        machinery, wrong object" failure this codebase has already paid
+        for in the crystal click and the 3D-viewer index space. A
+        trajectory player is a feature; saying what was produced is the
+        fix, and the honest state until that view exists.
+        """
+        trajectory = event.trajectory
+        self._finish_batch_run(trajectory.trajectory_id)
+        if trajectory.molecule_uuid == self._selected_molecule_uuid:
+            self._show_result(
+                trajectory.trajectory_id,
+                getattr(trajectory, "name", trajectory.trajectory_id),
+                self._category_of(trajectory.trajectory_id),
+                trajectory,
+            )
+        if (
+            self._pending_calculator_id == trajectory.trajectory_id
+            and trajectory.molecule_uuid == self._selected_molecule_uuid
+        ):
+            # Cleared without opening anything, so the next explicit run
+            # is not answered by a stale pending id.
+            self._pending_calculator_id = None
 
     def _on_calculator_button_clicked(self, _checked: bool = False) -> None:
         """Resolve the button that was pressed back to its calculator.
