@@ -117,6 +117,67 @@ Three things that cost a run each:
   caller's session; here it broke the harness's own exit-code handling
   and read as a failure of a capture that had just succeeded.
 
+## A RED SUITE SILENTLY DISABLES EVERY GATE BEHIND IT
+
+`.github/workflows/tests.yml` runs the suite and then three gates in the
+same job -- the naming benchmark, the regulatory benchmark and the
+ruleset validation. GitHub skips later steps once one fails, so **a red
+suite takes the gates with it**, and they report as `skipped` rather than
+as anything alarming:
+
+    failure  Run the test suite
+    skipped  Naming benchmark (must stay 181/181)
+    skipped  Regulatory benchmark
+    skipped  Validate regulatory rulesets
+
+Measured: master was red across three pushes, so the benchmark this file
+calls the arbiter of naming quality had not actually run in CI for any of
+them. **Check the STEP LIST, not just the conclusion** -- a red run hides
+how much never executed.
+
+### `QT_QPA_PLATFORM` IS NOT A WebGL CHECK, and that is what reddened it
+
+Four viewer tests failed on CI for environmental reasons, and the gate
+meant to cover exactly that could not see it, because it asked about the
+Qt PLATFORM instead of the capability:
+
+    QT_QPA_PLATFORM=offscreen, machine with a GPU   2 contexts (ANGLE/D3D11)
+    QT_QPA_PLATFORM=windows,   machine with a GPU   2 contexts
+    GPU-less CI runner                              0, "getContext returned null"
+
+So the name and the capability disagree in BOTH directions: `offscreen`
+locally has WebGL and the tests really do run there, while CI has none
+and 3Dmol's `viewer` is never defined -- which is why
+`test_the_matrix_matches_where_atoms_are_actually_drawn` failed in its
+SETUP, and why `test_a_gallery_that_cannot_be_built_is_reported` reported
+"the gallery failed silently" when the reporting was fine and nothing had
+got far enough to be reported.
+
+The `webgl` fixture in `tests/conftest.py` MEASURES it, from a bare
+canvas rather than from the app's own viewer page -- so the gate
+establishes the PREREQUISITE is absent and never that our code failed to
+use it. If WebGL works and 3Dmol still cannot build a viewer, the test
+runs and fails.
+
+**An inconclusive probe RAISES rather than reporting zero**, and that is
+load-bearing: "I could not find out" is not "the prerequisite is absent".
+It caught its own bug immediately -- the probe page was missing its
+closing `</script>`, so `runJavaScript` returned `''` (primitives only,
+as this file already records) and a blanket `except: return 0` would have
+skipped all four tests on every machine while looking like it worked.
+
+`tests/test_webgl_gate.py` guards it, and the guard that matters most is
+`test_a_measured_PRESENCE_does_not_skip` -- a capability gate is worth
+what its ability to say NO is worth. Measured before and after on CI:
+
+    before   4 failed, 4173 passed,  8 skipped   gates never ran
+    after    0 failed, 4178 passed, 12 skipped   "Naming benchmark holds at 181/181"
+
+Six gallery tests still skip on `_needs_a_display`, which is the same
+platform-name proxy. It is not causing failures (it skips on CI, which is
+the right answer for the wrong reason), and it is the obvious next thing
+to convert if it ever misleads anybody.
+
 ## Running the tests
 
 ```bash

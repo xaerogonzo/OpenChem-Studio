@@ -230,6 +230,155 @@ def qapp():
     yield app
 
 
+#: The measured WebGL capability, cached for the session. A dict rather
+#: than `lru_cache` so the "not measured yet" state is distinguishable
+#: from a measured zero.
+_WEBGL: dict[str, object] = {}
+
+#: The page the probe loads. It asks a BARE CANVAS, not the application's
+#: viewer page: the gate must establish that the PREREQUISITE is missing,
+#: not that our own code failed to use it. If WebGL works and 3Dmol still
+#: cannot build a viewer, that is a real bug and the test must still fail.
+_WEBGL_PROBE_PAGE = """
+<!doctype html><html><body style="margin:0">
+<script>
+window.__probe = function () {
+  var made = 0, detail = '';
+  for (var i = 0; i < 2; i++) {
+    try {
+      var c = document.createElement('canvas');
+      c.width = 64; c.height = 64;
+      document.body.appendChild(c);
+      var gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+      if (gl) {
+        made++;
+        if (!detail) {
+          var dbg = gl.getExtension('WEBGL_debug_renderer_info');
+          detail = String(dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)
+                              : (gl.getParameter(gl.RENDERER) || 'unnamed'));
+        }
+      } else if (!detail) {
+        detail = 'getContext returned null on attempt ' + (i + 1);
+      }
+    } catch (e) { if (!detail) detail = String(e); }
+  }
+  return JSON.stringify({contexts: made, detail: detail});
+};
+</script></body></html>
+"""
+
+
+def _measure_webgl(app) -> tuple[int, str]:
+    """How many WebGL contexts a `QWebEnginePage` can really create here.
+
+    **The suite's older gate was `QT_QPA_PLATFORM == "offscreen"`, which is
+    a statement about the Qt platform and not about WebGL.** They are not
+    the same condition, and the difference is exactly what turned CI red:
+    measured on a developer machine with a GPU, `offscreen` grants
+    2 contexts (ANGLE/D3D11), so the viewer tests run and pass there --
+    while a GPU-less CI runner grants none and 3Dmol's `viewer` is never
+    defined at all.
+
+    Deliberately NOT wrapped in a blanket try/except. An inconclusive
+    probe RAISES rather than reporting zero, because "I could not find
+    out" is not "the prerequisite is absent", and turning the first into
+    the second is how a real failure gets skipped silently.
+    """
+    import json
+    import time
+
+    from PySide6.QtWebEngineWidgets import QWebEngineView
+
+    def pump(predicate, seconds: float) -> bool:
+        deadline = time.time() + seconds
+        while time.time() < deadline:
+            app.processEvents()
+            if predicate():
+                return True
+            time.sleep(0.02)
+        return False
+
+    view = QWebEngineView()
+    view.resize(200, 150)
+    view.show()
+    try:
+        loaded: list[bool] = []
+        view.loadFinished.connect(loaded.append)
+        view.setHtml(_WEBGL_PROBE_PAGE)
+        if not pump(lambda: bool(loaded), 30):
+            raise RuntimeError(
+                "the WebGL probe page never finished loading, so WebGL "
+                "availability could not be established"
+            )
+
+        answer: list[object] = []
+        # A STRING, because runJavaScript on this Qt build marshals
+        # primitives only -- an object arrives as '' and would be
+        # indistinguishable from a script that returned nothing.
+        view.page().runJavaScript("window.__probe()", answer.append)
+        if not pump(lambda: bool(answer), 30):
+            raise RuntimeError(
+                "the WebGL probe did not return, so WebGL availability "
+                "could not be established"
+            )
+        raw = answer[0]
+        if not raw:
+            raise RuntimeError(
+                f"the WebGL probe returned {raw!r}; availability could not "
+                f"be established"
+            )
+        report = json.loads(str(raw))
+        return int(report["contexts"]), str(report["detail"])
+    finally:
+        view.stop()
+        view.setParent(None)
+        view.deleteLater()
+        # Per widget, never the global drain -- see dispose_web_engine_views.
+        QCoreApplication.sendPostedEvents(view, QEvent.Type.DeferredDelete)
+
+
+def webgl_contexts(app) -> tuple[int, str]:
+    """The cached `(contexts, detail)` for this session."""
+    if "result" not in _WEBGL:
+        _WEBGL["result"] = _measure_webgl(app)
+    return _WEBGL["result"]  # type: ignore[return-value]
+
+
+def webgl_skip_reason(app) -> str | None:
+    """The reason to skip, or None to RUN.
+
+    A plain function rather than logic buried in the fixture so
+    `tests/test_webgl_gate.py` can check both answers without a webview,
+    and so the "run" answer is a value that can be asserted rather than
+    the absence of an exception.
+    """
+    contexts, detail = webgl_contexts(app)
+    if contexts < 1:
+        return (
+            "Skipped: no usable WebGL context available in this environment "
+            f"({detail})"
+        )
+    return None
+
+
+@pytest.fixture
+def webgl(qapp):
+    """Skip only when a WebGL context genuinely cannot be created.
+
+    Requested by the tests that need the real 3Dmol viewer to exist. It
+    measures rather than inferring from the platform name, so:
+
+    - a developer machine (with or without `QT_QPA_PLATFORM=offscreen`)
+      has WebGL, the tests RUN, and a genuine regression still fails;
+    - a GPU-less CI runner has none, and they skip with a reason saying
+      so rather than failing and masking every gate behind them.
+    """
+    reason = webgl_skip_reason(qapp)
+    if reason is not None:
+        pytest.skip(reason)
+    return webgl_contexts(qapp)[0]
+
+
 @pytest.fixture(autouse=True)
 def isolated_settings(tmp_path, monkeypatch):
     """Point `Settings` at a throwaway INI file under `tmp_path`.

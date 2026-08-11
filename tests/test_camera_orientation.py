@@ -261,7 +261,7 @@ def _screen_agreement(screen, candidate) -> float:
         pytest.param(55, "z", id="about z"),
     ],
 )
-def test_the_matrix_matches_where_atoms_are_actually_drawn(qapp, degrees, axis):
+def test_the_matrix_matches_where_atoms_are_actually_drawn(qapp, webgl, degrees, axis):
     """**THE DIRECTION IS MEASURED, AND THE OBVIOUS ORACLE IS WRONG.**
 
     `camera_to_model_transform` claims `matrix @ point` gives the point as
@@ -292,6 +292,14 @@ def test_the_matrix_matches_where_atoms_are_actually_drawn(qapp, degrees, axis):
     through all three in turn and scored 0.83 on the x case, because the
     rotations composed -- a measurement of something nobody was asking
     about.
+
+    **`webgl` is a PREREQUISITE, not a way out.** The whole measurement is
+    "where does 3Dmol actually draw the atoms", so without a WebGL context
+    there is no `viewer`, nothing is drawn, and there is nothing to
+    compare against -- the assertion that fails is the SETUP's, not this
+    test's. The fixture measures the context rather than reading
+    `QT_QPA_PLATFORM`, so this still runs (and can still fail) anywhere a
+    context exists, `offscreen` included.
     """
     import json
 
