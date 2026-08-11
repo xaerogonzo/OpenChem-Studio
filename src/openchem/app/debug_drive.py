@@ -91,6 +91,20 @@ def start_if_requested(window: QWidget) -> "_Driver | None":
     return driver
 
 
+def _walk_actions(menu):
+    """Every action under `menu`, submenus included.
+
+    Recursive because the interesting ones are two levels down --
+    View > 2D Structure Display > Electron Display -- and a driver that
+    only saw the top level could not reach anything worth driving.
+    """
+    for action in menu.actions():
+        yield action
+        child = action.menu()
+        if child is not None:
+            yield from _walk_actions(child)
+
+
 class _Driver:
     """Runs the steps one at a time, off a `QTimer`.
 
@@ -131,6 +145,29 @@ class _Driver:
         QTimer.singleShot(after, self._run_next)
 
     # -- steps ---------------------------------------------------------
+
+    def _do_smiles(self, step: dict[str, Any]) -> None:
+        """Add a molecule from SMILES, with no file on disk.
+
+        `import` needs a path, and half of what is worth driving is a
+        one-line structure -- writing water to a temp file to look at its
+        lone pairs is friction with no purpose.
+        """
+        from openchem.commands.molecule_commands import AddMoleculeCommand
+        from openchem.domain.molecule import MoleculeModel
+
+        window = self._window
+        project = window._session.project
+        if project is None:
+            logger.error("OPENCHEM_DRIVE: no project to add to")
+            return
+        molecule = MoleculeModel(display_name=str(step.get("name", step["smiles"])))
+        window._services.chemistry_engine.set_structure_from_smiles(molecule, str(step["smiles"]))
+        window._undo_stack.push(
+            AddMoleculeCommand(project, molecule, window._services.event_bus)
+        )
+        window._project_explorer.refresh()
+        window._refresh_molecule_combos()
 
     def _do_import(self, step: dict[str, Any]) -> None:
         """Import a structure WITHOUT the file dialog.
@@ -261,6 +298,35 @@ class _Driver:
             molecule,
             num_conformers=int(step.get("count", 3)),
             optimize=bool(step.get("optimize", True)),
+        )
+
+    def _do_electrons(self, step: dict[str, Any]) -> None:
+        """Switch the Electron Display mode, through the real menu action.
+
+        Through the QAction rather than past it, so what is measured is
+        what a user gets -- including the status line, which is the only
+        thing distinguishing "no lone pairs" from "analysis unavailable".
+        """
+        wanted = str(step.get("mode", "pairs"))
+        for menu_action in self._window.menuBar().actions():
+            menu = menu_action.menu()
+            if menu is None:
+                continue
+            for action in _walk_actions(menu):
+                if action.data() == wanted and action.isCheckable():
+                    action.trigger()
+                    logger.warning("OPENCHEM_DRIVE: electron display -> %s", wanted)
+                    return
+        logger.error("OPENCHEM_DRIVE: no electron mode %r", wanted)
+
+    def _do_zoom(self, step: dict[str, Any]) -> None:
+        """Zoom the 2D editor, through Ketcher's own working call.
+
+        `ketcher.setZoom` looks like the API and does nothing on this
+        build -- measured in tests/test_ketcher_viewport_transform.py.
+        """
+        self._window._editor._backend._page.runJavaScript(
+            "if (window.ketcher) window.ketcher.editor.zoom(%s);" % float(step.get("to", 1.5))
         )
 
     def _do_editor_action(self, step: dict[str, Any]) -> None:

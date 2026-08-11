@@ -96,7 +96,38 @@ def test_a_metal_is_absent_from_the_counts_rather_than_reported_as_zero():
 
     assert not overlay.refused
     assert overlay.counts == {}
-    assert overlay.status_message() == NO_PAIRS_MESSAGE
+    assert overlay.undetermined == (0,)
+
+
+def test_an_ALL_UNDETERMINED_structure_does_not_claim_it_has_no_pairs():
+    """**FOUND BY LOOKING AT IT, and the guard had encoded the bug.**
+
+    Driving the app on iron(III): no dots, not refused, and the status bar
+    said "No lone pairs." -- the one claim `lone_pairs` had declined to
+    make. There were three named states and four real situations, and the
+    fourth borrowed the wrong message. The earlier version of the test
+    above asserted `NO_PAIRS_MESSAGE` as EXPECTED, so it could never have
+    caught it.
+    """
+    overlay = build(Chem.MolFromSmiles("[Fe+3]"))
+
+    message = overlay.status_message()
+
+    assert message.startswith(UNAVAILABLE_PREFIX), message
+    assert NO_PAIRS_MESSAGE not in message
+    assert "metal" in message
+
+
+def test_a_mixture_says_how_much_it_could_not_speak_for():
+    """Sodium methoxide: the oxygen and carbon have definite counts, the
+    sodium does not. "No lone pairs" would be wrong and "unavailable"
+    would be too, so it says both halves."""
+    overlay = build(Chem.MolFromSmiles("C[NH3+].[Na+]"))
+
+    assert overlay.undetermined, overlay
+    assert not overlay.any_pairs
+    message = overlay.status_message()
+    assert "cannot" in message and "1" in message, message
 
 
 def test_the_status_message_is_one_sentence_not_a_paragraph():

@@ -298,3 +298,82 @@ def test_the_stereo_flag_toggle_drives_the_option_ketcher_really_has(qapp, tmp_p
     action.setChecked(True)
     action.setChecked(False)
     assert sent == [("showStereoFlags", True), ("showStereoFlags", False)]
+
+
+def _electron_menu(window):
+    display = _structure_display_menu(window)
+    return next(
+        m
+        for m in display.findChildren(type(window._view_menu))
+        if m.title() == "Electron Display"
+    )
+
+
+def test_the_electron_display_modes_are_exclusive_and_start_off(qapp, tmp_path):
+    """Off by default: an annotation nobody asked for is one more thing on
+    an already crowded canvas."""
+    window = _build_window(tmp_path)
+    chosen: list[str] = []
+    window._editor.set_electron_mode = lambda mode: chosen.append(mode)
+
+    actions = _electron_menu(window).actions()
+
+    assert [a.data() for a in actions] == ["off", "pairs", "lewis"]
+    assert [a.isChecked() for a in actions] == [True, False, False]
+    assert all(a.actionGroup() is actions[0].actionGroup() for a in actions)
+
+    actions[1].trigger()
+    assert chosen == ["pairs"]
+
+
+def test_full_lewis_is_offered_but_DISABLED_with_its_reason(qapp, tmp_path):
+    """"It would be good to at least see the option in its home."
+
+    So the entry is where it belongs and says why it does nothing, rather
+    than doing nothing quietly. A present-and-inert control is the failure
+    this line of work keeps finding; present-and-explaining is
+    information.
+
+    The reason is the chemistry, not the schedule: a bond is not
+    automatically evidence that its electrons may be drawn as a localised
+    pair, and an aromatic bond has no localised count at all.
+    """
+    window = _build_window(tmp_path)
+
+    lewis = next(a for a in _electron_menu(window).actions() if a.data() == "lewis")
+
+    assert not lewis.isEnabled()
+    assert "delocalised" in lewis.toolTip() or "aromatic" in lewis.toolTip(), lewis.toolTip()
+    assert "Kekule" in lewis.toolTip(), lewis.toolTip()
+
+
+def test_there_is_no_formal_charge_entry_because_ketcher_draws_it(qapp, tmp_path):
+    """Measured: `C[NH3+]` renders `C H 3 N H 3 +` on Ketcher's own canvas
+    (tests/test_ketcher_viewport_transform.py). A second charge beside its
+    own would be the "two of everything" failure this project keeps
+    removing."""
+    window = _build_window(tmp_path)
+
+    labels = [a.text().lower() for a in _electron_menu(window).actions()]
+
+    assert not any("charge" in label for label in labels), labels
+
+
+def test_the_electron_status_reaches_the_status_bar(qapp, tmp_path):
+    """The two states that draw NOTHING and mean different things: "no
+    lone pairs" is an answer, "analysis unavailable" is not."""
+    window = _build_window(tmp_path)
+
+    window._editor.electron_status.emit("Lone-pair analysis unavailable: a metal.")
+
+    assert "unavailable" in window.statusBar().currentMessage()
+
+
+def test_nothing_is_said_when_there_are_dots_to_look_at(qapp, tmp_path):
+    """Prose repeating what is already on screen is noise."""
+    window = _build_window(tmp_path)
+    window.statusBar().showMessage("something earlier")
+
+    window._editor.electron_status.emit("")
+
+    assert window.statusBar().currentMessage() == "something earlier"
