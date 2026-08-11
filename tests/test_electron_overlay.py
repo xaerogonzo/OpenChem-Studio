@@ -29,6 +29,7 @@ from openchem.chem.electron_overlay import (
     UNAVAILABLE_PREFIX,
     ElectronOverlay,
     build,
+    for_molblock,
 )
 
 BOND = 40.0
@@ -280,3 +281,72 @@ def test_the_constants_are_the_ones_the_rules_actually_use():
     clear = _pair_at(MIN_BOND_CLEARANCE_DEGREES + 1)
     assert violations(grazing, CENTRE, [0.0], None, BOND, 1)
     assert violations(clear, CENTRE, [0.0], None, BOND, 1) == []
+
+
+def test_atom_ORDER_does_not_decide_which_atom_gets_the_count():
+    """**Invariant 7.** Renumbering must move the counts with the atoms.
+
+    RDKit renumbers on plenty of ordinary operations, and the payload is
+    keyed by position -- so a count that stayed at position 1 while the
+    oxygen moved to position 2 would decorate a carbon, plausibly and
+    silently. Compared by ELEMENT rather than by index, which is the only
+    comparison a renumbering cannot satisfy by accident.
+    """
+    from rdkit.Chem import rdmolops
+
+    mol = Chem.MolFromSmiles("CC=O")
+    before = build(mol)
+    by_element_before = sorted(
+        (mol.GetAtomWithIdx(index).GetSymbol(), count)
+        for index, count in before.counts.items()
+    )
+
+    reordered = rdmolops.RenumberAtoms(mol, [2, 0, 1])
+    after = build(reordered)
+    by_element_after = sorted(
+        (reordered.GetAtomWithIdx(index).GetSymbol(), count)
+        for index, count in after.counts.items()
+    )
+
+    assert by_element_before == by_element_after
+    # And the indices really did move, or this proves nothing.
+    assert before.counts != after.counts
+
+
+def test_the_overlay_leaves_the_MOLECULE_MODEL_untouched():
+    """**Invariant 2**, on this side of the bridge.
+
+    The canvas tests assert Ketcher's molfile is byte-identical; this
+    asserts the application's own record is too. Building the payload
+    parses and analyses a structure, and an analysis that quietly
+    sanitised or re-canonicalised the molecule it was handed would change
+    what gets saved, exported and compared.
+    """
+    mol = Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O")
+    molblock = Chem.MolToMolBlock(mol)
+
+    overlay = for_molblock(molblock)
+
+    assert overlay.counts, "nothing was analysed, so this proves nothing"
+    assert Chem.MolToMolBlock(Chem.MolFromMolBlock(molblock, removeHs=False)) == (
+        Chem.MolToMolBlock(Chem.MolFromMolBlock(molblock, removeHs=False))
+    )
+    # The caller's own string is what matters, and it is a str -- so the
+    # only way it could change is if something rebound it. Asserted
+    # anyway, because "obviously immutable" is how the conformer set was
+    # described before EditStructureCommand cleared it.
+    assert molblock == Chem.MolToMolBlock(mol)
+
+
+def test_an_unreadable_drawing_is_a_REFUSAL_not_an_empty_answer():
+    """A canvas with no dots looks the same either way, so the difference
+    has to be said rather than shown."""
+    overlay = for_molblock("this is not a molblock")
+
+    assert overlay.refused
+    assert overlay.status_message().startswith(UNAVAILABLE_PREFIX)
+
+
+def test_no_structure_at_all_is_also_a_refusal():
+    assert for_molblock(None).refused
+    assert for_molblock("").refused

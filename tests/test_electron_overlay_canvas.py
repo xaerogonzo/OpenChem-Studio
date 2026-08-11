@@ -319,6 +319,76 @@ def test_the_dots_follow_an_edit_onto_the_RIGHT_atoms(qapp):
         assert math.dist(dot, centre) < 0.6, (dot, centre)
 
 
+def test_the_index_map_is_INSERTION_ORDER_and_a_sorted_one_would_be_wrong(qapp):
+    """**The test above is DEGENERATE against the mutation that matters.**
+
+    Deleting the first of two rings leaves pool ids 6..11 -- which are
+    already ascending, so sorting them changes nothing and a sorted
+    implementation passes. Measured: a mutation replacing the map with
+    `.sort()` survived every other test in this file.
+
+    Undo is what makes the two differ. Ketcher re-inserts a deleted atom
+    under its ORIGINAL id at the END of the pool, so deleting atom 0 of
+    ethanol and undoing gives insertion order [1, 2, 0]:
+
+        molfile position   0        1        2
+        pool id            1        2        0
+        element            C        O        C
+        sorted would give  0        1        2      <- a CARBON at 1
+
+    So a payload naming position 1 -- the oxygen -- decorates the oxygen
+    under insertion order and a carbon under sorting. `molfilePosition()`
+    documents the same trap for the reverse direction; this is the
+    forward one.
+    """
+    backend = _ready_backend(qapp, shown=True)
+    backend.load_molblock(_molblock("CCO"))
+    assert _wait_until(
+        qapp,
+        lambda: _run_js_json(qapp, backend, "return window.ketcher.editor.struct().atoms.size;")
+        == 3,
+        timeout_seconds=25,
+    )
+    _run_js_json(qapp, backend, """
+      window.ketcher.editor.selection({atoms: [0]});
+      var el = document.querySelector('.Ketcher-root') || document.body;
+      ['keydown','keyup'].forEach(function (t) {
+        el.dispatchEvent(new KeyboardEvent(t, {key:'Delete', code:'Delete',
+          bubbles:true, cancelable:true, keyCode:46, which:46}));
+      });
+      return 1;
+    """)
+    _wait_until(qapp, lambda: False, timeout_seconds=1.2)
+    _run_js_json(qapp, backend, "window.ketcher.editor.undo(); return 1;")
+    _wait_until(qapp, lambda: False, timeout_seconds=1.5)
+
+    # **ASSERT THE SETUP.** If undo ever stops re-inserting at the end,
+    # the pool is dense again and this test would pass while testing
+    # nothing at all.
+    order = json.loads(_run_js_json(qapp, backend, """
+      var out = [];
+      window.ketcher.editor.struct().atoms.forEach(function (a, id) {
+        out.push([id, a.label]);
+      });
+      return JSON.stringify(out);
+    """))
+    assert order == [[1, "C"], [2, "O"], [0, "C"]], order
+
+    payload = {"counts": {"1": 2}, "refused": False, "reason": "", "mode": "pairs"}
+    _run_js_json(qapp, backend, "window.openchemElectrons.set(%s); return 1;" % json.dumps(payload))
+    _wait_until(qapp, lambda: False, timeout_seconds=1.0)
+
+    placement = _state(qapp, backend)["placement"]
+    assert len(placement) == 1, placement
+    oxygen = json.loads(_run_js_json(qapp, backend, """
+      var a = window.ketcher.editor.struct().atoms.get(2);
+      return JSON.stringify([a.pp.x, a.pp.y, a.label]);
+    """))
+    assert oxygen[2] == "O"
+    for dot in placement[0]["dots"]:
+        assert math.dist(dot, oxygen[:2]) < 0.6, (dot, oxygen)
+
+
 # --- the ownership invariant --------------------------------------------------
 
 

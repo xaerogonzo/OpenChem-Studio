@@ -320,10 +320,18 @@ def test_the_electron_display_modes_are_exclusive_and_start_off(qapp, tmp_path):
 
     assert [a.data() for a in actions] == ["off", "pairs", "lewis"]
     assert [a.isChecked() for a in actions] == [True, False, False]
-    assert all(a.actionGroup() is actions[0].actionGroup() for a in actions)
 
     actions[1].trigger()
     assert chosen == ["pairs"]
+
+    # **EXCLUSIVITY ASSERTED BY BEHAVIOUR, not by membership.** Checking
+    # that they share a QActionGroup passes just as happily when that
+    # group has `setExclusive(False)` -- measured, a mutation that flipped
+    # it survived the whole file. Two modes checked at once would leave
+    # the menu claiming the canvas is in two states.
+    assert [a.isChecked() for a in actions] == [False, True, False]
+    actions[0].setChecked(True)
+    assert [a.isChecked() for a in actions] == [True, False, False]
 
 
 def test_full_lewis_is_offered_but_DISABLED_with_its_reason(qapp, tmp_path):

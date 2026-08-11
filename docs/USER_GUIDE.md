@@ -151,13 +151,44 @@ mixture" — and neither of them shows R/S:
   something the molecule-level flag does not), *Classic* (hidden when the
   molecule has a single group), *On* (always), *Off* (never).
 
-**Lone pairs are not drawn, and no menu item pretends otherwise.** The 2D
-canvas has never been able to draw them. The count is per atom in the
-**Atom Inspector**, where it follows the formal charge — an amine
-nitrogen has 1, an ammonium nitrogen 0, an alkoxide oxygen 3. A metal
-gets no count rather than a wrong one, and a structure with an unpaired
-electron is declined outright: a singlet carbene has a donor pair where
-the triplet has two unpaired electrons, and a drawing does not say which.
+### Lone pairs on the canvas
+
+**View ▸ 2D Structure Display ▸ Electron Display ▸ Lone pairs** draws
+non-bonding pairs as dots. Ketcher itself cannot draw them and never
+could, so these are OpenChem's: an overlay that follows the structure
+through pan, zoom, rotation and editing, and which never becomes part of
+the molecule. They are not in the molfile, not selectable, not exported,
+and a click passes straight through them to the atom underneath. A
+screenshot is the only way they leave the app.
+
+**Nothing is drawn is not one answer, it is three**, so the status bar
+says which:
+
+| what you see | what it means |
+| --- | --- |
+| dots | that many non-bonding pairs |
+| nothing, no message | this molecule has none — an ammonium nitrogen |
+| "No lone pairs on the atoms this can speak for; N it cannot." | a mixture, usually a metal beside ordinary atoms |
+| "Lone-pair analysis unavailable: …" | it declined, and says why |
+
+The count follows the formal charge — an amine nitrogen has 1, an
+ammonium nitrogen 0, an alkoxide oxygen 3 — and the same numbers are in
+the **Atom Inspector** per atom, with the full reason when it declines.
+
+**Where a pair is drawn is a convention, not a measurement.** The
+placement keeps dots off the bonds and out of the atom's label and is
+deterministic, so they do not jump about when you edit or turn the
+molecule. It says nothing about orbital direction.
+
+**Full Lewis structure** is in the menu and disabled. Bonding pairs are a
+second representation rather than more of this one: a bond is not
+automatically evidence that its electrons may be drawn as a localised
+pair, and an aromatic or delocalised bond has no localised count at all.
+Dotting benzene would mean picking a Kekulé structure the molecule does
+not assert.
+
+**Formal charges are not drawn by this**, because Ketcher already puts
+them in the atom label.
 
 ### Rotate 3D — turning a structure inside the 2D editor
 

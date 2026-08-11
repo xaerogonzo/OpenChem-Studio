@@ -552,6 +552,14 @@ const electronState = {
   positionsKey: null,
 }
 
+// Counters for the WORK TIERS, so a test can assert that nothing does
+// more than its tier -- a pan must not re-measure a label, and sixty
+// rotation frames must not re-measure one either. Cheap enough to leave
+// in: three integers, incremented where the work happens, and the only
+// way to check a performance boundary that is otherwise invisible until
+// somebody notices the editor has gone sticky.
+const electronWork = { placements: 0, labelMeasurements: 0, transforms: 0, watchers: 0 }
+
 function ensureElectronStyles() {
   if (document.getElementById('openchem-electron-styles')) return
   const style = document.createElement('style')
@@ -640,6 +648,7 @@ function atomLabelText(atom) {
 function labelBoxModelUnits(text) {
   if (!text) return null
   if (electronState.labelBoxes[text]) return electronState.labelBoxes[text]
+  electronWork.labelMeasurements++
   const options = ketcherInstance.editor.render.options
   const unit = options.microModeScale || options.bondLength || 40
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
@@ -800,6 +809,7 @@ function atomPositionsKey(struct) {
 // Dots in MODEL UNITS, relative to nothing -- absolute model coordinates,
 // so the layer's single transform can place all of them.
 function computeElectronPlacement() {
+  electronWork.placements++
   if (!ketcherInstance || !electronState.payload || electronState.payload.refused) return []
   const struct = ketcherInstance.editor.struct()
   const counts = electronState.payload.counts || {}
@@ -872,6 +882,7 @@ function renderElectronDots() {
 
 function applyElectronTransform(transform) {
   if (!electronLayer || !transform) return
+  electronWork.transforms++
   const canvas = ketcherCanvas()
   if (canvas) {
     const host = electronLayer.parentNode.getBoundingClientRect()
@@ -905,7 +916,17 @@ function applyElectronTransform(transform) {
 // structure revision changes -- never here.
 function refreshElectrons(force) {
   if (electronState.mode === 'off') {
-    if (electronLayer) electronLayer.style.display = 'none'
+    // **EMPTIED, not merely hidden.** Hiding alone leaves the previous
+    // molecule's dots in the DOM, invisible and stale -- so any future
+    // path that shows the layer before recomputing would flash the wrong
+    // structure's electrons. The layer survives; its contents do not.
+    if (electronLayer) {
+      electronLayer.style.display = 'none'
+      while (electronGroup.firstChild) electronGroup.removeChild(electronGroup.firstChild)
+      electronNote.textContent = ''
+    }
+    electronState.placement = null
+    electronState.positionsKey = null
     return
   }
   const layer = ensureElectronLayer()
@@ -931,6 +952,7 @@ function refreshElectrons(force) {
 function watchElectronViewport() {
   if (electronWatching) return
   electronWatching = true
+  electronWork.watchers++
   const tick = function () {
     if (electronState.mode !== 'off' && ketcherInstance) {
       const transform = electronTransform()
@@ -973,6 +995,15 @@ function handleKetcherInit(ketcher) {
     set: setElectronOverlay,
     refresh: function () {
       refreshElectrons(true)
+    },
+    work: function () {
+      return JSON.stringify(electronWork)
+    },
+    resetWork: function () {
+      electronWork.placements = 0
+      electronWork.labelMeasurements = 0
+      electronWork.transforms = 0
+      return 1
     },
     state: function () {
       return JSON.stringify({
