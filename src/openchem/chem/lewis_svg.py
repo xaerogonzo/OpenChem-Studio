@@ -64,6 +64,26 @@ DOT_RADIUS = 0.035
 FONT_SIZE = 0.30
 REGION_PADDING = 0.30
 
+#: How far BELOW the anchor a label's baseline goes, in ems, so the glyph
+#: is centred on the point rather than sitting above it.
+#:
+#: **`dominant-baseline` IS IGNORED BY Qt's SVG RENDERER, and so is `dy`.**
+#: This is the label-box failure the canvas overlay already recorded, in a
+#: new renderer: the checker centres its box on the atom, the page drew
+#: the glyph half an em higher, and both agreed the dot was clear.
+#: Measured at scale 60 (font 18) with the attribute in place -- label ink
+#: 74..87 against a box of 78.6..101.4, so the glyph poked 4.6 px out of
+#: the top while the bottom 14 px of the box was empty.
+#:
+#: Only `x` and `y` move a glyph in both renderers, so the shift is
+#: written into `y`. **This changes nothing in a browser**: measured in
+#: Chromium via `getBBox`, `dominant-baseline="central"` shifts a text
+#: element by exactly +6.00 px at font-size 18 -- +0.333 em -- which is
+#: (ascent - descent)/2 for Arial and is what this constant is. An
+#: exported SVG is therefore byte-equivalent in placement to the standards
+#: form, and the dialog's own preview finally agrees with the checker.
+BASELINE_SHIFT = 1.0 / 3.0
+
 
 @dataclass(frozen=True)
 class Rendered:
@@ -286,8 +306,9 @@ def render(diagram: LewisDiagram, scale: float = BOND_LENGTH) -> Rendered:
 
     for atom in diagram.atoms:
         body.append(
-            f'<text class="atom" x="{_n(atom.x)}" y="{_n(atom.y)}" '
-            f'text-anchor="middle" dominant-baseline="central" '
+            f'<text class="atom" x="{_n(atom.x)}" '
+            f'y="{_n(_baseline(atom.y, FONT_SIZE * scale))}" '
+            f'text-anchor="middle" '
             f'font-family="Arial" font-size="{_n(FONT_SIZE * scale)}">{_escape(atom.label)}</text>'
         )
 
@@ -335,8 +356,9 @@ def _region_shape(region, positions, scale: float) -> str:
             f'stroke-width="1.2" stroke-dasharray="4 3"/>'
         )
     return shape + (
-        f'<text class="region-label" x="{_n(label_x)}" y="{_n(label_y)}" '
-        f'text-anchor="middle" dominant-baseline="central" font-family="Arial" '
+        f'<text class="region-label" x="{_n(label_x)}" '
+        f'y="{_n(_baseline(label_y, 0.20 * scale))}" '
+        f'text-anchor="middle" font-family="Arial" '
         f'font-size="{_n(0.20 * scale)}">{_escape(label)}</text>'
     )
 
@@ -379,10 +401,20 @@ def _empty_svg(diagram: LewisDiagram) -> str:
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" '
         'width="200" height="60">'
-        f'<text class="empty" x="100" y="30" text-anchor="middle" '
-        f'dominant-baseline="central" font-family="Arial" font-size="12">'
+        f'<text class="empty" x="100" y="{_n(_baseline(30, 12))}" '
+        f'text-anchor="middle" font-family="Arial" font-size="12">'
         f"{_escape(diagram.summary())}</text></svg>"
     )
+
+
+def _baseline(centre: float, font_size: float) -> float:
+    """The `y` that puts a glyph's centre on `centre`, in BOTH renderers.
+
+    See `BASELINE_SHIFT`. Written as its own function so there is exactly
+    one place that knows text is not positioned by its middle, and so a
+    mutation of it is caught everywhere at once.
+    """
+    return centre + BASELINE_SHIFT * font_size
 
 
 def _n(value: float) -> str:

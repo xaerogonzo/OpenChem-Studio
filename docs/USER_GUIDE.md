@@ -180,15 +180,57 @@ placement keeps dots off the bonds and out of the atom's label and is
 deterministic, so they do not jump about when you edit or turn the
 molecule. It says nothing about orbital direction.
 
-**Full Lewis structure** is in the menu and disabled. Bonding pairs are a
-second representation rather than more of this one: a bond is not
-automatically evidence that its electrons may be drawn as a localised
-pair, and an aromatic or delocalised bond has no localised count at all.
-Dotting benzene would mean picking a Kekulé structure the molecule does
-not assert.
-
 **Formal charges are not drawn by this**, because Ketcher already puts
 them in the atom label.
+
+### Full Lewis Structure
+
+**View ▸ 2D Structure Display ▸ Full Lewis Structure…** opens a separate
+window holding the textbook picture: every bonding pair as two dots,
+every lone pair as two dots, explicit hydrogens, and no bond lines.
+
+It is **not** a third setting of the overlay above, and that is why it
+sits outside that group. The canvas cannot draw this at all — Ketcher has
+no way to hide its bond lines, and a Lewis structure replaces each line
+with dots — so this is a different picture of the same molecule, drawn by
+OpenChem from the ground up.
+
+**A delocalised bond keeps its localised part and gives up the rest.**
+Benzene is not drawn as alternating singles and doubles, because the
+molecule does not assert a Kekulé structure. Each ring bond gets the one
+pair it has in *every* resonance contributor, and the six electrons left
+over are drawn as a circle labelled with its count:
+
+| you see | it means |
+| --- | --- |
+| two dots between atoms | a localised bonding pair |
+| a dashed circle, labelled `6 e−` | a ring-delocalised system, and how many electrons are in it |
+| a dashed outline through the atoms, labelled `2 e−` | the same for an open system — a carboxylate, a nitro group |
+| a plain solid line | a connection this analysis declined to represent as electrons |
+| `? e−` | the system is real and its electron count was not determined |
+
+**Shape and line style carry the meaning, never colour** — dots, dashes
+and a solid line — so the diagram survives greyscale, printing and a
+screenshot.
+
+A carboxylate therefore shows two *equivalent* C–O bonds rather than one
+single and one double, and pyrrole shows its ring without claiming a
+count it cannot derive.
+
+**Four outcomes, never merged into two.** A refusal ("this structure
+carries unpaired electrons") and a drawing failure are different problems
+with different fixes, and a molecule that is simply large gets its
+diagram plus *"may be hard to read at this size"* — never "analysis
+unsupported". Anything the analysis declined to represent is listed by
+name under **Analysis details**, together with the full electron budget
+and every delocalised region.
+
+**It is a snapshot and a view.** The window shows the molecule as it was
+when you opened it and does not follow later edits — the header names
+which molecule, and Analysis details carries the structure revision.
+Nothing you do in it can change the molecule, the canvas or the undo
+stack. **Copy SVG** and **Save SVG…** export the drawing as vector
+artwork.
 
 ### Rotate 3D — turning a structure inside the 2D editor
 

@@ -438,6 +438,30 @@ none of them is drawn with one long bond and one short.
   one, and the resonance settings that would include it also fail to fix
   the pyrrole case above.
 
+**A region's electron count is a COUNTING statement.** "6 electrons" says
+how many electrons the analysis could not assign to any single bond. It
+is not a claim about orbital extent, not a Hückel aromaticity verdict,
+and not a statement about how the contributing resonance structures are
+weighted. The circle drawn around a ring is a convention for "these
+electrons belong to the system rather than to one bond" and its radius
+means nothing.
+
+**A truncated enumeration fails closed.** The resonance search stops at
+256 contributors, and a bond whose minimum order was not established over
+a complete set is never asserted as localised — it abstains, and says so.
+An answer withheld is preferred to one derived from a partial search.
+
+**Legibility is not a chemistry limit.** A large molecule whose analysis
+is fine gets its diagram plus "may be hard to read at this size", never
+"analysis unsupported". The two are separate statuses precisely so that
+"I cannot represent this chemistry" and "I know the answer and could not
+place a dot clear of a label" cannot be mistaken for each other.
+
+**The diagram is a snapshot.** It shows the structure it was opened for
+and does not follow later edits; it carries the molblock hash and the
+structure revision so a stale window is diagnosable rather than merely
+wrong. It cannot change the molecule.
+
 **Rotating in the 2D editor is a rigid motion, and it is checked rather
 than trusted.** Turning the structure changes coordinates and nothing
 else — no bond length, no angle, no stereocentre. The app verifies both

@@ -282,6 +282,37 @@ class LewisDiagram:
     def drawable(self) -> bool:
         return self.status in (Status.SUPPORTED, Status.SUPPORTED_WITH_ABSTENTIONS)
 
+    @property
+    def formula(self) -> str:
+        """Hill notation, from the atoms this diagram holds.
+
+        Derived here rather than fetched from RDKit so the dialog can
+        show it without `ui/` importing a chemistry toolkit -- the rule
+        `tests/test_layering.py` enforces. It is also the honest source:
+        this is the formula of the molecule as DRAWN, explicit hydrogens
+        and all, which is what the reader is looking at.
+        """
+        counts: dict[str, int] = {}
+        for atom in self.atoms:
+            counts[atom.symbol] = counts.get(atom.symbol, 0) + 1
+        if not counts:
+            return ""
+        order: list[str] = []
+        # Hill: carbon first, then hydrogen, then everything alphabetically.
+        for symbol in ("C", "H"):
+            if symbol in counts:
+                order.append(symbol)
+        order += sorted(symbol for symbol in counts if symbol not in ("C", "H"))
+        text = "".join(
+            symbol + (str(counts[symbol]) if counts[symbol] > 1 else "") for symbol in order
+        )
+        charge = sum(atom.formal_charge for atom in self.atoms)
+        if charge:
+            magnitude = abs(charge)
+            sign = "+" if charge > 0 else "-"
+            text += sign if magnitude == 1 else f"{magnitude}{sign}"
+        return text
+
     def summary(self) -> str:
         """One line for the dialog, saying which of the four this is."""
         if self.status is Status.CHEMISTRY_REFUSED:

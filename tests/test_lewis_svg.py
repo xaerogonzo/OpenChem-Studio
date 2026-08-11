@@ -26,9 +26,28 @@ from openchem.chem.lewis_diagram import (
     Status,
     Unknown,
 )
-from openchem.chem.lewis_svg import BOND_LENGTH, Rendered, render
+from openchem.chem.lewis_svg import BASELINE_SHIFT, BOND_LENGTH, Rendered, render
 
 GROUP = {"H": 1, "C": 4, "N": 5, "O": 6, "S": 6}
+
+
+def text_centre(svg: str, css_class: str):
+    """Where a text element is drawn, NOT its `y` attribute.
+
+    They differ, and asserting on the raw attribute is how these tests
+    would silently start measuring the wrong thing. SVG positions text by
+    a baseline, so the renderer writes `centre + BASELINE_SHIFT * font`;
+    this reads that back out. See `lewis_svg.BASELINE_SHIFT` for why the
+    shift is in `y` at all rather than in `dominant-baseline`.
+    """
+    match = re.search(
+        rf'class="{css_class}" x="(-?[\d.]+)" y="(-?[\d.]+)"[^>]*?'
+        rf'font-size="(-?[\d.]+)"',
+        svg,
+    )
+    assert match, f"no {css_class} text in {svg[:200]}"
+    x, y, font = (float(match.group(i)) for i in (1, 2, 3))
+    return x, y - BASELINE_SHIFT * font
 
 
 def _atom(index, symbol, lone_pairs, x, y, charge=0):
@@ -484,9 +503,7 @@ def test_an_open_regions_label_is_pushed_CLEAR_of_its_atoms():
     )
 
     svg = render(open_system).svg
-    label = re.search(r'class="region-label" x="(-?[\d.]+)" y="(-?[\d.]+)"', svg)
-    assert label, svg
-    lx, ly = float(label.group(1)), float(label.group(2))
+    lx, ly = text_centre(svg, "region-label")
 
     for atom in open_system.atoms:
         assert math.dist((lx, ly), (atom.x, atom.y)) > BOND_LENGTH * 0.3, (
@@ -499,7 +516,6 @@ def test_a_RING_keeps_its_label_in_the_middle():
     always pushed the label out would pass, and benzene's count belongs
     inside its circle."""
     svg = render(benzene()).svg
-    label = re.search(r'class="region-label" x="(-?[\d.]+)" y="(-?[\d.]+)"', svg)
-    lx, ly = float(label.group(1)), float(label.group(2))
+    lx, ly = text_centre(svg, "region-label")
 
     assert abs(lx) < 1.0 and abs(ly) < 1.0, "benzene's label left the centre of its ring"
