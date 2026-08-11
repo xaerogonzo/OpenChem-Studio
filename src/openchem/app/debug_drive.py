@@ -263,6 +263,33 @@ class _Driver:
             optimize=bool(step.get("optimize", True)),
         )
 
+    def _do_editor_action(self, step: dict[str, Any]) -> None:
+        """Press one of Ketcher's own toolbar buttons by its `data-testid`.
+
+        The same route `_add_editor_action`'s menu items take, so what is
+        measured is what a user gets -- including whatever the button
+        makes Ketcher emit afterwards, which is the interesting part.
+        """
+        self._window._editor.trigger_toolbar_action(str(step["id"]))
+
+    def _do_report(self, step: dict[str, Any]) -> None:
+        """Log a few facts about the selected molecule, so a run can
+        assert on state rather than on a screenshot."""
+        window = self._window
+        molecule = window._session.project.find_molecule(
+            window._property_panel._selected_molecule_uuid
+        )
+        if molecule is None:
+            logger.warning("OPENCHEM_DRIVE: report -- no molecule selected")
+            return
+        logger.warning(
+            "OPENCHEM_DRIVE: report %s conformers=%d undo=%d smiles=%s",
+            step.get("tag", ""),
+            len(molecule.conformers),
+            window._undo_stack.count(),
+            molecule.canonical_smiles,
+        )
+
     def _do_rotate(self, step: dict[str, Any]) -> None:
         """Turn the structure in the 2D editor, as a real drag.
 

@@ -8,7 +8,14 @@ from typing import Callable
 
 from PySide6.QtCore import QUrl, Qt
 from PySide6.QtCore import QTimer
-from PySide6.QtGui import QAction, QCloseEvent, QDesktopServices, QGuiApplication, QUndoStack
+from PySide6.QtGui import (
+    QAction,
+    QActionGroup,
+    QCloseEvent,
+    QDesktopServices,
+    QGuiApplication,
+    QUndoStack,
+)
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
@@ -1041,8 +1048,16 @@ class MainWindow(QMainWindow):
         self._add_editor_action(
             self._structure_menu, "Add/Remove Explicit Hydrogens", "Add/Remove explicit hydrogens button"
         )
-        self._add_editor_action(
-            self._structure_menu, "Calculate CIP (Stereo Descriptors)", "Calculate CIP button"
+        # **ONE QAction, TWO MENUS.** It is also offered under View ▸ 2D
+        # Structure Display, which is where it was looked for ("make sure
+        # we can see (R/S) (E/Z) in the 2d editor as well... it should at
+        # least be on the dropdown view tab"). The same object, so the
+        # label, the shortcut and the enabled state cannot drift -- the
+        # rule Generate Conformers already follows.
+        self._cip_action = self._add_editor_action(
+            self._structure_menu,
+            "Calculate CIP Stereo Descriptors (R/S, E/Z)",
+            "Calculate CIP button",
         )
         self._structure_menu.addSeparator()
         # **CONFORMERS ARE A STRUCTURE OPERATION, not a 3D-viewer one.**
@@ -1079,6 +1094,8 @@ class MainWindow(QMainWindow):
             True,
             False,
         )
+        structure_display_menu.addSeparator()
+        self._add_stereo_display_items(structure_display_menu)
         structure_display_menu.addSeparator()
         # These two are real Ketcher toolbar buttons, not render options --
         # "explicit hydrogens" actually adds/removes atoms (confirmed live:
@@ -1171,14 +1188,19 @@ class MainWindow(QMainWindow):
     # `_duplicate_molecule(molecule=None)` really does receive None -- and
     # only the `toggled`/`triggered` connections below have to take the bool.
 
-    def _add_editor_action(self, menu: QMenu, label: str, test_id: str) -> None:
+    def _add_editor_action(self, menu: QMenu, label: str, test_id: str) -> QAction:
         """One of Ketcher's own toolbar buttons, by its stable `data-testid`.
 
         There is no public API for these; `trigger_toolbar_action` clicks
         the real button. Ketcher reports the resulting change through its
         normal `change` event, which already reaches the undo stack.
+
+        Returns the action so a caller can offer the SAME one from a
+        second menu -- one identity rather than two routes that can drift.
         """
-        menu.addAction(label, self._trigger_editor_action).setData(test_id)
+        action = menu.addAction(label, self._trigger_editor_action)
+        action.setData(test_id)
+        return action
 
     def _trigger_editor_action(self) -> None:
         action = self.sender()
@@ -1213,6 +1235,78 @@ class MainWindow(QMainWindow):
         action = self.sender()
         if action is not None:
             self._plugin_manager.set_enabled(action.data(), checked)
+
+    #: What each `stereoLabelStyle` value does, measured against the real
+    #: vendored bundle rather than read off the enum name. On a molecule
+    #: with one ABS group and one AND group, showing the per-centre tags:
+    #:
+    #:     Off       nothing
+    #:     On        abs, &1
+    #:     Classic   abs, &1        -- but NOTHING when there is one group
+    #:     Iupac     &1             -- drops the tag the ABS flag repeats
+    #:
+    #: So the four are genuinely distinct and each is offered. Ketcher's
+    #: own Settings dialog names them "IUPAC style / Classic / On / Off";
+    #: the names here keep that word so the two agree, and add what it
+    #: does so the choice is not a guess.
+    _STEREO_LABEL_STYLES = (
+        ("IUPAC style — only when it adds information", "Iupac"),
+        ("Classic — hidden when the molecule has one group", "Classic"),
+        ("On — always", "On"),
+        ("Off — never", "Off"),
+    )
+
+    def _add_stereo_display_items(self, menu: QMenu) -> None:
+        """Stereochemistry on the canvas, as three separate things.
+
+        **THEY ARE NOT ONE FEATURE, and the plan for this assumed they
+        were.** It expected `showStereoFlags` and `stereoLabelStyle` to
+        display R/S and E/Z. Measured against the real bundle across a
+        matrix of an R centre, an S centre, an unspecified centre, E, Z,
+        an unspecified alkene and a molecule with both: **no value of
+        either option renders a single R, S, E or Z.** They govern
+        enhanced-stereo GROUPS -- the `ABS` / `AND Enantiomer` / `Mixed`
+        caption and the per-centre `abs` / `&1` / `or1` tags.
+
+        R/S and E/Z come from Ketcher's **Calculate CIP** action, and
+        appear as `(R)`, `(S)`, `(E)`, `(Z)` -- identically under all four
+        label styles. An unspecified centre gets no label under any
+        combination, which is the important negative: nothing invents an
+        assignment.
+
+        So this offers the calculation as a calculation and the two
+        options as what they are, rather than a "show stereo labels"
+        toggle that would have driven the wrong setting.
+        """
+        # The same QAction the Structure menu carries, not a copy.
+        menu.addAction(self._cip_action)
+        self._cip_action.setStatusTip(
+            "Label stereocentres (R/S) and double bonds (E/Z) on the canvas. "
+            "Computed on demand; editing the structure afterwards does not "
+            "recompute them."
+        )
+        self._add_structure_display_toggle(
+            menu, "Show Stereo Flags (ABS / AND / Mixed)", "showStereoFlags", True, False
+        )
+        style_menu = menu.addMenu("Stereo Group Labels (abs, &&1, or1)")
+        group = QActionGroup(self)
+        group.setExclusive(True)
+        for label, value in self._STEREO_LABEL_STYLES:
+            action = QAction(label, self)
+            action.setCheckable(True)
+            action.setData(value)
+            # Ketcher's own default, read from the bundle's settings
+            # schema -- so the menu opens agreeing with the canvas
+            # instead of claiming a setting nobody applied.
+            action.setChecked(value == "Iupac")
+            action.triggered.connect(self._on_stereo_label_style_chosen)
+            group.addAction(action)
+            style_menu.addAction(action)
+
+    def _on_stereo_label_style_chosen(self, checked: bool) -> None:
+        action = self.sender()
+        if action is not None and checked:
+            self._editor.set_render_option("stereoLabelStyle", action.data())
 
     def _add_structure_display_toggle(
         self, menu: QMenu, label: str, option_name: str, checked_value: object, unchecked_value: object

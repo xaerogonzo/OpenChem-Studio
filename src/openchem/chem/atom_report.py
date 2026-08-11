@@ -150,7 +150,7 @@ def collect_lewis(mol: Any, index: int, _context: dict) -> list[AtomFact]:
     Each `LewisEvidence` becomes the fact's evidence rather than a fact of
     its own -- "why is this a donor" belongs to the role, not beside it.
     """
-    from openchem.chem.lewis import analyse
+    from openchem.chem.lewis import analyse, lone_pairs
 
     result = analyse(mol)
     if result.refused:
@@ -161,7 +161,21 @@ def collect_lewis(mol: Any, index: int, _context: dict) -> list[AtomFact]:
         ]
     site = result.site_for(index)
     if site is None:
-        return []
+        # **NO LEWIS ROLE IS NOT NOTHING TO SAY.** `analyse` builds a site
+        # only for atoms that donate or accept, so an ammonium nitrogen --
+        # which does neither, precisely because it has no lone pair --
+        # produced no facts at all. Asked "does this nitrogen have a lone
+        # pair?", a question with a definite answer, the inspector said
+        # nothing, which reads as "not computed" rather than "none".
+        #
+        # Safe to fall back to the raw arithmetic HERE and nowhere else:
+        # the refusal above has already caught the cases where a pair
+        # count is meaningless (an unpaired electron on a main-group
+        # atom), and `lone_pairs` itself answers None for a metal.
+        pairs = lone_pairs(mol.GetAtomWithIdx(index))
+        if pairs is None:
+            return []
+        return [_fact(FactCategory.ELECTRONIC, "Lone pairs", pairs, "LewisAnalysis")]
 
     link = FactLink(target="interactions", params={"atom": index},
                     label="Open the Interactions panel")

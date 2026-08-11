@@ -375,6 +375,26 @@ Some angles are genuinely unreadable: seen down its bridgehead axis a
 bicyclo[2.2.2] cage superimposes its two bridges exactly. The application
 says so and leaves the choice of angle to you.
 
+**A CIP label on the canvas is a snapshot, not a live readout.** Ketcher
+computes `(R)`/`(S)`/`(E)`/`(Z)` when asked and does not recompute them
+when the structure changes — measured: deleting the atom that made a
+centre stereogenic left the `(S)` label in place. Run the calculation
+again after an edit. Unspecified centres are correctly left unlabelled,
+so the failure mode is a stale label rather than an invented one.
+
+**A lone-pair count is arithmetic on a drawing, and it declines three
+cases.** `outer electrons − bonds − formal charge`, halved: right for 21
+of 21 textbook main-group cases checked (amine, ammonium, amide, nitro,
+nitrile, carbonyl, ether, hydroxyl, alkoxide, water, thioether,
+sulfoxide, sulfone, phosphine, phosphine oxide, pyridine, pyrrole, furan,
+organofluorine, chloride, borane). It refuses **metals**, whose valence
+is undefined and whose non-bonding electrons are frequently unpaired
+rather than paired; it refuses any structure with an **unpaired electron
+on a main-group atom**, since a singlet carbene has a donor pair where
+the triplet has two lone electrons and a drawing does not distinguish
+them; and it says nothing about **where** a pair points, so it cannot
+rank two donors. Nothing here is a substitute for a calculation.
+
 **Rotating in the 2D editor is a rigid motion, and it is checked rather
 than trusted.** Turning the structure changes coordinates and nothing
 else — no bond length, no angle, no stereocentre. The app verifies both

@@ -122,6 +122,43 @@ options this app only partly mirrors under View ▸ 2D Structure Display),
 and **polymer mode** — Ketcher can *draw* RNA/DNA/peptides, where the
 Macromolecule Viewer only shows one.
 
+### Seeing stereochemistry on the 2D canvas
+
+Three separate things, and they are **not** one "show stereo labels"
+switch — measured against the editor rather than assumed.
+
+**R/S and E/Z come from a calculation.** *Structure ▸ Calculate CIP Stereo
+Descriptors (R/S, E/Z)*, also offered under *View ▸ 2D Structure Display*
+(the same menu item, in two places). It labels stereocentres `(R)`/`(S)`
+and double bonds `(E)`/`(Z)` on the canvas. An atom whose configuration
+the drawing leaves open gets **no label** — nothing invents an
+assignment.
+
+**It is computed once, on demand.** Editing the structure afterwards does
+not recompute it, so a label can outlive the centre it describes; run it
+again after an edit. Loading a different structure clears the labels.
+
+The other two controls are about **enhanced stereo groups** — the ABS /
+AND / OR machinery for saying "this is the drawn enantiomer" versus "a
+mixture" — and neither of them shows R/S:
+
+- **Show Stereo Flags (ABS / AND / Mixed)** — the molecule-level caption.
+  A drawing imported from most file formats reads **AND Enantiomer**,
+  because the file's chiral flag is 0; a structure this app derives from
+  a 3D conformer reads **ABS**, because it sets that flag deliberately.
+- **Stereo Group Labels (abs, &1, or1)** — the per-centre tag, with four
+  settings: *IUPAC style* (the default — shown only where it adds
+  something the molecule-level flag does not), *Classic* (hidden when the
+  molecule has a single group), *On* (always), *Off* (never).
+
+**Lone pairs are not drawn, and no menu item pretends otherwise.** The 2D
+canvas has never been able to draw them. The count is per atom in the
+**Atom Inspector**, where it follows the formal charge — an amine
+nitrogen has 1, an ammonium nitrogen 0, an alkoxide oxygen 3. A metal
+gets no count rather than a wrong one, and a structure with an unpaired
+electron is declined outright: a singlet carbene has a donor pair where
+the triplet has two unpaired electrons, and a drawing does not say which.
+
 ### Rotate 3D — turning a structure inside the 2D editor
 
 **Rotate 3D**, at the top of the 2D Editor tab, turns the structure in
@@ -1198,7 +1235,7 @@ the structure:
 | Menu | Holds |
 |---|---|
 | **Edit** | Undo/redo, Copy Structure As, Paste Structure, Duplicate, Rename |
-| **Structure** | Aromatize/Dearomatize, Layout, Clean Up, explicit hydrogens, Calculate CIP, Check Structure |
+| **Structure** | Aromatize/Dearomatize, Layout, Clean Up, explicit hydrogens, CIP stereo descriptors, Generate Conformers, Check Structure |
 | **View** | Which panels are shown, and 2D Structure Display toggles |
 | **Tools** | Periodic Table, Identify Structure Online, Virtual Screening, External Tools |
 
