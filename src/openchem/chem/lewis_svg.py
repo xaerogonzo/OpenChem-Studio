@@ -313,11 +313,14 @@ def _region_shape(region, positions, scale: float) -> str:
         return ""
     cx = sum(x for x, _ in points) / len(points)
     cy = sum(y for _, y in points) / len(points)
+    # **SHORT ON THE DIAGRAM, FULL IN THE DETAILS.** "e− not determined"
+    # is wider than a five-membered ring, so pyrrole's label ran straight
+    # across its own structure. The reason lives in the dialog's analysis
+    # panel, where there is room for a sentence.
     label = (
-        f"{region.electrons.value} e−"
-        if isinstance(region.electrons, Known)
-        else "e− not determined"
+        f"{region.electrons.value} e−" if isinstance(region.electrons, Known) else "? e−"
     )
+    label_x, label_y = _region_label_position(points, cx, cy, scale, region.is_ring)
     if region.is_ring and len(points) > 2:
         radius = max(math.dist((cx, cy), p) for p in points) - REGION_PADDING * scale
         radius = max(radius, 0.25 * scale)
@@ -332,10 +335,37 @@ def _region_shape(region, positions, scale: float) -> str:
             f'stroke-width="1.2" stroke-dasharray="4 3"/>'
         )
     return shape + (
-        f'<text class="region-label" x="{_n(cx)}" y="{_n(cy)}" text-anchor="middle" '
-        f'dominant-baseline="central" font-family="Arial" '
+        f'<text class="region-label" x="{_n(label_x)}" y="{_n(label_y)}" '
+        f'text-anchor="middle" dominant-baseline="central" font-family="Arial" '
         f'font-size="{_n(0.20 * scale)}">{_escape(label)}</text>'
     )
+
+
+def _region_label_position(points, cx: float, cy: float, scale: float, is_ring: bool):
+    """Where a region's electron count goes.
+
+    **A RING'S CENTRE IS EMPTY AND AN OPEN SYSTEM'S IS NOT.** Acetate's
+    three atoms are O-C-O, so their centroid lands on the carbon and the
+    label was drawn straight through it; benzene's lands in the middle of
+    the ring, which is exactly where the label belongs.
+
+    So a ring keeps the centre and an open system is pushed out along
+    whichever direction has the most room -- sampled rather than derived,
+    because the region can be any shape.
+    """
+    if is_ring and len(points) > 2:
+        return cx, cy
+    best = (cx, cy)
+    best_clearance = -1.0
+    for step in range(12):
+        angle = math.radians(step * 30)
+        x = cx + 0.65 * scale * math.cos(angle)
+        y = cy + 0.65 * scale * math.sin(angle)
+        clearance = min(math.dist((x, y), p) for p in points)
+        if clearance > best_clearance:
+            best_clearance = clearance
+            best = (x, y)
+    return best
 
 
 def _dot(x: float, y: float, scale: float, kind: str) -> str:

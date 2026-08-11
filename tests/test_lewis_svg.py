@@ -132,7 +132,13 @@ def test_benzene_draws_a_REGION_and_no_double_bonds():
 
 def test_a_region_whose_count_is_unknown_says_so_rather_than_zero():
     """Pyrrole. The ring is delocalised and the number is not
-    determinable, and "0 e-" would be a lie."""
+    determinable, and "0 e-" would be a lie.
+
+    The marker is deliberately SHORT -- "? e−" rather than a sentence --
+    because "e− not determined" is wider than a five-membered ring and
+    was drawn straight across pyrrole's own structure. The reason lives
+    in the dialog's analysis panel, which has room for it.
+    """
     diagram = LewisDiagram(
         status=Status.SUPPORTED,
         atoms=tuple(
@@ -146,7 +152,7 @@ def test_a_region_whose_count_is_unknown_says_so_rather_than_zero():
 
     svg = _svg(diagram)
 
-    assert "not determined" in svg
+    assert "? e" in svg
     assert "0 e" not in svg
 
 
@@ -458,3 +464,42 @@ def test_every_coordinate_is_ROUNDED_so_the_output_cannot_drift():
     for value in numbers:
         _, _, fraction = value.partition(".")
         assert len(fraction) <= 2, f"{value} carries more precision than is emitted"
+
+
+def test_an_open_regions_label_is_pushed_CLEAR_of_its_atoms():
+    """**Acetate's centroid lands on the carbon**, so the label was drawn
+    straight through it. A ring's centroid is empty by construction and
+    keeps the centre; an open system is pushed out to whichever direction
+    has the most room.
+    """
+    open_system = LewisDiagram(
+        status=Status.SUPPORTED,
+        atoms=(
+            _atom(0, "C", 0, 0.0, 0.0),
+            _atom(1, "O", 2, -BOND_LENGTH, BOND_LENGTH),
+            _atom(2, "O", 3, BOND_LENGTH, BOND_LENGTH, charge=-1),
+        ),
+        bond_pairs=(BondPairs(0, 1, Known(1)), BondPairs(0, 2, Known(1))),
+        regions=(Region((0, 1, 2), Known(2), is_ring=False, bonds=((0, 1), (0, 2))),),
+    )
+
+    svg = render(open_system).svg
+    label = re.search(r'class="region-label" x="(-?[\d.]+)" y="(-?[\d.]+)"', svg)
+    assert label, svg
+    lx, ly = float(label.group(1)), float(label.group(2))
+
+    for atom in open_system.atoms:
+        assert math.dist((lx, ly), (atom.x, atom.y)) > BOND_LENGTH * 0.3, (
+            f"the label sits on {atom.label}{atom.index}"
+        )
+
+
+def test_a_RING_keeps_its_label_in_the_middle():
+    """The control for the test above -- without it, a renderer that
+    always pushed the label out would pass, and benzene's count belongs
+    inside its circle."""
+    svg = render(benzene()).svg
+    label = re.search(r'class="region-label" x="(-?[\d.]+)" y="(-?[\d.]+)"', svg)
+    lx, ly = float(label.group(1)), float(label.group(2))
+
+    assert abs(lx) < 1.0 and abs(ly) < 1.0, "benzene's label left the centre of its ring"
