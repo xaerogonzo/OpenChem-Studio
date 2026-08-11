@@ -7,7 +7,6 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
-    QHBoxLayout,
     QLabel,
     QPushButton,
     QVBoxLayout,
@@ -15,6 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.domain.common import CacheState
+from openchem.ui.widgets.flow_layout import flow_row
 from openchem.domain.molecule import MoleculeModel
 from openchem.events.base import EventBus
 from openchem.events.events import ConformerJobStateChanged, ConformersChanged
@@ -209,26 +209,43 @@ class MoleculeViewer3DWidget(QWidget):
         self._status_label = QLabel("No conformers", self)
         self._measurement_label = QLabel("", self)
 
-        toolbar = QHBoxLayout()
-        toolbar.addWidget(QLabel("Style:"))
-        toolbar.addWidget(self._style_combo)
-        toolbar.addWidget(QLabel("Surface:"))
-        toolbar.addWidget(self._surface_combo)
-        toolbar.addWidget(self._generate_button)
-        toolbar.addWidget(self._use_button)
-        toolbar.addStretch()
-        toolbar.addWidget(self._gallery_check)
-        toolbar.addWidget(self._size_combo)
-        toolbar.addWidget(self._lock_check)
-        toolbar.addWidget(self._match_button)
-        toolbar.addWidget(self._superimpose_button)
-        toolbar.addWidget(self._prev_button)
-        toolbar.addWidget(self._status_label)
-        toolbar.addWidget(self._next_button)
+        # **THIS ROW WRAPS, AND THE WHOLE WINDOW DEPENDED ON IT.** As a
+        # `QHBoxLayout` these fourteen controls made this widget's minimum
+        # width the SUM of them -- measured, 1252 px of controls plus
+        # thirteen gaps = 1330. The central `QStackedWidget` inherited
+        # that, and the main window's minimum became 1877-2055 px against
+        # a 1920 px screen: it could not be made to fit, the panel rail
+        # hung 135 px off the right edge, and switching right-hand panels
+        # changed the window's width. `FlowLayout.minimumSize` returns the
+        # widest SINGLE control instead, so the row costs ~143 px and
+        # wraps onto a second line when it must.
+        #
+        # `QToolBar` was measured first and is wrong: its overflow button
+        # exists only inside a QMainWindow toolbar area, so as a plain
+        # child it drops what does not fit with no way to reach it -- 8
+        # controls at 320 px left 1 visible. See `flow_layout.py`.
+        toolbar = flow_row(self)
+        for control in (
+            QLabel("Style:", toolbar),
+            self._style_combo,
+            QLabel("Surface:", toolbar),
+            self._surface_combo,
+            self._generate_button,
+            self._use_button,
+            self._gallery_check,
+            self._size_combo,
+            self._lock_check,
+            self._match_button,
+            self._superimpose_button,
+            self._prev_button,
+            self._status_label,
+            self._next_button,
+        ):
+            toolbar.layout().addWidget(control)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addLayout(toolbar)
+        layout.addWidget(toolbar, 0)
         # **STRETCH 1 ON THE VIEW, and it is not cosmetic.** A
         # QWebEngineView and a QLabel both report a `Preferred` vertical
         # policy, so QVBoxLayout split the spare height EVENLY between
