@@ -117,6 +117,76 @@ Three things that cost a run each:
   caller's session; here it broke the harness's own exit-code handling
   and read as a failure of a capture that had just succeeded.
 
+## A HORIZONTAL ROW'S MINIMUM IS THE SUM, and it set the whole window's
+
+Reported as "the rightmost tab ... will change size, and even became
+pretty much inaccessible until I got out of fullscreen. But then while
+windowed, clicking another menu item, and then maximizing will fix it."
+
+**The window's minimum width was 1877-2055 px against a 1920 px screen**,
+varying by which right-hand panel was showing. So `resize()` was silently
+clamped, the window really was 2055 px wide on a 1920 px display, the
+panel rail sat at x=1785..2055 with 135 px past the edge, and switching
+panels moved the minimum by up to 178 px. Every symptom follows from that
+one number, including why a windowed/maximize cycle "fixed" it.
+
+**The panel in the screenshots was not the cause.** Measured with the
+`geometry` drive step: every right-hand dock's minimum is 102-280 px and
+the scroll wrappers ask for 58, so `_wrap_scrollable` -- the obvious
+suspect, whose docstring even promises a "defensive floor" -- was
+innocent. It came from the centre:
+
+    central QStackedWidget      minHint 1336
+      MoleculeViewer3DWidget    minHint 1330
+        widest direct child     minHint  143   <- nothing explains it
+
+Nothing inside it reached even 300 px, because **a `QHBoxLayout`'s
+minimum width is the SUM of its children**: fourteen controls at 1252 px
+plus thirteen gaps = 1330. "Which child is widest" is the wrong question
+for a horizontal layout and the reason a chain walk comes back empty --
+dump every descendant over a threshold as well, which the drive step now
+does.
+
+`ui/widgets/flow_layout.py` wraps instead, and `FlowLayout.minimumSize`
+returns the widest SINGLE item. Minimums fell to 690-868, the window to
+1920, the rail to x=1650..1920.
+
+**`QToolBar` LOOKS LIKE THE FIX AND SILENTLY LOSES CONTROLS.** Its
+overflow (`>>`) button exists only for a toolbar in a `QMainWindow`
+toolbar area; as a plain child widget it drops whatever does not fit with
+nothing to reach it by. Measured: 8 controls at 320 px left **1 visible
+and no extension button**, while the minimum fell 2410 -> 115. A 20x
+improvement that loses seven controls is not one.
+
+**A SYMPTOM TEST CAN PASS WITH THE BUG RESTORED.** Both revert-mutations
+were caught only by the structural tests at first, because Qt clamps
+`resize()` -- so the window simply grew past the screen and the rail sat
+comfortably inside an over-wide window. Asserting that the window really
+BECAME the size it was asked for is what makes it a test of the symptom.
+
+### What the geometry says about the GUI's shape -- data, not a decision
+
+Recorded from that baseline for a future consolidation pass, since the
+application has grown from an editor with calculators into a workbench
+and the "every feature gets a panel" assumption will eventually bite.
+**Nothing here is acted on.**
+
+- **The rail costs 270 px permanently** -- 14% of a 1920 screen and 20%
+  of a 1366 laptop, whether or not anybody is navigating. Whether it
+  should be collapsible is a real question.
+- **Every dock is displayed at 280 px while its content wants far more**:
+  Quantum Chemistry 669, Docking 462, Batch 409, Atom Inspector 352.
+  Those four are the panels genuinely relying on scrolling, not merely
+  benefiting from it.
+- **The cheap panels are cheap**: Jobs wants 66, Structure Check 186,
+  Interactions 211, Compare 222.
+- **The centre now has no minimum worth the name** (~280 after the fix,
+  down from 1336). A deliberate floor for the editor would be better than
+  one that emerges from whatever control row happens to be widest.
+- **Any future single-row toolbar will reproduce this exactly.** The
+  guard in `tests/test_right_dock_width.py` catches it at the window
+  level; `flow_row()` is the cure.
+
 ## A RED SUITE SILENTLY DISABLES EVERY GATE BEHIND IT
 
 `.github/workflows/tests.yml` runs the suite and then three gates in the
