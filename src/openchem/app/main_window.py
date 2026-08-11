@@ -349,6 +349,7 @@ class MainWindow(QMainWindow):
         # deliberately left alone.
         self._editor.editor_action_requested.connect(self._on_editor_action)
         self._editor.geometry_requested.connect(self._on_geometry_requested)
+        self._editor.electron_status.connect(self._on_electron_status)
         # The way back from the 3D viewer -- see `_adopt_conformer`.
         self._viewer3d.conformer_adopted.connect(self._adopt_conformer)
         self._jobs_panel = JobsPanel(services.job_manager, self)
@@ -1096,6 +1097,7 @@ class MainWindow(QMainWindow):
         )
         structure_display_menu.addSeparator()
         self._add_stereo_display_items(structure_display_menu)
+        self._add_electron_display_items(structure_display_menu)
         structure_display_menu.addSeparator()
         # These two are real Ketcher toolbar buttons, not render options --
         # "explicit hydrogens" actually adds/removes atoms (confirmed live:
@@ -1302,6 +1304,76 @@ class MainWindow(QMainWindow):
             action.triggered.connect(self._on_stereo_label_style_chosen)
             group.addAction(action)
             style_menu.addAction(action)
+
+    #: The Electron Display modes, and what each is worth today.
+    #:
+    #: **ALL THREE SHIP, and Full Lewis ships DISABLED.** "It would be
+    #: good to at least see the option in its home" -- so the entry is
+    #: where it belongs, and it says why it does nothing rather than
+    #: doing nothing quietly. A control that is present and inert is the
+    #: failure this line of work keeps finding; a control that is present
+    #: and says "not yet, and here is the reason" is information.
+    _ELECTRON_MODES = (
+        ("Off", "off", ""),
+        ("Lone pairs", "pairs", ""),
+        (
+            "Full Lewis structure",
+            "lewis",
+            "Not yet. Bonding pairs are a second representation, not more "
+            "of this one: a bond is not automatically evidence that its "
+            "electrons may be drawn as a localised pair, and an aromatic "
+            "or delocalised bond has no localised count at all. Drawing "
+            "benzene as dots would mean picking a Kekule structure the "
+            "molecule does not assert.",
+        ),
+    )
+
+    def _add_electron_display_items(self, menu: QMenu) -> None:
+        """Lone pairs on the canvas, which Ketcher itself cannot draw.
+
+        `lonePair` appears ZERO times in the vendored bundle, and its only
+        annotation surfaces -- text objects and data S-groups -- are
+        written into the molfile, so either would make the dots part of
+        the molecule. These are drawn in an overlay OpenChem owns; see
+        `tools/ketcher-host/src/main.jsx`.
+
+        **There is no formal-charge entry**, because Ketcher already draws
+        the charge into the atom label -- measured, `C[NH3+]` renders
+        `C H 3 N H 3 +`. A second charge beside its own would be the "two
+        of everything" failure this project keeps removing.
+        """
+        electron_menu = menu.addMenu("Electron Display")
+        group = QActionGroup(self)
+        group.setExclusive(True)
+        for label, mode, unavailable in self._ELECTRON_MODES:
+            action = QAction(label, self)
+            action.setCheckable(True)
+            action.setData(mode)
+            action.setChecked(mode == "off")
+            if unavailable:
+                action.setEnabled(False)
+                action.setToolTip(unavailable)
+            action.triggered.connect(self._on_electron_mode_chosen)
+            group.addAction(action)
+            electron_menu.addAction(action)
+
+    def _on_electron_mode_chosen(self, checked: bool) -> None:
+        action = self.sender()
+        if action is None or not checked:
+            return
+        self._editor.set_electron_mode(action.data())
+
+    def _on_electron_status(self, message: str) -> None:
+        """Say what the dots cannot.
+
+        **Two states draw nothing and mean different things.** An ammonium
+        nitrogen has no lone pair, which is an answer; ferrocene's
+        analysis declined, which is not. Silence for the second would
+        report it as the first. Nothing is said when there ARE dots -- they
+        are on screen, and prose repeating them is noise.
+        """
+        if message:
+            self.statusBar().showMessage(message, 15000)
 
     def _on_stereo_label_style_chosen(self, checked: bool) -> None:
         action = self.sender()

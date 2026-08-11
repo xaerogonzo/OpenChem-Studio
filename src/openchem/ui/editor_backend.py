@@ -84,6 +84,25 @@ class EditorBackend(QObject):
         """
         raise NotImplementedError
 
+    def set_electron_overlay(self, payload: dict | None) -> None:
+        """Show lone pairs on the canvas, or take them off with `None`.
+
+        **STATE, so it must be QUEUED until the editor is ready** -- the
+        deliberate opposite of `start_rotation`. A dropped payload leaves
+        the View menu claiming an electron display the canvas is not
+        showing, with nothing on screen to say which is real; a replayed
+        one merely draws the dots a moment late, which is what the user
+        asked for. Same reasoning as `set_render_option`, and the same
+        reason `trigger_toolbar_action` goes the other way.
+
+        Only the LAST payload matters: it describes the current molecule,
+        so an older one is not a lost instruction but a stale fact.
+
+        Concrete and a no-op by default, like `start_rotation`: an editor
+        that cannot draw an overlay is not broken, and forcing every test
+        double to declare that would be noise.
+        """
+
     def start_rotation(self) -> bool:
         """Enter 3D rotation mode, if this editor has one.
 

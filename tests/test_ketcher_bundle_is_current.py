@@ -51,6 +51,19 @@ _JSX_CALL = re.compile(r"bridgeObject\.([A-Za-z_][A-Za-z0-9_]*)\s*\(")
 #: test count went 16 -> 18 where it should have gone to 30. A guard
 #: that silently narrows as the code generalises is worse than one that
 #: was never written, because the count still goes up.
+#:
+#: **SCOPED TO THE TABLE, because it used to scan the whole file.** The
+#: pattern is `key: 'value',`, which is ordinary JavaScript, so the first
+#: object literal anybody added elsewhere in `main.jsx` was read as a
+#: bridge method. The electron overlay's `{mode: 'off', ...}` did exactly
+#: that and produced a confident failure about a `bridge.off()` that no
+#: line of the file calls.
+#:
+#: Narrowing a guard is the more dangerous direction -- this file's own
+#: docstring says so -- which is why `_bridge_slot_names` cross-checks
+#: from the Python side and would fail if this scoping dropped a real
+#: interception.
+_JSX_TABLE_BLOCK = re.compile(r"const INTERCEPTED = \{(.*?)^\}", re.DOTALL | re.MULTILINE)
 _JSX_TABLE_CALL = re.compile(r"^\s*'?[^']*'?\s*:\s*'([A-Za-z_][A-Za-z0-9_]*)',\s*$", re.MULTILINE)
 
 
@@ -74,7 +87,9 @@ def _bridge_slot_names(python_source: str) -> set[str]:
 
 def _bridge_names(source: str) -> set[str]:
     """Every `_Bridge` method the JSX can reach, however it reaches it."""
-    return set(_JSX_CALL.findall(source)) | set(_JSX_TABLE_CALL.findall(source))
+    table = _JSX_TABLE_BLOCK.search(source)
+    through_table = set(_JSX_TABLE_CALL.findall(table.group(1))) if table else set()
+    return set(_JSX_CALL.findall(source)) | through_table
 #: `__openchemBridge.foo(` in the Python file -- calls injected at runtime
 #: through `runJavaScript`, which are NOT in the bundle and so are checked
 #: only against the Python side.
@@ -240,4 +255,43 @@ def test_the_jsx_parser_sees_every_interception_slot():
     assert from_jsx == from_python, (
         f"only in the JSX: {sorted(from_jsx - from_python)}; "
         f"only in _Bridge: {sorted(from_python - from_jsx)}"
+    )
+
+
+#: The placement constants that must mean the same thing in both languages.
+#: The JS places the dots; `chem/electron_layout.py` judges them. If the
+#: two drift apart the judge starts failing a placement that obeyed the
+#: rules it was actually given -- or worse, passing one that did not.
+_SHARED_ELECTRON_CONSTANTS = (
+    "MIN_SLOT_SEPARATION_DEGREES",
+    "MIN_BOND_CLEARANCE_DEGREES",
+    "SLOT_RADIUS_FRACTION",
+    "PAIR_HALF_GAP_FRACTION",
+    "LABEL_PADDING_FRACTION",
+)
+
+
+@pytest.mark.parametrize("name", _SHARED_ELECTRON_CONSTANTS)
+def test_the_electron_constants_agree_across_the_language_boundary(name):
+    """A source check, not an import: the JS cannot import Python.
+
+    Same technique as the bridge names above and for the same reason --
+    a value that drifts on one side of the boundary is exactly what
+    nothing else would notice. The Python side is authoritative because
+    it is the one with the tests that explain what each number is for.
+    """
+    from openchem.chem import electron_layout
+
+    expected = getattr(electron_layout, name)
+    pattern = re.compile(r"const %s = ([0-9.]+)" % name)
+    found = pattern.search(_MAIN_JSX.read_text(encoding="utf-8"))
+
+    assert found, (
+        f"main.jsx declares no `const {name}`. The placement and the checker "
+        f"share this value; drop it on one side and the judge is grading "
+        f"against rules the page was never given."
+    )
+    assert float(found.group(1)) == pytest.approx(float(expected)), (
+        f"{name} is {found.group(1)} in main.jsx and {expected} in "
+        f"chem/electron_layout.py"
     )

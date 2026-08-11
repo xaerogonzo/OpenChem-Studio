@@ -382,18 +382,29 @@ centre stereogenic left the `(S)` label in place. Run the calculation
 again after an edit. Unspecified centres are correctly left unlabelled,
 so the failure mode is a stale label rather than an invented one.
 
-**A lone-pair count is arithmetic on a drawing, and it declines three
-cases.** `outer electrons − bonds − formal charge`, halved: right for 21
-of 21 textbook main-group cases checked (amine, ammonium, amide, nitro,
+**A lone-pair count is the LEWIS ANALYSIS MODEL's answer, and it
+inherits that model's assumptions.** It is not measured electron density,
+and it is not merely counting from the picture either: `outer electrons −
+bonds − formal charge`, halved, guarded by everything `chem/lewis.py`
+knows about when that arithmetic does not apply. Right for 21 of 21
+textbook main-group cases checked (amine, ammonium, amide, nitro,
 nitrile, carbonyl, ether, hydroxyl, alkoxide, water, thioether,
 sulfoxide, sulfone, phosphine, phosphine oxide, pyridine, pyrrole, furan,
-organofluorine, chloride, borane). It refuses **metals**, whose valence
+organofluorine, chloride, borane).
+
+It declines three things. It has **no answer for a metal**, whose valence
 is undefined and whose non-bonding electrons are frequently unpaired
-rather than paired; it refuses any structure with an **unpaired electron
-on a main-group atom**, since a singlet carbene has a donor pair where
-the triplet has two lone electrons and a drawing does not distinguish
-them; and it says nothing about **where** a pair points, so it cannot
-rank two donors. Nothing here is a substitute for a calculation.
+rather than paired — reported as "cannot say", never as zero. It refuses
+any structure with an **unpaired electron on a main-group atom**, since a
+singlet carbene has a donor pair where the triplet has two lone electrons
+and a drawing does not distinguish them. And it says nothing about
+**where** a pair points, so it cannot rank two donors.
+
+**Drawing those counts as dots on the canvas changes none of that**, and
+makes it easier to forget — a picture reads as an observation in a way a
+number does not. The dots are a visualisation of the analysis, and where
+each one sits is a drawing convention chosen to avoid bonds and labels,
+not a statement about orbital direction.
 
 **Rotating in the 2D editor is a rigid motion, and it is checked rather
 than trusted.** Turning the structure changes coordinates and nothing

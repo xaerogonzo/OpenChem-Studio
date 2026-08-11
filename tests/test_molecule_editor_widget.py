@@ -239,3 +239,95 @@ def test_the_widget_arms_the_canvas_with_a_chosen_element(qapp):
     widget.set_atom_tool("Fe")
 
     assert backend.atom_tool_calls == ["Fe"]
+
+
+def _electron_backend():
+    """A recording backend that also captures electron payloads."""
+    backend = _RecordingEditorBackend()
+    backend.electron_payloads = []
+    backend.set_electron_overlay = backend.electron_payloads.append
+    return backend
+
+
+def _widget_with_electrons(qapp, smiles="CO"):
+    engine = ChemistryEngine()
+    bus = EventBus()
+    backend = _electron_backend()
+    widget = MoleculeEditorWidget(engine, bus, QUndoStack(), backend=backend)
+    molecule = MoleculeModel(display_name="Test")
+    engine.set_structure_from_smiles(molecule, smiles)
+    widget.set_molecule(molecule)
+    return widget, backend, molecule
+
+
+def test_the_electron_overlay_is_off_until_asked_for(qapp):
+    """An annotation nobody asked for is one more thing on a crowded
+    canvas -- and the payload is None rather than an empty one, so the
+    page takes the layer down instead of drawing zero dots."""
+    widget, backend, _ = _widget_with_electrons(qapp)
+
+    assert widget.electron_mode() == "off"
+    assert backend.electron_payloads == [None]
+
+
+def test_turning_the_mode_on_sends_the_counts(qapp):
+    widget, backend, _ = _widget_with_electrons(qapp, "CO")
+
+    widget.set_electron_mode("pairs")
+
+    payload = backend.electron_payloads[-1]
+    assert payload["mode"] == "pairs"
+    # Methanol: the oxygen carries two pairs, the carbon none -- and the
+    # carbon's ZERO is present, because absent means "no definite answer".
+    assert payload["counts"] == {"0": 0, "1": 2}
+    assert payload["refused"] is False
+
+
+def test_a_NEW_STRUCTURE_republishes_without_anyone_asking(qapp):
+    """**The chemistry tier, owned in one place.** Selection, undo, adopt
+    and rotate all arrive through `set_molecule`, so putting the refresh
+    at each call site is how one of them gets forgotten and the dots
+    describe the previous molecule."""
+    widget, backend, molecule = _widget_with_electrons(qapp, "CO")
+    widget.set_electron_mode("pairs")
+    before = len(backend.electron_payloads)
+
+    other = MoleculeModel(display_name="Other")
+    ChemistryEngine().set_structure_from_smiles(other, "CC=O")
+    widget.set_molecule(other)
+
+    assert len(backend.electron_payloads) > before
+    assert backend.electron_payloads[-1]["counts"] == {"0": 0, "1": 0, "2": 2}
+
+
+def test_turning_the_mode_off_takes_the_layer_down(qapp):
+    widget, backend, _ = _widget_with_electrons(qapp)
+    widget.set_electron_mode("pairs")
+
+    widget.set_electron_mode("off")
+
+    assert backend.electron_payloads[-1] is None
+
+
+def test_a_refusal_is_announced_rather_than_drawn_as_nothing(qapp):
+    """Ferrocene and a carbene draw no dots, and so does an ammonium
+    nitrogen. The status line is the only thing that tells them apart."""
+    widget, backend, _ = _widget_with_electrons(qapp, "[CH2]")
+    said: list[str] = []
+    widget.electron_status.connect(said.append)
+
+    widget.set_electron_mode("pairs")
+
+    assert backend.electron_payloads[-1]["refused"] is True
+    assert said and "unavailable" in said[-1].lower(), said
+
+
+def test_no_lone_pairs_is_announced_too_because_it_LOOKS_the_same(qapp):
+    widget, backend, _ = _widget_with_electrons(qapp, "C[NH3+]")
+    said: list[str] = []
+    widget.electron_status.connect(said.append)
+
+    widget.set_electron_mode("pairs")
+
+    assert backend.electron_payloads[-1]["refused"] is False
+    assert said[-1] == "No lone pairs."

@@ -186,12 +186,44 @@ def test_the_count_follows_the_CHARGE_not_just_the_element():
     assert (neutral_o.value, anionic_o.value) == (2, 3)
 
 
-def test_no_menu_entry_pretends_the_canvas_can_draw_lone_pairs(qapp, tmp_path):
-    """**Ketcher cannot draw them, so there is no control that says it
-    can.** A "Show Lone Pairs" item that only pointed at another panel
-    would be a control that does nothing, which is the failure this whole
-    line of work keeps finding. The count lives in the Atom Inspector,
-    which is a panel you open rather than a toggle that lies.
+def test_ketcher_still_cannot_draw_a_lone_pair_so_the_overlay_must():
+    """**This guard used to forbid a menu entry, and its premise changed.**
+
+    Written when nothing could draw lone pairs: it walked every menu and
+    failed if any item mentioned them, because a control promising
+    something the canvas could not do is the failure this line of work
+    keeps finding. There IS such an entry now -- View > 2D Structure
+    Display > Electron Display > Lone pairs -- and it works, so the guard
+    fired correctly and has been rewritten rather than deleted.
+
+    What survives is the FACT the old guard rested on, which is still
+    true and is the reason the overlay exists at all: Ketcher has no
+    lone-pair support of its own. If a future bundle gains some, this
+    fails and the whole overlay can be reconsidered against it.
+    """
+    from pathlib import Path
+
+    dist = Path(__file__).resolve().parents[1] / "src/openchem/resources/ketcher/dist/assets"
+    bundle = "".join(
+        path.read_bytes().decode("utf-8", errors="replace") for path in dist.glob("*.js")
+    )
+
+    assert bundle, "no bundle to search, so this proves nothing"
+    for name in ("lonePair", "LonePair", "lone_pair", "electronPair"):
+        assert name not in bundle, f"Ketcher now has {name}; reconsider the overlay"
+    # The control: the search finds what IS there, so a zero above means
+    # absence rather than a broken search.
+    assert "radicalElectron" in bundle
+
+
+def test_the_lone_pair_menu_entry_does_not_route_through_ketcher(qapp, tmp_path):
+    """The successor to the guard above, and the thing worth checking now.
+
+    The entry is legitimate because OpenChem draws the dots itself. What
+    would NOT be legitimate is routing it through a Ketcher render option
+    or one of Ketcher's toolbar buttons -- there is nothing on the other
+    end, so it would be a control that does nothing while looking exactly
+    like the ones that work.
     """
     from openchem.app.main_window import MainWindow
     from openchem.app.session import SessionManager
@@ -204,11 +236,18 @@ def test_no_menu_entry_pretends_the_canvas_can_draw_lone_pairs(qapp, tmp_path):
     settings.set("plugins/user_directory", str(tmp_path / "none"))
     window = MainWindow(services, settings, SessionManager())
 
-    labels = []
+    through_ketcher: list[object] = []
+    window._editor.set_render_option = lambda *a: through_ketcher.append(a)
+    window._editor.trigger_toolbar_action = lambda *a: through_ketcher.append(a)
+    modes: list[str] = []
+    window._editor.set_electron_mode = modes.append
+
+    found = []
 
     def walk(menu):
         for action in menu.actions():
-            labels.append(action.text())
+            if "lone pair" in action.text().lower():
+                found.append(action)
             if action.menu() is not None:
                 walk(action.menu())
 
@@ -216,9 +255,9 @@ def test_no_menu_entry_pretends_the_canvas_can_draw_lone_pairs(qapp, tmp_path):
         if menu_action.menu() is not None:
             walk(menu_action.menu())
 
-    offenders = [label for label in labels if "lone pair" in label.lower()]
-    assert not offenders, (
-        f"{offenders} promises something the 2D canvas cannot draw -- "
-        "'lonePair' appears zero times in the Ketcher bundle"
-    )
+    assert len(found) == 1, [a.text() for a in found]
+    found[0].trigger()
+
+    assert modes == ["pairs"]
+    assert through_ketcher == [], through_ketcher
     window.close()

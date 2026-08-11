@@ -63,6 +63,11 @@ function tryWireBridge() {
   }
   try {
     ketcherInstance.editor.subscribe('change', () => {
+      // The overlay's POSITIONS tier: atoms may have moved (Layout, Clean
+      // Up, a drag) without the chemistry changing. Placement is
+      // recomputed from the struct; the counts are Python's job and are
+      // reused until Python sends new ones.
+      refreshElectrons(false)
       ketcherInstance.getMolfile().then((molfile) => {
         bridgeObject.structureEdited(molfile)
       })
@@ -369,6 +374,11 @@ function scheduleRotation() {
     rotationFrame = null
     applyRotation(rotationAngles.x, rotationAngles.y)
     reportRotation()
+    // Turning the molecule really does move the atoms, so the slots
+    // legitimately move with them -- the POSITIONS tier, not the
+    // chemistry one. `refreshElectrons` sees the changed positions key
+    // and recomputes placement without re-measuring a single label.
+    refreshElectrons(false)
   })
 }
 
@@ -490,6 +500,502 @@ function drawRulerTicks(overlay) {
   }
 }
 
+// --- the electron overlay ------------------------------------------------
+//
+// Lone pairs, drawn on the canvas. Ketcher cannot draw them -- `lonePair`
+// appears ZERO times in this bundle -- and its only annotation surfaces
+// (text objects, data S-groups) are written into the molfile, so either
+// would make the dots part of the molecule and fire a `change`. These dots
+// are OpenChem's: one layer, `pointer-events: none`, never inserted into
+// Ketcher's render tree, never serialized.
+//
+// **EVERYTHING IS COMPUTED IN MODEL SPACE, and that is what makes pan and
+// zoom free.** Ketcher's viewport transform is scale + translate with NO
+// rotation, so a label box is axis-aligned in model units just as it is on
+// screen, and nothing a pan or a zoom does can change a slot. The layer's
+// single <g> carries the whole viewport; a viewport change rewrites one
+// transform attribute and touches no dot.
+//
+// The forward map is obtained by INVERTING `render.page2obj` -- the only
+// mapping this build exposes, and it runs backwards. Measured accurate to
+// under a pixel, and it tracks zoom exactly, because Ketcher zooms by
+// changing the viewBox and page2obj already accounts for that. See
+// tests/test_ketcher_viewport_transform.py for the whole gate.
+
+const ELECTRON_STYLES = `
+.openchem-electrons { position:absolute; pointer-events:none; z-index:15; overflow:visible; }
+.openchem-electrons circle { fill:#1b5e20; }
+.openchem-electrons .el-note {
+  font:12px system-ui, sans-serif; fill:#b26a00; }
+`
+
+// Shared with chem/electron_layout.py, which judges what this produces.
+// tests/test_ketcher_bundle_is_current.py asserts the numbers match; a
+// constant that drifts on one side is what nothing else would notice.
+const MIN_SLOT_SEPARATION_DEGREES = 40.0
+const MIN_BOND_CLEARANCE_DEGREES = 25.0
+const SLOT_RADIUS_FRACTION = 0.33
+const PAIR_HALF_GAP_FRACTION = 0.055
+const LABEL_PADDING_FRACTION = 0.05
+const SLOT_STEP_DEGREES = 10.0
+
+let electronLayer = null
+let electronGroup = null
+let electronNote = null
+let electronWatching = false
+const electronState = {
+  mode: 'off',
+  payload: null,
+  placement: null,
+  transform: null,
+  labelBoxes: {},
+  positionsKey: null,
+}
+
+// Counters for the WORK TIERS, so a test can assert that nothing does
+// more than its tier -- a pan must not re-measure a label, and sixty
+// rotation frames must not re-measure one either. Cheap enough to leave
+// in: three integers, incremented where the work happens, and the only
+// way to check a performance boundary that is otherwise invisible until
+// somebody notices the editor has gone sticky.
+const electronWork = { placements: 0, labelMeasurements: 0, transforms: 0, watchers: 0 }
+
+function ensureElectronStyles() {
+  if (document.getElementById('openchem-electron-styles')) return
+  const style = document.createElement('style')
+  style.id = 'openchem-electron-styles'
+  style.textContent = ELECTRON_STYLES
+  document.head.appendChild(style)
+}
+
+// ONE layer for the life of the editor. Created on first use and then
+// hidden and shown -- never rebuilt, because a layer per toggle is how a
+// DOM quietly accumulates a hundred of them, and the rotation overlay in
+// this same file already leaked a listener pair per entry.
+function ensureElectronLayer() {
+  if (electronLayer && electronLayer.isConnected) return electronLayer
+  ensureElectronStyles()
+  const host = document.querySelector('.Ketcher-root') || document.body
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  svg.setAttribute('class', 'openchem-electrons')
+  svg.style.pointerEvents = 'none'
+  electronGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  svg.appendChild(electronGroup)
+  electronNote = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+  electronNote.setAttribute('class', 'el-note')
+  electronNote.setAttribute('x', '8')
+  electronNote.setAttribute('y', '18')
+  svg.appendChild(electronNote)
+  host.appendChild(svg)
+  electronLayer = svg
+  return svg
+}
+
+function ketcherCanvas() {
+  const host = document.querySelector('.Ketcher-root') || document.body
+  let best = null
+  let area = 0
+  const svgs = host.querySelectorAll('svg')
+  for (let i = 0; i < svgs.length; i++) {
+    if (svgs[i].classList.contains('openchem-electrons')) continue
+    const rect = svgs[i].getBoundingClientRect()
+    if (rect.width * rect.height > area) {
+      area = rect.width * rect.height
+      best = svgs[i]
+    }
+  }
+  return best
+}
+
+// The forward map, model -> CSS pixels, by inverting page2obj at two
+// probe points. Returns null when the editor is not ready to answer.
+function electronTransform() {
+  if (!ketcherInstance) return null
+  try {
+    const render = ketcherInstance.editor.render
+    const a = render.page2obj({ clientX: 0, clientY: 0 })
+    const b = render.page2obj({ clientX: 100, clientY: 100 })
+    const sx = 100 / (b.x - a.x)
+    const sy = 100 / (b.y - a.y)
+    if (!isFinite(sx) || !isFinite(sy) || sx === 0) return null
+    return { sx: sx, sy: sy, tx: -a.x * sx, ty: -a.y * sy }
+  } catch (e) {
+    return null
+  }
+}
+
+function sameTransform(a, b) {
+  if (!a || !b) return false
+  return a.sx === b.sx && a.sy === b.sy && a.tx === b.tx && a.ty === b.ty
+}
+
+// The label Ketcher will draw, composed from the STRUCT rather than read
+// back off the canvas -- `label` plus implicit hydrogens plus charge.
+// Carbon is normally unlabelled, so it contributes no obstacle.
+function atomLabelText(atom) {
+  if (!atom || !atom.label) return ''
+  if (atom.label === 'C' && !atom.charge && !atom.isotope) return ''
+  let text = atom.label
+  if (atom.implicitH > 0) text += atom.implicitH > 1 ? 'H' + atom.implicitH : 'H'
+  if (atom.charge) text += atom.charge > 0 ? '+' : '-'
+  return text
+}
+
+// Measured in OUR OWN svg at Ketcher's font size, cached per string, and
+// returned in MODEL UNITS so it is zoom-invariant. Never reads Ketcher's
+// DOM. `options.font` is a CSS shorthand ("30px Arial") rather than a
+// family, so the size is set separately or the box comes back at 30px.
+//
+// **THE HORIZONTAL REACH IS THE FULL TEXT WIDTH, NOT HALF OF IT**, and
+// that is a deliberate over-estimate rather than a slip. Ketcher anchors
+// the element symbol on the atom and hangs the hydrogens off ONE SIDE --
+// which side depending on where the bonds are, and on conventions of its
+// own. Measured, as offsets from the atom in bond lengths:
+//
+//     methanol   O  symbol -0.13..0.13   H at  +0.12..+0.35   (right)
+//     water      O  symbol -0.13..0.13   H at  -0.57..-0.33   (left)
+//     ammonia    N  symbol -0.12..0.12   H3 at +0.11..+0.52   (right)
+//     ammonium   N  the '+' reaches      +0.81
+//     methyl     C  H3 at -0.57..-0.13                        (left)
+//
+// A box half the text wide, centred on the atom, therefore under-covers
+// whichever side the hydrogens went -- and it shipped that way for one
+// commit: methanol's second lone pair was drawn straight through the H
+// of "OH", and the checker agreed with it, because the checker was given
+// the same wrong box. Reaching the full width on BOTH sides costs some
+// placement freedom and needs no knowledge of Ketcher's side-picking.
+//
+// The VERTICAL half-height is exact (~0.19), since nothing hangs above or
+// below -- subscripts reach 0.26 and are covered by the padding.
+function labelBoxModelUnits(text) {
+  if (!text) return null
+  if (electronState.labelBoxes[text]) return electronState.labelBoxes[text]
+  electronWork.labelMeasurements++
+  const options = ketcherInstance.editor.render.options
+  const unit = options.microModeScale || options.bondLength || 40
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  svg.setAttribute('style', 'position:absolute;left:-9999px;top:0;width:200px;height:60px')
+  document.body.appendChild(svg)
+  const node = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+  node.setAttribute('font-size', options.fontsz || 13)
+  node.setAttribute('font-family', 'Arial')
+  node.textContent = text
+  svg.appendChild(node)
+  const box = node.getBBox()
+  document.body.removeChild(svg)
+  // Raw reach, unpadded: the padding is applied where the obstacle is
+  // TESTED, so the number here means the same thing as the one
+  // chem/electron_layout.py's checker is handed.
+  const measured = { reachX: box.width / unit, reachY: box.height / 2 / unit }
+  electronState.labelBoxes[text] = measured
+  return measured
+}
+
+function separationDegrees(a, b) {
+  return Math.abs((((a - b + 180) % 360) + 360) % 360 - 180)
+}
+
+// A slot is rejected outright when its DOTS would land inside the label
+// box -- not when its direction points at the box, which would forbid
+// every bearing on that side of a wide label like NH3+.
+function slotHitsLabel(bearing, box) {
+  if (!box) return false
+  const radians = (bearing * Math.PI) / 180
+  const radius = SLOT_RADIUS_FRACTION
+  const gap = PAIR_HALF_GAP_FRACTION
+  const cx = radius * Math.cos(radians)
+  const cy = radius * Math.sin(radians)
+  const px = -Math.sin(radians) * gap
+  const py = Math.cos(radians) * gap
+  const dots = [
+    [cx + px, cy + py],
+    [cx - px, cy - py],
+  ]
+  const reachX = box.reachX + LABEL_PADDING_FRACTION
+  const reachY = box.reachY + LABEL_PADDING_FRACTION
+  for (let i = 0; i < dots.length; i++) {
+    if (Math.abs(dots[i][0]) <= reachX && Math.abs(dots[i][1]) <= reachY) {
+      return true
+    }
+  }
+  return false
+}
+
+function bondClearance(bearing, bondBearings) {
+  let worst = 180
+  for (let i = 0; i < bondBearings.length; i++) {
+    const gap = separationDegrees(bearing, bondBearings[i])
+    if (gap < worst) worst = gap
+  }
+  return worst
+}
+
+// **JOINTLY, NOT GREEDILY.** Picking the best slot and then the next best
+// lets two nearly-equivalent candidates trade places on a tiny geometry
+// change, so an oxygen's pairs swap sides for no reason the user can
+// see -- the same "why did it move when I didn't move it" this project
+// already earned from the conformer viewer. Scoring the SET, with a fixed
+// tie-break, is what makes the answer stable.
+function chooseSlots(bondBearings, labelBox, pairCount) {
+  if (pairCount <= 0) return []
+  const candidates = []
+  for (let d = -180; d < 180; d += SLOT_STEP_DEGREES) candidates.push(d)
+
+  const tiers = [
+    { bond: MIN_BOND_CLEARANCE_DEGREES, separation: MIN_SLOT_SEPARATION_DEGREES, label: true },
+    { bond: MIN_BOND_CLEARANCE_DEGREES, separation: MIN_SLOT_SEPARATION_DEGREES, label: false },
+    { bond: 15, separation: 30, label: false },
+    { bond: 0, separation: 20, label: false },
+  ]
+  for (let t = 0; t < tiers.length; t++) {
+    const tier = tiers[t]
+    const allowed = candidates.filter(function (bearing) {
+      if (bondClearance(bearing, bondBearings) < tier.bond) return false
+      if (tier.label && slotHitsLabel(bearing, labelBox)) return false
+      return true
+    })
+    const chosen = bestCombination(allowed, bondBearings, tier.separation, pairCount)
+    if (chosen) return chosen
+  }
+  // Nothing satisfies even the loosest tier, so spread evenly and draw
+  // SOMETHING: an atom that has pairs and shows none is a lie, and a
+  // crowded drawing is merely ugly.
+  const evenly = []
+  for (let i = 0; i < pairCount; i++) evenly.push(-180 + (360 / pairCount) * i)
+  return evenly
+}
+
+function bestCombination(allowed, bondBearings, minSeparation, pairCount) {
+  if (allowed.length < pairCount) return null
+  let best = null
+  let bestScore = -Infinity
+  const chosen = []
+
+  function score(set) {
+    let total = 0
+    let closest = 360
+    for (let i = 0; i < set.length; i++) {
+      total += bondClearance(set[i], bondBearings)
+      for (let j = i + 1; j < set.length; j++) {
+        const gap = separationDegrees(set[i], set[j])
+        if (gap < closest) closest = gap
+      }
+    }
+    // The spread term is what stops two pairs hugging one open side when
+    // the atom has a whole free hemisphere.
+    return total + (set.length > 1 ? closest : 0)
+  }
+
+  function walk(start) {
+    if (chosen.length === pairCount) {
+      const value = score(chosen)
+      // **DETERMINISTIC TIE-BREAK**: strictly greater, and the candidates
+      // are walked in ascending order, so an exact tie keeps the set with
+      // the smallest bearings. Without it two equal arrangements swap on
+      // a rounding difference.
+      if (value > bestScore + 1e-9) {
+        bestScore = value
+        best = chosen.slice()
+      }
+      return
+    }
+    for (let i = start; i < allowed.length; i++) {
+      const bearing = allowed[i]
+      let ok = true
+      for (let k = 0; k < chosen.length; k++) {
+        if (separationDegrees(bearing, chosen[k]) < minSeparation) {
+          ok = false
+          break
+        }
+      }
+      if (!ok) continue
+      chosen.push(bearing)
+      walk(i + 1)
+      chosen.pop()
+    }
+  }
+
+  walk(0)
+  return best
+}
+
+// A stable fingerprint of where the atoms are, so a redraw can tell a
+// viewport change (nothing here moved) from a geometry change.
+function atomPositionsKey(struct) {
+  const parts = []
+  struct.atoms.forEach(function (atom, id) {
+    parts.push(id + ':' + atom.pp.x.toFixed(4) + ',' + atom.pp.y.toFixed(4))
+  })
+  return parts.join('|')
+}
+
+// Dots in MODEL UNITS, relative to nothing -- absolute model coordinates,
+// so the layer's single transform can place all of them.
+function computeElectronPlacement() {
+  electronWork.placements++
+  if (!ketcherInstance || !electronState.payload || electronState.payload.refused) return []
+  const struct = ketcherInstance.editor.struct()
+  const counts = electronState.payload.counts || {}
+  // Molfile position -> pool id, by INSERTION ORDER, never sorted: the
+  // inverse of molfilePosition(), and the two diverge the moment anything
+  // is deleted.
+  const poolIds = Array.from(struct.atoms.keys())
+  const out = []
+
+  Object.keys(counts).forEach(function (positionKey) {
+    const pairs = counts[positionKey]
+    if (!pairs) return
+    const poolId = poolIds[parseInt(positionKey, 10)]
+    if (poolId === undefined) return
+    const atom = struct.atoms.get(poolId)
+    if (!atom) return
+
+    const bondBearings = []
+    struct.bonds.forEach(function (bond) {
+      let otherId = null
+      if (bond.begin === poolId) otherId = bond.end
+      else if (bond.end === poolId) otherId = bond.begin
+      if (otherId === null) return
+      const other = struct.atoms.get(otherId)
+      if (!other) return
+      bondBearings.push(
+        (Math.atan2(other.pp.y - atom.pp.y, other.pp.x - atom.pp.x) * 180) / Math.PI
+      )
+    })
+
+    const box = labelBoxModelUnits(atomLabelText(atom))
+    const slots = chooseSlots(bondBearings, box, pairs)
+    const dots = []
+    slots.forEach(function (bearing) {
+      const radians = (bearing * Math.PI) / 180
+      const cx = atom.pp.x + SLOT_RADIUS_FRACTION * Math.cos(radians)
+      const cy = atom.pp.y + SLOT_RADIUS_FRACTION * Math.sin(radians)
+      const px = -Math.sin(radians) * PAIR_HALF_GAP_FRACTION
+      const py = Math.cos(radians) * PAIR_HALF_GAP_FRACTION
+      dots.push([cx + px, cy + py], [cx - px, cy - py])
+    })
+    out.push({ poolId: poolId, position: parseInt(positionKey, 10), pairs: pairs, dots: dots })
+  })
+  return out
+}
+
+function renderElectronDots() {
+  const layer = ensureElectronLayer()
+  while (electronGroup.firstChild) electronGroup.removeChild(electronGroup.firstChild)
+  const placement = electronState.placement || []
+  placement.forEach(function (entry) {
+    entry.dots.forEach(function (dot) {
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+      circle.setAttribute('cx', dot[0])
+      circle.setAttribute('cy', dot[1])
+      // In model units, so the group's scale grows it with the drawing.
+      circle.setAttribute('r', 0.045)
+      circle.setAttribute('data-atom', String(entry.position))
+      electronGroup.appendChild(circle)
+    })
+  })
+  const payload = electronState.payload
+  // The corner note, only when the mode is ON and the analysis could not
+  // answer. Silence there would read as "this molecule has no lone
+  // pairs", which is a claim `analyse` explicitly declined to make.
+  electronNote.textContent =
+    payload && payload.refused && electronState.mode !== 'off' ? payload.reason || '' : ''
+  return layer
+}
+
+function applyElectronTransform(transform) {
+  if (!electronLayer || !transform) return
+  electronWork.transforms++
+  const canvas = ketcherCanvas()
+  if (canvas) {
+    const host = electronLayer.parentNode.getBoundingClientRect()
+    const rect = canvas.getBoundingClientRect()
+    electronLayer.style.left = rect.left - host.left + 'px'
+    electronLayer.style.top = rect.top - host.top + 'px'
+    electronLayer.style.width = rect.width + 'px'
+    electronLayer.style.height = rect.height + 'px'
+  }
+  const rect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 }
+  // The layer is positioned at the canvas, so the group's translate is
+  // the transform's offset relative to that corner.
+  electronGroup.setAttribute(
+    'transform',
+    'translate(' +
+      (transform.tx - rect.left) +
+      ',' +
+      (transform.ty - rect.top) +
+      ') scale(' +
+      transform.sx +
+      ',' +
+      transform.sy +
+      ')'
+  )
+  electronState.transform = transform
+}
+
+// The tier dispatcher. Nothing does more than its tier: a viewport change
+// rewrites one transform attribute, a geometry change recomputes
+// placement, and the chemistry is recomputed by PYTHON only when the
+// structure revision changes -- never here.
+function refreshElectrons(force) {
+  if (electronState.mode === 'off') {
+    // **EMPTIED, not merely hidden.** Hiding alone leaves the previous
+    // molecule's dots in the DOM, invisible and stale -- so any future
+    // path that shows the layer before recomputing would flash the wrong
+    // structure's electrons. The layer survives; its contents do not.
+    if (electronLayer) {
+      electronLayer.style.display = 'none'
+      while (electronGroup.firstChild) electronGroup.removeChild(electronGroup.firstChild)
+      electronNote.textContent = ''
+    }
+    electronState.placement = null
+    electronState.positionsKey = null
+    return
+  }
+  const layer = ensureElectronLayer()
+  layer.style.display = ''
+  const struct = ketcherInstance ? ketcherInstance.editor.struct() : null
+  const key = struct ? atomPositionsKey(struct) : null
+  if (force || key !== electronState.positionsKey) {
+    electronState.positionsKey = key
+    electronState.placement = computeElectronPlacement()
+    renderElectronDots()
+  }
+  const transform = electronTransform()
+  if (transform && !sameTransform(transform, electronState.transform)) {
+    applyElectronTransform(transform)
+  }
+}
+
+// Pan and zoom are announced by NOTHING -- `zoomChanged` does not fire for
+// a real zoom, and Ketcher does not pan by scrolling, so there is no
+// scroll event either. Both are viewBox changes, and both show up in the
+// derived affine. Comparing it costs 0.009 ms against a 16 ms frame, so
+// the layer watches. One loop for the life of the page.
+function watchElectronViewport() {
+  if (electronWatching) return
+  electronWatching = true
+  electronWork.watchers++
+  const tick = function () {
+    if (electronState.mode !== 'off' && ketcherInstance) {
+      const transform = electronTransform()
+      if (transform && !sameTransform(transform, electronState.transform)) {
+        applyElectronTransform(transform)
+      }
+    }
+    window.requestAnimationFrame(tick)
+  }
+  window.requestAnimationFrame(tick)
+}
+
+function setElectronOverlay(payload) {
+  electronState.payload = payload
+  electronState.mode = payload ? payload.mode || 'pairs' : 'off'
+  electronState.positionsKey = null
+  refreshElectrons(true)
+  watchElectronViewport()
+}
+
 function handleKetcherInit(ketcher) {
   ketcherInstance = ketcher
   window.ketcher = ketcher // used by Python's fire-and-forget runJavaScript calls (e.g. setMolecule)
@@ -503,6 +1009,33 @@ function handleKetcherInit(ketcher) {
     leave: leaveRotationMode,
     angles: function () {
       return JSON.stringify(rotationAngles)
+    },
+  }
+  // Same reason as the rotation assignment above: without a reference
+  // reachable from the entry point vite tree-shakes the whole overlay
+  // away and the feature is silently absent.
+  window.openchemElectrons = {
+    set: setElectronOverlay,
+    refresh: function () {
+      refreshElectrons(true)
+    },
+    work: function () {
+      return JSON.stringify(electronWork)
+    },
+    resetWork: function () {
+      electronWork.placements = 0
+      electronWork.labelMeasurements = 0
+      electronWork.transforms = 0
+      return 1
+    },
+    state: function () {
+      return JSON.stringify({
+        mode: electronState.mode,
+        refused: !!(electronState.payload && electronState.payload.refused),
+        placement: (electronState.placement || []).map(function (entry) {
+          return { position: entry.position, pairs: entry.pairs, dots: entry.dots }
+        }),
+      })
     },
   }
   tryWireBridge()

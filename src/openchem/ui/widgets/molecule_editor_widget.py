@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.chem import electron_overlay
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.stereochemistry import StereochemistryConflict
 from openchem.commands.conformer_commands import RotateStructureCommand
@@ -56,6 +57,10 @@ class MoleculeEditorWidget(QWidget):
     #: The window answers it, because generating one is a chemical
     #: operation and this widget owns no chemistry.
     geometry_requested = Signal()
+    #: What the electron overlay has to say out loud, or "" when the dots
+    #: speak for themselves. Carries a REFUSAL or a "no lone pairs", both
+    #: of which draw nothing and would otherwise be indistinguishable.
+    electron_status = Signal(str)
 
     def __init__(
         self,
@@ -76,6 +81,9 @@ class MoleculeEditorWidget(QWidget):
         #: Set while this widget is pushing its own edit; see
         #: `_on_molecule_changed`.
         self._applying_own_edit = False
+        #: "off", "pairs", or "lewis". Off by default: an annotation
+        #: nobody asked for is one more thing on a crowded canvas.
+        self._electron_mode = "off"
 
         # **A MODE, and an unmistakable one.** It steals the drag
         # gesture, so the user must never be in doubt about whether a drag
@@ -134,6 +142,12 @@ class MoleculeEditorWidget(QWidget):
             # whatever the previous molecule (or an orphaned pre-selection
             # drawing) left on screen.
             self._backend.clear()
+        # The CHEMISTRY tier: a different structure means different
+        # counts, and the page cannot work them out for itself. Done here
+        # rather than at each call site so that every route into a new
+        # structure -- selection, undo, adopt, rotate -- refreshes the
+        # dots without having to remember to.
+        self._publish_electron_overlay()
 
     def set_render_option(self, name: str, value: object) -> None:
         """Proxies to the underlying EditorBackend's own display option
@@ -209,6 +223,40 @@ class MoleculeEditorWidget(QWidget):
             self._synced_smiles = self._molecule.canonical_smiles
 
         self._backend.get_molblock(apply)
+
+    # --- the electron overlay -----------------------------------------------
+
+    def set_electron_mode(self, mode: str) -> None:
+        """Show lone pairs on the canvas, or take them off with "off".
+
+        **The MODE lives here rather than in the window**, so that the
+        payload is rebuilt whenever the molecule changes without every
+        caller having to remember to. `set_molecule` republishes; the
+        window only ever says which mode it wants.
+        """
+        self._electron_mode = mode
+        self._publish_electron_overlay()
+
+    def electron_mode(self) -> str:
+        return self._electron_mode
+
+    def _publish_electron_overlay(self) -> None:
+        """Recompute the counts and hand them over. The CHEMISTRY tier.
+
+        Reached only when the mode changes or the structure does -- never
+        on a pan, a zoom or a rotation frame, which the page answers from
+        what it already has. `LewisAnalysis` on every frame would be
+        absurd, and the page has no way to know it should not ask.
+        """
+        if self._electron_mode == "off" or self._molecule is None:
+            self._backend.set_electron_overlay(None)
+            self.electron_status.emit("")
+            return
+        overlay = electron_overlay.for_molblock(self._molecule.molblock)
+        payload = overlay.to_payload()
+        payload["mode"] = self._electron_mode
+        self._backend.set_electron_overlay(payload)
+        self.electron_status.emit(overlay.status_message())
 
     # --- 3D rotation mode ---------------------------------------------------
 

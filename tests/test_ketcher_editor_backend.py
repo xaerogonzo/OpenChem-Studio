@@ -157,6 +157,58 @@ def test_one_option_toggled_twice_before_ready_is_applied_once_with_the_last_val
     assert backend._pending_render_options == {}
 
 
+def test_the_electron_overlay_is_QUEUED_before_ready_and_the_last_one_wins(qapp):
+    """STATE, so it queues -- the deliberate opposite of `start_rotation`.
+
+    A dropped payload leaves the View menu claiming an electron display
+    the canvas is not showing, with nothing on screen to say which is
+    real. A replayed one merely draws the dots a moment late.
+
+    **Only the LAST payload survives**, because a payload describes the
+    current molecule: an older one is a stale fact, not a lost
+    instruction, and replaying both would draw a molecule that is no
+    longer selected.
+    """
+    backend = KetcherEditorBackend()
+    calls: list[str] = []
+    backend._page.runJavaScript = lambda script, *a, **k: calls.append(script)
+
+    backend.set_electron_overlay({"counts": {"0": 2}, "refused": False, "reason": ""})
+    backend.set_electron_overlay({"counts": {"1": 3}, "refused": False, "reason": ""})
+    assert calls == [], "it ran before the page was ready"
+
+    backend._ketcher_ready = True
+    backend._on_ketcher_ready()
+
+    overlay_calls = [c for c in calls if "openchemElectrons" in c]
+    assert len(overlay_calls) == 1, overlay_calls
+    assert '"1": 3' in overlay_calls[0] or '"1":3' in overlay_calls[0], overlay_calls[0]
+    assert "0" not in overlay_calls[0].split("counts")[1][:12], "the superseded payload replayed"
+
+
+def test_taking_the_overlay_OFF_survives_the_queue_too(qapp):
+    """`None` is a meaningful payload -- "remove the dots" -- so the queue
+    holds a 1-tuple rather than the payload itself.
+
+    Stored bare, `None` would be indistinguishable from "nothing queued",
+    and a user who turned the overlay off while Ketcher was still booting
+    would get it switched on the moment the page arrived.
+    """
+    backend = KetcherEditorBackend()
+    calls: list[str] = []
+    backend._page.runJavaScript = lambda script, *a, **k: calls.append(script)
+
+    backend.set_electron_overlay({"counts": {"0": 2}, "refused": False, "reason": ""})
+    backend.set_electron_overlay(None)
+
+    backend._ketcher_ready = True
+    backend._on_ketcher_ready()
+
+    overlay_calls = [c for c in calls if "openchemElectrons" in c]
+    assert len(overlay_calls) == 1, overlay_calls
+    assert "null" in overlay_calls[0], overlay_calls[0]
+
+
 def test_rotation_is_refused_before_ready_rather_than_queued_or_faked(qapp):
     """A GESTURE, so it is dropped -- and the caller is TOLD.
 
