@@ -69,12 +69,21 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "expand",     "section": "admet"}
     {"do": "calculator", "id": "admet_ml", "parameters": {...}}
     {"do": "shot",       "path": "..."}
+    {"do": "lewis",      "details": true}     the Full Lewis window
+    {"do": "shot",       "path": "...", "widget": "lewis"}
     {"do": "wait"} {"do": "quit"}
 
 `after_ms` on any step is how long to wait before the next, which is how
 an asynchronous calculator is waited on. Measured on the ADMET case: the
 whole import-to-screenshot run is **55 seconds unattended**, with the
-window sitting behind whatever Alex is working in.
+window sitting behind whatever Alex is working in. Nine molecules through
+the Lewis dialog is about 25 seconds.
+
+**A step that opens a MODAL dialog must not call `exec()`.** It spins its
+own event loop inside the handler, so the next step is never scheduled
+and an unattended run stalls on a window with nobody to close it -- the
+same trap `quit()` set, one row down. `lewis` uses `show()`, which is the
+only thing it does differently from a real click.
 
 This is the real `MainWindow` with its real docks, fonts and DPI, which is
 what the four "the harness said the opposite of the app" entries in this
@@ -117,10 +126,15 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-13 minutes**, ending at `4015 passed, 8 skipped,
-1 deselected` (measured 2026-08-11 on branch `lone-pairs-on-the-canvas`,
-11m43 and 12m47 on two consecutive runs. +79 for drawing lone pairs on
-the canvas, over the 3936 below).
+A clean run is **6-13 minutes**, ending at `4154 passed, 8 skipped,
+1 deselected` (measured 2026-08-11 on branch `full-lewis-structure`,
+12m15. +139 for the full Lewis structure -- the resonance gate, the
+model, the SVG renderer, the RDKit builder and the dialog -- over the
+4015 below).
+
+Before it: 4015 on branch `lone-pairs-on-the-canvas`, 11m43 and 12m47 on
+two consecutive runs. +79 for drawing lone pairs on the canvas, over the
+3936 below.
 
 **THE BAND WIDENED, and it is the webview tests that did it.** Two runs
 of the same tree came in at 11m43 and 12m47, both outside the old
@@ -132,6 +146,11 @@ page, and pumps events. That is the price of testing the overlay against
 the thing it actually runs on, and it is worth paying; see the
 lone-pair sections below for what those tests caught. Do not read 12
 minutes as a hang.
+
+**The 139 Lewis tests did NOT widen it further** -- they build no webview
+and the whole set runs in about 1.5 s. A test count and a wall clock are
+not the same measurement here, and it is the webview files that decide
+the second one.
 
 Before it: 3936 on clean `master` at the `editor-as-workspace` merge,
 9m03 -- measured on the merge commit itself rather than on the branch,
@@ -1227,6 +1246,98 @@ same label box the page used, so both agreed the dot was clear. Every
 test passed, including the one whose whole job is to catch a dot inside a
 label. It took looking at the screen. A judge grades placement against
 the rules it is GIVEN.
+
+#### AND IT HAPPENED AGAIN IN THE OWN-SVG RENDERER: Qt ignores `dominant-baseline`
+
+The full Lewis structure (`chem/lewis_svg.py`, shown in a `QSvgWidget`)
+is a second renderer with the same checker, and it reproduced the
+finding above almost exactly -- the box was right, the page drew
+somewhere else, and both agreed.
+
+**Qt's SVG renderer silently ignores `dominant-baseline`, and ignores
+`dy` too.** Measured, with and without the attribute giving
+byte-identical output:
+
+    plain                      ink 84..97   centre -9.5 from the anchor
+    dominant-baseline=central  ink 84..97   IDENTICAL
+    dy="0.35em"                ink 84..97   IDENTICAL
+    dy="6.3"                   ink 84..97   IDENTICAL
+    y shifted +6.3             ink 90..103  moved
+
+So **only `x` and `y` move a glyph**. The needed shift is exactly half
+the font size, glyph-independent, checked at 12/18/24/36 px.
+
+At production scale the atom's label ink ran **74..87 against a checker
+box of 78.6..101.4** -- the glyph poking 4.6 px out of the top while the
+bottom 14 px of the box held nothing.
+
+**Writing the shift into `y` costs nothing in a browser, and that was
+measured rather than reasoned.** In Chromium, via `getBBox` on an inline
+SVG, `dominant-baseline="central"` shifts a text element by **+6.00 px at
+font-size 18 = +0.333 em**, which is `(ascent - descent)/2` for Arial. So
+`y + 1/3 em` with no attribute is the same placement a compliant renderer
+gives, and the exported SVG stays right.
+
+Two method notes from that measurement, both already in this file in
+other forms and both paid for again:
+
+- **`runJavaScript` cannot return a Promise**, so the obvious probe
+  (draw the SVG to a canvas via `Image.onload`, resolve the ink box)
+  came back empty for every variant and read as "nothing rendered".
+  Inline the SVG in the DOM and return a `JSON.stringify` synchronously.
+- **Sampling a column through the atom does not isolate its label** -- it
+  catches the lone-pair dots as well, and measured a 13-px "O" as 35 px
+  tall. Render twice, once with the atom text stripped, and difference.
+
+#### A REFUSED ANALYSIS MUST NOT BE HANDED TO A `QSvgWidget`, OR CLAIM A BUDGET
+
+Two more from the same feature, both found by driving the app with every
+test green, and both about what a REFUSAL looks like rather than what an
+answer looks like.
+
+**`QSvgWidget` scales its viewBox to fill the pane.** The renderer is
+total and answers a refusal with a card carrying the reason, in a
+200x60 viewBox -- fitted into the dialog that became ~37 px text with
+both ends clipped, and read as a broken window rather than as a message.
+The status line already carries the same words at a normal size, so the
+view is hidden instead. **A message is not a picture; do not render one
+through an image widget that fits to its box.**
+
+**A refused diagram has no atoms, so every accounting term is zero and
+the budget "balances".** The details panel was therefore reporting a
+closed electron budget for a molecule the analysis had explicitly
+declined to analyse. A number that agrees with itself about nothing is
+worse than no number, because it reads as a result -- the same shape as
+the `0` that iron(III) reported for its lone pairs before `Unknown`
+existed. It says "not applicable - nothing was analysed" now.
+
+#### A BRANCH CAN BE SHIPPED, DOCUMENTED, AND NEVER ONCE RUN
+
+`lewis_builder` fails closed when the resonance enumeration truncates,
+which is invariant 7 of its plan. Mutating that branch unreachable
+**survived the entire suite**: nothing comes near `maxStructs=256` --
+the gate's own measurement records pentacene at 6 -- so no fixture ever
+entered it. The plan named it, the code had it, the docstring explained
+it, and it had never executed.
+
+**Reach such a branch by moving the THRESHOLD, not by hunting an input.**
+`monkeypatch.setattr(builder, "MAX_RESONANCE_STRUCTURES", 2)` makes
+benzene truncate in milliseconds; a molecule genuinely large enough to
+truncate is also slow enough that nobody keeps the fixture (the hunt for
+one was still running after 400 s and was abandoned). The existing "small
+and fast on hard systems" test is now explicitly its CONTROL -- without
+it a cap of 2 would satisfy the new guard while making every aromatic
+molecule in the app abstain.
+
+**A guard that SKIPS itself under its own mutation scores as neither
+caught nor survived.**
+`test_abstentions_are_printed_verbatim_with_their_subject` called
+`pytest.skip` when nothing abstained, so removing the expanded-octet
+abstention turned the guard into a skip. The only reason it was noticed
+is that the harness compares the arm's test COUNT against the control's
+and reported `INVALID (134 of 135 ran)`. A harness that only greps for
+failures would have called that a survivor and sent somebody looking at
+the wrong code. **Assert the setup; never skip on it.**
 
 #### KETCHER'S MOLBLOCK IS NOT IN ANGSTROM, and nothing said so
 
