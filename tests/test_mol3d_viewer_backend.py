@@ -852,7 +852,7 @@ def test_leaving_the_gallery_puts_the_single_viewer_back(qapp):
 
 
 @pytest.mark.skipif(not _OFFSCREEN, reason="only offscreen refuses the second context")
-def test_a_gallery_that_cannot_be_built_is_reported(qapp):
+def test_a_gallery_that_cannot_be_built_is_reported(qapp, webgl):
     """THE PATH THIS ENVIRONMENT TAKES, and a real user might too.
 
     An unbuildable gallery used to leave the pane empty with a JS
@@ -863,6 +863,15 @@ def test_a_gallery_that_cannot_be_built_is_reported(qapp):
     Asserted here rather than only in the widget tests because the failure
     originates in the page, and a Python-side fake would be asserting that
     a signal this file emits reaches a slot this file connects.
+
+    **TWO CONDITIONS, and they are not the same one.** `_OFFSCREEN` says
+    the second context will be refused, which is what makes this failure
+    the one being asserted. `webgl` says a context can be created AT ALL,
+    which is what lets the page get far enough to attempt the grid and
+    report why it could not build one. On a GPU-less runner the first
+    context is missing too, so nothing is attempted, nothing is reported,
+    and this failed with "the gallery failed silently" -- which reads as
+    the reporting being broken when it is the environment.
     """
     backend = Mol3DViewerBackend()
     backend.widget().resize(800, 600)
