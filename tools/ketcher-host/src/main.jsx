@@ -645,6 +645,28 @@ function atomLabelText(atom) {
 // returned in MODEL UNITS so it is zoom-invariant. Never reads Ketcher's
 // DOM. `options.font` is a CSS shorthand ("30px Arial") rather than a
 // family, so the size is set separately or the box comes back at 30px.
+//
+// **THE HORIZONTAL REACH IS THE FULL TEXT WIDTH, NOT HALF OF IT**, and
+// that is a deliberate over-estimate rather than a slip. Ketcher anchors
+// the element symbol on the atom and hangs the hydrogens off ONE SIDE --
+// which side depending on where the bonds are, and on conventions of its
+// own. Measured, as offsets from the atom in bond lengths:
+//
+//     methanol   O  symbol -0.13..0.13   H at  +0.12..+0.35   (right)
+//     water      O  symbol -0.13..0.13   H at  -0.57..-0.33   (left)
+//     ammonia    N  symbol -0.12..0.12   H3 at +0.11..+0.52   (right)
+//     ammonium   N  the '+' reaches      +0.81
+//     methyl     C  H3 at -0.57..-0.13                        (left)
+//
+// A box half the text wide, centred on the atom, therefore under-covers
+// whichever side the hydrogens went -- and it shipped that way for one
+// commit: methanol's second lone pair was drawn straight through the H
+// of "OH", and the checker agreed with it, because the checker was given
+// the same wrong box. Reaching the full width on BOTH sides costs some
+// placement freedom and needs no knowledge of Ketcher's side-picking.
+//
+// The VERTICAL half-height is exact (~0.19), since nothing hangs above or
+// below -- subscripts reach 0.26 and are covered by the padding.
 function labelBoxModelUnits(text) {
   if (!text) return null
   if (electronState.labelBoxes[text]) return electronState.labelBoxes[text]
@@ -661,11 +683,10 @@ function labelBoxModelUnits(text) {
   svg.appendChild(node)
   const box = node.getBBox()
   document.body.removeChild(svg)
-  const padding = LABEL_PADDING_FRACTION
-  const measured = {
-    halfWidth: box.width / 2 / unit + padding,
-    halfHeight: box.height / 2 / unit + padding,
-  }
+  // Raw reach, unpadded: the padding is applied where the obstacle is
+  // TESTED, so the number here means the same thing as the one
+  // chem/electron_layout.py's checker is handed.
+  const measured = { reachX: box.width / unit, reachY: box.height / 2 / unit }
   electronState.labelBoxes[text] = measured
   return measured
 }
@@ -690,8 +711,10 @@ function slotHitsLabel(bearing, box) {
     [cx + px, cy + py],
     [cx - px, cy - py],
   ]
+  const reachX = box.reachX + LABEL_PADDING_FRACTION
+  const reachY = box.reachY + LABEL_PADDING_FRACTION
   for (let i = 0; i < dots.length; i++) {
-    if (Math.abs(dots[i][0]) <= box.halfWidth && Math.abs(dots[i][1]) <= box.halfHeight) {
+    if (Math.abs(dots[i][0]) <= reachX && Math.abs(dots[i][1]) <= reachY) {
       return true
     }
   }

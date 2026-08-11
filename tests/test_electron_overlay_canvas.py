@@ -113,7 +113,15 @@ def _label_box(qapp, backend, text: str):
       svg.appendChild(t);
       var b = t.getBBox();
       document.body.removeChild(svg);
-      return JSON.stringify({hw: b.width / 2 / unit, hh: b.height / 2 / unit});
+      // **THE FULL WIDTH ON BOTH SIDES**, matching the page. Ketcher hangs
+      // a label's hydrogens off ONE side -- which side depending on the
+      // bonds and on its own conventions -- so a box half the text wide
+      // and centred under-covers whichever side they went. Measured:
+      // methanol's H sits at +0.12..+0.35 from the oxygen while water's
+      // sits at -0.57..-0.33. A half-width box let methanol's second pair
+      // be drawn straight through the H of "OH", and this checker AGREED
+      // WITH IT, because it had been given the same wrong box.
+      return JSON.stringify({hw: b.width / unit, hh: b.height / 2 / unit});
     """ % json.dumps(text)))
     return measured
 
