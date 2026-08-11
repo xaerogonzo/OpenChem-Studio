@@ -16,7 +16,7 @@ import pytest
 from rdkit import Chem
 
 from openchem.chem.electron_layout import (
-    LABEL_PADDING_PX,
+    LABEL_PADDING_FRACTION,
     MIN_BOND_CLEARANCE_DEGREES,
     MIN_SLOT_SEPARATION_DEGREES,
     Box,
@@ -161,13 +161,23 @@ def test_a_dot_inside_the_label_box_is_a_violation():
 
 
 def test_the_label_box_is_PADDED_so_a_dot_that_grazes_it_still_fails():
-    """A dot touching the glyphs is as unreadable as one on top of them."""
-    box = Box(CENTRE[0] - 2, CENTRE[1] - 8, CENTRE[0] + 10, CENTRE[1] + 8)
-    just_outside = [(CENTRE[0] + 10 + LABEL_PADDING_PX / 2, CENTRE[1]), (CENTRE[0] + 12, CENTRE[1])]
+    """A dot touching the glyphs is as unreadable as one on top of them.
 
-    breaches = violations(just_outside, CENTRE, [], box, BOND, expected_pairs=1)
+    **The padding is a FRACTION OF BOND LENGTH, not a pixel count**, and
+    that was a bug for one commit: the checker works in whatever units the
+    caller uses, so the page -- which works in model units, because that
+    is what makes pan and zoom free -- padded every box by two BOND
+    LENGTHS and every placement came back invalid. A unit belongs in the
+    caller or in none of it.
+    """
+    padding = LABEL_PADDING_FRACTION * BOND
+    box = Box(CENTRE[0] - 2, CENTRE[1] - 8, CENTRE[0] + 10, CENTRE[1] + 8)
+    grazing = [(CENTRE[0] + 10 + padding / 2, CENTRE[1]), (CENTRE[0] + 12, CENTRE[1])]
+
+    breaches = violations(grazing, CENTRE, [], box, BOND, expected_pairs=1)
 
     assert any("label box" in breach for breach in breaches), breaches
+    assert padding == pytest.approx(2.0), "40 px bond, 2 px of padding"
 
 
 def test_dots_too_far_from_the_atom_are_a_violation():

@@ -53,8 +53,16 @@ SLOT_RADIUS_FRACTION = 0.33
 PAIR_HALF_GAP_FRACTION = 0.055
 
 #: Padding added around a label's measured box before it is treated as an
-#: obstacle, in CSS pixels.
-LABEL_PADDING_PX = 2.0
+#: obstacle, **as a fraction of the bond length** like every other
+#: constant here.
+#:
+#: It was a pixel count for one commit, and that was a bug rather than a
+#: taste: the checker works in whatever units the caller uses, so a
+#: caller working in model units (which the page does, because that is
+#: what makes pan and zoom free) padded the box by two BOND LENGTHS and
+#: declared every placement invalid. A unit belongs in the caller, or in
+#: none of it.
+LABEL_PADDING_FRACTION = 0.05
 
 
 @dataclass(frozen=True)
@@ -69,7 +77,13 @@ class Box:
     def contains(self, x: float, y: float) -> bool:
         return self.left <= x <= self.right and self.top <= y <= self.bottom
 
-    def padded(self, padding: float = LABEL_PADDING_PX) -> Box:
+    def padded(self, padding: float) -> Box:
+        """Grown by `padding` in the SAME units the box is expressed in.
+
+        No default: the amount is `LABEL_PADDING_FRACTION * bond_length`,
+        and only the caller knows what a bond length is worth in its
+        space.
+        """
         return Box(
             self.left - padding,
             self.top - padding,
@@ -80,6 +94,17 @@ class Box:
 
 def _angle(cx: float, cy: float, x: float, y: float) -> float:
     return math.degrees(math.atan2(y - cy, x - cx))
+
+
+#: Slack on every angular comparison, in degrees.
+#:
+#: **The checker recovers bearings from DOT COORDINATES**, which is the
+#: whole point of it judging output rather than sharing an implementation
+#: -- but a placement that chose a slot exactly at the minimum comes back
+#: as 39.99999 after that round trip, and failed for being one part in a
+#: million under a threshold it had actually met. Slack belongs in the
+#: judge, not in the producer being told to avoid legal values.
+ANGLE_TOLERANCE_DEGREES = 0.5
 
 
 def _separation(a: float, b: float) -> float:
@@ -132,7 +157,7 @@ def violations(
     for index, bearing in enumerate(bearings):
         for bond in bond_directions:
             gap = _separation(bearing, bond)
-            if gap < MIN_BOND_CLEARANCE_DEGREES:
+            if gap < MIN_BOND_CLEARANCE_DEGREES - ANGLE_TOLERANCE_DEGREES:
                 breaches.append(
                     f"pair {index} is {gap:.1f} deg from a bond "
                     f"(minimum {MIN_BOND_CLEARANCE_DEGREES})"
@@ -141,14 +166,14 @@ def violations(
     for i in range(len(bearings)):
         for j in range(i + 1, len(bearings)):
             gap = _separation(bearings[i], bearings[j])
-            if gap < MIN_SLOT_SEPARATION_DEGREES:
+            if gap < MIN_SLOT_SEPARATION_DEGREES - ANGLE_TOLERANCE_DEGREES:
                 breaches.append(
                     f"pairs {i} and {j} are {gap:.1f} deg apart "
                     f"(minimum {MIN_SLOT_SEPARATION_DEGREES})"
                 )
 
     if label_box is not None:
-        padded = label_box.padded()
+        padded = label_box.padded(LABEL_PADDING_FRACTION * bond_length)
         for index, (x, y) in enumerate(dots):
             if padded.contains(x, y):
                 breaches.append(f"dot {index} is inside the atom's label box")
