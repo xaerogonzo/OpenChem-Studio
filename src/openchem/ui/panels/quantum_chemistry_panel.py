@@ -474,7 +474,7 @@ class QuantumChemistryPanel(QWidget):
             # here guarantees explicit hydrogens with real 3D positions,
             # not just a flatter/lower-quality geometry.
             self._status_label.setText(
-                'Switch to the "3D Viewer" tab and click "Generate Conformers..." first -- '
+                "Generate one with Structure ▸ Generate Conformers... first -- "
                 "quantum chemistry needs explicit hydrogens with real 3D positions, which "
                 "the 2D editor's structure alone doesn't have."
             )

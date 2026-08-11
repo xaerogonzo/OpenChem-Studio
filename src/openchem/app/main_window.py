@@ -1042,6 +1042,14 @@ class MainWindow(QMainWindow):
             self._structure_menu, "Calculate CIP (Stereo Descriptors)", "Calculate CIP button"
         )
         self._structure_menu.addSeparator()
+        # **CONFORMERS ARE A STRUCTURE OPERATION, not a 3D-viewer one.**
+        # Generation lived behind one button inside the 3D viewer, and
+        # four separate messages elsewhere told people to go there for it.
+        # Here it is where people already look -- and the command palette
+        # reads the live QMenuBar, so this QAction IS the palette entry
+        # rather than a second route that can drift from it.
+        self._structure_menu.addAction("Generate Conformers...", self._generate_conformers)
+        self._structure_menu.addSeparator()
         check_action = self._structure_menu.addAction("Check Structure...", self._show_structure_check_panel)
         check_action.setShortcut("Ctrl+Shift+K")
         # Ketcher's own checker, kept and clearly relabelled. It is Indigo's
@@ -1849,6 +1857,21 @@ class MainWindow(QMainWindow):
             logger.warning("No handler for editor action %r", action)
             return
         handler()
+
+    def _generate_conformers(self) -> None:
+        """The Structure menu's route into conformer generation.
+
+        Delegates to the 3D viewer's own method rather than reimplementing
+        the dialog and the service call: two routes to one action is the
+        point, two implementations of it is what this project keeps
+        finding as a bug.
+        """
+        if self._current_molecule() is None:
+            QMessageBox.information(
+                self, "Generate Conformers", "Select a molecule first."
+            )
+            return
+        self._viewer3d.generate_conformers()
 
     def _adopt_conformer(self, molblock: str, view: object = None) -> None:
         """Redraw the molecule from the conformer shown in the 3D viewer.

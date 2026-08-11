@@ -281,6 +281,22 @@ class MoleculeViewer3DWidget(QWidget):
         )
 
     def _on_generate_clicked(self) -> None:
+        self.generate_conformers()
+
+    def generate_conformers(self) -> None:
+        """Ask for conformers, from wherever the user started.
+
+        **PUBLIC because this is not the only way in.** Conformer
+        generation used to live behind this widget's button alone, and
+        four separate messages elsewhere in the app told people to come
+        here for it -- reported as "I still low key am not much of a fan
+        having to go into a 3d viewer to even generate conformers still.
+        With Marvin, it was a calculator like any other."
+
+        The Structure menu calls this, and the command palette reads the
+        menu, so all three routes are one implementation rather than one
+        service with three callers that can drift apart.
+        """
         if self._molecule is None:
             return
         dialog = ConformerOptionsDialog(self)

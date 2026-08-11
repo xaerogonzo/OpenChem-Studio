@@ -134,14 +134,14 @@ class ShapeDescriptors:
 def _positions_and_radii(mol: Chem.Mol, conformer_id: int = -1):
     if mol.GetNumConformers() == 0:
         raise NoConformerError(
-            "This calculation needs a 3D conformer. Switch to the 3D Viewer "
-            'tab and click "Generate Conformers..." first.'
+            "This calculation needs a 3D conformer. Generate one with "
+            "Structure ▸ Generate Conformers... first."
         )
     conformer = mol.GetConformer(conformer_id)
     if not conformer.Is3D():
         raise NoConformerError(
             "The available conformer is 2D, which has no shape to measure. "
-            "Generate a real 3D conformer from the 3D Viewer tab."
+            "Generate a real 3D conformer with Structure ▸ Generate Conformers...."
         )
     positions = np.array(conformer.GetPositions(), dtype=float)
     radii = np.array(
