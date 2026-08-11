@@ -406,6 +406,88 @@ number does not. The dots are a visualisation of the analysis, and where
 each one sits is a drawing convention chosen to avoid bonds and labels,
 not a statement about orbital direction.
 
+**A delocalised bond is split into what is localised and what is not.**
+Where a full Lewis structure is drawn, a bond's *localised* electron pairs
+are its minimum order across every resonance structure, and the remainder
+is reported as one delocalised system with its own electron count.
+Benzene is six localised σ pairs plus six π electrons — never three double
+bonds and three single ones, which would assert a Kekulé structure the
+molecule does not. Acetate, nitro, nitrate, carbonate and guanidinium each
+come out as one delocalised pair over their equivalent bonds, which is why
+none of them is drawn with one long bond and one short.
+
+**Three things that method cannot do**, each measured rather than assumed:
+
+- **An aromatic ring whose sextet is completed by a lone pair gets no
+  number.** Pyrrole, furan and thiophene have a single Kekulé structure,
+  so no bond order varies and the arithmetic finds nothing delocalised —
+  when the answer is six, four from the two C=C and two from a heteroatom
+  lone pair sitting in the ring. RDKit's resonance enumeration does not
+  produce the contributors that move it there. The ring is still reported
+  as delocalised; its electron count is reported as **not determined**,
+  which is a different statement from zero.
+- **An expanded octet is declined.** Sulfate, phosphate, SF₆, sulfite,
+  dimethyl sulfoxide and phosphine oxide all present as cleanly localised,
+  and whether they are drawn with expanded octets or as charge-separated
+  is genuinely contested. This application has no position, so those bonds
+  abstain with that reason. (A perchlorate written charge-separated obeys
+  the octet exactly and needs no abstention — the contested thing is the
+  drawing, not the species.)
+- **Amide is treated as its neutral form.** Its charge-separated
+  contributor is real chemistry, but a Lewis structure draws the neutral
+  one, and the resonance settings that would include it also fail to fix
+  the pyrrole case above.
+
+**A region's electron count is a COUNTING statement.** "6 electrons" says
+how many electrons the analysis could not assign to any single bond. It
+is not a claim about orbital extent, not a Hückel aromaticity verdict,
+and not a statement about how the contributing resonance structures are
+weighted. The circle drawn around a ring is a convention for "these
+electrons belong to the system rather than to one bond" and its radius
+means nothing.
+
+**And that is not always the π-electron count.** Measured against Hückel
+on every aromatic shape the analysis can reach:
+
+| ring | π electrons | region says |
+| --- | --- | --- |
+| benzene, aniline, tropylium | 6 | 6 |
+| naphthalene | 10 | 10 |
+| pyridine | 6 | 6 |
+| pyrrole, furan, thiophene, imidazole | 6 | not determined |
+| **cyclopentadienide** | **6** | **4** |
+
+Cyclopentadienide's remaining two are drawn as a *lone pair on the
+carbanion*, so all six are on the page and the electron budget closes —
+they are simply apportioned as "four the analysis could not assign, plus
+one pair it could" rather than as a π sextet. **Read the number as what
+it is defined to be, not as an aromaticity count.**
+
+The split between that `4` and pyrrole's `not determined` is mechanical
+rather than principled: pyrrole has a single resonance contributor so
+nothing varies and the model can tell it is blind, while
+cyclopentadienide's bond orders do vary and the arithmetic completes on
+the part it can see. Telling an **in-plane** lone pair (pyridine, which
+correctly reports 6) from one **donated into the ring** is perception
+this application does not have, so the gap is stated here rather than
+guessed at.
+
+**A truncated enumeration fails closed.** The resonance search stops at
+256 contributors, and a bond whose minimum order was not established over
+a complete set is never asserted as localised — it abstains, and says so.
+An answer withheld is preferred to one derived from a partial search.
+
+**Legibility is not a chemistry limit.** A large molecule whose analysis
+is fine gets its diagram plus "may be hard to read at this size", never
+"analysis unsupported". The two are separate statuses precisely so that
+"I cannot represent this chemistry" and "I know the answer and could not
+place a dot clear of a label" cannot be mistaken for each other.
+
+**The diagram is a snapshot.** It shows the structure it was opened for
+and does not follow later edits; it carries the molblock hash and the
+structure revision so a stale window is diagnosable rather than merely
+wrong. It cannot change the molecule.
+
 **Rotating in the 2D editor is a rigid motion, and it is checked rather
 than trusted.** Turning the structure changes coordinates and nothing
 else — no bond length, no angle, no stereocentre. The app verifies both

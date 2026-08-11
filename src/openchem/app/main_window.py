@@ -1305,27 +1305,17 @@ class MainWindow(QMainWindow):
             group.addAction(action)
             style_menu.addAction(action)
 
-    #: The Electron Display modes, and what each is worth today.
+    #: The Electron Display modes: what the CANVAS overlay can be set to.
     #:
-    #: **ALL THREE SHIP, and Full Lewis ships DISABLED.** "It would be
-    #: good to at least see the option in its home" -- so the entry is
-    #: where it belongs, and it says why it does nothing rather than
-    #: doing nothing quietly. A control that is present and inert is the
-    #: failure this line of work keeps finding; a control that is present
-    #: and says "not yet, and here is the reason" is information.
+    #: **This was three, and Full Lewis was the disabled third.** It is now
+    #: a live feature and has left this table, because it is not a canvas
+    #: mode at all -- it opens its own window. Keeping it here would have
+    #: meant a radio item that checks itself, opens a dialog and then has
+    #: to un-check itself, which is a control lying about what kind of
+    #: thing it is. See `_show_lewis_diagram` below.
     _ELECTRON_MODES = (
-        ("Off", "off", ""),
-        ("Lone pairs", "pairs", ""),
-        (
-            "Full Lewis structure",
-            "lewis",
-            "Not yet. Bonding pairs are a second representation, not more "
-            "of this one: a bond is not automatically evidence that its "
-            "electrons may be drawn as a localised pair, and an aromatic "
-            "or delocalised bond has no localised count at all. Drawing "
-            "benzene as dots would mean picking a Kekule structure the "
-            "molecule does not assert.",
-        ),
+        ("Off", "off"),
+        ("Lone pairs", "pairs"),
     )
 
     def _add_electron_display_items(self, menu: QMenu) -> None:
@@ -1345,23 +1335,57 @@ class MainWindow(QMainWindow):
         electron_menu = menu.addMenu("Electron Display")
         group = QActionGroup(self)
         group.setExclusive(True)
-        for label, mode, unavailable in self._ELECTRON_MODES:
+        for label, mode in self._ELECTRON_MODES:
             action = QAction(label, self)
             action.setCheckable(True)
             action.setData(mode)
             action.setChecked(mode == "off")
-            if unavailable:
-                action.setEnabled(False)
-                action.setToolTip(unavailable)
             action.triggered.connect(self._on_electron_mode_chosen)
             group.addAction(action)
             electron_menu.addAction(action)
+
+        # **NOT IN THAT RADIO GROUP, and the restructure is deliberate.**
+        # Full Lewis shipped as a third, disabled mode when it was going
+        # to be a third way of drawing on the canvas. It is not: Ketcher
+        # cannot hide its bond lines, so a true electron-dot structure
+        # needs its own renderer and its own window. A radio item that
+        # opens a dialog and then un-checks itself is a control that lies
+        # about what kind of thing it is.
+        lewis = menu.addAction("Full Lewis Structure...", self._show_lewis_diagram)
+        lewis.setStatusTip(
+            "Every electron pair as dots, with explicit hydrogens, in its own window."
+        )
 
     def _on_electron_mode_chosen(self, checked: bool) -> None:
         action = self.sender()
         if action is None or not checked:
             return
         self._editor.set_electron_mode(action.data())
+
+    def _show_lewis_diagram(self) -> None:
+        """Open a Lewis structure for the selected molecule.
+
+        A SNAPSHOT: the dialog is handed the molblock as it is now and
+        never follows the editor afterwards. That is why the structure
+        revision goes with it -- so the window can say what it is of.
+        """
+        from openchem.ui.dialogs.lewis_diagram_dialog import LewisDiagramDialog
+
+        molecule = self._current_molecule()
+        if molecule is None:
+            QMessageBox.information(
+                self, "Full Lewis Structure", "Select a molecule first."
+            )
+            return
+        dialog = LewisDiagramDialog(
+            molecule.molblock,
+            display_name=molecule.display_name,
+            structure_revision=self._services.structure_check_service.current_version(
+                molecule.uuid
+            ),
+            parent=self,
+        )
+        dialog.exec()
 
     def _on_electron_status(self, message: str) -> None:
         """Say what the dots cannot.

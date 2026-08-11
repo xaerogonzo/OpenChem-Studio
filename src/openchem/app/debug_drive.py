@@ -34,6 +34,8 @@ The script is a JSON list of steps, run in order:
                            "after_ms": 45000},
       {"do": "shot",       "path": "C:/tmp/admet.png"},
       {"do": "rotate",     "dx": 120, "dy": -40},
+      {"do": "lewis"},
+      {"do": "shot",       "path": "C:/tmp/lewis.png", "widget": "lewis"},
       {"do": "quit"}
     ]
 
@@ -118,6 +120,11 @@ class _Driver:
         self._window = window
         self._steps = steps
         self._index = 0
+        #: The Lewis dialog a `lewis` step opened, so a later `shot` can
+        #: grab it. Held rather than looked up: it is parented to the
+        #: window and finding it by type would be one more place that can
+        #: pick the wrong one once a second dialog exists.
+        self._lewis: QWidget | None = None
 
     def start(self) -> None:
         logger.warning("OPENCHEM_DRIVE: %d step(s) from %s", len(self._steps), _DRIVE_SCRIPT)
@@ -274,8 +281,55 @@ class _Driver:
         """
         path = Path(str(step["path"]))
         path.parent.mkdir(parents=True, exist_ok=True)
-        self._window.grab().save(str(path))
+        target = self._window
+        if step.get("widget") == "lewis":
+            if self._lewis is None:
+                logger.error("OPENCHEM_DRIVE: no Lewis dialog open; run {'do': 'lewis'}")
+                return
+            target = self._lewis
+        target.grab().save(str(path))
         logger.warning("OPENCHEM_DRIVE: wrote %s", path)
+
+    def _do_lewis(self, step: dict[str, Any]) -> None:
+        """Open the Full Lewis Structure window on the selected molecule.
+
+        **`show()`, not the menu action's `exec()`**, and that is the only
+        difference from what a click gives. A modal `exec()` spins its own
+        event loop inside this handler, so the step chain would not be
+        scheduled again until somebody closed the dialog -- an unattended
+        run would stall on a window with nobody to answer it, which is the
+        same trap `quit()` set for an earlier scripted run.
+
+        Everything that could be wrong is still exercised: the real build
+        from the real molblock, the real renderer, and a real QSvgWidget
+        drawing it -- which is the piece no test of the SVG string can
+        check, since Qt's SVG renderer ignores attributes a browser
+        honours.
+        """
+        from openchem.ui.dialogs.lewis_diagram_dialog import LewisDiagramDialog
+
+        window = self._window
+        molecule = window._current_molecule()
+        if molecule is None:
+            logger.error("OPENCHEM_DRIVE: no molecule selected")
+            return
+        self._lewis = LewisDiagramDialog(
+            molecule.molblock,
+            display_name=molecule.display_name,
+            structure_revision=window._services.structure_check_service.current_version(
+                molecule.uuid
+            ),
+            parent=window,
+        )
+        if step.get("details"):
+            self._lewis._details_button.setChecked(True)
+        self._lewis.resize(int(step.get("width", 640)), int(step.get("height", 620)))
+        self._lewis.show()
+        logger.warning(
+            "OPENCHEM_DRIVE: lewis %s -- %s",
+            self._lewis.diagram.status.value,
+            self._lewis.status_text(),
+        )
 
     def _do_conformers(self, step: dict[str, Any]) -> None:
         """Generate conformers through the real service.

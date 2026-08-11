@@ -87,6 +87,32 @@ def test_an_unpaired_electron_refuses_the_whole_molecule_with_a_reason():
     assert "unpaired" in overlay.status_message().lower(), overlay.status_message()
 
 
+def test_an_ELEMENT_SYMBOL_opening_a_reason_keeps_its_capital():
+    """Ferrocene drawn with metal-ring bonds is refused, and the reason
+    begins with the element -- "Fe is bonded directly to carbon".
+
+    The status line lower-cases a reason's first letter so it reads after
+    "Lone-pair analysis unavailable: ", which turned that into **"fe"**:
+    a chemistry application spelling an element wrong, in the one message
+    whose entire job is to name the offending atom.
+
+    An ordinary sentence must still be lower-cased -- without that half
+    the fix is "never lower-case anything", which is not a fix.
+    """
+    from openchem.chem.electron_overlay import _tidy
+
+    assert _tidy("Fe is bonded directly to carbon. And more.") == (
+        "Fe is bonded directly to carbon"
+    )
+    assert _tidy("Fe, Co are bonded directly to carbon.").startswith("Fe,")
+    assert _tidy("This structure carries unpaired electrons.").startswith("this ")
+
+    overlay = build(Chem.MolFromSmiles("C1=CC=C[CH]1[Fe][CH]1C=CC=C1"))
+    assert overlay.refused
+    assert "Fe" in overlay.status_message(), overlay.status_message()
+    assert "fe " not in overlay.status_message(), overlay.status_message()
+
+
 def test_a_metal_is_absent_from_the_counts_rather_than_reported_as_zero():
     """Iron(III) is d5 with five UNPAIRED electrons. "Two lone pairs" and
     "zero lone pairs" are both fabrications; absence is the honest

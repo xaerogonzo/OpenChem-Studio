@@ -318,8 +318,8 @@ def test_the_electron_display_modes_are_exclusive_and_start_off(qapp, tmp_path):
 
     actions = _electron_menu(window).actions()
 
-    assert [a.data() for a in actions] == ["off", "pairs", "lewis"]
-    assert [a.isChecked() for a in actions] == [True, False, False]
+    assert [a.data() for a in actions] == ["off", "pairs"]
+    assert [a.isChecked() for a in actions] == [True, False]
 
     actions[1].trigger()
     assert chosen == ["pairs"]
@@ -329,30 +329,91 @@ def test_the_electron_display_modes_are_exclusive_and_start_off(qapp, tmp_path):
     # group has `setExclusive(False)` -- measured, a mutation that flipped
     # it survived the whole file. Two modes checked at once would leave
     # the menu claiming the canvas is in two states.
-    assert [a.isChecked() for a in actions] == [False, True, False]
+    assert [a.isChecked() for a in actions] == [False, True]
     actions[0].setChecked(True)
-    assert [a.isChecked() for a in actions] == [True, False, False]
+    assert [a.isChecked() for a in actions] == [True, False]
 
 
-def test_full_lewis_is_offered_but_DISABLED_with_its_reason(qapp, tmp_path):
-    """"It would be good to at least see the option in its home."
+def test_full_lewis_is_NOT_a_mode_of_the_canvas_overlay(qapp, tmp_path):
+    """It shipped as a disabled third radio item and has left that group.
 
-    So the entry is where it belongs and says why it does nothing, rather
-    than doing nothing quietly. A present-and-inert control is the failure
-    this line of work keeps finding; present-and-explaining is
-    information.
+    **The two are different KINDS of control**, which is the whole reason
+    for the restructure: Off and Lone pairs set the canvas overlay and
+    stay checked; Full Lewis opens a window and has nothing to stay
+    checked about. A radio item that opens a dialog would have to
+    un-check itself immediately, which is a control lying about what it
+    is.
 
-    The reason is the chemistry, not the schedule: a bond is not
-    automatically evidence that its electrons may be drawn as a localised
-    pair, and an aromatic bond has no localised count at all.
+    Asserted on the SIBLING relationship rather than on the label alone,
+    because "an action called Full Lewis exists somewhere" would stay
+    true if it were put straight back into the radio group.
     """
     window = _build_window(tmp_path)
 
-    lewis = next(a for a in _electron_menu(window).actions() if a.data() == "lewis")
+    modes = _electron_menu(window).actions()
+    assert not any(a.isCheckable() and "Lewis" in a.text() for a in modes)
 
-    assert not lewis.isEnabled()
-    assert "delocalised" in lewis.toolTip() or "aromatic" in lewis.toolTip(), lewis.toolTip()
-    assert "Kekule" in lewis.toolTip(), lewis.toolTip()
+    display = _structure_display_menu(window)
+    lewis = next(a for a in display.actions() if "Lewis" in a.text())
+
+    assert lewis.isEnabled()
+    assert not lewis.isCheckable()
+    assert lewis.text().endswith("..."), lewis.text()
+
+
+def test_full_lewis_opens_a_snapshot_of_the_SELECTED_molecule(qapp, tmp_path, monkeypatch):
+    """The dialog is a snapshot, so what it is opened WITH is the whole
+    contract -- and the two ways to get that wrong are opening it on the
+    wrong molecule and opening it on a stale molblock.
+
+    The revision travels with it for the same reason: the details panel
+    quotes it, which is what makes a window somebody left open an hour ago
+    diagnosable rather than merely wrong.
+    """
+    from openchem.ui.dialogs.lewis_diagram_dialog import LewisDiagramDialog
+
+    window = _build_window(tmp_path)
+    molecule = MoleculeModel(display_name="Acetate")
+    window._services.chemistry_engine.set_structure_from_smiles(molecule, "CC(=O)[O-]")
+    window.add_molecule(molecule)
+    opened: list[LewisDiagramDialog] = []
+    monkeypatch.setattr(LewisDiagramDialog, "exec", lambda self: opened.append(self))
+
+    lewis = next(a for a in _structure_display_menu(window).actions() if "Lewis" in a.text())
+    lewis.trigger()
+
+    assert len(opened) == 1
+    dialog = opened[0]
+    assert "Acetate" in dialog._header.text()
+    assert dialog.diagram.drawable
+    # The molblock it was handed, not one it went and fetched.
+    assert dialog.diagram.provenance.molblock_sha
+    assert dialog.diagram.provenance.structure_revision == (
+        window._services.structure_check_service.current_version(molecule.uuid)
+    )
+
+
+def test_full_lewis_with_nothing_selected_says_so_rather_than_opening_empty(
+    qapp, tmp_path, monkeypatch
+):
+    """An empty diagram window is indistinguishable from a broken one."""
+    from openchem.ui.dialogs.lewis_diagram_dialog import LewisDiagramDialog
+    from PySide6.QtWidgets import QMessageBox
+
+    window = _build_window(tmp_path)
+    window._session.select_molecule(None)
+    opened: list[object] = []
+    monkeypatch.setattr(LewisDiagramDialog, "exec", lambda self: opened.append(self))
+    told: list[str] = []
+    monkeypatch.setattr(
+        QMessageBox, "information", staticmethod(lambda *a, **k: told.append(a[2]))
+    )
+
+    lewis = next(a for a in _structure_display_menu(window).actions() if "Lewis" in a.text())
+    lewis.trigger()
+
+    assert opened == []
+    assert told and "Select a molecule" in told[0]
 
 
 def test_there_is_no_formal_charge_entry_because_ketcher_draws_it(qapp, tmp_path):
