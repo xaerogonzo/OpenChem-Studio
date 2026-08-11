@@ -174,9 +174,13 @@ what its ability to say NO is worth. Measured before and after on CI:
     after    0 failed, 4178 passed, 12 skipped   "Naming benchmark holds at 181/181"
 
 Six gallery tests still skip on `_needs_a_display`, which is the same
-platform-name proxy. It is not causing failures (it skips on CI, which is
-the right answer for the wrong reason), and it is the obvious next thing
-to convert if it ever misleads anybody.
+platform-name proxy -- and it was investigated afterwards and DELIBERATELY
+KEPT. The ladder in the conformer-gallery section shows every capability
+underneath working under `offscreen` (twelve contexts, six viewers) while
+`createViewerGrid` throws even for one cell, so the only thing predicting
+that failure is the call under test. **A platform gate you can justify
+beats a capability probe that cannot say no**, and this is the case that
+draws the line between the two.
 
 ## Running the tests
 
@@ -227,9 +231,10 @@ retention and relative energies, +29 for the camera-oriented drawing,
 below.
 
 **The skip count went 2 -> 7, and the five are deliberate.** The
-page-level gallery tests need a second WebGL context, which Qt's
-`offscreen` platform does not grant; run them with
-`QT_QPA_PLATFORM=windows`. See the gallery section below.
+page-level gallery tests do not run under Qt's `offscreen` platform,
+where `$3Dmol.createViewerGrid` throws; run them with
+`QT_QPA_PLATFORM=windows`. See the gallery section below -- and note the
+reason is NOT "a second WebGL context", which was measured and killed.
 
 Before it: 3765 on branch `ketcher-overrule`, after the Ketcher overrule
 and the conformer round trip: +24 for intercepting Ketcher's duplicated
@@ -2196,22 +2201,44 @@ the others at the identity and the cells pointed two different ways.
 both directions for every pair, no loop, no measurable cost. There is no
 unlink, so the lock is a rebuild.
 
-**A SECOND WebGL CONTEXT IS NOT ALWAYS AVAILABLE.** Under Qt's
-`offscreen` platform -- which `tests/conftest.py` sets -- the page's first
-context works and a second returns null, so `createViewerGrid` throws
-`Cannot read properties of null (reading 'clearDepth')`. Not fixable from
-here:
+**`createViewerGrid` DOES NOT WORK UNDER `offscreen`, AND "A SECOND
+WebGL CONTEXT" IS NOT WHY.** That explanation stood here for a long time
+and is wrong. It throws `Cannot read properties of null (reading
+'clearDepth')` under Qt's `offscreen` platform -- which
+`tests/conftest.py` sets -- and works on an ordinary windowed one.
+Measured against the real bundle with nothing varying but
+`QT_QPA_PLATFORM`:
 
-    offscreen                                       throws
-    offscreen + --use-angle=swiftshader             throws
-    offscreen, first context explicitly released    throws
-    ordinary windowed platform                      4 cells, 2 canvases
+    rung                                offscreen      windows
+    a bare WebGL context                ok             ok
+    TWELVE bare contexts                12 of 12       -
+    one $3Dmol.createViewer             ok             ok
+    two independent viewers             ok             ok
+    SIX independent viewers             6 of 6         -
+    two viewers in one parent div       ok             -
+    createViewerGrid 2x2 (400x300)      THROWS         ok, 4 cells, 0 null
+    createViewerGrid 1x1                THROWS         -
+    the app's own gallery backend       grid_failed    2 cells drawn
+
+Not the number of contexts, not the number of viewers, not a shared
+parent, and **not the container size** -- a 400x300 container failed
+while a 0x0 one "succeeded". A grid of a SINGLE cell fails too, so it is
+not multiplicity in any form. Every capability underneath works; only
+`createViewerGrid` does not, and **why is still unknown**.
 
 So the page reports the failure and the widget falls back to the single
 view saying why, rather than leaving an empty pane -- a user on software
-rendering hits the same wall. The page-level gallery tests skip unless a
-display is available (`QT_QPA_PLATFORM=windows pytest ...` runs them);
-the fallback path is tested where the rest of the suite runs.
+rendering hits the same wall. The page-level gallery tests skip under
+`offscreen` (`QT_QPA_PLATFORM=windows pytest ...` runs them, verified 42
+passed); the fallback path is tested where the rest of the suite runs.
+
+**THAT SKIP STAYS A PLATFORM CHECK ON PURPOSE**, and the ladder above is
+the justification rather than laziness: the only thing that predicts the
+failure is the call being tested, so a "capability probe" here would gate
+a test on its own subject and turn a real regression into a silent skip.
+An admitted platform gate beats a probe that cannot say no. Contrast the
+`webgl` fixture in `tests/conftest.py`, where a genuine prerequisite --
+whether a WebGL context exists at all -- does exist and is measured.
 
 **Wait for the container size to SETTLE, not merely to be non-zero.**
 `createViewerGrid` fixes each cell's canvas at build time and never

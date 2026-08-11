@@ -711,27 +711,53 @@ def test_a_caller_with_no_structure_key_always_refits(qapp):
 
 # --- the conformer gallery, against the real 3Dmol grid ----------------------
 
-#: **THE GALLERY NEEDS A SECOND WebGL CONTEXT, and the test suite runs
-#: without one.** `tests/conftest.py` sets `QT_QPA_PLATFORM=offscreen`,
-#: where the page's FIRST context works and a second comes back null, so
-#: `$3Dmol.createViewerGrid` throws "Cannot read properties of null
-#: (reading 'clearDepth')". Measured, and not fixable from here:
+#: **`$3Dmol.createViewerGrid` DOES NOT WORK UNDER Qt's `offscreen`
+#: PLATFORM, and nobody has established why.** It throws "Cannot read
+#: properties of null (reading 'clearDepth')" there and works on an
+#: ordinary windowed platform.
 #:
-#:     offscreen                                       throws
-#:     offscreen + --use-angle=swiftshader             throws
-#:     offscreen, first context explicitly released    throws
-#:     ordinary windowed platform                      4 cells, 2 canvases
+#: **THE OLD EXPLANATION HERE -- "a gallery needs a second WebGL context;
+#: offscreen grants one" -- WAS WRONG.** It is kept in this comment only
+#: so nobody re-derives it. Measured against the real vendored bundle,
+#: with nothing varying but `QT_QPA_PLATFORM`:
 #:
-#: So these run only where a display is available -- deliberately kept
-#: rather than deleted, because they are the only thing that exercises the
-#: real grid, and `QT_QPA_PLATFORM` is set with `setdefault`, so
-#: `QT_QPA_PLATFORM=windows pytest ...` runs them.
+#:     rung                                offscreen      windows
+#:     a bare WebGL context                ok             ok
+#:     twelve bare contexts                12 of 12       -
+#:     one $3Dmol.createViewer             ok             ok
+#:     TWO independent viewers             ok             ok
+#:     SIX independent viewers             6 of 6         -
+#:     two viewers in one parent div       ok             -
+#:     createViewerGrid 2x2 (400x300)      THROWS         ok, 4 cells, 0 null
+#:     createViewerGrid 1x1                THROWS         -
+#:     the app's own gallery backend       grid_failed    2 cells drawn
 #:
-#: What DOES run everywhere is `test_a_gallery_that_cannot_be_built_is_reported`
-#: below, which is the path this environment takes.
+#: So it is not the number of contexts (twelve), not the number of
+#: viewers (six), not a shared parent, and not the container size -- the
+#: 400x300 container failed while a 0x0 one "succeeded". A grid of a
+#: SINGLE cell fails too, so it is not multiplicity in any form. Every
+#: capability underneath works; only `createViewerGrid` does not.
+#:
+#: **That is why this stays a PLATFORM check rather than becoming a
+#: capability probe.** The only thing that predicts the failure is the
+#: call being tested, and gating a test on its own subject would turn a
+#: real regression into a silent skip. An honest platform gate beats a
+#: probe that cannot say no. (Contrast `tests/conftest.py`'s `webgl`
+#: fixture, where a genuine prerequisite -- a WebGL context at all --
+#: does exist and is measured.)
+#:
+#: These are deliberately kept rather than deleted: they are the only
+#: thing exercising the real grid, and `QT_QPA_PLATFORM` is set with
+#: `setdefault`, so `QT_QPA_PLATFORM=windows pytest ...` runs them --
+#: verified, 42 passed there.
 _OFFSCREEN = os.environ.get("QT_QPA_PLATFORM") == "offscreen"
 _needs_a_display = pytest.mark.skipif(
-    _OFFSCREEN, reason="a gallery needs a second WebGL context; offscreen grants one"
+    _OFFSCREEN,
+    reason=(
+        "Skipped: $3Dmol.createViewerGrid does not work under Qt's offscreen "
+        "platform (measured: WebGL contexts and individual viewers are fine "
+        "there; the grid call is not). Run with QT_QPA_PLATFORM=windows."
+    ),
 )
 
 
@@ -851,7 +877,10 @@ def test_leaving_the_gallery_puts_the_single_viewer_back(qapp):
                                   "('viewer-container')).display") == "block"
 
 
-@pytest.mark.skipif(not _OFFSCREEN, reason="only offscreen refuses the second context")
+@pytest.mark.skipif(
+    not _OFFSCREEN,
+    reason="only offscreen fails to build the grid, which is what this asserts",
+)
 def test_a_gallery_that_cannot_be_built_is_reported(qapp, webgl):
     """THE PATH THIS ENVIRONMENT TAKES, and a real user might too.
 

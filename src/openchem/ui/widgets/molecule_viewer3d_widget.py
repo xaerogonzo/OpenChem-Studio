@@ -610,14 +610,21 @@ class MoleculeViewer3DWidget(QWidget):
             self._superimposed.discard(absolute)
 
     def _on_grid_failed(self, message: str) -> None:
-        """The gallery needs a second WebGL context and did not get one.
+        """`createViewerGrid` would not build here.
 
-        Measured under Qt's `offscreen` platform, and reachable on
-        software rendering or a remote session: `createViewerGrid` throws
-        and the pane is left empty, which reads as the feature being
-        broken rather than unavailable. Going back to the single view and
-        saying so is the honest answer -- and the checkbox is unticked, so
-        the state on screen matches the state of the control.
+        **NOT "a second WebGL context was refused"**, which is what this
+        said and is measurably wrong: under Qt's `offscreen` platform
+        twelve bare contexts and six independent 3Dmol viewers all
+        succeed, while a grid of even ONE cell throws. Why the grid call
+        specifically fails is not established -- see the ladder in
+        `tests/test_mol3d_viewer_backend.py`.
+
+        Reachable on software rendering or a remote session too, where
+        the pane would otherwise be left empty and read as the feature
+        being broken rather than unavailable. Going back to the single
+        view and saying so is the honest answer -- and the checkbox is
+        unticked, so the state on screen matches the state of the
+        control.
         """
         self._gallery = False
         self._gallery_check.blockSignals(True)
