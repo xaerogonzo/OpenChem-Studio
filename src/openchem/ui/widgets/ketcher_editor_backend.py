@@ -239,6 +239,11 @@ class KetcherEditorBackend(EditorBackend):
         #: by option name, last value wins -- which is what the menu's own
         #: checkbox will be showing by then.
         self._pending_render_options: dict[str, object] = {}
+        #: A 1-tuple holding the last overlay payload, or None if none is
+        #: waiting. A tuple rather than the payload itself because `None`
+        #: is a MEANINGFUL payload -- "take the overlay off" -- and would
+        #: otherwise be indistinguishable from "nothing queued".
+        self._pending_electron_overlay: tuple[dict | None] | None = None
         #: Non-None while one of OUR loads is settling; see
         #: `_on_structure_edited`.
         self._loading_token: str | None = None
@@ -304,6 +309,13 @@ class KetcherEditorBackend(EditorBackend):
         if self._pending_molblock is not None:
             self._run_set_molecule(self._pending_molblock)
             self._pending_molblock = None
+        if self._pending_electron_overlay is not None:
+            # AFTER the structure, unlike the render options above: the
+            # overlay is keyed to atoms, and replaying it onto a canvas
+            # that has not loaded them yet would draw nothing and then
+            # never be asked again.
+            self._run_set_electron_overlay(self._pending_electron_overlay[0])
+            self._pending_electron_overlay = None
 
     def _on_structure_edited(self, molblock: str) -> None:
         if self._loading_token is not None:
@@ -431,6 +443,31 @@ class KetcherEditorBackend(EditorBackend):
         (function() {{
           if (!window.ketcher) return;
           window.ketcher.editor.setOptions({json.dumps(payload)});
+        }})();
+        """
+        self._page.runJavaScript(script)
+
+    def set_electron_overlay(self, payload: dict | None) -> None:
+        """Hand the page the lone-pair counts, or `None` to take them off.
+
+        Queued when the page is not ready, and **only the last payload is
+        kept** -- see `EditorBackend.set_electron_overlay`. A dict rather
+        than a list of calls for the same reason `_pending_render_options`
+        is a dict: an overlay set twice before the page boots is one
+        overlay whose contents the caller revised, and replaying both
+        would draw a molecule that is no longer selected.
+        """
+        if not self._ketcher_ready:
+            self._pending_electron_overlay = (payload,)
+            return
+        self._run_set_electron_overlay(payload)
+
+    def _run_set_electron_overlay(self, payload: dict | None) -> None:
+        script = f"""
+        (function() {{
+          if (window.openchemElectrons) {{
+            window.openchemElectrons.set({json.dumps(payload)});
+          }}
         }})();
         """
         self._page.runJavaScript(script)
