@@ -64,9 +64,16 @@ class LewisDiagramDialog(QDialog):
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Full Lewis Structure")
         self._diagram = build(molblock, structure_revision=structure_revision)
         self._rendered = render(self._diagram)
+        # The molecule's name is in the TITLE as well as the header,
+        # because more than one of these can be open and the taskbar and
+        # the window list only ever show the title.
+        self.setWindowTitle(
+            f"Full Lewis Structure - {display_name}"
+            if display_name
+            else "Full Lewis Structure"
+        )
 
         layout = QVBoxLayout(self)
 

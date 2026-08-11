@@ -301,6 +301,58 @@ def test_an_empty_diagram_accounts_for_nothing_and_says_so():
     assert empty.accounting.balances, "0 = 0 is a balance, not a failure"
 
 
+@pytest.mark.parametrize(
+    "symbols,charges,expected",
+    [
+        # The everyday organic case: carbon, hydrogen, then alphabetical.
+        (("C", "C", "H", "H", "H", "O"), (0,) * 6, "C2H3O"),
+        # No carbon: EVERYTHING alphabetical, hydrogen included. Borane is
+        # BH3 and not H3B, and this is the only shape of molecule where
+        # the two plausible rules disagree.
+        (("B", "H", "H", "H"), (0,) * 4, "BH3"),
+        # ...and its control, which agrees under either rule, so the pair
+        # of them pins the branch rather than the answer.
+        (("H", "H", "O"), (0, 0, 0), "H2O"),
+        # The charge is the SUM over atoms, written once at the end.
+        (("N", "H", "H", "H", "H"), (1, 0, 0, 0, 0), "H4N+"),
+        (("O", "H"), (-1, 0), "HO-"),
+        # A multiple charge carries its magnitude, and the sign follows it.
+        (("O", "O"), (-1, -1), "O2 2-"),
+    ],
+)
+def test_the_formula_follows_hill_and_carries_the_charge(symbols, charges, expected):
+    """Built by hand, in the file that may not import RDKit.
+
+    The formula is on the MODEL rather than fetched from a toolkit so the
+    dialog can show it without `ui/` importing chemistry -- the rule
+    `tests/test_layering.py` enforces -- which means this is the layer
+    that has to prove it.
+    """
+    diagram = LewisDiagram(
+        status=Status.SUPPORTED,
+        atoms=tuple(
+            Atom(
+                index=i,
+                symbol=symbol,
+                x=float(i),
+                y=0.0,
+                lone_pairs=Known(0),
+                valence_electrons=1,
+                formal_charge=charge,
+            )
+            for i, (symbol, charge) in enumerate(zip(symbols, charges))
+        ),
+    )
+
+    assert diagram.formula == expected.replace(" ", "")
+
+
+def test_a_diagram_with_no_atoms_has_no_formula():
+    """Empty, not "0" and not a stray sign -- the same rule as everywhere
+    else here: say nothing rather than say zero."""
+    assert LewisDiagram(status=Status.CHEMISTRY_REFUSED).formula == ""
+
+
 def test_the_model_imports_no_rdkit_and_no_qt():
     """**The separation, asserted rather than intended.**
 

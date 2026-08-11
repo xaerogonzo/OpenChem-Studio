@@ -297,12 +297,18 @@ class LewisDiagram:
             counts[atom.symbol] = counts.get(atom.symbol, 0) + 1
         if not counts:
             return ""
-        order: list[str] = []
-        # Hill: carbon first, then hydrogen, then everything alphabetically.
-        for symbol in ("C", "H"):
-            if symbol in counts:
-                order.append(symbol)
-        order += sorted(symbol for symbol in counts if symbol not in ("C", "H"))
+        # **HILL HAS TWO CASES AND HYDROGEN IS ONLY SPECIAL IN ONE.** With
+        # carbon: C, H, then the rest alphabetically. WITHOUT carbon:
+        # everything alphabetically, hydrogen included -- so borane is BH3
+        # and not H3B. The single-rule version agrees on water, ammonia and
+        # every organic molecule, and is wrong for exactly the compounds
+        # whose other element sorts before H, which in this application
+        # means the boranes the Lewis-adduct work is built on.
+        if "C" in counts:
+            order = ["C"] + (["H"] if "H" in counts else [])
+            order += sorted(symbol for symbol in counts if symbol not in ("C", "H"))
+        else:
+            order = sorted(counts)
         text = "".join(
             symbol + (str(counts[symbol]) if counts[symbol] > 1 else "") for symbol in order
         )

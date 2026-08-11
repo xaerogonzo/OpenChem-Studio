@@ -1377,11 +1377,12 @@ class MainWindow(QMainWindow):
                 self, "Full Lewis Structure", "Select a molecule first."
             )
             return
-        revision = self._services.structure_check_service.current_version(molecule.uuid)
         dialog = LewisDiagramDialog(
             molecule.molblock,
             display_name=molecule.display_name,
-            structure_revision=revision or 0,
+            structure_revision=self._services.structure_check_service.current_version(
+                molecule.uuid
+            ),
             parent=self,
         )
         dialog.exec()

@@ -446,6 +446,32 @@ weighted. The circle drawn around a ring is a convention for "these
 electrons belong to the system rather than to one bond" and its radius
 means nothing.
 
+**And that is not always the π-electron count.** Measured against Hückel
+on every aromatic shape the analysis can reach:
+
+| ring | π electrons | region says |
+| --- | --- | --- |
+| benzene, aniline, tropylium | 6 | 6 |
+| naphthalene | 10 | 10 |
+| pyridine | 6 | 6 |
+| pyrrole, furan, thiophene, imidazole | 6 | not determined |
+| **cyclopentadienide** | **6** | **4** |
+
+Cyclopentadienide's remaining two are drawn as a *lone pair on the
+carbanion*, so all six are on the page and the electron budget closes —
+they are simply apportioned as "four the analysis could not assign, plus
+one pair it could" rather than as a π sextet. **Read the number as what
+it is defined to be, not as an aromaticity count.**
+
+The split between that `4` and pyrrole's `not determined` is mechanical
+rather than principled: pyrrole has a single resonance contributor so
+nothing varies and the model can tell it is blind, while
+cyclopentadienide's bond orders do vary and the arithmetic completes on
+the part it can see. Telling an **in-plane** lone pair (pyridine, which
+correctly reports 6) from one **donated into the ring** is perception
+this application does not have, so the gap is stated here rather than
+guessed at.
+
 **A truncated enumeration fails closed.** The resonance search stops at
 256 contributors, and a bond whose minimum order was not established over
 a complete set is never asserted as localised — it abstains, and says so.

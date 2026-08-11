@@ -119,6 +119,16 @@ def test_an_unnamed_molecule_still_gets_a_header(dialog):
 
     assert "Structure" in window._header.text()
     assert "H2O" in window._header.text()
+    assert window.windowTitle() == "Full Lewis Structure"
+
+
+def test_the_window_TITLE_names_the_molecule_too(dialog):
+    """More than one of these can be open, and the taskbar and the
+    window list only ever show the title."""
+    window = dialog("CC(=O)[O-]", display_name="Acetate")
+
+    assert "Acetate" in window.windowTitle()
+    assert "Lewis" in window.windowTitle()
 
 
 def test_a_supported_diagram_says_so_without_hedging(dialog):
@@ -500,3 +510,19 @@ def test_the_formula_is_hill_order_with_explicit_hydrogens(dialog):
     assert dialog("O").diagram.formula == "H2O"
     assert dialog("[NH4+]").diagram.formula == "H4N+"
     assert dialog("CC(=O)[O-]").diagram.formula == "C2H3O2-"
+
+
+def test_hydrogen_is_only_special_in_hill_order_WHEN_CARBON_IS_THERE(dialog):
+    """Borane is BH3, not H3B.
+
+    The obvious single rule -- carbon, then hydrogen, then the rest
+    alphabetically -- agrees with Hill on water, ammonia and every
+    organic molecule, and is wrong for exactly the carbon-free compounds
+    whose other element sorts before hydrogen. Boranes are that case, and
+    this application's Lewis-adduct work is built on them.
+    """
+    assert dialog("B").diagram.formula == "BH3"
+    assert dialog("[BH4-]").diagram.formula == "BH4-"
+    # The carbon-bearing control, so a rule that simply sorted everything
+    # alphabetically would fail here rather than passing both.
+    assert dialog("CBr").diagram.formula == "CH3Br"

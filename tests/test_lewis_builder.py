@@ -294,6 +294,93 @@ def test_crowding_is_a_LEGIBILITY_number_and_not_a_refusal():
     assert crowding(crowded) < CROWDED_APPROACH
 
 
+#: A region's electron count against the textbook pi-electron count, for
+#: every aromatic shape reachable here. Hand-authored from Huckel, not
+#: from a run -- which is what makes the one disagreement visible.
+AROMATIC_PI = {
+    "benzene": ("c1ccccc1", 6, 6),
+    "naphthalene": ("c1ccc2ccccc2c1", 10, 10),
+    "pyridine": ("c1ccncc1", 6, 6),
+    "tropylium": ("c1ccc[cH+]cc1", 6, 6),
+    "aniline": ("Nc1ccccc1", 6, 6),
+    # The lone-pair-completed sextets, which decline rather than guess.
+    "pyrrole": ("c1cc[nH]c1", 6, None),
+    "furan": ("c1ccoc1", 6, None),
+    "thiophene": ("c1ccsc1", 6, None),
+    "imidazole": ("c1cnc[nH]1", 6, None),
+    # **AND THE ONE THAT DISAGREES.** See the test below.
+    "cyclopentadienide": ("[cH-]1cccc1", 6, 4),
+}
+
+
+@pytest.mark.parametrize("case", list(AROMATIC_PI), ids=list(AROMATIC_PI))
+def test_a_ring_regions_count_against_the_textbook_pi_count(case):
+    """`None` means the region declines to give a number."""
+    smiles, _textbook, reported = AROMATIC_PI[case]
+
+    rings = [r for r in build(molblock(smiles)).regions if r.is_ring]
+
+    assert len(rings) == 1, f"{case} gave {len(rings)} ring regions"
+    if reported is None:
+        assert isinstance(rings[0].electrons, Unknown), rings[0]
+    else:
+        assert rings[0].electrons == Known(reported), rings[0]
+
+
+def test_a_LONE_PAIR_DONATED_to_a_ring_stays_on_its_atom():
+    """Cyclopentadienide's ring says 4 where Huckel says 6, ON PURPOSE.
+
+    Found by looking at ferrocene in the running app. The region's number
+    is what this model DEFINES it to be -- electrons that could not be
+    assigned to any single bond -- and the carbanion's pair can be
+    assigned, to that carbon, so it is drawn there instead. Every one of
+    the six is on the page and the budget closes; they are apportioned
+    differently from a Huckel count, which is a different quantity.
+
+    **Pyrrole gets `?` and this gets 4, and the split is mechanical
+    rather than principled**: pyrrole has one resonance contributor so
+    nothing varies and the model knows it cannot tell, while
+    cyclopentadienide's bond orders do vary and the arithmetic runs to
+    completion on the part it can see. Telling an in-plane lone pair
+    (pyridine, correctly 6) from a donated one (here) is the perception
+    this application does not have, so it is declared rather than
+    guessed. If that ever changes, this test fails and says so.
+    """
+    diagram = build(molblock("[cH-]1cccc1"))
+    ring = next(r for r in diagram.regions if r.is_ring)
+    carbanion = next(a for a in diagram.atoms if a.formal_charge == -1)
+
+    assert ring.electrons == Known(4)
+    assert carbanion.lone_pairs == Known(1)
+    # 4 in the region + 2 on the carbanion = the six a textbook counts.
+    assert ring.electrons.value + 2 * carbanion.lone_pairs.value == 6
+    assert diagram.accounting.balances, diagram.accounting.describe()
+
+    # The contrast that shows it is not simply "any ring lone pair":
+    # pyridine's nitrogen keeps its pair IN PLANE and the ring still
+    # reports the full six.
+    pyridine = build(molblock("c1ccncc1"))
+    assert next(r for r in pyridine.regions if r.is_ring).electrons == Known(6)
+
+
+def test_a_charge_delocalised_ONTO_a_ring_makes_the_region_open():
+    """Phenolate is not a ring region, and that is the right answer.
+
+    The oxygen's bond order varies with the ring's, so the delocalised
+    system genuinely extends off the ring and onto the oxygen -- which is
+    the chemistry, and the reason the region is drawn as an outline
+    through those atoms rather than as a circle inside the ring.
+    """
+    diagram = build(molblock("[O-]c1ccccc1"))
+
+    assert len(diagram.regions) == 1
+    region = diagram.regions[0]
+    assert not region.is_ring
+    assert len(region.atom_indices) == 7, "the oxygen is not in the system"
+    assert region.electrons == Known(6)
+    assert diagram.accounting.balances, diagram.accounting.describe()
+
+
 def test_a_TRUNCATED_enumeration_fails_closed(monkeypatch):
     """Invariant 7, and nothing was exercising it.
 

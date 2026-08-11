@@ -29,6 +29,7 @@ say which.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import Any
 
 #: What the status bar says. Kept here beside the states they describe, so
@@ -186,8 +187,53 @@ def _tidy(reason: str) -> str:
     unavailable: ". The full text stays reachable in the Atom Inspector,
     which is where somebody asking "why" is already looking -- so this
     shortens rather than replaces it.
+
+    **AN ELEMENT SYMBOL IS NOT A SENTENCE OPENER.** Ferrocene's reason
+    begins "Fe is bonded directly to carbon", which the blanket
+    lower-casing turned into "fe" -- a chemistry app writing an element
+    wrong, in the one message whose whole job is to name the offending
+    atom. Checked against RDKit's own periodic table rather than a list
+    kept here, so it cannot fall out of step with what the app perceives.
     """
     sentence = reason.strip().split(". ")[0].strip().rstrip(".")
     if not sentence:
         return "no reason was given"
-    return sentence[0].lower() + sentence[1:] if sentence[0].isupper() else sentence
+    if not sentence[0].isupper():
+        return sentence
+    first = sentence.split(",")[0].split()[0].strip(",;:")
+    if _is_element_symbol(first):
+        return sentence
+    return sentence[0].lower() + sentence[1:]
+
+
+@lru_cache(maxsize=1)
+def _element_symbols() -> frozenset[str]:
+    """Every symbol RDKit knows, built once.
+
+    **NOT `GetAtomicNumber` in a try/except**, which is the obvious way
+    and writes to stderr: it raises for an unknown symbol AND prints
+    `Element 'A' not found` from C++ first, so a caught exception still
+    leaves a line in the log. Most reasons begin with an ordinary word,
+    so that would be noise on nearly every call.
+    """
+    from rdkit import Chem
+
+    table = Chem.GetPeriodicTable()
+    symbols = set()
+    for number in range(1, 119):
+        try:
+            symbols.add(table.GetElementSymbol(number))
+        except Exception:  # noqa: BLE001 - past the end of this build's table
+            break
+    return frozenset(symbols)
+
+
+def _is_element_symbol(word: str) -> bool:
+    """Whether a word is an element symbol, as RDKit spells them.
+
+    Case-SENSITIVE, so an ordinary word only collides when it is spelled
+    exactly as the element -- "In" does, and stays capitalised as a
+    result. That is the conservative direction: a capital where a
+    lower-case would read better is a blemish, and "fe" is an error.
+    """
+    return word in _element_symbols()
