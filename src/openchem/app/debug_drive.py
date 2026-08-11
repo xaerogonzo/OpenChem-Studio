@@ -36,6 +36,9 @@ The script is a JSON list of steps, run in order:
       {"do": "rotate",     "dx": 120, "dy": -40},
       {"do": "lewis"},
       {"do": "shot",       "path": "C:/tmp/lewis.png", "widget": "lewis"},
+      {"do": "resize",     "maximized": true},
+      {"do": "resize",     "width": 1100},
+      {"do": "geometry",   "label": "maximized/Quantum"},
       {"do": "quit"}
     ]
 
@@ -462,6 +465,226 @@ class _Driver:
         property_panel._dump_panel_metrics(self._window._property_panel)
         property_panel._dump_height_budget(self._window._property_panel)
         property_panel._dump_width_budget(self._window._property_panel)
+
+    def _do_geometry(self, step: dict[str, Any]) -> None:
+        """Dump the right-hand width budget, one line per quantity.
+
+        **FOUR WIDTHS THAT MUST NOT BE CONFLATED**, which is why they are
+        logged side by side rather than summarised: a panel's MINIMUM
+        width, its ACTUAL width, the AVAILABLE width, and the central
+        widget's minimum. A panel whose minimum is sane but whose actual
+        width suddenly expands is a different bug from one whose minimum
+        is intrinsically too large, and a single "too wide" number cannot
+        tell them apart.
+
+        It walks `dock -> scroll area -> content -> widest child` and
+        names that child, because knowing WHICH dock is too wide without
+        knowing WHAT is forcing it is not actionable.
+
+        The window's `sizeHint`/`minimumSizeHint` are logged next to its
+        actual `size`, since a widget can change what the window ASKS FOR
+        without the window changing size yet -- a deferred request that
+        only bites at the next maximize is exactly the shape of the
+        reported "had to leave fullscreen to recover it" bug.
+        """
+        from PySide6.QtWidgets import QScrollArea
+
+        window = self._window
+        label = str(step.get("label", ""))
+        screen = window.screen()
+        available = screen.availableGeometry().width() if screen is not None else -1
+
+        logger.warning(
+            "GEOMETRY[%s] window size=%dx%d hint=%d min=%d minHint=%d "
+            "maximized=%s available=%d",
+            label,
+            window.width(),
+            window.height(),
+            window.sizeHint().width(),
+            window.minimumWidth(),
+            window.minimumSizeHint().width(),
+            window.isMaximized(),
+            available,
+        )
+
+        central = window.centralWidget()
+        if central is not None:
+            logger.warning(
+                "GEOMETRY[%s]   central width=%d minHint=%d",
+                label,
+                central.width(),
+                central.minimumSizeHint().width(),
+            )
+            # Follow the widest child DOWN, so the culprit is named rather
+            # than merely localised to "the central widget".
+            for line in self._widest_chain(central):
+                logger.warning("GEOMETRY[%s]     central %s", label, line)
+            # ...and every descendant over the threshold, because the
+            # chain stops when no direct child explains its parent, which
+            # is exactly the case where the demand comes from something
+            # nested inside an intermediate container.
+            floor = int(step.get("floor", 300))
+            for child in central.findChildren(QWidget):
+                width = child.minimumSizeHint().width()
+                if width < floor:
+                    continue
+                text = getattr(child, "text", None)
+                shown = f" text={text()[:40]!r}" if callable(text) else ""
+                logger.warning(
+                    "GEOMETRY[%s]     wide %s(%s) minHint=%d min=%d%s",
+                    label,
+                    type(child).__name__,
+                    child.objectName() or "unnamed",
+                    width,
+                    child.minimumWidth(),
+                    shown,
+                )
+
+        rail_bar = self._rail_toolbar()
+        if rail_bar is not None:
+            # In WINDOW coordinates, because "is the rail on screen" is a
+            # question about where it sits, not about isVisible() -- which
+            # is True for a rail sitting entirely past the right edge.
+            top_left = rail_bar.mapTo(window, rail_bar.rect().topLeft())
+            logger.warning(
+                "GEOMETRY[%s]   rail width=%d minHint=%d x=%d..%d hidden=%s",
+                label,
+                rail_bar.width(),
+                rail_bar.minimumSizeHint().width(),
+                top_left.x(),
+                top_left.x() + rail_bar.width(),
+                rail_bar.isHidden(),
+            )
+
+        for dock in window._right_docks:
+            content = dock.widget()
+            logger.warning(
+                "GEOMETRY[%s]   dock %-22s hidden=%-5s width=%4d minHint=%4d "
+                "hint=%4d max=%d",
+                label,
+                dock.objectName(),
+                dock.isHidden(),
+                dock.width(),
+                dock.minimumSizeHint().width(),
+                dock.sizeHint().width(),
+                dock.maximumWidth(),
+            )
+            if isinstance(content, QScrollArea):
+                inner = content.widget()
+                logger.warning(
+                    "GEOMETRY[%s]     scroll minHint=%d viewport=%d "
+                    "| content minHint=%s hint=%s",
+                    label,
+                    content.minimumSizeHint().width(),
+                    content.viewport().width(),
+                    inner.minimumSizeHint().width() if inner else "-",
+                    inner.sizeHint().width() if inner else "-",
+                )
+                widest = self._widest_child(inner)
+                if widest:
+                    logger.warning("GEOMETRY[%s]     widest %s", label, widest)
+            elif content is not None:
+                logger.warning(
+                    "GEOMETRY[%s]     content minHint=%d hint=%d",
+                    label,
+                    content.minimumSizeHint().width(),
+                    content.sizeHint().width(),
+                )
+                widest = self._widest_child(content)
+                if widest:
+                    logger.warning("GEOMETRY[%s]     widest %s", label, widest)
+
+    @classmethod
+    def _widest_chain(cls, widget, depth: int = 0) -> list[str]:
+        """Walk down the widest child at each level, naming the chain.
+
+        A single "the central widget wants 1336" is not actionable -- the
+        question is WHICH descendant is asking for it. Following the
+        widest child answers that, and stops as soon as a level no longer
+        explains its parent (within 20 px), because past that point the
+        parent's own margins are the remainder rather than any child.
+        """
+        lines: list[str] = []
+        current = widget
+        while current is not None and depth < 8:
+            children = [
+                child
+                for child in current.findChildren(QWidget)
+                if child.parent() is current
+            ]
+            if not children:
+                break
+            width, widest = max(
+                ((c.minimumSizeHint().width(), c) for c in children),
+                key=lambda pair: pair[0],
+            )
+            lines.append(
+                f"{'  ' * depth}-> {type(widest).__name__}"
+                f"({widest.objectName() or 'unnamed'}) minHint={width} "
+                f"min={widest.minimumWidth()}"
+            )
+            if width < current.minimumSizeHint().width() - 20:
+                break
+            current = widest
+            depth += 1
+        return lines
+
+    @staticmethod
+    def _widest_child(widget) -> str:
+        """The child demanding the most width, named.
+
+        Direct children only. Recursing would report a leaf whose parent
+        already accommodates it, which names the wrong thing -- what is
+        wanted is the row that sets the panel's own minimum.
+        """
+        if widget is None:
+            return ""
+        ranked = sorted(
+            (
+                (child.minimumSizeHint().width(), child)
+                for child in widget.findChildren(QWidget)
+                if child.parent() is widget
+            ),
+            key=lambda pair: pair[0],
+            reverse=True,
+        )
+        return ", ".join(
+            f"{type(child).__name__}({child.objectName() or 'unnamed'})={width}"
+            for width, child in ranked[:3]
+        )
+
+    def _rail_toolbar(self):
+        from PySide6.QtWidgets import QToolBar
+
+        for bar in self._window.findChildren(QToolBar):
+            if bar.objectName() == "Panel_Rail":
+                return bar
+        return None
+
+    def _do_resize(self, step: dict[str, Any]) -> None:
+        """Resize or maximize the window, so a script can walk the path
+        the bug was reported on rather than only its endpoints."""
+        window = self._window
+        if step.get("maximized") is True:
+            window.showMaximized()
+        elif step.get("maximized") is False:
+            window.showNormal()
+        if "width" in step:
+            window.resize(int(step["width"]), int(step.get("height", window.height())))
+
+    def _do_tab(self, step: dict[str, Any]) -> None:
+        """Switch the CENTRE tab by its label ("3D Viewer", "2D Editor")."""
+        tabs = self._window._center_tabs
+        wanted = str(step["name"])
+        for index in range(tabs.count()):
+            if tabs.tabText(index) == wanted:
+                tabs.setCurrentIndex(index)
+                return
+        logger.error(
+            "OPENCHEM_DRIVE: no centre tab %r (have %s)",
+            wanted,
+            [tabs.tabText(i) for i in range(tabs.count())],
+        )
 
     def _do_wait(self, step: dict[str, Any]) -> None:
         """Nothing; the pause is `after_ms`. Present so a script can say
