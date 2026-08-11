@@ -913,6 +913,53 @@ pytest does not inherit the managed Temurin the app injects per-subprocess
 (`naming_providers._java_on_path`). Without PATH you get a bare
 `FileNotFoundError` naming neither Java nor OPSIN.
 
+## RESONANCE: four things measured before the Lewis diagram was built
+
+`tests/test_resonance_gate.py` is the gate, kept as assertions. The idea
+it rests on is that a delocalised bond still has a localised sigma
+component, so only the excess is delocalised:
+
+    localised pairs on a bond = MINIMUM order across resonance structures
+    delocalised electrons     = (kekulised total - localised) x 2
+
+**THE TOTAL MUST COME FROM A KEKULISED COPY.** Summed over the AROMATIC
+form each bond counts 1.5, and naphthalene reports 11 delocalised
+electrons against a textbook 10 -- small enough to read as a rounding
+wobble and a whole electron wrong.
+
+**`KEKULE_ALL` ALONE.** `ALLOW_CHARGE_SEPARATION` looks like the fix for
+the five-membered aromatics and is not: pyrrole and furan are unchanged
+at zero, and AMIDE gains two delocalised electrons from a
+charge-separated contributor a Lewis structure has no business drawing.
+
+**HYPERVALENCY IS NOT VISIBLE IN RDKit's VALENCE LIST.**
+`GetValenceList(16)` is `[2, 4, 6]`, so sulfur(VI) is a perfectly normal
+valence and sulfate goes undetected. Count the octet instead --
+`2 x (bonds + lone pairs) > 8` -- which flags sulfate, phosphate, SF6,
+sulfite, DMSO and phosphine oxide, and correctly leaves a
+charge-separated perchlorate alone, since that one obeys the octet
+exactly. No element list to rot.
+
+**FORMAL CHARGES DO MOVE BETWEEN CONTRIBUTORS, and a first probe said
+otherwise.** It sampled anthracene, pentacene, porphine and the
+hypervalent set -- all neutral, mostly symmetric, none able to show it.
+Acetate moves its negative between the two oxygens, which is the whole
+point of drawing it delocalised. Read charges from the INPUT molecule.
+
+Cost is negligible and the enumeration is small: anthracene 4 structures,
+pentacene 6, porphine 2, none reaching even 16, all under 2.3 ms. So the
+fail-closed truncation path is headroom rather than a working limit --
+and still has to exist, because "no input I tried hit it" is not "no
+input can".
+
+**A LONE-PAIR AROMATIC CANNOT BE COUNTED THIS WAY.** Pyrrole, furan and
+thiophene have ONE Kekule structure, so the arithmetic says zero when the
+answer is six -- two of those electrons come from a heteroatom lone pair
+that sits in the ring, and the enumeration never moves it there. Those
+rings are delocalised with an UNKNOWN count: never 0, which would be a
+lie, and never a fabricated 6. Asserted as a defect, so a future RDKit
+that fixes it fails the gate and the abstention can go.
+
 ## The naming benchmark
 
 `benchmarks/naming/` is the regression check on naming quality — 181 molecules,
