@@ -10,6 +10,11 @@ from rdkit.Chem import AllChem, rdMolTransforms
 from rdkit.Geometry import Point3D
 
 from openchem.chem.camera_orientation import camera_to_model_transform, rotate
+from openchem.chem.stereochemistry import (
+    StereoChange,
+    StereochemistryConflict,
+    compare_stereochemistry,
+)
 
 from openchem.domain.molecule import MoleculeModel
 
@@ -104,6 +109,10 @@ class ConformerDrawing:
     molblock: str
     follows_geometry: bool
     crowded: bool = False
+    #: What this geometry did to the structure's stereochemistry, when a
+    #: reference drawing was given to compare against. `None` means
+    #: nobody asked, not that nothing happened.
+    stereo: StereoChange | None = None
 
 
 def _claim_absolute_stereochemistry(mol: Chem.Mol) -> None:
@@ -195,7 +204,10 @@ class ChemistryEngine:
         return Chem.MolToMolBlock(mol)
 
     def drawing_from_conformer(
-        self, molblock: str, view: Sequence[float] | None = None
+        self,
+        molblock: str,
+        view: Sequence[float] | None = None,
+        reference: str | None = None,
     ) -> ConformerDrawing:
         """A drawing of a 3D conformer: heavy atoms, oriented as asked.
 
@@ -263,7 +275,7 @@ class ChemistryEngine:
         the only answer this function leaves.
         """
         if view is not None:
-            return self._oriented_drawing(molblock, view)
+            return self._oriented_drawing(molblock, view, reference)
 
         heavy = Chem.RemoveHs(self.mol_from_molblock(molblock))
         _claim_absolute_stereochemistry(heavy)
@@ -283,7 +295,11 @@ class ChemistryEngine:
                 "Could not orient the drawing to the conformer; laying it out plainly.",
                 exc_info=True,
             )
-            return ConformerDrawing(Chem.MolToMolBlock(plain), follows_geometry=False)
+            return ConformerDrawing(
+                Chem.MolToMolBlock(plain),
+                follows_geometry=False,
+                stereo=self._stereo_change(reference, plain),
+            )
 
         readable = _closest_approach(plain)
         if _closest_approach(oriented) < READABLE_LAYOUT_FRACTION * readable:
@@ -291,10 +307,20 @@ class ChemistryEngine:
                 "The conformer's orientation cannot be drawn without overlap; "
                 "using a plain layout instead."
             )
-            return ConformerDrawing(Chem.MolToMolBlock(plain), follows_geometry=False)
-        return ConformerDrawing(Chem.MolToMolBlock(oriented), follows_geometry=True)
+            return ConformerDrawing(
+                Chem.MolToMolBlock(plain),
+                follows_geometry=False,
+                stereo=self._stereo_change(reference, plain),
+            )
+        return ConformerDrawing(
+            Chem.MolToMolBlock(oriented),
+            follows_geometry=True,
+            stereo=self._stereo_change(reference, oriented),
+        )
 
-    def _oriented_drawing(self, molblock: str, view: Sequence[float]) -> ConformerDrawing:
+    def _oriented_drawing(
+        self, molblock: str, view: Sequence[float], reference: str | None = None
+    ) -> ConformerDrawing:
         """The conformer turned to face the camera, still in 3D.
 
         Stereo is perceived before the hydrogens come off. **That ordering
@@ -361,7 +387,23 @@ class ChemistryEngine:
             Chem.MolToMolBlock(drawing),
             follows_geometry=True,
             crowded=_closest_approach(drawing) < _CROWDED_APPROACH,
+            stereo=self._stereo_change(reference, drawing),
         )
+
+    def _stereo_change(self, reference: str | None, drawing: Chem.Mol):
+        """What the geometry did to the structure's stereochemistry.
+
+        `None` when no reference was given -- "nobody asked" is different
+        from "nothing happened", and a caller that cannot tell them apart
+        would report silence as safety.
+        """
+        if reference is None:
+            return None
+        try:
+            before = self.mol_from_molblock(reference)
+        except InvalidStructureError:
+            return None
+        return compare_stereochemistry(before, drawing)
 
     def molblock_to_smiles(self, molblock: str) -> str:
         """Isomeric SMILES for a structure held as a molblock.
@@ -556,6 +598,64 @@ class ChemistryEngine:
         model.inchi = inchi or None
         model.inchikey = Chem.InchiToInchiKey(inchi) if inchi else None
         return model
+
+    def rescale_like(self, molblock: str, reference: str) -> tuple[str, float]:
+        """Put `molblock` back on `reference`'s scale, returning the residual.
+
+        **KETCHER NORMALISES BOND LENGTHS TO ITS OWN UNIT AND WRITES THAT
+        OUT.** Measured against the real vendored bundle, a cyclohexane
+        loaded with C-C at 1.5301 A comes back from `getMolfile` at 1.0702
+        -- a uniform x0.6994 on every bond. For a 2D drawing that is
+        meaningless (a layout is not a measurement), which is why nothing
+        noticed for as long as the editor only ever held layouts. For a
+        rotated 3D structure it is a 30% error in every bond length, and
+        it is invisible to atom order, to the CIP labels and to the
+        oriented volume -- a uniform scale changes none of them. Only an
+        energy or a length sees one.
+
+        The factor is fitted by least squares over EVERY pairwise
+        distance rather than read off one bond: a single bond is one
+        rounding error away from the answer, and a molblock carries four
+        decimal places at a scale ~0.7, so the error is amplified by ~1.43
+        on the way back.
+
+        The residual comes back with it -- the largest distance still
+        disagreeing after rescaling -- because that is the number that
+        says whether the motion was rigid at all. A caller that meant to
+        apply a rotation can refuse on it; nothing here decides that.
+
+        Returns `(molblock, inf)` unchanged when the two cannot be
+        compared at all (different atom counts, no conformer), because
+        "cannot tell" must not read as "verified".
+        """
+        mol = self.mol_from_molblock(molblock)
+        ref = self.mol_from_molblock(reference)
+        if (
+            mol.GetNumAtoms() != ref.GetNumAtoms()
+            or not mol.GetNumConformers()
+            or not ref.GetNumConformers()
+        ):
+            return molblock, math.inf
+        conformer, ref_conformer = mol.GetConformer(), ref.GetConformer()
+        points = [tuple(conformer.GetAtomPosition(i)) for i in range(mol.GetNumAtoms())]
+        ref_points = [tuple(ref_conformer.GetAtomPosition(i)) for i in range(ref.GetNumAtoms())]
+        pairs = [(i, j) for i in range(len(points)) for j in range(i + 1, len(points))]
+        here = sum(math.dist(points[i], points[j]) ** 2 for i, j in pairs)
+        there = sum(math.dist(ref_points[i], ref_points[j]) ** 2 for i, j in pairs)
+        if here <= 0.0 or there <= 0.0:
+            return molblock, math.inf
+        factor = math.sqrt(there / here)
+        centre = [sum(axis) / len(points) for axis in zip(*points)]
+        for i, point in enumerate(points):
+            conformer.SetAtomPosition(
+                i, tuple(centre[k] + (point[k] - centre[k]) * factor for k in range(3))
+            )
+        scaled = [tuple(conformer.GetAtomPosition(i)) for i in range(mol.GetNumAtoms())]
+        residual = max(
+            abs(math.dist(scaled[i], scaled[j]) - math.dist(ref_points[i], ref_points[j]))
+            for i, j in pairs
+        )
+        return Chem.MolToMolBlock(mol), residual
 
     def set_structure_from_molblock(self, model: MoleculeModel, molblock: str) -> MoleculeModel:
         mol = self.mol_from_molblock(molblock)

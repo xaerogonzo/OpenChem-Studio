@@ -8,7 +8,14 @@ from typing import Callable
 
 from PySide6.QtCore import QUrl, Qt
 from PySide6.QtCore import QTimer
-from PySide6.QtGui import QAction, QCloseEvent, QDesktopServices, QGuiApplication, QUndoStack
+from PySide6.QtGui import (
+    QAction,
+    QActionGroup,
+    QCloseEvent,
+    QDesktopServices,
+    QGuiApplication,
+    QUndoStack,
+)
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
@@ -28,7 +35,9 @@ from PySide6.QtWidgets import (
 
 from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
+from openchem.chem.calculation_input import canonical_conformer
 from openchem.chem.identifiers import identifier_for_molblock
+from openchem.chem.stereochemistry import StereochemistryConflict
 from openchem.chem.structure_clipboard import parse_structure_text
 from openchem.commands.conformer_commands import (
     AdoptConformerCommand,
@@ -339,6 +348,7 @@ class MainWindow(QMainWindow):
         # `tools/ketcher-host/src/main.jsx` for the list and for what is
         # deliberately left alone.
         self._editor.editor_action_requested.connect(self._on_editor_action)
+        self._editor.geometry_requested.connect(self._on_geometry_requested)
         # The way back from the 3D viewer -- see `_adopt_conformer`.
         self._viewer3d.conformer_adopted.connect(self._adopt_conformer)
         self._jobs_panel = JobsPanel(services.job_manager, self)
@@ -1038,9 +1048,25 @@ class MainWindow(QMainWindow):
         self._add_editor_action(
             self._structure_menu, "Add/Remove Explicit Hydrogens", "Add/Remove explicit hydrogens button"
         )
-        self._add_editor_action(
-            self._structure_menu, "Calculate CIP (Stereo Descriptors)", "Calculate CIP button"
+        # **ONE QAction, TWO MENUS.** It is also offered under View ▸ 2D
+        # Structure Display, which is where it was looked for ("make sure
+        # we can see (R/S) (E/Z) in the 2d editor as well... it should at
+        # least be on the dropdown view tab"). The same object, so the
+        # label, the shortcut and the enabled state cannot drift -- the
+        # rule Generate Conformers already follows.
+        self._cip_action = self._add_editor_action(
+            self._structure_menu,
+            "Calculate CIP Stereo Descriptors (R/S, E/Z)",
+            "Calculate CIP button",
         )
+        self._structure_menu.addSeparator()
+        # **CONFORMERS ARE A STRUCTURE OPERATION, not a 3D-viewer one.**
+        # Generation lived behind one button inside the 3D viewer, and
+        # four separate messages elsewhere told people to go there for it.
+        # Here it is where people already look -- and the command palette
+        # reads the live QMenuBar, so this QAction IS the palette entry
+        # rather than a second route that can drift from it.
+        self._structure_menu.addAction("Generate Conformers...", self._generate_conformers)
         self._structure_menu.addSeparator()
         check_action = self._structure_menu.addAction("Check Structure...", self._show_structure_check_panel)
         check_action.setShortcut("Ctrl+Shift+K")
@@ -1068,6 +1094,8 @@ class MainWindow(QMainWindow):
             True,
             False,
         )
+        structure_display_menu.addSeparator()
+        self._add_stereo_display_items(structure_display_menu)
         structure_display_menu.addSeparator()
         # These two are real Ketcher toolbar buttons, not render options --
         # "explicit hydrogens" actually adds/removes atoms (confirmed live:
@@ -1160,14 +1188,19 @@ class MainWindow(QMainWindow):
     # `_duplicate_molecule(molecule=None)` really does receive None -- and
     # only the `toggled`/`triggered` connections below have to take the bool.
 
-    def _add_editor_action(self, menu: QMenu, label: str, test_id: str) -> None:
+    def _add_editor_action(self, menu: QMenu, label: str, test_id: str) -> QAction:
         """One of Ketcher's own toolbar buttons, by its stable `data-testid`.
 
         There is no public API for these; `trigger_toolbar_action` clicks
         the real button. Ketcher reports the resulting change through its
         normal `change` event, which already reaches the undo stack.
+
+        Returns the action so a caller can offer the SAME one from a
+        second menu -- one identity rather than two routes that can drift.
         """
-        menu.addAction(label, self._trigger_editor_action).setData(test_id)
+        action = menu.addAction(label, self._trigger_editor_action)
+        action.setData(test_id)
+        return action
 
     def _trigger_editor_action(self) -> None:
         action = self.sender()
@@ -1202,6 +1235,78 @@ class MainWindow(QMainWindow):
         action = self.sender()
         if action is not None:
             self._plugin_manager.set_enabled(action.data(), checked)
+
+    #: What each `stereoLabelStyle` value does, measured against the real
+    #: vendored bundle rather than read off the enum name. On a molecule
+    #: with one ABS group and one AND group, showing the per-centre tags:
+    #:
+    #:     Off       nothing
+    #:     On        abs, &1
+    #:     Classic   abs, &1        -- but NOTHING when there is one group
+    #:     Iupac     &1             -- drops the tag the ABS flag repeats
+    #:
+    #: So the four are genuinely distinct and each is offered. Ketcher's
+    #: own Settings dialog names them "IUPAC style / Classic / On / Off";
+    #: the names here keep that word so the two agree, and add what it
+    #: does so the choice is not a guess.
+    _STEREO_LABEL_STYLES = (
+        ("IUPAC style — only when it adds information", "Iupac"),
+        ("Classic — hidden when the molecule has one group", "Classic"),
+        ("On — always", "On"),
+        ("Off — never", "Off"),
+    )
+
+    def _add_stereo_display_items(self, menu: QMenu) -> None:
+        """Stereochemistry on the canvas, as three separate things.
+
+        **THEY ARE NOT ONE FEATURE, and the plan for this assumed they
+        were.** It expected `showStereoFlags` and `stereoLabelStyle` to
+        display R/S and E/Z. Measured against the real bundle across a
+        matrix of an R centre, an S centre, an unspecified centre, E, Z,
+        an unspecified alkene and a molecule with both: **no value of
+        either option renders a single R, S, E or Z.** They govern
+        enhanced-stereo GROUPS -- the `ABS` / `AND Enantiomer` / `Mixed`
+        caption and the per-centre `abs` / `&1` / `or1` tags.
+
+        R/S and E/Z come from Ketcher's **Calculate CIP** action, and
+        appear as `(R)`, `(S)`, `(E)`, `(Z)` -- identically under all four
+        label styles. An unspecified centre gets no label under any
+        combination, which is the important negative: nothing invents an
+        assignment.
+
+        So this offers the calculation as a calculation and the two
+        options as what they are, rather than a "show stereo labels"
+        toggle that would have driven the wrong setting.
+        """
+        # The same QAction the Structure menu carries, not a copy.
+        menu.addAction(self._cip_action)
+        self._cip_action.setStatusTip(
+            "Label stereocentres (R/S) and double bonds (E/Z) on the canvas. "
+            "Computed on demand; editing the structure afterwards does not "
+            "recompute them."
+        )
+        self._add_structure_display_toggle(
+            menu, "Show Stereo Flags (ABS / AND / Mixed)", "showStereoFlags", True, False
+        )
+        style_menu = menu.addMenu("Stereo Group Labels (abs, &&1, or1)")
+        group = QActionGroup(self)
+        group.setExclusive(True)
+        for label, value in self._STEREO_LABEL_STYLES:
+            action = QAction(label, self)
+            action.setCheckable(True)
+            action.setData(value)
+            # Ketcher's own default, read from the bundle's settings
+            # schema -- so the menu opens agreeing with the canvas
+            # instead of claiming a setting nobody applied.
+            action.setChecked(value == "Iupac")
+            action.triggered.connect(self._on_stereo_label_style_chosen)
+            group.addAction(action)
+            style_menu.addAction(action)
+
+    def _on_stereo_label_style_chosen(self, checked: bool) -> None:
+        action = self.sender()
+        if action is not None and checked:
+            self._editor.set_render_option("stereoLabelStyle", action.data())
 
     def _add_structure_display_toggle(
         self, menu: QMenu, label: str, option_name: str, checked_value: object, unchecked_value: object
@@ -1850,6 +1955,80 @@ class MainWindow(QMainWindow):
             return
         handler()
 
+    def _on_geometry_requested(self) -> None:
+        """The editor was asked to rotate a molecule with no 3D geometry.
+
+        Two different situations, and conflating them was a real defect:
+
+            conformers exist    bring one into the drawing, then rotate
+            none exist          ASK, and stop there
+
+        **GENERATING CONFORMERS DOES NOT MAKE THE DRAWING 3D.** They live
+        beside it, so a version of this that only ever offered to generate
+        asked the same question again on the next press, forever -- the
+        molecule had geometry and the drawing still did not.
+
+        **Generating one is a chemical operation and rotating is not**, so
+        one click must not do both. Adopting a conformer is neither: it
+        changes coordinates and nothing else, `AdoptConformerCommand`
+        checks that it changed no stereochemistry, and it is one undo step
+        the user can reverse -- so that half needs no question. The
+        asynchronous, structure-defining half keeps one.
+
+        Which conformer, so the editor adds no fourth notion beside
+        retained / display-aligned / selected: **the one on screen in the
+        3D viewer if it is showing this molecule**, otherwise the
+        lowest-energy retained one.
+        """
+        molecule = self._current_molecule()
+        if molecule is None:
+            return
+        if molecule.conformers:
+            geometry = self._viewer3d.geometry_on_screen(molecule)
+            if geometry is None:
+                best = canonical_conformer(molecule)
+                geometry = best.molblock if best is not None else None
+            if geometry is not None:
+                # **AN UNROTATED VIEW, NOT `None`.** Passing None takes
+                # `drawing_from_conformer` down its FLAT path, which is
+                # the one thing this must not produce -- the drawing would
+                # come back with every z at zero and the mode would ask
+                # for a geometry all over again. The quaternion is the
+                # identity because the conformer's own frame is the honest
+                # starting point; turning it is what the mode is for.
+                self._adopt_conformer(geometry, view=[0, 0, 0, 0, 0, 0, 0, 1])
+                if self._editor.has_geometry():
+                    self._editor.begin_rotation()
+                else:
+                    logger.warning(
+                        "Adopting a conformer left the drawing flat; not rotating."
+                    )
+                return
+        answer = QMessageBox.question(
+            self,
+            "Rotate 3D",
+            f"{molecule.display_name} is a flat drawing, so there is nothing to "
+            "turn yet.\n\nGenerate a 3D structure for it?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if answer == QMessageBox.StandardButton.Yes:
+            self._generate_conformers()
+
+    def _generate_conformers(self) -> None:
+        """The Structure menu's route into conformer generation.
+
+        Delegates to the 3D viewer's own method rather than reimplementing
+        the dialog and the service call: two routes to one action is the
+        point, two implementations of it is what this project keeps
+        finding as a bug.
+        """
+        if self._current_molecule() is None:
+            QMessageBox.information(
+                self, "Generate Conformers", "Select a molecule first."
+            )
+            return
+        self._viewer3d.generate_conformers()
+
     def _adopt_conformer(self, molblock: str, view: object = None) -> None:
         """Redraw the molecule from the conformer shown in the 3D viewer.
 
@@ -1896,6 +2075,17 @@ class MainWindow(QMainWindow):
                 # the stack, which is what makes destruction safe here.
                 on_applied=self._editor.set_molecule,
             )
+        except StereochemistryConflict as exc:
+            # Not an error to shrug at: the geometry would have made this
+            # a different compound. Refused before anything was pushed.
+            logger.warning("Refused a conformer that would change stereochemistry: %s", exc)
+            QMessageBox.warning(
+                self,
+                "Use in 2D Editor",
+                f"{exc}\n\nThe drawing has been left as it was. Pick a different "
+                "conformer, or correct the stereochemistry in the editor first.",
+            )
+            return
         except Exception as exc:  # noqa: BLE001 - a bad conformer must not kill the window
             logger.exception("Could not adopt the conformer")
             QMessageBox.warning(self, "Use in 2D Editor", f"Could not use this conformer: {exc}")
@@ -1925,7 +2115,13 @@ class MainWindow(QMainWindow):
             )
         else:
             message = f"{molecule.display_name}: redrawn as you have it rotated in 3D."
-        self.statusBar().showMessage(message, 8000)
+        # **A GEOMETRY CAN MAKE STEREOCHEMISTRY ASSIGNABLE**, and the app
+        # says so rather than letting the molecule quietly become more
+        # specific than it was drawn. See `chem/stereochemistry.py` for
+        # why that is not the same as the structure having specified it.
+        if command.stereo is not None and not command.stereo.quiet:
+            message = f"{message[:-1]} -- and {command.stereo.describe()}."
+        self.statusBar().showMessage(message, 10000)
 
     def _insert_element_into_drawing(self, symbol: str) -> None:
         """Arm the 2D editor with an element chosen in the periodic table.

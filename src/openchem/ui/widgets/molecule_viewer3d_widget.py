@@ -281,6 +281,22 @@ class MoleculeViewer3DWidget(QWidget):
         )
 
     def _on_generate_clicked(self) -> None:
+        self.generate_conformers()
+
+    def generate_conformers(self) -> None:
+        """Ask for conformers, from wherever the user started.
+
+        **PUBLIC because this is not the only way in.** Conformer
+        generation used to live behind this widget's button alone, and
+        four separate messages elsewhere in the app told people to come
+        here for it -- reported as "I still low key am not much of a fan
+        having to go into a 3d viewer to even generate conformers still.
+        With Marvin, it was a calculator like any other."
+
+        The Structure menu calls this, and the command palette reads the
+        menu, so all three routes are one implementation rather than one
+        service with three callers that can drift apart.
+        """
         if self._molecule is None:
             return
         dialog = ConformerOptionsDialog(self)
@@ -468,6 +484,41 @@ class MoleculeViewer3DWidget(QWidget):
             self.conformer_adopted.emit(molblock, view)
 
         self._backend.current_view(with_view)
+
+    def geometry_on_screen(self, molecule) -> str | None:
+        """The conformer this viewer is showing for `molecule`, or None.
+
+        Exists so the 2D editor's rotation mode can pick up the geometry
+        somebody is already looking at -- "a conformer is selected, rotate
+        that one" -- without the window reaching into `_conformer_index`
+        and reimplementing the display-aligned lookup that
+        `_use_in_editor` already does.
+
+        **The conformer ON SCREEN, not the first one**, for the same
+        reason as that method: `conformers[0]` is right for anyone who
+        never pressed `>` and silently wrong for everyone who did.
+
+        **Answers None for a DIFFERENT molecule** rather than whatever it
+        happens to be showing. The viewer trails the selection through an
+        event, so the two can briefly disagree, and handing one
+        molecule's coordinates to another's drawing is correct arithmetic
+        on the wrong object -- the shape of two bugs this project has
+        already shipped.
+        """
+        if (
+            self._molecule is None
+            or molecule is None
+            or self._molecule.uuid != molecule.uuid
+            or not self._molecule.conformers
+        ):
+            return None
+        index = self._conformer_index
+        molblocks = self._conformer_service.display_molblocks(self._molecule)
+        if index < len(molblocks):
+            return molblocks[index]
+        if index < len(self._molecule.conformers):
+            return self._molecule.conformers[index].molblock
+        return None
 
     def _refresh_view(self) -> None:
         if self._molecule is None or not self._molecule.conformers:

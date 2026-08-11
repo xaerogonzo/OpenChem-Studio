@@ -134,7 +134,11 @@ def test_structure_menu_actions_proxy_to_the_real_ketcher_buttons(qapp, tmp_path
         "Dearomatize": "Dearomatize button",
         "Layout (Recalculate Coordinates)": "Layout button",
         "Clean Up": "Clean Up button",
-        "Calculate CIP (Stereo Descriptors)": "Calculate CIP button",
+        # Renamed to carry the words somebody actually searches for --
+        # "make sure we can see (R/S) (E/Z) in the 2d editor as well".
+        # The SAME QAction is also offered under View > 2D Structure
+        # Display; see the test below.
+        "Calculate CIP Stereo Descriptors (R/S, E/Z)": "Calculate CIP button",
         "Add/Remove Explicit Hydrogens": "Add/Remove explicit hydrogens button",
         "Check Structure in the Editor (Indigo)...": "Check Structure button",
     }
@@ -210,3 +214,87 @@ def test_send_to_3d_viewer_does_not_regenerate_when_a_conformer_already_exists(q
 
     assert window._center_tabs.currentWidget() is window._viewer3d
     assert generate_calls == []
+
+
+def test_stereo_descriptors_are_the_SAME_action_in_both_menus(qapp, tmp_path):
+    """"I also think we may have lost the ability to view lone pairs, or it
+    was lost for me in the menus. It should at least be on the dropdown
+    view tab" -- the same complaint applies to R/S and E/Z, which existed
+    only under Structure.
+
+    **ONE QAction, offered twice**, not two entries that call the same
+    thing. Two would drift: a label change, a shortcut or an enable rule
+    added to one and not the other. Asserted on identity, because two
+    actions with equal text would pass any weaker check.
+    """
+    window = _build_window(tmp_path)
+
+    from_structure = next(
+        a for a in window._structure_menu.actions()
+        if a.data() == "Calculate CIP button"
+    )
+    from_view = next(
+        a for a in _structure_display_menu(window).actions()
+        if a.data() == "Calculate CIP button"
+    )
+
+    assert from_structure is from_view
+    assert "R/S" in from_structure.text() and "E/Z" in from_structure.text()
+
+
+def test_the_stereo_group_label_styles_are_exclusive_and_start_at_ketchers_default(
+    qapp, tmp_path
+):
+    """Four styles, one at a time, and the menu opens agreeing with the
+    canvas.
+
+    Ketcher's settings schema declares `stereoLabelStyle` defaults to
+    "Iupac" (read from the bundle). A menu that opened with a different
+    one checked would claim a setting nobody applied -- and since these
+    are fire-and-forget render options with no read-back, nothing else
+    would ever correct it.
+    """
+    window = _build_window(tmp_path)
+    sent: list[tuple[str, object]] = []
+    window._editor.set_render_option = lambda name, value: sent.append((name, value))
+
+    style_menu = next(
+        m
+        for m in _structure_display_menu(window).findChildren(type(window._view_menu))
+        if m.title().startswith("Stereo Group Labels")
+    )
+    actions = style_menu.actions()
+
+    assert [a.data() for a in actions] == ["Iupac", "Classic", "On", "Off"]
+    assert [a.isChecked() for a in actions] == [True, False, False, False]
+    assert all(a.actionGroup() is actions[0].actionGroup() for a in actions)
+
+    actions[3].trigger()
+    assert sent == [("stereoLabelStyle", "Off")]
+    assert [a.isChecked() for a in actions] == [False, False, False, True]
+
+
+def test_the_stereo_flag_toggle_drives_the_option_ketcher_really_has(qapp, tmp_path):
+    """`showStereoFlags` is a real Ketcher render option (its own settings
+    dialog calls it "Show the Stereo flags", default true) and it toggles
+    the molecule-level ABS / AND Enantiomer / Mixed caption.
+
+    **It does NOT show R/S**, which is what the plan for this work
+    assumed and what the probe disproved -- hence the label naming the
+    flags rather than the descriptors.
+    """
+    window = _build_window(tmp_path)
+    sent: list[tuple[str, object]] = []
+    window._editor.set_render_option = lambda name, value: sent.append((name, value))
+
+    action = next(
+        a
+        for a in _structure_display_menu(window).actions()
+        if a.text().startswith("Show Stereo Flags")
+    )
+    assert action.isCheckable()
+    assert "R/S" not in action.text() and "E/Z" not in action.text()
+
+    action.setChecked(True)
+    action.setChecked(False)
+    assert sent == [("showStereoFlags", True), ("showStereoFlags", False)]

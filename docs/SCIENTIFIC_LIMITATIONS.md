@@ -327,6 +327,24 @@ of 2H-azirine embeddings, a rigid three-membered ring, converged to a
 distorted minimum 10.7 kcal/mol up with a stretched C=N and were reported
 as a second conformer.
 
+**A conformer can make stereochemistry ASSIGNABLE. That is not the same
+as the molecule being stereochemically specified.** Once atoms have real
+positions, RDKit's perception will label centres a flat drawing left
+open — a bicyclo[2.2.2] cage's bridgeheads are the case that exposed
+this. The label is a consequence of the geometry that happened to be
+generated, not evidence that the drawn structure specified it, and
+interconverting conformations, symmetric environments, pseudoasymmetric
+centres and stereogenic axes or planes all sit outside what a single
+embedded conformer can settle. The application therefore *reports* when
+a geometry has done this rather than treating the perception as
+authoritative, and *refuses* outright when a geometry would change or
+erase stereochemistry that was already specified.
+
+A consequence worth knowing: a derived IUPAC name may then be less
+specific than the structure. The name is shown with a note saying so,
+rather than withheld — the nomenclature engine is not wrong, it simply
+cannot express what the geometry added.
+
 **The generation controls emulate Marvin's, not its algorithms.** The
 diversity threshold, optimisation level, time limit and refinement pass
 are modelled on ChemAxon's Generate3D options because those are the knobs
@@ -356,6 +374,44 @@ a 3D shape looks like drawn flat, and it is the point rather than a fault.
 Some angles are genuinely unreadable: seen down its bridgehead axis a
 bicyclo[2.2.2] cage superimposes its two bridges exactly. The application
 says so and leaves the choice of angle to you.
+
+**A CIP label on the canvas is a snapshot, not a live readout.** Ketcher
+computes `(R)`/`(S)`/`(E)`/`(Z)` when asked and does not recompute them
+when the structure changes — measured: deleting the atom that made a
+centre stereogenic left the `(S)` label in place. Run the calculation
+again after an edit. Unspecified centres are correctly left unlabelled,
+so the failure mode is a stale label rather than an invented one.
+
+**A lone-pair count is arithmetic on a drawing, and it declines three
+cases.** `outer electrons − bonds − formal charge`, halved: right for 21
+of 21 textbook main-group cases checked (amine, ammonium, amide, nitro,
+nitrile, carbonyl, ether, hydroxyl, alkoxide, water, thioether,
+sulfoxide, sulfone, phosphine, phosphine oxide, pyridine, pyrrole, furan,
+organofluorine, chloride, borane). It refuses **metals**, whose valence
+is undefined and whose non-bonding electrons are frequently unpaired
+rather than paired; it refuses any structure with an **unpaired electron
+on a main-group atom**, since a singlet carbene has a donor pair where
+the triplet has two lone electrons and a drawing does not distinguish
+them; and it says nothing about **where** a pair points, so it cannot
+rank two donors. Nothing here is a substitute for a calculation.
+
+**Rotating in the 2D editor is a rigid motion, and it is checked rather
+than trusted.** Turning the structure changes coordinates and nothing
+else — no bond length, no angle, no stereocentre. The app verifies both
+halves of that before committing a turn, because each is invisible to the
+other: a *reflection* preserves every distance (only the stereochemistry
+sees one), and a *shear* preserves every stereocentre and the atom
+ordering (only the distances see one). Either is refused with a message
+rather than committed.
+
+**The editor's coordinates are not Ångström until they are put back.**
+Ketcher normalises bond lengths to its own unit — measured, a C–C at
+1.5301 Å is handed back as 1.0702, a uniform ×0.699 — which never
+mattered while the canvas only ever held a *layout*. Now that it can hold
+a *geometry*, the scale is restored on the way in. Nothing you compute is
+affected; this is recorded because a 30% error in every bond length is
+invisible to atom order, to R/S labels and to a molecule's formula, and
+would have looked entirely plausible.
 
 **None of this makes the count correct in general.** It is the
 best-performing heuristic on an eleven-molecule validation set

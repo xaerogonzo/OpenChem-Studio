@@ -116,6 +116,7 @@ class EditStructureCommand(OpenChemCommand):
         # old structure, not just the old molblock -- they describe the
         # same structure the undo is reverting to, so they're still valid.
         self._old_conformers: list[ConformerModel] = list(molecule.conformers)
+        self._old_smiles = molecule.canonical_smiles
 
     def redo(self) -> None:
         self._engine.set_structure_from_molblock(self._molecule, self._new_molblock)
@@ -136,11 +137,33 @@ class EditStructureCommand(OpenChemCommand):
         self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
 
     def _invalidate_stale_conformers(self) -> None:
-        # A structure edit invalidates whatever conformers existed before
-        # it -- they described the old structure, not this one. Published
-        # before MoleculeChanged so MainWindow's snapshot (conformer_count,
-        # lowest_conformer_energy) already reflects the cleared state.
+        """Drop conformers that described a DIFFERENT structure.
+
+        A structure edit invalidates whatever conformers existed before
+        it -- they described the old structure, not this one. Published
+        before MoleculeChanged so MainWindow's snapshot (conformer_count,
+        lowest_conformer_energy) already reflects the cleared state.
+
+        **COMPARED ON CANONICAL SMILES, because not every `change` from
+        the editor is a structure change.** Ketcher emits one for several
+        actions that annotate or tidy rather than edit -- Calculate CIP is
+        the sharpest case, since its whole purpose is to display R/S and
+        E/Z and it alters nothing. Measured in the running app before this
+        check existed: importing a molecule, generating conformers and
+        pressing "Calculate CIP (Stereo Descriptors)" took the count
+        **4 -> 0**, with the canonical SMILES identical either side. So a
+        read-only annotation destroyed the geometry it was annotating, and
+        the same held for Layout and Clean Up, which move atoms in 2D.
+
+        Constitution AND stereochemistry, which is what canonical SMILES
+        carries -- flipping a wedge really does invalidate a conformer,
+        and that still clears. The same comparison, for the same reason,
+        as `MoleculeEditorWidget._on_molecule_changed`: a coordinate
+        change is not a structure change.
+        """
         if not self._molecule.conformers:
+            return
+        if self._old_smiles is not None and self._molecule.canonical_smiles == self._old_smiles:
             return
         self._molecule.conformers = []
         self._event_bus.publish(ConformersInvalidated(molecule_uuid=self._molecule.uuid))

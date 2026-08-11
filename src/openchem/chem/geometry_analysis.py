@@ -65,13 +65,13 @@ class NoConformerError(ValueError):
 def _require_conformer(mol: Chem.Mol) -> Chem.Conformer:
     if mol.GetNumConformers() == 0:
         raise NoConformerError(
-            "This calculation needs a 3D conformer. Switch to the 3D Viewer tab and "
-            "click \"Generate Conformers...\" first."
+            "This calculation needs a 3D conformer. Generate one with "
+            "Structure ▸ Generate Conformers... first."
         )
     conformer = mol.GetConformer()
     if not conformer.Is3D():
         raise NoConformerError(
-            "The available conformer is 2D. Generate a real 3D conformer from the 3D Viewer tab."
+            "The available conformer is 2D. Generate a real 3D one with Structure ▸ Generate Conformers...."
         )
     return conformer
 

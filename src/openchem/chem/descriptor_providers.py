@@ -170,7 +170,9 @@ _SHAPE_DESCRIPTOR_SPECS: list[tuple[str, str, str]] = [
     ("pbf", "Plane of Best Fit", "Å"),
 ]
 
-_NEEDS_CONFORMER_ERROR = "Needs a real 3D conformer — generate one first (3D Viewer tab)."
+_NEEDS_CONFORMER_ERROR = (
+    "Needs a real 3D conformer — generate one first with Structure ▸ Generate Conformers...."
+)
 
 _sascorer_module: ModuleType | None = None
 

@@ -122,11 +122,86 @@ options this app only partly mirrors under View ▸ 2D Structure Display),
 and **polymer mode** — Ketcher can *draw* RNA/DNA/peptides, where the
 Macromolecule Viewer only shows one.
 
+### Seeing stereochemistry on the 2D canvas
+
+Three separate things, and they are **not** one "show stereo labels"
+switch — measured against the editor rather than assumed.
+
+**R/S and E/Z come from a calculation.** *Structure ▸ Calculate CIP Stereo
+Descriptors (R/S, E/Z)*, also offered under *View ▸ 2D Structure Display*
+(the same menu item, in two places). It labels stereocentres `(R)`/`(S)`
+and double bonds `(E)`/`(Z)` on the canvas. An atom whose configuration
+the drawing leaves open gets **no label** — nothing invents an
+assignment.
+
+**It is computed once, on demand.** Editing the structure afterwards does
+not recompute it, so a label can outlive the centre it describes; run it
+again after an edit. Loading a different structure clears the labels.
+
+The other two controls are about **enhanced stereo groups** — the ABS /
+AND / OR machinery for saying "this is the drawn enantiomer" versus "a
+mixture" — and neither of them shows R/S:
+
+- **Show Stereo Flags (ABS / AND / Mixed)** — the molecule-level caption.
+  A drawing imported from most file formats reads **AND Enantiomer**,
+  because the file's chiral flag is 0; a structure this app derives from
+  a 3D conformer reads **ABS**, because it sets that flag deliberately.
+- **Stereo Group Labels (abs, &1, or1)** — the per-centre tag, with four
+  settings: *IUPAC style* (the default — shown only where it adds
+  something the molecule-level flag does not), *Classic* (hidden when the
+  molecule has a single group), *On* (always), *Off* (never).
+
+**Lone pairs are not drawn, and no menu item pretends otherwise.** The 2D
+canvas has never been able to draw them. The count is per atom in the
+**Atom Inspector**, where it follows the formal charge — an amine
+nitrogen has 1, an ammonium nitrogen 0, an alkoxide oxygen 3. A metal
+gets no count rather than a wrong one, and a structure with an unpaired
+electron is declined outright: a singlet carbene has a donor pair where
+the triplet has two unpaired electrons, and a drawing does not say which.
+
+### Rotate 3D — turning a structure inside the 2D editor
+
+**Rotate 3D**, at the top of the 2D Editor tab, turns the structure in
+three dimensions and draws the result on the 2D canvas — a molecule in a
+literal 3D shape, in a 2D editor. Rulers appear down the left and across
+the top, and the live X/Y angles are shown both on the bar and at the
+right of the blue banner.
+
+While the mode is on, **dragging turns the molecule instead of drawing**,
+which is why the banner is there and why it is a mode you switch on
+rather than a modifier you hold. **Cancel** leaves it and puts the entry
+geometry back; letting go of a drag commits it as one undo step, so
+Ctrl+Z reverses a whole turn rather than a frame of one.
+
+**A flat drawing has nothing to turn**, so pressing the button on one
+does something different depending on what the molecule has:
+
+| the molecule has | pressing Rotate 3D |
+| --- | --- |
+| a conformer selected in the 3D viewer | draws that one, then rotates |
+| conformers, none selected | draws the lowest-energy one, then rotates |
+| no conformers at all | offers to generate, and stops there |
+
+The last row is deliberate. Turning an existing geometry is
+visualisation; creating one is a chemical operation that can *define*
+stereochemistry your drawing left open — see **What adopting a conformer
+decides for you** below — so it asks first and does nothing if the answer
+is no.
+
+Rotation itself changes coordinates and nothing else: same atoms, bonds,
+charges and stereocentres. If it ever appears to change one, the app
+refuses the whole rotation and says so rather than committing it.
+
 **3D Viewer** — 3Dmol, showing conformers. Style selector
 (stick / ball-and-stick / spacefill / line), conformer navigation, a
 distance/angle measurement readout, and molecular surfaces (vdW, SAS, MS)
-with an opacity control. Generate Conformers is here; conformers come back
-sorted by energy, so conformer 1 is the lowest.
+with an opacity control. Conformers come back sorted by energy, so
+conformer 1 is the lowest.
+
+**Generation no longer requires this tab.** *Structure ▸ Generate
+Conformers* runs the same dialog and the same service from anywhere, and
+so does the command palette (Ctrl+Shift+P, "conformers"). The 3D viewer
+is where you *look* at them.
 
 **You will often get fewer conformers than you asked for, and that is the
 answer rather than a failure.** Embedding is random, so asking for ten
@@ -207,6 +282,10 @@ The gallery needs a second 3D drawing surface from your display. Where one
 is not available — some remote sessions and software renderers — it says so
 and goes back to showing one conformer at a time.
 
+Conformer generation is on the **Structure** menu (and in the command
+palette) as well as in the 3D Viewer, so you never have to open a viewer
+to get one.
+
 **Use in 2D Editor** takes the conformer on screen — the one you navigated
 to, not the first — and hands the 2D editor **the 3D structure as you have
 it rotated**. The molblock keeps its z, the editor draws its x and y, so
@@ -234,6 +313,18 @@ conformer automatically, and still does. Stereochemistry survives the
 round trip — turning the camera can never change an R centre into an S
 one, and the drawing still declares itself a single enantiomer rather
 than a relative arrangement.
+
+**Bringing a geometry in can define stereochemistry your drawing left
+open, and it says so.** A bicyclo[2.2.2] cage's bridgeheads are
+unspecified in a flat drawing and assignable once the atoms have real
+positions, so adopting adds `-- and defined 2 stereocentres your drawing
+left open` to the status line. The molecule really has become more
+specific than you drew it, and that is worth knowing rather than
+discovering later.
+
+**If a geometry would CHANGE stereochemistry you had specified, it is
+refused.** An R centre that came back S is a different compound; nothing
+is committed and the drawing is left as it was.
 
 **Some angles put atoms on top of each other, and it will say so.** Look
 down the bridgehead axis of a bicyclo[2.2.2] cage — quinuclidine, DABCO, a
@@ -1144,7 +1235,7 @@ the structure:
 | Menu | Holds |
 |---|---|
 | **Edit** | Undo/redo, Copy Structure As, Paste Structure, Duplicate, Rename |
-| **Structure** | Aromatize/Dearomatize, Layout, Clean Up, explicit hydrogens, Calculate CIP, Check Structure |
+| **Structure** | Aromatize/Dearomatize, Layout, Clean Up, explicit hydrogens, CIP stereo descriptors, Generate Conformers, Check Structure |
 | **View** | Which panels are shown, and 2D Structure Display toggles |
 | **Tools** | Periodic Table, Identify Structure Online, Virtual Screening, External Tools |
 

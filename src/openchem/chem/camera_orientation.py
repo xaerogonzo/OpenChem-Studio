@@ -102,6 +102,45 @@ def camera_to_model_transform(view: Sequence[float] | None) -> Matrix3:
     )
 
 
+def rotation_from_degrees(x_degrees: float, y_degrees: float) -> Matrix3:
+    """A rotation from two drag angles, about FIXED SCREEN AXES.
+
+    **THE COMPOSITION ORDER IS `R_x . R_y`, and it is a decision.** Both
+    orders are proper rotations and both feel natural, and they differ:
+    45 degrees about x then 45 about y does not land where 45 about y
+    then 45 about x does. Written down here and asserted in
+    `tests/test_camera_orientation.py` so it cannot drift silently.
+
+    `x_degrees` is the rotation about the SCREEN's horizontal axis (a
+    vertical drag tips the molecule towards or away from the viewer) and
+    `y_degrees` about the vertical axis (a horizontal drag spins it).
+    That pairing is what makes a drag feel like grabbing the object
+    rather than steering a camera.
+
+    Applied to the geometry the rotation MODE was entered with, never
+    accumulated frame to frame: angles are absolute from entry, so
+    re-entering the mode reads 0, 0 and repeated drags cannot drift.
+    """
+    return _multiply(_about_x(math.radians(x_degrees)), _about_y(math.radians(y_degrees)))
+
+
+def _about_x(radians: float) -> Matrix3:
+    c, s = math.cos(radians), math.sin(radians)
+    return ((1.0, 0.0, 0.0), (0.0, c, -s), (0.0, s, c))
+
+
+def _about_y(radians: float) -> Matrix3:
+    c, s = math.cos(radians), math.sin(radians)
+    return ((c, 0.0, s), (0.0, 1.0, 0.0), (-s, 0.0, c))
+
+
+def _multiply(a: Matrix3, b: Matrix3) -> Matrix3:
+    return tuple(
+        tuple(sum(a[row][k] * b[k][col] for k in range(3)) for col in range(3))
+        for row in range(3)
+    )
+
+
 def determinant(matrix: Matrix3) -> float:
     """+1 for a proper rotation, -1 for one with a reflection in it.
 

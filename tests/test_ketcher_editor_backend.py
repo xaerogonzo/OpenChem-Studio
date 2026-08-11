@@ -157,6 +157,29 @@ def test_one_option_toggled_twice_before_ready_is_applied_once_with_the_last_val
     assert backend._pending_render_options == {}
 
 
+def test_rotation_is_refused_before_ready_rather_than_queued_or_faked(qapp):
+    """A GESTURE, so it is dropped -- and the caller is TOLD.
+
+    `window.openchemRotation` does not exist until `ketcherReady`, so
+    running the call in that window does nothing at all. Two ways to be
+    wrong, and this asserts against both: queueing it would put the user
+    in a mode they asked for seconds ago over whatever structure loaded
+    meanwhile (the `trigger_toolbar_action` reasoning), and answering
+    `True` would leave the host showing a banner, rulers and a live
+    readout over a canvas where dragging still draws bonds.
+    """
+    backend = KetcherEditorBackend()
+    calls: list[str] = []
+    backend._page.runJavaScript = lambda script, *a, **k: calls.append(script)
+
+    assert backend.start_rotation() is False
+    assert calls == [], calls
+
+    backend._ketcher_ready = True
+    assert backend.start_rotation() is True
+    assert len(calls) == 1 and "openchemRotation" in calls[0], calls
+
+
 def test_two_different_options_queued_before_ready_both_survive(qapp):
     """The complement, and the one a single-slot queue would fail.
 

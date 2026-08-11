@@ -237,9 +237,274 @@ function interceptUndoShortcuts() {
   )
 }
 
+
+// The rotation overlay's styles, injected rather than kept in a stylesheet:
+// this bundle has no CSS of its own beyond Ketcher's, and a second file
+// would be one more thing to remember to ship.
+const ROTATION_STYLES = `
+.openchem-rotate { position:absolute; inset:0; z-index:20; cursor:grab;
+                   background:rgba(25,118,210,0.03); }
+.openchem-rotate:active { cursor:grabbing; }
+.openchem-rotate .rot-banner {
+  position:absolute; top:0; left:0; right:0; height:24px; line-height:24px;
+  background:#1976d2; color:#fff; font:12px system-ui, sans-serif;
+  padding:0 10px; box-sizing:border-box; pointer-events:none; }
+.openchem-rotate .rot-readout { float:right; font-variant-numeric:tabular-nums; }
+.openchem-rotate .rot-ruler { position:absolute; pointer-events:none;
+  font:10px system-ui, sans-serif; color:#1976d2; }
+.openchem-rotate .rot-top { top:24px; left:0; right:0; height:16px;
+  border-bottom:1px solid rgba(25,118,210,0.35); }
+.openchem-rotate .rot-left { top:40px; left:0; bottom:0; width:34px;
+  border-right:1px solid rgba(25,118,210,0.35); }
+.openchem-rotate .rot-top .rot-tick { position:absolute; transform:translateX(-50%); }
+.openchem-rotate .rot-left .rot-tick { position:absolute; left:2px;
+                                       transform:translateY(-50%); }
+`
+
+function ensureRotationStyles() {
+  if (document.getElementById('openchem-rotate-styles')) return
+  const style = document.createElement('style')
+  style.id = 'openchem-rotate-styles'
+  style.textContent = ROTATION_STYLES
+  document.head.appendChild(style)
+}
+
+// --- 3D rotation mode --------------------------------------------------
+//
+// "we need the rotation rulers and live angle readouts too inside the 2d
+// editor definitely", against a MarvinSketch screenshot.
+//
+// **MEASURED BEFORE IT WAS BUILT** (the gate in
+// tests/test_ketcher_holds_3d_coordinates.py and its spike):
+//
+//   an atom's `pp` really carries a z, populated from a 3D molfile
+//   mutating positions + render.update fires NO `change` event
+//   Ketcher's own undo history is unchanged by the preview
+//   selection and the active tool survive, and atom 3 is still atom 3
+//   getMolfile afterwards reports the NEW coordinates
+//   ~32 ms per redraw at 20 atoms, ~40 ms at 32
+//
+// The last one is why a drag coalesces onto animation frames instead of
+// redrawing per mouse event: at 30 ms a frame, a queue of mousemoves
+// would run further and further behind the pointer.
+//
+// **ANGLES ARE ABSOLUTE FROM ENTRY, applied to a snapshot** rather than
+// accumulated frame to frame. That is what makes re-entering read 0, 0
+// and what stops repeated drags drifting.
+let rotationBase = null       // [{id, x, y, z}] as the mode was entered
+let rotationAngles = {x: 0, y: 0}
+let rotationFrame = null
+let rotationOverlay = null
+
+function enterRotationMode() {
+  if (!ketcherInstance) return
+  const struct = ketcherInstance.editor.struct()
+  rotationBase = []
+  struct.atoms.forEach(function (atom, id) {
+    rotationBase.push({id: id, x: atom.pp.x, y: atom.pp.y, z: atom.pp.z || 0})
+  })
+  rotationAngles = {x: 0, y: 0}
+  ensureRotationStyles()
+  buildRotationOverlay()
+  reportRotation()
+}
+
+function leaveRotationMode(restore) {
+  if (restore && rotationBase) applyRotation(0, 0)
+  rotationBase = null
+  rotationAngles = {x: 0, y: 0}
+  if (rotationOverlay) {
+    // **THE WINDOW LISTENERS COME OFF WITH IT.** A drag has to follow the
+    // pointer outside the overlay, so mousemove/mouseup live on `window`
+    // -- and a version of this that only removed the element left one
+    // pair behind per entry, for the life of the page. They were inert
+    // (each closure checks its own `dragging`), which is exactly why
+    // nothing would ever have noticed.
+    if (rotationOverlay.__openchemDetach) rotationOverlay.__openchemDetach()
+    rotationOverlay.remove()
+    rotationOverlay = null
+  }
+}
+
+// Applied to the SNAPSHOT, never to the current positions. Composition is
+// R_x . R_y, matching chem/camera_orientation.py's `rotation_from_degrees`
+// -- the two must agree, because Python is what finally writes the
+// molblock and a different order there would move the structure again on
+// commit.
+function applyRotation(xDegrees, yDegrees) {
+  if (!rotationBase || !ketcherInstance) return
+  const rx = (xDegrees * Math.PI) / 180
+  const ry = (yDegrees * Math.PI) / 180
+  const cx = Math.cos(rx), sx = Math.sin(rx)
+  const cy = Math.cos(ry), sy = Math.sin(ry)
+  const struct = ketcherInstance.editor.struct()
+
+  // Rotate about the CENTROID, so the structure turns in place instead of
+  // swinging around whatever the origin happens to be.
+  let mx = 0, my = 0, mz = 0
+  rotationBase.forEach(function (p) { mx += p.x; my += p.y; mz += p.z })
+  mx /= rotationBase.length; my /= rotationBase.length; mz /= rotationBase.length
+
+  rotationBase.forEach(function (p) {
+    const atom = struct.atoms.get(p.id)
+    if (!atom) return
+    const x0 = p.x - mx, y0 = p.y - my, z0 = p.z - mz
+    // R_y first, then R_x -- the same order Python composes.
+    const x1 = x0 * cy + z0 * sy
+    const z1 = -x0 * sy + z0 * cy
+    const y2 = y0 * cx - z1 * sx
+    const z2 = y0 * sx + z1 * cx
+    atom.pp.x = x1 + mx
+    atom.pp.y = y2 + my
+    atom.pp.z = z2 + mz
+  })
+  ketcherInstance.editor.render.update(true)
+}
+
+function scheduleRotation() {
+  // Coalesced onto one animation frame: a redraw costs ~30 ms, so one
+  // per mousemove would fall progressively behind the pointer.
+  if (rotationFrame !== null) return
+  rotationFrame = window.requestAnimationFrame(function () {
+    rotationFrame = null
+    applyRotation(rotationAngles.x, rotationAngles.y)
+    reportRotation()
+  })
+}
+
+function reportRotation() {
+  if (bridgeObject) bridgeObject.rotationAngles(rotationAngles.x, rotationAngles.y)
+  if (rotationOverlay) {
+    const readout = rotationOverlay.querySelector('.rot-readout')
+    if (readout) {
+      readout.textContent =
+        'X ' + Math.round(rotationAngles.x) + '°   Y ' + Math.round(rotationAngles.y) + '°'
+    }
+  }
+}
+
+// Rulers along the top and left, and a banner. The mode deliberately
+// steals the drag gesture, so it has to be unmistakable that drawing is
+// not what a drag will do.
+// The DRAWING SURFACE, not the whole editor.
+//
+// **PICKED BY AREA, never by class name.** Ketcher's canvas has no stable
+// public selector and its toolbars are full of small inline `<svg>` icons,
+// so "the biggest svg under the root" identifies it without depending on
+// a Ketcher internal that a version bump would rename. Measured in the
+// running app: covering the whole root instead drew the degree ruler
+// straight across the toolbars, which reads as a broken overlay rather
+// than as an inert toolbar.
+//
+// Returns null when there is nothing to measure, and the caller then
+// covers everything -- a mode that fails to cover the canvas would let a
+// drag draw a bond, which is far worse than an untidy ruler.
+function canvasBounds(host) {
+  const outer = host.getBoundingClientRect()
+  let best = null, bestArea = 0
+  const svgs = host.querySelectorAll('svg')
+  for (let i = 0; i < svgs.length; i++) {
+    const rect = svgs[i].getBoundingClientRect()
+    const area = rect.width * rect.height
+    if (area > bestArea) { bestArea = area; best = rect }
+  }
+  if (!best || bestArea < 100) return null
+  return {
+    left: best.left - outer.left,
+    top: best.top - outer.top,
+    width: best.width,
+    height: best.height
+  }
+}
+
+function positionRotationOverlay(overlay) {
+  const bounds = canvasBounds(overlay.parentNode)
+  if (!bounds) return
+  overlay.style.left = bounds.left + 'px'
+  overlay.style.top = bounds.top + 'px'
+  overlay.style.right = 'auto'
+  overlay.style.bottom = 'auto'
+  overlay.style.width = bounds.width + 'px'
+  overlay.style.height = bounds.height + 'px'
+}
+
+function buildRotationOverlay() {
+  const host = document.querySelector('.Ketcher-root') || document.body
+  const overlay = document.createElement('div')
+  overlay.className = 'openchem-rotate'
+  overlay.innerHTML =
+    '<div class="rot-banner">3D rotation — drag to turn' +
+    '<span class="rot-readout">X 0°   Y 0°</span></div>' +
+    '<div class="rot-ruler rot-top"></div><div class="rot-ruler rot-left"></div>'
+  host.appendChild(overlay)
+  rotationOverlay = overlay
+  positionRotationOverlay(overlay)
+  drawRulerTicks(overlay)
+
+  let dragging = false
+  let startX = 0, startY = 0, baseX = 0, baseY = 0
+  overlay.addEventListener('mousedown', function (event) {
+    dragging = true
+    startX = event.clientX; startY = event.clientY
+    baseX = rotationAngles.x; baseY = rotationAngles.y
+    event.preventDefault()
+  })
+  const onMove = function (event) {
+    if (!dragging) return
+    // Half a degree per pixel: a full turn is a comfortable drag across
+    // a typical canvas rather than a flick.
+    rotationAngles.y = baseY + (event.clientX - startX) * 0.5
+    rotationAngles.x = baseX + (event.clientY - startY) * 0.5
+    scheduleRotation()
+  }
+  const onUp = function () {
+    if (!dragging) return
+    dragging = false
+    if (bridgeObject) bridgeObject.rotationFinished()
+  }
+  const onResize = function () { positionRotationOverlay(overlay) }
+  window.addEventListener('mousemove', onMove)
+  window.addEventListener('mouseup', onUp)
+  window.addEventListener('resize', onResize)
+  overlay.__openchemDetach = function () {
+    window.removeEventListener('mousemove', onMove)
+    window.removeEventListener('mouseup', onUp)
+    window.removeEventListener('resize', onResize)
+  }
+}
+
+function drawRulerTicks(overlay) {
+  const top = overlay.querySelector('.rot-top')
+  const left = overlay.querySelector('.rot-left')
+  for (let degrees = -180; degrees <= 180; degrees += 30) {
+    const horizontal = document.createElement('span')
+    horizontal.className = 'rot-tick'
+    horizontal.style.left = (50 + degrees / 3.6) + '%'
+    horizontal.textContent = degrees + '°'
+    top.appendChild(horizontal)
+    const vertical = document.createElement('span')
+    vertical.className = 'rot-tick'
+    vertical.style.top = (50 + degrees / 3.6) + '%'
+    vertical.textContent = degrees + '°'
+    left.appendChild(vertical)
+  }
+}
+
 function handleKetcherInit(ketcher) {
   ketcherInstance = ketcher
   window.ketcher = ketcher // used by Python's fire-and-forget runJavaScript calls (e.g. setMolecule)
+  // The rotation mode is driven from Python. **This assignment is what
+  // keeps the code in the bundle at all**: without a reference reachable
+  // from the entry point, vite tree-shakes every rotation function away
+  // and the feature is silently absent -- which is exactly what
+  // test_ketcher_bundle_is_current.py caught the first time round.
+  window.openchemRotation = {
+    enter: enterRotationMode,
+    leave: leaveRotationMode,
+    angles: function () {
+      return JSON.stringify(rotationAngles)
+    },
+  }
   tryWireBridge()
 }
 

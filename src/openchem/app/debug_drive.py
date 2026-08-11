@@ -33,6 +33,7 @@ The script is a JSON list of steps, run in order:
       {"do": "calculator", "id": "admet_ml", "parameters": {"tier": "basic"},
                            "after_ms": 45000},
       {"do": "shot",       "path": "C:/tmp/admet.png"},
+      {"do": "rotate",     "dx": 120, "dy": -40},
       {"do": "quit"}
     ]
 
@@ -260,6 +261,71 @@ class _Driver:
             molecule,
             num_conformers=int(step.get("count", 3)),
             optimize=bool(step.get("optimize", True)),
+        )
+
+    def _do_editor_action(self, step: dict[str, Any]) -> None:
+        """Press one of Ketcher's own toolbar buttons by its `data-testid`.
+
+        The same route `_add_editor_action`'s menu items take, so what is
+        measured is what a user gets -- including whatever the button
+        makes Ketcher emit afterwards, which is the interesting part.
+        """
+        self._window._editor.trigger_toolbar_action(str(step["id"]))
+
+    def _do_report(self, step: dict[str, Any]) -> None:
+        """Log a few facts about the selected molecule, so a run can
+        assert on state rather than on a screenshot."""
+        window = self._window
+        molecule = window._session.project.find_molecule(
+            window._property_panel._selected_molecule_uuid
+        )
+        if molecule is None:
+            logger.warning("OPENCHEM_DRIVE: report -- no molecule selected")
+            return
+        logger.warning(
+            "OPENCHEM_DRIVE: report %s conformers=%d undo=%d smiles=%s",
+            step.get("tag", ""),
+            len(molecule.conformers),
+            window._undo_stack.count(),
+            molecule.canonical_smiles,
+        )
+
+    def _do_rotate(self, step: dict[str, Any]) -> None:
+        """Turn the structure in the 2D editor, as a real drag.
+
+        **SYNTHESISED ON THE PAGE, not through the machine's input
+        queue** -- same reason as every other step here, and the same
+        reason the rotation tests do it this way: the overlay's handlers
+        are ordinary DOM listeners, so dispatching to them exercises the
+        whole path (rulers, readout, the commit on mouseup) without the
+        cursor moving or the window needing focus.
+
+        `dx`/`dy` are pixels of drag, which the mode reads as half a
+        degree each -- so `{"dx": 120}` is 60 degrees about the vertical
+        axis. Deliberately NOT angles: a step that set the angles
+        directly would skip the gesture, and the gesture is the thing
+        being checked.
+        """
+        editor = self._window._editor
+        editor._rotate_button.setChecked(True)
+        dx, dy = int(step.get("dx", 120)), int(step.get("dy", 0))
+        editor._backend._page.runJavaScript(
+            """
+            (function () {
+              var o = document.querySelector('.openchem-rotate');
+              if (!o) { return 'no overlay -- is the drawing flat?'; }
+              function at(type, target, x, y) {
+                target.dispatchEvent(new MouseEvent(
+                  type, {clientX: x, clientY: y, bubbles: true}));
+              }
+              at('mousedown', o, 200, 200);
+              at('mousemove', window, %d, %d);
+              at('mouseup', window, %d, %d);
+              return 'dragged';
+            })();
+            """
+            % (200 + dx, 200 + dy, 200 + dx, 200 + dy),
+            lambda result: logger.warning("OPENCHEM_DRIVE: rotate -> %s", result),
         )
 
     def _do_dump(self, step: dict[str, Any]) -> None:
