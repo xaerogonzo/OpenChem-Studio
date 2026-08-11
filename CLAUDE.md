@@ -117,13 +117,19 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-9.5 minutes**, ending at `3862 passed, 8 skipped,
-1 deselected` (measured 2026-08-10 on branch `conformer-comparison`,
-after making conformers comparable, putting the 3D shape into the 2D
-editor, and the gallery: +4 for the Ketcher 3D gate, +21 for display
-alignment, camera retention and relative energies, +29 for the
-camera-oriented drawing, +13 for the gallery and +13 for the
-generation controls, over the 3765 below).
+A clean run is **6-9.5 minutes**, ending at `3936 passed, 8 skipped,
+1 deselected` (measured 2026-08-11 on clean `master` at the
+`editor-as-workspace` merge, 9m03 -- and on the merge commit itself
+rather than on the branch, which is a rule this file learned the hard
+way. +40 for rotating in the 2D editor and +34 for the stereo/lone-pair
+work, over the 3862 below).
+
+Before it: 3862 on branch `conformer-comparison`, after making
+conformers comparable, putting the 3D shape into the 2D editor, and the
+gallery: +4 for the Ketcher 3D gate, +21 for display alignment, camera
+retention and relative energies, +29 for the camera-oriented drawing,
++13 for the gallery and +13 for the generation controls, over the 3765
+below.
 
 **The skip count went 2 -> 7, and the five are deliberate.** The
 page-level gallery tests need a second WebGL context, which Qt's
@@ -1090,6 +1096,63 @@ Editing `tools/ketcher-host/src/main.jsx` requires `npm run build` in that
 directory for anything to change; `resources/ketcher/dist/` is build
 output. node and npm are installed, and a build takes about a minute
 (measured 54 s and 1m00 on two bond-selection rebuilds).
+
+#### KETCHER'S MOLBLOCK IS NOT IN ANGSTROM, and nothing said so
+
+Anything that takes `getMolfile` output and treats it as a measurement
+has to restore the scale first. Measured against the real bundle:
+cyclohexane loaded with C-C at **1.5301 A** comes back at **1.0702**, a
+uniform **x0.6994** on every bond. Ketcher normalises bond lengths to its
+own unit on load and writes that out.
+
+**Harmless for as long as the canvas only ever held a LAYOUT**, which is
+why it went unnoticed for the life of the project -- a 2D depiction's
+coordinates are arbitrary units and nothing reads them as distances. The
+moment the canvas holds a GEOMETRY (the rotation mode, the adopted
+conformer) it is a 30% error in every bond length.
+
+**It hides from almost every check.** A uniform scale preserves the atom
+order, the bond orders, the formal charges, the CIP labels, the
+fingerprint, and the SIGN of the oriented volume. Only a LENGTH or an
+ENERGY sees one. That is why `RotateStructureCommand` asserts MMFF energy
+as a separate invariant, and a mutation confirms it is the sole guard
+that catches a unimodular shear -- the other plausible wrong matrix,
+which has det exactly 1 and so preserves chirality too.
+
+`ChemistryEngine.rescale_like` fits the factor by least squares over
+every pairwise distance and returns the RESIDUAL, which is the thing that
+says the motion was rigid at all. Three ways to not be a rotation, each
+blind to the others:
+
+    a reflection   preserves every distance   only stereochemistry sees it
+    a shear        det exactly 1              only the distances see it
+    a scale        preserves both of those    only a length or energy does
+
+The corollary that bit separately: **a zero-distance drag cannot be
+detected by comparing molblock TEXT.** The editor's copy is at Ketcher's
+scale, so the incoming string differs from the model's on every drag
+including the ones that moved nothing -- a check that looks obviously
+correct and is never true. `RotateStructureCommand.moved` answers on the
+geometry, after the rescale.
+
+#### A KETCHER TOOLBAR ACTION CAN FIRE `change` WITHOUT CHANGING ANYTHING
+
+And this app turned that into an `EditStructureCommand`, which cleared
+the conformer set. Measured in the running app -- import, generate
+conformers, press *Calculate CIP (Stereo Descriptors)*:
+
+    conformers 4 -> 0,  canonical SMILES IDENTICAL either side
+
+So a read-only annotation destroyed the geometry it was annotating.
+Layout and Clean Up have the same shape, as does dragging an atom.
+
+`_invalidate_stale_conformers` now compares canonical SMILES, which is
+the same discriminator `MoleculeEditorWidget._on_molecule_changed`
+already uses and for the same reason: **a coordinate change is not a
+structure change.** Constitution AND stereochemistry, so flipping a wedge
+still clears -- a conformer of the R enantiomer is not a conformer of the
+S one, and anything comparing formulas or heavy-atom graphs would call
+that edit a no-op.
 
 #### KETCHER KEEPS 3D COORDINATES, including through an edit
 
