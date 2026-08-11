@@ -126,11 +126,11 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-13 minutes**, ending at `4154 passed, 8 skipped,
+A clean run is **6-13 minutes**, ending at `4176 passed, 8 skipped,
 1 deselected` (measured 2026-08-11 on branch `full-lewis-structure`,
-12m15. +139 for the full Lewis structure -- the resonance gate, the
-model, the SVG renderer, the RDKit builder and the dialog -- over the
-4015 below).
+11m25, with an earlier run of the same branch at 12m15. +161 for the full
+Lewis structure -- the resonance gate, the model, the SVG renderer, the
+RDKit builder and the dialog -- over the 4015 below).
 
 Before it: 4015 on branch `lone-pairs-on-the-canvas`, 11m43 and 12m47 on
 two consecutive runs. +79 for drawing lone pairs on the canvas, over the
@@ -147,10 +147,11 @@ the thing it actually runs on, and it is worth paying; see the
 lone-pair sections below for what those tests caught. Do not read 12
 minutes as a hang.
 
-**The 139 Lewis tests did NOT widen it further** -- they build no webview
-and the whole set runs in about 1.5 s. A test count and a wall clock are
+**The 161 Lewis tests did NOT widen it further** -- they build no webview
+and the whole set runs in about 2 s. A test count and a wall clock are
 not the same measurement here, and it is the webview files that decide
-the second one.
+the second one: the branch's two full runs came in at 12m15 and 11m25,
+the FASTER of them being the one with 24 more tests in it.
 
 Before it: 3936 on clean `master` at the `editor-as-workspace` merge,
 9m03 -- measured on the merge commit itself rather than on the branch,
