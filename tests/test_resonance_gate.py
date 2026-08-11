@@ -284,9 +284,17 @@ def test_FORMAL_CHARGES_DO_MOVE_so_they_come_from_the_input():
 def test_the_enumeration_is_small_and_fast_on_hard_systems():
     """Anthracene 4, pentacene 6, porphine 2 -- and none reaches even 16.
 
-    Recorded because the fail-closed truncation path is untestable
-    through ordinary input, so its existence rests on this being
-    headroom rather than a working limit.
+    So the cap is headroom rather than a working limit, which is what
+    makes the fail-closed branch a safety net instead of everyday
+    behaviour.
+
+    **This measurement is why that branch was for a long time SHIPPED AND
+    NEVER RUN.** No ordinary input reaches the cap, so nothing exercised
+    it, and a mutation making it unreachable survived the whole suite.
+    `test_lewis_builder.py::test_a_TRUNCATED_enumeration_fails_closed`
+    now reaches it by lowering the cap instead of by hunting a monstrous
+    molecule; this test is its control, and the two only mean something
+    together.
     """
     for smiles, expected in (
         ("c1ccc2cc3ccccc3cc2c1", 4),

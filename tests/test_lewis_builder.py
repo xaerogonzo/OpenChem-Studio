@@ -294,6 +294,73 @@ def test_crowding_is_a_LEGIBILITY_number_and_not_a_refusal():
     assert crowding(crowded) < CROWDED_APPROACH
 
 
+def test_a_TRUNCATED_enumeration_fails_closed(monkeypatch):
+    """Invariant 7, and nothing was exercising it.
+
+    **Found by mutation.** Making the truncation branch unreachable
+    SURVIVED the whole suite: no fixture comes anywhere near the cap --
+    `test_the_enumeration_is_small_and_fast_on_hard_systems` records
+    pentacene at 6 against a limit of 256 -- so the fail-closed path was
+    shipped, documented, and never once run.
+
+    Reaching it by LOWERING THE CAP rather than by finding a monstrous
+    molecule is the honest way in: the constant is a tunable, the
+    behaviour under it is the contract, and a fixture large enough to
+    truncate for real would also be slow enough that nobody keeps it.
+
+    A stopped enumeration cannot establish a minimum bond order, so
+    nothing may be asserted about a delocalised bond -- and asserting the
+    minimum it happens to have seen is exactly the plausible-looking
+    Kekule structure this whole feature exists to avoid.
+    """
+    import openchem.chem.lewis_builder as builder
+
+    monkeypatch.setattr(builder, "MAX_RESONANCE_STRUCTURES", 2)
+    diagram = build(molblock("c1ccccc1"))
+
+    ring = [
+        bond
+        for bond in diagram.bond_pairs
+        if diagram.atoms[bond.begin].symbol == "C"
+        and diagram.atoms[bond.end].symbol == "C"
+    ]
+    assert len(ring) == 6, "the fixture is not the benzene ring any more"
+    assert all(isinstance(bond.pairs, Unknown) for bond in ring), [
+        bond.pairs for bond in ring
+    ]
+
+    assert diagram.status is Status.SUPPORTED_WITH_ABSTENTIONS
+    assert len(diagram.abstentions) == 6
+    assert all("too many" in a.reason for a in diagram.abstentions), diagram.abstentions
+
+    # The C-H bonds are NOT delocalised, so truncation says nothing about
+    # them and they keep their pair. Fail-closed means withholding what
+    # the enumeration could not establish, not withholding everything.
+    hydrogens = [
+        bond
+        for bond in diagram.bond_pairs
+        if diagram.atoms[bond.begin].symbol == "H"
+        or diagram.atoms[bond.end].symbol == "H"
+    ]
+    assert len(hydrogens) == 6
+    assert all(bond.pairs == Known(1) for bond in hydrogens)
+
+
+def test_the_cap_is_high_enough_that_truncation_is_headroom(monkeypatch):
+    """The control for the test above.
+
+    Lowering the cap proves the branch WORKS; this proves it is not
+    reached in ordinary use, which is the other half of the claim. Both
+    are needed: without this one, a cap of 2 would pass the guard above
+    while making every aromatic molecule in the app abstain.
+    """
+    diagram = build(molblock("c1ccccc1"))
+
+    assert diagram.status is Status.SUPPORTED
+    assert diagram.abstentions == ()
+    assert all(isinstance(bond.pairs, Known) for bond in diagram.bond_pairs)
+
+
 def _with_coords(mol):
     copy = Chem.Mol(mol)
     AllChem.Compute2DCoords(copy)

@@ -289,11 +289,23 @@ def test_a_region_whose_count_is_UNKNOWN_never_prints_as_a_number(dialog):
 
 def test_abstentions_are_printed_verbatim_with_their_subject(dialog):
     """"Some bonds were omitted" tells nobody anything. Which bond, and
-    why, is the whole value of the panel."""
+    why, is the whole value of the panel.
+
+    **IT ASSERTS ITS OWN SETUP, and the first version skipped instead.**
+    Dimethyl sulfone abstains because its sulfur carries an expanded
+    octet; a `pytest.skip` when nothing abstained meant the guard
+    disabled itself under exactly the mutation it exists to catch --
+    measured, removing the expanded-octet abstention turned this test
+    into a skip and the mutation scored as an invalid arm rather than a
+    survivor. A missing abstention here is a failure, not a reason to
+    stand down.
+    """
     window = dialog("CS(=O)(=O)C")
 
-    if not window.diagram.abstentions:
-        pytest.skip("this fixture no longer abstains; pick another")
+    assert window.diagram.abstentions, (
+        "dimethyl sulfone's sulfur has an expanded octet and must abstain; "
+        "with nothing abstaining this test would assert nothing"
+    )
     text = window.details_text()
     for abstention in window.diagram.abstentions:
         assert abstention.subject in text
