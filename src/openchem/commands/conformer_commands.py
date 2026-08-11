@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 
 from openchem.chem.engine import ChemistryEngine
+from openchem.chem.stereochemistry import StereochemistryConflict
 from openchem.commands.base import OpenChemCommand
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.molecule import MoleculeModel
@@ -67,7 +68,21 @@ class AdoptConformerCommand(OpenChemCommand):
         # an equivalent mutation and no test can catch it. Deriving it
         # from `self._molecule.molblock` -- which after an undo is the
         # original drawing -- is a real bug and is caught.
-        drawing = engine.drawing_from_conformer(conformer_molblock, view=view)
+        # The molecule's own drawing goes in as the reference, so the
+        # command can see what this geometry did to its stereochemistry.
+        drawing = engine.drawing_from_conformer(
+            conformer_molblock, view=view, reference=molecule.molblock
+        )
+        # **REFUSED IN THE CONSTRUCTOR, so nothing reaches the undo
+        # stack.** An explicitly drawn R that embeds as S is a different
+        # compound; there is no status line that makes committing it
+        # acceptable. Perception going backwards -- assigned to
+        # unspecified -- is refused too, because after a rigid transform
+        # that is a bug rather than a result.
+        if drawing.stereo is not None and not drawing.stereo.safe:
+            raise StereochemistryConflict(
+                f"This geometry {drawing.stereo.describe()}."
+            )
         self._new_molblock = drawing.molblock
         #: False when this molecule's geometry cannot be drawn flat
         #: without atoms overlapping, so the drawing is a plain layout
@@ -77,6 +92,10 @@ class AdoptConformerCommand(OpenChemCommand):
         #: True when atoms are drawn close enough to be hard to tell
         #: apart at the angle asked for. Also for the caller to say.
         self.crowded = drawing.crowded
+        #: What the geometry did to the structure's stereochemistry.
+        #: Safe by construction -- an unsafe one raised above -- but
+        #: not necessarily quiet, and the caller is expected to say so.
+        self.stereo = drawing.stereo
 
     def redo(self) -> None:
         self._engine.set_structure_from_molblock(self._molecule, self._new_molblock)

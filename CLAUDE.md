@@ -117,7 +117,7 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-9.5 minutes**, ending at `3846 passed, 8 skipped,
+A clean run is **6-9.5 minutes**, ending at `3862 passed, 8 skipped,
 1 deselected` (measured 2026-08-10 on branch `conformer-comparison`,
 after making conformers comparable, putting the 3D shape into the 2D
 editor, and the gallery: +4 for the Ketcher 3D gate, +21 for display
@@ -1727,6 +1727,56 @@ catching `TypeError` -- which would also swallow a real one raised from
 inside the provider. Same instinct as the `NOT abstract, so a provider
 written against the original interface keeps working` note already on
 that method.
+
+#### A GEOMETRY CAN DEFINE STEREOCHEMISTRY, and that is not the same as the drawing specifying it
+
+Reported as two things that were one. Adopting a conformer of a
+benzobicyclo[2.2.2]octane changed the molecule's identity:
+
+    as drawn         [(6, 'R'), (14, '?'), (17, '?')]
+    after adopting   [(6, 'R'), (14, 'S'), (17, 'S')]
+
+and the naming panel then withheld a name that had not changed. **The
+nomenclature engine was innocent** -- it derives the same name for both,
+that name cannot express bridgehead stereo, and only the round-trip
+comparison changed its mind. Chasing the namer would have been chasing
+the symptom.
+
+**The perception is not authority.** Once atoms have positions RDKit will
+label centres a flat drawing left open, but that label is a consequence of
+the geometry that happened to be generated. Interconverting conformations,
+symmetric environments, pseudoasymmetric centres and stereogenic
+axes/planes all sit outside what one embedded conformer settles. So
+`chem/stereochemistry.py` REPORTS rather than asserts, with four outcomes
+and two refusals:
+
+    unchanged                commit silently, however far the atoms moved
+    unspecified -> assigned  commit, and say so
+    assigned -> DIFFERENT    REFUSE -- a different compound
+    assigned -> unspecified  REFUSE -- perception going backwards after a
+                             rigid transform is a bug, not a result
+
+Refused in the COMMAND CONSTRUCTOR, so nothing reaches the undo stack.
+
+**`verify_name_round_trip` returns a verdict, not a bool.** `MATCH` /
+`STEREO_OMITTED` / `MISMATCH` / `UNVERIFIED`, the same move the naming
+benchmark made when it added its `tautomer` class. `STEREO_OMITTED`
+requires BOTH that the name parsed AND that the skeletons agree while the
+full SMILES disagree -- SMILES inference alone would only establish that
+two structures differ stereochemically, which is a different claim from
+the name being valid for either. Benchmark unmoved at **181/181**.
+
+Two mutations worth keeping:
+
+- **An empty clause is invisible to a substring assertion.** Appending
+  the description unconditionally gave `"...rotated in 3D -- and ."`,
+  which contains no "stereocentre" and passed the guard that was meant to
+  catch exactly that. Assert the SHAPE of the message, not only its
+  absence of a word.
+- **`includeUnassigned=True` is not load-bearing.** `compare_*` reads the
+  label dicts with `.get(index, UNSPECIFIED)`, so an absent atom already
+  compares as unspecified and every outcome is identical with the flag
+  off. Kept for readability; recorded so nobody re-derives it.
 
 #### The gallery reads a DIFFERENT camera, and Phase 2's tests could not see it
 

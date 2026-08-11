@@ -327,6 +327,24 @@ of 2H-azirine embeddings, a rigid three-membered ring, converged to a
 distorted minimum 10.7 kcal/mol up with a stretched C=N and were reported
 as a second conformer.
 
+**A conformer can make stereochemistry ASSIGNABLE. That is not the same
+as the molecule being stereochemically specified.** Once atoms have real
+positions, RDKit's perception will label centres a flat drawing left
+open — a bicyclo[2.2.2] cage's bridgeheads are the case that exposed
+this. The label is a consequence of the geometry that happened to be
+generated, not evidence that the drawn structure specified it, and
+interconverting conformations, symmetric environments, pseudoasymmetric
+centres and stereogenic axes or planes all sit outside what a single
+embedded conformer can settle. The application therefore *reports* when
+a geometry has done this rather than treating the perception as
+authoritative, and *refuses* outright when a geometry would change or
+erase stereochemistry that was already specified.
+
+A consequence worth knowing: a derived IUPAC name may then be less
+specific than the structure. The name is shown with a note saying so,
+rather than withheld — the nomenclature engine is not wrong, it simply
+cannot express what the geometry added.
+
 **The generation controls emulate Marvin's, not its algorithms.** The
 diversity threshold, optimisation level, time limit and refinement pass
 are modelled on ChemAxon's Generate3D options because those are the knobs

@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
 from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
 from openchem.chem.identifiers import identifier_for_molblock
+from openchem.chem.stereochemistry import StereochemistryConflict
 from openchem.chem.structure_clipboard import parse_structure_text
 from openchem.commands.conformer_commands import (
     AdoptConformerCommand,
@@ -1919,6 +1920,17 @@ class MainWindow(QMainWindow):
                 # the stack, which is what makes destruction safe here.
                 on_applied=self._editor.set_molecule,
             )
+        except StereochemistryConflict as exc:
+            # Not an error to shrug at: the geometry would have made this
+            # a different compound. Refused before anything was pushed.
+            logger.warning("Refused a conformer that would change stereochemistry: %s", exc)
+            QMessageBox.warning(
+                self,
+                "Use in 2D Editor",
+                f"{exc}\n\nThe drawing has been left as it was. Pick a different "
+                "conformer, or correct the stereochemistry in the editor first.",
+            )
+            return
         except Exception as exc:  # noqa: BLE001 - a bad conformer must not kill the window
             logger.exception("Could not adopt the conformer")
             QMessageBox.warning(self, "Use in 2D Editor", f"Could not use this conformer: {exc}")
@@ -1948,7 +1960,13 @@ class MainWindow(QMainWindow):
             )
         else:
             message = f"{molecule.display_name}: redrawn as you have it rotated in 3D."
-        self.statusBar().showMessage(message, 8000)
+        # **A GEOMETRY CAN MAKE STEREOCHEMISTRY ASSIGNABLE**, and the app
+        # says so rather than letting the molecule quietly become more
+        # specific than it was drawn. See `chem/stereochemistry.py` for
+        # why that is not the same as the structure having specified it.
+        if command.stereo is not None and not command.stereo.quiet:
+            message = f"{message[:-1]} -- and {command.stereo.describe()}."
+        self.statusBar().showMessage(message, 10000)
 
     def _insert_element_into_drawing(self, symbol: str) -> None:
         """Arm the 2D editor with an element chosen in the periodic table.

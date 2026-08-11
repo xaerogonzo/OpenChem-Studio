@@ -197,3 +197,45 @@ def test_adopting_a_conformer_shows_the_editor(qapp, tmp_path):
     _drain(qapp)
 
     assert window._center_tabs.currentWidget() is window._editor
+
+
+def test_adopting_says_when_it_defined_stereochemistry(qapp, tmp_path):
+    """The molecule must not quietly become more specific than it was drawn.
+
+    Reported as two things that were one: the structure changed identity
+    and the naming panel then withheld a name that had not changed. The
+    status line now names what happened, so the second is explicable.
+    """
+    window, services = _build_window(qapp, tmp_path)
+    molecule = _molecule_with_real_conformer(
+        services, smiles="COc1cc(C[C@@H](C)N)c2c(c1OC)C1CCC2CC1"
+    )
+    window.add_molecule(molecule)
+    _drain(qapp)
+
+    window._adopt_conformer(molecule.conformers[0].molblock)
+    _drain(qapp)
+
+    message = window.statusBar().currentMessage()
+    assert "stereocentre" in message, message
+
+
+def test_adopting_stays_quiet_when_nothing_stereochemical_happened(qapp, tmp_path):
+    """Both directions, or a message that always fires would pass. Hexanol
+    has no stereocentre to define, so the sentence must not appear."""
+    window, services = _build_window(qapp, tmp_path)
+    molecule = _molecule_with_real_conformer(services)
+    window.add_molecule(molecule)
+    _drain(qapp)
+
+    window._adopt_conformer(molecule.conformers[0].molblock)
+    _drain(qapp)
+
+    message = window.statusBar().currentMessage()
+    assert "stereocentre" not in message
+    # **AND NO EMPTY CLAUSE.** A version that appended the description
+    # unconditionally produced "...rotated in 3D -- and ." -- which
+    # contains no "stereocentre" and passed the assertion above. Measured
+    # as a surviving mutation.
+    assert "-- and" not in message, message
+    assert message.endswith("."), message

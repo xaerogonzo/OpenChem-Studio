@@ -207,6 +207,10 @@ The gallery needs a second 3D drawing surface from your display. Where one
 is not available — some remote sessions and software renderers — it says so
 and goes back to showing one conformer at a time.
 
+Conformer generation is on the **Structure** menu (and in the command
+palette) as well as in the 3D Viewer, so you never have to open a viewer
+to get one.
+
 **Use in 2D Editor** takes the conformer on screen — the one you navigated
 to, not the first — and hands the 2D editor **the 3D structure as you have
 it rotated**. The molblock keeps its z, the editor draws its x and y, so
@@ -234,6 +238,18 @@ conformer automatically, and still does. Stereochemistry survives the
 round trip — turning the camera can never change an R centre into an S
 one, and the drawing still declares itself a single enantiomer rather
 than a relative arrangement.
+
+**Bringing a geometry in can define stereochemistry your drawing left
+open, and it says so.** A bicyclo[2.2.2] cage's bridgeheads are
+unspecified in a flat drawing and assignable once the atoms have real
+positions, so adopting adds `-- and defined 2 stereocentres your drawing
+left open` to the status line. The molecule really has become more
+specific than you drew it, and that is worth knowing rather than
+discovering later.
+
+**If a geometry would CHANGE stereochemistry you had specified, it is
+refused.** An R centre that came back S is a different compound; nothing
+is committed and the drawing is left as it was.
 
 **Some angles put atoms on top of each other, and it will say so.** Look
 down the bridgehead axis of a bicyclo[2.2.2] cage — quinuclidine, DABCO, a

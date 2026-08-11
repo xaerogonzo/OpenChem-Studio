@@ -38,6 +38,8 @@ TWO FAILURE MODES CONFIRMED LIVE, both of which look like success:
 
 from __future__ import annotations
 
+from enum import Enum
+
 import json
 import logging
 import os
@@ -344,12 +346,21 @@ def derived_name_for_structure(mol: Chem.Mol) -> NameResult:
         raise NamingError("The nomenclature engine produced no name for this structure.")
 
     verified = verify_name_round_trip(str(name), mol)
-    if verified is False:
+    if verified is RoundTrip.MISMATCH:
         raise NamingError(
             "A name was derived but did not parse back to this structure, so it is "
             "being withheld rather than shown."
         )
-    note = "" if verified else "Not verified: no offline parser available to check it."
+    if verified is RoundTrip.STEREO_OMITTED:
+        # SHOWN, with what it leaves out. The name is right about the
+        # skeleton and silent about stereochemistry the structure carries
+        # -- which is a fact worth having, and withholding it reads as
+        # the namer having failed.
+        note = "This name does not express stereochemistry present in the structure."
+    elif verified is RoundTrip.UNVERIFIED:
+        note = "Not verified: no offline parser available to check it."
+    else:
+        note = ""
     return NameResult(name=str(name), source="Nomenclature engine", kind=DERIVED, note=note)
 
 
@@ -375,24 +386,65 @@ def opsin_structure_for_name(name: str) -> StructureResult:
     return StructureResult(smiles=smiles, source="OPSIN", kind=PARSED)
 
 
-def verify_name_round_trip(name: str, original: Chem.Mol) -> bool | None:
+class RoundTrip(str, Enum):
+    """What happened when a derived name was parsed back.
+
+    **A VERDICT, NOT A BOOLEAN**, and the middle value is why. A name that
+    parses back to the right skeleton but cannot express stereochemistry
+    the structure carries is not wrong -- it is less specific -- and
+    withholding it entirely reads as the namer being broken. Reported
+    exactly that way after a conformer defined two bridgehead centres:
+    the engine derived the same name before and after, and only the
+    comparison changed its mind.
+
+    Same move the naming benchmark made when it added its `tautomer`
+    outcome class rather than forcing every result into pass/fail.
+    """
+
+    MATCH = "match"
+    #: Parsed, same skeleton, but the structure carries stereochemistry
+    #: the name does not express.
+    STEREO_OMITTED = "stereo_omitted"
+    MISMATCH = "mismatch"
+    #: No offline parser available. Honestly different from a failure.
+    UNVERIFIED = "unverified"
+
+
+def verify_name_round_trip(name: str, original: Chem.Mol) -> RoundTrip:
     """Does parsing the name back give the structure we started from?
 
     The only real check available on a predicted name, and worth having
     precisely because a wrong generated name looks exactly as
-    authoritative as a right one. Returns `None` when no parser is available to check with
-    -- which is honestly different from "checked and failed".
+    authoritative as a right one.
+
+    **`STEREO_OMITTED` requires BOTH halves**: the name must have parsed,
+    AND the two structures must agree with stereochemistry stripped while
+    disagreeing with it kept. Inferring it from SMILES alone would not
+    establish that the name is valid for either structure -- it would only
+    establish that the two structures differ stereochemically, which is a
+    different claim.
     """
     if not opsin_available():
-        return None
+        return RoundTrip.UNVERIFIED
     try:
         parsed = opsin_structure_for_name(name)
     except NamingError:
-        return False
+        return RoundTrip.MISMATCH
     candidate = Chem.MolFromSmiles(parsed.smiles)
     if candidate is None:
-        return False
-    return Chem.MolToSmiles(candidate) == Chem.MolToSmiles(original)
+        return RoundTrip.MISMATCH
+    if Chem.MolToSmiles(candidate) == Chem.MolToSmiles(original):
+        return RoundTrip.MATCH
+    if _skeleton(candidate) == _skeleton(original):
+        return RoundTrip.STEREO_OMITTED
+    return RoundTrip.MISMATCH
+
+
+def _skeleton(mol: Chem.Mol) -> str:
+    """The molecule with every stereo annotation removed."""
+    flat = Chem.Mol(mol)
+    Chem.RemoveStereochemistry(flat)
+    return Chem.MolToSmiles(flat)
 
 
 def compute_iupac_name(
@@ -436,12 +488,14 @@ def compute_iupac_name(
         line = f"{result.name}  [{result.source}, {result.kind}]"
         if result.kind == PREDICTED:
             verified = verify_name_round_trip(result.name, mol)
-            if verified is True:
+            if verified is RoundTrip.MATCH:
                 line += "  -- round-trips back to this structure"
-            elif verified is False:
+            elif verified is RoundTrip.STEREO_OMITTED:
+                line += "  -- does not express stereochemistry present in the structure"
+            elif verified is RoundTrip.MISMATCH:
                 line += "  -- WARNING: does not round-trip back to this structure"
-            # `None` means no parser was available to check with, which is
-            # not the same as a failed check and is not claimed as one.
+            # UNVERIFIED means no parser was available to check with,
+            # which is not a failed check and is not claimed as one.
         lines.append(line)
 
     if not results and not any(line for line in lines if not line.startswith("PubChem:")):

@@ -112,11 +112,16 @@ def test_an_empty_name_is_rejected_before_a_request_is_made():
 # --- Round-trip verification -------------------------------------------
 
 
-def test_round_trip_returns_none_when_no_parser_is_available():
-    """None (could not check) is deliberately distinct from False (checked
-    and failed) -- claiming a failed check would be a false negative."""
+def test_round_trip_is_unverified_when_no_parser_is_available():
+    """UNVERIFIED (could not check) is deliberately distinct from MISMATCH
+    (checked and failed) -- claiming a failed check would be a false
+    negative."""
+    from openchem.chem.naming_providers import RoundTrip
+
     with patch("openchem.chem.naming_providers.opsin_available", return_value=False):
-        assert verify_name_round_trip("anything", Chem.MolFromSmiles(ASPIRIN)) is None
+        assert verify_name_round_trip("anything", Chem.MolFromSmiles(ASPIRIN)) is (
+            RoundTrip.UNVERIFIED
+        )
 
 
 def test_round_trip_is_true_when_the_name_parses_back_to_the_same_structure():
@@ -126,7 +131,11 @@ def test_round_trip_is_true_when_the_name_parses_back_to_the_same_structure():
         "openchem.chem.naming_providers.opsin_structure_for_name",
         return_value=StructureResult(smiles=ASPIRIN, source="OPSIN", kind=PARSED),
     ):
-        assert verify_name_round_trip("2-acetyloxybenzoic acid", Chem.MolFromSmiles(ASPIRIN)) is True
+        from openchem.chem.naming_providers import RoundTrip
+
+        assert verify_name_round_trip(
+            "2-acetyloxybenzoic acid", Chem.MolFromSmiles(ASPIRIN)
+        ) is RoundTrip.MATCH
 
 
 def test_round_trip_is_false_when_the_name_parses_to_something_else():
@@ -137,7 +146,52 @@ def test_round_trip_is_false_when_the_name_parses_to_something_else():
         "openchem.chem.naming_providers.opsin_structure_for_name",
         return_value=StructureResult(smiles="CCO", source="OPSIN", kind=PARSED),
     ):
-        assert verify_name_round_trip("ethanol", Chem.MolFromSmiles(ASPIRIN)) is False
+        from openchem.chem.naming_providers import RoundTrip
+
+        assert verify_name_round_trip("ethanol", Chem.MolFromSmiles(ASPIRIN)) is (
+            RoundTrip.MISMATCH
+        )
+
+
+def test_round_trip_is_STEREO_OMITTED_when_the_name_cannot_express_the_stereo():
+    """THE CASE THIS TAXONOMY EXISTS FOR.
+
+    Reported after a conformer defined two bridgehead stereocentres: the
+    nomenclature engine derived the SAME name before and after, that name
+    cannot express bridgehead stereo, and so the comparison -- and only
+    the comparison -- changed its mind and withheld it.
+
+    The name is right about the skeleton and silent about stereochemistry
+    the structure carries. That is a third thing, not a failure.
+    """
+    from openchem.chem.naming_providers import RoundTrip, StructureResult
+
+    # The name parses to the flat skeleton; the structure is resolved.
+    with patch("openchem.chem.naming_providers.opsin_available", return_value=True), patch(
+        "openchem.chem.naming_providers.opsin_structure_for_name",
+        return_value=StructureResult(smiles="CC(N)C(=O)O", source="OPSIN", kind=PARSED),
+    ):
+        verdict = verify_name_round_trip("alanine", Chem.MolFromSmiles("C[C@@H](N)C(=O)O"))
+
+    assert verdict is RoundTrip.STEREO_OMITTED
+
+
+def test_a_name_that_only_omits_stereo_is_SHOWN_with_what_it_omits(monkeypatch):
+    """Shown rather than withheld -- withholding it reads as the namer
+    being broken, which is exactly how this was reported. The caveat is
+    what keeps it honest."""
+    monkeypatch.setattr(
+        naming_providers,
+        "verify_name_round_trip",
+        lambda name, mol: naming_providers.RoundTrip.STEREO_OMITTED,
+    )
+
+    result = naming_providers.derived_name_for_structure(
+        Chem.MolFromSmiles("C[C@@H](N)C(=O)O")
+    )
+
+    assert result.name
+    assert "stereochemistry" in result.note.lower()
 
 
 # --- Optional-capability reporting -------------------------------------
@@ -317,7 +371,11 @@ def test_it_names_a_structure_pubchem_has_never_seen():
 def test_a_name_that_fails_the_round_trip_is_withheld(monkeypatch):
     """Withheld, not shown with a caveat. A wrong systematic name looks
     exactly as authoritative as a right one."""
-    monkeypatch.setattr(naming_providers, "verify_name_round_trip", lambda name, mol: False)
+    monkeypatch.setattr(
+        naming_providers,
+        "verify_name_round_trip",
+        lambda name, mol: naming_providers.RoundTrip.MISMATCH,
+    )
 
     with pytest.raises(naming_providers.NamingError, match="withheld"):
         naming_providers.derived_name_for_structure(Chem.MolFromSmiles("CCO"))

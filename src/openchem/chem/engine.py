@@ -10,6 +10,11 @@ from rdkit.Chem import AllChem, rdMolTransforms
 from rdkit.Geometry import Point3D
 
 from openchem.chem.camera_orientation import camera_to_model_transform, rotate
+from openchem.chem.stereochemistry import (
+    StereoChange,
+    StereochemistryConflict,
+    compare_stereochemistry,
+)
 
 from openchem.domain.molecule import MoleculeModel
 
@@ -104,6 +109,10 @@ class ConformerDrawing:
     molblock: str
     follows_geometry: bool
     crowded: bool = False
+    #: What this geometry did to the structure's stereochemistry, when a
+    #: reference drawing was given to compare against. `None` means
+    #: nobody asked, not that nothing happened.
+    stereo: StereoChange | None = None
 
 
 def _claim_absolute_stereochemistry(mol: Chem.Mol) -> None:
@@ -195,7 +204,10 @@ class ChemistryEngine:
         return Chem.MolToMolBlock(mol)
 
     def drawing_from_conformer(
-        self, molblock: str, view: Sequence[float] | None = None
+        self,
+        molblock: str,
+        view: Sequence[float] | None = None,
+        reference: str | None = None,
     ) -> ConformerDrawing:
         """A drawing of a 3D conformer: heavy atoms, oriented as asked.
 
@@ -263,7 +275,7 @@ class ChemistryEngine:
         the only answer this function leaves.
         """
         if view is not None:
-            return self._oriented_drawing(molblock, view)
+            return self._oriented_drawing(molblock, view, reference)
 
         heavy = Chem.RemoveHs(self.mol_from_molblock(molblock))
         _claim_absolute_stereochemistry(heavy)
@@ -283,7 +295,11 @@ class ChemistryEngine:
                 "Could not orient the drawing to the conformer; laying it out plainly.",
                 exc_info=True,
             )
-            return ConformerDrawing(Chem.MolToMolBlock(plain), follows_geometry=False)
+            return ConformerDrawing(
+                Chem.MolToMolBlock(plain),
+                follows_geometry=False,
+                stereo=self._stereo_change(reference, plain),
+            )
 
         readable = _closest_approach(plain)
         if _closest_approach(oriented) < READABLE_LAYOUT_FRACTION * readable:
@@ -291,10 +307,20 @@ class ChemistryEngine:
                 "The conformer's orientation cannot be drawn without overlap; "
                 "using a plain layout instead."
             )
-            return ConformerDrawing(Chem.MolToMolBlock(plain), follows_geometry=False)
-        return ConformerDrawing(Chem.MolToMolBlock(oriented), follows_geometry=True)
+            return ConformerDrawing(
+                Chem.MolToMolBlock(plain),
+                follows_geometry=False,
+                stereo=self._stereo_change(reference, plain),
+            )
+        return ConformerDrawing(
+            Chem.MolToMolBlock(oriented),
+            follows_geometry=True,
+            stereo=self._stereo_change(reference, oriented),
+        )
 
-    def _oriented_drawing(self, molblock: str, view: Sequence[float]) -> ConformerDrawing:
+    def _oriented_drawing(
+        self, molblock: str, view: Sequence[float], reference: str | None = None
+    ) -> ConformerDrawing:
         """The conformer turned to face the camera, still in 3D.
 
         Stereo is perceived before the hydrogens come off. **That ordering
@@ -361,7 +387,23 @@ class ChemistryEngine:
             Chem.MolToMolBlock(drawing),
             follows_geometry=True,
             crowded=_closest_approach(drawing) < _CROWDED_APPROACH,
+            stereo=self._stereo_change(reference, drawing),
         )
+
+    def _stereo_change(self, reference: str | None, drawing: Chem.Mol):
+        """What the geometry did to the structure's stereochemistry.
+
+        `None` when no reference was given -- "nobody asked" is different
+        from "nothing happened", and a caller that cannot tell them apart
+        would report silence as safety.
+        """
+        if reference is None:
+            return None
+        try:
+            before = self.mol_from_molblock(reference)
+        except InvalidStructureError:
+            return None
+        return compare_stereochemistry(before, drawing)
 
     def molblock_to_smiles(self, molblock: str) -> str:
         """Isomeric SMILES for a structure held as a molblock.
