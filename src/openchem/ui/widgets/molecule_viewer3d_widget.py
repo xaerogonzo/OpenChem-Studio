@@ -602,6 +602,14 @@ class MoleculeViewer3DWidget(QWidget):
         size = rows * cols
         self._page_start = max(0, min(self._page_start, max(0, total - 1)))
         page = list(range(self._page_start, min(self._page_start + size, total)))
+        # **THE SELECTION MUST LAND ON THIS PAGE.** The page resets its own
+        # selected cell to the first one whenever the grid is rebuilt, so
+        # a `_conformer_index` left pointing at another page would take
+        # the camera from cell 0 and the conformer from somewhere else --
+        # a structure at an angle nobody looked at, which is the same
+        # class of mismatch the adoption snapshot exists to prevent.
+        if page and self._conformer_index not in page:
+            self._conformer_index = page[0]
         entries = [
             (molblocks[index], self._cell_label(index))
             for index in page

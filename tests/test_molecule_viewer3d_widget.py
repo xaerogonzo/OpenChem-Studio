@@ -822,3 +822,21 @@ def test_the_3d_view_gets_the_height_not_the_status_label(qapp):
         )
     finally:
         widget.hide()
+
+
+def test_paging_moves_the_selection_onto_the_new_page(qapp):
+    """The page resets its own selected cell to the first one whenever the
+    grid is rebuilt. A `_conformer_index` left pointing at another page
+    would then take the CAMERA from cell 0 and the CONFORMER from
+    somewhere else -- a structure at an angle nobody looked at, which is
+    the same class of mismatch the adoption snapshot exists to prevent.
+    """
+    widget, _backend, _molecule = _gallery_widget(qapp, count=12)
+    widget._gallery_check.setChecked(True)
+    widget._on_grid_cell_clicked(1)
+    assert widget._conformer_index == 1
+
+    widget._show_next_conformer()
+
+    assert widget._page_start == 6
+    assert widget._conformer_index == 6, "the selection stayed on the previous page"

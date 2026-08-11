@@ -524,6 +524,22 @@
           markSelectedCell();
         },
 
+        // **THE CAMERA THE USER IS ACTUALLY LOOKING THROUGH.**
+        //
+        // Not simply `viewer.getView()`: in gallery mode the single
+        // viewer is hidden and unrotated, while the cell the user turned
+        // has its own camera. Reading the wrong one bakes NO rotation
+        // into the adopted drawing, which is exactly how this was
+        // reported -- "it is again not actually 3d, it is just again the
+        // absolute, 2d structure". Measured at the time: the cell pointed
+        // (0, 0.537, 0, 0.843) and the single viewer returned the
+        // identity.
+        currentView: function () {
+          var source = gridCells.length ? gridCells[gridSelectedCell] : viewer;
+          if (!source) return '';
+          return JSON.stringify(source.getView());
+        },
+
         // Every cell's camera, as JSON. The only way to ask whether the
         // cells are pointing the same way -- which is what "Lock views"
         // has to mean, and what a test asserting merely that they all

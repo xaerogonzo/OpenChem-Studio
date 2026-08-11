@@ -881,3 +881,32 @@ def test_a_gallery_that_cannot_be_built_is_reported(qapp):
     # And the single viewer is back, rather than a hidden container.
     assert _run_js(qapp, backend, "getComputedStyle(document.getElementById"
                                   "('viewer-container')).display") == "block"
+
+
+@_needs_a_display
+def test_the_camera_read_for_adoption_is_the_SELECTED_CELLS(qapp):
+    """THE REGRESSION PHASE 3 INTRODUCED, reported as "it is again not
+    actually 3d, it is just again the absolute, 2d structure".
+
+    `current_view` used to read the single viewer unconditionally. In
+    gallery mode that one is hidden and unrotated while the cell the user
+    turned carries the orientation, so "Use in 2D Editor" baked in NO
+    rotation. Measured at the time: the cell pointed
+    (0, 0.537, 0, 0.843) and the read returned the identity.
+
+    The Phase 2 tests could not see it -- they predate the gallery and
+    exercise the single viewer, where the two are the same object.
+    """
+    backend = _grid_backend(qapp, cells=4, rows=2, cols=2)
+    _run_js(qapp, backend, "window.openchemViewer.rotateGridCell(0, 65, 'y'); 1")
+    _wait_until(qapp, lambda: False, timeout_seconds=1.0)
+
+    seen: list = []
+    backend.current_view(seen.append)
+    assert _wait_until(qapp, lambda: bool(seen), timeout_seconds=10)
+
+    orientation = tuple(round(n, 3) for n in seen[0][4:])
+    assert orientation != (0.0, 0.0, 0.0, 1.0), "read an unrotated camera"
+    assert orientation == tuple(
+        round(n, 3) for n in _grid_views(qapp, backend)[0][4:]
+    ), "read a camera that is not the selected cell's"

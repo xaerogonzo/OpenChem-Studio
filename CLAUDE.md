@@ -117,7 +117,7 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-9.5 minutes**, ending at `3845 passed, 7 skipped,
+A clean run is **6-9.5 minutes**, ending at `3846 passed, 8 skipped,
 1 deselected` (measured 2026-08-10 on branch `conformer-comparison`,
 after making conformers comparable, putting the 3D shape into the 2D
 editor, and the gallery: +4 for the Ketcher 3D gate, +21 for display
@@ -1727,6 +1727,28 @@ catching `TypeError` -- which would also swallow a real one raised from
 inside the provider. Same instinct as the `NOT abstract, so a provider
 written against the original interface keeps working` note already on
 that method.
+
+#### The gallery reads a DIFFERENT camera, and Phase 2's tests could not see it
+
+Reported as "when I try to use it in the 2d editor, it is again not
+actually *3d*, it is just again the absolute, 2d structure".
+
+`current_view` read `viewer.getView()` -- the SINGLE viewer -- always. In
+gallery mode that one is hidden and unrotated while the cell the user
+turned carries the orientation, so "Use in 2D Editor" baked in no
+rotation at all. Measured: the cell pointed `(0, 0.537, 0, 0.843)` after
+a 65-degree turn and the read returned `[0, 0, 0, 1]`.
+
+**The Phase 2 tests were correct and blind.** They exercise the single
+viewer, where "the camera" and "the selected cell's camera" are the same
+object, so a regression that only exists once a second camera exists
+could not fail them. The page now answers `currentView()`, which is the
+only side that knows which mode is showing.
+
+Its sibling: the page resets `gridSelectedCell` to 0 on every rebuild, so
+paging left `_conformer_index` pointing at another page -- the CAMERA
+from cell 0 and the CONFORMER from somewhere else, which is the same
+mismatch the adoption snapshot exists to prevent.
 
 #### The conformer gallery: one WebGL context, and four traps
 

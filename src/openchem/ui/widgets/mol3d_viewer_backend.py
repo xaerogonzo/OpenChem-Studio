@@ -281,9 +281,13 @@ class Mol3DViewerBackend(ViewerBackend):
                 return
             callback(view if isinstance(view, list) else None)
 
+        # `currentView()` rather than `viewer.getView()`: in gallery
+        # mode the single viewer is hidden and unrotated while the
+        # selected CELL carries the orientation the user arranged, and
+        # the page is the only side that knows which is showing.
         self._page.runJavaScript(
-            "(typeof viewer !== 'undefined' && viewer)"
-            " ? JSON.stringify(viewer.getView()) : ''",
+            "(window.openchemViewer && window.openchemViewer.currentView)"
+            " ? window.openchemViewer.currentView() : ''",
             done,
         )
 
