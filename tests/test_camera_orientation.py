@@ -317,3 +317,77 @@ def test_the_matrix_matches_where_atoms_are_actually_drawn(qapp, degrees, axis):
         f"matrix {ours:+.4f} and transpose {transposed:+.4f} are too close to "
         f"tell apart; this rotation cannot settle the direction"
     )
+
+
+# --- the editor's drag angles ------------------------------------------------
+
+
+def test_the_drag_rotation_is_proper_and_rigid():
+    """Same guarantees as the camera transform, on the other entry point.
+    A reflection here would mirror the molecule in the editor."""
+    from openchem.chem.camera_orientation import rotation_from_degrees
+
+    for x, y in [(0, 0), (45, 0), (0, 45), (45, 45), (-30, 120), (17, -160)]:
+        matrix = rotation_from_degrees(x, y)
+        assert determinant(matrix) == pytest.approx(1.0, abs=1e-9), (x, y)
+        turned = rotate(ASYMMETRIC, matrix)
+        for i in range(len(ASYMMETRIC)):
+            for j in range(i + 1, len(ASYMMETRIC)):
+                assert math.dist(turned[i], turned[j]) == pytest.approx(
+                    math.dist(ASYMMETRIC[i], ASYMMETRIC[j]), abs=1e-9
+                )
+
+
+def test_no_drag_is_the_identity():
+    """So entering the mode and letting go changes nothing at all --
+    which is what makes a zero-distance drag a zero-step operation."""
+    from openchem.chem.camera_orientation import rotation_from_degrees
+
+    assert rotate(ASYMMETRIC, rotation_from_degrees(0.0, 0.0)) == pytest.approx(
+        [pytest.approx(point) for point in ASYMMETRIC]
+    )
+
+
+def test_the_composition_order_is_x_then_y_and_it_MATTERS():
+    """**BOTH ORDERS ARE PROPER ROTATIONS AND THEY DIFFER.**
+
+    45 degrees about x then 45 about y does not land where the reverse
+    does, and either feels natural until somebody tries it. The order is
+    documented in `rotation_from_degrees` and pinned here, on an
+    asymmetric fixture so the two cannot coincide by symmetry.
+    """
+    from openchem.chem.camera_orientation import (
+        _about_x,
+        _about_y,
+        _multiply,
+        rotation_from_degrees,
+    )
+
+    combined = rotation_from_degrees(45, 45)
+    x_then_y = _multiply(_about_x(math.radians(45)), _about_y(math.radians(45)))
+    y_then_x = _multiply(_about_y(math.radians(45)), _about_x(math.radians(45)))
+
+    assert rotate(ASYMMETRIC, combined) == pytest.approx(
+        [pytest.approx(p) for p in rotate(ASYMMETRIC, x_then_y)]
+    )
+    # The guard that makes the assertion above mean something: if the two
+    # orders agreed, pinning one would be pinning nothing.
+    assert rotate(ASYMMETRIC, x_then_y)[1] != pytest.approx(
+        rotate(ASYMMETRIC, y_then_x)[1], abs=1e-6
+    )
+
+
+def test_a_horizontal_drag_spins_and_a_vertical_drag_tips():
+    """Which angle drives which axis, asserted so a transposition cannot
+    hide -- it would still be a proper, rigid rotation."""
+    from openchem.chem.camera_orientation import rotation_from_degrees
+
+    # About y (a horizontal drag): +x goes towards -z, y is untouched.
+    spun = rotate([(1.0, 0.0, 0.0), (0.0, 1.0, 0.0)], rotation_from_degrees(0, 90))
+    assert spun[0] == pytest.approx((0.0, 0.0, -1.0), abs=1e-9)
+    assert spun[1] == pytest.approx((0.0, 1.0, 0.0), abs=1e-9)
+
+    # About x (a vertical drag): +y goes towards +z, x is untouched.
+    tipped = rotate([(0.0, 1.0, 0.0), (1.0, 0.0, 0.0)], rotation_from_degrees(90, 0))
+    assert tipped[0] == pytest.approx((0.0, 0.0, 1.0), abs=1e-9)
+    assert tipped[1] == pytest.approx((1.0, 0.0, 0.0), abs=1e-9)

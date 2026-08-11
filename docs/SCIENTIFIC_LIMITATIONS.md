@@ -375,6 +375,24 @@ Some angles are genuinely unreadable: seen down its bridgehead axis a
 bicyclo[2.2.2] cage superimposes its two bridges exactly. The application
 says so and leaves the choice of angle to you.
 
+**Rotating in the 2D editor is a rigid motion, and it is checked rather
+than trusted.** Turning the structure changes coordinates and nothing
+else — no bond length, no angle, no stereocentre. The app verifies both
+halves of that before committing a turn, because each is invisible to the
+other: a *reflection* preserves every distance (only the stereochemistry
+sees one), and a *shear* preserves every stereocentre and the atom
+ordering (only the distances see one). Either is refused with a message
+rather than committed.
+
+**The editor's coordinates are not Ångström until they are put back.**
+Ketcher normalises bond lengths to its own unit — measured, a C–C at
+1.5301 Å is handed back as 1.0702, a uniform ×0.699 — which never
+mattered while the canvas only ever held a *layout*. Now that it can hold
+a *geometry*, the scale is restored on the way in. Nothing you compute is
+affected; this is recorded because a 30% error in every bond length is
+invisible to atom order, to R/S labels and to a molecule's formula, and
+would have looked entirely plausible.
+
 **None of this makes the count correct in general.** It is the
 best-performing heuristic on an eleven-molecule validation set
 (`benchmarks/conformers/`), where half the references are textbook counts

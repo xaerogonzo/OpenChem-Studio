@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
 
 from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
+from openchem.chem.calculation_input import canonical_conformer
 from openchem.chem.identifiers import identifier_for_molblock
 from openchem.chem.stereochemistry import StereochemistryConflict
 from openchem.chem.structure_clipboard import parse_structure_text
@@ -340,6 +341,7 @@ class MainWindow(QMainWindow):
         # `tools/ketcher-host/src/main.jsx` for the list and for what is
         # deliberately left alone.
         self._editor.editor_action_requested.connect(self._on_editor_action)
+        self._editor.geometry_requested.connect(self._on_geometry_requested)
         # The way back from the 3D viewer -- see `_adopt_conformer`.
         self._viewer3d.conformer_adopted.connect(self._adopt_conformer)
         self._jobs_panel = JobsPanel(services.job_manager, self)
@@ -1858,6 +1860,65 @@ class MainWindow(QMainWindow):
             logger.warning("No handler for editor action %r", action)
             return
         handler()
+
+    def _on_geometry_requested(self) -> None:
+        """The editor was asked to rotate a molecule with no 3D geometry.
+
+        Two different situations, and conflating them was a real defect:
+
+            conformers exist    bring one into the drawing, then rotate
+            none exist          ASK, and stop there
+
+        **GENERATING CONFORMERS DOES NOT MAKE THE DRAWING 3D.** They live
+        beside it, so a version of this that only ever offered to generate
+        asked the same question again on the next press, forever -- the
+        molecule had geometry and the drawing still did not.
+
+        **Generating one is a chemical operation and rotating is not**, so
+        one click must not do both. Adopting a conformer is neither: it
+        changes coordinates and nothing else, `AdoptConformerCommand`
+        checks that it changed no stereochemistry, and it is one undo step
+        the user can reverse -- so that half needs no question. The
+        asynchronous, structure-defining half keeps one.
+
+        Which conformer, so the editor adds no fourth notion beside
+        retained / display-aligned / selected: **the one on screen in the
+        3D viewer if it is showing this molecule**, otherwise the
+        lowest-energy retained one.
+        """
+        molecule = self._current_molecule()
+        if molecule is None:
+            return
+        if molecule.conformers:
+            geometry = self._viewer3d.geometry_on_screen(molecule)
+            if geometry is None:
+                best = canonical_conformer(molecule)
+                geometry = best.molblock if best is not None else None
+            if geometry is not None:
+                # **AN UNROTATED VIEW, NOT `None`.** Passing None takes
+                # `drawing_from_conformer` down its FLAT path, which is
+                # the one thing this must not produce -- the drawing would
+                # come back with every z at zero and the mode would ask
+                # for a geometry all over again. The quaternion is the
+                # identity because the conformer's own frame is the honest
+                # starting point; turning it is what the mode is for.
+                self._adopt_conformer(geometry, view=[0, 0, 0, 0, 0, 0, 0, 1])
+                if self._editor.has_geometry():
+                    self._editor.begin_rotation()
+                else:
+                    logger.warning(
+                        "Adopting a conformer left the drawing flat; not rotating."
+                    )
+                return
+        answer = QMessageBox.question(
+            self,
+            "Rotate 3D",
+            f"{molecule.display_name} is a flat drawing, so there is nothing to "
+            "turn yet.\n\nGenerate a 3D structure for it?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if answer == QMessageBox.StandardButton.Yes:
+            self._generate_conformers()
 
     def _generate_conformers(self) -> None:
         """The Structure menu's route into conformer generation.

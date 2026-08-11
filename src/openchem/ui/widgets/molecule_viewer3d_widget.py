@@ -485,6 +485,41 @@ class MoleculeViewer3DWidget(QWidget):
 
         self._backend.current_view(with_view)
 
+    def geometry_on_screen(self, molecule) -> str | None:
+        """The conformer this viewer is showing for `molecule`, or None.
+
+        Exists so the 2D editor's rotation mode can pick up the geometry
+        somebody is already looking at -- "a conformer is selected, rotate
+        that one" -- without the window reaching into `_conformer_index`
+        and reimplementing the display-aligned lookup that
+        `_use_in_editor` already does.
+
+        **The conformer ON SCREEN, not the first one**, for the same
+        reason as that method: `conformers[0]` is right for anyone who
+        never pressed `>` and silently wrong for everyone who did.
+
+        **Answers None for a DIFFERENT molecule** rather than whatever it
+        happens to be showing. The viewer trails the selection through an
+        event, so the two can briefly disagree, and handing one
+        molecule's coordinates to another's drawing is correct arithmetic
+        on the wrong object -- the shape of two bugs this project has
+        already shipped.
+        """
+        if (
+            self._molecule is None
+            or molecule is None
+            or self._molecule.uuid != molecule.uuid
+            or not self._molecule.conformers
+        ):
+            return None
+        index = self._conformer_index
+        molblocks = self._conformer_service.display_molblocks(self._molecule)
+        if index < len(molblocks):
+            return molblocks[index]
+        if index < len(self._molecule.conformers):
+            return self._molecule.conformers[index].molblock
+        return None
+
     def _refresh_view(self) -> None:
         if self._molecule is None or not self._molecule.conformers:
             self._backend.clear()

@@ -122,11 +122,49 @@ options this app only partly mirrors under View ▸ 2D Structure Display),
 and **polymer mode** — Ketcher can *draw* RNA/DNA/peptides, where the
 Macromolecule Viewer only shows one.
 
+### Rotate 3D — turning a structure inside the 2D editor
+
+**Rotate 3D**, at the top of the 2D Editor tab, turns the structure in
+three dimensions and draws the result on the 2D canvas — a molecule in a
+literal 3D shape, in a 2D editor. Rulers appear down the left and across
+the top, and the live X/Y angles are shown both on the bar and at the
+right of the blue banner.
+
+While the mode is on, **dragging turns the molecule instead of drawing**,
+which is why the banner is there and why it is a mode you switch on
+rather than a modifier you hold. **Cancel** leaves it and puts the entry
+geometry back; letting go of a drag commits it as one undo step, so
+Ctrl+Z reverses a whole turn rather than a frame of one.
+
+**A flat drawing has nothing to turn**, so pressing the button on one
+does something different depending on what the molecule has:
+
+| the molecule has | pressing Rotate 3D |
+| --- | --- |
+| a conformer selected in the 3D viewer | draws that one, then rotates |
+| conformers, none selected | draws the lowest-energy one, then rotates |
+| no conformers at all | offers to generate, and stops there |
+
+The last row is deliberate. Turning an existing geometry is
+visualisation; creating one is a chemical operation that can *define*
+stereochemistry your drawing left open — see **What adopting a conformer
+decides for you** below — so it asks first and does nothing if the answer
+is no.
+
+Rotation itself changes coordinates and nothing else: same atoms, bonds,
+charges and stereocentres. If it ever appears to change one, the app
+refuses the whole rotation and says so rather than committing it.
+
 **3D Viewer** — 3Dmol, showing conformers. Style selector
 (stick / ball-and-stick / spacefill / line), conformer navigation, a
 distance/angle measurement readout, and molecular surfaces (vdW, SAS, MS)
-with an opacity control. Generate Conformers is here; conformers come back
-sorted by energy, so conformer 1 is the lowest.
+with an opacity control. Conformers come back sorted by energy, so
+conformer 1 is the lowest.
+
+**Generation no longer requires this tab.** *Structure ▸ Generate
+Conformers* runs the same dialog and the same service from anywhere, and
+so does the command palette (Ctrl+Shift+P, "conformers"). The 3D viewer
+is where you *look* at them.
 
 **You will often get fewer conformers than you asked for, and that is the
 answer rather than a failure.** Embedding is random, so asking for ten

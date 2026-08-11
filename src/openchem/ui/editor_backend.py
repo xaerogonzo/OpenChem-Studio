@@ -44,6 +44,14 @@ class EditorBackend(QObject):
     #: of one engine. A backend with no such controls never emits it, and
     #: every one of these is still reachable from the menus.
     editor_action_requested = Signal(str)
+    #: Live drag angles while 3D rotation mode is on, in degrees about the
+    #: screen's horizontal and vertical axes. Absolute from the moment the
+    #: mode was entered, so re-entering reads 0, 0.
+    rotation_angles_changed = Signal(float, float)
+    #: A drag ended. The host then reads the structure back and commits it
+    #: as ONE undoable step -- the preview itself is not undoable and does
+    #: not touch Ketcher's own history.
+    rotation_finished = Signal()
 
     def load_molblock(self, molblock: str) -> None:
         """Load a structure (as a V2000/V3000 molblock) into the editor."""
@@ -75,6 +83,33 @@ class EditorBackend(QObject):
         last value once.
         """
         raise NotImplementedError
+
+    def start_rotation(self) -> bool:
+        """Enter 3D rotation mode, if this editor has one.
+
+        **Returns whether the mode really started**, and the default is
+        `False` because an editor that cannot rotate has not entered
+        anything. A caller that ignored this would show a banner, a
+        Cancel button and a live readout over a canvas where dragging
+        still draws bonds -- a control claiming something the editor is
+        not doing, with nothing on screen to say which is real.
+
+        A GESTURE, not state, so an implementation that is not ready must
+        answer `False` rather than queue it -- same as
+        `trigger_toolbar_action` and the deliberate opposite of
+        `set_render_option`. Replayed on ready, it would put the user in
+        a mode they asked for seconds ago, over whatever structure loaded
+        in the meantime.
+        """
+        return False
+
+    def end_rotation(self, restore: bool) -> None:
+        """Leave 3D rotation mode, optionally restoring the entry geometry.
+
+        Safe to call when the mode never started -- leaving is how a
+        refusal and a cancel both unwind, and neither should have to know
+        whether entering worked.
+        """
 
     def set_atom_tool(self, symbol: str) -> None:
         """Arm the editor to draw `symbol` on the next canvas click.

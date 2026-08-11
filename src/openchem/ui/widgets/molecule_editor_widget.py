@@ -3,9 +3,18 @@ from __future__ import annotations
 from PySide6.QtCore import Signal
 
 from PySide6.QtGui import QUndoStack
-from PySide6.QtWidgets import QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from openchem.chem.engine import ChemistryEngine
+from openchem.chem.stereochemistry import StereochemistryConflict
+from openchem.commands.conformer_commands import RotateStructureCommand
 from openchem.commands.molecule_commands import EditStructureCommand
 from openchem.domain.molecule import MoleculeModel
 from openchem.events.base import EventBus
@@ -43,6 +52,10 @@ class MoleculeEditorWidget(QWidget):
     #: application already provides. Forwarded so the window can answer
     #: it -- see `EditorBackend.editor_action_requested`.
     editor_action_requested = Signal(str)
+    #: The user asked to rotate a molecule with no 3D geometry.
+    #: The window answers it, because generating one is a chemical
+    #: operation and this widget owns no chemistry.
+    geometry_requested = Signal()
 
     def __init__(
         self,
@@ -64,8 +77,33 @@ class MoleculeEditorWidget(QWidget):
         #: `_on_molecule_changed`.
         self._applying_own_edit = False
 
+        # **A MODE, and an unmistakable one.** It steals the drag
+        # gesture, so the user must never be in doubt about whether a drag
+        # will draw a bond or turn the molecule. The bar appears only
+        # while the mode is on.
+        self._rotate_button = QPushButton("Rotate 3D", self)
+        self._rotate_button.setCheckable(True)
+        self._rotate_button.setToolTip(
+            "Turn the structure in three dimensions and draw the result.\n"
+            "While this is on, dragging rotates instead of drawing."
+        )
+        self._rotate_button.toggled.connect(self._on_rotate_toggled)
+        self._rotate_readout = QLabel("", self)
+        self._rotate_cancel = QPushButton("Cancel", self)
+        self._rotate_cancel.clicked.connect(self._cancel_rotation)
+        for widget in (self._rotate_readout, self._rotate_cancel):
+            widget.setVisible(False)
+
+        rotate_bar = QHBoxLayout()
+        rotate_bar.setContentsMargins(4, 2, 4, 2)
+        rotate_bar.addWidget(self._rotate_button)
+        rotate_bar.addWidget(self._rotate_readout)
+        rotate_bar.addStretch()
+        rotate_bar.addWidget(self._rotate_cancel)
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.addLayout(rotate_bar)
         layout.addWidget(self._backend.widget())
 
         self._backend.edited.connect(self._on_editor_edited)
@@ -81,6 +119,8 @@ class MoleculeEditorWidget(QWidget):
         # the editor went on drawing it. Confirmed live: after an undo the
         # Properties panel read mol_wt 0 with a blank formula and aspirin
         # was still on screen.
+        self._backend.rotation_angles_changed.connect(self._on_rotation_angles)
+        self._backend.rotation_finished.connect(self._on_rotation_finished)
         event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
 
     def set_molecule(self, molecule: MoleculeModel | None) -> None:
@@ -169,3 +209,133 @@ class MoleculeEditorWidget(QWidget):
             self._synced_smiles = self._molecule.canonical_smiles
 
         self._backend.get_molblock(apply)
+
+    # --- 3D rotation mode ---------------------------------------------------
+
+    def has_geometry(self) -> bool:
+        """Does the drawing on the canvas carry real 3D coordinates?
+
+        Public because the window has to answer `geometry_requested` and
+        then decide whether the answer worked. Without it the obvious
+        implementation -- "put a geometry in, then turn the mode back on"
+        -- loops forever whenever putting one in fails.
+        """
+        return self._molecule is not None and _has_3d(self._molecule)
+
+    def begin_rotation(self) -> None:
+        """Enter the mode from outside, as if the button had been pressed.
+
+        Through the button rather than past it, so the checked state, the
+        bar and the page all follow exactly as they do for a click. A
+        caller that has just supplied a geometry uses this; one that has
+        not will simply be asked for one again, which is the same
+        behaviour as the button.
+        """
+        self._rotate_button.setChecked(True)
+
+    def _on_rotate_toggled(self, on: bool) -> None:
+        """Enter or leave the mode.
+
+        **Entering mutates nothing.** The page snapshots the geometry and
+        rotates a copy, so toggling on and straight off again leaves the
+        structure byte-identical -- which is what makes a mode you tried
+        out of curiosity safe.
+        """
+        for widget in (self._rotate_readout, self._rotate_cancel):
+            widget.setVisible(on)
+        if not on:
+            return
+        if self._molecule is None or not self._molecule.molblock:
+            self._rotate_button.setChecked(False)
+            return
+        if not _has_3d(self._molecule):
+            # **ROTATING A FLAT DRAWING IS NOT ROTATION.** With every z at
+            # zero, turning about the vertical axis only squashes the
+            # picture -- so the mode asks for a geometry rather than
+            # pretending it has one. Entering has still mutated nothing:
+            # the window offers, and waits for an answer.
+            self._rotate_button.setChecked(False)
+            self.geometry_requested.emit()
+            return
+        self._rotate_readout.setText("X 0\u00b0   Y 0\u00b0")
+        if not self._backend.start_rotation():
+            # The editor could not enter -- its page is still loading, or
+            # it is a backend with no rotation at all. **The button comes
+            # back up rather than claiming a mode nothing is in.** A
+            # banner and a live readout over a canvas where dragging still
+            # draws bonds is the failure this whole line of work keeps
+            # finding: a control that says it did something it did not.
+            self._rotate_button.setChecked(False)
+
+    def _on_rotation_angles(self, x_degrees: float, y_degrees: float) -> None:
+        self._rotate_readout.setText(f"X {x_degrees:.0f}\u00b0   Y {y_degrees:.0f}\u00b0")
+
+    def _cancel_rotation(self, _checked: bool = False) -> None:
+        """Leave the mode, putting the entry geometry back.
+
+        Zero undo steps: the preview was never an edit. A conformer
+        generated on the way in stays -- cancelling a rotation must not
+        delete a legitimate structure.
+        """
+        self._backend.end_rotation(restore=True)
+        self._rotate_button.setChecked(False)
+
+    def _on_rotation_finished(self) -> None:
+        """A drag ended: read the structure back and commit it once."""
+        if self._molecule is None:
+            return
+        self._backend.get_molblock(self._commit_rotation)
+
+    def _commit_rotation(self, molblock: str | None) -> None:
+        if not molblock or self._molecule is None:
+            return
+        try:
+            command = RotateStructureCommand(
+                self._engine,
+                self._molecule,
+                molblock,
+                self._event_bus,
+                on_applied=self.set_molecule,
+            )
+        except StereochemistryConflict as exc:
+            QMessageBox.warning(self, "Rotate 3D", str(exc))
+            self._cancel_rotation()
+            return
+        if not command.moved:
+            # A zero-distance drag. Nothing moved, so nothing is pushed --
+            # an undo entry that restores what is already there is worse
+            # than no entry at all.
+            #
+            # **ASKED OF THE COMMAND, NOT OF THE TEXT.** The obvious
+            # version of this compares the incoming molblock with the
+            # model's, and is never true: the editor's copy is at
+            # Ketcher's own scale (measured x0.6994), so the two strings
+            # differ on every drag including the ones that moved nothing.
+            # The command has restored the scale and can answer on the
+            # geometry; this widget may not import RDKit and could not.
+            return
+        self._applying_own_edit = True
+        try:
+            self._undo_stack.push(command)
+        finally:
+            self._applying_own_edit = False
+
+
+def _has_3d(molecule) -> bool:
+    """Does this molecule's drawing carry real 3D coordinates?
+
+    Read off the molblock's z column rather than through RDKit, because
+    `ui/` may not import it (`tests/test_layering.py`).
+    """
+    lines = (molecule.molblock or "").splitlines()
+    if len(lines) < 5:
+        return False
+    try:
+        count = int(lines[3][:3])
+    except ValueError:
+        return False
+    try:
+        zs = [float(lines[4 + i][20:30]) for i in range(count)]
+    except (IndexError, ValueError):
+        return False
+    return max(zs) - min(zs) > 0.01

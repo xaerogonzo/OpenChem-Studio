@@ -840,3 +840,54 @@ def test_paging_moves_the_selection_onto_the_new_page(qapp):
 
     assert widget._page_start == 6
     assert widget._conformer_index == 6, "the selection stayed on the previous page"
+
+
+def test_the_geometry_on_screen_is_the_one_the_user_navigated_to(qapp):
+    """What the 2D editor's rotation mode picks up when it is asked to
+    turn a flat drawing.
+
+    **The conformer ON SCREEN, not the first one** -- the same reason
+    "Use in 2D Editor" reads `_conformer_index`. Sending `conformers[0]`
+    works perfectly for anyone who never pressed `>` and silently hands
+    over the wrong geometry to everyone who did.
+    """
+    widget, _backend, _bus = _make_widget(qapp)
+    molecule = MoleculeModel(display_name="Test")
+    molecule.conformers = [
+        ConformerModel(molblock="conf-1", method="rdkit"),
+        ConformerModel(molblock="conf-2", method="rdkit"),
+    ]
+    widget.set_molecule(molecule)
+
+    assert widget.geometry_on_screen(molecule) == "conf-1"
+    widget._show_next_conformer()
+    assert widget.geometry_on_screen(molecule) == "conf-2"
+
+
+def test_the_geometry_on_screen_refuses_a_DIFFERENT_molecule(qapp):
+    """The viewer trails the selection through an event, so for a moment
+    it is still showing the previous molecule. Answering with whatever
+    happens to be loaded would hand one molecule's coordinates to
+    another's drawing -- correct arithmetic on the wrong object, which is
+    the shape of two bugs this project has already shipped.
+    """
+    widget, _backend, _bus = _make_widget(qapp)
+    showing = MoleculeModel(display_name="Showing")
+    showing.conformers = [ConformerModel(molblock="conf-1", method="rdkit")]
+    widget.set_molecule(showing)
+
+    other = MoleculeModel(display_name="Other")
+    other.conformers = [ConformerModel(molblock="other-conf", method="rdkit")]
+
+    assert widget.geometry_on_screen(showing) == "conf-1"
+    assert widget.geometry_on_screen(other) is None
+    assert widget.geometry_on_screen(None) is None
+
+
+def test_the_geometry_on_screen_is_None_with_nothing_to_show(qapp):
+    widget, _backend, _bus = _make_widget(qapp)
+    bare = MoleculeModel(display_name="Bare")
+
+    assert widget.geometry_on_screen(bare) is None
+    widget.set_molecule(bare)
+    assert widget.geometry_on_screen(bare) is None

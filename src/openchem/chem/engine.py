@@ -599,6 +599,64 @@ class ChemistryEngine:
         model.inchikey = Chem.InchiToInchiKey(inchi) if inchi else None
         return model
 
+    def rescale_like(self, molblock: str, reference: str) -> tuple[str, float]:
+        """Put `molblock` back on `reference`'s scale, returning the residual.
+
+        **KETCHER NORMALISES BOND LENGTHS TO ITS OWN UNIT AND WRITES THAT
+        OUT.** Measured against the real vendored bundle, a cyclohexane
+        loaded with C-C at 1.5301 A comes back from `getMolfile` at 1.0702
+        -- a uniform x0.6994 on every bond. For a 2D drawing that is
+        meaningless (a layout is not a measurement), which is why nothing
+        noticed for as long as the editor only ever held layouts. For a
+        rotated 3D structure it is a 30% error in every bond length, and
+        it is invisible to atom order, to the CIP labels and to the
+        oriented volume -- a uniform scale changes none of them. Only an
+        energy or a length sees one.
+
+        The factor is fitted by least squares over EVERY pairwise
+        distance rather than read off one bond: a single bond is one
+        rounding error away from the answer, and a molblock carries four
+        decimal places at a scale ~0.7, so the error is amplified by ~1.43
+        on the way back.
+
+        The residual comes back with it -- the largest distance still
+        disagreeing after rescaling -- because that is the number that
+        says whether the motion was rigid at all. A caller that meant to
+        apply a rotation can refuse on it; nothing here decides that.
+
+        Returns `(molblock, inf)` unchanged when the two cannot be
+        compared at all (different atom counts, no conformer), because
+        "cannot tell" must not read as "verified".
+        """
+        mol = self.mol_from_molblock(molblock)
+        ref = self.mol_from_molblock(reference)
+        if (
+            mol.GetNumAtoms() != ref.GetNumAtoms()
+            or not mol.GetNumConformers()
+            or not ref.GetNumConformers()
+        ):
+            return molblock, math.inf
+        conformer, ref_conformer = mol.GetConformer(), ref.GetConformer()
+        points = [tuple(conformer.GetAtomPosition(i)) for i in range(mol.GetNumAtoms())]
+        ref_points = [tuple(ref_conformer.GetAtomPosition(i)) for i in range(ref.GetNumAtoms())]
+        pairs = [(i, j) for i in range(len(points)) for j in range(i + 1, len(points))]
+        here = sum(math.dist(points[i], points[j]) ** 2 for i, j in pairs)
+        there = sum(math.dist(ref_points[i], ref_points[j]) ** 2 for i, j in pairs)
+        if here <= 0.0 or there <= 0.0:
+            return molblock, math.inf
+        factor = math.sqrt(there / here)
+        centre = [sum(axis) / len(points) for axis in zip(*points)]
+        for i, point in enumerate(points):
+            conformer.SetAtomPosition(
+                i, tuple(centre[k] + (point[k] - centre[k]) * factor for k in range(3))
+            )
+        scaled = [tuple(conformer.GetAtomPosition(i)) for i in range(mol.GetNumAtoms())]
+        residual = max(
+            abs(math.dist(scaled[i], scaled[j]) - math.dist(ref_points[i], ref_points[j]))
+            for i, j in pairs
+        )
+        return Chem.MolToMolBlock(mol), residual
+
     def set_structure_from_molblock(self, model: MoleculeModel, molblock: str) -> MoleculeModel:
         mol = self.mol_from_molblock(molblock)
         model.molblock = Chem.MolToMolBlock(mol)

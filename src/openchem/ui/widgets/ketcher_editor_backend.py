@@ -50,9 +50,13 @@ class _Bridge(QObject):
         on_atom_selected: Callable[[int], None] | None = None,
         on_bond_selected: Callable[[int], None] | None = None,
         on_editor_action: Callable[[str], None] | None = None,
+        on_rotation_angles: Callable[[float, float], None] | None = None,
+        on_rotation_finished: Callable[[], None] | None = None,
     ) -> None:
         super().__init__()
         self._on_structure_edited = on_structure_edited
+        self._on_rotation_angles = on_rotation_angles
+        self._on_rotation_finished = on_rotation_finished
         self._on_ketcher_ready = on_ketcher_ready
         self._on_molfile_ready = on_molfile_ready
         self._on_load_complete = on_load_complete
@@ -88,6 +92,16 @@ class _Bridge(QObject):
     # matches by name, and `test_ketcher_bundle_is_current` derives a
     # test per name from the JSX -- so a new interception arrives with
     # its coverage already attached.
+
+    @Slot(float, float)
+    def rotationAngles(self, x_degrees: float, y_degrees: float) -> None:  # noqa: N802 - from JS
+        if self._on_rotation_angles is not None:
+            self._on_rotation_angles(x_degrees, y_degrees)
+
+    @Slot()
+    def rotationFinished(self) -> None:  # noqa: N802 - called from JS by this exact name
+        if self._on_rotation_finished is not None:
+            self._on_rotation_finished()
 
     @Slot()
     def periodicTableRequested(self) -> None:  # noqa: N802 - called from JS by this exact name
@@ -190,6 +204,8 @@ class KetcherEditorBackend(EditorBackend):
             self._on_atom_selected,
             self._on_bond_selected,
             self.editor_action_requested.emit,
+            self.rotation_angles_changed.emit,
+            self.rotation_finished.emit,
         )
         self._channel.registerObject("bridge", self._bridge)
         self._page.setWebChannel(self._channel)
@@ -509,6 +525,34 @@ class KetcherEditorBackend(EditorBackend):
         }})();
         """
         self._page.runJavaScript(script)
+
+    def start_rotation(self) -> bool:
+        """Enter 3D rotation mode: snapshot the geometry and show the rulers.
+
+        **Nothing is mutated by entering.** The page keeps the entry
+        coordinates and rotates a copy of them, so leaving without a drag
+        leaves the structure byte-identical.
+
+        **DROPPED, NOT QUEUED, WHEN THE PAGE IS NOT READY** -- and the
+        caller is told, so it does not show a mode banner over a canvas
+        that never entered one. `window.openchemRotation` does not exist
+        before `ketcherReady`, so the call would silently do nothing while
+        every control said otherwise.
+        """
+        if not self._ketcher_ready:
+            logger.info("The editor is not ready yet; not entering rotation mode.")
+            return False
+        self._page.runJavaScript(
+            "if (window.openchemRotation) window.openchemRotation.enter();"
+        )
+        return True
+
+    def end_rotation(self, restore: bool) -> None:
+        """Leave the mode. `restore=True` puts the entry geometry back."""
+        self._page.runJavaScript(
+            f"if (window.openchemRotation) "
+            f"window.openchemRotation.leave({json.dumps(bool(restore))});"
+        )
 
     def get_molblock(self, callback: Callable[[str | None], None]) -> None:
         if not self._ketcher_ready:
