@@ -117,12 +117,26 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-9.5 minutes**, ending at `3936 passed, 8 skipped,
-1 deselected` (measured 2026-08-11 on clean `master` at the
-`editor-as-workspace` merge, 9m03 -- and on the merge commit itself
-rather than on the branch, which is a rule this file learned the hard
-way. +40 for rotating in the 2D editor and +34 for the stereo/lone-pair
-work, over the 3862 below).
+A clean run is **6-13 minutes**, ending at `4015 passed, 8 skipped,
+1 deselected` (measured 2026-08-11 on branch `lone-pairs-on-the-canvas`,
+11m43 and 12m47 on two consecutive runs. +79 for drawing lone pairs on
+the canvas, over the 3936 below).
+
+**THE BAND WIDENED, and it is the webview tests that did it.** Two runs
+of the same tree came in at 11m43 and 12m47, both outside the old
+6-9.5. About two minutes of that is
+`tests/test_electron_overlay_canvas.py` and
+`test_electron_overlay_lifecycle.py`, which drive the REAL vendored
+Ketcher bundle -- each test builds a `QWebEngineView`, waits for the
+page, and pumps events. That is the price of testing the overlay against
+the thing it actually runs on, and it is worth paying; see the
+lone-pair sections below for what those tests caught. Do not read 12
+minutes as a hang.
+
+Before it: 3936 on clean `master` at the `editor-as-workspace` merge,
+9m03 -- measured on the merge commit itself rather than on the branch,
+which is a rule this file learned the hard way. +40 for rotating in the
+2D editor and +34 for the stereo/lone-pair work, over the 3862 below.
 
 Before it: 3862 on branch `conformer-comparison`, after making
 conformers comparable, putting the 3D shape into the 2D editor, and the
@@ -1096,6 +1110,76 @@ Editing `tools/ketcher-host/src/main.jsx` requires `npm run build` in that
 directory for anything to change; `resources/ketcher/dist/` is build
 output. node and npm are installed, and a build takes about a minute
 (measured 54 s and 1m00 on two bond-selection rebuilds).
+
+#### DRAWING ON KETCHER'S CANVAS: the transform, and where it is safe
+
+The lone-pair overlay draws on top of the editor without touching it.
+Everything it rests on is in `tests/test_ketcher_viewport_transform.py`,
+which is the gate kept as assertions; the parts worth knowing before
+building anything else that draws there:
+
+**`render.ps()` and `obj2view()` DO NOT EXIST on this build.** `page2obj`
+is the only mapping exposed and it runs backwards. Inverting it at two
+probe points gives a forward map accurate to **under a pixel**, and it
+tracks zoom exactly because Ketcher zooms by changing the SVG viewBox and
+`page2obj` already accounts for that:
+
+    a = page2obj(0,0);  b = page2obj(100,100)
+    scale = 100 / (b.x - a.x);  offset = -a.x * scale
+    screen = pp * scale + offset
+
+Better than deriving it from `microModeScale`, `zoom` and the viewBox by
+hand, because it cannot drift when Ketcher changes how any of those work.
+`devicePixelRatio` is deliberately absent: both sides are CSS pixels, so
+display scaling cancels rather than being corrected.
+
+**`ketcher.setZoom` DOES NOTHING.** It returns cleanly, leaves
+`options.zoom` at 1 and moves no atom. `editor.zoom()` is the call that
+works. Two gate arms reported a comfortable zero-pixel error against a
+viewport that had never changed before this was noticed -- assert the
+drawing MOVED before believing any accuracy number.
+
+**Nothing is announced.** `zoomChanged` is in `editor.event` and does not
+fire for a real zoom; Ketcher does not pan by scrolling either (its
+client area has no overflow), so there is no scroll event. Both are
+viewBox changes and both show up only in the derived affine. Comparing it
+costs 0.009 ms against a 16 ms frame, so the overlay WATCHES on an
+animation frame rather than subscribing.
+
+**Work in MODEL SPACE and pan/zoom become free.** Ketcher's viewport
+transform is scale + translate with NO rotation, so a label box is
+axis-aligned in model units exactly as on screen. Put every computed
+thing in model units under one `<g>`, and a viewport change rewrites one
+transform attribute and touches no dot -- measured, slot identity is
+unchanged across zoom 1 -> 1.8 -> 0.55 -> 1 on six fixtures. A guarantee
+by construction rather than a tolerance.
+
+**A LABEL'S HYDROGENS HANG OFF ONE SIDE, and which side varies.** Ketcher
+anchors the element symbol on the atom and puts the hydrogens left or
+right depending on the bonds and on conventions of its own -- water is
+written H2O and ammonia NH3, opposite sides, neither with a bond to go
+on. Measured as offsets from the atom in bond lengths:
+
+    methanol  O   symbol -0.13..0.13   H  at +0.12..+0.35   (right)
+    water     O   symbol -0.13..0.13   H  at -0.57..-0.33   (left)
+    ammonia   N   symbol -0.12..0.12   H3 at +0.11..+0.52   (right)
+    ammonium  N   the '+' reaches      +0.81
+    methyl    C   H3 at -0.57..-0.13                        (left)
+
+A box half the text wide and centred on the atom therefore under-covers
+whichever side they took, and the lone-pair slot radius (0.33) sits
+inside methanol's +0.35 -- so a dot was drawn straight through the H of
+"OH". Reach the FULL text width on BOTH sides instead: a deliberate
+over-estimate that needs no knowledge of Ketcher's side-picking, which
+would be a special case that rots.
+
+**AN OBSTACLE ERROR IS THE ONE CLASS A CHECKER CANNOT SEE.**
+`chem/electron_layout.py` judges what the page drew rather than
+re-implementing it, which catches a great deal -- but it is handed the
+same label box the page used, so both agreed the dot was clear. Every
+test passed, including the one whose whole job is to catch a dot inside a
+label. It took looking at the screen. A judge grades placement against
+the rules it is GIVEN.
 
 #### KETCHER'S MOLBLOCK IS NOT IN ANGSTROM, and nothing said so
 
