@@ -1422,29 +1422,42 @@ def test_the_status_glyphs_really_render(qapp):
 
     unsupported = pixels("")
     blank = pixels(" ")
-    # THE CONTROL, and it did not say what was expected. A Private Use Area
-    # codepoint has no glyph in any font, and the guess was that it would
-    # draw the familiar tofu box -- in which case "some ink was drawn"
-    # would be a useless assertion, since tofu is ink.
+    # THE CONTROL IS WHAT "NO GLYPH" LOOKS LIKE HERE, and it is not the
+    # same everywhere. A Private Use Area codepoint has no glyph in any
+    # font; Windows draws nothing at all for it, byte-identical to a
+    # space, while a Linux runner draws the familiar tofu box.
     #
-    # Measured: on this platform Qt draws **nothing at all** for it,
-    # byte-identical to a space. That is what makes the far simpler check
-    # below sound, and it is asserted rather than assumed so that a Qt or
-    # platform change which starts drawing tofu fails HERE, naming the
-    # reason, instead of quietly weakening the three assertions after it.
-    assert unsupported == blank, (
-        "an unsupported codepoint now draws something (tofu?), so "
-        "'differs from blank' no longer proves a glyph is real"
-    )
+    # This used to assert `unsupported == blank` and then compare each
+    # glyph against `blank` -- which pinned the test to the Windows
+    # regime and failed on Linux naming exactly that reason. The
+    # docstring above already described the right check ("whatever tofu
+    # looks like on this machine, that is what it looks like; a real
+    # glyph must render DIFFERENTLY from it"); the code compared against
+    # the wrong baseline. Comparing against `unsupported` is the
+    # docstring's check, and it is correct in BOTH regimes: where tofu
+    # draws nothing the two are identical, and where it draws a box this
+    # is the only comparison that can tell a glyph from it.
+    tofu_is_drawn = unsupported != blank
 
     for name, glyph in (
         ("failure", _FAILURE_GLYPH),
         ("warning", _WARNING_GLYPH),
         ("success", _SUCCESS_GLYPH),
     ):
-        assert pixels(glyph) != blank, (
+        drawn = pixels(glyph)
+        assert drawn != blank, (
             f"the {name} glyph {glyph!r} drew nothing -- no font in the "
             "fallback chain supplies it, so the status is invisible"
+        )
+        assert drawn != unsupported, (
+            f"the {name} glyph {glyph!r} rendered identically to an "
+            f"unsupported codepoint"
+            + (
+                " (a tofu box on this platform), so no font in the fallback "
+                "chain supplies it"
+                if tofu_is_drawn
+                else ", which draws nothing here"
+            )
         )
 
 

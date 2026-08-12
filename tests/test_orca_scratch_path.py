@@ -16,7 +16,7 @@ setup looked perfectly reasonable.
 
 from __future__ import annotations
 
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 import pytest
 
@@ -69,7 +69,16 @@ def test_a_spaced_anchor_is_left_alone_rather_than_guessed_at(monkeypatch, tmp_p
     space-free on that volume. Returning the spaced path lets ORCA's own
     error surface, which is truthful; inventing a location the user never
     chose is not."""
-    spaced_anchor = Path(r"\\host\My Share\data\cache")
+    # PureWindowsPath, NOT Path. A UNC share is a Windows concept and a
+    # POSIX anchor is always "/", which can never contain a space -- so on
+    # a Linux runner `Path(r"\\host\My Share\...")` is one filename
+    # component with an EMPTY anchor, the guard under test never triggers,
+    # and the function happily returned `OpenChemStudio-scratch` relative
+    # to nothing. Stating the flavour keeps the case reachable wherever
+    # this runs, rather than skipping it off Windows and pretending it was
+    # covered.
+    spaced_anchor = PureWindowsPath(r"\\host\My Share\data\cache")
+    assert " " in spaced_anchor.anchor, "the fixture no longer has a spaced anchor"
     monkeypatch.setattr(app_paths, "cache_root", lambda: spaced_anchor)
 
     assert app_paths.space_free_cache_root() == spaced_anchor
