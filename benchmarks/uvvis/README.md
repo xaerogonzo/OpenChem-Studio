@@ -41,6 +41,9 @@ B3LYP/def2-SVP and shared by every arm, `nroots 15`.
 | ωB97X-D3/def2-SVP | FAIL | PASS | FAIL | **FAIL** |
 | ωB97X-D3/def2-SVPD | FAIL | PASS | FAIL | **FAIL** |
 
+**Every reference value is sourced** — see "Where the numbers come from"
+below. Nothing here is scored against a figure whose provenance is unknown.
+
 **The carbonyls are fine everywhere and were never the problem.**
 Formaldehyde's n→π\* lands at 4.075 / 4.104 / 4.079 eV against 4.07, acetone's
 at 4.446 / 4.518 / 4.531 against 4.48 — every arm inside 0.05 eV, and every
@@ -99,95 +102,72 @@ the band is absent. Root count alone would not have caught this; only
 locating the transition by its declared orbital character does. Anyone
 tempted to simplify that gate to a span test should re-read this row.
 
-## Two open questions, both needing a source rather than a rerun
+## Where the numbers come from
 
-**1. The CONVENTION is settled; the reference VALUE is not, and it decides
-the verdict.**
+Both open values were sourced on 2026-08-12, and the one that was in doubt
+turned out to be the one that had been there all along.
 
-*Settled:* ¹E₁ᵤ is doubly degenerate and ORCA reports each component as its
-own root (0.9606, 0.9607). An experimental *f* is obtained by integrating
-**one absorption band**, and degenerate components lie at the same energy and
-cannot be separated in that integral — so the band total is comparable, and
-summing is right. The CASPT2 benzene literature corroborates it from the
-other side: it reports **one** computed oscillator strength for the
-degenerate E₁ᵤ *state* and compares it against **one** experimental number,
-so both sides are band totals. ROADMAP's "f = 0.9607 against an experimental
-≈0.9 — essentially correct" compared one component against a band total,
-which is why it read as near-perfect agreement.
+**Benzene's ¹E₁ᵤ oscillator strength: 0.90.** This was marked `unsourced`
+with candidates 0.9 and 1.25, because a web summary attributed **1.25** to
+the CASPT2 benzene study — and the two straddle the 2× criterion, so the
+verdict for that band turned on which was right.
 
-*Not settled:* the ≈0.9 has **no citation anywhere in this repository**, and
-the value quoted as experimental alongside this exact energy set
-(4.90/6.20/6.94/7.80) in that literature is **1.25**. The two straddle the
-criterion:
+**The 1.25 is not in that paper.** Reading Lorentzon, Malmqvist, Fülscher and
+Roos (*Theor. Chim. Acta* **91** (1995) 91–108,
+[doi:10.1007/BF01113865](https://doi.org/10.1007/BF01113865)), the string does
+not occur anywhere in it. What it says is that the experimental values are
+*"scattered in the range 0.6–1.05"*, that its own graphical integration gives
+**0.80**, and that the 0.80 *includes the A₂ᵤ Rydberg band*. Refusing to write
+1.25 into the reference on a search summary is the only reason this did not
+become a **wrong number with a citation attached**, which is worse than an
+unsourced one because it stops looking like a question.
 
-| experimental *f* | vs computed ~1.92–2.00 | verdict |
+Bolovinos et al. (*J. Mol. Spectrosc.* **103** (1984) 240–256,
+[doi:10.1016/0022-2852(84)90051-1](https://doi.org/10.1016/0022-2852(84)90051-1))
+gives the direct absolute measurements, Tables I and III:
+
+| | | measured |
 |---|---|---|
-| 0.9 | 2.1× | FAIL |
-| **1.25** | **1.54×** | **PASS** |
+| benzene | ¹B₂ᵤ | *f* = 0.0013 |
+| benzene | ¹B₁ᵤ | 6.19 eV, *f* = 0.090 |
+| benzene | ¹E₁ᵤ | 6.96 eV, **f = 0.90** |
+| pyridine | n→π* ¹B₁ | 4.59 eV, *f* = 0.003 |
+| pyridine | ¹B₂ᵤ-like | 4.99 eV, *f* = 0.029 |
+| pyridine | ¹B₁ᵤ-like | 6.38 eV, *f* = 0.085 |
+| pyridine | ¹E₁ᵤ-like | **7.22 eV**, *f* = 0.90 |
 
-So this band's intensity scores as **UNAVAILABLE**, and the arm-level
-intensity verdict is unavailable with it. Reporting FAIL against a reference
-whose provenance did not survive checking would blame the computation for a
-defect in the reference — and I could not read the primary document, only
-secondary reports of it, which is not a standard this benchmark should
-accept for a number that flips its own answer.
+So **ROADMAP's uncited ≈0.9 was right all along**, and benzene's ¹E₁ᵤ
+intensity is a real **FAIL at 2.13–2.23×** rather than an unscorable.
 
-**What would close it:** a primary source giving the gas-phase integrated
-intensity of benzene's ¹E₁ᵤ band. Nothing else in the table depends on it —
-position and strongest-band identity are unaffected, and both already fail.
+### Three things the papers settled that had been decided on reasoning
 
-**2. Pyridine's IDENTIFICATION was wrong and is fixed; its ENERGIES still
-need a source.**
-The first version declared `rank: 3` for the strong band, which locates the
-B₂ᵤ-like π→π\* at 5.66 eV carrying *f* = 0.025 — not the intense band at all.
-**The guard caught it** by reporting the strongest-band identity as FAIL
-rather than scoring the wrong band quietly, which is what "identify by
-declared orbital character, never by nearest energy" is for.
+All three held, which is worth recording since the alternative was to find
+out they had not.
 
-The rank structure was then measured across all three arms and is stable:
+- **Summing the split components is right.** Bolovinos reports pyridine's
+  E₁ᵤ-derived bands *"do not show any splitting due to the lifting of the
+  ¹E₁ᵤ degeneracy"* — experiment sees **one band** where the computation
+  resolves two. That is exactly what `require_degenerate: false` encodes, and
+  it was chosen from symmetry before there was a measurement to check it
+  against.
+- **Pyridine's strong band is 7.22 eV, not the ~7.0 that was guessed.** That
+  moved its error from +1.04…+1.27 to **+0.82…+1.05** — onto benzene's
+  +0.84…+1.10 rather than merely near it. Pyridine is now a genuine second
+  aromatic case rather than a provisional one.
+- **¹B₁ᵤ is measured at *f* = 0.090 and the computation is still right to
+  return 0.** It is forbidden in D₆ₕ and borrows its intensity vibronically,
+  which a *vertical* calculation at a fixed geometry cannot produce by
+  construction. Scoring the computed 0.0000 against 0.090 would fail the
+  computation for a limitation of the approximation rather than for being
+  wrong, so the criterion stays "must come back dark" and the measurement is
+  recorded beside it.
 
-| rank | assignment | *f* |
-|---|---|---|
-| 1 | n→π\* ¹B₁ | ~0.006 |
-| 2 | forbidden ¹A₂ | 0.000 |
-| 3, 4 | B₂ᵤ / B₁ᵤ-like π→π\* | ~0.02–0.04 |
-| **5, 6** | **E₁ᵤ-derived pair** | **~0.6–0.85 each** |
+### The one band it gets too WEAK
 
-**Benzene's ¹E₁ᵤ is split here, and that needed a schema change.** The
-nitrogen lowers the symmetry to C₂ᵥ and lifts the degeneracy — measured at
-0.244 / 0.122 / 0.082 eV across the arms, all beyond the degeneracy
-tolerance. It is still *one observed band* (the components overlap in a real
-spectrum and an experimental *f* integrates both), so `require_degenerate:
-false` sums them while refusing to pretend they are degenerate. Benzene keeps
-the strict check, where D₆ₕ genuinely requires degeneracy and a split would be
-a red flag. Which of ranks 5 and 6 is brighter **varies by arm**, so declaring
-a single rank would have been fitting to one output.
-
-With that fixed, pyridine corroborates benzene rather than confusing it:
-
-| | n→π\* (exp 4.59) | strong π→π\* (exp ~7.0) | identity |
-|---|---|---|---|
-| B3LYP/def2-SVP | +0.21 | **+1.15** | PASS |
-| ωB97X-D3/def2-SVP | +0.54 | **+1.27** | PASS |
-| ωB97X-D3/def2-SVPD | +0.54 | **+1.04** | PASS |
-
-Same shape as benzene — ωB97X-D worse than B3LYP at the same basis, and the
-strong band ~1 eV too high everywhere.
-
-**It stays `verified: false`.** The n→π\* at 4.59 eV is corroborated as an
-experimental figure by an independent report, but the intense band's energy
-(entered here as ~7.0) and every oscillator strength are still from no
-document I have read. A primary source must supply the ¹B₁ origin, the
-intense band's λ_max, and its integrated intensity.
-
-**The rank rule is robust to the one ambiguity found while looking.** The
-computation orders the two lowest states ¹B₁ then a dark state, while the
-literature assignment of which of ¹A₂ and ¹B₂ comes second is not something
-this could confirm. That ambiguity sits at ranks 2–3 and cannot move ranks 5
-and 6, so the strong-band identification does not depend on resolving it —
-checked rather than assumed, since a rank rule that quietly depended on a
-disputed ordering would be exactly the fragile thing this benchmark refuses
-elsewhere.
+Everything else the computation overestimates. Pyridine's ¹B₁ᵤ-like band is
+the exception, at **0.26–0.36×** of measured (0.022–0.031 against 0.085) —
+worth knowing, because a spectrum with that band too faint is wrong in the
+opposite direction from every other error here.
 
 ## Why this is not a shipped feature
 

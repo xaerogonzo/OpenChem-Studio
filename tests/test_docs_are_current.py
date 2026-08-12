@@ -284,6 +284,25 @@ def _shipped_plugins() -> list[str]:
     return sorted(p.name for p in root.iterdir() if (p / "manifest.toml").is_file())
 
 
+def _uvvis_reference_is_unsourced() -> bool:
+    """Is `benchmarks/uvvis/` still declining to score the two open values?
+
+    Reads the reference rather than a list of ids, so it answers about the
+    data the benchmark actually uses. Both halves must still be open for
+    the ARCHITECTURE entry to remain true.
+    """
+    import json
+
+    molecules = json.loads(
+        (_ROOT / "benchmarks" / "uvvis" / "reference.json").read_text(encoding="utf-8")
+    )["molecules"]
+    benzene_open = any(
+        t["f"]["kind"] == "unsourced" for t in molecules["benzene"]["transitions"]
+    )
+    pyridine_open = any(not t["verified"] for t in molecules["pyridine"]["transitions"])
+    return benzene_open and pyridine_open
+
+
 def _plugins_registering_reactions(root: Path) -> list[str]:
     found = []
     if not root.is_dir():

@@ -1450,3 +1450,51 @@ document may cite a file or a test that does not exist.
     unquoted path internally. Distinct from the scratch/working directory
     space requirement already noted above, which was already handled
     correctly.
+
+- **SETTLED** -- `benchmarks/uvvis/`'s reference data is fully sourced, and
+  the number that was in doubt turned out to be the one already there.
+
+  This was OPEN as "two values nobody has sourced, and one of them decides
+  that benchmark's own verdict" -- benzene's ¹E₁ᵤ oscillator strength
+  (ROADMAP carried ≈0.9 with no citation; a web summary attributed **1.25**
+  to the CASPT2 benzene study) and pyridine's transition energies.
+
+  **THE 1.25 WAS NEVER IN THAT PAPER.** Reading Lorentzon, Malmqvist,
+  Fülscher and Roos (Theor. Chim. Acta 91 (1995) 91-108,
+  doi:10.1007/BF01113865), the string does not occur: it says the
+  experimental values are "scattered in the range 0.6-1.05", that its own
+  graphical integration gives **0.80**, and that the 0.80 *includes the
+  A₂ᵤ Rydberg band*. Declining to write 1.25 into the reference on a search
+  summary is the only reason this did not become a wrong number with a
+  citation attached to it -- which is worse than an unsourced one, because
+  it stops looking like a question.
+
+  **Bolovinos et al.** (J. Mol. Spectrosc. 103 (1984) 240-256,
+  doi:10.1016/0022-2852(84)90051-1) supplies the direct absolute
+  measurements, and everything now scores:
+
+      benzene   1B2u  f = 0.0013     1B1u  f = 0.090   1E1u  f = 0.90
+      pyridine  n->pi* 4.59 eV f = 0.003     B2u-like 4.99 eV f = 0.029
+                B1u-like 6.38 eV f = 0.085   E1u-like 7.22 eV f = 0.90
+
+  So **ROADMAP's uncited ≈0.9 was right all along**, and benzene's ¹E₁ᵤ
+  intensity is a real FAIL at 2.13-2.23x rather than an unscorable.
+
+  Three things the papers settled that were previously decided on reasoning
+  alone, all of which held:
+
+  - **Summing the split components is right.** Bolovinos reports pyridine's
+    E₁ᵤ-derived bands "do not show any splitting due to the lifting of the
+    ¹E₁ᵤ degeneracy" -- experiment sees ONE band where the computation
+    resolves two, which is exactly what `require_degenerate: false` encodes.
+  - **Pyridine's strong band is 7.22 eV, not the ~7.0 that was guessed.**
+    That moved its error from +1.04..+1.27 to +0.82..+1.05, i.e. onto
+    benzene's +0.84..+1.10 rather than merely near it.
+  - **1B1u is measured at f = 0.090 and the computation is still right to
+    return 0.** It is forbidden in D6h and borrows intensity vibronically,
+    which a vertical calculation cannot produce; the criterion stays "must
+    come back dark" and the measurement is recorded beside it rather than
+    scored against.
+
+  The one band the computation gets too WEAK is pyridine's B1u-like, at
+  0.26-0.36x of measured. Everything else it overestimates.

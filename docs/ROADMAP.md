@@ -441,33 +441,24 @@ there, at 7.918 eV carrying f = 0.9607.
 here used to read "against an experimental ≈0.9 — the intensity is
 essentially correct and always was."** ¹E₁ᵤ is **doubly degenerate** and
 ORCA reports each component as its own root: 0.9606 and 0.9607, summing to
-**1.9212**.
+**1.9212**. An experimental oscillator strength integrates ONE absorption
+band and degenerate components cannot be separated in that integral, so the
+comparable computed quantity is the sum.
 
-**The convention is settled: the comparable quantity is the BAND, so the
-sum.** An experimental oscillator strength is obtained by integrating one
-absorption band, and two degenerate components sit at the same energy and
-cannot be separated in that integral. The CASPT2 benzene literature
-corroborates it from the other side — it reports ONE computed oscillator
-strength for the degenerate E₁ᵤ *state* and compares it against one
-experimental number, so both sides are band totals.
+**SOURCED, AND THE ORIGINAL NUMBER WAS RIGHT.** The ≈0.9 had no citation
+anywhere in this repository, and a web summary attributed **1.25** to the
+CASPT2 benzene study — a figure that would have flipped the verdict. That
+paper does not contain it: Lorentzon, Malmqvist, Fülscher and Roos
+(*Theor. Chim. Acta* **91** (1995) 91–108, doi:10.1007/BF01113865) say the
+experimental values are "scattered in the range 0.6–1.05", give their own
+graphical integration as 0.80, and note that the 0.80 includes the A₂ᵤ
+Rydberg band. Bolovinos et al. (*J. Mol. Spectrosc.* **103** (1984)
+240–256, doi:10.1016/0022-2852(84)90051-1) then supply the direct absolute
+measurement: **f = 0.90** at ε_max 6.96 eV.
 
-**The reference VALUE, though, did not survive checking, and this is now
-the open edge.** The ≈0.9 above has no citation anywhere in this
-repository; the value quoted as experimental alongside this exact energy
-set (4.90 / 6.20 / 6.94 / 7.80) in that same literature is **1.25**. They
-fall on opposite sides of the benchmark's 2× criterion:
-
-| experimental *f* | against a computed ~1.92–2.00 | verdict |
-|---|---|---|
-| 0.9 | 2.1× | FAIL |
-| 1.25 | 1.54× | PASS |
-
-So `benchmarks/uvvis/` scores this band's intensity as **UNAVAILABLE**
-rather than picking a side, and the arm-level intensity verdict is
-unavailable with it — reporting FAIL against a reference whose provenance
-did not survive checking would blame the computation for a defect in the
-reference. A primary source giving the gas-phase integrated intensity of
-benzene's ¹E₁ᵤ band closes it.
+So the ≈0.9 was correct all along and is now cited, and comparing a single
+component against it was the error. TD-DFT overestimates this band by
+**2.13–2.23×** across the three arms.
 
 **The relative conclusions in this section are unaffected**, because every
 arm was measured the same way: the def2-SVPD collapse below is still an

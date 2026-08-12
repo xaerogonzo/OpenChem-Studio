@@ -6,7 +6,13 @@ import time
 from openchem.ui.widgets.ketcher_editor_backend import KetcherEditorBackend
 
 
-def _wait_until(qapp, predicate, timeout_seconds: float = 15) -> bool:
+#: 60 rather than 15, for the reason recorded on
+#: `PAGE_READY_TIMEOUT_SECONDS` in `test_mol3d_viewer_backend.py`: a
+#: readiness wait on a webview is a wait on an external resource, the
+#: predicate returns the moment it is true, and 15 s was exceeded once on
+#: a CI runner against a locally-measured 0.2-0.4 s. This file has the
+#: same exposure -- more of it, since Ketcher loads a 35 MB bundle.
+def _wait_until(qapp, predicate, timeout_seconds: float = 60) -> bool:
     deadline = time.time() + timeout_seconds
     while time.time() < deadline:
         qapp.processEvents()

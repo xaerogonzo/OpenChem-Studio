@@ -261,11 +261,32 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-16 minutes**, ending at `4255 passed, 8 skipped,
-1 deselected` (master's MERGE COMMIT `e52fa29`, measured 2026-08-12,
-13m35. +58 for the declared-total contract -- the registry audit, the
-Crippen hydrogen modes, the descriptor-caption fix and the presentation
-guards -- over the 4197 below).
+A clean run is **6-16 minutes**, ending at `4269 passed, 8 skipped`
+(measured 2026-08-12, 14m54. +13 over the 4255 below, for the
+deferred-list sweep -- 8 for the docs staleness guard, the three MISMATCH
+paths and the reaction-template example, 4 for the ORCA path normalisation
+and 1 for the version-fragment fix).
+
+**TAKEN ON A BRANCH, AND HERE IS WHY IT STILL DESCRIBES MASTER.** The run
+was on `close-the-open-three`, not on master's merge commit `26e8725`.
+The cheap half of the rule below was applied rather than skipped: both
+COLLECT 4277, and the branch adds no test functions -- its changes are
+documentation, benchmark reference data, and the bodies of existing
+tests. So the count is master's. A branch that had ADDED tests could not
+be cited this way, which is the trap the entries below are about.
+
+**NOTE THE `1 deselected` IS GONE, and that is a change in the COMMAND
+rather than in the suite.** The figure below was taken with the network
+test deselected; this one was taken bare, and that test now passes rather
+than failing on `HTTP 400`. 4277 collected either way. If it starts
+failing again, deselect it as the entry below describes -- but do not read
+its absence here as a test having been lost.
+
+Before it: 4255 passed, 8 skipped, 1 deselected (master's MERGE COMMIT
+`e52fa29`, measured 2026-08-12, 13m35. +58 for the declared-total
+contract -- the registry audit, the Crippen hydrogen modes, the
+descriptor-caption fix and the presentation guards -- over the 4197
+below).
 
 The run was actually taken on `9981029`, the branch's merge of master
 INTO it, and the two are cited together because they are the same tree:
