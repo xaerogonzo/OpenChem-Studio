@@ -2942,40 +2942,48 @@ is what covers calculator #37, which nobody has written yet.
   labels, `.3f` legend, `.4g` headline, `.4g` panel row. All of them go
   through `label_decimals` now, and the balance tolerance derives from it.
 
-### A LONGER SUMMARY IS NOT FREE, and only the running app said so
+### A BRANCH MEASURED A STARVED SECTION THAT MASTER HAD ALREADY FIXED
 
-Every test was green and the summary row was clipped. Driving the app
-showed `LogP (Crippen) 3.62 - 21 atom contributions,` ending flat against
-the panel edge with its range gone.
+Kept because both halves are instructive: the measurement was right, the
+conclusion drawn from it was obsolete before it was written, and only
+looking at master said so.
 
-**A bare Qt harness said the opposite** -- it reported the label wrapping
-to 4 lines and `CLIPPED: False`, because it had handed the label 100 px
-instead of the real 205. That is the fifth time this file has recorded an
-out-of-app harness lying about this panel. `OPENCHEM_INSTRUMENT_PANEL=1`
-in the real app is what answered it, and the answer needed both arms:
+Driving the app showed `LogP (Crippen) 3.62 - 21 atom contributions,`
+ending flat against the panel edge with its range gone. Every test was
+green. `OPENCHEM_INSTRUMENT_PANEL=1` gave the reason -- the Lipophilicity
+section starved at 145 px against a 192 px minimum, so the result row was
+handed 34 whatever it asked for -- and the branch responded by shortening
+its own row to fit the shortfall it found.
 
-    arm                      row given  row needs   section h / min
-    master                      34 px      47 px      145 / 192  STARVED
-    total + count + range       34 px      79 px      145 / 224  STARVED
-    total + count (shipped)     34 px      47 px      145 / 192  STARVED
+**That shortfall was a bug with a fix already on master.** The section
+above, `A STYLE CHANGE RE-ARMED THE HEIGHT-FOR-WIDTH FLAG`, is the same
+145/192 measured independently a day earlier and repaired. Re-measured
+after merging, with the `dump` drive step:
 
-**The section is starved on master ALREADY**, which is the finding that
-decided what to do. The clip was not introduced here; carrying both the
-total and the range would have taken the shortfall from 13 px to 45 and
-made an existing defect visibly worse. So the row carries the total and
-the count, at 26 px against the old wording's 26 px, and the range moves
-to the dialog legend -- which is where per-atom detail belongs and which
-now renders it at the same precision.
+    arm                    row given/needs   section h / min
+    total + count               47 / 47         192 / 192   ok
+    total + count + range       63 / 63         208 / 208   ok
 
-`test_the_panel_row_does_not_outgrow_the_space_it_had` pins the
-footprint against the WORDING IT REPLACED rather than against a pixel
-count, so it survives a font or width change. The starvation itself is
-untouched and left flagged: `ExplicitHeightLabel`'s docstring records
-eight earlier attempts at that chain and is required reading first.
+So the row carries everything it used to plus the total, and the guard
+that pinned the shorter wording was deleted -- it would have held a
+workaround in place for a bug that no longer existed.
 
-**The generalisation: a panel row is a fixed budget.** Adding a word to
-one costs something somewhere, and in a starved section it costs
-silently -- the text simply stops.
+**A CONSTRAINT DISCOVERED BY MEASUREMENT CAN STILL BE STALE.** Nothing
+about the numbers was wrong; they described a tree eleven commits behind.
+`git fetch` before concluding that a defect is pre-existing, and again
+before shipping a design that works around one -- this branch also wrote
+up two "pre-existing bugs, deliberately not fixed here" that master had
+fixed while it was in flight, one of them with the exact one-line change
+the write-up recommended.
+
+**A bare Qt harness said the opposite of the app** -- it reported the
+label wrapping to 4 lines and `CLIPPED: False`, because it had handed the
+label 100 px instead of the real 205. That is the SIXTH time this file
+has recorded an out-of-app harness disagreeing with the running
+application about this panel, the fifth being in the style-change section
+above, and the two were found within a day of each other by different
+routes. Whatever else is true of that panel, do not measure it out of
+process.
 
 ### `sum(x.values())` is not by itself evidence of this bug
 

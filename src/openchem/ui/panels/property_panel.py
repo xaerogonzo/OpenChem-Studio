@@ -369,30 +369,28 @@ def _summarise(result: object) -> str:
     row is captioned with the result's own name, so "None found." reads
     as "Stereocenters: None found."
 
-    **A DECLARED TOTAL LEADS, AND REPLACES THE RANGE** -- it is the number
-    the row was opened for. This read "21 atoms, -1.019 to 0.5437" for a
-    LogP contribution: true, and not what anybody wanted to know, with the
-    molecule's own LogP nowhere on the row. It now reads
-    "LogP (Crippen) 3.62 - 21 atoms".
+    **A DECLARED TOTAL LEADS** -- it is the number the row was opened for.
+    This read "21 atoms, -1.019 to 0.5437" for a LogP contribution: true,
+    and not what anybody wanted to know, with the molecule's own LogP
+    nowhere on the row. It now reads
+    "LogP (Crippen) 3.62 - 21 atoms, -1.02 to 0.54", which is the same
+    number the dialog behind it shows, at the same precision.
 
-    **THE RANGE GOES BECAUSE THE ROW HAS NO SPACE FOR BOTH**, which was
-    measured rather than assumed. `OPENCHEM_INSTRUMENT_PANEL=1` in the
-    running app, Lipophilicity at a 280 px panel:
+    **THE RANGE STAYS, AND THAT DEPENDED ON A FIX THAT LANDED SEPARATELY.**
+    A first version dropped it, because carrying both overflowed a section
+    that was starved -- 145 px against a 192 px minimum, so the row was
+    handed 34 px whatever it asked for. That starvation was a
+    height-for-width flag re-armed by a style change
+    (`ExplicitHeightLabel.changeEvent`), fixed on master while this was in
+    flight. Re-measured on the merge with `{"do": "dump"}`:
 
-        master                     row given 34 px, needs 47   STARVED
-        total + count + range      row given 34 px, needs 79   STARVED
-        total + count (shipped)    row given 34 px, needs 47
+        total + count            row 47/47   section 192/192   ok
+        total + count + range    row 63/63   section 208/208   ok
 
-    The section is starved on master ALREADY (145 px against a 192 px
-    minimum) -- that is not this change's bug and is not fixed here -- but
-    carrying both would have taken the shortfall from 13 px to 45 and made
-    an existing clip visibly worse. Measured at the real 205 px row width,
-    the shipped wording needs 26 px, exactly what the old one did.
-
-    Nothing is lost: the range lives in the Calculator Inspector's legend,
-    which is where per-atom detail belongs and which now renders it at this
-    same precision. A result that declares no total keeps the old wording,
-    range included.
+    Both now get what they ask for, so the constraint that removed the
+    range no longer exists and the row carries everything it used to plus
+    the total. A result that declares no total keeps the old wording
+    exactly.
     """
     total = declared_total(result)
     places = label_decimals(result)
@@ -415,7 +413,7 @@ def _summarise(result: object) -> str:
                 total_units = f" {total['units']}" if total["units"] else ""
                 return (
                     f"{total['label']} {total['value']:.{places}f}{total_units}"
-                    f" - {_counted(len(payload), noun)}"
+                    f" - {_counted(len(payload), noun)}, {span}"
                 )
         return _counted(len(payload), noun)
     return "Ready"

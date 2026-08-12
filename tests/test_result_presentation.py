@@ -40,7 +40,6 @@ from openchem.ui.dialogs.calculator_inspector_dialog import CalculatorInspectorD
 from openchem.ui.panels.property_panel import PropertyPanel, _summarise
 from openchem.ui.result_clipboard import result_to_text
 from openchem.ui.visualization import build_atom_color_layer, data_range
-from openchem.ui.widgets.collapsible_section import ExplicitHeightLabel
 
 RDLogger.DisableLog("rdApp.*")
 
@@ -229,35 +228,30 @@ def test_the_dialog_legend_still_carries_the_range(qapp):
     _dispose(dialog)
 
 
-def test_the_panel_row_does_not_outgrow_the_space_it_had(qapp):
-    """A STARVED section clips whatever does not fit, so a longer summary
-    is not free.
+def test_the_panel_row_keeps_everything_it_used_to_show_and_adds_the_total(qapp):
+    """The row is strictly richer than the one it replaced.
 
-    Measured in the running app with `OPENCHEM_INSTRUMENT_PANEL=1`:
-    Lipophilicity is starved on master already (145 px against a 192 px
-    minimum) and the result row is given 34 px. A first version of this
-    summary carried the total AND the range and needed 79 px, taking the
-    shortfall from 13 px to 45 -- an existing clip made visibly worse.
+    An earlier version of this guard asserted the row must not GROW,
+    because carrying the total and the range together overflowed a
+    starved section. That starvation was a separate bug -- a
+    height-for-width flag re-armed by a style change -- and it was fixed
+    on master while this branch was in flight. Re-measured on the merge
+    with the `dump` drive step: row 63/63, section 208/208, `ok`.
 
-    Pinned against the wording it replaced rather than against a magic
-    number, so this stays meaningful if the font or the panel width
-    changes.
+    So the constraint is gone, and asserting it now would pin a
+    workaround in place for a bug that no longer exists. What is asserted
+    instead is the CONTENT contract: the total leads, and nothing the old
+    row carried was lost. The layout itself is guarded far better by
+    `test_property_panel_long_values.py`, which measures actual clipping
+    and carries a control proving its probe can see one.
     """
     result = compute_crippen_logp_contrib_calculator(Chem.MolFromSmiles(ASPIRIN), "u", {})
-    values = result.values
-    previous = f"{len(values)} atoms, {min(values.values()):.4g} to {max(values.values()):.4g}"
+    summary = _summarise(result)
+    low, high = data_range(result)
 
-    label = ExplicitHeightLabel("")
-    label.resize(205, 16)
-    label.setText(previous)
-    before = label.heightForWidth(205)
-    label.setText(_summarise(result))
-    after = label.heightForWidth(205)
-
-    assert after <= before, (
-        f"the summary row grew from {before} px to {after} px in a section that is "
-        f"already starved: {_summarise(result)!r}"
-    )
+    assert summary.startswith("LogP (Crippen) 1.31")  # the total, leading
+    assert f"{len(result.values)} atoms" in summary  # the count, as before
+    assert f"{low:.2f} to {high:.2f}" in summary  # the range, as before
 
 
 # --- 3. one precision -----------------------------------------------------
@@ -292,7 +286,9 @@ def test_one_dataset_renders_at_one_precision_everywhere(qapp, places):
     assert span in texts  # dialog legend
     balance = next(t for t in texts if "balance" in t)  # dialog balance sentence
     assert f"sum to {visible_sum}" in balance, balance
-    assert _summarise(result).startswith(f"LogP (Crippen) {total}")  # panel row
+    panel_row = _summarise(result)
+    assert panel_row.startswith(f"LogP (Crippen) {total}")  # panel row: total
+    assert span in panel_row  # panel row: range, at the same precision
     assert f"LogP (Crippen)\t{total}" in result_to_text(result)  # clipboard
     _dispose(dialog)
 
