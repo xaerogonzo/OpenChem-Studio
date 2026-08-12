@@ -261,8 +261,21 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-16 minutes**, ending at `4197 passed, 8 skipped,
-1 deselected` (measured 2026-08-12 on the MERGE COMMIT `887549a`,
+A clean run is **6-16 minutes**, ending at `4255 passed, 8 skipped,
+1 deselected` (measured 2026-08-12 on the MERGE COMMIT `9981029`,
+13m35. +58 for the declared-total contract -- the registry audit, the
+Crippen hydrogen modes, the descriptor-caption fix and the presentation
+guards -- over the 4197 below).
+
+**+58, AND THE BRANCH SPENT A DAY BELIEVING IT WAS +68.** It was
+measured against the 4176 entry, which was already two merges stale, and
+the corrected figure was sitting in an unmerged commit at the time. The
+collected count settles it in four seconds and reconciles exactly:
+4264 collected = 4255 + 8 + 1, against master's 4206. The instrument
+below is not a nicety -- it is the difference between a delta you can
+state and one you cannot.
+
+Before it: 4197 on the MERGE COMMIT `887549a` (measured 2026-08-12,
 16m22. +9 for the single-shot timer work -- two guards for the panel
 reveal, two for the crystal draw, one each for the worker-thread
 progress reporter, the ketcher settle token, the instrumented metrics
