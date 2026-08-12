@@ -519,6 +519,80 @@ def _fail_if_called(*_args, **_kwargs):
     raise AssertionError("revealing a property must not compute anything")
 
 
+def _schedule_from_the_palette(built, bus) -> None:
+    """`reveal_descriptor` -- the command palette's route."""
+    from openchem.events.events import DescriptorComputed
+
+    bus.publish(
+        DescriptorComputed(descriptor=_descriptor("esol_logs", "Aqueous Solubility", "admet"))
+    )
+    assert built.reveal_descriptor("esol_logs"), "the reveal was never scheduled"
+
+
+def _schedule_from_a_finished_calculator(built, bus) -> None:
+    """`_reveal` -- an inline result answering a button press."""
+    built._pending_calculator_id = "topology_analysis"
+    bus.publish(ReportComputed(report=_report(3)))
+    assert built._reveal_target is not None, "the reveal was never scheduled"
+
+
+@pytest.mark.parametrize(
+    "schedule",
+    [_schedule_from_the_palette, _schedule_from_a_finished_calculator],
+    ids=["palette", "finished calculator"],
+)
+def test_a_pending_reveal_is_cancelled_when_the_panel_is_destroyed(qapp, bus, monkeypatch, schedule):
+    """A reveal is deferred by one turn, and the panel can die in it.
+
+    A bare `QTimer.singleShot(0, callable)` is tied to nothing, so a shot
+    scheduled by a panel that is then disposed still fires -- against a
+    live Python wrapper around a freed QScrollArea, which raises
+    `RuntimeError: libshiboken: Internal C++ object ... already deleted`
+    inside whichever unrelated test happens to be pumping events at the
+    time. It surfaced in `test_calculator_sections.py`, an innocent
+    bystander. Passing `self` as Qt's CONTEXT OBJECT disconnects the shot
+    when the panel is destroyed, so it is CANCELLED rather than firing
+    and then declining -- which is why the handler's `row is None` guard
+    could never have helped.
+
+    **BOTH SCHEDULING SITES, because one arm does not cover the other.**
+    Measured: reverting only `_reveal`'s call left the whole two-file
+    reproduction green at 38 passed, so a single-route guard would have
+    signed off on half a fix.
+
+    **THE ALIVE ARM IS THE CONTROL AND IT IS LOAD-BEARING.** A reveal
+    that was never scheduled, or an event pump that delivers no timers,
+    reads exactly like a cancelled one -- so without it this guard would
+    pass just as happily against a panel that had lost the feature
+    altogether.
+    """
+    fired: list[str] = []
+
+    def _record(self) -> None:
+        fired.append("fired")
+
+    # Patched on the CLASS and before construction: `singleShot` captures
+    # the bound method at schedule time, so patching afterwards would
+    # leave the original scheduled and record nothing either way.
+    monkeypatch.setattr(PropertyPanel, "_reveal_pending_result", _record)
+
+    def schedule_a_reveal(*, dispose: bool) -> None:
+        built = PropertyPanel(bus, CalculatorRegistry(), _FakeService(), ChemistryEngine())
+        bus.publish(MoleculeSelected(molecule_uuid=MOLECULE))
+        schedule(built, bus)
+        if dispose:
+            built.setParent(None)
+            built.deleteLater()
+            QCoreApplication.sendPostedEvents(built, QEvent.Type.DeferredDelete)
+        QCoreApplication.processEvents()
+
+    schedule_a_reveal(dispose=False)
+    assert fired == ["fired"], "the control did not fire, so the arm below proves nothing"
+
+    schedule_a_reveal(dispose=True)
+    assert fired == ["fired"], "a pending reveal outlived the panel that scheduled it"
+
+
 def test_a_property_that_is_not_there_says_why(panel, bus):
     """Two different reasons, and they are not the same message: nothing
     selected is a different problem from selected-but-not-computed."""
