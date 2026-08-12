@@ -457,6 +457,59 @@ def test_the_settle_timer_only_clears_its_own_load(qapp):
     assert backend._loading_token is None
 
 
+def test_each_settle_shot_carries_the_token_it_was_scheduled_with(qapp):
+    """The end-to-end half of the test above, through the real timer.
+
+    That one calls `_clear_loading_token` directly, so it checks the
+    PREDICATE and not the wiring -- it passes unchanged however the token
+    reaches the slot. This one fails if the token stops travelling with
+    its own shot.
+
+    That is the live hazard in dropping the self-capturing lambda: the
+    obvious replacement stores the pending token on the backend and reads
+    it back in a no-argument slot, at which point the older shot reads
+    the NEWER token, finds it current, and clears a load that is still
+    settling -- inverting the keying `_on_load_complete` documents.
+
+    **BOTH LOADS MUST COMPLETE for this to discriminate.** If the second
+    only starts, the stored token is never overwritten and the two
+    implementations agree; it takes a second completion to make the
+    older shot read a token that is not its own.
+
+    **ORDER IS DELIBERATELY NOT ASSERTED.** Two shots scheduled
+    microseconds apart with the same delay came back `['newer', 'older']`
+    -- Qt does not promise FIFO for same-expiry single shots, and the
+    first version of this test asserted schedule order and failed against
+    correct code. What is being guarded is that each shot carries its own
+    token, which is a fact about this module; the dispatch order is a
+    fact about Qt's timer queue and none of our business.
+    """
+    import time
+
+    from PySide6.QtCore import QCoreApplication
+
+    backend = KetcherEditorBackend()
+    seen: list[str] = []
+    # Shadowed BEFORE scheduling: the shot binds the method at schedule
+    # time, so a later patch would never be seen.
+    backend._clear_loading_token = seen.append
+
+    backend._loading_token = "older"
+    backend._on_load_complete("older")
+    backend._loading_token = "newer"
+    backend._on_load_complete("newer")
+
+    deadline = time.monotonic() + 5.0
+    while len(seen) < 2 and time.monotonic() < deadline:
+        QCoreApplication.processEvents()
+        time.sleep(0.01)
+
+    assert len(seen) == 2, "both settle shots must fire"
+    assert sorted(seen) == ["newer", "older"], (
+        "a settle shot cleared a load that was not its own"
+    )
+
+
 # --- a selection must arrive as a MOLFILE POSITION, not a Ketcher pool id ---
 
 

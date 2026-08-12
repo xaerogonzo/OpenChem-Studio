@@ -449,3 +449,63 @@ def test_main_windows_are_deliberately_never_collected(qapp, tmp_path):
         "a MainWindow was collected -- the retainer in conftest.py is gone, and "
         "the suite will start corrupting the heap at an unrelated test"
     )
+
+
+def test_every_single_shot_timer_is_bound_to_a_context_object():
+    """A pending `QTimer.singleShot` must not outlive its widget.
+
+    `QTimer.singleShot(msec, callable)` is tied to nothing, so a widget
+    destroyed before it fires leaves a live Python wrapper around a freed
+    C++ object -- `RuntimeError: libshiboken: Internal C++ object ...
+    already deleted`, raised from inside Qt's dispatch in whatever code
+    happens to be pumping events, which is why it reads as a failure
+    somewhere else entirely. The three-argument form takes a CONTEXT
+    OBJECT that Qt disconnects on destruction, so the shot is cancelled
+    rather than firing and then declining.
+
+    **FIVE SITES SHIPPED WITH THIS, in four files, and they were not one
+    bug.** One crashed the suite through an innocent bystander; one also
+    replayed a superseded payload; one never fired at all because the
+    two-argument form cannot cross a thread with no event loop; one could
+    not have raised and was tidied anyway; one sat behind an env var with
+    the widest window of the lot. A per-site fix would have been five
+    separate arguments, so the invariant is asserted over the package.
+
+    Deliberately NOT a ban on lambdas. `progress_reporter` legitimately
+    passes one that captures a label and a plain value, never a `self` --
+    which is the capture that leaks (see
+    `test_connecting_a_self_capturing_lambda_leaks_its_widget` above).
+    What every one of the five got wrong was the missing context object,
+    and that is what this pins.
+
+    A shot that genuinely must fire regardless of any object's lifetime
+    would fail here, and should: it can pass `QCoreApplication.instance()`
+    and say why in a comment, rather than being indistinguishable from the
+    five accidents.
+    """
+    import ast
+    from pathlib import Path
+
+    package = Path(__file__).resolve().parents[1] / "src" / "openchem"
+    offenders = []
+    checked = 0
+    for path in sorted(package.rglob("*.py")):
+        if "vendor" in path.parts:
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "singleShot"
+            ):
+                checked += 1
+                if len(node.args) != 3:
+                    rel = path.relative_to(package.parent.parent)
+                    offenders.append(f"{rel}:{node.lineno}")
+
+    assert checked >= 5, f"only {checked} singleShot calls found; this guard has lost its subject"
+    assert not offenders, (
+        "pass a context object as the second argument, or the shot outlives its widget: "
+        + ", ".join(offenders)
+    )

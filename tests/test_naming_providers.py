@@ -84,8 +84,29 @@ def test_a_null_smiles_is_reported_not_returned_blank():
 
 
 def test_a_404_becomes_a_readable_not_found():
+    """404 is the one HTTP status with its own message, so it needs its own
+    test.
+
+    **THIS WAS A LIVE NETWORK CALL WEARING A MOCK'S CLOTHES.** It patched
+    `urllib.request.urlopen`, which `_pubchem` does not call -- it calls
+    `open_url`, and `openchem.net` binds `urlopen` at import time, so the
+    global patch never intercepts anything. Measured:
+
+        patch("urllib.request.urlopen")   NOT intercepted, real call went out
+        patch(module attribute open_url)  intercepted
+
+    So this asked the real PubChem for "notarealcompound" and passed only
+    because the real PubChem answers 404. CI caught it the day PubChem was
+    busy and answered 503 instead:
+
+        Expected regex: 'no record matching'
+        Actual message: 'PubChem returned HTTP 503.'
+
+    The sibling below already documented this trap; it was fixed there and
+    left here.
+    """
     error = urllib.error.HTTPError("url", 404, "Not Found", {}, None)
-    with patch("urllib.request.urlopen", side_effect=error):
+    with patch("openchem.chem.naming_providers.open_url", side_effect=error):
         with pytest.raises(NamingError, match="no record matching"):
             pubchem_structure_for_name("notarealcompound")
 
@@ -104,7 +125,14 @@ def test_an_unreachable_network_is_reported_as_such():
 
 
 def test_an_empty_name_is_rejected_before_a_request_is_made():
-    with patch("urllib.request.urlopen", side_effect=AssertionError("should not be called")):
+    """Patched at the seam the module calls, or the "before" in the name
+    means nothing -- a global `urllib.request.urlopen` patch is never
+    reached, so the tripwire could not have fired however late the
+    rejection happened."""
+    with patch(
+        "openchem.chem.naming_providers.open_url",
+        side_effect=AssertionError("should not be called"),
+    ):
         with pytest.raises(NamingError, match="Enter a name"):
             pubchem_structure_for_name("   ")
 
@@ -219,9 +247,20 @@ def test_calculator_labels_each_source_with_its_kind():
 
 def test_calculator_can_be_run_without_touching_the_network():
     """PubChem lookup sends the structure to NCBI, so it must be possible
-    to turn off -- unpublished structures are a real concern."""
+    to turn off -- unpublished structures are a real concern.
+
+    **THE TRIPWIRE WAS ON THE WRONG SEAM, so this guarded nothing.** It
+    patched `urllib.request.urlopen`, which `openchem.net.open_url` does
+    not consult (it binds `urlopen` at import time), so a regression that
+    sent every structure to NCBI with `use_pubchem: False` would have left
+    this test green while the requests went out for real. Of the three
+    tests in this file that made that mistake it is the one that mattered
+    most: the other two assert a message, this one asserts a promise about
+    where a user's unpublished structure does NOT go.
+    """
     with patch(
-        "urllib.request.urlopen", side_effect=AssertionError("network must not be touched")
+        "openchem.chem.naming_providers.open_url",
+        side_effect=AssertionError("network must not be touched"),
     ):
         result = compute_iupac_name(Chem.MolFromSmiles(ASPIRIN), "mol-1", {"use_pubchem": False})
 

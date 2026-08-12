@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import threading
+
 from openchem.app.settings import Settings
 from openchem.events.base import EventBus
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
@@ -193,3 +195,57 @@ def test_a_low_herg_score_for_astemizole_is_reported_as_suspect(qapp, monkeypatc
 
     assert "suspect" in message.lower()
     assert "working" not in message.lower()
+
+
+def test_progress_from_a_worker_thread_actually_reaches_the_label(qapp):
+    """`progress_reporter` reported nothing at all, for as long as it has
+    existed.
+
+    Its docstring claimed `QTimer.singleShot(0, fn)` "hops back to the GUI
+    thread via the single-shot-timer idiom Qt sanctions for cross-thread UI
+    updates". It does not: the two-argument form creates the timer in the
+    CALLING thread, and both callers reach it through `run_async`, i.e. a
+    `QThreadPool` worker -- a thread with no event loop, where a timer can
+    never fire. Measured:
+
+        QTimer.singleShot(0, fn)         NEVER FIRED
+        QTimer.singleShot(0, label, fn)  fired in MainThread
+
+    So the status label sat on "Starting..." for the whole of a tool
+    install or a data-root move. Passing the label as the CONTEXT OBJECT
+    is the idiom that claim described -- Qt runs the functor in the
+    context object's thread.
+
+    **DRIVEN FROM A REAL POOL WORKER, and the test asserts it really was
+    one.** Called from the GUI thread the broken form works perfectly, so
+    a test that skipped the thread would have passed against the bug.
+    """
+    import time
+    from types import SimpleNamespace
+
+    from PySide6.QtCore import QCoreApplication, QRunnable, QThreadPool
+    from PySide6.QtWidgets import QLabel
+
+    from openchem.ui.dialogs.external_tool_tabs import progress_reporter
+
+    label = QLabel()
+    report = progress_reporter(label)
+    ran_on: list[str] = []
+
+    class Job(QRunnable):
+        def run(self) -> None:
+            ran_on.append(threading.current_thread().name)
+            report(SimpleNamespace(step=2, total=5, message="Fetching"))
+
+    QThreadPool.globalInstance().start(Job())
+    assert QThreadPool.globalInstance().waitForDone(10_000), "the worker never finished"
+    assert ran_on and ran_on[0] != threading.current_thread().name, (
+        "the job ran on the GUI thread, where even the broken form works"
+    )
+
+    deadline = time.monotonic() + 5.0
+    while not label.text() and time.monotonic() < deadline:
+        QCoreApplication.processEvents()
+        time.sleep(0.01)
+
+    assert label.text() == "[2/5] Fetching..."

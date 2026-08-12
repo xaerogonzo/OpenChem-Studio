@@ -87,14 +87,41 @@ def progress_reporter(label: QLabel) -> Callable[[Any], None]:
     """Report a setup service's progress into `label`, from any thread.
 
     `setText` on a QLabel from a worker thread is not safe in general, so
-    this hops back to the GUI thread via the single-shot-timer idiom Qt
-    sanctions for cross-thread UI updates. Five sidecars each carried
-    their own byte-identical copy of these four lines.
+    this hops to the label's own thread. Five sidecars each carried their
+    own byte-identical copy of these four lines.
+
+    **`label` IS THE CONTEXT OBJECT, AND WITHOUT IT NOTHING HAPPENED AT
+    ALL.** This was `QTimer.singleShot(0, lambda: ...)` with a docstring
+    claiming that form "hops back to the GUI thread via the
+    single-shot-timer idiom Qt sanctions for cross-thread UI updates".
+    It does not. The two-argument form creates the timer in the CALLING
+    thread, and both callers reach here through `run_async`, i.e. a
+    `QThreadPool` worker running a `QRunnable` -- a thread with no event
+    loop, where a timer can never fire. Measured:
+
+        QTimer.singleShot(0, fn)         NEVER FIRED
+        QTimer.singleShot(0, label, fn)  fired in MainThread
+
+    So every progress line either caller emitted was silently dropped,
+    and the label sat on "Starting..." for the whole of a tool install or
+    a data-root move. The three-argument form is the idiom that claim
+    described: Qt invokes the functor in the CONTEXT OBJECT's thread,
+    which is the GUI thread because that is where the label lives.
+
+    It fixes the lifetime hazard in the same stroke -- a dialog closed
+    mid-install would otherwise leave a shot pending against a freed
+    QLabel -- but that was the lesser half. The bug was that the reporter
+    reported nothing.
+
+    The lambda captures `label` and `progress`, never a `self`, which is
+    the capture this codebase has paid for (see CLAUDE.md and
+    `tests/test_qt_object_disposal.py`).
     """
 
     def report(progress: Any) -> None:
         QTimer.singleShot(
             0,
+            label,
             lambda: label.setText(f"[{progress.step}/{progress.total}] {progress.message}..."),
         )
 

@@ -261,8 +261,45 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-13 minutes**, ending at `4176 passed, 8 skipped,
-1 deselected` (measured 2026-08-11 on branch `full-lewis-structure`,
+A clean run is **6-14 minutes**, ending at `4196 passed, 8 skipped,
+1 deselected` (measured 2026-08-12 on branch
+`claude/adoring-germain-a86974`, 13m06, with five earlier runs of the
+same branch at 11m02, 11m24, 12m06, 12m36 and 12m46 as it grew. +9 for
+the single-shot timer work -- two guards for the panel reveal, two for
+the crystal draw, one each for the worker-thread progress reporter, the
+ketcher settle token, the instrumented metrics dump and the destroyed
+window, plus the package-wide invariant -- over the 4187 below).
+
+**The band moved 6-13 to 6-14 because this branch's slowest run was
+13m06**, not because anything got slower: the six runs above span two
+minutes on essentially the same tree, which is the spread this file
+already warns about rather than a trend.
+
+**THE 4176 ENTRY BELOW WAS ALREADY STALE BY 11 WHEN THAT BRANCH STARTED,
+and nothing in this list accounts for them.** master at `9159d1d`, this
+branch's base, **collects 4196**, i.e. 4187 passed against the same 8
+skips and 1 deselection. Two merges landed after the Lewis entry --
+`ci-webgl-skip` (#12) and `right-dock-width` (#13) -- and neither
+refreshed the figure, which is precisely the drift the warning further
+down describes, caught happening rather than described in the abstract.
+
+**That 4187 is DERIVED, not measured**, and is written that way on
+purpose: it comes from `pytest --collect-only -q` on the base commit
+minus the skips and the deselection, not from a run, because no full
+measurement has been taken on master since the Lewis entry. Treat it as
+the arithmetic it is. **A collected count is the sharper instrument for
+"did my change add the tests I think it did"** -- it is deterministic,
+takes four seconds rather than twelve minutes, and is not perturbed by a
+skip whose condition moved. The branch figure above reconciles with it
+exactly: 4205 collected, 4196 + 8 + 1.
+
+**That entry was written at 4195 and was stale within the hour**, by one
+test, from the next commit on the same branch. Left as a note rather
+than quietly corrected: this is not a slow drift that creeps in over
+months, it is one commit, and it is why the collected count above is
+worth more than the passed count as a check on your own change.
+
+Before it: 4176 on branch `full-lewis-structure` (measured 2026-08-11,
 11m25, with an earlier run of the same branch at 12m15. +161 for the full
 Lewis structure -- the resonance gate, the model, the SVG renderer, the
 RDKit builder and the dialog -- over the 4015 below).

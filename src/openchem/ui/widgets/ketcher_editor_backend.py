@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import uuid
+from functools import partial
 from pathlib import Path
 from typing import Callable
 
@@ -352,12 +353,27 @@ class KetcherEditorBackend(EditorBackend):
 
         Keyed on the token so a load starting while another is still
         settling is not cleared early by the older one finishing.
+
+        **THE TOKEN TRAVELS WITH THE CALLABLE, and moving it onto `self`
+        would break that keying.** The obvious way to drop the
+        self-capturing lambda is to store the pending token on the object
+        and read it back in a no-argument slot. That inverts the very
+        behaviour this docstring describes: with loads A then B in
+        flight, A's timer would read the stored token, find B, and clear
+        a load that is still settling -- exactly the early clear the
+        keying exists to prevent. `partial` keeps the token bound to the
+        shot that owns it.
+
+        `self` is the CONTEXT OBJECT so a backend destroyed inside the
+        grace period cancels the shot instead of being touched after
+        death. This one would not have raised -- `_clear_loading_token`
+        reads a plain Python attribute, not a C++ object -- so unlike the
+        crashing sites elsewhere in the app this is tidiness rather than
+        a fix, and it is worth being clear about which it is.
         """
         if token != self._loading_token:
             return
-        QTimer.singleShot(
-            _LOAD_SETTLE_MS, lambda: self._clear_loading_token(token)
-        )
+        QTimer.singleShot(_LOAD_SETTLE_MS, self, partial(self._clear_loading_token, token))
 
     def _clear_loading_token(self, token: str) -> None:
         if token == self._loading_token:
