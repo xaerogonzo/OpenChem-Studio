@@ -115,8 +115,17 @@ def test_an_ir_silent_mode_is_still_marked(qapp):
     and the benchmark's whole intensity argument rests on those zeros
     being real. "No mode here" and "a mode symmetry forbids from
     absorbing" must not render identically."""
-    without = [_mode(1600.0), _mode(3800.0)]
-    with_silent = [_mode(1387.8, intensity=0.0), _mode(1600.0), _mode(3800.0)]
+    # SAME EXTREMES, DIFFERING BY ONE MODE IN THE MIDDLE. The two spectra
+    # used to be 1600..3800 and 1387.8..3800, so adding the silent mode
+    # also moved the axis -- and the ink difference then includes the tick
+    # labels rather than only the mark being tested. That is the confound
+    # this project already records ("hold the axes fixed and vary only the
+    # content"), and it does not merely weaken the test: on Windows the
+    # relabelled axis happened to add ink and on Linux it subtracted 20,
+    # so the assertion was decided by font metrics rather than by whether
+    # a silent mode is drawn at all.
+    without = [_mode(1387.8), _mode(3800.0)]
+    with_silent = [_mode(1387.8), _mode(2400.0, intensity=0.0), _mode(3800.0)]
 
     assert ink(IrSpectrumWidget(with_silent)) > ink(IrSpectrumWidget(without))
 

@@ -1328,12 +1328,38 @@ document may cite a file or a test that does not exist.
   Guards: `test_an_explicitly_run_row_result_is_scrolled_into_view` and
   `test_a_result_nobody_asked_for_does_not_hijack_the_scroll`. Both
   mutation-tested, including against the `ensureWidgetVisible` version.
-- **OPEN, possibly correct behaviour** -- IUPAC Name reports
-  "A name was derived but did not parse back to this structure, so it is
-  being withheld" on a morphine derivative. That is the namer's honest
-  round-trip refusal working as designed, but on a real drug-like
-  molecule it reads as a broken feature. Worth deciding whether to show
-  the withheld name marked as unverified rather than nothing at all.
+- **DECISION** -- a derived IUPAC name that fails its OPSIN round trip
+  stays WITHHELD. This was open as "worth deciding whether to show the
+  withheld name marked as unverified rather than nothing at all", on the
+  strength of a morphine derivative reporting "A name was derived but did
+  not parse back to this structure, so it is being withheld". Measured
+  before deciding, and both halves of the measurement mattered.
+
+  **The reported symptom does not reproduce.** Morphine, codeine and
+  ethylmorphine all return `RoundTrip.MATCH` today. The reported structure
+  was never recorded, so it cannot be reproduced exactly from what is
+  written here -- which is its own lesson about writing up a defect.
+
+  **`MISMATCH` fires once in 181 molecules and that once is real.** Over
+  `benchmarks/naming/corpus.json`: 180 MATCH, 1 MISMATCH, and the one is
+  metformin -- already carried in ROADMAP.md as a known
+  `gate_disagreement` where the canonical SMILES and the InChIKey disagree
+  over a tautomer. That is exactly the case withholding exists for, so the
+  behaviour is correct as built.
+
+  The near miss is worth keeping: `verify_name_round_trip` reaches
+  `MISMATCH` from THREE places and only one of them is evidence against
+  the name -- OPSIN failing to parse our name, and RDKit failing to build
+  OPSIN's SMILES, are both the CHECKER failing rather than the name being
+  wrong, and the enum already draws that line one case over (`UNVERIFIED`
+  is commented "Honestly different from a failure"). Splitting them was
+  designed and then NOT built, because the corpus scan showed **zero**
+  molecules reach either checker-failed path: it would have been a branch
+  shipped, documented, and never once run. The conflation is recorded on
+  the function and its three paths are held apart by tests using
+  controlled dependency failures, so the split stays cheap if a real case
+  ever appears.
+
   IUPAC Locants on the same molecule DOES work (18 of 23 atoms numbered,
   rendered in the Calculator Inspector with both depictions).
 - **DECISION** -- a calculation cannot be ADDRESSED to a crystal.
@@ -1344,10 +1370,29 @@ document may cite a file or a test that does not exist.
   declaration becomes load-bearing at runtime and
   `test_a_calculation_cannot_even_be_ADDRESSED_to_a_crystal` is the place
   that says so.
-- **OPEN** -- no shipped plugin calls `context.reactions`. The namespace
+- **SETTLED** -- `examples/plugins/reaction_templates_plugin/` registers
+  templates through `context.reactions`. This was OPEN as "the namespace
   and its rollback are covered by tests including an end-to-end one, but
   the third-party story would be more convincing with an `examples/`
-  plugin that actually registers a template.
+  plugin that actually registers a template."
+
+  **CHOOSING THE TEMPLATES WAS THE INTERESTING PART.** The obvious three
+  were Fischer esterification, amide formation and an oxidation -- and
+  `reaction_templates.json` already ships the first two. That is wrong
+  twice: a plugin re-registering chemistry the app already has
+  demonstrates nothing worth copying, and `RDKitTemplateProvider`
+  de-duplicates products across templates in file-then-registered order,
+  so the bundled rule reaches the answer first and the example's own
+  template never appears in the output. The test caught it as "the
+  product is not attributed to reaction_templates_plugin" -- an example
+  whose contribution is invisible is not one. It ships alcohol oxidation,
+  nitro reduction and a Williamson ether synthesis instead, none of them
+  bundled.
+
+  The guard applies every template to a declared substrate through the
+  real `RDKitTemplateProvider` and asserts the product, because a SMARTS
+  that parses cleanly and matches NOTHING would pass a registration-only
+  check while being a worked example of failure.
 - **OPEN, cause unknown** -- the 3D viewer rendered a black half-height
   canvas in 3 of 5 and then 4 of 5 cold launches, then went 9 of 9 and 5
   of 5 clean with no relevant change. **No cause was established and the
@@ -1356,10 +1401,23 @@ document may cite a file or a test that does not exist.
   `render_reproducibility.ps1` is the harness, and CLAUDE.md carries the
   measurement trap that made the first attempt worthless (a black canvas
   scores as heavily INKED, so a failed render read as a success).
-- **OPEN** -- `DockingPoseModel.metadata`'s H-bond/clash analysis (Phase 9.4) is a
-  heavy-atom-distance heuristic only — pharmacophore/hydrophobic contact
-  detection is a real gap, less standardized and meaningfully more work
-  than what's built.
+- **SETTLED** -- `DockingPoseModel.metadata` carries SEVEN interaction
+  types, not two. This entry read "**OPEN** ... a heavy-atom-distance
+  heuristic only — pharmacophore/hydrophobic contact detection is a real
+  gap" while `chem/pose_analysis.py`'s `extended_interactions` was already
+  returning hydrophobic contacts, salt bridges, pi-stacking, cation-pi and
+  metal coordination alongside the original H-bonds and clashes.
+
+  It was stale in a way worth recording: ROADMAP.md had ALREADY corrected
+  the identical claim ("hydrophobic/pi-stacking/cation-pi/salt-bridge/metal
+  contact detection all shipped (seven interaction types now)"), so the two
+  documents contradicted each other outright, and the one a reader is more
+  likely to trust for implementation detail was the wrong one.
+
+  The H-bond geometry is still deliberately a heavy-atom-distance
+  heuristic rather than a donor-H...acceptor angle -- the receptor has no
+  experimental hydrogen positions to compute a real angle from, which is a
+  DECISION recorded in `pose_analysis.py` and not a gap.
 - **SETTLED** -- Vina and ORCA execution are verified against real installed
   backends** (issue #2): a real `vina_1.2.7_win.exe` and a real ORCA 6.1.1
   install were pointed at end-to-end through `DockingPanel`/

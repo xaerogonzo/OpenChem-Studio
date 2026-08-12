@@ -107,7 +107,7 @@ import shutil
 import subprocess
 from contextlib import contextmanager
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 #: Grid points per axis. `scalar_field.DEFAULT_RESOLUTION` is 48 for the
 #: point-charge field and the same reasoning applies -- cost is cubic --
@@ -184,25 +184,62 @@ def baked_job_directory(gbw_path: Path | str) -> Path | None:
     # The stem appears as `...\<stem>` at the end of the recorded path.
     # Searched as bytes rather than decoded, because the surrounding
     # content is binary and will not decode as text.
-    needle = f"\\{gbw.stem}".encode("ascii", errors="ignore")
-    index = data.find(needle)
-    while index != -1:
-        # Walk back over printable ASCII to the start of the string. The
-        # real file has a null immediately before it, but scanning for the
-        # printable run costs nothing and does not depend on that.
-        start = index
-        while start > 0 and 0x20 <= data[start - 1] < 0x7F:
-            start -= 1
-        try:
-            text = data[start : index + len(needle)].decode("ascii")
-        except UnicodeDecodeError:  # pragma: no cover - the walk guarantees ASCII
-            text = ""
-        # A drive letter and a colon is what distinguishes a real recorded
-        # path from an incidental byte sequence -- `\job` turns up in
-        # binary by chance.
-        if len(text) > 3 and text[1:3] == ":\\":
-            return Path(text).parent
-        index = data.find(needle, index + 1)
+    #
+    # BOTH SEPARATORS, because the separator ORCA baked is a property of
+    # the machine that ran it, not of the machine reading the gbw.
+    for separator in ("\\", "/"):
+        needle = f"{separator}{gbw.stem}".encode("ascii", errors="ignore")
+        index = data.find(needle)
+        while index != -1:
+            # Walk back over printable ASCII to the start of the string. The
+            # real file has a null immediately before it, but scanning for the
+            # printable run costs nothing and does not depend on that.
+            start = index
+            while start > 0 and 0x20 <= data[start - 1] < 0x7F:
+                start -= 1
+            try:
+                text = data[start : index + len(needle)].decode("ascii")
+            except UnicodeDecodeError:  # pragma: no cover - the walk guarantees ASCII
+                text = ""
+            parent = _recorded_parent(text)
+            if parent is not None:
+                return parent
+            index = data.find(needle, index + 1)
+    return None
+
+
+def _recorded_parent(text: str) -> Path | None:
+    """The directory of an absolute path ORCA recorded, or None.
+
+    **PARSED WITH AN EXPLICIT FLAVOUR, NOT WITH `Path`.** `Path` follows
+    the HOST os, so on a non-Windows machine `Path(r"D:\\a\\b").parent` is
+    `"."` -- not an error, just silently the wrong directory, which then
+    gets created and deleted somewhere unintended. The recorded string's
+    shape is fixed by whichever machine ran ORCA and has nothing to do
+    with the one reading it, so the two are separated here.
+
+    An absolute path is what distinguishes a real recorded path from an
+    incidental byte sequence: `\\job` turns up in binary by chance, and
+    both branches below require far more than that.
+
+    The POSIX branch exists because this returned None for every
+    POSIX-shaped recorded path, which was invisible on a Windows-only
+    application until its own tests ran on Linux -- and one of those tests
+    PASSED there for the wrong reason, asserting "nothing was restored"
+    and getting it because nothing had been parsed.
+    """
+    # `str()` around the pure path, NOT `Path(pure_path)`. Handing a
+    # `PurePath` to `Path` carries its RAW parts across, so on POSIX the
+    # result keeps the forward-slash form it was parsed into
+    # (`PosixPath("D:/scratch/x")`) rather than the Windows text a caller
+    # comparing against `Path(r"D:\scratch\x")` will have. Going through
+    # `str` re-renders it in the source flavour first, which is the whole
+    # point of parsing it with that flavour. Identical on Windows, where
+    # both spellings are the same object.
+    if len(text) > 3 and text[1:3] == ":\\":
+        return Path(str(PureWindowsPath(text).parent))
+    if text.startswith("/") and len(text) > 1:
+        return Path(str(PurePosixPath(text).parent))
     return None
 
 

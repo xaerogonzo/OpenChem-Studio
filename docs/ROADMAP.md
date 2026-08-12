@@ -121,9 +121,14 @@ Five largely independent sub-phases, built and verified in order (6.1-6.5).
       `models.rcsb.org` both resolved), and the vendored Mol* bundle contains
       zero occurrences of "mmtf" — the viewer dropped it too. An importer would
       read files nobody can obtain and display them in nothing.
-- [ ] *Deferred, still*: plugin-provided reaction templates (a formal
-      `context.reactions.register(...)`-style namespace). See ARCHITECTURE.md's
-      design-decisions section.
+- [x] Plugin-provided reaction templates — a formal
+      `context.reactions.register([...])` namespace
+      (`plugins/context.py`'s `_ReactionTemplateRegistrar`), taking a LIST
+      because a reaction-SMARTS library is data that grows and registering
+      thirty rules should be one call and one rollback. It also reads:
+      the bundled reaction plugin has to APPLY what others registered, so a
+      write-only namespace would be unusable by the one plugin that needs
+      it. Worked example at `examples/plugins/reaction_templates_plugin/`.
 
 ## Phase 7 — Stabilization (real-world usage fixes)
 
@@ -273,8 +278,7 @@ explicitly out of scope.
       (`ToolbarProvider`/`ContextMenuProvider`, a `RemoteServicePlugin` base
       class, numeric provider priority, declared permissions) — flagged in
       the code itself as "revisit if a fourth plugin needs the same shape,"
-      and still no concrete plugin needs them. Plugin-provided
-      reaction-template registration.
+      and still no concrete plugin needs them.
 
       **No longer deferred**, corrected because this list had gone stale:
       hydrophobic/pi-stacking/cation-pi/salt-bridge/metal contact
@@ -282,6 +286,14 @@ explicitly out of scope.
       rendering for the 2D NMR correlation plots shipped; every registered
       calculator has options; hERG/CYP/Ames prediction shipped via the
       ADMET sidecar; and packaging is done with PyInstaller, not Nuitka.
+
+      **And it went stale again in the same paragraph.** Plugin-provided
+      reaction-template registration was listed here as deferred while
+      `context.reactions` was already shipped and tested — a correction
+      notice sitting directly above a claim needing the same correction.
+      That is the argument for `tests/test_docs_are_current.py`'s
+      staleness guard rather than another hand sweep: this list has now
+      been corrected by hand twice and drifted both times.
 
 ## After Phase 9 — by capability, not by phase
 
@@ -423,8 +435,46 @@ showed so. Measured 2026-08-05 on the same optimised geometries, B3LYP,
 
 **The ¹E₁ᵤ band was never missing because of the basis set. It was missing
 because `nroots 8` was too few.** At def2-SVP with 15 roots it is right
-there, at 7.918 eV carrying f = 0.96 against an experimental ≈0.9 — the
-intensity is essentially correct and always was.
+there, at 7.918 eV carrying f = 0.9607.
+
+**THAT NUMBER WAS COMPARED AGAINST A SINGLE COMPONENT, and the sentence
+here used to read "against an experimental ≈0.9 — the intensity is
+essentially correct and always was."** ¹E₁ᵤ is **doubly degenerate** and
+ORCA reports each component as its own root: 0.9606 and 0.9607, summing to
+**1.9212**.
+
+**The convention is settled: the comparable quantity is the BAND, so the
+sum.** An experimental oscillator strength is obtained by integrating one
+absorption band, and two degenerate components sit at the same energy and
+cannot be separated in that integral. The CASPT2 benzene literature
+corroborates it from the other side — it reports ONE computed oscillator
+strength for the degenerate E₁ᵤ *state* and compares it against one
+experimental number, so both sides are band totals.
+
+**The reference VALUE, though, did not survive checking, and this is now
+the open edge.** The ≈0.9 above has no citation anywhere in this
+repository; the value quoted as experimental alongside this exact energy
+set (4.90 / 6.20 / 6.94 / 7.80) in that same literature is **1.25**. They
+fall on opposite sides of the benchmark's 2× criterion:
+
+| experimental *f* | against a computed ~1.92–2.00 | verdict |
+|---|---|---|
+| 0.9 | 2.1× | FAIL |
+| 1.25 | 1.54× | PASS |
+
+So `benchmarks/uvvis/` scores this band's intensity as **UNAVAILABLE**
+rather than picking a side, and the arm-level intensity verdict is
+unavailable with it — reporting FAIL against a reference whose provenance
+did not survive checking would blame the computation for a defect in the
+reference. A primary source giving the gas-phase integrated intensity of
+benzene's ¹E₁ᵤ band closes it.
+
+**The relative conclusions in this section are unaffected**, because every
+arm was measured the same way: the def2-SVPD collapse below is still an
+order of magnitude, per component or summed. What was wrong was the
+absolute "essentially correct" claim, which rested on mixing conventions.
+`score.py` prints components and their sum side by side so the two can
+never be silently mixed again.
 
 Diffuse functions do improve every *position*: ¹B₂ᵤ +0.59 → +0.50 eV, ¹B₁ᵤ
 +0.27 → +0.11, and the allowed band +0.98 → +0.49. **And they destroy the
@@ -462,10 +512,49 @@ chosen from the molecule rather than fixed at 8, and a benchmark of its
 own against experimental λ_max the way `benchmarks/ir/` was done. A
 functional better suited to charge-transfer and π→π\* states (a
 range-separated hybrid such as ωB97X-D) is the more promising lead than
-any basis change, and has not been tried.
+any basis change.
 None of that is blocked — the `SpectrumResult` family was shaped so a
 `UvVisSpectrumResult` is an addition rather than a refactor, which is
 precisely what makes deferring it safe.
+
+##### ωB97X-D HAS NOW BEEN TRIED, AND IT MOVES BENZENE THE WRONG WAY
+
+The line above used to end "and has not been tried". It has been, on
+ORCA 6.1.1 with pre-registered acceptance criteria, and the full method,
+table and two open questions are in
+[benchmarks/uvvis/README.md](../benchmarks/uvvis/README.md). The refusal
+stands and the reason is now measured rather than predicted.
+
+A range-separated hybrid blue-shifts valence π→π\* **further**, which is
+the opposite of what was wanted. Errors against experiment:
+
+| benzene band | B3LYP/SVP | ωB97X-D3/SVP | ωB97X-D3/SVPD |
+|---|---|---|---|
+| ¹B₂ᵤ 4.90 | +0.59 | **+0.73** | +0.64 |
+| ¹B₁ᵤ 6.20 | +0.27 | **+0.40** | +0.26 |
+| ¹E₁ᵤ 6.94 | +0.98 | **+1.10** | +0.84 |
+
+The carbonyls were never the problem and stay excellent everywhere —
+formaldehyde and acetone land within 0.05 eV in all three arms, both
+correctly dark.
+
+**The one genuinely new finding is that ωB97X-D fixes what diffuse
+functions broke.** The recorded intensity collapse at def2-SVPD — *f*
+0.96 → 0.083, Rydberg states fragmenting the valence π→π\* — is a
+**B3LYP** failure, not a basis-set one. With ωB97X-D3/def2-SVPD the
+oscillator strength survives at 0.993 per component and the strongest
+band is still identified correctly, at the cost of a worse position
+(+0.84 against B3LYP/def2-SVPD's +0.49). So the two error modes still
+cannot be minimised by one setting, which is the existing conclusion —
+now confirmed against the functional that was supposed to resolve it
+rather than only against basis sets.
+
+**A benchmark exists for this now**, which is the durable part:
+`benchmarks/uvvis/` is scoreable and runnable, with a B3LYP control that
+reproduces this document's own recorded figures to four decimals, and an
+identification rule that refuses to score a transition it cannot locate
+rather than taking the nearest root — the direct guard against the
+`nroots 8` failure recorded above.
 
 ### ADMET
 
@@ -705,10 +794,18 @@ Nothing here is simply unstarted — each is blocked on something nameable,
 and three were checked again recently rather than taken on trust.
 
 - **Plugin-system extras** (`ToolbarProvider`/`ContextMenuProvider`, a
-  `RemoteServicePlugin` base, numeric priority, declared permissions) and
-  **plugin-provided reaction templates**. The recorded trigger is "a
-  fourth plugin whose real requirements tell us the shape". There are
-  still three. Building now means guessing.
+  `RemoteServicePlugin` base, numeric priority, declared permissions). The
+  recorded trigger is "a fourth plugin whose real requirements tell us the
+  shape". There are still three. Building now means guessing.
+
+  **Plugin-provided reaction templates are NO LONGER on this list**, and
+  this entry claimed otherwise in three places for longer than it should
+  have. `context.reactions.register([...])` exists
+  (`plugins/context.py`'s `_ReactionTemplateRegistrar`), takes a list so a
+  library is one call and one rollback, and is covered end to end. See
+  ARCHITECTURE.md, which stated the real remaining gap correctly the whole
+  time — that no *shipped* plugin called it — and which is now closed too
+  by `examples/plugins/reaction_templates_plugin/`.
 - **ChemSpider naming provider** — the RSC API returns 403 without a
   registered developer key. `naming_providers.py` is provider-shaped so
   it is a drop-in when a key exists.
@@ -721,9 +818,16 @@ and three were checked again recently rather than taken on trust.
 - **TSEI, HLB, Miller polarizability, σ/π charge separation** — measured
   and not shippable honestly, each recorded where the code would have
   gone.
-- **Ensemble alignment across a project** — `alignment.py` aligns onto a
-  reference SMILES; aligning a whole project needs its own panel, and
-  nothing is pushing on it.
+**Removed from this list because it had SHIPPED**: ensemble alignment
+across a project. This entry read "`alignment.py` aligns onto a reference
+SMILES; aligning a whole project needs its own panel, and nothing is
+pushing on it" — while `services/alignment_service.py` was running
+`_EnsembleAlignmentTask` against a reference molecule, `bootstrap.py`
+was constructing it, and the panel it said was needed was sitting in
+`ui/panels/alignment_panel.py`. Kept as a note rather than silently
+deleted, because a deferral list that quietly loses entries is as hard to
+trust as one that keeps stale ones, and `tests/test_docs_are_current.py`
+now fails if this happens again.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for how the codebase is structured so
 this has stayed additive — new content types get a sibling backend, new
@@ -745,13 +849,29 @@ behind a path filter on `src/openchem/vendor/**` — exactly when CLAUDE.md
 says to run it — so its ~15 minutes land on the PRs that can break it and
 on no others.
 
-**Windows only, and Linux deferred rather than rejected.** This application
-ships Windows-only, and the suite is webview-heavy, so a green tick means
-green on the platform users run. A Linux job would surface hidden
-environment assumptions and is worth adding as a NON-BLOCKING second
-runner; blocking a PR on a platform nobody ships is not worth the noise.
-The reasoning is written into the workflow header rather than left here,
-where whoever revisits it will not be looking.
+**Windows gates; Linux reports.** This application ships Windows-only, and
+the suite is webview-heavy, so a green tick on the Windows job means green
+on the platform users run. Linux is now wired as a **NON-BLOCKING** second
+runner — it surfaces hidden environment assumptions without letting a
+platform nobody ships block a merge.
+
+**Non-blocking had to be made loud, or it would be decorative.**
+`continue-on-error` on its own produces a green run page hiding thirty
+Linux failures, which is the same failure mode as "a red suite silently
+disables every gate behind it". The Linux job therefore writes a full
+fingerprint to the run summary under `if: always()` —
+collected/passed/failed/skipped/deselected/xfailed/xpassed plus the first
+failing test names — reports the suite's real exit status rather than
+inferring health from parsed output, and distinguishes **"tests failed"**
+from **"the suite could not start"**. A parser that turned empty output
+into `0 failed` would be the same decorative control one level down, so
+that path is an explicit INFRASTRUCTURE FAILURE instead. Verified against
+four inputs — clean, failures, empty, and output with no summary line.
+
+Expect environment-only failures to arrive **one at a time**, each
+unblocking the next; that is what this file already records happening
+three times in a row on exactly this kind of move. The reasoning is in the
+workflow header as well, where whoever revisits it will be looking.
 
 ### What CI still cannot do, and why it is not a gap to close cheaply
 
@@ -770,7 +890,7 @@ The workflow lists these by name so a green tick is not mistaken for full
 coverage, and `docs/VALIDATION.md` carries their measured results with the
 method and sample size behind each.
 
-### The self-hosted phase — scaffolded, two of six wired
+### The self-hosted phase — scaffolded, three of six wired
 
 `benchmarks-selfhosted.yml` runs these on a machine that has the tools and
 publishes the results as artefacts, which is what closes the gap between
@@ -785,11 +905,31 @@ file from the default branch and cannot be fired by a fork. The reasoning,
 and the two settings that shrink the remaining exposure to near zero, are
 in [SELF_HOSTED_RUNNER.md](SELF_HOSTED_RUNNER.md).
 
-**IR and ESP are wired up. NMR, docking, ADMET and pKa are not**, and are
+**IR, ESP and docking are wired up. NMR, ADMET and pKa are not**, and are
 named as such in the workflow rather than encoded on a guess — a step that
 always fails is worse than an absent one, because it trains people to
 ignore red. Each has a multi-script pipeline that needs one verified
 hand-run on the runner machine before it is encoded.
+
+Docking joined by that route: `benchmarks/docking/redock.py` was run by
+hand against real Vina 1.2.7 first (exit 0, seven targets, six landing in
+the crystallographic pocket and 3EML nearby — 1HSG 0.17 Å, 4DKL 0.89,
+3EML 3.92, 2RH1 0.33, 8ZYO 0.56, 1ERE 0.47, 4EY7 0.41), and only then
+encoded. Two things the hand-run settled that a guess would have got
+wrong: it must run from **its own directory**, because it imports a
+sibling `_config`, and it must create `bench-out/` itself, because that
+directory is otherwise made only by the IR/ESP generators — which are
+skipped in exactly the case somebody dispatches the workflow with
+`only: docking`.
+
+**It is deliberately not gated on a distance threshold.**
+`VinaDockingProvider` passes `seed=None`, so the shipped app runs Vina
+with a random seed and the same-receptor spread is already 0.24–0.41 Å. A
+numeric gate would fail on the search wandering rather than on a
+regression. The step checks the pipeline RUNS and publishes its table; a
+human reads the shifts. (This run's 3EML at 3.92 Å against a 2.59 Å figure
+recorded elsewhere is that scatter, not a change — pinning the seed is
+what any real A/B here needs.)
 
 Wiring IR up found a real gap: `score.py` could SCORE a directory of ORCA
 outputs but nothing could GENERATE them, so the benchmark was scoreable

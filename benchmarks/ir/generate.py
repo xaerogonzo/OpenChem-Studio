@@ -56,16 +56,25 @@ def _orca_path(explicit: str | None) -> str:
     Reading `Settings` means a machine where the application already works
     needs no extra configuration for the benchmark -- one place to be wrong
     instead of two.
+
+    **NORMALISED TO NATIVE SEPARATORS, and that is load-bearing.** ORCA
+    derives the directory of its helper binaries (`orca_startup` and
+    friends) from the path it was invoked with, so a FORWARD-SLASH path
+    defeats it on Windows: it aborts in `Startup` naming `orca_startup`,
+    which reads like a broken input file. Measured on `benchmarks/uvvis`,
+    same input and working directory, only the separator varying --
+    `D:/ORCA/orca.exe` fails, `D:\\ORCA\\orca.exe` terminates normally.
+    Same mechanism as the known spaces-in-path failure.
     """
     if explicit:
-        return explicit
+        return str(Path(explicit))
     try:
         from openchem.app.settings import Settings
         from openchem.events.base import EventBus
 
         configured = str(Settings(EventBus()).get("orca/executable_path", "") or "")
         if configured and Path(configured).is_file():
-            return configured
+            return str(Path(configured))
     except Exception:  # noqa: BLE001 - fall through to the error below
         pass
     raise SystemExit(

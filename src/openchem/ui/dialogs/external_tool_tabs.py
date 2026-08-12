@@ -199,7 +199,33 @@ class PathRow(QWidget):
         self.edit.setText(self._settings.get(self._setting_key, ""))
 
     def commit(self) -> None:
-        self._settings.set(self._setting_key, self.edit.text())
+        """Store what the field holds, in NATIVE separator form.
+
+        A typed or pasted `D:/ORCA/orca.exe` is a perfectly valid path to
+        every check this application makes -- `Path(p).is_file()` accepts
+        it -- and ORCA still aborts in `Startup` on it, because it derives
+        its helper binaries' directory from the path it was invoked with.
+        Browse never had the problem (it round-trips through `Path`, which
+        normalises); the hand-editable field is the way in.
+
+        Normalising at the point a value ENTERS the system covers every
+        tool and every tool added later, rather than each consumer
+        remembering. `QuantumChemistryService._resolve_executable_path`
+        normalises again on read, which is what repairs a setting saved
+        before this existed.
+
+        **The empty string has to be guarded**: `str(Path(""))` is `"."`,
+        so clearing the field would otherwise store a path to the current
+        directory and every "is it configured" check would start
+        answering yes.
+        """
+        text = self.edit.text().strip()
+        native = str(Path(text)) if text else ""
+        if native != self.edit.text():
+            # The field and the setting are updated together, never
+            # separately -- see the class docstring.
+            self.edit.setText(native)
+        self._settings.set(self._setting_key, native)
         self._on_changed()
 
     def _on_browse_clicked(self) -> None:

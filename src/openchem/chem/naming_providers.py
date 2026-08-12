@@ -423,6 +423,33 @@ def verify_name_round_trip(name: str, original: Chem.Mol) -> RoundTrip:
     establish that the name is valid for either structure -- it would only
     establish that the two structures differ stereochemically, which is a
     different claim.
+
+    **`MISMATCH` IS REACHED FROM THREE PLACES AND ONLY ONE OF THEM IS
+    EVIDENCE AGAINST THE NAME.** Recorded because the distinction is real
+    and the collapse into one verdict is deliberate:
+
+        OPSIN could not parse our name      the CHECKER failed
+        RDKit could not build OPSIN's SMILES the CHECKER failed
+        the skeletons genuinely differ       the NAME is wrong
+
+    The first two are the same epistemic situation as `UNVERIFIED` -- "I
+    could not find out" rather than "the answer is no" -- and this enum
+    already draws that line one case over. Splitting them so a
+    checker-failure showed the name with a caveat was designed and then
+    NOT built, because measuring first killed it: over the 181-molecule
+    naming corpus, 180 are `MATCH` and the single `MISMATCH` is metformin,
+    a real skeleton disagreement over a tautomer. **Zero inputs reach
+    either checker-failed path**, so the split would have been a branch
+    shipped, documented, and never once run.
+
+    `benchmarks/naming/round_trip_paths.py` re-measures that distribution;
+    `tests/test_naming_providers.py` holds the three paths apart with
+    controlled dependency failures, so a future change cannot silently
+    collapse them and the split stays cheap if a real case ever appears.
+
+    One measurement note, because it cost a wrong reading once: OPSIN
+    emits `APPEARS_AMBIGUOUS` as a WARNING while still returning a parse.
+    An ambiguity warning is not a parse failure.
     """
     if not opsin_available():
         return RoundTrip.UNVERIFIED

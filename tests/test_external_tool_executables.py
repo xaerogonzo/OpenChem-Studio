@@ -9,6 +9,7 @@ cannot fetch ORCA.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -92,6 +93,21 @@ def test_the_vina_tab_shows_both(dialog):
 # --- locating, and the impostor that made verification mandatory ------------
 
 
+
+def _program(directory: Path, stem: str) -> Path:
+    """A file named the way the real tool is named ON THIS PLATFORM.
+
+    ORCA ships as `orca.exe` on Windows and a bare `orca` elsewhere, and
+    `locate_executable` filters candidates by that shape. Hardcoding
+    `.exe` therefore does not merely fail off Windows -- it made
+    `test_locating_runs_each_candidate_rather_than_trusting_its_name`
+    PASS on Linux for the wrong reason, since the file was skipped for
+    its suffix before `validate` was ever called, and the test asserting
+    "the impostor was rejected" was asserting that nothing was looked at.
+    """
+    return directory / (f"{stem}.exe" if os.name == "nt" else stem)
+
+
 def test_locating_runs_each_candidate_rather_than_trusting_its_name(tmp_path):
     """**This is not hypothetical.** Searching a real machine for "orca"
     found
@@ -106,7 +122,7 @@ def test_locating_runs_each_candidate_rather_than_trusting_its_name(tmp_path):
     So `validate` is a required argument, and a candidate that fails it
     is skipped rather than returned.
     """
-    impostor = tmp_path / "orca.exe"
+    impostor = _program(tmp_path, "orca")
     impostor.write_text("not really orca", encoding="utf-8")
 
     found = tools.locate_executable(
@@ -119,7 +135,7 @@ def test_locating_runs_each_candidate_rather_than_trusting_its_name(tmp_path):
 
 
 def test_locating_returns_a_candidate_that_passes(tmp_path):
-    real = tmp_path / "orca.exe"
+    real = _program(tmp_path, "orca")
     real.write_text("pretend", encoding="utf-8")
 
     found = tools.locate_executable(
