@@ -261,7 +261,12 @@ def score_transition(states, homo, transition) -> dict:
 
     kind = transition["f"]["kind"]
     row["f_kind"] = kind
-    if kind == "absent":
+    if kind in ("absent", "unsourced"):
+        # UNAVAILABLE, never a verdict. Scoring FAIL against a reference
+        # whose provenance did not survive checking would be reporting a
+        # defect in the computation that is really a defect in the
+        # reference -- and for benzene the two candidate values fall on
+        # opposite sides of the criterion.
         row["intensity_ok"] = None
     elif kind == "forbidden":
         row["reference_f"] = 0.0
@@ -329,6 +334,7 @@ def main(argv: list[str]) -> int:
         )
         print("-" * 100)
         passes = {"position": True, "identity": True, "intensity": True}
+        unavailable: set[str] = set()
 
         for name, entry in molecules.items():
             out = directory / f"{name}_{arm}_td.out"
@@ -372,7 +378,16 @@ def main(argv: list[str]) -> int:
                           f"{parts} = {row['computed_f']:.4f}")
                 if row["verified"]:
                     passes["position"] &= row["position_ok"]
-                    if row["intensity_ok"] is not None:
+                    if row["intensity_ok"] is None:
+                        # A verified transition whose intensity could not be
+                        # scored makes the ARM's intensity verdict unavailable
+                        # rather than passing. Otherwise benzene's 1E1u --
+                        # the only band whose intensity is in question -- goes
+                        # unscored while the three dark bands it sits beside
+                        # carry the column to PASS, which reads as "intensity
+                        # is fine" and is the opposite of what was measured.
+                        unavailable.add("intensity")
+                    else:
                         passes["intensity"] &= row["intensity_ok"]
 
             if scored["identity_ok"] is not None:
@@ -386,14 +401,19 @@ def main(argv: list[str]) -> int:
                 if verified_entry:
                     passes["identity"] &= scored["identity_ok"]
 
-        verdict[arm] = passes
+        verdict[arm] = {k: (None if k in unavailable else v) for k, v in passes.items()}
 
     print(f"\n{'=' * 100}\nVERDICT -- verified transitions only; rows marked * are PROVISIONAL")
     print("and excluded, because their reference values are not yet checked against a source.")
     print(f"{'=' * 100}")
     print(f"{'arm':<16}{'position':>12}{'identity':>12}{'intensity':>12}{'SHIPPABLE':>12}")
     for arm, passes in verdict.items():
-        shippable = all(passes.values())
+        # An unavailable criterion cannot make an arm shippable. `all()`
+        # over a None would be a TypeError-free lie: None is falsy, so this
+        # is already correct, but it is written out because "unknown" and
+        # "failed" reaching the same verdict is a coincidence worth stating
+        # rather than relying on.
+        shippable = all(v is True for v in passes.values())
         print(
             f"{arm:<16}{_flag(passes['position']):>12}{_flag(passes['identity']):>12}"
             f"{_flag(passes['intensity']):>12}{_flag(shippable):>12}"

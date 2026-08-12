@@ -101,27 +101,40 @@ tempted to simplify that gate to a span test should re-read this row.
 
 ## Two open questions, both needing a source rather than a rerun
 
-**1. RESOLVED: benzene's experimental *f* ≈ 0.9 is the BAND, so summing is
-right and TD-DFT is ~2.1× too strong.**
-¹E₁ᵤ is doubly degenerate and ORCA reports each component as its own root
-(0.9606 and 0.9607). An experimental oscillator strength is obtained by
-integrating **one absorption band**, and two degenerate components lie at the
-same energy and cannot be separated in that integral — so the literature
-figure is the sum, and the computed sum (1.9212) is what compares to it.
+**1. The CONVENTION is settled; the reference VALUE is not, and it decides
+the verdict.**
 
-ROADMAP previously read "f = 0.9607 against an experimental ≈0.9 — the
-intensity is essentially correct and always was", comparing **one component
-against a band total**. The discrepancy was exactly the degeneracy factor,
-which is what made it invisible: mixing the conventions reads as near-perfect
-agreement. It is also the less coherent story — a 2.1× intensity error beside
-a +0.98 eV energy error on benzene's hardest band is believable; near-perfect
-intensity beside a 1 eV energy error was not. ROADMAP is corrected.
+*Settled:* ¹E₁ᵤ is doubly degenerate and ORCA reports each component as its
+own root (0.9606, 0.9607). An experimental *f* is obtained by integrating
+**one absorption band**, and degenerate components lie at the same energy and
+cannot be separated in that integral — so the band total is comparable, and
+summing is right. The CASPT2 benzene literature corroborates it from the
+other side: it reports **one** computed oscillator strength for the
+degenerate E₁ᵤ *state* and compares it against **one** experimental number,
+so both sides are band totals. ROADMAP's "f = 0.9607 against an experimental
+≈0.9 — essentially correct" compared one component against a band total,
+which is why it read as near-perfect agreement.
 
-The **relative** conclusions are untouched, since every arm was measured the
-same way. `score.py` prints components and their sum side by side so the two
-can never be silently mixed again. A primary source giving the ¹E₁ᵤ integrated
-intensity would put the last of it beyond argument; none is to hand, and the
-argument above is definitional rather than measured.
+*Not settled:* the ≈0.9 has **no citation anywhere in this repository**, and
+the value quoted as experimental alongside this exact energy set
+(4.90/6.20/6.94/7.80) in that literature is **1.25**. The two straddle the
+criterion:
+
+| experimental *f* | vs computed ~1.92–2.00 | verdict |
+|---|---|---|
+| 0.9 | 2.1× | FAIL |
+| **1.25** | **1.54×** | **PASS** |
+
+So this band's intensity scores as **UNAVAILABLE**, and the arm-level
+intensity verdict is unavailable with it. Reporting FAIL against a reference
+whose provenance did not survive checking would blame the computation for a
+defect in the reference — and I could not read the primary document, only
+secondary reports of it, which is not a standard this benchmark should
+accept for a number that flips its own answer.
+
+**What would close it:** a primary source giving the gas-phase integrated
+intensity of benzene's ¹E₁ᵤ band. Nothing else in the table depends on it —
+position and strongest-band identity are unaffected, and both already fail.
 
 **2. Pyridine's IDENTIFICATION was wrong and is fixed; its ENERGIES still
 need a source.**
@@ -159,10 +172,22 @@ With that fixed, pyridine corroborates benzene rather than confusing it:
 | ωB97X-D3/def2-SVPD | +0.54 | **+1.04** | PASS |
 
 Same shape as benzene — ωB97X-D worse than B3LYP at the same basis, and the
-strong band ~1 eV too high everywhere. It stays `verified: false` and out of
-the verdict until the experimental energies come from a primary source; what
-a source must supply is the ¹B₁ origin and the intense band's λ_max and
-integrated intensity.
+strong band ~1 eV too high everywhere.
+
+**It stays `verified: false`.** The n→π\* at 4.59 eV is corroborated as an
+experimental figure by an independent report, but the intense band's energy
+(entered here as ~7.0) and every oscillator strength are still from no
+document I have read. A primary source must supply the ¹B₁ origin, the
+intense band's λ_max, and its integrated intensity.
+
+**The rank rule is robust to the one ambiguity found while looking.** The
+computation orders the two lowest states ¹B₁ then a dark state, while the
+literature assignment of which of ¹A₂ and ¹B₂ comes second is not something
+this could confirm. That ambiguity sits at ranks 2–3 and cannot move ranks 5
+and 6, so the strong-band identification does not depend on resolving it —
+checked rather than assumed, since a rank rule that quietly depended on a
+disputed ordering would be exactly the fragile thing this benchmark refuses
+elsewhere.
 
 ## Why this is not a shipped feature
 

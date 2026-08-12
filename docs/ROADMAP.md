@@ -437,30 +437,44 @@ showed so. Measured 2026-08-05 on the same optimised geometries, B3LYP,
 because `nroots 8` was too few.** At def2-SVP with 15 roots it is right
 there, at 7.918 eV carrying f = 0.9607.
 
-**THAT NUMBER WAS THEN COMPARED AGAINST THE WRONG THING, and the sentence
+**THAT NUMBER WAS COMPARED AGAINST A SINGLE COMPONENT, and the sentence
 here used to read "against an experimental ≈0.9 — the intensity is
-essentially correct and always was."** It is not. ¹E₁ᵤ is **doubly
-degenerate**, and ORCA reports each component as its own root: 0.9606 and
-0.9607, summing to **1.9212**. An experimental oscillator strength is
-obtained by integrating one absorption band, and two degenerate components
-sit at the same energy and cannot be separated in that integral — so the
-literature ≈0.9 is the BAND, and the computed quantity to compare with it
-is the sum. TD-DFT overestimates it by **~2.1×**, not by 7%.
+essentially correct and always was."** ¹E₁ᵤ is **doubly degenerate** and
+ORCA reports each component as its own root: 0.9606 and 0.9607, summing to
+**1.9212**.
 
-The error was exactly the degeneracy factor, which is what made it
-invisible: one component against a band total reads as near-perfect
-agreement. It is also the more coherent picture — a 2.1× intensity error
-sitting beside a +0.98 eV energy error on benzene's hardest band is
-believable, where near-perfect intensity beside a 1 eV energy error was
-not.
+**The convention is settled: the comparable quantity is the BAND, so the
+sum.** An experimental oscillator strength is obtained by integrating one
+absorption band, and two degenerate components sit at the same energy and
+cannot be separated in that integral. The CASPT2 benzene literature
+corroborates it from the other side — it reports ONE computed oscillator
+strength for the degenerate E₁ᵤ *state* and compares it against one
+experimental number, so both sides are band totals.
 
-**The relative conclusions in this section are unaffected**, because both
-arms were measured the same way: the def2-SVPD collapse below is still an
-order of magnitude, per component or summed. Only the absolute "essentially
-correct" claim was wrong. `benchmarks/uvvis/score.py` prints components and
-their sum side by side so the two can never be silently mixed again, and a
-primary source giving benzene's ¹E₁ᵤ integrated intensity would put the
-last of it beyond argument.
+**The reference VALUE, though, did not survive checking, and this is now
+the open edge.** The ≈0.9 above has no citation anywhere in this
+repository; the value quoted as experimental alongside this exact energy
+set (4.90 / 6.20 / 6.94 / 7.80) in that same literature is **1.25**. They
+fall on opposite sides of the benchmark's 2× criterion:
+
+| experimental *f* | against a computed ~1.92–2.00 | verdict |
+|---|---|---|
+| 0.9 | 2.1× | FAIL |
+| 1.25 | 1.54× | PASS |
+
+So `benchmarks/uvvis/` scores this band's intensity as **UNAVAILABLE**
+rather than picking a side, and the arm-level intensity verdict is
+unavailable with it — reporting FAIL against a reference whose provenance
+did not survive checking would blame the computation for a defect in the
+reference. A primary source giving the gas-phase integrated intensity of
+benzene's ¹E₁ᵤ band closes it.
+
+**The relative conclusions in this section are unaffected**, because every
+arm was measured the same way: the def2-SVPD collapse below is still an
+order of magnitude, per component or summed. What was wrong was the
+absolute "essentially correct" claim, which rested on mixing conventions.
+`score.py` prints components and their sum side by side so the two can
+never be silently mixed again.
 
 Diffuse functions do improve every *position*: ¹B₂ᵤ +0.59 → +0.50 eV, ¹B₁ᵤ
 +0.27 → +0.11, and the allowed band +0.98 → +0.49. **And they destroy the

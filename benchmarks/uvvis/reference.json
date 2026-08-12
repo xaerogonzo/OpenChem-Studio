@@ -7,7 +7,8 @@
     "measured": "an experimental oscillator strength, scored against |ratio| <= 2x",
     "estimated": "a literature figure that is approximate or model-dependent; scored the same way but flagged",
     "forbidden": "electric-dipole forbidden by symmetry, observed only vibronically. Scored as 'the computation must also report it as ~zero' (f <= 0.01), NOT as a ratio -- 2x of zero is zero and would be unfalsifiable",
-    "absent": "no oscillator strength I can state from a source. Intensity scores as UNAVAILABLE for that transition rather than being manufactured"
+    "absent": "no oscillator strength I can state from a source. Intensity scores as UNAVAILABLE for that transition rather than being manufactured",
+    "unsourced": "a value IS in circulation but its provenance did not survive checking, and the candidates disagree enough to change the verdict. Scores as UNAVAILABLE like 'absent', but carries the candidates and what each implies, because 'we do not know' and 'nobody has looked' are different states and collapsing them loses the fact that somebody looked"
   },
 
   "_identification": {
@@ -86,7 +87,12 @@
           "label": "1E1u",
           "energy_ev": 6.94,
           "verified": true,
-          "f": {"kind": "measured", "value": 0.9},
+          "f": {
+            "kind": "unsourced",
+            "candidates": {"0.9": "what ROADMAP.md carried; no citation survives in this repository", "1.25": "the value quoted as experimental alongside this exact energy set (4.90 / 6.20 / 6.94 / 7.80) in the CASPT2 benzene literature, where a computed 1.05 is compared against it"},
+            "why_it_matters": "The computed band total is ~1.92-2.00 across the arms, so 0.9 gives 2.1x (FAIL at the 2x criterion) and 1.25 gives 1.54x (PASS). The verdict for this one band turns entirely on which is right, which is why it is not scored on either.",
+            "what_would_close_it": "A primary source giving the integrated intensity of benzene's 1E1u band, gas phase. Note the CONVENTION question is already settled and is not what is open: a computed oscillator strength for the degenerate E1u STATE is compared against experiment as a single number in that literature, which confirms both sides are band totals and that summing ORCA's two components is right."
+          },
           "identify": {"kind": "orbital_rank", "donor": [0, -1], "acceptor": [0, 1], "rank": 3, "degeneracy": 2},
           "strongest": true,
           "note": "THE BAND THIS WHOLE BENCHMARK EXISTS FOR -- the allowed, intense pi->pi* near 180 nm, doubly degenerate. ROADMAP: def2-SVP puts it at 7.918 eV with f = 0.9607 (intensity right, position 0.98 eV high); def2-SVPD at 7.430 eV with f = 0.0832 (position better, intensity an order of magnitude too weak). Degeneracy 2, so the computed f is SUMMED across the pair before comparison."
@@ -99,7 +105,7 @@
     "pyridine": {
       "smiles": "c1ccncc1",
       "point_group": "C2v",
-      "_provisional": "PYRIDINE'S REFERENCE VALUES ARE NOT YET CHECKED AGAINST A PRIMARY SOURCE and are marked verified:false. They were entered from standard textbook assignments, which is precisely the 'typed from memory' failure this project has recorded twice. score.py reports pyridine but EXCLUDES it from the overall verdict until the values are confirmed. Its oscillator strengths are marked absent rather than guessed.",
+      "_provisional": "PYRIDINE'S REFERENCE VALUES ARE NOT YET CHECKED AGAINST A PRIMARY SOURCE and are marked verified:false. They were entered from standard textbook assignments, which is precisely the 'typed from memory' failure this project has recorded twice. score.py reports pyridine but EXCLUDES it from the overall verdict until the values are confirmed. Its oscillator strengths are marked absent rather than guessed. Searched for a source 2026-08-12: the 4.59 eV n->pi* is corroborated as experimental by an independent report, but the intense band's energy and every oscillator strength remain unsourced, and no primary document could be read. What a source must supply: the 1B1 origin, the intense band's lambda_max, and its integrated intensity.",
       "transitions": [
         {
           "label": "n->pi* (1B1)",
