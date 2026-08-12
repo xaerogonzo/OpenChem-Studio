@@ -101,27 +101,68 @@ tempted to simplify that gate to a span test should re-read this row.
 
 ## Two open questions, both needing a source rather than a rerun
 
-**1. Is benzene's experimental *f* ≈ 0.9 the BAND or one COMPONENT?**
-¹E₁ᵤ is doubly degenerate and ORCA reports each component separately. This
-scorer **sums** them, which is physically right for a band, giving 1.92
-against an experimental 0.9 — 2.1× too strong, a FAIL. ROADMAP's "f = 0.9607
-against an experimental ≈0.9 — the intensity is essentially correct" compared
-**one component** against the same experimental figure. Both cannot be right.
-`score.py` prints the components and their sum side by side so the ambiguity
-is visible rather than buried, and the intensity verdict for benzene should be
-treated as **provisional until the experimental convention is confirmed from a
-primary source**. Nothing else in the table depends on it.
+**1. RESOLVED: benzene's experimental *f* ≈ 0.9 is the BAND, so summing is
+right and TD-DFT is ~2.1× too strong.**
+¹E₁ᵤ is doubly degenerate and ORCA reports each component as its own root
+(0.9606 and 0.9607). An experimental oscillator strength is obtained by
+integrating **one absorption band**, and two degenerate components lie at the
+same energy and cannot be separated in that integral — so the literature
+figure is the sum, and the computed sum (1.9212) is what compares to it.
 
-**2. Pyridine's reference values are unverified and it shows.**
-Its entry is marked `verified: false` and is excluded from the verdict. The
-run makes the reason concrete: the declared `rank: 3` identification locates a
-band at 5.66–5.78 eV against a declared 7.0, and the brightest computed root
-is somewhere else entirely (8.08–8.26 eV, *f* ≈ 0.69–0.85). Either the
-reference energy or the rank is wrong — most likely the rank, since pyridine's
-nitrogen lone pair reorders the occupied manifold relative to benzene. **The
-guard behaved correctly**: an unverified entry did not contaminate the
-verdict, and the identification refused to fall back on "nearest root", which
-would have silently scored the wrong band.
+ROADMAP previously read "f = 0.9607 against an experimental ≈0.9 — the
+intensity is essentially correct and always was", comparing **one component
+against a band total**. The discrepancy was exactly the degeneracy factor,
+which is what made it invisible: mixing the conventions reads as near-perfect
+agreement. It is also the less coherent story — a 2.1× intensity error beside
+a +0.98 eV energy error on benzene's hardest band is believable; near-perfect
+intensity beside a 1 eV energy error was not. ROADMAP is corrected.
+
+The **relative** conclusions are untouched, since every arm was measured the
+same way. `score.py` prints components and their sum side by side so the two
+can never be silently mixed again. A primary source giving the ¹E₁ᵤ integrated
+intensity would put the last of it beyond argument; none is to hand, and the
+argument above is definitional rather than measured.
+
+**2. Pyridine's IDENTIFICATION was wrong and is fixed; its ENERGIES still
+need a source.**
+The first version declared `rank: 3` for the strong band, which locates the
+B₂ᵤ-like π→π\* at 5.66 eV carrying *f* = 0.025 — not the intense band at all.
+**The guard caught it** by reporting the strongest-band identity as FAIL
+rather than scoring the wrong band quietly, which is what "identify by
+declared orbital character, never by nearest energy" is for.
+
+The rank structure was then measured across all three arms and is stable:
+
+| rank | assignment | *f* |
+|---|---|---|
+| 1 | n→π\* ¹B₁ | ~0.006 |
+| 2 | forbidden ¹A₂ | 0.000 |
+| 3, 4 | B₂ᵤ / B₁ᵤ-like π→π\* | ~0.02–0.04 |
+| **5, 6** | **E₁ᵤ-derived pair** | **~0.6–0.85 each** |
+
+**Benzene's ¹E₁ᵤ is split here, and that needed a schema change.** The
+nitrogen lowers the symmetry to C₂ᵥ and lifts the degeneracy — measured at
+0.244 / 0.122 / 0.082 eV across the arms, all beyond the degeneracy
+tolerance. It is still *one observed band* (the components overlap in a real
+spectrum and an experimental *f* integrates both), so `require_degenerate:
+false` sums them while refusing to pretend they are degenerate. Benzene keeps
+the strict check, where D₆ₕ genuinely requires degeneracy and a split would be
+a red flag. Which of ranks 5 and 6 is brighter **varies by arm**, so declaring
+a single rank would have been fitting to one output.
+
+With that fixed, pyridine corroborates benzene rather than confusing it:
+
+| | n→π\* (exp 4.59) | strong π→π\* (exp ~7.0) | identity |
+|---|---|---|---|
+| B3LYP/def2-SVP | +0.21 | **+1.15** | PASS |
+| ωB97X-D3/def2-SVP | +0.54 | **+1.27** | PASS |
+| ωB97X-D3/def2-SVPD | +0.54 | **+1.04** | PASS |
+
+Same shape as benzene — ωB97X-D worse than B3LYP at the same basis, and the
+strong band ~1 eV too high everywhere. It stays `verified: false` and out of
+the verdict until the experimental energies come from a primary source; what
+a source must supply is the ¹B₁ origin and the intense band's λ_max and
+integrated intensity.
 
 ## Why this is not a shipped feature
 

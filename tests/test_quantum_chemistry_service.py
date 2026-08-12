@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 import time
 from pathlib import Path
@@ -923,3 +924,57 @@ def test_cancelling_a_calibration_reports_it_and_releases_the_slot(qapp, tmp_pat
     assert events[0].error == "Cancelled by user"
     assert not service._scaling_runs
     assert not job_manager.is_active("quantum_chemistry_scaling", key)
+
+
+# ---------------------------------------------------------------------------
+# ORCA ABORTS AT STARTUP ON A FORWARD-SLASH PATH
+#
+# ORCA derives the directory of its own helper binaries (`orca_startup` and
+# friends) from the path it was invoked with, so `D:/ORCA/orca.exe` dies in
+# `Startup` where `D:\ORCA\orca.exe` on the identical input terminates
+# normally. Same mechanism as the already-known spaces-in-path failure, and
+# it reads like a broken input file rather than a broken invocation.
+#
+# The exposure is the hand-editable path field in External Tools: a pasted
+# forward-slash path is stored verbatim, `Path(p).is_file()` accepts it, so
+# every check passes and the raw string reaches QProcess.
+# ---------------------------------------------------------------------------
+
+
+def test_a_configured_orca_path_is_resolved_in_native_separator_form(tmp_path):
+    """The read-time half, which is what repairs an already-saved setting."""
+    exe = tmp_path / "ORCA" / "orca.exe"
+    exe.parent.mkdir(parents=True)
+    exe.write_bytes(b"")
+
+    bus = EventBus()
+    settings = Settings(bus)
+    # What a paste into the External Tools field leaves behind.
+    settings.set("orca/executable_path", exe.as_posix())
+    assert "/" in exe.as_posix(), "the fixture must actually use forward slashes"
+
+    service = QuantumChemistryService(bus, settings, providers={})
+    resolved = service._resolve_executable_path()
+
+    assert resolved == str(exe), (
+        "the configured path reached the caller unnormalised; ORCA aborts in "
+        "Startup on a forward-slash path"
+    )
+    # Asserting the SEPARATOR, not just equality -- on a POSIX machine both
+    # forms are identical and this test would be vacuous, so say so.
+    if os.sep == "\\":
+        assert "/" not in resolved
+
+
+def test_resolving_orca_does_not_invent_a_path_when_nothing_is_configured():
+    """The control for the test above: normalising must not turn an empty
+    setting into something. `str(Path(""))` is `"."`, which is a real
+    directory and would make every 'is ORCA configured' check say yes."""
+    bus = EventBus()
+    settings = Settings(bus)  # nothing configured
+
+    resolved = QuantumChemistryService(bus, settings, providers={})._resolve_executable_path()
+
+    assert resolved != ".", "an empty setting was normalised into the current directory"
+    # Either None, or whatever a real `orca` on PATH resolves to.
+    assert resolved is None or Path(resolved).is_file()

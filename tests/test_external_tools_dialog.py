@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import threading
+from pathlib import Path
 
 from openchem.app.settings import Settings
 from openchem.events.base import EventBus
@@ -64,6 +65,11 @@ def test_dialog_defaults_to_vina_tab(qapp):
 
 
 def test_editing_vina_path_saves_immediately_to_settings(qapp):
+    """IMMEDIACY is what this asserts. The stored form is now normalised to
+    native separators -- see the forward-slash tests at the end of this
+    file -- so the expectation goes through `Path` rather than naming a
+    separator, which would make this test platform-specific for no reason.
+    """
     bus = EventBus()
     settings = Settings(bus)
     dialog = ExternalToolsDialog(settings)
@@ -71,7 +77,7 @@ def test_editing_vina_path_saves_immediately_to_settings(qapp):
     dialog._vina_path_edit.setText("C:/fake/vina.exe")
     dialog._vina_path_edit.editingFinished.emit()
 
-    assert settings.get("docking/vina_executable_path") == "C:/fake/vina.exe"
+    assert settings.get("docking/vina_executable_path") == str(Path("C:/fake/vina.exe"))
 
 
 def test_editing_orca_path_saves_immediately_to_settings(qapp):
@@ -82,7 +88,7 @@ def test_editing_orca_path_saves_immediately_to_settings(qapp):
     dialog._orca_path_edit.setText("C:/fake/orca.exe")
     dialog._orca_path_edit.editingFinished.emit()
 
-    assert settings.get("orca/executable_path") == "C:/fake/orca.exe"
+    assert settings.get("orca/executable_path") == str(Path("C:/fake/orca.exe"))
 
 
 def test_dialog_prefills_paths_already_present_in_settings(qapp):
@@ -249,3 +255,61 @@ def test_progress_from_a_worker_thread_actually_reaches_the_label(qapp):
         time.sleep(0.01)
 
     assert label.text() == "[2/5] Fetching..."
+
+
+# ---------------------------------------------------------------------------
+# A PASTED FORWARD-SLASH PATH IS WHAT KILLS ORCA
+#
+# ORCA derives its helper binaries' directory (`orca_startup` and friends)
+# from the path it was invoked with, so `D:/ORCA/orca.exe` aborts in
+# `Startup` where `D:\ORCA\orca.exe` on the identical input terminates
+# normally. Browse never had the problem -- it round-trips through `Path`,
+# which normalises. This hand-editable field is the way in, and every
+# validity check the application makes passes on the bad form, because
+# `Path(p).is_file()` accepts forward slashes.
+#
+# Normalised where the value ENTERS the system so it covers every tool and
+# every tool added later. `QuantumChemistryService._resolve_executable_path`
+# normalises again on read, which is what repairs a setting saved before
+# this existed.
+# ---------------------------------------------------------------------------
+
+
+def test_a_pasted_forward_slash_path_is_stored_in_native_form(qapp, tmp_path):
+    import os
+
+    exe = tmp_path / "ORCA" / "orca.exe"
+    exe.parent.mkdir(parents=True)
+    exe.write_bytes(b"")
+
+    bus = EventBus()
+    settings = Settings(bus)
+    dialog = ExternalToolsDialog(settings, focus="orca")
+
+    assert "/" in exe.as_posix(), "the fixture must actually use forward slashes"
+    dialog._orca_path_edit.setText(exe.as_posix())
+    dialog._orca_path_edit.editingFinished.emit()
+
+    stored = settings.get("orca/executable_path", "")
+    assert stored == str(exe), f"stored {stored!r} rather than the native form"
+    # The class docstring promises the field and the setting move together,
+    # so the user must not be left looking at a form that was not saved.
+    assert dialog._orca_path_edit.text() == stored
+    if os.sep == "\\":
+        assert "/" not in stored
+
+
+def test_clearing_the_path_field_stores_an_empty_string_not_a_dot(qapp):
+    """The control. `str(Path(""))` is `"."` -- a real, existing directory --
+    so a careless normalisation would turn "not configured" into a
+    configured path to the working directory, and every "is this tool set
+    up" check would start answering yes."""
+    bus = EventBus()
+    settings = Settings(bus)
+    dialog = ExternalToolsDialog(settings, focus="orca")
+
+    dialog._orca_path_edit.setText("")
+    dialog._orca_path_edit.editingFinished.emit()
+
+    assert settings.get("orca/executable_path", "") == ""
+    assert dialog._orca_path_edit.text() == ""

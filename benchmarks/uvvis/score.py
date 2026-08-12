@@ -199,7 +199,20 @@ def locate(states: dict[int, dict], homo: int, identify: dict, reference_ev: flo
     else:
         raise Unscorable(f"unknown identification kind {identify['kind']!r}")
 
-    if degeneracy > 1:
+    # `require_degenerate` separates two genuinely different situations that
+    # a single "degeneracy" field conflates.
+    #
+    # Benzene's 1E1u MUST be degenerate: D6h requires it, so a functional
+    # that splits it is telling you something is wrong, and enforcing that
+    # is a real check.
+    #
+    # Pyridine's analogue MUST NOT be: the nitrogen lowers the symmetry to
+    # C2v and lifts the degeneracy, measured at 0.24 / 0.12 / 0.08 eV
+    # across the three arms. It is still ONE observed band -- the two
+    # components overlap in a spectrum and an experimental oscillator
+    # strength integrates both -- so it is summed like a degenerate pair
+    # while being refused as one.
+    if degeneracy > 1 and identify.get("require_degenerate", True):
         energies = [states[i]["energy_ev"] for i in chosen]
         if max(energies) - min(energies) > DEGENERACY_TOLERANCE_EV:
             raise Unscorable(
@@ -218,10 +231,25 @@ def score_transition(states, homo, transition) -> dict:
         row["unscorable"] = str(exc)
         return row
 
-    energy = sum(states[i]["energy_ev"] for i in roots) / len(roots)
-    # SUMMED, not averaged: a degenerate band's intensity is shared between
-    # its components and the experimental figure is for the band.
+    # SUMMED, not averaged: an experimental oscillator strength comes from
+    # integrating ONE band, and components at (or near) the same energy
+    # cannot be separated in that integral -- so the band total is the
+    # comparable quantity. Getting this wrong costs exactly a factor of the
+    # degeneracy, which is why it hides: ROADMAP.md compared one of
+    # benzene's two 1E1u components against the band's experimental value
+    # and read 2.1x too strong as "essentially correct".
     strength = sum(states[i]["f"] for i in roots)
+
+    # INTENSITY-WEIGHTED, so a SPLIT band reports where the absorption
+    # maximum actually is rather than the midpoint of its components. For a
+    # truly degenerate pair the two are identical, so this costs benzene
+    # nothing. Falls back to the plain mean when the band is dark, where
+    # the weights are all zero and the weighted mean is undefined.
+    energies = [states[i]["energy_ev"] for i in roots]
+    if strength > 0:
+        energy = sum(states[i]["energy_ev"] * states[i]["f"] for i in roots) / strength
+    else:
+        energy = sum(energies) / len(energies)
 
     row["roots"] = roots
     row["components_f"] = [states[i]["f"] for i in roots]

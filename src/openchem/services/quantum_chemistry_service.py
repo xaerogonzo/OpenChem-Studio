@@ -1211,7 +1211,33 @@ class QuantumChemistryService(QObject):
         )
 
     def _resolve_executable_path(self) -> str | None:
+        """The ORCA executable, in NATIVE separator form.
+
+        `str(Path(...))` is not tidiness. ORCA derives the directory of its
+        own helper binaries (`orca_startup` and friends) from the path it
+        was invoked with, so a forward-slash path defeats that on Windows:
+        it aborts in `Startup` naming `orca_startup`, which reads like a
+        broken input file rather than a broken invocation.
+
+        The exposure is real rather than theoretical. The External Tools
+        path field is a hand-editable `QLineEdit`, so a pasted
+        `D:/ORCA/orca.exe` is stored verbatim -- and `Path(p).is_file()`
+        accepts it happily, so the check below passes and the raw string
+        reaches `QProcess`. Measured, same input and working directory,
+        only the separator varying:
+
+            D:/ORCA/orca.exe    error termination in Startup
+            D:\\ORCA\\orca.exe    TERMINATED NORMALLY
+
+        Normalising HERE as well as at write time is deliberate: write
+        time cannot repair a setting somebody already saved. Note a
+        working single-point job does not clear a bad path -- one survived
+        it in the same directory where every `Opt` died.
+
+        `shutil.which` already returns a native path, so only the
+        configured branch needs it.
+        """
         configured = self._settings.get("orca/executable_path", "")
         if configured and Path(configured).is_file():
-            return configured
+            return str(Path(configured))
         return shutil.which("orca") or shutil.which("orca.exe")

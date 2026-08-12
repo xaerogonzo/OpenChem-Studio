@@ -16,7 +16,11 @@
     "acceptor": "Virtual MO indices RELATIVE TO LUMO: 0 = LUMO, +1 = LUMO+1.",
     "kind_orbital": "Exactly one root's dominant contribution must lie in the declared donor/acceptor sets. More than one, or none, is UNSCORABLE.",
     "kind_orbital_rank": "Several states share one orbital character and cannot be told apart by it -- benzene's B2u, B1u and E1u all come from the same four HOMO/HOMO-1 -> LUMO/LUMO+1 excitations in different linear combinations. Those are ranked by computed energy WITHIN the matching set, which is a declared rule rather than a fit to the experimental answer. A rank that does not exist is UNSCORABLE.",
-    "degeneracy": "How many roots form the band. A degenerate set must actually be degenerate in the computation (energies within DEGENERACY_TOLERANCE_EV) or the result is UNSCORABLE rather than averaged, and its oscillator strength is SUMMED across the components."
+
+    "require_degenerate": "Defaults true when degeneracy > 1, and pyridine is why it can be turned off. Benzene's 1E1u MUST be degenerate -- D6h requires it -- so a computation that splits it is saying something is wrong, and enforcing that is a real check. Pyridine's analogue MUST NOT be: the nitrogen lowers the symmetry to C2v and lifts the degeneracy, measured at 0.244 / 0.122 / 0.082 eV across three arms. It is still ONE observed band and is summed like a degenerate pair, but refusing it for not being degenerate would be refusing correct chemistry. The reported energy is INTENSITY-WEIGHTED so a split band reports where its absorption maximum is; for a truly degenerate pair that is identical to the plain mean, so benzene pays nothing for it.",
+    "degeneracy": "How many roots form the band. A degenerate set must actually be degenerate in the computation (energies within DEGENERACY_TOLERANCE_EV) or the result is UNSCORABLE rather than averaged, and its oscillator strength is SUMMED across the components.",
+
+    "why_f_is_summed": "An experimental oscillator strength is obtained by integrating ONE absorption band, and two degenerate components lie at the same energy and cannot be separated in that integral -- so the experimental figure is the band total and the computed quantity to compare with it is the sum. Getting this wrong costs exactly a factor of the degeneracy, which is precisely why it hides: ROADMAP.md compared ONE of benzene's two 1E1u components (0.9607) against the band's experimental 0.9 and concluded the intensity was 'essentially correct', when summing gives 1.9212 and TD-DFT is ~2.1x too strong. score.py prints components AND their sum so the two conventions can never be silently mixed again."
   },
 
   "molecules": {
@@ -107,13 +111,14 @@
           "note": "The nitrogen lone pair into the ring pi* -- the transition benzene does not have, and the reason pyridine is the fourth molecule. Around 270 nm, weak."
         },
         {
-          "label": "pi->pi* (strong, 1E1u-like)",
+          "label": "pi->pi* (strong, 1E1u-like pair)",
           "energy_ev": 7.0,
           "verified": false,
           "f": {"kind": "absent"},
-          "identify": {"kind": "orbital_rank", "donor": [0, -1, -2], "acceptor": [0, 1], "rank": 3, "degeneracy": 1},
+          "identify": {"kind": "orbital_rank", "donor": [0, -1, -2], "acceptor": [0, 1], "rank": 5, "degeneracy": 2, "require_degenerate": false},
           "strongest": true,
-          "note": "The intense pi->pi* band, benzene's 1E1u with the degeneracy lifted by the nitrogen. That it is the strongest band is a qualitative claim I can stand behind; its exact energy and oscillator strength are what need a source. The donor set includes HOMO-2 because pyridine's nitrogen lone pair sits among the top occupied orbitals and shifts the pi ordering relative to benzene."
+          "note": "The intense pi->pi* band -- benzene's 1E1u with the degeneracy LIFTED by the nitrogen, so it is two roots rather than one. rank 5 spanning 2, with require_degenerate false: measured splittings are 0.244 / 0.122 / 0.082 eV across the three arms, all beyond DEGENERACY_TOLERANCE_EV, and refusing them as non-degenerate would be refusing correct chemistry. Summed anyway, because the components overlap in a real spectrum and an experimental oscillator strength integrates both.",
+          "_correction": "THIS DECLARED rank 3 AND SCORED THE WRONG BAND. rank 3 is the B2u-like pi->pi* at 5.66 eV carrying f = 0.025, not the intense band at all -- the guard reported the strongest-band identity as FAIL, which is how it was caught rather than believed. The rank structure was then measured across all three arms and is stable: 1 = n->pi*, 2 = the forbidden 1A2, 3 and 4 = the B2u/B1u-like pair, 5 and 6 = the E1u-derived pair. Note WHICH of ranks 5 and 6 is brighter VARIES by arm, so declaring a single rank would have been fitting to one output."
         }
       ],
       "strongest_band_declared": true,

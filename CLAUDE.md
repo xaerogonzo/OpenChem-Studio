@@ -3818,10 +3818,36 @@ fine through the forward-slash path in the same directory minutes earlier;
 only `Opt` died. So "I already ran ORCA successfully today" is not
 evidence, and neither is any one job type.
 
-`str(Path(p))` is the whole fix and both benchmark generators now do it.
-Note the app itself was never exposed: `Settings` stores a Windows path
-with backslashes, so this only bites a caller passing `--orca` with the
-forward-slash form that Git Bash tab-completion produces.
+`str(Path(p))` is the whole fix and both benchmark generators do it now.
+
+**THE APPLICATION WAS EXPOSED TOO, and the first version of this section
+said it was not.** That claim was reasoned rather than checked -- "the file
+dialog gives backslashes, so the setting is fine" -- and reading the code
+killed it. External Tools' path field is a hand-editable `QLineEdit` whose
+`editingFinished` commits the text VERBATIM, so a pasted
+`D:/ORCA/orca.exe` is stored as typed; `_resolve_executable_path` then
+returned that string unchanged, and `Path(p).is_file()` accepts forward
+slashes, so every check the application makes passes and the bad form
+reaches `QProcess`. Browse was safe only by accident -- it round-trips
+through `Path`, which normalises.
+
+Normalised in two places on purpose:
+
+    PathRow.commit                        where the value ENTERS, so every
+                                          tool and every future tool is covered
+    _resolve_executable_path              on READ, which is the only thing
+                                          that repairs a setting already saved
+
+`qm_surface_service` was already safe, also by accident, because it builds
+the `orca_plot` path with `Path(...).with_name(...)`.
+
+**`str(Path(""))` is `"."`**, so the write-time normalisation has to guard
+the empty string or clearing the field would store a path to the working
+directory and every "is this tool configured" check would start answering
+yes. There is a test for that specific mistake.
+
+Two existing tests asserted the old verbatim behaviour and failed when this
+landed, which is the change being real rather than a regression.
 
 ### A gbw remembers where it was born, and orca_plot goes there
 
