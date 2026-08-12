@@ -1814,6 +1814,56 @@ old one:
 rg -n "^#{2,5} " CLAUDE.md | awk -F': ' '{print $2}' | sort | uniq -d
 ```
 
+## A DOC GUARD THAT CHECKS CITATIONS CANNOT CHECK CLAIMS
+
+`tests/test_docs_are_current.py` was built to stop the docs rotting and it
+works -- 170 cited paths and 26 cited test names, zero stale. It asks
+whether a document cites something that EXISTS. **It cannot ask whether a
+document's CLAIM is still true**, and four claims went stale underneath it:
+
+    ROADMAP  "ensemble alignment ... needs its own panel"   the panel shipped
+    ROADMAP  "reaction templates -- Deferred, still" (x3)   the namespace shipped
+    ARCH     "hydrophobic contact detection is a real gap"  it shipped
+    ARCH     "IUPAC Name withheld on a morphine derivative" does not reproduce
+
+The third is the sharpest: **ROADMAP had ALREADY corrected that exact
+claim** ("seven interaction types now"), so the two documents contradicted
+each other outright and the one a reader trusts for implementation detail
+was the wrong one. The second went stale in a paragraph whose own subject
+is a previous correction of the same list.
+
+`DEFERRALS` in that file is the fix, and the shape is the point:
+
+- **Scope is ARCHITECTURE.md's Known TODOs only**, because it declares a
+  closed `OPEN`/`DECISION`/`SETTLED` vocabulary and is therefore the one
+  place deferral status is structured data. ROADMAP's `- [ ]` bullets are
+  planning prose; parsing them would produce tests whose only purpose is
+  proving a TODO still exists. Same instinct as `applies_to` being closed
+  while `category` stayed a free string.
+- **OPEN and DECISION both need an `unbuilt` predicate**, because a
+  DECISION whose feature shipped anyway is stale even when its recorded
+  reason still holds. Only DECISION additionally carries a `reason`, and
+  only where the reason is countable -- "there is still no concrete fourth
+  plugin" is `len(shipped plugins) < 4`; "the cause was never established"
+  is not checkable by anything and says so.
+- **Fail closed on BOTH sides.** The parse rejects an unknown marker
+  (`**OPNE**`) rather than skipping it, and cross-checks the classified
+  bullet count against a raw one. The mapping requires each claim
+  substring to occur EXACTLY ONCE -- without that, rewording a claim
+  silently detaches its predicate and the guard goes on passing, which is
+  the fail-open hole the whole thing is written against.
+
+Six mutations, each caught by the intended test: a claim made true, a new
+unguarded bullet, a typo'd marker, a reworded claim, a duplicated claim,
+and a deleted justification. **The one thing it cannot catch is a
+predicate hardcoded to True**, which is written into the docstring as an
+admitted limit rather than papered over with a second implementation.
+
+Writing the guard immediately caught a flaw in its own first rule: it
+demanded a written reason from every entry lacking a `reason` predicate,
+including OPEN ones -- which have no recorded reason by definition, so it
+was demanding an explanation for something the document never claimed.
+
 ## A blocklist of category NAMES rots; a declared capability does not
 
 `chem/crystal_report.inapplicable_calculators` matched each calculator's
@@ -3746,6 +3796,32 @@ service. The three `FINAL SINGLE POINT ENERGY` lines are told apart only by
 POSITION, which is why `test_the_three_delta_scf_blocks_are_written_in_parser_order`
 exists: swapping the cation and anion blocks flips the sign of both I and A,
 still produces plausible numbers, and survived every other test in the file.
+
+### ORCA ABORTS AT STARTUP IF ITS OWN PATH USES FORWARD SLASHES
+
+Sibling of the already-known "ORCA must not be installed under a path
+containing spaces", same mechanism -- ORCA derives the directory of its
+helper binaries (`orca_startup` and friends) from the path it was invoked
+with. Measured while building `benchmarks/uvvis/`, with the same input
+file, the same working directory and the same parent process, only the
+separator varying:
+
+    subprocess.run(["D:/ORCA/orca.exe",  "x.inp"])   error termination in Startup
+    subprocess.run([r"D:\ORCA\orca.exe", "x.inp"])   TERMINATED NORMALLY
+
+The message names `orca_startup` and nothing else, so it reads as a broken
+input file rather than a broken invocation -- four jobs "failed" and the
+`.inp` was perfect. It cost an hour.
+
+**A WORKING PROBE DOES NOT CLEAR THE PATH.** A TD-DFT single point ran
+fine through the forward-slash path in the same directory minutes earlier;
+only `Opt` died. So "I already ran ORCA successfully today" is not
+evidence, and neither is any one job type.
+
+`str(Path(p))` is the whole fix and both benchmark generators now do it.
+Note the app itself was never exposed: `Settings` stores a Windows path
+with backslashes, so this only bites a caller passing `--orca` with the
+forward-slash form that Git Bash tab-completion produces.
 
 ### A gbw remembers where it was born, and orca_plot goes there
 

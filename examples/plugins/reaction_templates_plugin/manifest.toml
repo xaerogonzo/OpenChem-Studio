@@ -1,0 +1,9 @@
+plugin_id = "reaction_templates_plugin"
+version = "0.1.0"
+api_version = 1
+display_name = "Reaction Templates Example"
+author = "OpenChem Studio"
+description = "Worked example: a plugin contributing reaction-SMARTS templates through context.reactions."
+homepage = ""
+license = "MIT"
+dependencies = []

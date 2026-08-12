@@ -77,22 +77,51 @@ jobs:
         continue-on-error: true
         run: uv run --no-sync python benchmarks/esp/score.py bench-out/esp
 
-      # NMR, docking, ADMET and pKa have their own multi-script pipelines
-      # (`run_delta50.py`, `redock.py`, `predict.py` + `score.py`,
-      # `score_pka.py`) whose orchestration has NOT been verified unattended
-      # from this workflow. They are named rather than invented: a step that
-      # always fails is worse than an absent one, because it trains people to
-      # ignore red.
+      # DOCKING IS WIRED AFTER A VERIFIED HAND-RUN, per the rule below.
+      # Measured 2026-08-12 against real Vina 1.2.7: exit 0, seven targets,
+      # six landing in the crystallographic pocket and 3EML "nearby".
+      #
+      #   1HSG 0.17 A   4DKL 0.89 A   3EML 3.92 A   2RH1 0.33 A
+      #   8ZYO 0.56 A   1ERE 0.47 A   4EY7 0.41 A
+      #
+      # RUN FROM ITS OWN DIRECTORY, which is not cosmetic: `redock.py`
+      # imports a sibling `_config` module, and py2opsin-style fixed temp
+      # filenames make a shared working directory an active hazard in this
+      # repository.
+      #
+      # DELIBERATELY NOT GATED ON A THRESHOLD. `VinaDockingProvider` passes
+      # `seed=None`, so the shipped app runs Vina with a RANDOM seed and two
+      # runs of one receptor already differ -- the same-receptor spread was
+      # measured at 0.24-0.41 A. A numeric gate here would fail on the
+      # search wandering. This checks the pipeline RUNS and publishes its
+      # table; a human reads the shifts.
+      - name: Docking - redock the catalogue's own ligands
+        if: inputs.only == '' || inputs.only == 'docking'
+        continue-on-error: true
+        working-directory: benchmarks/docking
+        run: |
+          # `bench-out/` is otherwise created only by the IR/ESP generators,
+          # which are SKIPPED when this workflow is dispatched with
+          # only: docking -- so the tee below would fail on a missing
+          # directory in exactly the case somebody runs this step alone.
+          mkdir -p ../../bench-out
+          uv run --no-sync python -u redock.py 2>&1 | tee ../../bench-out/docking-redock.txt
+
+      # NMR, ADMET and pKa have their own multi-script pipelines
+      # (`run_delta50.py`, `predict.py` + `score.py`, `score_pka.py`) whose
+      # orchestration has NOT been verified unattended from this workflow.
+      # They are named rather than invented: a step that always fails is
+      # worse than an absent one, because it trains people to ignore red.
       #
       # Adding one means running its pipeline by hand on the runner machine
       # first, then encoding exactly what worked -- which is how the IR step
       # above got here, and it found a real gap doing it (score.py could
       # score but nothing could GENERATE, so the benchmark was scoreable and
-      # not runnable).
+      # not runnable). Docking above joined them the same way.
       - name: Not yet wired up
-        if: inputs.only == '' || inputs.only == 'nmr' || inputs.only == 'docking' || inputs.only == 'admet' || inputs.only == 'pka'
+        if: inputs.only == '' || inputs.only == 'nmr' || inputs.only == 'admet' || inputs.only == 'pka'
         run: |
-          echo "nmr, docking, admet and pka are not wired into this workflow yet."
+          echo "nmr, admet and pka are not wired into this workflow yet."
           echo "Each has a multi-script pipeline that needs one verified"
           echo "hand-run on this machine before it is encoded here."
           echo "See docs/SELF_HOSTED_RUNNER.md."

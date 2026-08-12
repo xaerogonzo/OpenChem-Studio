@@ -430,3 +430,112 @@ def test_the_calculator_reports_pubchem_and_the_engine_separately():
     assert not any("STOUT" in line for line in result.matched), (
         "the STOUT notice is obsolete now the engine covers that job"
     )
+
+
+# ---------------------------------------------------------------------------
+# THE THREE PATHS TO `MISMATCH`
+#
+# `verify_name_round_trip` reaches MISMATCH from three places and only one is
+# evidence against the name -- OPSIN failing to parse, and RDKit failing to
+# build OPSIN's SMILES, are both the CHECKER failing. Splitting them so a
+# checker-failure showed the name with a caveat was designed and then not
+# built: over the 181-molecule corpus, ZERO inputs reach either
+# checker-failed path (benchmarks/naming/round_trip_paths.py re-measures it).
+#
+# These hold the three apart so a future change cannot silently collapse
+# them. **Each asserts HOW FAR THE PIPELINE GOT, not merely that the verdict
+# was MISMATCH** -- three tests all asserting MISMATCH would pass against an
+# implementation that had merged the branches into one, which is the exact
+# regression they exist to catch. The verdict enum is the only public
+# signal, so the branch is identified by observable facts about the
+# dependencies instead; no reason field was invented purely for a test.
+#
+# They use controlled dependency failures rather than real molecules on
+# purpose. These ARE dependency-failure paths, and hunting an input that
+# triggers each one is the fixture hunt this project has already abandoned
+# once. The corpus scan is the real-world layer underneath them.
+# ---------------------------------------------------------------------------
+
+
+def _spy_opsin(monkeypatch, behaviour):
+    """Replace OPSIN with a recording double. Returns the call log."""
+    calls: list[dict] = []
+
+    def fake(name: str):
+        record: dict = {"name": name}
+        calls.append(record)
+        result = behaviour(name)
+        record["returned"] = result.smiles
+        return result
+
+    monkeypatch.setattr(naming_providers, "opsin_available", lambda: True)
+    monkeypatch.setattr(naming_providers, "opsin_structure_for_name", fake)
+    return calls
+
+
+def test_mismatch_path_one_opsin_could_not_parse_our_name(monkeypatch):
+    """The CHECKER failed: OPSIN never returned a structure at all."""
+    from openchem.chem.naming_providers import NamingError, RoundTrip
+
+    calls: list[str] = []
+
+    def fake(name: str):
+        calls.append(name)
+        raise NamingError("OPSIN could not parse it")
+
+    monkeypatch.setattr(naming_providers, "opsin_available", lambda: True)
+    monkeypatch.setattr(naming_providers, "opsin_structure_for_name", fake)
+
+    verdict = verify_name_round_trip("some-name", Chem.MolFromSmiles("CCO"))
+
+    assert verdict is RoundTrip.MISMATCH
+    # The distinguishing fact: OPSIN was reached and produced NOTHING, so
+    # nothing downstream ever had a structure to compare.
+    assert calls == ["some-name"], "OPSIN was not consulted at all"
+
+
+def test_mismatch_path_two_rdkit_could_not_build_opsins_smiles(monkeypatch):
+    """The CHECKER failed one step later: OPSIN answered, RDKit refused."""
+    from openchem.chem.naming_providers import RoundTrip, StructureResult
+
+    unparseable = "this-is-not-smiles"
+    # ASSERT THE SETUP. If a future RDKit starts accepting this string the
+    # test would silently exercise path three instead, and still pass.
+    assert Chem.MolFromSmiles(unparseable) is None, "the fixture is no longer unparseable"
+
+    calls = _spy_opsin(
+        monkeypatch,
+        lambda name: StructureResult(smiles=unparseable, source="OPSIN", kind=PARSED),
+    )
+
+    verdict = verify_name_round_trip("some-name", Chem.MolFromSmiles("CCO"))
+
+    assert verdict is RoundTrip.MISMATCH
+    # The distinguishing fact: OPSIN DID return, and what it returned is
+    # what RDKit could not build.
+    assert len(calls) == 1 and calls[0]["returned"] == unparseable
+
+
+def test_mismatch_path_three_the_skeletons_genuinely_differ(monkeypatch):
+    """The only path that is evidence against the NAME.
+
+    This is the one metformin takes, and the one withholding exists for.
+    """
+    from openchem.chem.naming_providers import RoundTrip, StructureResult
+
+    original, other = "CCO", "c1ccccc1"
+    calls = _spy_opsin(
+        monkeypatch,
+        lambda name: StructureResult(smiles=other, source="OPSIN", kind=PARSED),
+    )
+
+    verdict = verify_name_round_trip("some-name", Chem.MolFromSmiles(original))
+
+    assert verdict is RoundTrip.MISMATCH
+    # The distinguishing facts: OPSIN returned, RDKit BUILT it, and the two
+    # skeletons really are different -- so nothing failed except the match.
+    assert len(calls) == 1 and calls[0]["returned"] == other
+    assert Chem.MolFromSmiles(other) is not None, "path three needs a buildable SMILES"
+    assert naming_providers._skeleton(Chem.MolFromSmiles(other)) != naming_providers._skeleton(
+        Chem.MolFromSmiles(original)
+    ), "the fixture no longer differs in skeleton, so this is not path three"
