@@ -215,3 +215,19 @@ jobs:
               echo "platform this application does not ship."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # THE LOG IS PUBLISHED BECAUSE THE JOB LOG TRUNCATES IT. The suite step
+      # prints `tail -30`, and the first Linux run had 9 failures of which
+      # only 2 fell inside that window -- so the job log said "9 failed" and
+      # could not say which 9. The step summary carries the first 20, but
+      # nothing outside the browser can read a step summary. An artifact is
+      # the only form the failures survive in for anyone diagnosing them
+      # later, which is the whole point of running this job at all.
+      - name: Publish the Linux suite log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-suite-log-${{ github.run_number }}
+          path: suite.log
+          if-no-files-found: warn
+          retention-days: 30
