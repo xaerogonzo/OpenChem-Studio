@@ -261,8 +261,34 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-13 minutes**, ending at `4176 passed, 8 skipped,
-1 deselected` (measured 2026-08-11 on branch `full-lewis-structure`,
+A clean run is **6-13 minutes**, ending at `4195 passed, 8 skipped,
+1 deselected` (measured 2026-08-12 on branch
+`claude/adoring-germain-a86974`, 12m46, with four earlier runs of the
+same branch at 11m02, 11m24, 12m06 and 12m36 as it grew. +8 for the
+single-shot timer work -- two guards for the panel reveal, two for the
+crystal draw, one each for the worker-thread progress reporter, the
+ketcher settle token and the instrumented metrics dump, plus the
+package-wide invariant -- over the 4187 below).
+
+**THE 4176 ENTRY BELOW WAS ALREADY STALE BY 11 WHEN THAT BRANCH STARTED,
+and nothing in this list accounts for them.** master at `9159d1d`, this
+branch's base, **collects 4196**, i.e. 4187 passed against the same 8
+skips and 1 deselection. Two merges landed after the Lewis entry --
+`ci-webgl-skip` (#12) and `right-dock-width` (#13) -- and neither
+refreshed the figure, which is precisely the drift the warning further
+down describes, caught happening rather than described in the abstract.
+
+**That 4187 is DERIVED, not measured**, and is written that way on
+purpose: it comes from `pytest --collect-only -q` on the base commit
+minus the skips and the deselection, not from a run, because no full
+measurement has been taken on master since the Lewis entry. Treat it as
+the arithmetic it is. **A collected count is the sharper instrument for
+"did my change add the tests I think it did"** -- it is deterministic,
+takes four seconds rather than twelve minutes, and is not perturbed by a
+skip whose condition moved. The branch figure above reconciles with it
+exactly: 4204 collected, 4195 + 8 + 1.
+
+Before it: 4176 on branch `full-lewis-structure` (measured 2026-08-11,
 11m25, with an earlier run of the same branch at 12m15. +161 for the full
 Lewis structure -- the resonance gate, the model, the SVG renderer, the
 RDKit builder and the dialog -- over the 4015 below).
