@@ -228,10 +228,18 @@ def _recorded_parent(text: str) -> Path | None:
     PASSED there for the wrong reason, asserting "nothing was restored"
     and getting it because nothing had been parsed.
     """
+    # `str()` around the pure path, NOT `Path(pure_path)`. Handing a
+    # `PurePath` to `Path` carries its RAW parts across, so on POSIX the
+    # result keeps the forward-slash form it was parsed into
+    # (`PosixPath("D:/scratch/x")`) rather than the Windows text a caller
+    # comparing against `Path(r"D:\scratch\x")` will have. Going through
+    # `str` re-renders it in the source flavour first, which is the whole
+    # point of parsing it with that flavour. Identical on Windows, where
+    # both spellings are the same object.
     if len(text) > 3 and text[1:3] == ":\\":
-        return Path(PureWindowsPath(text).parent)
+        return Path(str(PureWindowsPath(text).parent))
     if text.startswith("/") and len(text) > 1:
-        return Path(PurePosixPath(text).parent)
+        return Path(str(PurePosixPath(text).parent))
     return None
 
 

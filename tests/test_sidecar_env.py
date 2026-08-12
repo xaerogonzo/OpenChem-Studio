@@ -205,8 +205,20 @@ def test_a_version_fragment_is_not_treated_as_a_file_extension():
     from openchem.services.sidecar_env import _looks_executable
 
     assert Path("vina_1.2.7").suffix == ".7", "the trap this guards is gone"
+
+    # The platform-independent core: a versioned name with no extension is
+    # the shape that was being rejected, and it must be accepted anywhere.
     assert _looks_executable(Path("vina_1.2.7"))
-    assert _looks_executable(Path("vina_1.2.7_win.exe"))
     assert _looks_executable(Path("orca"))
     # Still discriminating: a data file next to the binary is not it.
     assert not _looks_executable(Path("receptors.json"))
+
+    # `.exe` IS PLATFORM-SPECIFIC AND THE FIRST VERSION OF THIS TEST
+    # ASSERTED IT UNCONDITIONALLY, which is the same Windows-shaped
+    # assumption the bug itself was. On POSIX a `.exe` is not an
+    # executable shape, and the fallback there asks the executable bit --
+    # which a name that does not exist on disk cannot have.
+    if os.name == "nt":
+        assert _looks_executable(Path("vina_1.2.7_win.exe"))
+    else:
+        assert not _looks_executable(Path("vina_1.2.7_win.exe"))

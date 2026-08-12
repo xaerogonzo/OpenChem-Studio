@@ -141,16 +141,36 @@ def _panel_with_a_long_result(qapp, width: int, height: int = 1000):
     return panel
 
 
-def _declared_minimum_width(qapp) -> int:
-    """The narrowest width this panel says it can be laid out at.
+def _widest_floor(qapp) -> int:
+    """The narrowest width at which this panel is both REACHABLE and FITS.
 
-    Read from the panel rather than written down, because it is a function
-    of the platform's font metrics -- 299 px here, and there is no reason
-    a Linux runner would agree.
+    Two different numbers, and neither alone is the floor -- measured on
+    Windows, where they disagree by 19 px:
+
+        minimumWidth()             280   an explicit floor Qt will enforce
+        minimumSizeHint().width()  299   what the LAYOUT says it needs
+
+    The panel is therefore allowed to be squeezed 19 px below its own
+    content minimum, and that gap is exactly where the horizontal
+    scrollbar lives -- 280 overflows by 20 px, 300 by none. So a width
+    below the size hint is not a defect when it scrolls sideways; it is
+    Qt reporting that it was asked for something impossible.
+
+    Taking `minimumSizeHint` alone is wrong too: on a Linux runner it
+    reports 198 while `minimumWidth` still refuses anything under 280, so
+    a width derived from it cannot be reached at all. The first attempt at
+    this test did exactly that and asserted about a size that never
+    happened -- caught immediately by the `panel.width() == width`
+    assertion added beside it.
+
+    The larger of the two is the only value that satisfies both.
     """
     panel = _panel_with_a_long_result(qapp, width=400, height=1000)
     try:
-        return panel.minimumSizeHint().width()
+        panel.resize(1, panel.height())
+        for _ in range(20):
+            qapp.processEvents()
+        return max(panel.width(), panel.minimumSizeHint().width())
     finally:
         _dispose(panel, qapp)
 
@@ -485,7 +505,7 @@ def test_the_panel_never_scrolls_sideways(qapp):
     """
     from PySide6.QtWidgets import QScrollArea
 
-    floor = _declared_minimum_width(qapp)
+    floor = _widest_floor(qapp)
 
     # RELATIVE TO THE PANEL'S OWN DECLARED MINIMUM, not five hardcoded
     # pixel widths. Two separate reasons, both learned from a Linux runner:
