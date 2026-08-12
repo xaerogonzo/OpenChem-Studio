@@ -261,11 +261,22 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-13 minutes**, ending at `4176 passed, 8 skipped,
-1 deselected` (measured 2026-08-11 on branch `full-lewis-structure`,
-11m25, with an earlier run of the same branch at 12m15. +161 for the full
-Lewis structure -- the resonance gate, the model, the SVG renderer, the
-RDKit builder and the dialog -- over the 4015 below).
+A clean run is **6-15 minutes**, ending at `4244 passed, 8 skipped,
+1 deselected` (measured 2026-08-11 on branch `declared-totals`, 14m21.
++68 for the declared-total contract -- the registry audit, the Crippen
+hydrogen modes, the descriptor-caption fix and the presentation guards --
+over the 4176 below).
+
+**14m21 is the longest run this file has recorded**, and it is 68 tests
+larger rather than slower per test: the new files add no webview, and the
+two of them together run in about 37 s. The band's upper end is set by
+`test_electron_overlay_*`, as the entry below explains -- do not read a
+14-minute run as a hang.
+
+Before it: 4176 on branch `full-lewis-structure`, 11m25, with an earlier
+run of the same branch at 12m15. +161 for the full Lewis structure -- the
+resonance gate, the model, the SVG renderer, the RDKit builder and the
+dialog -- over the 4015 below.
 
 Before it: 4015 on branch `lone-pairs-on-the-canvas`, 11m43 and 12m47 on
 two consecutive runs. +79 for drawing lone pairs on the canvas, over the
@@ -2722,6 +2733,182 @@ awk '/^[.sFEx]+/ {gsub(/[^.sFEx]/,"",$0); n+=length($0)} END {print n}' /tmp/sui
 everything and run master. This file's warnings about flaky access
 violations elsewhere would otherwise excuse a crash that is entirely
 reproducible and entirely yours.
+
+## A UI MUST NOT INFER SCIENTIFIC MEANING FROM A DATASET'S SHAPE
+
+Reported as "the logp calculator is a bit confusing... I assume the
+overall partition is that number 3.624, but on the detailed viewer that
+number is not there". The Properties panel said `mol_logp 3.624`; the
+Calculator Inspector beside it said `Overall: 0.8585`.
+
+**Neither number was a chemistry error.** `Overall:` was
+`sum(result.values.values())`, on the stated belief that everything the
+dialog shows is additive over the atoms present. Measured on aspirin
+across every per-atom calculator in the registry, that belief was wrong
+three ways at once, meaningless twice more, and merely mute four times:
+
+    crippen_logp_contrib       0.1511   real LogP 1.3101
+    crippen_mr_contrib         35.51    real MR   44.71
+    gasteiger_charge_at_ph     -1.359   the molecule is NEUTRAL
+    orbital_electronegativity  134.8    summed eV, no referent
+    topology_eccentricity      65       summed hops, no referent
+    topology_distance_degree   492      2x Wiener, unnamed
+    atom_sasa                  220.7    correct, and never said as WHAT
+    atomic_polarizability      18.11    correct, unnamed
+    huckel_pi_density          10       correct, unnamed
+
+The first three share one cause: **Crippen and PEOE both give hydrogens
+their own increment, and the editor's hydrogens are implicit**, so those
+increments have no atom to sit on. Verified --
+`sum(_CalcCrippenContribs(AddHs(mol)))` equals `MolLogP(mol)` exactly on
+every molecule tried.
+
+**THE FILE ALREADY KNEW.** `calculator_inspector_dialog.py`'s ESP branch
+documents "gave neutral acetic acid a net -0.40 e" (re-measured: -0.4008)
+while a branch 150 lines above printed that same sum as a total. Two
+statements about one quantity, in one file, disagreeing.
+
+**A LIST OF NUMBERS DOES NOT SAY WHETHER ADDING IT UP MEANS ANYTHING.**
+The producer knows; the producer declares. `Provenance.parameters[TOTAL]`
+carries `{declared, value, label, units, basis}` or
+`{declared: False, reason}`, and `domain/common.valid_total_declaration`
+is **structural only** -- it checks a value is numeric and a label is
+non-empty, never that "A^2" is right for a surface area. Validating that
+here would rebuild, in the layer being fixed, the very "the UI decides
+what numbers mean" engine the key exists to remove.
+
+That split is asserted directly:
+`test_a_plausible_lie_passes_the_validator_and_fails_the_chemistry`
+declares `label="LogP (Crippen)", value=sum(values)` and requires the
+validator to ACCEPT it and the Crippen guard to REJECT it. If the
+validator ever catches it, semantics have leaked back.
+
+**`Overall:` had already been narrowed twice** -- for spectra, then for
+categorical results -- each time by finding another special case the hard
+way. Inverting the default is what ends that: no declaration, no
+headline. Same instinct as `applies_to`'s restrictive default and the
+same rot `inapplicable_calculators` suffered.
+
+**A CATEGORICAL DATASET NEEDS NO SECOND DECLARATION.** `CATEGORICAL_SCALE`
+already says "these are category ids, not magnitudes", which is the same
+statement; requiring `TOTAL` as well would put one claim in two places.
+The audit accepts either.
+
+### The residual is the VIEW's arithmetic; its meaning is the PRODUCER's
+
+The dialog says *"21 heavy-atom contributions sum to 0.86 - the balance
+(+2.77) is on implicit hydrogens."* Subtracting two numbers is ordinary
+work for a view. Concluding that the remainder IS the hydrogens is
+chemistry, and this file already records what inferring a mechanism from
+a residual costs. So the producer supplies `{visible_basis, explanation}`
+and nothing else; with no explanation the gap goes unmentioned.
+
+**And the sentence is suppressed within the displayed precision.** The
+two hydrogen modes that DO add up reproduce their total to ~1e-16, so
+without a tolerance every one of them would announce a balance of
++0.0000000000000002 -- noise given a voice.
+
+### The hydrogen fold already existed, under Marvin's name
+
+`gasteiger_charge_at_ph` has shipped "Increment of Hs (add implicit H
+charge)" since Phase 18, and it takes acetic acid's charge sum from
+-0.4008 to -0.0000. The same fold on Crippen reproduces `MolLogP` to
+1e-9 (ethanol, benzene, aspirin, caffeine, morphine). Both Crippen
+calculators now offer three modes; **the declared total is identical in
+all three**, which is the guard that a display option never reaches the
+chemistry.
+
+`Explicit hydrogens` is a pure addition, measured rather than assumed
+before being built on: `AddHs(addCoords=True)` moves every heavy atom by
+**0.00e+00** in 2D and on a real conformer, leaves 0 overlapping pairs,
+gives the new hydrogens real non-zero z, and `PrepareMolForDrawing`
+KEEPS them (8 in, 8 out). Without an explicit-H depiction the labels are
+silently dropped by `render_2d_svg`'s `drawable()` guard -- whose
+docstring already described this situation for SASA and polarizability.
+
+### THE REGISTRY AUDIT IS THE PART WORTH KEEPING
+
+`tests/test_declared_totals.py` enumerates **from the live registry**,
+never from a list of ids, and fails naming any calculator whose per-atom
+result carries no `TOTAL` key. A maintained list is exactly what
+`inapplicable_calculators` was when it rotted into 27 wrong entries. It
+is what covers calculator #37, which nobody has written yet.
+
+### Three smaller findings from the same screen
+
+- **EVERY descriptor row was captioned with its raw id**, and lost its
+  units: `mol_logp`, `mol_wt`, `tpsa`. `DescriptorService` publishes a
+  RUNNING placeholder per id BEFORE `compute()` runs -- so it can only
+  fill in `name=descriptor_id, units=""` -- and the panel wrote the row
+  caption once, at creation. Measured 26 of 26 wrong. It cannot be fixed
+  at the producer: the placeholder precedes the names, and the consumer
+  is the only place that sees both.
+- **The legend printed the COLOUR DOMAIN as the data range.** For signed
+  data the scale is symmetric about zero, so it named +1.019 when no atom
+  had it, while the panel an inch away said 0.5437. Two quantities, one
+  name. They have separate names now (`data_range` vs the colour domain)
+  specifically so a later simplification cannot merge them again.
+- **One dataset rendered at four precisions on one screen** -- 2 dp atom
+  labels, `.3f` legend, `.4g` headline, `.4g` panel row. All of them go
+  through `label_decimals` now, and the balance tolerance derives from it.
+
+### A LONGER SUMMARY IS NOT FREE, and only the running app said so
+
+Every test was green and the summary row was clipped. Driving the app
+showed `LogP (Crippen) 3.62 - 21 atom contributions,` ending flat against
+the panel edge with its range gone.
+
+**A bare Qt harness said the opposite** -- it reported the label wrapping
+to 4 lines and `CLIPPED: False`, because it had handed the label 100 px
+instead of the real 205. That is the fifth time this file has recorded an
+out-of-app harness lying about this panel. `OPENCHEM_INSTRUMENT_PANEL=1`
+in the real app is what answered it, and the answer needed both arms:
+
+    arm                      row given  row needs   section h / min
+    master                      34 px      47 px      145 / 192  STARVED
+    total + count + range       34 px      79 px      145 / 224  STARVED
+    total + count (shipped)     34 px      47 px      145 / 192  STARVED
+
+**The section is starved on master ALREADY**, which is the finding that
+decided what to do. The clip was not introduced here; carrying both the
+total and the range would have taken the shortfall from 13 px to 45 and
+made an existing defect visibly worse. So the row carries the total and
+the count, at 26 px against the old wording's 26 px, and the range moves
+to the dialog legend -- which is where per-atom detail belongs and which
+now renders it at the same precision.
+
+`test_the_panel_row_does_not_outgrow_the_space_it_had` pins the
+footprint against the WORDING IT REPLACED rather than against a pixel
+count, so it survives a font or width change. The starvation itself is
+untouched and left flagged: `ExplicitHeightLabel`'s docstring records
+eight earlier attempts at that chain and is required reading first.
+
+**The generalisation: a panel row is a fixed budget.** Adding a word to
+one costs something somewhere, and in a starved section it costs
+silently -- the text simply stops.
+
+### `sum(x.values())` is not by itself evidence of this bug
+
+Auditing every such call in the tree found only ONE offending site. The
+hits in `electronic_properties.py` and `surface_analysis.py` are
+PRODUCERS computing their own legitimate totals -- which is precisely
+what they should be doing, and they now declare them. The rule is about
+where a total may be INVENTED, not about arithmetic.
+
+### A mutation that does not parse is not a mutation
+
+Five arms, four caught by the guard they were aimed at. The fifth
+replaced a call with text that did not parse, so the module failed to
+import and **0 of 50 tests ran** -- and the harness scored it INVALID
+rather than SURVIVED only because it compares the arm's ran-count against
+the control's. This is the third time this file has recorded a version of
+that lesson.
+
+Method note paid for again in the same session: **an A/B is worthless if
+the tree is being edited during it.** A source file was edited by hand
+while the harness was mid-run, so the whole set was re-run on an
+untouched tree before any result was believed.
+
 ## Verification standard
 
 This project's convention, established across many sessions: **claims are
