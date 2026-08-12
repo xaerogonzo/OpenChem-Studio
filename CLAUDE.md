@@ -261,19 +261,36 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-14 minutes**, ending at `4196 passed, 8 skipped,
-1 deselected` (measured 2026-08-12 on branch
-`claude/adoring-germain-a86974`, 13m06, with five earlier runs of the
-same branch at 11m02, 11m24, 12m06, 12m36 and 12m46 as it grew. +9 for
-the single-shot timer work -- two guards for the panel reveal, two for
-the crystal draw, one each for the worker-thread progress reporter, the
-ketcher settle token, the instrumented metrics dump and the destroyed
-window, plus the package-wide invariant -- over the 4187 below).
+A clean run is **6-16 minutes**, ending at `4197 passed, 8 skipped,
+1 deselected` (measured 2026-08-12 on the MERGE COMMIT `887549a`,
+16m22. +9 for the single-shot timer work -- two guards for the panel
+reveal, two for the crystal draw, one each for the worker-thread
+progress reporter, the ketcher settle token, the instrumented metrics
+dump and the destroyed window, plus the package-wide invariant -- and
++1 from #15, which landed on master while that branch was in flight,
+over the 4187 below).
 
-**The band moved 6-13 to 6-14 because this branch's slowest run was
-13m06**, not because anything got slower: the six runs above span two
-minutes on essentially the same tree, which is the spread this file
-already warns about rather than a trend.
+**MEASURED ON THE MERGE COMMIT, AND THAT IS NOT WHAT THE BRANCH SAID.**
+The branch itself ended at 4196 in 13m06, with five earlier runs at
+11m02, 11m24, 12m06, 12m36 and 12m46 as it grew. master had moved under
+it: #15 added `ui/widgets/collapsible_section.py` and a property-panel
+test while the branch was open, touching the same area the branch did.
+The merge reported CLEAN, which is a statement about TEXT and not about
+behaviour, and the branch figure could not have told you either way.
+Both are green -- but "I measured the branch" is not an answer to "what
+does master do", and this is the rule at the top of this section being
+paid for rather than quoted.
+
+**THE BAND WENT 6-14 TO 6-16 ON A SINGLE RUN, AND THAT RUN IS
+UNEXPLAINED.** 6-14 was written about an hour earlier, off six runs of
+the same branch, and the very next measurement landed two minutes
+outside it. One added test cannot cost three minutes and nothing else
+changed. It is widened anyway, because a reader whose run takes 15
+minutes should not conclude the suite has hung -- but it is recorded as
+the outlier it is, not as a new normal. The ten-run spread further down
+(361 to 568 seconds on essentially one tree) is the reason not to fit a
+band to one number in either direction, and that cuts both ways: do not
+narrow it back on one fast run either.
 
 **THE 4176 ENTRY BELOW WAS ALREADY STALE BY 11 WHEN THAT BRANCH STARTED,
 and nothing in this list accounts for them.** master at `9159d1d`, this
@@ -290,14 +307,19 @@ measurement has been taken on master since the Lewis entry. Treat it as
 the arithmetic it is. **A collected count is the sharper instrument for
 "did my change add the tests I think it did"** -- it is deterministic,
 takes four seconds rather than twelve minutes, and is not perturbed by a
-skip whose condition moved. The branch figure above reconciles with it
-exactly: 4205 collected, 4196 + 8 + 1.
+skip whose condition moved. The merge figure above reconciles with it
+exactly: 4206 collected, 4197 + 8 + 1.
 
-**That entry was written at 4195 and was stale within the hour**, by one
-test, from the next commit on the same branch. Left as a note rather
-than quietly corrected: this is not a slow drift that creeps in over
-months, it is one commit, and it is why the collected count above is
-worth more than the passed count as a check on your own change.
+**THAT ENTRY MOVED THREE TIMES IN ONE DAY -- 4195, 4196, 4197** -- once
+from the next commit on the same branch, once from a merge that landed
+on master while the branch was open. Left as a note rather than quietly
+corrected each time, because it is the strongest argument in this
+section for the instrument rather than the number: this is not slow
+drift over months, and a figure re-derived in four seconds by
+`--collect-only` cannot go stale under you the way one that costs
+sixteen minutes does. Take the collected count for "did my change add
+what I think it did", and re-measure the passed count only when you
+need the wall clock too.
 
 Before it: 4176 on branch `full-lewis-structure` (measured 2026-08-11,
 11m25, with an earlier run of the same branch at 12m15. +161 for the full
