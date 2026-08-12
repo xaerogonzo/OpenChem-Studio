@@ -359,6 +359,71 @@ def test_an_explicit_height_label_never_offers_a_height_for_width_after_setText(
         label.deleteLater()
 
 
+def test_an_explicit_height_label_never_offers_a_height_for_width_after_a_style_change(qapp):
+    """A STYLE CHANGE re-derives the flag, and `setText` is not the only
+    door -- the guard above passed for the whole life of this bug.
+
+    `QLabel::changeEvent` answers `StyleChange` and `FontChange` by
+    calling the same `QLabelPrivate::updateLabel()` that `setText` does,
+    so a style sheet set on ANY ancestor re-arms the height-for-width
+    flag on every wrapped label beneath it, long after the last
+    `setText`. Nothing on the label itself changes, which is why this
+    was invisible to every existing test.
+
+    Measured in the running app by logging each transition of the flag,
+    Lipophilicity section, panel at 280 px:
+
+        '13 atoms, -0.4195 to 0.5437'  re-set hfw on event 100
+                                                 (QEvent::StyleChange)
+
+    The plain `QLabel` arm is the CONTROL and is not decoration: if
+    `setStyleSheet` on the parent ever stopped delivering a StyleChange
+    to its children, the interesting assertion below would pass while
+    testing nothing at all.
+
+    **THERE IS DELIBERATELY NO SYMPTOM-LEVEL GUARD BESIDE THIS ONE**,
+    and that is a measured limit rather than an omission. In the running
+    app the flag costs the Lipophilicity section 47 px -- given 145
+    against the 192 it asks for, crushing its three calculator buttons
+    to 15/15/14 px against their own 26 px minimum, which is the
+    overlap that was reported. A panel built here cannot reproduce it:
+    the section's `heightForWidth` and its minimum come out EQUAL
+    (measured, 418 and 418 at 280 px), so the substitution has nothing
+    to take away and no arrangement of siblings starves anything. Two
+    versions of such a test were written and both passed with the bug
+    deliberately restored -- a shorter panel, then one with the
+    calculator buttons registered.
+
+    This is the fifth time an out-of-app harness has disagreed with the
+    running application about THIS panel; see the four in `CLAUDE.md`.
+    The symptom was verified where it lives, by driving the app.
+    """
+    from PySide6.QtWidgets import QWidget
+
+    from openchem.ui.widgets.collapsible_section import ExplicitHeightLabel
+
+    parent = QWidget()
+    ours = ExplicitHeightLabel("a value\nwith several\nlines in it", parent)
+    plain = QLabel("a value\nwith several\nlines in it", parent)
+    plain.setWordWrap(True)
+    try:
+        assert not ours.sizePolicy().hasHeightForWidth()
+        parent.setStyleSheet("QLabel { color: #555; }")
+        qapp.processEvents()
+        assert plain.sizePolicy().hasHeightForWidth(), (
+            "the control did not pick up a height-for-width, so the style "
+            "change never reached the children and this test proves nothing"
+        )
+        assert not ours.sizePolicy().hasHeightForWidth(), (
+            "a style change on an ancestor put the height-for-width flag "
+            "back -- see ExplicitHeightLabel.changeEvent"
+        )
+        assert not ours.hasHeightForWidth()
+    finally:
+        parent.deleteLater()
+        QCoreApplication.sendPostedEvents(parent, QEvent.Type.DeferredDelete)
+
+
 def test_the_panel_never_scrolls_sideways(qapp):
     """A properties panel that scrolls horizontally is worse than one
     that wraps, and that is exactly what the first two versions of this

@@ -146,6 +146,52 @@ class ExplicitHeightLabel(QLabel):
         super().setText(text)
         self._match_height_to_text()
 
+    def changeEvent(self, event) -> None:  # noqa: N802 - Qt's own casing
+        """A STYLE CHANGE RE-DERIVES THE HEIGHT-FOR-WIDTH FLAG, and
+        overriding `setText` and `resizeEvent` alone does not catch it.
+
+        `QLabel::changeEvent` answers `StyleChange` and `FontChange` by
+        calling `QLabelPrivate::updateLabel()` -- the same function
+        `_stop_offering_height_for_width` exists to undo. Setting a style
+        sheet on ANY ancestor sends `StyleChange` to every descendant, so
+        a label that was correctly cleared at `setText` silently starts
+        offering a height-for-width again some time later, with nothing
+        on the label itself having changed.
+
+        Measured in the running app, Lipophilicity section, panel at
+        280 px, by logging every transition of the flag:
+
+            '13 atoms, -0.4195 to 0.5437'  re-set hfw on event 100
+                                                    (QEvent::StyleChange)
+
+        From there the whole chain becomes height-for-width carrying
+        again and `QBoxLayout.setGeometry` substitutes the section's
+        `heightForWidth` for its minimum -- the exact failure the class
+        docstring describes:
+
+            arm                     section h   its minimum   buttons
+            without this override         145           192   15/15/14
+            with it                       192           192   26/26/26
+
+        26 px is the buttons' own minimum, so below it they overlap.
+
+        It recomputes rather than merely re-clearing, because a style or
+        font change is also the one event that can change how tall the
+        text draws -- so the stated height has to be restated, not just
+        defended.
+
+        **It answers EVERY change event rather than filtering for
+        `StyleChange`**, which is deliberate. The history of this class
+        is nine fixes that were each too narrow -- clearing the flag in
+        `__init__` was undone by `setText`, and clearing it in `setText`
+        was undone by this -- so the cheap, total answer is the one that
+        cannot be wrong about a Qt version that re-derives the flag from
+        somewhere new. Both routines it calls are already guarded
+        against doing redundant work, so the extra events cost nothing.
+        """
+        super().changeEvent(event)
+        self._match_height_to_text()
+
     def resizeEvent(self, event) -> None:  # noqa: N802 - Qt's own casing
         """A wrapped label's height depends on the width it was GIVEN, so
         the only honest moment to recompute is once the layout has

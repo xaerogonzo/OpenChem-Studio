@@ -464,6 +464,13 @@ class _Driver:
 
         property_panel._dump_panel_metrics(self._window._property_panel)
         property_panel._dump_height_budget(self._window._property_panel)
+        # The container walk belongs here and was missing: a starved
+        # SECTION is handed its height by the container's layout, and
+        # `item.minimumSize()` beside `item.hasHeightForWidth()` is the
+        # only place the height-for-width substitution is visible rather
+        # than inferred. Without it this step can show that a section is
+        # starved but not what starved it.
+        property_panel._dump_container_items(self._window._property_panel)
         property_panel._dump_width_budget(self._window._property_panel)
 
     def _do_geometry(self, step: dict[str, Any]) -> None:

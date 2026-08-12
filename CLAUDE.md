@@ -1816,6 +1816,48 @@ third of the Properties panel was one line of transient status. The rule
 is not "always use WrappedLabel" -- it is "use it where a label's true
 height must survive a squeeze", and a status line is not that.
 
+### A STYLE CHANGE RE-ARMS THE HEIGHT-FOR-WIDTH FLAG, and starved a section
+
+Reported as the Lipophilicity section's three calculator buttons
+rendering on top of one another. It is the truncation mechanism
+`ExplicitHeightLabel` already documents, coming back through a door
+that class did not cover -- so read its docstring first, then this.
+
+`QLabel::changeEvent` answers **`StyleChange` and `FontChange`** by
+calling the same `QLabelPrivate::updateLabel()` that `setText` does, and
+that re-derives the size policy's height-for-width flag from the
+word-wrap flag. `ExplicitHeightLabel` overrode `setText` and
+`resizeEvent` and **not `changeEvent`**, so setting a style sheet on ANY
+ancestor silently re-armed the flag on every wrapped label beneath it,
+long after the last `setText`, with nothing on the label itself having
+changed. Measured by logging each transition of the flag:
+
+    '13 atoms, -0.4195 to 0.5437'   re-set hfw on event 100
+                                              (QEvent::StyleChange)
+
+From there the whole chain is height-for-width carrying again and
+`QBoxLayout.setGeometry` substitutes the section's `heightForWidth` for
+its minimum. Measured in the running app, aspirin, panel at 280 px:
+
+    arm       section h   its minimum   its 3 buttons (min 26)
+    before          145           192   15 / 15 / 14
+    after           192           192   26 / 26 / 26
+
+**It was never confined to one section** -- the same run re-armed the
+flag on the alert rows, the pKa and NMR hints and the substance
+classification. Lipophilicity is simply where a squeeze was visible.
+
+**THE SYMPTOM CANNOT BE REPRODUCED OUT OF THE APP, and two tests that
+tried both passed with the bug deliberately restored.** In a harness the
+section's `heightForWidth` and its minimum come out EQUAL (418 and 418),
+so the substitution has nothing to take away -- widening the panel,
+shortening it, and registering the calculator buttons all failed to
+starve anything. **The fifth time an out-of-app Qt harness has
+disagreed with the running application about this panel.** The guard
+that ships asserts the MECHANISM (the flag stays clear across a style
+change, with a plain `QLabel` as the control proving the style change
+was delivered at all); the symptom was verified by driving the app.
+
 ### 20 of 25 `AlertResult`s were never alerts
 
 `AlertResult.matched` is a `list[str]`, and it became the generic line
