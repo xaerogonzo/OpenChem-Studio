@@ -91,3 +91,45 @@ def test_a_step_that_raises_does_not_stop_the_script(window, caplog):
     assert "failed" in caplog.text
     driver._run_next()
     assert driver._index == 2
+
+
+def test_destroying_the_window_stops_the_script(qapp, monkeypatch):
+    """The point of binding each step to the window as Qt's context object.
+
+    A bare `QTimer.singleShot(after, self._run_next)` is tied to nothing,
+    so closing the window mid-script left the remaining steps queued and
+    running against a window that no longer exists -- every one of them a
+    C++ call through `self._window`.
+
+    **The surviving-window arm is the control and is load-bearing**: a
+    script that never advanced at all reads exactly like one correctly
+    cancelled, so without it this passes against a harness that does
+    nothing.
+
+    The driver is deliberately NOT a Qt child of the window (see
+    `_Driver`), which is what lets this read `_index` after the window is
+    gone -- a wrapper destroyed as a child would raise instead.
+    """
+    monkeypatch.setattr(debug_drive, "_DEFAULT_AFTER_MS", 0)
+    steps = [{"do": "wait"}, {"do": "wait"}, {"do": "wait"}]
+
+    def run_a_script(*, destroy: bool) -> int:
+        built = QWidget()
+        driver = debug_drive._Driver(built, list(steps))
+        driver.start()
+        if destroy:
+            built.setParent(None)
+            built.deleteLater()
+            QCoreApplication.sendPostedEvents(built, QEvent.Type.DeferredDelete)
+        for _ in range(10):
+            QCoreApplication.processEvents()
+        if not destroy:
+            built.setParent(None)
+            built.deleteLater()
+            QCoreApplication.sendPostedEvents(built, QEvent.Type.DeferredDelete)
+        return driver._index
+
+    advanced = run_a_script(destroy=False)
+    assert advanced > 0, "the control never advanced, so the arm below proves nothing"
+
+    assert run_a_script(destroy=True) == 0, "a step ran against a destroyed window"

@@ -59,7 +59,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QObject, QTimer
 from PySide6.QtWidgets import QWidget
 
 logger = logging.getLogger("openchem.ui")
@@ -110,16 +110,42 @@ def _walk_actions(menu):
             yield from _walk_actions(child)
 
 
-class _Driver:
+class _Driver(QObject):
     """Runs the steps one at a time, off a `QTimer`.
 
     Sequential rather than concurrent because the interesting steps are
     asynchronous -- a calculator dispatches to a thread pool -- and the
     thing being measured is what the window looks like AFTER one has
     landed.
+
+    **A QObject so it can carry signals if this harness ever grows them,
+    and DELIBERATELY WITHOUT A Qt PARENT.** Parenting it to the window
+    would be the reflexive next step and buys nothing here: the window is
+    already the context object for both shots, which is what ends the
+    script, and an unparented driver stays inspectable after the window
+    goes -- `main.py` hangs it off `window._debug_driver`, and a wrapper
+    whose C++ object had been destroyed as a child would raise on the way
+    past.
+
+    **THE CONTEXT OBJECT MUST STAY THE WINDOW, NOT `self`.** Becoming a
+    QObject makes `self` newly available and it is the obvious-looking
+    choice; it is also the one that fails in exactly this shape, because
+    a pending shot holds the bound method, which holds the driver, so the
+    driver cannot be collected while a step is queued. Measured, dropping
+    every Python reference and destroying the window:
+
+        parented,   bound to self     cancelled
+        parented,   bound to window   cancelled
+        UNPARENTED, bound to self     FIRED against a dead window
+        UNPARENTED, bound to window   cancelled
+
+    So the two are equivalent only under a parent this class does not
+    have. Binding to the window is correct either way, which is why it is
+    the one written down.
     """
 
     def __init__(self, window: QWidget, steps: list[dict[str, Any]]) -> None:
+        super().__init__()
         self._window = window
         self._steps = steps
         self._index = 0
