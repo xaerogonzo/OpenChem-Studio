@@ -131,7 +131,15 @@ class _Driver:
 
     def start(self) -> None:
         logger.warning("OPENCHEM_DRIVE: %d step(s) from %s", len(self._steps), _DRIVE_SCRIPT)
-        QTimer.singleShot(_DEFAULT_AFTER_MS, self._run_next)
+        # THE WINDOW IS THE CONTEXT OBJECT, NOT THE DRIVER, and it is the
+        # right one for a reason beyond `_Driver` being a plain class Qt
+        # would refuse: every step acts on that window, so a window that
+        # is gone means a script with nothing left to drive. Qt cancels a
+        # context-bound shot when the context dies, which ends the chain
+        # instead of running the remaining steps against a freed window.
+        # `self._window` is safe to reach for here -- `main.py` hangs the
+        # driver off the window, so the driver never outlives it.
+        QTimer.singleShot(_DEFAULT_AFTER_MS, self._window, self._run_next)
 
     def _run_next(self) -> None:
         if self._index >= len(self._steps):
@@ -152,7 +160,8 @@ class _Driver:
         after = int(step.get("after_ms", _DEFAULT_AFTER_MS))
         # A BOUND METHOD, never a lambda capturing self: PySide6 holds a
         # plain callable strongly (see tests/test_qt_object_disposal.py).
-        QTimer.singleShot(after, self._run_next)
+        # Context-bound to the window for the reason given in `start`.
+        QTimer.singleShot(after, self._window, self._run_next)
 
     # -- steps ---------------------------------------------------------
 

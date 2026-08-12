@@ -11,7 +11,35 @@ from __future__ import annotations
 
 import json
 
+import pytest
+from PySide6.QtCore import QCoreApplication, QEvent
+from PySide6.QtWidgets import QWidget
+
 import openchem.app.debug_drive as debug_drive
+
+
+@pytest.fixture
+def window(qapp):
+    """A REAL QObject, because the driver schedules its next step against
+    the window as Qt's CONTEXT OBJECT and `object()` is not something Qt
+    can bind to.
+
+    These two tests passed a bare `object()`, which worked only while the
+    scheduling was `QTimer.singleShot(after, self._run_next)` -- a form
+    that is tied to nothing and so goes on running steps against a window
+    that has been destroyed. Production has always passed a real
+    MainWindow here, so the stand-in was a test convenience rather than a
+    supported shape.
+
+    Disposed per the per-file recipe in CLAUDE.md, which also cancels any
+    step still scheduled when the test ends -- which is the whole point of
+    binding to the window, demonstrated rather than asserted.
+    """
+    built = QWidget()
+    yield built
+    built.setParent(None)
+    built.deleteLater()
+    QCoreApplication.sendPostedEvents(built, QEvent.Type.DeferredDelete)
 
 
 def test_it_does_nothing_unless_the_variable_is_set(monkeypatch):
@@ -41,12 +69,12 @@ def test_a_script_that_is_not_a_list_is_refused(monkeypatch, tmp_path):
     assert debug_drive.start_if_requested(object()) is None
 
 
-def test_an_unknown_step_does_not_stop_the_script(qapp, caplog):
+def test_an_unknown_step_does_not_stop_the_script(window, caplog):
     """A typo in one step must not strand the remaining ones -- a script
     that silently stops half way looks exactly like the app hanging, which
     is the failure mode this whole tool exists to avoid.
     """
-    driver = debug_drive._Driver(object(), [{"do": "nonsense"}, {"do": "wait"}])
+    driver = debug_drive._Driver(window, [{"do": "nonsense"}, {"do": "wait"}])
     driver._run_next()
     assert driver._index == 1
     assert "unknown step" in caplog.text
@@ -54,10 +82,10 @@ def test_an_unknown_step_does_not_stop_the_script(qapp, caplog):
     assert driver._index == 2
 
 
-def test_a_step_that_raises_does_not_stop_the_script(qapp, caplog):
+def test_a_step_that_raises_does_not_stop_the_script(window, caplog):
     """`import` against a window with no project raises inside the step;
     the driver must log it and carry on to the next one."""
-    driver = debug_drive._Driver(object(), [{"do": "expand", "section": "admet"}, {"do": "wait"}])
+    driver = debug_drive._Driver(window, [{"do": "expand", "section": "admet"}, {"do": "wait"}])
     driver._run_next()
     assert driver._index == 1
     assert "failed" in caplog.text

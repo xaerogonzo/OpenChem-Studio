@@ -1671,7 +1671,16 @@ class PropertyPanel(QWidget):
             # leak permanently, but PySide6 holds a plain callable
             # STRONGLY and this codebase has already paid for that once
             # -- see CLAUDE.md and tests/test_qt_object_disposal.py.
-            QTimer.singleShot(_INSTRUMENT_DELAY_MS, self._dump_metrics)
+            #
+            # `self` is the CONTEXT OBJECT for the same reason the two
+            # reveal shots pass one (see `_reveal_pending_result`), and
+            # this is the WIDEST window of the four: `_dump_panel_metrics`
+            # opens on `panel.width()`, a C++ call that raises once the
+            # panel is gone, and it waits 1500 ms rather than a turn.
+            # Being behind an env var makes it rarely reached, not safe --
+            # the one run where somebody is debugging a layout is exactly
+            # the run that closes panels while shots are in flight.
+            QTimer.singleShot(_INSTRUMENT_DELAY_MS, self, self._dump_metrics)
         return value
 
     def _dump_metrics(self) -> None:

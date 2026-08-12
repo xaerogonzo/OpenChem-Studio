@@ -593,6 +593,55 @@ def test_a_pending_reveal_is_cancelled_when_the_panel_is_destroyed(qapp, bus, mo
     assert fired == ["fired"], "a pending reveal outlived the panel that scheduled it"
 
 
+def test_a_pending_metrics_dump_is_cancelled_when_the_panel_is_destroyed(qapp, bus, monkeypatch):
+    """The instrumented path schedules the widest-open shot of the four.
+
+    `_dump_panel_metrics` opens on `panel.width()` -- a C++ call, so it
+    raises `RuntimeError: libshiboken: Internal C++ object ... already
+    deleted` once the panel is gone -- and it waits 1500 ms rather than
+    one event-loop turn.
+
+    **BEING BEHIND AN ENV VAR MADE IT LOOK UNTESTABLE, AND IT IS NOT.**
+    `_INSTRUMENT` and `_INSTRUMENT_DELAY_MS` are module constants read at
+    call time, so both can be moved for the length of a test; the delay
+    goes to 0 so this costs nothing. That is worth doing rather than
+    waving at, because rarely-reached is not the same as safe -- the one
+    run where somebody sets `OPENCHEM_INSTRUMENT_PANEL` to chase a layout
+    is exactly the run that opens and closes panels while shots are in
+    flight.
+
+    The alive arm is the control and doubles as the setup assertion: with
+    `_INSTRUMENT` left off nothing is scheduled at all, and it fails.
+    """
+    import openchem.ui.panels.property_panel as property_panel_module
+
+    monkeypatch.setattr(property_panel_module, "_INSTRUMENT", True)
+    monkeypatch.setattr(property_panel_module, "_INSTRUMENT_DELAY_MS", 0)
+
+    fired: list[str] = []
+
+    def _record(self) -> None:
+        fired.append("fired")
+
+    monkeypatch.setattr(PropertyPanel, "_dump_metrics", _record)
+
+    def build_a_report_row(*, dispose: bool) -> None:
+        built = PropertyPanel(bus, CalculatorRegistry(), _FakeService(), ChemistryEngine())
+        bus.publish(MoleculeSelected(molecule_uuid=MOLECULE))
+        bus.publish(ReportComputed(report=_report(3)))
+        if dispose:
+            built.setParent(None)
+            built.deleteLater()
+            QCoreApplication.sendPostedEvents(built, QEvent.Type.DeferredDelete)
+        QCoreApplication.processEvents()
+
+    build_a_report_row(dispose=False)
+    assert fired == ["fired"], "nothing was scheduled, so the arm below proves nothing"
+
+    build_a_report_row(dispose=True)
+    assert fired == ["fired"], "a pending metrics dump outlived the panel that scheduled it"
+
+
 def test_a_property_that_is_not_there_says_why(panel, bus):
     """Two different reasons, and they are not the same message: nothing
     selected is a different problem from selected-but-not-computed."""
