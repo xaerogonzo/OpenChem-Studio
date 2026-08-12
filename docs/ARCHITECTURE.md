@@ -981,6 +981,16 @@ document may cite a file or a test that does not exist.
      `CollapsibleSection` (property panel alerts, results, reports and
      hints; `fact_view`'s `_FactRow`, which had the identical latent
      bug).
+
+     **THAT "NO HEIGHT-FOR-WIDTH" HELD ONLY UNTIL THE NEXT STYLE
+     CHANGE**, and defending it in `setText` and `resizeEvent` was not
+     enough -- `QLabel::changeEvent` re-derives the flag for
+     `StyleChange` and `FontChange` too, so a style sheet set on any
+     ancestor re-armed it on every such label and put the whole
+     substitution back. It starved the Lipophilicity section to 145 px
+     against the 192 it asked for and overlapped its three calculator
+     buttons (15/15/14 px against a 26 px minimum). The class answers
+     `changeEvent` as well now; see its docstring for the measurement.
   2. `DontWrapRows` on the section's form, because `WrapLongRows` is
      height-for-width whatever its children are.
   3. `PropertyPanel._add_wide_row` -- a genuine spanning row, which is
