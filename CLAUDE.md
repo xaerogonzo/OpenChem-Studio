@@ -262,10 +262,18 @@ Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
 A clean run is **6-16 minutes**, ending at `4255 passed, 8 skipped,
-1 deselected` (measured 2026-08-12 on the MERGE COMMIT `9981029`,
+1 deselected` (master's MERGE COMMIT `e52fa29`, measured 2026-08-12,
 13m35. +58 for the declared-total contract -- the registry audit, the
 Crippen hydrogen modes, the descriptor-caption fix and the presentation
 guards -- over the 4197 below).
+
+The run was actually taken on `9981029`, the branch's merge of master
+INTO it, and the two are cited together because they are the same tree:
+`git diff 90f094e e52fa29` is empty and nothing landed on master in
+between, so the figure describes master rather than merely a branch that
+had caught up. Checking that is the cheap half of the rule below -- an
+identical tree makes the branch measurement valid, and a non-identical
+one means it was never master's number.
 
 **+58, AND THE BRANCH SPENT A DAY BELIEVING IT WAS +68.** It was
 measured against the 4176 entry, which was already two merges stale, and
