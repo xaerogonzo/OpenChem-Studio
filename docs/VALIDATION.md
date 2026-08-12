@@ -335,13 +335,38 @@ could be validated against a theorem.
 the rebuilt geometry is not trustworthy near a binding site, which is
 precisely where docking would use it.
 
-**TD-DFT / UV-Vis.** Scoped, measured, refused — and the retry disproved the
-first diagnosis. The note said benzene's strongly-allowed ¹E₁ᵤ band was
-missing because def2-SVP lacks diffuse functions; re-run with `nroots 15` it
-is there at 7.918 eV carrying f = 0.96 against an experimental ≈0.9. It was
-missing because eight roots were too few. Adding diffuse functions improves
-every position and **destroys the intensity** (0.96 → 0.083), which is the
-wrong trade for a spectrum whose question is which band is strongest.
+**TD-DFT / UV-Vis.** Scoped, measured, refused — twice over, and there is a
+benchmark for it now with pre-registered criteria and a control arm that
+reproduces this project's own earlier figures to four decimals.
+
+The first retry disproved the first diagnosis: benzene's strongly-allowed
+¹E₁ᵤ band was said to be missing because def2-SVP lacks diffuse functions,
+and re-run with `nroots 15` it is there at 7.918 eV. Eight roots were simply
+too few. Adding diffuse functions to **B3LYP** improves every position and
+destroys the intensity, which is the wrong trade for a spectrum whose
+question is which band is strongest.
+
+The second retry tried the functional that was supposed to fix it.
+**ωB97X-D does not rescue UV-Vis and moves benzene the wrong way** — it
+blue-shifts valence π→π\* further, to +0.73/+1.10 where B3LYP is
++0.59/+0.98. What it does fix is the intensity collapse, which turns out to
+be a *B3LYP* failure rather than a basis-set one: with the same diffuse
+basis ωB97X-D keeps *f* = 0.993 per component. The two error modes still
+cannot be minimised together, so the refusal stands on a measurement rather
+than a prediction.
+
+**One comparison here was wrong and is corrected.** This section read "f =
+0.96 against an experimental ≈0.9 — essentially correct". ¹E₁ᵤ is doubly
+degenerate and ORCA reports each component separately, while an experimental
+oscillator strength integrates one band; 0.96 is a *component* and 0.9 is the
+*band*, so the two were never comparable. Summed, the computation gives
+1.92–2.00 against a measured **0.90** (Bolovinos et al., *J. Mol.
+Spectrosc.* **103** (1984) 240–256) — **2.13–2.23× too strong**. The ≈0.9
+itself was right all along and simply had no citation; a web summary
+attributing 1.25 to the CASPT2 study turned out to be a figure that paper
+does not contain.
+
+→ [`benchmarks/uvvis/`](../benchmarks/uvvis/)
 
 **The quinine conformer hypothesis** — that a single MMFF conformer was
 responsible for the hybrid's refusal — was tested with Boltzmann averaging

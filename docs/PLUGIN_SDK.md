@@ -290,6 +290,35 @@ at once:
 Read `examples/plugins/hello_plugin/plugin.py` alongside this guide, or
 copy the whole folder into your plugins directory as a starting point.
 
+## Worked example: `examples/plugins/reaction_templates_plugin/`
+
+The counterpart to the one above: a plugin contributing **data** rather
+than UI. It registers three reaction-SMARTS templates through
+`context.reactions` and adds no panel, no menu entry and no descriptor —
+which is itself worth seeing, because nothing about contributing to the
+app requires a widget.
+
+Three things it demonstrates, and the third is easy to get wrong:
+
+- **Register a LIST, once.** Thirty rules should be one call and one
+  rollback, not thirty of each.
+- **The templates join the same pool the bundled provider draws from**, so
+  the shipped reaction plugin applies them without either side knowing
+  about the other.
+- **`deactivate` is empty on purpose.** The registrar recorded a rollback
+  when `register` was called and the loader runs it; unregistering by hand
+  as well would be a second, divergent copy of that logic.
+
+**Its templates deliberately do not duplicate the bundled ones.** The
+obvious three were Fischer esterification, amide formation and an
+oxidation — and `reaction_templates.json` already ships the first two. A
+plugin re-registering chemistry the app already has demonstrates nothing
+worth copying, and `RDKitTemplateProvider` de-duplicates products in
+file-then-registered order, so the bundled rule reaches the answer first
+and the example's own contribution never appears in the output. It ships
+alcohol oxidation, nitro reduction and a Williamson ether synthesis
+instead.
+
 ## Known limitations
 
 - No async/background loading state (`Loading…`/`Loaded`/`Failed`) — every

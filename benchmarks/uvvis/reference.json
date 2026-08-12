@@ -21,7 +21,7 @@
     "require_degenerate": "Defaults true when degeneracy > 1, and pyridine is why it can be turned off. Benzene's 1E1u MUST be degenerate -- D6h requires it -- so a computation that splits it is saying something is wrong, and enforcing that is a real check. Pyridine's analogue MUST NOT be: the nitrogen lowers the symmetry to C2v and lifts the degeneracy, measured at 0.244 / 0.122 / 0.082 eV across three arms. It is still ONE observed band and is summed like a degenerate pair, but refusing it for not being degenerate would be refusing correct chemistry. The reported energy is INTENSITY-WEIGHTED so a split band reports where its absorption maximum is; for a truly degenerate pair that is identical to the plain mean, so benzene pays nothing for it.",
     "degeneracy": "How many roots form the band. A degenerate set must actually be degenerate in the computation (energies within DEGENERACY_TOLERANCE_EV) or the result is UNSCORABLE rather than averaged, and its oscillator strength is SUMMED across the components.",
 
-    "why_f_is_summed": "An experimental oscillator strength is obtained by integrating ONE absorption band, and two degenerate components lie at the same energy and cannot be separated in that integral -- so the experimental figure is the band total and the computed quantity to compare with it is the sum. Getting this wrong costs exactly a factor of the degeneracy, which is precisely why it hides: ROADMAP.md compared ONE of benzene's two 1E1u components (0.9607) against the band's experimental 0.9 and concluded the intensity was 'essentially correct', when summing gives 1.9212 and TD-DFT is ~2.1x too strong. score.py prints components AND their sum so the two conventions can never be silently mixed again."
+    "why_f_is_summed": "An experimental oscillator strength is obtained by integrating ONE absorption band, and two degenerate components lie at the same energy and cannot be separated in that integral -- so the experimental figure is the band total and the computed quantity to compare with it is the sum. Getting this wrong costs exactly a factor of the degeneracy, which is precisely why it hides: ROADMAP.md compared ONE of benzene's two 1E1u components (0.9607) against the band's experimental figure and concluded the intensity was 'essentially correct', when summing gives 1.9212. NOTE the SIZE of the resulting error is not settled here and this note deliberately no longer states one -- that depends on the reference value, which is 'unsourced'. score.py prints components AND their sum so the two conventions can never be silently mixed again."
   },
 
   "molecules": {
@@ -69,7 +69,7 @@
           "label": "1B2u",
           "energy_ev": 4.90,
           "verified": true,
-          "f": {"kind": "forbidden", "value": 0.0},
+          "f": {"kind": "forbidden", "value": 0.0, "measured": 0.0013, "measured_source": "Bolovinos, Tsekeris, Philis, Pantos and Andritsopoulos, J. Mol. Spectrosc. 103 (1984) 240-256, doi:10.1016/0022-2852(84)90051-1 Table I (f^a = 0.13 x 10^-2)"},
           "identify": {"kind": "orbital_rank", "donor": [0, -1], "acceptor": [0, 1], "rank": 1, "degeneracy": 1},
           "strongest": false,
           "note": "Forbidden in D6h, observed vibronically (~253 nm). ROADMAP: def2-SVP 5.49, def2-SVPD 5.40."
@@ -78,7 +78,7 @@
           "label": "1B1u",
           "energy_ev": 6.20,
           "verified": true,
-          "f": {"kind": "forbidden", "value": 0.0},
+          "f": {"kind": "forbidden", "value": 0.0, "measured": 0.090, "measured_source": "Bolovinos, Tsekeris, Philis, Pantos and Andritsopoulos, J. Mol. Spectrosc. 103 (1984) 240-256, doi:10.1016/0022-2852(84)90051-1 Table I (f^a = 9.0 x 10^-2)", "why_still_forbidden": "MEASURED AT 0.090, WHICH IS NOT ZERO -- and the computation is still right to return 0. 1B1u <- 1A1g is electric-dipole forbidden in D6h and borrows its intensity vibronically, which a VERTICAL calculation at a fixed geometry cannot produce by construction. Scoring the computed 0.0000 against the measured 0.090 would fail the computation for a limitation of the vertical approximation rather than for being wrong, so the criterion stays 'must come back dark' and the measurement is recorded beside it."},
           "identify": {"kind": "orbital_rank", "donor": [0, -1], "acceptor": [0, 1], "rank": 2, "degeneracy": 1},
           "strongest": false,
           "note": "Also forbidden in D6h (~200 nm). ROADMAP: def2-SVP 6.47, def2-SVPD 6.31."
@@ -87,15 +87,10 @@
           "label": "1E1u",
           "energy_ev": 6.94,
           "verified": true,
-          "f": {
-            "kind": "unsourced",
-            "candidates": {"0.9": "what ROADMAP.md carried; no citation survives in this repository", "1.25": "the value quoted as experimental alongside this exact energy set (4.90 / 6.20 / 6.94 / 7.80) in the CASPT2 benzene literature, where a computed 1.05 is compared against it"},
-            "why_it_matters": "The computed band total is ~1.92-2.00 across the arms, so 0.9 gives 2.1x (FAIL at the 2x criterion) and 1.25 gives 1.54x (PASS). The verdict for this one band turns entirely on which is right, which is why it is not scored on either.",
-            "what_would_close_it": "A primary source giving the integrated intensity of benzene's 1E1u band, gas phase. Note the CONVENTION question is already settled and is not what is open: a computed oscillator strength for the degenerate E1u STATE is compared against experiment as a single number in that literature, which confirms both sides are band totals and that summing ORCA's two components is right."
-          },
+          "f": {"kind": "measured", "value": 0.90, "source": "Bolovinos, Tsekeris, Philis, Pantos and Andritsopoulos, J. Mol. Spectrosc. 103 (1984) 240-256, doi:10.1016/0022-2852(84)90051-1 Table I -- an ABSOLUTE measurement, f^a = 0.90 at eps_max 6.96 eV"},
           "identify": {"kind": "orbital_rank", "donor": [0, -1], "acceptor": [0, 1], "rank": 3, "degeneracy": 2},
           "strongest": true,
-          "note": "THE BAND THIS WHOLE BENCHMARK EXISTS FOR -- the allowed, intense pi->pi* near 180 nm, doubly degenerate. ROADMAP: def2-SVP puts it at 7.918 eV with f = 0.9607 (intensity right, position 0.98 eV high); def2-SVPD at 7.430 eV with f = 0.0832 (position better, intensity an order of magnitude too weak). Degeneracy 2, so the computed f is SUMMED across the pair before comparison."
+          "note": "SOURCED 2026-08-12 AND THE ANSWER WAS THE ORIGINAL ONE. This carried kind:unsourced with candidates 0.9 and 1.25 because a web summary attributed 1.25 to the CASPT2 benzene study. Reading that paper, '1.25' DOES NOT APPEAR IN IT -- it says the experimental values are 'scattered in the range 0.6-1.05' with its own graphical integration giving 0.80, and that 0.80 includes the A2u Rydberg band. Bolovinos Table I then gives the direct absolute measurement, f = 0.90, which is what ROADMAP.md carried all along without a citation. Refusing to write 1.25 in on a search summary was the right call. THE BAND THIS WHOLE BENCHMARK EXISTS FOR -- the allowed, intense pi->pi* near 180 nm, doubly degenerate. ROADMAP: def2-SVP puts it at 7.918 eV with f = 0.9607 (intensity right, position 0.98 eV high); def2-SVPD at 7.430 eV with f = 0.0832 (position better, intensity an order of magnitude too weak). Degeneracy 2, so the computed f is SUMMED across the pair before comparison."
         }
       ],
       "strongest_band_declared": true,
@@ -105,30 +100,48 @@
     "pyridine": {
       "smiles": "c1ccncc1",
       "point_group": "C2v",
-      "_provisional": "PYRIDINE'S REFERENCE VALUES ARE NOT YET CHECKED AGAINST A PRIMARY SOURCE and are marked verified:false. They were entered from standard textbook assignments, which is precisely the 'typed from memory' failure this project has recorded twice. score.py reports pyridine but EXCLUDES it from the overall verdict until the values are confirmed. Its oscillator strengths are marked absent rather than guessed. Searched for a source 2026-08-12: the 4.59 eV n->pi* is corroborated as experimental by an independent report, but the intense band's energy and every oscillator strength remain unsourced, and no primary document could be read. What a source must supply: the 1B1 origin, the intense band's lambda_max, and its integrated intensity.",
+      "_sourced": "SOURCED 2026-08-12 from Bolovinos et al., J. Mol. Spectrosc. 103 (1984) 240-256, doi:10.1016/0022-2852(84)90051-1, and no longer provisional. Table I gives the pi->pi* eps_max energies and oscillator strengths; Table III gives the n->pi*. Energies below are eps_max (the band MAXIMUM) rather than the 0-0 origin, because a vertical excitation energy is what the computation reports. The paper also settles a decision this file had already taken on symmetry grounds: pyridine's E1u-derived bands 'do not show any splitting due to the lifting of the 1E1u degeneracy', i.e. experiment sees ONE band where the computation resolves two -- which is exactly why they are summed under require_degenerate:false.",
       "transitions": [
         {
           "label": "n->pi* (1B1)",
           "energy_ev": 4.59,
-          "verified": false,
-          "f": {"kind": "absent"},
+          "verified": true,
+          "f": {"kind": "measured", "value": 0.003, "source": "Bolovinos et al., J. Mol. Spectrosc. 103 (1984) 240-256, doi:10.1016/0022-2852(84)90051-1 Table III, f x 10^-3 = 3, at eps_max 4.59 eV (their 0-0 origin is 4.310 eV)"},
           "identify": {"kind": "orbital", "donor": [0], "acceptor": [0], "degeneracy": 1},
           "strongest": false,
-          "note": "The nitrogen lone pair into the ring pi* -- the transition benzene does not have, and the reason pyridine is the fourth molecule. Around 270 nm, weak."
+          "note": "11a1(n) -> 3b1(pi*), x-polarised and therefore ALLOWED though weak -- which is why the computation gives it a small non-zero f rather than zero. Table III lists the neighbouring 1A1 -> 1A2 as forbidden, and that is the dark second root the computation produces; the ordering assumed here is the paper's."
         },
         {
-          "label": "pi->pi* (strong, 1E1u-like pair)",
-          "energy_ev": 7.0,
-          "verified": false,
-          "f": {"kind": "absent"},
+          "label": "pi->pi* (1B2u-like)",
+          "energy_ev": 4.99,
+          "verified": true,
+          "f": {"kind": "measured", "value": 0.029, "source": "Bolovinos et al., J. Mol. Spectrosc. 103 (1984) 240-256, doi:10.1016/0022-2852(84)90051-1 Table I, f^a = 2.9 x 10^-2 at eps_max 4.99 eV"},
+          "identify": {"kind": "orbital_rank", "donor": [0, -1, -2], "acceptor": [0, 1], "rank": 3, "degeneracy": 1},
+          "strongest": false,
+          "note": "Benzene's 1B2u with the nitrogen making it weakly allowed rather than forbidden -- f = 0.029 against benzene's 0.0013."
+        },
+        {
+          "label": "pi->pi* (1B1u-like)",
+          "energy_ev": 6.38,
+          "verified": true,
+          "f": {"kind": "measured", "value": 0.085, "source": "Bolovinos et al., J. Mol. Spectrosc. 103 (1984) 240-256, doi:10.1016/0022-2852(84)90051-1 Table I, f^a = 8.5 x 10^-2 at eps_max 6.38 eV"},
+          "identify": {"kind": "orbital_rank", "donor": [0, -1, -2], "acceptor": [0, 1], "rank": 4, "degeneracy": 1},
+          "strongest": false,
+          "note": "Benzene's 1B1u analogue. Note this is the one band in the whole benchmark the computation gets too WEAK rather than too strong -- measured 0.085 against a computed 0.022-0.031."
+        },
+        {
+          "label": "pi->pi* (1E1u-like pair)",
+          "energy_ev": 7.22,
+          "verified": true,
+          "f": {"kind": "measured", "value": 0.90, "source": "Bolovinos et al., J. Mol. Spectrosc. 103 (1984) 240-256, doi:10.1016/0022-2852(84)90051-1 Table I, f^a = 0.90 at eps_max 7.22 eV"},
           "identify": {"kind": "orbital_rank", "donor": [0, -1, -2], "acceptor": [0, 1], "rank": 5, "degeneracy": 2, "require_degenerate": false},
           "strongest": true,
-          "note": "The intense pi->pi* band -- benzene's 1E1u with the degeneracy LIFTED by the nitrogen, so it is two roots rather than one. rank 5 spanning 2, with require_degenerate false: measured splittings are 0.244 / 0.122 / 0.082 eV across the three arms, all beyond DEGENERACY_TOLERANCE_EV, and refusing them as non-degenerate would be refusing correct chemistry. Summed anyway, because the components overlap in a real spectrum and an experimental oscillator strength integrates both.",
-          "_correction": "THIS DECLARED rank 3 AND SCORED THE WRONG BAND. rank 3 is the B2u-like pi->pi* at 5.66 eV carrying f = 0.025, not the intense band at all -- the guard reported the strongest-band identity as FAIL, which is how it was caught rather than believed. The rank structure was then measured across all three arms and is stable: 1 = n->pi*, 2 = the forbidden 1A2, 3 and 4 = the B2u/B1u-like pair, 5 and 6 = the E1u-derived pair. Note WHICH of ranks 5 and 6 is brighter VARIES by arm, so declaring a single rank would have been fitting to one output."
+          "note": "The intense band, benzene's 1E1u with the degeneracy lifted by the nitrogen. THE ENERGY WAS GUESSED AT ~7.0 BEFORE IT WAS SOURCED and is 7.22, which matters: it moved pyridine's error from +1.04..+1.27 to +0.82..+1.05, i.e. onto benzene's +0.84..+1.10 rather than beside it. Summed across the two computed components because the paper reports the splitting as unresolved.",
+          "_correction": "THIS DECLARED rank 3 AND SCORED THE WRONG BAND. rank 3 is the B2u-like band at 4.99 eV, now scored in its own right above. The strongest-band check reported FAIL rather than scoring it quietly, which is what identifying by declared orbital character exists for. Ranks measured stable across all three arms; WHICH of ranks 5 and 6 is brighter varies by arm, so a single rank would have been fitting to one output."
         }
       ],
       "strongest_band_declared": true,
-      "strongest_note": "Declared, but PROVISIONAL along with the rest of this entry."
+      "strongest_note": "Declared from the measurement: Table I makes the E1u-like band the strongest by an order of magnitude (f = 0.90 against 0.085 and 0.029)."
     }
   }
 }

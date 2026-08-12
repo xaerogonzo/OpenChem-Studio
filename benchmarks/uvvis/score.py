@@ -403,9 +403,23 @@ def main(argv: list[str]) -> int:
 
         verdict[arm] = {k: (None if k in unavailable else v) for k, v in passes.items()}
 
-    print(f"\n{'=' * 100}\nVERDICT -- verified transitions only; rows marked * are PROVISIONAL")
-    print("and excluded, because their reference values are not yet checked against a source.")
-    print(f"{'=' * 100}")
+    # The provisional note is printed only when there IS something
+    # provisional. It outlived its subject once already -- the header went
+    # on announcing excluded rows after pyridine was sourced and there were
+    # none left -- which is the same shape as everything else this
+    # benchmark exists to catch.
+    provisional = any(
+        not tr["verified"] for e in molecules.values() for tr in e["transitions"]
+    )
+    print()
+    print("=" * 100)
+    if provisional:
+        print("VERDICT -- verified transitions only; rows marked * are PROVISIONAL")
+        print("and excluded, because their reference values are not yet checked "
+              "against a source.")
+    else:
+        print("VERDICT -- every reference value below is sourced.")
+    print("=" * 100)
     print(f"{'arm':<16}{'position':>12}{'identity':>12}{'intensity':>12}{'SHIPPABLE':>12}")
     for arm, passes in verdict.items():
         # An unavailable criterion cannot make an arm shippable. `all()`

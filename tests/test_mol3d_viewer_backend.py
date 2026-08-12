@@ -47,9 +47,40 @@ def _current_visualization(qapp, backend: Mol3DViewerBackend) -> object:
     return _run_js(qapp, backend, _CURRENT_VISUALIZATION_JS)
 
 
+#: Waiting for a `QWebEngineView` to signal ready is a wait on an external
+#: resource, and the constant only decides how long a genuine failure takes
+#: to report -- the predicate returns the moment it is true, so a generous
+#: value costs a passing run nothing.
+#:
+#: MEASURED: 0.43 s for the first backend in the process and 0.19 s for
+#: each one after, so the previous 15 s was already ~35x headroom. It was
+#: still exceeded once on a CI runner, in
+#: `test_apply_visualization_sets_atom_colors`, which then passed on a
+#: re-run of the SAME commit. A >35x excursion is not steady slowness and
+#: the cause was not established -- runner contention is the likely one,
+#: and this file's history records the same test failing for an unrelated
+#: reason before, so it is not assumed to be the same thing.
+PAGE_READY_TIMEOUT_SECONDS = 60
+
+
 def _ready_backend(qapp) -> Mol3DViewerBackend:
     backend = Mol3DViewerBackend()
-    assert _wait_until(qapp, lambda: backend._page_ready)
+    started = time.time()
+    ready = _wait_until(
+        qapp, lambda: backend._page_ready, timeout_seconds=PAGE_READY_TIMEOUT_SECONDS
+    )
+    # NAMED, because the bare `assert _wait_until(...)` it replaces reported
+    # only `assert False = _wait_until(<QApplication ...>, <function
+    # _ready_backend.<locals>.<lambda>>)`. Which of this file's several
+    # waits had failed had to be inferred from `<locals>` in a repr, and
+    # nothing said how long it actually took -- which is the one number
+    # that distinguishes "slow" from "never".
+    assert ready, (
+        f"the 3D viewer page did not signal ready within "
+        f"{PAGE_READY_TIMEOUT_SECONDS}s (waited {time.time() - started:.1f}s). "
+        "Locally this takes 0.2-0.4s, so this is an environment stall rather "
+        "than the viewer being wrong -- see PAGE_READY_TIMEOUT_SECONDS."
+    )
     backend.load_conformer(_ethanol_molblock())
     return backend
 
