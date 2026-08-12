@@ -261,22 +261,70 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-15 minutes**, ending at `4244 passed, 8 skipped,
-1 deselected` (measured 2026-08-11 on branch `declared-totals`, 14m21.
-+68 for the declared-total contract -- the registry audit, the Crippen
-hydrogen modes, the descriptor-caption fix and the presentation guards --
-over the 4176 below).
+A clean run is **6-16 minutes**, ending at `4197 passed, 8 skipped,
+1 deselected` (measured 2026-08-12 on the MERGE COMMIT `887549a`,
+16m22. +9 for the single-shot timer work -- two guards for the panel
+reveal, two for the crystal draw, one each for the worker-thread
+progress reporter, the ketcher settle token, the instrumented metrics
+dump and the destroyed window, plus the package-wide invariant -- and
++1 from #15, which landed on master while that branch was in flight,
+over the 4187 below).
 
-**14m21 is the longest run this file has recorded**, and it is 68 tests
-larger rather than slower per test: the new files add no webview, and the
-two of them together run in about 37 s. The band's upper end is set by
-`test_electron_overlay_*`, as the entry below explains -- do not read a
-14-minute run as a hang.
+**MEASURED ON THE MERGE COMMIT, AND THAT IS NOT WHAT THE BRANCH SAID.**
+The branch itself ended at 4196 in 13m06, with five earlier runs at
+11m02, 11m24, 12m06, 12m36 and 12m46 as it grew. master had moved under
+it: #15 added `ui/widgets/collapsible_section.py` and a property-panel
+test while the branch was open, touching the same area the branch did.
+The merge reported CLEAN, which is a statement about TEXT and not about
+behaviour, and the branch figure could not have told you either way.
+Both are green -- but "I measured the branch" is not an answer to "what
+does master do", and this is the rule at the top of this section being
+paid for rather than quoted.
 
-Before it: 4176 on branch `full-lewis-structure`, 11m25, with an earlier
-run of the same branch at 12m15. +161 for the full Lewis structure -- the
-resonance gate, the model, the SVG renderer, the RDKit builder and the
-dialog -- over the 4015 below.
+**THE BAND WENT 6-14 TO 6-16 ON A SINGLE RUN, AND THAT RUN IS
+UNEXPLAINED.** 6-14 was written about an hour earlier, off six runs of
+the same branch, and the very next measurement landed two minutes
+outside it. One added test cannot cost three minutes and nothing else
+changed. It is widened anyway, because a reader whose run takes 15
+minutes should not conclude the suite has hung -- but it is recorded as
+the outlier it is, not as a new normal. The ten-run spread further down
+(361 to 568 seconds on essentially one tree) is the reason not to fit a
+band to one number in either direction, and that cuts both ways: do not
+narrow it back on one fast run either.
+
+**THE 4176 ENTRY BELOW WAS ALREADY STALE BY 11 WHEN THAT BRANCH STARTED,
+and nothing in this list accounts for them.** master at `9159d1d`, this
+branch's base, **collects 4196**, i.e. 4187 passed against the same 8
+skips and 1 deselection. Two merges landed after the Lewis entry --
+`ci-webgl-skip` (#12) and `right-dock-width` (#13) -- and neither
+refreshed the figure, which is precisely the drift the warning further
+down describes, caught happening rather than described in the abstract.
+
+**That 4187 is DERIVED, not measured**, and is written that way on
+purpose: it comes from `pytest --collect-only -q` on the base commit
+minus the skips and the deselection, not from a run, because no full
+measurement has been taken on master since the Lewis entry. Treat it as
+the arithmetic it is. **A collected count is the sharper instrument for
+"did my change add the tests I think it did"** -- it is deterministic,
+takes four seconds rather than twelve minutes, and is not perturbed by a
+skip whose condition moved. The merge figure above reconciles with it
+exactly: 4206 collected, 4197 + 8 + 1.
+
+**THAT ENTRY MOVED THREE TIMES IN ONE DAY -- 4195, 4196, 4197** -- once
+from the next commit on the same branch, once from a merge that landed
+on master while the branch was open. Left as a note rather than quietly
+corrected each time, because it is the strongest argument in this
+section for the instrument rather than the number: this is not slow
+drift over months, and a figure re-derived in four seconds by
+`--collect-only` cannot go stale under you the way one that costs
+sixteen minutes does. Take the collected count for "did my change add
+what I think it did", and re-measure the passed count only when you
+need the wall clock too.
+
+Before it: 4176 on branch `full-lewis-structure` (measured 2026-08-11,
+11m25, with an earlier run of the same branch at 12m15. +161 for the full
+Lewis structure -- the resonance gate, the model, the SVG renderer, the
+RDKit builder and the dialog -- over the 4015 below).
 
 Before it: 4015 on branch `lone-pairs-on-the-canvas`, 11m43 and 12m47 on
 two consecutive runs. +79 for drawing lone pairs on the canvas, over the
@@ -1826,6 +1874,48 @@ by a wide margin. Measured on a bare Qt reproduction at 900x950:
 third of the Properties panel was one line of transient status. The rule
 is not "always use WrappedLabel" -- it is "use it where a label's true
 height must survive a squeeze", and a status line is not that.
+
+### A STYLE CHANGE RE-ARMS THE HEIGHT-FOR-WIDTH FLAG, and starved a section
+
+Reported as the Lipophilicity section's three calculator buttons
+rendering on top of one another. It is the truncation mechanism
+`ExplicitHeightLabel` already documents, coming back through a door
+that class did not cover -- so read its docstring first, then this.
+
+`QLabel::changeEvent` answers **`StyleChange` and `FontChange`** by
+calling the same `QLabelPrivate::updateLabel()` that `setText` does, and
+that re-derives the size policy's height-for-width flag from the
+word-wrap flag. `ExplicitHeightLabel` overrode `setText` and
+`resizeEvent` and **not `changeEvent`**, so setting a style sheet on ANY
+ancestor silently re-armed the flag on every wrapped label beneath it,
+long after the last `setText`, with nothing on the label itself having
+changed. Measured by logging each transition of the flag:
+
+    '13 atoms, -0.4195 to 0.5437'   re-set hfw on event 100
+                                              (QEvent::StyleChange)
+
+From there the whole chain is height-for-width carrying again and
+`QBoxLayout.setGeometry` substitutes the section's `heightForWidth` for
+its minimum. Measured in the running app, aspirin, panel at 280 px:
+
+    arm       section h   its minimum   its 3 buttons (min 26)
+    before          145           192   15 / 15 / 14
+    after           192           192   26 / 26 / 26
+
+**It was never confined to one section** -- the same run re-armed the
+flag on the alert rows, the pKa and NMR hints and the substance
+classification. Lipophilicity is simply where a squeeze was visible.
+
+**THE SYMPTOM CANNOT BE REPRODUCED OUT OF THE APP, and two tests that
+tried both passed with the bug deliberately restored.** In a harness the
+section's `heightForWidth` and its minimum come out EQUAL (418 and 418),
+so the substitution has nothing to take away -- widening the panel,
+shortening it, and registering the calculator buttons all failed to
+starve anything. **The fifth time an out-of-app Qt harness has
+disagreed with the running application about this panel.** The guard
+that ships asserts the MECHANISM (the flag stays clear across a style
+change, with a plain `QLabel` as the control proving the style change
+was delivered at all); the symptom was verified by driving the app.
 
 ### 20 of 25 `AlertResult`s were never alerts
 

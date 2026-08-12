@@ -1736,7 +1736,16 @@ class PropertyPanel(QWidget):
             # leak permanently, but PySide6 holds a plain callable
             # STRONGLY and this codebase has already paid for that once
             # -- see CLAUDE.md and tests/test_qt_object_disposal.py.
-            QTimer.singleShot(_INSTRUMENT_DELAY_MS, self._dump_metrics)
+            #
+            # `self` is the CONTEXT OBJECT for the same reason the two
+            # reveal shots pass one (see `_reveal_pending_result`), and
+            # this is the WIDEST window of the four: `_dump_panel_metrics`
+            # opens on `panel.width()`, a C++ call that raises once the
+            # panel is gone, and it waits 1500 ms rather than a turn.
+            # Being behind an env var makes it rarely reached, not safe --
+            # the one run where somebody is debugging a layout is exactly
+            # the run that closes panels while shots are in flight.
+            QTimer.singleShot(_INSTRUMENT_DELAY_MS, self, self._dump_metrics)
         return value
 
     def _dump_metrics(self) -> None:
@@ -2082,7 +2091,9 @@ class PropertyPanel(QWidget):
         # `ensureWidgetVisible` scrolls to where the row used to be. A
         # BOUND METHOD, never a lambda capturing self -- PySide6 holds a
         # plain callable strongly (see tests/test_qt_object_disposal.py).
-        QTimer.singleShot(0, self._reveal_pending_result)
+        # `self` is the CONTEXT OBJECT, and it is what ties the pending
+        # shot to this panel's lifetime -- see `_reveal_pending_result`.
+        QTimer.singleShot(0, self, self._reveal_pending_result)
 
     def reveal_descriptor(self, descriptor_id: str) -> bool:
         """Scroll a computed property's row into view, and say so if it
@@ -2123,9 +2134,10 @@ class PropertyPanel(QWidget):
             section.set_expanded(True)
         # Same one-turn deferral `_reveal` uses: the section was expanded a
         # moment ago and the row's geometry is not settled, so asking now
-        # scrolls to where it used to be.
+        # scrolls to where it used to be. `self` is the context object for
+        # the same reason it is there -- see `_reveal_pending_result`.
         self._reveal_target = label
-        QTimer.singleShot(0, self._reveal_pending_result)
+        QTimer.singleShot(0, self, self._reveal_pending_result)
         return True
 
     def _reveal_pending_result(self) -> None:
@@ -2148,6 +2160,28 @@ class PropertyPanel(QWidget):
         the same invisibility this whole fix is about. Anchoring the row's
         TOP does not depend on its final height at all, so it is right
         whenever it runs.
+
+        **BOTH CALLERS PASS `self` AS THE CONTEXT OBJECT, and the `row is
+        None` guard below cannot substitute for it.** A bare
+        `QTimer.singleShot(0, callable)` is tied to nothing, so a pending
+        shot outlives the panel: the panel is disposed, this runs anyway,
+        and `self._scroll_area` is a live Python wrapper around a freed
+        QScrollArea. That raises `RuntimeError: libshiboken: Internal C++
+        object ... already deleted` -- inside whichever unrelated test
+        happens to be pumping events, which is what made it read as a
+        failure somewhere else entirely. Measured on PySide6 6.11.1, with
+        the panel disposed by the recipe the fixtures use:
+
+            plain     / panel alive        fired cleanly
+            context   / panel alive        fired cleanly
+            plain     / panel destroyed    FIRED, and raised
+            context   / panel destroyed    never fired
+
+        Qt disconnects a context-bound single shot when the context object
+        is destroyed, so the shot is CANCELLED rather than firing and then
+        declining. A `shiboken6.isValid` check here would be the latter:
+        it would silence this one line while leaving every future line
+        added to this method to be written against a dead widget.
         """
         row = self._reveal_target
         self._reveal_target = None

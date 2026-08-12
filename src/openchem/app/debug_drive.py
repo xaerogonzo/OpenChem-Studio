@@ -59,7 +59,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QObject, QTimer
 from PySide6.QtWidgets import QWidget
 
 logger = logging.getLogger("openchem.ui")
@@ -110,16 +110,42 @@ def _walk_actions(menu):
             yield from _walk_actions(child)
 
 
-class _Driver:
+class _Driver(QObject):
     """Runs the steps one at a time, off a `QTimer`.
 
     Sequential rather than concurrent because the interesting steps are
     asynchronous -- a calculator dispatches to a thread pool -- and the
     thing being measured is what the window looks like AFTER one has
     landed.
+
+    **A QObject so it can carry signals if this harness ever grows them,
+    and DELIBERATELY WITHOUT A Qt PARENT.** Parenting it to the window
+    would be the reflexive next step and buys nothing here: the window is
+    already the context object for both shots, which is what ends the
+    script, and an unparented driver stays inspectable after the window
+    goes -- `main.py` hangs it off `window._debug_driver`, and a wrapper
+    whose C++ object had been destroyed as a child would raise on the way
+    past.
+
+    **THE CONTEXT OBJECT MUST STAY THE WINDOW, NOT `self`.** Becoming a
+    QObject makes `self` newly available and it is the obvious-looking
+    choice; it is also the one that fails in exactly this shape, because
+    a pending shot holds the bound method, which holds the driver, so the
+    driver cannot be collected while a step is queued. Measured, dropping
+    every Python reference and destroying the window:
+
+        parented,   bound to self     cancelled
+        parented,   bound to window   cancelled
+        UNPARENTED, bound to self     FIRED against a dead window
+        UNPARENTED, bound to window   cancelled
+
+    So the two are equivalent only under a parent this class does not
+    have. Binding to the window is correct either way, which is why it is
+    the one written down.
     """
 
     def __init__(self, window: QWidget, steps: list[dict[str, Any]]) -> None:
+        super().__init__()
         self._window = window
         self._steps = steps
         self._index = 0
@@ -131,7 +157,15 @@ class _Driver:
 
     def start(self) -> None:
         logger.warning("OPENCHEM_DRIVE: %d step(s) from %s", len(self._steps), _DRIVE_SCRIPT)
-        QTimer.singleShot(_DEFAULT_AFTER_MS, self._run_next)
+        # THE WINDOW IS THE CONTEXT OBJECT, NOT THE DRIVER, and it is the
+        # right one for a reason beyond `_Driver` being a plain class Qt
+        # would refuse: every step acts on that window, so a window that
+        # is gone means a script with nothing left to drive. Qt cancels a
+        # context-bound shot when the context dies, which ends the chain
+        # instead of running the remaining steps against a freed window.
+        # `self._window` is safe to reach for here -- `main.py` hangs the
+        # driver off the window, so the driver never outlives it.
+        QTimer.singleShot(_DEFAULT_AFTER_MS, self._window, self._run_next)
 
     def _run_next(self) -> None:
         if self._index >= len(self._steps):
@@ -152,7 +186,8 @@ class _Driver:
         after = int(step.get("after_ms", _DEFAULT_AFTER_MS))
         # A BOUND METHOD, never a lambda capturing self: PySide6 holds a
         # plain callable strongly (see tests/test_qt_object_disposal.py).
-        QTimer.singleShot(after, self._run_next)
+        # Context-bound to the window for the reason given in `start`.
+        QTimer.singleShot(after, self._window, self._run_next)
 
     # -- steps ---------------------------------------------------------
 
@@ -464,6 +499,13 @@ class _Driver:
 
         property_panel._dump_panel_metrics(self._window._property_panel)
         property_panel._dump_height_budget(self._window._property_panel)
+        # The container walk belongs here and was missing: a starved
+        # SECTION is handed its height by the container's layout, and
+        # `item.minimumSize()` beside `item.hasHeightForWidth()` is the
+        # only place the height-for-width substitution is visible rather
+        # than inferred. Without it this step can show that a section is
+        # starved but not what starved it.
+        property_panel._dump_container_items(self._window._property_panel)
         property_panel._dump_width_budget(self._window._property_panel)
 
     def _do_geometry(self, step: dict[str, Any]) -> None:

@@ -1647,7 +1647,7 @@ class MainWindow(QMainWindow):
         # the draw. A longer delay was tried and changed nothing, which
         # is what established that the container size was never the
         # problem -- see `drawCrystal` in viewer.html for what was.
-        QTimer.singleShot(0, lambda: self._viewer3d.show_crystal(scene))
+        QTimer.singleShot(0, self, self._show_crystal_scene)
         self._show_crystal_report(build_crystal_report(crystal), Path(path_str).name)
         self.statusBar().showMessage(
             "Click an atom in the unit cell to see its coordination environment.", 15000
@@ -1682,11 +1682,55 @@ class MainWindow(QMainWindow):
         self._crystal_scene = scene
         self._crystal_uuid = model.uuid
         self._center_tabs.setCurrentWidget(self._viewer3d)
-        QTimer.singleShot(0, lambda: self._viewer3d.show_crystal(scene))
+        # Same one-turn deferral as the import path above, and the same
+        # context-object binding -- see `_show_crystal_scene`.
+        QTimer.singleShot(0, self, self._show_crystal_scene)
         self.statusBar().showMessage(
             f"{model.display_name} - click an atom to see its coordination environment.",
             15000,
         )
+
+    def _show_crystal_scene(self) -> None:
+        """Draw the crystal held right now, one turn after it was set.
+
+        **`self` IS THE CONTEXT OBJECT AT BOTH CALL SITES, AND THE
+        PAYLOAD IS READ HERE RATHER THAN CAPTURED THERE.** Both were
+        `QTimer.singleShot(0, lambda: self._viewer3d.show_crystal(scene))`,
+        which is wrong twice over:
+
+        A bare single shot is tied to nothing, so a window destroyed
+        inside the deferral leaves the shot pending and it fires against
+        a freed `_viewer3d` -- `RuntimeError: libshiboken: Internal C++
+        object ... already deleted`, raised from inside Qt's dispatch in
+        whatever is running at the time. That is the defect this method
+        exists to remove, and it is the same one fixed in
+        `PropertyPanel._reveal_pending_result`. A context object cancels
+        the shot instead.
+
+        And a lambda capturing `self` is held STRONGLY by PySide6, which
+        this project has already paid for once (see CLAUDE.md and
+        `tests/test_qt_object_disposal.py`). A bound method is held
+        weakly.
+
+        Reading `self._crystal_scene` rather than a captured `scene` is
+        not merely equivalent. Two selections delivered in one turn would
+        otherwise draw the superseded scene first, and in that window the
+        viewer shows one scene while `_on_crystal_site_clicked` answers
+        clicks against `_crystal_scene`, which is the other -- the
+        index-space mismatch this project has been bitten by more than
+        once. `Mol3DViewerBackend` already applies the same discipline in
+        the other direction, cancelling a queued payload rather than
+        letting it be replayed after the thing that superseded it.
+
+        The None check cannot fire from either call site, both of which
+        assign `_crystal_scene` immediately before scheduling. It is here
+        because this is a named slot rather than an inline lambda, and
+        `show_crystal(None)` would raise from inside a signal handler.
+        `_on_crystal_site_clicked` guards the same attribute the same way.
+        """
+        if self._crystal_scene is None:
+            return
+        self._viewer3d.show_crystal(self._crystal_scene)
 
     def _on_crystal_site_clicked(self, scene_index: int) -> None:
         """Answer a click on the unit cell.
