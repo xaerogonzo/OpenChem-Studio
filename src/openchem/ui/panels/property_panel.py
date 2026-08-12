@@ -32,6 +32,7 @@ from openchem.domain.calculator import (
 from openchem.domain.common import CacheState
 from openchem.domain.project import ProjectModel
 from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
+from openchem.ui.visualization import declared_total, label_decimals
 from openchem.chem.report_adapter import report_from_alert
 from openchem.domain.report import ReportResult
 from openchem.domain.structure_issue import Severity
@@ -367,7 +368,34 @@ def _summarise(result: object) -> str:
     is indistinguishable from the panel having failed to render one. The
     row is captioned with the result's own name, so "None found." reads
     as "Stereocenters: None found."
+
+    **A DECLARED TOTAL LEADS, AND REPLACES THE RANGE** -- it is the number
+    the row was opened for. This read "21 atoms, -1.019 to 0.5437" for a
+    LogP contribution: true, and not what anybody wanted to know, with the
+    molecule's own LogP nowhere on the row. It now reads
+    "LogP (Crippen) 3.62 - 21 atoms".
+
+    **THE RANGE GOES BECAUSE THE ROW HAS NO SPACE FOR BOTH**, which was
+    measured rather than assumed. `OPENCHEM_INSTRUMENT_PANEL=1` in the
+    running app, Lipophilicity at a 280 px panel:
+
+        master                     row given 34 px, needs 47   STARVED
+        total + count + range      row given 34 px, needs 79   STARVED
+        total + count (shipped)    row given 34 px, needs 47
+
+    The section is starved on master ALREADY (145 px against a 192 px
+    minimum) -- that is not this change's bug and is not fixed here -- but
+    carrying both would have taken the shortfall from 13 px to 45 and made
+    an existing clip visibly worse. Measured at the real 205 px row width,
+    the shipped wording needs 26 px, exactly what the old one did.
+
+    Nothing is lost: the range lives in the Calculator Inspector's legend,
+    which is where per-atom detail belongs and which now renders it at this
+    same precision. A result that declares no total keeps the old wording,
+    range included.
     """
+    total = declared_total(result)
+    places = label_decimals(result)
     for attribute, noun in _PAYLOAD_FIELDS:
         payload = getattr(result, attribute, None)
         if payload is None:
@@ -378,10 +406,16 @@ def _summarise(result: object) -> str:
             numbers = [v for v in payload.values() if isinstance(v, (int, float))]
             if numbers:
                 units = getattr(result, "units", "")
+                units_suffix = f" {units}" if units else ""
+                span = (
+                    f"{min(numbers):.{places}f} to {max(numbers):.{places}f}{units_suffix}"
+                )
+                if total is None:
+                    return f"{_counted(len(payload), noun)}, {span}"
+                total_units = f" {total['units']}" if total["units"] else ""
                 return (
-                    f"{_counted(len(payload), noun)}, "
-                    f"{min(numbers):.4g} to {max(numbers):.4g}"
-                    f"{' ' + units if units else ''}"
+                    f"{total['label']} {total['value']:.{places}f}{total_units}"
+                    f" - {_counted(len(payload), noun)}"
                 )
         return _counted(len(payload), noun)
     return "Ready"
@@ -976,6 +1010,13 @@ class PropertyPanel(QWidget):
         # row instead of leaving it stuck in whatever section it first drew
         # in (see the category-bucketing bug this guards against).
         self._row_sections: dict[tuple[str, str], _CollapsibleSection] = {}
+        #: The caption currently ON each row. Held as plain data rather than
+        #: read back off the widget, for the reason the comment above gives
+        #: about QWidget keys -- and because a row's caption legitimately
+        #: changes when the RUNNING placeholder's raw id is replaced by the
+        #: real display name, which is a comparison this needs to make on
+        #: every event without touching Qt.
+        self._row_labels: dict[tuple[str, str], str] = {}
 
         self._sections_container = QWidget(self)
         self._sections_layout = QVBoxLayout(self._sections_container)
@@ -1320,6 +1361,7 @@ class PropertyPanel(QWidget):
             _make_copyable(value_label)
             section.content_layout().addRow(label, value_label)
             self._value_labels[row_key] = value_label
+            self._row_labels[row_key] = label
         elif self._row_sections.get(row_key) is not section:
             # A row's category can legitimately change between events (e.g.
             # a placeholder published before the real category was known) --
@@ -1333,7 +1375,30 @@ class PropertyPanel(QWidget):
                 if taken.labelItem is not None and taken.labelItem.widget() is not None:
                     taken.labelItem.widget().deleteLater()
             section.content_layout().addRow(label, value_label)
+            self._row_labels[row_key] = label
         self._row_sections[row_key] = section
+
+        # THE CAPTION IS REFRESHED, NOT WRITTEN ONCE, and that one word is
+        # the whole bug. Every descriptor arrives twice: `DescriptorService`
+        # publishes a RUNNING placeholder for each id BEFORE `compute()` runs
+        # and therefore before anything knows the real names, so it fills in
+        # `name=descriptor_id, units=""` (see `_publish`). The row was created
+        # from that placeholder and its caption never touched again -- so the
+        # display names and units in `_DESCRIPTOR_SPECS` were computed on
+        # every run and thrown away, and EVERY row was captioned with its
+        # internal id: measured, 26 of 26 from that table, plus the shape
+        # descriptors. `mol_logp` for "LogP", `mol_wt` for "Molecular Weight
+        # (g/mol)", `tpsa` for "TPSA (A^2)".
+        #
+        # It cannot be fixed at the producer: the placeholder is published
+        # before the names exist, and this is the only place that sees both.
+        if self._row_labels.get(row_key) != label:
+            form = section.content_layout()
+            row, _role = form.getWidgetPosition(value_label)
+            item = form.itemAt(row, QFormLayout.ItemRole.LabelRole) if row >= 0 else None
+            if item is not None and item.widget() is not None:
+                item.widget().setText(label)
+                self._row_labels[row_key] = label
 
         if descriptor.cache_state.value == "failed":
             value_label.setText(descriptor.error or "Failed")

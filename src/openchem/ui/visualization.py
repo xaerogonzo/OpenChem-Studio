@@ -5,7 +5,14 @@ from typing import Callable
 
 from openchem.chem.scalar_field import ScalarField, display_range, to_dx
 from openchem.domain.common import CATEGORICAL_SCALE as _CATEGORICAL_SCALE
-from openchem.domain.common import ScientificResult
+from openchem.domain.common import (
+    ATOM_BASES,
+    ATOM_BASIS,
+    HEAVY_ATOMS,
+    TOTAL,
+    ScientificResult,
+    valid_total_declaration,
+)
 from openchem.domain.scientific_result import NMRSpectrumResult, PerAtomDataset
 
 # Diverging: negative -> red, zero -> near-white, positive -> blue. Matches
@@ -271,6 +278,60 @@ def summary_note(result) -> str:
     return str(_provenance_parameter(result, "summary", "") or "")
 
 
+def declared_total(result) -> dict | None:
+    """The producer's declared molecular total, or None.
+
+    None covers three cases that are all the same to a view -- no
+    declaration, an explicit refusal, and a MALFORMED declaration. The last
+    one is deliberate and is the fail-closed half: a producer that writes a
+    broken declaration gets no headline rather than a crash inside a render
+    or, far worse, a number assembled out of whatever fields happened to
+    parse. Whether a declaration is missing ENTIRELY is a different question
+    with a different consumer -- `tests/test_declared_totals.py` asks it of
+    every registered calculator, and it is the audit rather than this
+    function that is allowed to be strict.
+
+    NEVER derives a total. That is the whole point of the key; see
+    `domain/common.TOTAL` for the measurements that killed `sum(values)`.
+    """
+    declaration = _provenance_parameter(result, TOTAL)
+    if not valid_total_declaration(declaration) or not declaration["declared"]:
+        return None
+    return declaration
+
+
+def atom_basis(result) -> str:
+    """Which atoms the values are keyed to -- see `domain/common.ATOM_BASIS`.
+
+    Defaults to `HEAVY_ATOMS`, matching the editor molecule every producer
+    that predates this key computed on. It answers "what do I draw these
+    on"; it says nothing about whether they can be summed, and reading it as
+    though it did is the collapse `ATOM_BASIS`'s docstring warns against.
+    """
+    value = _provenance_parameter(result, ATOM_BASIS, HEAVY_ATOMS)
+    return value if value in ATOM_BASES else HEAVY_ATOMS
+
+
+def data_range(result) -> tuple[float, float] | None:
+    """The values' own smallest and largest -- what a reader is asking for.
+
+    NOT `ColorScale.domain_min/domain_max`, and the distinction is the bug
+    this function exists to make unrepeatable. For signed data
+    `build_atom_color_layer` uses a SYMMETRIC colour domain, so the two
+    disagree: the reported molecule's contributions run -1.019 to 0.5437
+    while its colour domain is -1.019 to +1.019, and the dialog printed the
+    latter as if it were the data. No atom had +1.019.
+
+    Two quantities, two names, on purpose. A legend describing the numbers
+    wants this; a legend describing the ramp wants the colour domain.
+    """
+    values = getattr(result, "values", None)
+    if not values:
+        return None
+    numbers = [v for v in values.values() if isinstance(v, (int, float))]
+    return (min(numbers), max(numbers)) if numbers else None
+
+
 def _provenance_parameter(dataset: PerAtomDataset, key: str, default=None):
     """One provenance parameter, or `default`.
 
@@ -350,7 +411,7 @@ def _build_categorical_layer(
     )
 
 
-def _label_decimals(dataset: PerAtomDataset) -> int:
+def label_decimals(dataset) -> int:
     """Display precision, carried by the DATA rather than passed in.
 
     The `decimal_places` option lives on the calculator's request, which
@@ -359,13 +420,21 @@ def _label_decimals(dataset: PerAtomDataset) -> int:
     record the requested precision in `Provenance.parameters`, which is
     already the free-form place this codebase puts exactly this kind of
     presentation metadata.
+
+    PUBLIC, because "one precision" has to mean one implementation. The
+    same dataset was being rendered at four: its atom labels honoured this,
+    the legend was hardcoded `.3f`, the headline `.4g` and the Properties
+    panel's summary row `.4g` again -- so one screen showed `+0.16`,
+    `-1.019` and `0.5437` for values from a single calculator. Every one of
+    those call sites goes through here now, and the balance sentence's
+    tolerance is derived from it too.
     """
-    provenance = dataset.provenance
+    provenance = getattr(dataset, "provenance", None)
     if provenance is None:
         return _DEFAULT_LABEL_DECIMALS
     try:
         return max(0, min(8, int(provenance.parameters.get("decimal_places", _DEFAULT_LABEL_DECIMALS))))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, AttributeError):
         return _DEFAULT_LABEL_DECIMALS
 
 
@@ -387,9 +456,22 @@ def build_atom_color_layer(dataset: PerAtomDataset, include_labels: bool = False
     has_positive = any(v > 0 for v in values.values())
     signed = has_negative and has_positive
     if signed:
-        magnitude = max(abs(v) for v in values.values()) or 1.0
-        scale = ColorScale(palette=_DIVERGING_PALETTE, domain_min=-magnitude, domain_max=magnitude)
+        # THE COLOUR DOMAIN IS NOT THE DATA RANGE, and for signed data it is
+        # deliberately wider: symmetric about zero, so equal magnitudes of
+        # either sign get equally strong colour and the near-white midpoint
+        # lands on zero rather than on the middle of the data. That means the
+        # domain names a value no atom need have -- +1.019 on the molecule
+        # this was reported for -- so it must never be shown as the range of
+        # the numbers. `data_range()` is what a legend about the numbers
+        # wants; see its docstring.
+        colour_magnitude = max(abs(v) for v in values.values()) or 1.0
+        scale = ColorScale(
+            palette=_DIVERGING_PALETTE, domain_min=-colour_magnitude, domain_max=colour_magnitude
+        )
     else:
+        # Magnitude-only data has no zero to centre on, so here the colour
+        # domain and the data range DO coincide. That coincidence is why the
+        # two were conflated in the first place.
         scale = ColorScale(
             palette=_SEQUENTIAL_PALETTE, domain_min=min(values.values()), domain_max=max(values.values())
         )
@@ -397,7 +479,7 @@ def build_atom_color_layer(dataset: PerAtomDataset, include_labels: bool = False
     atom_colors = {idx: scale.color_for(v) for idx, v in values.items()}
     atom_labels = None
     if include_labels:
-        places = _label_decimals(dataset)
+        places = label_decimals(dataset)
         # An explicit "+" belongs on contribution-style data, where the
         # sign carries the meaning -- but reads as noise on a magnitude,
         # since a surface area or an eccentricity has no negative branch

@@ -47,8 +47,8 @@ from typing import Any
 from rdkit import Chem
 from rdkit.Chem import Descriptors, rdMolDescriptors
 
-from openchem.chem.calculator_options import decimals
-from openchem.domain.common import Provenance
+from openchem.chem.calculator_options import atom_basis_of, decimals
+from openchem.domain.common import ATOM_BASIS, TOTAL, Provenance, declare_total, decline_total
 from openchem.domain.report import ReportResult
 from openchem.chem.report_adapter import report_fields
 from openchem.domain.scientific_result import PerAtomDataset
@@ -270,7 +270,27 @@ def compute_eccentricity_dataset(
         method="rdkit",
         molecule_uuid=molecule_uuid,
         values=eccentricity(mol),
-        provenance=Provenance(created_by="core", method="rdkit", parameters={"decimal_places": _places}),
+        provenance=Provenance(
+            created_by="core",
+            method="rdkit",
+            parameters={
+                "decimal_places": _places,
+                ATOM_BASIS: atom_basis_of(mol),
+                # DECLINED. An eccentricity is the greatest distance from
+                # one atom to any other; adding thirteen of them together
+                # gives 65 for aspirin, which is not a graph invariant, not
+                # a molecular property, and not anything. The graph HAS
+                # aggregate eccentricity measures -- the radius (minimum)
+                # and the diameter (maximum) -- and the Topology Analysis
+                # report already gives both, so nothing is lost by refusing
+                # here.
+                TOTAL: decline_total(
+                    "Eccentricity is a per-atom graph distance; a sum over atoms is not "
+                    "a molecular quantity. The graph-level measures are the radius and "
+                    "the diameter, which Topology Analysis reports."
+                ),
+            },
+        ),
     )
 
 
@@ -285,7 +305,27 @@ def compute_distance_degree_dataset(
         method="rdkit",
         molecule_uuid=molecule_uuid,
         values=distance_degree(mol),
-        provenance=Provenance(created_by="core", method="rdkit", parameters={"decimal_places": _places}),
+        provenance=Provenance(
+            created_by="core",
+            method="rdkit",
+            parameters={
+                "decimal_places": _places,
+                ATOM_BASIS: atom_basis_of(mol),
+                # This one DOES have a molecular meaning, and it is not the
+                # sum. Each atom's distance degree counts every path from
+                # it, so summing counts each pair from both ends: the sum
+                # is TWICE the Wiener index. Declaring the raw sum would
+                # have been the "correct but unnamed" failure -- aspirin's
+                # 492 is a real number belonging to a quantity nobody
+                # names, while its Wiener index is 246.
+                TOTAL: declare_total(
+                    sum(distance_degree(mol).values()) / 2.0,
+                    "Wiener index",
+                    units="",
+                    basis=atom_basis_of(mol),
+                ),
+            },
+        ),
     )
 
 

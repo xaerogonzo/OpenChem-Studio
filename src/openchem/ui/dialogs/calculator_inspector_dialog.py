@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 
 from PySide6.QtGui import QGuiApplication
@@ -18,7 +19,7 @@ from PySide6.QtWidgets import (
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.descriptor_providers import compute_gasteiger_charges
 from openchem.chem.scalar_field import electrostatic_potential_for_conformer
-from openchem.domain.common import CacheState, ScientificResult
+from openchem.domain.common import EXPLICIT_H, CacheState, ScientificResult
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.report import ReportResult
 from openchem.domain.scientific_result import (
@@ -34,15 +35,20 @@ from openchem.ui.visualization import (
     DIVERGING_COLOUR_MAP,
     SURFACE_REPRESENTATION_LABELS,
     SURFACE_REPRESENTATIONS,
+    atom_basis,
     build_scalar_field_surface_layer,
     build_surface_layer,
     build_visualization_layer,
-    is_categorical,
+    data_range,
+    declared_total,
+    label_decimals,
     summary_note,
 )
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
 from openchem.ui.widgets.ph_curve_widget import PhCurveWidget
 from openchem.ui.widgets.structure_grid_widget import StructureGridWidget
+
+logger = logging.getLogger("openchem.ui")
 
 
 class _CalculatorResultView(QWidget):
@@ -65,42 +71,35 @@ class _CalculatorResultView(QWidget):
         super().__init__(parent)
         layer = build_visualization_layer(result, include_labels=True)
 
-        # Sum of the per-atom contributions IS the molecular total for
-        # every PerAtomDataset this dialog shows today (Crippen LogP/MR
-        # contributions and Gasteiger partial charges are additive by
-        # construction) -- no separate lookup into the scalar descriptor
-        # set needed, and this stays correct for any future additive
-        # per-atom property without extra wiring.
+        # THE TOTAL IS READ, NEVER DERIVED. This used to be
+        # `sum(result.values.values())`, on the stated belief that the
+        # per-atom values of everything shown here were additive. They are
+        # not, and the belief was wrong in three separate ways at once --
+        # measured on aspirin:
         #
-        # Deliberately NOT attempted for a SpectrumResult (Phase 23):
-        # summing chemical shifts is chemically meaningless, so a spectrum
-        # gets no summary line at all rather than a misleading total or a
-        # bare "Overall: n/a" that reads like something failed.
-        # Both PerAtomDataset and SpectrumResult carry `units`, so the
-        # legend below gets its suffix either way -- only the *total* is
-        # PerAtomDataset-only.
+        #   Crippen LogP    summed to  0.1511  against a real LogP of 1.3101
+        #   Gasteiger       summed to -0.6555  for a NEUTRAL molecule
+        #   eccentricity    summed to  65      which is not a quantity
         #
-        # CATEGORICAL results are excluded for the same reason (Thread 1):
-        # their values are category IDS, so a sum is "Overall: 15" for a
-        # molecule's three ring systems -- a number that looks like a
-        # measurement and means nothing. The sentence above ("Sum of the
-        # per-atom contributions IS the molecular total for every
-        # PerAtomDataset this dialog shows today") stopped being true the
-        # moment the annotation calculators landed.
+        # The first two are the same cause: the editor's hydrogens are
+        # implicit, so the increments Crippen and PEOE give them have no
+        # atom to sit on. The third has no cause to fix -- adding
+        # eccentricities together was never meaningful.
+        #
+        # This line had already been narrowed twice, for spectra and then
+        # for categorical results, and each narrowing was one more special
+        # case discovered the hard way. The default is inverted now: no
+        # declaration, no headline. See `domain/common.TOTAL`.
         units = getattr(result, "units", "")
         units_suffix = f" {units}" if units else ""
-        total: float | None = None
-        if (
-            isinstance(result, PerAtomDataset)
-            and result.values
-            and not is_categorical(result)
-        ):
-            total = sum(result.values.values())
+        total = declared_total(result) if isinstance(result, PerAtomDataset) else None
+        places = label_decimals(result)
 
         if result.cache_state == CacheState.FAILED:
             summary_text = result.error or "Failed"
         elif total is not None:
-            summary_text = f"Overall: {total:.4g}{units_suffix}"
+            total_units = f" {total['units']}" if total["units"] else ""
+            summary_text = f"{total['label']}: {total['value']:.{places}f}{total_units}"
         else:
             # A producer that can explain an empty or category-valued result
             # says so here. Without it an annotation that matched nothing
@@ -111,11 +110,28 @@ class _CalculatorResultView(QWidget):
         summary_label.setWordWrap(True)
         summary_label.setVisible(bool(summary_text))
 
+        # WHY THE ATOMS BELOW MAY NOT ADD UP TO IT.
+        #
+        # The arithmetic is this dialog's: subtracting two numbers is
+        # ordinary work for a view. The MEANING of the difference is not,
+        # and is taken verbatim from the producer -- reading
+        # `total - sum(values)` and concluding "so the rest is on the
+        # implicit hydrogens" would be a mechanism invented from a
+        # residual, which is a mistake this project has made and measured
+        # before. Without a producer explanation the gap goes unmentioned
+        # rather than guessed at.
+        balance_label = QLabel(self)
+        balance_label.setWordWrap(True)
+        balance_text = self._balance_text(result, total, places)
+        balance_label.setText(balance_text)
+        balance_label.setVisible(bool(balance_text))
+
         self._engine = engine
         self._molecule = molecule
         self._layer = layer
         self._conformer_molblock = conformer_molblock
         self._surface_result = result if isinstance(result, PerAtomDataset) else None
+        self._depiction_molblock = self._depiction_for(result)
 
         self._svg_widget = QSvgWidget(self)
         self._render_2d()
@@ -158,11 +174,22 @@ class _CalculatorResultView(QWidget):
         # selected the label still read the charge range in electrons,
         # which is not merely stale -- it names a different physical
         # quantity in different units, and reads as authoritative.
+        # THE DATA RANGE, NOT THE COLOUR DOMAIN. This read
+        # `color_scale.domain_min/domain_max`, which for signed data is
+        # symmetric about zero and so names a value no atom need have: the
+        # molecule this was reported for showed "-1.019 to 1.019" here
+        # while the Properties panel three inches away showed
+        # "-1.019 to 0.5437" for the same numbers. A reader has no way to
+        # tell which is the data. It is the one that says it is.
+        #
+        # The colour domain still exists and is still symmetric -- see
+        # `build_atom_color_layer`, which explains why that is right for
+        # colouring. The two are separate quantities with separate names
+        # now, which is what stops them being conflated again.
         self._legend_label = QLabel(self)
+        span = data_range(result) if isinstance(result, PerAtomDataset) else None
         self._per_atom_legend = (
-            f"{layer.color_scale.domain_min:.3f} to {layer.color_scale.domain_max:.3f}{units_suffix}"
-            if layer is not None and layer.color_scale is not None
-            else ""
+            f"{span[0]:.{places}f} to {span[1]:.{places}f}{units_suffix}" if span is not None else ""
         )
         if self._per_atom_legend:
             self._legend_label.setText(self._per_atom_legend)
@@ -194,9 +221,67 @@ class _CalculatorResultView(QWidget):
 
         layout = QVBoxLayout(self)
         layout.addWidget(summary_label)
+        layout.addWidget(balance_label)
         layout.addLayout(views_row)
         layout.addLayout(surface_row)
         layout.addWidget(self._legend_label)
+
+    @staticmethod
+    def _balance_text(result, total: dict | None, places: int) -> str:
+        """"...and the atoms below sum to something else", when they do.
+
+        SUPPRESSED WITHIN THE DISPLAYED PRECISION, which is not cosmetic:
+        the two hydrogen modes that DO add up reproduce their total to
+        about 1e-16, and without a tolerance every one of them would print
+        "the balance (+0.0000000000000002) is on implicit hydrogens" --
+        noise given a voice, and worse than saying nothing. The tolerance
+        comes from the precision actually on screen, so a user who asks for
+        4 decimal places is told about a gap that shows at 4 decimal
+        places.
+        """
+        if total is None or not getattr(result, "values", None):
+            return ""
+        balance = total.get("balance")
+        if not isinstance(balance, dict):
+            return ""
+        visible = sum(result.values.values())
+        difference = total["value"] - visible
+        if abs(difference) < 0.5 * 10 ** (-places):
+            return ""
+        # ASCII hyphen, not an em dash. This sentence is copyable and this
+        # project has already hit `UnicodeEncodeError: 'charmap' codec` three
+        # times on result text reaching a Windows console stream.
+        return (
+            f"{len(result.values)} {balance.get('visible_basis', 'values')} sum to "
+            f"{visible:.{places}f} - the balance ({difference:+.{places}f}) is on "
+            f"{balance.get('explanation', 'atoms not shown')}."
+        )
+
+    def _depiction_for(self, result) -> str:
+        """Which structure the 2D pane draws.
+
+        Normally the molecule's own editor structure, which is the whole
+        point of this pane -- the user recognises what they drew. A dataset
+        keyed to EXPLICIT hydrogens is the exception: its values run past
+        the end of that structure, `render_2d_svg` drops every index it
+        cannot place, and the pane would show a labelled skeleton beside a
+        header describing half again as many atoms.
+
+        A VIEW TRANSFORMATION AND NOTHING MORE. The molblock is built here
+        and used here; `MoleculeModel.molblock`, the conformer set and the
+        undo stack are never touched. That boundary matters more than it
+        looks -- this app distinguishes retained, display-aligned and
+        adopted conformers, and a dialog quietly writing a hydrogenated
+        structure back into any of them would corrupt all three.
+        """
+        molblock = self._molecule.molblock
+        if not molblock or atom_basis(result) != EXPLICIT_H:
+            return molblock
+        try:
+            return self._engine.molblock_with_explicit_hydrogens(molblock)
+        except Exception:  # noqa: BLE001 - a depiction that cannot be built must not lose the dialog
+            logger.exception("Could not build an explicit-hydrogen depiction; drawing the structure as-is")
+            return molblock
 
     def _render_2d(self) -> None:
         """Draws the 2D pane in whichever mode is selected.
@@ -205,19 +290,19 @@ class _CalculatorResultView(QWidget):
         read defensively -- the first render is always the atom-colour one
         and the combo only ever switches away from it.
         """
-        if not self._molecule.molblock or self._layer is None:
+        if not self._depiction_molblock or self._layer is None:
             return
         combo = getattr(self, "_map_combo", None)
         if combo is not None and combo.currentData() == "heatmap" and self._surface_result:
             svg = self._engine.render_2d_heatmap_svg(
-                self._molecule.molblock,
+                self._depiction_molblock,
                 self._surface_result.values,
                 colour_map=DIVERGING_COLOUR_MAP,
                 atom_labels=self._layer.atom_labels,
             )
         else:
             svg = self._engine.render_2d_svg(
-                self._molecule.molblock, self._layer.atom_colors, self._layer.atom_labels
+                self._depiction_molblock, self._layer.atom_colors, self._layer.atom_labels
             )
         self._svg_widget.load(svg.encode("utf-8"))
 

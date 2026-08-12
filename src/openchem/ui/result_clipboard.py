@@ -28,6 +28,7 @@ from openchem.domain.scientific_result import (
     SpectrumResult,
     StructureSetResult,
 )
+from openchem.ui.visualization import declared_total, label_decimals
 
 
 def _units_suffix(result: ScientificResult) -> str:
@@ -52,7 +53,26 @@ def _alert_to_text(result: AlertResult) -> str:
 
 
 def _per_atom_to_text(result: PerAtomDataset) -> str:
-    lines = [result.name, f"Atom\t{result.name}{_units_suffix(result)}"]
+    """The atom table, led by the molecular total when one is declared.
+
+    ONCE, and only when the producer declared one. Pasting a LogP
+    contribution table used to carry no LogP anywhere -- the one number
+    somebody reading it would want -- while a table that had a total
+    computed for it by the reader would be the summing bug in a new place.
+    The headline is the dialog's, verbatim, at the dialog's precision, so a
+    pasted result and the screen it came from cannot disagree.
+
+    The BALANCE sentence is deliberately not copied: it explains the
+    difference between the total and a column the reader now has in full,
+    and can add up themselves.
+    """
+    lines = [result.name]
+    total = declared_total(result)
+    if total is not None:
+        places = label_decimals(result)
+        units = f" {total['units']}" if total["units"] else ""
+        lines.append(f"{total['label']}\t{total['value']:.{places}f}{units}")
+    lines.append(f"Atom\t{result.name}{_units_suffix(result)}")
     lines.extend(f"{index}\t{value:.6g}" for index, value in sorted(result.values.items()))
     return "\n".join(lines)
 

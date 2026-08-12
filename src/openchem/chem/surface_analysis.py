@@ -21,9 +21,9 @@ from rdkit import Chem
 from rdkit.Chem import AllChem, rdFreeSASA
 
 from openchem.chem.geometry_analysis import NoConformerError, _require_conformer
-from openchem.chem.calculator_options import decimals
+from openchem.chem.calculator_options import atom_basis_of, decimals
 from openchem.chem.projection_geometry import van_der_waals_volume
-from openchem.domain.common import CacheState, Provenance
+from openchem.domain.common import ATOM_BASIS, TOTAL, CacheState, Provenance, declare_total
 from openchem.domain.report import ReportResult
 from openchem.chem.report_adapter import report_fields
 from openchem.domain.scientific_result import PerAtomDataset
@@ -160,7 +160,26 @@ def compute_sasa_dataset(
         method="rdkit",
         molecule_uuid=molecule_uuid,
         values=values,
-        provenance=Provenance(created_by="core", method="rdkit", parameters={"decimal_places": _places}),
+        provenance=Provenance(
+            created_by="core",
+            method="rdkit",
+            parameters={
+                "decimal_places": _places,
+                ATOM_BASIS: atom_basis_of(mol),
+                # SASA really is additive over atoms -- the accessible
+                # surface is partitioned between them with nothing left
+                # over -- so here the sum IS the molecular quantity. It
+                # still has to be declared: a consumer may not work that
+                # out from the numbers, and "Overall: 220.7" never said
+                # what 220.7 was.
+                TOTAL: declare_total(
+                    sum(values.values()),
+                    "Total accessible surface area",
+                    units="Å²",
+                    basis=atom_basis_of(mol),
+                ),
+            },
+        ),
     )
 
 
