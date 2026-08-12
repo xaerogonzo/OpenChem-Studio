@@ -141,6 +141,52 @@ def _panel_with_a_long_result(qapp, width: int, height: int = 1000):
     return panel
 
 
+def _declared_minimum_width(qapp) -> int:
+    """The narrowest width this panel says it can be laid out at.
+
+    Read from the panel rather than written down, because it is a function
+    of the platform's font metrics -- 299 px here, and there is no reason
+    a Linux runner would agree.
+    """
+    panel = _panel_with_a_long_result(qapp, width=400, height=1000)
+    try:
+        return panel.minimumSizeHint().width()
+    finally:
+        _dispose(panel, qapp)
+
+
+def _panel_forced_to_scroll(qapp, width: int):
+    """A panel at `width` whose height GUARANTEES a vertical scrollbar.
+
+    The height was hardcoded at 320 px, which was tuned on Windows font
+    metrics. On a Linux runner the identical content is short enough to
+    fit, no vertical scrollbar appears, and the test's own setup assertion
+    fires -- **correctly**, because without that scrollbar the viewport
+    never loses its 24 px and the horizontal-overflow case being tested
+    does not arise. It was the first failure the non-blocking Linux job
+    ever reported.
+
+    The fix is NOT to relax that assertion, which is the one thing
+    standing between this test and passing while exercising nothing. It is
+    to stop guessing a height: measure what the content actually wants on
+    THIS platform's fonts and ask for meaningfully less, so the
+    precondition is true by construction anywhere.
+    """
+    from PySide6.QtWidgets import QScrollArea
+
+    panel = _panel_with_a_long_result(qapp, width=width, height=1000)
+    scroll = panel.findChild(QScrollArea)
+    assert scroll is not None
+    wanted = scroll.widget().sizeHint().height()
+
+    # Half, with a floor so the panel stays a sane size. `adjustSize()` has
+    # already run inside the helper, so nothing re-expands this afterwards.
+    panel.resize(width, max(120, wanted // 2))
+    for _ in range(40):
+        qapp.processEvents()
+    return panel
+
+
 def _dispose(panel, qapp) -> None:
     from PySide6.QtCore import QCoreApplication, QEvent
 
@@ -439,11 +485,34 @@ def test_the_panel_never_scrolls_sideways(qapp):
     """
     from PySide6.QtWidgets import QScrollArea
 
-    for width in (170, 200, 280, 340, 460):
-        panel = _panel_with_a_long_result(qapp, width=width, height=320)
+    floor = _declared_minimum_width(qapp)
+
+    # RELATIVE TO THE PANEL'S OWN DECLARED MINIMUM, not five hardcoded
+    # pixel widths. Two separate reasons, both learned from a Linux runner:
+    #
+    # The widths used to be (170, 200, 280, 340, 460) and FOUR OF THE FIVE
+    # were never tested. `_panel_with_a_long_result` ends with
+    # `adjustSize()`, which expands the panel to its sizeHint and discards
+    # the requested width -- measured, every one of those five came out at
+    # 388 px. The test asserted five times about one size.
+    #
+    # And a width BELOW the panel's declared minimum is not a defect when
+    # it scrolls sideways: it is Qt correctly reporting that it was asked
+    # for something impossible. Measured, the overflow closes exactly at
+    # the declared minimum -- 280 px overflows by 20, 290 by 10, 298 by 2,
+    # and 300 px and everything above by 0. Hardcoded pixels also encode
+    # one platform's font metrics, which is what made the old height fail
+    # on Linux in the first place.
+    for width in (floor + 1, floor + 40, floor + 80, floor + 160, floor + 300):
+        panel = _panel_forced_to_scroll(qapp, width=width)
         try:
             scroll = panel.findChild(QScrollArea)
             assert scroll is not None
+            assert panel.width() == width, (
+                f"asked for {width} px and got {panel.width()} -- the panel is not "
+                "actually at the width being tested, which is how the previous "
+                "version of this test asserted five times about one size"
+            )
             assert scroll.verticalScrollBar().maximum() > 0, (
                 f"at {width} px the content is too short to scroll -- this test "
                 f"is not exercising the case it exists for"

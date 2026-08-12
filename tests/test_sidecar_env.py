@@ -184,3 +184,29 @@ def test_the_search_depth_is_bounded(tmp_path):
     (deep / "orca.exe").write_bytes(b"x")
 
     assert find_program(tmp_path, ("orca",)) is None
+
+
+def test_a_version_fragment_is_not_treated_as_a_file_extension():
+    """`Path("vina_1.2.7").suffix` is `".7"`.
+
+    So an allowlist of executable suffixes rejects exactly the
+    released-binary naming `find_program` exists to handle, and the
+    docstring's promise of prefix matching "because released binaries
+    carry their version" was being undone one line later.
+
+    ASSERTED HERE RATHER THAN ONLY THROUGH `find_program`, because that
+    route only ever exercises the HOST platform's branch: on Windows the
+    binary is `vina_1.2.7_win.exe`, whose `.exe` parses cleanly, so the
+    bug was invisible until a Linux runner tried `vina_1.2.7`. This
+    catches it from either side.
+    """
+    from pathlib import Path
+
+    from openchem.services.sidecar_env import _looks_executable
+
+    assert Path("vina_1.2.7").suffix == ".7", "the trap this guards is gone"
+    assert _looks_executable(Path("vina_1.2.7"))
+    assert _looks_executable(Path("vina_1.2.7_win.exe"))
+    assert _looks_executable(Path("orca"))
+    # Still discriminating: a data file next to the binary is not it.
+    assert not _looks_executable(Path("receptors.json"))

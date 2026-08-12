@@ -170,10 +170,39 @@ def find_program(root: Path, names: tuple[str, ...], max_depth: int = MAX_SEARCH
     wanted = tuple(name.lower() for name in names)
     if root.is_file():
         return root if root.stem.lower().startswith(wanted) else None
-    executable_suffixes = {".exe", ""} if os.name == "nt" else {"", ".sh"}
     for candidate in _iter_files(root, max_depth):
-        if candidate.suffix.lower() not in executable_suffixes:
+        if not _looks_executable(candidate):
             continue
         if candidate.stem.lower().startswith(wanted):
             return candidate
     return None
+
+
+def _looks_executable(candidate: Path) -> bool:
+    """Could this file be the program, judged by name and mode.
+
+    **A VERSION FRAGMENT IS NOT A FILE EXTENSION**, and that is the whole
+    reason this is not a one-line suffix test. `Path("vina_1.2.7").suffix`
+    is `".7"`, so an allowlist of executable suffixes rejects precisely the
+    released-binary naming `find_program` exists to handle -- the docstring
+    above promises prefix matching "because released binaries carry their
+    version", and the suffix check was quietly undoing it.
+
+    It went unnoticed because Windows binaries carry `.exe`, which parses
+    cleanly: `vina_1.2.7_win.exe` has suffix `.exe` and is found. The same
+    tool on Linux ships as `vina_1.2.7` and was invisible. Found by the
+    non-blocking Linux CI job on its first run.
+
+    On POSIX the honest question is the executable BIT rather than the
+    name, so that is asked as well -- it catches versioned names this
+    normalisation cannot, e.g. `vina-1.2.7-linux`, whose "suffix" is
+    `.7-linux`.
+    """
+    suffix = candidate.suffix.lower()
+    if suffix[1:].isdigit():  # ".7" from a version, not a type
+        suffix = ""
+    if os.name == "nt":
+        return suffix in {".exe", ""}
+    if suffix in {"", ".sh"}:
+        return True
+    return os.access(candidate, os.X_OK)
