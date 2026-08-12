@@ -15,9 +15,13 @@ from openchem.chem.geometry_analysis import compute_geometry_analysis
 from openchem.chem.interaction_analysis import compute_interaction_analysis
 from openchem.chem.markush import DEFAULT_MAX_STRUCTURES as MARKUSH_DEFAULT_MAX
 from openchem.chem.calculator_options import (
+    EXPLICIT_HYDROGENS,
+    HEAVY_ATOMS_ONLY,
     decimal_places_parameter,
     decimals,
     fmt,
+    hydrogen_mode,
+    hydrogen_mode_parameter,
     microspecies_parameters,
     ph_range_parameters,
 )
@@ -88,7 +92,17 @@ from openchem.domain.calculator import (
     CalculatorParameter,
     RegistryExecution,
 )
-from openchem.domain.common import CacheState, Provenance
+from openchem.domain.common import (
+    ATOM_BASIS,
+    EXPLICIT_H,
+    HEAVY_ATOMS,
+    PI_SYSTEM,
+    TOTAL,
+    CacheState,
+    Provenance,
+    declare_total,
+    decline_total,
+)
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.scientific_result import AlertResult, PerAtomDataset
 from openchem.domain.structure_issue import Severity
@@ -492,6 +506,46 @@ def compute_gasteiger_charges(mol: Chem.Mol, include_hydrogens: bool = False) ->
     return charges
 
 
+def _gasteiger_total(mol: Chem.Mol, include_hydrogens: bool) -> dict[str, Any]:
+    """The declared total for a Gasteiger dataset.
+
+    "NET CALCULATED CHARGE", NOT "FORMAL CHARGE", and the distinction is
+    deliberate rather than fussy. PEOE conserves total charge, so with the
+    hydrogens included the sum does equal the formal charge exactly --
+    measured to 1e-6 on an anion, a cation, a zwitterion and a neutral
+    molecule:
+
+        acetate  -1.000000 / -1     ammonium   +1.000000 / +1
+        glycine  -0.000000 /  0     aspirin    -0.000000 /  0
+
+    But what was COMPUTED is a sum of calculated partial charges, and that
+    it coincides with a graph property is a fact about the method rather
+    than the thing measured. Labelling it "formal charge" would smuggle an
+    imprecise chemistry definition into metadata whose entire purpose is to
+    stop the UI inventing meanings -- the same mistake in a new place.
+
+    THE TOTAL IS ALWAYS THE WHOLE MOLECULE'S, never the visible atoms'
+    sum, and that is the load-bearing choice. RDKit keeps each heavy atom's
+    implicit-H charge in a separate property, so with the hydrogens
+    excluded neutral aspirin's visible atoms sum to -0.6555 -- and
+    declaring THAT as the net charge would print exactly the number this
+    whole change exists to stop printing. The molecule's net charge does
+    not depend on which of its atoms are on screen; the gap does, and the
+    gap is what gets explained.
+    """
+    total = declare_total(
+        sum(compute_gasteiger_charges(Chem.Mol(mol), include_hydrogens=True).values()),
+        "Net calculated charge",
+        units="e",
+    )
+    if not include_hydrogens:
+        total["balance"] = {
+            "visible_basis": "heavy-atom charges",
+            "explanation": "implicit hydrogens",
+        }
+    return total
+
+
 class RDKitDescriptorProvider(DescriptorProvider):
     """Computes the built-in descriptor set using RDKit only."""
 
@@ -704,12 +758,34 @@ class RDKitDescriptorProvider(DescriptorProvider):
         ]
 
     def compute_per_atom(self, mol: Chem.Mol, molecule_uuid: str) -> list[PerAtomDataset]:
-        provenance = Provenance(created_by="core", method=self.provider_id)
+        """The always-on batch. Not registry-driven, so it takes no
+        parameters and is fixed at `HEAVY_ATOMS_ONLY` -- the registered
+        calculators are where a hydrogen mode can be chosen.
 
+        Each dataset still DECLARES its total, for the same reason the
+        registered ones do: nothing downstream may derive one, and this
+        batch feeds the same Calculator Inspector.
+        """
         contribs = rdMolDescriptors._CalcCrippenContribs(mol)
         logp_contrib = {idx: logp for idx, (logp, _mr) in enumerate(contribs)}
         mr_contrib = {idx: mr for idx, (_logp, mr) in enumerate(contribs)}
         gasteiger_charge = compute_gasteiger_charges(mol)
+
+        def batch_provenance(declaration: dict) -> Provenance:
+            return Provenance(
+                created_by="core",
+                method=self.provider_id,
+                parameters={ATOM_BASIS: HEAVY_ATOMS, TOTAL: declaration},
+            )
+
+        heavy_atom_balance = {
+            "visible_basis": "heavy-atom contributions",
+            "explanation": "implicit hydrogens",
+        }
+        logp_total = declare_total(Crippen.MolLogP(mol), "LogP (Crippen)")
+        logp_total["balance"] = heavy_atom_balance
+        mr_total = declare_total(Crippen.MolMR(mol), "Molar refractivity (Crippen)")
+        mr_total["balance"] = heavy_atom_balance
 
         return [
             PerAtomDataset(
@@ -719,7 +795,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
                 method=self.provider_id,
                 molecule_uuid=molecule_uuid,
                 values=logp_contrib,
-                provenance=provenance,
+                provenance=batch_provenance(logp_total),
             ),
             PerAtomDataset(
                 property_id="crippen_mr_contrib",
@@ -728,7 +804,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
                 method=self.provider_id,
                 molecule_uuid=molecule_uuid,
                 values=mr_contrib,
-                provenance=provenance,
+                provenance=batch_provenance(mr_total),
             ),
             PerAtomDataset(
                 property_id="gasteiger_charge",
@@ -737,7 +813,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
                 method=self.provider_id,
                 molecule_uuid=molecule_uuid,
                 values=gasteiger_charge,
-                provenance=provenance,
+                provenance=batch_provenance(_gasteiger_total(mol, include_hydrogens=False)),
             ),
         ]
 
@@ -781,6 +857,118 @@ def compute_gasteiger_charge_at_ph(
                 "pH": ph,
                 "include_hydrogens": include_hydrogens,
                 "decimal_places": _places,
+                ATOM_BASIS: HEAVY_ATOMS,
+                # From the PROTONATED molecule, which is the one whose
+                # charges these are -- taking it from `mol` would report the
+                # drawn structure's net charge beside values computed for a
+                # different ionization state.
+                TOTAL: _gasteiger_total(protonated, include_hydrogens=include_hydrogens),
+            },
+        ),
+    )
+
+
+def crippen_contributions(mol: Chem.Mol, mode: str, want_mr: bool = False) -> tuple[dict[int, float], str]:
+    """Per-atom Crippen contributions under one hydrogen mode, plus the
+    `ATOM_BASIS` the result is keyed to.
+
+    THE SUM OF THE HEAVY-ATOM CONTRIBUTIONS IS NOT THE MOLECULE'S LogP, and
+    that discrepancy is what this whole option exists for. Crippen types
+    hydrogens (H1..HS) and gives each its own increment, so on the
+    implicit-hydrogen structure the editor draws, every one of those
+    increments has no atom to sit on and is simply absent. Measured:
+
+        molecule   heavy-atom sum   folded    Crippen.MolLogP
+        ethanol          -0.3487   -0.0014            -0.0014
+        benzene           0.9486    1.6866             1.6866
+        aspirin           0.1511    1.3101             1.3101
+        caffeine         -2.2593   -1.0293            -1.0293
+        morphine         -0.3575    1.1981             1.1981
+
+    So `INCREMENT_OF_HS` and `EXPLICIT_HYDROGENS` both reproduce `MolLogP`
+    exactly (to 1e-9); `HEAVY_ATOMS_ONLY` does not, and is still the default
+    because it is what the atoms on screen actually carry.
+
+    `AddHs` APPENDS, so heavy-atom indices 0..n-1 are unchanged in every
+    mode -- which is what lets the fold address `values[parent]` directly
+    and what keeps a 2D depiction of the drawing valid for two of the three
+    modes. `EXPLICIT_HYDROGENS` is the one that needs a depiction of its
+    own, which is why it declares a different basis rather than relying on
+    the caller to notice the atom count changed.
+    """
+    which = 1 if want_mr else 0
+    if mode == HEAVY_ATOMS_ONLY:
+        contribs = rdMolDescriptors._CalcCrippenContribs(mol)
+        return {idx: pair[which] for idx, pair in enumerate(contribs)}, HEAVY_ATOMS
+
+    with_h = Chem.AddHs(mol)
+    contribs = [pair[which] for pair in rdMolDescriptors._CalcCrippenContribs(with_h)]
+    if mode == EXPLICIT_HYDROGENS:
+        return dict(enumerate(contribs)), EXPLICIT_H
+
+    values = {idx: contribs[idx] for idx in range(mol.GetNumAtoms())}
+    for atom in with_h.GetAtoms():
+        if atom.GetAtomicNum() == 1:
+            # A hydrogen added by AddHs has exactly one neighbour by
+            # construction. A hydrogen the user drew EXPLICITLY is already in
+            # `mol` and so keeps its own entry above rather than being folded
+            # twice -- the loop only reaches indices past `mol.GetNumAtoms()`
+            # for those, and `values[parent]` for a parent that is itself a
+            # drawn hydrogen would be a molecule nobody draws.
+            if atom.GetIdx() < mol.GetNumAtoms():
+                continue
+            values[atom.GetNeighbors()[0].GetIdx()] += contribs[atom.GetIdx()]
+    return values, HEAVY_ATOMS
+
+
+def _crippen_dataset(
+    mol: Chem.Mol,
+    molecule_uuid: str,
+    parameters: dict[str, Any],
+    *,
+    property_id: str,
+    name: str,
+    total_label: str,
+    want_mr: bool,
+) -> PerAtomDataset:
+    """The two Crippen calculators differ only in which half of RDKit's
+    `(logp, mr)` pair they read, so they share everything else -- including
+    the declaration, which must be computed HERE from the same `mol` the
+    values came from. A total assembled anywhere else could outlive a
+    parameter change and describe the previous run."""
+    mode = hydrogen_mode(parameters)
+    values, basis = crippen_contributions(mol, mode, want_mr=want_mr)
+    # RDKit's own molecular routine, not a sum of the values above -- so the
+    # headline stays right even in the mode whose atoms deliberately do not
+    # add up to it, and so a broken fold shows as a stated balance rather
+    # than as a quietly wrong total.
+    total = Crippen.MolMR(mol) if want_mr else Crippen.MolLogP(mol)
+    declaration = declare_total(total, total_label, units="", basis=basis)
+    if mode == HEAVY_ATOMS_ONLY:
+        # The producer supplies only the INTERPRETATION of the gap; the view
+        # subtracts. Saying "the balance is implicit hydrogens" is a
+        # chemistry claim and belongs to whoever knows the atom typing --
+        # inferring it from `total - sum(values)` would be arithmetic
+        # pretending to be a mechanism.
+        declaration["balance"] = {
+            "visible_basis": "heavy-atom contributions",
+            "explanation": "implicit hydrogens",
+        }
+    return PerAtomDataset(
+        property_id=property_id,
+        name=name,
+        units="",
+        method="rdkit",
+        molecule_uuid=molecule_uuid,
+        values=values,
+        provenance=Provenance(
+            created_by="core",
+            method="rdkit",
+            parameters={
+                "decimal_places": decimals(parameters),
+                "hydrogens": mode,
+                ATOM_BASIS: basis,
+                TOTAL: declaration,
             },
         ),
     )
@@ -792,17 +980,14 @@ def compute_crippen_logp_contrib_calculator(
     """The "logp" category's calculator -- same Crippen contribution call
     `compute_per_atom` uses for its always-on batch, so the registry-driven
     path and that batch never compute this two different ways."""
-    _places = decimals(parameters)
-    contribs = rdMolDescriptors._CalcCrippenContribs(mol)
-    logp_contrib = {idx: logp for idx, (logp, _mr) in enumerate(contribs)}
-    return PerAtomDataset(
+    return _crippen_dataset(
+        mol,
+        molecule_uuid,
+        parameters,
         property_id="crippen_logp_contrib",
         name="LogP Contribution (Crippen)",
-        units="",
-        method="rdkit",
-        molecule_uuid=molecule_uuid,
-        values=logp_contrib,
-        provenance=Provenance(created_by="core", method="rdkit", parameters={"decimal_places": _places}),
+        total_label="LogP (Crippen)",
+        want_mr=False,
     )
 
 
@@ -811,17 +996,14 @@ def compute_crippen_mr_contrib_calculator(
 ) -> PerAtomDataset:
     """The "molar_refractivity" category's calculator -- same Crippen
     contribution call `compute_per_atom` uses for its always-on batch."""
-    _places = decimals(parameters)
-    contribs = rdMolDescriptors._CalcCrippenContribs(mol)
-    mr_contrib = {idx: mr for idx, (_logp, mr) in enumerate(contribs)}
-    return PerAtomDataset(
+    return _crippen_dataset(
+        mol,
+        molecule_uuid,
+        parameters,
         property_id="crippen_mr_contrib",
         name="Molar Refractivity Contribution (Crippen)",
-        units="",
-        method="rdkit",
-        molecule_uuid=molecule_uuid,
-        values=mr_contrib,
-        provenance=Provenance(created_by="core", method="rdkit", parameters={"decimal_places": _places}),
+        total_label="Molar refractivity (Crippen)",
+        want_mr=True,
     )
 
 
@@ -1111,10 +1293,17 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         tags=['logp', 'lipophilicity', 'partition', 'crippen', 'per-atom'],
         display_name="LogP Contribution",
         category="lipophilicity",
-        description="Per-atom Crippen LogP contribution -- which atoms increase vs. decrease LogP.",
+        description=(
+            "Per-atom Crippen LogP contribution -- which atoms increase vs. decrease "
+            "LogP. The molecule's own LogP is reported alongside them; on the "
+            "structure as drawn the visible atoms do not sum to it, because Crippen "
+            "gives each hydrogen its own increment and the editor's hydrogens are "
+            "implicit. The Hydrogens option decides where those increments go."
+        ),
         execution=RegistryExecution(compute=compute_crippen_logp_contrib_calculator),
         parameters=[
             decimal_places_parameter(),
+            hydrogen_mode_parameter(),
         ],
     ),
     CalculatorDefinition(
@@ -1122,10 +1311,15 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         tags=['refractivity', 'polarizability', 'crippen', 'per-atom'],
         display_name="Molar Refractivity Contribution",
         category="electronic",
-        description="Per-atom Crippen molar refractivity contribution.",
+        description=(
+            "Per-atom Crippen molar refractivity contribution, with the molecule's "
+            "own molar refractivity alongside. Same implicit-hydrogen caveat as LogP "
+            "Contribution, and the same Hydrogens option for it."
+        ),
         execution=RegistryExecution(compute=compute_crippen_mr_contrib_calculator),
         parameters=[
             decimal_places_parameter(),
+            hydrogen_mode_parameter(),
         ],
     ),
     CalculatorDefinition(

@@ -44,8 +44,16 @@ from typing import Any
 from rdkit import Chem
 from rdkit.Chem import rdPartialCharges
 
-from openchem.chem.calculator_options import decimals
-from openchem.domain.common import CacheState, Provenance
+from openchem.chem.calculator_options import atom_basis_of, decimals
+from openchem.domain.common import (
+    ATOM_BASIS,
+    EXPLICIT_H,
+    TOTAL,
+    CacheState,
+    Provenance,
+    declare_total,
+    decline_total,
+)
 from openchem.domain.report import ReportResult
 from openchem.chem.report_adapter import report_fields
 from openchem.domain.scientific_result import PerAtomDataset
@@ -193,7 +201,26 @@ def compute_atomic_polarizability(
         method="jensen",
         molecule_uuid=molecule_uuid,
         values=values,
-        provenance=Provenance(created_by="core", method="jensen", parameters={"decimal_places": _places}),
+        provenance=Provenance(
+            created_by="core",
+            method="jensen",
+            parameters={
+                "decimal_places": _places,
+                # `atomic_polarizabilities` works on `Chem.AddHs(mol)`, so
+                # every hydrogen carries its own value and the basis is
+                # explicit whatever was handed in.
+                ATOM_BASIS: EXPLICIT_H,
+                # Jensen's method IS an additive atomic scheme -- the
+                # molecular polarizability is defined as the sum -- so the
+                # total is exact rather than approximate here.
+                TOTAL: declare_total(
+                    sum(values.values()),
+                    "Molecular polarizability",
+                    units="A^3",
+                    basis=EXPLICIT_H,
+                ),
+            },
+        ),
     )
 
 
@@ -273,6 +300,19 @@ def compute_orbital_electronegativity(
                 "note": (
                     "chi = a + b*q + c*q^2 at the converged PEOE charge. Absolute values are "
                     "parameter-set dependent; the ordering between atoms is the meaningful part."
+                ),
+                ATOM_BASIS: atom_basis_of(target),
+                # DECLINED, and the note above already says why: an
+                # electronegativity is an INTENSIVE per-atom property, so
+                # adding them up produces a number with no referent. The
+                # Calculator Inspector used to print exactly that --
+                # "Overall: 134.8" for aspirin, eV summed over thirteen
+                # atoms -- which is arithmetic wearing a unit.
+                TOTAL: decline_total(
+                    "Orbital electronegativity is an intensive per-atom property. "
+                    "Summing it is not a molecular quantity, and the absolute values "
+                    "are parameter-set dependent -- the ordering between atoms is the "
+                    "meaningful part."
                 ),
             },
         ),

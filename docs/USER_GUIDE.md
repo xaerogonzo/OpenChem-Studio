@@ -581,9 +581,44 @@ the Calculator Inspector:
 | `locants` | the IUPAC locant on each atom, coloured by where the number came from |
 
 These are **categorical, not continuous**, and the Inspector knows the
-difference: it does not print an "Overall" total for them, because summing
-category ids produces a number that looks like a measurement and is not
-one.
+difference: it does not print a total for them, because summing category
+ids produces a number that looks like a measurement and is not one.
+
+### What the number at the top of the Inspector means
+
+The headline is the **molecule's** value for the property, and the
+calculator that produced it is what says so. It is never worked out by
+adding up the atoms on screen, and for several calculators those two are
+genuinely different numbers.
+
+LogP is the clearest case. Crippen's method gives every atom an
+increment, **hydrogens included** — but a structure drawn in the editor
+keeps its hydrogens implicit, so they have no atom to carry theirs. Add
+up the twenty-one labels on an aspirin-sized molecule and you get 0.86;
+its LogP is 3.62. Both are right, and the Inspector says so directly:
+
+> **LogP (Crippen): 3.624**
+> 21 heavy-atom contributions sum to 0.86 - the balance (+2.77) is on
+> implicit hydrogens.
+
+The **Hydrogens** option on LogP Contribution and Molar Refractivity
+Contribution decides where those increments go:
+
+| Setting | What you see |
+|---|---|
+| **Heavy atoms only** (default) | the contribution of each atom as drawn; the labels will not sum to the total |
+| **Increment of Hs** | each heavy atom also carries its implicit hydrogens', so the same atoms now sum to the total |
+| **Explicit hydrogens** | every hydrogen is drawn with its own contribution |
+
+They are three views of one calculation — the LogP itself is identical in
+all three. "Increment of Hs" is the same option, under the same name, that
+Partial Charge has always offered.
+
+A calculator whose per-atom values have **no** meaningful molecular total
+shows no headline at all. Eccentricity is one: it is the distance from an
+atom to the furthest other atom, and adding thirteen of those together is
+arithmetic rather than chemistry. The graph-level answers — radius and
+diameter — are in Topology Analysis instead.
 
 `locants` is the one with a real coverage caveat, and it states it rather
 than rendering blank. Roughly half of all molecules name to a form that

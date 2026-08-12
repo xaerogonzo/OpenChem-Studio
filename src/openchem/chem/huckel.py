@@ -41,7 +41,14 @@ import numpy as np
 from rdkit import Chem
 
 from openchem.chem.calculator_options import apply_microspecies, decimals, microspecies_note
-from openchem.domain.common import CacheState, Provenance
+from openchem.domain.common import (
+    ATOM_BASIS,
+    PI_SYSTEM,
+    TOTAL,
+    CacheState,
+    Provenance,
+    declare_total,
+)
 from openchem.domain.report import ReportResult
 from openchem.chem.report_adapter import report_fields
 from openchem.domain.scientific_result import PerAtomDataset
@@ -257,7 +264,28 @@ def compute_pi_electron_density(
         method="huckel",
         molecule_uuid=molecule_uuid,
         values=result.electron_density,
-        provenance=Provenance(created_by="core", method="huckel", parameters={"decimal_places": _places}),
+        provenance=Provenance(
+            created_by="core",
+            method="huckel",
+            parameters={
+                "decimal_places": _places,
+                # ONLY the conjugated atoms have a value here, which is why
+                # this basis exists at all -- a consumer that assumed every
+                # atom was covered would draw a molecule mostly blank and
+                # call it missing data. Aspirin gives 10 of 13.
+                ATOM_BASIS: PI_SYSTEM,
+                # Huckel populates the pi levels with a known electron
+                # count and the density is that count redistributed, so
+                # the sum returns it exactly -- a closed accounting rather
+                # than a coincidence.
+                TOTAL: declare_total(
+                    sum(result.electron_density.values()),
+                    "Pi electrons",
+                    units="e",
+                    basis=PI_SYSTEM,
+                ),
+            },
+        ),
     )
 
 

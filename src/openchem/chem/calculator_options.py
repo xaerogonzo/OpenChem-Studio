@@ -15,9 +15,71 @@ from typing import Any
 from rdkit import Chem
 
 from openchem.domain.calculator import CalculatorParameter
+from openchem.domain.common import EXPLICIT_H, HEAVY_ATOMS
 
 DEFAULT_DECIMAL_PLACES = 2
 DEFAULT_PH = 7.4
+
+#: How a per-atom calculator treats the hydrogens the editor draws
+#: implicitly. The strings ARE the stored values as well as the labels --
+#: `calculator_settings_dialog` does `addItems(choices)` -- so they read as
+#: sentences rather than as slugs.
+#:
+#: WHY THREE, when two of them agree on the total. A user seeing 0.8585,
+#: 3.624 and 3.624 will reasonably ask why the first is not simply wrong. It
+#: is not: they are three REPRESENTATIONS of one Crippen calculation, and the
+#: descriptions below are what say so. The default stays the first, because
+#: it is what every existing result was computed with and a stored project
+#: must not change meaning under its owner.
+HEAVY_ATOMS_ONLY = "Heavy atoms only"
+INCREMENT_OF_HS = "Increment of Hs"
+EXPLICIT_HYDROGENS = "Explicit hydrogens"
+
+HYDROGEN_MODES = (HEAVY_ATOMS_ONLY, INCREMENT_OF_HS, EXPLICIT_HYDROGENS)
+
+#: What each mode DOES, not merely what it is called.
+HYDROGEN_MODE_DESCRIPTIONS = {
+    HEAVY_ATOMS_ONLY: "Values on the atoms as drawn; implicit hydrogens contribute nothing.",
+    INCREMENT_OF_HS: "Each heavy atom also carries its implicit hydrogens' contribution.",
+    EXPLICIT_HYDROGENS: "Hydrogens are drawn and carry their own contributions.",
+}
+
+
+def hydrogen_mode_parameter(default: str = HEAVY_ATOMS_ONLY) -> CalculatorParameter:
+    """Marvin names the middle one "Increment of Hs", and so does
+    `compute_gasteiger_charges` -- which has offered exactly this fold since
+    Phase 18. Reusing the wording rather than inventing a third name for it.
+    """
+    return CalculatorParameter(
+        name="hydrogens",
+        label="Hydrogens",
+        kind="choice",
+        default=default,
+        choices=list(HYDROGEN_MODES),
+    )
+
+
+def atom_basis_of(mol: Chem.Mol) -> str:
+    """Which `ATOM_BASIS` a dataset computed on `mol` is keyed to.
+
+    Answered from the molecule rather than declared by hand, because
+    several calculators take whatever they are handed: the same code runs
+    on the editor's implicit-hydrogen drawing and on a conformer, which by
+    construction carries explicit hydrogens. Asserting one basis in the
+    source would be right for one caller and wrong for the other.
+    """
+    return EXPLICIT_H if any(atom.GetAtomicNum() == 1 for atom in mol.GetAtoms()) else HEAVY_ATOMS
+
+
+def hydrogen_mode(parameters: dict[str, Any] | None) -> str:
+    """The requested mode, defaulting to the one that changes nothing.
+
+    An unrecognised value falls back rather than raising, matching
+    `decimals` above: a stored project carrying a mode this build no longer
+    offers should open showing the plain answer, not fail to open.
+    """
+    value = (parameters or {}).get("hydrogens", HEAVY_ATOMS_ONLY)
+    return value if value in HYDROGEN_MODES else HEAVY_ATOMS_ONLY
 
 
 def decimal_places_parameter(default: int = DEFAULT_DECIMAL_PLACES) -> CalculatorParameter:

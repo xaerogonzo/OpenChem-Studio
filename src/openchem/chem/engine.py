@@ -203,6 +203,33 @@ class ChemistryEngine:
     def mol_to_molblock(self, mol: Chem.Mol) -> str:
         return Chem.MolToMolBlock(mol)
 
+    def molblock_with_explicit_hydrogens(self, molblock: str) -> str:
+        """The same structure with its implicit hydrogens made into atoms.
+
+        For a view that has to DEPICT a dataset computed on `AddHs(mol)` --
+        the Calculator Inspector's "Explicit hydrogens" mode. Without it the
+        depiction is still the heavy-atom drawing, `render_2d_svg`'s
+        `drawable()` guard drops every hydrogen index as out of range, and
+        the pane shows 13 labelled atoms beside a header describing 21.
+
+        It lives here rather than in the dialog because `ui/` may not import
+        RDKit (`tests/test_layering.py`), and the rule earns its keep: the
+        two facts below are chemistry, not presentation.
+
+        **A PURE ADDITION -- it moves nothing.** Measured on aspirin and
+        caffeine, in 2D and on a real conformer, the heavy atoms come back
+        at exactly their original coordinates (0.00e+00 displacement), with
+        0 overlapping pairs in the 2D layout and real non-zero z on the new
+        hydrogens in 3D. That matters because a depiction that silently
+        re-laid-out the skeleton would read as a different conformer, which
+        is a worse bug than the one this exists to fix.
+
+        **`AddHs` APPENDS**, so heavy-atom indices 0..n-1 are untouched and
+        a caller's existing per-atom keys still address the same atoms.
+        """
+        mol = self.mol_from_molblock(molblock)
+        return Chem.MolToMolBlock(Chem.AddHs(mol, addCoords=True))
+
     def drawing_from_conformer(
         self,
         molblock: str,

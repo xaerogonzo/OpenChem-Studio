@@ -19,8 +19,8 @@ from typing import Any
 
 from rdkit import Chem
 
-from openchem.chem.calculator_options import decimals
-from openchem.domain.common import CacheState, Provenance
+from openchem.chem.calculator_options import atom_basis_of, decimals
+from openchem.domain.common import ATOM_BASIS, TOTAL, CacheState, Provenance, declare_total
 from openchem.domain.scientific_result import PerAtomDataset
 
 # A starting library so the calculator is useful before anyone has typed a
@@ -125,6 +125,19 @@ def compute_substructure_search(
                 "smarts": smarts,
                 "match_count": len(matches),
                 "decimal_places": _places,
+                ATOM_BASIS: atom_basis_of(mol),
+                # The values are 0/1 flags, so their sum counts the atoms
+                # covered by a match. That is deliberately NOT the same
+                # number as `match_count`, which the name already carries:
+                # two overlapping matches of a 3-atom pattern are 2 matches
+                # over fewer than 6 atoms. Naming it is what keeps the two
+                # from being read as one.
+                TOTAL: declare_total(
+                    sum(values.values()),
+                    "Atoms in a match",
+                    units="",
+                    basis=atom_basis_of(mol),
+                ),
             },
         ),
     )
