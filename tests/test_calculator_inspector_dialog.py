@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QComboBox, QLabel, QPushButton, QWidget
 from rdkit import Chem
 
 from openchem.chem.engine import ChemistryEngine
-from openchem.domain.common import CacheState, Provenance
+from openchem.domain.common import CacheState, Provenance, declare_total
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.scientific_result import (
     AlertResult,
@@ -16,7 +16,13 @@ from openchem.domain.scientific_result import (
 from openchem.ui.dialogs.calculator_inspector_dialog import CalculatorInspectorDialog
 
 
-def _dataset(values: dict[int, float], units: str = "", cache_state: CacheState = CacheState.COMPLETED, error=None) -> PerAtomDataset:
+def _dataset(
+    values: dict[int, float],
+    units: str = "",
+    cache_state: CacheState = CacheState.COMPLETED,
+    error=None,
+    parameters: dict | None = None,
+) -> PerAtomDataset:
     return PerAtomDataset(
         property_id="test_calc",
         name="Test Calculator",
@@ -24,13 +30,23 @@ def _dataset(values: dict[int, float], units: str = "", cache_state: CacheState 
         method="rdkit",
         molecule_uuid="mol-1",
         values=values,
-        provenance=Provenance(created_by="core", method="rdkit"),
+        provenance=Provenance(created_by="core", method="rdkit", parameters=parameters or {}),
         cache_state=cache_state,
         error=error,
     )
 
 
-def test_overall_value_is_the_sum_of_per_atom_contributions(qapp):
+def test_a_dataset_that_declares_no_total_gets_no_headline(qapp):
+    """INVERTED FROM `test_overall_value_is_the_sum_of_per_atom_contributions`,
+    which asserted `Overall: 0.25` for exactly this dataset.
+
+    That was the bug, not the contract. Summing whatever values a dataset
+    happens to hold gave the wrong LogP, a non-zero charge for a neutral
+    molecule and a meaningless number for eccentricity -- see
+    `tests/test_declared_totals.py` for the measurements. The default is
+    now "no declaration, no headline", so a per-atom calculator nobody has
+    written yet cannot print a nonsense total by accident.
+    """
     engine = ChemistryEngine()
     molecule = MoleculeModel(display_name="Ethanol")
     engine.set_structure_from_smiles(molecule, "CCO")
@@ -38,9 +54,43 @@ def test_overall_value_is_the_sum_of_per_atom_contributions(qapp):
 
     dialog = CalculatorInspectorDialog(engine, molecule, result, conformer_molblock=None)
 
-    labels = dialog.findChildren(QLabel)
-    summary_text = next(label.text() for label in labels if label.text().startswith("Overall:"))
-    assert summary_text == "Overall: 0.25"
+    texts = [label.text() for label in dialog.findChildren(QLabel)]
+    assert not any(t.startswith("Overall") for t in texts)
+    assert not any("0.25" in t for t in texts), "a total was derived from the values"
+
+
+def test_a_declared_total_is_shown_with_its_own_label(qapp):
+    engine = ChemistryEngine()
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    result = _dataset(
+        {0: -0.2, 1: 0.3, 2: 0.15},
+        parameters={"total": declare_total(1.3101, "LogP (Crippen)")},
+    )
+
+    dialog = CalculatorInspectorDialog(engine, molecule, result, conformer_molblock=None)
+
+    texts = [label.text() for label in dialog.findChildren(QLabel)]
+    assert "LogP (Crippen): 1.31" in texts, texts
+
+
+def test_the_headline_is_the_declared_total_not_the_visible_sum(qapp):
+    """The heart of the reported bug, in one assertion: the number shown
+    is the molecule's, even when the atoms below deliberately do not add
+    up to it."""
+    engine = ChemistryEngine()
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    result = _dataset(
+        {0: -0.2, 1: 0.3, 2: 0.15},  # sums to 0.25
+        parameters={"total": declare_total(1.3101, "LogP (Crippen)")},
+    )
+
+    dialog = CalculatorInspectorDialog(engine, molecule, result, conformer_molblock=None)
+
+    texts = " ".join(label.text() for label in dialog.findChildren(QLabel))
+    assert "1.31" in texts
+    assert "Overall" not in texts
 
 
 def test_failed_result_shows_the_error_message_instead_of_a_total(qapp):
@@ -88,15 +138,60 @@ def test_spectrum_result_gets_no_overall_summary_line(qapp):
     assert not any(t.startswith("Overall") for t in texts)
 
 
-def test_per_atom_dataset_still_gets_its_overall_total(qapp):
+def test_the_balance_is_stated_when_the_producer_explains_it(qapp):
+    """The sentence that answers the bug report directly.
+
+    The ARITHMETIC is the dialog's -- subtracting two numbers is ordinary
+    work for a view. The MEANING is the producer's, taken verbatim:
+    reading `total - sum(values)` and concluding "so the rest is on the
+    hydrogens" would be a mechanism invented from a residual, which this
+    project has done once and measured to be wrong.
+    """
     engine = ChemistryEngine()
     molecule = MoleculeModel(display_name="Ethanol")
     engine.set_structure_from_smiles(molecule, "CCO")
+    total = declare_total(1.0, "LogP (Crippen)")
+    total["balance"] = {"visible_basis": "heavy-atom contributions", "explanation": "implicit hydrogens"}
+    result = _dataset({0: 0.5, 1: 0.25}, parameters={"total": total})
 
-    dialog = CalculatorInspectorDialog(engine, molecule, _dataset({0: 0.5, 1: 0.25}), conformer_molblock=None)
+    dialog = CalculatorInspectorDialog(engine, molecule, result, conformer_molblock=None)
 
-    texts = [label.text() for label in dialog.findChildren(QLabel)]
-    assert any(t.startswith("Overall: 0.75") for t in texts)
+    balance = next(
+        t for t in (label.text() for label in dialog.findChildren(QLabel)) if "balance" in t
+    )
+    assert "2 heavy-atom contributions sum to 0.75" in balance
+    assert "+0.25" in balance
+    assert "implicit hydrogens" in balance
+
+
+def test_no_balance_is_offered_without_a_producer_explanation(qapp):
+    """A gap the producer cannot account for goes unmentioned rather than
+    guessed at."""
+    engine = ChemistryEngine()
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    result = _dataset({0: 0.5, 1: 0.25}, parameters={"total": declare_total(1.0, "Something")})
+
+    dialog = CalculatorInspectorDialog(engine, molecule, result, conformer_molblock=None)
+
+    assert not any("balance" in label.text() for label in dialog.findChildren(QLabel))
+
+
+def test_floating_point_noise_does_not_get_a_balance_sentence(qapp):
+    """The two hydrogen modes that DO add up reproduce their total to
+    about 1e-16. Without a tolerance every one of them would print
+    "the balance (+0.0000000000000002) is on implicit hydrogens" -- noise
+    given a voice, which is worse than saying nothing."""
+    engine = ChemistryEngine()
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    total = declare_total(0.75 + 1e-16, "Something")
+    total["balance"] = {"visible_basis": "contributions", "explanation": "hydrogens"}
+    result = _dataset({0: 0.5, 1: 0.25}, parameters={"total": total})
+
+    dialog = CalculatorInspectorDialog(engine, molecule, result, conformer_molblock=None)
+
+    assert not any("balance" in label.text() for label in dialog.findChildren(QLabel))
 
 
 def test_dialog_with_no_conformer_and_no_color_scale_shows_the_no_conformer_hint(qapp):
@@ -156,10 +251,11 @@ def test_a_per_atom_result_still_gets_the_molecular_view(qapp):
     molecule = MoleculeModel(display_name="Ethanol")
     engine.set_structure_from_smiles(molecule, "CCO")
 
-    dialog = CalculatorInspectorDialog(engine, molecule, _dataset({0: -0.2, 1: 0.3}), conformer_molblock=None)
+    result = _dataset({0: -0.2, 1: 0.3}, parameters={"total": declare_total(0.1, "Something")})
+    dialog = CalculatorInspectorDialog(engine, molecule, result, conformer_molblock=None)
 
     assert not dialog.findChildren(PhCurveWidget)
-    assert any(label.text().startswith("Overall:") for label in dialog.findChildren(QLabel))
+    assert any(label.text().startswith("Something: ") for label in dialog.findChildren(QLabel))
 
 
 def test_surface_combo_is_disabled_without_a_conformer(qapp):
