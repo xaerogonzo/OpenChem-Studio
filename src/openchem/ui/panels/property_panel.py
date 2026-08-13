@@ -53,6 +53,7 @@ from openchem.events.events import (
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.descriptor_service import DescriptorService
 from openchem.ui.dialogs.calculator_inspector_dialog import CalculatorInspectorDialog
+from openchem.ui.dialogs.spatial_result_dialog import SpatialResultDialog
 from openchem.ui.dialogs.calculator_settings_dialog import CalculatorSettingsDialog
 from openchem.ui.dialogs.nmr_view_dialog import NmrViewDialog
 from openchem.ui.widgets.substance_card import SubstanceCard, card_data_from_report
@@ -1774,6 +1775,20 @@ class PropertyPanel(QWidget):
         report = self._reports.get(button.property(_REPORT_ID_PROPERTY))
         if report is None:
             return
+        # A producer that declared spatial annotations gets its result on
+        # a 3D model -- the Marvin-style popup. THE ANNOTATION DECIDES,
+        # never the presence of plausible numbers in provenance, and a
+        # conformer must exist to draw on: a FAILED dipole has no
+        # annotation, a conformer-less molecule has no canvas, and both
+        # fall through to the plain facts dialog rather than to a blank
+        # viewer.
+        if getattr(report, "spatial", ()) and self._project is not None:
+            molecule = self._project.find_molecule(report.molecule_uuid)
+            best = canonical_conformer(molecule) if molecule is not None else None
+            if best is not None and best.molblock:
+                spatial_dialog = SpatialResultDialog(report, best.molblock, self)
+                spatial_dialog.exec()
+                return
         dialog = QDialog(self)
         dialog.setWindowTitle(report.name)
         dialog.resize(520, 620)

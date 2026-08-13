@@ -21,6 +21,7 @@ a symmetric molecule giving ~0 is the test that actually validates this.
 
 from __future__ import annotations
 
+import dataclasses
 from typing import Any
 
 import numpy as np
@@ -30,12 +31,25 @@ from rdkit.Chem import rdPartialCharges
 from openchem.chem.geometry_analysis import NoConformerError, _require_conformer
 from openchem.chem.calculator_options import decimals
 from openchem.domain.common import CacheState, Provenance
-from openchem.domain.report import ReportResult
+from openchem.domain.report import ArrowAnnotation, ReportResult, valid_spatial_annotation
 from openchem.chem.report_adapter import report_fields
 
 # elementary charge * angstrom -> Debye. 1 D = 3.33564e-30 C*m;
 # e*A = 1.602176634e-19 * 1e-10 C*m.
 _E_ANGSTROM_TO_DEBYE = 1.602176634e-19 * 1e-10 / 3.33564e-30
+
+
+def centre_of_mass(mol: Chem.Mol) -> np.ndarray:
+    """Mass-weighted centroid of the current conformer, in Angstrom.
+
+    Public because it is both the origin the dipole is computed about and
+    the anchor the drawn arrow hangs on -- one function, so the two cannot
+    drift apart.
+    """
+    conformer = _require_conformer(mol)
+    positions = conformer.GetPositions()
+    masses = np.array([atom.GetMass() for atom in mol.GetAtoms()])
+    return (positions * masses[:, None]).sum(axis=0) / masses.sum()
 
 
 def dipole_vector(mol: Chem.Mol) -> tuple[np.ndarray, float, bool]:
@@ -60,9 +74,7 @@ def dipole_vector(mol: Chem.Mol) -> tuple[np.ndarray, float, bool]:
     # caller through a total-charge mismatch.
     charges = np.nan_to_num(charges)
 
-    masses = np.array([atom.GetMass() for atom in charged.GetAtoms()])
-    centre_of_mass = (positions * masses[:, None]).sum(axis=0) / masses.sum()
-    relative = positions - centre_of_mass
+    relative = positions - centre_of_mass(charged)
 
     vector = (charges[:, None] * relative).sum(axis=0) * _E_ANGSTROM_TO_DEBYE
     total_charge = Chem.GetFormalCharge(mol)
@@ -105,7 +117,7 @@ def compute_dipole_moment(
         "From Gasteiger (PEOE) partial charges and this conformer's geometry. Direction and "
         "symmetry are reliable; the magnitude inherits the charge model's accuracy."
     )
-    return _report(
+    result = _report(
         alert_id="dipole_moment",
         name="Dipole Moment",
         molecule_uuid=molecule_uuid,
@@ -121,6 +133,28 @@ def compute_dipole_moment(
             },
         ),
     )
+    # THE ARROW, only when there is one. A magnitude that rounds to zero
+    # at the displayed precision means the direction is numerical noise --
+    # a symmetric molecule's "dipole" points wherever float error leans --
+    # and drawing noise dresses it up as a result. Tying the rule to the
+    # DISPLAYED precision keeps text and picture coherent: "Dipole: 0.00"
+    # beside an arrow would be the panel disagreeing with itself.
+    #
+    # The vector is in DEBYE and the anchor in Angstrom, per the
+    # `ArrowAnnotation` contract: the renderer owns the display scaling,
+    # and the anchor (the centre of mass the dipole was computed about)
+    # is a display choice, not physics -- a neutral molecule's dipole is
+    # origin-independent.
+    if round(magnitude, places) > 0:
+        annotation = ArrowAnnotation(
+            anchor=tuple(float(v) for v in centre_of_mass(mol)),
+            vector=tuple(float(v) for v in vector),
+            units="D",
+            label=f"{magnitude:.{places}f} D",
+        )
+        if valid_spatial_annotation(annotation):
+            result = dataclasses.replace(result, spatial=(annotation,))
+    return result
 
 
 def _report(**fields) -> ReportResult:

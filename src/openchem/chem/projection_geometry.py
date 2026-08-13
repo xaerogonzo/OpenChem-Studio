@@ -125,6 +125,20 @@ class ShapeDescriptors:
     max_projection_area: float
     min_projection_radius: float
     max_projection_radius: float
+    #: The drawing half: the exact signed principal axes the projections
+    #: above were measured along (widest atom spread first), the unweighted
+    #: centroid they pass through, the half-span of atom centres along
+    #: each, and each axis's own shadow radius, index-aligned with the
+    #: axes. **Taken from the same arrays the numbers came from, never
+    #: re-derived by a consumer**: an eigenvector's sign is arbitrary, so
+    #: recomputing could flip a drawn direction while every reported
+    #: number stayed identical. `None` when fewer than two atoms exist and
+    #: the axes would be the identity placeholder rather than a
+    #: measurement.
+    centroid: tuple[float, float, float] | None = None
+    principal_axes: tuple[tuple[float, float, float], ...] | None = None
+    axis_half_spans: tuple[float, ...] | None = None
+    projection_radii: tuple[float, ...] | None = None
 
     @property
     def volumes_agree(self) -> bool:
@@ -299,9 +313,24 @@ def shape_descriptors(mol: Chem.Mol, conformer_id: int = -1) -> ShapeDescriptors
         mol, confId=conformer_id, probeRadius=_SOLVENT_PROBE
     )
 
-    results = [_projection(positions, radii, axis) for axis in _principal_axes(positions)]
+    axes = _principal_axes(positions)
+    results = [_projection(positions, radii, axis) for axis in axes]
     areas = [area for area, _radius in results]
     extents = [radius for _area, radius in results]
+    # The drawing half, from the SAME arrays the numbers above came from.
+    # `positions.mean` is the identical centring `_principal_axes` used,
+    # so the drawn axes pass through the point the measurement pivoted on.
+    if len(positions) >= 2:
+        centroid = positions.mean(axis=0)
+        centred = positions - centroid
+        spatial = {
+            "centroid": tuple(float(v) for v in centroid),
+            "principal_axes": tuple(tuple(float(v) for v in axis) for axis in axes),
+            "axis_half_spans": tuple(float(np.abs(centred @ axis).max()) for axis in axes),
+            "projection_radii": tuple(float(radius) for _area, radius in results),
+        }
+    else:
+        spatial = {}
     return ShapeDescriptors(
         volume=volume,
         surface_area=float(tight.GetSurfaceArea()),
@@ -312,4 +341,5 @@ def shape_descriptors(mol: Chem.Mol, conformer_id: int = -1) -> ShapeDescriptors
         max_projection_area=max(areas),
         min_projection_radius=min(extents),
         max_projection_radius=max(extents),
+        **spatial,
     )

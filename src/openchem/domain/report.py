@@ -17,6 +17,7 @@ things computed. Nothing here triggers work.
 from __future__ import annotations
 
 import dataclasses
+import math
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -261,6 +262,132 @@ class StructureReport(ScientificResult):
         )
 
 
+_Vector3 = tuple[float, float, float]
+
+
+@dataclass(frozen=True)
+class ArrowAnnotation:
+    """A physical vector the calculation produced, drawable on the conformer.
+
+    **UNITS AND FRAME ARE THE CONTRACT.** `anchor` is in Angstrom, in the
+    conformer's own coordinate frame -- the same frame the molblock the
+    calculator ran on is written in, so a dialog that loads that conformer
+    needs no transform and a view that shows an ALIGNED copy must not draw
+    this without applying the same alignment. `vector` is the physical
+    quantity in its own units (`units` says which -- "D" for a dipole),
+    and its magnitude must NEVER be read as Angstrom: the renderer maps it
+    to a display length and says so, because direction is physics and
+    on-screen length is presentation.
+
+    **`anchor` is a rendering anchor, not part of the physical
+    definition.** A neutral molecule's dipole is origin-independent;
+    anchoring the drawn arrow at the centre of mass is a display choice,
+    and translating the molecule does not change the dipole.
+    """
+
+    anchor: _Vector3
+    vector: _Vector3
+    units: str
+    label: str
+
+
+@dataclass(frozen=True)
+class ConeAnnotation:
+    """A cone the calculation swept -- apex, axis, opening, extent, all in
+    Angstrom in the conformer's frame. `axis` points from the apex toward
+    the cone's opening; `length` is how far along the axis the calculation
+    actually reached, never a number assembled to look plausible."""
+
+    apex: _Vector3
+    axis: _Vector3
+    half_angle_deg: float
+    length: float
+    label: str
+
+
+@dataclass(frozen=True)
+class AxesAnnotation:
+    """Three SIGNED direction vectors with half-extents, in Angstrom in the
+    conformer's frame. The vectors are the exact directions the reported
+    extents were measured along, sign convention included -- an
+    eigenvector's sign is arbitrary, so a consumer must never re-derive
+    these and risk rendering a mathematically identical answer pointing
+    the other way."""
+
+    origin: _Vector3
+    axes: tuple[_Vector3, _Vector3, _Vector3]
+    extents: tuple[float, float, float]
+    labels: tuple[str, str, str]
+
+
+SpatialAnnotation = ArrowAnnotation | ConeAnnotation | AxesAnnotation
+
+
+def _finite_vector3(value: Any) -> bool:
+    return (
+        isinstance(value, tuple)
+        and len(value) == 3
+        and all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in value)
+    )
+
+
+def valid_spatial_annotation(annotation: Any) -> bool:
+    """Whether `annotation` is WELL-FORMED. Structural only, failing closed.
+
+    The `valid_total_declaration` split, applied to geometry: this checks
+    that vectors have three finite components, that an arrow or cone axis
+    is not the zero vector, that a cone opens by a real angle
+    (0 < half-angle < 180) over a positive length, and that axes come in
+    threes with non-negative extents. **The half-angle bound is 180, not
+    90, because real ligand cones open past the hemisphere**: Tolman's own
+    table has P(tBu)3 at a FULL angle of 182 degrees, half-angle 91 -- a
+    bound of 90 would refuse a legitimate measurement. It does NOT check that the dipole
+    points the right way or that a cone matches the steric sweep -- those
+    are chemistry claims, and the producers' own tests hold them.
+
+    A consumer that receives an annotation failing this must REFUSE to
+    draw it (with a log line), never guess or normalise: a picture built
+    from repaired nonsense reads as a result, which is worse than no
+    picture. And nothing may ever DERIVE an annotation from numbers found
+    lying in provenance -- `ReportResult.spatial == ()` is the producer's
+    statement that this result has no spatial representation.
+    """
+    if isinstance(annotation, ArrowAnnotation):
+        return (
+            _finite_vector3(annotation.anchor)
+            and _finite_vector3(annotation.vector)
+            and any(v != 0.0 for v in annotation.vector)
+        )
+    if isinstance(annotation, ConeAnnotation):
+        return (
+            _finite_vector3(annotation.apex)
+            and _finite_vector3(annotation.axis)
+            and any(v != 0.0 for v in annotation.axis)
+            and isinstance(annotation.half_angle_deg, (int, float))
+            and math.isfinite(annotation.half_angle_deg)
+            and 0.0 < annotation.half_angle_deg < 180.0
+            and isinstance(annotation.length, (int, float))
+            and math.isfinite(annotation.length)
+            and annotation.length > 0.0
+        )
+    if isinstance(annotation, AxesAnnotation):
+        return (
+            _finite_vector3(annotation.origin)
+            and isinstance(annotation.axes, tuple)
+            and len(annotation.axes) == 3
+            and all(_finite_vector3(axis) and any(v != 0.0 for v in axis) for axis in annotation.axes)
+            and isinstance(annotation.extents, tuple)
+            and len(annotation.extents) == 3
+            and all(
+                isinstance(e, (int, float)) and not isinstance(e, bool) and math.isfinite(e) and e >= 0.0
+                for e in annotation.extents
+            )
+            and isinstance(annotation.labels, tuple)
+            and len(annotation.labels) == 3
+        )
+    return False
+
+
 @dataclass(frozen=True, kw_only=True)
 class ReportResult(StructureReport):
     """A CALCULATOR's output, as facts rather than a list of strings.
@@ -292,6 +419,22 @@ class ReportResult(StructureReport):
     report_id: str  # e.g. "geometry_analysis", matching the calculator id
     name: str  # display name, e.g. "Geometry"
     category: str = "other"
+    #: Geometry the CALCULATION produced -- a dipole vector, a swept cone,
+    #: measured axes -- drawable on the conformer the calculator ran on.
+    #:
+    #: **ANALYTICAL GEOMETRY ONLY, NEVER UI DECORATION.** "Highlight atom
+    #: 4" belongs in `VisualizationLayer`; putting presentation choices
+    #: here would couple the domain layer to how panels look, which is the
+    #: drift this sentence exists to stop. Declared by the producer,
+    #: validated by `valid_spatial_annotation`, rendered by the UI --
+    #: never inferred by the UI from numbers found in provenance. An empty
+    #: tuple is the producer's statement that this result has no spatial
+    #: representation, which is true of most of them: a Wiener index, a
+    #: formula and a pKa have no geometry, and a decorative model would
+    #: dress a number up as a picture.
+    #:
+    #: Defaulted, so every existing constructor and plugin keeps working.
+    spatial: tuple[SpatialAnnotation, ...] = ()
 
     @property
     def matched(self) -> list[str]:

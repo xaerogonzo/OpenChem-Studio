@@ -53,7 +53,7 @@ from openchem.chem.projection_geometry import (
     shape_descriptors,
 )
 from openchem.domain.common import CacheState, Provenance
-from openchem.domain.report import Fact, FactCategory, ReportResult
+from openchem.domain.report import Fact, FactCategory, ReportResult, AxesAnnotation, valid_spatial_annotation
 from openchem.domain.structure_issue import Basis
 
 
@@ -298,11 +298,32 @@ def compute_geometry_analysis(
             )
         )
 
+    # THE AXES, exactly as the projections were measured: `shape` carries
+    # the signed principal axes, the centroid they pass through, the atom
+    # half-spans along each and each axis's own shadow radius, all taken
+    # from the same arrays the reported numbers came from. Nothing here
+    # re-derives a direction -- an eigenvector's sign is arbitrary, and a
+    # recomputed axis could point the other way while every number stayed
+    # identical.
+    spatial = ()
+    if shape.principal_axes is not None:
+        annotation = AxesAnnotation(
+            origin=shape.centroid,
+            axes=shape.principal_axes,
+            extents=shape.axis_half_spans,
+            labels=tuple(
+                f"{name}: shadow r {radius:.1f} A"
+                for name, radius in zip(("a", "b", "c"), shape.projection_radii)
+            ),
+        )
+        if valid_spatial_annotation(annotation):
+            spatial = (annotation,)
     return ReportResult(
         molecule_uuid=molecule_uuid,
         report_id="geometry_analysis",
         name="Geometry",
         category="geometry",
         facts=tuple(facts),
+        spatial=spatial,
         provenance=Provenance(created_by="core", method="rdkit"),
     )

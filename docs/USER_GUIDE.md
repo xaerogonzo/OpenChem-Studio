@@ -283,6 +283,22 @@ Duplicates are pruned, and the status line says what happened —
 "1 distinct conformer from 10 embedded". Aziridine and benzene have one
 conformer; butane has two. Requesting more does not create more.
 
+**Some results draw themselves on a 3D model.** A calculator whose answer
+is a *shape* — the dipole moment's vector, a ligand's steric cone, the
+principal axes behind the molecular dimensions — opens its **Details…**
+onto the stored conformer with that shape drawn on it, the way Marvin's
+dipole plugin shows its arrow. The arrow's direction is the physics
+(it points from the negative end toward the positive, the raw Σq·r
+vector); its drawn *length* is scaled to the molecule for legibility, and
+the label carries the true magnitude. Per-atom results (charges, LogP
+contributions, SASA…) have always had their own 3D view in the Calculator
+Inspector; this extends the same idea to results that are one geometric
+object rather than one number per atom. Everything else — a formula, an
+index, a pKa — deliberately gets no picture: a number with no geometry
+would only be dressed up by one. The model is drawn on the *stored*
+conformer, and the dialog says so: if you regenerate conformers after
+calculating, rerun the calculator before trusting the picture.
+
 **Details…** in the 3D viewer's toolbar shows where a run's candidates
 went: how many embeddings were attempted, how many embedded, how many
 converged, how many distinct shapes they came to, and how many were

@@ -41,7 +41,7 @@ PTBU3 = "CC(C)(C)P(C(C)(C)C)C(C)(C)C"
 
 
 def _prepared(smiles: str, conformers: int = 5):
-    mol, ids = _ensemble(Chem.MolFromSmiles(smiles), conformers)
+    mol, ids, _own_geometry = _ensemble(Chem.MolFromSmiles(smiles), conformers)
     return mol, ids, find_donor(mol)
 
 

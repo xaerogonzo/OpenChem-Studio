@@ -10,10 +10,66 @@ from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
+from openchem.domain.report import (
+    ArrowAnnotation,
+    AxesAnnotation,
+    ConeAnnotation,
+    SpatialAnnotation,
+    valid_spatial_annotation,
+)
 from openchem.ui.viewer_backend import ViewerBackend
 from openchem.ui.visualization import AnyVisualizationLayer, SurfaceLayer, VisualizationLayer
 
 logger = logging.getLogger("openchem.ui")
+
+
+def shape_payloads(annotations: tuple[SpatialAnnotation, ...] | list[SpatialAnnotation]) -> list[dict]:
+    """Spatial annotations as the dicts `viewer.html`'s applyShapes draws.
+
+    **The validation gate for the whole render path.** Anything failing
+    `valid_spatial_annotation` is dropped HERE with a warning, so the page
+    only ever receives well-formed geometry and never has to guess -- a
+    picture built from repaired nonsense reads as a result, which is worse
+    than no picture. The payload carries the physical values untouched;
+    display scaling is the page's job.
+    """
+    payloads: list[dict] = []
+    for annotation in annotations:
+        if not valid_spatial_annotation(annotation):
+            logger.warning("Refusing to render a malformed spatial annotation: %r", annotation)
+            continue
+        if isinstance(annotation, ArrowAnnotation):
+            payloads.append(
+                {
+                    "kind": "arrow",
+                    "anchor": list(annotation.anchor),
+                    "vector": list(annotation.vector),
+                    "units": annotation.units,
+                    "label": annotation.label,
+                }
+            )
+        elif isinstance(annotation, ConeAnnotation):
+            payloads.append(
+                {
+                    "kind": "cone",
+                    "apex": list(annotation.apex),
+                    "axis": list(annotation.axis),
+                    "half_angle_deg": annotation.half_angle_deg,
+                    "length": annotation.length,
+                    "label": annotation.label,
+                }
+            )
+        elif isinstance(annotation, AxesAnnotation):
+            payloads.append(
+                {
+                    "kind": "axes",
+                    "origin": list(annotation.origin),
+                    "axes": [list(axis) for axis in annotation.axes],
+                    "extents": list(annotation.extents),
+                    "labels": list(annotation.labels),
+                }
+            )
+    return payloads
 
 _VIEWER_HTML = (
     Path(__file__).resolve().parent.parent.parent / "resources" / "viewer3d" / "viewer.html"
@@ -124,6 +180,11 @@ class Mol3DViewerBackend(ViewerBackend):
         # molecule, one ensemble, or one unit cell, never a mixture.
         self._pending_crystal: dict | None = None
         self._pending_layer: VisualizationLayer | None = None
+        #: Shape payloads applied before the page was ready. Replayed
+        #: AFTER the molblock like `_pending_layer` -- and unlike it,
+        #: DROPPED by a new load: shape coordinates are in one conformer's
+        #: frame, so pending shapes belong to the current load only.
+        self._pending_shapes: list[dict] | None = None
         # `_NOTHING_PENDING` rather than None, because None is itself a
         # meaningful queued VALUE for a surface -- it means "clear". The
         # same ambiguity was a real bug in MolStarViewerBackend, where
@@ -162,6 +223,9 @@ class Mol3DViewerBackend(ViewerBackend):
         if self._pending_layer is not None:
             self._run_apply_visualization(self._pending_layer)
             self._pending_layer = None
+        if self._pending_shapes is not None:
+            self._run_apply_shapes(self._pending_shapes)
+            self._pending_shapes = None
         # Also after the molblock, for the same reason -- loadMolblock()
         # drops the surface's stale per-atom colours.
         if self._pending_surface is not _NOTHING_PENDING:
@@ -244,6 +308,13 @@ class Mol3DViewerBackend(ViewerBackend):
         """
         self._pending_ensemble = None
         self._pending_crystal = None
+        # Pending shapes belong to the PREVIOUS load: their coordinates
+        # are in that conformer's frame, and replaying them onto this one
+        # would draw a plausible picture of nothing. Shapes for THIS
+        # molecule arrive via apply_shapes() after this call, exactly as
+        # the visualization layer does. (The ready path needs no
+        # equivalent -- the page's loadMolblock clears rendered shapes.)
+        self._pending_shapes = None
         keep_camera = structure_key is not None and structure_key == self._structure_key
         self._structure_key = structure_key
         if self._page_ready:
@@ -429,6 +500,31 @@ class Mol3DViewerBackend(ViewerBackend):
             self._pending_layer = layer
             return
         self._run_apply_visualization(layer)
+
+    def apply_shapes(self, annotations: tuple[SpatialAnnotation, ...] | list[SpatialAnnotation]) -> None:
+        """Draw spatial annotations on the loaded conformer, or clear with ().
+
+        Deferred until the page is ready exactly like `apply_visualization`
+        -- this race has been introduced and fixed enough times that the
+        deferral ships WITH the feature. The state machine differs from the
+        layer's in one deliberate way: `load_conformer` DROPS pending
+        shapes, because their coordinates are in the previous conformer's
+        frame and replaying them onto a new molecule would draw a plausible
+        picture of nothing. Pending shapes belong to the current load.
+        """
+        payloads = shape_payloads(annotations)
+        if not self._page_ready:
+            self._pending_shapes = payloads
+            return
+        self._run_apply_shapes(payloads)
+
+    def _run_apply_shapes(self, payloads: list[dict]) -> None:
+        if not payloads:
+            self._page.runJavaScript("window.openchemViewer.clearShapes();")
+            return
+        self._page.runJavaScript(
+            f"window.openchemViewer.applyShapes({json.dumps(payloads)});"
+        )
 
     def apply_surface(self, layer: SurfaceLayer | None) -> None:
         """Shows a molecular surface, or clears it with `None`.

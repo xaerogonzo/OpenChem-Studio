@@ -1782,6 +1782,60 @@ construct `KetcherEditorBackend` (which raises `FileNotFoundError` without
 a dist) -- to save single-digit megabytes. Git also records the rebuilds as
 99% renames, so successive versions barely cost anything.
 
+## SHAPE-VALUED RESULTS DRAW THEMSELVES, and what that took to make honest
+
+"Can our own dipole moment calculator resemble Marvins too, with a 3d
+model?" It can, and the per-atom family already did -- the Calculator
+Inspector has always drawn charges and LogP contributions on a 3D model.
+What was missing was results that are one geometric OBJECT: the dipole
+vector, the steric cone, the principal axes. `ReportResult.spatial`
+carries them now (producer-declared `ArrowAnnotation` / `ConeAnnotation`
+/ `AxesAnnotation`, validated fail-closed by `valid_spatial_annotation`),
+`viewer.html` draws them, and `SpatialResultDialog` is the Marvin-style
+popup. Verified against Marvin's own cis-1,2-dichloroethene screenshot:
+same molecule, same charge family, 1.90 D against their 1.81, arrow
+pointing the same way.
+
+Five things measured on the way, each the kind that reads fine wrong:
+
+- **The direction oracle runs on the RENDERED endpoints, never the
+  annotation.** A producer sign bug and a renderer sign bug cancel in any
+  annotation-level check, and the screenshot looks perfect. The page
+  mirrors the exact geometry it hands 3Dmol into `drawnShapes`; the HCl
+  guard asserts the drawn arrow runs Cl -> H (mu = sum(q*r) points
+  delta-minus to delta-plus, which is also what Marvin draws) and that
+  reversing the vector reverses the endpoints.
+- **A review bound can be chemically wrong.** The reviewed plan
+  specified a cone half-angle bound of 90 degrees; Tolman's own table has
+  P(tBu)3 at a FULL angle of 182 -- half-angle 91. The validator's
+  ceiling is 180, with a guard asserting 91 is accepted, because a
+  validator that refuses real measurements is worse than none.
+- **The steric cone only exists when its frame is displayable.**
+  `_ensemble` embeds its own conformers for a flat drawing, and those
+  coordinates live in a frame no viewer holds -- a cone drawn from them
+  would sit plausibly on the WRONG conformer. The annotation is attached
+  only when the caller's own 3D conformer was used, and
+  `geometry_source` now says which happened ("provided_conformer" vs
+  "free_ligand_mmff" -- the latter used to be claimed unconditionally,
+  which was wrong for the provided case).
+- **The cone's length is the sweep's reach, not scalar salad.**
+  `metal_distance_a + sphere_radius_a` looks like a cone length and is
+  two unrelated numbers; the honest extent is the farthest vdW-sphere
+  edge `_half_angles` measured to, and the guard asserts the two DIFFER
+  on PPh3 so nobody swaps them back for tidiness.
+- **Shapes are state with one deliberate difference from the
+  visualization layer's machine**: a load DROPS pending shapes (their
+  coordinates are in the previous conformer's frame), where a pending
+  layer survives to replay. Both halves are guarded against the real
+  page, including the shapes-for-the-inflight-load case.
+
+The dipole arrow only exists when the magnitude survives the DISPLAYED
+precision -- benzene's residual vector is float noise, and "Dipole: 0.00"
+beside an arrow would be the panel disagreeing with itself. And the
+drawn length is display scaling (half the longest interatomic span,
+floored at 1 A) of a vector whose units are DEBYE -- the one unit
+confusion the whole annotation contract exists to forbid.
+
 ## The bond and molecule reports, and what generalising cost
 
 `AtomReport` was written with `AtomFact`/`FactCategory` deliberately free
