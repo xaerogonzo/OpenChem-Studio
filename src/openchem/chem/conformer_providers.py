@@ -264,6 +264,14 @@ class GenerationOptions:
     #: actually go: measured at 50 embeddings, seed 0, RMSD-only on both
     #: sides, (S)-ibuprofen falls 17 -> 10 across minimisation while
     #: de-duplication then removes NOTHING. See `benchmarks/conformers/`.
+    #:
+    #: **INERT WHEN `optimize` IS False**, deliberately: with no
+    #: minimisation there is no "before minimisation" -- the results ARE
+    #: the pre-opt population -- so recording a second copy of every
+    #: embedding would double the memory to say nothing. Stated here
+    #: because an empty list next to a set flag would otherwise read as
+    #: "no candidates", the exact could-not-measure-vs-nothing-there
+    #: confusion the funnel exists to remove.
     record_pre_optimisation: bool = False
 
     def level(self) -> tuple[int, float, int]:

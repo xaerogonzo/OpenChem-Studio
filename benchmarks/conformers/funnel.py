@@ -38,6 +38,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 from openchem.chem.conformer_providers import (  # noqa: E402
     DEFAULT_ENERGY_WINDOW,
+    ORIGIN_PROPERTY,
     DEFAULT_RMS_THRESHOLD,
     GenerationOptions,
     RDKitConformerProvider,
@@ -63,15 +64,15 @@ def _corpus() -> dict[str, str]:
 
 
 def _origin_index(batch) -> dict[str, Chem.Mol]:
-    """`_oc_origin` -> the molecule, for both populations.
+    """`ORIGIN_PROPERTY` -> the molecule, for both populations.
 
     Keyed on the tag rather than on a position, because `results` is sorted
     by energy and `pre_optimisation` is not, so index `i` names two
     different embeddings the moment anything fails to converge.
     """
-    index = {mol.GetProp("_oc_origin"): mol for mol, _energy in batch.results}
+    index = {mol.GetProp(ORIGIN_PROPERTY): mol for mol, _energy in batch.results}
     for mol in batch.pre_optimisation:
-        index.setdefault(mol.GetProp("_oc_origin") + " (pre-opt)", mol)
+        index.setdefault(mol.GetProp(ORIGIN_PROPERTY) + " (pre-opt)", mol)
     return index
 
 
@@ -224,9 +225,9 @@ def _inspect(runs: list[dict], origin: str, out: Path) -> int:
         writer = Chem.SDWriter(str(out))
         for mol, role in ((candidate, "discarded"), (representative, "representative")):
             tagged = Chem.Mol(mol)
-            tagged.SetProp("_Name", f"{role}: {mol.GetProp('_oc_origin')}")
+            tagged.SetProp("_Name", f"{role}: {mol.GetProp(ORIGIN_PROPERTY)}")
             tagged.SetProp("role", role)
-            tagged.SetProp("origin", mol.GetProp("_oc_origin"))
+            tagged.SetProp("origin", mol.GetProp(ORIGIN_PROPERTY))
             tagged.SetProp("pair_rmsd", f"{match.rmsd:.4f}")
             tagged.SetProp(
                 "pair_max_dihedral",
