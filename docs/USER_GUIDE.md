@@ -283,6 +283,21 @@ Duplicates are pruned, and the status line says what happened —
 "1 distinct conformer from 10 embedded". Aziridine and benzene have one
 conformer; butane has two. Requesting more does not create more.
 
+**Details…** in the 3D viewer's toolbar shows where a run's candidates
+went: how many embeddings were attempted, how many embedded, how many
+converged, how many distinct shapes they came to, and how many were
+returned. It computes nothing — every count was recorded when the run
+happened.
+
+The row worth reading is **Distinct** against **Returned**. A flexible
+molecule routinely finds more distinct conformers than the "distinct
+conformers to keep" limit, and the rest are simply not returned. They are
+real: they converged, and they differ under the same criterion as the ones
+you kept. The dialog says so explicitly when that is what happened, and
+generating again with a higher limit returns them. At the default of 10 a
+drug-like molecule can easily find 12–13, so this is the ordinary case
+rather than an unusual one.
+
 Two embeddings count as the same conformer when their heavy atoms and
 their polar hydrogens are within 0.5 Å RMSD, compared symmetry-aware so
 that the two ends of butane are not called different for having been

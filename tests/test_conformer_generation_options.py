@@ -25,6 +25,7 @@ from openchem.chem.conformer_providers import (
     distinct_conformers,
 )
 from openchem.chem.engine import ChemistryEngine
+from rdkit import Chem
 
 #: The most flexible molecule in the de-duplication corpus, and the only
 #: one whose retained count moves with the optimisation level.
@@ -328,3 +329,125 @@ def test_the_shipped_diversity_default_is_ours_and_is_not_claimed_as_marvins():
     OpenChem's own value and nothing in the code or the UI may present it
     as matching Marvin's."""
     assert DEFAULT_RMS_THRESHOLD == 0.5
+
+
+# --- the diagnostic snapshot, and the tracing it exists for -------------------
+
+
+def test_the_pre_optimisation_snapshot_is_off_unless_asked_for():
+    """It retains one molecule per embedding, so it is opt-in.
+
+    Also the control for every other test here: if the default ever flips,
+    a 500-embedding run starts holding 500 extra molecules for the life of
+    the batch and nothing in the UI would say so.
+    """
+    mol = Chem.MolFromSmiles(PENTANE)
+    provider = RDKitConformerProvider(random_seed=0)
+
+    quiet = provider.generate_conformer_batch(mol, 6, optimize=True)
+    assert quiet.pre_optimisation == []
+    assert GenerationOptions().record_pre_optimisation is False
+
+    loud = provider.generate_conformer_batch(
+        mol, 6, optimize=True, options=GenerationOptions(record_pre_optimisation=True)
+    )
+    assert len(loud.pre_optimisation) == loud.attempted - loud.embedding_failures
+
+
+def test_a_snapshot_and_its_conformer_carry_the_same_origin():
+    """The tracing mechanism, asserted rather than assumed.
+
+    Everything downstream of embedding sorts, filters and truncates, so a
+    LIST POSITION is not an identity -- `pre_optimisation[i]` and
+    `results[i]` describe different embeddings as soon as one fails to
+    converge, and `results` is sorted by energy regardless. The whole
+    forensic path rests on the two copies carrying the same origin, so
+    that is what is checked.
+    """
+    from openchem.chem.conformer_providers import ORIGIN_PROPERTY
+
+    batch = RDKitConformerProvider(random_seed=0).generate_conformer_batch(
+        Chem.MolFromSmiles(PENTANE),
+        8,
+        optimize=True,
+        options=GenerationOptions(record_pre_optimisation=True),
+    )
+    snapshots = {mol.GetProp(ORIGIN_PROPERTY) for mol in batch.pre_optimisation}
+    conformers = {mol.GetProp(ORIGIN_PROPERTY) for mol, _energy in batch.results}
+
+    assert len(snapshots) == len(batch.pre_optimisation), "origins must be unique"
+    # Every converged conformer traces back to a snapshot. The reverse need
+    # not hold: an embedding that failed to minimise has a snapshot and no
+    # conformer, which is exactly the case a positional pairing gets wrong.
+    assert conformers <= snapshots
+    assert all(origin.startswith("seed=0 embedding=") for origin in snapshots)
+
+
+def test_the_origin_tag_does_not_reach_a_saved_project(engine):
+    """Diagnostic provenance is stripped at every persistence boundary.
+
+    `ConformerModel.molblock` is written through
+    `ChemistryEngine.mol_to_molblock`, and RDKit omits underscore-prefixed
+    properties from a molblock -- so today the tag cannot reach a saved
+    project. **That is a property of one serialiser, not a guarantee**, and
+    a future exporter that wrote every property would silently start
+    shipping internal diagnostics into users' files. Asserted at the
+    boundary so the rule is enforced rather than relied upon.
+    """
+    from openchem.chem.conformer_providers import ORIGIN_PROPERTY
+
+    batch = RDKitConformerProvider(random_seed=0).generate_conformer_batch(
+        Chem.MolFromSmiles(PENTANE),
+        4,
+        optimize=True,
+        options=GenerationOptions(record_pre_optimisation=True),
+    )
+    conf_mol = batch.results[0][0]
+    assert conf_mol.HasProp(ORIGIN_PROPERTY), "the tag must be present or this proves nothing"
+
+    molblock = engine.mol_to_molblock(conf_mol)
+    assert ORIGIN_PROPERTY not in molblock
+    # And the conformer itself is otherwise intact -- the atoms survived.
+    assert Chem.MolFromMolBlock(molblock, removeHs=False).GetNumAtoms() == conf_mol.GetNumAtoms()
+
+
+def test_the_snapshot_flag_changes_no_production_conformer():
+    """The instrumentation is observational, asserted rather than believed.
+
+    `record_pre_optimisation` touches `generate_conformer_batch`, which is
+    the production path, so the guard compares what production RETURNS with
+    the flag off and on: the actual conformer coordinates in their existing
+    atom ordering -- not re-embedded, not aligned, not canonicalised, since
+    normalising is exactly what would hide a changed result -- plus the
+    energies and the order. Only the diagnostic snapshot may differ.
+    """
+    mol = Chem.MolFromSmiles(PENTANE)
+
+    def fingerprint(options):
+        batch = RDKitConformerProvider(random_seed=7).generate_conformer_batch(
+            mol, 10, optimize=True, options=options
+        )
+        population = []
+        for conf_mol, energy in batch.results:
+            conformer = conf_mol.GetConformer()
+            population.append(
+                (
+                    round(energy, 9),
+                    tuple(
+                        (round(conformer.GetAtomPosition(i).x, 6),
+                         round(conformer.GetAtomPosition(i).y, 6),
+                         round(conformer.GetAtomPosition(i).z, 6))
+                        for i in range(conf_mol.GetNumAtoms())
+                    ),
+                )
+            )
+        return batch, population
+
+    off_batch, off = fingerprint(GenerationOptions())
+    on_batch, on = fingerprint(GenerationOptions(record_pre_optimisation=True))
+
+    assert off == on, "recording the diagnostic changed a production conformer"
+    assert (off_batch.attempted, off_batch.converged) == (on_batch.attempted, on_batch.converged)
+    # The arms differ in exactly the one thing the flag controls.
+    assert off_batch.pre_optimisation == []
+    assert on_batch.pre_optimisation

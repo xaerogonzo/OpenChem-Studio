@@ -168,8 +168,47 @@ def _set_overlap(per_seed: list[list]) -> dict:
     }
 
 
+def _one(c) -> dict:
+    return {
+        "rmsd": round(c.rmsd, 4),
+        "energy_difference": None if c.energy_difference is None else round(c.energy_difference, 3),
+        "tfd": None if c.tfd is None else round(c.tfd, 4),
+        "max_dihedral_change": None if c.max_dihedral_change is None else round(c.max_dihedral_change, 1),
+        "merged": c.merged,
+        "candidate_origin": c.candidate_origin,
+        "representative_origin": c.representative_origin,
+    }
+
+
+def _population(candidates, rank) -> dict:
+    """One side of the merge decision, described the same way as the other.
+
+    `rank` picks the extremes worth keeping in full, and it DIFFERS between
+    the two populations on purpose -- see `_summarise`.
+    """
+    if not candidates:
+        return {"pairs": 0}
+    measured = [c for c in candidates if c.max_dihedral_change is not None]
+    return {
+        "pairs": len(candidates),
+        "rmsd_min": round(min(c.rmsd for c in candidates), 4),
+        "rmsd_max": round(max(c.rmsd for c in candidates), 4),
+        # How many moved a real torsion, at three cuts rather than one, so
+        # the SHAPE of the distribution survives into the file. A single
+        # threshold here would be the same mistake the RMSD threshold made.
+        "torsion_over_30": sum(1 for c in measured if c.max_dihedral_change > 30),
+        "torsion_over_60": sum(1 for c in measured if c.max_dihedral_change > 60),
+        "torsion_over_90": sum(1 for c in measured if c.max_dihedral_change > 90),
+        # A diagnostic that could not answer is NOT a zero. Counted, so a
+        # population that is mostly unmeasured cannot be read as a
+        # population that mostly did not move.
+        "torsion_unavailable": len(candidates) - len(measured),
+        "worst": [_one(c) for c in sorted(candidates, key=rank)[:5]],
+    }
+
+
 def _summarise(candidates) -> dict:
-    """Aggregates plus the few pairs worth looking at individually.
+    """Both sides of the merge decision, described symmetrically.
 
     A RECORD, not a raw dump. Storing every candidate put ethylmorphine
     alone at ~5000 entries and the file at 588 KB, which is then
@@ -178,28 +217,34 @@ def _summarise(candidates) -> dict:
     The extremes are kept in full because they are the ones anybody
     investigating will want to see, and they are what the docstrings in
     `conformer_providers` quote.
-    """
-    def _one(c) -> dict:
-        return {
-            "rmsd": round(c.rmsd, 4),
-            "energy_difference": None if c.energy_difference is None else round(c.energy_difference, 3),
-            "tfd": None if c.tfd is None else round(c.tfd, 4),
-            "max_dihedral_change": None if c.max_dihedral_change is None else round(c.max_dihedral_change, 1),
-            "merged": c.merged,
-        }
 
-    vetoed = [c for c in candidates if not c.merged]
+    **THE MERGED SIDE USED TO BE A BARE COUNT, and it is the side that
+    matters for "is de-duplication throwing things away".** A vetoed pair
+    was RETAINED -- it is not a loss -- while a merged pair is a structure
+    that no longer exists in the result. Reporting the first in detail and
+    the second as an integer meant the discarded population was the one
+    population nobody could look at.
+
+    **THE TWO SIDES ARE RANKED BY DIFFERENT THINGS, deliberately.** A
+    vetoed pair is interesting when the energy gap is large and the
+    geometry saw nothing, so it ranks by dE. A merged pair is interesting
+    when a real torsion moved and the merge happened anyway, and dE cannot
+    express that -- ranking the merged side by dE returned five pairs
+    differing by 0.27 kcal/mol and said nothing at all.
+    """
     return {
+        # Kept at the top level: `score.py` reads these, and the docstrings
+        # in `conformer_providers` quote them.
         "examined": len(candidates),
-        "vetoed": len(vetoed),
-        # The band the veto operates in -- if these ever reach down to
-        # _IDENTICAL_SHAPE_RMSD the floor is doing nothing.
-        "vetoed_rmsd_min": round(min((c.rmsd for c in vetoed), default=0.0), 4),
-        "vetoed_rmsd_max": round(max((c.rmsd for c in vetoed), default=0.0), 4),
-        "worst": [
-            _one(c)
-            for c in sorted(candidates, key=lambda c: -(c.energy_difference or 0.0))[:5]
-        ],
+        "vetoed": sum(1 for c in candidates if not c.merged),
+        "merged_away": _population(
+            [c for c in candidates if c.merged],
+            rank=lambda c: -(c.max_dihedral_change or 0.0),
+        ),
+        "vetoed_merge": _population(
+            [c for c in candidates if not c.merged],
+            rank=lambda c: -(c.energy_difference or 0.0),
+        ),
     }
 
 

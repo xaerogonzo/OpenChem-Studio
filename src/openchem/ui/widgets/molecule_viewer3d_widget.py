@@ -209,6 +209,22 @@ class MoleculeViewer3DWidget(QWidget):
         self._status_label = QLabel("No conformers", self)
         self._measurement_label = QLabel("", self)
 
+        self._details_button = QPushButton("Details...", self)
+        self._details_button.setToolTip(
+            "Where this run's candidates went: how many were embedded, how many\n"
+            "converged, how many distinct shapes they came to, and how many were\n"
+            "returned.\n\n"
+            "Fewer returned than distinct means the run found more conformers than\n"
+            "it was asked to keep -- the rest are real and a higher limit returns\n"
+            "them."
+        )
+        self._details_button.clicked.connect(self._show_generation_details)
+        # Explicit rather than left to the `_refresh_view` that runs during
+        # construction: there is nothing to describe before a run exists,
+        # and a button that opens an empty dialog is the failure this line
+        # of work keeps finding.
+        self._details_button.setEnabled(False)
+
         # **THIS ROW WRAPS, AND THE WHOLE WINDOW DEPENDED ON IT.** As a
         # `QHBoxLayout` these fourteen controls made this widget's minimum
         # width the SUM of them -- measured, 1252 px of controls plus
@@ -240,6 +256,10 @@ class MoleculeViewer3DWidget(QWidget):
             self._prev_button,
             self._status_label,
             self._next_button,
+            # Into the SAME flow row -- a new QHBoxLayout for it would
+            # reintroduce the sum-of-children minimum the comment above is
+            # about, one control at a time.
+            self._details_button,
         ):
             toolbar.layout().addWidget(control)
 
@@ -339,6 +359,28 @@ class MoleculeViewer3DWidget(QWidget):
             self._status_label.setText(event.message or "Generating...")
         elif event.state == CacheState.FAILED:
             self._status_label.setText(f"Failed: {event.message}")
+
+    def _show_generation_details(self) -> None:
+        """Where this run's candidates went, from the conformer's provenance.
+
+        Reads the conformer ON SCREEN rather than `conformers[0]`, for the
+        same reason "Use in 2D Editor" does: in a gallery the two are
+        routinely different, and describing a run while the user is looking
+        at another one is the class of mismatch this file keeps hitting.
+
+        In practice every conformer in a batch shares one `Provenance`
+        object -- `_ConformerGenerationTask` stamps it once across the run
+        -- so this is about being right when that stops being true rather
+        than about the counts differing today.
+        """
+        from openchem.ui.dialogs.conformer_details_dialog import ConformerDetailsDialog
+
+        conformer = None
+        if self._molecule is not None and self._molecule.conformers:
+            index = min(self._conformer_index, len(self._molecule.conformers) - 1)
+            conformer = self._molecule.conformers[index]
+        dialog = ConformerDetailsDialog(conformer, self)
+        dialog.exec()
 
     def _show_previous_conformer(self) -> None:
         if self._molecule is None:
@@ -546,10 +588,12 @@ class MoleculeViewer3DWidget(QWidget):
             # is present but does nothing is the failure this whole line
             # of work keeps finding.
             self._use_button.setEnabled(False)
+            self._details_button.setEnabled(False)
             return
         if self._gallery and hasattr(self._backend, "load_conformer_grid"):
             self._refresh_gallery()
             self._use_button.setEnabled(True)
+            self._details_button.setEnabled(True)
             return
         conformer = self._molecule.conformers[self._conformer_index]
         # THE DISPLAY-ALIGNED COPY, not the retained conformer. Every
@@ -566,6 +610,7 @@ class MoleculeViewer3DWidget(QWidget):
         )
         self._backend.load_conformer(molblock, structure_key=self._structure_key())
         self._use_button.setEnabled(True)
+        self._details_button.setEnabled(True)
         self._status_label.setText(self._conformer_label(conformer))
         self._status_label.setToolTip(
             f"Absolute energy {conformer.energy:.4f} kcal/mol"

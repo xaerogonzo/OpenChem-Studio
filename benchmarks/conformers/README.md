@@ -53,6 +53,87 @@ the scorer does not treat it as one.
   **0.75** — the weakest agreement in the corpus, and the reason its
   union (17) exceeds its single-run reference (12).
 
+## `funnel.py` — where the candidates actually go
+
+`score.py` answers "how many". `funnel.py` answers "where did the rest
+go", for one molecule, which is the question a count cannot reach:
+
+```bash
+uv run --no-sync python benchmarks/conformers/funnel.py ethylmorphine
+uv run --no-sync python benchmarks/conformers/funnel.py "CCCCO" --seeds 3
+uv run --no-sync python benchmarks/conformers/funnel.py ethylmorphine --inspect "seed=0 embedding=17"
+```
+
+It prints every stage — requested, attempted, embedded, converged,
+distinct before minimisation, distinct by RMSD alone, distinct under the
+shipped criterion, returned after the cap — and then the pairs that were
+**discarded**, with the origin of each so `--inspect` can write the pair
+out as an SDF and you can look at the structures.
+
+**It is observational and delegates every stage to production.** The
+RMSD-only arm is production de-duplication with the energy window at
+infinity (`NO_VETO`); the cap is `select_for_return`; the criterion is
+`distinct_conformers`. There is no funnel-local notion of conformer
+identity, ordering or truncation, and a disagreement with the running app
+is a bug here rather than a finding about conformers.
+
+**Per-seed is the authoritative view; the pooled aggregate is not.**
+Production never pools seeds, so the union across seeds says how much of
+the space one run misses and must never be read as a number of conformers
+production keeps or loses.
+
+### Three words that are not interchangeable
+
+| term | meaning |
+| --- | --- |
+| **merged away** | discarded — production judged it the same conformer |
+| **vetoed merge** | **retained** as a separate conformer; energy declined the merge |
+| **truncated** | a valid distinct conformer omitted only by the keep limit |
+
+A vetoed pair is not a loss. Reading the vetoed count as "conformers
+thrown away" inverts the meaning of the number.
+
+### What it found, and what it did not
+
+Measured at 50 embeddings, seed 0, on the corpus:
+
+```
+molecule         embedded  distinct PRE-opt  converged  POST-opt  POST shipped
+cyclohexane            50          1               50        1          2
+(S)-ibuprofen          50         17               50       10         10
+ethylmorphine          50          8               50        2         10
+```
+
+- **De-duplication is not where the candidates go.** On ibuprofen it
+  removes nothing at all — 10 by RMSD alone, 10 under the shipped
+  criterion. The 17 → 10 fall is minimisation converging distinct starts
+  into shared minima, which is what minimisation is for.
+- **The discarded pairs are degenerate, not distinct.** Of the merged
+  pairs whose largest corrected torsion moved more than 90 degrees, the
+  greatest energy difference is 0.0000 (butane), 0.0000 (pentane), 0.0009
+  (ibuprofen) and 0.0680 (ethylmorphine) kcal/mol. Equal energy with a
+  large torsion is the signature of a mirror-image pair, and butane's are
+  exactly its g+/g− forms at ±65 degrees — merging which is what produces
+  the textbook count of 2.
+- **Sampling is the constraint at the rigid end.** Cyclohexane's 50
+  embeddings are all one shape before minimisation; the twist-boat arrives
+  only through the energy veto.
+
+`n/a` in the torsion columns covers two situations and ethanol is the
+common one: RDKit's torsion enumeration is **empty** for a skeleton as
+small as C-C-O-H, so there is nothing to measure rather than a measurement
+that failed. Either way it is never printed as 0.
+
+## Which numbers are regression controls
+
+The per-molecule counts, unions and coverages are **means and ranges over
+five seeds**, not the expected result of any single run — ethylmorphine's
+12.8 [10-14] is a distribution. Exact comparison is only meaningful for a
+fixed seed at a pinned RDKit version and embedding count, which is what
+`build_predictions.py` writes into the `environment` block. Treat a
+difference in the last digit of a mean as sampling, and re-measure before
+treating it as a change.
+
 ## Two traps already paid for
 
 **Seed bases must be strided.** `RDKitConformerProvider` uses

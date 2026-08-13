@@ -355,3 +355,213 @@ def test_the_diagnostic_and_the_decision_come_from_the_same_scan():
         f"{len(merged)} merges reported against {len(batch.results) - len(kept)} conformers "
         f"actually dropped -- the diagnostic is describing a different run"
     )
+
+
+# --- the torsion diagnostic, and the symmetry it used to be blind to ---
+
+
+#: (S)-ibuprofen. Its para-substituted ring makes a 180-degree flip an
+#: AUTOMORPHISM, so two embeddings can superimpose exactly while a raw
+#: fixed-index dihedral reads half a turn. Measured at seed 0 over 12
+#: embeddings: 10 such pairs, `GetBestRMS` ~1e-5 against a naive reading
+#: of 179.8 degrees.
+_RING_FLIP_SMILES = "CC(C)Cc1ccc(cc1)[C@@H](C)C(=O)O"
+
+#: Below this the two structures are the same shape by any reading, so a
+#: large dihedral between them can only be a labelling artefact.
+_SUPERIMPOSED = 0.05
+
+
+def _naive_max_dihedral(first: Chem.Mol, second: Chem.Mol) -> float:
+    """The metric this module USED to ship: fixed indices, no correspondence.
+
+    Written out here rather than imported, so the guard does not require
+    production to keep a "raw" helper alive purely to be tested against. It
+    is the whole of the old implementation, periodic wrap included, so the
+    only thing separating it from the current one is the symmetry
+    correction.
+    """
+    from rdkit.Chem import TorsionFingerprints, rdMolTransforms
+
+    nonring, rings = TorsionFingerprints.CalculateTorsionLists(first)
+    worst = 0.0
+    for atom_groups, _method in list(nonring) + list(rings):
+        for atoms in atom_groups:
+            a = rdMolTransforms.GetDihedralDeg(first.GetConformer(), *atoms)
+            b = rdMolTransforms.GetDihedralDeg(second.GetConformer(), *atoms)
+            worst = max(worst, abs((a - b + 180.0) % 360.0 - 180.0))
+    return worst
+
+
+def test_a_symmetry_equivalent_pair_is_not_reported_as_a_half_turn():
+    """The defect that would have made a funnel report a fake over-merge.
+
+    `GetBestRMS` is symmetry-aware and the old dihedral reading was not, so
+    a pair of structures that superimpose EXACTLY reported a 180-degree
+    torsion change. Measured on ibuprofen at 50 embeddings, 33 of 40 merged
+    pairs flagged a torsion moving more than 90 degrees -- so anything
+    asking "did de-duplication discard a real conformational difference"
+    answered yes on the first molecule tried.
+
+    **The naive arm is asserted too**, so this fails if somebody removes
+    the correction: without it the two numbers agree and the test would be
+    testing nothing.
+
+    A structure against an exact `Chem.Mol` copy of itself will NOT show
+    this -- same atom ordering, so both metrics read zero. It takes two
+    genuinely different embeddings that happen to superimpose, which is why
+    the pair is SEARCHED FOR rather than named by index: the batch is
+    sorted by energy, so a positional fixture silently points somewhere
+    else the moment an energy moves.
+    """
+    from openchem.chem.conformer_providers import _torsion_deviation
+
+    results = _generate(_RING_FLIP_SMILES, count=12, seed=0)
+    superimposed = [
+        (first, second, rmsd)
+        for i, (first, _e1) in enumerate(results)
+        for second, _e2 in results[i + 1:]
+        if (rmsd := rdMolAlign.GetBestRMS(comparison_skeleton(first), comparison_skeleton(second)))
+        < _SUPERIMPOSED
+    ]
+    assert superimposed, "no pair superimposes, so this fixture cannot show the artefact"
+
+    # ASSERT THE SETUP. Without a pair the naive metric gets wrong, the
+    # correction has nothing to demonstrate and this test passes vacuously.
+    artefacts = [
+        (first, second, rmsd)
+        for first, second, rmsd in superimposed
+        if _naive_max_dihedral(first, second) > 90.0
+    ]
+    assert artefacts, (
+        "the naive metric no longer reads a half turn on any superimposed pair, "
+        "so this fixture no longer demonstrates the defect being guarded against"
+    )
+
+    for first, second, rmsd in artefacts:
+        _tfd, corrected, _atoms = _torsion_deviation(first, second)
+        assert corrected is not None
+        assert corrected < 5.0, (
+            f"structures that superimpose to {rmsd:.5f} A reported a {corrected:.1f} deg "
+            f"torsion change -- the dihedral is being read under a different atom "
+            f"correspondence than the merge decision used"
+        )
+
+
+def test_the_dihedral_is_periodic_in_both_directions():
+    """+179 against -179 is 2 degrees, not 358.
+
+    A quadruple traversed the other way round has the opposite SIGN, so a
+    plain subtraction turns a two-degree wobble into most of a full turn.
+    Asserted on the arithmetic directly: a molecular fixture exercising it
+    would also be exercising the symmetry correction, and the two effects
+    would be impossible to tell apart.
+    """
+    def delta(a: float, b: float) -> float:
+        return abs((a - b + 180.0) % 360.0 - 180.0)
+
+    assert delta(179.0, -179.0) == pytest.approx(2.0)
+    assert delta(-179.0, 179.0) == pytest.approx(2.0)
+    assert delta(350.0, 10.0) == pytest.approx(20.0)
+    assert delta(0.0, 180.0) == pytest.approx(180.0)
+
+
+def test_the_diagnostic_uses_the_same_alignment_the_merge_used():
+    """A correspondence that is not the merge's describes a different pairing.
+
+    `_torsion_deviation` takes its atom mapping from
+    `GetBestAlignmentTransform` while `_merge_scan` decides on
+    `GetBestRMS`. They agree to ~1e-6, which is what makes the diagnostic a
+    statement about the merge that actually happened -- so it is checked
+    rather than believed, and production declines to answer when the check
+    fails.
+    """
+    from openchem.chem.conformer_providers import _ALIGNMENT_AGREEMENT
+
+    results = _generate(_RING_FLIP_SMILES, count=8, seed=0)
+    worst = 0.0
+    for i in range(len(results)):
+        for j in range(i + 1, len(results)):
+            probe = comparison_skeleton(results[i][0])
+            reference = comparison_skeleton(results[j][0])
+            best = rdMolAlign.GetBestRMS(probe, reference)
+            aligned, _transform, _map = rdMolAlign.GetBestAlignmentTransform(probe, reference)
+            worst = max(worst, abs(best - aligned))
+    assert worst < _ALIGNMENT_AGREEMENT, (
+        f"the two alignments disagree by {worst:.2e}, so the tolerance no longer "
+        f"has the headroom it was measured with"
+    )
+
+
+def test_a_diagnostic_that_cannot_answer_reports_None_rather_than_zero():
+    """Could-not-measure is not nothing-moved.
+
+    The whole lesson of the 180-degree reading is that a wrong number is
+    worse than no number, so a failure has to stay distinguishable from a
+    zero. Generation must survive it -- the diagnostic is never
+    load-bearing -- and the MERGE OUTCOME must be untouched, which is the
+    half that would matter if this ever fired in production.
+    """
+    from openchem.chem import conformer_providers
+    from openchem.chem.conformer_providers import _merge_scan
+
+    results = _generate("OCCO", count=10, seed=0)
+    before_kept, before_candidates = _merge_scan(
+        results, DEFAULT_RMS_THRESHOLD, DEFAULT_ENERGY_WINDOW, True
+    )
+
+    original = conformer_providers.rdMolAlign.GetBestAlignmentTransform
+
+    def refuse(*_args, **_kwargs):
+        raise RuntimeError("alignment declined")
+
+    conformer_providers.rdMolAlign.GetBestAlignmentTransform = refuse
+    try:
+        kept, candidates = _merge_scan(
+            results, DEFAULT_RMS_THRESHOLD, DEFAULT_ENERGY_WINDOW, True
+        )
+    finally:
+        conformer_providers.rdMolAlign.GetBestAlignmentTransform = original
+
+    assert candidates, "the fixture must produce merge candidates or this asserts nothing"
+    assert all(c.max_dihedral_change is None for c in candidates)
+    assert all(c.tfd is None for c in candidates)
+    assert len(kept) == len(before_kept)
+    assert [c.merged for c in candidates] == [c.merged for c in before_candidates]
+
+
+def test_origin_tags_cannot_reach_the_merge_decision():
+    """Diagnostic metadata must not be readable from any comparison.
+
+    `ORIGIN_PROPERTY` rides along on the molecules the merge scan walks, so
+    a stray equality on the mol -- or a future criterion that hashed
+    properties -- could make two structures compare differently for a
+    reason that has nothing to do with their shape. Tagged and untagged
+    runs must decide identically.
+    """
+    from openchem.chem.conformer_providers import ORIGIN_PROPERTY, _merge_scan
+
+    # PRODUCTION TAGS UNCONDITIONALLY -- `_embed_one` stamps every
+    # embedding -- so the tagged arm is simply the results as generated,
+    # and the UNtagged arm is the one that has to be constructed. The
+    # first version of this test had that backwards: it assumed
+    # `_generate` returned bare molecules, and the "untagged" control was
+    # tagged all along.
+    results = _generate("CCCCO", count=10, seed=3)
+    tagged_kept, tagged = _merge_scan(
+        results, DEFAULT_RMS_THRESHOLD, DEFAULT_ENERGY_WINDOW, False
+    )
+
+    for mol, _energy in results:
+        mol.ClearProp(ORIGIN_PROPERTY)
+    untagged_kept, untagged = _merge_scan(
+        results, DEFAULT_RMS_THRESHOLD, DEFAULT_ENERGY_WINDOW, False
+    )
+
+    assert len(tagged_kept) == len(untagged_kept)
+    assert [c.merged for c in tagged] == [c.merged for c in untagged]
+    assert [round(c.rmsd, 9) for c in tagged] == [round(c.rmsd, 9) for c in untagged]
+    # And the arms really differ in what this test varies, or they agreed
+    # for a boring reason.
+    assert all(c.candidate_origin is not None for c in tagged)
+    assert all(c.candidate_origin is None for c in untagged)

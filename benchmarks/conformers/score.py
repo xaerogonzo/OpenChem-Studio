@@ -162,26 +162,60 @@ def main(argv: list[str]) -> int:
         print(f"{entry['name']:<20} " + " ".join(cells))
 
     print()
-    print("merge candidates: pairs close enough geometrically to merge, and what")
-    print("the other measures said. A kept-apart pair with a LOW max-dihedral is")
-    print("one where both geometric measures were blind and only energy saw it.")
-    print(f"{'molecule':<20} {'pairs':>6} {'vetoed':>7} {'worst dE':>9} {'its TFD':>8} {'its maxDih':>11}")
-    print("-" * 72)
+    print("merge candidates: pairs close enough geometrically to merge.")
+    print("  MERGED AWAY  discarded -- production judged them the same conformer.")
+    print("  VETOED       RETAINED as separate conformers; energy declined the merge.")
+    print("A vetoed pair is not a loss. The merged side is the one to read when")
+    print("asking whether de-duplication is throwing real conformers away, and")
+    print("`t>90` counts pairs whose largest torsion moved more than 90 degrees")
+    print("under the SYMMETRY-CORRECTED metric -- a population to inspect, never")
+    print("a defect on its own: a real torsion can move between two structures")
+    print("that are genuinely the same shape by every other measure.")
+    print(
+        f"{'molecule':<20} {'pairs':>6} | {'merged':>7} {'t>60':>5} {'t>90':>5} {'n/a':>4} "
+        f"{'worst dih':>10} | {'vetoed':>7} {'worst dE':>9} {'its dih':>8}"
+    )
+    print("-" * 100)
     for entry, prediction in zip(molecules, predictions):
         summaries = [r["merge_candidates"] for r in prediction["runs"] if "error" not in r]
+        if not summaries:
+            continue
+        if "merged_away" not in summaries[0]:
+            print(
+                f"REFUSED: {entry['name']}'s merge candidates predate the merged/vetoed "
+                f"split. Regenerate with build_predictions.py rather than reading a "
+                f"file whose discarded population was never recorded."
+            )
+            return 1
         examined = sum(s["examined"] for s in summaries)
         if not examined:
             print(f"{entry['name']:<20} {0:>6}")
             continue
-        vetoed = sum(s["vetoed"] for s in summaries)
-        worst = max(
-            (c for s in summaries for c in s["worst"]),
-            key=lambda c: c["energy_difference"] or 0.0,
+        merged = [s["merged_away"] for s in summaries if s["merged_away"]["pairs"]]
+        vetoed = [s["vetoed_merge"] for s in summaries if s["vetoed_merge"]["pairs"]]
+        m_pairs = sum(s["pairs"] for s in merged)
+        v_pairs = sum(s["pairs"] for s in vetoed)
+        worst_dih = max(
+            (c["max_dihedral_change"] or 0.0 for s in merged for c in s["worst"]), default=0.0
+        )
+        worst_de = max(
+            (c["energy_difference"] or 0.0 for s in vetoed for c in s["worst"]), default=0.0
+        )
+        its_dih = max(
+            (
+                c["max_dihedral_change"] or 0.0
+                for s in vetoed
+                for c in s["worst"]
+                if (c["energy_difference"] or 0.0) == worst_de
+            ),
+            default=0.0,
         )
         print(
-            f"{entry['name']:<20} {examined:>6} {vetoed:>7} "
-            f"{worst['energy_difference'] or 0:>9.2f} {worst['tfd'] if worst['tfd'] is not None else -1:>8.3f} "
-            f"{worst['max_dihedral_change'] if worst['max_dihedral_change'] is not None else -1:>11.1f}"
+            f"{entry['name']:<20} {examined:>6} | {m_pairs:>7} "
+            f"{sum(s['torsion_over_60'] for s in merged):>5} "
+            f"{sum(s['torsion_over_90'] for s in merged):>5} "
+            f"{sum(s['torsion_unavailable'] for s in merged):>4} "
+            f"{worst_dih:>10.1f} | {v_pairs:>7} {worst_de:>9.2f} {its_dih:>8.1f}"
         )
 
     print()
