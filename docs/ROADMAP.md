@@ -508,7 +508,9 @@ None of that is blocked — the `SpectrumResult` family was shaped so a
 `UvVisSpectrumResult` is an addition rather than a refactor, which is
 precisely what makes deferring it safe.
 
-##### ωB97X-D HAS NOW BEEN TRIED, AND IT MOVES BENZENE THE WRONG WAY
+##### ωB97X-D3 HAS NOW BEEN TRIED, AND IT MOVES BENZENE THE WRONG WAY
+
+**The functional actually run is ωB97X-D3, not ωB97X-D.** The ORCA header is `wB97X-D3` and ORCA reports applying `WB97X-D3` with range separation μ = 0.25 and an atom-pairwise dispersion correction. The two differ in their dispersion treatment and are not the same functional; this section said "ωB97X-D" for a while and was wrong. The conclusion is unaffected — the blue shift is a property of range separation, which both share — but the label has to match what ran.
 
 The line above used to end "and has not been tried". It has been, on
 ORCA 6.1.1 with pre-registered acceptance criteria, and the full method,
@@ -529,7 +531,7 @@ The carbonyls were never the problem and stay excellent everywhere —
 formaldehyde and acetone land within 0.05 eV in all three arms, both
 correctly dark.
 
-**The one genuinely new finding is that ωB97X-D fixes what diffuse
+**The one genuinely new finding is that ωB97X-D3 fixes what diffuse
 functions broke.** The recorded intensity collapse at def2-SVPD — *f*
 0.96 → 0.083, Rydberg states fragmenting the valence π→π\* — is a
 **B3LYP** failure, not a basis-set one. With ωB97X-D3/def2-SVPD the
@@ -539,6 +541,41 @@ band is still identified correctly, at the cost of a worse position
 cannot be minimised by one setting, which is the existing conclusion —
 now confirmed against the functional that was supposed to resolve it
 rather than only against basis sets.
+
+###### TRIPLE ZETA HELPS SUBSTANTIALLY, AND STILL DOES NOT REACH IT
+
+Everything above is **double-zeta**. The untried axis was valence basis
+QUALITY rather than diffuseness, and it turns out to carry a large part of
+the error — just not all of it. Measured on the same shared geometries at
+`nroots 30`:
+
+| benzene band | B3LYP/SVP | B3LYP/TZVP | B3LYP/TZVPD |
+|---|---|---|---|
+| ¹B₂ᵤ 4.90 | +0.59 | +0.50 | **+0.48** |
+| ¹B₁ᵤ 6.20 | +0.27 | +0.08 | **+0.04** |
+| ¹E₁ᵤ 6.94 | +0.98 | +0.66 | **+0.57** |
+
+¹B₁ᵤ was almost entirely basis-limited (+0.27 → +0.04), and pyridine's
+analogue behaves the same way (+0.32 → +0.10). But the best arm still fails
+benzene's ¹B₂ᵤ at +0.48 and ¹E₁ᵤ at +0.57 against a 0.30 eV criterion.
+**Six arms, no candidate.** The carbonyls stay excellent everywhere and
+strongest-band identity passes everywhere; it is valence π→π\* in aromatics,
+and only that, at every basis tried.
+
+**The ωB97X-D3 conclusion is not a basis artefact**, which needed checking
+because it was drawn at def2-SVP alone. At def2-TZVP it is +0.80 against
+B3LYP's +0.66 — a 0.14 eV gap where SVP gave 0.12. The range-separated
+hybrid really does blue-shift valence π→π\* further, independently of basis.
+
+**A single fitted scaling factor cannot rescue it either**, and that needed
+no new run: the carbonyls need a factor of 1.00 and the aromatics 0.88, so
+the best single factor leaves 3 of 9 bands outside tolerance *and breaks the
+carbonyls that were already right*. `benchmarks/ir/`'s approach does not
+transfer.
+
+So the refusal now rests on the basis axis being tested rather than assumed,
+and what remains open is whether a wavefunction method reaches it at all —
+`benchmarks/uvvis/README.md` carries the full tables.
 
 **A benchmark exists for this now**, which is the durable part:
 `benchmarks/uvvis/` is scoreable and runnable, with a B3LYP control that
