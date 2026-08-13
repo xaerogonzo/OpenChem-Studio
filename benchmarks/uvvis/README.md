@@ -6,8 +6,10 @@ shipped, and names the untried lead in the same breath — "a range-separated
 hybrid such as ωB97X-D is the more promising lead than any basis change, and
 **has not been tried**."
 
-It has now been tried. **It does not rescue it, and it makes band positions
-worse.**
+It has now been tried — as **ωB97X-D3**, which is what the ORCA keyword
+`wB97X-D3` selects and is *not* the same functional as ωB97X-D (they differ
+in dispersion treatment). **It does not rescue it, and it makes band
+positions worse.**
 
 ```bash
 python benchmarks/uvvis/generate.py <scratch dir> --orca "D:\ORCA\orca.exe"
@@ -49,9 +51,9 @@ Formaldehyde's n→π\* lands at 4.075 / 4.104 / 4.079 eV against 4.07, acetone'
 at 4.446 / 4.518 / 4.531 against 4.48 — every arm inside 0.05 eV, and every
 arm correctly reports both as dark (*f* < 0.01 for a symmetry-forbidden band).
 
-**Benzene is where it fails, and ωB97X-D moves it the wrong way:**
+**Benzene is where it fails, and ωB97X-D3 moves it the wrong way:**
 
-| benzene band | exp | B3LYP/SVP | ωB97X-D/SVP | ωB97X-D/SVPD |
+| benzene band | exp | B3LYP/SVP | ωB97X-D3/SVP | ωB97X-D3/SVPD |
 |---|---|---|---|---|
 | ¹B₂ᵤ | 4.90 | +0.59 | **+0.73** | +0.64 |
 | ¹B₁ᵤ | 6.20 | +0.27 | **+0.40** | +0.26 |
@@ -61,14 +63,14 @@ A range-separated hybrid blue-shifts valence π→π\* further, which is the
 opposite of what was needed. The best position achieved for the strongest band
 is ωB97X-D3/def2-SVPD at **+0.84 eV**, still nearly three times the criterion.
 
-### The one genuinely new finding: ωB97X-D fixes what diffuse functions broke
+### The one genuinely new finding: ωB97X-D3 fixes what diffuse functions broke
 
 ROADMAP records that adding diffuse functions to **B3LYP** halves the position
 error and destroys the intensity — *f* collapsing 0.96 → 0.083, an order of
 magnitude too weak, because low-lying Rydberg states mix with the valence
 π→π\* and fragment its oscillator strength.
 
-**That collapse does not happen with ωB97X-D.** With def2-SVPD it keeps
+**That collapse does not happen with ωB97X-D3.** With def2-SVPD it keeps
 *f* = 0.993 per component and still identifies the right strongest band:
 
 | | position of ¹E₁ᵤ | *f* (per component) | strongest band identified |
@@ -82,6 +84,78 @@ position. **The two error modes still cannot be minimised by the same
 setting**, which is the refusal ROADMAP already reached, now confirmed against
 the functional that was supposed to resolve it rather than only against basis
 sets.
+
+## Triple zeta: it helps substantially, and it is still not enough
+
+The three arms above are all **double-zeta**, and the one axis nobody had
+tried was valence basis *quality* rather than diffuseness. Tested 2026-08-12
+on the same shared geometries, `nroots 30`:
+
+| band | exp | B3LYP/SVP | B3LYP/TZVP | **B3LYP/TZVPD** | ωB97X-D3/TZVP |
+|---|---|---|---|---|---|
+| benzene ¹B₂ᵤ | 4.90 | +0.59 | +0.50 | **+0.48** | +0.64 |
+| benzene ¹B₁ᵤ | 6.20 | +0.27 | +0.08 | **+0.04** | +0.22 |
+| benzene ¹E₁ᵤ | 6.94 | +0.98 | +0.66 | **+0.57** | +0.80 |
+| pyridine ¹B₁ᵤ-like | 6.38 | +0.32 | +0.13 | **+0.10** | — |
+| pyridine ¹E₁ᵤ-like | 7.22 | +0.93 | +0.64 | **+0.48** | +0.79 |
+
+**A large part of the error really was the basis.** ¹B₁ᵤ goes from +0.27 to
++0.04 and pyridine's analogue from +0.32 to +0.10 — those bands were almost
+entirely basis-limited. The strong bands improve by 0.4 eV.
+
+**And it is still not enough.** The best arm, B3LYP/def2-TZVPD, fails on
+benzene ¹B₂ᵤ (+0.48) and ¹E₁ᵤ (+0.57), and on pyridine's two π→π\* analogues.
+Six arms, no candidate:
+
+| arm | position | identity | intensity | shippable |
+|---|---|---|---|---|
+| B3LYP/def2-SVP, TZVP, TZVPD | FAIL | PASS | FAIL | **FAIL** |
+| ωB97X-D3/def2-SVP, SVPD, TZVP | FAIL | PASS | FAIL | **FAIL** |
+
+The carbonyls stay excellent throughout (formaldehyde −0.06, acetone −0.04 at
+TZVPD) and strongest-band identity passes everywhere. It is **valence π→π\* in
+aromatics**, and only that, at every basis tried.
+
+### The ωB97X-D3 conclusion was NOT a basis artefact
+
+Worth stating because the original comparison was made at def2-SVP alone,
+and a conclusion drawn at one basis about a functional is exactly the kind
+that turns out to be about the basis. It survives:
+
+| | B3LYP | ωB97X-D3 | ωB97X-D3 worse by |
+|---|---|---|---|
+| def2-SVP | +0.98 | +1.10 | 0.12 |
+| **def2-TZVP** | **+0.66** | **+0.80** | **0.14** |
+
+The gap is the same size at triple-zeta. The range-separated hybrid really
+does blue-shift valence π→π\* further, independently of the basis.
+
+### The pre-registered root escalation fired, and was needed
+
+`nroots 30` is not a tuned number: 15 was the standing value and 30 the
+escalation, written into `generate.py` **before any triple-zeta result was
+seen**, precisely so roots could not be raised until a preferred answer
+appeared.
+
+It triggered on the first use. At def2-TZVPD with 15 roots, benzene's ¹E₁ᵤ
+refused:
+
+    UNSCORABLE: rank 3 (x2) does not exist: only 2 roots carry the declared
+    character  [15 roots, highest 7.68 eV; 2 carry the declared character |
+    matched: #1 5.38 eV f=0.000, #2 6.24 eV f=0.000]
+
+Diffuse functions pull Rydberg states down into the valence region, so a
+fixed root budget stops spanning the band — the risk named in advance. At 30
+roots it scores at +0.57 and **no row anywhere is UNSCORABLE**.
+
+**Every arm escalated together, not just the one that refused.** An arm at 30
+roots beside arms at 15 differs in two things, and the comparability guard
+would refuse it — the guard constraining the experiment rather than the
+reverse. The 15-root outputs were kept rather than overwritten.
+
+**The control reproducing at 30 roots is itself a result**: raising the root
+count does not perturb the low roots, which is the assumption the escalation
+rests on.
 
 ### The roots guard was broken on purpose, and it holds
 

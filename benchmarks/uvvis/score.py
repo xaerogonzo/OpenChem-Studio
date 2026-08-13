@@ -157,7 +157,76 @@ def _character_weight(state: dict, homo: int, donors: list[int], acceptors: list
     )
 
 
+def _relative(index: int, anchor: int, name: str) -> str:
+    """`HOMO`, `HOMO-1`, `LUMO+2` -- an orbital named against its anchor.
+
+    Written out rather than string-substituting a `+0` away, which would
+    also mangle `HOMO+10` on any molecule big enough to have one.
+    """
+    offset = index - anchor
+    return name if offset == 0 else f"{name}{offset:+d}"
+
+
+def _diagnose(states: dict[int, dict], homo: int, identify: dict) -> str:
+    """What the computation actually produced, for a refusal message.
+
+    **A REFUSAL SHOULD BE A SCIENTIFIC RESULT, NOT A SHRUG.** "rank does
+    not exist" does not say whether the roots ran out, whether the target
+    is simply absent, or whether Rydberg states displaced the valence
+    manifold -- and those want three different responses. This appends the
+    evidence so the reader can tell them apart without opening the output.
+
+    The Rydberg case is the one worth naming: the character filter is
+    anchored *relative to HOMO/LUMO*, so with enough diffuse functions the
+    LUMO can itself become a Rydberg orbital and "LUMO+1" stops meaning
+    what it meant at def2-SVP. That shows up here as a matching set that
+    is too small, or as matching roots at unexpected energies.
+    """
+    donors, acceptors = identify["donor"], identify["acceptor"]
+    matching = sorted(
+        (i for i, s in states.items()
+         if _character_weight(s, homo, donors, acceptors) >= CHARACTER_WEIGHT),
+        key=lambda i: states[i]["energy_ev"],
+    )
+    highest = max(s["energy_ev"] for s in states.values())
+    lines = [
+        f"[{len(states)} roots, highest {highest:.2f} eV; "
+        f"{len(matching)} carry the declared character"
+    ]
+    if matching:
+        lines.append(
+            "matched: "
+            + ", ".join(f"#{i} {states[i]['energy_ev']:.2f} eV f={states[i]['f']:.3f}"
+                        for i in matching[:6])
+        )
+    else:
+        # No match at all -- show what the low roots ARE, which is how a
+        # shifted HOMO/LUMO anchor becomes visible.
+        lowest = sorted(states, key=lambda i: states[i]["energy_ev"])[:3]
+        for i in lowest:
+            top = sorted(states[i]["contributions"], key=lambda c: -c["weight"])[:2]
+            shape = ", ".join(
+                f"{_relative(c['donor'], homo, 'HOMO')}->"
+                f"{_relative(c['acceptor'], homo + 1, 'LUMO')} {c['weight']:.2f}"
+                for c in top
+            )
+            lines.append(f"root #{i} {states[i]['energy_ev']:.2f} eV: {shape}")
+    return " | ".join(lines) + "]"
+
+
 def locate(states: dict[int, dict], homo: int, identify: dict, reference_ev: float) -> list[int]:
+    """`_locate` with the diagnosis attached to every refusal.
+
+    Wrapped rather than appended at each `raise`, because there are five of
+    them and the one that gets forgotten is the one that fires.
+    """
+    try:
+        return _locate(states, homo, identify, reference_ev)
+    except Unscorable as exc:
+        raise Unscorable(f"{exc}  {_diagnose(states, homo, identify)}") from None
+
+
+def _locate(states: dict[int, dict], homo: int, identify: dict, reference_ev: float) -> list[int]:
     """The root indices forming one declared band, or Unscorable.
 
     The gate runs in this order and every step can refuse:
@@ -310,6 +379,121 @@ def _flag(value) -> str:
     return "  -  " if value is None else (" PASS" if value else " FAIL")
 
 
+#: What B3LYP/def2-SVP must still produce. **A FINGERPRINT, NOT A GLANCE**:
+#: state identity, energy AND oscillator strength, because a changed parser
+#: can produce a perfectly plausible table while reading a different root,
+#: and every conclusion about a new arm is then worthless. Scoring aborts
+#: rather than continues if this moves.
+CONTROL_ARM = "b3lyp-svp"
+CONTROL = {
+    ("formaldehyde", "n->pi* (1A2)"): (4.075, 0.0),
+    ("acetone", "n->pi* (1A2)"): (4.446, 0.0),
+    ("benzene", "1E1u"): (7.918, 1.9212),
+}
+CONTROL_EV_TOLERANCE = 0.01
+CONTROL_F_TOLERANCE = 0.01
+
+_INPUT_HEADER_RE = re.compile(r"^\|\s*\d+>\s*!\s*(.+?)\s*$", re.M)
+_INPUT_NROOTS_RE = re.compile(r"^\|\s*\d+>\s*nroots\s+(\d+)", re.M)
+_INPUT_XYZ_RE = re.compile(
+    r"^\|\s*\d+>\s{2,}([A-Z][a-z]?)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)", re.M
+)
+_ORCA_FUNCTIONAL_RE = re.compile(r"Exchange Functional\s+Exchange\s+\.+\s*(\S+)")
+
+
+def job_fingerprint(text: str) -> dict:
+    """What this job ACTUALLY ran, read from its own output.
+
+    A benchmark result must never be trusted because the FILENAME says
+    `b3lyp-tzvp`. ORCA echoes the whole input file, so the header, the root
+    count and the geometry can be recovered from the output itself, and its
+    own report of the functional it applied can be checked against them.
+    """
+    header = _INPUT_HEADER_RE.search(text)
+    nroots = _INPUT_NROOTS_RE.search(text)
+    functional = _ORCA_FUNCTIONAL_RE.search(text)
+    return {
+        "header": header.group(1) if header else None,
+        "nroots": int(nroots.group(1)) if nroots else None,
+        "functional": functional.group(1) if functional else None,
+        "geometry": [
+            (m.group(1), float(m.group(2)), float(m.group(3)), float(m.group(4)))
+            for m in _INPUT_XYZ_RE.finditer(text)
+        ],
+    }
+
+
+def check_comparability(prints: dict[tuple[str, str], dict]) -> list[str]:
+    """Every arm of a molecule must differ ONLY in the method header.
+
+    This experiment isolates the vertical-excitation basis. If someone
+    later makes each arm optimise its own geometry -- a helpful-looking
+    change -- it silently becomes a basis + functional + geometry
+    experiment and every delta in the table means something else.
+    `nroots` is checked for the same reason.
+    """
+    problems: list[str] = []
+    molecules = sorted({m for m, _ in prints})
+    for molecule in molecules:
+        arms = {a: p for (m, a), p in prints.items() if m == molecule}
+        reference_arm, reference = sorted(arms.items())[0]
+        for arm, other in sorted(arms.items())[1:]:
+            if other["nroots"] != reference["nroots"]:
+                problems.append(
+                    f"{molecule}: {arm} ran nroots={other['nroots']} against "
+                    f"{reference_arm}'s {reference['nroots']}"
+                )
+            if len(other["geometry"]) != len(reference["geometry"]):
+                problems.append(f"{molecule}: {arm} has a different atom count")
+                continue
+            worst = max(
+                (max(abs(a - b) for a, b in zip(x[1:], y[1:]))
+                 for x, y in zip(other["geometry"], reference["geometry"])),
+                default=0.0,
+            )
+            if worst > 1e-6:
+                problems.append(
+                    f"{molecule}: {arm}'s geometry differs from {reference_arm}'s by "
+                    f"{worst:.2e} A -- the arms are no longer comparable"
+                )
+        for arm, p in sorted(arms.items()):
+            if p["header"] is None or p["nroots"] is None or not p["geometry"]:
+                problems.append(f"{molecule}: {arm} -- could not read its own input echo")
+    return problems
+
+
+def check_control(directory: Path, molecules: dict) -> list[str]:
+    """The control arm must still reproduce its recorded fingerprint."""
+    problems: list[str] = []
+    for (molecule, label), (energy, strength) in CONTROL.items():
+        path = directory / f"{molecule}_{CONTROL_ARM}_td.out"
+        if not path.is_file():
+            problems.append(f"control {molecule} missing ({path.name})")
+            continue
+        try:
+            scored = score_molecule(
+                path.read_text(encoding="utf-8", errors="replace"), molecules[molecule]
+            )
+        except Unscorable as exc:
+            problems.append(f"control {molecule} became UNSCORABLE: {exc}")
+            continue
+        row = next((r for r in scored["rows"] if r["label"] == label), None)
+        if row is None or "computed_ev" not in row:
+            problems.append(f"control {molecule} {label!r} no longer scores")
+            continue
+        if abs(row["computed_ev"] - energy) > CONTROL_EV_TOLERANCE:
+            problems.append(
+                f"control {molecule} {label}: {row['computed_ev']:.3f} eV against a "
+                f"recorded {energy:.3f}"
+            )
+        if abs(row["computed_f"] - strength) > CONTROL_F_TOLERANCE:
+            problems.append(
+                f"control {molecule} {label}: f = {row['computed_f']:.4f} against a "
+                f"recorded {strength:.4f}"
+            )
+    return problems
+
+
 def main(argv: list[str]) -> int:
     if len(argv) != 1:
         print(__doc__)
@@ -323,6 +507,42 @@ def main(argv: list[str]) -> int:
     if not arms:
         print(f"No *_td.out files in {directory}", file=sys.stderr)
         return 1
+
+    # THE GUARDS RUN BEFORE ANY SCORING, and refuse rather than warn. A
+    # table produced from jobs that are not comparable, or from a parser
+    # that has started reading a different root, is worse than no table:
+    # it looks exactly like a result.
+    prints: dict[tuple[str, str], dict] = {}
+    for path in sorted(directory.glob("*_td.out")):
+        molecule, rest = path.name.split("_", 1)
+        prints[(molecule, rest.rsplit("_td.out", 1)[0])] = job_fingerprint(
+            path.read_text(encoding="utf-8", errors="replace")
+        )
+
+    problems = check_comparability(prints) + check_control(directory, molecules)
+    if problems:
+        print("REFUSING TO SCORE -- the jobs are not comparable, or the control moved:")
+        for problem in problems:
+            print(f"  - {problem}")
+        print("\nA delta between arms only means anything if everything except the\n"
+              "method header is identical, and only if the control still reproduces\n"
+              "the figures the rest of this benchmark was validated against.")
+        return 1
+
+    print("Guards passed: every arm shares one geometry and root count, and the")
+    print(f"{CONTROL_ARM} control still reproduces its recorded fingerprint.\n")
+    print("WHAT EACH ARM ACTUALLY RAN (from its own input echo, not its filename):")
+    for arm in arms:
+        headers = {p["header"] for (m, a), p in prints.items() if a == arm}
+        functionals = {p["functional"] for (m, a), p in prints.items() if a == arm}
+        # "exchange functional", NOT "the functional". ORCA reports B3LYP's
+        # exchange component as `B88`, which is accurate and reads like the
+        # wrong method ran if the label is loose. For wB97X-D3 the same
+        # field says WB97X-D3, because a range-separated hybrid does not
+        # decompose that way.
+        print(f"  {arm:<14} ! {' / '.join(sorted(h for h in headers if h))}"
+              f"   [ORCA exchange functional: "
+              f"{', '.join(sorted(f for f in functionals if f))}]")
 
     verdict: dict[str, dict[str, bool]] = {}
 

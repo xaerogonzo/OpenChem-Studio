@@ -347,11 +347,11 @@ destroys the intensity, which is the wrong trade for a spectrum whose
 question is which band is strongest.
 
 The second retry tried the functional that was supposed to fix it.
-**ωB97X-D does not rescue UV-Vis and moves benzene the wrong way** — it
+**ωB97X-D3 does not rescue UV-Vis and moves benzene the wrong way** — it
 blue-shifts valence π→π\* further, to +0.73/+1.10 where B3LYP is
 +0.59/+0.98. What it does fix is the intensity collapse, which turns out to
 be a *B3LYP* failure rather than a basis-set one: with the same diffuse
-basis ωB97X-D keeps *f* = 0.993 per component. The two error modes still
+basis ωB97X-D3 keeps *f* = 0.993 per component. (ωB97X-D3, not ωB97X-D -- different dispersion treatment, and the ORCA keyword is `wB97X-D3`.) The two error modes still
 cannot be minimised together, so the refusal stands on a measurement rather
 than a prediction.
 

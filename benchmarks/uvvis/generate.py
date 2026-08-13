@@ -67,13 +67,54 @@ GEOMETRY_METHOD_BASIS = "B3LYP def2-SVP"
 #:
 #: "wB97X-D3" is this ORCA build's spelling -- confirmed live, the run
 #: terminated normally and ORCA-CIS/TD-DFT finished without error.
+#: THE ARM KEY IS A LABEL; THE VALUE IS WHAT ORCA ACTUALLY RUNS, and the
+#: two must not be allowed to drift. `wb97xd-*` is shorthand for the header
+#: below -- ORCA reports applying `WB97X-D3` with range separation
+#: mu = 0.25 and an atom-pairwise dispersion correction. That is
+#: **wB97X-D3, not wB97X-D**: the two differ in their dispersion treatment
+#: and are not the same functional. The documentation said "wB97X-D" for a
+#: while and was wrong; `score.py` prints the header verbatim so a reader
+#: never has to trust the key.
 ARMS: dict[str, str] = {
+    # Double-zeta, the three already measured.
     "b3lyp-svp": "B3LYP def2-SVP",
     "wb97xd-svp": "wB97X-D3 def2-SVP",
     "wb97xd-svpd": "wB97X-D3 def2-SVPD",
+    # TRIPLE-ZETA, the axis nobody had tried. Everything above is
+    # double-zeta, and adding diffuse functions alone already moved
+    # benzene's 1E1u by -0.49 eV -- so valence basis QUALITY, as opposed to
+    # diffuseness, is the untested variable. Three arms testing one
+    # hypothesis; this is not a scan and does not establish that any basis
+    # is optimal.
+    "b3lyp-tzvp": "B3LYP def2-TZVP",
+    "b3lyp-tzvpd": "B3LYP def2-TZVPD",
+    # RE-TESTS A CONCLUSION DRAWN AT def2-SVP ONLY -- "the range-separated
+    # hybrid moves benzene the wrong way". If SVP is basis-limited, that
+    # comparison may be an artefact of the basis rather than a property of
+    # the functional, and it should not stand unchallenged at a better one.
+    "wb97xd-tzvp": "wB97X-D3 def2-TZVP",
 }
 
-NROOTS = 15
+#: Roots per TD-DFT job. **15 IS THE STANDING VALUE AND 30 IS A
+#: PRE-REGISTERED ESCALATION, not a knob.** It was written down before any
+#: triple-zeta result was seen, precisely so `nroots` could not be tuned
+#: upward until a preferred answer appeared: if the roots guard reports
+#: that a reference transition cannot be reached or identified at 15,
+#: the arm is rerun ONCE at 30, and if it is still unidentifiable the
+#: result is UNSCORABLE. There is no third try.
+#:
+#: It fired on the first use: benzene's 1E1u at def2-TZVPD refused with
+#: "only 2 roots carry the declared character, 15 roots, highest 7.68 eV"
+#: -- diffuse functions pull Rydberg states down into the valence region,
+#: so a fixed root budget stops spanning the band.
+#:
+#: EVERY ARM ESCALATES TOGETHER, never just the one that refused. The
+#: comparability guard in `score.py` requires the arms to differ only in
+#: the method header, and an arm at 30 roots beside arms at 15 differs in
+#: two things. Running a separate output directory keeps the 15-root
+#: evidence intact rather than overwriting it.
+DEFAULT_NROOTS = 15
+ESCALATED_NROOTS = 30
 
 
 def _orca_path(explicit: str | None) -> str:
@@ -157,6 +198,10 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--orca", default="", help="path to orca.exe")
     parser.add_argument("--only", default="", help="one molecule name, for a quick check")
     parser.add_argument("--arm", default="", help="one arm name, for a quick check")
+    parser.add_argument(
+        "--nroots", type=int, default=DEFAULT_NROOTS,
+        help=f"roots per TD-DFT job (default {DEFAULT_NROOTS}; the pre-registered "
+             f"escalation is {ESCALATED_NROOTS} -- see the constant)")
     args = parser.parse_args(argv)
 
     orca = _orca_path(args.orca)
@@ -212,7 +257,7 @@ def main(argv: list[str]) -> int:
                     [
                         f"! {method_basis} TightSCF",
                         "%tddft",
-                        f"  nroots {NROOTS}",
+                        f"  nroots {args.nroots}",
                         "end",
                         "* xyz 0 1",
                         *coordinates,
