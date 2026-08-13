@@ -290,13 +290,17 @@ returned. It computes nothing — every count was recorded when the run
 happened.
 
 The row worth reading is **Distinct** against **Returned**. A flexible
-molecule routinely finds more distinct conformers than the "distinct
-conformers to keep" limit, and the rest are simply not returned. They are
-real: they converged, and they differ under the same criterion as the ones
-you kept. The dialog says so explicitly when that is what happened, and
-generating again with a higher limit returns them. At the default of 10 a
-drug-like molecule can easily find 12–13, so this is the ordinary case
-rather than an unusual one.
+molecule can find more distinct conformers than the "distinct conformers
+to keep" limit, and the rest are simply not returned. They are real: they
+converged, and they differ under the same criterion as the ones you kept.
+The dialog says so explicitly when that is what happened, and generating
+again with a higher limit returns them.
+
+The defaults were raised (keep 10 → 20, embeddings 50 → 100) precisely
+because this used to be the ordinary case: at the old settings a
+drug-like molecule routinely found 12–13 distinct and silently kept 10.
+At the new defaults truncation is the exception — but the limit still
+exists, and the dialog still names it when it bites.
 
 Two embeddings count as the same conformer when their heavy atoms and
 their polar hydrogens are within 0.5 Å RMSD, compared symmetry-aware so

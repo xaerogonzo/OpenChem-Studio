@@ -217,6 +217,17 @@ class _ConformerGenerationTask(QRunnable):
                 # this there is nothing to say whether the toolkit or the
                 # algorithm changed.
                 "rdkit_version": rdkit.__version__,
+                # The ACTUAL sampling setting of the provider that ran,
+                # read from the provider rather than assumed -- a plugin
+                # provider that never declared it records None ("not
+                # declared"), never a guessed default. Recorded for the
+                # same reason rdkit_version is: it changes every count
+                # above (measured: ethylmorphine's discoverable union is
+                # 17 without it and 25 with it), so a stored record must
+                # say which sampling produced it.
+                "use_small_ring_torsions": getattr(
+                    self._provider, "use_small_ring_torsions", None
+                ),
             },
             timestamp=now,
         )

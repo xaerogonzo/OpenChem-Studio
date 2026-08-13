@@ -2389,6 +2389,40 @@ Three things worth carrying:
   measurement that failed. A forensic table that rendered those as 0.0
   would have said ethanol's discarded pairs were motionless.
 
+##### Acted on 2026-08-13: two defaults and one sampling flag
+
+The verdict above was put to Alex and three decisions came back; all
+three shipped on the `conformer-defaults` branch, each with its evidence.
+
+**`useSmallRingTorsions` is now on by default**, gated in ISOLATION at
+the benchmark protocol (50 embeddings/seed, identical seeds, nothing else
+varied -- evaluating it at the new application defaults would have
+confounded the flag with the sampling increase). Ten of eleven corpus
+molecules byte-identical; ethylmorphine's 5-seed union grew 17 -> 25,
+because its flexibility IS ring pucker. Paired cost x1.17 total. The
+funnel confirmed cyclohexane still counts 2 -- pre-opt diversity rose
+1 -> 3 but chair and twist-boat still merge geometrically (0.3747 < 0.5),
+so the energy veto stays load-bearing and extra sampling never became
+extra counting. The azirine same-shape floor is unmoved; its guard
+recomputes both bounds and passed under the flag. The flag is recorded in
+provenance and the benchmark environment, read from the provider that ran
+(None for a provider that never declared it), so no stored record is
+ambiguous about which sampling produced it.
+
+**Keep 10 -> 20, embeddings 50 -> 100.** 20 exceeds the maximum distinct
+count observed at 100 embeddings (~15-18) -- observed headroom, not a
+sufficiency claim; the union under the flag is at least 25, which is why
+the cap still exists and the Details dialog still names it when it
+bites. 100 embeddings doubles a flexible molecule's yield (10 -> 15
+distinct on ethylmorphine) at ~5 s. The two moved together on purpose:
+raising embeddings without raising keep makes the silent-loss case worse.
+A pin test carries the evidence, so an accidental revert fails naming it.
+
+**The funnel tables above are pre-flag measurements.** They motivated the
+flag, so they must not be silently reread as current behaviour --
+cyclohexane's PRE-opt row is 3 under it, and
+`benchmarks/conformers/README.md` carries the full OFF/ON gate table.
+
 #### Marvin-parity generation: emulate the CONTROLS, never claim the algorithm
 
 "make it resemble marvin's conformer generator calculator much more

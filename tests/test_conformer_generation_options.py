@@ -451,3 +451,33 @@ def test_the_snapshot_flag_changes_no_production_conformer():
     # The arms differ in exactly the one thing the flag controls.
     assert off_batch.pre_optimisation == []
     assert on_batch.pre_optimisation
+
+
+def test_the_small_ring_flag_is_wired_to_the_embedder_not_decorative():
+    """Setting the attribute changes what ETKDG samples.
+
+    The measured discriminator: 50 embeddings of cyclohexane give ONE
+    distinct pre-optimisation shape without small-ring torsions and
+    several with them. An attribute the embedder ignored would leave
+    provenance recording a sampling that never ran -- the exact ambiguity
+    it exists to remove.
+    """
+    from openchem.chem.conformer_providers import distinct_conformers
+
+    def pre_opt_diversity(flag: bool) -> int:
+        provider = RDKitConformerProvider(random_seed=0)
+        provider.use_small_ring_torsions = flag
+        batch = provider.generate_conformer_batch(
+            Chem.MolFromSmiles("C1CCCCC1"),
+            50,
+            optimize=True,
+            options=GenerationOptions(record_pre_optimisation=True),
+        )
+        return len(
+            distinct_conformers([(m, None) for m in batch.pre_optimisation], 0.5, float("inf"))
+        )
+
+    with_flag = pre_opt_diversity(True)
+    without = pre_opt_diversity(False)
+    assert without == 1, f"the OFF arm found {without}; the discriminator has moved"
+    assert with_flag > without

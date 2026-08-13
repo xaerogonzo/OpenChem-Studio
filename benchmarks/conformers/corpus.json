@@ -29,7 +29,8 @@
     "optimisation_attempts": 2,
     "convergence": "rc == 0 required; non-converged embeddings are discarded",
     "embeddings": 50,
-    "note": "The lower bounds below were derived from distinct converged energies (0.05 kcal/mol apart) over runs of this protocol, which is independent of the RMSD comparison being benchmarked."
+    "note": "The lower bounds below were derived from distinct converged energies (0.05 kcal/mol apart) over runs of this protocol, which is independent of the RMSD comparison being benchmarked. use_small_ring_torsions shipped 2026-08-13 after an isolated OFF/ON gate (see README): it moved no reference here -- the bounds predate it and remain valid as lower bounds, since the flag only ever ADDS sampled shapes.",
+    "use_small_ring_torsions": true
   },
   "molecules": [
     {
@@ -86,7 +87,7 @@
       "reference": 2,
       "reference_type": "textbook",
       "convention": "chair and twist-boat",
-      "notes": "THE MOTIVATING FAILURE. The 0.5 A RMSD criterion alone reports 1 -- it merges the twist-boat into the chair, calling a textbook two-conformer molecule rigid. This is the row the energy veto has to earn."
+      "notes": "THE MOTIVATING FAILURE. The 0.5 A RMSD criterion alone reports 1 -- it merges the twist-boat into the chair, calling a textbook two-conformer molecule rigid. This is the row the energy veto has to earn. Still true with use_small_ring_torsions: the flag lifts pre-optimisation diversity from 1 shape to 3, but chair and twist-boat still merge geometrically (RMSD 0.3747 < 0.5), so the count stays 2 and the veto stays load-bearing."
     },
     {
       "name": "pentane",
@@ -119,7 +120,7 @@
       "reference_type": "computational_lower_bound",
       "convention": "mirror images counted separately",
       "notes": "The C19H23NO3 morphine derivative from the bug report, which generated 'Kept 2 distinct conformer(s) of 10 embedded'. BOTH geometric measures are blind here: for the extreme pair (dE 17.87 kcal/mol) the ten largest displacements are all hydrogens, TFD reads 0.038 against a literature cut of 0.2, and the heavy atoms barely move.",
-      "tighter_bound_note": "12 is what a SINGLE run of the protocol below finds. Pooling five seeds finds 17, so the true count is at least 17 -- the reference is deliberately left at the single-run figure, because that is what the scorer compares a single run against. This is also the molecule with the weakest seed-to-seed set agreement in the corpus (coverage 0.75), so its union grows fastest with sampling budget."
+      "tighter_bound_note": "12 is what a SINGLE run of the protocol finds without small-ring torsions; with them (shipped 2026-08-13) a single run averages 15 [10-18]. Pooling five seeds found 17 before the flag and 25 with it -- so the true count is at least 25. The reference is deliberately left at the pre-flag single-run figure: it is a lower bound, exceeding it is not a failure, and moving it with every sampling improvement would make the benchmark grade itself. This is also the molecule with the weakest seed-to-seed agreement (coverage 0.60 under the flag: the discoverable space grew faster than per-run yield), so its union grows fastest with sampling budget."
     }
   ]
 }

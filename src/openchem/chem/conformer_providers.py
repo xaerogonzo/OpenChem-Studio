@@ -44,6 +44,14 @@ logger = logging.getLogger("openchem.chemistry")
 #:
 #: Cost is negligible (≤1.6 ms for 10 conformers of ibuprofen), so the
 #: N-squared comparison is not worth optimising at these counts.
+#:
+#: THE TABLES HERE AND ON `DEFAULT_ENERGY_WINDOW` WERE MEASURED BEFORE
+#: `use_small_ring_torsions` SHIPPED (2026-08-13). The flag changes what
+#: is SAMPLED, not how it is compared, so the calibration reasoning
+#: stands; the two load-bearing conclusions were re-verified under it
+#: rather than assumed -- cyclohexane still needs the veto (funnel:
+#: pre-opt 3, RMSD-only 1, shipped 2) and the same-shape floor's bounds
+#: are recomputed by their own guard, which passes.
 DEFAULT_RMS_THRESHOLD = 0.5
 
 #: kcal/mol. Two structures inside `DEFAULT_RMS_THRESHOLD` are merged
@@ -734,6 +742,14 @@ class RDKitConformerProvider(ConformerProvider):
 
     provider_id = "rdkit"
 
+    #: ETKDGv3's small-ring torsion preferences, on by default. **An
+    #: attribute rather than an inlined literal so provenance can record
+    #: the value that actually generated a batch** -- the service reads it
+    #: back with `getattr`, so a plugin provider that never heard of it
+    #: records None ("not declared") rather than a guess, and a test can
+    #: set it False and watch both the behaviour and the record follow.
+    use_small_ring_torsions: bool = True
+
     def __init__(self, random_seed: int | None = None) -> None:
         """`random_seed` makes a run REPRODUCIBLE, and is None in the app.
 
@@ -845,6 +861,19 @@ class RDKitConformerProvider(ConformerProvider):
     def _embed_one(self, mol: Chem.Mol, attempt: int = 0) -> Chem.Mol | None:
         conf_mol = Chem.AddHs(Chem.Mol(mol))
         params = AllChem.ETKDGv3()
+        # ETKDGv3's default torsion preferences barely sample small-ring
+        # pucker: 50 embeddings of cyclohexane produced ONE distinct shape
+        # before minimisation, and the twist-boat reached the results only
+        # through the energy veto. With this flag the same 50 embeddings
+        # give 3 pre-optimisation shapes, and ethylmorphine's 5-seed union
+        # grows 17 -> 25 -- its flexibility IS ring pucker. Gated on the
+        # full corpus before shipping (benchmarks/conformers/README.md has
+        # the OFF/ON table): every other count byte-identical, paired cost
+        # x1.17, the azirine same-shape floor unmoved. The funnel confirmed
+        # the veto stays load-bearing for cyclohexane -- chair and
+        # twist-boat still merge geometrically (RMSD 0.3747 < 0.5), so
+        # sampling more twist-boats does not over-count them.
+        params.useSmallRingTorsions = self.use_small_ring_torsions
         if self._random_seed is not None:
             # Per attempt, so the embeddings within a run still differ
             # while the run repeats. Seeding them all identically would

@@ -341,3 +341,60 @@ def test_a_cap_of_zero_is_refused_by_the_dialog_and_unguarded_in_the_service(qap
     # is nothing to hang it on. That is a real limit of storing stage
     # counts on the result rather than on the job, and it is only ever hit
     # where the result is empty.
+
+
+def test_provenance_records_the_sampling_flag_that_actually_ran(qapp):
+    """The recorded value tracks the provider's real setting, both ways.
+
+    The flag moves ethylmorphine's discoverable union from 17 to 25, so a
+    stored record that guessed at it would make two runs incomparable. The
+    False arm matters as much as the True one: an instance with the flag
+    disabled must record False, or an old record generated that way reads
+    as the default.
+    """
+    from openchem.chem.conformer_providers import RDKitConformerProvider
+
+    for value in (True, False):
+        provider = RDKitConformerProvider(random_seed=0)
+        provider.use_small_ring_torsions = value
+        bus = EventBus()
+        engine = ChemistryEngine()
+        service = ConformerService(bus, engine, providers={"rdkit": provider})
+        model = MoleculeModel()
+        engine.set_structure_from_smiles(model, "CCO")
+        payload = {}
+        bus.subscribe(ConformersReady, lambda e: payload.setdefault("conformers", e.conformers))
+        service.request_conformers(model, num_conformers=2, optimize=True, num_embeddings=3)
+        _drain(qapp)
+        parameters = payload["conformers"][0].provenance.parameters
+        assert parameters["use_small_ring_torsions"] is value
+
+
+def test_a_provider_that_never_declared_the_flag_records_None(qapp):
+    """None means "not declared", never a guessed default.
+
+    A plugin provider knows nothing about ETKDG parameters, and writing
+    the built-in default into its provenance would claim its sampling was
+    something nobody established.
+    """
+    class _BareProvider(ConformerProvider):
+        provider_id = "bare"
+
+        def generate_conformers(self, mol, num_conformers, optimize, on_progress=None):
+            from rdkit.Chem import AllChem
+            from rdkit import Chem
+            conf_mol = Chem.AddHs(Chem.Mol(mol))
+            AllChem.EmbedMolecule(conf_mol)
+            return [(conf_mol, None)]
+
+    bus = EventBus()
+    engine = ChemistryEngine()
+    service = ConformerService(bus, engine, providers={"bare": _BareProvider()})
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "CCO")
+    payload = {}
+    bus.subscribe(ConformersReady, lambda e: payload.setdefault("conformers", e.conformers))
+    service.request_conformers(model, num_conformers=1, optimize=False, provider_id="bare")
+    _drain(qapp)
+    parameters = payload["conformers"][0].provenance.parameters
+    assert parameters["use_small_ring_torsions"] is None

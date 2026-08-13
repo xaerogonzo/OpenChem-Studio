@@ -69,6 +69,10 @@ def _environment(seeds: int, embeddings: int) -> dict:
         "python_version": platform.python_version(),
         "platform": platform.platform(),
         "embedder": "ETKDGv3",
+        # Explicit, never implicit: this flag moves ethylmorphine's union
+        # from 17 to 25, so a predictions file must say which sampling
+        # produced it or two files cannot be compared.
+        "use_small_ring_torsions": RDKitConformerProvider.use_small_ring_torsions,
         "force_field": "MMFF94 (UFF fallback)",
         "rms_threshold": DEFAULT_RMS_THRESHOLD,
         "energy_window": DEFAULT_ENERGY_WINDOW,

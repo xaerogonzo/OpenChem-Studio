@@ -5,12 +5,13 @@
   "python_version": "3.13.7",
   "platform": "Windows-11-10.0.26200-SP0",
   "embedder": "ETKDGv3",
+  "use_small_ring_torsions": true,
   "force_field": "MMFF94 (UFF fallback)",
   "rms_threshold": 0.5,
   "energy_window": 1.0,
   "seeds": 5,
   "embeddings_per_seed": 50,
-  "generated_at": "2026-08-13 13:49:14"
+  "generated_at": "2026-08-13 14:51:18"
  },
  "predictions": [
   {
@@ -2976,13 +2977,13 @@
       }
      },
      "merge_candidates": {
-      "examined": 59,
-      "vetoed": 11,
+      "examined": 56,
+      "vetoed": 8,
       "merged_away": {
        "pairs": 48,
        "rmsd_min": 0.0,
        "rmsd_max": 0.3097,
-       "torsion_over_30": 5,
+       "torsion_over_30": 4,
        "torsion_over_60": 0,
        "torsion_over_90": 0,
        "torsion_unavailable": 0,
@@ -2993,8 +2994,26 @@
          "tfd": 0.0,
          "max_dihedral_change": 58.3,
          "merged": true,
+         "candidate_origin": "seed=0 embedding=42",
+         "representative_origin": "seed=0 embedding=29"
+        },
+        {
+         "rmsd": 0.3097,
+         "energy_difference": 0.0,
+         "tfd": 0.0,
+         "max_dihedral_change": 58.3,
+         "merged": true,
+         "candidate_origin": "seed=0 embedding=21",
+         "representative_origin": "seed=0 embedding=29"
+        },
+        {
+         "rmsd": 0.3097,
+         "energy_difference": 0.0,
+         "tfd": 0.0,
+         "max_dihedral_change": 58.3,
+         "merged": true,
          "candidate_origin": "seed=0 embedding=33",
-         "representative_origin": "seed=0 embedding=34"
+         "representative_origin": "seed=0 embedding=29"
         },
         {
          "rmsd": 0.3097,
@@ -3003,44 +3022,26 @@
          "max_dihedral_change": 58.3,
          "merged": true,
          "candidate_origin": "seed=0 embedding=9",
-         "representative_origin": "seed=0 embedding=34"
+         "representative_origin": "seed=0 embedding=29"
         },
         {
-         "rmsd": 0.3097,
+         "rmsd": 0.0,
          "energy_difference": 0.0,
          "tfd": 0.0,
-         "max_dihedral_change": 58.3,
+         "max_dihedral_change": 0.0,
          "merged": true,
-         "candidate_origin": "seed=0 embedding=42",
-         "representative_origin": "seed=0 embedding=34"
-        },
-        {
-         "rmsd": 0.3097,
-         "energy_difference": 0.0,
-         "tfd": 0.0,
-         "max_dihedral_change": 58.3,
-         "merged": true,
-         "candidate_origin": "seed=0 embedding=21",
-         "representative_origin": "seed=0 embedding=34"
-        },
-        {
-         "rmsd": 0.3097,
-         "energy_difference": 0.0,
-         "tfd": 0.0,
-         "max_dihedral_change": 58.3,
-         "merged": true,
-         "candidate_origin": "seed=0 embedding=6",
-         "representative_origin": "seed=0 embedding=34"
+         "candidate_origin": "seed=0 embedding=47",
+         "representative_origin": "seed=0 embedding=29"
         }
        ]
       },
       "vetoed_merge": {
-       "pairs": 11,
+       "pairs": 8,
        "rmsd_min": 0.3747,
        "rmsd_max": 0.3747,
-       "torsion_over_30": 11,
-       "torsion_over_60": 11,
-       "torsion_over_90": 11,
+       "torsion_over_30": 8,
+       "torsion_over_60": 8,
+       "torsion_over_90": 8,
        "torsion_unavailable": 0,
        "worst": [
         {
@@ -3049,8 +3050,8 @@
          "tfd": 0.4068,
          "max_dihedral_change": 114.4,
          "merged": false,
-         "candidate_origin": "seed=0 embedding=23",
-         "representative_origin": "seed=0 embedding=20"
+         "candidate_origin": "seed=0 embedding=47",
+         "representative_origin": "seed=0 embedding=10"
         },
         {
          "rmsd": 0.3747,
@@ -3058,8 +3059,8 @@
          "tfd": 0.4068,
          "max_dihedral_change": 114.4,
          "merged": false,
-         "candidate_origin": "seed=0 embedding=33",
-         "representative_origin": "seed=0 embedding=20"
+         "candidate_origin": "seed=0 embedding=9",
+         "representative_origin": "seed=0 embedding=10"
         },
         {
          "rmsd": 0.3747,
@@ -3068,7 +3069,7 @@
          "max_dihedral_change": 114.4,
          "merged": false,
          "candidate_origin": "seed=0 embedding=40",
-         "representative_origin": "seed=0 embedding=20"
+         "representative_origin": "seed=0 embedding=10"
         },
         {
          "rmsd": 0.3747,
@@ -3076,8 +3077,8 @@
          "tfd": 0.4068,
          "max_dihedral_change": 114.4,
          "merged": false,
-         "candidate_origin": "seed=0 embedding=21",
-         "representative_origin": "seed=0 embedding=20"
+         "candidate_origin": "seed=0 embedding=34",
+         "representative_origin": "seed=0 embedding=10"
         },
         {
          "rmsd": 0.3747,
@@ -3085,8 +3086,8 @@
          "tfd": 0.4068,
          "max_dihedral_change": 114.4,
          "merged": false,
-         "candidate_origin": "seed=0 embedding=27",
-         "representative_origin": "seed=0 embedding=20"
+         "candidate_origin": "seed=0 embedding=42",
+         "representative_origin": "seed=0 embedding=10"
         }
        ]
       }
@@ -3124,13 +3125,13 @@
       }
      },
      "merge_candidates": {
-      "examined": 58,
-      "vetoed": 10,
+      "examined": 57,
+      "vetoed": 9,
       "merged_away": {
        "pairs": 48,
        "rmsd_min": 0.0,
        "rmsd_max": 0.3097,
-       "torsion_over_30": 6,
+       "torsion_over_30": 4,
        "torsion_over_60": 0,
        "torsion_over_90": 0,
        "torsion_unavailable": 0,
@@ -3141,7 +3142,7 @@
          "tfd": 0.0,
          "max_dihedral_change": 58.3,
          "merged": true,
-         "candidate_origin": "seed=100003 embedding=40",
+         "candidate_origin": "seed=100003 embedding=39",
          "representative_origin": "seed=100003 embedding=15"
         },
         {
@@ -3150,7 +3151,7 @@
          "tfd": 0.0,
          "max_dihedral_change": 58.3,
          "merged": true,
-         "candidate_origin": "seed=100003 embedding=35",
+         "candidate_origin": "seed=100003 embedding=19",
          "representative_origin": "seed=100003 embedding=15"
         },
         {
@@ -3168,27 +3169,27 @@
          "tfd": 0.0,
          "max_dihedral_change": 58.3,
          "merged": true,
-         "candidate_origin": "seed=100003 embedding=39",
+         "candidate_origin": "seed=100003 embedding=40",
          "representative_origin": "seed=100003 embedding=15"
         },
         {
-         "rmsd": 0.3097,
+         "rmsd": 0.0,
          "energy_difference": 0.0,
          "tfd": 0.0,
-         "max_dihedral_change": 58.3,
+         "max_dihedral_change": 0.0,
          "merged": true,
-         "candidate_origin": "seed=100003 embedding=28",
+         "candidate_origin": "seed=100003 embedding=0",
          "representative_origin": "seed=100003 embedding=15"
         }
        ]
       },
       "vetoed_merge": {
-       "pairs": 10,
+       "pairs": 9,
        "rmsd_min": 0.3747,
        "rmsd_max": 0.3747,
-       "torsion_over_30": 10,
-       "torsion_over_60": 10,
-       "torsion_over_90": 10,
+       "torsion_over_30": 9,
+       "torsion_over_60": 9,
+       "torsion_over_90": 9,
        "torsion_unavailable": 0,
        "worst": [
         {
@@ -3197,17 +3198,8 @@
          "tfd": 0.4068,
          "max_dihedral_change": 114.4,
          "merged": false,
-         "candidate_origin": "seed=100003 embedding=19",
-         "representative_origin": "seed=100003 embedding=45"
-        },
-        {
-         "rmsd": 0.3747,
-         "energy_difference": 5.93,
-         "tfd": 0.4068,
-         "max_dihedral_change": 114.4,
-         "merged": false,
-         "candidate_origin": "seed=100003 embedding=28",
-         "representative_origin": "seed=100003 embedding=45"
+         "candidate_origin": "seed=100003 embedding=0",
+         "representative_origin": "seed=100003 embedding=31"
         },
         {
          "rmsd": 0.3747,
@@ -3216,7 +3208,7 @@
          "max_dihedral_change": 114.4,
          "merged": false,
          "candidate_origin": "seed=100003 embedding=39",
-         "representative_origin": "seed=100003 embedding=45"
+         "representative_origin": "seed=100003 embedding=31"
         },
         {
          "rmsd": 0.3747,
@@ -3224,8 +3216,8 @@
          "tfd": 0.4068,
          "max_dihedral_change": 114.4,
          "merged": false,
-         "candidate_origin": "seed=100003 embedding=35",
-         "representative_origin": "seed=100003 embedding=45"
+         "candidate_origin": "seed=100003 embedding=25",
+         "representative_origin": "seed=100003 embedding=31"
         },
         {
          "rmsd": 0.3747,
@@ -3233,8 +3225,17 @@
          "tfd": 0.4068,
          "max_dihedral_change": 114.4,
          "merged": false,
-         "candidate_origin": "seed=100003 embedding=44",
-         "representative_origin": "seed=100003 embedding=45"
+         "candidate_origin": "seed=100003 embedding=19",
+         "representative_origin": "seed=100003 embedding=31"
+        },
+        {
+         "rmsd": 0.3747,
+         "energy_difference": 5.93,
+         "tfd": 0.4068,
+         "max_dihedral_change": 114.4,
+         "merged": false,
+         "candidate_origin": "seed=100003 embedding=40",
+         "representative_origin": "seed=100003 embedding=31"
         }
        ]
       }
@@ -3278,7 +3279,7 @@
        "pairs": 48,
        "rmsd_min": 0.0,
        "rmsd_max": 0.3097,
-       "torsion_over_30": 5,
+       "torsion_over_30": 4,
        "torsion_over_60": 0,
        "torsion_over_90": 0,
        "torsion_unavailable": 0,
@@ -3289,8 +3290,8 @@
          "tfd": 0.0,
          "max_dihedral_change": 58.3,
          "merged": true,
-         "candidate_origin": "seed=200006 embedding=30",
-         "representative_origin": "seed=200006 embedding=31"
+         "candidate_origin": "seed=200006 embedding=13",
+         "representative_origin": "seed=200006 embedding=41"
         },
         {
          "rmsd": 0.3097,
@@ -3298,35 +3299,35 @@
          "tfd": 0.0,
          "max_dihedral_change": 58.3,
          "merged": true,
-         "candidate_origin": "seed=200006 embedding=1",
-         "representative_origin": "seed=200006 embedding=31"
+         "candidate_origin": "seed=200006 embedding=8",
+         "representative_origin": "seed=200006 embedding=41"
         },
         {
          "rmsd": 0.3097,
          "energy_difference": 0.0,
          "tfd": 0.0,
          "max_dihedral_change": 58.3,
+         "merged": true,
+         "candidate_origin": "seed=200006 embedding=49",
+         "representative_origin": "seed=200006 embedding=41"
+        },
+        {
+         "rmsd": 0.3097,
+         "energy_difference": 0.0,
+         "tfd": 0.0,
+         "max_dihedral_change": 58.3,
+         "merged": true,
+         "candidate_origin": "seed=200006 embedding=31",
+         "representative_origin": "seed=200006 embedding=41"
+        },
+        {
+         "rmsd": 0.0,
+         "energy_difference": 0.0,
+         "tfd": 0.0,
+         "max_dihedral_change": 0.0,
          "merged": true,
          "candidate_origin": "seed=200006 embedding=32",
-         "representative_origin": "seed=200006 embedding=31"
-        },
-        {
-         "rmsd": 0.3097,
-         "energy_difference": 0.0,
-         "tfd": 0.0,
-         "max_dihedral_change": 58.3,
-         "merged": true,
-         "candidate_origin": "seed=200006 embedding=41",
-         "representative_origin": "seed=200006 embedding=31"
-        },
-        {
-         "rmsd": 0.3097,
-         "energy_difference": 0.0,
-         "tfd": 0.0,
-         "max_dihedral_change": 58.3,
-         "merged": true,
-         "candidate_origin": "seed=200006 embedding=44",
-         "representative_origin": "seed=200006 embedding=31"
+         "representative_origin": "seed=200006 embedding=41"
         }
        ]
       },
@@ -3345,35 +3346,8 @@
          "tfd": 0.4068,
          "max_dihedral_change": 114.4,
          "merged": false,
-         "candidate_origin": "seed=200006 embedding=44",
-         "representative_origin": "seed=200006 embedding=17"
-        },
-        {
-         "rmsd": 0.3747,
-         "energy_difference": 5.93,
-         "tfd": 0.4068,
-         "max_dihedral_change": 114.4,
-         "merged": false,
-         "candidate_origin": "seed=200006 embedding=30",
-         "representative_origin": "seed=200006 embedding=17"
-        },
-        {
-         "rmsd": 0.3747,
-         "energy_difference": 5.93,
-         "tfd": 0.4068,
-         "max_dihedral_change": 114.4,
-         "merged": false,
-         "candidate_origin": "seed=200006 embedding=41",
-         "representative_origin": "seed=200006 embedding=17"
-        },
-        {
-         "rmsd": 0.3747,
-         "energy_difference": 5.93,
-         "tfd": 0.4068,
-         "max_dihedral_change": 114.4,
-         "merged": false,
          "candidate_origin": "seed=200006 embedding=32",
-         "representative_origin": "seed=200006 embedding=17"
+         "representative_origin": "seed=200006 embedding=33"
         },
         {
          "rmsd": 0.3747,
@@ -3382,7 +3356,34 @@
          "max_dihedral_change": 114.4,
          "merged": false,
          "candidate_origin": "seed=200006 embedding=8",
-         "representative_origin": "seed=200006 embedding=17"
+         "representative_origin": "seed=200006 embedding=33"
+        },
+        {
+         "rmsd": 0.3747,
+         "energy_difference": 5.93,
+         "tfd": 0.4068,
+         "max_dihedral_change": 114.4,
+         "merged": false,
+         "candidate_origin": "seed=200006 embedding=30",
+         "representative_origin": "seed=200006 embedding=33"
+        },
+        {
+         "rmsd": 0.3747,
+         "energy_difference": 5.93,
+         "tfd": 0.4068,
+         "max_dihedral_change": 114.4,
+         "merged": false,
+         "candidate_origin": "seed=200006 embedding=31",
+         "representative_origin": "seed=200006 embedding=33"
+        },
+        {
+         "rmsd": 0.3747,
+         "energy_difference": 5.93,
+         "tfd": 0.4068,
+         "max_dihedral_change": 114.4,
+         "merged": false,
+         "candidate_origin": "seed=200006 embedding=44",
+         "representative_origin": "seed=200006 embedding=33"
         }
        ]
       }
@@ -3420,13 +3421,13 @@
       }
      },
      "merge_candidates": {
-      "examined": 59,
-      "vetoed": 11,
+      "examined": 58,
+      "vetoed": 10,
       "merged_away": {
        "pairs": 48,
        "rmsd_min": 0.0,
        "rmsd_max": 0.3097,
-       "torsion_over_30": 4,
+       "torsion_over_30": 3,
        "torsion_over_60": 0,
        "torsion_over_90": 0,
        "torsion_unavailable": 0,
@@ -3437,7 +3438,7 @@
          "tfd": 0.0,
          "max_dihedral_change": 58.3,
          "merged": true,
-         "candidate_origin": "seed=300009 embedding=33",
+         "candidate_origin": "seed=300009 embedding=7",
          "representative_origin": "seed=300009 embedding=49"
         },
         {
@@ -3455,16 +3456,16 @@
          "tfd": 0.0,
          "max_dihedral_change": 58.3,
          "merged": true,
-         "candidate_origin": "seed=300009 embedding=7",
+         "candidate_origin": "seed=300009 embedding=33",
          "representative_origin": "seed=300009 embedding=49"
         },
         {
-         "rmsd": 0.3097,
+         "rmsd": 0.0,
          "energy_difference": 0.0,
          "tfd": 0.0,
-         "max_dihedral_change": 58.3,
+         "max_dihedral_change": 0.0,
          "merged": true,
-         "candidate_origin": "seed=300009 embedding=23",
+         "candidate_origin": "seed=300009 embedding=14",
          "representative_origin": "seed=300009 embedding=49"
         },
         {
@@ -3479,12 +3480,12 @@
        ]
       },
       "vetoed_merge": {
-       "pairs": 11,
+       "pairs": 10,
        "rmsd_min": 0.3747,
        "rmsd_max": 0.3747,
-       "torsion_over_30": 11,
-       "torsion_over_60": 11,
-       "torsion_over_90": 11,
+       "torsion_over_30": 10,
+       "torsion_over_60": 10,
+       "torsion_over_90": 10,
        "torsion_unavailable": 0,
        "worst": [
         {
@@ -3493,8 +3494,17 @@
          "tfd": 0.4068,
          "max_dihedral_change": 114.4,
          "merged": false,
+         "candidate_origin": "seed=300009 embedding=14",
+         "representative_origin": "seed=300009 embedding=3"
+        },
+        {
+         "rmsd": 0.3747,
+         "energy_difference": 5.93,
+         "tfd": 0.4068,
+         "max_dihedral_change": 114.4,
+         "merged": false,
          "candidate_origin": "seed=300009 embedding=33",
-         "representative_origin": "seed=300009 embedding=12"
+         "representative_origin": "seed=300009 embedding=3"
         },
         {
          "rmsd": 0.3747,
@@ -3502,8 +3512,8 @@
          "tfd": 0.4068,
          "max_dihedral_change": 114.4,
          "merged": false,
-         "candidate_origin": "seed=300009 embedding=42",
-         "representative_origin": "seed=300009 embedding=12"
+         "candidate_origin": "seed=300009 embedding=27",
+         "representative_origin": "seed=300009 embedding=3"
         },
         {
          "rmsd": 0.3747,
@@ -3511,8 +3521,8 @@
          "tfd": 0.4068,
          "max_dihedral_change": 114.4,
          "merged": false,
-         "candidate_origin": "seed=300009 embedding=23",
-         "representative_origin": "seed=300009 embedding=12"
+         "candidate_origin": "seed=300009 embedding=47",
+         "representative_origin": "seed=300009 embedding=3"
         },
         {
          "rmsd": 0.3747,
@@ -3521,16 +3531,7 @@
          "max_dihedral_change": 114.4,
          "merged": false,
          "candidate_origin": "seed=300009 embedding=2",
-         "representative_origin": "seed=300009 embedding=12"
-        },
-        {
-         "rmsd": 0.3747,
-         "energy_difference": 5.93,
-         "tfd": 0.4068,
-         "max_dihedral_change": 114.4,
-         "merged": false,
-         "candidate_origin": "seed=300009 embedding=14",
-         "representative_origin": "seed=300009 embedding=12"
+         "representative_origin": "seed=300009 embedding=3"
         }
        ]
       }
@@ -3585,8 +3586,8 @@
          "tfd": 0.0,
          "max_dihedral_change": 0.0,
          "merged": true,
-         "candidate_origin": "seed=400012 embedding=12",
-         "representative_origin": "seed=400012 embedding=41"
+         "candidate_origin": "seed=400012 embedding=2",
+         "representative_origin": "seed=400012 embedding=38"
         },
         {
          "rmsd": 0.0,
@@ -3594,8 +3595,8 @@
          "tfd": 0.0,
          "max_dihedral_change": 0.0,
          "merged": true,
-         "candidate_origin": "seed=400012 embedding=24",
-         "representative_origin": "seed=400012 embedding=16"
+         "candidate_origin": "seed=400012 embedding=39",
+         "representative_origin": "seed=400012 embedding=48"
         },
         {
          "rmsd": 0.0,
@@ -3603,8 +3604,8 @@
          "tfd": 0.0,
          "max_dihedral_change": 0.0,
          "merged": true,
-         "candidate_origin": "seed=400012 embedding=30",
-         "representative_origin": "seed=400012 embedding=16"
+         "candidate_origin": "seed=400012 embedding=21",
+         "representative_origin": "seed=400012 embedding=48"
         },
         {
          "rmsd": 0.0,
@@ -3612,8 +3613,8 @@
          "tfd": 0.0,
          "max_dihedral_change": 0.0,
          "merged": true,
-         "candidate_origin": "seed=400012 embedding=5",
-         "representative_origin": "seed=400012 embedding=16"
+         "candidate_origin": "seed=400012 embedding=15",
+         "representative_origin": "seed=400012 embedding=48"
         },
         {
          "rmsd": 0.0,
@@ -3621,8 +3622,8 @@
          "tfd": 0.0,
          "max_dihedral_change": 0.0,
          "merged": true,
-         "candidate_origin": "seed=400012 embedding=7",
-         "representative_origin": "seed=400012 embedding=16"
+         "candidate_origin": "seed=400012 embedding=18",
+         "representative_origin": "seed=400012 embedding=38"
         }
        ]
       },
@@ -3641,17 +3642,8 @@
          "tfd": 0.4068,
          "max_dihedral_change": 114.4,
          "merged": false,
-         "candidate_origin": "seed=400012 embedding=12",
-         "representative_origin": "seed=400012 embedding=16"
-        },
-        {
-         "rmsd": 0.3747,
-         "energy_difference": 5.93,
-         "tfd": 0.4068,
-         "max_dihedral_change": 114.4,
-         "merged": false,
          "candidate_origin": "seed=400012 embedding=18",
-         "representative_origin": "seed=400012 embedding=16"
+         "representative_origin": "seed=400012 embedding=48"
         },
         {
          "rmsd": 0.3747,
@@ -3660,7 +3652,7 @@
          "max_dihedral_change": 114.4,
          "merged": false,
          "candidate_origin": "seed=400012 embedding=2",
-         "representative_origin": "seed=400012 embedding=16"
+         "representative_origin": "seed=400012 embedding=48"
         },
         {
          "rmsd": 0.3747,
@@ -3668,8 +3660,8 @@
          "tfd": 0.4068,
          "max_dihedral_change": 114.4,
          "merged": false,
-         "candidate_origin": "seed=400012 embedding=38",
-         "representative_origin": "seed=400012 embedding=16"
+         "candidate_origin": "seed=400012 embedding=12",
+         "representative_origin": "seed=400012 embedding=48"
         },
         {
          "rmsd": 0.3747,
@@ -3678,7 +3670,16 @@
          "max_dihedral_change": 114.4,
          "merged": false,
          "candidate_origin": "seed=400012 embedding=41",
-         "representative_origin": "seed=400012 embedding=16"
+         "representative_origin": "seed=400012 embedding=48"
+        },
+        {
+         "rmsd": 0.3747,
+         "energy_difference": 5.93,
+         "tfd": 0.4068,
+         "max_dihedral_change": 114.4,
+         "merged": false,
+         "candidate_origin": "seed=400012 embedding=38",
+         "representative_origin": "seed=400012 embedding=48"
         }
        ]
       }
@@ -5574,19 +5575,19 @@
      "embedding_failures": 0,
      "convergence_failures": 0,
      "distinct": 10,
-     "distinct_energies": 11,
+     "distinct_energies": 12,
      "threshold_sweep": {
       "0.25": {
        "veto": 13,
-       "rmsd_only": 8
+       "rmsd_only": 7
       },
       "0.35": {
        "veto": 13,
-       "rmsd_only": 6
+       "rmsd_only": 7
       },
       "0.50": {
        "veto": 10,
-       "rmsd_only": 2
+       "rmsd_only": 3
       },
       "0.75": {
        "veto": 9,
@@ -5598,25 +5599,25 @@
       }
      },
      "merge_candidates": {
-      "examined": 178,
-      "vetoed": 138,
+      "examined": 154,
+      "vetoed": 114,
       "merged_away": {
        "pairs": 40,
        "rmsd_min": 0.0,
-       "rmsd_max": 0.4579,
-       "torsion_over_30": 19,
-       "torsion_over_60": 19,
-       "torsion_over_90": 19,
+       "rmsd_max": 0.458,
+       "torsion_over_30": 16,
+       "torsion_over_60": 16,
+       "torsion_over_90": 16,
        "torsion_unavailable": 0,
        "worst": [
         {
-         "rmsd": 0.4577,
+         "rmsd": 0.4576,
          "energy_difference": 0.068,
-         "tfd": 0.016,
+         "tfd": 0.0161,
          "max_dihedral_change": 179.4,
          "merged": true,
-         "candidate_origin": "seed=0 embedding=6",
-         "representative_origin": "seed=0 embedding=45"
+         "candidate_origin": "seed=0 embedding=8",
+         "representative_origin": "seed=0 embedding=48"
         },
         {
          "rmsd": 0.4577,
@@ -5624,8 +5625,8 @@
          "tfd": 0.016,
          "max_dihedral_change": 179.4,
          "merged": true,
-         "candidate_origin": "seed=0 embedding=15",
-         "representative_origin": "seed=0 embedding=45"
+         "candidate_origin": "seed=0 embedding=42",
+         "representative_origin": "seed=0 embedding=48"
         },
         {
          "rmsd": 0.4577,
@@ -5634,7 +5635,7 @@
          "max_dihedral_change": 179.4,
          "merged": true,
          "candidate_origin": "seed=0 embedding=14",
-         "representative_origin": "seed=0 embedding=45"
+         "representative_origin": "seed=0 embedding=48"
         },
         {
          "rmsd": 0.4577,
@@ -5642,8 +5643,8 @@
          "tfd": 0.016,
          "max_dihedral_change": 179.4,
          "merged": true,
-         "candidate_origin": "seed=0 embedding=31",
-         "representative_origin": "seed=0 embedding=45"
+         "candidate_origin": "seed=0 embedding=30",
+         "representative_origin": "seed=0 embedding=48"
         },
         {
          "rmsd": 0.4577,
@@ -5651,64 +5652,64 @@
          "tfd": 0.016,
          "max_dihedral_change": 179.4,
          "merged": true,
-         "candidate_origin": "seed=0 embedding=13",
-         "representative_origin": "seed=0 embedding=45"
+         "candidate_origin": "seed=0 embedding=6",
+         "representative_origin": "seed=0 embedding=48"
         }
        ]
       },
       "vetoed_merge": {
-       "pairs": 138,
+       "pairs": 114,
        "rmsd_min": 0.2066,
-       "rmsd_max": 0.4962,
-       "torsion_over_30": 128,
-       "torsion_over_60": 128,
-       "torsion_over_90": 113,
+       "rmsd_max": 0.4964,
+       "torsion_over_30": 111,
+       "torsion_over_60": 111,
+       "torsion_over_90": 101,
        "torsion_unavailable": 0,
        "worst": [
         {
-         "rmsd": 0.4373,
-         "energy_difference": 15.789,
-         "tfd": 0.0369,
-         "max_dihedral_change": 104.3,
-         "merged": false,
-         "candidate_origin": "seed=0 embedding=47",
-         "representative_origin": "seed=0 embedding=12"
-        },
-        {
-         "rmsd": 0.4373,
-         "energy_difference": 15.789,
-         "tfd": 0.0369,
-         "max_dihedral_change": 104.3,
-         "merged": false,
-         "candidate_origin": "seed=0 embedding=36",
-         "representative_origin": "seed=0 embedding=12"
-        },
-        {
-         "rmsd": 0.4384,
+         "rmsd": 0.4383,
          "energy_difference": 15.767,
          "tfd": 0.0378,
          "max_dihedral_change": 104.3,
          "merged": false,
          "candidate_origin": "seed=0 embedding=2",
-         "representative_origin": "seed=0 embedding=29"
+         "representative_origin": "seed=0 embedding=27"
         },
         {
-         "rmsd": 0.4383,
-         "energy_difference": 15.767,
-         "tfd": 0.0378,
-         "max_dihedral_change": 104.3,
+         "rmsd": 0.4021,
+         "energy_difference": 13.592,
+         "tfd": 0.0635,
+         "max_dihedral_change": 104.6,
          "merged": false,
-         "candidate_origin": "seed=0 embedding=23",
-         "representative_origin": "seed=0 embedding=29"
+         "candidate_origin": "seed=0 embedding=20",
+         "representative_origin": "seed=0 embedding=35"
         },
         {
-         "rmsd": 0.4383,
-         "energy_difference": 15.767,
-         "tfd": 0.0378,
-         "max_dihedral_change": 104.3,
+         "rmsd": 0.4785,
+         "energy_difference": 11.433,
+         "tfd": 0.1014,
+         "max_dihedral_change": 173.1,
          "merged": false,
-         "candidate_origin": "seed=0 embedding=25",
-         "representative_origin": "seed=0 embedding=29"
+         "candidate_origin": "seed=0 embedding=2",
+         "representative_origin": "seed=0 embedding=18"
+        },
+        {
+         "rmsd": 0.3979,
+         "energy_difference": 9.298,
+         "tfd": 0.0622,
+         "max_dihedral_change": 104.9,
+         "merged": false,
+         "candidate_origin": "seed=0 embedding=0",
+         "representative_origin": "seed=0 embedding=16"
+        },
+        {
+         "rmsd": 0.3979,
+         "energy_difference": 9.298,
+         "tfd": 0.0622,
+         "max_dihedral_change": 104.9,
+         "merged": false,
+         "candidate_origin": "seed=0 embedding=1",
+         "representative_origin": "seed=0 embedding=16"
         }
        ]
       }
@@ -5721,23 +5722,23 @@
      "converged": 50,
      "embedding_failures": 0,
      "convergence_failures": 0,
-     "distinct": 14,
-     "distinct_energies": 16,
+     "distinct": 18,
+     "distinct_energies": 22,
      "threshold_sweep": {
       "0.25": {
-       "veto": 18,
-       "rmsd_only": 13
+       "veto": 23,
+       "rmsd_only": 18
       },
       "0.35": {
-       "veto": 18,
-       "rmsd_only": 8
+       "veto": 23,
+       "rmsd_only": 11
       },
       "0.50": {
-       "veto": 14,
-       "rmsd_only": 4
+       "veto": 18,
+       "rmsd_only": 6
       },
       "0.75": {
-       "veto": 11,
+       "veto": 12,
        "rmsd_only": 2
       },
       "1.00": {
@@ -5746,15 +5747,15 @@
       }
      },
      "merge_candidates": {
-      "examined": 198,
-      "vetoed": 162,
+      "examined": 172,
+      "vetoed": 140,
       "merged_away": {
-       "pairs": 36,
+       "pairs": 32,
        "rmsd_min": 0.0,
-       "rmsd_max": 0.4593,
-       "torsion_over_30": 16,
-       "torsion_over_60": 16,
-       "torsion_over_90": 16,
+       "rmsd_max": 0.493,
+       "torsion_over_30": 13,
+       "torsion_over_60": 13,
+       "torsion_over_90": 12,
        "torsion_unavailable": 0,
        "worst": [
         {
@@ -5763,35 +5764,8 @@
          "tfd": 0.016,
          "max_dihedral_change": 179.4,
          "merged": true,
-         "candidate_origin": "seed=100003 embedding=28",
-         "representative_origin": "seed=100003 embedding=31"
-        },
-        {
-         "rmsd": 0.4577,
-         "energy_difference": 0.068,
-         "tfd": 0.016,
-         "max_dihedral_change": 179.4,
-         "merged": true,
-         "candidate_origin": "seed=100003 embedding=7",
-         "representative_origin": "seed=100003 embedding=31"
-        },
-        {
-         "rmsd": 0.4577,
-         "energy_difference": 0.068,
-         "tfd": 0.016,
-         "max_dihedral_change": 179.4,
-         "merged": true,
-         "candidate_origin": "seed=100003 embedding=44",
-         "representative_origin": "seed=100003 embedding=31"
-        },
-        {
-         "rmsd": 0.4577,
-         "energy_difference": 0.068,
-         "tfd": 0.016,
-         "max_dihedral_change": 179.4,
-         "merged": true,
-         "candidate_origin": "seed=100003 embedding=15",
-         "representative_origin": "seed=100003 embedding=31"
+         "candidate_origin": "seed=100003 embedding=14",
+         "representative_origin": "seed=100003 embedding=24"
         },
         {
          "rmsd": 0.4577,
@@ -5800,36 +5774,54 @@
          "max_dihedral_change": 179.4,
          "merged": true,
          "candidate_origin": "seed=100003 embedding=27",
-         "representative_origin": "seed=100003 embedding=31"
+         "representative_origin": "seed=100003 embedding=24"
+        },
+        {
+         "rmsd": 0.4577,
+         "energy_difference": 0.068,
+         "tfd": 0.0161,
+         "max_dihedral_change": 179.4,
+         "merged": true,
+         "candidate_origin": "seed=100003 embedding=44",
+         "representative_origin": "seed=100003 embedding=24"
+        },
+        {
+         "rmsd": 0.4579,
+         "energy_difference": 0.045,
+         "tfd": 0.016,
+         "max_dihedral_change": 179.2,
+         "merged": true,
+         "candidate_origin": "seed=100003 embedding=41",
+         "representative_origin": "seed=100003 embedding=11"
+        },
+        {
+         "rmsd": 0.4579,
+         "energy_difference": 0.045,
+         "tfd": 0.016,
+         "max_dihedral_change": 179.2,
+         "merged": true,
+         "candidate_origin": "seed=100003 embedding=23",
+         "representative_origin": "seed=100003 embedding=11"
         }
        ]
       },
       "vetoed_merge": {
-       "pairs": 162,
+       "pairs": 140,
        "rmsd_min": 0.2066,
        "rmsd_max": 0.4998,
-       "torsion_over_30": 148,
-       "torsion_over_60": 148,
-       "torsion_over_90": 132,
+       "torsion_over_30": 126,
+       "torsion_over_60": 126,
+       "torsion_over_90": 115,
        "torsion_unavailable": 0,
        "worst": [
         {
-         "rmsd": 0.4373,
-         "energy_difference": 15.789,
-         "tfd": 0.0369,
-         "max_dihedral_change": 104.3,
+         "rmsd": 0.4327,
+         "energy_difference": 18.137,
+         "tfd": 0.0766,
+         "max_dihedral_change": 93.6,
          "merged": false,
-         "candidate_origin": "seed=100003 embedding=42",
-         "representative_origin": "seed=100003 embedding=26"
-        },
-        {
-         "rmsd": 0.4373,
-         "energy_difference": 15.789,
-         "tfd": 0.0369,
-         "max_dihedral_change": 104.3,
-         "merged": false,
-         "candidate_origin": "seed=100003 embedding=11",
-         "representative_origin": "seed=100003 embedding=26"
+         "candidate_origin": "seed=100003 embedding=6",
+         "representative_origin": "seed=100003 embedding=25"
         },
         {
          "rmsd": 0.4383,
@@ -5838,7 +5830,7 @@
          "max_dihedral_change": 104.3,
          "merged": false,
          "candidate_origin": "seed=100003 embedding=8",
-         "representative_origin": "seed=100003 embedding=22"
+         "representative_origin": "seed=100003 embedding=18"
         },
         {
          "rmsd": 0.4383,
@@ -5847,16 +5839,25 @@
          "max_dihedral_change": 104.3,
          "merged": false,
          "candidate_origin": "seed=100003 embedding=19",
-         "representative_origin": "seed=100003 embedding=22"
+         "representative_origin": "seed=100003 embedding=18"
         },
         {
-         "rmsd": 0.4383,
-         "energy_difference": 15.767,
-         "tfd": 0.0378,
-         "max_dihedral_change": 104.3,
+         "rmsd": 0.4476,
+         "energy_difference": 13.795,
+         "tfd": 0.0668,
+         "max_dihedral_change": 93.7,
          "merged": false,
-         "candidate_origin": "seed=100003 embedding=20",
-         "representative_origin": "seed=100003 embedding=22"
+         "candidate_origin": "seed=100003 embedding=13",
+         "representative_origin": "seed=100003 embedding=18"
+        },
+        {
+         "rmsd": 0.4021,
+         "energy_difference": 13.592,
+         "tfd": 0.0635,
+         "max_dihedral_change": 104.6,
+         "merged": false,
+         "candidate_origin": "seed=100003 embedding=38",
+         "representative_origin": "seed=100003 embedding=25"
         }
        ]
       }
@@ -5869,24 +5870,24 @@
      "converged": 50,
      "embedding_failures": 0,
      "convergence_failures": 0,
-     "distinct": 14,
-     "distinct_energies": 16,
+     "distinct": 15,
+     "distinct_energies": 17,
      "threshold_sweep": {
       "0.25": {
-       "veto": 18,
+       "veto": 17,
        "rmsd_only": 12
       },
       "0.35": {
-       "veto": 18,
+       "veto": 17,
        "rmsd_only": 6
       },
       "0.50": {
-       "veto": 14,
-       "rmsd_only": 5
+       "veto": 15,
+       "rmsd_only": 4
       },
       "0.75": {
-       "veto": 11,
-       "rmsd_only": 2
+       "veto": 10,
+       "rmsd_only": 1
       },
       "1.00": {
        "veto": 10,
@@ -5894,108 +5895,81 @@
       }
      },
      "merge_candidates": {
-      "examined": 216,
-      "vetoed": 180,
+      "examined": 197,
+      "vetoed": 162,
       "merged_away": {
-       "pairs": 36,
+       "pairs": 35,
        "rmsd_min": 0.0,
-       "rmsd_max": 0.4593,
-       "torsion_over_30": 12,
-       "torsion_over_60": 12,
-       "torsion_over_90": 12,
+       "rmsd_max": 0.4578,
+       "torsion_over_30": 11,
+       "torsion_over_60": 11,
+       "torsion_over_90": 9,
        "torsion_unavailable": 0,
        "worst": [
         {
          "rmsd": 0.4577,
          "energy_difference": 0.068,
-         "tfd": 0.016,
-         "max_dihedral_change": 179.4,
-         "merged": true,
-         "candidate_origin": "seed=200006 embedding=30",
-         "representative_origin": "seed=200006 embedding=20"
-        },
-        {
-         "rmsd": 0.4577,
-         "energy_difference": 0.068,
-         "tfd": 0.016,
-         "max_dihedral_change": 179.4,
-         "merged": true,
-         "candidate_origin": "seed=200006 embedding=17",
-         "representative_origin": "seed=200006 embedding=20"
-        },
-        {
-         "rmsd": 0.4577,
-         "energy_difference": 0.068,
-         "tfd": 0.016,
-         "max_dihedral_change": 179.4,
-         "merged": true,
-         "candidate_origin": "seed=200006 embedding=13",
-         "representative_origin": "seed=200006 embedding=20"
-        },
-        {
-         "rmsd": 0.4577,
-         "energy_difference": 0.068,
-         "tfd": 0.016,
-         "max_dihedral_change": 179.4,
-         "merged": true,
-         "candidate_origin": "seed=200006 embedding=7",
-         "representative_origin": "seed=200006 embedding=20"
-        },
-        {
-         "rmsd": 0.4577,
-         "energy_difference": 0.068,
-         "tfd": 0.016,
+         "tfd": 0.0161,
          "max_dihedral_change": 179.4,
          "merged": true,
          "candidate_origin": "seed=200006 embedding=4",
-         "representative_origin": "seed=200006 embedding=20"
+         "representative_origin": "seed=200006 embedding=47"
+        },
+        {
+         "rmsd": 0.4577,
+         "energy_difference": 0.068,
+         "tfd": 0.016,
+         "max_dihedral_change": 179.4,
+         "merged": true,
+         "candidate_origin": "seed=200006 embedding=33",
+         "representative_origin": "seed=200006 embedding=47"
+        },
+        {
+         "rmsd": 0.4577,
+         "energy_difference": 0.068,
+         "tfd": 0.016,
+         "max_dihedral_change": 179.4,
+         "merged": true,
+         "candidate_origin": "seed=200006 embedding=35",
+         "representative_origin": "seed=200006 embedding=47"
+        },
+        {
+         "rmsd": 0.4577,
+         "energy_difference": 0.068,
+         "tfd": 0.016,
+         "max_dihedral_change": 179.4,
+         "merged": true,
+         "candidate_origin": "seed=200006 embedding=34",
+         "representative_origin": "seed=200006 embedding=47"
+        },
+        {
+         "rmsd": 0.4577,
+         "energy_difference": 0.068,
+         "tfd": 0.016,
+         "max_dihedral_change": 179.4,
+         "merged": true,
+         "candidate_origin": "seed=200006 embedding=48",
+         "representative_origin": "seed=200006 embedding=47"
         }
        ]
       },
       "vetoed_merge": {
-       "pairs": 180,
-       "rmsd_min": 0.2066,
-       "rmsd_max": 0.4999,
-       "torsion_over_30": 167,
-       "torsion_over_60": 167,
-       "torsion_over_90": 153,
+       "pairs": 162,
+       "rmsd_min": 0.2065,
+       "rmsd_max": 0.4998,
+       "torsion_over_30": 149,
+       "torsion_over_60": 149,
+       "torsion_over_90": 137,
        "torsion_unavailable": 0,
        "worst": [
         {
-         "rmsd": 0.4373,
-         "energy_difference": 15.789,
-         "tfd": 0.0369,
-         "max_dihedral_change": 104.3,
-         "merged": false,
-         "candidate_origin": "seed=200006 embedding=9",
-         "representative_origin": "seed=200006 embedding=38"
-        },
-        {
-         "rmsd": 0.4373,
-         "energy_difference": 15.789,
-         "tfd": 0.0369,
-         "max_dihedral_change": 104.3,
-         "merged": false,
-         "candidate_origin": "seed=200006 embedding=32",
-         "representative_origin": "seed=200006 embedding=38"
-        },
-        {
-         "rmsd": 0.4384,
+         "rmsd": 0.4383,
          "energy_difference": 15.767,
          "tfd": 0.0378,
          "max_dihedral_change": 104.3,
          "merged": false,
-         "candidate_origin": "seed=200006 embedding=40",
-         "representative_origin": "seed=200006 embedding=42"
-        },
-        {
-         "rmsd": 0.4384,
-         "energy_difference": 15.767,
-         "tfd": 0.0378,
-         "max_dihedral_change": 104.3,
-         "merged": false,
-         "candidate_origin": "seed=200006 embedding=45",
-         "representative_origin": "seed=200006 embedding=42"
+         "candidate_origin": "seed=200006 embedding=27",
+         "representative_origin": "seed=200006 embedding=40"
         },
         {
          "rmsd": 0.4383,
@@ -6003,8 +5977,35 @@
          "tfd": 0.0378,
          "max_dihedral_change": 104.3,
          "merged": false,
-         "candidate_origin": "seed=200006 embedding=2",
-         "representative_origin": "seed=200006 embedding=42"
+         "candidate_origin": "seed=200006 embedding=42",
+         "representative_origin": "seed=200006 embedding=40"
+        },
+        {
+         "rmsd": 0.498,
+         "energy_difference": 13.385,
+         "tfd": 0.038,
+         "max_dihedral_change": 96.8,
+         "merged": false,
+         "candidate_origin": "seed=200006 embedding=32",
+         "representative_origin": "seed=200006 embedding=10"
+        },
+        {
+         "rmsd": 0.4998,
+         "energy_difference": 13.364,
+         "tfd": 0.0392,
+         "max_dihedral_change": 96.8,
+         "merged": false,
+         "candidate_origin": "seed=200006 embedding=27",
+         "representative_origin": "seed=200006 embedding=19"
+        },
+        {
+         "rmsd": 0.4998,
+         "energy_difference": 13.364,
+         "tfd": 0.0391,
+         "max_dihedral_change": 96.8,
+         "merged": false,
+         "candidate_origin": "seed=200006 embedding=42",
+         "representative_origin": "seed=200006 embedding=19"
         }
        ]
       }
@@ -6017,49 +6018,49 @@
      "converged": 50,
      "embedding_failures": 0,
      "convergence_failures": 0,
-     "distinct": 12,
-     "distinct_energies": 13,
+     "distinct": 18,
+     "distinct_energies": 19,
      "threshold_sweep": {
       "0.25": {
-       "veto": 16,
-       "rmsd_only": 12
+       "veto": 21,
+       "rmsd_only": 17
       },
       "0.35": {
-       "veto": 16,
-       "rmsd_only": 6
+       "veto": 21,
+       "rmsd_only": 10
       },
       "0.50": {
-       "veto": 12,
-       "rmsd_only": 3
+       "veto": 18,
+       "rmsd_only": 4
       },
       "0.75": {
-       "veto": 10,
-       "rmsd_only": 1
+       "veto": 13,
+       "rmsd_only": 2
       },
       "1.00": {
-       "veto": 10,
+       "veto": 13,
        "rmsd_only": 1
       }
      },
      "merge_candidates": {
-      "examined": 188,
-      "vetoed": 150,
+      "examined": 193,
+      "vetoed": 161,
       "merged_away": {
-       "pairs": 38,
+       "pairs": 32,
        "rmsd_min": 0.0,
-       "rmsd_max": 0.4579,
-       "torsion_over_30": 16,
-       "torsion_over_60": 16,
-       "torsion_over_90": 16,
+       "rmsd_max": 0.46,
+       "torsion_over_30": 6,
+       "torsion_over_60": 6,
+       "torsion_over_90": 6,
        "torsion_unavailable": 0,
        "worst": [
         {
-         "rmsd": 0.4576,
+         "rmsd": 0.4577,
          "energy_difference": 0.068,
-         "tfd": 0.0161,
+         "tfd": 0.016,
          "max_dihedral_change": 179.4,
          "merged": true,
-         "candidate_origin": "seed=300009 embedding=10",
+         "candidate_origin": "seed=300009 embedding=22",
          "representative_origin": "seed=300009 embedding=31"
         },
         {
@@ -6077,82 +6078,82 @@
          "tfd": 0.016,
          "max_dihedral_change": 179.4,
          "merged": true,
-         "candidate_origin": "seed=300009 embedding=35",
+         "candidate_origin": "seed=300009 embedding=36",
          "representative_origin": "seed=300009 embedding=31"
         },
         {
-         "rmsd": 0.4577,
-         "energy_difference": 0.068,
-         "tfd": 0.016,
-         "max_dihedral_change": 179.4,
+         "rmsd": 0.4593,
+         "energy_difference": 0.051,
+         "tfd": 0.0159,
+         "max_dihedral_change": 179.2,
          "merged": true,
-         "candidate_origin": "seed=300009 embedding=22",
-         "representative_origin": "seed=300009 embedding=31"
+         "candidate_origin": "seed=300009 embedding=16",
+         "representative_origin": "seed=300009 embedding=34"
         },
         {
-         "rmsd": 0.4577,
-         "energy_difference": 0.068,
-         "tfd": 0.016,
-         "max_dihedral_change": 179.4,
+         "rmsd": 0.46,
+         "energy_difference": 0.969,
+         "tfd": 0.0494,
+         "max_dihedral_change": 93.7,
          "merged": true,
-         "candidate_origin": "seed=300009 embedding=14",
-         "representative_origin": "seed=300009 embedding=31"
+         "candidate_origin": "seed=300009 embedding=24",
+         "representative_origin": "seed=300009 embedding=23"
         }
        ]
       },
       "vetoed_merge": {
-       "pairs": 150,
+       "pairs": 161,
        "rmsd_min": 0.2065,
-       "rmsd_max": 0.4984,
-       "torsion_over_30": 142,
-       "torsion_over_60": 142,
-       "torsion_over_90": 138,
+       "rmsd_max": 0.4997,
+       "torsion_over_30": 146,
+       "torsion_over_60": 146,
+       "torsion_over_90": 132,
        "torsion_unavailable": 0,
        "worst": [
         {
-         "rmsd": 0.4649,
-         "energy_difference": 20.448,
-         "tfd": 0.0523,
+         "rmsd": 0.4672,
+         "energy_difference": 20.421,
+         "tfd": 0.0533,
          "max_dihedral_change": 93.4,
          "merged": false,
+         "candidate_origin": "seed=300009 embedding=37",
+         "representative_origin": "seed=300009 embedding=49"
+        },
+        {
+         "rmsd": 0.4644,
+         "energy_difference": 20.387,
+         "tfd": 0.0558,
+         "max_dihedral_change": 93.4,
+         "merged": false,
+         "candidate_origin": "seed=300009 embedding=33",
+         "representative_origin": "seed=300009 embedding=0"
+        },
+        {
+         "rmsd": 0.4383,
+         "energy_difference": 15.767,
+         "tfd": 0.0378,
+         "max_dihedral_change": 104.3,
+         "merged": false,
+         "candidate_origin": "seed=300009 embedding=41",
+         "representative_origin": "seed=300009 embedding=49"
+        },
+        {
+         "rmsd": 0.4381,
+         "energy_difference": 15.751,
+         "tfd": 0.0396,
+         "max_dihedral_change": 104.3,
+         "merged": false,
          "candidate_origin": "seed=300009 embedding=32",
-         "representative_origin": "seed=300009 embedding=48"
+         "representative_origin": "seed=300009 embedding=0"
         },
         {
-         "rmsd": 0.4372,
-         "energy_difference": 15.789,
-         "tfd": 0.0369,
-         "max_dihedral_change": 104.3,
+         "rmsd": 0.4758,
+         "energy_difference": 13.644,
+         "tfd": 0.0184,
+         "max_dihedral_change": 15.8,
          "merged": false,
-         "candidate_origin": "seed=300009 embedding=24",
-         "representative_origin": "seed=300009 embedding=48"
-        },
-        {
-         "rmsd": 0.4373,
-         "energy_difference": 15.789,
-         "tfd": 0.0369,
-         "max_dihedral_change": 104.3,
-         "merged": false,
-         "candidate_origin": "seed=300009 embedding=4",
-         "representative_origin": "seed=300009 embedding=48"
-        },
-        {
-         "rmsd": 0.4373,
-         "energy_difference": 15.789,
-         "tfd": 0.0369,
-         "max_dihedral_change": 104.3,
-         "merged": false,
-         "candidate_origin": "seed=300009 embedding=27",
-         "representative_origin": "seed=300009 embedding=48"
-        },
-        {
-         "rmsd": 0.4755,
-         "energy_difference": 13.846,
-         "tfd": 0.0679,
-         "max_dihedral_change": 93.7,
-         "merged": false,
-         "candidate_origin": "seed=300009 embedding=44",
-         "representative_origin": "seed=300009 embedding=39"
+         "candidate_origin": "seed=300009 embedding=37",
+         "representative_origin": "seed=300009 embedding=30"
         }
        ]
       }
@@ -6166,49 +6167,58 @@
      "embedding_failures": 0,
      "convergence_failures": 0,
      "distinct": 14,
-     "distinct_energies": 16,
+     "distinct_energies": 15,
      "threshold_sweep": {
       "0.25": {
-       "veto": 17,
+       "veto": 18,
        "rmsd_only": 13
       },
       "0.35": {
-       "veto": 17,
-       "rmsd_only": 7
+       "veto": 18,
+       "rmsd_only": 9
       },
       "0.50": {
        "veto": 14,
-       "rmsd_only": 3
+       "rmsd_only": 5
       },
       "0.75": {
        "veto": 10,
        "rmsd_only": 1
       },
       "1.00": {
-       "veto": 10,
+       "veto": 9,
        "rmsd_only": 1
       }
      },
      "merge_candidates": {
-      "examined": 197,
-      "vetoed": 161,
+      "examined": 182,
+      "vetoed": 146,
       "merged_away": {
        "pairs": 36,
        "rmsd_min": 0.0,
-       "rmsd_max": 0.4593,
-       "torsion_over_30": 10,
-       "torsion_over_60": 10,
-       "torsion_over_90": 10,
+       "rmsd_max": 0.4769,
+       "torsion_over_30": 9,
+       "torsion_over_60": 9,
+       "torsion_over_90": 8,
        "torsion_unavailable": 0,
        "worst": [
         {
          "rmsd": 0.4577,
          "energy_difference": 0.068,
-         "tfd": 0.0159,
+         "tfd": 0.016,
          "max_dihedral_change": 179.4,
          "merged": true,
          "candidate_origin": "seed=400012 embedding=39",
-         "representative_origin": "seed=400012 embedding=30"
+         "representative_origin": "seed=400012 embedding=45"
+        },
+        {
+         "rmsd": 0.4577,
+         "energy_difference": 0.068,
+         "tfd": 0.016,
+         "max_dihedral_change": 179.4,
+         "merged": true,
+         "candidate_origin": "seed=400012 embedding=33",
+         "representative_origin": "seed=400012 embedding=45"
         },
         {
          "rmsd": 0.4577,
@@ -6217,90 +6227,81 @@
          "max_dihedral_change": 179.4,
          "merged": true,
          "candidate_origin": "seed=400012 embedding=44",
-         "representative_origin": "seed=400012 embedding=30"
+         "representative_origin": "seed=400012 embedding=45"
         },
         {
-         "rmsd": 0.4577,
-         "energy_difference": 0.068,
+         "rmsd": 0.4582,
+         "energy_difference": 0.045,
          "tfd": 0.016,
-         "max_dihedral_change": 179.4,
+         "max_dihedral_change": 179.2,
          "merged": true,
-         "candidate_origin": "seed=400012 embedding=49",
-         "representative_origin": "seed=400012 embedding=30"
+         "candidate_origin": "seed=400012 embedding=38",
+         "representative_origin": "seed=400012 embedding=20"
         },
         {
-         "rmsd": 0.4577,
-         "energy_difference": 0.068,
+         "rmsd": 0.4583,
+         "energy_difference": 0.045,
          "tfd": 0.016,
-         "max_dihedral_change": 179.4,
+         "max_dihedral_change": 179.2,
          "merged": true,
-         "candidate_origin": "seed=400012 embedding=18",
-         "representative_origin": "seed=400012 embedding=30"
-        },
-        {
-         "rmsd": 0.4577,
-         "energy_difference": 0.068,
-         "tfd": 0.016,
-         "max_dihedral_change": 179.4,
-         "merged": true,
-         "candidate_origin": "seed=400012 embedding=40",
-         "representative_origin": "seed=400012 embedding=30"
+         "candidate_origin": "seed=400012 embedding=31",
+         "representative_origin": "seed=400012 embedding=20"
         }
        ]
       },
       "vetoed_merge": {
-       "pairs": 161,
+       "pairs": 146,
        "rmsd_min": 0.2066,
-       "rmsd_max": 0.4998,
-       "torsion_over_30": 150,
-       "torsion_over_60": 150,
-       "torsion_over_90": 135,
+       "rmsd_max": 0.4984,
+       "torsion_over_30": 137,
+       "torsion_over_60": 137,
+       "torsion_over_90": 132,
        "torsion_unavailable": 0,
        "worst": [
         {
-         "rmsd": 0.4373,
-         "energy_difference": 15.789,
-         "tfd": 0.0369,
-         "max_dihedral_change": 104.3,
+         "rmsd": 0.4672,
+         "energy_difference": 20.421,
+         "tfd": 0.0532,
+         "max_dihedral_change": 93.4,
          "merged": false,
-         "candidate_origin": "seed=400012 embedding=34",
-         "representative_origin": "seed=400012 embedding=48"
-        },
-        {
-         "rmsd": 0.4373,
-         "energy_difference": 15.789,
-         "tfd": 0.0369,
-         "max_dihedral_change": 104.3,
-         "merged": false,
-         "candidate_origin": "seed=400012 embedding=16",
-         "representative_origin": "seed=400012 embedding=48"
-        },
-        {
-         "rmsd": 0.4384,
-         "energy_difference": 15.767,
-         "tfd": 0.0378,
-         "max_dihedral_change": 104.3,
-         "merged": false,
-         "candidate_origin": "seed=400012 embedding=36",
+         "candidate_origin": "seed=400012 embedding=15",
          "representative_origin": "seed=400012 embedding=22"
         },
         {
-         "rmsd": 0.4476,
-         "energy_difference": 13.795,
-         "tfd": 0.0668,
-         "max_dihedral_change": 93.7,
+         "rmsd": 0.4373,
+         "energy_difference": 15.789,
+         "tfd": 0.037,
+         "max_dihedral_change": 104.3,
          "merged": false,
-         "candidate_origin": "seed=400012 embedding=35",
-         "representative_origin": "seed=400012 embedding=22"
+         "candidate_origin": "seed=400012 embedding=11",
+         "representative_origin": "seed=400012 embedding=20"
         },
         {
-         "rmsd": 0.498,
-         "energy_difference": 13.385,
-         "tfd": 0.038,
+         "rmsd": 0.4758,
+         "energy_difference": 13.644,
+         "tfd": 0.0184,
+         "max_dihedral_change": 15.8,
+         "merged": false,
+         "candidate_origin": "seed=400012 embedding=15",
+         "representative_origin": "seed=400012 embedding=27"
+        },
+        {
+         "rmsd": 0.4984,
+         "energy_difference": 13.341,
+         "tfd": 0.041,
          "max_dihedral_change": 96.8,
          "merged": false,
-         "candidate_origin": "seed=400012 embedding=34",
-         "representative_origin": "seed=400012 embedding=41"
+         "candidate_origin": "seed=400012 embedding=25",
+         "representative_origin": "seed=400012 embedding=29"
+        },
+        {
+         "rmsd": 0.2887,
+         "energy_difference": 11.83,
+         "tfd": 0.0574,
+         "max_dihedral_change": 93.8,
+         "merged": false,
+         "candidate_origin": "seed=400012 embedding=35",
+         "representative_origin": "seed=400012 embedding=24"
         }
        ]
       }
@@ -6308,11 +6309,11 @@
     }
    ],
    "set_overlap": {
-    "union": 17,
-    "mean_per_seed": 12.8,
-    "coverage": 0.753,
-    "jaccard_mean": 0.662,
-    "jaccard_min": 0.5,
+    "union": 25,
+    "mean_per_seed": 15.0,
+    "coverage": 0.6,
+    "jaccard_mean": 0.548,
+    "jaccard_min": 0.4,
     "pairs": 10
    }
   }
