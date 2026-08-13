@@ -20,14 +20,29 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-#: Defaults. 10 kept is what the single-field dialog this replaces asked
-#: for, so the number a returning user recognises is unchanged; 50 tried
-#: is new, and is the smallest count that found a drug-like molecule's
-#: minima in the benchmark. Ebejer/Morris/Deane's convention for
-#: drug-like conformer generation is 50-300 embeddings, and the app's
-#: previous behaviour was effectively 10.
-DEFAULT_CONFORMERS_TO_KEEP = 10
-DEFAULT_EMBEDDINGS_TO_TRY = 50
+#: Defaults, raised from 10/50 on the funnel's evidence (2026-08-13).
+#:
+#: The old keep of 10 was "the number a returning user recognises", and
+#: it was quietly truncating: the funnel measured drug-like molecules
+#: finding 12-17 distinct conformers at 50-100 embeddings, so on
+#: ordinary inputs real conformers were dropped with only a status line
+#: saying so. Measured live on ethylmorphine at the old defaults:
+#: 12 distinct found, 10 returned.
+#:
+#: **20 exceeds the maximum distinct count observed so far at 100
+#: embeddings (~15-18) -- observed headroom, NOT a claim that 20 is
+#: sufficient for every molecule.** A 200-embedding run reached 17 before
+#: small-ring torsions shipped and the discoverable union is at least 25
+#: with them, which is exactly why the cap still exists and why the
+#: Details dialog says when it bites.
+#:
+#: 100 embeddings roughly doubles the yield on flexible molecules
+#: (ethylmorphine 10 -> 15 distinct) at ~5 s against ~2 s, inside
+#: Ebejer/Morris/Deane's 50-300 convention for drug-like generation.
+#: Generation shows progress and is cancellable, so the cost is visible
+#: rather than mysterious.
+DEFAULT_CONFORMERS_TO_KEEP = 20
+DEFAULT_EMBEDDINGS_TO_TRY = 100
 
 #: The old dialog's ceiling was 200, applied to what turned out to be the
 #: embedding count. Kept for embeddings; keeping more than 50 distinct

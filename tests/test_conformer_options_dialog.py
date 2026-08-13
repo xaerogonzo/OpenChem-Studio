@@ -111,3 +111,19 @@ def test_the_dialog_explains_why_fewer_may_come_back(qapp):
         assert "fewer" in text
     finally:
         _dispose(dialog)
+
+
+def test_the_defaults_are_the_ones_the_funnel_evidence_chose():
+    """A change-detector on purpose -- the _LAYOUT_VERSION pattern.
+
+    These two numbers are decisions with measurements behind them
+    (2026-08-13): keep=10 silently truncated ethylmorphine at the old
+    defaults (12 distinct found, 10 returned, measured live), and 100
+    embeddings roughly doubles a flexible molecule's yield (10 -> 15
+    distinct) at ~5 s. An accidental revert should fail HERE, naming the
+    evidence, rather than quietly reintroducing silent truncation.
+    Changing them again is fine -- with a new measurement, and this test
+    updated to cite it.
+    """
+    assert DEFAULT_CONFORMERS_TO_KEEP == 20
+    assert DEFAULT_EMBEDDINGS_TO_TRY == 100

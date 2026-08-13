@@ -13,6 +13,7 @@ from openchem.chem.conformer_providers import (
     GenerationOptions,
     RDKitConformerProvider,
     distinct_conformers,
+    select_for_return,
 )
 from openchem.chem.alignment import align_conformers_for_display
 from openchem.chem.engine import ChemistryEngine
@@ -136,7 +137,16 @@ class _ConformerGenerationTask(QRunnable):
         distinct = len(results)
         # Sorted ascending by energy, so truncating to the requested count
         # keeps the lowest-energy members rather than an arbitrary slice.
-        results = results[: self._num_conformers]
+        results = select_for_return(results, self._num_conformers)
+        # **RECORDED HERE, immediately after the slice and before anything
+        # downstream touches the list.** Every other stage count was being
+        # stored and this one was not, so provenance could say 12 distinct
+        # conformers were found and never say how many the user actually
+        # got -- which is the difference this whole diagnostic is about,
+        # and the one a flexible molecule hits every time at the default
+        # cap of 10. Unconditional, including the zero cases: a stage count
+        # that only exists on the happy path cannot be read as a stage.
+        returned = len(results)
         if distinct < converged:
             logger.info(
                 "Kept %d distinct conformer(s) of %d converged for molecule %s",
@@ -169,6 +179,24 @@ class _ConformerGenerationTask(QRunnable):
                 "embedding_failures": batch.embedding_failures,
                 "convergence_failures": batch.convergence_failures,
                 "conformers_distinct": distinct,
+                # What the user actually received. `conformers_distinct`
+                # minus this is what the `num_conformers` cap removed.
+                #
+                # **TODAY THIS EQUALS `min(distinct, num_conformers)`
+                # EXACTLY**, since the truncation is the one operation
+                # between them -- so it is recorded for two reasons that
+                # are not "it cannot be derived". First, a reader should
+                # not have to know that in order to trust the arithmetic.
+                # Second, the derivation is only valid for as long as
+                # nothing else sits in that gap: add one more filter and
+                # `min(...)` silently starts describing a pipeline that no
+                # longer exists, while a recorded count cannot.
+                #
+                # A record written BEFORE this field must still not have it
+                # back-filled by that formula -- not because the formula is
+                # wrong, but because nothing says which version of this
+                # method produced that record.
+                "conformers_returned": returned,
                 "rms_threshold": self._options.diversity_rmsd,
                 "optimisation_level": self._options.optimisation,
                 "time_limit_seconds": self._options.time_limit_seconds,
@@ -189,6 +217,17 @@ class _ConformerGenerationTask(QRunnable):
                 # this there is nothing to say whether the toolkit or the
                 # algorithm changed.
                 "rdkit_version": rdkit.__version__,
+                # The ACTUAL sampling setting of the provider that ran,
+                # read from the provider rather than assumed -- a plugin
+                # provider that never declared it records None ("not
+                # declared"), never a guessed default. Recorded for the
+                # same reason rdkit_version is: it changes every count
+                # above (measured: ethylmorphine's discoverable union is
+                # 17 without it and 25 with it), so a stored record must
+                # say which sampling produced it.
+                "use_small_ring_torsions": getattr(
+                    self._provider, "use_small_ring_torsions", None
+                ),
             },
             timestamp=now,
         )

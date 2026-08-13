@@ -141,6 +141,26 @@ class ConformerBatch:
     converged: int = 0
     embedding_failures: int = 0
     convergence_failures: int = 0
+    #: Every embedding as it was BEFORE minimisation.
+    #:
+    #: **DIAGNOSTIC ONLY, WITH A LIFECYCLE.** Populated only when
+    #: `GenerationOptions.record_pre_optimisation` is set, empty otherwise.
+    #: It is NOT part of the conformer result population: these geometries
+    #: never reached a minimum, so they must never be ranked, de-duplicated
+    #: into `results`, handed to a calculator, or persisted as a
+    #: `ConformerModel` — the same reasoning that makes a non-converged
+    #: conformer a discard rather than a result.
+    #:
+    #: **NEVER POSITIONALLY ALIGNED WITH `results`.** An embedding that
+    #: fails to converge appears here and not there, so `pre_optimisation[i]`
+    #: and `results[i]` describe different embeddings the moment anything
+    #: fails — and `results` is additionally sorted by energy. Trace with
+    #: the `_oc_origin` property both carry
+    #: (`chem.conformer_providers.ORIGIN_PROPERTY`), never by index.
+    #:
+    #: Defaulted, so a provider written against the earlier interface — or
+    #: any caller constructing a batch directly — is unaffected.
+    pre_optimisation: list[Chem.Mol] = field(default_factory=list)
 
 
 class ConformerProvider(ABC):

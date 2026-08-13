@@ -325,6 +325,11 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no Lewis dialog open; run {'do': 'lewis'}")
                 return
             target = self._lewis
+        elif step.get("widget") == "details":
+            if getattr(self, "_details", None) is None:
+                logger.error("OPENCHEM_DRIVE: no details dialog open; run {'do': 'details'}")
+                return
+            target = self._details
         target.grab().save(str(path))
         logger.warning("OPENCHEM_DRIVE: wrote %s", path)
 
@@ -390,7 +395,46 @@ class _Driver(QObject):
             molecule,
             num_conformers=int(step.get("count", 3)),
             optimize=bool(step.get("optimize", True)),
+            num_embeddings=step.get("embeddings"),
         )
+
+    def _do_details(self, step: dict[str, Any]) -> None:
+        """Open the conformer generation details dialog.
+
+        **`show()`, not `exec()`**, for the reason `_do_lewis` gives: a
+        modal spins its own event loop inside this handler and the step
+        chain is never scheduled again, so an unattended run stalls on a
+        window with nobody to close it.
+
+        Built from the selected molecule's conformer exactly as the
+        toolbar button builds it, so what is on screen is what a click
+        gives. This is the piece no unit test reaches: the dialog's own
+        tests construct it from hand-made provenance, and only a real run
+        proves the keys they assume are the keys the service writes.
+        """
+        from openchem.ui.dialogs.conformer_details_dialog import ConformerDetailsDialog
+
+        window = self._window
+        molecule = window._session.project.find_molecule(
+            window._property_panel._selected_molecule_uuid
+        )
+        if molecule is None or not molecule.conformers:
+            logger.error("OPENCHEM_DRIVE: no conformers to describe")
+            return
+        conformer = molecule.conformers[0]
+        parameters = (conformer.provenance.parameters if conformer.provenance else {}) or {}
+        logger.warning(
+            "OPENCHEM_DRIVE: funnel attempted=%s embedded=%s converged=%s distinct=%s returned=%s cap=%s (%d conformers on the model)",
+            parameters.get("conformers_attempted"),
+            parameters.get("conformers_embedded"),
+            parameters.get("conformers_converged"),
+            parameters.get("conformers_distinct"),
+            parameters.get("conformers_returned"),
+            parameters.get("num_conformers"),
+            len(molecule.conformers),
+        )
+        self._details = ConformerDetailsDialog(conformer, window)
+        self._details.show()
 
     def _do_electrons(self, step: dict[str, Any]) -> None:
         """Switch the Electron Display mode, through the real menu action.

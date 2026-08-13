@@ -2298,6 +2298,131 @@ conformers, because placeholder molblocks do not parse and make aligned
 and retained the same string. That is the SECOND time that trap fired in
 this work.
 
+#### THE FUNNEL: de-duplication was not where the conformers went
+
+Reported as "I still feel like it's over filtering conformers", on
+"virtually almost any fine molecule", after a session that had already
+raised the count. A count cannot answer that -- it cannot tell
+under-sampling from over-merging, and the two want opposite fixes -- so
+`benchmarks/conformers/funnel.py` reports every STAGE and then the pairs
+that were actually discarded. Measured at 50 embeddings, seed 0, RMSD-only
+on both sides so the two are comparable:
+
+    molecule         embedded  distinct PRE-opt  converged  POST-opt  POST shipped
+    cyclohexane            50          1               50        1          2
+    (S)-ibuprofen          50         17               50       10         10
+    ethylmorphine          50          8               50        2         10
+
+**De-duplication removes NOTHING on ibuprofen** -- 10 by RMSD alone, 10
+under the shipped criterion. The 17 -> 10 is minimisation converging
+distinct starting geometries into shared minima, which is what
+minimisation is for. **Cyclohexane's 50 embeddings are one shape** before
+minimisation, so at the rigid end the constraint is ETKDG's sampling and
+the twist-boat arrives only through the energy veto.
+
+**THE DISCARDED PAIRS ARE DEGENERATE, NOT DISTINCT, and that is the
+answer.** Of the merged-away pairs whose largest corrected torsion moved
+more than 90 degrees, the greatest energy difference is:
+
+    butane 0.0000   pentane 0.0000   ibuprofen 0.0009   ethylmorphine 0.0680
+
+Equal energy plus a large torsion is the signature of a MIRROR-IMAGE pair,
+and butane's are exactly its g+/g- forms at +-65 degrees -- 130 degrees
+apart in the C-C-C-C torsion, RMSD 0.477, dE 0.0000. Merging those is what
+produces butane's textbook count of 2. So "a torsion moved 130 degrees and
+it was merged anyway" reads as a smoking gun and is not one.
+
+**The one place real conformers are lost is the CAP.** `num_conformers`
+defaults to 10 and ethylmorphine finds ~12.8 at the default 50 embeddings,
+so the rest are truncated -- they converged, they are distinct, and they
+are silently absent. `conformers_returned` is now recorded beside
+`conformers_distinct` (it was the one stage count that never was) and the
+3D viewer's *Details...* dialog shows the two together. **No threshold,
+window or default was changed**: nothing the funnel found is a defect in
+the criterion.
+
+##### The metric that would have lied about all of it
+
+`MergeCandidate.max_dihedral_change` was read with a raw `GetDihedralDeg`
+on fixed indices while the merge decision uses symmetry-aware
+`GetBestRMS`. Measured on ibuprofen through the real `_merge_scan`:
+
+    rmsd 0.000  dE 0.000  TFD 0.0000  maxDih 180.0  C1-C3-C4ar-C5ar
+
+A pair of IDENTICAL structures reporting half a turn, because flipping a
+para-substituted ring maps the molecule onto itself. **33 of 40 merged
+pairs flagged a torsion over 90 degrees**; corrected, 14. A funnel built on
+the uncorrected metric would have reported a catastrophic over-merge on
+the first molecule anybody tried.
+
+The fix takes the correspondence from `GetBestAlignmentTransform` and
+CHECKS it against the RMSD `_merge_scan` used, on the
+`comparison_skeleton` -- which is what makes it cheap, since carbon-bound
+hydrogens carry the methyl permutations and dropping them takes ibuprofen
+from 1728 automorphisms to 4, at 0.6 ms per pair. It costs no torsion:
+`CalculateTorsionLists` returns identical group counts on the full
+molecule and the skeleton.
+
+**This is the SECOND time this diagnostic has been wrong** -- the first
+read only the non-ring list and had a written conclusion resting on it.
+The ethylmorphine claim it supported survived re-measurement to the digit,
+which is luck rather than vindication.
+
+Three things worth carrying:
+
+- **A structure against an exact `Chem.Mol` copy of itself cannot show
+  this.** Same atom ordering, so both metrics read 0. It takes two
+  genuinely different embeddings that happen to superimpose, which is why
+  the guard SEARCHES for the pair and asserts the naive arm still reads
+  180 -- without that assertion the test passes vacuously the day the
+  fixture stops containing the case.
+- **A positional fixture was wrong for a subtler reason:**
+  `generate_conformer_batch` sorts by energy, so "embeddings 0 and 1" of a
+  2-embedding run is not the pair with those indices in a 20-embedding
+  run. Everything downstream sorts, filters and truncates, so a list
+  position is not an identity -- which is why `MergeCandidate` carries an
+  `_oc_origin` tag (`seed=0 embedding=17`) written at the one point that
+  knows the attempt number.
+- **`n/a` is not 0, and ethanol is the case.** RDKit's torsion
+  enumeration is EMPTY for a skeleton as small as C-C-O-H, so all 240 of
+  its merged pairs report unavailable -- nothing to measure, rather than a
+  measurement that failed. A forensic table that rendered those as 0.0
+  would have said ethanol's discarded pairs were motionless.
+
+##### Acted on 2026-08-13: two defaults and one sampling flag
+
+The verdict above was put to Alex and three decisions came back; all
+three shipped on the `conformer-defaults` branch, each with its evidence.
+
+**`useSmallRingTorsions` is now on by default**, gated in ISOLATION at
+the benchmark protocol (50 embeddings/seed, identical seeds, nothing else
+varied -- evaluating it at the new application defaults would have
+confounded the flag with the sampling increase). Ten of eleven corpus
+molecules byte-identical; ethylmorphine's 5-seed union grew 17 -> 25,
+because its flexibility IS ring pucker. Paired cost x1.17 total. The
+funnel confirmed cyclohexane still counts 2 -- pre-opt diversity rose
+1 -> 3 but chair and twist-boat still merge geometrically (0.3747 < 0.5),
+so the energy veto stays load-bearing and extra sampling never became
+extra counting. The azirine same-shape floor is unmoved; its guard
+recomputes both bounds and passed under the flag. The flag is recorded in
+provenance and the benchmark environment, read from the provider that ran
+(None for a provider that never declared it), so no stored record is
+ambiguous about which sampling produced it.
+
+**Keep 10 -> 20, embeddings 50 -> 100.** 20 exceeds the maximum distinct
+count observed at 100 embeddings (~15-18) -- observed headroom, not a
+sufficiency claim; the union under the flag is at least 25, which is why
+the cap still exists and the Details dialog still names it when it
+bites. 100 embeddings doubles a flexible molecule's yield (10 -> 15
+distinct on ethylmorphine) at ~5 s. The two moved together on purpose:
+raising embeddings without raising keep makes the silent-loss case worse.
+A pin test carries the evidence, so an accidental revert fails naming it.
+
+**The funnel tables above are pre-flag measurements.** They motivated the
+flag, so they must not be silently reread as current behaviour --
+cyclohexane's PRE-opt row is 3 under it, and
+`benchmarks/conformers/README.md` carries the full OFF/ON gate table.
+
 #### Marvin-parity generation: emulate the CONTROLS, never claim the algorithm
 
 "make it resemble marvin's conformer generator calculator much more

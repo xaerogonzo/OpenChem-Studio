@@ -44,6 +44,14 @@ logger = logging.getLogger("openchem.chemistry")
 #:
 #: Cost is negligible (≤1.6 ms for 10 conformers of ibuprofen), so the
 #: N-squared comparison is not worth optimising at these counts.
+#:
+#: THE TABLES HERE AND ON `DEFAULT_ENERGY_WINDOW` WERE MEASURED BEFORE
+#: `use_small_ring_torsions` SHIPPED (2026-08-13). The flag changes what
+#: is SAMPLED, not how it is compared, so the calibration reasoning
+#: stands; the two load-bearing conclusions were re-verified under it
+#: rather than assumed -- cyclohexane still needs the veto (funnel:
+#: pre-opt 3, RMSD-only 1, shipped 2) and the same-shape floor's bounds
+#: are recomputed by their own guard, which passes.
 DEFAULT_RMS_THRESHOLD = 0.5
 
 #: kcal/mol. Two structures inside `DEFAULT_RMS_THRESHOLD` are merged
@@ -72,9 +80,20 @@ DEFAULT_RMS_THRESHOLD = 0.5
 #:     stereochemistry re-perceived from 3D    identical in 24 of 24
 #:
 #: A ring torsion swings over 100 degrees and NEITHER metric registers
-#: it. Across 108 vetoed pairs, 100 have a torsion moving more than 60
+#: it. Across 138 vetoed pairs, 128 have a torsion moving more than 60
 #: degrees while every one of them sits under both cut-offs (RMSD 0.207
 #: to 0.496, TFD 0.008 to 0.072). They miss it for different reasons:
+#:
+#: **THOSE FIGURES WERE RE-MEASURED, because the first version of them
+#: was taken with a torsion metric that could not tell a ring pucker from
+#: a symmetry relabelling** -- see `_torsion_deviation`, where a pair of
+#: IDENTICAL ibuprofen structures reported a 180-degree change. The
+#: conclusion survives intact: the four numbers on the worst pair above
+#: are unchanged to the digit under the corrected metric, so
+#: ethylmorphine's torsions really do move and really are invisible to
+#: both geometric measures. The old reading was 100 of 108 at 30
+#: embeddings; this one is 50, which is the whole of the difference in
+#: the counts.
 #: RMSD because a fused polycyclic cage constrains how far heavy atoms
 #: can move when a ring puckers (the displacement lands on the
 #: hydrogens -- the ten largest are all hydrogens, nine carbon-bound, up
@@ -235,6 +254,25 @@ class GenerationOptions:
     #: `enhanced_optimization`, never as `hyperfine`, because an SDF
     #: property outlives every UI that wrote it.
     enhanced_refinement: bool = False
+    #: Keep a copy of every embedding as it was BEFORE minimisation, in
+    #: `ConformerBatch.pre_optimisation`. **Diagnostic only, and off by
+    #: default**, because it retains one molecule per embedding for the
+    #: life of the batch and answers a question no user asked.
+    #:
+    #: It exists because the embed-to-minimise step was the one stage
+    #: nothing instrumented, and it turned out to be where the candidates
+    #: actually go: measured at 50 embeddings, seed 0, RMSD-only on both
+    #: sides, (S)-ibuprofen falls 17 -> 10 across minimisation while
+    #: de-duplication then removes NOTHING. See `benchmarks/conformers/`.
+    #:
+    #: **INERT WHEN `optimize` IS False**, deliberately: with no
+    #: minimisation there is no "before minimisation" -- the results ARE
+    #: the pre-opt population -- so recording a second copy of every
+    #: embedding would double the memory to say nothing. Stated here
+    #: because an empty list next to a set flag would otherwise read as
+    #: "no candidates", the exact could-not-measure-vs-nothing-there
+    #: confusion the funnel exists to remove.
+    record_pre_optimisation: bool = False
 
     def level(self) -> tuple[int, float, int]:
         return OPTIMISATION_LEVELS.get(
@@ -246,6 +284,56 @@ class GenerationOptions:
 #: `distinct_conformers`. Carbon is the one deliberately absent.
 _POLAR_H_NEIGHBOURS = frozenset({7, 8, 16})  # N, O, S
 
+#: Where an embedding came from -- `"seed=0 embedding=17"` -- written by
+#: `RDKitConformerProvider._embed_one` and read back by the merge scan so a
+#: discarded candidate can be found again and looked at.
+#:
+#: **DIAGNOSTIC PROVENANCE. It must be stripped or ignored at every
+#: persistence boundary**, and nothing may branch on it. The leading
+#: underscore means RDKit omits it from `MolToMolBlock`, which is the path
+#: `ConformerModel` is built through, so today it cannot reach a saved
+#: project -- but that is a property of one serialiser rather than a
+#: guarantee, so `tests/test_conformer_dedup.py` asserts the absence at the
+#: boundary instead of trusting the convention.
+ORIGIN_PROPERTY = "_oc_origin"
+
+
+def _origin_of(mol: Chem.Mol) -> str | None:
+    """`ORIGIN_PROPERTY` if this molecule carries one."""
+    try:
+        return mol.GetProp(ORIGIN_PROPERTY)
+    except KeyError:
+        return None
+
+
+def _skeleton_with_index_map(mol: Chem.Mol) -> tuple[Chem.Mol, list[int]]:
+    """The comparison skeleton, plus `original index of skeleton atom i`.
+
+    ONE definition of the skeleton, two callers that need different halves
+    of it. `comparison_skeleton` wants the molecule; `_torsion_deviation`
+    additionally has to translate an index back, because it names the
+    torsion that moved and a skeleton index would name a different atom in
+    the molecule the caller holds.
+
+    **The map cannot be reconstructed by assuming heavy atoms come first.**
+    That is true of `AddHs` output and therefore of everything this module
+    generates, so a version that assumed it would pass every test here and
+    mislabel the first molecule that arrived from anywhere else.
+    """
+    editable = Chem.RWMol(mol)
+    doomed = {
+        atom.GetIdx()
+        for atom in editable.GetAtoms()
+        if atom.GetAtomicNum() == 1
+        and atom.GetDegree() == 1
+        and atom.GetNeighbors()[0].GetAtomicNum() not in _POLAR_H_NEIGHBOURS
+    }
+    survivors = [atom.GetIdx() for atom in editable.GetAtoms() if atom.GetIdx() not in doomed]
+    # Descending, because removing an atom renumbers every index above it.
+    for index in sorted(doomed, reverse=True):
+        editable.RemoveAtom(index)
+    return editable.GetMol(), survivors
+
 
 def comparison_skeleton(mol: Chem.Mol) -> Chem.Mol:
     """`mol` with its carbon-bound hydrogens removed, for RMSD comparison.
@@ -255,18 +343,8 @@ def comparison_skeleton(mol: Chem.Mol) -> Chem.Mol:
     compared survivors with plain `RemoveHs` reported them as duplicates
     while the pruner had correctly kept them apart on an O-H orientation.
     """
-    editable = Chem.RWMol(mol)
-    doomed = [
-        atom.GetIdx()
-        for atom in editable.GetAtoms()
-        if atom.GetAtomicNum() == 1
-        and atom.GetDegree() == 1
-        and atom.GetNeighbors()[0].GetAtomicNum() not in _POLAR_H_NEIGHBOURS
-    ]
-    # Descending, because removing an atom renumbers every index above it.
-    for index in sorted(doomed, reverse=True):
-        editable.RemoveAtom(index)
-    return editable.GetMol()
+    skeleton, _index_map = _skeleton_with_index_map(mol)
+    return skeleton
 
 
 def _permits_merge(
@@ -385,6 +463,27 @@ def distinct_conformers(
     return kept
 
 
+def select_for_return(
+    results: list[tuple[Chem.Mol, float | None]], num_conformers: int
+) -> list[tuple[Chem.Mol, float | None]]:
+    """The conformers a run hands back: the lowest-energy `num_conformers`.
+
+    A slice, and it is a named function anyway, for one reason: it is a
+    STAGE. Conformers are lost here -- a molecule flexible enough to find
+    more distinct shapes than the cap loses the rest, and at the shipped
+    default of 10 that is most drug-like molecules -- and a stage that only
+    exists as an inline expression cannot be reported on, tested at its own
+    boundary, or reused by a diagnostic without that diagnostic
+    reimplementing it and drifting.
+
+    **`results` must already be the DISTINCT set, ascending by energy.**
+    Truncating anything else keeps an arbitrary subset rather than the
+    lowest-energy one, which is the whole justification for truncating at
+    all.
+    """
+    return results[:num_conformers]
+
+
 @dataclass(frozen=True)
 class MergeCandidate:
     """One pair that got close enough geometrically to be merged, and what
@@ -416,16 +515,85 @@ class MergeCandidate:
     tfd: float | None = None
     max_dihedral_change: float | None = None
     largest_torsion: tuple[int, int, int, int] | None = None
+    #: Which embedding this pair is about, as `ORIGIN_PROPERTY` recorded it
+    #: at embedding time -- `"seed=0 embedding=17"`. **Never a list
+    #: position**: this scan runs over `_in_comparison_order`, callers slice
+    #: and re-sort afterwards, and an index into any of those names a
+    #: different structure the moment the ordering moves. `None` when the
+    #: molecules were not produced by `RDKitConformerProvider` (a plugin
+    #: provider, or a test constructing pairs by hand).
+    #:
+    #: DEFAULTED, because `MergeCandidate` is constructed directly in
+    #: places that know nothing about embeddings.
+    candidate_origin: str | None = None
+    #: The kept conformer this one was compared against. Well defined:
+    #: `_merge_scan` stops at the first match that permits a merge, so a
+    #: discarded candidate has exactly one representative.
+    representative_origin: str | None = None
+
+
+#: How far `GetBestRMS` and `GetBestAlignmentTransform` may disagree before
+#: the diagnostic declines to answer. Measured over every pair of 12
+#: conformers each of ibuprofen, cyclohexane and ethylmorphine, the two
+#: agree to 1.1e-06, 3.4e-07 and 2.4e-07 -- so this is three orders of
+#: magnitude of headroom rather than a fitted tolerance.
+_ALIGNMENT_AGREEMENT = 1e-3
 
 
 def _torsion_deviation(first: Chem.Mol, second: Chem.Mol) -> tuple[float | None, float | None, tuple[int, int, int, int] | None]:
     """TFD, largest single dihedral change (degrees), and which torsion.
 
+    **THE DIHEDRAL IS READ UNDER THE CORRESPONDENCE THE MERGE DECISION
+    USED, AND IT WAS NOT.** `GetBestRMS` is symmetry-aware; a raw
+    `GetDihedralDeg` on fixed indices is not, so the two disagreed about
+    every molecule with an automorphism. Measured on (S)-ibuprofen, seed 0,
+    50 embeddings, through this module's own `_merge_scan`:
+
+        rmsd 0.000  dE 0.000  TFD 0.0000  maxDih 180.0  C1-C3-C4ar-C5ar
+
+    A pair of IDENTICAL structures reporting a 180-degree torsion change,
+    because flipping a para-substituted ring maps the molecule onto itself.
+    33 of 40 merged pairs flagged a torsion moving more than 90 degrees, so
+    anything reading this metric to ask "did de-duplication throw away a
+    real conformational difference" would have answered YES on the first
+    molecule tried, wrongly. This is the second time this diagnostic has
+    been wrong -- see `DEFAULT_ENERGY_WINDOW` for the first, which reached
+    a written conclusion before it was caught.
+
+    `GetBestAlignmentTransform` returns the correspondence behind that
+    RMSD, and indexing the second conformer through it takes the identical
+    pair to 0.0 degrees. **The correspondence is CHECKED, not assumed**:
+    its RMSD must match the one `_merge_scan` compared against, and a
+    mismatch returns None rather than a number -- "I could not find out" is
+    not "nothing moved", which is the whole lesson of the 180 above.
+
+    ON THE SKELETON, which is what makes it affordable: carbon-bound
+    hydrogens carry the methyl permutations, and dropping them takes
+    ibuprofen from 1728 automorphisms to 4, at 0.6 ms per pair. It costs no
+    torsion -- `CalculateTorsionLists` returns identical group counts on
+    the full molecule and on the skeleton (ibuprofen 4 non-ring + 1 ring,
+    cyclohexane 0 + 1, ethylmorphine 2 + 5) -- and the returned atom
+    indices are translated back, so they still name atoms in `first`.
+
     Returns `(None, None, None)` rather than raising when RDKit declines
     the molecule -- a diagnostic that fails must not take down a
-    generation run that is otherwise fine.
+    generation run that is otherwise fine. A caller must render that as
+    "unavailable" and never as zero.
     """
     try:
+        # Fresh skeletons, never `_merge_scan`'s cached ones: an alignment
+        # that moved a cached probe would leave later comparisons reading
+        # coordinates this diagnostic had shifted.
+        probe, index_map = _skeleton_with_index_map(first)
+        reference = comparison_skeleton(second)
+        rmsd, _transform, atom_map = rdMolAlign.GetBestAlignmentTransform(probe, reference)
+        # The diagnostic has to describe the algorithm that RAN.
+        # `_merge_scan` decided on `GetBestRMS`; if this alignment settled
+        # on a different correspondence, whatever it measures is a
+        # statement about a different pairing of the same two structures.
+        if abs(rmsd - rdMolAlign.GetBestRMS(probe, reference)) > _ALIGNMENT_AGREEMENT:
+            return None, None, None
+        correspondence = dict(atom_map)
         combined = Chem.Mol(first)
         combined.RemoveAllConformers()
         combined.AddConformer(Chem.Conformer(first.GetConformer()), assignId=True)
@@ -440,7 +608,7 @@ def _torsion_deviation(first: Chem.Mol, second: Chem.Mol) -> tuple[float | None,
         # while TFD read 0.407. Ethylmorphine is 2 non-ring against 5
         # ring groups, so it was reporting on the ethyl ether alone.
         # Both entries have the same ([(a,b,c,d), ...], value) shape.
-        nonring, rings = TorsionFingerprints.CalculateTorsionLists(first)
+        nonring, rings = TorsionFingerprints.CalculateTorsionLists(probe)
         torsions = list(nonring) + list(rings)
     except Exception:  # noqa: BLE001 - diagnostics are never load-bearing
         return None, None, None
@@ -448,15 +616,22 @@ def _torsion_deviation(first: Chem.Mol, second: Chem.Mol) -> tuple[float | None,
     worst_atoms: tuple[int, int, int, int] | None = None
     for atom_groups, _method in torsions:
         for atoms in atom_groups:
+            mapped = [correspondence.get(index) for index in atoms]
+            if any(index is None for index in mapped):
+                continue
             try:
-                a = rdMolTransforms.GetDihedralDeg(first.GetConformer(), *atoms)
-                b = rdMolTransforms.GetDihedralDeg(second.GetConformer(), *atoms)
+                a = rdMolTransforms.GetDihedralDeg(probe.GetConformer(), *atoms)
+                b = rdMolTransforms.GetDihedralDeg(reference.GetConformer(), *mapped)
             except Exception:  # noqa: BLE001
                 continue
-            # Periodic: 350 deg and 10 deg are 20 apart, not 340.
+            # Periodic: 350 deg and 10 deg are 20 apart, not 340. This also
+            # covers a quadruple traversed the other way round, whose
+            # signed dihedral is negated: +179 against -179 is 2, not 358.
             delta = abs((a - b + 180.0) % 360.0 - 180.0)
             if delta > worst:
-                worst, worst_atoms = delta, tuple(atoms)
+                # Back into the caller's index space -- see
+                # `_skeleton_with_index_map`.
+                worst, worst_atoms = delta, tuple(index_map[index] for index in atoms)
     return tfd, worst, worst_atoms
 
 
@@ -543,6 +718,8 @@ def _merge_scan(
                     tfd=tfd,
                     max_dihedral_change=worst,
                     largest_torsion=atoms,
+                    candidate_origin=_origin_of(mol),
+                    representative_origin=_origin_of(kept_mol),
                 )
             )
             if merged:
@@ -572,6 +749,14 @@ class RDKitConformerProvider(ConformerProvider):
     """
 
     provider_id = "rdkit"
+
+    #: ETKDGv3's small-ring torsion preferences, on by default. **An
+    #: attribute rather than an inlined literal so provenance can record
+    #: the value that actually generated a batch** -- the service reads it
+    #: back with `getattr`, so a plugin provider that never heard of it
+    #: records None ("not declared") rather than a guess, and a test can
+    #: set it False and watch both the behaviour and the record follow.
+    use_small_ring_torsions: bool = True
 
     def __init__(self, random_seed: int | None = None) -> None:
         """`random_seed` makes a run REPRODUCIBLE, and is None in the app.
@@ -616,6 +801,7 @@ class RDKitConformerProvider(ConformerProvider):
             else None
         )
         results: list[tuple[Chem.Mol, float | None]] = []
+        pre_optimisation: list[Chem.Mol] = []
         attempted = embedding_failures = convergence_failures = 0
         for i in range(num_conformers):
             # **CHECKED BEFORE STARTING, never mid-embedding.** Neither
@@ -635,6 +821,12 @@ class RDKitConformerProvider(ConformerProvider):
             if conf_mol is None:
                 embedding_failures += 1
             elif optimize:
+                if options.record_pre_optimisation:
+                    # BEFORE the minimisation, which runs in place. Taken
+                    # here rather than inside `_optimize_one` so the
+                    # snapshot exists even for an embedding that then fails
+                    # to converge -- those are the interesting ones.
+                    pre_optimisation.append(Chem.Mol(conf_mol))
                 energy, converged = self._optimize_one(conf_mol, options.level())
                 if converged:
                     results.append((conf_mol, energy))
@@ -671,11 +863,25 @@ class RDKitConformerProvider(ConformerProvider):
             converged=len(results),
             embedding_failures=embedding_failures,
             convergence_failures=convergence_failures,
+            pre_optimisation=pre_optimisation,
         )
 
     def _embed_one(self, mol: Chem.Mol, attempt: int = 0) -> Chem.Mol | None:
         conf_mol = Chem.AddHs(Chem.Mol(mol))
         params = AllChem.ETKDGv3()
+        # ETKDGv3's default torsion preferences barely sample small-ring
+        # pucker: 50 embeddings of cyclohexane produced ONE distinct shape
+        # before minimisation, and the twist-boat reached the results only
+        # through the energy veto. With this flag the same 50 embeddings
+        # give 3 pre-optimisation shapes, and ethylmorphine's 5-seed union
+        # grows 17 -> 25 -- its flexibility IS ring pucker. Gated on the
+        # full corpus before shipping (benchmarks/conformers/README.md has
+        # the OFF/ON table): every other count byte-identical, paired cost
+        # x1.17, the azirine same-shape floor unmoved. The funnel confirmed
+        # the veto stays load-bearing for cyclohexane -- chair and
+        # twist-boat still merge geometrically (RMSD 0.3747 < 0.5), so
+        # sampling more twist-boats does not over-count them.
+        params.useSmallRingTorsions = self.use_small_ring_torsions
         if self._random_seed is not None:
             # Per attempt, so the embeddings within a run still differ
             # while the run repeats. Seeding them all identically would
@@ -690,6 +896,18 @@ class RDKitConformerProvider(ConformerProvider):
         if conf_id < 0:
             logger.warning("Failed to embed a conformer for molecule")
             return None
+        # Where this came from, so a candidate the merge scan discarded can
+        # be found again and looked at. Written at the ONLY point that
+        # knows the attempt number -- everything downstream sorts, filters
+        # and truncates, so a position is not an identity. Unconditional:
+        # it is two dozen bytes, it never reaches a saved project (see
+        # `ORIGIN_PROPERTY`), and a tag that only exists under a flag is
+        # absent from exactly the run somebody is trying to explain.
+        conf_mol.SetProp(
+            ORIGIN_PROPERTY,
+            f"seed={'none' if self._random_seed is None else self._random_seed} "
+            f"embedding={attempt}",
+        )
         return conf_mol
 
     def _optimize_one(

@@ -53,6 +53,136 @@ the scorer does not treat it as one.
   **0.75** — the weakest agreement in the corpus, and the reason its
   union (17) exceeds its single-run reference (12).
 
+## `funnel.py` — where the candidates actually go
+
+`score.py` answers "how many". `funnel.py` answers "where did the rest
+go", for one molecule, which is the question a count cannot reach:
+
+```bash
+uv run --no-sync python benchmarks/conformers/funnel.py ethylmorphine
+uv run --no-sync python benchmarks/conformers/funnel.py "CCCCO" --seeds 3
+uv run --no-sync python benchmarks/conformers/funnel.py ethylmorphine --inspect "seed=0 embedding=17"
+```
+
+It prints every stage — requested, attempted, embedded, converged,
+distinct before minimisation, distinct by RMSD alone, distinct under the
+shipped criterion, returned after the cap — and then the pairs that were
+**discarded**, with the origin of each so `--inspect` can write the pair
+out as an SDF and you can look at the structures.
+
+**It is observational and delegates every stage to production.** The
+RMSD-only arm is production de-duplication with the energy window at
+infinity (`NO_VETO`); the cap is `select_for_return`; the criterion is
+`distinct_conformers`. There is no funnel-local notion of conformer
+identity, ordering or truncation, and a disagreement with the running app
+is a bug here rather than a finding about conformers.
+
+**Per-seed is the authoritative view; the pooled aggregate is not.**
+Production never pools seeds, so the union across seeds says how much of
+the space one run misses and must never be read as a number of conformers
+production keeps or loses.
+
+### Three words that are not interchangeable
+
+| term | meaning |
+| --- | --- |
+| **merged away** | discarded — production judged it the same conformer |
+| **vetoed merge** | **retained** as a separate conformer; energy declined the merge |
+| **truncated** | a valid distinct conformer omitted only by the keep limit |
+
+A vetoed pair is not a loss. Reading the vetoed count as "conformers
+thrown away" inverts the meaning of the number.
+
+### What it found, and what it did not
+
+Measured at 50 embeddings, seed 0, on the corpus — **before
+`useSmallRingTorsions` shipped**, which these findings then motivated
+(cyclohexane's PRE-opt row is 3 under the flag; the section below has the
+gate):
+
+```
+molecule         embedded  distinct PRE-opt  converged  POST-opt  POST shipped
+cyclohexane            50          1               50        1          2
+(S)-ibuprofen          50         17               50       10         10
+ethylmorphine          50          8               50        2         10
+```
+
+- **De-duplication is not where the candidates go.** On ibuprofen it
+  removes nothing at all — 10 by RMSD alone, 10 under the shipped
+  criterion. The 17 → 10 fall is minimisation converging distinct starts
+  into shared minima, which is what minimisation is for.
+- **The discarded pairs are degenerate, not distinct.** Of the merged
+  pairs whose largest corrected torsion moved more than 90 degrees, the
+  greatest energy difference is 0.0000 (butane), 0.0000 (pentane), 0.0009
+  (ibuprofen) and 0.0680 (ethylmorphine) kcal/mol. Equal energy with a
+  large torsion is the signature of a mirror-image pair, and butane's are
+  exactly its g+/g− forms at ±65 degrees — merging which is what produces
+  the textbook count of 2.
+- **Sampling is the constraint at the rigid end.** Cyclohexane's 50
+  embeddings are all one shape before minimisation; the twist-boat arrives
+  only through the energy veto.
+
+`n/a` in the torsion columns covers two situations and ethanol is the
+common one: RDKit's torsion enumeration is **empty** for a skeleton as
+small as C-C-O-H, so there is nothing to measure rather than a measurement
+that failed. Either way it is never printed as 0.
+
+## `useSmallRingTorsions`: the gate that shipped it
+
+ETKDGv3's default torsion preferences barely sample small-ring pucker —
+the funnel measured cyclohexane's 50 embeddings collapsing to ONE
+pre-optimisation shape. The flag was gated **in isolation, at this
+benchmark's own protocol** (50 embeddings/seed, identical seeds, nothing
+else varied), so its effect could not be confounded with the application
+default changes that shipped beside it. OFF vs ON, full corpus:
+
+```
+                     OFF                          ON
+aziridine            1.0 [1-1]                    identical
+2H-azirine           1.0 [1-1]                    identical
+benzene              1.0 [1-1]                    identical
+ethanol              2.0 [2-2]                    identical
+butane               2.0 [2-2]                    identical
+1,2-dichloroethane   3.0 [3-3]  (over)            identical, no further over
+cyclohexane          2.0 [2-2]                    identical
+pentane              4.6 [4-5]  (over)            identical, no further over
+ethylene glycol      7.4 [7-8]                    identical
+(S)-ibuprofen        9.2 [8-10]                   identical
+ethylmorphine       12.8 [10-14]  union 17       15.0 [10-18]  union 25
+```
+
+- **Ten of eleven molecules byte-identical**; the eleventh improves —
+  ethylmorphine's flexibility IS ring pucker, and the flag grew its
+  5-seed union 17 → 25 while its coverage fell 0.75 → 0.60 (the
+  discoverable space grew faster than per-run yield; more embeddings per
+  run is what narrows that, and the app default rose separately).
+- **Cyclohexane counts 2 either way, and the funnel says why that is
+  safe**: pre-opt diversity rose 1 → 3, but chair and twist-boat still
+  merge geometrically (RMSD 0.3747 < 0.5), so the energy veto stays
+  load-bearing and extra twist-boat *sampling* never became extra
+  twist-boat *counting*.
+- **The 2H-azirine same-shape floor is unmoved** — checked deliberately,
+  because the flag targets small rings and azirine's distorted-minimum
+  artefact is what `_IDENTICAL_SHAPE_RMSD`'s lower bound was measured on.
+  `test_the_same_shape_floor_stays_between_its_measured_bounds`
+  recomputes both ends and passes under the flag.
+- **Paired cost, same corpus, same seeds, one session**: 25.9 s OFF →
+  30.2 s ON total (×1.17); worst single molecule cyclohexane 1.3 s →
+  2.1 s (×1.6); ethylmorphine ~unchanged (14.1 s → 13.7 s).
+- The environment block and the app's provenance now record the flag
+  explicitly, True or False, read from the provider that ran — so no
+  stored record is ambiguous about which sampling produced it.
+
+## Which numbers are regression controls
+
+The per-molecule counts, unions and coverages are **means and ranges over
+five seeds**, not the expected result of any single run — ethylmorphine's
+12.8 [10-14] is a distribution. Exact comparison is only meaningful for a
+fixed seed at a pinned RDKit version and embedding count, which is what
+`build_predictions.py` writes into the `environment` block. Treat a
+difference in the last digit of a mean as sampling, and re-measure before
+treating it as a change.
+
 ## Two traps already paid for
 
 **Seed bases must be strided.** `RDKitConformerProvider` uses
