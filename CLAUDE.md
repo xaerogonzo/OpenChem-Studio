@@ -261,11 +261,27 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-16 minutes**, ending at `4269 passed, 8 skipped`
-(measured 2026-08-12, 14m54. +13 over the 4255 below, for the
-deferred-list sweep -- 8 for the docs staleness guard, the three MISMATCH
-paths and the reaction-template example, 4 for the ORCA path normalisation
-and 1 for the version-fragment fix).
+A clean run is **6-16 minutes**, ending at `4293 passed, 8 skipped`
+(measured 2026-08-13, 12m30. +24 over the 4269 below, for the conformer
+funnel work -- 5 symmetry-metric guards in the dedup file, 5 in
+generation-options (the snapshot default, origin tracing, the persistence
+boundary, the observational guard, the embedder wiring), 6 in the service
+(four truncation, two provenance-flag), 7 for the details dialog, and the
+defaults pin).
+
+**Measured on `conformer-defaults` at `6245a32`, and here is why it
+still describes master.** Master's merge `2ed1100` adds only `cdfc72e`
+-- a docstring and the funnel script's constant import, no test
+functions -- and the cheap half of the rule confirms it: master COLLECTS
+4301, which is exactly 4293 + 8, in seven seconds. Note the run was also
+CONCURRENT with funnel generation and a live app drive for part of its
+length and still came in at 12m30, which says the 6-16 band has slack in
+it rather than being tight.
+
+Before it: 4269 (measured 2026-08-12, 14m54. +13 over the 4255 below,
+for the deferred-list sweep -- 8 for the docs staleness guard, the three
+MISMATCH paths and the reaction-template example, 4 for the ORCA path
+normalisation and 1 for the version-fragment fix).
 
 **TAKEN ON A BRANCH, AND HERE IS WHY IT STILL DESCRIBES MASTER.** The run
 was on `close-the-open-three`, not on master's merge commit `26e8725`.

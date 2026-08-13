@@ -109,6 +109,42 @@ removing it is *not distinguishable* rather than better — never worse.
 
 ---
 
+## Conformer generation — no molecule below reference
+
+**Method.** `benchmarks/conformers/` scores "how many distinct conformers
+does the app find" against an 11-molecule corpus of two deliberately
+different kinds of reference: **textbook counts** (cyclohexane's chair and
+twist-boat, butane's anti and gauche) that must be matched, and
+**computational lower bounds** (ethylmorphine's 12) that must be met or
+exceeded — exceeding a lower bound is not an error, and the scorer knows
+the difference. Five seeds × 50 embeddings, seeded and strided so the
+arms are genuinely independent.
+
+Re-run for this release: **no molecule below reference.** Every textbook
+case at its reference; ethylmorphine at 15.0 [10–18] against a lower
+bound of 12.
+
+**The count is not the whole validation.** The same benchmark ships a
+*funnel* (`funnel.py`) that reports where candidates are lost — embedding,
+minimisation, merge, cap — and a per-pair table of what was actually
+discarded, because a count cannot tell under-sampling from over-merging.
+Its verdict for this release: the de-duplication discards only degenerate
+pairs (the largest energy difference among discarded pairs whose torsions
+genuinely moved is 0.0009 kcal/mol on ibuprofen, 0.0000 on butane and
+pentane — mirror-image conformers, whose merge is what *produces* the
+textbook counts), and the losses live in sampling and in the keep cap,
+both now visible in the app.
+
+**A validated instrument correction rides along.** The benchmark's torsion
+diagnostic was symmetry-blind — it reported a 180° torsion change between
+two *identical* ibuprofen structures, and 33 of 40 discarded pairs flagged
+>90° where the corrected reading is 14 — so every torsion figure above is
+from the corrected metric, which reads dihedrals under the same atom
+correspondence the merge decision used. `ETKDGv3`'s small-ring torsion
+sampling was then enabled after an isolated full-corpus gate: ten of
+eleven molecules byte-identical, ethylmorphine's five-seed union 17 → 25,
+paired cost ×1.17. The gate table is in the benchmark README.
+
 ## Docking — redocking the crystallographic ligand
 
 **Method.** Each curated receptor's own bound ligand is extracted, re-docked

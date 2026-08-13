@@ -296,6 +296,21 @@ to start a calculation from and to compare shapes with; they are not the
 answer to "what is this molecule's geometry". An ORCA optimisation started
 from one will move it, sometimes a lot.
 
+**No count of conformers is a count of the molecule's conformers.** The
+search is random and a single run finds a slice of what is discoverable,
+measured rather than presumed: on the hardest benchmark case
+(ethylmorphine, a fused polycyclic) one run at the default settings finds
+about 60% of the set five independent runs find together — and that
+pooled set itself grew from 17 to 25 when the embedder's small-ring
+torsion sampling was turned on, so "what is discoverable" is a property
+of the sampling, not a property the application can exhaust. More
+embeddings find more; the "distinct conformers to keep" limit then caps
+what is returned, and its default is observed headroom over typical runs,
+not a claim of sufficiency. When the cap removes conformers that were
+found, the run's Details dialog says so; when it doesn't, the number you
+got is still a lower bound of the run, never an inventory of the
+molecule.
+
 **"Distinct" is a heuristic judgement, not a physical fact, and this is
 the part of conformer generation that is least solved.** Two embeddings
 are treated as the same conformer when their heavy atoms and polar
@@ -307,13 +322,16 @@ apart.
 blind spot. On a fused polycyclic — a morphine derivative was the case
 that exposed it — a ring can pucker through more than 100° while the
 heavy atoms barely move, because the cage constrains them and the
-displacement lands on the hydrogens. Across 108 such pairs, 100 had a
-torsion moving more than 60° while every one sat under the 0.5 Å cut-off.
-The standard torsion fingerprint (TFD) misses them too, reading 0.008 to
-0.072 against a literature cut of 0.2, because one torsion out of ~30
-gets averaged away. Without the energy term the molecule reported 2 to 4
-conformers where at least 12 were found; cyclohexane lost its twist-boat
-and was reported as rigid.
+displacement lands on the hydrogens. Across 138 such pairs, 128 had a
+torsion moving more than 60° while every one sat under the 0.5 Å cut-off
+(the figures were re-measured after the torsion diagnostic itself was
+found symmetry-blind — it once reported a 180° change between two
+*identical* structures — and the conclusion survived the corrected
+instrument to the digit). The standard torsion fingerprint (TFD) misses
+them too, reading 0.008 to 0.072 against a literature cut of 0.2, because
+one torsion out of ~30 gets averaged away. Without the energy term the
+molecule reported 2 to 4 conformers where at least 12 were found;
+cyclohexane lost its twist-boat and was reported as rigid.
 
 **The energy term is a veto, not a definition.** It declines to merge two
 structures on insufficient evidence; it never claims that two structures
