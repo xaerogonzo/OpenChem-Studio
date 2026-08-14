@@ -140,7 +140,14 @@ class MoleculeViewer3DWidget(QWidget):
         #: producers cannot be interrupted, which is why rejection rather
         #: than cancellation is the mechanism.
         self._overlay_tokens: dict[int, int] = {}
-        #: What the drawn arrow reported, for the status line.
+        #: The conformer each cell asked about. In the gallery a cell's
+        #: conformer is NOT `_conformer_index` -- that is the selected
+        #: cell -- so an arrival has to be checked against what the cell
+        #: itself requested.
+        self._overlay_conformers: dict[int, int] = {}
+        #: What the drawn arrow reported, for the status line. Single view
+        #: only: a gallery has one line and up to twelve values, and the
+        #: page already draws each cell's own caption beside its arrow.
         self._overlay_value = ""
         self._molecule: MoleculeModel | None = None
         self._conformer_index = 0
@@ -688,6 +695,13 @@ class MoleculeViewer3DWidget(QWidget):
     def _on_gallery_toggled(self, on: bool) -> None:
         self._gallery = on
         self._page_start = 0
+        # **CHANGING MODE INVALIDATES EVERY CELL.** The two modes do not
+        # share a surface, so an answer requested for one and delivered
+        # after the switch would be drawn -- correctly, by cell index --
+        # onto a viewer nobody is looking at, or worse, onto cell 0, which
+        # both modes use. `_refresh_view` below re-requests whatever the
+        # new mode is showing.
+        self._drop_overlay_drawings()
         if not on:
             leave = getattr(self._backend, "leave_grid", None)
             if leave is not None:
@@ -733,6 +747,10 @@ class MoleculeViewer3DWidget(QWidget):
         self._gallery_check.blockSignals(True)
         self._gallery_check.setChecked(False)
         self._gallery_check.blockSignals(False)
+        # The signals are blocked, so `_on_gallery_toggled` does NOT run
+        # and cannot do this for us. Per-cell requests may already be in
+        # flight for a grid that will never exist.
+        self._drop_overlay_drawings()
         self._measurement_label.setText(
             "The gallery needs a second 3D drawing surface, which this display "
             "did not provide. Showing one conformer at a time instead."
@@ -773,13 +791,33 @@ class MoleculeViewer3DWidget(QWidget):
             f"{len(entries)} conformers superimposed."
         )
 
+    def _visible_page(self) -> list[int]:
+        """The conformer indices the gallery's cells hold, in CELL ORDER.
+
+        **Position in this list IS the cell index.**
+        `load_conformer_grid` hands its entries to the page, which maps
+        them position-for-position onto `gridCells`, so this list is the
+        cell -> conformer map -- and the one thing every per-cell overlay
+        request has to be built from.
+
+        Pure, so the two callers that need it cannot disagree:
+        `_refresh_gallery` builds the grid from it, and
+        `_request_overlays_for_what_is_shown` asks about the grid that is
+        already up. Clamping `_page_start` stays in `_refresh_gallery`,
+        which is the one that is allowed to move the page.
+        """
+        if self._molecule is None:
+            return []
+        total = len(self._conformer_service.display_molblocks(self._molecule))
+        start = max(0, min(self._page_start, max(0, total - 1)))
+        return list(range(start, min(start + self._page_size(), total)))
+
     def _refresh_gallery(self) -> None:
         molblocks = self._conformer_service.display_molblocks(self._molecule)
         total = len(molblocks)
         rows, cols = self._gallery_shape()
-        size = rows * cols
         self._page_start = max(0, min(self._page_start, max(0, total - 1)))
-        page = list(range(self._page_start, min(self._page_start + size, total)))
+        page = self._visible_page()
         # **THE SELECTION MUST LAND ON THIS PAGE.** The page resets its own
         # selected cell to the first one whenever the grid is rebuilt, so
         # a `_conformer_index` left pointing at another page would take
@@ -799,6 +837,24 @@ class MoleculeViewer3DWidget(QWidget):
             linked=self._lock_check.isChecked(),
             selected=[i - self._page_start for i in sorted(self._superimposed) if i in page],
         )
+        # NO clear_all_grid_shapes() HERE, and its absence is deliberate:
+        # `load_conformer_grid` above already owns it end to end -- the
+        # backend drops `_pending_grid_shapes` and the page's `loadGrid`
+        # resets `gridShapes`, both because a rebuild replaces the cell
+        # viewers themselves. An explicit clear after it removed shapes
+        # from the OLD cells, which are already being discarded, and a
+        # mutation deleting it survived every test in the file. The
+        # rebuild's own reset is guarded against the real page in
+        # `tests/test_spatial_annotations.py`.
+        #
+        # ONE REQUEST PER POPULATED CELL, for the conformer assigned to
+        # THAT cell. `enumerate` states the invariant that matters --
+        # `page[cell] <-> gridCells[cell]`, because `load_conformer_grid`
+        # maps entries position-for-position onto the cells -- rather than
+        # re-deriving it as `index - self._page_start`. The two agree
+        # while `page` is a contiguous range; only one of them says why.
+        for cell_index, conformer_index in enumerate(page):
+            self._request_overlay(cell_index, conformer_index)
         last = page[-1] + 1 if page else 0
         self._status_label.setText(
             f"Conformers {self._page_start + 1}-{last} of {total}"
@@ -820,6 +876,15 @@ class MoleculeViewer3DWidget(QWidget):
         arrives. One code path for the text, so the overlay's number
         cannot outlive the state the rest of the line describes."""
         if self._molecule is None or not self._molecule.conformers:
+            return
+        # **THE GALLERY'S LINE IS NOT THIS ONE.** It says "Conformers 7-8
+        # of 8" and belongs to `_refresh_gallery`; writing the single
+        # view's "Conformer 7/8" over it makes the label disagree with the
+        # six pictures underneath. Reachable through unticking "Show
+        # shapes" while the gallery is up -- found by driving the app,
+        # with every unit test green, because the tests read the label and
+        # not what the label is describing.
+        if self._gallery:
             return
         if self._conformer_index < len(self._molecule.conformers):
             self._status_label.setText(
@@ -844,7 +909,51 @@ class MoleculeViewer3DWidget(QWidget):
             bool(self._spatial_reports) and self._spatial_overlay_service is not None
         )
         if self._overlay_check.isChecked():
-            self._request_overlay()
+            self._request_overlays_for_what_is_shown()
+
+    def _request_overlays_for_what_is_shown(self) -> None:
+        """Ask for every cell currently on screen -- all of them, in the
+        gallery.
+
+        Both routes that turn the overlay on without rebuilding the view
+        come through here: the checkbox, and a spatial result arriving
+        while it is already ticked. Neither may assume the single view.
+        Assuming it is precisely how this feature shipped with a tested
+        backend and a gallery that drew nothing.
+        """
+        if self._gallery:
+            for cell_index, conformer_index in enumerate(self._visible_page()):
+                self._request_overlay(cell_index, conformer_index)
+            return
+        self._request_overlay()
+
+    def _drop_overlay_drawings(self) -> None:
+        """Stop accepting every cell's answer, and clear what is drawn.
+
+        **ONE HELPER, BECAUSE THERE ARE FOUR WAYS HERE** -- the molecule
+        changed, the overlay was switched off, the gallery was entered or
+        left, or the grid refused to build. Written separately they each
+        invalidated a different subset, and a cell left accepting is a
+        wrong-frame arrow waiting for a job that is still running.
+
+        **BOTH SURFACES, ALWAYS.** Which mode is showing is a different
+        question from which mode has shapes on it -- switching modes is
+        itself one of the callers, so clearing only the current one would
+        leave the other holding the previous mode's geometry until
+        something happened to redraw it.
+
+        Both calls are DIRECT. `ViewerBackend` declares the shape methods
+        with do-nothing defaults precisely so a caller clearing up after
+        itself need not know which backend it has -- unlike `leave_grid`
+        below, which is a real capability probe.
+        """
+        if self._spatial_overlay_service is not None:
+            self._spatial_overlay_service.invalidate_all()
+        self._overlay_tokens.clear()
+        self._overlay_conformers.clear()
+        self._overlay_value = ""
+        self._backend.apply_shapes(())
+        self._backend.clear_all_grid_shapes()
 
     def _forget_overlay_state(self) -> None:
         """Drop every result, token and drawn shape the overlay held.
@@ -853,11 +962,8 @@ class MoleculeViewer3DWidget(QWidget):
         discarded on arrival, and nothing from the previous molecule can
         be drawn on this one.
         """
-        if self._spatial_overlay_service is not None:
-            self._spatial_overlay_service.invalidate_all()
-        self._overlay_tokens.clear()
+        self._drop_overlay_drawings()
         self._spatial_reports.clear()
-        self._overlay_value = ""
         self._overlay_check.setEnabled(False)
 
     def _on_report_computed_for_overlay(self, event) -> None:
@@ -870,44 +976,55 @@ class MoleculeViewer3DWidget(QWidget):
 
     def _on_overlay_toggled(self, checked: bool) -> None:
         if checked:
-            self._request_overlay()
+            self._request_overlays_for_what_is_shown()
             return
         # Switching off invalidates every token, so a job already running
         # finishes and its answer is discarded rather than arriving after
-        # the user asked for the shapes to go away.
-        if self._spatial_overlay_service is not None:
-            self._spatial_overlay_service.invalidate_all()
-        self._overlay_tokens.clear()
-        self._backend.apply_shapes(())
-        self._overlay_value = ""
+        # the user asked for the shapes to go away -- in the gallery that
+        # is up to twelve jobs, every one of which must be refused.
+        self._drop_overlay_drawings()
         self._refresh_status()
 
-    def _request_overlay(self) -> None:
-        """Ask for the displayed conformer's annotations.
+    def _request_overlay(
+        self, cell_index: int = SINGLE_VIEW_CELL, conformer_index: int | None = None
+    ) -> None:
+        """Ask for one cell's annotations, for the conformer IT is showing.
 
         **THE DISPLAYED MOLBLOCK, NOT THE STORED ONE.** The viewer shows
         a display-aligned copy; recomputing on that copy is what puts the
         answer in the frame the atoms are drawn in, and is why no
         transform appears anywhere in this feature.
+
+        **PER CELL, AND THE CONFORMER IS AN ARGUMENT.** A gallery cell
+        shows a conformer that is not `self._conformer_index` -- that one
+        is the SELECTED cell, which is a different question. Defaulting
+        both arguments keeps the single view's call site unchanged, and
+        `SINGLE_VIEW_CELL` is cell 0 precisely so one vocabulary covers
+        both modes.
         """
         service = self._spatial_overlay_service
         if service is None or not self._overlay_check.isChecked():
             return
         if self._molecule is None or not self._molecule.conformers:
             return
+        if conformer_index is None:
+            conformer_index = self._conformer_index
         display = self._conformer_service.display_molblocks(self._molecule)
-        if self._conformer_index >= len(display):
+        if conformer_index >= len(display):
             return
         key = self._structure_key()
         token = service.request(
-            cell_index=SINGLE_VIEW_CELL,
+            cell_index=cell_index,
             molecule_uuid=self._molecule.uuid,
             structure_key=str(key),
-            conformer_index=self._conformer_index,
-            molblock=display[self._conformer_index],
+            conformer_index=conformer_index,
+            molblock=display[conformer_index],
             reports=list(self._spatial_reports.values()),
         )
-        self._overlay_tokens[SINGLE_VIEW_CELL] = token
+        self._overlay_tokens[cell_index] = token
+        # What this CELL asked for, so an arrival can be checked against
+        # the cell's own conformer rather than against the selected one.
+        self._overlay_conformers[cell_index] = conformer_index
 
     def _on_spatial_annotations_ready(self, event) -> None:
         """Draw a result only if it still describes what is on screen.
@@ -941,15 +1058,43 @@ class MoleculeViewer3DWidget(QWidget):
             return
         if event.molecule_uuid != self._molecule.uuid:
             return
-        if event.cell_index != SINGLE_VIEW_CELL:
+        # **THE CELL'S OWN CONFORMER, not the selected one.** In the
+        # gallery `_conformer_index` is whichever cell was last clicked,
+        # so comparing against it would refuse every other cell's
+        # perfectly good answer. `_overlay_conformers` records what each
+        # cell asked for at the moment it asked.
+        if self._overlay_conformers.get(event.cell_index) != event.conformer_index:
             return
-        if event.conformer_index != self._conformer_index:
-            return
+        # **THESE TWO ARE EQUIVALENT, measured rather than assumed.**
+        # `request()` sets `_overlay_tokens[cell]` and the service's
+        # `accepted` from the same value, `_drop_overlay_drawings` clears
+        # both together, and a cell the service has never seen answers
+        # False either way -- so a mutation deleting the first survives
+        # every test in `test_spatial_overlay_widget.py`. Kept as the
+        # widget's own record rather than deleted, because the widget
+        # asking "is this the answer I asked for" without reaching into
+        # another object is worth a redundant dict; recorded here so
+        # nobody re-derives it, and so nobody writes a test that claims
+        # to guard the first line while really exercising the second.
         if self._overlay_tokens.get(event.cell_index) != event.token:
             return
         if not service.accepts(event.cell_index, event.token):
             return
         if not self._overlay_check.isChecked():
+            return
+        # **ROUTED BY MODE, because the two modes are different surfaces
+        # and cell 0 belongs to both.** A gallery answer applied to the
+        # single view -- or the reverse -- draws real geometry onto a
+        # viewer showing something else.
+        if self._gallery:
+            if event.cell_index >= len(self._visible_page()):
+                return
+            self._backend.apply_grid_shapes(event.cell_index, event.annotations)
+            # NO status value in the gallery: one line cannot honestly
+            # carry twelve, and the page already draws each cell's own
+            # caption beside its own arrow.
+            return
+        if event.cell_index != SINGLE_VIEW_CELL:
             return
         self._backend.apply_shapes(event.annotations)
         self._overlay_value = self._overlay_label(event.annotations)

@@ -33,6 +33,7 @@ The script is a JSON list of steps, run in order:
       {"do": "calculator", "id": "admet_ml", "parameters": {"tier": "basic"},
                            "after_ms": 45000},
       {"do": "shot",       "path": "C:/tmp/admet.png"},
+      {"do": "overlay",    "on": true, "gallery": true, "step": 0},
       {"do": "rotate",     "dx": 120, "dy": -40},
       {"do": "lewis"},
       {"do": "shot",       "path": "C:/tmp/lewis.png", "widget": "lewis"},
@@ -422,14 +423,51 @@ class _Driver(QObject):
         if tabs is not None:
             tabs.setCurrentWidget(viewer)
         viewer._overlay_check.setChecked(bool(step.get("on", True)))
+        if "gallery" in step:
+            # **AFTER the overlay, and that ordering is the whole point of
+            # the key.** It puts the gallery through its FIRST render with
+            # requests already in flight, so the grid is still building
+            # when the answers arrive -- which is the ordinary case (a
+            # ~5 ms recompute against a build that waits tens of ms) and
+            # the one `loadGrid`'s replay exists for. A script that ticked
+            # the gallery first and the overlay afterwards would draw via
+            # the already-built path and never reach it.
+            viewer._gallery_check.setChecked(bool(step["gallery"]))
         for _ in range(int(step.get("step", 0))):
             viewer._show_next_conformer()
         logger.warning(
-            "OPENCHEM_DRIVE: overlay on=%s enabled=%s reports=%d status=%r",
+            "OPENCHEM_DRIVE: overlay on=%s enabled=%s reports=%d gallery=%s status=%r",
             viewer._overlay_check.isChecked(),
             viewer._overlay_check.isEnabled(),
             len(viewer._spatial_reports),
+            viewer._gallery_check.isChecked(),
             viewer._status_label.text(),
+        )
+        if viewer._gallery_check.isChecked():
+            self._report_gallery_cells(viewer)
+
+    def _report_gallery_cells(self, viewer: Any) -> None:
+        """Ask the PAGE what it drew per cell, and how many grids it built.
+
+        What Python believes it sent is exactly what was already green
+        while the gallery drew nothing, so the useful number comes from
+        `drawnGridShapes` -- the page's own mirror of what reached a cell.
+        `gridBuilds` comes with it because a superseded build is invisible
+        in a screenshot and costs a whole `createViewerGrid`.
+
+        Asynchronous, so give the step an `after_ms` long enough for the
+        answer to reach the log. A STRING, because `runJavaScript` on this
+        Qt build marshals primitives only.
+        """
+        page = viewer._backend._page
+        page.runJavaScript(
+            "JSON.stringify(Object.keys(drawnGridShapes).map(function (k) {"
+            " return k + ':' + (drawnGridShapes[k] || []).length; }))",
+            lambda value: logger.warning("OPENCHEM_DRIVE: cells drawn %s", value),
+        )
+        page.runJavaScript(
+            "String(gridBuilds)",
+            lambda value: logger.warning("OPENCHEM_DRIVE: grid builds %s", value),
         )
 
     def _do_spatial(self, step: dict[str, Any]) -> None:

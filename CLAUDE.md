@@ -71,7 +71,24 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "shot",       "path": "..."}
     {"do": "lewis",      "details": true}     the Full Lewis window
     {"do": "shot",       "path": "...", "widget": "lewis"}
+    {"do": "overlay",    "on": true, "gallery": true, "step": 1}
     {"do": "wait"} {"do": "quit"}
+
+**`smiles` does NOT select what it adds**, and `conformers` and
+`calculator` both act on the PANEL's selection -- so without a `select`
+step they operate on whatever was already showing (the starter molecule,
+which has no molblock) and the run fails with `has no molblock` as though
+the structure were broken. `import` has the same shape, which is why the
+example above pairs them.
+
+`overlay` takes `gallery` and applies it AFTER the overlay, deliberately:
+that is the gallery's FIRST render with requests already in flight, which
+is the ordering the page's replay exists for and the one a script ticking
+the gallery first would never reach. It logs what the PAGE drew per cell
+(`drawnGridShapes`) and `gridBuilds`, not what Python believes it sent --
+the distinction that whole feature turned on. Both are asynchronous, so
+give the step an `after_ms` long enough for them to reach the log; a
+probe issued in the same handler reads zeroes, correctly.
 
 `after_ms` on any step is how long to wait before the next, which is how
 an asynchronous calculator is waited on. Measured on the ADMET case: the
@@ -243,14 +260,46 @@ what its ability to say NO is worth. Measured before and after on CI:
     before   4 failed, 4173 passed,  8 skipped   gates never ran
     after    0 failed, 4178 passed, 12 skipped   "Naming benchmark holds at 181/181"
 
-Six gallery tests still skip on `_needs_a_display`, which is the same
-platform-name proxy -- and it was investigated afterwards and DELIBERATELY
-KEPT. The ladder in the conformer-gallery section shows every capability
-underneath working under `offscreen` (twelve contexts, six viewers) while
-`createViewerGrid` throws even for one cell, so the only thing predicting
-that failure is the call under test. **A platform gate you can justify
-beats a capability probe that cannot say no**, and this is the case that
-draws the line between the two.
+The gallery tests still skip on a platform check -- and it was
+investigated afterwards and DELIBERATELY KEPT. The ladder in the
+conformer-gallery section shows every capability underneath working under
+`offscreen` (twelve contexts, six viewers) while `createViewerGrid`
+throws even for one cell, so the only thing predicting that failure is
+the call under test. **A platform gate you can justify beats a capability
+probe that cannot say no**, and this is the case that draws the line
+between the two.
+
+**IT IS ONE GATE NOW, AND IT CARRIES BOTH HALVES.** `grid_display` in
+`tests/conftest.py` pairs that admitted platform check with
+`webgl_skip_reason`'s MEASURED one. It had been written privately twice
+-- `_needs_a_display` and `_NEEDS_A_DISPLAY`, in two files -- and the
+gallery overlay would have made a third; both are gone and every site
+takes the fixture. `test_no_test_file_derives_the_platform_gate_for_itself`
+fails if a fourth appears, walking `skipif` CONDITIONS as an AST because
+a text search flags the prose explaining the rule.
+
+The measured half is what makes them safe to run anywhere: a GPU-less
+machine has no context at all, so they skip naming the absent
+prerequisite rather than failing and blaming the code. **That is what
+lets CI run them.** `tests.yml` has a non-blocking
+`Conformer gallery guards` step under `QT_QPA_PLATFORM=windows`, placed
+AFTER the three gates so it cannot disable them, which makes their status
+visible instead of assumed -- the same argument as the PubChem step.
+Expected to skip on the hosted runner today; if that image ever gains a
+GPU they start running for free. **`continue-on-error` means advisory,
+not passing**: read that step, not the job's tick.
+
+Locally, where there is a GPU, they really run:
+
+```bash
+QT_QPA_PLATFORM=windows uv run --no-sync python -u -m pytest -q -ra tests/test_spatial_annotations.py tests/test_mol3d_viewer_backend.py
+```
+
+One INVERSE use survives and is correct:
+`test_a_gallery_that_cannot_be_built_is_reported` asserts the FAILURE
+path, so `offscreen` is its prerequisite rather than its obstacle. It
+asks the shared `conftest.grid_platform_is_offscreen()` -- which is why
+that is a predicate and not a mark.
 
 ## Running the tests
 
@@ -261,7 +310,48 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-16 minutes**, ending at `4356 passed, 11 skipped`
+A clean run is **6-18 minutes**, ending at `4372 passed, 15 skipped`
+(measured 2026-08-14, 17m50, on `wire-the-gallery-overlay` — the gallery
+overlay's last wire, +20 test functions over master's `c3ab297`: 12 in
+`test_spatial_overlay_widget` for the per-cell routing, 4 in
+`test_spatial_annotations` for the page's build race, grid replacement,
+label limitation and caption clear, 3 in `test_webgl_gate` for the
+shared display gate, and 1 in `test_adopt_conformer` for the readability
+thresholds.
+
+**+4 SKIPS, and they are the four new PAGE guards** — every one is gated
+on `grid_display`, like the gallery tests already there. The 16 other new
+tests use fakes and run everywhere. So 4356 + 16 = 4372 passed and
+11 + 4 = 15 skipped, which is the whole delta accounted for.
+
+**THE BAND WENT 6-16 TO 6-18 ON THIS RUN**, and the same caution applies
+as the last time it widened: 14m11 and 17m50 on trees differing by ONE
+test function is a 25% spread that the added test cannot explain. It is
+widened so a reader whose run takes 17 minutes does not conclude the
+suite has hung, and recorded as unexplained rather than as a new normal.
+
+**A BRANCH FIGURE, AND HERE IS WHAT MAKES IT CITABLE.** It adds test
+functions, so the identical-tree rule below does NOT apply — the weaker
+one does: `origin/master` at `c3ab297` **is** the merge-base, so nothing
+landed while the branch was open. Counts reconcile exactly, in seconds:
+
+    master        c3ab297   COLLECTS 4367
+    branch tip              COLLECTS 4387   = 4367 + 20
+    the run                          4372 passed + 15 skipped = 4387
+
+**The +19 was DIFFED, not counted.** `--collect-only | grep :: | sort`
+on both trees and `comm` between them names all 19 additions and shows
+**zero removals** — which is what a bare subtraction cannot tell you, and
+this section has twice recorded a delta that was wrong.
+
+**AND THE FIRST RUN OF THIS FIGURE WAS THROWN AWAY**, for the reason the
+entry below already gives. It was started before the CLAUDE.md edits and
+`tests/test_docs_are_current.py` READS CLAUDE.md, so the run was
+measuring a file being rewritten underneath it. The rule is not "do not
+edit `src/`" — it is "do not edit anything the suite reads", and a
+troubleshooting file is not exempt from it.
+
+Before it: `4356 passed, 11 skipped`
 (measured 2026-08-14, 12m36, on `overlay-spatial-annotations` at
 `76bfcc9`; master's merge `46ccd66` adds no test function and COLLECTS
 4367 = 4356 + 11, so the figure is master's. +57 passed over the 4299
@@ -1887,24 +1977,112 @@ drawn length is display scaling (half the longest interatomic span,
 floored at 1 A) of a vector whose units are DEBYE -- the one unit
 confusion the whole annotation contract exists to forbid.
 
-### The gallery overlay is BUILT AND NOT CONNECTED, deliberately recorded
+### The gallery overlay: CONNECTED, and what the last wire cost
 
-`apply_grid_shapes`, per-cell `clearGridShapes`, `clearAllGridShapes`,
-per-cell tokens in `SpatialOverlayService` and the page's
-`drawnGridShapes` mirror all exist and are guarded -- two cells verifiably
-draw DIFFERENT geometry, and clearing one leaves its neighbour alone
-(mutation-verified). **What is missing is the last wire:**
-`apply_grid_shapes` is called from no production code, because
-`_request_overlay` only ever passes `SINGLE_VIEW_CELL` and `_refresh_view`
-diverts into `_refresh_gallery()` before reaching it.
+For a while this section said the machinery was built and nothing called
+it -- `apply_grid_shapes` reached from no production code, because
+`_request_overlay` only ever passed `SINGLE_VIEW_CELL` and `_refresh_view`
+diverted into `_refresh_gallery()` first. It is wired now. Verified live:
+six cells, six different dipoles (1.10, 1.18, 1.12, 1.11, 1.19, 3.68 D),
+each recomputed for the conformer in that cell, on the FIRST render.
 
-So ticking "Show shapes" in gallery mode draws nothing today. The plan
-called for per-cell overlays and this is the honest state of it: the
-machinery is done and tested, the widget does not drive it. Wiring it is
-`_refresh_gallery` issuing one request per visible cell with that cell's
-own conformer index, and the arrival handler routing by
-`event.cell_index` instead of rejecting anything that is not
-`SINGLE_VIEW_CELL`.
+`_refresh_gallery` issues one request per populated cell and
+`_on_spatial_annotations_ready` routes by `event.cell_index`. Two things
+about that are worth keeping:
+
+- **`enumerate(page)`, never `index - self._page_start`.** The invariant
+  is `page[cell] <-> gridCells[cell]`, because `load_conformer_grid` maps
+  its entries position-for-position onto the cells. The arithmetic agrees
+  while `page` is a contiguous range; only one of them says why.
+- **The value stays IN THE CELL.** The page already draws each arrow's
+  own caption (`shapeLabel` takes the target viewer), so the status line
+  keeps saying "Conformers 1-6 of 8". One line cannot honestly carry six
+  values, and one of six would be worse than none.
+
+#### THE ANSWER ARRIVES BEFORE THE CELLS DO, and that is the ordinary case
+
+`loadGrid` resets `gridShapes` synchronously and then builds inside
+`whenGridSized`, which polls every 25 ms and wants the height repeated
+across two frames. The overlay recompute is ~5 ms. `drawCellShapes`
+no-ops for a cell that does not exist yet and nothing replayed
+afterwards, so **the first page of a gallery drew nothing at all** and
+only a later redraw appeared to fix it. `loadGrid` now replays
+`gridShapes` at the foot of its build callback.
+
+**The three existing per-cell guards could not see this**, and the reason
+generalises: `_grid_of_two` waits for `.cell-overlay` before applying
+anything, so every test built on it exercises a grid that already exists.
+A helper that waits past the window is how a whole window goes untested.
+
+**TWO `loadGrid` CALLS BUILD TWICE.** `whenGridSized` closes over its own
+poll state, so a second call while the first is waiting leaves BOTH
+callbacks armed and both reach `buildGrid`. Harmless until the replay
+existed; with it, the older callback rebuilds from ITS conformers and
+then replays `gridShapes`, which by then holds the NEWER request's
+payloads. A `gridGeneration` counter makes the superseded build return
+early. It costs a whole `createViewerGrid` (91 ms at 4 cells, 175 at 12)
+per page paged through, and `gridBuilds` exists as a diagnostic seam
+because nothing else can observe it -- the superseded build is overtaken
+microseconds later and never reaches a screenshot.
+
+#### Two bugs that only the running app showed, with every test green
+
+Both found by driving a real gallery after the unit and page guards were
+all passing, which is the entire argument for doing it:
+
+- **`clearAllGridShapes` removed the arrows and LEFT THEIR CAPTIONS**, so
+  unticking "Show shapes" left "1.14 D" floating over a structure with
+  nothing drawn on it. It had its own clearing loop calling
+  `removeAllShapes()` and not `removeAllLabels()`. **The existing guard
+  could not see it**: `_drawn_cell` reads `drawnGridShapes`, the page's
+  own mirror, which that function emptied perfectly correctly. A mirror
+  records intent; the labels are what is on the screen. It goes through
+  `drawCellShapes` now -- one path for "make this cell show exactly
+  `gridShapes[i]`", and clearing is that with nothing in it.
+- **`_refresh_status` wrote the SINGLE VIEW's line over the gallery's.**
+  Unticking the overlay turned "Conformers 7-8 of 8" into "Conformer 7/8
+  - +0.62 kcal/mol" -- describing one of the pictures, in the wording of
+  a mode that was not on screen. Every unit test read the label; none
+  asked what the label was describing.
+
+#### `_overlay_tokens` and `service.accepts` are EQUIVALENT, measured
+
+Both are set from the same value in `request()` and cleared together in
+`_drop_overlay_drawings`, and a cell the service has never seen answers
+False either way. So a mutation deleting EITHER survives the whole file
+and only deleting BOTH is caught. Kept as the widget's own record rather
+than deleted -- recorded here so nobody re-derives it, and so nobody
+writes a test claiming to guard one while really exercising the other.
+
+The one case they catch that nothing else does is real: a second spatial
+result re-requests every cell, and the job already in flight was computed
+from FEWER reports, so landing late it would replace a complete overlay
+with an incomplete one -- same molecule, same cell, same conformer.
+
+#### The redundant clear that no test could kill
+
+`_refresh_gallery` called `clear_all_grid_shapes()` after
+`load_conformer_grid`, and a mutation deleting it survived everything.
+Measured why: `load_conformer_grid` already drops `_pending_grid_shapes`
+and the page's `loadGrid` already resets `gridShapes`, so the explicit
+clear only removed shapes from the OLD cells, which were being discarded
+anyway. Deleted. The rebuild's own reset is guarded against the real page
+instead, which is where it actually happens.
+
+#### `ViewerBackend` now declares the shape methods, with NO-OP defaults
+
+`apply_shapes` was called unconditionally by the widget on an interface
+that never declared it -- it worked because the one test file that
+reached that path happened to define it on its fake. The shape methods
+are declared now and default to doing nothing, which is the opposite of
+every other method on that base and is deliberate: they are drawing calls
+made on the widget's own state changes, so "this backend has nothing to
+draw shapes on" is a correct answer to "clear the shapes", not a failure.
+
+**`load_conformer_grid` IS DELIBERATELY NOT DECLARED.** The widget probes
+it with `hasattr` to decide whether the gallery exists at all, so
+declaring it would make every backend claim a gallery it cannot build,
+Mol* included.
 
 ### The overlay: recompute in the displayed frame, never transform into it
 
@@ -2370,6 +2548,43 @@ internally: all 25 combinations of rotating the conformer 0-90 degrees
 about two axes returned byte-identical layouts, 0.000 every time, on all
 five degenerate cases. Measured before accepting the fallback, because
 "why not just rotate it" is the first thing anybody will ask.
+
+##### THE FIXTURE-VALIDITY BOUND WAS ITSELF FITTED TO ONE CONFORMER
+
+`test_the_drawing_is_laid_out_rather_than_projected` asserted
+`projected < 0.5` before testing anything -- the setup assertion that
+cholesterol's raw projection really is unusable, without which the real
+claim proves nothing. It failed on the non-blocking Linux CI job at
+**0.5237**, which reads as a platform quirk and is not one.
+
+**5 OF 20 EMBEDDING SEEDS BREAK IT ON THIS MACHINE TOO.** Measured over
+20 seeds, cholesterol's projection ranges **0.067 to 0.721** in molblock
+units, so 0.5 sits inside its own distribution and Linux merely drew one
+of the conformers that exceed it. The number was fitted to whatever
+`randomSeed=0xC0FFEE` happened to produce. Same shape as the conformer
+de-duplication threshold fitted to butane, one level along: not a wrong
+value, a wrong KIND of bound.
+
+Both readability bounds are RATIOS against the molecule's own ordinary
+depiction now, which removes the bond-length unit, and the two
+populations really are bimodal:
+
+    the conformer's raw x,y   0.045 .. 0.480     20 seeds
+    the laid-out drawing      0.940 .. 1.000
+                              a gap 0.46 wide
+
+`PROJECTION_IS_DEGENERATE_BELOW = 0.65` and
+`LAYOUT_IS_READABLE_ABOVE = 0.75` both sit in that gap, and
+`test_the_two_readability_thresholds_sit_in_the_measured_gap` checks
+each against the RECORDED spread rather than against the other -- so
+widening one to make a failure go away fails there, naming the
+measurement. Linux's own value is 0.349, comfortably inside the first
+band, which is what says the spread describes that machine as well.
+
+**The behaviour is still under test, and that was mutated rather than
+assumed.** Making `drawing_from_conformer` keep the raw projection fails
+this test and two others; only widening the constant is caught by the
+new guard alone.
 
 **The fourth defect was found only by driving the app, with every test
 green.** `MoleculeEditorWidget._on_molecule_changed` compares canonical

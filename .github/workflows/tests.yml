@@ -125,6 +125,40 @@ jobs:
       - name: Validate regulatory rulesets
         run: uv run --no-sync python tools/build_regulatory_rulesets.py --check
 
+      # THE GALLERY GUARDS, WHICH THE RUN ABOVE SKIPS. `tests/conftest.py`
+      # sets QT_QPA_PLATFORM=offscreen, where `$3Dmol.createViewerGrid`
+      # throws for a grid of even one cell -- see the ladder in
+      # `tests/test_mol3d_viewer_backend.py`, where every capability
+      # underneath it works. So the only thing exercising the real
+      # conformer gallery skips on every CI run, and a skip reports as
+      # nothing at all. This step makes their status VISIBLE.
+      #
+      # **EXPECTED TO SKIP HERE, AND THAT IS THE POINT.** This runner has
+      # no GPU, so the shared `grid_display` fixture's measured WebGL half
+      # refuses them with a reason `-ra` prints -- rather than running them
+      # and failing, which is what the platform half alone would have done.
+      # If GitHub's Windows image ever gains a GPU they start running for
+      # free.
+      #
+      # **`continue-on-error` MEANS ADVISORY, NOT PASSING.** A red step
+      # here does not fail the job, so nobody may read the job's green
+      # tick as these having succeeded -- read the step. That is what the
+      # banner below says out loud, because "12 skipped" and "10 passed,
+      # 2 failed" must not look alike six months from now, and only
+      # pytest's own summary line tells them apart.
+      - name: Conformer gallery guards (NON-BLOCKING -- needs a GPU)
+        if: always()
+        continue-on-error: true
+        env:
+          QT_QPA_PLATFORM: windows
+        run: |
+          echo "NON-BLOCKING: a failure here does not fail the job, so read"
+          echo "THIS STEP rather than the job's tick. pytest's own last line"
+          echo "below carries the counts, and -ra carries the skip reasons."
+          echo "Skips are EXPECTED on a GPU-less runner; failures are not,"
+          echo "and mean a real conformer-gallery regression."
+          uv run --no-sync python -u -m pytest -q -ra --tb=short tests/test_spatial_annotations.py tests/test_mol3d_viewer_backend.py
+
       # THE DESELECTED TEST, RUN WHERE IT CANNOT DISABLE ANYTHING. Last, so
       # nothing waits on it; `continue-on-error` so NCBI cannot fail the job;
       # `if: always()` so it still reports when the suite above went red.

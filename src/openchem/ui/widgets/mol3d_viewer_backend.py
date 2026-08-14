@@ -270,6 +270,15 @@ class Mol3DViewerBackend(ViewerBackend):
         option.
         """
         payload = [{"molblock": molblock, "label": label} for molblock, label in entries]
+        # Pending shapes belong to the grid being REPLACED -- their
+        # coordinates are in the previous conformers' frames, so replaying
+        # them onto these cells would draw a plausible picture of nothing.
+        # Same rule as `load_conformer` dropping `_pending_shapes`, and the
+        # other half of the same contract: this covers a payload queued
+        # against a page that has not loaded yet, while the page's own
+        # `loadGrid` resets `gridShapes` for one that has. Shapes for THIS
+        # grid arrive via `apply_grid_shapes()` after this call.
+        self._pending_grid_shapes.clear()
         self._grid = (payload, rows, cols, linked, list(selected or []))
         if self._page_ready:
             self._run_load_grid()

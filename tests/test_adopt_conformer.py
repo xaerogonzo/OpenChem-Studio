@@ -16,9 +16,14 @@ which is the obvious implementation and is wrong three separate ways:
 
     cholesterol, closest heavy-atom approach in the drawing
       proper depiction                1.500
-      the conformer's own x,y         0.219     <- atoms on top of each other
+      the conformer's own x,y         0.24      <- atoms on top of each other
 
     conformer count, pressing the button        1 -> 0
+
+**READABILITY IS COMPARED AS A RATIO, NEVER AS AN ABSOLUTE.** See
+`_PROJECTION_RATIO_SEEN` below: the projection's own value moves with
+whatever conformer the embedder produced, and an absolute bound fitted on
+one machine sits inside that spread on another.
 """
 
 from __future__ import annotations
@@ -45,6 +50,42 @@ ASPIRIN = "CC(=O)Oc1ccccc1C(=O)O"
 #: octane, C17H25NO2. Its two -CH2CH2- bridges superimpose exactly when
 #: the drawing follows the 3D orientation.
 REPORTED = "COc1cc(C[C@@H](C)N)c2c(c1OC)C1CCC2CC1"
+
+# --- how readable is readable -------------------------------------------------
+#
+# **THE ABSOLUTE BOUND THAT USED TO LIVE HERE WAS INSIDE ITS OWN
+# DISTRIBUTION.** `projected < 0.5` was fitted to whatever conformer this
+# machine's embedder happened to produce, and it failed on the Linux CI
+# job at 0.5237 -- read at first as a platform quirk. It is not: measured
+# over 20 embedding seeds HERE, cholesterol's projection ranges 0.067 to
+# 0.721 in molblock units, so 5 of those 20 seeds break that bound on this
+# machine too. Linux merely drew one of them.
+#
+# Both numbers are ratios against the molecule's OWN ordinary depiction
+# now, which removes the bond-length unit, and both thresholds sit in a
+# measured GAP rather than being picked. Same instinct as the conformer
+# de-duplication threshold: tabulate the distribution and look for the gap
+# the threshold is supposed to sit in, and if there is no gap then no
+# value of the constant is right.
+
+#: Ratio of closest-approach to the plain depiction's, over 20 embedding
+#: seeds. Recorded as DATA so the two thresholds can be checked against a
+#: measurement rather than against taste -- `test_the_two_readability_`
+#: `thresholds_sit_in_the_measured_gap` does exactly that.
+#:
+#:     the conformer's raw x,y   0.045 .. 0.480
+#:     the laid-out drawing      0.940 .. 1.000
+#:                               a gap 0.46 wide
+#:
+#: Linux's own failing value sits at 0.349, comfortably inside the first
+#: band -- which is what says this spread describes that machine too.
+_PROJECTION_RATIO_SEEN = (0.045, 0.480)
+_LAYOUT_RATIO_SEEN = (0.940, 1.000)
+
+#: A projection this much worse than the ordinary depiction is degenerate.
+PROJECTION_IS_DEGENERATE_BELOW = 0.65
+#: A layout at least this good is as readable as RDKit would have drawn it.
+LAYOUT_IS_READABLE_ABOVE = 0.75
 
 
 @pytest.fixture(scope="module")
@@ -133,22 +174,63 @@ def test_the_drawing_is_laid_out_rather_than_projected(engine):
     each other, so the canvas is unusable for exactly the molecules whose
     3D geometry is worth having.
 
-    The assertion is against the molecule's OWN ordinary depiction rather
-    than a constant: "as readable as RDKit would have drawn it anyway" is
-    the claim, and a fixed threshold would silently encode aspirin's
-    bond length instead.
+    Both assertions are against the molecule's OWN ordinary depiction
+    rather than a constant: "as readable as RDKit would have drawn it
+    anyway" is the claim, and a fixed threshold would silently encode
+    aspirin's bond length instead.
+
+    **THE FIRST ONE IS FIXTURE VALIDITY, and it used to be absolute.**
+    It establishes that the raw projection really is unusable, without
+    which the second assertion proves nothing -- a flat molecule projects
+    to something fine by accident. As `projected < 0.5` it sat inside the
+    projection's own spread and failed on CI's conformer; see
+    `_PROJECTION_RATIO_SEEN`.
     """
     molecule = _molecule(engine, CHOLESTEROL)
     conformer = _conformer_molblock(engine, molecule)
+    plain = _closest_approach(molecule.molblock)
 
     projected = _closest_approach(Chem.MolToMolBlock(Chem.RemoveHs(
         Chem.MolFromMolBlock(conformer, removeHs=False)
     )))
     drawn = engine.drawing_from_conformer(conformer)
 
-    assert projected < 0.5, "cholesterol's projection stopped overlapping -- re-derive this"
-    assert _closest_approach(drawn.molblock) >= _closest_approach(molecule.molblock) * 0.75
+    assert projected < plain * PROJECTION_IS_DEGENERATE_BELOW, (
+        f"cholesterol's projection stopped overlapping ({projected / plain:.3f} "
+        f"of its own depiction) -- re-derive _PROJECTION_RATIO_SEEN rather than "
+        f"widening the threshold, which is what made this platform-dependent"
+    )
+    assert _closest_approach(drawn.molblock) >= plain * LAYOUT_IS_READABLE_ABOVE
     assert drawn.follows_geometry
+
+
+def test_the_two_readability_thresholds_sit_in_the_measured_gap():
+    """A guard on the CONSTANTS, not on the code.
+
+    The two populations are bimodal with a gap 0.46 wide, and the whole
+    reason the thresholds are trustworthy is that they sit inside it
+    rather than inside either band. Widening one until a failure goes
+    away is exactly what produced the platform-dependent bound this
+    replaced, so it fails here naming the measurement instead.
+
+    Cheap and derived: it compares each threshold against the recorded
+    spread, so it cannot be satisfied by moving the thresholds alone.
+    """
+    projection_max = _PROJECTION_RATIO_SEEN[1]
+    layout_min = _LAYOUT_RATIO_SEEN[0]
+
+    assert projection_max < PROJECTION_IS_DEGENERATE_BELOW, (
+        "the degenerate-projection threshold is inside the range projections "
+        "were actually measured at, so a legitimate conformer can break it"
+    )
+    assert LAYOUT_IS_READABLE_ABOVE < layout_min, (
+        "the readable-layout threshold is inside the range layouts were "
+        "actually measured at"
+    )
+    assert PROJECTION_IS_DEGENERATE_BELOW <= LAYOUT_IS_READABLE_ABOVE, (
+        "a drawing could satisfy both 'degenerate' and 'readable' at once, "
+        "which makes the pair of them say nothing"
+    )
 
 
 # --- the shape that has no flat orientation ----------------------------------
