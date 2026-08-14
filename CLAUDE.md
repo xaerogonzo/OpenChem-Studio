@@ -310,18 +310,25 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-16 minutes**, ending at `4371 passed, 15 skipped`
-(measured 2026-08-14, 14m11, on `wire-the-gallery-overlay` — the gallery
-overlay's last wire, +19 test functions over master's `c3ab297`: 12 in
+A clean run is **6-18 minutes**, ending at `4372 passed, 15 skipped`
+(measured 2026-08-14, 17m50, on `wire-the-gallery-overlay` — the gallery
+overlay's last wire, +20 test functions over master's `c3ab297`: 12 in
 `test_spatial_overlay_widget` for the per-cell routing, 4 in
 `test_spatial_annotations` for the page's build race, grid replacement,
-label limitation and caption clear, and 3 in `test_webgl_gate` for the
-shared display gate.
+label limitation and caption clear, 3 in `test_webgl_gate` for the
+shared display gate, and 1 in `test_adopt_conformer` for the readability
+thresholds.
 
 **+4 SKIPS, and they are the four new PAGE guards** — every one is gated
-on `grid_display`, like the gallery tests already there. The 12 widget
-tests and 3 gate tests use fakes and run everywhere. So 4356 + 15 = 4371
-passed and 11 + 4 = 15 skipped, which is the whole delta accounted for.
+on `grid_display`, like the gallery tests already there. The 16 other new
+tests use fakes and run everywhere. So 4356 + 16 = 4372 passed and
+11 + 4 = 15 skipped, which is the whole delta accounted for.
+
+**THE BAND WENT 6-16 TO 6-18 ON THIS RUN**, and the same caution applies
+as the last time it widened: 14m11 and 17m50 on trees differing by ONE
+test function is a 25% spread that the added test cannot explain. It is
+widened so a reader whose run takes 17 minutes does not conclude the
+suite has hung, and recorded as unexplained rather than as a new normal.
 
 **A BRANCH FIGURE, AND HERE IS WHAT MAKES IT CITABLE.** It adds test
 functions, so the identical-tree rule below does NOT apply — the weaker
@@ -329,8 +336,8 @@ one does: `origin/master` at `c3ab297` **is** the merge-base, so nothing
 landed while the branch was open. Counts reconcile exactly, in seconds:
 
     master        c3ab297   COLLECTS 4367
-    branch tip              COLLECTS 4386   = 4367 + 19
-    the run                          4371 passed + 15 skipped = 4386
+    branch tip              COLLECTS 4387   = 4367 + 20
+    the run                          4372 passed + 15 skipped = 4387
 
 **The +19 was DIFFED, not counted.** `--collect-only | grep :: | sort`
 on both trees and `comm` between them names all 19 additions and shows
@@ -2541,6 +2548,43 @@ internally: all 25 combinations of rotating the conformer 0-90 degrees
 about two axes returned byte-identical layouts, 0.000 every time, on all
 five degenerate cases. Measured before accepting the fallback, because
 "why not just rotate it" is the first thing anybody will ask.
+
+##### THE FIXTURE-VALIDITY BOUND WAS ITSELF FITTED TO ONE CONFORMER
+
+`test_the_drawing_is_laid_out_rather_than_projected` asserted
+`projected < 0.5` before testing anything -- the setup assertion that
+cholesterol's raw projection really is unusable, without which the real
+claim proves nothing. It failed on the non-blocking Linux CI job at
+**0.5237**, which reads as a platform quirk and is not one.
+
+**5 OF 20 EMBEDDING SEEDS BREAK IT ON THIS MACHINE TOO.** Measured over
+20 seeds, cholesterol's projection ranges **0.067 to 0.721** in molblock
+units, so 0.5 sits inside its own distribution and Linux merely drew one
+of the conformers that exceed it. The number was fitted to whatever
+`randomSeed=0xC0FFEE` happened to produce. Same shape as the conformer
+de-duplication threshold fitted to butane, one level along: not a wrong
+value, a wrong KIND of bound.
+
+Both readability bounds are RATIOS against the molecule's own ordinary
+depiction now, which removes the bond-length unit, and the two
+populations really are bimodal:
+
+    the conformer's raw x,y   0.045 .. 0.480     20 seeds
+    the laid-out drawing      0.940 .. 1.000
+                              a gap 0.46 wide
+
+`PROJECTION_IS_DEGENERATE_BELOW = 0.65` and
+`LAYOUT_IS_READABLE_ABOVE = 0.75` both sit in that gap, and
+`test_the_two_readability_thresholds_sit_in_the_measured_gap` checks
+each against the RECORDED spread rather than against the other -- so
+widening one to make a failure go away fails there, naming the
+measurement. Linux's own value is 0.349, comfortably inside the first
+band, which is what says the spread describes that machine as well.
+
+**The behaviour is still under test, and that was mutated rather than
+assumed.** Making `drawing_from_conformer` keep the raw projection fails
+this test and two others; only widening the constant is caught by the
+new guard alone.
 
 **The fourth defect was found only by driving the app, with every test
 green.** `MoleculeEditorWidget._on_molecule_changed` compares canonical
