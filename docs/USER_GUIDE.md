@@ -299,6 +299,32 @@ would only be dressed up by one. The model is drawn on the *stored*
 conformer, and the dialog says so: if you regenerate conformers after
 calculating, rerun the calculator before trusting the picture.
 
+**Show shapes** draws them on the conformer you are looking at.** Tick it
+in the 3D viewer's toolbar and any shape-valued result you have already
+calculated — the dipole vector, a ligand cone, the principal axes — is
+drawn on the structure on screen, turning as you turn it and following
+you as you step conformers.
+
+**Its number can differ from the Properties panel's, and both are
+right.** They answer different questions:
+
+- the **Properties panel** reports what the calculator found when it ran,
+  for the conformer it ran on;
+- the **3D overlay** is freshly calculated for the conformer *currently
+  displayed*.
+
+A flexible molecule genuinely has a different dipole in each conformer —
+measured on ethylmorphine, 5.53 D on the lowest-energy one and 4.71 D
+three conformers along — so the overlay labels its value with the
+conformer it belongs to. If the two disagree, that difference is
+information, not an inconsistency.
+
+Only results you have already calculated appear; the overlay never runs
+anything you did not ask for, and a molecule with no shape-valued results
+leaves the control greyed out. While a conformer's shapes are being
+computed nothing is drawn, rather than the previous conformer's geometry
+being left on screen.
+
 **Details…** in the 3D viewer's toolbar shows where a run's candidates
 went: how many embeddings were attempted, how many embedded, how many
 converged, how many distinct shapes they came to, and how many were

@@ -1876,6 +1876,80 @@ drawn length is display scaling (half the longest interatomic span,
 floored at 1 A) of a vector whose units are DEBYE -- the one unit
 confusion the whole annotation contract exists to forbid.
 
+### The overlay: recompute in the displayed frame, never transform into it
+
+The dialog was frame-safe because it loads the STORED conformer. The
+main viewer shows display-ALIGNED copies, so the obvious next step was to
+expose the rigid transform `align_conformers_for_display` computes and
+throws away, and rotate each annotation by it. **Measurement retired that
+before a line of it was written.** Recomputing the producer on the
+DISPLAYED molblock gives an annotation already in the right frame:
+
+    four real conformers of ethylmorphine, through display_molblocks
+    the vector rotates with the frame, magnitude preserved
+    to 1e-4 and NOT 1e-6 -- the molblock's four-decimal text format
+    5.2 ms for all four
+
+So the transform-composition bug class -- the one whose oracle this file
+already records as backwards in the camera work -- never arises: there is
+no matrix to get the wrong way round. It is also the better answer, since
+each conformer genuinely has its own dipole (4.43, 5.53, 5.53, 5.19 D
+across those four), which is why the overlay labels its value with the
+conformer and the Properties panel keeps reporting the canonical one.
+
+**A PROBE THAT SEEDS EVERY CONFORMER THE SAME READS AS CONFIRMATION.**
+The first version used `EmbedMultipleConfs(randomSeed=0)`, which is the
+trap `RDKitConformerProvider` documents -- four copies of one structure.
+It reported "magnitudes identical, vectors unrotated", which is exactly
+what a working transform-free path would look like if alignment were a
+no-op. Four identical conformers of a flexible molecule is the tell.
+
+**A RESULT DID NOT SAY WHAT IT WAS COMPUTED WITH.** The routing layer has
+recorded which CONFORMER a calculator was handed since the
+calculation-input work and never the SETTINGS, so any replay would have
+silently used today's defaults -- a different calculation under the
+original's label. `INPUT_PREFIX + "parameters"` closes it generically for
+every result, JSON-safe scalars only (`Provenance.to_dict` puts them
+straight into the saved project), and a value that cannot be persisted is
+DROPPED rather than stringified: a `repr()` cannot be fed back to
+`compute()`, so storing one turns "I cannot replay this" into something
+that looks replayable. Origin resolves through `report_id ->
+CalculatorRegistry`, audited over the live registry -- 49
+registry-executable calculators, 17 producing reports, zero mismatches --
+with the RELATIONSHIP pinned as the contract and the counts explicitly
+not.
+
+**A REJECTED RESULT MUST STILL RELEASE THE CELL, and ten green tests
+missed it.** The overlay collapses rapid conformer stepping to one
+running job plus one pending request per cell, and the widget called
+`service.finished()` only on the path where it ACCEPTED the answer. Step
+two conformers and the first answer arrives stale, is correctly rejected
+-- and the cell stays "running" forever, so the queued request never
+starts and the overlay never draws again. Found by driving the app:
+conformer 3 showed no arrow and no value, permanently, while every unit
+test passed. `finished` is a no-op for a token that is not the running
+one, so it is called unconditionally now, before any rejection.
+
+**AND THE FIRST FIX FOR IT WAS PARTIAL, WHICH IS WORSE THAN OBVIOUS.**
+It was applied to the conformer check only, so switching MOLECULES
+mid-flight returned earlier still and wedged the cell identically --
+found in review, measured (`jobs_started` stuck at 1 with every later
+request only becoming `pending`), and fixed by hoisting the release above
+EVERY rejection. Every early return after it is a rejection and none of
+them may skip it. This file's own warning applies: a partial revert, or a
+partial fix, looks like a fix.
+
+A method note from the same review: the first assertion written for it
+(`running is None` after the discard) FAILED against correct code,
+because the release immediately starts whatever was queued and the cell
+is legitimately busy again. Assert the symptom -- that the new molecule's
+work runs at all -- not an instantaneous internal state.
+
+Measured on the collapse itself, scrubbing seven conformers as fast as
+the event loop allows: **7 requests -> 2 jobs started**, 5 superseded,
+never more than one pending, settling in 18 ms. No debouncing was added,
+because the numbers did not ask for one.
+
 ## The bond and molecule reports, and what generalising cost
 
 `AtomReport` was written with `AtomFact`/`FactCategory` deliberately free

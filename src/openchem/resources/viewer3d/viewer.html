@@ -253,9 +253,13 @@
       // any annotation-level check. Reset on every drawShapes().
       var drawnShapes = [];
 
-      function longestSpan() {
-        if (!currentModel) return 0;
-        var atoms = currentModel.selectedAtoms({});
+      function longestSpan(target) {
+        // A gallery cell scales its arrow to ITS OWN molecule, not the
+        // single view's -- the cells hold different conformers, and one
+        // shared span would draw arrows that mean different lengths.
+        var model = target ? target.getModel() : currentModel;
+        if (!model) return 0;
+        var atoms = model.selectedAtoms({});
         var best = 0;
         for (var i = 0; i < atoms.length; i++) {
           for (var j = i + 1; j < atoms.length; j++) {
@@ -280,18 +284,19 @@
         return n > 0 ? [v[0] / n, v[1] / n, v[2] / n] : null;
       }
 
-      function shapeLabel(text, position) {
-        viewer.addLabel(text, {
+      function shapeLabel(text, position, target) {
+        (target || viewer).addLabel(text, {
           position: { x: position[0], y: position[1], z: position[2] },
           fontSize: 12,
           backgroundOpacity: 0.55,
         });
       }
 
-      function drawArrowShape(shape) {
+      function drawArrowShape(shape, target, sink) {
         var direction = unitVec(shape.vector);
         if (!direction || !finiteVec(shape.anchor)) return;
-        var length = Math.max(MIN_ARROW_LENGTH, ARROW_SPAN_FRACTION * longestSpan());
+        var view = target || viewer;
+        var length = Math.max(MIN_ARROW_LENGTH, ARROW_SPAN_FRACTION * longestSpan(target));
         var half = length / 2;
         var start = [shape.anchor[0] - direction[0] * half,
                      shape.anchor[1] - direction[1] * half,
@@ -299,7 +304,7 @@
         var end = [shape.anchor[0] + direction[0] * half,
                    shape.anchor[1] + direction[1] * half,
                    shape.anchor[2] + direction[2] * half];
-        viewer.addArrow({
+        view.addArrow({
           start: { x: start[0], y: start[1], z: start[2] },
           end: { x: end[0], y: end[1], z: end[2] },
           radius: 0.12,
@@ -307,8 +312,8 @@
           mid: 0.82,
           color: '#e6a817',
         });
-        drawnShapes.push({ kind: 'arrow', start: start, end: end, label: shape.label });
-        if (shape.label) shapeLabel(shape.label, end);
+        (sink || drawnShapes).push({ kind: 'arrow', start: start, end: end, label: shape.label });
+        if (shape.label) shapeLabel(shape.label, end, view);
       }
 
       function perpendicularPair(axis) {
@@ -326,7 +331,7 @@
         return [first, second];
       }
 
-      function drawConeShape(shape) {
+      function drawConeShape(shape, target, sink) {
         var axis = unitVec(shape.axis);
         if (!axis || !finiteVec(shape.apex) || !(shape.length > 0)) return;
         var half = shape.half_angle_deg * Math.PI / 180;
@@ -335,6 +340,7 @@
         // sits at length*cos(half) with radius length*sin(half) -- valid
         // for half-angles past 90 too, where cos goes negative and the
         // cone legitimately opens behind the apex plane (P(tBu)3 is 91).
+        var view = target || viewer;
         var perpendiculars = perpendicularPair(axis);
         var p1 = perpendiculars[0], p2 = perpendiculars[1];
         var apex = shape.apex;
@@ -351,29 +357,30 @@
         }
         for (var g = 0; g < CONE_GENERATRICES; g++) {
           var point = rim(2 * Math.PI * g / CONE_GENERATRICES);
-          viewer.addLine({
+          view.addLine({
             start: { x: apex[0], y: apex[1], z: apex[2] },
             end: { x: point[0], y: point[1], z: point[2] },
             color: '#00838f',
           });
-          drawnShapes.push({ kind: 'cone-generatrix', start: apex, end: point });
+          (sink || drawnShapes).push({ kind: 'cone-generatrix', start: apex, end: point });
         }
         var previous = rim(0);
         for (var sgm = 1; sgm <= CONE_CIRCLE_SEGMENTS; sgm++) {
           var next = rim(2 * Math.PI * sgm / CONE_CIRCLE_SEGMENTS);
-          viewer.addLine({
+          view.addLine({
             start: { x: previous[0], y: previous[1], z: previous[2] },
             end: { x: next[0], y: next[1], z: next[2] },
             color: '#00838f',
           });
-          drawnShapes.push({ kind: 'cone-circle', start: previous, end: next });
+          (sink || drawnShapes).push({ kind: 'cone-circle', start: previous, end: next });
           previous = next;
         }
-        if (shape.label) shapeLabel(shape.label, [apex[0], apex[1], apex[2]]);
+        if (shape.label) shapeLabel(shape.label, [apex[0], apex[1], apex[2]], view);
       }
 
-      function drawAxesShape(shape) {
+      function drawAxesShape(shape, target, sink) {
         if (!finiteVec(shape.origin)) return;
+        var view = target || viewer;
         for (var i = 0; i < 3; i++) {
           var direction = unitVec(shape.axes[i]);
           if (!direction) continue;
@@ -386,7 +393,7 @@
           var end = [shape.origin[0] + direction[0] * extent,
                      shape.origin[1] + direction[1] * extent,
                      shape.origin[2] + direction[2] * extent];
-          viewer.addArrow({
+          view.addArrow({
             start: { x: start[0], y: start[1], z: start[2] },
             end: { x: end[0], y: end[1], z: end[2] },
             radius: 0.07,
@@ -394,9 +401,43 @@
             mid: 0.9,
             color: AXIS_COLORS[i],
           });
-          drawnShapes.push({ kind: 'axis', index: i, start: start, end: end });
-          if (shape.labels && shape.labels[i]) shapeLabel(shape.labels[i], end);
+          (sink || drawnShapes).push({ kind: 'axis', index: i, start: start, end: end });
+          if (shape.labels && shape.labels[i]) shapeLabel(shape.labels[i], end, view);
         }
+      }
+
+      // One dispatcher for both modes. The single view and a gallery
+      // cell drawing the same annotation differently is exactly the kind
+      // of drift a second copy of this loop would allow.
+      function drawShapeList(shapes, target, sink) {
+        shapes.forEach(function (shape) {
+          try {
+            if (shape.kind === 'arrow') drawArrowShape(shape, target, sink);
+            else if (shape.kind === 'cone') drawConeShape(shape, target, sink);
+            else if (shape.kind === 'axes') drawAxesShape(shape, target, sink);
+            else console.warn('unknown spatial annotation kind', shape.kind);
+          } catch (error) {
+            console.warn('skipped a spatial annotation', error);
+          }
+        });
+      }
+
+      // Per-cell shapes and their mirrors. Keyed by cell index and never
+      // shared: replacing one cell must leave its neighbours alone.
+      var gridShapes = {};
+      var drawnGridShapes = {};
+
+      function drawCellShapes(cellIndex) {
+        var cell = gridCells[cellIndex];
+        if (!cell) return;
+        cell.removeAllShapes();
+        cell.removeAllLabels();
+        drawnGridShapes[cellIndex] = [];
+        var shapes = gridShapes[cellIndex];
+        if (shapes && shapes.length) {
+          drawShapeList(shapes, cell, drawnGridShapes[cellIndex]);
+        }
+        cell.render();
       }
 
       function drawShapes() {
@@ -577,6 +618,26 @@
           currentStyle = styleName;
           applyStyle();
         },
+        applyGridShapes: function (cellIndex, shapes) {
+          gridShapes[cellIndex] = shapes && shapes.length ? shapes : null;
+          drawCellShapes(cellIndex);
+        },
+        // ONE CELL. Replacing a cell's conformer must not wipe the
+        // annotations its neighbours are still correctly showing.
+        clearGridShapes: function (cellIndex) {
+          gridShapes[cellIndex] = null;
+          drawCellShapes(cellIndex);
+        },
+        // Every cell, for a grid being rebuilt or torn down -- the only
+        // time the whole set is genuinely stale at once.
+        clearAllGridShapes: function () {
+          gridShapes = {};
+          drawnGridShapes = {};
+          gridCells.forEach(function (cell) {
+            cell.removeAllShapes();
+            cell.render();
+          });
+        },
         applyShapes: function (shapes) {
           currentShapes = shapes && shapes.length ? shapes : null;
           drawShapes();
@@ -689,6 +750,10 @@
         loadGrid: function (entries, rows, cols, linked, selected) {
           gridEntries = entries;
           gridSelectedCell = 0;
+          // A rebuilt grid has new cell viewers, so every stored shape
+          // belongs to a viewer that no longer exists.
+          gridShapes = {};
+          drawnGridShapes = {};
           document.getElementById('viewer-container').style.display = 'none';
           gridContainer.style.display = 'block';
           whenGridSized(function () {

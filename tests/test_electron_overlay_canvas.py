@@ -400,6 +400,27 @@ def test_the_index_map_is_INSERTION_ORDER_and_a_sorted_one_would_be_wrong(qapp):
 # --- the ownership invariant --------------------------------------------------
 
 
+def _without_the_timestamp(molblock: str) -> str:
+    """`molblock` with its generator header dropped.
+
+    **A MOLFILE HEADER CARRIES A TIMESTAMP, so comparing two of them
+    byte-for-byte is a clock race.** Indigo writes `MMDDYYHHmm` into line
+    2, and this test reads the molfile twice a few seconds apart -- so
+    whenever those reads straddle a minute boundary the comparison fails
+    on a difference that is not about the molecule at all. Caught in a
+    full-suite run: `-INDIGO-08142604162D` against
+    `-INDIGO-08142604172D`, at 04:16 and 04:17, with the file passing
+    21/21 on its own moments later.
+
+    Dropping the header rather than the whole comparison keeps the
+    invariant the test is named for -- the atom and bond blocks stay
+    byte-compared, which is where an overlay editing the graph would show
+    up.
+    """
+    lines = molblock.splitlines(keepends=True)
+    return "".join(lines[2:]) if len(lines) > 2 else molblock
+
+
 def test_the_overlay_never_touches_the_molecular_graph(qapp):
     """Zero `change` events, unchanged history, byte-identical molfile --
     the same three assertions the rotation preview makes, for the same
@@ -438,7 +459,7 @@ def test_the_overlay_never_touches_the_molecular_graph(qapp):
                              after: JSON.stringify(window.ketcher.editor.historySize())});
     """))
 
-    assert after == before
+    assert _without_the_timestamp(after) == _without_the_timestamp(before)
     assert state["changes"] == 0, state
     assert state["before"] == state["after"], state
 

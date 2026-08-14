@@ -14,10 +14,17 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.domain.common import CacheState
+from openchem.domain.report import ArrowAnnotation
+from openchem.services.spatial_overlay_service import SINGLE_VIEW_CELL
 from openchem.ui.widgets.flow_layout import flow_row
 from openchem.domain.molecule import MoleculeModel
 from openchem.events.base import EventBus
-from openchem.events.events import ConformerJobStateChanged, ConformersChanged
+from openchem.events.events import (
+    ConformerJobStateChanged,
+    ConformersChanged,
+    ReportComputed,
+    SpatialAnnotationsReady,
+)
 from openchem.services.conformer_service import ConformerService
 from openchem.services.measurement_service import MeasurementService
 from openchem.ui.dialogs.conformer_options_dialog import ConformerOptionsDialog
@@ -113,10 +120,28 @@ class MoleculeViewer3DWidget(QWidget):
         event_bus: EventBus,
         backend: ViewerBackend | None = None,
         parent: QWidget | None = None,
+        spatial_overlay_service=None,
     ) -> None:
         super().__init__(parent)
         self._conformer_service = conformer_service
         self._measurement_service = measurement_service
+        #: Recomputes shape-valued results for the conformer on screen.
+        #: Optional so every existing construction (and every test that
+        #: builds this widget) keeps working; without it the overlay
+        #: control is simply never enabled.
+        self._spatial_overlay_service = spatial_overlay_service
+        #: `report_id -> ReportResult` for the selected molecule, as the
+        #: Properties panel publishes them. The overlay recomputes only
+        #: what has ALREADY answered with geometry, so a molecule nobody
+        #: has run a spatial calculator on costs nothing.
+        self._spatial_reports: dict[str, object] = {}
+        #: The token each cell is currently willing to accept, so a
+        #: superseded job's answer can be dropped on arrival -- the
+        #: producers cannot be interrupted, which is why rejection rather
+        #: than cancellation is the mechanism.
+        self._overlay_tokens: dict[int, int] = {}
+        #: What the drawn arrow reported, for the status line.
+        self._overlay_value = ""
         self._molecule: MoleculeModel | None = None
         self._conformer_index = 0
         self._selected_atoms: list[int] = []
@@ -181,6 +206,22 @@ class MoleculeViewer3DWidget(QWidget):
             self._size_combo.addItem(label, (rows, cols))
         self._size_combo.setCurrentText(_DEFAULT_GALLERY_SIZE)
         self._size_combo.currentIndexChanged.connect(self._refresh_view)
+
+        # THE OVERLAY. Shape-valued results drawn on the conformer you are
+        # actually looking at -- recomputed for it, not the canonical one,
+        # which is why its number can differ from the Properties panel's.
+        self._overlay_check = QCheckBox("Show shapes", self)
+        self._overlay_check.setToolTip(
+            "Draw shape-valued results (the dipole vector, a ligand cone, the\n"
+            "principal axes) on the conformer currently shown.\n\n"
+            "Recomputed FOR THAT CONFORMER, so the value can differ from the\n"
+            "Properties panel's, which reports the conformer the calculator\n"
+            "originally ran on. Both are correct: they answer different\n"
+            "questions.\n\n"
+            "Only results you have already calculated appear."
+        )
+        self._overlay_check.setEnabled(False)
+        self._overlay_check.toggled.connect(self._on_overlay_toggled)
 
         self._lock_check = QCheckBox("Lock views", self)
         self._lock_check.setToolTip(
@@ -251,6 +292,7 @@ class MoleculeViewer3DWidget(QWidget):
             self._gallery_check,
             self._size_combo,
             self._lock_check,
+            self._overlay_check,
             self._match_button,
             self._superimpose_button,
             self._prev_button,
@@ -283,6 +325,11 @@ class MoleculeViewer3DWidget(QWidget):
 
         event_bus.subscribe(ConformersChanged, self._on_conformers_changed)
         event_bus.subscribe(ConformerJobStateChanged, self._on_job_state_changed)
+        # The overlay learns which results carry geometry from the same
+        # events the Properties panel does, rather than from a second
+        # registry of "spatial calculators" that would need maintaining.
+        event_bus.subscribe(ReportComputed, self._on_report_computed_for_overlay)
+        event_bus.subscribe(SpatialAnnotationsReady, self._on_spatial_annotations_ready)
 
     def set_molecule(self, molecule: MoleculeModel | None) -> None:
         """Show a molecule, replacing any unit cell that was on screen.
@@ -293,6 +340,12 @@ class MoleculeViewer3DWidget(QWidget):
         no longer being drawn -- the same confusion in mirror image.
         """
         self._crystal_scene = None
+        # A DIFFERENT MOLECULE INVALIDATES EVERYTHING THE OVERLAY KNOWS.
+        # Results belong to the molecule they were computed for, and a job
+        # still running for the previous one must never reach this one's
+        # viewer -- so the tokens go before anything else changes.
+        if molecule is None or self._molecule is None or molecule.uuid != self._molecule.uuid:
+            self._forget_overlay_state()
         self._molecule = molecule
         self._conformer_index = 0
         # The ticks and the page belong to the molecule that was showing;
@@ -609,6 +662,11 @@ class MoleculeViewer3DWidget(QWidget):
             else conformer.molblock
         )
         self._backend.load_conformer(molblock, structure_key=self._structure_key())
+        # The load DROPPED any shapes, which is what stops the previous
+        # conformer's geometry ever being seen on this one. Ask for this
+        # conformer's; until it lands there is simply nothing drawn.
+        self._overlay_value = ""
+        self._request_overlay()
         self._use_button.setEnabled(True)
         self._details_button.setEnabled(True)
         self._status_label.setText(self._conformer_label(conformer))
@@ -757,6 +815,164 @@ class MoleculeViewer3DWidget(QWidget):
             return f"{index + 1} - lowest"
         return f"{index + 1} - +{relative:.2f}"
 
+    def _refresh_status(self) -> None:
+        """Re-render the conformer line, e.g. after an overlay value
+        arrives. One code path for the text, so the overlay's number
+        cannot outlive the state the rest of the line describes."""
+        if self._molecule is None or not self._molecule.conformers:
+            return
+        if self._conformer_index < len(self._molecule.conformers):
+            self._status_label.setText(
+                self._conformer_label(self._molecule.conformers[self._conformer_index])
+            )
+
+    # --- the spatial overlay -------------------------------------------
+
+    def note_spatial_report(self, report) -> None:
+        """Remember a result that carries geometry, so the overlay knows
+        what is worth recomputing.
+
+        Called by whoever sees `ReportComputed`. Results WITHOUT geometry
+        are dropped rather than stored: the overlay must never become a
+        pass that runs every calculator on every conformer step.
+        """
+        if getattr(report, "spatial", ()):
+            self._spatial_reports[report.report_id] = report
+        else:
+            self._spatial_reports.pop(report.report_id, None)
+        self._overlay_check.setEnabled(
+            bool(self._spatial_reports) and self._spatial_overlay_service is not None
+        )
+        if self._overlay_check.isChecked():
+            self._request_overlay()
+
+    def _forget_overlay_state(self) -> None:
+        """Drop every result, token and drawn shape the overlay held.
+
+        For a molecule change: an answer already in flight finishes and is
+        discarded on arrival, and nothing from the previous molecule can
+        be drawn on this one.
+        """
+        if self._spatial_overlay_service is not None:
+            self._spatial_overlay_service.invalidate_all()
+        self._overlay_tokens.clear()
+        self._spatial_reports.clear()
+        self._overlay_value = ""
+        self._overlay_check.setEnabled(False)
+
+    def _on_report_computed_for_overlay(self, event) -> None:
+        report = getattr(event, "report", None)
+        if report is None or self._molecule is None:
+            return
+        if report.molecule_uuid != self._molecule.uuid:
+            return
+        self.note_spatial_report(report)
+
+    def _on_overlay_toggled(self, checked: bool) -> None:
+        if checked:
+            self._request_overlay()
+            return
+        # Switching off invalidates every token, so a job already running
+        # finishes and its answer is discarded rather than arriving after
+        # the user asked for the shapes to go away.
+        if self._spatial_overlay_service is not None:
+            self._spatial_overlay_service.invalidate_all()
+        self._overlay_tokens.clear()
+        self._backend.apply_shapes(())
+        self._overlay_value = ""
+        self._refresh_status()
+
+    def _request_overlay(self) -> None:
+        """Ask for the displayed conformer's annotations.
+
+        **THE DISPLAYED MOLBLOCK, NOT THE STORED ONE.** The viewer shows
+        a display-aligned copy; recomputing on that copy is what puts the
+        answer in the frame the atoms are drawn in, and is why no
+        transform appears anywhere in this feature.
+        """
+        service = self._spatial_overlay_service
+        if service is None or not self._overlay_check.isChecked():
+            return
+        if self._molecule is None or not self._molecule.conformers:
+            return
+        display = self._conformer_service.display_molblocks(self._molecule)
+        if self._conformer_index >= len(display):
+            return
+        key = self._structure_key()
+        token = service.request(
+            cell_index=SINGLE_VIEW_CELL,
+            molecule_uuid=self._molecule.uuid,
+            structure_key=str(key),
+            conformer_index=self._conformer_index,
+            molblock=display[self._conformer_index],
+            reports=list(self._spatial_reports.values()),
+        )
+        self._overlay_tokens[SINGLE_VIEW_CELL] = token
+
+    def _on_spatial_annotations_ready(self, event) -> None:
+        """Draw a result only if it still describes what is on screen.
+
+        Every clause matters and each closes a real hole: a different
+        molecule, a conformer stepped past while the job ran, or a token
+        superseded by a newer request. A superseded job still finishes
+        and still publishes -- rejecting it HERE is the whole mechanism.
+        """
+        service = self._spatial_overlay_service
+        if service is None:
+            return
+        # **THE RELEASE COMES FIRST, BEFORE EVERY REJECTION, AND THIS
+        # ORDERING IS TWO BUGS' WORTH OF SCAR TISSUE.** `finished`
+        # releases the cell and starts whatever was queued behind this
+        # job; skip it for a result about to be discarded and the cell
+        # stays "running" forever, so every later request only becomes
+        # `pending` and the overlay never draws again.
+        #
+        # It was found first by driving the app -- stepping two
+        # conformers wedged the second step, permanently, with ten unit
+        # tests green. It was then fixed ONLY for the conformer check,
+        # which is the classic partial fix that looks complete: switching
+        # MOLECULES mid-flight returned earlier still and wedged the cell
+        # identically. Every early return below this line is a rejection,
+        # and none of them may skip the release. Keyed on the EVENT's cell
+        # so it frees the right one, and a no-op unless that cell is
+        # really running this token.
+        service.finished(event.cell_index, event.token)
+        if self._molecule is None:
+            return
+        if event.molecule_uuid != self._molecule.uuid:
+            return
+        if event.cell_index != SINGLE_VIEW_CELL:
+            return
+        if event.conformer_index != self._conformer_index:
+            return
+        if self._overlay_tokens.get(event.cell_index) != event.token:
+            return
+        if not service.accepts(event.cell_index, event.token):
+            return
+        if not self._overlay_check.isChecked():
+            return
+        self._backend.apply_shapes(event.annotations)
+        self._overlay_value = self._overlay_label(event.annotations)
+        self._refresh_status()
+
+    def _overlay_label(self, annotations) -> str:
+        """The conformer-scoped value shown beside the navigation.
+
+        **From the annotation ACTUALLY DRAWN**, never from the stored
+        result, or the label and the picture could disagree -- the panel
+        reports the canonical conformer and this reports the one on
+        screen, and the whole point of the label is to make that
+        difference legible rather than mysterious.
+
+        Only the ARROW gets a label, and only by its own units: a cone
+        and a set of axes are visual and have no single number to put in
+        a status line.
+        """
+        for annotation in annotations:
+            if isinstance(annotation, ArrowAnnotation) and annotation.label:
+                return annotation.label
+        return ""
+
     def _structure_key(self) -> tuple | None:
         """What the viewer treats as "still the same thing on screen".
 
@@ -792,12 +1008,16 @@ class MoleculeViewer3DWidget(QWidget):
         """
         total = len(self._molecule.conformers)
         position = f"Conformer {self._conformer_index + 1}/{total}"
+        # The overlay's value rides on the SAME label rather than getting
+        # a widget of its own, so it cannot survive a state change the
+        # rest of the line reacts to.
+        overlay = f" - {self._overlay_value}" if getattr(self, "_overlay_value", "") else ""
         energies = [c.energy for c in self._molecule.conformers if c.energy is not None]
         if conformer.energy is None or not energies:
-            return f"{position} - energy n/a"
+            return f"{position} - energy n/a{overlay}"
         relative = conformer.energy - min(energies)
         # "lowest" rather than "+0.00", so the reference is named rather
         # than left to be inferred from a zero.
         if relative < 0.005:
-            return f"{position} - lowest energy"
-        return f"{position} - +{relative:.2f} kcal/mol"
+            return f"{position} - lowest energy{overlay}"
+        return f"{position} - +{relative:.2f} kcal/mol{overlay}"

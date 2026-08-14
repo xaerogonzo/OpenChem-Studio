@@ -20,6 +20,7 @@ from openchem.services.alignment_service import AlignmentService
 from openchem.services.batch_service import BatchService
 from openchem.services.conformer_service import ConformerService
 from openchem.services.container import ServiceContainer
+from openchem.services.spatial_overlay_service import SpatialOverlayService
 from openchem.services.atom_fact_service import AtomFactService
 from openchem.services.reaction_template_service import ReactionTemplateService
 from openchem.services.structure_check_service import StructureCheckService
@@ -282,6 +283,7 @@ def build_service_container() -> ServiceContainer:
         qm_surface_service=QmSurfaceService(event_bus, settings),
         job_manager=job_manager,
         calculator_registry=calculator_registry,
+        spatial_overlay_service=SpatialOverlayService(event_bus, calculator_registry),
         # Shares the JobManager so a batch run is listed and cancellable in
         # the Jobs panel like every other long job, and shares the registry
         # so "what can be computed in batch" cannot drift from "what can be

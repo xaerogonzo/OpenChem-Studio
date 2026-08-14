@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from openchem.chem.engine import ChemistryEngine
 from openchem.events.base import EventBus
 from openchem.services.calculator_registry import CalculatorRegistry
+from openchem.services.spatial_overlay_service import SpatialOverlayService
 from openchem.services.alignment_service import AlignmentService
 from openchem.services.batch_service import BatchService
 from openchem.services.conformer_service import ConformerService
@@ -53,3 +54,8 @@ class ServiceContainer:
     structure_check_service: StructureCheckService
     atom_fact_service: AtomFactService
     reaction_template_service: ReactionTemplateService
+    #: Recomputes shape-valued results for the conformer a viewer is
+    #: showing. Defaulted and LAST, because a dataclass cannot take a
+    #: defaulted field before required ones -- and defaulted so a
+    #: container built without it (every existing test) still works.
+    spatial_overlay_service: SpatialOverlayService | None = None

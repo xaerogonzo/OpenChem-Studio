@@ -185,6 +185,11 @@ class Mol3DViewerBackend(ViewerBackend):
         #: DROPPED by a new load: shape coordinates are in one conformer's
         #: frame, so pending shapes belong to the current load only.
         self._pending_shapes: list[dict] | None = None
+        #: Per-cell shape payloads applied before the page was ready.
+        #: A dict rather than one slot, because cells are independent and
+        #: a single pending payload would let the last cell to ask
+        #: silently win for all of them.
+        self._pending_grid_shapes: dict[int, list[dict]] = {}
         # `_NOTHING_PENDING` rather than None, because None is itself a
         # meaningful queued VALUE for a surface -- it means "clear". The
         # same ambiguity was a real bug in MolStarViewerBackend, where
@@ -226,6 +231,9 @@ class Mol3DViewerBackend(ViewerBackend):
         if self._pending_shapes is not None:
             self._run_apply_shapes(self._pending_shapes)
             self._pending_shapes = None
+        for cell_index, payloads in list(self._pending_grid_shapes.items()):
+            self._run_apply_grid_shapes(cell_index, payloads)
+        self._pending_grid_shapes.clear()
         # Also after the molblock, for the same reason -- loadMolblock()
         # drops the surface's stale per-atom colours.
         if self._pending_surface is not _NOTHING_PENDING:
@@ -517,6 +525,45 @@ class Mol3DViewerBackend(ViewerBackend):
             self._pending_shapes = payloads
             return
         self._run_apply_shapes(payloads)
+
+    def apply_grid_shapes(
+        self, cell_index: int, annotations: tuple[SpatialAnnotation, ...] | list[SpatialAnnotation]
+    ) -> None:
+        """Draw one gallery cell's annotations, or clear it with ().
+
+        PER CELL, deliberately. Each cell shows a different conformer and
+        owns its own geometry; a shared payload would draw one
+        conformer's arrow on all of them, which is the wrong-frame error
+        this whole feature is built to avoid.
+
+        Deferred until the page is ready like every other payload here.
+        Unlike the single view there is no drop-on-load rule to mirror:
+        the grid clears its own shape state when it is rebuilt, because
+        a rebuild replaces the cell viewers themselves.
+        """
+        payloads = shape_payloads(annotations)
+        if not self._page_ready:
+            self._pending_grid_shapes[cell_index] = payloads
+            return
+        self._run_apply_grid_shapes(cell_index, payloads)
+
+    def _run_apply_grid_shapes(self, cell_index: int, payloads: list[dict]) -> None:
+        if not payloads:
+            self._page.runJavaScript(
+                f"window.openchemViewer.clearGridShapes({json.dumps(cell_index)});"
+            )
+            return
+        self._page.runJavaScript(
+            f"window.openchemViewer.applyGridShapes("
+            f"{json.dumps(cell_index)}, {json.dumps(payloads)});"
+        )
+
+    def clear_all_grid_shapes(self) -> None:
+        """Every cell at once -- only for a grid being rebuilt or torn
+        down, which is the one moment the whole set is genuinely stale."""
+        self._pending_grid_shapes.clear()
+        if self._page_ready:
+            self._page.runJavaScript("window.openchemViewer.clearAllGridShapes();")
 
     def _run_apply_shapes(self, payloads: list[dict]) -> None:
         if not payloads:

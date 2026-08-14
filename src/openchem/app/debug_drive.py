@@ -403,6 +403,35 @@ class _Driver(QObject):
             num_embeddings=step.get("embeddings"),
         )
 
+    def _do_overlay(self, step: dict[str, Any]) -> None:
+        """Turn the 3D viewer's shape overlay on, and optionally step.
+
+        Drives the REAL chain: the panel's result, the service's
+        recompute on the DISPLAYED conformer, and the page drawing it.
+        `step` advances that many conformers afterwards, which is the
+        case worth seeing -- the arrow must follow the molecule rather
+        than staying where the first conformer put it.
+        """
+        viewer = self._window._viewer3d
+        # THE 3D TAB, or the shot photographs the 2D editor and the
+        # overlay looks broken when it is merely off-screen -- which is
+        # exactly what the first run of this step did.
+        tabs = viewer.parent()
+        while tabs is not None and not hasattr(tabs, "setCurrentWidget"):
+            tabs = tabs.parent()
+        if tabs is not None:
+            tabs.setCurrentWidget(viewer)
+        viewer._overlay_check.setChecked(bool(step.get("on", True)))
+        for _ in range(int(step.get("step", 0))):
+            viewer._show_next_conformer()
+        logger.warning(
+            "OPENCHEM_DRIVE: overlay on=%s enabled=%s reports=%d status=%r",
+            viewer._overlay_check.isChecked(),
+            viewer._overlay_check.isEnabled(),
+            len(viewer._spatial_reports),
+            viewer._status_label.text(),
+        )
+
     def _do_spatial(self, step: dict[str, Any]) -> None:
         """Open the spatial-result dialog for the selected molecule's dipole.
 
