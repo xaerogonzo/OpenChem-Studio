@@ -272,15 +272,18 @@ CONDITION.** The entries below say a branch figure is citable when the
 trees are identical, which this one is NOT -- it adds six test
 functions. The weaker check that does apply: `origin/master` at
 `be585c3` **is** the merge-base, so nothing landed while the branch was
-open and merging is a FAST-FORWARD -- the merge result's tree is the
-branch's tree, byte for byte. That is the claim worth making, and it is
-strictly what "measured on the merge commit" buys.
+open and the merge is a FAST-FORWARD -- so master's merge commit
+`a915443` has the branch's tree, byte for byte. Confirmed after merging
+rather than predicted: `git diff af0ef79 a915443` is empty. That is
+strictly what "measured on the merge commit" buys, without the second
+twelve-minute run.
 
-Both collected counts were taken (4 seconds each) and reconcile exactly:
+Counts, all reconciling exactly (4 seconds each):
 
-    master  be585c3   COLLECTS 4301
-    branch  9de88be   COLLECTS 4307   = 4301 + 6
-    the run                     4299 passed + 8 skipped = 4307
+    master before  be585c3   COLLECTS 4301
+    branch tip     af0ef79   COLLECTS 4307   = 4301 + 6
+    master merge   a915443   COLLECTS 4307   same tree
+    the run                          4299 passed + 8 skipped = 4307
 
 **Check the fast-forward, do not assume it.** The whole reason the
 entries below are so insistent is that master HAS moved under a branch
