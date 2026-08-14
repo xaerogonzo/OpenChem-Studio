@@ -193,6 +193,53 @@ and it should declare `severity=Severity.WARNING` so the panel colours it
 as a warning rather than as a value. Anything else is rendered through
 `chem/report_adapter.py`, which recovers a label and units where it can.
 
+### A result whose answer is a SHAPE can draw itself
+
+If your calculator's answer is a piece of geometry rather than a number
+per atom -- a vector, a swept cone, a set of measured axes -- declare it
+on `ReportResult.spatial` and the app draws it on a 3D model, both in the
+result's own dialog and, optionally, on the conformer the 3D viewer is
+showing:
+
+```python
+from openchem.domain.report import ArrowAnnotation
+
+    return ReportResult(
+        ...,
+        spatial=(
+            ArrowAnnotation(
+                anchor=(x, y, z),      # Angstrom, in THIS conformer's frame
+                vector=(vx, vy, vz),   # the physical quantity, in its own units
+                units="D",
+                label="1.25 D",
+            ),
+        ),
+    )
+```
+
+Four rules, and the app enforces the first two:
+
+- **Coordinates are Angstrom in the frame of the conformer you were
+  handed.** The `vector` is the physical quantity in whatever `units`
+  says, and its magnitude is NEVER read as a length -- the renderer
+  scales the drawn arrow for legibility and the label carries the true
+  value. `anchor` is a rendering anchor, not part of the physical
+  definition.
+- **Malformed annotations are refused, not repaired**
+  (`valid_spatial_annotation`): finite 3-vectors, a non-zero direction, a
+  cone half-angle in (0, 180). A picture built from guessed geometry
+  reads as a result, which is worse than no picture.
+- **Analytical geometry only, never decoration.** "Highlight atom 4" is a
+  `VisualizationLayer`, not an annotation.
+- **Omitting `spatial` is a statement**, and the right one for almost
+  every calculator: a formula or an index has no geometry, and a
+  decorative model would only dress a number up as a picture.
+
+For the 3D viewer's live overlay your calculator must additionally be
+`RegistryExecution`-backed and name its report after itself
+(`report_id == calculator_id`), because that is how a result is resolved
+back to something re-runnable for the displayed conformer.
+
 ## Contributing facts to the inspector
 
 A `FactProvider` puts your own findings in the Atom Inspector beside the

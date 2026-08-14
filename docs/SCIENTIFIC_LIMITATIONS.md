@@ -580,6 +580,19 @@ back to the geometry it came from even after the list is re-sorted. A
 molecule with no conformers is unchanged: those calculators say they need
 one, as they always did.
 
+**And the 3D viewer's shape overlay answers a DIFFERENT question, so its
+number can differ from the panel's.** Ticking "Show shapes" recomputes a
+shape-valued result — the dipole vector, a ligand cone, the principal
+axes — for the conformer *currently displayed*, while the Properties
+panel keeps reporting the conformer the calculator originally ran on. A
+flexible molecule genuinely has a different dipole in each conformer:
+measured on ethylmorphine, 5.53 D on the lowest-energy one and 4.71 D
+three conformers along. Neither is wrong and they are not a
+disagreement — the overlay labels its value with the conformer it
+belongs to precisely so the difference reads as information. While a
+conformer's shapes are being computed nothing is drawn, rather than the
+previous conformer's geometry being left on screen.
+
 **Energies rank; they do not quantify populations.** Conformers are sorted
 by force-field energy so conformer 1 is the lowest found, but MMFF energies
 are not free energies and the differences between them do not convert into
