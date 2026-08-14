@@ -803,14 +803,26 @@
           gridContainer.style.display = 'block';
           whenGridSized(function () {
             if (generation !== gridGeneration) return;
-            // **A GALLERY NEEDS A SECOND WebGL CONTEXT, and not every
-            // environment grants one.** Measured: under Qt's `offscreen`
-            // platform the page's first context works and a second one
-            // comes back null, so `createViewerGrid` throws
-            // "Cannot read properties of null (reading 'clearDepth')" --
-            // and releasing the first context does not help. Software
+            // **`createViewerGrid` DOES NOT WORK UNDER Qt's `offscreen`
+            // PLATFORM, AND NOBODY HAS ESTABLISHED WHY.** It throws
+            // "Cannot read properties of null (reading 'clearDepth')"
+            // there and works on an ordinary windowed platform. Software
             // rendering and remote sessions can behave the same way.
-            // Unhandled that is an empty pane, which reads as the feature
+            //
+            // **THE EXPLANATION THAT USED TO SIT HERE -- "a gallery needs
+            // a SECOND WebGL context; offscreen grants only one" -- IS
+            // MEASURABLY WRONG**, and is named rather than deleted so it
+            // does not get re-derived. Measured against the real bundle
+            // with nothing varying but `QT_QPA_PLATFORM`: offscreen gives
+            // twelve bare contexts and six independent 3Dmol viewers, two
+            // viewers in one parent div, and still throws for a grid of a
+            // SINGLE cell -- so it is not the context count, not the
+            // viewer count, not a shared parent, and not the container
+            // size (400x300 failed while 0x0 "succeeded"). The ladder is
+            // in `tests/test_mol3d_viewer_backend.py`, and the Python
+            // side's `_on_grid_failed` carries the same correction.
+            //
+            // Unhandled this is an empty pane, which reads as the feature
             // being broken rather than unavailable; reported instead, so
             // the widget can go back to the single view and say why.
             try {
