@@ -122,3 +122,46 @@ class ViewerBackend(QObject):
         problem from one over a small molecule.
         """
         raise NotImplementedError
+
+    # --- spatial annotations -------------------------------------------
+    #
+    # **DEFAULT TO DOING NOTHING, not to raising**, which is the opposite
+    # of every method above and is deliberate. These are DRAWING calls the
+    # viewer widget makes unconditionally on its own state changes -- the
+    # overlay being switched off, the molecule changing, the mode
+    # changing -- so "this backend has nothing to draw shapes on" is a
+    # correct answer to "clear the shapes", not a failure. They went
+    # undeclared when the overlay shipped and the widget called
+    # `apply_shapes` unconditionally anyway, which meant the interface
+    # never said what a backend could be asked for. Declaring them is what
+    # this base is for; see `load_macromolecule`.
+    #
+    # **`load_conformer_grid` IS DELIBERATELY NOT HERE.** The viewer
+    # widget probes it with `hasattr` to decide whether the gallery exists
+    # at all (`MoleculeViewer3DWidget._refresh_view`), so declaring it
+    # would make every backend claim a gallery it cannot build -- Mol*
+    # included. The gallery is the capability; these are drawing calls
+    # underneath it.
+
+    def apply_shapes(self, annotations) -> None:
+        """Draw spatial annotations on the loaded structure; `()` clears.
+
+        See `domain/report.py::SpatialAnnotation` for what may be drawn
+        and `valid_spatial_annotation` for what is refused before it ever
+        reaches a backend.
+        """
+
+    def apply_grid_shapes(self, cell_index: int, annotations) -> None:
+        """Draw ONE gallery cell's annotations; `()` clears that cell.
+
+        Per cell, because each cell shows a different conformer and owns
+        its own geometry -- a shared payload would draw one conformer's
+        arrow on all of them.
+        """
+
+    def clear_all_grid_shapes(self) -> None:
+        """Clear every gallery cell at once.
+
+        For a grid being rebuilt or torn down, which is the one moment
+        the whole set is genuinely stale together.
+        """

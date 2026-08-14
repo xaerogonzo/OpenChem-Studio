@@ -443,17 +443,12 @@ def test_a_lone_atom_has_no_axes_to_declare():
 # --- gallery: per-cell ownership ---------------------------------------------
 #
 # These drive the grid, which `$3Dmol.createViewerGrid` cannot build under
-# Qt's offscreen platform -- see CLAUDE.md's ladder, where every capability
-# underneath works and only the grid call throws. The skip is an admitted
-# platform gate, not a capability probe, for the reason recorded there: the
-# only thing that predicts the failure is the call under test.
-
-import os
-
-_NEEDS_A_DISPLAY = pytest.mark.skipif(
-    os.environ.get("QT_QPA_PLATFORM", "") == "offscreen",
-    reason="createViewerGrid throws under the offscreen platform; run with QT_QPA_PLATFORM=windows",
-)
+# Qt's offscreen platform -- see the ladder in
+# `tests/test_mol3d_viewer_backend.py`, where every capability underneath
+# works and only the grid call throws. They take the shared `grid_display`
+# fixture from `tests/conftest.py`, which pairs that admitted platform gate
+# with a MEASURED WebGL check so a GPU-less machine skips rather than fails.
+# This file used to carry its own private copy of the predicate.
 
 
 def _drawn_cell(qapp, backend, cell_index):
@@ -463,33 +458,68 @@ def _drawn_cell(qapp, backend, cell_index):
     return json.loads(raw) if raw else []
 
 
-def _grid_of_two(qapp):
-    """A real two-cell grid, sized and shown.
+def _sized_backend(qapp) -> Mol3DViewerBackend:
+    """A page-ready backend whose widget has a real, settled viewport.
 
     `drawWhenSized` waits for a real viewport and a grid built into a
     zero-sized box produces no cells, so this follows
     `test_mol3d_viewer_backend.py::_grid_backend` rather than inventing a
     second setup that would drift from it.
+
+    Split out from `_grid_of_two` because the build-race guards below
+    need this WITHOUT a grid already up -- the wait is the very thing
+    they must not do.
     """
     backend = Mol3DViewerBackend()
     backend.widget().resize(800, 600)
     backend.widget().show()
     assert _wait_until(qapp, lambda: backend._page_ready, timeout_seconds=PAGE_READY_TIMEOUT_SECONDS)
     _wait_until(qapp, lambda: False, timeout_seconds=1.0)
-    first, second = _with_conformer("CO", seed=1), _with_conformer("CO", seed=9)
-    backend.load_conformer_grid(
-        [(Chem.MolToMolBlock(first), "1"), (Chem.MolToMolBlock(second), "2")], 1, 2
+    return backend
+
+
+def _two_conformers() -> tuple[Chem.Mol, Chem.Mol]:
+    return _with_conformer("CO", seed=1), _with_conformer("CO", seed=9)
+
+
+def _entries(*mols: Chem.Mol) -> list[tuple[str, str]]:
+    return [(Chem.MolToMolBlock(mol), str(i + 1)) for i, mol in enumerate(mols)]
+
+
+def _cells_drawn(qapp, backend) -> object:
+    return _run_js(qapp, backend, "document.querySelectorAll('.cell-overlay').length")
+
+
+def _label_texts(qapp, backend, cell_index: int) -> list[str]:
+    """Every 3Dmol label on one cell, by text.
+
+    3Dmol keeps them in one flat collection per viewer, which is the
+    whole subject of `test_a_cell_atom_label_is_stripped_by_a_shape_redraw`
+    below.
+    """
+    raw = _run_js(
+        qapp,
+        backend,
+        f"JSON.stringify((gridCells[{cell_index}].labels || [])"
+        f".map(function (l) {{ return String(l.text); }}))",
     )
+    return json.loads(raw) if raw else []
+
+
+def _grid_of_two(qapp):
+    """A real two-cell grid, sized, shown, and WAITED FOR."""
+    backend = _sized_backend(qapp)
+    first, second = _two_conformers()
+    backend.load_conformer_grid(_entries(first, second), 1, 2)
     assert _wait_until(
         qapp,
-        lambda: _run_js(qapp, backend, "document.querySelectorAll('.cell-overlay').length") == 2,
+        lambda: _cells_drawn(qapp, backend) == 2,
         timeout_seconds=20,
     ), "the gallery never drew its cells"
     return backend, first, second
 
 
-@_NEEDS_A_DISPLAY
-def test_each_cell_draws_its_own_conformers_annotation(qapp):
+def test_each_cell_draws_its_own_conformers_annotation(qapp, grid_display):
     backend, first, second = _grid_of_two(qapp)
     backend.apply_grid_shapes(0, compute_dipole_moment(first, "u").spatial)
     backend.apply_grid_shapes(1, compute_dipole_moment(second, "u").spatial)
@@ -501,8 +531,7 @@ def test_each_cell_draws_its_own_conformers_annotation(qapp):
     assert _drawn_cell(qapp, backend, 0)[0]["end"] != _drawn_cell(qapp, backend, 1)[0]["end"]
 
 
-@_NEEDS_A_DISPLAY
-def test_clearing_one_cell_leaves_its_neighbour_drawn(qapp):
+def test_clearing_one_cell_leaves_its_neighbour_drawn(qapp, grid_display):
     """Per-cell ownership: replacing a cell's conformer must not wipe the
     annotations its neighbours are still correctly showing."""
     backend, first, second = _grid_of_two(qapp)
@@ -515,8 +544,7 @@ def test_clearing_one_cell_leaves_its_neighbour_drawn(qapp):
     assert len(_drawn_cell(qapp, backend, 1)) == 1, "clearing cell 0 wiped cell 1"
 
 
-@_NEEDS_A_DISPLAY
-def test_clear_all_is_the_only_thing_that_empties_every_cell(qapp):
+def test_clear_all_is_the_only_thing_that_empties_every_cell(qapp, grid_display):
     backend, first, second = _grid_of_two(qapp)
     backend.apply_grid_shapes(0, compute_dipole_moment(first, "u").spatial)
     backend.apply_grid_shapes(1, compute_dipole_moment(second, "u").spatial)
@@ -524,4 +552,163 @@ def test_clear_all_is_the_only_thing_that_empties_every_cell(qapp):
     backend.clear_all_grid_shapes()
     assert _wait_until(
         qapp, lambda: _drawn_cell(qapp, backend, 0) == [] and _drawn_cell(qapp, backend, 1) == []
+    )
+
+
+def test_clearing_every_cell_takes_the_arrow_CAPTIONS_with_it(qapp, grid_display):
+    """The mirror said empty while the screen still showed the numbers.
+
+    `clearAllGridShapes` had its own clearing loop calling
+    `removeAllShapes()` and not `removeAllLabels()`, so unticking "Show
+    shapes" in the gallery removed every arrow and left "1.14 D" floating
+    over a structure with nothing drawn on it. Found by driving the app.
+
+    **THE EXISTING GUARD ABOVE COULD NOT SEE IT**, and that is the lesson
+    worth keeping: `_drawn_cell` reads `drawnGridShapes`, the page's own
+    mirror, which that function emptied perfectly correctly. A mirror is
+    a record of intent; the labels are what is on the screen.
+    """
+    backend, first, second = _grid_of_two(qapp)
+    backend.apply_grid_shapes(0, compute_dipole_moment(first, "u").spatial)
+    backend.apply_grid_shapes(1, compute_dipole_moment(second, "u").spatial)
+    assert _wait_until(qapp, lambda: bool(_label_texts(qapp, backend, 0))), (
+        "no caption was ever drawn, so its removal proves nothing"
+    )
+
+    backend.clear_all_grid_shapes()
+    assert _wait_until(qapp, lambda: _drawn_cell(qapp, backend, 0) == [])
+    assert _label_texts(qapp, backend, 0) == [], (
+        "the arrow was removed and its caption was left behind"
+    )
+    assert _label_texts(qapp, backend, 1) == [], (
+        "cell 1 kept its caption; clear-all reached only some cells"
+    )
+
+
+# --- the grid BUILD, which the three above deliberately wait past -----------
+#
+# `_grid_of_two` waits for `.cell-overlay` before applying anything, so
+# every guard built on it exercises a grid that already exists. The
+# window it skips is where the feature actually lives: `loadGrid` resets
+# `gridShapes` synchronously and then builds inside `whenGridSized`, which
+# polls at 25 ms and wants the height repeated across two frames, while
+# the overlay's recompute is ~5 ms. **The answer normally arrives before
+# the cells do.** These two hold that window.
+
+
+def test_a_shape_applied_while_the_grid_is_building_is_still_drawn(qapp, grid_display):
+    """THE FIRST RENDER, which is the case the whole replay exists for.
+
+    `drawCellShapes` cannot draw into a cell that does not exist yet, so
+    without `loadGrid` replaying what accumulated during the build, the
+    first page of a gallery draws nothing at all -- and only some later
+    redraw appears to fix it.
+    """
+    backend = _sized_backend(qapp)
+    first, second = _two_conformers()
+    backend.load_conformer_grid(_entries(first, second), 1, 2)
+    # **NO WAIT HERE, and no `_run_js` either** -- that pumps the event
+    # loop, which would let the grid build and quietly turn this into a
+    # copy of the tests above. The marker is queued as a fire-and-forget
+    # script instead, so it records the page's state in the page's own
+    # ordering, and the setup is asserted after the fact.
+    backend._page.runJavaScript("window.__cellsWhenApplied = gridCells.length;")
+    backend.apply_grid_shapes(0, compute_dipole_moment(first, "u").spatial)
+
+    assert _wait_until(
+        qapp, lambda: len(_drawn_cell(qapp, backend, 0)) == 1, timeout_seconds=20
+    ), "a shape applied while the grid was building was never drawn"
+    assert _run_js(qapp, backend, "window.__cellsWhenApplied") == 0, (
+        "the grid had already been built when the shape was applied, so this "
+        "test never entered the window it is named for"
+    )
+
+
+def test_a_shape_queued_against_a_replaced_grid_is_never_drawn(qapp, grid_display):
+    """The other half: the replay must not resurrect the previous grid's.
+
+    Two `loadGrid` calls in flight at once leave TWO `whenGridSized`
+    polls armed, because each closes over its own state. Without the
+    generation counter the older callback still fires, rebuilds the cells
+    from ITS conformers, and then replays `gridShapes` -- so a shape
+    belonging to a grid the user already left is drawn onto structures it
+    does not describe. It corrects itself when the newer callback lands,
+    which is not a defence: a plausible picture of the wrong geometry is
+    the thing this feature exists to prevent.
+    """
+    backend = _sized_backend(qapp)
+    first, second = _two_conformers()
+    backend.load_conformer_grid(_entries(first, second), 1, 2)
+    backend.apply_grid_shapes(0, compute_dipole_moment(first, "u").spatial)
+    backend._page.runJavaScript("window.__cellsWhenReplaced = gridCells.length;")
+    backend.load_conformer_grid(_entries(second, first), 1, 2)
+
+    assert _wait_until(
+        qapp, lambda: _cells_drawn(qapp, backend) == 2, timeout_seconds=20
+    ), "the replacement gallery never drew its cells"
+    # Long enough for the SUPERSEDED build to fire if it is going to --
+    # without this the assertion below could pass simply by looking too
+    # early, which is how a race guard becomes decoration.
+    _wait_until(qapp, lambda: False, timeout_seconds=1.5)
+
+    assert _run_js(qapp, backend, "window.__cellsWhenReplaced") == 0, (
+        "the first grid had already built when it was replaced, so the "
+        "superseded-build path was never entered"
+    )
+    assert _drawn_cell(qapp, backend, 0) == [] and _drawn_cell(qapp, backend, 1) == [], (
+        "a shape queued against the grid that was replaced was drawn into the "
+        "grid that replaced it"
+    )
+    # **AND THE SUPERSEDED BUILD NEVER RAN AT ALL.** Two `loadGrid` calls
+    # leave two `whenGridSized` polls armed, each closing over its own
+    # state, so without the generation guard BOTH build -- the older one
+    # first, from its own conformers, replaying whatever `gridShapes`
+    # holds by then. It is overtaken microseconds later, which is why the
+    # assertions above cannot see it and why this one exists: the cost is
+    # a whole `createViewerGrid` (91 ms at 4 cells, 175 ms at 12) for
+    # every page somebody paged through.
+    assert _run_js(qapp, backend, "gridBuilds") == 1, (
+        "the superseded grid was built as well as the one that replaced it"
+    )
+
+
+def test_a_cell_atom_label_is_stripped_by_a_shape_redraw(qapp, grid_display):
+    """A LIMITATION TEST. It asserts today's DEFECT, on purpose.
+
+    3Dmol keeps ONE label collection per viewer with no way to remove a
+    subset, so `drawCellShapes` clears the lot and puts back only the
+    shape captions. The single view has the same constraint and solves
+    it -- `applyLabels` redraws the shapes afterwards, and the comment
+    there records the measurement that forced it. A gallery cell has no
+    equivalent, which is harmless only because nothing gives a cell atom
+    labels today.
+
+    **IF GRID ATOM LABELS ARE EVER IMPLEMENTED, RETIRE THIS TEST** and
+    put a restoration test in its place. Do NOT relax the assertion to
+    make it pass: red here means labels were given to cells without a way
+    back, which is exactly what it is watching for. Same idiom as
+    `test_open_babel_really_does_lose_an_uppercase_symbol_without_the_fix`.
+    """
+    backend, first, _second = _grid_of_two(qapp)
+    _run_js(
+        qapp,
+        backend,
+        "gridCells[0].addLabel('ATOMLBL', {position: {x: 0, y: 0, z: 0}});"
+        "gridCells[0].render(); 1",
+    )
+    assert _label_texts(qapp, backend, 0) == ["ATOMLBL"], (
+        "the marker label was never added, so this test cannot observe its loss"
+    )
+
+    backend.apply_grid_shapes(0, compute_dipole_moment(first, "u").spatial)
+    assert _wait_until(qapp, lambda: len(_drawn_cell(qapp, backend, 0)) == 1)
+
+    texts = _label_texts(qapp, backend, 0)
+    assert "ATOMLBL" not in texts, (
+        "a cell kept its atom label through a shape redraw -- if a restore "
+        "path was added, retire this test rather than weakening it"
+    )
+    assert texts, (
+        "the shape's OWN caption was lost too, which is a different and worse "
+        "bug than the one this test documents"
     )

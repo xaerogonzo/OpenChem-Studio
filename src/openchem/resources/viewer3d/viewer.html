@@ -426,11 +426,31 @@
       // shared: replacing one cell must leave its neighbours alone.
       var gridShapes = {};
       var drawnGridShapes = {};
+      // Which loadGrid call owns the cells currently being built. See the
+      // comment in `loadGrid` -- two calls in flight would otherwise both
+      // build, and the older one would replay the newer one's shapes.
+      var gridGeneration = 0;
 
       function drawCellShapes(cellIndex) {
         var cell = gridCells[cellIndex];
+        // No cell yet -- the grid is still building. The payload stays in
+        // `gridShapes` and `loadGrid` replays it once the cells exist.
         if (!cell) return;
         cell.removeAllShapes();
+        // **THIS WOULD TAKE A CELL'S ATOM LABELS WITH IT, and there is no
+        // restore path here.** 3Dmol has ONE label collection per viewer
+        // with no way to remove a subset, which is why the single view's
+        // `applyLabels` redraws its shapes after clearing (see the
+        // comment there, and the measurement behind it). Harmless today:
+        // gallery cells get `styleSpecFor(currentStyle)` and no atom
+        // labels, and the "1 - lowest" captions are DOM overlays from
+        // `drawOverlays`, not 3Dmol labels.
+        //
+        // If cells ever gain atom labels, follow `applyLabels`: hold them
+        // per cell and re-apply them here after the clear. The guard is
+        // `test_a_cell_atom_label_is_stripped_by_a_shape_redraw`, which asserts
+        // today's LIMITATION on purpose -- retire it for a restoration
+        // test rather than weakening it.
         cell.removeAllLabels();
         drawnGridShapes[cellIndex] = [];
         var shapes = gridShapes[cellIndex];
@@ -631,11 +651,21 @@
         // Every cell, for a grid being rebuilt or torn down -- the only
         // time the whole set is genuinely stale at once.
         clearAllGridShapes: function () {
+          // **THROUGH `drawCellShapes`, NOT A SECOND CLEARING LOOP.** The
+          // hand-written version here called `removeAllShapes()` and not
+          // `removeAllLabels()`, so unticking "Show shapes" in the gallery
+          // removed every arrow and left its CAPTION floating in the cell
+          // -- "1.14 D" hanging over a structure with nothing drawn on it.
+          // Found by driving the app; invisible to the tests, because
+          // `drawnGridShapes` (the mirror they read) was correctly emptied
+          // by this function while the page still showed the labels.
+          //
+          // One path for "make this cell show exactly `gridShapes[i]`",
+          // and clearing is just that with nothing in it.
           gridShapes = {};
           drawnGridShapes = {};
-          gridCells.forEach(function (cell) {
-            cell.removeAllShapes();
-            cell.render();
+          gridCells.forEach(function (_cell, index) {
+            drawCellShapes(index);
           });
         },
         applyShapes: function (shapes) {
@@ -754,9 +784,25 @@
           // belongs to a viewer that no longer exists.
           gridShapes = {};
           drawnGridShapes = {};
+          // **TWO loadGrid CALLS OTHERWISE BUILD TWICE, and the older one
+          // wins the shapes.** `whenGridSized` closes over its own poll
+          // state, so a second call while the first is still waiting
+          // leaves BOTH callbacks armed and both reach `buildGrid`, each
+          // repopulating from its own `entries`. That was merely wasteful
+          // until the replay at the foot of this callback existed; with
+          // it, the older callback rebuilds the cells from ITS conformers
+          // and then replays `gridShapes`, which by then holds the NEWER
+          // request's payloads -- arrows drawn on the wrong structures.
+          // It corrects itself when the newer callback fires ~25 ms
+          // later, which does not make a plausible picture of the wrong
+          // geometry acceptable; that is the whole premise of the
+          // overlay.
+          gridGeneration += 1;
+          var generation = gridGeneration;
           document.getElementById('viewer-container').style.display = 'none';
           gridContainer.style.display = 'block';
           whenGridSized(function () {
+            if (generation !== gridGeneration) return;
             // **A GALLERY NEEDS A SECOND WebGL CONTEXT, and not every
             // environment grants one.** Measured: under Qt's `offscreen`
             // platform the page's first context works and a second one
@@ -789,6 +835,30 @@
             gridShape = [rows, cols];
             gridSelectedIndices = selected || [];
             drawOverlays(rows, cols, gridSelectedIndices);
+            // **SHAPES THAT ARRIVED WHILE THE GRID WAS BUILDING**, which
+            // is the ORDINARY case and not a rare one: `drawCellShapes`
+            // no-ops for a cell that does not exist yet, and the wait
+            // above is tens of milliseconds against a recompute measured
+            // at ~5 ms for four conformers. So the overlay's answer for a
+            // fresh gallery lands BEFORE the cells do. Without this
+            // replay the first page of a gallery draws nothing at all and
+            // only some later redraw appears to fix it -- which is
+            // exactly how "the machinery is tested and the feature does
+            // not work" happens.
+            //
+            // LAST, after every other part of the build. `buildGrid`
+            // replaces `gridCells` and `drawOverlays` rebuilds the DOM
+            // overlays, so a shape drawn before either goes into a cell
+            // about to be discarded. Nothing after this point mutates
+            // `gridCells` or `gridShapes`: `resizeGrid` only resizes the
+            // existing cells, and 3Dmol keeps its shapes across a resize.
+            //
+            // Payloads from before this call's `gridShapes = {}` are
+            // already gone, which is the discard half of the contract --
+            // they were in the previous grid's frames.
+            Object.keys(gridShapes).forEach(function (key) {
+              drawCellShapes(Number(key));
+            });
           });
         },
 
@@ -912,7 +982,17 @@
         if (gridShape) drawOverlays(gridShape[0], gridShape[1], gridSelectedIndices);
       }
 
+      // How many grids have actually been constructed. A DIAGNOSTIC SEAM,
+      // in the same spirit as `rotateGridCell`: the generation guard in
+      // `loadGrid` has no other observable effect, because a superseded
+      // build is always overtaken by the newer one microseconds later, so
+      // "did the superseded build run" cannot be asked any other way.
+      // What it costs is real -- `createViewerGrid` is 91 ms at 4 cells
+      // and 175 ms at 12, once per page somebody paged through.
+      var gridBuilds = 0;
+
       function buildGrid(rows, cols, linked) {
+        gridBuilds += 1;
         gridContainer.innerHTML = '';
         gridCells = [];
         // **`control_all` IS NOT THE LOCK, and looked like it.** It ties

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import json
-import os
 import time
 from dataclasses import replace
 from pathlib import Path
 
+import conftest
 import pytest
 from rdkit import Chem
 from rdkit.Chem import AllChem
@@ -781,15 +781,13 @@ def test_a_caller_with_no_structure_key_always_refits(qapp):
 #: thing exercising the real grid, and `QT_QPA_PLATFORM` is set with
 #: `setdefault`, so `QT_QPA_PLATFORM=windows pytest ...` runs them --
 #: verified, 42 passed there.
-_OFFSCREEN = os.environ.get("QT_QPA_PLATFORM") == "offscreen"
-_needs_a_display = pytest.mark.skipif(
-    _OFFSCREEN,
-    reason=(
-        "Skipped: $3Dmol.createViewerGrid does not work under Qt's offscreen "
-        "platform (measured: WebGL contexts and individual viewers are fine "
-        "there; the grid call is not). Run with QT_QPA_PLATFORM=windows."
-    ),
-)
+#:
+#: **THE GATE ITSELF LIVES IN `tests/conftest.py`**, as the `grid_display`
+#: fixture. It used to be a private `skipif` here and a second private one
+#: in `test_spatial_annotations.py`, which is how a THIRD nearly appeared
+#: with the gallery overlay. The shared version also adds the measured
+#: WebGL half, so these skip rather than fail on a GPU-less machine --
+#: the analysis above is why the platform half stays a plain gate.
 
 
 def _grid_backend(qapp, cells: int = 4, rows: int = 2, cols: int = 2, linked: bool = False):
@@ -822,8 +820,7 @@ def _grid_views(qapp, backend) -> list[list[float]]:
     return json.loads(raw) if raw else []
 
 
-@_needs_a_display
-def test_the_gallery_builds_a_cell_per_conformer_sharing_one_canvas(qapp):
+def test_the_gallery_builds_a_cell_per_conformer_sharing_one_canvas(qapp, grid_display):
     """Against the real bundle, because `createViewerGrid` is the whole
     mechanism and a Python-side test would only re-read its own input.
 
@@ -839,8 +836,7 @@ def test_the_gallery_builds_a_cell_per_conformer_sharing_one_canvas(qapp):
     assert canvases <= 2, f"{canvases} canvases; the grid should share one"
 
 
-@_needs_a_display
-def test_unlocked_cells_turn_independently(qapp):
+def test_unlocked_cells_turn_independently(qapp, grid_display):
     """The ask, in one sentence: "independently rotatable"."""
     backend = _grid_backend(qapp, cells=4, rows=2, cols=2, linked=False)
     before = _grid_views(qapp, backend)
@@ -853,8 +849,7 @@ def test_unlocked_cells_turn_independently(qapp):
     assert after[1:] == before[1:], "turning one cell moved the others"
 
 
-@_needs_a_display
-def test_locked_cells_move_by_the_SAME_transform(qapp):
+def test_locked_cells_move_by_the_SAME_transform(qapp, grid_display):
     """**Not merely that they all moved.** "Everything changed" passes
     against a scramble; what makes conformers comparable is that the cells
     end up pointing the SAME way, which is an equality rather than an
@@ -873,8 +868,7 @@ def test_locked_cells_move_by_the_SAME_transform(qapp):
     assert orientations != {(0.0, 0.0, 0.0, 1.0)}, "nothing actually turned"
 
 
-@_needs_a_display
-def test_match_all_points_every_cell_where_the_selected_one_points(qapp):
+def test_match_all_points_every_cell_where_the_selected_one_points(qapp, grid_display):
     """Different from locking: a one-off, after which the cells are free
     to turn separately again. Starts from cells that genuinely disagree,
     or the assertion would hold before the button was pressed."""
@@ -891,8 +885,7 @@ def test_match_all_points_every_cell_where_the_selected_one_points(qapp):
     assert len(orientations) == 1, "match-all left the cells pointing different ways"
 
 
-@_needs_a_display
-def test_leaving_the_gallery_puts_the_single_viewer_back(qapp):
+def test_leaving_the_gallery_puts_the_single_viewer_back(qapp, grid_display):
     """The grid has its own container; without this the single viewer
     stays hidden behind it and the tab looks empty."""
     backend = _grid_backend(qapp, cells=4, rows=2, cols=2)
@@ -909,7 +902,7 @@ def test_leaving_the_gallery_puts_the_single_viewer_back(qapp):
 
 
 @pytest.mark.skipif(
-    not _OFFSCREEN,
+    not conftest.grid_platform_is_offscreen(),
     reason="only offscreen fails to build the grid, which is what this asserts",
 )
 def test_a_gallery_that_cannot_be_built_is_reported(qapp, webgl):
@@ -924,7 +917,7 @@ def test_a_gallery_that_cannot_be_built_is_reported(qapp, webgl):
     originates in the page, and a Python-side fake would be asserting that
     a signal this file emits reaches a slot this file connects.
 
-    **TWO CONDITIONS, and they are not the same one.** `_OFFSCREEN` says
+    **TWO CONDITIONS, and they are not the same one.** The platform says
     the second context will be refused, which is what makes this failure
     the one being asserted. `webgl` says a context can be created AT ALL,
     which is what lets the page get far enough to attempt the grid and
@@ -952,8 +945,7 @@ def test_a_gallery_that_cannot_be_built_is_reported(qapp, webgl):
                                   "('viewer-container')).display") == "block"
 
 
-@_needs_a_display
-def test_the_camera_read_for_adoption_is_the_SELECTED_CELLS(qapp):
+def test_the_camera_read_for_adoption_is_the_SELECTED_CELLS(qapp, grid_display):
     """THE REGRESSION PHASE 3 INTRODUCED, reported as "it is again not
     actually 3d, it is just again the absolute, 2d structure".
 

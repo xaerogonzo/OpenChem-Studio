@@ -154,6 +154,85 @@ def test_an_inconclusive_probe_RAISES_rather_than_reporting_zero():
     )
 
 
+def test_the_grid_gate_skips_on_a_MEASURED_absence_too(unmeasured, monkeypatch):
+    """What makes the gallery guards safe to run on the CI runner.
+
+    The platform half of `grid_skip_reason` is an admitted gate -- see
+    its docstring, and the ladder in `test_mol3d_viewer_backend.py`. On
+    its own it says nothing about a machine running the `windows`
+    platform with no GPU, which is exactly what a hosted runner is: the
+    gallery guards would RUN there and FAIL, blaming the code for an
+    absent prerequisite. Pairing it with the measured WebGL check is what
+    turns that failure into a skip that names the reason.
+    """
+    monkeypatch.setattr(conftest, "grid_platform_is_offscreen", lambda: False)
+    conftest._WEBGL["result"] = (0, "getContext returned null on attempt 1")
+
+    reason = conftest.grid_skip_reason(app=None)
+
+    assert reason is not None, (
+        "a GPU-less non-offscreen machine would run the gallery guards and "
+        "fail them for want of WebGL"
+    )
+    assert "no usable WebGL context available in this environment" in reason
+
+
+def test_the_grid_gate_does_NOT_skip_when_both_conditions_are_met(unmeasured, monkeypatch):
+    """The half that makes THAT gate worth having, same argument as above.
+
+    A gate that cannot say yes turns every gallery regression into a
+    silent skip -- which is the failure this whole file exists about,
+    one feature along.
+    """
+    monkeypatch.setattr(conftest, "grid_platform_is_offscreen", lambda: False)
+    conftest._WEBGL["result"] = (1, "ANGLE (some real renderer)")
+
+    assert conftest.grid_skip_reason(app=None) is None
+
+
+def test_no_test_file_derives_the_platform_gate_for_itself():
+    """The grid gate had TWO private copies -- `_needs_a_display` in
+    `test_mol3d_viewer_backend.py` and `_NEEDS_A_DISPLAY` in
+    `test_spatial_annotations.py` -- and the gallery overlay would have
+    made a third. A shared gate that leaves the copies in place has added
+    to the drift rather than removed it.
+
+    **Only the CONDITION of a `skipif` is inspected**, for the same
+    reason `test_the_gate_never_reads_the_PLATFORM_NAME_again` walks an
+    AST: a text search flags the prose explaining the rule, including
+    this file's own. It also leaves the legitimate INVERSE gate alone --
+    `test_a_gallery_that_cannot_be_built_is_reported` asks the shared
+    `conftest.grid_platform_is_offscreen()` and names no environment
+    variable, which is exactly the shape that should survive.
+    """
+    root = Path(__file__).resolve().parents[1]
+    offenders: list[str] = []
+
+    for path in sorted((root / "tests").glob("test_*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            attribute = node.func
+            if not (isinstance(attribute, ast.Attribute) and attribute.attr == "skipif"):
+                continue
+            reads_platform = any(
+                isinstance(inner, ast.Constant)
+                and isinstance(inner.value, str)
+                and "QT_QPA_PLATFORM" in inner.value
+                for argument in [*node.args, *(kw.value for kw in node.keywords)]
+                for inner in ast.walk(argument)
+            )
+            if reads_platform:
+                offenders.append(f"{path.relative_to(root).as_posix()}:{node.lineno}")
+
+    assert offenders == [], (
+        f"{offenders} derive the platform gate inline again; use the shared "
+        f"`grid_display` fixture, or `conftest.grid_platform_is_offscreen()` "
+        f"for the inverse case"
+    )
+
+
 def test_the_four_viewer_tests_actually_request_the_gate():
     """Otherwise the gate exists and guards nothing.
 

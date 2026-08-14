@@ -361,6 +361,67 @@ def webgl_skip_reason(app) -> str | None:
     return None
 
 
+def grid_platform_is_offscreen() -> bool:
+    """Whether Qt's `offscreen` platform is in use.
+
+    Named and shared because it is consulted with BOTH polarities, which
+    is why it is a predicate rather than a mark. `grid_display` skips
+    when it is True; `test_a_gallery_that_cannot_be_built_is_reported`
+    skips when it is False, because that test asserts the FAILURE path
+    and so `offscreen` is its prerequisite rather than its obstacle.
+    """
+    return os.environ.get("QT_QPA_PLATFORM", "") == "offscreen"
+
+
+def grid_skip_reason(app) -> str | None:
+    """Why the `createViewerGrid` guards cannot run here, or None to RUN.
+
+    **TWO CONDITIONS, AND THEY ARE DIFFERENT IN KIND.** Keeping them in
+    one place is the point: this predicate had two private copies, in
+    `test_mol3d_viewer_backend.py` and `test_spatial_annotations.py`,
+    which is how a third would have appeared with the gallery overlay.
+
+    **The platform half is an ADMITTED GATE, not a probe**, and the
+    ladder in `test_mol3d_viewer_backend.py` is its justification: under
+    `offscreen` a bare WebGL context works, twelve work, one 3Dmol viewer
+    works, six work -- and `createViewerGrid` throws for a grid of a
+    SINGLE cell. Nothing underneath predicts it, so a capability probe
+    here would gate a test on its own subject and turn a real regression
+    into a silent skip. Why the grid call specifically fails is still
+    unknown.
+
+    **The WebGL half is MEASURED**, by `webgl_skip_reason` above, and it
+    is what makes these guards safe to run anywhere. A GPU-less machine
+    -- the hosted CI runner is one, Windows platform or not -- has no
+    context at all, so the grid could never build and the honest answer
+    is a skip naming the absent prerequisite rather than a failure
+    blaming the code. Without it, running these on CI under
+    `QT_QPA_PLATFORM=windows` would fail rather than skip.
+    """
+    if grid_platform_is_offscreen():
+        return (
+            "Skipped: $3Dmol.createViewerGrid does not work under Qt's "
+            "offscreen platform (measured: WebGL contexts and individual "
+            "viewers are fine there; the grid call is not). Run with "
+            "QT_QPA_PLATFORM=windows."
+        )
+    return webgl_skip_reason(app)
+
+
+@pytest.fixture
+def grid_display(qapp):
+    """Skip unless a real `$3Dmol.createViewerGrid` can be built here.
+
+    Requested by every guard that drives the conformer gallery. A
+    fixture rather than a `skipif` mark because the WebGL half has to
+    MEASURE, and measuring needs a `qapp` -- the same reason `webgl`
+    below is one.
+    """
+    reason = grid_skip_reason(qapp)
+    if reason is not None:
+        pytest.skip(reason)
+
+
 @pytest.fixture
 def webgl(qapp):
     """Skip only when a WebGL context genuinely cannot be created.
