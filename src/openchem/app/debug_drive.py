@@ -330,6 +330,11 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no details dialog open; run {'do': 'details'}")
                 return
             target = self._details
+        elif step.get("widget") == "spatial":
+            if getattr(self, "_spatial", None) is None:
+                logger.error("OPENCHEM_DRIVE: no spatial dialog open; run {'do': 'spatial'}")
+                return
+            target = self._spatial
         target.grab().save(str(path))
         logger.warning("OPENCHEM_DRIVE: wrote %s", path)
 
@@ -397,6 +402,42 @@ class _Driver(QObject):
             optimize=bool(step.get("optimize", True)),
             num_embeddings=step.get("embeddings"),
         )
+
+    def _do_spatial(self, step: dict[str, Any]) -> None:
+        """Open the spatial-result dialog for the selected molecule's dipole.
+
+        **`show()`, not `exec()`** -- `_do_lewis` explains why a modal
+        stalls an unattended run. The whole real chain runs: the actual
+        calculator on the actual stored conformer, the annotation it
+        declares, the real dialog, the real page drawing the arrow. This
+        is the live half the renderer tests cannot cover: they drive the
+        page directly, and only a run like this proves the panel's
+        routing hands the dialog the same conformer the calculator saw.
+        """
+        from openchem.chem.dipole import compute_dipole_moment
+        from openchem.chem.calculation_input import canonical_conformer
+        from openchem.ui.dialogs.spatial_result_dialog import SpatialResultDialog
+
+        window = self._window
+        molecule = window._session.project.find_molecule(
+            window._property_panel._selected_molecule_uuid
+        )
+        if molecule is None:
+            logger.error("OPENCHEM_DRIVE: no molecule selected for spatial")
+            return
+        best = canonical_conformer(molecule)
+        if best is None or not best.molblock:
+            logger.error("OPENCHEM_DRIVE: no conformer to draw on; run {'do': 'conformers'} first")
+            return
+        mol = window._services.chemistry_engine.mol_from_molblock(best.molblock)
+        report = compute_dipole_moment(mol, molecule.uuid)
+        logger.warning(
+            "OPENCHEM_DRIVE: dipole %s, %d spatial annotation(s)",
+            report.provenance.parameters.get("debye"),
+            len(report.spatial),
+        )
+        self._spatial = SpatialResultDialog(report, best.molblock, window)
+        self._spatial.show()
 
     def _do_details(self, step: dict[str, Any]) -> None:
         """Open the conformer generation details dialog.

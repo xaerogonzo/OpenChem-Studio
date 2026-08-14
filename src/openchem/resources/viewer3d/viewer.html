@@ -57,6 +57,11 @@
       // atom index (string, since JS object keys are always strings) ->
       // hex color, or null when no visualization layer is active.
       var currentVisualization = null;
+      // Spatial annotations (dipole arrow, steric cone, principal axes)
+      // for the CURRENT molecule. Same lifecycle as currentVisualization:
+      // a new molblock starts clean, because shape coordinates are in one
+      // conformer's frame and mean nothing on another's.
+      var currentShapes = null;
       // atom index (string) -> formatted value text, or null (Phase 18).
       var currentLabels = null;
       // The active GLModel, needed to look up each atom's 3D position
@@ -210,6 +215,208 @@
             showBackground: false,
           });
         });
+        // **removeAllLabels() above takes the SHAPE labels with it**, and
+        // it has to -- 3Dmol has one label collection, with no way to
+        // remove a subset. Measured before this line existed: applying a
+        // visualization after a dipole arrow took the labels from
+        // ["1.58 D"] to ["ATOMLBL"], leaving the arrow drawn with its
+        // magnitude caption gone. Redrawing the shapes puts their labels
+        // back; it is idempotent (drawShapes clears first) and costs
+        // nothing when no shapes are up.
+        if (currentShapes) {
+          drawShapes();
+          return;
+        }
+        viewer.render();
+      }
+
+      // ---- Spatial annotations: arrow, cone, axes -------------------
+      //
+      // DISPLAY SCALING ONLY. The arrow's vector is a physical quantity
+      // in its own units (Debye for a dipole) -- its magnitude is NEVER
+      // read as Angstrom. The drawn length is
+      // ARROW_SPAN_FRACTION * (longest interatomic span), floored at
+      // MIN_ARROW_LENGTH so a diatomic still shows a legible arrow, with
+      // the arrow's midpoint on the annotation's anchor. Cone and axes
+      // coordinates ARE Angstrom and draw at true scale.
+      var ARROW_SPAN_FRACTION = 0.5;
+      var MIN_ARROW_LENGTH = 1.0;
+      // Fixed conventions so tests and screenshots cannot drift:
+      // 16 generatrices, a closed 32-segment base circle, no filled
+      // surface (lines do not occlude the molecule).
+      var CONE_GENERATRICES = 16;
+      var CONE_CIRCLE_SEGMENTS = 32;
+      var AXIS_COLORS = ['#c62828', '#2e7d32', '#1565c0'];
+      // The geometry actually handed to 3Dmol, mirrored for tests: the
+      // direction oracle must read what was DRAWN, not what was declared
+      // -- a producer sign bug and a renderer sign bug would cancel in
+      // any annotation-level check. Reset on every drawShapes().
+      var drawnShapes = [];
+
+      function longestSpan() {
+        if (!currentModel) return 0;
+        var atoms = currentModel.selectedAtoms({});
+        var best = 0;
+        for (var i = 0; i < atoms.length; i++) {
+          for (var j = i + 1; j < atoms.length; j++) {
+            var dx = atoms[i].x - atoms[j].x;
+            var dy = atoms[i].y - atoms[j].y;
+            var dz = atoms[i].z - atoms[j].z;
+            var d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (d > best) best = d;
+          }
+        }
+        return best;
+      }
+
+      function finiteVec(v) {
+        return Array.isArray(v) && v.length === 3 && v.every(function (x) {
+          return typeof x === 'number' && isFinite(x);
+        });
+      }
+
+      function unitVec(v) {
+        var n = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+        return n > 0 ? [v[0] / n, v[1] / n, v[2] / n] : null;
+      }
+
+      function shapeLabel(text, position) {
+        viewer.addLabel(text, {
+          position: { x: position[0], y: position[1], z: position[2] },
+          fontSize: 12,
+          backgroundOpacity: 0.55,
+        });
+      }
+
+      function drawArrowShape(shape) {
+        var direction = unitVec(shape.vector);
+        if (!direction || !finiteVec(shape.anchor)) return;
+        var length = Math.max(MIN_ARROW_LENGTH, ARROW_SPAN_FRACTION * longestSpan());
+        var half = length / 2;
+        var start = [shape.anchor[0] - direction[0] * half,
+                     shape.anchor[1] - direction[1] * half,
+                     shape.anchor[2] - direction[2] * half];
+        var end = [shape.anchor[0] + direction[0] * half,
+                   shape.anchor[1] + direction[1] * half,
+                   shape.anchor[2] + direction[2] * half];
+        viewer.addArrow({
+          start: { x: start[0], y: start[1], z: start[2] },
+          end: { x: end[0], y: end[1], z: end[2] },
+          radius: 0.12,
+          radiusRatio: 2.2,
+          mid: 0.82,
+          color: '#e6a817',
+        });
+        drawnShapes.push({ kind: 'arrow', start: start, end: end, label: shape.label });
+        if (shape.label) shapeLabel(shape.label, end);
+      }
+
+      function perpendicularPair(axis) {
+        var seed = Math.abs(axis[2]) < 0.9 ? [0, 0, 1] : [0, 1, 0];
+        var first = unitVec([
+          seed[1] * axis[2] - seed[2] * axis[1],
+          seed[2] * axis[0] - seed[0] * axis[2],
+          seed[0] * axis[1] - seed[1] * axis[0],
+        ]);
+        var second = [
+          axis[1] * first[2] - axis[2] * first[1],
+          axis[2] * first[0] - axis[0] * first[2],
+          axis[0] * first[1] - axis[1] * first[0],
+        ];
+        return [first, second];
+      }
+
+      function drawConeShape(shape) {
+        var axis = unitVec(shape.axis);
+        if (!axis || !finiteVec(shape.apex) || !(shape.length > 0)) return;
+        var half = shape.half_angle_deg * Math.PI / 180;
+        // `length` is the SLANT reach the sweep measured (apex to the far
+        // vdW edge), so generatrices have that length and the base circle
+        // sits at length*cos(half) with radius length*sin(half) -- valid
+        // for half-angles past 90 too, where cos goes negative and the
+        // cone legitimately opens behind the apex plane (P(tBu)3 is 91).
+        var perpendiculars = perpendicularPair(axis);
+        var p1 = perpendiculars[0], p2 = perpendiculars[1];
+        var apex = shape.apex;
+        function rim(theta) {
+          var s = Math.sin(half), c = Math.cos(half);
+          var dir = [
+            axis[0] * c + (p1[0] * Math.cos(theta) + p2[0] * Math.sin(theta)) * s,
+            axis[1] * c + (p1[1] * Math.cos(theta) + p2[1] * Math.sin(theta)) * s,
+            axis[2] * c + (p1[2] * Math.cos(theta) + p2[2] * Math.sin(theta)) * s,
+          ];
+          return [apex[0] + dir[0] * shape.length,
+                  apex[1] + dir[1] * shape.length,
+                  apex[2] + dir[2] * shape.length];
+        }
+        for (var g = 0; g < CONE_GENERATRICES; g++) {
+          var point = rim(2 * Math.PI * g / CONE_GENERATRICES);
+          viewer.addLine({
+            start: { x: apex[0], y: apex[1], z: apex[2] },
+            end: { x: point[0], y: point[1], z: point[2] },
+            color: '#00838f',
+          });
+          drawnShapes.push({ kind: 'cone-generatrix', start: apex, end: point });
+        }
+        var previous = rim(0);
+        for (var sgm = 1; sgm <= CONE_CIRCLE_SEGMENTS; sgm++) {
+          var next = rim(2 * Math.PI * sgm / CONE_CIRCLE_SEGMENTS);
+          viewer.addLine({
+            start: { x: previous[0], y: previous[1], z: previous[2] },
+            end: { x: next[0], y: next[1], z: next[2] },
+            color: '#00838f',
+          });
+          drawnShapes.push({ kind: 'cone-circle', start: previous, end: next });
+          previous = next;
+        }
+        if (shape.label) shapeLabel(shape.label, [apex[0], apex[1], apex[2]]);
+      }
+
+      function drawAxesShape(shape) {
+        if (!finiteVec(shape.origin)) return;
+        for (var i = 0; i < 3; i++) {
+          var direction = unitVec(shape.axes[i]);
+          if (!direction) continue;
+          // Drawn THROUGH the molecule at the measured half-span, floored
+          // so a planar molecule's flat axis is still visible.
+          var extent = Math.max(shape.extents[i], 0.5);
+          var start = [shape.origin[0] - direction[0] * extent,
+                       shape.origin[1] - direction[1] * extent,
+                       shape.origin[2] - direction[2] * extent];
+          var end = [shape.origin[0] + direction[0] * extent,
+                     shape.origin[1] + direction[1] * extent,
+                     shape.origin[2] + direction[2] * extent];
+          viewer.addArrow({
+            start: { x: start[0], y: start[1], z: start[2] },
+            end: { x: end[0], y: end[1], z: end[2] },
+            radius: 0.07,
+            radiusRatio: 2.5,
+            mid: 0.9,
+            color: AXIS_COLORS[i],
+          });
+          drawnShapes.push({ kind: 'axis', index: i, start: start, end: end });
+          if (shape.labels && shape.labels[i]) shapeLabel(shape.labels[i], end);
+        }
+      }
+
+      function drawShapes() {
+        viewer.removeAllShapes();
+        drawnShapes = [];
+        if (!currentShapes) { viewer.render(); return; }
+        currentShapes.forEach(function (shape) {
+          // Defensive only -- Python validated before sending. A shape
+          // that still arrives malformed is SKIPPED with a log line,
+          // never repaired: a picture built from guessed geometry reads
+          // as a result.
+          try {
+            if (shape.kind === 'arrow') drawArrowShape(shape);
+            else if (shape.kind === 'cone') drawConeShape(shape);
+            else if (shape.kind === 'axes') drawAxesShape(shape);
+            else console.warn('unknown spatial annotation kind', shape.kind);
+          } catch (error) {
+            console.warn('skipped a spatial annotation', error);
+          }
+        });
         viewer.render();
       }
 
@@ -287,6 +494,14 @@
           // stale coloring/labels must not carry over.
           currentVisualization = null;
           currentLabels = null;
+          // Shape coordinates belong to the OLD conformer's frame -- an
+          // arrow kept across a load would sit plausibly on the wrong
+          // molecule, which is worse than no arrow.
+          currentShapes = null;
+          viewer.removeAllShapes();
+          // The test mirror follows the real state, or it reports shapes
+          // that are no longer on screen.
+          drawnShapes = [];
           // Leaving ensemble mode. Without this the single molecule about
           // to load would be styled with the ensemble's per-model colour
           // list, and every model index past 0 would silently match
@@ -361,6 +576,14 @@
         setStyle: function (styleName) {
           currentStyle = styleName;
           applyStyle();
+        },
+        applyShapes: function (shapes) {
+          currentShapes = shapes && shapes.length ? shapes : null;
+          drawShapes();
+        },
+        clearShapes: function () {
+          currentShapes = null;
+          drawShapes();
         },
         applyVisualization: function (atomColors, atomLabels) {
           currentVisualization = atomColors;
@@ -729,6 +952,7 @@
           viewer.removeAllLabels();
           currentVisualization = null;
           currentLabels = null;
+          currentShapes = null;
           currentEnsemble = null;
           currentSurface = null;
 

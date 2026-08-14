@@ -48,6 +48,8 @@ energies, which are real and useful but are not Dreiding.
 
 from __future__ import annotations
 
+import dataclasses
+
 import math
 from dataclasses import dataclass
 from typing import Any
@@ -58,7 +60,7 @@ from rdkit.Chem import AllChem
 
 from openchem.chem.calculator_options import decimals
 from openchem.domain.common import CacheState, Provenance
-from openchem.domain.report import ReportResult
+from openchem.domain.report import ReportResult, ConeAnnotation, valid_spatial_annotation
 from openchem.chem.report_adapter import report_fields
 
 _PERIODIC_TABLE = Chem.GetPeriodicTable()
@@ -268,20 +270,27 @@ def buried_volume(
 
 
 def _ensemble(mol: Chem.Mol, conformers: int, seed: int = 0xF00D):
-    """Embed and minimise, returning (mol_with_conformers, ids).
+    """Embed and minimise, returning (mol_with_conformers, ids, own_geometry).
 
     Both measures are computed across the ensemble rather than from one
     geometry, because a flexible ligand genuinely has a range of steric
     profiles and reporting a single number hides that.
+
+    `own_geometry` says whether the CALLER's conformer was used (True) or
+    this function embedded its own (False). The distinction is
+    load-bearing for the spatial annotation: coordinates from an
+    internally embedded conformer are in a frame no viewer can load, so a
+    cone drawn from them would sit on the wrong molecule with nothing on
+    screen to say so.
     """
     prepared = Chem.AddHs(Chem.Mol(mol))
     if prepared.GetNumConformers() and prepared.GetConformer().Is3D():
-        return prepared, [c.GetId() for c in prepared.GetConformers()]
+        return prepared, [c.GetId() for c in prepared.GetConformers()], True
     ids = list(AllChem.EmbedMultipleConfs(prepared, numConfs=conformers, randomSeed=seed))
     if not ids:
         raise NoConformerError("Could not generate a 3D conformer for this structure.")
     AllChem.MMFFOptimizeMoleculeConfs(prepared)
-    return prepared, ids
+    return prepared, ids, False
 
 
 def compute_steric_analysis(
@@ -295,7 +304,7 @@ def compute_steric_analysis(
     sphere_radius = float(parameters.get("sphere_radius", DEFAULT_SPHERE_RADIUS))
 
     try:
-        prepared, ids = _ensemble(mol, conformers)
+        prepared, ids, own_geometry = _ensemble(mol, conformers)
         donor = find_donor(prepared)
         cones = [exact_cone_angle(prepared, donor, c, metal_distance) for c in ids]
         volumes = [buried_volume(prepared, donor, c, sphere_radius, metal_distance) for c in ids]
@@ -313,7 +322,8 @@ def compute_steric_analysis(
 
     # The MINIMUM cone over the ensemble, which is Tolman's own convention
     # -- a flexible ligand presents its most compact face to the metal.
-    tightest = min(cones, key=lambda cone: cone.angle)
+    tightest_index = min(range(len(cones)), key=lambda i: cones[i].angle)
+    tightest = cones[tightest_index]
     donor_atom = prepared.GetAtomWithIdx(donor)
 
     lines = [
@@ -339,7 +349,7 @@ def compute_steric_analysis(
         f"r = 0.98 against Tolman's series) but are not directly comparable to those tables."
     )
 
-    return _report(
+    result = _report(
         alert_id="steric_analysis",
         name="Ligand Steric Bulk",
         molecule_uuid=molecule_uuid,
@@ -356,10 +366,40 @@ def compute_steric_analysis(
                 "conformers": len(ids),
                 "metal_distance_a": metal_distance,
                 "sphere_radius_a": sphere_radius,
-                "geometry_source": "free_ligand_mmff",
+                "geometry_source": "provided_conformer" if own_geometry else "free_ligand_mmff",
             },
         ),
     )
+    # THE CONE, only when its frame is one a viewer can load. With an
+    # internally embedded ensemble the coordinates belong to a geometry
+    # nobody else holds, and a cone drawn from them would sit plausibly on
+    # the WRONG conformer -- the worst kind of picture. The geometry is
+    # DERIVED from the calculation's own construction, never assembled
+    # from the stored scalars: the apex comes from `_ligand_geometry` on
+    # the same conformer the tightest cone was measured on, the axis is
+    # the one the search actually settled on (tilted or not), and the
+    # length is the reach of the sweep itself -- the farthest vdW-sphere
+    # edge `_half_angles` measured to, not `metal_distance + sphere_radius`,
+    # which are two unrelated scalars that happen to be lying nearby.
+    if own_geometry:
+        conformer_id = ids[tightest_index]
+        positions, apex, _toward = _ligand_geometry(prepared, donor, conformer_id, metal_distance)
+        reach = max(
+            float(np.linalg.norm(positions[a.GetIdx()] - apex))
+            + _PERIODIC_TABLE.GetRvdw(a.GetAtomicNum())
+            for a in prepared.GetAtoms()
+            if a.GetIdx() != donor
+        )
+        annotation = ConeAnnotation(
+            apex=tuple(float(v) for v in apex),
+            axis=tuple(float(v) for v in tightest.axis),
+            half_angle_deg=tightest.angle / 2.0,
+            length=reach,
+            label=f"{tightest.angle:.{places}f} deg",
+        )
+        if valid_spatial_annotation(annotation):
+            result = dataclasses.replace(result, spatial=(annotation,))
+    return result
 
 
 def _report(**fields) -> ReportResult:
