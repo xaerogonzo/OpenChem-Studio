@@ -41,6 +41,31 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# THE ONE TEST THAT HITS A THIRD PARTY, named once so the two jobs below
+# cannot drift apart. It round-trips a name through PubChem, so it fails on
+# NCBI's availability rather than on this repository's code -- observed as
+# `HTTP 400` locally and as `HTTP 503 PUGREST.ServerBusy` on CI, where a
+# shared runner IP makes rate-limiting likelier.
+#
+# WHY IT IS DESELECTED RATHER THAN LEFT TO FAIL. The gating job runs the
+# naming benchmark, the regulatory benchmark and the ruleset validation
+# AFTER the suite in the same job, and GitHub skips later steps once one
+# fails -- so a PubChem outage did not merely redden a run, it silently
+# disabled all three gates and reported them as `skipped`. That happened on
+# master at 8438ef9. An upstream service must not be able to switch this
+# repository's gates off.
+#
+# IT IS STILL RUN, just where it cannot do that -- see the non-blocking step
+# after the gates. Deselecting without re-running it somewhere would delete
+# the only coverage of the PubChem provider.
+#
+# A TYPO HERE FAILS OPEN AND SILENTLY: measured, `--deselect` with an
+# unknown node id collects everything and exits 0, so a renamed test would
+# quietly come back into the gating run. `tests/test_ci_deselections.py`
+# fails if this id stops naming a real test.
+env:
+  NETWORK_TEST: tests/test_naming_providers.py::test_pubchem_name_round_trips_back_through_opsin
+
 jobs:
   suite:
     name: suite + gating benchmarks
@@ -72,8 +97,10 @@ jobs:
       - name: Sync dependencies
         run: uv sync --extra ai --extra network --extra openbabel
 
+      # `--deselect` for the network test, so NCBI cannot switch off the
+      # three gates below. See the `env:` block for the whole reasoning.
       - name: Run the test suite
-        run: uv run --no-sync python -u -m pytest -q -ra
+        run: uv run --no-sync python -u -m pytest -q -ra --deselect "${{ env.NETWORK_TEST }}"
 
       # Scored from a DIFFERENT WORKING DIRECTORY. py2opsin writes a fixed
       # temp filename into the current directory, so two OPSIN callers in one
@@ -97,6 +124,21 @@ jobs:
       # like a structure being unregulated.
       - name: Validate regulatory rulesets
         run: uv run --no-sync python tools/build_regulatory_rulesets.py --check
+
+      # THE DESELECTED TEST, RUN WHERE IT CANNOT DISABLE ANYTHING. Last, so
+      # nothing waits on it; `continue-on-error` so NCBI cannot fail the job;
+      # `if: always()` so it still reports when the suite above went red.
+      #
+      # NON-BLOCKING IS NOT INVISIBLE -- the same rule the `linux` job below
+      # is built around. A failure here shows on the run page as an ignored
+      # red step, so "PubChem naming is broken" and "PubChem was busy" both
+      # stay visible; what changes is only that neither can take the gates
+      # with it. If this step is red for days rather than minutes, that is a
+      # real provider regression and not a flake.
+      - name: PubChem round trip (NON-BLOCKING -- third-party network)
+        if: always()
+        continue-on-error: true
+        run: uv run --no-sync python -u -m pytest -q -ra "${{ env.NETWORK_TEST }}"
 
       # NOT RUN HERE, stated so nobody reads a green tick as full coverage:
       #
@@ -160,12 +202,20 @@ jobs:
       # container without extra privileges. `|| true` keeps the STEP green so
       # the summary below always runs; the real exit status is captured into
       # the file and reported there rather than thrown away.
+      #
+      # The network test is deselected here too, for a reason specific to
+      # this job rather than for the gating one: this job exists to surface
+      # PLATFORM assumptions, and it reports its failures as "environment
+      # findings on a platform this application does not ship". An NCBI
+      # outage is not a Linux finding, and listing it as one is how a
+      # fingerprint stops being read.
       - name: Run the test suite
         id: suite
         run: |
           set -o pipefail
           export QTWEBENGINE_CHROMIUM_FLAGS="--no-sandbox"
           xvfb-run -a uv run --no-sync python -u -m pytest -q -ra \
+            --deselect "${{ env.NETWORK_TEST }}" \
             > suite.log 2>&1 || true
           echo "exit_code=${PIPESTATUS[0]:-0}" >> "$GITHUB_OUTPUT"
           tail -30 suite.log
