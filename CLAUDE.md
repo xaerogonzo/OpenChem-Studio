@@ -261,7 +261,18 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-16 minutes**, ending at `4299 passed, 8 skipped`
+A clean run is **6-16 minutes**, ending at `4356 passed, 11 skipped`
+(measured 2026-08-14, 12m36, on `overlay-spatial-annotations` at
+`76bfcc9`; master's merge `46ccd66` adds no test function and COLLECTS
+4367 = 4356 + 11, so the figure is master's. +57 passed over the 4299
+below, across two branches: the spatial dialog -- 22 in
+`test_spatial_annotations`, 2 for the dialog -- and the overlay -- 15 in
+the service, 11 in the widget, 3 for origin resolution, 5 for recorded
+parameters. **The 3 new SKIPS are the gallery per-cell guards**, which
+need `QT_QPA_PLATFORM=windows` for the same `createViewerGrid` reason
+the other gallery tests do.)
+
+Before it: `4299 passed, 8 skipped`
 (measured 2026-08-13, 11m57. +6 over the 4293 below, for the report
 parser's sign class -- both-signs, the sign kept in the value, the
 positive Huckel HOMO, the value list, the attached unit, and the
@@ -1875,6 +1886,25 @@ beside an arrow would be the panel disagreeing with itself. And the
 drawn length is display scaling (half the longest interatomic span,
 floored at 1 A) of a vector whose units are DEBYE -- the one unit
 confusion the whole annotation contract exists to forbid.
+
+### The gallery overlay is BUILT AND NOT CONNECTED, deliberately recorded
+
+`apply_grid_shapes`, per-cell `clearGridShapes`, `clearAllGridShapes`,
+per-cell tokens in `SpatialOverlayService` and the page's
+`drawnGridShapes` mirror all exist and are guarded -- two cells verifiably
+draw DIFFERENT geometry, and clearing one leaves its neighbour alone
+(mutation-verified). **What is missing is the last wire:**
+`apply_grid_shapes` is called from no production code, because
+`_request_overlay` only ever passes `SINGLE_VIEW_CELL` and `_refresh_view`
+diverts into `_refresh_gallery()` before reaching it.
+
+So ticking "Show shapes" in gallery mode draws nothing today. The plan
+called for per-cell overlays and this is the honest state of it: the
+machinery is done and tested, the widget does not drive it. Wiring it is
+`_refresh_gallery` issuing one request per visible cell with that cell's
+own conformer index, and the arrival handler routing by
+`event.cell_index` instead of rejecting anything that is not
+`SINGLE_VIEW_CELL`.
 
 ### The overlay: recompute in the displayed frame, never transform into it
 
