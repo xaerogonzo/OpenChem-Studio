@@ -918,23 +918,31 @@ class MoleculeViewer3DWidget(QWidget):
         and still publishes -- rejecting it HERE is the whole mechanism.
         """
         service = self._spatial_overlay_service
-        if service is None or self._molecule is None:
+        if service is None:
+            return
+        # **THE RELEASE COMES FIRST, BEFORE EVERY REJECTION, AND THIS
+        # ORDERING IS TWO BUGS' WORTH OF SCAR TISSUE.** `finished`
+        # releases the cell and starts whatever was queued behind this
+        # job; skip it for a result about to be discarded and the cell
+        # stays "running" forever, so every later request only becomes
+        # `pending` and the overlay never draws again.
+        #
+        # It was found first by driving the app -- stepping two
+        # conformers wedged the second step, permanently, with ten unit
+        # tests green. It was then fixed ONLY for the conformer check,
+        # which is the classic partial fix that looks complete: switching
+        # MOLECULES mid-flight returned earlier still and wedged the cell
+        # identically. Every early return below this line is a rejection,
+        # and none of them may skip the release. Keyed on the EVENT's cell
+        # so it frees the right one, and a no-op unless that cell is
+        # really running this token.
+        service.finished(event.cell_index, event.token)
+        if self._molecule is None:
             return
         if event.molecule_uuid != self._molecule.uuid:
             return
         if event.cell_index != SINGLE_VIEW_CELL:
             return
-        # **BEFORE ANY REJECTION, AND THAT ORDERING IS THE BUG THIS
-        # COMMENT EXISTS FOR.** `finished` is what releases the cell and
-        # starts whatever was queued behind this job; skipping it for a
-        # result we are about to discard leaves the cell "running"
-        # forever, so every later request only ever becomes `pending` and
-        # the overlay never draws again. Found live -- with every test
-        # green -- by stepping two conformers: the first step's answer
-        # arrived stale, was rejected, and wedged the second step's
-        # request permanently. It is a no-op for a token that is not the
-        # running one, so calling it unconditionally is safe.
-        service.finished(event.cell_index, event.token)
         if event.conformer_index != self._conformer_index:
             return
         if self._overlay_tokens.get(event.cell_index) != event.token:

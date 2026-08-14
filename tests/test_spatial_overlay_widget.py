@@ -345,3 +345,48 @@ def test_a_rejected_result_still_releases_the_cell_for_the_next_one(viewer):
     pool.started[-1].run()
     QCoreApplication.processEvents()
     assert backend.shapes[-1], "the second conformer never got its annotation"
+
+
+def test_switching_molecules_mid_flight_does_not_wedge_the_next_one(viewer):
+    """The SAME bug as the rejected-result one, through a different early
+    return -- and the reason the first fix was incomplete.
+
+    A job in flight for molecule A, the user switches to B, A's answer
+    arrives and is correctly discarded. If that discard skipped the
+    release, B's cell would stay "running" forever and B's overlay would
+    never draw. Measured before the fix: jobs_started stuck at 1 with
+    every later request only ever becoming pending.
+    """
+    widget, _backend, service, pool, _bus = viewer
+    first = _molecule_with_two_conformers()
+    widget.set_molecule(first)
+    widget.note_spatial_report(_dipole_report(first.uuid))
+    widget._overlay_check.setChecked(True)
+    in_flight = pool.started[-1]
+
+    second = _molecule_with_two_conformers()
+    widget.set_molecule(second)
+    widget.note_spatial_report(_dipole_report(second.uuid))
+    widget._overlay_check.setChecked(True)
+    before = len(pool.started)
+
+    in_flight.run()  # molecule A's stale answer
+    QCoreApplication.processEvents()
+    # NOT "running is None": the release immediately starts whatever was
+    # queued, so the cell is legitimately busy again with B's own request.
+    # The symptom to assert is that B's work RUNS AT ALL -- measured
+    # before the fix, jobs_started stuck at 1 and every later request
+    # only ever became pending.
+    assert len(pool.started) > before, (
+        "molecule B's request never started: the cell was wedged by A's discarded result"
+    )
+
+    started_before_step = len(pool.started)
+    widget._show_next_conformer()
+    for job in list(pool.started[started_before_step - 1 :]):
+        job.run()
+    QCoreApplication.processEvents()
+    assert len(pool.started) >= started_before_step, "the overlay stopped requesting entirely"
+    assert service._cells[SINGLE_VIEW_CELL].pending is None, (
+        "a request is still queued with nothing running to release it"
+    )

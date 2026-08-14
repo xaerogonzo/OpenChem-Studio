@@ -1930,6 +1930,21 @@ conformer 3 showed no arrow and no value, permanently, while every unit
 test passed. `finished` is a no-op for a token that is not the running
 one, so it is called unconditionally now, before any rejection.
 
+**AND THE FIRST FIX FOR IT WAS PARTIAL, WHICH IS WORSE THAN OBVIOUS.**
+It was applied to the conformer check only, so switching MOLECULES
+mid-flight returned earlier still and wedged the cell identically --
+found in review, measured (`jobs_started` stuck at 1 with every later
+request only becoming `pending`), and fixed by hoisting the release above
+EVERY rejection. Every early return after it is a rejection and none of
+them may skip it. This file's own warning applies: a partial revert, or a
+partial fix, looks like a fix.
+
+A method note from the same review: the first assertion written for it
+(`running is None` after the discard) FAILED against correct code,
+because the release immediately starts whatever was queued and the cell
+is legitimately busy again. Assert the symptom -- that the new molecule's
+work runs at all -- not an instantaneous internal state.
+
 Measured on the collapse itself, scrubbing seven conformers as fast as
 the event loop allows: **7 requests -> 2 jobs started**, 5 superseded,
 never more than one pending, settling in 18 ms. No debouncing was added,
