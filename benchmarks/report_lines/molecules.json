@@ -1,0 +1,55 @@
+{
+  "note": "Chosen for PARSER coverage, not for chemistry. Each entry says which line shapes it is here to produce, so a future edit can tell a deliberate case from a decorative one. See README.md.",
+  "molecules": [
+    {
+      "name": "aspirin",
+      "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+      "why": "the project's default probe molecule; exercises the widest set of descriptor, topology and medicinal-chemistry lines"
+    },
+    {
+      "name": "benzene",
+      "smiles": "c1ccccc1",
+      "why": "the smallest pi system, so Huckel emits a POSITIVE HOMO and a signed orbital-energy list -- the two shapes the sign bug hid behind"
+    },
+    {
+      "name": "naphthalene",
+      "smiles": "c1ccc2ccccc2c1",
+      "why": "a longer orbital-energy list (10 entries), which is what makes the value-LIST case visibly different from a scalar"
+    },
+    {
+      "name": "pyridine",
+      "smiles": "c1ccncc1",
+      "why": "a heteroaromatic, so Huckel adds its heteroatom caveat -- a prose line that must stay unsplit"
+    },
+    {
+      "name": "water",
+      "smiles": "O",
+      "why": "two elements only, so elemental analysis emits the attached-unit form ('O: 88.81%') at its shortest"
+    },
+    {
+      "name": "ammonia",
+      "smiles": "N",
+      "why": "a small polar molecule with a non-zero dipole along an axis, exercising signed components"
+    },
+    {
+      "name": "chloromethane",
+      "smiles": "CCl",
+      "why": "a TWO-LETTER element symbol in elemental analysis ('Cl: 70.22%'), and the dipole case the sign bug was reported on"
+    },
+    {
+      "name": "acetic_acid",
+      "smiles": "CC(=O)O",
+      "why": "an ionizable centre, so the pKa and logD lines appear -- the ones written with '=' and with no separator at all"
+    },
+    {
+      "name": "caffeine",
+      "smiles": "Cn1cnc2c1c(=O)n(C)c(=O)n2C",
+      "why": "fused heteroaromatic with several rings; the richest single source of lines in this set"
+    },
+    {
+      "name": "glycine_zwitterion",
+      "smiles": "[NH3+]CC(=O)[O-]",
+      "why": "a formally charged species, so the dipole reports its origin-dependence caveat and charge lines carry explicit signs"
+    }
+  ]
+}
