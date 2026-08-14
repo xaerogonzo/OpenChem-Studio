@@ -385,3 +385,56 @@ def test_all_annotations_of_one_result_render_together(qapp):
         lambda: {d["kind"] for d in _drawn(qapp, backend)} == {"arrow", "axis"},
     )
     assert sum(1 for d in _drawn(qapp, backend) if d["kind"] == "axis") == 3
+
+
+def test_a_later_visualization_does_not_strip_the_shape_labels(qapp):
+    """3Dmol has ONE label collection and no way to remove a subset, so
+    `applyLabels`' `removeAllLabels()` takes the shape captions with it.
+
+    Measured before the fix: applying a visualization after the dipole
+    arrow took the page's labels from ["1.58 D"] to ["ATOMLBL"] -- the
+    arrow still drawn, its magnitude caption gone. Unreachable from the
+    spatial dialog (which applies no visualization) and squarely in the
+    way of drawing shapes in the main viewer, which applies them
+    routinely.
+    """
+    from openchem.ui.visualization import VisualizationLayer
+
+    label_texts = (
+        "JSON.stringify(viewer.labels.map(function (l) "
+        "{ return (l.stylespec && l.stylespec.text) || l.text || ''; }))"
+    )
+    mol = _with_conformer("CO")
+    annotation = compute_dipole_moment(mol, "u").spatial[0]
+    backend = _ready(qapp)
+    backend.load_conformer(Chem.MolToMolBlock(mol))
+    backend.apply_shapes([annotation])
+    assert _wait_until(qapp, lambda: len(_drawn(qapp, backend)) == 1)
+    assert annotation.label in json.loads(_run_js(qapp, backend, label_texts))
+
+    backend.apply_visualization(
+        VisualizationLayer(name="x", atom_colors={0: "#ff0000"}, atom_labels={0: "ATOMLBL"})
+    )
+    assert _wait_until(
+        qapp, lambda: "ATOMLBL" in json.loads(_run_js(qapp, backend, label_texts))
+    ), "the atom label never arrived, so this proves nothing about the shape label"
+    texts = json.loads(_run_js(qapp, backend, label_texts))
+    assert annotation.label in texts, (
+        f"the arrow's caption was stripped by the visualization: {texts}"
+    )
+    # And the arrow itself is still drawn, not merely re-labelled.
+    assert len(_drawn(qapp, backend)) == 1
+
+
+def test_a_lone_atom_has_no_axes_to_declare():
+    """`_principal_axes` returns the IDENTITY for fewer than two atoms --
+    a placeholder, not a measurement. Drawing it would put three
+    meaningless unit axes on a single sphere, so the annotation is
+    withheld and the fields stay None."""
+    from openchem.chem.projection_geometry import shape_descriptors
+
+    helium = Chem.AddHs(Chem.MolFromSmiles("[He]"))
+    AllChem.EmbedMolecule(helium, randomSeed=1)
+    shape = shape_descriptors(helium)
+    assert shape.principal_axes is None
+    assert compute_geometry_analysis(helium, "u").spatial == ()

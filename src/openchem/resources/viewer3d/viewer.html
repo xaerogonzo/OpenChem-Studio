@@ -215,6 +215,18 @@
             showBackground: false,
           });
         });
+        // **removeAllLabels() above takes the SHAPE labels with it**, and
+        // it has to -- 3Dmol has one label collection, with no way to
+        // remove a subset. Measured before this line existed: applying a
+        // visualization after a dipole arrow took the labels from
+        // ["1.58 D"] to ["ATOMLBL"], leaving the arrow drawn with its
+        // magnitude caption gone. Redrawing the shapes puts their labels
+        // back; it is idempotent (drawShapes clears first) and costs
+        // nothing when no shapes are up.
+        if (currentShapes) {
+          drawShapes();
+          return;
+        }
         viewer.render();
       }
 
