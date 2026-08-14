@@ -251,7 +251,11 @@ class MainWindow(QMainWindow):
             services.chemistry_engine, services.event_bus, self._undo_stack, parent=self
         )
         self._viewer3d = MoleculeViewer3DWidget(
-            services.conformer_service, services.measurement_service, services.event_bus, parent=self
+            services.conformer_service,
+            services.measurement_service,
+            services.event_bus,
+            parent=self,
+            spatial_overlay_service=getattr(services, "spatial_overlay_service", None),
         )
         # The imported unit cell, retained so a click on it can be
         # answered. Deliberately NOT in the project tree -- see

@@ -6,7 +6,12 @@ from dataclasses import replace
 
 from PySide6.QtCore import QRunnable, QThreadPool
 
-from openchem.chem.calculation_input import geometry_provenance, select_calculation_input
+from openchem.chem.calculation_input import (
+    INPUT_PREFIX,
+    geometry_provenance,
+    recordable_parameters,
+    select_calculation_input,
+)
 from openchem.chem.descriptor_providers import DescriptorProvider, RDKitDescriptorProvider
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.calculator import DRAWING, CalculationRequest
@@ -118,8 +123,20 @@ class _DescriptorComputeTask(QRunnable):
         )
 
 
-def _with_geometry_provenance(result, model: MoleculeModel, calculation_input: str):
+def _with_geometry_provenance(
+    result, model: MoleculeModel, calculation_input: str, parameters: dict | None = None
+):
     """`result` with which-geometry-was-used merged into its provenance.
+
+    `parameters` records WHAT IT WAS RUN WITH, under the same prefix and
+    for the same reason the geometry keys are here: the calculator knows
+    what it computed, and only this layer knows what it was asked for.
+    Without it a result cannot be replayed -- anything recomputing it
+    (the 3D overlay, for the conformer actually on screen) would use
+    today's defaults and quietly produce a different calculation under
+    the original's name. Defaulted so every existing caller and test
+    keeps working; see `recordable_parameters` for why unpersistable
+    values are dropped rather than stringified.
 
     THE KEYS DO NOT COLLIDE BY CONSTRUCTION -- `geometry_provenance`
     prefixes all of its own (see `INPUT_PREFIX`), because this layer
@@ -143,6 +160,7 @@ def _with_geometry_provenance(result, model: MoleculeModel, calculation_input: s
         return result
     try:
         merged = dict(geometry_provenance(model, calculation_input))
+        merged[f"{INPUT_PREFIX}parameters"] = recordable_parameters(parameters)
         merged.update(provenance.parameters)
         return replace(result, provenance=replace(provenance, parameters=merged))
     except Exception:  # noqa: BLE001 - never lose a result over its metadata
@@ -220,7 +238,7 @@ class _CalculationTask(QRunnable):
             # and the answer has to be an ID: index 0 today is index 3
             # after the next regeneration.
             result = _with_geometry_provenance(
-                result, self._model, definition.calculation_input
+                result, self._model, definition.calculation_input, self._request.parameters
             )
         except Exception as exc:  # noqa: BLE001 - a bad calculator must not kill the pool
             logger.exception("Calculator %s failed", self._request.calculator_id)

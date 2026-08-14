@@ -106,6 +106,33 @@ class AlertComputed(Event):
 
 
 @dataclass(frozen=True)
+class SpatialAnnotationsReady(Event):
+    """Shape-valued geometry recomputed for ONE displayed conformer.
+
+    Carries everything needed to decide whether it is still wanted:
+    `token` is the requesting cell's own counter, and `structure_key` and
+    `conformer_index` say which geometry it describes. A consumer checks
+    all of it before drawing -- the producers cannot be interrupted, so a
+    superseded job still finishes and still publishes, and rejecting it
+    on arrival is what stops one conformer's geometry appearing on
+    another.
+
+    `diagnostics` says what could NOT be drawn and why (an unresolvable
+    calculator, missing recorded parameters, a producer that declined
+    this conformer), because an arrow silently absent and an arrow that
+    was never possible are different states.
+    """
+
+    molecule_uuid: str
+    structure_key: str
+    conformer_index: int
+    cell_index: int
+    token: int
+    annotations: tuple = ()
+    diagnostics: tuple = ()
+
+
+@dataclass(frozen=True)
 class ReportComputed(Event):
     """A calculator produced a fact-based report.
 

@@ -438,3 +438,90 @@ def test_a_lone_atom_has_no_axes_to_declare():
     shape = shape_descriptors(helium)
     assert shape.principal_axes is None
     assert compute_geometry_analysis(helium, "u").spatial == ()
+
+
+# --- gallery: per-cell ownership ---------------------------------------------
+#
+# These drive the grid, which `$3Dmol.createViewerGrid` cannot build under
+# Qt's offscreen platform -- see CLAUDE.md's ladder, where every capability
+# underneath works and only the grid call throws. The skip is an admitted
+# platform gate, not a capability probe, for the reason recorded there: the
+# only thing that predicts the failure is the call under test.
+
+import os
+
+_NEEDS_A_DISPLAY = pytest.mark.skipif(
+    os.environ.get("QT_QPA_PLATFORM", "") == "offscreen",
+    reason="createViewerGrid throws under the offscreen platform; run with QT_QPA_PLATFORM=windows",
+)
+
+
+def _drawn_cell(qapp, backend, cell_index):
+    raw = _run_js(
+        qapp, backend, f"JSON.stringify(drawnGridShapes[{cell_index}] || [])"
+    )
+    return json.loads(raw) if raw else []
+
+
+def _grid_of_two(qapp):
+    """A real two-cell grid, sized and shown.
+
+    `drawWhenSized` waits for a real viewport and a grid built into a
+    zero-sized box produces no cells, so this follows
+    `test_mol3d_viewer_backend.py::_grid_backend` rather than inventing a
+    second setup that would drift from it.
+    """
+    backend = Mol3DViewerBackend()
+    backend.widget().resize(800, 600)
+    backend.widget().show()
+    assert _wait_until(qapp, lambda: backend._page_ready, timeout_seconds=PAGE_READY_TIMEOUT_SECONDS)
+    _wait_until(qapp, lambda: False, timeout_seconds=1.0)
+    first, second = _with_conformer("CO", seed=1), _with_conformer("CO", seed=9)
+    backend.load_conformer_grid(
+        [(Chem.MolToMolBlock(first), "1"), (Chem.MolToMolBlock(second), "2")], 1, 2
+    )
+    assert _wait_until(
+        qapp,
+        lambda: _run_js(qapp, backend, "document.querySelectorAll('.cell-overlay').length") == 2,
+        timeout_seconds=20,
+    ), "the gallery never drew its cells"
+    return backend, first, second
+
+
+@_NEEDS_A_DISPLAY
+def test_each_cell_draws_its_own_conformers_annotation(qapp):
+    backend, first, second = _grid_of_two(qapp)
+    backend.apply_grid_shapes(0, compute_dipole_moment(first, "u").spatial)
+    backend.apply_grid_shapes(1, compute_dipole_moment(second, "u").spatial)
+    assert _wait_until(
+        qapp, lambda: len(_drawn_cell(qapp, backend, 0)) == 1 and len(_drawn_cell(qapp, backend, 1)) == 1
+    )
+    # Different conformers, so genuinely different geometry -- if the
+    # cells shared a payload these would be identical.
+    assert _drawn_cell(qapp, backend, 0)[0]["end"] != _drawn_cell(qapp, backend, 1)[0]["end"]
+
+
+@_NEEDS_A_DISPLAY
+def test_clearing_one_cell_leaves_its_neighbour_drawn(qapp):
+    """Per-cell ownership: replacing a cell's conformer must not wipe the
+    annotations its neighbours are still correctly showing."""
+    backend, first, second = _grid_of_two(qapp)
+    backend.apply_grid_shapes(0, compute_dipole_moment(first, "u").spatial)
+    backend.apply_grid_shapes(1, compute_dipole_moment(second, "u").spatial)
+    assert _wait_until(qapp, lambda: len(_drawn_cell(qapp, backend, 1)) == 1)
+
+    backend.apply_grid_shapes(0, ())
+    assert _wait_until(qapp, lambda: _drawn_cell(qapp, backend, 0) == [])
+    assert len(_drawn_cell(qapp, backend, 1)) == 1, "clearing cell 0 wiped cell 1"
+
+
+@_NEEDS_A_DISPLAY
+def test_clear_all_is_the_only_thing_that_empties_every_cell(qapp):
+    backend, first, second = _grid_of_two(qapp)
+    backend.apply_grid_shapes(0, compute_dipole_moment(first, "u").spatial)
+    backend.apply_grid_shapes(1, compute_dipole_moment(second, "u").spatial)
+    assert _wait_until(qapp, lambda: len(_drawn_cell(qapp, backend, 0)) == 1)
+    backend.clear_all_grid_shapes()
+    assert _wait_until(
+        qapp, lambda: _drawn_cell(qapp, backend, 0) == [] and _drawn_cell(qapp, backend, 1) == []
+    )

@@ -125,6 +125,57 @@ def select_calculation_input(
 INPUT_PREFIX = "input_"
 
 
+#: What a recorded parameter value may be. **JSON-safe scalars only**, and
+#: that is a persistence constraint rather than fastidiousness:
+#: `Provenance.to_dict` puts `parameters` straight into the saved project,
+#: so one unserialisable value breaks saving for the whole project rather
+#: than for the calculator that produced it.
+_RECORDABLE = (str, int, float, bool, type(None))
+
+
+def recordable_parameters(parameters: dict[str, object] | None) -> dict[str, object]:
+    """`parameters` reduced to what can be persisted and replayed.
+
+    **A result is only reproducible if it says what it was computed
+    with**, and until this existed nothing recorded that: the routing
+    layer noted which CONFORMER a calculator was handed and never which
+    settings it ran under. Anything replaying a calculation -- the 3D
+    overlay recomputing for the conformer on screen, a future "rerun
+    this" -- would silently have used today's defaults instead, which is
+    a different calculation wearing the original's label.
+
+    **Values that cannot be persisted are DROPPED, not stringified.** A
+    `repr()` is not a parameter: it cannot be fed back to `compute()`,
+    and storing one would turn "I cannot replay this" into a value that
+    looks replayable. A caller that finds a parameter missing must refuse
+    to replay rather than substitute a default -- see the overlay's
+    origin resolution.
+
+    Lists and tuples of scalars are kept (flattened to lists, since JSON
+    has no tuple) because a range or a set of thresholds is an ordinary
+    parameter shape; anything nested deeper is dropped rather than walked,
+    because no registered calculator takes one and a recursive validator
+    nobody needs is a place for bugs to live.
+    """
+    if not parameters:
+        return {}
+    kept: dict[str, object] = {}
+    for name, value in parameters.items():
+        if isinstance(value, _RECORDABLE):
+            kept[str(name)] = value
+        elif isinstance(value, (list, tuple)) and all(
+            isinstance(item, _RECORDABLE) for item in value
+        ):
+            kept[str(name)] = list(value)
+        else:
+            logger.debug(
+                "Parameter %r is not persistable (%s); it will not be recorded",
+                name,
+                type(value).__name__,
+            )
+    return kept
+
+
 def geometry_provenance(model: MoleculeModel, calculation_input: str) -> dict[str, object]:
     """What to record about which geometry a result was computed on.
 
