@@ -44,7 +44,17 @@ REPO = Path(__file__).resolve().parent.parent
 #: `--deselect <path>::<name>`, however the workflow spells the value --
 #: literally, or through `${{ env.NAME }}`, which is how tests.yml avoids
 #: repeating the id in two jobs.
-_DESELECT = re.compile(r"--deselect\s+(?:\$\{\{\s*env\.(?P<var>\w+)\s*\}\}|(?P<literal>\S+))")
+#:
+#: **THE OPTIONAL QUOTES ARE LOAD-BEARING**, and were added after this
+#: file's first version cost a full-suite run. The workflow quotes the
+#: expansion so the value is one argument under both pwsh (Windows) and
+#: bash (Linux); without `["']?` here the literal branch matched `"${{`
+#: and the guard failed on a workflow that was perfectly correct. It
+#: failed CLOSED, which is the right direction -- but a parser of someone
+#: else's syntax has to accept the forms that syntax really allows.
+_DESELECT = re.compile(
+    r"""--deselect\s+["']?(?:\$\{\{\s*env\.(?P<var>\w+)\s*\}\}|(?P<literal>[^\s"']+))["']?"""
+)
 
 #: `NAME: path::test_name` in a workflow `env:` block.
 _ENV_NODE_ID = re.compile(r"^\s*(?P<var>\w+):\s*(?P<node>\S+\.py::\S+)\s*$", re.MULTILINE)
