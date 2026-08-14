@@ -261,22 +261,59 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-16 minutes**, ending at `4293 passed, 8 skipped`
-(measured 2026-08-13, 12m30. +24 over the 4269 below, for the conformer
-funnel work -- 5 symmetry-metric guards in the dedup file, 5 in
-generation-options (the snapshot default, origin tracing, the persistence
-boundary, the observational guard, the embedder wiring), 6 in the service
-(four truncation, two provenance-flag), 7 for the details dialog, and the
-defaults pin).
+A clean run is **6-16 minutes**, ending at `4299 passed, 8 skipped`
+(measured 2026-08-13, 11m57. +6 over the 4293 below, for the report
+parser's sign class -- both-signs, the sign kept in the value, the
+positive Huckel HOMO, the value list, the attached unit, and the
+`report_fields` entry point).
 
-**Measured on `conformer-defaults` at `6245a32`, and here is why it
-still describes master.** Master's merge `2ed1100` adds only `cdfc72e`
--- a docstring and the funnel script's constant import, no test
-functions -- and the cheap half of the rule confirms it: master COLLECTS
-4301, which is exactly 4293 + 8, in seven seconds. Note the run was also
-CONCURRENT with funnel generation and a live app drive for part of its
-length and still came in at 12m30, which says the 6-16 band has slack in
-it rather than being tight.
+**A BRANCH THAT ADDS TESTS CAN STILL DESCRIBE MASTER, AND HERE IS THE
+CONDITION.** The entries below say a branch figure is citable when the
+trees are identical, which this one is NOT -- it adds six test
+functions. The weaker check that does apply: `origin/master` at
+`be585c3` **is** the merge-base, so nothing landed while the branch was
+open and merging is a FAST-FORWARD -- the merge result's tree is the
+branch's tree, byte for byte. That is the claim worth making, and it is
+strictly what "measured on the merge commit" buys.
+
+Both collected counts were taken (4 seconds each) and reconcile exactly:
+
+    master  be585c3   COLLECTS 4301
+    branch  9de88be   COLLECTS 4307   = 4301 + 6
+    the run                     4299 passed + 8 skipped = 4307
+
+**Check the fast-forward, do not assume it.** The whole reason the
+entries below are so insistent is that master HAS moved under a branch
+before, twice, and the branch figure was wrong both times:
+
+```bash
+[ "$(git merge-base origin/master HEAD)" = "$(git rev-parse origin/master)" ]
+```
+
+**AND THE FIRST RUN OF THIS FIGURE WAS THROWN AWAY.** A mutation harness
+was writing to `src/openchem/chem/report_adapter.py` and clearing
+`__pycache__` across the tree while that suite run was in flight, which
+is exactly the "an A/B is worthless if the tree is being edited during
+it" rule elsewhere in this file, applied to a plain run rather than to an
+A/B. It reached 26% looking perfectly healthy. **A run concurrent with
+anything that touches `src/` is not a measurement**, and the previous
+entry's "CONCURRENT with funnel generation and a live app drive" was
+survivable only because those two generate data rather than edit code.
+
+Before it: 4293 (measured 2026-08-13, 12m30. +24 over the 4269 below,
+for the conformer funnel work -- 5 symmetry-metric guards in the dedup
+file, 5 in generation-options (the snapshot default, origin tracing, the
+persistence boundary, the observational guard, the embedder wiring), 6 in
+the service (four truncation, two provenance-flag), 7 for the details
+dialog, and the defaults pin).
+
+Measured on `conformer-defaults` at `6245a32`. Master's merge `2ed1100`
+adds only `cdfc72e` -- a docstring and the funnel script's constant
+import, no test functions -- and the cheap half of the rule confirms it:
+master COLLECTS 4301, which is exactly 4293 + 8, in seven seconds. Note
+the run was also CONCURRENT with funnel generation and a live app drive
+for part of its length and still came in at 12m30, which says the 6-16
+band has slack in it rather than being tight.
 
 Before it: 4269 (measured 2026-08-12, 14m54. +13 over the 4255 below,
 for the deferred-list sweep -- 8 for the docs staleness guard, the three
@@ -2850,6 +2887,42 @@ A `Fact` was never flattened, so `_reduce_report` has nothing to recover:
 45 facts give 43 numeric columns on the same four calculators, the two
 text ones being a formula and a direction vector. **The column ids are
 byte-identical**, so saved tables, charts and exports survive.
+
+#### NEVER TUNE EITHER STRING PARSER BY READING ITS PRODUCERS
+
+There are two -- `report_adapter._MEASUREMENT` (presentation: recover a
+label) and `result_reduction.parse_reported_numbers` (numeric columns) --
+and they judge free-text lines written across 49 calculators, so "which
+lines does my change affect" is not a grep question.
+`benchmarks/report_lines/sweep.py` answers it by instrumenting
+`report_adapter._split` and running the real registry: **484 distinct
+lines**, and `--candidate` diffs a value pattern against them in both
+directions.
+
+```bash
+uv run --no-sync python benchmarks/report_lines/sweep.py --candidate '...'
+```
+
+**It has already overruled one obviously-correct fix.** `_MEASUREMENT`
+accepted a leading minus and not a leading plus, so a line formatted
+`f"{v:+.2f}"` was refused for its SIGN -- 18 lines, and the panel showed
+three parsed dipole components beside one unparsed one. The candidate fix
+added a `(?=\s|$)` boundary so a comma-separated value list could not
+mis-split, and the sweep said it **regresses 31 real lines**: `"C:
+23.79%"` and `"Percent buried volume: 13.30%"` attach their unit with no
+space. What shipped is the one-character `-?` -> `[-+]?`.
+
+Two things that decided it, both worth reusing:
+
+- **Check the candidate against `_as_float` as well.** A stricter number
+  parses `"+2.00"` out of a ten-orbital spectrum, so the batch table
+  would gain a numeric column asserting a list is a scalar. Leaving the
+  comma in the value class makes it unfloatable, which is what keeps that
+  column correctly textual.
+- **The two parsers must NOT be aligned.** The numeric one is entitled to
+  refuse `"Pi system: 10 atoms, 10 pi electrons"`; the presentation one
+  still has to show it. Making one call the other looks like reuse and
+  deletes that distinction.
 
 #### `ReportResult.matched` is a DERIVED view, kept on purpose
 

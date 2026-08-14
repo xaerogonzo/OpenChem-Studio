@@ -59,7 +59,40 @@ _CATEGORY_BY_NAME: dict[str, FactCategory] = {
 #: `"Label: 2.35 A"` -> label, number, unit. Anchored so a line that is
 #: prose rather than a measurement does not match: `"Note: this is
 #: indicative only"` has no number after the colon and stays one line.
-_MEASUREMENT = re.compile(r"^(?P<label>[^:]{1,60}):\s+(?P<value>-?\d[\d.,eE+-]*)\s*(?P<units>[^\s].*)?$")
+#:
+#: **THE SIGN CLASS IS `[-+]`, NOT `-`, AND THAT COST TWO CALCULATORS.**
+#: A producer that formats with `f"{v:+.2f}"` -- which is the right thing
+#: to do for a signed component, since it makes the sign column line up --
+#: emits `"Dipole Z: +0.16 Debye"`. A leading-minus-only pattern refuses
+#: that, so the fact fell back to the generic label and the panel showed
+#: three parsed component rows beside one unparsed one, the difference
+#: being nothing but the sign of the number. Measured by instrumenting
+#: this function and running all 49 registered calculators over ten
+#: molecules with real conformers -- 484 distinct lines, of which 18 were
+#: refused for their sign alone:
+#:
+#:      9  Dipole X/Y/Z: +0.00 Debye     chem/dipole.py
+#:      4  HOMO: +1.00 beta              chem/huckel.py -- a bonding HOMO
+#:                                       is positive in `E = alpha+x*beta`,
+#:                                       so this was refused on essentially
+#:                                       every pi system, not an edge case
+#:      5  Orbital energies (beta): ...  chem/huckel.py, a value LIST
+#:
+#: The value class keeps `,` in it deliberately, and that is what makes
+#: the third row safe. A list comes out as value `"+2.00,"` -- unparseable
+#: as a float, so `result_reduction` correctly declines to make it a
+#: numeric column, while `display_value` still reconstructs the line byte
+#: for byte. Tightening this to a bare number was measured and is WORSE on
+#: both counts: it yields `2.0` for a ten-orbital spectrum and inserts a
+#: stray space before the comma. See
+#: `test_a_value_list_is_labelled_without_becoming_a_number`.
+#:
+#: **DO NOT ADD A `(?=\s|$)` BOUNDARY** to keep lists out. It is the
+#: obvious way to do it and the same sweep says it regresses 31 real
+#: lines: `"C: 23.79%"` and `"Percent buried volume: 13.30%"` attach their
+#: unit with no space, so requiring whitespace after the number refuses
+#: the elemental analysis and the buried-volume result outright.
+_MEASUREMENT = re.compile(r"^(?P<label>[^:]{1,60}):\s+(?P<value>[-+]?\d[\d.,eE+-]*)\s*(?P<units>[^\s].*)?$")
 
 
 def category_for(name: str) -> FactCategory:
