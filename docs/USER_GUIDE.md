@@ -299,11 +299,20 @@ would only be dressed up by one. The model is drawn on the *stored*
 conformer, and the dialog says so: if you regenerate conformers after
 calculating, rerun the calculator before trusting the picture.
 
-**Show shapes** draws them on the conformer you are looking at.** Tick it
+**Show shapes** draws them on the conformer you are looking at. Tick it
 in the 3D viewer's toolbar and any shape-valued result you have already
 calculated — the dipole vector, a ligand cone, the principal axes — is
 drawn on the structure on screen, turning as you turn it and following
 you as you step conformers.
+
+**In the gallery it draws in every cell**, and each one is its own
+answer: the shape in a cell is recalculated for the conformer *that cell*
+is showing, not copied from the selected one. Six cells of a flexible
+molecule will show six different dipole arrows pointing six different
+ways, each captioned with its own value beside the arrow rather than in
+the status line — one line cannot honestly carry six numbers, and the
+line goes on describing the page ("Conformers 1-6 of 8"). Paging
+recalculates for the new page.
 
 **Its number can differ from the Properties panel's, and both are
 right.** They answer different questions:
@@ -411,6 +420,10 @@ Three controls make it a comparison rather than a contact sheet:
   different colour. Ticking is separate from clicking: one marks a
   conformer for superimposition, the other chooses which conformer the rest
   of the toolbar acts on.
+
+**Show shapes** works here too, per cell — see *Shapes you can look at*
+above. It is what turns the gallery from "these are different shapes"
+into "and here is what that does to the dipole".
 
 The gallery needs a second 3D drawing surface from your display. Where one
 is not available — some remote sessions and software renderers — it says so

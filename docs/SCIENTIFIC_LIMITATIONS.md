@@ -593,6 +593,14 @@ belongs to precisely so the difference reads as information. While a
 conformer's shapes are being computed nothing is drawn, rather than the
 previous conformer's geometry being left on screen.
 
+In the gallery every cell is recomputed for its own conformer, so a page
+of six shows six values that are all correct and all different. **None of
+them is "the" dipole of the molecule**: each belongs to one geometry, and
+a real sample is an ensemble. Comparing them tells you how much the
+property depends on conformation, which is a different and usually more
+useful thing than any single number — but it is not a population average,
+for the same reason the energies below rank without quantifying.
+
 **Energies rank; they do not quantify populations.** Conformers are sorted
 by force-field energy so conformer 1 is the lowest found, but MMFF energies
 are not free energies and the differences between them do not convert into
