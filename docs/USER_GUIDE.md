@@ -1359,7 +1359,14 @@ Each finding carries:
   (the regulation defines a family and this is in it), `analogue` (close to
   a listed substance, explicitly *not* a determination), or `precursor`
 - a **confidence** — `exact` where the regulation is itself a structural
-  specification, down to `requires_review` for anything unresolved
+  specification and the pattern transcribes it, `verified` for a named
+  substance whose identity was checked against the primary text,
+  `approximate` for a reading of prose that structure cannot fully carry,
+  and `requires_review` for anything unresolved
+- for a **precursor**, the legitimate uses it also has. Most listed
+  precursors are ordinary reagents — thionyl chloride converts acids to
+  acyl chlorides, triethanolamine is in a great deal of cosmetics — and a
+  finding without that context reads as an accusation
 - the **atoms that matched**, rendered through the same per-atom colouring
   the rest of the panel uses
 
@@ -1369,13 +1376,16 @@ what a plain "no match" hides. Diisopropyl fluorophosphate screened against
 the chemical-weapons ruleset returns no match *and* an explanation:
 
 ```
-No matches in the 1 ruleset consulted
-Near miss: Alkylphosphonofluoridates (Schedule 1, A.1)
-  - has phosphoryl (P=O), P-F bond, O-alkyl ester; lacks P-alkyl bond
+No matches in the 3 rulesets consulted
+Near miss: Alkylphosphonofluoridates (Schedule 1, A.1) - has phosphoryl
+  (P=O), P-F bond, O-alkyl ester, total carbons <= 10; lacks P-alkyl is
+  methyl, ethyl, n-propyl or isopropyl
 ```
 
 That is the real distinction — DFP genuinely is not Schedule 1, and the
-missing P–C bond is why. Sarin, which has it, matches.
+missing P–C bond is why. Sarin, which has it, matches. Near misses are
+capped at three, because past that the list stops explaining and becomes a
+catalogue of everything the structure is not.
 
 A near miss is only offered when at least one predicate actually matched
 atoms in your structure. Without that rule, ethanol came back as a near
@@ -1383,10 +1393,48 @@ miss to a nerve-agent schedule on the strength of a numeric bound it
 happened to satisfy, which is worse than saying nothing.
 
 **Coverage is stated, not implied.** The count of rulesets consulted is in
-the result, and rulesets carry their effective date, source citation and
-known limitations. What ships is only what could be verified and lawfully
-redistributed, so the honest reading of a clean result is "these rulesets
-did not match", never "nothing applies".
+the result, each ruleset's own limitations appear beside it, and every
+registered domain with no ruleset loaded is listed as NOT checked. What
+ships is only what could be verified and lawfully redistributed, so the
+honest reading of a clean result is "these rulesets did not match", never
+"nothing applies".
+
+### Screening as of a past date
+
+**Screen as of** (in the calculator's settings, blank by default) answers
+*"was this listed when the sample was made"*. Give it a date as
+`YYYY-MM-DD` and rules that took effect after it are withheld — including
+from the near-miss list, so the screen never tells you a structure is one
+feature away from an entry that did not yet exist.
+
+Leave it blank and nothing changes: every loaded rule is screened, exactly
+as before the field existed.
+
+The result says which date it used, and each ruleset's coverage line says
+what that date cost it — `4 of 14 rules withheld, effective after
+2020-06-06; 10 applicable`. A screen that quietly dropped rules and still
+reported "no matches in the 4 rulesets consulted" would be telling you far
+less than it appeared to.
+
+Three things to know before trusting a dated answer:
+
+- **It reports when a rule *started* applying, and nothing else.** No
+  ruleset here records repeal or expiry, so a substance since removed from a
+  schedule still appears at any later date.
+- **A ruleset with no dates is not constrained by yours.** The DEA list
+  records none, so its 47 rules are reported whatever date you ask for. The
+  coverage line says so; it is not confirmation that they applied then.
+- **A date the application cannot read is refused**, not quietly ignored.
+  The screen does not run and tells you why, because handing you today's
+  answer to a question about 2019 would be worse than handing you nothing.
+
+**What ships today is all three CWC schedules and the US DEA listed
+chemicals** — two of the twelve registered domains. The other ten are
+still empty and say so on every screen. Expect ordinary chemicals to appear: Schedule 3
+lists phosgene, hydrogen cyanide, thionyl chloride and triethanolamine, all
+of them large-scale industrial chemicals, because the schedules exist to
+mark what gets declared and verified rather than what is forbidden. A
+match is a listing, not an accusation, and the panel is worded that way.
 
 ---
 

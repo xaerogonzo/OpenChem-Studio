@@ -698,6 +698,93 @@ unrelated stereoisomer.
 while their metabolites are not. The engine carries the match type so a
 curated list could populate it, and predicts nothing.
 
+**A dated screen is a question about the rulesets, not about legal
+history.** *Screen as of* answers exactly one thing: *would this rule be
+considered applicable under the effective-date metadata encoded in this
+ruleset?* It does **not** establish complete historical coverage for that
+date, repeal or expiry, jurisdictional validity beyond the ruleset,
+amendments not represented in it, or how anything was interpreted or
+enforced at the time. It is not a legal-history engine and must not be read
+as one.
+
+Two concrete consequences, both visible in the screen's own output:
+
+- **Nothing here records repeal or expiry**, only when a rule started
+  applying. A substance since removed from a schedule is still reported at
+  any later date, and no ruleset carries the field that would say otherwise.
+- **A ruleset with no dates is not constrained by the date at all.** The US
+  DEA listed-chemicals ruleset records none — 47 of the 91 shipped rules —
+  because 21 CFR 1310.02 has been amended repeatedly and no single date
+  describes the list. Those rules are reported whatever date is asked for,
+  and the coverage note says so rather than letting it pass as confirmation
+  that they applied then. The alternative, treating an absent date as "never
+  applicable", would silently empty half the screen.
+
+A date the application cannot read is **refused**: the screen does not run,
+and says so. Falling back to a current-rules answer with a warning attached
+would answer a different question from the one asked and present it as the
+one asked.
+
+**A LISTING IS NOT A PROHIBITION, and most of what ships is ordinary
+chemistry.** All three CWC schedules are loaded, and Schedules 2 and 3 are
+largely industrial: phosgene, hydrogen cyanide, thionyl chloride,
+triethanolamine, thiodiglycol. They are listed so that production above
+certain quantities is declared and can be verified. The Convention's
+obligations turn on quantity and concentration, which a structure carries
+neither of — so this screen can say a chemical is listed and can never say
+whether an obligation applies to anybody.
+
+**Three entries are not encoded, and are counted rather than hidden.**
+Saxitoxin and ricin, where a structural rule for a protein toxin is
+meaningless; and Schedule 3's diethyl phosphite, where PubChem's record for
+the CAS the entry prints is a cation and OPSIN returns an anion, so neither
+resolver reaches the neutral substance listed. Coverage reports 16 of 17
+for that ruleset and names the gap.
+
+**Two rules over-report, by construction, and say so on the finding.**
+Schedule 2's entry B.4 opens "except for those listed in Schedule 1" and no
+rule can exclude another ruleset's members, so a Schedule 1 organophosphorus
+agent matches both. And Schedule 3's entries carry no "and corresponding
+salts" wording, unlike several in Schedules 1 and 2, while the engine strips
+counter-ions before comparing — so a salt of a Schedule 3 chemical is
+reported. Both are declared limitations rather than silent behaviour.
+
+**Where a generic entry gives a size limit, it is usually not applied.**
+Clauses like "H or ≤C10, including cycloalkyl" restrict a *substituent*,
+and this engine can only count a molecule's total carbons. Applying the
+total-carbon reading to entries A.3 and B.10 would exclude VX and QL, which
+are those entries' own examples and have eleven carbons each — so those
+rules carry no carbon limit at all. Where a limit is applied it may
+over-report and will not under-report.
+
+**THE DRUG-PRECURSOR RULESET IS ANCHORED MORE WEAKLY THAN THE CWC ONES,
+and it says so.** The CWC Annex prints a CAS number beside every named
+chemical, so those identities are traceable to the statute's own
+identifier. 21 CFR 1310.02 prints DEA chemical codes instead, the EU
+precursor annex prints CN codes, and the UN 1988 Tables print names only —
+so no drug-precursor identity here could be anchored that way. Each rests
+on two independent structure derivations agreeing, which is evidence and
+not the statute's word. Every rule records which route produced it.
+
+**A listed chemical is not a controlled substance.** The DEA list exists
+because these chemicals can be diverted, not because possessing them is an
+offence. Most are ordinary commerce and several are licensed medicines.
+
+**Allotropes cannot be told apart by structure.** Red and white phosphorus
+are separate entries with separate DEA codes and the same element; neither
+is encoded.
+
+**"Optical isomers" is matched more broadly than it is written.** The
+engine compares stereo-insensitively as a fallback, which reaches
+diastereomers as well as enantiomers. The DEA list carries three
+diastereomer pairs, so each member matches its partner's entry too — as an
+isomer, saying so, and every one of the six is itself listed.
+
+**An exemption is matched as a skeleton plus a carbon count, not as an
+identity.** Three entries exempt named chemicals; each exemption covers the
+chemical and its salts, and does not excuse a mixture containing it.
+Mixtures are outside what this screen considers in any case.
+
 ---
 
 ## Substance classification and coordination

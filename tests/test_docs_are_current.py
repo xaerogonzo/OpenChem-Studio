@@ -326,6 +326,11 @@ DEFERRALS: list[Deferral] = [
         claim="`SimilarityService` doesn't exist yet",
         unbuilt=lambda: not _defines("SimilarityService"),
     ),
+    # "regulatory screening has no date awareness" lived here and is gone,
+    # because its entry is SETTLED now and SETTLED items carry no predicate.
+    # It went stale exactly as designed: the guard fails the moment
+    # `def screen(...)` grows an `as_of`, which is what forced the entry to
+    # be rewritten rather than left describing the previous version.
     Deferral(
         claim="plugin loading has no async/background state",
         unbuilt=lambda: not any(

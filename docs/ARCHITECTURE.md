@@ -688,6 +688,63 @@ document may cite a file or a test that does not exist.
   a real Vina 1.2.7 and a managed Temurin JRE.
 - **OPEN** -- `SimilarityService` doesn't exist yet; belongs to a later roadmap phase
   and would currently have no callers.
+- **SETTLED** -- regulatory screening is date-aware.
+  `RegulatoryEngine.screen(..., as_of: date | None = None)` withholds rules
+  that take effect after `as_of`, `ScreeningReport` says which date it
+  screened and what it withheld, and `benchmarks/regulatory/`'s `historical`
+  corpus is populated for the first time.
+
+  **It had been assumed to exist and did not**, which is kept because the
+  assumption survived being written into a plan. That fourth corpus -- "for
+  structures whose status CHANGED, the only way to test that effective-date
+  resolution works" -- was empty for the life of the project, described as
+  waiting for a superseding ruleset. When the CWC 2019 additions were encoded
+  it looked as though they would fill it: entries A.13 to A.16 entered force
+  on 7 June 2020 and the rules carry that date. They could not, because
+  `LegalSource.effective_date` was recorded provenance that nothing screened
+  against, so there was no before-and-after to assert.
+
+  **The shipped data, by resolved date, is what makes each decision
+  load-bearing rather than theoretical:**
+
+        1997-04-29   40 rules   the Convention's own commencement
+        2020-06-07    4 rules   A.13-A.16, the only rules dating themselves
+        undated      47 rules   the entire DEA list, at rule and ruleset level
+
+  So an undated rule is **not date-filtered** -- narrower than "applies at
+  every date", which is a claim about history no undated ruleset can support,
+  and the wording is enforced down to the test names. The opposite default
+  would silently empty a majority of the file while looking exactly like a
+  substance that is not listed.
+
+  Four things that were decided rather than fallen into:
+
+  1. **A withheld rule produces no NEAR MISS either**, so the skip lives in
+     the screening loop rather than in `_apply`. A near miss naming a rule
+     that did not yet exist would disclose future law while claiming to
+     describe the past.
+  2. **A user's unreadable date REFUSES the screen** (`CacheState.FAILED`, no
+     findings) rather than falling back to an undated run with a warning
+     attached. A malformed date inside a *ruleset file* does the opposite --
+     that rule is screened as undated and reported -- because there it is one
+     entry that is broken, and here it is the question.
+  3. **`as_of=None`, never `date.today()`.** Every shipped rule is dated in
+     the past, so today's date would give identical answers on all shipped
+     data and on all four corpora; it diverges only on a rule dated in the
+     future, which is what the guard for it uses.
+  4. **`rule_applies_at`, not `is_in_force`.** The engine knows an inclusive
+     start date and nothing else.
+
+  Seven mutations, each caught, and two by exactly one test: deleting the
+  ruleset-level date fallback is invisible to every shipped ruleset (the
+  build already writes that date onto each undated rule, so only a synthetic
+  user-shaped fixture reaches the runtime branch), and defaulting `as_of` to
+  today is invisible to everything except a rule dated in the future.
+
+  **What a dated screen still does not establish** is in
+  `SCIENTIFIC_LIMITATIONS.md`; the sharpest is that no ruleset records repeal
+  or expiry, so this answers when a rule STARTED applying and would report
+  one since removed as though it still did.
 - **DECISION** -- plugin loading has no async/background state, no `ToolbarProvider`/
   `ContextMenuProvider`, no numeric provider priority, and no declared
   permissions, and no `RemoteServicePlugin` base class exists for the

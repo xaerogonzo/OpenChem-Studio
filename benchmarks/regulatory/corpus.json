@@ -1,48 +1,1108 @@
 {
-  "_comment": "Four corpora. `expect` lists the rule_ids a structure SHOULD match; an empty list means it must match nothing. Negatives and edge cases are the point: a rule flagging every organophosphate scores perfect recall on positives alone and is useless in a screen.",
-  "positives": [
-    {"name": "sarin (GB)", "smiles": "CC(C)OP(C)(=O)F", "expect": ["cwc-1-a-1"]},
-    {"name": "soman (GD)", "smiles": "CC(C)(C)C(C)OP(C)(=O)F", "expect": ["cwc-1-a-1"]},
-    {"name": "ethyl methylphosphonofluoridate", "smiles": "CCOP(C)(=O)F", "expect": ["cwc-1-a-1"]},
-    {"name": "tabun (GA)", "smiles": "CCOP(=O)(C#N)N(C)C", "expect": ["cwc-1-a-2"]},
-    {"name": "VX", "smiles": "CCOP(C)(=O)SCCN(C(C)C)C(C)C", "expect": ["cwc-1-a-3"]},
-    {"name": "sulfur mustard (HD)", "smiles": "ClCCSCCCl", "expect": ["cwc-1-a-4"]},
-    {"name": "sesquimustard (Q)", "smiles": "ClCCSCCSCCCl", "expect": ["cwc-1-a-4"]},
-    {"name": "lewisite 1 (L)", "smiles": "Cl[As](Cl)C=CCl", "expect": ["cwc-1-a-5"]},
-    {"name": "HN2 (nitrogen mustard)", "smiles": "CN(CCCl)CCCl", "expect": ["cwc-1-a-6"]},
-    {"name": "HN3 (nitrogen mustard)", "smiles": "ClCCN(CCCl)CCCl", "expect": ["cwc-1-a-6"]}
-  ],
-  "negatives": [
-    {"name": "aspirin", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "expect": []},
-    {"name": "ethanol", "smiles": "CCO", "expect": []},
-    {"name": "benzene", "smiles": "c1ccccc1", "expect": []},
-    {"name": "caffeine", "smiles": "Cn1cnc2c1c(=O)n(C)c(=O)n2C", "expect": []},
-    {"name": "glucose", "smiles": "OCC1OC(O)C(O)C(O)C1O", "expect": []},
-    {"name": "trimethyl phosphate", "smiles": "COP(=O)(OC)OC", "expect": []},
-    {"name": "triethyl phosphate", "smiles": "CCOP(=O)(OCC)OCC", "expect": []},
-    {"name": "malathion (pesticide)", "smiles": "CCOC(=O)CC(SP(=S)(OC)OC)C(=O)OCC", "expect": []},
-    {"name": "dimethyl sulfide", "smiles": "CSC", "expect": []},
-    {"name": "triethylamine", "smiles": "CCN(CC)CC", "expect": []},
-    {"name": "1,2-dichloroethane", "smiles": "ClCCCl", "expect": []},
-    {"name": "thiodiglycol (Schedule 2, not Schedule 1)", "smiles": "OCCSCCO", "expect": []}
-  ],
-  "edge_cases": [
-    {"name": "diisopropyl fluorophosphate (no P-C bond)", "smiles": "CC(C)OP(=O)(F)OC(C)C", "expect": [],
-     "why": "A phosphoFLUORIDATE, not a phosphoNOfluoridate. Same phosphoryl, fluorine and alkoxy as sarin. The single most important negative in the set."},
-    {"name": "P-butyl homologue", "smiles": "CCCCP(=O)(F)OC(C)C", "expect": [],
-     "why": "Scheduled connectivity, but entry A.1 restricts the P-alkyl group to methyl, ethyl, n-propyl or isopropyl."},
-    {"name": "C12 O-alkyl homologue", "smiles": "CCCCCCCCCCCCOP(C)(=O)F", "expect": [],
-     "why": "Outside the entry's 'equal to or less than C10' clause, which no SMARTS expresses."},
-    {"name": "2-chloroethyl ethyl sulfide (half-mustard)", "smiles": "CCSCCCl", "expect": ["cwc-1-a-4"],
-     "why": "KNOWN OVER-BROAD MATCH. The A.4 pattern keys on a single 2-chloroethyl thioether arm; the entry is a heading over an enumeration. Recorded as expected so the benchmark measures the rule as written rather than as hoped."},
-    {"name": "chlorambucil (licensed medicine)", "smiles": "OC(=O)CCCc1ccc(cc1)N(CCCl)CCCl", "expect": [],
-     "why": "A KNOWN FALSE POSITIVE, deliberately scored as one. Chlorambucil is a cytotoxic medicine and is not among the HN1/HN2/HN3 the entry enumerates, but it is chemically a nitrogen mustard and the approximate A.6 pattern matches it. The benchmark reports this rather than blessing it."},
-    {"name": "melphalan (licensed medicine)", "smiles": "NC(Cc1ccc(cc1)N(CCCl)CCCl)C(=O)O", "expect": [],
-     "why": "Same known false positive as chlorambucil."},
-    {"name": "sarin hydrolysis product (IMPA)", "smiles": "CC(C)OP(C)(=O)O", "expect": [],
-     "why": "The degradation product has no fluorine, so it is outside A.1 even though it is a well-known sarin marker."}
-  ],
-  "historical": [
-    {"_note": "Reserved for structures whose regulatory status CHANGED, which is the only way to test that effective-date resolution works. Empty because the shipped ruleset carries a single revision; populate when a superseding ruleset ships."}
-  ]
+ "_comment": "Four corpora. `expect` lists the rule_ids a structure SHOULD match; an empty list means it must match nothing. Negatives and edge cases are the point: a rule flagging every organophosphate scores perfect recall on positives alone and is useless in a screen.",
+ "positives": [
+  {
+   "name": "sarin (GB)",
+   "smiles": "CC(C)OP(C)(=O)F",
+   "expect": [
+    "cwc-1-a-1",
+    "cwc-2-b-4"
+   ]
+  },
+  {
+   "name": "soman (GD)",
+   "smiles": "CC(C)(C)C(C)OP(C)(=O)F",
+   "expect": [
+    "cwc-1-a-1",
+    "cwc-2-b-4"
+   ]
+  },
+  {
+   "name": "ethyl methylphosphonofluoridate",
+   "smiles": "CCOP(C)(=O)F",
+   "expect": [
+    "cwc-1-a-1",
+    "cwc-2-b-4"
+   ]
+  },
+  {
+   "name": "tabun (GA)",
+   "smiles": "CCOP(=O)(C#N)N(C)C",
+   "expect": [
+    "cwc-1-a-2"
+   ]
+  },
+  {
+   "name": "VX",
+   "smiles": "CCOP(C)(=O)SCCN(C(C)C)C(C)C",
+   "expect": [
+    "cwc-1-a-3",
+    "cwc-2-b-4"
+   ]
+  },
+  {
+   "name": "sulfur mustard (HD)",
+   "smiles": "ClCCSCCCl",
+   "expect": [
+    "cwc-1-a-4"
+   ]
+  },
+  {
+   "name": "sesquimustard (Q)",
+   "smiles": "ClCCSCCSCCCl",
+   "expect": [
+    "cwc-1-a-4"
+   ]
+  },
+  {
+   "name": "lewisite 1 (L)",
+   "smiles": "Cl[As](Cl)C=CCl",
+   "expect": [
+    "cwc-1-a-5"
+   ]
+  },
+  {
+   "name": "HN2 (nitrogen mustard)",
+   "smiles": "CN(CCCl)CCCl",
+   "expect": [
+    "cwc-1-a-6"
+   ]
+  },
+  {
+   "name": "HN3 (nitrogen mustard)",
+   "smiles": "ClCCN(CCCl)CCCl",
+   "expect": [
+    "cwc-1-a-6"
+   ]
+  },
+  {
+   "name": "phosgene",
+   "smiles": "C(=O)(Cl)Cl",
+   "expect": [
+    "cwc-3-a-1"
+   ]
+  },
+  {
+   "name": "hydrogen cyanide",
+   "smiles": "C#N",
+   "expect": [
+    "cwc-3-a-3"
+   ]
+  },
+  {
+   "name": "chloropicrin",
+   "smiles": "C([N+](=O)[O-])(Cl)(Cl)Cl",
+   "expect": [
+    "cwc-3-a-4"
+   ]
+  },
+  {
+   "name": "thionyl chloride",
+   "smiles": "O=S(Cl)Cl",
+   "expect": [
+    "cwc-3-b-14"
+   ]
+  },
+  {
+   "name": "triethanolamine",
+   "smiles": "OCCN(CCO)CCO",
+   "expect": [
+    "cwc-3-b-17"
+   ]
+  },
+  {
+   "name": "sulfur monochloride (Cl2S2, not ClS)",
+   "smiles": "ClSSCl",
+   "expect": [
+    "cwc-3-b-12"
+   ]
+  },
+  {
+   "name": "cyanogen chloride",
+   "smiles": "ClC#N",
+   "expect": [
+    "cwc-3-a-2"
+   ]
+  },
+  {
+   "name": "phosphorus oxychloride",
+   "smiles": "O=P(Cl)(Cl)Cl",
+   "expect": [
+    "cwc-3-b-5"
+   ]
+  },
+  {
+   "name": "phosphorus trichloride",
+   "smiles": "ClP(Cl)Cl",
+   "expect": [
+    "cwc-3-b-6"
+   ]
+  },
+  {
+   "name": "phosphorus pentachloride",
+   "smiles": "ClP(Cl)(Cl)(Cl)Cl",
+   "expect": [
+    "cwc-3-b-7"
+   ]
+  },
+  {
+   "name": "trimethyl phosphite",
+   "smiles": "COP(OC)OC",
+   "expect": [
+    "cwc-3-b-8"
+   ]
+  },
+  {
+   "name": "triethyl phosphite",
+   "smiles": "CCOP(OCC)OCC",
+   "expect": [
+    "cwc-3-b-9"
+   ]
+  },
+  {
+   "name": "dimethyl phosphite",
+   "smiles": "COP(=O)OC",
+   "expect": [
+    "cwc-3-b-10"
+   ]
+  },
+  {
+   "name": "sulfur dichloride",
+   "smiles": "ClSCl",
+   "expect": [
+    "cwc-3-b-13"
+   ]
+  },
+  {
+   "name": "ethyldiethanolamine",
+   "smiles": "CCN(CCO)CCO",
+   "expect": [
+    "cwc-3-b-15"
+   ]
+  },
+  {
+   "name": "methyldiethanolamine",
+   "smiles": "CN(CCO)CCO",
+   "expect": [
+    "cwc-3-b-16"
+   ]
+  },
+  {
+   "name": "amiton",
+   "smiles": "CCN(CC)CCSP(=O)(OCC)OCC",
+   "expect": [
+    "cwc-2-a-1"
+   ]
+  },
+  {
+   "name": "PFIB",
+   "smiles": "FC(F)=C(C(F)(F)F)C(F)(F)F",
+   "expect": [
+    "cwc-2-a-2"
+   ]
+  },
+  {
+   "name": "BZ (3-quinuclidinyl benzilate)",
+   "smiles": "OC(c1ccccc1)(c1ccccc1)C(=O)OC1CN2CCC1CC2",
+   "expect": [
+    "cwc-2-a-3"
+   ]
+  },
+  {
+   "name": "dimethyl methylphosphonate",
+   "smiles": "COP(=O)(C)OC",
+   "expect": [
+    "cwc-2-b-4"
+   ]
+  },
+  {
+   "name": "N,N-dimethylphosphoramidic dichloride",
+   "smiles": "CN(C)P(=O)(Cl)Cl",
+   "expect": [
+    "cwc-2-b-5"
+   ]
+  },
+  {
+   "name": "dimethyl N,N-dimethylphosphoramidate",
+   "smiles": "COP(=O)(OC)N(C)C",
+   "expect": [
+    "cwc-2-b-6"
+   ]
+  },
+  {
+   "name": "arsenic trichloride",
+   "smiles": "Cl[As](Cl)Cl",
+   "expect": [
+    "cwc-2-b-7"
+   ]
+  },
+  {
+   "name": "benzilic acid",
+   "smiles": "OC(c1ccccc1)(c1ccccc1)C(=O)O",
+   "expect": [
+    "cwc-2-b-8"
+   ]
+  },
+  {
+   "name": "quinuclidin-3-ol",
+   "smiles": "OC1CN2CCC1CC2",
+   "expect": [
+    "cwc-2-b-9"
+   ]
+  },
+  {
+   "name": "2-(dimethylamino)ethyl chloride",
+   "smiles": "CN(C)CCCl",
+   "expect": [
+    "cwc-2-b-10"
+   ]
+  },
+  {
+   "name": "2-(diisopropylamino)ethanol",
+   "smiles": "CC(C)N(C(C)C)CCO",
+   "expect": [
+    "cwc-2-b-11"
+   ]
+  },
+  {
+   "name": "2-(diethylamino)ethanethiol",
+   "smiles": "CCN(CC)CCS",
+   "expect": [
+    "cwc-2-b-12"
+   ]
+  },
+  {
+   "name": "thiodiglycol",
+   "smiles": "OCCSCCO",
+   "expect": [
+    "cwc-2-b-13"
+   ]
+  },
+  {
+   "name": "pinacolyl alcohol",
+   "smiles": "CC(C(C)(C)C)O",
+   "expect": [
+    "cwc-2-b-14"
+   ]
+  },
+  {
+   "name": "DF (methylphosphonyldifluoride)",
+   "smiles": "CP(=O)(F)F",
+   "expect": [
+    "cwc-1-b-9",
+    "cwc-2-b-4"
+   ]
+  },
+  {
+   "name": "QL",
+   "smiles": "CCOP(C)OCCN(C(C)C)C(C)C",
+   "expect": [
+    "cwc-1-b-10",
+    "cwc-2-b-4"
+   ]
+  },
+  {
+   "name": "chlorosarin",
+   "smiles": "CC(C)OP(=O)(C)Cl",
+   "expect": [
+    "cwc-1-b-11",
+    "cwc-2-b-4"
+   ]
+  },
+  {
+   "name": "chlorosoman",
+   "smiles": "CC(C(C)(C)C)OP(=O)(C)Cl",
+   "expect": [
+    "cwc-1-b-12",
+    "cwc-2-b-4"
+   ]
+  },
+  {
+   "name": "a 2019 A.13 phosphonamidic fluoride",
+   "smiles": "CCN(CC)C(=NP(=O)(C)F)C",
+   "expect": [
+    "cwc-1-a-13",
+    "cwc-2-b-4"
+   ]
+  },
+  {
+   "name": "a 2019 A.14 phosphoramidofluoridate",
+   "smiles": "CCN(CC)C(=NP(=O)(OC)F)C",
+   "expect": [
+    "cwc-1-a-14"
+   ]
+  },
+  {
+   "name": "the 2019 A.15 chemical",
+   "smiles": "CCN(CC)C(=NP(=O)(C)F)N(CC)CC",
+   "expect": [
+    "cwc-1-a-15",
+    "cwc-2-b-4"
+   ]
+  },
+  {
+   "name": "a 2019 A.16 quaternary carbamate",
+   "smiles": "CN(C)C(=O)OC1=C(N=CC=C1)C[N+](C)(C)CCCCCCCCCC[N+](C)(C)CCO.[Br-].[Br-]",
+   "expect": [
+    "cwc-1-a-16"
+   ]
+  },
+  {
+   "name": "the 2019 A.16 BISquaternary example",
+   "smiles": "CC[N+](C)(CC1=C(C=CC=N1)OC(=O)N(C)C)CC(=O)CCCCCCC(=O)C[N+](C)(CC)CC2=C(C=CC=N2)OC(=O)N(C)C.[Br-].[Br-]",
+   "expect": [
+    "cwc-1-a-16"
+   ]
+  },
+  {
+   "name": "alpha-phenylacetoacetonitrile (DEA List I.1)",
+   "smiles": "CC(=O)C(C#N)C1=CC=CC=C1",
+   "expect": [
+    "dea-i-1"
+   ]
+  },
+  {
+   "name": "anthranilic acid (DEA List I.2)",
+   "smiles": "C1=CC=C(C(=C1)C(=O)O)N",
+   "expect": [
+    "dea-i-2"
+   ]
+  },
+  {
+   "name": "benzyl cyanide (DEA List I.3)",
+   "smiles": "C1=CC=C(C=C1)CC#N",
+   "expect": [
+    "dea-i-3"
+   ]
+  },
+  {
+   "name": "ephedrine (DEA List I.4)",
+   "smiles": "C[C@@H]([C@@H](C1=CC=CC=C1)O)NC",
+   "expect": [
+    "dea-i-12",
+    "dea-i-4"
+   ]
+  },
+  {
+   "name": "ergonovine (DEA List I.5)",
+   "smiles": "C[C@@H](CO)NC(=O)[C@H]1CN([C@@H]2CC3=CNC4=CC=CC(=C34)C2=C1)C",
+   "expect": [
+    "dea-i-5"
+   ]
+  },
+  {
+   "name": "ergotamine (DEA List I.6)",
+   "smiles": "C[C@@]1(C(=O)N2[C@H](C(=O)N3CCC[C@H]3[C@@]2(O1)O)CC4=CC=CC=C4)NC(=O)[C@H]5CN([C@@H]6CC7=CNC8=CC=CC(=C78)C6=C5)C",
+   "expect": [
+    "dea-i-6"
+   ]
+  },
+  {
+   "name": "N-acetylanthranilic acid (DEA List I.7)",
+   "smiles": "CC(=O)NC1=CC=CC=C1C(=O)O",
+   "expect": [
+    "dea-i-7"
+   ]
+  },
+  {
+   "name": "norpseudoephedrine (DEA List I.8)",
+   "smiles": "C[C@@H]([C@H](C1=CC=CC=C1)O)N",
+   "expect": [
+    "dea-i-10",
+    "dea-i-8"
+   ]
+  },
+  {
+   "name": "phenylacetic acid (DEA List I.9)",
+   "smiles": "C1=CC=C(C=C1)CC(=O)O",
+   "expect": [
+    "dea-i-9"
+   ]
+  },
+  {
+   "name": "phenylpropanolamine (DEA List I.10)",
+   "smiles": "C[C@@H]([C@@H](C1=CC=CC=C1)O)N",
+   "expect": [
+    "dea-i-10",
+    "dea-i-8"
+   ]
+  },
+  {
+   "name": "piperidine (DEA List I.11)",
+   "smiles": "C1CCNCC1",
+   "expect": [
+    "dea-i-11"
+   ]
+  },
+  {
+   "name": "pseudoephedrine (DEA List I.12)",
+   "smiles": "C[C@@H]([C@H](C1=CC=CC=C1)O)NC",
+   "expect": [
+    "dea-i-12",
+    "dea-i-4"
+   ]
+  },
+  {
+   "name": "3,4-methylenedioxyphenyl-2-propanone (DEA List I.13)",
+   "smiles": "CC(=O)CC1=CC2=C(C=C1)OCO2",
+   "expect": [
+    "dea-i-13"
+   ]
+  },
+  {
+   "name": "methylamine (DEA List I.14)",
+   "smiles": "CN",
+   "expect": [
+    "dea-i-14"
+   ]
+  },
+  {
+   "name": "ethylamine (DEA List I.15)",
+   "smiles": "CCN",
+   "expect": [
+    "dea-i-15"
+   ]
+  },
+  {
+   "name": "propionic anhydride (DEA List I.16)",
+   "smiles": "CCC(=O)OC(=O)CC",
+   "expect": [
+    "dea-i-16"
+   ]
+  },
+  {
+   "name": "isosafrole (DEA List I.17)",
+   "smiles": "C/C=C/C1=CC2=C(C=C1)OCO2",
+   "expect": [
+    "dea-i-17"
+   ]
+  },
+  {
+   "name": "safrole (DEA List I.18)",
+   "smiles": "C=CCC1=CC2=C(C=C1)OCO2",
+   "expect": [
+    "dea-i-18"
+   ]
+  },
+  {
+   "name": "piperonal (DEA List I.19)",
+   "smiles": "C1OC2=C(O1)C=C(C=C2)C=O",
+   "expect": [
+    "dea-i-19"
+   ]
+  },
+  {
+   "name": "N-methylephedrine (DEA List I.20)",
+   "smiles": "CC(C(C1=CC=CC=C1)O)N(C)C",
+   "expect": [
+    "dea-i-20",
+    "dea-i-21"
+   ]
+  },
+  {
+   "name": "N-methylpseudoephedrine (DEA List I.21)",
+   "smiles": "C[C@@H]([C@H](C1=CC=CC=C1)O)N(C)C",
+   "expect": [
+    "dea-i-20",
+    "dea-i-21"
+   ]
+  },
+  {
+   "name": "hydriodic acid (DEA List I.22)",
+   "smiles": "I",
+   "expect": [
+    "dea-i-22"
+   ]
+  },
+  {
+   "name": "benzaldehyde (DEA List I.23)",
+   "smiles": "C1=CC=C(C=C1)C=O",
+   "expect": [
+    "dea-i-23"
+   ]
+  },
+  {
+   "name": "nitroethane (DEA List I.24)",
+   "smiles": "CC[N+](=O)[O-]",
+   "expect": [
+    "dea-i-24"
+   ]
+  },
+  {
+   "name": "gamma-butyrolactone (DEA List I.25)",
+   "smiles": "C1CC(=O)OC1",
+   "expect": [
+    "dea-i-25"
+   ]
+  },
+  {
+   "name": "hypophosphorous acid (DEA List I.28)",
+   "smiles": "O[PH2]=O",
+   "expect": [
+    "dea-i-28"
+   ]
+  },
+  {
+   "name": "N-phenethyl-4-piperidone (DEA List I.29)",
+   "smiles": "C1CN(CCC1=O)CCC2=CC=CC=C2",
+   "expect": [
+    "dea-i-29"
+   ]
+  },
+  {
+   "name": "iodine (DEA List I.30)",
+   "smiles": "II",
+   "expect": [
+    "dea-i-30"
+   ]
+  },
+  {
+   "name": "ergocristine (DEA List I.31)",
+   "smiles": "CC(C)[C@@]1(C(=O)N2[C@H](C(=O)N3CCC[C@H]3[C@@]2(O1)O)CC4=CC=CC=C4)NC(=O)[C@H]5CN([C@@H]6CC7=CNC8=CC=CC(=C78)C6=C5)C",
+   "expect": [
+    "dea-i-31"
+   ]
+  },
+  {
+   "name": "benzylfentanyl (DEA List I.32)",
+   "smiles": "CCC(=O)N(C1CCN(CC1)CC2=CC=CC=C2)C3=CC=CC=C3",
+   "expect": [
+    "dea-i-32"
+   ]
+  },
+  {
+   "name": "4-anilinopiperidine (DEA List I.33)",
+   "smiles": "C1CNCCC1NC2=CC=CC=C2",
+   "expect": [
+    "dea-i-33"
+   ]
+  },
+  {
+   "name": "PMK glycidate (DEA List I.34)",
+   "smiles": "CC1(C(O1)C2=CC3=C(C=C2)OCO3)C(=O)OC",
+   "expect": [
+    "dea-i-34"
+   ]
+  },
+  {
+   "name": "PMK glycidic acid (DEA List I.35)",
+   "smiles": "CC1(C(O1)C2=CC3=C(C=C2)OCO3)C(=O)O",
+   "expect": [
+    "dea-i-35"
+   ]
+  },
+  {
+   "name": "alpha-phenylacetoacetamide (DEA List I.36)",
+   "smiles": "CC(=O)C(C1=CC=CC=C1)C(=O)N",
+   "expect": [
+    "dea-i-36"
+   ]
+  },
+  {
+   "name": "methyl alpha-phenylacetoacetate (DEA List I.37)",
+   "smiles": "CC(=O)C(C1=CC=CC=C1)C(=O)OC",
+   "expect": [
+    "dea-i-37"
+   ]
+  },
+  {
+   "name": "4-piperidone (DEA List I.38)",
+   "smiles": "C1CNCCC1=O",
+   "expect": [
+    "dea-i-38"
+   ]
+  },
+  {
+   "name": "acetic anhydride (DEA List II.1)",
+   "smiles": "CC(=O)OC(=O)C",
+   "expect": [
+    "dea-ii-1"
+   ]
+  },
+  {
+   "name": "acetone (DEA List II.2)",
+   "smiles": "CC(=O)C",
+   "expect": [
+    "dea-ii-2"
+   ]
+  },
+  {
+   "name": "benzyl chloride (DEA List II.3)",
+   "smiles": "C1=CC=C(C=C1)CCl",
+   "expect": [
+    "dea-ii-3"
+   ]
+  },
+  {
+   "name": "ethyl ether (DEA List II.4)",
+   "smiles": "CCOCC",
+   "expect": [
+    "dea-ii-4"
+   ]
+  },
+  {
+   "name": "potassium permanganate (DEA List II.5)",
+   "smiles": "[O-][Mn](=O)(=O)=O.[K+]",
+   "expect": [
+    "dea-ii-5"
+   ]
+  },
+  {
+   "name": "2-butanone (DEA List II.6)",
+   "smiles": "CCC(=O)C",
+   "expect": [
+    "dea-ii-6"
+   ]
+  },
+  {
+   "name": "toluene (DEA List II.7)",
+   "smiles": "CC1=CC=CC=C1",
+   "expect": [
+    "dea-ii-7"
+   ]
+  },
+  {
+   "name": "hydrochloric acid (DEA List II.8)",
+   "smiles": "Cl",
+   "expect": [
+    "dea-ii-8"
+   ]
+  },
+  {
+   "name": "sulfuric acid (DEA List II.9)",
+   "smiles": "OS(=O)(=O)O",
+   "expect": [
+    "dea-ii-9"
+   ]
+  },
+  {
+   "name": "methyl isobutyl ketone (DEA List II.10)",
+   "smiles": "CC(C)CC(=O)C",
+   "expect": [
+    "dea-ii-10"
+   ]
+  },
+  {
+   "name": "sodium permanganate (DEA List II.11)",
+   "smiles": "[O-][Mn](=O)(=O)=O.[Na+]",
+   "expect": [
+    "dea-ii-11"
+   ]
+  }
+ ],
+ "negatives": [
+  {
+   "name": "aspirin",
+   "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+   "expect": []
+  },
+  {
+   "name": "ethanol",
+   "smiles": "CCO",
+   "expect": []
+  },
+  {
+   "name": "benzene",
+   "smiles": "c1ccccc1",
+   "expect": []
+  },
+  {
+   "name": "caffeine",
+   "smiles": "Cn1cnc2c1c(=O)n(C)c(=O)n2C",
+   "expect": []
+  },
+  {
+   "name": "glucose",
+   "smiles": "OCC1OC(O)C(O)C(O)C1O",
+   "expect": []
+  },
+  {
+   "name": "trimethyl phosphate",
+   "smiles": "COP(=O)(OC)OC",
+   "expect": []
+  },
+  {
+   "name": "triethyl phosphate",
+   "smiles": "CCOP(=O)(OCC)OCC",
+   "expect": []
+  },
+  {
+   "name": "malathion (pesticide)",
+   "smiles": "CCOC(=O)CC(SP(=S)(OC)OC)C(=O)OCC",
+   "expect": []
+  },
+  {
+   "name": "dimethyl sulfide",
+   "smiles": "CSC",
+   "expect": []
+  },
+  {
+   "name": "triethylamine",
+   "smiles": "CCN(CC)CC",
+   "expect": []
+  },
+  {
+   "name": "1,2-dichloroethane",
+   "smiles": "ClCCCl",
+   "expect": []
+  },
+  {
+   "name": "ethanolamine",
+   "smiles": "OCCN",
+   "expect": []
+  },
+  {
+   "name": "diethanolamine",
+   "smiles": "OCCNCCO",
+   "expect": []
+  },
+  {
+   "name": "sulfuryl chloride",
+   "smiles": "O=S(=O)(Cl)Cl",
+   "expect": []
+  },
+  {
+   "name": "trimethyl phosphate",
+   "smiles": "COP(=O)(OC)OC",
+   "expect": []
+  },
+  {
+   "name": "N,N-dibutylaminoethanol (outside Me/Et/Pr)",
+   "smiles": "CCCCN(CCCC)CCO",
+   "expect": []
+  },
+  {
+   "name": "3-(dimethylamino)propan-1-ol (wrong chain length)",
+   "smiles": "CN(C)CCCO",
+   "expect": []
+  },
+  {
+   "name": "butylphosphonic dichloride (butyl is outside Me/Et/Pr)",
+   "smiles": "CCCCP(=O)(Cl)Cl",
+   "expect": []
+  },
+  {
+   "name": "dimethylphosphinate ester (two carbons on the phosphorus)",
+   "smiles": "CP(=O)(C)OC",
+   "expect": []
+  },
+  {
+   "name": "triphenylphosphine (three carbons on the phosphorus)",
+   "smiles": "c1ccccc1P(c1ccccc1)c1ccccc1",
+   "expect": []
+  },
+  {
+   "name": "choline",
+   "smiles": "C[N+](C)(C)CCO",
+   "expect": []
+  },
+  {
+   "name": "acetylcholine",
+   "smiles": "CC(=O)OCC[N+](C)(C)C",
+   "expect": []
+  },
+  {
+   "name": "butylphosphonyldifluoride (butyl is outside Me/Et/Pr)",
+   "smiles": "CCCCP(=O)(F)F",
+   "expect": []
+  },
+  {
+   "name": "phenyl dimethylcarbamate (a benzene, not a pyridine)",
+   "smiles": "CN(C)C(=O)Oc1ccccc1",
+   "expect": []
+  },
+  {
+   "name": "2-hydroxyethylphosphonic dichloride (not a plain alkyl)",
+   "smiles": "OCCP(=O)(Cl)Cl",
+   "expect": []
+  },
+  {
+   "name": "betaine",
+   "smiles": "C[N+](C)(C)CC(=O)[O-]",
+   "expect": []
+  },
+  {
+   "name": "carnitine",
+   "smiles": "C[N+](C)(C)CC(O)CC(=O)[O-]",
+   "expect": []
+  },
+  {
+   "name": "a benzalkonium-type surfactant",
+   "smiles": "CCCCCCCCCCCC[N+](C)(C)Cc1ccccc1",
+   "expect": []
+  },
+  {
+   "name": "calcium permanganate (a permanganate the list does not name)",
+   "smiles": "[Ca+2].[O-][Mn](=O)(=O)=O.[O-][Mn](=O)(=O)=O",
+   "expect": []
+  },
+  {
+   "name": "propionic acid (not the anhydride)",
+   "smiles": "CCC(=O)O",
+   "expect": []
+  },
+  {
+   "name": "table salt",
+   "smiles": "[Na+].[Cl-]",
+   "expect": []
+  },
+  {
+   "name": "potassium chloride",
+   "smiles": "[K+].[Cl-]",
+   "expect": []
+  },
+  {
+   "name": "sodium benzoate (a preservative)",
+   "smiles": "[Na+].[O-]C(=O)c1ccccc1",
+   "expect": []
+  },
+  {
+   "name": "naproxen sodium (a sodium-salt medicine)",
+   "smiles": "[Na+].COc1ccc2cc(ccc2c1)C(C)C(=O)[O-]",
+   "expect": []
+  }
+ ],
+ "edge_cases": [
+  {
+   "name": "diisopropyl fluorophosphate (no P-C bond)",
+   "smiles": "CC(C)OP(=O)(F)OC(C)C",
+   "expect": [],
+   "why": "A phosphoFLUORIDATE, not a phosphoNOfluoridate. Same phosphoryl, fluorine and alkoxy as sarin. The single most important negative in the set."
+  },
+  {
+   "name": "P-butyl homologue",
+   "smiles": "CCCCP(=O)(F)OC(C)C",
+   "expect": [],
+   "why": "Scheduled connectivity, but entry A.1 restricts the P-alkyl group to methyl, ethyl, n-propyl or isopropyl."
+  },
+  {
+   "name": "C12 O-alkyl homologue",
+   "smiles": "CCCCCCCCCCCCOP(C)(=O)F",
+   "expect": [
+    "cwc-2-b-4"
+   ],
+   "why": "Outside the entry's 'equal to or less than C10' clause, which no SMARTS expresses. NOW ALSO A SCHEDULE 2 CASE: the C12 chain is on the oxygen, so the phosphorus still carries one methyl and no other carbon and entry B.4 catches it. Outside Schedule 1 and inside Schedule 2 is the correct answer, and this case demonstrates it."
+  },
+  {
+   "name": "2-chloroethyl ethyl sulfide (half-mustard)",
+   "smiles": "CCSCCCl",
+   "expect": [
+    "cwc-1-a-4"
+   ],
+   "why": "KNOWN OVER-BROAD MATCH. The A.4 pattern keys on a single 2-chloroethyl thioether arm; the entry is a heading over an enumeration. Recorded as expected so the benchmark measures the rule as written rather than as hoped."
+  },
+  {
+   "name": "chlorambucil (licensed medicine)",
+   "smiles": "OC(=O)CCCc1ccc(cc1)N(CCCl)CCCl",
+   "expect": [],
+   "why": "A KNOWN FALSE POSITIVE, deliberately scored as one. Chlorambucil is a cytotoxic medicine and is not among the HN1/HN2/HN3 the entry enumerates, but it is chemically a nitrogen mustard and the approximate A.6 pattern matches it. The benchmark reports this rather than blessing it."
+  },
+  {
+   "name": "melphalan (licensed medicine)",
+   "smiles": "NC(Cc1ccc(cc1)N(CCCl)CCCl)C(=O)O",
+   "expect": [],
+   "why": "Same known false positive as chlorambucil."
+  },
+  {
+   "name": "sarin hydrolysis product (IMPA)",
+   "smiles": "CC(C)OP(C)(=O)O",
+   "expect": [
+    "cwc-2-b-4"
+   ],
+   "why": "The degradation product has no fluorine, so it is outside A.1 even though it is a well-known sarin marker. NOW ALSO A SCHEDULE 2 CASE: losing the fluorine takes it out of Schedule 1 and leaves a phosphorus bearing one methyl and no other carbon, which is entry B.4."
+  },
+  {
+   "name": "triethanolamine hydrochloride",
+   "smiles": "OCCN(CCO)CCO.Cl",
+   "expect": [
+    "cwc-3-b-17"
+   ],
+   "why": "MATCHES, and the entry's own text does not say it should. Schedule 3 carries no 'and corresponding salts' wording, unlike several Schedule 1 and 2 entries, but this engine strips counter-ions before comparing. Declared in the ruleset's known_limitations rather than silently applied -- the match is deliberate and broader than the statute."
+  },
+  {
+   "name": "sulfur monochloride, as a name lookup would give it (ClS)",
+   "smiles": "[S]Cl",
+   "expect": [],
+   "why": "The structure OPSIN returns for 'Sulphur monochloride'. It is NOT the listed chemical -- entry B.12 is Cl2S2 -- so it must not match, and its absence here is what proves the shipped key came from the statute's CAS rather than from the name."
+  },
+  {
+   "name": "diethyl phosphite",
+   "smiles": "CCOP(=O)OCC",
+   "expect": [],
+   "why": "Schedule 3 entry B.11 is deliberately NOT ENCODED: neither resolver returns the neutral C4H11O3P the entry lists. Scored as no-match so the gap stays visible and countable instead of looking like an oversight. If this ever starts matching, the entry was encoded and this case should move to positives."
+  },
+  {
+   "name": "fonofos",
+   "smiles": "CCOP(=S)(CC)Sc1ccccc1",
+   "expect": [],
+   "why": "The treaty EXEMPTS it by name from entry B.4, and the family pattern alone hits it -- P bonded to one ethyl and no other carbon. Encoded as the skeleton plus a carbon count of 10, so the exemption covers the chemical and its salts without excusing a larger molecule that merely contains it."
+  },
+  {
+   "name": "N,N-dimethylaminoethanol (DMAE)",
+   "smiles": "CN(C)CCO",
+   "expect": [],
+   "why": "Exempted by name from entry B.11 and sold as an ordinary commercial chemical. Without the exemption the B.11 family matches it."
+  },
+  {
+   "name": "N,N-diethylaminoethanol",
+   "smiles": "CCN(CC)CCO",
+   "expect": [],
+   "why": "The second exemption on entry B.11."
+  },
+  {
+   "name": "DMAE hydrochloride",
+   "smiles": "CN(C)CCO.Cl",
+   "expect": [],
+   "why": "The entry exempts the chemical 'and corresponding protonated salts'. A counter-ion adds no carbon, so the carbon-count exemption keeps covering it."
+  },
+  {
+   "name": "a mixture of exempt DMAE and ethanol",
+   "smiles": "CN(C)CCO.CCO",
+   "expect": [
+    "cwc-2-b-11"
+   ],
+   "why": "MATCHES, and that is the declared limit of a count-based exemption: it identifies the exempt chemical, not a mixture containing it. Both rulesets state that mixtures are outside what this screen considers."
+  },
+  {
+   "name": "sarin, against Schedule 2 as well as Schedule 1",
+   "smiles": "CC(C)OP(C)(=O)F",
+   "expect": [
+    "cwc-1-a-1",
+    "cwc-2-b-4"
+   ],
+   "why": "B.4 opens 'Chemicals, except for those listed in Schedule 1, ...' and no rule here can exclude the members of another ruleset, so a Schedule 1 organophosphorus agent matches both. Pinned as an edge case so the overlap is a recorded decision rather than a surprise; it over-reports and never under-reports, and the rule carries the limitation in its own text."
+  },
+  {
+   "name": "pyridostigmine",
+   "smiles": "C[n+]1cccc(OC(=O)N(C)C)c1.[Br-]",
+   "expect": [],
+   "why": "A LICENSED MEDICINE, and the closest thing in ordinary use to entry A.16: a dimethylcarbamoyloxypyridine carrying a positive nitrogen. It quaternises the RING nitrogen and has no exocyclic ammonium, which is what A.16's structures have. Requiring both features is what keeps it out."
+  },
+  {
+   "name": "neostigmine",
+   "smiles": "CN(C)C(=O)Oc1cccc([N+](C)(C)C)c1.[Br-]",
+   "expect": [],
+   "why": "The other half of the same test: a real quaternary ammonium dimethylcarbamate, but on a BENZENE ring rather than a pyridine."
+  },
+  {
+   "name": "choline, against entry 2.B.11",
+   "smiles": "C[N+](C)(C)CCO",
+   "expect": [],
+   "why": "IT MATCHED UNTIL THE PATTERN WAS TIGHTENED. Reading 'and corresponding protonated salts' as any four-coordinate cationic nitrogen reaches quaternary ammoniums, and choline is present in every cell and sold as a supplement. A quaternary ammonium is an ALKYLATED salt, which entries B.10 to B.12 do not reach. It was ALSO reported as a near miss to Schedule 1's entry A.16, whose second feature was a bare quaternary nitrogen at the time -- a predicate satisfied by half of chemistry. That feature is now the alpha-picolinyl methylene the entry's own text describes."
+  },
+  {
+   "name": "protonated 2-(diisopropylamino)ethanol",
+   "smiles": "CC(C)[NH+](C(C)C)CCO.[Cl-]",
+   "expect": [
+    "cwc-2-b-11"
+   ],
+   "why": "The control for the case above: the entry DOES reach protonated salts, so tightening the nitrogen must not be done by rejecting cations outright."
+  },
+  {
+   "name": "ephedrine, against the pseudoephedrine entry",
+   "smiles": "C[C@@H]([C@@H](C1=CC=CC=C1)O)NC",
+   "expect": [
+    "dea-i-12",
+    "dea-i-4"
+   ],
+   "why": "MATCHES BOTH, and both are listed. The entries say 'optical isomers'; this engine matches all stereoisomers, which additionally reaches DIASTEREOMERS -- and ephedrine and pseudoephedrine are diastereomers. Each matches its own entry EXACTLY and its partner's as an isomer, saying so on the finding. Broader than the entry's own words, and correct in its answer."
+  },
+  {
+   "name": "ephedrine hydrochloride",
+   "smiles": "C[C@@H]([C@@H](C1=CC=CC=C1)O)NC.Cl",
+   "expect": [
+    "dea-i-12",
+    "dea-i-4"
+   ],
+   "why": "The entry reaches 'its salts', and counter-ion stripping is what gets there."
+  },
+  {
+   "name": "red phosphorus (DEA List I.26, deliberately unencoded)",
+   "smiles": "[P]",
+   "expect": [],
+   "why": "NOT ENCODED, and scored as a no-match so the gap stays countable. Entries I.26 and I.27 are red and white phosphorus -- ALLOTROPES, the same element in different solid forms, listed separately with separate DEA codes and not distinguishable by structure at all. PubChem's own systematic name for both records is 'phosphane', which is PH3 rather than elemental phosphorus, so no resolver reaches either. This is the 'one name the resolver cannot confidently resolve' case for this ruleset, matching diethyl phosphite for CWC Schedule 3."
+  },
+  {
+   "name": "phosphine (what a resolver returns for 'phosphorus')",
+   "smiles": "P",
+   "expect": [],
+   "why": "The wrong structure both resolvers land on. It must not match, and its absence is what shows the two phosphorus entries were refused rather than encoded from a bad lookup."
+  }
+ ],
+ "historical": [
+  {
+   "_note": "Structures whose regulatory status CHANGED. Every entry carries an `as_of` date and is screened at it, so one entry is still one screen with one expectation and a before/after pair reads as two rows. BIDIRECTIONAL ON PURPOSE: testing only that a later date GAINS the new rules would pass against a ruleset that had simply become permanently current, so each pair also pins the day before. The dates are the entries' own -- 2020-06-07 is when the CWC 2019 additions entered force, 1997-04-29 is when the Convention itself did."
+  },
+  {
+   "name": "a 2019 A.13 phosphonamidic fluoride, the day before the additions",
+   "smiles": "CCN(CC)C(=NP(=O)(C)F)C",
+   "as_of": "2020-06-06",
+   "expect": ["cwc-2-b-4"],
+   "why": "NOT an empty expectation, and that is the point of this row. A.13 is withheld while B.4 -- dated 1997, in another ruleset, matching the same structure -- still applies. A filter that worked per RULESET, or globally, would empty this row and pass a naive before/after test."
+  },
+  {
+   "name": "a 2019 A.13 phosphonamidic fluoride, the day they entered force",
+   "smiles": "CCN(CC)C(=NP(=O)(C)F)C",
+   "as_of": "2020-06-07",
+   "expect": ["cwc-1-a-13", "cwc-2-b-4"],
+   "why": "Inclusive at the start: a rule applies ON the day it takes effect. Moving the comparison to a strict `<` fails here and nowhere else in this corpus."
+  },
+  {
+   "name": "a 2019 A.14 phosphoramidofluoridate, the day before",
+   "smiles": "CCN(CC)C(=NP(=O)(OC)F)C",
+   "as_of": "2020-06-06",
+   "expect": []
+  },
+  {
+   "name": "a 2019 A.14 phosphoramidofluoridate, the day they entered force",
+   "smiles": "CCN(CC)C(=NP(=O)(OC)F)C",
+   "as_of": "2020-06-07",
+   "expect": ["cwc-1-a-14"]
+  },
+  {
+   "name": "the 2019 A.15 chemical, the day before",
+   "smiles": "CCN(CC)C(=NP(=O)(C)F)N(CC)CC",
+   "as_of": "2020-06-06",
+   "expect": ["cwc-2-b-4"]
+  },
+  {
+   "name": "the 2019 A.15 chemical, the day they entered force",
+   "smiles": "CCN(CC)C(=NP(=O)(C)F)N(CC)CC",
+   "as_of": "2020-06-07",
+   "expect": ["cwc-1-a-15", "cwc-2-b-4"]
+  },
+  {
+   "name": "a 2019 A.16 quaternary carbamate, the day before",
+   "smiles": "CN(C)C(=O)OC1=C(N=CC=C1)C[N+](C)(C)CCCCCCCCCC[N+](C)(C)CCO.[Br-].[Br-]",
+   "as_of": "2020-06-06",
+   "expect": []
+  },
+  {
+   "name": "a 2019 A.16 quaternary carbamate, the day they entered force",
+   "smiles": "CN(C)C(=O)OC1=C(N=CC=C1)C[N+](C)(C)CCCCCCCCCC[N+](C)(C)CCO.[Br-].[Br-]",
+   "as_of": "2020-06-07",
+   "expect": ["cwc-1-a-16"]
+  },
+  {
+   "name": "sarin, the day before the Convention entered force",
+   "smiles": "CC(C)OP(C)(=O)F",
+   "as_of": "1997-04-28",
+   "expect": [],
+   "why": "The RULESET-level date, which is a different resolution branch from A.13's own. None of these rules declares a date of its own; all 44 take the Convention's, so the most famous Schedule 1 agent in the file matches nothing the day before it entered force."
+  },
+  {
+   "name": "sarin, the day the Convention entered force",
+   "smiles": "CC(C)OP(C)(=O)F",
+   "as_of": "1997-04-29",
+   "expect": ["cwc-1-a-1", "cwc-2-b-4"],
+   "why": "And the four 2019 additions are still withheld on this date, 23 years out -- the two date levels resolving independently in one screen."
+  },
+  {
+   "name": "acetone, long before any of this",
+   "smiles": "CC(C)=O",
+   "as_of": "1900-01-01",
+   "expect": ["dea-ii-2"],
+   "why": "THE GUARD ON THE DEFAULT THAT COULD HAVE GONE THE OTHER WAY. An undated rule is NOT date-filtered, and 47 of the 91 shipped rules are undated -- the whole DEA list records no dates at all. Treating an absent date as 'never applicable' instead would empty half the screen while looking exactly like a substance that is not listed. Note what this row does NOT assert: that acetone was a listed precursor in 1900. It asserts that this screen's date told it nothing either way, which is what the coverage note for that ruleset says in as many words."
+  }
+ ]
 }

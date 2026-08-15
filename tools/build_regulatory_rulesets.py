@@ -50,6 +50,10 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "src"))
 
+from openchem.chem.regulatory.engine import (  # noqa: E402
+    EffectiveDateError,
+    parse_effective_date,
+)
 from openchem.chem.regulatory.predicates import SUPPORTED_OPS  # noqa: E402
 
 GENERATOR = "build_regulatory_rulesets.py"
@@ -65,6 +69,13 @@ GENERATED = REPO / "src" / "openchem" / "chem" / "data" / "regulatory" / "genera
 #: sit mostly unreviewed.
 MAX_REVIEW_FRACTION = 0.75
 
+#: Match types a rule may declare when it matches by InChIKey. Each NAMES A
+#: SUBSTANCE, which is what a key can establish. `structural_family` and
+#: `analogue` are absent deliberately: a family is a specification rather
+#: than a list, and an analogue finding must carry a similarity, which
+#: nothing produces yet.
+IDENTIFYING_MATCH_TYPES = frozenset({"identity", "precursor", "metabolite"})
+
 _DO_NOT_EDIT = (
     "GENERATED FILE -- DO NOT EDIT. Written by "
     f"{GENERATOR}; edit the matching file under sources/ and rebuild."
@@ -77,6 +88,25 @@ class BuildError(RuntimeError):
 
 def _sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _canonical(obj) -> str:
+    """The one serialization every hash and comparison goes through.
+
+    Sorted keys and no whitespace, so key order, indentation and line
+    endings cannot produce a false difference. The file on disk is written
+    with `indent=1` for review, which is why verifying it means reparsing
+    and re-canonicalising rather than comparing bytes.
+    """
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"))
+
+
+#: Provenance that legitimately differs between two builds of the same
+#: source, and so must come out before a rebuild is compared against the
+#: committed artefact. `ruleset_sha256` is here because it is computed
+#: over a document containing `generated_at`; it is verified separately
+#: and on its own terms by `verify_stored_hash`.
+NONDETERMINISTIC_PROVENANCE = frozenset({"generated_at", "ruleset_sha256"})
 
 
 def _versions() -> dict[str, str]:
@@ -134,6 +164,25 @@ def _resolve_name(name: str) -> tuple[str, str]:
     return Chem.MolToInchiKey(mol) or "", ""
 
 
+def _check_effective_date(value, subject: str) -> None:
+    """Refuse a date the screening engine could not read.
+
+    Absence is fine and is the normal case -- most rules take their date
+    from their ruleset, and the DEA list records none at all. What is
+    refused is a value that is PRESENT and unreadable, because the runtime
+    treats one of those as undated: shipped that way, a rule would quietly
+    stop being date-constrained and a historical screen would report it as
+    though it had always applied.
+    """
+    try:
+        parse_effective_date("" if value is None else str(value))
+    except EffectiveDateError as exc:
+        raise BuildError(
+            f"{subject}: effective_date {exc.value!r} is not an ISO date "
+            "(YYYY-MM-DD). Leave it out entirely if the source states none."
+        ) from exc
+
+
 def build_one(source_path: Path) -> tuple[dict, list[str]]:
     """Build one ruleset. Returns (ruleset dict, human-readable notes)."""
     raw = source_path.read_text(encoding="utf-8")
@@ -144,11 +193,22 @@ def build_one(source_path: Path) -> tuple[dict, list[str]]:
     unresolved: list[str] = []
     requires_review: list[str] = []
     manual_entries = 0
+    cited_entries = 0
+
+    # 5. EFFECTIVE DATES ARE VALIDATED, through the same parser that screens
+    #    against them, so the two cannot drift into different ideas of what a
+    #    date is. Shipped data therefore cannot carry one the engine would
+    #    have to treat as undated -- which for a dated screen would silently
+    #    stop constraining that rule, and read as the rule simply not
+    #    applying. A user's own file is tolerated at runtime and reported;
+    #    this half is what keeps the shipped set clean.
+    _check_effective_date(source.get("effective_date"), f"{source_path.name} ruleset")
 
     for entry in source.get("rules", []):
         rule_id = entry.get("rule_id") or "<unnamed>"
         legal = dict(entry.get("legal", {}))
         quote = str(legal.get("quote", "")).strip()
+        _check_effective_date(legal.get("effective_date"), rule_id)
 
         claimed = str(entry.get("confidence", "requires_review")).lower()
         # THE GATE. No verbatim text means the primary source was never
@@ -186,10 +246,16 @@ def build_one(source_path: Path) -> tuple[dict, list[str]]:
             else:
                 unresolved.append(f"{rule_id}: {name} ({why})")
         for key in entry.get("inchikeys", []) or []:
-            # A hand-supplied key is a manual entry and is counted as one,
-            # so the coverage report distinguishes derived from asserted.
             keys.append(key)
-            manual_entries += 1
+            # CITED vs ASSERTED, which is the distinction that matters. A key
+            # supplied beside an identifier the statute itself prints is
+            # traceable to the source and checkable by someone else; a bare
+            # key is somebody's word. Counting both as "manual" said the
+            # weaker thing about the stronger case.
+            if legal.get("cited_identifiers"):
+                cited_entries += 1
+            else:
+                manual_entries += 1
         if keys:
             interpretation["inchikeys"] = sorted(set(keys))
 
@@ -197,6 +263,21 @@ def build_one(source_path: Path) -> tuple[dict, list[str]]:
             notes.append(f"  {rule_id}: no expression and no resolved identity -- skipped")
             unresolved.append(f"{rule_id}: nothing to match on")
             continue
+
+        # A rule matched by InChIKey NAMES A SUBSTANCE, and the finding
+        # carries whichever claim the rule declared. `structural_family`
+        # is the loader's default for a rule that declares nothing, so
+        # without this an identity rule that forgot to say so would report
+        # every hit as a structural family -- a plausible-looking answer
+        # about a family the regulation never defined.
+        declared = str(entry.get("match_type", "")).strip().lower()
+        if keys and declared not in IDENTIFYING_MATCH_TYPES:
+            raise BuildError(
+                f"{rule_id}: matches by identity (inchikeys/names) but declares "
+                f"match_type {declared or '<none>'!r}. A listed substance must "
+                f"declare one of {sorted(IDENTIFYING_MATCH_TYPES)} -- a family "
+                f"cannot be expressed as a list of keys."
+            )
 
         rules_out.append(
             {
@@ -242,6 +323,7 @@ def build_one(source_path: Path) -> tuple[dict, list[str]]:
             "unresolved": unresolved,
             "requires_review": requires_review,
             "manual_entries": manual_entries,
+            "cited_entries": cited_entries,
         },
         "provenance": {
             "generator": GENERATOR,
@@ -253,10 +335,101 @@ def build_one(source_path: Path) -> tuple[dict, list[str]]:
     }
     # The output's own hash is computed over the ruleset WITHOUT it, so it
     # is reproducible: hashing a document that contains its own hash is not.
-    ruleset["provenance"]["ruleset_sha256"] = _sha256(
-        json.dumps(ruleset, sort_keys=True, separators=(",", ":"))
-    )
+    ruleset["provenance"]["ruleset_sha256"] = _sha256(_canonical(ruleset))
     return ruleset, notes
+
+
+def _without_nondeterministic(ruleset: dict) -> dict:
+    """A copy comparable across builds of the same source."""
+    trimmed = json.loads(_canonical(ruleset))
+    provenance = trimmed.get("provenance")
+    if isinstance(provenance, dict):
+        for field in NONDETERMINISTIC_PROVENANCE:
+            provenance.pop(field, None)
+    return trimmed
+
+
+def _first_difference(built, committed, path: str = "") -> str:
+    """Where two rulesets first disagree, as a readable path.
+
+    Naming the place matters more than it looks: a check that only says
+    "these differ" teaches people to regenerate blindly, which is the
+    habit that lets a hand edit through in the first place.
+    """
+    if type(built) is not type(committed):
+        return f"{path or '<root>'}: {type(committed).__name__} -> {type(built).__name__}"
+    if isinstance(built, dict):
+        # Substance before bookkeeping. Editing a source ALWAYS moves
+        # `source_document_sha256`, so walking in plain sorted order would
+        # report that every time and never the rule that actually changed
+        # -- a true first difference, and the least useful one available.
+        def _priority(key: str) -> tuple[int, str]:
+            return ({"rules": 0, "coverage": 1, "provenance": 3}.get(key, 2), key)
+
+        for key in sorted(set(built) | set(committed), key=_priority):
+            where = f"{path}.{key}" if path else key
+            if key not in committed:
+                return f"{where}: absent from the committed file"
+            if key not in built:
+                return f"{where}: in the committed file, not in the rebuild"
+            found = _first_difference(built[key], committed[key], where)
+            if found:
+                return found
+        return ""
+    if isinstance(built, list):
+        if len(built) != len(committed):
+            return f"{path or '<root>'}: {len(committed)} entries -> {len(built)}"
+        for index, (one, other) in enumerate(zip(built, committed)):
+            # A rule is far easier to find by id than by position.
+            label = one.get("rule_id") if isinstance(one, dict) else None
+            where = f"{path}[{label or index}]"
+            found = _first_difference(one, other, where)
+            if found:
+                return found
+        return ""
+    if built != committed:
+        return f"{path or '<root>'}: {committed!r} -> {built!r}"
+    return ""
+
+
+def verify_stored_hash(committed: dict) -> str:
+    """Does the committed file still hash to what it says it does?
+
+    Catches a HAND EDIT. `_comment` promises the file is generated and
+    nothing enforced that promise, so anyone could edit a shipped rule --
+    a SMARTS pattern, a confidence, a quote -- and every test would pass
+    against a ruleset no source produces.
+
+    Returns "" when the file is intact, otherwise the reason.
+    """
+    provenance = committed.get("provenance")
+    if not isinstance(provenance, dict) or not provenance.get("ruleset_sha256"):
+        return "no ruleset_sha256 recorded, so the file cannot be verified"
+    stated = provenance["ruleset_sha256"]
+    stripped = json.loads(_canonical(committed))
+    del stripped["provenance"]["ruleset_sha256"]
+    actual = _sha256(_canonical(stripped))
+    if actual != stated:
+        return (
+            f"content does not match its own recorded hash "
+            f"(records {stated[:12]}..., hashes to {actual[:12]}...) -- "
+            f"the file has been edited by hand"
+        )
+    return ""
+
+
+def verify_matches_source(built: dict, committed: dict) -> str:
+    """Is the committed file what this source currently builds?
+
+    Catches a STALE artefact: a source edited without rebuilding ships the
+    previous ruleset, and the hash check above cannot see it because the
+    old file is perfectly self-consistent.
+
+    Returns "" when they agree, otherwise where they first differ.
+    """
+    return _first_difference(
+        _without_nondeterministic(built), _without_nondeterministic(committed)
+    )
 
 
 def main(argv: list[str]) -> int:
@@ -293,7 +466,8 @@ def main(argv: list[str]) -> int:
         print(f"  requires review  {len(coverage['requires_review'])} "
               f"({review_fraction:.0%})")
         print(f"  unresolved       {len(coverage['unresolved'])}")
-        print(f"  manual entries   {coverage['manual_entries']}")
+        print(f"  cited entries    {coverage['cited_entries']}  (key beside a statute-printed identifier)")
+        print(f"  asserted entries {coverage['manual_entries']}  (key with no citation)")
         for note in notes:
             print(note)
         for item in coverage["unresolved"][:10]:
@@ -306,6 +480,33 @@ def main(argv: list[str]) -> int:
                 f"become the shipped product -- add the verbatim quotes."
             )
             failed = True
+
+        if args.check:
+            # WITHOUT THIS, `--check` VALIDATED THE SOURCE AND NEVER LOOKED
+            # AT WHAT SHIPS. A generated file that had been hand-edited, or
+            # left behind by a source that moved on, passed CI untouched --
+            # so the DO-NOT-EDIT header and the recorded hash were promises
+            # with nothing enforcing either one.
+            out = GENERATED / source_path.name
+            if not out.is_file():
+                print(f"  FAIL: {out.relative_to(REPO)} does not exist. Run without --check.")
+                failed = True
+            else:
+                committed = json.loads(out.read_text(encoding="utf-8"))
+                edited = verify_stored_hash(committed)
+                if edited:
+                    print(f"  FAIL: {out.relative_to(REPO)} {edited}")
+                    failed = True
+                stale = verify_matches_source(ruleset, committed)
+                if stale:
+                    print(
+                        f"  FAIL: {out.relative_to(REPO)} is not what "
+                        f"{source_path.name} builds -- first difference at {stale}. "
+                        f"Rebuild it."
+                    )
+                    failed = True
+                if not edited and not stale:
+                    print("  artefact        matches its source, hash intact")
 
         if not args.check:
             out = GENERATED / source_path.name

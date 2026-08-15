@@ -652,11 +652,57 @@ decisions the moment they are turned into a pattern. Confidence is capped
 mechanically by whether the quote is present, so a rule cannot claim to be
 verified against a statute nobody pasted.
 
-Ships CWC Schedule 1 only. Every other domain — controlled substances,
-precursors, export controls, transport, occupational, environmental and
-the rest — registers EMPTY and says so in the coverage report, because an
-absent domain is invisible and reads as "nothing applies". Adding one is a
+Ships all three CWC schedules and the US DEA listed chemicals — 91 rules
+over 96 entries, the five unencoded ones named below. Every other domain —
+controlled substances, export controls, transport, occupational,
+environmental and the rest — registers EMPTY and says so in the coverage
+report, because an absent domain is invisible and reads as "nothing
+applies". **Ten of the twelve domains are still empty.** Adding one is a
 JSON file and a build run, not a code change.
+
+| ruleset | domain | entries | encoded | shape |
+|---|---|---|---|---|
+| CWC Schedule 1 | chemical weapons | 16 | 14 | structural families, four precursors, the 2019 additions |
+| CWC Schedule 2 | chemical weapons | 14 | 14 | eight identities, six generic families, three exemptions |
+| CWC Schedule 3 | chemical weapons | 17 | 16 | identities and precursors, all industrial chemicals |
+| 21 CFR 1310.02 | drug precursors | 49 | 47 | identities, two salts by expression |
+
+**An identity comes from the CAS the statute prints, never from the
+chemical's name.** Measured over Schedule 2 and 3's 27 named chemicals:
+the statute's CAS resolved for all 27, a name resolver agreed with it for
+26, and asking only "does the name resolve" would have shipped two wrong
+structures — sulfur monochloride (both resolvers give a one-chlorine
+species where the entry lists Cl2S2) and dimethyl phosphite (OPSIN returns
+an anion for a neutral substance). `sources/README.md` carries the rule
+and the numbers.
+
+**NOT EVERY STATUTE PRINTS AN IDENTIFIER, and the drug-precursor ruleset
+is anchored differently because of it.** Three were checked and only one
+does: the CWC Annex gives a CAS beside every named chemical, while 21 CFR
+1310.02 uses DEA chemical codes, the EU precursor annex uses CN codes, and
+the UN 1988 Convention Tables give names only. So each DEA identity rests
+on two independent structure derivations agreeing instead — OPSIN and
+PubChem resolving the name alike, or, where OPSIN cannot parse the name
+(most trivial names), PubChem's own systematic name for the structure
+parsing back through OPSIN to the same structure. Measured over 49
+entries: 32 by direct agreement, 14 by that round trip, 1 on connectivity
+alone, 2 refused. Each rule records which route it took.
+
+**The five unencoded entries are visible and countable**, not quietly
+absent: saxitoxin and ricin, where a structural rule for a protein toxin
+is meaningless; Schedule 3's diethyl phosphite, where PubChem's record for
+the CAS the entry prints is a cation and OPSIN returns an anion, so
+neither resolver reaches the neutral substance listed; and red and white
+phosphorus, which are allotropes — the same element in different solid
+forms, listed as separate entries, and not distinguishable by structure at
+all. A hand-typed structure would not be traceable to the statute.
+
+**Where the rules over-report, they say so on the finding.** Schedule 2's
+entry B.4 opens "except for those listed in Schedule 1" and nothing can
+exclude another ruleset's members, so a Schedule 1 organophosphorus agent
+matches both; Schedule 3 carries no "and corresponding salts" wording
+while the engine strips counter-ions anyway. Both are declared rather than
+silently applied.
 
 Licensing shaped the data model and is recorded in
 `chem/data/regulatory/sources/README.md`: no CAS Registry (proprietary to

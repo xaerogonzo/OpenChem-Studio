@@ -37,6 +37,7 @@ confidence.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date
 from enum import Enum
 
 
@@ -347,6 +348,25 @@ class JurisdictionConflict:
 
 
 @dataclass(frozen=True)
+class MalformedDate:
+    """A stored `effective_date` that is neither absent nor a valid ISO date.
+
+    "This regulation records no dates" and "this file has a broken date" are
+    different states, and merging them would let a malformed user ruleset
+    read as deliberately timeless. The raw `value` travels because it is
+    what lets somebody find and fix the entry.
+
+    Shipped rulesets cannot carry one -- the build refuses them -- so this
+    describes a user's own file, where one bad entry is tolerated and
+    reported rather than taking down the whole screen.
+    """
+
+    ruleset_id: str
+    rule_id: str
+    value: str
+
+
+@dataclass(frozen=True)
 class ScreeningReport:
     """The whole answer: what matched, what nearly did, and what was asked.
 
@@ -363,17 +383,53 @@ class ScreeningReport:
     #: Domains registered with nothing loaded. Listed so an empty domain
     #: reads as "not checked" rather than as "checked and clear".
     domains_without_rulesets: tuple[Domain, ...] = ()
+    #: The date this screen was asked about, or None for an undated screen.
+    #: A CALENDAR date: no time of day and no timezone, so the same question
+    #: gets the same answer either side of a date line.
+    as_of: date | None = None
+    #: `(ruleset_id, rule_id)` for every rule this screen did not evaluate
+    #: because it takes effect after `as_of`.
+    #:
+    #: RULE IDS RATHER THAN A COUNT, because a count cannot be reconciled
+    #: against anything. The benchmark partitions its scoring on these -- a
+    #: rule that did not exist on the requested date is not a negative
+    #: prediction against an applicable rule -- and `coverage_notes` derives
+    #: its per-ruleset numbers by grouping them.
+    rules_withheld_by_date: tuple[tuple[str, str], ...] = ()
+    #: Rules whose stored date could not be read. They were screened
+    #: anyway, as undated; see `MalformedDate` for why they are not just
+    #: folded in with the genuinely undated ones.
+    malformed_effective_dates: tuple[MalformedDate, ...] = ()
 
     @property
     def matched(self) -> bool:
         return bool(self.findings)
+
+    def withheld_in(self, ruleset_id: str) -> tuple[str, ...]:
+        """The rule ids this screen withheld from one ruleset."""
+        return tuple(
+            rule_id
+            for withheld_from, rule_id in self.rules_withheld_by_date
+            if withheld_from == ruleset_id
+        )
 
     def summary(self) -> str:
         """One line, in the permitted vocabulary.
 
         Never "compliant", never "not controlled" -- see the module
         docstring. This says what was done, not what is true of the world.
+
+        THE DATE LEADS when there is one, because it qualifies everything
+        after it: a dated answer that reads identically to an undated one
+        is the same silence-as-reassurance failure in a new place. It is a
+        prefix rather than a suffix so it does not have to be pushed past
+        the full stop of "nothing was checked."
         """
+        if self.as_of is None:
+            return self._verdict()
+        return f"Screened as of {self.as_of.isoformat()}. {self._verdict()}"
+
+    def _verdict(self) -> str:
         if self.findings:
             domains = sorted({f.rule.domain.value for f in self.findings})
             return (
@@ -394,6 +450,7 @@ class ScreeningReport:
             f"{ruleset.display_name} "
             f"({ruleset.jurisdiction.value}, rev. {ruleset.version}): "
             f"{ruleset.coverage.describe()}"
+            + self._date_clauses(ruleset)
             + ("  [user-supplied]" if ruleset.user_supplied else "")
             for ruleset in self.rulesets_consulted
         ]
@@ -401,3 +458,49 @@ class ScreeningReport:
             missing = ", ".join(d.value for d in self.domains_without_rulesets)
             notes.append(f"Not checked (no rulesets loaded): {missing}")
         return tuple(notes)
+
+    def _date_clauses(self, ruleset: Ruleset) -> str:
+        """What the screened date did to one ruleset, appended to its line.
+
+        APPENDED TO THE EXISTING LINE, never added as a note of its own, so
+        every coverage note still begins with a loaded ruleset's name --
+        which is the property `test_no_coverage_note_names_a_ruleset_that_`
+        `is_not_loaded` rests on. A "Screened as of ..." note would have
+        forced that guard to be weakened to accommodate it.
+
+        Empty for an undated screen, so nothing here can change what an
+        existing caller sees.
+        """
+        if self.as_of is None:
+            return ""
+
+        clauses: list[str] = []
+        withheld = len(self.withheld_in(ruleset.ruleset_id))
+        total = len(ruleset.rules)
+        if withheld:
+            clauses.append(
+                f"{withheld} of {total} rules withheld, effective after "
+                f"{self.as_of.isoformat()}; {total - withheld} applicable"
+            )
+        elif not ruleset.effective_date and not any(
+            rule.legal.effective_date for rule in ruleset.rules
+        ):
+            # NOT "applicable at every date", which is a claim about history
+            # this ruleset cannot support. What is true is narrower: nothing
+            # here was date-filtered, so the screen's date told you nothing
+            # about these rules either way.
+            clauses.append(
+                "no effective dates recorded, so these rules are treated as "
+                "undated and are not historically constrained by this screen"
+            )
+
+        malformed = sum(
+            1 for entry in self.malformed_effective_dates
+            if entry.ruleset_id == ruleset.ruleset_id
+        )
+        if malformed:
+            clauses.append(
+                f"{malformed} rule{'' if malformed == 1 else 's'} with an "
+                "unreadable effective date, treated as undated"
+            )
+        return "".join(f"; {clause}" for clause in clauses)
