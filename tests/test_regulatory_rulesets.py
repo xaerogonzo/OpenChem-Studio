@@ -329,6 +329,60 @@ def test_the_entry_no_resolver_could_reach_is_visible_not_missing():
 # --- The second domain: drug precursors ---------------------------------
 
 
+#: Everyday substances -- a kitchen, a medicine cabinet, a stockroom shelf.
+#: None is a controlled or scheduled chemical and none is a near neighbour
+#: of one, so any near miss here is a rule with a predicate too common to
+#: carry information rather than a real regulatory boundary.
+EVERYDAY = [
+    ("table salt", "[Na+].[Cl-]"),
+    ("potassium chloride", "[K+].[Cl-]"),
+    ("sodium bicarbonate", "[Na+].OC(=O)[O-]"),
+    ("sodium benzoate", "[Na+].[O-]C(=O)c1ccccc1"),
+    ("potassium sorbate", "[K+].C/C=C/C=C/C(=O)[O-]"),
+    ("monosodium glutamate", "[Na+].[O-]C(=O)C(N)CCC(=O)O"),
+    ("naproxen sodium", "[Na+].COc1ccc2cc(ccc2c1)C(C)C(=O)[O-]"),
+    ("sodium lauryl sulfate", "[Na+].CCCCCCCCCCCCOS(=O)(=O)[O-]"),
+    ("choline", "C[N+](C)(C)CCO"),
+    ("betaine", "C[N+](C)(C)CC(=O)[O-]"),
+    ("carnitine", "C[N+](C)(C)CC(O)CC(=O)[O-]"),
+    ("caffeine", "Cn1cnc2c1c(=O)n(C)c(=O)n2C"),
+    ("aspirin", "CC(=O)Oc1ccccc1C(=O)O"),
+    ("paracetamol", "CC(=O)Nc1ccc(O)cc1"),
+    ("glucose", "OCC1OC(O)C(O)C(O)C1O"),
+    ("glycine", "NCC(=O)O"),
+    ("citric acid", "OC(=O)CC(O)(CC(=O)O)C(=O)O"),
+    ("ascorbic acid", "OCC(O)C1OC(=O)C(O)=C1O"),
+    ("ethanol", "CCO"),
+    ("water", "O"),
+]
+
+
+@pytest.mark.parametrize("name,smiles", EVERYDAY)
+def test_no_everyday_substance_is_NEAR_any_shipped_rule(engine, name, smiles):
+    """THE CLASS GUARD, written after making the same mistake twice.
+
+    A near miss needs only ONE satisfied predicate. So a rule that pairs a
+    discriminating clause with a common one reports half of chemistry as
+    one feature away from a weapons or precursor listing, while matching
+    nothing and therefore passing every corpus check.
+
+    It happened with entry A.16's bare quaternary nitrogen, which put
+    choline, betaine and carnitine one feature from a chemical-weapons
+    entry. It happened again in the very next commit with the
+    permanganates' "a sodium counter-ion", which did the same for table
+    salt, MSG and every sodium-salt medicine.
+
+    Both were found by a person looking at the screen. This is the check
+    that should have found them.
+    """
+    report = engine.screen(_mol(smiles))
+    assert not report.matched, f"{name} matched {[f.rule.rule_id for f in report.findings]}"
+    assert not report.near_misses, (
+        f"{name} is near {[n.rule.rule_id for n in report.near_misses]} on "
+        f"{[o.label for n in report.near_misses for o in n.outcomes if o.passed]}"
+    )
+
+
 def test_a_second_domain_is_populated():
     """Eleven of twelve domains registered empty while all three CWC
     schedules were one domain. This is the first ruleset outside it, so

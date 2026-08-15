@@ -658,10 +658,10 @@
  "provenance": {
   "generator": "build_regulatory_rulesets.py",
   "generator_version": "1",
-  "generated_at": "2026-08-15T17:51:07+00:00",
+  "generated_at": "2026-08-15T18:12:29+00:00",
   "source_document_sha256": "b46521bbec0075725b3dd09be07c432493d4befa8afa2a78a94a4d231d7cf4d3",
   "rdkit_version": "2025.09.6",
   "opsin_version": "1.2.0",
-  "ruleset_sha256": "69523f65278bd01db47fb2b7bee269bdc5131b02575ad3c50137a514de6d73ed"
+  "ruleset_sha256": "44ac0b82ad43c76bb0d23e8d7d656aca50ee9818aba21ebd962b565e4856ca1f"
  }
 }

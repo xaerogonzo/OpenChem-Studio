@@ -61,6 +61,20 @@ and sold as a supplement. Found because Schedule 1's A.16 example is itself
 a quaternary ammonium and turned up matching B.11 as well — one new
 ruleset exposing a defect in another.
 
+**A CORPUS OF MATCHES CANNOT CATCH A BAD NEAR MISS, and this happened
+twice.** A near miss needs only ONE satisfied predicate, so a rule pairing a
+discriminating clause with a common one reports half of chemistry as one
+feature from a listing — while matching nothing, and therefore scoring
+perfectly here. Entry A.16's bare quaternary nitrogen did it to choline,
+betaine and carnitine; the permanganates' "a sodium counter-ion" did it in
+the very next commit to table salt, MSG and every sodium-salt medicine.
+Both were caught by a person reading the screen.
+
+`test_no_everyday_substance_is_NEAR_any_shipped_rule` is the check that
+should have found them: twenty everyday substances, and any near miss on
+that panel is a predicate too common to carry information. It catches both
+historical instances, including the one it was not written for.
+
 **A RULE CAN MATCH NOTHING AND STILL MISLEAD.** Entry A.16's second
 feature was a bare quaternary nitrogen. It matched no ordinary chemical
 outright — but it satisfied one of the rule's two predicates, and one

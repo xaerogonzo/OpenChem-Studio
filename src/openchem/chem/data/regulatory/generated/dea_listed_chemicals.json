@@ -16,8 +16,8 @@
   "Entries 26 and 27, red and white phosphorus, are NOT ENCODED. They are allotropes -- the same element in different solid forms -- and a structure cannot distinguish them, though the regulation lists them separately. PubChem's own systematic name for both records is 'phosphane', which is PH3 rather than elemental phosphorus, so no resolver reaches either.",
   "Isosafrole (entry 17) is matched on connectivity: OPSIN and PubChem agree on the skeleton and differ on the double-bond geometry, which the regulation does not specify.",
   "This is one country's law. A structure matching nothing here may still be listed elsewhere; the 1988 UN Convention Tables and the EU precursor regulations are not loaded.",
-  "Entries II.5 and II.11, the two permanganates, are matched by expression rather than by identity: their identity IS the salt, and the engine strips counter-ions before an identity comparison, which would collapse the regulation's two separate entries into one. Found because both rules matched nothing at all, including their own chemicals -- a rule that silently matches nothing looks exactly like a chemical that is not listed.",
-  "THE REGULATION SAYS 'optical isomers' AND THIS ENGINE MATCHES ALL STEREOISOMERS, which is broader. The list carries three diastereomer pairs -- ephedrine and pseudoephedrine, norpseudoephedrine and phenylpropanolamine, N-methylephedrine and N-methylpseudoephedrine -- so each member matches its own entry exactly AND its partner's entry as an isomer. Every one of the six is itself a listed chemical, so the answer stays correct; the attribution is broader than the entry's own words, and each cross-match arrives saying it is not an exact identity."
+  "THE REGULATION SAYS 'optical isomers' AND THIS ENGINE MATCHES ALL STEREOISOMERS, which is broader. The list carries three diastereomer pairs -- ephedrine and pseudoephedrine, norpseudoephedrine and phenylpropanolamine, N-methylephedrine and N-methylpseudoephedrine -- so each member matches its own entry exactly AND its partner's entry as an isomer. Every one of the six is itself a listed chemical, so the answer stays correct; the attribution is broader than the entry's own words, and each cross-match arrives saying it is not an exact identity.",
+  "Entries II.5 and II.11, the two permanganates, are matched by expression rather than by identity: their identity IS the salt, and the engine strips counter-ions before an identity comparison, which would collapse the regulation's two separate entries into one. Each is written as a SINGLE disconnected pattern rather than a cation clause and an anion clause, because a rule split in two can be half-satisfied, and 'contains a sodium ion' is satisfied by table salt."
  ],
  "rules": [
   {
@@ -1338,25 +1338,16 @@
    },
    "interpretation": {
     "assumptions": [
-     "MATCHED BY EXPRESSION RATHER THAN IDENTITY, because the engine strips counter-ions before an identity comparison and a permanganate's identity IS its salt. Normalised, potassium and sodium permanganate both reduce to the permanganate anion -- so an identity rule for either matched neither (the stored key was the salt's) and storing the anion's key would have made the regulation's two separate entries indistinguishable. An expression is evaluated on the structure as drawn, counter-ion included."
+     "MATCHED BY EXPRESSION RATHER THAN IDENTITY, because the engine strips counter-ions before an identity comparison and a permanganate's identity IS its salt. Normalised, potassium and sodium permanganate both reduce to the permanganate anion -- so an identity rule for either matched neither (the stored key was the salt's) and storing the anion's key would have made the regulation's two separate entries indistinguishable. An expression is evaluated on the structure as drawn, counter-ion included.",
+     "ONE PREDICATE, NOT TWO, and that is the whole point of writing it this way. Split into 'the permanganate anion' AND 'a sodium counter-ion', the cation clause is satisfied by any sodium salt -- so table salt, sodium bicarbonate, sodium benzoate, MSG and every sodium-salt medicine were reported as NEAR MISSES to a listed drug precursor, one predicate short. A near miss needs only one satisfied predicate. As a single disconnected SMARTS the rule cannot be half-satisfied, so a molecule without the permanganate has nothing matched and is not near anything."
     ],
     "limitations": [],
     "confidence": "exact",
     "interpreter_version": 1,
     "expression": {
-     "op": "all",
-     "of": [
-      {
-       "op": "contains",
-       "smarts": "[Mn](=O)(=O)(=O)[O-]",
-       "label": "the permanganate anion"
-      },
-      {
-       "op": "contains",
-       "smarts": "[K+]",
-       "label": "a potassium counter-ion"
-      }
-     ]
+     "op": "contains",
+     "smarts": "[K+].[O-][Mn](=O)(=O)=O",
+     "label": "a potassium counter-ion together with the permanganate anion"
     }
    }
   },
@@ -1547,25 +1538,16 @@
    },
    "interpretation": {
     "assumptions": [
-     "MATCHED BY EXPRESSION RATHER THAN IDENTITY, because the engine strips counter-ions before an identity comparison and a permanganate's identity IS its salt. Normalised, potassium and sodium permanganate both reduce to the permanganate anion -- so an identity rule for either matched neither (the stored key was the salt's) and storing the anion's key would have made the regulation's two separate entries indistinguishable. An expression is evaluated on the structure as drawn, counter-ion included."
+     "MATCHED BY EXPRESSION RATHER THAN IDENTITY, because the engine strips counter-ions before an identity comparison and a permanganate's identity IS its salt. Normalised, potassium and sodium permanganate both reduce to the permanganate anion -- so an identity rule for either matched neither (the stored key was the salt's) and storing the anion's key would have made the regulation's two separate entries indistinguishable. An expression is evaluated on the structure as drawn, counter-ion included.",
+     "ONE PREDICATE, NOT TWO, and that is the whole point of writing it this way. Split into 'the permanganate anion' AND 'a sodium counter-ion', the cation clause is satisfied by any sodium salt -- so table salt, sodium bicarbonate, sodium benzoate, MSG and every sodium-salt medicine were reported as NEAR MISSES to a listed drug precursor, one predicate short. A near miss needs only one satisfied predicate. As a single disconnected SMARTS the rule cannot be half-satisfied, so a molecule without the permanganate has nothing matched and is not near anything."
     ],
     "limitations": [],
     "confidence": "exact",
     "interpreter_version": 1,
     "expression": {
-     "op": "all",
-     "of": [
-      {
-       "op": "contains",
-       "smarts": "[Mn](=O)(=O)(=O)[O-]",
-       "label": "the permanganate anion"
-      },
-      {
-       "op": "contains",
-       "smarts": "[Na+]",
-       "label": "a sodium counter-ion"
-      }
-     ]
+     "op": "contains",
+     "smarts": "[Na+].[O-][Mn](=O)(=O)=O",
+     "label": "a sodium counter-ion together with the permanganate anion"
     }
    }
   }
@@ -1581,10 +1563,10 @@
  "provenance": {
   "generator": "build_regulatory_rulesets.py",
   "generator_version": "1",
-  "generated_at": "2026-08-15T17:51:07+00:00",
-  "source_document_sha256": "01e87c41af787ab9600725e6cf89f33cb8e6a95de42b60a5c6bbe573c8c86d03",
+  "generated_at": "2026-08-15T18:12:29+00:00",
+  "source_document_sha256": "29491c550e887e0add1e380dbe168f20c80e3142946c81085f7e49c2d542b449",
   "rdkit_version": "2025.09.6",
   "opsin_version": "1.2.0",
-  "ruleset_sha256": "9f20c3c17e38fe47973a9fc12c92a69a91baefb1a4da2b7d1e336a1b69b1fd29"
+  "ruleset_sha256": "b5a2b20f2f5edb050673758fd1ead2e2141e72a2e288425a51220e38b99ffb0e"
  }
 }

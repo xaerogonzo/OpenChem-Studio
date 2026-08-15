@@ -840,6 +840,26 @@
    "name": "propionic acid (not the anhydride)",
    "smiles": "CCC(=O)O",
    "expect": []
+  },
+  {
+   "name": "table salt",
+   "smiles": "[Na+].[Cl-]",
+   "expect": []
+  },
+  {
+   "name": "potassium chloride",
+   "smiles": "[K+].[Cl-]",
+   "expect": []
+  },
+  {
+   "name": "sodium benzoate (a preservative)",
+   "smiles": "[Na+].[O-]C(=O)c1ccccc1",
+   "expect": []
+  },
+  {
+   "name": "naproxen sodium (a sodium-salt medicine)",
+   "smiles": "[Na+].COc1ccc2cc(ccc2c1)C(C)C(=O)[O-]",
+   "expect": []
   }
  ],
  "edge_cases": [
