@@ -148,6 +148,26 @@ def compute_regulatory_screen(
                 detail=Detail.ADVANCED,
             )
         )
+    # A RULESET'S OWN LIMITS, which were loaded and shown NOWHERE -- the
+    # same gap the coverage notes above were in before they became facts.
+    # These are what a ruleset says it does NOT encode ("the 2019 additions
+    # are not encoded", "listing is for verification thresholds and is not
+    # a prohibition"), so a rule that fails to match says nothing about
+    # them. STANDARD rather than ADVANCED for the reason "NOT checked" is:
+    # a gap in coverage is not specialist information, and hiding it is
+    # exactly the silence-read-as-reassurance this engine exists against.
+    for ruleset in report.rulesets_consulted:
+        for limitation in ruleset.known_limitations:
+            facts.append(
+                Fact(
+                    category=FactCategory.REGULATORY,
+                    label=f"{ruleset.display_name} does not cover",
+                    value=limitation,
+                    display_value=limitation,
+                    source="Regulatory",
+                    basis=Basis.DETERMINISTIC,
+                )
+            )
     for domain in report.domains_without_rulesets:
         facts.append(
             Fact(

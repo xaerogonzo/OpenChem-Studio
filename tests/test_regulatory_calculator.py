@@ -109,6 +109,32 @@ def test_an_approximate_rule_carries_its_limitation_into_the_result(registry):
     assert caveats, [fact.label for fact in result.facts]
 
 
+def test_a_rulesets_own_limits_reach_the_screen(registry):
+    """`known_limitations` was loaded off disk, stored on the Ruleset, and
+    displayed NOWHERE -- the same gap the coverage notes were in before they
+    became facts. It is where a ruleset says what it does not encode ("the
+    2019 additions are not encoded", "listing is not a prohibition"), so a
+    rule failing to match says nothing about those. Silence there is the
+    silence-read-as-reassurance this whole engine is written against."""
+    facts = _run(registry, ASPIRIN).facts
+    limits = [fact for fact in facts if "does not cover" in fact.label]
+
+    assert limits, [fact.label for fact in facts]
+    assert any("2019" in fact.value for fact in limits), "Schedule 1 says so"
+    assert any("not a prohibition" in fact.value.lower() for fact in limits), "Schedule 3 says so"
+
+
+def test_a_rulesets_limits_are_not_buried_as_specialist_detail(registry):
+    """Same reasoning as "NOT checked", which is deliberately STANDARD: a
+    gap in coverage is not specialist information. Ruleset versions and
+    coverage percentages are ADVANCED because they are bookkeeping; what a
+    ruleset cannot tell you is not."""
+    from openchem.domain.report import Detail
+
+    limits = [fact for fact in _run(registry, ASPIRIN).facts if "does not cover" in fact.label]
+    assert limits and all(fact.detail is Detail.STANDARD for fact in limits)
+
+
 # --- Provenance ---------------------------------------------------------
 
 

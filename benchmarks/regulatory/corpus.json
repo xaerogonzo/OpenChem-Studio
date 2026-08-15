@@ -1,48 +1,340 @@
 {
-  "_comment": "Four corpora. `expect` lists the rule_ids a structure SHOULD match; an empty list means it must match nothing. Negatives and edge cases are the point: a rule flagging every organophosphate scores perfect recall on positives alone and is useless in a screen.",
-  "positives": [
-    {"name": "sarin (GB)", "smiles": "CC(C)OP(C)(=O)F", "expect": ["cwc-1-a-1"]},
-    {"name": "soman (GD)", "smiles": "CC(C)(C)C(C)OP(C)(=O)F", "expect": ["cwc-1-a-1"]},
-    {"name": "ethyl methylphosphonofluoridate", "smiles": "CCOP(C)(=O)F", "expect": ["cwc-1-a-1"]},
-    {"name": "tabun (GA)", "smiles": "CCOP(=O)(C#N)N(C)C", "expect": ["cwc-1-a-2"]},
-    {"name": "VX", "smiles": "CCOP(C)(=O)SCCN(C(C)C)C(C)C", "expect": ["cwc-1-a-3"]},
-    {"name": "sulfur mustard (HD)", "smiles": "ClCCSCCCl", "expect": ["cwc-1-a-4"]},
-    {"name": "sesquimustard (Q)", "smiles": "ClCCSCCSCCCl", "expect": ["cwc-1-a-4"]},
-    {"name": "lewisite 1 (L)", "smiles": "Cl[As](Cl)C=CCl", "expect": ["cwc-1-a-5"]},
-    {"name": "HN2 (nitrogen mustard)", "smiles": "CN(CCCl)CCCl", "expect": ["cwc-1-a-6"]},
-    {"name": "HN3 (nitrogen mustard)", "smiles": "ClCCN(CCCl)CCCl", "expect": ["cwc-1-a-6"]}
-  ],
-  "negatives": [
-    {"name": "aspirin", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "expect": []},
-    {"name": "ethanol", "smiles": "CCO", "expect": []},
-    {"name": "benzene", "smiles": "c1ccccc1", "expect": []},
-    {"name": "caffeine", "smiles": "Cn1cnc2c1c(=O)n(C)c(=O)n2C", "expect": []},
-    {"name": "glucose", "smiles": "OCC1OC(O)C(O)C(O)C1O", "expect": []},
-    {"name": "trimethyl phosphate", "smiles": "COP(=O)(OC)OC", "expect": []},
-    {"name": "triethyl phosphate", "smiles": "CCOP(=O)(OCC)OCC", "expect": []},
-    {"name": "malathion (pesticide)", "smiles": "CCOC(=O)CC(SP(=S)(OC)OC)C(=O)OCC", "expect": []},
-    {"name": "dimethyl sulfide", "smiles": "CSC", "expect": []},
-    {"name": "triethylamine", "smiles": "CCN(CC)CC", "expect": []},
-    {"name": "1,2-dichloroethane", "smiles": "ClCCCl", "expect": []},
-    {"name": "thiodiglycol (Schedule 2, not Schedule 1)", "smiles": "OCCSCCO", "expect": []}
-  ],
-  "edge_cases": [
-    {"name": "diisopropyl fluorophosphate (no P-C bond)", "smiles": "CC(C)OP(=O)(F)OC(C)C", "expect": [],
-     "why": "A phosphoFLUORIDATE, not a phosphoNOfluoridate. Same phosphoryl, fluorine and alkoxy as sarin. The single most important negative in the set."},
-    {"name": "P-butyl homologue", "smiles": "CCCCP(=O)(F)OC(C)C", "expect": [],
-     "why": "Scheduled connectivity, but entry A.1 restricts the P-alkyl group to methyl, ethyl, n-propyl or isopropyl."},
-    {"name": "C12 O-alkyl homologue", "smiles": "CCCCCCCCCCCCOP(C)(=O)F", "expect": [],
-     "why": "Outside the entry's 'equal to or less than C10' clause, which no SMARTS expresses."},
-    {"name": "2-chloroethyl ethyl sulfide (half-mustard)", "smiles": "CCSCCCl", "expect": ["cwc-1-a-4"],
-     "why": "KNOWN OVER-BROAD MATCH. The A.4 pattern keys on a single 2-chloroethyl thioether arm; the entry is a heading over an enumeration. Recorded as expected so the benchmark measures the rule as written rather than as hoped."},
-    {"name": "chlorambucil (licensed medicine)", "smiles": "OC(=O)CCCc1ccc(cc1)N(CCCl)CCCl", "expect": [],
-     "why": "A KNOWN FALSE POSITIVE, deliberately scored as one. Chlorambucil is a cytotoxic medicine and is not among the HN1/HN2/HN3 the entry enumerates, but it is chemically a nitrogen mustard and the approximate A.6 pattern matches it. The benchmark reports this rather than blessing it."},
-    {"name": "melphalan (licensed medicine)", "smiles": "NC(Cc1ccc(cc1)N(CCCl)CCCl)C(=O)O", "expect": [],
-     "why": "Same known false positive as chlorambucil."},
-    {"name": "sarin hydrolysis product (IMPA)", "smiles": "CC(C)OP(C)(=O)O", "expect": [],
-     "why": "The degradation product has no fluorine, so it is outside A.1 even though it is a well-known sarin marker."}
-  ],
-  "historical": [
-    {"_note": "Reserved for structures whose regulatory status CHANGED, which is the only way to test that effective-date resolution works. Empty because the shipped ruleset carries a single revision; populate when a superseding ruleset ships."}
-  ]
+ "_comment": "Four corpora. `expect` lists the rule_ids a structure SHOULD match; an empty list means it must match nothing. Negatives and edge cases are the point: a rule flagging every organophosphate scores perfect recall on positives alone and is useless in a screen.",
+ "positives": [
+  {
+   "name": "sarin (GB)",
+   "smiles": "CC(C)OP(C)(=O)F",
+   "expect": [
+    "cwc-1-a-1"
+   ]
+  },
+  {
+   "name": "soman (GD)",
+   "smiles": "CC(C)(C)C(C)OP(C)(=O)F",
+   "expect": [
+    "cwc-1-a-1"
+   ]
+  },
+  {
+   "name": "ethyl methylphosphonofluoridate",
+   "smiles": "CCOP(C)(=O)F",
+   "expect": [
+    "cwc-1-a-1"
+   ]
+  },
+  {
+   "name": "tabun (GA)",
+   "smiles": "CCOP(=O)(C#N)N(C)C",
+   "expect": [
+    "cwc-1-a-2"
+   ]
+  },
+  {
+   "name": "VX",
+   "smiles": "CCOP(C)(=O)SCCN(C(C)C)C(C)C",
+   "expect": [
+    "cwc-1-a-3"
+   ]
+  },
+  {
+   "name": "sulfur mustard (HD)",
+   "smiles": "ClCCSCCCl",
+   "expect": [
+    "cwc-1-a-4"
+   ]
+  },
+  {
+   "name": "sesquimustard (Q)",
+   "smiles": "ClCCSCCSCCCl",
+   "expect": [
+    "cwc-1-a-4"
+   ]
+  },
+  {
+   "name": "lewisite 1 (L)",
+   "smiles": "Cl[As](Cl)C=CCl",
+   "expect": [
+    "cwc-1-a-5"
+   ]
+  },
+  {
+   "name": "HN2 (nitrogen mustard)",
+   "smiles": "CN(CCCl)CCCl",
+   "expect": [
+    "cwc-1-a-6"
+   ]
+  },
+  {
+   "name": "HN3 (nitrogen mustard)",
+   "smiles": "ClCCN(CCCl)CCCl",
+   "expect": [
+    "cwc-1-a-6"
+   ]
+  },
+  {
+   "name": "phosgene",
+   "smiles": "C(=O)(Cl)Cl",
+   "expect": [
+    "cwc-3-a-1"
+   ]
+  },
+  {
+   "name": "hydrogen cyanide",
+   "smiles": "C#N",
+   "expect": [
+    "cwc-3-a-3"
+   ]
+  },
+  {
+   "name": "chloropicrin",
+   "smiles": "C([N+](=O)[O-])(Cl)(Cl)Cl",
+   "expect": [
+    "cwc-3-a-4"
+   ]
+  },
+  {
+   "name": "thionyl chloride",
+   "smiles": "O=S(Cl)Cl",
+   "expect": [
+    "cwc-3-b-14"
+   ]
+  },
+  {
+   "name": "triethanolamine",
+   "smiles": "OCCN(CCO)CCO",
+   "expect": [
+    "cwc-3-b-17"
+   ]
+  },
+  {
+   "name": "sulfur monochloride (Cl2S2, not ClS)",
+   "smiles": "ClSSCl",
+   "expect": [
+    "cwc-3-b-12"
+   ]
+  },
+  {
+   "name": "cyanogen chloride",
+   "smiles": "ClC#N",
+   "expect": [
+    "cwc-3-a-2"
+   ]
+  },
+  {
+   "name": "phosphorus oxychloride",
+   "smiles": "O=P(Cl)(Cl)Cl",
+   "expect": [
+    "cwc-3-b-5"
+   ]
+  },
+  {
+   "name": "phosphorus trichloride",
+   "smiles": "ClP(Cl)Cl",
+   "expect": [
+    "cwc-3-b-6"
+   ]
+  },
+  {
+   "name": "phosphorus pentachloride",
+   "smiles": "ClP(Cl)(Cl)(Cl)Cl",
+   "expect": [
+    "cwc-3-b-7"
+   ]
+  },
+  {
+   "name": "trimethyl phosphite",
+   "smiles": "COP(OC)OC",
+   "expect": [
+    "cwc-3-b-8"
+   ]
+  },
+  {
+   "name": "triethyl phosphite",
+   "smiles": "CCOP(OCC)OCC",
+   "expect": [
+    "cwc-3-b-9"
+   ]
+  },
+  {
+   "name": "dimethyl phosphite",
+   "smiles": "COP(=O)OC",
+   "expect": [
+    "cwc-3-b-10"
+   ]
+  },
+  {
+   "name": "sulfur dichloride",
+   "smiles": "ClSCl",
+   "expect": [
+    "cwc-3-b-13"
+   ]
+  },
+  {
+   "name": "ethyldiethanolamine",
+   "smiles": "CCN(CCO)CCO",
+   "expect": [
+    "cwc-3-b-15"
+   ]
+  },
+  {
+   "name": "methyldiethanolamine",
+   "smiles": "CN(CCO)CCO",
+   "expect": [
+    "cwc-3-b-16"
+   ]
+  }
+ ],
+ "negatives": [
+  {
+   "name": "aspirin",
+   "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+   "expect": []
+  },
+  {
+   "name": "ethanol",
+   "smiles": "CCO",
+   "expect": []
+  },
+  {
+   "name": "benzene",
+   "smiles": "c1ccccc1",
+   "expect": []
+  },
+  {
+   "name": "caffeine",
+   "smiles": "Cn1cnc2c1c(=O)n(C)c(=O)n2C",
+   "expect": []
+  },
+  {
+   "name": "glucose",
+   "smiles": "OCC1OC(O)C(O)C(O)C1O",
+   "expect": []
+  },
+  {
+   "name": "trimethyl phosphate",
+   "smiles": "COP(=O)(OC)OC",
+   "expect": []
+  },
+  {
+   "name": "triethyl phosphate",
+   "smiles": "CCOP(=O)(OCC)OCC",
+   "expect": []
+  },
+  {
+   "name": "malathion (pesticide)",
+   "smiles": "CCOC(=O)CC(SP(=S)(OC)OC)C(=O)OCC",
+   "expect": []
+  },
+  {
+   "name": "dimethyl sulfide",
+   "smiles": "CSC",
+   "expect": []
+  },
+  {
+   "name": "triethylamine",
+   "smiles": "CCN(CC)CC",
+   "expect": []
+  },
+  {
+   "name": "1,2-dichloroethane",
+   "smiles": "ClCCCl",
+   "expect": []
+  },
+  {
+   "name": "thiodiglycol (Schedule 2, not Schedule 1)",
+   "smiles": "OCCSCCO",
+   "expect": []
+  },
+  {
+   "name": "ethanolamine",
+   "smiles": "OCCN",
+   "expect": []
+  },
+  {
+   "name": "diethanolamine",
+   "smiles": "OCCNCCO",
+   "expect": []
+  },
+  {
+   "name": "sulfuryl chloride",
+   "smiles": "O=S(=O)(Cl)Cl",
+   "expect": []
+  },
+  {
+   "name": "trimethyl phosphate",
+   "smiles": "COP(=O)(OC)OC",
+   "expect": []
+  }
+ ],
+ "edge_cases": [
+  {
+   "name": "diisopropyl fluorophosphate (no P-C bond)",
+   "smiles": "CC(C)OP(=O)(F)OC(C)C",
+   "expect": [],
+   "why": "A phosphoFLUORIDATE, not a phosphoNOfluoridate. Same phosphoryl, fluorine and alkoxy as sarin. The single most important negative in the set."
+  },
+  {
+   "name": "P-butyl homologue",
+   "smiles": "CCCCP(=O)(F)OC(C)C",
+   "expect": [],
+   "why": "Scheduled connectivity, but entry A.1 restricts the P-alkyl group to methyl, ethyl, n-propyl or isopropyl."
+  },
+  {
+   "name": "C12 O-alkyl homologue",
+   "smiles": "CCCCCCCCCCCCOP(C)(=O)F",
+   "expect": [],
+   "why": "Outside the entry's 'equal to or less than C10' clause, which no SMARTS expresses."
+  },
+  {
+   "name": "2-chloroethyl ethyl sulfide (half-mustard)",
+   "smiles": "CCSCCCl",
+   "expect": [
+    "cwc-1-a-4"
+   ],
+   "why": "KNOWN OVER-BROAD MATCH. The A.4 pattern keys on a single 2-chloroethyl thioether arm; the entry is a heading over an enumeration. Recorded as expected so the benchmark measures the rule as written rather than as hoped."
+  },
+  {
+   "name": "chlorambucil (licensed medicine)",
+   "smiles": "OC(=O)CCCc1ccc(cc1)N(CCCl)CCCl",
+   "expect": [],
+   "why": "A KNOWN FALSE POSITIVE, deliberately scored as one. Chlorambucil is a cytotoxic medicine and is not among the HN1/HN2/HN3 the entry enumerates, but it is chemically a nitrogen mustard and the approximate A.6 pattern matches it. The benchmark reports this rather than blessing it."
+  },
+  {
+   "name": "melphalan (licensed medicine)",
+   "smiles": "NC(Cc1ccc(cc1)N(CCCl)CCCl)C(=O)O",
+   "expect": [],
+   "why": "Same known false positive as chlorambucil."
+  },
+  {
+   "name": "sarin hydrolysis product (IMPA)",
+   "smiles": "CC(C)OP(C)(=O)O",
+   "expect": [],
+   "why": "The degradation product has no fluorine, so it is outside A.1 even though it is a well-known sarin marker."
+  },
+  {
+   "name": "triethanolamine hydrochloride",
+   "smiles": "OCCN(CCO)CCO.Cl",
+   "expect": [
+    "cwc-3-b-17"
+   ],
+   "why": "MATCHES, and the entry's own text does not say it should. Schedule 3 carries no 'and corresponding salts' wording, unlike several Schedule 1 and 2 entries, but this engine strips counter-ions before comparing. Declared in the ruleset's known_limitations rather than silently applied -- the match is deliberate and broader than the statute."
+  },
+  {
+   "name": "sulfur monochloride, as a name lookup would give it (ClS)",
+   "smiles": "[S]Cl",
+   "expect": [],
+   "why": "The structure OPSIN returns for 'Sulphur monochloride'. It is NOT the listed chemical -- entry B.12 is Cl2S2 -- so it must not match, and its absence here is what proves the shipped key came from the statute's CAS rather than from the name."
+  },
+  {
+   "name": "diethyl phosphite",
+   "smiles": "CCOP(=O)OCC",
+   "expect": [],
+   "why": "Schedule 3 entry B.11 is deliberately NOT ENCODED: neither resolver returns the neutral C4H11O3P the entry lists. Scored as no-match so the gap stays visible and countable instead of looking like an oversight. If this ever starts matching, the entry was encoded and this case should move to positives."
+  }
+ ],
+ "historical": [
+  {
+   "_note": "Reserved for structures whose regulatory status CHANGED, which is the only way to test that effective-date resolution works. Empty because the shipped ruleset carries a single revision; populate when a superseding ruleset ships."
+  }
+ ]
 }

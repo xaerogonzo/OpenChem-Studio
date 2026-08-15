@@ -170,6 +170,7 @@ def build_one(source_path: Path) -> tuple[dict, list[str]]:
     unresolved: list[str] = []
     requires_review: list[str] = []
     manual_entries = 0
+    cited_entries = 0
 
     for entry in source.get("rules", []):
         rule_id = entry.get("rule_id") or "<unnamed>"
@@ -212,10 +213,16 @@ def build_one(source_path: Path) -> tuple[dict, list[str]]:
             else:
                 unresolved.append(f"{rule_id}: {name} ({why})")
         for key in entry.get("inchikeys", []) or []:
-            # A hand-supplied key is a manual entry and is counted as one,
-            # so the coverage report distinguishes derived from asserted.
             keys.append(key)
-            manual_entries += 1
+            # CITED vs ASSERTED, which is the distinction that matters. A key
+            # supplied beside an identifier the statute itself prints is
+            # traceable to the source and checkable by someone else; a bare
+            # key is somebody's word. Counting both as "manual" said the
+            # weaker thing about the stronger case.
+            if legal.get("cited_identifiers"):
+                cited_entries += 1
+            else:
+                manual_entries += 1
         if keys:
             interpretation["inchikeys"] = sorted(set(keys))
 
@@ -283,6 +290,7 @@ def build_one(source_path: Path) -> tuple[dict, list[str]]:
             "unresolved": unresolved,
             "requires_review": requires_review,
             "manual_entries": manual_entries,
+            "cited_entries": cited_entries,
         },
         "provenance": {
             "generator": GENERATOR,
@@ -425,7 +433,8 @@ def main(argv: list[str]) -> int:
         print(f"  requires review  {len(coverage['requires_review'])} "
               f"({review_fraction:.0%})")
         print(f"  unresolved       {len(coverage['unresolved'])}")
-        print(f"  manual entries   {coverage['manual_entries']}")
+        print(f"  cited entries    {coverage['cited_entries']}  (key beside a statute-printed identifier)")
+        print(f"  asserted entries {coverage['manual_entries']}  (key with no citation)")
         for note in notes:
             print(note)
         for item in coverage["unresolved"][:10]:

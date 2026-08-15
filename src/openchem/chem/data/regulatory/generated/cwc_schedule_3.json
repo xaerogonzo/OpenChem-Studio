@@ -1,0 +1,587 @@
+{
+ "_comment": "GENERATED FILE -- DO NOT EDIT. Written by build_regulatory_rulesets.py; edit the matching file under sources/ and rebuild.",
+ "ruleset_id": "cwc-schedule-3",
+ "display_name": "CWC Schedule 3",
+ "domain": "chemical_weapons",
+ "jurisdiction": "international",
+ "version": "1",
+ "effective_date": "1997-04-29",
+ "supersedes": "",
+ "source_citation": "Convention on the Prohibition of the Development, Production, Stockpiling and Use of Chemical Weapons and on their Destruction, Annex on Chemicals, Schedule 3. Text as published by the OPCW, accessed 2026-08-15.",
+ "known_limitations": [
+  "SCHEDULE 3 LISTING IS NOT A PROHIBITION. These chemicals are listed so that production above certain quantities is declared and may be verified. Every one of them is an ordinary large-scale industrial chemical, and several are among the most common reagents in synthetic chemistry.",
+  "The Convention's declaration obligations turn on quantity and concentration. A structure carries neither, so this screen can say that a chemical is listed and can never say whether any obligation applies to anybody.",
+  "Schedule 3 entries carry no 'and corresponding salts' wording, unlike several entries in Schedules 1 and 2. This screen strips counter-ions before comparing, so a salt of a listed chemical is reported as a match. That is broader than these entries' own text, and is reported here rather than silently applied.",
+  "Entry 11, diethyl phosphite, is NOT ENCODED. Neither structure resolver returns the neutral substance the entry lists: PubChem's record for CAS 762-04-9 is a cation (C4H10O3P+) and OPSIN returns an anion (C4H10O3P-), where diethyl phosphite is the neutral H-phosphonate C4H11O3P. A structure typed by hand would not be traceable to the statute, so the entry is left unresolved and visible rather than guessed.",
+  "Mixtures are not considered. A match is on the listed chemical itself."
+ ],
+ "rules": [
+  {
+   "rule_id": "cwc-3-a-1",
+   "display_name": "Phosgene (Schedule 3, A.1)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "identity",
+   "description": "Carbonyl dichloride. A high-volume industrial intermediate, principally for polycarbonates and isocyanates.",
+   "legitimate_uses": [],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 3, A.1",
+    "quote": "Phosgene: Carbonyl dichloride",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-3",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {
+     "CAS": "75-44-5"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "Identity resolved from the CAS number printed in the entry, not from its name."
+    ],
+    "limitations": [],
+    "confidence": "exact",
+    "interpreter_version": 1,
+    "inchikeys": [
+     "YGYAWVDWMABLBF-UHFFFAOYSA-N"
+    ]
+   }
+  },
+  {
+   "rule_id": "cwc-3-a-2",
+   "display_name": "Cyanogen chloride (Schedule 3, A.2)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "identity",
+   "description": "An intermediate in the manufacture of triazine herbicides and optical brighteners.",
+   "legitimate_uses": [],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 3, A.2",
+    "quote": "Cyanogen chloride",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-3",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {
+     "CAS": "506-77-4"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "Identity resolved from the CAS number printed in the entry, not from its name."
+    ],
+    "limitations": [],
+    "confidence": "exact",
+    "interpreter_version": 1,
+    "inchikeys": [
+     "QPJDMGCKMHUXFD-UHFFFAOYSA-N"
+    ]
+   }
+  },
+  {
+   "rule_id": "cwc-3-a-3",
+   "display_name": "Hydrogen cyanide (Schedule 3, A.3)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "identity",
+   "description": "Produced industrially on a very large scale, mainly for adiponitrile and methyl methacrylate.",
+   "legitimate_uses": [],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 3, A.3",
+    "quote": "Hydrogen cyanide",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-3",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {
+     "CAS": "74-90-8"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "Identity resolved from the CAS number printed in the entry, not from its name."
+    ],
+    "limitations": [],
+    "confidence": "exact",
+    "interpreter_version": 1,
+    "inchikeys": [
+     "LELOWRISYMNNSU-UHFFFAOYSA-N"
+    ]
+   }
+  },
+  {
+   "rule_id": "cwc-3-a-4",
+   "display_name": "Chloropicrin (Schedule 3, A.4)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "identity",
+   "description": "Trichloronitromethane. Registered in several jurisdictions as a soil fumigant.",
+   "legitimate_uses": [],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 3, A.4",
+    "quote": "Chloropicrin: Trichloronitromethane",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-3",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {
+     "CAS": "76-06-2"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "Identity resolved from the CAS number printed in the entry, not from its name."
+    ],
+    "limitations": [],
+    "confidence": "exact",
+    "interpreter_version": 1,
+    "inchikeys": [
+     "LFHISGNCFUNFFM-UHFFFAOYSA-N"
+    ]
+   }
+  },
+  {
+   "rule_id": "cwc-3-b-5",
+   "display_name": "Phosphorus oxychloride (Schedule 3, B.5)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "precursor",
+   "description": "",
+   "legitimate_uses": [
+    "manufacture of phosphate esters, plasticisers and flame retardants",
+    "a standard chlorinating and dehydrating reagent in organic synthesis"
+   ],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 3, B.5",
+    "quote": "Phosphorus oxychloride",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-3",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {
+     "CAS": "10025-87-3"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "Identity resolved from the CAS number printed in the entry, not from its name."
+    ],
+    "limitations": [],
+    "confidence": "exact",
+    "interpreter_version": 1,
+    "inchikeys": [
+     "XHXFXVLFKHQFAL-UHFFFAOYSA-N"
+    ]
+   }
+  },
+  {
+   "rule_id": "cwc-3-b-6",
+   "display_name": "Phosphorus trichloride (Schedule 3, B.6)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "precursor",
+   "description": "",
+   "legitimate_uses": [
+    "manufacture of pesticides, plasticisers and surfactants",
+    "the usual industrial starting point for other phosphorus chlorides"
+   ],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 3, B.6",
+    "quote": "Phosphorus trichloride",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-3",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {
+     "CAS": "7719-12-2"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "Identity resolved from the CAS number printed in the entry, not from its name."
+    ],
+    "limitations": [],
+    "confidence": "exact",
+    "interpreter_version": 1,
+    "inchikeys": [
+     "FAIAAWCVCHQXDN-UHFFFAOYSA-N"
+    ]
+   }
+  },
+  {
+   "rule_id": "cwc-3-b-7",
+   "display_name": "Phosphorus pentachloride (Schedule 3, B.7)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "precursor",
+   "description": "",
+   "legitimate_uses": [
+    "a common chlorinating reagent in organic synthesis"
+   ],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 3, B.7",
+    "quote": "Phosphorus pentachloride",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-3",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {
+     "CAS": "10026-13-8"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "Identity resolved from the CAS number printed in the entry, not from its name."
+    ],
+    "limitations": [],
+    "confidence": "exact",
+    "interpreter_version": 1,
+    "inchikeys": [
+     "UHZYTMXLRWXGPK-UHFFFAOYSA-N"
+    ]
+   }
+  },
+  {
+   "rule_id": "cwc-3-b-8",
+   "display_name": "Trimethyl phosphite (Schedule 3, B.8)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "precursor",
+   "description": "",
+   "legitimate_uses": [
+    "a ligand in coordination chemistry",
+    "an intermediate in pesticide and flame-retardant manufacture"
+   ],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 3, B.8",
+    "quote": "Trimethyl phosphite",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-3",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {
+     "CAS": "121-45-9"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "Identity resolved from the CAS number printed in the entry, not from its name."
+    ],
+    "limitations": [],
+    "confidence": "exact",
+    "interpreter_version": 1,
+    "inchikeys": [
+     "CYTQBVOFDCPGCX-UHFFFAOYSA-N"
+    ]
+   }
+  },
+  {
+   "rule_id": "cwc-3-b-9",
+   "display_name": "Triethyl phosphite (Schedule 3, B.9)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "precursor",
+   "description": "",
+   "legitimate_uses": [
+    "a ligand in coordination chemistry",
+    "a reagent in the Arbuzov reaction, and an intermediate in polymer and pesticide manufacture"
+   ],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 3, B.9",
+    "quote": "Triethyl phosphite",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-3",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {
+     "CAS": "122-52-1"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "Identity resolved from the CAS number printed in the entry, not from its name."
+    ],
+    "limitations": [],
+    "confidence": "exact",
+    "interpreter_version": 1,
+    "inchikeys": [
+     "BDZBKCUKTQZUTL-UHFFFAOYSA-N"
+    ]
+   }
+  },
+  {
+   "rule_id": "cwc-3-b-10",
+   "display_name": "Dimethyl phosphite (Schedule 3, B.10)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "precursor",
+   "description": "The listed substance is the neutral H-phosphonate, C2H7O3P. OPSIN parses the name to an anion and is not used here; the CAS printed in the entry resolves correctly.",
+   "legitimate_uses": [
+    "an intermediate in pesticide and flame-retardant manufacture"
+   ],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 3, B.10",
+    "quote": "Dimethyl phosphite",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-3",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {
+     "CAS": "868-85-9"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "Identity resolved from the CAS number printed in the entry, not from its name. The two differ here: a name lookup through OPSIN returns C2H6O3P-, an anion, where the entry lists the neutral C2H7O3P."
+    ],
+    "limitations": [],
+    "confidence": "exact",
+    "interpreter_version": 1,
+    "inchikeys": [
+     "HZCDANOFLILNSA-UHFFFAOYSA-N"
+    ]
+   }
+  },
+  {
+   "rule_id": "cwc-3-b-12",
+   "display_name": "Sulfur monochloride (Schedule 3, B.12)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "precursor",
+   "description": "Disulfur dichloride, Cl2S2. The traditional name says 'mono' because there is one chlorine per sulfur, not one in total.",
+   "legitimate_uses": [
+    "vulcanisation of rubber",
+    "an intermediate in the manufacture of pesticides and dyes"
+   ],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 3, B.12",
+    "quote": "Sulfur monochloride",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-3",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {
+     "CAS": "10025-67-9"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "Identity resolved from the CAS number printed in the entry, not from its name. Both resolvers get this name wrong: OPSIN returns ClS and a PubChem name lookup returns HClS, where the entry lists Cl2S2. The spelling matters too -- 'Sulphur monochloride' and 'Sulfur monochloride' resolve to different structures through PubChem, and the OPCW spells it 'Sulfur'."
+    ],
+    "limitations": [],
+    "confidence": "exact",
+    "interpreter_version": 1,
+    "inchikeys": [
+     "PXJJSXABGXMUSU-UHFFFAOYSA-N"
+    ]
+   }
+  },
+  {
+   "rule_id": "cwc-3-b-13",
+   "display_name": "Sulfur dichloride (Schedule 3, B.13)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "precursor",
+   "description": "",
+   "legitimate_uses": [
+    "vulcanisation of rubber",
+    "a chlorinating reagent and an intermediate in agrochemical manufacture"
+   ],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 3, B.13",
+    "quote": "Sulfur dichloride",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-3",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {
+     "CAS": "10545-99-0"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "Identity resolved from the CAS number printed in the entry, not from its name."
+    ],
+    "limitations": [],
+    "confidence": "exact",
+    "interpreter_version": 1,
+    "inchikeys": [
+     "FWMUJAIKEJWSSY-UHFFFAOYSA-N"
+    ]
+   }
+  },
+  {
+   "rule_id": "cwc-3-b-14",
+   "display_name": "Thionyl chloride (Schedule 3, B.14)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "precursor",
+   "description": "One of the most widely used reagents in synthetic organic chemistry.",
+   "legitimate_uses": [
+    "converting carboxylic acids to acyl chlorides and alcohols to alkyl chlorides",
+    "manufacture of pharmaceuticals, agrochemicals and dyes"
+   ],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 3, B.14",
+    "quote": "Thionyl chloride",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-3",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {
+     "CAS": "7719-09-7"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "Identity resolved from the CAS number printed in the entry, not from its name."
+    ],
+    "limitations": [],
+    "confidence": "exact",
+    "interpreter_version": 1,
+    "inchikeys": [
+     "FYSNRJHAOHDILO-UHFFFAOYSA-N"
+    ]
+   }
+  },
+  {
+   "rule_id": "cwc-3-b-15",
+   "display_name": "Ethyldiethanolamine (Schedule 3, B.15)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "precursor",
+   "description": "",
+   "legitimate_uses": [
+    "acid-gas removal in natural gas processing",
+    "manufacture of surfactants and corrosion inhibitors"
+   ],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 3, B.15",
+    "quote": "Ethyldiethanolamine",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-3",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {
+     "CAS": "139-87-7"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "Identity resolved from the CAS number printed in the entry, not from its name."
+    ],
+    "limitations": [],
+    "confidence": "exact",
+    "interpreter_version": 1,
+    "inchikeys": [
+     "AKNUHUCEWALCOI-UHFFFAOYSA-N"
+    ]
+   }
+  },
+  {
+   "rule_id": "cwc-3-b-16",
+   "display_name": "Methyldiethanolamine (Schedule 3, B.16)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "precursor",
+   "description": "",
+   "legitimate_uses": [
+    "acid-gas removal in natural gas processing, where it is a standard solvent",
+    "manufacture of surfactants and polyurethane catalysts"
+   ],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 3, B.16",
+    "quote": "Methyldiethanolamine",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-3",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {
+     "CAS": "105-59-9"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "Identity resolved from the CAS number printed in the entry, not from its name."
+    ],
+    "limitations": [],
+    "confidence": "exact",
+    "interpreter_version": 1,
+    "inchikeys": [
+     "CRVGTESFCCXCTH-UHFFFAOYSA-N"
+    ]
+   }
+  },
+  {
+   "rule_id": "cwc-3-b-17",
+   "display_name": "Triethanolamine (Schedule 3, B.17)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "precursor",
+   "description": "An extremely common ingredient, present in a large fraction of personal-care products.",
+   "legitimate_uses": [
+    "cosmetics and personal-care products, as an emulsifier and pH adjuster",
+    "cement additives, metalworking fluids and surfactant manufacture"
+   ],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 3, B.17",
+    "quote": "Triethanolamine",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-3",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {
+     "CAS": "102-71-6"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "Identity resolved from the CAS number printed in the entry, not from its name."
+    ],
+    "limitations": [],
+    "confidence": "exact",
+    "interpreter_version": 1,
+    "inchikeys": [
+     "GSEJCLTVZPLZKY-UHFFFAOYSA-N"
+    ]
+   }
+  }
+ ],
+ "coverage": {
+  "total_entries": 17,
+  "resolved": 16,
+  "unresolved": [
+   "cwc-3-b-11: nothing to match on"
+  ],
+  "requires_review": [
+   "cwc-3-b-11"
+  ],
+  "manual_entries": 0,
+  "cited_entries": 16
+ },
+ "provenance": {
+  "generator": "build_regulatory_rulesets.py",
+  "generator_version": "1",
+  "generated_at": "2026-08-15T16:33:35+00:00",
+  "source_document_sha256": "aa421945df3eebb180019498f8c49dcb3393a08095ac6b1b39767a8385ef0685",
+  "rdkit_version": "2025.09.6",
+  "opsin_version": "1.2.0",
+  "ruleset_sha256": "27cf8b9b596a7ee204c04435cea6a272bdbc5d08e05232df2a4ee040a471667e"
+ }
+}

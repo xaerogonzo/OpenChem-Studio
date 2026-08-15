@@ -4,6 +4,35 @@
 python benchmarks/regulatory/score.py
 ```
 
+## Result, CWC Schedules 1 and 3, 52 structures across 4 corpora
+
+Schedule 3 adds 17 entries, 16 of them encoded, and every one scores
+1.00/1.00. That is less impressive than it sounds and is stated plainly:
+they are **identity** rules matched by InChIKey, so they cannot be
+over-broad the way a structural family can. The interesting rows are still
+Schedule 1's.
+
+**Every shipped rule now has at least one positive case.** Sixteen of the
+twenty-two did not when Schedule 3 landed, and a rule with no positive
+scores a perfect 1.00 while testing nothing — the same vacuous pass this
+file already warns about for a rule matching every organophosphate.
+`test_every_shipped_rule_is_exercised_by_the_benchmark_corpus` fails if a
+future rule ships without one.
+
+Three Schedule 3 edge cases carry the weight:
+
+- **triethanolamine hydrochloride** matches, and the entry's text does not
+  say it should. Schedule 3 carries no "and corresponding salts" wording;
+  the engine strips counter-ions anyway. Declared in that ruleset's
+  `known_limitations` rather than applied silently.
+- **`[S]Cl`** — the structure a name lookup returns for "Sulphur
+  monochloride" — must NOT match. Entry B.12 is Cl2S2. The shipped key
+  being right only means something if the wrong structure also fails.
+- **diethyl phosphite** is scored as no-match because entry B.11 is
+  deliberately unencoded: PubChem's record for its CAS is a cation and
+  OPSIN returns an anion, where the entry lists a neutral substance. If it
+  ever starts matching, the entry was encoded and the case moves.
+
 ## Result, CWC Schedule 1, 29 structures across 4 corpora
 
 | rule | TP | FP | FN | TN | precision | recall |

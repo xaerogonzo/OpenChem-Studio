@@ -260,6 +260,81 @@ def test_an_unknown_op_fails_the_build(tmp_path):
         build_one(path)
 
 
+# --- Schedule 3: the first shipped ruleset matched by identity ----------
+
+
+def test_a_schedule_3_precursor_reports_as_a_precursor(engine):
+    """The first shipped rules to exercise `_apply_identity` at all. Every
+    Schedule 3 Part B entry is a listed PRECURSOR matched by InChIKey, which
+    is exactly the combination that used to report as an identity match."""
+    findings = engine.screen(_mol("O=S(Cl)Cl")).findings  # thionyl chloride
+    assert [f.rule.rule_id for f in findings] == ["cwc-3-b-14"]
+    assert findings[0].match_type.value == "precursor"
+    assert findings[0].rule.legitimate_uses, "a precursor without its uses reads as an accusation"
+
+
+def test_a_schedule_3_toxic_chemical_reports_as_an_identity(engine):
+    """Part A is not a precursor list, and the two parts must not blur."""
+    findings = engine.screen(_mol("C(=O)(Cl)Cl")).findings  # phosgene
+    assert [f.rule.rule_id for f in findings] == ["cwc-3-a-1"]
+    assert findings[0].match_type.value == "identity"
+
+
+def test_the_listed_sulfur_monochloride_is_Cl2S2_not_ClS(engine):
+    """THE ENTRY A NAME LOOKUP GETS WRONG. OPSIN returns ClS for
+    'Sulphur monochloride' and PubChem returns HClS; the entry lists Cl2S2.
+    Both halves are asserted, because the shipped key being right is only
+    meaningful if the wrong structure also fails to match."""
+    assert [f.rule.rule_id for f in engine.screen(_mol("ClSSCl")).findings] == ["cwc-3-b-12"]
+    assert not engine.screen(_mol("[S]Cl")).matched
+
+
+def test_a_salt_of_a_schedule_3_chemical_matches_and_that_is_declared(engine):
+    """A DELIBERATE OVER-REACH, asserted so it stays deliberate. Schedule 3
+    entries carry no 'and corresponding salts' wording -- unlike several
+    Schedule 1 and 2 entries -- but the engine strips counter-ions before
+    comparing, so a salt matches. Broader than the statute, and the ruleset
+    says so in as many words rather than applying it silently."""
+    assert engine.screen(_mol("OCCN(CCO)CCO.Cl")).matched
+
+    ruleset = next(r for r in load_all(include_user=False)[0]
+                   if r.ruleset_id == "cwc-schedule-3")
+    assert any("salts" in note for note in ruleset.known_limitations)
+
+
+def test_the_entry_no_resolver_could_reach_is_visible_not_missing():
+    """Schedule 3 entry B.11 is not encoded, because PubChem's record for
+    its CAS is a cation and OPSIN returns an anion where the entry lists a
+    neutral substance. The failure mode to avoid is it quietly vanishing:
+    coverage must still count 17 entries and name the one not resolved."""
+    ruleset = next(r for r in load_all(include_user=False)[0]
+                   if r.ruleset_id == "cwc-schedule-3")
+
+    assert ruleset.coverage.total_entries == 17
+    assert ruleset.coverage.resolved == 16
+    assert any("cwc-3-b-11" in item for item in ruleset.coverage.unresolved)
+    assert any("diethyl phosphite" in note.lower() for note in ruleset.known_limitations)
+
+
+def test_every_shipped_rule_is_exercised_by_the_benchmark_corpus():
+    """A rule with no positive case scores precision 1.00 in the benchmark
+    while testing nothing -- the same vacuous pass its own README warns
+    about for a rule that matches every organophosphate. Sixteen of the
+    twenty-two shipped rules were in that state when Schedule 3 landed."""
+    corpus = json.loads(
+        (REPO / "benchmarks" / "regulatory" / "corpus.json").read_text(encoding="utf-8")
+    )
+    exercised = {
+        rule_id
+        for case in corpus["positives"]
+        for rule_id in case.get("expect", [])
+    }
+    shipped = {
+        rule.rule_id for ruleset in load_all(include_user=False)[0] for rule in ruleset.rules
+    }
+    assert not (shipped - exercised), "shipped rules with no positive case"
+
+
 def test_an_identity_rule_must_declare_what_it_claims(tmp_path):
     """`loader` defaults an undeclared `match_type` to `structural_family`,
     and the engine now reports whatever the rule declared. So a rule matched

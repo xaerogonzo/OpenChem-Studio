@@ -360,15 +360,16 @@
   "resolved": 6,
   "unresolved": [],
   "requires_review": [],
-  "manual_entries": 0
+  "manual_entries": 0,
+  "cited_entries": 0
  },
  "provenance": {
   "generator": "build_regulatory_rulesets.py",
   "generator_version": "1",
-  "generated_at": "2026-08-05T18:32:12+00:00",
+  "generated_at": "2026-08-15T16:33:35+00:00",
   "source_document_sha256": "0008eac5c624cefc453097439c1d12d2aae07f30a39b4c755feb868a7be245dc",
   "rdkit_version": "2025.09.6",
   "opsin_version": "1.2.0",
-  "ruleset_sha256": "094a21848032a555ccd30873b515acd82cec7856afe7e4dd2647c2ff31bc3f12"
+  "ruleset_sha256": "e7cbcabc94caa77daf888863596daa730646cbcf265409f87cb85366ebecd243"
  }
 }
