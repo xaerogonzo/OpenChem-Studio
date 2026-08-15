@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 import os
 from collections.abc import Callable
+from typing import NamedTuple
 
-from PySide6.QtCore import QPoint, QSize, Qt, QTimer
+from PySide6.QtCore import QPoint, QRect, QSize, Qt, QTimer
 from PySide6.QtGui import QFontMetrics, QGuiApplication
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -452,6 +453,37 @@ _REPORT_ID_PROPERTY = "openchem_report_id"
 #: button rather than a sliver at any panel width.
 _ELIDED_BUTTON_MIN_WIDTH = 80
 
+#: How narrow a row caption may be squeezed before the panel would rather
+#: overflow. It is a FLOOR, not a width: `_ElidingCaptionLabel` caps only
+#: its `minimumSizeHint`, so a wide panel still shows the full text.
+#:
+#: **DERIVED FROM THE PANEL'S OWN MINIMUM, not chosen for looks.** At the
+#: 280 px `_PANEL_MIN_WIDTH` the scroll viewport is 256 and the section
+#: spends 18 on content margins, so the form has 238 to live in; its
+#: field column and spacing take 44 of that, leaving 194 as the widest a
+#: caption column may be before the content is wider than the viewport
+#: and every row is clipped at the right edge. 120 sits well inside that
+#: with room for the field column to grow, and still shows about
+#: eighteen characters -- enough to tell one row from another, with the
+#: full string in the tooltip and recoverable from "Copy all".
+_ELIDED_CAPTION_MIN_WIDTH = 120
+
+#: How many pixels of reported overflow are measurement noise rather than
+#: a clip.
+#:
+#: **MEASURED, and it is the `intra` term that needs it.**
+#: `QFontMetrics.boundingRect` over-reports a single line by one pixel
+#: against what `QLabel` actually paints, so two `'✓ Pass'` value
+#: labels report `intra 1` while rendering complete -- confirmed by
+#: magnifying the running app. The geometry terms were exact in the same
+#: run: every widget came in at `right -2` or better once the content fit
+#: the viewport.
+#:
+#: 2 is that 1 px with a pixel of headroom, and it is far below the thing
+#: being guarded against: the reported symptom was a whole character, and
+#: the measured defect was 14 px.
+_OVERFLOW_TOLERANCE = 2
+
 #: The longest a calculator's display name may be before its button
 #: elides at the panel's minimum width.
 #:
@@ -721,6 +753,201 @@ def _dump_width_budget(panel: QWidget) -> None:
                         wanted,
                         (child.text()[:48] if hasattr(child, "text") else ""),
                     )
+        # WHICH DESCENDANT SETS THE SECTION'S MINIMUM. The per-row loop
+        # above asks whether any single widget beats the VIEWPORT, and it
+        # reported nothing while the section's minimum was 272 against a
+        # 256 viewport -- because the demand is 254 from a row plus the
+        # section's own 18 px of content margins, and no individual
+        # widget crosses the line on its own. Ranking is what names the
+        # contributor; a threshold cannot, because the threshold is the
+        # thing in question.
+        ranked = sorted(
+            (
+                (child.minimumSizeHint().width(), child)
+                for child in section.content.findChildren(QWidget)
+                if child.isVisibleTo(section.content)
+            ),
+            key=lambda pair: pair[0],
+            reverse=True,
+        )
+        for wanted, child in ranked[:5]:
+            logger.warning(
+                "      sets-min %-5d %-20s wrap=%-5s %r",
+                wanted,
+                type(child).__name__[:20],
+                (child.wordWrap() if isinstance(child, QLabel) else "-"),
+                (_painted_text(child)[:44]),
+            )
+
+
+class RenderedOverflow(NamedTuple):
+    """One widget whose painted text leaves the scroll viewport.
+
+    `left`/`right` are pixels PAST each viewport edge, so a fitting
+    widget is `(<=0, <=0)`. `intra` is separate and is the width the
+    text needs at the width the widget was GIVEN, minus that width --
+    non-zero means the clip happens INSIDE the widget, which no amount
+    of moving it would fix.
+    """
+
+    widget: QWidget
+    text: str
+    left: int
+    right: int
+    intra: int
+    path: str
+
+    def describe(self, viewport_width: int) -> str:
+        return (
+            f"{type(self.widget).__name__} {self.text[:44]!r} "
+            f"overflowed left {self.left} px / right {self.right} px "
+            f"/ intra {self.intra} px | viewport width {viewport_width} "
+            f"| path: {self.path}"
+        )
+
+
+def _painted_text(widget: QWidget) -> str:
+    """The text a widget actually draws, or `""` for a pure container.
+
+    **Containers are deliberately excluded from the overflow walk.** A
+    holder wider than the viewport with every child inside it clips
+    nothing, and reporting it would bury the one widget that does --
+    which is the false-positive this walk exists to avoid. A container's
+    demand is the OTHER question and shows up in `_dump_width_budget`.
+    """
+    getter = getattr(widget, "text", None)
+    if not callable(getter):
+        return ""
+    try:
+        return str(getter() or "")
+    except (TypeError, RuntimeError):
+        # A Qt method needing arguments, or a freed C++ object.
+        return ""
+
+
+def _ancestry_path(widget: QWidget, top: QWidget) -> str:
+    """`A > B > C`, so a failure names WHERE the offender sits.
+
+    A bare "QLabel overflowed by 17 px" is not actionable in a panel
+    holding a hundred labels; the chain is what points at the row.
+    """
+    names: list[str] = []
+    node: QWidget | None = widget
+    while node is not None and node is not top:
+        names.append(type(node).__name__)
+        node = node.parentWidget()
+    names.append(type(top).__name__)
+    return " > ".join(reversed(names))
+
+
+def rendered_overflow(
+    panel: QWidget, tolerance: int = _OVERFLOW_TOLERANCE
+) -> list[RenderedOverflow]:
+    """Every descendant whose PAINTED text leaves the scroll viewport.
+
+    **THIS IS THE ORACLE, AND `_dump_width_budget` IS NOT.** That one
+    asks which widget's `minimumSizeHint().width()` exceeds the viewport
+    -- minimum-width PRESSURE, which explains why a layout was forced
+    wide. A widget can have a perfectly reasonable minimum hint and
+    still be LAID OUT past the edge, and it is the laid-out geometry a
+    reader loses characters to. The two are kept separate because they
+    answer different questions and only this one is the symptom.
+
+    **`horizontalScrollBar().maximum() == 0` IS NOT THE ORACLE EITHER.**
+    That assertion has been in the suite since the wide-row work and
+    passes while the running app clips, which is what made this
+    function necessary.
+
+    **BOTH EDGES.** Left-edge clipping is not hypothetical in this
+    panel: `_reveal_row` records `"bb_permeant"` and `"unctional
+    Groups"` from a run that had scrolled right.
+
+    Returns findings rather than logging them, so the live dump and the
+    headless guard share ONE implementation. Computing overflow twice is
+    how a dump and a test come to disagree about the same panel.
+    """
+    areas = panel.findChildren(QScrollArea)
+    if len(areas) != 1:
+        # The walk assumes ONE boundary owner. More than one means a
+        # nested scrollable arrived, and a child legitimately wider than
+        # its own scrollable parent is not overflow -- so the assumption
+        # has to fail loudly rather than quietly mis-measure.
+        raise AssertionError(
+            f"expected exactly one QScrollArea in the panel, found {len(areas)} -- "
+            "a nested scrollable invalidates this measurement"
+        )
+    viewport = areas[0].viewport()
+    bounds = viewport.rect()
+
+    findings: list[RenderedOverflow] = []
+    for child in viewport.findChildren(QWidget):
+        # **`isVisibleTo`, NOT `isHidden` AND NOT `isVisible`.** A widget
+        # inside a COLLAPSED section has `isHidden() == False` -- the flag
+        # is on the section's content, not on the child -- and it has
+        # never been laid out, so it still carries a default geometry that
+        # reads as a huge overflow. Measured before this filter existed:
+        # 56 findings at "right 384 px", every one of them a label in a
+        # collapsed section, against a real overflow of 14. `isVisible()`
+        # is the opposite mistake and this file already records it: it is
+        # False for every child of a window nobody showed, so under a test
+        # harness it answers "none of them".
+        if not child.isVisibleTo(viewport):
+            continue
+        text = _painted_text(child)
+        if not text:
+            continue
+        mapped = QRect(child.mapTo(viewport, QPoint(0, 0)), child.size())
+        left = bounds.left() - mapped.left()
+        right = mapped.right() - bounds.right()
+
+        # What the text NEEDS at the width it was given. A single
+        # unbreakable token longer than the widget clips inside it, and
+        # no amount of repositioning the widget would show it.
+        #
+        # **LABELS ONLY.** A `QPushButton`'s `contentsRect` is not its text
+        # rectangle -- the style adds its own padding -- so the comparison
+        # is meaningless there, and `_ElidingPushButton` elides on purpose
+        # anyway. Measured: the 80 px "Details..." button reports `intra 40`
+        # under the test platform's wider font while rendering correctly for
+        # a user, which is a false positive that would make this probe
+        # untrustworthy exactly where it needs to be believed. The geometry
+        # terms above still cover buttons.
+        inner = child.contentsRect().width() if isinstance(child, QLabel) else 0
+        intra = 0
+        if inner > 0:
+            flags = Qt.TextFlag.TextWordWrap if getattr(child, "wordWrap", None) and child.wordWrap() else Qt.TextFlag.TextSingleLine
+            needed = QFontMetrics(child.font()).boundingRect(
+                QRect(0, 0, inner, 0), int(flags), text
+            ).width()
+            intra = needed - inner
+
+        if left > tolerance or right > tolerance or intra > tolerance:
+            findings.append(
+                RenderedOverflow(child, text, left, right, intra, _ancestry_path(child, viewport))
+            )
+    return findings
+
+
+def _dump_rendered_overflow(panel: QWidget) -> None:
+    """Log `rendered_overflow`, plus the viewport width it judged against.
+
+    The viewport width is logged on its own line even when nothing
+    overflows, because "content adapts to the viewport" and "the
+    viewport shrank to fit the content" look identical in a findings
+    list and are opposite outcomes.
+    """
+    areas = panel.findChildren(QScrollArea)
+    width = areas[0].viewport().width() if len(areas) == 1 else -1
+    try:
+        findings = rendered_overflow(panel)
+    except AssertionError as exc:
+        logger.warning("rendered overflow: NOT MEASURABLE -- %s", exc)
+        return
+    logger.warning(
+        "rendered overflow (viewport %d px): %d finding(s)", width, len(findings)
+    )
+    for finding in findings:
+        logger.warning("    %s", finding.describe(width))
 
 
 def _dump_container_items(panel: QWidget) -> None:
@@ -789,7 +1016,7 @@ def _dump_panel_metrics(panel: QWidget) -> None:
             if field is None or not field.isVisibleTo(panel):
                 continue
             label = label_item.widget() if label_item is not None else None
-            name = getattr(label, "text", lambda: "")() or category
+            name = _caption_text(label) or category
             kind = type(field).__name__
             width = field.width()
             logger.warning(
@@ -902,6 +1129,188 @@ class _ElidingPushButton(QPushButton):
             super().setText(_mnemonic_safe(elided))
 
 
+class _ElidingCaptionLabel(QLabel):
+    """A row caption that may be narrower than its text.
+
+    **THE SAME BUG AS `_ElidingPushButton`, ONE WIDGET ALONG.** That class
+    fixed the case where the widest thing in the panel was a button; with
+    buttons capped, the next-widest thing became a form row's CAPTION, and
+    the panel went on overflowing by a smaller amount. Measured in the
+    running app, ADMET expanded, panel at its 280 px minimum:
+
+        scroll viewport                                256 px
+        scroll content                                 272      <- 16 over
+        admet section minimum                          272
+          its form's minimum                           254
+            widest caption, "Blood-Brain Barrier
+            Permeant (heuristic)", wrap off            210
+
+    A `QLabel` with word wrap OFF reports its full text width as its
+    minimum, and `QFormLayout` sizes the label column to the widest of
+    them -- so one long descriptor name set the column, the column set the
+    form, and `setWidgetResizable` sized the content to
+    `max(viewport, minimum)`. Every widget in the panel was then laid out
+    with its right edge 14 px past the viewport and clipped there, which
+    is why the symptom was "every visual line loses its last character"
+    rather than one bad row.
+
+    **ELIDING, NOT WRAPPING.** A wrapped caption is height-for-width, and
+    one height-for-width widget anywhere in a section puts back the
+    truncation that `ExplicitHeightLabel`, `DontWrapRows` and
+    `_add_wide_row` exist to prevent -- `_add_wide_row`'s own docstring
+    says so. This label never wraps, so it never offers one.
+
+    **IT CAPS `minimumSizeHint`, AND `Ignored` IS THE WRONG TOOL HERE.**
+    The obvious move is `_ElidingPushButton`'s -- `QSizePolicy.Ignored`
+    horizontally, which drops the minimum to nothing. That works for a
+    button sitting alone in a vertical layout and it CORRUPTS A FORM: an
+    ignored label no longer sizes the label column, so `QFormLayout` laid
+    the caption and its value on top of each other, and the panel read
+    `Aqu36ous Solubility (...` -- "Aqueous Solubility" and "-3.68"
+    painted in the same rectangle. Seen only by magnifying a screenshot;
+    all 98 panel tests passed with the two overlapping.
+
+    Capping `minimumSizeHint` instead keeps the ordinary `sizeHint`, so a
+    wide panel still sizes the column to the full caption and elides
+    nothing. Only the FLOOR moves, which is the single quantity that was
+    wrong.
+
+    `full_text` is the unelided string, and everything that EXPORTS a
+    caption reads it -- see `_caption_text`. Copying the panel must not
+    hand somebody "Blood-Brain Barrier Permeant (heur...".
+    """
+
+    def __init__(self, text: str = "", parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.full_text = ""
+        self.setWordWrap(False)
+        self.setText(text)
+
+    def _width_for_full_text(self) -> int:
+        """How wide the UNELIDED caption would be, margins included.
+
+        **BOTH HINTS DERIVE FROM `full_text`, AND THAT IS A LATCH FIX
+        RATHER THAN TIDINESS.** Qt's own hints measure the text currently
+        SET on the label, which is the elided string -- so once the label
+        had been squeezed to `...` its hints reported the width of `...`,
+        the layout duly gave it that, and it could never grow back. Seen
+        in the running app: three ADMET captions rendered as a bare `...`
+        beside their values, and no width the panel was given recovered
+        them. `full_text` does not change when the painted string does,
+        which is what breaks the loop.
+        """
+        margins = self.contentsMargins()
+        return (
+            QFontMetrics(self.font()).horizontalAdvance(self.full_text)
+            + margins.left()
+            + margins.right()
+        )
+
+    def _ceiling(self) -> int:
+        """The widest this caption may ASK to be.
+
+        **`QFormLayout` COLLAPSES A LABEL WHOSE `sizeHint` DOES NOT FIT,
+        rather than clamping it at `minimumSizeHint`.** Measured on a bare
+        form 290 px wide holding one row, label sizeHint 660,
+        minimumSizeHint 120:
+
+            label geometry   QRect(16, 2, 0, 14)      <- zero width
+            field                          262 px
+
+        So the caption vanished entirely, and because a zero-width label
+        elides against no space at all it fell back to its full string and
+        the hint stayed 660 -- a state it could never leave. Neither of the
+        two obvious repairs works: `QSizePolicy.Ignored` and an explicit
+        `setMinimumWidth` both stop the label sizing the column at all, and
+        the field is then laid out UNDERNEATH it (measured, label at x=11
+        w=120 against a field at x=17).
+
+        Capping the hint at a constant fixes the collapse and costs the
+        opposite defect -- a caption frozen at 120 px on a 900 px panel with
+        nothing but empty space beside it. Deriving the cap from the room
+        actually available keeps both ends right; measured on the same
+        bare form, no overlap at any width and the caption growing with it:
+
+            host 250   label 130     host 400   label 280
+            host 290   label 170     host 900   label 660 (full text)
+
+        `- _ELIDED_CAPTION_MIN_WIDTH` is the field's share: whatever the
+        caption leaves, the value still needs somewhere to be.
+        """
+        parent = self.parentWidget()
+        room = parent.width() if parent is not None else 0
+        return max(_ELIDED_CAPTION_MIN_WIDTH, room - _ELIDED_CAPTION_MIN_WIDTH)
+
+    def sizeHint(self) -> QSize:  # noqa: N802 - Qt's own casing
+        return QSize(
+            min(self._width_for_full_text(), self._ceiling()), super().sizeHint().height()
+        )
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802 - Qt's own casing
+        """The full caption's width, capped.
+
+        The `min` matters: a short caption like "LogP" must not claim the
+        cap as a floor, or every narrow row in the panel would reserve
+        space it has no use for.
+        """
+        return QSize(
+            min(self._width_for_full_text(), _ELIDED_CAPTION_MIN_WIDTH),
+            super().minimumSizeHint().height(),
+        )
+
+    def setText(self, text: str) -> None:  # noqa: N802 - Qt's own casing
+        """Record the full string, then show as much of it as fits.
+
+        The caption is REWRITTEN after creation -- a descriptor row is
+        built from a placeholder carrying only the internal id and
+        recaptioned when the real name arrives -- so storing the full text
+        at construction alone would keep the id forever.
+        """
+        self.full_text = text
+        self.setToolTip(text)
+        self._show_as_much_as_fits()
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 - Qt's own casing
+        super().resizeEvent(event)
+        self._show_as_much_as_fits()
+
+    def _show_as_much_as_fits(self) -> None:
+        available = self.contentsRect().width()
+        if available <= 0:
+            # Before the first layout pass there is no width to elide
+            # against. Show the full string; the resize that follows
+            # narrows it if it has to.
+            elided = self.full_text
+        else:
+            elided = QFontMetrics(self.font()).elidedText(
+                self.full_text, Qt.TextElideMode.ElideRight, available
+            )
+        # Guarded: `setText` re-lays-out the label, so assigning the same
+        # string on every resize is a loop with no exit condition. This is
+        # the guard `_ElidingPushButton` documents, for the same reason.
+        if elided != super().text():
+            super().setText(elided)
+
+
+def _caption_text(widget: QWidget | None) -> str:
+    """A caption's FULL text, for anything that exports or searches it.
+
+    An elided caption's `text()` is what is painted, which is the right
+    answer for the screen and the wrong one for the clipboard. "Copy all"
+    handing somebody `Blood-Brain Barrier Permeant (heur...` would be the
+    presentation layer corrupting the data on its way out -- the same
+    class of mistake as the glyphs, which `_without_glyphs` already
+    strips at every exit for the same reason.
+    """
+    if widget is None:
+        return ""
+    full = getattr(widget, "full_text", None)
+    if isinstance(full, str) and full:
+        return full
+    getter = getattr(widget, "text", None)
+    return str(getter() or "") if callable(getter) else ""
+
+
 def _add_wide_row(section, name: str, field: QWidget) -> None:
     """Add a value that can be long, spanning BOTH form columns.
 
@@ -927,8 +1336,14 @@ def _add_wide_row(section, name: str, field: QWidget) -> None:
     box = QVBoxLayout(holder)
     box.setContentsMargins(0, 0, 0, 0)
     box.setSpacing(0)
-    caption = QLabel(name, holder)
-    caption.setWordWrap(False)
+    # ELIDING, and still with wrapping off. The docstring above is right
+    # that a wrapped caption would be height-for-width and would put the
+    # truncation back; what it did not cover is that a NON-wrapping label
+    # reports its full text width as its minimum, so a long caption made
+    # the content wider than the viewport and every row was clipped at the
+    # right edge instead. `_ElidingCaptionLabel` is neither -- no wrap, and
+    # no width demand. See its docstring for the measurement.
+    caption = _ElidingCaptionLabel(name, holder)
     caption.setStyleSheet(_WIDE_ROW_CAPTION_STYLE)
     box.addWidget(caption)
     field.setParent(holder)
@@ -1358,7 +1773,12 @@ class PropertyPanel(QWidget):
             value_label = QLabel(section.content)
             value_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
             _make_copyable(value_label)
-            section.content_layout().addRow(label, value_label)
+            # A CAPTION WIDGET, not the string. `addRow(str, widget)` has
+            # Qt build a plain `QLabel`, whose minimum width is its whole
+            # text -- and the widest of those sized the form's label
+            # column, the column sized the content, and the content
+            # overflowed the viewport. See `_ElidingCaptionLabel`.
+            section.content_layout().addRow(_ElidingCaptionLabel(label, section.content), value_label)
             self._value_labels[row_key] = value_label
             self._row_labels[row_key] = label
         elif self._row_sections.get(row_key) is not section:
@@ -1373,7 +1793,7 @@ class PropertyPanel(QWidget):
                 taken = old_section.content_layout().takeRow(value_label)
                 if taken.labelItem is not None and taken.labelItem.widget() is not None:
                     taken.labelItem.widget().deleteLater()
-            section.content_layout().addRow(label, value_label)
+            section.content_layout().addRow(_ElidingCaptionLabel(label, section.content), value_label)
             self._row_labels[row_key] = label
         self._row_sections[row_key] = section
 
@@ -2012,6 +2432,12 @@ class PropertyPanel(QWidget):
         output carries the same headings and the same order the reader is
         looking at. Reading it out of the dicts would silently reorder it
         and drop the groupings, which is most of what makes it legible.
+
+        **Captions come through `_caption_text`, never `.text()`.** A
+        caption on screen is elided to whatever the panel's width allows,
+        so `.text()` would put `Blood-Brain Barrier Permeant (heur...`
+        on the clipboard -- a width decision leaking into exported data.
+        Same rule as `_without_glyphs` on the value side.
         """
         lines: list[str] = []
         for category in sorted(
@@ -2034,7 +2460,7 @@ class PropertyPanel(QWidget):
                 if name_widget is None or value_widget is None:
                     continue
                 value = _without_glyphs(value_widget.text()).replace("\n", "; ")
-                rows.append(f"  {name_widget.text()}: {value}")
+                rows.append(f"  {_caption_text(name_widget)}: {value}")
             if rows:
                 lines.append(_category_label(category))
                 lines.extend(rows)

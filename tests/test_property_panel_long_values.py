@@ -490,10 +490,25 @@ def test_an_explicit_height_label_never_offers_a_height_for_width_after_a_style_
         QCoreApplication.sendPostedEvents(parent, QEvent.Type.DeferredDelete)
 
 
-def test_the_panel_never_scrolls_sideways(qapp):
-    """A properties panel that scrolls horizontally is worse than one
-    that wraps, and that is exactly what the first two versions of this
-    fix shipped.
+def test_the_panel_has_no_horizontal_scrollbar(qapp):
+    """A SECONDARY invariant. **The absence of a horizontal scrollbar
+    does NOT prove the absence of clipping**, and this test is renamed
+    from `test_the_panel_never_scrolls_sideways` because that name
+    claimed it did.
+
+    It passed, unchanged and on every platform, while the running app
+    clipped the last character off every visual line of the Properties
+    panel -- content 272 px against a 256 px viewport, every row laid
+    out 14 px past the right edge. A scrollbar's `maximum()` is a fact
+    about one widget's range; whether painted text left the viewport is
+    a different question, and only the second one is the symptom.
+
+    `test_no_row_is_rendered_past_the_scroll_viewport` is the
+    authoritative oracle. This is kept because a horizontal scrollbar in
+    THIS panel is independently unwanted -- the project calls a
+    sideways-scrolling properties panel worse than a wrapping one -- and
+    because a regression that reintroduces one should name itself here
+    as well as there.
 
     THE PANEL MUST BE SHORT ENOUGH TO NEED A VERTICAL SCROLLBAR, which
     is the whole point of the height below and is what the first version
@@ -587,3 +602,488 @@ def test_a_long_calculator_name_does_not_widen_the_panel(qapp):
         panel.setParent(None)
         panel.deleteLater()
         QCoreApplication.sendPostedEvents(panel, QEvent.Type.DeferredDelete)
+
+
+# --- the WIDTH oracle -------------------------------------------------------
+#
+# Everything above this line measures HEIGHT. `_required_height` and
+# `_lines_used` both derive a height from `QFontMetrics.boundingRect` at the
+# label's own `contentsRect().width()`, so neither can see a label that was
+# laid out wider than the viewport it is drawn in -- and that is what the
+# panel was doing: content 272 px against a 256 px viewport, every row 14 px
+# past the right edge, every visual line losing its last character.
+# Recoverable by scrolling right, which is why it read as a cosmetic
+# annoyance rather than as the layout fault it was.
+
+
+def _settle(qapp, passes: int = 40) -> None:
+    """Let the layout finish.
+
+    `_ElidingCaptionLabel` re-elides on resize, so its final text is only
+    knowable after the passes have run -- reading earlier measures a
+    transient, which this file already records as the source of one false
+    reproduction of the height bug.
+    """
+    for _ in range(passes):
+        qapp.processEvents()
+
+
+def _text_of_at_least(width: int, widget) -> str:
+    """A caption whose UNELIDED width is at least `width` px.
+
+    Built from font metrics rather than from a hardcoded string, so the
+    boundary it probes is the real one on this platform's fonts. This file
+    already records what hardcoded pixels cost: five widths that were
+    secretly all the same size, and a height tuned on Windows that failed on
+    a Linux runner.
+    """
+    metrics = QFontMetrics(widget.font())
+    text = "Wide caption "
+    while metrics.horizontalAdvance(text) < width:
+        text += "wider "
+    return text
+
+
+def _plain_caption(text: str, parent):
+    """The caption widget as the panel built it BEFORE the fix: a plain
+    `QLabel`, word wrap off, whose `minimumSizeHint` is its whole text
+    width. `QFormLayout.addRow(str, widget)` builds exactly this."""
+    label = QLabel(text, parent)
+    label.setWordWrap(False)
+    return label
+
+
+def test_no_row_is_rendered_past_the_scroll_viewport(qapp):
+    """THE ORACLE. Nothing the panel paints may leave its viewport.
+
+    Swept across the range the dock produces rather than asserted at one
+    width, and the widths come from the panel's own declared minimum via
+    `_widest_floor` -- not from invented pixel numbers, for the reason
+    `test_the_panel_has_no_horizontal_scrollbar` records.
+
+    The panel is forced to scroll VERTICALLY on purpose: the vertical
+    scrollbar is what takes ~12 px off the viewport, and the defect only
+    appeared once it did. Measured in the running app, the same panel was
+    clean at viewport 268 and overflowed at 256.
+
+    **IT ADDS A LONG CAPTION, AND WITHOUT THAT IT TESTED NOTHING.** The
+    shared fixture's captions are "LogP", "TPSA", "Ring Count" -- none wider
+    than about a third of the viewport, so no arrangement of them can push
+    the content past its edge. Measured: with the fixture's own rows only,
+    removing the cap from `_ElidingCaptionLabel.minimumSizeHint` -- the whole
+    of the fix -- left this test passing. The real panel's widest caption is
+    "Blood-Brain Barrier Permeant (heuristic)" at 210 px against a 256 px
+    viewport, and a guard that never holds one cannot see the bug.
+    """
+    from openchem.ui.panels.property_panel import _ElidingCaptionLabel, rendered_overflow
+
+    floor = _widest_floor(qapp)
+    for width in (floor + 1, floor + 40, floor + 80, floor + 160, floor + 300):
+        panel = _panel_forced_to_scroll(qapp, width=width)
+        try:
+            _settle(qapp)
+            viewport = panel.findChild(QScrollArea).viewport().width()
+
+            # The production widget, carrying a caption wider than the whole
+            # viewport -- the condition the app is in, made unmissable. Sized
+            # from font metrics so it crosses the boundary on any platform.
+            section = next(iter(panel._sections.values()))
+            section.content_layout().addRow(
+                _ElidingCaptionLabel(_text_of_at_least(viewport + 1, panel), section.content),
+                QLabel("value", section.content),
+            )
+            _settle(qapp)
+
+            findings = rendered_overflow(panel)
+            assert not findings, "\n".join(
+                [f"at panel width {width} (viewport {viewport}):"]
+                + ["  " + finding.describe(viewport) for finding in findings]
+            )
+        finally:
+            _dispose(panel, qapp)
+
+
+def test_a_long_descriptor_caption_does_not_widen_the_panel(qapp):
+    """The same invariant, reached through the PRODUCTION PATH.
+
+    **The test above wires its caption by hand and therefore cannot see a
+    regression at the call site.** Measured: reverting
+    `_on_descriptor_computed` to `addRow(label_string, value)` -- which is
+    exactly how the bug shipped, since `QFormLayout` then builds a plain
+    non-eliding `QLabel` for you -- left every other test in this file
+    passing, including the oracle. The caption has to arrive the way the app
+    makes it arrive, from a `DescriptorComputed` carrying a long name.
+
+    A real one is 40 characters ("Blood-Brain Barrier Permeant (heuristic)");
+    this one is sized from font metrics so it crosses the boundary whatever
+    the platform's fonts do.
+    """
+    from openchem.ui.panels.property_panel import rendered_overflow
+
+    bus = EventBus()
+    panel = PropertyPanel(bus, CalculatorRegistry(), _FakeService(), ChemistryEngine())
+    try:
+        bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+        for descriptor_id, name, value in SHORT:
+            bus.publish(
+                DescriptorComputed(
+                    descriptor=DescriptorValue(
+                        descriptor_id=descriptor_id,
+                        name=name,
+                        units="",
+                        category="physicochemical",
+                        provider="rdkit",
+                        molecule_uuid="mol-1",
+                        value=value,
+                        cache_state=CacheState.COMPLETED,
+                    )
+                )
+            )
+        for section in panel._sections.values():
+            section.set_expanded(True)
+        panel.resize(_widest_floor(qapp) + 1, 400)
+        panel.show()
+        _settle(qapp)
+
+        viewport = panel.findChild(QScrollArea).viewport().width()
+        bus.publish(
+            DescriptorComputed(
+                descriptor=DescriptorValue(
+                    descriptor_id="a_very_long_one",
+                    name=_text_of_at_least(viewport + 1, panel),
+                    units="",
+                    category="physicochemical",
+                    provider="rdkit",
+                    molecule_uuid="mol-1",
+                    value=1.0,
+                    cache_state=CacheState.COMPLETED,
+                )
+            )
+        )
+        _settle(qapp)
+
+        findings = rendered_overflow(panel)
+        assert not findings, "\n".join(
+            [f"a long descriptor caption widened the panel (viewport {viewport}):"]
+            + ["  " + finding.describe(viewport) for finding in findings]
+        )
+    finally:
+        _dispose(panel, qapp)
+
+
+def test_a_long_report_caption_does_not_widen_the_panel(qapp):
+    """`_add_wide_row`'s caption is a SECOND path to the same defect.
+
+    A spanning row builds its own caption rather than letting `QFormLayout`
+    make one, and that caption was a plain `QLabel` with word wrap off for
+    the same stated reason -- a wrapped one would be height-for-width and
+    would put back the truncation the whole section exists to prevent. Word
+    wrap off is right; reporting the full text width as a minimum is what
+    was wrong, and the helper's docstring claimed the opposite ("nothing
+    needs to be forced wide now, so nothing can overflow").
+
+    The row-label path is covered above. This one arrives as a REPORT,
+    which is how the app reaches this helper.
+
+    **THE MARGIN OVER THE VIEWPORT IS 40 px, NOT 1, AND THAT IS THE
+    DIFFERENCE BETWEEN A GUARD AND A DECORATION.** A spanning row has no
+    field column beside it, so the overflow it produces is just
+    `caption - viewport` rather than `caption + field - viewport`. At one
+    pixel over, reverting this caption to a plain `QLabel` moved the
+    content from 290 to 293 -- a 3 px demand that the row's own margins
+    absorbed down to within `_OVERFLOW_TOLERANCE`, so the mutation passed
+    and this test proved nothing. The real defect was 16 px; 40 puts the
+    probe unambiguously past the noise it is allowed to ignore.
+    """
+    from openchem.domain.report import ReportResult
+    from openchem.events.events import ReportComputed
+    from openchem.ui.panels.property_panel import rendered_overflow
+
+    bus = EventBus()
+    panel = PropertyPanel(bus, CalculatorRegistry(), _FakeService(), ChemistryEngine())
+    try:
+        bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+        for section in panel._sections.values():
+            section.set_expanded(True)
+        panel.resize(_widest_floor(qapp) + 1, 400)
+        panel.show()
+        _settle(qapp)
+
+        viewport = panel.findChild(QScrollArea).viewport().width()
+        bus.publish(
+            ReportComputed(
+                report=ReportResult(
+                    molecule_uuid="mol-1",
+                    report_id="wide_caption",
+                    name=_text_of_at_least(viewport + 40, panel),
+                    category="physicochemical",
+                    facts=(),
+                    cache_state=CacheState.COMPLETED,
+                    provenance=Provenance(created_by="core", method="test"),
+                )
+            )
+        )
+        _settle(qapp)
+
+        findings = rendered_overflow(panel)
+        assert not findings, "\n".join(
+            [f"a long report caption widened the panel (viewport {viewport}):"]
+            + ["  " + finding.describe(viewport) for finding in findings]
+        )
+    finally:
+        _dispose(panel, qapp)
+
+
+def test_the_overflow_probe_can_see_a_clip_at_all(qapp):
+    """THE CONTROL, and simultaneously a mutation of the FIX itself.
+
+    A probe that cannot say "yes" is worth nothing -- this file already
+    carries that argument for the height side, where a circular probe
+    reported the panel healthy four times running.
+
+    What makes this the stronger form: it does not fake an overflow by
+    resizing something. It rebuilds the caption **the way the panel built it
+    before the fix** -- a plain `QLabel` with word wrap off, which is
+    literally what `QFormLayout.addRow(str, widget)` creates -- and requires
+    the oracle to fail. So the guard is pinned to the implementation
+    mechanism that caused the bug rather than to a fixture: swapping
+    `_ElidingCaptionLabel` back for a plain label fails here, naming the
+    widget and the pixel count.
+
+    It ASSERTS ITS OWN SETUP first. Without the clean reading, the overflow
+    afterwards would prove nothing about the caption -- the panel might have
+    been overflowing for some other reason all along.
+    """
+    from openchem.ui.panels.property_panel import rendered_overflow
+
+    panel = _panel_forced_to_scroll(qapp, width=_widest_floor(qapp) + 1)
+    try:
+        _settle(qapp)
+        assert not rendered_overflow(panel), (
+            "the panel already overflows before the caption is added, so this test "
+            "cannot attribute anything to the caption"
+        )
+        viewport = panel.findChild(QScrollArea).viewport().width()
+
+        section = next(iter(panel._sections.values()))
+        caption = _plain_caption(_text_of_at_least(viewport + 1, panel), section.content)
+        section.content_layout().addRow(caption, QLabel("value", section.content))
+        _settle(qapp)
+
+        assert rendered_overflow(panel), (
+            f"a non-eliding caption wider than the {viewport} px viewport was added "
+            "and the probe reported nothing -- it cannot detect the defect it exists for"
+        )
+    finally:
+        _dispose(panel, qapp)
+
+
+def test_a_caption_that_fits_is_not_reported_as_overflow(qapp):
+    """THE NEGATIVE CONTROL. A detector that flagged every long caption
+    would pass the test above while making the oracle worthless.
+
+    Same construction as the control, one step the other way: a caption
+    comfortably inside the viewport, added as the same plain non-eliding
+    `QLabel`, must NOT be reported. The pair is what says the probe measures
+    the boundary rather than the length.
+    """
+    from openchem.ui.panels.property_panel import rendered_overflow
+
+    panel = _panel_forced_to_scroll(qapp, width=_widest_floor(qapp) + 1)
+    try:
+        _settle(qapp)
+        viewport = panel.findChild(QScrollArea).viewport().width()
+
+        section = next(iter(panel._sections.values()))
+        # Half the viewport: long enough to be a real caption, short enough
+        # that no part of it can reach an edge.
+        caption = _plain_caption(_text_of_at_least(viewport // 2, panel), section.content)
+        section.content_layout().addRow(caption, QLabel("v", section.content))
+        _settle(qapp)
+
+        findings = rendered_overflow(panel)
+        assert not findings, "\n".join(
+            ["a caption that fits was reported as overflow:"]
+            + ["  " + finding.describe(viewport) for finding in findings]
+        )
+    finally:
+        _dispose(panel, qapp)
+
+
+def test_the_two_reported_lines_render_in_full(qapp):
+    """The two strings the bug was REPORTED on, taken from the real
+    calculator rather than retyped.
+
+    The user saw the untouched Schedule 2 "Legitimate uses" line losing the
+    last character of every visual line, and then the new bad-date refusal
+    riding on the same defect -- `...or leave the field blank...` rendering
+    as `...leave the field bla`.
+
+    Three assertions, because they are three different claims and the
+    geometry one alone would not have caught the original report:
+
+        the stored text is COMPLETE     no message was shortened to fit
+        nothing is rendered past the viewport
+        the row is actually PAINTED     a widget can satisfy both above
+                                        while drawing nothing at all
+
+    **Byte-equality is about the STORED text, not the visual layout.** The
+    value wraps across several lines on screen and is expected to; what must
+    not happen is a character going missing, or somebody "fixing" the width
+    by trimming the sentence. Taking the strings from
+    `compute_regulatory_screen` is what makes the second of those fail here.
+
+    **THE PANEL IS SIZED FROM ITS OWN CONTENT, AND THAT IS NOT A DODGE.**
+    These are REAL strings of fixed length, so any width asserted against
+    them is really an assertion about the font -- and the suite runs
+    `offscreen`, whose default font this file already records as more than
+    twice as wide as the one a user sees (187 px against 420 for the same
+    line). Pinned at a fixed width this test failed by 40 px on a panel that
+    is measurably clean in the running app. Giving the panel room for its
+    content first keeps the claim font-independent: *given somewhere to put
+    it, none of this text is painted outside the viewport*. The claim that
+    the panel FITS at its own minimum is a different one, and it is made by
+    the three tests above, whose captions are sized from font metrics and so
+    mean the same thing on every platform.
+    """
+    from rdkit import Chem
+
+    from openchem.chem.regulatory.calculator import compute_regulatory_screen
+    from openchem.events.events import ReportComputed
+    from openchem.ui.panels.property_panel import rendered_overflow
+    from tests.conftest import ink
+
+    mol = Chem.MolFromSmiles("COP(C)(=O)OC")  # dimethyl methylphosphonate
+    screened = compute_regulatory_screen(mol, "mol-1", {})
+    refused = compute_regulatory_screen(mol, "mol-1", {"as_of": "2019/13/99"})
+
+    legitimate = next(f for f in screened.facts if f.label == "Legitimate uses")
+    assert refused.error, "the refusal carries no message, so there is nothing to render"
+
+    for report, expected in ((screened, legitimate.display_value), (refused, refused.error)):
+        bus = EventBus()
+        panel = PropertyPanel(bus, CalculatorRegistry(), _FakeService(), ChemistryEngine())
+        try:
+            bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+            bus.publish(ReportComputed(report=report))
+            for section in panel._sections.values():
+                section.set_expanded(True)
+            panel.resize(_widest_floor(qapp) + 1, 500)
+            panel.show()
+            _settle(qapp)
+
+            # Room for the content, whatever this platform's font makes of
+            # it -- see the docstring. The vertical scrollbar's width is
+            # added back because it is taken off the viewport, which is the
+            # very subtraction that produced the original defect.
+            scroll = panel.findChild(QScrollArea)
+            needed = scroll.widget().minimumSizeHint().width()
+            bar = scroll.verticalScrollBar().sizeHint().width()
+            panel.resize(max(panel.width(), needed + bar + 8), 500)
+            _settle(qapp)
+
+            label = panel._report_labels["regulatory_screen"]
+            assert expected in label.text(), (
+                f"the panel dropped part of the message.\n  wanted: {expected!r}\n"
+                f"  showed: {label.text()[:300]!r}"
+            )
+            viewport = panel.findChild(QScrollArea).viewport().width()
+            findings = rendered_overflow(panel)
+            assert not findings, "\n".join(
+                [f"the reported line overflowed (viewport {viewport}):"]
+                + ["  " + finding.describe(viewport) for finding in findings]
+            )
+            assert ink(label) > 0, "the row holds the text and paints nothing"
+        finally:
+            _dispose(panel, qapp)
+
+
+def test_copying_the_panel_gives_the_full_caption_not_the_elided_one(qapp):
+    """An elided caption is a WIDTH decision, and it must not reach the
+    clipboard.
+
+    `_ElidingCaptionLabel.text()` is what is painted, so a caption squeezed
+    on a narrow panel reads `Blood-Brain Barrier Permeant (heur...`. Exported
+    through "Copy all" that is the presentation layer corrupting data on its
+    way out -- the same class of mistake `_without_glyphs` already exists to
+    prevent on the value side, and this panel has a recorded history of
+    presentation decisions leaking into what the numbers mean.
+    """
+    bus = EventBus()
+    panel = PropertyPanel(bus, CalculatorRegistry(), _FakeService(), ChemistryEngine())
+    try:
+        bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+        for section in panel._sections.values():
+            section.set_expanded(True)
+        panel.resize(_widest_floor(qapp) + 1, 400)
+        panel.show()
+        _settle(qapp)
+
+        # SIZED FROM FONT METRICS AGAINST THE REAL VIEWPORT, so the caption
+        # is certain to elide whatever the platform's font is. A fixed
+        # string does not do this: a 59-character name chosen by hand fitted
+        # comfortably here and the test's own setup assertion caught it
+        # rendering unelided, proving nothing about the export path.
+        viewport = panel.findChild(QScrollArea).viewport().width()
+        long_name = _text_of_at_least(viewport + 1, panel)
+        bus.publish(
+            DescriptorComputed(
+                descriptor=DescriptorValue(
+                    descriptor_id="bbb",
+                    name=long_name,
+                    units="",
+                    category="physicochemical",
+                    provider="rdkit",
+                    molecule_uuid="mol-1",
+                    value="Pass",
+                    cache_state=CacheState.COMPLETED,
+                )
+            )
+        )
+        _settle(qapp)
+
+        caption = next(
+            child
+            for child in panel.findChildren(QLabel)
+            if getattr(child, "full_text", "") == long_name
+        )
+        assert caption.text() != long_name, (
+            "the caption was not elided at this width, so this test is not "
+            "exercising the case it exists for"
+        )
+        assert long_name in panel.as_text(), (
+            f"'Copy all' exported the elided caption {caption.text()!r} instead of "
+            "the full one"
+        )
+    finally:
+        _dispose(panel, qapp)
+
+
+def test_the_viewport_does_not_shrink_to_fit_long_content(qapp):
+    """The invariant is *content adapts to the viewport*, and the opposite is
+    a way of passing every other test here while making the panel worse.
+
+    A fix that narrowed the viewport instead of the content would show zero
+    overflow, no horizontal scrollbar, and less visible text than before --
+    indistinguishable from success by any assertion that only counts
+    findings.
+    """
+    panel = _panel_forced_to_scroll(qapp, width=_widest_floor(qapp) + 80)
+    try:
+        _settle(qapp)
+        scroll = panel.findChild(QScrollArea)
+        before = scroll.viewport().width()
+
+        section = next(iter(panel._sections.values()))
+        section.content_layout().addRow(
+            _text_of_at_least(before * 2, panel), QLabel("value", section.content)
+        )
+        _settle(qapp)
+
+        after = scroll.viewport().width()
+        assert after >= before, (
+            f"the viewport shrank from {before} px to {after} px when long content "
+            "arrived -- content must adapt to the viewport, not the other way round"
+        )
+    finally:
+        _dispose(panel, qapp)

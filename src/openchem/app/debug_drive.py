@@ -659,6 +659,12 @@ class _Driver(QObject):
         # starved but not what starved it.
         property_panel._dump_container_items(self._window._property_panel)
         property_panel._dump_width_budget(self._window._property_panel)
+        # ...and the RENDERED geometry, which is a different question
+        # from the one above it. `_dump_width_budget` reports
+        # minimum-width PRESSURE; this reports what actually got laid
+        # out past the viewport edge, which is what a reader loses
+        # characters to. A widget can pass either and fail the other.
+        property_panel._dump_rendered_overflow(self._window._property_panel)
 
     def _do_geometry(self, step: dict[str, Any]) -> None:
         """Dump the right-hand width budget, one line per quantity.
