@@ -310,7 +310,82 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-18 minutes**, ending at `4372 passed, 15 skipped`
+A clean run is **6-18 minutes**, ending at `4483 passed, 15 skipped`
+(measured 2026-08-15, 18m00, on master's merge `f3b1689` — the
+regulatory-coverage work: four rulesets in two domains, plus date-aware
+screening. **+111 collected items and +81 test functions** over
+`ca87c60`, all of them in three files: 53 functions / 83 items in
+`test_regulatory_rulesets.py`, 18 in `test_regulatory_engine.py` for the
+date filtering, 10 in `test_regulatory_calculator.py`.)
+
+**THE TWO DELTAS ARE DIFFERENT NUMBERS AND BOTH ARE RECORDED**, because
+this section has conflated them before. 111 is collected ITEMS, 81 is
+distinct test FUNCTIONS, and the 30-item gap is parametrisation of the
+new functions — measured, not inferred: the set of added items belonging
+to a PRE-EXISTING function is EMPTY, so no old function merely gained
+cases. A `--collect-only` count moves for either reason and cannot tell
+you which; strip the `[param]` suffix and diff again to find out.
+
+**THE BAND DID NOT MOVE.** 18m00 sits exactly ON the top of the 6-18
+band rather than past it, so 6-18 stands as written. Worth saying
+explicitly because the two entries below EACH widened it and each
+flagged the widening as unexplained — a reader scanning this list should
+not read a third consecutive stretch into it.
+
+**THE SKIPS ARE UNCHANGED AT 15.** Not one of the 111 is gated on
+`grid_display` or on anything else, so 4372 + 111 = 4483 passed and
+11 + 4 = 15 skipped is untouched. That is the whole delta accounted for.
+
+**MEASURED ON A BRANCH, AND TREE-IDENTICAL TO THE MERGE.** `f3b1689^2`
+is `f5f8ae5` and `git diff f5f8ae5 f3b1689` is **empty**, so the merge
+commit carries the branch's tree byte for byte — checked AFTER merging
+rather than predicted, which is the whole point of the rule. The
+merge-base equals `^1`, so nothing landed while the branch was open:
+
+    master before  ca87c60   COLLECTS 4387
+    merge          f3b1689   COLLECTS 4498   = 4387 + 111
+    the run                          4483 passed + 15 skipped = 4498
+
+**THE PARENT WAS NOT THE COMMIT ANYBODY REMEMBERED, and that is the
+warning rather than a footnote.** The obvious baseline for this figure is
+`c9cba3b`, the `wire-the-gallery-overlay` merge the entry below was
+measured against — and it is WRONG. `git rev-parse f3b1689^1` is
+`ca87c60`, a `docsweep-after-the-gallery-overlay` merge that landed in
+between and that no entry in this list mentions. It happens to collect
+4387 as well, so the arithmetic would have come out right while naming
+the wrong commit. **Derive the baseline with `rev-parse`, never from
+memory or from the entry above** — this is the same drift as the 4176
+entry being stale by 11, caught one step earlier.
+
+**The +111 was DIFFED, not subtracted.** `--collect-only -q | grep :: |
+sort` on both trees, `comm -23` for removals and `comm -13` for
+additions: **0 removed, 111 added**, and the same on function names, 0
+removed and 81 added. A bare subtraction cannot distinguish "111 added"
+from "130 added and 19 quietly deleted", and this section has twice
+recorded a delta that was wrong.
+
+**A WORKTREE HAS NO `.venv`, AND THE OBVIOUS WORKAROUND MEASURES THE
+WRONG TREE.** `uv run` in a fresh worktree builds an empty venv and
+reports `No module named pytest`; reaching for the main checkout's
+interpreter instead silently imports the MAIN `src`, because
+`openchem.pth` is an editable install pointing there — so the baseline
+collection would be the old tests against the new source. `PYTHONPATH`
+precedes `.pth` additions in `sys.path`, so this is the cheap fix, and
+it costs 7 seconds rather than a full sync:
+
+```bash
+git worktree add --detach /tmp/base f3b1689^1
+cd /tmp/base && PYTHONPATH=/tmp/base/src \
+  "/d/Random Projects/OpenChem Studio/.venv/Scripts/python.exe" \
+  -m pytest --collect-only -q | tail -2
+```
+
+**Assert the override worked before believing the count** — one
+`python -c "import openchem; print(openchem.__file__)"` says which `src`
+you are about to measure, and the failure mode is a plausible number
+from the wrong tree.
+
+Before it: `4372 passed, 15 skipped`
 (measured 2026-08-14, 17m50, on `wire-the-gallery-overlay` — the gallery
 overlay's last wire, +20 test functions over master's `c3ab297`: 12 in
 `test_spatial_overlay_widget` for the per-cell routing, 4 in
