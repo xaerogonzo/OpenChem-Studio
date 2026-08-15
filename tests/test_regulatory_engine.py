@@ -180,6 +180,54 @@ def test_an_isomer_matches_but_is_labelled_as_one():
     assert "different stereochemistry" in other.outcomes[0].label
 
 
+def test_a_listed_PRECURSOR_is_not_reported_as_an_identity_match():
+    """`_apply_identity` used to hardcode `MatchType.IDENTITY`, ignoring
+    what the rule declared, while the structural path used `rule.match_type`.
+
+    So a precursor matched by InChIKey reported "identity" on its finding
+    line and had its legitimate uses printed a line later by
+    `_finding_lines`, which reads the RULE -- one result contradicting
+    itself. Invisible until a shipped ruleset carried an identity entry;
+    every UN 1988 Table entry is exactly that.
+
+    HOW a structure was matched is in the outcomes. WHAT the regulation
+    claims about it is the match type, and only the rule knows that.
+    """
+    acetic_anhydride = _mol("CC(=O)OC(C)=O")
+    key = Chem.MolToInchiKey(acetic_anhydride)
+    engine = RegulatoryEngine([_ruleset(_rule(inchikeys=(key,),
+                                              match_type=MatchType.PRECURSOR))])
+
+    finding = engine.screen(acetic_anhydride).findings[0]
+    assert finding.match_type is MatchType.PRECURSOR
+    # The salt-normalised route is still reported -- as evidence, where it
+    # belongs, rather than as the claim.
+    assert "identity" in finding.outcomes[0].label
+
+
+def test_an_identity_rule_still_reports_identity():
+    """The CONTROL. Without it a fix that answered PRECURSOR unconditionally,
+    or read some unrelated field, would satisfy the test above."""
+    ephedrine = _mol("CNC(C)C(O)c1ccccc1")
+    engine = RegulatoryEngine([_ruleset(_rule(inchikeys=(Chem.MolToInchiKey(ephedrine),),
+                                              match_type=MatchType.IDENTITY))])
+
+    assert engine.screen(ephedrine).findings[0].match_type is MatchType.IDENTITY
+
+
+def test_an_isomer_of_a_precursor_is_still_a_precursor():
+    """The second identity branch had the same hardcoded type, and a fix
+    applied to only one of them looks exactly like a fix. This file already
+    records that shape twice."""
+    listed = Chem.MolToInchiKey(_mol("C[C@H](N)C(=O)O"))
+    engine = RegulatoryEngine([_ruleset(_rule(inchikeys=(listed,),
+                                              match_type=MatchType.PRECURSOR))])
+
+    finding = engine.screen(_mol("C[C@@H](N)C(=O)O")).findings[0]
+    assert "different stereochemistry" in finding.outcomes[0].label
+    assert finding.match_type is MatchType.PRECURSOR
+
+
 def test_an_unrelated_structure_does_not_match_an_identity_rule():
     listed = Chem.MolToInchiKey(_mol("CCO"))
     engine = RegulatoryEngine([_ruleset(_rule(inchikeys=(listed,),

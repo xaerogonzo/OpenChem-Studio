@@ -41,7 +41,6 @@ from openchem.chem.regulatory.types import (
     Finding,
     Jurisdiction,
     JurisdictionConflict,
-    MatchType,
     NearMiss,
     PredicateOutcome,
     Rule,
@@ -196,45 +195,55 @@ class RegulatoryEngine:
     def _apply_identity(
         self, rule: Rule, mol: Chem.Mol, normalised: Chem.Mol
     ) -> Finding | None:
-        """Identity, with the salts-and-isomers policy applied."""
+        """Identity, with the salts-and-isomers policy applied.
+
+        THE FINDING CARRIES THE RULE'S DECLARED MATCH TYPE, not a hardcoded
+        `IDENTITY`. Those are two different statements and this method used
+        to collapse them: HOW the structure was matched (by salt-normalised
+        key, which is what the outcomes below say) is not WHAT the
+        regulation claims about it. A listed precursor is matched by
+        identity and is still a precursor -- and with `IDENTITY` forced
+        here, such a rule reported "identity" on its finding line while
+        `_finding_lines` printed its legitimate uses from the rule a line
+        later, contradicting itself.
+
+        Invisible until a shipped ruleset carried an `inchikeys` entry,
+        because the structural path a few lines up always used
+        `rule.match_type` correctly.
+        """
         listed = set(rule.interpretation.inchikeys)
         key = _inchikey(normalised)
         if not key:
             return None
 
+        outcome: PredicateOutcome | None = None
         if key in listed:
-            return Finding(
-                rule=rule,
-                match_type=MatchType.IDENTITY,
-                atoms=frozenset(range(mol.GetNumAtoms())),
-                outcomes=(
-                    PredicateOutcome(
-                        label="exact identity (salt-normalised)", passed=True
-                    ),
-                ),
+            outcome = PredicateOutcome(
+                label="exact identity (salt-normalised)", passed=True
             )
+        else:
+            # "and its isomers": same connectivity, different stereochemistry.
+            # Reported as its own outcome rather than silently as an exact
+            # hit, because enantiomers can differ enormously in effect.
+            skeleton = key[:_SKELETON_BLOCK]
+            if any(candidate[:_SKELETON_BLOCK] == skeleton for candidate in listed):
+                outcome = PredicateOutcome(
+                    label="same connectivity, different stereochemistry",
+                    passed=True,
+                    detail=(
+                        "matched under the regulation's 'and its isomers' "
+                        "wording, not as an exact identity"
+                    ),
+                )
+        if outcome is None:
+            return None
 
-        # "and its isomers": same connectivity, different stereochemistry.
-        # Reported as its own outcome rather than silently as an exact hit,
-        # because enantiomers can differ enormously in effect.
-        skeleton = key[:_SKELETON_BLOCK]
-        if any(candidate[:_SKELETON_BLOCK] == skeleton for candidate in listed):
-            return Finding(
-                rule=rule,
-                match_type=MatchType.IDENTITY,
-                atoms=frozenset(range(mol.GetNumAtoms())),
-                outcomes=(
-                    PredicateOutcome(
-                        label="same connectivity, different stereochemistry",
-                        passed=True,
-                        detail=(
-                            "matched under the regulation's 'and its isomers' "
-                            "wording, not as an exact identity"
-                        ),
-                    ),
-                ),
-            )
-        return None
+        return Finding(
+            rule=rule,
+            match_type=rule.match_type,
+            atoms=frozenset(range(mol.GetNumAtoms())),
+            outcomes=(outcome,),
+        )
 
     # -- helpers ---------------------------------------------------------
 

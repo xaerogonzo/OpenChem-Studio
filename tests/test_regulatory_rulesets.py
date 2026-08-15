@@ -260,6 +260,57 @@ def test_an_unknown_op_fails_the_build(tmp_path):
         build_one(path)
 
 
+def test_an_identity_rule_must_declare_what_it_claims(tmp_path):
+    """`loader` defaults an undeclared `match_type` to `structural_family`,
+    and the engine now reports whatever the rule declared. So a rule matched
+    by InChYKey that forgot to declare itself would report every hit as a
+    structural family -- a plausible answer about a family the regulation
+    never defined. Caught at build time, where it is one message."""
+    sys.path.insert(0, str(REPO / "tools"))
+    from build_regulatory_rulesets import BuildError, build_one
+
+    source = {
+        "ruleset_id": "test", "display_name": "test",
+        "domain": "chemical_weapons", "jurisdiction": "international",
+        "version": "1",
+        "rules": [{
+            "rule_id": "listed", "display_name": "a listed substance",
+            "match_type": "structural_family",
+            "legal": {"quote": "words"},
+            "inchikeys": ["WQZGKKKJIJFFOK-GASJEMHNSA-N"],
+        }],
+    }
+    path = tmp_path / "test.json"
+    path.write_text(json.dumps(source), encoding="utf-8")
+    with pytest.raises(BuildError, match="cannot be expressed as a list of keys"):
+        build_one(path)
+
+
+@pytest.mark.parametrize("match_type", ["identity", "precursor", "metabolite"])
+def test_a_substance_naming_match_type_is_accepted(tmp_path, match_type):
+    """The CONTROL for the guard above: it must ACCEPT the types that name a
+    substance, or the cheapest way to satisfy it is to reject every identity
+    rule."""
+    sys.path.insert(0, str(REPO / "tools"))
+    from build_regulatory_rulesets import build_one
+
+    source = {
+        "ruleset_id": "test", "display_name": "test",
+        "domain": "drug_precursors", "jurisdiction": "international",
+        "version": "1",
+        "rules": [{
+            "rule_id": "listed", "display_name": "a listed substance",
+            "match_type": match_type,
+            "legal": {"quote": "words"},
+            "inchikeys": ["WQZGKKKJIJFFOK-GASJEMHNSA-N"],
+        }],
+    }
+    path = tmp_path / "test.json"
+    path.write_text(json.dumps(source), encoding="utf-8")
+    ruleset, _ = build_one(path)
+    assert ruleset["rules"][0]["match_type"] == match_type
+
+
 # --- The shipped artefact is what the source builds ---------------------
 #
 # `--check` used to validate the SOURCE and never look at what ships, so a

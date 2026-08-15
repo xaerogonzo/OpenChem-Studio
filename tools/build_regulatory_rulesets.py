@@ -65,6 +65,13 @@ GENERATED = REPO / "src" / "openchem" / "chem" / "data" / "regulatory" / "genera
 #: sit mostly unreviewed.
 MAX_REVIEW_FRACTION = 0.75
 
+#: Match types a rule may declare when it matches by InChIKey. Each NAMES A
+#: SUBSTANCE, which is what a key can establish. `structural_family` and
+#: `analogue` are absent deliberately: a family is a specification rather
+#: than a list, and an analogue finding must carry a similarity, which
+#: nothing produces yet.
+IDENTIFYING_MATCH_TYPES = frozenset({"identity", "precursor", "metabolite"})
+
 _DO_NOT_EDIT = (
     "GENERATED FILE -- DO NOT EDIT. Written by "
     f"{GENERATOR}; edit the matching file under sources/ and rebuild."
@@ -216,6 +223,21 @@ def build_one(source_path: Path) -> tuple[dict, list[str]]:
             notes.append(f"  {rule_id}: no expression and no resolved identity -- skipped")
             unresolved.append(f"{rule_id}: nothing to match on")
             continue
+
+        # A rule matched by InChIKey NAMES A SUBSTANCE, and the finding
+        # carries whichever claim the rule declared. `structural_family`
+        # is the loader's default for a rule that declares nothing, so
+        # without this an identity rule that forgot to say so would report
+        # every hit as a structural family -- a plausible-looking answer
+        # about a family the regulation never defined.
+        declared = str(entry.get("match_type", "")).strip().lower()
+        if keys and declared not in IDENTIFYING_MATCH_TYPES:
+            raise BuildError(
+                f"{rule_id}: matches by identity (inchikeys/names) but declares "
+                f"match_type {declared or '<none>'!r}. A listed substance must "
+                f"declare one of {sorted(IDENTIFYING_MATCH_TYPES)} -- a family "
+                f"cannot be expressed as a list of keys."
+            )
 
         rules_out.append(
             {
