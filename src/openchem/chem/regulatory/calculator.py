@@ -41,7 +41,11 @@ from typing import Any
 
 from rdkit import Chem
 
-from openchem.chem.regulatory.engine import RegulatoryEngine
+from openchem.chem.regulatory.engine import (
+    EffectiveDateError,
+    RegulatoryEngine,
+    parse_effective_date,
+)
 from openchem.chem.regulatory.loader import load_all
 from openchem.chem.regulatory.types import Jurisdiction, MatchType, ScreeningReport
 from openchem.domain.common import CacheState, Provenance
@@ -104,9 +108,18 @@ def compute_regulatory_screen(
     jurisdictions = {Jurisdiction(chosen)} if chosen else None
     include_near_misses = bool(options.get("include_near_misses", True))
 
+    requested_date = str(options.get("as_of", "") or "").strip()
+    try:
+        as_of = parse_effective_date(requested_date)
+    except EffectiveDateError:
+        return _refuse_an_unreadable_date(molecule_uuid, options, requested_date)
+
     engine, problems = _shared_engine()
     report = engine.screen(
-        mol, jurisdictions=jurisdictions, include_near_misses=include_near_misses
+        mol,
+        jurisdictions=jurisdictions,
+        include_near_misses=include_near_misses,
+        as_of=as_of,
     )
 
     lines = _finding_lines(report)
@@ -117,6 +130,29 @@ def compute_regulatory_screen(
         lines.insert(0, report.summary())
 
     facts = [_line_fact(line) for line in lines]
+
+    # THE DATE GOES WITH THE ANSWER, NOT WITH THE SCOPE. `summary()` carries
+    # it too, but only reaches the panel when there are no findings -- so a
+    # dated screen that DID match would otherwise look exactly like an
+    # undated one. STANDARD rather than ADVANCED, for the same reason
+    # "NOT checked" is: a date that changes what matched is not specialist
+    # information, and burying it would defeat the point of asking.
+    if as_of is not None:
+        facts.append(
+            Fact(
+                category=FactCategory.REGULATORY,
+                label="Screened as of",
+                value=as_of.isoformat(),
+                display_value=as_of.isoformat(),
+                source="Regulatory",
+                basis=Basis.DETERMINISTIC,
+                limitations=(
+                    "Rules taking effect after this date were not evaluated. "
+                    "No ruleset here records repeal or expiry, so a rule since "
+                    "removed from a schedule is still reported.",
+                ),
+            )
+        )
 
     # WHAT USED TO BE INVISIBLE. All of this was already computed into
     # `Provenance.parameters` and NONE of it reached the screen: the panel
@@ -210,6 +246,15 @@ def compute_regulatory_screen(
             method="regulatory-intelligence",
             parameters={
                 "jurisdiction": options.get("jurisdiction", "All jurisdictions"),
+                # THE ISO STRING, NEVER THE `date` OBJECT. Provenance
+                # parameters are persisted straight into a saved project,
+                # and a value that will not serialise is DROPPED rather
+                # than stringified -- so storing the object would silently
+                # lose the one field that says which screen this was.
+                "as_of": as_of.isoformat() if as_of is not None else "",
+                "rules_withheld_by_date": [
+                    rule_id for _, rule_id in report.rules_withheld_by_date
+                ],
                 "rulesets": [
                     f"{r.ruleset_id}@{r.version}" for r in report.rulesets_consulted
                 ],
@@ -223,6 +268,62 @@ def compute_regulatory_screen(
                     f"no match in {'/'.join(j.value for j in c.no_match_in)}"
                     for c in report.conflicts
                 ],
+            },
+        ),
+    )
+
+
+def _refuse_an_unreadable_date(
+    molecule_uuid: str,
+    options: dict[str, Any],
+    requested: str,
+) -> ReportResult:
+    """A date the user typed that cannot be read REFUSES the whole screen.
+
+    NOT a fallback to an undated run with a warning attached, which was the
+    first design and is wrong in the way this module is least able to
+    afford. Someone who types `2019/13/99` is asking what applied in 2019;
+    handing them today's rulesets with a caveat somewhere in the result is
+    answering a different question and presenting it as the one they asked.
+    They would have to notice the caveat to know they had been given the
+    wrong answer, and the whole discipline here is that a reader should not
+    have to notice anything to be safe.
+
+    So: no findings, no near misses, no coverage notes -- nothing that
+    could be read as a screen having happened. `CacheState.FAILED` with the
+    reason in `error` is the shape the panel already renders with a failure
+    glyph, and is what geometry-without-a-conformer uses.
+
+    The contrast is deliberate. A malformed date inside a RULESET FILE
+    degrades that one rule to undated and is reported, because one bad
+    entry must not cost somebody every other rule. A malformed date from
+    the USER refuses, because it is the question itself that is broken.
+    """
+    message = (
+        f"'{requested}' is not a date this screen can read. Use YYYY-MM-DD, "
+        "or leave the field blank to screen against every loaded rule."
+    )
+    return ReportResult(
+        molecule_uuid=molecule_uuid,
+        report_id="regulatory_screen",
+        name="Regulatory Screen",
+        category="admet",
+        facts=(),
+        cache_state=CacheState.FAILED,
+        error=message,
+        limitations=(
+            "No screening was performed, so this result says nothing about "
+            "this structure either way.",
+        ),
+        provenance=Provenance(
+            created_by="core",
+            method="regulatory-intelligence",
+            parameters={
+                "jurisdiction": options.get("jurisdiction", "All jurisdictions"),
+                # The value AS TYPED, so the record says what was asked for
+                # rather than what could be made of it.
+                "as_of": requested,
+                "as_of_refused": True,
             },
         ),
     )

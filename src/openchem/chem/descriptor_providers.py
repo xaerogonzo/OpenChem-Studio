@@ -1600,8 +1600,19 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
                 kind="bool",
                 default=True,
             ),
+            # Blank is the default and means every loaded rule, exactly as
+            # before this existed. A date withholds rules that took effect
+            # after it, which answers "was this listed when the sample was
+            # made". A date that cannot be read REFUSES rather than falling
+            # back to a current-rules screen -- see the calculator.
+            CalculatorParameter(
+                name="as_of",
+                label="Screen as of (YYYY-MM-DD, blank = every loaded rule)",
+                kind="text",
+                default="",
+            ),
         ],
-        tags=["regulatory", "compliance", "screening", "safety"],
+        tags=["regulatory", "compliance", "screening", "safety", "historical"],
     ),
     CalculatorDefinition(
         calculator_id="locants",

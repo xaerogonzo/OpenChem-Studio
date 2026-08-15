@@ -11,12 +11,17 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 
 import pytest
 from rdkit import Chem
 
-from openchem.chem.regulatory.engine import RegulatoryEngine
+from openchem.chem.regulatory.engine import (
+    RegulatoryEngine,
+    parse_effective_date,
+    resolve_effective_date,
+)
 from openchem.chem.regulatory.loader import SHIPPED_ROOT, load_all, load_ruleset
 from openchem.chem.regulatory.predicates import SUPPORTED_OPS
 from openchem.chem.regulatory.types import Domain, RuleConfidence
@@ -771,6 +776,221 @@ def test_every_shipped_rule_is_exercised_by_the_benchmark_corpus():
         rule.rule_id for ruleset in load_all(include_user=False)[0] for rule in ruleset.rules
     }
     assert not (shipped - exercised), "shipped rules with no positive case"
+
+
+# --- Screening as of a date, against the rules that actually ship --------
+#
+# `2019-06-07` is the CWC's own commencement for entries A.13-A.16 and
+# `1997-04-29` is the Convention's; both come from the rulesets rather than
+# from this file. The mechanism is tested on fixtures in
+# `test_regulatory_engine.py` -- these ask whether the shipped data really
+# carries the dates those mechanics need.
+
+#: The four entries added to Schedule 1 in 2019, in force 7 June 2020, and
+#: the only shipped rules that declare a date of their own.
+_ADDED_2019 = {"cwc-1-a-13", "cwc-1-a-14", "cwc-1-a-15", "cwc-1-a-16"}
+
+A13 = "CCN(CC)C(=NP(=O)(C)F)C"
+
+
+def test_the_2019_additions_are_absent_before_they_entered_force(engine):
+    """Half of the bidirectional pair, and the half that is easy to omit.
+
+    Testing only that a later date GAINS the new rules would pass just as
+    happily against a ruleset that had quietly become permanently current --
+    there would be nothing to compare the "after" against.
+    """
+    found = {f.rule.rule_id for f in engine.screen(_mol(A13), as_of=date(2020, 6, 6)).findings}
+    assert not (found & _ADDED_2019), found
+
+
+def test_the_2019_additions_are_present_on_the_day_they_did(engine):
+    """The other half, on the day itself rather than comfortably after it --
+    so a comparison that had become strict rather than inclusive fails."""
+    found = {f.rule.rule_id for f in engine.screen(_mol(A13), as_of=date(2020, 6, 7)).findings}
+    assert "cwc-1-a-13" in found, found
+
+
+def test_a_dated_screen_still_reports_the_rules_that_already_applied(engine):
+    """THE ROW THAT PROVES THE FILTER IS PER-RULE.
+
+    A.13 is withheld the day before it entered force while B.4 -- dated
+    1997, in a different ruleset, matching the same structure -- still
+    applies. A filter working per RULESET, or globally, would empty this and
+    still pass both halves of the pair above.
+    """
+    findings = engine.screen(_mol(A13), as_of=date(2020, 6, 6)).findings
+    assert [f.rule.rule_id for f in findings] == ["cwc-2-b-4"]
+
+
+def test_the_convention_s_own_date_withholds_every_cwc_rule(engine):
+    """The RULESET-level date, which resolves by a different branch from
+    A.13's own. No Schedule rule but the four 2019 additions declares a date,
+    so all 44 take the Convention's -- and the most famous Schedule 1 agent
+    in the file matches nothing the day before it entered force."""
+    assert not engine.screen(_mol(SARIN), as_of=date(1997, 4, 28)).matched
+    assert engine.screen(_mol(SARIN), as_of=date(1997, 4, 29)).matched
+
+
+def test_an_undated_shipped_rule_is_not_filtered_by_as_of(engine):
+    """47 of the 91 shipped rules are undated -- the entire DEA list records
+    no date at rule or ruleset level -- so the "absent means unfiltered"
+    default governs a majority of the file rather than an edge of it.
+
+    What this does NOT assert is that acetone was a listed precursor in 1900.
+    It asserts that this screen's date constrained the DEA rules not at all,
+    which is what that ruleset's coverage note says in as many words.
+    """
+    findings = engine.screen(_mol("CC(C)=O"), as_of=date(1900, 1, 1)).findings
+    assert [f.rule.rule_id for f in findings] == ["dea-ii-2"]
+
+
+def test_a_withheld_shipped_rule_leaks_no_near_miss(engine):
+    """The no-leak property on REAL data, with its control.
+
+    Pyridostigmine is a licensed medicine that genuinely carries a
+    dimethylcarbamoyloxypyridine, so it is one feature from A.16 and says so
+    -- except on a date when A.16 did not exist, where saying so would
+    disclose an entry that was still a year away.
+    """
+    pyridostigmine = _mol("C[n+]1cccc(OC(=O)N(C)C)c1.[Br-]")
+
+    assert engine.screen(pyridostigmine).near_misses, "the control, undated"
+    assert engine.screen(pyridostigmine, as_of=date(2020, 6, 7)).near_misses
+    assert not engine.screen(pyridostigmine, as_of=date(2020, 6, 6)).near_misses
+
+
+def test_no_shipped_rule_carries_an_unparseable_effective_date():
+    """The build refuses one, and this asserts the shipped artefact on the
+    same grammar. A date the engine cannot read is treated as absent, so one
+    shipped that way would quietly stop constraining its rule and a
+    historical screen would report it as having always applied."""
+    for ruleset in load_all(include_user=False)[0]:
+        parse_effective_date(ruleset.effective_date)
+        for rule in ruleset.rules:
+            parse_effective_date(rule.legal.effective_date)
+            resolve_effective_date(rule, ruleset)
+
+
+def test_the_applicable_and_withheld_rules_reconcile_against_what_was_loaded(engine):
+    """COVERAGE AS A RECONCILIATION, extended to dates.
+
+    "14 of 14 entries resolved" can sit unchanged on a line while only ten of
+    those rules applied on the requested date, and a reader has no way to
+    tell. The same argument as
+    `test_every_declared_domain_is_accounted_for_exactly_once`: the two sets
+    must between them cover every loaded rule and overlap in none of it.
+
+    Written against the SHIPPED rulesets, because the thing that rots is the
+    shipped set.
+    """
+    report = engine.screen(_mol("CCO"), as_of=date(2020, 6, 6))
+
+    for ruleset in report.rulesets_consulted:
+        withheld = set(report.withheld_in(ruleset.ruleset_id))
+        loaded = {rule.rule_id for rule in ruleset.rules}
+
+        assert withheld <= loaded, ("withheld a rule that is not loaded",
+                                    withheld - loaded)
+        applicable = loaded - withheld
+        assert len(applicable) + len(withheld) == len(loaded)
+
+        note = next(n for n in report.coverage_notes()
+                    if n.startswith(ruleset.display_name))
+        if withheld:
+            assert f"{len(withheld)} of {len(loaded)} rules withheld" in note
+            assert f"{len(applicable)} applicable" in note
+
+
+def test_the_2019_additions_are_the_only_shipped_rules_with_their_own_date():
+    """The fixture-validity assertion for everything above.
+
+    If the sources ever stop declaring per-rule dates -- or start declaring
+    them everywhere -- the tests above would still pass while testing
+    something else entirely, because every rule would resolve to one date and
+    the per-rule/per-ruleset distinction would vanish.
+    """
+    own = {
+        rule.rule_id
+        for ruleset in load_all(include_user=False)[0]
+        for rule in ruleset.rules
+        if rule.legal.effective_date and rule.legal.effective_date != ruleset.effective_date
+    }
+    assert own == _ADDED_2019, own
+
+
+def test_a_malformed_effective_date_fails_the_build(tmp_path):
+    """Two-layer, matching `SUPPORTED_OPS`: shipped data cannot carry a date
+    the engine would have to treat as undated, while a user's own file is
+    tolerated at runtime and reported."""
+    sys.path.insert(0, str(REPO / "tools"))
+    from build_regulatory_rulesets import BuildError, build_one
+
+    source = {
+        "ruleset_id": "test", "display_name": "test",
+        "domain": "chemical_weapons", "jurisdiction": "international",
+        "version": "1",
+        "rules": [{
+            "rule_id": "badly-dated", "display_name": "badly dated",
+            "legal": {"quote": "words", "effective_date": "7 June 2020"},
+            "expression": {"op": "contains", "smarts": "[Br]"},
+        }],
+    }
+    path = tmp_path / "test.json"
+    path.write_text(json.dumps(source), encoding="utf-8")
+    with pytest.raises(BuildError, match="not an ISO date"):
+        build_one(path)
+
+
+def test_an_absent_effective_date_still_builds(tmp_path):
+    """THE CONTROL. Most rules record no date of their own and the DEA list
+    records none at all, so a gate that refused absence would refuse half the
+    shipped file -- which is the cheapest way to satisfy the test above."""
+    sys.path.insert(0, str(REPO / "tools"))
+    from build_regulatory_rulesets import build_one
+
+    source = {
+        "ruleset_id": "test", "display_name": "test",
+        "domain": "chemical_weapons", "jurisdiction": "international",
+        "version": "1",
+        "rules": [{
+            "rule_id": "undated", "display_name": "undated",
+            "legal": {"quote": "words"},
+            "expression": {"op": "contains", "smarts": "[Br]"},
+        }],
+    }
+    path = tmp_path / "test.json"
+    path.write_text(json.dumps(source), encoding="utf-8")
+    ruleset, _ = build_one(path)
+    assert ruleset["rules"][0]["legal"]["effective_date"] == ""
+
+
+def test_the_historical_corpus_is_populated_and_bidirectional():
+    """The corpus this whole feature existed to make possible.
+
+    It was empty for the life of the project, described as waiting for
+    effective-date resolution to exist. The check is not merely that it has
+    entries: every structure in it must appear at TWO dates, or a pair has
+    lost the half that makes it a before-and-after.
+    """
+    corpus = json.loads(
+        (REPO / "benchmarks" / "regulatory" / "corpus.json").read_text(encoding="utf-8")
+    )
+    entries = [e for e in corpus["historical"] if "smiles" in e]
+    assert entries, "the historical corpus is empty again"
+
+    dates_by_smiles: dict[str, set[str]] = {}
+    for entry in entries:
+        assert entry.get("as_of"), entry["name"]
+        parse_effective_date(entry["as_of"])
+        dates_by_smiles.setdefault(entry["smiles"], set()).add(entry["as_of"])
+
+    paired = [s for s, dates in dates_by_smiles.items() if len(dates) > 1]
+    assert len(paired) >= 5, (
+        "a before/after pair is what stops a permanently-current ruleset "
+        "passing; only these structures have one: "
+        + str([dates_by_smiles[s] for s in paired])
+    )
 
 
 def test_an_identity_rule_must_declare_what_it_claims(tmp_path):

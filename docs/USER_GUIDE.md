@@ -1399,6 +1399,35 @@ ships is only what could be verified and lawfully redistributed, so the
 honest reading of a clean result is "these rulesets did not match", never
 "nothing applies".
 
+### Screening as of a past date
+
+**Screen as of** (in the calculator's settings, blank by default) answers
+*"was this listed when the sample was made"*. Give it a date as
+`YYYY-MM-DD` and rules that took effect after it are withheld — including
+from the near-miss list, so the screen never tells you a structure is one
+feature away from an entry that did not yet exist.
+
+Leave it blank and nothing changes: every loaded rule is screened, exactly
+as before the field existed.
+
+The result says which date it used, and each ruleset's coverage line says
+what that date cost it — `4 of 14 rules withheld, effective after
+2020-06-06; 10 applicable`. A screen that quietly dropped rules and still
+reported "no matches in the 4 rulesets consulted" would be telling you far
+less than it appeared to.
+
+Three things to know before trusting a dated answer:
+
+- **It reports when a rule *started* applying, and nothing else.** No
+  ruleset here records repeal or expiry, so a substance since removed from a
+  schedule still appears at any later date.
+- **A ruleset with no dates is not constrained by yours.** The DEA list
+  records none, so its 47 rules are reported whatever date you ask for. The
+  coverage line says so; it is not confirmation that they applied then.
+- **A date the application cannot read is refused**, not quietly ignored.
+  The screen does not run and tells you why, because handing you today's
+  answer to a question about 2019 would be worse than handing you nothing.
+
 **What ships today is all three CWC schedules and the US DEA listed
 chemicals** — two of the twelve registered domains. The other ten are
 still empty and say so on every screen. Expect ordinary chemicals to appear: Schedule 3

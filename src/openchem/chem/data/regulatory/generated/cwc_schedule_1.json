@@ -12,7 +12,7 @@
   "Schedule 1 also lists saxitoxin and ricin, identified by name rather than by structural family. Not encoded: a structural rule for a protein toxin is meaningless, and an identity rule needs a structure this file does not carry.",
   "Size limits ('C10 or fewer, including cycloalkyl') are applied to the molecule's TOTAL carbon count where they are applied at all. Entries A.3, A.13, A.14 and B.10 carry no carbon limit, because applying one to the total would exclude those entries' own examples -- VX and QL both have eleven carbons. Where a limit IS applied it may over-report and will not under-report.",
   "'Corresponding alkylated salts', which several entries reach, are not matched: an alkylated salt is a quaternary ammonium and so a different structure. Protonated forms are reached, because counter-ions are stripped before an identity comparison.",
-  "The 2019 additions (entries A.13 to A.16, in force 7 June 2020) are encoded here, but the effective date is recorded on the rules rather than enforced: this screen reports what a structure matches today and does not answer questions about a date in the past.",
+  "The 2019 additions (entries A.13 to A.16, in force 7 June 2020) are encoded here and carry that date, and a screen asked about an earlier date withholds them. What no entry here records is repeal or expiry -- the Annex has only ever gained entries -- so a dated screen answers when a rule STARTED applying and would report one since removed as though it still did.",
   "This file cites two official reproductions of the same Annex. Entries A.1 to A.6 quote and cite the Canadian export-control reproduction they were written from; the entries added later quote and cite the OPCW's own text. The two render the Annex differently -- 'equal to or less than C10' against '<=C10' -- and the Canadian page predates the 2019 additions, which is why it could not supply them."
  ],
  "rules": [
@@ -658,10 +658,10 @@
  "provenance": {
   "generator": "build_regulatory_rulesets.py",
   "generator_version": "1",
-  "generated_at": "2026-08-15T18:12:29+00:00",
-  "source_document_sha256": "b46521bbec0075725b3dd09be07c432493d4befa8afa2a78a94a4d231d7cf4d3",
+  "generated_at": "2026-08-15T18:58:03+00:00",
+  "source_document_sha256": "10c83cd11cd51adbc156e474ce32cde124a14682178d08f7b6f7b725b022b51e",
   "rdkit_version": "2025.09.6",
   "opsin_version": "1.2.0",
-  "ruleset_sha256": "44ac0b82ad43c76bb0d23e8d7d656aca50ee9818aba21ebd962b565e4856ca1f"
+  "ruleset_sha256": "22d15d66ad6851f08516480ffb72de1cf348dabe4309d8d2491572a0bb26db4c"
  }
 }

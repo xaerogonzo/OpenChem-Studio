@@ -698,6 +698,33 @@ unrelated stereoisomer.
 while their metabolites are not. The engine carries the match type so a
 curated list could populate it, and predicts nothing.
 
+**A dated screen is a question about the rulesets, not about legal
+history.** *Screen as of* answers exactly one thing: *would this rule be
+considered applicable under the effective-date metadata encoded in this
+ruleset?* It does **not** establish complete historical coverage for that
+date, repeal or expiry, jurisdictional validity beyond the ruleset,
+amendments not represented in it, or how anything was interpreted or
+enforced at the time. It is not a legal-history engine and must not be read
+as one.
+
+Two concrete consequences, both visible in the screen's own output:
+
+- **Nothing here records repeal or expiry**, only when a rule started
+  applying. A substance since removed from a schedule is still reported at
+  any later date, and no ruleset carries the field that would say otherwise.
+- **A ruleset with no dates is not constrained by the date at all.** The US
+  DEA listed-chemicals ruleset records none — 47 of the 91 shipped rules —
+  because 21 CFR 1310.02 has been amended repeatedly and no single date
+  describes the list. Those rules are reported whatever date is asked for,
+  and the coverage note says so rather than letting it pass as confirmation
+  that they applied then. The alternative, treating an absent date as "never
+  applicable", would silently empty half the screen.
+
+A date the application cannot read is **refused**: the screen does not run,
+and says so. Falling back to a current-rules answer with a warning attached
+would answer a different question from the one asked and present it as the
+one asked.
+
 **A LISTING IS NOT A PROHIBITION, and most of what ships is ordinary
 chemistry.** All three CWC schedules are loaded, and Schedules 2 and 3 are
 largely industrial: phosgene, hydrogen cyanide, thionyl chloride,

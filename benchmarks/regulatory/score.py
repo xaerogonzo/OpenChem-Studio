@@ -22,6 +22,18 @@ The corpora, and why there are four:
 The edge cases carry the weight. Diisopropyl fluorophosphate has sarin's
 phosphoryl, fluorine and alkoxy and is not Schedule 1; a rule that cannot
 tell them apart would score perfectly on the positives.
+
+A WITHHELD RULE IS NOT A TRUE NEGATIVE, and the historical corpus is where
+that distinction starts to matter. A rule that did not exist on the date
+being screened made no prediction at all -- counting it as a correct
+rejection would credit every rule in the file for the 44 that the CWC's own
+commencement date withholds, and quietly inflate the column that exists to
+catch an over-broad pattern. Each entry is therefore scored only over the
+rules that were APPLICABLE for it, and the withheld ones are reported
+separately.
+
+Nothing is withheld when an entry carries no `as_of`, so the three original
+corpora score exactly as they did before dates existed.
 """
 
 from __future__ import annotations
@@ -29,6 +41,7 @@ from __future__ import annotations
 import json
 import sys
 from collections import defaultdict
+from datetime import date
 from pathlib import Path
 
 from rdkit import Chem, RDLogger
@@ -70,12 +83,18 @@ def main() -> int:
                 continue
             total += 1
             expected = set(entry.get("expect", []))
-            matched = {
-                finding.rule.rule_id
-                for finding in engine.screen(mol, include_near_misses=False).findings
-            }
+            as_of = date.fromisoformat(entry["as_of"]) if entry.get("as_of") else None
+            report = engine.screen(mol, include_near_misses=False, as_of=as_of)
+            matched = {finding.rule.rule_id for finding in report.findings}
+            withheld = {rule_id for _, rule_id in report.rules_withheld_by_date}
 
+            # Scored over the APPLICABLE rules only. A rule the screen never
+            # evaluated made no prediction, and crediting it with a correct
+            # rejection would dilute precision with rules that were not in
+            # the running.
             for rule_id in all_rules:
+                if rule_id in withheld:
+                    continue
                 want = rule_id in expected
                 got = rule_id in matched
                 key = "tp" if (want and got) else "fp" if got else "fn" if want else "tn"
@@ -90,6 +109,17 @@ def main() -> int:
             else:
                 flag = "ok"
             print(f"  {flag:9s} {entry['name']}")
+            if as_of is not None:
+                print(
+                    f"            as of {as_of.isoformat()}: "
+                    f"{len(all_rules) - len(withheld)} applicable, "
+                    f"{len(withheld)} withheld"
+                    + (
+                        f" ({', '.join(sorted(withheld))})"
+                        if 0 < len(withheld) <= 4
+                        else ""
+                    )
+                )
 
     print(f"\n{'rule':22s} {'TP':>4} {'FP':>4} {'FN':>4} {'TN':>4}  "
           f"{'precision':>9} {'recall':>7}")

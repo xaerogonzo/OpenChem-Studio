@@ -11,7 +11,7 @@
   "Schedule 1 also lists saxitoxin and ricin, identified by name rather than by structural family. Not encoded: a structural rule for a protein toxin is meaningless, and an identity rule needs a structure this file does not carry.",
   "Size limits ('C10 or fewer, including cycloalkyl') are applied to the molecule's TOTAL carbon count where they are applied at all. Entries A.3, A.13, A.14 and B.10 carry no carbon limit, because applying one to the total would exclude those entries' own examples -- VX and QL both have eleven carbons. Where a limit IS applied it may over-report and will not under-report.",
   "'Corresponding alkylated salts', which several entries reach, are not matched: an alkylated salt is a quaternary ammonium and so a different structure. Protonated forms are reached, because counter-ions are stripped before an identity comparison.",
-  "The 2019 additions (entries A.13 to A.16, in force 7 June 2020) are encoded here, but the effective date is recorded on the rules rather than enforced: this screen reports what a structure matches today and does not answer questions about a date in the past.",
+  "The 2019 additions (entries A.13 to A.16, in force 7 June 2020) are encoded here and carry that date, and a screen asked about an earlier date withholds them. What no entry here records is repeal or expiry -- the Annex has only ever gained entries -- so a dated screen answers when a rule STARTED applying and would report one since removed as though it still did.",
   "This file cites two official reproductions of the same Annex. Entries A.1 to A.6 quote and cite the Canadian export-control reproduction they were written from; the entries added later quote and cite the OPCW's own text. The two render the Annex differently -- 'equal to or less than C10' against '<=C10' -- and the Canadian page predates the 2019 additions, which is why it could not supply them."
  ],
  "rules": [
@@ -310,7 +310,7 @@
     "authority": "OPCW",
     "instrument": "CWC Annex on Chemicals",
     "section": "Schedule 1, A.13",
-    "quote": "\u0420-alkyl (H or \u2264C10, incl. cycloalkyl) N-(1-(dialkyl(\u2264C10, incl. cycloalkyl)amino))alkylidene(H or \u2264C10, incl. cycloalkyl) phosphonamidic fluorides and corresponding alkylated or protonated salts",
+    "quote": "Р-alkyl (H or ≤C10, incl. cycloalkyl) N-(1-(dialkyl(≤C10, incl. cycloalkyl)amino))alkylidene(H or ≤C10, incl. cycloalkyl) phosphonamidic fluorides and corresponding alkylated or protonated salts",
     "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1",
     "effective_date": "2020-06-07",
     "cited_identifiers": {
@@ -342,7 +342,7 @@
     "authority": "OPCW",
     "instrument": "CWC Annex on Chemicals",
     "section": "Schedule 1, A.14",
-    "quote": "O-alkyl (H or \u2264C10, incl. cycloalkyl) N-(1-(dialkyl(\u2264C10, incl. cycloalkyl)amino))alkylidene(H or \u2264C10, incl. cycloalkyl) phosphoramidofluoridates and corresponding alkylated or protonated salts",
+    "quote": "O-alkyl (H or ≤C10, incl. cycloalkyl) N-(1-(dialkyl(≤C10, incl. cycloalkyl)amino))alkylidene(H or ≤C10, incl. cycloalkyl) phosphoramidofluoridates and corresponding alkylated or protonated salts",
     "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1",
     "effective_date": "2020-06-07",
     "cited_identifiers": {

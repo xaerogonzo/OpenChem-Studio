@@ -50,6 +50,10 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "src"))
 
+from openchem.chem.regulatory.engine import (  # noqa: E402
+    EffectiveDateError,
+    parse_effective_date,
+)
 from openchem.chem.regulatory.predicates import SUPPORTED_OPS  # noqa: E402
 
 GENERATOR = "build_regulatory_rulesets.py"
@@ -160,6 +164,25 @@ def _resolve_name(name: str) -> tuple[str, str]:
     return Chem.MolToInchiKey(mol) or "", ""
 
 
+def _check_effective_date(value, subject: str) -> None:
+    """Refuse a date the screening engine could not read.
+
+    Absence is fine and is the normal case -- most rules take their date
+    from their ruleset, and the DEA list records none at all. What is
+    refused is a value that is PRESENT and unreadable, because the runtime
+    treats one of those as undated: shipped that way, a rule would quietly
+    stop being date-constrained and a historical screen would report it as
+    though it had always applied.
+    """
+    try:
+        parse_effective_date("" if value is None else str(value))
+    except EffectiveDateError as exc:
+        raise BuildError(
+            f"{subject}: effective_date {exc.value!r} is not an ISO date "
+            "(YYYY-MM-DD). Leave it out entirely if the source states none."
+        ) from exc
+
+
 def build_one(source_path: Path) -> tuple[dict, list[str]]:
     """Build one ruleset. Returns (ruleset dict, human-readable notes)."""
     raw = source_path.read_text(encoding="utf-8")
@@ -172,10 +195,20 @@ def build_one(source_path: Path) -> tuple[dict, list[str]]:
     manual_entries = 0
     cited_entries = 0
 
+    # 5. EFFECTIVE DATES ARE VALIDATED, through the same parser that screens
+    #    against them, so the two cannot drift into different ideas of what a
+    #    date is. Shipped data therefore cannot carry one the engine would
+    #    have to treat as undated -- which for a dated screen would silently
+    #    stop constraining that rule, and read as the rule simply not
+    #    applying. A user's own file is tolerated at runtime and reported;
+    #    this half is what keeps the shipped set clean.
+    _check_effective_date(source.get("effective_date"), f"{source_path.name} ruleset")
+
     for entry in source.get("rules", []):
         rule_id = entry.get("rule_id") or "<unnamed>"
         legal = dict(entry.get("legal", {}))
         quote = str(legal.get("quote", "")).strip()
+        _check_effective_date(legal.get("effective_date"), rule_id)
 
         claimed = str(entry.get("confidence", "requires_review")).lower()
         # THE GATE. No verbatim text means the primary source was never

@@ -1031,7 +1031,78 @@
  ],
  "historical": [
   {
-   "_note": "Reserved for structures whose regulatory status CHANGED, which is the only way to test that effective-date resolution works. STILL EMPTY, and the reason is now known rather than assumed: the engine has no per-rule effective-date resolution at all. `screen()` takes no date, and the only date-like machinery is ruleset-level `supersedes`, which retires a whole ruleset when a revision is dropped in. So encoding the CWC 2019 additions did NOT populate this corpus -- they carry `effective_date` 2020-06-07 as recorded provenance on rules inside the current ruleset, not as something the engine screens against. Populating this needs date-aware screening first, which is a feature and not a fixture."
+   "_note": "Structures whose regulatory status CHANGED. Every entry carries an `as_of` date and is screened at it, so one entry is still one screen with one expectation and a before/after pair reads as two rows. BIDIRECTIONAL ON PURPOSE: testing only that a later date GAINS the new rules would pass against a ruleset that had simply become permanently current, so each pair also pins the day before. The dates are the entries' own -- 2020-06-07 is when the CWC 2019 additions entered force, 1997-04-29 is when the Convention itself did."
+  },
+  {
+   "name": "a 2019 A.13 phosphonamidic fluoride, the day before the additions",
+   "smiles": "CCN(CC)C(=NP(=O)(C)F)C",
+   "as_of": "2020-06-06",
+   "expect": ["cwc-2-b-4"],
+   "why": "NOT an empty expectation, and that is the point of this row. A.13 is withheld while B.4 -- dated 1997, in another ruleset, matching the same structure -- still applies. A filter that worked per RULESET, or globally, would empty this row and pass a naive before/after test."
+  },
+  {
+   "name": "a 2019 A.13 phosphonamidic fluoride, the day they entered force",
+   "smiles": "CCN(CC)C(=NP(=O)(C)F)C",
+   "as_of": "2020-06-07",
+   "expect": ["cwc-1-a-13", "cwc-2-b-4"],
+   "why": "Inclusive at the start: a rule applies ON the day it takes effect. Moving the comparison to a strict `<` fails here and nowhere else in this corpus."
+  },
+  {
+   "name": "a 2019 A.14 phosphoramidofluoridate, the day before",
+   "smiles": "CCN(CC)C(=NP(=O)(OC)F)C",
+   "as_of": "2020-06-06",
+   "expect": []
+  },
+  {
+   "name": "a 2019 A.14 phosphoramidofluoridate, the day they entered force",
+   "smiles": "CCN(CC)C(=NP(=O)(OC)F)C",
+   "as_of": "2020-06-07",
+   "expect": ["cwc-1-a-14"]
+  },
+  {
+   "name": "the 2019 A.15 chemical, the day before",
+   "smiles": "CCN(CC)C(=NP(=O)(C)F)N(CC)CC",
+   "as_of": "2020-06-06",
+   "expect": ["cwc-2-b-4"]
+  },
+  {
+   "name": "the 2019 A.15 chemical, the day they entered force",
+   "smiles": "CCN(CC)C(=NP(=O)(C)F)N(CC)CC",
+   "as_of": "2020-06-07",
+   "expect": ["cwc-1-a-15", "cwc-2-b-4"]
+  },
+  {
+   "name": "a 2019 A.16 quaternary carbamate, the day before",
+   "smiles": "CN(C)C(=O)OC1=C(N=CC=C1)C[N+](C)(C)CCCCCCCCCC[N+](C)(C)CCO.[Br-].[Br-]",
+   "as_of": "2020-06-06",
+   "expect": []
+  },
+  {
+   "name": "a 2019 A.16 quaternary carbamate, the day they entered force",
+   "smiles": "CN(C)C(=O)OC1=C(N=CC=C1)C[N+](C)(C)CCCCCCCCCC[N+](C)(C)CCO.[Br-].[Br-]",
+   "as_of": "2020-06-07",
+   "expect": ["cwc-1-a-16"]
+  },
+  {
+   "name": "sarin, the day before the Convention entered force",
+   "smiles": "CC(C)OP(C)(=O)F",
+   "as_of": "1997-04-28",
+   "expect": [],
+   "why": "The RULESET-level date, which is a different resolution branch from A.13's own. None of these rules declares a date of its own; all 44 take the Convention's, so the most famous Schedule 1 agent in the file matches nothing the day before it entered force."
+  },
+  {
+   "name": "sarin, the day the Convention entered force",
+   "smiles": "CC(C)OP(C)(=O)F",
+   "as_of": "1997-04-29",
+   "expect": ["cwc-1-a-1", "cwc-2-b-4"],
+   "why": "And the four 2019 additions are still withheld on this date, 23 years out -- the two date levels resolving independently in one screen."
+  },
+  {
+   "name": "acetone, long before any of this",
+   "smiles": "CC(C)=O",
+   "as_of": "1900-01-01",
+   "expect": ["dea-ii-2"],
+   "why": "THE GUARD ON THE DEFAULT THAT COULD HAVE GONE THE OTHER WAY. An undated rule is NOT date-filtered, and 47 of the 91 shipped rules are undated -- the whole DEA list records no dates at all. Treating an absent date as 'never applicable' instead would empty half the screen while looking exactly like a substance that is not listed. Note what this row does NOT assert: that acetone was a listed precursor in 1900. It asserts that this screen's date told it nothing either way, which is what the coverage note for that ruleset says in as many words."
   }
  ]
 }

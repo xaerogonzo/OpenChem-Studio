@@ -4,6 +4,55 @@
 python benchmarks/regulatory/score.py
 ```
 
+## Result, the historical corpus populated, 165 structures across 4 corpora
+
+`historical` has its first entries. It was empty for the life of the
+project, and the reason was recorded here as measured rather than assumed:
+there was no per-rule effective-date resolution to test. There is now —
+`screen(..., as_of=...)` — so the corpus can finally do the job it was
+reserved for.
+
+**Eleven rows, and the three that matter are not the obvious ones.** A
+before/after pair on the 2019 additions is the requirement; on its own it is
+weaker than it looks.
+
+- **A.13 and A.15 the day before expect `cwc-2-b-4`, not nothing.** The
+  withheld Schedule 1 entry sits beside a Schedule 2 rule dated 1997 that
+  matches the same structure. A filter working per *ruleset*, or globally,
+  empties those rows and still passes a naive before/after test.
+- **Sarin at 1997-04-28 and 1997-04-29** exercises the *ruleset*-level date,
+  a different resolution branch from A.13's own. All 44 CWC rules withheld,
+  then 40 — the four 2019 additions still 23 years out, so both date levels
+  resolve independently inside one screen.
+- **Acetone at 1900-01-01 still matches `dea-ii-2`.** The guard on the
+  default that could have gone the other way: 47 of the 91 shipped rules are
+  undated, so "no date means never applicable" would empty half the screen.
+  Note what that row does *not* assert — that acetone was listed in 1900. It
+  asserts the screen's date constrained those rules not at all, which is what
+  that ruleset's coverage note now says in as many words.
+
+**A WITHHELD RULE IS NOT A TRUE NEGATIVE**, and `score.py` no longer counts
+it as one. A rule that did not exist on the date being screened made no
+prediction; crediting it with a correct rejection would hand every rule in
+the file 44 free true negatives on the pre-1997 rows and dilute the one
+column that exists to catch an over-broad pattern. Each entry is scored over
+the rules that were *applicable* for it, and the withheld ones are printed
+beside it.
+
+Nothing is withheld when an entry carries no `as_of`, and that was checked
+rather than asserted: run the new scorer against the corpus with `historical`
+emptied and the per-rule table is **byte-identical** to the one master
+produces. Worst per-rule precision is unchanged at 0.50 (`cwc-1-a-6`), with
+the same two known mismatches.
+
+**One shipped claim went stale the moment this landed**, and it was found by
+a test assertion that was too loose rather than by review: Schedule 1's
+`known_limitations` said the 2019 additions' effective date "is recorded on
+the rules rather than enforced". It is enforced now. Rewritten to say what
+remains true instead — no entry here records repeal or expiry, so a dated
+screen answers when a rule *started* applying. The DEA ruleset gained the
+matching admission that it records no dates at all.
+
 ## Result, four rulesets in two domains, 148 structures across 4 corpora
 
 `drug_precursors` is the second domain to be populated — 21 CFR 1310.02,
@@ -195,15 +244,12 @@ not Schedule 1. Also here: a P-butyl homologue (outside the entry's
 (outside "equal to or less than C10"), and sarin's hydrolysis product
 (no fluorine, so outside the entry despite being a famous marker).
 
-**`historical`** is reserved for structures whose status *changed*, the
-only way to test that effective-date resolution works. **Still empty, and
-the reason is now measured rather than assumed: there is no per-rule
-effective-date resolution to test.** `screen()` takes no date, and the only
-date-like machinery is ruleset-level `supersedes`.
+**`historical`** holds structures whose status *changed*, each screened at
+its own `as_of` date — the only way to test that effective-date resolution
+works. It was empty until `screen()` grew a date to resolve against; see the
+top of this file for what its eleven rows are shaped to catch.
 
-Encoding the CWC 2019 additions did not change that, though it looked as
-though it would. Entries A.13–A.16 carry `effective_date` 2020-06-07 as
-recorded provenance on rules inside the *current* ruleset — the engine
-never screens against it, so there is no before-and-after to assert.
-Populating this corpus needs date-aware screening first, which is a feature
-rather than a fixture.
+Every structure in it appears at **two** dates. Testing only that a later
+date gains the new rules would pass just as happily against a ruleset that
+had quietly become permanently current, because there would be nothing to
+compare the "after" against.
