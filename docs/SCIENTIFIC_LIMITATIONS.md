@@ -698,6 +698,43 @@ unrelated stereoisomer.
 while their metabolites are not. The engine carries the match type so a
 curated list could populate it, and predicts nothing.
 
+**A LISTING IS NOT A PROHIBITION, and most of what ships is ordinary
+chemistry.** All three CWC schedules are loaded, and Schedules 2 and 3 are
+largely industrial: phosgene, hydrogen cyanide, thionyl chloride,
+triethanolamine, thiodiglycol. They are listed so that production above
+certain quantities is declared and can be verified. The Convention's
+obligations turn on quantity and concentration, which a structure carries
+neither of — so this screen can say a chemical is listed and can never say
+whether an obligation applies to anybody.
+
+**Three entries are not encoded, and are counted rather than hidden.**
+Saxitoxin and ricin, where a structural rule for a protein toxin is
+meaningless; and Schedule 3's diethyl phosphite, where PubChem's record for
+the CAS the entry prints is a cation and OPSIN returns an anion, so neither
+resolver reaches the neutral substance listed. Coverage reports 16 of 17
+for that ruleset and names the gap.
+
+**Two rules over-report, by construction, and say so on the finding.**
+Schedule 2's entry B.4 opens "except for those listed in Schedule 1" and no
+rule can exclude another ruleset's members, so a Schedule 1 organophosphorus
+agent matches both. And Schedule 3's entries carry no "and corresponding
+salts" wording, unlike several in Schedules 1 and 2, while the engine strips
+counter-ions before comparing — so a salt of a Schedule 3 chemical is
+reported. Both are declared limitations rather than silent behaviour.
+
+**Where a generic entry gives a size limit, it is usually not applied.**
+Clauses like "H or ≤C10, including cycloalkyl" restrict a *substituent*,
+and this engine can only count a molecule's total carbons. Applying the
+total-carbon reading to entries A.3 and B.10 would exclude VX and QL, which
+are those entries' own examples and have eleven carbons each — so those
+rules carry no carbon limit at all. Where a limit is applied it may
+over-report and will not under-report.
+
+**An exemption is matched as a skeleton plus a carbon count, not as an
+identity.** Three entries exempt named chemicals; each exemption covers the
+chemical and its salts, and does not excuse a mixture containing it.
+Mixtures are outside what this screen considers in any case.
+
 ---
 
 ## Substance classification and coordination

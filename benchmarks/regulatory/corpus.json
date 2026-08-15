@@ -346,6 +346,13 @@
    "expect": [
     "cwc-1-a-16"
    ]
+  },
+  {
+   "name": "the 2019 A.16 BISquaternary example",
+   "smiles": "CC[N+](C)(CC1=C(C=CC=N1)OC(=O)N(C)C)CC(=O)CCCCCCC(=O)C[N+](C)(CC)CC2=C(C=CC=N2)OC(=O)N(C)C.[Br-].[Br-]",
+   "expect": [
+    "cwc-1-a-16"
+   ]
   }
  ],
  "negatives": [
@@ -472,6 +479,21 @@
   {
    "name": "2-hydroxyethylphosphonic dichloride (not a plain alkyl)",
    "smiles": "OCCP(=O)(Cl)Cl",
+   "expect": []
+  },
+  {
+   "name": "betaine",
+   "smiles": "C[N+](C)(C)CC(=O)[O-]",
+   "expect": []
+  },
+  {
+   "name": "carnitine",
+   "smiles": "C[N+](C)(C)CC(O)CC(=O)[O-]",
+   "expect": []
+  },
+  {
+   "name": "a benzalkonium-type surfactant",
+   "smiles": "CCCCCCCCCCCC[N+](C)(C)Cc1ccccc1",
    "expect": []
   }
  ],
@@ -601,7 +623,7 @@
    "name": "choline, against entry 2.B.11",
    "smiles": "C[N+](C)(C)CCO",
    "expect": [],
-   "why": "IT MATCHED UNTIL THE PATTERN WAS TIGHTENED. Reading 'and corresponding protonated salts' as any four-coordinate cationic nitrogen reaches quaternary ammoniums, and choline is present in every cell and sold as a supplement. A quaternary ammonium is an ALKYLATED salt, which entries B.10 to B.12 do not reach."
+   "why": "IT MATCHED UNTIL THE PATTERN WAS TIGHTENED. Reading 'and corresponding protonated salts' as any four-coordinate cationic nitrogen reaches quaternary ammoniums, and choline is present in every cell and sold as a supplement. A quaternary ammonium is an ALKYLATED salt, which entries B.10 to B.12 do not reach. It was ALSO reported as a near miss to Schedule 1's entry A.16, whose second feature was a bare quaternary nitrogen at the time -- a predicate satisfied by half of chemistry. That feature is now the alpha-picolinyl methylene the entry's own text describes."
   },
   {
    "name": "protonated 2-(diisopropylamino)ethanol",

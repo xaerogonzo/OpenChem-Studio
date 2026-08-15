@@ -28,6 +28,21 @@ and sold as a supplement. Found because Schedule 1's A.16 example is itself
 a quaternary ammonium and turned up matching B.11 as well — one new
 ruleset exposing a defect in another.
 
+**A RULE CAN MATCH NOTHING AND STILL MISLEAD.** Entry A.16's second
+feature was a bare quaternary nitrogen. It matched no ordinary chemical
+outright — but it satisfied one of the rule's two predicates, and one
+satisfied predicate is enough to be reported as a NEAR MISS. So choline,
+betaine, carnitine, acetylcholine and benzalkonium surfactants were each
+shown as one feature away from a chemical-weapons entry. Found by driving
+the app with the whole suite green, and the corpus could not have caught it:
+every one of those scores as a correct no-match.
+
+The fix requires the α-picolinyl methylene the entry's own text describes,
+which both its examples carry. Pyridostigmine KEEPS its near miss, and that
+is the control — the cheap way to silence a false near miss is to weaken
+near-miss reporting, which would discard the most useful thing this screen
+tells a legitimate user.
+
 **The pattern prototypes' must-reject cases are corpus negatives now.**
 Twice a clause was load-bearing and untested because its case lived only in
 the throwaway prototype: B.4's "but not further carbon atoms" and B.9's

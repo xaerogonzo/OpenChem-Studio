@@ -1359,7 +1359,14 @@ Each finding carries:
   (the regulation defines a family and this is in it), `analogue` (close to
   a listed substance, explicitly *not* a determination), or `precursor`
 - a **confidence** — `exact` where the regulation is itself a structural
-  specification, down to `requires_review` for anything unresolved
+  specification and the pattern transcribes it, `verified` for a named
+  substance whose identity was checked against the primary text,
+  `approximate` for a reading of prose that structure cannot fully carry,
+  and `requires_review` for anything unresolved
+- for a **precursor**, the legitimate uses it also has. Most listed
+  precursors are ordinary reagents — thionyl chloride converts acids to
+  acyl chlorides, triethanolamine is in a great deal of cosmetics — and a
+  finding without that context reads as an accusation
 - the **atoms that matched**, rendered through the same per-atom colouring
   the rest of the panel uses
 
@@ -1369,13 +1376,16 @@ what a plain "no match" hides. Diisopropyl fluorophosphate screened against
 the chemical-weapons ruleset returns no match *and* an explanation:
 
 ```
-No matches in the 1 ruleset consulted
-Near miss: Alkylphosphonofluoridates (Schedule 1, A.1)
-  - has phosphoryl (P=O), P-F bond, O-alkyl ester; lacks P-alkyl bond
+No matches in the 3 rulesets consulted
+Near miss: Alkylphosphonofluoridates (Schedule 1, A.1) - has phosphoryl
+  (P=O), P-F bond, O-alkyl ester, total carbons <= 10; lacks P-alkyl is
+  methyl, ethyl, n-propyl or isopropyl
 ```
 
 That is the real distinction — DFP genuinely is not Schedule 1, and the
-missing P–C bond is why. Sarin, which has it, matches.
+missing P–C bond is why. Sarin, which has it, matches. Near misses are
+capped at three, because past that the list stops explaining and becomes a
+catalogue of everything the structure is not.
 
 A near miss is only offered when at least one predicate actually matched
 atoms in your structure. Without that rule, ethanol came back as a near
@@ -1383,10 +1393,19 @@ miss to a nerve-agent schedule on the strength of a numeric bound it
 happened to satisfy, which is worse than saying nothing.
 
 **Coverage is stated, not implied.** The count of rulesets consulted is in
-the result, and rulesets carry their effective date, source citation and
-known limitations. What ships is only what could be verified and lawfully
-redistributed, so the honest reading of a clean result is "these rulesets
-did not match", never "nothing applies".
+the result, each ruleset's own limitations appear beside it, and every
+registered domain with no ruleset loaded is listed as NOT checked. What
+ships is only what could be verified and lawfully redistributed, so the
+honest reading of a clean result is "these rulesets did not match", never
+"nothing applies".
+
+**What ships today is all three CWC schedules** — the chemical-weapons
+domain, in depth. Eleven of the twelve registered domains are still empty
+and say so on every screen. Expect ordinary chemicals to appear: Schedule 3
+lists phosgene, hydrogen cyanide, thionyl chloride and triethanolamine, all
+of them large-scale industrial chemicals, because the schedules exist to
+mark what gets declared and verified rather than what is forbidden. A
+match is a listing, not an accusation, and the panel is worded that way.
 
 ---
 

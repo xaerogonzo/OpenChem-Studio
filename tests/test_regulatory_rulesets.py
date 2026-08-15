@@ -370,6 +370,65 @@ def test_a_carbamate_MEDICINE_does_not_match_entry_A16(engine, name, smiles):
     assert not engine.screen(_mol(smiles)).matched, name
 
 
+@pytest.mark.parametrize(
+    "name,smiles",
+    [("choline", "C[N+](C)(C)CCO"),
+     ("acetylcholine", "CC(=O)OCC[N+](C)(C)C"),
+     ("betaine", "C[N+](C)(C)CC(=O)[O-]"),
+     ("carnitine", "C[N+](C)(C)CC(O)CC(=O)[O-]"),
+     ("a benzalkonium-type surfactant", "CCCCCCCCCCCC[N+](C)(C)Cc1ccccc1")],
+)
+def test_a_common_quaternary_is_not_reported_as_NEAR_a_weapons_entry(engine, name, smiles):
+    """FOUND BY DRIVING THE APP, with every test green.
+
+    Entry A.16's second feature was a bare quaternary nitrogen. That matched
+    nothing outright -- but it satisfied one of the rule's two predicates,
+    which is enough to be reported as a NEAR MISS, so choline, betaine,
+    carnitine, acetylcholine and benzalkonium surfactants were each shown as
+    one feature away from a chemical-weapons entry.
+
+    A predicate satisfied by half of chemistry carries no information. This
+    is the same failure as the numeric bound that once made ethanol a near
+    miss to a nerve-agent schedule, and `test_an_unrelated_structure_is_not_`
+    `reported_as_near` is its sibling -- that one guards the engine's rule,
+    this one guards a rule that satisfied it and was still useless.
+
+    The fix was to require the alpha-picolinyl methylene the entry's own
+    text describes, which both of its examples carry.
+    """
+    report = engine.screen(_mol(smiles))
+    assert not report.matched, name
+    assert not report.near_misses, (name, [n.rule.rule_id for n in report.near_misses])
+
+
+def test_a_genuinely_close_structure_KEEPS_its_near_miss(engine):
+    """THE CONTROL. The cheap way to silence the false near misses above is
+    to weaken near-miss reporting, which would throw away the most useful
+    thing this screen tells a legitimate user.
+
+    Pyridostigmine really does carry a dimethylcarbamoyloxypyridine, so it
+    is genuinely one feature from A.16 and should say so.
+    """
+    report = engine.screen(_mol("C[n+]1cccc(OC(=O)N(C)C)c1.[Br-]"))
+    assert not report.matched
+    assert [n.rule.rule_id for n in report.near_misses] == ["cwc-1-a-16"]
+    passed = [o.label for o in report.near_misses[0].outcomes if o.passed]
+    assert any("pyridine" in label for label in passed)
+
+
+def test_both_A16_examples_match(engine):
+    """The entry gives a quaternary and a bisquaternary example, and the
+    tightened pattern has to keep both. Only the first was in the corpus
+    when the pattern changed."""
+    quaternary = ("CN(C)C(=O)OC1=C(N=CC=C1)C[N+](C)(C)CCCCCCCCCC"
+                  "[N+](C)(C)CCO.[Br-].[Br-]")
+    bisquaternary = ("CC[N+](C)(CC1=C(C=CC=N1)OC(=O)N(C)C)CC(=O)CCCCCCC(=O)"
+                     "C[N+](C)(CC)CC2=C(C=CC=N2)OC(=O)N(C)C.[Br-].[Br-]")
+    for smiles in (quaternary, bisquaternary):
+        found = [f.rule.rule_id for f in engine.screen(_mol(smiles)).findings]
+        assert "cwc-1-a-16" in found, smiles
+
+
 def test_the_schedule_1_precursors_are_encoded(engine):
     """B.9 to B.12, the other gap the ruleset declared against itself."""
     for smiles, rule_id in [

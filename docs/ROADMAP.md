@@ -652,11 +652,43 @@ decisions the moment they are turned into a pattern. Confidence is capped
 mechanically by whether the quote is present, so a rule cannot claim to be
 verified against a statute nobody pasted.
 
-Ships CWC Schedule 1 only. Every other domain — controlled substances,
+Ships all three CWC schedules — 44 rules over 47 entries, the three
+unencoded ones named below. Every other domain — controlled substances,
 precursors, export controls, transport, occupational, environmental and
 the rest — registers EMPTY and says so in the coverage report, because an
-absent domain is invisible and reads as "nothing applies". Adding one is a
-JSON file and a build run, not a code change.
+absent domain is invisible and reads as "nothing applies". **Eleven of the
+twelve domains are still empty**: all three schedules are
+`chemical_weapons`, so this is depth in one domain rather than breadth.
+Adding one is a JSON file and a build run, not a code change.
+
+| ruleset | entries | encoded | shape |
+|---|---|---|---|
+| Schedule 1 | 16 | 14 | structural families, plus four precursors and the 2019 additions |
+| Schedule 2 | 14 | 14 | eight identities and six generic families, three exemptions |
+| Schedule 3 | 17 | 16 | identities and precursors, all industrial chemicals |
+
+**An identity comes from the CAS the statute prints, never from the
+chemical's name.** Measured over Schedule 2 and 3's 27 named chemicals:
+the statute's CAS resolved for all 27, a name resolver agreed with it for
+26, and asking only "does the name resolve" would have shipped two wrong
+structures — sulfur monochloride (both resolvers give a one-chlorine
+species where the entry lists Cl2S2) and dimethyl phosphite (OPSIN returns
+an anion for a neutral substance). `sources/README.md` carries the rule
+and the numbers.
+
+**The three unencoded entries are visible and countable**, not quietly
+absent: saxitoxin and ricin, where a structural rule for a protein toxin
+is meaningless, and Schedule 3's diethyl phosphite, where PubChem's record
+for the CAS the entry prints is a cation and OPSIN returns an anion, so
+neither resolver reaches the neutral substance listed. A hand-typed
+structure would not be traceable to the statute.
+
+**Where the rules over-report, they say so on the finding.** Schedule 2's
+entry B.4 opens "except for those listed in Schedule 1" and nothing can
+exclude another ruleset's members, so a Schedule 1 organophosphorus agent
+matches both; Schedule 3 carries no "and corresponding salts" wording
+while the engine strips counter-ions anyway. Both are declared rather than
+silently applied.
 
 Licensing shaped the data model and is recorded in
 `chem/data/regulatory/sources/README.md`: no CAS Registry (proprietary to

@@ -579,10 +579,10 @@
  "provenance": {
   "generator": "build_regulatory_rulesets.py",
   "generator_version": "1",
-  "generated_at": "2026-08-15T17:09:15+00:00",
+  "generated_at": "2026-08-15T17:31:57+00:00",
   "source_document_sha256": "5b71135a77e13c3dfa7040b878db14caf06186a0f81df0cc9159eacb54132788",
   "rdkit_version": "2025.09.6",
   "opsin_version": "1.2.0",
-  "ruleset_sha256": "b27ea4cbb82639f529c4d9c152635edf051bdf265c3fd1b84826bba4bc849705"
+  "ruleset_sha256": "b3a586b7d077f6379600a1977305d9417a4ad85744e26a149fc543ce178a78f6"
  }
 }

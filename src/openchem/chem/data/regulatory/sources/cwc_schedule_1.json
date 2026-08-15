@@ -407,7 +407,8 @@
     }
    },
    "assumptions": [
-    "Read as two features together: a dimethylcarbamoyloxy group on a PYRIDINE ring, and a quaternary ammonium nitrogen. Requiring both is what keeps licensed medicines out -- pyridostigmine quaternises the ring nitrogen and has no exocyclic ammonium, and neostigmine has the ammonium but carries its carbamate on a benzene."
+    "Read as two features together: a dimethylcarbamoyloxy group on a PYRIDINE ring, and the alpha-picolinyl methylene to a quaternary nitrogen that the entry's structures describe (\"N-(3-dimethylcarbamoxy-alpha-picolinyl)\"). Both of the entry's own examples carry that linkage.",
+    "THE SECOND FEATURE WAS A BARE QUATERNARY NITROGEN AT FIRST, and that is too common to pair with anything. It matched no ordinary chemical outright, but it satisfied one of the two predicates, which was enough to report choline, betaine, carnitine, acetylcholine and benzalkonium surfactants as NEAR MISSES to a chemical-weapons entry. Requiring the linkage instead of the charge is what removes them. Same failure as the numeric bound that once made ethanol a near miss to a nerve-agent schedule: a predicate satisfied by half of chemistry carries no information."
    ],
    "limitations": [
     "The entry's chain-length ranges (n=1-8 and n=2-12) are not enforced, so a molecule carrying both features with a chain outside those ranges is reported. Over-reports within this family and never under-reports."
@@ -422,8 +423,8 @@
      },
      {
       "op": "contains",
-      "smarts": "[NX4+]",
-      "label": "a quaternary ammonium nitrogen"
+      "smarts": "[c;$(c1ccccn1),$(c1cccnc1),$(c1ccncc1)][CH2][NX4+]",
+      "label": "a picolinyl methylene carrying a quaternary nitrogen"
      }
     ]
    }

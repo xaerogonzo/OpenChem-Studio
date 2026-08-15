@@ -294,13 +294,18 @@ exception.
 
 ## Regulatory rules — scored per rule, and one is not perfect
 
-**Method.** 29 structures across four corpora — positives, negatives, edge
+**Method.** 93 structures across four corpora — positives, negatives, edge
 cases and historical — with every rule reporting TP/FP/TN/FN rather than
 "matched". A rule with perfect recall and terrible precision passes any
 positives-only suite and is worse than useless in a screen.
 
-Five of six CWC Schedule 1 rules score precision 1.00 and recall 1.00. The
-sixth does not:
+**Every shipped rule has at least one positive case.** Sixteen of the
+twenty-two did not when Schedule 3 landed, and a rule with no positive
+scores a perfect 1.00 while testing nothing — the same vacuous pass this
+section exists to refuse. A guard fails if a future rule ships without one.
+
+43 of the 44 CWC rules across all three schedules score precision 1.00 and
+recall 1.00. The one that does not:
 
 | rule | precision | recall |
 |---|---|---|
@@ -316,6 +321,23 @@ precision 1.00 would be worse still.
 The edge cases carry the weight. **Diisopropyl fluorophosphate** has sarin's
 phosphoryl, fluorine and alkoxy, no P–C bond, and is not Schedule 1; a rule
 that could not tell them apart would score perfectly on the positives alone.
+
+Schedules 2 and 3 added a second kind of edge case: **chemicals the treaty
+exempts by name**. Every generic family pattern hits its own exemption, so
+without them fonofos, N,N-dimethylaminoethanol and N,N-diethylaminoethanol
+— all in ordinary commerce — would each be a false positive. Each exemption
+is a skeleton plus an exact carbon count, so it covers the chemical and its
+salts without excusing a larger molecule that merely contains the fragment.
+
+And a third: **licensed medicines near a rule's boundary.** Pyridostigmine
+and neostigmine each fail one half of Schedule 1's entry A.16 — one
+quaternises the ring nitrogen with no exocyclic ammonium, the other has the
+ammonium but carries its carbamate on a benzene — so a pattern testing
+either feature alone would flag a medicine. **Choline** matched Schedule 2's
+entry B.11 until the pattern was tightened: those entries reach "and
+corresponding *protonated* salts", and reading that as any four-coordinate
+cationic nitrogen also reaches quaternary ammoniums, which are *alkylated*
+salts.
 
 → [`benchmarks/regulatory/`](../benchmarks/regulatory/)
 
