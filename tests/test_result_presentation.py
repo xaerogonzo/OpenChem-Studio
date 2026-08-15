@@ -64,9 +64,25 @@ def _dispose(widget) -> None:
 
 
 def _row_caption(panel: PropertyPanel, key: tuple[str, str]) -> str:
+    """The caption's FULL text, not the string currently painted.
+
+    A row caption is an `_ElidingCaptionLabel`, so `.text()` is whatever
+    fits the panel's present width -- at the narrow widths these fixtures
+    use, `'Molecular Weight (g/mol)'` paints as `'Molecul…'`. Reading it
+    would make this file assert the fixture's geometry instead of the thing
+    it exists for.
+
+    **The guard is not weakened by this.** What it catches is a row
+    captioned with its raw id, and a row captioned `mol_wt` has `mol_wt` as
+    its full text too -- `_caption_text` returns the id just as plainly as
+    it returns the display name. Only the width-dependent truncation is
+    removed from the comparison.
+    """
+    from openchem.ui.panels.property_panel import _caption_text
+
     form = panel._row_sections[key].content_layout()
     row, _role = form.getWidgetPosition(panel._value_labels[key])
-    return form.itemAt(row, QFormLayout.ItemRole.LabelRole).widget().text()
+    return _caption_text(form.itemAt(row, QFormLayout.ItemRole.LabelRole).widget())
 
 
 def _dataset(values, parameters=None, units="") -> PerAtomDataset:
