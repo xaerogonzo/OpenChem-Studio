@@ -688,6 +688,46 @@ document may cite a file or a test that does not exist.
   a real Vina 1.2.7 and a managed Temurin JRE.
 - **OPEN** -- `SimilarityService` doesn't exist yet; belongs to a later roadmap phase
   and would currently have no callers.
+- **OPEN** -- regulatory screening has no date awareness. `RegulatoryEngine.screen()`
+  takes a molecule, a jurisdiction filter and a near-miss flag, and no date;
+  the only date-like machinery is ruleset-level `supersedes`, which retires a
+  whole ruleset when a revision is dropped in beside it.
+
+  **This was assumed to exist and does not**, which is worth stating because
+  the assumption survived being written into a plan. `benchmarks/regulatory/`
+  carries a fourth corpus, `historical`, "for structures whose status
+  CHANGED -- the only way to test that effective-date resolution works". It
+  has always been empty, described as waiting for a superseding ruleset. When
+  the CWC 2019 additions were encoded it looked as though they would fill it:
+  entries A.13 to A.16 entered force on 7 June 2020 and the rules carry that
+  date. They did not, and cannot -- `LegalSource.effective_date` is recorded
+  provenance on rules inside the CURRENT ruleset, and nothing screens against
+  it, so there is no before-and-after to assert.
+
+  What it would take, in the order the pieces depend on each other:
+
+  1. `screen(..., as_of: date | None = None)`, threaded to `_apply`, skipping
+     a rule whose `legal.effective_date` is later than `as_of`. Default None
+     means today's behaviour -- every rule, no filtering -- so nothing that
+     exists changes.
+  2. The report has to say which date it screened as of, or a dated answer is
+     indistinguishable from an undated one. That is the same argument the
+     coverage notes and the ruleset limitations already rest on.
+  3. `historical` gains its first entries and a BIDIRECTIONAL test: A.13 to
+     A.16 absent before 2020-06-07 and present on and after it. Testing only
+     "a later date gets the new rules" lets a ruleset become permanently
+     current and still pass.
+
+  Two things to decide rather than assume. A rule with no `effective_date` --
+  most of them -- must be treated as always in force, not as never in force;
+  the failure mode of the other choice is a screen that silently matches
+  nothing. And `Ruleset.effective_date` and `LegalSource.effective_date` are
+  different claims: the CWC ruleset is dated 1997 and carries rules dated
+  2020, so a rule's own date has to win where it has one.
+
+  Not urgent. Nothing shipped depends on it, and the value is in answering
+  "was this listed when the sample was made", which is a real regulatory
+  question and not one anybody has asked here yet.
 - **DECISION** -- plugin loading has no async/background state, no `ToolbarProvider`/
   `ContextMenuProvider`, no numeric provider priority, and no declared
   permissions, and no `RemoteServicePlugin` base class exists for the

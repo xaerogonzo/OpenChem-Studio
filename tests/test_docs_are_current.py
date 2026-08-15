@@ -327,6 +327,14 @@ DEFERRALS: list[Deferral] = [
         unbuilt=lambda: not _defines("SimilarityService"),
     ),
     Deferral(
+        claim="regulatory screening has no date awareness",
+        # The claim is that `screen()` takes no date. It goes stale the
+        # moment the signature grows one, which is step 1 of the entry's
+        # own list -- and the bounded `[^)]*` keeps the match inside that
+        # parameter list rather than running on into the next function.
+        unbuilt=lambda: not re.search(r"def screen\([^)]*as_of", _src_text()),
+    ),
+    Deferral(
         claim="plugin loading has no async/background state",
         unbuilt=lambda: not any(
             _defines(name)
