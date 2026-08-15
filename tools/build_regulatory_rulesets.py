@@ -79,6 +79,25 @@ def _sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def _canonical(obj) -> str:
+    """The one serialization every hash and comparison goes through.
+
+    Sorted keys and no whitespace, so key order, indentation and line
+    endings cannot produce a false difference. The file on disk is written
+    with `indent=1` for review, which is why verifying it means reparsing
+    and re-canonicalising rather than comparing bytes.
+    """
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"))
+
+
+#: Provenance that legitimately differs between two builds of the same
+#: source, and so must come out before a rebuild is compared against the
+#: committed artefact. `ruleset_sha256` is here because it is computed
+#: over a document containing `generated_at`; it is verified separately
+#: and on its own terms by `verify_stored_hash`.
+NONDETERMINISTIC_PROVENANCE = frozenset({"generated_at", "ruleset_sha256"})
+
+
 def _versions() -> dict[str, str]:
     import rdkit
 
@@ -253,10 +272,101 @@ def build_one(source_path: Path) -> tuple[dict, list[str]]:
     }
     # The output's own hash is computed over the ruleset WITHOUT it, so it
     # is reproducible: hashing a document that contains its own hash is not.
-    ruleset["provenance"]["ruleset_sha256"] = _sha256(
-        json.dumps(ruleset, sort_keys=True, separators=(",", ":"))
-    )
+    ruleset["provenance"]["ruleset_sha256"] = _sha256(_canonical(ruleset))
     return ruleset, notes
+
+
+def _without_nondeterministic(ruleset: dict) -> dict:
+    """A copy comparable across builds of the same source."""
+    trimmed = json.loads(_canonical(ruleset))
+    provenance = trimmed.get("provenance")
+    if isinstance(provenance, dict):
+        for field in NONDETERMINISTIC_PROVENANCE:
+            provenance.pop(field, None)
+    return trimmed
+
+
+def _first_difference(built, committed, path: str = "") -> str:
+    """Where two rulesets first disagree, as a readable path.
+
+    Naming the place matters more than it looks: a check that only says
+    "these differ" teaches people to regenerate blindly, which is the
+    habit that lets a hand edit through in the first place.
+    """
+    if type(built) is not type(committed):
+        return f"{path or '<root>'}: {type(committed).__name__} -> {type(built).__name__}"
+    if isinstance(built, dict):
+        # Substance before bookkeeping. Editing a source ALWAYS moves
+        # `source_document_sha256`, so walking in plain sorted order would
+        # report that every time and never the rule that actually changed
+        # -- a true first difference, and the least useful one available.
+        def _priority(key: str) -> tuple[int, str]:
+            return ({"rules": 0, "coverage": 1, "provenance": 3}.get(key, 2), key)
+
+        for key in sorted(set(built) | set(committed), key=_priority):
+            where = f"{path}.{key}" if path else key
+            if key not in committed:
+                return f"{where}: absent from the committed file"
+            if key not in built:
+                return f"{where}: in the committed file, not in the rebuild"
+            found = _first_difference(built[key], committed[key], where)
+            if found:
+                return found
+        return ""
+    if isinstance(built, list):
+        if len(built) != len(committed):
+            return f"{path or '<root>'}: {len(committed)} entries -> {len(built)}"
+        for index, (one, other) in enumerate(zip(built, committed)):
+            # A rule is far easier to find by id than by position.
+            label = one.get("rule_id") if isinstance(one, dict) else None
+            where = f"{path}[{label or index}]"
+            found = _first_difference(one, other, where)
+            if found:
+                return found
+        return ""
+    if built != committed:
+        return f"{path or '<root>'}: {committed!r} -> {built!r}"
+    return ""
+
+
+def verify_stored_hash(committed: dict) -> str:
+    """Does the committed file still hash to what it says it does?
+
+    Catches a HAND EDIT. `_comment` promises the file is generated and
+    nothing enforced that promise, so anyone could edit a shipped rule --
+    a SMARTS pattern, a confidence, a quote -- and every test would pass
+    against a ruleset no source produces.
+
+    Returns "" when the file is intact, otherwise the reason.
+    """
+    provenance = committed.get("provenance")
+    if not isinstance(provenance, dict) or not provenance.get("ruleset_sha256"):
+        return "no ruleset_sha256 recorded, so the file cannot be verified"
+    stated = provenance["ruleset_sha256"]
+    stripped = json.loads(_canonical(committed))
+    del stripped["provenance"]["ruleset_sha256"]
+    actual = _sha256(_canonical(stripped))
+    if actual != stated:
+        return (
+            f"content does not match its own recorded hash "
+            f"(records {stated[:12]}..., hashes to {actual[:12]}...) -- "
+            f"the file has been edited by hand"
+        )
+    return ""
+
+
+def verify_matches_source(built: dict, committed: dict) -> str:
+    """Is the committed file what this source currently builds?
+
+    Catches a STALE artefact: a source edited without rebuilding ships the
+    previous ruleset, and the hash check above cannot see it because the
+    old file is perfectly self-consistent.
+
+    Returns "" when they agree, otherwise where they first differ.
+    """
+    return _first_difference(
+        _without_nondeterministic(built), _without_nondeterministic(committed)
+    )
 
 
 def main(argv: list[str]) -> int:
@@ -306,6 +416,33 @@ def main(argv: list[str]) -> int:
                 f"become the shipped product -- add the verbatim quotes."
             )
             failed = True
+
+        if args.check:
+            # WITHOUT THIS, `--check` VALIDATED THE SOURCE AND NEVER LOOKED
+            # AT WHAT SHIPS. A generated file that had been hand-edited, or
+            # left behind by a source that moved on, passed CI untouched --
+            # so the DO-NOT-EDIT header and the recorded hash were promises
+            # with nothing enforcing either one.
+            out = GENERATED / source_path.name
+            if not out.is_file():
+                print(f"  FAIL: {out.relative_to(REPO)} does not exist. Run without --check.")
+                failed = True
+            else:
+                committed = json.loads(out.read_text(encoding="utf-8"))
+                edited = verify_stored_hash(committed)
+                if edited:
+                    print(f"  FAIL: {out.relative_to(REPO)} {edited}")
+                    failed = True
+                stale = verify_matches_source(ruleset, committed)
+                if stale:
+                    print(
+                        f"  FAIL: {out.relative_to(REPO)} is not what "
+                        f"{source_path.name} builds -- first difference at {stale}. "
+                        f"Rebuild it."
+                    )
+                    failed = True
+                if not edited and not stale:
+                    print("  artefact        matches its source, hash intact")
 
         if not args.check:
             out = GENERATED / source_path.name

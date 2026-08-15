@@ -258,3 +258,119 @@ def test_an_unknown_op_fails_the_build(tmp_path):
     path.write_text(json.dumps(source), encoding="utf-8")
     with pytest.raises(BuildError, match="unknown predicate op"):
         build_one(path)
+
+
+# --- The shipped artefact is what the source builds ---------------------
+#
+# `--check` used to validate the SOURCE and never look at what ships, so a
+# generated file that had been hand-edited, or left behind by a source that
+# moved on, passed CI untouched. The DO-NOT-EDIT header and the recorded
+# `ruleset_sha256` were both promises with nothing enforcing either.
+#
+# Two failures, deliberately checked separately: a hand edit leaves a file
+# that is perfectly self-consistent with its own source-document hash, and
+# a stale artefact hashes correctly to its own (old) content. Neither check
+# sees the other's case.
+
+
+def _built(tmp_path, rule_overrides: dict | None = None):
+    """One built ruleset from a minimal, valid source."""
+    sys.path.insert(0, str(REPO / "tools"))
+    from build_regulatory_rulesets import build_one
+
+    rule = {
+        "rule_id": "a-rule", "display_name": "a rule",
+        "confidence": "exact",
+        "legal": {"authority": "x", "instrument": "y", "section": "z",
+                  "quote": "the actual words of the regulation"},
+        "expression": {"op": "contains", "smarts": "[Br]"},
+    }
+    rule.update(rule_overrides or {})
+    source = {
+        "ruleset_id": "test", "display_name": "test",
+        "domain": "chemical_weapons", "jurisdiction": "international",
+        "version": "1", "rules": [rule],
+    }
+    path = tmp_path / "test.json"
+    path.write_text(json.dumps(source), encoding="utf-8")
+    ruleset, _ = build_one(path)
+    return ruleset
+
+
+def test_an_intact_shipped_artefact_verifies():
+    """THE CONTROL, and it runs against the real shipped file rather than a
+    fixture. Without it a `verify_stored_hash` that always reported a
+    problem would satisfy every test below it."""
+    sys.path.insert(0, str(REPO / "tools"))
+    from build_regulatory_rulesets import verify_stored_hash
+
+    for path in sorted(SHIPPED_ROOT.glob("*.json")):
+        committed = json.loads(path.read_text(encoding="utf-8"))
+        assert verify_stored_hash(committed) == "", path.name
+
+
+def test_a_hand_edited_artefact_no_longer_matches_its_own_hash(tmp_path):
+    sys.path.insert(0, str(REPO / "tools"))
+    from build_regulatory_rulesets import verify_stored_hash
+
+    ruleset = _built(tmp_path)
+    assert verify_stored_hash(ruleset) == ""
+
+    # The edit somebody would actually make: widen a pattern in place.
+    ruleset["rules"][0]["interpretation"]["expression"]["smarts"] = "[Cl]"
+    problem = verify_stored_hash(ruleset)
+    assert "edited by hand" in problem
+
+
+def test_an_artefact_whose_hash_is_missing_is_refused_not_passed(tmp_path):
+    """Absence must not read as intactness -- deleting the hash is the
+    cheapest way to defeat the check, so it is the one that must fail."""
+    sys.path.insert(0, str(REPO / "tools"))
+    from build_regulatory_rulesets import verify_stored_hash
+
+    ruleset = _built(tmp_path)
+    del ruleset["provenance"]["ruleset_sha256"]
+    assert "cannot be verified" in verify_stored_hash(ruleset)
+
+
+def test_a_stale_artefact_is_caught_though_it_hashes_correctly(tmp_path):
+    """The case the hash check CANNOT see: the committed file is internally
+    consistent, and simply older than its source."""
+    sys.path.insert(0, str(REPO / "tools"))
+    from build_regulatory_rulesets import verify_matches_source, verify_stored_hash
+
+    committed = _built(tmp_path)
+    rebuilt = _built(tmp_path, {"display_name": "a rule, reworded"})
+
+    assert verify_stored_hash(committed) == "", "the stale file is self-consistent"
+    assert verify_matches_source(rebuilt, committed)
+
+
+def test_the_reported_difference_names_the_RULE_not_the_source_hash(tmp_path):
+    """Editing a source always moves `source_document_sha256`, so a plain
+    sorted walk reports that every time and never the rule that changed --
+    a true first difference, and the least useful one available."""
+    sys.path.insert(0, str(REPO / "tools"))
+    from build_regulatory_rulesets import verify_matches_source
+
+    committed = _built(tmp_path)
+    rebuilt = _built(tmp_path, {"display_name": "a rule, reworded"})
+
+    difference = verify_matches_source(rebuilt, committed)
+    assert "rules[a-rule].display_name" in difference
+    assert "source_document_sha256" not in difference
+
+
+def test_a_rebuild_of_one_source_matches_despite_its_timestamp(tmp_path):
+    """`generated_at` and the hash over it differ between two builds of the
+    same source. Without excluding them the check would fail on every
+    correct tree, which is the shape of a control nobody keeps."""
+    sys.path.insert(0, str(REPO / "tools"))
+    from build_regulatory_rulesets import verify_matches_source
+
+    committed = _built(tmp_path)
+    rebuilt = json.loads(json.dumps(committed))
+    rebuilt["provenance"]["generated_at"] = "1999-12-31T23:59:59+00:00"
+    rebuilt["provenance"]["ruleset_sha256"] = "0" * 64
+
+    assert verify_matches_source(rebuilt, committed) == ""

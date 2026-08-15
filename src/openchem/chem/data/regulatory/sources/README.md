@@ -4,6 +4,15 @@ Everything here is written and reviewed by a person. The build
 (`tools/build_regulatory_rulesets.py`) reads these and writes
 `../generated/`, which is machine-owned and must not be edited.
 
+**"Must not be edited" is now enforced rather than asked for.** `--check`
+verifies each generated file against its own recorded `ruleset_sha256`
+(catching a hand edit) and against what its source currently builds
+(catching a source that moved on without a rebuild). Both are needed: a
+hand-edited file is perfectly consistent with its source-document hash,
+and a stale file hashes correctly to its own older content, so neither
+check sees the other's case. Until this existed, either could ship
+through CI untouched.
+
 ## The `quote` field is the gate, not a nicety
 
 A rule's confidence is **capped by whether `legal.quote` holds the
