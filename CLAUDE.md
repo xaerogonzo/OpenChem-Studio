@@ -310,7 +310,42 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-18 minutes**, ending at `4483 passed, 15 skipped`
+A clean run is **6-18 minutes**, ending at `4491 passed, 15 skipped`
+(measured 2026-08-15, 11m55, on master at `2d5f0c8` — the Properties
+panel's width clip. **+8 test functions**, all in
+`test_property_panel_long_values.py`: the rendered-overflow oracle and
+its two boundary controls, the production-path and wide-row caption
+guards, viewport stability, the two reported strings, and the export
+path. Skips unchanged at 15 — none of the eight needs a display.)
+
+**MEASURED ON MASTER ITSELF**, on a clean tree, so none of the
+branch-versus-merge reasoning below applies. Counts reconcile:
+
+    before  f3b1689   COLLECTS 4498
+    after   2d5f0c8   COLLECTS 4506   = 4498 + 8
+    the run                    4491 passed + 15 skipped = 4506
+
+**+8 COLLECTED AND +8 FUNCTIONS, which is worth stating** because the
+entry below had to separate them: nothing added here is parametrised, so
+for once the two deltas are the same number.
+
+**THE BAND IS UNMOVED AND THIS RUN IS NEAR ITS FLOOR.** 11m55 against the
+previous entry's 18m00 on a tree eight tests LARGER — a 51% spread with
+nothing to explain it, which is the same unexplained variance this
+section has now recorded three times. Do not narrow the band on it.
+
+**THE FULL SUITE CAUGHT WHAT NINE TARGETED FILES DID NOT.** The width
+work was verified against `test_property_panel*.py`,
+`test_calculator_sections.py`, `test_right_dock_width.py`,
+`test_docs_are_current.py`, `test_layering.py`, `test_qt_object_disposal.py`
+and `test_empty_states.py` — 188 passed — and the full run then failed
+`test_result_presentation.py::test_every_descriptor_row_shows_its_display_name_and_units`,
+whose probe read a caption's `.text()`. That is now a width-dependent
+view, so `'Molecular Weight (g/mol)'` came back `'Molecul…'`. **A
+targeted set is chosen from where you think you changed something**, and
+the third consumer of caption text was somewhere else.
+
+Before it: `4483 passed, 15 skipped`
 (measured 2026-08-15, 18m00, on master's merge `f3b1689` — the
 regulatory-coverage work: four rulesets in two domains, plus date-aware
 screening. **+111 collected items and +81 test functions** over
@@ -2475,6 +2510,133 @@ disagreed with the running application about this panel.** The guard
 that ships asserts the MECHANISM (the flag stays clear across a style
 change, with a plain `QLabel` as the control proving the style change
 was delivered at all); the symptom was verified by driving the app.
+
+### AND THE SAME PANEL WAS CLIPPED SIDEWAYS, by its own row captions
+
+The height work above is a different bug from this one and both are
+real. Reported as the untouched Schedule 2 "Legitimate uses" line losing
+the **last character of every visual line**, with the date-refusal
+message riding on the same defect — `leave the field blank` rendering as
+`leave the field bla`. Recoverable by scrolling right, which is exactly
+why it read as cosmetic for so long.
+
+    admet section minimum   272     widest caption 210, word wrap off
+    scroll viewport         256     panel 280, less frame and scrollbar
+    scroll content          272     max(viewport, minimum)
+    every widget            +14 px past the right edge
+
+**A `QLabel` WITH WORD WRAP OFF REPORTS ITS WHOLE TEXT AS ITS MINIMUM**,
+`QFormLayout` sizes the label column to the widest of them, and
+`setWidgetResizable` sizes the content to `max(viewport, minimum)`. So
+ONE long descriptor name clipped every row in the panel — which is why
+the symptom was uniform rather than confined to a bad row, and why
+hunting the row that "looked wrong" would never have found it.
+
+It is `_ElidingPushButton`'s bug one widget along. That class was written
+when the widest thing in the panel was a BUTTON (content 287 against a
+256 viewport); with buttons capped, the caption inherited the title.
+`_ElidingCaptionLabel` is the same cure and wrapping is NOT an option —
+one height-for-width widget in a section restores everything the three
+parts above exist to prevent.
+
+**THREE IMPLEMENTATIONS PASSED THE WHOLE PANEL SUITE WHILE VISIBLY
+BREAKING THE APP.** Each was found by magnifying a screenshot, and the
+first two are traps anybody reaching for the obvious fix will hit:
+
+- **`QSizePolicy.Ignored` corrupts a FORM.** It is exactly what
+  `_ElidingPushButton` uses and it is right there — but an ignored label
+  no longer sizes the label column, so `QFormLayout` drew the value on
+  top of the caption: `Aqu36ous Solubility (...`, which is "Aqueous
+  Solubility" and "-3.68" in one rectangle. **All 98 panel tests passed
+  with the two overlapping.**
+- **Qt's size hints LATCH on elided text.** They measure the string
+  currently set, which is the elided one, so once squeezed the caption
+  reported the width of `...`, was given that, and could never grow back
+  — three captions rendered as a bare `...` beside their values. Both
+  hints derive from `full_text` now, which does not change when the
+  painted string does.
+- **`QFormLayout` COLLAPSES a label whose `sizeHint` does not fit**
+  rather than clamping it at `minimumSizeHint`. Measured on a bare form
+  290 px wide: `QRect(16, 2, 0, 14)` — zero width, against a stated
+  minimum of 120. Capping the hint at a CONSTANT fixes that and buys the
+  opposite defect, a caption frozen at 120 px on a 900 px panel. The cap
+  is derived from the room available instead: 130 px at host 250, 660 and
+  the full string at 900, no overlap anywhere.
+
+**A CAPTION'S PAINTED TEXT MUST NOT LEAVE THE PANEL.** Three consumers
+read it and all three were wrong — `as_text` (so "Copy all" exported
+`Blood-Brain Barrier Permeant (heur...`), the instrumentation dump, and
+a guard in `test_result_presentation.py` that the targeted test files
+never reach. `_caption_text` is the accessor; the rule is the one
+`_without_glyphs` already follows on the value side.
+
+#### The oracle, and why the obvious one is disproven
+
+`property_panel.rendered_overflow` is shipped code, for the reason the
+instrumentation beside it already is. It maps every painted descendant
+into the scroll viewport and reports what left it.
+
+**`horizontalScrollBar().maximum() == 0` IS NOT AN ORACLE.** That
+assertion has been in the suite since the wide-row work, it passes on
+every platform, and it passed throughout this bug. The test asserting it
+is renamed to `test_the_panel_has_no_horizontal_scrollbar` and says in
+its own docstring that the absence of a scrollbar does not prove the
+absence of clipping.
+
+Three things the probe had to get right, each measured:
+
+- **BOTH EDGES.** Left-edge clipping is on record in this panel —
+  `"bb_permeant"`, `"unctional Groups"` from a run that had scrolled
+  right.
+- **`isVisibleTo`, not `isHidden` and not `isVisible`.** A widget in a
+  COLLAPSED section has `isHidden() == False` and has never been laid
+  out, so it carries a default geometry: 56 findings at "right 384 px"
+  against a real overflow of 14. `isVisible()` is the opposite mistake
+  this file already records — False for every child of an unshown window.
+- **The intra-widget term is LABELS ONLY.** A `QPushButton`'s
+  `contentsRect` is not its text rectangle, so the 80 px "Details..."
+  button reports 40 px of phantom overflow under the test platform's
+  wider font while rendering correctly for a user.
+
+#### A FIXTURE'S CAPTIONS WERE TOO SHORT TO REPRODUCE ANYTHING
+
+The strongest lesson here, and it is about the guard rather than the
+code. The first version of the overflow oracle **passed with the entire
+fix reverted**, because `_panel_with_a_long_result` captions its rows
+"LogP", "TPSA", "Ring Count" — none wider than a third of the viewport,
+so no arrangement of them can push content past its edge. The real
+panel's widest is `Blood-Brain Barrier Permeant (heuristic)` at 210 px.
+
+Same shape as the assembly corpus that was blind to a transposed matrix:
+**a fixture is not "big enough" or "small", it is degenerate or not with
+respect to a specific mutation.** Five arms, all caught only after the
+guards were repaired, all running the full 20 tests:
+
+    M1 minimumSizeHint cap removed         4 failed
+    M2 form call site -> plain string      2 failed
+    M3 sizeHint ceiling removed            1 failed
+    M4 wide-row caption -> plain QLabel    1 failed
+    M5 export uses painted text            1 failed
+
+M4 needed a second repair for a different reason: **a spanning row has no
+field column beside it**, so its overflow is `caption - viewport` rather
+than `caption + field - viewport`. At one pixel over, reverting that
+caption moved the content 290 -> 293 and the row's margins absorbed it
+to within tolerance. The fixture asks for 40 px now.
+
+**A GEOMETRY CLAIM ABOUT REAL FIXED TEXT IS A CLAIM ABOUT THE FONT.**
+The suite runs `offscreen`, whose default font this file already records
+as more than twice as wide as the one a user sees. Pinned at a fixed
+width, the two-reported-strings test failed by 40 px on a panel that is
+measurably clean in the app. It sizes the panel from its own content
+instead; every font-independent claim is made with captions sized from
+`QFontMetrics` against the real viewport.
+
+Measured after, in the running app, all four states — empty panel, a
+molecule, the screen, the refusal: content 256 against a 256 viewport,
+**zero** rendered overflow, and the horizontal scrollbar gone (viewport
+height 569 -> 581). Captions elide at the 280 px minimum and recover as
+the dock widens — 2 of 3 full at 340, all three at 420.
 
 ### 20 of 25 `AlertResult`s were never alerts
 

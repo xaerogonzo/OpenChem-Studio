@@ -1055,6 +1055,30 @@ document may cite a file or a test that does not exist.
      longer does. It also removed the minimum-width hack, and with it the
      sideways scroll that hack caused.
 
+     **THAT LAST SENTENCE WAS TRUE OF ONE CAUSE AND READ AS A GUARANTEE.**
+     The hack was removed and the sideways scroll came back anyway, from
+     the row CAPTIONS: a `QLabel` with word wrap off reports its whole
+     text as its minimum, `QFormLayout` sizes the label column to the
+     widest of them, and the content is sized to `max(viewport,
+     minimum)`. Measured in the running app, ADMET expanded at the 280 px
+     panel minimum: section minimum 272 against a 256 px viewport, every
+     widget laid out 14 px past the right edge, every visual line losing
+     its last character. `_add_wide_row`'s own docstring carried the same
+     over-claim -- "nothing needs to be forced wide now, so nothing can
+     overflow".
+
+  4. `_ElidingCaptionLabel` -- a row caption that may be narrower than
+     its text, for both the form's label column and `_add_wide_row`'s
+     caption. Word wrap stays OFF (a wrapped caption would be
+     height-for-width and would undo parts 1 to 3); only the width
+     DEMAND is capped, and the cap is derived from the room available so
+     a wide panel still shows the full string.
+
+     `property_panel.rendered_overflow` is the oracle for it.
+     **`horizontalScrollBar().maximum() == 0` is not** -- that assertion
+     was in the suite throughout, on every platform, and passed while the
+     app clipped.
+
   Measured in the running app, Identity section with one report row,
   panel at 280 px:
 
