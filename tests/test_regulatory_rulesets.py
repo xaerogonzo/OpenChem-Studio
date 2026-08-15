@@ -326,7 +326,114 @@ def test_the_entry_no_resolver_could_reach_is_visible_not_missing():
     assert any("diethyl phosphite" in note.lower() for note in ruleset.known_limitations)
 
 
+# --- Schedule 1's own gaps: the precursors and the 2019 additions -------
+
+
+def test_the_2019_additions_are_encoded(engine):
+    """Schedule 1 named these as a gap in its own `known_limitations` for as
+    long as the ruleset has existed. Four entries, in force 7 June 2020."""
+    for smiles, rule_id in [
+        ("CCN(CC)C(=NP(=O)(C)F)C", "cwc-1-a-13"),
+        ("CCN(CC)C(=NP(=O)(OC)F)C", "cwc-1-a-14"),
+        ("CCN(CC)C(=NP(=O)(C)F)N(CC)CC", "cwc-1-a-15"),
+    ]:
+        found = [f.rule.rule_id for f in engine.screen(_mol(smiles)).findings]
+        assert rule_id in found, (smiles, found)
+
+
+def test_A13_A14_and_A15_do_not_reach_each_other(engine):
+    """Three entries sharing one motif, and the treaty lists them apart. A.13
+    bonds the phosphorus to CARBON and A.14 to OXYGEN; A.15's central carbon
+    carries two dialkylamino groups where A.13's carries an alkyl, which is
+    why A.15 is a chemical of its own rather than a member of A.13."""
+    a13 = [f.rule.rule_id for f in engine.screen(_mol("CCN(CC)C(=NP(=O)(C)F)C")).findings]
+    a14 = [f.rule.rule_id for f in engine.screen(_mol("CCN(CC)C(=NP(=O)(OC)F)C")).findings]
+    a15 = [f.rule.rule_id for f in
+           engine.screen(_mol("CCN(CC)C(=NP(=O)(C)F)N(CC)CC")).findings]
+
+    assert "cwc-1-a-14" not in a13 and "cwc-1-a-15" not in a13
+    assert "cwc-1-a-13" not in a14
+    assert "cwc-1-a-13" not in a15
+
+
+@pytest.mark.parametrize(
+    "name,smiles",
+    [("pyridostigmine", "C[n+]1cccc(OC(=O)N(C)C)c1.[Br-]"),
+     ("neostigmine", "CN(C)C(=O)Oc1cccc([N+](C)(C)C)c1.[Br-]")],
+)
+def test_a_carbamate_MEDICINE_does_not_match_entry_A16(engine, name, smiles):
+    """The two licensed medicines nearest to A.16, and each fails a different
+    half of it: pyridostigmine quaternises the RING nitrogen and has no
+    exocyclic ammonium, neostigmine has the ammonium but carries its
+    carbamate on a benzene. Requiring both features is what separates them,
+    and either feature alone would flag a medicine."""
+    assert not engine.screen(_mol(smiles)).matched, name
+
+
+def test_the_schedule_1_precursors_are_encoded(engine):
+    """B.9 to B.12, the other gap the ruleset declared against itself."""
+    for smiles, rule_id in [
+        ("CP(=O)(F)F", "cwc-1-b-9"),
+        ("CCOP(C)OCCN(C(C)C)C(C)C", "cwc-1-b-10"),
+        ("CC(C)OP(=O)(C)Cl", "cwc-1-b-11"),
+        ("CC(C(C)(C)C)OP(=O)(C)Cl", "cwc-1-b-12"),
+    ]:
+        found = [f.rule.rule_id for f in engine.screen(_mol(smiles)).findings]
+        assert rule_id in found, (smiles, found)
+
+
+def test_B9_honours_its_alkyl_restriction(engine):
+    """"Alkyl (Me, Et, n-Pr or i-Pr) phosphonyldifluorides" names four
+    groups. A butyl homologue has the scheduled connectivity and is outside
+    the entry -- and outside B.4 as well, for the same restriction.
+
+    SECOND TIME a case lived in a pattern's prototype and never reached a
+    shipped guard: a mutation widening the alkyl to any carbon survived the
+    whole file. The prototype's must-reject cases are corpus negatives now.
+    """
+    assert engine.screen(_mol("CP(=O)(F)F")).matched, "DF, the entry's example"
+    assert not engine.screen(_mol("CCCCP(=O)(F)F")).matched, "butyl is outside"
+
+
+def test_B10_carries_no_carbon_cap_because_QL_would_fail_it(engine):
+    """The entry says "H or <=C10" and QL, its own example, has ELEVEN
+    carbons -- so a total-carbon reading of that clause would exclude the
+    chemical the entry exists for. Entry A.3 carries no cap for the same
+    reason. Asserted so nobody 'completes' the rule by adding one."""
+    from rdkit.Chem import rdMolDescriptors
+
+    ql = _mol("CCOP(C)OCCN(C(C)C)C(C)C")
+    assert rdMolDescriptors.CalcMolFormula(ql).startswith("C11")
+    assert "cwc-1-b-10" in [f.rule.rule_id for f in engine.screen(ql).findings]
+
+
 # --- Schedule 2: generic families, and the exemptions inside them -------
+
+
+@pytest.mark.parametrize("name,smiles", [("choline", "C[N+](C)(C)CCO"),
+                                         ("acetylcholine", "CC(=O)OCC[N+](C)(C)C")])
+def test_a_quaternary_ammonium_is_not_a_protonated_salt(engine, name, smiles):
+    """CHOLINE MATCHED ENTRY B.11 UNTIL THIS WAS TIGHTENED, and choline is
+    present in every cell and sold as a supplement.
+
+    Entries B.10 to B.12 reach "and corresponding PROTONATED salts". Reading
+    that as any four-coordinate cationic nitrogen also reaches quaternary
+    ammoniums, which are ALKYLATED salts and a different structure -- the
+    same distinction entry A.1 draws by saying "alkylated or protonated"
+    where these say only "protonated".
+
+    Found because Schedule 1's A.16 example is a quaternary ammonium and it
+    turned up matching B.11 as well.
+    """
+    assert not engine.screen(_mol(smiles)).matched, name
+
+
+def test_a_protonated_salt_still_matches(engine):
+    """THE CONTROL for the test above. The cheapest way to keep choline out
+    is to reject cations outright, and that would silently drop the salts the
+    entry explicitly reaches."""
+    findings = engine.screen(_mol("CC(C)[NH+](C(C)C)CCO.[Cl-]")).findings
+    assert [f.rule.rule_id for f in findings] == ["cwc-2-b-11"]
 
 
 def test_a_schedule_2_family_honours_its_alkyl_restriction(engine):

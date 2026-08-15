@@ -12,7 +12,6 @@
   "SCHEDULE 2 LISTING IS NOT A PROHIBITION. These chemicals are listed so that production, processing, consumption and transfer above certain quantities are declared and may be verified. The Convention's obligations turn on quantity and concentration, which a structure carries neither of.",
   "ENTRY B.4 CANNOT EXPRESS ITS OWN EXCEPTION. The entry reads 'Chemicals, except for those listed in Schedule 1, ...', and this engine has no way for a rule in one ruleset to exclude the members of another. So a Schedule 1 organophosphorus agent -- sarin, soman, VX, DF, QL, chlorosarin, chlorosoman -- matches B.4 as well as its own Schedule 1 entry. Both findings are shown; the Schedule 1 one is the operative one. Over-reports and never under-reports.",
   "The B.4 and B.11 exemptions are matched as a skeleton plus an exact carbon count, which identifies the exempt chemical and its salts but cannot distinguish it from a MIXTURE containing it. A mixture is reported as a match. Mixtures are outside what this screen considers in any case.",
-  "'And corresponding alkylated or protonated salts' (entry A.1) is only partly encoded. A protonated salt is reached, because counter-ions are stripped before an identity comparison. An ALKYLATED salt is a different structure -- a quaternary ammonium -- and is not matched by an identity rule. Entries B.10, B.11 and B.12 say only 'protonated salts', and those are reached both by salt-stripping and by the patterns accepting a protonated nitrogen directly.",
   "The footnote marker '(*)' on entry A.3 (BZ) is present in the source text and its footnote is not reproduced on the cited page. Nothing here depends on it -- BZ is identified by name and CAS -- but the marker is recorded rather than silently dropped.",
   "The generic entries are read as the Schedule writes them: the alkyl groups named are exactly methyl, ethyl, n-propyl and isopropyl, unsubstituted. A P-(2-hydroxyethyl) or a P-butyl group is outside the entry and is not matched."
  ],
@@ -206,14 +205,15 @@
    "interpretation": {
     "assumptions": [
      "'Dihalide' is read as fluoride, chloride, bromide or iodide.",
-     "'Phosphoramidic' is read as the phosphoryl form, P(=O), which is what the name denotes."
+     "'Phosphoramidic' is read as the phosphoryl form, P(=O), which is what the name denotes.",
+     "'And corresponding protonated salts' is read strictly: the nitrogen may be neutral and trivalent, or protonated and carrying exactly one hydrogen. A QUATERNARY ammonium is an alkylated salt, which this entry does not reach -- and reading it loosely as any four-coordinate cation made choline, which is present in every cell and sold as a supplement, match entry B.11."
     ],
     "limitations": [],
     "confidence": "exact",
     "interpreter_version": 1,
     "expression": {
      "op": "contains",
-     "smarts": "[#7;X3,X4+]([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])[PX4](=O)([F,Cl,Br,I])[F,Cl,Br,I]",
+     "smarts": "[#7;$([NX3]),$([NX4+;H1])]([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])[PX4](=O)([F,Cl,Br,I])[F,Cl,Br,I]",
      "label": "N,N-dialkyl (Me, Et, n-Pr or i-Pr) phosphoramidic dihalide"
     }
    }
@@ -238,14 +238,15 @@
    },
    "interpretation": {
     "assumptions": [
-     "Both alkyl sets are restricted to methyl, ethyl, n-propyl and isopropyl, as the entry names them twice."
+     "Both alkyl sets are restricted to methyl, ethyl, n-propyl and isopropyl, as the entry names them twice.",
+     "'And corresponding protonated salts' is read strictly: the nitrogen may be neutral and trivalent, or protonated and carrying exactly one hydrogen. A QUATERNARY ammonium is an alkylated salt, which this entry does not reach -- and reading it loosely as any four-coordinate cation made choline, which is present in every cell and sold as a supplement, match entry B.11."
     ],
     "limitations": [],
     "confidence": "exact",
     "interpreter_version": 1,
     "expression": {
      "op": "contains",
-     "smarts": "[#7;X3,X4+]([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])[PX4](=O)(O[$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])O[$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])]",
+     "smarts": "[#7;$([NX3]),$([NX4+;H1])]([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])[PX4](=O)(O[$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])O[$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])]",
      "label": "dialkyl N,N-dialkylphosphoramidate, both alkyl sets Me/Et/n-Pr/i-Pr"
     }
    }
@@ -372,14 +373,14 @@
    },
    "interpretation": {
     "assumptions": [
-     "The pattern accepts a protonated nitrogen directly as well as a neutral one, so 'and corresponding protonated salts' is reached whether or not the counter-ion was stripped first."
+     "'And corresponding protonated salts' is read strictly: the nitrogen may be neutral and trivalent, or protonated and carrying exactly one hydrogen. A QUATERNARY ammonium is an alkylated salt, which this entry does not reach -- and reading it loosely as any four-coordinate cation made choline, which is present in every cell and sold as a supplement, match entry B.11."
     ],
     "limitations": [],
     "confidence": "exact",
     "interpreter_version": 1,
     "expression": {
      "op": "contains",
-     "smarts": "[#7;X3,X4+]([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])[CH2][CH2]Cl",
+     "smarts": "[#7;$([NX3]),$([NX4+;H1])]([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])[CH2][CH2]Cl",
      "label": "N,N-dialkyl (Me, Et, n-Pr or i-Pr) aminoethyl-2-chloride"
     }
    }
@@ -411,7 +412,8 @@
    "interpretation": {
     "assumptions": [
      "The two exempted chemicals are matched as a skeleton plus an exact carbon count, so each exemption covers the chemical and its salts without excusing a larger molecule that merely contains the fragment.",
-     "The entry exempts both 'and corresponding protonated salts', which the carbon count preserves because a counter-ion adds no carbon."
+     "The entry exempts both 'and corresponding protonated salts', which the carbon count preserves because a counter-ion adds no carbon.",
+     "'And corresponding protonated salts' is read strictly: the nitrogen may be neutral and trivalent, or protonated and carrying exactly one hydrogen. A QUATERNARY ammonium is an alkylated salt, which this entry does not reach -- and reading it loosely as any four-coordinate cation made choline, which is present in every cell and sold as a supplement, match entry B.11."
     ],
     "limitations": [
      "Confidence is 'approximate' because the exemptions are identified by skeleton and carbon count rather than by identity: a MIXTURE containing an exempt chemical is reported as a match."
@@ -423,7 +425,7 @@
      "of": [
       {
        "op": "contains",
-       "smarts": "[#7;X3,X4+]([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])[CH2][CH2][OX2H]",
+       "smarts": "[#7;$([NX3]),$([NX4+;H1])]([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])[CH2][CH2][OX2H]",
        "label": "N,N-dialkyl (Me, Et, n-Pr or i-Pr) aminoethane-2-ol"
       },
       {
@@ -494,14 +496,14 @@
    },
    "interpretation": {
     "assumptions": [
-     "The pattern accepts a protonated nitrogen directly as well as a neutral one."
+     "'And corresponding protonated salts' is read strictly: the nitrogen may be neutral and trivalent, or protonated and carrying exactly one hydrogen. A QUATERNARY ammonium is an alkylated salt, which this entry does not reach -- and reading it loosely as any four-coordinate cation made choline, which is present in every cell and sold as a supplement, match entry B.11."
     ],
     "limitations": [],
     "confidence": "exact",
     "interpreter_version": 1,
     "expression": {
      "op": "contains",
-     "smarts": "[#7;X3,X4+]([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])[CH2][CH2][SX2H]",
+     "smarts": "[#7;$([NX3]),$([NX4+;H1])]([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])[CH2][CH2][SX2H]",
      "label": "N,N-dialkyl (Me, Et, n-Pr or i-Pr) aminoethane-2-thiol"
     }
    }
@@ -587,10 +589,10 @@
  "provenance": {
   "generator": "build_regulatory_rulesets.py",
   "generator_version": "1",
-  "generated_at": "2026-08-15T16:59:42+00:00",
-  "source_document_sha256": "b000df72ca69813b3ad6af33794cbc9f1e648b70ecf0160c24b39a52dfb2e38e",
+  "generated_at": "2026-08-15T17:09:15+00:00",
+  "source_document_sha256": "ce23f01b7d6f92057fb0c361be12cca3af95870b216eafe9221106fcef96082a",
   "rdkit_version": "2025.09.6",
   "opsin_version": "1.2.0",
-  "ruleset_sha256": "50f0878e1051ccb9c91212e1cc0d16c8638f3d45ec8ec6e739dbba6c35225af6"
+  "ruleset_sha256": "ea11d25632c8f579c68c62b1707da46aacf0c8815a3badfb4209d25fe363cbbd"
  }
 }

@@ -4,15 +4,16 @@
  "display_name": "CWC Schedule 1",
  "domain": "chemical_weapons",
  "jurisdiction": "international",
- "version": "1",
+ "version": "2",
  "effective_date": "1997-04-29",
  "supersedes": "",
- "source_citation": "Convention on the Prohibition of the Development, Production, Stockpiling and Use of Chemical Weapons and on their Destruction, Annex on Chemicals, Schedule 1",
+ "source_citation": "Convention on the Prohibition of the Development, Production, Stockpiling and Use of Chemical Weapons and on their Destruction, Annex on Chemicals, Schedule 1, as amended by the changes adopted 27 November 2019 and in force from 7 June 2020. Text as published by the OPCW, accessed 2026-08-15.",
  "known_limitations": [
   "Schedule 1 also lists saxitoxin and ricin, identified by name rather than by structural family. Not encoded: a structural rule for a protein toxin is meaningless, and an identity rule needs a structure this file does not carry.",
-  "The 2019 additions (the Novichok families) are not encoded.",
-  "Entries 9-12 of Schedule 1 are PRECURSORS rather than toxic chemicals and are not in this file.",
-  "Size limits ('C10 or fewer, including cycloalkyl') are applied to the molecule's TOTAL carbon count rather than per substituent. Broader than the treaty in some cases and narrower in none, so it may over-report and will not under-report."
+  "Size limits ('C10 or fewer, including cycloalkyl') are applied to the molecule's TOTAL carbon count where they are applied at all. Entries A.3, A.13, A.14 and B.10 carry no carbon limit, because applying one to the total would exclude those entries' own examples -- VX and QL both have eleven carbons. Where a limit IS applied it may over-report and will not under-report.",
+  "'Corresponding alkylated salts', which several entries reach, are not matched: an alkylated salt is a quaternary ammonium and so a different structure. Protonated forms are reached, because counter-ions are stripped before an identity comparison.",
+  "The 2019 additions (entries A.13 to A.16, in force 7 June 2020) are encoded here, but the effective date is recorded on the rules rather than enforced: this screen reports what a structure matches today and does not answer questions about a date in the past.",
+  "This file cites two official reproductions of the same Annex. Entries A.1 to A.6 quote and cite the Canadian export-control reproduction they were written from; the entries added later quote and cite the OPCW's own text. The two render the Annex differently -- 'equal to or less than C10' against '<=C10' -- and the Canadian page predates the 2019 additions, which is why it could not supply them."
  ],
  "rules": [
   {
@@ -353,23 +354,313 @@
      ]
     }
    }
+  },
+  {
+   "rule_id": "cwc-1-a-13",
+   "display_name": "Phosphonamidic fluorides with an aminoalkylidene (Schedule 1, A.13)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "structural_family",
+   "description": "One of the four families added in 2019 and in force from 7 June 2020. The phosphorus carries an alkyl directly; entry A.14 is the same motif with the phosphorus bonded to oxygen instead.",
+   "legitimate_uses": [],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 1, A.13",
+    "quote": "\u0420-alkyl (H or \u2264C10, incl. cycloalkyl) N-(1-(dialkyl(\u2264C10, incl. cycloalkyl)amino))alkylidene(H or \u2264C10, incl. cycloalkyl) phosphonamidic fluorides and corresponding alkylated or protonated salts",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1",
+    "effective_date": "2020-06-07",
+    "cited_identifiers": {
+     "CAS_example_1": "2387495-99-8",
+     "CAS_example_2": "2387496-12-8"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "The quote preserves two oddities of the OPCW's own text: this entry begins with a CYRILLIC capital Er (U+0420) rather than a Latin P, so a search for 'P-alkyl' does not find it, and the 2019 entries use U+2264 where the older entries spell it '<='.",
+     "The alkylidene carbon is required to carry a CARBON substituent, which is what separates this entry from A.15 -- there the same carbon carries two dialkylamino groups and the treaty lists it separately."
+    ],
+    "limitations": [
+     "The entry's size clauses ('H or <=C10, incl. cycloalkyl', three times) are not implemented. Applying them to the molecule's total carbon count would exclude the entry's own C10 examples, the same reason entry A.3 carries no carbon limit.",
+     "'Corresponding alkylated salts' are not matched: an alkylated salt is a quaternary ammonium, a different structure. Protonated forms are reached."
+    ],
+    "confidence": "approximate",
+    "interpreter_version": 1,
+    "expression": {
+     "op": "contains",
+     "smarts": "[$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])][PX4](=O)(F)[NX2]=[CX3]([#6])[NX3]",
+     "label": "P-alkyl phosphonamidic fluoride bearing an (dialkylamino)alkylidene"
+    }
+   }
+  },
+  {
+   "rule_id": "cwc-1-a-14",
+   "display_name": "Phosphoramidofluoridates with an aminoalkylidene (Schedule 1, A.14)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "structural_family",
+   "description": "The A.13 motif with the phosphorus bonded to oxygen rather than carbon. That single difference is what separates the two entries.",
+   "legitimate_uses": [],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 1, A.14",
+    "quote": "O-alkyl (H or \u2264C10, incl. cycloalkyl) N-(1-(dialkyl(\u2264C10, incl. cycloalkyl)amino))alkylidene(H or \u2264C10, incl. cycloalkyl) phosphoramidofluoridates and corresponding alkylated or protonated salts",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1",
+    "effective_date": "2020-06-07",
+    "cited_identifiers": {
+     "CAS_example_1": "2387496-00-4",
+     "CAS_example_2": "2387496-04-8",
+     "CAS_example_3": "2387496-06-0"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "The alkylidene carbon is required to carry a carbon substituent, as in A.13."
+    ],
+    "limitations": [
+     "The entry's size clauses are not implemented, for the reason given on A.13.",
+     "'Corresponding alkylated salts' are not matched."
+    ],
+    "confidence": "approximate",
+    "interpreter_version": 1,
+    "expression": {
+     "op": "contains",
+     "smarts": "[#6]O[PX4](=O)(F)[NX2]=[CX3]([#6])[NX3]",
+     "label": "O-alkyl phosphoramidofluoridate bearing an (dialkylamino)alkylidene"
+    }
+   }
+  },
+  {
+   "rule_id": "cwc-1-a-15",
+   "display_name": "Methyl-(bis(diethylamino)methylene)phosphonamidofluoridate (Schedule 1, A.15)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "identity",
+   "description": "A SINGLE NAMED CHEMICAL, not a family -- the only one of the four 2019 additions that is. Its central carbon carries two dialkylamino groups, which is why A.13's alkylidene family does not reach it and the treaty lists it on its own.",
+   "legitimate_uses": [],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 1, A.15",
+    "quote": "Methyl-(bis(diethylamino)methylene)phosphonamidofluoridate",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1",
+    "effective_date": "2020-06-07",
+    "cited_identifiers": {
+     "CAS": "2387496-14-0"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "Identity resolved from the CAS number printed in the entry, not from its name."
+    ],
+    "limitations": [],
+    "confidence": "verified",
+    "interpreter_version": 1,
+    "inchikeys": [
+     "WJDIQLITBJEMBA-UHFFFAOYSA-N"
+    ]
+   }
+  },
+  {
+   "rule_id": "cwc-1-a-16",
+   "display_name": "Quaternary dimethylcarbamoyloxypyridine carbamates (Schedule 1, A.16)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "structural_family",
+   "description": "Quaternaries and bisquaternaries carrying a dimethylcarbamoyloxypyridine. The entry specifies chain lengths (n=1-8 for the quaternaries, n=2-12 for the bisquaternaries) which are not enforced here.",
+   "legitimate_uses": [],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 1, A.16",
+    "quote": "Carbamates (quaternaries and bisquaternaries of dimethylcarbamoyloxypyridines)",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1",
+    "effective_date": "2020-06-07",
+    "cited_identifiers": {
+     "CAS_example_quaternary": "77104-62-2",
+     "CAS_example_bisquaternary": "77104-00-8"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "Read as two features together: a dimethylcarbamoyloxy group on a PYRIDINE ring, and a quaternary ammonium nitrogen. Requiring both is what keeps licensed medicines out -- pyridostigmine quaternises the ring nitrogen and has no exocyclic ammonium, and neostigmine has the ammonium but carries its carbamate on a benzene."
+    ],
+    "limitations": [
+     "The entry's chain-length ranges (n=1-8 and n=2-12) are not enforced, so a molecule carrying both features with a chain outside those ranges is reported. Over-reports within this family and never under-reports."
+    ],
+    "confidence": "approximate",
+    "interpreter_version": 1,
+    "expression": {
+     "op": "all",
+     "of": [
+      {
+       "op": "contains",
+       "smarts": "CN(C)C(=O)O[c;$(c1ccccn1),$(c1cccnc1),$(c1ccncc1)]",
+       "label": "a dimethylcarbamoyloxy group on a pyridine ring"
+      },
+      {
+       "op": "contains",
+       "smarts": "[NX4+]",
+       "label": "a quaternary ammonium nitrogen"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "rule_id": "cwc-1-b-9",
+   "display_name": "Alkylphosphonyldifluorides (Schedule 1, B.9)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "precursor",
+   "description": "A binary-weapon component. No civilian use is claimed for this family, which is why no legitimate uses are listed.",
+   "legitimate_uses": [],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 1, B.9",
+    "quote": "Alkyl (Me, Et, n-Pr or i-Pr) phosphonyldifluorides",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {
+     "CAS_example_DF": "676-99-3"
+    }
+   },
+   "interpretation": {
+    "assumptions": [],
+    "limitations": [],
+    "confidence": "exact",
+    "interpreter_version": 1,
+    "expression": {
+     "op": "contains",
+     "smarts": "[$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])][PX4](=O)(F)F",
+     "label": "alkyl (Me, Et, n-Pr or i-Pr) phosphonyldifluoride"
+    }
+   }
+  },
+  {
+   "rule_id": "cwc-1-b-10",
+   "display_name": "Aminoethyl alkylphosphonites (Schedule 1, B.10)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "precursor",
+   "description": "The QL family, a binary-weapon component. A phosphonite is trivalent phosphorus, which is what separates this entry from the phosphonothiolates of A.3.",
+   "legitimate_uses": [],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 1, B.10",
+    "quote": "O-Alkyl (H or <=C10, incl. cycloalkyl) O-2-dialkyl (Me, Et, n-Pr or i-Pr)-aminoethyl alkyl (Me, Et, n-Pr or i-Pr) phosphonites and corresponding alkylated or protonated salts",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {
+     "CAS_example_QL": "57856-11-8"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "'Phosphonite' is read as trivalent phosphorus carrying two oxygens and one carbon."
+    ],
+    "limitations": [
+     "The 'H or <=C10' size clause is NOT implemented, and could not be as a total-carbon count: QL, the entry's own example, has eleven carbons. Entry A.3 carries no carbon limit for the same reason.",
+     "'Corresponding alkylated salts' are not matched."
+    ],
+    "confidence": "approximate",
+    "interpreter_version": 1,
+    "expression": {
+     "op": "contains",
+     "smarts": "[$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])][PX3](O[#6])O[CH2][CH2][#7;X3,X4+]([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])",
+     "label": "O-2-(dialkylamino)ethyl alkylphosphonite"
+    }
+   }
+  },
+  {
+   "rule_id": "cwc-1-b-11",
+   "display_name": "Chlorosarin (Schedule 1, B.11)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "precursor",
+   "description": "",
+   "legitimate_uses": [],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 1, B.11",
+    "quote": "Chlorosarin: O-Isopropyl methylphosphonochloridate",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {
+     "CAS": "1445-76-7"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "Identity resolved from the CAS number printed in the entry, not from its name."
+    ],
+    "limitations": [],
+    "confidence": "verified",
+    "interpreter_version": 1,
+    "inchikeys": [
+     "RHAHLPAWJVKXAZ-UHFFFAOYSA-N"
+    ]
+   }
+  },
+  {
+   "rule_id": "cwc-1-b-12",
+   "display_name": "Chlorosoman (Schedule 1, B.12)",
+   "domain": "chemical_weapons",
+   "jurisdiction": "international",
+   "match_type": "precursor",
+   "description": "",
+   "legitimate_uses": [],
+   "synonyms": [],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 1, B.12",
+    "quote": "Chlorosoman: O-Pinacolyl methylphosphonochloridate",
+    "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1",
+    "effective_date": "1997-04-29",
+    "cited_identifiers": {
+     "CAS": "7040-57-5"
+    }
+   },
+   "interpretation": {
+    "assumptions": [
+     "Identity resolved from the CAS number printed in the entry, not from its name."
+    ],
+    "limitations": [],
+    "confidence": "verified",
+    "interpreter_version": 1,
+    "inchikeys": [
+     "XVNBZVNXJMOQEX-UHFFFAOYSA-N"
+    ]
+   }
   }
  ],
  "coverage": {
-  "total_entries": 6,
-  "resolved": 6,
+  "total_entries": 14,
+  "resolved": 14,
   "unresolved": [],
   "requires_review": [],
   "manual_entries": 0,
-  "cited_entries": 0
+  "cited_entries": 3
  },
  "provenance": {
   "generator": "build_regulatory_rulesets.py",
   "generator_version": "1",
-  "generated_at": "2026-08-15T16:59:42+00:00",
-  "source_document_sha256": "0008eac5c624cefc453097439c1d12d2aae07f30a39b4c755feb868a7be245dc",
+  "generated_at": "2026-08-15T17:09:15+00:00",
+  "source_document_sha256": "b59d95cb5be0a9f8c6ecfde9ae5910b5f4166f5a73df41ed53e213db2168c316",
   "rdkit_version": "2025.09.6",
   "opsin_version": "1.2.0",
-  "ruleset_sha256": "bb55dfbdfdd4fd65e551d38e3fab30c69cfbf33d906b7e651a6487854f5b132a"
+  "ruleset_sha256": "8a8c3eb54f9781f8f38de47411f990a6eab6a9d3c47f550e25566a45bf49f2df"
  }
 }

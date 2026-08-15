@@ -4,6 +4,35 @@
 python benchmarks/regulatory/score.py
 ```
 
+## Result, all three CWC schedules, 93 structures across 4 corpora
+
+Schedule 1 now carries its own precursors (B.9–B.12) and the four entries
+added in 2019, in force 7 June 2020 — both of which the ruleset had named
+as gaps against itself since it was written. Three of the four 2019 entries
+are families; **A.15 is a single named chemical**, which is why its central
+carbon carrying two dialkylamino groups keeps it out of A.13's alkylidene
+family.
+
+**Two licensed medicines are the sharpest cases in the file.** Entry A.16
+covers quaternary dimethylcarbamoyloxypyridines, and pyridostigmine and
+neostigmine each fail one half of it — pyridostigmine quaternises the ring
+nitrogen and has no exocyclic ammonium, neostigmine has the ammonium but
+carries its carbamate on a benzene. Either feature alone would flag a
+medicine.
+
+**Choline matched Schedule 2 B.11 until the pattern was tightened.**
+Entries B.10–B.12 reach "and corresponding *protonated* salts"; reading
+that as any four-coordinate cationic nitrogen also reaches quaternary
+ammoniums, which are *alkylated* salts. Choline is present in every cell
+and sold as a supplement. Found because Schedule 1's A.16 example is itself
+a quaternary ammonium and turned up matching B.11 as well — one new
+ruleset exposing a defect in another.
+
+**The pattern prototypes' must-reject cases are corpus negatives now.**
+Twice a clause was load-bearing and untested because its case lived only in
+the throwaway prototype: B.4's "but not further carbon atoms" and B.9's
+alkyl restriction both survived a mutation for that reason.
+
 ## Result, CWC Schedules 1, 2 and 3, 76 structures across 4 corpora
 
 Schedule 2 is the interesting one: six generic families with alkyl
