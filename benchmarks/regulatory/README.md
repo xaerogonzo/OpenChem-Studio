@@ -4,6 +4,39 @@
 python benchmarks/regulatory/score.py
 ```
 
+## Result, four rulesets in two domains, 148 structures across 4 corpora
+
+`drug_precursors` is the second domain to be populated — 21 CFR 1310.02,
+the US DEA listed chemicals, 47 rules over 49 entries.
+
+**IT COULD NOT BE ANCHORED THE WAY THE CWC RULESETS ARE.** The CWC Annex
+prints a CAS number beside every named chemical; three drug-precursor
+statutes were checked and none prints an identifier at all — the DEA uses
+its own chemical codes, the EU annex uses CN codes, the UN 1988 Tables give
+names only. So each identity rests on two independent derivations agreeing:
+32 by OPSIN and PubChem resolving the name alike, 14 by routing around
+OPSIN's inability to parse a trivial name (PubChem's own systematic name for
+the structure, parsed back through OPSIN), 1 on connectivity alone, 2
+refused. Every rule records its route, and the ruleset says the anchoring is
+weaker.
+
+Three findings, each caught by something different:
+
+- **Both permanganates matched nothing at all** — including their own
+  chemicals. The engine strips counter-ions before an identity comparison
+  and a permanganate's identity *is* its salt, so the stored key never
+  matched; storing the anion's key would have collapsed the regulation's two
+  separate entries into one. They are expressions now, which are evaluated
+  on the structure as drawn. Caught by the every-rule-has-a-positive guard.
+- **Three diastereomer pairs cross-match.** The entries say "optical
+  isomers" and this engine matches every stereoisomer, which reaches
+  diastereomers too. Each member matches its own entry exactly and its
+  partner's as an isomer, saying which. All six are listed, so the answer
+  stays correct while the attribution is broader than the text.
+- **Red and white phosphorus are refused.** Allotropes are not
+  distinguishable by structure, and PubChem's systematic name for both
+  records is "phosphane" — PH₃, not elemental phosphorus.
+
 ## Result, all three CWC schedules, 93 structures across 4 corpora
 
 Schedule 1 now carries its own precursors (B.9–B.12) and the four entries

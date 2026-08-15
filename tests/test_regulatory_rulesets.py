@@ -326,6 +326,85 @@ def test_the_entry_no_resolver_could_reach_is_visible_not_missing():
     assert any("diethyl phosphite" in note.lower() for note in ruleset.known_limitations)
 
 
+# --- The second domain: drug precursors ---------------------------------
+
+
+def test_a_second_domain_is_populated():
+    """Eleven of twelve domains registered empty while all three CWC
+    schedules were one domain. This is the first ruleset outside it, so
+    `drug_precursors` stops reporting as never checked."""
+    rulesets, _ = load_all(include_user=False)
+    domains = {ruleset.domain.value for ruleset in rulesets}
+    assert "drug_precursors" in domains
+    assert "chemical_weapons" in domains
+
+
+def test_an_everyday_solvent_is_reported_as_a_listed_precursor(engine):
+    """Acetone and toluene ARE listed, and a screening tool that hid that
+    would be wrong. What makes it honest rather than alarming is the match
+    type and the legitimate uses travelling with it."""
+    for smiles, rule_id in [("CC(C)=O", "dea-ii-2"), ("Cc1ccccc1", "dea-ii-7")]:
+        findings = engine.screen(_mol(smiles)).findings
+        assert [f.rule.rule_id for f in findings] == [rule_id]
+        assert findings[0].match_type.value == "precursor"
+        assert findings[0].rule.legitimate_uses
+
+
+def test_the_two_permanganates_are_told_apart(engine):
+    """THEY MATCHED NOTHING AT ALL, including their own chemicals.
+
+    The engine strips counter-ions before an identity comparison, and a
+    permanganate's identity IS its salt: normalised, both reduce to the
+    permanganate anion. So the stored key (the salt's) never matched, and
+    storing the anion's key would have collapsed the regulation's two
+    separate entries into one. A rule that silently matches nothing looks
+    exactly like a chemical that is not listed.
+
+    Expressions are evaluated on the structure as drawn, counter-ion
+    included, which is what tells them apart.
+    """
+    potassium = "[K+].[O-][Mn](=O)(=O)=O"
+    sodium = "[Na+].[O-][Mn](=O)(=O)=O"
+    assert [f.rule.rule_id for f in engine.screen(_mol(potassium)).findings] == ["dea-ii-5"]
+    assert [f.rule.rule_id for f in engine.screen(_mol(sodium)).findings] == ["dea-ii-11"]
+    # A permanganate the list does not name must not inherit either entry.
+    calcium = "[Ca+2].[O-][Mn](=O)(=O)=O.[O-][Mn](=O)(=O)=O"
+    assert not engine.screen(_mol(calcium)).matched
+
+
+def test_a_diastereomer_matches_its_partners_entry_as_an_ISOMER(engine):
+    """The entries say "optical isomers"; this engine matches every
+    stereoisomer, which additionally reaches diastereomers. The list holds
+    three such pairs, so each member matches its own entry exactly and its
+    partner's as an isomer.
+
+    Both members of every pair are listed, so the answer stays correct --
+    but the finding has to SAY which kind of match it is, or the broader
+    reading would be invisible."""
+    ephedrine = _mol("C[C@@H]([C@@H](C1=CC=CC=C1)O)NC")
+    findings = {f.rule.rule_id: f for f in engine.screen(ephedrine).findings}
+
+    assert set(findings) == {"dea-i-4", "dea-i-12"}
+    assert "exact identity" in findings["dea-i-4"].outcomes[0].label
+    assert "different stereochemistry" in findings["dea-i-12"].outcomes[0].label
+
+
+def test_every_drug_precursor_identity_records_how_it_was_derived():
+    """The regulation prints DEA chemical codes, not CAS numbers, so no
+    identity here could be anchored to the statute's own identifier the way
+    the CWC rulesets are. Each rests on two independent derivations
+    agreeing, and each rule has to say which -- otherwise the weaker
+    anchoring is invisible next to rulesets that have the stronger one."""
+    ruleset = next(r for r in load_all(include_user=False)[0]
+                   if r.ruleset_id == "dea-listed-chemicals")
+    for rule in ruleset.rules:
+        if not rule.interpretation.inchikeys:
+            continue
+        assert rule.interpretation.assumptions, rule.rule_id
+        assert any("no chemical identifier" in a or "OPSIN" in a
+                   for a in rule.interpretation.assumptions), rule.rule_id
+
+
 # --- Schedule 1's own gaps: the precursors and the 2019 additions -------
 
 

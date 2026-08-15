@@ -1399,9 +1399,9 @@ ships is only what could be verified and lawfully redistributed, so the
 honest reading of a clean result is "these rulesets did not match", never
 "nothing applies".
 
-**What ships today is all three CWC schedules** — the chemical-weapons
-domain, in depth. Eleven of the twelve registered domains are still empty
-and say so on every screen. Expect ordinary chemicals to appear: Schedule 3
+**What ships today is all three CWC schedules and the US DEA listed
+chemicals** — two of the twelve registered domains. The other ten are
+still empty and say so on every screen. Expect ordinary chemicals to appear: Schedule 3
 lists phosgene, hydrogen cyanide, thionyl chloride and triethanolamine, all
 of them large-scale industrial chemicals, because the schedules exist to
 mark what gets declared and verified rather than what is forbidden. A

@@ -294,7 +294,7 @@ exception.
 
 ## Regulatory rules — scored per rule, and one is not perfect
 
-**Method.** 93 structures across four corpora — positives, negatives, edge
+**Method.** 148 structures across four corpora — positives, negatives, edge
 cases and historical — with every rule reporting TP/FP/TN/FN rather than
 "matched". A rule with perfect recall and terrible precision passes any
 positives-only suite and is worse than useless in a screen.
@@ -304,8 +304,8 @@ twenty-two did not when Schedule 3 landed, and a rule with no positive
 scores a perfect 1.00 while testing nothing — the same vacuous pass this
 section exists to refuse. A guard fails if a future rule ships without one.
 
-43 of the 44 CWC rules across all three schedules score precision 1.00 and
-recall 1.00. The one that does not:
+90 of the 91 rules — all three CWC schedules and the US DEA listed
+chemicals — score precision 1.00 and recall 1.00. The one that does not:
 
 | rule | precision | recall |
 |---|---|---|

@@ -730,6 +730,29 @@ are those entries' own examples and have eleven carbons each — so those
 rules carry no carbon limit at all. Where a limit is applied it may
 over-report and will not under-report.
 
+**THE DRUG-PRECURSOR RULESET IS ANCHORED MORE WEAKLY THAN THE CWC ONES,
+and it says so.** The CWC Annex prints a CAS number beside every named
+chemical, so those identities are traceable to the statute's own
+identifier. 21 CFR 1310.02 prints DEA chemical codes instead, the EU
+precursor annex prints CN codes, and the UN 1988 Tables print names only —
+so no drug-precursor identity here could be anchored that way. Each rests
+on two independent structure derivations agreeing, which is evidence and
+not the statute's word. Every rule records which route produced it.
+
+**A listed chemical is not a controlled substance.** The DEA list exists
+because these chemicals can be diverted, not because possessing them is an
+offence. Most are ordinary commerce and several are licensed medicines.
+
+**Allotropes cannot be told apart by structure.** Red and white phosphorus
+are separate entries with separate DEA codes and the same element; neither
+is encoded.
+
+**"Optical isomers" is matched more broadly than it is written.** The
+engine compares stereo-insensitively as a fallback, which reaches
+diastereomers as well as enantiomers. The DEA list carries three
+diastereomer pairs, so each member matches its partner's entry too — as an
+isomer, saying so, and every one of the six is itself listed.
+
 **An exemption is matched as a skeleton plus a carbon count, not as an
 identity.** Three entries exempt named chemicals; each exemption covers the
 chemical and its salts, and does not excuse a mixture containing it.

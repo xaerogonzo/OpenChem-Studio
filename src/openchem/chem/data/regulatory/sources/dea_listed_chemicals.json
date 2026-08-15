@@ -1,0 +1,1089 @@
+{
+ "ruleset_id": "dea-listed-chemicals",
+ "display_name": "US DEA listed chemicals (drug precursors)",
+ "domain": "drug_precursors",
+ "jurisdiction": "us",
+ "version": "1",
+ "effective_date": "",
+ "source_citation": "United States Code of Federal Regulations, Title 21, Part 1310.02, 'Substances covered'. Text as published on eCFR, accessed 2026-08-15.",
+ "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02",
+ "known_limitations": [
+  "A LISTED CHEMICAL IS NOT A CONTROLLED SUBSTANCE. These are chemicals whose transactions are regulated because they can be diverted into illicit manufacture. Most are ordinary commerce -- acetone, toluene, sulfuric acid, benzaldehyde -- and several are licensed medicines, including pseudoephedrine, ephedrine and ergotamine. A match says a chemical is listed and never that anything is unlawful.",
+  "The regulation's obligations turn on quantity, on who is transacting and on the nature of the transaction. A structure carries none of that.",
+  "THE REGULATION PRINTS NO CHEMICAL IDENTIFIER. It uses DEA chemical codes, not CAS numbers, so identities here could not be anchored to the statute's own number the way the CWC rulesets are. Each rests instead on two independent structure derivations agreeing: either OPSIN and PubChem resolving the name to the same structure, or -- where OPSIN cannot parse the name, which is most trivial names -- PubChem's own systematic name for the structure parsing back through OPSIN to the same structure. Measured over the 49 entries: 32 by direct agreement, 14 by that round trip, 1 on connectivity alone, 2 refused.",
+  "The 'its esters', 'its amides', 'its carbamates', 'its halides' and 'its acetals' families that several entries reach are NOT encoded. Each rule matches the named substance, and the engine's own policy additionally reaches salts and stereoisomers. So these rules under-report those families rather than over-reporting.",
+  "Entries 26 and 27, red and white phosphorus, are NOT ENCODED. They are allotropes -- the same element in different solid forms -- and a structure cannot distinguish them, though the regulation lists them separately. PubChem's own systematic name for both records is 'phosphane', which is PH3 rather than elemental phosphorus, so no resolver reaches either.",
+  "Isosafrole (entry 17) is matched on connectivity: OPSIN and PubChem agree on the skeleton and differ on the double-bond geometry, which the regulation does not specify.",
+  "This is one country's law. A structure matching nothing here may still be listed elsewhere; the 1988 UN Convention Tables and the EU precursor regulations are not loaded.",
+  "Entries II.5 and II.11, the two permanganates, are matched by expression rather than by identity: their identity IS the salt, and the engine strips counter-ions before an identity comparison, which would collapse the regulation's two separate entries into one. Found because both rules matched nothing at all, including their own chemicals -- a rule that silently matches nothing looks exactly like a chemical that is not listed.",
+  "THE REGULATION SAYS 'optical isomers' AND THIS ENGINE MATCHES ALL STEREOISOMERS, which is broader. The list carries three diastereomer pairs -- ephedrine and pseudoephedrine, norpseudoephedrine and phenylpropanolamine, N-methylephedrine and N-methylpseudoephedrine -- so each member matches its own entry exactly AND its partner's entry as an isomer. Every one of the six is itself a listed chemical, so the answer stays correct; the attribution is broader than the entry's own words, and each cross-match arrives saying it is not an exact identity."
+ ],
+ "rules": [
+  {
+   "rule_id": "dea-i-1",
+   "display_name": "Alpha-Phenylacetoacetonitrile (21 CFR 1310.02, List I.1)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (1)",
+    "quote": "Alpha-phenylacetoacetonitrile and its salts, optical isomers, and salts of optical isomers (APAAN)",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "KHNWFTMUBKJWRZ-UHFFFAOYSA-N"
+   ]
+  },
+  {
+   "rule_id": "dea-i-2",
+   "display_name": "Anthranilic Acid (21 CFR 1310.02, List I.2)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (2)",
+    "quote": "Anthranilic acid, its esters, and its salts",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "RWZYAGGXGHYGMB-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "manufacture of dyes, pharmaceuticals and saccharin"
+   ]
+  },
+  {
+   "rule_id": "dea-i-3",
+   "display_name": "Benzyl Cyanide (21 CFR 1310.02, List I.3)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (3)",
+    "quote": "Benzyl cyanide",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "SUSQOBVLVYHIEX-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "an intermediate in pharmaceutical and pesticide synthesis"
+   ]
+  },
+  {
+   "rule_id": "dea-i-4",
+   "display_name": "Ephedrine (21 CFR 1310.02, List I.4)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (4)",
+    "quote": "Ephedrine, its salts, optical isomers, and salts of optical isomers",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN cannot parse the name the regulation uses, so the lookup was confirmed the other way: PubChem's own systematic name for the structure ((1R,2S)-2-(methylamino)-1-phenylpropan-1-ol) parses back through OPSIN to the same structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "KWGRBVOPPLSCSI-WPRPVWTQSA-N"
+   ],
+   "legitimate_uses": [
+    "a bronchodilator and vasopressor medicine"
+   ]
+  },
+  {
+   "rule_id": "dea-i-5",
+   "display_name": "Ergonovine (21 CFR 1310.02, List I.5)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (5)",
+    "quote": "Ergonovine and its salts",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN cannot parse the name the regulation uses, so the lookup was confirmed the other way: PubChem's own systematic name for the structure ((6aR,9R)-N-[(2S)-1-hydroxypropan-2-yl]-7-methyl-6,6a,8,9-tetrahydro-4H-indolo[4,3-fg]quinoline-9-carboxamide) parses back through OPSIN to the same structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "WVVSZNPYNCNODU-XTQGRXLLSA-N"
+   ],
+   "legitimate_uses": [
+    "an obstetric medicine used to control post-partum haemorrhage"
+   ]
+  },
+  {
+   "rule_id": "dea-i-6",
+   "display_name": "Ergotamine (21 CFR 1310.02, List I.6)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (6)",
+    "quote": "Ergotamine and its salts",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN cannot parse the name the regulation uses, so the lookup was confirmed the other way: PubChem's own systematic name for the structure ((6aR,9R)-N-[(1S,2S,4R,7S)-7-benzyl-2-hydroxy-4-methyl-5,8-dioxo-3-oxa-6,9-diazatricyclo[7.3.0.02,6]dodecan-4-yl]-7-methyl-6,6a,8,9-tetrahydro-4H-indolo[4,3-fg]quinoline-9-carboxamide) parses back through OPSIN to the same structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "XCGSFFUVFURLIX-VFGNJEKYSA-N"
+   ],
+   "legitimate_uses": [
+    "a migraine medicine"
+   ]
+  },
+  {
+   "rule_id": "dea-i-7",
+   "display_name": "N-Acetylanthranilic Acid (21 CFR 1310.02, List I.7)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (7)",
+    "quote": "N-Acetylanthranilic acid, its esters, and its salts",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "QSACCXVHEVWNMX-UHFFFAOYSA-N"
+   ]
+  },
+  {
+   "rule_id": "dea-i-8",
+   "display_name": "Norpseudoephedrine (21 CFR 1310.02, List I.8)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (8)",
+    "quote": "Norpseudoephedrine, its salts, optical isomers, and salts of optical isomers",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN cannot parse the name the regulation uses, so the lookup was confirmed the other way: PubChem's own systematic name for the structure ((1S,2S)-2-amino-1-phenylpropan-1-ol) parses back through OPSIN to the same structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "DLNKOYKMWOXYQA-IONNQARKSA-N"
+   ]
+  },
+  {
+   "rule_id": "dea-i-9",
+   "display_name": "Phenylacetic Acid (21 CFR 1310.02, List I.9)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (9)",
+    "quote": "Phenylacetic acid, its esters, and its salts",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "WLJVXDMOQOGPHL-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "a fragrance and flavour ingredient, and a penicillin G precursor"
+   ]
+  },
+  {
+   "rule_id": "dea-i-10",
+   "display_name": "Phenylpropanolamine (21 CFR 1310.02, List I.10)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (10)",
+    "quote": "Phenylpropanolamine, its salts, optical isomers, and salts of optical isomers",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN cannot parse the name the regulation uses, so the lookup was confirmed the other way: PubChem's own systematic name for the structure ((1R,2S)-2-amino-1-phenylpropan-1-ol) parses back through OPSIN to the same structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "DLNKOYKMWOXYQA-CBAPKCEASA-N"
+   ],
+   "legitimate_uses": [
+    "a decongestant, still licensed in some jurisdictions"
+   ]
+  },
+  {
+   "rule_id": "dea-i-11",
+   "display_name": "Piperidine (21 CFR 1310.02, List I.11)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (11)",
+    "quote": "Piperidine and its salts",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "NQRYJNQNLNOLGT-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "a very common building block and solvent in organic synthesis"
+   ]
+  },
+  {
+   "rule_id": "dea-i-12",
+   "display_name": "Pseudoephedrine (21 CFR 1310.02, List I.12)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (12)",
+    "quote": "Pseudoephedrine, its salts, optical isomers, and salts of optical isomers",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN cannot parse the name the regulation uses, so the lookup was confirmed the other way: PubChem's own systematic name for the structure ((1S,2S)-2-(methylamino)-1-phenylpropan-1-ol) parses back through OPSIN to the same structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "KWGRBVOPPLSCSI-WCBMZHEXSA-N"
+   ],
+   "legitimate_uses": [
+    "a widely sold decongestant"
+   ]
+  },
+  {
+   "rule_id": "dea-i-13",
+   "display_name": "3,4-Methylenedioxyphenyl-2-Propanone (21 CFR 1310.02, List I.13)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (13)",
+    "quote": "3,4-Methylenedioxyphenyl-2-propanone",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "XIYKRJLTYKUWAM-UHFFFAOYSA-N"
+   ]
+  },
+  {
+   "rule_id": "dea-i-14",
+   "display_name": "Methylamine (21 CFR 1310.02, List I.14)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (14)",
+    "quote": "Methylamine and its salts",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "BAVYZALUXZFZLV-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "a bulk industrial intermediate for pharmaceuticals, pesticides and solvents"
+   ]
+  },
+  {
+   "rule_id": "dea-i-15",
+   "display_name": "Ethylamine (21 CFR 1310.02, List I.15)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (15)",
+    "quote": "Ethylamine and its salts",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "QUSNBJAOOMFDIB-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "a bulk industrial intermediate"
+   ]
+  },
+  {
+   "rule_id": "dea-i-16",
+   "display_name": "Propionic Anhydride (21 CFR 1310.02, List I.16)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (16)",
+    "quote": "Propionic anhydride",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "WYVAMUWZEOHJOQ-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "an acylating reagent in pharmaceutical and fragrance manufacture"
+   ]
+  },
+  {
+   "rule_id": "dea-i-17",
+   "display_name": "Isosafrole (21 CFR 1310.02, List I.17)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (17)",
+    "quote": "Isosafrole",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the connectivity and differ on stereochemistry, which the regulation does not specify. The engine compares stereo-insensitively as well, so both forms reach this rule.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "VHVOLFRBFDOUSH-NSCUHMNNSA-N"
+   ],
+   "legitimate_uses": [
+    "a fragrance ingredient"
+   ]
+  },
+  {
+   "rule_id": "dea-i-18",
+   "display_name": "Safrole (21 CFR 1310.02, List I.18)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (18)",
+    "quote": "Safrole",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "ZMQAAUBTXCXRIC-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "a fragrance ingredient, and a natural constituent of sassafras and nutmeg"
+   ]
+  },
+  {
+   "rule_id": "dea-i-19",
+   "display_name": "Piperonal (21 CFR 1310.02, List I.19)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (19)",
+    "quote": "Piperonal",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN cannot parse the name the regulation uses, so the lookup was confirmed the other way: PubChem's own systematic name for the structure (1,3-benzodioxole-5-carbaldehyde) parses back through OPSIN to the same structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "SATCULPHIDQDRE-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "a fragrance and flavour ingredient, widely used in perfumery"
+   ]
+  },
+  {
+   "rule_id": "dea-i-20",
+   "display_name": "N-Methylephedrine (21 CFR 1310.02, List I.20)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (20)",
+    "quote": "N-Methylephedrine, its salts, optical isomers, and salts of optical isomers (N-Methylephedrine)",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN cannot parse the name the regulation uses, so the lookup was confirmed the other way: PubChem's own systematic name for the structure (2-(dimethylamino)-1-phenylpropan-1-ol) parses back through OPSIN to the same structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "FMCGSUUBYTWNDP-UHFFFAOYSA-N"
+   ]
+  },
+  {
+   "rule_id": "dea-i-21",
+   "display_name": "N-Methylpseudoephedrine (21 CFR 1310.02, List I.21)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (21)",
+    "quote": "N-Methylpseudoephedrine, its salts, optical isomers, and salts of optical isomers",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN cannot parse the name the regulation uses, so the lookup was confirmed the other way: PubChem's own systematic name for the structure ((1S,2S)-2-(dimethylamino)-1-phenylpropan-1-ol) parses back through OPSIN to the same structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "FMCGSUUBYTWNDP-GXSJLCMTSA-N"
+   ]
+  },
+  {
+   "rule_id": "dea-i-22",
+   "display_name": "Hydriodic Acid (21 CFR 1310.02, List I.22)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (22)",
+    "quote": "Hydriodic Acid",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "XMBWDFGMSWQBCA-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "a reducing agent and reagent in organic synthesis"
+   ]
+  },
+  {
+   "rule_id": "dea-i-23",
+   "display_name": "Benzaldehyde (21 CFR 1310.02, List I.23)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (23)",
+    "quote": "Benzaldehyde",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "HUMNYLRZRPPJDN-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "one of the commonest flavour and fragrance chemicals, the smell of almonds"
+   ]
+  },
+  {
+   "rule_id": "dea-i-24",
+   "display_name": "Nitroethane (21 CFR 1310.02, List I.24)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (24)",
+    "quote": "Nitroethane",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "MCSAJNNLRCFZED-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "a solvent, and a reagent in the Henry reaction"
+   ]
+  },
+  {
+   "rule_id": "dea-i-25",
+   "display_name": "Gamma-Butyrolactone (21 CFR 1310.02, List I.25)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (25)",
+    "quote": "Gamma-Butyrolactone (Other names include: GBL; Dihydro-2 (3H)-furanone; 1,2-Butanolide; 1,4-Butanolide; 4-Hydroxybutanoic acid lactone; gamma-hydroxybutyric acid lactone)",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "YEJRWHAVMIAJKC-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "an industrial solvent and a polymer intermediate"
+   ]
+  },
+  {
+   "rule_id": "dea-i-28",
+   "display_name": "Hypophosphorous Acid (21 CFR 1310.02, List I.28)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (28)",
+    "quote": "Hypophosphorous acid and its salts (Including ammonium hypophosphite, calcium hypophosphite, iron hypophosphite, potassium hypophosphite, manganese hypophosphite, magnesium hypophosphite and sodium hypophosphite)",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "ACVYVLVWPXVTIT-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "a reducing agent in electroless plating"
+   ]
+  },
+  {
+   "rule_id": "dea-i-29",
+   "display_name": "N-Phenethyl-4-Piperidone (21 CFR 1310.02, List I.29)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (29)",
+    "quote": "N-phenethyl-4-piperidone (NPP)",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "YDJXNYNKKXZBMP-UHFFFAOYSA-N"
+   ]
+  },
+  {
+   "rule_id": "dea-i-30",
+   "display_name": "Iodine (21 CFR 1310.02, List I.30)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (30)",
+    "quote": "Iodine",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN cannot parse the name the regulation uses, so the lookup was confirmed the other way: PubChem's own systematic name for the structure (molecular iodine) parses back through OPSIN to the same structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "PNDPGZBMCMUPRI-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "a disinfectant, a nutritional supplement and a laboratory reagent"
+   ]
+  },
+  {
+   "rule_id": "dea-i-31",
+   "display_name": "Ergocristine (21 CFR 1310.02, List I.31)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (31)",
+    "quote": "Ergocristine and its salts",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN cannot parse the name the regulation uses, so the lookup was confirmed the other way: PubChem's own systematic name for the structure ((6aR,9R)-N-[(1S,2S,4R,7S)-7-benzyl-2-hydroxy-5,8-dioxo-4-propan-2-yl-3-oxa-6,9-diazatricyclo[7.3.0.02,6]dodecan-4-yl]-7-methyl-6,6a,8,9-tetrahydro-4H-indolo[4,3-fg]quinoline-9-carboxamide) parses back through OPSIN to the same structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "HEFIYUQVAZFDEE-MKTPKCENSA-N"
+   ],
+   "legitimate_uses": [
+    "an ergot alkaloid"
+   ]
+  },
+  {
+   "rule_id": "dea-i-32",
+   "display_name": "Benzylfentanyl (21 CFR 1310.02, List I.32)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (32)",
+    "quote": "N-(1-benzylpiperidin-4-yl)-N-phenylpropionamide (benzylfentanyl) and its salts",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN cannot parse the name the regulation uses, so the lookup was confirmed the other way: PubChem's own systematic name for the structure (N-(1-benzylpiperidin-4-yl)-N-phenylpropanamide) parses back through OPSIN to the same structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "POQDXIFVWVZVML-UHFFFAOYSA-N"
+   ]
+  },
+  {
+   "rule_id": "dea-i-33",
+   "display_name": "4-Anilinopiperidine (21 CFR 1310.02, List I.33)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (33)",
+    "quote": "N-phenylpiperidin-4-amine (4-anilinopiperidine; N-phenyl-4-piperidinamine; 4-AP), its amides, its carbamates, its halides, its salts, and any combination thereof, whenever the existence of such is possible",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "LKRMTUUCKBQGFO-UHFFFAOYSA-N"
+   ]
+  },
+  {
+   "rule_id": "dea-i-34",
+   "display_name": "Pmk Glycidate (21 CFR 1310.02, List I.34)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (34)",
+    "quote": "3,4-MDP-2-P methyl glycidate (PMK glycidate) and its optical and geometric isomers",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN cannot parse the name the regulation uses, so the lookup was confirmed the other way: PubChem's own systematic name for the structure (methyl 3-(1,3-benzodioxol-5-yl)-2-methyloxirane-2-carboxylate) parses back through OPSIN to the same structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "NEWFBAYQRLTJTP-UHFFFAOYSA-N"
+   ]
+  },
+  {
+   "rule_id": "dea-i-35",
+   "display_name": "Pmk Glycidic Acid (21 CFR 1310.02, List I.35)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (35)",
+    "quote": "3,4-MDP-2-P methyl glycidic acid (PMK glycidic acid) and its salts, optical and geometric isomers, and salts of isomers",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN cannot parse the name the regulation uses, so the lookup was confirmed the other way: PubChem's own systematic name for the structure (3-(1,3-benzodioxol-5-yl)-2-methyloxirane-2-carboxylic acid) parses back through OPSIN to the same structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "HZXMIVDAWKVPKJ-UHFFFAOYSA-N"
+   ]
+  },
+  {
+   "rule_id": "dea-i-36",
+   "display_name": "Alpha-Phenylacetoacetamide (21 CFR 1310.02, List I.36)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (36)",
+    "quote": "Alpha-phenylacetoacetamide (APAA) and its optical isomers",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "FBISRXJSJBLOHX-UHFFFAOYSA-N"
+   ]
+  },
+  {
+   "rule_id": "dea-i-37",
+   "display_name": "Methyl Alpha-Phenylacetoacetate (21 CFR 1310.02, List I.37)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (37)",
+    "quote": "methyl alpha-phenylacetoacetate (MAPA; methyl 3-oxo-2-phenylbutanoate) and its optical isomers",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "CYSACHQWYQYLIG-UHFFFAOYSA-N"
+   ]
+  },
+  {
+   "rule_id": "dea-i-38",
+   "display_name": "4-Piperidone (21 CFR 1310.02, List I.38)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List I, (38)",
+    "quote": "4-piperidone (piperidin-4-one), its acetals, its amides, its carbamates, its halides, its salts",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "VRJHQPZVIGNGMX-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "a building block in pharmaceutical synthesis"
+   ]
+  },
+  {
+   "rule_id": "dea-ii-1",
+   "display_name": "Acetic Anhydride (21 CFR 1310.02, List II.1)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List II, (1)",
+    "quote": "Acetic anhydride",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "WFDIJRYMOXRFFG-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "manufacture of aspirin and cellulose acetate",
+    "a standard acetylating reagent"
+   ]
+  },
+  {
+   "rule_id": "dea-ii-2",
+   "display_name": "Acetone (21 CFR 1310.02, List II.2)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List II, (2)",
+    "quote": "Acetone",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "CSCPPACGZOOCGX-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "one of the commonest laboratory and industrial solvents",
+    "nail-polish remover"
+   ]
+  },
+  {
+   "rule_id": "dea-ii-3",
+   "display_name": "Benzyl Chloride (21 CFR 1310.02, List II.3)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List II, (3)",
+    "quote": "Benzyl chloride",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "KCXMKQUNVWSEMD-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "an intermediate for plasticisers, dyes and pharmaceuticals"
+   ]
+  },
+  {
+   "rule_id": "dea-ii-4",
+   "display_name": "Diethyl Ether (21 CFR 1310.02, List II.4)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List II, (4)",
+    "quote": "Ethyl ether",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "RTZKZFJDLAIYFH-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "a laboratory solvent and extraction medium"
+   ]
+  },
+  {
+   "rule_id": "dea-ii-5",
+   "display_name": "Potassium Permanganate (21 CFR 1310.02, List II.5)",
+   "match_type": "precursor",
+   "confidence": "exact",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List II, (5)",
+    "quote": "Potassium permanganate",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "MATCHED BY EXPRESSION RATHER THAN IDENTITY, because the engine strips counter-ions before an identity comparison and a permanganate's identity IS its salt. Normalised, potassium and sodium permanganate both reduce to the permanganate anion -- so an identity rule for either matched neither (the stored key was the salt's) and storing the anion's key would have made the regulation's two separate entries indistinguishable. An expression is evaluated on the structure as drawn, counter-ion included."
+   ],
+   "legitimate_uses": [
+    "a disinfectant, a water-treatment oxidant and a laboratory reagent"
+   ],
+   "expression": {
+    "op": "all",
+    "of": [
+     {
+      "op": "contains",
+      "smarts": "[Mn](=O)(=O)(=O)[O-]",
+      "label": "the permanganate anion"
+     },
+     {
+      "op": "contains",
+      "smarts": "[K+]",
+      "label": "a potassium counter-ion"
+     }
+    ]
+   }
+  },
+  {
+   "rule_id": "dea-ii-6",
+   "display_name": "2-Butanone (21 CFR 1310.02, List II.6)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List II, (6)",
+    "quote": "2-Butanone (or Methyl Ethyl Ketone or MEK)",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "ZWEHNKRNPOVVGH-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "an industrial solvent for coatings and adhesives"
+   ]
+  },
+  {
+   "rule_id": "dea-ii-7",
+   "display_name": "Toluene (21 CFR 1310.02, List II.7)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List II, (7)",
+    "quote": "Toluene",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "YXFVVABEGXRONW-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "a bulk industrial solvent, and a component of petrol"
+   ]
+  },
+  {
+   "rule_id": "dea-ii-8",
+   "display_name": "Hydrochloric Acid (21 CFR 1310.02, List II.8)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List II, (8)",
+    "quote": "Hydrochloric acid (including anhydrous hydrogen chloride)",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "VEXZGXHMUGYJMC-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "one of the most widely used industrial and laboratory acids"
+   ]
+  },
+  {
+   "rule_id": "dea-ii-9",
+   "display_name": "Sulfuric Acid (21 CFR 1310.02, List II.9)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List II, (9)",
+    "quote": "Sulfuric acid",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "QAOWNCQODCNURD-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "the highest-tonnage industrial chemical in the world"
+   ]
+  },
+  {
+   "rule_id": "dea-ii-10",
+   "display_name": "Methyl Isobutyl Ketone (21 CFR 1310.02, List II.10)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List II, (10)",
+    "quote": "Methyl Isobutyl Ketone (MIBK)",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "OPSIN and PubChem agree on the structure.",
+    "The regulation prints no chemical identifier -- it uses DEA chemical codes -- so the identity rests on two independent structure derivations agreeing, not on the statute's own number."
+   ],
+   "inchikeys": [
+    "NTIZESTWPVYFNL-UHFFFAOYSA-N"
+   ],
+   "legitimate_uses": [
+    "an industrial solvent for coatings and in metal extraction"
+   ]
+  },
+  {
+   "rule_id": "dea-ii-11",
+   "display_name": "Sodium Permanganate (21 CFR 1310.02, List II.11)",
+   "match_type": "precursor",
+   "confidence": "exact",
+   "legal": {
+    "authority": "US DEA",
+    "instrument": "21 CFR 1310.02",
+    "section": "List II, (11)",
+    "quote": "Sodium Permanganate",
+    "citation_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1310/section-1310.02"
+   },
+   "assumptions": [
+    "MATCHED BY EXPRESSION RATHER THAN IDENTITY, because the engine strips counter-ions before an identity comparison and a permanganate's identity IS its salt. Normalised, potassium and sodium permanganate both reduce to the permanganate anion -- so an identity rule for either matched neither (the stored key was the salt's) and storing the anion's key would have made the regulation's two separate entries indistinguishable. An expression is evaluated on the structure as drawn, counter-ion included."
+   ],
+   "legitimate_uses": [
+    "an oxidant in water treatment and chemical synthesis"
+   ],
+   "expression": {
+    "op": "all",
+    "of": [
+     {
+      "op": "contains",
+      "smarts": "[Mn](=O)(=O)(=O)[O-]",
+      "label": "the permanganate anion"
+     },
+     {
+      "op": "contains",
+      "smarts": "[Na+]",
+      "label": "a sodium counter-ion"
+     }
+    ]
+   }
+  }
+ ]
+}

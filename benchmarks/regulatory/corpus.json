@@ -353,6 +353,341 @@
    "expect": [
     "cwc-1-a-16"
    ]
+  },
+  {
+   "name": "alpha-phenylacetoacetonitrile (DEA List I.1)",
+   "smiles": "CC(=O)C(C#N)C1=CC=CC=C1",
+   "expect": [
+    "dea-i-1"
+   ]
+  },
+  {
+   "name": "anthranilic acid (DEA List I.2)",
+   "smiles": "C1=CC=C(C(=C1)C(=O)O)N",
+   "expect": [
+    "dea-i-2"
+   ]
+  },
+  {
+   "name": "benzyl cyanide (DEA List I.3)",
+   "smiles": "C1=CC=C(C=C1)CC#N",
+   "expect": [
+    "dea-i-3"
+   ]
+  },
+  {
+   "name": "ephedrine (DEA List I.4)",
+   "smiles": "C[C@@H]([C@@H](C1=CC=CC=C1)O)NC",
+   "expect": [
+    "dea-i-12",
+    "dea-i-4"
+   ]
+  },
+  {
+   "name": "ergonovine (DEA List I.5)",
+   "smiles": "C[C@@H](CO)NC(=O)[C@H]1CN([C@@H]2CC3=CNC4=CC=CC(=C34)C2=C1)C",
+   "expect": [
+    "dea-i-5"
+   ]
+  },
+  {
+   "name": "ergotamine (DEA List I.6)",
+   "smiles": "C[C@@]1(C(=O)N2[C@H](C(=O)N3CCC[C@H]3[C@@]2(O1)O)CC4=CC=CC=C4)NC(=O)[C@H]5CN([C@@H]6CC7=CNC8=CC=CC(=C78)C6=C5)C",
+   "expect": [
+    "dea-i-6"
+   ]
+  },
+  {
+   "name": "N-acetylanthranilic acid (DEA List I.7)",
+   "smiles": "CC(=O)NC1=CC=CC=C1C(=O)O",
+   "expect": [
+    "dea-i-7"
+   ]
+  },
+  {
+   "name": "norpseudoephedrine (DEA List I.8)",
+   "smiles": "C[C@@H]([C@H](C1=CC=CC=C1)O)N",
+   "expect": [
+    "dea-i-10",
+    "dea-i-8"
+   ]
+  },
+  {
+   "name": "phenylacetic acid (DEA List I.9)",
+   "smiles": "C1=CC=C(C=C1)CC(=O)O",
+   "expect": [
+    "dea-i-9"
+   ]
+  },
+  {
+   "name": "phenylpropanolamine (DEA List I.10)",
+   "smiles": "C[C@@H]([C@@H](C1=CC=CC=C1)O)N",
+   "expect": [
+    "dea-i-10",
+    "dea-i-8"
+   ]
+  },
+  {
+   "name": "piperidine (DEA List I.11)",
+   "smiles": "C1CCNCC1",
+   "expect": [
+    "dea-i-11"
+   ]
+  },
+  {
+   "name": "pseudoephedrine (DEA List I.12)",
+   "smiles": "C[C@@H]([C@H](C1=CC=CC=C1)O)NC",
+   "expect": [
+    "dea-i-12",
+    "dea-i-4"
+   ]
+  },
+  {
+   "name": "3,4-methylenedioxyphenyl-2-propanone (DEA List I.13)",
+   "smiles": "CC(=O)CC1=CC2=C(C=C1)OCO2",
+   "expect": [
+    "dea-i-13"
+   ]
+  },
+  {
+   "name": "methylamine (DEA List I.14)",
+   "smiles": "CN",
+   "expect": [
+    "dea-i-14"
+   ]
+  },
+  {
+   "name": "ethylamine (DEA List I.15)",
+   "smiles": "CCN",
+   "expect": [
+    "dea-i-15"
+   ]
+  },
+  {
+   "name": "propionic anhydride (DEA List I.16)",
+   "smiles": "CCC(=O)OC(=O)CC",
+   "expect": [
+    "dea-i-16"
+   ]
+  },
+  {
+   "name": "isosafrole (DEA List I.17)",
+   "smiles": "C/C=C/C1=CC2=C(C=C1)OCO2",
+   "expect": [
+    "dea-i-17"
+   ]
+  },
+  {
+   "name": "safrole (DEA List I.18)",
+   "smiles": "C=CCC1=CC2=C(C=C1)OCO2",
+   "expect": [
+    "dea-i-18"
+   ]
+  },
+  {
+   "name": "piperonal (DEA List I.19)",
+   "smiles": "C1OC2=C(O1)C=C(C=C2)C=O",
+   "expect": [
+    "dea-i-19"
+   ]
+  },
+  {
+   "name": "N-methylephedrine (DEA List I.20)",
+   "smiles": "CC(C(C1=CC=CC=C1)O)N(C)C",
+   "expect": [
+    "dea-i-20",
+    "dea-i-21"
+   ]
+  },
+  {
+   "name": "N-methylpseudoephedrine (DEA List I.21)",
+   "smiles": "C[C@@H]([C@H](C1=CC=CC=C1)O)N(C)C",
+   "expect": [
+    "dea-i-20",
+    "dea-i-21"
+   ]
+  },
+  {
+   "name": "hydriodic acid (DEA List I.22)",
+   "smiles": "I",
+   "expect": [
+    "dea-i-22"
+   ]
+  },
+  {
+   "name": "benzaldehyde (DEA List I.23)",
+   "smiles": "C1=CC=C(C=C1)C=O",
+   "expect": [
+    "dea-i-23"
+   ]
+  },
+  {
+   "name": "nitroethane (DEA List I.24)",
+   "smiles": "CC[N+](=O)[O-]",
+   "expect": [
+    "dea-i-24"
+   ]
+  },
+  {
+   "name": "gamma-butyrolactone (DEA List I.25)",
+   "smiles": "C1CC(=O)OC1",
+   "expect": [
+    "dea-i-25"
+   ]
+  },
+  {
+   "name": "hypophosphorous acid (DEA List I.28)",
+   "smiles": "O[PH2]=O",
+   "expect": [
+    "dea-i-28"
+   ]
+  },
+  {
+   "name": "N-phenethyl-4-piperidone (DEA List I.29)",
+   "smiles": "C1CN(CCC1=O)CCC2=CC=CC=C2",
+   "expect": [
+    "dea-i-29"
+   ]
+  },
+  {
+   "name": "iodine (DEA List I.30)",
+   "smiles": "II",
+   "expect": [
+    "dea-i-30"
+   ]
+  },
+  {
+   "name": "ergocristine (DEA List I.31)",
+   "smiles": "CC(C)[C@@]1(C(=O)N2[C@H](C(=O)N3CCC[C@H]3[C@@]2(O1)O)CC4=CC=CC=C4)NC(=O)[C@H]5CN([C@@H]6CC7=CNC8=CC=CC(=C78)C6=C5)C",
+   "expect": [
+    "dea-i-31"
+   ]
+  },
+  {
+   "name": "benzylfentanyl (DEA List I.32)",
+   "smiles": "CCC(=O)N(C1CCN(CC1)CC2=CC=CC=C2)C3=CC=CC=C3",
+   "expect": [
+    "dea-i-32"
+   ]
+  },
+  {
+   "name": "4-anilinopiperidine (DEA List I.33)",
+   "smiles": "C1CNCCC1NC2=CC=CC=C2",
+   "expect": [
+    "dea-i-33"
+   ]
+  },
+  {
+   "name": "PMK glycidate (DEA List I.34)",
+   "smiles": "CC1(C(O1)C2=CC3=C(C=C2)OCO3)C(=O)OC",
+   "expect": [
+    "dea-i-34"
+   ]
+  },
+  {
+   "name": "PMK glycidic acid (DEA List I.35)",
+   "smiles": "CC1(C(O1)C2=CC3=C(C=C2)OCO3)C(=O)O",
+   "expect": [
+    "dea-i-35"
+   ]
+  },
+  {
+   "name": "alpha-phenylacetoacetamide (DEA List I.36)",
+   "smiles": "CC(=O)C(C1=CC=CC=C1)C(=O)N",
+   "expect": [
+    "dea-i-36"
+   ]
+  },
+  {
+   "name": "methyl alpha-phenylacetoacetate (DEA List I.37)",
+   "smiles": "CC(=O)C(C1=CC=CC=C1)C(=O)OC",
+   "expect": [
+    "dea-i-37"
+   ]
+  },
+  {
+   "name": "4-piperidone (DEA List I.38)",
+   "smiles": "C1CNCCC1=O",
+   "expect": [
+    "dea-i-38"
+   ]
+  },
+  {
+   "name": "acetic anhydride (DEA List II.1)",
+   "smiles": "CC(=O)OC(=O)C",
+   "expect": [
+    "dea-ii-1"
+   ]
+  },
+  {
+   "name": "acetone (DEA List II.2)",
+   "smiles": "CC(=O)C",
+   "expect": [
+    "dea-ii-2"
+   ]
+  },
+  {
+   "name": "benzyl chloride (DEA List II.3)",
+   "smiles": "C1=CC=C(C=C1)CCl",
+   "expect": [
+    "dea-ii-3"
+   ]
+  },
+  {
+   "name": "ethyl ether (DEA List II.4)",
+   "smiles": "CCOCC",
+   "expect": [
+    "dea-ii-4"
+   ]
+  },
+  {
+   "name": "potassium permanganate (DEA List II.5)",
+   "smiles": "[O-][Mn](=O)(=O)=O.[K+]",
+   "expect": [
+    "dea-ii-5"
+   ]
+  },
+  {
+   "name": "2-butanone (DEA List II.6)",
+   "smiles": "CCC(=O)C",
+   "expect": [
+    "dea-ii-6"
+   ]
+  },
+  {
+   "name": "toluene (DEA List II.7)",
+   "smiles": "CC1=CC=CC=C1",
+   "expect": [
+    "dea-ii-7"
+   ]
+  },
+  {
+   "name": "hydrochloric acid (DEA List II.8)",
+   "smiles": "Cl",
+   "expect": [
+    "dea-ii-8"
+   ]
+  },
+  {
+   "name": "sulfuric acid (DEA List II.9)",
+   "smiles": "OS(=O)(=O)O",
+   "expect": [
+    "dea-ii-9"
+   ]
+  },
+  {
+   "name": "methyl isobutyl ketone (DEA List II.10)",
+   "smiles": "CC(C)CC(=O)C",
+   "expect": [
+    "dea-ii-10"
+   ]
+  },
+  {
+   "name": "sodium permanganate (DEA List II.11)",
+   "smiles": "[O-][Mn](=O)(=O)=O.[Na+]",
+   "expect": [
+    "dea-ii-11"
+   ]
   }
  ],
  "negatives": [
@@ -495,6 +830,16 @@
    "name": "a benzalkonium-type surfactant",
    "smiles": "CCCCCCCCCCCC[N+](C)(C)Cc1ccccc1",
    "expect": []
+  },
+  {
+   "name": "calcium permanganate (a permanganate the list does not name)",
+   "smiles": "[Ca+2].[O-][Mn](=O)(=O)=O.[O-][Mn](=O)(=O)=O",
+   "expect": []
+  },
+  {
+   "name": "propionic acid (not the anhydride)",
+   "smiles": "CCC(=O)O",
+   "expect": []
   }
  ],
  "edge_cases": [
@@ -632,6 +977,24 @@
     "cwc-2-b-11"
    ],
    "why": "The control for the case above: the entry DOES reach protonated salts, so tightening the nitrogen must not be done by rejecting cations outright."
+  },
+  {
+   "name": "ephedrine, against the pseudoephedrine entry",
+   "smiles": "C[C@@H]([C@@H](C1=CC=CC=C1)O)NC",
+   "expect": [
+    "dea-i-12",
+    "dea-i-4"
+   ],
+   "why": "MATCHES BOTH, and both are listed. The entries say 'optical isomers'; this engine matches all stereoisomers, which additionally reaches DIASTEREOMERS -- and ephedrine and pseudoephedrine are diastereomers. Each matches its own entry EXACTLY and its partner's as an isomer, saying so on the finding. Broader than the entry's own words, and correct in its answer."
+  },
+  {
+   "name": "ephedrine hydrochloride",
+   "smiles": "C[C@@H]([C@@H](C1=CC=CC=C1)O)NC.Cl",
+   "expect": [
+    "dea-i-12",
+    "dea-i-4"
+   ],
+   "why": "The entry reaches 'its salts', and counter-ion stripping is what gets there."
   }
  ],
  "historical": [
