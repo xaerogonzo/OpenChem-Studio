@@ -3322,6 +3322,66 @@ Ruleset versions and coverage notes are marked ADVANCED so they do not
 bury the findings; "NOT checked" is deliberately STANDARD, because a gap
 in coverage is not specialist information.
 
+#### DATE-AWARE SCREENING: two mutations no shipped ruleset can catch
+
+`screen(as_of=...)` withholds rules taking effect after a date, and the
+whole feature is guarded by tests on FIXTURES rather than on the shipped
+rulesets. That is not a stylistic preference -- for two of them the shipped
+data is degenerate, and a guard written against it would pass while testing
+nothing.
+
+**THE BUILD ALREADY WROTE THE FALLBACK IN.**
+`tools/build_regulatory_rulesets.py` copies a ruleset's `effective_date`
+onto every rule that does not declare one, so in a shipped ruleset the
+engine's runtime fallback and the baked-in value always agree. Deleting
+`resolve_effective_date`'s ruleset branch therefore changes NOTHING
+measurable across all 91 rules. `loader.py` does no such copying, so a USER
+ruleset that dates itself and not its rules is the only thing that reaches
+that branch -- and a synthetic fixture is the only way to build one.
+Measured: that mutation is caught by
+`test_a_rule_with_no_date_takes_its_ruleset_s` and by nothing else in the
+suite.
+
+**AND EVERY SHIPPED RULE IS DATED IN THE PAST**, so defaulting `as_of` to
+`date.today()` instead of `None` gives identical answers on all 91 rules and
+on all four benchmark corpora. Only a rule dated in the FUTURE tells them
+apart, which is what
+`test_a_rule_dated_in_the_future_still_matches_an_undated_screen` exists
+for. Seven mutations were run; those two were caught by one test each.
+
+**THE DEFAULT THAT COULD HAVE GONE THE OTHER WAY.** An undated rule is NOT
+DATE-FILTERED -- and that wording is load-bearing rather than fussy, because
+"applies at every date" is a claim about history the data cannot support.
+The shipped split is 40 rules at 1997-04-29, 4 at 2020-06-07, and **47
+undated** (the whole DEA list, at rule and ruleset level), so treating an
+absent date as "never applicable" would silently empty a majority of the
+screen while looking exactly like a substance that is not listed.
+
+**A REFUSAL AND A DEGRADATION ARE OPPOSITE ANSWERS TO THE SAME BAD DATA,
+and which one is right depends on whose data it is.** A malformed
+`effective_date` inside a ruleset FILE degrades that one rule to undated and
+is reported (`ScreeningReport.malformed_effective_dates`), because one bad
+entry must not cost somebody every other rule -- the same policy as the
+existing `PredicateError` skip. A malformed date typed by the USER refuses
+the whole screen (`CacheState.FAILED`, no findings, no coverage rows),
+because there the QUESTION is broken: answering "what applied in 2019" with
+today's rulesets and a warning attached means the reader has to notice the
+warning to know they were given the wrong answer. The first draft of this
+had it falling back to an undated screen and was corrected in review.
+
+One parser serves both, with three states that must not collapse into two:
+absence is a VALUE (`None`), malformation is an EXCEPTION. The build lets it
+become a `BuildError`; the engine catches it. Neither calls
+`date.fromisoformat` itself, so they cannot drift.
+
+**A SHIPPED RULESET CARRIED A CLAIM THIS FEATURE FALSIFIED**, and a
+too-loose test assertion found it rather than review. Schedule 1's
+`known_limitations` said the 2019 additions' effective date "is recorded on
+the rules rather than enforced". `known_limitations` is prose inside DATA,
+so no docs guard covers it -- `tests/test_docs_are_current.py` reads
+markdown. Check a ruleset's own declared limits when you change what the
+engine does with that ruleset's fields.
+
 ### The right-hand panels are NOT tabified, and must not become so again
 
 Twelve panels shared one tabified dock group, and Qt gives such a group a

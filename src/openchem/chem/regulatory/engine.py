@@ -26,6 +26,28 @@ InChIKey comparison:
 Getting this wrong in either direction is a real error: too strict misses a
 hydrochloride, too loose flags an unrelated stereoisomer as the scheduled
 substance.
+
+DATES ARE A FILTER ON WHICH RULES RUN, NOT A CLAIM ABOUT HISTORY.
+`screen(as_of=...)` withholds rules taking effect after that calendar date,
+inclusively at the start, with no time of day and no timezone -- so the same
+question gets the same answer either side of a date line. Three properties
+hold it together, and each has a way of going quietly wrong:
+
+  * An UNDATED rule is not date-filtered, which is narrower than "applies at
+    every date" and deliberately so. 47 of the 91 shipped rules are undated,
+    so the opposite default would empty a majority of the file while looking
+    exactly like a substance that is not listed.
+  * A withheld rule produces no NEAR MISS either, which is why the skip is
+    in `screen()`'s loop rather than in `_apply`. A near miss names a rule
+    and says which of its features you have; reporting one for a rule that
+    did not yet exist would disclose future law while claiming to describe
+    the past.
+  * A rule's own date beats its ruleset's. The CWC is the case: a 1997
+    ruleset carrying four rules dated 2020.
+
+What this CANNOT say is when a rule stopped applying -- nothing records
+repeal or expiry -- so a dated screen answers when a rule STARTED and would
+report one since removed as though it still applied.
 """
 
 from __future__ import annotations
