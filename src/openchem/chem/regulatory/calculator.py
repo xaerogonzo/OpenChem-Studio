@@ -152,10 +152,22 @@ def compute_regulatory_screen(
     # same gap the coverage notes above were in before they became facts.
     # These are what a ruleset says it does NOT encode ("the 2019 additions
     # are not encoded", "listing is for verification thresholds and is not
-    # a prohibition"), so a rule that fails to match says nothing about
-    # them. STANDARD rather than ADVANCED for the reason "NOT checked" is:
-    # a gap in coverage is not specialist information, and hiding it is
-    # exactly the silence-read-as-reassurance this engine exists against.
+    # a prohibition"), so a rule that fails to match says nothing about them.
+    #
+    # ADVANCED, beside the coverage notes and ruleset versions, because it
+    # is the same KIND of thing: per-ruleset scope, identical for every
+    # molecule. `test_coverage_travels_in_provenance_not_in_every_row`
+    # makes that argument already.
+    #
+    # WHAT THAT FLAG DOES AND DOES NOT DO, measured rather than assumed:
+    # `FactView` hides ADVANCED facts unless asked for everything, so this
+    # keeps them out of the Details dialog's default view. The PROPERTY
+    # PANEL renders every fact whatever its detail -- deliberately, see the
+    # "EVERY fact, never a slice" comment at its render site -- so these
+    # nine lines DO appear there and this flag does not shorten it. An
+    # earlier version of this comment claimed the flag cut the panel from
+    # 21 rows to 12; it does not, and reading the panel's code is what
+    # showed so.
     for ruleset in report.rulesets_consulted:
         for limitation in ruleset.known_limitations:
             facts.append(
@@ -166,6 +178,7 @@ def compute_regulatory_screen(
                     display_value=limitation,
                     source="Regulatory",
                     basis=Basis.DETERMINISTIC,
+                    detail=Detail.ADVANCED,
                 )
             )
     for domain in report.domains_without_rulesets:

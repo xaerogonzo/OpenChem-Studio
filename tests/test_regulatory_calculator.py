@@ -124,15 +124,37 @@ def test_a_rulesets_own_limits_reach_the_screen(registry):
     assert any("not a prohibition" in fact.value.lower() for fact in limits), "Schedule 3 says so"
 
 
-def test_a_rulesets_limits_are_not_buried_as_specialist_detail(registry):
-    """Same reasoning as "NOT checked", which is deliberately STANDARD: a
-    gap in coverage is not specialist information. Ruleset versions and
-    coverage percentages are ADVANCED because they are bookkeeping; what a
-    ruleset cannot tell you is not."""
+def test_a_rulesets_limits_are_scope_and_are_marked_as_scope(registry):
+    """ADVANCED, with the coverage notes and ruleset versions: per-ruleset
+    scope, identical for every molecule, which is exactly the argument the
+    test below makes about not repeating it down 50,000 batch rows.
+
+    This governs the Details dialog, which hides ADVANCED facts by default.
+    It does NOT shorten the Property panel, which renders every fact
+    whatever its detail -- a first attempt at this test asserted it did."""
     from openchem.domain.report import Detail
 
-    limits = [fact for fact in _run(registry, ASPIRIN).facts if "does not cover" in fact.label]
-    assert limits and all(fact.detail is Detail.STANDARD for fact in limits)
+    facts = _run(registry, ASPIRIN).facts
+    limits = [fact for fact in facts if "does not cover" in fact.label]
+    assert limits and all(fact.detail is Detail.ADVANCED for fact in limits)
+
+    coverage = [fact for fact in facts if fact.label == "Coverage"]
+    assert coverage and all(fact.detail is Detail.ADVANCED for fact in coverage), (
+        "the siblings this is grouped with"
+    )
+
+
+def test_the_answer_comes_before_the_scope(registry):
+    """The Property panel renders facts in order and shows all of them, so
+    fact ORDER is what keeps a finding from being buried -- not the detail
+    flag. Aspirin's screen carries 26 facts and the one that says what
+    happened must not be twentieth."""
+    facts = _run(registry, ASPIRIN).facts
+    assert facts[0].label == "Regulatory Screen"
+
+    findings = _run(registry, SARIN).facts
+    assert findings[0].label == "Regulatory Screen"
+    assert "Schedule 1" in findings[0].display_value
 
 
 # --- Provenance ---------------------------------------------------------
