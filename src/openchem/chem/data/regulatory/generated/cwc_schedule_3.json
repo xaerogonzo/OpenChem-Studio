@@ -13,7 +13,8 @@
   "The Convention's declaration obligations turn on quantity and concentration. A structure carries neither, so this screen can say that a chemical is listed and can never say whether any obligation applies to anybody.",
   "Schedule 3 entries carry no 'and corresponding salts' wording, unlike several entries in Schedules 1 and 2. This screen strips counter-ions before comparing, so a salt of a listed chemical is reported as a match. That is broader than these entries' own text, and is reported here rather than silently applied.",
   "Entry 11, diethyl phosphite, is NOT ENCODED. Neither structure resolver returns the neutral substance the entry lists: PubChem's record for CAS 762-04-9 is a cation (C4H10O3P+) and OPSIN returns an anion (C4H10O3P-), where diethyl phosphite is the neutral H-phosphonate C4H11O3P. A structure typed by hand would not be traceable to the statute, so the entry is left unresolved and visible rather than guessed.",
-  "Mixtures are not considered. A match is on the listed chemical itself."
+  "Mixtures are not considered. A match is on the listed chemical itself.",
+  "Every encoded entry is confidence 'verified' rather than 'exact': each names a substance whose identity was checked against the CAS printed in the entry. 'exact' is reserved for a rule transcribing a structural specification the regulation itself gives, which Schedule 3 never does."
  ],
  "rules": [
   {
@@ -41,7 +42,7 @@
      "Identity resolved from the CAS number printed in the entry, not from its name."
     ],
     "limitations": [],
-    "confidence": "exact",
+    "confidence": "verified",
     "interpreter_version": 1,
     "inchikeys": [
      "YGYAWVDWMABLBF-UHFFFAOYSA-N"
@@ -73,7 +74,7 @@
      "Identity resolved from the CAS number printed in the entry, not from its name."
     ],
     "limitations": [],
-    "confidence": "exact",
+    "confidence": "verified",
     "interpreter_version": 1,
     "inchikeys": [
      "QPJDMGCKMHUXFD-UHFFFAOYSA-N"
@@ -105,7 +106,7 @@
      "Identity resolved from the CAS number printed in the entry, not from its name."
     ],
     "limitations": [],
-    "confidence": "exact",
+    "confidence": "verified",
     "interpreter_version": 1,
     "inchikeys": [
      "LELOWRISYMNNSU-UHFFFAOYSA-N"
@@ -137,7 +138,7 @@
      "Identity resolved from the CAS number printed in the entry, not from its name."
     ],
     "limitations": [],
-    "confidence": "exact",
+    "confidence": "verified",
     "interpreter_version": 1,
     "inchikeys": [
      "LFHISGNCFUNFFM-UHFFFAOYSA-N"
@@ -172,7 +173,7 @@
      "Identity resolved from the CAS number printed in the entry, not from its name."
     ],
     "limitations": [],
-    "confidence": "exact",
+    "confidence": "verified",
     "interpreter_version": 1,
     "inchikeys": [
      "XHXFXVLFKHQFAL-UHFFFAOYSA-N"
@@ -207,7 +208,7 @@
      "Identity resolved from the CAS number printed in the entry, not from its name."
     ],
     "limitations": [],
-    "confidence": "exact",
+    "confidence": "verified",
     "interpreter_version": 1,
     "inchikeys": [
      "FAIAAWCVCHQXDN-UHFFFAOYSA-N"
@@ -241,7 +242,7 @@
      "Identity resolved from the CAS number printed in the entry, not from its name."
     ],
     "limitations": [],
-    "confidence": "exact",
+    "confidence": "verified",
     "interpreter_version": 1,
     "inchikeys": [
      "UHZYTMXLRWXGPK-UHFFFAOYSA-N"
@@ -276,7 +277,7 @@
      "Identity resolved from the CAS number printed in the entry, not from its name."
     ],
     "limitations": [],
-    "confidence": "exact",
+    "confidence": "verified",
     "interpreter_version": 1,
     "inchikeys": [
      "CYTQBVOFDCPGCX-UHFFFAOYSA-N"
@@ -311,7 +312,7 @@
      "Identity resolved from the CAS number printed in the entry, not from its name."
     ],
     "limitations": [],
-    "confidence": "exact",
+    "confidence": "verified",
     "interpreter_version": 1,
     "inchikeys": [
      "BDZBKCUKTQZUTL-UHFFFAOYSA-N"
@@ -345,7 +346,7 @@
      "Identity resolved from the CAS number printed in the entry, not from its name. The two differ here: a name lookup through OPSIN returns C2H6O3P-, an anion, where the entry lists the neutral C2H7O3P."
     ],
     "limitations": [],
-    "confidence": "exact",
+    "confidence": "verified",
     "interpreter_version": 1,
     "inchikeys": [
      "HZCDANOFLILNSA-UHFFFAOYSA-N"
@@ -380,7 +381,7 @@
      "Identity resolved from the CAS number printed in the entry, not from its name. Both resolvers get this name wrong: OPSIN returns ClS and a PubChem name lookup returns HClS, where the entry lists Cl2S2. The spelling matters too -- 'Sulphur monochloride' and 'Sulfur monochloride' resolve to different structures through PubChem, and the OPCW spells it 'Sulfur'."
     ],
     "limitations": [],
-    "confidence": "exact",
+    "confidence": "verified",
     "interpreter_version": 1,
     "inchikeys": [
      "PXJJSXABGXMUSU-UHFFFAOYSA-N"
@@ -415,7 +416,7 @@
      "Identity resolved from the CAS number printed in the entry, not from its name."
     ],
     "limitations": [],
-    "confidence": "exact",
+    "confidence": "verified",
     "interpreter_version": 1,
     "inchikeys": [
      "FWMUJAIKEJWSSY-UHFFFAOYSA-N"
@@ -450,7 +451,7 @@
      "Identity resolved from the CAS number printed in the entry, not from its name."
     ],
     "limitations": [],
-    "confidence": "exact",
+    "confidence": "verified",
     "interpreter_version": 1,
     "inchikeys": [
      "FYSNRJHAOHDILO-UHFFFAOYSA-N"
@@ -485,7 +486,7 @@
      "Identity resolved from the CAS number printed in the entry, not from its name."
     ],
     "limitations": [],
-    "confidence": "exact",
+    "confidence": "verified",
     "interpreter_version": 1,
     "inchikeys": [
      "AKNUHUCEWALCOI-UHFFFAOYSA-N"
@@ -520,7 +521,7 @@
      "Identity resolved from the CAS number printed in the entry, not from its name."
     ],
     "limitations": [],
-    "confidence": "exact",
+    "confidence": "verified",
     "interpreter_version": 1,
     "inchikeys": [
      "CRVGTESFCCXCTH-UHFFFAOYSA-N"
@@ -555,7 +556,7 @@
      "Identity resolved from the CAS number printed in the entry, not from its name."
     ],
     "limitations": [],
-    "confidence": "exact",
+    "confidence": "verified",
     "interpreter_version": 1,
     "inchikeys": [
      "GSEJCLTVZPLZKY-UHFFFAOYSA-N"
@@ -578,10 +579,10 @@
  "provenance": {
   "generator": "build_regulatory_rulesets.py",
   "generator_version": "1",
-  "generated_at": "2026-08-15T16:33:35+00:00",
-  "source_document_sha256": "aa421945df3eebb180019498f8c49dcb3393a08095ac6b1b39767a8385ef0685",
+  "generated_at": "2026-08-15T16:59:42+00:00",
+  "source_document_sha256": "5b71135a77e13c3dfa7040b878db14caf06186a0f81df0cc9159eacb54132788",
   "rdkit_version": "2025.09.6",
   "opsin_version": "1.2.0",
-  "ruleset_sha256": "27cf8b9b596a7ee204c04435cea6a272bdbc5d08e05232df2a4ee040a471667e"
+  "ruleset_sha256": "d8cbfab973b4f19e87e03d359c49366617bdfc67a25224e5ba0c3e6606cefb25"
  }
 }

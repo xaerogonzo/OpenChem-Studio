@@ -143,8 +143,18 @@ def test_the_treaty_s_alkyl_restriction_is_honoured(engine):
 
 def test_the_carbon_limit_is_honoured(engine):
     """"equal to or less than C10, including cycloalkyl" -- a clause no
-    SMARTS expresses, which is why rules are a predicate language."""
-    assert not engine.screen(_mol("CCCCCCCCCCCCOP(C)(=O)F")).matched
+    SMARTS expresses, which is why rules are a predicate language.
+
+    The assertion is scoped to SCHEDULE 1, which is what the clause belongs
+    to. It read "matches nothing at all" while Schedule 1 was the only
+    ruleset, and that stopped being the same statement the moment Schedule
+    2 shipped: the C12 chain hangs off the oxygen, so the phosphorus still
+    carries one methyl and no other carbon, and entry B.4 catches it.
+    Outside Schedule 1 and inside Schedule 2 is the right answer.
+    """
+    findings = engine.screen(_mol("CCCCCCCCCCCCOP(C)(=O)F")).findings
+    assert not [f for f in findings if f.rule.rule_id.startswith("cwc-1-")]
+    assert [f.rule.rule_id for f in findings] == ["cwc-2-b-4"]
 
 
 @pytest.mark.parametrize(
@@ -314,6 +324,89 @@ def test_the_entry_no_resolver_could_reach_is_visible_not_missing():
     assert ruleset.coverage.resolved == 16
     assert any("cwc-3-b-11" in item for item in ruleset.coverage.unresolved)
     assert any("diethyl phosphite" in note.lower() for note in ruleset.known_limitations)
+
+
+# --- Schedule 2: generic families, and the exemptions inside them -------
+
+
+def test_a_schedule_2_family_honours_its_alkyl_restriction(engine):
+    """Five entries say "(Me, Et, n-Pr or i-Pr)" and mean it. A pattern that
+    accepted any alkyl would match a great deal of ordinary chemistry."""
+    assert [f.rule.rule_id for f in
+            engine.screen(_mol("CC(C)N(C(C)C)CCO")).findings] == ["cwc-2-b-11"]
+    assert not engine.screen(_mol("CCCCN(CCCC)CCO")).matched, "N,N-dibutyl is outside"
+
+
+@pytest.mark.parametrize(
+    "name,smiles",
+    [("fonofos, exempted from B.4", "CCOP(=S)(CC)Sc1ccccc1"),
+     ("N,N-dimethylaminoethanol, exempted from B.11", "CN(C)CCO"),
+     ("N,N-diethylaminoethanol, exempted from B.11", "CCN(CC)CCO"),
+     ("a protonated salt of an exempt chemical", "CN(C)CCO.Cl")],
+)
+def test_an_exempted_chemical_does_not_match(engine, name, smiles):
+    """The treaty exempts these BY NAME, and each one's family pattern hits
+    it -- so without the exemption every one is a false positive on a
+    chemical in ordinary commerce."""
+    assert not engine.screen(_mol(smiles)).matched, name
+
+
+def test_the_exemption_does_not_excuse_a_larger_molecule_that_contains_it(engine):
+    """An exemption names a CHEMICAL. A bare substructure exemption would
+    also excuse anything containing it, which is why each is a skeleton
+    plus an exact carbon count."""
+    findings = engine.screen(_mol("CCOP(=S)(CC)Sc1ccc(CCCC)cc1")).findings
+    assert [f.rule.rule_id for f in findings] == ["cwc-2-b-4"]
+
+
+def test_entry_B4_requires_ONE_alkyl_and_no_further_carbon(engine):
+    """"...to which is bonded one methyl, ethyl or propyl group BUT NOT
+    FURTHER CARBON ATOMS". Without that clause the entry would reach a
+    large part of organophosphorus chemistry.
+
+    Added after a mutation deleting the clause survived the whole file: the
+    case was in the pattern's prototype and never carried into a shipped
+    guard, which is how a clause ends up load-bearing and untested.
+    """
+    assert engine.screen(_mol("CP(=O)(Cl)Cl")).matched, "one methyl, nothing else"
+    assert not engine.screen(_mol("CP(=O)(C)OC")).matched, "two methyls on the phosphorus"
+    assert not engine.screen(_mol("c1ccccc1P(c1ccccc1)c1ccccc1")).matched
+
+
+def test_entry_B4_constrains_ONE_phosphorus_not_the_molecule(engine):
+    """WHY B.4 IS A SINGLE RECURSIVE SMARTS rather than the feature
+    checklist this project prefers elsewhere.
+
+    Every clause constrains the same phosphorus. Written as a checklist --
+    "contains a P-alkyl" AND "no phosphorus carries two carbons" -- this
+    molecule would be REJECTED, because its second phosphorus carries two
+    methyls, even though its first satisfies the entry exactly.
+    """
+    assert engine.screen(_mol("CP(=O)(Cl)OP(=O)(C)C")).matched
+
+
+def test_a_schedule_1_agent_also_matches_B4_and_the_rule_says_why(engine):
+    """B.4 opens "except for those listed in Schedule 1" and nothing here
+    can exclude another ruleset's members. Pinned so the overlap stays a
+    recorded decision: it over-reports and never under-reports, and the
+    limitation travels with the finding rather than living only in a doc."""
+    findings = engine.screen(_mol(SARIN)).findings
+    assert [f.rule.rule_id for f in findings] == ["cwc-1-a-1", "cwc-2-b-4"]
+
+    b4 = next(f.rule for f in findings if f.rule.rule_id == "cwc-2-b-4")
+    assert any("Schedule 1" in text for text in b4.interpretation.limitations)
+
+
+def test_an_identity_rule_is_confidence_verified_not_exact():
+    """The vocabulary distinguishes them and flattening it loses the one
+    thing an auditor most needs. `exact` means the regulation gave a
+    structural specification and the pattern transcribes it; `verified`
+    means a named substance whose identity was checked against the primary
+    text. Every keyed rule here is the second."""
+    for ruleset in load_all(include_user=False)[0]:
+        for rule in ruleset.rules:
+            if rule.interpretation.inchikeys:
+                assert rule.interpretation.confidence is RuleConfidence.VERIFIED, rule.rule_id
 
 
 def test_every_shipped_rule_is_exercised_by_the_benchmark_corpus():

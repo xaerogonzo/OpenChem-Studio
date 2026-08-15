@@ -4,6 +4,34 @@
 python benchmarks/regulatory/score.py
 ```
 
+## Result, CWC Schedules 1, 2 and 3, 76 structures across 4 corpora
+
+Schedule 2 is the interesting one: six generic families with alkyl
+restrictions, and three exemptions the treaty grants by name. Every family
+pattern hits its own exemption, so without them fonofos,
+N,N-dimethylaminoethanol and N,N-diethylaminoethanol — all in ordinary
+commerce — would be false positives. Each exemption is a skeleton plus an
+exact carbon count, which covers the chemical and its salts without
+excusing a larger molecule that merely contains the fragment. All four
+cases are in `edge_cases`.
+
+**Adding Schedule 2 falsified three corpus entries, and all three were the
+corpus being stale rather than a rule being wrong.** Worth recording,
+because "a test failed" was the wrong first reading each time:
+
+- **thiodiglycol** sat in `negatives` labelled "Schedule 2, not Schedule 1".
+  It meant *must not match Schedule 1*, and asserted *must match nothing*.
+  It is a Schedule 2 chemical and now matches B.13.
+- **the C12 O-alkyl homologue** and **IMPA** were Schedule 1 edge cases
+  expecting no match. Both are correctly Schedule 2 B.4 chemicals: the long
+  chain hangs off the oxygen, and losing sarin's fluorine still leaves a
+  phosphorus with one methyl and no other carbon.
+- **sarin, soman, VX** and one homologue now match B.4 as well as their own
+  Schedule 1 entries, because B.4 opens "except for those listed in
+  Schedule 1" and no rule here can exclude another ruleset's members. It
+  over-reports and never under-reports, the rule carries that limitation in
+  its own text, and an edge case pins it.
+
 ## Result, CWC Schedules 1 and 3, 52 structures across 4 corpora
 
 Schedule 3 adds 17 entries, 16 of them encoded, and every one scores

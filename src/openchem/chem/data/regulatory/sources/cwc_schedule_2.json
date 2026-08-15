@@ -1,0 +1,342 @@
+{
+ "ruleset_id": "cwc-schedule-2",
+ "display_name": "CWC Schedule 2",
+ "domain": "chemical_weapons",
+ "jurisdiction": "international",
+ "version": "1",
+ "effective_date": "1997-04-29",
+ "source_citation": "Convention on the Prohibition of the Development, Production, Stockpiling and Use of Chemical Weapons and on their Destruction, Annex on Chemicals, Schedule 2. Text as published by the OPCW, accessed 2026-08-15.",
+ "citation_url": "https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-2",
+ "known_limitations": [
+  "SCHEDULE 2 LISTING IS NOT A PROHIBITION. These chemicals are listed so that production, processing, consumption and transfer above certain quantities are declared and may be verified. The Convention's obligations turn on quantity and concentration, which a structure carries neither of.",
+  "ENTRY B.4 CANNOT EXPRESS ITS OWN EXCEPTION. The entry reads 'Chemicals, except for those listed in Schedule 1, ...', and this engine has no way for a rule in one ruleset to exclude the members of another. So a Schedule 1 organophosphorus agent -- sarin, soman, VX, DF, QL, chlorosarin, chlorosoman -- matches B.4 as well as its own Schedule 1 entry. Both findings are shown; the Schedule 1 one is the operative one. Over-reports and never under-reports.",
+  "The B.4 and B.11 exemptions are matched as a skeleton plus an exact carbon count, which identifies the exempt chemical and its salts but cannot distinguish it from a MIXTURE containing it. A mixture is reported as a match. Mixtures are outside what this screen considers in any case.",
+  "'And corresponding alkylated or protonated salts' (entry A.1) is only partly encoded. A protonated salt is reached, because counter-ions are stripped before an identity comparison. An ALKYLATED salt is a different structure -- a quaternary ammonium -- and is not matched by an identity rule. Entries B.10, B.11 and B.12 say only 'protonated salts', and those are reached both by salt-stripping and by the patterns accepting a protonated nitrogen directly.",
+  "The footnote marker '(*)' on entry A.3 (BZ) is present in the source text and its footnote is not reproduced on the cited page. Nothing here depends on it -- BZ is identified by name and CAS -- but the marker is recorded rather than silently dropped.",
+  "The generic entries are read as the Schedule writes them: the alkyl groups named are exactly methyl, ethyl, n-propyl and isopropyl, unsubstituted. A P-(2-hydroxyethyl) or a P-butyl group is outside the entry and is not matched."
+ ],
+ "rules": [
+  {
+   "rule_id": "cwc-2-a-1",
+   "display_name": "Amiton (Schedule 2, A.1)",
+   "match_type": "identity",
+   "confidence": "verified",
+   "description": "A phosphorothiolate insecticide withdrawn from use on toxicity grounds.",
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 2, A.1",
+    "quote": "Amiton: O,O-Diethyl S-[2-(diethylamino)ethyl] phosphorothiolate and corresponding alkylated or protonated salts",
+    "cited_identifiers": {"CAS": "78-53-5"}
+   },
+   "assumptions": [
+    "Identity resolved from the CAS number printed in the entry, not from its name."
+   ],
+   "limitations": [
+    "The entry reaches 'corresponding alkylated or protonated salts'. A protonated salt is matched, because counter-ions are stripped before comparison; an alkylated salt is a quaternary ammonium, a different structure, and is not."
+   ],
+   "inchikeys": ["PJISLFCKHOHLLP-UHFFFAOYSA-N"]
+  },
+  {
+   "rule_id": "cwc-2-a-2",
+   "display_name": "PFIB (Schedule 2, A.2)",
+   "match_type": "identity",
+   "confidence": "verified",
+   "description": "Perfluoroisobutylene, a pyrolysis product of fluoropolymers.",
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 2, A.2",
+    "quote": "PFIB: 1,1,3,3,3-Pentafluoro-2-(trifluoromethyl)-1-propene",
+    "cited_identifiers": {"CAS": "382-21-8"}
+   },
+   "assumptions": [
+    "Identity resolved from the CAS number printed in the entry, not from its name."
+   ],
+   "inchikeys": ["DAFIBNSJXIGBQB-UHFFFAOYSA-N"]
+  },
+  {
+   "rule_id": "cwc-2-a-3",
+   "display_name": "BZ (Schedule 2, A.3)",
+   "match_type": "identity",
+   "confidence": "verified",
+   "description": "3-Quinuclidinyl benzilate, an anticholinergic incapacitant.",
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 2, A.3",
+    "quote": "BZ: 3-Quinuclidinyl benzilate (*)",
+    "cited_identifiers": {"CAS": "6581-06-2"}
+   },
+   "assumptions": [
+    "Identity resolved from the CAS number printed in the entry, not from its name.",
+    "The quote carries the footnote marker '(*)' as printed. Its footnote is not reproduced on the cited page and nothing in this rule depends on it."
+   ],
+   "inchikeys": ["HGMITUYOCPPQLE-UHFFFAOYSA-N"]
+  },
+  {
+   "rule_id": "cwc-2-b-4",
+   "display_name": "Phosphorus with one methyl, ethyl or propyl group (Schedule 2, B.4)",
+   "match_type": "precursor",
+   "confidence": "approximate",
+   "description": "The broadest entry in Schedule 2, and the one whose exception cannot be expressed here.",
+   "legitimate_uses": [
+    "dimethyl methylphosphonate is a flame retardant and a common laboratory reagent",
+    "this class includes many ordinary organophosphorus intermediates"
+   ],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 2, B.4",
+    "quote": "Chemicals, except for those listed in Schedule 1, containing a phosphorus atom to which is bonded one methyl, ethyl or propyl (normal or iso) group but not further carbon atoms",
+    "cited_identifiers": {"CAS": "676-97-1", "CAS_exemption_fonofos": "944-22-9"}
+   },
+   "assumptions": [
+    "Written as ONE recursive SMARTS rather than the feature checklist used elsewhere in this project, because every clause constrains the SAME phosphorus atom. A checklist could satisfy each clause on a different phosphorus in the same molecule.",
+    "'One methyl, ethyl or propyl group ... but not further carbon atoms' is read as: the phosphorus has exactly one carbon neighbour, and that carbon begins an unsubstituted methyl, ethyl, n-propyl or isopropyl group.",
+    "The Fonofos exemption is matched as its skeleton plus a carbon count of 10, so the exempt chemical and its salts are excused while a larger molecule that merely contains the skeleton is not."
+   ],
+   "limitations": [
+    "The entry's opening exception, 'except for those listed in Schedule 1', is NOT implemented: no rule here can exclude the members of another ruleset. Schedule 1 organophosphorus agents therefore match this entry as well as their own, and both findings are shown. This over-reports and never under-reports."
+   ],
+   "expression": {
+    "op": "all",
+    "of": [
+     {"op": "contains",
+      "smarts": "[#15;$([#15][CH3]),$([#15][CH2][CH3]),$([#15][CH2][CH2][CH3]),$([#15][CH]([CH3])[CH3]);!$([#15](-[#6])-[#6])]",
+      "label": "a phosphorus bonded to one methyl, ethyl or propyl group and no other carbon"},
+     {"op": "not", "of": [
+      {"op": "all", "label": "exemption: Fonofos", "of": [
+       {"op": "contains", "smarts": "CCOP(=S)(CC)Sc1ccccc1", "label": "the Fonofos skeleton"},
+       {"op": "element_count", "element": "C", "equals": 10, "label": "exactly 10 carbons"}]}]}
+    ]
+   }
+  },
+  {
+   "rule_id": "cwc-2-b-5",
+   "display_name": "N,N-Dialkyl phosphoramidic dihalides (Schedule 2, B.5)",
+   "match_type": "precursor",
+   "confidence": "exact",
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 2, B.5",
+    "quote": "N,N-Dialkyl (Me, Et, n-Pr or i-Pr) phosphoramidic dihalides"
+   },
+   "assumptions": [
+    "'Dihalide' is read as fluoride, chloride, bromide or iodide.",
+    "'Phosphoramidic' is read as the phosphoryl form, P(=O), which is what the name denotes."
+   ],
+   "expression": {
+    "op": "contains",
+    "smarts": "[#7;X3,X4+]([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])[PX4](=O)([F,Cl,Br,I])[F,Cl,Br,I]",
+    "label": "N,N-dialkyl (Me, Et, n-Pr or i-Pr) phosphoramidic dihalide"
+   }
+  },
+  {
+   "rule_id": "cwc-2-b-6",
+   "display_name": "Dialkyl N,N-dialkylphosphoramidates (Schedule 2, B.6)",
+   "match_type": "precursor",
+   "confidence": "exact",
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 2, B.6",
+    "quote": "Dialkyl (Me, Et, n-Pr or i-Pr) N,N-dialkyl (Me, Et, n-Pr or i-Pr)-phosphoramidates"
+   },
+   "assumptions": [
+    "Both alkyl sets are restricted to methyl, ethyl, n-propyl and isopropyl, as the entry names them twice."
+   ],
+   "expression": {
+    "op": "contains",
+    "smarts": "[#7;X3,X4+]([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])[PX4](=O)(O[$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])O[$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])]",
+    "label": "dialkyl N,N-dialkylphosphoramidate, both alkyl sets Me/Et/n-Pr/i-Pr"
+   }
+  },
+  {
+   "rule_id": "cwc-2-b-7",
+   "display_name": "Arsenic trichloride (Schedule 2, B.7)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legitimate_uses": [
+    "manufacture of arsenical pharmaceuticals and semiconductor-grade arsenic compounds"
+   ],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 2, B.7",
+    "quote": "Arsenic trichloride",
+    "cited_identifiers": {"CAS": "7784-34-1"}
+   },
+   "assumptions": [
+    "Identity resolved from the CAS number printed in the entry, not from its name."
+   ],
+   "inchikeys": ["OEYOHULQRFXULB-UHFFFAOYSA-N"]
+  },
+  {
+   "rule_id": "cwc-2-b-8",
+   "display_name": "Benzilic acid (Schedule 2, B.8)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legitimate_uses": [
+    "an intermediate in the manufacture of antispasmodic and anticholinergic medicines"
+   ],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 2, B.8",
+    "quote": "2,2-Diphenyl-2-hydroxyacetic acid",
+    "cited_identifiers": {"CAS": "76-93-7"}
+   },
+   "assumptions": [
+    "Identity resolved from the CAS number printed in the entry, not from its name."
+   ],
+   "inchikeys": ["UKXSKSHDVLQNKG-UHFFFAOYSA-N"]
+  },
+  {
+   "rule_id": "cwc-2-b-9",
+   "display_name": "Quinuclidin-3-ol (Schedule 2, B.9)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legitimate_uses": [
+    "an intermediate in the manufacture of several medicines, including solifenacin and aclidinium"
+   ],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 2, B.9",
+    "quote": "Quinuclidin-3-ol",
+    "cited_identifiers": {"CAS": "1619-34-7"}
+   },
+   "assumptions": [
+    "Identity resolved from the CAS number printed in the entry, not from its name. The entry names no stereochemistry and the resolved structure carries none, so both enantiomers of quinuclidin-3-ol reach this rule through the engine's stereo-insensitive comparison."
+   ],
+   "inchikeys": ["IVLICPVPXWEGCA-UHFFFAOYSA-N"]
+  },
+  {
+   "rule_id": "cwc-2-b-10",
+   "display_name": "N,N-Dialkyl aminoethyl-2-chlorides (Schedule 2, B.10)",
+   "match_type": "precursor",
+   "confidence": "exact",
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 2, B.10",
+    "quote": "N,N-Dialkyl (Me, Et, n-Pr or i-Pr) aminoethyl-2-chlorides and corresponding protonated salts"
+   },
+   "assumptions": [
+    "The pattern accepts a protonated nitrogen directly as well as a neutral one, so 'and corresponding protonated salts' is reached whether or not the counter-ion was stripped first."
+   ],
+   "expression": {
+    "op": "contains",
+    "smarts": "[#7;X3,X4+]([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])[CH2][CH2]Cl",
+    "label": "N,N-dialkyl (Me, Et, n-Pr or i-Pr) aminoethyl-2-chloride"
+   }
+  },
+  {
+   "rule_id": "cwc-2-b-11",
+   "display_name": "N,N-Dialkyl aminoethane-2-ols (Schedule 2, B.11)",
+   "match_type": "precursor",
+   "confidence": "approximate",
+   "description": "Carries two exemptions, both for chemicals in ordinary commerce.",
+   "legitimate_uses": [
+    "N,N-dimethylaminoethanol and N,N-diethylaminoethanol are exempted by the entry itself and are widely sold",
+    "this class is used in surfactant, coating and pharmaceutical manufacture"
+   ],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 2, B.11",
+    "quote": "N,N-Dialkyl (Me, Et, n-Pr or i-Pr) aminoethane-2-ols and corresponding protonated salts",
+    "cited_identifiers": {
+     "CAS_exemption_dimethylaminoethanol": "108-01-0",
+     "CAS_exemption_diethylaminoethanol": "100-37-8"
+    }
+   },
+   "assumptions": [
+    "The two exempted chemicals are matched as a skeleton plus an exact carbon count, so each exemption covers the chemical and its salts without excusing a larger molecule that merely contains the fragment.",
+    "The entry exempts both 'and corresponding protonated salts', which the carbon count preserves because a counter-ion adds no carbon."
+   ],
+   "limitations": [
+    "Confidence is 'approximate' because the exemptions are identified by skeleton and carbon count rather than by identity: a MIXTURE containing an exempt chemical is reported as a match."
+   ],
+   "expression": {
+    "op": "all",
+    "of": [
+     {"op": "contains",
+      "smarts": "[#7;X3,X4+]([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])[CH2][CH2][OX2H]",
+      "label": "N,N-dialkyl (Me, Et, n-Pr or i-Pr) aminoethane-2-ol"},
+     {"op": "not", "of": [
+      {"op": "all", "label": "exemption: N,N-dimethylaminoethanol", "of": [
+       {"op": "contains", "smarts": "CN(C)CCO", "label": "the N,N-dimethylaminoethanol skeleton"},
+       {"op": "element_count", "element": "C", "equals": 4, "label": "exactly 4 carbons"}]}]},
+     {"op": "not", "of": [
+      {"op": "all", "label": "exemption: N,N-diethylaminoethanol", "of": [
+       {"op": "contains", "smarts": "CCN(CC)CCO", "label": "the N,N-diethylaminoethanol skeleton"},
+       {"op": "element_count", "element": "C", "equals": 6, "label": "exactly 6 carbons"}]}]}
+    ]
+   }
+  },
+  {
+   "rule_id": "cwc-2-b-12",
+   "display_name": "N,N-Dialkyl aminoethane-2-thiols (Schedule 2, B.12)",
+   "match_type": "precursor",
+   "confidence": "exact",
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 2, B.12",
+    "quote": "N,N-Dialkyl (Me, Et, n-Pr or i-Pr) aminoethane-2-thiols and corresponding protonated salts"
+   },
+   "assumptions": [
+    "The pattern accepts a protonated nitrogen directly as well as a neutral one."
+   ],
+   "expression": {
+    "op": "contains",
+    "smarts": "[#7;X3,X4+]([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])([$([CH3]),$([CH2][CH3]),$([CH2][CH2][CH3]),$([CH]([CH3])[CH3])])[CH2][CH2][SX2H]",
+    "label": "N,N-dialkyl (Me, Et, n-Pr or i-Pr) aminoethane-2-thiol"
+   }
+  },
+  {
+   "rule_id": "cwc-2-b-13",
+   "display_name": "Thiodiglycol (Schedule 2, B.13)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legitimate_uses": [
+    "a solvent in water-based inks and textile dyeing",
+    "an intermediate in surfactant and lubricant manufacture"
+   ],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 2, B.13",
+    "quote": "Thiodiglycol: Bis(2-hydroxyethyl)sulfide",
+    "cited_identifiers": {"CAS": "111-48-8"}
+   },
+   "assumptions": [
+    "Identity resolved from the CAS number printed in the entry, not from its name."
+   ],
+   "inchikeys": ["YODZTKMDCQEPHD-UHFFFAOYSA-N"]
+  },
+  {
+   "rule_id": "cwc-2-b-14",
+   "display_name": "Pinacolyl alcohol (Schedule 2, B.14)",
+   "match_type": "precursor",
+   "confidence": "verified",
+   "legitimate_uses": [
+    "a laboratory reagent and an intermediate in fine-chemical synthesis"
+   ],
+   "legal": {
+    "authority": "OPCW",
+    "instrument": "CWC Annex on Chemicals",
+    "section": "Schedule 2, B.14",
+    "quote": "Pinacolyl alcohol: 3,3-Dimethylbutan-2-ol",
+    "cited_identifiers": {"CAS": "464-07-3"}
+   },
+   "assumptions": [
+    "Identity resolved from the CAS number printed in the entry, not from its name. The entry names no stereochemistry; both enantiomers reach this rule through the engine's stereo-insensitive comparison."
+   ],
+   "inchikeys": ["DFOXKPDFWGNLJU-UHFFFAOYSA-N"]
+  }
+ ]
+}
