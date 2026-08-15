@@ -196,5 +196,14 @@ not Schedule 1. Also here: a P-butyl homologue (outside the entry's
 (no fluorine, so outside the entry despite being a famous marker).
 
 **`historical`** is reserved for structures whose status *changed*, the
-only way to test that effective-date resolution works. Empty until a
-superseding ruleset ships, and documented as such rather than omitted.
+only way to test that effective-date resolution works. **Still empty, and
+the reason is now measured rather than assumed: there is no per-rule
+effective-date resolution to test.** `screen()` takes no date, and the only
+date-like machinery is ruleset-level `supersedes`.
+
+Encoding the CWC 2019 additions did not change that, though it looked as
+though it would. Entries A.13–A.16 carry `effective_date` 2020-06-07 as
+recorded provenance on rules inside the *current* ruleset — the engine
+never screens against it, so there is no before-and-after to assert.
+Populating this corpus needs date-aware screening first, which is a feature
+rather than a fixture.

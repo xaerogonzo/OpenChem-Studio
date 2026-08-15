@@ -19,7 +19,7 @@ from rdkit import Chem
 from openchem.chem.regulatory.engine import RegulatoryEngine
 from openchem.chem.regulatory.loader import SHIPPED_ROOT, load_all, load_ruleset
 from openchem.chem.regulatory.predicates import SUPPORTED_OPS
-from openchem.chem.regulatory.types import RuleConfidence
+from openchem.chem.regulatory.types import Domain, RuleConfidence
 
 REPO = Path(__file__).resolve().parent.parent
 SOURCES = REPO / "src" / "openchem" / "chem" / "data" / "regulatory" / "sources"
@@ -381,6 +381,52 @@ def test_no_everyday_substance_is_NEAR_any_shipped_rule(engine, name, smiles):
         f"{name} is near {[n.rule.rule_id for n in report.near_misses]} on "
         f"{[o.label for n in report.near_misses for o in n.outcomes if o.passed]}"
     )
+
+
+def test_every_declared_domain_is_accounted_for_exactly_once(engine):
+    """COVERAGE AS A RECONCILIATION, not a display.
+
+    The report's own claim is that a reader can tell "checked, nothing
+    matched" from "never checked". That only holds if the two sets between
+    them cover every declared domain and overlap in none of it -- a domain
+    in neither is invisible, which is the exact failure this engine exists
+    against, and a domain in both is a report contradicting itself.
+
+    Written against the SHIPPED rulesets rather than a fixture, because the
+    thing that rots is the shipped set: `inapplicable_calculators` rotted
+    into 27 wrong entries by being a hand-kept list nobody revisited.
+    """
+    report = engine.screen(_mol("CCO"))
+    covered = {ruleset.domain for ruleset in report.rulesets_consulted}
+    uncovered = set(report.domains_without_rulesets)
+
+    assert covered | uncovered == set(Domain), (
+        "domains in neither set", set(Domain) - (covered | uncovered))
+    assert not (covered & uncovered), ("domains in both", covered & uncovered)
+
+
+def test_no_coverage_note_names_a_ruleset_that_is_not_loaded(engine):
+    """The other direction: coverage must not describe something absent."""
+    report = engine.screen(_mol("CCO"))
+    loaded = {ruleset.display_name for ruleset in report.rulesets_consulted}
+
+    for note in report.coverage_notes():
+        if note.startswith("Not checked"):
+            continue
+        assert any(note.startswith(name) for name in loaded), note
+
+
+def test_a_populated_domain_never_reports_itself_unchecked(engine):
+    """The specific confusion this guards: all four rulesets were
+    `chemical_weapons` until the DEA one landed, so a bug that reported a
+    populated domain as unchecked would have been invisible with one domain
+    and is not with two."""
+    report = engine.screen(_mol("CCO"))
+    unchecked = set(report.domains_without_rulesets)
+
+    assert Domain.CHEMICAL_WEAPONS not in unchecked
+    assert Domain.DRUG_PRECURSORS not in unchecked
+    assert Domain.FOOD in unchecked, "still genuinely empty"
 
 
 def test_a_second_domain_is_populated():

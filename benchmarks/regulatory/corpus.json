@@ -1015,11 +1015,23 @@
     "dea-i-4"
    ],
    "why": "The entry reaches 'its salts', and counter-ion stripping is what gets there."
+  },
+  {
+   "name": "red phosphorus (DEA List I.26, deliberately unencoded)",
+   "smiles": "[P]",
+   "expect": [],
+   "why": "NOT ENCODED, and scored as a no-match so the gap stays countable. Entries I.26 and I.27 are red and white phosphorus -- ALLOTROPES, the same element in different solid forms, listed separately with separate DEA codes and not distinguishable by structure at all. PubChem's own systematic name for both records is 'phosphane', which is PH3 rather than elemental phosphorus, so no resolver reaches either. This is the 'one name the resolver cannot confidently resolve' case for this ruleset, matching diethyl phosphite for CWC Schedule 3."
+  },
+  {
+   "name": "phosphine (what a resolver returns for 'phosphorus')",
+   "smiles": "P",
+   "expect": [],
+   "why": "The wrong structure both resolvers land on. It must not match, and its absence is what shows the two phosphorus entries were refused rather than encoded from a bad lookup."
   }
  ],
  "historical": [
   {
-   "_note": "Reserved for structures whose regulatory status CHANGED, which is the only way to test that effective-date resolution works. Empty because the shipped ruleset carries a single revision; populate when a superseding ruleset ships."
+   "_note": "Reserved for structures whose regulatory status CHANGED, which is the only way to test that effective-date resolution works. STILL EMPTY, and the reason is now known rather than assumed: the engine has no per-rule effective-date resolution at all. `screen()` takes no date, and the only date-like machinery is ruleset-level `supersedes`, which retires a whole ruleset when a revision is dropped in. So encoding the CWC 2019 additions did NOT populate this corpus -- they carry `effective_date` 2020-06-07 as recorded provenance on rules inside the current ruleset, not as something the engine screens against. Populating this needs date-aware screening first, which is a feature and not a fixture."
   }
  ]
 }
