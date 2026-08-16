@@ -366,9 +366,22 @@ it).
   This project's own working directory contains a space
   (`...\OpenChem Studio\`), which ORCA's documentation warns against —
   every job's scratch directory is created under
-  `platformdirs.user_cache_dir(...)` instead, with cleanup guaranteed via
-  `try`/`finally` covering success, cancellation, crash, and parse-failure
-  alike.
+  `paths.space_free_cache_root()` instead, and cleanup is called from a
+  `try`/`finally` covering success, cancellation, crash, and
+  parse-failure alike.
+
+  **Two things this used to say more strongly than it could.** It named
+  `platformdirs.user_cache_dir(...)`, which is only where that root lands
+  when nothing is configured — it follows the CONFIGURABLE data root, and
+  relocates to the drive anchor when that contains a space, which is the
+  whole reason `space_free_cache_root()` exists. And it said cleanup was
+  "guaranteed" by the `finally`: the `finally` guarantees the CALL, never
+  the removal. The call was `shutil.rmtree(..., ignore_errors=True)`,
+  which cannot raise and therefore could fail silently — on Windows it
+  reliably did, because the directory is the killed process's working
+  directory and the OS holds it for about ten milliseconds after
+  `kill()`. `_cleanup_scratch` retries, and its last attempt drops the
+  flag so a genuine failure is logged rather than swallowed.
 - **`AddConformerCommand` exists because `SetConformersCommand` replaces
   the whole list.** ORCA (6.5) needs to add one optimized-geometry
   conformer without wiping out whatever RDKit-generated conformers already
@@ -688,6 +701,26 @@ document may cite a file or a test that does not exist.
   a real Vina 1.2.7 and a managed Temurin JRE.
 - **OPEN** -- `SimilarityService` doesn't exist yet; belongs to a later roadmap phase
   and would currently have no callers.
+- **OPEN** -- nothing sets a starting width for the right-hand dock, so
+  every panel opens at its own minimum. `MainWindow` never calls
+  `resizeDocks`, and `PropertyPanel` declares a 280 px floor, so Qt hands
+  it exactly that until the user drags it wider. Measured in the running
+  app: at 280 the three widest ADMET captions elide, at 340 two of three
+  are full, at 420 all three.
+
+  **This is why the caption clipping was reachable at all**, and the fix
+  for that one (`_ElidingCaptionLabel`) is deliberately not a fix for
+  this one -- eliding gracefully at the minimum is correct behaviour for
+  a panel that CAN be narrow, and it is what the app now does.
+
+  Not built because the number is a cross-panel decision rather than a
+  panel-level one, and the geometry notes in `CLAUDE.md` already record
+  what it trades against: the rail costs 270 px permanently, and every
+  right-hand dock wants far more than 280 (Quantum Chemistry 669, Docking
+  462, Batch 409, Atom Inspector 352). On a 1366 px laptop a 420 px dock
+  plus the rail is half the screen. Picking a starting width means
+  deciding that trade for all of them, which is the consolidation pass
+  those notes flag and deliberately do not begin.
 - **SETTLED** -- regulatory screening is date-aware.
   `RegulatoryEngine.screen(..., as_of: date | None = None)` withholds rules
   that take effect after `as_of`, `ScreeningReport` says which date it

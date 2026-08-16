@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import shutil
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -8,6 +10,7 @@ from pathlib import Path
 import pytest
 from rdkit import Chem
 
+from openchem import paths as app_paths
 from openchem.app.settings import Settings
 from openchem.domain.common import CacheState
 from openchem.domain.conformer import ConformerModel
@@ -80,6 +83,37 @@ def _wait_until(qapp, predicate, timeout_seconds: float = 15) -> bool:
             return True
         time.sleep(0.02)
     return False
+
+
+@pytest.fixture(autouse=True)
+def _scratch_under_tmp_path(tmp_path, monkeypatch):
+    """Keep every job's scratch directory out of the developer's real
+    cache.
+
+    **`_make_service` took `tmp_path` and never used it**, so the service
+    resolved its scratch through `paths.space_free_cache_root()` -- the
+    OS-nominated per-user location -- and every test in this file wrote
+    ORCA job directories into it. The CI failure that started this named
+    the path outright:
+
+        C:/Users/runneradmin/AppData/Local/OpenChemStudio/Cache/orca_job_4710091i
+
+    They are normally removed on the way out, so nothing accumulated and
+    nothing looked wrong. A cleanup that fails leaves one behind for good,
+    and `_cleanup_scratch` could fail silently until it was fixed.
+
+    `paths` documents `OPENCHEM_DATA_ROOT` as existing for exactly this --
+    "portable installs and tests, which must never touch a developer's
+    real data directory" -- and several other test files already use it.
+    This one did not. Same rule as `isolated_settings` in `conftest.py`,
+    which exists because the suite once left 84 keys in the real registry.
+
+    Autouse, so a test added later cannot forget it.
+    """
+    root = tmp_path / "data-root"
+    root.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv(app_paths.DATA_ROOT_ENV_VAR, str(root))
+    return root
 
 
 def _make_service(tmp_path, provider) -> tuple[QuantumChemistryService, EventBus]:
@@ -197,6 +231,135 @@ def test_quantum_chemistry_parse_failure_still_cleans_up_scratch(qapp, tmp_path)
     assert states[-1] == CacheState.FAILED
     assert results == []
     assert scratch_dir is not None and not scratch_dir.exists()
+
+
+def test_a_jobs_scratch_directory_is_not_in_the_real_user_cache(qapp, tmp_path):
+    """The isolation itself, asserted rather than assumed.
+
+    **"No leftovers in the real cache" is not evidence of isolation** --
+    the directories were normally removed on the way out, so that check
+    passed just as happily while every test in this file was writing into
+    the developer's own `%LOCALAPPDATA%\\OpenChemStudio\\Cache`. Only a
+    cleanup that failed left proof, which is how this surfaced: as a CI
+    failure naming `C:/Users/runneradmin/AppData/Local/...`.
+
+    So this asserts where the scratch directory IS, while a job is still
+    running and the directory certainly exists.
+
+    **IT ASSERTS THE SCRATCH IS UNDER `tmp_path`, AND THE WEAKER FORM WAS
+    WRONG.** The first version asked only that the directory was not under
+    `paths.default_data_root()` -- the OS-nominated location -- which
+    sounds like the same claim and is not. This machine has a CONFIGURED
+    data root, so with the isolation removed the scratch lands in
+    `D:\\OpenChemStudio-scratch`, nowhere near the OS default, and the
+    assertion passed while the test wrote outside `tmp_path` exactly as
+    before. Caught by neutering the fixture and seeing nothing fail.
+
+    The space check is a real precondition, not ceremony:
+    `space_free_cache_root()` relocates to the drive anchor when the
+    configured root contains a space, so a `tmp_path` with one would send
+    the scratch somewhere legitimate but outside it. Asserted so that case
+    reports itself instead of looking like the bug.
+    """
+    provider = FakeQuantumEngineProvider(sleep_seconds=5.0)
+    service, bus = _make_service(tmp_path, provider)
+    service.request_calculation(
+        mol=Chem.MolFromSmiles("CCO"),
+        molecule_uuid="mol-1",
+        calc_type="sp",
+        charge=0,
+        multiplicity=1,
+        method_basis="B3LYP def2-SVP",
+        provider_id="fake",
+    )
+    states: list[CacheState] = []
+    bus.subscribe(QuantumChemistryJobStateChanged, lambda e: states.append(e.state))
+    assert _wait_until(qapp, lambda: service._active_jobs.get("mol-1") is not None, timeout_seconds=5)
+
+    job = service._active_jobs["mol-1"]
+    scratch = job.scratch_dir
+    assert scratch.exists(), "nothing to make a claim about"
+
+    assert " " not in str(tmp_path), (
+        f"tmp_path contains a space ({tmp_path}), so space_free_cache_root() will "
+        "relocate the scratch off it legitimately and this test cannot judge"
+    )
+    assert scratch.resolve().is_relative_to(tmp_path.resolve()), (
+        f"a test wrote an ORCA scratch directory outside its tmp_path:\n"
+        f"  {scratch}\n  expected under {tmp_path}"
+    )
+
+    service.cancel("mol-1")
+    assert _wait_until(qapp, lambda: states and states[-1] == CacheState.FAILED, timeout_seconds=10)
+
+
+def test_cleanup_removes_a_directory_a_dying_process_still_holds(qapp, tmp_path):
+    """The retry, made deterministic.
+
+    **`test_quantum_chemistry_cancel_kills_process_and_cleans_up` CANNOT
+    guard this and it is not its fault.** That test races: the cleanup
+    runs from a Qt signal handler, which is usually late enough that the
+    OS has already released the directory, so it passes with or without
+    the retry and fails only occasionally on a loaded CI runner. Measured:
+    removing the retry left the whole file green locally. A race is not
+    a guard.
+
+    This drives the collision directly -- a live child process whose
+    working directory IS the scratch, killed a moment earlier, exactly
+    what `start_job` sets up via `setWorkingDirectory`.
+
+    **The control is what makes it discriminating**, and it is asserted
+    rather than assumed: a plain immediate `rmtree` must FAIL on the same
+    setup. Measured on Windows, 12 of 12 trials, removable ~10 ms later.
+    On POSIX a directory that is a process's cwd unlinks happily, so the
+    control cannot fail there and neither can the subject -- the assertion
+    is Windows-gated and says so, rather than the test pretending to prove
+    something everywhere.
+
+    **EACH DIRECTORY IS KILLED AND ACTED ON IMMEDIATELY**, one at a time.
+    Building both up front and then testing them cost the control its
+    whole point: creating the second directory takes ~250 ms, by which
+    time the OS had long released the first, the plain `rmtree` succeeded
+    and the control assertion fired -- correctly, which is the control
+    earning its place. The window being tested is ten milliseconds wide,
+    so nothing may happen inside it.
+    """
+    service, _bus = _make_service(tmp_path, FakeQuantumEngineProvider())
+
+    def killed_process_holding(name: str):
+        directory = tmp_path / name
+        directory.mkdir()
+        (directory / "job.inp").write_text("fake input", encoding="utf-8")
+        process = subprocess.Popen(
+            [sys.executable, "-c", "import time; time.sleep(30)"], cwd=str(directory)
+        )
+        time.sleep(0.25)  # let it really start and take the cwd
+        process.kill()
+        return directory, process
+
+    control, control_process = killed_process_holding("control")
+    try:
+        shutil.rmtree(control, ignore_errors=True)
+        if sys.platform == "win32":
+            assert control.exists(), (
+                "a plain rmtree removed a directory still held as a killed process's "
+                "cwd, so this platform no longer reproduces the race and the subject "
+                "below is no longer being tested -- check whether the retry is still needed"
+            )
+    finally:
+        control_process.wait()
+        shutil.rmtree(control, ignore_errors=True)
+
+    subject, subject_process = killed_process_holding("subject")
+    try:
+        service._cleanup_scratch(subject)
+        assert not subject.exists(), (
+            "the scratch directory survived cleanup; the retry in _cleanup_scratch "
+            "is what is supposed to outlast the OS releasing the handle"
+        )
+    finally:
+        subject_process.wait()
+        shutil.rmtree(subject, ignore_errors=True)
 
 
 def test_quantum_chemistry_cancel_kills_process_and_cleans_up(qapp, tmp_path):

@@ -326,6 +326,14 @@ DEFERRALS: list[Deferral] = [
         claim="`SimilarityService` doesn't exist yet",
         unbuilt=lambda: not _defines("SimilarityService"),
     ),
+    Deferral(
+        claim="nothing sets a starting width for the right-hand dock",
+        # `resizeDocks` is the only call that assigns one, so the entry goes
+        # stale the moment anybody makes that decision -- which is exactly
+        # when it should be re-read, since the entry's whole content is the
+        # trade that decision has to weigh.
+        unbuilt=lambda: "resizeDocks" not in _src_text(),
+    ),
     # "regulatory screening has no date awareness" lived here and is gone,
     # because its entry is SETTLED now and SETTLED items carry no predicate.
     # It went stale exactly as designed: the guard fails the moment

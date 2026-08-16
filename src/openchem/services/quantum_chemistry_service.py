@@ -5,6 +5,7 @@ import json
 import logging
 import shutil
 import tempfile
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -42,6 +43,18 @@ _APP_NAME = "OpenChemStudio"
 _JOB_KIND = "quantum_chemistry"
 _REFERENCE_JOB_KIND = "quantum_chemistry_reference"
 _SCALING_JOB_KIND = "quantum_chemistry_scaling"
+
+#: Seconds to wait between attempts at removing a job's scratch directory.
+#: See `QuantumChemistryService._cleanup_scratch` for the measurement --
+#: a killed process holds its working directory for about 10 ms, and this
+#: directory is that working directory.
+#:
+#: The first attempt costs nothing: on the normal completion path the
+#: process is long gone and the tree is removed before any of these delays
+#: is reached. The 0.18 s total is a worst case paid only by a CANCEL, and
+#: only when the OS is still holding on -- against freezing the UI for
+#: longer, or leaving gigabytes behind.
+_SCRATCH_REMOVAL_RETRY_DELAYS = (0.01, 0.02, 0.05, 0.1)
 
 # TMS is neutral, closed-shell -- fixed, not user-configurable (only
 # method_basis varies per reference calibration request).
@@ -1198,10 +1211,44 @@ class QuantumChemistryService(QObject):
             return None
 
     def _cleanup_scratch(self, scratch_dir: Path) -> None:
-        try:
+        """Remove a job's scratch directory, retrying briefly.
+
+        **A KILLED PROCESS STILL OWNS ITS WORKING DIRECTORY FOR A MOMENT,
+        and this directory IS that working directory** (`start_job` calls
+        `setWorkingDirectory(scratch_dir)`). Windows refuses to remove a
+        directory that is any live process's cwd, and `kill()` returns
+        before the OS has finished reaping. Measured directly -- spawn a
+        child with its cwd here, kill it, remove immediately:
+
+            immediate rmtree after kill   FAILED 12 of 12
+            removable after               ~10 ms, every trial
+
+        On the normal completion path the process exited long ago and the
+        first attempt succeeds with no sleep at all. Only a CANCEL races,
+        which is why this went unnoticed: it cost one intermittent CI
+        failure in `test_quantum_chemistry_cancel_kills_process_and_
+        cleans_up` and nothing a user would see.
+
+        **`ignore_errors=True` MADE THE `except OSError` BELOW IT DEAD
+        CODE**, which is the more serious half. `rmtree` cannot raise with
+        that flag set, so the warning could never fire -- a scratch
+        directory holding the gigabytes a geometry optimisation writes
+        could fail to be removed and leave no trace anywhere. The retries
+        keep the flag (a partially-removed tree is worth another attempt);
+        the LAST attempt drops it, so a genuine failure has a reason and
+        gets logged.
+        """
+        for delay in _SCRATCH_REMOVAL_RETRY_DELAYS:
             shutil.rmtree(scratch_dir, ignore_errors=True)
+            if not scratch_dir.exists():
+                return
+            time.sleep(delay)
+        try:
+            shutil.rmtree(scratch_dir)
         except OSError:
-            logger.warning("Failed to clean up ORCA scratch directory %s", scratch_dir)
+            logger.warning(
+                "Failed to clean up ORCA scratch directory %s", scratch_dir, exc_info=True
+            )
 
     def _publish_state(self, molecule_uuid: str, state: CacheState, message: str = "") -> None:
         if message:

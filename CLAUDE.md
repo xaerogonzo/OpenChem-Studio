@@ -310,7 +310,32 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-18 minutes**, ending at `4491 passed, 15 skipped`
+A clean run is **6-18 minutes**, ending at `4493 passed, 15 skipped`
+(measured 2026-08-15, 16m59, on master at the ORCA scratch-cleanup work.
+**+2 test functions**, both in `test_quantum_chemistry_service.py`: the
+scratch-isolation guard and the deterministic retry guard. Collected
+4506 -> 4508, skips unchanged at 15.)
+
+**THE BAND HAS NOW ABSORBED ITS FOURTH UNEXPLAINED SWING.** 11m55 and
+16m59 on trees differing by TWO tests is a 43% spread. Same machine,
+same tree to within two functions, nothing to explain it — which is now
+the fourth consecutive entry to say so. **Treat 6-18 as a range with no
+predictive value inside it**, and do not read a slow run as a hang or a
+fast one as an improvement.
+
+**THE SUITE LEAVES THE REAL DATA ROOTS UNTOUCHED, and that is measured
+rather than assumed.** Snapshotted `data_root`, `cache_root`,
+`space_free_cache_root` and `default_data_root` either side of a full
+run: **+0 -0 on all four**. Worth having as a baseline, because one file
+WAS writing into them until this commit (see the ORCA scratch section)
+and nothing would have noticed. Re-measure it the same way if a service
+gains a new on-disk artefact:
+
+```bash
+uv run --no-sync python -c "from openchem import paths; print(paths.data_root(), paths.space_free_cache_root())"
+```
+
+Before it: `4491 passed, 15 skipped`
 (measured 2026-08-15, 11m55, on master at `2d5f0c8` — the Properties
 panel's width clip. **+8 test functions**, all in
 `test_property_panel_long_values.py`: the rendered-overflow oracle and
@@ -1229,6 +1254,34 @@ If you touch that fixture, verify by counting, not by reading:
 ```bash
 powershell "(Get-ChildItem 'HKCU:\Software' | Where-Object PSChildName -like 'OpenChemStudio-pytest-*' | Measure-Object).Count"
 ```
+
+#### The same rule, the same mistake, in the DATA root
+
+`paths` documents `OPENCHEM_DATA_ROOT` as existing for "portable installs
+and tests, which must never touch a developer's real data directory", and
+six test files use it. `test_quantum_chemistry_service.py` did not -- its
+`_make_service(tmp_path, provider)` **took `tmp_path` and never used it**
+-- so every test in it created ORCA job directories under the real
+per-user cache. A CI failure named the path outright:
+
+    C:/Users/runneradmin/AppData/Local/OpenChemStudio/Cache/orca_job_4710091i
+
+**"No leftovers" IS NOT EVIDENCE OF ISOLATION**, and that is the part
+worth carrying. The directories were normally removed on the way out, so
+counting them found nothing while every run was writing there; only a
+cleanup that FAILED left proof. The guard therefore asserts where the
+scratch directory is **while a job is still running**, not what is left
+behind afterwards.
+
+**And the first version of that guard passed for the wrong reason.** It
+asserted the scratch was not under `paths.default_data_root()` -- the
+OS-nominated location -- which sounds like the same claim and is not. A
+machine with a CONFIGURED data root sends the scratch somewhere else
+entirely (here `D:\OpenChemStudio-scratch`), so the assertion held while
+the test wrote outside `tmp_path` exactly as before. It asserts
+`is_relative_to(tmp_path)` now, with the no-space precondition asserted
+too, since `space_free_cache_root()` legitimately relocates off a spaced
+path. Caught only by neutering the fixture and seeing nothing fail.
 
 ### `resize()` does not resize a widget that was never shown, either
 
@@ -4756,6 +4809,54 @@ yes. There is a test for that specific mistake.
 
 Two existing tests asserted the old verbatim behaviour and failed when this
 landed, which is the change being real rather than a regression.
+
+### A KILLED PROCESS STILL OWNS ITS WORKING DIRECTORY, and cleanup was silent about it
+
+Found as an intermittent CI failure in
+`test_quantum_chemistry_cancel_kills_process_and_cleans_up`, on the
+Windows gating job only. **Confirmed a flake rather than a regression by
+re-running the SAME job on the SAME commit** -- red, then green, no code
+change. That is the discriminator worth reaching for first; the local
+suite had passed twice on the identical tree.
+
+`start_job` calls `setWorkingDirectory(scratch_dir)`, so the directory
+being deleted is the killed process's cwd, and **Windows refuses to
+remove a live process's cwd**. `QProcess.kill()` returns before the OS
+has reaped. Measured directly -- spawn a child with its cwd there, kill
+it, remove immediately:
+
+    immediate rmtree after kill    FAILED 12 of 12
+    removable after                ~10 ms, every trial
+
+In the running app the cleanup happens from a Qt signal handler, which is
+usually late enough. Only a CANCEL races, and only under load.
+
+**THE WORSE HALF WAS THE SILENCE.** The code read
+
+    try:
+        shutil.rmtree(scratch_dir, ignore_errors=True)
+    except OSError:
+        logger.warning("Failed to clean up ORCA scratch directory %s", ...)
+
+and `rmtree` **cannot raise** with that flag set, so the `except` was
+dead code and the warning could never fire. A scratch directory holding
+the gigabytes a geometry optimisation writes could fail to be removed
+and leave no trace anywhere. The retries keep the flag (a partly-removed
+tree deserves another go); the LAST attempt drops it, so a real failure
+has a reason and is logged.
+
+**A RACE IS NOT A GUARD, and the obvious test cannot become one.** The
+cancel test passes with or without the retry, because it depends on
+whether the OS happened to let go in time -- removing the retry left the
+whole file green locally. The guard that works drives the collision
+directly: a live child holding the directory, killed a moment earlier,
+then `_cleanup_scratch`. **Its control is what makes it discriminating**
+-- a plain immediate `rmtree` on the same setup must FAIL -- and that
+control caught a bug in its own test first: building both directories up
+front gave the control ~250 ms of slack, by which time the OS had
+released it. The window is ten milliseconds wide, so nothing may happen
+inside it. The control is Windows-gated, because POSIX unlinks a cwd
+happily and neither arm can fail there.
 
 ### A gbw remembers where it was born, and orca_plot goes there
 
