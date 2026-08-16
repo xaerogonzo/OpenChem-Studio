@@ -21,26 +21,38 @@ thermodynamic intrinsic-solubility model.
 
 MEASURED BEFORE ANY OF THIS WAS BUILT, against literature values:
 
-    aspirin      ESOL -2.09   AqSolDB -1.62   Marvin -1.81   exp -2.19
-    ibuprofen    ESOL -3.54                                  exp -3.62
-    propranolol  ESOL -3.57                                  exp -3.62
-    caffeine     ESOL -0.53                                  exp -0.80
+    aspirin      ESOL -2.09   AqSolDB -1.62   Marvin -1.81   "exp" -2.19
+    ibuprofen    ESOL -3.54                                        -3.62
+    propranolol  ESOL -3.57                                        -3.62
+    caffeine     ESOL -0.53                                        -0.80
 
-ESOL beats Marvin on Marvin's own documentation molecule. That is four
-molecules and ranks nothing, which is why `benchmarks/solubility/` exists.
+**AND THE ASPIRIN ROW WAS LATER OVERTURNED, so it is left here with its
+correction rather than quietly edited.** That -2.19 came from the
+ESOL-era literature. The Solubility Challenge 2 interlaboratory mean is
+**-1.67**, SD 0.15 over 16 sources -- much better evidence. Against it,
+Marvin (0.14 off) and AqSolDB (0.05) both beat ESOL (0.42), which is the
+opposite of the "ESOL beats Marvin on Marvin's own documentation
+molecule" this file used to claim. Four molecules rank nothing; that is
+what `benchmarks/solubility/` is for.
 
-IT HAS SINCE BEEN RUN, against the Solubility Challenge with Delaney's
-own fitting set subtracted by InChIKey (67 scored of 80):
+IT HAS SINCE BEEN RUN, on two independent sets, in both cases with
+Delaney's own fitting set subtracted by InChIKey:
 
-    all      n=67  MAE 0.74  RMSE 0.98  bias -0.20
-    acid     n=22  MAE 0.61            bias +0.06
-    base     n=29  MAE 0.81            bias -0.52   <- systematic
+    Solubility Challenge 1        SC-2 tight set (interlab SD 0.17)
+    all   n=67  MAE 0.74          all   n=73  MAE 0.90  RMSE 1.26
+    acid  n=22        0.61                              bias +0.40
+    base  n=29        0.81  bias -0.52    base n=17     bias -0.42
 
-RMSE 0.98 is in line with ESOL's published accuracy on compounds it was
-not fitted on. **The stratification is the part that mattered**: the
-aggregate bias reads as noise, and split by class the model under-predicts
-BASES by half a log unit. Worth knowing before trusting a basic drug's
-number, and invisible in a single MAE.
+**THE BASE BIAS REPLICATES ACROSS BOTH SETS**, at -0.52 and -0.42. One
+set makes it a curiosity; two independent ones make it a property of the
+model. ESOL has no ionization term at all -- Delaney's paper never
+mentions ionization, amines or salts -- so it cannot tell a base from a
+neutral of the same size and lipophilicity.
+
+**AND THE NUMBER ONLY MEANS ANYTHING NEXT TO A BASELINE.** On the same 73
+compounds the General Solubility Equation scores RMSE 1.18 against ESOL's
+1.26 -- and the GSE needs a measured melting point this app does not
+have. The endpoint is hard; our figure is ordinary for it.
 
 **UNCAPPED HENDERSON-HASSELBALCH IS UNUSABLE, and that is measured.**
 Aspirin reaches 4.7e10 mg/mL at pH 14 -- correct arithmetic, meaningless

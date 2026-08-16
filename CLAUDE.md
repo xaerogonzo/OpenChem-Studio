@@ -4297,6 +4297,48 @@ bias is -0.20 and reads as noise. Split by class, ESOL under-predicts
 BASES by half a log unit while acids sit at +0.06 -- a systematic error
 across a third of a druglike set, invisible in a single MAE.
 
+**AND IT REPLICATED ON A SECOND, INDEPENDENT SET.** The Solubility
+Challenge 2 tight set (Llinas, Oprisiu & Avdeef 2020, Table 1, doi
+10.1021/acs.jcim.0c00701) gives base bias **-0.42** against SC-1's -0.52,
+on 73 different compounds. One set makes a bias a curiosity; two make it
+a property of the model. Delaney's paper mentions ionization, amines and
+salts ZERO times, so ESOL cannot tell a base from a neutral of the same
+size and lipophilicity -- the bias is domain, not a fixable defect.
+
+**A NUMBER WITHOUT A BASELINE SAYS NOTHING.** On the same 73 compounds
+the General Solubility Equation scores RMSE 1.18 against ESOL's 1.26 --
+and the GSE needs a MEASURED MELTING POINT that this app does not have.
+So the honest reading is "the endpoint is hard", not "our model is poor".
+The paper also gives the noise floor: interlab SD 0.17, and CheqSol
+against high-quality shake-flask at RMSE 0.34. Nothing can score below
+that.
+
+**A CLAIM IN THIS FILE WAS OVERTURNED BY THE BETTER MEASUREMENT.** The
+solubility module used to say ESOL beat Marvin on Marvin's own
+documentation molecule, resting on an ESOL-era experimental value of
+-2.19 for aspirin. SC-2's interlaboratory mean over 16 sources is
+**-1.67**, and against that Marvin (0.14 off) and AqSolDB (0.05) both
+beat ESOL (0.42). The old row is kept with its correction beside it
+rather than edited away, because "where did that number come from" is the
+question a reader will have.
+
+**EXTRACTING A TABLE FROM A PDF NEEDS AN ACCEPTANCE TEST, and the paper
+supplies one.** Table 1 closes with a Min/Max/Mean row. The first
+extraction produced a perfectly plausible **129 rows** by running past the
+end of Table 1 into Table 2 -- the "contentious" set, interlab SD 0.62 --
+silently mixing two data qualities. Recomputing the summary row is what
+caught it; the count alone would not have, because 129 looks as
+reasonable as 100. Two further defects fell out of the same check: a row
+split across a page break (`bromazepam`), and a melting point carrying a
+footnote marker (`193b`) that a plain numeric match rejects.
+
+**AND THE NAME RESOLUTION WAS NOT REPRODUCIBLE UNTIL IT WAS CACHED.** Two
+consecutive PubChem runs over the same 100 names returned 100 and then
+97; diazoxide, diclofenac and nortriptyline dropped out to rate limiting.
+A corpus whose membership depends on network luck is not a corpus, and
+nothing says so unless somebody compares row counts. It caches, retries,
+and an unresolved name is now fatal rather than a warning.
+
 **THE ANTI-LEAK RULE CAUGHT THE MODEL NOBODY SUSPECTED.** Refusing to
 score the AqSolDB sidecar on AqSolDB was the obvious half and was in the
 plan. The half that was NOT: **the merged AqSolDB contains Delaney's own

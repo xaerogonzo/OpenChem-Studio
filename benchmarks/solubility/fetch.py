@@ -87,6 +87,12 @@ def main() -> int:
             }
         )
 
+    # Kept so the SC-2 set can be de-leaked with the same list rather
+    # than a second, possibly different, download.
+    (OUT / "esol_training_inchikeys.json").write_text(
+        json.dumps(sorted(trained_keys)), encoding="utf-8"
+    )
+
     with (OUT / "evaluation.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
         writer.writeheader()

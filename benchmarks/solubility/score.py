@@ -186,6 +186,84 @@ def shape_checks() -> None:
           f"{'ok' if len(set(flat)) == 1 else 'FAIL'}")
 
 
+def score_sc2() -> None:
+    """The Solubility Challenge 2 tight set, when it has been extracted.
+
+    Two things this set has that the other does not, and both change how
+    a number should be read:
+
+      * a NOISE FLOOR. Interlab SD averages 0.17 log unit, and CheqSol
+        against high-quality shake-flask is RMSE 0.34. Nothing can score
+        below that, so a model at 0.9 is not "0.9 away from perfect".
+      * a PUBLISHED BASELINE. The paper reports the General Solubility
+        Equation at RMSE 1.1 on these same compounds. Reproducing that
+        from the table's own GSE column is what makes our figure
+        comparable rather than merely reported -- and the GSE needs a
+        melting point, which we do not have and it does.
+
+    De-leaked exactly like the other set: any compound whose InChIKey
+    appears in Delaney's fitting set is dropped, because ESOL cannot be
+    scored on its own training data.
+    """
+    manifest_path = DATA / "sc2_manifest.json"
+    corpus = DATA / "sc2_tight.csv"
+    if not (manifest_path.is_file() and corpus.is_file()):
+        print()
+        print("SC-2 TIGHT SET  not extracted (see extract_sc2.py; it needs the paper)")
+        return
+
+    from rdkit.Chem import inchi
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    trained_keys = _delaney_inchikeys()
+
+    rows, refused, leaked = [], Counter(), 0
+    with corpus.open(newline="", encoding="utf-8") as handle:
+        for record in csv.DictReader(handle):
+            mol = Chem.MolFromSmiles(record["smiles"])
+            if mol is None:
+                refused["unparseable"] += 1
+                continue
+            if trained_keys and inchi.MolToInchiKey(mol) in trained_keys:
+                leaked += 1
+                continue
+            verdict = classify_ionization(mol, PKaResolution(status=PKaStatus.FOUND, values=(7.0,)))
+            if verdict is IonizationClass.UNSUPPORTED:
+                refused["salt or mixture"] += 1
+                continue
+            if verdict is IonizationClass.AMPHOLYTE:
+                refused["ampholyte"] += 1
+                continue
+            rows.append((Row(smiles=record["smiles"], measured=float(record["measured_logs"]),
+                             ionization=verdict), float(record["gse_logs"]), float(record["sd"])))
+
+    print()
+    print(f"SC-2 TIGHT SET  {manifest['evaluation_source']}")
+    print(f"  {len(rows)} scored, {leaked} dropped as ESOL training data, "
+          f"{sum(refused.values())} refused {dict(refused)}")
+    print(f"  NOISE FLOOR: interlab SD {manifest['interlab_sd_log']} log; nothing here can")
+    print("               score below it, and a gap smaller than it is not a gap.")
+
+    report("ESOL", errors([r for r, _, _ in rows], esol_logs))
+    for klass in (IonizationClass.NEUTRAL, IonizationClass.ACID, IonizationClass.BASE):
+        subset = [r for r, _, _ in rows if r.ionization is klass]
+        report(f"  ESOL, {klass.name.lower()}", errors(subset, esol_logs))
+    report("GSE (published baseline)", [g - r.measured for r, g, _ in rows])
+    print(f"  the paper reports GSE at RMSE {manifest['published_baseline']['rmse']} on all 100;")
+    print("  ours is over the de-leaked subset, so the two are not the same number.")
+    print("  The GSE needs a measured melting point. This app does not have one, and")
+    print("  ESOL lands within a tenth of a log unit of it anyway -- which is the")
+    print("  comparison that says whether our figure is poor or the endpoint is hard.")
+
+
+def _delaney_inchikeys() -> set[str]:
+    """ESOL's own fitting set, for de-leaking. Empty if it was not fetched."""
+    path = DATA / "esol_training_inchikeys.json"
+    if path.is_file():
+        return set(json.loads(path.read_text(encoding="utf-8")))
+    return set()
+
+
 def main() -> int:
     manifest_path = DATA / "manifest.json"
     if not manifest_path.is_file():
@@ -237,6 +315,7 @@ def main() -> int:
             report("all", errors(rows, lambda m: model_logs0(m, AQSOLDB, interpreter).logs0))
 
     shape_checks()
+    score_sc2()
 
     print("\nThis is evidence disclosure. No model is selected as correct, and")
     print("nothing here licenses the word 'validated'.")

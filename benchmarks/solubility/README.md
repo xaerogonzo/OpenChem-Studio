@@ -5,8 +5,13 @@ environment — no PyTDC, no throwaway virtualenv, no Harvard Dataverse:
 
 ```bash
 uv run --no-sync python benchmarks/solubility/fetch.py
+uv run --no-sync python benchmarks/solubility/extract_sc2.py <llinas2020.pdf>   # optional
 uv run --no-sync python benchmarks/solubility/score.py
 ```
+
+The middle step is optional and needs the paper, which is not in this
+repository. It adds a second, independent evaluation set that brings a
+noise floor and a published baseline — see below.
 
 `data/` is fetched, not committed. Nothing here ships an invented corpus —
 a solubility number typed from memory is exactly the mistake this project
@@ -34,6 +39,35 @@ have hidden a systematic error across a third of a druglike set.
 **13 of 80 compounds — 16% — are ampholytes, and are refused.** That is a
 large slice of druglike chemistry to decline, and it is printed beside the
 accuracy so the two can never be read apart.
+
+## Second set: Solubility Challenge 2, and what it adds
+
+Table 1 of Llinàs, Oprisiu & Avdeef 2020 — 100 druglike compounds, and
+after de-leaking Delaney's set (16) and refusing ampholytes (11), 73 are
+scored:
+
+| model | n | MAE | RMSE | bias |
+| --- | --- | --- | --- | --- |
+| ESOL | 73 | 0.90 | 1.26 | −0.05 |
+| ESOL, acids | 22 | 0.86 | 1.10 | +0.40 |
+| ESOL, bases | 17 | 0.70 | 0.87 | **−0.42** |
+| **GSE (published baseline)** | 73 | 0.86 | 1.18 | +0.37 |
+
+**THE BASE BIAS REPLICATES.** −0.42 here against −0.52 on the first set,
+on entirely different compounds. One set makes a bias a curiosity; two
+independent ones make it a property of the model. Delaney's paper mentions
+ionization, amines and salts *zero* times, so ESOL cannot distinguish a
+base from a neutral of the same size and lipophilicity.
+
+**A NUMBER WITHOUT A BASELINE SAYS NOTHING.** The General Solubility
+Equation scores RMSE 1.18 on the same compounds — and it needs a
+*measured melting point*, which this app does not have. ESOL lands within
+0.08 of it regardless. The honest reading is that the endpoint is hard,
+not that our model is poor.
+
+**AND THE SET CARRIES ITS OWN NOISE FLOOR:** interlab SD 0.17 log, with
+CheqSol against high-quality shake-flask at RMSE 0.34. Nothing can score
+below that, and a difference smaller than it is not a difference.
 
 ## THE ANTI-LEAK RULE CAUGHT BOTH MODELS
 
