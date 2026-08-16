@@ -1063,23 +1063,41 @@ document may cite a file or a test that does not exist.
   a sweep over every calculator, which is why
   `test_no_calculator_provenance_key_collides_with_the_routing_layer`
   iterates the whole registry rather than the names anybody noticed.
-- **SETTLED** -- the Properties panel CLIPPED long result values. **There is no height clipping**: `WrappedLabel` already closed
-  that, and a font-metrics probe (self-tested, so it can see a clip)
-  finds none at any width. What the panel actually did was STARVE the
-  value -- the label column sizes to the widest label, so at the 170 px
-  the dock gave it, a six-line result rendered as 24 lines.
+- **SETTLED** -- the Properties panel CLIPPED long result values.
 
-  **Fixed for ordinary result rows**, verified by driving the app:
-  `WrapLongRows` on the section's form layout, a 200 px minimum on
-  multi-line values, and a 280 px minimum on the panel. Six lines render
-  as six at every width, with no vertical cost -- `WrapAllRows` also
-  fixes it and was measured at +75% section height, because this panel
-  is mostly short scalars.
+  **TWO CLAIMS BELOW WERE TRUE WHEN WRITTEN AND ARE NOT NOW.** Read this
+  correction first; the account after it is kept because its measurements
+  cost real time, not because it describes today's code.
+
+  1. *"There is no height clipping ... a font-metrics probe finds none at
+     any width."* The probe measures HEIGHT, at the label's own width. It
+     cannot see a label laid out WIDER than the viewport it is drawn in,
+     and that is what the panel was doing -- content 272 px against a
+     256 px viewport, every row 14 px past the right edge, every visual
+     line losing its last character. Fixed by `_ElidingCaptionLabel`;
+     `property_panel.rendered_overflow` is the oracle that can see it.
+     "No clipping of the kind I measured" is not "no clipping".
+  2. *"`WrapLongRows` on the section's form layout, a 200 px minimum on
+     multi-line values."* Both are gone, and the first is now documented
+     as the CAUSE rather than the cure --
+     `collapsible_section.py` sets `DontWrapRows` and explains that
+     `WrapLongRows` is height-for-width whatever its children are, which
+     is what truncated report rows through eight attempted fixes. The
+     200 px minimum went with `_add_wide_row`, which removed it along
+     with the sideways scroll it caused.
+
+  What the panel did in the state described below was STARVE the value --
+  the label column sizes to the widest label, so at the 170 px the dock
+  gave it, a six-line result rendered as 24 lines. Measured then:
 
         arm                       170   240   300   360
-        shipped                    24L   12L   10L    6L
+        as shipped then            24L   12L   10L    6L
         value>=140, no panel min   10L    6L   10L    6L
         value>=200, panel>=280      6L    6L    6L    6L
+
+  `WrapAllRows` also fixed that one and was measured at +75% section
+  height, because this panel is mostly short scalars. The 280 px panel
+  minimum survives all of it and is still `_PANEL_MIN_WIDTH`.
 
   **THE REPORT ROW IS FIXED. It took NINE attempts and three published
   diagnoses, all of which blamed the field, and the field was never the

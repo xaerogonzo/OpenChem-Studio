@@ -103,8 +103,18 @@ same trap `quit()` set, one row down. `lewis` uses `show()`, which is the
 only thing it does differently from a real click.
 
 This is the real `MainWindow` with its real docks, fonts and DPI, which is
-what the four "the harness said the opposite of the app" entries in this
-file demand. Only the INPUT is skipped.
+what the **six** "the harness said the opposite of the app" entries in
+this file demand -- the count reached six at the starved-section entry,
+which numbers itself. Only the INPUT is skipped.
+
+**AND DRIVING IS NO LONGER ENOUGH ON ITS OWN: MAGNIFY THE SHOT.** The
+width-clip work added three cases of an ADJACENT shape, counted
+separately because they are not harness-versus-app disagreements -- the
+whole panel suite was green, the in-app dump agreed with the code, and
+the screen showed the defect at once: a value painted on top of its
+caption, captions latched at `...`, captions collapsed to zero width.
+`OPENCHEM_DRIVE` takes a `shot` step; cropping it 3x took seconds and
+caught all three.
 
 When a click really is needed, `spikes/gui_drive/drive.ps1` posts it to
 the window handle rather than through the machine:
