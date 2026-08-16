@@ -4211,6 +4211,46 @@ is invisible. Diclofenac is 0.0019 (Low) against 0.19 (High) -- two bands
 apart, neither near a threshold. Same lesson as the assembly corpus that
 could not see a transposed matrix.
 
+### THE BENCHMARK, AND A LEAK THAT WAS NOT THE OBVIOUS ONE
+
+`benchmarks/solubility/` scores ESOL against the Solubility Challenge
+(Llinas, Glen & Goodman 2008), taken from the AqSolDB repository's
+`dataset-I`. Measured 2026-08-16, 67 scored of 80:
+
+    all      n=67  MAE 0.74  RMSE 0.98  median 0.52  max 2.65  bias -0.20
+    neutral  n=16  MAE 0.80                                    bias +0.02
+    acid     n=22  MAE 0.61                                    bias +0.06
+    base     n=29  MAE 0.81                                    bias -0.52
+
+**THE STRATIFICATION EARNED ITS KEEP ON THE FIRST RUN.** The aggregate
+bias is -0.20 and reads as noise. Split by class, ESOL under-predicts
+BASES by half a log unit while acids sit at +0.06 -- a systematic error
+across a third of a druglike set, invisible in a single MAE.
+
+**THE ANTI-LEAK RULE CAUGHT THE MODEL NOBODY SUSPECTED.** Refusing to
+score the AqSolDB sidecar on AqSolDB was the obvious half and was in the
+plan. The half that was NOT: **the merged AqSolDB contains Delaney's own
+ESOL set as one of its nine sources**, so the first design would have
+scored ESOL against its own fit. Verified against the AqSolDB README
+rather than recalled -- `dataset-G` is reference [7], Delaney 2004.
+`fetch.py` downloads that set purely to SUBTRACT it: 14 of 94 rows share
+an InChIKey and are dropped. **An evaluation set assembled from other
+people's datasets inherits all of their provenance**, and "is this model
+trained on this data" has to be asked of every model, not just the one
+whose name matches the file.
+
+**16% OF A DRUGLIKE SET IS REFUSED** -- 13 of 80 are ampholytes. That is
+a large slice to decline, and it is printed beside the accuracy so the
+two can never be read apart; a model that refuses its hard cases looks
+better the more it refuses.
+
+**AND THE ORIGINAL PLAN'S DATA SOURCE DID NOT WORK.** TDC's Harvard
+Dataverse returned 403 and PyTDC then cached the 0-byte failure as a
+"local copy", so every retry reported "Found local copy..." before
+failing -- which reads as a code bug rather than an outage. The GitHub
+route needs no PyTDC, no throwaway virtualenv and no Dataverse, and it is
+the one that exposes the constituent datasets the de-leaking depends on.
+
 ### AND TWO DEFECTS THAT ONLY THE RENDERED WIDGET SHOWED
 
 Every unit test passed, 55 of them, and the panel looked right in the

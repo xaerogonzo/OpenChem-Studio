@@ -27,8 +27,20 @@ MEASURED BEFORE ANY OF THIS WAS BUILT, against literature values:
     caffeine     ESOL -0.53                                  exp -0.80
 
 ESOL beats Marvin on Marvin's own documentation molecule. That is four
-molecules and ranks nothing -- `benchmarks/solubility/` exists because a
-four-molecule table is an anecdote.
+molecules and ranks nothing, which is why `benchmarks/solubility/` exists.
+
+IT HAS SINCE BEEN RUN, against the Solubility Challenge with Delaney's
+own fitting set subtracted by InChIKey (67 scored of 80):
+
+    all      n=67  MAE 0.74  RMSE 0.98  bias -0.20
+    acid     n=22  MAE 0.61            bias +0.06
+    base     n=29  MAE 0.81            bias -0.52   <- systematic
+
+RMSE 0.98 is in line with ESOL's published accuracy on compounds it was
+not fitted on. **The stratification is the part that mattered**: the
+aggregate bias reads as noise, and split by class the model under-predicts
+BASES by half a log unit. Worth knowing before trusting a basic drug's
+number, and invisible in a single MAE.
 
 **UNCAPPED HENDERSON-HASSELBALCH IS UNUSABLE, and that is measured.**
 Aspirin reaches 4.7e10 mg/mL at pH 14 -- correct arithmetic, meaningless

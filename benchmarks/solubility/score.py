@@ -24,15 +24,35 @@ can hide the exact failure this feature is about:
    layers. Merging them means an error cannot be attributed to the
    baseline model, the pKa, or the ionization equation.
 
-4. **THE ANTI-LEAK RULE.** A model may not headline against the data it
-   was trained on. AqSolDB is the sidecar's own training set; reporting
-   its score there as skill is the nmrshiftdb2 circularity again.
+4. **THE ANTI-LEAK RULE, WHICH CAUGHT BOTH MODELS.** A model may not
+   headline against data it was fitted on. That was obvious for the
+   AqSolDB sidecar and NOT obvious for ESOL: the merged AqSolDB contains
+   Delaney's own ESOL set as one of its nine sources, so the first
+   version of this benchmark would have scored ESOL against its own fit.
+   `fetch.py` subtracts those compounds by InChIKey -- 14 of 94 -- and the
+   remaining 80 are a genuine held-out set.
 
 `solid_form` is an ACCEPTANCE rule rather than a note: intrinsic
 solubility depends on the solid phase, so salts, hydrates and polymorphs
-are reported separately and `unknown` never contributes to the headline.
-AqSolDB does not record solid form at all, which is itself a finding and
-is printed as one.
+would be reported separately and `unknown` never contributes to a
+free-form headline. The source records none, which is itself a finding
+and is printed as one.
+
+MEASURED, 2026-08-16, ESOL against the de-leaked Solubility Challenge:
+
+    all      n=67  MAE 0.74  RMSE 0.98  median 0.52  max 2.65  bias -0.20
+    neutral  n=16  MAE 0.80                                    bias +0.02
+    acid     n=22  MAE 0.61                                    bias +0.06
+    base     n=29  MAE 0.81                                    bias -0.52
+
+**THE STRATIFICATION EARNED ITS KEEP ON THE FIRST RUN.** The aggregate
+bias is -0.20 and looks like noise; split by class, ESOL under-predicts
+BASES by half a log unit while acids sit at +0.06. An aggregate MAE would
+have hidden a systematic error in one third of a druglike set.
+
+13 of 80 compounds -- 16% -- are ampholytes and are refused. That is a
+large fraction of druglike chemistry to decline, and it is printed beside
+the accuracy so the two are never read apart.
 """
 
 from __future__ import annotations
@@ -74,9 +94,10 @@ def _admet_interpreter() -> str:
 RDLogger.DisableLog("rdApp.*")
 
 DATA = Path(__file__).resolve().parent / "data"
-#: Which models were trained on which evaluation source. The rule is
-#: enforced from the manifest rather than from memory.
-TRAINED_ON = {AQSOLDB: {"Solubility_AqSolDB"}}
+#: Which models were fitted on which evaluation sources. The rule is
+#: enforced from the MANIFEST at run time rather than from this table, so
+#: a new source cannot bypass it by not being listed here.
+TRAINED_ON = {AQSOLDB: {"aqsoldb"}}
 
 
 @dataclass
@@ -89,21 +110,21 @@ class Row:
 def load(manifest: dict) -> tuple[list[Row], Counter]:
     """Every test row, classified. Rows the predictor refuses are counted
     rather than dropped."""
-    path = DATA / f"{manifest['evaluation_source']}__test.csv"
+    path = DATA / "evaluation.csv"
     if not path.is_file():
-        raise SystemExit(f"No test split at {path}. Run fetch.py first (see its docstring).")
+        raise SystemExit(f"No evaluation set at {path}. Run fetch.py first (see its docstring).")
 
     rows: list[Row] = []
     refusals: Counter = Counter()
     with path.open(newline="", encoding="utf-8") as handle:
         for record in csv.DictReader(handle):
-            smiles = record.get("Drug") or record.get("smiles") or ""
+            smiles = record.get("smiles") or ""
             mol = Chem.MolFromSmiles(smiles)
             if mol is None:
                 refusals["unparseable"] += 1
                 continue
             try:
-                measured = float(record.get("Y") or record.get("y"))
+                measured = float(record.get("measured_logs"))
             except (TypeError, ValueError):
                 refusals["no measured value"] += 1
                 continue
@@ -197,7 +218,7 @@ def main() -> int:
         subset = [r for r in rows if r.ionization is klass]
         report(klass.name.lower(), errors(subset, esol_logs))
 
-    leaky = source in TRAINED_ON.get(AQSOLDB, set())
+    leaky = "aqsoldb" in set(manifest.get("models_trained_on_this", []))
     print(f"\nAqSolDB (trained model) - {'LEAKY on this source' if leaky else 'held out'}")
     if leaky:
         print("  NOT SCORED. This model was trained on this dataset, so any figure")
