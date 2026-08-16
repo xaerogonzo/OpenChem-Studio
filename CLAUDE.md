@@ -356,6 +356,21 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
+Before it: `4622 passed, 15 skipped`
+(measured 2026-08-16, **14m03**, on `solubility-predictor` at `60643d8` --
+the two open edges closed. **+5 test functions**, all in
+`test_abraham.py`: the predicted-only reason, its reachability through the
+calculator, the no-shipped-coefficients guard, water-first ordering, and
+the familiar-solvent filter. Skips unchanged at 15.
+
+**THE ENTRY BELOW WENT STALE BY 5 WITHIN THE SAME SESSION**, which is the
+drift this section keeps recording -- and this time the tests that made it
+stale were written an hour after the figure was taken, by the same person,
+who then had to re-measure rather than subtract. 14m03 against the
+previous run's 19m18 on a tree FIVE tests larger is a 27% spread with
+nothing to explain it, so the 6-19 band stands as a range with no
+predictive value inside it.)
+
 Before it: `4617 passed, 15 skipped`
 (measured 2026-08-16, **19m18**, on `solubility-predictor` at `bd91fce` +
 the non-aqueous lookup route. **+24 collected items and +24 test
