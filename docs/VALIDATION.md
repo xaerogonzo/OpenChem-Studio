@@ -218,6 +218,60 @@ differently. If a result matters, note which format you loaded.
 
 ---
 
+## Solubility — a bias that only stratification showed, replicated on a second set
+
+**Method.** ESOL against the Solubility Challenge (Llinàs, Glen & Goodman
+2008) and, independently, the Solubility Challenge 2 tight set (Llinàs,
+Oprisiu & Avdeef 2020, Table 1). Both de-leaked by InChIKey; ampholytes
+refused rather than scored.
+
+| set | stratum | n | MAE | RMSE | bias |
+| --- | --- | --- | --- | --- | --- |
+| SC-1 | all | 67 | 0.74 | 0.98 | −0.20 |
+| SC-1 | acid | 22 | 0.61 | 0.85 | +0.06 |
+| SC-1 | base | 29 | 0.81 | 1.03 | **−0.52** |
+| SC-2 | all | 73 | 0.90 | 1.26 | −0.05 |
+| SC-2 | base | 17 | 0.70 | 0.87 | **−0.42** |
+| SC-2 | GSE (published baseline) | 73 | 0.86 | 1.18 | +0.37 |
+
+**The stratification earned its keep on the first run.** The aggregate bias
+is −0.20 and reads as noise. Split by class, ESOL **under-predicts bases by
+half a log unit** while acids sit at +0.06 — a systematic error across a
+third of a druglike set, invisible in a single MAE.
+
+**And it replicated on 73 entirely different compounds** (−0.42 against
+−0.52). One set makes a bias a curiosity; two make it a property of the
+model. Delaney's paper mentions ionization, amines and salts *zero* times,
+so this is a domain limit, not a fixable defect.
+
+**A number without a baseline says nothing.** The General Solubility
+Equation scores RMSE 1.18 on the same compounds — and needs a *measured
+melting point*, which this application does not have. ESOL lands within
+0.08 of it regardless, so the honest reading is that the endpoint is hard,
+not that the model is poor. The set carries its own floor too: interlab SD
+0.17 log, CheqSol against shake-flask at RMSE 0.34. Nothing can score below
+that, and a difference smaller than it is not a difference.
+
+**16% of a druglike set is refused** — 13 of 80 are ampholytes. That is a
+large slice to decline, and it is printed beside the accuracy, because a
+model that refuses its hard cases looks better the more it refuses.
+
+**A claim in this project's own notes was overturned by the better
+measurement.** The solubility module said ESOL beat Marvin on Marvin's own
+documentation molecule, resting on an ESOL-era experimental value of −2.19
+for aspirin. SC-2's interlaboratory mean over 16 sources is **−1.67**, and
+against that Marvin (0.14 off) and AqSolDB (0.05) both beat ESOL (0.42).
+
+**Non-aqueous solubility is NOT validated here.** The 91-solvent route is a
+lookup on both sides, so its shift is measured — but nothing in this
+application has been scored against measured non-aqueous solubilities, and
+no corpus for it exists yet. The accuracy above describes the aqueous
+baseline only.
+
+→ [`benchmarks/solubility/README.md`](../benchmarks/solubility/README.md)
+
+---
+
 ## ADMET — and the confound that had to be found first
 
 The ADMET panels were checked for whether their apparent discrimination
@@ -383,6 +437,22 @@ against.
 **HLB.** No formulas published, no worked example, and the reference
 implementation's default is a proprietary consensus method. Nothing to check
 a result against.
+
+**Abraham coefficients for 293 further solvents — acetic acid among them.**
+The source paper measures 91 solvents and *predicts* the rest, saying of
+those they should not be taken "as gospel". Only the measured 91 ship.
+Acetic acid was asked for by name and is refused with that reason rather
+than quietly filled in from the predicted table — the same call already made
+against Miller polarizability, HLB and TSEI.
+
+**The Platts fragment scheme for Abraham solute descriptors.** It would
+work, and it is ~480 coefficients and ~132 hand-written SMARTS patterns —
+with fragments 59–67 defined in a *figure* rather than in text, so they
+cannot be read from the PDF's text layer at all — carrying 0.7–1.0 log of
+its own error. Looking the descriptors up instead costs neither, and that
+is what shipped. Recorded here because two of the three reasons this
+project had written down for deferring non-aqueous solubility turned out to
+be **false on measurement**, and only the Platts one was real.
 
 **The TSEI steric index.** Several incompatible definitions in the
 literature and no reference value to gate against. Shipped omitted rather

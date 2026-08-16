@@ -21,9 +21,16 @@ unexplained exemption is how a guard gets hollowed out.
 **IT COVERED 6 OF THE 17 MARKDOWN FILES IN THE REPO**, which a sweep
 found by listing them rather than by trusting the list. README.md and
 QUICKSTART.md are the first things anybody reads and neither was
-guarded. All 15 that cite anything are covered now; the two that do not
-(CHANGELOG.md, CODE_OF_CONDUCT.md) are left out because adding a file
-with nothing to check makes the list look more thorough than it is.
+guarded. Every file that cites anything is covered now.
+
+**CHANGELOG.md WAS EXCLUDED FOR A REASON THAT STOPPED BEING TRUE**, which
+is the same rot this whole file exists to catch, caught in the file's own
+docstring. The reason recorded here was that it cited nothing, so adding
+it "makes the list look more thorough than it is". A later sweep measured
+it: one backticked path (`docs/VALIDATION.md`). One is not nothing, a
+changelog only accumulates references, and the check is free -- so it is
+in. CODE_OF_CONDUCT.md is the only remaining exclusion and genuinely
+cites nothing.
 """
 
 from __future__ import annotations
@@ -43,6 +50,7 @@ DOCS = [
     "README.md",
     "BASIC_INSTRUCTIONS.md",
     "CONTRIBUTING.md",
+    "CHANGELOG.md",
     "docs/ARCHITECTURE.md",
     "docs/NAVIGATION_AUDIT.md",
     "docs/SCIENTIFIC_LIMITATIONS.md",

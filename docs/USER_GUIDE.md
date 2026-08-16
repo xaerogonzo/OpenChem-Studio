@@ -619,7 +619,7 @@ arrived together. It reads as a slow dialog and is not one.
 | Category | What's in it |
 |---|---|
 | Physicochemical | MW, logP, TPSA, HBD/HBA, rotatable bonds |
-| Solubility | ESOL solubility, the Low/Moderate/High category, solubility at a chosen pH, the pH–solubility curve, and a BCS high-solubility screening estimate |
+| Solubility | ESOL solubility, the Low/Moderate/High category, solubility at a chosen pH, the pH–solubility curve, a BCS high-solubility screening estimate, and solubility in 91 non-aqueous solvents |
 | Identity | formula, exact mass, elemental composition, InChI/InChIKey |
 | Naming | IUPAC name with its source and exactness label |
 | Charge | Gasteiger partial charges, and charges at a chosen pH |
@@ -1332,6 +1332,96 @@ question downstream of it meaningless. Rather than answer them badly, the
 panel lists those checkers under **Not checked** with the reason — usually
 RDKit's own sentence, which is normally the most useful thing available
 about a structure it refuses.
+
+---
+
+<!-- help:solubility -->
+## Solubility
+
+The **Solubility** category predicts how much of a compound dissolves —
+an intrinsic (neutral-species) value, a value at a pH you choose, a
+Low/Moderate/High category, a pH–solubility curve, and a BCS
+high-solubility screening estimate.
+
+Everything here is **predicted, not measured**. The baseline model is ESOL
+(Delaney 2004), whose error on a druglike test set is around 1.3 log
+units — a factor of twenty. Treat it as a comparison between molecules
+rather than a number to put in a protocol.
+
+### Reading the numbers
+
+Every value appears in three units — logS, mg/mL and mol/L — because the
+same solubility in different units is the single easiest thing to
+misread. The row you chose is shown first; the other two are there when
+you expand the detail.
+
+**The category is computed from the intrinsic value, not the pH-adjusted
+one**, which is how ChemAxon defines those thresholds: below 0.01 mg/mL
+Low, up to 0.06 Moderate, above it High.
+
+### Choosing a solvent
+
+The **Solvent** parameter offers **91 solvents** — water first, then the
+rest alphabetically. Water is the default and is the only one the pH
+machinery applies to.
+
+Outside water the answer comes from Abraham's solvation equation, and
+**both halves are looked up rather than predicted**: measured coefficients
+for the solvent, measured descriptors for your compound. That makes it
+accurate where it answers and narrow in what it answers for:
+
+- **A compound nobody has measured is refused by name.** There is no
+  fallback to an estimated descriptor. If you see that refusal, the model
+  genuinely does not know, rather than knowing badly.
+- **Two literature sources that disagree too much are also refused.**
+  Aspirin in toluene is a real case: the published descriptors differ
+  enough to leave more than a factor of ten in the answer, so it declines
+  instead of reporting the midpoint.
+- **The aqueous error carries through.** The shift is measured; what it
+  moves is still an ESOL prediction, so a non-aqueous answer is never
+  more reliable than the aqueous one behind it.
+
+**Acetic acid is not available.** It appears only in the source's
+*predicted* coefficient set, of which the authors say the values should
+not be taken "as gospel", so it is refused rather than guessed.
+
+### What is water-only, and why
+
+pH, the pH–solubility curve, the Low/Moderate/High category and the BCS
+screen are all **aqueous concepts**. Henderson–Hasselbalch, the pKa values
+behind it, ChemAxon's thresholds and the ICH M9 window are every one of
+them defined on water.
+
+So a non-aqueous solvent gives you an intrinsic solubility and nothing
+else — the category reads *"Not applicable outside water"* and the BCS
+line says *ICH M9 is defined on aqueous media*. Those are deliberate
+refusals, not missing features: a pH curve for a compound in hexane would
+look authoritative and mean nothing.
+
+### pKa, and supplying your own
+
+The pH-dependent half needs pKa values. It uses the pkasolver sidecar when
+it is installed, and you can **type your own** into the pKa field
+(`3.49`, or `4.8, 9.4` for a diprotic) — a measured pKa always beats a
+predicted one, and a manual entry overrides the predictor.
+
+**Ampholytes and salts are refused.** A zwitterion's un-ionized form *is*
+the zwitterion, which is highly soluble, so Henderson–Hasselbalch puts the
+minimum in the wrong place; a drawn salt is already the species the
+correction models forming. Both say so rather than producing a plausible
+curve for a different compound.
+
+### The BCS line is a screen, not a classification
+
+ICH M9 requires solubility established **experimentally** over pH 1.2–6.8
+at 37 °C, using the lowest measured value and the highest single
+therapeutic dose. Everything here is predicted at no defined temperature.
+
+It reports PASS or FAIL only when the answer holds across the whole range
+the model can justify, and **UNDETERMINED with a reason** otherwise — no
+dose given, no pKa available, or the bounds genuinely straddling the
+criterion. Dose number addresses only the solubility half of BCS;
+permeability is a separate measurement entirely.
 
 ---
 

@@ -121,7 +121,8 @@ The honest version of a comparison table: this one is about our own software.
 | Molecular dynamics | vacuum, no thermostat, no solvent, no periodic boundaries |
 | hERG | a risk-factor checklist, explicitly not a prediction |
 | Continuous integration | the suite and the naming, regulatory and ruleset checks gate every PR on Windows. Six benchmarks stay hand-run because they need ORCA, Vina or a multi-hundred-MB sidecar that no hosted runner can install |
-| Regulatory screening | an intelligence report, NEVER a compliance determination. Ships CWC Schedule 1 only; every other domain registers empty and says so. One rule knowingly over-broad at precision 0.50, [benchmarks/regulatory/](benchmarks/regulatory/) |
+| Regulatory screening | an intelligence report, NEVER a compliance determination. Ships 4 rulesets across 2 domains (CWC Schedules 1–3, DEA listed chemicals — 91 rules); the other 12 domains register empty and say so, and a screen can be dated to ask what applied then. One rule knowingly over-broad at precision 0.50, [benchmarks/regulatory/](benchmarks/regulatory/) |
+| Solubility | ESOL baseline (~1.3 log RMSE), pH curve, and a bounded BCS screen that answers PASS/FAIL only when both bounds agree. Non-aqueous solubility for 91 solvents is a **lookup** on both sides — a compound nobody measured is refused by name, and no non-aqueous benchmark has been run, [benchmarks/solubility/](benchmarks/solubility/) |
 
 | Does not | Why |
 |---|---|
