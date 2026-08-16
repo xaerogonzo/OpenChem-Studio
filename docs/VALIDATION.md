@@ -227,20 +227,29 @@ refused rather than scored.
 
 | set | stratum | n | MAE | RMSE | bias |
 | --- | --- | --- | --- | --- | --- |
-| SC-1 | all | 67 | 0.74 | 0.98 | −0.20 |
-| SC-1 | acid | 22 | 0.61 | 0.85 | +0.06 |
-| SC-1 | base | 29 | 0.81 | 1.03 | **−0.52** |
+| SC-1 | all | 61 | 0.74 | 0.98 | −0.17 |
+| SC-1 | acid | 18 | 0.55 | 0.79 | +0.26 |
+| SC-1 | base | 27 | 0.84 | 1.05 | **−0.59** |
 | SC-2 | all | 73 | 0.90 | 1.26 | −0.05 |
 | SC-2 | base | 17 | 0.70 | 0.87 | **−0.42** |
 | SC-2 | GSE (published baseline) | 73 | 0.86 | 1.18 | +0.37 |
 
 **The stratification earned its keep on the first run.** The aggregate bias
-is −0.20 and reads as noise. Split by class, ESOL **under-predicts bases by
-half a log unit** while acids sit at +0.06 — a systematic error across a
-third of a druglike set, invisible in a single MAE.
+is −0.17 and reads as noise. Split by class, ESOL **under-predicts bases by
+more than half a log unit** while acids sit at +0.26 — a systematic error
+across a third of a druglike set, invisible in a single MAE.
+
+**And it is NOT corrected, by a pre-registered decision.** A cross-corpus
+held-out test (`benchmarks/solubility/base_bias.py`) fits the offset on one
+corpus's bases and tests on the other's. The offsets agree (+0.586 / +0.422)
+and base RMSE improves in both directions — but the bootstrap 95% CI on the
+held-out improvement **includes zero both ways**, one of them by 0.0009.
+Outcome `SURFACE_ONLY`: the bias is reported to the user rather than
+subtracted. Removing the 7 bases the corpora share is what makes "held out"
+true and what leaves the test underpowered at n=10 and n=20.
 
 **And it replicated on 73 entirely different compounds** (−0.42 against
-−0.52). One set makes a bias a curiosity; two make it a property of the
+−0.59). One set makes a bias a curiosity; two make it a property of the
 model. Delaney's paper mentions ionization, amines and salts *zero* times,
 so this is a domain limit, not a fixable defect.
 
@@ -274,6 +283,10 @@ Solubility Challenge dataset):
 | composite — our prediction vs measured | 786 | 0.68 | 0.96 | **honest** |
 | baseline — our ESOL vs measured aqueous | 786 | 0.61 | 0.85 | **honest** |
 | shift only | 786 | 0.29 | 0.49 | *optimistic* |
+
+*Status is carried per arm in the tool's own output — text and `--json` alike — from a
+closed vocabulary. The shift arm is `OPTIMISTIC` and can never be emitted as
+`VALIDATED`: its coefficients were fitted to the endpoint scored here.*
 
 **The composite is barely worse than the baseline**, which is the result:
 the non-aqueous answer is an ESOL prediction moved by a measured shift, so

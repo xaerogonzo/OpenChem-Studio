@@ -1,0 +1,110 @@
+{
+ "outcome": "SURFACE_ONLY",
+ "reason": "ci_excludes_zero_both failed",
+ "acceptance_criteria_version": 2,
+ "model": "esol",
+ "fitting_method": "mean(measured_logS - raw_ESOL_logS), unweighted, one row per compound",
+ "shipped_constant_logs": null,
+ "offsets": {
+  "sc1": 0.5862,
+  "sc2": 0.4215,
+  "combined_in_sample": 0.5282
+ },
+ "checks": {
+  "same_sign": true,
+  "offset_agreement <= 0.25": true,
+  "base_rmse_improves_both": true,
+  "overall_mae_not_worse_both": true,
+  "ci_excludes_zero_both": false
+ },
+ "arms": [
+  {
+   "fit_on": "SC-1",
+   "test_on": "SC-2",
+   "offset_fitted": 0.5862,
+   "fit_n": 27,
+   "test_n": 10,
+   "overlap_removed_from_test": 7,
+   "base_rmse_before": 0.822,
+   "base_rmse_after": 0.78,
+   "base_mae_before": 0.6647,
+   "base_mae_after": 0.571,
+   "overall_mae_before": 0.9877,
+   "overall_mae_after": 0.9713,
+   "improvement_ci95": [
+    -0.2309,
+    0.3967
+   ],
+   "base_rmse_improves": true,
+   "overall_mae_not_worse": true,
+   "ci_excludes_zero": false
+  },
+  {
+   "fit_on": "SC-2",
+   "test_on": "SC-1",
+   "offset_fitted": 0.4215,
+   "fit_n": 17,
+   "test_n": 20,
+   "overlap_removed_from_test": 7,
+   "base_rmse_before": 1.1014,
+   "base_rmse_after": 0.9322,
+   "base_mae_before": 0.8742,
+   "base_mae_after": 0.7174,
+   "overall_mae_before": 0.7864,
+   "overall_mae_after": 0.7167,
+   "improvement_ci95": [
+    -0.0009,
+    0.3001
+   ],
+   "base_rmse_improves": true,
+   "overall_mae_not_worse": true,
+   "ci_excludes_zero": false
+  }
+ ],
+ "corpora": {
+  "sc1": {
+   "n": 61,
+   "bases": 27,
+   "excluded": {
+    "unparseable": 0,
+    "no measured value": 0,
+    "ampholyte": 13,
+    "salt or mixture": 0,
+    "esol training data": 0,
+    "polymorph pair": 6
+   },
+   "sha256_16": "ebe82e00ac3e2f8a"
+  },
+  "sc2": {
+   "n": 73,
+   "bases": 17,
+   "excluded": {
+    "unparseable": 0,
+    "no measured value": 0,
+    "ampholyte": 11,
+    "salt or mixture": 0,
+    "esol training data": 16,
+    "polymorph pair": 0
+   },
+   "sha256_16": "07cbca9359021023"
+  }
+ },
+ "overlap": {
+  "compounds": 16,
+  "bases": 7
+ },
+ "union_bases": 37,
+ "duplicate_rows_removed": 7,
+ "bootstrap": {
+  "replicates": 10000,
+  "seed": 20260816,
+  "statistic": "mean(|error_before| - |error_after|), percentile 95% CI"
+ },
+ "provenance": {
+  "command": "uv run --no-sync python benchmarks/solubility/base_bias.py",
+  "git_sha": "f9a4627e752d",
+  "python": "3.13.7",
+  "rdkit": "2025.09.6",
+  "date": "2026-08-16"
+ }
+}

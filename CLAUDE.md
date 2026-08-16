@@ -4642,6 +4642,60 @@ FAMILIAR solvents filtered against the real table, because the first six
 alphabetically are `1,2-dichloroethane` and `1,9-decadiene`, which answer
 "is my solvent here?" for nobody.
 
+### THE BASE BIAS IS REPORTED, NOT CORRECTED -- and the test said so
+
+`benchmarks/solubility/base_bias.py` put an adjustment for ESOL's base
+bias through a cross-corpus HELD-OUT test whose criteria were fixed before
+it was first run. **Outcome: `SURFACE_ONLY`.** Four of five criteria pass:
+
+    offsets        +0.586 / +0.422, agreement 0.165        PASS
+    base RMSE      0.822 -> 0.780 and 1.101 -> 0.932       PASS
+    overall MAE    not worse either direction              PASS
+    improvement CI [-0.231,+0.397] and [-0.0009,+0.300]    FAIL, both include zero
+
+**ONE OF THEM MISSES BY 0.0009**, which is the entire argument for fixing
+a threshold in advance. A criterion chosen after seeing that number is a
+description of it, not a test.
+
+**THE OVERLAP REMOVAL IS WHAT MADE IT UNDERPOWERED, AND IS ALSO WHAT MADE
+IT HONEST.** The two corpora share 20 compounds, 7 of them bases, so the
+held-out arms fall to n=10 and n=20. Two corpora that look like
+independent validation are less independent than their sizes suggest --
+without that exclusion this would have "passed" spuriously.
+
+**A PRE-REGISTRATION CAN BE DEFECTIVE, AND AMENDING IT IS NOT CHEATING IF
+NOTHING HAS BEEN SEEN.** v1 halted on its FIRST run having computed
+nothing: SC-1 carries `chlorprothixene_form_I` and `_form_II` under one
+InChIKey at -6.75 and -5.87. That is one compound as two solids, not a
+corpus contradicting itself, and v1 conflated them. v2 drops polymorph
+pairs, and the amendment is recorded in the docstring with the reason it
+was admissible -- no offset, no arm and no verdict existed yet.
+
+**AND IT FOUND A DEFECT IN THE SHIPPED SCORER.** `score.py` was counting
+those three compounds TWICE and charging the polymorph gap -- up to 0.88
+log, the size of the bias under investigation -- to the model as
+prediction error. Refusing them moved acid bias +0.06 -> +0.26 and base
+bias -0.52 -> **-0.59**, i.e. the fix makes the bias LARGER, not smaller.
+
+#### A FACT-LEVEL LIMITATION IS A TOOLTIP, AND A TOOLTIP TELLS NOBODY
+
+Both new notes were attached to the `Fact`, rendered correctly, passed
+every test -- and were **invisible on screen**. `FactView._add_row` puts
+`fact.limitations` into the ROW'S TOOLTIP; only `report.limitations`
+reaches the status line under the panel. Found by grabbing the panel,
+which is the fourth defect this feature has produced with a green suite.
+They are carried in BOTH places now: on the fact for the tooltip and the
+export, and on the report so somebody actually reads them.
+
+#### THE ARM STATUS IS A CLOSED ENUM, ATTACHED TO THE NUMBER
+
+`nonaqueous.py` hand-typed `(HONEST)` into the printed TITLE while its
+`--json` carried no status at all, so the two could drift and a machine
+reader got the figure naked. `ArmStatus` + `ARM_STATUS` is one source
+feeding both, the shift arm is `OPTIMISTIC`, and a test asserts it can
+never be emitted as `VALIDATED`. **A caveat that lives beside a number
+rather than inside it is one refactor from being lost.**
+
 ## Verification standard
 
 This project's convention, established across many sessions: **claims are

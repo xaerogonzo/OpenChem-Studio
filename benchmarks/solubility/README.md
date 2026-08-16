@@ -19,22 +19,60 @@ has already paid for twice.
 
 ## Results, measured 2026-08-16
 
-ESOL against the de-leaked Solubility Challenge, 67 scored of 80:
+ESOL against the de-leaked Solubility Challenge, 61 scored of 80:
 
 | stratum | n | MAE | RMSE | median | max | bias |
 | --- | --- | --- | --- | --- | --- | --- |
-| all | 67 | 0.74 | 0.98 | 0.52 | 2.65 | −0.20 |
+| all | 61 | 0.74 | 0.98 | 0.52 | 2.65 | −0.17 |
 | neutral | 16 | 0.80 | 1.05 | 0.51 | 2.47 | +0.02 |
-| acid | 22 | 0.61 | 0.85 | 0.37 | 2.36 | +0.06 |
-| base | 29 | 0.81 | 1.03 | 0.63 | 2.65 | **−0.52** |
+| acid | 18 | 0.55 | 0.79 | 0.35 | 2.36 | +0.26 |
+| base | 27 | 0.84 | 1.05 | 0.63 | 2.65 | **−0.59** |
 
 RMSE 0.98 is in line with ESOL's own documented accuracy, on compounds it
 was not fitted on.
 
 **THE STRATIFICATION EARNED ITS KEEP ON THE FIRST RUN.** The aggregate
-bias is −0.20 and reads as noise. Split by class, ESOL **under-predicts
-bases by half a log unit** while acids sit at +0.06. A single MAE would
-have hidden a systematic error across a third of a druglike set.
+bias is −0.17 and reads as noise. Split by class, ESOL **under-predicts
+bases by more than half a log unit** while acids sit at +0.26. A single MAE
+would have hidden a systematic error across a third of a druglike set.
+
+**SIX ROWS ARE REFUSED AS POLYMORPH PAIRS, and they used to be scored
+twice.** Three compounds appear under one InChIKey as two solid forms —
+chlorprothixene (−6.75 / −5.87, spread 0.88), sulindac (−3.68 / −4.50,
+0.82) and phthalic acid (−1.49 / −1.61, 0.12). ESOL predicts one number per
+*structure* and has no representation in which the forms differ, so scoring
+both counted those compounds twice **and** charged the polymorph gap — up to
+0.88 log, the size of the base bias itself — to the model as prediction
+error. Found when `base_bias.py` halted on the contradiction. Refusing what
+cannot be scored is the posture already taken for ampholytes, and it moved
+the acid bias +0.06 → +0.26 and the base bias −0.52 → −0.59.
+
+## Should the base bias be corrected? Pre-registered answer: no
+
+`base_bias.py` puts an adjustment through a cross-corpus **held-out** test
+whose criteria were fixed before it was first run.
+
+    fit on SC-1 bases (n=27) -> test on SC-2 bases (n=10 after overlap removal)
+    fit on SC-2 bases (n=17) -> test on SC-1 bases (n=20 after overlap removal)
+
+    offsets           +0.586 and +0.422, agreement 0.165  PASS
+    base RMSE         0.822 -> 0.780 and 1.101 -> 0.932   PASS (both improve)
+    overall MAE       not worse in either direction        PASS
+    improvement CI    [-0.231, +0.397] and [-0.0009, +0.300]  FAIL
+
+**Outcome `SURFACE_ONLY`.** Four criteria of five pass and the point
+estimates improve consistently, but the bootstrap 95% CI on the held-out
+paired improvement **includes zero in both directions** — one of them by
+0.0009, which is exactly why the threshold was fixed in advance.
+
+**The corpora share 20 compounds, 7 of them bases**, and removing those is
+what makes "held out" true — and what leaves the test underpowered at n=10
+and n=20. Two corpora that look like independent validation are less
+independent than their sizes suggest.
+
+So the bias is **reported to the user and not subtracted**. The panel says
+so on any base. `base_bias_result.json` records every criterion, both
+constants, the corpus fingerprints and the acceptance-criteria version.
 
 **13 of 80 compounds — 16% — are ampholytes, and are refused.** That is a
 large slice of druglike chemistry to decline, and it is printed beside the
@@ -53,7 +91,7 @@ scored:
 | ESOL, bases | 17 | 0.70 | 0.87 | **−0.42** |
 | **GSE (published baseline)** | 73 | 0.86 | 1.18 | +0.37 |
 
-**THE BASE BIAS REPLICATES.** −0.42 here against −0.52 on the first set,
+**THE BASE BIAS REPLICATES.** −0.42 here against −0.59 on the first set,
 on entirely different compounds. One set makes a bias a curiosity; two
 independent ones make it a property of the model. Delaney's paper mentions
 ionization, amines and salts *zero* times, so ESOL cannot distinguish a
@@ -131,6 +169,10 @@ Measured 2026-08-16, ONS Solubility Challenge dataset, 968 de-leaked
 | composite — our prediction vs measured | 786 | 0.68 | 0.96 | 0.49 | −0.07 | **honest** |
 | baseline — our ESOL vs measured aqueous | 786 | 0.61 | 0.85 | 0.41 | −0.03 | **honest** |
 | shift only — predicted vs measured shift | 786 | 0.29 | 0.49 | 0.16 | −0.04 | *optimistic* |
+
+*Status is carried per arm in the tool's own output — text and `--json` alike — from a
+closed vocabulary. The shift arm is `OPTIMISTIC` and can never be emitted as
+`VALIDATED`: its coefficients were fitted to the endpoint scored here.*
 
 **THE COMPOSITE IS BARELY WORSE THAN THE BASELINE — 0.68 against 0.61 MAE
 — AND THAT IS THE RESULT.** It confirms the claim the module makes: a

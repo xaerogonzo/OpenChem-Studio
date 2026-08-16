@@ -49,6 +49,7 @@ import ssl
 import statistics
 import urllib.request
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 
 import certifi
@@ -156,10 +157,50 @@ def load_cases(*, deleak: bool) -> tuple[list[Case], dict]:
     return cases, funnel
 
 
-def _stats(errors: list[float]) -> dict:
+class ArmStatus(Enum):
+    """What a scored arm is entitled to claim.
+
+    **A CLOSED VOCABULARY, and never inferred from the arm's name.** The
+    defect this exists to prevent is a number travelling without its
+    caveat: the status used to be hand-typed into the printed title while
+    the JSON carried none at all, so the two could disagree and a machine
+    reader got the figure with nothing attached to it.
+    """
+
+    VALIDATED = "validated"
+    OPTIMISTIC = "optimistic"
+    UNSUPPORTED = "unsupported"
+
+
+#: Every arm's status and caveat, in ONE place, rendered into both the text
+#: table and the JSON. Nothing may be scored without an entry here.
+ARM_STATUS: dict[str, tuple[ArmStatus, str]] = {
+    "composite": (
+        ArmStatus.VALIDATED,
+        "Our non-aqueous prediction against a measured non-aqueous solubility. ESOL was never "
+        "fitted to this endpoint, so this arm is a fair test of the number the application shows.",
+    ),
+    "baseline_aqueous": (
+        ArmStatus.VALIDATED,
+        "Our ESOL prediction against a measured AQUEOUS solubility, on the same compounds. The "
+        "comparison that says how much of the composite error is the baseline.",
+    ),
+    "shift_only": (
+        ArmStatus.OPTIMISTIC,
+        "NOT a validation. Abraham's coefficients were obtained by regression on measured "
+        "solubilities -- the endpoint scored here -- so this is an optimistic bound. Run with "
+        "--keep-leaked to see it flatter itself further.",
+    ),
+}
+
+
+def _stats(errors: list[float], arm: str) -> dict:
+    status, caveat = ARM_STATUS[arm]
+    base = {"status": status.value, "caveat": caveat}
     if not errors:
-        return {"n": 0}
+        return {**base, "n": 0}
     return {
+        **base,
         "n": len(errors),
         "MAE": statistics.mean(abs(e) for e in errors),
         "RMSE": math.sqrt(statistics.mean(e * e for e in errors)),
@@ -195,18 +236,21 @@ def score(cases: list[Case]) -> dict:
         )
 
     return {
-        "composite": _stats(composite),
-        "baseline_aqueous": _stats(baseline),
-        "shift_only": _stats(shift_only),
+        "composite": _stats(composite, "composite"),
+        "baseline_aqueous": _stats(baseline, "baseline_aqueous"),
+        "shift_only": _stats(shift_only, "shift_only"),
         "refused_by_uncertainty_bound": refused,
     }
 
 
 def _table(title: str, stats: dict) -> str:
+    """One row, with its status taken from the SAME dict the JSON is built
+    from -- so the printed label and the machine-readable one cannot drift."""
+    label = f"{title} [{stats['status'].upper()}]"
     if not stats.get("n"):
-        return f"{title}: nothing scored"
+        return f"{label}: nothing scored"
     return (
-        f"{title:<26} n={stats['n']:<5} MAE {stats['MAE']:.2f}  RMSE {stats['RMSE']:.2f}  "
+        f"{label:<40} n={stats['n']:<5} MAE {stats['MAE']:.2f}  RMSE {stats['RMSE']:.2f}  "
         f"median {stats['median']:.2f}  max {stats['max']:.2f}  bias {stats['bias']:+.2f}"
     )
 
@@ -230,9 +274,8 @@ def main() -> int:
         print(f"  {key:<22}{value:>7}")
     print(f"  {'refused by the bound':<22}{results['refused_by_uncertainty_bound']:>7}")
     print()
-    print(_table("composite (HONEST)", results["composite"]))
-    print(_table("baseline aqueous (HONEST)", results["baseline_aqueous"]))
-    print(_table("shift only (OPTIMISTIC)", results["shift_only"]))
+    for arm in ("composite", "baseline_aqueous", "shift_only"):
+        print(_table(arm.replace("_", " "), results[arm]))
     print()
     print("The shift arm is NOT a validation: the coefficients were fitted to this")
     print("endpoint, so it is an optimistic bound. Read the composite against the")

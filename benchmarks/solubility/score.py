@@ -109,12 +109,31 @@ class Row:
 
 def load(manifest: dict) -> tuple[list[Row], Counter]:
     """Every test row, classified. Rows the predictor refuses are counted
-    rather than dropped."""
+    rather than dropped.
+
+    **POLYMORPH PAIRS ARE REFUSED, and were being double-counted until
+    `base_bias.py` tripped over them.** Three compounds appear twice in
+    this corpus under one InChIKey as two solid forms:
+
+        chlorprothixene  -6.75 / -5.87    spread 0.88
+        sulindac         -3.68 / -4.50    spread 0.82
+        phthalic acid    -1.49 / -1.61    spread 0.12
+
+    ESOL predicts one number per STRUCTURE and has no representation in
+    which the forms differ, so scoring it against both counts those
+    compounds twice AND charges the polymorph gap -- up to 0.88 log, the
+    size of the base bias itself -- to the model as though it were
+    prediction error. Refusing what cannot be scored is the same posture
+    already taken for ampholytes.
+    """
     path = DATA / "evaluation.csv"
     if not path.is_file():
         raise SystemExit(f"No evaluation set at {path}. Run fetch.py first (see its docstring).")
 
-    rows: list[Row] = []
+    from rdkit.Chem import inchi
+
+    kept: dict[str, Row] = {}
+    polymorphs: set[str] = set()
     refusals: Counter = Counter()
     with path.open(newline="", encoding="utf-8") as handle:
         for record in csv.DictReader(handle):
@@ -137,8 +156,15 @@ def load(manifest: dict) -> tuple[list[Row], Counter]:
             if verdict is IonizationClass.AMPHOLYTE:
                 refusals["ampholyte"] += 1
                 continue
-            rows.append(Row(smiles=smiles, measured=measured, ionization=verdict))
-    return rows, refusals
+            key = inchi.MolToInchiKey(mol)
+            if key in kept and abs(kept[key].measured - measured) > 0.05:
+                polymorphs.add(key)
+                continue
+            kept[key] = Row(smiles=smiles, measured=measured, ionization=verdict)
+    for key in polymorphs:
+        kept.pop(key, None)
+        refusals["polymorph pair"] += 2
+    return list(kept.values()), refusals
 
 
 def errors(rows: list[Row], predict) -> list[float]:
