@@ -4539,6 +4539,86 @@ are all defined on aqueous media. A non-aqueous solvent gets an intrinsic
 solubility and no pH story rather than an authoritative-looking curve
 that means nothing.
 
+#### ACETIC ACID: REFUSED BY THE BOUND THAT WAS ALREADY THERE
+
+Alex asked for it by name, so "not in the table" was not an acceptable
+answer. The paper DOES predict its coefficients, so the question is
+whether a published prediction can ship. Two measurements say no, and the
+first uses no new policy at all:
+
+**IT FAILS THE EXISTING UNCERTAINTY BOUND.** Propagating the paper's own
+Table 4 out-of-bag RMSE (`e` 0.181, `s` 0.326, `a` 0.477, `b` 0.471,
+`v` 0.228) through the same `sum(|error| * descriptor)` the module already
+applies to measured-descriptor disagreement:
+
+    aspirin 1.57   caffeine 2.04   ibuprofen 1.34   paracetamol 1.76
+    benzene 0.51
+
+against a ceiling of 1.0. Caffeine is a factor of 110. Only benzene
+passes, and a solvent that works for benzene and no drug is not an option.
+Two coefficients are poor at the source -- OOB R^2 **0.308** for `e` and
+**0.474** for `b`, against in-sample 0.885 and 0.903, which is the overfit
+gap and the paper flags it itself.
+
+**AND THE PREDICTED TABLE IS THE WRONG PARAMETERISATION.** It carries only
+the `c = 0` refit (`e0 s0 a0 b0 v0`), which is the paper's equation 3 for
+log P and exists to make solvents comparable. The solubility equation is
+equation 2 and needs the intercept: ethanol's measured `c` is +0.222 and
+the predicted table has no column for it.
+
+**THE GOOD MESSAGE WAS UNREACHABLE FOR THE ONE CASE IT EXISTS FOR.** It
+was written into `solvent_shift`, and `resolve_solvent` refuses an unknown
+solvent several layers earlier -- so acetic acid never reached it and the
+user still got "91 solvents are supported". `predicted_only_reason()` is
+one function called from both, because writing the sentence twice is how
+two refusals drift into disagreeing.
+
+**THE NAMES SHIP, THE NUMBERS DO NOT.** `predicted_only` in the solvents
+JSON is 118 bare names so a refusal can be specific; a test asserts no
+coefficient is ever shipped beside them.
+
+**AND "293 FURTHER SOLVENTS" WAS WRONG IN FOUR DOCUMENTS.** 293 is the
+TOTAL the paper considers (sustainable + classic + measured), of which 91
+are measured -- so 202 are predicted-only, and the article's own table
+lists 118 of them. Written from memory of the abstract rather than from
+the sentence, which reads "a complete set of coefficients for all 293
+solvents (sustainable, classic, and measured)".
+
+#### THE NON-AQUEOUS BENCHMARK: TWO ARMS ARE CLAIMS, ONE IS NOT
+
+**THE LEAKAGE IS STRUCTURAL AND CANNOT BE ENGINEERED AWAY.** Abraham's
+solvent coefficients are, in the source's own words, "obtained by linear
+regression using experimentally determined partitions and SOLUBILITIES of
+solutes with known Abraham descriptors". The endpoint being scored IS the
+endpoint they were fitted to -- the AqSolDB/ESOL circularity in a new
+place, and this time unavoidable rather than fixable by subtraction.
+
+`benchmarks/solubility/nonaqueous.py` is built around that. The ONS
+Solubility Challenge dataset carries a CITATION column, so rows from
+Abraham or Acree publications can be dropped -- 1998 of 9536, 21%. That is
+the only handle that exists and it is a PARTIAL defence, since their
+coefficients may rest on measurements other people published.
+
+Measured 2026-08-16, 968 de-leaked cases, 159 solutes, 70 solvents:
+
+    composite  our prediction vs measured    786  MAE 0.68  RMSE 0.96  HONEST
+    baseline   our ESOL vs measured aqueous  786  MAE 0.61  RMSE 0.85  HONEST
+    shift only predicted vs measured shift   786  MAE 0.29  RMSE 0.49  OPTIMISTIC
+
+**THE COMPOSITE BEING BARELY WORSE THAN THE BASELINE IS THE RESULT.** It
+confirms the module's claim -- a non-aqueous answer is an ESOL prediction
+moved by a measured shift, so ESOL dominates the error -- and that claim
+does NOT require the shift to be validated, which is why it can be made at
+all. **Design the benchmark around the claim you can support**, not around
+the one you wish you could.
+
+**AND THE CONTROL MAKES THE LEAKAGE VISIBLE.** `--keep-leaked` improves
+the shift arm from **0.29 to 0.21 MAE** -- the coefficients looking 28%
+better on data they were fitted to -- while the composite barely moves
+(0.68 -> 0.69). **A de-leaking rule whose effect you cannot see is a
+de-leaking rule you have not tested**, and this one is measured in both
+directions.
+
 **`solvent_choices()` PUTS WATER FIRST, and that is not cosmetic.**
 `sorted(SOLVENTS)` buries the default at position 88 of 91, and water is
 not merely the default -- it is the solvent the pH curve, the BCS screen

@@ -105,6 +105,56 @@ chemistry.
 is derived and `score.py` prints that as a finding. A future corpus that
 does record it will populate the field, which the scorer already reads.
 
+## Non-aqueous: what can and cannot be scored
+
+```bash
+uv run --no-sync --with openpyxl python benchmarks/solubility/nonaqueous.py
+```
+
+**THE LEAKAGE HERE IS STRUCTURAL AND CANNOT BE ENGINEERED AWAY.** Abraham's
+solvent coefficients are, in the source paper's own words, *"obtained by
+linear regression using experimentally determined partitions and
+solubilities of solutes with known Abraham descriptors"*. The endpoint
+being scored **is** the endpoint they were fitted to. Nothing here
+validates the shift the way the sets above validate ESOL, and this
+benchmark does not claim to.
+
+What makes it worth running anyway is that the evaluation data carries a
+**citation column**, so rows sourced from Abraham or Acree publications can
+be identified and dropped — 1998 of 9536 usable rows, 21%.
+
+Measured 2026-08-16, ONS Solubility Challenge dataset, 968 de-leaked
+(solute, solvent) cases over 159 solutes and 70 solvents:
+
+| arm | n | MAE | RMSE | median | bias | status |
+| --- | --- | --- | --- | --- | --- | --- |
+| composite — our prediction vs measured | 786 | 0.68 | 0.96 | 0.49 | −0.07 | **honest** |
+| baseline — our ESOL vs measured aqueous | 786 | 0.61 | 0.85 | 0.41 | −0.03 | **honest** |
+| shift only — predicted vs measured shift | 786 | 0.29 | 0.49 | 0.16 | −0.04 | *optimistic* |
+
+**THE COMPOSITE IS BARELY WORSE THAN THE BASELINE — 0.68 against 0.61 MAE
+— AND THAT IS THE RESULT.** It confirms the claim the module makes: a
+non-aqueous answer is an ESOL prediction moved by a measured shift, so its
+error is dominated by ESOL and it is never more reliable than the aqueous
+value behind it. That claim does **not** depend on the shift being
+independently validated, which is why it can be made honestly.
+
+**AND THE CONTROL SHOWS THE LEAKAGE DIRECTLY.** Re-run with
+`--keep-leaked` and the shift arm improves from **0.29 to 0.21 MAE** — the
+coefficients looking 28% better on data they were fitted to — while the
+composite barely moves (0.68 → 0.69) because ESOL dominates it. A
+de-leaking rule whose effect you cannot see is a de-leaking rule you have
+not tested.
+
+Three caveats that are stated rather than fixed: no temperature filter
+(the set is largely ambient but does not say so per row); no `solid_form`,
+so polymorphs and hydrates are mixed in; and dropping Abraham/Acree
+citations is a **partial** defence, since their coefficients may rest on
+measurements other people published.
+
+182 of the 968 cases are refused outright by the shipped uncertainty
+bound, and those refusals are counted rather than quietly excluded.
+
 ## This is evidence disclosure, not a release gate
 
 Pre-registered before any number was seen, and unchanged by them:

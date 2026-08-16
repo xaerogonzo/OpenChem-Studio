@@ -283,10 +283,14 @@ follow directly:
   is measured; what it moves is an ESOL prediction at RMSE ≈ 1.26 log. A
   non-aqueous answer is not more reliable than the aqueous one it came
   from, and is usually the same accuracy or slightly worse.
-- **No non-aqueous benchmark has been run here.** The accuracy statement
-  above is inherited from the aqueous baseline and the sources' own
-  reported fits. Nothing in this application has been scored against
-  measured non-aqueous solubilities.
+- **The non-aqueous benchmark cannot validate the shift, and does not
+  claim to.** Abraham's coefficients were fitted to measured solubilities
+  — the very endpoint — so that half is structurally leaked. Measured on
+  968 de-leaked cases: the composite prediction scores MAE 0.68 against
+  ESOL's own 0.61 on the same compounds, which confirms the point above
+  (the baseline dominates) without resting on the shift being validated.
+  The shift-only arm is reported as an *optimistic bound* and visibly
+  flatters itself, improving to 0.21 MAE when leaked rows are kept in.
 - **Where two literature sources disagree by more than a factor of ten in
   the answer, it refuses rather than averaging.** Aspirin in toluene is a
   real instance.

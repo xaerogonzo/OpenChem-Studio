@@ -262,11 +262,25 @@ documentation molecule, resting on an ESOL-era experimental value of −2.19
 for aspirin. SC-2's interlaboratory mean over 16 sources is **−1.67**, and
 against that Marvin (0.14 off) and AqSolDB (0.05) both beat ESOL (0.42).
 
-**Non-aqueous solubility is NOT validated here.** The 91-solvent route is a
-lookup on both sides, so its shift is measured — but nothing in this
-application has been scored against measured non-aqueous solubilities, and
-no corpus for it exists yet. The accuracy above describes the aqueous
-baseline only.
+**Non-aqueous — scored, and the shift is NOT validated by it.** Abraham's
+coefficients are "obtained by linear regression using experimentally
+determined partitions and solubilities" — the endpoint being scored. That
+leakage is structural and cannot be engineered away, so only two of three
+arms are claims. On 968 de-leaked cases (159 solutes, 70 solvents, ONS
+Solubility Challenge dataset):
+
+| arm | n | MAE | RMSE | status |
+| --- | --- | --- | --- | --- |
+| composite — our prediction vs measured | 786 | 0.68 | 0.96 | **honest** |
+| baseline — our ESOL vs measured aqueous | 786 | 0.61 | 0.85 | **honest** |
+| shift only | 786 | 0.29 | 0.49 | *optimistic* |
+
+**The composite is barely worse than the baseline**, which is the result:
+the non-aqueous answer is an ESOL prediction moved by a measured shift, so
+ESOL dominates its error. That claim does not require the shift to be
+independently validated. **The control shows the leakage directly** — with
+leaked rows kept the shift arm improves 0.29 → 0.21 MAE, flattering itself
+28% on data it was fitted to, while the composite barely moves.
 
 → [`benchmarks/solubility/README.md`](../benchmarks/solubility/README.md)
 

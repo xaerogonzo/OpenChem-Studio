@@ -249,6 +249,16 @@ def resolve_solvent(key: str | None) -> Solvent:
     """
     chosen = (key or WATER.key).strip().lower()
     if chosen not in SOLVENTS:
+        # **THE SPECIFIC REASON HAS TO LIVE HERE, NOT ONLY IN
+        # `solvent_shift`.** This function refuses first, so a
+        # predicted-only solvent never reaches that one -- the better
+        # message was written for acetic acid and was unreachable for
+        # acetic acid, which is the one case it exists for.
+        from openchem.chem.abraham import predicted_only_reason
+
+        reason = predicted_only_reason(chosen)
+        if reason:
+            raise KeyError(reason)
         examples = [name for name in _FAMILIAR_SOLVENTS if name in SOLVENTS]
         raise KeyError(
             f"No solubility model for solvent {chosen!r}. "

@@ -74,6 +74,48 @@ def test_acetic_acid_is_absent_and_that_is_deliberate():
     assert solvent_coefficients("acetic acid") is None
 
 
+def test_a_predicted_only_solvent_is_refused_with_its_REAL_reason():
+    """**"Not in the table" reads as an oversight**, and for acetic acid it
+    would be false: the numbers exist, and the paper's own held-out error
+    is what makes them unusable. Alex asked for acetic acid by name, so
+    the refusal has to carry the measurement rather than a shrug.
+    """
+    from openchem.chem.abraham import predicted_only_reason
+
+    reason = predicted_only_reason("acetic acid")
+    assert "held-out error" in reason
+    assert "intercept" in reason
+
+    # A solvent in neither table gets the ordinary message, not this one.
+    assert predicted_only_reason("liquid ammonia") == ""
+
+
+def test_the_predicted_only_reason_reaches_the_USER_not_just_the_helper():
+    """**THE FIX WAS UNREACHABLE FOR THE ONE CASE IT EXISTS FOR.** It first
+    lived only in `solvent_shift` -- but `resolve_solvent` refuses a
+    solvent that is not in `SOLVENTS` several layers earlier, so acetic
+    acid never reached it and the user still got "91 solvents are
+    supported". Assert through the calculator, which is the path a person
+    actually takes.
+    """
+    report = compute_solubility(
+        mol(ASPIRIN), "u", {"solvent": "acetic acid", "compare_models": False}
+    )
+    assert report.error
+    assert "held-out error" in report.error
+    assert "91 solvents are supported" not in report.error
+
+
+def test_no_predicted_coefficient_is_shipped_anywhere():
+    """The names ship so a refusal can be specific; the NUMBERS must not,
+    or something downstream will eventually start using them."""
+    payload = json.loads((_DATA / "abraham_solvents.json").read_text(encoding="utf-8"))
+    assert payload["predicted_only"], "the names are needed for the refusal"
+    for name in payload["predicted_only"]:
+        assert isinstance(name, str), "predicted_only must be bare names, never coefficients"
+        assert name not in payload["solvents"], f"{name} is in both tables"
+
+
 def test_a_miscible_solvent_is_present_which_is_the_whole_point():
     """**A ROUND OF THIS WORK WAS SPENT BELIEVING OTHERWISE.** Ethanol and
     water are miscible, so no two-phase partition coefficient exists and

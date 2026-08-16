@@ -111,6 +111,38 @@ def build_solvents() -> dict:
     return coefficients
 
 
+def build_predicted_only_names() -> list[str]:
+    """Names from the paper's PREDICTED table, which are deliberately NOT shipped.
+
+    Captured so a user asking for one gets the real reason rather than
+    "not in the table" -- which reads as an oversight when the truth is
+    that the numbers exist and the paper's own held-out error makes them
+    unusable. Acetic acid is the case that motivated this; it was asked
+    for by name.
+
+    That table is the `c = 0` refit only (`e0 s0 a0 b0 v0`), the paper's
+    equation 3 for log P. The solubility equation needs the intercept, so
+    even a solvent whose predicted error were acceptable could not be used
+    from this table without the measured `c`.
+    """
+    tables = re.findall(r"<table.*?</table>", _get(_SOLVENT_URL), re.S)
+    names: list[str] = []
+    for table in tables:
+        rows = re.findall(r"<tr[^>]*>(.*?)</tr>", table, re.S)
+        if not rows:
+            continue
+        header = [" ".join(c.split()) for c in _cells(rows[0])]
+        # The predicted table leads with Solvent and carries ONLY the
+        # c=0 columns; the measured one leads with `c`.
+        if not header or header[0].lower() != "solvent":
+            continue
+        for row in rows[1:]:
+            cells = _cells(row)
+            if cells and cells[0]:
+                names.append(" ".join(cells[0].split()).lower())
+    return sorted(set(names))
+
+
 def build_solutes() -> tuple[dict, dict]:
     """Experimental descriptors keyed by InChIKey, plus a rejection tally.
 
@@ -187,11 +219,23 @@ def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
 
     solvents = build_solvents()
+    predicted_only = [n for n in build_predicted_only_names() if n not in
+                      {k.lower() for k in solvents}]
     (OUT / "abraham_solvents.json").write_text(
-        json.dumps({"attribution": _ATTRIBUTION_SOLVENTS, "solvents": solvents}, indent=1),
+        json.dumps(
+            {
+                "attribution": _ATTRIBUTION_SOLVENTS,
+                "solvents": solvents,
+                # Named so a request for one can be refused with its real
+                # reason. NOT coefficients -- deliberately no numbers here,
+                # so nothing downstream can start using them.
+                "predicted_only": predicted_only,
+            },
+            indent=1,
+        ),
         encoding="utf-8",
     )
-    print(f"solvents: {len(solvents)} measured")
+    print(f"solvents: {len(solvents)} measured, {len(predicted_only)} predicted-only named")
 
     solutes, rejected = build_solutes()
     (OUT / "abraham_solutes.json").write_text(
