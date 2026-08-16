@@ -202,13 +202,28 @@ so a pH correction can be laid on top, is an assumption this app makes —
 not something ESOL claims. The panel says `model logS0` and *predicted
 intrinsic* deliberately, and never simply "intrinsic solubility".
 
-**The pH adjustment is capped at +2 logS, and the cap is a safeguard
-rather than a prediction.** A real pH–solubility profile levels off where
-the salt precipitates, which is set by that salt's solubility product. No
-compound-specific Ksp or salt-precipitation model exists anywhere in this
-application. Uncapped, Henderson–Hasselbalch puts aspirin at 4.7×10¹⁰
-mg/mL at pH 14 — correct arithmetic, meaningless answer. Any value that
-hit the cap says so on the fact itself.
+**The rise stops at one of two bounds, and they say different things.**
+Uncapped, Henderson–Hasselbalch puts aspirin at 4.7×10¹⁰ mg/mL at pH 14 —
+correct arithmetic, meaningless answer. Any value that hit a bound says
+which one on the fact itself.
+
+The first is chemistry with a citation: Avdeef's **"sdiff 3–4"
+approximation** ([10.1016/j.addr.2007.05.008](https://doi.org/10.1016/j.addr.2007.05.008),
+§2.2) — in 0.15 M NaCl, the counter-ion salt begins to precipitate once
+solubility exceeds intrinsic by about **four orders of magnitude for a
+weak acid and three for a weak base**. It is asymmetric because a sodium
+and a chloride salt are not equally soluble. This replaced a symmetric
++2 that had been inferred from a single ChemAxon screenshot and had no
+source; on propranolol at gastric pH it moves the prediction from 7 to
+70 mg/mL, against a real hydrochloride solubility near 50.
+
+The second is arithmetic declining to be absurd: a **pure-compound
+ceiling** of 1000 mg/mL, since a solute cannot outweigh the solution
+holding it. It exists because sdiff is stated for *sparingly*-soluble
+drugs and is silent about the rest — aspirin's uncapped rise of 3.91
+never reaches an acid's 4.0, so the salt rule alone would leave it at
+twelve kilograms per litre. Neither bound is this compound's measured
+solubility product.
 
 **For a strong base the cap swallows the whole regulatory window — but it
 no longer decides anything.** Measured on propranolol (pKa 9.4): the

@@ -4151,11 +4151,39 @@ probe with a placeholder.**
 
 **UNCAPPED HENDERSON-HASSELBALCH REACHES 4.7e10 mg/mL.** Aspirin at pH 14,
 which is 47 tonnes per litre: correct arithmetic, meaningless answer, the
-same failure this file records at 40619 kcal/mol. Hence a declared
-adjustment limit -- and it is named
-`MAX_PH_SOLUBILITY_ADJUSTMENT_LOG_UNITS` rather than "plateau" on purpose.
-What the code knows is "I stopped adjusting"; it does NOT know the
-compound saturates, because that needs a salt Ksp nothing here has.
+same failure this file records at 40619 kcal/mol.
+
+**TWO BOUNDS STOP IT AND THEY ARE NOT THE SAME CLAIM.** The first draft
+had one symmetric +2.0, inferred from a single ChemAxon screenshot with
+no source behind it. Avdeef's **"sdiff 3-4"** replaced it: in 0.15 M
+NaCl the counter-ion salt precipitates once solubility exceeds intrinsic
+by about FOUR orders for a weak acid and THREE for a weak base. Cited,
+and asymmetric because a sodium and a chloride salt are not equally
+soluble. On propranolol at gastric pH it moves the answer from 7 to
+**70 mg/mL** against a real hydrochloride solubility near 50.
+
+**THE READING WAS VERIFIED AGAINST THE PAPER'S OWN WORKED EXAMPLE**
+rather than assumed: Avdeef gives amiodarone intrinsic 7.9e-9 M and Ksp
+1.2e-6 M^2 "using the sdiff 3-4 approximation", and 7.9e-9 x 10^3 x 0.15
+= 1.19e-6 reproduces it. That is what says the rule was understood, not
+merely quoted.
+
+**AND sdiff ALONE IS NOT ENOUGH, WHICH ONLY MEASURING SHOWED.** It is
+stated for SPARINGLY-soluble drugs -- the paper's title -- and says
+nothing about a compound whose intrinsic solubility is already
+appreciable. Aspirin's uncapped rise of 3.91 never reaches an acid's
+4.0, so the salt rule leaves it at **11,925 mg/mL**, twelve kilograms
+per litre. A pure-compound ceiling of 1000 mg/mL catches the rest: a
+solute cannot outweigh the solution holding it. The two are reported
+separately, because "the salt precipitates here" and "past here the
+number is meaningless" must not render as one sentence.
+
+**THE FIX PARTLY DISSOLVED THE PROBLEM THAT MOTIVATED THE BOUNDED
+SCREEN.** Under +2, propranolol saturated the entire ICH window. Under
+the base limit of 3.0 its 2.60 at pH 6.8 fits underneath, so the window
+carries real pH information again. Saturation is pushed back rather than
+abolished -- a base above about pKa 10 still fills the window -- and the
+verdict is unaffected either way, which is the point of it being bounded.
 
 **THE LIMIT SATURATES THE ENTIRE ICH WINDOW FOR A STRONG BASE, and that
 is the ordinary case rather than an edge one.** Propranolol (pKa 9.4)

@@ -26,14 +26,20 @@ from openchem.chem.solubility import (
     ESOL,
     LOG_S,
     LOW_MODERATE_BOUNDARY_MG_PER_ML,
-    MAX_PH_SOLUBILITY_ADJUSTMENT_LOG_UNITS,
+    MISCIBILITY_CEILING_MG_PER_ML,
+    SALT_LIMIT_LOG_UNITS_ACID,
+    SALT_LIMIT_COUNTER_ION_MOLAR,
+    SALT_LIMIT_LOG_UNITS_BASE,
     MG_PER_ML,
     MODERATE_HIGH_BOUNDARY_MG_PER_ML,
     MOL_PER_L,
+    AdjustmentLimit,
     BcsOutcome,
     BcsReason,
     IonizationClass,
+    LimitKind,
     SolubilityCategory,
+    adjustment_limit,
     bcs_high_solubility_screen,
     classify_ionization,
     compute_solubility,
@@ -203,10 +209,11 @@ def test_a_capped_profile_rises_then_stays_flat_and_never_falls():
     """The cap must not introduce a kink that goes the wrong way -- a
     non-monotone profile would break the endpoint reasoning the ICH
     window evaluation rests on."""
-    values = [ph_adjustment(p / 10, [4.9], [True]).applied for p in range(0, 141)]
+    limit = SALT_LIMIT_LOG_UNITS_ACID
+    values = [ph_adjustment(p / 10, [4.9], [True], limit).applied for p in range(0, 141)]
     assert all(b >= a - 1e-12 for a, b in zip(values, values[1:]))
-    assert max(values) == pytest.approx(MAX_PH_SOLUBILITY_ADJUSTMENT_LOG_UNITS)
-    assert values[0] < MAX_PH_SOLUBILITY_ADJUSTMENT_LOG_UNITS  # it really does rise first
+    assert max(values) == pytest.approx(limit)
+    assert values[0] < limit  # it really does rise first
 
 
 def test_the_cap_is_continuous_at_the_boundary():
@@ -218,9 +225,10 @@ def test_the_cap_is_continuous_at_the_boundary():
     reaches 2.0 when the term is 99, at `pKa + log10(10^2 - 1)`.
     """
     pkas, is_acid = [4.9], [True]
-    crossing = 4.9 + math.log10(10**MAX_PH_SOLUBILITY_ADJUSTMENT_LOG_UNITS - 1)
-    below = ph_adjustment(crossing - 1e-6, pkas, is_acid)
-    above = ph_adjustment(crossing + 1e-6, pkas, is_acid)
+    limit = SALT_LIMIT_LOG_UNITS_ACID
+    crossing = 4.9 + math.log10(10**limit - 1)
+    below = ph_adjustment(crossing - 1e-6, pkas, is_acid, limit)
+    above = ph_adjustment(crossing + 1e-6, pkas, is_acid, limit)
     assert below.applied == pytest.approx(above.applied, abs=1e-5)
     assert not below.limited and above.limited
 
@@ -234,10 +242,10 @@ def test_the_cap_engages_far_beyond_its_boundary_not_marginally():
     within any sane tolerance. Aspirin at pH 12 asks for +8.51, so
     deleting the cap moves the answer by six and a half log units.
     """
-    adjustment = ph_adjustment(12.0, [ASPIRIN_PKA], [True])
+    adjustment = ph_adjustment(12.0, [ASPIRIN_PKA], [True], SALT_LIMIT_LOG_UNITS_ACID)
     assert adjustment.uncapped > 8.0
     assert adjustment.limited
-    assert adjustment.applied == MAX_PH_SOLUBILITY_ADJUSTMENT_LOG_UNITS
+    assert adjustment.applied == SALT_LIMIT_LOG_UNITS_ACID
 
 
 def test_without_the_cap_aspirin_reaches_a_physically_absurd_solubility():
@@ -389,23 +397,43 @@ def test_an_ampholyte_may_not_reach_the_window_evaluation():
         evaluate_solubility_window(-3.5, [2.3, 9.6], [True, False], IonizationClass.AMPHOLYTE)
 
 
-def test_a_strong_base_saturates_the_displayed_curve_but_not_the_verdict():
-    """**MEASURED, AND IT IS THE ORDINARY CASE FOR BASIC DRUGS.**
-    Propranolol's pKa 9.4 asks for +8.20 at pH 1.2 and +2.60 at pH 6.8, so
-    every point in the ICH window hits the safeguard and the DISPLAYED
-    spread across it is exactly zero.
+def test_the_cited_salt_limit_un_saturates_propranolol_s_window():
+    """**THE FIX MOVED THE VERY SYMPTOM THAT MOTIVATED THE BOUNDED SCREEN.**
 
-    That used to decide the screen, which meant an arbitrary constant
-    blanked a whole compound class. The verdict is bounded now, so the
-    saturation is still reported -- it is true, and the curve really is
-    flat there -- while the outcome is decided by the sandwich instead.
+    Propranolol's pKa 9.4 asks for +8.20 at pH 1.2 and +2.60 at pH 6.8.
+    Under the old symmetric +2 that saturated the ENTIRE ICH window and
+    the displayed spread was exactly zero -- which is what an arbitrary
+    constant blanking a whole compound class looked like.
+
+    Avdeef's base limit is 3.0, and 2.60 fits under it. So the window is
+    no longer saturated at its minimum and the curve carries real pH
+    information again. Both halves are asserted, because the improvement
+    is the point and a reader will otherwise assume the old note still
+    holds.
     """
-    window = evaluate_solubility_window(-3.57, [PROPRANOLOL_PKA], [False], IonizationClass.BASE)
+    old = evaluate_solubility_window(
+        -3.57, [PROPRANOLOL_PKA], [False], IonizationClass.BASE, limit=2.0
+    )
+    assert old.fully_limited, "the historical +2 really did saturate the window"
+
+    now = evaluate_solubility_window(
+        -3.57, [PROPRANOLOL_PKA], [False], IonizationClass.BASE,
+        limit=SALT_LIMIT_LOG_UNITS_BASE,
+    )
+    assert not now.fully_limited
+    assert now.logs_low != pytest.approx(now.logs_high)
+
+
+def test_a_strong_enough_base_still_saturates_and_the_verdict_survives_it():
+    """Saturation has not been abolished, only pushed back. A base above
+    about pKa 10 still fills the window -- and the verdict is unaffected,
+    because the screen reads the bounds and never the limit."""
+    window = evaluate_solubility_window(
+        -3.57, [11.0], [False], IonizationClass.BASE, limit=SALT_LIMIT_LOG_UNITS_BASE
+    )
     assert window.fully_limited
     assert window.logs_low == pytest.approx(window.logs_high)
-    # The uncapped ceiling is far above the capped display value, which is
-    # exactly why the bracket is wide for a base.
-    assert window.uncapped_minimum_logs > window.minimum_logs + 0.5
+    assert window.uncapped_minimum_logs > window.minimum_logs + 1.0
 
 
 def test_a_verdict_never_depends_on_the_adjustment_safeguard():
@@ -415,7 +443,7 @@ def test_a_verdict_never_depends_on_the_adjustment_safeguard():
     between them. Run at three very different limits, including none.
     """
     outcomes = set()
-    for limit in (0.5, MAX_PH_SOLUBILITY_ADJUSTMENT_LOG_UNITS, 6.0, None):
+    for limit in (0.5, 2.0, 6.0, None):
         window = evaluate_solubility_window(
             -3.57, [PROPRANOLOL_PKA], [False], IonizationClass.BASE, limit=limit
         )
@@ -474,31 +502,40 @@ def test_the_ceiling_is_the_uncapped_profile_not_the_displayed_one():
     it understates solubility, so it can license a FAIL the evidence does
     not support.
 
-    Nothing caught that. For an acid the window minimum sits at pH 1.2
-    where the molecule is barely ionized, so capped and uncapped agree
-    exactly; for propranolol at 40 mg both land on the same verdict. The
-    two ceilings only disagree about the OUTCOME when the dose falls in
-    the gap between them, which for propranolol is 1745-6989 mg. At 3000
-    mg the honest answer is UNDETERMINED and the capped ceiling claims a
-    sound FAIL.
-    """
-    window = evaluate_solubility_window(-3.57, [PROPRANOLOL_PKA], [False], IonizationClass.BASE)
-    # The setup itself is asserted: without a real gap this proves nothing.
-    assert window.uncapped_minimum_logs > window.minimum_logs + 0.5
+    Nothing caught it. For an ACID the window minimum sits at pH 1.2 where
+    the molecule is barely ionized, so capped and uncapped agree exactly.
+    Propranolol was the original fixture and no longer works at all: under
+    Avdeef's base limit of 3.0 its minimum is not capped, so there is no
+    gap to disagree about. It takes a base strong enough that the limit
+    still binds across the window -- pKa 11 here, which leaves a 1.20 log
+    gap between the two candidate ceilings.
 
-    screen = bcs_high_solubility_screen(window, dose_mg=3000.0, molecular_weight=259.3)
+    **THE FIXTURE HAS BEEN WRONG TWICE NOW**, once for being too weak to
+    show the gap and once for a limit change closing it. Both times the
+    setup assertion below is what said so.
+    """
+    window = evaluate_solubility_window(
+        -3.57, [11.0], [False], IonizationClass.BASE, limit=SALT_LIMIT_LOG_UNITS_BASE
+    )
+    # The setup itself is asserted: without a real gap this proves nothing.
+    assert window.uncapped_minimum_logs > window.minimum_logs + 1.0
+
+    screen = bcs_high_solubility_screen(window, dose_mg=100000.0, molecular_weight=259.3)
     assert screen.outcome is BcsOutcome.UNDETERMINED
     assert screen.reason is BcsReason.BOUNDS_STRADDLE
 
     # And the ceiling really is the uncapped one, read directly.
     ceiling = logs_to_mg_per_ml(window.uncapped_minimum_logs, 259.3)
-    assert screen.dose_number_low == pytest.approx(3000.0 / (ceiling * 250.0))
+    assert screen.dose_number_low == pytest.approx(100000.0 / (ceiling * 250.0))
 
 
-def test_the_two_bounds_really_do_bracket_the_capped_estimate():
+def test_the_two_bounds_really_do_bracket_the_displayed_estimate():
     """The sandwich has to hold, or a verdict licensed by one side says
     nothing about the value shown to the user."""
-    window = evaluate_solubility_window(-3.57, [PROPRANOLOL_PKA], [False], IonizationClass.BASE)
+    window = evaluate_solubility_window(
+        -3.57, [PROPRANOLOL_PKA], [False], IonizationClass.BASE,
+        limit=SALT_LIMIT_LOG_UNITS_BASE,
+    )
     assert window.baseline_logs <= window.minimum_logs <= window.uncapped_minimum_logs
 
 
@@ -754,3 +791,132 @@ def test_the_site_polarity_convention_is_shared_with_logd():
 
     pkas, is_acid = assign_site_polarity(mol(PROPRANOLOL), [9.42])
     assert is_acid == [False]
+
+
+# --- the two bounds on the profile ------------------------------------
+
+
+def test_the_salt_limit_is_asymmetric_and_matches_avdeef():
+    """Avdeef's "sdiff 3-4": FOUR orders for a weak acid (sodium salt),
+    THREE for a weak base (chloride salt), in 0.15 M NaCl. Asymmetric
+    because the two salts are not equally soluble -- which the symmetric
+    +2 it replaced could not express."""
+    assert SALT_LIMIT_LOG_UNITS_ACID == 4.0
+    assert SALT_LIMIT_LOG_UNITS_BASE == 3.0
+    assert SALT_LIMIT_LOG_UNITS_ACID != SALT_LIMIT_LOG_UNITS_BASE
+
+    acid = adjustment_limit(IonizationClass.ACID, -6.0, 300.0)
+    base = adjustment_limit(IonizationClass.BASE, -6.0, 300.0)
+    assert acid.log_units == SALT_LIMIT_LOG_UNITS_ACID
+    assert base.log_units == SALT_LIMIT_LOG_UNITS_BASE
+    assert acid.kind is base.kind is LimitKind.SALT_PRECIPITATION
+
+
+def test_avdeefs_own_worked_example_reproduces():
+    """**THE CHECK THAT THE RULE WAS READ CORRECTLY.** Avdeef gives
+    amiodarone an intrinsic solubility of 7.9e-9 M and an estimated Ksp of
+    1.2e-6 M^2 "using the sdiff 3-4 approximation". A base takes three
+    orders, and Ksp = Si x [counter-ion]:
+
+        7.9e-9 x 10^3 x 0.15 = 1.19e-6
+
+    Reproducing his number is what says the reading is right rather than
+    merely plausible.
+    """
+    intrinsic_molar = 7.9e-9
+    salt_solubility = intrinsic_molar * 10**SALT_LIMIT_LOG_UNITS_BASE
+    ksp = salt_solubility * SALT_LIMIT_COUNTER_ION_MOLAR
+    assert ksp == pytest.approx(1.2e-6, rel=0.02)
+
+
+def test_a_soluble_acid_is_stopped_by_the_ceiling_not_the_salt_rule():
+    """**THE MEASUREMENT THAT FORCED A SECOND BOUND.** Aspirin's uncapped
+    rise at pH 7.4 is 3.91, which never reaches an acid's 4.0 -- so the
+    salt rule alone leaves it at 11,925 mg/mL, twelve kilograms per litre.
+    sdiff is stated for SPARINGLY-soluble drugs and is silent about a
+    compound whose intrinsic solubility is already 1.5 mg/mL.
+    """
+    target = mol(ASPIRIN)
+    mw = Descriptors.MolWt(target)
+    baseline = esol_logs(target)
+
+    salt_only = logs_to_mg_per_ml(baseline + SALT_LIMIT_LOG_UNITS_ACID, mw)
+    assert salt_only > 1e4, "the salt rule alone really is not enough here"
+
+    limit = adjustment_limit(IonizationClass.ACID, baseline, mw)
+    assert limit.kind is LimitKind.PLAUSIBILITY_CEILING
+    assert limit.log_units < SALT_LIMIT_LOG_UNITS_ACID
+    assert logs_to_mg_per_ml(baseline + limit.log_units, mw) == pytest.approx(
+        MISCIBILITY_CEILING_MG_PER_ML
+    )
+
+
+def test_a_sparingly_soluble_base_is_stopped_by_the_salt_rule():
+    """The other side of the same coin, and the case sdiff was stated for.
+    Propranolol at pH 1.2 lands at 70 mg/mL, against a real propranolol
+    hydrochloride solubility of roughly 50 -- where the old symmetric +2
+    gave 7."""
+    target = mol(PROPRANOLOL)
+    mw = Descriptors.MolWt(target)
+    baseline = esol_logs(target)
+
+    limit = adjustment_limit(IonizationClass.BASE, baseline, mw)
+    assert limit.kind is LimitKind.SALT_PRECIPITATION
+    assert limit.log_units == SALT_LIMIT_LOG_UNITS_BASE
+
+    at_gastric_ph = logs_at_ph(baseline, 1.2, [PROPRANOLOL_PKA], [False], limit.log_units)
+    assert logs_to_mg_per_ml(at_gastric_ph, mw) == pytest.approx(70.0, abs=5.0)
+    # The old cap is what this replaced, and the difference is an order of
+    # magnitude on a real drug.
+    old = logs_at_ph(baseline, 1.2, [PROPRANOLOL_PKA], [False], 2.0)
+    assert logs_to_mg_per_ml(old, mw) == pytest.approx(7.0, abs=1.0)
+
+
+def test_the_two_bounds_are_reported_as_different_things():
+    """A salt plateau and an arithmetic ceiling are not the same claim, and
+    a fact derived from one must not read like the other."""
+    soluble = compute_solubility(
+        mol(ASPIRIN), "u", {"pka_values": str(ASPIRIN_PKA), "pH": 7.4, "compare_models": False}
+    )
+    sparing = compute_solubility(
+        mol(PROPRANOLOL), "u",
+        {"pka_values": str(PROPRANOLOL_PKA), "pH": 1.2, "compare_models": False},
+    )
+    assert soluble.provenance.parameters["adjustment_limit_kind"] == LimitKind.PLAUSIBILITY_CEILING.value
+    assert sparing.provenance.parameters["adjustment_limit_kind"] == LimitKind.SALT_PRECIPITATION.value
+
+    note = next(
+        f for f in soluble.facts if f.label.startswith("Predicted solubility at pH")
+    ).limitations
+    assert note and "pure-compound ceiling" in note[0]
+
+
+def test_a_neutral_molecule_has_no_salt_limit_to_reach():
+    limit = adjustment_limit(IonizationClass.NEUTRAL, -0.53, 194.2)
+    assert limit.kind is LimitKind.NONE
+    assert limit.log_units == 0.0
+
+
+def test_the_drawn_curve_honours_the_same_bound_its_facts_describe():
+    """**A FACT AND A PICTURE DISAGREEING IS WORSE THAN EITHER BEING WRONG
+    ALONE**, and that is exactly what shipped for one render.
+
+    The limit was threaded into the facts and the ICH window but not into
+    the profile the chart draws, so propranolol's stats block read
+    "Adjustment limit +3.0 logS, reached at 26 of 57 sampled pH values"
+    while the plotted curve climbed to 1.8e8 mg/mL. Every test passed; the
+    y-axis showed it instantly.
+    """
+    curve = compute_solubility_curve(
+        mol(PROPRANOLOL), "u",
+        {"pka_values": str(PROPRANOLOL_PKA), "unit": MG_PER_ML, "compare_models": False},
+    )
+    stated = next(f for f in curve.facts if f.label.startswith("Adjustment limit"))
+    assert "reached at" in stated.display_value
+
+    baseline = esol_logs(mol(PROPRANOLOL))
+    mw = Descriptors.MolWt(mol(PROPRANOLOL))
+    ceiling = logs_to_mg_per_ml(baseline + float(stated.value), mw)
+
+    drawn = next(iter(curve.series.values()))
+    assert max(drawn) == pytest.approx(ceiling, rel=1e-9)

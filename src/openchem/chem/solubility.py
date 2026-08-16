@@ -45,8 +45,10 @@ number, and invisible in a single MAE.
 **UNCAPPED HENDERSON-HASSELBALCH IS UNUSABLE, and that is measured.**
 Aspirin reaches 4.7e10 mg/mL at pH 14 -- correct arithmetic, meaningless
 answer, the same failure this project already records at 40619 kcal/mol.
-Hence `MAX_PH_SOLUBILITY_ADJUSTMENT_LOG_UNITS`, which is a SAFEGUARD and
-not a prediction; see its comment.
+Two bounds stop it, and they say different things: Avdeef's cited
+salt-precipitation rule (`SALT_LIMIT_LOG_UNITS_ACID`/`_BASE`) and a
+pure-compound ceiling that is arithmetic declining to be absurd. Whichever
+binds is named on the fact.
 """
 
 from __future__ import annotations
@@ -66,24 +68,52 @@ from openchem.domain.report import Detail, Fact, FactCategory, ReportResult
 from openchem.domain.scientific_result import PhCurveResult
 from openchem.domain.structure_issue import Basis
 
-# --- the adjustment limit ---------------------------------------------
+# --- where the profile stops rising ------------------------------------
+#
+# TWO SEPARATE BOUNDS, AND THEY SAY DIFFERENT THINGS. One is chemistry
+# with a citation; the other is arithmetic refusing to be nonsense. A
+# value that hits either says which.
 
-#: How far Henderson-Hasselbalch is allowed to raise solubility above the
-#: baseline, in log units.
+#: Avdeef's **"sdiff 3-4" approximation** (Adv Drug Deliv Rev 59:568-590,
+#: doi 10.1016/j.addr.2007.05.008, section 2.2): in 0.15 M NaCl, once
+#: solubility exceeds its intrinsic value by about FOUR orders of
+#: magnitude for a weak ACID and THREE for a weak BASE, the sodium and
+#: chloride salts respectively begin to precipitate and the profile
+#: levels off.
 #:
-#: **THIS IS A MODEL SAFEGUARD, NOT A PREDICTED SATURATION PLATEAU.** What
-#: the code knows is "I stopped adjusting here". It does NOT know the
-#: compound saturates: a real pH-solubility profile levels off where the
-#: SALT precipitates, which is set by that salt's solubility product, and
-#: no compound-specific Ksp or salt-precipitation model exists anywhere in
-#: this application. Every fact derived from a limited value says so.
+#: This replaced a symmetric +2.0 that was inferred from one ChemAxon
+#: screenshot and had no source. It is asymmetric because the two salts
+#: are not equally soluble, and it is cited.
 #:
-#: 2.0 is where ChemAxon's own published example sits -- their aspirin
-#: figures rise from -1.81 intrinsic to 0.19 at pH 7.4, exactly 2.00 log
-#: units, against an unbounded HH rise of 3.91 for the same molecule. That
-#: is a reason to pick this number over another arbitrary one; it is not
-#: evidence that either value is physically correct.
-MAX_PH_SOLUBILITY_ADJUSTMENT_LOG_UNITS = 2.0
+#: **VERIFIED AGAINST THE PAPER'S OWN WORKED EXAMPLE.** Avdeef gives
+#: amiodarone intrinsic 7.9e-9 M and an estimated Ksp of 1.2e-6 M^2
+#: "using the sdiff 3-4 approximation". A base takes 3: 7.9e-9 x 10^3 =
+#: 7.9e-6 M, times the 0.15 M counter-ion = 1.19e-6. That reproduces
+#: their figure, which is what says this reading of the rule is right.
+#:
+#: **IT ASSUMES A SPARINGLY-SOLUBLE COMPOUND** -- the paper's own title.
+#: For a drug whose intrinsic solubility is already appreciable, four
+#: more orders of magnitude is not reachable, which is why the ceiling
+#: below exists.
+SALT_LIMIT_LOG_UNITS_ACID = 4.0
+SALT_LIMIT_LOG_UNITS_BASE = 3.0
+
+#: The condition Avdeef states the rule for. Recorded because the salt
+#: plateau depends on it -- Si = Ksp / [counter-ion] -- so the rule is not
+#: transferable to a different ionic strength without re-deriving it.
+SALT_LIMIT_COUNTER_ION_MOLAR = 0.15
+
+#: A solute cannot outweigh the solution it is dissolved in. At roughly
+#: 1 g/mL this is 1000 mg/mL, and past it the number is arithmetic rather
+#: than chemistry.
+#:
+#: **NOT A PREDICTED SOLUBILITY, and it is the second bound for a
+#: measured reason.** Applying sdiff alone puts aspirin at 11,925 mg/mL at
+#: pH 7.4 -- twelve kilograms per litre -- because its uncapped rise of
+#: 3.91 never reaches the acid's 4.0 and its intrinsic solubility is
+#: already 1.5 mg/mL. sdiff is right for the sparingly-soluble drugs it
+#: was stated for and silent about everything else; this catches the rest.
+MISCIBILITY_CEILING_MG_PER_ML = 1000.0
 
 # --- solvents ----------------------------------------------------------
 
@@ -452,10 +482,61 @@ def resolve_pkas(
 # --- the pH profile ----------------------------------------------------
 
 
+class LimitKind(Enum):
+    """Which bound stopped the profile rising, because they mean different
+    things and a fact derived from one must not read like the other."""
+
+    NONE = "none"
+    SALT_PRECIPITATION = "salt precipitation"
+    PLAUSIBILITY_CEILING = "physical plausibility"
+
+
+@dataclass(frozen=True)
+class AdjustmentLimit:
+    """The ceiling on the ionization adjustment, in log units, and why."""
+
+    log_units: float
+    kind: LimitKind
+    #: What the salt rule alone would have allowed, kept so a fact can say
+    #: which of the two bit.
+    salt_log_units: float
+
+
+def adjustment_limit(
+    ionization: IonizationClass, baseline_logs: float, molecular_weight: float
+) -> AdjustmentLimit:
+    """How far ionization may raise this molecule's solubility.
+
+    The tighter of two unrelated bounds: Avdeef's salt-precipitation rule,
+    which is chemistry, and the pure-compound ceiling, which is arithmetic
+    declining to be absurd. Whichever binds is named, because "the salt
+    precipitates here" and "past here the number is meaningless" are not
+    the same statement and must not render as one.
+    """
+    if ionization is IonizationClass.ACID:
+        salt = SALT_LIMIT_LOG_UNITS_ACID
+    elif ionization is IonizationClass.BASE:
+        salt = SALT_LIMIT_LOG_UNITS_BASE
+    else:
+        # Nothing ionizes, so nothing rises; the ceiling still applies to
+        # keep the contract uniform, and never bites.
+        salt = 0.0
+
+    ceiling = mg_per_ml_to_logs(MISCIBILITY_CEILING_MG_PER_ML, molecular_weight) - baseline_logs
+    if ceiling < salt:
+        return AdjustmentLimit(
+            log_units=max(ceiling, 0.0),
+            kind=LimitKind.PLAUSIBILITY_CEILING,
+            salt_log_units=salt,
+        )
+    kind = LimitKind.NONE if salt == 0.0 else LimitKind.SALT_PRECIPITATION
+    return AdjustmentLimit(log_units=salt, kind=kind, salt_log_units=salt)
+
+
 @dataclass(frozen=True)
 class PhAdjustment:
-    """How much ionization added to the baseline at one pH, and whether the
-    safeguard bound."""
+    """How much ionization added to the baseline at one pH, and whether a
+    bound stopped it."""
 
     applied: float
     uncapped: float
@@ -466,7 +547,7 @@ def ph_adjustment(
     ph: float,
     pkas: list[float],
     is_acid: list[bool],
-    limit: float | None = MAX_PH_SOLUBILITY_ADJUSTMENT_LOG_UNITS,
+    limit: float | None = None,
 ) -> PhAdjustment:
     """The ionization log factor, clamped to `limit`.
 
@@ -487,7 +568,7 @@ def logs_at_ph(
     ph: float,
     pkas: list[float],
     is_acid: list[bool],
-    limit: float | None = MAX_PH_SOLUBILITY_ADJUSTMENT_LOG_UNITS,
+    limit: float | None = None,
 ) -> float:
     return baseline_logs + ph_adjustment(ph, pkas, is_acid, limit).applied
 
@@ -497,7 +578,7 @@ def profile(
     ph_values: list[float],
     pkas: list[float],
     is_acid: list[bool],
-    limit: float | None = MAX_PH_SOLUBILITY_ADJUSTMENT_LOG_UNITS,
+    limit: float | None = None,
 ) -> list[float]:
     return [logs_at_ph(baseline_logs, ph, pkas, is_acid, limit) for ph in ph_values]
 
@@ -555,7 +636,7 @@ def evaluate_solubility_window(
     pkas: list[float],
     is_acid: list[bool],
     ionization: IonizationClass,
-    limit: float | None = MAX_PH_SOLUBILITY_ADJUSTMENT_LOG_UNITS,
+    limit: float | None = None,
 ) -> WindowEvaluation:
     if ionization is IonizationClass.AMPHOLYTE:
         raise ValueError(
@@ -746,11 +827,20 @@ def unit_symbol(unit: str) -> str:
 
 # --- the calculators ---------------------------------------------------
 
-_SALT_LIMIT_NOTE = (
-    "The pH adjustment is capped at +{limit:.2f} logS. That is a model safeguard, not a "
-    "predicted saturation plateau -- no compound-specific solubility product or "
-    "salt-precipitation model exists here."
-)
+_SALT_LIMIT_NOTES = {
+    LimitKind.SALT_PRECIPITATION: (
+        "The rise is limited to +{limit:.1f} logS, where the counter-ion salt is expected to "
+        "start precipitating -- Avdeef's 'sdiff 3-4' approximation (4 for an acid, 3 for a "
+        "base) in 0.15 M NaCl. It is an approximation for sparingly-soluble drugs, not this "
+        "compound's measured solubility product."
+    ),
+    LimitKind.PLAUSIBILITY_CEILING: (
+        "The rise is limited to +{limit:.1f} logS by a pure-compound ceiling of "
+        "{ceiling:.0f} mg/mL -- a solute cannot outweigh the solution holding it. This is "
+        "arithmetic refusing to be nonsense, not a predicted saturation point, and it means "
+        "the salt rule never bound for this molecule."
+    ),
+}
 
 _BCS_NOTE = (
     "A model-based screening estimate, not an experimental BCS classification. ICH M9 "
@@ -793,7 +883,11 @@ def _fact(
 
 
 def _method_chain(
-    estimate: ModelEstimate, resolution: PKaResolution, solvent: Solvent, ionization: IonizationClass
+    estimate: ModelEstimate,
+    resolution: PKaResolution,
+    solvent: Solvent,
+    ionization: IonizationClass,
+    molecular_weight: float = 1.0,
 ) -> tuple[str, ...]:
     """Every layer that produced the number, so it is auditable without
     opening provenance. A chart makes a rough prediction look
@@ -813,7 +907,8 @@ def _method_chain(
     ]
     if ionization in (IonizationClass.ACID, IonizationClass.BASE):
         chain.insert(2, "Adjustment: independent-site Henderson-Hasselbalch")
-        chain.insert(3, f"Adjustment limit: +{MAX_PH_SOLUBILITY_ADJUSTMENT_LOG_UNITS:.2f} logS")
+        limit = adjustment_limit(ionization, estimate.logs0 or 0.0, molecular_weight or 1.0)
+        chain.insert(3, f"Adjustment limit: +{limit.log_units:.1f} logS ({limit.kind.value})")
     if estimate.version:
         chain.append(f"Model version: {estimate.version}")
     return tuple(chain)
@@ -841,6 +936,14 @@ class SolubilityAnalysis:
     @property
     def varies_with_ph(self) -> bool:
         return self.ionization in (IonizationClass.ACID, IonizationClass.BASE)
+
+    @property
+    def limit(self) -> AdjustmentLimit:
+        """The bound for THIS molecule -- class-dependent, so it cannot be
+        a module constant the way the old symmetric cap was."""
+        return adjustment_limit(
+            self.ionization, self.baseline_logs or 0.0, self.molecular_weight or 1.0
+        )
 
 
 def analyse_solubility(
@@ -924,7 +1027,8 @@ def _provenance(analysis: SolubilityAnalysis, parameters: dict) -> Provenance:
             "pka_input_text": analysis.resolution.input_text,
             "ionization_class": analysis.ionization.value,
             "solvent": analysis.solvent.key,
-            "adjustment_limit_log_units": MAX_PH_SOLUBILITY_ADJUSTMENT_LOG_UNITS,
+            "adjustment_limit_log_units": analysis.limit.log_units,
+            "adjustment_limit_kind": analysis.limit.kind.value,
             "ph": float(parameters.get("pH", DEFAULT_PH)),
             "dose_mg": parameters.get("dose_mg"),
             "unit": str(parameters.get("unit", LOG_S)),
@@ -985,13 +1089,16 @@ def _ph_facts(analysis: SolubilityAnalysis, unit: str, ph: float) -> list[Fact]:
                 evidence=("No ionizable centre, so solubility does not vary with pH.",),
             )
         ]
-    adjustment = ph_adjustment(ph, analysis.pkas, analysis.is_acid)
+    limit = analysis.limit
+    adjustment = ph_adjustment(ph, analysis.pkas, analysis.is_acid, limit.log_units)
     value = baseline + adjustment.applied
     limitations = ()
     if adjustment.limited:
         limitations = (
-            _SALT_LIMIT_NOTE.format(limit=MAX_PH_SOLUBILITY_ADJUSTMENT_LOG_UNITS)
-            + f" Unclamped, Henderson-Hasselbalch asks for +{adjustment.uncapped:.2f}.",
+            _SALT_LIMIT_NOTES[limit.kind].format(
+                limit=limit.log_units, ceiling=MISCIBILITY_CEILING_MG_PER_ML
+            )
+            + f" Unlimited, Henderson-Hasselbalch asks for +{adjustment.uncapped:.2f}.",
         )
     return [
         _fact(
@@ -1020,7 +1127,10 @@ def _model_facts(
     disagreement, and rendering it as one would invent a discrepancy
     between a number and nothing.
     """
-    chain = _method_chain(analysis.estimate, analysis.resolution, analysis.solvent, analysis.ionization)
+    chain = _method_chain(
+        analysis.estimate, analysis.resolution, analysis.solvent, analysis.ionization,
+        analysis.molecular_weight,
+    )
     facts = [
         _fact(
             "Method", list(chain), chain[0].split(": ", 1)[-1],
@@ -1087,7 +1197,10 @@ def compute_solubility(
     dose_mg = parameters.get("dose_mg")
     dose = float(dose_mg) if dose_mg not in (None, "") else None
     window = evaluate_solubility_window(
-        analysis.baseline_logs, analysis.pkas, analysis.is_acid, analysis.ionization
+        analysis.baseline_logs, analysis.pkas, analysis.is_acid, analysis.ionization,
+        # The DISPLAYED minimum honours the bound; the verdict does not
+        # read it at all (see `bcs_high_solubility_screen`).
+        limit=analysis.limit.log_units,
     )
     screen = bcs_high_solubility_screen(window, dose, analysis.molecular_weight)
 
@@ -1128,7 +1241,8 @@ def compute_solubility(
         molecule_uuid=molecule_uuid,
         facts=tuple(facts),
         assumptions=_method_chain(
-            analysis.estimate, analysis.resolution, analysis.solvent, analysis.ionization
+            analysis.estimate, analysis.resolution, analysis.solvent, analysis.ionization,
+            analysis.molecular_weight,
         ),
         limitations=tuple(limitations),
         provenance=provenance,
@@ -1171,8 +1285,16 @@ def compute_solubility_curve(
     ph = float(parameters.get("pH", DEFAULT_PH))
     grid = ph_grid_from(parameters)
     mw = analysis.molecular_weight
+    limit = analysis.limit
 
-    logs_values = profile(analysis.baseline_logs, grid, analysis.pkas, analysis.is_acid)
+    # The DRAWN curve must honour the same bound the facts describe.
+    # Caught by rendering it: the facts said "limited at +3.0 logS" while
+    # the chart climbed to 1.8e8 mg/mL, because this call was the one site
+    # the resolved limit had not been threaded into. A fact and a picture
+    # disagreeing is worse than either being wrong alone.
+    logs_values = profile(
+        analysis.baseline_logs, grid, analysis.pkas, analysis.is_acid, limit.log_units
+    )
     series = {f"Solubility ({unit_symbol(unit)})": [in_unit(v, unit, mw) for v in logs_values]}
 
     facts = _baseline_facts(analysis, unit)
@@ -1183,16 +1305,24 @@ def compute_solubility_curve(
     )
 
     limited = [
-        v for v in (ph_adjustment(p, analysis.pkas, analysis.is_acid) for p in grid) if v.limited
+        v
+        for v in (
+            ph_adjustment(p, analysis.pkas, analysis.is_acid, limit.log_units) for p in grid
+        )
+        if v.limited
     ]
     if limited:
         facts.append(
             _fact(
-                "Adjustment limit",
-                MAX_PH_SOLUBILITY_ADJUSTMENT_LOG_UNITS,
-                f"reached at {len(limited)} of {len(grid)} sampled pH values",
+                f"Adjustment limit ({limit.kind.value})",
+                limit.log_units,
+                f"+{limit.log_units:.1f} logS, reached at {len(limited)} of {len(grid)} sampled pH values",
                 units="logS",
-                limitations=(_SALT_LIMIT_NOTE.format(limit=MAX_PH_SOLUBILITY_ADJUSTMENT_LOG_UNITS),),
+                limitations=(
+                    _SALT_LIMIT_NOTES[limit.kind].format(
+                        limit=limit.log_units, ceiling=MISCIBILITY_CEILING_MG_PER_ML
+                    ),
+                ),
             )
         )
 
