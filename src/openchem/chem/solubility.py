@@ -134,21 +134,42 @@ MISCIBILITY_CEILING_MG_PER_ML = 1000.0
 class Solvent:
     """A solvent the predictor can answer for.
 
-    Deliberately two fields. Only water participates in any computation,
-    so anything more -- Abraham/LSER coefficients in particular -- would be
-    plumbing that nothing reads, and this project has been bitten before by
-    machinery that looked wired up and was not.
-
-    `docs/SOLVENT_SOLUBILITY_ASSESSMENT.md` records exactly what a second
-    solvent needs and why it is not here yet.
+    Water is the model's home: the baseline model predicts aqueous
+    solubility and the whole pH apparatus is defined on it. Every other
+    solvent is reached by Abraham's solvation equation from that aqueous
+    value -- see `chem/abraham.py` -- which is a LOOKUP on both sides and
+    therefore covers a fixed set of compounds rather than any structure.
     """
 
     key: str
     label: str
 
+    @property
+    def is_water(self) -> bool:
+        return self.key == "water"
+
 
 WATER = Solvent(key="water", label="Water")
-SOLVENTS: dict[str, Solvent] = {WATER.key: WATER}
+
+
+def _build_solvents() -> dict[str, Solvent]:
+    """Water plus every solvent with MEASURED Abraham coefficients.
+
+    Built from the shipped table rather than hand-listed, so the offered
+    set and the answerable set cannot drift apart -- the failure
+    `inapplicable_calculators` already suffered once in this codebase.
+    """
+    from openchem.chem.abraham import solvent_names
+
+    solvents = {WATER.key: WATER}
+    for name in solvent_names():
+        key = name.strip().lower()
+        if key != "water":
+            solvents[key] = Solvent(key=key, label=name)
+    return solvents
+
+
+SOLVENTS: dict[str, Solvent] = _build_solvents()
 
 #: McGowan's atomic volumes, cm^3/mol. From the characteristic-volume
 #: definition used throughout Abraham's solvation work.
@@ -167,14 +188,17 @@ def mcgowan_volume(mol: Chem.Mol) -> float:
     parameters anybody chose.
 
     **THIS IS THE ONE ABRAHAM SOLUTE DESCRIPTOR THAT IS EXACTLY
-    COMPUTABLE**, and it is the reason the solvent foundation is not
-    entirely hypothetical. Validated against published values to four
-    decimals on eight compounds, benzene 0.7164 and water 0.1673 among
-    them; see `test_the_mcgowan_volume_matches_published_values`.
+    COMPUTABLE.** Validated against published values to four decimals on
+    eight compounds, benzene 0.7164 and water 0.1673 among them; see
+    `test_the_mcgowan_volume_matches_published_values`.
 
-    The other four (E, S, A, B) are not computable here --
-    `docs/SOLVENT_SOLUBILITY_ASSESSMENT.md` records what each would take,
-    and which of them a measurement has already ruled out.
+    **IT IS NO LONGER WHAT THE NON-AQUEOUS ROUTE RUNS ON**, and this
+    docstring said otherwise for a while. `chem/abraham.py` looks up all
+    five descriptors including V, because a measured value beats a computed
+    one even when the computation is exact -- mixing one computed
+    descriptor into four measured ones would put the two on different
+    footings inside a single sum. This stays as its own descriptor row,
+    where being exactly computable is the whole point.
     """
     with_hydrogens = Chem.AddHs(mol)
     try:
@@ -189,17 +213,47 @@ def mcgowan_volume(mol: Chem.Mol) -> float:
     return (total - _MCGOWAN_BOND_DECREMENT * with_hydrogens.GetNumBonds()) / 100.0
 
 
+#: Illustrative only, for the refusal message. Always filtered against the
+#: real table before being shown -- this must never become a second source
+#: of truth about what is supported.
+_FAMILIAR_SOLVENTS = ("water", "ethanol", "methanol", "acetone", "toluene", "hexane")
+
+
+def solvent_choices() -> list[str]:
+    """The offered solvents, WATER FIRST and the rest alphabetical.
+
+    Not `sorted(SOLVENTS)`: water sorts **last of 91** -- measured, not
+    estimated -- so a plain alphabetical list buries the default at the
+    very bottom. And the aqueous path is not merely the default: it is the
+    one the pH curve, the BCS screen and the whole benchmark are about.
+    """
+    return [WATER.key] + sorted(key for key in SOLVENTS if key != WATER.key)
+
+
 def resolve_solvent(key: str | None) -> Solvent:
     """The named solvent, or `KeyError` naming what is supported.
 
     Refuses rather than silently falling back to water: a user who asked
     for ethanol and got water's answer under ethanol's label has been given
     a wrong number, not a degraded one.
+
+    The message names a HANDFUL and a count rather than all 91. A refusal
+    nobody reads to the end is a refusal that failed to say anything, and
+    the full list is one combo box away.
+
+    The handful is FILTERED against the table rather than hardcoded, so a
+    name that ever leaves the source simply stops being offered as an
+    example instead of advertising a solvent that would then be refused.
+    Taking the first six alphabetically instead gives `1,9-decadiene` and
+    `1-chlorobutane`, which answer "is my solvent here?" for nobody.
     """
     chosen = (key or WATER.key).strip().lower()
     if chosen not in SOLVENTS:
-        supported = ", ".join(sorted(SOLVENTS))
-        raise KeyError(f"No solubility model for solvent {chosen!r}. Supported: {supported}.")
+        examples = [name for name in _FAMILIAR_SOLVENTS if name in SOLVENTS]
+        raise KeyError(
+            f"No solubility model for solvent {chosen!r}. "
+            f"{len(SOLVENTS)} solvents are supported, including {', '.join(examples)}."
+        )
     return SOLVENTS[chosen]
 
 
@@ -736,6 +790,13 @@ class BcsReason(Enum):
     PKAS_UNAVAILABLE = "no pKa values are available"
     UNSUPPORTED_SPECIES = "this species is outside the model"
     BOUNDS_STRADDLE = "the solubility bounds straddle the criterion"
+    # Its OWN reason, and not UNSUPPORTED_SPECIES, which is what it borrowed
+    # at first. That one says the MOLECULE is outside the model, which is
+    # false and actively misleading here -- aspirin in ethanol is perfectly
+    # well supported; ICH M9 is simply a criterion about aqueous media. A
+    # refusal that names the wrong cause sends the reader to fix the wrong
+    # thing.
+    NON_AQUEOUS_SOLVENT = "ICH M9 is defined on aqueous media"
 
 
 @dataclass(frozen=True)
@@ -978,14 +1039,35 @@ class SolubilityAnalysis:
     #: Set when the analysis cannot proceed; the calculators turn it into
     #: a FAILED result carrying this text.
     refusal: str = ""
+    #: `log Ss - log Sw` for a non-aqueous solvent, or None for water.
+    shift: object = None
 
     @property
     def baseline_logs(self) -> float | None:
-        return self.estimate.logs0
+        """The baseline in the REQUESTED solvent.
+
+        For water this is the model's own output. For anything else it is
+        that value moved by Abraham's solvation equation -- which is why
+        the category and every derived number below follow the solvent
+        rather than silently describing water.
+        """
+        if self.estimate.logs0 is None:
+            return None
+        if self.shift is None:
+            return self.estimate.logs0
+        return self.estimate.logs0 + self.shift.log_shift
 
     @property
     def varies_with_ph(self) -> bool:
-        return self.ionization in (IonizationClass.ACID, IonizationClass.BASE)
+        """**pH IS AN AQUEOUS CONCEPT.** Henderson-Hasselbalch, the pKa
+        values behind it and the ICH window are all defined on water, so a
+        non-aqueous solvent gets an intrinsic solubility and no pH story
+        at all rather than a curve that would look authoritative and mean
+        nothing."""
+        return self.solvent.is_water and self.ionization in (
+            IonizationClass.ACID,
+            IonizationClass.BASE,
+        )
 
     @property
     def limit(self) -> AdjustmentLimit:
@@ -1035,7 +1117,35 @@ def analyse_solubility(
     if ionization in (IonizationClass.ACID, IonizationClass.BASE):
         pkas, is_acid = assign_site_polarity(mol, list(resolution.values))
 
+    # A non-aqueous solvent is reached by lookup on BOTH sides, so it can
+    # fail in ways water never does -- an unmeasured compound, or two
+    # literature sources that disagree too much to average.
+    shift = None
+    if not solvent.is_water:
+        from openchem.chem.abraham import solvent_shift
+
+        outcome = solvent_shift(mol, solvent.label)
+        if isinstance(outcome, str):
+            return SolubilityAnalysis(
+                solvent=solvent, estimate=estimate, resolution=resolution,
+                ionization=ionization, molecular_weight=Descriptors.MolWt(mol),
+                pkas=[], is_acid=[], refusal=outcome,
+            )
+        shift = outcome
+
     refusal = ""
+    if not solvent.is_water:
+        # Nothing downstream applies Henderson-Hasselbalch here, so a
+        # missing pKa and an ampholyte are both irrelevant. Requiring them
+        # anyway refused aspirin in ethanol for want of a number the
+        # calculation never uses.
+        if estimate.status is not ModelStatus.AVAILABLE:
+            refusal = estimate.reason
+        return SolubilityAnalysis(
+            solvent=solvent, estimate=estimate, resolution=resolution,
+            ionization=ionization, molecular_weight=Descriptors.MolWt(mol),
+            pkas=[], is_acid=[], refusal=refusal, shift=shift,
+        )
     if ionization is IonizationClass.AMPHOLYTE:
         refusal = (
             "This molecule has both acidic and basic centres, so it is an ampholyte. "
@@ -1056,6 +1166,7 @@ def analyse_solubility(
     return SolubilityAnalysis(
         solvent=solvent, estimate=estimate, resolution=resolution, ionization=ionization,
         molecular_weight=Descriptors.MolWt(mol), pkas=pkas, is_acid=is_acid, refusal=refusal,
+        shift=shift,
     )
 
 
@@ -1097,20 +1208,62 @@ def _baseline_facts(analysis: SolubilityAnalysis, unit: str) -> list[Fact]:
     assert baseline is not None
     mw = analysis.molecular_weight
     mg_per_ml = logs_to_mg_per_ml(baseline, mw)
+    aqueous = analysis.solvent.is_water
     ordered = [unit] + [u for u in DISPLAY_UNITS if u != unit]
+
+    # **THE ROW MUST NAME THE SOLVENT WHEN IT IS NOT WATER.** `baseline_logs`
+    # already carries the Abraham shift, so an unqualified "intrinsic
+    # solubility" row was reporting an ETHANOL number in an aqueous
+    # calculation's wording. Found by rendering the panel; every test passed.
+    if aqueous:
+        heading = "Predicted intrinsic solubility"
+        evidence = (
+            "The model's own output, read as the neutral species' solubility. That reading "
+            "is an added assumption, not something the model claims.",
+        )
+    else:
+        heading = f"Predicted solubility in {analysis.solvent.label}"
+        evidence = (
+            f"Aqueous baseline {analysis.estimate.logs0:.2f} logS moved by "
+            f"{analysis.shift.log_shift:+.2f} via Abraham's solvation equation.",
+            "Both the solvent coefficients and the solute descriptors are measured values; "
+            "the AQUEOUS baseline is still a prediction, so its error carries through.",
+        )
     facts = [
         _fact(
-            f"Predicted intrinsic solubility ({unit_symbol(name)})",
+            f"{heading} ({unit_symbol(name)})",
             in_unit(baseline, name, mw), format_in_unit(baseline, name, mw),
             units=unit_symbol(name),
             detail=Detail.STANDARD if name == unit else Detail.ADVANCED,
-            evidence=(
-                "The model's own output, read as the neutral species' solubility. That reading "
-                "is an added assumption, not something the model claims.",
-            ),
+            evidence=evidence,
         )
         for name in ordered
     ]
+
+    if not aqueous:
+        # **THE THRESHOLDS ARE AQUEOUS AND SAYING SO IS THE WHOLE POINT.**
+        # ChemAxon states Low/Moderate/High for INTRINSIC (aqueous)
+        # solubility; they encode expectations about dissolution in the gut,
+        # not about a compound's behaviour in ethanol. Classifying 52.81
+        # mg/mL in ethanol as "High" would borrow an aqueous verdict's
+        # authority for a different question -- the same mistake the BCS
+        # screen is scoped against one function below, missed here until the
+        # panel was rendered.
+        #
+        # Emitted as an explicit refusal rather than omitted: a MISSING row
+        # reads as "not computed yet", where the point is that it does not
+        # apply.
+        return facts + [
+            _fact(
+                "Solubility category", "n/a", "Not applicable outside water",
+                evidence=(
+                    "ChemAxon's Low/Moderate/High thresholds are defined on INTRINSIC AQUEOUS "
+                    "solubility. There is no published equivalent for other solvents, and "
+                    "reusing the aqueous numbers would be inventing one.",
+                ),
+            )
+        ]
+
     category = intrinsic_category(mg_per_ml)
     facts.append(
         _fact(
@@ -1130,6 +1283,18 @@ def _ph_facts(analysis: SolubilityAnalysis, unit: str, ph: float) -> list[Fact]:
     baseline = analysis.baseline_logs
     assert baseline is not None
     mw = analysis.molecular_weight
+    if not analysis.solvent.is_water:
+        # No pH LABEL at all, rather than a pH-labelled row carrying an
+        # aqueous number's clothes.
+        #
+        # And NO ROW AT ALL, because `_baseline_facts` now names the solvent
+        # itself. This used to emit a fourth row carrying the same number as
+        # the three unit rows above it -- outside water there is no pH
+        # adjustment, so "baseline" and "at pH" coincide exactly and the
+        # panel repeated one value four times. Visible the moment it was
+        # rendered; invisible to every test, which read labels rather than
+        # asking whether two rows said the same thing.
+        return []
     if not analysis.varies_with_ph:
         return [
             _fact(
@@ -1246,13 +1411,20 @@ def compute_solubility(
     limitations = [_BCS_NOTE]
     dose_mg = parameters.get("dose_mg")
     dose = float(dose_mg) if dose_mg not in (None, "") else None
-    window = evaluate_solubility_window(
-        analysis.baseline_logs, analysis.pkas, analysis.is_acid, analysis.ionization,
-        # The DISPLAYED minimum honours the bound; the verdict does not
-        # read it at all (see `bcs_high_solubility_screen`).
-        limit=analysis.limit.log_units,
-    )
-    screen = bcs_high_solubility_screen(window, dose, analysis.molecular_weight)
+    if not analysis.solvent.is_water:
+        # ICH M9 is a criterion about aqueous media. Reporting it for a
+        # solubility in hexane would be a regulatory-shaped answer to a
+        # question the regulation does not ask.
+        screen = BcsScreen.undetermined(BcsReason.NON_AQUEOUS_SOLVENT)
+        window = None
+    else:
+        window = evaluate_solubility_window(
+            analysis.baseline_logs, analysis.pkas, analysis.is_acid, analysis.ionization,
+            # The DISPLAYED minimum honours the bound; the verdict does not
+            # read it at all (see `bcs_high_solubility_screen`).
+            limit=analysis.limit.log_units,
+        )
+        screen = bcs_high_solubility_screen(window, dose, analysis.molecular_weight)
 
     evidence = [
         f"ICH M9 window pH {BCS_PH_LOW}-{BCS_PH_HIGH}, {BCS_VOLUME_ML:g} mL.",
@@ -1326,6 +1498,21 @@ def compute_solubility_curve(
             molecule_uuid=molecule_uuid,
             cache_state=CacheState.FAILED,
             error=analysis.refusal or "No solubility model could be applied.",
+            provenance=provenance,
+        )
+
+    if not analysis.solvent.is_water:
+        return PhCurveResult(
+            curve_id="solubility_curve",
+            name="Solubility vs pH",
+            method=analysis.estimate.label,
+            molecule_uuid=molecule_uuid,
+            cache_state=CacheState.FAILED,
+            error=(
+                f"pH is an aqueous concept, so there is no solubility-versus-pH curve in "
+                f"{analysis.solvent.label}. The Solubility calculator reports an intrinsic "
+                f"value there instead."
+            ),
             provenance=provenance,
         )
 

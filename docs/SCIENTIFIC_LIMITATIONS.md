@@ -272,9 +272,34 @@ M9 requires solubility established *experimentally* over pH 1.2–6.8 at
 at no defined temperature. Dose number addresses only the high-solubility
 half of the BCS test; permeability is a separate measurement.
 
-**Water only.** Other solvents are refused by name rather than answered
-with water's number. `docs/SOLVENT_SOLUBILITY_ASSESSMENT.md` records what a
-second solvent would need and why it is not here.
+**Solvents other than water are a LOOKUP, and a narrow one.** 91 solvents
+and 2193 compounds, both sides measured (Abraham's solvation equation; see
+`docs/SOLVENT_SOLUBILITY_ASSESSMENT.md` for the sources). Four limits
+follow directly:
+
+- **A compound outside those 2193 is refused by name**, with no fallback to
+  a predicted descriptor. Coverage is the price of not estimating.
+- **The aqueous baseline's error carries through undiminished.** The shift
+  is measured; what it moves is an ESOL prediction at RMSE ≈ 1.26 log. A
+  non-aqueous answer is not more reliable than the aqueous one it came
+  from, and is usually the same accuracy or slightly worse.
+- **No non-aqueous benchmark has been run here.** The accuracy statement
+  above is inherited from the aqueous baseline and the sources' own
+  reported fits. Nothing in this application has been scored against
+  measured non-aqueous solubilities.
+- **Where two literature sources disagree by more than a factor of ten in
+  the answer, it refuses rather than averaging.** Aspirin in toluene is a
+  real instance.
+
+**Acetic acid specifically is not available.** It appears only in the
+source's *predicted* coefficient set, which its own authors say should not
+be taken "as gospel".
+
+**pH, the BCS screen and the pH curve are water-only, deliberately.**
+Henderson–Hasselbalch, the pKa values behind it and the ICH window are all
+defined on aqueous media, so a non-aqueous solvent gets an intrinsic
+solubility and no pH story rather than an authoritative-looking curve that
+means nothing.
 
 <!-- help:limits-admet -->
 ## ADMET

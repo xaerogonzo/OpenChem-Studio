@@ -616,13 +616,18 @@ def test_a_salt_is_refused_and_told_to_draw_the_parent():
 
 
 def test_an_unknown_solvent_is_refused_rather_than_silently_given_water():
-    """A user who asked for ethanol and got water's number under ethanol's
-    label has a wrong answer, not a degraded one."""
+    """A user who asked for a solvent and got water's number under that
+    solvent's label has a wrong answer, not a degraded one.
+
+    **THIS TEST USED TO NAME ETHANOL, AND ETHANOL IS NOW SUPPORTED.** The
+    claim survives the lookup route landing; only the example had to move
+    to a solvent genuinely outside the measured table.
+    """
     with pytest.raises(KeyError):
-        resolve_solvent("ethanol")
-    report = compute_solubility(mol(ASPIRIN), "u", {"solvent": "ethanol"})
+        resolve_solvent("liquid ammonia")
+    report = compute_solubility(mol(ASPIRIN), "u", {"solvent": "liquid ammonia"})
     assert report.error
-    assert "ethanol" in report.error
+    assert "liquid ammonia" in report.error
 
 
 def test_water_is_supported_and_is_the_default():

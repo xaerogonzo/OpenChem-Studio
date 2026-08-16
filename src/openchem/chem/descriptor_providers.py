@@ -64,9 +64,9 @@ from openchem.chem.solubility import (
     DISPLAY_UNITS,
     ESOL,
     LOG_S,
-    SOLVENTS,
     compute_solubility,
     compute_solubility_curve,
+    solvent_choices,
 )
 from openchem.chem.solubility import esol_logs as _esol_logs
 from openchem.chem.solubility import mcgowan_volume as _mcgowan_volume
@@ -1931,7 +1931,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             ),
             CalculatorParameter(
                 name="solvent", label="Solvent", kind="choice",
-                default="water", choices=sorted(SOLVENTS),
+                default="water", choices=solvent_choices(),
             ),
             # Costs ~6 s when the ADMET sidecar is configured, and nothing
             # at all when it is not. On by default because two independent
@@ -1975,7 +1975,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             ),
             CalculatorParameter(
                 name="solvent", label="Solvent", kind="choice",
-                default="water", choices=sorted(SOLVENTS),
+                default="water", choices=solvent_choices(),
             ),
             # Costs ~6 s when the ADMET sidecar is configured, and nothing
             # at all when it is not. On by default because two independent

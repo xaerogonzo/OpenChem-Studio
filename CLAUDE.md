@@ -356,6 +356,40 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
+Before it: `4617 passed, 15 skipped`
+(measured 2026-08-16, **19m18**, on `solubility-predictor` at `bd91fce` +
+the non-aqueous lookup route. **+24 collected items and +24 test
+functions**, every one in the new `tests/test_abraham.py` and none of them
+parametrised, so for once the two deltas are the same number.
+
+**THE BAND WENT 6-18 TO 6-19, AND THIS RUN IS ITS NEW TOP.** 19m18 is the
+slowest full run this file has recorded. Nothing explains it -- the tree
+is 24 tests larger than a run that took 14m08, and 24 non-webview tests
+cannot cost five minutes. Recorded as the outlier it is rather than as a
+new normal, which is the same caution the four entries below already
+carry. Do not read a 19-minute run as a hang.
+
+**SKIPS UNCHANGED AT 15.** None of the 24 needs a display, so
+4593 + 24 = 4617 passed and 15 skipped is the whole delta accounted for.
+
+**THE BASELINE WAS DERIVED WITH `rev-parse`, NOT READ FROM THE ENTRY
+BELOW** -- and that mattered, because the entry below says 4563 and the
+branch had already moved to 4593 passed / 4608 collected at `bd91fce`
+(the Platts-reading commit added tests). Reading 4563 as the baseline
+would have reported +54 instead of +24.
+
+    branch before  bd91fce   COLLECTS 4608
+    after                    COLLECTS 4632   = 4608 + 24
+    the run                           4617 passed + 15 skipped = 4632
+
+**The +24 was DIFFED, not subtracted** -- `--collect-only -q | grep :: |
+sort` on both trees, `comm -23` for removals and `comm -13` for
+additions: **0 removed, 24 added**. Measured in a detached worktree with
+`PYTHONPATH` pointed at ITS `src`, and the override asserted with
+`python -c "import openchem; print(openchem.__file__)"` before the count
+was believed -- without that, `openchem.pth` silently imports the MAIN
+`src` and you measure the old tests against the new source.)
+
 Before it: `4563 passed, 15 skipped`
 (measured 2026-08-16, 14m08, on `solubility-predictor` -- the solubility
 predictor. **+65 collected items and +55 test functions** over master's
@@ -4391,6 +4425,127 @@ SHAPE was verifiable there and not one word of text was.
 `QT_QPA_PLATFORM=windows` with `widget.grab()` gives real fonts without
 needing the whole application, which is the cheapest form of the rule
 this file states six times over.
+
+### 91 SOLVENTS, BY LOOKUP ON BOTH SIDES -- and three deferrals that were wrong
+
+`chem/abraham.py` answers for solvents other than water using Abraham's
+solvation equation, `log Ss = log Sw + c + eE + sS + aA + bB + vV`. Both
+halves are LOOKED UP, neither is predicted: 91 measured solvent
+coefficient sets (Bradley, Abraham & Acree, BMC Chemistry 2015, doi
+10.1186/s13065-015-0085-4, Table 1) and 2193 measured solute descriptor
+sets (Bradley, Acree & Lang, figshare, doi 10.6084/m9.figshare.1176994).
+`tools/build_abraham_tables.py` fetches both; both are CC BY 4.0 and both
+shipped JSON files carry their attribution.
+
+**THIS FILE AND ARCHITECTURE.md BOTH SAID IT COULD NOT BE BUILT, FOR
+THREE REASONS, AND TWO OF THEM WERE FALSE.**
+
+- *"`E` is derivable from Crippen molar refractivity."* Measured and
+  killed: hexane's Crippen-derived value is **0.805** against a defined
+  `E` of **0.000** -- hexane IS the n-alkane reference `E` is an excess
+  over, and MR does not carry that reference.
+- *"Ethanol is structurally unreachable because it is miscible with
+  water."* False, and it cost a round of the work. No two-phase partition
+  coefficient exists for a miscible pair and the UFZ LSER database omits
+  ethanol for exactly that reason -- which is what made this look
+  structural rather than like one database's scope. **Abraham's
+  coefficients here come from SOLUBILITY RATIOS**, so neat ethanol is in
+  the measured table.
+- *"`S`, `A` and `B` need the Platts fragment scheme."* True, and no
+  longer binding. The scheme would work and is ~480 coefficients and ~132
+  hand-written SMARTS patterns, every one a place for a silent error, with
+  fragments 59-67 defined in a FIGURE and so unreadable from the PDF's
+  text layer. **Looking up an experimental descriptor costs none of that
+  and carries none of its 0.7-1.0 log error.**
+
+The general lesson is the one the assessment doc now leads with: a
+deferral's REASONS rot independently of its verdict, and the route that
+finally worked is the one all three reasons had ruled out.
+
+**TWO QUALITY GATES IN THE SOURCE, AND ONE IS A TRAP.** A `donotuse`
+column with a written reason (6 rows), and **`-123` as a missing-value
+sentinel** (513 rows), which `float()` reads as a perfectly ordinary
+number. A single leak puts a wildly negative descriptor into a prediction
+that still looks like a prediction;
+`test_the_missing_value_sentinel_never_reached_the_shipped_table` walks
+every shipped row.
+
+**A DUPLICATE IS MERGED BY MEDIAN WITH ITS SPREAD KEPT PER DESCRIPTOR.**
+432 InChIKeys appear more than once and only 51 of those groups agree
+exactly; the widest single-descriptor disagreement is 2.24. Acetanilide
+settles the design -- three rows give `S` = 3.61, 1.54, 1.37 and the
+FIRST is the outlier, so "take the first row" would have shipped it. The
+spread propagates into a stated uncertainty and refuses past 1.0 log,
+because a solvent coefficient of -4.9 turns a 0.3 disagreement in `B`
+into 1.5 log units on the answer.
+
+**PER DESCRIPTOR, NOT ONE BLANKET NUMBER.** The first bound multiplied
+the single widest spread by the SUM of all five coefficient magnitudes --
+assuming every descriptor is wrong by the worst amount, all in the same
+direction -- and refused aspirin, caffeine and ibuprofen, **three of the
+first four drugs tried**. A bound that rejects the ordinary case is not a
+safety feature.
+
+**ACETIC ACID IS ABSENT DELIBERATELY.** The paper also PREDICTS
+coefficients for 293 further solvents and says of those "not as gospel".
+Only the 91 measured ones ship, which is the same call already made
+against Miller polarizability, HLB and TSEI. Alex asked for acetic acid
+by name, so this one is a refusal with a reason rather than an oversight.
+
+#### AND THE RENDERED PANEL FOUND THREE MORE, WITH ALL 101 TESTS GREEN
+
+Same lever as the two above, one feature later, and the second of the
+three is the sharpest thing in this section.
+
+- **A row labelled "Predicted intrinsic solubility" carried an ETHANOL
+  number.** `baseline_logs` already includes the Abraham shift, so three
+  unqualified rows reported 52.81 mg/mL in the wording every other part
+  of the app uses for the aqueous value.
+- **ChemAxon's Low/Moderate/High were being applied outside water.**
+  Those thresholds are defined on INTRINSIC AQUEOUS solubility -- they
+  encode expectations about dissolution in the gut -- so "High" for 52.81
+  mg/mL in ethanol borrows an aqueous verdict's authority for a different
+  question. **This is the same scoping mistake the BCS screen is guarded
+  against ONE FUNCTION AWAY**, written in the same session, and it was
+  still missed: getting a rule right in one place does not apply it in
+  the next. It is a refusal with a reason now, not an omitted row, since
+  a missing row reads as "not computed yet".
+- **The panel repeated one value four times.** With no pH adjustment
+  outside water the "baseline" rows and the "at pH" row coincide exactly.
+  Invisible to every test, which read LABELS rather than asking whether
+  two rows said the same thing.
+
+**A REFUSAL THAT NAMES THE WRONG CAUSE IS WORSE THAN A VAGUE ONE.** The
+non-aqueous BCS path first reused `BcsReason.UNSUPPORTED_SPECIES`, whose
+text is "this species is outside the model" -- false, and it sends the
+reader to fix their molecule. `NON_AQUEOUS_SOLVENT` says ICH M9 is
+defined on aqueous media. Same family as "reusing a command whose
+invariants do not apply is not reuse", one layer down in an enum.
+
+**TEN MUTATIONS, TEN CAUGHT** -- but the tenth arm is the one worth
+keeping. `varies_with_ph` losing its `is_water` term **SURVIVED** at
+first, and it is not a blind test: its ONE caller already returns for a
+non-aqueous solvent several lines earlier, so the term cannot change any
+rendered output. Asserted directly on the predicate instead, which is
+this file's existing "an unreachable branch is a question about where to
+assert" applied a second time. **And that guard's own setup assertion
+then caught its fixture being degenerate** -- without a pKa in BOTH arms,
+aspirin classifies UNSUPPORTED in ethanol too, so `varies_with_ph` was
+False for a reason having nothing to do with the solvent.
+
+**pH, THE ICH SCREEN AND THE CURVE STAY WATER-ONLY.**
+Henderson-Hasselbalch, the pKa values behind it and the regulatory window
+are all defined on aqueous media. A non-aqueous solvent gets an intrinsic
+solubility and no pH story rather than an authoritative-looking curve
+that means nothing.
+
+**`solvent_choices()` PUTS WATER FIRST, and that is not cosmetic.**
+`sorted(SOLVENTS)` buries the default at position 88 of 91, and water is
+not merely the default -- it is the solvent the pH curve, the BCS screen
+and the entire benchmark are about. The refusal message names six
+FAMILIAR solvents filtered against the real table, because the first six
+alphabetically are `1,2-dichloroethane` and `1,9-decadiene`, which answer
+"is my solvent here?" for nobody.
 
 ## Verification standard
 
