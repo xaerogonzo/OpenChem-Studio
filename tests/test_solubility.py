@@ -51,6 +51,7 @@ from openchem.chem.solubility import (
     logs_at_ph,
     logs_to_mg_per_ml,
     logs_to_mol_per_l,
+    mcgowan_volume,
     mg_per_ml_to_logs,
     parse_manual_pkas,
     ph_adjustment,
@@ -920,3 +921,60 @@ def test_the_drawn_curve_honours_the_same_bound_its_facts_describe():
 
     drawn = next(iter(curve.series.values()))
     assert max(drawn) == pytest.approx(ceiling, rel=1e-9)
+
+
+# --- the one Abraham descriptor that is exactly computable -------------
+
+
+@pytest.mark.parametrize(
+    ("smiles", "published"),
+    [
+        ("c1ccccc1", 0.7164),        # benzene
+        ("Cc1ccccc1", 0.8573),       # toluene
+        ("O", 0.1673),               # water
+        ("CCO", 0.4491),             # ethanol
+        ("CCCCCC", 0.9540),          # hexane
+        ("ClC(Cl)Cl", 0.6167),       # chloroform
+        ("CC(C)=O", 0.5470),         # acetone
+        ("Oc1ccccc1", 0.7751),       # phenol
+    ],
+)
+def test_the_mcgowan_volume_matches_published_values(smiles, published):
+    """Exact to four decimals, because the definition is arithmetic on the
+    formula and the bond count -- no geometry, no fitting, nothing anybody
+    chose. This is what makes it the only Abraham solute descriptor the
+    project can supply today."""
+    assert mcgowan_volume(mol(smiles)) == pytest.approx(published, abs=5e-5)
+
+
+def test_an_element_with_no_published_volume_is_refused():
+    """The published set covers eleven elements. Guessing a twelfth would
+    put an invented number into a descriptor whose whole appeal is that it
+    contains none."""
+    with pytest.raises(ValueError, match="No McGowan atomic volume"):
+        mcgowan_volume(mol("[Se]"))
+
+
+def test_the_textbook_excess_molar_refraction_relation_does_not_work_here():
+    """**A MEASURED NEGATIVE, and it corrects this project's own
+    documentation.**
+
+    `docs/SOLVENT_SOLUBILITY_ASSESSMENT.md` claimed the Abraham descriptor
+    E was "derivable from Crippen molar refractivity" via
+    `MR/10 - 2.83195*Vx + 0.52553`. It is not. Hexane IS the alkane
+    reference, so its E is 0.000 by definition, and that relation returns
+    0.805 on Crippen's MR scale. Water returns 0.413 against 0.000.
+
+    A refit of the same two inputs reaches about 0.12 RMSE on thirteen
+    compounds -- fitted on them, so optimistic -- which is why the doc now
+    says "needs a validated refit" rather than "derivable". Asserted here
+    so the claim cannot drift back.
+    """
+    from rdkit.Chem import Crippen
+
+    def textbook_e(smiles: str) -> float:
+        target = mol(smiles)
+        return Crippen.MolMR(target) / 10.0 - 2.83195 * mcgowan_volume(target) + 0.52553
+
+    assert textbook_e("CCCCCC") > 0.5   # hexane, whose true E is 0.000
+    assert textbook_e("O") > 0.2        # water, likewise 0.000

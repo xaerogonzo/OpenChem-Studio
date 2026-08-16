@@ -150,6 +150,44 @@ class Solvent:
 WATER = Solvent(key="water", label="Water")
 SOLVENTS: dict[str, Solvent] = {WATER.key: WATER}
 
+#: McGowan's atomic volumes, cm^3/mol. From the characteristic-volume
+#: definition used throughout Abraham's solvation work.
+_MCGOWAN_ATOMIC_VOLUME = {
+    1: 8.71, 5: 18.32, 6: 16.35, 7: 14.39, 8: 12.43, 9: 10.48,
+    14: 26.83, 15: 24.87, 16: 22.91, 17: 20.95, 35: 26.21, 53: 34.53,
+}
+_MCGOWAN_BOND_DECREMENT = 6.56
+
+
+def mcgowan_volume(mol: Chem.Mol) -> float:
+    """McGowan characteristic volume Vx, in cm^3/mol / 100.
+
+    Atomic volumes summed over every atom INCLUDING hydrogens, minus 6.56
+    per bond. Purely constitutional -- no geometry, no fitting, no
+    parameters anybody chose.
+
+    **THIS IS THE ONE ABRAHAM SOLUTE DESCRIPTOR THAT IS EXACTLY
+    COMPUTABLE**, and it is the reason the solvent foundation is not
+    entirely hypothetical. Validated against published values to four
+    decimals on eight compounds, benzene 0.7164 and water 0.1673 among
+    them; see `test_the_mcgowan_volume_matches_published_values`.
+
+    The other four (E, S, A, B) are not computable here --
+    `docs/SOLVENT_SOLUBILITY_ASSESSMENT.md` records what each would take,
+    and which of them a measurement has already ruled out.
+    """
+    with_hydrogens = Chem.AddHs(mol)
+    try:
+        total = sum(
+            _MCGOWAN_ATOMIC_VOLUME[atom.GetAtomicNum()] for atom in with_hydrogens.GetAtoms()
+        )
+    except KeyError as exc:
+        raise ValueError(
+            f"No McGowan atomic volume for element {exc.args[0]}. The published set covers "
+            "H, B, C, N, O, F, Si, P, S, Cl, Br and I."
+        ) from exc
+    return (total - _MCGOWAN_BOND_DECREMENT * with_hydrogens.GetNumBonds()) / 100.0
+
 
 def resolve_solvent(key: str | None) -> Solvent:
     """The named solvent, or `KeyError` naming what is supported.

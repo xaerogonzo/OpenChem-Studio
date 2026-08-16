@@ -69,6 +69,7 @@ from openchem.chem.solubility import (
     compute_solubility_curve,
 )
 from openchem.chem.solubility import esol_logs as _esol_logs
+from openchem.chem.solubility import mcgowan_volume as _mcgowan_volume
 from openchem.chem.structure_generators import (
     DEFAULT_MAX_STRUCTURES,
     RESONANCE_FLAG_SETS,
@@ -146,6 +147,10 @@ _DESCRIPTOR_SPECS: list[tuple[str, str, str, str]] = [
     # Phase 10a additions below — all zero-new-dependency RDKit calls.
     ("molar_refractivity", "Molar Refractivity", "", "electronic"),
     ("labute_asa", "Approx. Surface Area (Labute)", "Å²", "physicochemical"),
+    # McGowan characteristic volume: purely constitutional, no geometry and
+    # no fitted parameters, and the one Abraham solvation descriptor this
+    # project can compute exactly. See `chem/solubility.py`.
+    ("mcgowan_volume", "McGowan Volume", "cm³/mol ÷ 100", "physicochemical"),
     ("qed", "QED (Drug-likeness)", "", "medicinal_chemistry"),
     ("sa_score", "Synthetic Accessibility", "", "medicinal_chemistry"),
     ("lipinski_pass", "Lipinski Ro5 (≤1 violation)", "", "medicinal_chemistry"),
@@ -640,6 +645,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
             "num_stereocenters": len(chiral_centers),
             "molar_refractivity": molar_refractivity,
             "labute_asa": rdMolDescriptors.CalcLabuteASA(mol),
+            "mcgowan_volume": _mcgowan_volume(mol),
             "qed": QED.qed(mol),
             "sa_score": _load_sascorer().calculateScore(mol),
             "lipinski_pass": lipinski_violations <= 1,
