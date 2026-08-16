@@ -356,6 +356,23 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
+Before it: `4628 passed, 15 skipped`
+(measured 2026-08-16, **13m29**, on `solubility-base-bias` at `435130d` --
+the base-bias verdict and the arm-status work. **+6 test functions**, all
+in `test_abraham.py`, none parametrised. Skips unchanged at 15.
+
+    master f9a4627   COLLECTS 4637
+    after            COLLECTS 4643   = 4637 + 6
+    the run                   4628 passed + 15 skipped = 4643
+
+Diffed both directions, 0 removed. **THE BASELINE WAS 4637 AND NOT THE
+4632 THIS FILE CARRIED EARLIER IN THE DAY** -- that figure predated the
+five acetic-acid guards, and reading it would have reported +11. Derived
+with `rev-parse` and a `--collect-only` in a detached worktree, with the
+`PYTHONPATH` override asserted before the count was believed.
+
+13m29 sits mid-band. The 6-19 range stands.)
+
 Before it: `4622 passed, 15 skipped`
 (measured 2026-08-16, **14m03**, on `solubility-predictor` at `60643d8` --
 the two open edges closed. **+5 test functions**, all in
