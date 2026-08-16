@@ -346,7 +346,27 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-18 minutes**, ending at `4493 passed, 15 skipped`
+A clean run is **6-18 minutes**, ending at `4498 passed, 15 skipped`
+(measured 2026-08-15, 15m32, on master at `4ba375e` — the right dock's
+starting width. **+5 test functions**, all in
+`test_right_dock_width.py`: the width table, the floor, the cap, the
+saved-layout gate, and that the method resizes anything at all.
+Collected 4508 -> 4513, skips unchanged at 15.)
+
+**THE THREE FIGURES IN THIS SESSION RAN 11m55, 16m59 AND 15m32** on
+trees within eight tests of each other. That is the band's whole story:
+it is a range, not a prediction, and the entry below already says not to
+narrow it on a fast run. Nothing here changes it.
+
+**THE FIGURE WENT STALE BY 5 WITHIN THE HOUR, WHICH IS THE POINT.** The
+tests that made it stale were added by the commit directly below this
+one, and the gap was noticed only because somebody went looking. That is
+the same drift the entries below record at 11 tests and at 111 — the
+instrument is `--collect-only`, it costs six seconds, and it is the only
+thing that makes "did my change add what I think it did" a question with
+an answer.
+
+Before it: `4493 passed, 15 skipped`
 (measured 2026-08-15, 16m59, on master at the ORCA scratch-cleanup work.
 **+2 test functions**, both in `test_quantum_chemistry_service.py`: the
 scratch-isolation guard and the deterministic retry guard. Collected
