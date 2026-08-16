@@ -40,14 +40,17 @@ and is printed as one.
 
 MEASURED, 2026-08-16, ESOL against the de-leaked Solubility Challenge:
 
-    all      n=67  MAE 0.74  RMSE 0.98  median 0.52  max 2.65  bias -0.20
+    all      n=61  MAE 0.74  RMSE 0.98  median 0.52  max 2.65  bias -0.17
     neutral  n=16  MAE 0.80                                    bias +0.02
-    acid     n=22  MAE 0.61                                    bias +0.06
-    base     n=29  MAE 0.81                                    bias -0.52
+    acid     n=18  MAE 0.55                                    bias +0.26
+    base     n=27  MAE 0.84                                    bias -0.59
+
+(These supersede 67 / -0.20 / +0.06 / -0.52. Not drift: three polymorph
+pairs used to be scored twice -- see `load` for what that cost.)
 
 **THE STRATIFICATION EARNED ITS KEEP ON THE FIRST RUN.** The aggregate
-bias is -0.20 and looks like noise; split by class, ESOL under-predicts
-BASES by half a log unit while acids sit at +0.06. An aggregate MAE would
+bias is -0.17 and looks like noise; split by class, ESOL under-predicts
+BASES by more than half a log unit while acids sit at +0.26. An aggregate MAE would
 have hidden a systematic error in one third of a druglike set.
 
 13 of 80 compounds -- 16% -- are ampholytes and are refused. That is a

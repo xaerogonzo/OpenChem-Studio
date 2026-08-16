@@ -4351,21 +4351,29 @@ the old name would have been the worst of both.
 
 `benchmarks/solubility/` scores ESOL against the Solubility Challenge
 (Llinas, Glen & Goodman 2008), taken from the AqSolDB repository's
-`dataset-I`. Measured 2026-08-16, 67 scored of 80:
+`dataset-I`. Measured 2026-08-16, 61 scored of 80:
 
-    all      n=67  MAE 0.74  RMSE 0.98  median 0.52  max 2.65  bias -0.20
+    all      n=61  MAE 0.74  RMSE 0.98  median 0.52  max 2.65  bias -0.17
     neutral  n=16  MAE 0.80                                    bias +0.02
-    acid     n=22  MAE 0.61                                    bias +0.06
-    base     n=29  MAE 0.81                                    bias -0.52
+    acid     n=18  MAE 0.55                                    bias +0.26
+    base     n=27  MAE 0.84                                    bias -0.59
+
+**THESE SUPERSEDE 67/-0.20/+0.06/-0.52, AND THE REASON IS NOT DRIFT.**
+Three compounds appear in SC-1 under one InChIKey as two solid forms, and
+`score.py` was scoring both -- counting them twice AND charging the
+polymorph gap (up to 0.88 log) to the model as prediction error. Refusing
+them is what moved every figure here; see the polymorph section below.
+The old numbers are still in PR #28's body, which is immutable history.
 
 **THE STRATIFICATION EARNED ITS KEEP ON THE FIRST RUN.** The aggregate
-bias is -0.20 and reads as noise. Split by class, ESOL under-predicts
-BASES by half a log unit while acids sit at +0.06 -- a systematic error
-across a third of a druglike set, invisible in a single MAE.
+bias is -0.17 and reads as noise. Split by class, ESOL under-predicts
+BASES by more than half a log unit while acids sit at +0.26 -- a
+systematic error across a third of a druglike set, invisible in a single
+MAE.
 
 **AND IT REPLICATED ON A SECOND, INDEPENDENT SET.** The Solubility
 Challenge 2 tight set (Llinas, Oprisiu & Avdeef 2020, Table 1, doi
-10.1021/acs.jcim.0c00701) gives base bias **-0.42** against SC-1's -0.52,
+10.1021/acs.jcim.0c00701) gives base bias **-0.42** against SC-1's -0.59,
 on 73 different compounds. One set makes a bias a curiosity; two make it
 a property of the model. Delaney's paper mentions ionization, amines and
 salts ZERO times, so ESOL cannot tell a base from a neutral of the same

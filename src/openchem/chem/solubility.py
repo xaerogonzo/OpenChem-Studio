@@ -39,11 +39,11 @@ IT HAS SINCE BEEN RUN, on two independent sets, in both cases with
 Delaney's own fitting set subtracted by InChIKey:
 
     Solubility Challenge 1        SC-2 tight set (interlab SD 0.17)
-    all   n=67  MAE 0.74          all   n=73  MAE 0.90  RMSE 1.26
-    acid  n=22        0.61                              bias +0.40
-    base  n=29        0.81  bias -0.52    base n=17     bias -0.42
+    all   n=61  MAE 0.74          all   n=73  MAE 0.90  RMSE 1.26
+    acid  n=18        0.55                              bias +0.40
+    base  n=27        0.84  bias -0.59    base n=17     bias -0.42
 
-**THE BASE BIAS REPLICATES ACROSS BOTH SETS**, at -0.52 and -0.42. One
+**THE BASE BIAS REPLICATES ACROSS BOTH SETS**, at -0.59 and -0.42. One
 set makes it a curiosity; two independent ones make it a property of the
 model. ESOL has no ionization term at all -- Delaney's paper never
 mentions ionization, amines or salts -- so it cannot tell a base from a

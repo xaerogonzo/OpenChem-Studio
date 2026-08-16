@@ -7,10 +7,15 @@ the only property that makes the answer worth anything: a criterion chosen
 after seeing the numbers is a description of the numbers, not a test of
 them.
 
-`score.py` measures ESOL under-predicting bases by -0.52 log on the
+`score.py` measures ESOL under-predicting bases by -0.59 log on the
 Solubility Challenge and -0.42 on SC-2. Two corpora agreeing is what
 raises the question; it is not on its own permission to subtract half a
 log unit from every basic drug in the application.
+
+(-0.59 supersedes the -0.52 this docstring first carried. The difference
+is not drift: THIS SCRIPT found three polymorph pairs that `score.py` had
+been scoring twice, and refusing them moved the figure. See the AMENDMENT
+below.)
 
 --------------------------------------------------------------------
 PRE-REGISTRATION  (acceptance_criteria_version = 1)
