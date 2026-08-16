@@ -186,7 +186,43 @@ BECAME the size it was asked for is what makes it a test of the symptom.
 Recorded from that baseline for a future consolidation pass, since the
 application has grown from an editor with calculators into a workbench
 and the "every feature gets a panel" assumption will eventually bite.
-**Nothing here is acted on.**
+**Nothing here is acted on**, with ONE exception now: the dock's
+STARTING width, below.
+
+#### ACTED ON: the right dock now opens at 420, not at its minimum
+
+Nothing used to set a starting width, so Qt handed every panel its own
+minimum -- 280 px, permanently, until somebody dragged it. **That is why
+the Properties caption clipping was reachable at all**: the panel spent
+its whole life at the narrowest width it was legally allowed to be.
+
+Re-measured in the running app, and these supersede the numbers in the
+list below, which are CONTENT MINIMUMS from an older tree. These are
+each dock's `sizeHint` -- what it would like:
+
+    Quantum Chemistry 576   Docking        466
+    Interactions      546   Atom Inspector 417
+    3D Alignment      518   Batch          413
+    Structure Check   467   Jobs           264
+
+420 clears three of those outright and comes within 10% of two more.
+Capped at a quarter of the SCREEN, so 1920 gives 420, 1366 gives 341,
+and anything under ~1120 keeps today's behaviour because the panel's own
+minimum wins. A saved layout is never overridden.
+
+**THE CAP MUST COME FROM THE SCREEN, NOT `self.width()`.** This runs
+during construction, before the window is shown, where `self.width()` is
+Qt's pre-show default rather than the geometry `restoreGeometry` is
+about to apply -- about 1400 px on a 1920 px display. Capping against it
+produced 350, which is a plausible-looking quarter of a window that
+never exists.
+
+**AND THE SUITE CANNOT SEE ANY OF IT.** `offscreen` reports an 800 px
+screen, so the cap always bites and the computed width equals the dock's
+minimum -- applying the feature and deleting it are indistinguishable by
+outcome. `initial_right_dock_width` is therefore a pure function and the
+table is tested directly; deleting the CALL is the one mutation nothing
+catches, and it is written into the test rather than papered over.
 
 - **The rail costs 270 px permanently** -- 14% of a 1920 screen and 20%
   of a 1366 laptop, whether or not anybody is navigating. Whether it

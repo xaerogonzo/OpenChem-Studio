@@ -701,26 +701,48 @@ document may cite a file or a test that does not exist.
   a real Vina 1.2.7 and a managed Temurin JRE.
 - **OPEN** -- `SimilarityService` doesn't exist yet; belongs to a later roadmap phase
   and would currently have no callers.
-- **OPEN** -- nothing sets a starting width for the right-hand dock, so
-  every panel opens at its own minimum. `MainWindow` never calls
-  `resizeDocks`, and `PropertyPanel` declares a 280 px floor, so Qt hands
-  it exactly that until the user drags it wider. Measured in the running
-  app: at 280 the three widest ADMET captions elide, at 340 two of three
-  are full, at 420 all three.
+- **SETTLED** -- the right-hand dock opens at a computed starting width.
+  `MainWindow._set_initial_right_dock_width` calls `resizeDocks` on a
+  FRESH layout only; `initial_right_dock_width` is the arithmetic, pure
+  so it can be tested without a window.
 
-  **This is why the caption clipping was reachable at all**, and the fix
-  for that one (`_ElidingCaptionLabel`) is deliberately not a fix for
-  this one -- eliding gracefully at the minimum is correct behaviour for
-  a panel that CAN be narrow, and it is what the app now does.
+  **It was OPEN for about an hour**, and the entry is kept because the
+  reason it was open is the reason the number is what it is. Nothing set
+  a width, so every panel opened at its own minimum -- `PropertyPanel`
+  declares 280 and Qt handed it exactly that, for good, until somebody
+  dragged it. That is why the caption clipping was reachable at all.
 
-  Not built because the number is a cross-panel decision rather than a
-  panel-level one, and the geometry notes in `CLAUDE.md` already record
-  what it trades against: the rail costs 270 px permanently, and every
-  right-hand dock wants far more than 280 (Quantum Chemistry 669, Docking
-  462, Batch 409, Atom Inspector 352). On a 1366 px laptop a 420 px dock
-  plus the rail is half the screen. Picking a starting width means
-  deciding that trade for all of them, which is the consolidation pass
-  those notes flag and deliberately do not begin.
+  **420 is the panels' own number.** Measured in the running app, every
+  right-hand dock displayed at 280 while its `sizeHint` asked for more:
+
+        Quantum Chemistry 576   Docking        466
+        Interactions      546   Atom Inspector 417
+        3D Alignment      518   Batch          413
+        Structure Check   467   Jobs           264
+
+  420 clears Atom Inspector, Batch and Jobs outright and comes within
+  10% of Docking and Structure Check. The three above it want 518-576,
+  a quarter of a 1920 px screen for one panel; those scroll.
+
+  **Capped at a quarter of the SCREEN**, which is what keeps it safe on a
+  laptop -- a flat 420 is 31% of a 1366 px display before the rail and
+  the project tree. So 1920 gives 420, 1366 gives 341, and anything
+  below about 1120 keeps the old behaviour exactly because the panel's
+  own minimum wins.
+
+  **The screen, not the window.** During construction `self.width()` is
+  Qt's pre-show default rather than the geometry about to be restored --
+  capping against it produced 350, a quarter of a window that never
+  exists.
+
+  A saved layout is never overridden: `_restore_window_state` reports
+  whether it restored one, and the width is only applied when it did
+  not. `tests/test_right_dock_width.py` guards the arithmetic, the
+  floor, the cap, the gate, and that the method resizes anything at all.
+  The one case no test can reach is the call being deleted from
+  `__init__`, because under `offscreen`'s 800 px screen the computed
+  width IS the dock's minimum and applying it changes nothing -- that
+  one was verified by driving the real app.
 - **SETTLED** -- regulatory screening is date-aware.
   `RegulatoryEngine.screen(..., as_of: date | None = None)` withholds rules
   that take effect after `as_of`, `ScreeningReport` says which date it

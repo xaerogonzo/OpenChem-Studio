@@ -197,6 +197,35 @@ def _descriptor_names() -> list[tuple[str, str]]:
     ]
 
 
+#: What the right-hand dock opens at on a fresh layout, before the
+#: quarter-of-the-window cap in `_set_initial_right_dock_width` applies.
+#: Measured from the panels themselves -- see that method for the table.
+_INITIAL_RIGHT_DOCK_WIDTH = 420
+
+
+def initial_right_dock_width(available_width: int, dock_minimum: int) -> int:
+    """How wide the right-hand dock opens on a fresh layout.
+
+    A pure function so the table below is testable without a window, for
+    the reason the command palette's `score()` is one: **the suite's
+    `offscreen` platform reports an 800 px screen**, so the cap always
+    bites there and the end-to-end effect is invisible. A test asserting
+    the resulting dock width would pass at 280 on every machine while
+    proving nothing about what a user with a real display sees.
+
+        available   dock_minimum   ->  result
+             1920            280        420   the desired width
+             1366            280        341   capped at a quarter
+             1024            280        280   capped below the floor
+              800            280        280   the test platform
+
+    See `MainWindow._set_initial_right_dock_width` for where the 420 and
+    the quarter come from. Verified end to end by driving the real app on
+    a 1920 px display: 280 before, 420 after, captions no longer eliding.
+    """
+    return max(dock_minimum, min(_INITIAL_RIGHT_DOCK_WIDTH, available_width // 4))
+
+
 _LAYOUT_VERSION = "2"
 _LAYOUT_VERSION_KEY = "ui/layout_version"
 
@@ -503,7 +532,8 @@ class MainWindow(QMainWindow):
         self.addAction(palette)
 
         self._build_menus()
-        self._restore_window_state()
+        if not self._restore_window_state():
+            self._set_initial_right_dock_width()
         self._restore_pinned_panels()
 
         services.event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
@@ -918,15 +948,88 @@ class MainWindow(QMainWindow):
         carries no dock arrangement, and throwing away somebody's window
         size to fix their panel layout would be a gratuitous second
         change.
+
+        Returns whether a DOCK LAYOUT was restored. The caller gives the
+        right-hand dock a starting width when one was not, and must not
+        when one was -- overriding a width somebody dragged to where they
+        wanted it would be the same class of rudeness as discarding their
+        window size above.
         """
         geometry = self._settings.window_geometry()
         if geometry:
             self.restoreGeometry(geometry)
         if str(self._settings.get(_LAYOUT_VERSION_KEY, "")) != _LAYOUT_VERSION:
-            return
+            return False
         state = self._settings.window_state()
-        if state:
-            self.restoreState(state)
+        if not state:
+            return False
+        self.restoreState(state)
+        return True
+
+    def _set_initial_right_dock_width(self) -> None:
+        """Give the right-hand dock a starting width on a FRESH layout.
+
+        **Nothing used to set one, so every panel opened at its own
+        minimum.** `PropertyPanel` declares a 280 px floor and Qt hands the
+        dock exactly that, for good, until somebody drags it. Measured in
+        the running app -- every right-hand dock displayed at 280 while
+        asking for far more:
+
+            Quantum Chemistry 576   Docking        466
+            Interactions      546   Atom Inspector 417
+            3D Alignment      518   Batch          413
+            Structure Check   467   Jobs           264
+
+        That is why the Properties panel's caption clipping was reachable
+        at all: the panel spends its whole life at the narrowest width it
+        is legally allowed to be.
+
+        **420 IS THE PANELS' OWN NUMBER, not a taste.** It clears the
+        preferred width of Atom Inspector, Batch and Jobs outright and
+        comes within 10% of Docking and Structure Check. The three above it
+        (Quantum Chemistry, Interactions, 3D Alignment) want 518-576, which
+        is a quarter of a 1920 screen for one panel -- they scroll, which
+        is what a scroll area is for.
+
+        **The cap is a QUARTER OF THE SCREEN, and it is what makes this
+        safe on a laptop.** A fixed 420 is 31% of a 1366 px display before
+        the rail and the project tree are counted. Proportional:
+
+            screen 1920   ->  420 (the desired width, cap 480)
+            screen 1366   ->  341 (capped)
+            screen 1024   ->  280 (capped to the floor, i.e. unchanged)
+
+        So a small display keeps today's behaviour exactly and a large one
+        stops wasting the space it has.
+
+        **THE SCREEN, NOT `self.width()`, AND THAT WAS MEASURED THE HARD
+        WAY.** This runs during construction, before the window is shown,
+        where `self.width()` is Qt's pre-show default rather than the
+        geometry `restoreGeometry` is about to apply -- about 1400 px on a
+        1920 px display. Capping against it produced 350 instead of 420,
+        which looks like a plausible answer and is a quarter of a window
+        that never exists. The screen is known and stable at construction,
+        and it is what the cap is actually about.
+
+        The floor is the DOCK'S OWN minimum rather than a second constant.
+        Below it the panel cannot be drawn without clipping, and asking the
+        dock means this cannot drift when a panel's minimum changes -- which
+        it just did, when `_ElidingCaptionLabel` took the Properties
+        section minimum from 272 to 182.
+
+        **`isHidden`, not `isVisible`.** This runs during construction on a
+        window nobody has shown yet, where `isVisible()` is False for every
+        child -- a trap this project has already paid for twice, in
+        `_help_topic_for_visible_panel` and in the one-dock-at-a-time
+        guard.
+        """
+        dock = next((c for c in self._right_docks if not c.isHidden()), None)
+        if dock is None:
+            return
+        screen = self.screen()
+        available = screen.availableGeometry().width() if screen is not None else self.width()
+        width = initial_right_dock_width(available, dock.minimumSizeHint().width())
+        self.resizeDocks([dock], [width], Qt.Orientation.Horizontal)
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 - Qt override
         # Only ask a user who can see the question. A window that was never
