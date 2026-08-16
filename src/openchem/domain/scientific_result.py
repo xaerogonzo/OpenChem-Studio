@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from openchem.domain.common import ScientificResult
+from openchem.domain.report import Fact
 from openchem.domain.structure_issue import Severity
 
 
@@ -254,6 +255,23 @@ class PhCurveResult(ScientificResult):
     # knows its range says so; everything else keeps the padding.
     y_min: float | None = None
     y_max: float | None = None
+    #: Scalar findings shown BESIDE the chart -- the intrinsic solubility,
+    #: the category, the value at a chosen pH.
+    #:
+    #: **ADDED BECAUSE TWO CURVES WERE ALREADY FAKING IT.**
+    #: `compute_isoelectric_point` builds `f"Charge vs pH - pI = {pi:.2f}"`
+    #: and `compute_logd_curve` builds `f"LogD vs pH (LogP = {...})"`, both
+    #: interpolating a scalar into the DISPLAY NAME because there was
+    #: nowhere else to put it. A name is not a value: it cannot carry
+    #: units, a basis, a limitation, or which atoms it is about, and it
+    #: cannot be copied out as data.
+    #:
+    #: Defaults empty, so every existing producer and consumer is
+    #: unchanged. Migrating those two is deliberately NOT done here --
+    #: `test_the_existing_ph_curves_carry_no_facts` pins that, so the
+    #: migration is a decision somebody takes rather than something that
+    #: drifts in.
+    facts: tuple[Fact, ...] = ()
 
 
 @dataclass(frozen=True, kw_only=True)

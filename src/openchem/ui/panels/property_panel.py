@@ -80,6 +80,10 @@ _CATEGORY_ORDER = [
     "substructure",
     "stereochemistry",
     "medicinal_chemistry",
+    # Before pKa rather than after, because the pH-solubility curve is read
+    # THROUGH pKa and somebody arriving at "how soluble is this" should meet
+    # the answer before the machinery behind it.
+    "solubility",
     "pka",
     # Directly after pKa on purpose. Somebody reading "how basic is this"
     # is standing exactly where the Bronsted answer stops being the whole
@@ -148,6 +152,7 @@ _CATEGORY_LABELS = {
     "substructure": "Substructure Search",
     "stereochemistry": "Stereochemistry",
     "medicinal_chemistry": "Medicinal Chemistry",
+    "solubility": "Solubility",
     "pka": "pKa",
     "lewis": "Lewis Acid/Base",
     "admet": "ADMET / Regulatory",

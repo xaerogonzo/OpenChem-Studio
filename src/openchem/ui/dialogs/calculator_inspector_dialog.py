@@ -31,6 +31,7 @@ from openchem.domain.scientific_result import (
     TrajectoryResult,
 )
 from openchem.ui.result_clipboard import result_to_text
+from openchem.ui.widgets.fact_view import FactView
 from openchem.ui.visualization import (
     DIVERGING_COLOUR_MAP,
     SURFACE_REPRESENTATION_LABELS,
@@ -381,8 +382,41 @@ class _PhCurveResultView(QWidget):
 
         layout = QVBoxLayout(self)
         layout.addWidget(header)
-        layout.addWidget(self._chart)
+        self._facts_view = self._build_facts_view(result)
+        if self._facts_view is not None:
+            layout.addWidget(self._facts_view)
+        # The chart takes the spare height, not the facts block. A
+        # `Preferred` policy on both would split it evenly and leave a
+        # four-line stats panel as tall as the graph -- exactly what the
+        # 3D viewer's one-line measurement label did before it was
+        # given a stretch factor.
+        layout.addWidget(self._chart, 1)
         layout.addWidget(self._readout)
+
+    def _build_facts_view(self, result: PhCurveResult) -> QWidget | None:
+        """The scalar findings, above the chart, or nothing when a curve
+        carries none.
+
+        `FactView` reads `by_category()`/`find()`, which are
+        `StructureReport`'s and not `PhCurveResult`'s, so the facts are
+        wrapped rather than the widget being taught a second shape. Wrapping
+        is what keeps units, limitations and copy-out working for free.
+
+        Controls are hidden: a handful of scalars beside a graph does not
+        need a search box, and the full panel is a page of chrome in a
+        space Marvin uses for four lines of text.
+        """
+        if not result.facts:
+            return None
+        report = ReportResult(
+            report_id=result.curve_id,
+            name=result.name,
+            molecule_uuid=result.molecule_uuid,
+            facts=tuple(result.facts),
+        )
+        view = FactView(self, show_controls=False)
+        view.set_report(report)
+        return view
 
     def _on_ph_hovered(self, ph: float) -> None:
         values = self._chart.readout_at(ph)

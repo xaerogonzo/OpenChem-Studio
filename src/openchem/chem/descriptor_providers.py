@@ -17,6 +17,7 @@ from openchem.chem.markush import DEFAULT_MAX_STRUCTURES as MARKUSH_DEFAULT_MAX
 from openchem.chem.calculator_options import (
     EXPLICIT_HYDROGENS,
     HEAVY_ATOMS_ONLY,
+    DEFAULT_PH,
     decimal_places_parameter,
     decimals,
     fmt,
@@ -58,6 +59,17 @@ from openchem.chem.ph_curves import (
     compute_major_microspecies,
     compute_pka_distribution,
 )
+from openchem.chem.solubility import (
+    AQSOLDB,
+    DISPLAY_UNITS,
+    ESOL,
+    LOG_S,
+    compute_solubility,
+    compute_solubility_curve,
+    solvent_choices,
+)
+from openchem.chem.solubility import esol_logs as _esol_logs
+from openchem.chem.solubility import mcgowan_volume as _mcgowan_volume
 from openchem.chem.structure_generators import (
     DEFAULT_MAX_STRUCTURES,
     RESONANCE_FLAG_SETS,
@@ -135,6 +147,10 @@ _DESCRIPTOR_SPECS: list[tuple[str, str, str, str]] = [
     # Phase 10a additions below — all zero-new-dependency RDKit calls.
     ("molar_refractivity", "Molar Refractivity", "", "electronic"),
     ("labute_asa", "Approx. Surface Area (Labute)", "Å²", "physicochemical"),
+    # McGowan characteristic volume: purely constitutional, no geometry and
+    # no fitted parameters, and the one Abraham solvation descriptor this
+    # project can compute exactly. See `chem/solubility.py`.
+    ("mcgowan_volume", "McGowan Volume", "cm³/mol ÷ 100", "physicochemical"),
     ("qed", "QED (Drug-likeness)", "", "medicinal_chemistry"),
     ("sa_score", "Synthetic Accessibility", "", "medicinal_chemistry"),
     ("lipinski_pass", "Lipinski Ro5 (≤1 violation)", "", "medicinal_chemistry"),
@@ -148,7 +164,11 @@ _DESCRIPTOR_SPECS: list[tuple[str, str, str, str]] = [
     # Ghose/Veber/Egan above (see their comment) -- NOT reproductions of
     # Clark's actual BBB regression or Martin's actual categorical
     # bioavailability score.
-    ("esol_logs", "Aqueous Solubility (ESOL, log mol/L)", "", "admet"),
+    # Moved out of `admet` when the Solubility section arrived: the row and
+    # the two calculator buttons that build on it belong under one heading.
+    # A button in one section whose answer lands in another is the exact
+    # split `docs/NAVIGATION_AUDIT.md` was written about.
+    ("esol_logs", "Aqueous Solubility (ESOL, log mol/L)", "", "solubility"),
     ("bbb_permeant", "Blood-Brain Barrier Permeant (heuristic)", "", "admet"),
     ("bioavailability_likely", "Oral Bioavailability Likely (heuristic)", "", "admet"),
     # Phase 20 additions below — real, cited threshold rules (Hughes et al.
@@ -591,20 +611,10 @@ class RDKitDescriptorProvider(DescriptorProvider):
         )
         egan_pass = -1 <= mol_logp <= 5.88 and tpsa <= 131.6
 
-        # ESOL (Delaney 2004, refit coefficients) -- confirmed live against
-        # the reference implementation (PatWalters/solubility) and
-        # sanity-checked against known experimental values (aspirin: -2.09
-        # predicted vs. -2.19 experimental; caffeine: -0.53 vs. -0.8, both
-        # within ESOL's documented accuracy).
-        aromatic_atom_count = sum(1 for atom in mol.GetAtoms() if atom.GetIsAromatic())
-        # mol.GetNumAtoms() (not heavy_atom_count) to match the verified
-        # reference implementation and the live-checked values above --
-        # equal to heavy-atom count when the molblock has no explicit Hs
-        # (the common case), differs only if it does.
-        aromatic_proportion = aromatic_atom_count / mol.GetNumAtoms() if mol.GetNumAtoms() else 0.0
-        esol_logs = (
-            0.2612 - 0.7417 * mol_logp - 0.0066 * mol_wt + 0.0035 * num_rotatable_bonds - 0.4262 * aromatic_proportion
-        )
+        # ESOL lives in `chem/solubility.py` now, because the solubility
+        # calculators need the identical number as their baseline and two
+        # copies of a fitted regression is two chances to drift.
+        esol_logs = _esol_logs(mol)
         # Simplified, documented approximations -- NOT reproductions of
         # Clark 1999's actual BBB regression or Martin 2005's actual
         # categorical "Abbott Bioavailability Score" (see _DESCRIPTOR_SPECS'
@@ -635,6 +645,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
             "num_stereocenters": len(chiral_centers),
             "molar_refractivity": molar_refractivity,
             "labute_asa": rdMolDescriptors.CalcLabuteASA(mol),
+            "mcgowan_volume": _mcgowan_volume(mol),
             "qed": QED.qed(mol),
             "sa_score": _load_sascorer().calculateScore(mol),
             "lipinski_pass": lipinski_violations <= 1,
@@ -1879,6 +1890,105 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         ),
         execution=RegistryExecution(compute=compute_hbond_vs_ph),
         tags=["topology", "ph", "hydrogen-bonding", "curve"],
+    ),
+    # ---- Solubility ----------------------------------------------------
+    # Registered UNCONDITIONALLY, both of them. The AqSolDB baseline and the
+    # pKa prediction each live in a sidecar that may not be configured, and
+    # the answer to that is a named refusal at compute time -- never a
+    # registry that changes shape with what is installed, which would make
+    # a calculator's very existence depend on the machine.
+    CalculatorDefinition(
+        calculator_id="solubility",
+        display_name="Solubility",
+        category="solubility",
+        description=(
+            "Predicted intrinsic aqueous solubility in logS, mg/mL and mol/L, its "
+            "Low/Moderate/High category, the value at a chosen pH, and an ICH M9 "
+            "high-solubility screening estimate. Ampholytes and salts are refused rather "
+            "than modelled."
+        ),
+        execution=RegistryExecution(compute=compute_solubility),
+        parameters=[
+            CalculatorParameter(
+                name="model", label="Baseline model", kind="choice",
+                default=ESOL, choices=[ESOL, AQSOLDB],
+            ),
+            CalculatorParameter(
+                name="unit", label="Units", kind="choice",
+                default=LOG_S, choices=list(DISPLAY_UNITS),
+            ),
+            CalculatorParameter(
+                name="pH", label="at pH", kind="float", default=DEFAULT_PH,
+                minimum=0.0, maximum=14.0,
+            ),
+            CalculatorParameter(
+                name="pka_values", label="pKa values (optional, e.g. 3.49, 9.4)",
+                kind="text", default="",
+            ),
+            CalculatorParameter(
+                name="dose_mg", label="Highest single dose (mg, for BCS)", kind="float",
+                default=0.0, minimum=0.0, maximum=100000.0,
+            ),
+            CalculatorParameter(
+                name="solvent", label="Solvent", kind="choice",
+                default="water", choices=solvent_choices(),
+            ),
+            # Costs ~6 s when the ADMET sidecar is configured, and nothing
+            # at all when it is not. On by default because two independent
+            # models disagreeing by half a log unit is the most useful
+            # thing on the panel; switchable because it is not free.
+            CalculatorParameter(
+                name="compare_models", label="Compare against the other model",
+                kind="bool", default=True,
+            ),
+        ],
+        prediction_basis="empirical",
+        tags=["solubility", "logs", "esol", "admet", "ph", "bcs"],
+    ),
+    CalculatorDefinition(
+        calculator_id="solubility_curve",
+        display_name="Solubility vs pH",
+        category="solubility",
+        description=(
+            "Solubility across the pH range by Henderson-Hasselbalch, with the intrinsic "
+            "value and category shown beside the chart. A molecule with no ionizable centre "
+            "gets a flat line, which is an answer rather than a failure. The pH adjustment "
+            "is capped at +2 logS -- a model safeguard, not a predicted saturation plateau."
+        ),
+        execution=RegistryExecution(compute=compute_solubility_curve),
+        parameters=[
+            CalculatorParameter(
+                name="model", label="Baseline model", kind="choice",
+                default=ESOL, choices=[ESOL, AQSOLDB],
+            ),
+            CalculatorParameter(
+                name="unit", label="Units", kind="choice",
+                default=LOG_S, choices=list(DISPLAY_UNITS),
+            ),
+            CalculatorParameter(
+                name="pH", label="Report at pH", kind="float", default=DEFAULT_PH,
+                minimum=0.0, maximum=14.0,
+            ),
+            CalculatorParameter(
+                name="pka_values", label="pKa values (optional, e.g. 3.49, 9.4)",
+                kind="text", default="",
+            ),
+            CalculatorParameter(
+                name="solvent", label="Solvent", kind="choice",
+                default="water", choices=solvent_choices(),
+            ),
+            # Costs ~6 s when the ADMET sidecar is configured, and nothing
+            # at all when it is not. On by default because two independent
+            # models disagreeing by half a log unit is the most useful
+            # thing on the panel; switchable because it is not free.
+            CalculatorParameter(
+                name="compare_models", label="Compare against the other model",
+                kind="bool", default=True,
+            ),
+            *ph_range_parameters(),
+        ],
+        prediction_basis="empirical",
+        tags=["solubility", "logs", "ph", "curve", "esol"],
     ),
     # ---- Phase 29: naming --------------------------------------------
     CalculatorDefinition(

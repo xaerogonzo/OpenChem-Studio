@@ -356,6 +356,84 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
+Before it: `4622 passed, 15 skipped`
+(measured 2026-08-16, **14m03**, on `solubility-predictor` at `60643d8` --
+the two open edges closed. **+5 test functions**, all in
+`test_abraham.py`: the predicted-only reason, its reachability through the
+calculator, the no-shipped-coefficients guard, water-first ordering, and
+the familiar-solvent filter. Skips unchanged at 15.
+
+**THE ENTRY BELOW WENT STALE BY 5 WITHIN THE SAME SESSION**, which is the
+drift this section keeps recording -- and this time the tests that made it
+stale were written an hour after the figure was taken, by the same person,
+who then had to re-measure rather than subtract. 14m03 against the
+previous run's 19m18 on a tree FIVE tests larger is a 27% spread with
+nothing to explain it, so the 6-19 band stands as a range with no
+predictive value inside it.)
+
+Before it: `4617 passed, 15 skipped`
+(measured 2026-08-16, **19m18**, on `solubility-predictor` at `bd91fce` +
+the non-aqueous lookup route. **+24 collected items and +24 test
+functions**, every one in the new `tests/test_abraham.py` and none of them
+parametrised, so for once the two deltas are the same number.
+
+**THE BAND WENT 6-18 TO 6-19, AND THIS RUN IS ITS NEW TOP.** 19m18 is the
+slowest full run this file has recorded. Nothing explains it -- the tree
+is 24 tests larger than a run that took 14m08, and 24 non-webview tests
+cannot cost five minutes. Recorded as the outlier it is rather than as a
+new normal, which is the same caution the four entries below already
+carry. Do not read a 19-minute run as a hang.
+
+**SKIPS UNCHANGED AT 15.** None of the 24 needs a display, so
+4593 + 24 = 4617 passed and 15 skipped is the whole delta accounted for.
+
+**THE BASELINE WAS DERIVED WITH `rev-parse`, NOT READ FROM THE ENTRY
+BELOW** -- and that mattered, because the entry below says 4563 and the
+branch had already moved to 4593 passed / 4608 collected at `bd91fce`
+(the Platts-reading commit added tests). Reading 4563 as the baseline
+would have reported +54 instead of +24.
+
+    branch before  bd91fce   COLLECTS 4608
+    after                    COLLECTS 4632   = 4608 + 24
+    the run                           4617 passed + 15 skipped = 4632
+
+**The +24 was DIFFED, not subtracted** -- `--collect-only -q | grep :: |
+sort` on both trees, `comm -23` for removals and `comm -13` for
+additions: **0 removed, 24 added**. Measured in a detached worktree with
+`PYTHONPATH` pointed at ITS `src`, and the override asserted with
+`python -c "import openchem; print(openchem.__file__)"` before the count
+was believed -- without that, `openchem.pth` silently imports the MAIN
+`src` and you measure the old tests against the new source.)
+
+Before it: `4563 passed, 15 skipped`
+(measured 2026-08-16, 14m08, on `solubility-predictor` -- the solubility
+predictor. **+65 collected items and +55 test functions** over master's
+4513 at `6f8a8c8`: 55 in `test_solubility.py`, 6 in `test_logd.py`
+pinning the shared-factor extraction, 2 in `test_fact_view.py` for the
+compact form, and 2 in `test_docs_are_current.py` from the new
+assessment doc joining its parametrised list.
+
+**The +63 was DIFFED, not subtracted** -- `--collect-only -q | grep :: |
+sort` on both trees, `comm -23` for removals and `comm -13` for
+additions: 0 removed. A bare subtraction cannot tell "63 added" from "70
+added and 7 quietly deleted".
+
+**SKIPS UNCHANGED AT 15.** None of the new tests needs a display, so
+4498 + 65 = 4563 passed and 15 skipped is the whole delta accounted for.
+
+**AND THE FIGURE WAS WRITTEN DOWN WRONG ONCE, WITHIN THE HOUR.** It was
+first recorded as 4576, which was a real measurement taken BEFORE the
+last two tests were written -- the two `FactView` guards that the live
+check forced. The run then reported 4563 + 15 = 4578 and did not
+reconcile. Nothing was stale about the method; the count was simply
+taken too early. **Re-collect AFTER the last test lands, and reconcile
+the run against it** -- a 2-item gap is exactly the size that reads as a
+rounding error and is not one.
+
+Note master had already moved 4498 -> 4513 since the entry below, which
+is the same drift one level up: derive the baseline with `rev-parse` and
+a `--collect-only`, never from the previous entry.
+
 A clean run is **6-18 minutes**, ending at `4498 passed, 15 skipped`
 (measured 2026-08-15, 15m32, on master at `4ba375e` — the right dock's
 starting width. **+5 test functions**, all in
@@ -4104,6 +4182,465 @@ Method note paid for again in the same session: **an A/B is worthless if
 the tree is being edited during it.** A source file was edited by hand
 while the harness was mid-run, so the whole set was re-run on an
 untouched tree before any result was believed.
+
+## SOLUBILITY: an uncapped model, a 1000x review, and two defects only the screen showed
+
+`chem/solubility.py` is the ChemAxon-shaped predictor -- intrinsic value,
+value at a pH, Low/Moderate/High category, pH curve. Five things worth
+carrying, each measured rather than reasoned.
+
+**A PROBE THAT PASSES `None` FOR AN INTERPRETER PATH REPORTS "NOT
+INSTALLED" ON A MACHINE WHERE IT PLAINLY IS.** `pka_predictor_available(None)`
+and `admet_available(None)` both answered False while pkasolver and the
+ADMET sidecar were configured and working. A whole design was built on
+that -- including a Dimorphite-DL pKa fallback that was then measured and
+found to put propranolol at 5.65 against a real 9.42, off by 3.8 -- before
+the paths were read from settings. **Read the configured value; do not
+probe with a placeholder.**
+
+**UNCAPPED HENDERSON-HASSELBALCH REACHES 4.7e10 mg/mL.** Aspirin at pH 14,
+which is 47 tonnes per litre: correct arithmetic, meaningless answer, the
+same failure this file records at 40619 kcal/mol.
+
+**TWO BOUNDS STOP IT AND THEY ARE NOT THE SAME CLAIM.** The first draft
+had one symmetric +2.0, inferred from a single ChemAxon screenshot with
+no source behind it. Avdeef's **"sdiff 3-4"** replaced it: in 0.15 M
+NaCl the counter-ion salt precipitates once solubility exceeds intrinsic
+by about FOUR orders for a weak acid and THREE for a weak base. Cited,
+and asymmetric because a sodium and a chloride salt are not equally
+soluble. On propranolol at gastric pH it moves the answer from 7 to
+**70 mg/mL** against a real hydrochloride solubility near 50.
+
+**THE READING WAS VERIFIED AGAINST THE PAPER'S OWN WORKED EXAMPLE**
+rather than assumed: Avdeef gives amiodarone intrinsic 7.9e-9 M and Ksp
+1.2e-6 M^2 "using the sdiff 3-4 approximation", and 7.9e-9 x 10^3 x 0.15
+= 1.19e-6 reproduces it. That is what says the rule was understood, not
+merely quoted.
+
+**AND sdiff ALONE IS NOT ENOUGH, WHICH ONLY MEASURING SHOWED.** It is
+stated for SPARINGLY-soluble drugs -- the paper's title -- and says
+nothing about a compound whose intrinsic solubility is already
+appreciable. Aspirin's uncapped rise of 3.91 never reaches an acid's
+4.0, so the salt rule leaves it at **11,925 mg/mL**, twelve kilograms
+per litre. A pure-compound ceiling of 1000 mg/mL catches the rest: a
+solute cannot outweigh the solution holding it. The two are reported
+separately, because "the salt precipitates here" and "past here the
+number is meaningless" must not render as one sentence.
+
+**THE FIX PARTLY DISSOLVED THE PROBLEM THAT MOTIVATED THE BOUNDED
+SCREEN.** Under +2, propranolol saturated the entire ICH window. Under
+the base limit of 3.0 its 2.60 at pH 6.8 fits underneath, so the window
+carries real pH information again. Saturation is pushed back rather than
+abolished -- a base above about pKa 10 still fills the window -- and the
+verdict is unaffected either way, which is the point of it being bounded.
+
+**THE LIMIT SATURATES THE ENTIRE ICH WINDOW FOR A STRONG BASE, and that
+is the ordinary case rather than an edge one.** Propranolol (pKa 9.4)
+wants +8.20 at pH 1.2 and +2.60 at pH 6.8, so every point in pH 1.2-6.8
+hits the limit and the displayed spread across it is **0.000**. Found by
+writing the guard, not by review.
+
+**SO THE SAFEGUARD WAS DECIDING A REGULATORY VERDICT, AND A BOUND
+REPLACED IT.** The first version returned `UNDETERMINED` whenever the
+limit saturated -- i.e. for basic drugs as a class, on the strength of an
+arbitrary constant. The fix is that the screen never reads the cap at
+all. Two REAL bounds exist:
+
+    S(pH) >= S0             ionization only ADDS dissolved species
+    S(pH) <= uncapped HH    which assumes the salt never precipitates
+
+so the dose number is sandwiched, and each side licenses ONE verdict --
+PASS when even the pessimistic bound clears the criterion, FAIL when even
+the optimistic one misses it. Measured: caffeine PASS, aspirin FAIL 1.36,
+ibuprofen FAIL 26.7, ketoconazole FAIL 3497, propranolol genuinely
+UNDETERMINED at 2.27 against 0.005. **Four of five get a sound answer
+where the capped version gave one blank class**, and
+`test_a_verdict_never_depends_on_the_adjustment_safeguard` runs the
+screen at four different limits including none and requires one outcome.
+
+**A CEILING BUILT FROM THE DISPLAYED CURVE IS NOT A CEILING, and the
+mutation for it SURVIVED the whole file at first.** Swapping the uncapped
+profile for the capped one understates solubility, so it can license a
+FAIL the evidence does not support -- and no fixture noticed, because for
+an ACID the window minimum sits at pH 1.2 where capped and uncapped agree
+exactly, and propranolol at 40 mg lands on the same verdict either way.
+The two only disagree about the OUTCOME when the dose falls in the gap
+between them, which for propranolol is **1745-6989 mg**. The guard uses
+3000 mg and asserts its own setup first. Same shape as the assembly
+corpus blind to a transposed matrix: a fixture is not big or small, it is
+degenerate or not with respect to a specific mutation.
+
+**A REVIEW'S "MOST DANGEROUS CONVERSION BUG" WAS ITSELF THE BUG.** A
+plan review proposed `mg/mL = 10**logS * MW / 1000`, in the point it
+titled exactly that. It is wrong by 1000x -- 1 mol/L of MW 180.16 is
+180.16 g/L, and a g/L IS a mg/mL. Checked against ChemAxon's own published
+aspirin figure, which is categorised High and needs 2.79 mg/mL; the
+proposed form gives 0.0028 and classifies it Low. **Every category would
+have been wrong.** Three review rounds were taken point by point and two
+of their points were rejected on measurement; the rest improved the work.
+Do not apply a review wholesale, and do not dismiss one either.
+
+**A FIXTURE SAT 0.00002 mg/mL FROM THE BOUNDARY.** Ibuprofen was the
+obvious molecule for "the category must read the baseline, not the
+pH-adjusted value" and is degenerate: its ESOL baseline is 0.06002 mg/mL
+against a 0.06 threshold, so it reads High on BOTH sides and the mutation
+is invisible. Diclofenac is 0.0019 (Low) against 0.19 (High) -- two bands
+apart, neither near a threshold. Same lesson as the assembly corpus that
+could not see a transposed matrix.
+
+### IONIZATION SITES MULTIPLY. THIS CODEBASE SUMMED THEM FOR YEARS.
+
+Found by reading Avdeef 2007 (Adv Drug Deliv Rev 59:568-590, doi
+10.1016/j.addr.2007.05.008) Table 1 after Alex fetched it. The bug was in
+`logd_henderson_hasselbalch`, so it reached logD, the logD curve, CNS MPO
+and BBB descriptors -- not only the new solubility code.
+
+    WRONG   log10(1 + sum of terms)
+    RIGHT   sum of log10(1 + term)
+
+A sum never reaches the doubly-ionized scaling, because getting there
+needs BOTH protons off and the sum has no term for it. Measured on a pKa
+3.0/4.5 diacid at pH 8: the summed form understates the adjustment by
+**3.49 log units**, and at pH 12 by 5.5.
+
+**ONE SITE IS WHERE THE TWO FORMS AGREE**, which is exactly why it
+survived: monoprotic answers are bit-identical under both, and monoprotic
+is the overwhelmingly common case. Every pre-existing pinned value in
+`test_logd.py` that survived the change is a single-site one, and the two
+that moved are the diprotic and the ampholyte.
+
+**THE CORRECT MATH WAS ALREADY HERE, ONE MODULE AWAY.**
+`ph_curves.microspecies_fractions` builds the beta-product from
+successive dissociation constants and has since it was written. Two
+implementations of one piece of chemistry, one right, coexisting -- which
+is the whole argument for the shared `ionization_log_factor` that
+replaced them.
+
+**A TOLERANCE WOULD HAVE BURIED A REAL DISTINCTION.** The independent-site
+product and Avdeef's Table 1 disagree by 4.3e-6 at pH 8, and the first
+instinct was to widen `abs=1e-9` until they matched. They are not meant to
+match: Avdeef's constants are MACROSCOPIC (the singly-ionized species
+lumps both microstates) and ours are per-SITE -- `ph_curves` already
+records that pkasolver "predicts per-site values, which are closer to
+microscopic constants". The product is the form matching our inputs, and
+`test_the_microscopic_and_macroscopic_forms_differ_and_we_use_the_right_one`
+pins the difference rather than rounding it away.
+
+The renamed function is the signal: `ionization_factor` returned a bare
+sum, `ionization_log_factor` returns the log. A silent semantic swap under
+the old name would have been the worst of both.
+
+### THE BENCHMARK, AND A LEAK THAT WAS NOT THE OBVIOUS ONE
+
+`benchmarks/solubility/` scores ESOL against the Solubility Challenge
+(Llinas, Glen & Goodman 2008), taken from the AqSolDB repository's
+`dataset-I`. Measured 2026-08-16, 67 scored of 80:
+
+    all      n=67  MAE 0.74  RMSE 0.98  median 0.52  max 2.65  bias -0.20
+    neutral  n=16  MAE 0.80                                    bias +0.02
+    acid     n=22  MAE 0.61                                    bias +0.06
+    base     n=29  MAE 0.81                                    bias -0.52
+
+**THE STRATIFICATION EARNED ITS KEEP ON THE FIRST RUN.** The aggregate
+bias is -0.20 and reads as noise. Split by class, ESOL under-predicts
+BASES by half a log unit while acids sit at +0.06 -- a systematic error
+across a third of a druglike set, invisible in a single MAE.
+
+**AND IT REPLICATED ON A SECOND, INDEPENDENT SET.** The Solubility
+Challenge 2 tight set (Llinas, Oprisiu & Avdeef 2020, Table 1, doi
+10.1021/acs.jcim.0c00701) gives base bias **-0.42** against SC-1's -0.52,
+on 73 different compounds. One set makes a bias a curiosity; two make it
+a property of the model. Delaney's paper mentions ionization, amines and
+salts ZERO times, so ESOL cannot tell a base from a neutral of the same
+size and lipophilicity -- the bias is domain, not a fixable defect.
+
+**A NUMBER WITHOUT A BASELINE SAYS NOTHING.** On the same 73 compounds
+the General Solubility Equation scores RMSE 1.18 against ESOL's 1.26 --
+and the GSE needs a MEASURED MELTING POINT that this app does not have.
+So the honest reading is "the endpoint is hard", not "our model is poor".
+The paper also gives the noise floor: interlab SD 0.17, and CheqSol
+against high-quality shake-flask at RMSE 0.34. Nothing can score below
+that.
+
+**A CLAIM IN THIS FILE WAS OVERTURNED BY THE BETTER MEASUREMENT.** The
+solubility module used to say ESOL beat Marvin on Marvin's own
+documentation molecule, resting on an ESOL-era experimental value of
+-2.19 for aspirin. SC-2's interlaboratory mean over 16 sources is
+**-1.67**, and against that Marvin (0.14 off) and AqSolDB (0.05) both
+beat ESOL (0.42). The old row is kept with its correction beside it
+rather than edited away, because "where did that number come from" is the
+question a reader will have.
+
+**EXTRACTING A TABLE FROM A PDF NEEDS AN ACCEPTANCE TEST, and the paper
+supplies one.** Table 1 closes with a Min/Max/Mean row. The first
+extraction produced a perfectly plausible **129 rows** by running past the
+end of Table 1 into Table 2 -- the "contentious" set, interlab SD 0.62 --
+silently mixing two data qualities. Recomputing the summary row is what
+caught it; the count alone would not have, because 129 looks as
+reasonable as 100. Two further defects fell out of the same check: a row
+split across a page break (`bromazepam`), and a melting point carrying a
+footnote marker (`193b`) that a plain numeric match rejects.
+
+**AND THE NAME RESOLUTION WAS NOT REPRODUCIBLE UNTIL IT WAS CACHED.** Two
+consecutive PubChem runs over the same 100 names returned 100 and then
+97; diazoxide, diclofenac and nortriptyline dropped out to rate limiting.
+A corpus whose membership depends on network luck is not a corpus, and
+nothing says so unless somebody compares row counts. It caches, retries,
+and an unresolved name is now fatal rather than a warning.
+
+**THE ANTI-LEAK RULE CAUGHT THE MODEL NOBODY SUSPECTED.** Refusing to
+score the AqSolDB sidecar on AqSolDB was the obvious half and was in the
+plan. The half that was NOT: **the merged AqSolDB contains Delaney's own
+ESOL set as one of its nine sources**, so the first design would have
+scored ESOL against its own fit. Verified against the AqSolDB README
+rather than recalled -- `dataset-G` is reference [7], Delaney 2004.
+`fetch.py` downloads that set purely to SUBTRACT it: 14 of 94 rows share
+an InChIKey and are dropped. **An evaluation set assembled from other
+people's datasets inherits all of their provenance**, and "is this model
+trained on this data" has to be asked of every model, not just the one
+whose name matches the file.
+
+**16% OF A DRUGLIKE SET IS REFUSED** -- 13 of 80 are ampholytes. That is
+a large slice to decline, and it is printed beside the accuracy so the
+two can never be read apart; a model that refuses its hard cases looks
+better the more it refuses.
+
+**AND THE ORIGINAL PLAN'S DATA SOURCE DID NOT WORK.** TDC's Harvard
+Dataverse returned 403 and PyTDC then cached the 0-byte failure as a
+"local copy", so every retry reported "Found local copy..." before
+failing -- which reads as a code bug rather than an outage. The GitHub
+route needs no PyTDC, no throwaway virtualenv and no Dataverse, and it is
+the one that exposes the constituent datasets the de-leaking depends on.
+
+### AND TWO DEFECTS THAT ONLY THE RENDERED WIDGET SHOWED
+
+Every unit test passed, 55 of them, and the panel looked right in the
+app. Rendering the CURVE view at real font size showed both at once:
+
+- **Four of seven facts sat behind a collapsed heading.** `FactCategory`
+  STRUCTURE is not in `DEFAULT_EXPANDED`, so the stats block whose whole
+  purpose is showing the intrinsic solubility beside the chart was
+  showing only the method.
+- **The status line advised choosing "Everything" from a combo box that
+  had been deliberately hidden.** `show_controls=False` hides the depth
+  filter; it did not stop the filter applying, or the hint referring to
+  it.
+
+Both come from one cause and take one line: **when the controls are
+hidden, nothing may hide behind them.** `FactView._compact` derives from
+`show_controls`, so the depth filter is off and every section starts
+expanded. `test_hiding_the_controls_hides_nothing_behind_them` is the
+guard and `test_the_full_view_still_collapses_and_filters` is its
+control -- the second matters because the fix is in shared code and the
+control-bearing form must be untouched.
+
+**THE HEADLESS GRAB UNDER `offscreen` COULD NOT HAVE FOUND THEM.** That
+platform has no fonts, so every label renders as tofu boxes: the chart's
+SHAPE was verifiable there and not one word of text was.
+`QT_QPA_PLATFORM=windows` with `widget.grab()` gives real fonts without
+needing the whole application, which is the cheapest form of the rule
+this file states six times over.
+
+### 91 SOLVENTS, BY LOOKUP ON BOTH SIDES -- and three deferrals that were wrong
+
+`chem/abraham.py` answers for solvents other than water using Abraham's
+solvation equation, `log Ss = log Sw + c + eE + sS + aA + bB + vV`. Both
+halves are LOOKED UP, neither is predicted: 91 measured solvent
+coefficient sets (Bradley, Abraham & Acree, BMC Chemistry 2015, doi
+10.1186/s13065-015-0085-4, Table 1) and 2193 measured solute descriptor
+sets (Bradley, Acree & Lang, figshare, doi 10.6084/m9.figshare.1176994).
+`tools/build_abraham_tables.py` fetches both; both are CC BY 4.0 and both
+shipped JSON files carry their attribution.
+
+**THIS FILE AND ARCHITECTURE.md BOTH SAID IT COULD NOT BE BUILT, FOR
+THREE REASONS, AND TWO OF THEM WERE FALSE.**
+
+- *"`E` is derivable from Crippen molar refractivity."* Measured and
+  killed: hexane's Crippen-derived value is **0.805** against a defined
+  `E` of **0.000** -- hexane IS the n-alkane reference `E` is an excess
+  over, and MR does not carry that reference.
+- *"Ethanol is structurally unreachable because it is miscible with
+  water."* False, and it cost a round of the work. No two-phase partition
+  coefficient exists for a miscible pair and the UFZ LSER database omits
+  ethanol for exactly that reason -- which is what made this look
+  structural rather than like one database's scope. **Abraham's
+  coefficients here come from SOLUBILITY RATIOS**, so neat ethanol is in
+  the measured table.
+- *"`S`, `A` and `B` need the Platts fragment scheme."* True, and no
+  longer binding. The scheme would work and is ~480 coefficients and ~132
+  hand-written SMARTS patterns, every one a place for a silent error, with
+  fragments 59-67 defined in a FIGURE and so unreadable from the PDF's
+  text layer. **Looking up an experimental descriptor costs none of that
+  and carries none of its 0.7-1.0 log error.**
+
+The general lesson is the one the assessment doc now leads with: a
+deferral's REASONS rot independently of its verdict, and the route that
+finally worked is the one all three reasons had ruled out.
+
+**TWO QUALITY GATES IN THE SOURCE, AND ONE IS A TRAP.** A `donotuse`
+column with a written reason (6 rows), and **`-123` as a missing-value
+sentinel** (513 rows), which `float()` reads as a perfectly ordinary
+number. A single leak puts a wildly negative descriptor into a prediction
+that still looks like a prediction;
+`test_the_missing_value_sentinel_never_reached_the_shipped_table` walks
+every shipped row.
+
+**A DUPLICATE IS MERGED BY MEDIAN WITH ITS SPREAD KEPT PER DESCRIPTOR.**
+432 InChIKeys appear more than once and only 51 of those groups agree
+exactly; the widest single-descriptor disagreement is 2.24. Acetanilide
+settles the design -- three rows give `S` = 3.61, 1.54, 1.37 and the
+FIRST is the outlier, so "take the first row" would have shipped it. The
+spread propagates into a stated uncertainty and refuses past 1.0 log,
+because a solvent coefficient of -4.9 turns a 0.3 disagreement in `B`
+into 1.5 log units on the answer.
+
+**PER DESCRIPTOR, NOT ONE BLANKET NUMBER.** The first bound multiplied
+the single widest spread by the SUM of all five coefficient magnitudes --
+assuming every descriptor is wrong by the worst amount, all in the same
+direction -- and refused aspirin, caffeine and ibuprofen, **three of the
+first four drugs tried**. A bound that rejects the ordinary case is not a
+safety feature.
+
+**ACETIC ACID IS ABSENT DELIBERATELY.** The paper also PREDICTS
+coefficients for 293 further solvents and says of those "not as gospel".
+Only the 91 measured ones ship, which is the same call already made
+against Miller polarizability, HLB and TSEI. Alex asked for acetic acid
+by name, so this one is a refusal with a reason rather than an oversight.
+
+#### AND THE RENDERED PANEL FOUND THREE MORE, WITH ALL 101 TESTS GREEN
+
+Same lever as the two above, one feature later, and the second of the
+three is the sharpest thing in this section.
+
+- **A row labelled "Predicted intrinsic solubility" carried an ETHANOL
+  number.** `baseline_logs` already includes the Abraham shift, so three
+  unqualified rows reported 52.81 mg/mL in the wording every other part
+  of the app uses for the aqueous value.
+- **ChemAxon's Low/Moderate/High were being applied outside water.**
+  Those thresholds are defined on INTRINSIC AQUEOUS solubility -- they
+  encode expectations about dissolution in the gut -- so "High" for 52.81
+  mg/mL in ethanol borrows an aqueous verdict's authority for a different
+  question. **This is the same scoping mistake the BCS screen is guarded
+  against ONE FUNCTION AWAY**, written in the same session, and it was
+  still missed: getting a rule right in one place does not apply it in
+  the next. It is a refusal with a reason now, not an omitted row, since
+  a missing row reads as "not computed yet".
+- **The panel repeated one value four times.** With no pH adjustment
+  outside water the "baseline" rows and the "at pH" row coincide exactly.
+  Invisible to every test, which read LABELS rather than asking whether
+  two rows said the same thing.
+
+**A REFUSAL THAT NAMES THE WRONG CAUSE IS WORSE THAN A VAGUE ONE.** The
+non-aqueous BCS path first reused `BcsReason.UNSUPPORTED_SPECIES`, whose
+text is "this species is outside the model" -- false, and it sends the
+reader to fix their molecule. `NON_AQUEOUS_SOLVENT` says ICH M9 is
+defined on aqueous media. Same family as "reusing a command whose
+invariants do not apply is not reuse", one layer down in an enum.
+
+**TEN MUTATIONS, TEN CAUGHT** -- but the tenth arm is the one worth
+keeping. `varies_with_ph` losing its `is_water` term **SURVIVED** at
+first, and it is not a blind test: its ONE caller already returns for a
+non-aqueous solvent several lines earlier, so the term cannot change any
+rendered output. Asserted directly on the predicate instead, which is
+this file's existing "an unreachable branch is a question about where to
+assert" applied a second time. **And that guard's own setup assertion
+then caught its fixture being degenerate** -- without a pKa in BOTH arms,
+aspirin classifies UNSUPPORTED in ethanol too, so `varies_with_ph` was
+False for a reason having nothing to do with the solvent.
+
+**pH, THE ICH SCREEN AND THE CURVE STAY WATER-ONLY.**
+Henderson-Hasselbalch, the pKa values behind it and the regulatory window
+are all defined on aqueous media. A non-aqueous solvent gets an intrinsic
+solubility and no pH story rather than an authoritative-looking curve
+that means nothing.
+
+#### ACETIC ACID: REFUSED BY THE BOUND THAT WAS ALREADY THERE
+
+Alex asked for it by name, so "not in the table" was not an acceptable
+answer. The paper DOES predict its coefficients, so the question is
+whether a published prediction can ship. Two measurements say no, and the
+first uses no new policy at all:
+
+**IT FAILS THE EXISTING UNCERTAINTY BOUND.** Propagating the paper's own
+Table 4 out-of-bag RMSE (`e` 0.181, `s` 0.326, `a` 0.477, `b` 0.471,
+`v` 0.228) through the same `sum(|error| * descriptor)` the module already
+applies to measured-descriptor disagreement:
+
+    aspirin 1.57   caffeine 2.04   ibuprofen 1.34   paracetamol 1.76
+    benzene 0.51
+
+against a ceiling of 1.0. Caffeine is a factor of 110. Only benzene
+passes, and a solvent that works for benzene and no drug is not an option.
+Two coefficients are poor at the source -- OOB R^2 **0.308** for `e` and
+**0.474** for `b`, against in-sample 0.885 and 0.903, which is the overfit
+gap and the paper flags it itself.
+
+**AND THE PREDICTED TABLE IS THE WRONG PARAMETERISATION.** It carries only
+the `c = 0` refit (`e0 s0 a0 b0 v0`), which is the paper's equation 3 for
+log P and exists to make solvents comparable. The solubility equation is
+equation 2 and needs the intercept: ethanol's measured `c` is +0.222 and
+the predicted table has no column for it.
+
+**THE GOOD MESSAGE WAS UNREACHABLE FOR THE ONE CASE IT EXISTS FOR.** It
+was written into `solvent_shift`, and `resolve_solvent` refuses an unknown
+solvent several layers earlier -- so acetic acid never reached it and the
+user still got "91 solvents are supported". `predicted_only_reason()` is
+one function called from both, because writing the sentence twice is how
+two refusals drift into disagreeing.
+
+**THE NAMES SHIP, THE NUMBERS DO NOT.** `predicted_only` in the solvents
+JSON is 118 bare names so a refusal can be specific; a test asserts no
+coefficient is ever shipped beside them.
+
+**AND "293 FURTHER SOLVENTS" WAS WRONG IN FOUR DOCUMENTS.** 293 is the
+TOTAL the paper considers (sustainable + classic + measured), of which 91
+are measured -- so 202 are predicted-only, and the article's own table
+lists 118 of them. Written from memory of the abstract rather than from
+the sentence, which reads "a complete set of coefficients for all 293
+solvents (sustainable, classic, and measured)".
+
+#### THE NON-AQUEOUS BENCHMARK: TWO ARMS ARE CLAIMS, ONE IS NOT
+
+**THE LEAKAGE IS STRUCTURAL AND CANNOT BE ENGINEERED AWAY.** Abraham's
+solvent coefficients are, in the source's own words, "obtained by linear
+regression using experimentally determined partitions and SOLUBILITIES of
+solutes with known Abraham descriptors". The endpoint being scored IS the
+endpoint they were fitted to -- the AqSolDB/ESOL circularity in a new
+place, and this time unavoidable rather than fixable by subtraction.
+
+`benchmarks/solubility/nonaqueous.py` is built around that. The ONS
+Solubility Challenge dataset carries a CITATION column, so rows from
+Abraham or Acree publications can be dropped -- 1998 of 9536, 21%. That is
+the only handle that exists and it is a PARTIAL defence, since their
+coefficients may rest on measurements other people published.
+
+Measured 2026-08-16, 968 de-leaked cases, 159 solutes, 70 solvents:
+
+    composite  our prediction vs measured    786  MAE 0.68  RMSE 0.96  HONEST
+    baseline   our ESOL vs measured aqueous  786  MAE 0.61  RMSE 0.85  HONEST
+    shift only predicted vs measured shift   786  MAE 0.29  RMSE 0.49  OPTIMISTIC
+
+**THE COMPOSITE BEING BARELY WORSE THAN THE BASELINE IS THE RESULT.** It
+confirms the module's claim -- a non-aqueous answer is an ESOL prediction
+moved by a measured shift, so ESOL dominates the error -- and that claim
+does NOT require the shift to be validated, which is why it can be made at
+all. **Design the benchmark around the claim you can support**, not around
+the one you wish you could.
+
+**AND THE CONTROL MAKES THE LEAKAGE VISIBLE.** `--keep-leaked` improves
+the shift arm from **0.29 to 0.21 MAE** -- the coefficients looking 28%
+better on data they were fitted to -- while the composite barely moves
+(0.68 -> 0.69). **A de-leaking rule whose effect you cannot see is a
+de-leaking rule you have not tested**, and this one is measured in both
+directions.
+
+**`solvent_choices()` PUTS WATER FIRST, and that is not cosmetic.**
+`sorted(SOLVENTS)` buries the default at position 88 of 91, and water is
+not merely the default -- it is the solvent the pH curve, the BCS screen
+and the entire benchmark are about. The refusal message names six
+FAMILIAR solvents filtered against the real table, because the first six
+alphabetically are `1,2-dichloroethane` and `1,9-decadiene`, which answer
+"is my solvent here?" for nobody.
 
 ## Verification standard
 

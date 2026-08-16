@@ -800,6 +800,48 @@ document may cite a file or a test that does not exist.
   `SCIENTIFIC_LIMITATIONS.md`; the sharpest is that no ruleset records repeal
   or expiry, so this answers when a rule STARTED applying and would report
   one since removed as though it still did.
+- **SETTLED** -- the solubility predictor answers for 91 solvents, by
+  LOOKUP on both sides. Requested as "solubility in other substances than
+  water... similar to how NMR tables can use different solvents", and the
+  analogy turned out to be the design: `RESIDUAL_SOLVENT_PEAKS` in
+  `src/openchem/chem/nmr_signals.py` is a solvent-keyed table of published
+  values, and `src/openchem/chem/abraham.py` is the same shape.
+
+  `log Ss = log Sw + c + eE + sS + aA + bB + vV`. The solvent coefficients
+  and the solute descriptors are BOTH measured values, fetched by
+  `tools/build_abraham_tables.py` into `chem/data/abraham_solvents.json`
+  (91 solvents) and `abraham_solutes.json` (2193 compounds), both CC BY 4.0
+  and both carrying their attribution in the shipped file.
+
+  **THIS ENTRY PREVIOUSLY DEFERRED THE FEATURE, AND TWO OF ITS THREE
+  REASONS WERE WRONG.** They are kept here rather than edited away,
+  because "why was this not done sooner" is the question a reader will
+  have:
+
+  - *"`E` is derivable from Crippen molar refractivity."* False, and
+    measured: hexane's Crippen-derived value is 0.805 against a defined
+    `E` of 0.000. `E` is an excess over the n-alkane reference, which is
+    the part MR does not carry.
+  - *"Ethanol is structurally unreachable because it is miscible with
+    water."* False. No two-phase partition coefficient exists for it, and
+    the UFZ LSER database omits it for exactly that reason -- but
+    Abraham's own coefficients come from SOLUBILITY RATIOS, so neat
+    ethanol is in the measured table.
+  - *"`S`, `A` and `B` need the Platts fragment scheme, which this project
+    does not have."* True, and no longer binding: the descriptors are
+    LOOKED UP rather than predicted, so the ~480 coefficients and 132
+    SMARTS patterns are not needed at all.
+
+  The price is coverage rather than accuracy: a compound nobody has
+  measured is refused by name, and two literature sources that disagree by
+  more than a factor of ten in the answer are refused rather than averaged.
+  Full assessment, including the Hansen alternative declined for answering
+  a different question, in `docs/SOLVENT_SOLUBILITY_ASSESSMENT.md`.
+
+  pH, the ICH M9 screen and the solubility-versus-pH curve remain scoped to
+  water, deliberately -- Henderson-Hasselbalch, the pKa values behind it
+  and the regulatory window are all defined on aqueous media.
+
 - **DECISION** -- plugin loading has no async/background state, no `ToolbarProvider`/
   `ContextMenuProvider`, no numeric provider priority, and no declared
   permissions, and no `RemoteServicePlugin` base class exists for the

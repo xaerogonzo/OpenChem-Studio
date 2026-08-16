@@ -1,0 +1,8 @@
+# Fetched by fetch.py, not committed: it is TDC's/AqSolDB's data, and it
+# is one command away. README.md records the scores that matter.
+data/
+scores_*.csv
+
+# Fetched by nonaqueous.py on first run (1.2 MB, CC BY 4.0). Same reason
+# as data/ above: one command away, and README.md records the scores.
+ons_solubility.xlsx

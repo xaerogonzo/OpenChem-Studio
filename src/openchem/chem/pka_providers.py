@@ -35,6 +35,7 @@ import json
 import logging
 import subprocess
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 
 from rdkit import Chem
@@ -77,6 +78,51 @@ def protonate_at_ph(mol: Chem.Mol, ph: float) -> Chem.Mol:
     if protonated is None:
         raise InvalidStructureError(f"Could not parse Dimorphite-DL output {variants[0]!r}")
     return protonated
+
+
+class PKaStatus(Enum):
+    """Why a pKa lookup produced what it did.
+
+    **FOUR STATES, BECAUSE COLLAPSING THEM LOSES THE ONE THAT MATTERS.**
+    `compute_pka` returns `None` for "not installed" and its own docstring
+    has to warn that this is not "no ionizable atoms found" -- a warning
+    only load-bearing because the two were indistinguishable in the return
+    type. They are not here.
+
+    The distinction is user-visible, not academic. "Caffeine has no
+    ionizable centre" is a fact about caffeine and a perfectly good answer;
+    "pkasolver crashed" is a fault the user can fix. Rendering both as a
+    failed calculation tells the caffeine user their software is broken.
+    """
+
+    FOUND = "found"
+    NO_IONIZABLE_CENTRES = "no_ionizable_centres"
+    UNAVAILABLE = "unavailable"  # no environment configured
+    FAILED = "failed"  # configured, but the run errored
+
+
+@dataclass(frozen=True)
+class PKaResolution:
+    """What a pKa lookup found, and where it came from.
+
+    Carries no policy. What a caller DOES about `NO_IONIZABLE_CENTRES`
+    differs by property -- logD says "nothing varies with pH" and declines,
+    solubility draws a perfectly meaningful flat line -- so the decision
+    belongs to each caller rather than to the resolver. A helper that is
+    right for one caller and wrong for another is carrying policy it
+    should have handed back.
+    """
+
+    status: PKaStatus
+    values: tuple[float, ...] = ()
+    #: "manual" when the user typed them, "pkasolver" when predicted.
+    source: str = ""
+    method: str = ""
+    #: Why, when the status is not FOUND. Shown to the user verbatim.
+    reason: str = ""
+    #: Exactly what the user typed, before parsing, so "4.8, 9.4" and
+    #: "4.80,9.40" stay distinguishable when a stored result is reopened.
+    input_text: str = ""
 
 
 def pka_predictor_available(interpreter_path: str | None) -> bool:

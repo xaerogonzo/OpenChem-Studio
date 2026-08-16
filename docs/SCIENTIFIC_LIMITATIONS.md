@@ -192,6 +192,119 @@ not wired into the integrator, so a trajectory is on one of the other two.
 
 ---
 
+<!-- help:limits-solubility -->
+## Solubility
+
+**The intrinsic value is a model output read as a baseline, and those are
+two different things.** ESOL predicts the aqueous solubility of the
+compound as supplied. Treating that as the *neutral species'* solubility,
+so a pH correction can be laid on top, is an assumption this app makes —
+not something ESOL claims. The panel says `model logS0` and *predicted
+intrinsic* deliberately, and never simply "intrinsic solubility".
+
+**The rise stops at one of two bounds, and they say different things.**
+Uncapped, Henderson–Hasselbalch puts aspirin at 4.7×10¹⁰ mg/mL at pH 14 —
+correct arithmetic, meaningless answer. Any value that hit a bound says
+which one on the fact itself.
+
+The first is chemistry with a citation: Avdeef's **"sdiff 3–4"
+approximation** ([10.1016/j.addr.2007.05.008](https://doi.org/10.1016/j.addr.2007.05.008),
+§2.2) — in 0.15 M NaCl, the counter-ion salt begins to precipitate once
+solubility exceeds intrinsic by about **four orders of magnitude for a
+weak acid and three for a weak base**. It is asymmetric because a sodium
+and a chloride salt are not equally soluble. This replaced a symmetric
++2 that had been inferred from a single ChemAxon screenshot and had no
+source; on propranolol at gastric pH it moves the prediction from 7 to
+70 mg/mL, against a real hydrochloride solubility near 50.
+
+The second is arithmetic declining to be absurd: a **pure-compound
+ceiling** of 1000 mg/mL, since a solute cannot outweigh the solution
+holding it. It exists because sdiff is stated for *sparingly*-soluble
+drugs and is silent about the rest — aspirin's uncapped rise of 3.91
+never reaches an acid's 4.0, so the salt rule alone would leave it at
+twelve kilograms per litre. Neither bound is this compound's measured
+solubility product.
+
+**For a strong base the cap swallows the whole regulatory window — but it
+no longer decides anything.** Measured on propranolol (pKa 9.4): the
+adjustment wants +8.20 at pH 1.2 and +2.60 at pH 6.8, so every point in
+ICH M9's pH 1.2–6.8 window hits the limit and the *displayed* spread
+across it is exactly zero. That used to make the screen report
+`UNDETERMINED`, which meant an arbitrary constant blanked a whole
+compound class.
+
+**The screen is bounded rather than capped now**, and both bounds are
+real: solubility is at least the neutral species' alone (ionization only
+adds dissolved species), and at most the uncapped Henderson–Hasselbalch
+value (which assumes the counter-ion salt never precipitates). So the
+dose number is sandwiched, and each side licenses one verdict — a pass
+when even the pessimistic bound clears the criterion, a fail when even
+the optimistic one misses it. Four of five measured compounds get a
+sound answer that way; propranolol remains `UNDETERMINED`, now because
+its bounds genuinely straddle 1 rather than because a safeguard fired.
+
+The floor assumes the solid is the free form, which is this model's
+scope — salts and mixtures are refused. A compound dosed as a salt can
+dissolve below its free-form solubility through the common-ion effect,
+and nothing here models that.
+
+**Multi-site ionization was corrected in 2026-08.** Ionizable sites
+compose multiplicatively, and the shared Henderson–Hasselbalch factor
+summed them — which never reaches the doubly-ionized regime, because
+getting there needs both protons off. Monoprotic answers are unchanged to
+the last bit; molecules with two or more ionizable centres moved, by up to
+several log units, and they moved because they were wrong. This affected
+logD, the logD curve, CNS MPO and BBB descriptors as well as solubility.
+The reference is Avdeef 2007 Table 1
+([10.1016/j.addr.2007.05.008](https://doi.org/10.1016/j.addr.2007.05.008)).
+
+**Ampholytes and salts are refused, not modelled.** Henderson–Hasselbalch
+assumes the undissolved species is the one with no site ionized. A
+zwitterion's un-ionized form *is* the zwitterion, which is highly soluble,
+so the model puts the solubility minimum in the wrong place and would
+report a plausible curve for a different compound. A drawn salt or mixture
+is already the species the pH correction models forming, so applying it
+again answers a question nobody asked.
+
+**The BCS line is a screening estimate and never a classification.** ICH
+M9 requires solubility established *experimentally* over pH 1.2–6.8 at
+37 ± 1 °C, using the lowest measured value. Everything here is predicted,
+at no defined temperature. Dose number addresses only the high-solubility
+half of the BCS test; permeability is a separate measurement.
+
+**Solvents other than water are a LOOKUP, and a narrow one.** 91 solvents
+and 2193 compounds, both sides measured (Abraham's solvation equation; see
+`docs/SOLVENT_SOLUBILITY_ASSESSMENT.md` for the sources). Four limits
+follow directly:
+
+- **A compound outside those 2193 is refused by name**, with no fallback to
+  a predicted descriptor. Coverage is the price of not estimating.
+- **The aqueous baseline's error carries through undiminished.** The shift
+  is measured; what it moves is an ESOL prediction at RMSE ≈ 1.26 log. A
+  non-aqueous answer is not more reliable than the aqueous one it came
+  from, and is usually the same accuracy or slightly worse.
+- **The non-aqueous benchmark cannot validate the shift, and does not
+  claim to.** Abraham's coefficients were fitted to measured solubilities
+  — the very endpoint — so that half is structurally leaked. Measured on
+  968 de-leaked cases: the composite prediction scores MAE 0.68 against
+  ESOL's own 0.61 on the same compounds, which confirms the point above
+  (the baseline dominates) without resting on the shift being validated.
+  The shift-only arm is reported as an *optimistic bound* and visibly
+  flatters itself, improving to 0.21 MAE when leaked rows are kept in.
+- **Where two literature sources disagree by more than a factor of ten in
+  the answer, it refuses rather than averaging.** Aspirin in toluene is a
+  real instance.
+
+**Acetic acid specifically is not available.** It appears only in the
+source's *predicted* coefficient set, which its own authors say should not
+be taken "as gospel".
+
+**pH, the BCS screen and the pH curve are water-only, deliberately.**
+Henderson–Hasselbalch, the pKa values behind it and the ICH window are all
+defined on aqueous media, so a non-aqueous solvent gets an intrinsic
+solubility and no pH story rather than an authoritative-looking curve that
+means nothing.
+
 <!-- help:limits-admet -->
 ## ADMET
 

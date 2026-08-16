@@ -209,15 +209,33 @@ def test_phase30_calculators_are_registered():
 def test_every_sidecar_calculator_is_bound_to_its_own_interpreter():
     """Two sidecars share one mapping. The failure this guards is a
     calculator pointed at the wrong environment -- pkasolver's interpreter
-    cannot run ADMET-AI, and the error would appear only when clicked."""
+    cannot run ADMET-AI, and the error would appear only when clicked.
+
+    An entry is either one setting key, bound as `interpreter_path`, or a
+    mapping of keyword to key for a calculator needing BOTH sidecars.
+    Solubility is the second kind: its pKa comes from pkasolver while its
+    optional AqSolDB baseline comes from ADMET, and either can be
+    configured without the other.
+    """
     from openchem.bootstrap import _CALCULATOR_INTERPRETER_SETTING
     from openchem.chem.admet_providers import ADMET_PYTHON_SETTING
     from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING
 
     assert _CALCULATOR_INTERPRETER_SETTING["admet_ml"] == ADMET_PYTHON_SETTING
     assert _CALCULATOR_INTERPRETER_SETTING["pka"] == PKASOLVER_PYTHON_SETTING
+
+    keys = set()
+    for value in _CALCULATOR_INTERPRETER_SETTING.values():
+        keys.update({value} if isinstance(value, str) else value.values())
     # Two distinct environments, not one shared by accident.
-    assert len(set(_CALCULATOR_INTERPRETER_SETTING.values())) == 2
+    assert keys == {PKASOLVER_PYTHON_SETTING, ADMET_PYTHON_SETTING}
+
+    # A multi-sidecar entry must name BOTH, or the calculator silently
+    # loses one of its two capabilities.
+    assert _CALCULATOR_INTERPRETER_SETTING["solubility"] == {
+        "interpreter_path": PKASOLVER_PYTHON_SETTING,
+        "admet_interpreter_path": ADMET_PYTHON_SETTING,
+    }
 
 
 def test_the_admet_calculator_is_registered_and_declared_a_prediction():

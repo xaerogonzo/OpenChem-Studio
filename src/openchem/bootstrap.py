@@ -194,7 +194,13 @@ _EXTERNAL_CALCULATOR_DEFINITIONS.append(
 # branch per sidecar. The previous shape -- a frozenset per sidecar and an
 # if-block per set -- would have needed a third copy of the same six lines
 # to add ADMET.
-_CALCULATOR_INTERPRETER_SETTING: dict[str, str] = {
+# A dict VALUE names one keyword argument each, for the calculators that
+# need more than one sidecar. Solubility is the case that forced it: its
+# pKa comes from pkasolver while its optional AqSolDB baseline comes from
+# the ADMET environment, and either can be configured without the other.
+# A plain string keeps meaning exactly what it did -- bind
+# `interpreter_path` -- so no existing entry changed.
+_CALCULATOR_INTERPRETER_SETTING: dict[str, str | dict[str, str]] = {
     # pkasolver
     "pka": PKASOLVER_PYTHON_SETTING,
     "logd": PKASOLVER_PYTHON_SETTING,
@@ -205,6 +211,15 @@ _CALCULATOR_INTERPRETER_SETTING: dict[str, str] = {
     "bbb_descriptors": PKASOLVER_PYTHON_SETTING,
     # ADMET-AI (hERG / CYP / Ames)
     "admet_ml": ADMET_PYTHON_SETTING,
+    # Both, independently.
+    "solubility": {
+        "interpreter_path": PKASOLVER_PYTHON_SETTING,
+        "admet_interpreter_path": ADMET_PYTHON_SETTING,
+    },
+    "solubility_curve": {
+        "interpreter_path": PKASOLVER_PYTHON_SETTING,
+        "admet_interpreter_path": ADMET_PYTHON_SETTING,
+    },
 }
 
 
@@ -212,15 +227,14 @@ def _bind_settings(definition: CalculatorDefinition, settings: Settings) -> Calc
     setting_key = _CALCULATOR_INTERPRETER_SETTING.get(definition.calculator_id)
     if setting_key is None:
         return definition
+    keys = {"interpreter_path": setting_key} if isinstance(setting_key, str) else dict(setting_key)
     inner = definition.execution.compute
 
     # Read lazily, per call: reconfiguring the path in Tools > External
     # Tools then takes effect without restarting the application.
-    def compute(mol, molecule_uuid, parameters, _inner=inner, _key=setting_key):
-        return _inner(
-            mol, molecule_uuid, parameters,
-            interpreter_path=settings.get(_key, ""),
-        )
+    def compute(mol, molecule_uuid, parameters, _inner=inner, _keys=keys):
+        paths = {name: settings.get(key, "") for name, key in _keys.items()}
+        return _inner(mol, molecule_uuid, parameters, **paths)
 
     return dataclasses.replace(definition, execution=RegistryExecution(compute=compute))
 

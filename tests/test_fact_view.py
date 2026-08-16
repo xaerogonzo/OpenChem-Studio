@@ -276,3 +276,55 @@ def test_a_summary_is_shown_above_the_sections_and_only_when_there_is_one(qapp):
     order = [layout.itemAt(i).widget() for i in range(layout.count())]
     assert order.index(view._summary) < order.index(view._area)
     _dispose(view)
+
+
+# --- the compact form, when the controls are hidden --------------------
+
+
+def test_hiding_the_controls_hides_nothing_behind_them(qapp):
+    """**A DEAD END IS WORSE THAN A WALL OF TEXT.** With `show_controls`
+    off there is no depth combo and no reason to collapse a heading: both
+    are things a reader undoes with a control that is not on screen.
+
+    Found by rendering the solubility curve's stats block and looking at
+    it. Four of its seven facts sat behind a collapsed "Structure (4)"
+    heading -- so the panel whose entire purpose is showing the intrinsic
+    solubility beside the chart was showing only the method -- and the
+    status line advised choosing "Everything" from a combo box that had
+    been deliberately hidden. Every unit test passed.
+    """
+    report = _report(
+        _fact("Method", category=FactCategory.IDENTITY),
+        _fact("Intrinsic solubility", category=FactCategory.STRUCTURE),
+        _fact("Alternate units", category=FactCategory.STRUCTURE, detail=Detail.ADVANCED),
+    )
+
+    compact = FactView(show_controls=False)
+    compact.set_report(report, "Subject")
+
+    # STRUCTURE is not in DEFAULT_EXPANDED, so this is the collapse that bit.
+    assert all(section.is_expanded() for section in compact._sections.values())
+    # The ADVANCED row is shown rather than filtered behind an absent combo.
+    assert len(_rows(compact)) == 3
+    assert "choose Everything" not in compact._status.text()
+    _dispose(compact)
+
+
+def test_the_full_view_still_collapses_and_filters(qapp):
+    """The control-bearing form is unchanged -- the compact behaviour is
+    derived from `show_controls`, so this is the half that proves it did
+    not leak into every other caller."""
+    report = _report(
+        _fact("Method", category=FactCategory.IDENTITY),
+        _fact("Intrinsic solubility", category=FactCategory.STRUCTURE),
+        _fact("Alternate units", category=FactCategory.STRUCTURE, detail=Detail.ADVANCED),
+    )
+
+    full = FactView()
+    full.set_report(report, "Subject")
+
+    sections = {name: s.is_expanded() for name, s in full._sections.items()}
+    assert not all(sections.values()), "STRUCTURE should still start collapsed here"
+    assert len(_rows(full)) == 2, "the ADVANCED row should still be filtered out"
+    assert "choose Everything" in full._status.text()
+    _dispose(full)

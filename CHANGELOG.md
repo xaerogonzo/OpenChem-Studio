@@ -12,6 +12,30 @@ below; the git log is the per-commit record.
 
 ### Added
 
+**Solubility**
+- A **Solubility** category in the Properties panel: intrinsic solubility
+  in logS / mg·mL⁻¹ / mol·L⁻¹, a Low/Moderate/High category, solubility at
+  a chosen pH, and a pH–solubility curve. The baseline is ESOL; a pKa can
+  be typed in and overrides the predictor.
+- A **BCS high-solubility screening estimate** against the ICH M9 window
+  (pH 1.2–6.8, ≤ 250 mL). It is bounded rather than capped: the dose number
+  is sandwiched between the solubility floor and the uncapped
+  Henderson–Hasselbalch ceiling, and PASS or FAIL is reported only when
+  both bounds agree. Four of five reference drugs get a sound verdict where
+  a capped version returned one blank class.
+- **Solubility in 91 non-aqueous solvents**, via Abraham's solvation
+  equation. Both halves are looked up rather than predicted — measured
+  solvent coefficients and measured solute descriptors — so a compound
+  nobody has measured is refused by name, and two literature sources that
+  disagree by more than a factor of ten in the answer are refused rather
+  than averaged.
+- Salt precipitation is bounded by Avdeef's cited *sdiff 3–4* rule
+  (4 log units for an acid, 3 for a base in 0.15 M NaCl), replacing a
+  symmetric constant that had been inferred from a screenshot.
+- Two benchmark corpora with **de-leaking**: the Solubility Challenge
+  (Llinàs 2008) and its 2020 tight set, scored against ESOL with the
+  General Solubility Equation as a published baseline.
+
 **Working with conformers**
 - Conformers are superimposed on the lowest-energy one for display, and
   stepping between them keeps the camera where you put it — so flipping
@@ -28,6 +52,15 @@ below; the git log is the per-commit record.
 
 ### Fixed
 
+- **Multi-site ionization composes multiplicatively, not additively.** The
+  Henderson–Hasselbalch factor was computed as `log10(1 + Σ terms)` where
+  it should be `Σ log10(1 + term)`, so a molecule with two or more
+  ionizable centres never reached the doubly-ionized scaling. Measured on a
+  pKa 3.0/4.5 diacid at pH 8, the old form understated the adjustment by
+  **3.49 log units**. This reached logD, the logD curve, CNS MPO and the
+  BBB descriptors as well as solubility. Monoprotic answers are unchanged,
+  which is why it survived so long — and the correct form was already
+  present one module away, in the pH-curve microspecies code.
 - A drawing derived from a conformer no longer loses its chiral flag,
   which had it describing a resolved molecule as a relative arrangement
   ("AND Enantiomer" rather than "ABS") while its SMILES kept the
