@@ -618,7 +618,8 @@ arrived together. It reads as a slow dialog and is not one.
 
 | Category | What's in it |
 |---|---|
-| Physicochemical | MW, logP, TPSA, HBD/HBA, rotatable bonds, ESOL solubility |
+| Physicochemical | MW, logP, TPSA, HBD/HBA, rotatable bonds |
+| Solubility | ESOL solubility, the Low/Moderate/High category, solubility at a chosen pH, the pH–solubility curve, and a BCS high-solubility screening estimate |
 | Identity | formula, exact mass, elemental composition, InChI/InChIKey |
 | Naming | IUPAC name with its source and exactness label |
 | Charge | Gasteiger partial charges, and charges at a chosen pH |

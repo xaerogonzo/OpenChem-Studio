@@ -90,8 +90,22 @@ def _spectrum_to_text(result: SpectrumResult) -> str:
 
 
 def _ph_curve_to_text(result: PhCurveResult) -> str:
+    """The scalar findings first, then the curve as a pasteable table.
+
+    The facts go in because they are the half of this result a reader
+    quotes -- an intrinsic solubility and a category are what ends up in a
+    report, while the 57-row table is what ends up in a spreadsheet. A copy
+    that dropped them would silently export less than the screen shows,
+    which is the defect the Properties panel's "Copy all" already had once.
+    """
+    lines = [result.name]
+    for fact in result.facts:
+        units = f" {fact.units}" if fact.units else ""
+        lines.append(f"{fact.label}: {fact.display_value}{units}")
+    if result.facts:
+        lines.append("")
     names = list(result.series)
-    lines = [result.name, "\t".join([result.x_label, *names])]
+    lines.append("\t".join([result.x_label, *names]))
     for row, ph in enumerate(result.ph_values):
         values = [f"{result.series[name][row]:.6g}" for name in names]
         lines.append("\t".join([f"{ph:.6g}", *values]))

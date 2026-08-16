@@ -116,6 +116,14 @@ class FactView(QWidget):
         super().__init__(parent)
         self._report = None
         self._sections: dict[str, CollapsibleSection] = {}
+        #: **WITHOUT THE CONTROLS, NOTHING MAY HIDE BEHIND THEM.** The depth
+        #: filter and the collapsed headings are both things a reader
+        #: undoes with a control; hide the controls and each becomes a dead
+        #: end. Found by rendering the solubility curve's stats block and
+        #: looking at it: four of its seven facts sat behind a collapsed
+        #: "Structure (4)" heading, and the status line advised choosing
+        #: "Everything" from a combo box that was not on screen.
+        self._compact = not show_controls
 
         self._title = QLabel("", self)
         self._title.setStyleSheet("font-weight: bold;")
@@ -235,7 +243,7 @@ class FactView(QWidget):
         self._sections.clear()
 
     def _showing_everything(self) -> bool:
-        return not self._detail.currentData()
+        return self._compact or not self._detail.currentData()
 
     def _render(self) -> None:
         self._clear_sections()
@@ -267,7 +275,7 @@ class FactView(QWidget):
             shown += len(visible)
             # Expanded while filtering: a search that hides its own results
             # behind a collapsed header is worse than no search.
-            expanded = bool(needle.strip()) or category in DEFAULT_EXPANDED
+            expanded = self._compact or bool(needle.strip()) or category in DEFAULT_EXPANDED
             section = CollapsibleSection(
                 f"{CATEGORY_LABELS[category]} ({len(visible)})", expanded, self._container
             )

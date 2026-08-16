@@ -800,6 +800,29 @@ document may cite a file or a test that does not exist.
   `SCIENTIFIC_LIMITATIONS.md`; the sharpest is that no ruleset records repeal
   or expiry, so this answers when a rule STARTED applying and would report
   one since removed as though it still did.
+- **DECISION** -- the solubility predictor answers for water only, and
+  `Solvent` carries no Abraham/LSER coefficients. Requested as "solubility
+  in other substances than water... similar to how NMR tables can use
+  different solvents", which is the right analogy —
+  `RESIDUAL_SOLVENT_PEAKS` in `src/openchem/chem/nmr_signals.py` is
+  already a solvent-keyed table of published values.
+
+  The seam is built and exercised: `SOLVENTS` in
+  `src/openchem/chem/solubility.py`, a `solvent` parameter on both
+  calculators, and an explicit refusal for anything that is not water
+  rather than a silent fallback. What is NOT built is any non-aqueous
+  model, because three of the five Abraham solute descriptors are
+  unobtainable here — McGowan volume `V` is computable and excess molar
+  refraction `E` is derivable from Crippen molar refractivity, but
+  dipolarity `S` and hydrogen-bond acidity/basicity `A`/`B` need the
+  Platts fragment scheme, which this project does not have. Shipping
+  ethanol or hexane without them would mean inventing the numbers, the
+  same call already made against Miller polarizability, HLB and TSEI.
+
+  Full assessment, including the Hansen alternative that was considered
+  and declined for answering a different question, in
+  `docs/SOLVENT_SOLUBILITY_ASSESSMENT.md`.
+
 - **DECISION** -- plugin loading has no async/background state, no `ToolbarProvider`/
   `ContextMenuProvider`, no numeric provider priority, and no declared
   permissions, and no `RemoteServicePlugin` base class exists for the

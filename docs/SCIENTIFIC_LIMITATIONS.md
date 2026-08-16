@@ -192,6 +192,50 @@ not wired into the integrator, so a trajectory is on one of the other two.
 
 ---
 
+<!-- help:limits-solubility -->
+## Solubility
+
+**The intrinsic value is a model output read as a baseline, and those are
+two different things.** ESOL predicts the aqueous solubility of the
+compound as supplied. Treating that as the *neutral species'* solubility,
+so a pH correction can be laid on top, is an assumption this app makes —
+not something ESOL claims. The panel says `model logS0` and *predicted
+intrinsic* deliberately, and never simply "intrinsic solubility".
+
+**The pH adjustment is capped at +2 logS, and the cap is a safeguard
+rather than a prediction.** A real pH–solubility profile levels off where
+the salt precipitates, which is set by that salt's solubility product. No
+compound-specific Ksp or salt-precipitation model exists anywhere in this
+application. Uncapped, Henderson–Hasselbalch puts aspirin at 4.7×10¹⁰
+mg/mL at pH 14 — correct arithmetic, meaningless answer. Any value that
+hit the cap says so on the fact itself.
+
+**For a strong base the cap swallows the whole regulatory window.**
+Measured on propranolol (pKa 9.4): the adjustment wants +8.20 at pH 1.2
+and +2.60 at pH 6.8, so every point in ICH M9's pH 1.2–6.8 window hits the
+limit and the predicted spread across it is exactly zero. The BCS estimate
+then carries no pH information at all, which is why it reports
+`UNDETERMINED — adjustment limit saturated` rather than a confident pass.
+This is the ordinary case for basic drugs, not an exotic one.
+
+**Ampholytes and salts are refused, not modelled.** Henderson–Hasselbalch
+assumes the undissolved species is the one with no site ionized. A
+zwitterion's un-ionized form *is* the zwitterion, which is highly soluble,
+so the model puts the solubility minimum in the wrong place and would
+report a plausible curve for a different compound. A drawn salt or mixture
+is already the species the pH correction models forming, so applying it
+again answers a question nobody asked.
+
+**The BCS line is a screening estimate and never a classification.** ICH
+M9 requires solubility established *experimentally* over pH 1.2–6.8 at
+37 ± 1 °C, using the lowest measured value. Everything here is predicted,
+at no defined temperature. Dose number addresses only the high-solubility
+half of the BCS test; permeability is a separate measurement.
+
+**Water only.** Other solvents are refused by name rather than answered
+with water's number. `docs/SOLVENT_SOLUBILITY_ASSESSMENT.md` records what a
+second solvent would need and why it is not here.
+
 <!-- help:limits-admet -->
 ## ADMET
 

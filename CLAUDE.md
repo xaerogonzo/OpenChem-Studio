@@ -356,6 +356,35 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
+Before it: `4563 passed, 15 skipped`
+(measured 2026-08-16, 14m08, on `solubility-predictor` -- the solubility
+predictor. **+65 collected items and +55 test functions** over master's
+4513 at `6f8a8c8`: 55 in `test_solubility.py`, 6 in `test_logd.py`
+pinning the shared-factor extraction, 2 in `test_fact_view.py` for the
+compact form, and 2 in `test_docs_are_current.py` from the new
+assessment doc joining its parametrised list.
+
+**The +63 was DIFFED, not subtracted** -- `--collect-only -q | grep :: |
+sort` on both trees, `comm -23` for removals and `comm -13` for
+additions: 0 removed. A bare subtraction cannot tell "63 added" from "70
+added and 7 quietly deleted".
+
+**SKIPS UNCHANGED AT 15.** None of the new tests needs a display, so
+4498 + 65 = 4563 passed and 15 skipped is the whole delta accounted for.
+
+**AND THE FIGURE WAS WRITTEN DOWN WRONG ONCE, WITHIN THE HOUR.** It was
+first recorded as 4576, which was a real measurement taken BEFORE the
+last two tests were written -- the two `FactView` guards that the live
+check forced. The run then reported 4563 + 15 = 4578 and did not
+reconcile. Nothing was stale about the method; the count was simply
+taken too early. **Re-collect AFTER the last test lands, and reconcile
+the run against it** -- a 2-item gap is exactly the size that reads as a
+rounding error and is not one.
+
+Note master had already moved 4498 -> 4513 since the entry below, which
+is the same drift one level up: derive the baseline with `rev-parse` and
+a `--collect-only`, never from the previous entry.
+
 A clean run is **6-18 minutes**, ending at `4498 passed, 15 skipped`
 (measured 2026-08-15, 15m32, on master at `4ba375e` — the right dock's
 starting width. **+5 test functions**, all in
@@ -4104,6 +4133,84 @@ Method note paid for again in the same session: **an A/B is worthless if
 the tree is being edited during it.** A source file was edited by hand
 while the harness was mid-run, so the whole set was re-run on an
 untouched tree before any result was believed.
+
+## SOLUBILITY: an uncapped model, a 1000x review, and two defects only the screen showed
+
+`chem/solubility.py` is the ChemAxon-shaped predictor -- intrinsic value,
+value at a pH, Low/Moderate/High category, pH curve. Five things worth
+carrying, each measured rather than reasoned.
+
+**A PROBE THAT PASSES `None` FOR AN INTERPRETER PATH REPORTS "NOT
+INSTALLED" ON A MACHINE WHERE IT PLAINLY IS.** `pka_predictor_available(None)`
+and `admet_available(None)` both answered False while pkasolver and the
+ADMET sidecar were configured and working. A whole design was built on
+that -- including a Dimorphite-DL pKa fallback that was then measured and
+found to put propranolol at 5.65 against a real 9.42, off by 3.8 -- before
+the paths were read from settings. **Read the configured value; do not
+probe with a placeholder.**
+
+**UNCAPPED HENDERSON-HASSELBALCH REACHES 4.7e10 mg/mL.** Aspirin at pH 14,
+which is 47 tonnes per litre: correct arithmetic, meaningless answer, the
+same failure this file records at 40619 kcal/mol. Hence a declared
+adjustment limit -- and it is named
+`MAX_PH_SOLUBILITY_ADJUSTMENT_LOG_UNITS` rather than "plateau" on purpose.
+What the code knows is "I stopped adjusting"; it does NOT know the
+compound saturates, because that needs a salt Ksp nothing here has.
+
+**THE LIMIT SATURATES THE ENTIRE ICH WINDOW FOR A STRONG BASE, and that
+is the ordinary case rather than an edge one.** Propranolol (pKa 9.4)
+wants +8.20 at pH 1.2 and +2.60 at pH 6.8, so every point in pH 1.2-6.8
+hits the limit and the predicted spread across it is **0.000**. A BCS
+screening estimate there is `baseline + 2.0` with no pH resolution in it,
+so it reports `UNDETERMINED - adjustment limit saturated` rather than a
+confident PASS. Found by writing the guard, not by review.
+
+**A REVIEW'S "MOST DANGEROUS CONVERSION BUG" WAS ITSELF THE BUG.** A
+plan review proposed `mg/mL = 10**logS * MW / 1000`, in the point it
+titled exactly that. It is wrong by 1000x -- 1 mol/L of MW 180.16 is
+180.16 g/L, and a g/L IS a mg/mL. Checked against ChemAxon's own published
+aspirin figure, which is categorised High and needs 2.79 mg/mL; the
+proposed form gives 0.0028 and classifies it Low. **Every category would
+have been wrong.** Three review rounds were taken point by point and two
+of their points were rejected on measurement; the rest improved the work.
+Do not apply a review wholesale, and do not dismiss one either.
+
+**A FIXTURE SAT 0.00002 mg/mL FROM THE BOUNDARY.** Ibuprofen was the
+obvious molecule for "the category must read the baseline, not the
+pH-adjusted value" and is degenerate: its ESOL baseline is 0.06002 mg/mL
+against a 0.06 threshold, so it reads High on BOTH sides and the mutation
+is invisible. Diclofenac is 0.0019 (Low) against 0.19 (High) -- two bands
+apart, neither near a threshold. Same lesson as the assembly corpus that
+could not see a transposed matrix.
+
+### AND TWO DEFECTS THAT ONLY THE RENDERED WIDGET SHOWED
+
+Every unit test passed, 55 of them, and the panel looked right in the
+app. Rendering the CURVE view at real font size showed both at once:
+
+- **Four of seven facts sat behind a collapsed heading.** `FactCategory`
+  STRUCTURE is not in `DEFAULT_EXPANDED`, so the stats block whose whole
+  purpose is showing the intrinsic solubility beside the chart was
+  showing only the method.
+- **The status line advised choosing "Everything" from a combo box that
+  had been deliberately hidden.** `show_controls=False` hides the depth
+  filter; it did not stop the filter applying, or the hint referring to
+  it.
+
+Both come from one cause and take one line: **when the controls are
+hidden, nothing may hide behind them.** `FactView._compact` derives from
+`show_controls`, so the depth filter is off and every section starts
+expanded. `test_hiding_the_controls_hides_nothing_behind_them` is the
+guard and `test_the_full_view_still_collapses_and_filters` is its
+control -- the second matters because the fix is in shared code and the
+control-bearing form must be untouched.
+
+**THE HEADLESS GRAB UNDER `offscreen` COULD NOT HAVE FOUND THEM.** That
+platform has no fonts, so every label renders as tofu boxes: the chart's
+SHAPE was verifiable there and not one word of text was.
+`QT_QPA_PLATFORM=windows` with `widget.grab()` gives real fonts without
+needing the whole application, which is the cheapest form of the rule
+this file states six times over.
 
 ## Verification standard
 

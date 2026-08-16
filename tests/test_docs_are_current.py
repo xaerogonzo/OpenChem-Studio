@@ -54,6 +54,7 @@ DOCS = [
     "docs/VALIDATION.md",
     "docs/DREIDING_ASSESSMENT.md",
     "docs/SELF_HOSTED_RUNNER.md",
+    "docs/SOLVENT_SOLUBILITY_ASSESSMENT.md",
 ]
 
 #: Backticked paths that deliberately do NOT resolve in this repo, each
@@ -325,6 +326,23 @@ DEFERRALS: list[Deferral] = [
     Deferral(
         claim="`SimilarityService` doesn't exist yet",
         unbuilt=lambda: not _defines("SimilarityService"),
+    ),
+    Deferral(
+        claim="the solubility predictor answers for water only",
+        # Goes stale the moment SOLVENTS gains a second entry, which is
+        # exactly the change the entry argues against making before the
+        # descriptors exist.
+        unbuilt=lambda: len(
+            re.findall(r"^SOLVENTS: dict\[str, Solvent\] = \{[^}]*\}", _src_text(), re.M)
+        )
+        == 1
+        and "ethanol" not in _src_text().split("SOLVENTS: dict[str, Solvent] = {", 1)[-1][:200],
+        # The recorded reason is that three Abraham solute descriptors are
+        # unobtainable. That becomes false the moment a Platts/Abraham
+        # descriptor implementation lands.
+        reason=lambda: not any(
+            _defines(name) for name in ("AbrahamDescriptors", "platts_descriptors")
+        ),
     ),
     # "nothing sets a starting width for the right-hand dock" lived here and
     # is gone, because its entry is SETTLED now and SETTLED items carry no

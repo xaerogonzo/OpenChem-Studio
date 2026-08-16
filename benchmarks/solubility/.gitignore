@@ -1,0 +1,4 @@
+# Fetched by fetch.py, not committed: it is TDC's/AqSolDB's data, and it
+# is one command away. README.md records the scores that matter.
+data/
+scores_*.csv
