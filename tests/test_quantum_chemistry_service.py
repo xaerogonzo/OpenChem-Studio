@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import threading
 import sys
 import time
 from pathlib import Path
@@ -294,39 +295,44 @@ def test_a_jobs_scratch_directory_is_not_in_the_real_user_cache(qapp, tmp_path):
 
 
 def test_cleanup_removes_a_directory_a_dying_process_still_holds(qapp, tmp_path):
-    """The retry, made deterministic.
+    """The retry, and the precondition is GUARANTEED rather than raced for.
 
-    **`test_quantum_chemistry_cancel_kills_process_and_cleans_up` CANNOT
+    **`test_quantum_chemistry_cancel_kills_process_and_cleans_up` cannot
     guard this and it is not its fault.** That test races: the cleanup
-    runs from a Qt signal handler, which is usually late enough that the
-    OS has already released the directory, so it passes with or without
-    the retry and fails only occasionally on a loaded CI runner. Measured:
-    removing the retry left the whole file green locally. A race is not
-    a guard.
+    runs from a Qt signal handler, usually late enough that the OS has
+    released the directory, so it passes with or without the retry and
+    fails only occasionally on a loaded runner. A race is not a guard.
 
-    This drives the collision directly -- a live child process whose
-    working directory IS the scratch, killed a moment earlier, exactly
-    what `start_job` sets up via `setWorkingDirectory`.
+    **THE FIRST VERSION OF THIS TEST WAS ALSO A RACE, AND CI PROVED IT.**
+    It killed the child and then immediately tried a plain `rmtree`,
+    asserting that it FAILED -- which it does on this machine 12 times out
+    of 12, and did not on a GitHub Windows runner, where the OS released
+    the handle first. The control fired and reddened master. Measuring the
+    same thing twice on two machines is not determinism; holding the
+    directory open is.
 
-    **The control is what makes it discriminating**, and it is asserted
-    rather than assumed: a plain immediate `rmtree` must FAIL on the same
-    setup. Measured on Windows, 12 of 12 trials, removable ~10 ms later.
-    On POSIX a directory that is a process's cwd unlinks happily, so the
-    control cannot fail there and neither can the subject -- the assertion
-    is Windows-gated and says so, rather than the test pretending to prove
-    something everywhere.
+    So the child is left ALIVE while the directory is attacked:
 
-    **EACH DIRECTORY IS KILLED AND ACTED ON IMMEDIATELY**, one at a time.
-    Building both up front and then testing them cost the control its
-    whole point: creating the second directory takes ~250 ms, by which
-    time the OS had long released the first, the plain `rmtree` succeeded
-    and the control assertion fired -- correctly, which is the control
-    earning its place. The window being tested is ten milliseconds wide,
-    so nothing may happen inside it.
+        control   a live process's cwd, plain `rmtree`   must NOT be removed
+        subject   a live process's cwd, `_cleanup_scratch`, with the
+                  process killed 50 ms in                must be removed
+
+    The subject is the real claim. `_cleanup_scratch` begins while the
+    directory is definitely held, so its first attempts must fail; the
+    kill lands during its retry window and a later attempt must succeed.
+    Without the retry there is only the first attempt, and it cannot
+    succeed -- which is what makes this discriminate rather than hope.
+
+    The 50 ms is inside the retry budget with room to spare: attempts fall
+    at 0, 10, 30, 80 and 180 ms, so two of them come after the kill.
+
+    **Windows-gated, because POSIX unlinks a live process's cwd happily**
+    and neither arm can fail there. Said out loud rather than left as a
+    test that quietly proves nothing on half the platforms it runs on.
     """
     service, _bus = _make_service(tmp_path, FakeQuantumEngineProvider())
 
-    def killed_process_holding(name: str):
+    def live_process_holding(name: str):
         directory = tmp_path / name
         directory.mkdir()
         (directory / "job.inp").write_text("fake input", encoding="utf-8")
@@ -334,30 +340,34 @@ def test_cleanup_removes_a_directory_a_dying_process_still_holds(qapp, tmp_path)
             [sys.executable, "-c", "import time; time.sleep(30)"], cwd=str(directory)
         )
         time.sleep(0.25)  # let it really start and take the cwd
-        process.kill()
         return directory, process
 
-    control, control_process = killed_process_holding("control")
+    control, control_process = live_process_holding("control")
     try:
         shutil.rmtree(control, ignore_errors=True)
         if sys.platform == "win32":
             assert control.exists(), (
-                "a plain rmtree removed a directory still held as a killed process's "
-                "cwd, so this platform no longer reproduces the race and the subject "
-                "below is no longer being tested -- check whether the retry is still needed"
+                "a plain rmtree removed a directory held as a LIVE process's cwd, so "
+                "this platform no longer refuses it and the subject below is no longer "
+                "being tested -- check whether the retry is still needed"
             )
     finally:
+        control_process.kill()
         control_process.wait()
         shutil.rmtree(control, ignore_errors=True)
 
-    subject, subject_process = killed_process_holding("subject")
+    subject, subject_process = live_process_holding("subject")
+    killer = threading.Timer(0.05, subject_process.kill)
+    killer.start()
     try:
         service._cleanup_scratch(subject)
         assert not subject.exists(), (
-            "the scratch directory survived cleanup; the retry in _cleanup_scratch "
-            "is what is supposed to outlast the OS releasing the handle"
+            "the scratch directory survived cleanup. It was held when cleanup started "
+            "and released 50 ms in, so only the retry in _cleanup_scratch can remove it"
         )
     finally:
+        killer.cancel()
+        subject_process.kill()
         subject_process.wait()
         shutil.rmtree(subject, ignore_errors=True)
 
