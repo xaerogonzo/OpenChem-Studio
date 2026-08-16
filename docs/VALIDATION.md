@@ -248,6 +248,16 @@ Outcome `SURFACE_ONLY`: the bias is reported to the user rather than
 subtracted. Removing the 7 bases the corpora share is what makes "held out"
 true and what leaves the test underpowered at n=10 and n=20.
 
+**Two further corpora were extracted to fix that, and did not.** A1
+(Yalkowsky & Banerjee 1992) is **74% inside ESOL's own training set** and
+contributes zero bases; A2 (Hopfinger 2009) yields 7, under the minimum to
+be held out. Power here is set by the **test** side, so both can only join
+the fit pool — the SC-1 arm's CI lower bound moved from −0.0009 to −0.0338,
+slightly *further* from significance. Two of Avdeef's five appendix tables
+turned out to be the SC-2 sets under other names, and are refused by name
+rather than double-counted. The available independent data cannot settle
+this question, which is itself the finding.
+
 **And it replicated on 73 entirely different compounds** (−0.42 against
 −0.59). One set makes a bias a curiosity; two make it a property of the
 model. Delaney's paper mentions ionization, amines and salts *zero* times,

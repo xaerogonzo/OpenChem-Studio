@@ -385,6 +385,21 @@ def test_water_still_behaves_exactly_as_before():
     assert any(f.label == "Solubility category" for f in report.facts)
 
 
+def _load_benchmark(stem: str):
+    """A benchmark script, imported by path and registered in `sys.modules`
+    first — a dataclass in an unregistered module raises inside
+    `dataclasses`, which reads as a bug in the benchmark."""
+    import importlib.util
+    import sys
+
+    path = Path(__file__).resolve().parents[1] / "benchmarks" / "solubility" / f"{stem}.py"
+    spec = importlib.util.spec_from_file_location(f"openchem_benchmark_{stem}", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 def _nonaqueous_module():
     """The benchmark module, imported by path.
 
@@ -507,3 +522,77 @@ def test_the_notes_reach_the_STATUS_LINE_and_not_only_a_tooltip():
         mol(ASPIRIN), "u", {"solvent": "ethanol", "compare_models": False}
     )
     assert any("not independently validated" in t.lower() for t in ethanolic.limitations)
+
+
+def _base_bias_result() -> dict:
+    path = Path(__file__).resolve().parents[1] / "benchmarks" / "solubility" / "base_bias_result.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def test_the_experiment_and_production_agree_about_whether_a_constant_shipped():
+    """**THE EXPERIMENT DECIDES; PRODUCTION OBEYS.** The result artifact
+    carries `production_change_permitted`, and the only state in which
+    `solubility.py` may apply a fitted offset is `SHIP`. This asserts the
+    two cannot drift apart -- a guard against the model being "fixed" after
+    an inconvenient verdict.
+    """
+    from openchem.chem import solubility
+
+    result = _base_bias_result()
+    shipped = result["outcome"] == "SHIP"
+    assert result["production_change_permitted"] is shipped
+
+    applies = hasattr(solubility, "ESOL_BASE_BIAS_CORRECTION_LOGS")
+    assert applies is shipped, (
+        "the repository state disagrees with the experiment: "
+        f"outcome={result['outcome']} but a correction constant "
+        f"{'exists' if applies else 'is absent'}"
+    )
+
+
+def test_a_non_ship_outcome_records_WHY_it_failed():
+    """`insufficient_evidence` and `contrary_evidence` are opposite
+    findings — "we could not show it" versus "we showed it does not work" —
+    and a bare SURFACE_ONLY reads the same for both."""
+    result = _base_bias_result()
+    if result["outcome"] == "SURFACE_ONLY":
+        assert result["evidence_reading"] in {"insufficient_evidence", "contrary_evidence"}
+        assert result["reason"]
+
+
+def test_the_result_artifact_is_reproducible_without_rerunning_it():
+    """A fitted number that exists only in stdout is not auditable. The
+    artifact must name the corpora, their fingerprints, the bootstrap
+    parameters and the criteria version."""
+    result = _base_bias_result()
+    assert result["acceptance_criteria_version"] >= 3
+    assert result["bootstrap"]["seed"] and result["bootstrap"]["replicates"] >= 1000
+    assert result["bootstrap"]["resample_unit"] == "compound"
+    assert result["sd_and_n_are"] == "metadata, never weights"
+    for name, corpus in result["corpora"].items():
+        assert corpus["sha256_16"], f"{name} has no content fingerprint"
+    assert result["provenance"]["rdkit"] and result["provenance"]["date"]
+
+
+def test_an_endpoint_incompatible_corpus_can_never_be_fitted():
+    """AqSolDB is ~10k rows and measures a DIFFERENT endpoint — aqueous
+    solubility of whatever solid form, not intrinsic solubility of the
+    neutral species. Size is exactly why this needs a rule rather than
+    judgement."""
+    module = _load_benchmark("base_bias")
+
+    assert module.corpus_eligibility({"target_type": "intrinsic"})[0] is module.Eligibility.ELIGIBLE
+    state, why = module.corpus_eligibility({"target_type": "aqueous_solubility"})
+    assert state is module.Eligibility.TEST_ONLY
+    assert "endpoint_mismatch" in why
+
+
+def test_the_avdeef_extractor_refuses_the_tables_that_duplicate_sc2():
+    """A3 and A4 are the SC-2 tight and loose sets under other names.
+    Extracting them would double-count and inflate the power of the very
+    experiment they would feed."""
+    module = _load_benchmark("extract_avdeef_sets")
+
+    assert set(module.DUPLICATES_OF_KNOWN) >= {"A3", "A4"}
+    assert "SC-2" in module.DUPLICATES_OF_KNOWN["A3"]
+    assert set(module.WANTED) == {"avdeef_a1", "avdeef_a2"}

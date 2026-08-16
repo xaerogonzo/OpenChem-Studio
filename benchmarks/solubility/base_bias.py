@@ -121,6 +121,42 @@ the error budget as though it were model error. Reported by this script;
 see `score.py` for what was done about it.
 
 --------------------------------------------------------------------
+AMENDMENT -> acceptance_criteria_version = 3   (MORE CORPORA)
+--------------------------------------------------------------------
+
+**WRITTEN BEFORE THE NEW CORPORA WERE RUN THROUGH IT.** v2's verdict was
+SURFACE_ONLY on a CI that missed by 0.0009, which is a POWER question, so
+two further corpora were extracted (`extract_avdeef_sets.py`). v3 changes
+only how extra corpora enter; every v2 criterion survives verbatim.
+
+ELIGIBILITY IS DECLARED, NEVER "WHATEVER HAS THE LARGEST n":
+
+    ELIGIBLE     endpoint-compatible; may be fitted, held out and pooled
+    TEST_ONLY    reported as a sensitivity arm; never enters a fit
+    INELIGIBLE   excluded, with the failing field named
+
+The endpoint must be `target_type == "intrinsic"`. The correction is a
+claim about the intrinsic solubility of the NEUTRAL SPECIES, so fitting it
+across a corpus of aqueous solubility of whatever solid form would measure
+a different quantity under the same name -- which is why AqSolDB, the
+largest set available, is TEST_ONLY and not merely unused.
+
+`solid_form == "unknown"` is ACCEPTED and recorded. Every corpus this
+project has declares it, so requiring a known solid form leaves zero
+eligible corpora and no experiment; it is a stated limitation instead of a
+criterion nobody can meet.
+
+LEAVE-ONE-CORPUS-OUT, not merely "cross-corpus": each eligible corpus is
+held out in turn while the others are pooled to fit, with the fit
+composition printed per arm because each arm's offset depends on who was
+on the other side. A corpus with fewer than MIN_HELDOUT_BASES eligible
+bases after every filter cannot be a TEST side, and says so.
+
+THE POOLED ARM IS SENSITIVITY ONLY and can never turn UNDECIDED or
+SURFACE_ONLY into SHIP -- otherwise a larger pooled n eventually gets used
+to rescue the experiment.
+
+--------------------------------------------------------------------
 WHAT THIS EXPERIMENT CANNOT SETTLE
 --------------------------------------------------------------------
 
@@ -143,6 +179,7 @@ import statistics
 import subprocess
 import sys
 from dataclasses import dataclass, field
+from enum import Enum
 from datetime import date
 from pathlib import Path
 
@@ -164,7 +201,7 @@ HERE = Path(__file__).resolve().parent
 DATA = HERE / "data"
 RESULT = HERE / "base_bias_result.json"
 
-ACCEPTANCE_CRITERIA_VERSION = 2
+ACCEPTANCE_CRITERIA_VERSION = 3
 OFFSET_AGREEMENT_MAX = 0.25
 MIN_HELDOUT_BASES = 10
 BOOTSTRAP_REPLICATES = 10_000
@@ -172,6 +209,38 @@ BOOTSTRAP_SEED = 20260816
 #: Two measurements of one compound differing by more than this are a
 #: conflict rather than rounding, and stop the experiment.
 DUPLICATE_CONFLICT_LOG = 0.05
+
+
+#: Every corpus this experiment knows about. `manifest` supplies the
+#: declared endpoint; eligibility is read from it rather than assumed.
+CORPORA = {
+    "SC-1": ("evaluation.csv", "manifest.json", False),
+    "SC-2": ("sc2_tight.csv", "sc2_manifest.json", True),
+    "A1": ("avdeef_a1.csv", "avdeef_a1_manifest.json", True),
+    "A2": ("avdeef_a2.csv", "avdeef_a2_manifest.json", True),
+}
+
+
+class Eligibility(Enum):
+    ELIGIBLE = "eligible"
+    TEST_ONLY = "test_only"
+    INELIGIBLE = "ineligible"
+
+
+def corpus_eligibility(manifest: dict) -> tuple[Eligibility, str]:
+    """Declared, printed, and never inferred from size.
+
+    The endpoint is the whole check: this fits a correction to the
+    INTRINSIC solubility of the neutral species, so a corpus measuring
+    something else is measuring a different quantity under the same name.
+    `solid_form == "unknown"` is accepted because every corpus here
+    declares it -- requiring otherwise leaves no experiment at all -- and
+    is carried as a limitation instead.
+    """
+    endpoint = manifest.get("target_type")
+    if endpoint != "intrinsic":
+        return Eligibility.TEST_ONLY, f"endpoint_mismatch: target_type={endpoint!r}"
+    return Eligibility.ELIGIBLE, f"target_type={endpoint!r}, solid_form={manifest.get('solid_form')!r}"
 
 
 @dataclass
@@ -301,6 +370,8 @@ class Arm:
     base_rmse_after: float
     base_mae_before: float
     base_mae_after: float
+    base_bias_before: float
+    base_bias_after: float
     overall_mae_before: float
     overall_mae_after: float
     ci: tuple[float, float] | None
@@ -327,6 +398,8 @@ class Arm:
             "base_rmse_after": round(self.base_rmse_after, 4),
             "base_mae_before": round(self.base_mae_before, 4),
             "base_mae_after": round(self.base_mae_after, 4),
+            "base_bias_before": round(self.base_bias_before, 4),
+            "base_bias_after": round(self.base_bias_after, 4),
             "overall_mae_before": round(self.overall_mae_before, 4),
             "overall_mae_after": round(self.overall_mae_after, 4),
             "improvement_ci95": None if self.ci is None else [round(self.ci[0], 4), round(self.ci[1], 4)],
@@ -336,36 +409,44 @@ class Arm:
         }
 
 
-def _arm(fit: Corpus, test: Corpus, overlap: set[str]) -> Arm:
-    """Fit on one corpus's bases, test on the other's, overlap removed."""
-    fit_bases = fit.bases
-    test_bases = [c for c in test.bases if c.key not in overlap]
-    test_all = [c for c in test.compounds if c.key not in overlap]
+def _fit_offset(compounds: list[Compound]) -> float:
+    """The pre-registered statistic: mean(measured - raw ESOL), unweighted."""
+    return -statistics.fmean(_errors(compounds))
 
-    fit_ids = {c.key for c in fit_bases}
-    test_ids = {c.key for c in test_bases}
+
+def _arm(name: str, fit_names: list[str], fit: list[Compound], test: list[Compound],
+         test_all: list[Compound], removed: int) -> Arm:
+    """One leave-one-corpus-out arm, with disjointness asserted.
+
+    The fit composition travels with the arm because each arm's offset
+    depends on which corpora were pooled on the other side -- reporting an
+    offset without it invites reading the arms as independent estimates of
+    one number.
+    """
+    fit_ids = {c.key for c in fit}
+    test_ids = {c.key for c in test}
     if fit_ids & test_ids:
         raise ExperimentError(
-            f"held-out arm is not held out: {len(fit_ids & test_ids)} shared identifiers"
+            f"{name}: held-out arm is not held out -- {len(fit_ids & test_ids)} shared identifiers"
         )
 
-    offset = -statistics.fmean(_errors(fit_bases))
-
-    before = _errors(test_bases)
-    after = _errors(test_bases, offset)
+    offset = _fit_offset(fit)
+    before = _errors(test)
+    after = _errors(test, offset)
     improvements = [abs(b) - abs(a) for b, a in zip(before, after)]
 
+    overall_before = _errors(test_all)
+    overall_after = [
+        e + (offset if c.ionization is IonizationClass.BASE else 0.0)
+        for c, e in zip(test_all, overall_before)
+    ]
     return Arm(
-        fit_on=fit.name, test_on=test.name, offset=offset,
-        fit_n=len(fit_bases), test_n=len(test_bases),
-        overlap_removed=len(test.bases) - len(test_bases),
+        fit_on="+".join(fit_names), test_on=name, offset=offset,
+        fit_n=len(fit), test_n=len(test), overlap_removed=removed,
         base_rmse_before=_rmse(before), base_rmse_after=_rmse(after),
         base_mae_before=_mae(before), base_mae_after=_mae(after),
-        overall_mae_before=_mae(_errors(test_all)),
-        overall_mae_after=_mae([
-            e + (offset if c.ionization is IonizationClass.BASE else 0.0)
-            for c, e in zip(test_all, _errors(test_all))
-        ]),
+        base_bias_before=statistics.fmean(before), base_bias_after=statistics.fmean(after),
+        overall_mae_before=_mae(overall_before), overall_mae_after=_mae(overall_after),
         ci=_bootstrap_ci(improvements),
     )
 
@@ -385,123 +466,183 @@ def _git_sha() -> str:
 
 
 def main() -> int:
-    try:
-        drop = _delaney_keys()
-        sc1 = _load(DATA / "evaluation.csv", "SC-1", drop_keys=set())
-        sc2 = _load(DATA / "sc2_tight.csv", "SC-2", drop_keys=drop)
-    except ExperimentError as exc:
-        print(f"EXPERIMENT_ERROR  {exc}")
-        RESULT.write_text(json.dumps({"outcome": "EXPERIMENT_ERROR", "reason": str(exc)}, indent=1),
-                          encoding="utf-8")
-        return 1
-
-    overlap = {c.key for c in sc1.compounds} & {c.key for c in sc2.compounds}
-    overlap_bases = overlap & ({c.key for c in sc1.bases} | {c.key for c in sc2.bases})
-
     print(f"acceptance_criteria_version = {ACCEPTANCE_CRITERIA_VERSION}  "
-          f"(pre-registered; see the module docstring)")
-    print()
-    for corpus in (sc1, sc2):
-        print(f"{corpus.name}: {len(corpus.compounds)} compounds, {len(corpus.bases)} bases")
-        print(f"        excluded {corpus.excluded}")
-    print(f"overlap between corpora: {len(overlap)} compounds, {len(overlap_bases)} of them bases")
+          "(pre-registered; see the module docstring)")
     print()
 
+    drop = _delaney_keys()
+    loaded: dict[str, Corpus] = {}
+    states: dict[str, tuple[str, str]] = {}
     try:
-        arms = [_arm(sc1, sc2, overlap), _arm(sc2, sc1, overlap)]
+        for name, (corpus_file, manifest_file, deleak) in CORPORA.items():
+            manifest_path = DATA / manifest_file
+            if not manifest_path.is_file() or not (DATA / corpus_file).is_file():
+                states[name] = ("MISSING", f"{corpus_file} or {manifest_file} absent")
+                continue
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            state, why = corpus_eligibility(manifest)
+            states[name] = (state.name, why)
+            if state is not Eligibility.ELIGIBLE:
+                continue
+            loaded[name] = _load(DATA / corpus_file, name, drop_keys=drop if deleak else set())
+    except ExperimentError as exc:
+        print(f"EXPERIMENT_ERROR  {exc}")
+        RESULT.write_text(
+            json.dumps({"outcome": "EXPERIMENT_ERROR", "reason": str(exc)}, indent=1),
+            encoding="utf-8",
+        )
+        return 1
+
+    print("CORPUS ELIGIBILITY (declared, not inferred from size)")
+    for name, (state, why) in states.items():
+        n = len(loaded[name].compounds) if name in loaded else 0
+        bases = len(loaded[name].bases) if name in loaded else 0
+        print(f"  {name:<6} {state:<11} n={n:<4} bases={bases:<4} {why}")
+    print("  AqSolDB TEST_ONLY   endpoint_mismatch: aqueous solubility of whatever solid")
+    print("                      form, not intrinsic. Never fitted, never pooled.")
+    print()
+
+    print("PAIRWISE OVERLAP (InChIKey)")
+    names = list(loaded)
+    overlaps: dict[str, int] = {}
+    for i, first in enumerate(names):
+        for second in names[i + 1:]:
+            shared = {c.key for c in loaded[first].compounds} & {
+                c.key for c in loaded[second].compounds
+            }
+            overlaps[f"{first}|{second}"] = len(shared)
+            if shared:
+                print(f"  {first} n {second}: {len(shared)}")
+    print()
+
+    participating = [n for n in names if len(loaded[n].bases) >= MIN_HELDOUT_BASES]
+    for name in names:
+        if name not in participating:
+            print(f"  {name} cannot be a held-out side: {len(loaded[name].bases)} bases "
+                  f"< MIN_HELDOUT_BASES={MIN_HELDOUT_BASES}")
+
+    arms: list[Arm] = []
+    try:
+        for test_name in participating:
+            fit_names = [n for n in names if n != test_name]
+            fit_pool: dict[str, Compound] = {}
+            for other in fit_names:
+                for compound in loaded[other].bases:
+                    fit_pool.setdefault(compound.key, compound)
+            fit_keys = set(fit_pool)
+            test_bases = [c for c in loaded[test_name].bases if c.key not in fit_keys]
+            test_all = [c for c in loaded[test_name].compounds if c.key not in fit_keys]
+            removed = len(loaded[test_name].bases) - len(test_bases)
+            if len(test_bases) < MIN_HELDOUT_BASES or len(fit_pool) < MIN_HELDOUT_BASES:
+                print(f"  test on {test_name}: UNDECIDED, fit n={len(fit_pool)} "
+                      f"test n={len(test_bases)} after removing {removed} shared")
+                continue
+            arms.append(
+                _arm(test_name, fit_names, list(fit_pool.values()), test_bases, test_all, removed)
+            )
     except ExperimentError as exc:
         print(f"EXPERIMENT_ERROR  {exc}")
         return 1
 
+    print()
     for arm in arms:
-        print(f"--- fit on {arm.fit_on} bases (n={arm.fit_n}) -> test on {arm.test_on} "
-              f"bases (n={arm.test_n}, {arm.overlap_removed} removed as overlap)")
+        print(f"--- fit on {arm.fit_on} (n={arm.fit_n}) -> test on {arm.test_on} "
+              f"(n={arm.test_n}, {arm.overlap_removed} removed as shared)")
         print(f"    offset fitted        {arm.offset:+.4f}")
         print(f"    base RMSE   {arm.base_rmse_before:.4f} -> {arm.base_rmse_after:.4f}"
               f"   {'improves' if arm.base_rmse_improves else 'WORSE'}")
         print(f"    base MAE    {arm.base_mae_before:.4f} -> {arm.base_mae_after:.4f}")
+        print(f"    base bias   {arm.base_bias_before:+.4f} -> {arm.base_bias_after:+.4f}")
         print(f"    overall MAE {arm.overall_mae_before:.4f} -> {arm.overall_mae_after:.4f}"
               f"   {'ok' if arm.overall_mae_not_worse else 'WORSE'}")
         ci = arm.ci
-        print(f"    improvement 95% CI   "
-              f"{'not estimable' if ci is None else f'[{ci[0]:+.4f}, {ci[1]:+.4f}]'}"
+        rendered = "not estimable" if ci is None else f"[{ci[0]:+.4f}, {ci[1]:+.4f}]"
+        print(f"    improvement 95% CI   {rendered}"
               f"   {'excludes zero' if arm.ci_excludes_zero else 'INCLUDES ZERO'}")
         print()
 
+    checks: dict[str, bool] = {}
     offsets = [a.offset for a in arms]
-    same_sign = offsets[0] * offsets[1] > 0
-    agreement = abs(offsets[0] - offsets[1])
-    enough = all(a.test_n >= MIN_HELDOUT_BASES for a in arms)
-    estimable = all(a.ci is not None for a in arms)
-
-    checks = {
-        "same_sign": same_sign,
-        f"offset_agreement <= {OFFSET_AGREEMENT_MAX}": agreement <= OFFSET_AGREEMENT_MAX,
-        "base_rmse_improves_both": all(a.base_rmse_improves for a in arms),
-        "overall_mae_not_worse_both": all(a.overall_mae_not_worse for a in arms),
-        "ci_excludes_zero_both": all(a.ci_excludes_zero for a in arms),
-    }
-    print(f"offset agreement |{offsets[0]:+.4f} - {offsets[1]:+.4f}| = {agreement:.4f}")
-    for name, value in checks.items():
-        print(f"  {name:<34} {'PASS' if value else 'FAIL'}")
-
-    if not (enough and estimable):
+    agreement = None
+    if len(arms) < 2:
         outcome = "UNDECIDED"
-        reason = ("held-out base count below the pre-registered minimum"
-                  if not enough else "bootstrap CI not estimable")
-    elif all(checks.values()):
-        outcome = "SHIP"
-        reason = ""
+        reason = (f"only {len(arms)} arm(s) had enough eligible held-out bases; the "
+                  "criteria could not be evaluated to specification")
     else:
-        outcome = "SURFACE_ONLY"
-        reason = "; ".join(n for n, v in checks.items() if not v) + " failed"
+        agreement = max(offsets) - min(offsets)
+        checks = {
+            "same_sign": all(o > 0 for o in offsets) or all(o < 0 for o in offsets),
+            f"offset_agreement <= {OFFSET_AGREEMENT_MAX}": agreement <= OFFSET_AGREEMENT_MAX,
+            "base_rmse_improves_all": all(a.base_rmse_improves for a in arms),
+            "overall_mae_not_worse_all": all(a.overall_mae_not_worse for a in arms),
+            "ci_excludes_zero_all": all(a.ci_excludes_zero for a in arms),
+        }
+        print(f"offset agreement (max - min) = {agreement:.4f} over {len(arms)} arms")
+        for label, value in checks.items():
+            print(f"  {label:<34} {'PASS' if value else 'FAIL'}")
+        outcome = "SHIP" if all(checks.values()) else "SURFACE_ONLY"
+        reason = "" if outcome == "SHIP" else (
+            "; ".join(k for k, v in checks.items() if not v) + " failed"
+        )
 
-    # Combined refit, reported whatever the outcome -- it is only USED on SHIP.
-    # **A CROSS-CORPUS DUPLICATE IS NOT A POLYMORPH PAIR**, and treating it
-    # as one was a bug: cimetidine sits in both corpora with slightly
-    # different measured values, which is ordinary inter-source variation
-    # rather than two solid forms. SC-2 wins, because it is the tight set --
-    # interlaboratory means over many sources, with an SD per compound --
-    # where SC-1 carries single values.
-    #
-    # This resolution CANNOT influence the verdict: the combined constant is
-    # used only on SHIP, and it is reported here for completeness whatever
-    # the outcome.
-    union: dict[str, Compound] = {c.key: c for c in sc1.bases}
-    union.update({c.key: c for c in sc2.bases})
-    combined = -statistics.fmean(_errors(list(union.values())))
-    duplicates_removed = len(sc1.bases) + len(sc2.bases) - len(union)
+    # Insufficient evidence and contrary evidence must never read alike.
+    evidence = None
+    if outcome == "SURFACE_ONLY":
+        evidence = (
+            "contrary_evidence"
+            if any(a.base_rmse_after > a.base_rmse_before for a in arms)
+            else "insufficient_evidence"
+        )
+
+    union: dict[str, Compound] = {}
+    for name in names:
+        for compound in loaded[name].bases:
+            union.setdefault(compound.key, compound)
+    combined = _fit_offset(list(union.values())) if union else 0.0
 
     print()
     print(f"OUTCOME  {outcome}" + (f"  ({reason})" if reason else ""))
-    print(f"  SC-1 fitted {offsets[0]:+.4f}   SC-2 fitted {offsets[1]:+.4f}   "
-          f"combined {combined:+.4f} over {len(union)} unique bases "
-          f"({duplicates_removed} duplicate rows removed)")
-    print("  The combined figure is IN-SAMPLE and is not evidence of generalisation;")
-    print("  the two held-out arms above are.")
+    if evidence == "insufficient_evidence":
+        print("  reading: insufficient evidence for the pre-registered claim -- the CI")
+        print("           spans zero, which is NOT the same as showing there is no bias.")
+    elif evidence == "contrary_evidence":
+        print("  reading: contrary evidence -- an arm got WORSE, not merely unproven.")
+    print(f"  combined in-sample offset {combined:+.4f} over {len(union)} unique bases")
+    print("  That figure is IN-SAMPLE and is not evidence of generalisation.")
+    print(f"  production_change_permitted = {str(outcome == 'SHIP').lower()}")
 
     RESULT.write_text(json.dumps({
         "outcome": outcome,
         "reason": reason,
+        "evidence_reading": evidence,
+        "production_change_permitted": outcome == "SHIP",
         "acceptance_criteria_version": ACCEPTANCE_CRITERIA_VERSION,
         "model": "esol",
         "fitting_method": "mean(measured_logS - raw_ESOL_logS), unweighted, one row per compound",
+        "sd_and_n_are": "metadata, never weights",
         "shipped_constant_logs": round(combined, 4) if outcome == "SHIP" else None,
-        "offsets": {"sc1": round(offsets[0], 4), "sc2": round(offsets[1], 4),
-                    "combined_in_sample": round(combined, 4)},
+        "combined_in_sample_offset": round(combined, 4),
+        "offset_agreement": None if agreement is None else round(agreement, 4),
         "checks": checks,
         "arms": [a.as_dict() for a in arms],
+        "corpus_states": {k: {"state": v[0], "why": v[1]} for k, v in states.items()},
         "corpora": {
-            "sc1": {"n": len(sc1.compounds), "bases": len(sc1.bases),
-                    "excluded": sc1.excluded, "sha256_16": _fingerprint(DATA / "evaluation.csv")},
-            "sc2": {"n": len(sc2.compounds), "bases": len(sc2.bases),
-                    "excluded": sc2.excluded, "sha256_16": _fingerprint(DATA / "sc2_tight.csv")},
+            name: {
+                "n": len(corpus.compounds),
+                "bases": len(corpus.bases),
+                "excluded": corpus.excluded,
+                "sha256_16": _fingerprint(DATA / CORPORA[name][0]),
+            }
+            for name, corpus in loaded.items()
         },
-        "overlap": {"compounds": len(overlap), "bases": len(overlap_bases)},
+        "pairwise_overlap": overlaps,
         "union_bases": len(union),
-        "duplicate_rows_removed": duplicates_removed,
-        "bootstrap": {"replicates": BOOTSTRAP_REPLICATES, "seed": BOOTSTRAP_SEED,
-                      "statistic": "mean(|error_before| - |error_after|), percentile 95% CI"},
+        "min_heldout_bases": MIN_HELDOUT_BASES,
+        "bootstrap": {
+            "replicates": BOOTSTRAP_REPLICATES, "seed": BOOTSTRAP_SEED,
+            "resample_unit": "compound", "method": "percentile 95%",
+            "statistic": "mean(|error_before| - |error_after|)",
+        },
         "provenance": {
             "command": "uv run --no-sync python benchmarks/solubility/base_bias.py",
             "git_sha": _git_sha(),

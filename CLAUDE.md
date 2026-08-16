@@ -356,6 +356,19 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
+Before it: `4633 passed, 15 skipped`
+(measured 2026-08-16, **14m16**, on `solubility-base-bias` -- the base-bias
+power study at criteria v3. **+5 test functions**, all in
+`test_abraham.py`, none parametrised: the experiment/production agreement
+guard, the evidence-reading guard, the artifact-reproducibility guard, the
+endpoint-eligibility guard and the duplicate-table refusal. Skips unchanged
+at 15; 4643 -> 4648 collected, diffed both directions, 0 removed.
+
+**PRODUCTION IS UNTOUCHED BY THIS ONE.** The verdict was `SURFACE_ONLY`,
+so `production_change_permitted = false` and `git diff src/` is empty for
+the whole power study -- the guard against fixing the model once the
+answer is inconvenient.)
+
 Before it: `4628 passed, 15 skipped`
 (measured 2026-08-16, **13m29**, on `solubility-base-bias` at `435130d` --
 the base-bias verdict and the arm-status work. **+6 test functions**, all
@@ -4701,6 +4714,49 @@ those three compounds TWICE and charging the polymorph gap -- up to 0.88
 log, the size of the bias under investigation -- to the model as
 prediction error. Refusing them moved acid bias +0.06 -> +0.26 and base
 bias -0.52 -> **-0.59**, i.e. the fix makes the bias LARGER, not smaller.
+
+#### MORE DATA DID NOT HELP, AND THE REASON IS WHICH SIDE IT LANDS ON
+
+The obvious answer to a CI that missed by 0.0009 is more compounds. Two
+further corpora were extracted from `avdeef2020.pdf` (v3 of the criteria,
+written before they were run) and the verdict stayed `SURFACE_ONLY`:
+
+    A1  Yalkowsky & Banerjee 1992   19 rows -> 5 after de-leaking, 0 bases
+    A2  Hopfinger et al. 2009       27 rows -> 23, 7 bases
+
+**POWER IS SET BY THE TEST SIDE, NOT THE FIT SIDE.** Neither new corpus
+has the 10 bases needed to BE a held-out side, so both can only join the
+fit pool -- which moves the fitted offset and narrows nothing. Measured:
+the SC-1 arm's CI lower bound went **-0.0009 -> -0.0338**, slightly
+FURTHER from significance. Adding data to the wrong side of a held-out
+split is not adding power.
+
+**A1 IS 74% INSIDE ESOL'S OWN TRAINING SET** -- 14 of 19 rows share an
+InChIKey with Delaney's fit, and it yields zero bases. Yalkowsky &
+Banerjee 1992 is a classic compilation of industrial and agrochemical
+solubility, which is the chemistry ESOL was fitted on. Extracting it
+anyway is what turned a suspicion into a number; dropping it unmeasured
+would have been assuming the answer.
+
+**TWO OF AVDEEF'S FIVE APPENDIX TABLES ARE THE SC-2 SETS UNDER OTHER
+NAMES.** A3 is the tight set, A4 the loose set -- so a bulk extractor over
+those pages would have double-counted data the project already had and
+INFLATED the power of the experiment it was meant to strengthen. A naive
+row count over pages 35-44 gives 172 compounds and the honest independent
+gain is 49. `extract_avdeef_sets.py` refuses A3/A4/A5 by name and says
+why.
+
+**THE OUTCOME VOCABULARY EARNED ITS SPLIT.** `insufficient_evidence` (the
+CI spans zero) and `contrary_evidence` (an arm got worse) are recorded
+separately, because "we could not show it" and "we showed it does not
+work" are opposite findings that read alike in a bare SURFACE_ONLY. The
+adjustment does substantially remove the bias in-sample -- base bias
+-0.619 -> -0.108 and -0.351 -> +0.265 -- which is exactly why the
+distinction matters.
+
+`production_change_permitted = false` is emitted for every non-SHIP
+outcome, and `git diff src/` was checked empty: a guard against fixing the
+model after an inconvenient result.
 
 #### A FACT-LEVEL LIMITATION IS A TOOLTIP, AND A TOOLTIP TELLS NOBODY
 

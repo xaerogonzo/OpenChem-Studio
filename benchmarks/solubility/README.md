@@ -49,30 +49,62 @@ the acid bias +0.06 → +0.26 and the base bias −0.52 → −0.59.
 
 ## Should the base bias be corrected? Pre-registered answer: no
 
-`base_bias.py` puts an adjustment through a cross-corpus **held-out** test
-whose criteria were fixed before it was first run.
+`base_bias.py` puts an adjustment through a **leave-one-corpus-out
+held-out** test whose criteria were fixed before it was first run.
 
-    fit on SC-1 bases (n=27) -> test on SC-2 bases (n=10 after overlap removal)
-    fit on SC-2 bases (n=17) -> test on SC-1 bases (n=20 after overlap removal)
+    fit on SC-2+A1+A2 (n=24) -> test on SC-1 (n=20 after removing 7 shared)
+    fit on SC-1+A1+A2 (n=34) -> test on SC-2 (n=10 after removing 7 shared)
 
-    offsets           +0.586 and +0.422, agreement 0.165  PASS
-    base RMSE         0.822 -> 0.780 and 1.101 -> 0.932   PASS (both improve)
-    overall MAE       not worse in either direction        PASS
-    improvement CI    [-0.231, +0.397] and [-0.0009, +0.300]  FAIL
+    offsets           +0.511 and +0.615, agreement 0.105     PASS
+    base RMSE         1.101 -> 0.918 and 0.822 -> 0.789      PASS (both improve)
+    overall MAE       not worse in either direction           PASS
+    improvement CI    [-0.034, +0.331] and [-0.248, +0.413]   FAIL
 
-**Outcome `SURFACE_ONLY`.** Four criteria of five pass and the point
-estimates improve consistently, but the bootstrap 95% CI on the held-out
-paired improvement **includes zero in both directions** — one of them by
-0.0009, which is exactly why the threshold was fixed in advance.
+**Outcome `SURFACE_ONLY`, reading `insufficient_evidence`.** Four criteria
+of five pass and the adjustment does substantially remove the bias
+in-sample (base bias −0.619 → −0.108 and −0.351 → +0.265) — but the
+bootstrap 95% CI on the held-out paired improvement **includes zero in
+both directions**. That is not evidence there is no bias; it is
+insufficient evidence for the pre-registered claim.
 
-**The corpora share 20 compounds, 7 of them bases**, and removing those is
-what makes "held out" true — and what leaves the test underpowered at n=10
-and n=20. Two corpora that look like independent validation are less
-independent than their sizes suggest.
+### Adding two more corpora did NOT increase power, and that is measured
 
-So the bias is **reported to the user and not subtracted**. The panel says
-so on any base. `base_bias_result.json` records every criterion, both
-constants, the corpus fingerprints and the acceptance-criteria version.
+The obvious response to a CI that missed by 0.0009 was more data. Two
+further corpora were extracted from Avdeef 2020 — and they did not help,
+for a structural reason worth stating:
+
+| corpus | rows | after de-leaking | bases | can be a test side? |
+| --- | --- | --- | --- | --- |
+| A1 (Yalkowsky & Banerjee 1992) | 19 | **5** | **0** | no |
+| A2 (Hopfinger et al. 2009) | 27 | 23 | 7 | no — under the minimum of 10 |
+
+**Power here is set by the TEST side, not the fit side.** Both new corpora
+are too small to be held out, so they can only join the fit pool — which
+moves the fitted offset without narrowing any CI. The SC-1 arm's lower
+bound actually went from −0.0009 to −0.0338, i.e. slightly *further* from
+significance.
+
+**A1 is 74% inside ESOL's own training set** — 14 of its 19 rows share an
+InChIKey with Delaney's fit, and it contributes **zero** bases. Yalkowsky
+& Banerjee 1992 is a classic compilation of industrial and agrochemical
+solubility, which is exactly the chemistry ESOL was fitted on. Extracting
+it anyway is what turned that suspicion into a number.
+
+**And two of Avdeef's five appendix tables are the Solubility Challenge 2
+sets under different names** — A3 is the tight set and A4 the loose set.
+`extract_avdeef_sets.py` refuses them by name. Extracting them would have
+double-counted SC-2 and inflated the apparent power of the very experiment
+they were meant to strengthen.
+
+So the honest position is that **the available independent data cannot
+settle this question**, and the bias is reported to the user rather than
+subtracted. `base_bias_result.json` records every criterion, both offsets,
+the overlap matrix, per-corpus funnels, corpus fingerprints, the bootstrap
+parameters and the acceptance-criteria version.
+
+**SD and n are metadata, never weights.** The corpora carry per-compound
+standard deviations and source counts; the fit is unweighted, one row per
+compound, and does not use them.
 
 **13 of 80 compounds — 16% — are ampholytes, and are refused.** That is a
 large slice of druglike chemistry to decline, and it is printed beside the
