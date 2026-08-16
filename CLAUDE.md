@@ -4904,15 +4904,41 @@ has a reason and is logged.
 **A RACE IS NOT A GUARD, and the obvious test cannot become one.** The
 cancel test passes with or without the retry, because it depends on
 whether the OS happened to let go in time -- removing the retry left the
-whole file green locally. The guard that works drives the collision
-directly: a live child holding the directory, killed a moment earlier,
-then `_cleanup_scratch`. **Its control is what makes it discriminating**
--- a plain immediate `rmtree` on the same setup must FAIL -- and that
-control caught a bug in its own test first: building both directories up
-front gave the control ~250 ms of slack, by which time the OS had
-released it. The window is ten milliseconds wide, so nothing may happen
-inside it. The control is Windows-gated, because POSIX unlinks a cwd
-happily and neither arm can fail there.
+whole file green locally.
+
+**AND THE FIRST GUARD WRITTEN TO REPLACE IT WAS ALSO A RACE. IT
+REDDENED MASTER.** It killed the child and then immediately tried a
+plain `rmtree`, asserting that the attempt FAILED -- true here 12 times
+out of 12, and false on a GitHub Windows runner, where the OS released
+the handle first. **The control fired correctly and the test was still
+wrong**, because it depended on WINNING a race rather than removing one:
+a 10 ms window measured on one machine is a property of that machine.
+
+The shape that works holds the directory open instead of hoping:
+
+    control   a LIVE process's cwd, plain rmtree          not removed
+    subject   a LIVE process's cwd, `_cleanup_scratch`,
+              the process killed 50 ms in                 removed
+
+The subject is the real claim. Cleanup starts while the directory is
+definitely held, so its first attempts must fail; the kill lands inside
+the retry window and a later attempt must succeed. Attempts fall at 0,
+10, 30, 80 and 180 ms, so two come after the kill. Without the retry
+there is one attempt and it cannot succeed. Verified by the mutation and
+by five consecutive green runs rather than one lucky one.
+
+Windows-gated, because POSIX unlinks a live process's cwd happily and
+neither arm can fail there.
+
+**THE GENERAL RULE, PAID FOR FIVE TIMES IN ONE DAY: a guard must not
+depend on timing, on the machine's configuration, or on a fixture being
+incidentally big enough.** Every one of this session's new guards passed
+on the first attempt while testing nothing -- captions too short to
+overflow, a configured data root that made a path assertion vacuous, a
+250 ms setup inside a 10 ms window, a stale shared window clamping a
+resize, and this one. Four were caught by mutating locally. This one
+needed a different machine, which is the argument for CI being a second
+opinion rather than a rubber stamp.
 
 ### A gbw remembers where it was born, and orca_plot goes there
 
