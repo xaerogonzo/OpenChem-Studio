@@ -59,7 +59,7 @@ from rdkit import Chem
 from rdkit.Chem import Crippen, Descriptors, Lipinski
 
 from openchem.chem.calculator_options import DEFAULT_PH, ph_grid_from
-from openchem.chem.logd import assign_site_polarity, classify_ionizable_centres, ionization_factor
+from openchem.chem.logd import assign_site_polarity, classify_ionizable_centres, ionization_log_factor
 from openchem.chem.pka_providers import PKaResolution, PKaStatus
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.report import Detail, Fact, FactCategory, ReportResult
@@ -468,14 +468,15 @@ def ph_adjustment(
     is_acid: list[bool],
     limit: float | None = MAX_PH_SOLUBILITY_ADJUSTMENT_LOG_UNITS,
 ) -> PhAdjustment:
-    """`log10(1 + f)`, clamped to `limit`.
+    """The ionization log factor, clamped to `limit`.
 
-    Note the sign relative to logD: the SAME `ionization_factor` is
+    Note the sign relative to logD: the SAME `ionization_log_factor` is
     subtracted there and added here, because ionization removes octanol
     partitioning and adds water solubility. Sharing that function is what
-    makes the relationship structural instead of coincidental.
+    makes the relationship structural instead of coincidental -- and it is
+    why the multi-site correction landed in both at once.
     """
-    uncapped = math.log10(1.0 + ionization_factor(ph, pkas, is_acid))
+    uncapped = ionization_log_factor(ph, pkas, is_acid)
     if limit is None or uncapped <= limit:
         return PhAdjustment(applied=uncapped, uncapped=uncapped, limited=False)
     return PhAdjustment(applied=limit, uncapped=uncapped, limited=True)

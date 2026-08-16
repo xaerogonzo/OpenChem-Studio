@@ -101,15 +101,70 @@ _PRE_EXTRACTION_LOGD = {
     # (pkas, is_acid): {pH: logD at logP 2.5}
     "mono_acid": ([4.9], [True], {0.0: 2.499995, 3.0: 2.494567, 7.0: 0.396564, 12.0: -4.6}),
     "mono_base": ([9.4], [False], {0.0: -6.9, 3.0: -3.9, 7.0: 0.098274, 12.0: 2.49891}),
-    "mixed": ([2.34, 9.60], [True, False], {0.0: -7.1, 7.0: -2.163776, 12.0: -7.16}),
 }
 
 
 @pytest.mark.parametrize("case", sorted(_PRE_EXTRACTION_LOGD))
-def test_logd_is_unchanged_by_the_shared_factor_extraction(case):
+def test_a_single_site_logd_is_unchanged_by_any_of_this(case):
+    """**ONE SITE IS WHERE EVERY VERSION OF THIS CODE AGREES.** These
+    values predate the shared-factor extraction AND the multi-site
+    correction below, and both left them bit-identical -- a sum and a
+    product of one term are the same number.
+
+    That is also why the multi-site bug survived so long: the
+    overwhelmingly common case could never show it.
+    """
     pkas, is_acid, expected = _PRE_EXTRACTION_LOGD[case]
     for ph, value in expected.items():
         assert logd_henderson_hasselbalch(2.5, ph, pkas, is_acid) == pytest.approx(value, abs=1e-6)
+
+
+# --- the multi-site correction, and what it moved ----------------------
+#
+# Sites compose MULTIPLICATIVELY. `logd_henderson_hasselbalch` summed the
+# ionization terms and took one log, which never reaches the doubly-ionized
+# scaling because getting there needs both protons off and a sum has no
+# term for it. Avdeef 2007 (doi 10.1016/j.addr.2007.05.008) Table 1 gives
+# the sequential form; `ph_curves.microspecies_fractions` had the correct
+# beta-product in this codebase the whole time.
+#
+# The values below are the CORRECTED ones. The pre-fix numbers are kept
+# beside them because this is a deliberate behaviour change to a shipped
+# calculator, not a refactor, and "what did it used to say" is the first
+# question anyone will ask.
+
+_CORRECTED_MULTISITE_LOGD = {
+    # case: (pkas, is_acid, {pH: (corrected, what it used to give)})
+    "diprotic_acid": (
+        [3.0, 4.5], [True, True],
+        {0.0: (2.499552, 2.4996), 7.0: (-4.001415, -1.5136), 12.0: (-14.000000, -8.5135)},
+    ),
+    "ampholyte": (
+        [2.34, 9.60], [True, False],
+        {0.0: (-7.101981, -7.1), 7.0: (-4.761099, -2.163776), 12.0: (-7.161726, -7.16)},
+    ),
+}
+
+
+@pytest.mark.parametrize("case", sorted(_CORRECTED_MULTISITE_LOGD))
+def test_multi_site_logd_now_composes_multiplicatively(case):
+    pkas, is_acid, expected = _CORRECTED_MULTISITE_LOGD[case]
+    for ph, (corrected, previously) in expected.items():
+        got = logd_henderson_hasselbalch(2.5, ph, pkas, is_acid)
+        assert got == pytest.approx(corrected, abs=1e-5)
+        # The change is real and large where it matters. Asserting the
+        # DIFFERENCE as well stops a future revert passing this file by
+        # quietly restoring the old numbers.
+        if abs(corrected - previously) > 0.01:
+            assert abs(got - previously) > 0.01
+
+
+def test_the_worst_case_of_the_old_bug_was_several_log_units():
+    """Not a rounding correction. A diprotic acid two pH units past its
+    second pKa was out by more than the whole dynamic range of logD."""
+    old_style = 2.5 - math.log10(1 + 10 ** (7.0 - 3.0) + 10 ** (7.0 - 4.5))
+    corrected = logd_henderson_hasselbalch(2.5, 7.0, [3.0, 4.5], [True, True])
+    assert old_style - corrected == pytest.approx(2.49, abs=0.01)
 
 
 _ASPIRIN = "CC(=O)Oc1ccccc1C(=O)O"

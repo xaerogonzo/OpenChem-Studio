@@ -4211,6 +4211,48 @@ is invisible. Diclofenac is 0.0019 (Low) against 0.19 (High) -- two bands
 apart, neither near a threshold. Same lesson as the assembly corpus that
 could not see a transposed matrix.
 
+### IONIZATION SITES MULTIPLY. THIS CODEBASE SUMMED THEM FOR YEARS.
+
+Found by reading Avdeef 2007 (Adv Drug Deliv Rev 59:568-590, doi
+10.1016/j.addr.2007.05.008) Table 1 after Alex fetched it. The bug was in
+`logd_henderson_hasselbalch`, so it reached logD, the logD curve, CNS MPO
+and BBB descriptors -- not only the new solubility code.
+
+    WRONG   log10(1 + sum of terms)
+    RIGHT   sum of log10(1 + term)
+
+A sum never reaches the doubly-ionized scaling, because getting there
+needs BOTH protons off and the sum has no term for it. Measured on a pKa
+3.0/4.5 diacid at pH 8: the summed form understates the adjustment by
+**3.49 log units**, and at pH 12 by 5.5.
+
+**ONE SITE IS WHERE THE TWO FORMS AGREE**, which is exactly why it
+survived: monoprotic answers are bit-identical under both, and monoprotic
+is the overwhelmingly common case. Every pre-existing pinned value in
+`test_logd.py` that survived the change is a single-site one, and the two
+that moved are the diprotic and the ampholyte.
+
+**THE CORRECT MATH WAS ALREADY HERE, ONE MODULE AWAY.**
+`ph_curves.microspecies_fractions` builds the beta-product from
+successive dissociation constants and has since it was written. Two
+implementations of one piece of chemistry, one right, coexisting -- which
+is the whole argument for the shared `ionization_log_factor` that
+replaced them.
+
+**A TOLERANCE WOULD HAVE BURIED A REAL DISTINCTION.** The independent-site
+product and Avdeef's Table 1 disagree by 4.3e-6 at pH 8, and the first
+instinct was to widen `abs=1e-9` until they matched. They are not meant to
+match: Avdeef's constants are MACROSCOPIC (the singly-ionized species
+lumps both microstates) and ours are per-SITE -- `ph_curves` already
+records that pkasolver "predicts per-site values, which are closer to
+microscopic constants". The product is the form matching our inputs, and
+`test_the_microscopic_and_macroscopic_forms_differ_and_we_use_the_right_one`
+pins the difference rather than rounding it away.
+
+The renamed function is the signal: `ionization_factor` returned a bare
+sum, `ionization_log_factor` returns the log. A silent semantic swap under
+the old name would have been the worst of both.
+
 ### THE BENCHMARK, AND A LEAK THAT WAS NOT THE OBVIOUS ONE
 
 `benchmarks/solubility/` scores ESOL against the Solubility Challenge

@@ -233,6 +233,16 @@ scope — salts and mixtures are refused. A compound dosed as a salt can
 dissolve below its free-form solubility through the common-ion effect,
 and nothing here models that.
 
+**Multi-site ionization was corrected in 2026-08.** Ionizable sites
+compose multiplicatively, and the shared Henderson–Hasselbalch factor
+summed them — which never reaches the doubly-ionized regime, because
+getting there needs both protons off. Monoprotic answers are unchanged to
+the last bit; molecules with two or more ionizable centres moved, by up to
+several log units, and they moved because they were wrong. This affected
+logD, the logD curve, CNS MPO and BBB descriptors as well as solubility.
+The reference is Avdeef 2007 Table 1
+([10.1016/j.addr.2007.05.008](https://doi.org/10.1016/j.addr.2007.05.008)).
+
 **Ampholytes and salts are refused, not modelled.** Henderson–Hasselbalch
 assumes the undissolved species is the one with no site ionized. A
 zwitterion's un-ionized form *is* the zwitterion, which is highly soluble,

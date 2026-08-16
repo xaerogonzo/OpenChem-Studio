@@ -15,7 +15,7 @@ from rdkit.Chem import Crippen, Descriptors
 
 from openchem.chem.logd import (
     assign_site_polarity,
-    ionization_factor,
+    ionization_log_factor,
     logd_henderson_hasselbalch,
 )
 from openchem.chem.pka_providers import PKaResolution, PKaStatus
@@ -80,7 +80,7 @@ def test_logd_and_solubility_move_the_same_factor_in_opposite_directions():
     """**AN IMPLEMENTATION INVARIANT, NOT A THERMODYNAMIC IDENTITY.**
 
     `logD + logS == logP + baseline` holds here because both calculators
-    call the SAME `ionization_factor` and apply it with opposite sign. It
+    call the SAME `ionization_log_factor` and apply it with opposite sign. It
     says the two share one implementation and cannot drift apart. It says
     nothing about real octanol/water or real solubility, and must not be
     quoted as though it did -- a molecule's true logD and true solubility
@@ -100,32 +100,93 @@ def test_a_pka_without_its_acid_base_flag_raises_rather_than_being_dropped():
     """`zip` would silently drop the unpaired site, leaving a sum that is
     one term short and looks entirely reasonable."""
     with pytest.raises(ValueError, match="2 pKa values against 1"):
-        ionization_factor(7.0, [4.8, 9.4], [True])
+        ionization_log_factor(7.0, [4.8, 9.4], [True])
 
 
 @pytest.mark.parametrize("bad", [float("nan"), float("inf"), 999.0, -999.0])
 def test_an_impossible_pka_is_refused(bad):
     with pytest.raises(ValueError):
-        ionization_factor(7.0, [bad], [True])
+        ionization_log_factor(7.0, [bad], [True])
 
 
 def test_a_monoprotic_acid_is_half_ionized_at_its_pka():
-    assert ionization_factor(4.9, [4.9], [True]) == pytest.approx(1.0)
+    """Half ionized doubles the dissolved total, so the LOG factor is
+    log10(2), not 1. The function returns the log."""
+    assert ionization_log_factor(4.9, [4.9], [True]) == pytest.approx(math.log10(2.0))
 
 
 def test_a_monoprotic_base_is_half_ionized_at_its_pka():
-    assert ionization_factor(9.4, [9.4], [False]) == pytest.approx(1.0)
+    assert ionization_log_factor(9.4, [9.4], [False]) == pytest.approx(math.log10(2.0))
 
 
 def test_a_neutral_molecule_has_no_ionization_at_all():
-    assert ionization_factor(7.4, [], []) == 0.0
+    assert ionization_log_factor(7.4, [], []) == 0.0
+
+
+def test_sites_compose_multiplicatively_not_additively():
+    """**THE MULTI-SITE CORRECTION, AS AN ASSERTION.**
+
+    Two ionizable sites multiply the dissolved total, so their LOGS add.
+    The wrong form -- `log10(1 + sum of terms)` -- never reaches the
+    doubly-ionized scaling, because getting there needs both protons off
+    and the sum has no term for it.
+
+    Measured at pH 8 on a 3.0/4.5 diacid, the right and wrong forms differ
+    by 3.49 log units.
+    """
+    pkas, flags = [3.0, 4.5], [True, True]
+    ours = ionization_log_factor(8.0, pkas, flags)
+
+    product = math.log10((1 + 10 ** (8.0 - 3.0)) * (1 + 10 ** (8.0 - 4.5)))
+    assert ours == pytest.approx(product, abs=1e-12)
+
+    wrong = math.log10(1 + 10 ** (8.0 - 3.0) + 10 ** (8.0 - 4.5))
+    assert ours - wrong == pytest.approx(3.49, abs=0.01)
+
+
+def test_the_microscopic_and_macroscopic_forms_differ_and_we_use_the_right_one():
+    """**A SUBTLETY WORTH PINNING RATHER THAN ROUNDING AWAY.**
+
+    Avdeef 2007 Table 1 (doi 10.1016/j.addr.2007.05.008) gives a diprotic
+    acid as `1 + 10^(pH-pKa1) + 10^(2pH-pKa1-pKa2)`. The independent-site
+    product expands to that PLUS a `10^(pH-pKa2)` term, so the two are
+    close but not equal -- 4.3e-6 apart at pH 8 on a 3.0/4.5 diacid.
+
+    They are not meant to be equal. Avdeef's constants are MACROSCOPIC
+    (successive dissociations, where the singly-ionized species already
+    lumps both microstates); ours are per-SITE. `ph_curves` records that
+    pkasolver "predicts per-site values, which are closer to microscopic
+    constants", so the product is the form matching our inputs.
+
+    The distinction is tiny here and structural everywhere: a first guess
+    would have been to widen the tolerance until the two agreed, which
+    would have buried the reason they do not.
+    """
+    pkas, flags = [3.0, 4.5], [True, True]
+    ours = ionization_log_factor(8.0, pkas, flags)
+    macroscopic = math.log10(1 + 10 ** (8.0 - 3.0) + 10 ** (2 * 8.0 - 3.0 - 4.5))
+
+    assert ours != macroscopic
+    assert abs(ours - macroscopic) < 1e-5
+    # Same leading behaviour: both reach the doubly-ionized 10^(2pH) scaling,
+    # which is the whole thing the summed form misses.
+    assert ours == pytest.approx(macroscopic, rel=1e-6)
+
+
+def test_one_site_is_where_the_sum_and_the_product_agree():
+    """Which is why the bug hid: every monoprotic answer is identical
+    under both forms, and monoprotic is the overwhelmingly common case."""
+    for pka, acidic in ((4.9, True), (9.4, False)):
+        for ph in (0.0, 4.0, 7.4, 11.0, 14.0):
+            summed = math.log10(1.0 + 10.0 ** min((ph - pka) if acidic else (pka - ph), 12.0))
+            assert ionization_log_factor(ph, [pka], [acidic]) == pytest.approx(summed, abs=1e-12)
 
 
 # --- monotonicity, uncapped and capped --------------------------------
 
 
 def _uncapped(ph, pkas, is_acid):
-    return math.log10(1.0 + ionization_factor(ph, pkas, is_acid))
+    return ionization_log_factor(ph, pkas, is_acid)
 
 
 def test_an_uncapped_acid_profile_rises_monotonically_with_ph():

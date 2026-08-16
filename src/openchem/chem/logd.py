@@ -31,17 +31,48 @@ def classify_ionizable_centres(mol: Chem.Mol) -> tuple[int, int]:
 _PKA_RANGE = (-20.0, 40.0)
 
 
-def ionization_factor(ph: float, pkas: list[float], is_acid: list[bool]) -> float:
-    """The independent-site Henderson-Hasselbalch factor `f` at `ph`.
+def ionization_log_factor(ph: float, pkas: list[float], is_acid: list[bool]) -> float:
+    """log10 of how far ionization moves a property from its neutral value.
 
         acid  HA <-> A- + H+   ->  term = 10^(pH - pKa)
         base  B + H+ <-> BH+   ->  term = 10^(pKa - pH)
 
-    Both are the standard derivation. Multiple centres contribute
-    additively inside the log, which is the usual multi-protic
-    approximation -- it assumes independent, non-cooperative sites, true
-    enough for the drug-like molecules this targets and exact for the
-    monoprotic case that dominates in practice.
+    Sites COMPOSE MULTIPLICATIVELY, so this is `sum(log10(1 + term))` and
+    not `log10(1 + sum(term))`.
+
+    **THAT DISTINCTION WAS A REAL BUG, AND THIS FILE HAD IT.** The summed
+    form is exact for one site and wrong for more than one: it never
+    reaches the doubly-ionized scaling, because reaching that state
+    requires BOTH protons to leave and the sum has no term for it.
+    Measured on a pKa 3.0/4.5 diacid at pH 8, the sum understates the
+    adjustment by **3.49 log units**.
+
+    Avdeef 2007 (Adv Drug Deliv Rev 59:568-590, doi
+    10.1016/j.addr.2007.05.008) Table 1 gives the sequential form for a
+    diprotic acid as
+
+        log S = log S0 + log{10^(2pH-pKa1-pKa2) + 10^(pH-pKa1) + 1}
+
+    **NEARLY the expanded product, and deliberately not identical to it.**
+    The product carries an extra `10^(pH-pKa2)` term, worth 4.3e-6 log at
+    pH 8 on a 3.0/4.5 diacid. The two are not meant to coincide: Avdeef's
+    constants are MACROSCOPIC, where the singly-ionized species already
+    lumps both microstates, while these are per-SITE. `ph_curves` records
+    that pkasolver "predicts per-site values, which are closer to
+    microscopic constants", so the product is the form that matches the
+    inputs this function is given.
+
+    What matters is that both reach the doubly-ionized 10^(2pH) scaling
+    and a SUM never does.
+
+    **THE CORRECT MATH WAS ALREADY IN THIS CODEBASE, one module away.**
+    `ph_curves.microspecies_fractions` builds the same beta-product from
+    successive dissociation constants and has since it was written. Two
+    implementations of one piece of chemistry, one right, coexisting --
+    which is the argument for this function existing at all.
+
+    Computed in log space rather than as a product, so a molecule with
+    many sites cannot overflow a float on the way to a modest answer.
 
     **`pkas[i]` and `is_acid[i]` are ONE MATCHED SITE.** Order matters
     only through that pairing, and a length mismatch RAISES rather than
@@ -56,8 +87,8 @@ def ionization_factor(ph: float, pkas: list[float], is_acid: list[bool]) -> floa
     Shared deliberately by logD and solubility, which apply it with
     OPPOSITE SIGN -- ionization removes partitioning and adds solubility:
 
-        logD(pH) = logP     - log10(1 + f)
-        logS(pH) = baseline + log10(1 + f)
+        logD(pH) = logP     - ionization_log_factor(...)
+        logS(pH) = baseline + ionization_log_factor(...)
 
     One implementation means the two can never drift apart, and a mutation
     to the clamp below is caught by both suites.
@@ -78,19 +109,27 @@ def ionization_factor(ph: float, pkas: list[float], is_acid: list[bool]) -> floa
         # large it overflows float, and the physical answer there is just
         # "essentially fully ionized" -- 10^12 already saturates log10 to
         # within rounding of any larger value.
-        total += 10.0 ** min(exponent, 12.0)
+        #
+        # The log goes INSIDE the sum. That one placement is the whole
+        # correction: sites multiply, so their logs add.
+        total += math.log10(1.0 + 10.0 ** min(exponent, 12.0))
     return total
 
 
 def logd_henderson_hasselbalch(logp: float, ph: float, pkas: list[float], is_acid: list[bool]) -> float:
-    """logD = logP - log10(1 + f).
+    """logD = logP - the ionization log factor.
 
     Only the NEUTRAL species partitions into octanol, so the measured
     distribution coefficient is the partition coefficient reduced by
     however much of the compound is ionized at this pH. The reduction is
-    `ionization_factor` above, which carries the derivation.
+    `ionization_log_factor` above, which carries the derivation.
+
+    **MONOPROTIC ANSWERS ARE UNCHANGED to the last bit** by the multi-site
+    correction -- one site is exactly the case where a sum and a product
+    agree. Only molecules with more than one ionizable centre moved, and
+    they moved because they were wrong.
     """
-    return logp - math.log10(1.0 + ionization_factor(ph, pkas, is_acid))
+    return logp - ionization_log_factor(ph, pkas, is_acid)
 
 
 def assign_site_polarity(mol: Chem.Mol, pka_values: list[float]) -> tuple[list[float], list[bool]]:
