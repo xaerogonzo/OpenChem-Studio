@@ -4160,10 +4160,38 @@ compound saturates, because that needs a salt Ksp nothing here has.
 **THE LIMIT SATURATES THE ENTIRE ICH WINDOW FOR A STRONG BASE, and that
 is the ordinary case rather than an edge one.** Propranolol (pKa 9.4)
 wants +8.20 at pH 1.2 and +2.60 at pH 6.8, so every point in pH 1.2-6.8
-hits the limit and the predicted spread across it is **0.000**. A BCS
-screening estimate there is `baseline + 2.0` with no pH resolution in it,
-so it reports `UNDETERMINED - adjustment limit saturated` rather than a
-confident PASS. Found by writing the guard, not by review.
+hits the limit and the displayed spread across it is **0.000**. Found by
+writing the guard, not by review.
+
+**SO THE SAFEGUARD WAS DECIDING A REGULATORY VERDICT, AND A BOUND
+REPLACED IT.** The first version returned `UNDETERMINED` whenever the
+limit saturated -- i.e. for basic drugs as a class, on the strength of an
+arbitrary constant. The fix is that the screen never reads the cap at
+all. Two REAL bounds exist:
+
+    S(pH) >= S0             ionization only ADDS dissolved species
+    S(pH) <= uncapped HH    which assumes the salt never precipitates
+
+so the dose number is sandwiched, and each side licenses ONE verdict --
+PASS when even the pessimistic bound clears the criterion, FAIL when even
+the optimistic one misses it. Measured: caffeine PASS, aspirin FAIL 1.36,
+ibuprofen FAIL 26.7, ketoconazole FAIL 3497, propranolol genuinely
+UNDETERMINED at 2.27 against 0.005. **Four of five get a sound answer
+where the capped version gave one blank class**, and
+`test_a_verdict_never_depends_on_the_adjustment_safeguard` runs the
+screen at four different limits including none and requires one outcome.
+
+**A CEILING BUILT FROM THE DISPLAYED CURVE IS NOT A CEILING, and the
+mutation for it SURVIVED the whole file at first.** Swapping the uncapped
+profile for the capped one understates solubility, so it can license a
+FAIL the evidence does not support -- and no fixture noticed, because for
+an ACID the window minimum sits at pH 1.2 where capped and uncapped agree
+exactly, and propranolol at 40 mg lands on the same verdict either way.
+The two only disagree about the OUTCOME when the dose falls in the gap
+between them, which for propranolol is **1745-6989 mg**. The guard uses
+3000 mg and asserts its own setup first. Same shape as the assembly
+corpus blind to a transposed matrix: a fixture is not big or small, it is
+degenerate or not with respect to a specific mutation.
 
 **A REVIEW'S "MOST DANGEROUS CONVERSION BUG" WAS ITSELF THE BUG.** A
 plan review proposed `mg/mL = 10**logS * MW / 1000`, in the point it

@@ -522,9 +522,19 @@ class WindowEvaluation:
     logs_high: float
     minimum_logs: float
     minimum_ph: float
-    #: The safeguard bound at BOTH ends, so the window carries no pH
-    #: information at all -- see `bcs_high_solubility_screen`.
+    #: The safeguard bound at BOTH ends, so the DISPLAYED curve carries no
+    #: pH information across the window. Reported as a fact; it no longer
+    #: decides the BCS screen, which is bounded rather than capped.
     fully_limited: bool
+    #: The model's raw output, which is a LOWER bound on solubility:
+    #: ionization only ever adds dissolved species to the neutral ones, so
+    #: `S(pH) >= S0` at every pH. (True while the solid is the free form,
+    #: which is the model's scope -- salts are refused upstream.)
+    baseline_logs: float
+    #: The same window with NO adjustment limit, which is an UPPER bound:
+    #: uncapped Henderson-Hasselbalch assumes the counter-ion salt never
+    #: precipitates, so it can only overestimate.
+    uncapped_minimum_logs: float
 
 
 def evaluate_solubility_window(
@@ -552,6 +562,8 @@ def evaluate_solubility_window(
         minimum_logs=minimum_logs,
         minimum_ph=minimum_ph,
         fully_limited=low.limited and high.limited,
+        baseline_logs=baseline_logs,
+        uncapped_minimum_logs=baseline_logs + min(low.uncapped, high.uncapped),
     )
 
 
@@ -579,7 +591,7 @@ class BcsReason(Enum):
     MODEL_UNAVAILABLE = "the baseline model is unavailable"
     PKAS_UNAVAILABLE = "no pKa values are available"
     UNSUPPORTED_SPECIES = "this species is outside the model"
-    ADJUSTMENT_SATURATED = "adjustment limit saturated across the ICH window"
+    BOUNDS_STRADDLE = "the solubility bounds straddle the criterion"
 
 
 @dataclass(frozen=True)
@@ -589,6 +601,11 @@ class BcsScreen:
     dose_number: float | None = None
     minimum_mg_per_ml: float | None = None
     minimum_ph: float | None = None
+    #: The sandwich the verdict rests on. `dose_number_high` uses the
+    #: solubility FLOOR and so is the largest Do the compound can have;
+    #: `dose_number_low` uses the ceiling and is the smallest.
+    dose_number_high: float | None = None
+    dose_number_low: float | None = None
 
     @property
     def display(self) -> str:
@@ -614,29 +631,64 @@ def bcs_high_solubility_screen(
     also addresses only the high-solubility half of the BCS test; the
     permeability half is a separate measurement entirely.
 
-    **A SATURATED WINDOW IS UNDETERMINED, NOT A PASS.** Measured on
-    propranolol (pKa 9.4): the uncapped adjustment runs 8.20 at pH 1.2 down
-    to 2.60 at pH 6.8, so every point in the window hits the safeguard and
-    the predicted spread across it is 0.000. The estimate is then just
-    `baseline + 2.0` with no pH resolution in it, and reporting PASS would
-    be presenting a constant as though it were a titration. This is the
-    ordinary case for basic drugs, not an exotic one.
+    **THE SAFEGUARD DOES NOT DECIDE THIS, AND THAT IS THE WHOLE POINT.**
+    An earlier version returned UNDETERMINED whenever the +2 adjustment
+    limit bound across the window, which is the ORDINARY case for a basic
+    drug -- propranolol (pKa 9.4) wants +8.20 at pH 1.2 and +2.60 at pH
+    6.8, so every point saturates and the displayed spread is 0.000. That
+    made the answer depend on an arbitrary constant, so a whole compound
+    class got a blank.
+
+    It is bounded instead, and both bounds are real:
+
+        S(pH) >= S0                  ionization only ADDS dissolved
+                                     species to the neutral ones
+        S(pH) <= uncapped HH         which assumes the counter-ion salt
+                                     never precipitates
+
+    So the dose number is sandwiched, and each side licenses one verdict:
+
+        Do from the FLOOR   <= 1  ->  PASS is sound (even the most
+                                      pessimistic solubility clears it)
+        Do from the CEILING  > 1  ->  FAIL is sound (even the most
+                                      optimistic solubility misses it)
+        otherwise                 ->  genuinely UNDETERMINED
+
+    Measured across five compounds, four get a sound verdict: caffeine
+    PASS (Do <= 0.007 either way), aspirin FAIL (1.36), ibuprofen FAIL
+    (26.7), ketoconazole FAIL (3497). Propranolol is the honest
+    UNDETERMINED -- 2.27 against 0.005 -- and now says so because its
+    bounds straddle 1 rather than because our safeguard fired.
+
+    **THE FLOOR ASSUMES THE SOLID IS THE FREE FORM.** That is the model's
+    scope: salts and mixtures are refused upstream. A compound dosed as a
+    salt can dissolve below its free-form solubility through the common-ion
+    effect, and nothing here models that.
     """
-    if window.fully_limited:
-        return BcsScreen.undetermined(BcsReason.ADJUSTMENT_SATURATED)
     if dose_mg is None or dose_mg <= 0:
         return BcsScreen.undetermined(BcsReason.MISSING_DOSE)
 
-    minimum_mg_per_ml = logs_to_mg_per_ml(window.minimum_logs, molecular_weight)
-    number = dose_number(dose_mg, minimum_mg_per_ml)
-    if number is None:
+    floor_mg_per_ml = logs_to_mg_per_ml(window.baseline_logs, molecular_weight)
+    ceiling_mg_per_ml = logs_to_mg_per_ml(window.uncapped_minimum_logs, molecular_weight)
+    highest = dose_number(dose_mg, floor_mg_per_ml)
+    lowest = dose_number(dose_mg, ceiling_mg_per_ml)
+    if highest is None or lowest is None:
         return BcsScreen.undetermined(BcsReason.MISSING_DOSE)
+
+    minimum_mg_per_ml = logs_to_mg_per_ml(window.minimum_logs, molecular_weight)
+    common = {
+        "dose_number": dose_number(dose_mg, minimum_mg_per_ml),
+        "minimum_mg_per_ml": minimum_mg_per_ml,
+        "minimum_ph": window.minimum_ph,
+        "dose_number_high": highest,
+        "dose_number_low": lowest,
+    }
+    if highest <= 1.0:
+        return BcsScreen(outcome=BcsOutcome.PASS, reason=BcsReason.COMPUTABLE, **common)
+    if lowest > 1.0:
+        return BcsScreen(outcome=BcsOutcome.FAIL, reason=BcsReason.COMPUTABLE, **common)
     return BcsScreen(
-        outcome=BcsOutcome.PASS if number <= 1.0 else BcsOutcome.FAIL,
-        reason=BcsReason.COMPUTABLE,
-        dose_number=number,
-        minimum_mg_per_ml=minimum_mg_per_ml,
-        minimum_ph=window.minimum_ph,
+        outcome=BcsOutcome.UNDETERMINED, reason=BcsReason.BOUNDS_STRADDLE, **common
     )
 
 
@@ -1021,18 +1073,10 @@ def compute_solubility(
     limitations = [_BCS_NOTE]
     dose_mg = parameters.get("dose_mg")
     dose = float(dose_mg) if dose_mg not in (None, "") else None
-    if analysis.ionization is IonizationClass.NEUTRAL:
-        screen = BcsScreen.undetermined(BcsReason.MISSING_DOSE) if dose is None else None
-        if screen is None:
-            window = evaluate_solubility_window(
-                analysis.baseline_logs, [], [], analysis.ionization
-            )
-            screen = bcs_high_solubility_screen(window, dose, analysis.molecular_weight)
-    else:
-        window = evaluate_solubility_window(
-            analysis.baseline_logs, analysis.pkas, analysis.is_acid, analysis.ionization
-        )
-        screen = bcs_high_solubility_screen(window, dose, analysis.molecular_weight)
+    window = evaluate_solubility_window(
+        analysis.baseline_logs, analysis.pkas, analysis.is_acid, analysis.ionization
+    )
+    screen = bcs_high_solubility_screen(window, dose, analysis.molecular_weight)
 
     evidence = [
         f"ICH M9 window pH {BCS_PH_LOW}-{BCS_PH_HIGH}, {BCS_VOLUME_ML:g} mL.",
@@ -1045,6 +1089,15 @@ def compute_solubility(
         )
     if screen.dose_number is not None:
         evidence.append(f"Dose number Do = {screen.dose_number:.3g} (high solubility needs Do <= 1).")
+    if screen.dose_number_high is not None and screen.dose_number_low is not None:
+        # The sandwich the verdict rests on, shown rather than implied --
+        # a reader who sees only "PASS" cannot tell a comfortable margin
+        # from one that turned on the adjustment safeguard.
+        evidence.append(
+            f"Bounded: Do is between {screen.dose_number_low:.3g} (solubility ceiling, "
+            f"uncapped ionization) and {screen.dose_number_high:.3g} (floor, the neutral "
+            f"species alone). The verdict uses whichever side settles it."
+        )
     facts.append(
         _fact(
             "BCS high-solubility screening estimate",

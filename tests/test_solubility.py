@@ -328,22 +328,117 @@ def test_an_ampholyte_may_not_reach_the_window_evaluation():
         evaluate_solubility_window(-3.5, [2.3, 9.6], [True, False], IonizationClass.AMPHOLYTE)
 
 
-def test_a_strong_base_saturates_the_whole_ich_window():
+def test_a_strong_base_saturates_the_displayed_curve_but_not_the_verdict():
     """**MEASURED, AND IT IS THE ORDINARY CASE FOR BASIC DRUGS.**
     Propranolol's pKa 9.4 asks for +8.20 at pH 1.2 and +2.60 at pH 6.8, so
-    every point in the window hits the cap and the predicted spread across
-    it is exactly zero. The estimate is then `baseline + 2.0` carrying no
-    pH information, which is why it reports UNDETERMINED rather than a
-    confident PASS.
+    every point in the ICH window hits the safeguard and the DISPLAYED
+    spread across it is exactly zero.
+
+    That used to decide the screen, which meant an arbitrary constant
+    blanked a whole compound class. The verdict is bounded now, so the
+    saturation is still reported -- it is true, and the curve really is
+    flat there -- while the outcome is decided by the sandwich instead.
     """
     window = evaluate_solubility_window(-3.57, [PROPRANOLOL_PKA], [False], IonizationClass.BASE)
     assert window.fully_limited
     assert window.logs_low == pytest.approx(window.logs_high)
+    # The uncapped ceiling is far above the capped display value, which is
+    # exactly why the bracket is wide for a base.
+    assert window.uncapped_minimum_logs > window.minimum_logs + 0.5
 
-    screen = bcs_high_solubility_screen(window, dose_mg=40.0, molecular_weight=259.3)
+
+def test_a_verdict_never_depends_on_the_adjustment_safeguard():
+    """**THE FIX, AS AN ASSERTION.** Changing the safeguard must not change
+    a BCS outcome: the screen reads the floor (the neutral species alone)
+    and the ceiling (uncapped ionization), and the cap sits strictly
+    between them. Run at three very different limits, including none.
+    """
+    outcomes = set()
+    for limit in (0.5, MAX_PH_SOLUBILITY_ADJUSTMENT_LOG_UNITS, 6.0, None):
+        window = evaluate_solubility_window(
+            -3.57, [PROPRANOLOL_PKA], [False], IonizationClass.BASE, limit=limit
+        )
+        screen = bcs_high_solubility_screen(window, dose_mg=40.0, molecular_weight=259.3)
+        outcomes.add((screen.outcome, screen.reason))
+    assert len(outcomes) == 1
+
+
+@pytest.mark.parametrize(
+    ("smiles", "pka", "is_acid", "dose", "expected"),
+    [
+        (CAFFEINE, None, None, 100.0, BcsOutcome.PASS),
+        (ASPIRIN, ASPIRIN_PKA, True, 500.0, BcsOutcome.FAIL),
+        (IBUPROFEN, 4.91, True, 400.0, BcsOutcome.FAIL),
+        (PROPRANOLOL, PROPRANOLOL_PKA, False, 40.0, BcsOutcome.UNDETERMINED),
+    ],
+)
+def test_the_bounded_screen_reaches_a_sound_verdict_where_one_exists(
+    smiles, pka, is_acid, dose, expected
+):
+    """Four of five measured compounds get a real answer; propranolol is
+    the honest UNDETERMINED, because for a base the window minimum sits at
+    pH 6.8 where ionization is doing all the work and whether the salt
+    precipitates decides everything.
+
+    **THE PARAMETRISATION IS THE TEST.** A single passing compound would
+    not show that the two bounds license OPPOSITE verdicts.
+    """
+    target = mol(smiles)
+    baseline = esol_logs(target)
+    pkas = [] if pka is None else [pka]
+    flags = [] if pka is None else [is_acid]
+    ionization = (
+        IonizationClass.NEUTRAL
+        if pka is None
+        else (IonizationClass.ACID if is_acid else IonizationClass.BASE)
+    )
+    window = evaluate_solubility_window(baseline, pkas, flags, ionization)
+    screen = bcs_high_solubility_screen(window, dose, Descriptors.MolWt(target))
+
+    assert screen.outcome is expected
+    if expected is BcsOutcome.UNDETERMINED:
+        assert screen.reason is BcsReason.BOUNDS_STRADDLE
+        assert screen.dose_number_low <= 1.0 < screen.dose_number_high
+    else:
+        assert screen.reason is BcsReason.COMPUTABLE
+
+
+def test_the_ceiling_is_the_uncapped_profile_not_the_displayed_one():
+    """**A MUTATION SURVIVED UNTIL THIS EXISTED**, and the reason is the
+    fixture set rather than the code.
+
+    The ceiling licenses the FAIL side: "even the most optimistic
+    solubility misses the criterion". Build it from the displayed (capped)
+    curve instead of the uncapped profile and it is no longer a ceiling --
+    it understates solubility, so it can license a FAIL the evidence does
+    not support.
+
+    Nothing caught that. For an acid the window minimum sits at pH 1.2
+    where the molecule is barely ionized, so capped and uncapped agree
+    exactly; for propranolol at 40 mg both land on the same verdict. The
+    two ceilings only disagree about the OUTCOME when the dose falls in
+    the gap between them, which for propranolol is 1745-6989 mg. At 3000
+    mg the honest answer is UNDETERMINED and the capped ceiling claims a
+    sound FAIL.
+    """
+    window = evaluate_solubility_window(-3.57, [PROPRANOLOL_PKA], [False], IonizationClass.BASE)
+    # The setup itself is asserted: without a real gap this proves nothing.
+    assert window.uncapped_minimum_logs > window.minimum_logs + 0.5
+
+    screen = bcs_high_solubility_screen(window, dose_mg=3000.0, molecular_weight=259.3)
     assert screen.outcome is BcsOutcome.UNDETERMINED
-    assert screen.reason is BcsReason.ADJUSTMENT_SATURATED
-    assert "saturated" in screen.display
+    assert screen.reason is BcsReason.BOUNDS_STRADDLE
+
+    # And the ceiling really is the uncapped one, read directly.
+    ceiling = logs_to_mg_per_ml(window.uncapped_minimum_logs, 259.3)
+    assert screen.dose_number_low == pytest.approx(3000.0 / (ceiling * 250.0))
+
+
+def test_the_two_bounds_really_do_bracket_the_capped_estimate():
+    """The sandwich has to hold, or a verdict licensed by one side says
+    nothing about the value shown to the user."""
+    window = evaluate_solubility_window(-3.57, [PROPRANOLOL_PKA], [False], IonizationClass.BASE)
+    assert window.baseline_logs <= window.minimum_logs <= window.uncapped_minimum_logs
 
 
 def test_a_missing_dose_is_undetermined_and_says_which_reason():

@@ -210,13 +210,28 @@ application. Uncapped, Henderson–Hasselbalch puts aspirin at 4.7×10¹⁰
 mg/mL at pH 14 — correct arithmetic, meaningless answer. Any value that
 hit the cap says so on the fact itself.
 
-**For a strong base the cap swallows the whole regulatory window.**
-Measured on propranolol (pKa 9.4): the adjustment wants +8.20 at pH 1.2
-and +2.60 at pH 6.8, so every point in ICH M9's pH 1.2–6.8 window hits the
-limit and the predicted spread across it is exactly zero. The BCS estimate
-then carries no pH information at all, which is why it reports
-`UNDETERMINED — adjustment limit saturated` rather than a confident pass.
-This is the ordinary case for basic drugs, not an exotic one.
+**For a strong base the cap swallows the whole regulatory window — but it
+no longer decides anything.** Measured on propranolol (pKa 9.4): the
+adjustment wants +8.20 at pH 1.2 and +2.60 at pH 6.8, so every point in
+ICH M9's pH 1.2–6.8 window hits the limit and the *displayed* spread
+across it is exactly zero. That used to make the screen report
+`UNDETERMINED`, which meant an arbitrary constant blanked a whole
+compound class.
+
+**The screen is bounded rather than capped now**, and both bounds are
+real: solubility is at least the neutral species' alone (ionization only
+adds dissolved species), and at most the uncapped Henderson–Hasselbalch
+value (which assumes the counter-ion salt never precipitates). So the
+dose number is sandwiched, and each side licenses one verdict — a pass
+when even the pessimistic bound clears the criterion, a fail when even
+the optimistic one misses it. Four of five measured compounds get a
+sound answer that way; propranolol remains `UNDETERMINED`, now because
+its bounds genuinely straddle 1 rather than because a safeguard fired.
+
+The floor assumes the solid is the free form, which is this model's
+scope — salts and mixtures are refused. A compound dosed as a salt can
+dissolve below its free-form solubility through the common-ion effect,
+and nothing here models that.
 
 **Ampholytes and salts are refused, not modelled.** Henderson–Hasselbalch
 assumes the undissolved species is the one with no site ionized. A
