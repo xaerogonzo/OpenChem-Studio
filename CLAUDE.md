@@ -279,6 +279,41 @@ calls the arbiter of naming quality had not actually run in CI for any of
 them. **Check the STEP LIST, not just the conclusion** -- a red run hides
 how much never executed.
 
+### A SECOND PUSH TO MASTER DOES THE SAME THING, and it is not a failure
+
+Same outcome, different mechanism, and this one is self-inflicted.
+`tests.yml` declares
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
+and every push to master shares one ref, so **a follow-up push cancels the
+previous commit's run wherever it had got to.** Measured on `3eb9423`,
+cancelled by a one-line lockfile push that landed nine minutes later:
+
+    success    Run the test suite
+    cancelled  Naming benchmark (must stay 181/181)
+    skipped    Regulatory benchmark
+    skipped    Validate regulatory rulesets
+
+The suite had already passed; the three gates never ran. The run's
+conclusion is `cancelled`, which reads as "somebody tidied up" rather than
+as "the arbiter of naming quality did not execute for this commit".
+
+**IT IS NOT A COVERAGE HOLE IF THE TREE WAS ALREADY GATED, and that is
+worth checking rather than assuming.** Those gates had run and passed on
+the PR's own run for `cfb630b`, and `git diff cfb630b 3eb9423` is empty --
+the merge carries the branch's tree byte for byte, which is the check the
+"Running the tests" section already insists on for a different reason. So
+the honest statement is that the commit is gated, by a run under a
+different id.
+
+The practical rule: **do not push to master while its previous run is in
+flight** unless you mean to void it. Landing two commits nine minutes
+apart costs one of them its gates, and a doc-only follow-up is exactly the
+change nobody thinks to check for it.
+
 ### `QT_QPA_PLATFORM` IS NOT A WebGL CHECK, and that is what reddened it
 
 Four viewer tests failed on CI for environmental reasons, and the gate
