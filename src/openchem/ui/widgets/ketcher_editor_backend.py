@@ -245,6 +245,17 @@ class KetcherEditorBackend(EditorBackend):
         #: is a MEANINGFUL payload -- "take the overlay off" -- and would
         #: otherwise be indistinguishable from "nothing queued".
         self._pending_electron_overlay: tuple[dict | None] | None = None
+        #: The last CIP display state asked for before Ketcher reported
+        #: ready, or None if nothing was asked for.
+        #:
+        #: ONE SLOT, LAST REQUEST WINS -- `bool | None` rather than a list,
+        #: for the same reason `_pending_render_options` is a dict: on then
+        #: off before the page boots is off, not two instructions to replay
+        #: in order. `None` is distinguishable from `False` because "nothing
+        #: was asked for" and "the user turned it off" are different, and
+        #: only the second should spend a call on a canvas that has never
+        #: shown a label.
+        self._pending_cip: bool | None = None
         #: Non-None while one of OUR loads is settling; see
         #: `_on_structure_edited`.
         self._loading_token: str | None = None
@@ -317,6 +328,15 @@ class KetcherEditorBackend(EditorBackend):
             # never be asked again.
             self._run_set_electron_overlay(self._pending_electron_overlay[0])
             self._pending_electron_overlay = None
+        if self._pending_cip is not None:
+            # AFTER the structure, for the same reason as the overlay: the
+            # descriptors are computed FROM the atoms, so replaying this
+            # onto a canvas that has not loaded them yet would compute
+            # nothing and never be asked again. Measured: a load queued
+            # after a CIP request still wins, because `_pending_molblock`
+            # keeps only the last one and it is applied above this.
+            self._run_set_cip_labels(self._pending_cip)
+            self._pending_cip = None
 
     def _on_structure_edited(self, molblock: str) -> None:
         if self._loading_token is not None:
@@ -484,6 +504,53 @@ class KetcherEditorBackend(EditorBackend):
           if (window.openchemElectrons) {{
             window.openchemElectrons.set({json.dumps(payload)});
           }}
+        }})();
+        """
+        self._page.runJavaScript(script)
+
+    def set_cip_labels(self, on: bool) -> None:
+        """Show or hide (R)/(S) and (E)/(Z) on the canvas.
+
+        **NOT Ketcher's "Calculate CIP" toolbar button**, which is what this
+        used to go through and is the whole reason the labels went stale.
+        Measured against this bundle, that button:
+
+            fires a `change`      ASYNCHRONOUSLY -- 0 immediately after the
+                                  click, 1 after settling, so nothing can
+                                  correlate the event with its cause
+            grows Ketcher's own
+            undo history          3 -> 4
+
+        A `change` becomes an `EditStructureCommand` on the application's
+        undo stack, so recomputing after every edit that way would leave a
+        phantom undo step per edit and no safe way to tell it from a real
+        one.
+
+        `window.openchemCip` (see `tools/ketcher-host/src/main.jsx`) goes
+        through `ketcher.indigo.calculateCip` and writes the answer onto the
+        live struct instead. Measured end to end: **0 change events, and the
+        history unchanged at undo 1 -> 1.**
+
+        Queued when Ketcher is not ready, per `EditorBackend.set_cip_labels`.
+        """
+        if not self._ketcher_ready:
+            self._pending_cip = on
+            return
+        self._run_set_cip_labels(on)
+
+    def _run_set_cip_labels(self, on: bool) -> None:
+        # Guarded on the global rather than assuming it: a dist built before
+        # this feature existed has no `openchemCip`. The bundle-currency
+        # guard catches that at the source, but a call reaching an older
+        # page should warn rather than throw into a dead callback.
+        call = "refresh" if on else "clear"
+        script = f"""
+        (function() {{
+          if (!window.openchemCip) {{
+            console.warn('[ketcher-host] openchemCip is missing -- stale dist?');
+            return;
+          }}
+          window.openchemCip.{call}();
         }})();
         """
         self._page.runJavaScript(script)

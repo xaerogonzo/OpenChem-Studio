@@ -100,6 +100,11 @@ def test_an_edit_that_changes_no_structure_KEEPS_the_conformers(qapp):
     A read-only annotation destroyed the geometry it was annotating.
     Layout and Clean Up have the same shape; so does dragging an atom.
 
+    CIP itself no longer arrives this way -- the descriptors go through
+    `ketcher.indigo.calculateCip`, which fires no `change` -- so it is the
+    clearest illustration rather than a live path. The other three are
+    live, which is what this still guards.
+
     The fixture re-serialises through the engine so the molblock TEXT
     differs while the constitution does not -- which is exactly the case
     a byte comparison would get wrong, and the case the editor really

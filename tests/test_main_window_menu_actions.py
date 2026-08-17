@@ -116,13 +116,18 @@ def test_structure_display_submenu_actions_proxy_to_the_real_ketcher_buttons(qap
 
 def test_structure_menu_actions_proxy_to_the_real_ketcher_buttons(qapp, tmp_path):
     """Regression test for the bridges: Aromatize/Dearomatize/Layout/Clean
-    Up/Calculate CIP/explicit hydrogens/Check Structure all go through the
-    same confirmed-live `trigger_toolbar_action` mechanism, not a
+    Up/explicit hydrogens/Check Structure all go through the same
+    confirmed-live `trigger_toolbar_action` mechanism, not a
     reimplementation.
 
     They moved out of Edit into their own Structure menu, following
     Marvin -- Edit is for the document (undo, clipboard, which molecule),
     Structure is for operating on the structure.
+
+    **Calculate CIP was in this list and left it.** It is calculated
+    annotation state rather than a structural edit, so it no longer goes
+    through a toolbar button at all -- see the table below and
+    `test_the_cip_toggle_is_display_state_not_a_toolbar_action`.
     """
     window = _build_window(tmp_path)
     calls: list[str] = []
@@ -134,14 +139,15 @@ def test_structure_menu_actions_proxy_to_the_real_ketcher_buttons(qapp, tmp_path
         "Dearomatize": "Dearomatize button",
         "Layout (Recalculate Coordinates)": "Layout button",
         "Clean Up": "Clean Up button",
-        # Renamed to carry the words somebody actually searches for --
-        # "make sure we can see (R/S) (E/Z) in the 2d editor as well".
-        # The SAME QAction is also offered under View > 2D Structure
-        # Display; see the test below.
-        "Calculate CIP Stereo Descriptors (R/S, E/Z)": "Calculate CIP button",
         "Add/Remove Explicit Hydrogens": "Add/Remove explicit hydrogens button",
         "Check Structure in the Editor (Indigo)...": "Check Structure button",
     }
+    # **CIP IS DELIBERATELY ABSENT from this table**, and used to be in it.
+    # It is calculated annotation state rather than a structural edit, so it
+    # no longer proxies to a toolbar button at all -- Ketcher's fires an
+    # asynchronous `change` and grows its own undo history, which is what
+    # made the labels impossible to keep fresh. See
+    # `test_the_cip_toggle_is_display_state_not_a_toolbar_action`.
     for label, test_id in expected.items():
         action = next(a for a in edit_menu.actions() if a.text() == label)
         action.trigger()
@@ -226,20 +232,56 @@ def test_stereo_descriptors_are_the_SAME_action_in_both_menus(qapp, tmp_path):
     thing. Two would drift: a label change, a shortcut or an enable rule
     added to one and not the other. Asserted on identity, because two
     actions with equal text would pass any weaker check.
+
+    Found by TEXT rather than by `data()`, because the action no longer
+    carries a Ketcher `data-testid`: it is a checkable display toggle now,
+    not a proxy for a toolbar button. See
+    `test_the_cip_toggle_is_display_state_not_a_toolbar_action`.
     """
     window = _build_window(tmp_path)
 
-    from_structure = next(
-        a for a in window._structure_menu.actions()
-        if a.data() == "Calculate CIP button"
-    )
-    from_view = next(
-        a for a in _structure_display_menu(window).actions()
-        if a.data() == "Calculate CIP button"
-    )
+    def cip(menu):
+        return next(a for a in menu.actions() if "R/S" in a.text())
+
+    from_structure = cip(window._structure_menu)
+    from_view = cip(_structure_display_menu(window))
 
     assert from_structure is from_view
     assert "R/S" in from_structure.text() and "E/Z" in from_structure.text()
+
+
+def test_the_cip_toggle_is_display_state_not_a_toolbar_action(qapp, tmp_path):
+    """The reported bug, at the level where its CAUSE lives.
+
+    "Noticed a bug with at least the R/S label. If a molecule is changed
+    while the label is turned on, it won't update. It will only update once
+    the R/S option is clicked again."
+
+    It did not update because it was not state: the menu item clicked
+    Ketcher's own "Calculate CIP" toolbar button, a one-shot calculation
+    whose result Ketcher stores on `atom.cip` and never invalidates. A
+    checkable action that reaches `set_cip_labels` is what makes it
+    recomputable at all -- everything downstream of that (recompute on
+    edit, clear on the way off) hangs off the editor holding the state.
+
+    Both halves are asserted, because either alone would pass against the
+    bug: a checkable action still wired to `trigger_toolbar_action` would
+    look right in the menu and behave exactly as before.
+    """
+    window = _build_window(tmp_path)
+    toggled: list[bool] = []
+    toolbar: list[str] = []
+    window._editor.set_cip_labels = toggled.append
+    window._editor.trigger_toolbar_action = toolbar.append
+
+    action = next(a for a in window._structure_menu.actions() if "R/S" in a.text())
+    assert action.isCheckable(), "a one-shot action cannot be kept up to date"
+
+    action.trigger()
+    action.trigger()
+
+    assert toggled == [True, False], toggled
+    assert toolbar == [], "the CIP display must not go through Ketcher's toolbar button"
 
 
 def test_the_stereo_group_label_styles_are_exclusive_and_start_at_ketchers_default(

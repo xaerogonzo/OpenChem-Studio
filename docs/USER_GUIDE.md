@@ -102,9 +102,9 @@ that queries it on your behalf.
 
 **2D Editor** — the embedded Ketcher editor. Draw, paste SMILES, import a
 file. The app's own Edit and View menus proxy Ketcher's real actions
-(Aromatize, Layout, Clean Up, Calculate CIP, Check Structure, Add/Remove
-explicit hydrogens), so they are reachable from the menu bar rather than
-only from the canvas.
+(Aromatize, Layout, Clean Up, Check Structure, Add/Remove explicit
+hydrogens), so they are reachable from the menu bar rather than only from
+the canvas.
 
 **Ketcher's own toolbar answers with this application, not with Ketcher.**
 The editor ships a periodic table, file open/save, About, Help and a 3D
@@ -127,16 +127,23 @@ Macromolecule Viewer only shows one.
 Three separate things, and they are **not** one "show stereo labels"
 switch — measured against the editor rather than assumed.
 
-**R/S and E/Z come from a calculation.** *Structure ▸ Calculate CIP Stereo
+**R/S and E/Z come from a calculation.** *Structure ▸ Show CIP Stereo
 Descriptors (R/S, E/Z)*, also offered under *View ▸ 2D Structure Display*
 (the same menu item, in two places). It labels stereocentres `(R)`/`(S)`
 and double bonds `(E)`/`(Z)` on the canvas. An atom whose configuration
 the drawing leaves open gets **no label** — nothing invents an
 assignment.
 
-**It is computed once, on demand.** Editing the structure afterwards does
-not recompute it, so a label can outlive the centre it describes; run it
-again after an edit. Loading a different structure clears the labels.
+**It is a toggle, and it follows the structure.** Every edit recomputes
+it, so a descriptor can never outlive the centre it describes: erase the
+substituent that made an atom a stereocentre and its `(S)` goes with it,
+while a double bond untouched by that edit keeps its `(E)`. Switching it
+off clears the labels.
+
+*This used to be a one-shot* **Calculate** *action whose result went stale
+the moment you drew anything, and only a second click would correct it.
+While the display is on, the descriptors are the application's to write:
+turning it off removes them.*
 
 The other two controls are about **enhanced stereo groups** — the ABS /
 AND / OR machinery for saying "this is the drawn enantiomer" versus "a
@@ -156,10 +163,11 @@ mixture" — and neither of them shows R/S:
 **View ▸ 2D Structure Display ▸ Electron Display ▸ Lone pairs** draws
 non-bonding pairs as dots. Ketcher itself cannot draw them and never
 could, so these are OpenChem's: an overlay that follows the structure
-through pan, zoom, rotation and editing, and which never becomes part of
-the molecule. They are not in the molfile, not selectable, not exported,
-and a click passes straight through them to the atom underneath. A
-screenshot is the only way they leave the app.
+through pan, zoom, rotation and editing — including an edit you make on
+the canvas, which for a while it did not — and which never becomes part
+of the molecule. They are not in the molfile, not selectable, not
+exported, and a click passes straight through them to the atom
+underneath. A screenshot is the only way they leave the app.
 
 **Nothing is drawn is not one answer, it is three**, so the status bar
 says which:

@@ -341,6 +341,348 @@ def test_trigger_toolbar_action_adds_explicit_hydrogens(qapp):
     backend.widget().hide()
 
 
+# --- CIP stereo descriptors ------------------------------------------------
+#
+# Reported: "if a molecule is changed while the label is turned on, it won't
+# update. It will only update once the R/S option is clicked again."
+#
+# These run against the REAL bundle because the fix is mostly JS -- a stale
+# dist would leave the application broken with every Python test green,
+# which `test_ketcher_bundle_is_current.py` catches at the source and
+# cannot catch behaviourally.
+
+#: (S) at one carbon and (E) at one double bond -- so a single fixture
+#: covers both descriptor kinds. Written out rather than generated, so the
+#: expected positions below are fixed rather than whatever RDKit's depiction
+#: happens to produce today. Verified against the real bundle: atom 3 is
+#: the stereocentre, bond 1 is the alkene.
+_CHIRAL_ALKENE = (
+    "\n     RDKit          2D\n\n"
+    "  7  6  0  0  0  0  0  0  0  0999 V2000\n"
+    "   -3.3863   -0.3229    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+    "   -2.0220    0.3004    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+    "   -0.8000   -0.5695    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+    "    0.5644    0.0538    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+    "    0.7068    1.5470    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
+    "    1.7864   -0.8161    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+    "    3.1507   -0.1928    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+    "  1  2  1  0\n  2  3  2  0\n  3  4  1  0\n"
+    "  4  5  1  1\n  4  6  1  0\n  6  7  1  0\nM  END\n"
+)
+
+
+def _cip_labels(qapp, backend) -> dict:
+    """What the PAGE is drawing, in molfile positions."""
+    return json.loads(_run_js_json(qapp, backend, "return window.openchemCip.labels();"))
+
+
+def _wait_for_cip(qapp, backend, predicate, timeout_seconds: float = 20) -> dict:
+    """`set_cip_labels` is fire-and-forget and the calculation is a promise,
+    so the answer lands some frames later."""
+    _wait_until(qapp, lambda: predicate(_cip_labels(qapp, backend)),
+                timeout_seconds=timeout_seconds)
+    return _cip_labels(qapp, backend)
+
+
+def _erase_atoms(qapp, backend, selector: str) -> None:
+    """Erase whatever `selector` picks, through Ketcher's own Delete hotkey.
+
+    `selector` is a JS expression over `(a, id)` naming the atoms to go, so
+    the state under test is one the real editor produces rather than one
+    poked into the pool.
+    """
+    _run_js_json(qapp, backend, """
+      var e = window.ketcher.editor, s = e.struct();
+      var atoms = [];
+      s.atoms.forEach(function (a, id) { if (%s) atoms.push(id); });
+      var bonds = Array.from(s.bonds.keys()).filter(function (b) {
+        var bd = s.bonds.get(b);
+        return atoms.indexOf(bd.begin) >= 0 || atoms.indexOf(bd.end) >= 0; });
+      e.selection({atoms: atoms, bonds: bonds});
+      return 1;
+    """ % selector)
+    _wait_until(qapp, lambda: False, timeout_seconds=0.5)
+    _run_js_json(qapp, backend, """
+      var el = document.querySelector('.Ketcher-root') || document.body;
+      ['keydown','keyup'].forEach(function (t) {
+        el.dispatchEvent(new KeyboardEvent(t, {key:'Delete', code:'Delete',
+          bubbles:true, cancelable:true, keyCode:46, which:46})); });
+      return 1;
+    """)
+    _wait_until(qapp, lambda: False, timeout_seconds=1.5)
+
+
+def _delete_the_amine(qapp, backend) -> None:
+    _erase_atoms(qapp, backend, "a.label === 'N'")
+
+
+def _pool_keys(qapp, backend) -> dict:
+    return _run_js_json(qapp, backend, """
+      var s = window.ketcher.editor.struct();
+      return {atoms: Array.from(s.atoms.keys()), bonds: Array.from(s.bonds.keys())};
+    """)
+
+
+def test_a_descriptor_lands_on_the_atom_it_describes_after_an_edit(qapp):
+    """THE DESCRIPTOR WAS DRAWN ON THE WRONG ATOM, and a fresh load hides it.
+
+    Reported from the running app: the label appeared "way to the left of
+    the molecule" -- on a ring carbon nowhere near the stereocentre -- and
+    pressing Ctrl+Z fixed it, because undo reloads through `setMolecule`,
+    which rebuilds the pool dense.
+
+    `calculateCip` parses its answer back into a POOL STARTING AT ZERO,
+    while the live pool only starts at zero until the first deletion.
+    Copying by id therefore wrote the descriptor one position early:
+
+        live pool          [1, 2, 3, 4, 5, 6]     the centre is id 3
+        calculateCip's     [0, 1, 2, 3, 4, 5]     the centre is id 2
+
+    **THE TEST ABOVE CANNOT SEE THIS, and that is why it exists
+    separately.** It erases the amine, which destroys the stereocentre --
+    so there is no surviving atom label left to misplace, and the one
+    surviving bond sits at an index the two pools happen to agree on. It
+    passed throughout. What it takes is an edit that leaves a centre
+    STANDING while making the pool non-dense.
+    """
+    backend = _ready_backend(qapp, shown=True)
+    backend.load_molblock(_CHIRAL_ALKENE)
+    assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
+
+    # The terminal methyl, which the stereocentre does not depend on.
+    _erase_atoms(qapp, backend, "id === 0")
+
+    # ASSERT THE SETUP. With a dense pool the ids and the positions agree
+    # by coincidence and this test proves nothing at all.
+    pool = _pool_keys(qapp, backend)
+    assert pool["atoms"] == [1, 2, 3, 4, 5, 6], (
+        f"the edit did not leave a non-dense pool, so this test would pass "
+        f"vacuously: {pool}"
+    )
+
+    backend.set_cip_labels(True)
+
+    labels = _wait_for_cip(qapp, backend, lambda got: bool(got["atoms"]))
+    assert labels["atoms"] == [[2, "S"]], (
+        f"the descriptor is on the wrong atom: {labels}. Position 2 is the "
+        f"stereocentre; anything lower is the pool-id offset."
+    )
+    backend.widget().hide()
+
+
+def test_the_cip_api_the_page_exposes_is_the_one_python_calls(qapp):
+    """The FAIL-CLOSED half of the bundle-currency guard.
+
+    `test_ketcher_bundle_is_current.py` scans `main.jsx` for
+    `window.openchem*` and checks the name reached the bundle. That proves
+    the name was written, not that the functions hanging off it survived
+    the build -- so on its own it is fail-open, and the two are deliberately
+    paired. This asks the real page.
+    """
+    backend = _ready_backend(qapp, shown=True)
+
+    shape = _run_js_json(qapp, backend, """
+      var api = window.openchemCip;
+      if (!api) return {missing: true};
+      var out = {};
+      ['refresh', 'clear', 'labels', 'work'].forEach(function (n) { out[n] = typeof api[n]; });
+      return out;
+    """)
+
+    assert shape == {"refresh": "function", "clear": "function",
+                     "labels": "function", "work": "function"}, shape
+    backend.widget().hide()
+
+
+def test_the_descriptors_are_recomputed_after_a_real_edit(qapp):
+    """THE REPORTED BUG.
+
+    A structure edited while the labels are on kept the descriptor it had
+    before the edit, because Ketcher stores CIP on `atom.cip` and never
+    invalidates it. Reproduced here through Ketcher's own Delete hotkey:
+    erasing the amine destroys the stereocentre, so its (S) must go while
+    the alkene's (E) -- untouched by that edit -- must stay.
+
+    **THE STALE STATE IS ASSERTED IN THE MIDDLE**, not just the fixed one.
+    Without it, a refresh that silently did nothing at all would leave the
+    labels empty and the final assertion could be written to pass.
+    """
+    backend = _ready_backend(qapp, shown=True)
+    backend.load_molblock(_CHIRAL_ALKENE)
+    assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
+
+    backend.set_cip_labels(True)
+    drawn = _wait_for_cip(qapp, backend, lambda labels: bool(labels["atoms"]))
+    assert drawn == {"atoms": [[3, "S"]], "bonds": [[1, "E"]]}, drawn
+
+    _delete_the_amine(qapp, backend)
+
+    # The bug, still present at this instant: the centre is gone and its
+    # label is not. This is what the user saw.
+    stale = _cip_labels(qapp, backend)
+    assert stale["atoms"] == [[3, "S"]], (
+        f"the setup did not reproduce the staleness, so this test would "
+        f"prove nothing: {stale}"
+    )
+
+    backend.set_cip_labels(True)
+
+    fixed = _wait_for_cip(qapp, backend, lambda labels: not labels["atoms"])
+    assert fixed["atoms"] == [], "a descriptor outlived the centre it described"
+    assert fixed["bonds"] == [[1, "E"]], "an untouched descriptor was lost"
+    backend.widget().hide()
+
+
+def test_turning_the_descriptors_off_takes_them_off_without_editing_anything(qapp):
+    """Off has to mean off, and it must not cost an edit.
+
+    A display toggle that fired Ketcher's `change` would reach
+    `EditStructureCommand` and leave an undo step for switching a label
+    off. Measured on the route this uses: 0 change events, and Ketcher's
+    own history unmoved.
+    """
+    backend = _ready_backend(qapp, shown=True)
+    backend.load_molblock(_CHIRAL_ALKENE)
+    assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
+    _run_js_json(qapp, backend, """
+      window.__changes = 0;
+      window.ketcher.editor.subscribe('change', function () { window.__changes++; });
+      window.__history = window.ketcher.editor.historySize().undo;
+      return 1;
+    """)
+
+    backend.set_cip_labels(True)
+    assert _wait_for_cip(qapp, backend, lambda labels: bool(labels["atoms"]))["atoms"]
+
+    backend.set_cip_labels(False)
+
+    gone = _wait_for_cip(qapp, backend, lambda labels: not labels["atoms"] and not labels["bonds"])
+    assert gone == {"atoms": [], "bonds": []}, gone
+    after = _run_js_json(qapp, backend, """
+      return {changes: window.__changes,
+              historyGrew: window.ketcher.editor.historySize().undo - window.__history};
+    """)
+    assert after == {"changes": 0, "historyGrew": 0}, (
+        f"showing and hiding descriptors edited the structure: {after}. "
+        f"Ketcher's own Calculate CIP button does exactly this -- measured, "
+        f"1 change and history 3 -> 4 -- which is why this route does not "
+        f"use it."
+    )
+    backend.widget().hide()
+
+
+def _cip_work(qapp, backend) -> dict:
+    return json.loads(_run_js_json(qapp, backend, "return window.openchemCip.work();"))
+
+
+def test_switching_the_display_off_beats_a_calculation_already_in_flight(qapp):
+    """The stale-answer race, and the one that would look like the toggle
+    is broken.
+
+    The calculation is a promise, so an answer is always in flight for a
+    few frames. Turning the display off during that window must win: an
+    answer landing afterwards would redraw exactly what the user just
+    asked to remove, and only sometimes, which reads as a flaky toggle
+    rather than as a race.
+
+    Asserted through the page's own counters, because the superseded
+    answer is discarded microseconds later and never reaches a screenshot
+    -- the same reason `gridBuilds` exists for the conformer gallery.
+    """
+    backend = _ready_backend(qapp, shown=True)
+    backend.load_molblock(_CHIRAL_ALKENE)
+    assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
+    _run_js_json(qapp, backend, "window.openchemCip.resetWork(); return 1;")
+
+    _run_js_json(
+        qapp, backend,
+        "window.openchemCip.refresh(); window.openchemCip.clear(); return 1;",
+    )
+    _wait_until(qapp, lambda: _cip_work(qapp, backend)["superseded"] > 0, timeout_seconds=15)
+
+    work = _cip_work(qapp, backend)
+    assert work["applied"] == 0, f"an answer landed after the display was switched off: {work}"
+    assert work["superseded"] == 1, work
+    assert _cip_labels(qapp, backend) == {"atoms": [], "bonds": []}
+    backend.widget().hide()
+
+
+def test_the_newer_of_two_calculations_is_the_one_that_lands(qapp):
+    """Scrubbing an edit produces several refreshes with overlapping
+    promises, and JavaScript makes no promise about resolution order. The
+    older answer landing last would describe the structure as it was two
+    edits ago, which is the bug this whole feature is about, reintroduced
+    one layer down.
+    """
+    backend = _ready_backend(qapp, shown=True)
+    backend.load_molblock(_CHIRAL_ALKENE)
+    assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
+    _run_js_json(qapp, backend, "window.openchemCip.resetWork(); return 1;")
+
+    _run_js_json(
+        qapp, backend,
+        "window.openchemCip.refresh(); window.openchemCip.refresh(); return 1;",
+    )
+    _wait_until(qapp, lambda: _cip_work(qapp, backend)["applied"] > 0, timeout_seconds=15)
+
+    work = _cip_work(qapp, backend)
+    assert work == {"refreshes": 2, "applied": 1, "superseded": 1, "failed": 0}, work
+    assert _cip_labels(qapp, backend)["atoms"] == [[3, "S"]]
+    backend.widget().hide()
+
+
+def test_the_descriptors_are_queued_when_ketcher_is_not_ready_yet(qapp):
+    """STATE, so it queues -- and the LAST request is the one that counts.
+
+    On-then-off before the page boots is off, not two instructions to
+    replay in order; the second assertion is the one a queue that appends
+    would fail. Replayed after the structure, because a descriptor is
+    computed FROM the atoms: onto an empty canvas it would compute nothing
+    and never be asked again.
+    """
+    backend = KetcherEditorBackend()
+    assert not backend._ketcher_ready
+
+    backend.set_cip_labels(True)
+    assert backend._pending_cip is True
+    backend.set_cip_labels(False)
+    assert backend._pending_cip is False, "the queue kept the first request, not the last"
+
+    calls = _record_page_calls(backend, backend._on_ketcher_ready)
+
+    assert len(calls) == 1 and "openchemCip.clear()" in calls[0], calls
+    assert backend._pending_cip is None, "the queue was not emptied"
+
+
+def test_a_load_queued_after_the_descriptors_still_wins(qapp):
+    """The stale-state class this project keeps finding: molblock A, the
+    descriptors, then molblock B, all before ready. B must be what loads
+    and what the descriptors are computed for -- never A.
+
+    It holds because `_pending_molblock` keeps only the last one and is
+    replayed BEFORE the descriptors. Asserted rather than left to hold by
+    construction, which is exactly the kind of thing that stops holding
+    silently.
+    """
+    backend = KetcherEditorBackend()
+    backend.load_molblock(_BENZENE)
+    backend.set_cip_labels(True)
+    backend.load_molblock(_CHIRAL_ALKENE)
+
+    calls = _record_page_calls(backend, backend._on_ketcher_ready)
+
+    structure = [i for i, c in enumerate(calls) if "setMolecule" in c]
+    descriptors = [i for i, c in enumerate(calls) if "openchemCip" in c]
+    assert structure and descriptors, calls
+    assert len(structure) == 1, "both molblocks were replayed"
+    assert _CHIRAL_ALKENE.strip().splitlines()[3] in calls[structure[0]].replace("\\n", "\n"), (
+        "the SUPERSEDED molblock was the one replayed"
+    )
+    assert structure[0] < descriptors[0], (
+        "the descriptors were computed before the structure they describe"
+    )
+
+
 def test_a_toolbar_action_before_ketcher_is_ready_is_dropped_not_queued(qapp):
     """The deliberate asymmetry with `set_render_option`, asserted so it
     reads as a decision rather than an oversight.

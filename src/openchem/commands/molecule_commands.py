@@ -155,6 +155,12 @@ class EditStructureCommand(OpenChemCommand):
         read-only annotation destroyed the geometry it was annotating, and
         the same held for Layout and Clean Up, which move atoms in 2D.
 
+        **The application no longer reaches CIP that way** -- the stereo
+        descriptors go through `ketcher.indigo.calculateCip`, which fires
+        no `change` at all -- so that example is history rather than a live
+        path. Layout, Clean Up and dragging an atom still are, which is
+        what keeps this check load-bearing.
+
         Constitution AND stereochemistry, which is what canonical SMILES
         carries -- flipping a wedge really does invalidate a conformer,
         and that still clears. The same comparison, for the same reason,

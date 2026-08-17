@@ -84,6 +84,11 @@ class MoleculeEditorWidget(QWidget):
         #: "off", "pairs", or "lewis". Off by default: an annotation
         #: nobody asked for is one more thing on a crowded canvas.
         self._electron_mode = "off"
+        #: Whether (R)/(S) and (E)/(Z) are shown. Off by default, same
+        #: reasoning. Lives here rather than in the window so the labels are
+        #: recomputed whenever the structure changes -- see
+        #: `_refresh_annotations`.
+        self._cip_labels = False
 
         # **A MODE, and an unmistakable one.** It steals the drag
         # gesture, so the user must never be in doubt about whether a drag
@@ -146,8 +151,8 @@ class MoleculeEditorWidget(QWidget):
         # counts, and the page cannot work them out for itself. Done here
         # rather than at each call site so that every route into a new
         # structure -- selection, undo, adopt, rotate -- refreshes the
-        # dots without having to remember to.
-        self._publish_electron_overlay()
+        # annotations without having to remember to.
+        self._refresh_annotations()
 
     def set_render_option(self, name: str, value: object) -> None:
         """Proxies to the underlying EditorBackend's own display option
@@ -208,6 +213,9 @@ class MoleculeEditorWidget(QWidget):
         def apply(molblock: str | None) -> None:
             if not molblock or self._molecule is None:
                 return
+            # What the canvas was known to be showing BEFORE this edit --
+            # read now, because the push below overwrites it.
+            was = self._synced_smiles
             command = EditStructureCommand(self._engine, self._molecule, molblock, self._event_bus)
             self._applying_own_edit = True
             try:
@@ -221,8 +229,79 @@ class MoleculeEditorWidget(QWidget):
             # canonical form rather than the editor's -- which is what
             # `_on_molecule_changed` compares against.
             self._synced_smiles = self._molecule.canonical_smiles
+            # AFTER the push, and the ordering is load-bearing. The command
+            # is what makes the model authoritative; the lone-pair counts
+            # are keyed on MOLFILE POSITION, so refreshing before it would
+            # compute them from the previous structure and put the dots on
+            # the wrong atoms -- the exact failure this call exists to fix.
+            self._refresh_annotations(structure_changed=self._synced_smiles != was)
 
         self._backend.get_molblock(apply)
+
+    # --- calculated annotations ---------------------------------------------
+    #
+    # The class of display this application did not have, and the source of
+    # two bugs. A CALCULATED ANNOTATION derives from the current molecular
+    # graph and is drawn attached to it -- lone pairs, CIP descriptors -- so
+    # unlike one of Ketcher's render options it cannot re-derive itself when
+    # the structure changes. Something has to recompute it, and that
+    # something is here.
+    #
+    # THE CONTRACT: every route that makes a new authoritative
+    # `MoleculeModel` structure ends in `set_molecule` -- selection, undo,
+    # redo, paste, a quick fix, adopting a conformer, committing a rotation,
+    # aromatize, explicit hydrogens -- because all of them publish
+    # `MoleculeChanged` and `_on_molecule_changed` reloads. The one route
+    # that does NOT is the user drawing on the canvas, which is why
+    # `_on_editor_edited` calls this itself.
+    #
+    # The two paths deliberately do not converge any further than this.
+    # `set_molecule` also reloads the canvas, and doing that on the user's
+    # own edit would pull the drawing out from under them mid-structure --
+    # far worse than the bug it would fix, as `_on_molecule_changed` records.
+
+    def _refresh_annotations(self, structure_changed: bool = True) -> None:
+        """Recompute what is drawn ON the structure, when the structure moved.
+
+        **TIERED, and the tiering is the point rather than an
+        optimisation.** `_publish_electron_overlay` runs a `LewisAnalysis`,
+        and the page's own three tiers (chemistry / positions / viewport)
+        exist so that a pan does not re-measure a label. A coordinate-only
+        change -- Layout, Clean Up, dragging an atom -- moves no chemistry,
+        and the page already repositions the dots for it from the struct it
+        has. Recomputing here as well would make this "every change
+        recalculates everything", which is what those tiers were built to
+        prevent.
+
+        `structure_changed` defaults to True because that is what every
+        caller except the canvas-edit path means: `set_molecule` is handed a
+        different molecule.
+        """
+        if not structure_changed:
+            return
+        self._publish_electron_overlay()
+        if self._cip_labels:
+            self._backend.set_cip_labels(True)
+
+    def set_cip_labels(self, on: bool) -> None:
+        """Show CIP stereo descriptors on the canvas, or take them off.
+
+        **The MODE lives here rather than in the window**, exactly as
+        `set_electron_mode`'s does and for the same reason: the labels are
+        then recomputed whenever the molecule changes without every caller
+        having to remember to. The window only ever says which state it
+        wants.
+
+        Turning it ON recomputes rather than resurrecting: the backend's
+        refresh clears the old descriptors before writing the new ones, so
+        a centre that stopped being a stereocentre while the display was off
+        does not come back wearing its old label.
+        """
+        self._cip_labels = on
+        self._backend.set_cip_labels(on)
+
+    def cip_labels(self) -> bool:
+        return self._cip_labels
 
     # --- the electron overlay -----------------------------------------------
 

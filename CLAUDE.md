@@ -72,7 +72,18 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "lewis",      "details": true}     the Full Lewis window
     {"do": "shot",       "path": "...", "widget": "lewis"}
     {"do": "overlay",    "on": true, "gallery": true, "step": 1}
+    {"do": "cip",        "on": true}          R/S and E/Z, through the menu
+    {"do": "erase",      "element": "N"}      a REAL canvas edit
+    {"do": "report",     "tag": "after"}      conformers, undo depth, SMILES
     {"do": "wait"} {"do": "quit"}
+
+**`erase` is the only step that drives the route `set_molecule` never
+covers** -- the user drawing on the canvas -- so it is what any
+calculated-annotation staleness has to be checked with. It goes through
+Ketcher's own Delete hotkey, synthesised on the page. Pair it with
+`report`, whose `undo=` is how "did this display toggle quietly become an
+edit" is answered: measured across a run, `baseline undo=2 -> labels-on
+undo=2 -> after-edit undo=3 -> labels-off undo=3`.
 
 **`smiles` does NOT select what it adds**, and `conformers` and
 `calculator` both act on the PANEL's selection -- so without a `select`
@@ -355,6 +366,49 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
+
+A clean run is **6-19 minutes**, ending at `4739 passed, 15 skipped`
+(measured 2026-08-17, **15m22**, on master at `8c0c257` + the CIP
+staleness fix. **+19 collected items and +19 test FUNCTIONS**, so for once
+the two deltas agree: 9 in `test_ketcher_editor_backend.py` against the
+real bundle, 5 in `test_molecule_editor_widget.py`, 4 in
+`test_ketcher_bundle_is_current.py` -- three of those the parametrised
+`window.openchem*` guard, which covers the two globals that had shipped
+unguarded -- and 1 in `test_main_window_menu_actions.py`. Diffed both
+directions against `8c0c257`'s 4735, **0 removed, 19 added**. Skips
+unchanged at 15; the run reconciles exactly, 4739 + 15 = 4754 collected.
+
+**THIS FIGURE WAS 4738 AN HOUR EARLIER, AND THE +1 IS THE POINT.** That
+run was green and honest, and the pool-id bug below was live through all
+of it -- the guard that catches it was written afterwards, from a bug
+report. A green suite is a statement about the tests that exist.
+
+**THE BASELINE WAS DERIVED, NOT READ FROM THE ENTRY BELOW, and it was
+stale by 10.** That entry records 4710 + 15 = 4725, while master at
+`8c0c257` COLLECTS 4735 -- the release commit moved it. Reading the entry
+would have reported +28. `rev-parse`, a detached worktree and a
+`--collect-only`, with the `PYTHONPATH` override asserted by
+`python -c "import openchem; print(openchem.__file__)"` before the count
+was believed.
+
+**AND THE FIRST RUN OF THIS FIGURE WAS THROWN AWAY, WHICH IS THE ENTRY
+WORTH READING.** It was started and then six files were edited while it
+ran -- five of them DOCSTRING-ONLY, which is exactly the change a person
+talks themselves into believing is inert. It came back
+`2 failed, 4736 passed`:
+
+    test_generation_has_one_implementation_reached_two_ways
+    test_every_intercepted_name_has_a_route
+
+Both pass in isolation, and neither had anything to do with the change.
+**They read source FROM DISK** -- the first `ast.parse`s every file under
+`src/openchem`, the second reads `main.jsx` and
+`ketcher_editor_backend.py` -- so they parsed files caught mid-write. Two
+plausible, alarming, entirely fictitious regressions. The rule elsewhere
+in this file is that a run concurrent with anything touching `src/` is not
+a measurement; this is what that costs when ignored, and "it was only a
+docstring" is not an exemption, because a source-scanning test does not
+care what the bytes MEAN.
 
 Before it: `4710 passed, 15 skipped`
 (measured 2026-08-16, **15m29**, on `sources-registry` -- the provenance
@@ -2146,6 +2200,152 @@ structure change.** Constitution AND stereochemistry, so flipping a wedge
 still clears -- a conformer of the R enantiomer is not a conformer of the
 S one, and anything comparing formulas or heavy-atom graphs would call
 that edit a no-op.
+
+#### CALCULATED ANNOTATION STATE: the category that was missing
+
+Reported as "a bug with at least the R/S label. If a molecule is changed
+while the label is turned on, it won't update ... I'm assuming all the
+other 2d display functions have this bug". Half right, and the useful
+half is WHICH half. Four classes, and the rule for placing a new one is
+**does this value derive from the current molecular graph and get drawn
+attached to it?**
+
+    render option state       Ketcher's       re-rendered from the flag;
+    carbonExplicitly,                         nothing to do on an edit
+    showValence, stereo flags
+    calculated annotation     OURS            MUST be recomputed when the
+    CIP labels, lone pairs                    graph changes
+    structural model state    the undo stack  becomes model state
+    Aromatize, Layout, H
+    snapshot view state       the dialog      frozen deliberately, and
+    Full Lewis                                says so
+
+The application had no third row, so CIP was implemented through the
+STRUCTURAL-EDIT path (the section directly above) and the lone pairs as a
+one-off. **Both went stale on the one route nothing covered**: the user
+drawing on the canvas. Measured -- the four render options are fine
+(checked either side of a real edit), Oxidation States is fine (its panel
+is re-fed on every `MoleculeChanged`), Full Lewis is a documented
+snapshot, and exactly two things were broken.
+
+**THE LONE PAIRS WERE THE WORSE OF THE TWO and nobody had reported them.**
+`_publish_electron_overlay` had exactly two call sites, `set_molecule` and
+`set_electron_mode`, and an own edit reaches neither -- `_on_editor_edited`
+updates `_synced_smiles` before `_on_molecule_changed` can compare, so it
+returns early every time. The counts are keyed on MOLFILE POSITION, so
+after a deletion the dots are not stale, they are **on the wrong atoms**.
+`test_a_NEW_STRUCTURE_republishes_without_anyone_asking` covers the
+`set_molecule` routes and its docstring lists them; the canvas edit is
+simply not among them.
+
+##### `ketcher.indigo.calculateCip` IS THE DOOR. The toolbar button is not.
+
+The button was the only known integration point, and measuring found the
+other one. Both routes, same fixture, same bundle:
+
+    toolbar "Calculate CIP button"   1 change event, ASYNCHRONOUSLY
+                                     (0 immediately after the click),
+                                     Ketcher history undo 3 -> 4
+    ketcher.indigo.calculateCip      0 change events, history 1 -> 1,
+                                     and it does NOT touch the live struct
+
+A `change` becomes an `EditStructureCommand`, so recomputing on every edit
+through the button would leave a phantom undo step per edit -- and being
+ASYNCHRONOUS, nothing can correlate the event with the call that caused
+it, so no suppression could be written safely. A timer-bounded "armed
+flag" was designed and rejected on exactly that: it can swallow a real
+user edit that arrives inside the window, which is far worse than the
+display bug it was fixing. The measurement removed the need for it.
+
+`calculateCip` resolves to a **replacement Struct on its own dense pool**.
+So the flow is compute, clear, copy the fields across BY POSITION,
+`render.update(true)` -- which fires no `change` either, as the rotation
+preview already relies on. End to end: **0 change events, no history
+growth, no undo entry, and no recursion to guard against.**
+
+##### AND THE FIRST VERSION COPIED BY POOL ID, WHICH IS THE SAME BUG AS THE SELECTION ONE
+
+Shipped, and reported from the running app within the hour: the label
+appeared "way to the left of the molecule", on a ring carbon nowhere near
+the stereocentre, and **pressing Ctrl+Z fixed it** -- because undo reloads
+through `setMolecule`, which rebuilds the pool dense. Measured after
+erasing one atom:
+
+    live pool          [1, 2, 3, 4, 5, 6]     the centre is id 3
+    calculateCip's     [0, 1, 2, 3, 4, 5]     the centre is id 2
+    where it landed    id 2                   a different atom
+
+`calculateCip` round-trips through indigo, which parses its answer into a
+pool starting at zero; the live pool only starts at zero until the first
+deletion. Identical in cause to the selection bug this file already
+records, one function along.
+
+**THE "0 MISSING OVER THE FIXTURE" CHECK THAT LICENSED IT WAS
+MEANINGLESS.** It counted ids present in the target -- and both pools have
+the same SIZE, so every lookup succeeds and every one of them is off by
+one. A membership check cannot see a shifted index space; only asking
+WHICH ATOM the value landed on can.
+
+**AND THE TEST SUITE COULD NOT SEE IT EITHER, BY EXACTLY THE DOCUMENTED
+ROUTE.** The recompute-after-an-edit test erases the amine, which destroys
+the stereocentre -- so no surviving atom label is left to misplace, and
+the one surviving bond sits at an index the two pools happen to agree on.
+Mutating the fix back to copy-by-id is caught by **one** test, the one
+written afterwards; the other five CIP tests pass straight through it.
+What it takes is an edit leaving a centre STANDING while making the pool
+non-dense, and the guard asserts its own setup (`pool == [1..6]`) so a
+dense pool cannot make it vacuous.
+
+The rule this file already states was simply not applied: **any check of
+an index space has to run against an EDITED structure, never a freshly
+loaded one.** Both the probe and the first test used a fresh load.
+
+**CLEAR BEFORE COPYING, ALWAYS.** A centre that stops being a
+stereocentre keeps its old `cip` otherwise. Measured: delete the amine
+from `C/C=C/[C@@H](N)CC` and the canvas still reads `(S)` -- an
+answer-shaped lie, worse than an obviously missing label, and the variant
+a user cannot detect. Clear-then-recompute leaves `(E)` alone, correctly.
+
+**TWO RACE GUARDS, AND THEY CATCH DIFFERENT THINGS.** The calculation is
+a promise, so an answer is in flight for a few frames. A GENERATION
+counter covers a newer refresh or a `clear` issued meanwhile -- without
+it, switching the display off is undone by the answer landing a moment
+later, intermittently, which reads as a flaky toggle rather than a race.
+A STRUCT IDENTITY check covers a `setMolecule` landing meanwhile, which
+rebuilds the pool from zero and would have one molecule's descriptors
+copied onto another's atoms by id. Both are mutated in
+`tests/test_ketcher_editor_backend.py`; each is caught by one test.
+
+##### A GENERIC "NOTHING CHANGED" PREDICATE WAS DESIGNED, THEN KILLED
+
+The first plan suppressed any editor change altering neither canonical
+SMILES nor coordinates. It is unsound and the counterexample is concrete:
+`set_structure_from_molblock` stores `Chem.MolToMolBlock(mol)`, which
+KEKULIZES, so **Aromatize** yields identical canonical SMILES and
+identical coordinates while genuinely changing the drawing -- it would
+have been suppressed outright, leaving the canvas aromatic and the model
+never told. A wedge drawn on a non-stereogenic bond is a second case.
+**A predicate that must enumerate every user-editable property to be
+correct is not a safe escape hatch**, and the honest fallback if the good
+route had not existed was to accept the extra undo entry.
+
+**AND THE MOLFILE HEADER CARRIES A TIMESTAMP** -- `-INDIGO-08172603362D`,
+to the minute -- so comparing `getMolfile` text across a minute boundary
+reports a difference that is not one. Two reads with nothing in between
+are byte-identical; two reads either side of :00 are not. That produced
+one wrong reading of the probe before it was checked.
+
+##### THE BUNDLE GUARD COVERED ONLY THE BRIDGE NAMES
+
+`test_ketcher_bundle_is_current.py` parametrises over `bridgeObject.*` --
+what JS calls on Python -- and nothing covered the globals Python calls on
+JS. `openchemRotation` and `openchemElectrons` had both shipped uncovered;
+`openchemCip` made it three, and a forgotten rebuild would have left the
+feature silently absent with every test green. Guarded in two halves, and
+the pairing is the point: a source scan proves the NAME reached the
+bundle, not that the functions hanging off it did, so it is fail-open
+alone. `test_the_cip_api_the_page_exposes_is_the_one_python_calls` asks
+the real page.
 
 #### KETCHER KEEPS 3D COORDINATES, including through an edit
 
