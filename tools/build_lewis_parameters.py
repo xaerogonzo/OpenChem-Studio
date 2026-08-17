@@ -8,25 +8,45 @@ That is the whole reason the model outperforms a single-scale ordering:
 "hard" and "soft" stop being two ends of one axis and become two
 independent coordinates.
 
-**Provenance, stated plainly.** The E and C VALUES were taken from the
-Wikipedia ECW model compilation of:
+**Provenance, and it is no longer secondhand.** The E and C values reached
+this file through the Wikipedia ECW model compilation, and have SINCE been
+checked against the source itself:
 
-    Vogel, G. C.; Drago, R. S. J. Chem. Educ. 1996, 73 (8), 701-707
-    Drago, R. S. et al. Inorg. Chem. 1992, 32 (11), 2473-2479
+    Vogel, G. C.; Drago, R. S. "The ECW Model"
+        J. Chem. Educ. 1996, 73 (8), 701-707, Table 1
+    Drago, R. S.; Dadmun, A. P.; Vogel, G. C.
+        "Addition of new donors to the E and C model"
+        Inorg. Chem. 1993, 32, 2473-2479, doi:10.1021/ic00063a045
 
-They were not read out of those two papers. The original paper HAS since
-been read:
+**All 53 shipped parameters were compared with Table 1: 52 matched and one
+did not** -- methylamine's C_B, which was 3.12 in the paper and 3.13 here.
+Corrected below, where the comment records it. The scan has no text layer,
+so the table was read from a 520-dpi render.
 
-    Drago, R. S.; Wayland, B. B. J. Am. Chem. Soc. 1965, 87, 3571
+Note the second reference was written here as "Inorg. Chem. 1992" until it
+was checked. **Volume 32 is 1993** -- volume 31 is 1992 -- so the citation
+was internally impossible and could not be resolved from.
+
+The original paper has also been read:
+
+    Drago, R. S.; Wayland, B. B. J. Am. Chem. Soc. 1965, 87, 3571-3577
         doi:10.1021/ja01094a008
 
 and its parameters are deliberately NOT used, because they are on a
-different scale: that paper normalises iodine to E_A = C_A = 1.000
-("the values reported in Tables V and VI are relative to E_A and C_A of
-iodine being 1"), while the modern compilation puts iodine at
-E_A = 0.50, C_A = 2.0. Mixing the two would be silently wrong. What the
-1965 paper contributes instead is its EXPERIMENTAL enthalpies, which are
-scale-independent and were not used to fit the modern values.
+different scale: that paper normalises iodine to E_A = C_A = 1.000 ("E A =
+1.00 and CA = 1.00. Iodine was selected because"), while the modern values
+put iodine at E_A = 0.50, C_A = 2.0.
+
+**That transformation has a date and a paper.** Reference 6b of the 1996
+paper says the values were transformed to eliminate negative numbers in
+Drago, Ferris & Wong, J. Am. Chem. Soc. 1990, 112, 8953-8961
+(doi:10.1021/ja00180a047), and that "in the process E_A and C_A values of
+I2 were changed from 1 and 1 to 0.5 and 2, respectively. One must not mix
+parameters from earlier fits with the transformed parameters used since
+1990." That sentence is why `_parameter_scale` exists.
+
+What the 1965 paper contributes instead is its EXPERIMENTAL enthalpies,
+which are scale-independent and were not used to fit the modern values.
 
 Two independent checks therefore run below, and the file is not written
 if either fails:
@@ -57,11 +77,21 @@ from rdkit import Chem
 
 OUTPUT = Path(__file__).resolve().parents[1] / "src" / "openchem" / "chem" / "data" / "lewis_parameters.json"
 
+# The year here was 1992 until it was checked, and the error was not
+# cosmetic: Inorganic Chemistry volume 32 is 1993 (volume 31 is 1992), so
+# the citation was internally impossible and the paper could not be found
+# from it. Corrected against the ECW paper's own Literature Cited (entry 8)
+# and CrossRef, which also gives the title and fixes "Dadman" -> "Dadmun".
 CITATION = (
-    "Drago-Wayland E and C parameters, via the Wikipedia ECW model compilation "
-    "of Vogel & Drago, J. Chem. Educ. 1996, 73, 701 and Drago et al., "
-    "Inorg. Chem. 1992, 32, 2473. Original model: Drago & Wayland, "
-    "J. Am. Chem. Soc. 1965, 87, 3571 (doi:10.1021/ja01094a008)."
+    "Drago-Wayland E and C parameters, read from Table 1 of Vogel & Drago, "
+    "'The ECW Model', J. Chem. Educ. 1996, 73(8), 701-707, with additional "
+    "donors from Drago, Dadmun & Vogel, 'Addition of new donors to the E and "
+    "C model', Inorg. Chem. 1993, 32, 2473-2479 (doi:10.1021/ic00063a045). "
+    "Original model: Drago & Wayland, J. Am. Chem. Soc. 1965, 87, 3571-3577 "
+    "(doi:10.1021/ja01094a008). The 0.5/2.0 iodine scale these values are on "
+    "was introduced by Drago, Ferris & Wong, J. Am. Chem. Soc. 1990, 112, "
+    "8953-8961 (doi:10.1021/ja00180a047); the 1996 paper warns that "
+    "parameters from earlier fits must not be mixed with it."
 )
 
 #: name -> (SMILES, E_A, C_A, W). E and C in (kcal/mol)^1/2, W in kcal/mol.
@@ -296,7 +326,7 @@ def main() -> None:
                     "tools/build_lewis_parameters.py -- do not hand-edit; re-run it"
                 ),
                 "_source_key": "vogel_drago1996",
-                "_supplementary_source_keys": ["drago1965", "drago1992"],
+                "_supplementary_source_keys": ["drago1965", "drago1993", "drago1990"],
                 "_parameter_scale": "modern_ecw",
                 "_scale_note": (
                     "Two DIFFERENT claims, kept apart on purpose. _source_key says where "

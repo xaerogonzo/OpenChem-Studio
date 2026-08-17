@@ -163,15 +163,79 @@ once had wrong -- `-dH = E_A E_B + C_A C_B + W`, with W ADDED.
 """
 
 [[source]]
-key = "drago1992"
+key = "drago1993"
 kind = "literature"
-citation = "R. S. Drago et al., Inorg. Chem. 1992, 32, 2473."
-identifier_type = "bibliographic"
-identifier = "Inorg. Chem. 1992, 32, 2473"
+citation = "R. S. Drago, A. P. Dadmun & G. C. Vogel, 'Addition of new donors to the E and C model', Inorg. Chem. 1993, 32, 2473-2479."
+identifier_type = "doi"
+identifier = "10.1021/ic00063a045"
 status = "shipped"
-used_by = ["src/openchem/chem/data/lewis_parameters.json"]
-verification = "unverified"
-note = "A supplementary source for the shipped compilation; see [source:vogel_drago1996]."
+used_by = [
+    "src/openchem/chem/data/lewis_parameters.json",
+    "tools/build_lewis_parameters.py",
+]
+local = "drago1993.pdf"
+verification = "citation"
+verified_date = 2026-08-17
+note = """
+CONFIRMED FROM THE PAPER ITSELF, whose header reads "Inorg. Chem. 1993, 32,
+2473-2479 ... Addition of New Donors to the E and C Model ... Russell S.
+Drago, Department of Chemistry, University of Florida ... Andrew P. Dadmun
+and Glenn C. Vogel, Department of Chemistry, Ithaca College".
+
+THIS ENTRY WAS UNFINDABLE UNTIL IT WAS CHECKED, AND THE KEY USED TO SAY
+1992. **Inorganic Chemistry volume 32 is 1993** -- volume 31 is 1992 -- so
+"Inorg. Chem. 1992, 32, 2473" is internally impossible and resolves to
+nothing in any index. Searching for it failed exactly as it had to.
+
+The real reference came from the Literature Cited of [source:vogel_drago1996]
+(entry 8) and was then confirmed against CrossRef, which also supplied the
+title and corrected the author spelling from "Dadman" to **Dadmun**.
+
+The title says what it contributes: it ADDS donors to the model, which is
+why it is a supplementary source for the shipped table rather than the
+source of it.
+
+**A citation can be wrong in a way that makes it unresolvable rather than
+merely imprecise**, and an internally inconsistent volume/year pair is the
+cheapest kind to detect -- had anyone checked that volume 32 is 1993.
+"""
+
+[[source]]
+key = "drago1990"
+kind = "literature"
+citation = "R. S. Drago, D. C. Ferris & N. Wong, 'A method for the analysis and prediction of gas-phase ion-molecule enthalpies', J. Am. Chem. Soc. 1990, 112, 8953-8961."
+identifier_type = "doi"
+identifier = "10.1021/ja00180a047"
+status = "shipped"
+local = "drago1990.pdf"
+used_by = [
+    "src/openchem/chem/data/lewis_parameters.json",
+    "tools/build_lewis_parameters.py",
+]
+verification = "citation"
+verified_date = 2026-08-17
+note = """
+Confirmed from the paper's own header: "J. Am. Chem. Soc. 1990, 112,
+8953-8961 ... A Method for the Analysis and Prediction of Gas-Phase
+Ion-Molecule Enthalpies ... Russell S. Drago, Donald C. Ferris, and Ngai
+Wong ... University of Florida".
+
+**WHERE THE SHIPPED IODINE SCALE COMES FROM, named at last.** Reference 6b
+of [source:vogel_drago1996] states that the E and C values were transformed
+to eliminate negative numbers in this paper, and that "in the process E_A
+and C_A values of I2 were changed from 1 and 1 to 0.5 and 2, respectively.
+One must not mix parameters from earlier fits with the transformed
+parameters used since 1990."
+
+That sentence is the whole justification for `_parameter_scale` and for
+`test_lewis_parameters_match_the_declared_parameter_scale`. Until it was
+read, the scale distinction rested on [source:drago1965] stating the OTHER
+convention -- which establishes that two scales exist but not which paper
+created ours, nor that mixing them is explicitly forbidden by the authors.
+
+Registered although nothing in the repository cites it by name: it is the
+provenance of a number every Drago adduct calculation uses.
+"""
 
 [[source]]
 key = "parr_pearson1983"
@@ -636,6 +700,41 @@ reason this entry exists is that the CRC Handbook's provenance was being
 chased for an unrelated reason.
 """
 
+[[source]]
+key = "ran2002"
+kind = "literature"
+citation = "Y. Ran, Y. He, G. Yang, J. L. H. Johnson & S. H. Yalkowsky, 'Estimation of aqueous solubility of organic compounds by using the general solubility equation', Chemosphere 48 (2002) 487-509."
+identifier_type = "doi"
+identifier = "10.1016/S0045-6535(02)00118-2"
+status = "reference_only"
+reason = """
+Nothing here implements the General Solubility Equation. It is registered
+because `docs/VALIDATION.md` PUBLISHES a "GSE (published baseline)" row and
+`benchmarks/solubility/score.py` reports against it, so a reader is owed a
+way to find out what the GSE is. The numbers themselves come from
+[source:llinas2020]'s own GSE column, not from this paper.
+"""
+used_by = ["docs/VALIDATION.md", "benchmarks/solubility/score.py"]
+local = "ran2002.pdf"
+verification = "citation"
+verified_date = 2026-08-17
+note = """
+**THIS PAPER EVALUATES THE GSE, IT DOES NOT DEFINE IT**, and the
+distinction is the paper's own: its abstract says "the general solubility
+equation (GSE) proposed by Jain and Yalkowsky was used to estimate aqueous
+solubility of ...". So citing it as the origin of the GSE would be one
+attribution too far -- it is a large-scale test of the method by a group
+including Yalkowsky.
+
+The DOI is DERIVED from the PII printed in the paper (S0045-6535(02)00118-2)
+via Elsevier's deterministic mapping, rather than read off the page; the
+journal, volume, pages and year are read directly.
+
+Note the GSE needs a MEASURED MELTING POINT, which this project does not
+have and cannot supply -- which is why the baseline is reported rather than
+reproduced.
+"""
+
 # =============================================================================
 # Datasets
 # =============================================================================
@@ -706,31 +805,49 @@ better on data they were fitted to.
 [[source]]
 key = "nmrshiftdb2"
 kind = "dataset"
-citation = "nmrshiftdb2, an open-access NMR database (SourceForge distribution)."
-identifier_type = "url"
-identifier = "https://sourceforge.net/projects/nmrshiftdb2/"
+citation = "S. Kuhn & N. E. Schlorer, 'Facilitating quality control for spectra assignments of small organic molecules: nmrshiftdb2 - a free in-house NMR database with integrated LIMS for academic service laboratories', Magn. Reson. Chem. 2015, 53, 582-589."
+identifier_type = "doi"
+identifier = "10.1002/mrc.4263"
 status = "shipped"
 used_by = [
     "src/openchem/services/nmr_database_setup.py",
     "src/openchem/chem/nmr_database.py",
     "src/openchem/chem/hose_codes.py",
 ]
-verification = "unverified"
+local = "kuhn2015.pdf"
+verification = "citation"
+verified_date = 2026-08-17
 note = """
 Downloaded on demand (~152 MB), indexed, then the download is discarded.
 IT IS THE HOSE-CODE LOOKUP'S OWN INDEX, so it is circular as ground truth
 and nothing is scored against it -- see [source:kwon2023], which exists for
 that reason.
 
-STILL UNVERIFIED AFTER THREE ATTEMPTS, and this records what they returned
-so nobody repeats them. The SourceForge project page states only that "the
-data is published under an open content license" WITHOUT NAMING WHICH, and
-gives no citation. The web front end at nmr.uni-koeln.de serves a Jetspeed
-login form rather than an about page, and its help path 404s.
+**THE PROJECT'S OWN SITE IS THE ONE PLACE THIS IS NOT AVAILABLE**, which is
+why three attempts at it failed: the SourceForge page states only that "the
+data is published under an open content license" without naming which and
+gives no citation, the web front end at nmr.uni-koeln.de serves a Jetspeed
+login form rather than an about page, and its help path 404s. The citation
+lives in the literature instead.
 
-So the licence is known to be open and is otherwise unidentified, and the
-canonical paper reference has not been obtained from a primary source. A
-citation is easy to supply from memory here and deliberately has not been.
+Two further references for the same database, both now held locally and
+read:
+
+    Kuhn, Kolshorn, Steinbeck & Schlorer, "Twenty years of nmrshiftdb2: A
+    case study of an open database for analytical chemistry", Magn. Reson.
+    Chem., doi 10.1002/mrc.5418. **FOUR AUTHORS, not the two a search
+    result gave** -- Kolshorn and Steinbeck were dropped by the summary and
+    restored from the paper. A secondary source is not more reliable than
+    the document for something as mechanical as an author list.
+
+    Steinbeck, Krause & Kuhn, "NMRShiftDB - Constructing a Free Chemical
+    Information System with Open-Source Components", J. Chem. Inf. Comput.
+    Sci., doi 10.1021/ci0341363 (`steinbeck2003.pdf`) -- the original
+    database this one succeeded, from the Max-Planck-Institute of Chemical
+    Ecology, Jena
+
+THE LICENCE IS STILL ONLY "OPEN CONTENT" and is not pinned to a named
+licence by anything read so far.
 """
 
 [[source]]
@@ -891,27 +1008,54 @@ Delaney's fit as far as the source states.
 [[source]]
 key = "yalkowsky_banerjee1992"
 kind = "dataset"
-citation = "Yalkowsky & Banerjee, 1992. Full citation not established -- see note."
-identifier_type = "bibliographic"
-identifier = "Yalkowsky & Banerjee 1992"
+citation = "S. H. Yalkowsky & S. Banerjee, 'Aqueous Solubility: Methods of Estimation for Organic Compounds', Marcel Dekker Inc., New York, 1992."
+identifier_type = "isbn"
+identifier = "978-0-8247-8615-1"
 status = "shipped"
 used_by = [
     "benchmarks/solubility/extract_avdeef_sets.py",
     "benchmarks/solubility/README.md",
     "docs/VALIDATION.md",
 ]
-verification = "unverified"
+local = "mackay1993.pdf"
+verification = "citation"
+verified_date = 2026-08-17
 note = """
+**`local` IS A REVIEW OF THE BOOK, NOT THE BOOK**, and the distinction is
+kept deliberately. `mackay1993.pdf` is journal back matter from January
+1993 carrying D. Mackay's (Institute for Environmental Studies, University
+of Toronto) review, which states the publisher, year, price and **ISBN
+0-8247-8615-7** -- independently confirming the bibliographic record found
+via search. It is not the contents, which is why this stays `citation` and
+not `citation_and_claim`.
+
+**AND THE REVIEW EXPLAINS A FINDING IN THIS PROJECT'S OWN BENCHMARK.** It
+notes that "regrettably there is no treatment of dissociating or ionizing
+solutes such as phenols or amines". External test set A1 is drawn from this
+book and yields **zero bases** -- a fact `benchmarks/solubility/` records as
+an obstacle without explaining it. The book excludes ionizing solutes by
+design, so A1 could not have contained bases. That is the reason, from the
+source, for a number this project had only observed.
+
 The underlying source of external test set A1, reached through Avdeef's
 appendix ([source:avdeef2020]). A classic compilation of industrial and
 agrochemical solubility -- which is the chemistry ESOL was fitted on, and
 duly **74% of it is inside ESOL's own training set** (14 of 19 rows share an
 InChIKey with Delaney's fit). It yields zero bases.
 
-NOTHING BEYOND "Yalkowsky & Banerjee 1992" IS RECORDED ANYWHERE IN THIS
-REPOSITORY, and nothing more is asserted here. It is believed to be a book
-rather than an article, which is why no volume or pages appear; establishing
-that is a job for whoever has it.
+IT IS A BOOK, WHICH IS WHY NO DOI SEARCH COULD EVER HAVE FOUND IT.
+ISBN-10 0-8247-8615-7. Nothing beyond the author-year string was recorded
+anywhere in this repository, and the guess that it was a book rather than
+an article turned out right -- which is not the same as having been
+entitled to record it as one.
+
+**PAGE COUNT DELIBERATELY OMITTED.** Two independent reviews give different
+figures -- 272 pp and vi + 263 pp -- which is ordinary (front matter
+counted or not) and not worth asserting either way.
+
+The A1 finding that rests on this book -- "74% inside ESOL's own training
+set" -- remains a claim about its CONTENTS that nothing here has checked,
+which is why `verification` stops at `citation`.
 """
 
 # =============================================================================
@@ -1349,20 +1493,31 @@ the same-receptor spread as a control.
 [[source]]
 key = "orca"
 kind = "software"
-citation = "ORCA quantum chemistry program, FACCTs / MPI fur Kohlenforschung."
-identifier_type = "url"
-identifier = "https://www.faccts.de/"
+citation = "F. Neese, 'Software Update: The ORCA Program System - Version 6.0', WIREs Computational Molecular Science 2025."
+identifier_type = "doi"
+identifier = "10.1002/wcms.70019"
 status = "shipped"
 license = "proprietary, free for academic use -- installed by the user, never redistributed"
 package_manifest = "src/openchem/services/tool_download_service.py"
-verification = "unverified"
+local = "WIREs Comput Mol Sci - 2025 - Neese - Software Update The ORCA Program System Version 6 0.pdf"
+verification = "citation"
+verified_date = 2026-08-17
 note = """
-LICENCE TERMS VERIFIED, CITATION NOT. faccts.de states "ORCA is free for
-academic use, while commercial licenses are available through FACCTs",
-which is the claim this entry's `license` field makes. The site gives no
-canonical publication and points at the manual instead, so the paper anyone
-reporting ORCA results should cite is still unestablished here -- and is
-not supplied from memory.
+Confirmed from the paper: "Wiley Interdisciplinary Reviews: Computational
+Molecular Science, 2025; 15:e70019", SOFTWARE FOCUS, **OPEN ACCESS** -- so
+the citation for the program is freely readable even though the program is
+not freely licensed for commercial use.
+
+**VERSION 6 IS THE RIGHT PAPER**, because CLAUDE.md records this project's
+measurements on ORCA 6.1.1. The Version 5.0 paper is WIREs Comput. Mol.
+Sci. 2022, 12, e1606, doi 10.1002/wcms.1606, if both are ever wanted.
+
+Licence terms are from faccts.de directly: "ORCA is free for academic use,
+while commercial licenses are available through FACCTs". THE SITE NAMES NO
+PUBLICATION and points at the manual instead, so the citation came from the
+publisher rather than from the vendor -- the same shape as
+[source:nmrshiftdb2], where the project's own pages were the one place the
+reference could not be found.
 
 Optional, user-installed, and never bundled. Two invocation traps measured
 here: it ABORTS AT STARTUP if its own path uses forward slashes (it derives

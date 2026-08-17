@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: d4c706c32310b86fa6a3fa87a4444cdda60991ca311a5d1b48665507c64d9b43 -->
+<!-- SOURCE SHA256: bc2725d2c70bc13e9cd9efc830968cd8c51895818f5cbad8167b66cf781f2bc3 -->
 
 # Sources
 
@@ -76,7 +76,8 @@ reference fails rather than being silently skipped.
 | [`delaney2004`](#delaney2004) | literature | shipped | citation + claim |
 | [`dimorphite_dl`](#dimorphite_dl) | software | shipped | citation |
 | [`drago1965`](#drago1965) | literature | shipped | citation + claim |
-| [`drago1992`](#drago1992) | literature | shipped | unverified |
+| [`drago1990`](#drago1990) | literature | shipped | citation |
+| [`drago1993`](#drago1993) | literature | shipped | citation |
 | [`glasser1995`](#glasser1995) | literature | shipped | citation |
 | [`gutmann_frontiers2022`](#gutmann_frontiers2022) | literature | **not shipped** | citation |
 | [`hlb`](#hlb) | reference_table | **not shipped** | unverified |
@@ -97,16 +98,17 @@ reference fails rather than being silently skipped.
 | [`miller_polarizability`](#miller_polarizability) | reference_table | **not shipped** | unverified |
 | [`molstar`](#molstar) | software | shipped | citation |
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
-| [`nmrshiftdb2`](#nmrshiftdb2) | dataset | shipped | unverified |
+| [`nmrshiftdb2`](#nmrshiftdb2) | dataset | shipped | citation |
 | [`ons_solubility`](#ons_solubility) | dataset | shipped | citation |
 | [`openbabel`](#openbabel) | software | shipped | citation |
 | [`opsin`](#opsin) | software | shipped | citation |
-| [`orca`](#orca) | software | shipped | unverified |
+| [`orca`](#orca) | software | shipped | citation |
 | [`parr_pearson1983`](#parr_pearson1983) | literature | shipped | citation |
 | [`pearson1988`](#pearson1988) | literature | shipped | citation + claim |
 | [`pkasolver`](#pkasolver) | software | shipped | citation |
 | [`platts1999`](#platts1999) | literature | **not shipped** | citation + claim |
 | [`pyside6`](#pyside6) | software | shipped | citation |
+| [`ran2002`](#ran2002) | literature | reference only | citation |
 | [`rcsb_pdb`](#rcsb_pdb) | dataset | shipped | citation |
 | [`rdkit`](#rdkit) | software | shipped | citation |
 | [`sci_downloads_note`](#sci_downloads_note) | reference_table | reference only | citation |
@@ -115,7 +117,7 @@ reference fails rather than being silently skipped.
 | [`threedmol`](#threedmol) | software | shipped | citation |
 | [`tsei`](#tsei) | reference_table | **not shipped** | unverified |
 | [`vogel_drago1996`](#vogel_drago1996) | literature | shipped | citation + claim |
-| [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | unverified |
+| [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
 
 ## Primary literature
 
@@ -244,20 +246,78 @@ parameters "should not be mixed with those parameters found in the
 literature prior to 1991". Equation 1 also confirms the sign this project
 once had wrong -- `-dH = E_A E_B + C_A C_B + W`, with W ADDED.
 
-### drago1992
+### drago1993
 
-<a id="drago1992"></a>
+<a id="drago1993"></a>
 
-> R. S. Drago et al., Inorg. Chem. 1992, 32, 2473.
+> R. S. Drago, A. P. Dadmun & G. C. Vogel, 'Addition of new donors to the E and C model', Inorg. Chem. 1993, 32, 2473-2479.
 
 | | |
 | --- | --- |
-| Identifier | Inorg. Chem. 1992, 32, 2473 |
+| Identifier | [10.1021/ic00063a045](https://doi.org/10.1021/ic00063a045) |
 | Status | shipped |
-| Verification | unverified |
-| Used by | `src/openchem/chem/data/lewis_parameters.json` |
+| Verification | citation |
+| Verified | 2026-08-17 |
+| Local copy | `drago1993.pdf` (not checked) |
+| Used by | `src/openchem/chem/data/lewis_parameters.json`, `tools/build_lewis_parameters.py` |
 
-A supplementary source for the shipped compilation; see [source:vogel_drago1996].
+CONFIRMED FROM THE PAPER ITSELF, whose header reads "Inorg. Chem. 1993, 32,
+2473-2479 ... Addition of New Donors to the E and C Model ... Russell S.
+Drago, Department of Chemistry, University of Florida ... Andrew P. Dadmun
+and Glenn C. Vogel, Department of Chemistry, Ithaca College".
+
+THIS ENTRY WAS UNFINDABLE UNTIL IT WAS CHECKED, AND THE KEY USED TO SAY
+1992. **Inorganic Chemistry volume 32 is 1993** -- volume 31 is 1992 -- so
+"Inorg. Chem. 1992, 32, 2473" is internally impossible and resolves to
+nothing in any index. Searching for it failed exactly as it had to.
+
+The real reference came from the Literature Cited of [source:vogel_drago1996]
+(entry 8) and was then confirmed against CrossRef, which also supplied the
+title and corrected the author spelling from "Dadman" to **Dadmun**.
+
+The title says what it contributes: it ADDS donors to the model, which is
+why it is a supplementary source for the shipped table rather than the
+source of it.
+
+**A citation can be wrong in a way that makes it unresolvable rather than
+merely imprecise**, and an internally inconsistent volume/year pair is the
+cheapest kind to detect -- had anyone checked that volume 32 is 1993.
+
+### drago1990
+
+<a id="drago1990"></a>
+
+> R. S. Drago, D. C. Ferris & N. Wong, 'A method for the analysis and prediction of gas-phase ion-molecule enthalpies', J. Am. Chem. Soc. 1990, 112, 8953-8961.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja00180a047](https://doi.org/10.1021/ja00180a047) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-17 |
+| Local copy | `drago1990.pdf` (not checked) |
+| Used by | `src/openchem/chem/data/lewis_parameters.json`, `tools/build_lewis_parameters.py` |
+
+Confirmed from the paper's own header: "J. Am. Chem. Soc. 1990, 112,
+8953-8961 ... A Method for the Analysis and Prediction of Gas-Phase
+Ion-Molecule Enthalpies ... Russell S. Drago, Donald C. Ferris, and Ngai
+Wong ... University of Florida".
+
+**WHERE THE SHIPPED IODINE SCALE COMES FROM, named at last.** Reference 6b
+of [source:vogel_drago1996] states that the E and C values were transformed
+to eliminate negative numbers in this paper, and that "in the process E_A
+and C_A values of I2 were changed from 1 and 1 to 0.5 and 2, respectively.
+One must not mix parameters from earlier fits with the transformed
+parameters used since 1990."
+
+That sentence is the whole justification for `_parameter_scale` and for
+`test_lewis_parameters_match_the_declared_parameter_scale`. Until it was
+read, the scale distinction rested on [source:drago1965] stating the OTHER
+convention -- which establishes that two scales exist but not which paper
+created ours, nor that mixing them is explicitly forbidden by the authors.
+
+Registered although nothing in the repository cites it by name: it is the
+provenance of a number every Drago adduct calculation uses.
 
 ### parr_pearson1983
 
@@ -576,6 +636,42 @@ of. That is a real limit of the non-DOI half of the coverage check, and the
 reason this entry exists is that the CRC Handbook's provenance was being
 chased for an unrelated reason.
 
+### ran2002
+
+<a id="ran2002"></a>
+
+> Y. Ran, Y. He, G. Yang, J. L. H. Johnson & S. H. Yalkowsky, 'Estimation of aqueous solubility of organic compounds by using the general solubility equation', Chemosphere 48 (2002) 487-509.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/S0045-6535(02)00118-2](https://doi.org/10.1016/S0045-6535(02)00118-2) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-08-17 |
+| Local copy | `ran2002.pdf` (not checked) |
+| Used by | `docs/VALIDATION.md`, `benchmarks/solubility/score.py` |
+
+**Why it is reference only.** Nothing here implements the General Solubility Equation. It is registered
+because `docs/VALIDATION.md` PUBLISHES a "GSE (published baseline)" row and
+`benchmarks/solubility/score.py` reports against it, so a reader is owed a
+way to find out what the GSE is. The numbers themselves come from
+[source:llinas2020]'s own GSE column, not from this paper.
+
+**THIS PAPER EVALUATES THE GSE, IT DOES NOT DEFINE IT**, and the
+distinction is the paper's own: its abstract says "the general solubility
+equation (GSE) proposed by Jain and Yalkowsky was used to estimate aqueous
+solubility of ...". So citing it as the origin of the GSE would be one
+attribution too far -- it is a large-scale test of the method by a group
+including Yalkowsky.
+
+The DOI is DERIVED from the PII printed in the paper (S0045-6535(02)00118-2)
+via Elsevier's deterministic mapping, rather than read off the page; the
+journal, volume, pages and year are read directly.
+
+Note the GSE needs a MEASURED MELTING POINT, which this project does not
+have and cannot supply -- which is why the baseline is reported rather than
+reproduced.
+
 ### glasser1995
 
 <a id="glasser1995"></a>
@@ -860,13 +956,15 @@ better on data they were fitted to.
 
 <a id="nmrshiftdb2"></a>
 
-> nmrshiftdb2, an open-access NMR database (SourceForge distribution).
+> S. Kuhn & N. E. Schlorer, 'Facilitating quality control for spectra assignments of small organic molecules: nmrshiftdb2 - a free in-house NMR database with integrated LIMS for academic service laboratories', Magn. Reson. Chem. 2015, 53, 582-589.
 
 | | |
 | --- | --- |
-| Identifier | <https://sourceforge.net/projects/nmrshiftdb2/> |
+| Identifier | [10.1002/mrc.4263](https://doi.org/10.1002/mrc.4263) |
 | Status | shipped |
-| Verification | unverified |
+| Verification | citation |
+| Verified | 2026-08-17 |
+| Local copy | `kuhn2015.pdf` (not checked) |
 | Used by | `src/openchem/services/nmr_database_setup.py`, `src/openchem/chem/nmr_database.py`, `src/openchem/chem/hose_codes.py` |
 
 Downloaded on demand (~152 MB), indexed, then the download is discarded.
@@ -874,15 +972,31 @@ IT IS THE HOSE-CODE LOOKUP'S OWN INDEX, so it is circular as ground truth
 and nothing is scored against it -- see [source:kwon2023], which exists for
 that reason.
 
-STILL UNVERIFIED AFTER THREE ATTEMPTS, and this records what they returned
-so nobody repeats them. The SourceForge project page states only that "the
-data is published under an open content license" WITHOUT NAMING WHICH, and
-gives no citation. The web front end at nmr.uni-koeln.de serves a Jetspeed
-login form rather than an about page, and its help path 404s.
+**THE PROJECT'S OWN SITE IS THE ONE PLACE THIS IS NOT AVAILABLE**, which is
+why three attempts at it failed: the SourceForge page states only that "the
+data is published under an open content license" without naming which and
+gives no citation, the web front end at nmr.uni-koeln.de serves a Jetspeed
+login form rather than an about page, and its help path 404s. The citation
+lives in the literature instead.
 
-So the licence is known to be open and is otherwise unidentified, and the
-canonical paper reference has not been obtained from a primary source. A
-citation is easy to supply from memory here and deliberately has not been.
+Two further references for the same database, both now held locally and
+read:
+
+    Kuhn, Kolshorn, Steinbeck & Schlorer, "Twenty years of nmrshiftdb2: A
+    case study of an open database for analytical chemistry", Magn. Reson.
+    Chem., doi 10.1002/mrc.5418. **FOUR AUTHORS, not the two a search
+    result gave** -- Kolshorn and Steinbeck were dropped by the summary and
+    restored from the paper. A secondary source is not more reliable than
+    the document for something as mechanical as an author list.
+
+    Steinbeck, Krause & Kuhn, "NMRShiftDB - Constructing a Free Chemical
+    Information System with Open-Source Components", J. Chem. Inf. Comput.
+    Sci., doi 10.1021/ci0341363 (`steinbeck2003.pdf`) -- the original
+    database this one succeeded, from the Max-Planck-Institute of Chemical
+    Ecology, Jena
+
+THE LICENCE IS STILL ONLY "OPEN CONTENT" and is not pinned to a named
+licence by anything read so far.
 
 ### tdc_admet
 
@@ -1018,14 +1132,32 @@ Delaney's fit as far as the source states.
 
 <a id="yalkowsky_banerjee1992"></a>
 
-> Yalkowsky & Banerjee, 1992. Full citation not established -- see note.
+> S. H. Yalkowsky & S. Banerjee, 'Aqueous Solubility: Methods of Estimation for Organic Compounds', Marcel Dekker Inc., New York, 1992.
 
 | | |
 | --- | --- |
-| Identifier | Yalkowsky & Banerjee 1992 |
+| Identifier | 978-0-8247-8615-1 |
 | Status | shipped |
-| Verification | unverified |
+| Verification | citation |
+| Verified | 2026-08-17 |
+| Local copy | `mackay1993.pdf` (not checked) |
 | Used by | `benchmarks/solubility/extract_avdeef_sets.py`, `benchmarks/solubility/README.md`, `docs/VALIDATION.md` |
+
+**`local` IS A REVIEW OF THE BOOK, NOT THE BOOK**, and the distinction is
+kept deliberately. `mackay1993.pdf` is journal back matter from January
+1993 carrying D. Mackay's (Institute for Environmental Studies, University
+of Toronto) review, which states the publisher, year, price and **ISBN
+0-8247-8615-7** -- independently confirming the bibliographic record found
+via search. It is not the contents, which is why this stays `citation` and
+not `citation_and_claim`.
+
+**AND THE REVIEW EXPLAINS A FINDING IN THIS PROJECT'S OWN BENCHMARK.** It
+notes that "regrettably there is no treatment of dissociating or ionizing
+solutes such as phenols or amines". External test set A1 is drawn from this
+book and yields **zero bases** -- a fact `benchmarks/solubility/` records as
+an obstacle without explaining it. The book excludes ionizing solutes by
+design, so A1 could not have contained bases. That is the reason, from the
+source, for a number this project had only observed.
 
 The underlying source of external test set A1, reached through Avdeef's
 appendix ([source:avdeef2020]). A classic compilation of industrial and
@@ -1033,10 +1165,19 @@ agrochemical solubility -- which is the chemistry ESOL was fitted on, and
 duly **74% of it is inside ESOL's own training set** (14 of 19 rows share an
 InChIKey with Delaney's fit). It yields zero bases.
 
-NOTHING BEYOND "Yalkowsky & Banerjee 1992" IS RECORDED ANYWHERE IN THIS
-REPOSITORY, and nothing more is asserted here. It is believed to be a book
-rather than an article, which is why no volume or pages appear; establishing
-that is a job for whoever has it.
+IT IS A BOOK, WHICH IS WHY NO DOI SEARCH COULD EVER HAVE FOUND IT.
+ISBN-10 0-8247-8615-7. Nothing beyond the author-year string was recorded
+anywhere in this repository, and the guess that it was a book rather than
+an article turned out right -- which is not the same as having been
+entitled to record it as one.
+
+**PAGE COUNT DELIBERATELY OMITTED.** Two independent reviews give different
+figures -- 272 pp and vi + 263 pp -- which is ordinary (front matter
+counted or not) and not worth asserting either way.
+
+The A1 finding that rests on this book -- "74% inside ESOL's own training
+set" -- remains a claim about its CONTENTS that nothing here has checked,
+which is why `verification` stops at `citation`.
 
 ## Legal texts
 
@@ -1637,22 +1778,33 @@ the same-receptor spread as a control.
 
 <a id="orca"></a>
 
-> ORCA quantum chemistry program, FACCTs / MPI fur Kohlenforschung.
+> F. Neese, 'Software Update: The ORCA Program System - Version 6.0', WIREs Computational Molecular Science 2025.
 
 | | |
 | --- | --- |
-| Identifier | <https://www.faccts.de/> |
+| Identifier | [10.1002/wcms.70019](https://doi.org/10.1002/wcms.70019) |
 | Status | shipped |
-| Verification | unverified |
+| Verification | citation |
+| Verified | 2026-08-17 |
 | Licence | proprietary, free for academic use -- installed by the user, never redistributed |
 | Version source | `src/openchem/services/tool_download_service.py` |
+| Local copy | `WIREs Comput Mol Sci - 2025 - Neese - Software Update The ORCA Program System Version 6 0.pdf` (not checked) |
 
-LICENCE TERMS VERIFIED, CITATION NOT. faccts.de states "ORCA is free for
-academic use, while commercial licenses are available through FACCTs",
-which is the claim this entry's `license` field makes. The site gives no
-canonical publication and points at the manual instead, so the paper anyone
-reporting ORCA results should cite is still unestablished here -- and is
-not supplied from memory.
+Confirmed from the paper: "Wiley Interdisciplinary Reviews: Computational
+Molecular Science, 2025; 15:e70019", SOFTWARE FOCUS, **OPEN ACCESS** -- so
+the citation for the program is freely readable even though the program is
+not freely licensed for commercial use.
+
+**VERSION 6 IS THE RIGHT PAPER**, because CLAUDE.md records this project's
+measurements on ORCA 6.1.1. The Version 5.0 paper is WIREs Comput. Mol.
+Sci. 2022, 12, e1606, doi 10.1002/wcms.1606, if both are ever wanted.
+
+Licence terms are from faccts.de directly: "ORCA is free for academic use,
+while commercial licenses are available through FACCTs". THE SITE NAMES NO
+PUBLICATION and points at the manual instead, so the citation came from the
+publisher rather than from the vendor -- the same shape as
+[source:nmrshiftdb2], where the project's own pages were the one place the
+reference could not be found.
 
 Optional, user-installed, and never bundled. Two invocation traps measured
 here: it ABORTS AT STARTUP if its own path uses forward slashes (it derives

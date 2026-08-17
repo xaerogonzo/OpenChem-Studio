@@ -12,9 +12,14 @@ and a stale work list is worse than none.
 uv run --no-sync python -c "import tomllib,pathlib;s=tomllib.loads(pathlib.Path('docs/sources.toml').read_text(encoding='utf-8'))['source'];[print(f\"{e['key']:26} {e['kind']:14} {e['citation'][:70]}\") for e in s if e['verification']=='unverified']"
 ```
 
-At the time of writing: **58 sources, 20 `citation_and_claim`, 31
-`citation`, 7 `unverified`** — of which three are terminal, so **four real
-gaps remain.**
+At the time of writing: **60 sources, 20 `citation_and_claim`, 37
+`citation`, 3 `unverified`** — and **all three are terminal.** Every source
+this project cites now resolves to a DOI, an ISBN or a read document, and
+27 are held locally.
+
+**So this file is nearly done.** What remains is not citation work: it is
+the two structural gaps at the foot, and the standing habit of re-running
+the coverage check below after any batch of source work.
 
 ## What the verification pass closed
 
@@ -49,38 +54,62 @@ places while absent from the registry. The author-year sweep at the foot of
 this file **could not have caught it**: "Kaya" was not in its alternation,
 so that check only finds authors somebody already thought of.
 
-## The four that remain
+## The last four, and how they were closed
 
-### `drago1992` — needs the paper
+All four were stuck for the same reason — **the identifier in hand did not
+resolve** — and all four came unstuck from a bibliographic index rather than
+from trying harder at the original route.
 
-*Inorg. Chem.* 1992, 32, 2473. Paywalled (ACS). A supplementary source for
-the shipped E/C compilation. **Lower stakes than it was**: the primary source
-is now verified and the whole table checked against it, so this is
-completeness rather than risk.
+**`drago1992` did not exist, and could not have.** *Inorganic Chemistry*
+volume 32 is **1993**; volume 31 is 1992. The citation was internally
+impossible, so no search could return it. The real reference is Drago,
+**Dadmun** & Vogel, "Addition of new donors to the E and C model", Inorg.
+Chem. 1993, 32, 2473-2479, doi `10.1021/ic00063a045` — from the ECW paper's
+own Literature Cited, confirmed via CrossRef, which also fixed the author
+spelling. Key renamed to `drago1993`.
 
-### `yalkowsky_banerjee1992` — needs the book
+**A citation can be wrong in a way that makes it unresolvable rather than
+merely imprecise**, and an inconsistent volume/year pair is the cheapest
+kind to catch — if anyone checks.
 
-Nothing beyond the author-year string exists anywhere in the repository, and
-it backs external test set A1. Believed to be a book. Its provenance matters
-because the A1 finding — *"74% inside ESOL's own training set"* — is a claim
-about what that compilation contains.
+**`yalkowsky_banerjee1992` is a BOOK**, which is why no DOI would ever find
+it: Marcel Dekker, New York, 1992, ISBN 978-0-8247-8615-1. Verified through
+D. Mackay's 1993 review (`mackay1993.pdf`), which independently states the
+publisher, year and ISBN.
 
-### `nmrshiftdb2` — three routes tried, all dead
+**THE BOOK ITSELF IS NOT HELD, AND NOTHING NEEDS IT.** That is worth
+stating plainly so nobody spends another evening hunting it. Every number
+this project derives from set A1 -- the 74% overlap with Delaney's fit, the
+zero bases -- is OUR measurement over InChIKeys, computed from
+[source:avdeef2020]'s appendix table, not read from the book. The book is
+the provenance of Avdeef's table, one level up. `citation` is therefore the
+correct and final state, not a placeholder.
 
-Its SourceForge page says only that *"the data is published under an open
-content license"* **without naming which**, and gives no citation. The web
-front end serves a Jetspeed login form rather than an about page, and the
-help path 404s. So the licence is known to be open and otherwise
-unidentified, and no canonical paper reference has been obtained from a
-primary source. A citation is easy to supply from memory here and
-deliberately has not been.
+The review even supplies the explanation for the zero-bases result: the
+book has "no treatment of dissociating or ionizing solutes such as phenols
+or amines", so A1 could not have contained bases.
 
-### `orca` — licence verified, citation not
+**A near miss worth recording**: a file named "Aqueous Solubility Methods
+of Estimation for Organic Compound.pdf" turned out to be the *Handbook of
+Aqueous Solubility Data* (Yalkowsky & **He**, CRC Press, 2003, 1513 pp,
+ISBN 0-8493-1532-8) -- a different book by an overlapping author. "Banerjee"
+and "Marcel Dekker" appear nowhere in it. Third instance of the filename
+trap in one session.
 
-faccts.de confirms *"free for academic use, while commercial licenses are
-available through FACCTs"*, which is what the `license` field claims. The
-site gives no canonical publication and points at the manual instead. The
-paper anyone reporting ORCA results should cite is still unestablished.
+**`nmrshiftdb2` and `orca` were unavailable from their own projects.** The
+one place each citation could not be found was the site that publishes the
+thing. nmrshiftdb2 → Kuhn & Schlörer, Magn. Reson. Chem. 2015, 53, 582-589,
+doi `10.1002/mrc.4263`. ORCA → Neese, "Software Update: The ORCA Program
+System — Version 6.0", WIREs Comput. Mol. Sci. 2025, doi
+`10.1002/wcms.70019` (v6 because CLAUDE.md records runs on 6.1.1).
+
+**And `drago1990` was added on the way** — Drago, Ferris & Wong, JACS 1990,
+112, 8953-8961, doi `10.1021/ja00180a047`. Reference 6b of the ECW paper
+names it as where the E/C values were transformed and *"E_A and C_A values
+of I₂ were changed from 1 and 1 to 0.5 and 2"*, adding that *"one must not
+mix parameters from earlier fits with the transformed parameters used since
+1990."* That is the provenance of `_parameter_scale`, and nothing in the
+repository had cited it.
 
 ## Terminal — leave them
 

@@ -5,7 +5,8 @@
  "_source_key": "vogel_drago1996",
  "_supplementary_source_keys": [
   "drago1965",
-  "drago1992"
+  "drago1993",
+  "drago1990"
  ],
  "acids": {
   "BrI": {
@@ -320,7 +321,7 @@
    "name": "pyridine"
   }
  },
- "citation": "Drago-Wayland E and C parameters, via the Wikipedia ECW model compilation of Vogel & Drago, J. Chem. Educ. 1996, 73, 701 and Drago et al., Inorg. Chem. 1992, 32, 2473. Original model: Drago & Wayland, J. Am. Chem. Soc. 1965, 87, 3571 (doi:10.1021/ja01094a008).",
+ "citation": "Drago-Wayland E and C parameters, read from Table 1 of Vogel & Drago, 'The ECW Model', J. Chem. Educ. 1996, 73(8), 701-707, with additional donors from Drago, Dadmun & Vogel, 'Addition of new donors to the E and C model', Inorg. Chem. 1993, 32, 2473-2479 (doi:10.1021/ic00063a045). Original model: Drago & Wayland, J. Am. Chem. Soc. 1965, 87, 3571-3577 (doi:10.1021/ja01094a008). The 0.5/2.0 iodine scale these values are on was introduced by Drago, Ferris & Wong, J. Am. Chem. Soc. 1990, 112, 8953-8961 (doi:10.1021/ja00180a047); the 1996 paper warns that parameters from earlier fits must not be mixed with it.",
  "units": {
   "C": "(kcal/mol)^1/2",
   "E": "(kcal/mol)^1/2",
