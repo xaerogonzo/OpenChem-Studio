@@ -65,6 +65,10 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
 
     {"do": "import",     "path": "..."}      no file dialog
     {"do": "select",     "molecule": -1}
+    {"do": "receptor",   "pdb_id": "6WGT"}   from the CACHE, never the network
+    {"do": "receptor",   "pdb_id": "1HSG", "plain": true}
+    {"do": "dock_receptor", "index": -1}     CHANGES the panel's receptor
+    {"do": "dock_panel", "tag": "after"}     box, its source, the status line
     {"do": "panel",      "id": "Properties"}
     {"do": "expand",     "section": "admet"}
     {"do": "calculator", "id": "admet_ml", "parameters": {...}}
@@ -84,6 +88,23 @@ Ketcher's own Delete hotkey, synthesised on the page. Pair it with
 `report`, whose `undo=` is how "did this display toggle quietly become an
 edit" is answered: measured across a run, `baseline undo=2 -> labels-on
 undo=2 -> after-edit undo=3 -> labels-off undo=3`.
+
+**`receptor` DOES NOT SELECT WHAT IT ADDS EITHER, and that cost a run
+that read as a bug in the code under test.** `molecule_combo.repopulate`
+restores the previous pick by uuid, deliberately, so adding a second
+receptor leaves the panel looking at the first. A script that adds one and
+then dumps the box is still describing the OLD receptor -- which, when the
+thing being checked is "does a derived box survive a receptor change",
+reports the exact failure it was written to detect. `dock_receptor` is the
+step that changes it; measured either side, the box goes
+`(6.710, 2.210, 54.620) source=derived` -> `(0,0,0) source=none` -> back
+again, and the Derive button stays ENABLED on the receptor with no
+annotation because that structure still has ligands to box.
+
+**`receptor` READS THE CACHE AND NEVER THE NETWORK.** A diagnostic run
+that depends on RCSB being up is not a diagnostic. Populate the cache once
+through File > Receptor Library; `_do_receptor` logs and skips if the id
+is not there.
 
 **`smiles` does NOT select what it adds**, and `conformers` and
 `calculator` both act on the PANEL's selection -- so without a `select`
@@ -402,7 +423,27 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `4739 passed, 15 skipped`
+A clean run is **6-19 minutes**, ending at `4755 passed, 15 skipped`
+(measured 2026-08-17, **17m18**, on `docking-box-from-the-ligand` -- the
+docking search box deriving from the receptor's own ligand. **+16 collected
+items and +16 test FUNCTIONS**, so the two deltas agree again: 6 in
+`test_binding_site.py` for `describe_box_placement`'s three relationship
+states plus the centre-to-centre and tolerance guards, and 10 in
+`test_docking_panel.py` for the derived/manual/none payload paths, the
+stale-box reset, idempotence and the pose-column tooltips.
+
+    master 068208e   COLLECTS 4754
+    after            COLLECTS 4770   = 4754 + 16
+    the run                   4755 passed + 15 skipped = 4770
+
+Diffed both directions with `--collect-only -q | grep :: | sort` and
+`comm`: **0 removed, 16 added**. Skips unchanged at 15 -- none of the 16
+needs a display. Baseline derived with `rev-parse` and a `--collect-only`
+rather than read from the entry below, which for once was already correct.
+
+17m18 sits inside the band and near its top. The 6-19 range stands.)
+
+Before it: `4739 passed, 15 skipped`
 (measured 2026-08-17, **15m22**, on master at `8c0c257` + the CIP
 staleness fix. **+19 collected items and +19 test FUNCTIONS**, so for once
 the two deltas agree: 9 in `test_ketcher_editor_backend.py` against the

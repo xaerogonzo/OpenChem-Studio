@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
+    QInputDialog,
     QLabel,
     QPushButton,
     QSpinBox,
@@ -34,6 +35,49 @@ from openchem.ui.molecule_combo import repopulate, select
 logger = logging.getLogger("openchem.ui")
 
 _POSE_COLUMNS = ("Pose", "Binding Affinity (kcal/mol)", "RMSD l.b.", "RMSD u.b.")
+
+#: What each column MEANS, which the headers alone do not say -- reported
+#: as confusing by a user who read the RMSD columns as accuracy against an
+#: experimental structure. They are not: both are measured against pose 1.
+#:
+#: NO SCORING-ERROR FIGURE APPEARS HERE. One was nearly written in from
+#: memory; `docs/sources.toml` records no such number for
+#: `[source:autodock_vina]`, and a tooltip is exactly where an unsourced
+#: figure would acquire false authority. `SCIENTIFIC_LIMITATIONS.md` has
+#: the run-to-run scatter that IS measured.
+_POSE_COLUMN_TOOLTIPS = {
+    "Pose": "Rank within this run, best score first. Not an identity: pose 1 of one "
+    "run is unrelated to pose 1 of another.",
+    "Binding Affinity (kcal/mol)": (
+        "AutoDock Vina's empirical score, in kcal/mol. Always negative; more negative "
+        "is predicted-tighter binding.\n\n"
+        "It is NOT a measured binding free energy, and scores are generally not "
+        "directly comparable across different receptors, targets or docking protocols "
+        "-- the search box, receptor preparation and protonation pH all move the scale."
+    ),
+    "RMSD l.b.": (
+        "Root-mean-square deviation in Angstrom RELATIVE TO POSE 1 of this run -- not "
+        "to any experimental structure. Pose 1 is therefore always 0.000.\n\n"
+        "The lower bound allows symmetry-equivalent atoms to be matched to each other, "
+        "so it is always less than or equal to the upper bound.\n\n"
+        "A large value means this pose is geometrically different from pose 1. It does "
+        "not establish whether either pose is correct."
+    ),
+    "RMSD u.b.": (
+        "Root-mean-square deviation in Angstrom RELATIVE TO POSE 1 of this run -- not "
+        "to any experimental structure. Pose 1 is therefore always 0.000.\n\n"
+        "The upper bound matches each atom to itself, ignoring symmetry, so it is "
+        "always greater than or equal to the lower bound.\n\n"
+        "A large value means this pose is geometrically different from pose 1. It does "
+        "not establish whether either pose is correct."
+    ),
+}
+
+#: What the box resets to when nothing can be derived. Also the value it
+#: has always had on a fresh panel -- but it is only defensible as a
+#: STARTING point, never as a box to dock with, which is why every path
+#: that writes it also says so on the status line.
+_DEFAULT_BOX = DockingBox(center=(0.0, 0.0, 0.0), size=(20.0, 20.0, 20.0))
 
 _LIMITATION_NOTE = (
     "Note: receptor preparation handles pH-correct protonation and "
@@ -109,8 +153,33 @@ class DockingPanel(QWidget):
         #: carrying "build it" across would apply another structure's
         #: answer to this one.
         self._build_assembly = False
-        self._receptor_combo.currentIndexChanged.connect(self._on_receptor_changed)
+        self._derive_button = QPushButton("Derive from ligand...", self)
+        self._derive_button.clicked.connect(self._on_derive_clicked)
+        # Enabled by `_place_box_for_receptor` once a receptor with bound
+        # ligands is chosen. Disabled is the honest starting state -- there
+        # is nothing to derive from yet.
+        self._derive_button.setEnabled(False)
+        self._derive_button.setToolTip("Select a receptor to derive a search box from it.")
         self._ligand_combo = QComboBox(self)
+
+        #: Where the displayed box came from -- "derived", "manual" or
+        #: "none". PROVENANCE ONLY: `displayed_box()` reads the spinboxes,
+        #: and nothing may dock from anything else.
+        self._box_source = "none"
+        #: True while `_write_box` is setting the spinboxes, so its own
+        #: `valueChanged` emissions are not mistaken for a user edit.
+        self._writing_box = False
+        #: Which receptor the displayed box was placed for.
+        #:
+        #: The box CANNOT be driven by `currentIndexChanged` alone.
+        #: `molecule_combo.repopulate` blocks signals deliberately -- a
+        #: rebuild must not look like a user changing the selection -- so
+        #: the first receptor ever added to a project arrives selected with
+        #: no signal at all, and a signal-only implementation leaves its
+        #: box at the default. Comparing the uuid catches that, and it is
+        #: also what lets a repopulate for an unrelated reason leave a
+        #: hand-positioned box alone.
+        self._box_receptor_uuid: str | None = None
 
         self._center_x = self._make_spin(-1000, 1000, 0.0)
         self._center_y = self._make_spin(-1000, 1000, 0.0)
@@ -118,6 +187,15 @@ class DockingPanel(QWidget):
         self._size_x = self._make_spin(1, 200, 20.0)
         self._size_y = self._make_spin(1, 200, 20.0)
         self._size_z = self._make_spin(1, 200, 20.0)
+        for spin in (
+            self._center_x, self._center_y, self._center_z,
+            self._size_x, self._size_y, self._size_z,
+        ):
+            spin.valueChanged.connect(self._on_box_edited)
+        # Connected only now that the spinboxes exist: the handler writes
+        # the box, so a combo signal arriving earlier would reach them
+        # before they had been built.
+        self._receptor_combo.currentIndexChanged.connect(self._on_receptor_changed)
 
         self._num_poses_spin = QSpinBox(self)
         self._num_poses_spin.setRange(1, 50)
@@ -139,17 +217,34 @@ class DockingPanel(QWidget):
         self._dock_button.clicked.connect(self._on_dock_clicked)
 
         self._status_label = QLabel("", self)
+        #: Where the search box is, and whether that is where the receptor
+        #: says its site is. SEPARATE from `_status_label` on purpose: that
+        #: one carries job state and is rewritten on every
+        #: `DockingJobStateChanged`, so a box warning put there is wiped by
+        #: the "Queued..." that follows it microseconds later. Caught by
+        #: `test_a_far_box_warns_without_blocking_the_run`, which asserted
+        #: the message survived the click and found that it did not.
+        self._box_status_label = QLabel("", self)
+        self._box_status_label.setWordWrap(True)
         self._limitation_label = QLabel(_LIMITATION_NOTE, self)
         self._limitation_label.setWordWrap(True)
 
         self._table = QTableWidget(0, len(_POSE_COLUMNS), self)
         self._table.setHorizontalHeaderLabels(_POSE_COLUMNS)
+        # On the header ITEMS, which are QTableWidgetItems rather than
+        # widgets -- so a tooltip audit that walks QWidgets alone cannot
+        # see these, and would report the table fully documented.
+        for column, name in enumerate(_POSE_COLUMNS):
+            item = self._table.horizontalHeaderItem(column)
+            if item is not None:
+                item.setToolTip(_POSE_COLUMN_TOOLTIPS[name])
         self._table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
         receptor_row = QHBoxLayout()
         receptor_row.addWidget(self._receptor_combo, 1)
         receptor_row.addWidget(self._contents_button)
+        receptor_row.addWidget(self._derive_button)
 
         selection_form = QFormLayout()
         selection_form.addRow("Receptor:", receptor_row)
@@ -185,6 +280,7 @@ class DockingPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.addLayout(selection_form)
         layout.addWidget(box_group)
+        layout.addWidget(self._box_status_label)
         layout.addWidget(prep_group)
         layout.addLayout(run_row)
         layout.addWidget(self._status_label)
@@ -210,6 +306,9 @@ class DockingPanel(QWidget):
         molecules = self._project.molecules if self._project is not None else []
         repopulate(self._receptor_combo, [(m.display_name, m.uuid) for m in macromolecules])
         repopulate(self._ligand_combo, [(m.display_name, m.uuid) for m in molecules])
+        # `repopulate` is deliberately silent, so the box has to be asked
+        # for here. It no-ops unless the selected receptor actually moved.
+        self._sync_box_with_receptor()
 
     def _on_molecule_selected(self, event: MoleculeSelected) -> None:
         """Follow the project tree for the LIGAND only.
@@ -269,6 +368,180 @@ class DockingPanel(QWidget):
         self._keep_chains = []
         self._build_assembly = False
         self._update_chain_status()
+        self._sync_box_with_receptor()
+
+    def _sync_box_with_receptor(self) -> None:
+        """Re-place the box iff the receptor it belongs to has changed.
+
+        Reached from the combo's signal AND from `_refresh_combos`,
+        because neither alone is sufficient: `repopulate` blocks signals,
+        so the signal misses the first receptor; and a repopulate happens
+        on every project mutation, so acting on it unconditionally would
+        overwrite a hand-positioned box every time an unrelated molecule
+        was renamed.
+        """
+        current = self._receptor_combo.currentData()
+        if current == self._box_receptor_uuid:
+            return
+        self._box_receptor_uuid = current
+        self._place_box_for_receptor()
+
+    # --- the search box ------------------------------------------------------
+
+    def _selected_receptor(self):
+        if self._project is None:
+            return None
+        receptor_uuid = self._receptor_combo.currentData()
+        return self._project.find_macromolecule(receptor_uuid) if receptor_uuid else None
+
+    def displayed_box(self) -> DockingBox:
+        """The box as the six spinboxes currently read it.
+
+        The ONE accessor, used by `_on_dock_clicked` and by the tests that
+        check what was sent. `_box_source` records where these numbers came
+        from and never substitutes for them: reading the box from anywhere
+        else is how the panel would start displaying one thing and docking
+        another.
+        """
+        return DockingBox(
+            center=(self._center_x.value(), self._center_y.value(), self._center_z.value()),
+            size=(self._size_x.value(), self._size_y.value(), self._size_z.value()),
+        )
+
+    def _write_box(self, box: DockingBox, source: str) -> None:
+        """Set the six spinboxes without the write counting as a user edit.
+
+        `setValue` emits `valueChanged` exactly as a keystroke does, so
+        without this guard every derived box would be marked `manual` the
+        instant it was written -- and the panel would then refuse to
+        re-derive it. Scoped around the writes rather than inferred from
+        whether the values changed, because a value that happens to match
+        is still a programmatic write.
+        """
+        self._writing_box = True
+        try:
+            for spin, value in zip(
+                (self._center_x, self._center_y, self._center_z,
+                 self._size_x, self._size_y, self._size_z),
+                (*box.center, *box.size),
+                strict=True,
+            ):
+                spin.setValue(value)
+        finally:
+            self._writing_box = False
+        self._box_source = source
+
+    def _on_box_edited(self, _value: float) -> None:
+        if self._writing_box:
+            return
+        self._box_source = "manual"
+        self._box_status_label.setText("Search box: manually positioned.")
+
+    def _place_box_for_receptor(self) -> None:
+        """Box the receptor's own annotated site, or reset to defaults.
+
+        **A RECEPTOR CHANGE ALWAYS REWRITES THE BOX, and resetting is the
+        load-bearing half.** Leaving the previous receptor's coordinates in
+        place would present one structure's site as though it belonged to
+        another -- the same silently-plausible-wrong-box failure this
+        method exists to fix, just moved one step along. `_keep_chains` and
+        `_build_assembly` are reset directly above for exactly this reason;
+        the box simply never was.
+
+        A hand-tuned box survives everything else: this is reached from the
+        receptor combo and from the Derive button, and from nothing that
+        merely refreshes the panel.
+        """
+        receptor = self._selected_receptor()
+        if receptor is None:
+            self._write_box(_DEFAULT_BOX, "none")
+            self._update_derive_button(())
+            return
+
+        codes = self._ligand_codes_for(receptor)
+        self._update_derive_button(codes)
+        preferred = str((getattr(receptor, "metadata", None) or {}).get("ligand_code", "") or "")
+        if not preferred:
+            self._write_box(_DEFAULT_BOX, "none")
+            self._box_status_label.setText(
+                "No annotated binding site for this receptor, so the search box was reset "
+                "to defaults. Use Derive from ligand... to box a bound ligand."
+                if codes
+                else "No annotated binding site for this receptor, and no bound ligand to "
+                "derive one from. Position the search box manually."
+            )
+            return
+        self._derive_box_from(receptor, preferred)
+
+    def _derive_box_from(self, receptor, ligand_code: str) -> None:
+        """Place the box on `ligand_code`, or reset and say why.
+
+        Idempotent: the derivation is a pure function of the structure text
+        and the code, so pressing Derive twice writes the same six values
+        and reports the same thing.
+        """
+        from openchem.chem.binding_site import BindingSiteError, box_from_ligand
+
+        try:
+            site = box_from_ligand(receptor.structure_text, receptor.source_format, ligand_code)
+        except (BindingSiteError, Exception) as exc:  # noqa: BLE001 - reported, never crashes
+            logger.exception("Could not derive a search box for %s", receptor.display_name)
+            self._write_box(_DEFAULT_BOX, "none")
+            # Distinguished from "there is no site" deliberately: the
+            # metadata said this receptor HAS one, so silence would read as
+            # "nothing to box here" when the truth is that something is
+            # wrong and the user can act on it.
+            self._box_status_label.setText(
+                f"This receptor should have a {ligand_code} site, but it could not be "
+                f"located: {exc} The search box was reset to defaults."
+            )
+            return
+        self._write_box(site.box, "derived")
+        self._box_status_label.setText(f"Binding site: {site.describe()}")
+
+    def _ligand_codes_for(self, receptor) -> tuple[str, ...]:
+        from openchem.chem.binding_site import ligand_codes_in
+
+        try:
+            return tuple(ligand_codes_in(receptor.structure_text, receptor.source_format))
+        except Exception:  # noqa: BLE001 - a listing failure must not block docking
+            logger.exception("Could not list ligand codes for %s", receptor.display_name)
+            return ()
+
+    def _update_derive_button(self, codes: tuple[str, ...]) -> None:
+        """Say whether a box can be derived BEFORE the button is pressed.
+
+        A failed automatic derivation must not make the manual route look
+        permanently unavailable -- an imported structure, or a deposit
+        revision whose catalogue code has moved, still has ligands in it
+        that can define a site.
+        """
+        self._derive_button.setEnabled(bool(codes))
+        self._derive_button.setToolTip(
+            "Set the search box to the site defined by a bound ligand: "
+            + ", ".join(codes[:6])
+            + ("..." if len(codes) > 6 else "")
+            if codes
+            else "No bound ligand in this receptor to derive a search box from."
+        )
+
+    def _on_derive_clicked(self) -> None:
+        receptor = self._selected_receptor()
+        if receptor is None:
+            self._status_label.setText("Select a receptor first.")
+            return
+        codes = self._ligand_codes_for(receptor)
+        if not codes:
+            return
+        preferred = str((getattr(receptor, "metadata", None) or {}).get("ligand_code", "") or "")
+        if preferred and preferred.upper() in codes:
+            self._derive_box_from(receptor, preferred)
+            return
+        code, accepted = QInputDialog.getItem(
+            self, "Derive search box", "Box the site defined by:", list(codes), 0, False
+        )
+        if accepted and code:
+            self._derive_box_from(receptor, code)
 
     def _update_chain_status(self) -> None:
         """Say so on the panel when the receptor is being cut down.
@@ -304,10 +577,11 @@ class DockingPanel(QWidget):
             self._status_label.setText("Selected ligand has no structure yet.")
             return
 
-        box = DockingBox(
-            center=(self._center_x.value(), self._center_y.value(), self._center_z.value()),
-            size=(self._size_x.value(), self._size_y.value(), self._size_z.value()),
-        )
+        # The displayed box, always. `_box_source` says where it came from
+        # and never decides what is sent -- a user who typed six numbers
+        # over a derived box means the numbers.
+        box = self.displayed_box()
+        self._report_box_placement(receptor, box)
         # Prefer a real 3D conformer over the molecule's own molblock, which
         # for anything drawn in the 2D editor has all-zero z-coordinates --
         # docking a flat structure against a 3D receptor is meaningless, not
@@ -346,6 +620,30 @@ class DockingPanel(QWidget):
                 "strip_ligand_codes": _box_defining_ligand_codes(receptor),
             },
         )
+
+    def _report_box_placement(self, receptor, box: DockingBox) -> None:
+        """Say where the box sits before the run, and never block it.
+
+        Warn-never-block is deliberate. `far_from_reference_site` is
+        evidence that the run will not sample the annotated site, not a
+        verdict that the user is wrong: blind docking and allosteric sites
+        are real uses and a distant box is the intended experiment for
+        both. The zero-atom case IS refused, but further down, by
+        `docking_providers._require_atoms_in_box` against the prepared
+        receptor -- see `binding_site.BoxPlacement.atom_count` for why the
+        two counts differ and why both exist.
+        """
+        from openchem.chem.binding_site import describe_box_placement
+
+        code = str((getattr(receptor, "metadata", None) or {}).get("ligand_code", "") or "")
+        try:
+            placement = describe_box_placement(
+                receptor.structure_text, receptor.source_format, box, code or None
+            )
+        except Exception:  # noqa: BLE001 - a diagnostic must never stop a run
+            logger.exception("Could not judge box placement for %s", receptor.display_name)
+            return
+        self._box_status_label.setText(placement.describe())
 
     def _is_pending(self, ligand_molecule_uuid: str, receptor_macromolecule_uuid: str) -> bool:
         return (

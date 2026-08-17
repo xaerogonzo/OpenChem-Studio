@@ -87,6 +87,20 @@ carries its source and whether it is `exact`, `derived` or `parsed`.
 function tuned to rank poses. Treat the numbers as an ordering, not as
 ΔG. Comparing scores between different receptors is especially unsafe.
 
+**A score from a misplaced box looks exactly like a score from a good
+one.** This is the failure mode most likely to produce a confidently wrong
+answer, because nothing about the output indicates anything went wrong.
+Measured on a real run: four tryptamines docked against 5-HT2A (6WGT) with
+the search box left at the origin, **55.1 Å from where LSD actually
+binds**. The box still clipped 139 receptor atoms, so it was not empty and
+was not refused; all four returned nine poses with affinities of −5.5 to
+−4.3 kcal/mol, and all four landed within 0.35 kcal/mol of each other —
+because a non-specific patch of protein surface mostly measures ligand
+size. The panel now places the box on the annotated site and reports the
+distance before each run, but the general point stands: **check where the
+box is before believing a score**, and treat a set of near-identical scores
+across different ligands as a symptom rather than a result.
+
 **The receptor is rigid.** No induced fit, no side-chain flexibility. A
 ligand that would fit a real, breathing protein can be rejected by a frozen
 one.

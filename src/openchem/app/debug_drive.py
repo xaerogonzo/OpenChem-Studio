@@ -28,6 +28,8 @@ The script is a JSON list of steps, run in order:
     [
       {"do": "import",     "path": "C:/tmp/ethylmorphine.mol"},
       {"do": "select",     "molecule": -1},
+      {"do": "receptor",   "pdb_id": "6WGT"},
+      {"do": "dock_panel", "tag": "after-6wgt"},
       {"do": "panel",      "id": "Properties"},
       {"do": "expand",     "section": "admet"},
       {"do": "calculator", "id": "admet_ml", "parameters": {"tier": "basic"},
@@ -237,6 +239,111 @@ class _Driver(QObject):
         window._undo_stack.push(command)
         window._project_explorer.refresh()
         window._refresh_molecule_combos()
+
+    def _do_receptor(self, step: dict[str, Any]) -> None:
+        """Add a receptor from the library cache, WITHOUT the network.
+
+        `{"do": "receptor", "pdb_id": "6WGT"}`
+
+        Goes through `add_macromolecule` with the same
+        `entry_metadata` a real catalogue import records, because
+        `ligand_code` is what the Docking panel derives its search box
+        from -- an import that skipped the metadata would exercise the
+        imported-receptor path instead of the catalogue one, which is a
+        different branch and the wrong one to be checking.
+
+        Reads the on-disk cache only. Downloading here would make a
+        diagnostic run depend on the network and on RCSB being up, and
+        the cache is populated by any real use of File > Receptor Library.
+        """
+        from openchem.chem.receptor_library import RECEPTOR_LIBRARY
+        from openchem.domain.macromolecule import MacromoleculeModel
+        from openchem.services.receptor_library_service import cached_structure, entry_metadata
+
+        window = self._window
+        pdb_id = str(step["pdb_id"]).upper()
+        cached = cached_structure(pdb_id)
+        if cached is None:
+            logger.error(
+                "OPENCHEM_DRIVE: %s is not in the receptor cache -- open it once "
+                "through File > Receptor Library first",
+                pdb_id,
+            )
+            return
+        structure_text, source_format = cached
+        # `"plain": true` drops the catalogue metadata, which is what an
+        # imported receptor looks like -- no `ligand_code`, so the panel
+        # takes the "no annotated site" branch. The one way to drive the
+        # stale-box case, where a derived box must NOT survive the move to
+        # a receptor that has no site of its own.
+        entry = (
+            None
+            if bool(step.get("plain", False))
+            else next((e for e in RECEPTOR_LIBRARY if e.pdb_id.upper() == pdb_id), None)
+        )
+        window.add_macromolecule(
+            MacromoleculeModel(
+                display_name=f"{entry.target} ({entry.pdb_id})" if entry else pdb_id,
+                structure_text=structure_text,
+                source_format=source_format,
+                metadata=entry_metadata(entry) if entry else {},
+            )
+        )
+
+    def _do_dock_receptor(self, step: dict[str, Any]) -> None:
+        """Point the Docking panel's receptor combo at one entry.
+
+        `{"do": "dock_receptor", "index": 1}` -- negative indexes from the
+        end, as `select` does for molecules.
+
+        Adding a receptor does NOT select it: `molecule_combo.repopulate`
+        restores the previous pick by uuid, deliberately. So driving the
+        receptor-CHANGE path needs this as a separate step, and a script
+        that only adds a second receptor is still looking at the first --
+        which is what a run of this harness reported before this existed,
+        and read at first as the box failing to reset.
+        """
+        panel = getattr(self._window, "_docking_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: no docking panel on this window")
+            return
+        combo = panel._receptor_combo
+        index = int(step.get("index", 0))
+        if index < 0:
+            index += combo.count()
+        if not 0 <= index < combo.count():
+            logger.error("OPENCHEM_DRIVE: receptor index %s out of range", step.get("index"))
+            return
+        combo.setCurrentIndex(index)
+        logger.warning("OPENCHEM_DRIVE: dock_receptor -> %r", combo.currentText())
+
+    def _do_dock_panel(self, step: dict[str, Any]) -> None:
+        """Report what the Docking panel's search box currently says.
+
+        `{"do": "dock_panel", "tag": "after-6wgt"}`
+
+        The box is six spinboxes and a status line, so a screenshot shows
+        it but cannot be asserted on. This logs the numbers, where they
+        came from, and what the panel is telling the user -- which is the
+        difference between "the shot looks right" and "the box is on the
+        site".
+        """
+        panel = getattr(self._window, "_docking_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: no docking panel on this window")
+            return
+        box = panel.displayed_box()
+        logger.warning(
+            "OPENCHEM_DRIVE: dock_panel[%s] centre=(%.3f, %.3f, %.3f) size=(%.1f, %.1f, %.1f) "
+            "source=%s derive_enabled=%s",
+            step.get("tag", ""),
+            *box.center,
+            *box.size,
+            panel._box_source,
+            panel._derive_button.isEnabled(),
+        )
+        logger.warning("OPENCHEM_DRIVE: dock_panel[%s] box_status=%r",
+                       step.get("tag", ""), panel._box_status_label.text())
 
     def _do_select(self, step: dict[str, Any]) -> None:
         """Select a molecule by index (-1 is the most recent) or by name."""

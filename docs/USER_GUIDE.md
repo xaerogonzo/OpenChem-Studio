@@ -818,12 +818,37 @@ In the **Docking** panel:
    exclude them. This matters more than it looks: a deposit often contains
    a crystallisation chaperone, a second copy of the receptor, or a fusion
    partner, and leaving them in changes the result.
-3. **Set the search box.** Derive it from a bound ligand (the reliable
-   option) or place it manually in the 3D view. The app refuses to run a box
-   that contains no receptor atoms rather than returning empty results.
+3. **Check the search box.** Choosing a receptor from the library places
+   the box on that structure's own annotated site automatically, and the
+   panel says which ligand defined it — *"Binding site: 7LD: 24 atoms,
+   centre (6.7, 2.2, 54.6), box 16×17×16 Å"*. For a receptor you imported,
+   or to box a different site, **Derive from ligand...** lists what is
+   bound in the structure and boxes the one you pick. The six coordinates
+   stay editable throughout, and a box you type yourself is always the box
+   that runs.
+
+   Before each run the panel reports where the box sits relative to the
+   annotated site. Docking a long way from it is allowed — blind and
+   allosteric docking are real uses — but it is never silent, because
+   **a score from a misplaced box looks exactly like a score from a good
+   one**. A box containing no receptor atoms at all is refused outright.
 4. **Run**, and read the poses: ranked by score, each with a per-pose
    interaction analysis — hydrogen bonds, clashes and the specific receptor
    residues involved, which paint onto the macromolecule viewer.
+
+   The columns carry their definitions as tooltips, because two of them
+   are routinely misread:
+
+   - **Binding Affinity (kcal/mol)** — Vina's empirical score. Always
+     negative; more negative is predicted-tighter. It is *not* a measured
+     binding free energy, and scores are generally not comparable across
+     different receptors, targets or docking protocols.
+   - **RMSD l.b. / u.b.** — deviation in Å from **pose 1 of the same run**,
+     not from any experimental structure, which is why pose 1 always reads
+     0.000. The upper bound matches each atom to itself; the lower bound
+     allows symmetry-equivalent atoms, so l.b. ≤ u.b. always. A large value
+     means a geometrically different pose from pose 1 — it says nothing
+     about whether either is correct.
 
 Prep options (alternate-location filtering, symmetry-copy removal, hydrogen
 addition) are shared between the receptor Vina receives and the receptor the
