@@ -1053,6 +1053,9 @@ twelve of those land within 4.5%. The worst case is Ca(NO₃)₂, the one
 markedly non-spherical anion in the set. The targets are CRC Handbook
 Born–Haber values and the inputs are crystallographic volumes, so
 neither side of that comparison is the source paper's own estimate.
+Both were read from Jenkins' own Tables 2 and 3 — the CRC column is that
+paper's reference 40 — rather than from the Handbook directly, which is
+what [source:crc_handbook] records and why it is `reference_only`.
 
 What it will not do:
 
@@ -1077,8 +1080,10 @@ What it will not do:
 A **Kapustinskii estimate from Shannon six-coordinate ionic radii**, and it
 ships because it cleared a gate set before it was built.
 
-Validated against 36 experimental Born–Haber values (Kaya, Robles-Navarro,
-Mejía, Gómez & Cardenas, *J. Phys. Chem. A* 2022, **126**, 4507, Table 3):
+Validated against 36 experimental Born–Haber values
+([source:kaya2022] — Kaya, Robles-Navarro, Mejía, Gómez & Cardenas,
+*J. Phys. Chem. A* 2022, **126**, 4507, Table 3; 35 of the 36 were located
+in the paper and all 35 match what ships):
 
 | set | deviation |
 | --- | --- |

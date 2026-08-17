@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-155 commits since 0.9.0. Summarised by capability, matching the entry
-below; the git log is the per-commit record.
+Nothing yet.
+
+## [0.10.0] — 2026-08-17
+
+328 commits since 0.9.0. Summarised by capability; the git log is the
+per-commit record.
 
 ### Added
 
@@ -333,4 +337,5 @@ model, and PDBFixer-based missing-residue repair were each built far enough
 to be measured and then dropped. See
 [docs/VALIDATION.md](docs/VALIDATION.md).
 
+[0.10.0]: https://github.com/xaerogonzo/OpenChem-Studio/releases/tag/v0.10.0
 [0.9.0]: https://github.com/xaerogonzo/OpenChem-Studio/releases/tag/v0.9.0

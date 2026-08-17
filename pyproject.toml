@@ -1,6 +1,6 @@
 [project]
 name = "openchem"
-version = "0.9.0"
+version = "0.10.0"
 description = "Open-source, plugin-based chemistry workstation (molecular editor + cheminformatics environment)"
 readme = "README.md"
 license = "GPL-3.0-or-later"
