@@ -36,6 +36,7 @@ cites nothing.
 from __future__ import annotations
 
 import re
+import subprocess
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -91,6 +92,16 @@ ALLOWED_MISSING_PATHS = {
     "chem/stout_providers.py",
     "chem/stout_runner.py",
     "services/stout_setup.py",
+    # tinygraph's own build file, named by ROADMAP.md while explaining why
+    # that dependency cannot be installed on Windows ("a `setup.py` passing
+    # GCC/Clang flags that MSVC rejects"). Somebody else's file, like the
+    # molstar path above -- and `docs/SOURCES_TODO.md` names it again while
+    # describing the bug that let it pass for months.
+    #
+    # IT IS ONLY LISTED HERE BECAUSE THE WALK WAS FIXED. While `_repo_files`
+    # used `rglob`, this resolved silently against numpy's
+    # `numpy/_core/tests/examples/cython/setup.py` inside `.venv`.
+    "setup.py",
 }
 
 #: Test names cited as HISTORY rather than as tests to go and find.
@@ -105,12 +116,45 @@ ALLOWED_MISSING_TESTS = {
 _PATH_RE = re.compile(r"`([A-Za-z0-9_./-]+\.(?:py|json|html|md|toml|ps1|jsx|cif|yml))`")
 
 
-def _repo_files() -> set[str]:
-    return {
-        str(p.relative_to(_ROOT)).replace("\\", "/")
-        for p in _ROOT.rglob("*")
-        if p.is_file()
-    }
+@lru_cache(maxsize=1)
+def _repo_files() -> frozenset[str]:
+    """Every file the REPOSITORY contains, asked of git.
+
+    THIS USED TO WALK THE WHOLE TREE WITH `rglob`, WHICH MADE THE CHECK
+    ANSWER ABOUT THE MACHINE RATHER THAN THE REPOSITORY. Measured when this
+    was fixed: `rglob` returned **38,680** files against git's **1,021** --
+    97% of what a citation was being matched against was `.venv`,
+    `node_modules`, `build`, `dist` and `__pycache__`.
+
+    That matters because of the basename fallback below: a bare `foo.py`
+    resolves if ANY file anywhere is called `foo.py`. So `docs/ROADMAP.md`
+    could cite a bare `setup.py` -- which this repository does not contain
+    -- and pass on any machine with numpy installed, because numpy ships
+    `numpy/_core/tests/examples/cython/setup.py`. The guard was green for a
+    reason that had nothing to do with the repository.
+
+    Asking git removes the environment from the question entirely, and is
+    the same move `test_sources_are_current.test_every_used_by_path_is_tracked_in_git`
+    already makes.
+
+    AN INCONCLUSIVE PROBE RAISES rather than returning an empty set. "I
+    could not ask git" is not "the repository is empty", and a blanket
+    except here would turn every citation check into a silent pass -- the
+    failure mode this whole file exists to prevent, installed in its own
+    foundation.
+    """
+    result = subprocess.run(
+        ["git", "ls-files", "-z"], cwd=_ROOT, capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"could not list repository files: {result.stderr.strip()}")
+    files = frozenset(p for p in result.stdout.split("\0") if p)
+    if len(files) < 200:
+        raise RuntimeError(
+            f"git ls-files returned only {len(files)} paths, which cannot be this "
+            f"repository -- refusing to check citations against it"
+        )
+    return files
 
 
 def _known_test_names() -> tuple[set[str], set[str]]:
@@ -209,6 +253,46 @@ def test_claude_md_has_no_duplicate_headings():
     duplicates = sorted({h for h in headings if headings.count(h) > 1})
 
     assert not duplicates, f"CLAUDE.md has repeated headings: {duplicates}"
+
+
+def test_the_citation_check_only_sees_the_repository():
+    """The file list must be the repository, not the machine.
+
+    Guarding the FIX rather than the symptom, because the symptom was a
+    green test. `_repo_files` walked the whole tree with `rglob` for most of
+    this file's life, and the only visible consequence was that
+    `docs/ROADMAP.md` could cite a `setup.py` this repository does not have
+    and pass -- resolved against numpy's copy inside `.venv`.
+
+    Reverting to `rglob` would restore that silently, so this asserts the
+    two properties that distinguish the two enumerations: nothing from a
+    build or environment directory is in the list, and the count is of the
+    right ORDER. 38,680 files against 1,021 is not a subtle difference.
+    """
+    files = _repo_files()
+
+    # `dist` is deliberately NOT in this set: `resources/ketcher/dist/` is a
+    # committed, shipped bundle, and the first version of this guard failed
+    # on it. An environment directory is one git does not track; a build
+    # OUTPUT can be a perfectly legitimate part of the repository.
+    intruders = sorted(
+        f for f in files
+        if any(part in {".venv", "node_modules", "__pycache__", ".git", ".pytest_cache"}
+               for part in f.split("/"))
+    )
+    assert not intruders[:20], (
+        f"the citation check is matching against non-repository files, so a "
+        f"cited path can resolve against something nobody ships: {intruders[:20]}"
+    )
+
+    # A tracked repository of this project's size. The bound is loose on
+    # purpose -- it is here to catch an enumeration that has silently gained
+    # tens of thousands of entries, not to pin a file count that moves with
+    # every commit.
+    assert 200 < len(files) < 5000, (
+        f"{len(files)} files: this is not the tracked repository. An `rglob` "
+        f"walk of this tree returns roughly 38,000."
+    )
 
 
 def test_every_allowlist_entry_is_explained():

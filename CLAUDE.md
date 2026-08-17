@@ -5024,6 +5024,44 @@ from the iodine entry rather than trusting the label -- the same move
 `test_assembly_gate.py` makes -- and lives with the Lewis tests, because a
 guard over every data file in the project must not know chemistry.
 
+### THE DOCS GUARD WAS CHECKING THE MACHINE, NOT THE REPOSITORY
+
+`test_docs_are_current._repo_files` enumerated with `rglob("*")` over the
+whole tree. Measured when it was fixed: **38,680 files against git's 1,021**
+-- so 97% of what every cited path was matched against was `.venv`,
+`node_modules` and `__pycache__`.
+
+That matters because of the BASENAME FALLBACK, which is deliberate and
+correct on its own terms ("see `engine.py`" should resolve): a bare filename
+passes if anything anywhere carries that name. So `docs/ROADMAP.md` cited a
+bare `setup.py` this repository does not contain, and passed on any machine
+with numpy installed, because numpy ships one of its own under
+numpy/_core/tests/examples/cython/ (written without backticks here, because
+the fixed guard correctly rejects a document that cites it).
+
+**THE A/B IS THE PART WORTH KEEPING**, because the symptom was a GREEN test
+and nothing about the guard looked wrong. Citing a pandas module present
+only in the virtualenv:
+
+    old, rglob incl. .venv     19 passed in 32.18 s   <- silently accepted
+    new, git ls-files          1 failed  in  0.26 s   <- caught
+
+120x faster as well, which is what walking 38,000 files instead of 1,000
+costs on every one of the 19 parametrised documents.
+
+`test_the_citation_check_only_sees_the_repository` guards the FIX rather
+than the symptom, and asserts the two things that distinguish the
+enumerations: no `.venv`/`node_modules`/`__pycache__` member is in the list,
+and the count is of the right ORDER. **`dist` is deliberately not in that
+intruder set** -- `resources/ketcher/dist/` is a committed, shipped bundle,
+and the first version of the guard failed on it. An environment directory is
+one git does not track; a build OUTPUT can be a legitimate part of a repo.
+
+**AN INCONCLUSIVE PROBE RAISES**, as with the `webgl` fixture: "I could not
+ask git" is not "the repository is empty", and a blanket except would turn
+every citation check into a silent pass -- the exact failure this file
+exists to prevent, installed in its own foundation.
+
 **`local` NAMES A PDF AND IS NEVER CHECKED.** `Sci Downloads` is not in the
 repository, so no run can resolve it. That is an admitted gap rather than an
 oversight: a check that cannot run is worse than a stated limit.
