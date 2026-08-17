@@ -3,7 +3,7 @@
   "_supplementary_source_keys": ["crc_handbook"],
   "_about": {
     "scale": "Pauling",
-    "source": "The standard tabulation of Pauling-scale electronegativities, i.e. Pauling's original values as revised by A. L. Allred, J. Inorg. Nucl. Chem. 17 (1961) 215-221, which is the set reproduced in the CRC Handbook of Chemistry and Physics and in IUPAC's own tables.",
+    "source": "The standard tabulation of Pauling-scale electronegativities, i.e. Pauling's original values as revised by A. L. Allred, J. Inorg. Nucl. Chem. 17 (1961) 215-221, which is the standard tabulation. NOTE that the CRC Handbook is NOT a reproduction of it: measured against table 9-103 of the 97th edition, 72 of 85 elements agree and 13 do not (As, Au, Bi, Hg, Lu, Np, Pb, Pt, Pu, Tc, Tl, U, W), because that table gives values 'for the most common oxidation state' -- a different quantity. Allred's own Table 4 tabulates elements in different oxidation states, and the values here follow it: Tl is his Tl(I) 1.62, where CRC prints 1.8.",
     "what_is_verified": "The NUMBERS here are a standard published table, reproduced, not derived. What this project measured is the ALGORITHM that consumes them -- see tests/test_oxidation_states.py, where every assignment and every refusal was recorded from a real run before it was asserted.",
     "omissions": "He, Ne and Ar have no accepted Pauling value and are absent. An element that is absent is a refusal, never a guess: `assign()` declines to answer rather than substitute a neighbour's value.",
     "category": "Used for the structural refusals, not for the arithmetic. `transition` is what separates Cr(CO)6 -- where this rule returns +6 and the answer is 0 -- from methyllithium, where it returns +1 and is right.",

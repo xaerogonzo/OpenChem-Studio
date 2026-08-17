@@ -1,8 +1,13 @@
 {
- "_source_key": "vogel_drago1996",
- "_supplementary_source_keys": ["drago1965", "drago1992"],
+ "_generated_by": "tools/build_lewis_parameters.py -- do not hand-edit; re-run it",
  "_parameter_scale": "modern_ecw",
- "_scale_note": "Two DIFFERENT claims, kept apart on purpose. source_key says where these numbers came from; parameter_scale says what numerical convention they are in, and the two are not the same question. Drago & Wayland 1965 normalise iodine to E_A = C_A = 1.000, where this table has iodine at E = 0.5, C = 2.0 -- so citing the 1965 paper as the source would imply a scale these values are not on. test_lewis_parameters_match_the_declared_parameter_scale DERIVES the scale from the iodine entry rather than trusting this label.",
+ "_scale_note": "Two DIFFERENT claims, kept apart on purpose. _source_key says where these numbers came from; _parameter_scale says what numerical convention they are in, and the two are not the same question. Drago & Wayland 1965 normalise iodine to E_A = C_A = 1.000, where this table has iodine at E = 0.5, C = 2.0 -- so citing the 1965 paper as the source would imply a scale these values are not on. Verified against Table 1 of the 1996 paper, whose own footnote warns that these parameters 'should not be mixed with those parameters found in the literature prior to 1991'. test_lewis_parameters_match_the_declared_parameter_scale DERIVES the scale from the iodine entry rather than trusting this label.",
+ "_source_key": "vogel_drago1996",
+ "_supplementary_source_keys": [
+  "drago1965",
+  "drago1993",
+  "drago1990"
+ ],
  "acids": {
   "BrI": {
    "C": 3.29,
@@ -211,7 +216,7 @@
    "name": "diethyl sulfide"
   },
   "CN": {
-   "C": 3.13,
+   "C": 3.12,
    "E": 2.16,
    "name": "methylamine"
   },
@@ -316,7 +321,7 @@
    "name": "pyridine"
   }
  },
- "citation": "Drago-Wayland E and C parameters, via the Wikipedia ECW model compilation of Vogel & Drago, J. Chem. Educ. 1996, 73, 701 and Drago et al., Inorg. Chem. 1992, 32, 2473. Original model: Drago & Wayland, J. Am. Chem. Soc. 1965, 87, 3571 (doi:10.1021/ja01094a008).",
+ "citation": "Drago-Wayland E and C parameters, read from Table 1 of Vogel & Drago, 'The ECW Model', J. Chem. Educ. 1996, 73(8), 701-707, with additional donors from Drago, Dadmun & Vogel, 'Addition of new donors to the E and C model', Inorg. Chem. 1993, 32, 2473-2479 (doi:10.1021/ic00063a045). Original model: Drago & Wayland, J. Am. Chem. Soc. 1965, 87, 3571-3577 (doi:10.1021/ja01094a008). The 0.5/2.0 iodine scale these values are on was introduced by Drago, Ferris & Wong, J. Am. Chem. Soc. 1990, 112, 8953-8961 (doi:10.1021/ja00180a047); the 1996 paper warns that parameters from earlier fits must not be mixed with it.",
  "units": {
   "C": "(kcal/mol)^1/2",
   "E": "(kcal/mol)^1/2",
@@ -325,6 +330,7 @@
  "validation": {
   "adducts": 8,
   "against": "measured donor-iodine adduct enthalpies",
+  "also_checked_against": "the observed enthalpies in Tables I, II and III of Drago & Wayland 1965 -- iodine 0.36 and phenol 0.77 kcal/mol mean error, with the two sterically hindered trimethylborane adducts over-predicted as that paper's own measured F-strain requires",
   "mean_absolute_error_kcal_mol": 0.272
  }
 }

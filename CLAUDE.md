@@ -4947,6 +4947,59 @@ has touched the paper.** What stands in for that check today is
 `test_the_shipped_table_reproduces_the_measured_enthalpies`, which
 reproduces eight measured enthalpies to 0.27 kcal/mol.
 
+### AND READING THE SOURCES FOUND TWO DEFECTS THE TESTS COULD NOT
+
+Both were in SHIPPED data, both had passed every test for as long as they
+had existed, and neither is findable without the paper open beside the file.
+
+**THE DRAGO E/C TABLE HAD A TRANSCRIPTION ERROR.** All 53 shipped
+parameters were checked against Table 1 of [source:vogel_drago1996]; **52
+matched exactly** and methylamine's `C_B` was 3.13 where the paper prints
+3.12. Fixed in `tools/build_lewis_parameters.py`. It does not move the
+validation MAE (0.272 over eight iodine adducts), which is precisely why
+nothing caught it: **a validation that averages cannot see one value that
+is 0.01 out.** The scan has no text layer, so this needed a 520-dpi render.
+
+That paper also closed the project's weakest provenance chain -- the E/C
+numbers had reached the repo "via the Wikipedia ECW model compilation" with
+no step touching the source -- and its **footnote 1 is the argument for
+`_parameter_scale` existing**: these parameters "should not be mixed with
+those parameters found in the literature prior to 1991".
+
+**AND `electronegativity.json` CARRIED A CLAIM THAT IS FALSE.** It said the
+Allred set is "the set reproduced in the CRC Handbook of Chemistry and
+Physics". Measured against table 9-103 of the 97th edition: **72 of 85
+agree, 13 do not** -- As, Au, Bi, Hg, Lu, Np, Pb, Pt, Pu, Tc, Tl, U, W, some
+of them widely (Pb 2.33 against 1.8, W 2.36 against 1.7).
+
+**NO SHIPPED VALUE IS WRONG**, and establishing that is the point: CRC's
+table says outright it gives values "for the most common oxidation state",
+a different quantity, while Allred's own Table 4 tabulates oxidation states
+separately and lists Tl(I) 1.62 -- exactly what this project ships, where
+CRC prints 1.8. Fe 1.83 and Tl 1.62 both appear in Allred's tables, so the
+attribution is sound. Only the word "reproduced" failed.
+
+**"WHICH EDITION" WAS THE WRONG QUESTION ABOUT THE CRC.** With the book in
+hand the answer is that **no number here came from any edition**: the
+lattice targets are [source:kaya2022]'s, the CRC column named in
+`lattice_energy.py` is [source:jenkins1999]'s own ref 40 taken from
+Jenkins' table, and the electronegativities are Allred's. It is
+`reference_only`.
+
+**`kaya2022` WAS CITED TWICE AND REGISTERED ZERO TIMES, and the coverage
+check could not have found it.** The author-year sweep in
+`docs/SOURCES_TODO.md` greps a fixed alternation of surnames; "Kaya" was
+not in it. **That check finds only authors somebody already thought of** --
+the real limit of the non-DOI half. It was found by chasing the CRC's
+provenance for an unrelated reason. Its Table 3 supplies every experimental
+lattice energy the Kapustinskii route is scored against: 35 of 36 salts
+located, all 35 matching.
+
+Its file had also been dismissed twice -- first mistaken for the Gutmann
+paper because the filename matched that DOI's year, then written off as
+unrelated once it was not. **"Not that paper" is not "not a source"**, and
+both errors were the same move: deciding what a file is without opening it.
+
 **LOCAL PACKAGE METADATA VERIFIES SOFTWARE BETTER THAN ANY PDF.**
 `importlib.metadata` gave licences for five dependencies, and corrected one:
 PySide6 is "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0", not the plain

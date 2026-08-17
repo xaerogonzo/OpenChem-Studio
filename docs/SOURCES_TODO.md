@@ -1,230 +1,238 @@
 # Sources: what is still open
 
 Handoff for the next session working on provenance. `docs/SOURCES.md` is the
-registry; this file is the list of what it cannot yet stand behind, in the
-order worth doing.
+registry; this file is the list of what it cannot yet stand behind.
 
 **Delete this file when it empties.** It is a work list, not documentation,
-and a stale work list is worse than none — the same argument
-`tests/test_docs_are_current.py` exists to make.
+and a stale work list is worse than none.
 
-## Do not read the counts below as current — derive them
-
-Any number here rots. The registry is the source of truth and answers in a
-second:
+## Derive the numbers, don't read them
 
 ```bash
 uv run --no-sync python -c "import tomllib,pathlib;s=tomllib.loads(pathlib.Path('docs/sources.toml').read_text(encoding='utf-8'))['source'];[print(f\"{e['key']:26} {e['kind']:14} {e['citation'][:70]}\") for e in s if e['verification']=='unverified']"
 ```
 
-At the time of writing: **57 sources, 17 `citation_and_claim`, 23
-`citation`, 17 `unverified`.**
+At the time of writing: **60 sources, 20 `citation_and_claim`, 37
+`citation`, 3 `unverified`** — and **all three are terminal.** Every source
+this project cites now resolves to a DOI, an ISBN or a read document, and
+27 are held locally.
 
-(That line was wrong by two within the hour it was written, because three
-entries were added while it sat there. Which is the point of the command
-above it.)
+**So this file is nearly done.** What remains is not citation work: it is
+the two structural gaps at the foot, and the standing habit of re-running
+the coverage check below after any batch of source work.
 
-## The method, so it does not have to be rediscovered
+## What the verification pass closed
 
-`pdftoppm` is not installed, so the `Read` tool cannot open a PDF. Use
-pymupdf in a **throwaway venv**, never the project venv — the suite
-environment must stay exactly what `uv sync` produces:
+The first draft of this file had a Tier 1 of one entry, `vogel_drago1996`,
+described as *"the weakest link in the project"*. It is closed, and closing
+it **found a defect in shipped data**: every one of the 53 shipped Drago E/C
+parameters was checked against Table 1 of the paper, 52 matched exactly, and
+methylamine's `C_B` was shipped as 3.13 where the table prints 3.12. Fixed in
+`tools/build_lewis_parameters.py`; it does not move the validation MAE.
+
+Also closed: `allred1961`, `aqsoldb`, `gutmann_frontiers2022`, `ich_m9`,
+`tdc_admet`, `autodock_vina`, `pkasolver`, `adoptium_temurin`,
+`dimorphite_dl`, `crc_handbook`.
+
+**`crc_handbook` closed by dissolving the question.** "Which edition" was
+the wrong one: with the 97th in hand, **no number in this project came from
+any edition**. The lattice targets are [source:kaya2022]'s; the CRC column
+in `lattice_energy.py` is [source:jenkins1999]'s own ref 40, taken from
+Jenkins' table; the electronegativities are [source:allred1961]'s. It is
+`reference_only` now.
+
+**And it falsified a claim in shipped data.** `electronegativity.json` said
+the Allred set is "reproduced in the CRC Handbook". Against table 9-103 of
+the 97th: **72 of 85 agree, 13 do not** — because that table gives values
+"for the most common oxidation state", a different quantity. No shipped
+value is wrong; the word "reproduced" was, and has been corrected.
+
+**`kaya2022` was added, and it was missing for an instructive reason.** It
+supplies every experimental lattice energy the Kapustinskii route is scored
+against — 35 of 36 salts located, all 35 matching — and was cited in two
+places while absent from the registry. The author-year sweep at the foot of
+this file **could not have caught it**: "Kaya" was not in its alternation,
+so that check only finds authors somebody already thought of.
+
+## The last four, and how they were closed
+
+All four were stuck for the same reason — **the identifier in hand did not
+resolve** — and all four came unstuck from a bibliographic index rather than
+from trying harder at the original route.
+
+**`drago1992` did not exist, and could not have.** *Inorganic Chemistry*
+volume 32 is **1993**; volume 31 is 1992. The citation was internally
+impossible, so no search could return it. The real reference is Drago,
+**Dadmun** & Vogel, "Addition of new donors to the E and C model", Inorg.
+Chem. 1993, 32, 2473-2479, doi `10.1021/ic00063a045` — from the ECW paper's
+own Literature Cited, confirmed via CrossRef, which also fixed the author
+spelling. Key renamed to `drago1993`.
+
+**A citation can be wrong in a way that makes it unresolvable rather than
+merely imprecise**, and an inconsistent volume/year pair is the cheapest
+kind to catch — if anyone checks.
+
+**`yalkowsky_banerjee1992` is a BOOK**, which is why no DOI would ever find
+it: Marcel Dekker, New York, 1992, ISBN 978-0-8247-8615-1. Verified through
+D. Mackay's 1993 review (`mackay1993.pdf`), which independently states the
+publisher, year and ISBN.
+
+**THE BOOK ITSELF IS NOT HELD, AND NOTHING NEEDS IT.** That is worth
+stating plainly so nobody spends another evening hunting it. Every number
+this project derives from set A1 -- the 74% overlap with Delaney's fit, the
+zero bases -- is OUR measurement over InChIKeys, computed from
+[source:avdeef2020]'s appendix table, not read from the book. The book is
+the provenance of Avdeef's table, one level up. `citation` is therefore the
+correct and final state, not a placeholder.
+
+The review even supplies the explanation for the zero-bases result: the
+book has "no treatment of dissociating or ionizing solutes such as phenols
+or amines", so A1 could not have contained bases.
+
+**A near miss worth recording**: a file named "Aqueous Solubility Methods
+of Estimation for Organic Compound.pdf" turned out to be the *Handbook of
+Aqueous Solubility Data* (Yalkowsky & **He**, CRC Press, 2003, 1513 pp,
+ISBN 0-8493-1532-8) -- a different book by an overlapping author. "Banerjee"
+and "Marcel Dekker" appear nowhere in it. Third instance of the filename
+trap in one session.
+
+**`nmrshiftdb2` and `orca` were unavailable from their own projects.** The
+one place each citation could not be found was the site that publishes the
+thing. nmrshiftdb2 → Kuhn & Schlörer, Magn. Reson. Chem. 2015, 53, 582-589,
+doi `10.1002/mrc.4263`. ORCA → Neese, "Software Update: The ORCA Program
+System — Version 6.0", WIREs Comput. Mol. Sci. 2025, doi
+`10.1002/wcms.70019` (v6 because CLAUDE.md records runs on 6.1.1).
+
+**And `drago1990` was added on the way** — Drago, Ferris & Wong, JACS 1990,
+112, 8953-8961, doi `10.1021/ja00180a047`. Reference 6b of the ECW paper
+names it as where the E/C values were transformed and *"E_A and C_A values
+of I₂ were changed from 1 and 1 to 0.5 and 2"*, adding that *"one must not
+mix parameters from earlier fits with the transformed parameters used since
+1990."* That is the provenance of `_parameter_scale`, and nothing in the
+repository had cited it.
+
+## Terminal — leave them
+
+`miller_polarizability`, `hlb`, `tsei`. Their `reason` **is** that no usable
+source exists: unpublished parameters, no published formula, several
+incompatible definitions. `unverified` is the correct final state. Do not
+"fix" these.
+
+## Method
+
+`pdftoppm` is not installed, so `Read` cannot open a PDF. Use pymupdf in a
+**throwaway venv**, never the project venv:
 
 ```bash
-uv venv /path/to/scratch/pdfenv && uv pip install --python /path/to/scratch/pdfenv/Scripts/python.exe pymupdf
+uv venv /scratch/pdfenv && uv pip install --python /scratch/pdfenv/Scripts/python.exe pymupdf
 ```
 
-Then, and the encoding line is not optional — the first title containing
-`∼` raises `UnicodeEncodeError` on the cp1252 console:
+The encoding line is not optional — a title containing `∼` raises
+`UnicodeEncodeError` on the cp1252 console:
 
 ```bash
-PYTHONIOENCODING=utf-8 /path/to/scratch/pdfenv/Scripts/python.exe -c "import pymupdf;d=pymupdf.open(r'FILE.pdf');print(len(d));print(d[0].get_text()[:1500])"
+PYTHONIOENCODING=utf-8 /scratch/pdfenv/Scripts/python.exe -c "import pymupdf;d=pymupdf.open(r'FILE.pdf');print(d[0].get_text()[:1500])"
 ```
 
-Four traps already paid for:
+Six traps already paid for:
 
+- **A scan has no text layer.** `vogel1996.pdf` is 7 pages of images and
+  extracts as empty — which reads as a broken file rather than a scan.
+  Render at 500+ dpi and read the image; that is how `shannon1976` and the
+  Drago table were both read.
 - **A PDF's first page is not necessarily its paper.** `Drago & Wayland EC
-  1965.pdf` opens on the tail of the preceding article. Search the whole
-  text, not page one.
+  1965.pdf` opens on the tail of the preceding article.
 - **A reference list is a verification instrument.** Llinàs 2020's supplied
-  confirmed citations for two other entries, named the paper `avdeef2020`
-  had been confused with, and revealed a source the sweep had missed.
-- **A filename is not an identification.** `kaya2022.pdf` matched a DOI's
-  year and is a different paper entirely.
+  confirmed citations for two entries and revealed one the sweep had missed.
+- **A filename is not an identification — and "not that paper" is not "not
+  a source".** `kaya2022.pdf` matched a DOI's year, was assumed to be
+  [source:gutmann_frontiers2022], and is not. It was then written off as
+  unrelated, and is in fact cited twice in this repository as the source of
+  every experimental lattice energy. Both halves of that were wrong in the
+  same direction: deciding what a file is without opening it.
 - **Local package metadata beats any PDF for software.**
   `importlib.metadata` gave five licences and corrected one.
+- **A guess that turns out right was still a guess.** `allred1961`'s title
+  was invented, removed as unverifiable, and the source later confirmed it.
+  The identical move on `avdeef2020` named a different paper. Removal was
+  right both times.
 
-## Where each kind of fact goes
+## Where each answer goes
 
-Everything is edited in **`docs/sources.toml`** — never in `docs/SOURCES.md`,
-which is generated and will be overwritten. After any edit:
+Edit **`docs/sources.toml`** — never `docs/SOURCES.md`, which is generated.
+
+| what you learned | field |
+| --- | --- |
+| the reference is right | `verification = "citation"` + `verified_date` |
+| the **number we use** is right | `verification = "citation_and_claim"` + `verified_date` |
+| a DOI | `identifier_type = "doi"`, `identifier` |
+| a title you actually read | fold into `citation` |
+| you now hold the PDF | `local = "filename.pdf"` (never checked) |
 
 ```bash
 uv run --no-sync python tools/build_sources_doc.py
 uv run --no-sync python -m pytest -q tests/test_sources_are_current.py tests/test_docs_are_current.py
 ```
 
-| what you learned | field to set |
-| --- | --- |
-| the reference is right | `verification = "citation"` + `verified_date` |
-| the **number we use** is right | `verification = "citation_and_claim"` + `verified_date` |
-| a DOI | `identifier_type = "doi"`, `identifier = "10...."` |
-| a title you actually read | fold into `citation` |
-| a licence read from the artifact | `license` |
-| a resolved version | `version` + `package_manifest` |
-| you now hold the PDF | `local = "filename.pdf"` (never checked by any guard) |
-
 A `verified_date` on an `unverified` row fails the schema guard, and so does
-the reverse — the pair is enforced.
+the reverse.
 
-## Tier 1 — the one that carries real weight
-
-### `vogel_drago1996` — the weakest link in the project
-
-**Needed:** Vogel & Drago, *J. Chem. Educ.* **1996**, 73, 701.
-
-`src/openchem/chem/data/lewis_parameters.json` says its shipped E/C numbers
-came *"via the Wikipedia ECW model compilation"*. So the chain is
-Wikipedia → this repo → the registry, and **no step of it has touched the
-paper.** The entire Drago adduct feature — 24 acids, 33 bases — rests on a
-compilation nobody here has checked against a source.
-
-What currently stands in for that check is
-`test_the_shipped_table_reproduces_the_measured_enthalpies`, which
-reproduces eight measured donor–iodine enthalpies to 0.27 kcal/mol across a
-1.4–12.0 range. That is real evidence and it is validation-by-outcome, not
-provenance: a systematically shifted table that still fits eight points
-would pass it.
-
-**On obtaining it:** confirm the iodine reference values are `E = 0.5,
-C = 2.0` (the modern scale). If they are, raise to `citation_and_claim` and
-say so in the note — that single fact is what
-`test_lewis_parameters_match_the_declared_parameter_scale` ultimately
-encodes, and it is currently derived from [source:drago1965] stating the
-*other* scale rather than from this one stating ours.
-
-**`drago1992`** (*Inorg. Chem.* 1992, 32, 2473) is the supplementary source
-on the same line of the same JSON file, and is worth the same trip.
-
-## Tier 2 — cited in the repo, thinly sourced
-
-### `yalkowsky_banerjee1992`
-
-**Needed:** the full citation. Believed to be a book, not an article.
-
-Nothing beyond the author-year string exists anywhere in this repository,
-and it backs external test set A1 — cited in `docs/VALIDATION.md`,
-`benchmarks/solubility/README.md` and CLAUDE.md. Its provenance matters more
-than most, because the A1 finding is *"74% inside ESOL's own training set"*,
-which is a claim about what that compilation contains.
-
-### `allred1961`
-
-**Needed:** the title, and confirmation of the page range.
-*J. Inorg. Nucl. Chem.* 17 (1961) 215-221.
-
-Backs every electronegativity in `chem/data/electronegativity.json`. The
-numbers are a standard reproduced table, so the risk is low and the
-attribution should still be right.
-
-### `gutmann_frontiers2022`
-
-**Needed:** [10.3389/fchem.2022.861379](https://doi.org/10.3389/fchem.2022.861379)
-— authors and title.
-
-Open access, so this is a download rather than a hunt. It is
-`assessed_not_shipped`, and the recorded quotes in CLAUDE.md (*"no
-correlation could be found"*) came from a web fetch that cannot be
-reproduced here. **Do not restore an author list from the key name** — the
-previous one was invented that way.
-
-### `crc_handbook` — a decision, not a lookup
-
-**Which edition?** Nothing in the repo records it, and values do move
-between editions. It is used for two unrelated things: the Allred-revised
-Pauling electronegativities, and the lattice-energy column that
-[source:jenkins1999] was validated against. Those may well have come from
-different editions.
-
-## Tier 3 — verifiable from the web in minutes
-
-Each needs its canonical citation or licence confirmed from the project's
-own site, then `verification = "citation"`:
-
-`aqsoldb` (title/volume/pages — the repo carries only *"Sorkun, Khetan & Er,
-Scientific Data 2019"*), `nmrshiftdb2`, `tdc_admet`, `ich_m9` (the full
-guideline title, from ICH itself), `adoptium_temurin`, `autodock_vina`,
-`orca`, `pkasolver`.
-
-For the four software ones, prefer whatever the shipped artifact or its
-package metadata states over the website.
-
-## Tier 4 — unverifiable by construction, leave them
-
-`miller_polarizability`, `hlb`, `tsei`. Their `reason` **is** that no usable
-source exists — unpublished parameters, no published formula, and several
-incompatible definitions respectively. `unverified` is the correct terminal
-state. Do not "fix" these.
+**And if a data file is generated, put the keys in the GENERATOR.** Hand-added
+metadata in `lewis_parameters.json` was silently dropped by the next run of
+`tools/build_lewis_parameters.py`. That file now carries a `_generated_by`
+marker, which it previously lacked — which is why the hand edit looked safe.
 
 ## Structural gaps, not citation gaps
 
 ### The Ketcher bundle is not attributed
 
 `src/openchem/resources/ketcher/dist/` carries third-party code beyond
-Ketcher — EPAM's Miew 0.11.1 is proven by its surviving banner, three.js by
-its constants — against a build tree of **430 packages** (340 MIT, 46 ISC,
-15 Apache-2.0, 11 "Apache-2.0 AND MIT", 6 BSD-3-Clause, 5 BlueOak-1.0.0, 1
+Ketcher — EPAM's Miew 0.11.1 by its surviving banner, three.js by its
+constants — against a build tree of **430 packages** (340 MIT, 46 ISC, 15
+Apache-2.0, 11 "Apache-2.0 AND MIT", 6 BSD-3-Clause, 5 BlueOak-1.0.0, 1
 CC-BY-4.0, 2 undeclared).
 
 Their notices are **not recoverable from the artifact**: the build strips
-comments even with minification off, so exactly two licence banners survive
-in 35 MB. An accurate list has to be generated at build time from
-`tools/ketcher-host/package-lock.json` — a `npm run build` step emitting a
-`THIRD-PARTY-NOTICES.txt` beside the dist, which the licence guard could
-then require. Adding Ketcher's own Apache-2.0 was necessary and is not
-sufficient.
+comments even with minification off, so exactly two banners survive in 35 MB.
+An accurate list has to be generated at build time from
+`tools/ketcher-host/package-lock.json` — a step emitting a
+`THIRD-PARTY-NOTICES.txt` beside the dist, which the licence guard could then
+require.
 
 `threedmol` has the same shape and is better behaved: its bundled licence
-text says outright *"3Dmol.js incorporates code from GLmol, Three.js, and
+says outright *"3Dmol.js incorporates code from GLmol, Three.js, and
 jQuery"*.
 
 ### `test_docs_are_current._repo_files` walks `.venv/`
 
-It enumerates with `rglob("*")` over the whole tree, so a cited path
-resolves if **anything in site-packages** happens to match it. That is why
-`docs/ROADMAP.md` can cite a bare `setup.py` — which does not exist in this
-repository — and pass on any machine with numpy installed.
+It enumerates with `rglob("*")` over the whole tree, so a cited path resolves
+if **anything in site-packages** matches it. That is why `docs/ROADMAP.md` can
+cite a bare `setup.py` — which this repository does not have — and pass.
 
-`tests/test_sources_are_current.py::test_every_used_by_path_is_tracked_in_git`
-avoids this by asking git instead, and is the pattern to copy. Fixing the
-docs guard is a separate, small change: either exclude `.venv`/`.git` from
-the walk, or take the file list from `git ls-files`.
+`test_every_used_by_path_is_tracked_in_git` avoids this by asking git, and is
+the pattern to copy. Fixing the docs guard is a small separate change: exclude
+`.venv`/`.git` from the walk, or take the list from `git ls-files`.
 
-### `local` is never checked, by design
+## Uncited PDFs in the archive
 
-It names a file in an archive outside the repository, so no run can resolve
-it. Recording that limit is deliberate — a check that cannot run is worse
-than a stated gap — but it does mean a wrong `local` survives silently.
-One already did: `kaya2022.pdf`.
+Present locally, cited nowhere, so **not** registry entries — listed only so
+nobody re-derives whether they matter: `glasser2000.pdf`, `glasser2012.pdf`,
+`jenkins2002.pdf` (lattice-energy family, where `glasser1995` and
+`jenkins1999` are registered), and `tantardini2021.pdf` — "Thermochemical
+electronegativities of the elements", Tantardini & Oganov, which is adjacent
+to `electronegativity.json`'s subject and might be worth a look on its own
+merits.
 
-## Uncited PDFs sitting in the archive
+## The completeness check
 
-Present locally and cited nowhere in the repo, so **not** registry entries —
-listed only so nobody re-derives whether they matter:
-`glasser2000.pdf`, `glasser2012.pdf`, `jenkins2002.pdf`. All three are in
-the lattice-energy family, where `glasser1995` and `jenkins1999` are already
-registered and verified.
+`SOURCES.md` says its completeness rests on the reconstruction sweep, not on
+anything a test proves. That has already paid out once: `glasser1995`,
+`hopfinger2009` and `yalkowsky_banerjee1992` were cited in the repository and
+absent from the registry, and the DOI sweep could not see them because none
+carries a DOI.
 
-## The completeness caveat is load-bearing
-
-`SOURCES.md` says its initial completeness rests on the reconstruction
-sweep, not on anything a test proves. That caveat has already been paid out
-once: `glasser1995`, `hopfinger2009` and `yalkowsky_banerjee1992` were all
-cited in the repository and absent from the registry, and the DOI sweep
-could not see them because none carries a DOI.
-
-**The check that found them** — worth re-running after any batch of source
-work, since it is the only thing covering the non-DOI half:
+Re-run this after any batch of source work — it is the only thing covering
+the non-DOI half:
 
 ```bash
 rg -o -N --no-filename -g '!docs/sources.toml' -g '!docs/SOURCES.md' -g '!**/vendor/**' -g '!**/resources/**' -e '(Glasser|Jenkins|Sorkun|Avdeef|Llin[aà]s|Abraham|Acree|Bradley|Delaney|Platts|Pearson|Parr|Drago|Shannon|Allred|Mayo|Hopfinger|Yalkowsky|Banerjee)[ ,]{0,2}(?:et al\.?)?[ ,]{0,3}(19|20)\d\d' . | sort -u
