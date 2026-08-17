@@ -95,7 +95,12 @@ ACIDS: dict[str, tuple[str, float, float, float]] = {
 #: name -> (SMILES, E_B, C_B).
 BASES: dict[str, tuple[str, float, float]] = {
     "ammonia": ("N", 2.31, 2.04),
-    "methylamine": ("CN", 2.16, 3.13),
+    # C_B was 3.13 here until the source was read: Vogel & Drago 1996,
+    # J. Chem. Educ. 73(8) 702, Table 1, row [2] prints 3.12. Read off a
+    # 520-dpi render of the scan, unambiguous. A transcription slip
+    # inherited from the Wikipedia compilation these values came through --
+    # the one value in 53 that did not match its source.
+    "methylamine": ("CN", 2.16, 3.12),
     "dimethylamine": ("CNC", 1.80, 4.21),
     "trimethylamine": ("CN(C)C", 1.21, 5.61),
     "quinuclidine": ("C1CN2CCC1CC2", 0.80, 6.72),
@@ -280,6 +285,32 @@ def main() -> None:
     OUTPUT.write_text(
         json.dumps(
             {
+                # WRITTEN HERE, NOT INTO THE JSON, and that is not a style
+                # choice -- hand-added keys were silently dropped by the very
+                # next run of this script, which is the same trap
+                # `build_element_reference.py` already carries a comment
+                # about. This file did not say it was generated, so nothing
+                # warned against the hand edit; `_generated_by` below fixes
+                # that for whoever opens it next.
+                "_generated_by": (
+                    "tools/build_lewis_parameters.py -- do not hand-edit; re-run it"
+                ),
+                "_source_key": "vogel_drago1996",
+                "_supplementary_source_keys": ["drago1965", "drago1992"],
+                "_parameter_scale": "modern_ecw",
+                "_scale_note": (
+                    "Two DIFFERENT claims, kept apart on purpose. _source_key says where "
+                    "these numbers came from; _parameter_scale says what numerical "
+                    "convention they are in, and the two are not the same question. Drago "
+                    "& Wayland 1965 normalise iodine to E_A = C_A = 1.000, where this "
+                    "table has iodine at E = 0.5, C = 2.0 -- so citing the 1965 paper as "
+                    "the source would imply a scale these values are not on. Verified "
+                    "against Table 1 of the 1996 paper, whose own footnote warns that "
+                    "these parameters 'should not be mixed with those parameters found in "
+                    "the literature prior to 1991'. "
+                    "test_lewis_parameters_match_the_declared_parameter_scale DERIVES the "
+                    "scale from the iodine entry rather than trusting this label."
+                ),
                 "citation": CITATION,
                 "units": {"E": "(kcal/mol)^1/2", "C": "(kcal/mol)^1/2", "W": "kcal/mol"},
                 "validation": {

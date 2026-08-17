@@ -124,26 +124,42 @@ over-predicts trimethylborane's adducts with the two bulkiest amines.
 [[source]]
 key = "vogel_drago1996"
 kind = "literature"
-citation = "Vogel & Drago, J. Chem. Educ. 1996, 73, 701. Title not established -- see note."
+citation = "G. C. Vogel & R. S. Drago, 'The ECW Model', J. Chem. Educ. 1996, 73(8), 701-707, Table 1."
 identifier_type = "bibliographic"
 identifier = "J. Chem. Educ. 1996, 73, 701"
 status = "shipped"
-used_by = ["src/openchem/chem/data/lewis_parameters.json"]
-verification = "unverified"
+used_by = ["src/openchem/chem/data/lewis_parameters.json", "tools/build_lewis_parameters.py"]
+local = "vogel1996.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-08-17
 note = """
-THE PRIMARY SOURCE OF THE SHIPPED E/C VALUES, AND THIS PROJECT HAS NEVER
-SEEN IT. `lewis_parameters.json` says the numbers came "via the Wikipedia
-ECW model compilation of Vogel & Drago" -- so the chain is
-Wikipedia -> this repo -> here, and no step of it touched the paper. That
-is why it is `unverified`, why it is recorded separately from
-[source:drago1965] rather than folded into it, and why the title is left
-blank: one was briefly added here from memory and removed.
+CLOSED, AND IT FOUND A DEFECT. This was the weakest link in the project:
+`lewis_parameters.json` said its numbers came "via the Wikipedia ECW model
+compilation of Vogel & Drago", so the chain ran Wikipedia -> this repo ->
+here with no step touching the paper.
 
-It is the weakest link in the Lewis chain and worth closing: the shipped
-E/C table is only as good as a compilation nobody here has checked against
-its source. The eight measured enthalpies it reproduces to 0.27 kcal/mol
-(`test_the_shipped_table_reproduces_the_measured_enthalpies`) are what
-currently stands in for that check.
+The paper is now read. **Every shipped parameter was checked against Table
+1, and 52 of 53 matched exactly.** The one that did not was methylamine's
+C_B, shipped as 3.13 where the table prints 3.12 -- a transcription slip
+inherited from the compilation, fixed in `tools/build_lewis_parameters.py`.
+It does not move the validation, which stays at 0.272 kcal/mol over the
+eight iodine adducts.
+
+The scan has NO TEXT LAYER (7 pages, one image each), so this was read from
+a 520-dpi render -- the same route `shannon1976` needed, and the reason a
+text-extraction check would have reported the file as empty rather than as
+unreadable.
+
+Iodine reads E_A = 0.50, C_A = 2.00, which is what
+`_parameter_scale = "modern_ecw"` asserts and what
+`test_lewis_parameters_match_the_declared_parameter_scale` derives. That was
+previously inferred from [source:drago1965] stating the OTHER scale; it is
+now confirmed from the paper that states ours.
+
+**The paper's own footnote 1 is the argument for that guard existing**: its
+parameters "should not be mixed with those parameters found in the
+literature prior to 1991". Equation 1 also confirms the sign this project
+once had wrong -- `-dH = E_A E_B + C_A C_B + W`, with W ADDED.
 """
 
 [[source]]
@@ -522,16 +538,22 @@ memorisation.
 [[source]]
 key = "allred1961"
 kind = "reference_table"
-citation = "A. L. Allred, J. Inorg. Nucl. Chem. 17 (1961) 215-221. Title not established -- see note."
+citation = "A. L. Allred, 'Electronegativity values from thermochemical data', J. Inorg. Nucl. Chem. 1961, Vol. 17, pp. 215-221."
 identifier_type = "bibliographic"
 identifier = "J. Inorg. Nucl. Chem. 1961, 17, 215-221"
 status = "shipped"
 used_by = ["src/openchem/chem/data/electronegativity.json"]
-verification = "unverified"
+local = "allred1961.pdf"
+verification = "citation"
+verified_date = 2026-08-17
 note = """
-THE TITLE IS NOT RECORDED, DELIBERATELY. `electronegativity.json` cites
-this as "A. L. Allred, J. Inorg. Nucl. Chem. 17 (1961) 215-221" and nothing
-more; a title was briefly added here from memory and removed.
+Verified from the paper's own header: "J. Inorg. Nucl. Chem., 1961, Vol.
+17. pp. 215 to 221 ... ELECTRONEGATIVITY VALUES FROM THERMOCHEMICAL DATA,
+A. L. ALLRED, Department of Chemistry, Northwestern University".
+
+The title had been guessed here once and removed as unverifiable. The guess
+happened to be right, which is not the same as having been right to record
+it -- the identical guess on [source:avdeef2020] named a different paper.
 
 Pauling's original values as revised by Allred -- the set reproduced in the
 CRC Handbook ([source:crc_handbook]) and in IUPAC's tables. The NUMBERS are
@@ -580,6 +602,40 @@ rather than to us, and this is the one that carries an obligation anyway.
 """
 
 
+[[source]]
+key = "kaya2022"
+kind = "literature"
+citation = "S. Kaya, A. Robles-Navarro, E. Mejia, T. Gomez & C. Cardenas, 'On the Prediction of Lattice Energy with the Fukui Potential: Some Supports on Hardness Maximization in Inorganic Solids', J. Phys. Chem. A 2022, 126, 4507-4516, Table 3."
+identifier_type = "doi"
+identifier = "10.1021/acs.jpca.1c09898"
+status = "shipped"
+used_by = [
+    "tests/test_lattice_energy.py",
+    "docs/SCIENTIFIC_LIMITATIONS.md",
+]
+local = "kaya2022.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-08-17
+note = """
+Table 3's "Exp U" column is the target every Kapustinskii estimate in this
+project is scored against. **Verified value by value: 35 of the 36 shipped
+salts were located in the paper and all 35 match exactly.**
+
+FOUND BY BEING WRONG ABOUT IT TWICE. `kaya2022.pdf` was first assumed to be
+[source:gutmann_frontiers2022] because the filename matched that DOI's year;
+on discovering it was not, it was written off as unrelated -- when it is in
+fact cited by `tests/test_lattice_energy.py` and by
+`docs/SCIENTIFIC_LIMITATIONS.md`. A file can be the wrong answer to one
+question and the right answer to another.
+
+**AND THE AUTHOR-YEAR SWEEP IN `docs/SOURCES_TODO.md` COULD NOT HAVE CAUGHT
+IT.** That check greps for a fixed alternation of surnames, and "Kaya" was
+not in it -- so it finds only sources whose authors somebody already thought
+of. That is a real limit of the non-DOI half of the coverage check, and the
+reason this entry exists is that the CRC Handbook's provenance was being
+chased for an unrelated reason.
+"""
+
 # =============================================================================
 # Datasets
 # =============================================================================
@@ -587,19 +643,24 @@ rather than to us, and this is the one that carries an obligation anyway.
 [[source]]
 key = "aqsoldb"
 kind = "dataset"
-citation = "Sorkun, Khetan & Er, Scientific Data 2019. Title, volume and pages not established -- see note."
-identifier_type = "url"
-identifier = "https://github.com/mcsorkun/AqSolDB"
+citation = "M. C. Sorkun, A. Khetan & S. Er, 'AqSolDB, a curated reference set of aqueous solubility and 2D descriptors for a diverse set of compounds', Scientific Data 2019, 6:143."
+identifier_type = "doi"
+identifier = "10.1038/s41597-019-0151-1"
 status = "shipped"
 used_by = ["benchmarks/solubility/fetch.py", "benchmarks/solubility/README.md"]
-verification = "unverified"
+local = "aqsoldb.pdf"
+verification = "citation"
+verified_date = 2026-08-17
 note = """
-THE CITATION IS EXACTLY WHAT THE REPOSITORY CARRIES AND NO MORE.
-`benchmarks/solubility/README.md` says "Sorkun, Khetan & Er, Scientific
-Data 2019"; a title and a volume/page were briefly added here from memory
-and have been removed, because that is the same invention that put a
-different paper's title on [source:avdeef2020]. The GitHub URL is the
-identifier because it is the thing this project actually fetches from.
+Verified from the paper: Scientific Data (2019) 6:143,
+doi 10.1038/s41597-019-0151-1, by Sorkun, Khetan and Er. The title and
+volume had been added here from memory, removed as unverifiable, and are
+now restored from the source. **The removal was still right**: at the time
+nothing distinguished that guess from the one that put a different paper's
+title on [source:avdeef2020], and only reading the source can tell those
+apart afterwards.
+
+The data itself is still fetched from `https://github.com/mcsorkun/AqSolDB`.
 
 DOWNLOADED PARTLY IN ORDER TO SUBTRACT IT. AqSolDB is a merge of nine
 sources, and TWO of them make it dangerous as an evaluation set:
@@ -660,12 +721,22 @@ Downloaded on demand (~152 MB), indexed, then the download is discarded.
 IT IS THE HOSE-CODE LOOKUP'S OWN INDEX, so it is circular as ground truth
 and nothing is scored against it -- see [source:kwon2023], which exists for
 that reason.
+
+STILL UNVERIFIED AFTER THREE ATTEMPTS, and this records what they returned
+so nobody repeats them. The SourceForge project page states only that "the
+data is published under an open content license" WITHOUT NAMING WHICH, and
+gives no citation. The web front end at nmr.uni-koeln.de serves a Jetspeed
+login form rather than an about page, and its help path 404s.
+
+So the licence is known to be open and is otherwise unidentified, and the
+canonical paper reference has not been obtained from a primary source. A
+citation is easy to supply from memory here and deliberately has not been.
 """
 
 [[source]]
 key = "tdc_admet"
 kind = "dataset"
-citation = "Therapeutics Data Commons (TDC) ADMET benchmark group."
+citation = "Therapeutics Data Commons, 'Therapeutics Data Commons: Machine Learning Datasets and Tasks for Drug Discovery and Development', NeurIPS 2021. Author list not established -- see note."
 identifier_type = "url"
 identifier = "https://tdcommons.ai/"
 status = "reference_only"
@@ -675,8 +746,17 @@ can be read correctly -- they are the vendor's held-out numbers, not ours,
 and the model trained on all of TDC. Nothing here is scored against it.
 """
 used_by = ["benchmarks/admet/README.md", "README.md"]
-verification = "unverified"
+verification = "citation"
+verified_date = 2026-08-17
 note = """
+Title and venue read from tdcommons.ai, which names its primary publication
+as "Therapeutics Data Commons: Machine Learning Datasets and Tasks for Drug
+Discovery and Development", NeurIPS 2021, and a companion "Artificial
+Intelligence Foundation for Therapeutic Science", Nature Chemical Biology
+2022. **The author list is not on that page and is not recorded here** --
+supplying one from memory is the mistake that put a different paper's title
+on [source:avdeef2020].
+
 The original plan's route to this data did not work and the failure was
 misleading: TDC's Harvard Dataverse returned 403, and PyTDC then cached the
 0-byte failure as a 'local copy', so every retry reported 'Found local
@@ -889,18 +969,27 @@ is not listed.
 [[source]]
 key = "ich_m9"
 kind = "standard"
-citation = "ICH M9, the guideline defining BCS-based biowaivers. Full title not verified against the guideline itself."
+citation = "ICH Harmonised Guideline, 'Biopharmaceutics Classification System-Based Biowaivers M9', final version adopted 20 November 2019 (Step 4)."
 identifier_type = "standard"
-identifier = "ICH M9"
+identifier = "ICH M9 (Step 4, 20 November 2019)"
 status = "shipped"
 used_by = ["src/openchem/chem/solubility.py"]
-verification = "unverified"
+verification = "citation_and_claim"
+verified_date = 2026-08-17
 note = """
-Defines the pH 1.2-6.8 window and the dose/solubility criterion the BCS
-screen applies. IT IS DEFINED ON AQUEOUS MEDIA, which is why the screen,
-the pH curve and the Henderson-Hasselbalch adjustment are all water-only
-and a non-aqueous solvent gets `NON_AQUEOUS_SOLVENT` rather than an
-authoritative-looking number.
+Read from the guideline itself, which is freely published. Its solubility
+criterion reads: "A drug substance is classified as highly soluble if the
+highest single therapeutic dose is completely soluble in 250 ml or less of
+aqueous media over the pH range of 1.2-6.8 at 37+-1 C."
+
+All three numbers the code uses match that sentence exactly --
+`BCS_PH_LOW = 1.2`, `BCS_PH_HIGH = 6.8`, `BCS_VOLUME_ML = 250.0` -- which
+is what makes this `citation_and_claim` rather than `citation`.
+
+**"AQUEOUS MEDIA" IS IN THE CRITERION ITSELF**, so the water-only scoping is
+the guideline's, not an assumption of ours: the screen, the pH curve and the
+Henderson-Hasselbalch adjustment are all aqueous, and a non-aqueous solvent
+gets `NON_AQUEOUS_SOLVENT` rather than an authoritative-looking number.
 """
 
 [[source]]
@@ -926,23 +1015,51 @@ and never reach an even count. The vendored naming engine implements the
 [[source]]
 key = "crc_handbook"
 kind = "reference_table"
-citation = "CRC Handbook of Chemistry and Physics."
+citation = "CRC Handbook of Chemistry and Physics, 97th edition."
 identifier_type = "isbn"
-identifier = "CRC Handbook of Chemistry and Physics (edition not recorded)"
-status = "shipped"
+identifier = "CRC Handbook of Chemistry and Physics, 97th edition"
+local = "CRC_Handbook_of_Chemistry_and_Physics_97.pdf"
+status = "reference_only"
+reason = """
+NO NUMBER IN THIS PROJECT WAS READ FROM IT. Both places that name it reach
+it through an intermediary: the lattice-energy targets come from Table 3 of
+[source:kaya2022], while the CRC column named in `lattice_energy.py` is
+[source:jenkins1999]'s own ref 40, taken from Jenkins' table rather than
+from the book; and the electronegativities come from [source:allred1961],
+with the CRC named only as somewhere the same set is said to be reproduced.
+"""
 used_by = [
     "src/openchem/chem/data/electronegativity.json",
     "src/openchem/chem/lattice_energy.py",
 ]
-verification = "unverified"
+verification = "citation"
+verified_date = 2026-08-17
 note = """
-Two uses: it reproduces the Allred-revised Pauling electronegativities
-([source:allred1961]), and its lattice-energy column is the TARGET the
-volume-based correlation was validated against ([source:jenkins1999]).
+"WHICH EDITION" TURNED OUT TO BE THE WRONG QUESTION. With the 97th edition
+in hand the answer is that no number here came from any edition -- see
+`reason` above -- so the entry is `reference_only` rather than a shipped
+source.
 
-THE EDITION IS NOT RECORDED ANYWHERE IN THIS REPO, which is a real gap for
-a reference table -- values do move between editions. Recorded as the gap
-it is rather than guessed at.
+**AND ONE CLAIM ABOUT IT IS MEASURABLY FALSE.**
+`electronegativity.json` said the Allred set is "the set reproduced in the
+CRC Handbook of Chemistry and Physics and in IUPAC's own tables". Compared
+element by element against table 9-103 of the 97th edition: **72 of 85
+match and 13 do not** -- As, Au, Bi, Hg, Lu, Np, Pb, Pt, Pu, Tc, Tl, U, W.
+Some differ widely: Pb 2.33 against 1.8, W 2.36 against 1.7.
+
+The cause is not an error on either side. CRC's table states outright that
+it gives values "for the most common oxidation state", which is a different
+quantity: Allred's own Table 4 is titled "Electronegativities of some
+elements in different oxidation states" and lists Tl(I) 1.62 -- exactly the
+shipped Tl -- and Pb(II) 1.87, where this project ships the Pb(IV) value.
+Fe 1.83 and Tl 1.62 both appear in Allred's tables directly, so the
+attribution to [source:allred1961] is sound and NO SHIPPED VALUE IS WRONG.
+The word "reproduced" is what does not survive, and it has been corrected
+in the data file.
+
+The lattice-energy table in the 97th edition is at page 2097 and is by
+"H. D. B. Jenkins and H. K. Roobottom" -- the same Jenkins as
+[source:jenkins1999], which is why that paper's ref 40 points here.
 """
 
 
@@ -1194,22 +1311,34 @@ citation = "Eclipse Temurin JRE, fetched from the Adoptium API on demand."
 identifier_type = "url"
 identifier = "https://api.adoptium.net/"
 status = "shipped"
-license = "GPL-2.0-with-classpath-exception"
+license = "GPL-2.0 with Classpath Exception (OpenJDK runtime); Apache-2.0 for Adoptium build scripts"
 package_manifest = "src/openchem/services/java_setup.py"
-verification = "unverified"
-note = "Downloaded by the app so OPSIN ([source:opsin]) can run without a system Java."
+verification = "citation"
+verified_date = 2026-08-17
+note = """
+Downloaded by the app so OPSIN ([source:opsin]) can run without a system
+Java. Licensing read from adoptium.net: the OpenJDK code carries GPL v2
+with Classpath Exception (and Assembly Exception), while Adoptium's own
+build scripts and infrastructure are Apache-2.0. **It is the runtime that
+ships**, so the Classpath Exception is the operative term.
+"""
 
 [[source]]
 key = "autodock_vina"
 kind = "software"
-citation = "AutoDock Vina, Center for Computational Structural Biology (Scripps)."
+citation = "J. Eberhardt, D. Santos-Martins, A. F. Tillack & S. Forli, 'AutoDock Vina 1.2.0: New Docking Methods, Expanded Force Field, and Python Bindings', J. Chem. Inf. Model. 2021; with O. Trott & A. J. Olson, J. Comput. Chem. 2010, 31(2), 455-461 for the original."
 identifier_type = "url"
 identifier = "https://github.com/ccsb-scripps/AutoDock-Vina"
 status = "shipped"
 license = "Apache-2.0"
 package_manifest = "src/openchem/services/tool_download_service.py"
-verification = "unverified"
+verification = "citation"
+verified_date = 2026-08-17
 note = """
+Licence and both citations read from the project's own repository, which
+asks for the 1.2.0 paper (doi 10.1021/acs.jcim.1c00203) and the original
+(doi 10.1002/jcc.21334) together.
+
 Optional and separately installed. THE SHIPPED PROVIDER PASSES `seed=None`,
 so Vina runs with a random seed and two runs of the same receptor already
 differ -- any A/B on a receptor change is measuring the search wandering
@@ -1228,6 +1357,13 @@ license = "proprietary, free for academic use -- installed by the user, never re
 package_manifest = "src/openchem/services/tool_download_service.py"
 verification = "unverified"
 note = """
+LICENCE TERMS VERIFIED, CITATION NOT. faccts.de states "ORCA is free for
+academic use, while commercial licenses are available through FACCTs",
+which is the claim this entry's `license` field makes. The site gives no
+canonical publication and points at the manual instead, so the paper anyone
+reporting ORCA results should cite is still unestablished here -- and is
+not supplied from memory.
+
 Optional, user-installed, and never bundled. Two invocation traps measured
 here: it ABORTS AT STARTUP if its own path uses forward slashes (it derives
 its helper-binary directory from the path it was invoked with), and it must
@@ -1239,14 +1375,24 @@ path minutes before `Opt` died on it.
 [[source]]
 key = "pkasolver"
 kind = "software"
-citation = "pkasolver, a graph-neural-network pKa predictor."
+citation = "pkasolver -- 'Improving Small Molecule pKa Prediction Using Transfer Learning with Graph Neural Networks', bioRxiv 2022. Author list not established -- see note."
 identifier_type = "url"
 identifier = "https://github.com/mayrf/pkasolver"
 status = "shipped"
 license = "MIT"
 package_manifest = "src/openchem/services/pkasolver_setup.py"
-verification = "unverified"
+verification = "citation"
+verified_date = 2026-08-17
 note = """
+Licence (MIT) and the preprint it asks to be cited (doi
+10.1101/2022.01.20.476787) read from the repository. **The author list is
+not on that page and is not recorded here.**
+
+Worth knowing from the same page: the repository states that Schrodinger's
+Epik licensing prevents distribution of the transfer-learning-trained model
+variant the paper describes -- so the shipped model is not the paper's best
+one.
+
 Optional sidecar. It predicts PER-SITE values, which are closer to
 microscopic than to macroscopic constants -- the distinction that decides
 which ionization formula is right, and that a tolerance would have buried.
@@ -1255,7 +1401,7 @@ which ionization formula is right, and that a tolerance would have buried.
 [[source]]
 key = "dimorphite_dl"
 kind = "software"
-citation = "Dimorphite-DL, a rule-based protonation-state enumerator."
+citation = "P. J. Ropp, J. C. Kaminsky, S. Yablonski & J. D. Durrant, 'Dimorphite-DL: An open-source program for enumerating the ionization states of drug-like small molecules', J. Cheminform. 2019, 11, 14."
 identifier_type = "url"
 identifier = "https://github.com/durrantlab/dimorphite_dl"
 status = "shipped"
@@ -1266,6 +1412,9 @@ version = ">=2.0.2"
 verification = "citation"
 verified_date = 2026-08-16
 note = """
+Citation and licence read from the project repository
+(doi 10.1186/s13321-019-0336-9).
+
 Used for protonation states, NOT for pKa values. It was measured as a pKa
 fallback and rejected: it puts propranolol at 5.65 against a real 9.42, off
 by 3.8. That whole design existed only because a probe passed `None` for an
@@ -1313,7 +1462,7 @@ one was real. A deferral's reasons rot independently of its verdict.
 [[source]]
 key = "gutmann_frontiers2022"
 kind = "literature"
-citation = "The Gutmann donor/acceptor-number assessment published in Frontiers in Chemistry, 2022. Authors not recorded -- see note."
+citation = "B. Sanchez, P. R. Campodonico & R. Contreras, 'Gutmann's Donor and Acceptor Numbers for Ionic Liquids and Deep Eutectic Solvents', Frontiers in Chemistry 2022."
 identifier_type = "doi"
 identifier = "10.3389/fchem.2022.861379"
 status = "assessed_not_shipped"
@@ -1325,22 +1474,20 @@ concluding it supports 'qualitative and relative criteria but not an
 absolute and quantitative model'.
 """
 used_by = ["CLAUDE.md"]
-verification = "unverified"
+local = "gutmann_frontiers2022.pdf"
+verification = "citation"
+verified_date = 2026-08-17
 note = """
-TWO THINGS IN THIS ENTRY WERE INVENTED AND ARE NOW REMOVED. It claimed a
-local copy at `kaya2022.pdf` and an author of "S. Kaya et al." Both came
-from matching the DOI's year against a filename. `kaya2022.pdf` is a
-different paper entirely -- "On the Prediction of Lattice Energy with the
-Fukui Potential", J. Phys. Chem. A 2022, 126, 4507-4516 -- and searching
-every PDF in the archive for the Frontiers DOI or for Gutmann donor numbers
-returns NOTHING, so this source is not held locally at all.
+THE AUTHORS WERE INVENTED ONCE AND ARE NOW READ FROM THE PAPER, AND THE
+GUESS WAS WRONG. This entry claimed "S. Kaya et al." and a local copy at
+`kaya2022.pdf`, both from matching the DOI's year against a filename;
+`kaya2022.pdf` is "On the Prediction of Lattice Energy with the Fukui
+Potential", J. Phys. Chem. A 2022, 126, 4507-4516. The real authors are
+Sanchez, Campodonico and Contreras, of Universidad de Chile.
 
-What survives is what the repository recorded rather than what was guessed:
-the DOI, the venue, and the quoted findings in CLAUDE.md ("no correlation
-could be found"; it supports "qualitative and relative criteria but not an
-absolute and quantitative model"). Those were read from a web fetch that
-cannot be reproduced here, which is exactly why this is `unverified` rather
-than trusted.
+The title settles the scope objection outright: these are Gutmann's numbers
+**for ionic liquids and deep eutectic solvents**, which is precisely why the
+paper does not supply the classical molecular table this project needed.
 
 Partly available by another route anyway: the donor number is DEFINED as
 -dH against SbCl5, which is already in the Drago table

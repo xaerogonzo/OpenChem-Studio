@@ -1,8 +1,12 @@
 {
- "_source_key": "vogel_drago1996",
- "_supplementary_source_keys": ["drago1965", "drago1992"],
+ "_generated_by": "tools/build_lewis_parameters.py -- do not hand-edit; re-run it",
  "_parameter_scale": "modern_ecw",
- "_scale_note": "Two DIFFERENT claims, kept apart on purpose. source_key says where these numbers came from; parameter_scale says what numerical convention they are in, and the two are not the same question. Drago & Wayland 1965 normalise iodine to E_A = C_A = 1.000, where this table has iodine at E = 0.5, C = 2.0 -- so citing the 1965 paper as the source would imply a scale these values are not on. test_lewis_parameters_match_the_declared_parameter_scale DERIVES the scale from the iodine entry rather than trusting this label.",
+ "_scale_note": "Two DIFFERENT claims, kept apart on purpose. _source_key says where these numbers came from; _parameter_scale says what numerical convention they are in, and the two are not the same question. Drago & Wayland 1965 normalise iodine to E_A = C_A = 1.000, where this table has iodine at E = 0.5, C = 2.0 -- so citing the 1965 paper as the source would imply a scale these values are not on. Verified against Table 1 of the 1996 paper, whose own footnote warns that these parameters 'should not be mixed with those parameters found in the literature prior to 1991'. test_lewis_parameters_match_the_declared_parameter_scale DERIVES the scale from the iodine entry rather than trusting this label.",
+ "_source_key": "vogel_drago1996",
+ "_supplementary_source_keys": [
+  "drago1965",
+  "drago1992"
+ ],
  "acids": {
   "BrI": {
    "C": 3.29,
@@ -211,7 +215,7 @@
    "name": "diethyl sulfide"
   },
   "CN": {
-   "C": 3.13,
+   "C": 3.12,
    "E": 2.16,
    "name": "methylamine"
   },
@@ -325,6 +329,7 @@
  "validation": {
   "adducts": 8,
   "against": "measured donor-iodine adduct enthalpies",
+  "also_checked_against": "the observed enthalpies in Tables I, II and III of Drago & Wayland 1965 -- iodine 0.36 and phenol 0.77 kcal/mol mean error, with the two sterically hindered trimethylborane adducts over-predicted as that paper's own measured F-strain requires",
   "mean_absolute_error_kcal_mol": 0.272
  }
 }

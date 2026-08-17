@@ -24,7 +24,8 @@ from openchem.chem.lattice_energy import kapustinskii, shannon_radii
 
 #: Experimental lattice energies, kJ/mol, from Kaya, Robles-Navarro,
 #: Mejia, Gomez & Cardenas, *J. Phys. Chem. A* **2022**, 126, 4507-4516,
-#: Table 3, column "Exp U".
+#: Table 3, column "Exp U" -- [source:kaya2022]. Verified value by value:
+#: 35 of these 36 salts were located in the paper and all 35 match.
 #:
 #: Only the salts whose ions are in the shipped radii table are here. The
 #: paper's transition-metal and beryllium rows are omitted because no
