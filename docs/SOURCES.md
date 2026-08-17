@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 30b439deb8cfb142154a493d9b9cc1de7006d90758768cbb79e5d7cf28683616 -->
+<!-- SOURCE SHA256: 78cc5790e16b813a843a13d9b7fbff3c78851d7f5ca7a85586ecdc2a8cf98f23 -->
 
 # Sources
 
@@ -77,8 +77,10 @@ reference fails rather than being silently skipped.
 | [`dimorphite_dl`](#dimorphite_dl) | software | shipped | citation |
 | [`drago1965`](#drago1965) | literature | shipped | citation + claim |
 | [`drago1992`](#drago1992) | literature | shipped | unverified |
+| [`glasser1995`](#glasser1995) | literature | shipped | citation |
 | [`gutmann_frontiers2022`](#gutmann_frontiers2022) | literature | **not shipped** | unverified |
 | [`hlb`](#hlb) | reference_table | **not shipped** | unverified |
+| [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
 | [`ich_m9`](#ich_m9) | standard | shipped | unverified |
 | [`iupac2013`](#iupac2013) | standard | shipped | citation |
 | [`iupac_namer`](#iupac_namer) | software | shipped | citation |
@@ -112,6 +114,7 @@ reference fails rather than being silently skipped.
 | [`threedmol`](#threedmol) | software | shipped | citation |
 | [`tsei`](#tsei) | reference_table | **not shipped** | unverified |
 | [`vogel_drago1996`](#vogel_drago1996) | literature | shipped | unverified |
+| [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | unverified |
 
 ## Primary literature
 
@@ -523,6 +526,32 @@ It is registered here deliberately: the DOI sweep excludes
 `tests/fixtures/cif/*.cif`, because those DOIs belong to the depositors
 rather than to us, and this is the one that carries an obligation anyway.
 
+### glasser1995
+
+<a id="glasser1995"></a>
+
+> L. Glasser, 'Lattice Energies of Crystals with Multiple Ions: A Generalized Kapustinskii Equation', Inorg. Chem. 1995, 34, 4935-4936.
+
+| | |
+| --- | --- |
+| Identifier | Inorg. Chem. 1995, 34, 4935-4936 |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-16 |
+| Local copy | `glasser1995.pdf` (not checked) |
+| Used by | `src/openchem/chem/lattice_energy.py`, `CLAUDE.md` |
+
+Where the identity `2I = sum(n_k z_k^2)` equals Kapustinskii's
+`nu |z+ z-|` is noted, which is what makes the volume-based route
+([source:jenkins1999]) strictly backward compatible with the existing
+36-salt Kapustinskii validation. This project verified the identity itself
+over 1:1, 1:2, 2:1 and 2:3 rather than taking it on the paper's word, so the
+claim resting on this citation is ours; the citation is the attribution.
+
+MISSED BY THE ORIGINAL SWEEP because it carries no DOI and is named only in
+prose. See [source:hopfinger2009] and [source:yalkowsky_banerjee1992], found
+the same way.
+
 ### platts1999
 
 <a id="platts1999"></a>
@@ -889,6 +918,53 @@ the SD 0.17 figure looks like it originates in the 2020 paper.
 
 Title, authors and DOI read from the PDF, and corroborated by reference (1)
 of [source:llinas2020], which supplies the volume and page.
+
+### hopfinger2009
+
+<a id="hopfinger2009"></a>
+
+> A. J. Hopfinger, E. X. Esposito, A. Llinas, R. C. Glen & J. M. Goodman, 'Findings of the challenge to predict aqueous solubility', J. Chem. Inf. Model. 2009, 49, 1-5.
+
+| | |
+| --- | --- |
+| Identifier | J. Chem. Inf. Model. 2009, 49, 1-5 |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-16 |
+| Used by | `benchmarks/solubility/extract_avdeef_sets.py`, `benchmarks/solubility/README.md`, `docs/VALIDATION.md` |
+
+The underlying source of external test set A2, which this project reaches
+through Avdeef's appendix ([source:avdeef2020]) rather than from the paper.
+23 rows survive de-leaking and yield 7 bases -- under the minimum of 10 to
+serve as a held-out side, which is why it could only join the fit pool and
+why more data did not rescue the base-bias experiment.
+
+Citation confirmed from reference (3) of [source:llinas2020]. Independent of
+Delaney's fit as far as the source states.
+
+### yalkowsky_banerjee1992
+
+<a id="yalkowsky_banerjee1992"></a>
+
+> Yalkowsky & Banerjee, 1992. Full citation not established -- see note.
+
+| | |
+| --- | --- |
+| Identifier | Yalkowsky & Banerjee 1992 |
+| Status | shipped |
+| Verification | unverified |
+| Used by | `benchmarks/solubility/extract_avdeef_sets.py`, `benchmarks/solubility/README.md`, `docs/VALIDATION.md` |
+
+The underlying source of external test set A1, reached through Avdeef's
+appendix ([source:avdeef2020]). A classic compilation of industrial and
+agrochemical solubility -- which is the chemistry ESOL was fitted on, and
+duly **74% of it is inside ESOL's own training set** (14 of 19 rows share an
+InChIKey with Delaney's fit). It yields zero bases.
+
+NOTHING BEYOND "Yalkowsky & Banerjee 1992" IS RECORDED ANYWHERE IN THIS
+REPOSITORY, and nothing more is asserted here. It is believed to be a book
+rather than an article, which is why no volume or pages appear; establishing
+that is a job for whoever has it.
 
 ## Legal texts
 

@@ -70,6 +70,11 @@ DOCS = [
     # source. A registry can be perfectly regenerated and still name a
     # module deleted last week.
     "docs/SOURCES.md",
+    # A work list, not documentation. It is guarded like everything else so
+    # its many path references cannot rot while it waits to be finished,
+    # and it says in its own first lines that it should be DELETED when it
+    # empties -- a stale work list being worse than none.
+    "docs/SOURCES_TODO.md",
 ]
 
 #: Backticked paths that deliberately do NOT resolve in this repo, each
