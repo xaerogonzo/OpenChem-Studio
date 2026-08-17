@@ -499,7 +499,41 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `4768 passed, 15 skipped`
+A clean run is **6-19 minutes**, ending at `4777 passed, 15 skipped`
+(measured 2026-08-17, **13m54**, on `docking-box-from-the-ligand` -- the
+help-contract layer. **+9 collected items and +9 test FUNCTIONS**, all in
+`test_tooltip_coverage.py`: the three-surface walk, contract validity,
+help_id-means-one-thing, anchor and source resolution, the placeholder
+floor, the migration debt, the shared-discovery check, and the exclusion
+reasons.
+
+    before  a91fa41   COLLECTS 4783
+    after             COLLECTS 4792   = 4783 + 9
+    the run                    4777 passed + 15 skipped = 4792
+
+**THE FIRST RUN OF THIS FIGURE CRASHED, AND `grep FAILED` SAID IT WAS
+FINE.** It died at 4057 of 4792 with `Windows fatal exception: access
+violation`, top frame `conftest.py pytest_runtest_logfinish` -- the
+teardown collect. There are no `FAILED` lines in a run that never reaches
+the end, so a grep for them returned nothing and read as success, and the
+background task reported exit 0. **Check for a SUMMARY LINE, not for an
+absence of failures** -- `grep -E "[0-9]+ passed"` and
+`grep -c "Windows fatal exception"`. This is the same lesson as the
+skipped-gates one two sections down, one level lower.
+
+The likely cause was a module-scoped fixture holding **372 live Qt
+references** -- widgets, `QAction`s and `QTableWidgetItem`s, which are not
+even `QObject`s -- and releasing them all at once into that collect. The
+fixture extracts plain data and drops every handle now, which is better
+regardless. **The re-run was clean, and that is ONE run**: this crash class
+is documented below as moving between batches, and n=1 is not evidence
+either way.
+
+Also note the collected-count diff needs `--include-untracked`: four of
+the six files were new, so a plain `git stash push` left them in both arms
+and reported 0 added.)
+
+Before it: `4768 passed, 15 skipped`
 (measured 2026-08-17, **15m10**, on `docking-box-from-the-ligand` -- the
 search box drawn in the Mol* viewer. **+11 collected items and +11 test
 FUNCTIONS**: 7 in `test_molstar_viewer_backend.py` for the box's committed

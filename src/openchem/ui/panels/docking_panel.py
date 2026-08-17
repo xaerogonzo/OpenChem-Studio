@@ -32,6 +32,7 @@ from openchem.events.events import DockingJobStateChanged, DockingResultReady, M
 from openchem.services.docking_service import DockingService
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
 from openchem.ui.molecule_combo import repopulate, select
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 logger = logging.getLogger("openchem.ui")
 
@@ -52,6 +53,38 @@ _POSE_COLUMNS = ("Pose", "Binding Affinity (kcal/mol)", "RMSD l.b.", "RMSD u.b."
 #: ATTRIBUTED, NOT STATED FLATLY. It is the authors' standard error of
 #: predicted against experimental binding free energies on THEIR
 #: 190-complex set; it is not a universal error bar for any given run.
+#: THE FIRST CONTRACTS IN THE APPLICATION, and the reason they are these
+#: four: the question that started all of this was "what are RMSD l.b. and
+#: u.b.?", and nothing answered it. They are also the worked example that
+#: the whole chain carries real data -- contract, inventory, guard, CLI.
+_POSE_COLUMN_HELP = {
+    "Pose": HelpTooltip(
+        text="",  # filled from _POSE_COLUMN_TOOLTIPS below
+        tier=2,
+        help_id="docking.pose_rank",
+        topic="docking",
+        help_anchor="docking",
+    ),
+    "Binding Affinity (kcal/mol)": HelpTooltip(
+        text="",
+        tier=3,
+        help_id="docking.binding_affinity",
+        topic="docking",
+        help_anchor="docking",
+        # The one external claim of the four: the standard error quoted in
+        # the text is the authors' own, for their own 190-complex set.
+        source_key="trott_olson2010",
+    ),
+    "RMSD l.b.": HelpTooltip(
+        text="", tier=3, help_id="docking.rmsd_lower_bound", topic="docking",
+        help_anchor="docking",
+    ),
+    "RMSD u.b.": HelpTooltip(
+        text="", tier=3, help_id="docking.rmsd_upper_bound", topic="docking",
+        help_anchor="docking",
+    ),
+}
+
 _POSE_COLUMN_TOOLTIPS = {
     "Pose": "Rank within this run, best score first. Not an identity: pose 1 of one "
     "run is unrelated to pose 1 of another.",
@@ -261,11 +294,17 @@ class DockingPanel(QWidget):
         self._table.setHorizontalHeaderLabels(_POSE_COLUMNS)
         # On the header ITEMS, which are QTableWidgetItems rather than
         # widgets -- so a tooltip audit that walks QWidgets alone cannot
-        # see these, and would report the table fully documented.
+        # see these, and would report the table fully documented. An item
+        # is not a QObject either, so `apply_help_tooltip` stores its
+        # contract as item data rather than as a Qt property.
         for column, name in enumerate(_POSE_COLUMNS):
             item = self._table.horizontalHeaderItem(column)
             if item is not None:
-                item.setToolTip(_POSE_COLUMN_TOOLTIPS[name])
+                from dataclasses import replace
+
+                apply_help_tooltip(
+                    item, replace(_POSE_COLUMN_HELP[name], text=_POSE_COLUMN_TOOLTIPS[name])
+                )
         self._table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
