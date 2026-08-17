@@ -7,7 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- **CIP stereo descriptors on the 2D canvas now follow the structure.**
+  *Calculate CIP Stereo Descriptors* was a one-shot calculation, so
+  editing a molecule while the labels were on left the old `(R)`/`(S)`
+  and `(E)`/`(Z)` on screen until it was clicked again — a descriptor
+  could outlive the centre it described. It is now a checkable **Show CIP
+  Stereo Descriptors (R/S, E/Z)** toggle that recomputes on every edit and
+  clears when switched off.
+- **Lone pairs now follow an edit made on the canvas.** The overlay was
+  refreshed on selection, undo, paste and adopt but not when the user drew
+  on the canvas, and its counts are keyed on molfile position — so after
+  deleting an atom the dots were drawn on the wrong atoms.
+
+### Changed
+
+- Showing or hiding the stereo descriptors no longer counts as a structure
+  edit: it adds nothing to the undo stack and does not clear conformers.
+  Ketcher's own *Calculate CIP* button does both.
 
 ## [0.10.0] — 2026-08-17
 

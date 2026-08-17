@@ -214,11 +214,109 @@ def test_a_selection_is_never_forwarded_as_a_raw_ketcher_id():
     # same order (measured: N O F S P C on a C-N-O-F-S-P chain with the
     # carbon deleted and restored), so sorting would be wrong in every
     # position while still producing entirely plausible indices.
+    # The same rule, one function along: the CIP copy walks two pools in
+    # parallel by position, and sorting either would be wrong in exactly
+    # the same way for exactly the same reason.
+    copier = source.split("function copyCipByPosition(")[1].split("\n}")[0]
+    assert ".sort(" not in copier, (
+        "copyCipByPosition() sorts a pool's keys. The molfile follows the "
+        "pool's INSERTION order, which undo can leave out of numeric order."
+    )
+
     helper = source.split("function molfilePosition(")[1].split("\n}")[0]
     assert ".sort(" not in helper, (
         "molfilePosition() sorts the pool keys. The molfile follows the "
         "pool's INSERTION order, which undo can leave out of numeric order "
         "-- sorting reintroduces the off-by-one this function exists to fix."
+    )
+
+
+#: `window.openchemFoo = ` in the JSX -- the globals Python reaches through
+#: `runJavaScript`, as opposed to the bridge methods JS reaches Python with.
+_JSX_GLOBAL = re.compile(r"window\.(openchem[A-Za-z0-9_]*)\s*=")
+
+
+def _openchem_globals(source: str) -> set[str]:
+    return set(_JSX_GLOBAL.findall(source))
+
+
+def test_the_jsx_declares_openchem_globals():
+    """Guards the guard, like `test_the_jsx_actually_calls_the_bridge`: if
+    the extraction found nothing the staleness check below would pass
+    trivially forever."""
+    assert _openchem_globals(jsx_source()), "no window.openchem* globals found in main.jsx"
+
+
+@pytest.mark.parametrize(
+    "name", sorted(_openchem_globals(_MAIN_JSX.read_text(encoding="utf-8")))
+)
+def test_every_openchem_global_in_the_source_is_present_in_the_built_bundle(name):
+    """THE OTHER HALF OF THE STALENESS CHECK, and it was missing.
+
+    The bridge-name check above covers what JS calls on PYTHON. It does not
+    cover the globals Python calls on JS -- `openchemRotation`,
+    `openchemElectrons` and now `openchemCip` -- so all three could have
+    been added to `main.jsx` without a rebuild and been silently absent,
+    which is precisely the mistake this file exists to catch. Two of them
+    had shipped uncovered before `openchemCip` made it three.
+
+    These names survive minification for the same reason the bridge names
+    do: they are properties of `window`, and a minifier cannot know what
+    the other side expects.
+
+    **THIS HALF IS FAIL-OPEN ON ITS OWN**, and deliberately paired: it
+    proves the global's NAME reached the bundle, not that the functions
+    hanging off it did. `tests/test_ketcher_editor_backend.py::
+    test_the_cip_api_the_page_exposes_is_the_one_python_calls` is the
+    strong half, asserted against the real page.
+    """
+    assert name in bundle_text(), (
+        f"main.jsx assigns window.{name} but the committed bundle does not "
+        f"contain it.\n\nThe dist is stale -- rebuild it:\n"
+        f"    cd tools/ketcher-host && npm run build\n"
+        f"(about 35 seconds) and commit the regenerated "
+        f"src/openchem/resources/ketcher/dist/."
+    )
+
+
+def test_the_cip_labels_are_cleared_before_they_are_recomputed():
+    """The stale-descriptor guard, at the source, where it is cheap.
+
+    A centre that stops being a stereocentre keeps its `cip` field unless
+    something wipes it, so a recompute that only overwrites leaves an old
+    `(S)` beside a structure that no longer has one -- an answer-shaped
+    lie, and the worst variant of the bug this whole feature fixes.
+    Measured against the real bundle: deleting the amine leaves `(S)` on
+    the canvas until the fields are wiped.
+
+    The behavioural half is in `tests/test_ketcher_editor_backend.py`; this
+    fails the moment somebody "simplifies" the wipe away.
+    """
+    source = jsx_source()
+
+    assert "function wipeCipFields(" in source, "wipeCipFields() is gone"
+    body = source.split("function refreshCipLabels(")[1].split("\n}")[0]
+    assert "wipeCipFields(live)" in body, (
+        "refreshCipLabels() no longer wipes the old descriptors before "
+        "copying the new ones. A centre that lost its stereochemistry keeps "
+        "its old label, which reads as a result rather than as staleness."
+    )
+    assert "copyCipByPosition(" in body, (
+        "refreshCipLabels() no longer copies the descriptors BY POSITION. "
+        "calculateCip parses its answer into a pool starting at zero, while "
+        "the live pool only starts at zero until the first deletion -- so "
+        "copying by id puts the label on the wrong atom, which is what was "
+        "reported as it appearing 'way to the left of the molecule'."
+    )
+    assert "cipGeneration" in body, (
+        "refreshCipLabels() no longer checks a generation. Two refreshes in "
+        "flight let the older answer land last; measured on the real bundle "
+        "as applied=1 superseded=1 with the guard in place."
+    )
+    assert "editor.struct() !== live" in body, (
+        "refreshCipLabels() no longer checks the struct identity. A "
+        "setMolecule landing mid-calculation rebuilds the pool from zero, so "
+        "the answer would be copied onto a DIFFERENT molecule's atoms by id."
     )
 
 

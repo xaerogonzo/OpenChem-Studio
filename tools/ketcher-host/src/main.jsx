@@ -996,6 +996,159 @@ function setElectronOverlay(payload) {
   watchElectronViewport()
 }
 
+// --- CIP stereo descriptors ----------------------------------------------
+//
+// R/S and E/Z, as CALCULATED ANNOTATION STATE rather than as a one-shot
+// edit. Reported as a bug: "if a molecule is changed while the label is
+// turned on, it won't update... it will only update once the R/S option is
+// clicked again".
+//
+// **THE TOOLBAR BUTTON IS THE WRONG DOOR, and it is measurably wrong.**
+// The app used to reach this through Ketcher's own "Calculate CIP" button.
+// Measured against this bundle, that route fires a `change` -- ASYNCHRONOUSLY,
+// so nothing can correlate it with the click that caused it -- and grows
+// Ketcher's own undo history 3 -> 4. A `change` becomes an
+// EditStructureCommand on the application's stack, so recomputing after
+// every edit that way would leave an undo step per edit that undoes to
+// nothing visible, and no safe way to tell that step from a real one.
+//
+// `ketcher.indigo.calculateCip(struct)` is the door that works. Measured:
+//
+//     returns                a Promise resolving to a REPLACEMENT Struct
+//                            carrying the cip fields, on ITS OWN dense
+//                            pool -- see copyCipByPosition below, which is
+//                            where the first version of this went wrong
+//     change events          0, synchronously and after settling
+//     Ketcher history        undo 1 -> 1, unchanged
+//     the live struct        UNTOUCHED -- nothing is applied for you
+//
+// So the whole flow is compute, clear, copy the fields across, redraw --
+// and `render.update(true)` fires no `change` either, which the rotation
+// preview in this same file already relies on. End to end: 0 change
+// events, no history growth, no undo entry, and therefore no recursion to
+// guard against.
+//
+// **CLEAR BEFORE COPYING, ALWAYS.** A centre that stops being a
+// stereocentre keeps its old `cip` otherwise, and a stale (S) beside a
+// structure that no longer has one is the worst form of this bug -- it
+// looks exactly like an answer. Measured on the fixture: delete the amine
+// and the canvas still reads `(S)` until the fields are wiped; after a
+// clear-then-recompute it reads `(E)` alone, which is correct.
+let cipGeneration = 0
+const cipWork = { refreshes: 0, applied: 0, superseded: 0, failed: 0 }
+
+function wipeCipFields(struct) {
+  struct.atoms.forEach(function (atom) { delete atom.cip })
+  struct.bonds.forEach(function (bond) { delete bond.cip })
+}
+
+// **BY POSITION, NEVER BY POOL ID**, and this is the second time this
+// project has paid for that distinction -- see molfilePosition() above.
+//
+// `calculateCip` round-trips the struct through indigo, which parses the
+// answer back into a POOL STARTING AT ZERO. The live struct's pool only
+// starts at zero until the first deletion. Measured on a molecule with one
+// atom erased:
+//
+//     live pool          [1, 2, 3, 4, 5, 6]     the stereocentre is id 3
+//     calculateCip's     [0, 1, 2, 3, 4, 5]     the stereocentre is id 2
+//
+// so copying by id wrote the descriptor onto the atom one position early.
+// Reported from the running app as the label appearing "way to the left of
+// the molecule" -- on a ring carbon nowhere near the centre -- and fixed by
+// pressing Ctrl+Z, because undo reloads through `setMolecule`, which
+// rebuilds the pool dense and makes the two agree again by coincidence.
+//
+// **A FRESH LOAD HIDES IT COMPLETELY**, which is exactly how it shipped: a
+// probe that loads a molblock and reads the ids straight back sees two
+// dense pools and reports a perfect match. So does a check that only asks
+// whether each id EXISTS in the target -- both pools have the same SIZE, so
+// every lookup succeeds and every one of them is off by one.
+//
+// INSERTION ORDER on both sides, never sorted: the molfile is written in
+// the live struct's order and parsed back in that same order, and undo can
+// leave a pool out of numeric order (ids running [1,2,3,4,5,0]).
+function copyCipByPosition(computedPool, computedIds, livePool, liveIds) {
+  computedIds.forEach(function (computedId, position) {
+    const source = computedPool.get(computedId)
+    const target = livePool.get(liveIds[position])
+    if (target && source && source.cip) target.cip = source.cip
+  })
+}
+
+function clearCipLabels() {
+  if (!ketcherInstance) return
+  // Bumped so a calculation already in flight cannot land after the
+  // display has been switched off and redraw what was just removed.
+  cipGeneration++
+  const editor = ketcherInstance.editor
+  wipeCipFields(editor.struct())
+  editor.render.update(true)
+}
+
+function refreshCipLabels() {
+  if (!ketcherInstance) return
+  cipWork.refreshes++
+  const generation = ++cipGeneration
+  const editor = ketcherInstance.editor
+  const live = editor.struct()
+  ketcherInstance.indigo.calculateCip(live).then(
+    function (computed) {
+      // **TWO GUARDS, AND THEY CATCH DIFFERENT THINGS.** The generation
+      // covers a newer refresh (or a clear) issued while this one was in
+      // flight -- the superseded-build race the conformer gallery already
+      // records. The struct IDENTITY covers a `setMolecule` landing
+      // meanwhile: that builds a fresh Struct from a pool starting at
+      // zero, so copying this answer onto it would write one molecule's
+      // descriptors onto another's atoms and be entirely plausible.
+      if (generation !== cipGeneration || editor.struct() !== live) {
+        cipWork.superseded++
+        return
+      }
+      // Wiped BEFORE the length check, so a structure this cannot answer
+      // for shows nothing rather than the previous structure's labels.
+      wipeCipFields(live)
+      const liveAtoms = Array.from(live.atoms.keys())
+      const liveBonds = Array.from(live.bonds.keys())
+      const computedAtoms = Array.from(computed.atoms.keys())
+      const computedBonds = Array.from(computed.bonds.keys())
+      if (liveAtoms.length !== computedAtoms.length ||
+          liveBonds.length !== computedBonds.length) {
+        cipWork.failed++
+      } else {
+        copyCipByPosition(computed.atoms, computedAtoms, live.atoms, liveAtoms)
+        copyCipByPosition(computed.bonds, computedBonds, live.bonds, liveBonds)
+        cipWork.applied++
+      }
+      editor.render.update(true)
+    },
+    function (error) {
+      // The structure cannot be read -- leave the labels cleared rather
+      // than leaving the previous structure's on screen.
+      cipWork.failed++
+      console.warn('[ketcher-host] CIP calculation failed: ' + error)
+    },
+  )
+}
+
+// MOLFILE POSITIONS, not pool ids, for the same reason every other value
+// crossing this boundary is translated -- see molfilePosition(). A test
+// reading this is asking what the PAGE drew, in the index space Python
+// speaks, which is the distinction the gallery overlay work turned on.
+function cipLabels() {
+  if (!ketcherInstance) return JSON.stringify({ atoms: [], bonds: [] })
+  const struct = ketcherInstance.editor.struct()
+  const atoms = []
+  const bonds = []
+  struct.atoms.forEach(function (atom, id) {
+    if (atom.cip) atoms.push([molfilePosition(struct.atoms, id), atom.cip])
+  })
+  struct.bonds.forEach(function (bond, id) {
+    if (bond.cip) bonds.push([molfilePosition(struct.bonds, id), bond.cip])
+  })
+  return JSON.stringify({ atoms: atoms, bonds: bonds })
+}
+
 function handleKetcherInit(ketcher) {
   ketcherInstance = ketcher
   window.ketcher = ketcher // used by Python's fire-and-forget runJavaScript calls (e.g. setMolecule)
@@ -1036,6 +1189,24 @@ function handleKetcherInit(ketcher) {
           return { position: entry.position, pairs: entry.pairs, dots: entry.dots }
         }),
       })
+    },
+  }
+  // Third global, same reason as the two above: without a reference
+  // reachable from the entry point vite tree-shakes the whole thing away
+  // and the feature is silently absent.
+  window.openchemCip = {
+    refresh: refreshCipLabels,
+    clear: clearCipLabels,
+    labels: cipLabels,
+    work: function () {
+      return JSON.stringify(cipWork)
+    },
+    resetWork: function () {
+      cipWork.refreshes = 0
+      cipWork.applied = 0
+      cipWork.superseded = 0
+      cipWork.failed = 0
+      return 1
     },
   }
   tryWireBridge()

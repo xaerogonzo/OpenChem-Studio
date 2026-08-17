@@ -573,6 +573,57 @@ class _Driver(QObject):
             "if (window.ketcher) window.ketcher.editor.zoom(%s);" % float(step.get("to", 1.5))
         )
 
+    def _do_cip(self, step: dict[str, Any]) -> None:
+        """Show or hide the CIP stereo descriptors, through the real menu action.
+
+        Through the QAction rather than past it, for the same reason
+        `_do_electrons` does: what is measured is what a user gets. Found
+        by TEXT, because this action carries no `data()` -- it is a display
+        toggle rather than a proxy for a Ketcher toolbar button, which is
+        the whole of the fix it exists to check.
+        """
+        wanted = bool(step.get("on", True))
+        for menu_action in self._window.menuBar().actions():
+            menu = menu_action.menu()
+            if menu is None:
+                continue
+            for action in _walk_actions(menu):
+                if action.isCheckable() and "CIP" in action.text():
+                    if action.isChecked() != wanted:
+                        action.trigger()
+                    logger.warning("OPENCHEM_DRIVE: CIP descriptors -> %s", wanted)
+                    return
+        logger.error("OPENCHEM_DRIVE: no CIP display action found")
+
+    def _do_erase(self, step: dict[str, Any]) -> None:
+        """Erase every atom of one element, through Ketcher's own Delete key.
+
+        A REAL canvas edit, which is the one route into a new structure
+        that `set_molecule` never covers -- and therefore the only way to
+        drive the staleness this feature fixes. Synthesised on the page
+        rather than through the machine's input queue, exactly as
+        `_do_rotate` is and for the same reason.
+        """
+        element = str(step.get("element", "N"))
+        self._window._editor._backend._page.runJavaScript(
+            """
+            (function () {
+              if (!window.ketcher) return;
+              var e = window.ketcher.editor, s = e.struct(), atoms = [];
+              s.atoms.forEach(function (a, id) { if (a.label === %s) atoms.push(id); });
+              var bonds = Array.from(s.bonds.keys()).filter(function (b) {
+                var bd = s.bonds.get(b);
+                return atoms.indexOf(bd.begin) >= 0 || atoms.indexOf(bd.end) >= 0; });
+              e.selection({atoms: atoms, bonds: bonds});
+              var el = document.querySelector('.Ketcher-root') || document.body;
+              ['keydown', 'keyup'].forEach(function (t) {
+                el.dispatchEvent(new KeyboardEvent(t, {key: 'Delete', code: 'Delete',
+                  bubbles: true, cancelable: true, keyCode: 46, which: 46})); });
+            })();
+            """
+            % json.dumps(element)
+        )
+
     def _do_editor_action(self, step: dict[str, Any]) -> None:
         """Press one of Ketcher's own toolbar buttons by its `data-testid`.
 

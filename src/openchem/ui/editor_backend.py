@@ -103,6 +103,28 @@ class EditorBackend(QObject):
         double to declare that would be noise.
         """
 
+    def set_cip_labels(self, on: bool) -> None:
+        """Show CIP stereo descriptors -- (R)/(S), (E)/(Z) -- or take them off.
+
+        **CALCULATED ANNOTATION STATE**, which is the category this
+        application did not have and both of its stale-annotation bugs came
+        from. It is not a render option (the editor cannot derive it from a
+        flag) and it is not a structural edit (the molecule is untouched):
+        it is a value derived from the current molecular graph and drawn
+        attached to it, so it must be RECOMPUTED whenever that graph
+        changes. Reported as "if a molecule is changed while the label is
+        turned on, it won't update".
+
+        STATE, so a backend that is not ready must QUEUE this, for the same
+        reason as `set_render_option` and `set_electron_overlay`: a dropped
+        request leaves a checked menu item claiming something the canvas is
+        not showing. Only the LAST request matters -- on then off before the
+        page boots is off, not a pair of instructions.
+
+        Concrete and a no-op by default, like `set_electron_overlay`: an
+        editor with no descriptor display is not broken.
+        """
+
     def start_rotation(self) -> bool:
         """Enter 3D rotation mode, if this editor has one.
 

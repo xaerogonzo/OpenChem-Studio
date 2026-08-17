@@ -1162,11 +1162,16 @@ class MainWindow(QMainWindow):
         # least be on the dropdown view tab"). The same object, so the
         # label, the shortcut and the enabled state cannot drift -- the
         # rule Generate Conformers already follows.
-        self._cip_action = self._add_editor_action(
-            self._structure_menu,
-            "Calculate CIP Stereo Descriptors (R/S, E/Z)",
-            "Calculate CIP button",
-        )
+        #
+        # **CHECKABLE, and it used to be a one-shot toolbar action.** That
+        # is the whole of the reported bug: "if a molecule is changed while
+        # the label is turned on, it won't update ... it will only update
+        # once the R/S option is clicked again". It reads as a display
+        # toggle, so it is one -- see `MoleculeEditorWidget.set_cip_labels`.
+        self._cip_action = QAction("Show CIP Stereo Descriptors (R/S, E/Z)", self)
+        self._cip_action.setCheckable(True)
+        self._cip_action.toggled.connect(self._on_cip_labels_toggled)
+        self._structure_menu.addAction(self._cip_action)
         self._structure_menu.addSeparator()
         # **CONFORMERS ARE A STRUCTURE OPERATION, not a 3D-viewer one.**
         # Generation lived behind one button inside the 3D viewer, and
@@ -1377,22 +1382,27 @@ class MainWindow(QMainWindow):
         enhanced-stereo GROUPS -- the `ABS` / `AND Enantiomer` / `Mixed`
         caption and the per-centre `abs` / `&1` / `or1` tags.
 
-        R/S and E/Z come from Ketcher's **Calculate CIP** action, and
-        appear as `(R)`, `(S)`, `(E)`, `(Z)` -- identically under all four
-        label styles. An unspecified centre gets no label under any
-        combination, which is the important negative: nothing invents an
-        assignment.
+        R/S and E/Z come from a CIP calculation instead, and appear as
+        `(R)`, `(S)`, `(E)`, `(Z)` -- identically under all four label
+        styles. An unspecified centre gets no label under any combination,
+        which is the important negative: nothing invents an assignment.
 
-        So this offers the calculation as a calculation and the two
-        options as what they are, rather than a "show stereo labels"
-        toggle that would have driven the wrong setting.
+        So this offers three separate things rather than one "show stereo
+        labels" toggle that would have driven the wrong setting.
+
+        **The descriptors are a TOGGLE and the other two are render
+        options, which is not the same kind of control.** A render option
+        is Ketcher's and re-renders itself; the descriptors are calculated
+        annotation state and something has to recompute them when the
+        structure changes. That is what `set_cip_labels` is for, and its
+        absence is what made them go stale after every edit.
         """
         # The same QAction the Structure menu carries, not a copy.
         menu.addAction(self._cip_action)
         self._cip_action.setStatusTip(
             "Label stereocentres (R/S) and double bonds (E/Z) on the canvas. "
-            "Computed on demand; editing the structure afterwards does not "
-            "recompute them."
+            "Recomputed whenever the structure changes; turning it off "
+            "clears the labels."
         )
         self._add_structure_display_toggle(
             menu, "Show Stereo Flags (ABS / AND / Mixed)", "showStereoFlags", True, False
@@ -1505,6 +1515,20 @@ class MainWindow(QMainWindow):
         """
         if message:
             self.statusBar().showMessage(message, 15000)
+
+    def _on_cip_labels_toggled(self, checked: bool) -> None:
+        """The descriptors are the EDITOR's state, not the window's.
+
+        Held there so every route into a new structure recomputes them
+        without this window having to notice -- the same split
+        `_on_electron_mode_chosen` already makes.
+
+        **The app owns `atom.cip` / `bond.cip` while this is on**, and
+        switching it off clears them. Nothing supplies CIP on import today
+        (a V2000 molfile carries none), but a `.ket` import would, and the
+        ownership should not be left ambiguous.
+        """
+        self._editor.set_cip_labels(checked)
 
     def _on_stereo_label_style_chosen(self, checked: bool) -> None:
         action = self.sender()

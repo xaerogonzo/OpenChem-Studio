@@ -24,12 +24,23 @@ class _RecordingEditorBackend(EditorBackend):
         self.render_option_calls: list[tuple[str, object]] = []
         self.toolbar_action_calls: list[str] = []
         self.atom_tool_calls: list[str] = []
+        self.cip_calls: list[bool] = []
+        #: What the canvas will hand back on the next `edited`. None means
+        #: "whatever was last loaded", i.e. an edit that changed nothing --
+        #: set it to stage a real one.
+        self.next_molblock: str | None = None
 
     def load_molblock(self, molblock: str) -> None:
         self.load_calls.append(molblock)
 
     def get_molblock(self, callback):
+        if self.next_molblock is not None:
+            callback(self.next_molblock)
+            return
         callback(self.load_calls[-1] if self.load_calls else None)
+
+    def set_cip_labels(self, on):
+        self.cip_calls.append(on)
 
     def set_render_option(self, name, value):
         self.render_option_calls.append((name, value))
@@ -320,6 +331,156 @@ def test_a_refusal_is_announced_rather_than_drawn_as_nothing(qapp):
 
     assert backend.electron_payloads[-1]["refused"] is True
     assert said and "unavailable" in said[-1].lower(), said
+
+
+# --- an edit the USER makes on the canvas --------------------------------
+#
+# The route `set_molecule` never covers, and the one both stale-annotation
+# bugs came down the.
+
+
+def _molblock_for(smiles: str) -> str:
+    molecule = MoleculeModel(display_name="staged")
+    ChemistryEngine().set_structure_from_smiles(molecule, smiles)
+    return molecule.molblock
+
+
+def _nudged(molblock: str) -> str:
+    """The same structure, drawn somewhere slightly different.
+
+    What Layout, Clean Up and dragging an atom produce: new coordinates,
+    identical chemistry. Built by editing the first atom's x in the V2000
+    atom block rather than by re-embedding, so nothing but the coordinate
+    can differ.
+    """
+    lines = molblock.splitlines()
+    first_atom = 4
+    x = float(lines[first_atom][0:10]) + 1.5
+    lines[first_atom] = f"{x:10.4f}" + lines[first_atom][10:]
+    return "\n".join(lines) + "\n"
+
+
+def _edit_the_canvas(widget, backend, molblock: str) -> None:
+    """Drive the path a user's own drawing takes, exactly as Ketcher does:
+    the canvas reports a new molblock through `edited`."""
+    backend.next_molblock = molblock
+    backend.edited.emit()
+
+
+def test_an_edit_on_the_canvas_republishes_the_counts(qapp):
+    """THE REPORTED BUG'S SIBLING, and the half nothing covered.
+
+    `test_a_NEW_STRUCTURE_republishes_without_anyone_asking` above proves
+    the `set_molecule` routes -- selection, undo, adopt, rotate. A user
+    drawing on the canvas reaches none of them: `_on_editor_edited` pushes
+    the command and updates `_synced_smiles`, so `_on_molecule_changed`
+    returns early every single time. The counts therefore described
+    whatever structure was last SELECTED, however much had been drawn since.
+    """
+    widget, backend, _ = _widget_with_electrons(qapp, "CO")
+    widget.set_electron_mode("pairs")
+    assert backend.electron_payloads[-1]["counts"] == {"0": 0, "1": 2}
+
+    _edit_the_canvas(widget, backend, _molblock_for("CCO"))
+
+    assert backend.electron_payloads[-1]["counts"] == {"0": 0, "1": 0, "2": 2}
+
+
+def test_after_a_deletion_the_counts_describe_the_SURVIVING_atoms(qapp):
+    """A stale count is not merely old here -- it is attached to the wrong atom.
+
+    The payload is keyed on MOLFILE POSITION, and deleting an atom shifts
+    every position after it. So the failure is not "the oxygen's dots are
+    out of date", it is "the oxygen's dots are now drawn on a carbon", plus
+    an entry for a position the structure no longer has.
+
+    Asserted on where the pairs LAND rather than on the whole dict, so the
+    test says what it is about and does not also pin the amine's own count.
+    """
+    widget, backend, _ = _widget_with_electrons(qapp, "NCCO")
+    widget.set_electron_mode("pairs")
+    before = backend.electron_payloads[-1]["counts"]
+    # Assert the setup: without the oxygen at position 3 there is no shift
+    # to detect and this test would pass against anything.
+    assert before["3"] == 2 and len(before) == 4, before
+
+    _edit_the_canvas(widget, backend, _molblock_for("CCO"))
+
+    after = backend.electron_payloads[-1]["counts"]
+    assert len(after) == 3, after
+    assert after["2"] == 2, "the oxygen's pairs are not on the oxygen"
+    assert "3" not in after, "an atom that was deleted still carries dots"
+
+
+def test_an_edit_refreshes_the_descriptors_only_when_they_are_shown(qapp):
+    """The reported bug itself, at the widget.
+
+    "If a molecule is changed while the label is turned on, it won't
+    update." Both halves matter: refreshing when they are OFF would draw
+    labels nobody asked for, and is also how a "recompute everything on
+    every change" hook starts.
+    """
+    widget, backend, _ = _widget_with_electrons(qapp, "CO")
+
+    _edit_the_canvas(widget, backend, _molblock_for("CCO"))
+    assert backend.cip_calls == [], "descriptors were never turned on"
+
+    widget.set_cip_labels(True)
+    assert backend.cip_calls == [True]
+
+    _edit_the_canvas(widget, backend, _molblock_for("CCCO"))
+    assert backend.cip_calls == [True, True], "the edit did not recompute them"
+
+    widget.set_cip_labels(False)
+    _edit_the_canvas(widget, backend, _molblock_for("CCCCO"))
+    assert backend.cip_calls == [True, True, False], "an edit refreshed a display that is off"
+
+
+def test_a_change_that_moves_no_chemistry_recomputes_nothing(qapp):
+    """THE TIER BOUNDARY, and it is what stops this becoming "recalculate
+    everything on every change".
+
+    Ketcher fires `change` for a great deal that is not a structure edit --
+    Layout, Clean Up and dragging an atom all move coordinates and leave
+    the chemistry alone. The page repositions the dots itself from the
+    struct it already has, and a descriptor does not depend on where an
+    atom was drawn. Recomputing here would run a `LewisAnalysis` per drag
+    frame for no change in the answer.
+
+    Both annotations are checked in one test on purpose: they share the
+    gate, so a mutation that opens it would otherwise be caught twice and
+    fixed once.
+    """
+    widget, backend, molecule = _widget_with_electrons(qapp, "NCCO")
+    widget.set_electron_mode("pairs")
+    widget.set_cip_labels(True)
+    overlays = len(backend.electron_payloads)
+    cips = len(backend.cip_calls)
+
+    _edit_the_canvas(widget, backend, _nudged(molecule.molblock))
+
+    assert len(backend.electron_payloads) == overlays, "a move recomputed the chemistry"
+    assert len(backend.cip_calls) == cips, "a move recomputed the descriptors"
+
+
+def test_a_refresh_cannot_trigger_a_refresh(qapp):
+    """The recursion guard, asserted rather than reasoned about.
+
+    Whatever the descriptor refresh does must not itself count as a
+    structural change, or every refresh schedules another one. It
+    terminates on the same discriminator `_on_molecule_changed` and
+    `EditStructureCommand._invalidate_stale_conformers` already use --
+    canonical SMILES -- rather than on a flag, which is why an editor
+    change reporting the very same structure has to be a no-op here.
+    """
+    widget, backend, molecule = _widget_with_electrons(qapp, "CO")
+    widget.set_cip_labels(True)
+    cips = len(backend.cip_calls)
+
+    for _ in range(3):
+        _edit_the_canvas(widget, backend, molecule.molblock)
+
+    assert len(backend.cip_calls) == cips
 
 
 def test_no_lone_pairs_is_announced_too_because_it_LOOKS_the_same(qapp):
