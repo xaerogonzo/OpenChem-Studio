@@ -86,7 +86,7 @@ anything.
 
 QUININE is the case that exposed it, and is kept as a fixture in
 `tests/test_nmr_hybrid.py`. Scored against Moreland/Philip/Carroll's
-assigned CDCl3 table (J. Org. Chem. 1974, 39, 2413,
+assigned CDCl3 table ([source:moreland1974], J. Org. Chem. 1974, 39, 2413,
 doi:10.1021/jo00930a020), 12 of its 20 carbons are `rough` and the lookup
 is 12.50 ppm MAE on them. The old gate refused at +3.00 ppm against a
 2.62 limit, and merging anyway takes the spectrum from 7.96 to 3.44 ppm

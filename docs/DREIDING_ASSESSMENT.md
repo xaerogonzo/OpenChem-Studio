@@ -29,7 +29,7 @@ Every previous note in this repo said Dreiding energy was unavailable and
 stopped there. That was never a finding — it was the absence of one. This
 is the finding, from the primary source.
 
-**Source**: Mayo, Olafson & Goddard, *DREIDING: A Generic Force Field for
+**Source** [source:mayo1990]: Mayo, Olafson & Goddard, *DREIDING: A Generic Force Field for
 Molecular Simulations*, J. Phys. Chem. **1990**, 94, 8897–8909. On disk at
 `D:\Xaero Stuff\Documents\Sci Downloads\`, read with `pymupdf`.
 

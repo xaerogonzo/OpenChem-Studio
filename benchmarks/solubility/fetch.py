@@ -4,6 +4,7 @@
 
 Needs nothing but the project's own environment -- no PyTDC, no throwaway
 virtualenv, no Harvard Dataverse. Both files come from the AqSolDB
+[source:aqsoldb]
 repository, which publishes its nine constituent datasets separately as
 well as the merged result, and that separation is what makes an honest
 evaluation possible here.
@@ -21,7 +22,8 @@ both found by looking rather than assuming:
 
 **WHAT IS DOWNLOADED, AND WHY EACH.**
 
-`dataset-I` is the Solubility Challenge (Llinas, Glen & Goodman 2008),
+`dataset-I` is the Solubility Challenge (Llinas, Glen & Goodman 2008,
+[source:llinas2008]),
 AqSolDB reference [8]: 94 rows of INTRINSIC solubility measured by one
 consistent method on druglike compounds. It is the recognised
 high-quality reference set for this endpoint, and it post-dates ESOL's

@@ -2,7 +2,8 @@
 
     uv run --no-sync python benchmarks/solubility/extract_sc2.py <llinas2020.pdf>
 
-Table 1 of Llinas, Oprisiu & Avdeef 2020 (doi 10.1021/acs.jcim.0c00701):
+Table 1 of Llinas, Oprisiu & Avdeef 2020 (doi 10.1021/acs.jcim.0c00701,
+[source:llinas2020]):
 100 druglike compounds with interlaboratory-mean intrinsic solubility, a
 PER-COMPOUND standard deviation, the number of literature sources behind
 each value, a melting point, a logP, and the General Solubility Equation's

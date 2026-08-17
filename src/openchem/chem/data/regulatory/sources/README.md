@@ -29,7 +29,9 @@ verified by someone else later. Filling in a quote is how a rule graduates.
 For a rule that names a substance, the InChIKey must come from the
 identifier the regulation itself prints -- `legal.cited_identifiers` --
 and a name lookup is corroboration, never the source. This is measured,
-not stylistic. Over the 27 named chemicals of CWC Schedules 2 and 3:
+not stylistic. Over the 27 named chemicals of CWC Schedules 2 and 3
+([source:cwc_annex_on_chemicals]; the DEA list is
+[source:dea_listed_chemicals]):
 
     the statute's CAS resolved                    27 of 27
     OPSIN resolved the name                       25 of 27

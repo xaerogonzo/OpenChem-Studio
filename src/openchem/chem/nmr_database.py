@@ -21,7 +21,7 @@ MEASURED, on a real held-out benchmark rather than claimed. The index was
 rebuilt excluding every twentieth record, and those molecules were then
 predicted against their own recorded shifts -- none of them contributing
 to what was being asked (`benchmarks/nmr/score_lookup.py`, format 2,
-nmrshiftdb2 as downloaded 2026-08-03):
+nmrshiftdb2 [source:nmrshiftdb2] as downloaded 2026-08-03):
 
     13C -- 24,330 held-out atoms, coverage 99.8%
         good     n=11,390   MAE  1.12 ppm   median 0.50

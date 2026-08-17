@@ -12,7 +12,9 @@ constants.
 coordination.** That is a property of the fit, not an approximation this
 module chose: the ratio of Madelung constant to ion count is nearly the
 same across the common structure types, which is exactly why the equation
-works without being told the structure. `data/ionic_radii.json` therefore
+works without being told the structure ([source:glasser1995] notes the
+identity that makes the volume route backward compatible).
+`data/ionic_radii.json` therefore
 holds VI radii only.
 
 ## What it refuses

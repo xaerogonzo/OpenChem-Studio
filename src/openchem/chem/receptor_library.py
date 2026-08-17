@@ -1,6 +1,6 @@
 """A curated catalogue of docking targets, with their binding sites named.
 
-WHY THIS EXISTS. Finding a receptor on RCSB is not the hard part -- there
+WHY THIS EXISTS. Finding a receptor on RCSB [source:rcsb_pdb] is not the hard part -- there
 are dozens of mu-opioid entries and the search returns all of them. The
 hard part is the next question: *which* one, and *where on it* does a
 small molecule go. An entry with no bound ligand gives you a protein and

@@ -356,6 +356,25 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
+Before it: `4710 passed, 15 skipped`
+(measured 2026-08-16, **15m29**, on `sources-registry` -- the provenance
+registry. **+77 collected items**, and for once the interesting number is
+that only 4 of them are new test FUNCTIONS in existing files: 73 are
+`test_sources_are_current.py`, heavily parametrised over the registry's 53
+entries and the 7 shipped data tables, plus 2 in `test_lewis_adduct.py` and
+2 from `docs/SOURCES.md` joining the parametrised `DOCS` list in
+`test_docs_are_current.py`.
+
+    branch point  1f0cd6b   COLLECTS 4648
+    after                   COLLECTS 4725   = 4648 + 77
+    the run                          4710 passed + 15 skipped = 4725
+
+Diffed both directions, **0 removed, 77 added**, measured in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed. Skips unchanged at 15 -- nothing new needs a display.
+
+15m29 sits mid-band. The 6-19 range stands.)
+
 Before it: `4633 passed, 15 skipped`
 (measured 2026-08-16, **14m16**, on `solubility-base-bias` -- the base-bias
 power study at criteria v3. **+5 test functions**, all in
@@ -4776,6 +4795,185 @@ reader got the figure naked. `ArmStatus` + `ARM_STATUS` is one source
 feeding both, the shift arm is `OPTIMISTIC`, and a test asserts it can
 never be emitted as `VALIDATED`. **A caveat that lives beside a number
 rather than inside it is one refactor from being lost.**
+
+## SOURCES: a provenance registry, and two traps in building one
+
+`docs/sources.toml` is the hand-edited registry of every paper, dataset,
+legal text, standard and bundled library this project rests on;
+`tools/build_sources_doc.py` generates `docs/SOURCES.md` from it, with the
+same both-directions `--check` as `build_regulatory_rulesets.py`.
+`tests/test_sources_are_current.py` is the guard.
+
+**`source_key` IS THE INVARIANT; THE DOI SWEEP IS A BACKSTOP.** There are
+53 sources and **16 DOIs**, so a DOI-only guard would cover under a third of
+them and leave every prose citation -- the CRC Handbook, the CWC schedules,
+IUPAC 2013 -- free to rot while the suite stayed green. Prose cites with
+`[source:key]`, never a bare backtick: these documents hold thousands of
+backticked identifiers, so a guard reading every one as a key would need an
+enormous allowlist or would teach the prose to look like the test. The
+syntax is validated BEFORE it is resolved, so `[srouce:x]` fails rather than
+being skipped into a false clean state -- the `**OPNE**` lesson again.
+
+**A PLAIN TOP-LEVEL KEY IN A DATA FILE BREAKS ITS LOADER.** `_source_key`
+is underscore-prefixed and that is load-bearing, not style.
+`oxidation_states.electronegativity_table` and `checkers.valence.hypervalent_rules`
+both read their file's TOP LEVEL as the data map and drop keys beginning
+with an underscore -- the latter says so in its own docstring. A plain
+`source_key` is therefore indistinguishable from an element symbol, and
+adding one failed **43 tests** with `TypeError: string indices must be
+integers`. Files that nest their data under a named key (`elements`,
+`radii`, `solutes`) tolerate either spelling, which is exactly what makes
+the mistake survivable in five files and fatal in two.
+
+**HASHING RAW BYTES FOR A GENERATED-FILE CHECK FAILS ON CI.** The first
+`--check` hashed `sources.toml`'s bytes. This repo has `core.autocrlf=true`
+and no `.gitattributes`, so the same commit is CRLF in a Windows working
+tree and LF on a Linux runner, and the check would have gone red for a
+reason with nothing to do with content. It hashes newline-NORMALISED text
+now, which still catches every content edit including a reworded comment
+and ignores only a platform artifact nobody reviewed. Verified by converting
+both files to LF and back.
+
+**THE LICENCE GUARD WALKS THE FILESYSTEM, AND IT IS FILE-LEVEL.** Driving
+discovery from the registry alone means a bundle nobody registered is
+invisible -- how `inapplicable_calculators` rotted into 27 wrong entries --
+so the walk finds the files and the registry explains them, in three
+directions. File-level because directory-level is already wrong here:
+`resources/viewer3d/` holds `3Dmol-min.js` (theirs) beside `viewer.html`
+(entirely ours). It found that **Ketcher shipped with no LICENSE file at
+all** while Mol*, 3Dmol and the vendored namer each carried one.
+
+**AND IT PROVES DECLARATION, NOT COMPATIBILITY.** `resources/ketcher/dist/`
+is a BUNDLE: EPAM's Miew 0.11.1 is in there (its banner survives) and so is
+three.js, against a build tree of 430 packages. The notices are NOT
+recoverable from the artifact -- the build strips comments even with
+minification off, so exactly **two** licence banners survive in 35 MB -- so
+an accurate list would have to be produced at build time from
+`package-lock.json`, which is not done. Registering Ketcher's own
+Apache-2.0 is necessary and not sufficient, and the registry records that
+as an open gap rather than letting a green test imply the bundle is
+attributed.
+
+**VERSIONS ARE CHECKED WHERE THEY ARE RECOVERABLE, AND THE OBVIOUS PROBE
+LIES.** Ketcher's version is read from `package-lock.json` -- not
+`package.json`, which happens to pin exactly (`"3.17.0"`, no caret) but is a
+request rather than a result; the lockfile resolves with an integrity hash.
+`ketcher-core` is **3.17.1** while `ketcher-react` and `ketcher-standalone`
+are 3.17.0, which is why `package_name` is declared explicitly and never
+inferred from a registry key. Mol* and 3Dmol get no version check on
+purpose: grepping `molstar.js` for a version yields `18.3.1`, which is
+**React's** version inside the bundle. `pyproject.toml`'s `>=` lines are
+constraints, and `uv.lock` is the reference environment's resolution rather
+than a user's, so both are recorded as constraints.
+
+**AND IT PROVES NEITHER COMPLETENESS NOR CORRECTNESS.** The guards check
+consistency after the registry was populated; that every source was found
+rests on the reconstruction sweep. They cannot tell you a citation points at
+the right paper, a table number is right, or a source still supports the
+claim resting on it. `citation` means the reference is right,
+`citation_and_claim` means the NUMBER this project uses was checked against
+the source, and the two are separate because this project has shipped a
+fixture labelled "verbatim from a real run" whose energies were typed from
+memory. After the verification pass below: 17 `citation_and_claim`, 21
+`citation`, 16 `unverified`, and every one of the 16 genuinely has no local
+copy and no local metadata to check against.
+
+### THE VERIFICATION PASS FOUND TWO WRONG ENTRIES, AND ONE WAS MARKED VERIFIED
+
+Read the PDFs with `pymupdf` in a THROWAWAY venv (`uv venv` in a scratch
+directory, `uv pip install pymupdf`) rather than the project venv, so the
+suite environment stays exactly what `uv sync` produces. `pdftoppm` is not
+installed, so the `Read` tool cannot open a PDF here. Force
+`PYTHONIOENCODING=utf-8` or the first paper with an "∼" in its title raises
+`UnicodeEncodeError` on the cp1252 console -- the same trap already recorded
+for result lines.
+
+**`avdeef2020` CARRIED A DIFFERENT PAPER'S TITLE while claiming
+`citation_and_claim`.** The real title is "Prediction of aqueous intrinsic
+solubility of druglike molecules using Random Forest regression trained with
+Wiki-pS0 database"; the one recorded was "Multi-lab intrinsic solubility
+measurement reproducibility in CheqSol and shake-flask methods", which is
+Avdeef, ADMET & DMPK **2019, 7, 210-219** -- reference (5) of Llinàs 2020.
+**The volume, pages and DOI were right the whole time, because those came
+from the repository; only the title came from memory.** That asymmetry is
+the tell: the fields nobody could check were the ones that were wrong.
+
+**`gutmann_frontiers2022` CLAIMED A LOCAL PDF AND AN AUTHOR, BOTH
+INVENTED.** `kaya2022.pdf` matched the DOI's year and was assumed to be it;
+it is "On the Prediction of Lattice Energy with the Fukui Potential",
+J. Phys. Chem. A 2022, 126, 4507-4516. Searching every PDF in the archive
+for the Frontiers DOI or for Gutmann donor numbers returns nothing -- that
+paper is not held locally at all.
+
+**SO AUDIT THE ENTRIES THAT ALREADY CLAIM TO BE VERIFIED, not only the
+unverified ones.** The pass was started to upgrade 24 `unverified` rows and
+found its two real defects among the rows that already said `citation` or
+`citation_and_claim`. Ten other entries checked out exactly -- `mayo1990`,
+`shannon1976`, `parr_pearson1983`, `pearson1988`, `avdeef2007`,
+`jenkins1999`, `platts1999`, `bolovinos1984`, `lorentzon1995`,
+`moreland1974` -- each matching the paper's own running header.
+
+**A PDF's FIRST PAGE IS NOT NECESSARILY ITS PAPER.** `Drago & Wayland EC
+1965.pdf` opens on the tail of the PRECEDING article, about Co(II)
+relaxation times, so a check that reads page one alone concludes the file is
+the wrong paper. Searching the whole text found it, and found the sentence
+the Lewis scale guard rests on: **"E A = 1.00 and CA = 1.00. Iodine was
+selected because"**.
+
+**A REFERENCE LIST IS A VERIFICATION INSTRUMENT.** Llinàs 2020's references
+supplied a confirmed citation for `llinas2008` (its reference 2), named the
+paper `avdeef2020` had been confused with (reference 5), and revealed a
+source the sweep had missed entirely -- `llinas2019`, "Solubility Challenge
+Revisited after Ten Years, with Tight (SD ~0.17 log) and Loose (SD ~0.62
+log) Test Sets", which is where the tight/loose vocabulary this project uses
+actually comes from. It also caught an over-attribution: Llinàs 2020 states
+the interlab SD ~0.17 itself, but its RMSE = 0.34 carries a citation marker
+and belongs to Avdeef 2019.
+
+**AND THE ENTRIES WITH NO PDF NEEDED THE SAME AUDIT, FOR THE SAME REASON.**
+Asked where the still-unverified citations came from, the answer was "the
+repository's own text" -- mostly true, and in four cases not. `aqsoldb`,
+`allred1961`, `vogel_drago1996` and `ich_m9` had each been given a TITLE or
+a volume/page that the repo never carried and that nothing had checked. All
+four now say only what the repository says, with "title not established" in
+place of the invention. **A citation assembled from a real source plus a
+remembered detail is not a real citation**, and it fails in the direction
+that looks most convincing.
+
+`vogel_drago1996` is the one worth knowing about: `lewis_parameters.json`
+says the shipped E/C numbers came "via the Wikipedia ECW model compilation",
+so the chain is Wikipedia -> this repo -> the registry and **no step of it
+has touched the paper.** What stands in for that check today is
+`test_the_shipped_table_reproduces_the_measured_enthalpies`, which
+reproduces eight measured enthalpies to 0.27 kcal/mol.
+
+**LOCAL PACKAGE METADATA VERIFIES SOFTWARE BETTER THAN ANY PDF.**
+`importlib.metadata` gave licences for five dependencies, and corrected one:
+PySide6 is "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0", not the plain
+"LGPL-3.0" recorded -- flattening a disjunction loses the fact that there is
+a choice. `VENDORING.md` corrected the namer's identifier, which pointed at
+THIS project's repository rather than the upstream it was vendored from, and
+supplied the pinned commit. And 3Dmol's own licence text turned out to
+declare a second bundling case: "3Dmol.js incorporates code from GLmol,
+Three.js, and jQuery" -- same shape as the Ketcher bundle, except this one
+says so in the file we ship.
+
+**`lewis_parameters.json` IS THE CASE THAT NEEDED BOTH FIELDS.** It cites
+three works (1965, 1992, 1996) and the shipped numbers come from the 1996
+compilation, so `_source_key` is `vogel_drago1996` with the other two
+supplementary. `_parameter_scale` is a SEPARATE claim: Drago & Wayland 1965
+normalise iodine to `E_A = C_A = 1.000`, where this table has iodine at
+`E = 0.5, C = 2.0`, so citing the 1965 paper as the source would imply a
+scale these values are not on and a reader combining the tables would get
+plausible, wrong enthalpies.
+`test_lewis_parameters_match_the_declared_parameter_scale` DERIVES the scale
+from the iodine entry rather than trusting the label -- the same move
+`test_assembly_gate.py` makes -- and lives with the Lewis tests, because a
+guard over every data file in the project must not know chemistry.
+
+**`local` NAMES A PDF AND IS NEVER CHECKED.** `Sci Downloads` is not in the
+repository, so no run can resolve it. That is an admitted gap rather than an
+oversight: a check that cannot run is worse than a stated limit.
 
 ## Verification standard
 

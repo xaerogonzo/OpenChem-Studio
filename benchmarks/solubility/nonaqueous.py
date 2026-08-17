@@ -28,7 +28,7 @@ So this reports three arms, and only the first two are claims:
     baseline    our ESOL vs measured aqueous, same set   HONEST
     shift only  predicted shift vs measured shift        OPTIMISTIC
 
-DATA: Bradley et al., "Open Notebook Science Challenge Solubility
+DATA [source:ons_solubility]: Bradley et al., "Open Notebook Science Challenge Solubility
 Dataset", figshare, doi 10.6084/m9.figshare.1514952, CC BY 4.0.
 
 CAVEATS THAT ARE NOT FIXED HERE, stated rather than buried:

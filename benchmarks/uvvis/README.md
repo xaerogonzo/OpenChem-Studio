@@ -196,7 +196,7 @@ not occur anywhere in it. What it says is that the experimental values are
 become a **wrong number with a citation attached**, which is worse than an
 unsourced one because it stops looking like a question.
 
-Bolovinos et al. (*J. Mol. Spectrosc.* **103** (1984) 240–256,
+Bolovinos et al. [source:bolovinos1984] (*J. Mol. Spectrosc.* **103** (1984) 240–256,
 [doi:10.1016/0022-2852(84)90051-1](https://doi.org/10.1016/0022-2852(84)90051-1))
 gives the direct absolute measurements, Tables I and III:
 

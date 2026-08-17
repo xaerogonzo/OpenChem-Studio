@@ -210,3 +210,16 @@ GPL-3.0-or-later — see [LICENSE](LICENSE).
 The licence is GPL because the project optionally links against Open Babel's
 Python bindings, which are GPL. RDKit (BSD) and PySide6 (LGPL) are both
 GPL-compatible, so they do not force the choice; Open Babel does.
+
+## Sources
+
+Every paper, dataset, legal text, standard and bundled library this project
+rests on is registered in [docs/SOURCES.md](docs/SOURCES.md), with what uses
+it and how far the citation has been checked. It is generated from
+`docs/sources.toml` and guarded by `tests/test_sources_are_current.py`, so a
+citation that bypasses it, an entry for a deleted feature, or a bundled
+library with no licence file all fail the suite rather than going unnoticed.
+
+It records provenance, not correctness: it cannot tell you a citation points
+at the right paper, and it does not establish licence compatibility. Both
+limits are stated at the top of the document.

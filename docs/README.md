@@ -9,6 +9,13 @@
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Internal design, layering, and the decisions worth remembering |
 | [ROADMAP.md](ROADMAP.md) | What is built, what is left, and why each remaining item is blocked |
 | [PLUGIN_SDK.md](PLUGIN_SDK.md) | Writing a plugin |
+| [SOURCES.md](SOURCES.md) | Every paper, dataset, legal text and bundled library this project rests on, with what uses it and how far it has been checked |
+| [SOURCES_TODO.md](SOURCES_TODO.md) | What the registry cannot yet stand behind — which papers are still needed and where each answer goes. Delete it when it empties |
+
+`SOURCES.md` is **generated** from [`sources.toml`](sources.toml) by
+[`../tools/build_sources_doc.py`](../tools/build_sources_doc.py). Edit the
+TOML and re-run the tool; `tests/test_sources_are_current.py` fails if the
+two drift apart, in either direction.
 
 The root [`README.md`](../README.md) is the overview; everything above goes
 deeper.

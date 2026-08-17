@@ -1,4 +1,5 @@
 {
+  "_source_key": "iupac2013",
   "_about": {
     "purpose": "Which expanded-octet valences are legitimate, and under what ligands. Consulted only when an atom's valence is not already in RDKit's list for that element, so this file is a set of exceptions, not a valence table.",
     "why_data_and_not_code": "Same call the regulatory rulesets made: adding an element is a data edit, and every verdict can cite the rule that produced it rather than a branch in a function.",

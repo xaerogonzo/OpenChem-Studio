@@ -84,8 +84,8 @@ for a structural reason worth stating:
 
 | corpus | rows | after de-leaking | bases | can be a test side? |
 | --- | --- | --- | --- | --- |
-| A1 (Yalkowsky & Banerjee 1992) | 19 | **5** | **0** | no |
-| A2 (Hopfinger et al. 2009) | 27 | 23 | 7 | no — under the minimum of 10 |
+| A1 (Yalkowsky & Banerjee 1992, [source:yalkowsky_banerjee1992]) | 19 | **5** | **0** | no |
+| A2 (Hopfinger et al. 2009, [source:hopfinger2009]) | 27 | 23 | 7 | no — under the minimum of 10 |
 
 **Power here is set by the TEST side, not the fit side.** Both new corpora
 are too small to be held out, so they can only join the fit pool — which

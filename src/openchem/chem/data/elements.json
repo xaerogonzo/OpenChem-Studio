@@ -1,4 +1,8 @@
 {
+ "_source_key": "rdkit",
+ "_supplementary_source_keys": [
+  "iupac2013"
+ ],
  "_about": {
   "purpose": "The periodic-table facts RDKit's own table does not carry.",
   "not_here_because_rdkit_has_it": "Element name, atomic weight, van der Waals and covalent radii, outer-electron count, valence list, period, and the natural-abundance isotope table all come from rdkit.Chem.GetPeriodicTable() at display time and are deliberately not duplicated here. Electronegativity comes from electronegativity.json.",

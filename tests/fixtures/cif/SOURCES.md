@@ -1,6 +1,7 @@
 # CIF fixtures, and where they came from
 
 All six are real depositions from the **Crystallography Open Database**
+[source:cod]
 (<https://www.crystallography.net/cod/>), kept here because a reader that
 has only ever parsed a file this project wrote is not a reader that has
 been tested.
@@ -33,6 +34,7 @@ that the original data were provided by IUCr Journals and that the file
 attribution is given to the journal article from which the data were
 obtained". That article is:
 
+> [source:bravetti2023]
 > Bravetti, F., Tapmeyer, L., Skorodumov, K., Alig, E., Habermehl, S.,
 > Hühn, R., Bordignon, S., Gallo, A., Nervi, C., Chierotti, M. R. &
 > Schmidt, M. U. (2023). *Leucopterin, the white pigment in butterfly

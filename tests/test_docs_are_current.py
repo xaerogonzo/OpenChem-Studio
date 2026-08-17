@@ -63,6 +63,18 @@ DOCS = [
     "docs/DREIDING_ASSESSMENT.md",
     "docs/SELF_HOSTED_RUNNER.md",
     "docs/SOLVENT_SOLUBILITY_ASSESSMENT.md",
+    # GENERATED from docs/sources.toml. It is checked here anyway, and that
+    # is not redundant with its own generator: this asks whether the paths
+    # it cites still EXIST, which `build_sources_doc.py --check` never does
+    # -- that only asks whether the file is current with respect to its
+    # source. A registry can be perfectly regenerated and still name a
+    # module deleted last week.
+    "docs/SOURCES.md",
+    # A work list, not documentation. It is guarded like everything else so
+    # its many path references cannot rot while it waits to be finished,
+    # and it says in its own first lines that it should be DELETED when it
+    # empties -- a stale work list being worse than none.
+    "docs/SOURCES_TODO.md",
 ]
 
 #: Backticked paths that deliberately do NOT resolve in this repo, each

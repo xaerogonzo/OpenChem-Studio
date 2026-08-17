@@ -1041,7 +1041,7 @@ described differently by different sources.
 Kapustinskii refuses every polyatomic ion, because a nitrate or a
 carbonate has a *thermochemical* radius — a different measurement from a
 different source, absent from the shipped table. A second route answers
-those: the volume-based correlation of Jenkins, Roobottom, Passmore &
+those: the volume-based correlation [source:jenkins1999] of Jenkins, Roobottom, Passmore &
 Glasser (*Inorg. Chem.* 1999, 38, 3609), `U = 2I(α/V^⅓ + β)`, which
 needs only the formula-unit volume and does not care how many atoms an
 ion contains.
