@@ -176,6 +176,113 @@ Three things that cost a run each:
   caller's session; here it broke the harness's own exit-code handling
   and read as a failure of a capture that had just succeeded.
 
+## THE HELP CONTRACT: a tooltip is a RENDERING, not the thing itself
+
+Reported as "this suite especially needs tooltips... for a great, many
+things", after nothing in the app could say what the pose table's
+"RMSD l.b." column meant.
+
+**The invariant is "has a documented contract", not "has tooltip text".** A
+guard that checks for a non-empty string degenerates into
+`tooltip = "Options."`. The producer declares what a control MEANS and the
+validator checks the STRUCTURE of that declaration, never the prose --
+`applies_to` and `Provenance.parameters[TOTAL]` already work this way.
+
+    src/openchem/ui/widgets/help_tooltip.py       the metadata, knows no Qt
+    src/openchem/ui/widgets/tooltip_inventory.py  the ONE discovery layer
+    tests/test_tooltip_coverage.py                the guard
+    tools/list_tooltips.py                        the query surface
+
+The guard and the tool both consume `iter_documentable_controls` and
+neither walks the tree itself. Two implementations of "all interactive
+controls" would drift, which this repo has paid for four times.
+
+### The three tiers
+
+    1  plain UI action           action + result
+    2  scientific parameter      what it controls + at least ONE applicable
+                                 qualifier (unit, range, default, or
+                                 behavioural consequence)
+    3  interpretation-sensitive  definition + units/reference frame where
+                                 applicable + the interpretation limit
+
+Tier 2 requires "at least one APPLICABLE" deliberately: a method choice has
+no unit and no useful range, and demanding all four produces `Default: N/A`
+written to satisfy a rule.
+
+    BAD   "RMSD l.b. -- RMSD lower bound."
+    GOOD  "RMSD lower bound in A relative to pose 1. Symmetry-equivalent
+           atoms may be matched, so it can be smaller than the upper bound.
+           It does not measure agreement with experiment."
+
+### `help_id` names a DEFINITION, not an instance
+
+`<surface>.<concept>`, lowercase ASCII. **Never renamed because the UI
+moved, never reused for a different concept** -- reusing one turns every
+earlier reference into a statement about something else.
+
+**Uniqueness runs BOTH ways and the second direction was missing.** Sixty
+tick boxes meaning "include this calculator in a batch run" share ONE id;
+sixty calculator buttons, each its own concept, get sixty. A mutation
+renaming the tick boxes to `properties.batch_selection_<id>` -- one concept
+shredded into sixty -- **passed every guard**, because each id then had
+exactly one contract. `test_one_concept_is_not_split_across_many_help_ids`
+closes it on a structural signal: byte-identical text under two ids means
+one concept wearing two, or one of them wrong.
+
+### Three kinds of statement, one wants a source
+
+    external scientific fact      carries source_key -> docs/sources.toml
+    OpenChem behaviour            carries neither
+    interpretation warning        carries help_anchor -> openchem.help
+
+Keeping the middle row source-free is what stops the registry becoming a
+dumping ground for application semantics. Anchors resolve through
+`openchem.help`, which already owns topic discovery -- the guard, the tool
+and `tests/test_help.py` all ask it, so there is one parser rather than
+three.
+
+### Generate the contract where a registry already knows
+
+The sixty calculator buttons derive theirs from `CalculatorDefinition`:
+`description` is already the authoritative statement, so writing sixty
+tooltips beside it would be sixty chances to disagree. Same instinct as
+`sources.toml -> SOURCES.md`.
+
+### What the guard must NEVER become
+
+**No LLM grading, here or later.** Asking a model whether a tooltip
+"explains the widget" makes the oracle stochastic, and a test that can
+disagree with itself between runs is worse than none. The degenerate-string
+floor is a FLOOR, and its exclusions are deliberate: no label-overlap
+detection, no noun/verb heuristics, no word-count rules, no "must contain
+units" regexes. Every one is satisfied by nonsense like "Maximum poses.
+Higher values."
+
+`whatsThis()` counts as alternate documentation. **`accessibleDescription()`
+does NOT** -- worded that way so nobody deletes accessibility work to make
+the guard pass. So `--missing` means "no semantic help", not "no tooltip",
+and a control with good `whatsThis()` is NOT a gap to be filled.
+
+`verified` was considered and deferred: the sources registry's field tracks
+drift against EXTERNAL documents, while a flag an author sets in the same
+commit that writes the prose records nothing `git log` does not.
+
+### The migration debt is staged, or the layer could not have landed
+
+248 controls carried a raw `setToolTip` with no contract. A guard failing
+on that would have made the commit red and forbidden the incremental
+migration it exists to enable. `tests/fixtures/tooltip_migration_debt.json`
+records the set; it may SHRINK freely and may not grow. Keyed on the
+CONTROL rather than a source call site -- `file:line` moves under the
+migration and the tooltip STRING is the very thing being rewritten, while
+the control survives both. Delete the fixture and its test when it reaches
+zero.
+
+**"66 setToolTip call sites" was 248 CONTROLS**, and an AST estimate of 179
+interactive constructions was really 372. Neither number was ever the
+universe; only `iter_documentable_controls` is.
+
 ## THE VIEWER AND THE DOCKING WERE SHOWING DIFFERENT CHAINS
 
 `Viewer.loadStructureFromData`'s default preset builds **biological
