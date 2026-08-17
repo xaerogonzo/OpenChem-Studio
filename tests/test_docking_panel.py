@@ -541,3 +541,33 @@ def test_every_pose_column_explains_itself(qapp):
     assert "not" in rmsd.lower() and "experimental" in rmsd.lower(), (
         "the misreading this exists to prevent: RMSD here is not accuracy"
     )
+
+
+def test_the_scoring_error_is_never_quoted_without_its_source(qapp):
+    """A number in a tooltip carries the authority of the application.
+
+    2.85 kcal/mol was written into this tooltip FROM MEMORY, removed
+    because nothing in the repository supported it, and restored only
+    after the paper was read -- `[source:trott_olson2010]`, "Vina achieves
+    a comparatively low standard error of 2.85 kcal/mol". The remembered
+    figure was right, which is luck rather than method: it was
+    unverifiable when written.
+
+    So the guard is on the PAIRING, not on the number. Quoting the figure
+    is fine; quoting it bare is not, because an unattributed error bar
+    reads as this application's own measurement of the user's run rather
+    than as the authors' result for their 190-complex set. Tidying the
+    attribution away while keeping the number fails here.
+    """
+    panel, _, _ = _make_panel()
+
+    affinity = panel._table.horizontalHeaderItem(1).toolTip()
+
+    if "2.85" in affinity:
+        assert "Trott" in affinity and "Olson" in affinity, (
+            "the scoring error is quoted with no attribution"
+        )
+        assert "their own" in affinity or "test set" in affinity, (
+            "must say whose set the figure is for, or it reads as a "
+            "universal error bar for any run"
+        )

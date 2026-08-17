@@ -40,11 +40,17 @@ _POSE_COLUMNS = ("Pose", "Binding Affinity (kcal/mol)", "RMSD l.b.", "RMSD u.b."
 #: as confusing by a user who read the RMSD columns as accuracy against an
 #: experimental structure. They are not: both are measured against pose 1.
 #:
-#: NO SCORING-ERROR FIGURE APPEARS HERE. One was nearly written in from
-#: memory; `docs/sources.toml` records no such number for
-#: `[source:autodock_vina]`, and a tooltip is exactly where an unsourced
-#: figure would acquire false authority. `SCIENTIFIC_LIMITATIONS.md` has
-#: the run-to-run scatter that IS measured.
+#: THE SCORING ERROR IS QUOTED WITH ITS SOURCE, AND ONLY BECAUSE IT HAS
+#: ONE. It was first written in from memory, removed because nothing in
+#: this tree supported it, and restored only after the paper was read:
+#: `[source:trott_olson2010]`, "Vina achieves a comparatively low standard
+#: error of 2.85 kcal/mol". The remembered figure turned out to be right,
+#: which is not a reprieve -- it was unverifiable at the time, and a
+#: tooltip is exactly where an unsourced number acquires false authority.
+#:
+#: ATTRIBUTED, NOT STATED FLATLY. It is the authors' standard error of
+#: predicted against experimental binding free energies on THEIR
+#: 190-complex set; it is not a universal error bar for any given run.
 _POSE_COLUMN_TOOLTIPS = {
     "Pose": "Rank within this run, best score first. Not an identity: pose 1 of one "
     "run is unrelated to pose 1 of another.",
@@ -53,7 +59,11 @@ _POSE_COLUMN_TOOLTIPS = {
         "is predicted-tighter binding.\n\n"
         "It is NOT a measured binding free energy, and scores are generally not "
         "directly comparable across different receptors, targets or docking protocols "
-        "-- the search box, receptor preparation and protonation pH all move the scale."
+        "-- the search box, receptor preparation and protonation pH all move the scale.\n\n"
+        "For scale: Trott & Olson (2010), who wrote the scoring function, report a "
+        "standard error of 2.85 kcal/mol against experimental binding free energies "
+        "on their own 190-complex test set. Treat differences smaller than that as "
+        "not meaningfully distinguishable."
     ),
     "RMSD l.b.": (
         "Root-mean-square deviation in Angstrom RELATIVE TO POSE 1 of this run -- not "

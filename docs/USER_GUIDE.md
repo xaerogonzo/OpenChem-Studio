@@ -842,7 +842,12 @@ In the **Docking** panel:
    - **Binding Affinity (kcal/mol)** — Vina's empirical score. Always
      negative; more negative is predicted-tighter. It is *not* a measured
      binding free energy, and scores are generally not comparable across
-     different receptors, targets or docking protocols.
+     different receptors, targets or docking protocols. For scale, Trott &
+     Olson (2010) report a standard error of 2.85 kcal/mol against
+     experimental binding free energies on their own 190-complex set
+     ([source:trott_olson2010]), so a gap smaller than that is not a
+     meaningful difference — which is worth remembering when several
+     ligands come back within a few tenths of each other.
    - **RMSD l.b. / u.b.** — deviation in Å from **pose 1 of the same run**,
      not from any experimental structure, which is why pose 1 always reads
      0.000. The upper bound matches each atom to itself; the lower bound

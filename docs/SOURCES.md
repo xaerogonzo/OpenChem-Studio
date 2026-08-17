@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 1bc45affe8f1e6630967ae931c475887e61140abce322c19e830df27bd69cd9d -->
+<!-- SOURCE SHA256: 188b9547f96b25fb19d1d747846dec16fed21b3456ad6c2cf68b7ee15ea3f021 -->
 
 # Sources
 
@@ -143,6 +143,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
 | [`tdc_admet`](#tdc_admet) | dataset | reference only | citation |
 | [`threedmol`](#threedmol) | software | shipped | citation |
+| [`trott_olson2010`](#trott_olson2010) | literature | shipped | citation + claim |
 | [`tsei`](#tsei) | reference_table | **not shipped** | unverified |
 | [`vogel_drago1996`](#vogel_drago1996) | literature | shipped | citation + claim |
 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
@@ -699,6 +700,49 @@ journal, volume, pages and year are read directly.
 Note the GSE needs a MEASURED MELTING POINT, which this project does not
 have and cannot supply -- which is why the baseline is reported rather than
 reproduced.
+
+### trott_olson2010
+
+<a id="trott_olson2010"></a>
+
+> O. Trott & A. J. Olson, 'AutoDock Vina: Improving the Speed and Accuracy of Docking with a New Scoring Function, Efficient Optimization, and Multithreading', J. Comput. Chem. 2010, 31(2), 455-461.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/jcc.21334](https://doi.org/10.1002/jcc.21334) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-17 |
+| Used by | `src/openchem/ui/panels/docking_panel.py`, `docs/USER_GUIDE.md` |
+
+**THE SCORING-FUNCTION ERROR THE POSE TABLE'S TOOLTIP QUOTES.** Read from
+the open-access copy at PMC3041641 (NIH-funded, so no paywall), Results
+and Discussion, verbatim:
+
+    "Vina achieves a comparatively low standard error of 2.85 kcal/mol"
+
+It is the standard error of PREDICTED AGAINST EXPERIMENTAL free energies
+of binding -- Figure 7 plots exactly that -- over the paper's own
+190-complex set, using the predicted bound conformations. The same
+paragraph gives 2.75 kcal/mol for the 116 complexes not in PDBbind.
+
+**IT IS THE AUTHORS' FIGURE FOR THEIR SET AND THEIR PROTOCOL, not a
+universal error bar**, which is why the tooltip attributes it rather than
+stating it flatly. Vina's own accuracy on this project's redocking set is
+a different measurement and is recorded in `chem/binding_site.py`.
+
+**THIS ENTRY EXISTS BECAUSE THE NUMBER WAS NEARLY SHIPPED FROM MEMORY.**
+It was written into a draft tooltip with no source, spotted, and removed
+on the grounds that no `2.85` anywhere in this tree was a docking figure
+(every one is NMR ppm or unrelated) and `[source:autodock_vina]` recorded
+no error. Checking afterwards showed the remembered number was RIGHT --
+which is the point rather than a reprieve: it was unverifiable at the time
+and a tooltip is exactly where an unsourced figure acquires false
+authority. Being correct by luck is not a method. See
+[source:sci_downloads_note] for the same lesson from the other direction.
+
+`[source:autodock_vina]` is the software; this is the paper that carries
+the claim.
 
 ### glasser1995
 
@@ -1814,6 +1858,11 @@ so Vina runs with a random seed and two runs of the same receptor already
 differ -- any A/B on a receptor change is measuring the search wandering
 until the seed is pinned, and pinning alone is not enough without measuring
 the same-receptor spread as a control.
+
+This entry stays `citation` rather than `citation_and_claim`: it records
+the SOFTWARE, and no number here comes from it. The scoring-function error
+the pose table quotes belongs to the original paper and is verified
+separately at [source:trott_olson2010].
 
 ### orca
 
