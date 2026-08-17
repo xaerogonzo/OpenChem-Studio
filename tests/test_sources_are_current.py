@@ -671,6 +671,31 @@ def test_the_ketcher_lockfile_matches_its_registry_entry():
 # ---------------------------------------------------------------------------
 
 
+def test_the_ketcher_third_party_notices_are_current():
+    """The bundled dependencies' notices must track the lockfile.
+
+    A notices file that lists what the dependencies USED to be is worse than
+    none: it reads as attribution while attributing the wrong thing. The
+    generator's own `--check` compares the recorded lockfile hash against the
+    lockfile as it stands, which is what catches a dependency bump landing
+    without a regeneration.
+
+    ITS SECOND HALF NEEDS `node_modules/` AND CI HAS NONE, so the tool skips
+    the regenerate-and-compare there and says so on stdout rather than
+    passing silently. The hash half runs everywhere and is the one that
+    matters for staleness.
+    """
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "tools" / "build_ketcher_notices.py"), "--check"],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_the_generated_doc_is_current():
     """Both directions, via the tool itself rather than a second
     implementation of its rules.

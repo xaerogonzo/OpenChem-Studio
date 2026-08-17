@@ -10,7 +10,6 @@
 | [ROADMAP.md](ROADMAP.md) | What is built, what is left, and why each remaining item is blocked |
 | [PLUGIN_SDK.md](PLUGIN_SDK.md) | Writing a plugin |
 | [SOURCES.md](SOURCES.md) | Every paper, dataset, legal text and bundled library this project rests on, with what uses it and how far it has been checked |
-| [SOURCES_TODO.md](SOURCES_TODO.md) | What the registry cannot yet stand behind — which papers are still needed and where each answer goes. Delete it when it empties |
 
 `SOURCES.md` is **generated** from [`sources.toml`](sources.toml) by
 [`../tools/build_sources_doc.py`](../tools/build_sources_doc.py). Edit the

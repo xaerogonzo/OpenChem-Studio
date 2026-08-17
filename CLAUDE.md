@@ -4845,14 +4845,45 @@ all** while Mol*, 3Dmol and the vendored namer each carried one.
 
 **AND IT PROVES DECLARATION, NOT COMPATIBILITY.** `resources/ketcher/dist/`
 is a BUNDLE: EPAM's Miew 0.11.1 is in there (its banner survives) and so is
-three.js, against a build tree of 430 packages. The notices are NOT
-recoverable from the artifact -- the build strips comments even with
-minification off, so exactly **two** licence banners survive in 35 MB -- so
-an accurate list would have to be produced at build time from
-`package-lock.json`, which is not done. Registering Ketcher's own
-Apache-2.0 is necessary and not sufficient, and the registry records that
-as an open gap rather than letting a green test imply the bundle is
-attributed.
+three.js, against a build tree of 429 packages. Registering Ketcher's own
+Apache-2.0 was necessary and never sufficient.
+
+**THE NOTICES CANNOT COME FROM THE ARTIFACT, SO THEY COME FROM THE
+LOCKFILE.** The build strips comments even with minification off, so exactly
+**two** licence banners survive in 35 MB.
+`tools/build_ketcher_notices.py` generates
+`resources/ketcher/THIRD-PARTY-NOTICES.txt` from `package-lock.json` plus
+the licence files in `node_modules/`, and it is committed beside the dist
+for the same reason the dist is: CI has no node, and a fresh clone must
+carry what it redistributes. 318 packages, 437 KB, 312 of them with the
+package's own licence TEXT rather than just an identifier.
+
+**318 OF 429 IS DELIBERATELY MORE THAN THE BUNDLE CONTAINS**, being every
+package the lockfile does not mark `dev`. A build-time tool can be a runtime
+DEPENDENCY of a runtime package -- the whole `@babel/*` set arrives that way
+via `@emotion/babel-plugin` -- and vite tree-shakes, so some listed packages
+contribute no code at all. Narrowing it would mean deciding, per package,
+whether any of its code survived into a comment-stripped 35 MB artifact.
+**Over-attribution is the safe direction and under-attribution is not**, and
+the generated file says so rather than implying a precision the method does
+not have.
+
+**MIEW APPEARS AT 0.11.1, MATCHING THE BANNER IN THE DIST EXACTLY**, which
+is the check that a lockfile-derived list really describes the artifact --
+along with three.js 0.153.0 and raphael 2.3.0, the latter explaining the
+otherwise-mysterious `eve-raphael`.
+
+Three guards hold it, and deleting the file trips all three: the licence
+guard, the operational-path check, and
+`test_the_ketcher_third_party_notices_are_current`, which runs the
+generator's `--check`. That compares the RECORDED lockfile hash against the
+lockfile as it stands, so a dependency bump without a regeneration fails.
+**Its regenerate-and-compare half needs `node_modules/` and CI has none**,
+so the tool skips that half and says so on stdout rather than passing
+silently -- a check that degrades quietly is worse than one that admits what
+it could not do.
+
+The licence guard still proves DECLARATION rather than compatibility.
 
 **VERSIONS ARE CHECKED WHERE THEY ARE RECOVERABLE, AND THE OBVIOUS PROBE
 LIES.** Ketcher's version is read from `package-lock.json` -- not
@@ -4987,11 +5018,36 @@ Jenkins' table, and the electronegativities are Allred's. It is
 `reference_only`.
 
 **`kaya2022` WAS CITED TWICE AND REGISTERED ZERO TIMES, and the coverage
-check could not have found it.** The author-year sweep in
-`docs/SOURCES_TODO.md` greps a fixed alternation of surnames; "Kaya" was
-not in it. **That check finds only authors somebody already thought of** --
-the real limit of the non-DOI half. It was found by chasing the CRC's
-provenance for an unrelated reason. Its Table 3 supplies every experimental
+check could not have found it.** The author-year sweep below greps a fixed
+alternation of surnames; "Kaya" was not in it. **That check finds only
+authors somebody already thought of** -- the real limit of the non-DOI
+half. It was found by chasing the CRC's provenance for an unrelated reason.
+
+#### The coverage sweep, and what it cannot do
+
+The DOI backstop covers the DOI-bearing sources; nothing mechanical covers
+a prose citation. This is the manual half, worth re-running after any batch
+of source work -- every author-year it prints should resolve to a registry
+key, and the alternation wants extending when a new name enters the tree:
+
+```bash
+rg -o -N --no-filename -g '!docs/sources.toml' -g '!docs/SOURCES.md' -g '!**/vendor/**' -g '!**/resources/**' -e '(Glasser|Jenkins|Sorkun|Avdeef|Llin[aà]s|Abraham|Acree|Bradley|Delaney|Platts|Pearson|Parr|Drago|Shannon|Allred|Mayo|Hopfinger|Yalkowsky|Banerjee|Kaya|Kuhn|Neese|Vogel)[ ,]{0,2}(?:et al\.?)?[ ,]{0,3}(19|20)\d\d' . | sort -u
+```
+
+**PDFs HELD LOCALLY AND CITED NOWHERE ARE NOT REGISTRY ENTRIES**, because
+the registry records what this project rests on and an unused source
+inflates it. Recorded here instead so nobody re-derives whether they
+matter: `glasser2000`, `glasser2012`, `jenkins2002` (lattice-energy
+family); `tantardini2021` (thermochemical electronegativities, adjacent to
+`electronegativity.json`); `bodor1992`, `klopman1992`, `sun2019` and the
+Yalkowsky & He *Handbook of Aqueous Solubility Data* (candidates for a
+wider solubility corpus, **with the leakage question asked of each first**);
+`drago1994` and `romeo1997`.
+
+**Their DOIs are deliberately not written down anywhere in the tree**, and
+that is not fussiness: the DOI backstop treats any DOI it finds as a
+citation that must resolve to a registry entry, and it caught exactly this
+list when they were included. Its Table 3 supplies every experimental
 lattice energy the Kapustinskii route is scored against: 35 of 36 salts
 located, all 35 matching.
 
