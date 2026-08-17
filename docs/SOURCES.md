@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 5eda6e6168609d33d6de5ef48901fea34e47a36b26989427c6dabd739e822b55 -->
+<!-- SOURCE SHA256: e86dd80c63defa8b05b0717cbf213db963cfec3ad53f8ec072a8741a9b7bc091 -->
 
 # Sources
 
@@ -73,42 +73,43 @@ reference fails rather than being silently skipped.
 | [`crc_handbook`](#crc_handbook) | reference_table | shipped | unverified |
 | [`cwc_annex_on_chemicals`](#cwc_annex_on_chemicals) | legal | shipped | citation + claim |
 | [`dea_listed_chemicals`](#dea_listed_chemicals) | legal | shipped | citation |
-| [`delaney2004`](#delaney2004) | literature | shipped | unverified |
-| [`dimorphite_dl`](#dimorphite_dl) | software | shipped | unverified |
+| [`delaney2004`](#delaney2004) | literature | shipped | citation + claim |
+| [`dimorphite_dl`](#dimorphite_dl) | software | shipped | citation |
 | [`drago1965`](#drago1965) | literature | shipped | citation + claim |
 | [`drago1992`](#drago1992) | literature | shipped | unverified |
+| [`gutmann_frontiers2022`](#gutmann_frontiers2022) | literature | **not shipped** | unverified |
 | [`hlb`](#hlb) | reference_table | **not shipped** | unverified |
 | [`ich_m9`](#ich_m9) | standard | shipped | unverified |
 | [`iupac2013`](#iupac2013) | standard | shipped | citation |
 | [`iupac_namer`](#iupac_namer) | software | shipped | citation |
 | [`jenkins1999`](#jenkins1999) | literature | shipped | citation + claim |
-| [`kaya2022`](#kaya2022) | literature | **not shipped** | citation + claim |
 | [`kendall2008`](#kendall2008) | literature | shipped | citation |
 | [`ketcher`](#ketcher) | software | shipped | citation |
 | [`kwon2023`](#kwon2023) | dataset | shipped | citation + claim |
-| [`llinas2008`](#llinas2008) | dataset | shipped | unverified |
+| [`llinas2008`](#llinas2008) | dataset | shipped | citation |
+| [`llinas2019`](#llinas2019) | dataset | reference only | citation |
 | [`llinas2020`](#llinas2020) | dataset | shipped | citation + claim |
 | [`lorentzon1995`](#lorentzon1995) | literature | reference only | citation + claim |
 | [`mayo1990`](#mayo1990) | literature | shipped | citation + claim |
 | [`miller_polarizability`](#miller_polarizability) | reference_table | **not shipped** | unverified |
-| [`molstar`](#molstar) | software | shipped | unverified |
+| [`molstar`](#molstar) | software | shipped | citation |
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
 | [`nmrshiftdb2`](#nmrshiftdb2) | dataset | shipped | unverified |
 | [`ons_solubility`](#ons_solubility) | dataset | shipped | citation |
-| [`openbabel`](#openbabel) | software | shipped | unverified |
-| [`opsin`](#opsin) | software | shipped | unverified |
+| [`openbabel`](#openbabel) | software | shipped | citation |
+| [`opsin`](#opsin) | software | shipped | citation |
 | [`orca`](#orca) | software | shipped | unverified |
 | [`parr_pearson1983`](#parr_pearson1983) | literature | shipped | citation |
 | [`pearson1988`](#pearson1988) | literature | shipped | citation + claim |
 | [`pkasolver`](#pkasolver) | software | shipped | unverified |
 | [`platts1999`](#platts1999) | literature | **not shipped** | citation + claim |
-| [`pyside6`](#pyside6) | software | shipped | unverified |
+| [`pyside6`](#pyside6) | software | shipped | citation |
 | [`rcsb_pdb`](#rcsb_pdb) | dataset | shipped | citation |
-| [`rdkit`](#rdkit) | software | shipped | unverified |
+| [`rdkit`](#rdkit) | software | shipped | citation |
 | [`sci_downloads_note`](#sci_downloads_note) | reference_table | reference only | citation |
 | [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
 | [`tdc_admet`](#tdc_admet) | dataset | reference only | unverified |
-| [`threedmol`](#threedmol) | software | shipped | unverified |
+| [`threedmol`](#threedmol) | software | shipped | citation |
 | [`tsei`](#tsei) | reference_table | **not shipped** | unverified |
 | [`vogel_drago1996`](#vogel_drago1996) | literature | shipped | unverified |
 
@@ -179,9 +180,14 @@ so values were read from a rendered image and cross-checked.
 | Used by | `src/openchem/chem/lewis_adduct.py`, `src/openchem/chem/data/lewis_parameters.json`, `tools/build_lewis_parameters.py` |
 
 The ORIGINAL MODEL, and NOT the source of the shipped numbers -- see
-[source:vogel_drago1996]. Its parameters are on a different scale: this
-paper normalises iodine to E_A = C_A = 1.000, where the shipped table has
-iodine at E = 0.50, C = 2.0. Mixing the two silently is a real hazard, which
+[source:vogel_drago1996]. Its parameters are on a different scale, and that
+is now READ FROM THE PAPER rather than taken from this project's notes: it
+says "E A = 1.00 and CA = 1.00. Iodine was selected because", where the
+shipped table has iodine at E = 0.50, C = 2.0. That sentence is what
+`test_lewis_parameters_match_the_declared_parameter_scale` ultimately rests
+on. Title, authors and pages 3571-3577 all confirmed; note the PDF's first
+page is the tail of the PRECEDING article, so a check that reads only page
+one concludes the file is the wrong paper. Mixing the two silently is a real hazard, which
 is why `lewis_parameters.json` declares `parameter_scale` and a guard
 derives it from the iodine entry rather than trusting the label.
 
@@ -295,7 +301,7 @@ identical under both, which is why it survived so long.
 
 <a id="avdeef2020"></a>
 
-> A. Avdeef, 'Multi-lab intrinsic solubility measurement reproducibility in CheqSol and shake-flask methods', ADMET & DMPK 2020, 8(1), 29-77.
+> A. Avdeef, 'Prediction of aqueous intrinsic solubility of druglike molecules using Random Forest regression trained with Wiki-pS0 database', ADMET & DMPK 8(1) (2020) 29-77.
 
 | | |
 | --- | --- |
@@ -313,6 +319,17 @@ pages would double-count data the project already had and INFLATE the power
 of the experiment it was meant to strengthen. A naive row count over pages
 35-44 gives 172 compounds; the honest independent gain is 49.
 `extract_avdeef_sets.py` refuses A3/A4/A5 by name and says why.
+
+THIS ENTRY CARRIED THE WRONG TITLE UNTIL IT WAS CHECKED, and was marked
+verified while it did -- the worst combination, and the reason the
+verification pass audited entries that already claimed to be checked rather
+than only the unverified ones. The title recorded here was
+"Multi-lab intrinsic solubility measurement reproducibility in CheqSol and
+shake-flask methods", which is a DIFFERENT Avdeef paper: ADMET & DMPK 2019,
+7, 210-219, reference (5) of [source:llinas2020]. The volume, pages and DOI
+were right throughout, because those came from the repository rather than
+from memory. Its abstract's "6355 entries ... for 3014 different molecules"
+matches what `benchmarks/solubility/README.md` says about Wiki-pS0.
 
 ### bradley2015
 
@@ -347,21 +364,23 @@ abstract rather than from the sentence.
 
 | | |
 | --- | --- |
-| Identifier | J. Chem. Inf. Comput. Sci. 2004, 44, 1000-1005 |
+| Identifier | [10.1021/ci034243x](https://doi.org/10.1021/ci034243x) |
 | Status | shipped |
-| Verification | unverified |
+| Verification | citation + claim |
+| Verified | 2026-08-16 |
 | Local copy | `delaney2004.pdf` (not checked) |
 | Used by | `src/openchem/chem/solubility.py`, `benchmarks/solubility/score.py`, `benchmarks/solubility/fetch.py` |
 
-The shipped aqueous solubility model. Recorded as `unverified` because the
-citation here was reconstructed from how the repo refers to it rather than
-read off the PDF -- the volume/page numbers in particular should be checked
-before anyone quotes them.
+VERIFIED AGAINST THE PDF, which also supplied the DOI this entry lacked
+while it was reconstructed from how the repo refers to it. The paper's own
+running header reads "J. Chem. Inf. Comput. Sci., Vol. 44, No. 3, 2004" and
+it self-cites as 44, 1000-1005 with doi 10.1021/ci034243x.
 
-ONE CLAIM ABOUT IT WAS CHECKED and is load-bearing: the paper mentions
-ionization, amines and salts ZERO times, which is why ESOL cannot tell a
-base from a neutral of the same size and lipophilicity, and why the base
-bias measured against it is a domain limit rather than a fixable defect.
+THE LOAD-BEARING CLAIM HOLDS EXACTLY, counted over the full text: the words
+ionization, ionisation, amine, salt and pKa occur **zero** times, and so
+does "pH". That is why ESOL cannot tell a base from a neutral of the same
+size and lipophilicity, and why the base bias measured against it is a
+domain limit rather than a fixable defect.
 
 Its fitting set is `dataset-G` inside AqSolDB ([source:aqsoldb]), which is
 what makes the de-leaking in `benchmarks/solubility/` necessary.
@@ -529,19 +548,17 @@ because it is miscible with water' -- false, Abraham's coefficients come
 from solubility ratios, so neat ethanol is in the measured table. Only this
 one was real. A deferral's reasons rot independently of its verdict.
 
-### kaya2022
+### gutmann_frontiers2022
 
-<a id="kaya2022"></a>
+<a id="gutmann_frontiers2022"></a>
 
-> S. Kaya et al., on Gutmann donor and acceptor numbers, Frontiers in Chemistry 2022.
+> The Gutmann donor/acceptor-number assessment published in Frontiers in Chemistry, 2022. Authors not recorded -- see note.
 
 | | |
 | --- | --- |
 | Identifier | [10.3389/fchem.2022.861379](https://doi.org/10.3389/fchem.2022.861379) |
 | Status | **not shipped** |
-| Verification | citation + claim |
-| Verified | 2026-08-16 |
-| Local copy | `kaya2022.pdf` (not checked) |
+| Verification | unverified |
 | Used by | `CLAUDE.md` |
 
 **Why it is not shipped.** The accessible source tabulates ionic liquids and deep eutectic solvents
@@ -549,6 +566,21 @@ rather than the classical molecular table, and reports its own
 acceptor-number model failing outright ('no correlation could be found'),
 concluding it supports 'qualitative and relative criteria but not an
 absolute and quantitative model'.
+
+TWO THINGS IN THIS ENTRY WERE INVENTED AND ARE NOW REMOVED. It claimed a
+local copy at `kaya2022.pdf` and an author of "S. Kaya et al." Both came
+from matching the DOI's year against a filename. `kaya2022.pdf` is a
+different paper entirely -- "On the Prediction of Lattice Energy with the
+Fukui Potential", J. Phys. Chem. A 2022, 126, 4507-4516 -- and searching
+every PDF in the archive for the Frontiers DOI or for Gutmann donor numbers
+returns NOTHING, so this source is not held locally at all.
+
+What survives is what the repository recorded rather than what was guessed:
+the DOI, the venue, and the quoted findings in CLAUDE.md ("no correlation
+could be found"; it supports "qualitative and relative criteria but not an
+absolute and quantitative model"). Those were read from a web fetch that
+cannot be reproduced here, which is exactly why this is `unverified` rather
+than trusted.
 
 Partly available by another route anyway: the donor number is DEFINED as
 -dH against SbCl5, which is already in the Drago table
@@ -593,11 +625,15 @@ the first row' would have shipped it.
 | --- | --- |
 | Identifier | J. Chem. Inf. Model. 2008, 48, 1289-1303 |
 | Status | shipped |
-| Verification | unverified |
+| Verification | citation |
+| Verified | 2026-08-16 |
 | Used by | `benchmarks/solubility/fetch.py`, `benchmarks/solubility/score.py` |
 
-Reached through AqSolDB's `dataset-I` ([source:aqsoldb]) rather than from
-the paper, hence `unverified`. 94 rows of intrinsic solubility by one
+The data is reached through AqSolDB's `dataset-I` ([source:aqsoldb]) rather
+than from the paper, so no claim of ours is checked against it -- but the
+CITATION is now verified, from reference (2) of [source:llinas2020], where
+the same authors cite their own earlier paper as "J. Chem. Inf. Model.
+2008, 48, 1289-1303". 94 rows of intrinsic solubility by one
 consistent method on druglike compounds; it post-dates ESOL's 2004 fit,
 which is what makes it usable as a test set at all.
 
@@ -631,8 +667,12 @@ the count alone would not have, because 129 looks as reasonable as 100. Two
 further defects fell out of the same check: a row split across a page break
 (bromazepam), and a melting point carrying a footnote marker (`193b`).
 
-It also supplies this endpoint's noise floor -- interlab SD 0.17, CheqSol
-against high-quality shake-flask at RMSE 0.34 -- and a baseline: on the
+It supplies this endpoint's noise floor, with a distinction worth keeping:
+the interlaboratory SD of ~0.17 log is stated by this paper directly, while
+the CheqSol-against-shake-flask RMSE = 0.34 carries a citation marker in
+its own text and belongs to its reference (5), Avdeef, ADMET & DMPK 2019,
+7, 210-219. Quoting 0.34 as this paper's measurement would be one
+attribution too far. It also gives a baseline: on the
 same 73 compounds the General Solubility Equation scores RMSE 1.18 against
 ESOL's 1.26, and the GSE needs a MEASURED melting point this app does not
 have. So 'the endpoint is hard' rather than 'our model is poor'.
@@ -803,6 +843,37 @@ than committed, and of the biological-assembly gate's reference structures.
 RCSB's own pre-generated assemblies are the oracle the assembly builder is
 scored against -- every buildable entry matches on every atom to the written
 digit.
+
+### llinas2019
+
+<a id="llinas2019"></a>
+
+> A. Llinas & A. Avdeef, 'Solubility Challenge Revisited after Ten Years, with Multilab Shake-Flask Data, Using Tight (SD ~0.17 log) and Loose (SD ~0.62 log) Test Sets', J. Chem. Inf. Model. 2019, 59, 3036.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.jcim.9b00345](https://doi.org/10.1021/acs.jcim.9b00345) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-08-16 |
+| Local copy | `llinas2019.pdf` (not checked) |
+| Used by | `benchmarks/solubility/README.md`, `CLAUDE.md` |
+
+**Why it is reference only.** This project takes its Solubility Challenge 2 data from Table 1 of
+[source:llinas2020], not from here, so nothing is scored against this
+paper. It is registered because it is where the TIGHT and LOOSE sets come
+from -- their names, their membership and the SD ~0.17 / ~0.62 figures that
+characterise them are this paper's, and the 2020 paper reports findings ON
+them.
+
+FOUND BY VERIFICATION, NOT BY THE ORIGINAL SWEEP. `llinas2019.pdf` sat in
+the archive and was assumed to be the 2008 challenge; it is a third,
+distinct paper. Without it the tight/loose vocabulary that
+`benchmarks/solubility/` and CLAUDE.md both use has no source at all, and
+the SD 0.17 figure looks like it originates in the 2020 paper.
+
+Title, authors and DOI read from the PDF, and corroborated by reference (1)
+of [source:llinas2020], which supplies the volume and page.
 
 ## Legal texts
 
@@ -1122,12 +1193,15 @@ explicitly and never inferred from this entry's key.
 | --- | --- |
 | Identifier | <https://molstar.org/> |
 | Status | shipped |
-| Verification | unverified |
+| Verification | citation |
+| Verified | 2026-08-16 |
 | Licence | MIT |
 | Bundled at | `src/openchem/resources/molstar` |
 | Third-party files | `molstar.js`, `molstar.css`, `favicon.ico` |
 | Licence files | `LICENSE` |
 | Ours, in the same place | `viewer.html` |
+
+Licence verified: the bundled `LICENSE` opens "The MIT License".
 
 NO VERSION IS RECORDED, DELIBERATELY, and the obvious probe returns a
 plausible wrong answer: grepping `molstar.js` for a version yields
@@ -1147,12 +1221,20 @@ that number would look authoritative and come from the wrong library.
 | --- | --- |
 | Identifier | <https://3dmol.csb.pitt.edu/> |
 | Status | shipped |
-| Verification | unverified |
+| Verification | citation |
+| Verified | 2026-08-16 |
 | Licence | BSD-3-Clause |
 | Bundled at | `src/openchem/resources/viewer3d` |
 | Third-party files | `3Dmol-min.js` |
 | Licence files | `3Dmol-LICENSE.txt` |
 | Ours, in the same place | `viewer.html` |
+
+Licence verified from the bundled text, which is also where a SECOND
+bundling case turns up: it opens "3Dmol.js incorporates code from GLmol,
+Three.js, and jQuery and is licensed under a BSD-3-Clause license." So the
+same caveat as [source:ketcher] applies here -- the licence covers 3Dmol's
+own code and names three further projects inside it. Unlike Ketcher's, this
+one at least SAYS so in the file we ship.
 
 A MIXED DIRECTORY, which is why the licence guard is file-level rather than
 directory-level. `3Dmol-min.js` and `3Dmol-LICENSE.txt` are theirs;
@@ -1170,15 +1252,24 @@ pointer.
 
 | | |
 | --- | --- |
-| Identifier | <https://github.com/xaerogonzo/OpenChem-Studio> |
+| Identifier | <https://github.com/leehiufung911/open-iupac-namer> |
 | Status | shipped |
 | Verification | citation |
 | Verified | 2026-08-16 |
 | Licence | MIT |
+| Version | `c3eac17ffd110c7c5dd37aaad2955e06cf8c9303` |
+| Version source | `src/openchem/vendor/VENDORING.md` |
 | Bundled at | `src/openchem/vendor` |
 | Third-party files | `iupac_namer/**`, `data/**`, `docs/**` |
 | Licence files | `LICENSE.open-iupac-namer` |
 | Ours, in the same place | `__init__.py`, `VENDORING.md`, `CHANGELOG.md`, `BENCHMARK_HISTORY.md`, `KNOWN_LIMITATIONS.md` |
+
+THE IDENTIFIER POINTED AT THE WRONG REPOSITORY until it was checked --
+this project's own URL rather than the upstream it was vendored from.
+`VENDORING.md` names the real one and the exact commit, which is now the
+`version`; upstream is abandoned (three commits, all 2026-05-24), so a
+pinned commit is the only thing there is to cite. Licence verified from the
+vendored file: "MIT License, Copyright (c) 2026 leehiufung911".
 
 Implements [source:iupac2013]. Carries its own ~3,200-test suite under
 `tests/vendor/`, excluded from the default run and expected at
@@ -1195,13 +1286,16 @@ Scored by the naming benchmark at 181/181.
 | --- | --- |
 | Identifier | <https://www.rdkit.org/> |
 | Status | shipped |
-| Verification | unverified |
+| Verification | citation |
+| Verified | 2026-08-16 |
 | Licence | BSD-3-Clause |
 | Version | `>=2024.3.1` |
 | Package | `rdkit` |
 | Version source | `pyproject.toml` |
 
-A CONSTRAINT, NOT A RESOLVED VERSION. `pyproject.toml` declares `>=`, and
+LICENCE VERIFIED from the installed distribution's own metadata
+(`importlib.metadata`: BSD-3-Clause). The VERSION is still a constraint,
+not a resolved version. `pyproject.toml` declares `>=`, and
 `uv.lock` records only the reference environment's resolution -- a user
 installing from PyPI gets whatever satisfies the constraint. Recording the
 constraint is the honest thing available.
@@ -1222,7 +1316,8 @@ coordinates.
 | --- | --- |
 | Identifier | <https://openbabel.org/> |
 | Status | shipped |
-| Verification | unverified |
+| Verification | citation |
+| Verified | 2026-08-16 |
 | Licence | GPL-2.0 |
 | Version | `>=3.1.1.23` |
 | Package | `openbabel-wheel` |
@@ -1248,13 +1343,18 @@ sweep went 0 of 48 receptors to 38 of 48.
 | --- | --- |
 | Identifier | <https://doc.qt.io/qtforpython/> |
 | Status | shipped |
-| Verification | unverified |
-| Licence | LGPL-3.0 |
+| Verification | citation |
+| Verified | 2026-08-16 |
+| Licence | LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0 |
 | Version | `>=6.7` |
 | Package | `pyside6` |
 | Version source | `pyproject.toml` |
 
-A constraint rather than a resolved version -- see [source:rdkit].
+THE LICENCE IS A DISJUNCTION, NOT PLAIN LGPL, and this entry said "LGPL-3.0"
+until the installed metadata was read: PySide6 declares
+"LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0". Which arm applies is a choice
+the distributor makes, so flattening it loses the fact that there is a
+choice. The version is still a constraint -- see [source:rdkit].
 
 ### opsin
 
@@ -1266,7 +1366,8 @@ A constraint rather than a resolved version -- see [source:rdkit].
 | --- | --- |
 | Identifier | <https://github.com/dan2097/opsin> |
 | Status | shipped |
-| Verification | unverified |
+| Verification | citation |
+| Verified | 2026-08-16 |
 | Licence | MIT |
 | Version | `>=1.2.0` |
 | Package | `py2opsin` |
@@ -1362,7 +1463,8 @@ which ionization formula is right, and that a tolerance would have buried.
 | --- | --- |
 | Identifier | <https://github.com/durrantlab/dimorphite_dl> |
 | Status | shipped |
-| Verification | unverified |
+| Verification | citation |
+| Verified | 2026-08-16 |
 | Licence | Apache-2.0 |
 | Version | `>=2.0.2` |
 | Package | `dimorphite-dl` |
