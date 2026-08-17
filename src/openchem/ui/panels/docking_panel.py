@@ -89,10 +89,21 @@ _POSE_COLUMN_TOOLTIPS = {
 #: that writes it also says so on the status line.
 _DEFAULT_BOX = DockingBox(center=(0.0, 0.0, 0.0), size=(20.0, 20.0, 20.0))
 
+#: "STILL NOT HANDLED" READ AS AN OVERSIGHT AND THE TRUTH IS A DECISION.
+#: `docs/ARCHITECTURE.md` records missing-residue repair as assessed and
+#: deliberately left out, with numbers: zero of 49 curated receptors have a
+#: chain break within 10 A of their site, only 3 of 48 have incomplete side
+#: chains there, and the repair is a template prediction landing a median
+#: 2.3 A from atoms actually observed in sister chains. So the two said
+#: different KINDS of thing about the same fact -- one "unfinished, may
+#: arrive", the other "measured, declined" -- and a panel note that implies
+#: a pending feature is the more misleading of the two.
 _LIMITATION_NOTE = (
     "Note: receptor preparation handles pH-correct protonation and "
-    "water/cofactor stripping (below), via Open Babel. Missing-residue "
-    "repair is still not handled — treat results as a starting point, not "
+    "water/cofactor stripping (below), via Open Babel. Missing-residue repair "
+    "is deliberately not attempted — it was assessed and declined, because "
+    "predicted atoms would be indistinguishable from observed ones in the "
+    "result (see ARCHITECTURE.md). Treat results as a starting point, not "
     "production-grade docking prep."
 )
 
