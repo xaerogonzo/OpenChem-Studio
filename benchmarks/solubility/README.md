@@ -19,6 +19,15 @@ has already paid for twice.
 
 ## Results, measured 2026-08-16
 
+> **These figures superseded an earlier set, and the earlier set is still
+> quoted in [PR #28](https://github.com/xaerogonzo/OpenChem-Studio/pull/28).**
+> That body is immutable history and is deliberately not edited. Three
+> polymorph pairs were being scored twice; refusing them moved every
+> stratum — all n=67→61 / bias −0.20→−0.17, acid n=22→18 / +0.06→+0.26,
+> base n=29→27 / −0.52→**−0.59**. Anything citing 67 scored or a −0.52
+> base bias predates that fix. CHANGELOG carries the same table.
+
+
 ESOL against the de-leaked Solubility Challenge, 61 scored of 80:
 
 | stratum | n | MAE | RMSE | median | max | bias |
@@ -105,6 +114,35 @@ parameters and the acceptance-criteria version.
 **SD and n are metadata, never weights.** The corpora carry per-compound
 standard deviations and source counts; the fit is unweighted, one row per
 compound, and does not use them.
+
+### What would actually settle this
+
+**The constraint is held-out druglike BASES, not compounds.** A1 and A2
+failed to help because neither reaches the 10 bases needed to *be* a
+held-out side — not because the effect is absent. Concretely, what would
+close it:
+
+- **~30+ measured intrinsic-solubility bases** that are not in SC-1, SC-2
+  or Delaney's fit. That is the whole requirement; total corpus size is
+  irrelevant if the bases are not there.
+- **An `intrinsic` endpoint declared in the manifest.** A corpus of
+  aqueous solubility over unspecified solid forms is `TEST_ONLY` however
+  large — the reason AqSolDB's ~10k rows cannot be used.
+- Avdeef's full **Wiki-pS0** database (3014 molecules, 6355 entries) would
+  almost certainly do it. The paper says it is "planned to be released in
+  book form", so it is not obtainable today; the 49 compounds published in
+  its appendices are what exists.
+
+Then `uv run --no-sync python benchmarks/solubility/base_bias.py` is the
+whole rerun. The criteria are versioned (`acceptance_criteria_version`),
+the corpora are declared in `CORPORA`, and the verdict decides on its own
+whether production may change — so revisiting this costs one command and
+no judgement calls.
+
+**A rerun that flips to `SHIP` may not be taken at face value either.**
+The offsets fitted here are +0.51 and +0.62 against a v2 pair of +0.59 and
++0.42; a constant that moves that much with the corpus is a constant to
+re-examine, not to trust because it finally cleared a threshold.
 
 **13 of 80 compounds — 16% — are ampholytes, and are refused.** That is a
 large slice of druglike chemistry to decline, and it is printed beside the

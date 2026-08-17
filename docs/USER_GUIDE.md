@@ -1359,6 +1359,26 @@ you expand the detail.
 one**, which is how ChemAxon defines those thresholds: below 0.01 mg/mL
 Low, up to 0.06 Moderate, above it High.
 
+### If your molecule is a base, the panel says so
+
+ESOL **under-predicts bases by roughly half a log unit** — measured bias
+−0.59 on the Solubility Challenge (n=27) and −0.42 on a second,
+independent set (n=17). Any base carries a note saying the value is likely
+**low**.
+
+**The number is not silently adjusted for it**, and that is a deliberate
+decision rather than an oversight. An adjustment was fitted and put through
+a held-out test whose criteria were fixed in advance; the improvement could
+not be distinguished from sampling noise, so it was not applied. You are
+told about the bias and left to allow for it, which is worth more than a
+constant nothing has validated.
+
+**"Not distinguishable from noise" is not "there is no bias."** The bias is
+measured, it replicates on two independent sets, and the adjustment does
+remove it on the compounds used to fit it. What is missing is enough
+*held-out* druglike bases to show it generalises. Acids and neutral
+molecules are unaffected and carry no such note.
+
 ### Choosing a solvent
 
 The **Solvent** parameter offers **91 solvents** — water first, then the

@@ -220,6 +220,10 @@ differently. If a result matters, note which format you loaded.
 
 ## Solubility — a bias that only stratification showed, replicated on a second set
 
+**Superseded figures:** anything citing 67 scored or a −0.52 base bias
+predates the polymorph fix (three compounds were scored twice); PR #28's
+body still quotes those and is immutable history. See CHANGELOG.
+
 **Method.** ESOL against the Solubility Challenge (Llinàs, Glen & Goodman
 2008) and, independently, the Solubility Challenge 2 tight set (Llinàs,
 Oprisiu & Avdeef 2020, Table 1). Both de-leaked by InChIKey; ampholytes
