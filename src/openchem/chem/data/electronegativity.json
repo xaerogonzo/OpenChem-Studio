@@ -1,4 +1,6 @@
 {
+  "_source_key": "allred1961",
+  "_supplementary_source_keys": ["crc_handbook"],
   "_about": {
     "scale": "Pauling",
     "source": "The standard tabulation of Pauling-scale electronegativities, i.e. Pauling's original values as revised by A. L. Allred, J. Inorg. Nucl. Chem. 17 (1961) 215-221, which is the set reproduced in the CRC Handbook of Chemistry and Physics and in IUPAC's own tables.",

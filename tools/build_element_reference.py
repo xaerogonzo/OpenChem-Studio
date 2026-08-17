@@ -277,6 +277,12 @@ def build() -> dict:
 
     assert len(elements) == 118, len(elements)
     return {
+        # Written HERE rather than into the JSON, because that file says
+        # "do not hand-edit; re-run it" -- a source_key added by hand would
+        # be silently dropped by the next regeneration, which is the worst
+        # kind of provenance: present, believed, and one command from gone.
+        "_source_key": "rdkit",
+        "_supplementary_source_keys": ["iupac2013"],
         "_about": {
             "purpose": "The periodic-table facts RDKit's own table does not carry.",
             "not_here_because_rdkit_has_it": (

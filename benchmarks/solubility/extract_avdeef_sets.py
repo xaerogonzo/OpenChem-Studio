@@ -2,7 +2,8 @@
 
     uv run --no-sync --with pymupdf python benchmarks/solubility/extract_avdeef_sets.py <avdeef2020.pdf>
 
-Avdeef 2020 (ADMET & DMPK 8(1) 29-77, doi 10.5599/admet.766) carries five
+Avdeef 2020 (ADMET & DMPK 8(1) 29-77, doi 10.5599/admet.766,
+[source:avdeef2020]) carries five
 appendix tables of intrinsic solubility. **ONLY TWO OF THEM ARE NEW TO
 THIS PROJECT, and finding that out is the reason this script exists
 rather than a bulk extractor:**

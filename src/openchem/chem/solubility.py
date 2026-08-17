@@ -45,7 +45,7 @@ Delaney's own fitting set subtracted by InChIKey:
 
 **THE BASE BIAS REPLICATES ACROSS BOTH SETS**, at -0.59 and -0.42. One
 set makes it a curiosity; two independent ones make it a property of the
-model. ESOL has no ionization term at all -- Delaney's paper never
+model. ESOL [source:delaney2004] has no ionization term at all -- Delaney's paper never
 mentions ionization, amines or salts -- so it cannot tell a base from a
 neutral of the same size and lipophilicity.
 
@@ -87,7 +87,8 @@ from openchem.domain.structure_issue import Basis
 # value that hits either says which.
 
 #: Avdeef's **"sdiff 3-4" approximation** (Adv Drug Deliv Rev 59:568-590,
-#: doi 10.1016/j.addr.2007.05.008, section 2.2): in 0.15 M NaCl, once
+#: doi 10.1016/j.addr.2007.05.008, [source:avdeef2007], section 2.2): in
+#: 0.15 M NaCl, once
 #: solubility exceeds its intrinsic value by about FOUR orders of
 #: magnitude for a weak ACID and THREE for a weak BASE, the sodium and
 #: chloride salts respectively begin to precipitate and the profile
@@ -699,7 +700,7 @@ def profile(
 
 # --- the ICH M9 screening window --------------------------------------
 
-#: ICH M9's window for the high-solubility criterion. **A MODULE CONSTANT,
+#: ICH M9's window [source:ich_m9] for the high-solubility criterion. **A MODULE CONSTANT,
 #: DELIBERATELY NOT `ph_range_parameters()`** -- the chart's range is the
 #: user's to choose, and letting it reach this would mean widening a graph
 #: silently redefined a regulatory criterion.

@@ -1,4 +1,8 @@
 {
+ "_source_key": "vogel_drago1996",
+ "_supplementary_source_keys": ["drago1965", "drago1992"],
+ "_parameter_scale": "modern_ecw",
+ "_scale_note": "Two DIFFERENT claims, kept apart on purpose. source_key says where these numbers came from; parameter_scale says what numerical convention they are in, and the two are not the same question. Drago & Wayland 1965 normalise iodine to E_A = C_A = 1.000, where this table has iodine at E = 0.5, C = 2.0 -- so citing the 1965 paper as the source would imply a scale these values are not on. test_lewis_parameters_match_the_declared_parameter_scale DERIVES the scale from the iodine entry rather than trusting this label.",
  "acids": {
   "BrI": {
    "C": 3.29,

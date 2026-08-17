@@ -63,6 +63,13 @@ DOCS = [
     "docs/DREIDING_ASSESSMENT.md",
     "docs/SELF_HOSTED_RUNNER.md",
     "docs/SOLVENT_SOLUBILITY_ASSESSMENT.md",
+    # GENERATED from docs/sources.toml. It is checked here anyway, and that
+    # is not redundant with its own generator: this asks whether the paths
+    # it cites still EXIST, which `build_sources_doc.py --check` never does
+    # -- that only asks whether the file is current with respect to its
+    # source. A registry can be perfectly regenerated and still name a
+    # module deleted last week.
+    "docs/SOURCES.md",
 ]
 
 #: Backticked paths that deliberately do NOT resolve in this repo, each

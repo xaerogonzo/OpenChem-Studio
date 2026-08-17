@@ -1,6 +1,6 @@
 """DELTA50 as ground truth: 50 small molecules, assigned 13C in CDCl3.
 
-SOURCE. Kwon, Y. et al. "DELTA50: A Highly Accurate Database of
+SOURCE [source:kwon2023]. Kwon, Y. et al. "DELTA50: A Highly Accurate Database of
 Experimental 1H and 13C NMR Chemical Shifts Applied to DFT Benchmarking",
 Molecules 2023, 28, 2449, doi:10.3390/molecules28062449 (CC BY 4.0).
 Shifts read from `DELTA50_benchmark.xlsx` in the paper's supplementary

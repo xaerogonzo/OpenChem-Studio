@@ -643,7 +643,8 @@ def test_the_conversion_matrix_is_right_for_every_published_cell():
 # geometry loops, tags with slashes in, and negative fractional
 # coordinates.
 #
-#   1504676  Kendall, McDonald, Ferguson & Tykwinski, Org. Lett. 2008,
+#   1504676  Kendall, McDonald, Ferguson & Tykwinski [source:kendall2008],
+#            Org. Lett. 2008,
 #            10, 2163 (doi 10.1021/ol800583r) -- a perfluorophenyl-capped
 #            polyyne, triclinic P-1
 #   7717378  a uranium complex, triclinic P-1, 120 sites

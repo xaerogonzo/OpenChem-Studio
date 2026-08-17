@@ -1,4 +1,5 @@
 {
+  "_source_key": "shannon1976",
   "purpose": "Six-coordinate effective ionic radii, for Kapustinskii lattice energies.",
   "source": "R. D. Shannon, Acta Cryst. (1976) A32, 751-767, Table 1.",
   "quantity": "'IR' -- Shannon's EFFECTIVE ionic radius, not the 'CR' crystal radius in the adjacent column. The two differ by 0.14 A and the sign of that offset FLIPS between cations and anions, so reading the wrong column is not a constant error.",

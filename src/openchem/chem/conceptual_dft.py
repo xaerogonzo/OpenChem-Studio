@@ -33,7 +33,8 @@ So `KOOPMANS` is offered because it is free from a job that has already
 run, and it carries this warning wherever it is reported.
 
 The experimental column is READ FROM THE PRIMARY SOURCE, not quoted from
-memory: Pearson, Inorg. Chem. 1988, 27, 734 (doi:10.1021/ic00277a030),
+memory: Pearson, Inorg. Chem. 1988, 27, 734 (doi:10.1021/ic00277a030,
+[source:pearson1988]),
 Table II, "Experimental Parameters for Molecules (eV)". Those values are
 asserted in `test_conceptual_dft.py`, so the accuracy claims below are
 checked rather than described.
@@ -131,7 +132,8 @@ def descriptors(
         omega = mu^2 / (2 eta)
 
     `S = 1/eta` is the convention this project uses because the local
-    softness in Yang and Parr's `s = S * f` is defined against it. Some
+    softness in Yang and Parr's `s = S * f` [source:parr_pearson1983] is
+    defined against it. Some
     literature uses `1/(2 eta)`; a number quoted from elsewhere may differ
     by exactly a factor of two for that reason and not be wrong.
     """

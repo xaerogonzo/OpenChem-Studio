@@ -677,3 +677,71 @@ def test_experimental_hardness_confirms_the_hsab_line_cannot_be_rescued():
     # And the delta-SCF values this file uses are close to them.
     assert CO_HARDNESS == pytest.approx(experimental_co, abs=0.6)
     assert BF3_HARDNESS == pytest.approx(experimental_bf3, abs=0.6)
+
+
+# ---------------------------------------------------------------------------
+# Provenance: where the numbers came from, and what scale they are on
+# ---------------------------------------------------------------------------
+
+
+def test_lewis_parameters_match_the_declared_parameter_scale():
+    """`_parameter_scale` is DERIVED here, never merely read.
+
+    Where the numbers came from and what numerical convention they are in
+    are two different claims, and this file's own docstring records that the
+    first one is a secondary compilation. The second is what makes them
+    mixable or not: Drago & Wayland 1965 normalise iodine to
+    E_A = C_A = 1.000, where the modern compilation puts it at E = 0.5,
+    C = 2.0. Citing the 1965 paper as the SOURCE of these values would imply
+    a scale they are not on, and a reader combining the two tables would get
+    plausible, wrong enthalpies out of it.
+
+    Iodine is the reference by construction, so it is the tell. Asserting
+    the LABEL against the DATA rather than trusting the label is the same
+    move `tests/test_assembly_gate.py` makes when it derives
+    `catches_composition_order` from the deposit's own matrix.
+
+    The generic registry guard in `tests/test_sources_are_current.py`
+    deliberately does NOT do this -- it checks that a scale is declared, not
+    what the declaration means. A guard over every data file in the project
+    must not know chemistry.
+    """
+    import json
+    from pathlib import Path
+
+    data = json.loads(
+        (Path(__file__).resolve().parent.parent
+         / "src" / "openchem" / "chem" / "data" / "lewis_parameters.json")
+        .read_text(encoding="utf-8")
+    )
+
+    #: The iodine values each published scale requires. `II` is the SMILES
+    #: key the table uses for elemental iodine.
+    SCALES = {
+        "modern_ecw": (0.5, 2.0),
+        "drago_wayland_1965": (1.0, 1.0),
+    }
+
+    scale = data.get("_parameter_scale")
+    assert scale in SCALES, (
+        f"lewis_parameters.json declares parameter_scale {scale!r}, which is "
+        f"not one of the published scales {sorted(SCALES)}"
+    )
+
+    iodine = data["acids"]["II"]
+    expected_e, expected_c = SCALES[scale]
+    assert (iodine["E"], iodine["C"]) == (expected_e, expected_c), (
+        f"the table declares the {scale!r} scale, on which iodine is "
+        f"E={expected_e}, C={expected_c} -- but the shipped iodine is "
+        f"E={iodine['E']}, C={iodine['C']}. Either the label or the data is wrong."
+    )
+
+
+def test_the_two_lewis_scales_really_are_different():
+    """The control: without this, the guard above could pass vacuously.
+
+    If both scales named the same iodine values, asserting one against the
+    other would be no test at all -- and a future edit collapsing the two
+    entries would go unnoticed.
+    """
+    assert (0.5, 2.0) != (1.0, 1.0)
