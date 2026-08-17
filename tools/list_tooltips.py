@@ -103,7 +103,9 @@ def _brief(record: dict) -> str:
         f"tier:    {record['tier']}",
         f"status:  {record['status']}",
         "",
-        f"UI LABEL:        {record['object_name'] or '(none)'}",
+        # `objectName` is empty for most controls in this app, so the last
+        # path segment is the better label -- it is the button's own text.
+        f"UI LABEL:        {record['object_name'] or record['instance_path'].rsplit('/', 1)[-1]}",
         f"IMPLEMENTATION:  {record['instance_path']}",
         "",
         "CURRENT TEXT:",

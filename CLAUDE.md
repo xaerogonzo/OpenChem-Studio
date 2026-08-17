@@ -499,7 +499,14 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `4777 passed, 15 skipped`
+A clean run is **6-19 minutes**, ending at `4778 passed, 15 skipped`
+(measured 2026-08-17, **14m27**, on `docking-box-from-the-ligand` -- the
+calculator help contracts. **+1 collected item and +1 test FUNCTION**,
+`test_one_concept_is_not_split_across_many_help_ids`, written because a
+mutation walked straight through the existing guards. 4792 -> 4793
+collected, 0 removed.)
+
+Before it: `4777 passed, 15 skipped`
 (measured 2026-08-17, **13m54**, on `docking-box-from-the-ligand` -- the
 help-contract layer. **+9 collected items and +9 test FUNCTIONS**, all in
 `test_tooltip_coverage.py`: the three-surface walk, contract validity,

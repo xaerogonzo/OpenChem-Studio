@@ -151,6 +151,40 @@ def test_one_help_id_means_exactly_one_thing(controls):
         )
 
 
+def test_one_concept_is_not_split_across_many_help_ids(controls):
+    """The mirror of the test above, and the one that was missing.
+
+    `test_one_help_id_means_exactly_one_thing` stops two concepts sharing an
+    id. Nothing stopped the reverse -- one concept given sixty ids -- and a
+    mutation proved it: renaming the batch tick boxes to
+    `properties.batch_selection_<calculator_id>` passed the whole file. Each
+    id then had exactly one contract, so the existing guard was satisfied
+    while the meaning had been shredded into sixty.
+
+    IDENTICAL TEXT IS THE STRUCTURAL SIGNAL, and it needs no prose
+    judgement: if two contracts say byte-identical things to the user, then
+    either they are one concept wearing two ids, or one of them is wrong.
+    Both are worth failing on.
+
+    This is what keeps the sixty batch tick boxes sharing
+    `properties.batch_selection` -- one concept rendered sixty times, with
+    `instance_path` telling the renderings apart.
+    """
+    found, _ = controls
+    by_text: dict[str, set[str]] = {}
+    for control in found:
+        tooltip = control.help_tooltip
+        if tooltip is None:
+            continue
+        by_text.setdefault(tooltip.text, set()).add(tooltip.help_id)
+
+    split = {text: ids for text, ids in by_text.items() if len(ids) > 1}
+    assert not split, (
+        "one concept is split across several help_ids -- they should share one:\n"
+        + "\n".join(f"  {sorted(ids)} all say {text[:60]!r}..." for text, ids in split.items())
+    )
+
+
 def test_a_claimed_help_anchor_resolves(controls):
     """Resolved through `openchem.help`, which already owns topic discovery.
 
