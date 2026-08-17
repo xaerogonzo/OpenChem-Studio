@@ -71,11 +71,6 @@ DOCS = [
     # source. A registry can be perfectly regenerated and still name a
     # module deleted last week.
     "docs/SOURCES.md",
-    # A work list, not documentation. It is guarded like everything else so
-    # its many path references cannot rot while it waits to be finished,
-    # and it says in its own first lines that it should be DELETED when it
-    # empties -- a stale work list being worse than none.
-    "docs/SOURCES_TODO.md",
 ]
 
 #: Backticked paths that deliberately do NOT resolve in this repo, each
@@ -95,8 +90,7 @@ ALLOWED_MISSING_PATHS = {
     # tinygraph's own build file, named by ROADMAP.md while explaining why
     # that dependency cannot be installed on Windows ("a `setup.py` passing
     # GCC/Clang flags that MSVC rejects"). Somebody else's file, like the
-    # molstar path above -- and `docs/SOURCES_TODO.md` names it again while
-    # describing the bug that let it pass for months.
+    # molstar path above.
     #
     # IT IS ONLY LISTED HERE BECAUSE THE WALK WAS FIXED. While `_repo_files`
     # used `rglob`, this resolved silently against numpy's
@@ -142,6 +136,13 @@ def _repo_files() -> frozenset[str]:
     except here would turn every citation check into a silent pass -- the
     failure mode this whole file exists to prevent, installed in its own
     foundation.
+
+    ONE WORKFLOW CONSEQUENCE, and it is the correct behaviour rather than a
+    wart: a doc may not cite a file until that file is TRACKED. Writing a
+    new tool and documenting it in the same commit now fails until the tool
+    is staged. Under the old walk an uncommitted file resolved happily --
+    which is exactly the class of thing this change exists to stop, since a
+    reader of the repository cannot see a file that is not in it.
     """
     result = subprocess.run(
         ["git", "ls-files", "-z"], cwd=_ROOT, capture_output=True, text=True

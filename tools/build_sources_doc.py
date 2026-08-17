@@ -122,6 +122,34 @@ thousands of backticked identifiers, so a guard reading every one as a source
 key would need an enormous allowlist, or would teach the prose to look like
 the test. The syntax is validated before it is resolved, so a malformed
 reference fails rather than being silently skipped.
+
+## Adding to it, or raising an entry's verification
+
+Everything is edited in `docs/sources.toml`. **Never edit this file** -- it is
+generated and will be overwritten.
+
+| what you established | field to set |
+| --- | --- |
+| the reference is right | `verification = "citation"` + `verified_date` |
+| the **number this project uses** is right | `verification = "citation_and_claim"` + `verified_date` |
+| a DOI | `identifier_type = "doi"`, `identifier` |
+| a title you actually read | fold it into `citation` |
+| a licence read from the artifact | `license` |
+| a resolved version | `version` + `package_manifest` |
+| you now hold a copy | `local` (declared only, never checked) |
+
+Then regenerate and check:
+
+```
+uv run --no-sync python tools/build_sources_doc.py
+uv run --no-sync python -m pytest -q tests/test_sources_are_current.py tests/test_docs_are_current.py
+```
+
+A `verified_date` on an `unverified` row fails the schema guard, and so does
+the reverse -- the pair is enforced, so a check cannot be half-recorded. And
+if a shipped data file is GENERATED, put its `_source_key` in the generator:
+hand-added metadata in `lewis_parameters.json` was silently dropped by the
+next run of `tools/build_lewis_parameters.py`.
 """
 
 

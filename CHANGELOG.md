@@ -121,6 +121,22 @@ below; the git log is the per-commit record.
 - A molecule analysis engine, with the Structure Check panel as its first
   consumer.
 
+**Provenance**
+- **[docs/SOURCES.md](docs/SOURCES.md)** — every paper, dataset, legal text,
+  standard and bundled library this project rests on, with what uses it and
+  how far the citation has been checked. Generated from `docs/sources.toml`
+  and guarded, so a citation that bypasses it, an entry for a deleted
+  feature, or a bundled library with no licence file all fail the suite.
+  60 sources; `citation` means the reference is right,
+  `citation_and_claim` means the number this project *uses* was checked
+  against the source.
+- **Ketcher's licence, which had never shipped**, plus
+  `THIRD-PARTY-NOTICES.txt` generated from the lockfile for the 318
+  further packages inside its bundle. Their notices are not recoverable
+  from the artifact — the build strips comments, so two banners survive in
+  35 MB — so they are produced from `package-lock.json` and the licence
+  files in `node_modules/`.
+
 **Elsewhere**
 - A `?` on every panel, with help search that reads the document text
   rather than only the headings.
@@ -130,6 +146,20 @@ below; the git log is the per-commit record.
 
 ### Fixed
 
+- **A Drago E/C parameter was wrong, and only the paper could say so.**
+  Methylamine's `C_B` shipped as 3.13 where Vogel & Drago 1996 Table 1
+  prints 3.12 — 52 of the 53 shipped parameters matched. It never showed
+  up because the validation averages eight adducts and cannot see one
+  value 0.01 out.
+- **`electronegativity.json` claimed the Allred set is "reproduced in the
+  CRC Handbook".** Against table 9-103 of the 97th edition, 72 of 85 agree
+  and 13 do not, because that table gives values for the most common
+  oxidation state — a different quantity. No shipped value was wrong; the
+  word was.
+- **The documentation guard was checking the machine, not the
+  repository.** It enumerated files with `rglob` over the whole tree —
+  38,680 files against git's 1,021 — so a cited path resolved if anything
+  in `.venv` matched it. It asks `git ls-files` now, and is 120× faster.
 - **The same deposit loaded as mmCIF and as PDB was not the same
   receptor.** Two-letter element symbols (Zn, Cl, Fe, Se, Na) were
   silently dropped from mmCIF because the element lookup is
