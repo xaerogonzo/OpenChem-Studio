@@ -128,3 +128,142 @@ def test_a_pose_with_no_interactions_clears_rather_than_leaving_stale_colours(qa
 
     assert _wait_until(qapp, lambda: any("ResidueColors" in js for js in fired))
     assert any("clearResidueColors" in js for js in fired)
+
+
+# --- the search box overlay --------------------------------------------------
+
+
+_SITE_PDB = (
+    "HEADER    TEST\n"
+    "HETATM    1 C1   LIG A 500      18.000   0.000   0.000  1.00 20.00           C\n"
+    "HETATM    2 C2   LIG A 500      22.000   0.000   0.000  1.00 20.00           C\n"
+    "HETATM    3 N1   LIG A 500      20.000   2.000   0.000  1.00 20.00           N\n"
+    "HETATM    4 O1   LIG A 500      20.000  -2.000   0.000  1.00 20.00           O\n"
+    "HETATM    5 CA   ALA A   1      20.000   0.000   4.000  1.00 20.00           C\n"
+    "END\n"
+)
+
+
+def _with_receptor(tmp_path, qapp):
+    """A window showing the Docking panel with a boxable receptor."""
+    window, services, session = _window(tmp_path)
+    window.add_macromolecule(
+        MacromoleculeModel(
+            display_name="Receptor with a site",
+            structure_text=_SITE_PDB,
+            source_format="pdb",
+            metadata={"ligand_code": "LIG"},
+        )
+    )
+    window._on_panel_chosen("Docking")
+    qapp.processEvents()
+    return window, services, session
+
+
+def _box_calls(window) -> list[tuple]:
+    """Record what the window ASKS THE VIEWER FOR.
+
+    Recorded at the backend's own methods rather than at `runJavaScript`,
+    deliberately: the viewer is created asynchronously, so before it is ready
+    the backend correctly queues instead of emitting JS, and a JS-level spy
+    sees nothing and reads as "the window drew no box". What the window is
+    responsible for is calling the viewer correctly; whether the call is
+    queued or issued belongs to the backend and is covered by
+    `tests/test_molstar_viewer_backend.py`.
+    """
+    calls: list[tuple] = []
+    viewer = window._macromolecule_viewer
+    show, clear = viewer.show_search_box, viewer.clear_search_box
+    viewer.show_search_box = lambda c, s: (calls.append(("show", tuple(c), tuple(s))), show(c, s))[1]
+    viewer.clear_search_box = lambda: (calls.append(("clear",)), clear())[1]
+    return calls
+
+
+def _shows(calls) -> list[tuple]:
+    return [c for c in calls if c[0] == "show"]
+
+
+def test_showing_the_docking_panel_draws_the_box_and_hiding_it_clears(qapp, tmp_path):
+    """The box follows the workflow it belongs to.
+
+    Interaction analysis and structure checking put the same receptor on
+    screen; a search region painted over it there describes a job the user
+    is not doing.
+
+    **Asserted through `isHidden()`, never `isVisible()`** -- the latter is
+    False for every child of a window that has not been shown, so a test
+    written with it would pass against a window that never drew anything.
+    """
+    window, _, _ = _with_receptor(tmp_path, qapp)
+    assert not window._dock_by_panel_id("Docking").isHidden(), "setup: Docking is showing"
+
+    fired = _box_calls(window)
+    window._on_panel_chosen("Properties")
+    qapp.processEvents()
+
+    assert window._dock_by_panel_id("Docking").isHidden()
+    assert ("clear",) in fired, "hiding Docking must clear the box"
+
+    fired.clear()
+    window._on_panel_chosen("Docking")
+    qapp.processEvents()
+
+    assert _shows(fired), "showing it again must redraw"
+
+
+def test_editing_a_spinbox_redraws_the_overlay(qapp, tmp_path):
+    window, _, _ = _with_receptor(tmp_path, qapp)
+    fired = _box_calls(window)
+
+    window._docking_panel._center_x.setValue(3.0)
+    qapp.processEvents()
+
+    assert _shows(fired), "a spinbox edit must redraw"
+    assert _shows(fired)[-1][1][0] == 3.0, "and redraw with the NEW value"
+
+
+def test_a_receptor_with_no_site_leaves_no_box_drawn(qapp, tmp_path):
+    """No receptor selected means nothing to draw a box on."""
+    window, _, _ = _window(tmp_path)
+    window._on_panel_chosen("Docking")
+    qapp.processEvents()
+    fired = _box_calls(window)
+
+    window._sync_docking_box_overlay()
+    qapp.processEvents()
+
+    assert ("clear",) in fired
+    assert not _shows(fired)
+
+
+def test_docking_box_has_one_authoritative_geometry_end_to_end(qapp, tmp_path):
+    """THE central integrity invariant of this feature.
+
+    The six spinboxes, `displayed_box()`, the box in the docking request and
+    the geometry sent to the viewer must all be the same six numbers. They
+    come from one accessor precisely so the box a user SEES, the box that
+    RUNS and the box that is DRAWN cannot diverge -- `_box_source` is
+    provenance and appears nowhere in the chain.
+
+    Mutating `_sync_docking_box_overlay` to send an altered box fails here,
+    which is what says the last link is really carrying the geometry rather
+    than both sides reading the same fixture.
+    """
+    window, _, session = _with_receptor(tmp_path, qapp)
+    panel = window._docking_panel
+
+    displayed = panel.displayed_box()
+    spinboxes = (
+        (panel._center_x.value(), panel._center_y.value(), panel._center_z.value()),
+        (panel._size_x.value(), panel._size_y.value(), panel._size_z.value()),
+    )
+    assert (displayed.center, displayed.size) == spinboxes
+
+    fired = _box_calls(window)
+    window._sync_docking_box_overlay()
+    qapp.processEvents()
+    drawn = _shows(fired)
+    assert drawn, "setup: the overlay was drawn"
+    _, center, size = drawn[-1]
+    assert center == displayed.center
+    assert size == displayed.size

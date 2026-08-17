@@ -176,6 +176,82 @@ Three things that cost a run each:
   caller's session; here it broke the harness's own exit-code handling
   and read as a failure of a capture that had just succeeded.
 
+## THE VIEWER AND THE DOCKING WERE SHOWING DIFFERENT CHAINS
+
+`Viewer.loadStructureFromData`'s default preset builds **biological
+assembly 1**, which is not the deposited file this app hands to Vina.
+Measured on 6WGT (5-HT2A with LSD), which carries three copies of 7LD and a
+`REMARK 350` assembly per chain:
+
+    copy      centre                    in assembly 1?
+    A/1201    (24.28,  41.05, 54.36)    yes   <- all Mol* displayed
+    B/1201    ( 6.71,   2.21, 54.62)    no    <- what docking boxes
+    C/1201    (24.01, -37.77, 54.49)    no
+
+`binding_site._single_copy` picks B by burial, for reasons measured on
+other deposits. So the search box was geometrically right and drawn about
+43 A from anything on screen -- and the interaction colouring, which
+matches residues by NAME AND NUMBER, was painting chain A's residues for a
+pose computed against chain B's site. **That second half is older than the
+overlay and was fixed as a side effect; it has not been verified end to
+end against a multi-copy receptor.**
+
+`showDepositedCoordinates()` in `viewer.html` updates the
+`structure-from-model` transform to `{name: 'model'}` after every load.
+**Scoped to one invariant** -- the structure DISPLAYED, the structure the
+box is derived from and the structure docking runs against must be the same
+coordinates and the same copy -- and explicitly NOT a claim that deposited
+coordinates are the better representation in general. It is also what the
+app already defaults to elsewhere: building an assembly for docking is an
+opt-in in the Contents dialog, defaulted off, which the viewer was silently
+contradicting. That opt-in is untouched.
+
+**THE OPTION THAT LOOKS LIKE THE FIX DOES NOTHING.** Passing
+`structure: {name: 'model'}` in `loadStructureFromData`'s options is
+accepted and ignored -- the state tree still shows
+`type: {name: "assembly", params: {id: "1"}}`. The transform has to be
+updated after the load.
+
+**A CIRCULAR FRAME TEST WOULD HAVE PASSED.** The obvious check is
+`box_from_ligand` centre == the box the page was given == the ligand's
+coordinates; the first two are the same value handed along, so that pair
+proves plumbing and nothing else. Reading the ligand's coordinates out of
+**Mol\*'s own loaded state** reported 0 of 24 atoms inside the box
+immediately. Re-verified across seven receptors chosen for shape variety
+(6WGT, 1HSG, 4DKL, 3HS4, 5I6X, 4EY7, 6X3T): every one now encloses its
+boxed copy, and the multi-copy entries show all copies while enclosing only
+the boxed one, which is the correct relationship.
+
+### Drawing a box: `BoxShape3D` exists, and the mirror lies about it
+
+`molstar.lib.plugin.StateTransforms.Shape` has `BoxShape3D` and
+`getBoxMesh`; `createDefaultParams()` is
+`{bottomLeft, topRight, radius: 0.15, color: 16711680}`. Probed against the
+vendored bundle in a bare `QWebEngineView`, the same way Ketcher is, rather
+than reasoned about -- `MolStarViewerBackend` inherits `apply_shapes`' no-op
+default, so "Mol* cannot draw shapes" was a plausible and wrong conclusion.
+
+**A BACK-TO-BACK BURST LEAVES ORPHANS WHILE THE STATE REPORTS ONE BOX.**
+Three `showSearchBox` calls in a row left THREE shapes in the scene while
+`searchBoxState()` correctly said one: a builder created before the
+previous commit resolved deletes a ref the state tree does not have yet, so
+the delete silently no-ops. Fixed with one desired state and one applier
+that re-checks on completion, so a burst of any length costs at most two
+commits. **The guard counts shapes in the SCENE**, not stored refs.
+
+**AND `loadStructure` CALLS `plugin.clear()`**, which wipes the box and
+leaves the page's refs dangling. The DESIRED box survives a load
+deliberately and is restored onto the new structure, which is what makes
+loading a receptor redraw its search region without the window sequencing
+the two calls.
+
+**MEASURING THE RENDER OVER THE WHOLE WINDOW SAYS THE OPPOSITE OF THE
+TRUTH.** Ink went 39940 -> 39942 (+2) on the first attempt and read as
+"committed but nothing drew". Two faults in the metric: the scene was empty
+so the camera framed nothing, and Mol*'s UI chrome is ~57% of the window.
+With a structure loaded and the count cropped to the 3D canvas, 16778 ->
+20270 (+20.8%).
+
 ## A HORIZONTAL ROW'S MINIMUM IS THE SUM, and it set the whole window's
 
 Reported as "the rightmost tab ... will change size, and even became
@@ -423,7 +499,27 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `4755 passed, 15 skipped`
+A clean run is **6-19 minutes**, ending at `4768 passed, 15 skipped`
+(measured 2026-08-17, **15m10**, on `docking-box-from-the-ligand` -- the
+search box drawn in the Mol* viewer. **+11 collected items and +11 test
+FUNCTIONS**: 7 in `test_molstar_viewer_backend.py` for the box's committed
+state, the latest-wins burst, both clear/replace races, the queued-clear
+sentinel and surviving a structure reload; 4 in
+`test_main_window_docking_visualization.py` for panel visibility, spinbox
+redraw, the no-receptor case and the end-to-end geometry invariant.
+
+    before  bf447a0   COLLECTS 4772
+    after             COLLECTS 4783   = 4772 + 11
+    the run                    4768 passed + 15 skipped = 4783
+
+Diffed both directions, **0 removed, 11 added**. Skips unchanged at 15 --
+the Mol* tests run under `offscreen`, where its state management works
+without a GPU even though rendering does not.
+
+**MOL* WAS SHOWING A DIFFERENT MOLECULE FROM THE ONE BEING DOCKED**, and
+that is the finding this commit exists for -- see the section below.)
+
+Before it: `4755 passed, 15 skipped`
 (measured 2026-08-17, **17m18**, on `docking-box-from-the-ligand` -- the
 docking search box deriving from the receptor's own ligand. **+16 collected
 items and +16 test FUNCTIONS**, so the two deltas agree again: 6 in

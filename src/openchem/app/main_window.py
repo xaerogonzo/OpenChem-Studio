@@ -326,6 +326,12 @@ class MainWindow(QMainWindow):
         self._docking_panel = DockingPanel(
             services.docking_service, services.chemistry_engine, self._settings, services.event_bus, self
         )
+        # A BOUND METHOD, never a lambda capturing self -- PySide6 holds a
+        # connected plain callable strongly, which leaked whole windows
+        # (tests/test_qt_object_disposal.py). Covers the derive, receptor
+        # change and spinbox-edit transitions in one connection, because all
+        # three go through the panel's own box writer.
+        self._docking_panel.box_changed.connect(self._sync_docking_box_overlay)
         self._quantum_chemistry_panel = QuantumChemistryPanel(
             services.quantum_chemistry_service,
             services.chemistry_engine,
@@ -600,6 +606,36 @@ class MainWindow(QMainWindow):
             dock.setVisible(dock is chosen)
         if not chosen.isFloating():
             chosen.raise_()
+        self._sync_docking_box_overlay()
+
+    def _sync_docking_box_overlay(self) -> None:
+        """Draw the docking search box while, and only while, Docking shows.
+
+        THE ONE AUTHORITY. Every route that can change the answer calls this
+        and none re-implements the decision -- otherwise `isHidden()` checks
+        end up spread across several window paths that can disagree, which is
+        the divergence class this codebase keeps paying for.
+
+        Visible only with the Docking panel because the box is a
+        docking-workflow object: interaction analysis and structure checking
+        put the same receptor on screen, and a search region painted over it
+        there is clutter describing a job the user is not doing. That needs
+        no setting and no menu item.
+
+        **`isHidden()`, never `isVisible()`.** The latter is False for every
+        child of a window that has not been shown, so a check written with it
+        would draw nothing under a test harness while looking correct in the
+        running app -- already on record here twice.
+        """
+        dock = self._dock_by_panel_id("Docking")
+        panel = getattr(self, "_docking_panel", None)
+        if dock is None or panel is None:
+            return
+        if dock.isHidden() or panel.selected_receptor_uuid() is None:
+            self._macromolecule_viewer.clear_search_box()
+            return
+        box = panel.displayed_box()
+        self._macromolecule_viewer.show_search_box(box.center, box.size)
 
     def _dock_by_panel_id(self, panel_id: str) -> QDockWidget | None:
         for dock in self._right_docks:
@@ -2044,6 +2080,12 @@ class MainWindow(QMainWindow):
         )
         self._center_tabs.setCurrentWidget(self._macromolecule_viewer.widget())
         self._refresh_molecule_combos()
+        # The panel may have derived a box for this receptor during that
+        # refresh. Re-asked rather than assumed, because the box drawn must
+        # belong to the structure now on screen -- the page restores whatever
+        # it was last told, and "last told" is about the PREVIOUS receptor
+        # until this runs.
+        self._sync_docking_box_overlay()
 
     def _on_undo_index_changed(self, _index: int) -> None:
         """Re-read the project into every dropdown after an undo or a redo.

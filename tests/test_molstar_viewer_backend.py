@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import time
 
 from openchem.ui.visualization import ResidueColorLayer, VisualizationLayer
@@ -194,3 +195,177 @@ def test_a_queued_clear_is_not_lost(qapp):
 
     assert _wait_until(qapp, lambda: backend._viewer_ready)
     assert _wait_until(qapp, lambda: any("clearResidueColors" in js for js in calls))
+
+
+# --- the docking search box --------------------------------------------------
+#
+# Drawn so a misplaced box is VISIBLE rather than only reported: the failure
+# that motivated it was a search box 55 A off site that nobody could see.
+
+_OWNED_BOX_SHAPES_JS = (
+    "(function(){var n=0;viewer.plugin.state.data.cells.forEach(function(c){"
+    "if(/box-shape/i.test(c.transform.transformer.id||String())) n++;});return n;})()"
+)
+
+
+def _js_value(qapp, backend, script):
+    result: dict[str, object] = {}
+    backend._page.runJavaScript(script, lambda value: result.__setitem__("value", value))
+    _wait_until(qapp, lambda: "value" in result, timeout_seconds=5)
+    return result.get("value")
+
+
+def _search_box_state(qapp, backend):
+    """The page's COMMITTED box state.
+
+    Deliberately not the last value Python sent. A state read that echoed
+    the request back would hand these tests their own input and pass while
+    nothing had been committed -- this file's own "queued but never
+    rendered" failure in a new place.
+    """
+    raw = _js_value(qapp, backend, "window.openchemMolstarViewer.searchBoxState()")
+    return json.loads(raw) if raw else {}
+
+
+def _owned_box_shapes(qapp, backend):
+    """How many box shapes are IN THE SCENE.
+
+    Counted on the scene rather than from the page's own refs, and that
+    distinction caught a real bug: the first implementation reported exactly
+    one box while leaving THREE in the state tree, because each replacement
+    built its delete from a ref the previous commit had not yet landed, so
+    the delete silently no-opped and the orphan stayed.
+    """
+    return _js_value(qapp, backend, _OWNED_BOX_SHAPES_JS)
+
+
+def test_a_search_box_is_drawn_and_reports_its_committed_geometry(qapp):
+    backend = MolStarViewerBackend()
+    assert _wait_until(qapp, lambda: backend._viewer_ready)
+    backend.load_macromolecule(_MINIMAL_PDB, "pdb")
+    assert _wait_until(qapp, lambda: _structure_count(qapp, backend) == 1)
+
+    backend.show_search_box((1.0, 2.0, 3.0), (12.0, 10.0, 8.0))
+
+    assert _wait_until(qapp, lambda: _search_box_state(qapp, backend).get("present") is True)
+    state = _search_box_state(qapp, backend)
+    assert state["center"] == [1.0, 2.0, 3.0]
+    assert state["size"] == [12.0, 10.0, 8.0]
+
+
+def test_clearing_leaves_no_box_AND_no_stale_geometry(qapp):
+    """`present=False` must null the geometry.
+
+    Returning the last centre beside `present: false` would let a caller
+    keep reading coordinates off a box that is not there -- and a test doing
+    the same would pass.
+    """
+    backend = MolStarViewerBackend()
+    assert _wait_until(qapp, lambda: backend._viewer_ready)
+    backend.show_search_box((1.0, 2.0, 3.0), (12.0, 10.0, 8.0))
+    assert _wait_until(qapp, lambda: _search_box_state(qapp, backend).get("present") is True)
+
+    backend.clear_search_box()
+
+    assert _wait_until(qapp, lambda: _search_box_state(qapp, backend).get("present") is False)
+    state = _search_box_state(qapp, backend)
+    assert state["center"] is None and state["size"] is None
+    assert _wait_until(qapp, lambda: _owned_box_shapes(qapp, backend) == 0)
+
+
+def test_a_burst_of_requests_leaves_exactly_the_LAST_one_drawn(qapp):
+    """Latest-state-wins, asserted ON THE SCENE.
+
+    Issued back to back rather than as three settled steps: the settled
+    version is a weaker claim that passes against an implementation with no
+    supersession at all. The first version of this page passed the geometry
+    assertion below and left three boxes in the scene, which is why the
+    shape count is here.
+    """
+    backend = MolStarViewerBackend()
+    assert _wait_until(qapp, lambda: backend._viewer_ready)
+    backend.load_macromolecule(_MINIMAL_PDB, "pdb")
+    assert _wait_until(qapp, lambda: _structure_count(qapp, backend) == 1)
+
+    backend.show_search_box((20.0, 20.0, 20.0), (4.0, 4.0, 4.0))
+    backend.show_search_box((-20.0, -20.0, -20.0), (4.0, 4.0, 4.0))
+    backend.show_search_box((0.0, 0.0, 0.0), (14.0, 12.0, 12.0))
+
+    assert _wait_until(
+        qapp, lambda: _search_box_state(qapp, backend).get("center") == [0.0, 0.0, 0.0]
+    )
+    assert _wait_until(qapp, lambda: _owned_box_shapes(qapp, backend) == 1), (
+        "a superseded box was left in the scene"
+    )
+
+
+def test_a_clear_racing_a_show_ends_on_whichever_came_last(qapp):
+    """Both orders, because they fail differently."""
+    backend = MolStarViewerBackend()
+    assert _wait_until(qapp, lambda: backend._viewer_ready)
+
+    backend.show_search_box((9.0, 9.0, 9.0), (6.0, 6.0, 6.0))
+    backend.clear_search_box()
+    assert _wait_until(qapp, lambda: _search_box_state(qapp, backend).get("present") is False)
+
+    backend.clear_search_box()
+    backend.show_search_box((1.0, 2.0, 3.0), (8.0, 8.0, 8.0))
+    assert _wait_until(
+        qapp, lambda: _search_box_state(qapp, backend).get("center") == [1.0, 2.0, 3.0]
+    )
+
+
+def test_a_box_requested_before_the_viewer_exists_is_replayed(qapp):
+    backend = MolStarViewerBackend()
+    # No readiness wait: this is the queued path.
+    backend.show_search_box((4.0, 5.0, 6.0), (10.0, 10.0, 10.0))
+
+    assert _wait_until(
+        qapp,
+        lambda: _search_box_state(qapp, backend).get("center") == [4.0, 5.0, 6.0],
+        timeout_seconds=20,
+    )
+
+
+def test_a_CLEAR_requested_before_the_viewer_exists_is_not_lost(qapp):
+    """The sentinel's whole reason for existing.
+
+    None is a meaningful queued VALUE here meaning "clear", so it cannot
+    double as the empty marker -- using it for both silently drops queued
+    clears, which is why `_NOTHING_PENDING` exists on this slot and on
+    `_pending_layers`.
+    """
+    backend = MolStarViewerBackend()
+    backend.show_search_box((4.0, 5.0, 6.0), (10.0, 10.0, 10.0))
+    backend.clear_search_box()
+    assert backend._pending_search_box is None, "a queued clear must not read as 'nothing queued'"
+    assert backend._pending_search_box is not _NOTHING_PENDING
+
+    assert _wait_until(qapp, lambda: backend._viewer_ready, timeout_seconds=20)
+    assert _wait_until(qapp, lambda: _search_box_state(qapp, backend).get("present") is False)
+
+
+def test_the_box_survives_loading_another_structure(qapp):
+    """`loadStructure` calls `plugin.clear()`, emptying the whole state tree
+    -- so the box is gone and the page's refs dangle.
+
+    Found while wiring this. Without the reset-and-restore in
+    `loadStructure`, the page kept reporting a box that no longer existed
+    and the next replacement deleted refs resolving to nothing. The DESIRED
+    box survives on purpose, so loading a receptor redraws its search region
+    without the window having to sequence the two calls.
+    """
+    backend = MolStarViewerBackend()
+    assert _wait_until(qapp, lambda: backend._viewer_ready)
+    backend.load_macromolecule(_MINIMAL_PDB, "pdb")
+    assert _wait_until(qapp, lambda: _structure_count(qapp, backend) == 1)
+    backend.show_search_box((0.0, 0.0, 0.0), (12.0, 10.0, 10.0))
+    assert _wait_until(qapp, lambda: _search_box_state(qapp, backend).get("present") is True)
+
+    backend.load_macromolecule(_MINIMAL_PDB, "pdb")
+
+    assert _wait_until(qapp, lambda: _structure_count(qapp, backend) == 1)
+    assert _wait_until(qapp, lambda: _search_box_state(qapp, backend).get("present") is True)
+    assert _wait_until(qapp, lambda: _owned_box_shapes(qapp, backend) == 1), (
+        "the restored box must replace the dangling one, not join it"
+    )

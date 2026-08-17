@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -133,6 +134,12 @@ class DockingPanel(QWidget):
     `VinaEngine` is available (chem/vina_engine.py) — the panel itself
     doesn't know or care which one.
     """
+
+    #: The displayed search box changed -- derived, reset or typed over.
+    #: `MainWindow` redraws the 3D overlay from it. A signal rather than a
+    #: direct call because the panel has no reference to the viewer, which
+    #: is the same reason docking RESULTS travel through the window.
+    box_changed = Signal()
 
     def __init__(
         self,
@@ -409,6 +416,15 @@ class DockingPanel(QWidget):
 
     # --- the search box ------------------------------------------------------
 
+    def selected_receptor_uuid(self) -> str | None:
+        """Which receptor the box belongs to, or None.
+
+        Public because `MainWindow._sync_docking_box_overlay` has to know
+        whether there is anything to draw a box ON, and reaching into the
+        combo from outside would put a second reader on that state.
+        """
+        return self._receptor_combo.currentData()
+
     def _selected_receptor(self):
         if self._project is None:
             return None
@@ -451,12 +467,14 @@ class DockingPanel(QWidget):
         finally:
             self._writing_box = False
         self._box_source = source
+        self.box_changed.emit()
 
     def _on_box_edited(self, _value: float) -> None:
         if self._writing_box:
             return
         self._box_source = "manual"
         self._box_status_label.setText("Search box: manually positioned.")
+        self.box_changed.emit()
 
     def _place_box_for_receptor(self) -> None:
         """Box the receptor's own annotated site, or reset to defaults.

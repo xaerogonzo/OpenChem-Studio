@@ -41,7 +41,25 @@
         loadStructure: function (structureText, format, label) {
           whenReady(function () {
             viewer.plugin.clear().then(function () {
-              viewer.loadStructureFromData(structureText, format, { dataLabel: label });
+              // `plugin.clear()` empties the whole state tree, so any box
+              // this page drew is GONE and its refs are dangling. Forget
+              // them -- without this, `searchBoxState()` keeps describing a
+              // shape that no longer exists, and the next replacement
+              // deletes refs that resolve to nothing.
+              //
+              // `searchBoxDesired` deliberately SURVIVES: the caller still
+              // wants that region shown, so the box is restored onto the
+              // structure once it is in. That is what makes loading a
+              // receptor redraw its search box without the window having to
+              // sequence the two.
+              searchBoxRefs = null;
+              searchBoxGeometry = null;
+              Promise.resolve(
+                viewer.loadStructureFromData(structureText, format, { dataLabel: label })
+              ).then(function () {
+                showDepositedCoordinates();
+                applySearchBox();
+              });
             });
           });
         },
@@ -57,6 +75,12 @@
         clear: function () {
           whenReady(function () {
             viewer.plugin.clear();
+            // Same dangling-ref reset as `loadStructure`. Here the DESIRED
+            // state is dropped too: there is no structure left to draw a
+            // search region on.
+            searchBoxRefs = null;
+            searchBoxGeometry = null;
+            searchBoxDesired = null;
           });
         },
         // Colours whole residues (see ui/visualization.py's
@@ -128,7 +152,167 @@
             builder.commit();
           });
         },
+
+        // --- the docking search box ------------------------------------
+        //
+        // Draws the region Vina will search, so a box in the wrong place is
+        // VISIBLE rather than merely reported. The whole bug this exists for
+        // was a box 55 A off site that nobody could see.
+        //
+        // `BoxShape3D` and `ShapeRepresentation3D` are Mol*'s own -- probed
+        // against this vendored bundle rather than assumed, since
+        // `MolStarViewerBackend` inherits `apply_shapes`' no-op default and
+        // this page had never drawn a shape. Its defaults are
+        // {bottomLeft:[0,0,0], topRight:[1,1,1], radius:0.15, color:16711680}.
+        showSearchBox: function (center, size) {
+          searchBoxDesired = { center: center.slice(), size: size.slice() };
+          whenReady(applySearchBox);
+        },
+        clearSearchBox: function () {
+          searchBoxDesired = null;
+          whenReady(applySearchBox);
+        },
+        // Reports COMMITTED state, never the last requested value.
+        //
+        // A `searchBoxState` that echoed its arguments back would hand a
+        // test its own input and pass while nothing had been committed --
+        // this page's own "queued but never rendered" failure in a new
+        // place. `present` is derived from the state tree; the geometry is
+        // null when absent, so a cleared box cannot leave stale numbers for
+        // a caller to keep reading.
+        searchBoxState: function () {
+          var present = false;
+          if (viewer && searchBoxRefs) {
+            var cell = viewer.plugin.state.data.cells.get(searchBoxRefs.representation);
+            present = !!(cell && cell.status === 'ok');
+          }
+          return JSON.stringify(
+            present
+              ? { present: true, center: searchBoxGeometry.center, size: searchBoxGeometry.size }
+              : { present: false, center: null, size: null }
+          );
+        },
       };
+
+      // THE VIEWER MUST SHOW THE COORDINATES DOCKING USES.
+      //
+      // Mol*'s default preset builds BIOLOGICAL ASSEMBLY 1, and that is a
+      // different set of atoms from the deposited file this application
+      // hands to Vina. Measured on 6WGT (5-HT2A with LSD), which carries
+      // three copies of 7LD and a REMARK 350 assembly per chain:
+      //
+      //     copy      centre                     shown by assembly 1?
+      //     A/1201    (24.28,  41.05, 54.36)     yes
+      //     B/1201    ( 6.71,   2.21, 54.62)     no   <- what docking boxes
+      //     C/1201    (24.01, -37.77, 54.49)     no
+      //
+      // `binding_site._single_copy` picks B, by burial, for reasons measured
+      // on other deposits (3HS4's catalytic zinc is 1.94 A from the right
+      // copy and 16.6 A from the wrong one). So the search box was
+      // geometrically correct and landed ~43 A from anything on screen --
+      // and the interaction colouring, which matches residues by name and
+      // number, was painting chain A's residues for a pose computed against
+      // chain B's site.
+      //
+      // THIS IS SCOPED TO THAT INVARIANT and is not a claim that deposited
+      // coordinates are the better representation in general: the structure
+      // DISPLAYED, the structure the reference site is derived from, and the
+      // structure docking runs against must be the same coordinates and the
+      // same copy. It is also what this application already defaults to
+      // elsewhere -- building an assembly for docking is an explicit opt-in
+      // in the Contents dialog, defaulted off, which the viewer was silently
+      // contradicting. That opt-in is untouched.
+      function showDepositedCoordinates() {
+        var ref = null;
+        viewer.plugin.state.data.cells.forEach(function (cell, cellRef) {
+          if ((cell.transform.transformer.id || '') === 'ms-plugin.structure-from-model') {
+            ref = cellRef;
+          }
+        });
+        if (!ref) { return; }
+        viewer.plugin.build().to(ref).update({ type: { name: 'model', params: {} } }).commit();
+      }
+
+      // Appearance is the VIEWER's, not the caller's: docking supplies
+      // geometry and this page decides how a search region looks. Tuned
+      // against a real receptor -- thin enough to read the structure
+      // through, bright enough to find.
+      var SEARCH_BOX_COLOR = 0x38BDF8;
+      var SEARCH_BOX_RADIUS = 0.18;
+
+      // The two cells this page owns. Deleted BY REF rather than by matching
+      // transformer ids: `clearResidueColors` can match /overpaint/i safely
+      // because overpaint is unambiguous, but a box's representation id is
+      // the generic `ms-plugin.shape-representation-3d`, so a regex clear
+      // would take any other shape the page ever draws with it.
+      var searchBoxRefs = null;
+      var searchBoxGeometry = null;
+
+      // LATEST-STATE-WINS, AND IT HAS TO COLLAPSE RATHER THAN QUEUE.
+      //
+      // The first version issued one `plugin.build()` per call, each
+      // deleting the previous refs. Measured against the real bundle, a
+      // back-to-back burst of three left THREE boxes on screen while
+      // `searchBoxState()` correctly reported one: a builder created before
+      // the previous commit resolved is deleting a ref the state tree does
+      // not have yet, so the delete silently no-ops and the orphan stays.
+      // The mirror was right and the scene was wrong -- which is why the
+      // guard for this asserts on the scene.
+      //
+      // So there is one desired state and one applier. Requests arriving
+      // while a commit is in flight update `searchBoxDesired` and return;
+      // the applier re-checks when the commit resolves and converges. A
+      // burst of any length therefore costs at most two commits and always
+      // ends on the newest request.
+      var searchBoxDesired = null;   // {center, size} or null for "no box"
+      var searchBoxApplying = false;
+
+      function deleteSearchBoxRefs(builder) {
+        if (!searchBoxRefs) { return; }
+        builder.delete(searchBoxRefs.representation);
+        builder.delete(searchBoxRefs.shape);
+        searchBoxRefs = null;
+        searchBoxGeometry = null;
+      }
+
+      function sameGeometry(a, b) {
+        if (!a || !b) { return a === b; }
+        for (var i = 0; i < 3; i++) {
+          if (a.center[i] !== b.center[i] || a.size[i] !== b.size[i]) { return false; }
+        }
+        return true;
+      }
+
+      function applySearchBox() {
+        if (searchBoxApplying || !viewer) { return; }
+        var target = searchBoxDesired;
+        if (sameGeometry(target, searchBoxGeometry)) { return; }
+
+        searchBoxApplying = true;
+        var builder = viewer.plugin.build();
+        deleteSearchBoxRefs(builder);
+        if (target) {
+          var T = molstar.lib.plugin.StateTransforms;
+          var c = target.center, s = target.size;
+          var shape = builder.toRoot().apply(T.Shape.BoxShape3D, {
+            bottomLeft: [c[0] - s[0] / 2, c[1] - s[1] / 2, c[2] - s[2] / 2],
+            topRight: [c[0] + s[0] / 2, c[1] + s[1] / 2, c[2] + s[2] / 2],
+            radius: SEARCH_BOX_RADIUS,
+            color: SEARCH_BOX_COLOR,
+          });
+          var representation = shape.apply(T.Representation.ShapeRepresentation3D);
+          searchBoxRefs = { shape: shape.ref, representation: representation.ref };
+          searchBoxGeometry = { center: c.slice(), size: s.slice() };
+        }
+        Promise.resolve(builder.commit()).then(function () {
+          searchBoxApplying = false;
+          // The request may have moved on while this was committing.
+          applySearchBox();
+        }, function (error) {
+          searchBoxApplying = false;
+          console.error('search box commit failed', error);
+        });
+      }
 
       molstar.Viewer.create('app', {
         layoutIsExpanded: false,
