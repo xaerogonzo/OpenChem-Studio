@@ -156,7 +156,9 @@ def validate(rows: list[dict]) -> list[str]:
     return problems
 
 
-def resolve_structures(rows: list[dict]) -> tuple[list[dict], list[str]]:
+def resolve_structures(
+    rows: list[dict], cache_name: str = "sc2_smiles_cache.json"
+) -> tuple[list[dict], list[str]]:
     """PubChem, because the table gives names and no structures.
 
     **CACHED AND RETRIED, because the naive version is not reproducible.**
@@ -173,7 +175,10 @@ def resolve_structures(rows: list[dict]) -> tuple[list[dict], list[str]]:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
     from openchem.chem.naming_providers import NamingError, pubchem_structure_for_name
 
-    cache_path = OUT / "sc2_smiles_cache.json"
+    # Parameterised so a sibling extractor reuses this rather than
+    # copying it -- two name resolvers would drift into disagreeing
+    # about which compound a name means.
+    cache_path = OUT / cache_name
     cache: dict[str, str] = {}
     if cache_path.is_file():
         cache = json.loads(cache_path.read_text(encoding="utf-8"))

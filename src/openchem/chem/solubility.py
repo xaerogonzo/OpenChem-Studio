@@ -39,11 +39,11 @@ IT HAS SINCE BEEN RUN, on two independent sets, in both cases with
 Delaney's own fitting set subtracted by InChIKey:
 
     Solubility Challenge 1        SC-2 tight set (interlab SD 0.17)
-    all   n=67  MAE 0.74          all   n=73  MAE 0.90  RMSE 1.26
-    acid  n=22        0.61                              bias +0.40
-    base  n=29        0.81  bias -0.52    base n=17     bias -0.42
+    all   n=61  MAE 0.74          all   n=73  MAE 0.90  RMSE 1.26
+    acid  n=18        0.55                              bias +0.40
+    base  n=27        0.84  bias -0.59    base n=17     bias -0.42
 
-**THE BASE BIAS REPLICATES ACROSS BOTH SETS**, at -0.52 and -0.42. One
+**THE BASE BIAS REPLICATES ACROSS BOTH SETS**, at -0.59 and -0.42. One
 set makes it a curiosity; two independent ones make it a property of the
 model. ESOL has no ionization term at all -- Delaney's paper never
 mentions ionization, amines or salts -- so it cannot tell a base from a
@@ -1207,6 +1207,49 @@ def _provenance(analysis: SolubilityAnalysis, parameters: dict) -> Provenance:
     )
 
 
+#: **MEASURED, AND DELIBERATELY NOT CORRECTED.** ESOL under-predicts bases
+#: on both validation corpora -- bias -0.59 logS on the Solubility Challenge
+#: (n=27) and -0.42 on SC-2 (n=17). `benchmarks/solubility/base_bias.py` put
+#: an adjustment for it through a pre-registered cross-corpus held-out test
+#: and the verdict was SURFACE_ONLY: the offsets agree (+0.59 / +0.42) and
+#: base RMSE improves in both directions, but the bootstrap 95% CI on the
+#: held-out improvement INCLUDES ZERO in both, so the effect is not
+#: distinguishable from sampling noise at n=10 and n=20. Removing the 7
+#: bases the two corpora share -- which is what makes "held out" true -- is
+#: what leaves the test underpowered.
+#:
+#: So the bias is reported to the user rather than subtracted. A number the
+#: reader can allow for beats a fitted constant nothing has validated.
+_BASE_BIAS_NOTE = (
+    "ESOL under-predicts BASES by roughly half a log unit -- measured bias -0.59 logS on the "
+    "Solubility Challenge (n=27) and -0.42 on the independent SC-2 set (n=17), so this value "
+    "is likely LOW. No adjustment is applied: a pre-registered held-out test could not "
+    "distinguish the improvement from sampling noise. See benchmarks/solubility/."
+)
+
+#: The non-aqueous accuracy statement, kept as three DISTINCT quantities so
+#: the composite figure cannot be read as the shift's validated accuracy --
+#: it is not validated and cannot be, since Abraham's coefficients were
+#: fitted to this endpoint.
+_NON_AQUEOUS_ACCURACY_LIMITATIONS = (
+    "Measured on 968 de-leaked cases: this composite prediction scores MAE 0.68 log, against "
+    "the aqueous ESOL baseline's own MAE 0.61 on the same compounds. The error is dominated by "
+    "the aqueous prediction, not by the solvent shift.",
+    "The solvent shift itself is NOT independently validated and cannot be: Abraham's "
+    "coefficients were fitted to measured solubilities, which is the endpoint any benchmark "
+    "would score them on. That is a property of the method, not a gap someone left.",
+)
+
+
+def _base_bias_limitation(analysis: SolubilityAnalysis) -> tuple[str, ...]:
+    """The base-bias note, for BASES ONLY.
+
+    Keyed on the same public `IonizationClass` the benchmark stratified on.
+    A base-bias warning on an acid is noise, and on a neutral it is wrong.
+    """
+    return (_BASE_BIAS_NOTE,) if analysis.ionization is IonizationClass.BASE else ()
+
+
 def _baseline_facts(analysis: SolubilityAnalysis, unit: str) -> list[Fact]:
     """The three unit renderings plus the category.
 
@@ -1231,6 +1274,7 @@ def _baseline_facts(analysis: SolubilityAnalysis, unit: str) -> list[Fact]:
             "The model's own output, read as the neutral species' solubility. That reading "
             "is an added assumption, not something the model claims.",
         )
+        limitations = _base_bias_limitation(analysis)
     else:
         heading = f"Predicted solubility in {analysis.solvent.label}"
         evidence = (
@@ -1239,6 +1283,7 @@ def _baseline_facts(analysis: SolubilityAnalysis, unit: str) -> list[Fact]:
             "Both the solvent coefficients and the solute descriptors are measured values; "
             "the AQUEOUS baseline is still a prediction, so its error carries through.",
         )
+        limitations = _NON_AQUEOUS_ACCURACY_LIMITATIONS
     facts = [
         _fact(
             f"{heading} ({unit_symbol(name)})",
@@ -1246,6 +1291,7 @@ def _baseline_facts(analysis: SolubilityAnalysis, unit: str) -> list[Fact]:
             units=unit_symbol(name),
             detail=Detail.STANDARD if name == unit else Detail.ADVANCED,
             evidence=evidence,
+            limitations=limitations,
         )
         for name in ordered
     ]
@@ -1418,7 +1464,17 @@ def compute_solubility(
         compare=bool(parameters.get("compare_models", True)),
     )
 
+    # **A FACT-LEVEL LIMITATION IS A TOOLTIP, AND A TOOLTIP IS NOT TELLING
+    # ANYBODY.** `FactView._add_row` puts `fact.limitations` into the row's
+    # tooltip; only `report.limitations` reaches the status line under the
+    # panel. Both notes below started life fact-level, rendered correctly,
+    # and were invisible on screen -- found by grabbing the panel, with
+    # every test green. They are carried in BOTH places: on the fact for
+    # the tooltip and the export, and here so they are actually read.
     limitations = [_BCS_NOTE]
+    limitations.extend(_base_bias_limitation(analysis))
+    if not analysis.solvent.is_water and analysis.shift is not None:
+        limitations.extend(_NON_AQUEOUS_ACCURACY_LIMITATIONS)
     dose_mg = parameters.get("dose_mg")
     dose = float(dose_mg) if dose_mg not in (None, "") else None
     if not analysis.solvent.is_water:

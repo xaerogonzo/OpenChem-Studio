@@ -383,3 +383,216 @@ def test_water_still_behaves_exactly_as_before():
     assert not report.error
     assert any(f.label.startswith("Predicted solubility at pH") for f in report.facts)
     assert any(f.label == "Solubility category" for f in report.facts)
+
+
+def _load_benchmark(stem: str):
+    """A benchmark script, imported by path and registered in `sys.modules`
+    first — a dataclass in an unregistered module raises inside
+    `dataclasses`, which reads as a bug in the benchmark."""
+    import importlib.util
+    import sys
+
+    path = Path(__file__).resolve().parents[1] / "benchmarks" / "solubility" / f"{stem}.py"
+    spec = importlib.util.spec_from_file_location(f"openchem_benchmark_{stem}", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _nonaqueous_module():
+    """The benchmark module, imported by path.
+
+    Registered in `sys.modules` before exec: a dataclass defined in a module
+    that is not there resolves its annotations against `None` and raises
+    inside `dataclasses`, which reads as a bug in the benchmark rather than
+    in the import.
+    """
+    import importlib.util
+    import sys
+
+    spec = importlib.util.spec_from_file_location(
+        "openchem_benchmark_nonaqueous",
+        Path(__file__).resolve().parents[1] / "benchmarks" / "solubility" / "nonaqueous.py",
+    )
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+# --- the two open edges, closed 2026-08-16 -----------------------------
+
+
+def test_the_base_bias_note_reaches_bases_and_only_bases():
+    """**MEASURED AND DELIBERATELY NOT CORRECTED.** ESOL under-predicts
+    bases by about half a log unit on both corpora, and
+    `benchmarks/solubility/base_bias.py` put an adjustment through a
+    pre-registered held-out test that returned SURFACE_ONLY. So the user is
+    told, rather than silently handed a fitted constant.
+
+    A base-bias warning on an acid is noise and on a neutral is wrong,
+    which is what the other two arms pin.
+    """
+    def note_count(smiles: str, pka: str) -> int:
+        report = compute_solubility(
+            mol(smiles), "u",
+            {"solvent": "water", "pka_values": pka, "compare_models": False},
+        )
+        fact = next(f for f in report.facts if f.label.startswith("Predicted intrinsic"))
+        return sum("under-predicts BASES" in text for text in fact.limitations)
+
+    assert note_count("CC(C)NCC(O)COc1cccc2ccccc12", "9.42") == 1   # propranolol, base
+    assert note_count("CC(=O)Oc1ccccc1C(=O)O", "3.49") == 0         # aspirin, acid
+    assert note_count("Cn1cnc2c1c(=O)n(C)c(=O)n2C", "") == 0        # caffeine, neutral
+
+
+def test_no_base_bias_constant_is_applied_to_the_value():
+    """The verdict was SURFACE_ONLY, so the number itself must be untouched
+    -- the note is the whole change. `esol_logs` is the raw model, and the
+    reported intrinsic logS must still equal it exactly."""
+    from openchem.chem.solubility import esol_logs
+
+    target = mol("CC(C)NCC(O)COc1cccc2ccccc12")
+    report = compute_solubility(
+        target, "logs", {"solvent": "water", "pka_values": "9.42", "compare_models": False}
+    )
+    fact = next(f for f in report.facts if f.label.startswith("Predicted intrinsic"))
+    assert fact.value == pytest.approx(esol_logs(target), abs=1e-12)
+
+
+def test_the_non_aqueous_fact_separates_the_three_accuracy_claims():
+    """A reader must not be able to take the composite MAE as the shift's
+    validated accuracy. The baseline error, the composite error and the
+    shift's validation status are three different statements."""
+    report = compute_solubility(
+        mol(ASPIRIN), "u", {"solvent": "ethanol", "compare_models": False}
+    )
+    fact = next(f for f in report.facts if f.label.startswith("Predicted solubility in ethanol"))
+    blob = " ".join(fact.limitations)
+    assert "0.68" in blob and "0.61" in blob
+    assert "NOT independently validated" in blob or "not independently validated" in blob.lower()
+
+
+def test_every_benchmark_arm_carries_a_status_from_the_closed_vocabulary():
+    """**THE NUMBER MUST NOT TRAVEL WITHOUT ITS CAVEAT.** The status used to
+    be hand-typed into the printed title while the JSON carried none, so the
+    two could disagree. One source now feeds both, and the shift arm can
+    never be emitted as VALIDATED."""
+    module = _nonaqueous_module()
+
+    assert set(module.ARM_STATUS) == {"composite", "baseline_aqueous", "shift_only"}
+    for arm, (status, caveat) in module.ARM_STATUS.items():
+        assert isinstance(status, module.ArmStatus), f"{arm} has a free-form status"
+        assert caveat.strip(), f"{arm} has no caveat"
+
+    assert module.ARM_STATUS["shift_only"][0] is module.ArmStatus.OPTIMISTIC
+
+
+def test_the_text_table_and_the_json_take_the_status_from_one_object():
+    """Closes the class of bug rather than today's strings: the rendered row
+    and the machine-readable field must come from the same dict."""
+    module = _nonaqueous_module()
+
+    stats = module._stats([0.5, -0.5], "shift_only")
+    assert stats["status"] == "optimistic"
+    assert "[OPTIMISTIC]" in module._table("shift only", stats)
+
+
+def test_the_notes_reach_the_STATUS_LINE_and_not_only_a_tooltip():
+    """**A FACT-LEVEL LIMITATION IS A TOOLTIP.** `FactView._add_row` puts
+    `fact.limitations` into the row's tooltip; only `report.limitations`
+    reaches the status line under the panel. Both notes were fact-level
+    first, rendered correctly, and were invisible on screen -- found by
+    grabbing the panel with every test green.
+    """
+    base = compute_solubility(
+        mol("CC(C)NCC(O)COc1cccc2ccccc12"), "u",
+        {"solvent": "water", "pka_values": "9.42", "compare_models": False},
+    )
+    assert any("under-predicts BASES" in text for text in base.limitations)
+
+    acid = compute_solubility(
+        mol(ASPIRIN), "u",
+        {"solvent": "water", "pka_values": "3.49", "compare_models": False},
+    )
+    assert not any("under-predicts BASES" in text for text in acid.limitations)
+
+    ethanolic = compute_solubility(
+        mol(ASPIRIN), "u", {"solvent": "ethanol", "compare_models": False}
+    )
+    assert any("not independently validated" in t.lower() for t in ethanolic.limitations)
+
+
+def _base_bias_result() -> dict:
+    path = Path(__file__).resolve().parents[1] / "benchmarks" / "solubility" / "base_bias_result.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def test_the_experiment_and_production_agree_about_whether_a_constant_shipped():
+    """**THE EXPERIMENT DECIDES; PRODUCTION OBEYS.** The result artifact
+    carries `production_change_permitted`, and the only state in which
+    `solubility.py` may apply a fitted offset is `SHIP`. This asserts the
+    two cannot drift apart -- a guard against the model being "fixed" after
+    an inconvenient verdict.
+    """
+    from openchem.chem import solubility
+
+    result = _base_bias_result()
+    shipped = result["outcome"] == "SHIP"
+    assert result["production_change_permitted"] is shipped
+
+    applies = hasattr(solubility, "ESOL_BASE_BIAS_CORRECTION_LOGS")
+    assert applies is shipped, (
+        "the repository state disagrees with the experiment: "
+        f"outcome={result['outcome']} but a correction constant "
+        f"{'exists' if applies else 'is absent'}"
+    )
+
+
+def test_a_non_ship_outcome_records_WHY_it_failed():
+    """`insufficient_evidence` and `contrary_evidence` are opposite
+    findings — "we could not show it" versus "we showed it does not work" —
+    and a bare SURFACE_ONLY reads the same for both."""
+    result = _base_bias_result()
+    if result["outcome"] == "SURFACE_ONLY":
+        assert result["evidence_reading"] in {"insufficient_evidence", "contrary_evidence"}
+        assert result["reason"]
+
+
+def test_the_result_artifact_is_reproducible_without_rerunning_it():
+    """A fitted number that exists only in stdout is not auditable. The
+    artifact must name the corpora, their fingerprints, the bootstrap
+    parameters and the criteria version."""
+    result = _base_bias_result()
+    assert result["acceptance_criteria_version"] >= 3
+    assert result["bootstrap"]["seed"] and result["bootstrap"]["replicates"] >= 1000
+    assert result["bootstrap"]["resample_unit"] == "compound"
+    assert result["sd_and_n_are"] == "metadata, never weights"
+    for name, corpus in result["corpora"].items():
+        assert corpus["sha256_16"], f"{name} has no content fingerprint"
+    assert result["provenance"]["rdkit"] and result["provenance"]["date"]
+
+
+def test_an_endpoint_incompatible_corpus_can_never_be_fitted():
+    """AqSolDB is ~10k rows and measures a DIFFERENT endpoint — aqueous
+    solubility of whatever solid form, not intrinsic solubility of the
+    neutral species. Size is exactly why this needs a rule rather than
+    judgement."""
+    module = _load_benchmark("base_bias")
+
+    assert module.corpus_eligibility({"target_type": "intrinsic"})[0] is module.Eligibility.ELIGIBLE
+    state, why = module.corpus_eligibility({"target_type": "aqueous_solubility"})
+    assert state is module.Eligibility.TEST_ONLY
+    assert "endpoint_mismatch" in why
+
+
+def test_the_avdeef_extractor_refuses_the_tables_that_duplicate_sc2():
+    """A3 and A4 are the SC-2 tight and loose sets under other names.
+    Extracting them would double-count and inflate the power of the very
+    experiment they would feed."""
+    module = _load_benchmark("extract_avdeef_sets")
+
+    assert set(module.DUPLICATES_OF_KNOWN) >= {"A3", "A4"}
+    assert "SC-2" in module.DUPLICATES_OF_KNOWN["A3"]
+    assert set(module.WANTED) == {"avdeef_a1", "avdeef_a2"}

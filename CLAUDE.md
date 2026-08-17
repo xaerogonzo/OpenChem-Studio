@@ -356,6 +356,36 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
+Before it: `4633 passed, 15 skipped`
+(measured 2026-08-16, **14m16**, on `solubility-base-bias` -- the base-bias
+power study at criteria v3. **+5 test functions**, all in
+`test_abraham.py`, none parametrised: the experiment/production agreement
+guard, the evidence-reading guard, the artifact-reproducibility guard, the
+endpoint-eligibility guard and the duplicate-table refusal. Skips unchanged
+at 15; 4643 -> 4648 collected, diffed both directions, 0 removed.
+
+**PRODUCTION IS UNTOUCHED BY THIS ONE.** The verdict was `SURFACE_ONLY`,
+so `production_change_permitted = false` and `git diff src/` is empty for
+the whole power study -- the guard against fixing the model once the
+answer is inconvenient.)
+
+Before it: `4628 passed, 15 skipped`
+(measured 2026-08-16, **13m29**, on `solubility-base-bias` at `435130d` --
+the base-bias verdict and the arm-status work. **+6 test functions**, all
+in `test_abraham.py`, none parametrised. Skips unchanged at 15.
+
+    master f9a4627   COLLECTS 4637
+    after            COLLECTS 4643   = 4637 + 6
+    the run                   4628 passed + 15 skipped = 4643
+
+Diffed both directions, 0 removed. **THE BASELINE WAS 4637 AND NOT THE
+4632 THIS FILE CARRIED EARLIER IN THE DAY** -- that figure predated the
+five acetic-acid guards, and reading it would have reported +11. Derived
+with `rev-parse` and a `--collect-only` in a detached worktree, with the
+`PYTHONPATH` override asserted before the count was believed.
+
+13m29 sits mid-band. The 6-19 range stands.)
+
 Before it: `4622 passed, 15 skipped`
 (measured 2026-08-16, **14m03**, on `solubility-predictor` at `60643d8` --
 the two open edges closed. **+5 test functions**, all in
@@ -4334,21 +4364,29 @@ the old name would have been the worst of both.
 
 `benchmarks/solubility/` scores ESOL against the Solubility Challenge
 (Llinas, Glen & Goodman 2008), taken from the AqSolDB repository's
-`dataset-I`. Measured 2026-08-16, 67 scored of 80:
+`dataset-I`. Measured 2026-08-16, 61 scored of 80:
 
-    all      n=67  MAE 0.74  RMSE 0.98  median 0.52  max 2.65  bias -0.20
+    all      n=61  MAE 0.74  RMSE 0.98  median 0.52  max 2.65  bias -0.17
     neutral  n=16  MAE 0.80                                    bias +0.02
-    acid     n=22  MAE 0.61                                    bias +0.06
-    base     n=29  MAE 0.81                                    bias -0.52
+    acid     n=18  MAE 0.55                                    bias +0.26
+    base     n=27  MAE 0.84                                    bias -0.59
+
+**THESE SUPERSEDE 67/-0.20/+0.06/-0.52, AND THE REASON IS NOT DRIFT.**
+Three compounds appear in SC-1 under one InChIKey as two solid forms, and
+`score.py` was scoring both -- counting them twice AND charging the
+polymorph gap (up to 0.88 log) to the model as prediction error. Refusing
+them is what moved every figure here; see the polymorph section below.
+The old numbers are still in PR #28's body, which is immutable history.
 
 **THE STRATIFICATION EARNED ITS KEEP ON THE FIRST RUN.** The aggregate
-bias is -0.20 and reads as noise. Split by class, ESOL under-predicts
-BASES by half a log unit while acids sit at +0.06 -- a systematic error
-across a third of a druglike set, invisible in a single MAE.
+bias is -0.17 and reads as noise. Split by class, ESOL under-predicts
+BASES by more than half a log unit while acids sit at +0.26 -- a
+systematic error across a third of a druglike set, invisible in a single
+MAE.
 
 **AND IT REPLICATED ON A SECOND, INDEPENDENT SET.** The Solubility
 Challenge 2 tight set (Llinas, Oprisiu & Avdeef 2020, Table 1, doi
-10.1021/acs.jcim.0c00701) gives base bias **-0.42** against SC-1's -0.52,
+10.1021/acs.jcim.0c00701) gives base bias **-0.42** against SC-1's -0.59,
 on 73 different compounds. One set makes a bias a curiosity; two make it
 a property of the model. Delaney's paper mentions ionization, amines and
 salts ZERO times, so ESOL cannot tell a base from a neutral of the same
@@ -4641,6 +4679,103 @@ and the entire benchmark are about. The refusal message names six
 FAMILIAR solvents filtered against the real table, because the first six
 alphabetically are `1,2-dichloroethane` and `1,9-decadiene`, which answer
 "is my solvent here?" for nobody.
+
+### THE BASE BIAS IS REPORTED, NOT CORRECTED -- and the test said so
+
+`benchmarks/solubility/base_bias.py` put an adjustment for ESOL's base
+bias through a cross-corpus HELD-OUT test whose criteria were fixed before
+it was first run. **Outcome: `SURFACE_ONLY`.** Four of five criteria pass:
+
+    offsets        +0.586 / +0.422, agreement 0.165        PASS
+    base RMSE      0.822 -> 0.780 and 1.101 -> 0.932       PASS
+    overall MAE    not worse either direction              PASS
+    improvement CI [-0.231,+0.397] and [-0.0009,+0.300]    FAIL, both include zero
+
+**ONE OF THEM MISSES BY 0.0009**, which is the entire argument for fixing
+a threshold in advance. A criterion chosen after seeing that number is a
+description of it, not a test.
+
+**THE OVERLAP REMOVAL IS WHAT MADE IT UNDERPOWERED, AND IS ALSO WHAT MADE
+IT HONEST.** The two corpora share 20 compounds, 7 of them bases, so the
+held-out arms fall to n=10 and n=20. Two corpora that look like
+independent validation are less independent than their sizes suggest --
+without that exclusion this would have "passed" spuriously.
+
+**A PRE-REGISTRATION CAN BE DEFECTIVE, AND AMENDING IT IS NOT CHEATING IF
+NOTHING HAS BEEN SEEN.** v1 halted on its FIRST run having computed
+nothing: SC-1 carries `chlorprothixene_form_I` and `_form_II` under one
+InChIKey at -6.75 and -5.87. That is one compound as two solids, not a
+corpus contradicting itself, and v1 conflated them. v2 drops polymorph
+pairs, and the amendment is recorded in the docstring with the reason it
+was admissible -- no offset, no arm and no verdict existed yet.
+
+**AND IT FOUND A DEFECT IN THE SHIPPED SCORER.** `score.py` was counting
+those three compounds TWICE and charging the polymorph gap -- up to 0.88
+log, the size of the bias under investigation -- to the model as
+prediction error. Refusing them moved acid bias +0.06 -> +0.26 and base
+bias -0.52 -> **-0.59**, i.e. the fix makes the bias LARGER, not smaller.
+
+#### MORE DATA DID NOT HELP, AND THE REASON IS WHICH SIDE IT LANDS ON
+
+The obvious answer to a CI that missed by 0.0009 is more compounds. Two
+further corpora were extracted from `avdeef2020.pdf` (v3 of the criteria,
+written before they were run) and the verdict stayed `SURFACE_ONLY`:
+
+    A1  Yalkowsky & Banerjee 1992   19 rows -> 5 after de-leaking, 0 bases
+    A2  Hopfinger et al. 2009       27 rows -> 23, 7 bases
+
+**POWER IS SET BY THE TEST SIDE, NOT THE FIT SIDE.** Neither new corpus
+has the 10 bases needed to BE a held-out side, so both can only join the
+fit pool -- which moves the fitted offset and narrows nothing. Measured:
+the SC-1 arm's CI lower bound went **-0.0009 -> -0.0338**, slightly
+FURTHER from significance. Adding data to the wrong side of a held-out
+split is not adding power.
+
+**A1 IS 74% INSIDE ESOL'S OWN TRAINING SET** -- 14 of 19 rows share an
+InChIKey with Delaney's fit, and it yields zero bases. Yalkowsky &
+Banerjee 1992 is a classic compilation of industrial and agrochemical
+solubility, which is the chemistry ESOL was fitted on. Extracting it
+anyway is what turned a suspicion into a number; dropping it unmeasured
+would have been assuming the answer.
+
+**TWO OF AVDEEF'S FIVE APPENDIX TABLES ARE THE SC-2 SETS UNDER OTHER
+NAMES.** A3 is the tight set, A4 the loose set -- so a bulk extractor over
+those pages would have double-counted data the project already had and
+INFLATED the power of the experiment it was meant to strengthen. A naive
+row count over pages 35-44 gives 172 compounds and the honest independent
+gain is 49. `extract_avdeef_sets.py` refuses A3/A4/A5 by name and says
+why.
+
+**THE OUTCOME VOCABULARY EARNED ITS SPLIT.** `insufficient_evidence` (the
+CI spans zero) and `contrary_evidence` (an arm got worse) are recorded
+separately, because "we could not show it" and "we showed it does not
+work" are opposite findings that read alike in a bare SURFACE_ONLY. The
+adjustment does substantially remove the bias in-sample -- base bias
+-0.619 -> -0.108 and -0.351 -> +0.265 -- which is exactly why the
+distinction matters.
+
+`production_change_permitted = false` is emitted for every non-SHIP
+outcome, and `git diff src/` was checked empty: a guard against fixing the
+model after an inconvenient result.
+
+#### A FACT-LEVEL LIMITATION IS A TOOLTIP, AND A TOOLTIP TELLS NOBODY
+
+Both new notes were attached to the `Fact`, rendered correctly, passed
+every test -- and were **invisible on screen**. `FactView._add_row` puts
+`fact.limitations` into the ROW'S TOOLTIP; only `report.limitations`
+reaches the status line under the panel. Found by grabbing the panel,
+which is the fourth defect this feature has produced with a green suite.
+They are carried in BOTH places now: on the fact for the tooltip and the
+export, and on the report so somebody actually reads them.
+
+#### THE ARM STATUS IS A CLOSED ENUM, ATTACHED TO THE NUMBER
+
+`nonaqueous.py` hand-typed `(HONEST)` into the printed TITLE while its
+`--json` carried no status at all, so the two could drift and a machine
+reader got the figure naked. `ArmStatus` + `ARM_STATUS` is one source
+feeding both, the shift arm is `OPTIMISTIC`, and a test asserts it can
+never be emitted as `VALIDATED`. **A caveat that lives beside a number
+rather than inside it is one refactor from being lost.**
 
 ## Verification standard
 

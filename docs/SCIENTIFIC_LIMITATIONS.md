@@ -277,6 +277,17 @@ and 2193 compounds, both sides measured (Abraham's solvation equation; see
 `docs/SOLVENT_SOLUBILITY_ASSESSMENT.md` for the sources). Four limits
 follow directly:
 
+- **ESOL under-predicts BASES by more than half a log unit** — measured
+  bias −0.59 on the Solubility Challenge (n=27) and −0.42 on the
+  independent SC-2 set (n=17). It is **reported, not corrected**: a
+  cross-corpus held-out test found the offsets agree and base RMSE improves
+  both ways, but the bootstrap CI on the held-out improvement includes zero
+  in both directions, so the adjustment is not distinguishable from
+  sampling noise. Any base carries that note on the panel. Two further
+  independent corpora were extracted to raise the power and could not —
+  one is 74% inside ESOL's own training set and yields no bases at all,
+  the other is too small to be held out — so this is a limit of the
+  available public data rather than a question left unasked.
 - **A compound outside those 2193 is refused by name**, with no fallback to
   a predicted descriptor. Coverage is the price of not estimating.
 - **The aqueous baseline's error carries through undiminished.** The shift

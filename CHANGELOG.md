@@ -52,6 +52,26 @@ below; the git log is the per-commit record.
 
 ### Fixed
 
+- **The solubility benchmark double-counted three polymorph pairs**, and
+  the published Solubility Challenge figures moved as a result. SC-1
+  carries chlorprothixene, sulindac and phthalic acid twice each — one
+  InChIKey, two solid forms, differing by up to 0.88 log. ESOL predicts one
+  number per *structure* and has no representation in which the forms
+  differ, so scoring both counted those compounds twice **and** charged the
+  polymorph gap to the model as prediction error. They are refused now, the
+  same way ampholytes are:
+
+  | stratum | was | now |
+  | --- | --- | --- |
+  | all | n=67, bias −0.20 | n=61, bias −0.17 |
+  | acid | n=22, bias +0.06 | n=18, bias +0.26 |
+  | base | n=29, bias −0.52 | n=27, bias **−0.59** |
+
+  Found when `benchmarks/solubility/base_bias.py` halted on the
+  contradiction rather than averaging it away. The superseded numbers
+  appear in PR #28's body, which is immutable history — these are the
+  current ones.
+
 - **Multi-site ionization composes multiplicatively, not additively.** The
   Henderson–Hasselbalch factor was computed as `log10(1 + Σ terms)` where
   it should be `Σ log10(1 + term)`, so a molecule with two or more

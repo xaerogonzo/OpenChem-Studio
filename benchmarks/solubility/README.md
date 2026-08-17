@@ -19,22 +19,130 @@ has already paid for twice.
 
 ## Results, measured 2026-08-16
 
-ESOL against the de-leaked Solubility Challenge, 67 scored of 80:
+> **These figures superseded an earlier set, and the earlier set is still
+> quoted in [PR #28](https://github.com/xaerogonzo/OpenChem-Studio/pull/28).**
+> That body is immutable history and is deliberately not edited. Three
+> polymorph pairs were being scored twice; refusing them moved every
+> stratum — all n=67→61 / bias −0.20→−0.17, acid n=22→18 / +0.06→+0.26,
+> base n=29→27 / −0.52→**−0.59**. Anything citing 67 scored or a −0.52
+> base bias predates that fix. CHANGELOG carries the same table.
+
+
+ESOL against the de-leaked Solubility Challenge, 61 scored of 80:
 
 | stratum | n | MAE | RMSE | median | max | bias |
 | --- | --- | --- | --- | --- | --- | --- |
-| all | 67 | 0.74 | 0.98 | 0.52 | 2.65 | −0.20 |
+| all | 61 | 0.74 | 0.98 | 0.52 | 2.65 | −0.17 |
 | neutral | 16 | 0.80 | 1.05 | 0.51 | 2.47 | +0.02 |
-| acid | 22 | 0.61 | 0.85 | 0.37 | 2.36 | +0.06 |
-| base | 29 | 0.81 | 1.03 | 0.63 | 2.65 | **−0.52** |
+| acid | 18 | 0.55 | 0.79 | 0.35 | 2.36 | +0.26 |
+| base | 27 | 0.84 | 1.05 | 0.63 | 2.65 | **−0.59** |
 
 RMSE 0.98 is in line with ESOL's own documented accuracy, on compounds it
 was not fitted on.
 
 **THE STRATIFICATION EARNED ITS KEEP ON THE FIRST RUN.** The aggregate
-bias is −0.20 and reads as noise. Split by class, ESOL **under-predicts
-bases by half a log unit** while acids sit at +0.06. A single MAE would
-have hidden a systematic error across a third of a druglike set.
+bias is −0.17 and reads as noise. Split by class, ESOL **under-predicts
+bases by more than half a log unit** while acids sit at +0.26. A single MAE
+would have hidden a systematic error across a third of a druglike set.
+
+**SIX ROWS ARE REFUSED AS POLYMORPH PAIRS, and they used to be scored
+twice.** Three compounds appear under one InChIKey as two solid forms —
+chlorprothixene (−6.75 / −5.87, spread 0.88), sulindac (−3.68 / −4.50,
+0.82) and phthalic acid (−1.49 / −1.61, 0.12). ESOL predicts one number per
+*structure* and has no representation in which the forms differ, so scoring
+both counted those compounds twice **and** charged the polymorph gap — up to
+0.88 log, the size of the base bias itself — to the model as prediction
+error. Found when `base_bias.py` halted on the contradiction. Refusing what
+cannot be scored is the posture already taken for ampholytes, and it moved
+the acid bias +0.06 → +0.26 and the base bias −0.52 → −0.59.
+
+## Should the base bias be corrected? Pre-registered answer: no
+
+`base_bias.py` puts an adjustment through a **leave-one-corpus-out
+held-out** test whose criteria were fixed before it was first run.
+
+    fit on SC-2+A1+A2 (n=24) -> test on SC-1 (n=20 after removing 7 shared)
+    fit on SC-1+A1+A2 (n=34) -> test on SC-2 (n=10 after removing 7 shared)
+
+    offsets           +0.511 and +0.615, agreement 0.105     PASS
+    base RMSE         1.101 -> 0.918 and 0.822 -> 0.789      PASS (both improve)
+    overall MAE       not worse in either direction           PASS
+    improvement CI    [-0.034, +0.331] and [-0.248, +0.413]   FAIL
+
+**Outcome `SURFACE_ONLY`, reading `insufficient_evidence`.** Four criteria
+of five pass and the adjustment does substantially remove the bias
+in-sample (base bias −0.619 → −0.108 and −0.351 → +0.265) — but the
+bootstrap 95% CI on the held-out paired improvement **includes zero in
+both directions**. That is not evidence there is no bias; it is
+insufficient evidence for the pre-registered claim.
+
+### Adding two more corpora did NOT increase power, and that is measured
+
+The obvious response to a CI that missed by 0.0009 was more data. Two
+further corpora were extracted from Avdeef 2020 — and they did not help,
+for a structural reason worth stating:
+
+| corpus | rows | after de-leaking | bases | can be a test side? |
+| --- | --- | --- | --- | --- |
+| A1 (Yalkowsky & Banerjee 1992) | 19 | **5** | **0** | no |
+| A2 (Hopfinger et al. 2009) | 27 | 23 | 7 | no — under the minimum of 10 |
+
+**Power here is set by the TEST side, not the fit side.** Both new corpora
+are too small to be held out, so they can only join the fit pool — which
+moves the fitted offset without narrowing any CI. The SC-1 arm's lower
+bound actually went from −0.0009 to −0.0338, i.e. slightly *further* from
+significance.
+
+**A1 is 74% inside ESOL's own training set** — 14 of its 19 rows share an
+InChIKey with Delaney's fit, and it contributes **zero** bases. Yalkowsky
+& Banerjee 1992 is a classic compilation of industrial and agrochemical
+solubility, which is exactly the chemistry ESOL was fitted on. Extracting
+it anyway is what turned that suspicion into a number.
+
+**And two of Avdeef's five appendix tables are the Solubility Challenge 2
+sets under different names** — A3 is the tight set and A4 the loose set.
+`extract_avdeef_sets.py` refuses them by name. Extracting them would have
+double-counted SC-2 and inflated the apparent power of the very experiment
+they were meant to strengthen.
+
+So the honest position is that **the available independent data cannot
+settle this question**, and the bias is reported to the user rather than
+subtracted. `base_bias_result.json` records every criterion, both offsets,
+the overlap matrix, per-corpus funnels, corpus fingerprints, the bootstrap
+parameters and the acceptance-criteria version.
+
+**SD and n are metadata, never weights.** The corpora carry per-compound
+standard deviations and source counts; the fit is unweighted, one row per
+compound, and does not use them.
+
+### What would actually settle this
+
+**The constraint is held-out druglike BASES, not compounds.** A1 and A2
+failed to help because neither reaches the 10 bases needed to *be* a
+held-out side — not because the effect is absent. Concretely, what would
+close it:
+
+- **~30+ measured intrinsic-solubility bases** that are not in SC-1, SC-2
+  or Delaney's fit. That is the whole requirement; total corpus size is
+  irrelevant if the bases are not there.
+- **An `intrinsic` endpoint declared in the manifest.** A corpus of
+  aqueous solubility over unspecified solid forms is `TEST_ONLY` however
+  large — the reason AqSolDB's ~10k rows cannot be used.
+- Avdeef's full **Wiki-pS0** database (3014 molecules, 6355 entries) would
+  almost certainly do it. The paper says it is "planned to be released in
+  book form", so it is not obtainable today; the 49 compounds published in
+  its appendices are what exists.
+
+Then `uv run --no-sync python benchmarks/solubility/base_bias.py` is the
+whole rerun. The criteria are versioned (`acceptance_criteria_version`),
+the corpora are declared in `CORPORA`, and the verdict decides on its own
+whether production may change — so revisiting this costs one command and
+no judgement calls.
+
+**A rerun that flips to `SHIP` may not be taken at face value either.**
+The offsets fitted here are +0.51 and +0.62 against a v2 pair of +0.59 and
++0.42; a constant that moves that much with the corpus is a constant to
+re-examine, not to trust because it finally cleared a threshold.
 
 **13 of 80 compounds — 16% — are ampholytes, and are refused.** That is a
 large slice of druglike chemistry to decline, and it is printed beside the
@@ -53,7 +161,7 @@ scored:
 | ESOL, bases | 17 | 0.70 | 0.87 | **−0.42** |
 | **GSE (published baseline)** | 73 | 0.86 | 1.18 | +0.37 |
 
-**THE BASE BIAS REPLICATES.** −0.42 here against −0.52 on the first set,
+**THE BASE BIAS REPLICATES.** −0.42 here against −0.59 on the first set,
 on entirely different compounds. One set makes a bias a curiosity; two
 independent ones make it a property of the model. Delaney's paper mentions
 ionization, amines and salts *zero* times, so ESOL cannot distinguish a
@@ -131,6 +239,10 @@ Measured 2026-08-16, ONS Solubility Challenge dataset, 968 de-leaked
 | composite — our prediction vs measured | 786 | 0.68 | 0.96 | 0.49 | −0.07 | **honest** |
 | baseline — our ESOL vs measured aqueous | 786 | 0.61 | 0.85 | 0.41 | −0.03 | **honest** |
 | shift only — predicted vs measured shift | 786 | 0.29 | 0.49 | 0.16 | −0.04 | *optimistic* |
+
+*Status is carried per arm in the tool's own output — text and `--json` alike — from a
+closed vocabulary. The shift arm is `OPTIMISTIC` and can never be emitted as
+`VALIDATED`: its coefficients were fitted to the endpoint scored here.*
 
 **THE COMPOSITE IS BARELY WORSE THAN THE BASELINE — 0.68 against 0.61 MAE
 — AND THAT IS THE RESULT.** It confirms the claim the module makes: a

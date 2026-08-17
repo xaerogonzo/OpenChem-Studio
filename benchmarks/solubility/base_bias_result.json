@@ -1,0 +1,164 @@
+{
+ "outcome": "SURFACE_ONLY",
+ "reason": "ci_excludes_zero_all failed",
+ "evidence_reading": "insufficient_evidence",
+ "production_change_permitted": false,
+ "acceptance_criteria_version": 3,
+ "model": "esol",
+ "fitting_method": "mean(measured_logS - raw_ESOL_logS), unweighted, one row per compound",
+ "sd_and_n_are": "metadata, never weights",
+ "shipped_constant_logs": null,
+ "combined_in_sample_offset": 0.555,
+ "offset_agreement": 0.1046,
+ "checks": {
+  "same_sign": true,
+  "offset_agreement <= 0.25": true,
+  "base_rmse_improves_all": true,
+  "overall_mae_not_worse_all": true,
+  "ci_excludes_zero_all": false
+ },
+ "arms": [
+  {
+   "fit_on": "SC-2+A1+A2",
+   "test_on": "SC-1",
+   "offset_fitted": 0.5105,
+   "fit_n": 24,
+   "test_n": 20,
+   "overlap_removed_from_test": 7,
+   "base_rmse_before": 1.1014,
+   "base_rmse_after": 0.9175,
+   "base_mae_before": 0.8742,
+   "base_mae_after": 0.7178,
+   "base_bias_before": -0.6189,
+   "base_bias_after": -0.1084,
+   "overall_mae_before": 0.7446,
+   "overall_mae_after": 0.6867,
+   "improvement_ci95": [
+    -0.0338,
+    0.3307
+   ],
+   "base_rmse_improves": true,
+   "overall_mae_not_worse": true,
+   "ci_excludes_zero": false
+  },
+  {
+   "fit_on": "SC-1+A1+A2",
+   "test_on": "SC-2",
+   "offset_fitted": 0.6151,
+   "fit_n": 34,
+   "test_n": 10,
+   "overlap_removed_from_test": 7,
+   "base_rmse_before": 0.822,
+   "base_rmse_after": 0.7892,
+   "base_mae_before": 0.6647,
+   "base_mae_after": 0.5767,
+   "base_bias_before": -0.3505,
+   "base_bias_after": 0.2646,
+   "overall_mae_before": 0.9156,
+   "overall_mae_after": 0.9023,
+   "improvement_ci95": [
+    -0.2476,
+    0.413
+   ],
+   "base_rmse_improves": true,
+   "overall_mae_not_worse": true,
+   "ci_excludes_zero": false
+  }
+ ],
+ "corpus_states": {
+  "SC-1": {
+   "state": "ELIGIBLE",
+   "why": "target_type='intrinsic', solid_form='unknown'"
+  },
+  "SC-2": {
+   "state": "ELIGIBLE",
+   "why": "target_type='intrinsic', solid_form='unknown'"
+  },
+  "A1": {
+   "state": "ELIGIBLE",
+   "why": "target_type='intrinsic', solid_form='unknown'"
+  },
+  "A2": {
+   "state": "ELIGIBLE",
+   "why": "target_type='intrinsic', solid_form='unknown'"
+  }
+ },
+ "corpora": {
+  "SC-1": {
+   "n": 61,
+   "bases": 27,
+   "excluded": {
+    "unparseable": 0,
+    "no measured value": 0,
+    "ampholyte": 13,
+    "salt or mixture": 0,
+    "esol training data": 0,
+    "polymorph pair": 6
+   },
+   "sha256_16": "ebe82e00ac3e2f8a"
+  },
+  "SC-2": {
+   "n": 73,
+   "bases": 17,
+   "excluded": {
+    "unparseable": 0,
+    "no measured value": 0,
+    "ampholyte": 11,
+    "salt or mixture": 0,
+    "esol training data": 16,
+    "polymorph pair": 0
+   },
+   "sha256_16": "07cbca9359021023"
+  },
+  "A1": {
+   "n": 5,
+   "bases": 0,
+   "excluded": {
+    "unparseable": 2,
+    "no measured value": 0,
+    "ampholyte": 0,
+    "salt or mixture": 0,
+    "esol training data": 14,
+    "polymorph pair": 0
+   },
+   "sha256_16": "29dcc7e119521733"
+  },
+  "A2": {
+   "n": 23,
+   "bases": 7,
+   "excluded": {
+    "unparseable": 1,
+    "no measured value": 0,
+    "ampholyte": 1,
+    "salt or mixture": 0,
+    "esol training data": 3,
+    "polymorph pair": 0
+   },
+   "sha256_16": "1ecfbdfb6f9dcb70"
+  }
+ },
+ "pairwise_overlap": {
+  "SC-1|SC-2": 16,
+  "SC-1|A1": 1,
+  "SC-1|A2": 0,
+  "SC-2|A1": 1,
+  "SC-2|A2": 4,
+  "A1|A2": 0
+ },
+ "union_bases": 44,
+ "min_heldout_bases": 10,
+ "bootstrap": {
+  "replicates": 10000,
+  "seed": 20260816,
+  "resample_unit": "compound",
+  "method": "percentile 95%",
+  "statistic": "mean(|error_before| - |error_after|)"
+ },
+ "provenance": {
+  "command": "uv run --no-sync python benchmarks/solubility/base_bias.py",
+  "git_sha": "799379c78d80",
+  "python": "3.13.7",
+  "rdkit": "2025.09.6",
+  "date": "2026-08-16"
+ }
+}
