@@ -4930,6 +4930,23 @@ actually comes from. It also caught an over-attribution: Llinàs 2020 states
 the interlab SD ~0.17 itself, but its RMSE = 0.34 carries a citation marker
 and belongs to Avdeef 2019.
 
+**AND THE ENTRIES WITH NO PDF NEEDED THE SAME AUDIT, FOR THE SAME REASON.**
+Asked where the still-unverified citations came from, the answer was "the
+repository's own text" -- mostly true, and in four cases not. `aqsoldb`,
+`allred1961`, `vogel_drago1996` and `ich_m9` had each been given a TITLE or
+a volume/page that the repo never carried and that nothing had checked. All
+four now say only what the repository says, with "title not established" in
+place of the invention. **A citation assembled from a real source plus a
+remembered detail is not a real citation**, and it fails in the direction
+that looks most convincing.
+
+`vogel_drago1996` is the one worth knowing about: `lewis_parameters.json`
+says the shipped E/C numbers came "via the Wikipedia ECW model compilation",
+so the chain is Wikipedia -> this repo -> the registry and **no step of it
+has touched the paper.** What stands in for that check today is
+`test_the_shipped_table_reproduces_the_measured_enthalpies`, which
+reproduces eight measured enthalpies to 0.27 kcal/mol.
+
 **LOCAL PACKAGE METADATA VERIFIES SOFTWARE BETTER THAN ANY PDF.**
 `importlib.metadata` gave licences for five dependencies, and corrected one:
 PySide6 is "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0", not the plain

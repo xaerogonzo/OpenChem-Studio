@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: e86dd80c63defa8b05b0717cbf213db963cfec3ad53f8ec072a8741a9b7bc091 -->
+<!-- SOURCE SHA256: 30b439deb8cfb142154a493d9b9cc1de7006d90758768cbb79e5d7cf28683616 -->
 
 # Sources
 
@@ -201,7 +201,7 @@ over-predicts trimethylborane's adducts with the two bulkiest amines.
 
 <a id="vogel_drago1996"></a>
 
-> G. C. Vogel & R. S. Drago, 'The ECW Model', J. Chem. Educ. 1996, 73, 701.
+> Vogel & Drago, J. Chem. Educ. 1996, 73, 701. Title not established -- see note.
 
 | | |
 | --- | --- |
@@ -210,11 +210,19 @@ over-predicts trimethylborane's adducts with the two bulkiest amines.
 | Verification | unverified |
 | Used by | `src/openchem/chem/data/lewis_parameters.json` |
 
-THE PRIMARY SOURCE OF THE SHIPPED E/C VALUES, reached via the Wikipedia ECW
-compilation rather than from the paper directly -- which is precisely why
-this is `unverified` and why it is recorded separately from
-[source:drago1965] instead of being folded into it. A future session with
-the paper in hand should either raise this to `citation` or correct it.
+THE PRIMARY SOURCE OF THE SHIPPED E/C VALUES, AND THIS PROJECT HAS NEVER
+SEEN IT. `lewis_parameters.json` says the numbers came "via the Wikipedia
+ECW model compilation of Vogel & Drago" -- so the chain is
+Wikipedia -> this repo -> here, and no step of it touched the paper. That
+is why it is `unverified`, why it is recorded separately from
+[source:drago1965] rather than folded into it, and why the title is left
+blank: one was briefly added here from memory and removed.
+
+It is the weakest link in the Lewis chain and worth closing: the shipped
+E/C table is only as good as a compilation nobody here has checked against
+its source. The eight measured enthalpies it reproduces to 0.27 kcal/mol
+(`test_the_shipped_table_reproduces_the_measured_enthalpies`) are what
+currently stands in for that check.
 
 ### drago1992
 
@@ -708,7 +716,7 @@ memorisation.
 
 <a id="aqsoldb"></a>
 
-> M. C. Sorkun, A. Khetan & S. Er, 'AqSolDB, a curated reference set of aqueous solubility and 2D descriptors for a diverse set of compounds', Scientific Data 2019, 6, 143.
+> Sorkun, Khetan & Er, Scientific Data 2019. Title, volume and pages not established -- see note.
 
 | | |
 | --- | --- |
@@ -716,6 +724,13 @@ memorisation.
 | Status | shipped |
 | Verification | unverified |
 | Used by | `benchmarks/solubility/fetch.py`, `benchmarks/solubility/README.md` |
+
+THE CITATION IS EXACTLY WHAT THE REPOSITORY CARRIES AND NO MORE.
+`benchmarks/solubility/README.md` says "Sorkun, Khetan & Er, Scientific
+Data 2019"; a title and a volume/page were briefly added here from memory
+and have been removed, because that is the same invention that put a
+different paper's title on [source:avdeef2020]. The GitHub URL is the
+identifier because it is the thing this project actually fetches from.
 
 DOWNLOADED PARTLY IN ORDER TO SUBTRACT IT. AqSolDB is a merge of nine
 sources, and TWO of them make it dangerous as an evaluation set:
@@ -931,7 +946,7 @@ is not listed.
 
 <a id="ich_m9"></a>
 
-> ICH M9 Guideline: Biopharmaceutics Classification System-based Biowaivers.
+> ICH M9, the guideline defining BCS-based biowaivers. Full title not verified against the guideline itself.
 
 | | |
 | --- | --- |
@@ -971,7 +986,7 @@ and never reach an even count. The vendored naming engine implements the
 
 <a id="allred1961"></a>
 
-> A. L. Allred, 'Electronegativity values from thermochemical data', J. Inorg. Nucl. Chem. 1961, 17, 215-221.
+> A. L. Allred, J. Inorg. Nucl. Chem. 17 (1961) 215-221. Title not established -- see note.
 
 | | |
 | --- | --- |
@@ -979,6 +994,10 @@ and never reach an even count. The vendored naming engine implements the
 | Status | shipped |
 | Verification | unverified |
 | Used by | `src/openchem/chem/data/electronegativity.json` |
+
+THE TITLE IS NOT RECORDED, DELIBERATELY. `electronegativity.json` cites
+this as "A. L. Allred, J. Inorg. Nucl. Chem. 17 (1961) 215-221" and nothing
+more; a title was briefly added here from memory and removed.
 
 Pauling's original values as revised by Allred -- the set reproduced in the
 CRC Handbook ([source:crc_handbook]) and in IUPAC's tables. The NUMBERS are
