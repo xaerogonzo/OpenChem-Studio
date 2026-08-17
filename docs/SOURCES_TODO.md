@@ -203,15 +203,27 @@ require.
 says outright *"3Dmol.js incorporates code from GLmol, Three.js, and
 jQuery"*.
 
-### `test_docs_are_current._repo_files` walks `.venv/`
+### ~~`test_docs_are_current._repo_files` walks `.venv/`~~ — FIXED
 
-It enumerates with `rglob("*")` over the whole tree, so a cited path resolves
-if **anything in site-packages** matches it. That is why `docs/ROADMAP.md` can
-cite a bare `setup.py` — which this repository does not have — and pass.
+It enumerated with `rglob("*")` over the whole tree, so a cited path resolved
+if **anything in site-packages** matched it. Measured when fixed: **38,680
+files against git's 1,021** — 97% of what a citation was checked against was
+not the repository.
 
-`test_every_used_by_path_is_tracked_in_git` avoids this by asking git, and is
-the pattern to copy. Fixing the docs guard is a small separate change: exclude
-`.venv`/`.git` from the walk, or take the list from `git ls-files`.
+It asks `git ls-files` now. The A/B, citing a pandas test module that exists
+only inside the virtualenv (named without backticks here, because the guard
+correctly rejects a doc that cites it):
+
+    old guard   19 passed in 32.18s     <- silently accepted
+    new guard   1 failed  in  0.26s     <- caught, and 120x faster
+
+`setup.py` moved into `ALLOWED_MISSING_PATHS` with its reason: ROADMAP names
+**tinygraph's** build file while explaining why that dependency will not
+install on Windows. Somebody else's file, like the molstar path already
+listed — it had merely been resolving against numpy's copy inside `.venv`.
+
+`test_the_citation_check_only_sees_the_repository` guards the fix rather than
+the symptom, since the symptom was a green test.
 
 ## Uncited PDFs in the archive
 
