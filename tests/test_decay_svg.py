@@ -271,3 +271,42 @@ def test_a_two_node_chain_still_renders():
 
     assert {n.name for n in chart.nodes} == {"C-14", "N-14"}
     assert chart.width > 0 and chart.height > 0
+
+
+# --- P4 groundwork: the isomeric transition --------------------------------
+
+
+def test_an_isomeric_transition_is_recognised_at_all():
+    """**IT WAS NOT, AND THE GENERATOR REFUSED TO BUILD BECAUSE OF IT.**
+    1,471 NUBASE rows carry `IT`, `is_recognised` answered False, and the
+    zero-unrecognised-modes rule turned that into a hard failure rather
+    than 1,471 branches quietly disappearing. That is the fail-closed
+    design working, and this is the guard that keeps it working.
+    """
+    from openchem.chem.decay import ISOMERIC_TRANSITION, delta_for, is_recognised
+
+    assert is_recognised(ISOMERIC_TRANSITION)
+    assert delta_for(ISOMERIC_TRANSITION) == (0, 0)
+
+
+def test_an_isomeric_transition_has_its_own_family_and_colour():
+    """It goes nowhere on the chart of the nuclides -- same cell, lower
+    state -- so it cannot share a colour with a decay that moves."""
+    assert mode_family("IT") == "isomeric"
+    assert "isomeric" in FAMILY_COLOUR
+
+
+def test_the_zero_delta_is_not_a_licence_to_follow_it_in_two_dimensions():
+    """**(0, 0) IS A SELF-LOOP IN `(Z, A)` SPACE**, which is exactly what
+    would make the walk cycle. The state index is what makes it a strict
+    descent, and it is deliberately not part of this pair -- so a caller
+    resolving daughters must go through `daughter()`, never `delta_for`.
+    """
+    from openchem.chem.decay import delta_for
+
+    dz, da = delta_for("IT")
+
+    assert (dz, da) == (0, 0)
+    # And the ordinary modes still move, so the pair means what it did.
+    assert delta_for("A") == (-2, -4)
+    assert delta_for("B-") == (1, 0)

@@ -55,6 +55,18 @@ _BETA = {"2B-": 2, "2B+": -2, "EC+B+": -1, "B-": 1, "B+": -1, "EC": -1, "e+": -1
 #: (dZ, dA) removed per emitted light fragment.
 _FRAGMENT = {"n": (0, 1), "p": (1, 1), "d": (1, 2), "t": (1, 3), "A": (2, 4)}
 
+#: **THE ISOMERIC TRANSITION, WHICH IS NOT A (dZ, dA) AT ALL.** It moves
+#: a nucleus DOWN in excitation at constant Z and A, so in `(Z, A)` space
+#: it is a self-loop -- and giving it `(0, 0)` would make the walk cycle
+#: and trip `_refuse_cycles`. In `(Z, A, state_index)` space it is a
+#: strict descent, which is what makes the walk terminate.
+#:
+#: 1,471 rows carry it, and `is_recognised("IT")` was False before this
+#: existed -- so the generator's zero-unrecognised-modes rule REFUSED to
+#: build with isomers in the table rather than dropping those branches
+#: silently. That is the fail-closed design doing its job.
+ISOMERIC_TRANSITION = "IT"
+
 #: Modes with no single daughter. **Measured, not guessed**: these are
 #: the only five of the 45 whose stoichiometry cannot be derived.
 #: `SF` and its beta-delayed forms fission; the two `X+Y` expressions
@@ -161,6 +173,8 @@ def mode_family(mode: str) -> str:
     for taxonomic tidiness -- `other` is composites and nucleon emission,
     which move a nuclide in directions that do not group usefully.
     """
+    if mode == ISOMERIC_TRANSITION:
+        return "isomeric"
     delta = delta_for(mode)
     if delta is None:
         return "other"
@@ -186,9 +200,17 @@ def delta_for(mode: str) -> tuple[int, int] | None:
     Deterministic for every token sequence: the same string always gives
     the same pair, and an unrecognised one gives None rather than a
     partial answer.
+
+    **AN ISOMERIC TRANSITION IS (0, 0) HERE AND IS NOT A CYCLE**, because
+    the state index it descends is not part of this pair. Callers that
+    resolve a daughter must use `daughter()`, which carries the state;
+    reading `delta_for("IT")` alone and following it in `(Z, A)` space
+    would loop forever.
     """
     if mode in UNFOLLOWABLE:
         return None
+    if mode == ISOMERIC_TRANSITION:
+        return (0, 0)
 
     rest = mode
     z = 0

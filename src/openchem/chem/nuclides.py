@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from typing import NamedTuple
 from functools import lru_cache
 from pathlib import Path
 
@@ -107,9 +108,34 @@ class DecayMode:
         return self.branching is not None and self.qualifier is None
 
 
+class NuclideKey(NamedTuple):
+    """What identifies one nuclear state.
+
+    **`state_index`, NOT "level".** NUBASE's field is an isomer INDEX --
+    0 is the ground state, 1 the first metastable state, and so on up to
+    9 -- and calling it a level invites a later reader to treat `2` as an
+    excitation energy or to compare it numerically as one. It orders the
+    states of one nuclide and means nothing else.
+
+    A type rather than a bare tuple because it is the identity contract:
+    the SVG carries one of these, a click resolves one, and the write path
+    refuses one. Three places reconstructing `(z, a, i)` by hand is where
+    a click starts landing on the wrong thing.
+    """
+
+    z: int
+    a: int
+    state_index: int = 0
+
+    @property
+    def is_ground_state(self) -> bool:
+        return self.state_index == 0
+
+
 @dataclass(frozen=True)
 class Nuclide:
-    """One ground state."""
+    """One nuclear state -- a ground state unless `state_index` says
+    otherwise."""
 
     z: int
     a: int
@@ -119,11 +145,25 @@ class Nuclide:
     abundance: float | None = None
     jpi: str = ""
     mass_excess_kev: float | None = None
+    #: 0 for a ground state; 1..9 for one of NUBASE's isomers.
+    state_index: int = 0
+    #: The source's OWN suffix for that state -- `m`, `n`, `p`, `q` -- so
+    #: the UI writes `Tc-99m` from the data rather than inventing a
+    #: notation for "index 1".
+    state_label: str = ""
+
+    @property
+    def key(self) -> "NuclideKey":
+        return NuclideKey(self.z, self.a, self.state_index)
+
+    @property
+    def is_ground_state(self) -> bool:
+        return self.state_index == 0
 
     @property
     def name(self) -> str:
-        """`U-238`, the way anybody writes it."""
-        return f"{self.symbol}-{self.a}"
+        """`U-238`, or `Tc-99m` for a metastable state."""
+        return f"{self.symbol}-{self.a}{self.state_label}"
 
     @property
     def neutrons(self) -> int:

@@ -61,6 +61,10 @@ FAMILY_COLOUR: dict[str, str] = {
     "beta_plus": "#b9770e",
     "cluster": "#7d3c98",
     "other": "#5d6d7e",
+    # An isomeric transition goes nowhere on this chart -- same cell,
+    # lower state -- so it is drawn as the marker on a stacked box rather
+    # than as a line, and this colour is what marks it.
+    "isomeric": "#117a65",
 }
 
 _ROOT_FILL = "#fdf3d0"
@@ -222,6 +226,7 @@ FAMILY_WORDS: dict[str, str] = {
     "beta_plus": "beta+ / electron capture",
     "cluster": "cluster emission",
     "other": "other (nucleon, delayed)",
+    "isomeric": "isomeric transition",
 }
 
 

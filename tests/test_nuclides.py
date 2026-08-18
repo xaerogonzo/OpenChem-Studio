@@ -522,3 +522,46 @@ def test_a_bound_ranks_on_its_value():
     shorter = N.Nuclide(1, 402, "H", N.HalfLife(1e-9, N.EXACT))
 
     assert [n.a for n in N.isotope_order([shorter, bound])] == [401, 402]
+
+
+# --- P4 groundwork: the identity that can carry a nuclear state ------------
+
+
+def test_a_nuclide_key_tells_a_ground_state_from_its_isomer():
+    """**THE IDENTITY CONTRACT, as a type rather than a bare tuple.**
+    Tc-99 and Tc-99m share an element and a mass number, so `(Z, A)`
+    cannot tell them apart -- and three places reconstructing `(z, a, i)`
+    by hand is where a click starts landing on the wrong thing.
+    """
+    ground = N.NuclideKey(43, 99)
+    metastable = N.NuclideKey(43, 99, 1)
+
+    assert ground != metastable
+    assert ground.is_ground_state
+    assert not metastable.is_ground_state
+    assert ground.state_index == 0
+
+
+def test_every_shipped_nuclide_is_a_ground_state_today():
+    """The data has not been regenerated yet, so this records WHERE the
+    isomers are not: the model can carry a state, the table does not yet
+    hold one, and the day that changes this test is the one that says so.
+    """
+    every = [n for symbol in ("U", "Tc", "Ta", "C") for n in N.nuclides_for(symbol)]
+
+    assert every, "the fixture must find something"
+    assert all(n.is_ground_state for n in every)
+    assert all(n.state_label == "" for n in every)
+
+
+def test_a_metastable_state_names_itself_from_the_source_suffix():
+    """`Tc-99m`, not `Tc-99 state 1`. NUBASE writes the letter itself, so
+    a table mapping 1 to `m` would be a second implementation of somebody
+    else's notation."""
+    metastable = N.Nuclide(
+        43, 99, "Tc", N.HalfLife(21624.0, N.EXACT), state_index=1, state_label="m"
+    )
+
+    assert metastable.name == "Tc-99m"
+    assert metastable.key == N.NuclideKey(43, 99, 1)
+    assert not metastable.is_ground_state
