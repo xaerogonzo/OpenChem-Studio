@@ -130,10 +130,18 @@ def test_the_facts_and_the_atom_view_cannot_take_each_others_height(dialog):
     """
     tabs = _tab_widgets(dialog)
 
-    assert set(tabs) == {"Facts", "Atom"}
+    # **NOT AN EXACT SET.** This asserted `{"Facts", "Atom"}` until the
+    # Isotopes tab arrived, which is over-specification rather than a
+    # claim: what matters is that each pane has a tab of its OWN, which
+    # is what makes competing for one height impossible. Pinning the
+    # whole set would fail for every future tab while catching nothing
+    # the three assertions below miss.
+    assert {"Facts", "Atom"} <= set(tabs)
     assert tabs["Facts"] is dialog._detail_area
     assert tabs["Atom"] is dialog._diagram
-    assert tabs["Facts"] is not tabs["Atom"]
+    assert len({id(widget) for widget in tabs.values()}) == len(tabs), (
+        "two tabs share a widget, so one of them is not its own pane"
+    )
 
 
 def test_the_grid_is_not_inside_the_tabs(dialog):
@@ -188,3 +196,144 @@ def test_both_tabs_describe_the_same_element(dialog):
 
     assert "Polonium" in dialog._detail.text()
     assert dialog._diagram.title.text() == "Po"
+
+
+# --- N3: the Isotopes tab ---------------------------------------------------
+
+
+def _isotope_rows(dialog) -> list[list[str]]:
+    table = dialog._isotope_table
+    return [
+        [
+            table.item(row, column).text() if table.item(row, column) else ""
+            for column in range(table.columnCount())
+        ]
+        for row in range(table.rowCount())
+    ]
+
+
+def test_the_isotopes_tab_lists_the_selected_elements_nuclides(dialog):
+    """The thing Ketcher's Atom Properties cannot tell you: which mass
+    numbers exist, how long each lasts, and how much of it is out there."""
+    dialog.select("C")
+
+    rows = _isotope_rows(dialog)
+
+    assert len(rows) == 16
+    assert rows[0][0] == "C-12"
+    assert "98.94%" in rows[0][1]
+    assert rows[0][2] == "stable"
+    assert rows[2][0] == "C-14"
+    assert rows[2][2] == "5.7 ky"
+    assert "beta-" in rows[2][3]
+
+
+def test_the_table_follows_the_selection(dialog):
+    """The control: a table that ignored the grid would pass the test
+    above on whatever element it happened to load with."""
+    dialog.select("C")
+    assert _isotope_rows(dialog)[0][0] == "C-12"
+
+    dialog.select("Po")
+    assert _isotope_rows(dialog)[0][0] == "Po-209"
+
+
+def test_a_qualified_half_life_is_marked_in_the_table(dialog):
+    """**A BOUND AND A MEASUREMENT MUST NOT READ ALIKE.** The text
+    carries the mark and the colour only reinforces it, which is this
+    table's existing rule that colour never says anything alone."""
+    dialog.select("B")
+
+    rows = _isotope_rows(dialog)
+    bounded = [index for index, row in enumerate(rows) if row[0] == "B-16"]
+
+    assert bounded, "B-16 is a lower bound and should be listed"
+    assert rows[bounded[0]][2].startswith(">")
+    assert "bounds" in dialog._isotope_note.text()
+
+    # **THE MARKING, not just the formatter's prefix.** Asserting only
+    # the text left the row's own marking untested -- a mutation removing
+    # it survived, because the ">" comes from `format_half_life` and
+    # would still be there.
+    cell = dialog._isotope_table.item(bounded[0], 2)
+    assert "not an exact measurement" in cell.toolTip().lower()
+
+    exact = [index for index, row in enumerate(rows) if row[0] == "B-11"]
+    assert exact, "B-11 is stable and is the control"
+    assert not dialog._isotope_table.item(exact[0], 2).toolTip()
+
+
+def test_an_element_with_no_abundances_shows_that_rather_than_zeroes(dialog):
+    """Technetium has none. A column of `0%` would be a claim nobody
+    made."""
+    dialog.select("Tc")
+
+    abundances = {row[1] for row in _isotope_rows(dialog)}
+
+    assert abundances == {"—"}
+
+
+# --- what the button refuses ------------------------------------------------
+
+
+def test_the_apply_button_is_disabled_with_a_reason_when_nothing_is_selected(dialog):
+    dialog.select("C")
+
+    assert not dialog._isotope_button.isEnabled()
+    assert "Select an atom" in dialog._isotope_hint.text()
+
+
+def test_the_apply_button_names_the_missing_half(dialog):
+    """Three things can be missing and they need three sentences."""
+    dialog.select("C")
+    dialog.set_selected_atom("C", 0)
+
+    assert not dialog._isotope_button.isEnabled()
+    assert "Choose an isotope" in dialog._isotope_hint.text()
+
+
+def test_a_mass_number_cannot_cross_elements(dialog):
+    """**THE TRAP THIS TABLE WOULD OTHERWISE SET.** The periodic table is
+    a browsing tool, so somebody can be reading carbon's isotopes with an
+    oxygen selected. Taking the element from the atom and the mass number
+    from the table quietly offers O-14 -- a real nuclide, and not the one
+    on screen. Requiring them to agree makes it unexpressible.
+    """
+    emitted = []
+    dialog.isotope_requested.connect(lambda symbol, mass: emitted.append((symbol, mass)))
+    dialog.select("C")
+    dialog._isotope_table.selectRow(2)
+    dialog.set_selected_atom("O", 3)
+
+    assert not dialog._isotope_button.isEnabled()
+    assert "the selected atom is O" in dialog._isotope_hint.text()
+
+    dialog._request_isotope()
+
+    assert emitted == []
+
+
+def test_a_matching_element_emits_the_isotope(dialog):
+    """The control, and the shape `MainWindow` will wire in N6: the
+    dialog names an element and a mass number and touches nothing."""
+    emitted = []
+    dialog.isotope_requested.connect(lambda symbol, mass: emitted.append((symbol, mass)))
+    dialog.select("O")
+    dialog.set_selected_atom("O", 3)
+    dialog._isotope_table.selectRow(2)
+    dialog._request_isotope()
+
+    assert emitted == [("O", dialog.selected_isotope())]
+    assert emitted[0][1] in {n.a for n in __import__(
+        "openchem.chem.nuclides", fromlist=["x"]
+    ).nuclides_for("O")}
+
+
+def test_the_new_tab_does_not_disturb_the_selection(dialog):
+    """B1's invariant, re-checked with a third tab present."""
+    dialog.select("Po")
+    for index in range(dialog._tabs.count()):
+        dialog._tabs.setCurrentIndex(index)
+
+    assert dialog.selected_symbol() == "Po"
+    assert _isotope_rows(dialog)[0][0] == "Po-209"

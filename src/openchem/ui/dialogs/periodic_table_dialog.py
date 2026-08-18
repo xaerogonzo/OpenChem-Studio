@@ -43,17 +43,21 @@ answer and a blank row would read as a bug.
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QColor, QGuiApplication
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QComboBox,
     QDialog,
     QGridLayout,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QPushButton,
     QScrollArea,
     QSizePolicy,
     QTabWidget,
+    QTableWidget,
+    QTableWidgetItem,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -62,6 +66,8 @@ from PySide6.QtWidgets import (
 from openchem.ui.widgets.atom_diagram import AtomDiagram
 from openchem.ui.widgets.collapsible_section import WrappedLabel
 from openchem.chem import element_palettes as palettes
+from openchem.chem import nuclides as nuclide_data
+from openchem.chem.decay import format_branching, format_mode
 from openchem.chem.element_reference import ElementFacts, all_symbols, facts_for, grid_position
 
 #: Category -> (fill, human label). Muted fills so black symbol text stays
@@ -103,6 +109,10 @@ _STATE_STYLE: dict[str, tuple[str, str]] = {
 _RAMP_LOW = (250, 250, 232)
 _RAMP_HIGH = (86, 141, 190)
 
+#: A half-life that is a bound, an estimate or an approximation.
+_QUALIFIED_COLOUR = QColor("#8a5a00")
+_MUTED_NOTE = "color: #666666; font-size: 9px;"
+
 _UNKNOWN = "not established"
 
 #: Qt property carrying which element a grid cell stands for.
@@ -117,6 +127,12 @@ class PeriodicTableDialog(QDialog):
     #: editor -- `MainWindow` owns that wiring, and the dialog stays
     #: constructible in a test with no editor anywhere.
     insert_requested = Signal(str)
+
+    #: An isotope was chosen for the SELECTED atom. Carries the element
+    #: and the mass number, and like `insert_requested` it acts on
+    #: nothing itself -- `MainWindow` owns the write, so this dialog stays
+    #: constructible in a test with no editor anywhere.
+    isotope_requested = Signal(str, int)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -170,6 +186,7 @@ class PeriodicTableDialog(QDialog):
         self._tabs = QTabWidget(self)
         self._tabs.addTab(self._detail_area, "Facts")
         self._tabs.addTab(self._diagram, "Atom")
+        self._tabs.addTab(self._build_isotopes_tab(), "Isotopes")
         layout.addWidget(self._tabs, 1)
 
         # THIS IS NOW THE ONLY PERIODIC TABLE THE PRODUCT OFFERS, so it
@@ -258,6 +275,170 @@ class PeriodicTableDialog(QDialog):
         button.clicked.connect(self._on_cell_clicked)
         self._buttons[facts.symbol] = button
         return button
+
+    # --- the isotopes ---------------------------------------------------------
+
+    #: What each column holds. The header is the contract.
+    _ISOTOPE_COLUMNS = ("Isotope", "Abundance", "Half-life", "Decay modes", "Spin/parity")
+
+    def _build_isotopes_tab(self) -> QWidget:
+        """Every ground state of the selected element, in a declared order.
+
+        **THIS IS THE PART MARVIN'S OWN TABLE DOES NOT REALLY DO**, and
+        the reason the whole nuclide table was worth shipping: setting an
+        isotope used to mean typing a mass number into Ketcher's Atom
+        Properties with nothing on screen to say whether it exists, how
+        long it lasts, or how much of it is out there.
+        """
+        container = QWidget(self)
+        column = QVBoxLayout(container)
+        column.setContentsMargins(0, 0, 0, 0)
+
+        self._isotope_table = QTableWidget(0, len(self._ISOTOPE_COLUMNS), container)
+        self._isotope_table.setHorizontalHeaderLabels(self._ISOTOPE_COLUMNS)
+        self._isotope_table.verticalHeader().setVisible(False)
+        self._isotope_table.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectRows
+        )
+        self._isotope_table.setSelectionMode(
+            QAbstractItemView.SelectionMode.SingleSelection
+        )
+        self._isotope_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self._isotope_table.itemSelectionChanged.connect(self._refresh_isotope_button)
+        # The decay column absorbs the slack: it is the widest and the
+        # most informative, and letting Spin/parity stretch instead would
+        # give three characters the whole pane.
+        header = self._isotope_table.horizontalHeader()
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        column.addWidget(self._isotope_table, 1)
+
+        # **A MEASURED VALUE AND A BOUND MUST NOT READ ALIKE**, so the
+        # note says what the marks mean rather than leaving `> 4.6 zs` to
+        # be read as a number somebody measured.
+        self._isotope_note = QLabel(
+            "&gt; and &lt; are bounds, ~ is approximate, and (estimated) means the "
+            "value comes from systematics rather than measurement. A branching "
+            "marked (unconfirmed) is a decay nobody has quantified.",
+            container,
+        )
+        self._isotope_note.setWordWrap(True)
+        self._isotope_note.setStyleSheet("font-size: 9px; color: #444444;")
+        column.addWidget(self._isotope_note)
+
+        row = QHBoxLayout()
+        self._isotope_button = QPushButton("Apply to selected atom", container)
+        self._isotope_button.clicked.connect(self._request_isotope)
+        row.addWidget(self._isotope_button)
+        self._isotope_hint = QLabel("", container)
+        self._isotope_hint.setStyleSheet(_MUTED_NOTE)
+        row.addWidget(self._isotope_hint)
+        row.addStretch(1)
+        column.addLayout(row)
+
+        self._selected_atom: tuple[str, int] | None = None
+        self._refresh_isotope_button()
+        return container
+
+    def set_selected_atom(self, symbol: str | None, index: int = -1) -> None:
+        """Tell the table which atom, if any, a write would land on.
+
+        **The dialog does not go looking.** It is non-modal and reachable
+        with no molecule open at all, so the window that owns the editor
+        pushes this in -- the same reason `insert_requested` carries a
+        symbol rather than touching a canvas.
+        """
+        self._selected_atom = (symbol, index) if symbol else None
+        self._refresh_isotope_button()
+
+    def selected_isotope(self) -> int | None:
+        """The mass number of the highlighted row, or None."""
+        rows = self._isotope_table.selectionModel()
+        if rows is None or not rows.selectedRows():
+            return None
+        item = self._isotope_table.item(rows.selectedRows()[0].row(), 0)
+        return None if item is None else int(item.data(Qt.ItemDataRole.UserRole))
+
+    def _refresh_isotope_button(self) -> None:
+        """Enabled only when every part of the question has an answer.
+
+        **DISABLED WITH A REASON, never guessing a target.** Three
+        different things can be missing and they need three sentences: no
+        atom picked on the canvas, no row picked here, or -- the one that
+        matters -- a row belonging to a DIFFERENT element from the atom.
+
+        That last case is a trap this table would otherwise set. The
+        periodic table is a browsing tool, so somebody can easily be
+        reading carbon's isotopes with an oxygen selected; pressing the
+        button then took the element from the atom and the mass number
+        from the table and quietly offered O-14, which is a real nuclide
+        and not the one on screen. Requiring them to agree makes that
+        unexpressible rather than merely validated later.
+        """
+        mass_number = self.selected_isotope()
+        if self._selected_atom is None:
+            self._isotope_button.setEnabled(False)
+            self._isotope_hint.setText("Select an atom in the 2D editor first.")
+            return
+        symbol, _index = self._selected_atom
+        if symbol != self._selected:
+            self._isotope_button.setEnabled(False)
+            self._isotope_hint.setText(
+                f"Showing {self._selected}; the selected atom is {symbol}. "
+                f"Choose {symbol} in the table above."
+            )
+            return
+        if mass_number is None:
+            self._isotope_button.setEnabled(False)
+            self._isotope_hint.setText("Choose an isotope above.")
+            return
+        self._isotope_button.setEnabled(True)
+        self._isotope_hint.setText(
+            f"Will apply {symbol}-{mass_number} to the selected atom."
+        )
+
+    def _request_isotope(self, _checked: bool = False) -> None:
+        """**THE ELEMENT COMES FROM THE SELECTED ATOM, not from this
+        table.** Somebody can be reading carbon's isotopes with an oxygen
+        selected, and applying C-13 to every oxygen is the mistake that
+        rule exists to prevent."""
+        mass_number = self.selected_isotope()
+        if self._selected_atom is None or mass_number is None:
+            return
+        symbol, _index = self._selected_atom
+        if symbol != self._selected:
+            return
+        self.isotope_requested.emit(symbol, mass_number)
+
+    def _refresh_isotopes(self) -> None:
+        table = self._isotope_table
+        table.clearContents()
+        found = nuclide_data.isotope_order(nuclide_data.nuclides_for(self._selected))
+        table.setRowCount(len(found))
+        for row, entry in enumerate(found):
+            half_life = nuclide_data.format_half_life(entry.half_life)
+            decays = ", ".join(
+                f"{format_mode(d.mode)} {format_branching(d.branching, d.qualifier)}".strip()
+                for d in entry.decays
+            )
+            abundance = (
+                f"{entry.abundance:g}%" if entry.abundance is not None else "—"
+            )
+            cells = (entry.name, abundance, half_life, decays or "—", entry.jpi or "—")
+            for index, text in enumerate(cells):
+                item = QTableWidgetItem(text)
+                if index == 0:
+                    item.setData(Qt.ItemDataRole.UserRole, entry.a)
+                table.setItem(row, index, item)
+            if entry.half_life.is_qualified:
+                # Reinforcement only: the text already carries the mark,
+                # which is this table's rule that colour never says
+                # anything on its own.
+                table.item(row, 2).setForeground(_QUALIFIED_COLOUR)
+                table.item(row, 2).setToolTip(
+                    "Not an exact measurement -- see the note below the table."
+                )
+        table.resizeColumnsToContents()
+        self._refresh_isotope_button()
 
     # --- colour modes -------------------------------------------------------
 
@@ -352,6 +533,7 @@ class PeriodicTableDialog(QDialog):
             button.setChecked(other == symbol)
         self._selected = symbol
         self._detail.setText(describe(facts))
+        self._refresh_isotopes()
         # Always back to neutral on a new element. Carrying a charge
         # across would silently answer a question about a different
         # species than the one just clicked.

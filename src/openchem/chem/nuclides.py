@@ -308,6 +308,42 @@ def _longest_by_half_life(found) -> Nuclide | None:
     return max(with_value, key=lambda n: (n.half_life.seconds or 0.0, -n.a))
 
 
+def isotope_order(found) -> tuple[Nuclide, ...]:
+    """The order an isotope table lists an element's nuclides in.
+
+    **DECLARED AND TESTED, because "abundance then half-life" does not
+    order the cases that matter.** A synthetic element has no abundances
+    at all, a stable nuclide has no half-life to compare, and a bound is
+    not a plain number:
+
+        natural abundance, descending   ABSENT SORTS LAST, not as zero
+        then stable before radioactive
+        then half-life, descending      a bound ranks on its value; an
+                                        unavailable one sorts last
+        then mass number, ascending     the deterministic tie-break
+
+    **ABSENT IS NOT ZERO**, and that distinction is the one a later
+    convenience breaks: the first `or 0.0` somebody writes to tidy this
+    up puts "nobody has measured any" in with "measured, and none".
+    Carbon leads with C-12; technetium, which has no abundances at all,
+    leads with Tc-97 at 4.21 My.
+    """
+    return tuple(sorted(found, key=_isotope_sort_key))
+
+
+def _isotope_sort_key(n: Nuclide):
+    has_abundance = n.abundance is not None
+    has_half_life = n.half_life.is_known
+    return (
+        not has_abundance,                      # measured abundances first
+        -(n.abundance or 0.0),                  # then the largest
+        not n.is_stable,                        # stable before radioactive
+        not has_half_life,                      # a number before none
+        -(n.half_life.seconds or 0.0),          # then the longest-lived
+        n.a,                                    # and finally by mass number
+    )
+
+
 # --- three predicates, and they are not the same question ---------------
 #
 #     has_natural_isotope    U yes   C yes   Tc no

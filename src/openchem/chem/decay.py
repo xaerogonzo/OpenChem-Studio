@@ -79,6 +79,75 @@ class DecayGraphError(RuntimeError):
     """
 
 
+#: How a mode is written for a reader. NUBASE's own tokens are compact
+#: and cryptic -- `A` for alpha, `B-` for beta minus -- so the common ones
+#: get their names and anything else falls through as written.
+#:
+#: **ASCII, deliberately.** This text is copied out of the isotope table
+#: and the decay diagram, and this project has recorded three separate
+#: `UnicodeEncodeError`s from result lines meeting a cp1252 console --
+#: which has no Greek at all.
+_MODE_NAMES = {
+    "A": "alpha",
+    "B-": "beta-",
+    "B+": "beta+",
+    "2B-": "double beta-",
+    "2B+": "double beta+",
+    "EC": "electron capture",
+    "EC+B+": "electron capture / beta+",
+    "e+": "positron",
+    "SF": "spontaneous fission",
+    "B-SF": "beta- delayed fission",
+    "B+SF": "beta+ delayed fission",
+    "p": "proton",
+    "2p": "2 protons",
+    "n": "neutron",
+    "2n": "2 neutrons",
+    "B-n": "beta- delayed neutron",
+    "B-2n": "beta- delayed 2 neutrons",
+    "B+p": "beta+ delayed proton",
+    "B-A": "beta- delayed alpha",
+    "B+A": "beta+ delayed alpha",
+}
+
+
+def format_mode(mode: str) -> str:
+    """A decay mode as words, falling back to the source's own token.
+
+    A cluster emission like `14C` reads perfectly well as itself, and
+    inventing a name for each of the thirteen would be a table to keep in
+    step with NUBASE for no gain.
+    """
+    return _MODE_NAMES.get(mode, mode)
+
+
+def format_branching(branching: float | None, qualifier: str | None) -> str:
+    """A branching ratio, **carrying its qualifier**.
+
+    `?` is the commonest of all -- 1,755 of them -- and means the mode is
+    expected while nobody has measured how often. Rendered as a bare
+    percentage it would read as a measurement; rendered as nothing at all
+    the mode would look impossible.
+
+    **A BRANCHING OF EXACTLY ZERO IS FAITHFUL, NOT A BUG.** Thirteen
+    entries carry one -- Tc-98's `B+=0` among them -- and it is NUBASE
+    saying the branch is known and negligible. It renders as `0%`.
+    Turning that into `<0.01%` would be inventing a bound the source
+    never gave.
+    """
+    if branching is None:
+        return "unmeasured" if qualifier else ""
+    if branching >= 1:
+        number = f"{branching:g}%"
+    else:
+        number = f"{branching:.3g}%"
+    if qualifier in ("<", ">", "~"):
+        return f"{qualifier} {number}"
+    if qualifier == "?":
+        return f"{number} (unconfirmed)"
+    return number
+
+
 def _z_by_symbol() -> dict[str, int]:
     return {symbol: z for z, symbol in _symbol_by_z().items()}
 

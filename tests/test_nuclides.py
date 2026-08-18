@@ -413,3 +413,112 @@ def test_decay_tree_size_has_not_changed_from_the_pinned_corpus():
     assert max(sizes) == 161
     assert sorted(sizes)[len(sizes) // 2] == 8
     assert sum(1 for s in sizes if s > 60) == 54
+
+
+# --- the isotope table's row order -----------------------------------------
+
+
+def test_carbon_leads_with_carbon_12():
+    """Abundance first, so the isotope anybody means is the top row."""
+    order = [n.name for n in N.isotope_order(N.nuclides_for("C"))]
+
+    assert order[:3] == ["C-12", "C-13", "C-14"]
+
+
+def test_abundance_outranks_half_life_and_uranium_is_where_that_shows():
+    """**CARBON CANNOT SEE THIS ORDERING AND URANIUM CAN.**
+
+    With carbon, stable-before-radioactive and the mass tie-break happen
+    to produce the same list whether abundance leads or not, so a
+    mutation dropping the abundance keys survived a test that used it.
+
+    Uranium separates them: U-234 is naturally abundant at 0.0054% and
+    lives 246 ky, while U-236 has no abundance at all and lives 23.4 My.
+    Abundance first puts U-234 ahead; half-life first inverts them.
+    """
+    order = [n.name for n in N.isotope_order(N.nuclides_for("U"))]
+
+    assert order[:4] == ["U-238", "U-235", "U-234", "U-236"]
+
+
+def test_the_order_does_not_depend_on_the_input_order():
+    """The mass-number tie-break is what makes this deterministic.
+
+    Without it, ties fall through to Python's stable sort and the answer
+    becomes whatever order the caller happened to pass -- which today is
+    already sorted by mass, so the mutation was invisible until the input
+    was shuffled.
+    """
+    # **THEY HAVE TO TIE ON EVERY OTHER KEY**, or the tie-break never
+    # fires and the mutation is invisible. A real element does not
+    # provide that: tin was tried first, and its ten stable isotopes all
+    # have distinct abundances, so nothing ever reached the last key.
+    twins = [
+        N.Nuclide(50, 500, "Sn", N.HalfLife(7.0, N.EXACT)),
+        N.Nuclide(50, 501, "Sn", N.HalfLife(7.0, N.EXACT)),
+    ]
+
+    forwards = [n.a for n in N.isotope_order(twins)]
+    backwards = [n.a for n in N.isotope_order(list(reversed(twins)))]
+
+    assert forwards == [500, 501]
+    assert forwards == backwards
+
+
+def test_technetium_leads_with_its_longest_lived():
+    """**THE CASE "abundance then half-life" DOES NOT ORDER.** Technetium
+    has no abundances at all, so every row ties on the first key and the
+    half-life has to decide -- Tc-97 at 4.21 My, ahead of Tc-98 at 4.2 My
+    and Tc-99 at 211 ky.
+
+    Measured rather than assumed: the plan for this branch guessed Tc-98,
+    and the table says otherwise.
+    """
+    order = [n.name for n in N.isotope_order(N.nuclides_for("Tc"))]
+
+    assert order[:3] == ["Tc-97", "Tc-98", "Tc-99"]
+
+
+def test_an_abundance_of_zero_does_not_sort_with_an_absent_one():
+    """**ABSENT IS NOT ZERO**, and this is the distinction the first
+    `or 0.0` written for convenience quietly destroys: "measured, and
+    none of it" is not "nobody has measured any"."""
+    # **THE MASS NUMBERS ARE CHOSEN TO FIGHT THE TIE-BREAK.** An earlier
+    # version numbered these 101 and 102, so the final mass-number key
+    # produced the right order on its own and dropping the abundance key
+    # changed nothing -- the mutation SURVIVED. The measured-zero nuclide
+    # is the HEAVIER one here, so only the abundance key can put it first.
+    measured_zero = N.Nuclide(
+        1, 102, "H", N.HalfLife(1.0, N.EXACT), abundance=0.0
+    )
+    never_measured = N.Nuclide(1, 101, "H", N.HalfLife(1.0, N.EXACT))
+
+    order = N.isotope_order([never_measured, measured_zero])
+
+    assert [n.a for n in order] == [102, 101]
+    assert N._isotope_sort_key(measured_zero)[:2] != N._isotope_sort_key(never_measured)[:2]
+
+
+def test_a_stable_nuclide_outranks_a_long_lived_one_without_abundance():
+    """Stable before radioactive, once abundance has had its say."""
+    stable = N.Nuclide(1, 201, "H", N.HalfLife(None, N.STABLE))
+    ancient = N.Nuclide(1, 202, "H", N.HalfLife(1e30, N.EXACT))
+
+    assert [n.a for n in N.isotope_order([ancient, stable])] == [201, 202]
+
+
+def test_a_nuclide_with_no_half_life_sorts_last():
+    """An unavailable value is not a very short one."""
+    known = N.Nuclide(1, 301, "H", N.HalfLife(1e-20, N.EXACT))
+    unknown = N.Nuclide(1, 302, "H", N.HalfLife(None, N.UNAVAILABLE))
+
+    assert [n.a for n in N.isotope_order([unknown, known])] == [301, 302]
+
+
+def test_a_bound_ranks_on_its_value():
+    """`> 4.6 zs` really is at least that long; sorting it with the
+    unknowns would throw away a measurement."""
+    bound = N.Nuclide(1, 401, "H", N.HalfLife(1.0, N.LOWER_BOUND))
+    shorter = N.Nuclide(1, 402, "H", N.HalfLife(1e-9, N.EXACT))
+
+    assert [n.a for n in N.isotope_order([shorter, bound])] == [401, 402]
