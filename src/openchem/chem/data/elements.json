@@ -9,6 +9,7 @@
   "generated_by": "tools/build_element_reference.py -- do not hand-edit; re-run it",
   "derived_and_self_checked": "period, group, block and electron_configuration are DERIVED. The generator asserts that every configuration's electrons sum to Z and that no two elements claim the same grid cell; tests/test_element_reference.py re-runs both against this file so a hand edit is caught.",
   "curated": "common_oxidation_states and examples are hand-entered, and are the only unverifiable content here. An element whose states are not well established -- the superheavies, most known from a handful of atoms -- has NO key rather than a guess, and the dialog says 'not established'.",
+  "phase_points": "melting_point_c, boiling_point_c and sublimes_at_1_bar come from the CRC Handbook of Chemistry and Physics, 97th ed., 4-116..4-118. Sublimation is READ from the source's own 'sp' marker (arsenic and carbon) and never inferred from a missing boiling point -- fifteen superheavies have no measured points at all and are absent here rather than guessed.",
   "oxidation_states_were_checked_against": "The CRC Handbook of Chemistry and Physics, 97th ed., page 2639, for the halogens and the noble gases. They were NOT taken from it: where the two differ this project lists the wider set (Cl +3; Kr, Xe and Rn, which the CRC records as 0), and each of those is real chemistry. Bromine matches the CRC exactly, which is the opposite of what the review expected to find. The remaining elements have not been reconciled against any source.",
   "configuration_anomalies": "The 20 known Aufbau exceptions (Cr, Cu, Nb, Mo, Ru, Rh, Pd, Ag, La, Ce, Gd, Pt, Au, Ac, Th, Pa, U, Np, Cm, Lr) are listed explicitly in the generator; they are measured ground states rather than predictions."
  },
@@ -21,6 +22,8 @@
    "block": "s",
    "category": "nonmetal",
    "electron_configuration": "1s1",
+   "melting_point_c": -259.16,
+   "boiling_point_c": -252.879,
    "common_oxidation_states": [
     1,
     -1
@@ -38,6 +41,7 @@
    "block": "s",
    "category": "noble_gas",
    "electron_configuration": "1s2",
+   "boiling_point_c": -268.928,
    "examples": [
     "He (monatomic gas)"
    ]
@@ -50,6 +54,8 @@
    "block": "s",
    "category": "alkali",
    "electron_configuration": "[He] 2s1",
+   "melting_point_c": 180.5,
+   "boiling_point_c": 1342.0,
    "common_oxidation_states": [
     1
    ],
@@ -66,6 +72,8 @@
    "block": "s",
    "category": "alkaline_earth",
    "electron_configuration": "[He] 2s2",
+   "melting_point_c": 1287.0,
+   "boiling_point_c": 2468.0,
    "common_oxidation_states": [
     2
    ]
@@ -78,6 +86,8 @@
    "block": "p",
    "category": "metalloid",
    "electron_configuration": "[He] 2s2 2p1",
+   "melting_point_c": 2077.0,
+   "boiling_point_c": 4000.0,
    "common_oxidation_states": [
     3
    ],
@@ -94,6 +104,8 @@
    "block": "p",
    "category": "nonmetal",
    "electron_configuration": "[He] 2s2 2p2",
+   "boiling_point_c": 3825.0,
+   "sublimes_at_1_bar": true,
    "common_oxidation_states": [
     4,
     2,
@@ -113,6 +125,8 @@
    "block": "p",
    "category": "nonmetal",
    "electron_configuration": "[He] 2s2 2p3",
+   "melting_point_c": -210.0,
+   "boiling_point_c": -195.795,
    "common_oxidation_states": [
     -3,
     3,
@@ -132,6 +146,8 @@
    "block": "p",
    "category": "nonmetal",
    "electron_configuration": "[He] 2s2 2p4",
+   "melting_point_c": -218.79,
+   "boiling_point_c": -182.962,
    "common_oxidation_states": [
     -2
    ],
@@ -149,6 +165,8 @@
    "block": "p",
    "category": "halogen",
    "electron_configuration": "[He] 2s2 2p5",
+   "melting_point_c": -219.67,
+   "boiling_point_c": -188.11,
    "common_oxidation_states": [
     -1
    ],
@@ -165,7 +183,9 @@
    "group": 18,
    "block": "p",
    "category": "noble_gas",
-   "electron_configuration": "[He] 2s2 2p6"
+   "electron_configuration": "[He] 2s2 2p6",
+   "melting_point_c": -248.59,
+   "boiling_point_c": -246.046
   },
   "Na": {
    "symbol": "Na",
@@ -175,6 +195,8 @@
    "block": "s",
    "category": "alkali",
    "electron_configuration": "[Ne] 3s1",
+   "melting_point_c": 97.794,
+   "boiling_point_c": 882.94,
    "common_oxidation_states": [
     1
    ],
@@ -191,6 +213,8 @@
    "block": "s",
    "category": "alkaline_earth",
    "electron_configuration": "[Ne] 3s2",
+   "melting_point_c": 650.0,
+   "boiling_point_c": 1090.0,
    "common_oxidation_states": [
     2
    ],
@@ -207,6 +231,8 @@
    "block": "p",
    "category": "post_transition",
    "electron_configuration": "[Ne] 3s2 3p1",
+   "melting_point_c": 660.323,
+   "boiling_point_c": 2519.0,
    "common_oxidation_states": [
     3
    ],
@@ -223,6 +249,8 @@
    "block": "p",
    "category": "metalloid",
    "electron_configuration": "[Ne] 3s2 3p2",
+   "melting_point_c": 1414.0,
+   "boiling_point_c": 3265.0,
    "common_oxidation_states": [
     4,
     -4
@@ -240,6 +268,8 @@
    "block": "p",
    "category": "nonmetal",
    "electron_configuration": "[Ne] 3s2 3p3",
+   "melting_point_c": 44.15,
+   "boiling_point_c": 280.5,
    "common_oxidation_states": [
     5,
     3,
@@ -259,6 +289,8 @@
    "block": "p",
    "category": "nonmetal",
    "electron_configuration": "[Ne] 3s2 3p4",
+   "melting_point_c": 115.21,
+   "boiling_point_c": 444.61,
    "common_oxidation_states": [
     6,
     4,
@@ -279,6 +311,8 @@
    "block": "p",
    "category": "halogen",
    "electron_configuration": "[Ne] 3s2 3p5",
+   "melting_point_c": -101.5,
+   "boiling_point_c": -34.04,
    "common_oxidation_states": [
     -1,
     1,
@@ -298,7 +332,9 @@
    "group": 18,
    "block": "p",
    "category": "noble_gas",
-   "electron_configuration": "[Ne] 3s2 3p6"
+   "electron_configuration": "[Ne] 3s2 3p6",
+   "melting_point_c": -189.34,
+   "boiling_point_c": -185.848
   },
   "K": {
    "symbol": "K",
@@ -308,6 +344,8 @@
    "block": "s",
    "category": "alkali",
    "electron_configuration": "[Ar] 4s1",
+   "melting_point_c": 63.5,
+   "boiling_point_c": 759.0,
    "common_oxidation_states": [
     1
    ],
@@ -324,6 +362,8 @@
    "block": "s",
    "category": "alkaline_earth",
    "electron_configuration": "[Ar] 4s2",
+   "melting_point_c": 842.0,
+   "boiling_point_c": 1484.0,
    "common_oxidation_states": [
     2
    ],
@@ -340,6 +380,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Ar] 3d1 4s2",
+   "melting_point_c": 1541.0,
+   "boiling_point_c": 2836.0,
    "common_oxidation_states": [
     3
    ]
@@ -352,6 +394,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Ar] 3d2 4s2",
+   "melting_point_c": 1670.0,
+   "boiling_point_c": 3287.0,
    "common_oxidation_states": [
     4,
     3
@@ -368,6 +412,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Ar] 3d3 4s2",
+   "melting_point_c": 1910.0,
+   "boiling_point_c": 3407.0,
    "common_oxidation_states": [
     5,
     4,
@@ -383,6 +429,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Ar] 3d5 4s1",
+   "melting_point_c": 1907.0,
+   "boiling_point_c": 2671.0,
    "common_oxidation_states": [
     6,
     3,
@@ -401,6 +449,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Ar] 3d5 4s2",
+   "melting_point_c": 1246.0,
+   "boiling_point_c": 2061.0,
    "common_oxidation_states": [
     7,
     4,
@@ -419,6 +469,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Ar] 3d6 4s2",
+   "melting_point_c": 1538.0,
+   "boiling_point_c": 2861.0,
    "common_oxidation_states": [
     3,
     2
@@ -437,6 +489,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Ar] 3d7 4s2",
+   "melting_point_c": 1495.0,
+   "boiling_point_c": 2927.0,
    "common_oxidation_states": [
     3,
     2
@@ -453,6 +507,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Ar] 3d8 4s2",
+   "melting_point_c": 1455.0,
+   "boiling_point_c": 2913.0,
    "common_oxidation_states": [
     2
    ],
@@ -468,6 +524,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Ar] 3d10 4s1",
+   "melting_point_c": 1084.62,
+   "boiling_point_c": 2560.0,
    "common_oxidation_states": [
     2,
     1
@@ -485,6 +543,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Ar] 3d10 4s2",
+   "melting_point_c": 419.527,
+   "boiling_point_c": 907.0,
    "common_oxidation_states": [
     2
    ],
@@ -501,6 +561,8 @@
    "block": "p",
    "category": "post_transition",
    "electron_configuration": "[Ar] 3d10 4s2 4p1",
+   "melting_point_c": 29.7646,
+   "boiling_point_c": 2229.0,
    "common_oxidation_states": [
     3
    ]
@@ -513,6 +575,8 @@
    "block": "p",
    "category": "metalloid",
    "electron_configuration": "[Ar] 3d10 4s2 4p2",
+   "melting_point_c": 938.25,
+   "boiling_point_c": 2833.0,
    "common_oxidation_states": [
     4
    ]
@@ -525,6 +589,9 @@
    "block": "p",
    "category": "metalloid",
    "electron_configuration": "[Ar] 3d10 4s2 4p3",
+   "melting_point_c": 817.0,
+   "boiling_point_c": 616.0,
+   "sublimes_at_1_bar": true,
    "common_oxidation_states": [
     5,
     3,
@@ -542,6 +609,8 @@
    "block": "p",
    "category": "nonmetal",
    "electron_configuration": "[Ar] 3d10 4s2 4p4",
+   "melting_point_c": 220.8,
+   "boiling_point_c": 685.0,
    "common_oxidation_states": [
     6,
     4,
@@ -556,6 +625,8 @@
    "block": "p",
    "category": "halogen",
    "electron_configuration": "[Ar] 3d10 4s2 4p5",
+   "melting_point_c": -7.2,
+   "boiling_point_c": 58.8,
    "common_oxidation_states": [
     -1,
     1,
@@ -574,6 +645,8 @@
    "block": "p",
    "category": "noble_gas",
    "electron_configuration": "[Ar] 3d10 4s2 4p6",
+   "melting_point_c": -157.37,
+   "boiling_point_c": -153.415,
    "common_oxidation_states": [
     2
    ]
@@ -586,6 +659,8 @@
    "block": "s",
    "category": "alkali",
    "electron_configuration": "[Kr] 5s1",
+   "melting_point_c": 39.3,
+   "boiling_point_c": 688.0,
    "common_oxidation_states": [
     1
    ]
@@ -598,6 +673,8 @@
    "block": "s",
    "category": "alkaline_earth",
    "electron_configuration": "[Kr] 5s2",
+   "melting_point_c": 777.0,
+   "boiling_point_c": 1377.0,
    "common_oxidation_states": [
     2
    ]
@@ -610,6 +687,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Kr] 4d1 5s2",
+   "melting_point_c": 1522.0,
+   "boiling_point_c": 3345.0,
    "common_oxidation_states": [
     3
    ]
@@ -622,6 +701,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Kr] 4d2 5s2",
+   "melting_point_c": 1854.0,
+   "boiling_point_c": 4406.0,
    "common_oxidation_states": [
     4
    ]
@@ -634,6 +715,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Kr] 4d4 5s1",
+   "melting_point_c": 2477.0,
+   "boiling_point_c": 4741.0,
    "common_oxidation_states": [
     5
    ]
@@ -646,6 +729,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Kr] 4d5 5s1",
+   "melting_point_c": 2622.0,
+   "boiling_point_c": 4639.0,
    "common_oxidation_states": [
     6,
     4
@@ -659,6 +744,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Kr] 4d5 5s2",
+   "melting_point_c": 2157.0,
+   "boiling_point_c": 4262.0,
    "common_oxidation_states": [
     7
    ]
@@ -671,6 +758,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Kr] 4d7 5s1",
+   "melting_point_c": 2333.0,
+   "boiling_point_c": 4147.0,
    "common_oxidation_states": [
     4,
     3
@@ -684,6 +773,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Kr] 4d8 5s1",
+   "melting_point_c": 1963.0,
+   "boiling_point_c": 3695.0,
    "common_oxidation_states": [
     3
    ]
@@ -696,6 +787,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Kr] 4d10",
+   "melting_point_c": 1554.8,
+   "boiling_point_c": 2963.0,
    "common_oxidation_states": [
     2,
     4
@@ -709,6 +802,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Kr] 4d10 5s1",
+   "melting_point_c": 961.78,
+   "boiling_point_c": 2162.0,
    "common_oxidation_states": [
     1
    ],
@@ -725,6 +820,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Kr] 4d10 5s2",
+   "melting_point_c": 321.069,
+   "boiling_point_c": 767.0,
    "common_oxidation_states": [
     2
    ]
@@ -737,6 +834,8 @@
    "block": "p",
    "category": "post_transition",
    "electron_configuration": "[Kr] 4d10 5s2 5p1",
+   "melting_point_c": 156.5985,
+   "boiling_point_c": 2027.0,
    "common_oxidation_states": [
     3
    ]
@@ -749,6 +848,8 @@
    "block": "p",
    "category": "post_transition",
    "electron_configuration": "[Kr] 4d10 5s2 5p2",
+   "melting_point_c": 231.928,
+   "boiling_point_c": 2586.0,
    "common_oxidation_states": [
     4,
     2
@@ -766,6 +867,8 @@
    "block": "p",
    "category": "metalloid",
    "electron_configuration": "[Kr] 4d10 5s2 5p3",
+   "melting_point_c": 630.628,
+   "boiling_point_c": 1587.0,
    "common_oxidation_states": [
     5,
     3,
@@ -780,6 +883,8 @@
    "block": "p",
    "category": "metalloid",
    "electron_configuration": "[Kr] 4d10 5s2 5p4",
+   "melting_point_c": 449.51,
+   "boiling_point_c": 988.0,
    "common_oxidation_states": [
     6,
     4,
@@ -794,6 +899,8 @@
    "block": "p",
    "category": "halogen",
    "electron_configuration": "[Kr] 4d10 5s2 5p5",
+   "melting_point_c": 113.7,
+   "boiling_point_c": 184.4,
    "common_oxidation_states": [
     -1,
     1,
@@ -814,6 +921,8 @@
    "block": "p",
    "category": "noble_gas",
    "electron_configuration": "[Kr] 4d10 5s2 5p6",
+   "melting_point_c": -111.75,
+   "boiling_point_c": -108.099,
    "common_oxidation_states": [
     2,
     4,
@@ -828,6 +937,8 @@
    "block": "s",
    "category": "alkali",
    "electron_configuration": "[Xe] 6s1",
+   "melting_point_c": 28.5,
+   "boiling_point_c": 671.0,
    "common_oxidation_states": [
     1
    ]
@@ -840,6 +951,8 @@
    "block": "s",
    "category": "alkaline_earth",
    "electron_configuration": "[Xe] 6s2",
+   "melting_point_c": 727.0,
+   "boiling_point_c": 1845.0,
    "common_oxidation_states": [
     2
    ]
@@ -852,6 +965,8 @@
    "block": "f",
    "category": "lanthanide",
    "electron_configuration": "[Xe] 5d1 6s2",
+   "melting_point_c": 920.0,
+   "boiling_point_c": 3464.0,
    "common_oxidation_states": [
     3
    ]
@@ -864,6 +979,8 @@
    "block": "f",
    "category": "lanthanide",
    "electron_configuration": "[Xe] 4f1 5d1 6s2",
+   "melting_point_c": 799.0,
+   "boiling_point_c": 3443.0,
    "common_oxidation_states": [
     3,
     4
@@ -877,6 +994,8 @@
    "block": "f",
    "category": "lanthanide",
    "electron_configuration": "[Xe] 4f3 6s2",
+   "melting_point_c": 931.0,
+   "boiling_point_c": 3520.0,
    "common_oxidation_states": [
     3
    ]
@@ -889,6 +1008,8 @@
    "block": "f",
    "category": "lanthanide",
    "electron_configuration": "[Xe] 4f4 6s2",
+   "melting_point_c": 1016.0,
+   "boiling_point_c": 3074.0,
    "common_oxidation_states": [
     3
    ]
@@ -901,6 +1022,8 @@
    "block": "f",
    "category": "lanthanide",
    "electron_configuration": "[Xe] 4f5 6s2",
+   "melting_point_c": 1042.0,
+   "boiling_point_c": 3000.0,
    "common_oxidation_states": [
     3
    ]
@@ -913,6 +1036,8 @@
    "block": "f",
    "category": "lanthanide",
    "electron_configuration": "[Xe] 4f6 6s2",
+   "melting_point_c": 1072.0,
+   "boiling_point_c": 1794.0,
    "common_oxidation_states": [
     3,
     2
@@ -926,6 +1051,8 @@
    "block": "f",
    "category": "lanthanide",
    "electron_configuration": "[Xe] 4f7 6s2",
+   "melting_point_c": 822.0,
+   "boiling_point_c": 1529.0,
    "common_oxidation_states": [
     3,
     2
@@ -939,6 +1066,8 @@
    "block": "f",
    "category": "lanthanide",
    "electron_configuration": "[Xe] 4f7 5d1 6s2",
+   "melting_point_c": 1313.0,
+   "boiling_point_c": 3273.0,
    "common_oxidation_states": [
     3
    ]
@@ -951,6 +1080,8 @@
    "block": "f",
    "category": "lanthanide",
    "electron_configuration": "[Xe] 4f9 6s2",
+   "melting_point_c": 1359.0,
+   "boiling_point_c": 3230.0,
    "common_oxidation_states": [
     3
    ]
@@ -963,6 +1094,8 @@
    "block": "f",
    "category": "lanthanide",
    "electron_configuration": "[Xe] 4f10 6s2",
+   "melting_point_c": 1412.0,
+   "boiling_point_c": 2567.0,
    "common_oxidation_states": [
     3
    ]
@@ -975,6 +1108,8 @@
    "block": "f",
    "category": "lanthanide",
    "electron_configuration": "[Xe] 4f11 6s2",
+   "melting_point_c": 1472.0,
+   "boiling_point_c": 2700.0,
    "common_oxidation_states": [
     3
    ]
@@ -987,6 +1122,8 @@
    "block": "f",
    "category": "lanthanide",
    "electron_configuration": "[Xe] 4f12 6s2",
+   "melting_point_c": 1529.0,
+   "boiling_point_c": 2868.0,
    "common_oxidation_states": [
     3
    ]
@@ -999,6 +1136,8 @@
    "block": "f",
    "category": "lanthanide",
    "electron_configuration": "[Xe] 4f13 6s2",
+   "melting_point_c": 1545.0,
+   "boiling_point_c": 1950.0,
    "common_oxidation_states": [
     3
    ]
@@ -1011,6 +1150,8 @@
    "block": "f",
    "category": "lanthanide",
    "electron_configuration": "[Xe] 4f14 6s2",
+   "melting_point_c": 824.0,
+   "boiling_point_c": 1196.0,
    "common_oxidation_states": [
     3,
     2
@@ -1024,6 +1165,8 @@
    "block": "f",
    "category": "lanthanide",
    "electron_configuration": "[Xe] 4f14 5d1 6s2",
+   "melting_point_c": 1663.0,
+   "boiling_point_c": 3402.0,
    "common_oxidation_states": [
     3
    ]
@@ -1036,6 +1179,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Xe] 4f14 5d2 6s2",
+   "melting_point_c": 2233.0,
+   "boiling_point_c": 4600.0,
    "common_oxidation_states": [
     4
    ]
@@ -1048,6 +1193,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Xe] 4f14 5d3 6s2",
+   "melting_point_c": 3017.0,
+   "boiling_point_c": 5455.0,
    "common_oxidation_states": [
     5
    ]
@@ -1060,6 +1207,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Xe] 4f14 5d4 6s2",
+   "melting_point_c": 3414.0,
+   "boiling_point_c": 5555.0,
    "common_oxidation_states": [
     6,
     4
@@ -1073,6 +1222,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Xe] 4f14 5d5 6s2",
+   "melting_point_c": 3185.0,
+   "boiling_point_c": 5590.0,
    "common_oxidation_states": [
     7,
     4
@@ -1086,6 +1237,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Xe] 4f14 5d6 6s2",
+   "melting_point_c": 3033.0,
+   "boiling_point_c": 5008.0,
    "common_oxidation_states": [
     4,
     8
@@ -1099,6 +1252,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Xe] 4f14 5d7 6s2",
+   "melting_point_c": 2446.0,
+   "boiling_point_c": 4428.0,
    "common_oxidation_states": [
     4,
     3
@@ -1112,6 +1267,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Xe] 4f14 5d9 6s1",
+   "melting_point_c": 1768.2,
+   "boiling_point_c": 3825.0,
    "common_oxidation_states": [
     4,
     2
@@ -1129,6 +1286,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Xe] 4f14 5d10 6s1",
+   "melting_point_c": 1064.18,
+   "boiling_point_c": 2836.0,
    "common_oxidation_states": [
     3,
     1
@@ -1145,6 +1304,8 @@
    "block": "d",
    "category": "transition",
    "electron_configuration": "[Xe] 4f14 5d10 6s2",
+   "melting_point_c": -38.829,
+   "boiling_point_c": 356.619,
    "common_oxidation_states": [
     2,
     1
@@ -1162,6 +1323,8 @@
    "block": "p",
    "category": "post_transition",
    "electron_configuration": "[Xe] 4f14 5d10 6s2 6p1",
+   "melting_point_c": 304.0,
+   "boiling_point_c": 1473.0,
    "common_oxidation_states": [
     1,
     3
@@ -1175,6 +1338,8 @@
    "block": "p",
    "category": "post_transition",
    "electron_configuration": "[Xe] 4f14 5d10 6s2 6p2",
+   "melting_point_c": 327.462,
+   "boiling_point_c": 1749.0,
    "common_oxidation_states": [
     2,
     4
@@ -1192,6 +1357,8 @@
    "block": "p",
    "category": "post_transition",
    "electron_configuration": "[Xe] 4f14 5d10 6s2 6p3",
+   "melting_point_c": 271.402,
+   "boiling_point_c": 1564.0,
    "common_oxidation_states": [
     3,
     5
@@ -1205,6 +1372,8 @@
    "block": "p",
    "category": "metalloid",
    "electron_configuration": "[Xe] 4f14 5d10 6s2 6p4",
+   "melting_point_c": 254.0,
+   "boiling_point_c": 962.0,
    "common_oxidation_states": [
     4,
     2
@@ -1218,6 +1387,7 @@
    "block": "p",
    "category": "halogen",
    "electron_configuration": "[Xe] 4f14 5d10 6s2 6p5",
+   "melting_point_c": 302.0,
    "common_oxidation_states": [
     -1,
     1
@@ -1231,6 +1401,8 @@
    "block": "p",
    "category": "noble_gas",
    "electron_configuration": "[Xe] 4f14 5d10 6s2 6p6",
+   "melting_point_c": -71.0,
+   "boiling_point_c": -61.7,
    "common_oxidation_states": [
     2
    ]
@@ -1243,6 +1415,7 @@
    "block": "s",
    "category": "alkali",
    "electron_configuration": "[Rn] 7s1",
+   "melting_point_c": 21.0,
    "common_oxidation_states": [
     1
    ]
@@ -1255,6 +1428,7 @@
    "block": "s",
    "category": "alkaline_earth",
    "electron_configuration": "[Rn] 7s2",
+   "melting_point_c": 696.0,
    "common_oxidation_states": [
     2
    ]
@@ -1267,6 +1441,8 @@
    "block": "f",
    "category": "actinide",
    "electron_configuration": "[Rn] 6d1 7s2",
+   "melting_point_c": 1050.0,
+   "boiling_point_c": 3200.0,
    "common_oxidation_states": [
     3
    ]
@@ -1279,6 +1455,8 @@
    "block": "f",
    "category": "actinide",
    "electron_configuration": "[Rn] 6d2 7s2",
+   "melting_point_c": 1750.0,
+   "boiling_point_c": 4785.0,
    "common_oxidation_states": [
     4
    ]
@@ -1291,6 +1469,7 @@
    "block": "f",
    "category": "actinide",
    "electron_configuration": "[Rn] 5f2 6d1 7s2",
+   "melting_point_c": 1572.0,
    "common_oxidation_states": [
     5
    ]
@@ -1303,6 +1482,8 @@
    "block": "f",
    "category": "actinide",
    "electron_configuration": "[Rn] 5f3 6d1 7s2",
+   "melting_point_c": 1135.0,
+   "boiling_point_c": 4131.0,
    "common_oxidation_states": [
     6,
     4
@@ -1320,6 +1501,8 @@
    "block": "f",
    "category": "actinide",
    "electron_configuration": "[Rn] 5f4 6d1 7s2",
+   "melting_point_c": 644.0,
+   "boiling_point_c": 3902.0,
    "common_oxidation_states": [
     5
    ]
@@ -1332,6 +1515,8 @@
    "block": "f",
    "category": "actinide",
    "electron_configuration": "[Rn] 5f6 7s2",
+   "melting_point_c": 640.0,
+   "boiling_point_c": 3228.0,
    "common_oxidation_states": [
     4
    ]
@@ -1344,6 +1529,8 @@
    "block": "f",
    "category": "actinide",
    "electron_configuration": "[Rn] 5f7 7s2",
+   "melting_point_c": 1176.0,
+   "boiling_point_c": 2011.0,
    "common_oxidation_states": [
     3
    ]
@@ -1356,6 +1543,7 @@
    "block": "f",
    "category": "actinide",
    "electron_configuration": "[Rn] 5f7 6d1 7s2",
+   "melting_point_c": 1345.0,
    "common_oxidation_states": [
     3
    ]
@@ -1368,6 +1556,7 @@
    "block": "f",
    "category": "actinide",
    "electron_configuration": "[Rn] 5f9 7s2",
+   "melting_point_c": 986.0,
    "common_oxidation_states": [
     3
    ]
@@ -1380,6 +1569,7 @@
    "block": "f",
    "category": "actinide",
    "electron_configuration": "[Rn] 5f10 7s2",
+   "melting_point_c": 900.0,
    "common_oxidation_states": [
     3
    ]
@@ -1392,6 +1582,7 @@
    "block": "f",
    "category": "actinide",
    "electron_configuration": "[Rn] 5f11 7s2",
+   "melting_point_c": 860.0,
    "common_oxidation_states": [
     3
    ]
@@ -1404,6 +1595,7 @@
    "block": "f",
    "category": "actinide",
    "electron_configuration": "[Rn] 5f12 7s2",
+   "melting_point_c": 1527.0,
    "common_oxidation_states": [
     3
    ]
@@ -1416,6 +1608,7 @@
    "block": "f",
    "category": "actinide",
    "electron_configuration": "[Rn] 5f13 7s2",
+   "melting_point_c": 827.0,
    "common_oxidation_states": [
     3
    ]
@@ -1428,6 +1621,7 @@
    "block": "f",
    "category": "actinide",
    "electron_configuration": "[Rn] 5f14 7s2",
+   "melting_point_c": 827.0,
    "common_oxidation_states": [
     2
    ]
@@ -1440,6 +1634,7 @@
    "block": "f",
    "category": "actinide",
    "electron_configuration": "[Rn] 5f14 7s2 7p1",
+   "melting_point_c": 1627.0,
    "common_oxidation_states": [
     3
    ]

@@ -45,6 +45,7 @@ from __future__ import annotations
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import (
+    QComboBox,
     QDialog,
     QGridLayout,
     QHBoxLayout,
@@ -60,6 +61,7 @@ from PySide6.QtWidgets import (
 
 from openchem.ui.widgets.atom_diagram import AtomDiagram
 from openchem.ui.widgets.collapsible_section import WrappedLabel
+from openchem.chem import element_palettes as palettes
 from openchem.chem.element_reference import ElementFacts, all_symbols, facts_for, grid_position
 
 #: Category -> (fill, human label). Muted fills so black symbol text stays
@@ -76,6 +78,30 @@ _CATEGORY_STYLE: dict[str, tuple[str, str]] = {
     "lanthanide": ("#f6d9ec", "Lanthanide"),
     "actinide": ("#f2ccd6", "Actinide"),
 }
+
+#: Fills for the discrete palettes. Muted, so black symbol text stays
+#: legible on every one of them.
+_BLOCK_STYLE: dict[str, tuple[str, str]] = {
+    "s": ("#f4c7c3", "s-block"),
+    "p": ("#cfe8cf", "p-block"),
+    "d": ("#cfe2f3", "d-block"),
+    "f": ("#f6d9ec", "f-block"),
+}
+
+_STATE_STYLE: dict[str, tuple[str, str]] = {
+    "solid": ("#e6e0d4", "Solid"),
+    "liquid": ("#cfe2f3", "Liquid"),
+    "gas": ("#f8ddb0", "Gas"),
+    "sublimes": ("#dfd0ea", "Sublimes"),
+    "not established": (_UNSET_FILL := "#efefef", "Not established"),
+}
+
+#: The two ends of every heatmap ramp. Light throughout, because the
+#: symbol and the value are printed in black on top of it -- a ramp that
+#: reaches a dark end would make its own labels unreadable exactly where
+#: the value is largest.
+_RAMP_LOW = (250, 250, 232)
+_RAMP_HIGH = (86, 141, 190)
 
 _UNKNOWN = "not established"
 
@@ -98,10 +124,13 @@ class PeriodicTableDialog(QDialog):
         self.setModal(False)
         self._selected: str = ""
         self._buttons: dict[str, QToolButton] = {}
+        self._palette_key: str = palettes.PALETTE_ORDER[0]
 
         layout = QVBoxLayout(self)
+        layout.addWidget(self._build_palette_row())
         layout.addWidget(self._build_grid())
         layout.addWidget(self._build_legend())
+        self._repaint_cells()
 
         # **THE DETAIL IS TABBED, AND THE FACTS TABLE IS WHY.** The grid,
         # the legend, a 240 px atom drawing, the electron controls and the
@@ -214,16 +243,11 @@ class PeriodicTableDialog(QDialog):
         return container
 
     def _cell(self, facts: ElementFacts) -> QToolButton:
-        fill, label = _CATEGORY_STYLE.get(facts.category, ("#eeeeee", facts.category))
         button = QToolButton(self)
-        button.setText(f"{facts.atomic_number}\n{facts.symbol}")
-        button.setFixedSize(46, 42)
-        button.setToolTip(f"{facts.name} — {label}")
-        button.setStyleSheet(
-            f"QToolButton {{ background: {fill}; border: 1px solid #999; "
-            f"font-size: 9px; color: #111; }}"
-            f"QToolButton:checked {{ border: 2px solid #000; font-weight: bold; }}"
-        )
+        # Tall enough for a third line, permanently: a cell that changed
+        # size with the colour mode would jump the whole grid on every
+        # switch, and the value line only exists in the heatmap modes.
+        button.setFixedSize(46, 50)
         button.setCheckable(True)
         # A bound method, never a lambda capturing `self`: PySide6 holds a
         # connected plain callable strongly and a QObject's bound method
@@ -235,17 +259,85 @@ class PeriodicTableDialog(QDialog):
         self._buttons[facts.symbol] = button
         return button
 
-    def _build_legend(self) -> QWidget:
+    # --- colour modes -------------------------------------------------------
+
+    def _fill_and_note(self, symbol: str) -> tuple[str, str, str]:
+        """(fill, tooltip note, extra cell line) for the active mode."""
+        key = self._palette_key
+        if key in palettes.DISCRETE:
+            group = palettes.class_for(key, symbol) or ""
+            table = {
+                "category": _CATEGORY_STYLE,
+                "block": _BLOCK_STYLE,
+                "state": _STATE_STYLE,
+            }[key]
+            fill, label = table.get(group, ("#eeeeee", group or _UNKNOWN))
+            return fill, label, ""
+
+        spec = palettes.CONTINUOUS[key]
+        position = palettes.position_for(spec, palettes.value_for(key, symbol))
+        shown = palettes.display_value(key, symbol)
+        if position is None:
+            # **NEVER THE BOTTOM OF THE SCALE.** Several elements have no
+            # accepted electronegativity and fifteen no measured melting
+            # point; colouring those "very low" would be the table
+            # inventing data.
+            return _UNSET_FILL, f"{spec.label}: {_UNKNOWN}", "—"
+        return _ramp(position), f"{spec.label}: {shown} {spec.units}".strip(), shown
+
+    def _repaint_cells(self) -> None:
+        for symbol, button in self._buttons.items():
+            facts = facts_for(symbol)
+            fill, note, extra = self._fill_and_note(symbol)
+            text = f"{facts.atomic_number}\n{facts.symbol}"
+            if extra:
+                text += f"\n{extra}"
+            button.setText(text)
+            button.setToolTip(f"{facts.name} — {note}")
+            button.setStyleSheet(
+                f"QToolButton {{ background: {fill}; border: 1px solid #999; "
+                f"font-size: 9px; color: #111; }}"
+                f"QToolButton:checked {{ border: 2px solid #000; font-weight: bold; }}"
+            )
+
+    def _on_palette_changed(self, index: int) -> None:
+        """Recolour, and NOTHING ELSE.
+
+        The selected element, the open tab and the detail text are all
+        untouched: a colour mode says what the grid means, not what you
+        are looking at. Tabs and modes are where accidental state coupling
+        appears, so this is asserted rather than assumed.
+        """
+        self._palette_key = palettes.PALETTE_ORDER[index]
+        self._repaint_cells()
+        self._legend.setText(palettes.legend_for(self._palette_key))
+
+    def _build_palette_row(self) -> QWidget:
         container = QWidget(self)
         row = QHBoxLayout(container)
         row.setContentsMargins(0, 0, 0, 0)
-        for category, (fill, label) in _CATEGORY_STYLE.items():
-            swatch = QLabel(f" {label} ", container)
-            swatch.setStyleSheet(f"background: {fill}; border: 1px solid #999; font-size: 9px;")
-            row.addWidget(swatch)
+        row.addWidget(QLabel("Colour by:", container))
+        self._palette_combo = QComboBox(container)
+        for key in palettes.PALETTE_ORDER:
+            self._palette_combo.addItem(palettes.label_for(key), key)
+        self._palette_combo.currentIndexChanged.connect(self._on_palette_changed)
+        row.addWidget(self._palette_combo)
         row.addStretch(1)
         container.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         return container
+
+    def _build_legend(self) -> QWidget:
+        """One line, and it is SELF-CONTAINED.
+
+        Property, range, transform, units and the not-established swatch
+        are spelled out, so a screenshot of this table is readable without
+        remembering which combo entry was active.
+        """
+        self._legend = QLabel(palettes.legend_for(self._palette_key), self)
+        self._legend.setWordWrap(True)
+        self._legend.setStyleSheet("font-size: 9px; color: #444444;")
+        self._legend.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        return self._legend
 
     # --- selection ----------------------------------------------------------
 
@@ -283,6 +375,18 @@ class PeriodicTableDialog(QDialog):
         """
         if self._selected:
             self.insert_requested.emit(self._selected)
+
+
+def _ramp(position: float) -> str:
+    """A light two-stop ramp, as a hex fill.
+
+    Light at BOTH ends on purpose: the symbol and its value are printed
+    in black on top, so a ramp reaching a dark end would hide its own
+    labels exactly where the value is largest.
+    """
+    low, high = _RAMP_LOW, _RAMP_HIGH
+    channels = [round(a + (b - a) * position) for a, b in zip(low, high)]
+    return "#" + "".join(f"{c:02x}" for c in channels)
 
 
 def describe(facts: ElementFacts) -> str:

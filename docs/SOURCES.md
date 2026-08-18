@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 2add2748cf1d5d701c244dc47f35026eb3993af2236a3c68fe47684674fc4d16 -->
+<!-- SOURCE SHA256: 41e8d672292c344c564d314cfaf33528b6d7d1a7f0ab767595e39bc1c77ac843 -->
 
 # Sources
 
@@ -98,7 +98,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`bradley2015`](#bradley2015) | literature | shipped | citation + claim |
 | [`bravetti2023`](#bravetti2023) | literature | shipped | citation |
 | [`cod`](#cod) | dataset | shipped | citation |
-| [`crc_handbook`](#crc_handbook) | reference_table | reference only | citation |
+| [`crc_handbook`](#crc_handbook) | reference_table | shipped | citation + claim |
 | [`cwc_annex_on_chemicals`](#cwc_annex_on_chemicals) | legal | shipped | citation + claim |
 | [`dea_listed_chemicals`](#dea_listed_chemicals) | legal | shipped | citation |
 | [`delaney2004`](#delaney2004) | literature | shipped | citation + claim |
@@ -1348,18 +1348,11 @@ element is a refusal, never a guess.
 | | |
 | --- | --- |
 | Identifier | CRC Handbook of Chemistry and Physics, 97th edition |
-| Status | reference only |
-| Verification | citation |
-| Verified | 2026-08-17 |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-18 |
 | Local copy | `CRC_Handbook_of_Chemistry_and_Physics_97.pdf` (not checked) |
-| Used by | `src/openchem/chem/data/electronegativity.json`, `src/openchem/chem/lattice_energy.py` |
-
-**Why it is reference only.** NO NUMBER IN THIS PROJECT WAS READ FROM IT. Both places that name it reach
-it through an intermediary: the lattice-energy targets come from Table 3 of
-[source:kaya2022], while the CRC column named in `lattice_energy.py` is
-[source:jenkins1999]'s own ref 40, taken from Jenkins' table rather than
-from the book; and the electronegativities come from [source:allred1961],
-with the CRC named only as somewhere the same set is said to be reproduced.
+| Used by | `src/openchem/chem/data/elements.json`, `src/openchem/chem/element_palettes.py`, `src/openchem/chem/data/electronegativity.json`, `src/openchem/chem/lattice_energy.py` |
 
 "WHICH EDITION" TURNED OUT TO BE THE WRONG QUESTION. With the 97th edition
 in hand the answer is that no number here came from any edition -- see
@@ -1412,6 +1405,22 @@ divergence is the CRC being conservative rather than this project being
 wrong. The same holds for the noble gases: the CRC lists `0` for all six,
 where this project lists Kr +2, Xe +2/+4/+6 and Rn +2, which are XeF6 and
 its relatives.
+
+**THE PHASE POINTS, BY CONTRAST, REALLY DO COME FROM THE BOOK.** 103 of
+118 elements, from 4-116..4-118, extracted by binning words against the
+table's own column positions -- the columns are right-aligned, so values
+sit LEFT of their headers, and binning against the headers directly gave
+2 rows out of 100 before the acceptance checks caught it. Three further
+things it had to get right, each found the same way: the CRC spells them
+"Aluminum" and "Cesium"; sulfur's rhombic row holds "95.2 trans monocl",
+a TRANSITION rather than a melt, so the monoclinic row is the one with a
+melting point; and allotropes are listed separately, so the reference
+form is chosen explicitly (graphite, white P, gray Se, monoclinic S,
+white Sn).
+
+Sublimation is READ from the table's own "sp" marker -- arsenic and
+carbon -- and never inferred from a missing boiling point, which would
+put all fifteen superheavies in that class.
 
 NO SHIPPED VALUE WAS CHANGED. The honest description of this column is
 that it is a curated set, checked against the CRC, which is a MORE

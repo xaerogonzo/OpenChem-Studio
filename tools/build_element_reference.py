@@ -107,6 +107,85 @@ _OXIDATION_STATES: dict[int, list[int]] = {
     101: [3], 102: [2], 103: [3],
 }
 
+#: Melting and boiling points in degrees Celsius, and whether the element
+#: SUBLIMES at 1 atm rather than melting.
+#:
+#: From [source:crc_handbook] 97th ed., "MELTING, BOILING, TRIPLE, AND
+#: CRITICAL POINTS OF THE ELEMENTS" (4-116..4-118), extracted by binning
+#: words against the table's own column positions -- the columns are
+#: right-aligned, so the values sit LEFT of their headers, and binning
+#: against the headers directly produced 2 rows of 100.
+#:
+#: **SUBLIMATION IS READ FROM THE SOURCE, NEVER INFERRED.** The table
+#: marks it "sp" in the boiling column, which is arsenic and carbon.
+#: Deriving it from a MISSING boiling point instead would be exactly the
+#: silent inference this project refuses -- and would be wrong, because
+#: fifteen superheavies have no measured points at all.
+#:
+#: 103 of 118 elements have at least one value. The fifteen without are
+#: Rf through Og, where nothing is measured; francium has neither point
+#: (its longest-lived isotope lasts 22 minutes). Those are absent rather
+#: than guessed, and the palette says "not established".
+#:
+#: Three things the extraction had to get right, each caught by an
+#: acceptance check rather than by review:
+#:   * the CRC spells them "Aluminum" and "Cesium"
+#:   * sulfur's rhombic row holds "95.2 trans monocl" -- a TRANSITION, not
+#:     a melt -- so the monoclinic row is the one with a melting point
+#:   * allotropes are listed separately, and the reference form is chosen
+#:     explicitly (graphite, white P, gray Se, monoclinic S, white Sn)
+_PHASE_POINTS: dict[int, dict[str, float | bool]] = {
+    1: {"mp": -259.16, "bp": -252.879}, 2: {"bp": -268.928}, 3: {"mp": 180.5, "bp": 1342.0},
+    4: {"mp": 1287.0, "bp": 2468.0}, 5: {"mp": 2077.0, "bp": 4000.0},
+    6: {"bp": 3825.0, "sublimes": True}, 7: {"mp": -210.0, "bp": -195.795},
+    8: {"mp": -218.79, "bp": -182.962}, 9: {"mp": -219.67, "bp": -188.11},
+    10: {"mp": -248.59, "bp": -246.046}, 11: {"mp": 97.794, "bp": 882.94},
+    12: {"mp": 650.0, "bp": 1090.0}, 13: {"mp": 660.323, "bp": 2519.0},
+    14: {"mp": 1414.0, "bp": 3265.0}, 15: {"mp": 44.15, "bp": 280.5},
+    16: {"mp": 115.21, "bp": 444.61}, 17: {"mp": -101.5, "bp": -34.04},
+    18: {"mp": -189.34, "bp": -185.848}, 19: {"mp": 63.5, "bp": 759.0},
+    20: {"mp": 842.0, "bp": 1484.0}, 21: {"mp": 1541.0, "bp": 2836.0},
+    22: {"mp": 1670.0, "bp": 3287.0}, 23: {"mp": 1910.0, "bp": 3407.0},
+    24: {"mp": 1907.0, "bp": 2671.0}, 25: {"mp": 1246.0, "bp": 2061.0},
+    26: {"mp": 1538.0, "bp": 2861.0}, 27: {"mp": 1495.0, "bp": 2927.0},
+    28: {"mp": 1455.0, "bp": 2913.0}, 29: {"mp": 1084.62, "bp": 2560.0},
+    30: {"mp": 419.527, "bp": 907.0}, 31: {"mp": 29.7646, "bp": 2229.0},
+    32: {"mp": 938.25, "bp": 2833.0}, 33: {"mp": 817.0, "bp": 616.0, "sublimes": True},
+    34: {"mp": 220.8, "bp": 685.0}, 35: {"mp": -7.2, "bp": 58.8},
+    36: {"mp": -157.37, "bp": -153.415}, 37: {"mp": 39.3, "bp": 688.0},
+    38: {"mp": 777.0, "bp": 1377.0}, 39: {"mp": 1522.0, "bp": 3345.0},
+    40: {"mp": 1854.0, "bp": 4406.0}, 41: {"mp": 2477.0, "bp": 4741.0},
+    42: {"mp": 2622.0, "bp": 4639.0}, 43: {"mp": 2157.0, "bp": 4262.0},
+    44: {"mp": 2333.0, "bp": 4147.0}, 45: {"mp": 1963.0, "bp": 3695.0},
+    46: {"mp": 1554.8, "bp": 2963.0}, 47: {"mp": 961.78, "bp": 2162.0},
+    48: {"mp": 321.069, "bp": 767.0}, 49: {"mp": 156.5985, "bp": 2027.0},
+    50: {"mp": 231.928, "bp": 2586.0}, 51: {"mp": 630.628, "bp": 1587.0},
+    52: {"mp": 449.51, "bp": 988.0}, 53: {"mp": 113.7, "bp": 184.4},
+    54: {"mp": -111.75, "bp": -108.099}, 55: {"mp": 28.5, "bp": 671.0},
+    56: {"mp": 727.0, "bp": 1845.0}, 57: {"mp": 920.0, "bp": 3464.0},
+    58: {"mp": 799.0, "bp": 3443.0}, 59: {"mp": 931.0, "bp": 3520.0},
+    60: {"mp": 1016.0, "bp": 3074.0}, 61: {"mp": 1042.0, "bp": 3000.0},
+    62: {"mp": 1072.0, "bp": 1794.0}, 63: {"mp": 822.0, "bp": 1529.0},
+    64: {"mp": 1313.0, "bp": 3273.0}, 65: {"mp": 1359.0, "bp": 3230.0},
+    66: {"mp": 1412.0, "bp": 2567.0}, 67: {"mp": 1472.0, "bp": 2700.0},
+    68: {"mp": 1529.0, "bp": 2868.0}, 69: {"mp": 1545.0, "bp": 1950.0},
+    70: {"mp": 824.0, "bp": 1196.0}, 71: {"mp": 1663.0, "bp": 3402.0},
+    72: {"mp": 2233.0, "bp": 4600.0}, 73: {"mp": 3017.0, "bp": 5455.0},
+    74: {"mp": 3414.0, "bp": 5555.0}, 75: {"mp": 3185.0, "bp": 5590.0},
+    76: {"mp": 3033.0, "bp": 5008.0}, 77: {"mp": 2446.0, "bp": 4428.0},
+    78: {"mp": 1768.2, "bp": 3825.0}, 79: {"mp": 1064.18, "bp": 2836.0},
+    80: {"mp": -38.829, "bp": 356.619}, 81: {"mp": 304.0, "bp": 1473.0},
+    82: {"mp": 327.462, "bp": 1749.0}, 83: {"mp": 271.402, "bp": 1564.0},
+    84: {"mp": 254.0, "bp": 962.0}, 85: {"mp": 302.0}, 86: {"mp": -71.0, "bp": -61.7},
+    87: {"mp": 21.0}, 88: {"mp": 696.0}, 89: {"mp": 1050.0, "bp": 3200.0},
+    90: {"mp": 1750.0, "bp": 4785.0}, 91: {"mp": 1572.0}, 92: {"mp": 1135.0, "bp": 4131.0},
+    93: {"mp": 644.0, "bp": 3902.0}, 94: {"mp": 640.0, "bp": 3228.0},
+    95: {"mp": 1176.0, "bp": 2011.0}, 96: {"mp": 1345.0}, 97: {"mp": 986.0},
+    98: {"mp": 900.0}, 99: {"mp": 860.0}, 100: {"mp": 1527.0}, 101: {"mp": 827.0},
+    102: {"mp": 827.0}, 103: {"mp": 1627.0},
+}
+
+
 #: Curated, and deliberately sparse. A familiar compound is a good anchor
 #: for an element somebody is looking up; an unfamiliar one invented to
 #: fill a row is worse than an empty row, so elements without an entry
@@ -282,6 +361,14 @@ def build() -> dict:
             "category": category_for(z),
             "electron_configuration": abbreviated,
         }
+        phase = _PHASE_POINTS.get(z, {})
+        if "mp" in phase:
+            entry["melting_point_c"] = phase["mp"]
+        if "bp" in phase:
+            entry["boiling_point_c"] = phase["bp"]
+        if phase.get("sublimes"):
+            entry["sublimes_at_1_bar"] = True
+
         states = _OXIDATION_STATES.get(z)
         if states:
             entry["common_oxidation_states"] = states
@@ -317,6 +404,13 @@ def build() -> dict:
                 "unverifiable content here. An element whose states are not well established -- "
                 "the superheavies, most known from a handful of atoms -- has NO key rather than "
                 "a guess, and the dialog says 'not established'."
+            ),
+            "phase_points": (
+                "melting_point_c, boiling_point_c and sublimes_at_1_bar come from the CRC "
+                "Handbook of Chemistry and Physics, 97th ed., 4-116..4-118. Sublimation is READ "
+                "from the source's own 'sp' marker (arsenic and carbon) and never inferred from "
+                "a missing boiling point -- fifteen superheavies have no measured points at all "
+                "and are absent here rather than guessed."
             ),
             "oxidation_states_were_checked_against": (
                 "The CRC Handbook of Chemistry and Physics, 97th ed., page 2639, for the "
