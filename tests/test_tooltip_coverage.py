@@ -405,3 +405,73 @@ def test_the_composite_rule_does_not_swallow_the_panels(controls):
         f"only {len(inside_a_viewport)} controls inside a scroll area are "
         "documentable -- an exclusion is swallowing the panels themselves"
     )
+def test_a_menu_actions_synthesised_tooltip_is_not_help(controls):
+    """`QAction.toolTip()` NEVER RETURNS EMPTY, and the queue believed it.
+
+    With no tooltip ever set, Qt answers `toolTip()` with the action's own
+    `text()` minus the `&` accelerators and the `...`. So a plain
+    "does it have a non-empty tooltip" test reports every menu action as
+    carrying help, and what it carries is the label the user just read.
+
+    Measured when the menu-bar batch was picked up: all 83 actions were
+    classified `legacy_tooltip` and NOT ONE held a human-written string.
+    That overstated the migration debt by 83 and hid 83 controls from
+    `--missing`, which is the queue the migration is worked from.
+
+    THE SETUP IS ASSERTED. If Qt ever stops synthesising, or the window
+    stops building a menu bar, there is nothing to misclassify and a test
+    that only checked "no action is legacy" would pass while covering
+    nothing.
+    """
+    from PySide6.QtGui import QAction
+
+    probe = QAction("&Open Project...")
+    assert probe.toolTip() == "Open Project", (
+        f"Qt no longer synthesises a QAction tooltip from its text "
+        f"(got {probe.toolTip()!r}) -- this guard is testing nothing"
+    )
+
+    found, _ = controls
+    actions = [c for c in found if c.widget_class == "QAction"]
+    assert actions, "the window built no QAction, so nothing here is tested"
+
+    echoed = [c for c in actions if c.status == "legacy_tooltip"]
+    assert not echoed, (
+        f"{len(echoed)} menu action(s) counted as documented on the strength of "
+        f"a tooltip Qt wrote from their own label: "
+        f"{sorted(c.instance_path for c in echoed)[:5]}"
+    )
+
+
+def test_an_explicitly_set_action_tooltip_still_counts_as_debt():
+    """The control, and the half that makes the rule narrow.
+
+    "A QAction is never legacy_tooltip" would satisfy the test above and be
+    wrong: an action somebody wrote a real tooltip for is exactly the debt
+    the fixture exists to burn down, and silently dropping it would make
+    the migration look finished early.
+
+    Asserted on the predicate rather than through the window, because no
+    action in the application carries an explicit tooltip today -- so the
+    end-to-end route cannot tell a narrow rule from a blanket one, and a
+    branch nothing can enter is a question about where to assert.
+    """
+    from PySide6.QtGui import QAction
+
+    from openchem.ui.widgets.tooltip_inventory import _status
+
+    synthesised = QAction("&Open Project...")
+    assert _status(synthesised) == "missing"
+
+    explicit = QAction("&Open Project...")
+    explicit.setToolTip("Opens a saved .ocsproj and replaces the current session.")
+    assert _status(explicit) == "legacy_tooltip", (
+        "a hand-written action tooltip must still count as migration debt"
+    )
+
+    # And the degenerate case both ways: a tooltip set to exactly what Qt
+    # would have synthesised reads as absent, which is the right answer --
+    # restating the label is not an explanation.
+    restates_label = QAction("&Open Project...")
+    restates_label.setToolTip("Open Project")
+    assert _status(restates_label) == "missing"

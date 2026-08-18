@@ -125,8 +125,47 @@ def _status(target) -> Status:
     # survives both, is what the contract is actually about, and needs no
     # second scanner beside this one.
     if getattr(target, "toolTip", None) and target.toolTip().strip():
-        return "legacy_tooltip"
+        # ... UNLESS QT WROTE IT. See `_tooltip_is_qt_s_own_echo`.
+        if not _tooltip_is_qt_s_own_echo(target):
+            return "legacy_tooltip"
     return "missing"
+
+
+def _tooltip_is_qt_s_own_echo(target) -> bool:
+    """Did Qt synthesise this tooltip from the control's own label?
+
+    **`QAction.toolTip()` NEVER RETURNS EMPTY.** With no tooltip ever set,
+    Qt returns the action's own `text()` with the `&` accelerators removed
+    and the `...` stripped -- so "&Open Project..." answers "Open Project",
+    and a plain `toolTip().strip()` test cannot tell "nobody wrote one"
+    from "somebody wrote one".
+
+    Measured over the real window when the menu-bar batch was picked up:
+    **all 83 menu actions** were being reported as `legacy_tooltip`, and
+    not one of them carried a human-written string. That overstated the
+    migration debt by 83 and, worse, hid 83 controls from `--missing`,
+    which is the queue this migration is worked from. The state they were
+    in was the exact degenerate case the whole contract layer exists to
+    reject -- a tooltip that restates the label it is attached to.
+
+    THE RULE IS ASKED OF QT, NOT REIMPLEMENTED. A throwaway `QAction` with
+    the same `text()` reports exactly what Qt would synthesise, so this
+    cannot drift when Qt changes `qt_strippedText`. Reproducing that
+    function here would have been a second implementation of somebody
+    else's private detail, and its edge cases are not the obvious ones:
+    `...` is stripped ANYWHERE rather than only at the end ("Mid...dle"
+    answers "Middle"), `&&` collapses to a literal `&`, and trailing
+    whitespace goes.
+
+    A tooltip deliberately set to exactly the synthesised string reads as
+    absent here. That is the right answer either way: restating the label
+    is not an explanation, and the degenerate-string floor already refuses
+    it in a contract.
+    """
+    if not isinstance(target, QAction):
+        return False
+    probe = QAction(target.text())
+    return target.toolTip() == probe.toolTip()
 
 
 def _own_label(target) -> str:

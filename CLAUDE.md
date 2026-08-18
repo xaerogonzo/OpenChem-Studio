@@ -284,7 +284,55 @@ interactive constructions was really 372. Neither number was ever the
 universe; only `iter_documentable_controls` is.
 
 The universe is **366** after the `QTabBar` fix below, and the migration
-stands at 145 contracts / 137 legacy / 84 missing.
+stands at 145 contracts / 54 legacy / 167 missing.
+
+### `QAction.toolTip()` NEVER RETURNS EMPTY, and the queue believed it
+
+**All 83 menu actions were counted as documented, and not one carried a
+human-written string.** With no tooltip ever set, Qt answers `toolTip()`
+with the action's own `text()` minus the `&` accelerators and the `...`, so
+"&Open Project..." reports "Open Project". `_status` tested
+`toolTip().strip()` and could not tell "nobody wrote one" from "somebody
+wrote one".
+
+Two costs, and the second is the one that mattered. It overstated the
+migration debt by 83 -- but worse, it hid 83 controls from `--missing`,
+which is **the queue this migration is worked from**. An agent burning down
+the debt would have found 83 menu actions in the "already has something"
+pile forever. And what they had was the exact degenerate case the whole
+contract layer exists to reject: a tooltip restating the label it is
+attached to.
+
+    before   145 contracts / 137 legacy /  84 missing
+    after    145 contracts /  54 legacy / 167 missing
+
+**THE RULE IS ASKED OF QT, NOT REIMPLEMENTED.** `_tooltip_is_qt_s_own_echo`
+builds a throwaway `QAction` with the same `text()` and compares, so it is
+Qt's own answer by construction and cannot drift when `qt_strippedText`
+changes. Reproducing that function here would have been a second
+implementation of somebody else's private detail, and its edge cases are
+not the obvious ones -- measured:
+
+    '&Open Project...'      ->  'Open Project'
+    'Mid...dle'             ->  'Middle'      <- stripped ANYWHERE, not just trailing
+    'A && B'                ->  'A & B'
+    'Trailing spaces   '    ->  'Trailing spaces'
+    'Zoom In\tCtrl++'       ->  'Zoom In\tCtrl++'   <- shortcut text survives
+
+A tooltip deliberately set to exactly the synthesised string reads as
+absent, which is the right answer either way: restating the label is not an
+explanation, and the degenerate-string floor already refuses it in a
+contract.
+
+**THE NARROW HALF IS WHAT NEEDED THE SEPARATE TEST.** "A `QAction` is never
+`legacy_tooltip`" satisfies the reclassification guard and is wrong -- an
+action somebody wrote a real tooltip for is exactly the debt the fixture
+exists to burn down, and dropping it would make the migration look finished
+early. `test_an_explicitly_set_action_tooltip_still_counts_as_debt` asserts
+on the predicate rather than through the window, because no action in the
+application carries an explicit tooltip today, so the end-to-end route
+cannot tell a narrow rule from a blanket one. Mutating the comparison to a
+bare `return True` is caught by that test and by nothing else.
 
 ### A `QTabBar` BREAKS QT'S OWN `qt_` NAMING CONVENTION
 
@@ -711,7 +759,15 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `4780 passed, 15 skipped`
+A clean run is **6-19 minutes**, ending at `4782 passed, 15 skipped`
+(measured 2026-08-17, **13m52**, on `docking-box-from-the-ligand` -- the
+synthesised-`QAction`-tooltip reclassification. **+2 collected items and
++2 test FUNCTIONS**, both in `test_tooltip_coverage.py`: the menu actions
+Qt documented for us, and the narrow-half control that keeps a real
+hand-written action tooltip counting as debt. 4795 -> 4797 collected;
+4782 passed + 15 skipped = 4797. Skips unchanged at 15.)
+
+Before it: `4780 passed, 15 skipped`
 (measured 2026-08-17, **13m54**, on `docking-box-from-the-ligand` -- the
 Quantum Chemistry panel's help contracts and the `QTabBar` exclusion.
 **+2 collected items and +2 test FUNCTIONS**, both in
