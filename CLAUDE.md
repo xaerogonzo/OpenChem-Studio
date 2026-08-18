@@ -903,6 +903,24 @@ flight** unless you mean to void it. Landing two commits nine minutes
 apart costs one of them its gates, and a doc-only follow-up is exactly the
 change nobody thinks to check for it.
 
+**IT HAPPENS ON A PULL REQUEST TOO, AND `gh run watch --exit-status`
+REPORTS IT AS SUCCESS.** The concurrency group keys on `github.ref`, which
+for a `pull_request` event is the same for every push to that PR -- so a
+follow-up commit cancels the run on the previous one exactly as it does on
+master. Measured on PR #36: a docsweep pushed while the first run was in
+flight cancelled it, and the step list is the familiar shape --
+
+    cancelled  Run the test suite
+    skipped    Naming benchmark (must stay 181/181)
+    skipped    Regulatory benchmark
+    skipped    Validate regulatory rulesets
+
+-- while **`gh run watch --exit-status` on that same run exited 0**. The
+exit code is not an oracle for "the gates ran": it reports the WATCH
+succeeding, and a cancelled run is a watch that finished normally. Read the
+step list. This is the same lesson as `grep FAILED` on a crashed suite log,
+one layer out: an absence of failure is not the presence of a result.
+
 ### `QT_QPA_PLATFORM` IS NOT A WebGL CHECK, and that is what reddened it
 
 Four viewer tests failed on CI for environmental reasons, and the gate
