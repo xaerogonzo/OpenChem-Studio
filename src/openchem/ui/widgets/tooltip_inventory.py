@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QSlider,
     QSpinBox,
+    QTabBar,
     QTableWidget,
     QWidget,
 )
@@ -315,9 +316,32 @@ def _walk(root: QWidget, base: str):
 
 
 def _is_internal_to_a_composite(widget: QWidget) -> bool:
+    """A control Qt built INSIDE one of its own composites.
+
+    `QTabBar` is here for the same reason as the spin boxes and combo
+    boxes, and it closes a hole `_is_qt_internal` cannot: a `QTabBar`
+    builds two `QToolButton`s to scroll the tabs when they overflow, and
+    names them `ScrollLeftButton` / `ScrollRightButton` -- WITHOUT the
+    `qt_` prefix its own convention otherwise reserves. So the prefix rule
+    excluded the tab bar and admitted its children, and three tab widgets
+    put six Qt scroll arrows into the inventory as controls owing the user
+    an explanation.
+
+    Nothing of ours can be caught by it: a tab PAGE is a child of the
+    stacked widget (`qt_tabwidget_stackedwidget`), never of the bar.
+    Measured over the real window -- this rule excludes exactly those 6
+    widgets and no others.
+
+    THE TEMPTING GENERALISATION IS CATASTROPHIC AND WAS MEASURED BEFORE
+    BEING REJECTED. "Anything under a `qt_`-named ancestor is Qt's own"
+    reads as the principled version of this and would have excluded
+    **200 of 243 widgets**, because every panel in the application lives
+    inside a `QScrollArea`'s `qt_scrollarea_viewport`. It would have
+    looked like a large coverage win.
+    """
     parent = widget.parentWidget()
     while parent is not None:
-        if isinstance(parent, (QComboBox, QSpinBox, QDoubleSpinBox)):
+        if isinstance(parent, (QComboBox, QSpinBox, QDoubleSpinBox, QTabBar)):
             return True
         parent = parent.parentWidget()
     return False

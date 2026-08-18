@@ -337,3 +337,71 @@ def test_every_exclusion_records_why(controls):
     for reason, instance_path in exclusions:
         assert reason in {"dialog_button", "internal", "not_interactive"}
         assert instance_path
+
+
+def test_a_tab_bars_scroll_buttons_are_qt_s_own(controls):
+    """`_is_qt_internal` reads the widget's OWN name, and a `QTabBar` breaks
+    its own convention for the two buttons it builds.
+
+    Qt reserves the `qt_` object-name prefix for its internal scaffolding,
+    and the tab bar itself honours it (`qt_tabwidget_tabbar`). The two
+    overflow buttons it creates underneath do NOT -- they are named
+    `ScrollLeftButton` and `ScrollRightButton` -- so the prefix rule
+    excluded the parent and admitted the children, and three tab widgets
+    put six Qt scroll arrows into the inventory as controls owing the user
+    an explanation.
+
+    THE SETUP IS ASSERTED. If the application ever stops building a
+    `QTabWidget`, or Qt stops creating these buttons, there is nothing to
+    exclude and a test that merely checked "none are documentable" would
+    pass while covering nothing.
+    """
+    found, exclusions = controls
+
+    excluded_scroll = [
+        (reason, path)
+        for reason, path in exclusions
+        if path.rsplit("/", 1)[-1] in {"ScrollLeftButton", "ScrollRightButton"}
+    ]
+    assert excluded_scroll, (
+        "no tab-bar scroll button was excluded -- either the window builds no "
+        "QTabWidget any more, or Qt stopped creating them, and this guard is "
+        "no longer testing anything"
+    )
+    assert all(reason == "internal" for reason, _ in excluded_scroll)
+
+    documentable = {
+        c.instance_path
+        for c in found
+        if c.instance_path.rsplit("/", 1)[-1]
+        in {"ScrollLeftButton", "ScrollRightButton"}
+    }
+    assert not documentable, (
+        f"{len(documentable)} Qt tab-bar scroll button(s) are being asked for a "
+        f"help contract: {sorted(documentable)[:3]}"
+    )
+
+
+def test_the_composite_rule_does_not_swallow_the_panels(controls):
+    """The narrow rule, guarded against the tempting broad one.
+
+    "Anything under a `qt_`-named ancestor is Qt's own" is the principled
+    -sounding generalisation of the test above, and it is catastrophic:
+    every panel in this application lives inside a `QScrollArea`, whose
+    viewport is named `qt_scrollarea_viewport`. Measured when the tab-bar
+    rule was written, that version excluded **200 of 243 widgets** -- and
+    it would have registered as a large jump in coverage rather than as a
+    fault.
+
+    So the claim is not merely "the scroll buttons are gone", it is "and
+    the panels are still here". A control inside a scroll-area viewport
+    must remain documentable.
+    """
+    found, _ = controls
+    inside_a_viewport = [
+        c for c in found if "qt_scrollarea_viewport" in c.instance_path
+    ]
+    assert len(inside_a_viewport) > 100, (
+        f"only {len(inside_a_viewport)} controls inside a scroll area are "
+        "documentable -- an exclusion is swallowing the panels themselves"
+    )

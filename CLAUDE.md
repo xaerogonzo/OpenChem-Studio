@@ -283,6 +283,111 @@ zero.
 interactive constructions was really 372. Neither number was ever the
 universe; only `iter_documentable_controls` is.
 
+The universe is **366** after the `QTabBar` fix below, and the migration
+stands at 145 contracts / 137 legacy / 84 missing.
+
+### A `QTabBar` BREAKS QT'S OWN `qt_` NAMING CONVENTION
+
+`_is_qt_internal` excludes Qt's scaffolding by the `qt_` object-name prefix
+Qt reserves for it -- derived rather than enumerated, so it cannot rot. A
+`QTabBar` honours that for itself (`qt_tabwidget_tabbar`) and **not for the
+two `QToolButton`s it builds to scroll the tabs**, which it names
+`ScrollLeftButton` and `ScrollRightButton`. The prefix rule reads the
+widget's OWN name, so it excluded the bar and admitted its children: three
+tab widgets put **six Qt scroll arrows** into the inventory as controls
+owing the user an explanation.
+
+`QTabBar` joins `QComboBox`/`QSpinBox`/`QDoubleSpinBox` in
+`_is_internal_to_a_composite`, which already means "Qt built this inside
+one of its own controls". A tab PAGE is a child of the stacked widget,
+never of the bar, so nothing of ours is reachable.
+
+**THE TEMPTING GENERALISATION WOULD HAVE DELETED 82% OF THE UNIVERSE.**
+"Anything under a `qt_`-named ancestor is Qt's own" is the
+principled-sounding version of the same fix, and it excludes **200 of 243
+widgets** -- every panel in this application lives inside a `QScrollArea`,
+whose viewport is named `qt_scrollarea_viewport`. Measured before it was
+written rather than after. **The failure mode of an over-broad exclusion is
+a GREEN suite and a smaller universe**, so it would have registered as a
+large jump in coverage rather than as a fault.
+
+The guard is therefore in two halves and the second is the load-bearing
+one: `test_a_tab_bars_scroll_buttons_are_qt_s_own` asserts the arrows are
+excluded -- asserting its own setup, so a window that stops building a
+`QTabWidget` fails loudly instead of passing vacuously -- and
+`test_the_composite_rule_does_not_swallow_the_panels` asserts the panels
+are still there.
+
+### The Quantum Chemistry panel: 25 help_ids, 39 renderings
+
+The first panel taken to zero. 37 missing and 9 legacy became 39
+contracts.
+
+**ONE CONCEPT, ONE `help_id`, AND THE THREE CORRELATION TABS ARE THE
+CASE.** HSQC, HMBC and COSY are built from ONE column tuple by ONE loop and
+populated by ONE method, so their five columns mean the same five things in
+each: they share five ids across fifteen renderings, with `instance_path`
+telling the renderings apart. What differs between those tabs is WHICH atom
+pairs appear, which is a property of the tab and not of its columns.
+Splitting them would have been the batch-tick-box mutation shipped on
+purpose. `_CORRELATION_COLUMN_HELP` is one tuple used three times, so there
+is nowhere for the three to drift apart. `Atom` and `Element` are likewise
+one concept each across the 1D spectrum and Hybrid tables.
+
+**THE SPECTRUM COLUMN IS NAMED `Value` BECAUSE IT HOLDS TWO DIFFERENT
+QUANTITIES**, which is the sharpest tier-3 contract in the panel.
+Uncalibrated it is a raw isotropic shielding constant; after a TMS or
+scaling calibration it is a chemical shift. The two run in OPPOSITE
+directions -- a more shielded nucleus has a LARGER shielding constant and a
+SMALLER shift -- so reading the uncalibrated column against literature
+values is wrong in a way that looks fine. The note above the table already
+said WHICH was on screen; nothing said what the difference meant.
+
+**CHARGE IS DERIVED FROM THE STRUCTURE AND MULTIPLICITY IS NOT.**
+`_on_molecule_changed` sets the charge spin from the drawn formal charge;
+the multiplicity stays at 1 whatever is selected. Two adjacent spin boxes,
+one of which tracks the molecule and one of which does not, so the
+asymmetry is written into both contracts.
+
+**A DASH IN `J (Hz)` MEANS NOT COMPUTED, NOT ZERO.** Cross peaks are
+derived from bonding connectivity, so a peak is listed whether or not a
+coupling constant exists to put beside it; only the "NMR + Spin-Spin
+Coupling" calculation produces one. **`Methods differ by` IS NOT AN
+ACCURACY MEASURE** for the same family of reason: a small spread says the
+database and the calculation landed in the same place, and both can be in
+the same place and wrong.
+
+The atom index is **0-based over the structure WITH EXPLICIT HYDROGENS**,
+not the 2D drawing's numbering -- confirmed from a real ORCA transcript in
+`tests/test_orca_engine.py` (water: O=0, H=1, H=2) rather than reasoned
+about, since this project has an index-space bug in its history.
+
+Five mutations, five caught, each by the intended guard and each arm
+running the full 12 tests:
+
+    M1  revert the QTabBar exclusion       test_a_tab_bars_scroll_buttons_are_qt_s_own
+    M2  the broad any-qt_-ancestor rule    test_the_composite_rule_does_not_swallow_the_panels
+    M3  a contract back to raw setToolTip  test_the_migration_debt_never_grows
+    M4  two ids, byte-identical text       test_one_concept_is_not_split_across_many_help_ids
+    M5  one help_id reused                 test_one_help_id_means_exactly_one_thing
+
+**M4 REPORTED A CONFIDENT SURVIVED AND THE MUTATION WAS THE BUG.** It
+prepended one contract's text to another's by implicit string
+concatenation, which produces text that is merely SIMILAR --
+`test_one_concept_is_not_split_across_many_help_ids` requires
+byte-identical, correctly. The arm was INVALID, not a survivor. Fourth
+instance in this file of "a mutation that does not do what it says is not a
+mutation"; the harness now prints an EDIT-CHECK asserting the two texts
+really are equal before it runs the guard.
+
+**AND A DRIVE STEP WITH A WRONG PANEL ID IS A SILENT NO-OP.**
+`{"do": "panel", "id": "Quantum Chemistry"}` changes nothing:
+`_dock_by_panel_id` matches on `dock.objectName()`, which is
+`Quantum_Chemistry` with an UNDERSCORE, and `_on_panel_chosen` returns
+quietly when it finds none. The run logged `step 1 panel` and looked
+perfectly healthy while photographing the Compare panel. **Read the shot,
+not the log.**
+
 ## THE VIEWER AND THE DOCKING WERE SHOWING DIFFERENT CHAINS
 
 `Viewer.loadStructureFromData`'s default preset builds **biological
@@ -606,7 +711,27 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `4778 passed, 15 skipped`
+A clean run is **6-19 minutes**, ending at `4780 passed, 15 skipped`
+(measured 2026-08-17, **13m54**, on `docking-box-from-the-ligand` -- the
+Quantum Chemistry panel's help contracts and the `QTabBar` exclusion.
+**+2 collected items and +2 test FUNCTIONS**, both in
+`test_tooltip_coverage.py`: the tab-bar scroll buttons and the
+does-not-swallow-the-panels control.
+
+    before  1b30e1f   COLLECTS 4793
+    after             COLLECTS 4795   = 4793 + 2
+    the run                    4780 passed + 15 skipped = 4795
+
+Diffed both directions in a detached worktree with the `PYTHONPATH`
+override asserted before the count was believed: **0 removed, 2 added**.
+Skips unchanged at 15 -- neither new test needs a display.
+
+**39 CONTRACTS WERE ADDED AND THE SUITE GREW BY 2**, which is the staged
+migration working as designed rather than a coverage hole: the contracts
+are checked by the guards that already existed, and only genuinely new
+BEHAVIOUR -- the exclusion rule -- needed new tests.)
+
+Before it: `4778 passed, 15 skipped`
 (measured 2026-08-17, **14m27**, on `docking-box-from-the-ligand` -- the
 calculator help contracts. **+1 collected item and +1 test FUNCTION**,
 `test_one_concept_is_not_split_across_many_help_ids`, written because a
