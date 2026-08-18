@@ -2194,6 +2194,7 @@ class MainWindow(QMainWindow):
             existing = PeriodicTableDialog(self)
             existing.insert_requested.connect(self._insert_element_into_drawing)
             existing.isotope_requested.connect(self._apply_isotope)
+            existing.nuclide_insert_requested.connect(self._insert_nuclide_into_drawing)
             self._periodic_table_dialog = existing
         # Pushed on every open, not only on the first: the table is
         # non-modal and long-lived, so a selection made while it was
@@ -2491,6 +2492,27 @@ class MainWindow(QMainWindow):
         """
         self._editor.set_atom_tool(symbol)
         self._center_tabs.setCurrentWidget(self._editor)
+
+    def _insert_nuclide_into_drawing(self, symbol: str, mass_number: int) -> None:
+        """Say what still has to happen after a decay product is armed.
+
+        **THE CANVAS HAS NO ATOM YET.** `insert_requested` has already
+        fired and armed the atom TOOL -- the user still places it -- so at
+        this instant there is nothing to write a mass number onto. The
+        alternative is remembering an isotope across a gesture this
+        application does not own, and an isotope that lands on whatever
+        the user draws several actions later is worse than one they were
+        asked for.
+
+        So it uses the mass number to give a specific instruction rather
+        than to pretend. The element half of "click one and paste it in
+        the 2D editor" is done; this names the other half exactly.
+        """
+        self.statusBar().showMessage(
+            f"{symbol} armed — click the canvas to place it, then select it "
+            f"and apply {symbol}-{mass_number} from the Isotopes tab.",
+            9000,
+        )
 
     def _on_atom_fact_link(self, link) -> None:
         """Follow a fact's cross-link to the tool that produced it.

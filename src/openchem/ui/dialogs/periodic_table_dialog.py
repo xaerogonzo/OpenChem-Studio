@@ -42,7 +42,7 @@ answer and a blank row would read as a bug.
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QEvent, Qt, Signal
 from PySide6.QtGui import QColor, QGuiApplication
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -68,7 +68,9 @@ from openchem.ui.widgets.atom_diagram import AtomDiagram
 from openchem.ui.widgets.collapsible_section import WrappedLabel
 from openchem.chem import element_palettes as palettes
 from openchem.chem import nuclides as nuclide_data
-from openchem.chem.decay import format_branching, format_mode
+from openchem.chem.decay import decay_tree, format_branching, format_mode
+from openchem.chem.decay_svg import legend_lines, render_decay_svg
+from openchem.ui.widgets.zoomable_svg_view import ZoomableSvgView
 from openchem.chem.element_reference import ElementFacts, all_symbols, facts_for, grid_position
 
 #: Category -> (fill, human label). Muted fills so black symbol text stays
@@ -171,6 +173,11 @@ class PeriodicTableDialog(QDialog):
     #: a test with no editor anywhere.
     isotope_requested = Signal(str, int, bool)
 
+    #: A nuclide was picked off the decay chart. `insert_requested`
+    #: fires first with the bare element, so a window that knows
+    #: nothing about isotopes still does the useful half.
+    nuclide_insert_requested = Signal(str, int)
+
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Periodic Table")
@@ -224,6 +231,8 @@ class PeriodicTableDialog(QDialog):
         self._tabs.addTab(self._detail_area, "Facts")
         self._tabs.addTab(self._diagram, "Atom")
         self._tabs.addTab(self._build_isotopes_tab(), "Isotopes")
+        self._tabs.addTab(self._build_decay_tab(), "Decay")
+        self._tabs.currentChanged.connect(self._on_tab_changed)
         layout.addWidget(self._tabs, 1)
 
         # THIS IS NOW THE ONLY PERIODIC TABLE THE PRODUCT OFFERS, so it
@@ -485,6 +494,188 @@ class PeriodicTableDialog(QDialog):
         table.resizeColumnsToContents()
         self._refresh_isotope_button()
 
+    # --- the decay chain ------------------------------------------------------
+
+    def _build_decay_tab(self) -> QWidget:
+        """Where the selected isotope ends up, drawn on the chart of the
+        nuclides.
+
+        "this wouldn't be so much for practical uses, but it would just be
+        fun to look at, and educational too" -- so the layout is the one
+        every textbook uses (neutrons across, protons up), which makes an
+        alpha step a fixed diagonal and a beta step a fixed short hop.
+        The uranium-238 series comes out as the staircase it is drawn as
+        in books, rather than as whatever a graph layout settled on.
+        """
+        container = QWidget(self)
+        column = QVBoxLayout(container)
+        column.setContentsMargins(0, 0, 0, 0)
+
+        self._decay_view = ZoomableSvgView(container, minimum_size=(520, 360))
+        column.addWidget(self._decay_view, 1)
+
+        self._decay_status = QLabel("", container)
+        self._decay_status.setWordWrap(True)
+        column.addWidget(self._decay_status)
+
+        self._decay_legend = QLabel("", container)
+        self._decay_legend.setWordWrap(True)
+        self._decay_legend.setStyleSheet("font-size: 9px; color: #444444;")
+        column.addWidget(self._decay_legend)
+
+        row = QHBoxLayout()
+        self._decay_insert = QPushButton("Insert this nuclide into drawing", container)
+        self._decay_insert.clicked.connect(self._insert_decay_nuclide)
+        row.addWidget(self._decay_insert)
+        self._decay_hint = QLabel("", container)
+        self._decay_hint.setStyleSheet(_MUTED_NOTE)
+        row.addWidget(self._decay_hint)
+        row.addStretch(1)
+        column.addLayout(row)
+
+        self._decay_focus: tuple[int, int] | None = None
+        self._decay_diagram = None
+        self._decay_view._view.installEventFilter(self)
+        return container
+
+    def _on_tab_changed(self, _index: int) -> None:
+        """Re-fit the chart when its tab is actually shown.
+
+        **A ZOOM COMPUTED AGAINST AN UNSHOWN VIEWPORT IS NOT A FIT.**
+        `_refresh_decay` runs from `select`, which happens while another
+        tab is current, so `zoom_to_fit` measured a viewport Qt had not
+        laid out and clamped to the 25% floor -- a 2320 px chart drawn a
+        quarter size in a 1265 px pane, which is exactly the "squeezed
+        into whatever was left" the zoom view exists to prevent.
+        """
+        if self._tabs.tabText(self._tabs.currentIndex()) == "Decay":
+            self._decay_view.zoom_to_fit()
+
+    def eventFilter(self, watched, event):  # noqa: N802 - Qt's name
+        """A click on the chart selects the nuclide under it.
+
+        **HIT-TESTED AGAINST THE RENDERER'S OWN PLACED BOXES**, scaled by
+        the current zoom -- never against a second layout computed here.
+        Two implementations of one layout is where a click starts landing
+        on the wrong thing, which this project has already paid for once
+        in Ketcher's pool ids.
+        """
+        if (
+            self._decay_diagram is not None
+            and watched is self._decay_view._view
+            and event.type() == QEvent.Type.MouseButtonPress
+        ):
+            zoom = self._decay_view.zoom() or 1.0
+            position = event.position()
+            node = self._decay_diagram.node_at(position.x() / zoom, position.y() / zoom)
+            if node is not None:
+                self._focus_decay_node(node.z, node.a)
+                return True
+        return super().eventFilter(watched, event)
+
+    def decay_focus(self) -> tuple[int, int] | None:
+        """(Z, A) of the nuclide the chain is currently describing."""
+        return self._decay_focus
+
+    def _refresh_decay(self) -> None:
+        """Redraw for the element's longest-lived isotope.
+
+        **THE LONGEST-LIVED ONE, not the most abundant**, because a stable
+        nuclide has no chain to draw and picking it would answer every
+        ordinary element with an empty picture. Carbon opens on C-14.
+        """
+        found = nuclide_data.nuclides_for(self._selected)
+        radioactive = nuclide_data.longest_radioactive_isotope(self._selected)
+        start = radioactive or (found[0] if found else None)
+        if start is None:
+            self._decay_view.set_content_visible(False)
+            self._decay_status.setText(
+                f"No nuclide of {self._selected} is in the table."
+            )
+            self._decay_legend.setText("")
+            self._decay_focus = None
+            self._decay_diagram = None
+            self._refresh_decay_button()
+            return
+        self._focus_decay_node(start.z, start.a)
+
+    def _focus_decay_node(self, z: int, a: int) -> None:
+        start = nuclide_data.nuclide(z, a)
+        if start is None:  # pragma: no cover - only a stale click could
+            return
+        tree = decay_tree(start)
+        diagram = render_decay_svg(tree)
+        self._decay_diagram = diagram
+        self._decay_focus = (z, a)
+        self._decay_view.set_content_visible(True)
+        self._decay_view.load(diagram.svg)
+        self._decay_view.zoom_to_fit()
+
+        # **"ENDS AT" WAS THE WRONG QUESTION, and the rendered chart is
+        # what showed it.** `leaves()` answers "which nodes have nothing
+        # leading out of them", and for uranium-238 that gave Hg-200,
+        # Hg-202 and Tl-205 -- omitting Pb-206, which is where every
+        # textbook says the series ends.
+        #
+        # The cause is a real wrinkle in NUBASE rather than a bug here:
+        # Pb-204, Pb-206, Pb-208 and Hg-204 are marked `stbl` AND carry a
+        # predicted decay nobody has ever observed (`A ?`, `2B- ?`), so
+        # they are stable and have an outgoing edge at the same time. The
+        # useful statement is which stable nuclides the chain REACHES.
+        stable = sorted(n.name for n in tree.nodes.values() if n.is_stable)
+        reaches = (
+            f"reaches {len(stable)} stable: {', '.join(stable)}"
+            if stable
+            else "reaches no stable nuclide"
+        )
+        self._decay_status.setText(
+            f"{start.name} - {nuclide_data.format_half_life(start.half_life)} - "
+            f"{tree.size} nuclides reachable, {reaches}. "
+            "Click any box to follow the chain from there."
+        )
+        # Rich text, so each family is shown IN its own colour -- a legend
+        # that names the encoding without demonstrating it leaves the
+        # reader matching words to lines by guesswork.
+        families = " \u00b7 ".join(
+            f'<span style="color:{colour}">&#9644; {_escape_html(words)}</span>'
+            for colour, words in legend_lines(diagram)
+        )
+        self._decay_legend.setText(
+            "Neutrons across, protons up \u2014 the chart of the nuclides. "
+            "Line weight is the branching ratio. " + families
+            + ". <b>Ground states only</b>, so a chain that runs through an "
+            "isomer is not drawn."
+        )
+        self._refresh_decay_button()
+
+    def _refresh_decay_button(self) -> None:
+        if self._decay_focus is None:
+            self._decay_insert.setEnabled(False)
+            self._decay_hint.setText("")
+            return
+        z, _a = self._decay_focus
+        nuclide = nuclide_data.nuclide(*self._decay_focus)
+        symbol = nuclide.symbol if nuclide is not None else ""
+        self._decay_insert.setEnabled(bool(symbol))
+        self._decay_hint.setText(
+            f"Adds {nuclide.name} to the canvas." if nuclide is not None else ""
+        )
+
+    def _insert_decay_nuclide(self, _checked: bool = False) -> None:
+        """**"You could obviously click one and paste it in the 2D
+        editor"** -- a decay product is an element with a mass number, and
+        that is exactly what a molfile can express.
+
+        It reuses `insert_requested` rather than inventing a second door:
+        the window already knows how to put an element on the canvas, and
+        the isotope goes through the picker's own path afterwards.
+        """
+        nuclide = None if self._decay_focus is None else nuclide_data.nuclide(*self._decay_focus)
+        if nuclide is None:
+            return
+        self.insert_requested.emit(nuclide.symbol)
+        self.nuclide_insert_requested.emit(nuclide.symbol, nuclide.a)
+
     # --- colour modes -------------------------------------------------------
 
     def _fill_and_note(self, symbol: str) -> tuple[str, str, str]:
@@ -603,6 +794,7 @@ class PeriodicTableDialog(QDialog):
         self._selected = symbol
         self._detail.setText(describe(facts))
         self._refresh_isotopes()
+        self._refresh_decay()
         # Always back to neutral on a new element. Carrying a charge
         # across would silently answer a question about a different
         # species than the one just clicked.
@@ -626,6 +818,16 @@ class PeriodicTableDialog(QDialog):
         """
         if self._selected:
             self.insert_requested.emit(self._selected)
+
+
+def _escape_html(text: str) -> str:
+    """A legend built as rich text must not be able to carry markup.
+
+    The words come from a table in `decay_svg`, so nothing hostile can
+    reach here today -- but a label that silently interprets its input as
+    HTML is the kind of thing that stops being true quietly.
+    """
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 def _ramp(position: float) -> str:

@@ -25,6 +25,7 @@ own stayed shut (`dialogs: 0, modals: 0`), and Insert armed the canvas
 from __future__ import annotations
 
 import pytest
+from PySide6.QtCore import QEvent, Qt
 from PySide6.QtCore import QCoreApplication, QEvent
 
 from openchem.ui.dialogs.periodic_table_dialog import PeriodicTableDialog
@@ -412,3 +413,201 @@ def test_the_checkbox_names_the_element_it_would_cover(dialog):
     dialog.set_selected_atom("C", 0)
 
     assert dialog._isotope_all.text() == "all C atoms"
+
+
+# --- N4: the Decay tab -----------------------------------------------------
+
+
+def test_the_decay_tab_opens_on_the_longest_lived_isotope(dialog):
+    """**NOT THE MOST ABUNDANT.** Carbon's most abundant nuclide is C-12,
+    which does not decay -- opening on it would answer every ordinary
+    element with an empty picture. C-14 is the one with a chain.
+    """
+    dialog.select("C")
+
+    assert dialog.decay_focus() == (6, 14)
+    assert "C-14" in dialog._decay_status.text()
+
+
+def test_the_chain_follows_the_selection(dialog):
+    """The control: a tab that ignored the grid would pass the test above
+    on whatever element it happened to load with."""
+    dialog.select("C")
+    assert dialog.decay_focus() == (6, 14)
+
+    dialog.select("U")
+
+    assert dialog.decay_focus() == (92, 238)
+
+
+def test_the_status_names_the_stable_nuclides_the_chain_reaches(dialog):
+    """**"ENDS AT" WAS THE WRONG QUESTION**, and only the rendered chart
+    showed it: `leaves()` named Hg-200, Hg-202 and Tl-205 and omitted
+    Pb-206, because four of the chain's stable nuclides are marked `stbl`
+    in NUBASE while also carrying a decay nobody has ever observed.
+    """
+    dialog.select("U")
+    status = dialog._decay_status.text()
+
+    assert "Pb-206" in status
+    assert "37 nuclides reachable" in status
+    assert "7 stable" in status
+
+
+def test_the_legend_shows_each_family_in_its_own_colour(dialog):
+    """A legend that names the encoding without demonstrating it leaves
+    the reader matching words to lines by guesswork."""
+    dialog.select("U")
+    legend = dialog._decay_legend.text()
+
+    from openchem.chem.decay_svg import FAMILY_COLOUR
+
+    assert FAMILY_COLOUR["alpha"] in legend
+    assert FAMILY_COLOUR["beta_minus"] in legend
+    assert "Ground states only" in legend
+    assert "**" not in legend, "QLabel does not render markdown"
+
+
+def test_clicking_a_box_follows_the_chain_from_there(dialog):
+    """The whole point of the picture being clickable.
+
+    **A REAL MOUSE EVENT THROUGH THE FILTER, not `_focus_decay_node`.**
+    The first version of this called the handler directly, so a mutation
+    that made the filter swallow the click without acting on it survived
+    -- the picture would have been inert and every test green.
+    """
+    from PySide6.QtCore import QPointF
+    from PySide6.QtGui import QMouseEvent
+
+    dialog.select("U")
+    dialog._decay_view.set_zoom(1.0)
+    radium = next(n for n in dialog._decay_diagram.nodes if n.name == "Ra-226")
+
+    press = QMouseEvent(
+        QEvent.Type.MouseButtonPress,
+        QPointF(radium.x + radium.width / 2, radium.y + radium.height / 2),
+        QPointF(0, 0),
+        Qt.MouseButton.LeftButton,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+    handled = dialog.eventFilter(dialog._decay_view._view, press)
+
+    assert handled
+    assert dialog.decay_focus() == (88, 226)
+    assert "Ra-226" in dialog._decay_status.text()
+    assert not any(n.name == "U-238" for n in dialog._decay_diagram.nodes)
+
+
+def test_a_click_on_empty_chart_space_changes_nothing(dialog):
+    """The control: the filter must hit-test rather than treat any press
+    as a selection."""
+    from PySide6.QtCore import QPointF
+    from PySide6.QtGui import QMouseEvent
+
+    dialog.select("U")
+    dialog._decay_view.set_zoom(1.0)
+
+    press = QMouseEvent(
+        QEvent.Type.MouseButtonPress,
+        QPointF(2.0, 2.0),
+        QPointF(0, 0),
+        Qt.MouseButton.LeftButton,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+    dialog.eventFilter(dialog._decay_view._view, press)
+
+    assert dialog.decay_focus() == (92, 238)
+
+
+def test_a_click_is_hit_tested_at_the_CURRENT_zoom(dialog):
+    """The chart is scaled by the zoom, so a click's pixel position is not
+    a diagram position. Without dividing by the zoom, every click at
+    anything but 100% lands on the wrong nuclide -- which on a chart of
+    the nuclides is a plausible neighbour rather than an obvious miss."""
+    from PySide6.QtCore import QPointF
+    from PySide6.QtGui import QMouseEvent
+
+    dialog.select("U")
+    dialog._decay_view.set_zoom(2.0)
+    radium = next(n for n in dialog._decay_diagram.nodes if n.name == "Ra-226")
+
+    press = QMouseEvent(
+        QEvent.Type.MouseButtonPress,
+        QPointF(
+            (radium.x + radium.width / 2) * 2.0,
+            (radium.y + radium.height / 2) * 2.0,
+        ),
+        QPointF(0, 0),
+        Qt.MouseButton.LeftButton,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+    dialog.eventFilter(dialog._decay_view._view, press)
+
+    assert dialog.decay_focus() == (88, 226)
+
+
+def test_a_nuclide_can_be_sent_to_the_canvas(dialog):
+    """"You could obviously click one and paste it in the 2D editor" -- a
+    decay product is an element with a mass number, which is exactly what
+    a molfile can express."""
+    elements, nuclides = [], []
+    dialog.insert_requested.connect(elements.append)
+    dialog.nuclide_insert_requested.connect(lambda s, a: nuclides.append((s, a)))
+    dialog.select("U")
+
+    dialog._insert_decay_nuclide()
+
+    assert elements == ["U"]
+    assert nuclides == [("U", 238)]
+
+
+def test_the_chart_is_refitted_when_its_tab_is_shown(dialog):
+    """**A ZOOM COMPUTED AGAINST AN UNSHOWN VIEWPORT IS NOT A FIT.**
+    `_refresh_decay` runs from `select`, which happens while another tab
+    is current -- so `zoom_to_fit` measured a viewport Qt had not laid out
+    and clamped to the 25% floor. Measured in the running app: a 2320 px
+    chart drawn a quarter size in a 1265 px pane.
+    """
+    dialog.resize(1200, 900)
+    dialog.select("U")
+    dialog._tabs.setCurrentIndex(0)
+    dialog._decay_view.set_zoom(4.0)
+
+    dialog._tabs.setCurrentIndex(dialog._tabs.count() - 1)
+
+    assert dialog._tabs.tabText(dialog._tabs.currentIndex()) == "Decay"
+    assert dialog._decay_view.zoom() < 4.0
+
+
+def test_switching_to_another_tab_refits_nothing(dialog):
+    """The control: the handler must key on WHICH tab, not merely on the
+    fact that one changed.
+
+    **IT HAS TO MOVE TO A DIFFERENT TAB TO BE A CONTROL AT ALL.** The
+    first version switched to index 0, which was already current, so
+    `currentChanged` never fired and a mutation that refitted on ANY tab
+    change passed straight through it.
+    """
+    dialog.select("U")
+    dialog._tabs.setCurrentIndex(0)
+    dialog._decay_view.set_zoom(4.0)
+
+    dialog._tabs.setCurrentIndex(1)
+
+    assert dialog._tabs.currentIndex() == 1, "the fixture must actually move"
+    assert dialog._decay_view.zoom() == 4.0
+
+
+def test_every_element_can_draw_a_chain(dialog):
+    """A tab that raises on one element is a tab nobody can trust to
+    browse with, which is what this table is for."""
+    from openchem.chem.element_reference import all_symbols
+
+    for symbol in all_symbols():
+        dialog.select(symbol)
+
+        assert dialog.decay_focus() is not None, symbol
+        assert dialog._decay_status.text()

@@ -148,6 +148,34 @@ def format_branching(branching: float | None, qualifier: str | None) -> str:
     return number
 
 
+def mode_family(mode: str) -> str:
+    """Which kind of decay this is, for colouring a chain.
+
+    **DERIVED FROM `delta_for`, NEVER FROM A SECOND STRING TABLE.** The
+    grammar already knows what a mode does; a parallel table keyed on the
+    same 45 tokens is a second thing to keep in step with NUBASE, and
+    this file's whole reason for having a grammar rather than a lookup is
+    that a 45-entry table rots the first time a mode is added.
+
+    Five families, chosen for what a reader needs off a chart rather than
+    for taxonomic tidiness -- `other` is composites and nucleon emission,
+    which move a nuclide in directions that do not group usefully.
+    """
+    delta = delta_for(mode)
+    if delta is None:
+        return "other"
+    dz, da = delta
+    if (dz, da) == (-2, -4):
+        return "alpha"
+    if da <= -5:
+        return "cluster"
+    if da == 0 and dz > 0:
+        return "beta_minus"
+    if da == 0 and dz < 0:
+        return "beta_plus"
+    return "other"
+
+
 def _z_by_symbol() -> dict[str, int]:
     return {symbol: z for z, symbol in _symbol_by_z().items()}
 

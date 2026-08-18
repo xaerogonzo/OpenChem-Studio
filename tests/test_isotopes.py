@@ -457,3 +457,22 @@ def test_a_selection_made_while_the_table_was_CLOSED_still_arrives(window):
     window._show_periodic_table()
 
     assert window._periodic_table_dialog._selected_atom == ("C", 1)
+
+
+def test_a_decay_product_arms_the_canvas_and_says_what_is_left(window):
+    """**THE CANVAS HAS NO ATOM YET**, so the mass number cannot be
+    written at this instant -- `insert_requested` arms the atom TOOL and
+    the user still places it. Remembering an isotope across a gesture the
+    app does not own would land it on whatever gets drawn several actions
+    later, which is worse than being asked for it.
+    """
+    window._show_periodic_table()
+    dialog = window._periodic_table_dialog
+    dialog.select("U")
+    dialog._focus_decay_node(82, 206)
+
+    dialog._insert_decay_nuclide()
+
+    message = window.statusBar().currentMessage()
+    assert "Pb-206" in message
+    assert "Isotopes tab" in message
