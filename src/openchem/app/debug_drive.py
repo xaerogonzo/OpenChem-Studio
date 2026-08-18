@@ -795,6 +795,82 @@ class _Driver(QObject):
         """
         self._window._editor.trigger_toolbar_action(str(step["id"]))
 
+    def _do_place(self, step: dict[str, Any]) -> None:
+        """Click an element in the periodic table, then click the canvas.
+
+        `{"do": "place", "element": "C", "isotope": 13}`
+
+        **THE TWO-CLICK GESTURE, end to end and through the real widgets**
+        -- the table's own cell button, then a synthesised canvas click,
+        which is the only way to check that what the tool was armed with
+        is what lands. Pair it with `report`, whose SMILES is where a
+        missing mass number shows up as plain `C` rather than `[13C]`.
+        """
+        window = self._window
+        window._show_periodic_table()
+        dialog = getattr(window, "_periodic_table_dialog", None)
+        if dialog is None:  # pragma: no cover - defensive
+            logger.error("OPENCHEM_DRIVE: place -- no periodic table")
+            return
+        element = str(step.get("element", "C"))
+        # **THE CELL FIRST, THEN THE ROW**, which is the user's order and
+        # the only one that works: `select()` repopulates the isotope
+        # table, so choosing a row and then clicking the cell wipes the
+        # choice. Picking the row afterwards re-arms through
+        # `_rearm_from_isotope`.
+        dialog._buttons[element].click()
+        mass = step.get("isotope")
+        if mass is not None:
+            for row in range(dialog._isotope_table.rowCount()):
+                item = dialog._isotope_table.item(row, 0)
+                if item is not None and item.text() == f"{element}-{mass}":
+                    dialog._isotope_table.selectRow(row)
+                    break
+            else:
+                logger.error("OPENCHEM_DRIVE: place -- no %s-%s row", element, mass)
+        logger.warning(
+            "OPENCHEM_DRIVE: place %s isotope=%s -- %s",
+            element,
+            dialog.isotope_for_placement(),
+            window.statusBar().currentMessage(),
+        )
+        # **THE TOOL'S OWN HANDLERS, NOT A DOM EVENT.** Measured in the
+        # running app: dispatching mouse OR pointer events at
+        # `render.clientArea` leaves Ketcher's struct untouched, so a
+        # DOM-level click reads as "the tool did nothing" while the tool
+        # is armed perfectly well. `AtomTool2` exposes `mousedown` and
+        # `mouseup` taking an event with `pageX`/`pageY` -- the same shape
+        # `page2obj` consumes -- and calling those places the atom.
+        #
+        # That is Ketcher doing its own work with only the DOM plumbing
+        # skipped, which is what every step in this file does with the
+        # machine's input queue.
+        def _report(value):
+            logger.warning("OPENCHEM_DRIVE: place -- struct now %s", value)
+
+        window._editor._backend._page.runJavaScript(
+            """
+            JSON.stringify((function () {
+              var ed = window.ketcher.editor;
+              var area = ed.render.clientArea, box = area.getBoundingClientRect();
+              var x = box.left + box.width * 0.25, y = box.top + box.height * 0.25;
+              var ev = {pageX: x, pageY: y, clientX: x, clientY: y,
+                        button: 0, buttons: 1, target: area,
+                        preventDefault: function () {},
+                        stopPropagation: function () {}};
+              var t = ed.tool();
+              if (!t || !t.mousedown) { return {error: 'no armed tool'}; }
+              t.mousedown(ev);
+              if (t.mouseup) { t.mouseup(ev); }
+              var s = ed.struct(), atoms = [];
+              s.atoms.forEach(function (a, id) {
+                atoms.push({id: id, label: a.label, isotope: a.isotope}); });
+              return {count: s.atoms.size, atoms: atoms.slice(-4)};
+            })())
+            """,
+            _report,
+        )
+
     def _do_isotope(self, step: dict[str, Any]) -> None:
         """Label an atom, through the window's own handlers.
 

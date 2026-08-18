@@ -556,7 +556,7 @@ def test_pressing_insert_really_arms_the_editor(window):
     So this is the half that was missing, not the half that failed.
     """
     armed = []
-    window._editor.set_atom_tool = lambda symbol: armed.append(symbol)
+    window._editor.set_atom_tool = lambda symbol, mass=None: armed.append(symbol)
     window._show_periodic_table()
     dialog = window._periodic_table_dialog
     dialog.select("Na")
@@ -577,7 +577,7 @@ def test_the_dialog_stays_open_after_inserting(window):
     """Placing three heteroatoms should not mean reopening the table
     between each -- and a dialog that closed itself would look exactly
     like the button not working."""
-    window._editor.set_atom_tool = lambda symbol: None
+    window._editor.set_atom_tool = lambda symbol, mass=None: None
     window._show_periodic_table()
     dialog = window._periodic_table_dialog
     dialog.select("Na")
@@ -585,3 +585,66 @@ def test_the_dialog_stays_open_after_inserting(window):
     dialog._insert_symbol()
 
     assert dialog.isVisible()
+
+
+# --- P1 at the window ------------------------------------------------------
+
+
+def test_arming_reaches_the_editor_with_the_mass_number(window):
+    armed = []
+    window._editor.set_atom_tool = lambda symbol, mass=None: armed.append((symbol, mass))
+
+    window._arm_element("C", 13)
+
+    assert armed == [("C", 13)]
+
+
+def test_zero_means_no_isotope_rather_than_isotope_zero(window):
+    """A Qt signal cannot carry None, so 0 is the absence -- and it must
+    not reach the editor as a mass number of zero."""
+    armed = []
+    window._editor.set_atom_tool = lambda symbol, mass=None: armed.append((symbol, mass))
+
+    window._arm_element("Na", 0)
+
+    assert armed == [("Na", None)]
+
+
+def test_the_status_line_says_what_will_be_placed(window):
+    """**ARMING IS INVISIBLE**, which is the cost of a click that both
+    browses and arms. The wording separates the canvas being primed from
+    the table merely showing an element."""
+    window._editor.set_atom_tool = lambda symbol, mass=None: None
+
+    window._arm_element("C", 13)
+
+    message = window.statusBar().currentMessage()
+    assert "Ready to place" in message
+    assert "13C" in message
+
+
+def test_a_browse_click_does_NOT_yank_the_centre_tab(window):
+    """The table is read WHILE working, so arming must not steal the view
+    -- that would be worse than the button press it replaces. The
+    deliberate button still reveals; this is the browse click.
+    """
+    window._editor.set_atom_tool = lambda symbol, mass=None: None
+    window._show_periodic_table()
+    window._center_tabs.setCurrentIndex(1)
+    assert window._center_tabs.currentWidget() is not window._editor
+
+    window._periodic_table_dialog._buttons["Na"].click()
+
+    assert window._center_tabs.currentWidget() is not window._editor
+
+
+def test_the_button_still_reveals_the_editor(window):
+    """The control for the test above: the two doors differ in exactly
+    one way, and it is this one."""
+    window._editor.set_atom_tool = lambda symbol, mass=None: None
+    window._show_periodic_table()
+    window._center_tabs.setCurrentIndex(1)
+
+    window._insert_element_into_drawing("Na", 0)
+
+    assert window._center_tabs.currentWidget() is window._editor

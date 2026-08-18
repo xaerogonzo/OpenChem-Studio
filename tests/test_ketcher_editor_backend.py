@@ -1037,3 +1037,35 @@ def test_the_canvas_can_reach_the_system_clipboard(qapp):
 
     assert settings.testAttribute(attribute.JavascriptCanAccessClipboard)
     assert settings.testAttribute(attribute.JavascriptCanPaste)
+
+
+def test_an_armed_atom_carries_its_mass_number(qapp):
+    """**THE BUG ALEX REPORTED, at the line that caused it.**
+
+    "I can place carbon 13, but it's just CH4, there's no 13." Ketcher
+    renders isotopes perfectly well -- a molblock with `M  ISO` draws as
+    `13C` -- so nothing was wrong downstream. The mass number was simply
+    never part of the gesture: this method armed a bare label.
+    """
+    backend = _ready_backend(qapp)
+
+    calls = _record_page_calls(backend, lambda: backend.set_atom_tool("C", 13))
+
+    assert calls, "nothing reached the page"
+    assert '"isotope": 13' in calls[0]
+    assert '"label": "C"' in calls[0]
+
+
+def test_an_ordinary_element_carries_NO_isotope_key(qapp):
+    """**OMITTED, NOT SENT AS ZERO.** Measured against the real bundle,
+    the tool keeps whatever `atomProps` it is handed -- so an isotope of 0
+    would be a value Ketcher has to interpret, where an absent key is the
+    payload it received before this change.
+    """
+    backend = _ready_backend(qapp)
+
+    calls = _record_page_calls(backend, lambda: backend.set_atom_tool("C"))
+
+    assert calls
+    assert "isotope" not in calls[0]
+    assert '"label": "C"' in calls[0]

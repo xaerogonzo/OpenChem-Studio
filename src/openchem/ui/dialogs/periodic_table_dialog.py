@@ -164,7 +164,17 @@ class PeriodicTableDialog(QDialog):
     #: rather than acting, so this dialog needs to know nothing about the
     #: editor -- `MainWindow` owns that wiring, and the dialog stays
     #: constructible in a test with no editor anywhere.
-    insert_requested = Signal(str)
+    #: Put this element on the canvas, and SHOW the editor -- the
+    #: deliberate button press. Carries the mass number chosen on the
+    #: Isotopes tab, or 0 for none: Qt signals cannot carry None, and a
+    #: mass number is always at least 1, so 0 is unambiguous.
+    insert_requested = Signal(str, int)
+
+    #: A cell was clicked, so arm the canvas with it -- and do NOT reveal
+    #: the editor. Browsing the table is a thing people do WHILE working,
+    #: and yanking the centre tab away on every read would be worse than
+    #: the button press this replaces.
+    element_armed = Signal(str, int)
 
     #: An isotope was chosen for the SELECTED atom. Carries the element,
     #: the mass number and whether the write covers every atom of that
@@ -409,6 +419,9 @@ class PeriodicTableDialog(QDialog):
         )
         self._isotope_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self._isotope_table.itemSelectionChanged.connect(self._refresh_isotope_button)
+        # Choosing a row re-arms, so picking C-13 takes effect without
+        # having to go back and click the element cell again.
+        self._isotope_table.itemSelectionChanged.connect(self._rearm_from_isotope)
         # The decay column absorbs the slack: it is the widest and the
         # most informative, and letting Spin/parity stretch instead would
         # give three characters the whole pane.
@@ -448,6 +461,7 @@ class PeriodicTableDialog(QDialog):
 
         self._isotope_all.toggled.connect(self._refresh_isotope_button)
         self._selected_atom: tuple[str, int] | None = None
+        self._isotope_selection_element: str | None = None
         self._refresh_isotope_button()
         return container
 
@@ -461,6 +475,20 @@ class PeriodicTableDialog(QDialog):
         """
         self._selected_atom = (symbol, index) if symbol else None
         self._refresh_isotope_button()
+
+    def isotope_for_placement(self) -> int | None:
+        """The mass number a newly placed atom should carry, or None.
+
+        **ONLY when the highlighted row belongs to the element being
+        shown.** The Isotopes tab keeps its selection while the grid moves
+        on, so without this a carbon-13 row left selected would follow the
+        user to oxygen and place O-13. That is the same
+        element-must-match rule `_refresh_isotope_button` enforces for the
+        write path, asked of the placement path.
+        """
+        if self._isotope_selection_element != self._selected:
+            return None
+        return self.selected_isotope()
 
     def selected_isotope(self) -> int | None:
         """The mass number of the highlighted row, or None."""
@@ -508,6 +536,11 @@ class PeriodicTableDialog(QDialog):
         scope = f"every {symbol}" if self._isotope_all.isChecked() else "the selected atom"
         self._isotope_hint.setText(f"Will apply {symbol}-{mass_number} to {scope}.")
 
+    def _rearm_from_isotope(self) -> None:
+        mass_number = self.isotope_for_placement()
+        if mass_number is not None:
+            self.element_armed.emit(self._selected, mass_number)
+
     def _request_isotope(self, _checked: bool = False) -> None:
         """**THE ELEMENT COMES FROM THE SELECTED ATOM, not from this
         table.** Somebody can be reading carbon's isotopes with an oxygen
@@ -524,6 +557,9 @@ class PeriodicTableDialog(QDialog):
     def _refresh_isotopes(self) -> None:
         table = self._isotope_table
         table.clearContents()
+        # Which element the rows now describe. `selected_isotope()` reads
+        # a row index and cannot tell whose table it came from.
+        self._isotope_selection_element = self._selected
         found = nuclide_data.isotope_order(nuclide_data.nuclides_for(self._selected))
         table.setRowCount(len(found))
         for row, entry in enumerate(found):
@@ -741,7 +777,7 @@ class PeriodicTableDialog(QDialog):
         nuclide = None if self._decay_focus is None else nuclide_data.nuclide(*self._decay_focus)
         if nuclide is None:
             return
-        self.insert_requested.emit(nuclide.symbol)
+        self.insert_requested.emit(nuclide.symbol, 0)
         self.nuclide_insert_requested.emit(nuclide.symbol, nuclide.a)
 
     # --- colour modes -------------------------------------------------------
@@ -869,9 +905,23 @@ class PeriodicTableDialog(QDialog):
         self._diagram.set_element(symbol, charge=0)
 
     def _on_cell_clicked(self, _checked: bool = False) -> None:
+        """Select the element AND arm the canvas with it.
+
+        **Reported as "having to click Insert into drawing isn't ideal --
+        it should be two clicks: click the element, then place it."** So
+        the click both shows the facts and arms the tool; the second click
+        lands on the canvas.
+
+        The cost, which the status line exists to mitigate: browsing to
+        read about an element leaves the canvas primed with it, and the
+        next canvas click deposits one.
+        """
         button = self.sender()
-        if button is not None:
-            self.select(button.property(_SYMBOL_PROPERTY))
+        if button is None:
+            return
+        symbol = button.property(_SYMBOL_PROPERTY)
+        self.select(symbol)
+        self.element_armed.emit(symbol, self.isotope_for_placement() or 0)
 
     def _copy_symbol(self) -> None:
         if self._selected:
@@ -885,7 +935,9 @@ class PeriodicTableDialog(QDialog):
         non-modal precisely so it can be read while working.
         """
         if self._selected:
-            self.insert_requested.emit(self._selected)
+            self.insert_requested.emit(
+                self._selected, self.isotope_for_placement() or 0
+            )
 
 
 def _escape_html(text: str) -> str:

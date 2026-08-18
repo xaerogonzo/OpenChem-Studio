@@ -555,7 +555,7 @@ class KetcherEditorBackend(EditorBackend):
         """
         self._page.runJavaScript(script)
 
-    def set_atom_tool(self, symbol: str) -> None:
+    def set_atom_tool(self, symbol: str, mass_number: int | None = None) -> None:
         """Arm Ketcher to draw `symbol` on the next canvas click.
 
         `ketcher.editor.tool(name, options)` is a real public method on the
@@ -577,14 +577,35 @@ class KetcherEditorBackend(EditorBackend):
         gesture. Replayed a second later it would leave the canvas primed
         with an element the user has stopped thinking about, and the next
         click anywhere would deposit it.
+
+        **`mass_number` IS OMITTED, NEVER SENT AS ZERO.** Measured against
+        the real bundle, the tool keeps whatever `atomProps` it is given:
+
+            tool('atom', {label: 'C', isotope: 13})  ->  {label, isotope}
+            tool('atom', {label: 'C'})               ->  {label}
+
+        so an ordinary element arms with exactly today's payload and
+        cannot acquire an isotope of 0, which Ketcher would have to
+        interpret.
+
+        **THE TOOL STAYS ARMED AFTER A PLACEMENT**, which is Ketcher's own
+        behaviour rather than anything added here -- `editor.tool()` still
+        reports the atom tool afterwards, so a second click places a
+        second atom. Preserved deliberately: the editor's own element
+        buttons work that way, and two gestures that look identical
+        should not behave differently.
         """
         if not self._ketcher_ready:
             logger.debug("Dropping atom tool %r -- Ketcher is not ready", symbol)
             return
+        atom_props: dict[str, object] = {"label": symbol}
+        if mass_number is not None:
+            atom_props["isotope"] = int(mass_number)
+        props = json.dumps(atom_props)
         script = f"""
         (function() {{
           try {{
-            window.ketcher.editor.tool('atom', {{ label: {json.dumps(symbol)} }});
+            window.ketcher.editor.tool('atom', {props});
           }} catch (e) {{
             console.warn('[ketcher-host] could not arm the atom tool: ' + e);
           }}

@@ -161,11 +161,12 @@ class MoleculeEditorWidget(QWidget):
         reaching past this widget into `_backend` directly."""
         self._backend.set_render_option(name, value)
 
-    def set_atom_tool(self, symbol: str) -> None:
+    def set_atom_tool(self, symbol: str, mass_number: int | None = None) -> None:
         """Arm the canvas to draw `symbol` on the next click -- what the
-        application's periodic table does with "Insert into drawing". See
-        `EditorBackend.set_atom_tool` for why it arms rather than places."""
-        self._backend.set_atom_tool(symbol)
+        application's periodic table does with a chosen element, and with
+        a chosen isotope. See `EditorBackend.set_atom_tool` for why it
+        arms rather than places."""
+        self._backend.set_atom_tool(symbol, mass_number)
 
     def trigger_toolbar_action(self, test_id: str) -> None:
         """Proxies to one of Ketcher's own real toolbar buttons (e.g. "Add/

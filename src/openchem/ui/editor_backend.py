@@ -152,8 +152,15 @@ class EditorBackend(QObject):
         whether entering worked.
         """
 
-    def set_atom_tool(self, symbol: str) -> None:
+    def set_atom_tool(self, symbol: str, mass_number: int | None = None) -> None:
         """Arm the editor to draw `symbol` on the next canvas click.
+
+        `mass_number` labels what gets placed, so picking C-13 in the
+        periodic table and clicking the canvas deposits carbon-13 rather
+        than carbon. **Reported as "I can place carbon 13, but it's just
+        CH4, there's no 13"** -- and the cause was not rendering, which
+        works: this method armed a BARE element and the mass number was
+        never part of the gesture at all.
 
         The same gesture the engine's own periodic table performs -- pick
         an element, then click where it goes -- exposed so the

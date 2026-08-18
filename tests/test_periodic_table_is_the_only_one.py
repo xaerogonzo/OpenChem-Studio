@@ -42,7 +42,7 @@ def dialog(qapp):
 def test_insert_asks_for_the_selected_element(dialog):
     dialog.select("Na")
     seen: list[str] = []
-    dialog.insert_requested.connect(seen.append)
+    dialog.insert_requested.connect(lambda symbol, mass: seen.append(symbol))
 
     dialog._insert_button.click()
 
@@ -54,7 +54,7 @@ def test_insert_follows_the_selection_rather_than_the_first_click(dialog):
     kind of wrong -- the canvas gets an atom, just not the one asked
     for. Two selections, so a handler pinned to the first fails."""
     seen: list[str] = []
-    dialog.insert_requested.connect(seen.append)
+    dialog.insert_requested.connect(lambda symbol, mass: seen.append(symbol))
 
     dialog.select("Na")
     dialog._insert_button.click()
@@ -553,7 +553,7 @@ def test_a_nuclide_can_be_sent_to_the_canvas(dialog):
     decay product is an element with a mass number, which is exactly what
     a molfile can express."""
     elements, nuclides = [], []
-    dialog.insert_requested.connect(elements.append)
+    dialog.insert_requested.connect(lambda symbol, mass: elements.append(symbol))
     dialog.nuclide_insert_requested.connect(lambda s, a: nuclides.append((s, a)))
     dialog.select("U")
 
@@ -731,3 +731,88 @@ def test_the_opening_size_is_capped_against_the_screen(hint, screen, expected):
     shows, so it passed on Qt's pre-show default and could not fail.
     """
     assert fit_within(*hint, *screen) == expected
+
+
+# --- P1: clicking an element arms the canvas -------------------------------
+
+
+def test_clicking_a_cell_arms_the_canvas(dialog):
+    """**"it should be two clicks: click the element, then place it."**"""
+    armed = []
+    dialog.element_armed.connect(lambda symbol, mass: armed.append((symbol, mass)))
+
+    dialog._buttons["Na"].click()
+
+    assert armed == [("Na", 0)]
+    assert dialog.selected_symbol() == "Na"
+
+
+def test_a_chosen_isotope_rides_along(dialog):
+    """Picking C-13 and clicking the canvas must place carbon-13."""
+    armed = []
+    dialog.element_armed.connect(lambda symbol, mass: armed.append((symbol, mass)))
+    dialog.select("C")
+    dialog._isotope_table.selectRow(1)
+
+    assert dialog.isotope_for_placement() == 13
+    assert armed and armed[-1] == ("C", 13)
+
+
+def test_an_isotope_row_does_not_follow_you_to_another_element(dialog):
+    """A carbon-13 row left highlighted must not place O-13 when somebody
+    clicks oxygen -- a real nuclide, and not the one they asked for.
+
+    **AND TODAY THAT IS PROTECTED BY A SIDE EFFECT, WHICH IS WHY THE
+    GUARD BELOW ASSERTS THE PREDICATE DIRECTLY.** Measured: `select()`
+    repopulates the isotope table, which drops the row selection, and it
+    updates `_isotope_selection_element` in the same call -- so the two
+    can never disagree through this route and the element check cannot
+    fire. A mutation deleting it survived this test, correctly.
+    """
+    dialog.select("C")
+    dialog._isotope_table.selectRow(1)
+    assert dialog.isotope_for_placement() == 13
+
+    dialog.select("O")
+
+    assert dialog.isotope_for_placement() is None
+    assert dialog.selected_isotope() is None, (
+        "the row selection is dropped by the refresh, which is what makes "
+        "the element check unreachable from here"
+    )
+
+
+def test_the_element_check_refuses_a_stale_isotope_row(dialog):
+    """The element check, asserted where it can actually fail.
+
+    **AN UNREACHABLE BRANCH IS A QUESTION ABOUT WHERE TO ASSERT**, not
+    automatically dead code: `isotope_for_placement`'s contract is "the
+    mass number for the element being SHOWN", which is meaningful on its
+    own terms, and what protects it today is an incidental side effect of
+    repopulating a table. The day somebody preserves the row selection
+    across a refresh -- a perfectly reasonable thing to want -- this
+    becomes the only thing standing between a carbon-13 row and an O-13
+    atom.
+    """
+    dialog.select("C")
+    dialog._isotope_table.selectRow(1)
+    assert dialog.isotope_for_placement() == 13
+
+    # The disagreement the UI cannot currently produce.
+    dialog._isotope_selection_element = "O"
+
+    assert dialog.selected_isotope() == 13, "the row is still selected"
+    assert dialog.isotope_for_placement() is None
+
+
+def test_the_insert_button_carries_the_isotope_too(dialog):
+    """The button is the other door to the same call, and Alex hit the
+    bug through it."""
+    asked = []
+    dialog.insert_requested.connect(lambda symbol, mass: asked.append((symbol, mass)))
+    dialog.select("C")
+    dialog._isotope_table.selectRow(1)
+
+    dialog._insert_symbol()
+
+    assert asked == [("C", 13)]

@@ -48,7 +48,7 @@ class _RecordingEditorBackend(EditorBackend):
     def trigger_toolbar_action(self, action_id):
         self.toolbar_action_calls.append(action_id)
 
-    def set_atom_tool(self, symbol):
+    def set_atom_tool(self, symbol, mass_number=None):
         self.atom_tool_calls.append(symbol)
 
     def widget(self):

@@ -2422,6 +2422,7 @@ class MainWindow(QMainWindow):
         if existing is None:
             existing = PeriodicTableDialog(self)
             existing.insert_requested.connect(self._insert_element_into_drawing)
+            existing.element_armed.connect(self._arm_element)
             existing.isotope_requested.connect(self._apply_isotope)
             existing.nuclide_insert_requested.connect(self._insert_nuclide_into_drawing)
             self._periodic_table_dialog = existing
@@ -2706,7 +2707,7 @@ class MainWindow(QMainWindow):
             message = f"{message[:-1]} -- and {command.stereo.describe()}."
         self.statusBar().showMessage(message, 10000)
 
-    def _insert_element_into_drawing(self, symbol: str) -> None:
+    def _insert_element_into_drawing(self, symbol: str, mass_number: int = 0) -> None:
         """Arm the 2D editor with an element chosen in the periodic table.
 
         Routed through the window rather than handing the dialog an editor
@@ -2718,9 +2719,32 @@ class MainWindow(QMainWindow):
         user cannot see is the same navigation-claims-one-thing-screen-
         shows-another problem the panel rail already exists to avoid --
         they would click the visible tab expecting an atom and get nothing.
+        This is the deliberate BUTTON; `_arm_element` is the browse click,
+        and it does not reveal.
         """
-        self._editor.set_atom_tool(symbol)
+        self._arm_element(symbol, mass_number)
         self._center_tabs.setCurrentWidget(self._editor)
+
+    def _arm_element(self, symbol: str, mass_number: int = 0) -> None:
+        """Prime the canvas, and SAY SO.
+
+        **Arming is invisible**, which is the cost of a click that both
+        browses and arms: reading about iron leaves the canvas primed with
+        iron, and the next canvas click deposits one. The status line is
+        the mitigation, and it is worded to distinguish the two states --
+        "ready to place" is about the canvas, where the element being
+        SHOWN is about the table.
+
+        `mass_number` is 0 for none, because a Qt signal cannot carry None
+        and a real mass number is always at least 1.
+        """
+        chosen = mass_number or None
+        self._editor.set_atom_tool(symbol, chosen)
+        label = f"{chosen}{symbol}" if chosen else symbol
+        self.statusBar().showMessage(
+            f"Ready to place: {label} \u2014 click the 2D editor to put one down.",
+            6000,
+        )
 
     def _show_isotopes_for_selection(self, _checked: bool = False) -> None:
         """Open the periodic table on the Isotopes tab for the selected atom.
