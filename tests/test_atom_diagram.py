@@ -514,3 +514,103 @@ def test_the_shell_diagram_really_draws_a_nucleus_for_a_synthetic_element(qapp, 
         "a neutron count was drawn for an element that has none"
     )
     _dispose(widget)
+
+
+#: Pixels of clear space required between two electrons on one ring.
+#: Under the shipped worst case (uranium's N shell, 3.8 px) and well
+#: over what a fixed-radius dot leaves there (0.5 px).
+_MIN_ELECTRON_CLEARANCE = 2.0
+
+
+# --- A5: a 32-electron shell must not draw as a solid band ------------------
+#
+# THREE DENSITY REGIMES, not "a heavy element". Hydrogen has one dot on
+# one ring, bromine peaks at 18, and uranium at 32 across seven rings.
+# One case cannot show that a scaling rule is a rule -- it can only show
+# that a constant happened to suit it.
+
+import pytest
+
+
+@pytest.mark.parametrize("symbol", ["H", "Br", "Po", "U"])
+def test_electrons_never_touch_on_any_ring(qapp, symbol):
+    """Measured at the widget's OWN MINIMUM SIZE, which is the worst case.
+
+    A fixed 5 px radius left uranium's N shell with 0.5 px between dots --
+    touching, which is what "the rings read as a solid band" means. The
+    check is on the arc each electron has to itself, because that is what
+    decides whether two of them meet: a big ring with many electrons can
+    be roomier than a small ring with few.
+    """
+    import math
+
+    from openchem.chem.electron_shells import neutral_configuration
+    from openchem.ui.widgets.atom_diagram import electron_radius
+
+    shells = neutral_configuration(symbol).shells()
+    span = 220 / 2 - 16  # ShellDiagram's minimum size, less its margin
+    rings = len(shells)
+
+    for index, (_, electrons) in enumerate(sorted(shells.items()), start=1):
+        radius = span * index / rings
+        arc = 2 * math.pi * radius / electrons
+        gap = arc - 2 * electron_radius(radius, electrons)
+        # **A REAL GAP, not merely "not overlapping".** A fixed 5 px dot
+        # leaves uranium's N shell 0.5 px of daylight, which satisfies
+        # `2r < arc` and reads on screen as a solid band -- measured, that
+        # mutation survived this test until the bound was a clearance
+        # rather than an inequality. The shipped worst case is 3.8 px.
+        assert gap >= _MIN_ELECTRON_CLEARANCE, (
+            f"{symbol} shell {index}: {electrons} electrons at r={radius:.1f} "
+            f"leave only {gap:.1f} px between them"
+        )
+
+
+def test_a_crowded_ring_gets_smaller_dots_than_an_empty_one(qapp):
+    """The control for the test above, which a constant would also pass
+    if the constant were merely small enough."""
+    from openchem.ui.widgets.atom_diagram import (
+        MAX_ELECTRON_RADIUS,
+        electron_radius,
+    )
+
+    assert electron_radius(60.0, 32) < electron_radius(60.0, 8)
+    assert electron_radius(60.0, 2) == MAX_ELECTRON_RADIUS
+
+
+@pytest.mark.parametrize("symbol", ["H", "Br", "U"])
+def test_every_shell_count_is_drawn(qapp, monkeypatch, symbol):
+    """**NEVER SKIPPED**, which the first version was not.
+
+    It dropped any label whose gap fell inside the nucleus disc -- the
+    innermost shell of every element -- silently, in the one branch of
+    this codebase written against silent omissions. A ring with no room
+    inside it is labelled just outside instead.
+    """
+    from openchem.chem.electron_shells import neutral_configuration, nucleus
+
+    shells = neutral_configuration(symbol).shells()
+    widget = ShellDiagram()
+    widget.resize(300, 300)
+    widget.set_atom(shells, nucleus(symbol))
+
+    drawn = _labels_drawn_by(widget, monkeypatch)
+
+    for electrons in shells.values():
+        assert str(electrons) in drawn, f"{symbol}: shell of {electrons} went unlabelled"
+    _dispose(widget)
+
+
+def test_the_ring_counts_are_the_shell_occupancies_and_not_something_else(qapp, monkeypatch):
+    """Uranium is 2, 8, 18, 32, 21, 9, 2 -- a set distinctive enough that
+    drawing the wrong quantity (shell numbers, say) cannot coincide."""
+    from openchem.chem.electron_shells import neutral_configuration, nucleus
+
+    widget = ShellDiagram()
+    widget.resize(300, 300)
+    widget.set_atom(neutral_configuration("U").shells(), nucleus("U"))
+
+    drawn = _labels_drawn_by(widget, monkeypatch)
+
+    assert {"2", "8", "18", "32", "21", "9"} <= set(drawn)
+    _dispose(widget)

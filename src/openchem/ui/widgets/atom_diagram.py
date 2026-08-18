@@ -47,12 +47,48 @@ logger = logging.getLogger(__name__)
 _NUCLEUS_COLOUR = QColor("#e8546b")
 _ELECTRON_COLOUR = QColor("#3aa0e0")
 _RING_COLOUR = QColor("#7a7a7a")
+_RING_LABEL_COLOUR = QColor("#4a4a4a")
+
+#: The nucleus disc, and how far apart the ring counts fan, in radians.
+_NUCLEUS_RADIUS = 26.0
+_RING_LABEL_FAN = 0.30
 _BOX_COLOUR = QColor("#444444")
 _MUTED = "color: #666666;"
 
 
+#: An electron dot, in pixels: never bigger than this, never smaller, and
+#: in between it is a fraction of the arc each electron has to itself.
+MAX_ELECTRON_RADIUS = 5.0
+MIN_ELECTRON_RADIUS = 1.8
+ELECTRON_ARC_FRACTION = 0.32
+
+
+def electron_radius(ring_radius: float, electrons: int) -> float:
+    """How big to draw one electron on a ring holding `electrons` of them.
+
+    **A 32-ELECTRON SHELL DREW AS A SOLID BAND**, which is what polonium
+    looked like in the report behind this: seven rings of touching dots
+    with no nucleus in the middle. At the widget's own minimum size the
+    N shell gives each electron about 12 px of arc, and a fixed 5 px
+    radius is a 10 px dot in it.
+
+    Scaled against the arc rather than against the electron count, because
+    it is the SPACING that decides whether two dots touch -- a big ring
+    with many electrons can be roomier than a small ring with few.
+    """
+    if electrons <= 0:
+        return MAX_ELECTRON_RADIUS
+    arc = 2 * math.pi * ring_radius / electrons
+    return max(MIN_ELECTRON_RADIUS, min(MAX_ELECTRON_RADIUS, ELECTRON_ARC_FRACTION * arc))
+
+
 class ShellDiagram(QWidget):
-    """Nucleus with proton/neutron counts, electrons on their shells."""
+    """Nucleus with proton/neutron counts, electrons on their shells.
+
+    Each ring carries its own electron count, which is the number anybody
+    reads this drawing for and the only thing still legible once a shell
+    holds 32 of them.
+    """
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -66,6 +102,41 @@ class ShellDiagram(QWidget):
         self._nucleus = centre
         self.update()
 
+    def _draw_ring_count(
+        self,
+        painter: QPainter,
+        centre: QPointF,
+        span: float,
+        rings: int,
+        index: int,
+        electrons: int,
+    ) -> None:
+        """One ring's electron count, in the empty annulus beside it.
+
+        **NEVER SKIPPED.** The first version dropped any label whose gap
+        fell inside the nucleus disc, which is the innermost shell of
+        every element -- a silent omission, in the one branch of this
+        codebase written against silent omissions. A ring with no room
+        inside it is labelled just OUTSIDE instead.
+        """
+        radius = span * index / rings
+        previous = span * (index - 1) / rings
+        inset = min(9.0, max(4.0, (radius - previous) / 2))
+        label_radius = radius - inset
+        if label_radius <= _NUCLEUS_RADIUS + 6:
+            # Outside the ring instead -- and clear of the nucleus even
+            # then, which uranium needs: its K shell sits at r=13, so
+            # `radius + inset` is still under the disc.
+            label_radius = max(radius + inset, _NUCLEUS_RADIUS + 16)
+        # Fanned across the left, centred on due-left.
+        bearing = math.pi - (index - (rings + 1) / 2) * _RING_LABEL_FAN
+        x = centre.x() + label_radius * math.cos(bearing)
+        y = centre.y() + label_radius * math.sin(bearing)
+        box = QRectF(x - 11, y - 6, 22, 12)
+        # A backing patch, because a fanned label can cross a ring line.
+        painter.fillRect(box, self.palette().base())
+        painter.drawText(box, Qt.AlignmentFlag.AlignCenter, str(electrons))
+
     def paintEvent(self, _event) -> None:  # noqa: N802 - Qt override naming
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -76,12 +147,17 @@ class ShellDiagram(QWidget):
         span = min(self.width(), self.height()) / 2 - 16
         count = max(1, len(self._shells))
 
+        label_font = QFont(painter.font())
+        label_font.setPointSizeF(max(6.5, label_font.pointSizeF() - 2))
+
         for index, (shell, electrons) in enumerate(sorted(self._shells.items()), start=1):
             radius = span * index / count
+            painter.setFont(painter.font())
             painter.setPen(QPen(_RING_COLOUR, 1))
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawEllipse(centre, radius, radius)
 
+            dot = electron_radius(radius, electrons)
             painter.setBrush(_ELECTRON_COLOUR)
             painter.setPen(QPen(_ELECTRON_COLOUR.darker(130), 1))
             for slot in range(electrons):
@@ -93,13 +169,28 @@ class ShellDiagram(QWidget):
                     centre.x() + radius * math.cos(angle),
                     centre.y() + radius * math.sin(angle),
                 )
-                painter.drawEllipse(point, 5, 5)
+                painter.drawEllipse(point, dot, dot)
+
+            # **THE COUNT GOES IN THE GAP BESIDE ITS OWN RING**, where no
+            # electron can be: dots sit exactly ON the rings, so the
+            # annulus between two of them is empty by construction.
+            #
+            # FANNED rather than stacked on one bearing, which the first
+            # version did and a magnified screenshot immediately killed:
+            # polonium's rings are 15 px apart, so six labels at due-left
+            # ran together and "18 32" read as one number. They spread
+            # across the left side now, which buys separation from the
+            # ANGLE where there is none in the radius.
+            painter.setFont(label_font)
+            painter.setPen(QPen(_RING_LABEL_COLOUR))
+            self._draw_ring_count(painter, centre, span, count, index, electrons)
             del shell
 
+        painter.setFont(QFont(painter.font().family()))
         if self._nucleus is not None:
             painter.setBrush(_NUCLEUS_COLOUR)
             painter.setPen(QPen(_NUCLEUS_COLOUR.darker(140), 1))
-            painter.drawEllipse(centre, 26, 26)
+            painter.drawEllipse(centre, _NUCLEUS_RADIUS, _NUCLEUS_RADIUS)
             painter.setPen(QPen(QColor("#ffffff")))
             font = QFont(painter.font())
             font.setPointSizeF(max(7.0, font.pointSizeF() - 1))
