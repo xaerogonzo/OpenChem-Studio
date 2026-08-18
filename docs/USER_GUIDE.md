@@ -214,12 +214,33 @@ over are drawn as a circle labelled with its count:
 | two dots between atoms | a localised bonding pair |
 | a dashed circle, labelled `6 e−` | a ring-delocalised system, and how many electrons are in it |
 | a dashed outline through the atoms, labelled `2 e−` | the same for an open system — a carboxylate, a nitro group |
-| a plain solid line | a connection this analysis declined to represent as electrons |
+| a very faint line under the dots | a **bond guide** — drawn only to show what is joined to what |
+| a darker, heavier line with **no dots on it** | a connection this analysis declined to represent as electrons |
 | `? e−` | the system is real and its electron count was not determined |
 
 **Shape and line style carry the meaning, never colour** — dots, dashes
-and a solid line — so the diagram survives greyscale, printing and a
-screenshot.
+and two weights of line — so the diagram survives greyscale, printing and
+a screenshot.
+
+**Bond guides** are on by default, and the **Bond guides** button turns
+them off for the pure dots-only convention. A Lewis structure replaces
+bond lines with dots, which is correct and, past about twenty atoms,
+unreadable: a 40-atom structure comes out as a cloud with no skeleton in
+it. The guides give the connectivity back and change nothing any dot
+claims. They are drawn underneath, so no electron is ever hidden by one,
+and an abstained bond never gets one — it is the only line in the picture
+with nothing on it, which is how the two are told apart.
+
+**The diagram zooms and scrolls.** `−` and `+` step it, **100%** is the
+drawing's own size, and **Fit** is the largest size at which the whole of
+it fits the window — which for a small molecule is *bigger* than 100%,
+not smaller. The window used to squeeze the whole structure into whatever
+space was left, which is why a large one was hard to read.
+
+**Analysis details** names which of RDKit's two 2D layout engines drew
+it, and the score that chose. Neither engine wins in general: one lays
+cholesterol out sixteen times more clearly, the other wins on morphine,
+so both are tried and the better is kept.
 
 A carboxylate therefore shows two *equivalent* C–O bonds rather than one
 single and one double, and pyrrole shows its ring without claiming a
@@ -1613,6 +1634,28 @@ work, and selecting an element shows:
 - Pauling electronegativity
 - the oxidation states it is commonly found in
 - **its naturally occurring isotopes, with abundances** — ⁵⁶Fe 91.75%, and so on
+- **its melting and boiling points**, where anybody has measured them
+
+The facts and the atom drawing are **separate tabs** under the grid, so
+neither squeezes the other — the facts table used to lose its last rows
+off the bottom.
+
+Above the grid, **Colour by** changes what the cell colours mean. Element
+category is the default; there is also block (s/p/d/f), state at 25 °C
+and 1 bar, and heatmaps over electronegativity, both radii, atomic mass
+and melting point. In a heatmap each cell prints its value as well, and
+an element with no accepted value gets its own swatch rather than the
+bottom of the scale — several elements genuinely have no Pauling
+electronegativity, and fifteen have no measured melting point. The legend
+under the grid always states the property, its range, the scale and the
+units.
+
+One row is worth reading carefully. **Valence states RDKit will fill** is
+not a curated chemistry reference: it is the model the app uses to decide
+implicit hydrogens, and read as chemistry it is inconsistent across a
+group — chlorine and bromine list one state each where iodine lists
+three. The chemistry claim is the **Common oxidation states** row below
+it.
 
 That last one is the part most periodic tables in drawing programs leave out.
 It came free: RDKit's own tables carry the full abundance data, so none of it
@@ -1672,6 +1715,16 @@ chromium", which is true and not what the control is offering.
 **The neutron count belongs to an isotope, not an element**, so it is
 labelled with the isotope it came from — silicon's nucleus is drawn with
 14 neutrons and says "most abundant isotope, ²⁸Si".
+
+An element with **no naturally occurring isotope** — technetium,
+promethium, polonium, astatine and everything from radon upwards except
+thorium and uranium, 34 of the 118 — still gets its protons drawn, and
+the caption says why there is no neutron count beside them. It used to
+draw no nucleus at all and report only the electron count.
+
+Each ring is labelled with how many electrons are on it (uranium reads
+2, 8, 18, 32, 21, 9, 2), which stays readable when a 32-electron shell
+is too dense to count.
 
 ### It says when something is not known
 

@@ -566,6 +566,25 @@ label says what it is.
 document may cite a file or a test that does not exist.
 
 
+- **DECISION** -- A subatomic-particle editor: quark content inside a
+  proton or a neutron, and building other baryons from it. Asked for
+  alongside the nuclear-chemistry work on 2026-08-18, and explicitly as
+  "might be out of scope, but we could at least record it".
+
+  It is out of scope, and **the reason is not checkable by anything**,
+  which is stated plainly rather than dressed up as a predicate: nothing
+  in this application consumes a particle. Every layer below the UI --
+  `chem/`, `domain/`, the calculator registry, the file formats -- is
+  built on atoms as the smallest unit, so a quark editor would be a
+  self-contained toy with no path into a molecule, a property or a
+  report. That is a judgement about product shape, not a measurement, and
+  the day something downstream can read a baryon is the day it changes.
+
+  The nuclear work that IS in scope is a different thing and is not
+  deferred: isotopes, half-lives, decay modes and decay chains all
+  attach to atoms the application already models. See the branch-2 note
+  in the periodic-table entry below.
+
 - **SETTLED** -- Two regressions reported in the running app on
   2026-08-10, at `6c52492`. Both are diagnosed and fixed, and **neither
   was what any of the three recorded leads guessed** -- which is the

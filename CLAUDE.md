@@ -402,7 +402,35 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `4739 passed, 15 skipped`
+A clean run is **6-19 minutes**, ending at `4836 passed, 19 skipped`
+(measured 2026-08-18, **17m56**, on `periodic-table-and-lewis-makeover`
+at the docs commit -- the periodic-table correctness work and the Lewis
+readability work. **+102 collected items and 1 REMOVED**, which is the
+first entry in this list with a removal in it. The abstained-bond test
+asserting it is "the only line in the picture" is false once bond guides
+exist, so it became
+`test_an_abstained_bond_is_the_only_line_when_guides_are_off` and asserts
+the original claim in the configuration where it still holds, rather than
+being weakened until green. Diffed both
+directions with `comm` against a detached worktree at `068208e`, with the
+`PYTHONPATH` override asserted before the count was believed.
+
+    branch point  068208e   COLLECTS 4754
+    after                   COLLECTS 4855   = 4754 - 1 + 102
+    the run                          4836 passed + 19 skipped = 4855
+
+**THE SKIPS WENT 15 -> 19 AND IT IS THE GPU, NOT A COVERAGE HOLE.** None
+of the 102 new tests skips, and none of the seven touched files does
+either -- measured, 266 passed and 0 skipped across them. Every subset
+run of the skip-capable files gives **15**. The full run's log carries
+`Failed to make current since context is marked as lost` from Chromium
+partway through, after which the `webgl` fixture measures no context and
+correctly skips naming the absent prerequisite rather than failing and
+blaming the code. That is the fixture doing its job; treat 15 as the
+deterministic figure and up to 19 as what an 18-minute run costs a GPU
+context.
+
+Before it: `4739 passed, 15 skipped`
 (measured 2026-08-17, **15m22**, on master at `8c0c257` + the CIP
 staleness fix. **+19 collected items and +19 test FUNCTIONS**, so for once
 the two deltas agree: 9 in `test_ketcher_editor_backend.py` against the
@@ -5356,6 +5384,188 @@ exists to prevent, installed in its own foundation.
 **`local` NAMES A PDF AND IS NEVER CHECKED.** `Sci Downloads` is not in the
 repository, so no run can resolve it. That is an admitted gap rather than an
 oversight: a check that cannot run is worse than a stated limit.
+
+## A PANEL THAT DREW TWO THIRDS OF AN ANSWER AND SAID NOTHING
+
+Reported as "our periodic table is rather unreliable", with polonium and
+bismuth as the screenshots. The sharp one:
+`OrbitalBoxes.paintEvent` packed rows against `self.height()` and
+
+    if y + row_height > self.height():
+        break
+
+so polonium's panel stopped at `5s`. `5p6 5d10 6s2 6p4` -- **22 of its 84
+electrons** -- were not drawn, while the line directly above printed the
+full `[Xe] 4f14 5d10 6s2 6p4`. Measured against the shipped geometry: Po
+needs 160 px at width 420 and the old panel had about 130, which leaves
+exactly the 4 subshells the screenshot is missing.
+
+**THE STRING AND THE PICTURE DISAGREED AND THE PICTURE LOST QUIETLY**,
+which is the worst way for a reference table to be wrong -- and the suite
+was green throughout, because
+`test_the_boxes_draw_more_for_more_subshells` compares two SMALL elements
+and both of them fit. The population is the whole test: the defect only
+exists once a configuration is taller than its widget, which begins
+around period 5.
+
+### The scroll-area contract, which is the THIRD time this flag has bitten
+
+`heightForWidth` + `setWidgetResizable(True)` is two mechanisms fighting:
+the scroll area tells the child to fit the viewport while height-for-width
+says the natural height follows from the width. `WrappedLabel` starving a
+panel and a style change re-arming the flag through `changeEvent` are the
+first two. So:
+
+    _layout_rows(width)   the one authority on where anything goes
+    _draw_rows(...)       draws ALL of them, no truncation branch
+    the widget is told its WIDTH and answers with a minimum HEIGHT
+    the QScrollArea grants it and scrolls the excess
+
+**AND THE INVARIANT IS SELF-RESTORING, which took two attempts to
+discover.** `resize()` is clamped to the widget's own minimum; dropping
+the minimum first does not help either, because delivering the resize
+runs `resizeEvent`, which puts it straight back and Qt grows the widget
+again -- `grab()` on a widget resized to 120 returned a 256 px image. So
+the diagnostic banner is unreachable through the public API, and
+exercising it needs a subclass modelling the one thing that could cause
+it. A restored truncation branch SURVIVED both earlier attempts.
+
+**`QPainter` METHODS *ARE* MONKEYPATCHABLE UNDER PySide6**, which is
+worth knowing because the opposite is the natural assumption and it would
+have cost a rewrite. `monkeypatch.setattr(QPainter, "drawText", spy)`
+works, and `grab()` paints the WHOLE widget rather than an exposed
+viewport rect -- which is what lets a deliberately short widget be the
+setup rather than the obstacle.
+
+### The other three, and 34 elements with no nucleus at all
+
+- **`nucleus()` raised for any element with no naturally occurring
+  isotope**, so `ShellDiagram` drew nothing at all and the caption fell
+  to a bare "Electrons: 84". Measured: 34 of 118 -- Tc, Pm, Po, At and
+  everything from Rn up except Th and U. Refusing to invent a neutron
+  count was right; refusing to draw the protons was the bug. **The two
+  refusals must not merge**: `nucleus("Si", mass_number=99)` still
+  raises, `nucleus("Po")` returns a proton-only nucleus.
+- **"Typical valences" was RDKit's implicit-H model wearing a chemistry
+  label.** `GetValenceList` gives Cl [1], Br [1], I [1, 3, 5] -- so the
+  table said bromine has one typical valence and iodine three, when both
+  do 1/3/5/7. Relabelled, not removed: the app's own valence checker acts
+  on the same list.
+- **A 32-electron shell drew as a solid band.** A fixed 5 px dot leaves
+  uranium's N shell 0.5 px between electrons. Scaled against the ARC each
+  electron has to itself, the shipped worst case is 3.8 px.
+
+## THE CRC OVERTURNED THE REASON IT WAS OPENED
+
+The plan for the oxidation-state review said bromine was missing +3 and
++7, "which makes it inconsistent with chlorine in the same group". Read
+off the CRC Handbook 97th ed. page 2639 -- rendered at 10x, because the
+poster is rotated 90 degrees and its text layer interleaves neighbouring
+cells:
+
+    F   -1
+    Cl  +1 +5 +7 -1        <- no +3
+    Br  +1 +5 -1           <- no +3, no +7
+    I   +1 +5 +7 -1
+    At  (none listed)
+
+**Bromine matches the CRC exactly.** The group asymmetry is the source's
+own. What differs is CHLORINE, where this project ships a +3 the CRC does
+not -- and ClF3 and the chlorites are real, so that is the CRC being
+conservative rather than this project being wrong. Nothing was changed;
+what was added is the record of how the two relate.
+
+**AN AUTOMATED EXTRACTION WAS ABANDONED, and its acceptance checks are
+why that was safe.** Two positional passes over that poster each produced
+113 plausible rows with every element carrying its NEIGHBOUR's states, in
+two different directions. A count alone would have accepted both. The
+melting-point table (4-116..4-118) extracted cleanly by the same method
+once the columns were understood -- they are right-aligned, so values sit
+LEFT of their headers, and binning against the headers gave 2 rows of
+100.
+
+## A BETTER LAYOUT ENGINE THAT IS WORSE ON THE REPORTED MOLECULE
+
+`rdCoordGen` is the obvious replacement for `AllChem.Compute2DCoords`.
+Closest non-bonded approach in bond lengths, higher is better:
+
+    methane      1.414 -> 1.000   coordgen worse
+    caffeine     1.177 -> 1.000   coordgen worse
+    glucose      0.524 -> 0.805   coordgen better
+    morphine     0.303 -> 0.186   coordgen worse
+    cholesterol  0.036 -> 0.565   coordgen better, sixteenfold
+
+**Morphine is essentially the structure the Lewis bug was reported for**,
+and it is one CoordGen loses. Both are deterministic and together cost
+about 20 ms on the largest case, so `lewis_builder` lays out with both
+and keeps the better -- which cannot regress *according to the measured
+metric*, a weaker and more honest claim than "cannot regress".
+
+**WHICH TERM LEADS THE SCORE WAS CHOSEN ON A DESIGN SET AND FROZEN.**
+`benchmarks/lewis_layout/choose.py` declares its criteria before running,
+splits 42 molecules alphabetically before anything is scored, fixes the
+ordering on one half and evaluates it on the other:
+
+    A (-crossings, crowding)   design 19/21 not worse   rejected
+    B (crowding, -crossings)   design 21/21             holdout 21/21,
+                                                        8 strictly better
+
+**Clearance leads, which is not the intuitive answer** -- crossings-first
+makes two of twenty-one design molecules worse on clearance to remove a
+crossing.
+
+**AND THE CHOOSER MOVED AN EXISTING FIXTURE.**
+`test_crowding_is_a_LEGIBILITY_number_and_not_a_refusal` used glucose as
+its crowded case; glucose now measures
+0.805 and is on the roomy side of `CROWDED_APPROACH`. Morphine replaces
+it, being one CoordGen loses, so it stays crowded whichever engine wins.
+
+## THE MUTATION STEP EARNED ITS KEEP SEVEN TIMES IN ONE BRANCH
+
+Of about forty mutations run across this work, seven found a guard that
+was testing nothing, and every one of those was the TEST being wrong
+rather than the code:
+
+- **a vacuous fixture.** An unshown `OrbitalBoxes` is 640x480, where
+  polonium needs 112 px -- under the 120 px placeholder floor. So
+  `minimumHeight() >= required_height()` held on a widget that had
+  computed nothing.
+- **a fixture the fix healed.** The rendered guard resized to
+  `minimumHeight()` before grabbing, so every row fitted and the branch
+  under test was never reached.
+- **asking the wrong object.** A scroll-area guard checked
+  `boxes_scroll.widget() is boxes`, which stays true when the scroll area
+  is built and never added to a layout.
+- **a bound that was not a bound.** "Electrons never touch" written as
+  `2 * radius < arc` is satisfied by a fixed 5 px dot on uranium's N
+  shell by 0.5 px -- not overlapping, and a solid band on screen. It is a
+  CLEARANCE now.
+- **a declared range that clipped a real element.** Helium's covalent
+  radius is 0.28 against a floor declared at 0.30. Checking a declared
+  range against the shipped data is what keeps "declared" from meaning
+  "invented".
+- **a redundant branch that double-counted.** `_segments_cross` also
+  tested collinear overlap; removing it changed no test and no benchmark
+  number, because two overlapping collinear segments must put an endpoint
+  of one inside the other, which the atom pass already counts.
+- **a claim whose wording had to change.** The abstained-bond test
+  asserting it is "the only line in the picture" is false once guides
+  exist. Renamed to "...when guides are off", asserting the original
+  claim in the configuration where it still holds, rather than weakened
+  until green.
+
+## AND TWO DEFECTS ONLY THE MAGNIFIED SHOT FOUND
+
+Both with the whole file green, which is now the eighth and ninth entries
+in this file's running count of that:
+
+- **the ring counts collided.** Polonium's rings are 15 px apart, so six
+  labels stacked on one bearing ran together and "18 32" read as "1832".
+  They fan across the left side now, buying separation from the ANGLE
+  where the radius has none.
+- **a label whose gap fell inside the nucleus disc was SKIPPED**,
+  silently -- the innermost shell of every element, in the one branch of
+  this codebase written against silent omissions.
 
 ## Verification standard
 

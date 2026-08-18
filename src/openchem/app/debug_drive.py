@@ -331,6 +331,11 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no details dialog open; run {'do': 'details'}")
                 return
             target = self._details
+        elif step.get("widget") == "periodic":
+            if getattr(self, "_periodic", None) is None:
+                logger.error("OPENCHEM_DRIVE: no periodic table open; run {'do': 'periodic'}")
+                return
+            target = self._periodic
         elif step.get("widget") == "spatial":
             if getattr(self, "_spatial", None) is None:
                 logger.error("OPENCHEM_DRIVE: no spatial dialog open; run {'do': 'spatial'}")
@@ -338,6 +343,56 @@ class _Driver(QObject):
             target = self._spatial
         target.grab().save(str(path))
         logger.warning("OPENCHEM_DRIVE: wrote %s", path)
+
+    def _do_periodic(self, step: dict[str, Any]) -> None:
+        """Open the periodic table, and optionally choose an element and mode.
+
+        `{"do": "periodic", "element": "Po", "colour": "state", "tab": 1}`
+
+        **`show()`, not `exec()`**, for the reason `_do_lewis` gives -- and
+        here it costs nothing, because the dialog is non-modal in the
+        application too. This drives the SAME window a user gets from
+        Tools or from the editor's own PT button, which is the point: the
+        panel suite has stayed green through three visibly broken layouts
+        in this project, and every finding that matters about this table
+        came from a magnified screenshot rather than a test.
+        """
+        from openchem.chem import element_palettes as palettes
+
+        window = self._window
+        window._show_periodic_table()
+        dialog = getattr(window, "_periodic_table_dialog", None)
+        if dialog is None:  # pragma: no cover - defensive
+            logger.error("OPENCHEM_DRIVE: the periodic table did not open")
+            return
+        self._periodic = dialog
+
+        colour = step.get("colour")
+        if colour is not None:
+            if colour not in palettes.PALETTE_ORDER:
+                logger.error(
+                    "OPENCHEM_DRIVE: unknown colour mode %r; have %s",
+                    colour,
+                    ", ".join(palettes.PALETTE_ORDER),
+                )
+            else:
+                dialog._palette_combo.setCurrentIndex(
+                    palettes.PALETTE_ORDER.index(colour)
+                )
+        if step.get("element"):
+            dialog.select(str(step["element"]))
+        if step.get("tab") is not None:
+            dialog._tabs.setCurrentIndex(int(step["tab"]))
+        if step.get("width") or step.get("height"):
+            dialog.resize(int(step.get("width", 1000)), int(step.get("height", 860)))
+
+        logger.warning(
+            "OPENCHEM_DRIVE: periodic %s -- colour %s, tab %s, legend %r",
+            dialog.selected_symbol(),
+            dialog._palette_key,
+            dialog._tabs.tabText(dialog._tabs.currentIndex()),
+            dialog._legend.text(),
+        )
 
     def _do_lewis(self, step: dict[str, Any]) -> None:
         """Open the Full Lewis Structure window on the selected molecule.
