@@ -471,16 +471,34 @@ def test_the_orbital_view_is_in_something_that_can_scroll(qapp):
 # --- A2: a synthetic element is drawn, not left blank -----------------------
 
 
-def test_an_element_with_no_natural_isotope_says_why_it_has_no_neutron_count(diagram):
+def test_an_element_with_no_natural_isotope_names_its_longest_lived_one(diagram):
     """It used to say "Electrons: 84" and nothing else -- a fact about
-    polonium stated as though the rest had failed to load."""
+    polonium stated as though the rest had failed to load. Branch 1 made
+    that "no naturally occurring isotope, so no neutron count is shown",
+    which was honest and unhelpful; with the nuclide table it names
+    Po-209 and says how long it lasts."""
     diagram.set_element("Po")
 
     text = diagram.nucleus_label.text()
+
     assert "Protons: 84" in text
+    assert "Neutrons: 125" in text
+    assert "longest-lived isotope, Po-209, 124 y" in text
     assert "Electrons: 84" in text
-    assert "no naturally occurring isotope" in text
-    assert "Neutrons" not in text
+
+
+def test_the_two_bases_are_worded_differently(diagram):
+    """"Most abundant" and "longest lived" are different claims, and a
+    reader has to be able to tell which they are being given."""
+    diagram.set_element("Br")
+    abundant = diagram.nucleus_label.text()
+    diagram.set_element("Tc")
+    longest = diagram.nucleus_label.text()
+
+    assert "most abundant isotope, Br-79" in abundant
+    assert "longest-lived" not in abundant
+    assert "longest-lived isotope, Tc-97" in longest
+    assert "most abundant" not in longest
 
 
 def test_an_element_with_a_natural_isotope_still_names_it(diagram):
@@ -501,6 +519,8 @@ def test_the_shell_diagram_really_draws_a_nucleus_for_a_synthetic_element(qapp, 
     `ShellDiagram`, which received `None` and drew nothing at all. Ink
     alone cannot see this -- the rings and the background dominate -- so
     this asks which text the nucleus painted.
+
+    Polonium now draws its neutron count too, from Po-209.
     """
     from openchem.chem.electron_shells import neutral_configuration, nucleus
 
@@ -509,10 +529,7 @@ def test_the_shell_diagram_really_draws_a_nucleus_for_a_synthetic_element(qapp, 
 
     drawn = _labels_drawn_by(widget, monkeypatch)
 
-    assert "84p" in drawn, f"no nucleus was drawn; painter saw {drawn}"
-    assert not any("n" in text and text != "84p" for text in drawn), (
-        "a neutron count was drawn for an element that has none"
-    )
+    assert "84p\n125n" in drawn, f"no nucleus was drawn; painter saw {drawn}"
     _dispose(widget)
 
 

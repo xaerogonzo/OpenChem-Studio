@@ -32,6 +32,8 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.chem.electron_shells import (
+    LONGEST_LIVED,
+    MOST_ABUNDANT,
     Configuration,
     ConfigurationResult,
     ConfigurationUnavailable,
@@ -41,6 +43,7 @@ from openchem.chem.electron_shells import (
     isoelectronic_noble_gas,
     nucleus,
 )
+from openchem.chem.nuclides import format_half_life
 
 logger = logging.getLogger(__name__)
 
@@ -605,14 +608,19 @@ def _nucleus_text(centre: Nucleus | None, electrons: int) -> str:
         return f"Electrons: {electrons}"
     if not centre.has_neutron_count:
         return (
-            f"Protons: {centre.protons} · Electrons: {electrons} · no naturally "
-            "occurring isotope, so no neutron count is shown"
+            f"Protons: {centre.protons} · Electrons: {electrons} · no isotope "
+            "is recorded for this element, so no neutron count is shown"
         )
-    source = (
-        f"most abundant isotope, {centre.isotope}"
-        if centre.is_most_abundant
-        else centre.isotope
-    )
+    # **THE BASIS IS READ, NOT INFERRED.** Which isotope this is and WHY
+    # are different claims, and deducing the second from whichever other
+    # fields happen to be None is how they get confused.
+    if centre.isotope_basis == LONGEST_LIVED:
+        half_life = format_half_life(centre.half_life) if centre.half_life else "?"
+        source = f"longest-lived isotope, {centre.isotope}, {half_life}"
+    elif centre.isotope_basis == MOST_ABUNDANT:
+        source = f"most abundant isotope, {centre.isotope}"
+    else:
+        source = centre.isotope
     return (
         f"Protons: {centre.protons} · Neutrons: {centre.neutrons} "
         f"({source}) · Electrons: {electrons}"

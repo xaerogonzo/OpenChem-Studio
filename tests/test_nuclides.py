@@ -204,6 +204,56 @@ def test_natural_occurrence_is_not_stability():
     assert not uranium_238.is_stable
 
 
+# --- the formatter three UIs will share -------------------------------------
+#
+# Written once so the atom drawing, the isotope table and the decay tree
+# cannot disagree -- and tested here, because it was built and checked by
+# eye first, and three mutations of it survived a suite that had no test
+# for it at all.
+
+
+@pytest.mark.parametrize(
+    "z, a, expected",
+    [
+        (84, 209, "124 y"),        # the atom drawing's headline
+        (6, 14, "5.7 ky"),
+        (92, 238, "4.46 Gy"),
+        (43, 97, "4.21 My"),
+        (118, 295, "680 ms"),
+        (1, 1, "stable"),
+        (5, 16, "> 4.6 zs"),       # a lower bound keeps its direction
+        (18, 30, "< 10 ps"),       # and so does an upper one
+        (65, 144, "~1 s"),         # approximate
+        (3, 3, "particle unstable"),
+        (9, 31, "2 ms (estimated)"),
+    ],
+)
+def test_a_half_life_reads_as_what_it_is(z, a, expected):
+    """**THE QUALIFIER SURVIVES INTO THE TEXT.** `> 4.6 zs` and `4.6 zs`
+    carry the same number, and a formatter that dropped the prefix would
+    render a bound as a measurement in every one of the three places this
+    text appears."""
+    assert N.format_half_life(N.nuclide(z, a).half_life) == expected
+
+
+def test_stable_is_never_formatted_as_a_number():
+    """Not `1e31 y`. Every scale and every caption that reads this would
+    otherwise assert a measurement nobody made."""
+    assert N.format_half_life(N.HalfLife(None, N.STABLE)) == "stable"
+
+
+def test_nothing_established_says_so():
+    assert N.format_half_life(N.HalfLife(None, N.UNAVAILABLE)) == "not established"
+
+
+def test_the_unit_chosen_is_the_largest_that_leaves_a_number_above_one():
+    """So a reader gets "124 y" rather than "3.9e9 s", and "680 ms"
+    rather than "0.68 s"."""
+    assert N.format_half_life(N.HalfLife(0.68, N.EXACT)) == "680 ms"
+    assert N.format_half_life(N.HalfLife(3.9e9, N.EXACT)).endswith(" y")
+    assert N.format_half_life(N.HalfLife(1e-22, N.EXACT)).endswith(" ys")
+
+
 # --- the decay grammar ------------------------------------------------------
 
 

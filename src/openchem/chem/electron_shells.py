@@ -40,6 +40,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 from openchem.chem.element_reference import facts_for
+from openchem.chem.nuclides import HalfLife, longest_lived_isotope
 
 #: Subshell letters in order of angular momentum quantum number.
 _SUBSHELL_LETTERS = "spdfgh"
@@ -327,6 +328,16 @@ def isoelectronic_noble_gas(configuration: Configuration) -> str | None:
     return symbol if neutral_configuration(symbol).subshells == configuration.subshells else None
 
 
+#: Why THIS isotope is the one being drawn. **A FIELD, NOT SOMETHING THE
+#: CAPTION INFERS** -- "most abundant" and "longest lived" are different
+#: claims, and deducing which from whichever other fields happen to be
+#: None is how they end up confused. This replaces an `is_most_abundant`
+#: boolean, which could express two of the three and not the third.
+MOST_ABUNDANT = "most_abundant"
+NAMED = "named"
+LONGEST_LIVED = "longest_lived"
+
+
 @dataclass(frozen=True)
 class Nucleus:
     """What is in the middle of the drawing.
@@ -334,23 +345,29 @@ class Nucleus:
     `isotope` is carried because **a neutron count is not a property of an
     element**. Silicon does not have 14 neutrons; Si-28 does. The drawing
     says which it is showing rather than letting the number read as
-    intrinsic.
+    intrinsic -- and `isotope_basis` says WHY that one, because "the most
+    abundant" and "the longest-lived" are different answers to different
+    questions and only one of them is about natural occurrence.
 
-    **`neutrons` IS OPTIONAL, and that is the whole point of this type.**
-    An element with no naturally occurring isotope -- technetium,
-    promethium, astatine, polonium, and every synthetic element -- has a
-    proton count that is certain and no neutron count that can be named
-    without choosing an isotope. Both facts are true at once, and the
-    previous version could express neither: it raised, so the drawing had
-    no nucleus at all and the caption fell back to a bare
-    "Electrons: 84". Reported as part of "our periodic table is rather
-    unreliable", with polonium as the screenshot.
+    **`neutrons` IS OPTIONAL, and now unreachably so.** Branch 1 made it
+    optional because an element with no naturally occurring isotope --
+    technetium, promethium, astatine, polonium, and every synthetic
+    element -- has a certain proton count and no nameable neutron count;
+    before that the function raised, so the drawing had no nucleus at all
+    and the caption fell back to a bare "Electrons: 84". With the nuclide
+    table present there is always a longest-lived isotope to name --
+    measured, for all 118 -- so the partial form survives only for an
+    element the table has never heard of. Kept and asserted directly
+    rather than deleted, since that is a real contract rather than dead
+    code.
     """
 
     protons: int
     neutrons: int | None
     isotope: str | None
-    is_most_abundant: bool
+    isotope_basis: str = ""
+    #: Only for `LONGEST_LIVED`, where the caption says how long that is.
+    half_life: HalfLife | None = None
 
     @property
     def has_neutron_count(self) -> bool:
@@ -377,28 +394,36 @@ def nucleus(symbol: str, mass_number: int | None = None) -> Nucleus:
     if facts is None:
         raise ConfigurationUnavailable(f"unknown element {symbol!r}")
 
-    chosen = None
     if mass_number is not None:
         chosen = next((i for i in facts.isotopes if i.mass_number == mass_number), None)
         if chosen is None:
             raise ConfigurationUnavailable(f"no isotope {symbol}-{mass_number}")
-    elif facts.isotopes:
+        return _nucleus_for(facts, chosen.mass_number, NAMED)
+
+    if facts.isotopes:
         chosen = max(facts.isotopes, key=lambda i: i.abundance)
+        return _nucleus_for(facts, chosen.mass_number, MOST_ABUNDANT)
 
-    if chosen is None:
-        # No natural-abundance data. The proton count is not in doubt --
-        # it IS the atomic number -- so the nucleus is real and only its
-        # neutron count is unnameable without picking an isotope.
-        return Nucleus(
-            protons=facts.atomic_number,
-            neutrons=None,
-            isotope=None,
-            is_most_abundant=False,
-        )
+    # **NO NATURAL ISOTOPE, SO NAME THE LONGEST-LIVED ONE.** Polonium is
+    # Po-209 at 124 years, which is a far more useful thing to draw than
+    # "no neutron count is shown" -- and it is a different claim from
+    # "most abundant", which is why the basis travels with it.
+    longest = longest_lived_isotope(symbol)
+    if longest is not None:
+        return _nucleus_for(facts, longest.a, LONGEST_LIVED, longest.half_life)
 
+    # Unreachable for all 118 elements, and kept for one the nuclide
+    # table has never heard of. The proton count is not in doubt -- it IS
+    # the atomic number -- so the nucleus is real and only its neutron
+    # count is unnameable.
+    return Nucleus(protons=facts.atomic_number, neutrons=None, isotope=None)
+
+
+def _nucleus_for(facts, mass_number: int, basis: str, half_life=None) -> Nucleus:
     return Nucleus(
         protons=facts.atomic_number,
-        neutrons=chosen.mass_number - facts.atomic_number,
-        isotope=f"{symbol}-{chosen.mass_number}",
-        is_most_abundant=mass_number is None,
+        neutrons=mass_number - facts.atomic_number,
+        isotope=f"{facts.symbol}-{mass_number}",
+        isotope_basis=basis,
+        half_life=half_life,
     )

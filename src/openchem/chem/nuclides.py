@@ -206,6 +206,61 @@ def attribution() -> str:
     return _raw()["_about"]["attribution"]
 
 
+#: Display units, largest first. The same ladder NUBASE writes in, so a
+#: value read off the table and a value shown by this application use the
+#: same words.
+_DISPLAY_UNITS = (
+    ("Yy", 3.1556952e31), ("Zy", 3.1556952e28), ("Ey", 3.1556952e25),
+    ("Py", 3.1556952e22), ("Ty", 3.1556952e19), ("Gy", 3.1556952e16),
+    ("My", 3.1556952e13), ("ky", 3.1556952e10), ("y", 3.1556952e7),
+    ("d", 86400.0), ("h", 3600.0), ("m", 60.0), ("s", 1.0),
+    ("ms", 1e-3), ("us", 1e-6), ("ns", 1e-9), ("ps", 1e-12),
+    ("as", 1e-18), ("zs", 1e-21), ("ys", 1e-24),
+)
+
+#: What each qualifier puts in front of the number.
+_PREFIX = {LOWER_BOUND: "> ", UPPER_BOUND: "< ", APPROXIMATE: "~"}
+
+
+def format_half_life(half_life: HalfLife) -> str:
+    """One half-life as text, **carrying its qualifier**.
+
+    Written once here rather than in the atom drawing, the isotope table
+    and the decay tree separately -- three formatters is three chances for
+    "124 y" and "> 124 y" to become the same string somewhere.
+
+    ASCII only, deliberately: this text is copied out, and this project
+    has recorded three separate `UnicodeEncodeError`s from result lines
+    meeting a cp1252 console.
+    """
+    if half_life.qualifier == STABLE:
+        return "stable"
+    if half_life.qualifier == PARTICLE_UNSTABLE:
+        return "particle unstable"
+    if half_life.seconds is None:
+        return "not established"
+
+    value, unit = half_life.seconds, "s"
+    for name, size in _DISPLAY_UNITS:
+        if half_life.seconds >= size:
+            value, unit = half_life.seconds / size, name
+            break
+    else:
+        value, unit = half_life.seconds / _DISPLAY_UNITS[-1][1], _DISPLAY_UNITS[-1][0]
+
+    if value >= 100 or value == int(value):
+        number = f"{value:.0f}"
+    elif value >= 10:
+        number = f"{value:.1f}"
+    else:
+        number = f"{value:.3g}"
+
+    text = f"{_PREFIX.get(half_life.qualifier, '')}{number} {unit}"
+    if half_life.qualifier == ESTIMATED:
+        text += " (estimated)"
+    return text
+
+
 # --- "longest-lived" is two questions -----------------------------------
 
 
