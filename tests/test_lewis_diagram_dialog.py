@@ -205,8 +205,14 @@ def test_a_REFUSAL_is_not_shown_as_a_picture(dialog):
     refused = dialog("[CH2]")
     drawn = dialog("O")
 
-    assert refused._view.isHidden()
-    assert not drawn._view.isHidden()
+    # **`isVisibleTo`, not `isHidden`.** The view now lives inside a
+    # scroll area and it is the AREA that gets hidden, so the view's own
+    # explicit flag is False either way. What the claim is really about is
+    # whether the picture reaches the reader, which is the question
+    # `isVisibleTo` answers -- and `isVisible()` would be the opposite
+    # mistake, False for every child of a window nobody showed.
+    assert not refused._view.isVisibleTo(refused)
+    assert drawn._view.isVisibleTo(drawn)
     # The SVG is still produced -- the renderer stays total, and the
     # decision not to show it is the dialog's.
     assert refused.svg.startswith("<svg")
@@ -526,3 +532,123 @@ def test_hydrogen_is_only_special_in_hill_order_WHEN_CARBON_IS_THERE(dialog):
     # The carbon-bearing control, so a rule that simply sorted everything
     # alphabetically would fail here rather than passing both.
     assert dialog("CBr").diagram.formula == "CH3Br"
+
+
+# --- C1: the diagram is zoomable, and stopped being squeezed ---------------
+#
+# A QSvgWidget scales its viewBox to fill its pane, so a 42-atom structure
+# was rendered into whatever the window had left -- about 600x450 -- and
+# every glyph came out a few pixels tall. That is what "extremely hard to
+# read" was about, and it is a presentation problem with a presentation
+# fix: the same vector diagram, at more pixels per atom, in something that
+# scrolls.
+
+
+def _dialog_for(smiles: str, qtbot=None):
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    mol = Chem.MolFromSmiles(smiles)
+    AllChem.Compute2DCoords(mol)
+    return LewisDiagramDialog(Chem.MolToMolBlock(mol), "test")
+
+
+def test_one_hundred_percent_is_the_svgs_own_size(qapp):
+    """Not "100% of the viewport", which is the reading that would make
+    this button and Fit the same thing."""
+    dialog = _dialog_for("O")
+    try:
+        dialog.zoom_to_natural()
+
+        assert dialog.zoom() == 1.0
+        assert dialog._view.size() == dialog.natural_size()
+    finally:
+        _dispose(dialog)
+
+
+def test_fit_is_bigger_than_one_hundred_percent_for_a_small_molecule(qapp):
+    """**THE CASE THAT PROVES THE TWO BUTTONS DIFFER.**
+
+    Fit is the largest zoom at which the whole diagram fits, so a small
+    molecule in a large window is MAGNIFIED to fill it -- water comes out
+    near 4x. An implementation that read Fit as "shrink to fit, never
+    grow" would clamp at 1.0 and pass any test that only checked a large
+    molecule.
+    """
+    dialog = _dialog_for("O")
+    try:
+        dialog.resize(900, 760)
+        dialog.show()
+        QCoreApplication.processEvents()
+        dialog.zoom_to_fit()
+
+        assert dialog.zoom() > 1.0
+    finally:
+        _dispose(dialog)
+
+
+def test_fit_keeps_the_whole_diagram_inside_the_viewport(qapp):
+    """The other half of what Fit promises, and the half that a zoom
+    which merely magnified would fail."""
+    dialog = _dialog_for("CN1CC[C@]23c4c5ccc(O)c4O[C@H]2[C@@H](O)C=C[C@H]3[C@H]1C5")
+    try:
+        dialog.resize(700, 560)
+        dialog.show()
+        QCoreApplication.processEvents()
+        dialog.zoom_to_fit()
+
+        viewport = dialog._scroll.viewport().size()
+        assert dialog._view.width() <= viewport.width() + 1
+        assert dialog._view.height() <= viewport.height() + 1
+    finally:
+        _dispose(dialog)
+
+
+def test_zooming_in_really_makes_the_drawing_bigger(qapp):
+    dialog = _dialog_for("O")
+    try:
+        dialog.set_zoom(1.0)
+        before = dialog._view.width()
+        dialog._zoom_in()
+
+        assert dialog._view.width() > before
+        assert dialog.zoom() > 1.0
+    finally:
+        _dispose(dialog)
+
+
+def test_the_zoom_is_bounded_at_both_ends(qapp):
+    """A zoom of zero is a widget of no size, and an unbounded one is a
+    pixmap nobody can allocate."""
+    dialog = _dialog_for("O")
+    try:
+        dialog.set_zoom(1000.0)
+        assert dialog.zoom() == dialog.MAX_ZOOM
+        dialog.set_zoom(0.0)
+        assert dialog.zoom() == dialog.MIN_ZOOM
+    finally:
+        _dispose(dialog)
+
+
+def test_the_view_is_in_something_that_will_not_shrink_it(qapp):
+    """`setWidgetResizable(True)` would hand the child the viewport size
+    and undo the whole fix -- the diagram would be squeezed again, just
+    with zoom buttons above it."""
+    dialog = _dialog_for("O")
+    try:
+        assert dialog._scroll.widget() is dialog._view
+        assert not dialog._scroll.widgetResizable()
+    finally:
+        _dispose(dialog)
+
+
+def test_a_refused_diagram_shows_no_zoom_controls(qapp):
+    """Following the existing rule that a refusal is not shown as a
+    picture: controls for a picture that is not there are noise."""
+    dialog = LewisDiagramDialog(None, "nothing")
+    try:
+        assert not dialog._diagram.drawable
+        assert not dialog._scroll.isVisibleTo(dialog)
+        assert not dialog._zoom_label.isVisibleTo(dialog)
+    finally:
+        _dispose(dialog)

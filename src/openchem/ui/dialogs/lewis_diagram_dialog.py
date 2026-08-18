@@ -24,6 +24,7 @@ what `tests/test_layering.py` requires of anything under `ui/`.
 
 from __future__ import annotations
 
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import (
@@ -34,6 +35,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -75,6 +77,8 @@ class LewisDiagramDialog(QDialog):
             else "Full Lewis Structure"
         )
 
+        self.resize(900, 760)
+
         layout = QVBoxLayout(self)
 
         # **WHICH MOLECULE, said out loud.** This is a separate window, it
@@ -92,17 +96,57 @@ class LewisDiagramDialog(QDialog):
         self._status.setWordWrap(True)
         layout.addWidget(self._status)
 
+        # **THE DIAGRAM USED TO BE SQUEEZED INTO WHATEVER WAS LEFT.** A
+        # QSvgWidget scales its viewBox to fill its pane, so a 42-atom
+        # structure was rendered into about 600x450 and every glyph came
+        # out a few pixels tall -- which is what "extremely hard to read"
+        # was about. The renderer already emits a real width and height,
+        # so there is a natural size to zoom against.
+        self._zoom = 1.0
         self._view = QSvgWidget(self)
-        self._view.setMinimumSize(420, 340)
         self._view.load(self._rendered.svg.encode("utf-8"))
+
+        self._scroll = QScrollArea(self)
+        # **NOT resizable**, which is the whole point: the child keeps the
+        # size the zoom gives it and the area scrolls, instead of the
+        # child being shrunk to fit.
+        self._scroll.setWidgetResizable(False)
+        self._scroll.setWidget(self._view)
+        self._scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._scroll.setMinimumSize(560, 420)
+
+        # A FIXED ROW, outside the scroll area, so the content can never
+        # squeeze the controls.
+        zoom_row = QHBoxLayout()
+        for label, slot in (
+            ("\u2212", self._zoom_out),
+            ("100%", self.zoom_to_natural),
+            ("+", self._zoom_in),
+            ("Fit", self.zoom_to_fit),
+        ):
+            button = QPushButton(label, self)
+            button.clicked.connect(slot)
+            button.setFixedWidth(56)
+            zoom_row.addWidget(button)
+        self._zoom_label = QLabel("100%", self)
+        zoom_row.addWidget(self._zoom_label)
+        zoom_row.addStretch(1)
+        self._zoom_row = zoom_row
+
         # **A REFUSAL IS NOT SHOWN AS A PICTURE.** `render` is total and
         # returns a card carrying the reason, which keeps the renderer
         # honest -- but a QSvgWidget scales its 200-unit viewBox to fill
         # the pane, so driving the app showed that sentence at ~37 px and
         # clipped off both edges. It read as a broken window. The status
         # line above already carries the same words at a normal size.
-        self._view.setVisible(self._diagram.drawable)
-        layout.addWidget(self._view, 1)
+        self._scroll.setVisible(self._diagram.drawable)
+        for index in range(zoom_row.count()):
+            widget = zoom_row.itemAt(index).widget()
+            if widget is not None:
+                widget.setVisible(self._diagram.drawable)
+        layout.addLayout(zoom_row)
+        layout.addWidget(self._scroll, 1)
+        self.set_zoom(1.0)
 
         self._legend = QLabel(LEGEND, self)
         self._legend.setWordWrap(True)
@@ -141,6 +185,68 @@ class LewisDiagramDialog(QDialog):
         # picture of an error message as though it were a structure.
         for button in (self._copy_button, self._save_button):
             button.setEnabled(self._diagram.drawable)
+
+    # --- zoom -----------------------------------------------------------------
+
+    #: How far in and out the buttons go. A crowded 40-atom diagram is
+    #: still readable well past 100%, which is the case they exist for.
+    MIN_ZOOM = 0.25
+    MAX_ZOOM = 8.0
+    ZOOM_STEP = 1.25
+
+    def natural_size(self) -> QSize:
+        """The SVG's own width and height, as the renderer emitted them."""
+        renderer = self._view.renderer()
+        size = renderer.defaultSize() if renderer is not None else QSize()
+        if size.isEmpty():
+            return QSize(420, 340)
+        return size
+
+    def zoom(self) -> float:
+        return self._zoom
+
+    def set_zoom(self, factor: float) -> None:
+        factor = max(self.MIN_ZOOM, min(self.MAX_ZOOM, factor))
+        self._zoom = factor
+        natural = self.natural_size()
+        self._view.setFixedSize(
+            max(1, round(natural.width() * factor)),
+            max(1, round(natural.height() * factor)),
+        )
+        self._zoom_label.setText(f"{round(factor * 100)}%")
+
+    def zoom_to_natural(self, _checked: bool = False) -> None:
+        """**100% means the SVG's OWN size**, not 100% of the viewport.
+
+        Stated because the two are easy to conflate, and conflating them
+        would make this button and Fit do the same thing.
+        """
+        self.set_zoom(1.0)
+
+    def zoom_to_fit(self, _checked: bool = False) -> None:
+        """The largest zoom at which the whole diagram fits, aspect kept.
+
+        **Fit can be GREATER than 100%**, and that is the case which
+        proves the two buttons are different: a small molecule in a large
+        window is magnified to fill it. Only a diagram bigger than the
+        viewport is reduced.
+        """
+        natural = self.natural_size()
+        viewport = self._scroll.viewport().size()
+        if natural.width() <= 0 or natural.height() <= 0:  # pragma: no cover
+            return
+        self.set_zoom(
+            min(
+                viewport.width() / natural.width(),
+                viewport.height() / natural.height(),
+            )
+        )
+
+    def _zoom_in(self, _checked: bool = False) -> None:
+        self.set_zoom(self._zoom * self.ZOOM_STEP)
+
+    def _zoom_out(self, _checked: bool = False) -> None:
+        self.set_zoom(self._zoom / self.ZOOM_STEP)
 
     # --- what it is showing --------------------------------------------------
 
