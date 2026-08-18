@@ -85,6 +85,145 @@ _POSE_COLUMN_HELP = {
     ),
 }
 
+#: The panel's own controls.
+#:
+#: The three box-centre spin boxes share ONE contract and the three sizes
+#: share another: "a coordinate of the search box centre" is one concept
+#: rendered once per axis, and which axis is on the label beside it.
+_CONTROL_HELP = {
+    "receptor": HelpTooltip(
+        text=(
+            "Which macromolecule in the project to dock against.\n\n"
+            "Changing it resets the search box, the kept-chain list and the "
+            "assembly choice: a chain id and a box position mean different "
+            "things in a different structure, and carrying them across would "
+            "silently dock against the wrong place."
+        ),
+        tier=2, help_id="docking.receptor", topic="docking", help_anchor="docking",
+    ),
+    "receptor_contents": HelpTooltip(
+        text=(
+            "Lists the chains, ligands and waters in the selected receptor, and "
+            "lets you choose which to keep and whether to build the biological "
+            "assembly.\n\n"
+            "Read on demand rather than on every selection, because parsing a "
+            "receptor means reading the whole file."
+        ),
+        tier=2, help_id="docking.receptor_contents", topic="docking",
+        help_anchor="docking",
+    ),
+    "derive_box": HelpTooltip(
+        text=(
+            "Sets the search box to the site defined by a ligand already bound "
+            "in the receptor -- the most reliable way to place it, because the "
+            "crystallographer has already found the site for you.\n\n"
+            "Where several copies of the ligand are present, the most buried "
+            "one is boxed. That is a choice between equivalent copies, not a "
+            "claim that the others are wrong.\n\n"
+            "It boxes the site, which is not the same as reproducing the pose: "
+            "the ligand that defined the box is stripped before docking."
+        ),
+        tier=3, help_id="docking.derive_box_from_ligand", topic="docking",
+        help_anchor="docking",
+    ),
+    "ligand": HelpTooltip(
+        text=(
+            "Which molecule from the project to dock. It needs a 3D conformer; "
+            "one is generated from the drawing if none exists."
+        ),
+        tier=2, help_id="docking.ligand", topic="docking", help_anchor="docking",
+    ),
+    "box_centre": HelpTooltip(
+        text=(
+            "One coordinate of the search box centre, in Angstrom, in the "
+            "receptor's own frame.\n\n"
+            "THE DEFAULT OF ZERO IS NOT A SITE. It is the origin of the "
+            "coordinate system, which for a deposited structure is usually "
+            "nowhere near the protein -- use \"Derive from ligand\" or set it "
+            "from a site you already know.\n\n"
+            "Vina searches only inside this box, so a pose outside it is never "
+            "considered and its absence says nothing about whether it binds."
+        ),
+        tier=3, help_id="docking.search_box_centre", topic="docking",
+        help_anchor="docking",
+    ),
+    "box_size": HelpTooltip(
+        text=(
+            "One edge length of the search box, in Angstrom. Range 1 to 200, "
+            "default 20.\n\n"
+            "It must be large enough for the ligand to rotate inside, and every "
+            "extra Angstrom costs search time and admits more places for a pose "
+            "to be found. A box drawn around a whole protein is not a thorough "
+            "search, it is a worse one."
+        ),
+        tier=3, help_id="docking.search_box_size", topic="docking",
+        help_anchor="docking",
+    ),
+    "num_poses": HelpTooltip(
+        text=(
+            "How many distinct poses to report, best score first. Range 1 to 50, "
+            "default 9.\n\n"
+            "It asks for more ANSWERS, not a harder search: the poses beyond the "
+            "first are alternatives the same search already found."
+        ),
+        tier=2, help_id="docking.num_poses", topic="docking", help_anchor="docking",
+    ),
+    "protonation_ph": HelpTooltip(
+        text=(
+            "The pH the receptor is protonated at before docking. Range 0 to 14, "
+            "default 7.4.\n\n"
+            "It decides which side chains carry a hydrogen, which decides which "
+            "can donate a hydrogen bond -- so it reaches the score rather than "
+            "only the picture."
+        ),
+        tier=3, help_id="docking.protonation_ph", topic="docking",
+        help_anchor="docking",
+    ),
+    "strip_waters": HelpTooltip(
+        text=(
+            "Removes crystallographic waters from the receptor before docking. "
+            "On by default.\n\n"
+            "Docking treats the receptor as rigid, so a retained water is a "
+            "permanent obstacle rather than something a ligand can displace -- "
+            "which is why removing them is the usual choice. A water that "
+            "genuinely bridges the ligand and the protein is lost with the rest."
+        ),
+        tier=3, help_id="docking.strip_waters", topic="docking",
+        help_anchor="limits-docking",
+    ),
+    "strip_cofactors": HelpTooltip(
+        text=(
+            "Removes bound cofactors, metals and other non-water heteroatoms "
+            "from the receptor. OFF by default.\n\n"
+            "Off because a cofactor is often part of the site rather than "
+            "clutter: strip the catalytic zinc from a metalloenzyme and the "
+            "pocket it was holding open is no longer the pocket."
+        ),
+        tier=3, help_id="docking.strip_cofactors", topic="docking",
+        help_anchor="limits-docking",
+    ),
+    "configure_vina": HelpTooltip(
+        text=(
+            "Opens the external-tools settings at the AutoDock Vina entry, where "
+            "the path to the executable is set. Vina is installed by you and is "
+            "not bundled; docking cannot run until that path is set."
+        ),
+        tier=1, help_id="docking.configure_vina", topic="docking",
+        help_anchor="external-tools",
+    ),
+    "run": HelpTooltip(
+        text=(
+            "Prepares the receptor and the ligand and runs AutoDock Vina inside "
+            "the search box above.\n\n"
+            "The search is STOCHASTIC and this application does not pin its "
+            "seed, so two runs of the same input give slightly different poses "
+            "and scores. A difference smaller than that spread is not a result."
+        ),
+        tier=3, help_id="docking.run", topic="docking", help_anchor="limits-docking",
+    ),
+}
+
+
 _POSE_COLUMN_TOOLTIPS = {
     "Pose": "Rank within this run, best score first. Not an identity: pose 1 of one "
     "run is unrelated to pose 1 of another.",
@@ -195,13 +334,12 @@ class DockingPanel(QWidget):
         self._displayed_result_uuid: str | None = None
 
         self._receptor_combo = QComboBox(self)
+        apply_help_tooltip(self._receptor_combo, _CONTROL_HELP["receptor"])
         # Parsing a receptor is not free (Open Babel reads the whole file),
         # so the summary is computed on demand from the button rather than
         # on every combo change.
         self._contents_button = QPushButton("Contents...", self)
-        self._contents_button.setToolTip(
-            "List the chains, ligands and waters in the selected receptor"
-        )
+        apply_help_tooltip(self._contents_button, _CONTROL_HELP["receptor_contents"])
         self._contents_button.clicked.connect(self._on_contents_clicked)
         # Empty means "no restriction", never "no chains" -- see
         # StructureContentsDialog.keep_chains. Reset whenever the receptor
@@ -220,8 +358,15 @@ class DockingPanel(QWidget):
         # ligands is chosen. Disabled is the honest starting state -- there
         # is nothing to derive from yet.
         self._derive_button.setEnabled(False)
-        self._derive_button.setToolTip("Select a receptor to derive a search box from it.")
+        # The CONTRACT is attached once and is the stable meaning; the
+        # rendered tooltip below it is state-dependent, because naming the
+        # ligands actually present is the useful half. A later
+        # `setToolTip` replaces the rendered string and leaves the contract
+        # in place, which is what "a tooltip is one RENDERING" buys here.
+        apply_help_tooltip(self._derive_button, _CONTROL_HELP["derive_box"])
+        self._describe_derivable_ligands(())
         self._ligand_combo = QComboBox(self)
+        apply_help_tooltip(self._ligand_combo, _CONTROL_HELP["ligand"])
 
         #: Where the displayed box came from -- "derived", "manual" or
         #: "none". PROVENANCE ONLY: `displayed_box()` reads the spinboxes,
@@ -248,6 +393,10 @@ class DockingPanel(QWidget):
         self._size_x = self._make_spin(1, 200, 20.0)
         self._size_y = self._make_spin(1, 200, 20.0)
         self._size_z = self._make_spin(1, 200, 20.0)
+        for spin in (self._center_x, self._center_y, self._center_z):
+            apply_help_tooltip(spin, _CONTROL_HELP["box_centre"])
+        for spin in (self._size_x, self._size_y, self._size_z):
+            apply_help_tooltip(spin, _CONTROL_HELP["box_size"])
         for spin in (
             self._center_x, self._center_y, self._center_z,
             self._size_x, self._size_y, self._size_z,
@@ -261,20 +410,26 @@ class DockingPanel(QWidget):
         self._num_poses_spin = QSpinBox(self)
         self._num_poses_spin.setRange(1, 50)
         self._num_poses_spin.setValue(9)
+        apply_help_tooltip(self._num_poses_spin, _CONTROL_HELP["num_poses"])
 
         self._ph_spin = QDoubleSpinBox(self)
         self._ph_spin.setRange(0.0, 14.0)
         self._ph_spin.setSingleStep(0.1)
         self._ph_spin.setValue(7.4)
+        apply_help_tooltip(self._ph_spin, _CONTROL_HELP["protonation_ph"])
         self._strip_waters_check = QCheckBox("Strip waters", self)
         self._strip_waters_check.setChecked(True)
+        apply_help_tooltip(self._strip_waters_check, _CONTROL_HELP["strip_waters"])
         self._strip_cofactors_check = QCheckBox("Strip cofactors", self)
         self._strip_cofactors_check.setChecked(False)
+        apply_help_tooltip(self._strip_cofactors_check, _CONTROL_HELP["strip_cofactors"])
 
         self._configure_button = QPushButton("Configure Vina...", self)
+        apply_help_tooltip(self._configure_button, _CONTROL_HELP["configure_vina"])
         self._configure_button.clicked.connect(self._on_configure_clicked)
 
         self._dock_button = QPushButton("Dock", self)
+        apply_help_tooltip(self._dock_button, _CONTROL_HELP["run"])
         self._dock_button.clicked.connect(self._on_dock_clicked)
 
         self._status_label = QLabel("", self)
@@ -595,12 +750,27 @@ class DockingPanel(QWidget):
         that can define a site.
         """
         self._derive_button.setEnabled(bool(codes))
+        self._describe_derivable_ligands(codes)
+
+    def _describe_derivable_ligands(self, codes) -> None:
+        """Render the contract PLUS what this receptor actually offers.
+
+        The stable half is the contract attached in `__init__`; the live
+        half names the ligand codes, which is the part that answers "will
+        this button do anything for me". Composed rather than substituted,
+        so pressing the button is explained even while the live half says
+        there is nothing to derive from.
+        """
+        if codes:
+            live = (
+                "Ligands in this receptor: "
+                + ", ".join(codes[:6])
+                + ("..." if len(codes) > 6 else "")
+            )
+        else:
+            live = "No bound ligand in this receptor to derive a search box from."
         self._derive_button.setToolTip(
-            "Set the search box to the site defined by a bound ligand: "
-            + ", ".join(codes[:6])
-            + ("..." if len(codes) > 6 else "")
-            if codes
-            else "No bound ligand in this receptor to derive a search box from."
+            f"{_CONTROL_HELP['derive_box'].text}\n\n{live}"
         )
 
     def _on_derive_clicked(self) -> None:

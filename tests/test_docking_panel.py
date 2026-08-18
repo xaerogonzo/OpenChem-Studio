@@ -571,3 +571,34 @@ def test_the_scoring_error_is_never_quoted_without_its_source(qapp):
             "must say whose set the figure is for, or it reads as a "
             "universal error bar for any run"
         )
+def test_the_derive_buttons_live_tooltip_still_carries_its_contract(qapp):
+    """The rendered tooltip is state-dependent; the MEANING must survive it.
+
+    "Derive from ligand" is the one control here whose useful text depends
+    on the receptor -- naming the ligand codes actually present is what
+    answers "will this button do anything for me". So the contract is
+    attached once and the rendering is recomputed, which is exactly what
+    "a tooltip is one RENDERING of a declared meaning" is for.
+
+    The failure this guards is silent: substituting the live text for the
+    contract's leaves the contract attached as a Qt property, so the
+    coverage guard still reports the control documented while the user is
+    shown only a list of three-letter codes with nothing saying what
+    pressing it does.
+    """
+    from openchem.ui.widgets.help_tooltip import help_tooltip_for
+
+    panel, _engine, _service = _make_panel()
+    contract = help_tooltip_for(panel._derive_button)
+    assert contract is not None, "the derive button lost its contract entirely"
+
+    for codes in ((), ("7LD", "NAG")):
+        panel._describe_derivable_ligands(codes)
+        rendered = panel._derive_button.toolTip()
+        assert contract.text in rendered, (
+            "the live tooltip replaced the contract instead of composing with "
+            f"it: {rendered[:80]!r}"
+        )
+    # ... and the live half really is there, or the composition is vacuous.
+    panel._describe_derivable_ligands(("7LD", "NAG"))
+    assert "7LD" in panel._derive_button.toolTip()

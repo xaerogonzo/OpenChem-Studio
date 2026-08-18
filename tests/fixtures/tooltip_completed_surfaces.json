@@ -4,6 +4,9 @@
     "action"
   ],
   "by_instance_path_fragment": [
+    "DockTitleBar",
+    "DockingPanel",
+    "PropertyPanel",
     "QuantumChemistryPanel"
   ]
 }

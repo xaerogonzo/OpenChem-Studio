@@ -283,9 +283,11 @@ zero.
 interactive constructions was really 372. Neither number was ever the
 universe; only `iter_documentable_controls` is.
 
-The universe is **353**, and the migration stands at 216 contracts / 54
-legacy / 83 missing. Two surfaces are DONE: the Quantum Chemistry panel
-and the whole menu bar.
+The universe is **353**, and the migration stands at 287 contracts / 16
+legacy / 50 missing. Five surfaces are DONE and defended by
+`tests/fixtures/tooltip_completed_surfaces.json`: the Quantum Chemistry
+panel, the whole menu bar, the Properties panel, the Docking panel, and
+the dock title bar.
 
 ### `QAction.toolTip()` NEVER RETURNS EMPTY, and the queue believed it
 
@@ -430,6 +432,42 @@ are 13 and they cost 14 seconds, against 14 minutes for the full suite:
 uv run --no-sync python -m pytest -q $(rg -l "ast.parse" tests/ | tr '\n' ' ')
 ```
 
+### The shared chrome: 36 buttons, 3 concepts
+
+Every dock builds a `DockTitleBar`, so its help / float / close buttons
+appear **36 times across 12 docks** -- three ids, and `instance_path` tells
+the renderings apart. `_make_button` takes a `HelpTooltip` rather than a
+string now, which is what stops the next button added there from being a
+bare `setToolTip`.
+
+The Properties panel's 17 section headers collapse the same way, and the
+contract lives in `CollapsibleSection` rather than in the panel: the class
+is used elsewhere, and "show or hide this section" means the same thing
+wherever it is built.
+
+**`panel` IS A FORBIDDEN help_id SEGMENT**, so `panel.close` is rejected --
+it is in `_WIDGET_WORDS`. That is the validator working as designed even
+though "panel" is this application's own domain word for the thing; the
+ids are `workspace.panel_close` and friends, which name the concept without
+tripping a rule that exists to stop ids encoding widgets.
+
+### A CONTRACT AND A STATE-DEPENDENT RENDERING, TOGETHER
+
+"Derive from ligand" is the one control here whose useful text depends on
+the receptor: it names the ligand codes actually present, which is what
+answers "will this button do anything for me". The contract is attached
+ONCE and the tooltip is recomputed, which is exactly what "a tooltip is one
+RENDERING of a declared meaning" buys.
+
+**The failure mode is silent.** Substituting the live text for the
+contract's leaves the contract attached as a Qt property, so the coverage
+guard still reports the control documented while the user sees three-letter
+codes and nothing saying what pressing it does.
+`test_the_derive_buttons_live_tooltip_still_carries_its_contract` asserts
+the rendered string CONTAINS the contract text, in both the has-ligands and
+the no-ligands state.
+
+
 ### A `QTabBar` BREAKS QT'S OWN `qt_` NAMING CONVENTION
 
 `_is_qt_internal` excludes Qt's scaffolding by the `qt_` object-name prefix
@@ -549,8 +587,58 @@ other deposits. So the search box was geometrically right and drawn about
 43 A from anything on screen -- and the interaction colouring, which
 matches residues by NAME AND NUMBER, was painting chain A's residues for a
 pose computed against chain B's site. **That second half is older than the
-overlay and was fixed as a side effect; it has not been verified end to
-end against a multi-copy receptor.**
+overlay and is only HALF fixed -- verified against 6WGT and written up
+under "THE COLOURING IS NOT FIXED BY THIS" below.**
+
+#### THE COLOURING IS NOT FIXED BY THIS, AND THAT CLAIM WAS TOO STRONG
+
+This file said the residue colouring "is fixed as a side effect" of the
+deposited-model change and had "not been verified end to end". It has been
+verified now, and it is **half fixed**.
+
+Measured live on 6WGT, reading Mol*'s OWN loaded state rather than the
+source:
+
+    structure-from-model params   {"type":{"name":"model"}}   <- the fix IS live
+    chains in the loaded structure  A,B,C                     <- was chain A alone
+    GLN72 resolves to chains        A,B,C                     <- the defect
+
+`build_interaction_layers` emits `receptor_residue` as
+`f"{residue_name}{residue_number}"` -- **no chain** -- and `viewer.html`
+turns that into
+
+    (and (= atom.auth_comp_id GLN) (= atom.auth_seq_id 72))
+
+which has no chain term either. So the deposited-model fix changed
+"paints the WRONG copy" into "paints the right copy AND two wrong ones":
+chain B is now displayed and is now coloured, and so are A and C.
+
+The ambiguity is the ordinary case rather than an edge one. Over the
+cached deposits, counted from the PDB text:
+
+    6WGT   3 chains, 370 of 388 residue keys in >1 chain   (95%)
+    1HSG   2 chains,  99 of  99                            (100%)
+    4DKL   1 chain,    0 of 442                            (0%)
+
+and even the ligand is ambiguous -- all three copies of 7LD are
+`auth_seq_id 1201`, in chains A, B and C.
+
+**A SINGLE-CHAIN RECEPTOR CANNOT SHOW THIS**, which is why it survived:
+4DKL, the deposit most of the docking work was measured on, has one chain
+and 0% collision. Any test of residue targeting has to use a multi-copy
+deposit or it is asserting against a structure where the bug cannot exist.
+
+Fixing it means carrying the chain through `pose_analysis`'s
+`receptor_residue`, through `ResidueColorLayer`, and into the MolScript.
+NOT DONE HERE.
+
+**AND ONE OF MY OWN PROBES LIED FIRST.** An aggregate sweep over
+`struct.units` reported "0 keys matching more than one chain" on 6WGT --
+flatly contradicting the PDB, which says 370. The tell was that its key
+count, 377, is exactly chain A's residue count. Counting one residue
+directly (`GLN72 chains: A,B,C`) is what settled it. **When two
+measurements of the same thing disagree, the smaller and more direct one
+is the one to trust**, and neither should be reported until they agree.
 
 `showDepositedCoordinates()` in `viewer.html` updates the
 `structure-from-model` transform to `{name: 'model'}` after every load.
@@ -855,7 +943,23 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `4787 passed, 15 skipped`
+A clean run is **6-23 minutes**, ending at `4788 passed, 15 skipped`
+(measured 2026-08-17, **22m19**, on `docking-box-from-the-ligand` -- the
+Properties panel, the Docking panel and the dock title bar. **+1 collected
+item and +1 test FUNCTION**,
+`test_the_derive_buttons_live_tooltip_still_carries_its_contract` in
+`test_docking_panel.py`. 4802 -> 4803 collected; 4788 + 15 = 4803.
+
+**THE BAND WENT 6-19 TO 6-23 ON THIS RUN, AND IT IS UNEXPLAINED.** The
+previous entry is 14m07 on a tree ONE test smaller -- a 58% spread with
+nothing to account for it, on the same machine, with nothing else running
+(the Mol* probes in this session finished before it started). Widened so a
+reader whose run takes 20 minutes does not conclude the suite has hung, and
+recorded as the outlier it is rather than as a new normal. This is the
+fifth consecutive entry to say the band is a range with no predictive value
+inside it.)
+
+Before it: `4787 passed, 15 skipped`
 (measured 2026-08-17, **14m07**, on `docking-box-from-the-ligand` -- the
 menu bar's help contracts. **+5 collected items and +5 test FUNCTIONS**,
 all in `test_tooltip_coverage.py`: the three menu-title guards, the

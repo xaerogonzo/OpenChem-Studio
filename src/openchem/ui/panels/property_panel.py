@@ -454,6 +454,35 @@ _BATCH_SELECTION_HELP = HelpTooltip(
 )
 
 
+#: The two controls the tick boxes above feed.
+_RUN_SELECTED_HELP = HelpTooltip(
+    text=(
+        "Runs every ticked calculator on the selected molecule.\n\n"
+        "They are dispatched to a thread pool rather than queued, so the wait "
+        "is roughly the slowest one rather than the sum. The button counts "
+        "what is ticked and is disabled when nothing is.\n\n"
+        "Results land in their own sections as each finishes, so the panel "
+        "fills in progressively rather than all at once."
+    ),
+    tier=1,
+    help_id="properties.run_selected",
+    topic="properties",
+    help_anchor="properties",
+)
+
+_CLEAR_SELECTION_HELP = HelpTooltip(
+    text=(
+        "Unticks every calculator.\n\n"
+        "It clears the SELECTION only: results already computed stay where "
+        "they are, and anything already running keeps running."
+    ),
+    tier=1,
+    help_id="properties.clear_selection",
+    topic="properties",
+    help_anchor="properties",
+)
+
+
 def calculator_help(definition: CalculatorDefinition) -> HelpTooltip:
     """A contract for one calculator's button, DERIVED from its registration.
 
@@ -1534,9 +1563,11 @@ class PropertyPanel(QWidget):
         self._calculator_status: dict[str, QLabel] = {}
         self._run_selected_button = QPushButton("Run selected", self)
         self._run_selected_button.setEnabled(False)
+        apply_help_tooltip(self._run_selected_button, _RUN_SELECTED_HELP)
         self._run_selected_button.clicked.connect(self._on_run_selected)
         self._clear_selection_button = QPushButton("Clear", self)
         self._clear_selection_button.setEnabled(False)
+        apply_help_tooltip(self._clear_selection_button, _CLEAR_SELECTION_HELP)
         self._clear_selection_button.clicked.connect(self._on_clear_selection)
         # A PLAIN QLabel, deliberately, where every other multi-line label
         # in this panel is a `_WrappedLabel`.
