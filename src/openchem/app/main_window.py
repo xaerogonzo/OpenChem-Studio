@@ -37,6 +37,7 @@ from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
 from openchem.chem.calculation_input import canonical_conformer
 from openchem.chem.identifiers import identifier_for_molblock
+from openchem.chem.isotopes import IsotopeError, element_at, set_isotope
 from openchem.chem.stereochemistry import StereochemistryConflict
 from openchem.chem.structure_clipboard import parse_structure_text
 from openchem.commands.conformer_commands import (
@@ -369,7 +370,11 @@ class MainWindow(QMainWindow):
         # And the 2D canvas, which turned out to be possible after all --
         # Ketcher's editor carries a `selectionChange` event even though
         # its public `subscribe()` facade does not accept that name.
-        self._editor.atom_selected.connect(self._atom_inspector_panel.select_atom)
+        # Which atom the 2D editor last reported, as a MOLFILE POSITION --
+        # `main.jsx` translates Ketcher's pool id before it crosses the
+        # bridge, so this indexes the molblock the model holds.
+        self._selected_atom_index: int | None = None
+        self._editor.atom_selected.connect(self._on_editor_atom_selected)
         # And bonds, through the same Ketcher event. `select_bond` had no
         # caller until this line existed; the 3D viewer cannot supply one,
         # because 3Dmol's setClickable resolves a click to an ATOM and has
@@ -2188,10 +2193,87 @@ class MainWindow(QMainWindow):
         if existing is None:
             existing = PeriodicTableDialog(self)
             existing.insert_requested.connect(self._insert_element_into_drawing)
+            existing.isotope_requested.connect(self._apply_isotope)
             self._periodic_table_dialog = existing
+        # Pushed on every open, not only on the first: the table is
+        # non-modal and long-lived, so a selection made while it was
+        # closed would otherwise never reach it.
+        self._push_selected_atom_to_periodic_table()
         existing.show()
         existing.raise_()
         existing.activateWindow()
+
+    def _on_editor_atom_selected(self, index: int) -> None:
+        """One click, two readers -- the inspector and the isotope picker.
+
+        The picker needs an ELEMENT as well as an index, and only this
+        layer holds both the selection and the molecule to read it from.
+        """
+        self._atom_inspector_panel.select_atom(index)
+        self._selected_atom_index = index
+        self._push_selected_atom_to_periodic_table()
+
+    def _selected_atom_element(self) -> str | None:
+        """The element of the atom selected in the 2D editor, or None.
+
+        `element_at` does the bounds check, for the reason
+        `_atom_is_in_report` does one: an index from the editor can
+        outrun the structure the model holds.
+        """
+        molecule = self._current_molecule()
+        if self._selected_atom_index is None or molecule is None:
+            return None
+        return element_at(molecule.molblock, self._selected_atom_index)
+
+    def _push_selected_atom_to_periodic_table(self) -> None:
+        dialog = getattr(self, "_periodic_table_dialog", None)
+        if dialog is None:
+            return
+        dialog.set_selected_atom(
+            self._selected_atom_element(),
+            -1 if self._selected_atom_index is None else self._selected_atom_index,
+        )
+
+    def _apply_isotope(self, symbol: str, mass_number: int, all_of_element: bool) -> None:
+        """Write a mass number onto the drawing, through the undo stack.
+
+        `symbol` is used to CHECK the selection, never to choose the
+        target: `set_isotope` derives the element from the atom index, so
+        a table showing one element and a canvas holding another cannot
+        combine into a write. The dialog refuses that pairing too; this is
+        the second of the two, and the one a drive script or a plugin
+        would meet.
+        """
+        molecule = self._current_molecule()
+        index = self._selected_atom_index
+        if molecule is None or index is None or not molecule.molblock:
+            self.statusBar().showMessage("Select an atom in the 2D editor first.", 4000)
+            return
+        if self._selected_atom_element() != symbol:
+            self.statusBar().showMessage(
+                f"The selected atom is not {symbol}. Choose it again.", 5000
+            )
+            return
+        try:
+            labelled = set_isotope(
+                molecule.molblock, index, mass_number, all_of_element=all_of_element
+            )
+        except IsotopeError as exc:
+            self.statusBar().showMessage(f"That isotope was refused: {exc}", 6000)
+            return
+        self._undo_stack.push(
+            EditStructureCommand(
+                self._services.chemistry_engine, molecule, labelled, self._services.event_bus
+            )
+        )
+        # The editor compares canonical SMILES and ignores a
+        # coordinates-only change, so the canvas is reloaded explicitly --
+        # the same reason `_apply_structure_fix` does it.
+        self._editor.set_molecule(molecule)
+        scope = f"every {symbol}" if all_of_element else "the selected atom"
+        self.statusBar().showMessage(
+            f"Set {symbol}-{mass_number} on {scope}. Ctrl+Z undoes it.", 5000
+        )
 
     def _on_editor_action(self, action: str) -> None:
         """Answer a control the user pressed on the editor's own toolbar.

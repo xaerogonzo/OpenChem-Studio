@@ -300,7 +300,9 @@ def test_a_mass_number_cannot_cross_elements(dialog):
     on screen. Requiring them to agree makes it unexpressible.
     """
     emitted = []
-    dialog.isotope_requested.connect(lambda symbol, mass: emitted.append((symbol, mass)))
+    dialog.isotope_requested.connect(
+        lambda symbol, mass, every: emitted.append((symbol, mass, every))
+    )
     dialog.select("C")
     dialog._isotope_table.selectRow(2)
     dialog.set_selected_atom("O", 3)
@@ -317,13 +319,15 @@ def test_a_matching_element_emits_the_isotope(dialog):
     """The control, and the shape `MainWindow` will wire in N6: the
     dialog names an element and a mass number and touches nothing."""
     emitted = []
-    dialog.isotope_requested.connect(lambda symbol, mass: emitted.append((symbol, mass)))
+    dialog.isotope_requested.connect(
+        lambda symbol, mass, every: emitted.append((symbol, mass, every))
+    )
     dialog.select("O")
     dialog.set_selected_atom("O", 3)
     dialog._isotope_table.selectRow(2)
     dialog._request_isotope()
 
-    assert emitted == [("O", dialog.selected_isotope())]
+    assert emitted == [("O", dialog.selected_isotope(), False)]
     assert emitted[0][1] in {n.a for n in __import__(
         "openchem.chem.nuclides", fromlist=["x"]
     ).nuclides_for("O")}
@@ -337,3 +341,74 @@ def test_the_new_tab_does_not_disturb_the_selection(dialog):
 
     assert dialog.selected_symbol() == "Po"
     assert _isotope_rows(dialog)[0][0] == "Po-209"
+
+
+def test_the_scope_defaults_to_the_selected_atom_alone(dialog):
+    """**ONE ATOM IS THE DEFAULT AND THE OPT-IN IS EXPLICIT.** Labelling a
+    single position is the ordinary case; "every carbon in the molecule"
+    is a different enough request to be asked for rather than assumed.
+    """
+    emitted = []
+    dialog.isotope_requested.connect(
+        lambda symbol, mass, every: emitted.append((symbol, mass, every))
+    )
+    dialog.select("C")
+    dialog.set_selected_atom("C", 0)
+    dialog._isotope_table.selectRow(1)
+
+    assert not dialog._isotope_all.isChecked()
+
+    dialog._request_isotope()
+
+    assert emitted == [("C", 13, False)]
+
+
+def test_the_opt_in_carries_through_to_the_signal(dialog):
+    emitted = []
+    dialog.isotope_requested.connect(
+        lambda symbol, mass, every: emitted.append((symbol, mass, every))
+    )
+    dialog.select("C")
+    dialog.set_selected_atom("C", 0)
+    dialog._isotope_table.selectRow(1)
+    dialog._isotope_all.setChecked(True)
+
+    dialog._request_isotope()
+
+    assert emitted == [("C", 13, True)]
+
+
+def test_the_hint_says_which_scope_the_button_will_use(dialog):
+    """A control whose effect changes under a checkbox has to say so
+    where the press happens, not only in the checkbox's own label."""
+    dialog.select("C")
+    dialog.set_selected_atom("C", 0)
+    dialog._isotope_table.selectRow(1)
+
+    assert "the selected atom" in dialog._isotope_hint.text()
+
+    dialog._isotope_all.setChecked(True)
+
+    assert "every C" in dialog._isotope_hint.text()
+
+
+def test_the_checkbox_names_the_element_it_would_cover(dialog):
+    """"all atoms of this element" leaves the reader to work out which
+    element that is, with two on screen -- the table's and the canvas's.
+
+    **NO ROW IS SELECTED HERE, DELIBERATELY.** The first version of this
+    guard picked one first and so only ever reached the fully-armed path,
+    where the label was already right; the rendered dialog showed the
+    generic text, because the element was named several lines too late.
+    An atom being selected is all it takes to know the element.
+    """
+    dialog.select("O")
+    dialog.set_selected_atom("O", 3)
+
+    assert dialog._isotope_table.selectionModel().selectedRows() == []
+    assert dialog._isotope_all.text() == "all O atoms"
+
+    # And it follows the canvas, not the table.
+    dialog.set_selected_atom("C", 0)
+
+    assert dialog._isotope_all.text() == "all C atoms"

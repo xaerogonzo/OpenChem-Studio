@@ -688,6 +688,38 @@ class _Driver(QObject):
         """
         self._window._editor.trigger_toolbar_action(str(step["id"]))
 
+    def _do_isotope(self, step: dict[str, Any]) -> None:
+        """Label an atom, through the window's own handlers.
+
+        `{"do": "isotope", "atom": 0, "mass": 13, "all": false}`
+
+        **It goes through `_on_editor_atom_selected` and `_apply_isotope`,
+        not through the dialog's internals**, because the wiring between
+        the two is the thing worth driving: the picker cannot arm itself,
+        so the window has to push the selection into it, and a step that
+        called `set_isotope` directly would prove only that RDKit works.
+
+        Pair it with `report`, whose `conformers=` is how "did a mass
+        label throw the geometry away" is answered -- the exemption is the
+        one part of this feature a screenshot cannot show.
+        """
+        window = self._window
+        atom = int(step.get("atom", 0))
+        window._on_editor_atom_selected(atom)
+        symbol = window._selected_atom_element()
+        if symbol is None:
+            logger.error("OPENCHEM_DRIVE: isotope -- atom %d names nothing", atom)
+            return
+        window._apply_isotope(symbol, int(step.get("mass", 13)), bool(step.get("all", False)))
+        logger.warning(
+            "OPENCHEM_DRIVE: isotope %s-%s on atom %d (all=%s) -- %s",
+            symbol,
+            step.get("mass", 13),
+            atom,
+            bool(step.get("all", False)),
+            window.statusBar().currentMessage(),
+        )
+
     def _do_report(self, step: dict[str, Any]) -> None:
         """Log a few facts about the selected molecule, so a run can
         assert on state rather than on a screenshot."""

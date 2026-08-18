@@ -53,6 +53,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QPushButton,
+    QCheckBox,
     QScrollArea,
     QSizePolicy,
     QTabWidget,
@@ -163,11 +164,12 @@ class PeriodicTableDialog(QDialog):
     #: constructible in a test with no editor anywhere.
     insert_requested = Signal(str)
 
-    #: An isotope was chosen for the SELECTED atom. Carries the element
-    #: and the mass number, and like `insert_requested` it acts on
-    #: nothing itself -- `MainWindow` owns the write, so this dialog stays
-    #: constructible in a test with no editor anywhere.
-    isotope_requested = Signal(str, int)
+    #: An isotope was chosen for the SELECTED atom. Carries the element,
+    #: the mass number and whether the write covers every atom of that
+    #: element. Like `insert_requested` it acts on nothing itself --
+    #: `MainWindow` owns the write, so this dialog stays constructible in
+    #: a test with no editor anywhere.
+    isotope_requested = Signal(str, int, bool)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -364,12 +366,20 @@ class PeriodicTableDialog(QDialog):
         self._isotope_button = QPushButton("Apply to selected atom", container)
         self._isotope_button.clicked.connect(self._request_isotope)
         row.addWidget(self._isotope_button)
+        # **ONE ATOM IS THE DEFAULT AND THE OPT-IN IS EXPLICIT.** Labelling
+        # a single position is the ordinary case -- a tracer, one
+        # deuterium -- and "every carbon in the molecule" is a different
+        # enough thing to be asked for rather than assumed. It is still
+        # ONE undo entry either way.
+        self._isotope_all = QCheckBox("all atoms of this element", container)
+        row.addWidget(self._isotope_all)
         self._isotope_hint = QLabel("", container)
         self._isotope_hint.setStyleSheet(_MUTED_NOTE)
         row.addWidget(self._isotope_hint)
         row.addStretch(1)
         column.addLayout(row)
 
+        self._isotope_all.toggled.connect(self._refresh_isotope_button)
         self._selected_atom: tuple[str, int] | None = None
         self._refresh_isotope_button()
         return container
@@ -415,6 +425,7 @@ class PeriodicTableDialog(QDialog):
             self._isotope_hint.setText("Select an atom in the 2D editor first.")
             return
         symbol, _index = self._selected_atom
+        self._isotope_all.setText(f"all {symbol} atoms")
         if symbol != self._selected:
             self._isotope_button.setEnabled(False)
             self._isotope_hint.setText(
@@ -427,9 +438,8 @@ class PeriodicTableDialog(QDialog):
             self._isotope_hint.setText("Choose an isotope above.")
             return
         self._isotope_button.setEnabled(True)
-        self._isotope_hint.setText(
-            f"Will apply {symbol}-{mass_number} to the selected atom."
-        )
+        scope = f"every {symbol}" if self._isotope_all.isChecked() else "the selected atom"
+        self._isotope_hint.setText(f"Will apply {symbol}-{mass_number} to {scope}.")
 
     def _request_isotope(self, _checked: bool = False) -> None:
         """**THE ELEMENT COMES FROM THE SELECTED ATOM, not from this
@@ -442,7 +452,7 @@ class PeriodicTableDialog(QDialog):
         symbol, _index = self._selected_atom
         if symbol != self._selected:
             return
-        self.isotope_requested.emit(symbol, mass_number)
+        self.isotope_requested.emit(symbol, mass_number, self._isotope_all.isChecked())
 
     def _refresh_isotopes(self) -> None:
         table = self._isotope_table
