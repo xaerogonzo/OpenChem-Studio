@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 41e8d672292c344c564d314cfaf33528b6d7d1a7f0ab767595e39bc1c77ac843 -->
+<!-- SOURCE SHA256: 956945b55dc8d3ddf25162a637d99f64be8a0a749106e704a236397c14e7cd06 -->
 
 # Sources
 
@@ -127,6 +127,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`molstar`](#molstar) | software | shipped | citation |
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
 | [`nmrshiftdb2`](#nmrshiftdb2) | dataset | shipped | citation |
+| [`nubase2020`](#nubase2020) | dataset | shipped | citation + claim |
 | [`ons_solubility`](#ons_solubility) | dataset | shipped | citation |
 | [`openbabel`](#openbabel) | software | shipped | citation |
 | [`opsin`](#opsin) | software | shipped | citation |
@@ -912,6 +913,72 @@ gCOSY/gHSQC/gHMBC.
 CHOSEN BECAUSE IT IS NOT CIRCULAR. nmrshiftdb2 ([source:nmrshiftdb2]) IS
 the lookup's index, so scoring the lookup against it would measure
 memorisation.
+
+### nubase2020
+
+<a id="nubase2020"></a>
+
+> F. G. Kondev, M. Wang, W. J. Huang, S. Naimi & G. Audi, 'The NUBASE2020 evaluation of nuclear physics properties', Chinese Physics C 45, 030001 (2021).
+
+| | |
+| --- | --- |
+| Identifier | [10.1088/1674-1137/abddae](https://doi.org/10.1088/1674-1137/abddae) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-18 |
+| Local copy | `Kondev_2021_Chinese_Phys._C_45_030001.pdf` (not checked) |
+| Used by | `tools/build_nuclide_table.py`, `src/openchem/chem/data/nuclides.json`, `src/openchem/chem/data/nubase_4.mas20.txt` |
+
+Every ground-state nuclear property this application knows: half-life,
+decay modes with branchings, natural abundance, spin and parity, mass
+excess. 3,557 ground states, from the 5,843-row electronic table.
+
+**THE LICENCE IS THREE SEPARATE CLAIMS, because a paper's licence does not
+automatically licence a separately distributed data file.** They are
+distinct works, and inferring one from the other is the provenance mistake
+this project has spent whole commits undoing -- see the electronegativity
+correction under [source:crc_handbook].
+
+  1. THE ARTICLE IS CC BY 3.0, verbatim from page 030001-1: "Content from
+     this work may be used under the terms of the Creative Commons
+     Attribution 3.0 licence. Any further distribution of this work must
+     maintain attribution to the author(s) and the title of the work,
+     journal citation and DOI."
+  2. THE ARTICLE CONTAINS THIS TABLE. Table I, "The NUBASE2020 table",
+     runs about 160 of the paper's 181 pages, and U-238 was cross-checked
+     against the electronic parse: `4.463 Gy`, `IS=99.2742 10; A=100;
+     SF=5.44e-5 7; 2B-=2.2e-10 3`, identical. **That establishes the
+     correspondence, not that all 5,843 rows are byte-identical** -- one
+     row cannot, and the claim is written no wider than the check.
+  3. THE ELECTRONIC FILE CARRIES A CITATION REQUEST, not a licence grant.
+     The AMDC page says "any work that will use the file should make
+     reference to this paper and not to the electronic files."
+
+So the shipped table reproduces values published under CC BY 3.0 and is
+attributed accordingly -- authors, title, journal citation and DOI -- which
+is also exactly what AMDC asks for, so the two obligations are one action.
+**This entry does not assert that the data file itself is CC BY.**
+
+`verification = "citation_and_claim"`: the citation is confirmed from the
+PDF in Sci Downloads, and the claim is the generator's acceptance block --
+U-238 at 4.463 Gy and 99.2742%, Po-209 at 124 y, C-14 at 5,700 y, Tc-99 at
+2.11e5 y, and exactly 253 stable nuclides.
+
+THE SOURCE SNAPSHOT IS COMMITTED, NOT FETCHED. `nubase_4.mas20.txt` sits
+beside the generated JSON and `--check` never touches the network: an
+upstream that can change under CI would turn runs red with nothing in this
+repository having moved, and a hash alone says which bytes were expected
+without giving a future reader the bytes to regenerate from. The manifest
+records the sha256 (which bytes) and the revision (which scientific
+release) -- the second being what answers "why does this disagree with
+NUBASE2024".
+
+GROUND STATES ONLY, and enforced rather than described. NUBASE carries
+isomers at T-half >= 100 ns; a molfile cannot express Tc-99m as distinct
+from Tc-99, so those rows would be data nothing here could reach. The free
+neutron is skipped with them -- NUBASE lists it as Z=0, and it is not an
+element. Both exclusions are build-time invariants, because a documented
+policy nothing enforces is how somebody helpfully adds them back.
 
 ### aqsoldb
 
