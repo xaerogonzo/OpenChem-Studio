@@ -1636,13 +1636,14 @@ work, and selecting an element shows:
 - **its naturally occurring isotopes, with abundances** — ⁵⁶Fe 91.75%, and so on
 - **its melting and boiling points**, where anybody has measured them
 
-The facts and the atom drawing are **separate tabs** under the grid, so
-neither squeezes the other — the facts table used to lose its last rows
-off the bottom.
+The facts, the atom drawing, the isotopes and the decay chain are
+**separate tabs** under the grid, so none of them squeezes the others —
+the facts table used to lose its last rows off the bottom.
 
 Above the grid, **Colour by** changes what the cell colours mean. Element
 category is the default; there is also block (s/p/d/f), state at 25 °C
-and 1 bar, and heatmaps over electronegativity, both radii, atomic mass
+and 1 bar, **radioactivity** and the **longest-lived radioactive
+isotope**, and heatmaps over electronegativity, both radii, atomic mass
 and melting point. In a heatmap each cell prints its value as well, and
 an element with no accepted value gets its own swatch rather than the
 bottom of the scale — several elements genuinely have no Pauling
@@ -1678,6 +1679,66 @@ it between each.
 not-list forms, are drawing constructs a reference table has no way to
 express; the editor's own tools still place those. The dialog says so
 rather than leaving you to find out.
+
+### Isotopes
+
+The **Isotopes** tab lists every ground state of the selected element:
+mass number, natural abundance, half-life, decay modes with their
+branching ratios, and spin and parity. Uranium opens with U-238 at
+99.2742% and 4.46 Gy; carbon leads with C-12, C-13 and C-14.
+
+Setting an isotope used to mean the editor's Atom Properties dialog and
+typing a mass number blind. Select an atom in the 2D editor, pick a row,
+and **Apply to selected atom** writes it — or tick *all … atoms* to
+label every atom of that element in the **same undo entry**.
+
+**Your conformers survive it.** Labelling an atom C-13 moves nothing and
+breaks nothing, so the geometries you generated are still geometries of
+the labelled structure. Any other edit still clears them.
+
+**A mass number cannot cross elements.** The table is something to browse,
+so you can easily be reading carbon's isotopes with an oxygen selected —
+the button is disabled and says which element is which, rather than
+quietly offering you O-14.
+
+Marks in the table are not decoration. `>` and `<` are bounds, `~` is
+approximate, and *(estimated)* means the value comes from systematics
+rather than from measurement. A branching marked *(unconfirmed)* is a
+decay nobody has quantified — not one that never happens.
+
+The data is NUBASE2020, shipped as a snapshot beside the generated table
+so it can be regenerated exactly; see `docs/SOURCES.md`.
+
+### Decay chains
+
+The **Decay** tab draws where the selected element's longest-lived
+radioactive isotope ends up, on the **chart of the nuclides** — neutrons
+across, protons up, which is the layout every textbook uses. Alpha decay
+is then two cells down and two left, beta-minus one up and one left, so
+uranium-238 comes out as the staircase it is drawn as in books.
+
+Line weight is the branching ratio. **Nothing is left out** — uranium's
+double beta-minus to plutonium-238 runs at 2.2×10⁻¹⁰% and is still there
+as a hairline. Without the weighting the picture was unreadable: cluster
+emissions jump enormous distances on this chart, so a handful of
+essentially-never decays drew lines across the whole width while the real
+series was a faint zigzag underneath.
+
+Colour is the kind of decay, and the legend under the chart shows each
+family in its own colour.
+
+Click any box to follow the chain from there. **Insert this nuclide into
+drawing** arms the canvas with that element; place it, then set its mass
+number from the Isotopes tab — the status bar says so.
+
+Two honest limits. The chart is **ground states only**, so a chain that
+runs through an isomer is not drawn: a molfile has no way to express
+technetium-99m as distinct from technetium-99, so shipping isomers would
+be data nothing could reach. And a few nuclides are marked stable in
+NUBASE while also carrying a decay nobody has ever observed — lead-206
+among them — which is why the chart continues past lead into mercury, and
+why the status line says which stable nuclides a chain *reaches* rather
+than where it "ends".
 
 ### The atom, drawn
 

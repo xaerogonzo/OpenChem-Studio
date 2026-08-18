@@ -5567,6 +5567,147 @@ in this file's running count of that:
   silently -- the innermost shell of every element, in the one branch of
   this codebase written against silent omissions.
 
+## NUCLIDES: what the isotope and decay work cost
+
+`chem/nuclides.py`, `chem/decay.py`, `chem/decay_svg.py` and
+`chem/isotopes.py` are the NUBASE2020 table and what reads it. Most of
+it is in the modules' own docstrings; these are the parts that are not
+recoverable from the code.
+
+**A HALF-LIFE HAS EIGHT STATES AND A BRANCHING HAS ITS OWN FOUR.** An
+early draft of the plan attributed the branching qualifiers to the
+half-life column -- "145 `<`, 20 `>` and 340 `~`" -- and they are a
+different field. The half-life's own bounds are 9 `>`, 4 `<` and 6 `~`
+among 5,843 rows. **AND THE VALUE AND ITS UNCERTAINTY ARE TWO
+DIMENSIONS**: 38 rows have no half-life but a bound in `dT`, and 256
+carry BOTH a value and a `dT` bound, so one qualifier field would force
+a silent precedence rule.
+
+**A DEGENERATE FIXTURE APPEARED IN EVERY SINGLE COMMIT OF THIS BRANCH.**
+Nine mutation runs, and the survivors were almost never untested code --
+they were tests that could not discriminate:
+
+    N3  the absent-vs-zero pair used masses 101/102, so the mass
+        tie-break gave the right order anyway
+    N3  CARBON cannot see abundance-before-half-life; uranium can
+        (U-234 abundant at 0.0054%/246 ky vs U-236 no abundance/23.4 My)
+    N3  tin's ten stable isotopes all have distinct abundances, so the
+        final tie-break never fired
+    N5  "carbon's fill differs from uranium's" passes when the terminal
+        swatch is painted with the ramp's TOP colour -- uranium sits at
+        0.638
+    N6  "a 13C landed" passes when the scope is hardcoded to every atom;
+        ethanol has TWO carbons and counting them is the discriminator
+    N6  the checkbox guard picked a row first, so it only ever reached
+        the path where the label was already right
+    N4  four checks of `edge_weight` did not notice the RENDERER
+        ignoring it
+    N4  the click test called the handler directly, so a filter that
+        swallowed the press survived
+    N4  the refit CONTROL switched to tab 0, which was already current,
+        so `currentChanged` never fired
+
+The last two are one lesson twice: **a control that does not move is not
+a control**, and **testing a helper is not testing the wiring**.
+
+**AND THE PLAN'S OWN REFUSAL FIXTURE WAS DEGENERATE TOO.** It specified
+"asking for O-18 on a carbon must be refused". Mass number 18 is a real
+nuclide of BOTH elements -- C-18 exists at 92 ms -- so that call is
+correctly ACCEPTED. Mass number 2 is the sharp case: deuterium exists,
+C-2 does not. Carbon's table runs 8..23.
+
+### THE CHART OF THE NUCLIDES NEEDS NO LAYOUT ALGORITHM
+
+x is the neutron number and y is the proton number. **(Z, N) determines
+A, so cells cannot collide** -- measured across 200+ chains at zero,
+which is a proof rather than a tolerance. Alpha is two cells down and two
+left, beta-minus one up and one left, so the SHAPE carries meaning and
+U-238 comes out as the staircase books draw.
+
+**THE FIRST RENDER WAS UNREADABLE AND WEIGHTING FIXED IT.** A cluster
+emission is an enormous jump on this chart -- uranium's 32Si branch moves
+14 protons and 18 neutrons at once -- so at uniform stroke a handful of
+decays at ~1e-10% drew lines across the whole width while the real series
+was a faint zigzag underneath. Line weight is the branching now, and
+nothing is dropped: a guard counts `<line ` against followable edges.
+
+**FOUR "STABLE" NUCLIDES ALSO CARRY A DECAY.** Pb-204, Pb-206, Pb-208 and
+Hg-204 are marked `stbl` in NUBASE AND list a mode nobody has ever
+observed (`A ?`, `2B- ?`). So `leaves()` correctly reports Hg-200, Hg-202
+and Tl-205 for uranium-238 and omits Pb-206, which is where every
+textbook says that series ends -- the status line reports which stable
+nuclides a chain REACHES instead. Asserted, so a future NUBASE that
+resolves the contradiction fails rather than silently redrawing.
+
+**AND U-238 CANNOT DEMONSTRATE AN UNFOLLOWABLE LEAF.** It has seven SF
+branches, and every node carrying one also has a followable alpha, so
+none of them is a leaf. Measured over the whole table: 8,038 stable
+leaves, 109 unfollowable, 17 off-table. Fm-259 fissions outright; Li-3
+decays off the table.
+
+### KETCHER'S CONTEXT MENU: MEASURED, AND NOT SHIPPED
+
+The plan proposed appending items to `context-menu-for-atoms`. The spike
+came back negative and the feature did not depend on it, by design.
+
+    react-contexify is the library    no global hooks: a scan of
+                                      `window` returns an empty list
+    the `.contexify` root             exists only while open, and React
+                                      re-renders it every time
+    `main.jsx` composes `<Editor>`    the menu is inside Ketcher's own
+                                      component tree; no prop, no slot
+
+**THE DECIDING MEASUREMENT IS THAT IT CANNOT BE TESTED.** Ketcher's
+canvas is **0x0 in a bare `QWebEngineView`**, even inside a laid-out host
+widget and selected by its own `ketcher-canvas` testid -- `page2obj`
+divides by that zero and returns non-finite coordinates, so a right-click
+cannot be synthesised at an atom outside the running application. An
+injection whose only verification is driving the app and watching for a
+DOM node React can re-render away does not belong in a vendored bundle
+that `test_ketcher_bundle_is_current.py` can only fingerprint by name.
+
+Two facts worth keeping from the probe: **`page2obj` is on
+`editor.render`, not on `editor`** (this file said only that it exists),
+and `editor.event` carries `click`, `mousedown` and `mouseup` -- so
+forwarding a right-click to Python and raising a Qt menu is reachable.
+Not done, because Ketcher's own menu opens on the same gesture and two
+menus on one right-click is worse than either.
+
+### The zoom view is now shared, and the extraction was free
+
+`ui/widgets/zoomable_svg_view.py` is the Lewis dialog's scroll-and-zoom
+contract lifted out for the decay chart. The dialog keeps its whole
+surface (`zoom`, `set_zoom`, `zoom_to_fit`, `natural_size`, `_view`,
+`_scroll`) as delegations and ALIASES onto the same objects, so the
+extraction is behaviour-neutral by construction rather than by
+re-testing -- 43 Lewis tests unmoved.
+
+**A ZOOM COMPUTED AGAINST AN UNSHOWN VIEWPORT IS NOT A FIT.** The decay
+chart refreshes from `select`, which runs while another tab is current,
+so `zoom_to_fit` measured a viewport Qt had not laid out and clamped to
+its 25% floor: a 2320 px chart drawn a quarter size in a 1265 px pane. It
+re-fits when its tab is shown.
+
+### Four more defects that only the rendered widget showed
+
+Every one with the whole suite green, which is the fifth, sixth, seventh
+and eighth entries in this file's running count of that:
+
+- **the half-life legend explained no marks.** Five cells print a
+  trailing `#` because a colour cannot say "estimated", and its meaning
+  lived only in a tooltip -- while the legend is the part a screenshot
+  carries. The guard derives the marks from what the cells actually
+  print.
+- **"has a stable isotope, not established shown separately"** attaches
+  the exception to the second class alone.
+- **RED AND GREEN carrying a whole mode by themselves.** Every other
+  discrete palette spreads its classes over four or ten hues, where
+  confusing two costs one element; here it costs the picture. The cells
+  print "stable" and "decays" -- not "unstable", which at 9 px differs
+  from "stable" by two leading letters.
+- **`**Ground states only**` rendered with its asterisks.** QLabel does
+  not do markdown.
+
 ## Verification standard
 
 This project's convention, established across many sessions: **claims are
