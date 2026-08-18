@@ -202,6 +202,15 @@ class Provenance:
     structure_revision: int = 0
     analysis_version: str = ""
     rdkit_version: str = ""
+    #: Which 2D layout engine drew this, and the score that chose it.
+    #:
+    #: **THE SCORE, NOT JUST THE WINNER.** "Layout engine: coordgen" six
+    #: months from now answers nothing, and "why did this molecule switch
+    #: engines after the RDKit upgrade?" is a question that needs evidence
+    #: rather than a name. Both are in the details panel.
+    layout_engine: str = ""
+    layout_crowding: float | None = None
+    layout_crossings: int | None = None
 
 
 @dataclass(frozen=True)

@@ -378,6 +378,17 @@ class LewisDiagramDialog(QDialog):
             f"  structure revision    {provenance.structure_revision}",
             f"  analysis version      {provenance.analysis_version or '-'}",
             f"  RDKit                 {provenance.rdkit_version or '-'}",
+            # **THE SCORE, NOT JUST THE WINNER.** "layout engine: coordgen"
+            # six months from now answers nothing, and "why did this
+            # molecule switch engines after the RDKit upgrade?" is a
+            # question that needs evidence rather than a name.
+            f"  layout engine         {provenance.layout_engine or '-'}",
+            f"  layout clearance      "
+            f"{'-' if provenance.layout_crowding is None else f'{provenance.layout_crowding:.3f}'}"
+            " bond lengths (higher is better; it chose the larger)",
+            f"  layout bond crossings "
+            f"{'-' if provenance.layout_crossings is None else provenance.layout_crossings}"
+            " (the tie-break, only when clearance is equal)",
             "",
             "This diagram is a snapshot of the structure as it was when this"
             " window was opened. It does not follow the editor.",
