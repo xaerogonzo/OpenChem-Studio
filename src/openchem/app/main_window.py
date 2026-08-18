@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from typing import Callable
 
-from PySide6.QtCore import QUrl, Qt
+from PySide6.QtCore import QPoint, QUrl, Qt
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import (
     QAction,
@@ -383,6 +383,7 @@ class MainWindow(QMainWindow):
         # bridge, so this indexes the molblock the model holds.
         self._selected_atom_index: int | None = None
         self._editor.atom_selected.connect(self._on_editor_atom_selected)
+        self._editor.atom_context_menu.connect(self._show_atom_context_menu)
         self._atom_inspector_panel.isotopes_requested.connect(
             self._show_isotopes_for_selection
         )
@@ -2745,6 +2746,63 @@ class MainWindow(QMainWindow):
             f"Ready to place: {label} \u2014 click the 2D editor to put one down.",
             6000,
         )
+
+    def _show_atom_context_menu(self, atom_index: int, x: int, y: int) -> None:
+        """Our own menu, on a right-click that landed on an atom.
+
+        **THE ATOM UNDER THE CURSOR, NEVER THE SELECTED ONE.** `main.jsx`
+        hit-tests the click with Ketcher's own `findItem` and sends that
+        atom's molfile position; using the current selection instead would
+        pass every ordinary test and act on the wrong atom the moment
+        somebody right-clicks away from what they had selected.
+
+        Off an atom this is never called and Ketcher's own menu opens, so
+        nothing the editor offers is taken away.
+        """
+        menu = self.build_atom_context_menu(atom_index)
+        menu.exec(self._editor.mapToGlobal(QPoint(int(x), int(y))))
+
+    def build_atom_context_menu(self, atom_index: int) -> QMenu:
+        """The menu itself, built but NOT shown.
+
+        **SPLIT FROM `exec()` SO A TEST CAN READ IT.** `QMenu.exec` spins
+        its own modal event loop, so a test that raises the real menu
+        hangs the suite on a window nobody can close -- measured, 42
+        minutes before it was killed, and the same trap this file already
+        records for a modal dialog in the drive harness. Patching `exec`
+        out is not the fix either: it is a C++ slot, and monkeypatching it
+        did not stop the block.
+
+        So the building is a plain method returning a `QMenu`, the showing
+        is the one line above, and the tests never call `exec` at all.
+        """
+        self._on_editor_atom_selected(atom_index)
+        symbol = self._selected_atom_element() or "atom"
+
+        menu = QMenu(self)
+        isotopes = menu.addAction(f"Isotopes for this {symbol}...")
+        isotopes.triggered.connect(self._show_isotopes_for_selection)
+        inspector = menu.addAction("Show in Atom Inspector")
+        inspector.triggered.connect(self._reveal_atom_inspector)
+        menu.addSeparator()
+        # Kept by decision: replacing the menu must not cost the editor's
+        # own dialog, which is the one thing it had that we do not.
+        editor_edit = menu.addAction("Edit... (the editor's own)")
+        editor_edit.triggered.connect(
+            lambda _checked=False, index=atom_index: self._editor.open_atom_editor(index)
+        )
+        return menu
+
+    def _reveal_atom_inspector(self, _checked: bool = False) -> None:
+        """Show the panel and let it keep the atom the menu was opened on."""
+        panel = self._atom_inspector_panel
+        dock = panel.parentWidget()
+        while dock is not None and not isinstance(dock, QDockWidget):
+            dock = dock.parentWidget()
+        if dock is not None:
+            dock.show()
+            dock.raise_()
+        self._on_panel_chosen("Atom_Inspector")
 
     def _show_isotopes_for_selection(self, _checked: bool = False) -> None:
         """Open the periodic table on the Isotopes tab for the selected atom.

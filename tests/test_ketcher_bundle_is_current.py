@@ -393,3 +393,70 @@ def test_the_electron_constants_agree_across_the_language_boundary(name):
         f"{name} is {found.group(1)} in main.jsx and {expected} in "
         f"chem/electron_layout.py"
     )
+
+
+def test_the_context_menu_hit_test_uses_the_cursor_and_not_the_selection():
+    """**THE ONE MISTAKE THAT PASSES EVERY OTHER TEST.** Resolving the
+    right-clicked atom from `editor.selection()` gives the right answer
+    whenever the user right-clicks what they already had selected, which
+    is most of the time -- and acts on the wrong atom the moment they do
+    not.
+
+    A source check because the alternative is invisible from Python: both
+    implementations emit an int, and only the browser knows which atom was
+    under the pointer.
+    """
+    source = _MAIN_JSX.read_text(encoding="utf-8")
+    body = source[source.index("function installAtomContextMenu") :]
+    body = body[: body.index("\n}\n")]
+
+    assert "findItem(event" in body, "the hit test must take the EVENT"
+    assert ".selection()" not in body, "the menu must not read the selection"
+
+
+def test_the_forwarded_index_is_a_molfile_position():
+    """A pool id is not a molfile position, and sending one raw is the bug
+    that told a user who had clicked a carbon to pick a heavy atom."""
+    source = _MAIN_JSX.read_text(encoding="utf-8")
+    body = source[source.index("function installAtomContextMenu") :]
+    body = body[: body.index("\n}\n")]
+
+    assert "molfilePosition(" in body
+    assert "atomContextMenu(position" in body
+
+
+def test_a_right_click_off_an_atom_is_left_to_ketcher():
+    """**NOTHING THE EDITOR OFFERS IS TAKEN AWAY.** Suppressing the menu
+    everywhere would cost the user Ketcher's own bond, selection and
+    canvas menus, which this feature never intended to replace.
+    """
+    source = _MAIN_JSX.read_text(encoding="utf-8")
+    body = source[source.index("function installAtomContextMenu") :]
+    body = body[: body.index("\n}\n")]
+
+    guard = body.index("if (!hit || hit.map !== 'atoms') return")
+    suppress = body.index("event.preventDefault()")
+
+    assert guard < suppress, "the bail-out must come BEFORE the suppression"
+
+
+def test_the_listener_is_installed_with_the_editor_it_belongs_to():
+    """**A `ReferenceError` HERE IS SILENT AND COSTS THE WHOLE FEATURE.**
+    The first version called `installAtomContextMenu(editor)` in a
+    function that has no such parameter, which threw, aborted the rest of
+    the function, and left the listener never installed -- indistinguishable
+    from outside from a listener that fires and does nothing.
+    """
+    source = _MAIN_JSX.read_text(encoding="utf-8")
+
+    assert "installAtomContextMenu(ketcherInstance.editor)" in source
+    # The DEFINITION legitimately takes a parameter called `editor`, so the
+    # check is on the CALL: a line that is only whitespace and the call.
+    calls = [
+        line.strip()
+        for line in source.splitlines()
+        if line.strip().startswith("installAtomContextMenu(")
+    ]
+    assert calls == ["installAtomContextMenu(ketcherInstance.editor)"], calls
+    # And the flag that tells "installed" from "never ran" apart.
+    assert "window.openchemContextMenuInstalled = true" in source

@@ -795,6 +795,82 @@ class _Driver(QObject):
         """
         self._window._editor.trigger_toolbar_action(str(step["id"]))
 
+    def _do_right_click(self, step: dict[str, Any]) -> None:
+        """Right-click the canvas at a fraction of its size, for real.
+
+        `{"do": "right_click", "fx": 0.5, "fy": 0.5}`
+
+        **A REAL `MouseEvent`, AND THE LISTENER DOES THE HIT TEST**, which
+        is the only honest way to drive this. A synthetic plain object
+        will not do: Ketcher's `page2obj` answers {x: 0, y: 0} for one, so
+        `findItem` reports whichever atom sits nearest the model origin --
+        measured, it returned `atoms#0` at every corner and at the centre
+        alike, which looks exactly like a working hit test and is not one.
+
+        So the step dispatches an event the page treats as genuine and
+        logs what PYTHON received, which is the whole contract: an atom's
+        molfile position, or nothing at all when the click missed.
+        """
+        window = self._window
+        # **THE CANVAS MUST BE VISIBLE, or `clientArea` measures 0x0** and
+        # every dispatched position collapses to the top-left corner --
+        # which reads as "the listener never fired" rather than as a
+        # hidden widget. You cannot right-click what is not on screen.
+        window._center_tabs.setCurrentWidget(window._editor)
+        received: list[tuple[int, int, int]] = []
+        connection = window._editor.atom_context_menu.connect(
+            lambda index, x, y: received.append((index, x, y))
+        )
+
+        def report(value):
+            logger.warning(
+                "OPENCHEM_DRIVE: right_click %s -- python received %s", value, received
+            )
+            try:
+                window._editor.atom_context_menu.disconnect(connection)
+            except (RuntimeError, TypeError):  # pragma: no cover - already gone
+                pass
+
+        fx = float(step.get("fx", 0.5))
+        fy = float(step.get("fy", 0.5))
+        # **THE PAGE HAS NOT REFLOWED YET.** Revealing the tab resizes the
+        # Qt widget synchronously -- it reports 1347x698 at once -- while
+        # Chromium lays out on its own schedule, so `clientArea` measures
+        # 0x0 if the event is dispatched in the same handler and every
+        # position collapses to the corner. Same trap the conformer
+        # gallery already records: wait for the size to SETTLE.
+        select = int(step.get('select', -1))
+        QTimer.singleShot(500, lambda: self._dispatch_right_click(fx, fy, report, select))
+
+    def _dispatch_right_click(self, fx: float, fy: float, report, select: int = -1) -> None:
+        self._window._editor._backend._page.runJavaScript(
+            """
+            JSON.stringify((function () {
+              var ed = window.ketcher.editor;
+              var area = ed.render.clientArea, b = area.getBoundingClientRect();
+              var x = b.left + %f * b.width, y = b.top + %f * b.height;
+              // Optionally select a DIFFERENT atom first: the menu must
+              // act on the one under the cursor, and a selection-based
+              // implementation passes every other check.
+              var pre = %d;
+              if (pre >= 0) {
+                var ids = Array.from(ed.struct().atoms.keys());
+                if (ids[pre] !== undefined) { ed.selection({atoms: [ids[pre]]}); }
+              }
+              var before = document.querySelectorAll('.contexify').length;
+              area.dispatchEvent(new MouseEvent('contextmenu', {
+                bubbles: true, cancelable: true, button: 2, buttons: 2,
+                clientX: x, clientY: y}));
+              return {x: Math.round(x), y: Math.round(y),
+                      installed: String(window.openchemContextMenuInstalled),
+                      contexify_before: before,
+                      contexify_after: document.querySelectorAll('.contexify').length};
+            })())
+            """
+            % (fx, fy, select),
+            report,
+        )
+
     def _do_place(self, step: dict[str, Any]) -> None:
         """Click an element in the periodic table, then click the canvas.
 

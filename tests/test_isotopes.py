@@ -648,3 +648,63 @@ def test_the_button_still_reveals_the_editor(window):
     window._insert_element_into_drawing("Na", 0)
 
     assert window._center_tabs.currentWidget() is window._editor
+
+
+# --- P3: the right-click menu ----------------------------------------------
+
+
+def _menu(window, atom_index=0):
+    """**BUILT, NEVER SHOWN.** `QMenu.exec` is modal and blocks the whole
+    suite -- the first version of these tests ran for 42 minutes on an
+    invisible menu, and monkeypatching `exec` did not help because it is a
+    C++ slot. `build_atom_context_menu` exists so this can read the menu
+    without one ever opening.
+    """
+    return window.build_atom_context_menu(atom_index)
+
+
+def test_the_menu_offers_the_three_things_it_promised(window):
+    """Isotopes and the Atom Inspector are what Alex asked for; the
+    editor's own `Edit...` is what he asked to KEEP, and replacing the
+    menu would otherwise have taken it away."""
+    _ethanol_in(window)
+
+    labels = [a.text() for a in _menu(window, 0).actions() if a.text()]
+
+    assert any("Isotopes" in text for text in labels)
+    assert any("Atom Inspector" in text for text in labels)
+    assert any("Edit" in text for text in labels)
+
+
+def test_the_menu_names_the_element_under_the_cursor(window):
+    """It acts on the atom the right-click landed on, so it says which."""
+    _ethanol_in(window)
+
+    oxygen = [a.text() for a in _menu(window, 2).actions() if "Isotopes" in a.text()]
+    carbon = [a.text() for a in _menu(window, 0).actions() if "Isotopes" in a.text()]
+
+    assert oxygen and "O" in oxygen[0]
+    assert carbon and "C" in carbon[0]
+
+
+def test_the_right_clicked_atom_becomes_the_selection(window):
+    """So Isotopes and the Inspector both act on it without being told
+    twice -- one selection, three consumers."""
+    _ethanol_in(window)
+
+    _menu(window, 2)
+
+    assert window._selected_atom_index == 2
+    assert window._selected_atom_element() == "O"
+
+
+def test_the_editor_edit_item_asks_the_editor_for_that_atom(window):
+    """The passthrough that keeps Ketcher's own dialog reachable."""
+    opened = []
+    window._editor.open_atom_editor = lambda index: opened.append(index)
+    _ethanol_in(window)
+
+    menu = _menu(window, 1)
+    next(a for a in menu.actions() if "Edit" in a.text()).trigger()
+
+    assert opened == [1]

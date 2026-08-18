@@ -47,6 +47,7 @@ class MoleculeEditorWidget(QWidget):
 
     #: One atom, when the user selects exactly one on the 2D canvas.
     atom_selected = Signal(int)
+    atom_context_menu = Signal(int, int, int)
     #: One bond, likewise. Ketcher reports both through the same event.
     bond_selected = Signal(int)
     #: The user pressed one of the engine's own controls that this
@@ -123,6 +124,7 @@ class MoleculeEditorWidget(QWidget):
         # Straight through: the widget adds nothing to an atom index,
         # and a consumer should not have to reach for the backend.
         self._backend.atom_selected.connect(self.atom_selected)
+        self._backend.atom_context_menu.connect(self.atom_context_menu)
         self._backend.bond_selected.connect(self.bond_selected)
         self._backend.editor_action_requested.connect(self.editor_action_requested)
         # The canvas has to follow changes it did not make. Undo is the one
@@ -167,6 +169,10 @@ class MoleculeEditorWidget(QWidget):
         a chosen isotope. See `EditorBackend.set_atom_tool` for why it
         arms rather than places."""
         self._backend.set_atom_tool(symbol, mass_number)
+
+    def open_atom_editor(self, atom_index: int) -> None:
+        """Ketcher's own atom dialog, offered from our context menu."""
+        self._backend.open_atom_editor(atom_index)
 
     def trigger_toolbar_action(self, test_id: str) -> None:
         """Proxies to one of Ketcher's own real toolbar buttons (e.g. "Add/

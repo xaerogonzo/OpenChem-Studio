@@ -129,6 +129,71 @@ function tryWireBridge() {
   } catch (e) {
     console.error('[ketcher-host] failed to subscribe to selectionChange', e)
   }
+  // `ketcherInstance.editor`, not a bare `editor`: this function takes no
+  // such parameter, and the ReferenceError that mistake raises is SILENT
+  // -- it aborts the rest of the function and the feature simply never
+  // installs, which from outside looks exactly like a listener that never
+  // fires. `window.openchemContextMenuInstalled` exists to tell the two
+  // apart.
+  installAtomContextMenu(ketcherInstance.editor)
+}
+
+// RIGHT-CLICK ON AN ATOM IS OURS; EVERYWHERE ELSE IS KETCHER'S.
+//
+// ketcher-react exposes NO context-menu extension point -- its `Config`
+// declares `buttons`, `customButtons` and `togglerComponent` and nothing
+// else -- so an item cannot be appended to the atom menu it renders with
+// react-contexify. Intercepting the gesture is the only route, and it is
+// deliberately narrow: off an atom this listener does nothing at all and
+// Ketcher's own menu opens exactly as it always has.
+//
+// **`findItem` DOES THE COORDINATE CONVERSION**, which is worth stating
+// because the obvious plan was to invert `page2obj` the way the lone-pair
+// overlay does. It is not needed and would not have worked: measured in
+// the running app, `render.page2obj({pageX: 100, pageY: 100})` answers
+// {x: 0, y: 0, z: 0}. `findItem` takes the browser event itself.
+//
+// The id it returns is a POOL id, so it goes through molfilePosition()
+// like every other id crossing this bridge -- sending one raw is the bug
+// that told a user who had clicked a carbon to pick a heavy atom.
+function installAtomContextMenu(editor) {
+  try {
+    const area = editor.render && editor.render.clientArea
+    if (!area) {
+      console.warn('[ketcher-host] no clientArea; atom context menu not installed')
+      return
+    }
+    // A flag the drive harness can read: "installed" and "never ran" look
+    // identical from outside, and this project has spent a run on that
+    // distinction before.
+    window.openchemContextMenuInstalled = true
+    area.addEventListener(
+      'contextmenu',
+      (event) => {
+        let hit = null
+        try {
+          hit = editor.findItem(event, ['atoms'])
+        } catch (e) {
+          console.warn('[ketcher-host] findItem failed on right-click', e)
+          return
+        }
+        if (!hit || hit.map !== 'atoms') return
+        const position = molfilePosition(editor.struct().atoms, hit.id)
+        if (position < 0) return
+        // Both, and in this order: preventDefault stops the browser menu
+        // and stopPropagation stops react-contexify, which listens further
+        // up. Measured: with both, zero `.contexify` roots open.
+        event.preventDefault()
+        event.stopPropagation()
+        if (bridgeObject) {
+          bridgeObject.atomContextMenu(position, event.clientX, event.clientY)
+        }
+      },
+      true,
+    )
+  } catch (e) {
+    console.error('[ketcher-host] failed to install the atom context menu', e)
+  }
 }
 
 // ONE OF EACH, NOT TWO.
