@@ -97,7 +97,13 @@ class ShellDiagram(QWidget):
         super().__init__(parent)
         self._shells: dict[int, int] = {}
         self._nucleus: Nucleus | None = None
-        self.setMinimumSize(220, 220)
+        # **A FLOOR, NOT A PREFERRED SIZE.** 220 was comfortable and it
+        # set the Atom tab's minimum, which through `QTabWidget`'s
+        # maximum-over-pages set the whole dialog's -- the same chain that
+        # put the action row off the bottom of a 1032 px screen. The rings
+        # scale to whatever they are given, so the smallest legible square
+        # is the honest floor; the dialog opens far larger.
+        self.setMinimumSize(96, 96)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
     def set_atom(self, shells: dict[int, int], centre: Nucleus | None) -> None:

@@ -195,6 +195,9 @@ class PeriodicTableDialog(QDialog):
         self._selected: str = ""
         self._buttons: dict[str, QToolButton] = {}
         self._palette_key: str = palettes.PALETTE_ORDER[0]
+        # Read ONCE, and BEFORE the grid is built: every cell in one grid
+        # must agree, and `_build_grid` is three lines below.
+        self._cell_size = self._screen_cell_size()
 
         layout = QVBoxLayout(self)
         layout.addWidget(self._build_palette_row())
@@ -213,7 +216,13 @@ class PeriodicTableDialog(QDialog):
         # switching what you are reading about an element should not move
         # the thing you click to choose one.
         self._diagram = AtomDiagram(self)
-        self._diagram.setMinimumHeight(240)
+        # **THE FLOOR THAT SET THE WHOLE DIALOG'S.** `QTabWidget` takes
+        # the maximum over its pages, so this one number decided how short
+        # the window could be -- and lowering the ShellDiagram inside it
+        # changed nothing while this stood above it. It is a floor, not a
+        # preferred size: the diagram scales, the page opens far larger,
+        # and the tab already scrolls its orbital boxes.
+        self._diagram.setMinimumHeight(150)
 
         # **A PLAIN `QLabel` HERE CLIPS THE LAST ROW, and the tab is what
         # made it visible.** A wrapped QLabel reports a ONE-LINE minimum
@@ -235,7 +244,8 @@ class PeriodicTableDialog(QDialog):
         self._detail_area = QScrollArea(self)
         self._detail_area.setWidgetResizable(True)
         self._detail_area.setWidget(self._detail)
-        self._detail_area.setMinimumHeight(190)
+        # Same reasoning, and this one already scrolls its own content.
+        self._detail_area.setMinimumHeight(120)
 
         self._tabs = QTabWidget(self)
         self._tabs.addTab(self._detail_area, "Facts")
@@ -301,6 +311,15 @@ class PeriodicTableDialog(QDialog):
 
     # --- construction -------------------------------------------------------
 
+    def _screen_cell_size(self) -> tuple[int, int]:
+        """The cell size this screen allows, or the shipped one with no
+        screen to ask (the suite, and any headless caller)."""
+        screen = QGuiApplication.primaryScreen()
+        if screen is None:  # pragma: no cover - no display
+            return CELL_LARGE
+        available = screen.availableGeometry()
+        return cell_size_for(available.width(), available.height())
+
     def _build_grid(self) -> QWidget:
         container = QWidget(self)
         grid = QGridLayout(container)
@@ -331,7 +350,11 @@ class PeriodicTableDialog(QDialog):
         # Tall enough for a third line, permanently: a cell that changed
         # size with the colour mode would jump the whole grid on every
         # switch, and the value line only exists in the heatmap modes.
-        button.setFixedSize(46, 50)
+        #
+        # The SIZE is chosen once from the screen, not per mode -- see
+        # `cell_size_for`, and `_cell_size` which reads the screen at
+        # construction so every cell in one grid agrees.
+        button.setFixedSize(*self._cell_size)
         button.setCheckable(True)
         # A bound method, never a lambda capturing `self`: PySide6 holds a
         # connected plain callable strongly and a QObject's bound method
@@ -615,7 +638,7 @@ class PeriodicTableDialog(QDialog):
         #
         # The chart zooms and scrolls, so it loses nothing by being
         # allowed to get small; the dialog OPENS far larger than this.
-        self._decay_view = ZoomableSvgView(container, minimum_size=(320, 140))
+        self._decay_view = ZoomableSvgView(container, minimum_size=(280, 70))
         column.addWidget(self._decay_view, 1)
 
         self._decay_status = QLabel("", container)
@@ -954,6 +977,63 @@ def _escape_html(text: str) -> str:
 #: whole of it: a window flush against every edge is hard to move, and
 #: the height leaves room for a title bar the geometry does not include.
 _SCREEN_FRACTION = (0.95, 0.92)
+
+
+#: The grid's cell size, at its most and least comfortable. The upper
+#: pair is what shipped and what a 1920-wide screen still gets; the lower
+#: is the smallest at which the atomic number, the symbol and a heatmap
+#: value line are still legible.
+CELL_LARGE = (46, 50)
+CELL_SMALL = (34, 36)
+
+#: What the dialog needs BESIDE the ten rows of cells -- the palette row,
+#: the legend, the tab area at its floor, the action row and the layout's
+#: own margins. **MEASURED from the built dialog** (726 px total against a
+#: 360 px grid), not estimated: a guessed 420 shrank the cells earlier
+#: than necessary. Used only to decide when to shrink, never to lay
+#: anything out, and a guard re-derives it so it cannot go stale.
+_GRID_ROWS = 10
+_DIALOG_CHROME = 366
+
+
+def cell_size_for(available_width: int, available_height: int) -> tuple[int, int]:
+    """How big a periodic-table cell may be on this screen.
+
+    **THE WHOLE DIALOG WAS 922 px TALL AGAINST A 768 px LAPTOP**, and the
+    grid is where it came from: ten rows of `setFixedSize(46, 50)` is
+    502 px before anything else is drawn. Shrinking the cells is what
+    keeps the table WHOLE on a small screen -- scrolling the periodic
+    table would work and would be horrible to use.
+
+    At 1920x1032 this returns the shipped 46x50 and nothing changes.
+
+    It takes BOTH dimensions although only height binds today. The
+    constraint is "the dialog fits the available geometry", and a
+    signature that took height alone would encode an accidental
+    observation as a law -- the grid is 880 px wide, so a genuinely narrow
+    screen is a real case even if no common one reaches it.
+
+    Pure, for the reason `fit_within` and `initial_right_dock_width` are:
+    the suite's `offscreen` platform reports an 800x800 screen, so a call
+    site that reads the real one cannot be told apart from its own
+    deletion through the window.
+    """
+    large_w, large_h = CELL_LARGE
+    small_w, small_h = CELL_SMALL
+    if available_height >= _DIALOG_CHROME + _GRID_ROWS * large_h:
+        height = large_h
+    else:
+        # No floor here: the return clamps both dimensions, and a second
+        # `max(small_h, ...)` on the way is a branch no input can reach --
+        # a mutation removing it changed nothing, correctly.
+        room = (available_height - _DIALOG_CHROME) // _GRID_ROWS
+        height = min(large_h, room)
+    # Width follows the height so a cell keeps its shape, then is capped
+    # by whatever the screen can actually show of an 18-column grid.
+    width = round(large_w * height / large_h)
+    if available_width < 18 * width:
+        width = max(small_w, available_width // 18)
+    return max(small_w, width), max(small_h, height)
 
 
 def fit_within(

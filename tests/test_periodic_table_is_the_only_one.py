@@ -27,7 +27,13 @@ from __future__ import annotations
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, Qt
 
-from openchem.ui.dialogs.periodic_table_dialog import PeriodicTableDialog, fit_within
+from openchem.ui.dialogs.periodic_table_dialog import (
+    CELL_LARGE,
+    CELL_SMALL,
+    PeriodicTableDialog,
+    cell_size_for,
+    fit_within,
+)
 
 
 @pytest.fixture
@@ -816,3 +822,135 @@ def test_the_insert_button_carries_the_isotope_too(dialog):
     dialog._insert_symbol()
 
     assert asked == [("C", 13)]
+
+
+# --- P2: the grid shrinks so the dialog fits a laptop ----------------------
+
+
+@pytest.mark.parametrize(
+    "screen,expected",
+    [
+        # Alex's machine: unchanged, which is half the requirement.
+        ((1920, 1032), CELL_LARGE),
+        ((1600, 852), (44, 48)),
+        # The reported case.
+        ((1366, 728), CELL_SMALL),
+        # Smaller still: clamped at the floor rather than shrinking to
+        # something unreadable.
+        ((1280, 680), CELL_SMALL),
+        ((1024, 600), CELL_SMALL),
+    ],
+)
+def test_the_cell_size_follows_the_screen(screen, expected):
+    """**A 1920 SCREEN MUST GET EXACTLY WHAT SHIPPED.** A change that
+    makes small screens work by making every screen worse is not the fix
+    somebody asked for.
+
+    Pure, for the reason `fit_within` is: `offscreen` reports an 800x800
+    screen, so a call site that reads the real one cannot be told apart
+    from its own deletion through the window.
+    """
+    assert cell_size_for(*screen) == expected
+
+
+def test_a_narrow_screen_is_considered_even_though_height_binds_today():
+    """The signature takes both dimensions because the constraint is "it
+    fits the available geometry" -- an 18-column grid of 46 px cells is
+    880 px wide, so width is a real term even if no common screen
+    reaches it. Encoding "height is the only determinant" would make an
+    accidental observation into a law.
+    """
+    assert cell_size_for(500, 2000)[0] < CELL_LARGE[0]
+
+
+def test_the_cell_never_shrinks_below_the_legible_floor():
+    assert cell_size_for(200, 200) == CELL_SMALL
+
+
+def test_the_dialog_fits_the_screen_it_was_reported_broken_on(dialog):
+    """**BOTH DIMENSIONS, NOT MERELY "HEIGHT DECREASED".** The goal is
+    that it fits a laptop.
+
+    Measured with real fonts at each cell size: 1920 gives 902x852,
+    1600 gives 866x834, and 1366 gives 686x726 against about 728 usable.
+    Asserted here at whatever `offscreen` renders, which is why the bound
+    is derived from the cell size rather than written as a constant --
+    that platform's font makes this dialog 1288 px wide where the running
+    application is 902.
+    """
+    from openchem.ui.dialogs.periodic_table_dialog import _DIALOG_CHROME, _GRID_ROWS
+
+    minimum = dialog.minimumSizeHint()
+
+    assert minimum.height() <= _GRID_ROWS * dialog._cell_size[1] + _DIALOG_CHROME + 25
+
+
+def test_the_chrome_constant_is_re_derived_rather_than_trusted(dialog):
+    """`_DIALOG_CHROME` decides WHEN to shrink, so a stale value shrinks
+    the cells too early or too late.
+
+    **IT WAS GUESSED AT 420 AND MEASURES 366**, which is why this exists:
+    the guess made a 1366-wide screen give up 40 px of grid it did not
+    need to. Re-derived from a built dialog so it cannot drift again.
+    """
+    from openchem.ui.dialogs.periodic_table_dialog import _DIALOG_CHROME, _GRID_ROWS
+
+    measured = dialog.minimumSizeHint().height() - _GRID_ROWS * dialog._cell_size[1]
+
+    assert abs(measured - _DIALOG_CHROME) <= 60, (
+        f"chrome measures {measured} against a declared {_DIALOG_CHROME}"
+    )
+
+
+def test_every_cell_in_one_grid_agrees(dialog):
+    """The cheap half: one size across the whole grid."""
+    sizes = {(b.width(), b.height()) for b in dialog._buttons.values()}
+
+    assert len(sizes) == 1
+    assert sizes == {dialog._cell_size}
+
+
+def test_the_screen_is_read_ONCE_rather_than_per_cell(qapp, monkeypatch):
+    """**THE HALF THE TEST ABOVE CANNOT SEE.** Reading the screen inside
+    `_cell()` gives the same answer 118 times in a stable environment, so
+    every cell still agrees and the guard passes -- a mutation doing
+    exactly that survived.
+
+    What separates them is a screen that answers differently between
+    calls, which is not exotic: a laptop docked or undocked mid-session
+    changes `availableGeometry`, and a construction that straddled it
+    would produce a ragged table.
+    """
+    from openchem.ui.dialogs import periodic_table_dialog as module
+
+    answers = iter([(46, 50)] + [(34, 36)] * 400)
+    monkeypatch.setattr(
+        module.PeriodicTableDialog, "_screen_cell_size", lambda self: next(answers)
+    )
+    built = module.PeriodicTableDialog()
+    try:
+        sizes = {(b.width(), b.height()) for b in built._buttons.values()}
+
+        assert sizes == {(46, 50)}, "the screen was re-read while building the grid"
+    finally:
+        built.setParent(None)
+        built.deleteLater()
+
+
+def test_the_two_floors_that_set_the_dialogs_height_stay_down(dialog):
+    """**ASSERTED ON THE FLOORS THEMSELVES, not on the total they make.**
+
+    `QTabWidget` takes the maximum over its pages, so these two explicit
+    minimums decided how short the whole window could be -- and the
+    AtomDiagram's 240 was the binder, which is why lowering the
+    ShellDiagram inside it changed nothing at all.
+
+    The total cannot police them: measured, restoring the Facts floor from
+    120 to 190 moves the dialog by 6 px, because the Atom page is 184 and
+    stays the maximum either way. And a bound expressed against
+    `_DIALOG_CHROME` cannot be tight on both platforms -- that chrome is
+    366 with real fonts and 322 under `offscreen`. These are constants
+    this file sets, so this file asserts them.
+    """
+    assert dialog._diagram.minimumHeight() <= 160, "the AtomDiagram floor came back"
+    assert dialog._detail_area.minimumHeight() <= 130, "the Facts floor came back"
