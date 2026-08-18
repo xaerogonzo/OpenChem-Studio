@@ -652,3 +652,61 @@ def test_a_refused_diagram_shows_no_zoom_controls(qapp):
         assert not dialog._zoom_label.isVisibleTo(dialog)
     finally:
         _dispose(dialog)
+
+
+# --- C2: the guide toggle ---------------------------------------------------
+
+
+def test_bond_guides_are_on_by_default(qapp):
+    """The diagram this branch was opened for is a 42-atom cloud without
+    them. Somebody wanting the pure dots-only convention can turn them
+    off, which is the rarer ask."""
+    dialog = _dialog_for("O")
+    try:
+        assert dialog._guides_button.isChecked()
+        assert "bond-guide" in dialog.svg
+    finally:
+        _dispose(dialog)
+
+
+def test_turning_the_guides_off_redraws_without_them(qapp):
+    dialog = _dialog_for("O")
+    try:
+        dialog._guides_button.setChecked(False)
+
+        assert "bond-guide" not in dialog.svg
+        assert "lone-pair" in dialog.svg, "it dropped more than the guides"
+    finally:
+        _dispose(dialog)
+
+
+def test_the_toggle_keeps_the_zoom_it_was_at(qapp):
+    """Re-rendering must not throw away where the reader had got to."""
+    dialog = _dialog_for("O")
+    try:
+        dialog.set_zoom(2.0)
+        dialog._guides_button.setChecked(False)
+
+        assert dialog.zoom() == 2.0
+    finally:
+        _dispose(dialog)
+
+
+def test_what_is_exported_is_what_is_on_screen(qapp):
+    """`svg` is what "Copy SVG" and "Save SVG..." hand over, so it has to
+    follow the toggle rather than some other rendering."""
+    dialog = _dialog_for("O")
+    try:
+        dialog._guides_button.setChecked(False)
+        assert dialog.svg == dialog._rendered.svg
+        assert "bond-guide" not in dialog.svg
+    finally:
+        _dispose(dialog)
+
+
+def test_the_legend_tells_a_guide_from_an_abstained_bond(qapp):
+    """Both are lines now, so the key has to say how they differ."""
+    from openchem.ui.dialogs.lewis_diagram_dialog import LEGEND
+
+    assert "bond guide" in LEGEND
+    assert "NO dots" in LEGEND

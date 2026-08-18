@@ -60,6 +60,29 @@ BOND_PAIR_POSITION = 0.5
 #: The gap between the two dots of a bonding pair, across the bond.
 BOND_PAIR_GAP = 0.075
 
+#: The faint line under every bond, and the heavier one on a bond the
+#: analysis declined to represent as electrons. **THEY MUST BE TELLABLE
+#: APART**, because this renderer's vocabulary already gives a solid line
+#: a meaning and the guides must not borrow it.
+#:
+#: NOT DASHED, and that is measured rather than stylistic:
+#: `stroke-dasharray` is taken -- `_region_shape` uses "4 3" for both the
+#: ring circle and the open polyline -- so dashed means "a delocalised
+#: system" here. Dashing every bond in the molecule would create exactly
+#: the misreading a dashed guide was meant to prevent.
+#:
+#: NOT THEME-DERIVED either. This SVG is an EXPORT ARTIFACT: "Copy SVG"
+#: and "Save SVG..." put it in somebody's document, where inheriting
+#: whichever mode the application happened to be in would be a defect.
+#: The distinction that matters is the RELATIONSHIP -- a guide is lower
+#: contrast and thinner -- and that is what the guards assert, so a
+#: future theme layer has a contract to satisfy rather than two hex codes
+#: to hunt for.
+BOND_GUIDE_COLOUR = "#dcdcdc"
+BOND_GUIDE_WIDTH = 1.0
+ABSTAINED_COLOUR = "#666666"
+ABSTAINED_WIDTH = 1.5
+
 DOT_RADIUS = 0.035
 FONT_SIZE = 0.30
 REGION_PADDING = 0.30
@@ -243,12 +266,23 @@ def _bond_pair_dots(ax, ay, bx, by, pairs: int, scale: float):
     return dots
 
 
-def render(diagram: LewisDiagram, scale: float = BOND_LENGTH) -> Rendered:
+def render(
+    diagram: LewisDiagram,
+    scale: float = BOND_LENGTH,
+    bond_guides: bool = True,
+) -> Rendered:
     """The diagram as an SVG string.
 
     Deterministic: the same diagram gives byte-identical output, because
     everything is emitted in the order the model carries it and every
     number is rounded before it is written.
+
+    `bond_guides` draws a faint line under every bond, beneath the dots.
+    **A Lewis structure replaces bond lines with dots, which is correct
+    and, past about twenty atoms, unreadable** -- the reported case was a
+    42-atom structure that came out as a cloud with no skeleton in it.
+    The guides give the connectivity back without changing what any dot
+    claims; they are drawn FIRST so nothing is ever hidden behind one.
     """
     if not diagram.atoms:
         return Rendered(_empty_svg(diagram))
@@ -264,21 +298,42 @@ def render(diagram: LewisDiagram, scale: float = BOND_LENGTH) -> Rendered:
     unplaceable: list[str] = []
     positions = {atom.index: atom for atom in diagram.atoms}
 
-    # Abstained bonds keep an ordinary line -- the one place a line
-    # appears at all, which is what makes it read as "not represented as
-    # electrons" rather than as a bond among dots.
     abstained = {
         (bond.begin, bond.end)
         for bond in diagram.bond_pairs
         if isinstance(bond.pairs, Unknown)
     }
+
+    # **GUIDES FIRST, so every dot sits on top of them.** And NEVER under
+    # an abstained bond: that bond already has its own heavier line, and
+    # two lines on one bond is the one place the two marks could be
+    # confused for each other.
+    if bond_guides:
+        for bond in diagram.bond_pairs:
+            if (bond.begin, bond.end) in abstained:
+                continue
+            a, b = positions.get(bond.begin), positions.get(bond.end)
+            if a is None or b is None:
+                continue
+            body.append(
+                f'<line class="bond-guide" x1="{_n(a.x)}" y1="{_n(a.y)}" '
+                f'x2="{_n(b.x)}" y2="{_n(b.y)}" stroke="{BOND_GUIDE_COLOUR}" '
+                f'stroke-width="{_n(BOND_GUIDE_WIDTH)}"/>'
+            )
+
+    # Abstained bonds keep an ordinary line -- heavier and darker than a
+    # guide, which is what makes it read as "not represented as
+    # electrons" rather than as one more piece of scaffolding. It is also
+    # the only line in the picture with NO dots on it, which is the
+    # strongest discriminator of the two and needs no colour at all.
     for begin, end in sorted(abstained):
         a, b = positions.get(begin), positions.get(end)
         if a is None or b is None:
             continue
         body.append(
             f'<line class="abstained" x1="{_n(a.x)}" y1="{_n(a.y)}" '
-            f'x2="{_n(b.x)}" y2="{_n(b.y)}" stroke="#666" stroke-width="1.5"/>'
+            f'x2="{_n(b.x)}" y2="{_n(b.y)}" stroke="{ABSTAINED_COLOUR}" '
+            f'stroke-width="{_n(ABSTAINED_WIDTH)}"/>'
         )
 
     for region in diagram.regions:

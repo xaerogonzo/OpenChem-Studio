@@ -51,7 +51,10 @@ LEGEND = (
     "Two dots = a localised electron pair.    "
     "A dashed outline = a delocalised system, labelled with its electron count "
     "(? if that count was not determined).    "
-    "A solid line = a connection this analysis declined to represent as electrons."
+    "A very faint line under the dots = a bond guide, drawn only to show what is "
+    "joined to what.    "
+    "A darker, heavier line with NO dots on it = a connection this analysis "
+    "declined to represent as electrons."
 )
 
 
@@ -67,7 +70,8 @@ class LewisDiagramDialog(QDialog):
     ) -> None:
         super().__init__(parent)
         self._diagram = build(molblock, structure_revision=structure_revision)
-        self._rendered = render(self._diagram)
+        self._bond_guides = True
+        self._rendered = render(self._diagram, bond_guides=self._bond_guides)
         # The molecule's name is in the TITLE as well as the header,
         # because more than one of these can be open and the taskbar and
         # the window list only ever show the title.
@@ -163,6 +167,20 @@ class LewisDiagramDialog(QDialog):
         layout.addWidget(self._details)
 
         buttons = QHBoxLayout()
+        # **DEFAULT ON.** The diagram this branch was opened for is a
+        # 42-atom cloud without them; somebody who wants the pure
+        # dots-only Lewis convention can turn them off, which is the
+        # rarer ask.
+        self._guides_button = QPushButton("Bond guides", self)
+        self._guides_button.setCheckable(True)
+        self._guides_button.setChecked(True)
+        self._guides_button.setToolTip(
+            "Draw a faint line under every bond, so the skeleton is visible "
+            "behind the electron pairs."
+        )
+        self._guides_button.setEnabled(self._diagram.drawable)
+        self._guides_button.toggled.connect(self._set_bond_guides)
+        buttons.addWidget(self._guides_button)
         self._details_button = QPushButton("Analysis details", self)
         self._details_button.setCheckable(True)
         self._details_button.toggled.connect(self._details.setVisible)
@@ -185,6 +203,21 @@ class LewisDiagramDialog(QDialog):
         # picture of an error message as though it were a structure.
         for button in (self._copy_button, self._save_button):
             button.setEnabled(self._diagram.drawable)
+
+    # --- bond guides ----------------------------------------------------------
+
+    def _set_bond_guides(self, enabled: bool) -> None:
+        """Re-render at the same zoom.
+
+        The diagram itself is untouched -- this is a drawing option, not
+        an analysis one, so nothing is rebuilt and no chemistry is asked
+        again. Which is also why the export follows it: what somebody
+        saves should be the picture they were looking at.
+        """
+        self._bond_guides = bool(enabled)
+        self._rendered = render(self._diagram, bond_guides=self._bond_guides)
+        self._view.load(self._rendered.svg.encode("utf-8"))
+        self.set_zoom(self._zoom)
 
     # --- zoom -----------------------------------------------------------------
 

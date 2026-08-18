@@ -106,8 +106,8 @@ def benzene():
     )
 
 
-def _svg(diagram) -> str:
-    return render(diagram).svg
+def _svg(diagram, **options) -> str:
+    return render(diagram, **options).svg
 
 
 def _count(svg: str, klass: str) -> int:
@@ -208,11 +208,109 @@ def test_the_three_things_differ_by_SHAPE_not_only_colour():
     assert "<line" in without_colour and "<circle" in without_colour
 
 
-def test_an_abstained_bond_is_the_only_line_in_the_picture():
-    """Which is what makes a line READ as "not represented as electrons"
-    rather than as one bond among the dots."""
-    plain = _svg(water())
+def test_an_abstained_bond_is_the_only_line_when_guides_are_off():
+    """**THE CLAIM THIS TEST PROTECTS SURVIVED THE GUIDES; ITS WORDING DID
+    NOT.**
+
+    It used to be "an abstained bond is the only line in the picture",
+    which is what made a line READ as "not represented as electrons".
+    Bond guides are lines too, so that sentence is now false by design --
+    and the distinction it existed for is preserved a different way: a
+    guide is fainter and thinner, and an abstained bond is the only line
+    in the picture with NO dots on it.
+
+    Turning the guides off restores the original claim exactly, which is
+    what this asserts.
+    """
+    plain = _svg(water(), bond_guides=False)
     assert "<line" not in plain, "a fully localised molecule has no lines at all"
+
+
+# --- C2: bond guides ---------------------------------------------------------
+#
+# A Lewis structure replaces bond lines with dots, which is correct and,
+# past about twenty atoms, unreadable: the reported case was a 42-atom
+# structure that came out as a cloud with no skeleton in it.
+
+
+def _relative_luminance(hex_colour: str) -> float:
+    """Perceived lightness, for comparing two strokes without eyeballing."""
+    r, g, b = (int(hex_colour[i : i + 2], 16) / 255 for i in (1, 3, 5))
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def test_a_guide_is_drawn_under_every_bond():
+    from openchem.chem.lewis_svg import render
+
+    diagram = water()
+    guided = render(diagram, bond_guides=True).svg
+    bare = render(diagram, bond_guides=False).svg
+
+    assert _count(guided, "bond-guide") == len(diagram.bond_pairs)
+    assert _count(bare, "bond-guide") == 0
+
+
+def test_a_guide_is_drawn_BENEATH_the_dots():
+    """Order in the document is order on the page. A guide painted over a
+    bonding pair would put a line through the very electrons it exists to
+    make findable."""
+    svg = _svg(water())
+
+    assert svg.index("bond-guide") < svg.index("bond-pair")
+
+
+def test_a_guide_and_an_abstained_bond_are_tellable_apart():
+    """**ASSERTED AS THE RELATIONSHIP, not as two hex codes.**
+
+    The SVG is an export artifact -- "Copy SVG" and "Save SVG..." put it
+    in somebody's document -- so its colours are fixed rather than taken
+    from the application's theme. Stating the requirement as "fainter and
+    thinner" leaves a future theme layer a contract to satisfy instead of
+    two literals to hunt for.
+
+    Dashing the guide, which is the obvious alternative, is deliberately
+    NOT how they differ: `stroke-dasharray` already means "a delocalised
+    system" in this renderer.
+    """
+    from openchem.chem import lewis_svg
+
+    assert _relative_luminance(lewis_svg.BOND_GUIDE_COLOUR) > _relative_luminance(
+        lewis_svg.ABSTAINED_COLOUR
+    ), "the guide must be the fainter of the two"
+    assert lewis_svg.BOND_GUIDE_WIDTH < lewis_svg.ABSTAINED_WIDTH
+    assert "dasharray" not in lewis_svg.BOND_GUIDE_COLOUR
+
+
+def test_an_abstained_bond_gets_no_guide_under_it():
+    """One bond, one line. Two lines on the same bond is the single place
+    the two marks could be mistaken for one another."""
+    diagram = LewisDiagram(
+        status=Status.SUPPORTED_WITH_ABSTENTIONS,
+        atoms=(
+            _atom(0, "S", 0, 0.0, 0.0),
+            _atom(1, "O", 2, BOND_LENGTH, 0.0),
+        ),
+        bond_pairs=(BondPairs(0, 1, Unknown("an expanded octet is contested")),),
+    )
+
+    svg = _svg(diagram)
+
+    assert _count(svg, "abstained") == 1
+    assert _count(svg, "bond-guide") == 0
+
+
+def test_guides_change_nothing_a_dot_claims():
+    """A drawing option, not an analysis one: every electron is in the
+    same place with them on and off."""
+    from openchem.chem.lewis_svg import render
+
+    diagram = water()
+    guided = render(diagram, bond_guides=True)
+    bare = render(diagram, bond_guides=False)
+
+    assert _count(guided.svg, "bond-pair") == _count(bare.svg, "bond-pair")
+    assert _count(guided.svg, "lone-pair") == _count(bare.svg, "lone-pair")
+    assert guided.unplaceable == bare.unplaceable
 
 
 # --- geometry never drops an electron ----------------------------------------
