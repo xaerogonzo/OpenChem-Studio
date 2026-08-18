@@ -233,6 +233,17 @@ class PeriodicTableDialog(QDialog):
         self._tabs.addTab(self._build_isotopes_tab(), "Isotopes")
         self._tabs.addTab(self._build_decay_tab(), "Decay")
         self._tabs.currentChanged.connect(self._on_tab_changed)
+        # A QDialog gets neither by default, so a window that opened too
+        # tall could not be shrunk, moved back or maximised -- reported as
+        # "there is no way to adjust the size of the periodic table
+        # popup", alongside the buttons being off the bottom.
+        self.setWindowFlags(
+            self.windowFlags()
+            | Qt.WindowType.WindowMaximizeButtonHint
+            | Qt.WindowType.WindowMinimizeButtonHint
+        )
+        self.setSizeGripEnabled(True)
+        self._fit_to_screen()
         layout.addWidget(self._tabs, 1)
 
         # THIS IS NOW THE ONLY PERIODIC TABLE THE PRODUCT OFFERS, so it
@@ -321,6 +332,53 @@ class PeriodicTableDialog(QDialog):
         button.clicked.connect(self._on_cell_clicked)
         self._buttons[facts.symbol] = button
         return button
+
+    #: What the dialog's MINIMUM size may be. Measured, not chosen: the
+    #: element grid alone demands 880x502 and the tallest tab page (Atom)
+    #: another 238, which with the palette row, the legend and the action
+    #: row comes to 902x922.
+    #:
+    #: **A 1366x768 LAPTOP STILL CANNOT SHOW ALL OF IT**, and that is a
+    #: stated limit rather than a fixed one: getting under ~728 means
+    #: shrinking or scrolling the periodic grid itself, which is the
+    #: primary content. It is pre-existing -- this dialog was ~880 tall
+    #: before the Decay tab existed -- and the regression that made the
+    #: action row unreachable on a 1032 px screen is what this bound
+    #: guards against returning.
+    #: Height only: width is a claim about the font, and this suite's
+    #: `offscreen` platform measures the same dialog at 1288 px against
+    #: 902 in the running application.
+    MAX_MINIMUM_HEIGHT = 960
+
+    def _fit_to_screen(self) -> None:
+        """Open no larger than the screen can actually show.
+
+        **THE CAP COMES FROM THE SCREEN, NOT FROM `self.size()`**, which
+        during construction is Qt's pre-show default rather than anything
+        real -- the same trap `initial_right_dock_width` records.
+
+        This is a convenience; the CORRECTNESS is that the MINIMUM size
+        fits, because `resize()` is clamped to it. A dialog whose minimum
+        exceeds the screen cannot be rescued by resizing, which is exactly
+        how the action row ended up unreachable.
+
+        The arithmetic is in `fit_within` for the same reason
+        `initial_right_dock_width` is a pure function: `offscreen` reports
+        an 800x800 screen, so under the suite this call and its deletion
+        are indistinguishable by outcome. Deleting the CALL is the one
+        mutation nothing catches, and that is written into the guard
+        rather than papered over.
+        """
+        screen = QGuiApplication.primaryScreen()
+        if screen is None:  # pragma: no cover - no display
+            return
+        available = screen.availableGeometry()
+        hint = self.sizeHint()
+        self.resize(
+            *fit_within(
+                hint.width(), hint.height(), available.width(), available.height()
+            )
+        )
 
     # --- the isotopes ---------------------------------------------------------
 
@@ -511,7 +569,17 @@ class PeriodicTableDialog(QDialog):
         column = QVBoxLayout(container)
         column.setContentsMargins(0, 0, 0, 0)
 
-        self._decay_view = ZoomableSvgView(container, minimum_size=(520, 360))
+        # **A MINIMUM IS A FLOOR, NOT A PREFERRED SIZE**, and copying the
+        # Lewis dialog's 520x360 was the regression. There that view is
+        # the entire content of its own window; here it sits under a
+        # 502 px element grid, and `QTabWidget` takes the MAXIMUM over its
+        # pages -- so one tab's comfort became the whole dialog's floor
+        # and pushed the action row 105 px below the bottom of a 1032 px
+        # screen, with no maximise button and no size grip to get it back.
+        #
+        # The chart zooms and scrolls, so it loses nothing by being
+        # allowed to get small; the dialog OPENS far larger than this.
+        self._decay_view = ZoomableSvgView(container, minimum_size=(320, 140))
         column.addWidget(self._decay_view, 1)
 
         self._decay_status = QLabel("", container)
@@ -828,6 +896,27 @@ def _escape_html(text: str) -> str:
     HTML is the kind of thing that stops being true quietly.
     """
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+#: How much of the screen the table may claim when it opens. Not the
+#: whole of it: a window flush against every edge is hard to move, and
+#: the height leaves room for a title bar the geometry does not include.
+_SCREEN_FRACTION = (0.95, 0.92)
+
+
+def fit_within(
+    width: int, height: int, available_width: int, available_height: int
+) -> tuple[int, int]:
+    """An opening size that fits the screen, as a pure function.
+
+    Pure so it can be tested at all: the suite's `offscreen` platform
+    reports an 800x800 screen, where this dialog's own minimum is larger
+    still, so nothing observable distinguishes calling it from not.
+    """
+    return (
+        min(width, int(available_width * _SCREEN_FRACTION[0])),
+        min(height, int(available_height * _SCREEN_FRACTION[1])),
+    )
 
 
 def _ramp(position: float) -> str:

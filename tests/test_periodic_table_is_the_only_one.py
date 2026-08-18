@@ -25,10 +25,9 @@ own stayed shut (`dialogs: 0, modals: 0`), and Insert armed the canvas
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QEvent, Qt
-from PySide6.QtCore import QCoreApplication, QEvent
+from PySide6.QtCore import QCoreApplication, QEvent, Qt
 
-from openchem.ui.dialogs.periodic_table_dialog import PeriodicTableDialog
+from openchem.ui.dialogs.periodic_table_dialog import PeriodicTableDialog, fit_within
 
 
 @pytest.fixture
@@ -611,3 +610,124 @@ def test_every_element_can_draw_a_chain(dialog):
 
         assert dialog.decay_focus() is not None, symbol
         assert dialog._decay_status.text()
+
+
+# --- the dialog has to fit on a screen -------------------------------------
+
+
+def test_the_dialogs_minimum_fits_a_real_screen(dialog):
+    """**THE REGRESSION THIS BRANCH SHIPPED, AND WHAT IT COST.** Adding
+    the Decay tab took the dialog's minimum height to 1142 px against a
+    1032 px screen, so Qt clamped it and the whole action row -- Insert
+    into drawing, Copy symbol, Close -- sat 105 px BELOW the bottom edge.
+    Reported as "I cannot select an element and place it on the actual
+    editor": the buttons were not broken, they were unreachable.
+
+    The cause is the one already recorded for the main window's WIDTH,
+    vertically: `QTabWidget` takes the MAXIMUM over its pages, so one
+    tab's comfortable floor became the whole dialog's, and a minimum
+    larger than the screen cannot be rescued by resizing.
+
+    **HEIGHT ONLY, AND THE WIDTH IS DELIBERATELY NOT ASSERTED.** A
+    geometry claim about real fixed text is a claim about the FONT, and
+    this suite runs `offscreen`, whose default is far wider than anything
+    a user sees: measured, the same dialog is 1288 px wide there against
+    902 in the running application. Height is driven by row counts rather
+    than by glyph widths -- 898 offscreen against 922 real -- so it is
+    the half that means the same thing on both.
+    """
+    minimum = dialog.minimumSizeHint()
+
+    assert minimum.height() <= PeriodicTableDialog.MAX_MINIMUM_HEIGHT, (
+        f"{minimum.height()} px tall"
+    )
+
+
+def test_no_tab_page_imposes_a_floor_taller_than_the_grid(dialog):
+    """The structural form, which catches the NEXT tab rather than this
+    one. A page is free to want more room; it is not free to make the
+    window unusable on the way to getting it, because every page here
+    already scrolls or zooms internally.
+    """
+    for index in range(dialog._tabs.count()):
+        page = dialog._tabs.widget(index)
+
+        assert page.minimumSizeHint().height() <= 280, dialog._tabs.tabText(index)
+
+
+def test_the_action_row_is_inside_the_dialog_at_its_MINIMUM_size(dialog):
+    """**THE SYMPTOM, not the measurement behind it.** A bound on the
+    minimum can be satisfied while a layout still puts the buttons past
+    the edge, so this squeezes the dialog to the smallest size it admits
+    to and asks where the buttons actually are.
+
+    It asserts the dialog really BECAME that size first -- `resize()` is
+    clamped to the minimum, which is precisely how the original defect
+    hid: the window simply grew past the screen instead of refusing.
+    """
+    from PySide6.QtWidgets import QPushButton
+
+    minimum = dialog.minimumSizeHint()
+    dialog.resize(minimum)
+    dialog.show()
+    QCoreApplication.processEvents()
+
+    assert dialog.height() <= minimum.height() + 2, "the dialog did not shrink"
+
+    labelled = [
+        button
+        for button in dialog.findChildren(QPushButton)
+        if button.text() in ("Insert into drawing", "Copy symbol", "Close")
+    ]
+
+    assert len(labelled) == 3, "the fixture must find the real action row"
+    for button in labelled:
+        bottom = button.mapTo(dialog, button.rect().bottomLeft()).y()
+
+        assert bottom <= dialog.height(), f"{button.text()} is {bottom - dialog.height()} px past the edge"
+
+
+def test_the_window_can_be_resized_and_maximised(dialog):
+    """A QDialog gets neither a maximise button nor a size grip by
+    default, so a window that opened too tall could not be shrunk, moved
+    back into view or maximised -- reported alongside the buttons, as
+    "there is no way to adjust the size of the periodic table popup".
+    """
+    from PySide6.QtCore import Qt
+
+    assert dialog.windowFlags() & Qt.WindowType.WindowMaximizeButtonHint
+    assert dialog.isSizeGripEnabled()
+
+
+@pytest.mark.parametrize(
+    "hint,screen,expected",
+    [
+        # A dialog smaller than the screen opens at its own size.
+        ((902, 700), (1920, 1032), (902, 700)),
+        # Alex's screen: the height is what gets capped.
+        ((902, 999), (1920, 1032), (902, 949)),
+        # A small laptop caps both.
+        ((902, 999), (1366, 768), (902, 706)),
+        # And it never asks for the whole screen, so the window stays
+        # movable and the title bar has somewhere to be.
+        ((4000, 4000), (1920, 1032), (1824, 949)),
+    ],
+)
+def test_the_opening_size_is_capped_against_the_screen(hint, screen, expected):
+    """**THE CAP COMES FROM THE SCREEN, NOT FROM `self.size()`** -- during
+    construction that is Qt's pre-show default rather than anything real,
+    the trap `initial_right_dock_width` already records.
+
+    **AND THE SUITE CANNOT SEE THE CALL SITE**, which is why this tests
+    the arithmetic directly. `offscreen` reports an 800x800 screen and
+    this dialog's minimum is larger than that, so `resize()` is clamped
+    either way: applying the cap and deleting it are indistinguishable by
+    outcome. Deleting the CALL in `_fit_to_screen` is the one mutation
+    nothing here catches, and it is written down rather than papered over
+    with a second implementation.
+
+    The first version of this guard was worse than useless: it asserted
+    `dialog.width() <= available.width()` on a dialog the fixture never
+    shows, so it passed on Qt's pre-show default and could not fail.
+    """
+    assert fit_within(*hint, *screen) == expected

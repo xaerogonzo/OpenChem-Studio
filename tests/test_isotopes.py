@@ -542,3 +542,46 @@ def test_it_still_opens_with_no_atom_selected(window):
     dialog = window._periodic_table_dialog
     assert dialog.isVisible() or dialog._tabs.count() > 0
     assert dialog._tabs.tabText(dialog._tabs.currentIndex()) == "Isotopes"
+
+
+def test_pressing_insert_really_arms_the_editor(window):
+    """**THE PATH ALEX REPORTED AS BROKEN, END TO END.**
+
+    It was not broken -- the button had been pushed 105 px below the
+    bottom of the screen by a tab's oversized minimum, so it could not be
+    pressed. But nothing in the suite asserted that pressing it reaches
+    the canvas at all: the dialog's own tests stop at the signal, and the
+    window's wiring of that signal had no guard.
+
+    So this is the half that was missing, not the half that failed.
+    """
+    armed = []
+    window._editor.set_atom_tool = lambda symbol: armed.append(symbol)
+    window._show_periodic_table()
+    dialog = window._periodic_table_dialog
+    dialog.select("Na")
+
+    # **LOOK AWAY FROM THE EDITOR FIRST.** Without this the centre tab is
+    # already the editor, so "it reveals the editor" holds whether or not
+    # anything reveals it -- a mutation deleting the reveal survived.
+    window._center_tabs.setCurrentIndex(1)
+    assert window._center_tabs.currentWidget() is not window._editor
+
+    dialog._insert_symbol()
+
+    assert armed == ["Na"]
+    assert window._center_tabs.currentWidget() is window._editor
+
+
+def test_the_dialog_stays_open_after_inserting(window):
+    """Placing three heteroatoms should not mean reopening the table
+    between each -- and a dialog that closed itself would look exactly
+    like the button not working."""
+    window._editor.set_atom_tool = lambda symbol: None
+    window._show_periodic_table()
+    dialog = window._periodic_table_dialog
+    dialog.select("Na")
+
+    dialog._insert_symbol()
+
+    assert dialog.isVisible()

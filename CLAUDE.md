@@ -5645,6 +5645,81 @@ none of them is a leaf. Measured over the whole table: 8,038 stable
 leaves, 109 unfollowable, 17 off-table. Fm-259 fissions outright; Li-3
 decays off the table.
 
+### A TAB'S COMFORTABLE FLOOR BECAME THE WHOLE DIALOG'S, and the buttons left the screen
+
+Reported as "I cannot select an element and place it on the actual
+editor ... this is a new problem on this branch", with "there is no way
+to adjust the size of the periodic table popup" beside it. **The buttons
+were not broken. They were 105 px below the bottom of the screen.**
+
+    available screen          1920 x 1032
+    dialog minimumSizeHint     902 x 1142
+    "Insert into drawing"     global y=1136   OFF SCREEN
+    maximise button           False
+    size grip                 False
+
+This is `A HORIZONTAL ROW'S MINIMUM IS THE SUM` in the vertical, one
+container along: **`QTabWidget` takes the MAXIMUM over its pages.** The
+Decay tab's `ZoomableSvgView` carried `minimum_size=(520, 360)`, copied
+from the Lewis dialog where that widget is the whole window -- here it
+sits under a 502 px element grid, so one tab's comfort set the floor for
+all four and the dialog could not be made short enough to show its own
+action row.
+
+    page      before      after
+    Facts     58 x 58     unchanged
+    Atom      499 x 238   unchanged      <- the real floor now
+    Isotopes  452 x 108   unchanged
+    Decay     520 x 464   320 x 244
+    dialog    902 x 1142  902 x 922
+
+**A MINIMUM IS A FLOOR, NOT A PREFERRED SIZE**, and every page here
+already scrolls or zooms internally, so none of them loses anything by
+being allowed to get small. The dialog OPENS far larger than its minimum.
+
+**AND A `QDialog` HAS NEITHER A MAXIMISE BUTTON NOR A SIZE GRIP BY
+DEFAULT**, so a window that opened too tall could not be shrunk, moved
+back into view, or maximised. Both are set now, and both are guarded --
+but they are the second fix, not the first: a minimum larger than the
+screen cannot be rescued by resizing at all, because `resize()` is
+clamped to it.
+
+**A 1366x768 LAPTOP STILL CANNOT SHOW ALL OF IT** at 922 px, and that is
+recorded as a stated limit rather than quietly claimed as fixed. The
+element grid alone is 880x502; getting under ~728 means shrinking or
+scrolling the periodic table itself, which is the primary content. It is
+also pre-existing -- the dialog was ~880 before the Decay tab existed.
+
+**THE WIDTH CANNOT BE GUARDED AND THE HEIGHT CAN.** Measured, the same
+dialog is **1288 px wide under `offscreen`** against **902** in the
+running application, because that platform's default font is far wider --
+so a width bound is a claim about the font. Height is driven by row
+counts: 898 offscreen against 922 real. The guard asserts height only and
+says why.
+
+**THREE MORE DEGENERATE FIXTURES, IN THE FIX FOR A DEGENERATE-FIXTURE
+BRANCH.** Seven mutations, four caught first time:
+
+- `dialog.width() <= available.width()` on a dialog **the fixture never
+  shows**, so it read Qt's pre-show default and could not fail. Replaced
+  by a pure `fit_within` and a table, because `offscreen` reports an
+  800x800 screen where this dialog's minimum is larger still -- so
+  calling the cap and deleting it are indistinguishable by outcome, and
+  **deleting the CALL is the one mutation nothing catches**. Written into
+  the guard, as `initial_right_dock_width` already does.
+- "inserting reveals the editor" held with the reveal deleted, because
+  **the editor tab was already current**. The fixture looks away first.
+- and the suite's one real failure was `"isotope" -> "Periodic Table..."`
+  in the palette vocabulary. That is the ranking WORKING: there is now a
+  literal `Isotopes...` menu item, which is both a prefix match and the
+  better answer. Same case as the `# NOT "valence"` note already beside
+  it.
+
+**THE PATH THAT WAS REPORTED BROKEN HAD NO END-TO-END GUARD AT ALL.** The
+dialog's tests stopped at `insert_requested`; the window's wiring of that
+signal to `set_atom_tool` was never asserted. That is the half that was
+missing, rather than the half that failed.
+
 ### KETCHER'S CONTEXT MENU: MEASURED, AND NOT SHIPPED
 
 The plan proposed appending items to `context-menu-for-atoms`. The spike
