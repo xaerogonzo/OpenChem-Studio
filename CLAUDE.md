@@ -1009,13 +1009,28 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `5056 passed, 15 skipped`
-(measured 2026-08-18, **16m03**, on `nuclear-isotopes-and-decay` at the
-size-regression fix -- the NUBASE table, the isotope picker, the two
-radioactivity modes, the isotope write and the decay chains. **+220
-collected and 4 REMOVED**, against 4855 at the branch point `76d63d3`,
-diffed both directions in a detached worktree with the `PYTHONPATH`
-override asserted before the count was believed.
+A clean run is **6-19 minutes**, ending at `5110 passed, 15 skipped`
+(measured 2026-08-18, **17m00**, on `nuclear-isotopes-and-decay` AT ITS
+MERGE OF MASTER -- the NUBASE table, the isotope picker, the two
+radioactivity modes, the isotope write and the decay chains, plus
+master's help-contract sweep and chain-qualified colouring arriving from
+PR #36.
+
+**MEASURED ON THE MERGE, WHICH IS THE WHOLE REASON THE EARLIER FIGURE HAD
+TO BE THROWN AWAY.** This entry first recorded `5056 passed` at 16m03 on
+the branch alone, and master moved underneath it while the PR was open --
+so that number described a tree that no longer existed. The two counts
+reconcile exactly, which is what says nothing was lost in the merge:
+
+    branch point   76d63d3   COLLECTS 4855
+    branch tip               COLLECTS 5071   = 4855 + 220 - 4
+    master         1f1a0c7   COLLECTS 4808   = 4754 + 54
+    the merge                COLLECTS 5125   = 5071 + 54
+    the run                           5110 passed + 15 skipped = 5125
+
+**+220 collected and 4 REMOVED** for this branch's own work, diffed both
+directions in a detached worktree with the `PYTHONPATH` override asserted
+before the count was believed.
 
 **ALL FOUR REMOVALS ARE ACCOUNTED FOR AND NONE IS A LOST TEST**, which is
 the whole reason to diff rather than subtract. Three are N8 replacements
@@ -1027,10 +1042,6 @@ name. The fourth is a PARAMETRISED ID changing:
 became `[isotope-Isotopes...]`, which is one case being re-pointed rather
 than dropped.
 
-    branch point  76d63d3   COLLECTS 4855
-    after                   COLLECTS 5071   = 4855 + 220 - 4
-    the run                          5056 passed + 15 skipped = 5071
-
 **THE SKIPS ARE BACK TO THE DETERMINISTIC 15**, from the previous entry's
 19 -- and that entry says why: the extra four were a GPU context lost
 partway through an 18-minute run, which the `webgl` fixture correctly
@@ -1038,7 +1049,19 @@ reports rather than failing on. Nothing here needs a display.
 
 The two `DeprecationWarning`s are pre-existing, in `test_dock_title_bar.py`
 and `test_trajectory_player.py`: the six-argument `QMouseEvent` overload.
-New code in this branch uses the form that takes a global position.)
+New code in this branch uses the form that takes a global position.
+
+**AND THE MERGE ITSELF WAS NOT FREE, WHICH IS WORTH KNOWING BEFORE THE
+NEXT LONG BRANCH.** GitHub would not run CI on the PR at all until the
+conflicts were resolved -- a `pull_request` workflow builds against the
+merge commit, and one cannot exist while the branch conflicts, so the
+run list was simply EMPTY rather than red. Two of the four conflicts were
+master telling this branch it was incomplete: a menu action added here
+needed the `_document()` contract master had just introduced, and a panel
+button using a raw `setToolTip` was refused outright by
+`test_the_migration_debt_never_grows`. The guard caught that, not review
+-- the help layer working on its first contact with code written before
+it existed.)
 
 Before it: `4836 passed, 19 skipped`
 (measured 2026-08-18, **17m56**, on `periodic-table-and-lewis-makeover`
