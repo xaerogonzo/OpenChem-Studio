@@ -9,6 +9,7 @@
   "generated_by": "tools/build_element_reference.py -- do not hand-edit; re-run it",
   "derived_and_self_checked": "period, group, block and electron_configuration are DERIVED. The generator asserts that every configuration's electrons sum to Z and that no two elements claim the same grid cell; tests/test_element_reference.py re-runs both against this file so a hand edit is caught.",
   "curated": "common_oxidation_states and examples are hand-entered, and are the only unverifiable content here. An element whose states are not well established -- the superheavies, most known from a handful of atoms -- has NO key rather than a guess, and the dialog says 'not established'.",
+  "oxidation_states_were_checked_against": "The CRC Handbook of Chemistry and Physics, 97th ed., page 2639, for the halogens and the noble gases. They were NOT taken from it: where the two differ this project lists the wider set (Cl +3; Kr, Xe and Rn, which the CRC records as 0), and each of those is real chemistry. Bromine matches the CRC exactly, which is the opposite of what the review expected to find. The remaining elements have not been reconciled against any source.",
   "configuration_anomalies": "The 20 known Aufbau exceptions (Cr, Cu, Nb, Mo, Ru, Rh, Pd, Ag, La, Ce, Gd, Pt, Au, Ac, Th, Pa, U, Np, Cm, Lr) are listed explicitly in the generator; they are measured ground states rather than predictions."
  },
  "elements": {

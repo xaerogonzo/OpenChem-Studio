@@ -73,6 +73,20 @@ _CORES = {2: "[He]", 10: "[Ne]", 18: "[Ar]", 36: "[Kr]", 54: "[Xe]", 86: "[Rn]"}
 
 #: Curated. The states in ordinary use, most common first where there is a
 #: clear one. Absent means not well established -- see the module docstring.
+#:
+#: **CHECKED AGAINST THE CRC HANDBOOK, 97th ed., page 2639, AND
+#: DELIBERATELY NOT ALIGNED TO IT.** The halogens prompted the review and
+#: overturned its premise: the CRC prints Br as `+1 +5 -1`, which is
+#: exactly what ships here, so the apparent group inconsistency with
+#: chlorine is the source's own. Where the two differ this project is the
+#: WIDER set -- Cl +3 (ClF3, chlorites) and Kr/Xe/Rn (XeF6 and relatives),
+#: all of which the CRC omits by listing noble gases as `0`. Every one of
+#: those is real chemistry, so nothing was removed to match.
+#:
+#: The consequence for provenance: these numbers were VERIFIED AGAINST a
+#: source, not TAKEN FROM one, and [source:crc_handbook] stays
+#: `reference_only`. The halogens and noble gases are reconciled; the
+#: other 100 elements are not.
 _OXIDATION_STATES: dict[int, list[int]] = {
     1: [1, -1], 2: [], 3: [1], 4: [2], 5: [3], 6: [4, 2, -4], 7: [-3, 3, 5],
     8: [-2], 9: [-1], 10: [], 11: [1], 12: [2], 13: [3], 14: [4, -4],
@@ -303,6 +317,14 @@ def build() -> dict:
                 "unverifiable content here. An element whose states are not well established -- "
                 "the superheavies, most known from a handful of atoms -- has NO key rather than "
                 "a guess, and the dialog says 'not established'."
+            ),
+            "oxidation_states_were_checked_against": (
+                "The CRC Handbook of Chemistry and Physics, 97th ed., page 2639, for the "
+                "halogens and the noble gases. They were NOT taken from it: where the two "
+                "differ this project lists the wider set (Cl +3; Kr, Xe and Rn, which the CRC "
+                "records as 0), and each of those is real chemistry. Bromine matches the CRC "
+                "exactly, which is the opposite of what the review expected to find. The "
+                "remaining elements have not been reconciled against any source."
             ),
             "configuration_anomalies": (
                 "The 20 known Aufbau exceptions (Cr, Cu, Nb, Mo, Ru, Rh, Pd, Ag, La, Ce, Gd, "

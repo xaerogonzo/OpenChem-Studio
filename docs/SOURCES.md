@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 1bc45affe8f1e6630967ae931c475887e61140abce322c19e830df27bd69cd9d -->
+<!-- SOURCE SHA256: 2add2748cf1d5d701c244dc47f35026eb3993af2236a3c68fe47684674fc4d16 -->
 
 # Sources
 
@@ -1386,6 +1386,38 @@ in the data file.
 The lattice-energy table in the 97th edition is at page 2097 and is by
 "H. D. B. Jenkins and H. K. Roobottom" -- the same Jenkins as
 [source:jenkins1999], which is why that paper's ref 40 points here.
+
+**THE OXIDATION STATES WERE CHECKED AGAINST IT AND STILL DID NOT COME
+FROM IT**, which is why this entry is still `reference_only` after a
+review that expected to move it. `elements.json`'s
+`common_oxidation_states` was compared against the periodic table on page
+2639 (the poster is rotated 90 degrees in the PDF and its text layer
+interleaves neighbouring cells, so this was read from a render at 10x,
+not extracted).
+
+The halogens were the reason for looking, and the expectation going in
+was wrong. Reported internally as "bromine is missing +3 and +7, which
+makes it inconsistent with chlorine in the same group". The CRC prints:
+
+    F   -1
+    Cl  +1 +5 +7 -1        <- no +3
+    Br  +1 +5 -1           <- no +3, no +7
+    I   +1 +5 +7 -1
+    At  (none listed)
+
+So **bromine matches the CRC exactly** and the group asymmetry is the
+source's own. What differs is CHLORINE, where this project ships a +3 the
+CRC does not -- and Cl(III) is real chemistry (ClF3, chlorites), so the
+divergence is the CRC being conservative rather than this project being
+wrong. The same holds for the noble gases: the CRC lists `0` for all six,
+where this project lists Kr +2, Xe +2/+4/+6 and Rn +2, which are XeF6 and
+its relatives.
+
+NO SHIPPED VALUE WAS CHANGED. The honest description of this column is
+that it is a curated set, checked against the CRC, which is a MORE
+CONSERVATIVE presentation of the same question -- not that it was taken
+from it. A full element-by-element reconciliation of all 118 is not done;
+the halogens and the noble gases are.
 
 ### abraham_predicted_solvents
 

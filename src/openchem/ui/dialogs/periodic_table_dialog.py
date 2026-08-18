@@ -286,7 +286,7 @@ def describe(facts: ElementFacts) -> str:
             if facts.electronegativity is not None
             else "no accepted value",
         ),
-        _row("Typical valences", _valence_text(facts)),
+        _row("Valence states RDKit will fill", _valence_text(facts)),
         _row(
             "Common oxidation states",
             ", ".join(_signed(state) for state in facts.common_oxidation_states)
@@ -321,21 +321,47 @@ _METALLIC = frozenset(
 )
 
 
-def _valence_text(facts: ElementFacts) -> str:
-    """Why there is no valence list, which differs by element.
+#: Said under the valence row, on every element. Verbose, and deliberately
+#: so: without it the number reads as curated chemistry.
+_VALENCE_CAVEAT = (
+    "Used for implicit-hydrogen and valence checking, not a curated "
+    "chemistry reference &mdash; see the oxidation states below."
+)
 
-    75 elements report none. For 73 of them -- every transition metal, both
-    f-block series -- that is a real statement about metals, and the same
-    one the valence checker acts on when it declines to do octet arithmetic
-    on iron oxides. The other two are tennessine and oganesson, where
-    nothing is tabulated because almost nothing is known, and calling those
-    "normal for a metal" would be wrong twice over.
+
+def _valence_text(facts: ElementFacts) -> str:
+    """RDKit's DEFAULT-VALENCE list, and why it is sometimes empty.
+
+    **THIS ROW USED TO BE CALLED "Typical valences", WHICH IS A CLAIM THE
+    NUMBER CANNOT SUPPORT.** It is `GetValenceList`, RDKit's model for
+    deciding how many hydrogens an atom implies, and read as chemistry it
+    is inconsistent across a group. Measured:
+
+        Cl [1]      Br [1]      I [1, 3, 5]
+        N  [3]      S  [2, 4, 6]     Xe [0, 2, 4, 6]
+
+    So the table told a reader bromine has one typical valence and iodine
+    three, when both do 1/3/5/7. The row is kept, because the
+    application's own valence checker acts on this same list and a
+    reference table that agrees with the checker is worth having -- but
+    it is labelled as what it is, with the caveat attached rather than
+    left to a softened noun.
+
+    75 elements report none. For 73 of them -- every transition metal,
+    both f-block series -- that is a real statement about metals, and the
+    same one the valence checker acts on when it declines to do octet
+    arithmetic on iron oxides. The other two are tennessine and
+    oganesson, where nothing is tabulated because almost nothing is
+    known, and calling those "normal for a metal" would be wrong twice
+    over.
     """
     if facts.valences:
-        return ", ".join(str(v) for v in facts.valences)
-    if facts.category in _METALLIC:
-        return "no defined valence (normal for a metal)"
-    return "no defined valence is tabulated for this element"
+        listed = ", ".join(str(v) for v in facts.valences)
+    elif facts.category in _METALLIC:
+        listed = "no defined valence (normal for a metal)"
+    else:
+        listed = "no defined valence is tabulated for this element"
+    return f"{listed}<br><span style='color:#666666'>{_VALENCE_CAVEAT}</span>"
 
 
 def _isotope_text(facts: ElementFacts) -> str:

@@ -298,3 +298,95 @@ def test_the_elements_file_is_in_the_packaging_spec():
     spec = Path(__file__).resolve().parent.parent / "packaging" / "openchem.spec"
 
     assert "elements.json" in spec.read_text(encoding="utf-8")
+
+
+# --- A3: the valence row is RDKit's model, and says so ----------------------
+
+
+def test_the_valence_row_does_not_present_itself_as_curated_chemistry():
+    """It used to be captioned "Typical valences".
+
+    `GetValenceList` is RDKit's DEFAULT-VALENCE model, for deciding how
+    many hydrogens an atom implies. Measured, it gives Cl [1] and Br [1]
+    while I is [1, 3, 5] -- so the old caption told a reader that bromine
+    has one typical valence and iodine three, when both do 1/3/5/7. The
+    number is worth keeping, because this application's own valence
+    checker acts on the same list; the claim was not.
+    """
+    text = describe(facts_for("Br"))
+
+    assert "Typical valences" not in text
+    assert "RDKit" in text
+    assert "not a curated chemistry reference" in text
+
+
+def test_the_valence_caveat_is_on_every_element_not_just_the_awkward_ones():
+    """A caveat shown only where the value looks wrong is a caveat that
+    teaches the reader to trust the rest."""
+    for symbol in ("H", "C", "Fe", "Br", "I", "Og"):
+        assert "not a curated chemistry reference" in describe(facts_for(symbol))
+
+
+# --- A4: a typo detector, and NOT a completeness check ----------------------
+
+
+#: The categories where an octet-style bound is a meaningful statement.
+#: Transition metals and the f-block are deliberately excluded: neither
+#: half of the rule below holds for them, and a guard that judged iron
+#: would be inventing chemistry rather than catching a typo.
+_MAIN_GROUP = frozenset(
+    {"nonmetal", "noble_gas", "halogen", "alkali", "alkaline_earth",
+     "metalloid", "post_transition"}
+)
+
+
+def test_no_oxidation_state_is_mechanically_impossible():
+    """**A TYPO DETECTOR. IT CANNOT CHECK COMPLETENESS, AND MUST NOT BE
+    READ AS DOING SO.**
+
+    "No listed state is impossible" is mechanically testable. "Every state
+    that should be listed is present" is not, by anything -- that remains
+    a source review by a person, and a green tick here is not evidence it
+    happened. `_OXIDATION_STATES` in the generator is hand-entered and the
+    generated file says so in its own `_about` block.
+
+    ONE RULE, not two. An earlier draft also asserted that the maximum
+    positive state does not exceed the group number, which is useless
+    where it holds trivially (chlorine's +7 against group 17) and wrong
+    as soon as older group numbering is meant.
+    """
+    for symbol in all_symbols():
+        facts = facts_for(symbol)
+        if facts.category not in _MAIN_GROUP:
+            continue
+        for state in facts.common_oxidation_states:
+            assert abs(state) <= facts.outer_electrons, (
+                f"{symbol} claims {state:+d} with {facts.outer_electrons} outer electrons"
+            )
+
+
+@pytest.mark.parametrize(
+    "symbol, states",
+    [
+        ("H", (1, -1)),      # one outer electron, and it goes both ways
+        ("He", ()),          # no states listed at all is a valid answer
+        ("F", (-1,)),        # the one element with no positive state
+        ("O", (-2,)),
+        ("Xe", (2, 4, 6)),   # a noble gas that really does have compounds
+        ("Cl", (-1, 1, 3, 5, 7)),  # the widest main-group set shipped
+    ],
+)
+def test_the_awkward_cases_the_rule_has_to_survive(symbol, states):
+    """Named fixtures rather than trust in the formula.
+
+    A rule left to speak for itself becomes the authority it was written
+    not to be. These are the elements where an octet bound is least
+    obviously right, checked one by one -- so a future tightening that
+    breaks any of them fails HERE, naming the element, rather than
+    somewhere downstream.
+    """
+    facts = facts_for(symbol)
+
+    assert facts.common_oxidation_states == states
+    for state in states:
+        assert abs(state) <= facts.outer_electrons
