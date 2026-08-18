@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 956945b55dc8d3ddf25162a637d99f64be8a0a749106e704a236397c14e7cd06 -->
+<!-- SOURCE SHA256: 41da3ca7d43d1dcaac35815275f402d19c9e1a02d9f0b9b0fdd7a8d5e3073c03 -->
 
 # Sources
 
@@ -927,7 +927,7 @@ memorisation.
 | Verification | citation + claim |
 | Verified | 2026-08-18 |
 | Local copy | `Kondev_2021_Chinese_Phys._C_45_030001.pdf` (not checked) |
-| Used by | `tools/build_nuclide_table.py`, `src/openchem/chem/data/nuclides.json`, `src/openchem/chem/data/nubase_4.mas20.txt` |
+| Used by | `tools/build_nuclide_table.py`, `src/openchem/chem/data/nuclides.json`, `src/openchem/chem/data/nubase_4.mas20.txt`, `src/openchem/chem/nuclides.py`, `src/openchem/chem/decay.py` |
 
 Every ground-state nuclear property this application knows: half-life,
 decay modes with branchings, natural abundance, spin and parity, mass

@@ -750,6 +750,8 @@ used_by = [
     "tools/build_nuclide_table.py",
     "src/openchem/chem/data/nuclides.json",
     "src/openchem/chem/data/nubase_4.mas20.txt",
+    "src/openchem/chem/nuclides.py",
+    "src/openchem/chem/decay.py",
 ]
 local = "Kondev_2021_Chinese_Phys._C_45_030001.pdf"
 verification = "citation_and_claim"
