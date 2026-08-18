@@ -15,7 +15,9 @@ electrons are a picture, not a sentence.
 
 from __future__ import annotations
 
+import logging
 import math
+from typing import NamedTuple
 
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QPainter, QPen
@@ -23,6 +25,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
@@ -33,10 +36,13 @@ from openchem.chem.electron_shells import (
     ConfigurationResult,
     ConfigurationUnavailable,
     Nucleus,
+    Subshell,
     ion_configuration,
     isoelectronic_noble_gas,
     nucleus,
 )
+
+logger = logging.getLogger(__name__)
 
 _NUCLEUS_COLOUR = QColor("#e8546b")
 _ELECTRON_COLOUR = QColor("#3aa0e0")
@@ -106,18 +112,134 @@ class ShellDiagram(QWidget):
         painter.end()
 
 
+#: Box geometry in pixels. A subshell occupies `orbitals` boxes side by
+#: side with its label underneath; `_ROW_HEIGHT` includes the gap to the
+#: row below, so `y + _ROW_HEIGHT` is the next row's top.
+_BOX = 22.0
+_BOX_GAP = 2.0
+_SUBSHELL_GAP = 6.0
+_LABEL_HEIGHT = 16.0
+_ROW_HEIGHT = _BOX + _LABEL_HEIGHT + 10.0
+_MARGIN = 8.0
+
+#: Height reserved for the two-line placeholder, which is centred in the
+#: whole rect rather than laid out in rows.
+_MESSAGE_HEIGHT = 120
+
+
+class PlacedSubshell(NamedTuple):
+    """One subshell and where its boxes go. What `_layout_rows` returns."""
+
+    subshell: Subshell
+    x: float
+    y: float
+    width: float
+
+
 class OrbitalBoxes(QWidget):
-    """The `1s ↑↓ | 2s ↑↓ | 2p ↑ ↑ ↑` layout."""
+    """The `1s UD | 2s UD | 2p U U U` layout.
+
+    **THIS USED TO DROP ELECTRONS SILENTLY.** The paint loop packed rows
+    against `self.height()` and `break`ed when it ran out, so polonium's
+    panel stopped at `5s` -- `5p6 5d10 6s2 6p4`, 22 of its 84 electrons,
+    absent from the picture while the line directly above it printed the
+    full `[Xe] 4f14 5d10 6s2 6p4`. Bismuth was the same. The string and
+    the drawing disagreed and the drawing lost quietly, which is the
+    worst way for a reference table to be wrong.
+
+    **THE SIZING CONTRACT, STATED RATHER THAN NEGOTIATED.** The obvious
+    repair -- `heightForWidth` plus a resizable scroll area -- is two
+    mechanisms fighting: the scroll area tells the child to fit the
+    viewport while height-for-width says the natural height follows from
+    the width. This project has paid for height-for-width negotiating
+    through parent layouts twice already (`WrappedLabel` starving a
+    panel; a style change re-arming the flag through `changeEvent`). So
+    there is no `heightForWidth` here. Instead:
+
+        _layout_rows(width)   the one authority on where anything goes
+        _draw_rows(...)       draws ALL of them, with no truncation branch
+        the widget is told its WIDTH and answers with a minimum HEIGHT
+
+    `set_configuration` applies that height as well as `resizeEvent`,
+    because **a widget that was never shown gets no `resizeEvent`** --
+    measured in this project at 0 calls across two successive `resize()`s
+    before `show()`, which is exactly the state a test constructs.
+    """
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._configuration: Configuration | None = None
-        self.setMinimumHeight(120)
+        self.setMinimumHeight(_MESSAGE_HEIGHT)
+        # Wide enough for the widest single subshell (7 f orbitals), so a
+        # narrow viewport scrolls rather than clipping a row in half. This
+        # is not width NEGOTIATION -- the scroll area still decides the
+        # width, this only floors it.
+        self.setMinimumWidth(int(_MARGIN * 2 + 7 * _BOX + 6 * _BOX_GAP))
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
     def set_configuration(self, configuration: Configuration | None) -> None:
         self._configuration = configuration
+        self._apply_required_height()
         self.update()
+
+    # --- layout: one authority, and it does no painting -------------------
+
+    def _layout_rows(self, width: float) -> list[PlacedSubshell]:
+        """Where every subshell goes at this width. **Never truncates.**
+
+        Laid out in WRITING order (1s, 2s, 2p...), which is how every
+        table and textbook spells this. The filling order lives in the
+        model.
+
+        A subshell wider than the whole widget is NOT wrapped onto an
+        empty row -- that would leave a blank row and still overflow. The
+        minimum width in `__init__` is what stops that arising at all.
+        """
+        if self._configuration is None or self._configuration.electrons == 0:
+            return []
+        placed: list[PlacedSubshell] = []
+        x, y = _MARGIN, _MARGIN
+        for subshell in self._configuration.in_writing_order():
+            span = subshell.orbitals * _BOX + (subshell.orbitals - 1) * _BOX_GAP
+            if x > _MARGIN and x + span > width - _MARGIN:
+                x, y = _MARGIN, y + _ROW_HEIGHT
+            placed.append(PlacedSubshell(subshell, x, y, span))
+            x += span + _SUBSHELL_GAP
+        return placed
+
+    def required_height(self, width: float) -> float:
+        """The height every subshell needs at this width."""
+        rows = self._layout_rows(width)
+        if not rows:
+            return float(_MESSAGE_HEIGHT)
+        return max(row.y for row in rows) + _ROW_HEIGHT + _MARGIN
+
+    def missing_row_count(self, width: float, height: float) -> int:
+        """How many subshells would fall outside a widget of this size.
+
+        **A VIOLATED INVARIANT, not a display mode.**
+        `_apply_required_height` guarantees this is zero for the widget's
+        own geometry, so anything else means the minimum height was not
+        honoured. It is a predicate rather than a branch buried in
+        `paintEvent` so it can be asserted directly -- this project's rule
+        that an unreachable branch is a question about where to assert,
+        not automatically dead code.
+        """
+        return sum(1 for row in self._layout_rows(width) if row.y + _ROW_HEIGHT > height)
+
+    def _apply_required_height(self) -> None:
+        # Guarded on a change so calling this from `resizeEvent` cannot
+        # recurse: the height depends only on the WIDTH, so a second pass
+        # at the same width computes the same number and stops.
+        needed = int(math.ceil(self.required_height(self.width())))
+        if needed != self.minimumHeight():
+            self.setMinimumHeight(needed)
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 - Qt override naming
+        super().resizeEvent(event)
+        self._apply_required_height()
+
+    # --- painting ---------------------------------------------------------
 
     def _paint_message(self, painter: QPainter, headline: str, action: str) -> None:
         """Two lines, the second naming what would fill the space.
@@ -132,6 +254,61 @@ class OrbitalBoxes(QWidget):
             self.rect().adjusted(12, 12, -12, -12),
             int(Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap),
             text,
+        )
+
+    def _draw_rows(self, painter: QPainter, rows: list[PlacedSubshell]) -> None:
+        """Draw every row it is handed. **There is no truncation branch.**"""
+        painter.setFont(QFont(painter.font().family(), 8))
+        for placed in rows:
+            for index, (up, down) in enumerate(placed.subshell.spins()):
+                left = placed.x + index * (_BOX + _BOX_GAP)
+                painter.setPen(QPen(_BOX_COLOUR, 1))
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+                painter.drawRect(QRectF(left, placed.y, _BOX, _BOX))
+                painter.setPen(QPen(_BOX_COLOUR, 1.4))
+                if up:
+                    painter.drawText(
+                        QRectF(left, placed.y, _BOX / 2, _BOX),
+                        Qt.AlignmentFlag.AlignCenter,
+                        "\u2191",
+                    )
+                if down:
+                    painter.drawText(
+                        QRectF(left + _BOX / 2, placed.y, _BOX / 2, _BOX),
+                        Qt.AlignmentFlag.AlignCenter,
+                        "\u2193",
+                    )
+
+            painter.setPen(QPen(_BOX_COLOUR))
+            painter.drawText(
+                QRectF(placed.x, placed.y + _BOX + 1, placed.width, _LABEL_HEIGHT),
+                Qt.AlignmentFlag.AlignCenter,
+                placed.subshell.label,
+            )
+
+    def _draw_incomplete_banner(self, painter: QPainter, missing: int) -> None:
+        """Say so, loudly, if the sizing invariant was ever violated.
+
+        A tidy note here would swap *silently wrong* for *quietly wrong*,
+        which is the whole defect this class was rewritten for. Somebody
+        meeting this banner should be meeting a bug, not a shrug -- hence
+        the log line as well as the paint.
+        """
+        logger.warning(
+            "OrbitalBoxes: %d subshell(s) fall outside %dx%d; the minimum height "
+            "(%d) was not honoured",
+            missing,
+            self.width(),
+            self.height(),
+            self.minimumHeight(),
+        )
+        band = QRectF(0, 0, self.width(), 22)
+        painter.fillRect(band, QColor("#c62828"))
+        painter.setPen(QPen(QColor("#ffffff")))
+        painter.drawText(
+            band,
+            Qt.AlignmentFlag.AlignCenter,
+            f"Orbital display incomplete: {missing} subshell(s) could not be rendered",
         )
 
     def paintEvent(self, _event) -> None:  # noqa: N802 - Qt override naming
@@ -154,53 +331,17 @@ class OrbitalBoxes(QWidget):
         if self._configuration.electrons == 0:
             self._paint_message(
                 painter,
-                "No electrons — a bare nucleus.",
+                "No electrons \u2014 a bare nucleus.",
                 'Press "+ electron" or "Neutral" to put one back.',
             )
             painter.end()
             return
 
-        # Drawn in WRITING order (1s, 2s, 2p...), which is how every table
-        # and textbook lays this out. The filling order lives in the model.
-        subshells = self._configuration.in_writing_order()
-        box, gap, label_height = 22.0, 6.0, 16.0
-        x, y = 8.0, 8.0
-        row_height = box + label_height + 10
-
-        painter.setFont(QFont(painter.font().family(), 8))
-        for subshell in subshells:
-            width = subshell.orbitals * box + (subshell.orbitals - 1) * 2
-            if x + width > self.width() - 8:
-                x, y = 8.0, y + row_height
-            if y + row_height > self.height():
-                break
-
-            for index, (up, down) in enumerate(subshell.spins()):
-                left = x + index * (box + 2)
-                painter.setPen(QPen(_BOX_COLOUR, 1))
-                painter.setBrush(Qt.BrushStyle.NoBrush)
-                painter.drawRect(QRectF(left, y, box, box))
-                painter.setPen(QPen(_BOX_COLOUR, 1.4))
-                if up:
-                    painter.drawText(
-                        QRectF(left, y, box / 2, box),
-                        Qt.AlignmentFlag.AlignCenter,
-                        "↑",
-                    )
-                if down:
-                    painter.drawText(
-                        QRectF(left + box / 2, y, box / 2, box),
-                        Qt.AlignmentFlag.AlignCenter,
-                        "↓",
-                    )
-
-            painter.setPen(QPen(_BOX_COLOUR))
-            painter.drawText(
-                QRectF(x, y + box + 1, width, label_height),
-                Qt.AlignmentFlag.AlignCenter,
-                subshell.label,
-            )
-            x += width + gap
+        rows = self._layout_rows(self.width())
+        self._draw_rows(painter, rows)
+        missing = self.missing_row_count(self.width(), self.height())
+        if missing:
+            self._draw_incomplete_banner(painter, missing)
         painter.end()
 
 
@@ -252,11 +393,26 @@ class AtomDiagram(QWidget):
         buttons.addWidget(self.reset_button)
         buttons.addStretch()
 
+        # **THE SCROLL AREA IS THE OTHER HALF OF THE FIX**, and the half
+        # no test of `_layout_rows` can see. `OrbitalBoxes` answers a
+        # width with the minimum height it needs; something has to be
+        # willing to grant that height and scroll the excess, or a
+        # polonium that no longer truncates is merely clipped instead.
+        #
+        # `setWidgetResizable(True)` is what hands the child the viewport
+        # WIDTH -- which is the one number it wants -- while its own
+        # minimum height governs the vertical. That pairing only works
+        # because the child has no `heightForWidth`; see `OrbitalBoxes`.
+        self.boxes_scroll = QScrollArea(self)
+        self.boxes_scroll.setWidget(self.boxes)
+        self.boxes_scroll.setWidgetResizable(True)
+        self.boxes_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+
         right = QVBoxLayout()
         right.addWidget(self.title)
         right.addWidget(self.configuration_label)
         right.addWidget(self.nucleus_label)
-        right.addWidget(self.boxes, 1)
+        right.addWidget(self.boxes_scroll, 1)
         right.addLayout(buttons)
         right.addWidget(self.provenance_label)
 

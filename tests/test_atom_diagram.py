@@ -233,3 +233,236 @@ def test_the_facts_table_says_its_configuration_is_the_neutral_atom(qapp):
     text = describe(facts_for("Fe"))
 
     assert "Electron configuration (neutral atom)" in text
+
+
+# --- A1: the orbital view must never drop a subshell ------------------------
+#
+# It used to. `paintEvent` packed rows against `self.height()` and broke
+# out when it ran out, so polonium's panel stopped at `5s` -- 22 of its 84
+# electrons absent from the drawing while the line above it printed the
+# full `[Xe] 4f14 5d10 6s2 6p4`. Measured against the shipped geometry:
+# Po needs 160 px at width 420 and the old panel had about 130, which
+# leaves exactly the 4 subshells the screenshot was missing.
+
+
+def test_every_element_lays_out_every_subshell_at_every_width(qapp):
+    """All 118, at four widths. **This is the test that did not exist.**
+
+    `test_the_boxes_draw_more_for_more_subshells` compares two SMALL
+    elements, and both of them fit -- so the whole heavy end of the table
+    could drop rows with the suite green. The population is the point
+    here: the defect only appears once a configuration is taller than the
+    widget, which begins around period 5.
+    """
+    from openchem.chem.electron_shells import neutral_configuration
+    from openchem.chem.element_reference import all_symbols
+
+    widget = OrbitalBoxes()
+    for symbol in all_symbols():
+        configuration = neutral_configuration(symbol)
+        widget.set_configuration(configuration)
+        expected = [subshell.label for subshell in configuration.in_writing_order()]
+        for width in (200, 300, 420, 900):
+            drawn = [placed.subshell.label for placed in widget._layout_rows(width)]
+            assert drawn == expected, f"{symbol} at width {width}"
+    _dispose(widget)
+
+
+def test_the_widget_asks_for_the_height_its_rows_need(qapp):
+    """The invariant the scroll area then has to honour.
+
+    **THE FIRST VERSION OF THIS WAS VACUOUS AND A MUTATION SAID SO.** An
+    unshown `OrbitalBoxes` is 640x480, and polonium laid out across 640 px
+    needs 112 -- under the 120 px placeholder floor. So `minimumHeight()
+    >= required_height()` held on a widget that had computed nothing, and
+    neutering `_apply_required_height` changed no test in the file.
+
+    The width is narrowed FIRST, which makes the requirement (256) exceed
+    the floor. `resize()` before `show()` moves `width()` and delivers no
+    `resizeEvent` -- measured in this project at 0 calls -- so this also
+    pins that `set_configuration` does the work rather than the event.
+    """
+    from openchem.chem.electron_shells import neutral_configuration
+
+    widget = OrbitalBoxes()
+    widget.resize(300, 60)
+    widget.set_configuration(neutral_configuration("Po"))
+
+    assert widget.required_height(300) > 120, "fixture is degenerate again"
+    assert widget.minimumHeight() >= widget.required_height(300)
+    assert widget.missing_row_count(300, widget.minimumHeight()) == 0
+    _dispose(widget)
+
+
+def test_a_taller_configuration_asks_for_more_height_than_a_short_one(qapp):
+    """Otherwise the requirement could be a constant and still pass above."""
+    from openchem.chem.electron_shells import neutral_configuration
+
+    widget = OrbitalBoxes()
+    widget.set_configuration(neutral_configuration("He"))
+    small = widget.required_height(420)
+    widget.set_configuration(neutral_configuration("U"))
+    large = widget.required_height(420)
+
+    assert large > small
+    _dispose(widget)
+
+
+def test_the_incomplete_predicate_can_say_NO(qapp):
+    """A guard is worth what its ability to report a violation is worth.
+
+    `missing_row_count` is asserted directly rather than reached through
+    the widget, because `_apply_required_height` makes it unreachable in
+    the running application -- this project's rule that an unreachable
+    branch is a question about where to assert, not automatically dead
+    code. The 130 px arm is the geometry the OLD panel had.
+    """
+    from openchem.chem.electron_shells import neutral_configuration
+
+    widget = OrbitalBoxes()
+    widget.set_configuration(neutral_configuration("Po"))
+
+    assert widget.missing_row_count(420, 130) == 4
+    assert widget.missing_row_count(420, widget.required_height(420)) == 0
+    _dispose(widget)
+
+
+def _labels_drawn_by(widget, monkeypatch) -> list[str]:
+    """Every string the widget hands to `QPainter.drawText` during a grab.
+
+    `grab()` paints the WHOLE widget rather than an exposed viewport
+    rect, which is what lets a deliberately short widget be the setup
+    rather than the obstacle.
+
+    Monkeypatching a C++-backed Qt type is not a given -- measured on
+    this PySide6 build, assigning `QPainter.drawText` works.
+    """
+    from PySide6.QtGui import QPainter
+
+    drawn: list[str] = []
+    original = QPainter.drawText
+
+    def spy(self, *args):
+        if args and isinstance(args[-1], str):
+            drawn.append(args[-1])
+        return original(self, *args)
+
+    monkeypatch.setattr(QPainter, "drawText", spy)
+    try:
+        widget.grab()
+    finally:
+        monkeypatch.undo()
+    return drawn
+
+
+def test_the_boxes_really_paint_every_subshell_label(qapp, monkeypatch):
+    """**The rendered guard, because the defect was a rendering defect.**
+
+    A `_layout_rows` test can pass while the painter still clips: the
+    arithmetic and the paint used to be one loop, and splitting them is
+    exactly the change that could put them back out of step. So this
+    spies on the real `QPainter.drawText` through a real `grab()` and
+    asks what reached the screen. Po and U are the two heaviest layouts
+    in the table.
+    """
+    from openchem.chem.electron_shells import neutral_configuration
+
+    for symbol in ("Po", "U"):
+        configuration = neutral_configuration(symbol)
+        widget = OrbitalBoxes()
+        widget.resize(300, 60)
+        widget.set_configuration(configuration)
+
+        drawn = _labels_drawn_by(widget, monkeypatch)
+
+        expected = {subshell.label for subshell in configuration.in_writing_order()}
+        assert expected <= set(drawn), f"{symbol}: {sorted(expected - set(drawn))} never drawn"
+        assert not any("incomplete" in text for text in drawn), (
+            f"{symbol}: cried incomplete on a widget that had the room"
+        )
+        _dispose(widget)
+
+
+class _DeniedItsHeight(OrbitalBoxes):
+    """An `OrbitalBoxes` that never asks for the height it needs.
+
+    **THE INVARIANT TURNED OUT TO BE SELF-RESTORING, which is why this
+    class exists.** Two earlier versions of the test below tried to
+    construct the violated state through the public API and could not:
+    `resize()` is clamped to the widget's own minimum, and dropping the
+    minimum first does not help either, because delivering the resize
+    runs `resizeEvent`, which puts the minimum straight back and Qt grows
+    the widget again. Measured: `grab()` on a widget resized to 120
+    returned a 256-px image.
+
+    That is the fix working. It also means the banner is unreachable in
+    the running application, so the only honest way to exercise it is to
+    model the one thing that could ever cause it -- a future layout that
+    denies the widget the height it asks for.
+    """
+
+    def _apply_required_height(self) -> None:
+        pass
+
+
+def test_a_widget_denied_its_height_draws_everything_anyway_and_says_so(qapp, monkeypatch):
+    """The violated invariant, on a widget that cannot heal itself.
+
+    Two assertions, and they are different claims. Every label is still
+    offered to the painter, which is what "there is no truncation branch"
+    means -- restore one and the rows below the fold vanish from this
+    list. And the banner appears, which is what stops a clipped drawing
+    reading as a complete one.
+    """
+    from openchem.chem.electron_shells import neutral_configuration
+
+    configuration = neutral_configuration("Po")
+    widget = _DeniedItsHeight()
+    widget.resize(300, 120)
+    widget.set_configuration(configuration)
+
+    assert widget.height() == 120, "the widget healed itself; the fixture proves nothing"
+    assert widget.missing_row_count(300, 120) > 0, "fixture no longer violates anything"
+
+    drawn = _labels_drawn_by(widget, monkeypatch)
+
+    expected = {subshell.label for subshell in configuration.in_writing_order()}
+    assert expected <= set(drawn), f"{sorted(expected - set(drawn))} never drawn"
+    assert any("incomplete" in text for text in drawn), "clipped silently"
+    _dispose(widget)
+
+
+def _laid_out_widgets(layout) -> list:
+    """Every widget a layout places, recursively through sub-layouts."""
+    found = []
+    for index in range(layout.count()):
+        item = layout.itemAt(index)
+        if item.widget() is not None:
+            found.append(item.widget())
+        elif item.layout() is not None:
+            found.extend(_laid_out_widgets(item.layout()))
+    return found
+
+
+def test_the_orbital_view_is_in_something_that_can_scroll(qapp):
+    """The half of the fix that lives outside `OrbitalBoxes`.
+
+    A widget correctly asking for 256 px, inside a layout unwilling to
+    give it any, is clipped rather than truncated -- the same picture for
+    the reader.
+
+    **ASKING THE LAYOUT, not the scroll area.** The first version checked
+    `boxes_scroll.widget() is boxes`, which stays true when the scroll
+    area is built and then never added to anything -- so putting the raw
+    widget back in the layout SURVIVED. What has to hold is which of the
+    two the layout actually places.
+    """
+    diagram = AtomDiagram()
+    diagram.set_element("U")
+
+    placed = _laid_out_widgets(diagram.layout())
+    assert diagram.boxes_scroll in placed
+    assert diagram.boxes not in placed, "the boxes bypass their scroll area"
+    assert diagram.boxes_scroll.widget() is diagram.boxes
+    assert diagram.boxes_scroll.widgetResizable()
+    _dispose(diagram)
