@@ -102,6 +102,41 @@ _STATE_STYLE: dict[str, tuple[str, str]] = {
     "not established": (_UNSET_FILL := "#efefef", "Not established"),
 }
 
+#: **RED FOR "no stable isotope", WHICH IS WHAT ALEX ASKED FOR** -- and
+#: the third class is grey rather than a paler red, because "nobody has
+#: established this" is not a weaker version of "radioactive".
+_STABILITY_STYLE: dict[str, tuple[str, str]] = {
+    palettes.STABLE_CLASS: ("#d7ead7", "Has a stable isotope"),
+    "radioactive only": ("#f0b3b3", "No stable isotope"),
+    palettes.UNESTABLISHED_CLASS: ("#efefef", "Not established"),
+}
+
+#: **THE ONE DISCRETE MODE THAT PRINTS ITS CLASS IN THE CELL**, and the
+#: reason is the colours: this is the only mode whose whole content is a
+#: RED/GREEN binary, which is the canonical failure case for the
+#: commonest forms of colour blindness. Every other discrete mode spreads
+#: its classes over four or ten hues, where confusing two of them costs a
+#: reader one element rather than the entire picture.
+#:
+#: "stable" and "decays" rather than "stable" and "unstable": at 9 px two
+#: words differing by two leading letters are a misreading waiting to
+#: happen, and the pair has to be legible at exactly the size that makes
+#: the colour unreliable.
+_STABILITY_CELL_TEXT: dict[str, str] = {
+    palettes.STABLE_CLASS: "stable",
+    "radioactive only": "decays",
+    palettes.UNESTABLISHED_CLASS: "—",
+}
+
+#: The half-life ramp's terminal swatches. The stable one is the SAME
+#: green the stability mode uses, so switching between the two modes
+#: reads as one question asked two ways rather than as two unrelated
+#: pictures.
+_HALF_LIFE_TERMINAL: dict[str, str] = {
+    palettes.STABLE_CLASS: "#d7ead7",
+    palettes.UNESTABLISHED_CLASS: "#efefef",
+}
+
 #: The two ends of every heatmap ramp. Light throughout, because the
 #: symbol and the value are printed in black on top of it -- a ramp that
 #: reaches a dark end would make its own labels unreadable exactly where
@@ -451,9 +486,14 @@ class PeriodicTableDialog(QDialog):
                 "category": _CATEGORY_STYLE,
                 "block": _BLOCK_STYLE,
                 "state": _STATE_STYLE,
+                "stability": _STABILITY_STYLE,
             }[key]
             fill, label = table.get(group, ("#eeeeee", group or _UNKNOWN))
-            return fill, label, ""
+            extra = _STABILITY_CELL_TEXT.get(group, "") if key == "stability" else ""
+            return fill, label, extra
+
+        if key in palettes.HYBRID:
+            return self._half_life_cell(symbol)
 
         spec = palettes.CONTINUOUS[key]
         position = palettes.position_for(spec, palettes.value_for(key, symbol))
@@ -465,6 +505,25 @@ class PeriodicTableDialog(QDialog):
             # inventing data.
             return _UNSET_FILL, f"{spec.label}: {_UNKNOWN}", "—"
         return _ramp(position), f"{spec.label}: {shown} {spec.units}".strip(), shown
+
+    def _half_life_cell(self, symbol: str) -> tuple[str, str, str]:
+        """A ramp position OR a terminal swatch, never a blend of the two.
+
+        **A QUALIFIED VALUE KEEPS ITS MARK.** Five of the thirty-eight
+        elements on this ramp carry an ESTIMATED half-life -- moscovium,
+        meitnerium, nihonium, nobelium and rutherfordium -- and the colour
+        cannot say so, because the whole point of the ramp is that a
+        colour means a magnitude. So the cell prints NUBASE's own trailing
+        `#` and the tooltip spells it out, which is this table's existing
+        rule that colour never carries a fact alone.
+        """
+        shading = palettes.half_life_shading(symbol)
+        note = shading.note
+        if shading.qualified:
+            note += " - not an exact measurement"
+        if shading.terminal is not None:
+            return _HALF_LIFE_TERMINAL[shading.terminal], note, shading.display
+        return _ramp(shading.position), note, shading.display
 
     def _repaint_cells(self) -> None:
         for symbol, button in self._buttons.items():

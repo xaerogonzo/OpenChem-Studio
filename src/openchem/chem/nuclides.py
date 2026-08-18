@@ -222,8 +222,16 @@ _DISPLAY_UNITS = (
 _PREFIX = {LOWER_BOUND: "> ", UPPER_BOUND: "< ", APPROXIMATE: "~"}
 
 
-def format_half_life(half_life: HalfLife) -> str:
+def format_half_life(half_life: HalfLife, *, compact: bool = False) -> str:
     """One half-life as text, **carrying its qualifier**.
+
+    `compact` renders an estimated value with NUBASE's own trailing `#`
+    instead of the word, for the one caller that has about six characters
+    to work with -- a periodic-table cell, where "5 s (estimated)" would
+    not fit and eliding it would drop exactly the part that says the
+    number is not a measurement. The bounds and the approximation mark are
+    already short and are unchanged, so there is one formatter and the two
+    forms cannot drift apart on anything but that suffix.
 
     Written once here rather than in the atom drawing, the isotope table
     and the decay tree separately -- three formatters is three chances for
@@ -257,7 +265,7 @@ def format_half_life(half_life: HalfLife) -> str:
 
     text = f"{_PREFIX.get(half_life.qualifier, '')}{number} {unit}"
     if half_life.qualifier == ESTIMATED:
-        text += " (estimated)"
+        text += "#" if compact else " (estimated)"
     return text
 
 

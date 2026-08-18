@@ -34,6 +34,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
+from openchem.chem import nuclides as nuclide_data
 from openchem.chem.element_reference import ElementFacts, facts_for
 
 #: The reference conditions the state-at-room-temperature palette means.
@@ -45,6 +46,7 @@ REFERENCE_PRESSURE = "1 bar"
 
 _LINEAR = "linear"
 _SQRT = "square root"
+_LOG10 = "log10"
 
 
 @dataclass(frozen=True)
@@ -58,13 +60,22 @@ class PaletteSpec:
     maximum: float
     transform: str = _LINEAR
 
-    def legend(self) -> str:
-        """Self-contained, so a screenshot needs no memory of the combo."""
+    def scale_text(self) -> str:
+        """The scale itself, without what happens to values off it.
+
+        Split out so `HybridPalette` can name its OWN terminal classes
+        rather than inheriting a sentence about "not established" that is
+        only half its story.
+        """
         units = self.units or "dimensionless"
         return (
             f"{self.label} · {_number(self.minimum)}–{_number(self.maximum)} "
-            f"· {self.transform} · {units} · not established shown separately"
+            f"· {self.transform} · {units}"
         )
+
+    def legend(self) -> str:
+        """Self-contained, so a screenshot needs no memory of the combo."""
+        return f"{self.scale_text()} · not established shown separately"
 
 
 @dataclass(frozen=True)
@@ -79,6 +90,87 @@ class ClassPalette:
         return f"{self.label} · " + ", ".join(self.classes)
 
 
+#: The half-life palette's two terminal classes.
+#:
+#: **A STABLE ISOTOPE IS NOT A VERY LARGE NUMBER.** What is carbon's
+#: longest half-life? C-12 and C-13 do not decay, so the answer is not a
+#: number at all -- and encoding it as 10^30 years would make the top of
+#: the scale a lie while quietly reducing "has a stable isotope" to a
+#: colour somebody has to interpret. It is a class, named in the legend.
+#:
+#: That is branch 1's rule at the BOTTOM of every scale -- "not
+#: established is never the bottom" -- reaching the top, where it needs a
+#: third state rather than `float | None`.
+STABLE_CLASS = "has a stable isotope"
+UNESTABLISHED_CLASS = "not established"
+
+
+@dataclass(frozen=True)
+class HybridPalette:
+    """A continuous ramp with named terminal classes beside it.
+
+    The classes belong to the PALETTE rather than being inferred by the
+    dialog from a None, because "nothing this element is made of decays"
+    and "nobody has measured one" are different claims and must not share
+    a swatch.
+    """
+
+    spec: PaletteSpec
+    terminal_classes: tuple[str, ...]
+    #: What any marks printed in a cell mean. **A MARK THE LEGEND DOES
+    #: NOT EXPLAIN IS NO BETTER THAN THE COLOUR IT REPLACED**: the whole
+    #: reason a qualified value carries one is that a ramp colour cannot
+    #: say "estimated", and a reader who cannot decode `#` is back where
+    #: they started. Found by magnifying the rendered grid, with every
+    #: test green -- the tooltip said it and a screenshot could not.
+    marks: str = ""
+
+    @property
+    def key(self) -> str:
+        return self.spec.key
+
+    @property
+    def label(self) -> str:
+        return self.spec.label
+
+    def legend(self) -> str:
+        # "has a stable isotope, not established shown separately" reads
+        # as though only the second one is, which is what the rendered
+        # legend actually said.
+        parts = [
+            self.spec.scale_text(),
+            f"shown separately: {', '.join(self.terminal_classes)}",
+        ]
+        if self.marks:
+            parts.append(self.marks)
+        return " · ".join(parts)
+
+
+@dataclass(frozen=True)
+class Shading:
+    """What one cell of a hybrid palette shows.
+
+    **EXACTLY ONE of `position` and `terminal` is ever set**, asserted
+    over every element rather than left as a comment: a cell holding both
+    would be on the ramp and off it at once, and the dialog would silently
+    take whichever branch it tested first.
+
+    `qualified` is the part a ramp would otherwise lose. Without it,
+    `~1 s`, `<10 ps` and an estimated `2# ms` get the same cell as a
+    measured value and read as measurements. Five colours for five
+    qualifiers would be worse, so the numeric colour is unchanged and the
+    mark rides with the text -- this table's existing rule that colour
+    never carries a fact alone, applied to PRECISION rather than to
+    magnitude.
+    """
+
+    position: float | None
+    terminal: str | None
+    display: str
+    note: str
+    qualified: bool = False
+
+
 def position_for(spec: PaletteSpec, value: float | None) -> float | None:
     """Where `value` sits on `spec`, as 0.0..1.0, or None if not established.
 
@@ -86,10 +178,28 @@ def position_for(spec: PaletteSpec, value: float | None) -> float | None:
     declared range resolves to an endpoint rather than running off the
     colour ramp or raising. The alternative -- widening the range to fit --
     is the derived-range behaviour this module exists to avoid.
+
+    **THE TWO TRANSFORMS ACT AT DIFFERENT POINTS, AND THAT IS NOT AN
+    OVERSIGHT.** `square root` bends the FRACTION -- a display curve that
+    spreads out a crowded low end. `log10` is a CHANGE OF VARIABLE applied
+    to the value and to both endpoints, because half-life spans
+    twenty-eight orders of magnitude and no curve on a linear fraction
+    reaches that: on a 0.01..1e28 range every element below thorium would
+    round to the same 0.000. Both are pinned by
+    `test_the_two_transforms_act_at_different_points`, so a later tidying
+    pass that "unifies" them fails rather than silently recolouring the
+    table.
+
+    Both still map the declared endpoints to exactly 0.0 and 1.0, which is
+    the property every caller actually depends on.
     """
     if value is None:
         return None
     low, high = spec.minimum, spec.maximum
+    if spec.transform == _LOG10:
+        if value <= 0:  # pragma: no cover - no shipped quantity reaches it
+            return 0.0
+        value, low, high = math.log10(value), math.log10(low), math.log10(high)
     if high <= low:  # pragma: no cover - a malformed spec
         return 0.0
     fraction = (value - low) / (high - low)
@@ -144,6 +254,42 @@ DISCRETE: dict[str, ClassPalette] = {
         f"State at {REFERENCE_TEMPERATURE_C:g} °C, {REFERENCE_PRESSURE}",
         ("solid", "liquid", "gas", "sublimes", "not established"),
     ),
+    # **DRIVEN BY EVALUATED STABILITY, NEVER BY NATURAL ABUNDANCE.** The
+    # obvious shortcut -- colour anything carrying an abundance as stable
+    # -- makes uranium and thorium stable, which is why branch 1 left this
+    # mode out of the combo rather than shipping it wrong.
+    "stability": ClassPalette(
+        "stability",
+        "Radioactivity",
+        (STABLE_CLASS, "radioactive only", UNESTABLISHED_CLASS),
+    ),
+}
+
+#: Ramps that also need terminal classes. Today there is one; the type
+#: exists because the alternative was the dialog inferring the classes.
+HYBRID: dict[str, HybridPalette] = {
+    # **THE RANGE IS THE MEASURED ONE, ROUNDED OUTWARDS**, like every
+    # other declared range here: livermorium's Lv-293 at 0.07 s is the
+    # floor (log10 -1.155) and bismuth's Bi-209 at 2.01e19 y the ceiling
+    # (log10 26.802). Bismuth alone occupies the top third, which is a
+    # property of the data rather than a defect -- it was called stable
+    # until its alpha decay was measured in 2003.
+    #
+    # log10 is DECLARED, for the reason atomic weight declares its square
+    # root: the values span twenty-eight orders of magnitude, so a linear
+    # ramp would give every element but bismuth and thorium one colour.
+    "longest_half_life": HybridPalette(
+        PaletteSpec(
+            "longest_half_life",
+            "Longest-lived radioactive isotope",
+            "s",
+            1e-2,
+            1e28,
+            _LOG10,
+        ),
+        (STABLE_CLASS, UNESTABLISHED_CLASS),
+        marks="# = estimated from systematics; > < ~ = bounds and approximations",
+    ),
 }
 
 #: The order the dialog offers them in. Category first because it is what
@@ -152,6 +298,11 @@ PALETTE_ORDER: tuple[str, ...] = (
     "category",
     "block",
     "state",
+    # The two radioactivity modes sit together, and before the heatmaps:
+    # they are two answers to one question, and reading them against each
+    # other is what the second one exists for.
+    "stability",
+    "longest_half_life",
     "electronegativity",
     "covalent_radius",
     "van_der_waals_radius",
@@ -163,17 +314,30 @@ PALETTE_ORDER: tuple[str, ...] = (
 def label_for(key: str) -> str:
     if key in DISCRETE:
         return DISCRETE[key].label
+    if key in HYBRID:
+        return HYBRID[key].label
     return CONTINUOUS[key].label
 
 
 def legend_for(key: str) -> str:
     if key in DISCRETE:
         return DISCRETE[key].legend()
+    if key in HYBRID:
+        return HYBRID[key].legend()
     return CONTINUOUS[key].legend()
 
 
 def value_for(key: str, symbol: str) -> float | None:
-    """The raw number a continuous palette reads, or None."""
+    """The raw number a continuous palette reads, or None.
+
+    None means "this element is not on the ramp", which for the half-life
+    palette covers BOTH terminal classes -- the caller that needs to tell
+    them apart is `half_life_shading`, and everything generic (the legend,
+    the declared-range guard) only needs to know which values are plotted.
+    """
+    if key in HYBRID:
+        best = _plotted_half_life(symbol)
+        return None if best is None else best.half_life.seconds
     facts = facts_for(symbol)
     if facts is None:
         return None
@@ -197,6 +361,8 @@ def class_for(key: str, symbol: str) -> str | None:
         return facts.block
     if key == "state":
         return state_at_reference(facts)
+    if key == "stability":
+        return stability_class(symbol)
     return None
 
 
@@ -228,6 +394,70 @@ def state_at_reference(facts: ElementFacts) -> str:
     return "not established"
 
 
+def stability_class(symbol: str) -> str:
+    """Has a stable isotope, radioactive only, or cannot be established.
+
+    **THE PREDICATES ARE ASKED IN ORDER AND NONE OF THEM IS
+    `not has_natural_isotope`.** Uranium has a natural abundance and no
+    stable isotope; technetium has neither. Reading abundance puts uranium
+    in the wrong class and technetium in the right one by accident, which
+    is the wrong kind of test passing.
+
+    `has_radioactive_isotope` answers None where the table cannot say, and
+    that becomes the third class rather than a guess in either direction.
+    """
+    if nuclide_data.has_stable_isotope(symbol):
+        return STABLE_CLASS
+    radioactive = nuclide_data.has_radioactive_isotope(symbol)
+    if radioactive is None:
+        return UNESTABLISHED_CLASS
+    return "radioactive only" if radioactive else UNESTABLISHED_CLASS
+
+
+def _plotted_half_life(symbol: str):
+    """The nuclide the half-life ramp plots, or None for a terminal class.
+
+    **ONE definition of "is this element on the ramp"**, so `value_for`
+    and `half_life_shading` cannot come to disagree about it -- which
+    would show up as an element the declared-range guard never checks
+    while the grid happily colours it.
+    """
+    if nuclide_data.has_stable_isotope(symbol):
+        return None
+    best = nuclide_data.longest_radioactive_isotope(symbol)
+    if best is None or best.half_life.seconds is None:
+        return None
+    return best
+
+
+def half_life_shading(symbol: str) -> Shading:
+    """Where an element sits on the half-life ramp, or which class it is in.
+
+    Both "longest-lived" questions are asked here, which is why
+    `chem/nuclides.py` keeps them as two functions: whether a STABLE
+    isotope exists decides between the ramp and a terminal class, and only
+    then does the longest RADIOACTIVE one supply a number.
+    """
+    spec = HYBRID["longest_half_life"].spec
+    if nuclide_data.has_stable_isotope(symbol):
+        return Shading(None, STABLE_CLASS, "stable", f"{spec.label}: {STABLE_CLASS}")
+    best = _plotted_half_life(symbol)
+    if best is None:
+        return Shading(
+            None,
+            UNESTABLISHED_CLASS,
+            "—",
+            f"{spec.label}: {UNESTABLISHED_CLASS}",
+        )
+    return Shading(
+        position_for(spec, best.half_life.seconds),
+        None,
+        nuclide_data.format_half_life(best.half_life, compact=True),
+        f"{best.name}: {nuclide_data.format_half_life(best.half_life)}",
+        qualified=best.half_life.is_qualified,
+    )
+
+
 def display_value(key: str, symbol: str) -> str:
     """The number written under the symbol in a heatmap cell.
 
@@ -235,6 +465,8 @@ def display_value(key: str, symbol: str) -> str:
     forbids doing alone -- a grid distinguishing ten hues is unreadable to
     a fair number of people. So the value is printed as well.
     """
+    if key in HYBRID:
+        return half_life_shading(symbol).display
     value = value_for(key, symbol)
     if value is None:
         return "—"
