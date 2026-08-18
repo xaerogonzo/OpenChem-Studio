@@ -38,6 +38,15 @@ from openchem.ui.widgets.tooltip_inventory import (
 #: rewrites, while the control it lands on survives both.
 _DEBT = Path(__file__).parent / "fixtures" / "tooltip_migration_debt.json"
 
+#: Surfaces that reached zero, and may not go back.
+#:
+#: THE MIRROR OF `_DEBT`, and it exists because a surviving mutation said
+#: it had to: removing a contract from a finished control is invisible to
+#: every other guard here. `missing` cannot be a failure while 84 controls
+#: still are, so "this surface is DONE" has to be recorded to be defended.
+#: The debt set may only shrink; this one may only grow.
+_COMPLETED = Path(__file__).parent / "fixtures" / "tooltip_completed_surfaces.json"
+
 
 @dataclass(frozen=True)
 class _Fact:
@@ -335,7 +344,14 @@ def test_every_exclusion_records_why(controls):
     _, exclusions = controls
     assert exclusions, "nothing was excluded, which means the reasons are untested"
     for reason, instance_path in exclusions:
-        assert reason in {"dialog_button", "internal", "not_interactive"}
+        assert reason in {
+            "dialog_button",
+            "internal",
+            "not_interactive",
+            # A menu TITLE: its explanation is the menu it opens, and every
+            # entry under it still owes a contract of its own.
+            "opens_a_menu",
+        }
         assert instance_path
 
 
@@ -475,3 +491,139 @@ def test_an_explicitly_set_action_tooltip_still_counts_as_debt():
     restates_label = QAction("&Open Project...")
     restates_label.setToolTip("Open Project")
     assert _status(restates_label) == "missing"
+def test_a_menu_title_is_explained_by_its_menu(controls):
+    """`QMenu.menuAction()` is a `QAction` and lands in the same walk.
+
+    So `&File`, `Copy Structure As` and `2D Structure Display` all arrived
+    asking for a contract, and there is nothing honest to write on one: a
+    title's meaning is the list of entries under it, each of which carries
+    its own. Thirteen contracts reading "Opens the File menu" is the
+    restate-the-label degeneracy `test_no_contract_is_a_placeholder`
+    refuses one layer down.
+
+    THE SETUP IS ASSERTED -- a window that stops building menus would make
+    a bare "no title is documentable" check pass while covering nothing.
+    """
+    _, exclusions = controls
+    titles = [path for reason, path in exclusions if reason == "opens_a_menu"]
+    assert len(titles) >= 5, (
+        f"only {len(titles)} menu title(s) were excluded -- the window may no "
+        "longer build a menu bar, and this guard would then test nothing"
+    )
+    # The menu bar's own top-level titles are the unmistakable ones.
+    assert any(path.endswith("&File") for path in titles), titles[:8]
+
+
+def test_menu_entries_are_not_exempted_along_with_their_titles(controls):
+    """The narrow half, and the one worth mutating.
+
+    "A QAction under a menu needs no contract" would satisfy the test above
+    and would silently exempt the entire menu bar -- 71 real commands --
+    while reading as a large jump in coverage. The exemption is for the
+    action that OPENS a menu and for nothing inside one.
+
+    Checked on entries whose contracts are the point of the batch: a
+    command that does something must still be in the universe.
+    """
+    found, _ = controls
+    actions = {c.instance_path.rsplit("/", 1)[-1] for c in found if c.kind == "action"}
+    for entry in ("New Project", "Exit", "Paste Structure", "SMILES"):
+        assert entry in actions, (
+            f"{entry!r} is a menu COMMAND and has fallen out of the documentable "
+            "universe -- the menu-title exemption is too broad"
+        )
+
+
+def test_the_menu_title_exemption_is_derived_from_qt(controls):
+    """Derived, not a list of menu names.
+
+    A name list is the rot `inapplicable_calculators` is this repository's
+    standing warning about. Asserted on the predicate: an action carrying a
+    menu is exempt and an otherwise identical one is not, so the rule
+    cannot be satisfied by a hard-coded set of titles.
+    """
+    from PySide6.QtGui import QAction
+    from PySide6.QtWidgets import QMenu
+
+    from openchem.ui.widgets.tooltip_inventory import _action_opens_a_menu
+
+    plain = QAction("Copy Structure As")
+    assert not _action_opens_a_menu(plain)
+
+    menu = QMenu("Copy Structure As")
+    assert _action_opens_a_menu(menu.menuAction())
+def test_a_menu_entrys_contract_is_actually_shown(qapp, tmp_path_factory):
+    """A rendering that never renders does not honour the contract.
+
+    `QMenu.toolTipsVisible()` is FALSE by default, so a `QAction` can carry
+    a perfectly good tooltip that Qt simply never draws. Measured on the
+    real window when the menu contracts landed: all seven top-level menus
+    answered False, which would have left 71 freshly written contracts
+    documented, queryable, passing every coverage guard -- and invisible.
+
+    Its own window rather than the shared `controls` fixture, because this
+    asks about the QMenus rather than about the walked controls, and the
+    fixture deliberately drops every Qt handle.
+    """
+    from PySide6.QtWidgets import QMenu
+
+    from openchem.app.main_window import MainWindow
+    from openchem.app.session import SessionManager
+    from openchem.app.settings import Settings
+    from openchem.bootstrap import build_service_container
+
+    tmp_path = tmp_path_factory.mktemp("menu_tooltips")
+    services = build_service_container()
+    settings = Settings(services.event_bus)
+    settings.set("plugins/project_directory", str(tmp_path / "no_plugins"))
+    settings.set("plugins/user_directory", str(tmp_path / "no_user_plugins"))
+    window = MainWindow(services, settings, SessionManager())
+
+    menus = window.menuBar().findChildren(QMenu)
+    assert len(menus) >= 5, (
+        f"the window built {len(menus)} menu(s) -- too few for this guard to be "
+        "testing anything"
+    )
+    hidden = [m.title() for m in menus if not m.toolTipsVisible()]
+    assert not hidden, (
+        f"{len(hidden)} menu(s) will not show their entries' tooltips, so the "
+        f"contracts on them cannot reach a user: {hidden}"
+    )
+def test_a_finished_surface_does_not_regress(controls):
+    """A contract removed from a completed surface must fail here.
+
+    The coverage guard cannot fail on `missing` -- that is the whole
+    staged-migration design, and 84 controls are still missing. So
+    deleting `apply_help_tooltip` from a documented control simply moves
+    it back into the backlog and nothing notices. A mutation removing the
+    contract from File > New Project survived every other test in this
+    file.
+
+    What is recorded is the SURFACE rather than the control, so a new
+    menu entry or a new control on a finished panel is held to the
+    standard the rest of that surface already meets -- which is the
+    property a list of individual controls would not have.
+    """
+    found, _ = controls
+    completed = json.loads(_COMPLETED.read_text(encoding="utf-8"))
+
+    for kind in completed["by_kind"]:
+        undocumented = [
+            c.instance_path for c in found if c.kind == kind and c.status != "tooltip"
+        ]
+        assert not undocumented, (
+            f"the {kind!r} surface was complete and {len(undocumented)} control(s) "
+            f"have lost their contract: {sorted(undocumented)[:5]}"
+        )
+
+    for fragment in completed["by_instance_path_fragment"]:
+        on_surface = [c for c in found if fragment in c.instance_path]
+        assert on_surface, (
+            f"{fragment!r} matches no control at all -- the surface was renamed "
+            "and this guard is testing nothing"
+        )
+        undocumented = [c.instance_path for c in on_surface if c.status != "tooltip"]
+        assert not undocumented, (
+            f"{fragment} was complete and {len(undocumented)} control(s) have lost "
+            f"their contract: {sorted(undocumented)[:5]}"
+        )

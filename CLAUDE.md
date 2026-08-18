@@ -283,8 +283,9 @@ zero.
 interactive constructions was really 372. Neither number was ever the
 universe; only `iter_documentable_controls` is.
 
-The universe is **366** after the `QTabBar` fix below, and the migration
-stands at 145 contracts / 54 legacy / 167 missing.
+The universe is **353**, and the migration stands at 216 contracts / 54
+legacy / 83 missing. Two surfaces are DONE: the Quantum Chemistry panel
+and the whole menu bar.
 
 ### `QAction.toolTip()` NEVER RETURNS EMPTY, and the queue believed it
 
@@ -333,6 +334,101 @@ on the predicate rather than through the window, because no action in the
 application carries an explicit tooltip today, so the end-to-end route
 cannot tell a narrow rule from a blanket one. Mutating the comparison to a
 bare `return True` is caught by that test and by nothing else.
+
+### THE MENU BAR: 71 commands, and the contracts were INVISIBLE
+
+**`QMenu.toolTipsVisible()` IS FALSE BY DEFAULT.** Measured on the real
+window right after the 71 contracts landed: all seven top-level menus
+answered False, so every one of them was documented, queryable through
+`tools/list_tooltips.py`, passing the coverage guard -- and **dead on the
+screen**. The contract layer's whole claim is that a tooltip is one
+RENDERING of a declared meaning, and a rendering that never renders does
+not honour it.
+
+`_show_tooltips_in_menus` walks the menu bar rather than setting the flag
+at each `addMenu` call: submenus are created in several places and a
+plugin can contribute one, so a rule applied at a call site is a rule the
+next author has to remember. 12 menus, 7 top-level and 5 sub.
+
+**FINDING IT MEANT HITTING THIS FILE'S OWN WRAPPER TRAP.** The first probe
+read `w.menuBar().actions()` and then asked each action for its menu --
+that list is a TEMPORARY, so every `QMenu` wrapper it handed out was dead
+by the next line (`Internal C++ object already deleted`). Hold the list.
+
+### A menu TITLE is explained by its menu
+
+`QMenu.menuAction()` is a `QAction` and lands in the same walk, so `&File`,
+`Copy Structure As`, `2D Structure Display` and `Installed Plugins` all
+arrived asking for a contract -- 12 of the 83. There is nothing honest to
+write on one, and "Opens the File menu" twelve times is exactly the
+restate-the-label degeneracy `test_no_contract_is_a_placeholder` refuses.
+Excluded on `action.menu() is not None`: derived from Qt rather than from a
+list of menu names.
+
+**BOTH HALVES ARE GUARDED, and the second is the load-bearing one.** "A
+`QAction` inside a menu needs no contract" satisfies the title guard and
+silently exempts all 71 real commands while reading as a jump in coverage.
+`test_menu_entries_are_not_exempted_along_with_their_titles` holds that
+line; the blanket mutation is caught by four tests.
+
+A `QWidgetAction` is excluded too, for a different reason: it is Qt's way
+of putting a WIDGET into a toolbar, and the one here holds the `PanelRail`,
+whose own group buttons are already walked individually.
+
+### A FINISHED SURFACE CAN REGRESS AND NOTHING NOTICED
+
+Deleting the contract from File > New Project **survived every guard in
+the file.** `missing` cannot be a failure while 83 controls still are --
+that is the staged migration working as designed -- so a completed control
+simply falls back into the backlog unseen.
+
+`tests/fixtures/tooltip_completed_surfaces.json` is the MIRROR of the debt
+fixture: the debt set may only SHRINK, this one may only GROW. It records
+the SURFACE rather than the control, so a new menu entry or a new control
+on a finished panel is held to the standard the rest of that surface
+already meets.
+
+**IT FAILED ON ITS FIRST RUN AND WAS RIGHT.** It named a `QWidgetAction`
+that every earlier count had missed, because those counts filtered on
+`widget_class == "QAction"` while the guard asks by KIND. Counting a
+population by the wrong key is how a surface looks complete and is not.
+
+### One concept, one help_id -- what collapsed here
+
+    every dock's View toggle   ONE id, 13 renderings
+    the three Help topics      ONE id -- "open the manual at this topic"
+    explicit hydrogens         ONE id, TWO renderings: the SAME Ketcher
+                               action offered from Structure and from
+                               View > 2D Structure Display, under two
+                               different labels
+
+`Copy Structure As` deliberately does NOT collapse -- SMILES, InChI,
+InChIKey and a molblock have genuinely different round-trip properties, and
+choosing between them IS choosing between those properties. InChIKey is
+tier 3 for the one thing a reader must not get wrong: it is a hash, and
+nothing can reconstruct the molecule from it.
+
+### THE SUITE CAUGHT A CONTENT ERROR IN THE PROSE, NOT A LEXICAL ONE
+
+`test_nothing_tells_the_reader_to_go_to_the_3d_viewer_tab` failed on the
+`Open 3D Viewer (Miew)` contract, which read "Separate from this
+application's 3D tab, which is where conformers, measurements and
+calculated surfaces live."
+
+That is not a false positive. Pairing the 3D viewer with conformers is the
+signpost this project deliberately deleted when conformer generation moved
+to the Structure menu -- `main_window.py` records that "four separate
+messages elsewhere told people to go there for it" -- and the sentence
+would have reinstated a fifth. **A guard on PROSE caught prose that
+contradicted a design decision**, which is the one thing the tooltip
+guard's own no-LLM-grading rule cannot do for itself.
+
+Run every source-scanning guard together after writing UI strings; there
+are 13 and they cost 14 seconds, against 14 minutes for the full suite:
+
+```bash
+uv run --no-sync python -m pytest -q $(rg -l "ast.parse" tests/ | tr '\n' ' ')
+```
 
 ### A `QTabBar` BREAKS QT'S OWN `qt_` NAMING CONVENTION
 
@@ -759,7 +855,21 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `4782 passed, 15 skipped`
+A clean run is **6-19 minutes**, ending at `4787 passed, 15 skipped`
+(measured 2026-08-17, **14m07**, on `docking-box-from-the-ligand` -- the
+menu bar's help contracts. **+5 collected items and +5 test FUNCTIONS**,
+all in `test_tooltip_coverage.py`: the three menu-title guards, the
+menu-tooltip visibility guard, and the finished-surface regression guard.
+4797 -> 4802 collected; 4787 passed + 15 skipped = 4802. Skips unchanged
+at 15.
+
+**THE RUN BEFORE THIS ONE WAS RED, AND THE FAILURE WAS REAL** --
+`test_nothing_tells_the_reader_to_go_to_the_3d_viewer_tab`, on a sentence
+in a tooltip that contradicted a design decision. See the menu-bar section
+above; it is the argument for running the 13 source-scanning guards
+together before paying for a full run.)
+
+Before it: `4782 passed, 15 skipped`
 (measured 2026-08-17, **13m52**, on `docking-box-from-the-ligand` -- the
 synthesised-`QAction`-tooltip reclassification. **+2 collected items and
 +2 test FUNCTIONS**, both in `test_tooltip_coverage.py`: the menu actions

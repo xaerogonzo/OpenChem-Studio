@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
     QTabBar,
     QTableWidget,
     QWidget,
+    QWidgetAction,
 )
 
 from openchem.ui.widgets.help_tooltip import HelpTooltip, help_tooltip_for
@@ -51,7 +52,7 @@ _INTERACTIVE = (
 
 Kind = Literal["widget", "action", "header"]
 Status = Literal["tooltip", "alternate_help", "legacy_tooltip", "missing"]
-Exclusion = Literal["dialog_button", "internal", "not_interactive"]
+Exclusion = Literal["dialog_button", "internal", "not_interactive", "opens_a_menu"]
 
 
 @dataclass(frozen=True)
@@ -129,6 +130,29 @@ def _status(target) -> Status:
         if not _tooltip_is_qt_s_own_echo(target):
             return "legacy_tooltip"
     return "missing"
+
+
+def _action_opens_a_menu(target) -> bool:
+    """A menu TITLE, whose explanation is the menu it opens.
+
+    `QMenu.menuAction()` is a `QAction` like any other and lands in the
+    same walk, so `&File`, `Copy Structure As`, `2D Structure Display` and
+    `Installed Plugins` all arrived asking for a contract. There is nothing
+    honest to write on one: a title's meaning is the list of entries under
+    it, and those entries carry their own contracts. Thirteen contracts
+    reading "Opens the File menu" is exactly the restate-the-label
+    degeneracy `test_no_contract_is_a_placeholder` exists to refuse.
+
+    Derived from Qt -- an action either has a menu or it does not -- rather
+    than from a list of menu names, which is the rot
+    `inapplicable_calculators` is this repository's standing warning about.
+
+    NARROW ON PURPOSE. It exempts the action that OPENS a menu and nothing
+    inside one, so every command in the menu bar still owes a contract.
+    `test_menu_entries_are_not_exempted_along_with_their_titles` is what
+    holds that line.
+    """
+    return isinstance(target, QAction) and target.menu() is not None
 
 
 def _tooltip_is_qt_s_own_echo(target) -> bool:
@@ -321,6 +345,18 @@ def _walk(root: QWidget, base: str):
         if action.isSeparator():
             continue
         instance_path, class_name = _describe(action, base)
+        if _action_opens_a_menu(action):
+            yield None, ExcludedControl(action, "opens_a_menu", instance_path, class_name)
+            continue
+        # A `QWidgetAction` is Qt's way of putting a WIDGET into a toolbar
+        # or a menu -- it is a carrier, not a command. Measured: the one in
+        # this window holds the `PanelRail`, whose own group buttons are
+        # walked and documented individually. Documenting the wrapper as
+        # well would be a contract for "the rail" sitting on top of
+        # contracts for everything in it.
+        if isinstance(action, QWidgetAction):
+            yield None, ExcludedControl(action, "internal", instance_path, class_name)
+            continue
         yield (
             DocumentableControl(
                 target=action,
