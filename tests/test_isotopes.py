@@ -476,3 +476,69 @@ def test_a_decay_product_arms_the_canvas_and_says_what_is_left(window):
     message = window.statusBar().currentMessage()
     assert "Pb-206" in message
     assert "Isotopes tab" in message
+
+
+# --- the invariant the Ketcher spike was held to ---------------------------
+
+
+def test_the_isotope_table_is_reachable_without_any_ketcher_change(window):
+    """**THE ISOTOPE FEATURE NEVER DEPENDS ON THE EDITOR BUNDLE.**
+
+    The plan for this branch proposed appending `Isotopes...` to Ketcher's
+    atom context menu, as an ADDITION on top of an application-owned path
+    -- and made that ordering an invariant precisely so the spike could
+    come back negative without costing the feature. It did; see the
+    commit. These are the doors that need nothing from `main.jsx`.
+
+    Asserted through the real menu bar and the real panel, so a future
+    refactor that quietly makes the nuclide table reachable only from the
+    canvas fails here.
+    """
+    # **HOLD THE LIST.** `menuBar().actions()` is a temporary, and
+    # releasing it invalidates every wrapper obtained from it -- reading
+    # the submenu on the next line raises "Internal C++ object already
+    # deleted", which this project has already paid for twice.
+    bar_actions = window.menuBar().actions()
+    menu = next(
+        action.menu()
+        for action in bar_actions
+        if action.text().replace("&", "") == "Structure"
+    )
+    labels = [a.text() for a in menu.actions()]
+
+    assert "Isotopes..." in labels
+    assert window._atom_inspector_panel._isotopes_button is not None
+
+
+def test_both_doors_open_the_same_tab_on_the_selected_atoms_element(window):
+    """One method behind every door, so they cannot come to mean slightly
+    different things."""
+    molecule = _ethanol_in(window)
+    assert molecule is not None
+    window._selected_atom_index = 2  # the oxygen
+
+    window._show_isotopes_for_selection()
+
+    dialog = window._periodic_table_dialog
+    assert dialog.selected_symbol() == "O"
+    assert dialog._tabs.tabText(dialog._tabs.currentIndex()) == "Isotopes"
+
+    # The inspector's button is the same call, not a parallel one.
+    window._show_periodic_table()
+    dialog.select("C")
+    window._atom_inspector_panel.isotopes_requested.emit()
+
+    assert dialog.selected_symbol() == "O"
+
+
+def test_it_still_opens_with_no_atom_selected(window):
+    """A browsing window that refuses to open because nothing is selected
+    is the more annoying of the two behaviours."""
+    _ethanol_in(window)
+    window._selected_atom_index = None
+
+    window._show_isotopes_for_selection()
+
+    dialog = window._periodic_table_dialog
+    assert dialog.isVisible() or dialog._tabs.count() > 0
+    assert dialog._tabs.tabText(dialog._tabs.currentIndex()) == "Isotopes"

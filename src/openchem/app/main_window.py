@@ -375,6 +375,9 @@ class MainWindow(QMainWindow):
         # bridge, so this indexes the molblock the model holds.
         self._selected_atom_index: int | None = None
         self._editor.atom_selected.connect(self._on_editor_atom_selected)
+        self._atom_inspector_panel.isotopes_requested.connect(
+            self._show_isotopes_for_selection
+        )
         # And bonds, through the same Ketcher event. `select_bond` had no
         # caller until this line existed; the 3D viewer cannot supply one,
         # because 3Dmol's setClickable resolves a click to an ATOM and has
@@ -1185,6 +1188,11 @@ class MainWindow(QMainWindow):
         # reads the live QMenuBar, so this QAction IS the palette entry
         # rather than a second route that can drift from it.
         self._structure_menu.addAction("Generate Conformers...", self._generate_conformers)
+        # **THE APPLICATION'S OWN DOOR TO THE NUCLIDE TABLE.** Ketcher's
+        # context menu gets an entry too, but the isotope feature must not
+        # DEPEND on that injection working -- so this exists, needs no
+        # change to the editor bundle, and is what the guard checks.
+        self._structure_menu.addAction("Isotopes...", self._show_isotopes_for_selection)
         self._structure_menu.addSeparator()
         check_action = self._structure_menu.addAction("Check Structure...", self._show_structure_check_panel)
         check_action.setShortcut("Ctrl+Shift+K")
@@ -2492,6 +2500,31 @@ class MainWindow(QMainWindow):
         """
         self._editor.set_atom_tool(symbol)
         self._center_tabs.setCurrentWidget(self._editor)
+
+    def _show_isotopes_for_selection(self, _checked: bool = False) -> None:
+        """Open the periodic table on the Isotopes tab for the selected atom.
+
+        One method behind every door -- the Structure menu, the Atom
+        Inspector's button, and whatever the Ketcher context menu ends up
+        being able to offer -- so the three cannot come to mean slightly
+        different things.
+
+        With no atom selected it still opens, on whatever element the
+        table was showing: the tab is worth reading on its own, and
+        refusing to open a browsing window because nothing is selected
+        would be the more annoying of the two behaviours.
+        """
+        self._show_periodic_table()
+        dialog = getattr(self, "_periodic_table_dialog", None)
+        if dialog is None:  # pragma: no cover - defensive
+            return
+        symbol = self._selected_atom_element()
+        if symbol:
+            dialog.select(symbol)
+        for index in range(dialog._tabs.count()):
+            if dialog._tabs.tabText(index) == "Isotopes":
+                dialog._tabs.setCurrentIndex(index)
+                break
 
     def _insert_nuclide_into_drawing(self, symbol: str, mass_number: int) -> None:
         """Say what still has to happen after a decay product is armed.

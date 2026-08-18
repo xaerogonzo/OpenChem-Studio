@@ -99,6 +99,12 @@ class AtomInspectorPanel(QWidget):
     #: The atoms a hovered fact is ABOUT, or `()` on the way out.
     #: Always bounds-checked; see `_on_highlight_requested`.
     atoms_highlighted = Signal(tuple)
+    #: "Show me this atom's isotopes." **AN APPLICATION-OWNED DOOR TO THE
+    #: NUCLIDE TABLE**, which is the invariant the Ketcher context-menu
+    #: work is held to: the isotope feature must be reachable with no
+    #: change to the editor bundle at all, so that injection is an
+    #: addition rather than a dependency.
+    isotopes_requested = Signal()
 
     def __init__(
         self,
@@ -168,9 +174,20 @@ class AtomInspectorPanel(QWidget):
         intro = WrappedLabel(_INTRO, self)
         intro.setStyleSheet("color: #666666; font-style: italic;")
 
+        # Disabled until an ATOM is the subject: a bond has two elements
+        # and a molecule has many, so "which isotopes" has no answer for
+        # either, and a button that opened the table on something
+        # arbitrary would be worse than one that says it cannot.
+        self._isotopes_button = QPushButton("Isotopes...", self)
+        self._isotopes_button.setToolTip(
+            "Show this atom's isotopes in the periodic table."
+        )
+        self._isotopes_button.clicked.connect(lambda: self.isotopes_requested.emit())
+
         controls = QHBoxLayout()
         controls.addWidget(QLabel("Show:", self))
         controls.addWidget(self._subject_combo)
+        controls.addWidget(self._isotopes_button)
         controls.addStretch(1)
 
         layout = QVBoxLayout(self)
