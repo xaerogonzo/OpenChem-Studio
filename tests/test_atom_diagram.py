@@ -466,3 +466,51 @@ def test_the_orbital_view_is_in_something_that_can_scroll(qapp):
     assert diagram.boxes_scroll.widget() is diagram.boxes
     assert diagram.boxes_scroll.widgetResizable()
     _dispose(diagram)
+
+
+# --- A2: a synthetic element is drawn, not left blank -----------------------
+
+
+def test_an_element_with_no_natural_isotope_says_why_it_has_no_neutron_count(diagram):
+    """It used to say "Electrons: 84" and nothing else -- a fact about
+    polonium stated as though the rest had failed to load."""
+    diagram.set_element("Po")
+
+    text = diagram.nucleus_label.text()
+    assert "Protons: 84" in text
+    assert "Electrons: 84" in text
+    assert "no naturally occurring isotope" in text
+    assert "Neutrons" not in text
+
+
+def test_an_element_with_a_natural_isotope_still_names_it(diagram):
+    """The control. Without it, deleting the neutron count everywhere
+    would satisfy the test above."""
+    diagram.set_element("Br")
+
+    text = diagram.nucleus_label.text()
+    assert "Neutrons: 44" in text
+    assert "Br-79" in text
+
+
+def test_the_shell_diagram_really_draws_a_nucleus_for_a_synthetic_element(qapp, monkeypatch):
+    """**Asked of the PAINTER, because the defect was a blank centre.**
+
+    The caption above is a different claim from what the drawing does:
+    the label lives on `AtomDiagram` and the circle is painted by
+    `ShellDiagram`, which received `None` and drew nothing at all. Ink
+    alone cannot see this -- the rings and the background dominate -- so
+    this asks which text the nucleus painted.
+    """
+    from openchem.chem.electron_shells import neutral_configuration, nucleus
+
+    widget = ShellDiagram()
+    widget.set_atom(neutral_configuration("Po").shells(), nucleus("Po"))
+
+    drawn = _labels_drawn_by(widget, monkeypatch)
+
+    assert "84p" in drawn, f"no nucleus was drawn; painter saw {drawn}"
+    assert not any("n" in text and text != "84p" for text in drawn), (
+        "a neutron count was drawn for an element that has none"
+    )
+    _dispose(widget)

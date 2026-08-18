@@ -104,10 +104,15 @@ class ShellDiagram(QWidget):
             font = QFont(painter.font())
             font.setPointSizeF(max(7.0, font.pointSizeF() - 1))
             painter.setFont(font)
+            # Protons alone where the element has no natural isotope --
+            # the count is certain, and "0n" would be a claim nobody made.
+            caption = f"{self._nucleus.protons}p"
+            if self._nucleus.has_neutron_count:
+                caption += f"\n{self._nucleus.neutrons}n"
             painter.drawText(
                 QRectF(centre.x() - 26, centre.y() - 26, 52, 52),
                 Qt.AlignmentFlag.AlignCenter,
-                f"{self._nucleus.protons}p\n{self._nucleus.neutrons}n",
+                caption,
             )
         painter.end()
 
@@ -499,9 +504,19 @@ def _nucleus_text(centre: Nucleus | None, electrons: int) -> str:
     A neutron count is not a property of an element: silicon does not have
     14 neutrons, Si-28 does. Saying which one the number came from is the
     difference between a fact and a plausible misreading.
+
+    **AN ELEMENT WITH NO NATURAL ISOTOPE STILL GETS ITS PROTONS**, and is
+    told WHY there is no neutron count beside them. This used to read
+    "Electrons: 84" and nothing else, which is a fact about polonium
+    stated as though the rest had failed to load.
     """
     if centre is None:
         return f"Electrons: {electrons}"
+    if not centre.has_neutron_count:
+        return (
+            f"Protons: {centre.protons} · Electrons: {electrons} · no naturally "
+            "occurring isotope, so no neutron count is shown"
+        )
     source = (
         f"most abundant isotope, {centre.isotope}"
         if centre.is_most_abundant

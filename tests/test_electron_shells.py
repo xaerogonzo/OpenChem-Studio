@@ -229,6 +229,48 @@ def test_an_unknown_isotope_is_refused_rather_than_interpolated():
         nucleus("Si", mass_number=99)
 
 
+# --- the two refusals, which must not merge ---------------------------------
+#
+# These two tests are a PAIR and are named as one, because the whole
+# safety of `nucleus()` returning a partial answer rests on the
+# difference between them. Asking for a nuclide that does not exist is a
+# caller error about one isotope. Asking about an element that has no
+# natural isotope is a question with a real, partial answer -- and
+# raising for it is what left polonium drawn with no nucleus at all and
+# captioned "Electrons: 84".
+
+
+def test_an_element_with_no_natural_isotope_still_has_its_protons():
+    """The second half of the pair above. Po, Tc, At and Pm are the
+    familiar cases; 34 of the 118 elements are in this position."""
+    for symbol, protons in (("Po", 84), ("Tc", 43), ("At", 85), ("Pm", 61)):
+        result = nucleus(symbol)
+
+        assert result.protons == protons
+        assert result.neutrons is None
+        assert not result.has_neutron_count
+        assert result.isotope is None
+
+
+def test_every_element_gets_a_nucleus_with_a_certain_proton_count():
+    """No element is left without one, and the proton count IS the atomic
+    number -- so a nucleus that disagreed with the element would be a
+    different bug wearing this fix's clothes."""
+    from openchem.chem.element_reference import all_symbols, facts_for
+
+    for symbol in all_symbols():
+        result = nucleus(symbol)
+        assert result.protons == facts_for(symbol).atomic_number
+
+
+def test_a_neutron_count_is_never_invented_for_a_synthetic_element():
+    """Refusing to invent one was always right; refusing to draw anything
+    was the bug. `None` is how the type says the first without the
+    second, and 0 would be a claim nobody made."""
+    assert nucleus("Og").neutrons is None
+    assert nucleus("Og").neutrons != 0
+
+
 # --- refusing rather than inventing -----------------------------------------
 
 

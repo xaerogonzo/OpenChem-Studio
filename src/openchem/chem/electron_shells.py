@@ -335,16 +335,44 @@ class Nucleus:
     element**. Silicon does not have 14 neutrons; Si-28 does. The drawing
     says which it is showing rather than letting the number read as
     intrinsic.
+
+    **`neutrons` IS OPTIONAL, and that is the whole point of this type.**
+    An element with no naturally occurring isotope -- technetium,
+    promethium, astatine, polonium, and every synthetic element -- has a
+    proton count that is certain and no neutron count that can be named
+    without choosing an isotope. Both facts are true at once, and the
+    previous version could express neither: it raised, so the drawing had
+    no nucleus at all and the caption fell back to a bare
+    "Electrons: 84". Reported as part of "our periodic table is rather
+    unreliable", with polonium as the screenshot.
     """
 
     protons: int
-    neutrons: int
-    isotope: str
+    neutrons: int | None
+    isotope: str | None
     is_most_abundant: bool
+
+    @property
+    def has_neutron_count(self) -> bool:
+        return self.neutrons is not None
 
 
 def nucleus(symbol: str, mass_number: int | None = None) -> Nucleus:
-    """Protons and neutrons, for a named isotope or the most abundant one."""
+    """Protons and neutrons, for a named isotope or the most abundant one.
+
+    **TWO REFUSALS THAT MUST NOT MERGE**, which is what makes returning a
+    partial nucleus safe rather than a widening of the contract:
+
+        nucleus("Si", mass_number=99)   you named an isotope that does not
+                                        exist -> RAISES, as it always has
+        nucleus("Po")                   this element has no natural
+                                        isotope -> a proton-only nucleus
+
+    The first is a caller error about a specific nuclide. The second is a
+    fact about the element, and refusing to draw anything for it was the
+    bug. Refusing to INVENT a neutron count is still right, and is what
+    `neutrons is None` says.
+    """
     facts = facts_for(symbol)
     if facts is None:
         raise ConfigurationUnavailable(f"unknown element {symbol!r}")
@@ -358,9 +386,15 @@ def nucleus(symbol: str, mass_number: int | None = None) -> Nucleus:
         chosen = max(facts.isotopes, key=lambda i: i.abundance)
 
     if chosen is None:
-        # No natural-abundance data: the synthetic elements. Refusing to
-        # invent a neutron count is better than rounding the weight.
-        raise ConfigurationUnavailable(f"{symbol} has no natural isotope data")
+        # No natural-abundance data. The proton count is not in doubt --
+        # it IS the atomic number -- so the nucleus is real and only its
+        # neutron count is unnameable without picking an isotope.
+        return Nucleus(
+            protons=facts.atomic_number,
+            neutrons=None,
+            isotope=None,
+            is_most_abundant=False,
+        )
 
     return Nucleus(
         protons=facts.atomic_number,
