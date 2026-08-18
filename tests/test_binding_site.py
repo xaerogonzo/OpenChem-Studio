@@ -13,10 +13,13 @@ import pytest
 from openchem.chem.binding_site import (
     MAXIMUM_SIZE,
     MINIMUM_SIZE,
+    REFERENCE_SITE_TOLERANCE,
     BindingSiteError,
     box_from_ligand,
+    describe_box_placement,
     ligand_codes_in,
 )
+from openchem.domain.docking import DockingBox
 
 
 def _hetatm(serial, name, code, chain, resnum, x, y, z, element, altloc=" "):
@@ -421,3 +424,133 @@ def test_ligand_codes_exclude_protein_and_water():
     assert "HOH" not in codes, "three waters would otherwise outrank the ligand"
     assert codes[0] == "LIG", "largest non-protein component first"
     assert "SO4" in codes, "buffer components are still listed, just ranked lower"
+
+
+# --- judging where a box was put ---
+#
+# Motivated by a real run: four tryptamines docked against 5-HT2A (6WGT)
+# with the Docking panel's default box at (0, 0, 0), which is 55.1 A from
+# where LSD (7LD) actually binds. Measured on that deposit:
+#
+#     box                      distance to 7LD   atoms inside
+#     derived from 7LD                  0.0 A            218
+#     the panel's old default          55.1 A            139
+#
+# 139 is why the existing empty-box refusal could not catch it -- that one
+# fires on ZERO atoms, and a box in the wrong place still clips protein.
+# The fixtures below reproduce that SHAPE (a distant box that is not
+# empty) with arithmetic answers, per this file's convention; the 6WGT
+# numbers live in `describe_box_placement`'s docstring as the recorded
+# real-world case.
+
+#: A ligand at the origin, protein packed around it, and a SECOND patch of
+#: protein 60 A away. The distant patch is the whole point: without it a
+#: far box would be empty and the existing zero-atom refusal would catch
+#: it, so the fixture could not tell the two guards apart.
+#
+#: The ligand is symmetric about the origin ON EVERY AXIS so its bounding
+#: box centre is exactly (0, 0, 0) and the distances below are whole
+#: numbers. An earlier version omitted the -y atom, which put the centre at
+#: (0, 1, 0) and made every expected distance wrong in the third decimal.
+TWO_PATCHES = _structure([
+    _hetatm(1, "C1", "LIG", "A", 500, -2.0, 0.0, 0.0, "C"),
+    _hetatm(2, "C2", "LIG", "A", 500, 2.0, 0.0, 0.0, "C"),
+    _hetatm(3, "N1", "LIG", "A", 500, 0.0, 2.0, 0.0, "N"),
+    _hetatm(10, "O1", "LIG", "A", 500, 0.0, -2.0, 0.0, "O"),
+    _hetatm(4, "CA", "ALA", "A", 1, 0.0, 5.0, 0.0, "C"),
+    _hetatm(5, "CB", "ALA", "A", 1, 0.0, -5.0, 0.0, "C"),
+    _hetatm(6, "CA", "GLY", "A", 2, 5.0, 0.0, 0.0, "C"),
+    _hetatm(7, "CA", "VAL", "B", 10, 60.0, 0.0, 0.0, "C"),
+    _hetatm(8, "CB", "VAL", "B", 10, 61.0, 1.0, 0.0, "C"),
+    _hetatm(9, "CA", "LEU", "B", 11, 59.0, -1.0, 0.0, "C"),
+])
+
+
+def test_a_box_on_the_ligand_is_reported_as_being_on_the_site():
+    site = box_from_ligand(TWO_PATCHES, "pdb", "LIG")
+
+    placement = describe_box_placement(TWO_PATCHES, "pdb", site.box, "LIG")
+
+    assert placement.relationship == "at_reference_site"
+    assert placement.site_distance_a == pytest.approx(0.0)
+    assert placement.reference_site_code == "LIG"
+    assert placement.reference_site_box == site.box
+    assert placement.reference_site_error is None
+
+
+def test_a_box_far_from_the_ligand_is_reported_as_far_AND_IS_NOT_EMPTY():
+    """The exact shape of the bug this exists for.
+
+    A box 60 A off site still contains receptor atoms, so the zero-atom
+    refusal in `docking_providers` passes it and the run proceeds. Both
+    halves are asserted: without the non-empty half this fixture would be
+    testing the other guard.
+    """
+    far = DockingBox(center=(60.0, 0.0, 0.0), size=(20.0, 20.0, 20.0))
+
+    placement = describe_box_placement(TWO_PATCHES, "pdb", far, "LIG")
+
+    assert placement.relationship == "far_from_reference_site"
+    assert placement.site_distance_a == pytest.approx(60.0)
+    assert placement.atom_count == 3, "the distant patch -- a far box that is NOT empty"
+
+
+def test_a_structure_with_no_reference_ligand_says_so_without_an_error():
+    """No annotation is not a fault, and must not read as one."""
+    box = DockingBox(center=(0.0, 0.0, 0.0), size=(20.0, 20.0, 20.0))
+
+    placement = describe_box_placement(TWO_PATCHES, "pdb", box, None)
+
+    assert placement.relationship == "no_reference_site"
+    assert placement.site_distance_a is None
+    assert placement.reference_site_error is None
+    assert "user-defined" in placement.describe()
+
+
+def test_a_code_that_cannot_be_located_is_told_apart_from_having_no_code():
+    """The state that classifies identically and means the opposite.
+
+    Both give `no_reference_site` because neither yields a distance. Only
+    `reference_site_error` distinguishes "there is no site here" from
+    "there should be one and it is missing" -- and the second is the one
+    the user can act on, so the two must not render alike.
+    """
+    box = DockingBox(center=(0.0, 0.0, 0.0), size=(20.0, 20.0, 20.0))
+
+    absent = describe_box_placement(TWO_PATCHES, "pdb", box, None)
+    unlocatable = describe_box_placement(TWO_PATCHES, "pdb", box, "ZZZ")
+
+    assert absent.relationship == unlocatable.relationship == "no_reference_site"
+    assert unlocatable.reference_site_code == "ZZZ"
+    assert unlocatable.reference_site_error is not None
+    assert absent.describe() != unlocatable.describe()
+    assert "ZZZ" in unlocatable.describe()
+
+
+def test_the_distance_is_centre_to_centre_and_not_a_gap_between_volumes():
+    """Two boxes can overlap and still report a large distance.
+
+    Asserted because "distance between the boxes" has an obvious other
+    reading -- the nearest approach of their volumes -- under which this
+    case would be 0. A future refactor that switches to that meaning
+    silently reclassifies every borderline box.
+    """
+    site = box_from_ligand(TWO_PATCHES, "pdb", "LIG")
+    # Offset by 30 A with a 40 A box: the two volumes genuinely overlap.
+    overlapping = DockingBox(center=(30.0, 0.0, 0.0), size=(40.0, 40.0, 40.0))
+
+    placement = describe_box_placement(TWO_PATCHES, "pdb", overlapping, "LIG")
+
+    assert placement.site_distance_a == pytest.approx(30.0)
+    assert placement.relationship == "far_from_reference_site"
+
+
+def test_the_tolerance_cannot_exceed_the_smallest_box_a_site_can_get():
+    """A guard on the constant, not on the code.
+
+    `REFERENCE_SITE_TOLERANCE` is half `MINIMUM_SIZE` because that is the
+    furthest a centre can move while the box still covers the site's own
+    middle. Widening it past that would let a box be called "on the site"
+    when it no longer contains it.
+    """
+    assert REFERENCE_SITE_TOLERANCE <= MINIMUM_SIZE / 2.0

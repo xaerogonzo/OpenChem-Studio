@@ -23,6 +23,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
+
 
 class WrappedLabel(QLabel):
     """A word-wrapped label that tells its layout how tall it really is.
@@ -234,6 +236,23 @@ class ExplicitHeightLabel(QLabel):
             self.setSizePolicy(policy)
 
 
+#: The header button every section carries.
+_SECTION_TOGGLE_HELP = HelpTooltip(
+    text=(
+        "Shows or hides this section's contents.\n\n"
+        "Collapsing one hides its results, it does not discard them or stop "
+        "anything running -- a calculation started here keeps going and its "
+        "answer is waiting when the section is opened again.\n\n"
+        "Which sections start open is a fixed default, not a memory of how "
+        "you last left them."
+    ),
+    tier=1,
+    help_id="properties.section_toggle",
+    topic="properties",
+    help_anchor="properties",
+)
+
+
 class CollapsibleSection(QWidget):
     """A titled section that shows/hides its content on click — no native
     Qt widget does this, so a `QToolButton` (checkable, arrow icon) plus a
@@ -257,6 +276,13 @@ class CollapsibleSection(QWidget):
         self._toggle_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self._toggle_button.setArrowType(Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow)
         self._toggle_button.setStyleSheet("QToolButton { border: none; font-weight: bold; }")
+        # ONE CONCEPT, ONE CONTRACT, however many sections exist.
+        #
+        # "Show or hide this section" means the same thing on all seventeen
+        # Properties categories and on every other section built from this
+        # class; WHICH section is what `instance_path` records. The same
+        # call as the sixty batch tick boxes one file over.
+        apply_help_tooltip(self._toggle_button, _SECTION_TOGGLE_HELP)
         self._toggle_button.toggled.connect(self._on_toggled)
 
         self.content = QWidget(self)

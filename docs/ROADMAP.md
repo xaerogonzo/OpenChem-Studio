@@ -613,6 +613,16 @@ vertex colours against the supplied field, r = −0.96); a continuous 2D
 property heat map; residue colouring driven by real docking interaction
 data; and structure grids for multi-structure results.
 
+### Explaining itself
+
+Every interactive control carries a declared *help contract* — what it
+means, at what tier of care, and the source behind any external claim — of
+which the tooltip is one rendering. The guard checks the STRUCTURE of that
+declaration and never the prose, because a check for "has a non-empty
+string" degenerates into `tooltip = "Options."`. `tools/list_tooltips.py`
+reports what is still undocumented, and the remaining debt is recorded in a
+fixture that may shrink and may not grow.
+
 ### Naming, and the annotation engine underneath it
 
 Structure-to-name offline and deterministically via the vendored IUPAC

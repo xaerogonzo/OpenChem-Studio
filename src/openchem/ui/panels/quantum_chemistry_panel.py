@@ -50,6 +50,7 @@ from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
 from openchem.ui.molecule_combo import repopulate, select
 from openchem.ui.widgets.empty_state import empty_state, empty_state_text, is_empty_state
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.ui.widgets.esp_compare_widget import EspCompareWidget
 from openchem.ui.widgets.ir_view_widget import IrViewWidget
 from openchem.ui.widgets.nmr_correlation_plot_widget import NmrCorrelationPlotWidget, Peak
@@ -90,6 +91,395 @@ _CORRELATION_SPECS = (
     ("hmbc", compute_hmbc_pairs, "1H shift (ppm)", "13C shift (ppm)"),
     ("cosy", compute_cosy_pairs, "1H shift (ppm)", "1H shift (ppm)"),
 )
+
+
+# THE HELP CONTRACTS FOR THIS PANEL.
+#
+# One dict rather than a `setToolTip` at each construction site, because a
+# help_id is a stable semantic identifier and scattering the declarations
+# makes "does this concept already have an id" unanswerable without
+# reading the whole file.
+#
+# ONE CONCEPT, ONE `help_id`, AND THE UNIQUENESS RUNS BOTH WAYS. The three
+# correlation tabs (HSQC/HMBC/COSY) are built from ONE column tuple by ONE
+# loop and populated by ONE method, so their five columns mean the same
+# five things in each -- they share five ids across fifteen renderings,
+# and `instance_path` is what tells the renderings apart. What differs
+# between those tabs is WHICH atom pairs appear, which is a property of
+# the tab rather than of its columns. `Atom` and `Element` are likewise
+# one concept each across the spectrum and hybrid tables.
+_HELP: dict[str, HelpTooltip] = {
+    "molecule": HelpTooltip(
+        text=(
+            "Which molecule in the current project the calculation runs on.\n\n"
+            "The calculation is submitted as a 3D geometry, so the molecule needs a "
+            "conformer; one is generated from the drawing if none exists."
+        ),
+        tier=1,
+        help_id="quantum.molecule",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
+    "calculation_type": HelpTooltip(
+        text=(
+            "What ORCA is asked to do. This decides which result tabs fill in: an NMR "
+            "type populates the signal, correlation and Hybrid tabs, "
+            "\"Optimization + Frequency\" produces the IR modes, and any type that "
+            "keeps a wavefunction lets Surfaces be computed.\n\n"
+            "A single point cannot produce vibrational modes, and a type this panel "
+            "did not run leaves its tabs untouched rather than blank-because-broken."
+        ),
+        tier=2,
+        help_id="quantum.calculation_type",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
+    "total_charge": HelpTooltip(
+        text=(
+            "Total charge of the species, in units of the elementary charge. "
+            "Range -10 to +10.\n\n"
+            "Set for you from the drawn structure's formal charge whenever you pick a "
+            "molecule, and free to override afterwards. It declares WHICH species is "
+            "being calculated: ORCA will converge a wrong charge perfectly happily "
+            "and report it as an ordinary result."
+        ),
+        tier=2,
+        help_id="quantum.total_charge",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
+    "spin_multiplicity": HelpTooltip(
+        text=(
+            "Spin multiplicity, 2S+1: 1 for a closed-shell singlet, 2 for a doublet "
+            "radical, 3 for a triplet. Range 1 to 10, default 1.\n\n"
+            "UNLIKE CHARGE, THIS IS NOT DERIVED FROM THE STRUCTURE -- it stays at 1 "
+            "whatever you select, so a radical or a triplet has to be set by hand. A "
+            "singlet calculation on an open-shell species converges to a state the "
+            "molecule does not have."
+        ),
+        tier=2,
+        help_id="quantum.spin_multiplicity",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
+    "method_basis": HelpTooltip(
+        text=(
+            "The functional and basis set, written as ORCA's own keyword line -- this "
+            "text becomes the `!` header of the input file verbatim, so anything ORCA "
+            "accepts there can be typed here rather than picked from the list.\n\n"
+            "Choosing an NMR calculation moves this to a basis set with the core "
+            "flexibility shielding needs, unless you have edited it yourself, in "
+            "which case your text is left alone."
+        ),
+        tier=2,
+        help_id="quantum.method_basis",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
+    "solvent_model": HelpTooltip(
+        text=(
+            "Adds an implicit solvent to the calculation as a CPCM keyword on the "
+            "method line. \"None (gas phase)\" adds nothing.\n\n"
+            "CPCM is a continuum: it models the bulk polarisation of the solvent "
+            "rather than individual solvent molecules, so it does not represent a "
+            "specific hydrogen bond to solvent.\n\n"
+            "Because the solvent travels as part of the method string, a solvated and "
+            "a gas-phase setup are separate TMS reference entries and cannot be "
+            "calibrated against each other by accident."
+        ),
+        tier=2,
+        help_id="quantum.solvent_model",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
+    "configure_orca": HelpTooltip(
+        text=(
+            "Opens the external-tools settings at the ORCA entry, where the path to "
+            "the executable is set. ORCA is installed by you and is not bundled with "
+            "this application; nothing in this panel can run until that path is set."
+        ),
+        tier=1,
+        help_id="quantum.configure_orca",
+        topic="quantum-chemistry",
+        help_anchor="external-tools",
+    ),
+    "tms_reference_calibration": HelpTooltip(
+        text=(
+            "Runs TMS at the method and basis currently selected and uses its "
+            "shielding to convert this method's raw shielding constants into chemical "
+            "shifts. The result is cached per method/basis, so it is not re-run for "
+            "every molecule.\n\n"
+            "Referencing against TMS alone assumes the relationship between shielding "
+            "and shift has a slope of exactly -1. That fixes where the scale starts, "
+            "not how it is stretched. \"Calibrate Scaling\" fits the slope from real "
+            "compounds and is the more accurate route."
+        ),
+        tier=3,
+        help_id="quantum.tms_reference_calibration",
+        topic="quantum-chemistry",
+        help_anchor="limits-nmr",
+    ),
+    "empirical_shift_scaling": HelpTooltip(
+        text=(
+            "Fits an empirical shift-scaling line from ORCA runs on eleven known "
+            "compounds at this exact method and basis, correcting both the offset and "
+            "the slope that TMS referencing alone leaves at -1. Once it has run, its "
+            "factors take priority over the TMS reference.\n\n"
+            "It costs one ORCA run per standard, against the single run TMS "
+            "referencing needs -- which is why it is a separate button rather than an "
+            "upgrade of that one.\n\n"
+            "The fit belongs to the method and basis it was calibrated at, and says "
+            "nothing about any other."
+        ),
+        tier=3,
+        help_id="quantum.empirical_shift_scaling",
+        topic="quantum-chemistry",
+        help_anchor="limits-nmr",
+    ),
+    "run_calculation": HelpTooltip(
+        text=(
+            "Submits the calculation to ORCA and streams its output into the Log tab "
+            "as it works. Results land in the tabs relevant to the calculation type "
+            "once the job finishes."
+        ),
+        tier=1,
+        help_id="quantum.run_calculation",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
+    "cancel_calculation": HelpTooltip(
+        text=(
+            "Stops the running ORCA process and removes its scratch directory. "
+            "Whatever it had computed so far is lost: a cancelled job produces no "
+            "partial result."
+        ),
+        tier=1,
+        help_id="quantum.cancel_calculation",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
+    "boltzmann_averaging": HelpTooltip(
+        text=(
+            "Runs the calculation on every conformer and averages the shifts by their "
+            "Boltzmann populations, using each run's own SCF energy.\n\n"
+            "A flexible molecule in solution interconverts fast on the NMR timescale, "
+            "so the measured shift is a population average -- not the lowest-energy "
+            "geometry's.\n\n"
+            "Costs one full ORCA run per conformer. The average is only as good as "
+            "the conformer set it is taken over: a conformer that was never generated "
+            "contributes nothing and is not accounted for."
+        ),
+        tier=3,
+        help_id="quantum.boltzmann_averaging",
+        topic="quantum-chemistry",
+        help_anchor="limits-nmr",
+    ),
+    "correlation_contours": HelpTooltip(
+        text=(
+            "Draw cross peaks as contour rings rather than dots.\n\n"
+            "The rings show POSITION only. Predicted correlations carry no intensity, "
+            "so every peak is drawn the same height and width -- unlike a measured "
+            "spectrum, where contour height is peak volume.\n\n"
+            "Set per tab, because a sparse HSQC and a crowded HMBC of the same "
+            "molecule genuinely want different answers."
+        ),
+        tier=3,
+        help_id="quantum.correlation_contours",
+        topic="quantum-chemistry",
+        help_anchor="limits-nmr",
+    ),
+    # --- the 1D spectrum table, whose first two columns the Hybrid tab shares
+    "nmr_atom_index": HelpTooltip(
+        text=(
+            "The atom this row reports, numbered from 0 in the geometry that was sent "
+            "to ORCA -- that is, the structure WITH EXPLICIT HYDROGENS.\n\n"
+            "It is not the numbering of the 2D drawing, where hydrogens are implicit "
+            "and carry no index of their own."
+        ),
+        tier=2,
+        help_id="quantum.nmr_atom_index",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
+    "nmr_element": HelpTooltip(
+        text="Chemical element of this atom, as ORCA reported it for that nucleus.",
+        tier=1,
+        help_id="quantum.nmr_element",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
+    "nmr_value": HelpTooltip(
+        text=(
+            "THIS COLUMN HOLDS ONE OF TWO DIFFERENT QUANTITIES, which is why it is "
+            "named \"Value\" rather than \"Shift\". The note directly above the "
+            "table says which one is on screen.\n\n"
+            "Uncalibrated, it is the raw isotropic shielding constant in ppm, straight "
+            "from ORCA and referenced to nothing. Shielding runs the OPPOSITE way to a "
+            "chemical shift: a more shielded nucleus has a LARGER shielding constant "
+            "and a SMALLER shift, so these numbers must not be compared against "
+            "literature shifts.\n\n"
+            "Once a reference or a scaling has been calibrated, it is a real chemical "
+            "shift in ppm and is comparable with measured spectra."
+        ),
+        tier=3,
+        help_id="quantum.nmr_value",
+        topic="quantum-chemistry",
+        help_anchor="limits-nmr",
+    ),
+    # --- the correlation tables: five ids across fifteen renderings
+    "correlation_atom_a": HelpTooltip(
+        text=(
+            "First atom of this cross peak -- the 1H in all three experiments -- "
+            "numbered from 0 in the structure with explicit hydrogens rather than in "
+            "the 2D drawing."
+        ),
+        tier=2,
+        help_id="quantum.correlation_atom_a",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
+    "correlation_atom_b": HelpTooltip(
+        text=(
+            "Second atom of this cross peak -- the 13C in HSQC and HMBC, the partner "
+            "1H in COSY -- numbered from 0 in the structure with explicit hydrogens "
+            "rather than in the 2D drawing."
+        ),
+        tier=2,
+        help_id="quantum.correlation_atom_b",
+        topic="quantum-chemistry",
+        help_anchor="quantum-chemistry",
+    ),
+    "correlation_shift_a": HelpTooltip(
+        text=(
+            "This calculation's value for the first atom, in ppm, which is the peak's "
+            "horizontal position. It carries whatever referencing the run has: "
+            "uncalibrated, it is a raw shielding constant rather than a shift."
+        ),
+        tier=2,
+        help_id="quantum.correlation_shift_a",
+        topic="quantum-chemistry",
+        help_anchor="limits-nmr",
+    ),
+    "correlation_shift_b": HelpTooltip(
+        text=(
+            "This calculation's value for the second atom, in ppm, which is the "
+            "peak's vertical position. It carries whatever referencing the run has: "
+            "uncalibrated, it is a raw shielding constant rather than a shift."
+        ),
+        tier=2,
+        help_id="quantum.correlation_shift_b",
+        topic="quantum-chemistry",
+        help_anchor="limits-nmr",
+    ),
+    "correlation_coupling": HelpTooltip(
+        text=(
+            "The computed spin-spin coupling constant for this pair, in Hz. Only the "
+            "\"NMR + Spin-Spin Coupling\" calculation produces one.\n\n"
+            "A dash means NO COUPLING WAS COMPUTED for this pair -- it does not mean "
+            "the coupling is zero. The cross peaks themselves are derived from bonding "
+            "connectivity, so a peak is listed whether or not there is a coupling "
+            "constant to put beside it."
+        ),
+        tier=3,
+        help_id="quantum.correlation_coupling",
+        topic="quantum-chemistry",
+        help_anchor="limits-nmr",
+    ),
+    # --- the Hybrid tab
+    "hybrid_shift": HelpTooltip(
+        text=(
+            "The chemical shift kept for this atom, in ppm, after merging this "
+            "calculation with the experimental-shift database.\n\n"
+            "Always a real shift rather than a raw shielding constant: the merge needs "
+            "an empirically scaled spectrum, so an uncalibrated run produces no rows "
+            "here at all."
+        ),
+        tier=3,
+        help_id="quantum.hybrid_shift",
+        topic="quantum-chemistry",
+        help_anchor="limits-nmr",
+    ),
+    "hybrid_source": HelpTooltip(
+        text=(
+            "Which predictor supplied the value kept for this atom -- the experimental "
+            "database lookup, or this ORCA run after empirical scaling.\n\n"
+            "Chosen per atom by whichever expects to be less wrong, so one spectrum "
+            "routinely mixes both. A method that cannot state an expected error never "
+            "beats one that can."
+        ),
+        tier=2,
+        help_id="quantum.hybrid_source",
+        topic="quantum-chemistry",
+        help_anchor="limits-nmr",
+        # The lookup half of this column names an external database.
+        source_key="nmrshiftdb2",
+    ),
+    "hybrid_expected_error": HelpTooltip(
+        text=(
+            "How wrong the winning method expects to be for this atom, in ppm.\n\n"
+            "It is a property of the METHOD, not a measurement against experiment for "
+            "this molecule -- nothing here has been compared with a real spectrum of "
+            "the compound on screen. It is the quantity the per-atom choice is made "
+            "on.\n\n"
+            "\"unknown\" means the winning method cannot state one."
+        ),
+        tier=3,
+        help_id="quantum.hybrid_expected_error",
+        topic="quantum-chemistry",
+        help_anchor="limits-nmr",
+    ),
+    "hybrid_disagreement": HelpTooltip(
+        text=(
+            "The spread, in ppm, between the values the two methods offered for this "
+            "atom. A dash means only one method offered a value, so there was nothing "
+            "to disagree with.\n\n"
+            "AGREEMENT IS NOT ACCURACY. A small spread says the database and the "
+            "calculation landed in the same place; both can be in the same place and "
+            "both wrong. A large spread is the useful signal -- it marks an atom worth "
+            "checking by hand."
+        ),
+        tier=3,
+        help_id="quantum.hybrid_disagreement",
+        topic="quantum-chemistry",
+        help_anchor="limits-nmr",
+    ),
+}
+
+#: Column position -> key in `_HELP`, per table. The correlation tuple is
+#: ONE mapping used by all three correlation tabs, which is the
+#: shared-concept claim above made executable rather than merely written
+#: down: there is no place for the three to drift apart.
+_SPECTRUM_COLUMN_HELP = ("nmr_atom_index", "nmr_element", "nmr_value")
+_CORRELATION_COLUMN_HELP = (
+    "correlation_atom_a",
+    "correlation_atom_b",
+    "correlation_shift_a",
+    "correlation_shift_b",
+    "correlation_coupling",
+)
+_HYBRID_COLUMN_HELP = (
+    "nmr_atom_index",
+    "nmr_element",
+    "hybrid_shift",
+    "hybrid_source",
+    "hybrid_expected_error",
+    "hybrid_disagreement",
+)
+
+
+def _document_header(table: QTableWidget, keys: tuple[str, ...]) -> None:
+    """Attach the contracts to a table's HEADER ITEMS.
+
+    A `QTableWidgetItem` is not a `QObject`, so its contract is stored as
+    item data rather than as a Qt property -- `apply_help_tooltip` handles
+    that. A tooltip audit walking `QWidget`s alone would report these
+    tables fully documented while covering none of their columns, which is
+    the hole the header surface exists to close.
+    """
+    for column, key in enumerate(keys):
+        item = table.horizontalHeaderItem(column)
+        if item is not None:
+            apply_help_tooltip(item, _HELP[key])
 
 
 class QuantumChemistryPanel(QWidget):
@@ -134,22 +524,27 @@ class QuantumChemistryPanel(QWidget):
         self._optimized_conformer_molblock: str = ""
 
         self._molecule_combo = QComboBox(self)
+        apply_help_tooltip(self._molecule_combo, _HELP["molecule"])
         self._molecule_combo.currentIndexChanged.connect(self._on_molecule_changed)
 
         self._calc_type_combo = QComboBox(self)
+        apply_help_tooltip(self._calc_type_combo, _HELP["calculation_type"])
         self._calc_type_combo.addItems(list(CALC_TYPE_LABELS.keys()))
         self._calc_type_combo.currentTextChanged.connect(self._on_calc_type_changed)
 
         self._charge_spin = QSpinBox(self)
         self._charge_spin.setRange(-10, 10)
+        apply_help_tooltip(self._charge_spin, _HELP["total_charge"])
 
         self._multiplicity_spin = QSpinBox(self)
         self._multiplicity_spin.setRange(1, 10)
         self._multiplicity_spin.setValue(1)
+        apply_help_tooltip(self._multiplicity_spin, _HELP["spin_multiplicity"])
 
         self._method_combo = QComboBox(self)
         self._method_combo.setEditable(True)
         self._method_combo.addItems(METHOD_BASIS_PRESETS)
+        apply_help_tooltip(self._method_combo, _HELP["method_basis"])
 
         # Solvent is NOT a separate parameter threaded through the service --
         # it is appended to the method/basis string as a CPCM keyword, which
@@ -163,40 +558,36 @@ class QuantumChemistryPanel(QWidget):
         # left them sharing one key and silently calibrated solvated shifts
         # against a gas-phase TMS.
         self._solvent_combo = QComboBox(self)
+        apply_help_tooltip(self._solvent_combo, _HELP["solvent_model"])
         for solvent in SOLVENTS:
             self._solvent_combo.addItem(solvent or "None (gas phase)", solvent)
 
         # Opt-in, because it costs one full ORCA run per conformer. Off by
         # default so nobody accidentally turns a 5-minute job into an hour.
         self._boltzmann_check = QCheckBox("Average over all conformers (Boltzmann)", self)
-        self._boltzmann_check.setToolTip(
-            "Runs the calculation on every conformer and averages the shifts by their "
-            "Boltzmann populations, using each run's own SCF energy.\n\n"
-            "A flexible molecule in solution interconverts fast on the NMR timescale, so "
-            "the measured shift is a population average -- not the lowest-energy geometry's.\n\n"
-            "Costs one full ORCA run per conformer."
-        )
+        apply_help_tooltip(self._boltzmann_check, _HELP["boltzmann_averaging"])
 
         self._configure_button = QPushButton("Configure ORCA...", self)
+        apply_help_tooltip(self._configure_button, _HELP["configure_orca"])
         self._configure_button.clicked.connect(self._on_configure_clicked)
 
         self._calibrate_button = QPushButton("Calibrate Reference (TMS)...", self)
+        apply_help_tooltip(self._calibrate_button, _HELP["tms_reference_calibration"])
         self._calibrate_button.clicked.connect(self._on_calibrate_clicked)
         # A second, more thorough calibration. Costs N ORCA runs against
         # the TMS button's one, which is why it is its own button rather
         # than an upgrade of that one -- the user should choose to spend
         # that time. Once it has run, its factors take priority.
         self._scaling_button = QPushButton("Calibrate Scaling (11 standards)...", self)
-        self._scaling_button.setToolTip(
-            "Fits an empirical shift-scaling line from real runs on known compounds. "
-            "Much more accurate than TMS referencing alone, and much slower to calibrate."
-        )
+        apply_help_tooltip(self._scaling_button, _HELP["empirical_shift_scaling"])
         self._scaling_button.clicked.connect(self._on_scaling_calibrate_clicked)
 
         self._run_button = QPushButton("Run", self)
+        apply_help_tooltip(self._run_button, _HELP["run_calculation"])
         self._run_button.clicked.connect(self._on_run_clicked)
         self._cancel_button = QPushButton("Cancel", self)
         self._cancel_button.setEnabled(False)
+        apply_help_tooltip(self._cancel_button, _HELP["cancel_calculation"])
         self._cancel_button.clicked.connect(self._on_cancel_clicked)
 
         self._status_label = QLabel("", self)
@@ -217,6 +608,7 @@ class QuantumChemistryPanel(QWidget):
         self._spectrum_note_label.setVisible(False)
         self._spectrum_table = QTableWidget(0, len(_NMR_SPECTRUM_COLUMNS), self)
         self._spectrum_table.setHorizontalHeaderLabels(_NMR_SPECTRUM_COLUMNS)
+        _document_header(self._spectrum_table, _SPECTRUM_COLUMN_HELP)
         self._spectrum_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self._spectrum_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._spectrum_table.setVisible(False)
@@ -313,6 +705,7 @@ class QuantumChemistryPanel(QWidget):
         self._hybrid_summary_label.setWordWrap(True)
         self._hybrid_table = QTableWidget(0, len(_HYBRID_COLUMNS), hybrid_tab)
         self._hybrid_table.setHorizontalHeaderLabels(_HYBRID_COLUMNS)
+        _document_header(self._hybrid_table, _HYBRID_COLUMN_HELP)
         self._hybrid_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self._hybrid_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         hybrid_layout.addWidget(self._hybrid_summary_label)
@@ -335,6 +728,7 @@ class QuantumChemistryPanel(QWidget):
             tab_layout = QVBoxLayout(tab)
             table = QTableWidget(0, len(_CORRELATION_COLUMNS), tab)
             table.setHorizontalHeaderLabels(_CORRELATION_COLUMNS)
+            _document_header(table, _CORRELATION_COLUMN_HELP)
             table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
             table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
             plot = NmrCorrelationPlotWidget(parent=tab)
@@ -344,12 +738,9 @@ class QuantumChemistryPanel(QWidget):
             # genuinely differs between them.
             contour_toggle = QCheckBox("Contours", tab)
             contour_toggle.setChecked(True)
-            contour_toggle.setToolTip(
-                "Draw cross peaks as contour rings rather than dots.\n\n"
-                "The rings show POSITION only. Predicted correlations carry no "
-                "intensity, so every peak is drawn the same height and width -- "
-                "unlike a measured spectrum, where contour height is peak volume."
-            )
+            # All three tabs share ONE contract: same concept, three
+            # renderings, told apart by `instance_path`.
+            apply_help_tooltip(contour_toggle, _HELP["correlation_contours"])
             contour_toggle.toggled.connect(plot.set_show_contours)
             tab_layout.addWidget(table)
             tab_layout.addWidget(contour_toggle)

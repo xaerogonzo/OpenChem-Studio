@@ -30,6 +30,53 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
+
+
+#: THREE CONCEPTS, TWELVE RENDERINGS EACH.
+#:
+#: Every dock builds one of these, so the same three buttons appear
+#: thirty-six times. "Close this panel" means one thing whichever dock it
+#: sits on, and WHICH dock is what `DocumentableControl.instance_path`
+#: already records -- the same call as the sixty batch tick boxes and the
+#: thirteen View-menu toggles.
+_HELP = {
+    "help": HelpTooltip(
+        text=(
+            "Opens the manual at this panel's own topic.\n\n"
+            "F1 does the same for whichever panel is in front, so this button "
+            "is the way to ask about a panel without focusing it first."
+        ),
+        tier=1,
+        help_id="workspace.panel_help",
+        topic="panels",
+        help_anchor="in-app-help",
+    ),
+    "float": HelpTooltip(
+        text=(
+            "Detaches this panel into its own window, or puts it back.\n\n"
+            "A floating panel can be moved off the main window entirely, which "
+            "is what makes two panels visible at once -- docked, one right-hand "
+            "panel shows at a time."
+        ),
+        tier=1,
+        help_id="workspace.panel_float",
+        topic="panels",
+        help_anchor="properties",
+    ),
+    "close": HelpTooltip(
+        text=(
+            "Hides this panel. Nothing is discarded -- results already computed "
+            "stay with their molecule -- and the panel comes back from the rail "
+            "or the View menu."
+        ),
+        tier=1,
+        help_id="workspace.panel_close",
+        topic="panels",
+        help_anchor="properties",
+    ),
+}
+
 
 class DockTitleBar(QWidget):
     """Title text, a help button, and the float/close buttons put back."""
@@ -61,7 +108,7 @@ class DockTitleBar(QWidget):
         if show_help:
             self._help_button = self._make_button(
                 "?",
-                "Help for this panel (F1)",
+                _HELP["help"],
                 self._emit_help_requested,
             )
             layout.addWidget(self._help_button)
@@ -69,7 +116,7 @@ class DockTitleBar(QWidget):
         style = self.style()
         self._float_button = self._make_button(
             "",
-            "Float or dock this panel",
+            _HELP["float"],
             self._toggle_floating,
             icon=style.standardIcon(QStyle.StandardPixmap.SP_TitleBarNormalButton),
         )
@@ -77,7 +124,7 @@ class DockTitleBar(QWidget):
 
         self._close_button = self._make_button(
             "",
-            "Close this panel",
+            _HELP["close"],
             dock.close,
             icon=style.standardIcon(QStyle.StandardPixmap.SP_TitleBarCloseButton),
         )
@@ -91,14 +138,21 @@ class DockTitleBar(QWidget):
     def _emit_help_requested(self) -> None:
         self.help_requested.emit(self._help_topic)
 
-    def _make_button(self, text, tooltip, slot, icon=None) -> QToolButton:
+    def _make_button(self, text, help_tooltip: HelpTooltip, slot, icon=None) -> QToolButton:
+        """Takes a CONTRACT rather than a string.
+
+        The float and close buttons carry an icon and no text, so a user
+        with no tooltip has nothing at all to go on -- which is why these
+        three were among the first things given raw tooltips, and why the
+        contract has to reach them rather than stopping at the panels.
+        """
         button = QToolButton(self)
         if icon is not None:
             button.setIcon(icon)
             button.setIconSize(QSize(12, 12))
         else:
             button.setText(text)
-        button.setToolTip(tooltip)
+        apply_help_tooltip(button, help_tooltip)
         button.setAutoRaise(True)
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         button.clicked.connect(slot)

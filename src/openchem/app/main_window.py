@@ -34,6 +34,7 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.app.session import SessionManager
+from openchem.app.menu_help import MENU_HELP
 from openchem.app.settings import Settings
 from openchem.chem.calculation_input import canonical_conformer
 from openchem.chem.identifiers import identifier_for_molblock
@@ -75,6 +76,7 @@ from openchem.events.events import (
 )
 from openchem.plugins.manager import PluginManager
 from openchem.services.container import ServiceContainer
+from openchem.ui.widgets.help_tooltip import apply_help_tooltip
 from openchem.ui.dialogs.about_dialog import AboutDialog
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
 from openchem.ui.dialogs.help_dialog import HelpDialog
@@ -327,6 +329,12 @@ class MainWindow(QMainWindow):
         self._docking_panel = DockingPanel(
             services.docking_service, services.chemistry_engine, self._settings, services.event_bus, self
         )
+        # A BOUND METHOD, never a lambda capturing self -- PySide6 holds a
+        # connected plain callable strongly, which leaked whole windows
+        # (tests/test_qt_object_disposal.py). Covers the derive, receptor
+        # change and spinbox-edit transitions in one connection, because all
+        # three go through the panel's own box writer.
+        self._docking_panel.box_changed.connect(self._sync_docking_box_overlay)
         self._quantum_chemistry_panel = QuantumChemistryPanel(
             services.quantum_chemistry_service,
             services.chemistry_engine,
@@ -424,6 +432,10 @@ class MainWindow(QMainWindow):
         self._panel_rail.panel_chosen.connect(self._on_panel_chosen)
         self._panel_rail.favourite_toggled.connect(self._on_favourite_toggled)
         rail_bar = QToolBar("Panels", self)
+        # The RAIL's own show/hide, which is not a panel's -- hiding it
+        # removes the navigation rather than a panel, so it gets its own
+        # contract rather than sharing `view.panel_visibility`.
+        self._document(rail_bar.toggleViewAction(), "panel_rail_visibility")
         rail_bar.setObjectName("Panel_Rail")
         rail_bar.setMovable(False)
         rail_bar.setFloatable(False)
@@ -529,12 +541,12 @@ class MainWindow(QMainWindow):
 
         # Focus the report search from anywhere. A power user should not
         # have to find the box with the mouse first.
-        search_facts = QAction("Search facts", self)
+        search_facts = self._document(QAction("Search facts", self), "search_facts")
         search_facts.setShortcut("Ctrl+Shift+F")
         search_facts.triggered.connect(self._focus_fact_search)
         self.addAction(search_facts)
 
-        palette = QAction("Command Palette", self)
+        palette = self._document(QAction("Command Palette", self), "command_palette")
         palette.setShortcut("Ctrl+Shift+P")
         palette.triggered.connect(self._show_command_palette)
         self.addAction(palette)
@@ -608,6 +620,36 @@ class MainWindow(QMainWindow):
             dock.setVisible(dock is chosen)
         if not chosen.isFloating():
             chosen.raise_()
+        self._sync_docking_box_overlay()
+
+    def _sync_docking_box_overlay(self) -> None:
+        """Draw the docking search box while, and only while, Docking shows.
+
+        THE ONE AUTHORITY. Every route that can change the answer calls this
+        and none re-implements the decision -- otherwise `isHidden()` checks
+        end up spread across several window paths that can disagree, which is
+        the divergence class this codebase keeps paying for.
+
+        Visible only with the Docking panel because the box is a
+        docking-workflow object: interaction analysis and structure checking
+        put the same receptor on screen, and a search region painted over it
+        there is clutter describing a job the user is not doing. That needs
+        no setting and no menu item.
+
+        **`isHidden()`, never `isVisible()`.** The latter is False for every
+        child of a window that has not been shown, so a check written with it
+        would draw nothing under a test harness while looking correct in the
+        running app -- already on record here twice.
+        """
+        dock = self._dock_by_panel_id("Docking")
+        panel = getattr(self, "_docking_panel", None)
+        if dock is None or panel is None:
+            return
+        if dock.isHidden() or panel.selected_receptor_uuid() is None:
+            self._macromolecule_viewer.clear_search_box()
+            return
+        box = panel.displayed_box()
+        self._macromolecule_viewer.show_search_box(box.center, box.size)
 
     def _dock_by_panel_id(self, panel_id: str) -> QDockWidget | None:
         for dock in self._right_docks:
@@ -1075,33 +1117,54 @@ class MainWindow(QMainWindow):
 
     def _build_menus(self) -> None:
         file_menu = self.menuBar().addMenu("&File")
-        file_menu.addAction("New Project", self._new_project)
-        file_menu.addAction("Open Project...", self._open_project)
-        file_menu.addAction("Save Project...", self._save_project)
+        self._document(file_menu.addAction("New Project", self._new_project), "new_project")
+        self._document(
+            file_menu.addAction("Open Project...", self._open_project), "open_project"
+        )
+        self._document(
+            file_menu.addAction("Save Project...", self._save_project), "save_project"
+        )
         file_menu.addSeparator()
-        file_menu.addAction("New Molecule", self._new_molecule)
-        file_menu.addAction("Import Molecule...", self._import_molecule)
-        file_menu.addAction("Export Molecule...", self._export_molecule)
+        self._document(
+            file_menu.addAction("New Molecule", self._new_molecule), "new_molecule"
+        )
+        self._document(
+            file_menu.addAction("Import Molecule...", self._import_molecule),
+            "import_molecule",
+        )
+        self._document(
+            file_menu.addAction("Export Molecule...", self._export_molecule),
+            "export_molecule",
+        )
         file_menu.addSeparator()
-        file_menu.addAction("Import Macromolecule...", self._import_macromolecule)
+        self._document(
+            file_menu.addAction("Import Macromolecule...", self._import_macromolecule),
+            "import_macromolecule",
+        )
         # Its OWN action rather than another extension on "Import
         # Molecule". A CIF does not become a molecule -- it has no
         # bonds and no molecular weight -- so routing it through the
         # molecule importer would put a periodic solid into the
         # project tree as something every molecular calculator would
         # then try to answer about.
-        file_menu.addAction("Import Crystal Structure...", self._import_crystal)
-        file_menu.addAction("Receptor Library...", self._open_receptor_library)
+        self._document(
+            file_menu.addAction("Import Crystal Structure...", self._import_crystal),
+            "import_crystal",
+        )
+        self._document(
+            file_menu.addAction("Receptor Library...", self._open_receptor_library),
+            "receptor_library",
+        )
         file_menu.addSeparator()
-        file_menu.addAction("Exit", self.close)
+        self._document(file_menu.addAction("Exit", self.close), "exit")
 
         edit_menu = self.menuBar().addMenu("&Edit")
         undo_action = self._undo_stack.createUndoAction(self, "Undo")
         undo_action.setShortcut("Ctrl+Z")
         redo_action = self._undo_stack.createRedoAction(self, "Redo")
         redo_action.setShortcut("Ctrl+Y")
-        edit_menu.addAction(undo_action)
-        edit_menu.addAction(redo_action)
+        edit_menu.addAction(self._document(undo_action, "undo"))
+        edit_menu.addAction(self._document(redo_action, "redo"))
         # Copying an identifier and renaming already existed, but ONLY on
         # the Project Explorer's right-click menu, where they were reported
         # as missing entirely -- a narrow dock with two entries gives you
@@ -1112,15 +1175,20 @@ class MainWindow(QMainWindow):
         # out it does.
         edit_menu.addSeparator()
         structure_menu = edit_menu.addMenu("Copy Structure As")
-        for label, kind in (
-            ("SMILES", "smiles"),
-            ("InChI", "inchi"),
-            ("InChIKey", "inchikey"),
-            ("Molfile (MDL molblock)", "molfile"),
+        for label, kind, help_key in (
+            ("SMILES", "smiles", "copy_smiles"),
+            ("InChI", "inchi", "copy_inchi"),
+            ("InChIKey", "inchikey", "copy_inchikey"),
+            ("Molfile (MDL molblock)", "molfile", "copy_molfile"),
         ):
-            structure_menu.addAction(label, self._copy_structure_as_action).setData(kind)
+            action = structure_menu.addAction(label, self._copy_structure_as_action)
+            action.setData(kind)
+            self._document(action, help_key)
 
-        paste_action = edit_menu.addAction("Paste Structure", self._paste_structure)
+        paste_action = self._document(
+            edit_menu.addAction("Paste Structure", self._paste_structure),
+            "paste_structure",
+        )
         # NOT Ctrl+V. Ketcher owns that inside the drawing canvas for
         # pasting fragments, and stealing it would break in-canvas editing
         # to serve the rarer whole-structure case.
@@ -1131,8 +1199,14 @@ class MainWindow(QMainWindow):
         # `checked` (False), which would arrive as the `molecule` argument
         # and read as "a molecule was supplied" everywhere except an
         # `is None` check.
-        edit_menu.addAction("Duplicate Molecule", self._duplicate_molecule)
-        edit_menu.addAction("Rename Molecule...", self._rename_molecule)
+        self._document(
+            edit_menu.addAction("Duplicate Molecule", self._duplicate_molecule),
+            "duplicate_molecule",
+        )
+        self._document(
+            edit_menu.addAction("Rename Molecule...", self._rename_molecule),
+            "rename_molecule",
+        )
 
         # --- Structure -------------------------------------------------------
         #
@@ -1149,20 +1223,23 @@ class MainWindow(QMainWindow):
         # EditStructureCommand -> the undo stack, so no separate command is
         # needed and Ctrl+Z works on all of them.
         self._structure_menu = self.menuBar().addMenu("&Structure")
-        for label, test_id in (
-            ("Aromatize", "Aromatize button"),
-            ("Dearomatize", "Dearomatize button"),
+        for label, test_id, help_key in (
+            ("Aromatize", "Aromatize button", "aromatize"),
+            ("Dearomatize", "Dearomatize button", "dearomatize"),
         ):
-            self._add_editor_action(self._structure_menu, label, test_id)
+            self._add_editor_action(self._structure_menu, label, test_id, help_key)
         self._structure_menu.addSeparator()
-        for label, test_id in (
-            ("Layout (Recalculate Coordinates)", "Layout button"),
-            ("Clean Up", "Clean Up button"),
+        for label, test_id, help_key in (
+            ("Layout (Recalculate Coordinates)", "Layout button", "layout"),
+            ("Clean Up", "Clean Up button", "clean_up"),
         ):
-            self._add_editor_action(self._structure_menu, label, test_id)
+            self._add_editor_action(self._structure_menu, label, test_id, help_key)
         self._structure_menu.addSeparator()
         self._add_editor_action(
-            self._structure_menu, "Add/Remove Explicit Hydrogens", "Add/Remove explicit hydrogens button"
+            self._structure_menu,
+            "Add/Remove Explicit Hydrogens",
+            "Add/Remove explicit hydrogens button",
+            "explicit_hydrogens",
         )
         # **ONE QAction, TWO MENUS.** It is also offered under View ▸ 2D
         # Structure Display, which is where it was looked for ("make sure
@@ -1178,6 +1255,7 @@ class MainWindow(QMainWindow):
         # toggle, so it is one -- see `MoleculeEditorWidget.set_cip_labels`.
         self._cip_action = QAction("Show CIP Stereo Descriptors (R/S, E/Z)", self)
         self._cip_action.setCheckable(True)
+        self._document(self._cip_action, "cip_labels")
         self._cip_action.toggled.connect(self._on_cip_labels_toggled)
         self._structure_menu.addAction(self._cip_action)
         self._structure_menu.addSeparator()
@@ -1187,14 +1265,30 @@ class MainWindow(QMainWindow):
         # Here it is where people already look -- and the command palette
         # reads the live QMenuBar, so this QAction IS the palette entry
         # rather than a second route that can drift from it.
-        self._structure_menu.addAction("Generate Conformers...", self._generate_conformers)
-        # **THE APPLICATION'S OWN DOOR TO THE NUCLIDE TABLE.** Ketcher's
-        # context menu gets an entry too, but the isotope feature must not
-        # DEPEND on that injection working -- so this exists, needs no
-        # change to the editor bundle, and is what the guard checks.
-        self._structure_menu.addAction("Isotopes...", self._show_isotopes_for_selection)
+        self._document(
+            self._structure_menu.addAction(
+                "Generate Conformers...", self._generate_conformers
+            ),
+            "generate_conformers",
+        )
+        # **THE APPLICATION'S OWN DOOR TO THE NUCLIDE TABLE.** The plan
+        # for this branch proposed a Ketcher context-menu entry too; the
+        # spike came back negative and the isotope feature must not DEPEND
+        # on that injection working, so this exists, needs no change to
+        # the editor bundle, and is what the guard checks.
+        self._document(
+            self._structure_menu.addAction(
+                "Isotopes...", self._show_isotopes_for_selection
+            ),
+            "isotopes",
+        )
         self._structure_menu.addSeparator()
-        check_action = self._structure_menu.addAction("Check Structure...", self._show_structure_check_panel)
+        check_action = self._document(
+            self._structure_menu.addAction(
+                "Check Structure...", self._show_structure_check_panel
+            ),
+            "check_structure",
+        )
         check_action.setShortcut("Ctrl+Shift+K")
         # Ketcher's own checker, kept and clearly relabelled. It is Indigo's
         # opinion -- the one the CANVAS draws in red -- so it is worth being
@@ -1202,16 +1296,29 @@ class MainWindow(QMainWindow):
         # disagrees with it deliberately on iron oxides and hypervalent
         # iodine.
         self._add_editor_action(
-            self._structure_menu, "Check Structure in the Editor (Indigo)...", "Check Structure button"
+            self._structure_menu,
+            "Check Structure in the Editor (Indigo)...",
+            "Check Structure button",
+            "check_structure_indigo",
         )
 
         self._view_menu = self.menuBar().addMenu("&View")
         for dock in self.findChildren(QDockWidget):
-            self._view_menu.addAction(dock.toggleViewAction())
+            # ONE contract across every dock: "show or hide this panel" is
+            # one concept and WHICH panel differs, so `instance_path` is
+            # what tells the renderings apart.
+            self._view_menu.addAction(
+                self._document(dock.toggleViewAction(), "panel_visibility")
+            )
         self._view_menu.addSeparator()
         structure_display_menu = self._view_menu.addMenu("2D Structure Display")
         self._add_structure_display_toggle(
-            structure_display_menu, "Show Carbon Labels", "carbonExplicitly", True, False
+            structure_display_menu,
+            "Show Carbon Labels",
+            "carbonExplicitly",
+            True,
+            False,
+            "show_carbon_labels",
         )
         self._add_structure_display_toggle(
             structure_display_menu,
@@ -1219,6 +1326,7 @@ class MainWindow(QMainWindow):
             "showValence",
             True,
             False,
+            "show_valence",
         )
         structure_display_menu.addSeparator()
         self._add_stereo_display_items(structure_display_menu)
@@ -1232,11 +1340,26 @@ class MainWindow(QMainWindow):
         # KetcherEditorBackend.trigger_toolbar_action for why these go
         # through Ketcher's own button rather than `set_render_option`
         # (there's no public API for either).
+        # The SAME concept as Structure > Add/Remove Explicit Hydrogens,
+        # offered here under a second label, so it shares that contract.
         self._add_editor_action(
-            structure_display_menu, "Toggle Explicit Hydrogens", "Add/Remove explicit hydrogens button"
+            structure_display_menu,
+            "Toggle Explicit Hydrogens",
+            "Add/Remove explicit hydrogens button",
+            "explicit_hydrogens",
         )
-        self._add_editor_action(structure_display_menu, "Open 3D Viewer (Miew)...", "3D Viewer button")
-        structure_display_menu.addAction("Send to 3D Viewer Tab", self._send_to_3d_viewer)
+        self._add_editor_action(
+            structure_display_menu,
+            "Open 3D Viewer (Miew)...",
+            "3D Viewer button",
+            "open_3d_viewer_miew",
+        )
+        self._document(
+            structure_display_menu.addAction(
+                "Send to 3D Viewer Tab", self._send_to_3d_viewer
+            ),
+            "send_to_3d_viewer_tab",
+        )
         structure_display_menu.addSeparator()
         # NOT a Ketcher render option, unlike the toggles above: the canvas
         # is Ketcher's and cannot be annotated, so this overlays the states
@@ -1246,13 +1369,22 @@ class MainWindow(QMainWindow):
         # redundancy Copy SMILES needed.
         oxidation_action = QAction("Show Oxidation States", self)
         oxidation_action.setCheckable(True)
+        self._document(oxidation_action, "show_oxidation_states")
         oxidation_action.toggled.connect(self._toggle_oxidation_states)
         structure_display_menu.addAction(oxidation_action)
         self._oxidation_states_action = oxidation_action
 
         tools_menu = self.menuBar().addMenu("&Tools")
-        tools_menu.addAction("Periodic Table...", self._show_periodic_table)
-        tools_menu.addAction("Identify Structure Online...", self._identify_structure)
+        self._document(
+            tools_menu.addAction("Periodic Table...", self._show_periodic_table),
+            "periodic_table",
+        )
+        self._document(
+            tools_menu.addAction(
+                "Identify Structure Online...", self._identify_structure
+            ),
+            "identify_structure",
+        )
         # THE ONLY DOOR THIS FEATURE HAS OTHERWISE IS A BUTTON INSIDE THE
         # BATCH PANEL, which means it is in no menu and therefore in no
         # palette either -- the palette indexes panels, calculators and
@@ -1262,16 +1394,33 @@ class MainWindow(QMainWindow):
         # it already was. `_show_virtual_screening` opens the same dialog
         # the Batch panel's button does; the button stays, because that is
         # where somebody with a table in front of them will reach for it.
-        tools_menu.addAction("Virtual Screening...", self._show_virtual_screening)
-        tools_menu.addAction("External Tools...", self._show_external_tools_dialog)
+        self._document(
+            tools_menu.addAction("Virtual Screening...", self._show_virtual_screening),
+            "virtual_screening",
+        )
+        self._document(
+            tools_menu.addAction(
+                "External Tools...", self._show_external_tools_dialog
+            ),
+            "external_tools",
+        )
 
         self._plugins_menu = self.menuBar().addMenu("&Plugins")
-        self._plugins_menu.addAction("Reload Plugins", self._reload_plugins)
-        self._plugins_menu.addAction(
-            "Open Project Plugins Folder", self._open_project_plugins_folder
+        self._document(
+            self._plugins_menu.addAction("Reload Plugins", self._reload_plugins),
+            "reload_plugins",
         )
-        self._plugins_menu.addAction(
-            "Open User Plugins Folder", self._open_user_plugins_folder
+        self._document(
+            self._plugins_menu.addAction(
+                "Open Project Plugins Folder", self._open_project_plugins_folder
+            ),
+            "open_project_plugins_folder",
+        )
+        self._document(
+            self._plugins_menu.addAction(
+                "Open User Plugins Folder", self._open_user_plugins_folder
+            ),
+            "open_user_plugins_folder",
         )
         self._plugins_menu.addSeparator()
         self._installed_plugins_menu = self._plugins_menu.addMenu("Installed Plugins")
@@ -1283,17 +1432,54 @@ class MainWindow(QMainWindow):
         # F1 is the conventional key, and it opens help for whichever panel
         # is in front rather than a table of contents -- the question being
         # asked is almost always about the thing currently on screen.
-        contents_action = help_menu.addAction("Help for the Current Panel", self._show_help)
+        contents_action = self._document(
+            help_menu.addAction("Help for the Current Panel", self._show_help),
+            "help_current_panel",
+        )
         contents_action.setShortcut("F1")
         for label, key in (
             ("User Guide", "projects"),
             ("Getting Started", "where-data-lives"),
             ("Scientific Limitations", "limits-nmr"),
         ):
-            help_menu.addAction(label, self._show_help_action).setData(key)
+            # ONE contract for the three: "open the manual at this topic"
+            # is one concept and WHICH topic differs.
+            topic_action = help_menu.addAction(label, self._show_help_action)
+            topic_action.setData(key)
+            self._document(topic_action, "help_topic")
         help_menu.addSeparator()
-        help_menu.addAction("Open Log Folder", self._open_log_folder)
-        help_menu.addAction("About OpenChem Studio", self._show_about)
+        self._document(
+            help_menu.addAction("Open Log Folder", self._open_log_folder),
+            "open_log_folder",
+        )
+        self._document(
+            help_menu.addAction("About OpenChem Studio", self._show_about), "about"
+        )
+
+        self._show_tooltips_in_menus()
+
+    def _show_tooltips_in_menus(self) -> None:
+        """Let a menu entry's help contract actually reach the user.
+
+        **`QMenu.toolTipsVisible()` IS FALSE BY DEFAULT**, so a `QAction`
+        can carry a perfectly good tooltip that Qt never shows. Measured
+        on the real window when the menu contracts landed: all seven
+        top-level menus answered False, which would have made 71 freshly
+        written contracts invisible to anybody hovering an entry --
+        documented, queryable through `tools/list_tooltips.py`, passing
+        the coverage guard, and dead on the screen.
+
+        The contract layer's whole claim is that a tooltip is one
+        RENDERING of a declared meaning. A rendering that never renders
+        does not honour it.
+
+        Walked from the menu bar rather than set at each `addMenu` call:
+        submenus are created in several places, a plugin can contribute
+        one, and a rule applied at one call site is a rule the next
+        author has to remember.
+        """
+        for menu in self.menuBar().findChildren(QMenu):
+            menu.setToolTipsVisible(True)
 
     # --- menu plumbing -------------------------------------------------------
     #
@@ -1315,7 +1501,19 @@ class MainWindow(QMainWindow):
     # `_duplicate_molecule(molecule=None)` really does receive None -- and
     # only the `toggled`/`triggered` connections below have to take the bool.
 
-    def _add_editor_action(self, menu: QMenu, label: str, test_id: str) -> QAction:
+    @staticmethod
+    def _document(action: QAction, key: str) -> QAction:
+        """Attach the menu contract named by `key` and return the action.
+
+        Returns it so a caller can keep chaining -- `setData`, a shortcut,
+        or offering the SAME action from a second menu.
+        """
+        apply_help_tooltip(action, MENU_HELP[key])
+        return action
+
+    def _add_editor_action(
+        self, menu: QMenu, label: str, test_id: str, help_key: str
+    ) -> QAction:
         """One of Ketcher's own toolbar buttons, by its stable `data-testid`.
 
         There is no public API for these; `trigger_toolbar_action` clicks
@@ -1327,7 +1525,7 @@ class MainWindow(QMainWindow):
         """
         action = menu.addAction(label, self._trigger_editor_action)
         action.setData(test_id)
-        return action
+        return self._document(action, help_key)
 
     def _trigger_editor_action(self) -> None:
         action = self.sender()
@@ -1377,10 +1575,12 @@ class MainWindow(QMainWindow):
     #: the names here keep that word so the two agree, and add what it
     #: does so the choice is not a guess.
     _STEREO_LABEL_STYLES = (
-        ("IUPAC style — only when it adds information", "Iupac"),
-        ("Classic — hidden when the molecule has one group", "Classic"),
-        ("On — always", "On"),
-        ("Off — never", "Off"),
+        ("IUPAC style — only when it adds information", "Iupac",
+         "stereo_label_style_iupac"),
+        ("Classic — hidden when the molecule has one group", "Classic",
+         "stereo_label_style_classic"),
+        ("On — always", "On", "stereo_label_style_on"),
+        ("Off — never", "Off", "stereo_label_style_off"),
     )
 
     def _add_stereo_display_items(self, menu: QMenu) -> None:
@@ -1418,13 +1618,18 @@ class MainWindow(QMainWindow):
             "clears the labels."
         )
         self._add_structure_display_toggle(
-            menu, "Show Stereo Flags (ABS / AND / Mixed)", "showStereoFlags", True, False
+            menu,
+            "Show Stereo Flags (ABS / AND / Mixed)",
+            "showStereoFlags",
+            True,
+            False,
+            "show_stereo_flags",
         )
         style_menu = menu.addMenu("Stereo Group Labels (abs, &&1, or1)")
         group = QActionGroup(self)
         group.setExclusive(True)
-        for label, value in self._STEREO_LABEL_STYLES:
-            action = QAction(label, self)
+        for label, value, help_key in self._STEREO_LABEL_STYLES:
+            action = self._document(QAction(label, self), help_key)
             action.setCheckable(True)
             action.setData(value)
             # Ketcher's own default, read from the bundle's settings
@@ -1444,8 +1649,8 @@ class MainWindow(QMainWindow):
     #: to un-check itself, which is a control lying about what kind of
     #: thing it is. See `_show_lewis_diagram` below.
     _ELECTRON_MODES = (
-        ("Off", "off"),
-        ("Lone pairs", "pairs"),
+        ("Off", "off", "electron_display_off"),
+        ("Lone pairs", "pairs", "electron_display_lone_pairs"),
     )
 
     def _add_electron_display_items(self, menu: QMenu) -> None:
@@ -1465,8 +1670,8 @@ class MainWindow(QMainWindow):
         electron_menu = menu.addMenu("Electron Display")
         group = QActionGroup(self)
         group.setExclusive(True)
-        for label, mode in self._ELECTRON_MODES:
-            action = QAction(label, self)
+        for label, mode, help_key in self._ELECTRON_MODES:
+            action = self._document(QAction(label, self), help_key)
             action.setCheckable(True)
             action.setData(mode)
             action.setChecked(mode == "off")
@@ -1481,7 +1686,10 @@ class MainWindow(QMainWindow):
         # needs its own renderer and its own window. A radio item that
         # opens a dialog and then un-checks itself is a control that lies
         # about what kind of thing it is.
-        lewis = menu.addAction("Full Lewis Structure...", self._show_lewis_diagram)
+        lewis = self._document(
+            menu.addAction("Full Lewis Structure...", self._show_lewis_diagram),
+            "full_lewis",
+        )
         lewis.setStatusTip(
             "Every electron pair as dots, with explicit hydrogens, in its own window."
         )
@@ -1549,7 +1757,13 @@ class MainWindow(QMainWindow):
             self._editor.set_render_option("stereoLabelStyle", action.data())
 
     def _add_structure_display_toggle(
-        self, menu: QMenu, label: str, option_name: str, checked_value: object, unchecked_value: object
+        self,
+        menu: QMenu,
+        label: str,
+        option_name: str,
+        checked_value: object,
+        unchecked_value: object,
+        help_key: str,
     ) -> None:
         """Proxies one of Ketcher's own confirmed-live render options
         (`ketcher.editor.render.options` -- see KetcherEditorBackend.
@@ -1562,6 +1776,7 @@ class MainWindow(QMainWindow):
         action = QAction(label, self)
         action.setCheckable(True)
         action.setData((option_name, checked_value, unchecked_value))
+        self._document(action, help_key)
         action.toggled.connect(self._on_render_option_toggled)
         menu.addAction(action)
 
@@ -2057,6 +2272,12 @@ class MainWindow(QMainWindow):
         )
         self._center_tabs.setCurrentWidget(self._macromolecule_viewer.widget())
         self._refresh_molecule_combos()
+        # The panel may have derived a box for this receptor during that
+        # refresh. Re-asked rather than assumed, because the box drawn must
+        # belong to the structure now on screen -- the page restores whatever
+        # it was last told, and "last told" is about the PREVIOUS receptor
+        # until this runs.
+        self._sync_docking_box_overlay()
 
     def _on_undo_index_changed(self, _index: int) -> None:
         """Re-read the project into every dropdown after an undo or a redo.
@@ -2938,7 +3159,10 @@ class MainWindow(QMainWindow):
         self._installed_plugins_menu.clear()
         manifests = self._plugin_manager.discover_manifests()
         if not manifests:
-            placeholder = self._installed_plugins_menu.addAction("(none found)")
+            placeholder = self._document(
+                self._installed_plugins_menu.addAction("(none found)"),
+                "no_plugins_installed",
+            )
             placeholder.setEnabled(False)
             return
         disabled = self._plugin_manager.disabled_ids()

@@ -49,6 +49,7 @@ from openchem.chem.atom_report import build_atom_report
 from openchem.chem.bond_report import bond_label, build_bond_report
 from openchem.chem.molecule_report import build_molecule_report
 from openchem.chem.engine import ChemistryEngine
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.domain.bond_report import BondReport
 from openchem.domain.molecule_report import MoleculeReport
 from openchem.domain.atom_report import (
@@ -85,6 +86,21 @@ _INTRO = (
 )
 
 _COPY_FORMATS = ("Markdown", "Plain text", "JSON", "CSV")
+
+
+_CONTROL_HELP = {
+    "isotopes": HelpTooltip(
+        text=(
+            "Opens the periodic table on its Isotopes tab, for this atom's "
+            "element.\n\n"
+            "Disabled unless an ATOM is the subject: a bond has two elements "
+            "and a molecule has many, so \"which isotopes\" has no answer for "
+            "either."
+        ),
+        tier=2, help_id="atom_inspector.isotopes", topic="atom-inspector",
+        help_anchor="periodic-table",
+    ),
+}
 
 
 class AtomInspectorPanel(QWidget):
@@ -179,9 +195,7 @@ class AtomInspectorPanel(QWidget):
         # either, and a button that opened the table on something
         # arbitrary would be worse than one that says it cannot.
         self._isotopes_button = QPushButton("Isotopes...", self)
-        self._isotopes_button.setToolTip(
-            "Show this atom's isotopes in the periodic table."
-        )
+        apply_help_tooltip(self._isotopes_button, _CONTROL_HELP["isotopes"])
         self._isotopes_button.clicked.connect(lambda: self.isotopes_requested.emit())
 
         controls = QHBoxLayout()

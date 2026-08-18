@@ -1,0 +1,21 @@
+{
+ "_comment": "GENERATED. Controls carrying a raw setToolTip with no HelpTooltip contract when the contract landed. The set may SHRINK freely and may not grow -- see tests/test_tooltip_coverage.py. Delete this file and its test when it reaches zero.",
+ "instance_paths": [
+  "MainWindow/Atom_Inspector/QScrollArea/qt_scrollarea_viewport/AtomInspectorPanel/FactView/QWidget/QComboBox",
+  "MainWindow/Batch/QScrollArea/qt_scrollarea_viewport/BatchPanel/QComboBox",
+  "MainWindow/Compare/QScrollArea/qt_scrollarea_viewport/ComparisonPanel/Differences only",
+  "MainWindow/Panel_Rail/PanelRail/QWidget/AI",
+  "MainWindow/Panel_Rail/PanelRail/QWidget/Analysis",
+  "MainWindow/Panel_Rail/PanelRail/QWidget/Compare",
+  "MainWindow/Panel_Rail/PanelRail/QWidget/Compute",
+  "MainWindow/Panel_Rail/PanelRail/QWidget/Extensions",
+  "MainWindow/QTabWidget/qt_tabwidget_stackedwidget/MoleculeEditorWidget/Rotate 3D",
+  "MainWindow/QTabWidget/qt_tabwidget_stackedwidget/MoleculeViewer3DWidget/QWidget/Details...",
+  "MainWindow/QTabWidget/qt_tabwidget_stackedwidget/MoleculeViewer3DWidget/QWidget/Gallery",
+  "MainWindow/QTabWidget/qt_tabwidget_stackedwidget/MoleculeViewer3DWidget/QWidget/Lock views",
+  "MainWindow/QTabWidget/qt_tabwidget_stackedwidget/MoleculeViewer3DWidget/QWidget/Match all to selected",
+  "MainWindow/QTabWidget/qt_tabwidget_stackedwidget/MoleculeViewer3DWidget/QWidget/Show shapes",
+  "MainWindow/QTabWidget/qt_tabwidget_stackedwidget/MoleculeViewer3DWidget/QWidget/Superimpose ticked",
+  "MainWindow/QTabWidget/qt_tabwidget_stackedwidget/MoleculeViewer3DWidget/QWidget/Use in 2D Editor"
+ ]
+}
