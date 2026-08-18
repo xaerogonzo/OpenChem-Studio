@@ -495,6 +495,18 @@ flat depiction laid out to follow the conformer, and says so.
 representations, chain colouring, and the receptor-residue highlighting that
 docking interaction analysis feeds.
 
+It shows the **deposited coordinates** — every chain the file contains,
+exactly as deposited — rather than the biological assembly the depositor
+annotated. That is deliberate and it is what docking runs against: building
+the assembly is an opt-in in the receptor's **Contents...** dialog,
+defaulted off. A deposit carrying several copies of the same protein
+therefore shows all of them, and the search box sits on the one copy the
+docking is against.
+
+Residue highlighting names the **chain** as well as the residue, so on a
+structure with several copies only the copy the pose was computed against
+lights up.
+
 ---
 
 <!-- help:properties -->
@@ -1102,6 +1114,15 @@ what it finds. Searching "Vina" returns four sections including the one
 explaining why its score is not a binding free energy — a word that appears
 in no heading anywhere in these documents. Matches are highlighted in the
 page and the view scrolls to the first one.
+
+**Individual controls explain themselves.** Hover a button, a spin box or
+a results-table column heading and it says what it means — not a restatement
+of its own label, but what it controls and, where the answer could be
+misread, the limit on reading it. A column headed *RMSD l.b.* says it is
+measured against pose 1 of the same run rather than against any experimental
+structure; the *Value (ppm)* column in an NMR result says whether it is
+currently holding a raw shielding constant or a referenced chemical shift,
+because those run in opposite directions.
 
 F1 and the **?** answer slightly different questions, which is worth
 knowing when they disagree. The **?** is bound to its own panel and is
