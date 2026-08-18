@@ -101,3 +101,90 @@ def test_the_dialog_no_longer_points_at_a_second_table(dialog):
     text = " ".join(label.text() for label in dialog.findChildren(QLabel)).lower()
 
     assert "periodic table in the 2d editor" not in text
+
+
+# --- B1: the detail is tabbed, and the facts stopped being squeezed ---------
+
+
+def _tab_widgets(dialog) -> dict[str, object]:
+    return {
+        dialog._tabs.tabText(index): dialog._tabs.widget(index)
+        for index in range(dialog._tabs.count())
+    }
+
+
+def test_the_facts_and_the_atom_view_cannot_take_each_others_height(dialog):
+    """**THE ACTUAL BUG, stated as a test.**
+
+    Not "a QTabWidget exists" -- that would pass with both panes still
+    stacked inside one tab. What broke was that the grid, the legend, a
+    240 px atom drawing, the electron controls and the facts table shared
+    one vertical stack, and the facts are what gave way: `Radii`,
+    `Naturally occurring isotopes` and `Found in` sat below the fold in
+    both screenshots this branch came from.
+
+    Two panes in two different tabs cannot compete for one height, which
+    is a structural claim and holds at any window size -- unlike a
+    measured pixel count, which in this project has disagreed with the
+    running application six times.
+    """
+    tabs = _tab_widgets(dialog)
+
+    assert set(tabs) == {"Facts", "Atom"}
+    assert tabs["Facts"] is dialog._detail_area
+    assert tabs["Atom"] is dialog._diagram
+    assert tabs["Facts"] is not tabs["Atom"]
+
+
+def test_the_grid_is_not_inside_the_tabs(dialog):
+    """The grid is the NAVIGATION. Switching what you are reading about an
+    element must not move the thing you click to choose one."""
+    for widget in _tab_widgets(dialog).values():
+        assert not widget.isAncestorOf(next(iter(dialog._buttons.values())))
+
+
+def test_the_whole_facts_table_is_reachable(dialog):
+    """Every row, by scrolling if need be -- which is what a scroll area
+    in a tab of its own buys and a squeezed pane did not."""
+    dialog.select("Fe")
+    dialog.resize(920, 900)
+    dialog.show()
+    QCoreApplication.processEvents()
+
+    area = dialog._detail_area
+    reachable = area.viewport().height() + area.verticalScrollBar().maximum()
+
+    assert area.viewport().height() > 0
+    assert reachable >= dialog._detail.sizeHint().height()
+    assert "Found in" in dialog._detail.text(), "the last row is not even being built"
+
+
+def test_selecting_an_element_is_independent_of_the_active_tab(dialog):
+    """Tabs are where accidental state coupling appears.
+
+    Switching Facts -> Atom -> Facts must leave polonium selected, and
+    must not rebuild its facts into something else on the way back.
+    """
+    dialog.select("Po")
+    before = dialog._detail.text()
+
+    dialog._tabs.setCurrentIndex(1)
+    assert dialog.selected_symbol() == "Po"
+
+    dialog._tabs.setCurrentIndex(0)
+    assert dialog.selected_symbol() == "Po"
+    assert dialog._detail.text() == before
+
+
+def test_both_tabs_describe_the_same_element(dialog):
+    """The control for the test above: if the Atom tab ignored the
+    selection entirely, staying on Po would also pass."""
+    dialog.select("Fe")
+
+    assert "Iron" in dialog._detail.text()
+    assert dialog._diagram.title.text() == "Fe"
+
+    dialog.select("Po")
+
+    assert "Polonium" in dialog._detail.text()
+    assert dialog._diagram.title.text() == "Po"

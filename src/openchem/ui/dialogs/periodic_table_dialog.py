@@ -23,6 +23,13 @@ abundances. That last one is the part Marvin's own table does not really
 do, and it came free: RDKit's periodic table carries the full abundance
 data.
 
+**IT IS TABBED, because those facts were being squeezed off the bottom.**
+Grid, legend, a 240 px atom drawing, the electron controls and the facts
+table shared one vertical stack, and the facts are what gave way. Facts
+and Atom are separate tabs now and neither can take the other's height.
+The grid stays outside them: it is the navigation, and switching what you
+are reading should not move what you click.
+
 Colour marks category, and never carries a fact on its own -- the category
 is written out in the detail pane and in every cell's tooltip, because a
 grid distinguishing ten categories by hue alone is unreadable to a fair
@@ -45,12 +52,14 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QTabWidget,
     QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from openchem.ui.widgets.atom_diagram import AtomDiagram
+from openchem.ui.widgets.collapsible_section import WrappedLabel
 from openchem.chem.element_reference import ElementFacts, all_symbols, facts_for, grid_position
 
 #: Category -> (fill, human label). Muted fills so black symbol text stays
@@ -94,23 +103,45 @@ class PeriodicTableDialog(QDialog):
         layout.addWidget(self._build_grid())
         layout.addWidget(self._build_legend())
 
-        # The drawing sits ABOVE the facts table rather than below it: the
-        # configuration string in that table is the same information, and
-        # a picture that explains a line of text belongs beside it rather
-        # than after everything else.
+        # **THE DETAIL IS TABBED, AND THE FACTS TABLE IS WHY.** The grid,
+        # the legend, a 240 px atom drawing, the electron controls and the
+        # facts all used to compete for one vertical stack about 970 px
+        # tall, and the facts lost: `Radii`, `Naturally occurring
+        # isotopes` and `Found in` were below the fold in both of the
+        # screenshots this branch came from.
+        #
+        # The GRID stays outside the tabs because it is the navigation --
+        # switching what you are reading about an element should not move
+        # the thing you click to choose one.
         self._diagram = AtomDiagram(self)
         self._diagram.setMinimumHeight(240)
-        layout.addWidget(self._diagram)
 
-        self._detail = QLabel("Select an element.", self)
+        # **A PLAIN `QLabel` HERE CLIPS THE LAST ROW, and the tab is what
+        # made it visible.** A wrapped QLabel reports a ONE-LINE minimum
+        # however much text it holds, and a `setWidgetResizable` scroll
+        # area sizes its child to `max(viewport, minimum)` -- so the label
+        # was handed the viewport height and the overflow was simply not
+        # reachable. Measured the moment the facts got room to breathe:
+        # 373 px of viewport against a 382 px table, with the scrollbar
+        # showing nothing to scroll.
+        #
+        # `WrappedLabel` is this project's existing cure and its docstring
+        # describes this exact situation -- a wrapped label inside a
+        # resizable scroll area. Reused rather than paralleled, which is
+        # this codebase's most repeatable mistake.
+        self._detail = WrappedLabel("Select an element.", self)
         self._detail.setWordWrap(True)
         self._detail.setTextFormat(Qt.TextFormat.RichText)
         self._detail.setAlignment(Qt.AlignmentFlag.AlignTop)
-        detail_area = QScrollArea(self)
-        detail_area.setWidgetResizable(True)
-        detail_area.setWidget(self._detail)
-        detail_area.setMinimumHeight(190)
-        layout.addWidget(detail_area, 1)
+        self._detail_area = QScrollArea(self)
+        self._detail_area.setWidgetResizable(True)
+        self._detail_area.setWidget(self._detail)
+        self._detail_area.setMinimumHeight(190)
+
+        self._tabs = QTabWidget(self)
+        self._tabs.addTab(self._detail_area, "Facts")
+        self._tabs.addTab(self._diagram, "Atom")
+        layout.addWidget(self._tabs, 1)
 
         # THIS IS NOW THE ONLY PERIODIC TABLE THE PRODUCT OFFERS, so it
         # has to be able to draw as well as explain. The editor's own `PT`
