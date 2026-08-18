@@ -89,6 +89,10 @@ class MolStarViewerBackend(ViewerBackend):
         # None is itself a meaningful queued VALUE here -- it means "clear
         # the colouring". Using None for both lost queued clears entirely.
         self._pending_layers: dict[str, str] | None | object = _NOTHING_PENDING
+        #: The search box requested before the viewer existed. Same single
+        #: slot and same sentinel as `_pending_layers`, for the same reason:
+        #: None means "clear", so it cannot double as "nothing requested".
+        self._pending_search_box: tuple | None | object = _NOTHING_PENDING
         self._page.load(QUrl.fromLocalFile(str(_VIEWER_HTML)))
 
     def _on_viewer_ready(self) -> None:
@@ -102,6 +106,13 @@ class MolStarViewerBackend(ViewerBackend):
         if self._pending_layers is not _NOTHING_PENDING:
             self._run_apply_residue_colors(self._pending_layers)
             self._pending_layers = _NOTHING_PENDING
+        # Position among these replays does not matter, unlike the layers
+        # above: the box is a free-standing shape at the state-tree root and
+        # attaches to no representation, so it cannot be applied "too early"
+        # the way overpaint can. Replayed last only for readability.
+        if self._pending_search_box is not _NOTHING_PENDING:
+            self._run_apply_search_box(self._pending_search_box)
+            self._pending_search_box = _NOTHING_PENDING
 
     def load_macromolecule(self, structure_text: str, source_format: str) -> None:
         self._load(structure_text, source_format, "structure", additional=False)
@@ -130,6 +141,12 @@ class MolStarViewerBackend(ViewerBackend):
             self._page.runJavaScript("window.openchemMolstarViewer.clear();")
         self._pending_calls = []
         self._pending_layers = _NOTHING_PENDING
+        # `plugin.clear()` empties the whole state tree, box included, so the
+        # page's own refs are stale afterwards -- tell it, rather than
+        # leaving `searchBoxState()` describing a shape that no longer
+        # exists. Not merely dropping the pending slot: a viewer that is
+        # already up has a real box on screen to remove.
+        self._apply_search_box(None)
 
     def apply_visualizations(self, layers: list[AnyVisualizationLayer]) -> None:
         """Renders `ResidueColorLayer`s and IGNORES atom layers -- per
@@ -167,6 +184,60 @@ class MolStarViewerBackend(ViewerBackend):
             return
         self._page.runJavaScript(
             f"window.openchemMolstarViewer.applyResidueColors({json.dumps(residue_colors)});"
+        )
+
+    # --- the docking search box ---------------------------------------------
+
+    def show_search_box(
+        self,
+        center: tuple[float, float, float],
+        size: tuple[float, float, float],
+    ) -> None:
+        """Draw the docking search region on the loaded structure.
+
+        PLAIN GEOMETRY, NEVER A `DockingBox`. The viewer knows nothing about
+        docking, ligand codes or reference sites; the contract is "draw this
+        box in the structure's coordinates", which is what lets virtual
+        screening reuse it without making Mol* docking-aware. Nothing in
+        `tests/test_layering.py` forbids the import -- it only bars rdkit and
+        openbabel from `ui/` -- so this is a design choice, pinned in the
+        signature so nobody later passes the whole domain object through.
+
+        Colour and line width are the PAGE's, deliberately: docking supplies
+        geometry and appearance is presentation.
+        """
+        self._apply_search_box((tuple(center), tuple(size)))
+
+    def clear_search_box(self) -> None:
+        self._apply_search_box(None)
+
+    def _apply_search_box(self, box) -> None:
+        """A box is STATE, so it queues -- "queue state, drop gestures".
+
+        ONE SLOT, NOT A FIFO, which is also what makes latest-wins hold on
+        this side: a newer request replaces an older uncommitted one rather
+        than being appended behind it. Guaranteeing that only in JavaScript
+        would fix nothing if Python still replayed every superseded box into
+        the page.
+
+        `_NOTHING_PENDING` rather than None as the empty marker, for the same
+        reason `_pending_layers` uses it one method up: None is a meaningful
+        queued VALUE here meaning "clear", and using it for both loses a
+        queued clear entirely.
+        """
+        if not self._viewer_ready:
+            self._pending_search_box = box
+            return
+        self._run_apply_search_box(box)
+
+    def _run_apply_search_box(self, box) -> None:
+        if box is None:
+            self._page.runJavaScript("window.openchemMolstarViewer.clearSearchBox();")
+            return
+        center, size = box
+        self._page.runJavaScript(
+            f"window.openchemMolstarViewer.showSearchBox("
+            f"{json.dumps(list(center))}, {json.dumps(list(size))});"
         )
 
     def widget(self):

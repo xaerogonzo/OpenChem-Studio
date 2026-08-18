@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 from openchem.chem.calculation_input import canonical_conformer
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.calculator import (
+    GEOMETRY,
     CalculationRequest,
     CalculatorDefinition,
     RegistryExecution,
@@ -34,6 +35,7 @@ from openchem.domain.common import CacheState
 from openchem.domain.project import ProjectModel
 from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
 from openchem.ui.visualization import declared_total, label_decimals
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.chem.report_adapter import report_from_alert
 from openchem.domain.report import ReportResult
 from openchem.domain.structure_issue import Severity
@@ -428,6 +430,99 @@ def _summarise(result: object) -> str:
 
 #: Qt property carrying which calculator a section button opens.
 _CALCULATOR_ID_PROPERTY = "openchem_calculator_id"
+
+
+#: One concept rendered once per registered calculator, so ONE contract.
+#:
+#: This is the case the "a help_id names a DEFINITION, not an instance"
+#: rule exists for. Sixty tick boxes all mean "include this calculator when
+#: I press Run selected"; giving them sixty ids would read as precision and
+#: be noise, and `DocumentableControl.instance_path` already tells the
+#: renderings apart.
+_BATCH_SELECTION_HELP = HelpTooltip(
+    text=(
+        "Include this calculator when you press 'Run selected'.\n\n"
+        "Ticking several runs them together — they are dispatched to a thread "
+        "pool rather than queued, so the total is roughly the slowest rather "
+        "than the sum. Ticking nothing and pressing a calculator's own button "
+        "runs just that one."
+    ),
+    tier=1,
+    help_id="properties.batch_selection",
+    topic="properties",
+    help_anchor="properties",
+)
+
+
+#: The two controls the tick boxes above feed.
+_RUN_SELECTED_HELP = HelpTooltip(
+    text=(
+        "Runs every ticked calculator on the selected molecule.\n\n"
+        "They are dispatched to a thread pool rather than queued, so the wait "
+        "is roughly the slowest one rather than the sum. The button counts "
+        "what is ticked and is disabled when nothing is.\n\n"
+        "Results land in their own sections as each finishes, so the panel "
+        "fills in progressively rather than all at once."
+    ),
+    tier=1,
+    help_id="properties.run_selected",
+    topic="properties",
+    help_anchor="properties",
+)
+
+_CLEAR_SELECTION_HELP = HelpTooltip(
+    text=(
+        "Unticks every calculator.\n\n"
+        "It clears the SELECTION only: results already computed stay where "
+        "they are, and anything already running keeps running."
+    ),
+    tier=1,
+    help_id="properties.clear_selection",
+    topic="properties",
+    help_anchor="properties",
+)
+
+
+def calculator_help(definition: CalculatorDefinition) -> HelpTooltip:
+    """A contract for one calculator's button, DERIVED from its registration.
+
+    Generated rather than hand-written, and the difference is not effort:
+    `CalculatorDefinition.description` is already the authoritative
+    statement of what a calculator does, so writing sixty tooltips beside
+    it would be sixty chances to disagree with the registry. This cannot
+    drift -- it IS the registry, rendered.
+
+    Each calculator is its own concept, so each gets its own `help_id`.
+    That is the opposite call from the tick boxes above, and for the
+    opposite reason: those sixty controls mean one thing, these sixty mean
+    sixty things.
+
+    **The input representation is the part worth saying out loud.** Eight
+    registered calculators return a DIFFERENT NUMBER for the same molecule
+    depending on whether they are handed the drawing or a conformer, purely
+    because a conformer carries explicit hydrogens -- so which one this
+    calculator gets is a fact about its answer, not an implementation
+    detail. See `CALCULATION_INPUTS`.
+    """
+    if definition.calculation_input == GEOMETRY:
+        basis = (
+            "Runs on a real 3D conformer when one exists, falling back to the "
+            "structure as drawn. Its answer can differ between the two."
+        )
+    else:
+        basis = (
+            "Runs on the structure as drawn, not on a 3D conformer — so explicit "
+            "hydrogens in a conformer cannot change its answer."
+        )
+    return HelpTooltip(
+        text=f"{definition.description.strip()}\n\n{basis}",
+        # Tier 2: it is a scientific parameter of the session rather than a
+        # plain action, and the basis sentence is the applicable qualifier.
+        tier=2,
+        help_id=f"calculator.{definition.calculator_id}",
+        topic=definition.category,
+        help_anchor="properties",
+    )
 #: ... and which report a "Details..." button opens.
 logger = logging.getLogger("openchem.ui")
 
@@ -1468,9 +1563,11 @@ class PropertyPanel(QWidget):
         self._calculator_status: dict[str, QLabel] = {}
         self._run_selected_button = QPushButton("Run selected", self)
         self._run_selected_button.setEnabled(False)
+        apply_help_tooltip(self._run_selected_button, _RUN_SELECTED_HELP)
         self._run_selected_button.clicked.connect(self._on_run_selected)
         self._clear_selection_button = QPushButton("Clear", self)
         self._clear_selection_button.setEnabled(False)
+        apply_help_tooltip(self._clear_selection_button, _CLEAR_SELECTION_HELP)
         self._clear_selection_button.clicked.connect(self._on_clear_selection)
         # A PLAIN QLabel, deliberately, where every other multi-line label
         # in this panel is a `_WrappedLabel`.
@@ -1604,7 +1701,7 @@ class PropertyPanel(QWidget):
             # does open a dialog. Making it conditional would have added a
             # branch that never runs.
             button = _ElidingPushButton(f"{definition.display_name}...", section.content)
-            button.setToolTip(f"Open {definition.display_name} — choose settings, then run.")
+            apply_help_tooltip(button, calculator_help(definition))
             # A BOUND METHOD, never a lambda that captures `self`.
             #
             # PySide6 holds a connected plain callable STRONGLY and holds a
@@ -1632,7 +1729,13 @@ class PropertyPanel(QWidget):
             row_layout = QHBoxLayout(row)
             row_layout.setContentsMargins(0, 0, 0, 0)
             tick = QCheckBox(row)
-            tick.setToolTip("Include in 'Run selected'")
+            # ONE CONTRACT ACROSS ALL OF THEM, and this is the case that
+            # rule exists for: "include this calculator in a batch run" is a
+            # single concept rendered once per registered calculator, not 51
+            # concepts. `instance_path` tells the renderings apart, and
+            # `help_id` names the meaning -- which is why it must NOT become
+            # `properties.batch_selection_1`, `_2`, ...
+            apply_help_tooltip(tick, _BATCH_SELECTION_HELP)
             tick.setProperty(_CALCULATOR_ID_PROPERTY, definition.calculator_id)
             tick.toggled.connect(self._on_selection_toggled)
             self._calculator_ticks[definition.calculator_id] = tick

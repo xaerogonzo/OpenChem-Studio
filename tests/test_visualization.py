@@ -330,3 +330,52 @@ def test_the_qualitative_palette_cycles_rather_than_clamping():
 
     assert len(set(colours.values())) > 1
     assert colours[0] == colours[7]  # palette has 7 entries, so it wraps
+def test_an_interaction_layer_carries_the_chain_it_was_measured_on():
+    """Without it the selection matches the residue in EVERY chain.
+
+    Measured on 6WGT, which carries three copies of the receptor: `GLN72`
+    resolves to chains A, B and C, and 370 of that deposit's 388 residue
+    keys appear in more than one chain. A pose computed against the boxed
+    copy was therefore colouring all three -- and `analyze_pose` had been
+    carrying `receptor_chain` beside `receptor_residue` the whole time,
+    with this the consumer that threw it away.
+    """
+    from openchem.ui.visualization import build_interaction_layers
+
+    layers = build_interaction_layers(
+        {
+            "hbonds": [
+                {"receptor_residue": "TYR652", "receptor_chain": "B"},
+                {"receptor_residue": "GLN72", "receptor_chain": "A"},
+            ]
+        }
+    )
+
+    assert len(layers) == 1
+    assert sorted(layers[0].residue_colors) == ["A/GLN72", "B/TYR652"]
+
+
+def test_a_contact_with_no_chain_still_colours_something():
+    """Degrade to the old behaviour rather than losing the colouring.
+
+    A single-chain receptor has nothing to qualify with, and a source
+    without chain labelling cannot supply one. The bare key is still a
+    valid selection and is still right for both, so the absence of a chain
+    must not silently drop the residue.
+
+    A chain that could not survive being written into a mol-script literal
+    unquoted is treated the same way -- see `_SAFE_CHAIN`.
+    """
+    from openchem.ui.visualization import build_interaction_layers
+
+    layers = build_interaction_layers(
+        {
+            "clashes": [
+                {"receptor_residue": "PHE656"},
+                {"receptor_residue": "ALA1", "receptor_chain": "   "},
+                {"receptor_residue": "ASP2", "receptor_chain": "!!"},
+            ]
+        }
+    )
+
+    assert sorted(layers[0].residue_colors) == ["ALA1", "ASP2", "PHE656"]

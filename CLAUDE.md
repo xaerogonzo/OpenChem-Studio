@@ -65,6 +65,10 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
 
     {"do": "import",     "path": "..."}      no file dialog
     {"do": "select",     "molecule": -1}
+    {"do": "receptor",   "pdb_id": "6WGT"}   from the CACHE, never the network
+    {"do": "receptor",   "pdb_id": "1HSG", "plain": true}
+    {"do": "dock_receptor", "index": -1}     CHANGES the panel's receptor
+    {"do": "dock_panel", "tag": "after"}     box, its source, the status line
     {"do": "panel",      "id": "Properties"}
     {"do": "expand",     "section": "admet"}
     {"do": "calculator", "id": "admet_ml", "parameters": {...}}
@@ -84,6 +88,23 @@ Ketcher's own Delete hotkey, synthesised on the page. Pair it with
 `report`, whose `undo=` is how "did this display toggle quietly become an
 edit" is answered: measured across a run, `baseline undo=2 -> labels-on
 undo=2 -> after-edit undo=3 -> labels-off undo=3`.
+
+**`receptor` DOES NOT SELECT WHAT IT ADDS EITHER, and that cost a run
+that read as a bug in the code under test.** `molecule_combo.repopulate`
+restores the previous pick by uuid, deliberately, so adding a second
+receptor leaves the panel looking at the first. A script that adds one and
+then dumps the box is still describing the OLD receptor -- which, when the
+thing being checked is "does a derived box survive a receptor change",
+reports the exact failure it was written to detect. `dock_receptor` is the
+step that changes it; measured either side, the box goes
+`(6.710, 2.210, 54.620) source=derived` -> `(0,0,0) source=none` -> back
+again, and the Derive button stays ENABLED on the receptor with no
+annotation because that structure still has ligands to box.
+
+**`receptor` READS THE CACHE AND NEVER THE NETWORK.** A diagnostic run
+that depends on RCSB being up is not a diagnostic. Populate the cache once
+through File > Receptor Library; `_do_receptor` logs and skips if the id
+is not there.
 
 **`smiles` does NOT select what it adds**, and `conformers` and
 `calculator` both act on the PANEL's selection -- so without a `select`
@@ -154,6 +175,574 @@ Three things that cost a run each:
 - **Do not `Set-StrictMode` in a dot-sourced module.** It applies to the
   caller's session; here it broke the harness's own exit-code handling
   and read as a failure of a capture that had just succeeded.
+
+## THE HELP CONTRACT: a tooltip is a RENDERING, not the thing itself
+
+Reported as "this suite especially needs tooltips... for a great, many
+things", after nothing in the app could say what the pose table's
+"RMSD l.b." column meant.
+
+**The invariant is "has a documented contract", not "has tooltip text".** A
+guard that checks for a non-empty string degenerates into
+`tooltip = "Options."`. The producer declares what a control MEANS and the
+validator checks the STRUCTURE of that declaration, never the prose --
+`applies_to` and `Provenance.parameters[TOTAL]` already work this way.
+
+    src/openchem/ui/widgets/help_tooltip.py       the metadata, knows no Qt
+    src/openchem/ui/widgets/tooltip_inventory.py  the ONE discovery layer
+    tests/test_tooltip_coverage.py                the guard
+    tools/list_tooltips.py                        the query surface
+
+The guard and the tool both consume `iter_documentable_controls` and
+neither walks the tree itself. Two implementations of "all interactive
+controls" would drift, which this repo has paid for four times.
+
+### The three tiers
+
+    1  plain UI action           action + result
+    2  scientific parameter      what it controls + at least ONE applicable
+                                 qualifier (unit, range, default, or
+                                 behavioural consequence)
+    3  interpretation-sensitive  definition + units/reference frame where
+                                 applicable + the interpretation limit
+
+Tier 2 requires "at least one APPLICABLE" deliberately: a method choice has
+no unit and no useful range, and demanding all four produces `Default: N/A`
+written to satisfy a rule.
+
+    BAD   "RMSD l.b. -- RMSD lower bound."
+    GOOD  "RMSD lower bound in A relative to pose 1. Symmetry-equivalent
+           atoms may be matched, so it can be smaller than the upper bound.
+           It does not measure agreement with experiment."
+
+### `help_id` names a DEFINITION, not an instance
+
+`<surface>.<concept>`, lowercase ASCII. **Never renamed because the UI
+moved, never reused for a different concept** -- reusing one turns every
+earlier reference into a statement about something else.
+
+**Uniqueness runs BOTH ways and the second direction was missing.** Sixty
+tick boxes meaning "include this calculator in a batch run" share ONE id;
+sixty calculator buttons, each its own concept, get sixty. A mutation
+renaming the tick boxes to `properties.batch_selection_<id>` -- one concept
+shredded into sixty -- **passed every guard**, because each id then had
+exactly one contract. `test_one_concept_is_not_split_across_many_help_ids`
+closes it on a structural signal: byte-identical text under two ids means
+one concept wearing two, or one of them wrong.
+
+### Three kinds of statement, one wants a source
+
+    external scientific fact      carries source_key -> docs/sources.toml
+    OpenChem behaviour            carries neither
+    interpretation warning        carries help_anchor -> openchem.help
+
+Keeping the middle row source-free is what stops the registry becoming a
+dumping ground for application semantics. Anchors resolve through
+`openchem.help`, which already owns topic discovery -- the guard, the tool
+and `tests/test_help.py` all ask it, so there is one parser rather than
+three.
+
+### Generate the contract where a registry already knows
+
+The sixty calculator buttons derive theirs from `CalculatorDefinition`:
+`description` is already the authoritative statement, so writing sixty
+tooltips beside it would be sixty chances to disagree. Same instinct as
+`sources.toml -> SOURCES.md`.
+
+### What the guard must NEVER become
+
+**No LLM grading, here or later.** Asking a model whether a tooltip
+"explains the widget" makes the oracle stochastic, and a test that can
+disagree with itself between runs is worse than none. The degenerate-string
+floor is a FLOOR, and its exclusions are deliberate: no label-overlap
+detection, no noun/verb heuristics, no word-count rules, no "must contain
+units" regexes. Every one is satisfied by nonsense like "Maximum poses.
+Higher values."
+
+`whatsThis()` counts as alternate documentation. **`accessibleDescription()`
+does NOT** -- worded that way so nobody deletes accessibility work to make
+the guard pass. So `--missing` means "no semantic help", not "no tooltip",
+and a control with good `whatsThis()` is NOT a gap to be filled.
+
+`verified` was considered and deferred: the sources registry's field tracks
+drift against EXTERNAL documents, while a flag an author sets in the same
+commit that writes the prose records nothing `git log` does not.
+
+### The migration debt is staged, or the layer could not have landed
+
+248 controls carried a raw `setToolTip` with no contract. A guard failing
+on that would have made the commit red and forbidden the incremental
+migration it exists to enable. `tests/fixtures/tooltip_migration_debt.json`
+records the set; it may SHRINK freely and may not grow. Keyed on the
+CONTROL rather than a source call site -- `file:line` moves under the
+migration and the tooltip STRING is the very thing being rewritten, while
+the control survives both. Delete the fixture and its test when it reaches
+zero.
+
+**"66 setToolTip call sites" was 248 CONTROLS**, and an AST estimate of 179
+interactive constructions was really 372. Neither number was ever the
+universe; only `iter_documentable_controls` is.
+
+The universe is **353**, and the migration stands at 287 contracts / 16
+legacy / 50 missing. Five surfaces are DONE and defended by
+`tests/fixtures/tooltip_completed_surfaces.json`: the Quantum Chemistry
+panel, the whole menu bar, the Properties panel, the Docking panel, and
+the dock title bar.
+
+### `QAction.toolTip()` NEVER RETURNS EMPTY, and the queue believed it
+
+**All 83 menu actions were counted as documented, and not one carried a
+human-written string.** With no tooltip ever set, Qt answers `toolTip()`
+with the action's own `text()` minus the `&` accelerators and the `...`, so
+"&Open Project..." reports "Open Project". `_status` tested
+`toolTip().strip()` and could not tell "nobody wrote one" from "somebody
+wrote one".
+
+Two costs, and the second is the one that mattered. It overstated the
+migration debt by 83 -- but worse, it hid 83 controls from `--missing`,
+which is **the queue this migration is worked from**. An agent burning down
+the debt would have found 83 menu actions in the "already has something"
+pile forever. And what they had was the exact degenerate case the whole
+contract layer exists to reject: a tooltip restating the label it is
+attached to.
+
+    before   145 contracts / 137 legacy /  84 missing
+    after    145 contracts /  54 legacy / 167 missing
+
+**THE RULE IS ASKED OF QT, NOT REIMPLEMENTED.** `_tooltip_is_qt_s_own_echo`
+builds a throwaway `QAction` with the same `text()` and compares, so it is
+Qt's own answer by construction and cannot drift when `qt_strippedText`
+changes. Reproducing that function here would have been a second
+implementation of somebody else's private detail, and its edge cases are
+not the obvious ones -- measured:
+
+    '&Open Project...'      ->  'Open Project'
+    'Mid...dle'             ->  'Middle'      <- stripped ANYWHERE, not just trailing
+    'A && B'                ->  'A & B'
+    'Trailing spaces   '    ->  'Trailing spaces'
+    'Zoom In\tCtrl++'       ->  'Zoom In\tCtrl++'   <- shortcut text survives
+
+A tooltip deliberately set to exactly the synthesised string reads as
+absent, which is the right answer either way: restating the label is not an
+explanation, and the degenerate-string floor already refuses it in a
+contract.
+
+**THE NARROW HALF IS WHAT NEEDED THE SEPARATE TEST.** "A `QAction` is never
+`legacy_tooltip`" satisfies the reclassification guard and is wrong -- an
+action somebody wrote a real tooltip for is exactly the debt the fixture
+exists to burn down, and dropping it would make the migration look finished
+early. `test_an_explicitly_set_action_tooltip_still_counts_as_debt` asserts
+on the predicate rather than through the window, because no action in the
+application carries an explicit tooltip today, so the end-to-end route
+cannot tell a narrow rule from a blanket one. Mutating the comparison to a
+bare `return True` is caught by that test and by nothing else.
+
+### THE MENU BAR: 71 commands, and the contracts were INVISIBLE
+
+**`QMenu.toolTipsVisible()` IS FALSE BY DEFAULT.** Measured on the real
+window right after the 71 contracts landed: all seven top-level menus
+answered False, so every one of them was documented, queryable through
+`tools/list_tooltips.py`, passing the coverage guard -- and **dead on the
+screen**. The contract layer's whole claim is that a tooltip is one
+RENDERING of a declared meaning, and a rendering that never renders does
+not honour it.
+
+`_show_tooltips_in_menus` walks the menu bar rather than setting the flag
+at each `addMenu` call: submenus are created in several places and a
+plugin can contribute one, so a rule applied at a call site is a rule the
+next author has to remember. 12 menus, 7 top-level and 5 sub.
+
+**FINDING IT MEANT HITTING THIS FILE'S OWN WRAPPER TRAP.** The first probe
+read `w.menuBar().actions()` and then asked each action for its menu --
+that list is a TEMPORARY, so every `QMenu` wrapper it handed out was dead
+by the next line (`Internal C++ object already deleted`). Hold the list.
+
+### A menu TITLE is explained by its menu
+
+`QMenu.menuAction()` is a `QAction` and lands in the same walk, so `&File`,
+`Copy Structure As`, `2D Structure Display` and `Installed Plugins` all
+arrived asking for a contract -- 12 of the 83. There is nothing honest to
+write on one, and "Opens the File menu" twelve times is exactly the
+restate-the-label degeneracy `test_no_contract_is_a_placeholder` refuses.
+Excluded on `action.menu() is not None`: derived from Qt rather than from a
+list of menu names.
+
+**BOTH HALVES ARE GUARDED, and the second is the load-bearing one.** "A
+`QAction` inside a menu needs no contract" satisfies the title guard and
+silently exempts all 71 real commands while reading as a jump in coverage.
+`test_menu_entries_are_not_exempted_along_with_their_titles` holds that
+line; the blanket mutation is caught by four tests.
+
+A `QWidgetAction` is excluded too, for a different reason: it is Qt's way
+of putting a WIDGET into a toolbar, and the one here holds the `PanelRail`,
+whose own group buttons are already walked individually.
+
+### A FINISHED SURFACE CAN REGRESS AND NOTHING NOTICED
+
+Deleting the contract from File > New Project **survived every guard in
+the file.** `missing` cannot be a failure while 83 controls still are --
+that is the staged migration working as designed -- so a completed control
+simply falls back into the backlog unseen.
+
+`tests/fixtures/tooltip_completed_surfaces.json` is the MIRROR of the debt
+fixture: the debt set may only SHRINK, this one may only GROW. It records
+the SURFACE rather than the control, so a new menu entry or a new control
+on a finished panel is held to the standard the rest of that surface
+already meets.
+
+**IT FAILED ON ITS FIRST RUN AND WAS RIGHT.** It named a `QWidgetAction`
+that every earlier count had missed, because those counts filtered on
+`widget_class == "QAction"` while the guard asks by KIND. Counting a
+population by the wrong key is how a surface looks complete and is not.
+
+### One concept, one help_id -- what collapsed here
+
+    every dock's View toggle   ONE id, 13 renderings
+    the three Help topics      ONE id -- "open the manual at this topic"
+    explicit hydrogens         ONE id, TWO renderings: the SAME Ketcher
+                               action offered from Structure and from
+                               View > 2D Structure Display, under two
+                               different labels
+
+`Copy Structure As` deliberately does NOT collapse -- SMILES, InChI,
+InChIKey and a molblock have genuinely different round-trip properties, and
+choosing between them IS choosing between those properties. InChIKey is
+tier 3 for the one thing a reader must not get wrong: it is a hash, and
+nothing can reconstruct the molecule from it.
+
+### THE SUITE CAUGHT A CONTENT ERROR IN THE PROSE, NOT A LEXICAL ONE
+
+`test_nothing_tells_the_reader_to_go_to_the_3d_viewer_tab` failed on the
+`Open 3D Viewer (Miew)` contract, which read "Separate from this
+application's 3D tab, which is where conformers, measurements and
+calculated surfaces live."
+
+That is not a false positive. Pairing the 3D viewer with conformers is the
+signpost this project deliberately deleted when conformer generation moved
+to the Structure menu -- `main_window.py` records that "four separate
+messages elsewhere told people to go there for it" -- and the sentence
+would have reinstated a fifth. **A guard on PROSE caught prose that
+contradicted a design decision**, which is the one thing the tooltip
+guard's own no-LLM-grading rule cannot do for itself.
+
+Run every source-scanning guard together after writing UI strings; there
+are 13 and they cost 14 seconds, against 14 minutes for the full suite:
+
+```bash
+uv run --no-sync python -m pytest -q $(rg -l "ast.parse" tests/ | tr '\n' ' ')
+```
+
+### The shared chrome: 36 buttons, 3 concepts
+
+Every dock builds a `DockTitleBar`, so its help / float / close buttons
+appear **36 times across 12 docks** -- three ids, and `instance_path` tells
+the renderings apart. `_make_button` takes a `HelpTooltip` rather than a
+string now, which is what stops the next button added there from being a
+bare `setToolTip`.
+
+The Properties panel's 17 section headers collapse the same way, and the
+contract lives in `CollapsibleSection` rather than in the panel: the class
+is used elsewhere, and "show or hide this section" means the same thing
+wherever it is built.
+
+**`panel` IS A FORBIDDEN help_id SEGMENT**, so `panel.close` is rejected --
+it is in `_WIDGET_WORDS`. That is the validator working as designed even
+though "panel" is this application's own domain word for the thing; the
+ids are `workspace.panel_close` and friends, which name the concept without
+tripping a rule that exists to stop ids encoding widgets.
+
+### A CONTRACT AND A STATE-DEPENDENT RENDERING, TOGETHER
+
+"Derive from ligand" is the one control here whose useful text depends on
+the receptor: it names the ligand codes actually present, which is what
+answers "will this button do anything for me". The contract is attached
+ONCE and the tooltip is recomputed, which is exactly what "a tooltip is one
+RENDERING of a declared meaning" buys.
+
+**The failure mode is silent.** Substituting the live text for the
+contract's leaves the contract attached as a Qt property, so the coverage
+guard still reports the control documented while the user sees three-letter
+codes and nothing saying what pressing it does.
+`test_the_derive_buttons_live_tooltip_still_carries_its_contract` asserts
+the rendered string CONTAINS the contract text, in both the has-ligands and
+the no-ligands state.
+
+
+### A `QTabBar` BREAKS QT'S OWN `qt_` NAMING CONVENTION
+
+`_is_qt_internal` excludes Qt's scaffolding by the `qt_` object-name prefix
+Qt reserves for it -- derived rather than enumerated, so it cannot rot. A
+`QTabBar` honours that for itself (`qt_tabwidget_tabbar`) and **not for the
+two `QToolButton`s it builds to scroll the tabs**, which it names
+`ScrollLeftButton` and `ScrollRightButton`. The prefix rule reads the
+widget's OWN name, so it excluded the bar and admitted its children: three
+tab widgets put **six Qt scroll arrows** into the inventory as controls
+owing the user an explanation.
+
+`QTabBar` joins `QComboBox`/`QSpinBox`/`QDoubleSpinBox` in
+`_is_internal_to_a_composite`, which already means "Qt built this inside
+one of its own controls". A tab PAGE is a child of the stacked widget,
+never of the bar, so nothing of ours is reachable.
+
+**THE TEMPTING GENERALISATION WOULD HAVE DELETED 82% OF THE UNIVERSE.**
+"Anything under a `qt_`-named ancestor is Qt's own" is the
+principled-sounding version of the same fix, and it excludes **200 of 243
+widgets** -- every panel in this application lives inside a `QScrollArea`,
+whose viewport is named `qt_scrollarea_viewport`. Measured before it was
+written rather than after. **The failure mode of an over-broad exclusion is
+a GREEN suite and a smaller universe**, so it would have registered as a
+large jump in coverage rather than as a fault.
+
+The guard is therefore in two halves and the second is the load-bearing
+one: `test_a_tab_bars_scroll_buttons_are_qt_s_own` asserts the arrows are
+excluded -- asserting its own setup, so a window that stops building a
+`QTabWidget` fails loudly instead of passing vacuously -- and
+`test_the_composite_rule_does_not_swallow_the_panels` asserts the panels
+are still there.
+
+### The Quantum Chemistry panel: 25 help_ids, 39 renderings
+
+The first panel taken to zero. 37 missing and 9 legacy became 39
+contracts.
+
+**ONE CONCEPT, ONE `help_id`, AND THE THREE CORRELATION TABS ARE THE
+CASE.** HSQC, HMBC and COSY are built from ONE column tuple by ONE loop and
+populated by ONE method, so their five columns mean the same five things in
+each: they share five ids across fifteen renderings, with `instance_path`
+telling the renderings apart. What differs between those tabs is WHICH atom
+pairs appear, which is a property of the tab and not of its columns.
+Splitting them would have been the batch-tick-box mutation shipped on
+purpose. `_CORRELATION_COLUMN_HELP` is one tuple used three times, so there
+is nowhere for the three to drift apart. `Atom` and `Element` are likewise
+one concept each across the 1D spectrum and Hybrid tables.
+
+**THE SPECTRUM COLUMN IS NAMED `Value` BECAUSE IT HOLDS TWO DIFFERENT
+QUANTITIES**, which is the sharpest tier-3 contract in the panel.
+Uncalibrated it is a raw isotropic shielding constant; after a TMS or
+scaling calibration it is a chemical shift. The two run in OPPOSITE
+directions -- a more shielded nucleus has a LARGER shielding constant and a
+SMALLER shift -- so reading the uncalibrated column against literature
+values is wrong in a way that looks fine. The note above the table already
+said WHICH was on screen; nothing said what the difference meant.
+
+**CHARGE IS DERIVED FROM THE STRUCTURE AND MULTIPLICITY IS NOT.**
+`_on_molecule_changed` sets the charge spin from the drawn formal charge;
+the multiplicity stays at 1 whatever is selected. Two adjacent spin boxes,
+one of which tracks the molecule and one of which does not, so the
+asymmetry is written into both contracts.
+
+**A DASH IN `J (Hz)` MEANS NOT COMPUTED, NOT ZERO.** Cross peaks are
+derived from bonding connectivity, so a peak is listed whether or not a
+coupling constant exists to put beside it; only the "NMR + Spin-Spin
+Coupling" calculation produces one. **`Methods differ by` IS NOT AN
+ACCURACY MEASURE** for the same family of reason: a small spread says the
+database and the calculation landed in the same place, and both can be in
+the same place and wrong.
+
+The atom index is **0-based over the structure WITH EXPLICIT HYDROGENS**,
+not the 2D drawing's numbering -- confirmed from a real ORCA transcript in
+`tests/test_orca_engine.py` (water: O=0, H=1, H=2) rather than reasoned
+about, since this project has an index-space bug in its history.
+
+Five mutations, five caught, each by the intended guard and each arm
+running the full 12 tests:
+
+    M1  revert the QTabBar exclusion       test_a_tab_bars_scroll_buttons_are_qt_s_own
+    M2  the broad any-qt_-ancestor rule    test_the_composite_rule_does_not_swallow_the_panels
+    M3  a contract back to raw setToolTip  test_the_migration_debt_never_grows
+    M4  two ids, byte-identical text       test_one_concept_is_not_split_across_many_help_ids
+    M5  one help_id reused                 test_one_help_id_means_exactly_one_thing
+
+**M4 REPORTED A CONFIDENT SURVIVED AND THE MUTATION WAS THE BUG.** It
+prepended one contract's text to another's by implicit string
+concatenation, which produces text that is merely SIMILAR --
+`test_one_concept_is_not_split_across_many_help_ids` requires
+byte-identical, correctly. The arm was INVALID, not a survivor. Fourth
+instance in this file of "a mutation that does not do what it says is not a
+mutation"; the harness now prints an EDIT-CHECK asserting the two texts
+really are equal before it runs the guard.
+
+**AND A DRIVE STEP WITH A WRONG PANEL ID IS A SILENT NO-OP.**
+`{"do": "panel", "id": "Quantum Chemistry"}` changes nothing:
+`_dock_by_panel_id` matches on `dock.objectName()`, which is
+`Quantum_Chemistry` with an UNDERSCORE, and `_on_panel_chosen` returns
+quietly when it finds none. The run logged `step 1 panel` and looked
+perfectly healthy while photographing the Compare panel. **Read the shot,
+not the log.**
+
+## THE VIEWER AND THE DOCKING WERE SHOWING DIFFERENT CHAINS
+
+`Viewer.loadStructureFromData`'s default preset builds **biological
+assembly 1**, which is not the deposited file this app hands to Vina.
+Measured on 6WGT (5-HT2A with LSD), which carries three copies of 7LD and a
+`REMARK 350` assembly per chain:
+
+    copy      centre                    in assembly 1?
+    A/1201    (24.28,  41.05, 54.36)    yes   <- all Mol* displayed
+    B/1201    ( 6.71,   2.21, 54.62)    no    <- what docking boxes
+    C/1201    (24.01, -37.77, 54.49)    no
+
+`binding_site._single_copy` picks B by burial, for reasons measured on
+other deposits. So the search box was geometrically right and drawn about
+43 A from anything on screen -- and the interaction colouring, which
+matches residues by NAME AND NUMBER, was painting chain A's residues for a
+pose computed against chain B's site. **That second half is older than the
+overlay, needed a chain term of its own, and now has one -- see "THE
+COLOURING NEEDED THE CHAIN" below for the 6WGT measurements.**
+
+#### THE COLOURING NEEDED THE CHAIN, AND NOW CARRIES IT
+
+This file said the residue colouring "is fixed as a side effect" of the
+deposited-model change and had "not been verified end to end". It has been
+verified now, and it is **half fixed**.
+
+Measured live on 6WGT, reading Mol*'s OWN loaded state rather than the
+source:
+
+    structure-from-model params   {"type":{"name":"model"}}   <- the fix IS live
+    chains in the loaded structure  A,B,C                     <- was chain A alone
+    GLN72 resolves to chains        A,B,C                     <- the defect
+
+`build_interaction_layers` emitted `receptor_residue` as
+`f"{residue_name}{residue_number}"` -- **no chain** -- and `viewer.html`
+turned that into
+
+    (and (= atom.auth_comp_id GLN) (= atom.auth_seq_id 72))
+
+which had no chain term either. So the deposited-model fix changed
+"paints the WRONG copy" into "paints the right copy AND two wrong ones":
+chain B was displayed and coloured, and so were A and C.
+
+**THE DATA WAS ALREADY THERE.** `analyze_pose` has carried
+`receptor_chain` beside `receptor_residue` at all three of its emit sites
+since the hERG work -- a homotetramer whose subunits share residue
+numbering -- with a comment saying exactly why. `build_interaction_layers`
+was the consumer throwing it away, so the fix is one composed key and one
+extra clause:
+
+    ResidueColorLayer key   "B/TYR652" when the chain is known
+                            "TYR652"   when it is not
+    the selection           (and (= atom.auth_asym_id B)
+                                 (= atom.auth_comp_id TYR)
+                                 (= atom.auth_seq_id 652))
+
+The bare form is still accepted and is still right for a single-chain
+receptor or a source with no chain labelling, so a producer that cannot
+say which chain degrades to the old behaviour rather than losing the
+colouring. **The chain goes in UNQUOTED**, for the reason residue NAMES
+already do: quoting matches zero atoms while the overpaint commits
+successfully. A chain id that would not survive that is dropped rather
+than guessed at.
+
+The ambiguity is the ordinary case rather than an edge one. Over the
+cached deposits, counted from the PDB text:
+
+    6WGT   3 chains, 370 of 388 residue keys in >1 chain   (95%)
+    1HSG   2 chains,  99 of  99                            (100%)
+    4DKL   1 chain,    0 of 442                            (0%)
+
+and even the ligand is ambiguous -- all three copies of 7LD are
+`auth_seq_id 1201`, in chains A, B and C.
+
+**A SINGLE-CHAIN RECEPTOR CANNOT SHOW THIS**, which is why it survived:
+4DKL, the deposit most of the docking work was measured on, has one chain
+and 0% collision. Any test of residue targeting has to use a multi-copy
+deposit or it is asserting against a structure where the bug cannot exist.
+
+##### TWO ORACLES WERE BUILT AND THROWN AWAY BEFORE ONE WORKED
+
+**A COMMIT THAT SUCCEEDS PROVES NOTHING.** The first probe asked whether
+`atom.auth_asym_id` is a real mol-script symbol by committing an overpaint
+and watching for a rejection. The candidate came back OK -- **and so did a
+control using a symbol that cannot exist**. Mol* accepts a nonsense
+selection and paints nothing, silently, which is the same failure mode the
+quoted-residue-name finding already records. Both results were discarded.
+
+What replaced it measured the EFFECT, on 6WGT, at 900x700:
+
+    baseline, no overpaint                298 red px
+    no chain term                         673        +375
+    chain B only                          432        +134   ~ a third, as
+                                                            three chains predicts
+    CONTROL: chain Z, absent              298          +0   the arm that says NO
+
+**THEN THE TEST WRITTEN FROM IT WAS TIMING-DEPENDENT AND HAD TO GO.** It
+waited fixed durations for frames to land, passed when run alone, and
+failed when run with its own file -- the exact class this file forbids.
+The guard that shipped instead is a seam: `residueSelectionClauses` and
+`applyResidueColors` share ONE `residueClause` builder, so what a test
+reads is what the viewer paints, and
+`test_the_colouring_and_the_diagnostic_share_one_builder` fails if the
+chain term is ever written in two places. The live pixel measurement above
+is what establishes the semantics; the seam defends that the expression
+keeps being emitted.
+
+Three mutations, three caught: Python dropping the chain, the page
+ignoring it, and the chain quoted.
+
+**AND ONE OF MY OWN PROBES LIED FIRST.** An aggregate sweep over
+`struct.units` reported "0 keys matching more than one chain" on 6WGT --
+flatly contradicting the PDB, which says 370. The tell was that its key
+count, 377, is exactly chain A's residue count. Counting one residue
+directly (`GLN72 chains: A,B,C`) is what settled it. **When two
+measurements of the same thing disagree, the smaller and more direct one
+is the one to trust**, and neither should be reported until they agree.
+
+`showDepositedCoordinates()` in `viewer.html` updates the
+`structure-from-model` transform to `{name: 'model'}` after every load.
+**Scoped to one invariant** -- the structure DISPLAYED, the structure the
+box is derived from and the structure docking runs against must be the same
+coordinates and the same copy -- and explicitly NOT a claim that deposited
+coordinates are the better representation in general. It is also what the
+app already defaults to elsewhere: building an assembly for docking is an
+opt-in in the Contents dialog, defaulted off, which the viewer was silently
+contradicting. That opt-in is untouched.
+
+**THE OPTION THAT LOOKS LIKE THE FIX DOES NOTHING.** Passing
+`structure: {name: 'model'}` in `loadStructureFromData`'s options is
+accepted and ignored -- the state tree still shows
+`type: {name: "assembly", params: {id: "1"}}`. The transform has to be
+updated after the load.
+
+**A CIRCULAR FRAME TEST WOULD HAVE PASSED.** The obvious check is
+`box_from_ligand` centre == the box the page was given == the ligand's
+coordinates; the first two are the same value handed along, so that pair
+proves plumbing and nothing else. Reading the ligand's coordinates out of
+**Mol\*'s own loaded state** reported 0 of 24 atoms inside the box
+immediately. Re-verified across seven receptors chosen for shape variety
+(6WGT, 1HSG, 4DKL, 3HS4, 5I6X, 4EY7, 6X3T): every one now encloses its
+boxed copy, and the multi-copy entries show all copies while enclosing only
+the boxed one, which is the correct relationship.
+
+### Drawing a box: `BoxShape3D` exists, and the mirror lies about it
+
+`molstar.lib.plugin.StateTransforms.Shape` has `BoxShape3D` and
+`getBoxMesh`; `createDefaultParams()` is
+`{bottomLeft, topRight, radius: 0.15, color: 16711680}`. Probed against the
+vendored bundle in a bare `QWebEngineView`, the same way Ketcher is, rather
+than reasoned about -- `MolStarViewerBackend` inherits `apply_shapes`' no-op
+default, so "Mol* cannot draw shapes" was a plausible and wrong conclusion.
+
+**A BACK-TO-BACK BURST LEAVES ORPHANS WHILE THE STATE REPORTS ONE BOX.**
+Three `showSearchBox` calls in a row left THREE shapes in the scene while
+`searchBoxState()` correctly said one: a builder created before the
+previous commit resolved deletes a ref the state tree does not have yet, so
+the delete silently no-ops. Fixed with one desired state and one applier
+that re-checks on completion, so a burst of any length costs at most two
+commits. **The guard counts shapes in the SCENE**, not stored refs.
+
+**AND `loadStructure` CALLS `plugin.clear()`**, which wipes the box and
+leaves the page's refs dangling. The DESIRED box survives a load
+deliberately and is restored onto the new structure, which is what makes
+loading a receptor redraw its search region without the window sequencing
+the two calls.
+
+**MEASURING THE RENDER OVER THE WHOLE WINDOW SAYS THE OPPOSITE OF THE
+TRUTH.** Ink went 39940 -> 39942 (+2) on the first attempt and read as
+"committed but nothing drew". Two faults in the metric: the scene was empty
+so the camera framed nothing, and Mol*'s UI chrome is ~57% of the window.
+With a structure loaded and the count cropped to the 3D canvas, 16778 ->
+20270 (+20.8%).
 
 ## A HORIZONTAL ROW'S MINIMUM IS THE SUM, and it set the whole window's
 
@@ -314,6 +903,24 @@ flight** unless you mean to void it. Landing two commits nine minutes
 apart costs one of them its gates, and a doc-only follow-up is exactly the
 change nobody thinks to check for it.
 
+**IT HAPPENS ON A PULL REQUEST TOO, AND `gh run watch --exit-status`
+REPORTS IT AS SUCCESS.** The concurrency group keys on `github.ref`, which
+for a `pull_request` event is the same for every push to that PR -- so a
+follow-up commit cancels the run on the previous one exactly as it does on
+master. Measured on PR #36: a docsweep pushed while the first run was in
+flight cancelled it, and the step list is the familiar shape --
+
+    cancelled  Run the test suite
+    skipped    Naming benchmark (must stay 181/181)
+    skipped    Regulatory benchmark
+    skipped    Validate regulatory rulesets
+
+-- while **`gh run watch --exit-status` on that same run exited 0**. The
+exit code is not an oracle for "the gates ran": it reports the WATCH
+succeeding, and a cancelled run is a watch that finished normally. Read the
+step list. This is the same lesson as `grep FAILED` on a crashed suite log,
+one layer out: an absence of failure is not the presence of a result.
+
 ### `QT_QPA_PLATFORM` IS NOT A WebGL CHECK, and that is what reddened it
 
 Four viewer tests failed on CI for environmental reasons, and the gate
@@ -402,7 +1009,154 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `4739 passed, 15 skipped`
+A clean run is **6-23 minutes**, ending at `4793 passed, 15 skipped`
+(measured 2026-08-17, **18m12**, on `docking-box-from-the-ligand` -- the
+chain-qualified residue selection. **+5 collected items and +5 test
+FUNCTIONS**: 2 in `test_visualization.py` for the composed key and its
+degrade-to-bare path, 3 in `test_molstar_viewer_backend.py` for the
+emitted clause, the chain-only selection and the shared builder.
+4803 -> 4808 collected; 4793 + 15 = 4808. Skips unchanged at 15.)
+
+Before it: `4788 passed, 15 skipped`
+(measured 2026-08-17, **22m19**, on `docking-box-from-the-ligand` -- the
+Properties panel, the Docking panel and the dock title bar. **+1 collected
+item and +1 test FUNCTION**,
+`test_the_derive_buttons_live_tooltip_still_carries_its_contract` in
+`test_docking_panel.py`. 4802 -> 4803 collected; 4788 + 15 = 4803.
+
+**THE BAND WENT 6-19 TO 6-23 ON THIS RUN, AND IT IS UNEXPLAINED.** The
+previous entry is 14m07 on a tree ONE test smaller -- a 58% spread with
+nothing to account for it, on the same machine, with nothing else running
+(the Mol* probes in this session finished before it started). Widened so a
+reader whose run takes 20 minutes does not conclude the suite has hung, and
+recorded as the outlier it is rather than as a new normal. This is the
+fifth consecutive entry to say the band is a range with no predictive value
+inside it.)
+
+Before it: `4787 passed, 15 skipped`
+(measured 2026-08-17, **14m07**, on `docking-box-from-the-ligand` -- the
+menu bar's help contracts. **+5 collected items and +5 test FUNCTIONS**,
+all in `test_tooltip_coverage.py`: the three menu-title guards, the
+menu-tooltip visibility guard, and the finished-surface regression guard.
+4797 -> 4802 collected; 4787 passed + 15 skipped = 4802. Skips unchanged
+at 15.
+
+**THE RUN BEFORE THIS ONE WAS RED, AND THE FAILURE WAS REAL** --
+`test_nothing_tells_the_reader_to_go_to_the_3d_viewer_tab`, on a sentence
+in a tooltip that contradicted a design decision. See the menu-bar section
+above; it is the argument for running the 13 source-scanning guards
+together before paying for a full run.)
+
+Before it: `4782 passed, 15 skipped`
+(measured 2026-08-17, **13m52**, on `docking-box-from-the-ligand` -- the
+synthesised-`QAction`-tooltip reclassification. **+2 collected items and
++2 test FUNCTIONS**, both in `test_tooltip_coverage.py`: the menu actions
+Qt documented for us, and the narrow-half control that keeps a real
+hand-written action tooltip counting as debt. 4795 -> 4797 collected;
+4782 passed + 15 skipped = 4797. Skips unchanged at 15.)
+
+Before it: `4780 passed, 15 skipped`
+(measured 2026-08-17, **13m54**, on `docking-box-from-the-ligand` -- the
+Quantum Chemistry panel's help contracts and the `QTabBar` exclusion.
+**+2 collected items and +2 test FUNCTIONS**, both in
+`test_tooltip_coverage.py`: the tab-bar scroll buttons and the
+does-not-swallow-the-panels control.
+
+    before  1b30e1f   COLLECTS 4793
+    after             COLLECTS 4795   = 4793 + 2
+    the run                    4780 passed + 15 skipped = 4795
+
+Diffed both directions in a detached worktree with the `PYTHONPATH`
+override asserted before the count was believed: **0 removed, 2 added**.
+Skips unchanged at 15 -- neither new test needs a display.
+
+**39 CONTRACTS WERE ADDED AND THE SUITE GREW BY 2**, which is the staged
+migration working as designed rather than a coverage hole: the contracts
+are checked by the guards that already existed, and only genuinely new
+BEHAVIOUR -- the exclusion rule -- needed new tests.)
+
+Before it: `4778 passed, 15 skipped`
+(measured 2026-08-17, **14m27**, on `docking-box-from-the-ligand` -- the
+calculator help contracts. **+1 collected item and +1 test FUNCTION**,
+`test_one_concept_is_not_split_across_many_help_ids`, written because a
+mutation walked straight through the existing guards. 4792 -> 4793
+collected, 0 removed.)
+
+Before it: `4777 passed, 15 skipped`
+(measured 2026-08-17, **13m54**, on `docking-box-from-the-ligand` -- the
+help-contract layer. **+9 collected items and +9 test FUNCTIONS**, all in
+`test_tooltip_coverage.py`: the three-surface walk, contract validity,
+help_id-means-one-thing, anchor and source resolution, the placeholder
+floor, the migration debt, the shared-discovery check, and the exclusion
+reasons.
+
+    before  a91fa41   COLLECTS 4783
+    after             COLLECTS 4792   = 4783 + 9
+    the run                    4777 passed + 15 skipped = 4792
+
+**THE FIRST RUN OF THIS FIGURE CRASHED, AND `grep FAILED` SAID IT WAS
+FINE.** It died at 4057 of 4792 with `Windows fatal exception: access
+violation`, top frame `conftest.py pytest_runtest_logfinish` -- the
+teardown collect. There are no `FAILED` lines in a run that never reaches
+the end, so a grep for them returned nothing and read as success, and the
+background task reported exit 0. **Check for a SUMMARY LINE, not for an
+absence of failures** -- `grep -E "[0-9]+ passed"` and
+`grep -c "Windows fatal exception"`. This is the same lesson as the
+skipped-gates one two sections down, one level lower.
+
+The likely cause was a module-scoped fixture holding **372 live Qt
+references** -- widgets, `QAction`s and `QTableWidgetItem`s, which are not
+even `QObject`s -- and releasing them all at once into that collect. The
+fixture extracts plain data and drops every handle now, which is better
+regardless. **The re-run was clean, and that is ONE run**: this crash class
+is documented below as moving between batches, and n=1 is not evidence
+either way.
+
+Also note the collected-count diff needs `--include-untracked`: four of
+the six files were new, so a plain `git stash push` left them in both arms
+and reported 0 added.)
+
+Before it: `4768 passed, 15 skipped`
+(measured 2026-08-17, **15m10**, on `docking-box-from-the-ligand` -- the
+search box drawn in the Mol* viewer. **+11 collected items and +11 test
+FUNCTIONS**: 7 in `test_molstar_viewer_backend.py` for the box's committed
+state, the latest-wins burst, both clear/replace races, the queued-clear
+sentinel and surviving a structure reload; 4 in
+`test_main_window_docking_visualization.py` for panel visibility, spinbox
+redraw, the no-receptor case and the end-to-end geometry invariant.
+
+    before  bf447a0   COLLECTS 4772
+    after             COLLECTS 4783   = 4772 + 11
+    the run                    4768 passed + 15 skipped = 4783
+
+Diffed both directions, **0 removed, 11 added**. Skips unchanged at 15 --
+the Mol* tests run under `offscreen`, where its state management works
+without a GPU even though rendering does not.
+
+**MOL* WAS SHOWING A DIFFERENT MOLECULE FROM THE ONE BEING DOCKED**, and
+that is the finding this commit exists for -- see the section below.)
+
+Before it: `4755 passed, 15 skipped`
+(measured 2026-08-17, **17m18**, on `docking-box-from-the-ligand` -- the
+docking search box deriving from the receptor's own ligand. **+16 collected
+items and +16 test FUNCTIONS**, so the two deltas agree again: 6 in
+`test_binding_site.py` for `describe_box_placement`'s three relationship
+states plus the centre-to-centre and tolerance guards, and 10 in
+`test_docking_panel.py` for the derived/manual/none payload paths, the
+stale-box reset, idempotence and the pose-column tooltips.
+
+    master 068208e   COLLECTS 4754
+    after            COLLECTS 4770   = 4754 + 16
+    the run                   4755 passed + 15 skipped = 4770
+
+Diffed both directions with `--collect-only -q | grep :: | sort` and
+`comm`: **0 removed, 16 added**. Skips unchanged at 15 -- none of the 16
+needs a display. Baseline derived with `rev-parse` and a `--collect-only`
+rather than read from the entry below, which for once was already correct.
+
+17m18 sits inside the band and near its top. The 6-19 range stands.)
+
+Before it: `4739 passed, 15 skipped`
 (measured 2026-08-17, **15m22**, on master at `8c0c257` + the CIP
 staleness fix. **+19 collected items and +19 test FUNCTIONS**, so for once
 the two deltas agree: 9 in `test_ketcher_editor_backend.py` against the

@@ -7,8 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Every interactive control can say what it means.** A control now
+  declares a *help contract* — what it does, at what tier of care, and
+  where any external claim came from — of which the tooltip is one
+  rendering. 287 contracts cover the Quantum Chemistry panel, the whole
+  menu bar, the Properties panel, the Docking panel and the shared dock
+  title bar; `tools/list_tooltips.py` queries them and reports what is
+  still undocumented. Prompted by there being nothing in the application
+  that could say what the pose table's *RMSD l.b.* column meant.
+- **The docking search box can be derived from the receptor's own bound
+  ligand.** *Derive from ligand...* lists what is bound in the structure
+  and boxes the copy you pick; choosing a receptor from the library places
+  the box on its annotated site automatically.
+
 ### Fixed
 
+- **The docking search box had never actually been placed.** The panel
+  read the annotated ligand only in order to *strip* it, so every run used
+  the constructor default of `(0, 0, 0)` — measured at **55.1 Å from the
+  real site** on 5-HT2A (6WGT). A box far from the site is still allowed,
+  because blind and allosteric docking are real uses, but it is no longer
+  silent.
+- **The 3D viewer was showing a different copy of the receptor from the
+  one being docked.** Mol\* built *biological assembly 1* while docking
+  runs against the deposited coordinates; on 6WGT that is chain A against
+  chain B, so the search box was drawn about 43 Å from anything on screen.
+  The viewer now shows the deposited model.
+- **Interaction colouring painted every copy of a residue.** Contacts were
+  named by residue name and number alone, so on a structure with several
+  copies of the receptor `GLN72` highlighted all of them — 370 of 6WGT's
+  388 residue keys collide across chains. The colouring now names the
+  chain the pose was computed against.
+- **Menu entries showed no help at all.** Qt does not display a menu
+  item's tooltip unless asked, so the menu bar's explanations were
+  invisible.
 - **CIP stereo descriptors on the 2D canvas now follow the structure.**
   *Calculate CIP Stereo Descriptors* was a one-shot calculation, so
   editing a molecule while the labels were on left the old `(R)`/`(S)`
@@ -26,6 +60,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Showing or hiding the stereo descriptors no longer counts as a structure
   edit: it adds nothing to the undo stack and does not clear conformers.
   Ketcher's own *Calculate CIP* button does both.
+- The docking panel reports where the search box sits relative to the
+  annotated site before each run, and says which ligand defined it.
+- Vina's scoring error is quoted with the paper behind it rather than from
+  memory: a standard error of 2.85 kcal/mol on the authors' own
+  190-complex set.
 
 ## [0.10.0] — 2026-08-17
 

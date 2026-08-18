@@ -357,3 +357,172 @@ def ligand_codes_in(structure_text: str, source_format: str) -> list[str]:
         if is_stripped_residue(name, False, True):
             counts[name] = counts.get(name, 0) + 1
     return sorted(counts, key=lambda code: (-counts[code], code))
+
+
+#: Beyond this, a box centre is reported as being somewhere other than the
+#: reference site. Derived rather than chosen: `MINIMUM_SIZE` is 16 A, so
+#: half of it is the furthest a centre can move while the box still covers
+#: the site's own middle. A box offset by more than that has stopped
+#: containing what the reference ligand marked.
+REFERENCE_SITE_TOLERANCE = MINIMUM_SIZE / 2.0
+
+
+@dataclass(frozen=True)
+class BoxPlacement:
+    """Where a search box sits relative to what the structure says is there.
+
+    Reported BEFORE a run, so somebody can see that a box is nowhere near
+    the annotated site while there is still time not to run it. The failure
+    this exists for produces no error at all: a box 55 A off site still
+    clips protein, still returns nine poses, and still prints affinities to
+    two decimal places.
+
+    **THIS CLASSIFIES; IT DOES NOT DECIDE.** `far_from_reference_site` is
+    evidence that a run did not sample the annotated site -- not a verdict
+    that the user was wrong. Blind docking and allosteric sites are real
+    uses, and a distant box is the intended experiment for both, which is
+    why nothing here refuses anything.
+    """
+
+    #: Atoms of the SOURCE structure whose coordinates fall inside the box,
+    #: as `pose_analysis.receptor_atoms_from_structure` reads it -- the
+    #: module's own parser, so this cannot drift from `box_from_ligand`.
+    #:
+    #: **NOT the prepared-receptor count**, and the difference is the point.
+    #: `docking_providers._require_atoms_in_box` deliberately counts the
+    #: PREPARED PDBQT, after altloc filtering, chain exclusion, residue
+    #: stripping and hydrogen addition, because it is the last check before
+    #: Vina and must describe exactly what Vina receives. This one runs
+    #: before any of that has happened, so it can warn while the user can
+    #: still act. Two questions at two times; neither replaces the other,
+    #: and the two numbers legitimately differ.
+    atom_count: int
+
+    #: The code that was consulted, whether or not it resolved.
+    reference_site_code: str | None
+
+    #: The reference site's own box, carried so that "why does it say
+    #: 55 A?" is answerable without recomputing it.
+    reference_site_box: DockingBox | None
+
+    #: Why a supplied code did not resolve. See the class note below.
+    reference_site_error: str | None
+
+    #: CENTRE-TO-CENTRE Euclidean distance, in Angstrom, between the box
+    #: being judged and the reference site's box. **Never a minimum
+    #: distance between box volumes** -- two boxes can overlap and still
+    #: report a large value here.
+    site_distance_a: float | None
+
+    #: `no_reference_site` covers BOTH "nothing to compare against" and "a
+    #: code was given and could not be located", because neither yields a
+    #: distance. `reference_site_error` is what tells them apart, and they
+    #: need different words: one says nothing is wrong, the other says
+    #: something is and names a likely cause.
+    relationship: str
+
+    def describe(self) -> str:
+        if self.relationship == "no_reference_site":
+            if self.reference_site_error is not None:
+                return (
+                    f"This receptor should have a {self.reference_site_code} site, but it "
+                    f"could not be located: {self.reference_site_error} The search box holds "
+                    f"{self.atom_count} receptor atoms."
+                )
+            return (
+                "No annotated binding site for this receptor, so this box is user-defined. "
+                f"It holds {self.atom_count} receptor atoms."
+            )
+        assert self.site_distance_a is not None
+        if self.relationship == "at_reference_site":
+            return (
+                f"Search box is on the {self.reference_site_code} site "
+                f"({self.site_distance_a:.1f} A from its centre) and holds "
+                f"{self.atom_count} receptor atoms."
+            )
+        return (
+            f"Search box is {self.site_distance_a:.1f} A from the "
+            f"{self.reference_site_code} site and holds {self.atom_count} receptor atoms. "
+            "Docking will run; use Derive from ligand to box the annotated site instead."
+        )
+
+
+def describe_box_placement(
+    structure_text: str,
+    source_format: str,
+    box: DockingBox,
+    ligand_code: str | None = None,
+) -> BoxPlacement:
+    """Judge `box` against what the structure says is in it.
+
+    The motivating case, measured on 6WGT (5-HT2A with LSD) and pinned in
+    `tests/test_binding_site.py`:
+
+        box                          distance to 7LD   atoms inside
+        derived from 7LD                      0.0 A            218
+        the panel's old default (0,0,0)      55.1 A            139
+
+    139 atoms is why the existing empty-box refusal could not catch this.
+    That guard fires on ZERO atoms; a box in the wrong place still clips
+    protein, so it passed cleanly and four ligands were docked 55 A from
+    the orthosteric pocket.
+
+    Parses the structure twice when a code is supplied -- once here, once
+    inside `box_from_ligand`. Left that way deliberately rather than
+    threading pre-parsed atoms through a function whose redocking
+    validation is recorded in this module's docstring: ~150 ms at the point
+    a multi-second docking run is starting is not worth destabilising it.
+    """
+    parsed = receptor_atoms_from_structure(structure_text, source_format)
+    cx, cy, cz = box.center
+    hx, hy, hz = (size / 2.0 for size in box.size)
+    atom_count = sum(
+        1
+        for atom in parsed
+        if abs(atom.position[0] - cx) <= hx
+        and abs(atom.position[1] - cy) <= hy
+        and abs(atom.position[2] - cz) <= hz
+    )
+
+    code = (ligand_code or "").strip().upper()
+    if not code:
+        return BoxPlacement(
+            atom_count=atom_count,
+            reference_site_code=None,
+            reference_site_box=None,
+            reference_site_error=None,
+            site_distance_a=None,
+            relationship="no_reference_site",
+        )
+
+    try:
+        site = box_from_ligand(structure_text, source_format, code)
+    except BindingSiteError as exc:
+        # A code WAS supplied and did not resolve. Classified the same as
+        # "no annotation" because there is still no distance to report --
+        # but the error travels so the caller can say something different,
+        # which it must: "there is no site" and "there should be a site and
+        # it is missing" are opposite messages.
+        return BoxPlacement(
+            atom_count=atom_count,
+            reference_site_code=code,
+            reference_site_box=None,
+            reference_site_error=str(exc),
+            site_distance_a=None,
+            relationship="no_reference_site",
+        )
+
+    sx, sy, sz = site.box.center
+    distance = ((cx - sx) ** 2 + (cy - sy) ** 2 + (cz - sz) ** 2) ** 0.5
+    return BoxPlacement(
+        atom_count=atom_count,
+        reference_site_code=code,
+        reference_site_box=site.box,
+        reference_site_error=None,
+        site_distance_a=distance,
+        relationship=(
+            "at_reference_site"
+            if distance <= REFERENCE_SITE_TOLERANCE
+            else "far_from_reference_site"
+        ),
+    )

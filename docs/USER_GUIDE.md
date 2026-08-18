@@ -495,6 +495,18 @@ flat depiction laid out to follow the conformer, and says so.
 representations, chain colouring, and the receptor-residue highlighting that
 docking interaction analysis feeds.
 
+It shows the **deposited coordinates** — every chain the file contains,
+exactly as deposited — rather than the biological assembly the depositor
+annotated. That is deliberate and it is what docking runs against: building
+the assembly is an opt-in in the receptor's **Contents...** dialog,
+defaulted off. A deposit carrying several copies of the same protein
+therefore shows all of them, and the search box sits on the one copy the
+docking is against.
+
+Residue highlighting names the **chain** as well as the residue, so on a
+structure with several copies only the copy the pose was computed against
+lights up.
+
 ---
 
 <!-- help:properties -->
@@ -818,12 +830,42 @@ In the **Docking** panel:
    exclude them. This matters more than it looks: a deposit often contains
    a crystallisation chaperone, a second copy of the receptor, or a fusion
    partner, and leaving them in changes the result.
-3. **Set the search box.** Derive it from a bound ligand (the reliable
-   option) or place it manually in the 3D view. The app refuses to run a box
-   that contains no receptor atoms rather than returning empty results.
+3. **Check the search box.** Choosing a receptor from the library places
+   the box on that structure's own annotated site automatically, and the
+   panel says which ligand defined it — *"Binding site: 7LD: 24 atoms,
+   centre (6.7, 2.2, 54.6), box 16×17×16 Å"*. For a receptor you imported,
+   or to box a different site, **Derive from ligand...** lists what is
+   bound in the structure and boxes the one you pick. The six coordinates
+   stay editable throughout, and a box you type yourself is always the box
+   that runs.
+
+   Before each run the panel reports where the box sits relative to the
+   annotated site. Docking a long way from it is allowed — blind and
+   allosteric docking are real uses — but it is never silent, because
+   **a score from a misplaced box looks exactly like a score from a good
+   one**. A box containing no receptor atoms at all is refused outright.
 4. **Run**, and read the poses: ranked by score, each with a per-pose
    interaction analysis — hydrogen bonds, clashes and the specific receptor
    residues involved, which paint onto the macromolecule viewer.
+
+   The columns carry their definitions as tooltips, because two of them
+   are routinely misread:
+
+   - **Binding Affinity (kcal/mol)** — Vina's empirical score. Always
+     negative; more negative is predicted-tighter. It is *not* a measured
+     binding free energy, and scores are generally not comparable across
+     different receptors, targets or docking protocols. For scale, Trott &
+     Olson (2010) report a standard error of 2.85 kcal/mol against
+     experimental binding free energies on their own 190-complex set
+     ([source:trott_olson2010]), so a gap smaller than that is not a
+     meaningful difference — which is worth remembering when several
+     ligands come back within a few tenths of each other.
+   - **RMSD l.b. / u.b.** — deviation in Å from **pose 1 of the same run**,
+     not from any experimental structure, which is why pose 1 always reads
+     0.000. The upper bound matches each atom to itself; the lower bound
+     allows symmetry-equivalent atoms, so l.b. ≤ u.b. always. A large value
+     means a geometrically different pose from pose 1 — it says nothing
+     about whether either is correct.
 
 Prep options (alternate-location filtering, symmetry-copy removal, hydrogen
 addition) are shared between the receptor Vina receives and the receptor the
@@ -1072,6 +1114,15 @@ what it finds. Searching "Vina" returns four sections including the one
 explaining why its score is not a binding free energy — a word that appears
 in no heading anywhere in these documents. Matches are highlighted in the
 page and the view scrolls to the first one.
+
+**Individual controls explain themselves.** Hover a button, a spin box or
+a results-table column heading and it says what it means — not a restatement
+of its own label, but what it controls and, where the answer could be
+misread, the limit on reading it. A column headed *RMSD l.b.* says it is
+measured against pose 1 of the same run rather than against any experimental
+structure; the *Value (ppm)* column in an NMR result says whether it is
+currently holding a raw shielding constant or a referenced chemical shift,
+because those run in opposite directions.
 
 F1 and the **?** answer slightly different questions, which is worth
 knowing when they disagree. The **?** is bound to its own panel and is
