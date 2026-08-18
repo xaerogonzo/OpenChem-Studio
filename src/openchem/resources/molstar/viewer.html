@@ -37,6 +37,17 @@
         }
       }
 
+      function residueClause(residue) {
+        var match = /^(?:([A-Za-z][A-Za-z0-9]*)\/)?([A-Za-z]+)(-?\d+)$/.exec(residue);
+        if (!match) { return null; }
+        var terms = '(= atom.auth_comp_id ' + match[2].toUpperCase() +
+                    ') (= atom.auth_seq_id ' + match[3] + ')';
+        if (match[1]) {
+          terms = '(= atom.auth_asym_id ' + match[1] + ') ' + terms;
+        }
+        return '(and ' + terms + ')';
+      }
+
       window.openchemMolstarViewer = {
         loadStructure: function (structureText, format, label) {
           whenReady(function () {
@@ -94,6 +105,28 @@
         // interactive probe showed unquoted working and quoted not.
         // auth_* (not label_*) because these residue ids come from
         // pose_analysis reading a PDB, which is author numbering.
+        // ONE BUILDER, used by the colouring and by the diagnostic below,
+        // so what a test reads is what the viewer paints. Two
+        // implementations of "the selection for this residue" is exactly
+        // the drift the single discovery layer exists to prevent.
+        //
+        // A key may be chain-qualified -- "B/TYR652". WITHOUT THE CHAIN THE
+        // SELECTION MATCHES EVERY COPY: measured on 6WGT, GLN72 resolves to
+        // chains A, B and C, so a pose docked against B coloured all three.
+        // The bare form is still accepted and is still right for a
+        // single-chain receptor.
+        //
+        // Values go in UNQUOTED. Quoting matches zero atoms while the
+        // overpaint commits successfully -- the silent failure that once
+        // made Mol* colouring look unavailable.
+        residueSelectionClauses: function (residueColors) {
+          var out = {};
+          Object.keys(residueColors || {}).forEach(function (residue) {
+            var clause = residueClause(residue);
+            if (clause) { out[residue] = clause; }
+          });
+          return out;
+        },
         applyResidueColors: function (residueColors) {
           whenReady(function () {
             var plugin = viewer.plugin;
@@ -105,12 +138,10 @@
             // layer, rather than one layer per residue.
             var byColor = {};
             Object.keys(residueColors || {}).forEach(function (residue) {
-              var match = /^([A-Za-z]+)(-?\d+)$/.exec(residue);
-              if (!match) { return; }
+              var clause = residueClause(residue);
+              if (!clause) { return; }
               var color = residueColors[residue];
-              (byColor[color] = byColor[color] || []).push(
-                '(and (= atom.auth_comp_id ' + match[1].toUpperCase() + ') (= atom.auth_seq_id ' + match[2] + '))'
-              );
+              (byColor[color] = byColor[color] || []).push(clause);
             });
 
             var layers = Object.keys(byColor).map(function (color) {

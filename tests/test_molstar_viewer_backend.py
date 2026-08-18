@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import time
 
+import pytest
+
 from openchem.ui.visualization import ResidueColorLayer, VisualizationLayer
 from openchem.ui.widgets.molstar_viewer_backend import _NOTHING_PENDING, MolStarViewerBackend
 
@@ -369,3 +371,123 @@ def test_the_box_survives_loading_another_structure(qapp):
     assert _wait_until(qapp, lambda: _owned_box_shapes(qapp, backend) == 1), (
         "the restored box must replace the dangling one, not join it"
     )
+def test_a_chain_qualified_key_reaches_mol_script_as_a_chain_term(qapp):
+    """`"B/TYR652"` must become an `auth_asym_id` term, unquoted.
+
+    The page is what builds the expression, so this asserts the KEY makes
+    it across the bridge; `test_the_chain_term_actually_narrows_what_is_painted`
+    is what establishes the expression then selects less.
+    """
+    backend = MolStarViewerBackend()
+    assert _wait_until(qapp, lambda: backend._viewer_ready)
+    calls = _fired_js(backend)
+
+    backend.apply_visualizations(
+        [ResidueColorLayer(name="H-bonds", residue_colors={"B/TYR652": "#1976d2"})]
+    )
+
+    js = calls[-1]
+    assert "B/TYR652" in js
+    assert '"B"' not in js  # never a quoted chain id, for the same reason
+    # as the residue name: quoting matches zero atoms and commits happily.
+#: Two chains, identical residue numbering -- the collision the chain term
+#: exists for, and the smallest structure that can show it.
+#:
+#: A single-chain receptor CANNOT fail this test, which is why the fixture
+#: is synthetic rather than one of the cached deposits: 4DKL, the entry
+#: most of the docking work was measured on, has one chain and zero key
+#: collisions, so a guard built on it would pass with the fix reverted.
+_TWO_CHAIN_PDB = """\
+ATOM      1  N   GLN A  72      10.000  10.000  10.000  1.00  0.00           N
+ATOM      2  CA  GLN A  72      11.500  10.000  10.000  1.00  0.00           C
+ATOM      3  C   GLN A  72      12.500  11.000  10.000  1.00  0.00           C
+ATOM      4  O   GLN A  72      13.500  11.000  10.500  1.00  0.00           O
+ATOM      5  N   GLN B  72      10.000  20.000  10.000  1.00  0.00           N
+ATOM      6  CA  GLN B  72      11.500  20.000  10.000  1.00  0.00           C
+ATOM      7  C   GLN B  72      12.500  21.000  10.000  1.00  0.00           C
+ATOM      8  O   GLN B  72      13.500  21.000  10.500  1.00  0.00           O
+END
+"""
+
+
+def _selection_clauses(qapp, backend, residue_colors: dict) -> dict:
+    """What the PAGE builds for these keys, through its own builder."""
+    result: dict = {}
+    backend._page.runJavaScript(
+        "JSON.stringify(window.openchemMolstarViewer.residueSelectionClauses("
+        + json.dumps(residue_colors)
+        + "))",
+        lambda value: result.__setitem__("value", value),
+    )
+    _wait_until(qapp, lambda: "value" in result, timeout_seconds=20)
+    return json.loads(result.get("value") or "{}")
+
+
+def test_a_chain_qualified_key_selects_only_that_chain(qapp):
+    """The selection must carry the chain, and the bare form must not.
+
+    Measured on 6WGT before this landed: the residue key `GLN72` resolves
+    to chains A, B and C, so a pose docked against the boxed copy coloured
+    all three -- and 370 of that deposit's 388 residue keys collide the
+    same way. A single-chain receptor cannot show it, which is why it
+    survived: 4DKL, the deposit most of the docking work was measured on,
+    has one chain and zero collisions.
+
+    THAT A CHAIN TERM REALLY NARROWS THE SELECTION WAS ESTABLISHED
+    SEPARATELY AND LIVE, by painting a three-chain deposit and counting
+    red pixels -- with a control asking for a chain that is not in the
+    structure, which painted nothing. See CLAUDE.md. That measurement is
+    what licenses this cheaper guard: the semantics are known, and what
+    has to be defended from here is that the expression keeps being
+    emitted.
+
+    Unquoted for the same reason residue NAMES are: quoting matches zero
+    atoms while the overpaint commits successfully.
+    """
+    backend = MolStarViewerBackend()
+    assert _wait_until(qapp, lambda: backend._viewer_ready)
+
+    clauses = _selection_clauses(
+        qapp, backend, {"B/GLN72": "#ff0000", "GLN72": "#00ff00"}
+    )
+
+    qualified = clauses["B/GLN72"]
+    assert "auth_asym_id B" in qualified, qualified
+    assert '"B"' not in qualified, qualified
+    assert "auth_comp_id GLN" in qualified and "auth_seq_id 72" in qualified
+
+    bare = clauses["GLN72"]
+    assert "auth_asym_id" not in bare, bare
+    assert "auth_comp_id GLN" in bare and "auth_seq_id 72" in bare
+
+
+def test_the_colouring_and_the_diagnostic_share_one_builder():
+    """Two implementations of "the selection for this residue" would drift.
+
+    The seam above is only worth reading if it is the same code the viewer
+    paints with, so `applyResidueColors` must not carry a selection regex
+    of its own. Checked on the source, because the claim is about which
+    code exists rather than about one runtime answer.
+    """
+    from pathlib import Path
+
+    page = (
+        Path(__file__).parent.parent
+        / "src"
+        / "openchem"
+        / "resources"
+        / "molstar"
+        / "viewer.html"
+    ).read_text(encoding="utf-8")
+
+    assert page.count("auth_asym_id") == 1, (
+        "the chain term is written in more than one place -- the colouring "
+        "and the diagnostic must share `residueClause`"
+    )
+    body = page[page.index("applyResidueColors: function") :]
+    body = body[: body.index("clearResidueColors")]
+    assert "auth_comp_id" not in body, (
+        "applyResidueColors builds its own selection instead of calling "
+        "residueClause"
+    )
+    assert "residueClause(" in body

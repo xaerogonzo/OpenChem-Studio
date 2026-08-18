@@ -587,10 +587,10 @@ other deposits. So the search box was geometrically right and drawn about
 43 A from anything on screen -- and the interaction colouring, which
 matches residues by NAME AND NUMBER, was painting chain A's residues for a
 pose computed against chain B's site. **That second half is older than the
-overlay and is only HALF fixed -- verified against 6WGT and written up
-under "THE COLOURING IS NOT FIXED BY THIS" below.**
+overlay, needed a chain term of its own, and now has one -- see "THE
+COLOURING NEEDED THE CHAIN" below for the 6WGT measurements.**
 
-#### THE COLOURING IS NOT FIXED BY THIS, AND THAT CLAIM WAS TOO STRONG
+#### THE COLOURING NEEDED THE CHAIN, AND NOW CARRIES IT
 
 This file said the residue colouring "is fixed as a side effect" of the
 deposited-model change and had "not been verified end to end". It has been
@@ -603,15 +603,36 @@ source:
     chains in the loaded structure  A,B,C                     <- was chain A alone
     GLN72 resolves to chains        A,B,C                     <- the defect
 
-`build_interaction_layers` emits `receptor_residue` as
+`build_interaction_layers` emitted `receptor_residue` as
 `f"{residue_name}{residue_number}"` -- **no chain** -- and `viewer.html`
-turns that into
+turned that into
 
     (and (= atom.auth_comp_id GLN) (= atom.auth_seq_id 72))
 
-which has no chain term either. So the deposited-model fix changed
+which had no chain term either. So the deposited-model fix changed
 "paints the WRONG copy" into "paints the right copy AND two wrong ones":
-chain B is now displayed and is now coloured, and so are A and C.
+chain B was displayed and coloured, and so were A and C.
+
+**THE DATA WAS ALREADY THERE.** `analyze_pose` has carried
+`receptor_chain` beside `receptor_residue` at all three of its emit sites
+since the hERG work -- a homotetramer whose subunits share residue
+numbering -- with a comment saying exactly why. `build_interaction_layers`
+was the consumer throwing it away, so the fix is one composed key and one
+extra clause:
+
+    ResidueColorLayer key   "B/TYR652" when the chain is known
+                            "TYR652"   when it is not
+    the selection           (and (= atom.auth_asym_id B)
+                                 (= atom.auth_comp_id TYR)
+                                 (= atom.auth_seq_id 652))
+
+The bare form is still accepted and is still right for a single-chain
+receptor or a source with no chain labelling, so a producer that cannot
+say which chain degrades to the old behaviour rather than losing the
+colouring. **The chain goes in UNQUOTED**, for the reason residue NAMES
+already do: quoting matches zero atoms while the overpaint commits
+successfully. A chain id that would not survive that is dropped rather
+than guessed at.
 
 The ambiguity is the ordinary case rather than an edge one. Over the
 cached deposits, counted from the PDB text:
@@ -628,9 +649,36 @@ and even the ligand is ambiguous -- all three copies of 7LD are
 and 0% collision. Any test of residue targeting has to use a multi-copy
 deposit or it is asserting against a structure where the bug cannot exist.
 
-Fixing it means carrying the chain through `pose_analysis`'s
-`receptor_residue`, through `ResidueColorLayer`, and into the MolScript.
-NOT DONE HERE.
+##### TWO ORACLES WERE BUILT AND THROWN AWAY BEFORE ONE WORKED
+
+**A COMMIT THAT SUCCEEDS PROVES NOTHING.** The first probe asked whether
+`atom.auth_asym_id` is a real mol-script symbol by committing an overpaint
+and watching for a rejection. The candidate came back OK -- **and so did a
+control using a symbol that cannot exist**. Mol* accepts a nonsense
+selection and paints nothing, silently, which is the same failure mode the
+quoted-residue-name finding already records. Both results were discarded.
+
+What replaced it measured the EFFECT, on 6WGT, at 900x700:
+
+    baseline, no overpaint                298 red px
+    no chain term                         673        +375
+    chain B only                          432        +134   ~ a third, as
+                                                            three chains predicts
+    CONTROL: chain Z, absent              298          +0   the arm that says NO
+
+**THEN THE TEST WRITTEN FROM IT WAS TIMING-DEPENDENT AND HAD TO GO.** It
+waited fixed durations for frames to land, passed when run alone, and
+failed when run with its own file -- the exact class this file forbids.
+The guard that shipped instead is a seam: `residueSelectionClauses` and
+`applyResidueColors` share ONE `residueClause` builder, so what a test
+reads is what the viewer paints, and
+`test_the_colouring_and_the_diagnostic_share_one_builder` fails if the
+chain term is ever written in two places. The live pixel measurement above
+is what establishes the semantics; the seam defends that the expression
+keeps being emitted.
+
+Three mutations, three caught: Python dropping the chain, the page
+ignoring it, and the chain quoted.
 
 **AND ONE OF MY OWN PROBES LIED FIRST.** An aggregate sweep over
 `struct.units` reported "0 keys matching more than one chain" on 6WGT --
@@ -943,7 +991,15 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-23 minutes**, ending at `4788 passed, 15 skipped`
+A clean run is **6-23 minutes**, ending at `4793 passed, 15 skipped`
+(measured 2026-08-17, **18m12**, on `docking-box-from-the-ligand` -- the
+chain-qualified residue selection. **+5 collected items and +5 test
+FUNCTIONS**: 2 in `test_visualization.py` for the composed key and its
+degrade-to-bare path, 3 in `test_molstar_viewer_backend.py` for the
+emitted clause, the chain-only selection and the shared builder.
+4803 -> 4808 collected; 4793 + 15 = 4808. Skips unchanged at 15.)
+
+Before it: `4788 passed, 15 skipped`
 (measured 2026-08-17, **22m19**, on `docking-box-from-the-ligand` -- the
 Properties panel, the Docking panel and the dock title bar. **+1 collected
 item and +1 test FUNCTION**,

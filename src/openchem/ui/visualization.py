@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from dataclasses import dataclass
 from typing import Callable
 
@@ -131,6 +133,16 @@ class ResidueColorLayer:
     `analyze_pose`'s `receptor_residue`). That existing, real data is what
     justifies this layer type — it is not a speculative generalization;
     `build_interaction_layers` below turns it into exactly these.
+
+    **A KEY MAY BE CHAIN-QUALIFIED**, as `"B/TYR652"`, and is whenever the
+    contact knows its chain. Without it the selection matches the residue
+    in EVERY chain: measured on 6WGT, `GLN72` resolves to chains A, B and
+    C, and 370 of that deposit's 388 residue keys appear in more than one
+    chain. A pose computed against chain B was colouring all three.
+
+    The bare form is still valid and still correct for anything with one
+    chain or no chain labelling, so a producer that cannot say which chain
+    degrades to the old behaviour rather than losing the colouring.
     """
 
     name: str
@@ -518,6 +530,29 @@ _PI_COLOR = "#00897b"  # teal -- aromatic (stacking and cation-pi)
 _METAL_COLOR = "#5d4037"  # brown -- metal coordination
 
 
+#: Chain ids this is willing to put into a mol-script literal.
+#:
+#: The value is passed UNQUOTED, because quoting makes the selection match
+#: zero atoms while the overpaint still commits -- a silent failure this
+#: repository has already paid for once on residue NAMES
+#: (`test_residue_names_are_passed_unquoted_to_mol_script`). An id that
+#: would not survive that is dropped rather than guessed at, which leaves
+#: the un-qualified selection: today's behaviour, and never worse than it.
+_SAFE_CHAIN = re.compile(r"^[A-Za-z][A-Za-z0-9]*$")
+
+
+def _selection_key(contact: dict) -> str:
+    """`"B/TYR652"` where the chain is known, `"TYR652"` where it is not.
+
+    `analyze_pose` has carried `receptor_chain` beside `receptor_residue`
+    since the hERG work -- a homotetramer whose subunits share residue
+    numbering -- and this is the consumer that was still throwing it away.
+    """
+    residue = contact["receptor_residue"]
+    chain = (contact.get("receptor_chain") or "").strip()
+    return f"{chain}/{residue}" if _SAFE_CHAIN.match(chain) else residue
+
+
 def build_interaction_layers(pose_metadata: dict) -> list[ResidueColorLayer]:
     """Turns one docked pose's interaction analysis into residue layers --
     which receptor residues hydrogen-bond with the ligand, and which clash.
@@ -550,7 +585,7 @@ def build_interaction_layers(pose_metadata: dict) -> list[ResidueColorLayer]:
         ("clashes", "Steric clashes", _CLASH_COLOR),
     ):
         residues = {
-            contact["receptor_residue"]
+            _selection_key(contact)
             for contact in pose_metadata.get(key, [])
             if contact.get("receptor_residue")
         }
