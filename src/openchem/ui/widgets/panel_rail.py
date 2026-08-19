@@ -141,6 +141,11 @@ class PanelRail(QWidget):
     panel_chosen = Signal(str)
     #: A panel's favourite state was toggled, so the caller can persist it.
     favourite_toggled = Signal(str, bool)
+    #: The name list was folded or unfolded, so the caller can persist it.
+    #: Carries VISIBLE rather than collapsed, matching `set_list_visible`,
+    #: because a signal whose sense is the inverse of the method that
+    #: raises it is a place for somebody to drop a `not`.
+    list_visibility_changed = Signal(bool)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -301,7 +306,18 @@ class PanelRail(QWidget):
         self._select_group(group)
 
     def set_list_visible(self, visible: bool) -> None:
+        """Fold or unfold the name list, announcing a real change.
+
+        Emits only on a TRANSITION, so restoring the state the rail is
+        already in does not write a settings key during construction --
+        and so a caller that persists on this signal cannot be woken by
+        its own restore.
+        """
+        if visible == self.is_list_visible():
+            self._names.setVisible(visible)
+            return
         self._names.setVisible(visible)
+        self.list_visibility_changed.emit(visible)
 
     def is_list_visible(self) -> bool:
         return not self._names.isHidden()

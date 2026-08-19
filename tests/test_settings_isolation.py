@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from PySide6.QtCore import QSettings
 
 from openchem.app.settings import Settings
@@ -61,3 +62,37 @@ def test_separate_settings_instances_share_one_store(tmp_path):
     writer._qsettings.sync()
 
     assert Settings(bus).get("plugins/user_directory") == "shared-store"
+
+
+@pytest.fixture(scope="module")
+def backing_seen_by_a_module_scoped_fixture():
+    """Where a MODULE-scoped fixture's `Settings` actually writes.
+
+    THE SCOPE IS THE WHOLE POINT and this fixture cannot be inlined. Every
+    other guard in this file is function-scoped, so `isolated_settings` has
+    always already applied by the time they look -- which is why all three
+    passed for as long as five module-scoped fixtures in this suite were
+    writing to the real registry. Pytest sets higher-scoped fixtures up
+    first, so this one runs in the same window they do.
+    """
+    return Path(Settings(build_service_container().event_bus)._qsettings.fileName())
+
+
+def test_even_a_module_scoped_fixture_is_isolated(backing_seen_by_a_module_scoped_fixture):
+    r"""Measured before the session-scoped fixture existed: one run of
+    `tests/test_right_dock_width.py` rewrote the developer's own
+    `HKCU\Software\OpenChemStudio\OpenChemStudio\plugins` key, swapping
+    one dead temp path for another.
+
+    `fileName()` rather than a write-and-read, for the reason the second
+    guard above gives: a NativeFormat QSettings reports a
+    `\HKEY_CURRENT_USER\...` pseudo-path, which is the only thing that
+    tells the two backends apart from inside the process.
+    """
+    backing = backing_seen_by_a_module_scoped_fixture
+
+    assert "HKEY" not in str(backing).upper(), (
+        f"a module-scoped fixture writes to the native store ({backing}); "
+        "the session-scoped isolation in conftest.py has regressed"
+    )
+    assert backing.suffix == ".ini", f"unexpected backing store {backing}"

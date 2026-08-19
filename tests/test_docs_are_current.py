@@ -447,10 +447,15 @@ DEFERRALS: list[Deferral] = [
             "applies to 'the cause was never established'."
         ),
     ),
-    Deferral(
-        claim="`SimilarityService` doesn't exist yet",
-        unbuilt=lambda: not _defines("SimilarityService"),
-    ),
+    # "`SimilarityService` doesn't exist yet" lived here and is gone, because
+    # its entry is SETTLED now. Worth noting HOW it went stale: the recorded
+    # `unbuilt` predicate was still perfectly true -- no class of that name
+    # is defined anywhere -- while the CLAIM around it had been false for
+    # months, because Tanimoto similarity shipped in `chem/clustering.py` and
+    # reached `ui/dialogs/batch_analysis_dialog.py` without anyone naming a
+    # service. A predicate that watches for one SPELLING of a capability
+    # cannot see the capability arriving under another, which is the same
+    # shape as the solubility entry directly below.
     # "the solubility predictor answers for water only" lived here and is
     # gone, because its entry is SETTLED now and SETTLED items carry no
     # predicate. It went stale within the day and exactly as designed: the

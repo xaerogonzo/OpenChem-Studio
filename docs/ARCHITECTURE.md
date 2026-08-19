@@ -770,8 +770,14 @@ document may cite a file or a test that does not exist.
   ADMET, Temurin, ORCA, Vina) are not bundled and are still found in the
   configurable data directory — confirmed in the frozen build, which located
   a real Vina 1.2.7 and a managed Temurin JRE.
-- **OPEN** -- `SimilarityService` doesn't exist yet; belongs to a later roadmap phase
-  and would currently have no callers.
+- **SETTLED** -- similarity. This entry read "**OPEN** -- `SimilarityService`
+  doesn't exist yet; belongs to a later roadmap phase and would currently have
+  no callers", and both halves were already false: `chem/clustering.py` and
+  `chem/engine.py` compute Tanimoto similarity, and
+  `ui/dialogs/batch_analysis_dialog.py` consumes it. Closed CONSCIOUSLY rather
+  than deleted, so a reader does not have to wonder whether it was dropped by
+  accident. What never appeared is a *service* wrapper, and nothing wants one:
+  the capability is reached from the layer that has it.
 - **SETTLED** -- the right-hand dock opens at a computed starting width.
   `MainWindow._set_initial_right_dock_width` calls `resizeDocks` on a
   FRESH layout only; `initial_right_dock_width` is the arithmetic, pure

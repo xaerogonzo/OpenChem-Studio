@@ -834,18 +834,59 @@ outcome. `initial_right_dock_width` is therefore a pure function and the
 table is tested directly; deleting the CALL is the one mutation nothing
 catches, and it is written into the test rather than papered over.
 
-- **The rail costs 270 px permanently** -- 14% of a 1920 screen and 20%
-  of a 1366 laptop, whether or not anybody is navigating. Whether it
-  should be collapsible is a real question.
+- **The rail costs 270 px, and it IS collapsible** -- this entry used to
+  end "whether it should be collapsible is a real question", and by then
+  it already was. `PanelRail._on_group_clicked` folds the name list on a
+  second click of the group already showing, and `set_list_visible` /
+  `is_list_visible` shipped with it; the `_names` container exists so the
+  fold is one `setVisible`. Measured: 270 px expanded, **40** collapsed,
+  and the window's own minimum follows it 716 -> 486.
+
+  **What was actually missing was PERSISTENCE**, which is a different
+  entry in the same list and was found by reading the code rather than
+  the note. `MainWindow` saved `ui/pinned_panels` and nothing else, so
+  anyone who folded the rail to reclaim 230 px did it again every launch.
+  It now stores `ui/rail_collapsed`, restored AFTER
+  `_restore_window_state` for the reason `initial_right_dock_width`
+  records.
 - **Every dock is displayed at 280 px while its content wants far more**:
   Quantum Chemistry 669, Docking 462, Batch 409, Atom Inspector 352.
   Those four are the panels genuinely relying on scrolling, not merely
   benefiting from it.
 - **The cheap panels are cheap**: Jobs wants 66, Structure Check 186,
   Interactions 211, Compare 222.
-- **The centre now has no minimum worth the name** (~280 after the fix,
-  down from 1336). A deliberate floor for the editor would be better than
-  one that emerges from whatever control row happens to be widest.
+- **ACTED ON: the centre has a deliberate floor of 400 px.** This entry
+  read "no minimum worth the name (~280 after the fix)" and the real
+  figure was **149**, measured in the running app -- below even the
+  `CENTRAL_FLOOR = 200` that `tests/test_right_dock_width.py` had been
+  reasoning about since the flow-layout work. That constant was
+  test-only: nothing enforced it, and it held solely because no dock
+  happened to ask for enough to break it. The test file imports it from
+  `main_window` now, so the two cannot drift.
+
+  **ON THE `QTabWidget`, NOT ON A PAGE AND NOT ON THE WINDOW.**
+  `centralWidget()` holds three pages (2D Editor, 3D Viewer,
+  Macromolecule Viewer) and a `QTabWidget` takes the MAXIMUM over them,
+  so a floor on the editor page propagates today by accident and
+  evaporates when the pages are rearranged, while guaranteeing nothing
+  for the other two. It is also the object the CEILING guard already
+  measures, so the two bounds are on one quantity rather than two.
+
+  **400 is bounded on both sides by measurement**, not chosen: the
+  non-centre chrome is 567 px on the real desktop and 854 under
+  `offscreen`, putting the window minimum at 967 and 1254 against the
+  1366 this product supports. 640 would put `offscreen` at 1494 and
+  redden `test_the_window_can_be_made_narrower_than_a_small_laptop`. And
+  400 is what makes the guard able to say NO at all: `offscreen`'s
+  emergent centre minimum is already 282, so a floor of 200 could never
+  fail, which is the same blindness `initial_right_dock_width` records
+  one entry up.
+
+  **`minimumSizeHint()` DOES NOT ANSWER THIS.** It is Qt's RECOMMENDED
+  minimum and is unmoved by `setMinimumWidth` -- measured, hint 282
+  against an enforced minimum of 400 -- so the first guard written for
+  this failed against correct code. Assert the behaviour: squeeze the
+  window and read the centre's actual width.
 - **Any future single-row toolbar will reproduce this exactly.** The
   guard in `tests/test_right_dock_width.py` catches it at the window
   level; `flow_row()` is the cure.
@@ -2419,6 +2460,44 @@ If you touch that fixture, verify by counting, not by reading:
 ```bash
 powershell "(Get-ChildItem 'HKCU:\Software' | Where-Object PSChildName -like 'OpenChemStudio-pytest-*' | Measure-Object).Count"
 ```
+
+#### A FUNCTION-SCOPED AUTOUSE FIXTURE DOES NOT COVER A MODULE-SCOPED ONE
+
+The isolation above is real and it had a hole underneath it for as long
+as it has existed. `isolated_settings` is `autouse=True` and therefore
+FUNCTION-scoped, and **pytest sets higher-scoped fixtures up first** -- so
+a `scope="module"` fixture that builds a `Settings` or a `MainWindow` runs
+while `QSettings` is still the real one. Five fixtures in this suite do:
+
+    module   window       tests/test_right_dock_width.py
+    module   window       tests/test_ketcher_overrule.py
+    module   window       tests/test_conformers_without_the_3d_viewer.py
+    module   main_window  tests/test_command_palette_vocabulary.py
+    module   controls     tests/test_tooltip_coverage.py
+
+**Measured on the real key, either side of ONE run of one file:**
+
+    before   13:39:20   plugins/project_directory = .../tmpes9xm92a/none
+    after    13:41:30   plugins/project_directory = .../tmpfk04ymjp/none
+
+A live rewrite of the developer's own registry, pointing at a temp
+directory that had already been deleted. Not junk keys under a scratch
+name this time -- the real `OpenChemStudio` key, the one a shipped install
+reads.
+
+**`tests/test_settings_isolation.py` COULD NOT SEE IT, and the reason
+generalises:** all three of its guards are function-scoped, so they always
+ran INSIDE the patch and always found a clean INI. A guard for a
+scope-ordering bug has to live at the scope where the bug happens; the
+one that catches it now takes a deliberately `scope="module"` fixture and
+asserts on `fileName()`, since a NativeFormat `QSettings` reports a
+`\HKEY_CURRENT_USER\...` pseudo-path and that is the only thing telling
+the two backends apart from inside the process.
+
+`_isolated_settings_for_higher_scopes` is session-scoped and does the same
+redirection. It does NOT replace the per-test fixture -- tests must still
+not see each other's writes, and that one gives each its own file. This is
+the floor underneath it.
 
 #### The same rule, the same mistake, in the DATA root
 
@@ -5023,6 +5102,23 @@ Bump `_LAYOUT_VERSION` for any future change a saved layout cannot
 express, and probe a REAL install rather than trusting the suite: every
 test builds a window with no prior state, which is exactly the case that
 cannot see this.
+
+**AND THE VERY NEXT GEOMETRY CHANGE FORGOT TO, which is why that sentence
+is worth more than it looks.** `_LAYOUT_VERSION` went to `"2"` on
+2026-08-07 with the rail; the 420 px starting width landed 2026-08-15 and
+left it alone. So every install that had run the app in between carried a
+version-2 layout with 280 px docks, and the fix that exists to stop
+caption clipping **never reached any of them** -- including this
+project's own. Read off the real registry: `ui/layout_version = 2`, and
+`_set_initial_right_dock_width` is skipped whenever a layout restores.
+
+Measured by driving the app with the version bumped and nothing else
+changed: docks 280 -> 420, and the Batch panel's horizontal scrollbar and
+off-screen "Virtual Screening..." button both disappear. Bumped to `"3"`.
+
+The tell is that the suite cannot see this class of defect AT ALL -- a
+saved layout is the one state no test starts from -- so the check is
+`ui/layout_version` in the real store, not a green run.
 
 #### `isVisible()` is False for every child of an unshown window
 

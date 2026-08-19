@@ -1134,11 +1134,18 @@ class _Driver(QObject):
 
         central = window.centralWidget()
         if central is not None:
+            # BOTH MINIMUMS, because they are different questions and the
+            # obvious one is the wrong one. `minimumSizeHint()` is Qt's
+            # RECOMMENDED minimum and is unmoved by `setMinimumWidth`, so a
+            # centre with an enforced 400 px floor still reports 282 here --
+            # measured, and it cost a guard that failed against correct code.
+            # `minimumWidth()` is what the layout is actually held to.
             logger.warning(
-                "GEOMETRY[%s]   central width=%d minHint=%d",
+                "GEOMETRY[%s]   central width=%d minHint=%d min=%d",
                 label,
                 central.width(),
                 central.minimumSizeHint().width(),
+                central.minimumWidth(),
             )
             # Follow the widest child DOWN, so the culprit is named rather
             # than merely localised to "the central widget".
