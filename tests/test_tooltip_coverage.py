@@ -22,7 +22,7 @@ from pathlib import Path
 
 import pytest
 
-from openchem.ui.widgets.help_tooltip import HelpTooltipError
+from openchem.ui.widgets.help_tooltip import HelpTooltip, HelpTooltipError
 from openchem.ui.widgets.tooltip_inventory import (
     iter_documentable_controls,
     iter_exclusions,
@@ -36,7 +36,6 @@ from openchem.ui.widgets.tooltip_inventory import (
 #: rather than on a source location, because `file:line` moves under the
 #: migration and the tooltip STRING is the very thing the migration
 #: rewrites, while the control it lands on survives both.
-_DEBT = Path(__file__).parent / "fixtures" / "tooltip_migration_debt.json"
 
 #: Surfaces that reached zero, and may not go back.
 #:
@@ -45,7 +44,6 @@ _DEBT = Path(__file__).parent / "fixtures" / "tooltip_migration_debt.json"
 #: every other guard here. `missing` cannot be a failure while 84 controls
 #: still are, so "this surface is DONE" has to be recorded to be defended.
 #: The debt set may only shrink; this one may only grow.
-_COMPLETED = Path(__file__).parent / "fixtures" / "tooltip_completed_surfaces.json"
 
 
 @dataclass(frozen=True)
@@ -271,29 +269,6 @@ def test_no_contract_is_a_placeholder(controls):
                 f"{tooltip.help_id} is tier {tooltip.tier} but only {len(normalised)} characters: "
                 f"{tooltip.text!r}"
             )
-
-
-def test_the_migration_debt_never_grows(controls):
-    """Raw `setToolTip` with no contract is recorded debt, not a failure --
-    for now.
-
-    THE STAGING IS THE POINT. 248 controls carried a legacy tooltip when
-    this landed, so a guard that failed on "tooltip without contract" would
-    have made this commit red and forbidden the incremental migration it
-    exists to enable. So: the recorded set may SHRINK freely and may not
-    grow. A new bare `setToolTip` fails here immediately while the existing
-    debt is burned down, and the day the set is empty this test and the
-    fixture go with it.
-    """
-    found, _ = controls
-    recorded = set(json.loads(_DEBT.read_text(encoding="utf-8"))["instance_paths"])
-    current = {c.instance_path for c in found if c.status == "legacy_tooltip"}
-
-    added = current - recorded
-    assert not added, (
-        f"{len(added)} control(s) gained a raw setToolTip with no help contract. "
-        f"Use apply_help_tooltip instead: {sorted(added)[:5]}"
-    )
 
 
 def test_the_cli_and_this_guard_share_one_discovery_layer():
@@ -589,41 +564,86 @@ def test_a_menu_entrys_contract_is_actually_shown(qapp, tmp_path_factory):
         f"{len(hidden)} menu(s) will not show their entries' tooltips, so the "
         f"contracts on them cannot reach a user: {hidden}"
     )
-def test_a_finished_surface_does_not_regress(controls):
-    """A contract removed from a completed surface must fail here.
 
-    The coverage guard cannot fail on `missing` -- that is the whole
-    staged-migration design, and 84 controls are still missing. So
-    deleting `apply_help_tooltip` from a documented control simply moves
-    it back into the backlog and nothing notices. A mutation removing the
-    contract from File > New Project survived every other test in this
-    file.
 
-    What is recorded is the SURFACE rather than the control, so a new
-    menu entry or a new control on a finished panel is held to the
-    standard the rest of that surface already meets -- which is the
-    property a list of individual controls would not have.
+def test_every_control_carries_a_help_contract(controls):
+    """THE MIGRATION IS OVER, and this is what replaced its scaffolding.
+
+    Two fixtures used to stand where this assertion is.
+    `tooltip_migration_debt.json` recorded the 248 controls carrying a raw
+    `setToolTip` when the layer landed and was allowed only to SHRINK;
+    `tooltip_completed_surfaces.json` was its mirror, naming the surfaces
+    that had reached zero so a finished one could not quietly fall back
+    into the backlog. Both existed because `missing` could not be a
+    failure while 84 controls still were -- that staging is the only
+    reason the layer could be added without a red commit.
+
+    It is zero now, so the honest invariant is the simple one: every
+    documentable control in this application declares what it means. That
+    is strictly stronger than a list of finished surfaces, and it needs no
+    fixture to keep in step with the code.
+
+    SAFE TO STATE BLANKET BECAUSE THE WALK IS THE APPLICATION'S OWN. The
+    `controls` fixture points both plugin directories at paths that do not
+    exist, so no plugin-contributed panel is ever walked and a third-party
+    panel cannot fail this. Checked from the built window rather than
+    assumed -- had plugins loaded, the surface list would have had to stay.
+
+    A NEW CONTROL IS NOW RED UNTIL IT IS DOCUMENTED, deliberately. That is
+    the whole point of finishing: the standard the rest of the application
+    already meets applies to whatever is added next.
     """
     found, _ = controls
-    completed = json.loads(_COMPLETED.read_text(encoding="utf-8"))
+    undocumented = sorted(c.instance_path for c in found if c.status != "tooltip")
 
-    for kind in completed["by_kind"]:
-        undocumented = [
-            c.instance_path for c in found if c.kind == kind and c.status != "tooltip"
-        ]
-        assert not undocumented, (
-            f"the {kind!r} surface was complete and {len(undocumented)} control(s) "
-            f"have lost their contract: {sorted(undocumented)[:5]}"
-        )
+    assert not undocumented, (
+        f"{len(undocumented)} control(s) carry no help contract. Use "
+        f"`apply_help_tooltip`, never a raw setToolTip, and see "
+        f"`tools/list_tooltips.py --help-id <id> --context` for the brief: "
+        f"{undocumented[:5]}"
+    )
 
-    for fragment in completed["by_instance_path_fragment"]:
-        on_surface = [c for c in found if fragment in c.instance_path]
-        assert on_surface, (
-            f"{fragment!r} matches no control at all -- the surface was renamed "
-            "and this guard is testing nothing"
-        )
-        undocumented = [c.instance_path for c in on_surface if c.status != "tooltip"]
-        assert not undocumented, (
-            f"{fragment} was complete and {len(undocumented)} control(s) have lost "
-            f"their contract: {sorted(undocumented)[:5]}"
-        )
+
+def test_a_weak_but_well_formed_contract_is_ACCEPTED(controls):
+    """The boundary, asserted from the side nothing else guards.
+
+    `test_no_contract_is_a_placeholder` sets a FLOOR: a contract may not
+    be a degenerate string. Nothing asserted the complement, and without
+    it the floor creeps upward one `assert "A" in text` at a time until
+    the guard is grading prose -- which is the one thing this layer's
+    design forbids, because a test that can disagree with itself between
+    runs is worse than none.
+
+    So: a tier-3 contract that is structurally impeccable and says almost
+    nothing useful must PASS. The validator's job is the shape of the
+    declaration; judging whether the words explain the control is a
+    reviewer's, and a human wrote every one of the 219 ids here.
+
+    Same move as `test_a_plausible_lie_passes_the_validator_and_fails_the_chemistry`
+    makes for `valid_total_declaration`, one subsystem along.
+    """
+    weak = HelpTooltip(
+        # Structurally impeccable at tier 3 and genuinely poor: it names a
+        # quantity, gestures at units and adds a caveat, and tells a
+        # reader nothing they could not have guessed from the label.
+        text=(
+            "The measured value this control reports, expressed in its own "
+            "units, which should be interpreted with appropriate care in "
+            "context."
+        ),
+        tier=3,
+        help_id="example.deliberately_weak_contract",
+        topic="example",
+    )
+
+    weak.validate()  # the structural contract: must not raise
+
+    normalised = _normalised(weak.text)
+    assert normalised not in _DEGENERATE
+    assert len(normalised) >= _MINIMUM_LENGTH[weak.tier], (
+        "the degenerate-string floor has grown into a prose grader: it now "
+        "rejects a contract that is merely UNINFORMATIVE rather than "
+        "malformed. Judging whether wording explains a control is a "
+        "reviewer's job, and a stochastic oracle in the suite is the "
+        "failure this whole layer is designed against."
+    )

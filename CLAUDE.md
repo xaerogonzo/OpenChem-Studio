@@ -268,26 +268,60 @@ and a control with good `whatsThis()` is NOT a gap to be filled.
 drift against EXTERNAL documents, while a flag an author sets in the same
 commit that writes the prose records nothing `git log` does not.
 
-### The migration debt is staged, or the layer could not have landed
+**AND THE FLOOR IS NOW GUARDED FROM BOTH SIDES.**
+`test_no_contract_is_a_placeholder` says a contract may not be a
+degenerate string; nothing said the complement, and without it that floor
+creeps upward one `assert "A" in text` at a time until the guard is
+grading prose.
+`test_a_weak_but_well_formed_contract_is_ACCEPTED` asserts that a tier-3
+contract which is structurally impeccable and says almost nothing useful
+must PASS. Same move `test_a_plausible_lie_passes_the_validator_and_fails_the_chemistry`
+makes for `valid_total_declaration`: the validator owns the SHAPE, a
+reviewer owns the meaning. Raising the tier-3 length floor from 80 to 400
+fails that guard AND the floor guard, from opposite directions.
 
-248 controls carried a raw `setToolTip` with no contract. A guard failing
-on that would have made the commit red and forbidden the incremental
-migration it exists to enable. `tests/fixtures/tooltip_migration_debt.json`
-records the set; it may SHRINK freely and may not grow. Keyed on the
-CONTROL rather than a source call site -- `file:line` moves under the
-migration and the tooltip STRING is the very thing being rewritten, while
-the control survives both. Delete the fixture and its test when it reaches
-zero.
+### THE MIGRATION IS FINISHED, and its scaffolding is deleted
+
+**355 of 355 controls carry a contract. 219 distinct `help_id`s, 164 tier
+1, 138 tier 2, 53 tier 3.** `tools/list_tooltips.py --missing` answers
+"Nothing matched."
+
+The staging is kept below as the record of how, because it is the reason
+the layer could be added at all -- but both fixtures are GONE and the
+invariant is now one assertion,
+`test_every_control_carries_a_help_contract`.
+
+248 controls carried a raw `setToolTip` when the layer landed. A guard
+failing on that would have made the commit red and forbidden the
+incremental migration it exists to enable, so
+`tooltip_migration_debt.json` recorded the set and was allowed only to
+SHRINK, and `tooltip_completed_surfaces.json` was its mirror, naming the
+surfaces at zero so a finished one could not fall back into the backlog
+unseen. Neither is needed once `missing` can be a failure.
+
+**A BLANKET ASSERTION IS ONLY SAFE BECAUSE THE WALK IS OURS.** The
+`controls` fixture points both plugin directories at paths that do not
+exist, so no plugin-contributed panel is walked and a third-party panel
+cannot redden the suite. Checked from the built window rather than
+assumed; had plugins loaded, the surface list would have had to stay.
+
+**A NEW CONTROL IS NOW RED UNTIL IT IS DOCUMENTED**, deliberately. That is
+what finishing means: whatever is added next meets the standard the rest
+of the application already does.
+
+The debt fixture was keyed on the CONTROL rather than a source call site
+-- `file:line` moves under the migration and the tooltip STRING is the
+very thing being rewritten, while the control survives both. Its one weak
+point showed up at the end: an `instance_path` is a position in the widget
+tree, so wrapping a control in a new container RENAMES it, and the Batch
+aggregate combo tripped the guard when its row became a `flow_row`. That
+was resolved by migrating the control rather than re-recording the path.
 
 **"66 setToolTip call sites" was 248 CONTROLS**, and an AST estimate of 179
 interactive constructions was really 372. Neither number was ever the
-universe; only `iter_documentable_controls` is.
-
-The universe is **353**, and the migration stands at 287 contracts / 16
-legacy / 50 missing. Five surfaces are DONE and defended by
-`tests/fixtures/tooltip_completed_surfaces.json`: the Quantum Chemistry
-panel, the whole menu bar, the Properties panel, the Docking panel, and
-the dock title bar.
+universe; only `iter_documentable_controls` is -- and the universe grew
+353 -> 355 while the migration ran, which is exactly why it is asked
+rather than remembered.
 
 ### `QAction.toolTip()` NEVER RETURNS EMPTY, and the queue believed it
 
@@ -384,11 +418,15 @@ the file.** `missing` cannot be a failure while 83 controls still are --
 that is the staged migration working as designed -- so a completed control
 simply falls back into the backlog unseen.
 
-`tests/fixtures/tooltip_completed_surfaces.json` is the MIRROR of the debt
-fixture: the debt set may only SHRINK, this one may only GROW. It records
-the SURFACE rather than the control, so a new menu entry or a new control
-on a finished panel is held to the standard the rest of that surface
-already meets.
+`tooltip_completed_surfaces.json` was the MIRROR of the debt fixture: the
+debt set could only SHRINK, that one could only GROW. It recorded the
+SURFACE rather than the control, so a new menu entry or a new control on a
+finished panel was held to the standard the rest of that surface already
+met. **Both are deleted now** -- with every surface finished, "no control
+anywhere is undocumented" says the same thing and needs no fixture. The
+account is kept because the REASON it existed is the durable part: a
+completed control falling back into the backlog is invisible for exactly
+as long as `missing` cannot be a failure.
 
 **IT FAILED ON ITS FIRST RUN AND WAS RIGHT.** It named a `QWidgetAction`
 that every earlier count had missed, because those counts filtered on
@@ -549,7 +587,8 @@ running the full 12 tests:
 
     M1  revert the QTabBar exclusion       test_a_tab_bars_scroll_buttons_are_qt_s_own
     M2  the broad any-qt_-ancestor rule    test_the_composite_rule_does_not_swallow_the_panels
-    M3  a contract back to raw setToolTip  test_the_migration_debt_never_grows
+    M3  a contract back to raw setToolTip  the debt guard, now
+                                           test_every_control_carries_a_help_contract
     M4  two ids, byte-identical text       test_one_concept_is_not_split_across_many_help_ids
     M5  one help_id reused                 test_one_help_id_means_exactly_one_thing
 
@@ -834,18 +873,59 @@ outcome. `initial_right_dock_width` is therefore a pure function and the
 table is tested directly; deleting the CALL is the one mutation nothing
 catches, and it is written into the test rather than papered over.
 
-- **The rail costs 270 px permanently** -- 14% of a 1920 screen and 20%
-  of a 1366 laptop, whether or not anybody is navigating. Whether it
-  should be collapsible is a real question.
+- **The rail costs 270 px, and it IS collapsible** -- this entry used to
+  end "whether it should be collapsible is a real question", and by then
+  it already was. `PanelRail._on_group_clicked` folds the name list on a
+  second click of the group already showing, and `set_list_visible` /
+  `is_list_visible` shipped with it; the `_names` container exists so the
+  fold is one `setVisible`. Measured: 270 px expanded, **40** collapsed,
+  and the window's own minimum follows it 716 -> 486.
+
+  **What was actually missing was PERSISTENCE**, which is a different
+  entry in the same list and was found by reading the code rather than
+  the note. `MainWindow` saved `ui/pinned_panels` and nothing else, so
+  anyone who folded the rail to reclaim 230 px did it again every launch.
+  It now stores `ui/rail_collapsed`, restored AFTER
+  `_restore_window_state` for the reason `initial_right_dock_width`
+  records.
 - **Every dock is displayed at 280 px while its content wants far more**:
   Quantum Chemistry 669, Docking 462, Batch 409, Atom Inspector 352.
   Those four are the panels genuinely relying on scrolling, not merely
   benefiting from it.
 - **The cheap panels are cheap**: Jobs wants 66, Structure Check 186,
   Interactions 211, Compare 222.
-- **The centre now has no minimum worth the name** (~280 after the fix,
-  down from 1336). A deliberate floor for the editor would be better than
-  one that emerges from whatever control row happens to be widest.
+- **ACTED ON: the centre has a deliberate floor of 400 px.** This entry
+  read "no minimum worth the name (~280 after the fix)" and the real
+  figure was **149**, measured in the running app -- below even the
+  `CENTRAL_FLOOR = 200` that `tests/test_right_dock_width.py` had been
+  reasoning about since the flow-layout work. That constant was
+  test-only: nothing enforced it, and it held solely because no dock
+  happened to ask for enough to break it. The test file imports it from
+  `main_window` now, so the two cannot drift.
+
+  **ON THE `QTabWidget`, NOT ON A PAGE AND NOT ON THE WINDOW.**
+  `centralWidget()` holds three pages (2D Editor, 3D Viewer,
+  Macromolecule Viewer) and a `QTabWidget` takes the MAXIMUM over them,
+  so a floor on the editor page propagates today by accident and
+  evaporates when the pages are rearranged, while guaranteeing nothing
+  for the other two. It is also the object the CEILING guard already
+  measures, so the two bounds are on one quantity rather than two.
+
+  **400 is bounded on both sides by measurement**, not chosen: the
+  non-centre chrome is 567 px on the real desktop and 854 under
+  `offscreen`, putting the window minimum at 967 and 1254 against the
+  1366 this product supports. 640 would put `offscreen` at 1494 and
+  redden `test_the_window_can_be_made_narrower_than_a_small_laptop`. And
+  400 is what makes the guard able to say NO at all: `offscreen`'s
+  emergent centre minimum is already 282, so a floor of 200 could never
+  fail, which is the same blindness `initial_right_dock_width` records
+  one entry up.
+
+  **`minimumSizeHint()` DOES NOT ANSWER THIS.** It is Qt's RECOMMENDED
+  minimum and is unmoved by `setMinimumWidth` -- measured, hint 282
+  against an enforced minimum of 400 -- so the first guard written for
+  this failed against correct code. Assert the behaviour: squeeze the
+  window and read the centre's actual width.
 - **Any future single-row toolbar will reproduce this exactly.** The
   guard in `tests/test_right_dock_width.py` catches it at the window
   level; `flow_row()` is the cure.
@@ -1009,7 +1089,48 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `5183 passed, 15 skipped`
+A clean run is **6-19 minutes**, ending at `5195 passed, 15 skipped`
+(measured 2026-08-19, **14m26**, on
+`drive-consolidate-and-finish-the-contracts` -- the baseline drive's three
+defects, the two geometry decisions, and the help migration reaching zero.
+
+**+14 collected and 2 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed:
+
+    branch point   60c418a   COLLECTS 5198
+    branch tip               COLLECTS 5210   = 5198 + 14 - 2
+    the run                           5195 passed + 15 skipped = 5210
+
+**BOTH REMOVALS ARE THE RETIRED MIGRATION SCAFFOLDING, and they have one
+named successor between them.** `test_the_migration_debt_never_grows` and
+`test_a_finished_surface_does_not_regress` existed only because `missing`
+could not be a failure while a migration was in flight; at zero,
+`test_every_control_carries_a_help_contract` says what both said and
+needs no fixture.
+
+**CI MEASURES THE SAME TREE AT 5190 passed, 19 skipped, 1 deselected**,
+which is the same 5210. The four extra skips are the GPU-gated conformer
+gallery guards and the deselection is the PubChem network test -- both
+already documented above, and worth stating because a reader comparing
+the two figures should not go looking for five lost tests.
+
+**THE ONE FAILURE OF THE FIRST RUN WAS A DOC CITATION, AND IT PASSED
+TWICE BEFORE IT FAILED.** `test_every_file_a_doc_cites_still_exists`
+caught CLAUDE.md naming the two fixtures this branch deletes. It had been
+run twice after the deletion and passed both times, because `_repo_files`
+asks `git ls-files` -- a file removed from the working tree but still in
+the INDEX is still tracked and still resolves, so the citation only broke
+once `git add -A` staged the removal. **A green docs run taken mid-change
+is not evidence about the tree you are about to commit.**
+
+The two `DeprecationWarning`s are the same pre-existing six-argument
+`QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+14m26 sits mid-band; the 6-19 range stands.)
+
+Before it: `5183 passed, 15 skipped`
 (measured 2026-08-18, **16m09**, on `isotopes-on-the-canvas` -- the
 isotope reaching the canvas, the laptop-sized dialog, the right-click
 menu, and the isomers.
@@ -1105,8 +1226,9 @@ merge commit, and one cannot exist while the branch conflicts, so the
 run list was simply EMPTY rather than red. Two of the four conflicts were
 master telling this branch it was incomplete: a menu action added here
 needed the `_document()` contract master had just introduced, and a panel
-button using a raw `setToolTip` was refused outright by
-`test_the_migration_debt_never_grows`. The guard caught that, not review
+button using a raw `setToolTip` was refused outright by the migration-debt
+guard, which is `test_every_control_carries_a_help_contract` now that the
+debt is zero. The guard caught that, not review
 -- the help layer working on its first contact with code written before
 it existed.)
 
@@ -2419,6 +2541,44 @@ If you touch that fixture, verify by counting, not by reading:
 ```bash
 powershell "(Get-ChildItem 'HKCU:\Software' | Where-Object PSChildName -like 'OpenChemStudio-pytest-*' | Measure-Object).Count"
 ```
+
+#### A FUNCTION-SCOPED AUTOUSE FIXTURE DOES NOT COVER A MODULE-SCOPED ONE
+
+The isolation above is real and it had a hole underneath it for as long
+as it has existed. `isolated_settings` is `autouse=True` and therefore
+FUNCTION-scoped, and **pytest sets higher-scoped fixtures up first** -- so
+a `scope="module"` fixture that builds a `Settings` or a `MainWindow` runs
+while `QSettings` is still the real one. Five fixtures in this suite do:
+
+    module   window       tests/test_right_dock_width.py
+    module   window       tests/test_ketcher_overrule.py
+    module   window       tests/test_conformers_without_the_3d_viewer.py
+    module   main_window  tests/test_command_palette_vocabulary.py
+    module   controls     tests/test_tooltip_coverage.py
+
+**Measured on the real key, either side of ONE run of one file:**
+
+    before   13:39:20   plugins/project_directory = .../tmpes9xm92a/none
+    after    13:41:30   plugins/project_directory = .../tmpfk04ymjp/none
+
+A live rewrite of the developer's own registry, pointing at a temp
+directory that had already been deleted. Not junk keys under a scratch
+name this time -- the real `OpenChemStudio` key, the one a shipped install
+reads.
+
+**`tests/test_settings_isolation.py` COULD NOT SEE IT, and the reason
+generalises:** all three of its guards are function-scoped, so they always
+ran INSIDE the patch and always found a clean INI. A guard for a
+scope-ordering bug has to live at the scope where the bug happens; the
+one that catches it now takes a deliberately `scope="module"` fixture and
+asserts on `fileName()`, since a NativeFormat `QSettings` reports a
+`\HKEY_CURRENT_USER\...` pseudo-path and that is the only thing telling
+the two backends apart from inside the process.
+
+`_isolated_settings_for_higher_scopes` is session-scoped and does the same
+redirection. It does NOT replace the per-test fixture -- tests must still
+not see each other's writes, and that one gives each its own file. This is
+the floor underneath it.
 
 #### The same rule, the same mistake, in the DATA root
 
@@ -5023,6 +5183,23 @@ Bump `_LAYOUT_VERSION` for any future change a saved layout cannot
 express, and probe a REAL install rather than trusting the suite: every
 test builds a window with no prior state, which is exactly the case that
 cannot see this.
+
+**AND THE VERY NEXT GEOMETRY CHANGE FORGOT TO, which is why that sentence
+is worth more than it looks.** `_LAYOUT_VERSION` went to `"2"` on
+2026-08-07 with the rail; the 420 px starting width landed 2026-08-15 and
+left it alone. So every install that had run the app in between carried a
+version-2 layout with 280 px docks, and the fix that exists to stop
+caption clipping **never reached any of them** -- including this
+project's own. Read off the real registry: `ui/layout_version = 2`, and
+`_set_initial_right_dock_width` is skipped whenever a layout restores.
+
+Measured by driving the app with the version bumped and nothing else
+changed: docks 280 -> 420, and the Batch panel's horizontal scrollbar and
+off-screen "Virtual Screening..." button both disappear. Bumped to `"3"`.
+
+The tell is that the suite cannot see this class of defect AT ALL -- a
+saved layout is the one state no test starts from -- so the check is
+`ui/layout_version` in the real store, not a green run.
 
 #### `isVisible()` is False for every child of an unshown window
 

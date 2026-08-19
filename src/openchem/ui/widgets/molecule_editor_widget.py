@@ -22,6 +22,38 @@ from openchem.events.base import EventBus
 from openchem.events.events import MoleculeChanged
 from openchem.ui.editor_backend import EditorBackend
 from openchem.ui.widgets.ketcher_editor_backend import KetcherEditorBackend
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
+
+
+#: TIER 2 BECAUSE IT CHANGES WHAT A DRAG MEANS. A mode that silently
+#: reassigns the primary gesture is the one thing a user must never be in
+#: doubt about, which is why a readout bar exists only while it is on.
+_ROTATE_HELP = HelpTooltip(
+    text=(
+        "Turn the structure in three dimensions and keep the result as "
+        "the drawing.\n\n"
+        "While this is on, dragging on the canvas ROTATES instead of "
+        "drawing, and no bond is created. The rotation is rigid -- every "
+        "bond length and angle is unchanged -- and it lands on the undo "
+        "stack as a single step. A drag that moves nothing pushes nothing."
+    ),
+    tier=2,
+    help_id="editor.rotate_in_3d",
+    topic="editor",
+)
+
+#: A DIFFERENT CONCEPT FROM THE MODE ITSELF: this DISCARDS, where turning
+#: the mode off keeps whatever the structure now looks like.
+_ROTATE_CANCEL_HELP = HelpTooltip(
+    text=(
+        "Leave rotation mode and put the structure back as it was.\n\n"
+        "Nothing reaches the undo stack, so this is not the same as "
+        "rotating and then undoing."
+    ),
+    tier=1,
+    help_id="editor.rotate_cancel",
+    topic="editor",
+)
 
 
 class MoleculeEditorWidget(QWidget):
@@ -97,13 +129,11 @@ class MoleculeEditorWidget(QWidget):
         # while the mode is on.
         self._rotate_button = QPushButton("Rotate 3D", self)
         self._rotate_button.setCheckable(True)
-        self._rotate_button.setToolTip(
-            "Turn the structure in three dimensions and draw the result.\n"
-            "While this is on, dragging rotates instead of drawing."
-        )
+        apply_help_tooltip(self._rotate_button, _ROTATE_HELP)
         self._rotate_button.toggled.connect(self._on_rotate_toggled)
         self._rotate_readout = QLabel("", self)
         self._rotate_cancel = QPushButton("Cancel", self)
+        apply_help_tooltip(self._rotate_cancel, _ROTATE_CANCEL_HELP)
         self._rotate_cancel.clicked.connect(self._cancel_rotation)
         for widget in (self._rotate_readout, self._rotate_cancel):
             widget.setVisible(False)

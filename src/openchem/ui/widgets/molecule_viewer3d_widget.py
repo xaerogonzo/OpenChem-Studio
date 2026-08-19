@@ -36,6 +36,7 @@ from openchem.ui.visualization import (
     VisualizationLayer,
 )
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 
 logger = logging.getLogger("openchem.ui")
@@ -69,6 +70,176 @@ _HIGHLIGHT_COLOUR = "#ffb300"
 _ENSEMBLE_COLOURS = (
     "#0072b2", "#d55e00", "#009e73", "#cc79a7", "#e69f00", "#56b4e9",
 )
+
+
+#: THIRTEEN CONTROLS AND TWELVE CONCEPTS: `<` and `>` are ONE -- "step to
+#: the neighbouring conformer" -- and which direction is a property of the
+#: button, not of what it means. `instance_path` tells the two apart.
+#:
+#: The tier-3 entries are the ones where a reader can be confidently
+#: wrong: an overlay value that legitimately DISAGREES with the Properties
+#: panel, a "Use in 2D Editor" that can change the molecule's identity, and
+#: a Details dialog whose whole point is that fewer conformers were
+#: returned than were found.
+_HELP: dict[str, HelpTooltip] = {
+    "style": HelpTooltip(
+        text=(
+            "How atoms and bonds are drawn.\n\n"
+            "Display only -- no geometry, energy or measurement changes "
+            "with it."
+        ),
+        tier=1,
+        help_id="viewer3d.display_style",
+        topic="3d-viewer",
+    ),
+    "surface": HelpTooltip(
+        text=(
+            "Draw a molecular surface over the structure.\n\n"
+            "Off by default, because an opaque shell over the sticks is "
+            "not what opening this tab should show. The representations "
+            "differ in what they enclose -- a van der Waals surface is "
+            "the atoms' own radii, while a solvent-accessible one is "
+            "traced by a probe rolled over them, so the same molecule "
+            "gives visibly different volumes."
+        ),
+        tier=2,
+        help_id="viewer3d.surface",
+        topic="3d-viewer",
+    ),
+    "generate": HelpTooltip(
+        text=(
+            "Embed 3D conformers for this molecule, with the sampling and "
+            "optimisation settings on the dialog.\n\n"
+            "Generating REPLACES the current set. Conformers are ranked "
+            "by force-field energy and de-duplicated, so the number "
+            "returned is normally fewer than the number embedded."
+        ),
+        tier=2,
+        help_id="viewer3d.generate_conformers",
+        topic="3d-viewer",
+    ),
+    "use_in_editor": HelpTooltip(
+        text=(
+            "Redraw the 2D structure to match this conformer's geometry, "
+            "and switch to the editor.\n\n"
+            "The drawing keeps its implicit hydrogens and the conformers "
+            "are kept, so this is not the same as adopting the raw "
+            "coordinates.\n\n"
+            "IT CAN CHANGE WHAT THE MOLECULE IS. A geometry can settle "
+            "stereochemistry a flat drawing left open, and the panel says "
+            "so when it does; a conformer whose stereochemistry "
+            "CONTRADICTS the drawing is refused outright rather than "
+            "quietly committed, because that would be a different "
+            "compound."
+        ),
+        tier=3,
+        help_id="viewer3d.use_in_editor",
+        topic="3d-viewer",
+    ),
+    "gallery": HelpTooltip(
+        text=(
+            "Show several conformers at once, each rotatable on its "
+            "own.\n\n"
+            "The grid pages through the set rather than growing without "
+            "limit: past about a dozen cells each one is too small to "
+            "read, which is what caps it rather than the cost of drawing."
+        ),
+        tier=2,
+        help_id="viewer3d.gallery",
+        topic="3d-viewer",
+    ),
+    "gallery_size": HelpTooltip(
+        text=(
+            "How many conformers the gallery shows at once.\n\n"
+            "More cells means each is smaller; the rest of the set is "
+            "reached by paging. Changing this rebuilds the grid, which "
+            "resets the selected cell to the first."
+        ),
+        tier=2,
+        help_id="viewer3d.gallery_size",
+        topic="3d-viewer",
+    ),
+    "show_shapes": HelpTooltip(
+        text=(
+            "Draw shape-valued results -- the dipole vector, a ligand "
+            "cone, the principal axes -- on the conformer currently "
+            "shown.\n\n"
+            "RECOMPUTED FOR THAT CONFORMER, so the value can differ from "
+            "the Properties panel's, which reports the conformer the "
+            "calculator originally ran on. Both are correct and they "
+            "answer different questions: four conformers of one molecule "
+            "genuinely have four different dipole moments.\n\n"
+            "Only results already calculated appear; this starts nothing."
+        ),
+        tier=3,
+        help_id="viewer3d.show_shapes",
+        topic="3d-viewer",
+    ),
+    "lock_views": HelpTooltip(
+        text=(
+            "Turn every conformer together, so they stay in the same "
+            "orientation.\n\n"
+            "Off, each cell turns on its own. Locking propagates a view "
+            "change however it was made, not only by mouse, so a cell "
+            "turned programmatically drags the rest with it."
+        ),
+        tier=2,
+        help_id="viewer3d.lock_views",
+        topic="3d-viewer",
+    ),
+    "match_views": HelpTooltip(
+        text=(
+            "Point every conformer the way the selected one is pointing, "
+            "then leave them free to turn separately again.\n\n"
+            "A one-off alignment of the CAMERAS, not of the structures: "
+            "no coordinate moves and nothing is recomputed."
+        ),
+        tier=2,
+        help_id="viewer3d.match_views",
+        topic="3d-viewer",
+    ),
+    "superimpose": HelpTooltip(
+        text=(
+            "Draw the ticked conformers in one frame, each a different "
+            "colour.\n\n"
+            "They are already superimposed for display -- conformers are "
+            "fitted onto a common frame on heavy atoms so that stepping "
+            "between them shows a change of SHAPE rather than a change of "
+            "orientation. The stored coordinates are never altered."
+        ),
+        tier=2,
+        help_id="viewer3d.superimpose",
+        topic="3d-viewer",
+    ),
+    "step": HelpTooltip(
+        text=(
+            "Step to the neighbouring conformer in the set.\n\n"
+            "The set is ordered by force-field energy, lowest first, so "
+            "stepping walks up that ranking. Energies are comparable "
+            "WITHIN one run of one molecule and not across molecules or "
+            "across runs with different settings.\n\n"
+            "The camera is kept, so what changes on screen is the shape."
+        ),
+        tier=3,
+        help_id="viewer3d.step_conformer",
+        topic="3d-viewer",
+    ),
+    "details": HelpTooltip(
+        text=(
+            "Where this run's candidates went: how many were embedded, "
+            "how many converged, how many distinct shapes they came to, "
+            "and how many were returned.\n\n"
+            "FEWER RETURNED THAN DISTINCT MEANS THE RUN FOUND MORE THAN "
+            "IT WAS ASKED TO KEEP. The rest are real conformers and a "
+            "higher limit returns them -- that truncation is the one "
+            "place genuine conformers are lost, and it is silent without "
+            "this dialog."
+        ),
+        tier=3,
+        help_id="viewer3d.generation_details",
+        topic="3d-viewer",
+    ),
+}
 
 
 class MoleculeViewer3DWidget(QWidget):
@@ -174,6 +345,7 @@ class MoleculeViewer3DWidget(QWidget):
         self._style_combo = QComboBox(self)
         self._style_combo.addItems(["stick", "ballstick", "sphere", "line"])
         self._style_combo.currentTextChanged.connect(self._backend.set_style)
+        apply_help_tooltip(self._style_combo, _HELP['style'])
 
         # Phase 25b. "None" first so the default view is unchanged -- a
         # surface is opt-in, and an opaque shell over the sticks is not
@@ -183,19 +355,17 @@ class MoleculeViewer3DWidget(QWidget):
         for representation in SURFACE_REPRESENTATIONS:
             self._surface_combo.addItem(SURFACE_REPRESENTATION_LABELS[representation], representation)
         self._surface_combo.currentIndexChanged.connect(self._on_surface_changed)
+        apply_help_tooltip(self._surface_combo, _HELP['surface'])
 
         self._generate_button = QPushButton("Generate Conformers...", self)
         self._generate_button.clicked.connect(self._on_generate_clicked)
+        apply_help_tooltip(self._generate_button, _HELP['generate'])
 
         # THE WAY BACK. Structures went one way -- "Send to 3D Viewer Tab"
         # exists and nothing returned -- so a conformer you had generated
         # and picked could not become the structure you were working on.
         self._use_button = QPushButton("Use in 2D Editor", self)
-        self._use_button.setToolTip(
-            "Redraw the 2D structure to match this conformer's geometry, and switch "
-            "to the editor.\n"
-            "The drawing keeps its implicit hydrogens, and the conformers are kept."
-        )
+        apply_help_tooltip(self._use_button, _HELP['use_in_editor'])
         self._use_button.clicked.connect(self._on_use_clicked)
         self._use_button.setEnabled(False)
 
@@ -203,9 +373,7 @@ class MoleculeViewer3DWidget(QWidget):
         # several ones to be visible at a time if wanted, and on the screen
         # at the same time, yet independently rotatable."
         self._gallery_check = QCheckBox("Gallery", self)
-        self._gallery_check.setToolTip(
-            "Show several conformers at once, each rotatable on its own."
-        )
+        apply_help_tooltip(self._gallery_check, _HELP['gallery'])
         self._gallery_check.toggled.connect(self._on_gallery_toggled)
 
         self._size_combo = QComboBox(self)
@@ -213,59 +381,39 @@ class MoleculeViewer3DWidget(QWidget):
             self._size_combo.addItem(label, (rows, cols))
         self._size_combo.setCurrentText(_DEFAULT_GALLERY_SIZE)
         self._size_combo.currentIndexChanged.connect(self._refresh_view)
+        apply_help_tooltip(self._size_combo, _HELP['gallery_size'])
 
         # THE OVERLAY. Shape-valued results drawn on the conformer you are
         # actually looking at -- recomputed for it, not the canonical one,
         # which is why its number can differ from the Properties panel's.
         self._overlay_check = QCheckBox("Show shapes", self)
-        self._overlay_check.setToolTip(
-            "Draw shape-valued results (the dipole vector, a ligand cone, the\n"
-            "principal axes) on the conformer currently shown.\n\n"
-            "Recomputed FOR THAT CONFORMER, so the value can differ from the\n"
-            "Properties panel's, which reports the conformer the calculator\n"
-            "originally ran on. Both are correct: they answer different\n"
-            "questions.\n\n"
-            "Only results you have already calculated appear."
-        )
+        apply_help_tooltip(self._overlay_check, _HELP['show_shapes'])
         self._overlay_check.setEnabled(False)
         self._overlay_check.toggled.connect(self._on_overlay_toggled)
 
         self._lock_check = QCheckBox("Lock views", self)
-        self._lock_check.setToolTip(
-            "Turn every conformer together, so they stay in the same "
-            "orientation. Off, each one turns on its own."
-        )
+        apply_help_tooltip(self._lock_check, _HELP['lock_views'])
         self._lock_check.toggled.connect(self._refresh_view)
 
         self._match_button = QPushButton("Match all to selected", self)
-        self._match_button.setToolTip(
-            "Point every conformer the way the selected one is pointing, "
-            "then leave them free to turn separately again."
-        )
+        apply_help_tooltip(self._match_button, _HELP['match_views'])
         self._match_button.clicked.connect(self._on_match_clicked)
 
         self._superimpose_button = QPushButton("Superimpose ticked", self)
-        self._superimpose_button.setToolTip(
-            "Draw the ticked conformers in one frame, each a different colour."
-        )
+        apply_help_tooltip(self._superimpose_button, _HELP['superimpose'])
         self._superimpose_button.clicked.connect(self._on_superimpose_clicked)
 
         self._prev_button = QPushButton("<", self)
         self._prev_button.clicked.connect(self._show_previous_conformer)
+        apply_help_tooltip(self._prev_button, _HELP['step'])
         self._next_button = QPushButton(">", self)
         self._next_button.clicked.connect(self._show_next_conformer)
+        apply_help_tooltip(self._next_button, _HELP['step'])
         self._status_label = QLabel("No conformers", self)
         self._measurement_label = QLabel("", self)
 
         self._details_button = QPushButton("Details...", self)
-        self._details_button.setToolTip(
-            "Where this run's candidates went: how many were embedded, how many\n"
-            "converged, how many distinct shapes they came to, and how many were\n"
-            "returned.\n\n"
-            "Fewer returned than distinct means the run found more conformers than\n"
-            "it was asked to keep -- the rest are real and a higher limit returns\n"
-            "them."
-        )
+        apply_help_tooltip(self._details_button, _HELP['details'])
         self._details_button.clicked.connect(self._show_generation_details)
         # Explicit rather than left to the `_refresh_view` that runs during
         # construction: there is nothing to describe before a run exists,

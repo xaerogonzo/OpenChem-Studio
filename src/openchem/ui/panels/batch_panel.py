@@ -29,7 +29,6 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
     QFileDialog,
-    QHBoxLayout,
     QHeaderView,
     QLabel,
     QLineEdit,
@@ -53,9 +52,130 @@ from openchem.events.base import EventBus
 from openchem.services.batch_service import BatchProgress, BatchService
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.table_export_service import TableExportService
+from openchem.ui.widgets.flow_layout import flow_row
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.ui.widgets.sortable_item import SORT_ROLE, SortableItem
 
 logger = logging.getLogger("openchem.ui")
+
+#: EIGHT CONTROLS, EIGHT CONCEPTS -- nothing here collapses. The three
+#: export buttons stay apart for the reason `Copy Structure As` does: CSV
+#: and Markdown make different round-trip promises, and "analyse what was
+#: computed" and "screen the project against thresholds" are different
+#: questions rather than two renderings of one.
+_HELP: dict[str, HelpTooltip] = {
+    "filter": HelpTooltip(
+        text=(
+            "Show only properties whose name matches what you "
+            "type.\n\n"
+            "It filters the LIST, never the results: a property hidden "
+            "here stays ticked and still runs. A category left with no "
+            "matching entries is hidden entirely rather than shown empty, "
+            "which would read as a category that produced nothing."
+        ),
+        tier=2,
+        help_id="batch.property_filter",
+        topic="batch",
+    ),
+    "run": HelpTooltip(
+        text=(
+            "Compute every ticked property for every molecule in the "
+            "project.\n\n"
+            "The work runs in the background and is listed in the Jobs "
+            "panel; results fill the table below as they arrive. Cost "
+            "grows with molecules TIMES properties, so a large project "
+            "with a whole category ticked is a long run."
+        ),
+        tier=2,
+        help_id="batch.run",
+        topic="batch",
+    ),
+    "cancel": HelpTooltip(
+        text=(
+            "Stop the run that is in progress.\n\n"
+            "Results already computed stay in the table; the rest are "
+            "left blank, which reads the same as never having been run."
+        ),
+        tier=1,
+        help_id="batch.cancel",
+        topic="batch",
+    ),
+    "clear_selection": HelpTooltip(
+        text=(
+            "Untick every property.\n\n"
+            "Clears the SELECTION only -- results already in the table "
+            "stay, and so does anything typed in the filter."
+        ),
+        tier=1,
+        help_id="batch.clear_selection",
+        topic="batch",
+    ),
+    "export_csv": HelpTooltip(
+        text=(
+            "Write the results table to a CSV file.\n\n"
+            "One row per molecule and one column per computed property, "
+            "for a spreadsheet or a script. A value that could not be "
+            "reduced to a number is written as text rather than dropped."
+        ),
+        tier=2,
+        help_id="batch.export_csv",
+        topic="batch",
+    ),
+    "export_report": HelpTooltip(
+        text=(
+            "Write the results as a Markdown report.\n\n"
+            "The same table as the CSV plus the provenance a bare CSV "
+            "cannot carry -- which calculator produced each column and on "
+            "what basis. For reading rather than for re-import."
+        ),
+        tier=2,
+        help_id="batch.export_report",
+        topic="batch",
+    ),
+    "analyse": HelpTooltip(
+        text=(
+            "Open the analysis view on the table that has been "
+            "computed.\n\n"
+            "Plots, correlations and per-atom comparison across the "
+            "molecules already in the table. It analyses what is there "
+            "and starts no calculation, so a property nobody ran is "
+            "absent rather than empty."
+        ),
+        tier=2,
+        help_id="batch.analyse",
+        topic="batch",
+    ),
+    "screen": HelpTooltip(
+        text=(
+            "Filter the project against property thresholds.\n\n"
+            "A different question from the table: rather than reporting "
+            "values it keeps the molecules satisfying every rule you set. "
+            "The thresholds are yours -- nothing here is a druglikeness "
+            "or regulatory verdict."
+        ),
+        tier=2,
+        help_id="batch.virtual_screening",
+        topic="batch",
+    ),
+}
+
+#: Tier 3 because the CHOICE changes what the number means, not merely how
+#: precise it is: the SUMMED Crippen contribution is the molecule's LogP,
+#: while the mean of the same per-atom values is a different quantity that
+#: is also real. Reading one against a literature value for the other is
+#: wrong in a way that looks fine, which is the tier-3 test.
+_PER_ATOM_AGGREGATE_HELP = HelpTooltip(
+    text=(
+        "How a per-atom result becomes one number per molecule.\n\n"
+        "There is no universally right answer -- the summed Crippen "
+        "contribution IS the molecule's LogP, but the mean of the same "
+        "values is also real, and they are different quantities. The "
+        "column header records which was taken."
+    ),
+    tier=3,
+    help_id="batch.per_atom_aggregate",
+    topic="batch",
+)
 
 _FAILED_BRUSH = QBrush(QColor(150, 150, 150))
 _MISSING = "—"
@@ -104,40 +224,54 @@ class BatchPanel(QWidget):
         self._filter = QLineEdit(self)
         self._filter.setPlaceholderText("Filter properties…")
         self._filter.textChanged.connect(self._apply_filter)
+        apply_help_tooltip(self._filter, _HELP['filter'])
         layout.addWidget(self._filter)
 
         self._tree = QTreeWidget(self)
         self._tree.setHeaderLabels(["Property", "Basis"])
+        # PROPERTY STRETCHES, BASIS DOES NOT. Qt stretches the LAST section by
+        # default, which is exactly backwards here: every readable string is in
+        # column 0 -- and indented up to three levels -- while "Basis" holds one
+        # short word and is empty on the category rows. Left to the default, the
+        # categories elided to three characters ("Ad...", "Cha...", "Elec...")
+        # while the empty Basis column took 455 px of a 420 px panel. That is
+        # the same unreadable-label symptom the panel rail was built to remove.
+        tree_header = self._tree.header()
+        tree_header.setStretchLastSection(False)
+        tree_header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        tree_header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self._tree.setMinimumHeight(160)
         layout.addWidget(self._tree)
 
-        aggregate_row = QHBoxLayout()
-        aggregate_row.addWidget(QLabel("Per-atom values as:"))
+        # A `QHBoxLayout`'s minimum width is the SUM of its children, so each
+        # of this panel's three control rows was setting a floor no dock width
+        # could satisfy -- 409 px of content in a 280 px panel, with "Virtual
+        # Screening..." off the right edge entirely. `flow_row` wraps instead
+        # and reports the widest SINGLE control. Same cure as the 3D viewer's
+        # toolbar; see `ui/widgets/flow_layout.py`.
+        aggregate_row = flow_row(self)
+        aggregate_row.layout().addWidget(QLabel("Per-atom values as:"))
         self._aggregate = QComboBox(self)
         self._aggregate.addItems(PER_ATOM_AGGREGATES)
-        self._aggregate.setToolTip(
-            "How a per-atom result becomes one number per molecule. There is no "
-            "universally right answer — the summed Crippen contribution IS the "
-            "molecule's LogP, but the mean of the same values is also real. The "
-            "column header says which was taken."
-        )
-        aggregate_row.addWidget(self._aggregate)
-        aggregate_row.addStretch(1)
-        layout.addLayout(aggregate_row)
+        apply_help_tooltip(self._aggregate, _PER_ATOM_AGGREGATE_HELP)
+        aggregate_row.layout().addWidget(self._aggregate)
+        layout.addWidget(aggregate_row)
 
-        button_row = QHBoxLayout()
+        button_row = flow_row(self)
         self._run_button = QPushButton("Run", self)
         self._run_button.clicked.connect(self._run)
+        apply_help_tooltip(self._run_button, _HELP['run'])
         self._cancel_button = QPushButton("Cancel", self)
         self._cancel_button.clicked.connect(self._cancel)
+        apply_help_tooltip(self._cancel_button, _HELP['cancel'])
         self._cancel_button.setEnabled(False)
         self._select_none_button = QPushButton("Clear selection", self)
         self._select_none_button.clicked.connect(self._clear_selection)
-        button_row.addWidget(self._run_button)
-        button_row.addWidget(self._cancel_button)
-        button_row.addWidget(self._select_none_button)
-        button_row.addStretch(1)
-        layout.addLayout(button_row)
+        apply_help_tooltip(self._select_none_button, _HELP['clear_selection'])
+        button_row.layout().addWidget(self._run_button)
+        button_row.layout().addWidget(self._cancel_button)
+        button_row.layout().addWidget(self._select_none_button)
+        layout.addWidget(button_row)
 
         self._progress = QProgressBar(self)
         self._progress.setVisible(False)
@@ -153,21 +287,24 @@ class BatchPanel(QWidget):
         self._results.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         layout.addWidget(self._results, stretch=1)
 
-        export_row = QHBoxLayout()
+        export_row = flow_row(self)
         self._csv_button = QPushButton("Export CSV…", self)
         self._csv_button.clicked.connect(self._export_csv)
+        apply_help_tooltip(self._csv_button, _HELP['export_csv'])
         self._report_button = QPushButton("Export Report…", self)
         self._report_button.clicked.connect(self._export_report)
+        apply_help_tooltip(self._report_button, _HELP['export_report'])
         self._analyse_button = QPushButton("Analyse…", self)
         self._analyse_button.clicked.connect(self._analyse)
+        apply_help_tooltip(self._analyse_button, _HELP['analyse'])
         self._screen_button = QPushButton("Virtual Screening…", self)
         self._screen_button.clicked.connect(self._screen)
+        apply_help_tooltip(self._screen_button, _HELP['screen'])
         for button in (self._csv_button, self._report_button, self._analyse_button):
             button.setEnabled(False)
-            export_row.addWidget(button)
-        export_row.addWidget(self._screen_button)
-        export_row.addStretch(1)
-        layout.addLayout(export_row)
+            export_row.layout().addWidget(button)
+        export_row.layout().addWidget(self._screen_button)
+        layout.addWidget(export_row)
 
         event_bus.subscribe(BatchProgress, self._on_progress)
         self._populate_tree()

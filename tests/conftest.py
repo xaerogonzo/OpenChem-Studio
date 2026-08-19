@@ -440,6 +440,44 @@ def webgl(qapp):
     return webgl_contexts(qapp)[0]
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _isolated_settings_for_higher_scopes(tmp_path_factory):
+    """The same redirection, in force before any function-scoped fixture is.
+
+    `isolated_settings` below is FUNCTION-scoped, and pytest sets
+    higher-scoped fixtures up FIRST -- so a `scope="module"` fixture that
+    builds a `Settings` or a `MainWindow` runs while `QSettings` is still
+    the real one. Five fixtures in this suite do exactly that, and
+    `tests/test_settings_isolation.py` could not see it because that guard
+    is itself function-scoped and therefore always runs inside the patch.
+
+    MEASURED, not reasoned about. Reading the real key's last-write time
+    either side of one run of `tests/test_right_dock_width.py`:
+
+        before   13:39:20   plugins/project_directory = .../tmpes9xm92a/none
+        after    13:41:30   plugins/project_directory = .../tmpfk04ymjp/none
+
+    -- a live rewrite of the developer's own registry, by a module-scoped
+    fixture pointing at a temp directory that no longer exists.
+
+    This does NOT replace the per-test fixture: tests must still not see
+    each other's writes, and that one gives each its own file. This is the
+    floor underneath it, so nothing lands in the registry no matter which
+    scope built it.
+    """
+    import openchem.app.settings as settings_module
+
+    ini_path = tmp_path_factory.mktemp("settings-session") / "qsettings.ini"
+    patch = pytest.MonkeyPatch()
+    patch.setattr(
+        settings_module,
+        "QSettings",
+        lambda *_args, **_kwargs: QSettings(str(ini_path), QSettings.Format.IniFormat),
+    )
+    yield
+    patch.undo()
+
+
 @pytest.fixture(autouse=True)
 def isolated_settings(tmp_path, monkeypatch):
     """Point `Settings` at a throwaway INI file under `tmp_path`.

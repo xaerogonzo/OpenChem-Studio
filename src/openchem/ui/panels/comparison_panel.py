@@ -46,11 +46,46 @@ from openchem.events.events import (
 )
 from openchem.ui.widgets.collapsible_section import WrappedLabel
 from openchem.ui.widgets.empty_state import empty_state, empty_state_text, is_empty_state
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 _INTRO = (
     "Molecules side by side, on whatever has already been computed for them. "
     "Nothing here starts a calculation -- a blank cell means that molecule has "
     "not had that calculator run, not that it has no value."
+)
+
+
+#: TIER 2, and the qualifier is the behavioural one: an ABSENT value
+#: counts as a difference and stays on screen. Hiding it would be the more
+#: misleading of the two choices -- "this molecule has no value for that"
+#: is usually the interesting row.
+_DIFFERENCES_ONLY_HELP = HelpTooltip(
+    text=(
+        "Hide every row where the ticked molecules agree.\n\n"
+        "Two related structures share most of a long table, and the rows "
+        "that differ are the answer -- aspirin against salicylic acid is "
+        "15 differing rows out of 29.\n\n"
+        "A property one molecule has and another does not counts as a "
+        "difference and stays visible."
+    ),
+    tier=2,
+    help_id="compare.differences_only",
+    topic="compare",
+)
+
+#: Says what a BLANK cell means, because the export carries them and a
+#: reader of the pasted table has no panel text to explain them.
+_COPY_TABLE_HELP = HelpTooltip(
+    text=(
+        "Copy the table as it is shown, as tab-separated text.\n\n"
+        "What is copied follows the current view, so \"Differences "
+        "only\" narrows the export too. A blank cell means that "
+        "calculator has not been run for that molecule -- this panel "
+        "never starts a calculation -- rather than a value of nothing."
+    ),
+    tier=2,
+    help_id="compare.copy_table",
+    topic="compare",
 )
 
 
@@ -71,14 +106,11 @@ class ComparisonPanel(QWidget):
         self._molecules.itemChanged.connect(self._on_selection_changed)
 
         self._differences_only = QCheckBox("Differences only", self)
-        self._differences_only.setToolTip(
-            "Hide every row where the molecules agree.\n\n"
-            "Two related structures share most of a long table; the rows "
-            "that differ are the answer."
-        )
+        apply_help_tooltip(self._differences_only, _DIFFERENCES_ONLY_HELP)
         self._differences_only.toggled.connect(self._render)
 
         self._copy_button = QPushButton("Copy table", self)
+        apply_help_tooltip(self._copy_button, _COPY_TABLE_HELP)
         self._copy_button.clicked.connect(self._on_copy_clicked)
 
         self._table = QTableWidget(0, 1, self)

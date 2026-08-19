@@ -229,8 +229,32 @@ def initial_right_dock_width(available_width: int, dock_minimum: int) -> int:
     return max(dock_minimum, min(_INITIAL_RIGHT_DOCK_WIDTH, available_width // 4))
 
 
-_LAYOUT_VERSION = "2"
+_LAYOUT_VERSION = "3"
 _LAYOUT_VERSION_KEY = "ui/layout_version"
+_RAIL_COLLAPSED_KEY = "ui/rail_collapsed"
+
+#: What the central editor is never squeezed below, in pixels.
+#:
+#: Chosen from measurement rather than taste, and bounded on both sides:
+#: the window's non-centre chrome is 567 px on a real desktop and 854 under
+#: Qt's `offscreen`, so 400 puts the window minimum at 967 and 1254 against
+#: the 1366 this product supports. 640 would put `offscreen` at 1494 and
+#: redden `test_the_window_can_be_made_narrower_than_a_small_laptop`.
+CENTRAL_FLOOR = 400
+
+
+def _as_bool(value: object) -> bool:
+    """QSettings hands back whatever the backend stored.
+
+    An INI file -- which is what the suite's `isolated_settings` uses --
+    returns the STRING "false", and `bool("false")` is True. The registry
+    returns a real bool. A setting that round-trips on one backend and
+    inverts on the other is the shape `QSettings.setDefaultFormat` already
+    cost this project once.
+    """
+    if isinstance(value, str):
+        return value.strip().lower() in ("true", "1", "yes")
+    return bool(value)
 
 HELP_TOPIC_BY_DOCK = {
     "Project_Explorer": "projects",
@@ -307,6 +331,27 @@ class MainWindow(QMainWindow):
         self._center_tabs.addTab(self._editor, "2D Editor")
         self._center_tabs.addTab(self._viewer3d, "3D Viewer")
         self._center_tabs.addTab(self._macromolecule_viewer.widget(), "Macromolecule Viewer")
+        # A DELIBERATE FLOOR FOR THE EDITOR, rather than one that emerges.
+        #
+        # Nothing enforced a central minimum, so it was whatever the widest
+        # control in the widest tab happened to leave behind -- measured in
+        # the running app at 149 px, below even the 200 the tests reasoned
+        # about. `CENTRAL_FLOOR` in tests/test_right_dock_width.py has always
+        # been a test-only notion; this is what makes it true of the product.
+        #
+        # ON THE `QTabWidget`, not on a page and not on the window. A
+        # `QTabWidget` takes the MAXIMUM over its pages, so a floor set on
+        # the 2D editor would guarantee nothing for the 3D and Macromolecule
+        # viewers and would evaporate the moment that page was restructured;
+        # a floor on the WINDOW is the 1877-2055 px bug the flow layout was
+        # written to remove. This is also the object
+        # `test_the_centre_does_not_force_the_window_wide` measures, so the
+        # ceiling and the floor are bounds on ONE quantity rather than two.
+        #
+        # 400 clears the arithmetic at the narrowest width the product
+        # claims: 567 px of non-centre chrome measured on the real desktop
+        # puts the window minimum at 967, against a 1366 laptop.
+        self._center_tabs.setMinimumWidth(CENTRAL_FLOOR)
         self.setCentralWidget(self._center_tabs)
 
         self._project_explorer = ProjectExplorerPanel(
@@ -432,6 +477,7 @@ class MainWindow(QMainWindow):
         self._panel_rail = PanelRail(self)
         self._panel_rail.panel_chosen.connect(self._on_panel_chosen)
         self._panel_rail.favourite_toggled.connect(self._on_favourite_toggled)
+        self._panel_rail.list_visibility_changed.connect(self._on_rail_fold_changed)
         rail_bar = QToolBar("Panels", self)
         # The RAIL's own show/hide, which is not a panel's -- hiding it
         # removes the navigation rather than a panel, so it gets its own
@@ -556,6 +602,8 @@ class MainWindow(QMainWindow):
         if not self._restore_window_state():
             self._set_initial_right_dock_width()
         self._restore_pinned_panels()
+        self._restore_rail_fold()
+        self._sync_rail_to_the_restored_panel()
 
         services.event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
         services.event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
@@ -679,6 +727,49 @@ class MainWindow(QMainWindow):
         stored = self._settings.get("ui/pinned_panels", "")
         if stored:
             self._panel_rail.set_favourites([p for p in str(stored).split(",") if p])
+
+    def _on_rail_fold_changed(self, visible: bool) -> None:
+        self._settings.set(_RAIL_COLLAPSED_KEY, not visible)
+
+    def _sync_rail_to_the_restored_panel(self) -> None:
+        """Make the rail agree with whichever panel `restoreState` showed.
+
+        `restoreState` puts the saved dock back on screen and tells the
+        rail nothing, so a window restored with the Compare panel visible
+        came up highlighting Analysis -- navigation describing one thing
+        while the screen shows another, which is the disagreement
+        `select_panel` was added to prevent. Every OTHER route into a
+        panel calls it; this one was missed because no test built a second
+        window from a saved state and then asked the rail what it thought.
+
+        `select_panel`, not `_on_panel_chosen`: the dock is already
+        visible and correct, and only the navigation needs to catch up.
+        """
+        for dock in self._right_docks:
+            if not dock.isHidden():
+                self._panel_rail.select_panel(dock.objectName())
+                return
+
+    def _restore_rail_fold(self) -> None:
+        """Put the rail back the way it was left.
+
+        Folding it hands 230 px of a 270 px rail back to the panels, which
+        is 12% of a 1920 screen and 17% of a 1366 laptop -- worth enough
+        that having to redo it on every launch is the difference between a
+        feature somebody uses and one they try once.
+
+        AFTER `_restore_window_state`, deliberately. This runs during
+        construction, and reading or applying a layout value before the
+        geometry Qt is about to restore describes a window that never
+        exists -- the same trap `initial_right_dock_width` records for
+        `self.width()`.
+
+        Absent means expanded, which is what every existing install gets
+        and what the rail already does.
+        """
+        self._panel_rail.set_list_visible(
+            not _as_bool(self._settings.get(_RAIL_COLLAPSED_KEY, False))
+        )
 
     # --- the command palette -------------------------------------------------
 

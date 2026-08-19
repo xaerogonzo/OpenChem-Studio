@@ -50,6 +50,7 @@ from openchem.domain.structure_issue import (
 from openchem.events.base import EventBus
 from openchem.events.events import StructureChecked
 from openchem.services.structure_check_service import StructureCheckService
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 #: severity -> (label, colour). The same Okabe-Ito pair the status
 #: indicator uses, for the same colour-vision reason, and always beside a
@@ -76,6 +77,54 @@ _EMPTY_MESSAGE = (
     "Nothing to report.\n\n"
     "Every check that could run, ran. Anything that could not is listed as skipped, "
     "with the reason."
+)
+
+
+#: TIER 3. An oxidation state is a BOOKKEEPING convention, not a measured
+#: charge, and a reader who takes the two for the same thing will draw
+#: conclusions the number cannot support -- which is the tier-3 test.
+_OXIDATION_STATES_HELP = HelpTooltip(
+    text=(
+        "Label each atom with its formal oxidation state.\n\n"
+        "An oxidation state is a bookkeeping convention -- every bond is "
+        "assigned wholly to the more electronegative atom -- and is NOT "
+        "the atom's actual charge or its partial charge. It is a display "
+        "only: nothing about the structure changes, and the labels are "
+        "recomputed when the drawing does."
+    ),
+    tier=3,
+    help_id="structure_check.oxidation_states",
+    topic="structure-check",
+)
+
+#: The pairing matters: one CHANGES the structure and one only re-reads it,
+#: and they sit side by side.
+_FIX_HELP = HelpTooltip(
+    text=(
+        "Apply the selected finding's suggested repair to the "
+        "structure.\n\n"
+        "Only some findings carry one, so this stays disabled until a "
+        "repairable finding is selected. It is a real edit: it lands on "
+        "the undo stack, and it can invalidate conformers computed for "
+        "the old structure."
+    ),
+    tier=2,
+    help_id="structure_check.apply_fix",
+    topic="structure-check",
+)
+
+_RECHECK_HELP = HelpTooltip(
+    text=(
+        "Run every check again against the structure as it stands "
+        "now.\n\n"
+        "Changes nothing. Checks normally re-run by themselves when the "
+        "drawing changes, so this is for the case where something "
+        "OUTSIDE the drawing moved -- a setting, or a data file a checker "
+        "reads."
+    ),
+    tier=1,
+    help_id="structure_check.recheck",
+    topic="structure-check",
 )
 
 
@@ -126,13 +175,16 @@ class StructureCheckPanel(QWidget):
         # Copy SMILES needed: the checkbox is faster once you know it is
         # here, and the menu is how you find out.
         self._oxidation_states = QCheckBox("Show oxidation states", self)
+        apply_help_tooltip(self._oxidation_states, _OXIDATION_STATES_HELP)
         self._oxidation_states.toggled.connect(self._on_oxidation_states_toggled)
 
         self._fix_button = QPushButton("Fix", self)
+        apply_help_tooltip(self._fix_button, _FIX_HELP)
         self._fix_button.setEnabled(False)
         self._fix_button.clicked.connect(self._apply_selected_fix)
 
         self._recheck_button = QPushButton("Check again", self)
+        apply_help_tooltip(self._recheck_button, _RECHECK_HELP)
         self._recheck_button.clicked.connect(self._request_recheck)
 
         buttons = QHBoxLayout()

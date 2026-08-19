@@ -45,6 +45,7 @@ from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
 from openchem.events.events import QuantumChemistryResultReady
 from openchem.ui.molecule_combo import repopulate
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 #: Three columns, both omissions measured rather than guessed.
 #:
@@ -72,6 +73,152 @@ _INTRO = (
 )
 
 
+#: `Evidence` AND `Basis` ARE THE TIER-3 PAIR, and neither is a confidence
+#: score. This panel deliberately does NOT combine its lines, and the
+#: measured case for that is carbon monoxide: the frontier gap and the
+#: hardness difference give OPPOSITE answers about whether BH3 or BF3
+#: binds it better. An average would have split the difference on a case
+#: where one line is simply right.
+_HELP: dict[str, HelpTooltip] = {
+    "acid": HelpTooltip(
+        text=(
+            "The electron-pair ACCEPTOR of the pair.\n\n"
+            "The choice is deliberate and does not follow the project "
+            "tree: reshuffling it because something was selected "
+            "elsewhere would silently change what the table describes."
+        ),
+        tier=2,
+        help_id="interactions.lewis_acid",
+        topic="interactions",
+    ),
+    "base": HelpTooltip(
+        text=(
+            "The electron-pair DONOR of the pair.\n\n"
+            "A molecule can legitimately be both: an alcohol donates its "
+            "oxygen lone pairs while its O-H accepts, so water is "
+            "ambiphilic and may sensibly be picked on either side."
+        ),
+        tier=2,
+        help_id="interactions.lewis_base",
+        topic="interactions",
+    ),
+    "predict": HelpTooltip(
+        text=(
+            "Gather what can be said about this acid/base pair.\n\n"
+            "Nothing runs until you press it. The orbital-based lines "
+            "need a quantum chemistry job to have been run on each "
+            "molecule and stay absent otherwise -- absent because an "
+            "input is missing, not because the answer is no."
+        ),
+        tier=2,
+        help_id="interactions.predict",
+        topic="interactions",
+    ),
+    "Evidence": HelpTooltip(
+        text=(
+            "One line per question that can be answered about this "
+            "pair.\n\n"
+            "THE LINES ARE NOT COMBINED AND ARE NOT VOTES. Each answers a "
+            "different question, no accepted way of weighing them against "
+            "each other exists, and they can disagree -- for carbon "
+            "monoxide the frontier gap and the hardness difference point "
+            "in opposite directions. There is no total row for that "
+            "reason."
+        ),
+        tier=3,
+        help_id="interactions.evidence",
+        topic="interactions",
+    ),
+    "Value": HelpTooltip(
+        text=(
+            "What that line measures, in its own units.\n\n"
+            "Units differ from row to row -- eV for an orbital energy, "
+            "kcal/mol for a predicted enthalpy -- so the column is not "
+            "comparable down its own length. That is why each unit is "
+            "carried in the value rather than once in the header."
+        ),
+        tier=3,
+        help_id="interactions.value",
+        topic="interactions",
+    ),
+    "Basis": HelpTooltip(
+        text=(
+            "Whether the line is arithmetic or judgement: deterministic "
+            "or heuristic.\n\n"
+            "PROVENANCE, NOT CONFIDENCE. \"Deterministic\" means the "
+            "value follows from the inputs by calculation -- it is right, "
+            "or an input is wrong. \"Heuristic\" means it rests on a "
+            "threshold or a parameter set somebody chose. Neither is a "
+            "probability, and this is two values rather than a percentage "
+            "nobody measured."
+        ),
+        tier=3,
+        help_id="interactions.basis",
+        topic="interactions",
+    ),
+    "contacts_molecule": HelpTooltip(
+        text=(
+            "Which molecule to search for contacts WITHIN.\n\n"
+            "Intramolecular only -- this tab never looks between two "
+            "molecules, which is what the Lewis Adduct tab is for."
+        ),
+        tier=1,
+        help_id="interactions.contacts_molecule",
+        topic="interactions",
+    ),
+    "find_contacts": HelpTooltip(
+        text=(
+            "List this molecule's internal hydrogen bonds, pi-stacking "
+            "and metal contacts.\n\n"
+            "Measured on the molecule's CURRENT 3D conformer, so one with "
+            "no conformer has no geometry to measure and gets nothing -- "
+            "generate one first. A different conformer of the same "
+            "molecule can legitimately give a different list."
+        ),
+        tier=2,
+        help_id="interactions.find_contacts",
+        topic="interactions",
+    ),
+    "Interaction": HelpTooltip(
+        text=(
+            "Which kind of contact this row is -- hydrogen bond, "
+            "pi-stacking, or a metal contact.\n\n"
+            "Each kind is detected by its own geometric criteria, so the "
+            "kinds are not ranked against one another and the list is not "
+            "in strength order."
+        ),
+        tier=2,
+        help_id="interactions.contact_kind",
+        topic="interactions",
+    ),
+    "Where": HelpTooltip(
+        text=(
+            "The atoms involved, by their numbers in the structure as "
+            "drawn.\n\n"
+            "Those are the 1-based drawing numbers the Atom Inspector "
+            "uses, not the indices of a conformer carrying explicit "
+            "hydrogens."
+        ),
+        tier=2,
+        help_id="interactions.contact_atoms",
+        topic="interactions",
+    ),
+    "Distance": HelpTooltip(
+        text=(
+            "The separation in angstroms, on the conformer that was "
+            "measured.\n\n"
+            "A geometric fact about ONE computed conformer -- not an "
+            "experimental bond length, and not an interaction energy. A "
+            "shorter contact is not necessarily a stronger one, because "
+            "the kinds have different natural ranges."
+        ),
+        tier=3,
+        help_id="interactions.contact_distance",
+        topic="interactions",
+    ),
+}
+
+
 class InteractionsPanel(QWidget):
     """Pick an acid and a base from the project and see what can be said."""
 
@@ -89,9 +236,12 @@ class InteractionsPanel(QWidget):
         self._quantum: dict[str, dict[str, float]] = {}
 
         self._acid_combo = QComboBox(self)
+        apply_help_tooltip(self._acid_combo, _HELP['acid'])
         self._base_combo = QComboBox(self)
+        apply_help_tooltip(self._base_combo, _HELP['base'])
         self._predict_button = QPushButton("Predict", self)
         self._predict_button.clicked.connect(self._on_predict_clicked)
+        apply_help_tooltip(self._predict_button, _HELP['predict'])
 
         self._status_label = QLabel(
             "Pick an acid and a base above, then Predict. Nothing runs until "
@@ -102,6 +252,12 @@ class InteractionsPanel(QWidget):
 
         self._table = QTableWidget(0, len(_COLUMNS), self)
         self._table.setHorizontalHeaderLabels(_COLUMNS)
+        # On the header ITEMS, which are QTableWidgetItems rather than
+        # widgets; see `docking_panel.py` for why the walk needs that.
+        for column, name in enumerate(_COLUMNS):
+            item = self._table.horizontalHeaderItem(column)
+            if item is not None:
+                apply_help_tooltip(item, _HELP[name])
         # The short columns size to their contents and the label column
         # takes what is left. Three real columns still want about 520
         # pixels in a dock that has 314, so this scrolls sideways at the
@@ -197,8 +353,10 @@ class InteractionsPanel(QWidget):
         kind, the atoms and the distance in their own columns.
         """
         self._contacts_combo = QComboBox(self)
+        apply_help_tooltip(self._contacts_combo, _HELP['contacts_molecule'])
         self._contacts_button = QPushButton("Find contacts", self)
         self._contacts_button.clicked.connect(self._on_find_contacts)
+        apply_help_tooltip(self._contacts_button, _HELP['find_contacts'])
         self._contacts_status = QLabel(
             'Select a molecule and press "Find contacts" to list its '
             "intramolecular hydrogen bonds, pi-stacking and metal contacts.",
@@ -207,7 +365,12 @@ class InteractionsPanel(QWidget):
         self._contacts_status.setWordWrap(True)
 
         self._contacts_table = QTableWidget(0, 3, self)
-        self._contacts_table.setHorizontalHeaderLabels(("Interaction", "Where", "Distance"))
+        _CONTACT_COLUMNS = ("Interaction", "Where", "Distance")
+        self._contacts_table.setHorizontalHeaderLabels(_CONTACT_COLUMNS)
+        for column, name in enumerate(_CONTACT_COLUMNS):
+            item = self._contacts_table.horizontalHeaderItem(column)
+            if item is not None:
+                apply_help_tooltip(item, _HELP[name])
         contacts_header = self._contacts_table.horizontalHeader()
         contacts_header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         for column in (0, 2):

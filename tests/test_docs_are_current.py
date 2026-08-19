@@ -87,6 +87,20 @@ ALLOWED_MISSING_PATHS = {
     "chem/stout_providers.py",
     "chem/stout_runner.py",
     "services/stout_setup.py",
+    # The two staged-migration fixtures, deleted when the help-contract
+    # debt reached zero and named by CLAUDE.md's account of WHY they
+    # existed. Same reason as the STOUT modules above: a document
+    # recording a removal has to be able to say what it removed, and the
+    # reason those fixtures were needed -- that `missing` cannot be a
+    # failure while a migration is in flight -- outlives the files.
+    #
+    # THEY PASSED THIS GUARD WHILE UNCOMMITTED. `_repo_files` asks
+    # `git ls-files`, so a deleted-but-unstaged file is still tracked and
+    # still resolves; the citation only broke once the deletion was
+    # committed. Worth knowing before trusting a green docs run taken
+    # mid-change.
+    "tooltip_migration_debt.json",
+    "tooltip_completed_surfaces.json",
     # tinygraph's own build file, named by ROADMAP.md while explaining why
     # that dependency cannot be installed on Windows ("a `setup.py` passing
     # GCC/Clang flags that MSVC rejects"). Somebody else's file, like the
@@ -447,10 +461,15 @@ DEFERRALS: list[Deferral] = [
             "applies to 'the cause was never established'."
         ),
     ),
-    Deferral(
-        claim="`SimilarityService` doesn't exist yet",
-        unbuilt=lambda: not _defines("SimilarityService"),
-    ),
+    # "`SimilarityService` doesn't exist yet" lived here and is gone, because
+    # its entry is SETTLED now. Worth noting HOW it went stale: the recorded
+    # `unbuilt` predicate was still perfectly true -- no class of that name
+    # is defined anywhere -- while the CLAIM around it had been false for
+    # months, because Tanimoto similarity shipped in `chem/clustering.py` and
+    # reached `ui/dialogs/batch_analysis_dialog.py` without anyone naming a
+    # service. A predicate that watches for one SPELLING of a capability
+    # cannot see the capability arriving under another, which is the same
+    # shape as the solubility entry directly below.
     # "the solubility predictor answers for water only" lived here and is
     # gone, because its entry is SETTLED now and SETTLED items carry no
     # predicate. It went stale within the day and exactly as designed: the

@@ -442,3 +442,124 @@ def test_the_comparison_says_so_when_the_structures_are_unavailable(
 
     assert dialog._atom_table.rowCount() == 0
     assert "cannot be matched up" in dialog._atom_note.text()
+
+
+# --- width: the panel used to demand more than any dock could give ---------
+
+
+def test_no_control_row_sets_a_width_no_dock_can_satisfy(panel):
+    """A `QHBoxLayout`'s minimum is the SUM of its children.
+
+    All three of this panel's control rows were horizontal, so the export
+    row alone -- Export CSV, Export Report, Analyse, Virtual Screening --
+    put a floor under the whole panel: 409 px of content in a dock the
+    application opens at 420 and which a saved layout can leave at 280.
+    Measured in the running app, "Virtual Screening..." sat off the right
+    edge with a horizontal scrollbar underneath it.
+
+    THE SETUP IS ASSERTED FIRST. If the four buttons ever stop summing to
+    more than the panel's minimum, this test proves nothing and should
+    fail rather than pass quietly -- the same reason the pool-id guard
+    asserts its own pool really is sparse.
+    """
+    buttons = (
+        panel._csv_button,
+        panel._report_button,
+        panel._analyse_button,
+        panel._screen_button,
+    )
+    summed = sum(b.minimumSizeHint().width() for b in buttons)
+    widest = max(b.minimumSizeHint().width() for b in buttons)
+
+    assert summed > widest * 2, (
+        f"the export row is no longer several buttons wide (sum {summed}, "
+        f"widest {widest}), so this guard cannot see a row that fails to wrap"
+    )
+
+    minimum = panel.minimumSizeHint().width()
+    assert minimum < summed, (
+        f"the panel demands {minimum} px, at least the sum of its export "
+        f"buttons ({summed}) -- a control row has stopped wrapping. Use "
+        f"`flow_row` from ui/widgets/flow_layout.py, not QHBoxLayout."
+    )
+
+
+def test_the_property_column_gets_the_width_not_the_basis_column(panel):
+    """Qt stretches the LAST section, which is backwards for this tree.
+
+    Every readable string is in column 0, indented up to three levels;
+    "Basis" holds one short word and is EMPTY on the category rows. Left
+    to Qt's default the categories rendered as "Ad...", "Cha...", "Elec..."
+    -- three characters -- while the empty Basis column took more than
+    half the panel. That is the unreadable-label symptom the panel rail
+    was built to remove, reappearing one widget along.
+
+    THE PANEL IS SIZED FROM ITS OWN CONTENT, never pinned at 420. A fixed
+    width here would be a claim about the FONT: `offscreen`'s default is
+    more than twice as wide as a user's, and the widest category measures
+    472 px there against a panel the application opens at 420 -- so a
+    pinned assertion fails on a panel that is measurably clean in the app.
+    Measuring the requirement in the tree's own metrics and then giving it
+    that much room tests the column RULE at any font.
+    """
+    tree = panel._tree
+    metrics = tree.fontMetrics()
+    indent = tree.indentation()
+
+    categories = [
+        top.child(child)
+        for top in map(tree.topLevelItem, range(tree.topLevelItemCount()))
+        for child in range(top.childCount())
+    ]
+    assert categories, "the tree has no nested categories; this guard is vacuous"
+
+    needed = max(2 * indent + metrics.horizontalAdvance(c.text(0)) for c in categories)
+
+    panel.resize(needed + 160, 900)
+    panel.grab()  # a widget that was never shown lays nothing out
+
+    assert tree.columnWidth(0) >= needed, (
+        f"the Property column is {tree.columnWidth(0)} px in a tree {tree.width()} "
+        f"px wide, and its widest category needs {needed} px, so names elide to "
+        f"a few characters. Basis is {tree.columnWidth(1)} px and holds one word."
+    )
+
+
+def test_the_basis_column_takes_only_what_its_own_text_needs(panel):
+    """The other half, and the one that fails if the stretch comes back.
+
+    Widening the panel alone would satisfy the guard above even with Qt's
+    default stretch restored -- give a stretched last section enough room
+    and column 0 eventually gets what it needs too. What distinguishes the
+    two arrangements at ANY width is where the SLACK goes: with the fix,
+    Basis is sized to its own text and every spare pixel is Property's.
+
+    Font-independent by construction: both sides are measured in the
+    tree's own metrics.
+    """
+    tree = panel._tree
+    metrics = tree.fontMetrics()
+
+    panel.resize(1400, 900)
+    panel.grab()
+
+    basis_text = max(
+        (
+            leaf.text(1)
+            for top in map(tree.topLevelItem, range(tree.topLevelItemCount()))
+            for child in range(top.childCount())
+            for leaf in map(top.child(child).child, range(top.child(child).childCount()))
+        ),
+        key=len,
+        default="",
+    )
+    room_for_basis = metrics.horizontalAdvance(basis_text) + 4 * tree.indentation()
+
+    assert tree.columnWidth(1) <= room_for_basis, (
+        f"Basis is {tree.columnWidth(1)} px on a 1400 px panel while its widest "
+        f"value ({basis_text!r}) needs about {room_for_basis} -- the last-section "
+        f"stretch is back, and every one of those pixels belongs to Property."
+    )
+    assert tree.columnWidth(0) > tree.columnWidth(1), (
+        f"Property {tree.columnWidth(0)} px vs Basis {tree.columnWidth(1)} px"
+    )

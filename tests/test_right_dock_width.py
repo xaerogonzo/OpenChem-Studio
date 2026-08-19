@@ -33,7 +33,8 @@ from __future__ import annotations
 import pytest
 from PySide6.QtWidgets import QToolBar
 
-from openchem.app.main_window import MainWindow
+from openchem.app.main_window import CENTRAL_FLOOR, MainWindow
+from openchem.ui.widgets.panel_rail import PanelRail
 from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
 from openchem.bootstrap import build_service_container
@@ -62,8 +63,13 @@ SMALLEST_LAPTOP = 1366
 #: what the bug produced.
 NARROWEST_SUPPORTED = SMALLEST_LAPTOP
 
-#: What the central editor needs to be worth looking at.
-CENTRAL_FLOOR = 200
+#: `CENTRAL_FLOOR` IS IMPORTED FROM PRODUCTION, not declared here.
+#:
+#: It was a test-only constant for as long as it existed, and nothing
+#: enforced it: the real central minimum measured 149 px in the running
+#: app, a quarter below the 200 these tests reasoned about, and every
+#: guard passed. `MainWindow` sets it on the central `QTabWidget` now, so
+#: the number below and the number the product obeys cannot drift.
 
 
 @pytest.fixture(scope="module")
@@ -470,4 +476,240 @@ def test_setting_the_starting_width_narrows_a_dock_that_is_too_wide(qapp_module,
 
     assert actual == expected, (
         f"the dock was left at {actual} px, not the computed starting width {expected}"
+    )
+
+
+# --- the floor, which was a test-only number until it was enforced ----------
+
+
+def test_the_centre_really_cannot_be_squeezed_below_the_floor(window, app):
+    """The complement of `test_the_centre_does_not_force_the_window_wide`.
+
+    That one is a CEILING and it passed throughout: the centre asked for
+    149 px in the running app, comfortably under 640, while `CENTRAL_FLOOR`
+    sat in this file meaning nothing to the product.
+
+    ASSERTED ON THE BEHAVIOUR, because `minimumSizeHint()` does not answer
+    this question -- it is Qt's RECOMMENDED minimum and is unmoved by
+    `setMinimumWidth`, so a guard reading it fails against a correctly
+    floored widget (measured: hint 282, enforced minimum 400). What the
+    floor actually buys is that squeezing the window cannot take the
+    editor below it, which is what this drives.
+
+    THIS IS THE ARM THAT MUST FAIL IF THE PRODUCTION LINE GOES, and 400 is
+    what makes that possible: the emergent minimum is 282 under
+    `offscreen` and 149 on a real desktop, so both are caught. At the old
+    200 the emergent `offscreen` value already exceeded it and the guard
+    could never say no -- the blindness `initial_right_dock_width` records
+    for the dock width one section down.
+    """
+    was = window.size()
+    try:
+        window.resize(600, was.height())
+        app.processEvents()
+        central = window.centralWidget()
+
+        assert window.width() < was.width(), (
+            f"the window did not shrink at all (still {window.width()} px), so "
+            "nothing here squeezes the centre and this guard is vacuous"
+        )
+        assert central.width() >= CENTRAL_FLOOR, (
+            f"the centre is {central.width()} px in a {window.width()} px window, "
+            f"below its declared floor of {CENTRAL_FLOOR} -- MainWindow has "
+            "stopped setting a minimum on its central widget"
+        )
+    finally:
+        window.resize(was)
+        app.processEvents()
+def test_the_floor_and_the_ceiling_are_bounds_on_one_quantity(window, app):
+    """A floor on the editor page and a ceiling on the tab widget would
+    both pass while describing different widgets.
+
+    Asserted structurally: the object carrying the minimum IS the object
+    `centralWidget()` returns. A `QTabWidget` takes the maximum over its
+    pages, so a page-level floor propagates by accident today and stops
+    the day the pages are rearranged.
+    """
+    central = window.centralWidget()
+
+    assert central.minimumWidth() == CENTRAL_FLOOR, (
+        f"the central widget's own minimum is {central.minimumWidth()}, not "
+        f"{CENTRAL_FLOOR} -- the floor has been moved onto a child, where it "
+        "survives only as long as that child stays the widest page"
+    )
+    assert central.minimumSizeHint().width() <= 640, (
+        "the ceiling guard's bound no longer holds for the object the floor "
+        "is set on, so the two are describing different widgets"
+    )
+
+
+# --- the rail fold, which was reachable and not remembered ------------------
+
+
+def test_the_rail_fold_survives_a_restart_with_its_group_and_panel(qapp_module):
+    """Folding the rail hands 230 px back, and used to be forgotten.
+
+    THREE QUANTITIES, not one boolean. A flag that round-trips proves the
+    setting serialises; it says nothing about whether the user's actual
+    navigation state came back. The fold is persisted by this change, and
+    the group and the visible panel come back through `restoreState` --
+    different mechanisms, which is exactly why asserting only the one this
+    commit added would leave the other two unguarded.
+
+    A second window is built from the saved settings rather than the fold
+    being toggled back, because construction ORDER is the thing at risk:
+    the restore has to run after `_restore_window_state`, and a test that
+    only toggles never exercises that path at all.
+    """
+    import tempfile
+
+    services = build_service_container()
+    settings = Settings(services.event_bus)
+    with tempfile.TemporaryDirectory() as scratch:
+        settings.set("plugins/project_directory", f"{scratch}/none")
+        settings.set("plugins/user_directory", f"{scratch}/none")
+        first = MainWindow(services, settings, SessionManager())
+    first.resize(1280, 800)
+    first.show()
+    qapp_module.processEvents()
+
+    rail = first._panel_rail
+    assert rail.is_list_visible(), (
+        "the rail does not start expanded, so folding it below proves nothing"
+    )
+
+    panel_id = first._right_docks[-1].objectName()
+    first._on_panel_chosen(panel_id)
+    qapp_module.processEvents()
+    rail.set_list_visible(False)
+    qapp_module.processEvents()
+
+    group = rail.current_group()
+    assert not rail.is_list_visible()
+    assert group != PanelRail().current_group(), (
+        f"{panel_id} lives in the rail's DEFAULT group, so a restored window "
+        "that ignored the saved state entirely would still pass this"
+    )
+
+    from openchem.app.main_window import _LAYOUT_VERSION, _LAYOUT_VERSION_KEY
+
+    settings.set_window_state(first.saveState())
+    settings.set(_LAYOUT_VERSION_KEY, _LAYOUT_VERSION)
+
+    with tempfile.TemporaryDirectory() as scratch:
+        settings.set("plugins/project_directory", f"{scratch}/none")
+        settings.set("plugins/user_directory", f"{scratch}/none")
+        second = MainWindow(services, settings, SessionManager())
+    second.resize(1280, 800)
+    second.show()
+    qapp_module.processEvents()
+
+    restored = second._panel_rail
+    assert not restored.is_list_visible(), "the fold was not remembered"
+
+    visible = [d.objectName() for d in second._right_docks if not d.isHidden()]
+    assert visible == [panel_id], (
+        f"the restored window shows {visible}, not [{panel_id!r}]"
+    )
+    assert restored.current_group() == group, (
+        f"the rail highlights {restored.current_group()!r} while the screen "
+        f"shows a panel from {group!r} -- navigation is describing the wrong "
+        "thing, which is what `select_panel` exists to prevent"
+    )
+
+
+def test_an_expanded_rail_is_what_an_install_with_no_setting_gets(qapp_module):
+    """The other direction, and the one a missing key must give.
+
+    Absent is not False in QSettings -- an INI backend hands back the
+    STRING "false", and `bool("false")` is True, which would invert this
+    for every existing install while the registry-backed one behaved. The
+    control that matters is that a fresh profile gets the rail it always
+    had.
+    """
+    import tempfile
+
+    services = build_service_container()
+    settings = Settings(services.event_bus)
+    assert settings.get("ui/rail_collapsed", None) is None, (
+        "this profile already carries the key, so it cannot test its absence"
+    )
+    with tempfile.TemporaryDirectory() as scratch:
+        settings.set("plugins/project_directory", f"{scratch}/none")
+        settings.set("plugins/user_directory", f"{scratch}/none")
+        fresh = MainWindow(services, settings, SessionManager())
+    fresh.resize(1280, 800)
+    fresh.show()
+    qapp_module.processEvents()
+
+    assert fresh._panel_rail.is_list_visible(), "a fresh install got a folded rail"
+
+
+def test_a_window_that_stored_an_UNFOLDED_rail_comes_back_unfolded(qapp_module):
+    """The stored-False path, end to end, and it is not the absent one.
+
+    A missing key defaults to a real `False`, so `bool()` handles it and
+    the fresh-install guard above cannot see the defect. A key STORED as
+    False is what an INI backend spells "false" -- and `bool("false")` is
+    True, which folds the rail of every user who deliberately unfolded it.
+
+    Driven through a real window rather than through `_as_bool`, because
+    the helper being correct says nothing about the call site still
+    calling it: a bare `bool()` at the read passes every other test in
+    this file.
+    """
+    import tempfile
+
+    from openchem.app.main_window import _RAIL_COLLAPSED_KEY
+
+    services = build_service_container()
+    settings = Settings(services.event_bus)
+    settings.set(_RAIL_COLLAPSED_KEY, False)
+    assert settings.get(_RAIL_COLLAPSED_KEY, None) is not None, (
+        "the key was not stored, so this exercises the absent path instead"
+    )
+
+    with tempfile.TemporaryDirectory() as scratch:
+        settings.set("plugins/project_directory", f"{scratch}/none")
+        settings.set("plugins/user_directory", f"{scratch}/none")
+        window = MainWindow(services, settings, SessionManager())
+    window.resize(1280, 800)
+    window.show()
+    qapp_module.processEvents()
+
+    assert window._panel_rail.is_list_visible(), (
+        f"a stored False ({settings.get(_RAIL_COLLAPSED_KEY, None)!r}) folded "
+        "the rail -- the read is not going through `_as_bool`"
+    )
+
+
+def test_a_stored_false_does_not_read_back_as_folded(qapp_module):
+    """`bool("false")` is True, and QSettings backends disagree.
+
+    The registry hands back a real bool; an INI file -- which is what the
+    suite's `isolated_settings` uses, and what a portable install uses --
+    hands back the STRING "false". A setting read with a bare `bool()`
+    therefore round-trips on one backend and inverts on the other, which
+    is the shape `QSettings.setDefaultFormat` already cost this project
+    once: correct-looking code, wrong on the machine that mattered.
+
+    Driven through the real `Settings` rather than by calling `_as_bool`
+    with a hand-typed string, so it is the BACKEND's spelling being
+    tested and not my guess at it.
+    """
+    from openchem.app.main_window import _RAIL_COLLAPSED_KEY, _as_bool
+
+    services = build_service_container()
+    settings = Settings(services.event_bus)
+
+    settings.set(_RAIL_COLLAPSED_KEY, False)
+    stored = settings.get(_RAIL_COLLAPSED_KEY, None)
+    assert stored is not None, "nothing was stored, so this proves nothing"
+    assert not _as_bool(stored), (
+        f"a stored False came back as {stored!r} and reads as folded"
+    )
+
+    settings.set(_RAIL_COLLAPSED_KEY, True)
+    assert _as_bool(settings.get(_RAIL_COLLAPSED_KEY, None)), (
+        "a stored True does not read back as folded"
     )

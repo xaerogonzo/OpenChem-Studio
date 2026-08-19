@@ -70,6 +70,7 @@ from openchem.events.events import (
 from openchem.ui.report_format import report_header
 from openchem.ui.widgets.collapsible_section import WrappedLabel
 from openchem.ui.widgets.fact_view import FactView
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 _ATOM_COLUMNS = ("#", "Element", "Facts")
 _BOND_COLUMNS = ("#", "Bond", "Facts")
@@ -78,6 +79,21 @@ _BOND_COLUMNS = ("#", "Bond", "Facts")
 #: has no table -- selecting it hides the list rather than showing a
 #: one-row table that cannot be interacted with.
 _SUBJECTS = ("Atom", "Bond", "Molecule")
+
+
+def _article_for(noun: str) -> str:
+    """"a" or "an" for one of `_SUBJECTS`, lowercased.
+
+    Extracted because the two places that needed it disagreed: the status
+    line derived the article and the empty state hard-coded "a", so an
+    atom -- the panel's own default subject -- read "Select a atom above".
+    Written once so they cannot drift apart again.
+
+    The vowel test is not general English (an "hour", a "university"), and
+    it does not have to be: the vocabulary is the three closed `_SUBJECTS`,
+    which `test_every_subject_gets_the_right_article` walks in full.
+    """
+    return "an" if noun[:1].lower() in "aeiou" else "a"
 
 _INTRO = (
     "Everything already known about the selected atom. Nothing here runs a "
@@ -99,6 +115,76 @@ _CONTROL_HELP = {
         ),
         tier=2, help_id="atom_inspector.isotopes", topic="atom-inspector",
         help_anchor="periodic-table",
+    ),
+}
+
+
+#: THE INDEX SPACE IS THE ONE THING A READER CAN GET WRONG HERE, and this
+#: project has an index-space bug in its history: a number shown 1-based
+#: and stored 0-based, over the structure AS DRAWN rather than over a
+#: conformer with explicit hydrogens. Ethanol is 3 rows here and 9 atoms
+#: in the 3D viewer.
+_HELP: dict[str, HelpTooltip] = {
+    "subject": HelpTooltip(
+        text=(
+            "What the report below is about: one atom, one bond, or the "
+            "whole molecule.\n\n"
+            "A molecule has exactly one subject, so choosing it hides the "
+            "list rather than showing a table with a single row nothing "
+            "can be selected from."
+        ),
+        tier=1,
+        help_id="inspector.subject",
+        topic="atom-inspector",
+    ),
+    "#": HelpTooltip(
+        text=(
+            "The atom or bond number, counting from 1.\n\n"
+            "Numbering follows the structure AS DRAWN -- heavy atoms, with "
+            "hydrogens implicit -- so it is not the numbering used once "
+            "hydrogens are made explicit, where each heavy atom is "
+            "followed by its own. Ethanol is 3 rows here and 9 atoms with "
+            "explicit hydrogens.\n\n"
+            "It is also not an IUPAC locant: those come from the naming "
+            "engine and need not agree with this order."
+        ),
+        tier=3,
+        help_id="inspector.row_number",
+        topic="atom-inspector",
+    ),
+    "Element": HelpTooltip(
+        text=(
+            "The element at this position, as drawn.\n\n"
+            "A charge or an isotope set on the atom is part of the "
+            "structure but is not shown in this column; the report below "
+            "carries both."
+        ),
+        tier=1,
+        help_id="inspector.element",
+        topic="atom-inspector",
+    ),
+    "Bond": HelpTooltip(
+        text=(
+            "The two atoms this bond joins, and its order as "
+            "drawn.\n\n"
+            "The atom numbers in the label are the same 1-based drawing "
+            "numbers as the # column."
+        ),
+        tier=1,
+        help_id="inspector.bond_label",
+        topic="atom-inspector",
+    ),
+    "Facts": HelpTooltip(
+        text=(
+            "How many facts are already known for this row.\n\n"
+            "A COUNT OF WHAT HAS BEEN COMPUTED, not a measure of "
+            "anything chemical: a row showing 0 has had no calculator run "
+            "for it, which is different from a calculator having run and "
+            "found nothing. Nothing in this panel starts a calculation."
+        ),
+        tier=3,
+        help_id="inspector.fact_count",
+        topic="atom-inspector",
     ),
 }
 
@@ -157,6 +243,7 @@ class AtomInspectorPanel(QWidget):
 
         self._atom_table = QTableWidget(0, len(_ATOM_COLUMNS), self)
         self._atom_table.setHorizontalHeaderLabels(_ATOM_COLUMNS)
+        self._document_columns(_ATOM_COLUMNS)
         header = self._atom_table.horizontalHeader()
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         for column in (0, 2):
@@ -176,6 +263,7 @@ class AtomInspectorPanel(QWidget):
         self._subject_combo = QComboBox(self)
         self._subject_combo.addItems(_SUBJECTS)
         self._subject_combo.currentTextChanged.connect(self._on_subject_changed)
+        apply_help_tooltip(self._subject_combo, _HELP['subject'])
 
         # THE RENDERING IS NOT THIS PANEL'S ANY MORE. Sections, search,
         # the depth filter, per-fact basis, cross-links, copy, export and
@@ -316,6 +404,7 @@ class AtomInspectorPanel(QWidget):
 
         if self._subject == "Bond":
             self._atom_table.setHorizontalHeaderLabels(_BOND_COLUMNS)
+            self._document_columns(_BOND_COLUMNS)
             self._atom_table.setRowCount(mol.GetNumBonds())
             for row in range(mol.GetNumBonds()):
                 number = QTableWidgetItem()
@@ -332,6 +421,7 @@ class AtomInspectorPanel(QWidget):
             return
 
         self._atom_table.setHorizontalHeaderLabels(_ATOM_COLUMNS)
+        self._document_columns(_ATOM_COLUMNS)
         self._atom_table.setRowCount(mol.GetNumAtoms())
         for row, atom in enumerate(mol.GetAtoms()):
             index = atom.GetIdx()
@@ -589,6 +679,23 @@ class AtomInspectorPanel(QWidget):
 
     # --- rendering ---------------------------------------------------------
 
+    def _document_columns(self, columns: tuple[str, ...]) -> None:
+        """Re-attach the column contracts after the headers are re-set.
+
+        `setHorizontalHeaderLabels` REPLACES the header items, so a
+        contract attached once at construction is thrown away the first
+        time the subject changes -- and the coverage walk would then
+        report three controls that had been documented as missing, which
+        is a real regression rather than a bookkeeping one.
+
+        `#` and `Facts` mean the same thing in both modes and share one id
+        each; `Element` and `Bond` genuinely do not, and have their own.
+        """
+        for column, name in enumerate(columns):
+            item = self._atom_table.horizontalHeaderItem(column)
+            if item is not None:
+                apply_help_tooltip(item, _HELP[name])
+
     def _render_facts(self) -> None:
         """Hand the current report to the view. That is the whole method.
 
@@ -601,7 +708,8 @@ class AtomInspectorPanel(QWidget):
             noun = self._subject.lower()
             self._facts.clear(
                 f"No {noun} selected",
-                f"Select a {noun} above to see what is known about it.",
+                f"Select {_article_for(noun)} {noun} above to see what is "
+                "known about it.",
             )
             return
         report = self._report_for(index)
@@ -630,8 +738,7 @@ class AtomInspectorPanel(QWidget):
         """
         if self._selected_index() is None:
             noun = self._subject.lower()
-            article = "an" if noun[0] in "aeiou" else "a"
-            self._facts.set_status(f"Select {article} {noun} first.")
+            self._facts.set_status(f"Select {_article_for(noun)} {noun} first.")
             return
         self._facts._on_copy_clicked()
 

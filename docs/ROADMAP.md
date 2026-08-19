@@ -619,9 +619,17 @@ Every interactive control carries a declared *help contract* — what it
 means, at what tier of care, and the source behind any external claim — of
 which the tooltip is one rendering. The guard checks the STRUCTURE of that
 declaration and never the prose, because a check for "has a non-empty
-string" degenerates into `tooltip = "Options."`. `tools/list_tooltips.py`
-reports what is still undocumented, and the remaining debt is recorded in a
-fixture that may shrink and may not grow.
+string" degenerates into `tooltip = "Options."`, and it is guarded from
+both sides: a contract may not be a degenerate string, and a well-formed
+but uninformative one must be accepted rather than graded.
+
+**Complete: 355 of 355 controls, 219 distinct concepts, 53 of them
+interpretation-sensitive.** The staged-migration fixtures are deleted and
+the invariant is now a single assertion, so a control added without a
+contract is a failing test rather than an entry in a backlog.
+`tools/list_tooltips.py --help-id <id> --context` prints the authoring
+brief for one control: its label, tier, docs anchor, source provenance and
+the standing prohibitions.
 
 ### Naming, and the annotation engine underneath it
 
