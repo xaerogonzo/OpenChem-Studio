@@ -63,7 +63,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import QObject, QTimer
+from PySide6.QtCore import QObject, Qt, QTimer
 from PySide6.QtWidgets import QWidget
 
 logger = logging.getLogger("openchem.ui")
@@ -444,6 +444,11 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no periodic table open; run {'do': 'periodic'}")
                 return
             target = self._periodic
+        elif step.get("widget") == "dialog":
+            if getattr(self, "_dialog", None) is None:
+                logger.error("OPENCHEM_DRIVE: no dialog open; run {'do': 'dialog', ...}")
+                return
+            target = self._dialog
         elif step.get("widget") == "spatial":
             if getattr(self, "_spatial", None) is None:
                 logger.error("OPENCHEM_DRIVE: no spatial dialog open; run {'do': 'spatial'}")
@@ -1292,6 +1297,82 @@ class _Driver(QObject):
             if bar.objectName() == "Panel_Rail":
                 return bar
         return None
+
+    def _do_dialog(self, step: dict[str, Any]) -> None:
+        """Open any dialog by name, for a screenshot.
+
+        `{"do": "dialog", "name": "PeriodicTableDialog"}`, then
+        `{"do": "shot", "path": "...", "widget": "dialog"}`.
+
+        THE CONSTRUCTION IS NOT HERE. `ui/dialogs/inventory.py` knows how
+        each dialog is built, and the help-contract guard walks the same
+        fixtures -- so the harness and the guard cannot grow two ideas of
+        what the dialogs are, which is the drift `tooltip_inventory`
+        exists to prevent one layer up.
+
+        **`show()`, never `exec()`**, for the reason `_do_lewis` gives: a
+        modal spins its own event loop inside this handler and an
+        unattended run stalls on a window with nobody to close it.
+
+        A dialog the context cannot supply is LOGGED with what it needs
+        rather than passed over, because "I could not build it" and "it
+        has nothing to show" are different answers.
+        """
+        from openchem.ui.dialogs.inventory import (
+            DialogContext,
+            DialogUnavailable,
+            iter_dialog_fixtures,
+        )
+
+        window = self._window
+        wanted = str(step.get("name", ""))
+        # CLEARED FIRST, and this is not tidiness. A `shot` step targets
+        # `self._dialog`, so a step that fails while the previous dialog is
+        # still held photographs THAT one and the run looks healthy -- the
+        # same silent no-op the `panel` step's wrong-id trap produces, and
+        # the reason this file says to read the shot rather than the log.
+        self._dialog = None
+        fixture = next((f for f in iter_dialog_fixtures() if f.name == wanted), None)
+        if fixture is None:
+            logger.error(
+                "OPENCHEM_DRIVE: no dialog %r (have %s)",
+                wanted,
+                [f.name for f in iter_dialog_fixtures()],
+            )
+            return
+
+        molecule = window._current_molecule()
+        context = DialogContext(
+            services=window._services,
+            settings=window._settings,
+            molecule=molecule,
+            project=window._session.project,
+            conformer_molblock=(
+                molecule.conformers[0].molblock
+                if molecule is not None and molecule.conformers
+                else None
+            ),
+        )
+        try:
+            dialog = fixture.build(context)
+        except DialogUnavailable as exc:
+            logger.error(
+                "OPENCHEM_DRIVE: %s needs %s -- %s", wanted, fixture.needs or "?", exc
+            )
+            return
+
+        dialog.setParent(window)
+        dialog.setWindowFlag(Qt.WindowType.Dialog, True)
+        if "width" in step:
+            dialog.resize(int(step["width"]), int(step.get("height", dialog.height())))
+        dialog.show()
+        self._dialog = dialog
+        logger.warning(
+            "OPENCHEM_DRIVE: dialog %s open at %dx%d",
+            wanted,
+            dialog.width(),
+            dialog.height(),
+        )
 
     def _do_rail(self, step: dict[str, Any]) -> None:
         """Fold or unfold the panel rail's name list.
