@@ -1733,7 +1733,7 @@ rather than leaving you to find out.
 
 ### Isotopes
 
-The **Isotopes** tab lists every ground state of the selected element:
+The **Isotopes** tab lists every nuclear state of the selected element:
 mass number, natural abundance, half-life, decay modes with their
 branching ratios, and spin and parity. Uranium opens with U-238 at
 99.2742% and 4.46 Gy; carbon leads with C-12, C-13 and C-14.
@@ -1742,6 +1742,20 @@ Setting an isotope used to mean the editor's Atom Properties dialog and
 typing a mass number blind. Select an atom in the 2D editor, pick a row,
 and **Apply to selected atom** writes it — or tick *all … atoms* to
 label every atom of that element in the **same undo entry**.
+
+**Metastable states are listed, and cannot be applied.** Technetium shows
+Tc-99 and Tc-99m as separate rows, with the trailing letter written the
+way NUBASE writes it — `m`, `n`, `p`, `q`. A molfile records a mass
+number and has no place for a nuclear state, so writing Tc-99m would
+produce Tc-99's bytes and everything downstream would treat it as the
+ground state. **Apply is therefore disabled on an isomer row and says
+why** — its half-life and decay modes stay on screen, because reading
+them is what the tab is for.
+
+Carbon's list ends with four rows suffixed `i`. Those are isobaric
+analogue states; NUBASE lists them with no measured half-life, and they
+are shown rather than filtered because deciding what you may see would be
+this application editing its source.
 
 **Your conformers survive it.** Labelling an atom C-13 moves nothing and
 breaks nothing, so the geometries you generated are still geometries of
@@ -1779,17 +1793,32 @@ Colour is the kind of decay, and the legend under the chart shows each
 family in its own colour.
 
 Click any box to follow the chain from there. **Insert this nuclide into
-drawing** arms the canvas with that element; place it, then set its mass
-number from the Isotopes tab — the status bar says so.
+drawing** arms the canvas with that element and its mass number
+together, so placing it deposits the isotope you were reading about.
 
-Two honest limits. The chart is **ground states only**, so a chain that
-runs through an isomer is not drawn: a molfile has no way to express
-technetium-99m as distinct from technetium-99, so shipping isomers would
-be data nothing could reach. And a few nuclides are marked stable in
+**A dashed line means the daughter's state was assumed.** NUBASE records
+which decay a nuclide undergoes and not which state of the daughter it
+populates, so drawing a chain at all means choosing one — this
+application draws the ground state and marks every edge where it did. The
+legend says so under the chart. The one exception is an isomeric
+transition from a first metastable state: there is only the ground state
+below it, so nothing is being assumed and the line is solid.
+
+**Isomers stack inside their cell.** Technetium-99m sits directly below
+technetium-99 in the same square, because the chart's position is fixed
+by the neutron and proton numbers and both states share them. Their
+transition is drawn in its own colour, since it goes nowhere on the chart.
+
+Three honest limits. **One decay in the whole table is refused rather
+than drawn**: palladium-126p records a beta decay without saying whether
+it is beta-plus or beta-minus, and the sign is exactly what decides where
+the daughter goes — inferring it would be this application supplying
+physics the source declined to. A few nuclides are marked stable in
 NUBASE while also carrying a decay nobody has ever observed — lead-206
 among them — which is why the chart continues past lead into mercury, and
 why the status line says which stable nuclides a chain *reaches* rather
-than where it "ends".
+than where it "ends". And spontaneous fission has no single daughter, so
+those branches stop with the reason written on them.
 
 ### The atom, drawn
 

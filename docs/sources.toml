@@ -803,7 +803,8 @@ verified_date = 2026-08-18
 note = """
 Every ground-state nuclear property this application knows: half-life,
 decay modes with branchings, natural abundance, spin and parity, mass
-excess. 3,557 ground states, from the 5,843-row electronic table.
+excess. 5,684 nuclear states -- 3,557 ground states and 2,127 isomers --
+from the 5,685 rows of the electronic table that carry an element.
 
 **THE LICENCE IS THREE SEPARATE CLAIMS, because a paper's licence does not
 automatically licence a separately distributed data file.** They are
@@ -834,7 +835,10 @@ is also exactly what AMDC asks for, so the two obligations are one action.
 `verification = "citation_and_claim"`: the citation is confirmed from the
 PDF in Sci Downloads, and the claim is the generator's acceptance block --
 U-238 at 4.463 Gy and 99.2742%, Po-209 at 124 y, C-14 at 5,700 y, Tc-99 at
-2.11e5 y, and exactly 253 stable nuclides.
+2.11e5 y, and exactly 253 stable GROUND STATES -- 254 rows in the table
+carry `stbl`, the extra being Ta-180m, the one naturally occurring isomer,
+which is named in the acceptance rather than tolerated by a loosened
+bound.
 
 THE SOURCE SNAPSHOT IS COMMITTED, NOT FETCHED. `nubase_4.mas20.txt` sits
 beside the generated JSON and `--check` never touches the network: an
@@ -845,12 +849,32 @@ records the sha256 (which bytes) and the revision (which scientific
 release) -- the second being what answers "why does this disagree with
 NUBASE2024".
 
-GROUND STATES ONLY, and enforced rather than described. NUBASE carries
-isomers at T-half >= 100 ns; a molfile cannot express Tc-99m as distinct
-from Tc-99, so those rows would be data nothing here could reach. The free
-neutron is skipped with them -- NUBASE lists it as Z=0, and it is not an
-element. Both exclusions are build-time invariants, because a documented
-policy nothing enforces is how somebody helpfully adds them back.
+EVERY STATE SHIPS, AND THE COUNTS ARE DERIVED. 5685 source rows split
+3558 ground / 2127 isomer, one row excluded (the free neutron, which
+NUBASE lists as Z=0 and which is not an element), 5684 shipped. The
+generator counts all five and refuses to build if the arithmetic does not
+close, because an earlier draft carried the figures as prose and left a
+reader wondering which of 5684 and 5685 was the typo.
+
+**THIS ENTRY PREVIOUSLY SAID GROUND STATES ONLY**, on the reasoning that a
+molfile cannot express Tc-99m as distinct from Tc-99 so isomer rows would
+be data nothing could reach. The first half is still true and is now a
+REFUSAL in the write path rather than an absence in the data: the
+half-life and decay modes of Tc-99m are exactly what the Isotopes tab
+exists to show, and the decay chart draws its chain. The free-neutron
+exclusion is unchanged and is still a build-time invariant.
+
+TWO NOTATIONS THE GRAMMAR HAD NEVER SEEN CAME IN WITH THE ISOMERS, and
+both were caught by the build refusing rather than by review. `IT`
+(isomeric transition) appears on 1,471 rows and is now in the grammar. A
+single row -- Pd-126p -- writes `B=72 8`, a beta decay with no sign, and
+is REFUSED rather than inferred: the sign decides the daughter, and
+NUBASE's format header documents no mode vocabulary to appeal to.
+
+THE STATE SUFFIX IS READ FROM THE SOURCE'S OWN NAME FIELD, not derived
+from the state index -- a table mapping 1 to `m` would be a second
+implementation of somebody else's notation. Measured across all 2,127,
+the two are one-to-one: 1 m, 2 n, 3 p, 4 q, 5 r, 6 x, 8 i, 9 j.
 """
 
 [[source]]
