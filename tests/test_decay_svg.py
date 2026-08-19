@@ -201,15 +201,26 @@ def test_the_families_are_what_a_reader_would_call_them(mode, family):
     assert mode_family(mode) == family
 
 
+def _families_in(lines):
+    """The FAMILY rows of a legend, without the provenance note.
+
+    The note is not a decay family -- it explains the dash an assumed
+    edge wears -- so a test about which families were drawn must not read
+    it, and `test_an_assumed_daughter_state_is_marked_and_explained` is
+    where it belongs instead.
+    """
+    return [words for _colour, words in lines if not words.startswith("dashed:")]
+
+
 def test_the_legend_names_only_families_the_chart_actually_drew():
     """A legend advertising cluster emission on carbon-14's two-node chain
     invites the reader to hunt for something that is not there."""
-    carbon = legend_lines(_chart(6, 14))
-    uranium = legend_lines(_chart(92, 238))
+    carbon = _families_in(legend_lines(_chart(6, 14)))
+    uranium = _families_in(legend_lines(_chart(92, 238)))
 
-    assert [words for _colour, words in carbon] == ["beta-"]
+    assert carbon == ["beta-"]
     assert len(uranium) > len(carbon)
-    assert any("cluster" in words for _colour, words in uranium)
+    assert any("cluster" in words for words in uranium)
 
 
 # --- what the source says, and where it says two things at once ------------
@@ -310,3 +321,130 @@ def test_the_zero_delta_is_not_a_licence_to_follow_it_in_two_dimensions():
     # And the ordinary modes still move, so the pair means what it did.
     assert delta_for("A") == (-2, -4)
     assert delta_for("B-") == (1, 0)
+
+
+def test_an_assumed_daughter_state_is_marked_and_explained():
+    """**THE PROVENANCE HAS TO REACH THE SCREEN.** NUBASE names no
+    daughter state, so every followable edge drawn today is this
+    application choosing the ground state -- and a chart that looked like
+    an exact NUBASE-derived chain would be exactly the plausible-looking
+    wrongness this project spends its time removing.
+
+    The mark and its explanation are asserted TOGETHER: a dash nobody can
+    interpret protects nothing, and a legend line with no mark on the
+    chart points at nothing.
+    """
+    from openchem.chem.decay_svg import ASSUMED_DASH
+
+    diagram = _chart(92, 238)
+
+    assert diagram.has_assumed_daughter_state
+    assert f'stroke-dasharray="{ASSUMED_DASH}"' in diagram.svg
+    notes = [w for _c, w in legend_lines(diagram) if w.startswith("dashed:")]
+    assert len(notes) == 1
+    assert "ground state" in notes[0]
+    assert "NUBASE" in notes[0]
+
+
+def test_an_exact_daughter_state_is_drawn_SOLID():
+    """The other arm, which is what stops the dash being unconditional
+    decoration. **No shipped nuclide can reach it yet** -- the table holds
+    ground states only -- so the edge is built directly, which is this
+    project's own "move the threshold, do not hunt an input" rule.
+    """
+    from openchem.chem.decay import DaughterProvenance, DecayEdge
+    from openchem.chem.decay_svg import ASSUMED_DASH, _edge_svg
+
+    exact = DecayEdge("IT", 100.0, None, N.NuclideKey(43, 99), "",
+                      DaughterProvenance.EXACT)
+    assumed = DecayEdge("A", 100.0, None, N.NuclideKey(90, 234), "",
+                        DaughterProvenance.ASSUMED_GROUND_STATE)
+
+    assert not exact.is_assumed
+    assert ASSUMED_DASH not in _edge_svg((0, 0), (10, 10), exact, "isomeric")
+    assert ASSUMED_DASH in _edge_svg((0, 0), (10, 10), assumed, "alpha")
+
+
+def _overlap(one, other) -> bool:
+    return (
+        one.x < other.x + other.width
+        and other.x < one.x + one.width
+        and one.y < other.y + other.height
+        and other.y < one.y + one.height
+    )
+
+
+def test_two_states_of_one_isotope_stack_rather_than_overlapping():
+    """**THE INJECTIVITY GUARD, REWRITTEN RATHER THAN DELETED.** `(Z, N)`
+    used to determine a cell AND a node, which made overlap impossible by
+    construction. With states in play `(Z, N)` still determines the CELL
+    and the state index chooses a slot inside it -- so the property that
+    has to hold is one box per state, not one box per cell.
+
+    Built directly, because the shipped table holds no isomer to draw.
+    """
+    from openchem.chem.decay_svg import STATE_OFFSET, render_decay_svg
+    from openchem.chem.decay import DecayTree
+
+    ground = N.nuclide(43, 99)
+    metastable = N.Nuclide(43, 99, "Tc", N.HalfLife(21624.0, N.EXACT),
+                           state_index=1, state_label="m")
+    tree = DecayTree(root=metastable.key)
+    tree.nodes = {metastable.key: metastable, ground.key: ground}
+    tree.edges = {metastable.key: [], ground.key: []}
+
+    diagram = render_decay_svg(tree)
+    by_name = {n.name: n for n in diagram.nodes}
+
+    assert by_name["Tc-99"].x == by_name["Tc-99m"].x, "same (Z, N) cell"
+    assert by_name["Tc-99m"].y - by_name["Tc-99"].y == STATE_OFFSET
+    # **AND THEY MUST NOT TOUCH.** `node_at` returns the first box
+    # containing the point, so overlap means a click on the isomer
+    # silently resolves to the ground state.
+    assert not _overlap(by_name["Tc-99"], by_name["Tc-99m"])
+    assert diagram.node_at(
+        by_name["Tc-99m"].x + 1, by_name["Tc-99m"].y + 1
+    ).name == "Tc-99m"
+
+
+def test_an_isomeric_transition_is_EXACT_only_from_the_first_state():
+    """**THE ONE CASE THE SOURCE DETERMINES, and its boundary.**
+
+    An `IT` from state index 1 has exactly one state below it, so there
+    is nowhere else it can land and the daughter really is derived. From
+    index 2 it could reach index 1 or the ground state, and NUBASE does
+    not say which -- so the ground state is drawn and the edge records
+    that it was assumed.
+
+    Both arms are asserted because a mutation returning EXACT
+    unconditionally is caught by neither on its own: today's table holds
+    no isomer, so nothing shipped reaches either branch.
+    """
+    from openchem.chem.decay import DaughterProvenance, daughter
+
+    first = N.Nuclide(43, 99, "Tc", N.HalfLife(21624.0, N.EXACT),
+                      state_index=1, state_label="m")
+    second = N.Nuclide(43, 99, "Tc", N.HalfLife(1.0, N.EXACT),
+                       state_index=2, state_label="n")
+
+    assert daughter(first, "IT").provenance is DaughterProvenance.EXACT
+    assert (
+        daughter(second, "IT").provenance
+        is DaughterProvenance.ASSUMED_GROUND_STATE
+    )
+    # Both land on the ground state; only the CLAIM about it differs.
+    assert daughter(first, "IT").nuclide.key == N.NuclideKey(43, 99)
+    assert daughter(second, "IT").nuclide.key == N.NuclideKey(43, 99)
+
+
+def test_a_ground_state_has_nothing_below_it_to_transition_to():
+    """An `IT` on a ground state is a contradiction in the data, not a
+    branch. Resolving it to itself would be the self-loop
+    `_refuse_cycles` exists to catch, arriving through the one mode whose
+    (dZ, dA) really is (0, 0)."""
+    from openchem.chem.decay import DaughterProvenance, daughter
+
+    resolved = daughter(N.nuclide(92, 238), "IT")
+
+    assert resolved.nuclide is None
+    assert resolved.provenance is DaughterProvenance.UNFOLLOWABLE

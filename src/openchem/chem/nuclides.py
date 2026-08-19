@@ -218,22 +218,49 @@ def _by_element() -> dict[str, tuple[Nuclide, ...]]:
                 abundance=entry.get("abundance"),
                 jpi=entry.get("jpi", ""),
                 mass_excess_kev=entry.get("mass_excess_kev"),
+                state_index=entry.get("state_index", 0),
+                state_label=entry.get("state_label", ""),
             )
         )
     return {
-        symbol: tuple(sorted(found, key=lambda n: n.a))
+        symbol: tuple(sorted(found, key=lambda n: (n.a, n.state_index)))
         for symbol, found in grouped.items()
     }
 
 
 @lru_cache(maxsize=1)
-def _by_key() -> dict[tuple[int, int], Nuclide]:
-    return {(n.z, n.a): n for group in _by_element().values() for n in group}
+def _by_key() -> dict[NuclideKey, Nuclide]:
+    return {n.key: n for group in _by_element().values() for n in group}
 
 
 def nuclide(z: int, a: int) -> Nuclide | None:
-    """One ground state, or None if the table has no such (Z, A)."""
-    return _by_key().get((z, a))
+    """One GROUND state, or None if the table has no such (Z, A)."""
+    return _by_key().get(NuclideKey(z, a))
+
+
+def nuclide_at(key: NuclideKey) -> Nuclide | None:
+    """One nuclear state, or None if the table does not hold it.
+
+    Separate from `nuclide()` rather than replacing it, because the two
+    answer different questions: almost every caller wants "the nuclide
+    Th-234", and only the decay walk wants "the state this transition
+    lands on". Collapsing them would make every existing call site
+    silently state-sensitive.
+    """
+    return _by_key().get(key)
+
+
+def states_of(z: int, a: int) -> tuple[Nuclide, ...]:
+    """Every state of one isotope, ground state first.
+
+    **The table holds only ground states today**, so this returns at most
+    one -- which is the correct answer rather than a placeholder, and is
+    what makes the state-aware code above testable before the data lands.
+    """
+    found = [
+        n for n in _by_element().get(_symbol_by_z().get(z, ""), ()) if n.a == a
+    ]
+    return tuple(sorted(found, key=lambda n: n.state_index))
 
 
 def nuclides_for(symbol: str) -> tuple[Nuclide, ...]:

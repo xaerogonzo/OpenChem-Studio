@@ -27,6 +27,8 @@ from __future__ import annotations
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, Qt
 
+from openchem.chem import nuclides as nuclide_data
+
 from openchem.ui.dialogs.periodic_table_dialog import (
     CELL_LARGE,
     CELL_SMALL,
@@ -430,7 +432,7 @@ def test_the_decay_tab_opens_on_the_longest_lived_isotope(dialog):
     """
     dialog.select("C")
 
-    assert dialog.decay_focus() == (6, 14)
+    assert dialog.decay_focus() == nuclide_data.NuclideKey(6, 14)
     assert "C-14" in dialog._decay_status.text()
 
 
@@ -438,11 +440,11 @@ def test_the_chain_follows_the_selection(dialog):
     """The control: a tab that ignored the grid would pass the test above
     on whatever element it happened to load with."""
     dialog.select("C")
-    assert dialog.decay_focus() == (6, 14)
+    assert dialog.decay_focus() == nuclide_data.NuclideKey(6, 14)
 
     dialog.select("U")
 
-    assert dialog.decay_focus() == (92, 238)
+    assert dialog.decay_focus() == nuclide_data.NuclideKey(92, 238)
 
 
 def test_the_status_names_the_stable_nuclides_the_chain_reaches(dialog):
@@ -499,7 +501,7 @@ def test_clicking_a_box_follows_the_chain_from_there(dialog):
     handled = dialog.eventFilter(dialog._decay_view._view, press)
 
     assert handled
-    assert dialog.decay_focus() == (88, 226)
+    assert dialog.decay_focus() == nuclide_data.NuclideKey(88, 226)
     assert "Ra-226" in dialog._decay_status.text()
     assert not any(n.name == "U-238" for n in dialog._decay_diagram.nodes)
 
@@ -523,7 +525,7 @@ def test_a_click_on_empty_chart_space_changes_nothing(dialog):
     )
     dialog.eventFilter(dialog._decay_view._view, press)
 
-    assert dialog.decay_focus() == (92, 238)
+    assert dialog.decay_focus() == nuclide_data.NuclideKey(92, 238)
 
 
 def test_a_click_is_hit_tested_at_the_CURRENT_zoom(dialog):
@@ -551,7 +553,7 @@ def test_a_click_is_hit_tested_at_the_CURRENT_zoom(dialog):
     )
     dialog.eventFilter(dialog._decay_view._view, press)
 
-    assert dialog.decay_focus() == (88, 226)
+    assert dialog.decay_focus() == nuclide_data.NuclideKey(88, 226)
 
 
 def test_a_nuclide_can_be_sent_to_the_canvas(dialog):
@@ -954,3 +956,98 @@ def test_the_two_floors_that_set_the_dialogs_height_stay_down(dialog):
     """
     assert dialog._diagram.minimumHeight() <= 160, "the AtomDiagram floor came back"
     assert dialog._detail_area.minimumHeight() <= 130, "the Facts floor came back"
+
+
+def _stacked_tc99_diagram():
+    """A chart with a ground state and its isomer sharing a cell.
+
+    **THE SHIPPED TABLE HOLDS NO ISOMER**, so this is built directly --
+    the "move the threshold rather than hunt an input" rule. A second
+    element (Ru-99, one proton up) is in it deliberately: without a
+    second Z ROW the row pitch has nothing to push apart, and a guard
+    built on Tc alone cannot see a pitch that ignores the stack.
+    """
+    from openchem.chem.decay import DecayTree
+    from openchem.chem.decay_svg import render_decay_svg
+
+    ground = nuclide_data.nuclide(43, 99)
+    below = nuclide_data.nuclide(42, 98)  # same N = 56, one Z down
+    metastable = nuclide_data.Nuclide(
+        43, 99, "Tc", nuclide_data.HalfLife(21624.0, nuclide_data.EXACT),
+        state_index=1, state_label="m",
+    )
+    tree = DecayTree(root=metastable.key)
+    tree.nodes = {
+        metastable.key: metastable,
+        ground.key: ground,
+        below.key: below,
+    }
+    tree.edges = {k: [] for k in tree.nodes}
+    return render_decay_svg(tree)
+
+
+def test_a_click_carries_the_nodes_OWN_key_and_not_a_rebuilt_one(dialog):
+    """**A GROUND STATE AND ITS ISOMER SHARE A CELL**, so rebuilding the
+    identity from `(node.z, node.a)` picks the ground state whichever box
+    was clicked -- and looks perfectly correct until an isomer is on
+    screen. Same shape as this project's Ketcher pool-id bug: a
+    reassembled index is right until the two spaces diverge.
+
+    **DRIVEN THROUGH THE EVENT FILTER, not by calling the handler.** An
+    earlier version of this test called `_focus_decay_node(node.key)`
+    itself and the rebuild mutation walked straight through it -- testing
+    a helper is not testing the wiring, which is a lesson this branch has
+    now paid for twice.
+    """
+    from PySide6.QtCore import QPointF
+    from PySide6.QtGui import QMouseEvent
+
+    diagram = _stacked_tc99_diagram()
+    boxes = {n.name: n for n in diagram.nodes}
+    assert boxes["Tc-99"].x == boxes["Tc-99m"].x, "the setup must stack them"
+
+    asked: list = []
+    dialog.select("Tc")
+    dialog._decay_view.set_zoom(1.0)
+    dialog._decay_diagram = diagram
+    dialog._focus_decay_node = asked.append
+
+    isomer = boxes["Tc-99m"]
+    press = QMouseEvent(
+        QEvent.Type.MouseButtonPress,
+        QPointF(isomer.x + isomer.width / 2, isomer.y + isomer.height / 2),
+        QPointF(0, 0),
+        Qt.MouseButton.LeftButton,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+    assert dialog.eventFilter(dialog._decay_view._view, press)
+
+    assert asked == [nuclide_data.NuclideKey(43, 99, 1)]
+
+
+def test_a_stack_never_reaches_into_the_row_below_it(dialog):
+    """**THE ROW PITCH IS WHAT KEEPS THE STACK INSIDE ITS OWN ROW.** An
+    isomer is offset by a whole box height, which is more than the gap
+    between two Z rows -- so a pitch that ignores the stack puts Tc-99m
+    on top of the Ru-99 above it and a click on one lands on the other.
+
+    A ONE-ROW FIXTURE CANNOT SEE THIS, which is why this one carries a
+    second element.
+    """
+    diagram = _stacked_tc99_diagram()
+    boxes = list(diagram.nodes)
+
+    assert len({n.key.z for n in boxes}) == 2, "the setup needs two Z rows"
+    columns = {n.key.a - n.key.z for n in boxes}
+    assert columns == {56}, "all three must share a column or nothing collides"
+    for one in boxes:
+        for other in boxes:
+            if one is other:
+                continue
+            assert not (
+                one.x < other.x + other.width
+                and other.x < one.x + one.width
+                and one.y < other.y + other.height
+                and other.y < one.y + one.height
+            ), f"{one.name} overlaps {other.name}"

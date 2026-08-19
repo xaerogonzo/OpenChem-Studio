@@ -840,7 +840,11 @@ class _Driver(QObject):
         # position collapses to the corner. Same trap the conformer
         # gallery already records: wait for the size to SETTLE.
         select = int(step.get('select', -1))
-        QTimer.singleShot(500, lambda: self._dispatch_right_click(fx, fy, report, select))
+        QTimer.singleShot(
+            500,
+            self._window,
+            lambda: self._dispatch_right_click(fx, fy, report, select),
+        )
 
     def _dispatch_right_click(self, fx: float, fy: float, report, select: int = -1) -> None:
         self._window._editor._backend._page.runJavaScript(

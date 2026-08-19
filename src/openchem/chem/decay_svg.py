@@ -34,6 +34,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from openchem.chem.nuclides import NuclideKey
 from openchem.chem.decay import (
     DecayTree,
     OFF_TABLE,
@@ -106,6 +107,36 @@ BRANCHING_WEIGHTS: tuple[tuple[float, float, float], ...] = (
 #: diagram inventing a number.
 UNMEASURED_WEIGHT = (1.5, 0.75)
 
+#: How far a state is offset from its ground state inside one (Z, N)
+#: cell. **The cell is still determined by (Z, N)** -- this only chooses
+#: a slot within it, so the staircase a reader recognises is unchanged
+#: and an isomer sits visibly just below its own ground state.
+#:
+#: **DERIVED FROM `BOX_H`, NEVER CHOSEN.** A value smaller than the box
+#: makes two states OVERLAP, and `node_at` returns the first box
+#: containing the point -- so a click on the isomer lands on the ground
+#: state, silently, which is the exact bug class carrying the key end to
+#: end exists to prevent. Written as a number it was 11.0, and the guard
+#: that caught it is `test_no_two_boxes_ever_overlap`.
+STATE_GAP = 6.0
+STATE_OFFSET = BOX_H + STATE_GAP
+
+#: The dash a drawn edge wears when this application chose the daughter's
+#: STATE. **NUBASE names none**, so today every followable edge is
+#: dashed and the legend says why -- which is the honest picture rather
+#: than a noisy one. When isomer data lands, an `IT` from state 1 has
+#: nowhere else to go and is drawn solid, so the contrast starts carrying
+#: information without the rule changing.
+ASSUMED_DASH = "5 3"
+
+#: What that dash means, in the legend. **The mark and its explanation
+#: ship together** -- a provenance that exists while failing to protect
+#: interpretation is worse than none.
+ASSUMED_LEGEND = (
+    "dashed: daughter state assumed to be the ground state "
+    "(NUBASE does not name the state populated)"
+)
+
 
 @dataclass(frozen=True)
 class PlacedNode:
@@ -116,8 +147,11 @@ class PlacedNode:
     is where a click starts landing on the wrong thing.
     """
 
-    z: int
-    a: int
+    #: **THE IDENTITY, CARRIED RATHER THAN REASSEMBLED.** A click
+    #: resolves by looking this up, so the dialog never rebuilds a
+    #: `(z, a, state)` of its own -- which is where a click starts
+    #: landing on the wrong state once isomers share a cell.
+    key: NuclideKey
     name: str
     x: float
     y: float
@@ -125,6 +159,14 @@ class PlacedNode:
     height: float
     is_root: bool
     is_stable: bool
+
+    @property
+    def z(self) -> int:
+        return self.key.z
+
+    @property
+    def a(self) -> int:
+        return self.key.a
 
     def contains(self, x: float, y: float) -> bool:
         return self.x <= x <= self.x + self.width and self.y <= y <= self.y + self.height
@@ -137,6 +179,9 @@ class DecayDiagram:
     width: float
     height: float
     families: tuple[str, ...]
+    #: True when any drawn edge chose the daughter's state itself. The
+    #: legend must say so -- see `legend_lines`.
+    has_assumed_daughter_state: bool = False
 
     def node_at(self, x: float, y: float) -> PlacedNode | None:
         for node in self.nodes:
@@ -147,34 +192,45 @@ class DecayDiagram:
 
 def render_decay_svg(tree: DecayTree) -> DecayDiagram:
     """The whole reachable graph, as one SVG."""
-    zs = [z for z, _a in tree.nodes]
-    ns = [a - z for z, a in tree.nodes]
+    zs = [key.z for key in tree.nodes]
+    ns = [key.a - key.z for key in tree.nodes]
     min_z, max_z = min(zs), max(zs)
     min_n, max_n = min(ns), max(ns)
 
     width = (max_n - min_n + 1) * CELL_W + 2 * MARGIN
-    height = (max_z - min_z + 1) * CELL_H + 2 * MARGIN
+    # **THE ROW PITCH GROWS WITH THE DEEPEST STACK**, so a stacked cell
+    # cannot reach into the row below it. With no isomer anywhere --
+    # every chart the shipped table can draw today -- `deepest` is 0 and
+    # the pitch is exactly `CELL_H`, so the geometry is unchanged.
+    deepest = max((key.state_index for key in tree.nodes), default=0)
+    row_pitch = CELL_H + deepest * STATE_OFFSET
+    height = (max_z - min_z + 1) * row_pitch + 2 * MARGIN
 
-    def centre(z: int, a: int) -> tuple[float, float]:
+    def centre(key: NuclideKey) -> tuple[float, float]:
         # y is inverted: higher Z at the top, as every chart draws it.
+        # **THE STATE INDEX CHOOSES A SLOT WITHIN THE CELL**, so two
+        # states of one isotope stack rather than overlapping: (Z, N)
+        # still determines the cell, and the state offsets inside it.
         return (
-            MARGIN + (a - z - min_n) * CELL_W + CELL_W / 2,
-            MARGIN + (max_z - z) * CELL_H + CELL_H / 2,
+            MARGIN + (key.a - key.z - min_n) * CELL_W + CELL_W / 2,
+            MARGIN
+            + (max_z - key.z) * row_pitch
+            + CELL_H / 2
+            + key.state_index * STATE_OFFSET,
         )
 
     placed = tuple(
         PlacedNode(
-            z=z,
-            a=a,
+            key=key,
             name=nuclide.name,
-            x=centre(z, a)[0] - BOX_W / 2,
-            y=centre(z, a)[1] - BOX_H / 2,
+            x=centre(key)[0] - BOX_W / 2,
+            y=centre(key)[1] - BOX_H / 2,
             width=BOX_W,
             height=BOX_H,
-            is_root=(z, a) == tree.root,
+            is_root=key == tree.root,
             is_stable=nuclide.is_stable,
         )
-        for (z, a), nuclide in sorted(tree.nodes.items())
+        for key, nuclide in sorted(tree.nodes.items())
     )
 
     leaves = tree.leaves()
@@ -186,18 +242,20 @@ def render_decay_svg(tree: DecayTree) -> DecayDiagram:
     ]
 
     # Edges first, so a box always sits on top of the lines reaching it.
-    for (z, a), outgoing in sorted(tree.edges.items()):
+    assumed = False
+    for key, outgoing in sorted(tree.edges.items()):
         for edge in outgoing:
             if edge.to is None:
                 continue
             family = mode_family(edge.mode)
             if family not in families:
                 families.append(family)
-            parts.append(_edge_svg(centre(z, a), centre(*edge.to), edge, family))
+            assumed = assumed or edge.is_assumed
+            parts.append(_edge_svg(centre(key), centre(edge.to), edge, family))
 
     for node in placed:
-        nuclide = tree.nodes[(node.z, node.a)]
-        reason = leaves.get((node.z, node.a), "")
+        nuclide = tree.nodes[node.key]
+        reason = leaves.get(node.key, "")
         parts.append(_node_svg(node, format_half_life(nuclide.half_life), reason))
 
     parts.append("</svg>")
@@ -207,6 +265,7 @@ def render_decay_svg(tree: DecayTree) -> DecayDiagram:
         width=width,
         height=height,
         families=tuple(families),
+        has_assumed_daughter_state=assumed,
     )
 
 
@@ -217,7 +276,16 @@ def legend_lines(diagram: DecayDiagram) -> list[tuple[str, str]]:
     naming decays that are not on screen invites the reader to hunt for
     them. Carbon-14's chain would otherwise advertise cluster emission.
     """
-    return [(FAMILY_COLOUR[f], FAMILY_WORDS[f]) for f in diagram.families]
+    lines = [(FAMILY_COLOUR[f], FAMILY_WORDS[f]) for f in diagram.families]
+    if diagram.has_assumed_daughter_state:
+        lines.append((_ASSUMED_SWATCH, ASSUMED_LEGEND))
+    return lines
+
+
+#: The assumption is not a decay family, so it gets a neutral swatch
+#: rather than borrowing one family's colour and implying it applies to
+#: that family alone.
+_ASSUMED_SWATCH = "#5d6d7e"
 
 
 FAMILY_WORDS: dict[str, str] = {
@@ -245,9 +313,11 @@ def _edge_svg(start, end, edge, family: str) -> str:
     x1, y1 = start
     x2, y2 = end
     width, opacity = edge_weight(edge.branching)
+    dash = f' stroke-dasharray="{ASSUMED_DASH}"' if edge.is_assumed else ""
     body = (
         f'<line x1="{_n(x1)}" y1="{_n(y1)}" x2="{_n(x2)}" y2="{_n(y2)}" '
-        f'stroke="{colour}" stroke-width="{_n(width)}" opacity="{_n(opacity)}"/>'
+        f'stroke="{colour}" stroke-width="{_n(width)}" '
+        f'opacity="{_n(opacity)}"{dash}/>'
     )
     text = ""
     readable = edge.branching is None or edge.branching >= 1e-4

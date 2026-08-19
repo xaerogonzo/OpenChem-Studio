@@ -660,7 +660,7 @@ class PeriodicTableDialog(QDialog):
         row.addStretch(1)
         column.addLayout(row)
 
-        self._decay_focus: tuple[int, int] | None = None
+        self._decay_focus: nuclide_data.NuclideKey | None = None
         self._decay_diagram = None
         self._decay_view._view.installEventFilter(self)
         return container
@@ -696,12 +696,19 @@ class PeriodicTableDialog(QDialog):
             position = event.position()
             node = self._decay_diagram.node_at(position.x() / zoom, position.y() / zoom)
             if node is not None:
-                self._focus_decay_node(node.z, node.a)
+                self._focus_decay_node(node.key)
                 return True
         return super().eventFilter(watched, event)
 
-    def decay_focus(self) -> tuple[int, int] | None:
-        """(Z, A) of the nuclide the chain is currently describing."""
+    def decay_focus(self) -> nuclide_data.NuclideKey | None:
+        """Which nuclear state the chain is currently describing.
+
+        **A KEY, not a `(Z, A)` pair.** Two states of one isotope share a
+        cell on the chart, so a pair cannot say which box was clicked --
+        and reassembling the identity here rather than carrying the one
+        the node was drawn with is where a click starts landing on the
+        wrong state.
+        """
         return self._decay_focus
 
     def _refresh_decay(self) -> None:
@@ -724,16 +731,16 @@ class PeriodicTableDialog(QDialog):
             self._decay_diagram = None
             self._refresh_decay_button()
             return
-        self._focus_decay_node(start.z, start.a)
+        self._focus_decay_node(start.key)
 
-    def _focus_decay_node(self, z: int, a: int) -> None:
-        start = nuclide_data.nuclide(z, a)
+    def _focus_decay_node(self, key: nuclide_data.NuclideKey) -> None:
+        start = nuclide_data.nuclide_at(key)
         if start is None:  # pragma: no cover - only a stale click could
             return
         tree = decay_tree(start)
         diagram = render_decay_svg(tree)
         self._decay_diagram = diagram
-        self._decay_focus = (z, a)
+        self._decay_focus = key
         self._decay_view.set_content_visible(True)
         self._decay_view.load(diagram.svg)
         self._decay_view.zoom_to_fit()
@@ -780,8 +787,8 @@ class PeriodicTableDialog(QDialog):
             self._decay_insert.setEnabled(False)
             self._decay_hint.setText("")
             return
-        z, _a = self._decay_focus
-        nuclide = nuclide_data.nuclide(*self._decay_focus)
+        z = self._decay_focus.z
+        nuclide = nuclide_data.nuclide_at(self._decay_focus)
         symbol = nuclide.symbol if nuclide is not None else ""
         self._decay_insert.setEnabled(bool(symbol))
         self._decay_hint.setText(
@@ -797,7 +804,11 @@ class PeriodicTableDialog(QDialog):
         the window already knows how to put an element on the canvas, and
         the isotope goes through the picker's own path afterwards.
         """
-        nuclide = None if self._decay_focus is None else nuclide_data.nuclide(*self._decay_focus)
+        nuclide = (
+            None
+            if self._decay_focus is None
+            else nuclide_data.nuclide_at(self._decay_focus)
+        )
         if nuclide is None:
             return
         self.insert_requested.emit(nuclide.symbol, 0)

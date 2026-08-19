@@ -45,8 +45,16 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from enum import Enum
+from typing import NamedTuple
 
-from openchem.chem.nuclides import Nuclide, nuclide, _symbol_by_z
+from openchem.chem.nuclides import (
+    Nuclide,
+    NuclideKey,
+    nuclide,
+    nuclide_at,
+    _symbol_by_z,
+)
 
 #: Charge change per beta step. Longest first when matching, so `2B-`
 #: is never read as `2` followed by `B-`.
@@ -256,12 +264,93 @@ def is_recognised(mode: str) -> bool:
     return mode in UNFOLLOWABLE or delta_for(mode) is not None
 
 
-def daughter(parent: Nuclide, mode: str) -> Nuclide | None:
-    """What `parent` becomes, or None if that cannot be derived."""
+class DaughterProvenance(str, Enum):
+    """How a decay edge's daughter STATE was arrived at.
+
+    **NUBASE NAMES NO DAUGHTER STATE.** Read off the raw rows, the whole
+    of what the decay field carries is the mode and the branching --
+    `B-=100`, `IT~100;B-=0.0037` -- so which state of Ru-99 a Tc-99m beta
+    decay populates is simply not in the source.
+
+    **THE ASSUMPTION IS BEING MADE ALREADY, INVISIBLY**, and that is the
+    honest framing: today's uranium chain resolves U-238 to Th-234's
+    ground state because ground states are all the table holds. Isomers do
+    not create the assumption, they make it visible. So this is a VALUE
+    that reaches the screen rather than a comment -- a diagram that looks
+    like an exact NUBASE-derived chain while part of it is this
+    application's guess is precisely the plausible-looking wrongness this
+    project spends its time removing.
+
+    A `str` enum so it can be compared, sorted and put in a diagnostic
+    without a conversion, the same as the leaf reasons beside it.
+    """
+
+    #: The source determines it. **ONE CASE, AND IT IS REAL**: an
+    #: isomeric transition from state index 1 has only the ground state
+    #: below it, so there is nowhere else it can land. From index 2 or
+    #: above it could reach any lower state and the source does not say.
+    EXACT = "exact"
+    #: NUBASE names no state populated, so the ground state was drawn.
+    ASSUMED_GROUND_STATE = "assumed_ground_state"
+    #: No single daughter exists to have a state -- fission, or a summed
+    #: branching for two different clusters.
+    UNFOLLOWABLE = "unfollowable"
+
+
+class DaughterResolution(NamedTuple):
+    """What a decay leads to, and how much of that the source determines."""
+
+    nuclide: "Nuclide | None"
+    provenance: DaughterProvenance
+
+
+def daughter(parent: Nuclide, mode: str) -> DaughterResolution:
+    """What `parent` becomes, and how its STATE was arrived at.
+
+    **THE PROVENANCE COMES BACK WITH THE RESULT rather than being asked
+    for.** A `DaughterStatePolicy` argument was considered and deferred:
+    it would have exactly one caller and one value today, and a consumer
+    wanting exact-only can filter on what it is already handed. The
+    boundary is explicit either way; this is the version with less
+    machinery.
+
+    **AN ISOMERIC TRANSITION DESCENDS A STATE, IT DOES NOT MOVE.** In
+    `(Z, A)` space it is a self-loop, which is why `delta_for` returning
+    `(0, 0)` must never be followed on its own -- the state index is what
+    makes the walk terminate, and it is resolved here.
+    """
+    if mode == ISOMERIC_TRANSITION:
+        return _isomeric_daughter(parent)
     delta = delta_for(mode)
     if delta is None:
-        return None
-    return nuclide(parent.z + delta[0], parent.a + delta[1])
+        return DaughterResolution(None, DaughterProvenance.UNFOLLOWABLE)
+    return DaughterResolution(
+        nuclide(parent.z + delta[0], parent.a + delta[1]),
+        DaughterProvenance.ASSUMED_GROUND_STATE,
+    )
+
+
+def _isomeric_daughter(parent: Nuclide) -> DaughterResolution:
+    """Which lower state an `IT` from `parent` reaches.
+
+    From index 1 there is exactly one state below and the answer is
+    EXACT. From index 2 or above the source does not say, so the ground
+    state is drawn and the edge records that it was assumed.
+
+    A ground state has nothing below it, so an `IT` on one is a
+    contradiction in the data rather than a branch -- reported as
+    unfollowable rather than resolved to itself, which would be the
+    self-loop `_refuse_cycles` exists to catch.
+    """
+    if parent.is_ground_state:
+        return DaughterResolution(None, DaughterProvenance.UNFOLLOWABLE)
+    below = nuclide_at(NuclideKey(parent.z, parent.a))
+    provenance = (
+        DaughterProvenance.EXACT
+        if parent.state_index == 1
+        else DaughterProvenance.ASSUMED_GROUND_STATE
+    )
+    return DaughterResolution(below, provenance)
 
 
 @dataclass(frozen=True)
@@ -271,9 +360,19 @@ class DecayEdge:
     mode: str
     branching: float | None
     qualifier: str | None
-    to: tuple[int, int] | None
+    to: NuclideKey | None
     #: Set when `to` is None: why this branch stops here.
     leaf_reason: str = ""
+    #: How the daughter's STATE was arrived at. **It reaches the screen**
+    #: -- an assumed edge is marked on the chart and explained in the
+    #: legend, because a provenance that exists while failing to protect
+    #: interpretation is worse than none.
+    provenance: DaughterProvenance = DaughterProvenance.ASSUMED_GROUND_STATE
+
+    @property
+    def is_assumed(self) -> bool:
+        """Did this application choose the daughter's state?"""
+        return self.provenance is DaughterProvenance.ASSUMED_GROUND_STATE
 
 
 @dataclass
@@ -285,17 +384,17 @@ class DecayTree:
     times. `edges` is keyed by (Z, A).
     """
 
-    root: tuple[int, int]
-    nodes: dict[tuple[int, int], Nuclide] = field(default_factory=dict)
-    edges: dict[tuple[int, int], list[DecayEdge]] = field(default_factory=dict)
+    root: NuclideKey
+    nodes: dict[NuclideKey, Nuclide] = field(default_factory=dict)
+    edges: dict[NuclideKey, list[DecayEdge]] = field(default_factory=dict)
 
     @property
     def size(self) -> int:
         return len(self.nodes)
 
-    def leaves(self) -> dict[tuple[int, int], str]:
+    def leaves(self) -> dict[NuclideKey, str]:
         """Every terminal node, and the physical reason it is terminal."""
-        found: dict[tuple[int, int], str] = {}
+        found: dict[NuclideKey, str] = {}
         for key, outgoing in self.edges.items():
             if any(edge.to is not None for edge in outgoing):
                 continue
@@ -317,43 +416,55 @@ def decay_tree(start: Nuclide) -> DecayTree:
     stability. A cap would be a constant somebody chose over a number
     nobody needed.
     """
-    tree = DecayTree(root=(start.z, start.a))
+    tree = DecayTree(root=start.key)
     pending = [start]
-    on_path: set[tuple[int, int]] = set()
 
     while pending:
         current = pending.pop()
-        key = (current.z, current.a)
+        key = current.key
         if key in tree.nodes:
             continue
         tree.nodes[key] = current
         outgoing: list[DecayEdge] = []
         for decay in current.decays:
-            child = daughter(current, decay.mode)
+            child, provenance = daughter(current, decay.mode)
             if child is None:
                 reason = (
                     UNFOLLOWABLE_MODE
-                    if decay.mode in UNFOLLOWABLE or delta_for(decay.mode) is None
+                    if provenance is DaughterProvenance.UNFOLLOWABLE
                     else OFF_TABLE
                 )
                 outgoing.append(
-                    DecayEdge(decay.mode, decay.branching, decay.qualifier, None, reason)
+                    DecayEdge(
+                        decay.mode,
+                        decay.branching,
+                        decay.qualifier,
+                        None,
+                        reason,
+                        provenance,
+                    )
                 )
                 continue
-            child_key = (child.z, child.a)
+            child_key = child.key
             if child_key == key:
                 raise DecayGraphError(
                     f"{current.name} decays to itself by {decay.mode}; "
                     "the daughter arithmetic is wrong"
                 )
             outgoing.append(
-                DecayEdge(decay.mode, decay.branching, decay.qualifier, child_key)
+                DecayEdge(
+                    decay.mode,
+                    decay.branching,
+                    decay.qualifier,
+                    child_key,
+                    "",
+                    provenance,
+                )
             )
             pending.append(child)
         tree.edges[key] = outgoing
 
     _refuse_cycles(tree)
-    del on_path
     return tree
 
 
@@ -367,8 +478,6 @@ def _refuse_cycles(tree: DecayTree) -> None:
     """
     WHITE, GREY, BLACK = 0, 1, 2
     colour = dict.fromkeys(tree.nodes, WHITE)
-    order = [tree.root] if tree.root in tree.nodes else list(tree.nodes)
-
     for start in list(tree.nodes):
         if colour[start] != WHITE:
             continue
@@ -392,4 +501,3 @@ def _refuse_cycles(tree: DecayTree) -> None:
             if not advanced:
                 colour[node] = BLACK
                 stack.pop()
-    del order

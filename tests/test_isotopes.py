@@ -7,6 +7,7 @@ from PySide6.QtGui import QUndoStack
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
+from openchem.chem import nuclides as nuclide_data
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.isotopes import (
     IsotopeError,
@@ -469,7 +470,7 @@ def test_a_decay_product_arms_the_canvas_and_says_what_is_left(window):
     window._show_periodic_table()
     dialog = window._periodic_table_dialog
     dialog.select("U")
-    dialog._focus_decay_node(82, 206)
+    dialog._focus_decay_node(nuclide_data.NuclideKey(82, 206))
 
     dialog._insert_decay_nuclide()
 

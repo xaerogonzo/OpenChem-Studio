@@ -333,10 +333,10 @@ def test_uranium_238_reaches_lead_206():
     """The textbook 4n+2 chain, through the whole branching tree."""
     tree = decay.decay_tree(N.nuclide(92, 238))
 
-    assert (82, 206) in tree.nodes
-    assert tree.nodes[(82, 206)].is_stable
+    assert N.NuclideKey(82, 206) in tree.nodes
+    assert tree.nodes[N.NuclideKey(82, 206)].is_stable
     for step in ((90, 234), (91, 234), (88, 226), (86, 222), (84, 210)):
-        assert step in tree.nodes, N.nuclide(*step).name
+        assert N.NuclideKey(*step) in tree.nodes, N.nuclide(*step).name
 
 
 def test_every_leaf_states_a_PHYSICAL_reason():
