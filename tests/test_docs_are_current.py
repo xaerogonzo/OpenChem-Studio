@@ -119,6 +119,14 @@ ALLOWED_MISSING_TESTS = {
     # itself: "That name is history, not a test to go and find; all four
     # were rewritten." Removing the name would remove the lesson.
     "test_highlighting_survives_a_repaint",
+    # The two staged-migration guards, deleted when the help-contract debt
+    # reached zero. CLAUDE.md's suite entry names both while explaining
+    # that they existed only because `missing` could not be a failure
+    # mid-migration, and that `test_every_control_carries_a_help_contract`
+    # replaced them. Same reason as the repaint name above: removing the
+    # citation would remove the lesson.
+    "test_the_migration_debt_never_grows",
+    "test_a_finished_surface_does_not_regress",
 }
 
 _PATH_RE = re.compile(r"`([A-Za-z0-9_./-]+\.(?:py|json|html|md|toml|ps1|jsx|cif|yml))`")
