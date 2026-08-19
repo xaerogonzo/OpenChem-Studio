@@ -19,6 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterator, Literal
 
+from PySide6.QtCore import QObject
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QAbstractButton,
@@ -345,6 +346,12 @@ def _walk(root: QWidget, base: str):
         if action.isSeparator():
             continue
         instance_path, class_name = _describe(action, base)
+        # Qt builds ACTIONS inside its composites too, not only widgets:
+        # a line edit's clear button is driven by an action parented to
+        # the line edit. Same rule as the widget side, one surface along.
+        if _is_internal_to_a_composite(action):
+            yield None, ExcludedControl(action, "internal", instance_path, class_name)
+            continue
         if _action_opens_a_menu(action):
             yield None, ExcludedControl(action, "opens_a_menu", instance_path, class_name)
             continue
@@ -390,8 +397,14 @@ def _walk(root: QWidget, base: str):
             )
 
 
-def _is_internal_to_a_composite(widget: QWidget) -> bool:
-    """A control Qt built INSIDE one of its own composites.
+#: Qt's own composite controls -- the ones that build real, interactive
+#: children of their own. Enumerated because there is nothing to derive
+#: from: the children carry no marking that says who made them.
+_QT_COMPOSITES = (QComboBox, QSpinBox, QDoubleSpinBox, QTabBar, QLineEdit)
+
+
+def _is_internal_to_a_composite(target: QObject) -> bool:
+    """Something Qt built INSIDE one of its own composites.
 
     `QTabBar` is here for the same reason as the spin boxes and combo
     boxes, and it closes a hole `_is_qt_internal` cannot: a `QTabBar`
@@ -402,10 +415,33 @@ def _is_internal_to_a_composite(widget: QWidget) -> bool:
     put six Qt scroll arrows into the inventory as controls owing the user
     an explanation.
 
-    Nothing of ours can be caught by it: a tab PAGE is a child of the
-    stacked widget (`qt_tabwidget_stackedwidget`), never of the bar.
-    Measured over the real window -- this rule excludes exactly those 6
-    widgets and no others.
+    `QLineEdit` IS THE SAME HOLE A THIRD TIME, AND THE WIDEST YET.
+    `setClearButtonEnabled(True)` makes Qt build both a widget and an
+    action, measured on a bare line edit:
+
+        the button   QToolButton, objectName ''
+        the action   QAction, '_q_qlineeditclearaction', parented to the
+                     QLineEdit itself
+
+    The button escapes `_is_qt_internal` by having no object name at all,
+    and the action escapes it by using Qt's OTHER reserved prefix -- `_q_`
+    rather than `qt_`. A line edit without a clear button has neither
+    child, so this reaches exactly the clear buttons and nothing else.
+
+    THE WALK IS `parent()` RATHER THAN `parentWidget()`, so one
+    implementation serves both surfaces: the clear action is a child of
+    the line edit rather than of any widget beneath it, and a
+    widget-only chain cannot see it at all. Measured over the real
+    window -- the two traversals exclude exactly the same set, so this is
+    a widening in reach and not in effect.
+
+    Nothing of ours can be caught by any of it. A tab PAGE is a child of
+    the stacked widget (`qt_tabwidget_stackedwidget`), never of the bar --
+    measured over the real window, the tab-bar half excludes exactly those
+    6 widgets and no others -- and a `QLineEdit` is a leaf whose only
+    children are the two Qt makes here. Measured before the line edit was
+    added rather than after: the real window holds 13 line edits, NOT ONE
+    with a clear button, and its universe is 355 controls either way.
 
     THE TEMPTING GENERALISATION IS CATASTROPHIC AND WAS MEASURED BEFORE
     BEING REJECTED. "Anything under a `qt_`-named ancestor is Qt's own"
@@ -414,9 +450,9 @@ def _is_internal_to_a_composite(widget: QWidget) -> bool:
     inside a `QScrollArea`'s `qt_scrollarea_viewport`. It would have
     looked like a large coverage win.
     """
-    parent = widget.parentWidget()
+    parent = target.parent()
     while parent is not None:
-        if isinstance(parent, (QComboBox, QSpinBox, QDoubleSpinBox, QTabBar)):
+        if isinstance(parent, _QT_COMPOSITES):
             return True
-        parent = parent.parentWidget()
+        parent = parent.parent()
     return False

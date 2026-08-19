@@ -32,6 +32,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
+
 
 @dataclass(frozen=True)
 class Command:
@@ -139,6 +141,39 @@ def rank(query: str, commands: list[Command]) -> list[Command]:
     return [c for _s, c in matching]
 
 
+#: ONE control, and it is the whole dialog: the list below it is a result,
+#: not something to operate.
+#:
+#: SEPARATE FROM `tools.command_palette`, which is the menu entry that
+#: OPENS this window. "How do I get here" and "what does typing here do"
+#: are two concepts, and one id may only mean one thing.
+#:
+#: The ranking is the part worth writing down, because it is the only
+#: place a palette can be subtly wrong rather than broken -- a reader who
+#: does not know the loose tier exists reads a poor last-place match as
+#: the application misunderstanding the question.
+_HELP: dict[str, HelpTooltip] = {
+    "query": HelpTooltip(
+        text=(
+            "Searches panels, calculators and menu commands at once, best "
+            "match first.\n\n"
+            "Four tiers, in this order: the exact name, a name starting "
+            "with what you typed, a word inside the name starting with it, "
+            "and finally the letters in order but not adjacent -- which is "
+            "what makes 'qc' find Quantum Chemistry, and what puts a weak "
+            "match at the bottom rather than leaving it out. A calculator's "
+            "own keywords are searched too; they outrank that loose tier "
+            "and lose to a command genuinely named for what you typed.\n\n"
+            "Up and Down move the selection without leaving the box, and "
+            "Enter runs it."
+        ),
+        tier=1,
+        help_id="command_palette.query",
+        topic="navigation",
+    ),
+}
+
+
 class CommandPalette(QDialog):
     """A search box over everything the app can already do."""
 
@@ -155,6 +190,7 @@ class CommandPalette(QDialog):
         # Enter runs the highlighted row without needing the mouse, which
         # is the only reason to use a palette rather than the menus.
         self._search.returnPressed.connect(self._run_current)
+        apply_help_tooltip(self._search, _HELP["query"])
 
         self._list = QListWidget(self)
         self._list.itemActivated.connect(self._on_item_activated)

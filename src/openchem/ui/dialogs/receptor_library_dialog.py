@@ -31,8 +31,35 @@ from PySide6.QtWidgets import (
 
 from openchem.chem.receptor_library import RECEPTOR_LIBRARY, ReceptorEntry, families, search
 from openchem.services.receptor_library_service import is_cached
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 logger = logging.getLogger("openchem.ui")
+
+#: ONE control -- the Import/Cancel pair is a `QDialogButtonBox` and the
+#: clear button is Qt's own, both excluded by `tooltip_inventory`.
+#:
+#: The placeholder already suggested three example queries, which is a
+#: good hint and not a contract: it says what to type and nothing about
+#: WHICH FIELDS are searched, that a match may not straddle two of them,
+#: or that browsing downloads nothing.
+_HELP: dict[str, HelpTooltip] = {
+    "search": HelpTooltip(
+        text=(
+            "Filters the catalogue on target, family, PDB ID, bound ligand "
+            "and state -- a substring of any ONE of those, never across two "
+            "of them.\n\n"
+            "Searching the LIGAND is the part a plain RCSB search handles "
+            "badly, and is how people usually arrive at a structure: what "
+            "has fentanyl bound to it, what has a benzodiazepine site. "
+            "Greek letters fold both ways, so 'alpha-2A' and the symbol "
+            "form find the same entry. Nothing is downloaded by searching; "
+            "the structure is fetched when you import it."
+        ),
+        tier=1,
+        help_id="receptor_library.search",
+        topic="docking",
+    ),
+}
 
 #: Marks the entry carried on a tree item. Entries live on the item rather
 #: than being looked up by label, so two structures of the same target
@@ -55,6 +82,7 @@ class ReceptorLibraryDialog(QDialog):
         )
         self._search.setClearButtonEnabled(True)
         self._search.textChanged.connect(self._repopulate)
+        apply_help_tooltip(self._search, _HELP["search"])
 
         self._tree = QTreeWidget()
         self._tree.setHeaderLabels(["Target", "PDB", "Resolution", "Bound ligand"])

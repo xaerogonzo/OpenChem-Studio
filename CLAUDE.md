@@ -75,6 +75,8 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "shot",       "path": "..."}
     {"do": "lewis",      "details": true}     the Full Lewis window
     {"do": "shot",       "path": "...", "widget": "lewis"}
+    {"do": "dialog",     "name": "HelpDialog"}   built by ui/dialogs/inventory
+    {"do": "shot",       "path": "...", "widget": "dialog"}
     {"do": "overlay",    "on": true, "gallery": true, "step": 1}
     {"do": "cip",        "on": true}          R/S and E/Z, through the menu
     {"do": "erase",      "element": "N"}      a REAL canvas edit
@@ -491,6 +493,14 @@ passed both times; the citation only broke once `git add -A` staged the
 removal. A green docs run taken mid-change is not evidence about the tree
 you are about to commit.
 
+**AND IT FAILS ON A NEW FILE UNTIL THAT FILE IS STAGED**, which is the
+same mechanism seen from the other side and reads as a broken citation
+rather than as an unstaged one. Writing `tests/test_dialog_help_contracts.py`
+and citing it in the same edit fails `test_every_file_a_doc_cites_still_exists`
+with the path listed as missing; `git add` on the new file is the whole
+fix. Neither direction is a bug in the guard -- `git ls-files` is the
+right question and the INDEX is what answers it.
+
 ### The shared chrome: 36 buttons, 3 concepts
 
 Every dock builds a `DockTitleBar`, so its help / float / close buttons
@@ -558,6 +568,89 @@ excluded -- asserting its own setup, so a window that stops building a
 `QTabWidget` fails loudly instead of passing vacuously -- and
 `test_the_composite_rule_does_not_swallow_the_panels` asserts the panels
 are still there.
+
+#### AND A `QLineEdit`'s CLEAR BUTTON ESCAPES THE PREFIX RULE TWICE
+
+Same hole a third time, found in the dialogs, and it is the widest yet.
+`setClearButtonEnabled(True)` makes Qt build TWO things inside the line
+edit and neither carries the `qt_` prefix `_is_qt_internal` derives its
+answer from -- measured on a bare `QLineEdit`:
+
+    the button   QToolButton, objectName ''      <- no name AT ALL
+    the action   QAction, '_q_qlineeditclearaction', parented to the
+                 QLineEdit    <- Qt's OTHER reserved prefix, `_q_`
+
+So the button escapes by having no name to match and the action escapes
+by using a different reserved prefix. The two clear buttons in this
+application are both in dialogs, which is why the window's 355 never saw
+it: the help window and the receptor library each reported **twice the
+controls they have** -- 4 where there are 2, and 3 where there is 1.
+
+**THE ACTION SIDE NEEDED THE RULE APPLIED TO A SURFACE IT NEVER WAS.**
+`_is_internal_to_a_composite` ran in the widget loop only, and the clear
+action is a child of the line edit rather than of any widget beneath it.
+It walks `parent()` rather than `parentWidget()` now so ONE
+implementation serves both -- measured over the real window, the two
+traversals exclude exactly the same set, so it is a widening in reach and
+not in effect.
+
+**MEASURED BEFORE IT WAS WRITTEN, as the QTabBar rule was.** The window
+holds 13 `QLineEdit`s and **not one has a clear button**, so its universe
+is 355 either way. Of those 13 only **2** are documentable controls at
+all -- 7 live inside a `QDoubleSpinBox`, 3 inside a `QSpinBox` and 1
+inside a `QComboBox`, all already excluded -- which is why
+`test_the_composite_rule_does_not_swallow_the_line_edits` asserts the
+survivors BY NAME (`facts.search`, `batch.property_filter`) rather than
+by a threshold that would read as stronger than it is.
+
+Five mutations, five caught, each by the intended guard:
+
+    M1  revert the QLineEdit exclusion   the clear-button guard + the
+                                         dialog blanket
+    M2  exclude the line edit ITSELF     the clear-button guard's narrow
+                                         arm + does_not_swallow
+    M3  drop the action-side check       the same pair as M1
+    M4  delete one shipped contract      the dialog blanket, ALONE
+    M5  excuse a finished dialog         the unmigrated mirror
+
+**M2 IS THE ONE WORTH READING.** It does not fail the dialog blanket at
+all, correctly -- excluding more can only make the missing count smaller.
+That is the green-suite-and-a-smaller-universe failure in miniature, and
+the reason the narrow half is the load-bearing one.
+
+### THE DIALOGS: five of six at zero, and the guard that holds them there
+
+`tests/test_dialog_help_contracts.py` is the second consumer
+`ui/dialogs/inventory.py` was written for. Until it existed the contracts
+written into a dialog were unguarded -- M4 above is exactly that, and
+nothing caught it.
+
+**SCOPED TO WHAT A BARE `DialogContext` CAN BUILD.** Six of the 17 need a
+computed result and five more need services, settings or a molecule;
+handing the guard a context rich enough for all 17 makes it a slow
+integration test that fails for reasons having nothing to do with help.
+`test_a_dialog_that_cannot_be_built_says_so` is what stops that set
+shrinking silently -- a builder must raise `DialogUnavailable` and must
+never answer None.
+
+    ConformerOptionsDialog     6 of 6      HelpDialog          2 of 2
+    CommandPalette             1 of 1      ReceptorLibrary     1 of 1
+    AboutDialog                0 controls
+    PeriodicTableDialog        0 of 137    <- the only one left
+
+**THE EXCEPTION IS ONE NAME IN A SET AND IT DELETES ITSELF.** The panel
+migration used `tooltip_migration_debt.json` and its mirror and threw
+both away at zero; a single `_NOT_YET_MIGRATED` entry with the reason
+beside it is the whole of what is needed here.
+`test_the_unmigrated_dialog_really_is_unmigrated` runs the claim the
+other way -- an excused dialog must still HAVE undocumented controls --
+so the day the periodic table is documented the guard fails and asks for
+the name to be removed. That is the deleted mirror fixture's job, in one
+assertion and no JSON.
+
+**AND ITS 137 IS NOT 137 CONCEPTS.** 118 are element cells -- one concept
+rendered 118 times, the shape `properties.batch_selection` already has
+across 51 tick boxes.
 
 ### The Quantum Chemistry panel: 25 help_ids, 39 renderings
 
