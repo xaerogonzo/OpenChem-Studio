@@ -274,6 +274,18 @@ MENU_HELP: dict[str, HelpTooltip] = {
         tier=2, help_id="structure.generate_conformers", topic=_M,
         help_anchor="limits-conformers",
     ),
+    "isotopes": HelpTooltip(
+        text=(
+            "Opens the periodic table on its Isotopes tab, for the element of "
+            "the atom selected in the 2D editor.\n\n"
+            "Every ground state of that element, with its natural abundance, "
+            "half-life and decay modes -- and applying one writes the mass "
+            "number onto the selected atom without disturbing any conformers "
+            "already generated."
+        ),
+        tier=2, help_id="structure.isotopes", topic=_M,
+        help_anchor="periodic-table",
+    ),
     "check_structure": HelpTooltip(
         text=(
             "Runs this application's own structure checker and shows what it "

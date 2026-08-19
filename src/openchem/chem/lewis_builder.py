@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+from dataclasses import dataclass
 
 from openchem.chem.lewis_diagram import (
     Abstention,
@@ -104,8 +105,7 @@ def build(molblock: str | None, structure_revision: int = 0) -> LewisDiagram:
         return _refused("this structure could not be read")
 
     try:
-        mol = Chem.AddHs(parsed, addCoords=False)
-        AllChem.Compute2DCoords(mol)
+        mol, layout = _best_layout(parsed)
     except Exception as exc:  # noqa: BLE001
         return _refused(f"this structure could not be laid out ({exc})")
 
@@ -183,8 +183,59 @@ def build(molblock: str | None, structure_revision: int = 0) -> LewisDiagram:
         bond_pairs=tuple(bond_pairs),
         regions=tuple(regions),
         abstentions=tuple(abstentions),
-        provenance=_provenance(molblock, structure_revision),
+        provenance=_provenance(molblock, structure_revision, layout),
     )
+
+
+@dataclass(frozen=True)
+class ChosenLayout:
+    """Which engine drew the diagram, and the score that chose it."""
+
+    engine: str
+    crowding: float
+    crossings: int
+
+
+def _best_layout(parsed):
+    """Lay out with BOTH engines and keep whichever scores better.
+
+    **"USE THE NEWER ENGINE" WOULD HAVE MADE THE REPORTED CASE WORSE.**
+    Measured as closest non-bonded approach in bond lengths, CoordGen
+    beats `Compute2DCoords` on cholesterol (0.036 -> 0.565, sixteenfold)
+    and glucose, and LOSES on morphine (0.303 -> 0.186), caffeine and
+    methane. Morphine is essentially the structure this was reported for.
+
+    Both engines are deterministic -- CoordGen re-run three times on
+    morphine gives the same layout to six decimal places -- and together
+    they cost about 20 ms on the largest molecule in the corpus, so
+    running both is cheaper than deciding which to run.
+
+    Ties keep `Compute2DCoords`, the engine that shipped: a chooser that
+    flipped on a tie would churn layouts for no measured reason.
+    """
+    from rdkit import Chem
+    from rdkit.Chem import AllChem, rdCoordGen
+
+    from openchem.chem.lewis_layout import score
+
+    base = Chem.AddHs(parsed, addCoords=False)
+    candidates = []
+    for engine, lay_out in (
+        ("compute2dcoords", AllChem.Compute2DCoords),
+        ("coordgen", rdCoordGen.AddCoords),
+    ):
+        candidate = Chem.Mol(base)
+        lay_out(candidate)
+        conformer = candidate.GetConformer()
+        positions = {
+            index: tuple(conformer.GetAtomPosition(index))[:2]
+            for index in range(candidate.GetNumAtoms())
+        }
+        bonds = [(b.GetBeginAtomIdx(), b.GetEndAtomIdx()) for b in candidate.GetBonds()]
+        candidates.append((score(positions, bonds), engine, candidate))
+
+    best_score, engine, mol = max(candidates, key=lambda item: (item[0], item[1] == "compute2dcoords"))
+    return mol, ChosenLayout(engine, best_score.crowding, best_score.crossings)
 
 
 def crowding(diagram: LewisDiagram) -> float:
@@ -391,7 +442,11 @@ def _key(begin: int, end: int) -> tuple[int, int]:
     return (begin, end) if begin < end else (end, begin)
 
 
-def _provenance(molblock: str, revision: int) -> Provenance:
+def _provenance(
+    molblock: str,
+    revision: int,
+    layout: ChosenLayout | None = None,
+) -> Provenance:
     from rdkit import rdBase
 
     return Provenance(
@@ -399,6 +454,9 @@ def _provenance(molblock: str, revision: int) -> Provenance:
         structure_revision=revision,
         analysis_version=ANALYSIS_VERSION,
         rdkit_version=rdBase.rdkitVersion,
+        layout_engine=layout.engine if layout else "",
+        layout_crowding=layout.crowding if layout else None,
+        layout_crossings=layout.crossings if layout else None,
     )
 
 

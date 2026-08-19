@@ -1,0 +1,70 @@
+{
+ "design": [
+  "acetaminophen",
+  "adamantane",
+  "alanine",
+  "benzene",
+  "caffeine",
+  "cholesterol",
+  "cyclohexane",
+  "ethanol",
+  "glucose",
+  "ibuprofen",
+  "indole",
+  "menthol",
+  "morphine",
+  "nicotine",
+  "paracetamol_dimer",
+  "phenol",
+  "pyrrole",
+  "salicylic_acid",
+  "sucrose",
+  "thiophene",
+  "urea"
+ ],
+ "holdout": [
+  "acetate",
+  "adenine",
+  "aspirin",
+  "biphenyl",
+  "camphor",
+  "cubane",
+  "diazepam",
+  "furan",
+  "glycine",
+  "imidazole",
+  "lactose",
+  "methane",
+  "naphthalene",
+  "norbornane",
+  "penicillin_g",
+  "pyridine",
+  "quinine",
+  "strychnine",
+  "testosterone",
+  "toluene",
+  "water"
+ ],
+ "design_results": {
+  "A": {
+   "n": 21,
+   "not_worse": 19,
+   "strictly_better": 13,
+   "crossings_removed": 40
+  },
+  "B": {
+   "n": 21,
+   "not_worse": 21,
+   "strictly_better": 11,
+   "crossings_removed": 33
+  }
+ },
+ "chosen_ordering": "B",
+ "holdout_result": {
+  "n": 21,
+  "not_worse": 21,
+  "strictly_better": 8,
+  "crossings_removed": 38
+ },
+ "verdict": "SHIP"
+}

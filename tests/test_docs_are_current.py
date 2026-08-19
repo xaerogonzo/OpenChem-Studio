@@ -429,6 +429,25 @@ def _plugins_registering_reactions(root: Path) -> list[str]:
 #: silently fall behind the document.
 DEFERRALS: list[Deferral] = [
     Deferral(
+        claim="consumes a particle",
+        # The feature would announce itself as a module: there is no way
+        # to edit quark content without a type for it. Watching for the
+        # word in first-party source is therefore the honest `unbuilt`
+        # test -- and it fails the day somebody adds one, which is the
+        # point.
+        unbuilt=lambda: "quark" not in _src_text().lower(),
+        manual=(
+            "The reason is a judgement about product shape, not a countable "
+            "fact. 'Every layer below the UI is built on atoms as the smallest "
+            "unit' is true of `chem/`, `domain/`, the calculator registry and "
+            "the file formats today, and no single expression distinguishes "
+            "that from a codebase that had grown a particle model -- the "
+            "`unbuilt` predicate above is what would notice that. Stating an "
+            "uncheckable reason as uncheckable is the rule this table already "
+            "applies to 'the cause was never established'."
+        ),
+    ),
+    Deferral(
         claim="`SimilarityService` doesn't exist yet",
         unbuilt=lambda: not _defines("SimilarityService"),
     ),

@@ -283,10 +283,19 @@ def test_crowding_is_a_LEGIBILITY_number_and_not_a_refusal():
     enum exists to separate.
 
     Atom count does not predict it: aspirin has 21 atoms and lays out
-    cleanly, glucose has 24 and does not.
+    cleanly, morphine has 40 and does not.
+
+    **THE CROWDED FIXTURE USED TO BE GLUCOSE AND IS NOT ANY MORE**, which
+    is the layout chooser working rather than this test being weakened.
+    Glucose measured 0.524 under `Compute2DCoords` alone; CoordGen draws
+    it at 0.805, the chooser now takes that, and 0.805 is on the roomy
+    side of `CROWDED_APPROACH`. Morphine is the replacement because it is
+    one of the molecules CoordGen LOSES -- 0.303 against 0.186 -- so it
+    stays crowded whichever engine wins, and the status quo is what the
+    diagram is drawn from.
     """
     roomy = build(molblock("CC(=O)Oc1ccccc1C(=O)O"))
-    crowded = build(molblock("OCC1OC(O)C(O)C(O)C1O"))
+    crowded = build(molblock("CN1CC[C@]23c4c5ccc(O)c4O[C@H]2[C@@H](O)C=C[C@H]3[C@H]1C5"))
 
     assert roomy.status is Status.SUPPORTED
     assert crowded.status is Status.SUPPORTED, "crowding is not a chemistry refusal"

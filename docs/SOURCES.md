@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 188b9547f96b25fb19d1d747846dec16fed21b3456ad6c2cf68b7ee15ea3f021 -->
+<!-- SOURCE SHA256: 261bfa23e626a822fb943574463c627a7df4f44ed2a048413710d3ebbb162f94 -->
 
 # Sources
 
@@ -98,7 +98,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`bradley2015`](#bradley2015) | literature | shipped | citation + claim |
 | [`bravetti2023`](#bravetti2023) | literature | shipped | citation |
 | [`cod`](#cod) | dataset | shipped | citation |
-| [`crc_handbook`](#crc_handbook) | reference_table | reference only | citation |
+| [`crc_handbook`](#crc_handbook) | reference_table | shipped | citation + claim |
 | [`cwc_annex_on_chemicals`](#cwc_annex_on_chemicals) | legal | shipped | citation + claim |
 | [`dea_listed_chemicals`](#dea_listed_chemicals) | legal | shipped | citation |
 | [`delaney2004`](#delaney2004) | literature | shipped | citation + claim |
@@ -127,6 +127,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`molstar`](#molstar) | software | shipped | citation |
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
 | [`nmrshiftdb2`](#nmrshiftdb2) | dataset | shipped | citation |
+| [`nubase2020`](#nubase2020) | dataset | shipped | citation + claim |
 | [`ons_solubility`](#ons_solubility) | dataset | shipped | citation |
 | [`openbabel`](#openbabel) | software | shipped | citation |
 | [`opsin`](#opsin) | software | shipped | citation |
@@ -957,6 +958,96 @@ CHOSEN BECAUSE IT IS NOT CIRCULAR. nmrshiftdb2 ([source:nmrshiftdb2]) IS
 the lookup's index, so scoring the lookup against it would measure
 memorisation.
 
+### nubase2020
+
+<a id="nubase2020"></a>
+
+> F. G. Kondev, M. Wang, W. J. Huang, S. Naimi & G. Audi, 'The NUBASE2020 evaluation of nuclear physics properties', Chinese Physics C 45, 030001 (2021).
+
+| | |
+| --- | --- |
+| Identifier | [10.1088/1674-1137/abddae](https://doi.org/10.1088/1674-1137/abddae) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-18 |
+| Local copy | `Kondev_2021_Chinese_Phys._C_45_030001.pdf` (not checked) |
+| Used by | `tools/build_nuclide_table.py`, `src/openchem/chem/data/nuclides.json`, `src/openchem/chem/data/nubase_4.mas20.txt`, `src/openchem/chem/nuclides.py`, `src/openchem/chem/decay.py` |
+
+Every ground-state nuclear property this application knows: half-life,
+decay modes with branchings, natural abundance, spin and parity, mass
+excess. 5,684 nuclear states -- 3,557 ground states and 2,127 isomers --
+from the 5,685 rows of the electronic table that carry an element.
+
+**THE LICENCE IS THREE SEPARATE CLAIMS, because a paper's licence does not
+automatically licence a separately distributed data file.** They are
+distinct works, and inferring one from the other is the provenance mistake
+this project has spent whole commits undoing -- see the electronegativity
+correction under [source:crc_handbook].
+
+  1. THE ARTICLE IS CC BY 3.0, verbatim from page 030001-1: "Content from
+     this work may be used under the terms of the Creative Commons
+     Attribution 3.0 licence. Any further distribution of this work must
+     maintain attribution to the author(s) and the title of the work,
+     journal citation and DOI."
+  2. THE ARTICLE CONTAINS THIS TABLE. Table I, "The NUBASE2020 table",
+     runs about 160 of the paper's 181 pages, and U-238 was cross-checked
+     against the electronic parse: `4.463 Gy`, `IS=99.2742 10; A=100;
+     SF=5.44e-5 7; 2B-=2.2e-10 3`, identical. **That establishes the
+     correspondence, not that all 5,843 rows are byte-identical** -- one
+     row cannot, and the claim is written no wider than the check.
+  3. THE ELECTRONIC FILE CARRIES A CITATION REQUEST, not a licence grant.
+     The AMDC page says "any work that will use the file should make
+     reference to this paper and not to the electronic files."
+
+So the shipped table reproduces values published under CC BY 3.0 and is
+attributed accordingly -- authors, title, journal citation and DOI -- which
+is also exactly what AMDC asks for, so the two obligations are one action.
+**This entry does not assert that the data file itself is CC BY.**
+
+`verification = "citation_and_claim"`: the citation is confirmed from the
+PDF in Sci Downloads, and the claim is the generator's acceptance block --
+U-238 at 4.463 Gy and 99.2742%, Po-209 at 124 y, C-14 at 5,700 y, Tc-99 at
+2.11e5 y, and exactly 253 stable GROUND STATES -- 254 rows in the table
+carry `stbl`, the extra being Ta-180m, the one naturally occurring isomer,
+which is named in the acceptance rather than tolerated by a loosened
+bound.
+
+THE SOURCE SNAPSHOT IS COMMITTED, NOT FETCHED. `nubase_4.mas20.txt` sits
+beside the generated JSON and `--check` never touches the network: an
+upstream that can change under CI would turn runs red with nothing in this
+repository having moved, and a hash alone says which bytes were expected
+without giving a future reader the bytes to regenerate from. The manifest
+records the sha256 (which bytes) and the revision (which scientific
+release) -- the second being what answers "why does this disagree with
+NUBASE2024".
+
+EVERY STATE SHIPS, AND THE COUNTS ARE DERIVED. 5685 source rows split
+3558 ground / 2127 isomer, one row excluded (the free neutron, which
+NUBASE lists as Z=0 and which is not an element), 5684 shipped. The
+generator counts all five and refuses to build if the arithmetic does not
+close, because an earlier draft carried the figures as prose and left a
+reader wondering which of 5684 and 5685 was the typo.
+
+**THIS ENTRY PREVIOUSLY SAID GROUND STATES ONLY**, on the reasoning that a
+molfile cannot express Tc-99m as distinct from Tc-99 so isomer rows would
+be data nothing could reach. The first half is still true and is now a
+REFUSAL in the write path rather than an absence in the data: the
+half-life and decay modes of Tc-99m are exactly what the Isotopes tab
+exists to show, and the decay chart draws its chain. The free-neutron
+exclusion is unchanged and is still a build-time invariant.
+
+TWO NOTATIONS THE GRAMMAR HAD NEVER SEEN CAME IN WITH THE ISOMERS, and
+both were caught by the build refusing rather than by review. `IT`
+(isomeric transition) appears on 1,471 rows and is now in the grammar. A
+single row -- Pd-126p -- writes `B=72 8`, a beta decay with no sign, and
+is REFUSED rather than inferred: the sign decides the daughter, and
+NUBASE's format header documents no mode vocabulary to appeal to.
+
+THE STATE SUFFIX IS READ FROM THE SOURCE'S OWN NAME FIELD, not derived
+from the state index -- a table mapping 1 to `m` would be a second
+implementation of somebody else's notation. Measured across all 2,127,
+the two are one-to-one: 1 m, 2 n, 3 p, 4 q, 5 r, 6 x, 8 i, 9 j.
+
 ### aqsoldb
 
 <a id="aqsoldb"></a>
@@ -1392,18 +1483,11 @@ element is a refusal, never a guess.
 | | |
 | --- | --- |
 | Identifier | CRC Handbook of Chemistry and Physics, 97th edition |
-| Status | reference only |
-| Verification | citation |
-| Verified | 2026-08-17 |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-18 |
 | Local copy | `CRC_Handbook_of_Chemistry_and_Physics_97.pdf` (not checked) |
-| Used by | `src/openchem/chem/data/electronegativity.json`, `src/openchem/chem/lattice_energy.py` |
-
-**Why it is reference only.** NO NUMBER IN THIS PROJECT WAS READ FROM IT. Both places that name it reach
-it through an intermediary: the lattice-energy targets come from Table 3 of
-[source:kaya2022], while the CRC column named in `lattice_energy.py` is
-[source:jenkins1999]'s own ref 40, taken from Jenkins' table rather than
-from the book; and the electronegativities come from [source:allred1961],
-with the CRC named only as somewhere the same set is said to be reproduced.
+| Used by | `src/openchem/chem/data/elements.json`, `src/openchem/chem/element_palettes.py`, `src/openchem/chem/data/electronegativity.json`, `src/openchem/chem/lattice_energy.py` |
 
 "WHICH EDITION" TURNED OUT TO BE THE WRONG QUESTION. With the 97th edition
 in hand the answer is that no number here came from any edition -- see
@@ -1430,6 +1514,54 @@ in the data file.
 The lattice-energy table in the 97th edition is at page 2097 and is by
 "H. D. B. Jenkins and H. K. Roobottom" -- the same Jenkins as
 [source:jenkins1999], which is why that paper's ref 40 points here.
+
+**THE OXIDATION STATES WERE CHECKED AGAINST IT AND STILL DID NOT COME
+FROM IT**, which is why this entry is still `reference_only` after a
+review that expected to move it. `elements.json`'s
+`common_oxidation_states` was compared against the periodic table on page
+2639 (the poster is rotated 90 degrees in the PDF and its text layer
+interleaves neighbouring cells, so this was read from a render at 10x,
+not extracted).
+
+The halogens were the reason for looking, and the expectation going in
+was wrong. Reported internally as "bromine is missing +3 and +7, which
+makes it inconsistent with chlorine in the same group". The CRC prints:
+
+    F   -1
+    Cl  +1 +5 +7 -1        <- no +3
+    Br  +1 +5 -1           <- no +3, no +7
+    I   +1 +5 +7 -1
+    At  (none listed)
+
+So **bromine matches the CRC exactly** and the group asymmetry is the
+source's own. What differs is CHLORINE, where this project ships a +3 the
+CRC does not -- and Cl(III) is real chemistry (ClF3, chlorites), so the
+divergence is the CRC being conservative rather than this project being
+wrong. The same holds for the noble gases: the CRC lists `0` for all six,
+where this project lists Kr +2, Xe +2/+4/+6 and Rn +2, which are XeF6 and
+its relatives.
+
+**THE PHASE POINTS, BY CONTRAST, REALLY DO COME FROM THE BOOK.** 103 of
+118 elements, from 4-116..4-118, extracted by binning words against the
+table's own column positions -- the columns are right-aligned, so values
+sit LEFT of their headers, and binning against the headers directly gave
+2 rows out of 100 before the acceptance checks caught it. Three further
+things it had to get right, each found the same way: the CRC spells them
+"Aluminum" and "Cesium"; sulfur's rhombic row holds "95.2 trans monocl",
+a TRANSITION rather than a melt, so the monoclinic row is the one with a
+melting point; and allotropes are listed separately, so the reference
+form is chosen explicitly (graphite, white P, gray Se, monoclinic S,
+white Sn).
+
+Sublimation is READ from the table's own "sp" marker -- arsenic and
+carbon -- and never inferred from a missing boiling point, which would
+put all fifteen superheavies in that class.
+
+NO SHIPPED VALUE WAS CHANGED. The honest description of this column is
+that it is a curated set, checked against the CRC, which is a MORE
+CONSERVATIVE presentation of the same question -- not that it was taken
+from it. A full element-by-element reconciliation of all 118 is not done;
+the halogens and the noble gases are.
 
 ### abraham_predicted_solvents
 

@@ -147,7 +147,13 @@ _EXPECTED_FIRST = {
     "mmcif": "Import Macromolecule...",
     "sdf": "Import Molecule...",
     "xyz": "Import Molecule...",
-    "isotope": "Periodic Table...",
+    # **WAS "Periodic Table...", AND THE CHANGE IS THE RANKING WORKING** --
+    # the same case the "valence" note below describes. There is now a
+    # real menu item called "Isotopes...", which is both a prefix match
+    # and the better answer: it opens the table ON the Isotopes tab for
+    # the selected atom's element, where "Periodic Table..." opens it on
+    # whatever tab was last used.
+    "isotope": "Isotopes...",
     "pubchem": "Identify Structure Online...",
     "orca": "External Tools...",
     # NOT "valence": there is a real menu item called "Show Valence",

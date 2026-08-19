@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from typing import Callable
 
-from PySide6.QtCore import QUrl, Qt
+from PySide6.QtCore import QPoint, QUrl, Qt
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import (
     QAction,
@@ -38,6 +38,7 @@ from openchem.app.menu_help import MENU_HELP
 from openchem.app.settings import Settings
 from openchem.chem.calculation_input import canonical_conformer
 from openchem.chem.identifiers import identifier_for_molblock
+from openchem.chem.isotopes import IsotopeError, element_at, set_isotope
 from openchem.chem.stereochemistry import StereochemistryConflict
 from openchem.chem.structure_clipboard import parse_structure_text
 from openchem.commands.conformer_commands import (
@@ -377,7 +378,15 @@ class MainWindow(QMainWindow):
         # And the 2D canvas, which turned out to be possible after all --
         # Ketcher's editor carries a `selectionChange` event even though
         # its public `subscribe()` facade does not accept that name.
-        self._editor.atom_selected.connect(self._atom_inspector_panel.select_atom)
+        # Which atom the 2D editor last reported, as a MOLFILE POSITION --
+        # `main.jsx` translates Ketcher's pool id before it crosses the
+        # bridge, so this indexes the molblock the model holds.
+        self._selected_atom_index: int | None = None
+        self._editor.atom_selected.connect(self._on_editor_atom_selected)
+        self._editor.atom_context_menu.connect(self._show_atom_context_menu)
+        self._atom_inspector_panel.isotopes_requested.connect(
+            self._show_isotopes_for_selection
+        )
         # And bonds, through the same Ketcher event. `select_bond` had no
         # caller until this line existed; the 3D viewer cannot supply one,
         # because 3Dmol's setClickable resolves a click to an ATOM and has
@@ -1262,6 +1271,17 @@ class MainWindow(QMainWindow):
                 "Generate Conformers...", self._generate_conformers
             ),
             "generate_conformers",
+        )
+        # **THE APPLICATION'S OWN DOOR TO THE NUCLIDE TABLE.** The plan
+        # for this branch proposed a Ketcher context-menu entry too; the
+        # spike came back negative and the isotope feature must not DEPEND
+        # on that injection working, so this exists, needs no change to
+        # the editor bundle, and is what the guard checks.
+        self._document(
+            self._structure_menu.addAction(
+                "Isotopes...", self._show_isotopes_for_selection
+            ),
+            "isotopes",
         )
         self._structure_menu.addSeparator()
         check_action = self._document(
@@ -2403,10 +2423,89 @@ class MainWindow(QMainWindow):
         if existing is None:
             existing = PeriodicTableDialog(self)
             existing.insert_requested.connect(self._insert_element_into_drawing)
+            existing.element_armed.connect(self._arm_element)
+            existing.isotope_requested.connect(self._apply_isotope)
+            existing.nuclide_insert_requested.connect(self._insert_nuclide_into_drawing)
             self._periodic_table_dialog = existing
+        # Pushed on every open, not only on the first: the table is
+        # non-modal and long-lived, so a selection made while it was
+        # closed would otherwise never reach it.
+        self._push_selected_atom_to_periodic_table()
         existing.show()
         existing.raise_()
         existing.activateWindow()
+
+    def _on_editor_atom_selected(self, index: int) -> None:
+        """One click, two readers -- the inspector and the isotope picker.
+
+        The picker needs an ELEMENT as well as an index, and only this
+        layer holds both the selection and the molecule to read it from.
+        """
+        self._atom_inspector_panel.select_atom(index)
+        self._selected_atom_index = index
+        self._push_selected_atom_to_periodic_table()
+
+    def _selected_atom_element(self) -> str | None:
+        """The element of the atom selected in the 2D editor, or None.
+
+        `element_at` does the bounds check, for the reason
+        `_atom_is_in_report` does one: an index from the editor can
+        outrun the structure the model holds.
+        """
+        molecule = self._current_molecule()
+        if self._selected_atom_index is None or molecule is None:
+            return None
+        return element_at(molecule.molblock, self._selected_atom_index)
+
+    def _push_selected_atom_to_periodic_table(self) -> None:
+        dialog = getattr(self, "_periodic_table_dialog", None)
+        if dialog is None:
+            return
+        dialog.set_selected_atom(
+            self._selected_atom_element(),
+            -1 if self._selected_atom_index is None else self._selected_atom_index,
+        )
+
+    def _apply_isotope(self, symbol: str, mass_number: int, all_of_element: bool) -> None:
+        """Write a mass number onto the drawing, through the undo stack.
+
+        `symbol` is used to CHECK the selection, never to choose the
+        target: `set_isotope` derives the element from the atom index, so
+        a table showing one element and a canvas holding another cannot
+        combine into a write. The dialog refuses that pairing too; this is
+        the second of the two, and the one a drive script or a plugin
+        would meet.
+        """
+        molecule = self._current_molecule()
+        index = self._selected_atom_index
+        if molecule is None or index is None or not molecule.molblock:
+            self.statusBar().showMessage("Select an atom in the 2D editor first.", 4000)
+            return
+        if self._selected_atom_element() != symbol:
+            self.statusBar().showMessage(
+                f"The selected atom is not {symbol}. Choose it again.", 5000
+            )
+            return
+        try:
+            labelled = set_isotope(
+                molecule.molblock, index, mass_number, all_of_element=all_of_element
+            )
+        except IsotopeError as exc:
+            self.statusBar().showMessage(f"That isotope was refused: {exc}", 6000)
+            return
+        self._undo_stack.push(
+            EditStructureCommand(
+                self._services.chemistry_engine, molecule, labelled, self._services.event_bus
+            )
+        )
+        # The editor compares canonical SMILES and ignores a
+        # coordinates-only change, so the canvas is reloaded explicitly --
+        # the same reason `_apply_structure_fix` does it.
+        self._editor.set_molecule(molecule)
+        scope = f"every {symbol}" if all_of_element else "the selected atom"
+        self.statusBar().showMessage(
+            f"Set {symbol}-{mass_number} on {scope}. Ctrl+Z undoes it.", 5000
+        )
 
     def _on_editor_action(self, action: str) -> None:
         """Answer a control the user pressed on the editor's own toolbar.
@@ -2609,7 +2708,7 @@ class MainWindow(QMainWindow):
             message = f"{message[:-1]} -- and {command.stereo.describe()}."
         self.statusBar().showMessage(message, 10000)
 
-    def _insert_element_into_drawing(self, symbol: str) -> None:
+    def _insert_element_into_drawing(self, symbol: str, mass_number: int = 0) -> None:
         """Arm the 2D editor with an element chosen in the periodic table.
 
         Routed through the window rather than handing the dialog an editor
@@ -2621,9 +2720,152 @@ class MainWindow(QMainWindow):
         user cannot see is the same navigation-claims-one-thing-screen-
         shows-another problem the panel rail already exists to avoid --
         they would click the visible tab expecting an atom and get nothing.
+        This is the deliberate BUTTON; `_arm_element` is the browse click,
+        and it does not reveal.
         """
-        self._editor.set_atom_tool(symbol)
+        self._arm_element(symbol, mass_number)
         self._center_tabs.setCurrentWidget(self._editor)
+
+    def _arm_element(self, symbol: str, mass_number: int = 0) -> None:
+        """Prime the canvas, and SAY SO.
+
+        **Arming is invisible**, which is the cost of a click that both
+        browses and arms: reading about iron leaves the canvas primed with
+        iron, and the next canvas click deposits one. The status line is
+        the mitigation, and it is worded to distinguish the two states --
+        "ready to place" is about the canvas, where the element being
+        SHOWN is about the table.
+
+        `mass_number` is 0 for none, because a Qt signal cannot carry None
+        and a real mass number is always at least 1.
+
+        **AND IT ONLY SAYS SO IF IT REALLY ARMED.** The backend DROPS an
+        arming before Ketcher is ready, deliberately -- a gesture replayed
+        later would prime the canvas with an element the user has stopped
+        thinking about. But this said "Ready to place: 13C" regardless,
+        so the status line and the canvas disagreed with nothing on screen
+        to say which was real. Measured in the running app: about two
+        seconds after launch the arming is dropped, the active tool stays
+        `SelectTool2`, and a click deposits nothing -- which is exactly
+        the symptom this whole feature was built to fix, arriving through
+        a different door.
+        """
+        chosen = mass_number or None
+        label = f"{chosen}{symbol}" if chosen else symbol
+        if not self._editor.set_atom_tool(symbol, chosen):
+            self.statusBar().showMessage(
+                f"Could not arm {label} \u2014 the 2D editor is still loading. "
+                "Try again in a moment.",
+                6000,
+            )
+            return
+        self.statusBar().showMessage(
+            f"Ready to place: {label} \u2014 click the 2D editor to put one down.",
+            6000,
+        )
+
+    def _show_atom_context_menu(self, atom_index: int, x: int, y: int) -> None:
+        """Our own menu, on a right-click that landed on an atom.
+
+        **THE ATOM UNDER THE CURSOR, NEVER THE SELECTED ONE.** `main.jsx`
+        hit-tests the click with Ketcher's own `findItem` and sends that
+        atom's molfile position; using the current selection instead would
+        pass every ordinary test and act on the wrong atom the moment
+        somebody right-clicks away from what they had selected.
+
+        Off an atom this is never called and Ketcher's own menu opens, so
+        nothing the editor offers is taken away.
+        """
+        menu = self.build_atom_context_menu(atom_index)
+        menu.exec(self._editor.mapToGlobal(QPoint(int(x), int(y))))
+
+    def build_atom_context_menu(self, atom_index: int) -> QMenu:
+        """The menu itself, built but NOT shown.
+
+        **SPLIT FROM `exec()` SO A TEST CAN READ IT.** `QMenu.exec` spins
+        its own modal event loop, so a test that raises the real menu
+        hangs the suite on a window nobody can close -- measured, 42
+        minutes before it was killed, and the same trap this file already
+        records for a modal dialog in the drive harness. Patching `exec`
+        out is not the fix either: it is a C++ slot, and monkeypatching it
+        did not stop the block.
+
+        So the building is a plain method returning a `QMenu`, the showing
+        is the one line above, and the tests never call `exec` at all.
+        """
+        self._on_editor_atom_selected(atom_index)
+        symbol = self._selected_atom_element() or "atom"
+
+        menu = QMenu(self)
+        isotopes = menu.addAction(f"Isotopes for this {symbol}...")
+        isotopes.triggered.connect(self._show_isotopes_for_selection)
+        inspector = menu.addAction("Show in Atom Inspector")
+        inspector.triggered.connect(self._reveal_atom_inspector)
+        menu.addSeparator()
+        # Kept by decision: replacing the menu must not cost the editor's
+        # own dialog, which is the one thing it had that we do not.
+        editor_edit = menu.addAction("Edit... (the editor's own)")
+        editor_edit.triggered.connect(
+            lambda _checked=False, index=atom_index: self._editor.open_atom_editor(index)
+        )
+        return menu
+
+    def _reveal_atom_inspector(self, _checked: bool = False) -> None:
+        """Show the panel and let it keep the atom the menu was opened on."""
+        panel = self._atom_inspector_panel
+        dock = panel.parentWidget()
+        while dock is not None and not isinstance(dock, QDockWidget):
+            dock = dock.parentWidget()
+        if dock is not None:
+            dock.show()
+            dock.raise_()
+        self._on_panel_chosen("Atom_Inspector")
+
+    def _show_isotopes_for_selection(self, _checked: bool = False) -> None:
+        """Open the periodic table on the Isotopes tab for the selected atom.
+
+        One method behind every door -- the Structure menu, the Atom
+        Inspector's button, and whatever the Ketcher context menu ends up
+        being able to offer -- so the three cannot come to mean slightly
+        different things.
+
+        With no atom selected it still opens, on whatever element the
+        table was showing: the tab is worth reading on its own, and
+        refusing to open a browsing window because nothing is selected
+        would be the more annoying of the two behaviours.
+        """
+        self._show_periodic_table()
+        dialog = getattr(self, "_periodic_table_dialog", None)
+        if dialog is None:  # pragma: no cover - defensive
+            return
+        symbol = self._selected_atom_element()
+        if symbol:
+            dialog.select(symbol)
+        for index in range(dialog._tabs.count()):
+            if dialog._tabs.tabText(index) == "Isotopes":
+                dialog._tabs.setCurrentIndex(index)
+                break
+
+    def _insert_nuclide_into_drawing(self, symbol: str, mass_number: int) -> None:
+        """Say what still has to happen after a decay product is armed.
+
+        **THE CANVAS HAS NO ATOM YET.** `insert_requested` has already
+        fired and armed the atom TOOL -- the user still places it -- so at
+        this instant there is nothing to write a mass number onto. The
+        alternative is remembering an isotope across a gesture this
+        application does not own, and an isotope that lands on whatever
+        the user draws several actions later is worse than one they were
+        asked for.
+
+        So it uses the mass number to give a specific instruction rather
+        than to pretend. The element half of "click one and paste it in
+        the 2D editor" is done; this names the other half exactly.
+        """
+        self.statusBar().showMessage(
+            f"{symbol} armed — click the canvas to place it, then select it "
+            f"and apply {symbol}-{mass_number} from the Isotopes tab.",
+            9000,
+        )
 
     def _on_atom_fact_link(self, link) -> None:
         """Follow a fact's cross-link to the tool that produced it.

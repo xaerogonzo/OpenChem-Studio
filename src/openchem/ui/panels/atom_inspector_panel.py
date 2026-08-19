@@ -49,6 +49,7 @@ from openchem.chem.atom_report import build_atom_report
 from openchem.chem.bond_report import bond_label, build_bond_report
 from openchem.chem.molecule_report import build_molecule_report
 from openchem.chem.engine import ChemistryEngine
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.domain.bond_report import BondReport
 from openchem.domain.molecule_report import MoleculeReport
 from openchem.domain.atom_report import (
@@ -87,6 +88,21 @@ _INTRO = (
 _COPY_FORMATS = ("Markdown", "Plain text", "JSON", "CSV")
 
 
+_CONTROL_HELP = {
+    "isotopes": HelpTooltip(
+        text=(
+            "Opens the periodic table on its Isotopes tab, for this atom's "
+            "element.\n\n"
+            "Disabled unless an ATOM is the subject: a bond has two elements "
+            "and a molecule has many, so \"which isotopes\" has no answer for "
+            "either."
+        ),
+        tier=2, help_id="atom_inspector.isotopes", topic="atom-inspector",
+        help_anchor="periodic-table",
+    ),
+}
+
+
 class AtomInspectorPanel(QWidget):
     """Pick an atom; see every fact any part of the app knows about it."""
 
@@ -99,6 +115,12 @@ class AtomInspectorPanel(QWidget):
     #: The atoms a hovered fact is ABOUT, or `()` on the way out.
     #: Always bounds-checked; see `_on_highlight_requested`.
     atoms_highlighted = Signal(tuple)
+    #: "Show me this atom's isotopes." **AN APPLICATION-OWNED DOOR TO THE
+    #: NUCLIDE TABLE**, which is the invariant the Ketcher context-menu
+    #: work is held to: the isotope feature must be reachable with no
+    #: change to the editor bundle at all, so that injection is an
+    #: addition rather than a dependency.
+    isotopes_requested = Signal()
 
     def __init__(
         self,
@@ -168,9 +190,18 @@ class AtomInspectorPanel(QWidget):
         intro = WrappedLabel(_INTRO, self)
         intro.setStyleSheet("color: #666666; font-style: italic;")
 
+        # Disabled until an ATOM is the subject: a bond has two elements
+        # and a molecule has many, so "which isotopes" has no answer for
+        # either, and a button that opened the table on something
+        # arbitrary would be worse than one that says it cannot.
+        self._isotopes_button = QPushButton("Isotopes...", self)
+        apply_help_tooltip(self._isotopes_button, _CONTROL_HELP["isotopes"])
+        self._isotopes_button.clicked.connect(lambda: self.isotopes_requested.emit())
+
         controls = QHBoxLayout()
         controls.addWidget(QLabel("Show:", self))
         controls.addWidget(self._subject_combo)
+        controls.addWidget(self._isotopes_button)
         controls.addStretch(1)
 
         layout = QVBoxLayout(self)

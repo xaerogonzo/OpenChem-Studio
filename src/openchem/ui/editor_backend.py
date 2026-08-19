@@ -26,6 +26,9 @@ class EditorBackend(QObject):
     #: particular engine -- a replacement backend owes the same signal.
     #: A backend whose engine cannot report selection simply never emits it.
     atom_selected = Signal(int)
+    #: A right-click ON an atom, as a molfile position plus the cursor.
+    #: A backend with no such gesture simply never emits it.
+    atom_context_menu = Signal(int, int, int)
     #: One bond picked on the canvas. Ketcher reports this through the same
     #: `selectionChange` event as atoms; a backend that cannot report bonds
     #: simply never emits it.
@@ -152,8 +155,17 @@ class EditorBackend(QObject):
         whether entering worked.
         """
 
-    def set_atom_tool(self, symbol: str) -> None:
+    def set_atom_tool(
+        self, symbol: str, mass_number: int | None = None
+    ) -> bool:
         """Arm the editor to draw `symbol` on the next canvas click.
+
+        `mass_number` labels what gets placed, so picking C-13 in the
+        periodic table and clicking the canvas deposits carbon-13 rather
+        than carbon. **Reported as "I can place carbon 13, but it's just
+        CH4, there's no 13"** -- and the cause was not rendering, which
+        works: this method armed a BARE element and the mass number was
+        never part of the gesture at all.
 
         The same gesture the engine's own periodic table performs -- pick
         an element, then click where it goes -- exposed so the
@@ -167,6 +179,14 @@ class EditorBackend(QObject):
         canvas would deposit an atom they did not ask for.
         """
         raise NotImplementedError
+
+    def open_atom_editor(self, atom_index: int) -> None:
+        """Open the editor's own atom-properties dialog, if it has one.
+
+        A no-op by default: a backend without such a dialog has nothing to
+        open, and that is a correct answer rather than a failure -- the
+        same reasoning as `ViewerBackend`'s shape methods.
+        """
 
     def trigger_toolbar_action(self, action_id: str) -> None:
         """Trigger one of the underlying editor's own built-in toolbar

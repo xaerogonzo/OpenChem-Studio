@@ -42,14 +42,22 @@ class _RecordingEditorBackend(EditorBackend):
     def set_cip_labels(self, on):
         self.cip_calls.append(on)
 
+    #: What `set_atom_tool` answers. True is the ordinary case; a test
+    #: that wants the drop sets it False.
+    atom_tool_armed = True
+
     def set_render_option(self, name, value):
         self.render_option_calls.append((name, value))
 
     def trigger_toolbar_action(self, action_id):
         self.toolbar_action_calls.append(action_id)
 
-    def set_atom_tool(self, symbol):
+    def set_atom_tool(self, symbol, mass_number=None):
         self.atom_tool_calls.append(symbol)
+        # **A REAL BACKEND ANSWERS WHETHER IT ARMED**, and a fake that
+        # returned None was silently modelling a DROPPED arming -- which
+        # is what the window shows "the 2D editor is still loading" for.
+        return self.atom_tool_armed
 
     def widget(self):
         return self._widget
@@ -250,6 +258,25 @@ def test_the_widget_arms_the_canvas_with_a_chosen_element(qapp):
     widget.set_atom_tool("Fe")
 
     assert backend.atom_tool_calls == ["Fe"]
+
+
+def test_the_widget_passes_the_arming_ANSWER_back_up(qapp):
+    """**THE MIDDLE LAYER IS WHERE A DROPPED ARMING GETS LOST.** The
+    backend refuses before Ketcher is ready and the window shows "the 2D
+    editor is still loading" -- but only if the answer survives the trip
+    through here. A `set_atom_tool` that calls down and returns None
+    passes every test at either end while restoring the defect.
+
+    Both arms, because returning a constant satisfies one of them.
+    """
+    _engine, widget, backend = _make_widget()
+
+    backend.atom_tool_armed = True
+    assert widget.set_atom_tool("Fe") is True
+
+    backend.atom_tool_armed = False
+    assert widget.set_atom_tool("Fe", 56) is False
+    assert backend.atom_tool_calls == ["Fe", "Fe"], "it still tried"
 
 
 def _electron_backend():

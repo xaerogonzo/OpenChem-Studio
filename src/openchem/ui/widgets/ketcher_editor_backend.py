@@ -49,6 +49,7 @@ class _Bridge(QObject):
         on_molfile_ready: Callable[[str, str], None],
         on_load_complete: Callable[[str], None] | None = None,
         on_atom_selected: Callable[[int], None] | None = None,
+        on_atom_context_menu: Callable[[int, int, int], None] | None = None,
         on_bond_selected: Callable[[int], None] | None = None,
         on_editor_action: Callable[[str], None] | None = None,
         on_rotation_angles: Callable[[float, float], None] | None = None,
@@ -62,6 +63,7 @@ class _Bridge(QObject):
         self._on_molfile_ready = on_molfile_ready
         self._on_load_complete = on_load_complete
         self._on_atom_selected = on_atom_selected
+        self._on_atom_context_menu = on_atom_context_menu
         self._on_bond_selected = on_bond_selected
         self._on_editor_action = on_editor_action
 
@@ -77,6 +79,11 @@ class _Bridge(QObject):
     def atomSelected(self, atom_index: int) -> None:  # noqa: N802 - called from JS by this exact name
         if self._on_atom_selected is not None:
             self._on_atom_selected(atom_index)
+
+    @Slot(int, int, int)
+    def atomContextMenu(self, atom_index: int, x: int, y: int) -> None:  # noqa: N802 - called from JS by this exact name
+        if self._on_atom_context_menu is not None:
+            self._on_atom_context_menu(atom_index, x, y)
 
     @Slot(int)
     def bondSelected(self, bond_index: int) -> None:  # noqa: N802 - called from JS by this exact name
@@ -203,6 +210,7 @@ class KetcherEditorBackend(EditorBackend):
             self._on_molfile_ready,
             self._on_load_complete,
             self._on_atom_selected,
+            self._on_atom_context_menu_from_page,
             self._on_bond_selected,
             self.editor_action_requested.emit,
             self.rotation_angles_changed.emit,
@@ -262,6 +270,16 @@ class KetcherEditorBackend(EditorBackend):
         self._pending_requests: dict[str, Callable[[str | None], None]] = {}
 
         self._page.load(QUrl.fromLocalFile(str(_DIST_INDEX)))
+
+    def _on_atom_context_menu_from_page(self, atom_index: int, x: int, y: int) -> None:
+        """Forward a right-click that landed on an atom.
+
+        The position is already a MOLFILE POSITION -- `main.jsx` translates
+        the pool id before it crosses -- so this carries the same kind of
+        index `atom_selected` does and no consumer has to know Ketcher
+        exists.
+        """
+        self.atom_context_menu.emit(atom_index, x, y)
 
     def _on_atom_selected(self, atom_index: int) -> None:
         """One atom picked on the 2D canvas, as a MOLFILE POSITION.
@@ -555,7 +573,9 @@ class KetcherEditorBackend(EditorBackend):
         """
         self._page.runJavaScript(script)
 
-    def set_atom_tool(self, symbol: str) -> None:
+    def set_atom_tool(
+        self, symbol: str, mass_number: int | None = None
+    ) -> bool:
         """Arm Ketcher to draw `symbol` on the next canvas click.
 
         `ketcher.editor.tool(name, options)` is a real public method on the
@@ -577,20 +597,103 @@ class KetcherEditorBackend(EditorBackend):
         gesture. Replayed a second later it would leave the canvas primed
         with an element the user has stopped thinking about, and the next
         click anywhere would deposit it.
+
+        **AND IT RETURNS WHETHER IT ARMED, which the drop makes
+        necessary.** Measured in the running app: arming about two seconds
+        after launch is dropped, the active tool stays `SelectTool2`, and
+        the status bar said "Ready to place: 13C" anyway -- so the canvas
+        and the status line disagreed with nothing on screen to say which
+        was real, which is exactly the symptom the user reported this
+        feature for. Dropping is still right; claiming success is not.
+
+        **`mass_number` IS OMITTED, NEVER SENT AS ZERO.** Measured against
+        the real bundle, the tool keeps whatever `atomProps` it is given:
+
+            tool('atom', {label: 'C', isotope: 13})  ->  {label, isotope}
+            tool('atom', {label: 'C'})               ->  {label}
+
+        **THE TOOL STAYS ARMED ACROSS PLACEMENTS, and that is KETCHER'S
+        behaviour rather than a rule this application added.** Measured in
+        the running app -- arm once, then click the canvas three times
+        without re-arming:
+
+            click 1   count 1   AtomTool2
+            click 2   count 2   AtomTool2
+            click 3   count 3   AtomTool2
+            SMILES    [13CH4].[13CH4].[13CH4]
+
+        Preserved deliberately. Ketcher's own element buttons behave this
+        way, so a periodic table that disarmed after one placement would
+        make two gestures that look identical behave differently. The
+        `place` drive step takes `arm: false` for exactly this
+        measurement -- re-arming before each click makes every click land
+        whether the tool was retained or not, so a probe without it
+        answers yes regardless of the truth.
+
+        so an ordinary element arms with exactly today's payload and
+        cannot acquire an isotope of 0, which Ketcher would have to
+        interpret.
+
+        **THE TOOL STAYS ARMED AFTER A PLACEMENT**, which is Ketcher's own
+        behaviour rather than anything added here -- `editor.tool()` still
+        reports the atom tool afterwards, so a second click places a
+        second atom. Preserved deliberately: the editor's own element
+        buttons work that way, and two gestures that look identical
+        should not behave differently.
         """
         if not self._ketcher_ready:
             logger.debug("Dropping atom tool %r -- Ketcher is not ready", symbol)
-            return
+            return False
+        atom_props: dict[str, object] = {"label": symbol}
+        if mass_number is not None:
+            atom_props["isotope"] = int(mass_number)
+        props = json.dumps(atom_props)
         script = f"""
         (function() {{
           try {{
-            window.ketcher.editor.tool('atom', {{ label: {json.dumps(symbol)} }});
+            window.ketcher.editor.tool('atom', {props});
           }} catch (e) {{
             console.warn('[ketcher-host] could not arm the atom tool: ' + e);
           }}
         }})();
         """
         self._page.runJavaScript(script)
+        return True
+
+    def open_atom_editor(self, atom_index: int) -> None:
+        """Open Ketcher's OWN atom-properties dialog for one atom.
+
+        **THE ITEM ALEX ASKED TO KEEP.** Replacing the context menu on an
+        atom would otherwise take away the editor's `Edit...`, which was
+        an explicit decision to preserve, so our menu offers it back.
+
+        `editor.event.elementEdit` is Ketcher's own hook for that dialog
+        and is what its menu uses; the index is a MOLFILE POSITION on the
+        way in and is translated to a pool id on the page, which is the
+        inverse of the trip every id makes in the other direction.
+        """
+        if not self._ketcher_ready:
+            logger.debug("Dropping atom editor request -- Ketcher is not ready")
+            return
+        self._page.runJavaScript(
+            f"""
+            (function() {{
+              try {{
+                var ed = window.ketcher.editor;
+                var ids = Array.from(ed.struct().atoms.keys());
+                var poolId = ids[{int(atom_index)}];
+                if (poolId === undefined) return;
+                var atom = ed.struct().atoms.get(poolId);
+                ed.event.elementEdit.dispatch({{
+                  label: atom.label, charge: atom.charge,
+                  isotope: atom.isotope, explicitValence: atom.explicitValence,
+                }});
+              }} catch (e) {{
+                console.warn('[ketcher-host] could not open the atom editor: ' + e);
+              }}
+            }})();
+            """
+        )
 
     def trigger_toolbar_action(self, action_id: str) -> None:
         # Ketcher's public `window.ketcher` object (the `Ketcher` class

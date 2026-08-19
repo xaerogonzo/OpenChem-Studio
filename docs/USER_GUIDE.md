@@ -214,12 +214,33 @@ over are drawn as a circle labelled with its count:
 | two dots between atoms | a localised bonding pair |
 | a dashed circle, labelled `6 e−` | a ring-delocalised system, and how many electrons are in it |
 | a dashed outline through the atoms, labelled `2 e−` | the same for an open system — a carboxylate, a nitro group |
-| a plain solid line | a connection this analysis declined to represent as electrons |
+| a very faint line under the dots | a **bond guide** — drawn only to show what is joined to what |
+| a darker, heavier line with **no dots on it** | a connection this analysis declined to represent as electrons |
 | `? e−` | the system is real and its electron count was not determined |
 
 **Shape and line style carry the meaning, never colour** — dots, dashes
-and a solid line — so the diagram survives greyscale, printing and a
-screenshot.
+and two weights of line — so the diagram survives greyscale, printing and
+a screenshot.
+
+**Bond guides** are on by default, and the **Bond guides** button turns
+them off for the pure dots-only convention. A Lewis structure replaces
+bond lines with dots, which is correct and, past about twenty atoms,
+unreadable: a 40-atom structure comes out as a cloud with no skeleton in
+it. The guides give the connectivity back and change nothing any dot
+claims. They are drawn underneath, so no electron is ever hidden by one,
+and an abstained bond never gets one — it is the only line in the picture
+with nothing on it, which is how the two are told apart.
+
+**The diagram zooms and scrolls.** `−` and `+` step it, **100%** is the
+drawing's own size, and **Fit** is the largest size at which the whole of
+it fits the window — which for a small molecule is *bigger* than 100%,
+not smaller. The window used to squeeze the whole structure into whatever
+space was left, which is why a large one was hard to read.
+
+**Analysis details** names which of RDKit's two 2D layout engines drew
+it, and the score that chose. Neither engine wins in general: one lays
+cholesterol out sixteen times more clearly, the other wins on morphine,
+so both are tried and the better is kept.
 
 A carboxylate therefore shows two *equivalent* C–O bonds rather than one
 single and one double, and pyrrole shows its ring without claiming a
@@ -1664,6 +1685,29 @@ work, and selecting an element shows:
 - Pauling electronegativity
 - the oxidation states it is commonly found in
 - **its naturally occurring isotopes, with abundances** — ⁵⁶Fe 91.75%, and so on
+- **its melting and boiling points**, where anybody has measured them
+
+The facts, the atom drawing, the isotopes and the decay chain are
+**separate tabs** under the grid, so none of them squeezes the others —
+the facts table used to lose its last rows off the bottom.
+
+Above the grid, **Colour by** changes what the cell colours mean. Element
+category is the default; there is also block (s/p/d/f), state at 25 °C
+and 1 bar, **radioactivity** and the **longest-lived radioactive
+isotope**, and heatmaps over electronegativity, both radii, atomic mass
+and melting point. In a heatmap each cell prints its value as well, and
+an element with no accepted value gets its own swatch rather than the
+bottom of the scale — several elements genuinely have no Pauling
+electronegativity, and fifteen have no measured melting point. The legend
+under the grid always states the property, its range, the scale and the
+units.
+
+One row is worth reading carefully. **Valence states RDKit will fill** is
+not a curated chemistry reference: it is the model the app uses to decide
+implicit hydrogens, and read as chemistry it is inconsistent across a
+group — chlorine and bromine list one state each where iodine lists
+three. The chemistry claim is the **Common oxidation states** row below
+it.
 
 That last one is the part most periodic tables in drawing programs leave out.
 It came free: RDKit's own tables carry the full abundance data, so none of it
@@ -1686,6 +1730,100 @@ it between each.
 not-list forms, are drawing constructs a reference table has no way to
 express; the editor's own tools still place those. The dialog says so
 rather than leaving you to find out.
+
+### Isotopes
+
+The **Isotopes** tab lists every nuclear state of the selected element:
+mass number, natural abundance, half-life, decay modes with their
+branching ratios, and spin and parity. Uranium opens with U-238 at
+99.2742% and 4.46 Gy; carbon leads with C-12, C-13 and C-14.
+
+Setting an isotope used to mean the editor's Atom Properties dialog and
+typing a mass number blind. Select an atom in the 2D editor, pick a row,
+and **Apply to selected atom** writes it — or tick *all … atoms* to
+label every atom of that element in the **same undo entry**.
+
+**Metastable states are listed, and cannot be applied.** Technetium shows
+Tc-99 and Tc-99m as separate rows, with the trailing letter written the
+way NUBASE writes it — `m`, `n`, `p`, `q`. A molfile records a mass
+number and has no place for a nuclear state, so writing Tc-99m would
+produce Tc-99's bytes and everything downstream would treat it as the
+ground state. **Apply is therefore disabled on an isomer row and says
+why** — its half-life and decay modes stay on screen, because reading
+them is what the tab is for.
+
+Carbon's list ends with four rows suffixed `i`. Those are isobaric
+analogue states; NUBASE lists them with no measured half-life, and they
+are shown rather than filtered because deciding what you may see would be
+this application editing its source.
+
+**Your conformers survive it.** Labelling an atom C-13 moves nothing and
+breaks nothing, so the geometries you generated are still geometries of
+the labelled structure. Any other edit still clears them.
+
+**A mass number cannot cross elements.** The table is something to browse,
+so you can easily be reading carbon's isotopes with an oxygen selected —
+the button is disabled and says which element is which, rather than
+quietly offering you O-14.
+
+Marks in the table are not decoration. `>` and `<` are bounds, `~` is
+approximate, and *(estimated)* means the value comes from systematics
+rather than from measurement. A branching marked *(unconfirmed)* is a
+decay nobody has quantified — not one that never happens.
+
+The data is NUBASE2020, shipped as a snapshot beside the generated table
+so it can be regenerated exactly; see `docs/SOURCES.md`.
+
+### Decay chains
+
+The **Decay** tab draws where the selected element's longest-lived
+radioactive isotope ends up, on the **chart of the nuclides** — neutrons
+across, protons up, which is the layout every textbook uses. Alpha decay
+is then two cells down and two left, beta-minus one up and one left, so
+uranium-238 comes out as the staircase it is drawn as in books.
+
+Line weight is the branching ratio. **Nothing is left out** — uranium's
+double beta-minus to plutonium-238 runs at 2.2×10⁻¹⁰% and is still there
+as a hairline. Without the weighting the picture was unreadable: cluster
+emissions jump enormous distances on this chart, so a handful of
+essentially-never decays drew lines across the whole width while the real
+series was a faint zigzag underneath.
+
+Colour is the kind of decay, and the legend under the chart shows each
+family in its own colour.
+
+Click any box to follow the chain from there. **Insert this nuclide into
+drawing** arms the canvas with that element and its mass number
+together, so placing it deposits the isotope you were reading about.
+
+**A dashed line means the daughter's state was assumed.** NUBASE records
+which decay a nuclide undergoes and not which state of the daughter it
+populates, so drawing a chain at all means choosing one — this
+application draws the ground state and marks every edge where it did. The
+legend says so under the chart. The one exception is an isomeric
+transition from a first metastable state: there is only the ground state
+below it, so nothing is being assumed and the line is solid.
+
+**Isomers stack inside their cell.** Technetium-99m sits directly below
+technetium-99 in the same square, because the chart's position is fixed
+by the neutron and proton numbers and both states share them. Their
+transition is drawn in its own colour, since it goes nowhere on the chart.
+
+**Insert this nuclide into drawing** places the *isotope*. Clicking it on
+silver-108m adds Ag-108, and the button says so — a molfile records a mass
+number and has no place for a nuclear state, which is the same limit the
+Isotopes tab's disabled **Apply** explains.
+
+Three honest limits. **One decay in the whole table is refused rather
+than drawn**: palladium-126p records a beta decay without saying whether
+it is beta-plus or beta-minus, and the sign is exactly what decides where
+the daughter goes — inferring it would be this application supplying
+physics the source declined to. A few nuclides are marked stable in
+NUBASE while also carrying a decay nobody has ever observed — lead-206
+among them — which is why the chart continues past lead into mercury, and
+why the status line says which stable nuclides a chain *reaches* rather
+than where it "ends". And spontaneous fission has no single daughter, so
+those branches stop with the reason written on them.
 
 ### The atom, drawn
 
@@ -1723,6 +1861,16 @@ chromium", which is true and not what the control is offering.
 **The neutron count belongs to an isotope, not an element**, so it is
 labelled with the isotope it came from — silicon's nucleus is drawn with
 14 neutrons and says "most abundant isotope, ²⁸Si".
+
+An element with **no naturally occurring isotope** — technetium,
+promethium, polonium, astatine and everything from radon upwards except
+thorium and uranium, 34 of the 118 — still gets its protons drawn, and
+the caption says why there is no neutron count beside them. It used to
+draw no nucleus at all and report only the electron count.
+
+Each ring is labelled with how many electrons are on it (uranium reads
+2, 8, 18, 32, 21, 9, 2), which stays readable when a 32-electron shell
+is too dense to count.
 
 ### It says when something is not known
 

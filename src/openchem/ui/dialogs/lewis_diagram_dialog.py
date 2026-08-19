@@ -24,6 +24,7 @@ what `tests/test_layering.py` requires of anything under `ui/`.
 
 from __future__ import annotations
 
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import (
@@ -34,6 +35,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -41,6 +43,7 @@ from PySide6.QtWidgets import (
 from openchem.chem.lewis_builder import CROWDED_APPROACH, build, crowding
 from openchem.chem.lewis_diagram import Known
 from openchem.chem.lewis_svg import render
+from openchem.ui.widgets.zoomable_svg_view import ZoomableSvgView
 
 #: What the three marks mean. Named here rather than inside the SVG so it
 #: reads in the dialog's own font, and so the diagram somebody exports is
@@ -49,7 +52,10 @@ LEGEND = (
     "Two dots = a localised electron pair.    "
     "A dashed outline = a delocalised system, labelled with its electron count "
     "(? if that count was not determined).    "
-    "A solid line = a connection this analysis declined to represent as electrons."
+    "A very faint line under the dots = a bond guide, drawn only to show what is "
+    "joined to what.    "
+    "A darker, heavier line with NO dots on it = a connection this analysis "
+    "declined to represent as electrons."
 )
 
 
@@ -65,7 +71,8 @@ class LewisDiagramDialog(QDialog):
     ) -> None:
         super().__init__(parent)
         self._diagram = build(molblock, structure_revision=structure_revision)
-        self._rendered = render(self._diagram)
+        self._bond_guides = True
+        self._rendered = render(self._diagram, bond_guides=self._bond_guides)
         # The molecule's name is in the TITLE as well as the header,
         # because more than one of these can be open and the taskbar and
         # the window list only ever show the title.
@@ -74,6 +81,8 @@ class LewisDiagramDialog(QDialog):
             if display_name
             else "Full Lewis Structure"
         )
+
+        self.resize(900, 760)
 
         layout = QVBoxLayout(self)
 
@@ -92,17 +101,32 @@ class LewisDiagramDialog(QDialog):
         self._status.setWordWrap(True)
         layout.addWidget(self._status)
 
-        self._view = QSvgWidget(self)
-        self._view.setMinimumSize(420, 340)
-        self._view.load(self._rendered.svg.encode("utf-8"))
+        # **THE DIAGRAM USED TO BE SQUEEZED INTO WHATEVER WAS LEFT.** A
+        # QSvgWidget scales its viewBox to fill its pane, so a 42-atom
+        # structure was rendered into about 600x450 and every glyph came
+        # out a few pixels tall -- which is what "extremely hard to read"
+        # was about. The renderer already emits a real width and height,
+        # so there is a natural size to zoom against.
+        # **THE ZOOM VIEW IS SHARED WITH THE DECAY CHART, not copied.**
+        # Every attribute below is an ALIAS onto the same object, so this
+        # dialog's surface is unchanged and the extraction cannot have
+        # altered its behaviour by construction rather than by luck.
+        self._svg_view = ZoomableSvgView(self)
+        self._view = self._svg_view._view
+        self._scroll = self._svg_view._scroll
+        self._zoom_label = self._svg_view._zoom_label
+        self._zoom_row = self._svg_view._zoom_row
+        self._svg_view.load(self._rendered.svg)
+
         # **A REFUSAL IS NOT SHOWN AS A PICTURE.** `render` is total and
         # returns a card carrying the reason, which keeps the renderer
         # honest -- but a QSvgWidget scales its 200-unit viewBox to fill
         # the pane, so driving the app showed that sentence at ~37 px and
         # clipped off both edges. It read as a broken window. The status
         # line above already carries the same words at a normal size.
-        self._view.setVisible(self._diagram.drawable)
-        layout.addWidget(self._view, 1)
+        self._svg_view.set_content_visible(self._diagram.drawable)
+        layout.addWidget(self._svg_view, 1)
+        self.set_zoom(1.0)
 
         self._legend = QLabel(LEGEND, self)
         self._legend.setWordWrap(True)
@@ -119,6 +143,20 @@ class LewisDiagramDialog(QDialog):
         layout.addWidget(self._details)
 
         buttons = QHBoxLayout()
+        # **DEFAULT ON.** The diagram this branch was opened for is a
+        # 42-atom cloud without them; somebody who wants the pure
+        # dots-only Lewis convention can turn them off, which is the
+        # rarer ask.
+        self._guides_button = QPushButton("Bond guides", self)
+        self._guides_button.setCheckable(True)
+        self._guides_button.setChecked(True)
+        self._guides_button.setToolTip(
+            "Draw a faint line under every bond, so the skeleton is visible "
+            "behind the electron pairs."
+        )
+        self._guides_button.setEnabled(self._diagram.drawable)
+        self._guides_button.toggled.connect(self._set_bond_guides)
+        buttons.addWidget(self._guides_button)
         self._details_button = QPushButton("Analysis details", self)
         self._details_button.setCheckable(True)
         self._details_button.toggled.connect(self._details.setVisible)
@@ -141,6 +179,51 @@ class LewisDiagramDialog(QDialog):
         # picture of an error message as though it were a structure.
         for button in (self._copy_button, self._save_button):
             button.setEnabled(self._diagram.drawable)
+
+    # --- bond guides ----------------------------------------------------------
+
+    def _set_bond_guides(self, enabled: bool) -> None:
+        """Re-render at the same zoom.
+
+        The diagram itself is untouched -- this is a drawing option, not
+        an analysis one, so nothing is rebuilt and no chemistry is asked
+        again. Which is also why the export follows it: what somebody
+        saves should be the picture they were looking at.
+        """
+        self._bond_guides = bool(enabled)
+        self._rendered = render(self._diagram, bond_guides=self._bond_guides)
+        self._svg_view.load(self._rendered.svg)
+
+    # --- zoom -----------------------------------------------------------------
+
+    #: How far in and out the buttons go. A crowded 40-atom diagram is
+    #: still readable well past 100%, which is the case they exist for.
+    # Kept as class attributes because tests and callers read them off the
+    # dialog; the view owns the behaviour.
+    MIN_ZOOM = ZoomableSvgView.MIN_ZOOM
+    MAX_ZOOM = ZoomableSvgView.MAX_ZOOM
+    ZOOM_STEP = ZoomableSvgView.ZOOM_STEP
+
+    def natural_size(self) -> QSize:
+        return self._svg_view.natural_size()
+
+    def zoom(self) -> float:
+        return self._svg_view.zoom()
+
+    def set_zoom(self, factor: float) -> None:
+        self._svg_view.set_zoom(factor)
+
+    def zoom_to_natural(self, _checked: bool = False) -> None:
+        self._svg_view.zoom_to_natural()
+
+    def zoom_to_fit(self, _checked: bool = False) -> None:
+        self._svg_view.zoom_to_fit()
+
+    def _zoom_in(self, _checked: bool = False) -> None:
+        self._svg_view._zoom_in()
+
+    def _zoom_out(self, _checked: bool = False) -> None:
+        self._svg_view._zoom_out()
 
     # --- what it is showing --------------------------------------------------
 
@@ -239,6 +322,17 @@ class LewisDiagramDialog(QDialog):
             f"  structure revision    {provenance.structure_revision}",
             f"  analysis version      {provenance.analysis_version or '-'}",
             f"  RDKit                 {provenance.rdkit_version or '-'}",
+            # **THE SCORE, NOT JUST THE WINNER.** "layout engine: coordgen"
+            # six months from now answers nothing, and "why did this
+            # molecule switch engines after the RDKit upgrade?" is a
+            # question that needs evidence rather than a name.
+            f"  layout engine         {provenance.layout_engine or '-'}",
+            f"  layout clearance      "
+            f"{'-' if provenance.layout_crowding is None else f'{provenance.layout_crowding:.3f}'}"
+            " bond lengths (higher is better; it chose the larger)",
+            f"  layout bond crossings "
+            f"{'-' if provenance.layout_crossings is None else provenance.layout_crossings}"
+            " (the tie-break, only when clearance is equal)",
             "",
             "This diagram is a snapshot of the structure as it was when this"
             " window was opened. It does not follow the editor.",

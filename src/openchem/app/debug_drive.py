@@ -438,6 +438,11 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no details dialog open; run {'do': 'details'}")
                 return
             target = self._details
+        elif step.get("widget") == "periodic":
+            if getattr(self, "_periodic", None) is None:
+                logger.error("OPENCHEM_DRIVE: no periodic table open; run {'do': 'periodic'}")
+                return
+            target = self._periodic
         elif step.get("widget") == "spatial":
             if getattr(self, "_spatial", None) is None:
                 logger.error("OPENCHEM_DRIVE: no spatial dialog open; run {'do': 'spatial'}")
@@ -445,6 +450,56 @@ class _Driver(QObject):
             target = self._spatial
         target.grab().save(str(path))
         logger.warning("OPENCHEM_DRIVE: wrote %s", path)
+
+    def _do_periodic(self, step: dict[str, Any]) -> None:
+        """Open the periodic table, and optionally choose an element and mode.
+
+        `{"do": "periodic", "element": "Po", "colour": "state", "tab": 1}`
+
+        **`show()`, not `exec()`**, for the reason `_do_lewis` gives -- and
+        here it costs nothing, because the dialog is non-modal in the
+        application too. This drives the SAME window a user gets from
+        Tools or from the editor's own PT button, which is the point: the
+        panel suite has stayed green through three visibly broken layouts
+        in this project, and every finding that matters about this table
+        came from a magnified screenshot rather than a test.
+        """
+        from openchem.chem import element_palettes as palettes
+
+        window = self._window
+        window._show_periodic_table()
+        dialog = getattr(window, "_periodic_table_dialog", None)
+        if dialog is None:  # pragma: no cover - defensive
+            logger.error("OPENCHEM_DRIVE: the periodic table did not open")
+            return
+        self._periodic = dialog
+
+        colour = step.get("colour")
+        if colour is not None:
+            if colour not in palettes.PALETTE_ORDER:
+                logger.error(
+                    "OPENCHEM_DRIVE: unknown colour mode %r; have %s",
+                    colour,
+                    ", ".join(palettes.PALETTE_ORDER),
+                )
+            else:
+                dialog._palette_combo.setCurrentIndex(
+                    palettes.PALETTE_ORDER.index(colour)
+                )
+        if step.get("element"):
+            dialog.select(str(step["element"]))
+        if step.get("tab") is not None:
+            dialog._tabs.setCurrentIndex(int(step["tab"]))
+        if step.get("width") or step.get("height"):
+            dialog.resize(int(step.get("width", 1000)), int(step.get("height", 860)))
+
+        logger.warning(
+            "OPENCHEM_DRIVE: periodic %s -- colour %s, tab %s, legend %r",
+            dialog.selected_symbol(),
+            dialog._palette_key,
+            dialog._tabs.tabText(dialog._tabs.currentIndex()),
+            dialog._legend.text(),
+        )
 
     def _do_lewis(self, step: dict[str, Any]) -> None:
         """Open the Full Lewis Structure window on the selected molecule.
@@ -739,6 +794,217 @@ class _Driver(QObject):
         makes Ketcher emit afterwards, which is the interesting part.
         """
         self._window._editor.trigger_toolbar_action(str(step["id"]))
+
+    def _do_right_click(self, step: dict[str, Any]) -> None:
+        """Right-click the canvas at a fraction of its size, for real.
+
+        `{"do": "right_click", "fx": 0.5, "fy": 0.5}`
+
+        **A REAL `MouseEvent`, AND THE LISTENER DOES THE HIT TEST**, which
+        is the only honest way to drive this. A synthetic plain object
+        will not do: Ketcher's `page2obj` answers {x: 0, y: 0} for one, so
+        `findItem` reports whichever atom sits nearest the model origin --
+        measured, it returned `atoms#0` at every corner and at the centre
+        alike, which looks exactly like a working hit test and is not one.
+
+        So the step dispatches an event the page treats as genuine and
+        logs what PYTHON received, which is the whole contract: an atom's
+        molfile position, or nothing at all when the click missed.
+        """
+        window = self._window
+        # **THE CANVAS MUST BE VISIBLE, or `clientArea` measures 0x0** and
+        # every dispatched position collapses to the top-left corner --
+        # which reads as "the listener never fired" rather than as a
+        # hidden widget. You cannot right-click what is not on screen.
+        window._center_tabs.setCurrentWidget(window._editor)
+        received: list[tuple[int, int, int]] = []
+        connection = window._editor.atom_context_menu.connect(
+            lambda index, x, y: received.append((index, x, y))
+        )
+
+        def report(value):
+            logger.warning(
+                "OPENCHEM_DRIVE: right_click %s -- python received %s", value, received
+            )
+            try:
+                window._editor.atom_context_menu.disconnect(connection)
+            except (RuntimeError, TypeError):  # pragma: no cover - already gone
+                pass
+
+        fx = float(step.get("fx", 0.5))
+        fy = float(step.get("fy", 0.5))
+        # **THE PAGE HAS NOT REFLOWED YET.** Revealing the tab resizes the
+        # Qt widget synchronously -- it reports 1347x698 at once -- while
+        # Chromium lays out on its own schedule, so `clientArea` measures
+        # 0x0 if the event is dispatched in the same handler and every
+        # position collapses to the corner. Same trap the conformer
+        # gallery already records: wait for the size to SETTLE.
+        select = int(step.get('select', -1))
+        QTimer.singleShot(
+            500,
+            self._window,
+            lambda: self._dispatch_right_click(fx, fy, report, select),
+        )
+
+    def _dispatch_right_click(self, fx: float, fy: float, report, select: int = -1) -> None:
+        self._window._editor._backend._page.runJavaScript(
+            """
+            JSON.stringify((function () {
+              var ed = window.ketcher.editor;
+              var area = ed.render.clientArea, b = area.getBoundingClientRect();
+              var x = b.left + %f * b.width, y = b.top + %f * b.height;
+              // Optionally select a DIFFERENT atom first: the menu must
+              // act on the one under the cursor, and a selection-based
+              // implementation passes every other check.
+              var pre = %d;
+              if (pre >= 0) {
+                var ids = Array.from(ed.struct().atoms.keys());
+                if (ids[pre] !== undefined) { ed.selection({atoms: [ids[pre]]}); }
+              }
+              var before = document.querySelectorAll('.contexify').length;
+              area.dispatchEvent(new MouseEvent('contextmenu', {
+                bubbles: true, cancelable: true, button: 2, buttons: 2,
+                clientX: x, clientY: y}));
+              return {x: Math.round(x), y: Math.round(y),
+                      installed: String(window.openchemContextMenuInstalled),
+                      contexify_before: before,
+                      contexify_after: document.querySelectorAll('.contexify').length};
+            })())
+            """
+            % (fx, fy, select),
+            report,
+        )
+
+    def _do_place(self, step: dict[str, Any]) -> None:
+        """Click an element in the periodic table, then click the canvas.
+
+        `{"do": "place", "element": "C", "isotope": 13}`
+        `{"do": "place", "arm": false}`   click the canvas WITHOUT arming
+
+        **`arm: false` is how "does the tool stay armed" is measured**,
+        and it cannot be answered any other way: arming again before each
+        click makes every click land whether Ketcher retained the tool or
+        not, so a probe without it says yes regardless of the truth.
+
+        **THE TWO-CLICK GESTURE, end to end and through the real widgets**
+        -- the table's own cell button, then a synthesised canvas click,
+        which is the only way to check that what the tool was armed with
+        is what lands. Pair it with `report`, whose SMILES is where a
+        missing mass number shows up as plain `C` rather than `[13C]`.
+        """
+        window = self._window
+        if step.get("arm", True) is False:
+            logger.warning("OPENCHEM_DRIVE: place -- canvas click, tool NOT re-armed")
+            self._click_canvas(step)
+            return
+        window._show_periodic_table()
+        dialog = getattr(window, "_periodic_table_dialog", None)
+        if dialog is None:  # pragma: no cover - defensive
+            logger.error("OPENCHEM_DRIVE: place -- no periodic table")
+            return
+        element = str(step.get("element", "C"))
+        # **THE CELL FIRST, THEN THE ROW**, which is the user's order and
+        # the only one that works: `select()` repopulates the isotope
+        # table, so choosing a row and then clicking the cell wipes the
+        # choice. Picking the row afterwards re-arms through
+        # `_rearm_from_isotope`.
+        dialog._buttons[element].click()
+        mass = step.get("isotope")
+        if mass is not None:
+            for row in range(dialog._isotope_table.rowCount()):
+                item = dialog._isotope_table.item(row, 0)
+                if item is not None and item.text() == f"{element}-{mass}":
+                    dialog._isotope_table.selectRow(row)
+                    break
+            else:
+                logger.error("OPENCHEM_DRIVE: place -- no %s-%s row", element, mass)
+        logger.warning(
+            "OPENCHEM_DRIVE: place %s isotope=%s -- %s",
+            element,
+            dialog.isotope_for_placement(),
+            window.statusBar().currentMessage(),
+        )
+        # **THE TOOL'S OWN HANDLERS, NOT A DOM EVENT.** Measured in the
+        # running app: dispatching mouse OR pointer events at
+        # `render.clientArea` leaves Ketcher's struct untouched, so a
+        # DOM-level click reads as "the tool did nothing" while the tool
+        # is armed perfectly well. `AtomTool2` exposes `mousedown` and
+        # `mouseup` taking an event with `pageX`/`pageY` -- the same shape
+        # `page2obj` consumes -- and calling those places the atom.
+        #
+        # That is Ketcher doing its own work with only the DOM plumbing
+        # skipped, which is what every step in this file does with the
+        # machine's input queue.
+        self._click_canvas(step)
+
+    def _click_canvas(self, step: dict[str, Any]) -> None:
+        """One canvas click through whatever tool is currently armed.
+
+        Shared by both halves of `place` so the armed and un-armed paths
+        cannot drift: if they clicked differently, "the tool stayed
+        armed" would be a claim about two different gestures.
+        """
+        fx = float(step.get("fx", 0.25))
+        fy = float(step.get("fy", 0.25))
+
+        def _report(value):
+            logger.warning("OPENCHEM_DRIVE: place -- struct now %s", value)
+
+        self._window._editor._backend._page.runJavaScript(
+            """
+            JSON.stringify((function () {
+              var ed = window.ketcher.editor;
+              var area = ed.render.clientArea, box = area.getBoundingClientRect();
+              var x = box.left + box.width * %FX%, y = box.top + box.height * %FY%;
+              var ev = {pageX: x, pageY: y, clientX: x, clientY: y,
+                        button: 0, buttons: 1, target: area,
+                        preventDefault: function () {},
+                        stopPropagation: function () {}};
+              var t = ed.tool();
+              if (!t || !t.mousedown) { return {error: 'no armed tool'}; }
+              t.mousedown(ev);
+              if (t.mouseup) { t.mouseup(ev); }
+              var s = ed.struct(), atoms = [];
+              s.atoms.forEach(function (a, id) {
+                atoms.push({id: id, label: a.label, isotope: a.isotope}); });
+              return {count: s.atoms.size, tool: t.constructor.name,
+                      atoms: atoms.slice(-4)};
+            })())
+            """.replace("%FX%", repr(fx)).replace("%FY%", repr(fy)),
+            _report,
+        )
+
+    def _do_isotope(self, step: dict[str, Any]) -> None:
+        """Label an atom, through the window's own handlers.
+
+        `{"do": "isotope", "atom": 0, "mass": 13, "all": false}`
+
+        **It goes through `_on_editor_atom_selected` and `_apply_isotope`,
+        not through the dialog's internals**, because the wiring between
+        the two is the thing worth driving: the picker cannot arm itself,
+        so the window has to push the selection into it, and a step that
+        called `set_isotope` directly would prove only that RDKit works.
+
+        Pair it with `report`, whose `conformers=` is how "did a mass
+        label throw the geometry away" is answered -- the exemption is the
+        one part of this feature a screenshot cannot show.
+        """
+        window = self._window
+        atom = int(step.get("atom", 0))
+        window._on_editor_atom_selected(atom)
+        symbol = window._selected_atom_element()
+        if symbol is None:
+            logger.error("OPENCHEM_DRIVE: isotope -- atom %d names nothing", atom)
+            return
+        window._apply_isotope(symbol, int(step.get("mass", 13)), bool(step.get("all", False)))
+        logger.warning(
+            "OPENCHEM_DRIVE: isotope %s-%s on atom %d (all=%s) -- %s",
+            symbol,
+            step.get("mass", 13),
+            atom,
+            bool(step.get("all", False)),
+            window.statusBar().currentMessage(),
+        )
 
     def _do_report(self, step: dict[str, Any]) -> None:
         """Log a few facts about the selected molecule, so a run can

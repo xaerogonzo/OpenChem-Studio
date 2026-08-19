@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from openchem.chem.engine import ChemistryEngine
+from openchem.chem.isotopes import isotope_free_smiles
 from openchem.commands.base import OpenChemCommand
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.molecule import MoleculeModel
@@ -166,11 +167,44 @@ class EditStructureCommand(OpenChemCommand):
         and that still clears. The same comparison, for the same reason,
         as `MoleculeEditorWidget._on_molecule_changed`: a coordinate
         change is not a structure change.
+
+        **AND NEITHER IS AN ISOTOPE.** Labelling an atom C-13 moves no
+        atom, breaks no bond and changes no configuration, so every
+        conformer remains a valid geometry of the labelled structure --
+        but canonical SMILES carries the mass, so `[13CH3]CO` and `CCO`
+        differ and the naive comparison would throw the geometry away.
+        The whole matrix, so the exemption cannot quietly widen into
+        "never invalidate":
+
+            isotope only              PRESERVED
+            coordinates only          PRESERVED
+            constitution or stereo    INVALIDATED
+
+        **The comparison is DERIVED, not a flag from the caller**, because
+        Ketcher's own Atom Properties dialog sets isotopes as well -- it
+        stays exactly as it is, by decision -- and that route arrives here
+        as an ordinary editor change with nothing anywhere to mark it. A
+        flag would cover the isotope picker and miss the dialog beside it.
         """
         if not self._molecule.conformers:
             return
         if self._old_smiles is not None and self._molecule.canonical_smiles == self._old_smiles:
             return
+        if self._only_the_isotopes_changed():
+            return
         self._molecule.conformers = []
         self._event_bus.publish(ConformersInvalidated(molecule_uuid=self._molecule.uuid))
         self._event_bus.publish(ConformersChanged(molecule_uuid=self._molecule.uuid))
+
+    def _only_the_isotopes_changed(self) -> bool:
+        """Did this edit change nothing but mass labels?
+
+        **FAILS CLOSED.** An unparseable SMILES on either side answers
+        False, so the conformers clear -- the same direction the rest of
+        this method takes, because keeping geometry through an edit
+        nobody could read is the expensive mistake and dropping it is the
+        cheap one.
+        """
+        before = isotope_free_smiles(self._old_smiles)
+        after = isotope_free_smiles(self._molecule.canonical_smiles)
+        return before is not None and before == after

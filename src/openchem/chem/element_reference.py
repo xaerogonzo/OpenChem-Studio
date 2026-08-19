@@ -54,6 +54,15 @@ class ElementFacts:
     van_der_waals_radius: float | None
     covalent_radius: float | None
     electronegativity: float | None
+    #: Degrees Celsius, or None where nothing is measured -- fifteen
+    #: superheavies, and francium, whose longest-lived isotope lasts 22
+    #: minutes. None is "not established", never "zero".
+    melting_point_c: float | None = None
+    boiling_point_c: float | None = None
+    #: **STATED BY THE SOURCE, not inferred from a missing boiling point.**
+    #: Arsenic and carbon. A missing point means unknown, and conflating
+    #: the two would put every superheavy in this class.
+    sublimes_at_1_bar: bool = False
     #: Empty when not well established, which is different from "zero".
     common_oxidation_states: tuple[int, ...] = ()
     isotopes: tuple[Isotope, ...] = ()
@@ -104,6 +113,9 @@ def facts_for(symbol: str) -> ElementFacts | None:
         van_der_waals_radius=table.GetRvdw(z) or None,
         covalent_radius=table.GetRcovalent(z) or None,
         electronegativity=_electronegativities().get(symbol),
+        melting_point_c=entry.get("melting_point_c"),
+        boiling_point_c=entry.get("boiling_point_c"),
+        sublimes_at_1_bar=bool(entry.get("sublimes_at_1_bar", False)),
         common_oxidation_states=tuple(entry.get("common_oxidation_states", ())),
         isotopes=_isotopes_for(z),
         examples=tuple(entry.get("examples", ())),

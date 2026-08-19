@@ -208,25 +208,104 @@ def test_shells_group_by_principal_quantum_number():
 def test_the_element_view_names_the_isotope_it_counted():
     """Silicon does not have 14 neutrons; Si-28 does. The diagram has to
     say which, or the number reads as intrinsic."""
+    from openchem.chem.electron_shells import MOST_ABUNDANT
+
     result = nucleus("Si")
 
     assert result.protons == 14
     assert result.neutrons == 14
     assert result.isotope == "Si-28"
-    assert result.is_most_abundant
+    assert result.isotope_basis == MOST_ABUNDANT
 
 
 def test_a_named_isotope_gives_its_own_neutron_count():
+    from openchem.chem.electron_shells import NAMED
+
     result = nucleus("Si", mass_number=29)
 
     assert (result.protons, result.neutrons) == (14, 15)
     assert result.isotope == "Si-29"
-    assert not result.is_most_abundant
+    assert result.isotope_basis == NAMED
 
 
 def test_an_unknown_isotope_is_refused_rather_than_interpolated():
     with pytest.raises(ConfigurationUnavailable, match="no isotope"):
         nucleus("Si", mass_number=99)
+
+
+# --- the two refusals, which must not merge ---------------------------------
+#
+# These two tests are a PAIR and are named as one, because the whole
+# safety of `nucleus()` returning a partial answer rests on the
+# difference between them. Asking for a nuclide that does not exist is a
+# caller error about one isotope. Asking about an element that has no
+# natural isotope is a question with a real, partial answer -- and
+# raising for it is what left polonium drawn with no nucleus at all and
+# captioned "Electrons: 84".
+
+
+def test_an_element_with_no_natural_isotope_NAMES_ITS_LONGEST_LIVED_ONE():
+    """The second half of the pair above. Po, Tc, At and Pm are the
+    familiar cases; 34 of the 118 elements are in this position.
+
+    **THIS USED TO ASSERT `neutrons is None`, AND THAT WAS THE INTERIM.**
+    Branch 1 could only say "no naturally occurring isotope, so no
+    neutron count is shown", because the application had no nuclear data
+    at all. With NUBASE2020 present there IS an isotope to name for every
+    one of the 118 -- polonium is Po-209 at 124 years -- so the drawing
+    now says something useful instead of explaining an absence.
+
+    The original claim survives unchanged: the proton count is certain
+    and comes from the atomic number.
+    """
+    from openchem.chem.electron_shells import LONGEST_LIVED
+
+    for symbol, protons, isotope in (
+        ("Po", 84, "Po-209"), ("Tc", 43, "Tc-97"),
+        ("At", 85, "At-210"), ("Pm", 61, "Pm-145"),
+    ):
+        result = nucleus(symbol)
+
+        assert result.protons == protons
+        assert result.isotope == isotope
+        assert result.isotope_basis == LONGEST_LIVED
+        assert result.has_neutron_count
+        assert result.half_life is not None
+
+
+def test_every_element_gets_a_nucleus_with_a_certain_proton_count():
+    """No element is left without one, and the proton count IS the atomic
+    number -- so a nucleus that disagreed with the element would be a
+    different bug wearing this fix's clothes."""
+    from openchem.chem.element_reference import all_symbols, facts_for
+
+    for symbol in all_symbols():
+        result = nucleus(symbol)
+        assert result.protons == facts_for(symbol).atomic_number
+
+
+def test_a_neutron_count_is_still_never_INVENTED():
+    """Refusing to invent one was always right; refusing to draw anything
+    was the bug. Oganesson now reports 177 neutrons -- not a guess, but
+    Og-295 read out of the evaluated table, with the basis saying which
+    isotope and the half-life saying how briefly it lasts.
+
+    The partial form is what remains for an element the nuclide table has
+    never heard of. **Measured, that is none of the 118**, so it is
+    asserted directly rather than left looking exercised.
+    """
+    from openchem.chem.electron_shells import LONGEST_LIVED, Nucleus
+
+    oganesson = nucleus("Og")
+
+    assert oganesson.isotope == "Og-295"
+    assert oganesson.neutrons == 295 - 118
+    assert oganesson.isotope_basis == LONGEST_LIVED
+
+    unheard_of = Nucleus(protons=119, neutrons=None, isotope=None)
+
+    assert not unheard_of.has_neutron_count
+    assert unheard_of.neutrons != 0
 
 
 # --- refusing rather than inventing -----------------------------------------

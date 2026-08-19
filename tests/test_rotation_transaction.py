@@ -126,7 +126,7 @@ class _RotatingBackend(EditorBackend):
     def trigger_toolbar_action(self, action_id):
         pass
 
-    def set_atom_tool(self, symbol):
+    def set_atom_tool(self, symbol, mass_number=None):
         pass
 
     def start_rotation(self) -> bool:

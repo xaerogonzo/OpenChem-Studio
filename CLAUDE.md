@@ -1009,7 +1009,136 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-23 minutes**, ending at `4793 passed, 15 skipped`
+A clean run is **6-19 minutes**, ending at `5183 passed, 15 skipped`
+(measured 2026-08-18, **16m09**, on `isotopes-on-the-canvas` -- the
+isotope reaching the canvas, the laptop-sized dialog, the right-click
+menu, and the isomers.
+
+**+77 collected and 4 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed:
+
+    branch point   363ae36   COLLECTS 5125
+    branch tip               COLLECTS 5198   = 5125 + 77 - 4
+    the run                           5183 passed + 15 skipped = 5198
+
+**THE LAST SEVEN WERE ADDED AFTER THE FIRST FULL RUN CAME BACK GREEN AT
+5176**, which is the entry worth reading: every one of them guards a
+defect the app was DRIVEN to find -- the contradicting caption, the
+button hint naming the wrong nuclide, `IT` as a raw token, the status bar
+claiming "ready" when nothing was armed, its two seams, and the
+stay-armed pin. A green suite is a statement about the tests that exist.
+
+**ALL FOUR REMOVALS ARE RENAMES WITH SUCCESSORS, AND THAT IS THE WHOLE
+REASON TO DIFF RATHER THAN SUBTRACT.** Every one described a table that
+held ground states only, and every one has a named replacement asserting
+the same thing about the table that now holds states:
+
+    test_the_table_is_ground_states_only
+      -> test_the_table_carries_every_state_and_the_counts_reconcile
+    test_technetium_99m_is_not_in_the_table
+      -> test_technetium_99m_is_here_and_says_which_state_it_is
+    test_every_key_is_its_own_z_and_a
+      -> test_every_key_is_its_own_z_and_a_and_state
+    test_there_are_exactly_253_stable_nuclides
+      -> test_there_are_exactly_253_stable_GROUND_STATES
+
+The third and fourth are the interesting pair: a key gained a state part
+that must be asserted or Tc-99m collides onto Tc-99 and a dict silently
+keeps the last one written, and 253 became "253 ground states, plus
+Ta-180m named by hand" rather than a loosened bound.
+
+**THE SKIPS ARE THE DETERMINISTIC 15**, and no crash markers -- `grep -c
+"Windows fatal exception"` is 0 and there is a summary line, which is the
+pair this file insists on rather than an absence of FAILED lines.
+
+15m37 sits inside the band and near its top; the 6-19 range stands. The
+two `DeprecationWarning`s are the pre-existing six-argument `QMouseEvent`
+overload in `test_dock_title_bar.py` and `test_trajectory_player.py`.)
+
+Before it: `5110 passed, 15 skipped`
+(measured 2026-08-18, **17m00**, on `nuclear-isotopes-and-decay` AT ITS
+MERGE OF MASTER -- the NUBASE table, the isotope picker, the two
+radioactivity modes, the isotope write and the decay chains, plus
+master's help-contract sweep and chain-qualified colouring arriving from
+PR #36.
+
+**MEASURED ON THE MERGE, WHICH IS THE WHOLE REASON THE EARLIER FIGURE HAD
+TO BE THROWN AWAY.** This entry first recorded `5056 passed` at 16m03 on
+the branch alone, and master moved underneath it while the PR was open --
+so that number described a tree that no longer existed. The two counts
+reconcile exactly, which is what says nothing was lost in the merge:
+
+    branch point   76d63d3   COLLECTS 4855
+    branch tip               COLLECTS 5071   = 4855 + 220 - 4
+    master         1f1a0c7   COLLECTS 4808   = 4754 + 54
+    the merge                COLLECTS 5125   = 5071 + 54
+    the run                           5110 passed + 15 skipped = 5125
+
+**+220 collected and 4 REMOVED** for this branch's own work, diffed both
+directions in a detached worktree with the `PYTHONPATH` override asserted
+before the count was believed.
+
+**ALL FOUR REMOVALS ARE ACCOUNTED FOR AND NONE IS A LOST TEST**, which is
+the whole reason to diff rather than subtract. Three are N8 replacements
+-- the atom drawing used to explain why polonium had no neutron count and
+now names Po-209, so tests asserting the absence became tests asserting
+the name, with the "never INVENTED" invariant surviving under a new
+name. The fourth is a PARAMETRISED ID changing:
+`test_a_real_word_finds_the_right_thing_first[isotope-Periodic Table...]`
+became `[isotope-Isotopes...]`, which is one case being re-pointed rather
+than dropped.
+
+**THE SKIPS ARE BACK TO THE DETERMINISTIC 15**, from the previous entry's
+19 -- and that entry says why: the extra four were a GPU context lost
+partway through an 18-minute run, which the `webgl` fixture correctly
+reports rather than failing on. Nothing here needs a display.
+
+The two `DeprecationWarning`s are pre-existing, in `test_dock_title_bar.py`
+and `test_trajectory_player.py`: the six-argument `QMouseEvent` overload.
+New code in this branch uses the form that takes a global position.
+
+**AND THE MERGE ITSELF WAS NOT FREE, WHICH IS WORTH KNOWING BEFORE THE
+NEXT LONG BRANCH.** GitHub would not run CI on the PR at all until the
+conflicts were resolved -- a `pull_request` workflow builds against the
+merge commit, and one cannot exist while the branch conflicts, so the
+run list was simply EMPTY rather than red. Two of the four conflicts were
+master telling this branch it was incomplete: a menu action added here
+needed the `_document()` contract master had just introduced, and a panel
+button using a raw `setToolTip` was refused outright by
+`test_the_migration_debt_never_grows`. The guard caught that, not review
+-- the help layer working on its first contact with code written before
+it existed.)
+
+Before it: `4836 passed, 19 skipped`
+(measured 2026-08-18, **17m56**, on `periodic-table-and-lewis-makeover`
+at the docs commit -- the periodic-table correctness work and the Lewis
+readability work. **+102 collected items and 1 REMOVED**, which is the
+first entry in this list with a removal in it. The abstained-bond test
+asserting it is "the only line in the picture" is false once bond guides
+exist, so it became
+`test_an_abstained_bond_is_the_only_line_when_guides_are_off` and asserts
+the original claim in the configuration where it still holds, rather than
+being weakened until green. Diffed both
+directions with `comm` against a detached worktree at `068208e`, with the
+`PYTHONPATH` override asserted before the count was believed.
+
+    branch point  068208e   COLLECTS 4754
+    after                   COLLECTS 4855   = 4754 - 1 + 102
+    the run                          4836 passed + 19 skipped = 4855
+
+**THE SKIPS WENT 15 -> 19 AND IT IS THE GPU, NOT A COVERAGE HOLE.** None
+of the 102 new tests skips, and none of the seven touched files does
+either -- measured, 266 passed and 0 skipped across them. Every subset
+run of the skip-capable files gives **15**. The full run's log carries
+`Failed to make current since context is marked as lost` from Chromium
+partway through, after which the `webgl` fixture measures no context and
+correctly skips naming the absent prerequisite rather than failing and
+blaming the code. That is the fixture doing its job; treat 15 as the
+deterministic figure and up to 19 as what an 18-minute run costs a GPU
+context.
+
+Before it: `4793 passed, 15 skipped`
 (measured 2026-08-17, **18m12**, on `docking-box-from-the-ligand` -- the
 chain-qualified residue selection. **+5 collected items and +5 test
 FUNCTIONS**: 2 in `test_visualization.py` for the composed key and its
@@ -6110,6 +6239,765 @@ exists to prevent, installed in its own foundation.
 **`local` NAMES A PDF AND IS NEVER CHECKED.** `Sci Downloads` is not in the
 repository, so no run can resolve it. That is an admitted gap rather than an
 oversight: a check that cannot run is worse than a stated limit.
+
+## A PANEL THAT DREW TWO THIRDS OF AN ANSWER AND SAID NOTHING
+
+Reported as "our periodic table is rather unreliable", with polonium and
+bismuth as the screenshots. The sharp one:
+`OrbitalBoxes.paintEvent` packed rows against `self.height()` and
+
+    if y + row_height > self.height():
+        break
+
+so polonium's panel stopped at `5s`. `5p6 5d10 6s2 6p4` -- **22 of its 84
+electrons** -- were not drawn, while the line directly above printed the
+full `[Xe] 4f14 5d10 6s2 6p4`. Measured against the shipped geometry: Po
+needs 160 px at width 420 and the old panel had about 130, which leaves
+exactly the 4 subshells the screenshot is missing.
+
+**THE STRING AND THE PICTURE DISAGREED AND THE PICTURE LOST QUIETLY**,
+which is the worst way for a reference table to be wrong -- and the suite
+was green throughout, because
+`test_the_boxes_draw_more_for_more_subshells` compares two SMALL elements
+and both of them fit. The population is the whole test: the defect only
+exists once a configuration is taller than its widget, which begins
+around period 5.
+
+### The scroll-area contract, which is the THIRD time this flag has bitten
+
+`heightForWidth` + `setWidgetResizable(True)` is two mechanisms fighting:
+the scroll area tells the child to fit the viewport while height-for-width
+says the natural height follows from the width. `WrappedLabel` starving a
+panel and a style change re-arming the flag through `changeEvent` are the
+first two. So:
+
+    _layout_rows(width)   the one authority on where anything goes
+    _draw_rows(...)       draws ALL of them, no truncation branch
+    the widget is told its WIDTH and answers with a minimum HEIGHT
+    the QScrollArea grants it and scrolls the excess
+
+**AND THE INVARIANT IS SELF-RESTORING, which took two attempts to
+discover.** `resize()` is clamped to the widget's own minimum; dropping
+the minimum first does not help either, because delivering the resize
+runs `resizeEvent`, which puts it straight back and Qt grows the widget
+again -- `grab()` on a widget resized to 120 returned a 256 px image. So
+the diagnostic banner is unreachable through the public API, and
+exercising it needs a subclass modelling the one thing that could cause
+it. A restored truncation branch SURVIVED both earlier attempts.
+
+**`QPainter` METHODS *ARE* MONKEYPATCHABLE UNDER PySide6**, which is
+worth knowing because the opposite is the natural assumption and it would
+have cost a rewrite. `monkeypatch.setattr(QPainter, "drawText", spy)`
+works, and `grab()` paints the WHOLE widget rather than an exposed
+viewport rect -- which is what lets a deliberately short widget be the
+setup rather than the obstacle.
+
+### The other three, and 34 elements with no nucleus at all
+
+- **`nucleus()` raised for any element with no naturally occurring
+  isotope**, so `ShellDiagram` drew nothing at all and the caption fell
+  to a bare "Electrons: 84". Measured: 34 of 118 -- Tc, Pm, Po, At and
+  everything from Rn up except Th and U. Refusing to invent a neutron
+  count was right; refusing to draw the protons was the bug. **The two
+  refusals must not merge**: `nucleus("Si", mass_number=99)` still
+  raises, `nucleus("Po")` returns a proton-only nucleus.
+- **"Typical valences" was RDKit's implicit-H model wearing a chemistry
+  label.** `GetValenceList` gives Cl [1], Br [1], I [1, 3, 5] -- so the
+  table said bromine has one typical valence and iodine three, when both
+  do 1/3/5/7. Relabelled, not removed: the app's own valence checker acts
+  on the same list.
+- **A 32-electron shell drew as a solid band.** A fixed 5 px dot leaves
+  uranium's N shell 0.5 px between electrons. Scaled against the ARC each
+  electron has to itself, the shipped worst case is 3.8 px.
+
+## THE CRC OVERTURNED THE REASON IT WAS OPENED
+
+The plan for the oxidation-state review said bromine was missing +3 and
++7, "which makes it inconsistent with chlorine in the same group". Read
+off the CRC Handbook 97th ed. page 2639 -- rendered at 10x, because the
+poster is rotated 90 degrees and its text layer interleaves neighbouring
+cells:
+
+    F   -1
+    Cl  +1 +5 +7 -1        <- no +3
+    Br  +1 +5 -1           <- no +3, no +7
+    I   +1 +5 +7 -1
+    At  (none listed)
+
+**Bromine matches the CRC exactly.** The group asymmetry is the source's
+own. What differs is CHLORINE, where this project ships a +3 the CRC does
+not -- and ClF3 and the chlorites are real, so that is the CRC being
+conservative rather than this project being wrong. Nothing was changed;
+what was added is the record of how the two relate.
+
+**AN AUTOMATED EXTRACTION WAS ABANDONED, and its acceptance checks are
+why that was safe.** Two positional passes over that poster each produced
+113 plausible rows with every element carrying its NEIGHBOUR's states, in
+two different directions. A count alone would have accepted both. The
+melting-point table (4-116..4-118) extracted cleanly by the same method
+once the columns were understood -- they are right-aligned, so values sit
+LEFT of their headers, and binning against the headers gave 2 rows of
+100.
+
+## A BETTER LAYOUT ENGINE THAT IS WORSE ON THE REPORTED MOLECULE
+
+`rdCoordGen` is the obvious replacement for `AllChem.Compute2DCoords`.
+Closest non-bonded approach in bond lengths, higher is better:
+
+    methane      1.414 -> 1.000   coordgen worse
+    caffeine     1.177 -> 1.000   coordgen worse
+    glucose      0.524 -> 0.805   coordgen better
+    morphine     0.303 -> 0.186   coordgen worse
+    cholesterol  0.036 -> 0.565   coordgen better, sixteenfold
+
+**Morphine is essentially the structure the Lewis bug was reported for**,
+and it is one CoordGen loses. Both are deterministic and together cost
+about 20 ms on the largest case, so `lewis_builder` lays out with both
+and keeps the better -- which cannot regress *according to the measured
+metric*, a weaker and more honest claim than "cannot regress".
+
+**WHICH TERM LEADS THE SCORE WAS CHOSEN ON A DESIGN SET AND FROZEN.**
+`benchmarks/lewis_layout/choose.py` declares its criteria before running,
+splits 42 molecules alphabetically before anything is scored, fixes the
+ordering on one half and evaluates it on the other:
+
+    A (-crossings, crowding)   design 19/21 not worse   rejected
+    B (crowding, -crossings)   design 21/21             holdout 21/21,
+                                                        8 strictly better
+
+**Clearance leads, which is not the intuitive answer** -- crossings-first
+makes two of twenty-one design molecules worse on clearance to remove a
+crossing.
+
+**AND THE CHOOSER MOVED AN EXISTING FIXTURE.**
+`test_crowding_is_a_LEGIBILITY_number_and_not_a_refusal` used glucose as
+its crowded case; glucose now measures
+0.805 and is on the roomy side of `CROWDED_APPROACH`. Morphine replaces
+it, being one CoordGen loses, so it stays crowded whichever engine wins.
+
+## THE MUTATION STEP EARNED ITS KEEP SEVEN TIMES IN ONE BRANCH
+
+Of about forty mutations run across this work, seven found a guard that
+was testing nothing, and every one of those was the TEST being wrong
+rather than the code:
+
+- **a vacuous fixture.** An unshown `OrbitalBoxes` is 640x480, where
+  polonium needs 112 px -- under the 120 px placeholder floor. So
+  `minimumHeight() >= required_height()` held on a widget that had
+  computed nothing.
+- **a fixture the fix healed.** The rendered guard resized to
+  `minimumHeight()` before grabbing, so every row fitted and the branch
+  under test was never reached.
+- **asking the wrong object.** A scroll-area guard checked
+  `boxes_scroll.widget() is boxes`, which stays true when the scroll area
+  is built and never added to a layout.
+- **a bound that was not a bound.** "Electrons never touch" written as
+  `2 * radius < arc` is satisfied by a fixed 5 px dot on uranium's N
+  shell by 0.5 px -- not overlapping, and a solid band on screen. It is a
+  CLEARANCE now.
+- **a declared range that clipped a real element.** Helium's covalent
+  radius is 0.28 against a floor declared at 0.30. Checking a declared
+  range against the shipped data is what keeps "declared" from meaning
+  "invented".
+- **a redundant branch that double-counted.** `_segments_cross` also
+  tested collinear overlap; removing it changed no test and no benchmark
+  number, because two overlapping collinear segments must put an endpoint
+  of one inside the other, which the atom pass already counts.
+- **a claim whose wording had to change.** The abstained-bond test
+  asserting it is "the only line in the picture" is false once guides
+  exist. Renamed to "...when guides are off", asserting the original
+  claim in the configuration where it still holds, rather than weakened
+  until green.
+
+## AND TWO DEFECTS ONLY THE MAGNIFIED SHOT FOUND
+
+Both with the whole file green, which is now the eighth and ninth entries
+in this file's running count of that:
+
+- **the ring counts collided.** Polonium's rings are 15 px apart, so six
+  labels stacked on one bearing ran together and "18 32" read as "1832".
+  They fan across the left side now, buying separation from the ANGLE
+  where the radius has none.
+- **a label whose gap fell inside the nucleus disc was SKIPPED**,
+  silently -- the innermost shell of every element, in the one branch of
+  this codebase written against silent omissions.
+
+## NUCLIDES: what the isotope and decay work cost
+
+`chem/nuclides.py`, `chem/decay.py`, `chem/decay_svg.py` and
+`chem/isotopes.py` are the NUBASE2020 table and what reads it. Most of
+it is in the modules' own docstrings; these are the parts that are not
+recoverable from the code.
+
+**A HALF-LIFE HAS EIGHT STATES AND A BRANCHING HAS ITS OWN FOUR.** An
+early draft of the plan attributed the branching qualifiers to the
+half-life column -- "145 `<`, 20 `>` and 340 `~`" -- and they are a
+different field. The half-life's own bounds are 9 `>`, 4 `<` and 6 `~`
+among 5,843 rows. **AND THE VALUE AND ITS UNCERTAINTY ARE TWO
+DIMENSIONS**: 38 rows have no half-life but a bound in `dT`, and 256
+carry BOTH a value and a `dT` bound, so one qualifier field would force
+a silent precedence rule.
+
+**A DEGENERATE FIXTURE APPEARED IN EVERY SINGLE COMMIT OF THIS BRANCH.**
+Nine mutation runs, and the survivors were almost never untested code --
+they were tests that could not discriminate:
+
+    N3  the absent-vs-zero pair used masses 101/102, so the mass
+        tie-break gave the right order anyway
+    N3  CARBON cannot see abundance-before-half-life; uranium can
+        (U-234 abundant at 0.0054%/246 ky vs U-236 no abundance/23.4 My)
+    N3  tin's ten stable isotopes all have distinct abundances, so the
+        final tie-break never fired
+    N5  "carbon's fill differs from uranium's" passes when the terminal
+        swatch is painted with the ramp's TOP colour -- uranium sits at
+        0.638
+    N6  "a 13C landed" passes when the scope is hardcoded to every atom;
+        ethanol has TWO carbons and counting them is the discriminator
+    N6  the checkbox guard picked a row first, so it only ever reached
+        the path where the label was already right
+    N4  four checks of `edge_weight` did not notice the RENDERER
+        ignoring it
+    N4  the click test called the handler directly, so a filter that
+        swallowed the press survived
+    N4  the refit CONTROL switched to tab 0, which was already current,
+        so `currentChanged` never fired
+
+The last two are one lesson twice: **a control that does not move is not
+a control**, and **testing a helper is not testing the wiring**.
+
+**AND THE PLAN'S OWN REFUSAL FIXTURE WAS DEGENERATE TOO.** It specified
+"asking for O-18 on a carbon must be refused". Mass number 18 is a real
+nuclide of BOTH elements -- C-18 exists at 92 ms -- so that call is
+correctly ACCEPTED. Mass number 2 is the sharp case: deuterium exists,
+C-2 does not. Carbon's table runs 8..23.
+
+### THE CHART OF THE NUCLIDES NEEDS NO LAYOUT ALGORITHM
+
+x is the neutron number and y is the proton number. **(Z, N) determines
+A, so CELLS cannot collide** -- measured across 200+ chains at zero,
+which is a proof rather than a tolerance. Alpha is two cells down and two
+left, beta-minus one up and one left, so the SHAPE carries meaning and
+U-238 comes out as the staircase books draw.
+
+**THAT PROOF IS ABOUT CELLS, NOT NODES, AND THE ISOMERS SPLIT THE TWO.**
+Once a state exists, (Z, N) still determines the CELL and the state index
+chooses a slot within it -- so the property to guard is one box per
+STATE, not one per cell, and the injectivity guard was rewritten rather
+than deleted.
+
+**`STATE_OFFSET` WAS A CHOSEN NUMBER AND IT WAS WRONG.** Written as 11.0
+against a 40 px box, two states of one isotope OVERLAPPED -- and
+`node_at` returns the first box containing the point, so a click on the
+isomer resolved silently to the ground state, which is the exact bug
+class carrying the key end to end exists to prevent. It is `BOX_H +
+STATE_GAP` now, derived, and the row PITCH grows with the deepest stack
+so a stacked cell cannot reach the row below. With no isomer in a chart
+-- every chart a ground-state root can draw -- `deepest` is 0, the pitch
+is exactly `CELL_H`, and U-238 still renders at 2320x862 with 37 nodes.
+
+**THE TWO GUARDS FOR IT WERE BOTH DEGENERATE FIRST**, and the reasons are
+different and both worth keeping:
+
+    the rebuild arm survived because the test called `_focus_decay_node`
+    itself instead of driving the event filter -- testing a helper is not
+    testing the wiring, which this branch paid for twice
+    the row-pitch arm survived because Ru-99 is one column ACROSS on a
+    NEUTRON-number axis, so no stack could ever reach it. Mo-98 shares
+    Tc-99 N=56 and is the only arrangement that collides.
+
+**THE FIRST RENDER WAS UNREADABLE AND WEIGHTING FIXED IT.** A cluster
+emission is an enormous jump on this chart -- uranium's 32Si branch moves
+14 protons and 18 neutrons at once -- so at uniform stroke a handful of
+decays at ~1e-10% drew lines across the whole width while the real series
+was a faint zigzag underneath. Line weight is the branching now, and
+nothing is dropped: a guard counts `<line ` against followable edges.
+
+**FOUR "STABLE" NUCLIDES ALSO CARRY A DECAY.** Pb-204, Pb-206, Pb-208 and
+Hg-204 are marked `stbl` in NUBASE AND list a mode nobody has ever
+observed (`A ?`, `2B- ?`). So `leaves()` correctly reports Hg-200, Hg-202
+and Tl-205 for uranium-238 and omits Pb-206, which is where every
+textbook says that series ends -- the status line reports which stable
+nuclides a chain REACHES instead. Asserted, so a future NUBASE that
+resolves the contradiction fails rather than silently redrawing.
+
+**AND U-238 CANNOT DEMONSTRATE AN UNFOLLOWABLE LEAF.** It has seven SF
+branches, and every node carrying one also has a followable alpha, so
+none of them is a leaf. Measured over the whole table: 8,038 stable
+leaves, 109 unfollowable, 17 off-table. Fm-259 fissions outright; Li-3
+decays off the table.
+
+### ARMING THE CANVAS: the mass number was never part of the gesture
+
+Reported as "I can place carbon 13 for example, but it is just CH4, there
+is no 13", and it is not a rendering bug. Ketcher draws isotopes
+correctly -- a molblock carrying `M  ISO  1   1  13` loads as
+`{label: 'C', isotope: 13}` and the canvas draws `['C','13','H','3',...]`.
+The cause was one line: `set_atom_tool` armed `tool('atom', {label})`, a
+BARE element, so the picked isotope was dropped before the click.
+
+`ketcher.editor.tool('atom', {label:'C', isotope:13})` is accepted and
+returns an `AtomTool2` carrying `atomProps`. Probed against the vendored
+bundle rather than reasoned about, which is how this project reads
+Ketcher every time.
+
+**A SYNTHETIC DOM CLICK CANNOT DRIVE THE ATOM TOOL.** Dispatching
+`mousedown`/`mouseup`, and then pointer events, left the struct untouched
+in both cases -- so a drive step built that way reports "the app ignored
+it" for a feature that works. Calling `AtomTool2.mousedown/mouseup`
+directly with `{pageX, pageY, target}` is what places an atom.
+
+**AND A DEAD GUARD IS NOT A WEAK TEST.** A mutation on the
+element-must-match rule in the placement path survived, and the reason is
+that `select()` REPOPULATES the isotope table, dropping the row selection
+-- so the mismatch cannot be reached through the UI at all. It is
+asserted on the predicate directly, which is this file own
+"an unreachable branch is a question about where to assert" rule again.
+
+### AND FOUR MORE THE MAGNIFIED SHOT FOUND, with 5,176 tests green
+
+The whole suite passed, every guard was mutated, the docs were written --
+and then the app was driven and cropped 2x, which is the step this file
+has now recorded twelve separate findings for. Three were on the screen
+and the fourth came out of the probe that failed first.
+
+**A CAPTION CONTRADICTED THE PICTURE DIRECTLY ABOVE IT.** The decay
+legend ended "**Ground states only**, so a chain that runs through an
+isomer is not drawn" while the chart above it was drawing Ag-108m and its
+stacked ground state. Nothing could catch it: the sentence was correct
+when it was written and no test relates a caption to what was rendered.
+`test_the_caption_never_contradicts_the_picture_above_it` asserts the
+CONTRADICTION is absent rather than pinning the replacement wording, so a
+future rewrite is free to say it better and not free to say the chart
+cannot do what it is doing.
+
+**A BUTTON HINT NAMED A DIFFERENT NUCLIDE FROM THE ONE IT PLACES.** "Adds
+Ag-108m to the canvas" -- and `_insert_decay_nuclide` emits a MASS
+NUMBER, which is all a molfile can record, so it adds Ag-108. It says so
+now, with the same reason `IsotopeRefusal.ISOMER_NOT_IN_MOLFILE` gives.
+
+**`IT` RENDERED AS ITS RAW TOKEN beside "beta+" and "electron capture".**
+`_MODE_NAMES` exists precisely because "NUBASE's own tokens are compact
+and cryptic", and `IT` arrived as the SECOND commonest mode in the table
+at 1,471 rows without being added to it: the Isotopes tab read "beta+
+91.3%, IT 8.7%". One line, and only a screenshot asks the question.
+
+**AND THE STATUS BAR CLAIMED "Ready to place: 13C" WHILE NOTHING WAS
+ARMED.** `set_atom_tool` DROPS before Ketcher is ready -- deliberately,
+and still correctly, because a gesture replayed later primes the canvas
+with an element the user has stopped thinking about. But it returned
+nothing, so the window said "ready" either way. Measured, ~2 s after
+launch:
+
+    armed at 2 s   tool SelectTool2   count 0   nothing placed
+    armed at 5 s   tool AtomTool2     count 1   [13CH4]
+
+That is the user's ORIGINAL REPORT arriving through a different door --
+click the element, click the canvas, nothing happens. It returns a bool
+through all three layers now. **The middle layer is where the answer gets
+lost**: a `MoleculeEditorWidget.set_atom_tool` that calls down and
+returns None passes the backend test AND the window test while restoring
+the defect, so it has its own guard with both arms.
+
+**A FAKE THAT RETURNS `None` WAS SILENTLY MODELLING A FAILURE.** Two
+existing tests stubbed `set_atom_tool` with `lambda ...: None`, which the
+moment the contract gained an answer meant "did not arm" -- and one of
+them failed immediately, which is how the change proved it had teeth.
+
+### THE TOOL STAYS ARMED ACROSS PLACEMENTS, and the probe must not re-arm
+
+Measured in the running app: arm once, then click the canvas three times
+without re-arming.
+
+    click 1   count 1   AtomTool2
+    click 2   count 2   AtomTool2
+    click 3   count 3   AtomTool2
+    SMILES    [13CH4].[13CH4].[13CH4]
+
+Preserved deliberately rather than ruled on -- Ketcher's own element
+buttons behave this way, so a periodic table that disarmed after one
+placement would make two gestures that look identical behave differently.
+
+**THE `place` DRIVE STEP TAKES `arm: false` FOR EXACTLY THIS**, and
+without it the question cannot be asked: re-arming before each click
+makes every click land whether the tool was retained or not, so a probe
+that arms each time answers yes regardless of the truth. Both halves go
+through one `_click_canvas`, because if they clicked differently "the
+tool stayed armed" would be a claim about two different gestures.
+
+**AND THE FIRST RUN OF THAT PROBE MEASURED A COLD PAGE.** It reported
+`count 0, SelectTool2` and read as "placement is broken" -- Ketcher had
+simply not finished loading. That reading was wrong about the feature and
+right about something else, which is how the status-bar defect above was
+found. Give the page a `smiles` step and ~4 s before probing it.
+
+### A `QTabWidget` TAKES THE MAXIMUM OVER ITS PAGES, and one tab set the floor
+
+Reported as "there is no way to adjust the size of the periodic table
+popup", with the action row off the bottom of a 1366x768 laptop. **The
+buttons were not broken; they were 105 px below the screen.**
+
+This is `A HORIZONTAL ROW MINIMUM IS THE SUM` in the vertical, one
+container along. The Decay tab `ZoomableSvgView` carried
+`minimum_size=(520, 360)`, copied from the Lewis dialog where that widget
+is the whole window -- here it sits under a 502 px element grid, so ONE
+tab set the floor for all four:
+
+    page      before      after
+    Facts     58 x 58     unchanged
+    Atom      499 x 238   unchanged      <- the real floor now
+    Isotopes  452 x 108   unchanged
+    Decay     520 x 464   320 x 244
+    dialog    902 x 1142  902 x 922
+
+**A MINIMUM IS A FLOOR, NOT A PREFERRED SIZE**, and every page here
+scrolls or zooms internally, so none loses anything by being allowed to
+get small. The dialog OPENS far larger than its minimum.
+
+**AND A `QDialog` HAS NEITHER A MAXIMISE BUTTON NOR A SIZE GRIP BY
+DEFAULT**, so a window that opened too tall could not be shrunk, moved
+back into view, or maximised. Both are set now -- but they are the SECOND
+fix: a minimum larger than the screen cannot be rescued by resizing at
+all, because `resize()` is clamped to it.
+
+**A 1366x768 LAPTOP STILL CANNOT SHOW ALL OF IT** at 922 px, recorded as
+a stated limit rather than quietly claimed as fixed. The element grid
+alone is 880x502.
+
+**THE WIDTH CANNOT BE GUARDED AND THE HEIGHT CAN.** The same dialog is
+**1288 px wide under `offscreen`** against **902** in the running
+application, because that platform default font is far wider -- so a
+width bound is a claim about the font. Height is driven by row counts:
+898 offscreen against 922 real.
+
+Three more degenerate fixtures, in the fix for a degenerate-fixture
+branch:
+
+    `dialog.width() <= available.width()` on a dialog the fixture NEVER
+    SHOWS reads Qt pre-show default and cannot fail. Replaced by a pure
+    `fit_within` and a table -- and `offscreen` reports an 800x800
+    screen, where the cap always bites, so **deleting the CALL is the one
+    mutation nothing catches** and is written into the test rather than
+    papered over. Same shape as `initial_right_dock_width`.
+    "inserting reveals the editor" held with the reveal deleted, because
+    the editor tab was ALREADY CURRENT. The fixture looks away first.
+    lowering `ShellDiagram` changed nothing, because
+    `AtomDiagram.setMinimumHeight(240)` sat above it and was the real
+    binder. Measure the CONTAINER, not the widget you suspect.
+
+### KETCHER HAS NO CONTEXT-MENU HOOK, so ours intercepts the gesture
+
+`ketcher-react` `Config` declares `buttons`, `customButtons` and
+`togglerComponent` and nothing else, so injecting into its atom menu is
+unsupported in 3.17. `main.jsx` installs a CAPTURE-phase `contextmenu`
+listener: on an ATOM it suppresses react-contexify and forwards to
+Python; off an atom it does nothing and Ketcher own menu opens exactly
+as before.
+
+**`findItem` RETURNED `atoms#0` EVERYWHERE at first, and the coordinates
+were why.** `page2obj` maps a synthetic PLAIN-OBJECT event to (0, 0), and
+atom 0 sits there -- so every probe "worked" and every answer was the
+same atom. Only a real `MouseEvent` carries what `page2obj` reads.
+
+**AND THE ACTUAL BUG WAS A SILENT `ReferenceError`.**
+`installAtomContextMenu(editor)` was called in a function with no such
+parameter, which aborted the rest of that function -- so the listener was
+never installed and nothing anywhere said so. `window.openchemContextMenuInstalled`
+is set by the installer and a guard asserts the CALL SITE, because a
+bundle string check proves the name reached the file and not that it ran.
+
+**A STEP THAT OPENS A MENU MUST NOT CALL `QMenu.exec`, AND
+MONKEYPATCHING IT DOES NOT HELP.** The first version of these tests ran
+for **42 minutes** on an invisible modal menu; `monkeypatch.setattr(QMenu,
+"exec", ...)` did not stop it, because it is a C++ slot. The fix is
+structural: `build_atom_context_menu` returns the menu UNSHOWN and
+`_show_atom_context_menu` is the thin caller that pops it. 48 tests in 6
+seconds. Same family as the "a modal dialog step must not call `exec()`"
+rule this file already carries for `OPENCHEM_DRIVE`.
+
+### NUBASE NAMES NO DAUGHTER STATE, AND THE ASSUMPTION WAS ALREADY BEING MADE
+
+Read off the raw rows, the whole of what the decay field carries is the
+mode and the branching -- `B-=100`, `IT~100;B-=0.0037`. So which state of
+Ru-99 a Tc-99m beta decay populates is not in the source, and neither is
+where an `IT` cascade from index 2 lands.
+
+**THE HONEST FRAMING IS THAT ISOMERS DID NOT CREATE THE ASSUMPTION, THEY
+MADE IT VISIBLE.** The uranium chain resolved U-238 to Th-234 ground
+state because ground states were all the table held. So
+`DaughterProvenance` is a VALUE that reaches the screen: an assumed edge
+is DASHED and the legend says what the dash means. A diagram that looked
+like an exact NUBASE-derived chain while part of it is this
+application own guess is precisely the plausible-looking wrongness this
+project spends its time removing.
+
+    EXACT                  an IT from state index 1 -- only the ground
+                           state is below it, so nothing is chosen
+    ASSUMED_GROUND_STATE   NUBASE names no state populated
+    UNFOLLOWABLE           no single daughter exists to have a state
+
+**EXACT IS NOT A DEAD BRANCH, and reaching it needed the threshold
+moved rather than an input hunted.** No shipped nuclide could reach it
+until the data landed, so both arms are tested by BUILDING a state-1
+`Nuclide` directly. `daughter()` returns the provenance WITH the result
+rather than taking a policy argument: a `DaughterStatePolicy` would have
+had exactly one caller and one value, and a consumer wanting exact-only
+can filter on what it is already handed.
+
+**AN `IT` IS `(0, 0)` IN (Z, A) SPACE, WHICH IS A SELF-LOOP.** The state
+index is what makes the walk a strict descent and terminate, so
+`delta_for("IT")` must never be followed on its own -- callers go through
+`daughter()`. An `IT` on a ground state is a contradiction in the data
+rather than a branch, and is reported unfollowable rather than resolved
+to itself.
+
+### THE ISOMERS: 3,557 nuclides became 5,684, and the build refused twice
+
+`NuclideKey(z, a, state_index)` is a TYPE rather than a bare tuple
+because it is the identity contract -- the SVG node carries one, a click
+resolves one, the write path refuses one, and three places reassembling
+`(z, a, i)` by hand is where a click starts landing on the wrong thing.
+**`state_index`, NOT "level"**: NUBASE own field is an isomer INDEX, and
+calling it a level invites a later reader to treat `2` as an excitation
+energy.
+
+**THE FAIL-CLOSED RULE EARNED ITS KEEP TWICE, and the second was not
+anticipated.** The zero-unrecognised-modes invariant REFUSED to build:
+
+    IT   1,471 rows, and `is_recognised("IT")` was False
+    B        1 row -- Pd-126p writes `B=72 8`, a beta with NO SIGN
+
+The sign is exactly what decides whether Z goes up or down. Pd-126 own
+ground state is `B-=100` and an isomer sits HIGHER in energy, so
+beta-minus is a near-certain inference -- **which is precisely why it is
+refused.** NUBASE format header documents no mode vocabulary to appeal
+to, and this project does not derive physics the source declined to
+state.
+
+`UNDERSPECIFIED_MODE` is a FOURTH leaf reason and deliberately not a
+physical one: the three others describe the nucleus, this one describes
+the DATA. Folding it into `unfollowable` would tell a reader no daughter
+exists when one does. **It never becomes a whole node leaf reason** --
+Pd-126p also carries `IT=28`, which is followable -- and that is written
+into the test rather than left as a silent gap.
+
+**THE LARGEST TREE DID NOT MOVE, AND THAT IS THE RESULT.** Au-169 is
+still 161 nodes: an isomer `IT` leads to its own ground state and the
+ordinary chain continues, so an isomer adds a ROOT rather than a branch.
+Which is why "trees containing an isomer" is exactly 2127, one per
+isomer -- a non-IT decay resolves to a ground state, so no ground-state
+tree ever reaches an isomer. The corpus pin is a PROFILE now, because
+"the largest tree is 161" stopped being the relevant statistic:
+
+    max nodes 161 (Au-169)   median 7 (was 8)   over-60 86 (was 54)
+    max edges 223            isomer trees 2127  IT trees 1787
+
+**THE SUFFIX IS THE SOURCE OWN AND THE MAP IS EXACT.** Read from the
+name field rather than derived from the index, because a table mapping 1
+to `m` would be a second implementation of somebody else notation.
+Measured across all 2,127 and one-to-one both ways: 1 m, 2 n, 3 p, 4 q,
+5 r, 6 x, 8 i, 9 j. Carbon tab goes 16 rows to 20 -- the four are its
+isobaric analogue states, SHOWN rather than filtered, because deciding a
+reader may not see a state NUBASE lists would be this application
+editing its source.
+
+**253 AND 254 ARE BOTH CORRECT.** Ta-180m is an isomer marked `stbl`, so
+a bare count gives 254 and reads as an off-by-one against every
+reference. The test names its population and asserts the extra one by
+name rather than tolerating it with a loosened bound.
+
+### THE WRITE PATH REFUSES AN ISOMER, AND THE REFUSAL IS THE FEATURE
+
+`M  ISO` carries a mass number and nothing else, so Tc-99m and Tc-99
+write the same bytes and every reader downstream -- RDKit, the
+calculators, a saved project -- would treat the metastable structure as
+the ground state. The alternative to refusing is silently discarding the
+one thing the user asked for.
+
+`IsotopeRefusal.ISOMER_NOT_IN_MOLFILE` is a VALUE with generated text, so
+`if "isomer" in message` never becomes application logic.
+`refuse_isomer()` builds it in ONE place because **both** the Apply path
+and the PLACEMENT path need it -- a placed atom becomes a molfile too,
+and that second one is easy to miss.
+
+### THE PALETTE NEEDED NO CODE CHANGE, which is worth recording
+
+Alex semantics: an isotope representative half-life is its
+longest-lived RADIOACTIVE state, so Ag-108 legitimately wins at 439 y via
+Ag-108m. **A maximum over every state already equals the maximum over
+isotopes of each isotope own maximum**, so what the plan called a
+per-isotope grouping falls out of the existing `max`. Nobody should add
+machinery for it later. Four elements moved:
+
+    WINNER MOVES   Ag  105 -> 108   41.3 d -> 439 y   (Ag-108m)
+                   Hs  269 -> 277   16 s   -> 2.17 m  (Hs-277m)
+    VALUE MOVES    Ir  A=192 both   74 d   -> 241 y   (Ir-192n)
+                   Lv  A=293 both   70 ms  -> 80 ms   (Lv-293m)
+
+The swatch NAMES the state, so nobody is told Hs-277 lasts 2.17 minutes.
+**AND SILVER CANNOT DEMONSTRATE THAT**, which is why the guard does not
+use it: Ag has a stable isotope, so its swatch is terminal ("has a stable
+isotope") and the Ag-108m value never reaches the screen at all.
+
+**`has_stable_isotope` IS NOT A DECISION, WHICH MEASURING SETTLED.**
+"Any state" and "the ground state" are indistinguishable on this data --
+exactly one isomer in NUBASE is marked stable, Ta-180m, and tantalum
+already has a stable ground state in Ta-181. The simpler form stands,
+with a change detector that fails the day a revision separates them.
+
+**THE SORT STATE TIE-BREAK IS THE LAST TERM, NOT A GLOBAL RULE.** Tc-99
+and Tc-99m tie on every earlier key, so without it the order comes down
+to nothing. But "ground states first" would be WRONG: Ta-180m carries a
+natural abundance and is marked stable while Ta-180 is neither, so it
+legitimately sorts ABOVE its own ground state and never reaches the
+tie-break. Both are fixtures, for exactly that contrast.
+
+### A SOURCE CHECK MATCHED THE PROSE EXPLAINING ITS OWN RULE, AGAIN
+
+The generator count reconciliation cannot fail on any INPUT -- every
+parsed row increments exactly one bucket -- so it is a self-check on the
+next EDIT, and the guard for it reads the source. The first version
+asserted `"the arithmetic does not close" in text`, which also appears in
+the MODULE DOCSTRING, so deleting the raise left it passing. It anchors
+on fragments unique to the message now. Third instance of this shape in
+this file.
+
+### A TAB'S COMFORTABLE FLOOR BECAME THE WHOLE DIALOG'S, and the buttons left the screen
+
+Reported as "I cannot select an element and place it on the actual
+editor ... this is a new problem on this branch", with "there is no way
+to adjust the size of the periodic table popup" beside it. **The buttons
+were not broken. They were 105 px below the bottom of the screen.**
+
+    available screen          1920 x 1032
+    dialog minimumSizeHint     902 x 1142
+    "Insert into drawing"     global y=1136   OFF SCREEN
+    maximise button           False
+    size grip                 False
+
+This is `A HORIZONTAL ROW'S MINIMUM IS THE SUM` in the vertical, one
+container along: **`QTabWidget` takes the MAXIMUM over its pages.** The
+Decay tab's `ZoomableSvgView` carried `minimum_size=(520, 360)`, copied
+from the Lewis dialog where that widget is the whole window -- here it
+sits under a 502 px element grid, so one tab's comfort set the floor for
+all four and the dialog could not be made short enough to show its own
+action row.
+
+    page      before      after
+    Facts     58 x 58     unchanged
+    Atom      499 x 238   unchanged      <- the real floor now
+    Isotopes  452 x 108   unchanged
+    Decay     520 x 464   320 x 244
+    dialog    902 x 1142  902 x 922
+
+**A MINIMUM IS A FLOOR, NOT A PREFERRED SIZE**, and every page here
+already scrolls or zooms internally, so none of them loses anything by
+being allowed to get small. The dialog OPENS far larger than its minimum.
+
+**AND A `QDialog` HAS NEITHER A MAXIMISE BUTTON NOR A SIZE GRIP BY
+DEFAULT**, so a window that opened too tall could not be shrunk, moved
+back into view, or maximised. Both are set now, and both are guarded --
+but they are the second fix, not the first: a minimum larger than the
+screen cannot be rescued by resizing at all, because `resize()` is
+clamped to it.
+
+**A 1366x768 LAPTOP STILL CANNOT SHOW ALL OF IT** at 922 px, and that is
+recorded as a stated limit rather than quietly claimed as fixed. The
+element grid alone is 880x502; getting under ~728 means shrinking or
+scrolling the periodic table itself, which is the primary content. It is
+also pre-existing -- the dialog was ~880 before the Decay tab existed.
+
+**THE WIDTH CANNOT BE GUARDED AND THE HEIGHT CAN.** Measured, the same
+dialog is **1288 px wide under `offscreen`** against **902** in the
+running application, because that platform's default font is far wider --
+so a width bound is a claim about the font. Height is driven by row
+counts: 898 offscreen against 922 real. The guard asserts height only and
+says why.
+
+**THREE MORE DEGENERATE FIXTURES, IN THE FIX FOR A DEGENERATE-FIXTURE
+BRANCH.** Seven mutations, four caught first time:
+
+- `dialog.width() <= available.width()` on a dialog **the fixture never
+  shows**, so it read Qt's pre-show default and could not fail. Replaced
+  by a pure `fit_within` and a table, because `offscreen` reports an
+  800x800 screen where this dialog's minimum is larger still -- so
+  calling the cap and deleting it are indistinguishable by outcome, and
+  **deleting the CALL is the one mutation nothing catches**. Written into
+  the guard, as `initial_right_dock_width` already does.
+- "inserting reveals the editor" held with the reveal deleted, because
+  **the editor tab was already current**. The fixture looks away first.
+- and the suite's one real failure was `"isotope" -> "Periodic Table..."`
+  in the palette vocabulary. That is the ranking WORKING: there is now a
+  literal `Isotopes...` menu item, which is both a prefix match and the
+  better answer. Same case as the `# NOT "valence"` note already beside
+  it.
+
+**THE PATH THAT WAS REPORTED BROKEN HAD NO END-TO-END GUARD AT ALL.** The
+dialog's tests stopped at `insert_requested`; the window's wiring of that
+signal to `set_atom_tool` was never asserted. That is the half that was
+missing, rather than the half that failed.
+
+### KETCHER'S CONTEXT MENU: MEASURED, AND NOT SHIPPED
+
+The plan proposed appending items to `context-menu-for-atoms`. The spike
+came back negative and the feature did not depend on it, by design.
+
+    react-contexify is the library    no global hooks: a scan of
+                                      `window` returns an empty list
+    the `.contexify` root             exists only while open, and React
+                                      re-renders it every time
+    `main.jsx` composes `<Editor>`    the menu is inside Ketcher's own
+                                      component tree; no prop, no slot
+
+**THE DECIDING MEASUREMENT IS THAT IT CANNOT BE TESTED.** Ketcher's
+canvas is **0x0 in a bare `QWebEngineView`**, even inside a laid-out host
+widget and selected by its own `ketcher-canvas` testid -- `page2obj`
+divides by that zero and returns non-finite coordinates, so a right-click
+cannot be synthesised at an atom outside the running application. An
+injection whose only verification is driving the app and watching for a
+DOM node React can re-render away does not belong in a vendored bundle
+that `test_ketcher_bundle_is_current.py` can only fingerprint by name.
+
+Two facts worth keeping from the probe: **`page2obj` is on
+`editor.render`, not on `editor`** (this file said only that it exists),
+and `editor.event` carries `click`, `mousedown` and `mouseup` -- so
+forwarding a right-click to Python and raising a Qt menu is reachable.
+Not done, because Ketcher's own menu opens on the same gesture and two
+menus on one right-click is worse than either.
+
+### The zoom view is now shared, and the extraction was free
+
+`ui/widgets/zoomable_svg_view.py` is the Lewis dialog's scroll-and-zoom
+contract lifted out for the decay chart. The dialog keeps its whole
+surface (`zoom`, `set_zoom`, `zoom_to_fit`, `natural_size`, `_view`,
+`_scroll`) as delegations and ALIASES onto the same objects, so the
+extraction is behaviour-neutral by construction rather than by
+re-testing -- 43 Lewis tests unmoved.
+
+**A ZOOM COMPUTED AGAINST AN UNSHOWN VIEWPORT IS NOT A FIT.** The decay
+chart refreshes from `select`, which runs while another tab is current,
+so `zoom_to_fit` measured a viewport Qt had not laid out and clamped to
+its 25% floor: a 2320 px chart drawn a quarter size in a 1265 px pane. It
+re-fits when its tab is shown.
+
+### Four more defects that only the rendered widget showed
+
+Every one with the whole suite green, which is the fifth, sixth, seventh
+and eighth entries in this file's running count of that:
+
+- **the half-life legend explained no marks.** Five cells print a
+  trailing `#` because a colour cannot say "estimated", and its meaning
+  lived only in a tooltip -- while the legend is the part a screenshot
+  carries. The guard derives the marks from what the cells actually
+  print.
+- **"has a stable isotope, not established shown separately"** attaches
+  the exception to the second class alone.
+- **RED AND GREEN carrying a whole mode by themselves.** Every other
+  discrete palette spreads its classes over four or ten hues, where
+  confusing two costs one element; here it costs the picture. The cells
+  print "stable" and "decays" -- not "unstable", which at 9 px differs
+  from "stable" by two leading letters.
+- **`**Ground states only**` rendered with its asterisks.** QLabel does
+  not do markdown.
 
 ## Verification standard
 
