@@ -1127,6 +1127,76 @@ the accepted 1.74756) — two independent routes agreeing to 0.6%, which
 catches a wrong prefactor or a unit slip that an experimental comparison
 could hide.
 
+## Nuclear data and decay chains
+
+The nuclide table is **NUBASE2020**, shipped as a committed snapshot
+([source:nubase2020]). It is a *reference table*, not a model: nothing
+here computes a half-life or predicts a decay. What follows is what the
+table cannot tell you and where this application has had to choose.
+
+**NUBASE names no daughter STATE, so drawing a chain at all means
+choosing one.** Read off the raw rows, the whole of what the decay field
+carries is the mode and its branching — `B-=100`, `IT~100;B-=0.0037`.
+Which state of Ru-99 a Tc-99m beta decay populates is simply not in the
+source. This application draws the daughter's **ground state** and
+**marks every edge where it did**: an assumed edge is dashed and the
+legend says so. The one exception is an isomeric transition from the
+first metastable state, where only the ground state lies below it, so
+nothing is being chosen and the line is solid.
+
+That assumption is older than the isomer data — a ground-states-only
+table made it invisible rather than absent. Treat a dashed edge as "this
+decay happens; which level of the daughter it lands on is not stated".
+
+**One decay in the whole table is refused rather than drawn.** Pd-126p
+records `B=72 8` — a beta decay with no sign — and the sign is exactly
+what decides whether Z goes up or down. Its own ground state is `B-=100`
+and an isomer sits higher in energy, so beta-minus is a near-certain
+inference. It is refused for that reason: NUBASE's format header
+documents no mode vocabulary to appeal to, and inferring would be this
+application supplying physics the source declined to state. The branch is
+reported as *underspecified*, which is deliberately **not** one of the
+three physical leaf reasons — it describes the data, not the nucleus.
+
+**Spontaneous fission and two cluster expressions have no single
+daughter**, so those branches terminate with the reason written on them
+rather than being followed.
+
+**A half-life is not always a measurement, and the marks say which.**
+`>` and `<` are bounds, `~` is approximate, and *(estimated)* means the
+value comes from systematics rather than from experiment. A branching
+marked *(unconfirmed)* is a decay nobody has quantified — **not** one
+that never happens. Reading an estimated value as a measured one is the
+easiest mistake to make here, which is why the marks are in the text and
+not only in a colour.
+
+**Four nuclides are marked stable AND carry a decay nobody has ever
+observed** — Pb-204, Pb-206, Pb-208 and Hg-204, with `A ?` or `2B- ?`.
+That is a genuine contradiction in the source, not a parsing error, and
+it is why a uranium-238 chain continues past lead into mercury and why
+the status line reports which stable nuclides a chain *reaches* rather
+than where it "ends".
+
+**253 and 254 are both correct for the stable count.** Ta-180m is an
+isomer marked `stbl`, so a count over every state gives 254 where every
+textbook says 253 ground states.
+
+**A molfile records a mass number, not a nuclear state.** Tc-99m and
+Tc-99 would write identical bytes, so applying an isomer to a structure
+is refused rather than silently writing the ground state. Its half-life
+and decay modes are still shown; only the write is refused.
+
+**An element's "longest-lived radioactive isotope" is a property of the
+isotope, taken over its states.** Silver's answer is Ag-108 at 439 years
+— via Ag-108m, a metastable state. The swatch names the state, because
+Ag-108's *ground* state lasts 2.37 minutes and attributing 439 years to
+it would be wrong.
+
+**Isobaric analogue states are listed.** Carbon shows four rows suffixed
+`i` with no measured half-life. They are real entries in NUBASE and are
+shown rather than filtered; deciding a reader may not see a state the
+source lists would be this application editing its source.
+
 ## Crystal structures
 
 ### A crystal has to be MEASURED. You cannot get one from a SMILES.

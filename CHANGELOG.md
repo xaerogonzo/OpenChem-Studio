@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The periodic table answers nuclear questions.** Tabs for *Facts*,
+  *Atom*, *Isotopes* and *Decay*. The Isotopes tab lists every nuclear
+  state of the selected element with its natural abundance, half-life,
+  decay modes and branchings, and spin/parity — 5,684 states from a
+  committed NUBASE2020 snapshot. Two new colour modes shade the whole
+  table by stability and by longest-lived radioactive isotope.
+- **Decay chains, drawn on the chart of the nuclides.** Neutrons across,
+  protons up, so alpha decay is two cells down and two left and
+  uranium-238 comes out as the staircase textbooks draw. Line weight is
+  the branching ratio, nothing is omitted, and clicking any box follows
+  the chain from there. Metastable states stack inside their own cell.
+- **Set an isotope from the table, keeping your geometry.** Pick an atom
+  and a row and *Apply* labels it — or every atom of that element, in one
+  undo entry. Labelling an atom moves nothing, so generated conformers
+  survive it.
+- **Click an element, then click the canvas.** Selecting an element in
+  the periodic table arms the editor, so placing an atom is two clicks
+  and no dialog. A chosen isotope rides along, and the status bar says
+  what is armed because arming is otherwise invisible.
+- **Right-click an atom in the 2D editor** for *Isotopes…*, *Show in Atom
+  Inspector*, and Ketcher's own *Edit…*. Right-clicking empty canvas
+  still opens the editor's own menu unchanged.
+- **The Lewis diagram zooms and scrolls**, draws a faint guide under
+  every bond so the skeleton stays visible, and is laid out by whichever
+  of two engines gives the roomier result for that molecule.
+
 - **Every interactive control can say what it means.** A control now
   declares a *help contract* — what it does, at what tier of care, and
   where any external claim came from — of which the tooltip is one
@@ -23,6 +49,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the box on its annotated site automatically.
 
 ### Fixed
+
+- **The orbital diagram silently dropped electrons.** It packed rows
+  against the widget's height and stopped when it ran out, so polonium's
+  panel ended at `5s` — **22 of its 84 electrons undrawn** — while the
+  configuration string directly above printed `[Xe] 4f14 5d10 6s2 6p4` in
+  full. The string and the picture disagreed and the picture lost
+  quietly. The diagram now reports the height it needs and scrolls.
+- **34 of 118 elements were drawn with no nucleus at all.** Every element
+  with no naturally occurring isotope — technetium, promethium, polonium,
+  astatine and everything above radon bar thorium and uranium. Refusing
+  to invent a neutron count was right; refusing to draw the protons was
+  not, and the two refusals no longer collapse into one.
+- **"Typical valences" was RDKit's implicit-hydrogen model wearing a
+  chemistry label.** It reported one typical valence for bromine and
+  three for iodine, where both do 1/3/5/7. Relabelled to say what it is.
+- **A 32-electron shell drew as a solid band**, because a fixed dot
+  radius leaves uranium's N shell half a pixel between electrons. The
+  radius is scaled against the arc each electron has to itself.
+- **The facts table was squeezed off the bottom of the dialog**, and on a
+  1366×768 laptop the action row sat 105 px below the screen with no way
+  to resize — a `QTabWidget` takes the maximum minimum over its pages, so
+  one tab's floor set it for all four. The dialog also gains a maximise
+  button and a size grip.
 
 - **The docking search box had never actually been placed.** The panel
   read the annotated ligand only in order to *strip* it, so every run used

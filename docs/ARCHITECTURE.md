@@ -582,8 +582,60 @@ document may cite a file or a test that does not exist.
 
   The nuclear work that IS in scope is a different thing and is not
   deferred: isotopes, half-lives, decay modes and decay chains all
-  attach to atoms the application already models. See the branch-2 note
-  in the periodic-table entry below.
+  attach to atoms the application already models, and all of it shipped
+  -- see the entry directly below.
+
+- **SETTLED** -- the periodic table answers nuclear questions, and an
+  isotope reaches the canvas. Merged 2026-08-19 as #38.
+
+  **THIS ENTRY EXISTS BECAUSE THE POINTER ABOVE WAS DANGLING.** It read
+  "see the branch-2 note in the periodic-table entry below" and there was
+  no such note anywhere in this file -- `tests/test_docs_are_current.py`
+  checks that a cited FILE or TEST exists, never that a prose
+  cross-reference resolves, so nothing could have caught it. Found by
+  reading, which is what a documentation sweep is for.
+
+  Four defects in the reference data, each of which the application
+  displayed confidently:
+
+      OrbitalBoxes truncated at the widget height    Po lost 22 of 84 e-
+      34 of 118 elements drew no nucleus at all      no natural isotope
+      "typical valences" was RDKit's implicit-H model Br said 1, not 1/3/5/7
+      a 32-electron shell drew as a solid band       0.5 px between dots
+
+  The first is the one worth remembering: the configuration STRING above
+  the picture printed `[Xe] 4f14 5d10 6s2 6p4` in full while the picture
+  stopped at `5s`. **The string and the picture disagreed and the picture
+  lost quietly**, which is the failure mode a reference table must not
+  have.
+
+  **THE CRC OVERTURNED THE REASON IT WAS OPENED.** The plan said bromine
+  was missing +3 and +7 from its oxidation states. Read off the Handbook
+  at 10x magnification, bromine matches the CRC exactly and the group
+  asymmetry is the source's own; what differs is CHLORINE, where this
+  project ships a +3 the CRC does not. ClF3 is real, so that is the CRC
+  being conservative rather than us being wrong. Nothing was changed.
+
+  NUBASE2020 ships as a committed snapshot -- 5,684 nuclear states, an
+  Isotopes tab, two radioactivity colour modes, an isotope write that
+  keeps your conformers, and decay chains on the chart of the nuclides.
+  What it CANNOT tell you is in `docs/SCIENTIFIC_LIMITATIONS.md`, and the
+  short version is that NUBASE names no daughter STATE, so every drawn
+  edge except an isomeric transition from the first metastable state is
+  this application choosing the ground state -- and saying so with a
+  dash.
+
+  Three things #37 listed as not delivered are delivered here: a
+  right-click menu on an atom (Ketcher exposes no context-menu hook, so
+  ours intercepts the gesture at capture phase), a dialog that fits a
+  1366x768 laptop, and isomers.
+
+  **A `QTabWidget` TAKES THE MAXIMUM OVER ITS PAGES**, which is what put
+  the dialog's action row 105 px below the bottom of the screen: one
+  tab's comfortable 520x360 floor set the minimum for all four, and a
+  minimum larger than the screen cannot be rescued by resizing because
+  `resize()` is clamped to it. Sibling of the horizontal-row finding the
+  `flow_layout` entry records.
 
 - **SETTLED** -- Two regressions reported in the running app on
   2026-08-10, at `6c52492`. Both are diagnosed and fixed, and **neither

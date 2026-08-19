@@ -615,6 +615,18 @@ def test_every_bundled_file_is_declared_and_licensed():
         for path in base.rglob("*"):
             if not path.is_file():
                 continue
+            # **BUILD OUTPUT IS NOT A BUNDLED FILE.** This walks the
+            # filesystem rather than git, which is what lets it catch a
+            # second library dropped in beside the first -- and it means
+            # a stray `__pycache__` under a declared directory reddens
+            # the suite for a reason nobody reviewed. Importing
+            # `openchem.vendor` once is enough to create one.
+            #
+            # Same hole `test_docs_are_current._repo_files` already had
+            # and closed; the exclusion cannot hide a real bundled
+            # library, because nobody ships one inside `__pycache__`.
+            if "__pycache__" in path.parts:
+                continue
             resolved = path.resolve()
             if resolved in theirs or resolved in ours:
                 continue
