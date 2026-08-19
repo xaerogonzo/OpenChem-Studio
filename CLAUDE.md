@@ -1089,7 +1089,48 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `5183 passed, 15 skipped`
+A clean run is **6-19 minutes**, ending at `5195 passed, 15 skipped`
+(measured 2026-08-19, **14m26**, on
+`drive-consolidate-and-finish-the-contracts` -- the baseline drive's three
+defects, the two geometry decisions, and the help migration reaching zero.
+
+**+14 collected and 2 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed:
+
+    branch point   60c418a   COLLECTS 5198
+    branch tip               COLLECTS 5210   = 5198 + 14 - 2
+    the run                           5195 passed + 15 skipped = 5210
+
+**BOTH REMOVALS ARE THE RETIRED MIGRATION SCAFFOLDING, and they have one
+named successor between them.** `test_the_migration_debt_never_grows` and
+`test_a_finished_surface_does_not_regress` existed only because `missing`
+could not be a failure while a migration was in flight; at zero,
+`test_every_control_carries_a_help_contract` says what both said and
+needs no fixture.
+
+**CI MEASURES THE SAME TREE AT 5190 passed, 19 skipped, 1 deselected**,
+which is the same 5210. The four extra skips are the GPU-gated conformer
+gallery guards and the deselection is the PubChem network test -- both
+already documented above, and worth stating because a reader comparing
+the two figures should not go looking for five lost tests.
+
+**THE ONE FAILURE OF THE FIRST RUN WAS A DOC CITATION, AND IT PASSED
+TWICE BEFORE IT FAILED.** `test_every_file_a_doc_cites_still_exists`
+caught CLAUDE.md naming the two fixtures this branch deletes. It had been
+run twice after the deletion and passed both times, because `_repo_files`
+asks `git ls-files` -- a file removed from the working tree but still in
+the INDEX is still tracked and still resolves, so the citation only broke
+once `git add -A` staged the removal. **A green docs run taken mid-change
+is not evidence about the tree you are about to commit.**
+
+The two `DeprecationWarning`s are the same pre-existing six-argument
+`QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+14m26 sits mid-band; the 6-19 range stands.)
+
+Before it: `5183 passed, 15 skipped`
 (measured 2026-08-18, **16m09**, on `isotopes-on-the-canvas` -- the
 isotope reaching the canvas, the laptop-sized dialog, the right-click
 menu, and the isomers.
