@@ -41,6 +41,7 @@ The script is a JSON list of steps, run in order:
       {"do": "shot",       "path": "C:/tmp/lewis.png", "widget": "lewis"},
       {"do": "resize",     "maximized": true},
       {"do": "resize",     "width": 1100},
+      {"do": "rail",       "collapsed": true},
       {"do": "geometry",   "label": "maximized/Quantum"},
       {"do": "quit"}
     ]
@@ -1284,6 +1285,24 @@ class _Driver(QObject):
             if bar.objectName() == "Panel_Rail":
                 return bar
         return None
+
+    def _do_rail(self, step: dict[str, Any]) -> None:
+        """Fold or unfold the panel rail's name list.
+
+        `{"do": "rail", "collapsed": true}`
+
+        The rail costs 270 px expanded and 34 collapsed, so the two are
+        different geometry regimes rather than a cosmetic preference --
+        and `geometry` cannot report the collapsed one without a way to
+        reach it. Driven through `PanelRail.set_list_visible`, which is
+        the same call the second-click gesture makes, so a script
+        measures the state a user can actually get to.
+        """
+        rail = self._window._panel_rail
+        rail.set_list_visible(not bool(step.get("collapsed", True)))
+        logger.warning(
+            "OPENCHEM_DRIVE: rail list visible=%s", rail.is_list_visible()
+        )
 
     def _do_resize(self, step: dict[str, Any]) -> None:
         """Resize or maximize the window, so a script can walk the path

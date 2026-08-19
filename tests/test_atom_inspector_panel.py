@@ -833,3 +833,54 @@ def test_a_stale_BOND_index_is_bounded_against_the_bonds(panel):
     assert ethanol.GetNumBonds() == 2 and ethanol.GetNumAtoms() == 3
     assert not widget._index_is_addressable(ethanol, 2)
     assert widget._index_is_addressable(ethanol, 1)
+
+
+# --- the article, which two sites used to answer differently -----------------
+
+
+def test_every_subject_gets_the_right_article():
+    """"Select a atom above to see what is known about it."
+
+    The panel's DEFAULT subject is Atom, so that sentence is what an empty
+    Atom Inspector said. The rule was already written correctly thirty
+    lines below, in the status line -- one site derived the article and
+    the other hard-coded "a", which is two implementations of one rule
+    with exactly the drift this repo keeps paying for.
+
+    Walks the whole closed vocabulary rather than spot-checking "atom":
+    the bug is invisible for two of the three subjects, so a test that
+    picked either of those would pass against the defect.
+    """
+    from openchem.ui.panels.atom_inspector_panel import _SUBJECTS, _article_for
+
+    expected = {"atom": "an", "bond": "a", "molecule": "a"}
+    assert set(expected) == {s.lower() for s in _SUBJECTS}, (
+        f"_SUBJECTS changed to {_SUBJECTS}; this guard no longer covers it"
+    )
+
+    for subject in _SUBJECTS:
+        noun = subject.lower()
+        assert _article_for(noun) == expected[noun], (
+            f'"Select {_article_for(noun)} {noun}" is not English'
+        )
+
+
+def test_the_empty_state_and_the_status_line_use_the_same_rule(panel):
+    """Both renderings, through the panel, not through the helper.
+
+    A correct `_article_for` that only one site calls is the defect the
+    extraction exists to remove, and asserting the helper alone cannot
+    see it.
+    """
+    from openchem.ui.panels.atom_inspector_panel import _SUBJECTS
+
+    inspector, _bus = panel
+    for subject in _SUBJECTS:
+        inspector._subject = subject
+        inspector._render_facts()
+        shown = inspector._facts.status_text()
+        noun = subject.lower()
+        assert f"a {noun}" not in shown or noun[0] not in "aeiou", (
+            f"the empty state reads {shown!r}"
+        )
+        assert noun in shown, f"the empty state stopped naming its subject: {shown!r}"

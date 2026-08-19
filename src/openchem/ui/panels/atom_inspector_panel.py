@@ -79,6 +79,21 @@ _BOND_COLUMNS = ("#", "Bond", "Facts")
 #: one-row table that cannot be interacted with.
 _SUBJECTS = ("Atom", "Bond", "Molecule")
 
+
+def _article_for(noun: str) -> str:
+    """"a" or "an" for one of `_SUBJECTS`, lowercased.
+
+    Extracted because the two places that needed it disagreed: the status
+    line derived the article and the empty state hard-coded "a", so an
+    atom -- the panel's own default subject -- read "Select a atom above".
+    Written once so they cannot drift apart again.
+
+    The vowel test is not general English (an "hour", a "university"), and
+    it does not have to be: the vocabulary is the three closed `_SUBJECTS`,
+    which `test_every_subject_gets_the_right_article` walks in full.
+    """
+    return "an" if noun[:1].lower() in "aeiou" else "a"
+
 _INTRO = (
     "Everything already known about the selected atom. Nothing here runs a "
     "calculation -- a property you have not computed is absent rather than "
@@ -601,7 +616,8 @@ class AtomInspectorPanel(QWidget):
             noun = self._subject.lower()
             self._facts.clear(
                 f"No {noun} selected",
-                f"Select a {noun} above to see what is known about it.",
+                f"Select {_article_for(noun)} {noun} above to see what is "
+                "known about it.",
             )
             return
         report = self._report_for(index)
@@ -630,8 +646,7 @@ class AtomInspectorPanel(QWidget):
         """
         if self._selected_index() is None:
             noun = self._subject.lower()
-            article = "an" if noun[0] in "aeiou" else "a"
-            self._facts.set_status(f"Select {article} {noun} first.")
+            self._facts.set_status(f"Select {_article_for(noun)} {noun} first.")
             return
         self._facts._on_copy_clicked()
 
