@@ -268,26 +268,60 @@ and a control with good `whatsThis()` is NOT a gap to be filled.
 drift against EXTERNAL documents, while a flag an author sets in the same
 commit that writes the prose records nothing `git log` does not.
 
-### The migration debt is staged, or the layer could not have landed
+**AND THE FLOOR IS NOW GUARDED FROM BOTH SIDES.**
+`test_no_contract_is_a_placeholder` says a contract may not be a
+degenerate string; nothing said the complement, and without it that floor
+creeps upward one `assert "A" in text` at a time until the guard is
+grading prose.
+`test_a_weak_but_well_formed_contract_is_ACCEPTED` asserts that a tier-3
+contract which is structurally impeccable and says almost nothing useful
+must PASS. Same move `test_a_plausible_lie_passes_the_validator_and_fails_the_chemistry`
+makes for `valid_total_declaration`: the validator owns the SHAPE, a
+reviewer owns the meaning. Raising the tier-3 length floor from 80 to 400
+fails that guard AND the floor guard, from opposite directions.
 
-248 controls carried a raw `setToolTip` with no contract. A guard failing
-on that would have made the commit red and forbidden the incremental
-migration it exists to enable. `tests/fixtures/tooltip_migration_debt.json`
-records the set; it may SHRINK freely and may not grow. Keyed on the
-CONTROL rather than a source call site -- `file:line` moves under the
-migration and the tooltip STRING is the very thing being rewritten, while
-the control survives both. Delete the fixture and its test when it reaches
-zero.
+### THE MIGRATION IS FINISHED, and its scaffolding is deleted
+
+**355 of 355 controls carry a contract. 219 distinct `help_id`s, 164 tier
+1, 138 tier 2, 53 tier 3.** `tools/list_tooltips.py --missing` answers
+"Nothing matched."
+
+The staging is kept below as the record of how, because it is the reason
+the layer could be added at all -- but both fixtures are GONE and the
+invariant is now one assertion,
+`test_every_control_carries_a_help_contract`.
+
+248 controls carried a raw `setToolTip` when the layer landed. A guard
+failing on that would have made the commit red and forbidden the
+incremental migration it exists to enable, so
+`tooltip_migration_debt.json` recorded the set and was allowed only to
+SHRINK, and `tooltip_completed_surfaces.json` was its mirror, naming the
+surfaces at zero so a finished one could not fall back into the backlog
+unseen. Neither is needed once `missing` can be a failure.
+
+**A BLANKET ASSERTION IS ONLY SAFE BECAUSE THE WALK IS OURS.** The
+`controls` fixture points both plugin directories at paths that do not
+exist, so no plugin-contributed panel is walked and a third-party panel
+cannot redden the suite. Checked from the built window rather than
+assumed; had plugins loaded, the surface list would have had to stay.
+
+**A NEW CONTROL IS NOW RED UNTIL IT IS DOCUMENTED**, deliberately. That is
+what finishing means: whatever is added next meets the standard the rest
+of the application already does.
+
+The debt fixture was keyed on the CONTROL rather than a source call site
+-- `file:line` moves under the migration and the tooltip STRING is the
+very thing being rewritten, while the control survives both. Its one weak
+point showed up at the end: an `instance_path` is a position in the widget
+tree, so wrapping a control in a new container RENAMES it, and the Batch
+aggregate combo tripped the guard when its row became a `flow_row`. That
+was resolved by migrating the control rather than re-recording the path.
 
 **"66 setToolTip call sites" was 248 CONTROLS**, and an AST estimate of 179
 interactive constructions was really 372. Neither number was ever the
-universe; only `iter_documentable_controls` is.
-
-The universe is **353**, and the migration stands at 287 contracts / 16
-legacy / 50 missing. Five surfaces are DONE and defended by
-`tests/fixtures/tooltip_completed_surfaces.json`: the Quantum Chemistry
-panel, the whole menu bar, the Properties panel, the Docking panel, and
-the dock title bar.
+universe; only `iter_documentable_controls` is -- and the universe grew
+353 -> 355 while the migration ran, which is exactly why it is asked
+rather than remembered.
 
 ### `QAction.toolTip()` NEVER RETURNS EMPTY, and the queue believed it
 
@@ -384,11 +418,15 @@ the file.** `missing` cannot be a failure while 83 controls still are --
 that is the staged migration working as designed -- so a completed control
 simply falls back into the backlog unseen.
 
-`tests/fixtures/tooltip_completed_surfaces.json` is the MIRROR of the debt
-fixture: the debt set may only SHRINK, this one may only GROW. It records
-the SURFACE rather than the control, so a new menu entry or a new control
-on a finished panel is held to the standard the rest of that surface
-already meets.
+`tooltip_completed_surfaces.json` was the MIRROR of the debt fixture: the
+debt set could only SHRINK, that one could only GROW. It recorded the
+SURFACE rather than the control, so a new menu entry or a new control on a
+finished panel was held to the standard the rest of that surface already
+met. **Both are deleted now** -- with every surface finished, "no control
+anywhere is undocumented" says the same thing and needs no fixture. The
+account is kept because the REASON it existed is the durable part: a
+completed control falling back into the backlog is invisible for exactly
+as long as `missing` cannot be a failure.
 
 **IT FAILED ON ITS FIRST RUN AND WAS RIGHT.** It named a `QWidgetAction`
 that every earlier count had missed, because those counts filtered on
@@ -549,7 +587,8 @@ running the full 12 tests:
 
     M1  revert the QTabBar exclusion       test_a_tab_bars_scroll_buttons_are_qt_s_own
     M2  the broad any-qt_-ancestor rule    test_the_composite_rule_does_not_swallow_the_panels
-    M3  a contract back to raw setToolTip  test_the_migration_debt_never_grows
+    M3  a contract back to raw setToolTip  the debt guard, now
+                                           test_every_control_carries_a_help_contract
     M4  two ids, byte-identical text       test_one_concept_is_not_split_across_many_help_ids
     M5  one help_id reused                 test_one_help_id_means_exactly_one_thing
 
@@ -1146,8 +1185,9 @@ merge commit, and one cannot exist while the branch conflicts, so the
 run list was simply EMPTY rather than red. Two of the four conflicts were
 master telling this branch it was incomplete: a menu action added here
 needed the `_document()` contract master had just introduced, and a panel
-button using a raw `setToolTip` was refused outright by
-`test_the_migration_debt_never_grows`. The guard caught that, not review
+button using a raw `setToolTip` was refused outright by the migration-debt
+guard, which is `test_every_control_carries_a_help_contract` now that the
+debt is zero. The guard caught that, not review
 -- the help layer working on its first contact with code written before
 it existed.)
 

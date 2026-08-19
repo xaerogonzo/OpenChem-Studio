@@ -40,6 +40,7 @@ from openchem.events.events import AlignmentJobStateChanged, EnsembleAlignmentRe
 from openchem.services.alignment_service import AlignmentService
 from openchem.ui.molecule_combo import repopulate
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 _RESULT_COLUMNS = ("Molecule", "Score", "RMSD (A)", "Paired atoms")
 
@@ -66,6 +67,135 @@ _METHOD_NOTE = (
 )
 
 
+#: THREE OF THESE ARE TIER 3, AND EACH FOR A DIFFERENT WAY OF BEING
+#: CONFIDENTLY WRONG. `Score` and `RMSD (A)` run in OPPOSITE directions
+#: and are not the same measure -- the panel's own note already says so,
+#: and the note is above the table rather than on it. `Paired atoms` is
+#: the denominator both of them are quietly relative to.
+_HELP: dict[str, HelpTooltip] = {
+    "reference": HelpTooltip(
+        text=(
+            "The molecule everything else is moved onto. It is not "
+            "moved itself.\n\n"
+            "Every score and RMSD below is measured against THIS "
+            "structure, so changing it re-frames the whole table rather "
+            "than adding to it."
+        ),
+        tier=2,
+        help_id="alignment.reference",
+        topic="alignment",
+    ),
+    "method": HelpTooltip(
+        text=(
+            "How atoms are paired up before the overlay is "
+            "optimised.\n\n"
+            "\"Extended atom types\" pairs by MMFF atom type "
+            "(Open3DAlign), which encodes element, hybridisation and "
+            "environment. \"Common scaffold (MCS)\" fixes the pairing "
+            "from the 2D maximum common substructure first and refines "
+            "the rest around it, which is the one to reach for when two "
+            "molecules share a core you care about keeping superimposed."
+        ),
+        tier=2,
+        help_id="alignment.method",
+        topic="alignment",
+    ),
+    "accuracy": HelpTooltip(
+        text=(
+            "How hard to search: how many starting conformers are tried, "
+            "and how long the scaffold search may run.\n\n"
+            "Fast 1 conformer / 5 s, Normal 5 / 15 s, Accurate 20 / 60 s. "
+            "Default Normal. Cost is roughly linear in the conformer "
+            "count. More conformers is a better CHANCE of finding the "
+            "pose that really overlays, not a more precise measurement of "
+            "one -- an alignment that already found its best pose does "
+            "not improve."
+        ),
+        tier=2,
+        help_id="alignment.accuracy",
+        topic="alignment",
+    ),
+    "align": HelpTooltip(
+        text=(
+            "Align every ticked molecule onto the reference and show them "
+            "together.\n\n"
+            "The alignment is for DISPLAY and comparison: the stored "
+            "structures are not moved, so nothing downstream sees "
+            "different coordinates."
+        ),
+        tier=2,
+        help_id="alignment.run",
+        topic="alignment",
+    ),
+    "style": HelpTooltip(
+        text=(
+            "How the overlaid structures are drawn in the viewer "
+            "below.\n\n"
+            "Display only; it changes no result in the table."
+        ),
+        tier=1,
+        help_id="alignment.display_style",
+        topic="alignment",
+    ),
+    "Molecule": HelpTooltip(
+        text=(
+            "Which molecule this row's alignment is for.\n\n"
+            "The reference itself has no row: it is what the others were "
+            "measured against."
+        ),
+        tier=1,
+        help_id="alignment.subject",
+        topic="alignment",
+    ),
+    "Score": HelpTooltip(
+        text=(
+            "Open3DAlign's overlap quality. HIGHER is better, and it has "
+            "no units.\n\n"
+            "It is not a distance and does not run in the same direction "
+            "as RMSD -- a molecule can score well and still sit further "
+            "away than one that scores worse.\n\n"
+            "IT IS ALSO NOT COMPARABLE ACROSS ROWS THAT WERE TYPED "
+            "DIFFERENTLY. MMFF typing is used where it can be, and "
+            "Crippen typing is the fallback for elements MMFF cannot type "
+            "-- selenium and platinum among them -- and the two scales are "
+            "unrelated. Nothing in this column says which one a row used."
+        ),
+        tier=3,
+        help_id="alignment.score",
+        topic="alignment",
+    ),
+    "RMSD (A)": HelpTooltip(
+        text=(
+            "Root-mean-square distance in angstroms between the paired "
+            "atoms after alignment. LOWER is better.\n\n"
+            "Measured against the REFERENCE MOLECULE in this project, "
+            "never against an experimental structure, so it says how "
+            "alike two computed poses are and nothing about whether "
+            "either is right.\n\n"
+            "It is an average over the PAIRED atoms only. A low value "
+            "over few pairs is a good overlay of a small common part, not "
+            "a better overlay -- read it with \"Paired atoms\"."
+        ),
+        tier=3,
+        help_id="alignment.rmsd",
+        topic="alignment",
+    ),
+    "Paired atoms": HelpTooltip(
+        text=(
+            "How many atoms the method managed to pair between this "
+            "molecule and the reference.\n\n"
+            "This is the denominator the other two columns are relative "
+            "to. Two molecules that share little structure pair few "
+            "atoms, and both their Score and their RMSD then describe "
+            "only that small shared part."
+        ),
+        tier=3,
+        help_id="alignment.paired_atoms",
+        topic="alignment",
+    ),
+}
+
+
 class AlignmentPanel(QWidget):
     """Pick a reference and any number of molecules to align onto it."""
 
@@ -83,6 +213,7 @@ class AlignmentPanel(QWidget):
 
         self._reference_combo = QComboBox(self)
         self._reference_combo.currentIndexChanged.connect(self._on_reference_changed)
+        apply_help_tooltip(self._reference_combo, _HELP['reference'])
 
         self._probe_list = QListWidget(self)
         self._probe_list.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
@@ -92,17 +223,26 @@ class AlignmentPanel(QWidget):
         from openchem.chem.alignment import ACCURACY_LEVELS, ALIGNMENT_METHODS
 
         self._method_combo.addItems(list(ALIGNMENT_METHODS))
+        apply_help_tooltip(self._method_combo, _HELP['method'])
         self._accuracy_combo = QComboBox(self)
         self._accuracy_combo.addItems(list(ACCURACY_LEVELS))
         self._accuracy_combo.setCurrentText("Normal")
+        apply_help_tooltip(self._accuracy_combo, _HELP['accuracy'])
 
         self._align_button = QPushButton("Align", self)
         self._align_button.clicked.connect(self._on_align_clicked)
+        apply_help_tooltip(self._align_button, _HELP['align'])
         self._status_label = QLabel("", self)
         self._status_label.setWordWrap(True)
 
         self._result_table = QTableWidget(0, len(_RESULT_COLUMNS), self)
         self._result_table.setHorizontalHeaderLabels(_RESULT_COLUMNS)
+        # On the header ITEMS -- QTableWidgetItems, not widgets; see
+        # `docking_panel.py` for why the distinction matters to the walk.
+        for column, name in enumerate(_RESULT_COLUMNS):
+            item = self._result_table.horizontalHeaderItem(column)
+            if item is not None:
+                apply_help_tooltip(item, _HELP[name])
         self._result_table.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.ResizeToContents
         )
@@ -113,6 +253,7 @@ class AlignmentPanel(QWidget):
         self._style_combo = QComboBox(self)
         self._style_combo.addItems(["stick", "ballstick", "sphere", "line"])
         self._style_combo.currentTextChanged.connect(self._viewer.set_style)
+        apply_help_tooltip(self._style_combo, _HELP['style'])
 
         note = QLabel(_METHOD_NOTE, self)
         note.setWordWrap(True)

@@ -63,6 +63,7 @@ from openchem.ui.widgets.collapsible_section import (
     ExplicitHeightLabel,
     WrappedLabel,
 )
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 COPY_FORMATS = ("Markdown", "Plain text", "JSON", "CSV")
 
@@ -96,6 +97,65 @@ class _FactRow(ExplicitHeightLabel):
     def leaveEvent(self, event) -> None:  # noqa: N802 - Qt override naming
         self.hovered.emit(None)
         super().leaveEvent(event)
+
+
+#: FOUR CONCEPTS SHARED BY EVERY SURFACE THAT EMBEDS A `FactView` -- the
+#: Atom Inspector's atom, bond and molecule reports, the Lewis view and
+#: the regulatory screen. One contract each, several renderings, exactly
+#: as `CollapsibleSection` does with its section headers: the meaning is
+#: a property of this widget rather than of whichever panel built it.
+_HELP: dict[str, HelpTooltip] = {
+    "search": HelpTooltip(
+        text=(
+            "Show only facts whose text matches what you type.\n\n"
+            "It searches the whole fact -- label, value and evidence -- "
+            "not just the name, so \"ring\" finds a fact that merely "
+            "mentions one. Filtering hides rows; it computes nothing and "
+            "removes nothing."
+        ),
+        tier=2,
+        help_id="facts.search",
+        topic="facts",
+    ),
+    "detail": HelpTooltip(
+        text=(
+            "How much specialist material to show.\n\n"
+            "\"Standard\" hides facts aimed at a specialist reader -- "
+            "Fukui indices, the dual descriptor, local softness. They are "
+            "real and already computed; they are just not what most "
+            "people are looking at. \"Everything\" shows them.\n\n"
+            "This is ORTHOGONAL to the category sections above it: depth "
+            "says how specialist, a section says what kind."
+        ),
+        tier=2,
+        help_id="facts.detail",
+        topic="facts",
+    ),
+    "copy_format": HelpTooltip(
+        text=(
+            "What shape the copied report takes.\n\n"
+            "Markdown and Plain text are for reading and pasting into a "
+            "document; JSON and CSV are for a script. JSON is the only "
+            "one that keeps each fact's basis and evidence as separate "
+            "fields rather than as prose."
+        ),
+        tier=2,
+        help_id="facts.copy_format",
+        topic="facts",
+    ),
+    "copy": HelpTooltip(
+        text=(
+            "Copy the facts as they are currently shown.\n\n"
+            "It follows the view: anything hidden by the filter or by "
+            "\"Standard\" is not copied. Status glyphs are stripped, so "
+            "what lands on the clipboard is plain ASCII that survives a "
+            "console or a paper."
+        ),
+        tier=2,
+        help_id="facts.copy_report",
+        topic="facts",
+    ),
+}
 
 
 class FactView(QWidget):
@@ -139,6 +199,7 @@ class FactView(QWidget):
         self._search = QLineEdit(self)
         self._search.setPlaceholderText("Filter facts (element, lewis, ring...)")
         self._search.textChanged.connect(self._render)
+        apply_help_tooltip(self._search, _HELP['search'])
 
         # Category and depth are ORTHOGONAL, so they are two controls
         # rather than one five-way list -- see `Detail` for why collapsing
@@ -146,17 +207,15 @@ class FactView(QWidget):
         self._detail = QComboBox(self)
         self._detail.addItem("Standard", Detail.STANDARD.value)
         self._detail.addItem("Everything", "")
-        self._detail.setToolTip(
-            "Standard hides specialist facts -- Fukui indices, the dual "
-            "descriptor, local softness. They are real; they are just not "
-            "what most people are looking at."
-        )
+        apply_help_tooltip(self._detail, _HELP['detail'])
         self._detail.currentIndexChanged.connect(self._render)
 
         self._copy_format = QComboBox(self)
         self._copy_format.addItems(COPY_FORMATS)
+        apply_help_tooltip(self._copy_format, _HELP['copy_format'])
         self._copy_button = QPushButton("Copy report", self)
         self._copy_button.clicked.connect(self._on_copy_clicked)
+        apply_help_tooltip(self._copy_button, _HELP['copy'])
 
         self._status = WrappedLabel("", self)
 
