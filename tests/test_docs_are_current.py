@@ -87,6 +87,20 @@ ALLOWED_MISSING_PATHS = {
     "chem/stout_providers.py",
     "chem/stout_runner.py",
     "services/stout_setup.py",
+    # The two staged-migration fixtures, deleted when the help-contract
+    # debt reached zero and named by CLAUDE.md's account of WHY they
+    # existed. Same reason as the STOUT modules above: a document
+    # recording a removal has to be able to say what it removed, and the
+    # reason those fixtures were needed -- that `missing` cannot be a
+    # failure while a migration is in flight -- outlives the files.
+    #
+    # THEY PASSED THIS GUARD WHILE UNCOMMITTED. `_repo_files` asks
+    # `git ls-files`, so a deleted-but-unstaged file is still tracked and
+    # still resolves; the citation only broke once the deletion was
+    # committed. Worth knowing before trusting a green docs run taken
+    # mid-change.
+    "tooltip_migration_debt.json",
+    "tooltip_completed_surfaces.json",
     # tinygraph's own build file, named by ROADMAP.md while explaining why
     # that dependency cannot be installed on Windows ("a `setup.py` passing
     # GCC/Clang flags that MSVC rejects"). Somebody else's file, like the
