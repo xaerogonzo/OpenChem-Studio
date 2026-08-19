@@ -39,6 +39,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from PySide6.QtWidgets import (
     QButtonGroup,
     QHBoxLayout,
@@ -75,6 +76,28 @@ _PANEL_ID_ROLE = Qt.ItemDataRole.UserRole
 #: lambda closing over `self`, which PySide6 holds strongly and which
 #: leaked a whole window the last time it was used here.
 _GROUP_PROPERTY = "openchem_group"
+
+#: ONE CONCEPT, FIVE RENDERINGS. Every group button means the same thing --
+#: "show this group's panels in the list beside me" -- and what differs is
+#: only WHICH group, which is a property of the button and not of the
+#: control's meaning. `instance_path` tells the five apart. Giving them an
+#: id each would be the batch-tick-box mutation shipped on purpose.
+#:
+#: They previously carried `setToolTip(label)`, i.e. the button's own text
+#: restated as its explanation -- the exact degeneracy
+#: `test_no_contract_is_a_placeholder` refuses in a contract.
+_GROUP_HELP = HelpTooltip(
+    text=(
+        "Show this group's panels in the list beside it.\n\n"
+        "One right-hand panel is visible at a time, so choosing a name "
+        "here replaces what is on screen rather than adding to it. "
+        "Clicking the group already showing folds the list away and "
+        "hands its width back to the panel."
+    ),
+    tier=1,
+    help_id="workspace.panel_group",
+    topic="workspace",
+)
 
 _ICON_SIZE = 22
 
@@ -168,7 +191,7 @@ class PanelRail(QWidget):
             button.setIcon(_group_icon(group))
             button.setIconSize(QSize(_ICON_SIZE, _ICON_SIZE))
             button.setText(label)
-            button.setToolTip(label)
+            apply_help_tooltip(button, _GROUP_HELP)
             button.setCheckable(True)
             # ICON ONLY. With the label under each icon the column was 156
             # px wide -- "Extensions" sets it -- and the whole rail 412,

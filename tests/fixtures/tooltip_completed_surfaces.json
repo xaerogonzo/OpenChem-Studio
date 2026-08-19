@@ -4,9 +4,15 @@
     "action"
   ],
   "by_instance_path_fragment": [
+    "BatchPanel",
+    "ComparisonPanel",
     "DockTitleBar",
     "DockingPanel",
+    "JobsPanel",
+    "MoleculeEditorWidget",
+    "PanelRail",
     "PropertyPanel",
-    "QuantumChemistryPanel"
+    "QuantumChemistryPanel",
+    "StructureCheckPanel"
   ]
 }
