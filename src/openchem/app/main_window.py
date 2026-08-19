@@ -2738,10 +2738,27 @@ class MainWindow(QMainWindow):
 
         `mass_number` is 0 for none, because a Qt signal cannot carry None
         and a real mass number is always at least 1.
+
+        **AND IT ONLY SAYS SO IF IT REALLY ARMED.** The backend DROPS an
+        arming before Ketcher is ready, deliberately -- a gesture replayed
+        later would prime the canvas with an element the user has stopped
+        thinking about. But this said "Ready to place: 13C" regardless,
+        so the status line and the canvas disagreed with nothing on screen
+        to say which was real. Measured in the running app: about two
+        seconds after launch the arming is dropped, the active tool stays
+        `SelectTool2`, and a click deposits nothing -- which is exactly
+        the symptom this whole feature was built to fix, arriving through
+        a different door.
         """
         chosen = mass_number or None
-        self._editor.set_atom_tool(symbol, chosen)
         label = f"{chosen}{symbol}" if chosen else symbol
+        if not self._editor.set_atom_tool(symbol, chosen):
+            self.statusBar().showMessage(
+                f"Could not arm {label} \u2014 the 2D editor is still loading. "
+                "Try again in a moment.",
+                6000,
+            )
+            return
         self.statusBar().showMessage(
             f"Ready to place: {label} \u2014 click the 2D editor to put one down.",
             6000,

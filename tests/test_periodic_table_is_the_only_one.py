@@ -483,8 +483,47 @@ def test_the_legend_shows_each_family_in_its_own_colour(dialog):
 
     assert FAMILY_COLOUR["alpha"] in legend
     assert FAMILY_COLOUR["beta_minus"] in legend
-    assert "Ground states only" in legend
     assert "**" not in legend, "QLabel does not render markdown"
+
+
+def test_the_caption_never_contradicts_the_picture_above_it(dialog):
+    """**IT DID, AND ONLY THE SCREEN SHOWED IT.** The caption ended
+    "Ground states only, so a chain that runs through an isomer is not
+    drawn" -- while the chart directly above it was drawing Ag-108m and
+    its stacked ground state. Every test passed; magnifying the shot
+    caught it in one look.
+
+    Asserted as a CONTRADICTION rather than as the replacement wording,
+    so a future rewrite is free to say it better and is not free to say
+    the chart cannot do what it is doing.
+    """
+    dialog.select("Ag")
+    legend = dialog._decay_legend.text().lower()
+
+    assert "ground states only" not in legend
+    assert "isomer is not drawn" not in legend
+    # ...and the chart really is drawing one, so this is not vacuous.
+    assert dialog.decay_focus() == nuclide_data.NuclideKey(47, 108, 1)
+
+
+def test_the_insert_hint_names_what_is_actually_placed(dialog):
+    """**IT SAID "Adds Ag-108m to the canvas" AND ADDED Ag-108.** The
+    button emits a mass number, which is all a molfile can record, so on
+    an isomer the hint was naming a different nuclide from the one that
+    would appear.
+
+    The ground-state arm is the control: without it a hint that gave up
+    and said nothing would pass the first half.
+    """
+    dialog.select("Ag")
+
+    hint = dialog._decay_hint.text()
+    assert "Ag-108" in hint
+    assert "Adds Ag-108m" not in hint, "it does not add the isomer"
+    assert "mass number" in hint, "and it says why"
+
+    dialog.select("U")
+    assert dialog._decay_hint.text() == "Adds U-238 to the canvas."
 
 
 def test_clicking_a_box_follows_the_chain_from_there(dialog):
@@ -1150,3 +1189,19 @@ def test_an_isomer_row_carries_ITS_OWN_key_and_names_itself(dialog, monkeypatch)
     # And the row NAMES the state, from the source's own suffix, so a
     # reader is never shown two rows both called Tc-99.
     assert names == ["Tc-99", "Tc-99m"]
+
+
+def test_an_isomeric_transition_is_shown_in_words_not_as_a_token(dialog):
+    """**`IT` IS THE SECOND COMMONEST MODE IN THE TABLE, at 1,471 rows**,
+    and it shipped rendering as its raw NUBASE token beside "beta+" and
+    "electron capture" -- exactly the cryptic-token problem `_MODE_NAMES`
+    exists to solve. The whole suite was green; the magnified Isotopes
+    tab showed "beta+ 91.3%, IT 8.7%" in one look.
+    """
+    dialog.select("Ag")
+    rows = _isotope_rows(dialog)
+
+    metastable = next(r for r in rows if r[0] == "Ag-108m")
+
+    assert "isomeric transition" in metastable[3]
+    assert not metastable[3].startswith("IT")

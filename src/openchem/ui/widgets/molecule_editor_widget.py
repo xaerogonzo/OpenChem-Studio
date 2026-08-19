@@ -163,12 +163,19 @@ class MoleculeEditorWidget(QWidget):
         reaching past this widget into `_backend` directly."""
         self._backend.set_render_option(name, value)
 
-    def set_atom_tool(self, symbol: str, mass_number: int | None = None) -> None:
+    def set_atom_tool(
+        self, symbol: str, mass_number: int | None = None
+    ) -> bool:
         """Arm the canvas to draw `symbol` on the next click -- what the
         application's periodic table does with a chosen element, and with
         a chosen isotope. See `EditorBackend.set_atom_tool` for why it
-        arms rather than places."""
-        self._backend.set_atom_tool(symbol, mass_number)
+        arms rather than places.
+
+        **The answer is passed through, not discarded**: the backend may
+        DROP the arming, and a caller that says "ready to place" anyway
+        puts a claim on the status bar the canvas disagrees with.
+        """
+        return self._backend.set_atom_tool(symbol, mass_number)
 
     def open_atom_editor(self, atom_index: int) -> None:
         """Ketcher's own atom dialog, offered from our context menu."""

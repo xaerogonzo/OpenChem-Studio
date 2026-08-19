@@ -155,7 +155,9 @@ class EditorBackend(QObject):
         whether entering worked.
         """
 
-    def set_atom_tool(self, symbol: str, mass_number: int | None = None) -> None:
+    def set_atom_tool(
+        self, symbol: str, mass_number: int | None = None
+    ) -> bool:
         """Arm the editor to draw `symbol` on the next canvas click.
 
         `mass_number` labels what gets placed, so picking C-13 in the

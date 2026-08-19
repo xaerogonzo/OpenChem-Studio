@@ -1009,18 +1009,25 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `5176 passed, 15 skipped`
-(measured 2026-08-18, **15m37**, on `isotopes-on-the-canvas` -- the
+A clean run is **6-19 minutes**, ending at `5183 passed, 15 skipped`
+(measured 2026-08-18, **16m09**, on `isotopes-on-the-canvas` -- the
 isotope reaching the canvas, the laptop-sized dialog, the right-click
 menu, and the isomers.
 
-**+70 collected and 4 REMOVED**, diffed both directions in a detached
+**+77 collected and 4 REMOVED**, diffed both directions in a detached
 worktree with the `PYTHONPATH` override asserted before the count was
 believed:
 
     branch point   363ae36   COLLECTS 5125
-    branch tip               COLLECTS 5191   = 5125 + 70 - 4
-    the run                           5176 passed + 15 skipped = 5191
+    branch tip               COLLECTS 5198   = 5125 + 77 - 4
+    the run                           5183 passed + 15 skipped = 5198
+
+**THE LAST SEVEN WERE ADDED AFTER THE FIRST FULL RUN CAME BACK GREEN AT
+5176**, which is the entry worth reading: every one of them guards a
+defect the app was DRIVEN to find -- the contradicting caption, the
+button hint naming the wrong nuclide, `IT` as a raw token, the status bar
+claiming "ready" when nothing was armed, its two seams, and the
+stay-armed pin. A green suite is a statement about the tests that exist.
 
 **ALL FOUR REMOVALS ARE RENAMES WITH SUCCESSORS, AND THAT IS THE WHOLE
 REASON TO DIFF RATHER THAN SUBTRACT.** Every one described a table that
@@ -6545,6 +6552,83 @@ that `select()` REPOPULATES the isotope table, dropping the row selection
 -- so the mismatch cannot be reached through the UI at all. It is
 asserted on the predicate directly, which is this file own
 "an unreachable branch is a question about where to assert" rule again.
+
+### AND FOUR MORE THE MAGNIFIED SHOT FOUND, with 5,176 tests green
+
+The whole suite passed, every guard was mutated, the docs were written --
+and then the app was driven and cropped 2x, which is the step this file
+has now recorded twelve separate findings for. Three were on the screen
+and the fourth came out of the probe that failed first.
+
+**A CAPTION CONTRADICTED THE PICTURE DIRECTLY ABOVE IT.** The decay
+legend ended "**Ground states only**, so a chain that runs through an
+isomer is not drawn" while the chart above it was drawing Ag-108m and its
+stacked ground state. Nothing could catch it: the sentence was correct
+when it was written and no test relates a caption to what was rendered.
+`test_the_caption_never_contradicts_the_picture_above_it` asserts the
+CONTRADICTION is absent rather than pinning the replacement wording, so a
+future rewrite is free to say it better and not free to say the chart
+cannot do what it is doing.
+
+**A BUTTON HINT NAMED A DIFFERENT NUCLIDE FROM THE ONE IT PLACES.** "Adds
+Ag-108m to the canvas" -- and `_insert_decay_nuclide` emits a MASS
+NUMBER, which is all a molfile can record, so it adds Ag-108. It says so
+now, with the same reason `IsotopeRefusal.ISOMER_NOT_IN_MOLFILE` gives.
+
+**`IT` RENDERED AS ITS RAW TOKEN beside "beta+" and "electron capture".**
+`_MODE_NAMES` exists precisely because "NUBASE's own tokens are compact
+and cryptic", and `IT` arrived as the SECOND commonest mode in the table
+at 1,471 rows without being added to it: the Isotopes tab read "beta+
+91.3%, IT 8.7%". One line, and only a screenshot asks the question.
+
+**AND THE STATUS BAR CLAIMED "Ready to place: 13C" WHILE NOTHING WAS
+ARMED.** `set_atom_tool` DROPS before Ketcher is ready -- deliberately,
+and still correctly, because a gesture replayed later primes the canvas
+with an element the user has stopped thinking about. But it returned
+nothing, so the window said "ready" either way. Measured, ~2 s after
+launch:
+
+    armed at 2 s   tool SelectTool2   count 0   nothing placed
+    armed at 5 s   tool AtomTool2     count 1   [13CH4]
+
+That is the user's ORIGINAL REPORT arriving through a different door --
+click the element, click the canvas, nothing happens. It returns a bool
+through all three layers now. **The middle layer is where the answer gets
+lost**: a `MoleculeEditorWidget.set_atom_tool` that calls down and
+returns None passes the backend test AND the window test while restoring
+the defect, so it has its own guard with both arms.
+
+**A FAKE THAT RETURNS `None` WAS SILENTLY MODELLING A FAILURE.** Two
+existing tests stubbed `set_atom_tool` with `lambda ...: None`, which the
+moment the contract gained an answer meant "did not arm" -- and one of
+them failed immediately, which is how the change proved it had teeth.
+
+### THE TOOL STAYS ARMED ACROSS PLACEMENTS, and the probe must not re-arm
+
+Measured in the running app: arm once, then click the canvas three times
+without re-arming.
+
+    click 1   count 1   AtomTool2
+    click 2   count 2   AtomTool2
+    click 3   count 3   AtomTool2
+    SMILES    [13CH4].[13CH4].[13CH4]
+
+Preserved deliberately rather than ruled on -- Ketcher's own element
+buttons behave this way, so a periodic table that disarmed after one
+placement would make two gestures that look identical behave differently.
+
+**THE `place` DRIVE STEP TAKES `arm: false` FOR EXACTLY THIS**, and
+without it the question cannot be asked: re-arming before each click
+makes every click land whether the tool was retained or not, so a probe
+that arms each time answers yes regardless of the truth. Both halves go
+through one `_click_canvas`, because if they clicked differently "the
+tool stayed armed" would be a claim about two different gestures.
+
+**AND THE FIRST RUN OF THAT PROBE MEASURED A COLD PAGE.** It reported
+`count 0, SelectTool2` and read as "placement is broken" -- Ketcher had
+simply not finished loading. That reading was wrong about the feature and
+right about something else, which is how the status-bar defect above was
+found. Give the page a `smiles` step and ~4 s before probing it.
 
 ### A `QTabWidget` TAKES THE MAXIMUM OVER ITS PAGES, and one tab set the floor
 

@@ -578,7 +578,7 @@ def test_the_dialog_stays_open_after_inserting(window):
     """Placing three heteroatoms should not mean reopening the table
     between each -- and a dialog that closed itself would look exactly
     like the button not working."""
-    window._editor.set_atom_tool = lambda symbol, mass=None: None
+    window._editor.set_atom_tool = lambda symbol, mass=None: True
     window._show_periodic_table()
     dialog = window._periodic_table_dialog
     dialog.select("Na")
@@ -615,7 +615,7 @@ def test_the_status_line_says_what_will_be_placed(window):
     """**ARMING IS INVISIBLE**, which is the cost of a click that both
     browses and arms. The wording separates the canvas being primed from
     the table merely showing an element."""
-    window._editor.set_atom_tool = lambda symbol, mass=None: None
+    window._editor.set_atom_tool = lambda symbol, mass=None: True
 
     window._arm_element("C", 13)
 
@@ -629,7 +629,7 @@ def test_a_browse_click_does_NOT_yank_the_centre_tab(window):
     -- that would be worse than the button press it replaces. The
     deliberate button still reveals; this is the browse click.
     """
-    window._editor.set_atom_tool = lambda symbol, mass=None: None
+    window._editor.set_atom_tool = lambda symbol, mass=None: True
     window._show_periodic_table()
     window._center_tabs.setCurrentIndex(1)
     assert window._center_tabs.currentWidget() is not window._editor
@@ -642,7 +642,7 @@ def test_a_browse_click_does_NOT_yank_the_centre_tab(window):
 def test_the_button_still_reveals_the_editor(window):
     """The control for the test above: the two doors differ in exactly
     one way, and it is this one."""
-    window._editor.set_atom_tool = lambda symbol, mass=None: None
+    window._editor.set_atom_tool = lambda symbol, mass=None: True
     window._show_periodic_table()
     window._center_tabs.setCurrentIndex(1)
 
@@ -758,3 +758,58 @@ def test_an_ordinary_refusal_carries_no_declared_kind():
         set_isotope(_drawn("CCO"), 99, 13)
 
     assert caught.value.refusal is None
+
+
+def test_the_status_line_does_NOT_claim_ready_when_the_arming_was_dropped(window):
+    """**THE BACKEND DROPS AN ARMING BEFORE KETCHER IS READY, and the
+    status line said "Ready to place: 13C" regardless.**
+
+    Dropping is right -- a gesture replayed later would prime the canvas
+    with an element the user has stopped thinking about, which is why
+    `set_atom_tool` never queues. Claiming success is not. Measured in
+    the running app: about two seconds after launch the arming is
+    dropped, the active tool stays `SelectTool2`, and a canvas click
+    deposits nothing -- the exact symptom this feature was built to fix,
+    arriving through a different door.
+
+    The armed arm is the control, and it is the one that caught the fake:
+    an existing test stubbed `set_atom_tool` to return None, which now
+    reads as a failed arming and was silently modelling one all along.
+    """
+    window._editor.set_atom_tool = lambda symbol, mass=None: False
+
+    window._arm_element("C", 13)
+    dropped = window.statusBar().currentMessage()
+
+    assert "Ready to place" not in dropped
+    assert "13C" in dropped, "it still names what the user asked for"
+    assert "loading" in dropped, "and says why, and that it is temporary"
+
+    window._editor.set_atom_tool = lambda symbol, mass=None: True
+    window._arm_element("C", 13)
+
+    assert "Ready to place: 13C" in window.statusBar().currentMessage()
+
+
+def test_the_backend_says_whether_it_armed(qapp, tmp_path):
+    """The answer at its source, so the window is not the only thing that
+    can tell the two apart. A backend that always returned True would
+    satisfy the window guard above while restoring the defect.
+    """
+    from openchem.ui.widgets.ketcher_editor_backend import KetcherEditorBackend
+    from PySide6.QtWidgets import QWidget
+
+    host = QWidget()
+    backend = KetcherEditorBackend(host)
+    try:
+        assert not backend._ketcher_ready, "the fixture must start unready"
+        assert backend.set_atom_tool("C", 13) is False
+
+        backend._ketcher_ready = True
+        assert backend.set_atom_tool("C", 13) is True
+    finally:
+        host.setParent(None)
+        host.deleteLater()
+        from PySide6.QtCore import QCoreApplication, QEvent
+
+        QCoreApplication.sendPostedEvents(host, QEvent.Type.DeferredDelete)

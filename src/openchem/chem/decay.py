@@ -133,6 +133,11 @@ _MODE_NAMES = {
     # NUBASE writes ONE unsigned beta, on Pd-126p. The sign decides the
     # daughter, so it is named rather than guessed at -- see UNDERSPECIFIED.
     "B": "beta (sign not stated)",
+    # **THE SECOND COMMONEST MODE IN THE TABLE, at 1,471 rows**, and it
+    # shipped rendering as its raw token beside "beta+" and "electron
+    # capture" -- exactly the cryptic-token problem this map exists for.
+    # Found by magnifying the Isotopes tab, with the whole suite green.
+    "IT": "isomeric transition",
     "B-": "beta-",
     "B+": "beta+",
     "2B-": "double beta-",

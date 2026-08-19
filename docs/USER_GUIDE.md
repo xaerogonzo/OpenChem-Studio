@@ -1809,6 +1809,11 @@ technetium-99 in the same square, because the chart's position is fixed
 by the neutron and proton numbers and both states share them. Their
 transition is drawn in its own colour, since it goes nowhere on the chart.
 
+**Insert this nuclide into drawing** places the *isotope*. Clicking it on
+silver-108m adds Ag-108, and the button says so — a molfile records a mass
+number and has no place for a nuclear state, which is the same limit the
+Isotopes tab's disabled **Apply** explains.
+
 Three honest limits. **One decay in the whole table is refused rather
 than drawn**: palladium-126p records a beta decay without saying whether
 it is beta-plus or beta-minus, and the sign is exactly what decides where

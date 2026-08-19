@@ -812,8 +812,8 @@ class PeriodicTableDialog(QDialog):
         self._decay_legend.setText(
             "Neutrons across, protons up \u2014 the chart of the nuclides. "
             "Line weight is the branching ratio. " + families
-            + ". <b>Ground states only</b>, so a chain that runs through an "
-            "isomer is not drawn."
+            + ". A metastable state sits just below its own ground state "
+            "in the same cell."
         )
         self._refresh_decay_button()
 
@@ -826,9 +826,24 @@ class PeriodicTableDialog(QDialog):
         nuclide = nuclide_data.nuclide_at(self._decay_focus)
         symbol = nuclide.symbol if nuclide is not None else ""
         self._decay_insert.setEnabled(bool(symbol))
-        self._decay_hint.setText(
-            f"Adds {nuclide.name} to the canvas." if nuclide is not None else ""
-        )
+        # **THE HINT MUST NAME WHAT IS ACTUALLY PLACED.** The button emits
+        # a mass number, so clicking it on Ag-108m deposits Ag-108 -- and
+        # the hint said "Adds Ag-108m to the canvas", which is a
+        # different nuclide. A molfile records a mass number and has no
+        # place for a nuclear state, which is the same limit
+        # `IsotopeRefusal.ISOMER_NOT_IN_MOLFILE` states for the write
+        # path; it is said here rather than left for the user to
+        # discover from a canvas that disagrees with the button.
+        if nuclide is None:
+            self._decay_hint.setText("")
+        elif nuclide.is_ground_state:
+            self._decay_hint.setText(f"Adds {nuclide.name} to the canvas.")
+        else:
+            self._decay_hint.setText(
+                f"Adds {nuclide.symbol}-{nuclide.a} to the canvas \u2014 a "
+                f"molfile records a mass number, not the {nuclide.name} "
+                "state."
+            )
 
     def _insert_decay_nuclide(self, _checked: bool = False) -> None:
         """**"You could obviously click one and paste it in the 2D

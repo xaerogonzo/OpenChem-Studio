@@ -879,6 +879,12 @@ class _Driver(QObject):
         """Click an element in the periodic table, then click the canvas.
 
         `{"do": "place", "element": "C", "isotope": 13}`
+        `{"do": "place", "arm": false}`   click the canvas WITHOUT arming
+
+        **`arm: false` is how "does the tool stay armed" is measured**,
+        and it cannot be answered any other way: arming again before each
+        click makes every click land whether Ketcher retained the tool or
+        not, so a probe without it says yes regardless of the truth.
 
         **THE TWO-CLICK GESTURE, end to end and through the real widgets**
         -- the table's own cell button, then a synthesised canvas click,
@@ -887,6 +893,10 @@ class _Driver(QObject):
         missing mass number shows up as plain `C` rather than `[13C]`.
         """
         window = self._window
+        if step.get("arm", True) is False:
+            logger.warning("OPENCHEM_DRIVE: place -- canvas click, tool NOT re-armed")
+            self._click_canvas(step)
+            return
         window._show_periodic_table()
         dialog = getattr(window, "_periodic_table_dialog", None)
         if dialog is None:  # pragma: no cover - defensive
@@ -925,15 +935,27 @@ class _Driver(QObject):
         # That is Ketcher doing its own work with only the DOM plumbing
         # skipped, which is what every step in this file does with the
         # machine's input queue.
+        self._click_canvas(step)
+
+    def _click_canvas(self, step: dict[str, Any]) -> None:
+        """One canvas click through whatever tool is currently armed.
+
+        Shared by both halves of `place` so the armed and un-armed paths
+        cannot drift: if they clicked differently, "the tool stayed
+        armed" would be a claim about two different gestures.
+        """
+        fx = float(step.get("fx", 0.25))
+        fy = float(step.get("fy", 0.25))
+
         def _report(value):
             logger.warning("OPENCHEM_DRIVE: place -- struct now %s", value)
 
-        window._editor._backend._page.runJavaScript(
+        self._window._editor._backend._page.runJavaScript(
             """
             JSON.stringify((function () {
               var ed = window.ketcher.editor;
               var area = ed.render.clientArea, box = area.getBoundingClientRect();
-              var x = box.left + box.width * 0.25, y = box.top + box.height * 0.25;
+              var x = box.left + box.width * %FX%, y = box.top + box.height * %FY%;
               var ev = {pageX: x, pageY: y, clientX: x, clientY: y,
                         button: 0, buttons: 1, target: area,
                         preventDefault: function () {},
@@ -945,9 +967,10 @@ class _Driver(QObject):
               var s = ed.struct(), atoms = [];
               s.atoms.forEach(function (a, id) {
                 atoms.push({id: id, label: a.label, isotope: a.isotope}); });
-              return {count: s.atoms.size, atoms: atoms.slice(-4)};
+              return {count: s.atoms.size, tool: t.constructor.name,
+                      atoms: atoms.slice(-4)};
             })())
-            """,
+            """.replace("%FX%", repr(fx)).replace("%FY%", repr(fy)),
             _report,
         )
 

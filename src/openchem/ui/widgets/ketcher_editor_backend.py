@@ -573,7 +573,9 @@ class KetcherEditorBackend(EditorBackend):
         """
         self._page.runJavaScript(script)
 
-    def set_atom_tool(self, symbol: str, mass_number: int | None = None) -> None:
+    def set_atom_tool(
+        self, symbol: str, mass_number: int | None = None
+    ) -> bool:
         """Arm Ketcher to draw `symbol` on the next canvas click.
 
         `ketcher.editor.tool(name, options)` is a real public method on the
@@ -596,11 +598,37 @@ class KetcherEditorBackend(EditorBackend):
         with an element the user has stopped thinking about, and the next
         click anywhere would deposit it.
 
+        **AND IT RETURNS WHETHER IT ARMED, which the drop makes
+        necessary.** Measured in the running app: arming about two seconds
+        after launch is dropped, the active tool stays `SelectTool2`, and
+        the status bar said "Ready to place: 13C" anyway -- so the canvas
+        and the status line disagreed with nothing on screen to say which
+        was real, which is exactly the symptom the user reported this
+        feature for. Dropping is still right; claiming success is not.
+
         **`mass_number` IS OMITTED, NEVER SENT AS ZERO.** Measured against
         the real bundle, the tool keeps whatever `atomProps` it is given:
 
             tool('atom', {label: 'C', isotope: 13})  ->  {label, isotope}
             tool('atom', {label: 'C'})               ->  {label}
+
+        **THE TOOL STAYS ARMED ACROSS PLACEMENTS, and that is KETCHER'S
+        behaviour rather than a rule this application added.** Measured in
+        the running app -- arm once, then click the canvas three times
+        without re-arming:
+
+            click 1   count 1   AtomTool2
+            click 2   count 2   AtomTool2
+            click 3   count 3   AtomTool2
+            SMILES    [13CH4].[13CH4].[13CH4]
+
+        Preserved deliberately. Ketcher's own element buttons behave this
+        way, so a periodic table that disarmed after one placement would
+        make two gestures that look identical behave differently. The
+        `place` drive step takes `arm: false` for exactly this
+        measurement -- re-arming before each click makes every click land
+        whether the tool was retained or not, so a probe without it
+        answers yes regardless of the truth.
 
         so an ordinary element arms with exactly today's payload and
         cannot acquire an isotope of 0, which Ketcher would have to
@@ -615,7 +643,7 @@ class KetcherEditorBackend(EditorBackend):
         """
         if not self._ketcher_ready:
             logger.debug("Dropping atom tool %r -- Ketcher is not ready", symbol)
-            return
+            return False
         atom_props: dict[str, object] = {"label": symbol}
         if mass_number is not None:
             atom_props["isotope"] = int(mass_number)
@@ -630,6 +658,7 @@ class KetcherEditorBackend(EditorBackend):
         }})();
         """
         self._page.runJavaScript(script)
+        return True
 
     def open_atom_editor(self, atom_index: int) -> None:
         """Open Ketcher's OWN atom-properties dialog for one atom.

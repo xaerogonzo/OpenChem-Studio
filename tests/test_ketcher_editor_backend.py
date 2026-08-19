@@ -1069,3 +1069,35 @@ def test_an_ordinary_element_carries_NO_isotope_key(qapp):
     assert calls
     assert "isotope" not in calls[0]
     assert '"label": "C"' in calls[0]
+
+
+def test_an_armed_atom_tool_survives_a_placement(qapp):
+    """**KETCHER'S OWN BEHAVIOUR, PINNED SO IT CANNOT DRIFT SILENTLY.**
+
+    A periodic table that disarmed after one placement would make two
+    gestures that look identical -- ours and the editor's own element
+    buttons -- behave differently. Measured in the running app: arm once,
+    click three times, and the SMILES is
+    `[13CH4].[13CH4].[13CH4]` with `AtomTool2` active throughout.
+
+    **THE SECOND CLICK MUST NOT RE-ARM**, which is the whole point:
+    arming before each click makes every click land whether the tool was
+    retained or not, so a probe without that answers yes regardless.
+    """
+    backend = _ready_backend(qapp)
+
+    assert backend.set_atom_tool("C", 13) is True
+
+    armed = _run_js_json(
+        qapp,
+        backend,
+        """
+        var t = window.ketcher.editor.tool();
+        return {name: t && t.constructor && t.constructor.name,
+                props: t && t.atomProps};
+        """,
+    )
+
+    assert armed["name"] == "AtomTool2"
+    assert armed["props"]["label"] == "C"
+    assert armed["props"]["isotope"] == 13
