@@ -1271,7 +1271,48 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `5195 passed, 15 skipped`
+A clean run is **6-19 minutes**, ending at `5206 passed, 15 skipped`
+(measured 2026-08-19, **14m57**, on `dialogs-driven-and-documented` at
+`6480834` -- the dialog inventory and its drive step, the screening
+table's clipped header, and the help contracts reaching every dialog a
+bare context can build.
+
+**+11 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed:
+
+    master           a2ec8a8   COLLECTS 5210
+    branch tip       6480834   COLLECTS 5221   = 5210 + 11
+    the run                             5206 passed + 15 skipped = 5221
+
+**THE MERGE BASE IS MASTER**, checked rather than assumed, so nothing
+landed underneath this branch and the figure will be master's when it
+merges.
+
+**11 AND NOT THE 9 THE TWO NEWEST COMMITS ADDED**, which is the whole
+reason to diff rather than subtract: the extra two are
+`test_virtual_screening_dialog.py`, added earlier on the same branch when
+the dialogs had no coverage at all. Every one of the 11 reconciles to a
+commit:
+
+    13b0b46  +2   the screening table's two column-sizing guards
+    da7262c  +6   the clear-button exclusion (2), the dialog blanket
+                  and its walk (4)
+    6480834  +3   the element cell's live tooltip, the printed spin
+                  marks, and the `*` count against the paper
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and no crash markers -- `grep -c
+"Windows fatal exception"` is 0 and there IS a summary line, which is the
+pair this file insists on rather than an absence of FAILED lines. The
+background task also exited 0, which on its own proves nothing: this file
+already records a crashed run that exited 0 with no FAILED lines in it.
+
+14m57 sits mid-band; the 6-19 range stands. The two
+`DeprecationWarning`s are the same pre-existing six-argument
+`QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.)
+
+Before it: `5195 passed, 15 skipped`
 (measured 2026-08-19, **14m26**, on
 `drive-consolidate-and-finish-the-contracts` -- the baseline drive's three
 defects, the two geometry decisions, and the help migration reaching zero.
