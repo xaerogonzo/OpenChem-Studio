@@ -65,6 +65,7 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.ui.widgets.atom_diagram import AtomDiagram
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.ui.widgets.collapsible_section import WrappedLabel
 from openchem.chem import element_palettes as palettes
 from openchem.chem import isotopes
@@ -73,6 +74,203 @@ from openchem.chem.decay import decay_tree, format_branching, format_mode
 from openchem.chem.decay_svg import legend_lines, render_decay_svg
 from openchem.ui.widgets.zoomable_svg_view import ZoomableSvgView
 from openchem.chem.element_reference import ElementFacts, all_symbols, facts_for, grid_position
+
+#: 137 CONTROLS, 15 CONCEPTS, and the ratio is the whole story: 118 of
+#: them are element cells -- one concept rendered once per element, the
+#: shape `properties.batch_selection` already has across 51 tick boxes.
+#: `instance_path` tells the renderings apart.
+#:
+#: The four zoom buttons and the three electron buttons are NOT here: they
+#: belong to `ZoomableSvgView` and `AtomDiagram`, which are used elsewhere
+#: too, so their contracts live with the widgets for the same reason
+#: `CollapsibleSection` owns its section-header one.
+#:
+#: THE FIVE ISOTOPE COLUMNS ARE WHERE THE TIER-3 WORK IS. Every one of
+#: them prints a source-specific mark that decides how the number reads,
+#: and the marks are not guessable -- see `spin_parity`, where `*` means
+#: DIRECTLY MEASURED rather than the doubt a footnote mark usually implies.
+_HELP: dict[str, HelpTooltip] = {
+    "element_cell": HelpTooltip(
+        text=(
+            "Selects this element: its facts, its atom drawing, its "
+            "isotopes and their decay chains all follow.\n\n"
+            "The colour and the third line follow the 'Colour by' box, so "
+            "what a colour MEANS changes with that setting -- the line "
+            "above always names what is being shown, because colour never "
+            "carries a fact on its own here."
+        ),
+        tier=2,
+        help_id="periodic_table.element_cell",
+        topic="periodic table",
+    ),
+    "colour_by": HelpTooltip(
+        text=(
+            "Chooses what the grid's colours mean: a category, the block, "
+            "the state at room temperature, radioactivity, or a heat map "
+            "of a measured property.\n\n"
+            "Recolouring changes NOTHING else -- the selected element, the "
+            "open tab and the facts below all stay put. An element with no "
+            "accepted value is left off the ramp rather than coloured at "
+            "the bottom of it, so a pale cell means 'not established' and "
+            "never 'very low'."
+        ),
+        tier=2,
+        help_id="periodic_table.colour_by",
+        topic="periodic table",
+    ),
+    "isotope": HelpTooltip(
+        text=(
+            "The nuclide: this element's symbol with a mass number, and "
+            "the source's own suffix for a metastable state.\n\n"
+            "Tc-99m is Tc-99 holding its nucleus in an excited state -- "
+            "the same isotope, not a different one. Rows run naturally "
+            "occurring first, then stable, then by half-life."
+        ),
+        tier=2,
+        help_id="nuclides.isotope",
+        topic="periodic table",
+    ),
+    "abundance": HelpTooltip(
+        text=(
+            "Natural abundance: the percentage of THIS ELEMENT'S ATOMS "
+            "that are this nuclide, in a representative terrestrial "
+            "sample.\n\n"
+            "A count of atoms, not a share of the mass, so it does not "
+            "sum with masses. A dash means the nuclide does not occur "
+            "naturally -- which is not a measured zero, and says nothing "
+            "about whether it can be made."
+        ),
+        tier=3,
+        help_id="nuclides.natural_abundance",
+        source_key="nubase2020",
+        topic="periodic table",
+    ),
+    "half_life": HelpTooltip(
+        text=(
+            "The time in which half of a sample decays, in the source's "
+            "own units.\n\n"
+            "THE MARKS DECIDE HOW TO READ THE NUMBER, and a bound and a "
+            "measurement can carry the same digits: > and < are bounds, ~ "
+            "is approximate, and (estimated) means the value comes from "
+            "trends in neighbouring nuclei rather than from a measurement. "
+            "'stable' means no decay has been observed, which is not a "
+            "proof that none occurs -- four nuclides listed as stable also "
+            "carry a decay mode nobody has yet seen."
+        ),
+        tier=3,
+        help_id="nuclides.half_life",
+        source_key="nubase2020",
+        topic="periodic table",
+    ),
+    "decay_modes": HelpTooltip(
+        text=(
+            "How this nuclide decays, and the percentage of decays taking "
+            "each path.\n\n"
+            "(unconfirmed) means the mode is expected and nobody has "
+            "measured how often -- the commonest case in the source, so an "
+            "unmarked percentage is the exception rather than the rule. A "
+            "branching of exactly 0% is faithful rather than a bug: it is "
+            "the source recording a branch as known and negligible. A dash "
+            "means no mode is listed at all."
+        ),
+        tier=3,
+        help_id="nuclides.decay_modes",
+        source_key="nubase2020",
+        topic="periodic table",
+    ),
+    "spin_parity": HelpTooltip(
+        text=(
+            "The state's nuclear spin and parity, in the source's own "
+            "notation.\n\n"
+            "THE MARKS ARE NOT WHAT THEY LOOK LIKE. `*` means the spin was "
+            "DIRECTLY MEASURED -- a strengthening mark, not a doubt. `#` "
+            "means the value is not experimental at all: it comes from "
+            "trends in neighbouring nuclei or from theory. Parentheses "
+            "mean a weak argument that is still experimental. That last "
+            "pair is deliberately the OPPOSITE WAY ROUND from ENSDF, where "
+            "theoretical values are the parenthesised ones. `T=` is an "
+            "isospin value, on isobaric analogue states."
+        ),
+        tier=3,
+        help_id="nuclides.spin_parity",
+        source_key="nubase2020",
+        topic="periodic table",
+    ),
+    "apply_isotope": HelpTooltip(
+        text=(
+            "Writes the selected mass number onto the atom selected in the "
+            "2D editor, as one undo step.\n\n"
+            "THE ELEMENT COMES FROM THAT ATOM, not from this table: "
+            "reading carbon's isotopes with an oxygen selected does not "
+            "make the oxygen a carbon, and the button is unavailable until "
+            "the two agree. A metastable state cannot be written -- a "
+            "molfile records a mass number and nothing else, so Tc-99m and "
+            "Tc-99 would become the same structure."
+        ),
+        tier=2,
+        help_id="isotopes.apply_to_atom",
+        topic="periodic table",
+    ),
+    "apply_all": HelpTooltip(
+        text=(
+            "Applies the isotope to every atom of that element in the "
+            "molecule instead of only the selected one.\n\n"
+            "Still one undo step. Off by default because labelling a "
+            "single position -- one tracer, one deuterium -- is the "
+            "ordinary case, and 'every carbon' is a different enough thing "
+            "to be asked for."
+        ),
+        tier=1,
+        help_id="isotopes.apply_to_all_atoms",
+        topic="periodic table",
+    ),
+    "insert_nuclide": HelpTooltip(
+        text=(
+            "Arms the 2D editor with the nuclide selected in the chart, "
+            "then click the canvas to place it.\n\n"
+            "It places the MASS NUMBER: a molfile has no field for a "
+            "metastable state, so selecting Ag-108m and pressing this adds "
+            "Ag-108. Nothing is placed until you click."
+        ),
+        tier=2,
+        help_id="isotopes.insert_nuclide",
+        topic="periodic table",
+    ),
+    "insert_element": HelpTooltip(
+        text=(
+            "Arms the 2D editor with this element, then click the canvas "
+            "to place an atom.\n\n"
+            "It ARMS rather than placing immediately, which is the gesture "
+            "the canvas is built around -- pick an element, then click "
+            "where it goes. The tool stays armed, so a second click places "
+            "a second atom."
+        ),
+        tier=1,
+        help_id="periodic_table.insert_element",
+        topic="periodic table",
+    ),
+    "copy_symbol": HelpTooltip(
+        text=(
+            "Copies the element's symbol -- 'Fe', not its name or its "
+            "atomic number -- to the clipboard.\n\n"
+            "For pasting into a formula or a search box elsewhere; it does "
+            "not touch the drawing."
+        ),
+        tier=1,
+        help_id="periodic_table.copy_symbol",
+        topic="periodic table",
+    ),
+    "close": HelpTooltip(
+        text=(
+            "Closes this window. Nothing chosen here is lost: the editor "
+            "keeps whatever element was armed, and reopening the table "
+            "returns to the element you were reading."
+        ),
+        tier=1,
+        help_id="periodic_table.close",
+        topic="periodic table",
+    ),
+}
 
 #: Category -> (fill, human label). Muted fills so black symbol text stays
 #: legible on every one of them.
@@ -285,12 +483,11 @@ class PeriodicTableDialog(QDialog):
         # coordinate would be a second way for an atom to appear.
         buttons = QHBoxLayout()
         self._insert_button = QPushButton("Insert into drawing", self)
-        self._insert_button.setToolTip(
-            "Arm the 2D editor with this element, then click the canvas to place it."
-        )
+        apply_help_tooltip(self._insert_button, _HELP["insert_element"])
         self._insert_button.clicked.connect(self._insert_symbol)
         buttons.addWidget(self._insert_button)
         self._copy_button = QPushButton("Copy symbol", self)
+        apply_help_tooltip(self._copy_button, _HELP["copy_symbol"])
         self._copy_button.clicked.connect(self._copy_symbol)
         buttons.addWidget(self._copy_button)
         # QUERY ATOMS ARE NOT HERE AND THE TABLE SAYS SO. Ketcher can draw
@@ -304,6 +501,7 @@ class PeriodicTableDialog(QDialog):
         )
         buttons.addStretch(1)
         close = QPushButton("Close", self)
+        apply_help_tooltip(close, _HELP["close"])
         close.clicked.connect(self.close)
         buttons.addWidget(close)
         layout.addLayout(buttons)
@@ -348,6 +546,11 @@ class PeriodicTableDialog(QDialog):
 
     def _cell(self, facts: ElementFacts) -> QToolButton:
         button = QToolButton(self)
+        # ONE contract, 118 renderings. The TEXT is recomputed per
+        # element and per colour mode in `_repaint_cells`, which
+        # composes it with this -- see the note there for why that
+        # composition is the load-bearing part.
+        apply_help_tooltip(button, _HELP["element_cell"])
         # Tall enough for a third line, permanently: a cell that changed
         # size with the colour mode would jump the whole grid on every
         # switch, and the value line only exists in the heatmap modes.
@@ -434,6 +637,16 @@ class PeriodicTableDialog(QDialog):
 
         self._isotope_table = QTableWidget(0, len(self._ISOTOPE_COLUMNS), container)
         self._isotope_table.setHorizontalHeaderLabels(self._ISOTOPE_COLUMNS)
+        # A header item is not a QWidget and not even a QObject, which
+        # is why `apply_help_tooltip` takes a target rather than a
+        # widget: these five are exactly the columns that prompted the
+        # whole contract layer, one table along from "RMSD l.b.".
+        for index, key in enumerate(
+            ("isotope", "abundance", "half_life", "decay_modes", "spin_parity")
+        ):
+            apply_help_tooltip(
+                self._isotope_table.horizontalHeaderItem(index), _HELP[key]
+            )
         self._isotope_table.verticalHeader().setVisible(False)
         self._isotope_table.setSelectionBehavior(
             QAbstractItemView.SelectionBehavior.SelectRows
@@ -456,10 +669,19 @@ class PeriodicTableDialog(QDialog):
         # **A MEASURED VALUE AND A BOUND MUST NOT READ ALIKE**, so the
         # note says what the marks mean rather than leaving `> 4.6 zs` to
         # be read as a number somebody measured.
+        # **AND THE SPIN/PARITY MARKS BELONG HERE TOO, for the reason this
+        # note already exists.** They are printed in the cells -- 1062 `*`,
+        # 948 `#`, 1328 parenthesised -- and their meaning lived nowhere at
+        # all until the column gained a contract. A tooltip is not enough
+        # on its own for a mark that appears in the table: the same finding
+        # the half-life legend produced one tab along.
         self._isotope_note = QLabel(
             "&gt; and &lt; are bounds, ~ is approximate, and (estimated) means the "
             "value comes from systematics rather than measurement. A branching "
-            "marked (unconfirmed) is a decay nobody has quantified.",
+            "marked (unconfirmed) is a decay nobody has quantified. "
+            "On spin/parity, * means directly measured, # means estimated from "
+            "neighbouring nuclei or theory, and brackets mark a weak experimental "
+            "argument.",
             container,
         )
         self._isotope_note.setWordWrap(True)
@@ -468,6 +690,7 @@ class PeriodicTableDialog(QDialog):
 
         row = QHBoxLayout()
         self._isotope_button = QPushButton("Apply to selected atom", container)
+        apply_help_tooltip(self._isotope_button, _HELP["apply_isotope"])
         self._isotope_button.clicked.connect(self._request_isotope)
         row.addWidget(self._isotope_button)
         # **ONE ATOM IS THE DEFAULT AND THE OPT-IN IS EXPLICIT.** Labelling
@@ -476,6 +699,7 @@ class PeriodicTableDialog(QDialog):
         # enough thing to be asked for rather than assumed. It is still
         # ONE undo entry either way.
         self._isotope_all = QCheckBox("all atoms of this element", container)
+        apply_help_tooltip(self._isotope_all, _HELP["apply_all"])
         row.addWidget(self._isotope_all)
         self._isotope_hint = QLabel("", container)
         self._isotope_hint.setStyleSheet(_MUTED_NOTE)
@@ -687,6 +911,7 @@ class PeriodicTableDialog(QDialog):
 
         row = QHBoxLayout()
         self._decay_insert = QPushButton("Insert this nuclide into drawing", container)
+        apply_help_tooltip(self._decay_insert, _HELP["insert_nuclide"])
         self._decay_insert.clicked.connect(self._insert_decay_nuclide)
         row.addWidget(self._decay_insert)
         self._decay_hint = QLabel("", container)
@@ -922,7 +1147,15 @@ class PeriodicTableDialog(QDialog):
             if extra:
                 text += f"\n{extra}"
             button.setText(text)
-            button.setToolTip(f"{facts.name} — {note}")
+            # **THE LIVE TEXT CARRIES THE CONTRACT, never replaces it.**
+            # A bare `setToolTip` here leaves the contract attached as
+            # a Qt property, so the coverage guard goes on reporting
+            # this cell documented while the user reads a category name
+            # and nothing saying what clicking does. Same failure the
+            # docking panel's Derive button records, 118 times over.
+            button.setToolTip(
+                f"{facts.name} — {note}" + "\n\n" + _HELP["element_cell"].text
+            )
             button.setStyleSheet(
                 f"QToolButton {{ background: {fill}; border: 1px solid #999; "
                 f"font-size: 9px; color: #111; }}"
@@ -947,6 +1180,7 @@ class PeriodicTableDialog(QDialog):
         row.setContentsMargins(0, 0, 0, 0)
         row.addWidget(QLabel("Colour by:", container))
         self._palette_combo = QComboBox(container)
+        apply_help_tooltip(self._palette_combo, _HELP["colour_by"])
         for key in palettes.PALETTE_ORDER:
             self._palette_combo.addItem(palettes.label_for(key), key)
         self._palette_combo.currentIndexChanged.connect(self._on_palette_changed)

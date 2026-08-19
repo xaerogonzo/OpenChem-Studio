@@ -28,22 +28,19 @@ from openchem.ui.dialogs.inventory import (
 )
 from openchem.ui.widgets.tooltip_inventory import iter_documentable_controls
 
-#: The one dialog a bare context can build that is not migrated yet.
-#:
-#: 137 controls, of which 118 are element cells -- one concept rendered
-#: 118 times, in the shape `properties.batch_selection` already has. It is
-#: the next commit's work.
-#:
-#: A NAME IN A SET, NOT A FIXTURE FILE. The migration this repeats used
-#: `tooltip_migration_debt.json` and its mirror, and both were deleted the
-#: day the count reached zero. One name with a reason beside it is the
-#: whole of what is needed here, and
-#: `test_the_unmigrated_dialog_really_is_unmigrated` is what deletes it:
-#: the day the periodic table is documented, that test fails and says so.
-_NOT_YET_MIGRATED = frozenset({"PeriodicTableDialog"})
+#: THERE IS NO EXCEPTION LIST, AND THERE WAS ONE FOR EXACTLY ONE COMMIT.
+#: `_NOT_YET_MIGRATED` held `PeriodicTableDialog` and its 137 controls
+#: while they were written, and its mirror --
+#: `test_the_unmigrated_dialog_really_is_unmigrated` -- required an
+#: excused dialog to still HAVE undocumented controls, so the day the
+#: periodic table reached zero the guard failed and asked for the name to
+#: be deleted. It is deleted, and so is the mirror: "no control anywhere
+#: is undocumented" says the same thing and needs nothing to maintain.
+#: Same arc as `tooltip_migration_debt.json` one layer up, three days
+#: shorter.
 
 
-def _walk(name_filter=None) -> dict[str, list[tuple[str, str, object]]]:
+def _walk(name_filter=None) -> dict[str, list[tuple[str, str, str, object]]]:
     """Every bare-context dialog, walked, with NO Qt handles kept.
 
     Handles are dropped for the reason `test_tooltip_coverage`'s fixture
@@ -51,7 +48,7 @@ def _walk(name_filter=None) -> dict[str, list[tuple[str, str, object]]]:
     once into the teardown `gc.collect()`, which is the moment this suite
     has a documented history of dying in.
     """
-    walked: dict[str, list[tuple[str, str, object]]] = {}
+    walked: dict[str, list[tuple[str, str, str, object]]] = {}
     for fixture in iter_dialog_fixtures():
         if name_filter is not None and fixture.name not in name_filter:
             continue
@@ -60,7 +57,7 @@ def _walk(name_filter=None) -> dict[str, list[tuple[str, str, object]]]:
         except DialogUnavailable:
             continue
         walked[fixture.name] = [
-            (c.status, c.instance_path, c.help_tooltip)
+            (c.status, c.instance_path, c.widget_class, c.help_tooltip)
             for c in iter_documentable_controls(dialog, path=fixture.name)
         ]
         dialog.setParent(None)
@@ -91,19 +88,20 @@ def test_the_walk_reaches_more_than_one_dialog(dialogs):
     )
 
 
-def test_every_migrated_dialog_control_carries_a_help_contract(dialogs):
-    """The blanket assertion, for every dialog that has been migrated.
+def test_every_dialog_control_carries_a_help_contract(dialogs):
+    """The blanket assertion, with no exception list behind it.
 
     Same claim as `test_every_control_carries_a_help_contract` makes about
     the window, and it is safe here for the same reason: the walk is ours,
     the context builds no plugin-contributed dialog, and a control with
     approved alternate documentation (`whatsThis`) already counts.
+
+    A NEW DIALOG CONTROL IS RED UNTIL IT IS DOCUMENTED, deliberately.
     """
     undocumented = [
         path
-        for name, controls in dialogs.items()
-        if name not in _NOT_YET_MIGRATED
-        for status, path, _ in controls
+        for controls in dialogs.values()
+        for status, path, _class, _tooltip in controls
         if status == "missing"
     ]
     assert not undocumented, (
@@ -112,26 +110,35 @@ def test_every_migrated_dialog_control_carries_a_help_contract(dialogs):
     )
 
 
-def test_the_unmigrated_dialog_really_is_unmigrated(dialogs):
-    """The mirror, and the half that makes the exception self-deleting.
+def test_one_concept_is_not_split_across_the_element_cells(dialogs):
+    """118 cells, ONE `help_id`, and the split is the mutation to fear.
 
-    An exception list that outlives the work it excuses is how a finished
-    surface falls back into the backlog unseen -- the failure the deleted
-    `tooltip_completed_surfaces.json` existed to catch. So the claim runs
-    both ways: a name in `_NOT_YET_MIGRATED` must still HAVE undocumented
-    controls, and the day it does not, this test fails and asks for the
-    name to be deleted.
+    Giving each element its own id -- `periodic_table.element_cell_h`,
+    `_he`, `_li` -- passes every other guard here, because each id would
+    then have exactly one contract and one meaning. It is the batch tick
+    boxes shredded into 51, and it reads as thoroughness.
+
+    `instance_path` is what tells the renderings apart; the id names the
+    concept, and selecting an element means the same thing in all 118.
     """
-    for name in _NOT_YET_MIGRATED:
-        assert name in dialogs, (
-            f"{name} is excused from the contract guard and can no longer be "
-            "built from a bare context -- the exception is now unfalsifiable"
-        )
-        missing = [path for status, path, _ in dialogs[name] if status == "missing"]
-        assert missing, (
-            f"{name} carries a contract on every control. Delete it from "
-            "_NOT_YET_MIGRATED -- the guard covers it now."
-        )
+    cells = [
+        tooltip
+        for controls in dialogs.values()
+        for _status, path, widget_class, tooltip in controls
+        # The 118 cells are the QToolButtons in the grid. Filtered by
+        # CLASS rather than by path: the palette combo lives under the
+        # same container and a path prefix swept it in.
+        if tooltip is not None and widget_class == "QToolButton"
+    ]
+    assert len(cells) > 100, (
+        f"only {len(cells)} element cell(s) were walked -- the grid is not "
+        "being reached and this guard is testing nothing"
+    )
+    ids = {tooltip.help_id for tooltip in cells}
+    assert ids == {"periodic_table.element_cell"}, (
+        f"the element cells carry {len(ids)} help_ids where they mean one "
+        f"thing: {sorted(ids)[:5]}"
+    )
 
 
 def test_a_dialog_that_cannot_be_built_says_so(qapp):

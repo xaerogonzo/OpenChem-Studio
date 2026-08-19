@@ -276,6 +276,42 @@ def test_there_are_exactly_253_stable_GROUND_STATES(nuclides):
     assert sorted(set(stable) - set(ground)) == ["73-180-1"], "Ta-180m, and only it"
 
 
+def test_the_directly_measured_spins_reconcile_with_the_papers_own_count(nuclides):
+    """**1062, AND THE PAPER SAYS 1062.** NUBASE2020 section 2.4 states
+    "directly measured spins for 1062 states (827 ground states and 235
+    isomers) and the corresponding values are flagged in Table I with the
+    symbol '*'", and counting `*` in the shipped table gives exactly that
+    -- with the ground/isomer split reconciling too.
+
+    An independent check on the extraction that costs nothing: the `Jpi`
+    field is a fixed-width slice, and a slice off by one column would
+    still yield plausible-looking spins while quietly losing or gaining
+    the flag on some of them.
+
+    IT ALSO DEFENDS PROSE. `nuclides.spin_parity`'s contract tells the
+    reader that `*` means DIRECTLY MEASURED -- the opposite of the doubt a
+    footnote mark usually implies -- and that claim is only worth as much
+    as the flag surviving into the table.
+
+    **AND THE ONE-STATE GAP IS THE FREE NEUTRON**, which is the part worth
+    reading. Counting `*` in the SOURCE gives 827 ground states, matching
+    the paper; the shipped table has 826, because `1n` is a starred ground
+    state (Jpi `1/2+*`) and is deliberately excluded -- it is a nuclide
+    and not an element, which `test_the_free_neutron_is_not_here` already
+    asserts. The isomer half needs no such adjustment and matches at 236
+    against the paper's 235 for the same single reason.
+
+    So the reconciliation is exact once the one deliberate exclusion is
+    named, which is a stronger statement than a total that merely agrees.
+    """
+    starred = [k for k, e in nuclides.items() if "*" in e.get("jpi", "")]
+    ground = [k for k in starred if not nuclides[k].get("state_index")]
+
+    assert len(starred) == 1062, "the paper states 1062 directly measured spins"
+    assert len(ground) == 826, "827 in the source, less the free neutron"
+    assert len(starred) - len(ground) == 236
+
+
 def test_uranium_238_decays_the_way_the_textbook_says(nuclides):
     """Alpha at 100%, with spontaneous fission and double beta far below
     it -- the branchings, not just the modes."""

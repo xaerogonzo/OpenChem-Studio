@@ -1367,11 +1367,30 @@ class _Driver(QObject):
             dialog.resize(int(step["width"]), int(step.get("height", dialog.height())))
         dialog.show()
         self._dialog = dialog
+        # `"tab": "Isotopes"` -- half these dialogs are tabbed, and a shot
+        # of the default page cannot show what is on the other three. The
+        # tab is named rather than indexed, and a name that matches
+        # nothing is LOGGED: an unrecognised index would silently
+        # photograph page 0, which is the wrong-panel-id trap again.
+        wanted_tab = str(step.get("tab", ""))
+        if wanted_tab:
+            from PySide6.QtWidgets import QTabWidget
+
+            tabs = dialog.findChild(QTabWidget)
+            titles = [tabs.tabText(i) for i in range(tabs.count())] if tabs else []
+            if wanted_tab in titles:
+                tabs.setCurrentIndex(titles.index(wanted_tab))
+            else:
+                logger.error(
+                    "OPENCHEM_DRIVE: %s has no tab %r (have %s)",
+                    wanted, wanted_tab, titles,
+                )
         logger.warning(
-            "OPENCHEM_DRIVE: dialog %s open at %dx%d",
+            "OPENCHEM_DRIVE: dialog %s open at %dx%d, tab %r",
             wanted,
             dialog.width(),
             dialog.height(),
+            wanted_tab or "(default)",
         )
 
     def _do_rail(self, step: dict[str, Any]) -> None:

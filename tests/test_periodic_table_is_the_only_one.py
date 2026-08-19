@@ -27,7 +27,9 @@ from __future__ import annotations
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, Qt
 
+from openchem.chem import element_palettes as palettes
 from openchem.chem import nuclides as nuclide_data
+from openchem.ui.widgets.help_tooltip import help_tooltip_for
 
 from openchem.ui.dialogs.periodic_table_dialog import (
     CELL_LARGE,
@@ -45,6 +47,75 @@ def dialog(qapp):
     built.setParent(None)
     built.deleteLater()
     QCoreApplication.sendPostedEvents(built, QEvent.Type.DeferredDelete)
+
+
+def test_an_element_cells_live_tooltip_still_carries_its_contract(dialog):
+    """**THE FAILURE THIS CATCHES IS SILENT, 118 TIMES OVER.**
+
+    Each cell's tooltip is rewritten on every recolour -- it names the
+    element and whatever the current mode is showing -- so a plain
+    `setToolTip` there would REPLACE the contract's text while leaving the
+    contract attached as a Qt property. The coverage guard would go on
+    reporting all 118 cells documented while the user read "Hydrogen --
+    Nonmetal" and nothing saying what clicking one does.
+
+    Exactly the failure `test_the_derive_buttons_live_tooltip_still_`
+    `carries_its_contract` records for the docking panel, which is why
+    the composition is asserted rather than the attachment.
+
+    BOTH SIDES OF THE RECOLOUR, because `_repaint_cells` is the only
+    place the composition happens and a heatmap mode builds its live half
+    differently from a discrete one.
+    """
+    contract = help_tooltip_for(dialog._buttons["H"])
+    assert contract is not None, "the cell carries no contract at all"
+
+    for palette in ("category", "electronegativity"):
+        dialog._palette_combo.setCurrentIndex(palettes.PALETTE_ORDER.index(palette))
+        rendered = dialog._buttons["H"].toolTip()
+
+        assert contract.text in rendered, (
+            f"in the {palette!r} mode the live tooltip has replaced the "
+            f"contract rather than carrying it: {rendered!r}"
+        )
+        assert "Hydrogen" in rendered, (
+            f"the {palette!r} mode dropped the live half of the tooltip, "
+            "which is the part that names what the colour is showing"
+        )
+
+
+def test_the_spin_parity_marks_are_explained_where_they_are_printed(dialog):
+    """A tooltip is not enough for a mark that appears in the table.
+
+    This project's own finding, one tab along: the half-life legend
+    "explained no marks" while five cells printed a trailing `#`, because
+    the meaning lived only in a tooltip -- and the legend is the part a
+    screenshot carries.
+
+    The spin/parity column prints three of them (1062 `*`, 948 `#`, 1328
+    parenthesised, measured over the shipped table), so the note under the
+    table has to name them. DERIVED FROM WHAT THE CELLS ACTUALLY PRINT
+    rather than from a list: an element whose isotopes stopped carrying a
+    mark would make this vacuous, so the marks found are asserted first.
+    """
+    dialog.select("Tc")
+    table = dialog._isotope_table
+    printed = {
+        mark
+        for row in range(table.rowCount())
+        for mark in ("*", "#", "(")
+        if mark in (table.item(row, 4).text() if table.item(row, 4) else "")
+    }
+    assert printed, "no spin/parity mark is printed, so this guard is vacuous"
+
+    note = dialog._isotope_note.text()
+    for mark, described in (("*", "directly measured"), ("#", "estimated"),
+                            ("(", "bracket")):
+        if mark in printed:
+            assert described in note, (
+                f"the table prints {mark!r} in spin/parity and the note "
+                f"under it never says what that means: {note!r}"
+            )
 
 
 def test_insert_asks_for_the_selected_element(dialog):

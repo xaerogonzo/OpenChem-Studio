@@ -28,6 +28,65 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
+
+#: FOUR CONTROLS, TWO RENDERINGS EACH -- the decay chart and the Lewis
+#: diagram both build this widget, so the contract lives here for the same
+#: reason `CollapsibleSection` owns its section-header one: "zoom in" means
+#: the same thing wherever this view is used, and writing it at each host
+#: would be two chances to disagree.
+#:
+#: The two that need saying are `100%` and `Fit`, because they are easy to
+#: read as the same button. They are not, and the case that proves it is a
+#: small diagram in a large window: Fit magnifies it past 100%.
+_HELP: dict[str, HelpTooltip] = {
+    "zoom_out": HelpTooltip(
+        text=(
+            "Zooms out one step, each step a factor of 1.25.\n\n"
+            "The view stops at 25%; the diagram is never shrunk to fit its "
+            "pane on its own, which is what the scroll bars are for."
+        ),
+        tier=1,
+        help_id="diagram.zoom_out",
+        topic="diagram",
+    ),
+    "zoom_natural": HelpTooltip(
+        text=(
+            "Draws the diagram at its OWN size -- 100% of the drawing, not "
+            "100% of this pane.\n\n"
+            "The two are easy to conflate and are different buttons: at "
+            "100% a large diagram overflows and scrolls, where Fit would "
+            "shrink it to fit."
+        ),
+        tier=1,
+        help_id="diagram.zoom_natural",
+        topic="diagram",
+    ),
+    "zoom_in": HelpTooltip(
+        text=(
+            "Zooms in one step, each step a factor of 1.25.\n\n"
+            "The view stops at 800%. Zooming does not redraw the diagram at "
+            "a higher quality -- it is vector art, so it stays sharp."
+        ),
+        tier=1,
+        help_id="diagram.zoom_in",
+        topic="diagram",
+    ),
+    "zoom_to_fit": HelpTooltip(
+        text=(
+            "The largest zoom at which the whole diagram fits this pane, "
+            "aspect ratio kept.\n\n"
+            "FIT CAN BE MORE THAN 100%: a small diagram in a large window "
+            "is magnified to fill it, which is the case that makes this a "
+            "different button from 100%. Only a diagram larger than the "
+            "pane is reduced."
+        ),
+        tier=1,
+        help_id="diagram.zoom_to_fit",
+        topic="diagram",
+    ),
+}
+
 
 class ZoomableSvgView(QWidget):
     """A scroll area holding an SVG at a chosen zoom, plus its controls."""
@@ -61,14 +120,17 @@ class ZoomableSvgView(QWidget):
         # squeeze the controls.
         self._zoom_row = QHBoxLayout()
         self._buttons: list[QPushButton] = []
-        for label, slot in (
-            ("−", self._zoom_out),
-            ("100%", self.zoom_to_natural),
-            ("+", self._zoom_in),
-            ("Fit", self.zoom_to_fit),
+        for label, slot, help_key in (
+            ("−", self._zoom_out, "zoom_out"),
+            ("100%", self.zoom_to_natural, "zoom_natural"),
+            ("+", self._zoom_in, "zoom_in"),
+            ("Fit", self.zoom_to_fit, "zoom_to_fit"),
         ):
             button = QPushButton(label, self)
             button.clicked.connect(slot)
+            # Taken by KEY from the table above rather than set here, so a
+            # fifth button added to this loop is red until it is declared.
+            apply_help_tooltip(button, _HELP[help_key])
             button.setFixedWidth(56)
             self._zoom_row.addWidget(button)
             self._buttons.append(button)

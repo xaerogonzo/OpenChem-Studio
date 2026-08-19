@@ -76,6 +76,7 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "lewis",      "details": true}     the Full Lewis window
     {"do": "shot",       "path": "...", "widget": "lewis"}
     {"do": "dialog",     "name": "HelpDialog"}   built by ui/dialogs/inventory
+    {"do": "dialog",     "name": "PeriodicTableDialog", "tab": "Isotopes"}
     {"do": "shot",       "path": "...", "widget": "dialog"}
     {"do": "overlay",    "on": true, "gallery": true, "step": 1}
     {"do": "cip",        "on": true}          R/S and E/Z, through the menu
@@ -618,7 +619,7 @@ all, correctly -- excluding more can only make the missing count smaller.
 That is the green-suite-and-a-smaller-universe failure in miniature, and
 the reason the narrow half is the load-bearing one.
 
-### THE DIALOGS: five of six at zero, and the guard that holds them there
+### THE DIALOGS: every one a bare context can build is at zero
 
 `tests/test_dialog_help_contracts.py` is the second consumer
 `ui/dialogs/inventory.py` was written for. Until it existed the contracts
@@ -633,24 +634,91 @@ integration test that fails for reasons having nothing to do with help.
 shrinking silently -- a builder must raise `DialogUnavailable` and must
 never answer None.
 
-    ConformerOptionsDialog     6 of 6      HelpDialog          2 of 2
-    CommandPalette             1 of 1      ReceptorLibrary     1 of 1
-    AboutDialog                0 controls
-    PeriodicTableDialog        0 of 137    <- the only one left
+    PeriodicTableDialog    137 of 137     ConformerOptionsDialog  6 of 6
+    HelpDialog               2 of 2       CommandPalette          1 of 1
+    ReceptorLibraryDialog    1 of 1       AboutDialog             0 controls
 
-**THE EXCEPTION IS ONE NAME IN A SET AND IT DELETES ITSELF.** The panel
-migration used `tooltip_migration_debt.json` and its mirror and threw
-both away at zero; a single `_NOT_YET_MIGRATED` entry with the reason
-beside it is the whole of what is needed here.
-`test_the_unmigrated_dialog_really_is_unmigrated` runs the claim the
-other way -- an excused dialog must still HAVE undocumented controls --
-so the day the periodic table is documented the guard fails and asks for
-the name to be removed. That is the deleted mirror fixture's job, in one
-assertion and no JSON.
+**THE EXCEPTION LIST EXISTED FOR EXACTLY ONE COMMIT AND IS GONE.**
+`_NOT_YET_MIGRATED` held `PeriodicTableDialog` while its 137 contracts
+were written, and its mirror required an excused dialog to still HAVE
+undocumented controls -- so the day the table reached zero the guard
+failed and asked for the name to be deleted. Both are deleted; "no
+control anywhere is undocumented" says the same thing and needs nothing
+maintained. Same arc as `tooltip_migration_debt.json` one layer up, three
+days shorter.
 
-**AND ITS 137 IS NOT 137 CONCEPTS.** 118 are element cells -- one concept
-rendered 118 times, the shape `properties.batch_selection` already has
-across 51 tick boxes.
+**137 WAS NEVER 137 CONCEPTS: it is 15.** 118 are element cells -- one
+concept rendered once per element, the shape
+`properties.batch_selection` already has across 51 tick boxes, and
+`test_one_concept_is_not_split_across_the_element_cells` is what refuses
+the split. Seven more belong to `ZoomableSvgView` and `AtomDiagram`
+rather than to this dialog, so documenting them documented the Lewis
+dialog's four zoom buttons at the same time.
+
+#### THE ELEMENT CELL: a contract under a tooltip rewritten 118 times
+
+`_repaint_cells` rebuilds every cell's tooltip on every recolour, so this
+is the `docking.derive_box_from_ligand` case at scale: the contract is
+attached ONCE and the live text must CARRY it rather than replace it.
+The failure is silent -- a bare `setToolTip` there leaves the contract
+attached as a Qt property, so the coverage guard goes on reporting all
+118 documented while the user reads "Hydrogen -- Nonmetal" and nothing
+saying what clicking does. Mutated: only
+`test_an_element_cells_live_tooltip_still_carries_its_contract` catches
+it, in a discrete mode AND a heat-map mode, because those build their
+live half differently.
+
+#### THE ISOTOPE COLUMNS, AND `*` MEANS THE OPPOSITE OF WHAT IT LOOKS LIKE
+
+The five isotope headers are where the tier-3 work is: every one prints
+a source-specific mark that decides how the number reads. The sharpest
+is spin/parity, and the marks are NOT guessable -- read off the shipped
+`nubase_4.mas20.txt`'s OWN format block and confirmed in the paper's
+legend (p18 of [source:nubase2020]):
+
+    *    DIRECTLY MEASURED spin        1062 states
+    #    non-experimental, from trends in neighbouring nuclei or theory
+                                        948
+    ()   weak argument, still EXPERIMENTAL
+                                       1328
+    T=   isospin, on isobaric analogue states
+                                        108
+
+So `*` is a STRENGTHENING mark where a footnote symbol usually implies
+doubt, and the parenthesis/`#` pair is deliberately the opposite way
+round from ENSDF -- NUBASE section 2.4 says so outright, because it
+separates experimental from non-experimental information where ENSDF
+parenthesises both.
+
+**THE MARKS ARE NOW IN THE NOTE UNDER THE TABLE AS WELL, and that is
+this file's own finding applied.** The half-life legend "explained no
+marks" for exactly the same reason: a meaning that lives only in a
+tooltip is absent from every screenshot. The guard derives the marks
+from what the CELLS PRINT rather than from a list, so it cannot pass
+vacuously.
+
+**DRIVEN AND MAGNIFIED, AND FOR ONCE NOTHING WAS WRONG.** The longer
+note is the one visible change here and this dialog's height was a
+reported bug six commits ago, so it was photographed rather than
+reasoned about: the note wraps to two lines, the action row and Close
+stay inside a 940x900 window, and the Isotopes page's own minimum is 113
+px against the 280 the guard allows. The `dialog` drive step takes a
+`tab` now -- half these dialogs are tabbed and a shot of the default
+page cannot show the other three. A tab name that matches nothing is
+LOGGED rather than ignored, because an unrecognised INDEX would silently
+photograph page 0, which is the wrong-panel-id trap again.
+
+**AND THE `*` COUNT RECONCILES WITH THE PAPER TO THE LAST STATE.**
+NUBASE2020 states 1062 directly measured spins, "827 ground states and
+235 isomers"; the shipped table has 1062, split 826/236. The one-state
+gap is the FREE NEUTRON -- a starred ground state (`1/2+*`) that the
+build deliberately excludes because it is a nuclide and not an element,
+which `test_the_free_neutron_is_not_here` already asserts. Counting `*`
+in the raw source gives 827, so the reconciliation is exact once the one
+deliberate exclusion is named, which is a stronger statement than a
+total that merely agrees. It is also a free check on a fixed-width
+slice: a column off by one would still yield plausible spins while
+quietly moving the flag.
 
 ### The Quantum Chemistry panel: 25 help_ids, 39 renderings
 

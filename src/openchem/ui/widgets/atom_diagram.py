@@ -44,8 +44,56 @@ from openchem.chem.electron_shells import (
     nucleus,
 )
 from openchem.chem.nuclides import format_half_life
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 logger = logging.getLogger(__name__)
+
+#: THE THREE THAT CHANGE THE ION, and the thing worth writing down is what
+#: they do NOT do: this is a reference drawing, not the molecule. Removing
+#: an electron here changes no atom on the canvas.
+#:
+#: The refusal is the other half. `_try_charge` declines a charge it has no
+#: configuration for and leaves the previous state on screen, so a button
+#: that appears to do nothing has in fact answered -- in the provenance
+#: line underneath.
+_HELP: dict[str, HelpTooltip] = {
+    "remove_electron": HelpTooltip(
+        text=(
+            "Removes one electron, forming a cation, and redraws the shells "
+            "and the configuration for it.\n\n"
+            "This changes the DRAWING only -- no atom in your structure is "
+            "touched. Stripping past what the element has leaves the last "
+            "workable ion on screen and says so underneath, rather than "
+            "blanking the diagram."
+        ),
+        tier=2,
+        help_id="atom_diagram.remove_electron",
+        topic="periodic table",
+    ),
+    "add_electron": HelpTooltip(
+        text=(
+            "Adds one electron, forming an anion, and redraws the shells "
+            "and the configuration for it.\n\n"
+            "This changes the DRAWING only -- no atom in your structure is "
+            "touched. A charge with no configuration to give is refused and "
+            "the reason appears underneath."
+        ),
+        tier=2,
+        help_id="atom_diagram.add_electron",
+        topic="periodic table",
+    ),
+    "neutral": HelpTooltip(
+        text=(
+            "Returns the drawing to the neutral atom, charge 0.\n\n"
+            "The element itself does not change -- this undoes the "
+            "electrons added or removed here, not the element chosen in the "
+            "grid above."
+        ),
+        tier=1,
+        help_id="atom_diagram.neutral",
+        topic="periodic table",
+    ),
+}
 
 _NUCLEUS_COLOUR = QColor("#e8546b")
 _ELECTRON_COLOUR = QColor("#3aa0e0")
@@ -484,12 +532,13 @@ class AtomDiagram(QWidget):
         self.provenance_label.setWordWrap(True)
 
         self.remove_button = QPushButton("− electron", self)
-        self.remove_button.setToolTip("Remove an electron, forming a cation.")
+        apply_help_tooltip(self.remove_button, _HELP["remove_electron"])
         self.remove_button.clicked.connect(self._on_remove)
         self.add_button = QPushButton("+ electron", self)
-        self.add_button.setToolTip("Add an electron, forming an anion.")
+        apply_help_tooltip(self.add_button, _HELP["add_electron"])
         self.add_button.clicked.connect(self._on_add)
         self.reset_button = QPushButton("Neutral", self)
+        apply_help_tooltip(self.reset_button, _HELP["neutral"])
         self.reset_button.clicked.connect(self._on_reset)
 
         buttons = QHBoxLayout()
