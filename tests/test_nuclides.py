@@ -565,3 +565,107 @@ def test_a_metastable_state_names_itself_from_the_source_suffix():
     assert metastable.name == "Tc-99m"
     assert metastable.key == N.NuclideKey(43, 99, 1)
     assert not metastable.is_ground_state
+
+
+# --- P4: what an isomer does to the element-level answers ------------------
+
+
+def _state(z, a, symbol, seconds, index=0, label="", abundance=None, stable=False):
+    half = N.HalfLife(None, N.STABLE) if stable else N.HalfLife(seconds, N.EXACT)
+    return N.Nuclide(z, a, symbol, half, abundance=abundance,
+                     state_index=index, state_label=label)
+
+
+def test_a_ground_state_sorts_above_its_own_isomer_when_all_else_ties():
+    """Tc-99 and Tc-99m share element, mass number, absent abundance and
+    stability class, so every earlier key ties and without a state
+    tie-break the order comes down to nothing at all."""
+    ground = _state(43, 99, "Tc", 6.66e12)
+    metastable = _state(43, 99, "Tc", 6.66e12, index=1, label="m")
+
+    assert [n.name for n in N.isotope_order([metastable, ground])] == [
+        "Tc-99",
+        "Tc-99m",
+    ]
+
+
+def test_the_tie_break_is_the_LAST_term_and_ta_180m_proves_it():
+    """**"GROUND STATES FIRST" WOULD BE WRONG.** Ta-180m carries a natural
+    abundance and is marked stable while Ta-180 is neither, so it
+    legitimately sorts ABOVE its own ground state on the earlier keys and
+    never reaches the tie-break. A blanket rule would invert the one
+    naturally occurring isomer in the table.
+    """
+    ground = _state(73, 180, "Ta", 29354.4)
+    metastable = _state(73, 180, "Ta", 0.0, index=1, label="m",
+                        abundance=0.01201, stable=True)
+
+    assert [n.name for n in N.isotope_order([ground, metastable])] == [
+        "Ta-180m",
+        "Ta-180",
+    ]
+
+
+def test_no_element_depends_on_an_isomer_for_its_stability():
+    """**A CHANGE DETECTOR ON AN ASSUMPTION, not a rule.**
+
+    `has_stable_isotope` reads "any state", and "any state" and "the
+    ground state" are indistinguishable on this data: exactly one isomer
+    in NUBASE is marked stable (Ta-180m) and tantalum already has a
+    stable ground state in Ta-181. The day a revision separates the two
+    readings, this fails and names the element rather than the simpler
+    form quietly becoming wrong.
+    """
+    for symbol in ("Ta", "H", "C", "U", "Tc", "Pm", "Bi", "Pb"):
+        by_any_state = N.has_stable_isotope(symbol)
+        by_ground_state = any(
+            n.is_stable for n in N.nuclides_for(symbol) if n.is_ground_state
+        )
+        assert by_any_state == by_ground_state, symbol
+
+
+def test_the_representative_half_life_can_come_from_a_metastable_state():
+    """**Ag-108 LEGITIMATELY WINS AT 438 YEARS.** Its ground state lasts
+    2.37 minutes; Ag-108m lasts 438 years, and that is a state OF the
+    isotope Ag-108, so it is the isotope's representative half-life.
+
+    **AND NO CODE CHANGE WAS NEEDED FOR IT**, which is worth recording so
+    nobody adds machinery later: a maximum over every state already
+    equals the maximum over isotopes of each isotope's own maximum. What
+    the plan called a per-isotope grouping falls out of the existing
+    `max`. The shipped table holds no isomer, so the states are built.
+    """
+    silver = [
+        _state(47, 105, "Ag", 3.57e6),           # 41.3 d, today's winner
+        _state(47, 108, "Ag", 142.2),            # 2.37 min ground state
+        _state(47, 108, "Ag", 1.38e10, index=1, label="m"),  # 438 y
+    ]
+
+    best = N._longest_by_half_life([n for n in silver if not n.is_stable])
+
+    assert best.name == "Ag-108m"
+    assert best.a == 108, "the ISOTOPE that wins is Ag-108"
+
+
+def test_the_palette_never_gains_a_separate_entry_for_a_state():
+    """Alex asked for the state-level query to be recorded as a future
+    feature rather than built. The colour modes answer per ELEMENT, so
+    there is no key an isomer could occupy -- asserted rather than
+    assumed, because "there is nowhere for it to go" is exactly the kind
+    of structural claim that stops being true when somebody adds a mode.
+    """
+    from openchem.chem.element_palettes import (
+        HYBRID,
+        half_life_shading,
+        stability_class,
+    )
+
+    # Every mode is keyed on an ELEMENT symbol, so a state has nowhere to
+    # sit even if somebody wanted it to. `stability` is a DISCRETE
+    # palette and `longest_half_life` a hybrid one; both answer per
+    # element, which is the property being asserted.
+    assert set(HYBRID) == {"longest_half_life"}
+    for symbol in ("Ag", "Ta", "Tc", "C", "U"):
+        assert isinstance(stability_class(symbol), str)
+        shading = half_life_shading(symbol)
+        assert shading is None or isinstance(shading.display, str), symbol

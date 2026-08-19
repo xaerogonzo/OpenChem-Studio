@@ -1051,3 +1051,90 @@ def test_a_stack_never_reaches_into_the_row_below_it(dialog):
                 and one.y < other.y + other.height
                 and other.y < one.y + one.height
             ), f"{one.name} overlaps {other.name}"
+
+
+def test_an_isomer_row_disables_apply_and_says_why(dialog):
+    """**THE ROW STAYS SELECTED AND ITS DATA STAYS ON SCREEN.** Only
+    Apply is refused, because the half-life and decay modes of Tc-99m are
+    exactly what somebody opened the tab to read.
+
+    The shipped table holds no isomer, so the row is written directly --
+    which is also the only way to reach the branch at all.
+    """
+    from openchem.chem.isotopes import IsotopeRefusal, REFUSAL_TEXT
+    from PySide6.QtCore import Qt
+
+    dialog.set_selected_atom("Tc", 0)
+    dialog.select("Tc")
+    table = dialog._isotope_table
+    item = table.item(0, 0)
+    item.setData(
+        Qt.ItemDataRole.UserRole, nuclide_data.NuclideKey(43, 99, 1)
+    )
+    table.selectRow(0)
+    dialog._refresh_isotope_button()
+
+    assert dialog.selected_isotope_key() == nuclide_data.NuclideKey(43, 99, 1)
+    assert not dialog._isotope_button.isEnabled()
+    assert dialog._isotope_hint.text() == REFUSAL_TEXT[
+        IsotopeRefusal.ISOMER_NOT_IN_MOLFILE
+    ]
+    # ...and the placement path refuses it for the same reason.
+    assert dialog.isotope_for_placement() is None
+
+
+def test_a_ground_state_row_still_applies(dialog):
+    """The control. Without it, a refusal that disabled Apply for every
+    row would pass the test above while breaking the whole feature."""
+    from PySide6.QtCore import Qt
+
+    dialog.set_selected_atom("Tc", 0)
+    dialog.select("Tc")
+    table = dialog._isotope_table
+    table.item(0, 0).setData(
+        Qt.ItemDataRole.UserRole, nuclide_data.NuclideKey(43, 97)
+    )
+    table.selectRow(0)
+    dialog._refresh_isotope_button()
+
+    assert dialog._isotope_button.isEnabled()
+    assert dialog.selected_isotope() == 97
+
+
+def test_an_isomer_row_carries_ITS_OWN_key_and_names_itself(dialog, monkeypatch):
+    """**THE ROW IS WHERE THE STATE ENTERS THE UI**, so storing
+    `NuclideKey(entry.z, entry.a)` instead of `entry.key` is invisible
+    until an isomer is listed -- and then Tc-99m's row claims to be
+    Tc-99 and Apply happily writes it.
+
+    **THE SHIPPED TABLE HOLDS NO ISOMER**, so `nuclides_for` is
+    substituted. Its own setup is asserted: without two rows sharing a
+    mass number there is nothing a dropped state index could get wrong.
+    """
+    from openchem.ui.dialogs import periodic_table_dialog as module
+
+    ground = nuclide_data.nuclide(43, 99)
+    metastable = nuclide_data.Nuclide(
+        43, 99, "Tc", nuclide_data.HalfLife(21624.0, nuclide_data.EXACT),
+        state_index=1, state_label="m",
+    )
+    monkeypatch.setattr(
+        module.nuclide_data, "nuclides_for", lambda symbol: (ground, metastable)
+    )
+
+    dialog.select("Tc")
+    table = dialog._isotope_table
+    keys = [
+        table.item(row, 0).data(Qt.ItemDataRole.UserRole)
+        for row in range(table.rowCount())
+    ]
+    names = [table.item(row, 0).text() for row in range(table.rowCount())]
+
+    assert len({k.a for k in keys}) == 1, "the setup needs one mass number"
+    assert keys == [
+        nuclide_data.NuclideKey(43, 99),
+        nuclide_data.NuclideKey(43, 99, 1),
+    ]
+    # And the row NAMES the state, from the source's own suffix, so a
+    # reader is never shown two rows both called Tc-99.
+    assert names == ["Tc-99", "Tc-99m"]

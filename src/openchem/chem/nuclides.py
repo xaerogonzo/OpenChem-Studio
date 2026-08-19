@@ -396,6 +396,15 @@ def isotope_order(found) -> tuple[Nuclide, ...]:
         then half-life, descending      a bound ranks on its value; an
                                         unavailable one sorts last
         then mass number, ascending     the deterministic tie-break
+        then state index, ascending     a ground state before its isomer
+
+    **THE STATE INDEX IS THE FINAL TERM, NOT A GLOBAL RULE.** Tc-99 and
+    Tc-99m share element, mass number, absent abundance and stability
+    class, so without it a ground state can fall below its own isomer on
+    nothing but dict order. But "ground states first" would be WRONG:
+    Ta-180m carries a natural abundance and is marked stable, so it
+    legitimately sorts above Ta-180 on the earlier keys and never reaches
+    this term at all.
 
     **ABSENT IS NOT ZERO**, and that distinction is the one a later
     convenience breaks: the first `or 0.0` somebody writes to tidy this
@@ -415,8 +424,9 @@ def _isotope_sort_key(n: Nuclide):
         not n.is_stable,                        # stable before radioactive
         not has_half_life,                      # a number before none
         -(n.half_life.seconds or 0.0),          # then the longest-lived
-        n.a,                                    # and finally by mass number
-    )
+        n.a,                                    # then by mass number
+        n.state_index,                          # and a ground state before
+    )                                           # its own isomer
 
 
 # --- three predicates, and they are not the same question ---------------
@@ -441,6 +451,16 @@ def has_stable_isotope(symbol: str) -> bool:
     **Uranium is the case that matters**: naturally abundant and entirely
     radioactive. A radioactivity display built on natural occurrence gets
     it exactly backwards.
+
+    **"ANY STATE" AND "THE GROUND STATE" ARE INDISTINGUISHABLE ON THIS
+    DATA, WHICH MEASURING SETTLED rather than a decision.** Exactly one
+    isomer in the whole NUBASE table is marked stable -- Ta-180m -- and
+    tantalum already has a stable ground state in Ta-181, so no element's
+    only stable state is an isomer and none gains a natural abundance
+    only via one. The simpler form therefore stands unchanged, and
+    `test_no_element_depends_on_an_isomer_for_its_stability` FAILS the
+    day a NUBASE revision separates the two readings. A change detector
+    on an assumption beats a rule nobody can check.
     """
     return any(n.is_stable for n in nuclides_for(symbol))
 

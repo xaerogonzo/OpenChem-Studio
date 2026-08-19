@@ -709,3 +709,52 @@ def test_the_editor_edit_item_asks_the_editor_for_that_atom(window):
     next(a for a in menu.actions() if "Edit" in a.text()).trigger()
 
     assert opened == [1]
+
+
+# --- P4: a molfile has no place to put a nuclear state ---------------------
+
+
+def test_the_isomer_refusal_is_a_VALUE_with_generated_text():
+    """**`if "isomer" in message` MUST NEVER BECOME APPLICATION LOGIC.**
+    The refusal is a declared kind, the same as `BcsReason` and the decay
+    leaf reasons, and its prose is generated from it.
+    """
+    from openchem.chem.isotopes import (
+        IsotopeError,
+        IsotopeRefusal,
+        REFUSAL_TEXT,
+        refuse_isomer,
+    )
+
+    error = refuse_isomer()
+
+    assert isinstance(error, IsotopeError)
+    assert error.refusal is IsotopeRefusal.ISOMER_NOT_IN_MOLFILE
+    assert str(error) == REFUSAL_TEXT[IsotopeRefusal.ISOMER_NOT_IN_MOLFILE]
+    assert set(REFUSAL_TEXT) == set(IsotopeRefusal), "every kind needs words"
+
+
+def test_the_refusal_says_what_a_molfile_cannot_hold():
+    """A reason a user can act on, rather than "invalid". It must name
+    the limitation (the FILE FORMAT, not their molecule) and say the
+    half-life is still on screen -- otherwise a disabled button reads as
+    the feature being broken."""
+    from openchem.chem.isotopes import refuse_isomer
+
+    words = str(refuse_isomer()).lower()
+
+    assert "mass number" in words
+    assert "nuclear state" in words or "state" in words
+    assert "half-life" in words
+
+
+def test_an_ordinary_refusal_carries_no_declared_kind():
+    """The arithmetic refusals -- no such atom, no such nuclide -- are
+    already specific, so `refusal` is None rather than a kind invented to
+    fill the field."""
+    from openchem.chem.isotopes import IsotopeError, set_isotope
+
+    with pytest.raises(IsotopeError) as caught:
+        set_isotope(_drawn("CCO"), 99, 13)
+
+    assert caught.value.refusal is None

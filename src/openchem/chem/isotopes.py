@@ -25,13 +25,67 @@ real.
 
 from __future__ import annotations
 
+from enum import Enum
+
 from rdkit import Chem
 
 from openchem.chem import nuclides as nuclide_data
 
 
+class IsotopeRefusal(str, Enum):
+    """Why a mass-number write cannot be made.
+
+    **A VALUE RATHER THAN A SENTENCE**, so `if "isomer" in message` never
+    becomes application logic -- the same reason `BcsReason` and the
+    decay leaf reasons are values. The UI text is generated from it.
+    """
+
+    #: **A MOLFILE HAS NO PLACE TO PUT A NUCLEAR STATE.** `M  ISO` carries
+    #: a mass number and nothing else, so Tc-99m and Tc-99 write the same
+    #: bytes and every downstream reader -- RDKit, the calculators, a
+    #: saved project -- would treat the metastable structure as the
+    #: ground state. **THE REFUSAL IS THE FEATURE**: the alternative is
+    #: silently discarding the one thing the user asked for. The Isotopes
+    #: tab still shows the isomer's half-life and decay modes; only Apply
+    #: is refused.
+    ISOMER_NOT_IN_MOLFILE = "isomer_not_in_molfile"
+
+
+#: What each refusal says to a reader. Generated from the value so the
+#: wording lives in one place and a test can assert the mapping is total.
+REFUSAL_TEXT: dict[IsotopeRefusal, str] = {
+    IsotopeRefusal.ISOMER_NOT_IN_MOLFILE: (
+        "A molfile records a mass number, not a nuclear state, so a "
+        "metastable isomer cannot be written to the structure. Its "
+        "half-life and decay modes are shown above."
+    ),
+}
+
+
 class IsotopeError(ValueError):
-    """A write was refused, with a reason a user can act on."""
+    """A write was refused, with a reason a user can act on.
+
+    `refusal` is set when the refusal is one of the declared kinds; it is
+    None for the ordinary arithmetic refusals (no such atom, no such
+    nuclide) whose message is already specific.
+    """
+
+    def __init__(self, message: str, refusal: "IsotopeRefusal | None" = None):
+        super().__init__(message)
+        self.refusal = refusal
+
+
+def refuse_isomer() -> IsotopeError:
+    """The refusal, built in ONE place.
+
+    Both the write path and the button-enabling path need it, and writing
+    the sentence twice is how two refusals drift into disagreeing -- the
+    lesson `predicted_only_reason()` already records for solvents.
+    """
+    return IsotopeError(
+        REFUSAL_TEXT[IsotopeRefusal.ISOMER_NOT_IN_MOLFILE],
+        IsotopeRefusal.ISOMER_NOT_IN_MOLFILE,
+    )
 
 
 def set_isotope(

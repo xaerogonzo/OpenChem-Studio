@@ -67,6 +67,7 @@ from PySide6.QtWidgets import (
 from openchem.ui.widgets.atom_diagram import AtomDiagram
 from openchem.ui.widgets.collapsible_section import WrappedLabel
 from openchem.chem import element_palettes as palettes
+from openchem.chem import isotopes
 from openchem.chem import nuclides as nuclide_data
 from openchem.chem.decay import decay_tree, format_branching, format_mode
 from openchem.chem.decay_svg import legend_lines, render_decay_svg
@@ -508,18 +509,39 @@ class PeriodicTableDialog(QDialog):
         user to oxygen and place O-13. That is the same
         element-must-match rule `_refresh_isotope_button` enforces for the
         write path, asked of the placement path.
+
+        **AN ISOMER IS REFUSED HERE TOO, for the same reason the write
+        path refuses it**: a placed atom becomes a molfile, and a molfile
+        records a mass number with no place for a nuclear state. Placing
+        "Tc-99m" would deposit Tc-99 and nothing would say so. The two
+        refusals share `IsotopeRefusal.ISOMER_NOT_IN_MOLFILE` rather than
+        each deciding for itself.
         """
         if self._isotope_selection_element != self._selected:
             return None
-        return self.selected_isotope()
+        key = self.selected_isotope_key()
+        if key is None or not key.is_ground_state:
+            return None
+        return key.a
 
     def selected_isotope(self) -> int | None:
         """The mass number of the highlighted row, or None."""
+        key = self.selected_isotope_key()
+        return None if key is None else key.a
+
+    def selected_isotope_key(self) -> nuclide_data.NuclideKey | None:
+        """Which nuclear STATE the highlighted row is, or None.
+
+        **THE ROW CARRIES THE KEY, not a bare mass number.** Tc-99 and
+        Tc-99m are two rows whose mass numbers are identical, so a row
+        that stored only `a` could not say which one the user picked --
+        and the write path has to refuse one of them.
+        """
         rows = self._isotope_table.selectionModel()
         if rows is None or not rows.selectedRows():
             return None
         item = self._isotope_table.item(rows.selectedRows()[0].row(), 0)
-        return None if item is None else int(item.data(Qt.ItemDataRole.UserRole))
+        return None if item is None else item.data(Qt.ItemDataRole.UserRole)
 
     def _refresh_isotope_button(self) -> None:
         """Enabled only when every part of the question has an answer.
@@ -554,6 +576,19 @@ class PeriodicTableDialog(QDialog):
         if mass_number is None:
             self._isotope_button.setEnabled(False)
             self._isotope_hint.setText("Choose an isotope above.")
+            return
+        key = self.selected_isotope_key()
+        if key is not None and not key.is_ground_state:
+            # **THE REFUSAL IS THE FEATURE.** A molfile records a mass
+            # number and has no place for a nuclear state, so writing
+            # Tc-99m would produce Tc-99's bytes and every reader
+            # downstream would treat it as the ground state. The row
+            # stays selected and its half-life and decay modes stay on
+            # screen; only Apply is refused.
+            self._isotope_button.setEnabled(False)
+            self._isotope_hint.setText(
+                isotopes.REFUSAL_TEXT[isotopes.IsotopeRefusal.ISOMER_NOT_IN_MOLFILE]
+            )
             return
         self._isotope_button.setEnabled(True)
         scope = f"every {symbol}" if self._isotope_all.isChecked() else "the selected atom"
@@ -598,7 +633,7 @@ class PeriodicTableDialog(QDialog):
             for index, text in enumerate(cells):
                 item = QTableWidgetItem(text)
                 if index == 0:
-                    item.setData(Qt.ItemDataRole.UserRole, entry.a)
+                    item.setData(Qt.ItemDataRole.UserRole, entry.key)
                 table.setItem(row, index, item)
             if entry.half_life.is_qualified:
                 # Reinforcement only: the text already carries the mark,
