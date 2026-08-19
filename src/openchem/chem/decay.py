@@ -82,11 +82,32 @@ ISOMERIC_TRANSITION = "IT"
 #: daughter can be attributed.
 UNFOLLOWABLE = frozenset({"SF", "B-SF", "B+SF", "24Ne+26Ne", "28Mg+30Mg"})
 
+#: Modes whose daughter EXISTS but which the source does not pin down.
+#: **A DIFFERENT CLAIM FROM `UNFOLLOWABLE`**, and conflating the two
+#: would make the leaf reason a lie: there is one daughter here, and
+#: NUBASE simply does not say which.
+#:
+#: **ONE ROW IN 5,684, and it arrived with the isomers.** Pd-126p writes
+#: `B=72 8;IT=28 8` -- a beta decay with no sign, where the sign is
+#: exactly what decides whether Z goes up or down. Its own ground state
+#: is `B-=100`, and an isomer sits HIGHER in energy, so beta-minus is a
+#: near-certain inference -- which is precisely why it is refused. This
+#: application does not derive physics the source declined to state, and
+#: NUBASE's own format header (columns 120-209, "Decay Modes and their
+#: Intensities") documents no mode vocabulary to appeal to.
+UNDERSPECIFIED = frozenset({"B"})
+
 #: Why a branch stops. **Three physical reasons and no fourth** -- a
 #: `cycle` reason would be a bug wearing a leaf's clothes.
 STABLE = "stable"
 UNFOLLOWABLE_MODE = "unfollowable"
 OFF_TABLE = "off_table"
+#: **THE FOURTH REASON, AND IT IS NOT A PHYSICAL ONE.** The three above
+#: describe the nucleus; this one describes the DATA -- the mode is
+#: named and its sign is not, so a daughter exists and cannot be
+#: identified. Kept separate for that reason: folding it into
+#: `unfollowable` would tell a reader no daughter exists.
+UNDERSPECIFIED_MODE = "underspecified"
 
 _TOKEN = re.compile(r"(\d*)([A-Z][a-z]?|[npdtA])")
 
@@ -109,6 +130,9 @@ class DecayGraphError(RuntimeError):
 #: which has no Greek at all.
 _MODE_NAMES = {
     "A": "alpha",
+    # NUBASE writes ONE unsigned beta, on Pd-126p. The sign decides the
+    # daughter, so it is named rather than guessed at -- see UNDERSPECIFIED.
+    "B": "beta (sign not stated)",
     "B-": "beta-",
     "B+": "beta+",
     "2B-": "double beta-",
@@ -215,7 +239,7 @@ def delta_for(mode: str) -> tuple[int, int] | None:
     reading `delta_for("IT")` alone and following it in `(Z, A)` space
     would loop forever.
     """
-    if mode in UNFOLLOWABLE:
+    if mode in UNFOLLOWABLE or mode in UNDERSPECIFIED:
         return None
     if mode == ISOMERIC_TRANSITION:
         return (0, 0)
@@ -261,7 +285,11 @@ def is_recognised(mode: str) -> bool:
     neither means NUBASE introduced a notation nobody anticipated, and the
     generator refuses rather than dropping the branch silently.
     """
-    return mode in UNFOLLOWABLE or delta_for(mode) is not None
+    return (
+        mode in UNFOLLOWABLE
+        or mode in UNDERSPECIFIED
+        or delta_for(mode) is not None
+    )
 
 
 class DaughterProvenance(str, Enum):
@@ -429,11 +457,12 @@ def decay_tree(start: Nuclide) -> DecayTree:
         for decay in current.decays:
             child, provenance = daughter(current, decay.mode)
             if child is None:
-                reason = (
-                    UNFOLLOWABLE_MODE
-                    if provenance is DaughterProvenance.UNFOLLOWABLE
-                    else OFF_TABLE
-                )
+                if decay.mode in UNDERSPECIFIED:
+                    reason = UNDERSPECIFIED_MODE
+                elif provenance is DaughterProvenance.UNFOLLOWABLE:
+                    reason = UNFOLLOWABLE_MODE
+                else:
+                    reason = OFF_TABLE
                 outgoing.append(
                     DecayEdge(
                         decay.mode,

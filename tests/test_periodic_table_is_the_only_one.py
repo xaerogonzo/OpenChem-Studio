@@ -222,12 +222,24 @@ def _isotope_rows(dialog) -> list[list[str]]:
 
 def test_the_isotopes_tab_lists_the_selected_elements_nuclides(dialog):
     """The thing Ketcher's Atom Properties cannot tell you: which mass
-    numbers exist, how long each lasts, and how much of it is out there."""
+    numbers exist, how long each lasts, and how much of it is out there.
+
+    **16 BECAME 20 WHEN THE STATES LANDED**, and the four are carbon's
+    isobaric analogue states -- C-11i, C-12i, C-13i, C-14i. They are
+    SHOWN rather than filtered: each names itself with the source's own
+    suffix and reports an unavailable half-life as unavailable, and
+    deciding a reader may not see a state NUBASE lists would be this
+    application editing its source. The sort already puts them below
+    everything with a measured half-life.
+    """
     dialog.select("C")
 
     rows = _isotope_rows(dialog)
 
-    assert len(rows) == 16
+    assert len(rows) == 20
+    assert [r[0] for r in rows if r[0].endswith("i")] == [
+        "C-11i", "C-12i", "C-13i", "C-14i",
+    ]
     assert rows[0][0] == "C-12"
     assert "98.94%" in rows[0][1]
     assert rows[0][2] == "stable"

@@ -399,20 +399,50 @@ def test_decay_tree_size_has_not_changed_from_the_pinned_corpus():
     maintainer meeting it after a legitimate NUBASE update knows the
     answer is to re-measure rather than to argue with the number.
 
-    Measured across all 3,557 shipped ground states with no threshold and
-    no cap, because chains converge on stability and the trees are
-    bounded by the physics: median 8, mean 15, largest 161 at Au-169. A
-    cap would be a constant somebody chose over a number nobody needed.
+    Measured across all 5,684 shipped states with no threshold and no
+    cap, because chains converge on stability and the trees are bounded
+    by the physics. A cap would be a constant somebody chose over a
+    number nobody needed.
+
+    **A PROFILE, NOT ONE NUMBER, because "the largest tree is 161 nodes"
+    stopped being the relevant statistic once isomers existed.** Six
+    figures, and two of them are the interesting ones:
+
+        max nodes 161 at Au-169     UNCHANGED by the isomers
+        median      7               was 8
+        over 60    86               was 54
+        max edges 223
+        trees containing an isomer          2127
+        trees containing an IT edge         1787
+
+    **THE LARGEST TREE DID NOT MOVE, and that says the model is right.**
+    An isomer's `IT` leads to its own ground state and the ordinary chain
+    continues from there, so an isomer adds a ROOT rather than a branch.
+    Which is also why "trees containing an isomer" is exactly 2127, one
+    per isomer: a non-IT decay resolves to a ground state, so no
+    ground-state tree ever reaches an isomer.
+
+    340 isomers carry no `IT` at all (2127 - 1787), which is NUBASE
+    saying their measured branchings are something else.
     """
-    sizes = [
-        decay.decay_tree(start).size
-        for group in N._by_element().values()
-        for start in group
-    ]
+    sizes, edges = [], []
+    with_isomer = with_it = 0
+    for group in N._by_element().values():
+        for start in group:
+            tree = decay.decay_tree(start)
+            sizes.append(tree.size)
+            edges.append(sum(len(out) for out in tree.edges.values()))
+            if any(not key.is_ground_state for key in tree.nodes):
+                with_isomer += 1
+            if any(e.mode == "IT" for out in tree.edges.values() for e in out):
+                with_it += 1
 
     assert max(sizes) == 161
-    assert sorted(sizes)[len(sizes) // 2] == 8
-    assert sum(1 for s in sizes if s > 60) == 54
+    assert sorted(sizes)[len(sizes) // 2] == 7
+    assert sum(1 for s in sizes if s > 60) == 86
+    assert max(edges) == 223
+    assert with_isomer == 2127
+    assert with_it == 1787
 
 
 # --- the isotope table's row order -----------------------------------------
@@ -542,16 +572,24 @@ def test_a_nuclide_key_tells_a_ground_state_from_its_isomer():
     assert ground.state_index == 0
 
 
-def test_every_shipped_nuclide_is_a_ground_state_today():
-    """The data has not been regenerated yet, so this records WHERE the
-    isomers are not: the model can carry a state, the table does not yet
-    hold one, and the day that changes this test is the one that says so.
-    """
-    every = [n for symbol in ("U", "Tc", "Ta", "C") for n in N.nuclides_for(symbol)]
+def test_the_table_now_holds_states_and_they_know_which_they_are():
+    """**THE SUCCESSOR TO A DELIBERATE MARKER.** Its predecessor asserted
+    every shipped nuclide was a ground state and said "the day that
+    changes this test is the one that says so". This is that day.
 
-    assert every, "the fixture must find something"
-    assert all(n.is_ground_state for n in every)
-    assert all(n.state_label == "" for n in every)
+    Tc-99m is the case, because it is the most-used radionuclide in
+    medicine and is exactly what a `(Z, A)` key cannot tell from its own
+    ground state.
+    """
+    technetium = {n.name: n for n in N.nuclides_for("Tc")}
+
+    assert technetium["Tc-99"].is_ground_state
+    assert not technetium["Tc-99m"].is_ground_state
+    assert technetium["Tc-99m"].key == N.NuclideKey(43, 99, 1)
+    assert technetium["Tc-99m"].state_label == "m"
+    # And the ground state still says nothing about a state it does not
+    # have, rather than carrying a `0` somebody has to interpret.
+    assert technetium["Tc-99"].state_label == ""
 
 
 def test_a_metastable_state_names_itself_from_the_source_suffix():
@@ -669,3 +707,55 @@ def test_the_palette_never_gains_a_separate_entry_for_a_state():
         assert isinstance(stability_class(symbol), str)
         shading = half_life_shading(symbol)
         assert shading is None or isinstance(shading.display, str), symbol
+
+
+def test_the_one_unsigned_beta_is_refused_rather_than_inferred():
+    """**Pd-126p WRITES `B=72 8`, A BETA WITH NO SIGN**, and the sign is
+    exactly what decides whether Z goes up or down.
+
+    Its own ground state is `B-=100` and an isomer sits HIGHER in energy,
+    so beta-minus is a near-certain inference -- which is precisely why
+    it is refused. This application does not derive physics the source
+    declined to state, and NUBASE's format header documents no mode
+    vocabulary to appeal to.
+
+    **IT IS THE ONLY ONE**, asserted over the whole table so a future
+    revision adding a second fails here rather than being absorbed.
+    """
+    unsigned = [
+        (n.name, d.mode)
+        for group in N._by_element().values()
+        for n in group
+        for d in n.decays
+        if d.mode in decay.UNDERSPECIFIED
+    ]
+
+    assert unsigned == [("Pd-126p", "B")]
+    assert decay.is_recognised("B"), "known about, and declined"
+    assert decay.delta_for("B") is None
+    assert "sign" in decay.format_mode("B")
+
+
+def test_an_underspecified_edge_is_not_called_unfollowable():
+    """**A DIFFERENT CLAIM, and conflating them would tell a reader no
+    daughter exists.** `SF` has none; `B` has one and NUBASE does not say
+    which.
+
+    **THE REASON NEVER BECOMES A WHOLE NODE'S LEAF REASON**, measured
+    over every tree in the table -- Pd-126p also carries `IT=28`, which
+    is followable, so the node is not terminal. Written down rather than
+    left as a silent gap: the branch is exercised on the edge and the
+    leaf path is genuinely unreachable from the shipped data.
+    """
+    tree = decay.decay_tree(N.nuclide_at(N.NuclideKey(46, 126, 3)))
+
+    reasons = {
+        e.mode: e.leaf_reason
+        for out in tree.edges.values()
+        for e in out
+        if e.leaf_reason
+    }
+
+    assert reasons == {"B": decay.UNDERSPECIFIED_MODE}
+    assert decay.UNDERSPECIFIED_MODE != decay.UNFOLLOWABLE_MODE
+    assert decay.UNDERSPECIFIED_MODE not in tree.leaves().values()

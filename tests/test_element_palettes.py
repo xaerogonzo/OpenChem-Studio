@@ -12,6 +12,7 @@ import pytest
 from PySide6.QtCore import QCoreApplication, QEvent
 
 from openchem.chem import element_palettes as palettes
+from openchem.chem import nuclides as N
 from openchem.chem.element_reference import all_symbols, facts_for
 from openchem.ui.dialogs.periodic_table_dialog import PeriodicTableDialog
 
@@ -549,3 +550,66 @@ def test_the_other_discrete_modes_are_left_alone(dialog):
         dialog._palette_combo.setCurrentIndex(palettes.PALETTE_ORDER.index(key))
 
         assert dialog._fill_and_note("C")[2] == "", key
+
+
+def test_four_elements_answer_differently_now_that_states_are_in_the_table():
+    """**THE MEASURABLE EFFECT OF ALEX'S CHOSEN SEMANTICS**, and the
+    reason it is a table rather than a claim.
+
+    An isotope's representative half-life is its longest-lived
+    RADIOACTIVE state, so Ag-108 legitimately wins at 439 years -- via
+    Ag-108m, which is a state OF the isotope Ag-108. Two of these change
+    which ISOTOPE wins and two change only the VALUE, and they are
+    listed together because they are one rule seen from two sides:
+
+        WINNER MOVES   Ag  105 -> 108   41.3 d -> 439 y   (Ag-108m)
+                       Hs  269 -> 277   16 s   -> 2.17 m  (Hs-277m)
+        VALUE MOVES    Ir  A=192 both   74 d   -> 241 y   (Ir-192n)
+                       Lv  A=293 both   70 ms  -> 80 ms   (Lv-293m)
+
+    **AND THE CONTROLS MATTER MORE THAN THE MOVES.** Carbon and uranium
+    are here so a rule that simply preferred any isomer would fail: both
+    still answer with a ground state, because no state of theirs
+    outlives it.
+    """
+    moved = {
+        symbol: N.longest_radioactive_isotope(symbol).name
+        for symbol in ("Ag", "Hs", "Ir", "Lv")
+    }
+
+    assert moved == {
+        "Ag": "Ag-108m",
+        "Hs": "Hs-277m",
+        "Ir": "Ir-192n",
+        "Lv": "Lv-293m",
+    }
+    # The ISOTOPE that wins, which is what the palette entry is about.
+    assert N.longest_radioactive_isotope("Ag").a == 108
+    assert N.longest_radioactive_isotope("Hs").a == 277
+
+    for symbol in ("C", "U", "Tc"):
+        best = N.longest_radioactive_isotope(symbol)
+        assert best.is_ground_state, f"{symbol} answered {best.name}"
+
+
+def test_the_half_life_swatch_names_the_state_it_measured():
+    """**A READER MUST NEVER BE TOLD Hs-277 LASTS 2.17 MINUTES.** That
+    value belongs to Hs-277m, and the note says so -- which is what makes
+    the isotope-level semantics honest rather than an attribution error
+    wearing a palette.
+
+    **SILVER CANNOT SHOW THIS AND IS THE OBVIOUS CHOICE**, which is why
+    it is not used: Ag has a stable isotope, so its swatch is terminal
+    ("has a stable isotope") and the Ag-108m value never reaches the
+    screen at all. Hassium and livermorium are entirely radioactive, so
+    the numeric branch is the one that runs.
+    """
+    hassium = palettes.half_life_shading("Hs")
+    livermorium = palettes.half_life_shading("Lv")
+
+    assert hassium is not None and hassium.position is not None
+    assert hassium.note == "Hs-277m: 2.17 m"
+    assert livermorium.note == "Lv-293m: 80 ms"
+    # And the control: an element whose winner IS a ground state names it
+    # without a suffix, so the `m` is data rather than decoration.
+    assert palettes.half_life_shading("U").note.startswith("U-238:")

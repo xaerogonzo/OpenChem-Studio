@@ -17,13 +17,38 @@ sits beside the output and the manifest records both its sha256 (which
 bytes) and its revision (which scientific release) -- the second being
 the one that answers "why does this disagree with NUBASE2024".
 
-## Ground states only, and that is enforced rather than described
+## Every state ships, and the counts are DERIVED
 
-NUBASE carries isomers (T-half >= 100 ns) as well: 5,843 rows against
-3,558 ground states. This ships the ground states, because a molfile
-cannot express Tc-99m as distinct from Tc-99, so isomer rows would be
-data nothing could reach. A documented policy nothing enforces is how
-somebody helpfully adds them later, so `_check_invariants` refuses.
+    source_rows        5685
+    ground_state_rows  3558
+    isomer_rows        2127
+    excluded_rows         1     the free neutron, `001 0000  1n`, Z=0
+    shipped_rows       5684
+
+They are counted and checked to add up rather than written into prose,
+because an earlier draft carried "3557 -> 5684" by hand and left a
+reader wondering which of 5684 and 5685 was the typo. `build` refuses if
+the arithmetic does not close.
+
+**THIS FILE PREVIOUSLY SHIPPED GROUND STATES ONLY**, on the reasoning
+that a molfile cannot express Tc-99m as distinct from Tc-99 so isomer
+rows would be data nothing could reach. The first half is still true and
+is now a REFUSAL in the write path (`IsotopeRefusal.ISOMER_NOT_IN_MOLFILE`)
+rather than an absence in the data -- the half-life and decay modes of
+Tc-99m are exactly what somebody opens the Isotopes tab to read, and the
+decay chart draws its chain.
+
+The state key is `Z-A-i`, and the SUFFIX is read from NUBASE's name
+field rather than derived from `i`: a table mapping 1 to `m` would be a
+second implementation of somebody else's notation. Measured, the two are
+one-to-one across all 2,127 -- 1 m, 2 n, 3 p, 4 q, 5 r, 6 x, 8 i, 9 j.
+
+**AND IT FORCED `IT` INTO THE GRAMMAR.** 1,471 rows carry an isomeric
+transition and `is_recognised("IT")` was False, so the
+zero-unrecognised-modes rule REFUSED to build rather than dropping those
+branches silently. It also surfaced ONE unsigned beta -- Pd-126p writes
+`B=72 8` -- which is refused rather than inferred, because the sign is
+exactly what decides the daughter.
 
 ## A half-life has EIGHT states and TWO dimensions
 
@@ -241,9 +266,30 @@ def parse_decays(br_field: str) -> tuple[list[dict], float | None]:
 # --- the build ---------------------------------------------------------------
 
 
+#: `099 0431   99Tc m ...` and `180 0731  180Tam ...` -- the mass number,
+#: the element symbol, then the state suffix, with the space optional.
+_NAME = re.compile(r"^\d+([A-Z][a-z]?)\s*([a-z]*)$")
+
+
+def _state_label(line: str) -> str:
+    """The `m`/`n`/`p`/`q` NUBASE appends to an isomer's name.
+
+    **READ FROM THE SOURCE, never derived from the index.** A table
+    mapping 1->m, 2->n would be a second implementation of somebody
+    else's notation, and NUBASE writes both `99Tc m` and `180Tam`.
+
+    The first version sliced after the last uppercase letter of a
+    too-narrow field and returned `c` for technetium -- half the element
+    symbol, which looks like a plausible suffix and is not one.
+    """
+    match = _NAME.match(line[11:18].strip())
+    return match.group(2) if match else ""
+
+
 def build(source_text: str) -> dict:
     nuclides: dict[str, dict] = {}
-    isomers = 0
+    counts = {"source_rows": 0, "ground_state_rows": 0, "isomer_rows": 0,
+              "excluded_rows": 0}
     neutrons = 0
 
     for line in source_text.splitlines():
@@ -255,9 +301,9 @@ def build(source_text: str) -> dict:
             z = int(zzzi[:3])
         except ValueError:
             continue
-        if zzzi[3] != "0":
-            isomers += 1
-            continue
+        counts["source_rows"] += 1
+        state_index = int(zzzi[3])
+        counts["ground_state_rows" if state_index == 0 else "isomer_rows"] += 1
         if z == 0:
             # **THE FREE NEUTRON**, which NUBASE lists first as `1n` with
             # Z=0. It is not an element, nothing in this application can
@@ -265,9 +311,18 @@ def build(source_text: str) -> dict:
             # Skipped deliberately rather than tripping the Z >= 1
             # invariant -- which is how it was found.
             neutrons += 1
+            counts["excluded_rows"] += 1
             continue
 
         entry: dict = {"z": z, "a": a}
+        if state_index:
+            entry["state_index"] = state_index
+            # **THE SOURCE'S OWN SUFFIX**, read off the name field rather
+            # than derived from the index: NUBASE writes `99Tc m`,
+            # `180Tam`, `180Tan`, `180Tap`, `180Taq`, so the letters are
+            # data and a table mapping 1->m, 2->n would be a second
+            # implementation of somebody else's notation.
+            entry["state_label"] = _state_label(line)
         entry["half_life"] = parse_half_life(line[_T], line[_UNIT], line[_DT])
         modes, abundance = parse_decays(line[_BR])
         if modes:
@@ -281,12 +336,28 @@ def build(source_text: str) -> dict:
         if excess is not None:
             entry["mass_excess_kev"] = excess
 
-        key = f"{z}-{a}"
+        key = f"{z}-{a}" if state_index == 0 else f"{z}-{a}-{state_index}"
         if key in nuclides:
-            raise BuildError(f"{key} appears twice; ground states must be unique")
+            raise BuildError(f"{key} appears twice; every state must be unique")
         nuclides[key] = entry
 
-    _check_invariants(nuclides, isomers, neutrons)
+    # **DERIVED AND RECONCILED, never carried as prose.** A plan that
+    # wrote "3557 -> 5684" by hand invited a reader to wonder which of
+    # 5684 and 5685 was the typo; these are counted and checked to add up.
+    counts["shipped_rows"] = len(nuclides)
+    total = counts["ground_state_rows"] + counts["isomer_rows"]
+    if total != counts["source_rows"]:
+        raise BuildError(
+            f"{counts['source_rows']} rows split into {total}; the state index "
+            "was not read from every row"
+        )
+    if counts["shipped_rows"] != counts["source_rows"] - counts["excluded_rows"]:
+        raise BuildError(
+            f"{counts['shipped_rows']} shipped from {counts['source_rows']} rows "
+            f"less {counts['excluded_rows']} excluded; the arithmetic does not close"
+        )
+
+    _check_invariants(nuclides, counts["isomer_rows"], neutrons)
     _acceptance_checks(nuclides)
 
     digest = hashlib.sha256(source_text.encode("utf-8")).hexdigest()
@@ -298,14 +369,19 @@ def build(source_text: str) -> dict:
             "generated_by": f"tools/{GENERATOR} -- do not hand-edit; re-run it",
             "source_url": SOURCE_URL,
             "source_revision": SOURCE_REVISION,
+            "row_counts": counts,
             "source_sha256": digest,
             "generated_on": date.today().isoformat(),
-            "ground_states_only": (
-                "NUBASE also carries isomers (T-half >= 100 ns); they are NOT here. "
-                "A molfile cannot express Tc-99m as distinct from Tc-99, so isomer "
-                "rows would be data nothing in this application could reach. "
-                f"{len(nuclides)} ground states kept, {isomers} isomer rows skipped, "
-                "and the free neutron (Z=0) with them -- it is not an element."
+            "states_included": (
+                "Ground states AND isomers (T-half >= 100 ns). An isomer carries "
+                "`state_index` (NUBASE's isomer index) and `state_label` (the "
+                "source's own m/n/p/q suffix), so Tc-99m is Tc-99 in a metastable "
+                "state rather than a separate isotope. "
+                "**AN ISOMER CAN BE READ BUT NEVER WRITTEN**: a molfile cannot "
+                "express Tc-99m as distinct from Tc-99, so the isotope write "
+                "refuses one with that reason. The free neutron (Z=0) is still "
+                "excluded -- it is not an element and every lookup here is by "
+                "element symbol. See `row_counts` for the arithmetic."
             ),
             "abundance_means": (
                 "Natural terrestrial isotopic abundance, as a percentage -- NUBASE's "
@@ -339,11 +415,11 @@ def _check_invariants(nuclides: dict[str, dict], isomers: int, neutrons: int) ->
     times by a parser producing a plausible-looking count.
     """
     if not nuclides:
-        raise BuildError("no ground states parsed at all")
+        raise BuildError("no nuclear states parsed at all")
     if isomers == 0:
         raise BuildError(
-            "no isomer rows were skipped, so the ground-state filter is not working "
-            "-- NUBASE2020 contains about 2,285 of them"
+            "no isomer rows were seen, so the state index is not being read "
+            "-- NUBASE2020 contains 2,127 of them"
         )
     if neutrons != 1:
         raise BuildError(
@@ -372,8 +448,29 @@ def _acceptance_checks(nuclides: dict[str, dict]) -> None:
     check against a textbook.
     """
     stable = sum(1 for e in nuclides.values() if e["half_life"]["qualifier"] == STABLE)
-    if stable != 253:
-        raise BuildError(f"expected 253 stable nuclides, parsed {stable}")
+    ground_stable = sum(
+        1
+        for e in nuclides.values()
+        if e["half_life"]["qualifier"] == STABLE and not e.get("state_index")
+    )
+    if ground_stable != 253:
+        raise BuildError(f"expected 253 stable ground states, parsed {ground_stable}")
+    # **AND EXACTLY ONE STABLE ISOMER, WHICH IS TANTALUM-180m.** It is the
+    # only isomer in the whole table marked `stbl`, and the only one
+    # carrying a natural abundance (IS=0.01201) -- nature's rarest
+    # primordial nuclide. Asserted by NAME rather than as "254 stable
+    # states", because the interesting claim is which one it is: a future
+    # NUBASE that resolves its stability, or finds a second, should fail
+    # here and be read rather than have a number quietly bumped.
+    stable_isomers = sorted(
+        f"{e['z']}-{e['a']}-{e.get('state_index', 0)}"
+        for e in nuclides.values()
+        if e["half_life"]["qualifier"] == STABLE and e.get("state_index")
+    )
+    if stable_isomers not in ([], ["73-180-1"]):
+        raise BuildError(f"unexpected stable isomers: {stable_isomers}")
+    if stable != ground_stable + len(stable_isomers):
+        raise BuildError("the stable counts do not reconcile")
 
     expected = {
         # key       half-life seconds   tolerance   abundance
@@ -432,7 +529,7 @@ def main() -> int:
         return 0
 
     OUTPUT.write_text(json.dumps(data, indent=1) + "\n", encoding="utf-8")
-    print(f"wrote {OUTPUT} ({len(data['nuclides'])} ground states)")
+    print(f"wrote {OUTPUT} ({len(data['nuclides'])} nuclear states)")
     return 0
 
 

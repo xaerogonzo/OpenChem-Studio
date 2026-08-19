@@ -49,6 +49,11 @@ def nuclides(table) -> dict:
     return table["nuclides"]
 
 
+@pytest.fixture(scope="module")
+def about(table) -> dict:
+    return table["_about"]
+
+
 # --- the eight states of a half-life ----------------------------------------
 #
 # One fixture per state, read straight off the source's own columns.
@@ -138,21 +143,59 @@ def test_all_twenty_half_life_units_are_known():
 # --- ground states only, enforced rather than described ---------------------
 
 
-def test_the_table_is_ground_states_only(nuclides):
-    """NUBASE carries isomers too -- 2,285 rows of them. A molfile cannot
-    express Tc-99m as distinct from Tc-99, so shipping them would be data
-    nothing in this application could reach."""
-    assert len(nuclides) == 3557
-    assert "43-99" in nuclides, "Tc-99 is a ground state and belongs here"
+def test_the_table_carries_every_state_and_the_counts_reconcile(nuclides, about):
+    """**DERIVED AND CHECKED TO ADD UP, never carried as prose.** An
+    earlier draft of this work wrote "3557 -> 5684" by hand and left a
+    reader wondering which of 5684 and 5685 was the typo. The generator
+    counts all five and refuses to build if they do not close.
+
+    This test used to assert the table was ground states ONLY, on the
+    reasoning that a molfile cannot express Tc-99m. That reasoning is
+    still true and is now a REFUSAL in the write path rather than an
+    absence in the data -- the half-life and decay modes of Tc-99m are
+    exactly what somebody opens the Isotopes tab to read.
+    """
+    counts = about["row_counts"]
+
+    assert counts["ground_state_rows"] + counts["isomer_rows"] == counts["source_rows"]
+    assert (
+        counts["shipped_rows"] == counts["source_rows"] - counts["excluded_rows"]
+    )
+    assert counts["shipped_rows"] == len(nuclides) == 5684
+    assert counts["isomer_rows"] == 2127
+    assert counts["excluded_rows"] == 1, "the free neutron, and nothing else"
 
 
-def test_technetium_99m_is_not_in_the_table(nuclides):
+def test_technetium_99m_is_here_and_says_which_state_it_is(nuclides):
     """The named case, because it is the most-used radionuclide in
-    medicine and is exactly what somebody would add by hand."""
-    technetium = [key for key in nuclides if key.startswith("43-")]
+    medicine -- and the one a `(Z, A)` key cannot tell from its own
+    ground state.
 
-    assert all(key.count("-") == 1 for key in technetium)
-    assert not any("m" in key for key in nuclides)
+    **THE SUFFIX IS THE SOURCE'S OWN.** NUBASE writes `99Tc m`, so the
+    label is read from the name field rather than derived from the index;
+    a table mapping 1 to `m` would be a second implementation of somebody
+    else's notation.
+    """
+    assert "43-99" in nuclides, "the ground state"
+    metastable = nuclides["43-99-1"]
+
+    assert metastable["state_index"] == 1
+    assert metastable["state_label"] == "m"
+    assert metastable["half_life"]["seconds"] == pytest.approx(6.0066 * 3600, rel=1e-4)
+    assert any(d["mode"] == "IT" for d in metastable["decays"])
+
+
+def test_tantalum_180m_is_the_one_naturally_occurring_isomer(nuclides):
+    """**IT IS MARKED STABLE AND CARRIES AN ABUNDANCE**, which is what
+    makes it the fixture every element-level predicate has to be checked
+    against: the only isomer in NUBASE that is both."""
+    metastable = nuclides["73-180-1"]
+
+    assert metastable["half_life"]["qualifier"] == STABLE
+    assert metastable["abundance"] == pytest.approx(0.01201)
+    assert nuclides["73-180"]["half_life"]["seconds"] is not None, (
+        "and its ground state is NOT stable, which is the inversion"
+    )
 
 
 def test_the_free_neutron_is_not_here(nuclides):
@@ -177,12 +220,21 @@ def test_every_nuclide_is_structurally_possible(nuclides):
             assert seconds > 0, key
 
 
-def test_every_key_is_its_own_z_and_a(nuclides):
-    """The key is `Z-A`, so a mismatch would make every lookup wrong in a
-    way no individual value would reveal."""
+def test_every_key_is_its_own_z_and_a_and_state(nuclides):
+    """The key is `Z-A` for a ground state and `Z-A-i` for a state above
+    it, so a mismatch would make every lookup wrong in a way no
+    individual value would reveal.
+
+    **THE STATE PART IS ASSERTED TOO**, because a key that dropped it
+    would collide Tc-99m onto Tc-99 -- and a dict silently keeps the last
+    one written rather than complaining.
+    """
     for key, entry in nuclides.items():
-        z, a = key.split("-")
+        z, a, *state = key.split("-")
         assert (int(z), int(a)) == (entry["z"], entry["a"])
+        assert [str(entry["state_index"])] == state if state else (
+            "state_index" not in entry
+        ), key
 
 
 # --- values anybody can check against a textbook ---------------------------
@@ -207,10 +259,21 @@ def test_the_spot_checked_nuclides(nuclides, key, name, seconds, abundance):
         assert entry["abundance"] == pytest.approx(abundance, rel=1e-3), name
 
 
-def test_there_are_exactly_253_stable_nuclides(nuclides):
-    stable = [k for k, e in nuclides.items() if e["half_life"]["qualifier"] == STABLE]
+def test_there_are_exactly_253_stable_GROUND_STATES(nuclides):
+    """**253 IS THE TEXTBOOK FIGURE AND 254 IS ALSO CORRECT**, which is
+    the whole reason this test now names the population it counts.
+    Ta-180m is an isomer marked `stbl`, so a bare count over the table
+    gives 254 and reads like an off-by-one against every reference.
 
-    assert len(stable) == 253
+    Both are asserted: the ground-state count is the number a reader
+    recognises, and the extra one is NAMED rather than tolerated by a
+    loosened bound.
+    """
+    stable = [k for k, e in nuclides.items() if e["half_life"]["qualifier"] == STABLE]
+    ground = [k for k in stable if not nuclides[k].get("state_index")]
+
+    assert len(ground) == 253
+    assert sorted(set(stable) - set(ground)) == ["73-180-1"], "Ta-180m, and only it"
 
 
 def test_uranium_238_decays_the_way_the_textbook_says(nuclides):
@@ -314,3 +377,68 @@ def test_the_generator_check_passes_against_the_committed_pair():
 
     assert result.returncode == 0, result.stdout + result.stderr
     assert "match the committed snapshot" in result.stdout
+
+
+def test_the_state_index_and_the_source_suffix_agree_exactly(nuclides):
+    """**THE CHECK THAT SAYS READING THE LABEL FROM THE NAME WAS RIGHT.**
+
+    The suffix is taken from NUBASE's name field rather than derived from
+    the index, deliberately -- a table mapping 1 to `m` would be a second
+    implementation of somebody else's notation. This measures that the
+    two really are one-to-one across all 2,127 states, which is what says
+    neither reading is drifting from the other:
+
+        1 m 1372    2 n 460    3 p 155    4 q 38
+        5 r 10      6 x   4    8 i  80    9 j  8
+
+    NUBASE's own format header explains the split: `i=1,2` are isomers,
+    `i=3,4` levels, `i=8,9` isobaric analogue states -- and it adds that
+    3,4,5,6 "can also indicate isomers", which is why nothing here
+    branches on the index to decide what a state IS.
+    """
+    pairs = {}
+    for entry in nuclides.values():
+        index = entry.get("state_index", 0)
+        if index:
+            pairs.setdefault(index, set()).add(entry["state_label"])
+
+    assert all(len(labels) == 1 for labels in pairs.values()), pairs
+    flat = {index: next(iter(labels)) for index, labels in pairs.items()}
+    assert flat == {1: "m", 2: "n", 3: "p", 4: "q", 5: "r", 6: "x", 8: "i", 9: "j"}
+    assert len(set(flat.values())) == len(flat), "one suffix per index, both ways"
+
+
+def test_the_count_reconciliation_is_a_SELF_CHECK_no_input_can_trip():
+    """**AN ADMITTED LIMIT, written down rather than papered over.**
+
+    `build` raises if `ground + isomer != source` or if
+    `shipped != source - excluded`. Both are unreachable from DATA: every
+    parsed row increments exactly one of the two state buckets, and the
+    only row the builder drops is the free neutron, which it counts as
+    excluded on the way out. So a mutation deleting either raise survives
+    every test and always will.
+
+    That is not a hole to fill with a fixture no real file resembles --
+    it is the shape of a self-check. What it guards is the next EDIT: a
+    `continue` added without a matching count is exactly the mistake that
+    would otherwise ship a table quietly one row short. The property is
+    asserted here on the shipped counts, and the raise is documented as
+    the code assertion it is.
+    """
+    counts = json.loads(_TABLE.read_text(encoding="utf-8"))["_about"]["row_counts"]
+
+    assert counts["ground_state_rows"] + counts["isomer_rows"] == counts["source_rows"]
+    assert counts["shipped_rows"] == counts["source_rows"] - counts["excluded_rows"]
+    # And the raise really is in the builder, so deleting it is a visible
+    # edit rather than a silent one.
+    #
+    # **THE FIRST VERSION OF THIS CHECK MATCHED THE PROSE.** "the
+    # arithmetic does not close" appears in the module docstring as well
+    # as in the message, so deleting the raise left the phrase behind and
+    # the mutation survived -- the same trap this project already records
+    # for a source scan that flags the comment explaining its own rule.
+    # These two fragments occur ONLY in the raised messages.
+    source = Path(__file__).resolve().parents[1] / "tools" / "build_nuclide_table.py"
+    text = source.read_text(encoding="utf-8")
+    assert text.count("shipped from") == 1
+    assert text.count("was not read from every row") == 1
