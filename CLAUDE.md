@@ -470,6 +470,27 @@ are 13 and they cost 14 seconds, against 14 minutes for the full suite:
 uv run --no-sync python -m pytest -q $(rg -l "ast.parse" tests/ | tr '\n' ' ')
 ```
 
+**THAT SET DOES NOT INCLUDE THE DOCUMENTATION GUARD, and reading it as
+though it did put a red commit on master.** `test_docs_are_current.py`
+never calls `ast.parse` -- it reads markdown and asks git what the
+repository contains -- so it is not in the `rg` set, and a sweep
+reporting `287 passed` had not run it. The commit that followed cited two
+tests the same branch had deleted, and master went red on
+`test_every_test_a_doc_names_still_exists`. Anything touching CLAUDE.md
+or `docs/` has to name it:
+
+```bash
+uv run --no-sync python -m pytest -q tests/test_docs_are_current.py
+```
+
+**AND IT PASSES WHILE A DELETION IS UNSTAGED.** `_repo_files` asks
+`git ls-files`, so a file removed from the working tree but still in the
+INDEX is still tracked and still resolves. The two fixtures deleted by
+the help-contract migration were checked twice after being removed and
+passed both times; the citation only broke once `git add -A` staged the
+removal. A green docs run taken mid-change is not evidence about the tree
+you are about to commit.
+
 ### The shared chrome: 36 buttons, 3 concepts
 
 Every dock builds a `DockTitleBar`, so its help / float / close buttons
