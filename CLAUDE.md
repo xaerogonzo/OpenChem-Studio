@@ -7617,6 +7617,126 @@ and eighth entries in this file's running count of that:
 - **`**Ground states only**` rendered with its asterisks.** QLabel does
   not do markdown.
 
+## FIVE THINGS TO KEEP DISTINCT IN A SCIENTIFIC CALCULATION
+
+Written after a backlog sweep closed five deferrals in one branch, in
+which every confusion was one of these being mistaken for another:
+
+    definition      what quantity is computed
+    applicability   when that quantity is meaningful AT ALL
+    implementation  how OpenChem computes it
+    provenance      which source supports the claim
+    oracle          which published values establish it CORRECT
+
+**A SOURCE USED FOR THE DEFINITION IS NOT AUTOMATICALLY AN ORACLE**, and a
+validation set from a neighbouring method is not one merely because it
+shares an informal name. Three near-misses in one branch, each caught by
+reading the source rather than by review:
+
+- **Guo 2006 was twice written down as the Griffin HLB oracle.** It
+  tabulates 224 nonionic surfactants, which is exactly what "nothing to
+  check a result against" was asking for. It mentions **Griffin zero
+  times**: it is a Davies/ECL paper, and its reference column is
+  manufacturer data -- its own footnotes read "reported by BASF Corp."
+  and "by ICI Americas Inc.". Scoring Griffin against it would have
+  compared two scales and produced a disagreement that reads as a bug.
+- **TSEI's correlations read as an oracle and are a behavioural check.**
+  r = 0.9912 is a fine thing to assert and a weak transcription test:
+  systematically wrong implementations still correlate. Table 1's exact
+  values are the transcription oracle.
+- **Gutmann DN was briefly to be validated against the Drago E/C table.**
+  DN is defined as -dH against SbCl5 and E/C predicts -dH, so they are
+  related -- but they are distinct parameterisations, and cross-scale
+  agreement as a CORRECTNESS criterion lets a real transcription error
+  hide behind a legitimate difference.
+
+### A DEFERRAL'S REASONS ROT INDEPENDENTLY OF ITS VERDICT
+
+Fifth instance in this project. `docs/VALIDATION.md`'s "Measured, and
+deliberately not shipped" section held five entries whose verdicts looked
+settled and whose REASONS had quietly expired:
+
+    acetic acid     "only predicted coefficients exist"    measured in 2015
+    Miller          "the parameters are unpublished"        a claim about
+                                                            ChemAxon's docs,
+                                                            not the literature
+    HLB             "no formulas published"                 both are printed
+    TSEI            "no reference value was found"          Table 1 prints 20
+    Gutmann DN/AN   "the accessible source is ionic
+                     liquids"                               true of THAT paper
+
+Not one of those was a lowered standard. The literature moved, or was
+never checked. **Re-read the REASON, not the verdict**, and ask what would
+have to be true today.
+
+### TRANSCRIBING A TABLE FROM A SCIENTIFIC PDF
+
+**The text layer is not the table.** Every scanned source in this sweep
+gave usable-looking output that was wrong:
+
+    Gutmann 1976   "Dimethylsulphoxitie", "l.o.0" for 10.0, ";:Z" where a
+                   number belongs, and names and numbers extracted as two
+                   SEPARATE runs needing positional alignment
+    Miller 1990    "0.392 0.31 1 0.3 13 0.387" for a row of four numbers,
+                   "3 .000" for 3.000, "TA" for tau_A
+    Guo 2006       clean -- so the rule is to CHECK, not to assume either way
+
+Render at 300-400 dpi and read it. It is not caution for its own sake: the
+render caught t-butylamine's donicity at **57.5** where the text layer
+said 57.6, which is the Drago audit's one-in-53-out-by-0.01 again.
+
+**KEEP THE SOURCE ROW IDENTITY IN THE GENERATED DATA.** `"carbon_sp2": {...}`
+loses the trail; carrying the paper's own `symbol` and `hybrid` columns
+beside it means a future audit runs against the page line by line rather
+than re-deriving which row was meant.
+
+**AND THE ACCEPTANCE TEST IS THE CASE THAT FAILED BEFORE.** Miller's
+recorded failures were benzene (+27%) and CCl4 (-50%), so those two are
+the gate rather than a sample -- and both mutations reproducing them are
+caught. A perturbed coefficient must fail something: a table no test can
+falsify is a table nobody checked.
+
+### ONE NAME, TWO QUANTITIES -- NOW FOUND FOUR TIMES
+
+    "HLB"           Griffin or Davies, differing "substantially... in the
+                    entire range of practical applications"
+    "steric index"  Taft's Es, Hancock's Esc, Charton's nu, Cao-Liu TSEI
+    "donicity"      dilute or BULK -- water is 18.0 and 33.0
+    "SZ"            Mordred's is "sum of constitutional descriptor", not
+                    the Szeged index
+
+The move each time is the same: **ship under the specific name** -- Griffin
+HLB, Cao-Liu TSEI -- never the ambiguous one, and keep the two columns
+apart in the data rather than picking one. Water is the row that proves
+it is not pedantry: merging the donicity columns would be wrong there by
+more than the whole range from benzene to acetonitrile.
+
+### APPLICABILITY IS A RESULT, NOT A FOOTNOTE
+
+Griffin HLB on aspirin is 4.14 and means nothing. Returning it and relying
+on documentation to say so is the failure the `AlertResult` migration
+spent a phase removing.
+
+**AND THE RULE COMES FROM THE SOURCE.** Griffin's definition opens "for
+nonionic surfactants with polyoxyethylene as the sole hydrophilic
+moiety" -- a structural condition, answered per molecule, in the
+refusal-with-a-named-reason shape `BcsReason` and `IsotopeRefusal`
+already use. Sorbitan esters are the case most likely to be got wrong:
+Griffin's EXPERIMENTS produced Span and Tween's published values, but
+sorbitan is a polyhydric alcohol, so his FORMULA does not apply to them.
+
+### CHECKING AGAINST THE SOURCE FINDS BUGS READING THE CODE DOES NOT
+
+Both of these read fine and were wrong, and both were found by comparing
+against a printed closed form rather than by review:
+
+- the polyoxyethylene SMARTS matched a chain from BOTH ends, so a C12E4
+  counted as 9 units; and it matched the chain's own terminal hydroxyl,
+  so **dodecanol** -- the lipophile Brij is built FROM -- was accepted as
+  a surfactant and given an HLB;
+- benzene assigned to Miller's `CBR` row gives 13.99 against 10.39, and
+  the row's symbol is the reason anybody would.
+
 ## Verification standard
 
 This project's convention, established across many sessions: **claims are

@@ -471,13 +471,47 @@ distinguishable**. It did not ship. What *did* come out of that work was a
 real improvement found along the way — splitting the index on explicit
 hydrogens — which shipped instead.
 
-**Miller polarizability.** The parameters are unpublished. A reconstruction
-missed benzene by +27% and CCl₄ by −50%, so there was nothing to validate
-against.
+**Miller polarizability — SHIPPED, and the reason it was not is the
+clearest case of a rotted reason in this file.** It read "the parameters
+are unpublished", which was a claim about ChemAxon's documentation rather
+than about the literature: Miller 1990's Table I prints all twenty rows
+([source:miller1990]). Both recorded failures have causes now. The +27% on
+benzene is the `CBR` row, whose symbol reads as "carbon in a benzene ring"
+and means the opposite — [source:miller1979] says the π system in benzene
+"is directed only along two bonds", so benzene is `CTR` and `CBR` is for
+π-*branched* carbons; the wrong row gives +36%. The −50% on CCl₄ is the
+shape of using the wrong form: `α = (4/N)(Σ τ)²` squares a sum. With both
+right, benzene lands at +0.6% and CCl₄ at +0.2%.
 
-**HLB.** No formulas published, no worked example, and the reference
-implementation's default is a proprietary consensus method. Nothing to check
-a result against.
+**HLB — SHIPPED as Griffin HLB, and only that.** The recorded reason was
+"No formulas published, no worked example, and the reference
+implementation's default is a proprietary consensus method. Nothing to
+check a result against." Three of those four clauses fell to one paper:
+[source:schott1989] prints Griffin's Eq. [1], its closed form Eq. [2] with
+worked constants, and Davies' group numbers. The fourth stands and is not
+chased — ChemAxon's default is proprietary, so agreeing with Marvin is
+unreachable.
+
+That paper also supplies the *reason the name is ambiguous*, which shaped
+what shipped: the Davies scale "differs substantially from the Griffin
+scale in the entire range of practical applications". So "HLB" names two
+incompatible quantities, and only Griffin ships, under that name, with an
+applicability predicate taken from the source's own opening sentence.
+
+**Cao–Liu TSEI — SHIPPED, half a reason answered.** `topology_analysis`
+refused a "steric index" because the name covers several incompatible
+quantities, there was no identity to check against, and no reference value
+was found. [source:cao2004] answers the last two: one definition, and
+Table 1's exact values for normal alkyls n = 1…20, all twenty of which
+reproduce. The first still stands, so it ships as *Cao–Liu TSEI* and never
+as a bare "steric index".
+
+**Gutmann donor and acceptor numbers — SHIPPED from the classical tables.**
+The earlier assessment rejected [source:gutmann_frontiers2022] correctly —
+ionic liquids, and its own acceptor model failing — but that was a
+statement about one paper, not about the scales. [source:gutmann1976]
+carries both: 53 donicities and 32 acceptor numbers, transcribed from a
+300 dpi render because the OCR of a 1976 scan is actively wrong.
 
 **Abraham coefficients for 202 further solvents.** The source paper
 measures 91 and *predicts* the rest, saying of those they should not be
