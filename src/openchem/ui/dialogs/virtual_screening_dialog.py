@@ -106,7 +106,17 @@ class VirtualScreeningDialog(QDialog):
 
         self._results = QTableWidget(0, 4, self)
         self._results.setHorizontalHeaderLabels(["Rank", "Ligand", "Best score (kcal/mol)", "Poses"])
-        self._results.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        # LIGAND STRETCHES, THE OTHERS SIZE TO THEIR OWN TEXT. Only column 1
+        # was configured, so Rank, "Best score (kcal/mol)" and Poses kept
+        # Qt's default fixed width -- and the score header, the longest of
+        # the three, rendered clipped at BOTH ends as "est score (kcal/mo"
+        # while the empty Ligand column took half the dialog. Found by
+        # driving the dialog and magnifying the shot; the same column-sizing
+        # defect the Batch panel's property tree had.
+        header = self._results.horizontalHeader()
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        for column in (0, 2, 3):
+            header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
         self._results.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         layout.addWidget(self._results, stretch=1)
 

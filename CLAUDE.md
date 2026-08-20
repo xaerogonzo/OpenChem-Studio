@@ -75,6 +75,9 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "shot",       "path": "..."}
     {"do": "lewis",      "details": true}     the Full Lewis window
     {"do": "shot",       "path": "...", "widget": "lewis"}
+    {"do": "dialog",     "name": "HelpDialog"}   built by ui/dialogs/inventory
+    {"do": "dialog",     "name": "PeriodicTableDialog", "tab": "Isotopes"}
+    {"do": "shot",       "path": "...", "widget": "dialog"}
     {"do": "overlay",    "on": true, "gallery": true, "step": 1}
     {"do": "cip",        "on": true}          R/S and E/Z, through the menu
     {"do": "erase",      "element": "N"}      a REAL canvas edit
@@ -470,6 +473,35 @@ are 13 and they cost 14 seconds, against 14 minutes for the full suite:
 uv run --no-sync python -m pytest -q $(rg -l "ast.parse" tests/ | tr '\n' ' ')
 ```
 
+**THAT SET DOES NOT INCLUDE THE DOCUMENTATION GUARD, and reading it as
+though it did put a red commit on master.** `test_docs_are_current.py`
+never calls `ast.parse` -- it reads markdown and asks git what the
+repository contains -- so it is not in the `rg` set, and a sweep
+reporting `287 passed` had not run it. The commit that followed cited two
+tests the same branch had deleted, and master went red on
+`test_every_test_a_doc_names_still_exists`. Anything touching CLAUDE.md
+or `docs/` has to name it:
+
+```bash
+uv run --no-sync python -m pytest -q tests/test_docs_are_current.py
+```
+
+**AND IT PASSES WHILE A DELETION IS UNSTAGED.** `_repo_files` asks
+`git ls-files`, so a file removed from the working tree but still in the
+INDEX is still tracked and still resolves. The two fixtures deleted by
+the help-contract migration were checked twice after being removed and
+passed both times; the citation only broke once `git add -A` staged the
+removal. A green docs run taken mid-change is not evidence about the tree
+you are about to commit.
+
+**AND IT FAILS ON A NEW FILE UNTIL THAT FILE IS STAGED**, which is the
+same mechanism seen from the other side and reads as a broken citation
+rather than as an unstaged one. Writing `tests/test_dialog_help_contracts.py`
+and citing it in the same edit fails `test_every_file_a_doc_cites_still_exists`
+with the path listed as missing; `git add` on the new file is the whole
+fix. Neither direction is a bug in the guard -- `git ls-files` is the
+right question and the INDEX is what answers it.
+
 ### The shared chrome: 36 buttons, 3 concepts
 
 Every dock builds a `DockTitleBar`, so its help / float / close buttons
@@ -537,6 +569,156 @@ excluded -- asserting its own setup, so a window that stops building a
 `QTabWidget` fails loudly instead of passing vacuously -- and
 `test_the_composite_rule_does_not_swallow_the_panels` asserts the panels
 are still there.
+
+#### AND A `QLineEdit`'s CLEAR BUTTON ESCAPES THE PREFIX RULE TWICE
+
+Same hole a third time, found in the dialogs, and it is the widest yet.
+`setClearButtonEnabled(True)` makes Qt build TWO things inside the line
+edit and neither carries the `qt_` prefix `_is_qt_internal` derives its
+answer from -- measured on a bare `QLineEdit`:
+
+    the button   QToolButton, objectName ''      <- no name AT ALL
+    the action   QAction, '_q_qlineeditclearaction', parented to the
+                 QLineEdit    <- Qt's OTHER reserved prefix, `_q_`
+
+So the button escapes by having no name to match and the action escapes
+by using a different reserved prefix. The two clear buttons in this
+application are both in dialogs, which is why the window's 355 never saw
+it: the help window and the receptor library each reported **twice the
+controls they have** -- 4 where there are 2, and 3 where there is 1.
+
+**THE ACTION SIDE NEEDED THE RULE APPLIED TO A SURFACE IT NEVER WAS.**
+`_is_internal_to_a_composite` ran in the widget loop only, and the clear
+action is a child of the line edit rather than of any widget beneath it.
+It walks `parent()` rather than `parentWidget()` now so ONE
+implementation serves both -- measured over the real window, the two
+traversals exclude exactly the same set, so it is a widening in reach and
+not in effect.
+
+**MEASURED BEFORE IT WAS WRITTEN, as the QTabBar rule was.** The window
+holds 13 `QLineEdit`s and **not one has a clear button**, so its universe
+is 355 either way. Of those 13 only **2** are documentable controls at
+all -- 7 live inside a `QDoubleSpinBox`, 3 inside a `QSpinBox` and 1
+inside a `QComboBox`, all already excluded -- which is why
+`test_the_composite_rule_does_not_swallow_the_line_edits` asserts the
+survivors BY NAME (`facts.search`, `batch.property_filter`) rather than
+by a threshold that would read as stronger than it is.
+
+Five mutations, five caught, each by the intended guard:
+
+    M1  revert the QLineEdit exclusion   the clear-button guard + the
+                                         dialog blanket
+    M2  exclude the line edit ITSELF     the clear-button guard's narrow
+                                         arm + does_not_swallow
+    M3  drop the action-side check       the same pair as M1
+    M4  delete one shipped contract      the dialog blanket, ALONE
+    M5  excuse a finished dialog         the unmigrated mirror
+
+**M2 IS THE ONE WORTH READING.** It does not fail the dialog blanket at
+all, correctly -- excluding more can only make the missing count smaller.
+That is the green-suite-and-a-smaller-universe failure in miniature, and
+the reason the narrow half is the load-bearing one.
+
+### THE DIALOGS: every one a bare context can build is at zero
+
+`tests/test_dialog_help_contracts.py` is the second consumer
+`ui/dialogs/inventory.py` was written for. Until it existed the contracts
+written into a dialog were unguarded -- M4 above is exactly that, and
+nothing caught it.
+
+**SCOPED TO WHAT A BARE `DialogContext` CAN BUILD.** Six of the 17 need a
+computed result and five more need services, settings or a molecule;
+handing the guard a context rich enough for all 17 makes it a slow
+integration test that fails for reasons having nothing to do with help.
+`test_a_dialog_that_cannot_be_built_says_so` is what stops that set
+shrinking silently -- a builder must raise `DialogUnavailable` and must
+never answer None.
+
+    PeriodicTableDialog    137 of 137     ConformerOptionsDialog  6 of 6
+    HelpDialog               2 of 2       CommandPalette          1 of 1
+    ReceptorLibraryDialog    1 of 1       AboutDialog             0 controls
+
+**THE EXCEPTION LIST EXISTED FOR EXACTLY ONE COMMIT AND IS GONE.**
+`_NOT_YET_MIGRATED` held `PeriodicTableDialog` while its 137 contracts
+were written, and its mirror required an excused dialog to still HAVE
+undocumented controls -- so the day the table reached zero the guard
+failed and asked for the name to be deleted. Both are deleted; "no
+control anywhere is undocumented" says the same thing and needs nothing
+maintained. Same arc as `tooltip_migration_debt.json` one layer up, three
+days shorter.
+
+**137 WAS NEVER 137 CONCEPTS: it is 15.** 118 are element cells -- one
+concept rendered once per element, the shape
+`properties.batch_selection` already has across 51 tick boxes, and
+`test_one_concept_is_not_split_across_the_element_cells` is what refuses
+the split. Seven more belong to `ZoomableSvgView` and `AtomDiagram`
+rather than to this dialog, so documenting them documented the Lewis
+dialog's four zoom buttons at the same time.
+
+#### THE ELEMENT CELL: a contract under a tooltip rewritten 118 times
+
+`_repaint_cells` rebuilds every cell's tooltip on every recolour, so this
+is the `docking.derive_box_from_ligand` case at scale: the contract is
+attached ONCE and the live text must CARRY it rather than replace it.
+The failure is silent -- a bare `setToolTip` there leaves the contract
+attached as a Qt property, so the coverage guard goes on reporting all
+118 documented while the user reads "Hydrogen -- Nonmetal" and nothing
+saying what clicking does. Mutated: only
+`test_an_element_cells_live_tooltip_still_carries_its_contract` catches
+it, in a discrete mode AND a heat-map mode, because those build their
+live half differently.
+
+#### THE ISOTOPE COLUMNS, AND `*` MEANS THE OPPOSITE OF WHAT IT LOOKS LIKE
+
+The five isotope headers are where the tier-3 work is: every one prints
+a source-specific mark that decides how the number reads. The sharpest
+is spin/parity, and the marks are NOT guessable -- read off the shipped
+`nubase_4.mas20.txt`'s OWN format block and confirmed in the paper's
+legend (p18 of [source:nubase2020]):
+
+    *    DIRECTLY MEASURED spin        1062 states
+    #    non-experimental, from trends in neighbouring nuclei or theory
+                                        948
+    ()   weak argument, still EXPERIMENTAL
+                                       1328
+    T=   isospin, on isobaric analogue states
+                                        108
+
+So `*` is a STRENGTHENING mark where a footnote symbol usually implies
+doubt, and the parenthesis/`#` pair is deliberately the opposite way
+round from ENSDF -- NUBASE section 2.4 says so outright, because it
+separates experimental from non-experimental information where ENSDF
+parenthesises both.
+
+**THE MARKS ARE NOW IN THE NOTE UNDER THE TABLE AS WELL, and that is
+this file's own finding applied.** The half-life legend "explained no
+marks" for exactly the same reason: a meaning that lives only in a
+tooltip is absent from every screenshot. The guard derives the marks
+from what the CELLS PRINT rather than from a list, so it cannot pass
+vacuously.
+
+**DRIVEN AND MAGNIFIED, AND FOR ONCE NOTHING WAS WRONG.** The longer
+note is the one visible change here and this dialog's height was a
+reported bug six commits ago, so it was photographed rather than
+reasoned about: the note wraps to two lines, the action row and Close
+stay inside a 940x900 window, and the Isotopes page's own minimum is 113
+px against the 280 the guard allows. The `dialog` drive step takes a
+`tab` now -- half these dialogs are tabbed and a shot of the default
+page cannot show the other three. A tab name that matches nothing is
+LOGGED rather than ignored, because an unrecognised INDEX would silently
+photograph page 0, which is the wrong-panel-id trap again.
+
+**AND THE `*` COUNT RECONCILES WITH THE PAPER TO THE LAST STATE.**
+NUBASE2020 states 1062 directly measured spins, "827 ground states and
+235 isomers"; the shipped table has 1062, split 826/236. The one-state
+gap is the FREE NEUTRON -- a starred ground state (`1/2+*`) that the
+build deliberately excludes because it is a nuclide and not an element,
+which `test_the_free_neutron_is_not_here` already asserts. Counting `*`
+in the raw source gives 827, so the reconciliation is exact once the one
+deliberate exclusion is named, which is a stronger statement than a
+total that merely agrees. It is also a free check on a fixed-width
+slice: a column off by one would still yield plausible spins while
+quietly moving the flag.
 
 ### The Quantum Chemistry panel: 25 help_ids, 39 renderings
 
@@ -1089,7 +1271,48 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `5195 passed, 15 skipped`
+A clean run is **6-19 minutes**, ending at `5206 passed, 15 skipped`
+(measured 2026-08-19, **14m57**, on `dialogs-driven-and-documented` at
+`6480834` -- the dialog inventory and its drive step, the screening
+table's clipped header, and the help contracts reaching every dialog a
+bare context can build.
+
+**+11 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed:
+
+    master           a2ec8a8   COLLECTS 5210
+    branch tip       6480834   COLLECTS 5221   = 5210 + 11
+    the run                             5206 passed + 15 skipped = 5221
+
+**THE MERGE BASE IS MASTER**, checked rather than assumed, so nothing
+landed underneath this branch and the figure will be master's when it
+merges.
+
+**11 AND NOT THE 9 THE TWO NEWEST COMMITS ADDED**, which is the whole
+reason to diff rather than subtract: the extra two are
+`test_virtual_screening_dialog.py`, added earlier on the same branch when
+the dialogs had no coverage at all. Every one of the 11 reconciles to a
+commit:
+
+    13b0b46  +2   the screening table's two column-sizing guards
+    da7262c  +6   the clear-button exclusion (2), the dialog blanket
+                  and its walk (4)
+    6480834  +3   the element cell's live tooltip, the printed spin
+                  marks, and the `*` count against the paper
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and no crash markers -- `grep -c
+"Windows fatal exception"` is 0 and there IS a summary line, which is the
+pair this file insists on rather than an absence of FAILED lines. The
+background task also exited 0, which on its own proves nothing: this file
+already records a crashed run that exited 0 with no FAILED lines in it.
+
+14m57 sits mid-band; the 6-19 range stands. The two
+`DeprecationWarning`s are the same pre-existing six-argument
+`QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.)
+
+Before it: `5195 passed, 15 skipped`
 (measured 2026-08-19, **14m26**, on
 `drive-consolidate-and-finish-the-contracts` -- the baseline drive's three
 defects, the two geometry decisions, and the help migration reaching zero.

@@ -7,6 +7,7 @@ from openchem.chem.conformer_providers import (
     GenerationOptions,
 )
 
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -56,6 +57,105 @@ MAX_CONFORMERS_TO_KEEP = 50
 NO_TIME_LIMIT = 0
 
 
+#: THE PROSE WAS ALREADY RIGHT, and that is the whole reason this
+#: conversion is mechanical: every one of these tooltips already carried
+#: its measurement and its caveat. What they lacked was a DECLARATION --
+#: a tier, a stable id, and a place for the guard to check the structure
+#: of the claim rather than the wording of it.
+#:
+#: FOUR OF THE SIX ARE TIER 3, which is unusually many for one dialog and
+#: is a property of the subject: every control here changes what the
+#: returned conformers MEAN, not merely how many there are.
+_HELP: dict[str, HelpTooltip] = {
+    "embeddings": HelpTooltip(
+        text=(
+            "How many random embeddings to generate.\n\n"
+            "The search is random rather than exhaustive, so more attempts "
+            "find more distinct shapes -- with no guarantee attached to any "
+            "count. Cost is roughly linear in this number."
+        ),
+        tier=2,
+        help_id="conformers.embeddings_to_try",
+        topic="conformers",
+    ),
+    "keep": HelpTooltip(
+        text=(
+            "How many distinct conformers to keep, lowest in energy "
+            "first.\n\n"
+            "FEWER MAY COME BACK, and that is a result about the molecule "
+            "rather than a failure: a rigid structure has fewer distinct "
+            "shapes than this. More may also be FOUND than are kept -- when "
+            "that happens the rest are real conformers and a higher limit "
+            "returns them, which is the one place genuine conformers are "
+            "silently lost. The Details dialog after a run says which "
+            "happened."
+        ),
+        tier=3,
+        help_id="conformers.distinct_to_keep",
+        topic="conformers",
+    ),
+    "diversity": HelpTooltip(
+        text=(
+            "How far apart two embeddings must be to count as different "
+            "shapes.\n\n"
+            "A SAMPLING AND DE-DUPLICATION PARAMETER, NOT a definition of "
+            "what makes two conformers different, and no single value is "
+            "right for every molecule. 0.50 A was fitted to butane, whose "
+            "pairwise RMSDs really are bimodal; a drug-like molecule's are "
+            "a flat continuum with no gap for a threshold to sit in.\n\n"
+            "Lower keeps more near-identical structures; higher merges "
+            "more. Range 0.05 to 3.00 A."
+        ),
+        tier=3,
+        help_id="conformers.diversity_threshold",
+        topic="conformers",
+    ),
+    "optimisation": HelpTooltip(
+        text=(
+            "How hard to minimise each embedding: iteration count and "
+            "gradient tolerance.\n\n"
+            "THESE ARE OPENCHEM'S LEVELS, inspired by Marvin's control and "
+            "NOT numerically equivalent to it -- a setting of the same name "
+            "in another program does not mean the same thing.\n\n"
+            "Measured over 30 embeddings each of seven molecules: every "
+            "level converged 30 of 30, and the retained count differed on "
+            "only one molecule. A geometry that does not converge is "
+            "discarded at every level, so this decides how hard to try and "
+            "never what counts as a conformer."
+        ),
+        tier=3,
+        help_id="conformers.optimisation_level",
+        topic="conformers",
+    ),
+    "time_limit": HelpTooltip(
+        text=(
+            "Stop STARTING new embeddings once this many seconds have "
+            "passed.\n\n"
+            "Not a hard ceiling: an embedding already under way runs to the "
+            "end, so the overshoot is up to one embedding. Neither RDKit's "
+            "embedder nor its minimiser can be interrupted part-way. "
+            "Default no limit."
+        ),
+        tier=2,
+        help_id="conformers.time_limit",
+        topic="conformers",
+    ),
+    "refine": HelpTooltip(
+        text=(
+            "Put every surviving conformer through a second, stricter "
+            "minimisation, and discard any that will not settle.\n\n"
+            "IT IS NOT A WAY TO FIND MORE CONFORMERS. Measured: it changes "
+            "nothing at Normal or above, because those already converge. "
+            "Its one visible effect was to recover what a Loose run had "
+            "lost, at about 25% more time."
+        ),
+        tier=3,
+        help_id="conformers.enhanced_refinement",
+        topic="conformers",
+    ),
+}
+
+
 class ConformerOptionsDialog(QDialog):
     """Asks for the two numbers conformer generation actually takes.
 
@@ -82,20 +182,12 @@ class ConformerOptionsDialog(QDialog):
         self._embeddings_spin = QSpinBox()
         self._embeddings_spin.setRange(1, MAX_EMBEDDINGS)
         self._embeddings_spin.setValue(DEFAULT_EMBEDDINGS_TO_TRY)
-        self._embeddings_spin.setToolTip(
-            "How many random embeddings to generate. The search is random, not "
-            "exhaustive, so more attempts find more distinct shapes -- with no "
-            "guarantee attached to any count."
-        )
+        apply_help_tooltip(self._embeddings_spin, _HELP['embeddings'])
 
         self._keep_spin = QSpinBox()
         self._keep_spin.setRange(1, MAX_CONFORMERS_TO_KEEP)
         self._keep_spin.setValue(DEFAULT_CONFORMERS_TO_KEEP)
-        self._keep_spin.setToolTip(
-            "How many distinct conformers to keep, lowest in energy first. "
-            "Fewer may come back: a rigid molecule has fewer distinct shapes "
-            "than this, which is a result about the molecule."
-        )
+        apply_help_tooltip(self._keep_spin, _HELP['keep'])
 
         # **"Diversity threshold (RMSD)", never bare "diversity".** It is
         # a sampling and de-duplication parameter, not a definition of
@@ -108,41 +200,20 @@ class ConformerOptionsDialog(QDialog):
         self._diversity_spin.setDecimals(2)
         self._diversity_spin.setSuffix(" Å")
         self._diversity_spin.setValue(DEFAULT_RMS_THRESHOLD)
-        self._diversity_spin.setToolTip(
-            "How far apart two embeddings must be to count as different shapes.\n"
-            "This is a sampling and de-duplication parameter, NOT a definition of\n"
-            "what makes two conformers different -- no single value is right for\n"
-            "every molecule. 0.5 was fitted to butane, whose pairwise RMSDs really\n"
-            "are bimodal; a drug-like molecule's are a flat continuum with no gap\n"
-            "for a threshold to sit in.\n\n"
-            "Lower keeps more near-identical structures; higher merges more."
-        )
+        apply_help_tooltip(self._diversity_spin, _HELP['diversity'])
 
         self._optimisation_combo = QComboBox()
         for label in OPTIMISATION_LEVELS:
             self._optimisation_combo.addItem(label)
         self._optimisation_combo.setCurrentText(DEFAULT_OPTIMISATION_LEVEL)
-        self._optimisation_combo.setToolTip(
-            "How hard to minimise each embedding: iterations and gradient\n"
-            "tolerance. These are OpenChem's levels, inspired by Marvin's\n"
-            "control and not numerically equivalent to it.\n\n"
-            "Measured over 30 embeddings each of seven molecules: every level\n"
-            "converged 30 of 30, and the retained count differed on only one\n"
-            "molecule -- ethylmorphine, where Loose found 8 against 9 elsewhere.\n"
-            "A geometry that does not converge is discarded at every level."
-        )
+        apply_help_tooltip(self._optimisation_combo, _HELP['optimisation'])
 
         self._time_limit_spin = QSpinBox()
         self._time_limit_spin.setRange(NO_TIME_LIMIT, 3600)
         self._time_limit_spin.setValue(NO_TIME_LIMIT)
         self._time_limit_spin.setSpecialValueText("No limit")
         self._time_limit_spin.setSuffix(" s")
-        self._time_limit_spin.setToolTip(
-            "Stop STARTING new embeddings once this many seconds have passed.\n"
-            "Not a hard ceiling: an embedding already under way runs to the end,\n"
-            "so the overshoot is up to one embedding. Neither RDKit's embedder\n"
-            "nor its minimiser can be interrupted part-way."
-        )
+        apply_help_tooltip(self._time_limit_spin, _HELP['time_limit'])
 
         # **Marvin's word appears nowhere**, not in this label, not in the
         # tooltip, and not in provenance. ChemAxon's `hyperfine` is short
@@ -150,14 +221,7 @@ class ConformerOptionsDialog(QDialog):
         # MD engine here and a second minimisation is not an
         # approximation of trajectory sampling.
         self._refine_check = QCheckBox("Enhanced refinement")
-        self._refine_check.setToolTip(
-            "Put every surviving conformer through a second, stricter\n"
-            "minimisation, and discard any that will not settle.\n\n"
-            "Measured: this changes nothing at Normal or above, because those\n"
-            "already converge. Its one visible effect was to recover what a\n"
-            "Loose run had lost -- ethylmorphine 8 back to 9 -- at about 25%\n"
-            "more time. It is not a way to find more conformers."
-        )
+        apply_help_tooltip(self._refine_check, _HELP['refine'])
 
         form = QFormLayout()
         form.addRow("Embeddings to try:", self._embeddings_spin)

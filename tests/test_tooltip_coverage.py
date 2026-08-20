@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
+from PySide6.QtCore import QCoreApplication, QEvent
 
 from openchem.ui.widgets.help_tooltip import HelpTooltip, HelpTooltipError
 from openchem.ui.widgets.tooltip_inventory import (
@@ -395,6 +396,100 @@ def test_the_composite_rule_does_not_swallow_the_panels(controls):
     assert len(inside_a_viewport) > 100, (
         f"only {len(inside_a_viewport)} controls inside a scroll area are "
         "documentable -- an exclusion is swallowing the panels themselves"
+    )
+
+
+def test_a_line_edits_clear_button_is_qt_s_own(qapp):
+    """The same hole a third time, and it escapes the prefix rule TWICE.
+
+    `setClearButtonEnabled(True)` makes Qt build two things inside a
+    `QLineEdit`, and neither carries the `qt_` object-name prefix that
+    `_is_qt_internal` derives its answer from:
+
+        the button   QToolButton with NO object name at all
+        the action   QAction named `_q_qlineeditclearaction`, Qt's OTHER
+                     reserved prefix, parented to the line edit itself
+
+    So both arrived in the inventory as controls owing the user an
+    explanation, which is how the help window and the receptor library
+    each reported twice the controls they have.
+
+    NOT TAKEN FROM THE WINDOW, because it cannot show this: all 13 of the
+    real window's line edits are plain ones, and the only two clear
+    buttons in the application are in dialogs. Built here for the same
+    reason `test_an_explicitly_set_action_tooltip_still_counts_as_debt`
+    is built here.
+
+    THE SETUP IS ASSERTED. A Qt that stopped creating either child would
+    leave nothing to exclude, and a test that only checked "neither is
+    documentable" would pass while covering nothing.
+    """
+    from PySide6.QtGui import QAction
+    from PySide6.QtWidgets import QLineEdit, QToolButton, QWidget
+
+    host = QWidget()
+    edit = QLineEdit(host)
+    edit.setClearButtonEnabled(True)
+    try:
+        assert edit.findChildren(QToolButton), (
+            "Qt built no clear button, so there is nothing here to exclude"
+        )
+        assert [a for a in edit.findChildren(QAction)], (
+            "Qt built no clear action, so half this guard is testing nothing"
+        )
+
+        documentable = {c.instance_path for c in iter_documentable_controls(host)}
+        excluded = {path: reason for reason, path in
+                    [(e.reason, e.instance_path) for e in iter_exclusions(host)]}
+
+        button = next(p for p in excluded if p.endswith("QToolButton"))
+        action = next(p for p in excluded if p.endswith("_q_qlineeditclearaction"))
+        assert excluded[button] == "internal"
+        assert excluded[action] == "internal"
+        assert button not in documentable and action not in documentable, (
+            "Qt's own clear button is being asked for a help contract"
+        )
+        # And the narrow half at the smallest scale the rule has: the line
+        # edit that OWNS the clear button is still a control itself.
+        assert any(p.endswith("QLineEdit") for p in documentable), (
+            "the line edit itself was excluded along with its clear button"
+        )
+    finally:
+        host.setParent(None)
+        host.deleteLater()
+        QCoreApplication.sendPostedEvents(host, QEvent.Type.DeferredDelete)
+
+
+def test_the_composite_rule_does_not_swallow_the_line_edits(controls):
+    """The narrow half, and the one that fails if the rule is too broad.
+
+    "A `QLineEdit` is Qt's own composite" is one word away from "a
+    `QLineEdit` is not a control", which would silently drop every search
+    box, filter and text field in the application -- and would register as
+    a jump in coverage rather than as a fault, exactly as the broad
+    `qt_`-ancestor rule would have.
+
+    The claim is therefore not merely "the clear buttons are gone", it is
+    "and the line edits themselves are still here". Measured on the real
+    window, which is a smaller number than it first looks:
+
+        13 QLineEdits in the window
+        -7 inside a QDoubleSpinBox    already excluded before this rule,
+        -3 inside a QSpinBox          by the composite rule as it stood
+        -1 inside a QComboBox
+        = 2 standing alone            `facts.search`, `batch.property_filter`
+
+    Those two are the whole population the window can offer, so this
+    asserts them BY NAME rather than by a threshold that would read as
+    stronger than it is.
+    """
+    found, _ = controls
+    line_edits = {c.instance_path: c for c in found if c.widget_class == "QLineEdit"}
+    ids = {c.help_tooltip.help_id for c in line_edits.values() if c.help_tooltip}
+    assert {"facts.search", "batch.property_filter"} <= ids, (
+        f"the window's stand-alone line edits are no longer documentable "
+        f"({sorted(ids)}) -- the composite rule is excluding the line edits "
+        "themselves and not merely the clear buttons Qt builds inside them"
     )
 def test_a_menu_actions_synthesised_tooltip_is_not_help(controls):
     """`QAction.toolTip()` NEVER RETURNS EMPTY, and the queue believed it.

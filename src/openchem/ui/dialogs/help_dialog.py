@@ -39,8 +39,49 @@ from PySide6.QtWidgets import (
 )
 
 from openchem import help as help_docs
+from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 logger = logging.getLogger("openchem.ui")
+
+#: TWO CONTROLS, and Qt's clear button is not one of them: it builds a
+#: `QToolButton` and a `_q_qlineeditclearaction` inside the line edit,
+#: which `tooltip_inventory` excludes as its own scaffolding.
+#:
+#: Both are tier 1 -- there is no measurement or unit here, only what the
+#: control does and what the reader will see afterwards. The part worth
+#: writing down in each case is the SECOND-ORDER effect: that the search
+#: reads the body rather than the titles, and that the whole-document view
+#: drops the highlighting the search put there.
+_HELP: dict[str, HelpTooltip] = {
+    "search": HelpTooltip(
+        text=(
+            "Searches the text of every help document, not just the topic "
+            "titles.\n\n"
+            "With a query the list stops being the table of contents and "
+            "becomes ranked results, each tagged with the document it came "
+            "from -- two documents legitimately have a section called "
+            "'Docking', one about the panel and one about what its scores "
+            "are worth. Matches are highlighted in the page and the first "
+            "is scrolled to. Emptying the box restores the contents list."
+        ),
+        tier=1,
+        help_id="help.search",
+        topic="help",
+    ),
+    "whole_document": HelpTooltip(
+        text=(
+            "Replaces the section on the right with the whole document it "
+            "belongs to, read from the top.\n\n"
+            "The topic list keeps its selection, so this is a way to read "
+            "around a result rather than a way to leave it. Search "
+            "highlighting is not carried over -- measured, the marks are "
+            "dropped when the document is swapped."
+        ),
+        tier=1,
+        help_id="help.whole_document",
+        topic="help",
+    ),
+}
 
 _DOCUMENT_LABELS = {
     "QUICKSTART.md": "Getting started",
@@ -78,6 +119,7 @@ class HelpDialog(QDialog):
         self._filter.setPlaceholderText("Search the documentation...")
         self._filter.setClearButtonEnabled(True)
         self._filter.textChanged.connect(self._apply_filter)
+        apply_help_tooltip(self._filter, _HELP["search"])
 
         self._list = QListWidget(self)
         self._list.currentItemChanged.connect(self._on_topic_changed)
@@ -89,6 +131,7 @@ class HelpDialog(QDialog):
 
         self._whole_document_button = QPushButton("Read the whole document", self)
         self._whole_document_button.clicked.connect(self._show_whole_document)
+        apply_help_tooltip(self._whole_document_button, _HELP["whole_document"])
 
         self._status = QLabel("", self)
         self._status.setWordWrap(True)
