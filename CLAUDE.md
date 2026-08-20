@@ -7789,6 +7789,296 @@ against a printed closed form rather than by review:
 - benzene assigned to Miller's `CBR` row gives 13.99 against 10.39, and
   the row's symbol is the reason anybody would.
 
+
+## SHIPPED IS NOT REACHABLE, AND FOUR MODULES PROVED IT
+
+PR #41 added `chem/hlb.py`, `chem/tsei.py`, `chem/polarizability_miller.py`
+and `chem/gutmann.py`. Each was correct, guarded by its own test file, and
+registered in `docs/sources.toml`. **Not one was reachable from anything a
+user could press.** Measured against the RUNTIME registry rather than by
+grep, because a dynamic import makes a text search lie: 51 calculators
+backed by 27 modules, none of them among the four.
+
+Every test passed. "Shipped" had come to mean *the file exists* rather than
+*source -> registry -> UI*.
+
+`tests/test_calculator_reachability.py` is the guard, and it checks BOTH
+directions -- every registered calculator's compute is callable, and every
+module that DECLARES itself user-facing is reachable from one.
+
+**USER-FACING IS DECLARED, NEVER INFERRED FROM LIVING UNDER `chem/`.** That
+inference is `inapplicable_calculators` again, a rule keyed on something
+incidental that rotted into 27 wrong entries. A module carries a
+`USER_FACING_PROVIDER` string naming the surface it reaches; the audit reads
+the declaration. An exemption LIST would be the same blocklist in a new
+place, and a module WITHOUT the marker is not claimed to be internal -- it
+is simply making no claim, the same scope `DEFERRALS` has.
+
+**THE WALK MUST FOLLOW A DEFERRED IMPORT, and that is the load-bearing
+half.** Two of the four are reached only from inside a function body --
+`electronic_properties` imports Miller in its method dispatch, `lewis`
+imports Gutmann in its line builder -- so an `ast` walk restricted to
+module-level imports reports both unreachable and is WRONG about it.
+`test_the_reachability_walk_follows_a_deferred_import` asserts those two
+edges by name, and `test_a_module_nothing_reaches_would_fail_this` asserts
+the walk is not simply returning everything.
+
+### A DESCRIPTION IS A TOOLTIP, AND ONE HAD ALREADY ROTTED
+
+`property_panel._calculator_help` GENERATES each help contract from
+`CalculatorDefinition.description`, so a description is not a comment --
+it is what a user reads on hover, and the one place this application says a
+method is unavailable.
+
+**`topology_analysis` said the Szeged index was "deliberately omitted"
+while its own module docstring, twenty lines from the compute function,
+said "The SZEGED INDEX is now included, validated by a THEOREM".** Two
+statements about one quantity in one feature, disagreeing, and the one a
+user reads was the wrong one. It rotted unaided.
+
+`CALCULATOR_CLAIMS` in `tests/test_docs_are_current.py` is the guard, in the
+`DEFERRALS` shape: a `fragment` that must occur EXACTLY ONCE, and an
+`unbuilt` predicate over CODE. **THE CLAIM IS DECLARED, NOT DETECTED** --
+"is not offered", "is unavailable" and "does not provide" are one claim in
+three shapes, and deciding whether a sentence asserts unavailability is the
+prose analysis `help_tooltip.py` refuses.
+
+A phrase scan survives as a **CANDIDATE DETECTOR, never a semantic oracle**.
+It says "this looks like an availability claim and is not registered --
+classify it", never "this sentence is false". Its failure message is worded
+that way deliberately: pretending natural language is a type system is how
+such a check decays into `NEGATIVE_WORDS = {...}` and starts flagging "this
+estimator is intentionally absent". **It earned its keep on its first run**,
+catching a "Davies' HLB is not offered" sentence written minutes earlier.
+
+**SCOPE IS AVAILABILITY OF AN EXTERNAL METHOD, NOT OUR OWN SCOPE.**
+`orbital_electronegativity` says the pi component "is not offered -- it
+needs a separate pi-charge iteration", which is a statement about OpenChem
+behaviour and is still true; it was reworded rather than registered. Same
+split `help_tooltip.py` draws between an external fact and our own.
+
+### EQ 7 WAS A SPECIAL CASE AND SHIPPED AS THE DEFINITION
+
+`chem/tsei.py` computed `TSEI = SUM 1/L_i^3`, which is [source:cao2004]'s
+eq 7 -- derived one line after "**For any alkyl, it only contains carbon
+and hydrogen atoms.** When its hydrogen atoms are ignored, eq 4 also can be
+simplified to eq 6". The general quantity is eq 4, each atom's covalent
+radius over the SUMMED BOND LENGTHS to the reaction centre.
+
+    an all-carbon path      every R_i/R_C is 1 and every l_i is L_i x l_CC,
+                            so eq 8a collapses to eq 7 EXACTLY
+    a first-tier chlorine   the paper derives 1.4190 in full; eq 7 gives
+                            1.000, because it cannot tell a chlorine from
+                            a carbon
+
+**TABLE 1 IS BLIND TO THIS, WHICH IS WHY IT SHIPPED.** All twenty normal
+alkyls reproduced perfectly against the wrong implementation. A fixture
+family is not "big enough" -- it is degenerate or not with respect to a
+specific defect, and this file has now recorded that four times.
+
+**TABLE 6 IS WHERE THE HETEROATOM VALUES ARE, and finding it changed
+everything.** It prints TSEI for F, Cl, Br, I, MeO and OEt, and its
+footnote c says its values include hydrogens where Tables 1/2/4 ignore
+them. **18 of the 19 reachable printed values now reproduce.**
+
+    Table 1, n = 1..20     the CONSTANT      blind to the radius term
+    a first-tier halogen   the RADIUS term   1.4190 vs eq 7's 1.000
+    MeO 0.9505, OEt 0.9939 the TRAVERSAL     a multi-bond path through a
+                                             heteroatom, where l_i stops
+                                             being L_i x l_CC
+
+#### THE RADII WERE RECOVERED, NOT TYPED
+
+The paper's radius source is Lange's Handbook 15th ed. p 4.35 (its ref 18),
+which this project does not hold. Typing a remembered Pauling table is the
+"fields nobody can check" failure recorded in this project's own citation
+audit -- six errors, every one in the field nothing could verify.
+
+So every shipped radius is **inverted from a TSEI value the paper prints**.
+For a lone first-tier atom, eq 8a collapses to `8 rho^3 / (1+rho)^3` with
+`rho = R_X/R_C`, which inverts to a radius:
+
+    F   0.7449  ->  0.63997     Cl  1.4190  ->  0.99001
+    Br  1.6957  ->  1.14002     I   2.0265  ->  1.33000
+    H   from Me = 1.0362  ->  0.30001
+    O   from MeO = 0.9505 ->  0.66      (OEt = 0.9939 uses both at once)
+
+Every one lands on a clean two-decimal value, which is itself evidence the
+inversion reads a real table rather than fitting noise -- and it IDENTIFIES
+the family as Pauling's tetrahedral covalent radii, a measured fact rather
+than an inference from the numbers looking familiar. **It still does not
+license typing a seventh value from memory**: nitrogen, sulfur and
+phosphorus have no printed TSEI to invert, so they are refused by name.
+
+**RDKit's `GetRcovalent` IS A DIFFERENT TABLE** -- Cordero 2008, carbon
+0.760 against 0.772, chlorine 1.02 against 0.99 -- and it puts the paper's
+own chlorine example at 1.5052 against 1.4190.
+
+#### THE PAPER'S OWN STRAW MAN WAS SHIPPED AS A FIXTURE
+
+A fixture quoted "their corresponding steric effect increments delta-TSEI
+... should be 0.1250, 0.2500, and 0.3750" and asserted t-Bu = 1.3750; its
+successors are `test_tert_butyl_carries_the_papers_own_crowding_correction`
+and `test_two_branches_are_not_corrected_and_table_4_is_why`, which assert
+1.8125 and keep the two-branch case plain. That sentence is
+the paper setting up a question it then answers with **no**: it concludes
+three carbons on one carbon contribute 6.5 times one, and every TSEI it
+publishes afterwards uses that -- t-Bu is 1.8125 in Table 2 and 1.8395 in
+Table 6. Table 2 tabulates both variants and prefers the corrected one,
+R = 1.0000 against 0.9411.
+
+Quoting a source is not the same as reading it. The quote was accurate and
+the conclusion drawn from it was the opposite of the paper's.
+
+#### AND ONE PRINTED VALUE DOES NOT REPRODUCE, recorded rather than chased
+
+Table 6 gives i-Pr as 1.3752 where the traversal gives 1.2801. The paper's
+own text, Table 2 and every i-Pr-bearing row of Table 4 all say 1.2500 with
+hydrogens ignored, which plus its seven hydrogens is 1.2801. Reaching
+1.3752 needs the two second-tier carbons scaled by 2.7611, a factor the
+paper never states and which Table 4's own two-branch rows (i-Bu 1.1990,
+s-Bu 1.2870) refute. 1.3752 is within 0.0002 of 1.3750 -- t-Bu's
+plain-additivity value in the table directly above it.
+
+### A PAPER'S PROSE AND ITS TABLES CAN DISAGREE, AND THE TABLES WIN
+
+[source:miller1990] p 8535 states the `CBR` rule as a hydrogen count: "one
+for branched trigonal carbon atoms (CBR) in trigonal carbon atoms **not
+bonded to hydrogen atoms**, and the other for alkenes and aromatic systems
+(CTR) in trigonal carbon atoms bonded to **at least one hydrogen** atom."
+
+That sentence is simpler than the conjugation rule, reads as authoritative,
+and **is contradicted by the paper's own Table II three pages later**:
+
+    toluene       6CTR 1CTE 8H      ipso carbon, NO hydrogen, and CTR
+    styrene       7CTR 1CBR 8H      ipso carbon, NO hydrogen, and CBR
+    acetone       2CTE 1CTR 1OTR4 6H
+                                    carbonyl carbon, no hydrogen, and CTR
+    b-methylnaphthalene           8CTR 1CTE 2CBR 10H
+    a-naphthalenecarboxaldehyde   8CTR 1OTR4 3CBR 8H
+                                    THE SAME RING POSITION, CTR under a
+                                    methyl and CBR under a conjugated CHO
+
+No hydrogen count produces that last pair. The hydrogen rule was
+implemented here for one commit on the strength of the sentence and put
+benzene at **13.99 against 10.39** -- the +36% shape the module's own
+docstring already warns about.
+
+**THE ASSIGNMENT COLUMN IS A FAR STRONGER ORACLE THAN THE TOTALS**, and it
+was sitting unused. Benzene and CCl4 pin the numbers; Table II pins which
+ROW every atom got, which is where the error class actually lives. Nine
+molecules are fixtures now, chosen because they SEPARATE the two candidate
+rules -- the two-molecule check could not have caught this, and did not.
+
+Nitrobenzene is the one disagreement in nine and is named rather than
+smoothed over: the paper gives `6CTR 1NPI2 2OTE 5H`, differing on the ipso
+carbon AND on the nitro oxygens. That row is also one of the worst in the
+table at -6.8%, and the paper's own text lists nitrobenzene among the
+molecules whose correction "lead to a larger deviation from experimental
+results".
+
+### THE JOIN FOUND A DEFECT THE TRANSCRIPTION TESTS COULD NOT
+
+Wiring Gutmann's numbers to a drawn structure needed one row per liquid,
+and two liquids turned out to be carrying **half their data each**:
+
+    donicity("dioxane")   AN 10.8, no DN     the DN table spells it "Dioxan"
+                                             and prints 14.8
+    donicity("glyme")     AN 10.2, no DN     the DN table files it under
+                                             "Dimethoxyethane (DME)"
+
+One solvent, two names, split across the donor table and the acceptor
+table. Every test in `tests/test_gutmann.py` passed -- they check the
+transcription against the page, and each half IS on the page.
+
+Confirmed against the paper's own prose rather than by the names looking
+alike: p12 reads "faster in THF (DN = 20) than in dioxane (DN = 14,8)",
+using the -e spelling for the row the DN table spells without one.
+
+**DECLARED, NEVER FUZZY-MATCHED.** `difflib` pairs "1,2-dichloroethane"
+with "dichloromethane" and "isopropylamine" with "isopropyl myristate" at
+the same confidence -- two different liquids and a wrong merge no numeric
+test would catch. `_SPELLING_VARIANTS` in the generator is two declared
+pairs, and it fails closed on both sides: a variant naming a row that does
+not exist, or a variant whose two spellings both already carry the same
+field.
+
+**AND `diglyme` IS THE ARM THAT SAYS NO** -- a different ether, keeping its
+own row with an acceptor number and no donor number, which is what the
+paper prints.
+
+#### NOT ONE SMILES IS TYPED FOR THE STRUCTURE LOOKUP
+
+`domain/lewis.py` was written with room for "what is coming -- donor and
+acceptor numbers", and filling it needs a name -> structure map. Writing
+sixty SMILES by hand for liquids like selenium oxychloride and
+phenylphosphonic difluoride would be sixty chances to ship a plausible
+wrong molecule.
+
+The structures come from `abraham_solutes.json` instead -- a SHIPPED,
+SOURCED dataset keyed by InChIKey and carrying each solute's name -- so the
+join is name to name and every structure was somebody else's transcription
+with its own provenance. **35 of 68 solvents are reachable from a drawn
+structure**; the rest have no structure here and get no donicity rather
+than a guessed one.
+
+`test_the_structure_map_is_derived_and_not_a_typed_list_of_smiles` asserts
+the module contains no `MolFromSmiles` at all.
+
+**GUTMANN NUMBERS MUST NOT ENTER THE ABRAHAM CALCULATION.** They are
+additional solvent FACTS, never another descriptor -- the creep is obvious
+and would be plausible ("since we have DN, use it as a predictor") and
+nothing in either source establishes that relationship. Asserted
+structurally, because the numeric version would need a solvent whose DN
+moved and there is none.
+
+**DN AND AN ARE TWO LABELLED FACTS, ALWAYS**, asserted on the presentation
+object rather than trusted to prose: a later tidy-up into one "Gutmann"
+field would erase the distinction without breaking any numeric test. Water
+is 18.0 DN against 54.8 AN with a THIRD number, 33.0 bulk; HMPA is 2nd of
+46 by donor number and in the bottom third by acceptor number.
+
+### A MUTATION FOUND A GAP IN THE DECLARED-TOTALS AUDIT
+
+Fourteen arms, thirteen caught first time. The fourteenth -- declaring a
+plausible total on the TSEI projection, `declare_total(0.0, "TSEI
+projection total")` -- **passed every guard in `test_declared_totals.py`
+and every guard in `test_tsei.py`.** That audit checks a declaration EXISTS
+and is WELL FORMED; only naming the calculator says which answer is right,
+which is exactly why
+`test_the_two_meaningless_sums_are_declined_by_name` names its members
+individually. `tsei_projection` joined that list.
+
+The chemistry behind the name is worth having beside it: on chloromethane
+the carbon feels 1.4190 from the chlorine and the chlorine feels 0.6729
+back, across the same bond. The increments are ASYMMETRIC, because `l_i` is
+a bond length and the radius sits in the numerator on one side only, so the
+sum over atoms is 2.0919 -- not either atom's answer, not twice anything,
+and not a property of the molecule.
+
+**AND THE FIRST VERSION OF THAT ARM WAS NOT A MUTATION AT ALL.** It wrote
+`{...} if False else decline_total(...)`, which changes no behaviour, and
+scored a confident SURVIVED. Fifth instance of that lesson here; the
+harness prints an EDIT-CHECK and compares the arm's ran-count against the
+control's, and neither catches an edit that lands and does nothing.
+
+### `{"do": "scroll"}` -- because a panel that scrolls hides its own output
+
+Measured with a Lewis result on screen: **viewport 396x580 against content
+396x2361**, so five sixths of the Properties panel is unphotographable from
+the top. `dump` reports that the content FITS and `rendered_overflow`
+reports 0 findings -- both true, and neither is a picture.
+
+The step takes `{"to": "bottom"}`, `{"to": "top"}` or `{"y": 1000}` and
+LOGS where it landed, because a request past the end is clamped and a
+silent clamp makes "I scrolled to the bottom" a claim about a position
+nobody checked.
+
+**SCROLLING TO THE BOTTOM OVERSHOOTS A TALL RESULT BOX.** The result widget
+is mostly empty below its text, so `to: bottom` photographs blank space
+with the text above the viewport. Find the band first -- count dark rows
+per scanline across a few positions -- then crop to it.
+
 ## Verification standard
 
 This project's convention, established across many sessions: **claims are

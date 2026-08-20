@@ -483,6 +483,19 @@ and means the opposite — [source:miller1979] says the π system in benzene
 shape of using the wrong form: `α = (4/N)(Σ τ)²` squares a sum. With both
 right, benzene lands at +0.6% and CCl₄ at +0.2%.
 
+**AND THE `CBR` RULE HAD TO BE READ TWICE.** [source:miller1990] p 8535
+states it as a hydrogen count — "CBR in trigonal carbon atoms **not bonded
+to hydrogen atoms**" — and its own Table II three pages later contradicts
+that on every case where the two differ: toluene's ipso carbon has no
+hydrogen and is `CTR`, styrene's ipso carbon has no hydrogen and is `CBR`,
+acetone's carbonyl carbon has no hydrogen and is `CTR`. The tables win, the
+rule is conjugation, and the hydrogen rule was implemented here for one
+commit on the strength of that sentence — it puts benzene at 13.99 against
+10.39. **Nine of the paper's printed assignments are now pinned as
+fixtures**, chosen because they separate the two candidate rules; only
+nitrobenzene disagrees, and that row is also one of the worst in Table II
+at −6.8%.
+
 **HLB — SHIPPED as Griffin HLB, and only that.** The recorded reason was
 "No formulas published, no worked example, and the reference
 implementation's default is a proprietary consensus method. Nothing to
@@ -498,13 +511,45 @@ scale in the entire range of practical applications". So "HLB" names two
 incompatible quantities, and only Griffin ships, under that name, with an
 applicability predicate taken from the source's own opening sentence.
 
-**Cao–Liu TSEI — SHIPPED, half a reason answered.** `topology_analysis`
-refused a "steric index" because the name covers several incompatible
-quantities, there was no identity to check against, and no reference value
-was found. [source:cao2004] answers the last two: one definition, and
-Table 1's exact values for normal alkyls n = 1…20, all twenty of which
-reproduce. The first still stands, so it ships as *Cao–Liu TSEI* and never
+**Cao–Liu TSEI — SHIPPED and REACHABLE, and the second pass corrected
+the first.** `topology_analysis` refused a "steric index" because the name
+covers several incompatible quantities, there was no identity to check
+against, and no reference value was found. [source:cao2004] answers the
+last two; the first still stands, so it ships as *Cao–Liu TSEI* and never
 as a bare "steric index".
+
+What the first pass shipped was **eq 7**, `Σ 1/L³`, which the paper derives
+one line after "For any alkyl, it only contains carbon and hydrogen atoms.
+When its hydrogen atoms are ignored, eq 4 also can be simplified to eq 6".
+On an all-carbon path that is the general form exactly, so Table 1's twenty
+values reproduced perfectly and nothing was wrong — off it, a first-tier
+chlorine came out 1.000 against the **1.4190** the paper derives in full.
+The general form (eq 8a) uses each atom's covalent radius over the
+**summed bond lengths** to the reaction centre.
+
+**18 of the 19 reachable printed values now reproduce**, across Tables 2, 4
+and 6 — the halogens, the ethers, the branched alkyls. Two further things
+the second reading found:
+
+- The second-tier figures "0.1250, 0.2500, and 0.3750" are a **straw man
+  the paper rejects**. It concludes three carbons on one carbon contribute
+  6.5 times one, and every TSEI it publishes after that uses it: t-Bu is
+  1.8125 in Table 2 and 1.8395 in Table 6, never 1.3750.
+- **Table 6's i-Pr = 1.3752 does not reproduce** and is recorded rather
+  than chased. The paper's own text, Table 2 and every i-Pr-bearing row of
+  Table 4 say 1.2500 with hydrogens ignored, which plus its seven
+  hydrogens is 1.2801. 1.3752 is within 0.0002 of 1.3750, t-Bu's
+  plain-additivity value in the table above it.
+
+**THE RADII ARE THE INTERESTING PROVENANCE PROBLEM.** The paper's radius
+source is Lange's Handbook 15th ed. p 4.35 ([source:langes15]), which is
+not held here, and typing a remembered Pauling table would be the
+"fields nobody can check" failure this project has already paid for. Every
+shipped radius is instead **recovered by inverting a TSEI value the paper
+prints** — F from 0.7449, Cl from 1.4190, Br from 1.6957, I from 2.0265,
+H from methyl's 1.0362, O from methoxy's 0.9505 — and an element with no
+printed value to invert is refused by name. Nitrogen, sulfur and phosphorus
+are the notable absences.
 
 **Gutmann donor and acceptor numbers — SHIPPED from the classical tables.**
 The earlier assessment rejected [source:gutmann_frontiers2022] correctly —
@@ -535,9 +580,10 @@ is what shipped. Recorded here because two of the three reasons this
 project had written down for deferring non-aqueous solubility turned out to
 be **false on measurement**, and only the Platts one was real.
 
-**The TSEI steric index.** Several incompatible definitions in the
-literature and no reference value to gate against. Shipped omitted rather
-than guessed. The Szeged index, from the same batch, *did* ship — because it
+**The TSEI steric index — SUPERSEDED; see the Cao–Liu entry above.**
+This paragraph is kept because it is the entry that rotted: "no reference
+value to gate against" was true when written and false by 2004. The Szeged
+index, from the same batch, *did* ship — because it
 could be validated against a theorem.
 
 **Missing-residue repair.** Spiked with PDBFixer, measured, and rejected:
