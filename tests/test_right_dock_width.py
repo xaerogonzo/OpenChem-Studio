@@ -878,3 +878,39 @@ def test_no_two_pop_out_hosts_share_a_settings_id(window):
     ids = [host._settings_id for host in window.findChildren(PopOutHost) if host._settings_id]
     duplicated = sorted({i for i in ids if ids.count(i) > 1})
     assert not duplicated, f"pop-out settings_ids used more than once: {duplicated}"
+
+
+def test_every_pop_out_host_actually_contains_its_view(window):
+    """A host whose content was stolen back is invisible to every other test.
+
+    **FOUND BY MUTATION, at the Structure Check site.**
+    `PopOutHost.__init__` re-parents its content, so a call site that
+    writes
+
+        layout.addWidget(self._depiction)        # instead of the host
+
+    takes the widget straight back out again. The host is left an empty
+    strip carrying an orphaned pop-out button, the panel is visibly
+    broken -- and `pop_out()` still works, because the host kept its own
+    reference. The site's own tests all passed.
+
+    Asserted over the WHOLE WINDOW rather than per panel, so the next
+    site to add a host inherits the guard instead of having to remember
+    it. Deferred-construction hosts (Quantum Chemistry's IR, NMR and
+    Surfaces views) are not built until a result arrives and so are not
+    reached here; the eagerly-built ones are.
+    """
+    from openchem.ui.widgets.pop_out_host import PopOutHost
+
+    hosts = window.findChildren(PopOutHost)
+    assert hosts, "no PopOutHost in the window at all -- this guard stopped watching"
+
+    misplaced = [
+        f"{host.content().__class__.__name__} in {host._title!r}"
+        for host in hosts
+        if not host.is_popped_out() and host.content().parentWidget() is not host
+    ]
+    assert not misplaced, (
+        "these views are not inside the host that claims to own them, so their "
+        f"pop-out button sits on an empty strip: {misplaced}"
+    )

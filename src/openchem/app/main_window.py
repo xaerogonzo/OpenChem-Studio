@@ -455,6 +455,7 @@ class MainWindow(QMainWindow):
             self,
             on_apply_fix=self._apply_structure_fix,
             on_recheck=self._check_current_structure,
+            settings=settings,
         )
         self._batch_panel = BatchPanel(
             services.batch_service,
