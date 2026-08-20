@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: dc7df57edcba67e08008342f93ab17bf7241c3609835cc41a2d30761c63c4f79 -->
+<!-- SOURCE SHA256: 4fc4982db1464bf8f379db9afc8e568ac96895ba18fc07fba502c9c22c48fe00 -->
 
 # Sources
 
@@ -109,6 +109,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`drago1993`](#drago1993) | literature | shipped | citation |
 | [`glasser1995`](#glasser1995) | literature | shipped | citation |
 | [`guo2006`](#guo2006) | literature | reference only | citation + claim |
+| [`gutmann1976`](#gutmann1976) | literature | shipped | citation + claim |
 | [`gutmann_frontiers2022`](#gutmann_frontiers2022) | literature | **not shipped** | citation |
 | [`hlb`](#hlb) | reference_table | **not shipped** | unverified |
 | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
@@ -124,6 +125,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`llinas2019`](#llinas2019) | dataset | reference only | citation |
 | [`llinas2020`](#llinas2020) | dataset | shipped | citation + claim |
 | [`lorentzon1995`](#lorentzon1995) | literature | reference only | citation + claim |
+| [`mayer1975`](#mayer1975) | literature | reference only | citation |
 | [`mayo1990`](#mayo1990) | literature | shipped | citation + claim |
 | [`miller_polarizability`](#miller_polarizability) | reference_table | **not shipped** | unverified |
 | [`molstar`](#molstar) | software | shipped | citation |
@@ -452,6 +454,86 @@ shake-flask methods", which is a DIFFERENT Avdeef paper: ADMET & DMPK 2019,
 were right throughout, because those came from the repository rather than
 from memory. Its abstract's "6355 entries ... for 3014 different molecules"
 matches what `benchmarks/solubility/README.md` says about Wiki-pS0.
+
+### gutmann1976
+
+<a id="gutmann1976"></a>
+
+> V. Gutmann, 'Solvent effects on the reactivities of organometallic compounds', Coordination Chemistry Reviews 1976;18:225-255, Tables 1 and 2.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/S0010-8545(00)82045-7](https://doi.org/10.1016/S0010-8545(00)82045-7) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-20 |
+| Licence | publisher |
+| Local copy | `gutmann1976.pdf` (not checked) |
+| Used by | `src/openchem/chem/data/gutmann_solvents.json`, `src/openchem/chem/gutmann.py`, `tools/build_gutmann_tables.py` |
+
+THE CLASSICAL TABLES, which is what the earlier assessment lacked.
+CLAUDE.md records Gutmann donor/acceptor numbers being assessed and NOT
+shipped because the accessible source was [source:gutmann_frontiers2022]
+-- ionic liquids and deep eutectics, reporting its own acceptor-number
+model failing outright. That paper was correctly rejected; this is the
+molecular scale it is not.
+
+TRANSCRIBED FROM A 300 DPI RENDER, NOT THE TEXT LAYER. This is a scanned
+1976 journal and its OCR is actively wrong: "Dimethylsulphoxitie",
+"Acetonitriie", "l.o.0" where 10.0 belongs, ";:Z" where a number belongs,
+and the names and numbers extracted as two separate runs needing
+positional alignment. THE RENDER ALREADY CAUGHT ONE: the text layer gives
+t-butylamine 57.6, the page says 57.5.
+
+TWO SCALES, KEPT APART:
+
+  DN  donor number, kcal/mol, DILUTE in 1,2-dichloroethane;
+      DN = -dH for the donor's adduct with SbCl5. 53 solvents.
+  AN  acceptor number, DIMENSIONLESS, from the 31P shift of Et3P=O,
+      anchored at hexane = 0 and SbCl5/DCE = 100. 32 solvents.
+
+They are not one ordering: HMPA outranks water on DN and is far below it
+on AN.
+
+AND BULK DONICITY IS A THIRD QUANTITY. The paper's footnote a marks
+values measured "in the associated liquid"; seven rows carry only that,
+and WATER carries both -- 18.0 dilute against 33.0 bulk. Merging the
+columns would be wrong for water by more than the whole range from
+benzene to acetonitrile.
+
+NOT VALIDATED AGAINST THE DRAGO E/C TABLE, deliberately. DN is defined
+as -dH against SbCl5, which [source:vogel_drago1996]'s parameters can
+also predict, so the scales are related -- but they are distinct
+parameterisations with distinct experimental bases, and making
+cross-scale agreement a correctness criterion would let a transcription
+error hide behind a legitimate difference. The oracle is the published
+values.
+
+### mayer1975
+
+<a id="mayer1975"></a>
+
+> U. Mayer, V. Gutmann & W. Gerger, 'The acceptor number - a quantitative empirical parameter for the electrophilic properties of solvents', Monatshefte fuer Chemie 1975;106:1235-1257.
+
+| | |
+| --- | --- |
+| Identifier | [10.1007/BF00913599](https://doi.org/10.1007/BF00913599) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-08-20 |
+| Licence | publisher |
+| Local copy | `mayer1975.pdf` (not checked) |
+| Used by | `src/openchem/chem/gutmann.py` |
+
+**Why it is reference only.** The acceptor-number scale's original paper, and the corroborating source
+for the AN column rather than the one transcribed. Its own text layer is
+a degraded 1975 Springer scan ("Monatshefte ffir Chemie"), and
+[source:gutmann1976] carries the same values in a table that renders
+cleanly, so that is what was read.
+
+Consulted and confirmed to be the paper it claims: 34 solvents'
+acceptor numbers from 31P NMR of triethylphosphine oxide, which is the
+measurement [source:gutmann1976]'s Table 2 reports.
 
 ### cao2004
 

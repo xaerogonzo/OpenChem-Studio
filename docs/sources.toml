@@ -339,6 +339,89 @@ matches what `benchmarks/solubility/README.md` says about Wiki-pS0.
 """
 
 [[source]]
+key = "gutmann1976"
+kind = "literature"
+citation = "V. Gutmann, 'Solvent effects on the reactivities of organometallic compounds', Coordination Chemistry Reviews 1976;18:225-255, Tables 1 and 2."
+identifier_type = "doi"
+identifier = "10.1016/S0010-8545(00)82045-7"
+status = "shipped"
+license = "publisher"
+local = "gutmann1976.pdf"
+used_by = [
+    "src/openchem/chem/data/gutmann_solvents.json",
+    "src/openchem/chem/gutmann.py",
+    "tools/build_gutmann_tables.py",
+]
+verification = "citation_and_claim"
+verified_date = 2026-08-20
+note = """
+THE CLASSICAL TABLES, which is what the earlier assessment lacked.
+CLAUDE.md records Gutmann donor/acceptor numbers being assessed and NOT
+shipped because the accessible source was [source:gutmann_frontiers2022]
+-- ionic liquids and deep eutectics, reporting its own acceptor-number
+model failing outright. That paper was correctly rejected; this is the
+molecular scale it is not.
+
+TRANSCRIBED FROM A 300 DPI RENDER, NOT THE TEXT LAYER. This is a scanned
+1976 journal and its OCR is actively wrong: "Dimethylsulphoxitie",
+"Acetonitriie", "l.o.0" where 10.0 belongs, ";:Z" where a number belongs,
+and the names and numbers extracted as two separate runs needing
+positional alignment. THE RENDER ALREADY CAUGHT ONE: the text layer gives
+t-butylamine 57.6, the page says 57.5.
+
+TWO SCALES, KEPT APART:
+
+  DN  donor number, kcal/mol, DILUTE in 1,2-dichloroethane;
+      DN = -dH for the donor's adduct with SbCl5. 53 solvents.
+  AN  acceptor number, DIMENSIONLESS, from the 31P shift of Et3P=O,
+      anchored at hexane = 0 and SbCl5/DCE = 100. 32 solvents.
+
+They are not one ordering: HMPA outranks water on DN and is far below it
+on AN.
+
+AND BULK DONICITY IS A THIRD QUANTITY. The paper's footnote a marks
+values measured "in the associated liquid"; seven rows carry only that,
+and WATER carries both -- 18.0 dilute against 33.0 bulk. Merging the
+columns would be wrong for water by more than the whole range from
+benzene to acetonitrile.
+
+NOT VALIDATED AGAINST THE DRAGO E/C TABLE, deliberately. DN is defined
+as -dH against SbCl5, which [source:vogel_drago1996]'s parameters can
+also predict, so the scales are related -- but they are distinct
+parameterisations with distinct experimental bases, and making
+cross-scale agreement a correctness criterion would let a transcription
+error hide behind a legitimate difference. The oracle is the published
+values.
+"""
+
+[[source]]
+key = "mayer1975"
+kind = "literature"
+citation = "U. Mayer, V. Gutmann & W. Gerger, 'The acceptor number - a quantitative empirical parameter for the electrophilic properties of solvents', Monatshefte fuer Chemie 1975;106:1235-1257."
+identifier_type = "doi"
+identifier = "10.1007/BF00913599"
+status = "reference_only"
+reason = """
+The acceptor-number scale's original paper, and the corroborating source
+for the AN column rather than the one transcribed. Its own text layer is
+a degraded 1975 Springer scan ("Monatshefte ffir Chemie"), and
+[source:gutmann1976] carries the same values in a table that renders
+cleanly, so that is what was read.
+"""
+license = "publisher"
+local = "mayer1975.pdf"
+used_by = [
+    "src/openchem/chem/gutmann.py",
+]
+verification = "citation"
+verified_date = 2026-08-20
+note = """
+Consulted and confirmed to be the paper it claims: 34 solvents'
+acceptor numbers from 31P NMR of triethylphosphine oxide, which is the
+measurement [source:gutmann1976]'s Table 2 reports.
+"""
+
+[[source]]
 key = "cao2004"
 kind = "literature"
 citation = "C. Cao & L. Liu, 'Topological Steric Effect Index and Its Application', Journal of Chemical Information and Computer Sciences 2004;44(2):678-687."
