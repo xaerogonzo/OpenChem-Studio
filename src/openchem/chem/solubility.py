@@ -72,6 +72,7 @@ from enum import Enum
 from rdkit import Chem
 from rdkit.Chem import Crippen, Descriptors, Lipinski
 
+from openchem.chem.gutmann import donicity_for
 from openchem.chem.calculator_options import DEFAULT_PH, ph_grid_from
 from openchem.chem.logd import assign_site_polarity, classify_ionizable_centres, ionization_log_factor
 from openchem.chem.pka_providers import PKaResolution, PKaStatus
@@ -1430,6 +1431,90 @@ def _model_facts(
     return facts
 
 
+def _gutmann_facts(solvent_key: str) -> list[Fact]:
+    """Gutmann's donor and acceptor numbers for the chosen solvent.
+
+    **THESE ARE FACTS ABOUT THE SOLVENT, NOT INPUTS TO THE CALCULATION.**
+    Nothing here feeds the Abraham shift and nothing may: Abraham's
+    coefficients are a fitted five-descriptor model, and folding a donor
+    number into it would be inventing a relationship that no source here
+    establishes. They are reported because "how strongly does this solvent
+    donate?" is the question a reader has next, and this application
+    already holds the answer.
+
+    **DN AND AN ARE TWO SCALES AND ARE NEVER ONE ROW.** `chem/gutmann.py`
+    records why at length: a solvent can be high in both (water 18.0/54.8)
+    or high in one and nearly zero in the other (HMPA 38.8/10.6), so
+    "the Gutmann number" is not a well-formed question. Two labelled facts,
+    always -- a later tidy-up into a single "Gutmann" field would erase
+    that distinction without breaking any numeric test, which is what
+    `tests/test_gutmann_bridge.py` asserts against.
+    """
+    record = donicity_for(solvent_key)
+    if record is None:
+        return []
+
+    facts: list[Fact] = []
+    if record.donor_number is not None:
+        facts.append(
+            _fact(
+                "Gutmann donor number (DN)",
+                record.donor_number,
+                f"{record.donor_number:.1f}",
+                units="kcal/mol",
+                basis=Basis.DETERMINISTIC,
+                detail=Detail.ADVANCED,
+                evidence=(
+                    "-dH for the solvent's adduct with SbCl5, measured DILUTE in "
+                    "1,2-dichloroethane (Gutmann 1976).",
+                ),
+                limitations=(
+                    "A donor number says how strongly the solvent donates an electron "
+                    "pair. It is not an input to the solubility model above.",
+                ),
+            )
+        )
+    if record.bulk_donicity is not None:
+        facts.append(
+            _fact(
+                "Gutmann bulk donicity",
+                record.bulk_donicity,
+                f"{record.bulk_donicity:.1f}",
+                units="kcal/mol",
+                basis=Basis.DETERMINISTIC,
+                detail=Detail.ADVANCED,
+                evidence=(
+                    'Measured "in the associated liquid" rather than dilute -- the '
+                    "paper's own footnote a.",
+                ),
+                limitations=(
+                    "A THIRD quantity, not a second reading of the donor number. Water "
+                    "is 18.0 dilute and 33.0 bulk, a gap wider than the whole range "
+                    "from benzene to acetonitrile.",
+                ),
+            )
+        )
+    if record.acceptor_number is not None:
+        facts.append(
+            _fact(
+                "Gutmann acceptor number (AN)",
+                record.acceptor_number,
+                f"{record.acceptor_number:.1f}",
+                basis=Basis.DETERMINISTIC,
+                detail=Detail.ADVANCED,
+                evidence=(
+                    "From the 31P shift of Et3P=O on a two-point scale: hexane = 0, "
+                    "SbCl5 in dichloroethane = 100. Dimensionless by construction.",
+                ),
+                limitations=(
+                    "A separate scale from the donor number, not the other end of one. "
+                    "HMPA is 38.8 DN against 10.6 AN.",
+                ),
+            )
+        )
+    return facts
+
+
 def compute_solubility(
     mol: Chem.Mol,
     molecule_uuid: str,
@@ -1459,6 +1544,7 @@ def compute_solubility(
     ph = float(parameters.get("pH", DEFAULT_PH))
 
     facts = _baseline_facts(analysis, unit)
+    facts += _gutmann_facts(analysis.solvent.key)
     facts += _ph_facts(analysis, unit, ph)
     facts += _model_facts(
         analysis, mol, admet_interpreter_path,
@@ -1602,6 +1688,7 @@ def compute_solubility_curve(
     series = {f"Solubility ({unit_symbol(unit)})": [in_unit(v, unit, mw) for v in logs_values]}
 
     facts = _baseline_facts(analysis, unit)
+    facts += _gutmann_facts(analysis.solvent.key)
     facts += _ph_facts(analysis, unit, ph)
     facts += _model_facts(
         analysis, mol, admet_interpreter_path,

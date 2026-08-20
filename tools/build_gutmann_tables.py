@@ -179,8 +179,53 @@ _ACCEPTOR_NUMBERS: dict[str, dict] = {
 }
 
 
+#: Solvents THE TWO TABLES SPELL DIFFERENTLY, as `{as spelled in the
+#: acceptor table: as spelled in the donor table}`.
+#:
+#: **FOUND BY A CONSUMER, NOT BY REVIEW.** Wiring these numbers to a
+#: structure needed one row per liquid, and the mapping turned up two
+#: liquids carrying half their data each: `donicity("dioxane")` answered
+#: with an acceptor number and no donor number, while the paper prints
+#: DN = 14.8 for it under the spelling "Dioxan" on the previous page.
+#: Same for glyme, whose donor number is filed under "Dimethoxyethane
+#: (DME)".
+#:
+#: Confirmed against the paper's own prose rather than by their names
+#: looking similar -- p12 reads "faster in THF (DN = 20) than in dioxane
+#: (DN = 14,8)", using the -e spelling for the row the DN table spells
+#: without one, and the acceptor table's own entries read "Digtyme" and
+#: "Ciyme" in the scan where the donor table names DME.
+#:
+#: DECLARED, NEVER FUZZY-MATCHED. `difflib` pairs "1,2-dichloroethane"
+#: with "dichloromethane" at the same confidence, which is two different
+#: liquids and a wrong merge that no numeric test would catch.
+_SPELLING_VARIANTS: dict[str, str] = {
+    "dioxane": "dioxan",
+    "glyme": "dimethoxyethane",
+}
+
+
+def _merge_spelling_variants() -> None:
+    """Fold each variant's acceptor row onto the donor table's spelling.
+
+    FAIL CLOSED on both sides: a variant naming a row that does not exist
+    is a typo here, and a variant whose two spellings BOTH already carry
+    the same field would mean the paper printed the value twice, which is
+    a different situation needing a different answer.
+    """
+    for spelled, canonical in _SPELLING_VARIANTS.items():
+        assert spelled in _ACCEPTOR_NUMBERS, f"no acceptor row named {spelled!r}"
+        assert canonical in _DONOR_NUMBERS, f"no donor row named {canonical!r}"
+        assert canonical not in _ACCEPTOR_NUMBERS, (
+            f"{canonical!r} is already in the acceptor table, so {spelled!r} is not "
+            "a spelling of it -- they are two rows and merging them would lose one"
+        )
+        _ACCEPTOR_NUMBERS[canonical] = _ACCEPTOR_NUMBERS.pop(spelled)
+
+
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
+    _merge_spelling_variants()
 
     # The scale's own two anchors, asserted at BUILD time rather than
     # left for a test: if a transcription slip moves either of them, the
@@ -194,12 +239,15 @@ def main() -> int:
         "_supplementary_source_keys": ["mayer1975"],
         "attribution": _ATTRIBUTION,
         "definitions": _DEFINITIONS,
+        "spelling_variants": _SPELLING_VARIANTS,
         "donor_numbers": _DONOR_NUMBERS,
         "acceptor_numbers": _ACCEPTOR_NUMBERS,
     }
     (OUT / "gutmann_solvents.json").write_text(
         json.dumps(payload, indent=1), encoding="utf-8"
     )
+    merged = sorted(_SPELLING_VARIANTS.values())
+    print(f"merged spelling variants: {', '.join(merged)}")
     dilute = sum(1 for e in _DONOR_NUMBERS.values() if e.get("dn") is not None)
     bulk = sum(1 for e in _DONOR_NUMBERS.values() if e.get("bulk_dn") is not None)
     print(

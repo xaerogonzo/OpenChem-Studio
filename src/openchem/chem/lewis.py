@@ -710,6 +710,7 @@ def compute_lewis_sites(
         if matching:
             lines.append(heading)
             lines.extend(_describe(site) for site in matching)
+    lines.extend(_gutmann_lines(target))
     lines.extend(microspecies_note(parameters))
     lines.extend(f"Assumption: {text}" for text in analysis.assumptions)
     lines.extend(f"Limitation: {text}" for text in analysis.limitations)
@@ -722,6 +723,47 @@ def compute_lewis_sites(
         category="lewis",
         provenance=provenance,
     )
+
+
+def _gutmann_lines(mol: Any) -> list[str]:
+    """Measured donicity, when the drawn structure IS one of the 68 liquids.
+
+    `domain/lewis.py` was written with room for exactly this: "The shape
+    also has room for what is coming -- donor and acceptor numbers".
+
+    **A MEASURED NUMBER BESIDE A PERCEIVED ROLE, NOT INSTEAD OF ONE.** The
+    sites above are perceived from the structure; these are what somebody
+    measured for this liquid, and the two answer different questions. A
+    reader deciding whether THF really donates has the experiment right
+    there.
+
+    **DN AND AN ARE TWO LINES, ALWAYS.** `chem/gutmann.py` records why: a
+    solvent can be high in both (water 18.0/54.8) or high in one and
+    nearly zero in the other (HMPA 38.8/10.6), so "the Gutmann number" is
+    not a well-formed question. Folding them into one field would erase
+    that without breaking any numeric test -- which is what
+    `tests/test_gutmann_bridge.py` asserts against, on the parsed facts
+    rather than on the prose.
+    """
+    from openchem.chem.gutmann import donicity_for_structure
+
+    record = donicity_for_structure(mol)
+    if record is None:
+        return []
+
+    lines = [f"Measured as a solvent ({record.name}), Gutmann 1976:"]
+    if record.donor_number is not None:
+        lines.append(f"Gutmann donor number (DN): {record.donor_number:.1f} kcal/mol")
+    if record.bulk_donicity is not None:
+        lines.append(f"Gutmann bulk donicity: {record.bulk_donicity:.1f} kcal/mol")
+    if record.acceptor_number is not None:
+        lines.append(f"Gutmann acceptor number (AN): {record.acceptor_number:.1f}")
+    lines.append(
+        "Limitation: DN and AN are separate scales, not two ends of one -- DN is "
+        "-dH against SbCl5 in kcal/mol, AN is a dimensionless 31P shift between "
+        "hexane at 0 and SbCl5 at 100."
+    )
+    return lines
 
 
 def _limitations(sites: list[LewisSite]) -> tuple[str, ...]:

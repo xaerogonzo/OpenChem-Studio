@@ -10,6 +10,10 @@
   "an": "Acceptor number, dimensionless. From the 31P NMR shift of triethylphosphine oxide, on a two-point scale: hexane = 0, SbCl5 in 1,2-dichloroethane = 100.",
   "p31_shift": "31P NMR shift of Et3P=O relative to Et3PO in hexane, ppm."
  },
+ "spelling_variants": {
+  "dioxane": "dioxan",
+  "glyme": "dimethoxyethane"
+ },
  "donor_numbers": {
   "1,2-dichloroethane": {
    "dn": null,
@@ -200,17 +204,9 @@
    "an": 9.9,
    "p31_shift": -4.2
   },
-  "glyme": {
-   "an": 10.2,
-   "p31_shift": -4.35
-  },
   "hexamethylphosphoramide": {
    "an": 10.6,
    "p31_shift": -4.5
-  },
-  "dioxane": {
-   "an": 10.8,
-   "p31_shift": -4.59
   },
   "acetone": {
    "an": 12.5,
@@ -304,6 +300,14 @@
    "an": 100.0,
    "p31_shift": -42.58,
    "note": "the AN scale's 100 -- a reference, not a solvent"
+  },
+  "dioxan": {
+   "an": 10.8,
+   "p31_shift": -4.59
+  },
+  "dimethoxyethane": {
+   "an": 10.2,
+   "p31_shift": -4.35
   }
  }
 }
