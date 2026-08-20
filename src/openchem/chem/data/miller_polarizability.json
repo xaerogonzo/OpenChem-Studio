@@ -1,0 +1,150 @@
+{
+ "_source_key": "miller1990",
+ "_supplementary_source_keys": [
+  "miller1979"
+ ],
+ "attribution": "K. J. Miller, 'Additivity methods in molecular polarizability', J. Am. Chem. Soc. 1990;112:8533-8542, Table I. doi:10.1021/ja00179a044. Method: K. J. Miller & J. A. Savchik, J. Am. Chem. Soc. 1979;101:7206-7213, doi:10.1021/ja00518a014. Transcribed from a 400 dpi render.",
+ "methods": {
+  "ahc": "alpha = (4/N) * (sum of tau_A)^2, N = total electrons. A^3.",
+  "ahp": "alpha = sum of alpha_A. A^3."
+ },
+ "parameters": {
+  "H": {
+   "hybrid": "sigma",
+   "group": "-H",
+   "tau_ahc": 0.313,
+   "alpha_ahp": 0.387
+  },
+  "F": {
+   "hybrid": "sigma",
+   "group": "-F",
+   "tau_ahc": 1.089,
+   "alpha_ahp": 0.296
+  },
+  "Cl": {
+   "hybrid": "sigma",
+   "group": "-Cl",
+   "tau_ahc": 3.165,
+   "alpha_ahp": 2.315
+  },
+  "Br": {
+   "hybrid": "sigma",
+   "group": "-Br",
+   "tau_ahc": 5.566,
+   "alpha_ahp": 3.013
+  },
+  "I": {
+   "hybrid": "sigma",
+   "group": "-I",
+   "tau_ahc": 8.593,
+   "alpha_ahp": 5.415
+  },
+  "CTE": {
+   "hybrid": "tetetete",
+   "group": ">C<",
+   "tau_ahc": 1.294,
+   "alpha_ahp": 1.061
+  },
+  "CTR": {
+   "hybrid": "trtrtrpi",
+   "group": "=C-",
+   "tau_ahc": 1.433,
+   "alpha_ahp": 1.352
+  },
+  "CBR": {
+   "hybrid": "trtrtrpi",
+   "group": "branched pi",
+   "tau_ahc": 1.707,
+   "alpha_ahp": 1.896
+  },
+  "CDI": {
+   "hybrid": "didipipi",
+   "group": "-C#",
+   "tau_ahc": 1.393,
+   "alpha_ahp": 1.283
+  },
+  "NTE": {
+   "hybrid": "te2tetete",
+   "group": ">N:",
+   "tau_ahc": 1.373,
+   "alpha_ahp": 0.964
+  },
+  "NTR2": {
+   "hybrid": "tr2trtrpi",
+   "group": "=N:",
+   "tau_ahc": 1.262,
+   "alpha_ahp": 1.03
+  },
+  "NPI2": {
+   "hybrid": "trtrtrpi2",
+   "group": ">N-",
+   "tau_ahc": 1.22,
+   "alpha_ahp": 1.09
+  },
+  "NDI": {
+   "hybrid": "di2dipipi",
+   "group": "#N:",
+   "tau_ahc": 1.304,
+   "alpha_ahp": 0.956
+  },
+  "OTE": {
+   "hybrid": "te2te2tete",
+   "group": ">O:",
+   "tau_ahc": 1.249,
+   "alpha_ahp": 0.637
+  },
+  "OTR4": {
+   "hybrid": "tr2tr2trpi",
+   "group": "=O:",
+   "tau_ahc": 1.216,
+   "alpha_ahp": 0.569
+  },
+  "OPI2": {
+   "hybrid": "tr2trtrpi2",
+   "group": ">O: pi",
+   "tau_ahc": 1.083,
+   "alpha_ahp": 0.274
+  },
+  "STE": {
+   "hybrid": "te2te2tete",
+   "group": ">S:",
+   "tau_ahc": 3.496,
+   "alpha_ahp": 3.0
+  },
+  "STR4": {
+   "hybrid": "tr2tr2trpi",
+   "group": "=S:",
+   "tau_ahc": 3.827,
+   "alpha_ahp": 3.729
+  },
+  "SPI2": {
+   "hybrid": "tr2trtrpi2",
+   "group": ">S: pi",
+   "tau_ahc": 2.982,
+   "alpha_ahp": 2.7
+  },
+  "PTE": {
+   "hybrid": "tetetete",
+   "group": ">P:",
+   "tau_ahc": 2.485,
+   "alpha_ahp": 1.538
+  }
+ },
+ "reference_molecules": {
+  "benzene": {
+   "smiles": "c1ccccc1",
+   "alpha_exp": 10.39,
+   "source": "miller1979 Table X"
+  },
+  "naphthalene": {
+   "smiles": "c1ccc2ccccc2c1",
+   "alpha_exp": 17.48,
+   "source": "miller1979 Table X"
+  },
+  "carbon tetrachloride": {
+   "smiles": "ClC(Cl)(Cl)Cl",
+   "alpha_exp": 10.5,
+   "source": "miller1979, halogenated derivatives"
+  }
+ }
+}

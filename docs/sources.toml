@@ -339,6 +339,82 @@ matches what `benchmarks/solubility/README.md` says about Wiki-pS0.
 """
 
 [[source]]
+key = "miller1990"
+kind = "literature"
+citation = "K. J. Miller, 'Additivity methods in molecular polarizability', Journal of the American Chemical Society 1990;112(23):8533-8542, Table I."
+identifier_type = "doi"
+identifier = "10.1021/ja00179a044"
+status = "shipped"
+license = "publisher"
+local = "miller1990.pdf"
+used_by = [
+    "src/openchem/chem/data/miller_polarizability.json",
+    "src/openchem/chem/polarizability_miller.py",
+    "tools/build_miller_parameters.py",
+]
+verification = "citation_and_claim"
+verified_date = 2026-08-20
+note = """
+THE PARAMETERS ARE PUBLISHED, WHICH IS THE DEFERRAL THIS CLOSES.
+docs/VALIDATION.md recorded "The parameters are unpublished. A
+reconstruction missed benzene by +27% and CCl4 by -50%, so there was
+nothing to validate against." The first sentence was a claim about
+ChemAxon's documentation, not about the literature: Table I,
+"Parameters for Atoms in Hybrid Configurations", prints all twenty rows.
+
+READ OFF A 400 DPI RENDER. The text layer gives `0.392 0.31 1 0.3 13
+0.387` for a row of four numbers, `3 .000` for 3.000, `TA` for tau_A and
+`A312` for A^(3/2) -- the Drago E/C case again, where an audit found one
+value in 53 out by 0.01. Each row keeps the paper's own `symbol` and
+`hybrid` columns so a future audit runs against the page line by line.
+
+THE `CBR` ROW IS A TRAP AND IS ALMOST CERTAINLY THE RECORDED +27%. Its
+symbol reads as "carbon in a benzene ring" and means the opposite;
+[source:miller1979] says the trouble "was traced to the two kinds of
+carbon atoms present in the pi-electronic system. In ethylene and
+benzene the pi system is directed only along two bonds, whereas in the 9
+and 10 positions of naphthalene it is directed along all three bonds."
+Measured here: assigning benzene to CBR gives 13.99 against an
+experimental 10.39, i.e. +36%.
+
+WITH THE ROW ASSIGNED CORRECTLY, benzene lands at 10.45 (+0.6%) and CCl4
+at 10.53 (+0.2%) -- the two the earlier attempt failed. Naphthalene
+assigns exactly two CBR carbons and lands at +1.7%.
+"""
+
+[[source]]
+key = "miller1979"
+kind = "literature"
+citation = "K. J. Miller & J. A. Savchik, 'A new empirical method to calculate average molecular polarizabilities', Journal of the American Chemical Society 1979;101(24):7206-7213."
+identifier_type = "doi"
+identifier = "10.1021/ja00518a014"
+status = "shipped"
+license = "publisher"
+local = "miller1979.pdf"
+used_by = [
+    "src/openchem/chem/polarizability_miller.py",
+    "tools/build_miller_parameters.py",
+]
+verification = "citation_and_claim"
+verified_date = 2026-08-20
+note = """
+THE METHOD, and the two things about it that are easy to get wrong.
+
+    alpha(ahc) = (4/N) * (SUM_A tau_A)^2,  N = the TOTAL NUMBER OF
+    ELECTRONS in the molecule
+
+Read from the abstract and confirmed in the introduction. SQUARING A SUM
+IS WHAT MAKES IT NOT A GROUP-ADDITIVITY SCHEME, so feeding the additive
+alpha column into this form, or summing tau, gives plausible and wrong
+answers -- which is the shape of the -50% recorded against CCl4.
+
+Its Table X supplies the acceptance oracle: benzene alpha(ahc) 10.40
+against alpha(exp) 10.39, naphthalene 16.59 against 17.48. And page 6
+carries the sentence that explains the CBR row -- see
+[source:miller1990].
+"""
+
+[[source]]
 key = "gutmann1976"
 kind = "literature"
 citation = "V. Gutmann, 'Solvent effects on the reactivities of organometallic compounds', Coordination Chemistry Reviews 1976;18:225-255, Tables 1 and 2."
