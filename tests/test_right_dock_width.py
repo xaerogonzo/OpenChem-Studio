@@ -33,12 +33,17 @@ from __future__ import annotations
 import pytest
 from PySide6.QtWidgets import QToolBar
 
-from openchem.app.main_window import CENTRAL_FLOOR, MainWindow
+import ast
+from pathlib import Path
+
+from openchem.app.main_window import CENTRAL_FLOOR, MainWindow, _LAYOUT_VERSION
 from openchem.ui.widgets.panel_rail import PanelRail
 from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
 from openchem.bootstrap import build_service_container
 from openchem.domain.molecule import MoleculeModel
+
+_SRC = Path(__file__).resolve().parent.parent / "src"
 
 #: A 1366x768 laptop, the smallest display this is plausibly run on. The
 #: window's minimum must fit inside it with room to spare.
@@ -712,4 +717,148 @@ def test_a_stored_false_does_not_read_back_as_folded(qapp_module):
     settings.set(_RAIL_COLLAPSED_KEY, True)
     assert _as_bool(settings.get(_RAIL_COLLAPSED_KEY, None)), (
         "a stored True does not read back as folded"
+    )
+
+
+# --- the layout version, and what a saved layout cannot express -------------
+
+
+def _fresh_layout_only_call_sites() -> list[str]:
+    """Calls reached ONLY when no dock layout was restored.
+
+    `_restore_window_state()` returns a bool precisely so its caller can
+    apply defaults that a restored layout would otherwise skip -- its own
+    docstring says "the caller gives the right-hand dock a starting width
+    when one was not, and must not when one was". So a call inside
+    `if not self._restore_window_state():` is, by construction, a
+    behaviour an existing install never runs.
+
+    Returns the CALL SITES observed, not a semantic taxonomy of them.
+    """
+    tree = ast.parse((_SRC / "openchem" / "app" / "main_window.py").read_text(encoding="utf-8"))
+    found: list[str] = []
+
+    def mentions_restore(node: ast.AST) -> bool:
+        return any(
+            isinstance(child, ast.Attribute) and child.attr == "_restore_window_state"
+            for child in ast.walk(node)
+        )
+
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.If) or not mentions_restore(node.test):
+            continue
+        # `if not restored:` puts the fresh-layout branch in the body;
+        # `if restored:` would put it in the else. Both are collected so
+        # the guard does not depend on which way the condition is written.
+        negated = isinstance(node.test, ast.UnaryOp) and isinstance(node.test.op, ast.Not)
+        branch = node.body if negated else node.orelse
+        for call in (c for stmt in branch for c in ast.walk(stmt) if isinstance(c, ast.Call)):
+            if isinstance(call.func, ast.Attribute):
+                found.append(f"{call.func.attr}()")
+    return sorted(set(found))
+
+
+#: Every behaviour an install with a saved layout will NEVER run, and the
+#: `_LAYOUT_VERSION` in force when the list was last reviewed.
+#:
+#: Pinned together on purpose: the question this guard exists to ask is
+#: "did the version move when the list did".
+FRESH_LAYOUT_ONLY = ["_set_initial_right_dock_width()"]
+FRESH_LAYOUT_REVIEWED_AT_VERSION = "3"
+
+
+def test_fresh_layout_behaviour_is_versioned():
+    """Did a fresh-layout-only behaviour arrive without a version bump?
+
+    **THE MISTAKE THIS EXISTS FOR HAPPENED, AND NOTHING CAUGHT IT.**
+    `_LAYOUT_VERSION` went to "2" with the rail on 2026-08-07. The 420 px
+    starting-width fix landed on 2026-08-15 and did NOT bump it, so
+    `_set_initial_right_dock_width` was skipped on every install that had
+    ever run the application -- including this project's own, read off the
+    real registry at `ui/layout_version = 2`. The fix reached nobody until
+    somebody went looking, weeks later.
+
+    **THIS IS A PROXY, NOT THE INVARIANT, and saying so is the point.**
+    The rule is "bump the version for any change a saved layout cannot
+    express", which is a judgement no expression can decide. A branch
+    guarded by `_restore_window_state()` is EVIDENCE of such a change:
+
+      * it is not proof that everything found there is version-worthy --
+        a `show_first_run_tip()` would sit in the same branch and want no
+        bump;
+      * it is not proof that every layout-affecting change is found --
+        one buried in a helper called from elsewhere would not be, and
+        neither would a change to what `saveState()` itself encodes.
+
+    Claiming otherwise would be the over-broad-exclusion failure this
+    repository has measured before: a guard that reads as complete, is
+    not, and makes the gap invisible because it looks covered.
+
+    So it is deliberately named for what it checks. What it buys is that
+    the 2026-08-15 omission cannot happen silently a third time.
+    """
+    observed = _fresh_layout_only_call_sites()
+    assert observed, (
+        "no call site is guarded by _restore_window_state() any more. Either the "
+        "fresh-layout defaults moved, or the guard's AST shape no longer matches "
+        "-- both need a human, because this guard just stopped watching anything."
+    )
+    assert observed == sorted(FRESH_LAYOUT_ONLY), (
+        "Fresh-layout-only behaviour changed:\n"
+        f"    pinned:   {sorted(FRESH_LAYOUT_ONLY)}\n"
+        f"    observed: {observed}\n"
+        f"_LAYOUT_VERSION is currently {_LAYOUT_VERSION!r}, last reviewed at "
+        f"{FRESH_LAYOUT_REVIEWED_AT_VERSION!r}.\n"
+        "An install that restores a saved layout will never run the new behaviour. "
+        "Does _LAYOUT_VERSION need a bump so those installs pick it up? If the "
+        "behaviour is genuinely cosmetic, update the pin here and say why."
+    )
+    assert _LAYOUT_VERSION == FRESH_LAYOUT_REVIEWED_AT_VERSION, (
+        f"_LAYOUT_VERSION is {_LAYOUT_VERSION!r} but the fresh-layout list was last "
+        f"reviewed at {FRESH_LAYOUT_REVIEWED_AT_VERSION!r}. Re-read the list above "
+        "and move this constant, so the two cannot drift apart unnoticed."
+    )
+
+
+#: The right-hand docks THIS APPLICATION builds, by `objectName()`.
+#:
+#: Derived from `MainWindow._right_docks`, which is a literal list built
+#: before any plugin loads -- never `findChildren(QDockWidget)`, which
+#: would make the pin depend on which plugins happen to be installed.
+OWN_RIGHT_DOCKS = [
+    "Properties",
+    "Atom_Inspector",
+    "Interactions",
+    "Structure_Check",
+    "Quantum_Chemistry",
+    "Docking",
+    "3D_Alignment",
+    "Jobs",
+    "Batch",
+    "Compare",
+]
+
+
+def test_the_windows_own_docks_are_pinned_against_a_silent_rename(window):
+    """A renamed or removed dock is the other half a saved layout cannot express.
+
+    `QMainWindow.restoreState` matches docks by `objectName()`, so renaming
+    one silently orphans that entry in every saved layout. This is the
+    cheap half of the same question the AST pin asks.
+
+    **SCOPED TO THE APPLICATION'S OWN DOCKS.** `_right_docks` plus the
+    named built-ins, never `findChildren(QDockWidget)` -- a
+    plugin-contributed dock would make the pin depend on which plugins
+    happen to be installed, and `test_tooltip_coverage.py`'s `controls`
+    fixture already sets the precedent by pointing both plugin
+    directories at paths that do not exist.
+    """
+    observed = sorted(dock.objectName() for dock in window._right_docks)
+    assert observed == sorted(OWN_RIGHT_DOCKS), (
+        "The right-hand dock set changed:\n"
+        f"    pinned:   {sorted(OWN_RIGHT_DOCKS)}\n"
+        f"    observed: {observed}\n"
+        f"_LAYOUT_VERSION is currently {_LAYOUT_VERSION!r}. `restoreState` matches "
+        "docks by objectName, so a saved layout cannot express this change. Does it "
+        "need a bump?"
     )
