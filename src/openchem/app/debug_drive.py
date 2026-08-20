@@ -42,6 +42,7 @@ The script is a JSON list of steps, run in order:
       {"do": "resize",     "maximized": true},
       {"do": "resize",     "width": 1100},
       {"do": "rail",       "collapsed": true},
+      {"do": "scroll",     "to": "bottom"},
       {"do": "geometry",   "label": "maximized/Quantum"},
       {"do": "quit"}
     ]
@@ -1502,6 +1503,41 @@ class _Driver(QObject):
         rail.set_list_visible(not bool(step.get("collapsed", True)))
         logger.warning(
             "OPENCHEM_DRIVE: rail list visible=%s", rail.is_list_visible()
+        )
+
+    def _do_scroll(self, step: dict[str, Any]) -> None:
+        """Scroll the Properties panel, so content below the fold can be
+        photographed.
+
+        `{"do": "scroll", "to": "bottom"}` or `{"do": "scroll", "y": 900}`
+
+        **A PANEL THAT SCROLLS HAS CONTENT NO SHOT COULD REACH.** Measured
+        with a Lewis result on screen: viewport 396x580 against content
+        396x2361, so five sixths of the panel is unphotographable from the
+        top -- and this file's whole discipline is that a green suite plus
+        a screenshot is what catches a rendering defect. `dump` reports
+        that the content FITS; only a picture says what it looks like.
+
+        Logs where it landed, because a request past the end is clamped
+        and a silent clamp would make "I scrolled to the bottom" a claim
+        about a position nobody checked.
+        """
+        from PySide6.QtWidgets import QScrollArea
+
+        scroll = self._window._property_panel.findChild(QScrollArea)
+        if scroll is None:
+            logger.error("OPENCHEM_DRIVE: the Properties panel has no scroll area")
+            return
+        bar = scroll.verticalScrollBar()
+        where = step.get("to")
+        if where == "bottom":
+            bar.setValue(bar.maximum())
+        elif where == "top":
+            bar.setValue(bar.minimum())
+        else:
+            bar.setValue(int(step.get("y", 0)))
+        logger.warning(
+            "OPENCHEM_DRIVE: scrolled to %d of %d", bar.value(), bar.maximum()
         )
 
     def _do_resize(self, step: dict[str, Any]) -> None:
