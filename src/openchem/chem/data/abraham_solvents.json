@@ -1,6 +1,9 @@
 {
  "_source_key": "bradley2015",
- "attribution": "Bradley J-C, Abraham MH, Acree WE Jr, Lang ASID. Predicting Abraham model solvent coefficients. Chemistry Central Journal / BMC Chemistry 2015;9:12. doi:10.1186/s13065-015-0085-4. Table 1, measured solvents only. CC BY 4.0.",
+ "_supplementary_source_keys": [
+  "stovall2015"
+ ],
+ "attribution": "Bradley J-C, Abraham MH, Acree WE Jr, Lang ASID. Predicting Abraham model solvent coefficients. Chemistry Central Journal / BMC Chemistry 2015;9:12. doi:10.1186/s13065-015-0085-4. Table 1, measured solvents only. CC BY 4.0. Acetic acid is NOT from this table -- see `solvent_sources`: Stovall DM, Schmidt A, Dai C, Zhang S, Acree WE Jr, Abraham MH. Abraham model correlations for estimating solute transfer of neutral molecules into anhydrous acetic acid from water and from the gas phase. J Mol Liq 2015;212:16-22. doi:10.1016/j.molliq.2015.08.042, Eq. (6).",
  "solvents": {
   "methyl acetate": {
    "c": 0.351,
@@ -729,6 +732,27 @@
    "a": -1.296,
    "b": -4.512,
    "v": 3.446
+  },
+  "acetic acid": {
+   "c": 0.175,
+   "e": 0.174,
+   "s": -0.454,
+   "a": -1.073,
+   "b": -2.789,
+   "v": 3.725
+  }
+ },
+ "solvent_sources": {
+  "acetic acid": "stovall2015"
+ },
+ "solvent_standard_errors": {
+  "acetic acid": {
+   "c": 0.049,
+   "e": 0.086,
+   "s": 0.115,
+   "a": 0.123,
+   "b": 0.163,
+   "v": 0.081
   }
  },
  "predicted_only": [
@@ -745,7 +769,6 @@
   "3-hydroxypropionic acid",
   "3-methoxy-3-methyl-1-butanol",
   "5-(hydroxymethyl)furfural",
-  "acetic acid",
   "acetyl tributyl citrate",
   "alpha-pinene",
   "alpha-terpineol",

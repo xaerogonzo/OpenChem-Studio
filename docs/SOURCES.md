@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 261bfa23e626a822fb943574463c627a7df4f44ed2a048413710d3ebbb162f94 -->
+<!-- SOURCE SHA256: b1c7f89f1f0120556099449f066d1f8739d6a57d52628297feb11733dfb06aec -->
 
 # Sources
 
@@ -142,6 +142,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`rdkit`](#rdkit) | software | shipped | citation |
 | [`sci_downloads_note`](#sci_downloads_note) | reference_table | reference only | citation |
 | [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
+| [`stovall2015`](#stovall2015) | literature | shipped | citation + claim |
 | [`tdc_admet`](#tdc_admet) | dataset | reference only | citation |
 | [`threedmol`](#threedmol) | software | shipped | citation |
 | [`trott_olson2010`](#trott_olson2010) | literature | shipped | citation + claim |
@@ -448,6 +449,55 @@ shake-flask methods", which is a DIFFERENT Avdeef paper: ADMET & DMPK 2019,
 were right throughout, because those came from the repository rather than
 from memory. Its abstract's "6355 entries ... for 3014 different molecules"
 matches what `benchmarks/solubility/README.md` says about Wiki-pS0.
+
+### stovall2015
+
+<a id="stovall2015"></a>
+
+> D. M. Stovall, A. Schmidt, C. Dai, S. Zhang, W. E. Acree Jr & M. H. Abraham, 'Abraham model correlations for estimating solute transfer of neutral molecules into anhydrous acetic acid from water and from the gas phase', Journal of Molecular Liquids 2015;212:16-22, Eq. (6).
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/j.molliq.2015.08.042](https://doi.org/10.1016/j.molliq.2015.08.042) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-20 |
+| Licence | publisher |
+| Used by | `src/openchem/chem/data/abraham_solvents.json`, `tools/build_abraham_tables.py` |
+
+THIS ENTRY EXISTS BECAUSE A DEFERRAL'S REASON ROTTED, and the reason is
+worth keeping beside the numbers.
+
+Acetic acid was asked for by name during the solubility work and was
+REFUSED, on two recorded grounds: only PREDICTED coefficients existed
+([source:bradley2015] predicts 202 further solvents and says of them they
+should not be taken "as gospel"), and propagating that paper's own
+out-of-bag errors put ordinary drugs at 1.34-2.04 log against this
+module's 1.0 ceiling -- caffeine a factor of 110. The predicted table is
+also the `c = 0` refit, which is the wrong parameterisation for the
+solubility equation because it carries no intercept.
+
+Both grounds are answered here. Eq. (6) is MEASURED over 68 compounds,
+prints a standard error on every coefficient, and carries an intercept:
+
+    log P = 0.175 + 0.174 E - 0.454 S - 1.073 A - 2.789 B + 3.725 V
+    N = 68, SD = 0.182, R2 = 0.980, F = 612.4
+
+Propagated the same way the refusal was, the measured errors give
+aspirin 0.55, ibuprofen 0.47, paracetamol 0.61, benzene 0.19 -- against
+1.57, 1.34, 1.76 and 0.51 for the predicted set.
+
+TYPED FROM THE PDF, NOT FETCHED. It is not open access, which is why the
+standard errors are carried in `solvent_standard_errors` rather than left
+in prose: a future reader can check the transcription against the paper
+without re-deriving which propagation was meant.
+
+THE PAPER'S SD IS NOT THIS MODULE'S BOUND, and the two must not be
+conflated. SD = 0.182 describes the FIT; `worst_case_uncertainty`
+propagates the SOLUTE's own measurement disagreement. Caffeine is still
+refused in acetic acid -- and in ethanol, toluene, hexane and chloroform
+too, because its descriptors come from two literature sources that
+disagree. That refusal is about caffeine and predates this entry.
 
 ### bradley2015
 

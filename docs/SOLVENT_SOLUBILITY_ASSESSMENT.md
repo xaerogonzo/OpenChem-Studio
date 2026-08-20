@@ -106,13 +106,36 @@ like a prediction.
 `test_the_missing_value_sentinel_never_reached_the_shipped_table` walks
 every shipped row.
 
-## Why acetic acid is absent
+## Why acetic acid was absent, and why it is not any more
 
-It appears only in the paper's **predicted** coefficient set. The authors
-predict coefficients for 293 further solvents and say of those "not as
-gospel"; only the 91 measured ones ship. Offering acetic acid would mean
+It appeared only in the paper's **predicted** coefficient set. The authors
+predict coefficients for 202 further solvents and say of those "not as
+gospel"; only the measured ones ship. Offering acetic acid would have meant
 shipping a number its own authors decline to stand behind — the same call
 already made against Miller polarizability, HLB and TSEI.
+
+**It ships now, from a different paper.** Stovall, Schmidt, Dai, Zhang,
+Acree & Abraham, *J. Mol. Liq.* **212** (2015) 16–22
+([source:stovall2015]), Eq. (6), measured it over 68 compounds:
+
+    log P = 0.175 + 0.174 E − 0.454 S − 1.073 A − 2.789 B + 3.725 V
+    N = 68, SD = 0.182, R² = 0.980
+
+That answers both recorded objections. It has the intercept the `c = 0`
+refit lacks, and propagating its printed standard errors the way the
+refusal was decided gives aspirin 0.55, ibuprofen 0.47 and benzene 0.19
+against the ceiling of 1.0 — where the predicted set gave 1.57, 1.34 and
+0.51.
+
+**THE STANDARD DID NOT MOVE; THE LITERATURE DID.** This is the fifth time
+in this project that a deferral's *reason* rotted while its verdict looked
+settled, and the other 117 predicted-only names are refused on exactly the
+grounds acetic acid was.
+
+**It does not make every drug answerable in acetic acid.** Caffeine is
+still refused — in acetic acid and equally in ethanol, toluene and hexane
+— because its own descriptors come from two literature sources that
+disagree. That bound is about the solute and predates this entirely.
 
 ## The error budget
 

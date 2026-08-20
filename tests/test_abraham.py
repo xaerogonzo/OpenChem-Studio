@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 from rdkit import Chem
 
+from openchem.chem import abraham
 from openchem.chem.abraham import (
     MAX_PROPAGATED_UNCERTAINTY_LOG,
     SolventShift,
@@ -61,17 +62,33 @@ def test_the_missing_value_sentinel_never_reached_the_shipped_table():
 
 
 def test_only_measured_solvents_are_offered():
-    """The paper also predicts coefficients for 293 solvents and says of
-    those "not as gospel". Only its 91 measured ones ship."""
-    assert len(solvent_names()) == 91
+    """The paper also predicts coefficients for 202 further solvents and
+    says of those "not as gospel". Only measured ones ship.
+
+    **92, NOT 91, AND THE 92ND IS NOT BRADLEY'S.** Acetic acid comes from
+    Stovall 2015, which measured it -- see the acetic-acid tests at the
+    foot of this file. The count is asserted rather than bounded so that
+    a predicted row cannot arrive unnoticed; adding another MEASURED
+    solvent is expected to move it, with its own source entry.
+    """
+    assert len(solvent_names()) == 92
     for required in ("ethanol", "hexane", "methanol", "1-octanol", "toluene"):
         assert solvent_coefficients(required) is not None
 
 
-def test_acetic_acid_is_absent_and_that_is_deliberate():
-    """It appears only in the paper's PREDICTED set. Offering it would mean
-    shipping a number its own authors decline to stand behind."""
-    assert solvent_coefficients("acetic acid") is None
+def test_acetic_acid_is_present_now_and_the_refusal_is_history():
+    """**THIS TEST ASSERTED THE OPPOSITE, AND WAS RIGHT AT THE TIME.**
+
+    It read "acetic acid is absent and that is deliberate", because the
+    only coefficients that existed were PREDICTED and the paper declines
+    to stand behind them. What changed is not this project's standard but
+    the literature available to it: Stovall 2015 measured them.
+
+    Kept as a rename with a successor rather than deleted, because the
+    reason it existed is the durable part -- a predicted row still must
+    not ship, which the predicted-only tests below still assert.
+    """
+    assert solvent_coefficients("acetic acid") is not None
 
 
 def test_a_predicted_only_solvent_is_refused_with_its_REAL_reason():
@@ -82,7 +99,11 @@ def test_a_predicted_only_solvent_is_refused_with_its_REAL_reason():
     """
     from openchem.chem.abraham import predicted_only_reason
 
-    reason = predicted_only_reason("acetic acid")
+    # 1,3-dioxolane stands in for acetic acid, which was this test's
+    # original subject and now SHIPS -- measured coefficients arrived
+    # from a second source. The refusal it demonstrates is unchanged and
+    # still applies to 117 named solvents.
+    reason = predicted_only_reason("1,3-dioxolane")
     assert "held-out error" in reason
     assert "intercept" in reason
 
@@ -99,11 +120,11 @@ def test_the_predicted_only_reason_reaches_the_USER_not_just_the_helper():
     actually takes.
     """
     report = compute_solubility(
-        mol(ASPIRIN), "u", {"solvent": "acetic acid", "compare_models": False}
+        mol(ASPIRIN), "u", {"solvent": "1,3-dioxolane", "compare_models": False}
     )
     assert report.error
     assert "held-out error" in report.error
-    assert "91 solvents are supported" not in report.error
+    assert "solvents are supported" not in report.error
 
 
 def test_no_predicted_coefficient_is_shipped_anywhere():
@@ -150,7 +171,7 @@ def test_an_unmeasured_compound_is_refused_by_name_rather_than_guessed():
 def test_an_unknown_solvent_says_how_many_are_available():
     outcome = solvent_shift(mol(BENZENE), "liquid ammonia")
     assert isinstance(outcome, str)
-    assert "91 solvents" in outcome
+    assert f"{len(solvent_names())} solvents" in outcome
 
 
 # --- disagreement between literature sources ---------------------------
@@ -596,3 +617,144 @@ def test_the_avdeef_extractor_refuses_the_tables_that_duplicate_sc2():
     assert set(module.DUPLICATES_OF_KNOWN) >= {"A3", "A4"}
     assert "SC-2" in module.DUPLICATES_OF_KNOWN["A3"]
     assert set(module.WANTED) == {"avdeef_a1", "avdeef_a2"}
+
+
+# --- acetic acid: a deferral whose reason rotted ----------------------------
+
+
+def _mol(smiles: str):
+    return Chem.MolFromSmiles(smiles)
+
+
+#: Stovall 2015 Eq. (6), transcribed from the PDF. The TEST carries them
+#: independently of the shipped table on purpose: a transcription oracle
+#: that reads the same file it is checking asserts nothing.
+_STOVALL_EQ6 = {"c": 0.175, "e": 0.174, "s": -0.454, "a": -1.073, "b": -2.789, "v": 3.725}
+_STOVALL_EQ6_SE = {"c": 0.049, "e": 0.086, "s": 0.115, "a": 0.123, "b": 0.163, "v": 0.081}
+
+
+def test_acetic_acid_is_no_longer_refused_as_predicted_only():
+    """The deferral this closes, asserted from the outside.
+
+    It was refused because only PREDICTED coefficients existed. A
+    measured set now ships, so it must be a solvent like any other -- and
+    must not still be named in the predicted-only list, which would leave
+    two parts of the file disagreeing.
+    """
+    names = [name.lower() for name in abraham.solvent_names()]
+    assert "acetic acid" in names
+
+    payload = json.loads(
+        (Path(abraham.__file__).parent / "data" / "abraham_solvents.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert "acetic acid" not in [n.lower() for n in payload["predicted_only"]], (
+        "acetic acid ships coefficients AND is still listed predicted-only"
+    )
+
+
+def test_the_acetic_acid_coefficients_are_the_papers_own():
+    """A transcription oracle, against numbers typed here from the PDF.
+
+    The paper is not open access, so these were read by eye -- which is
+    exactly the case the Drago audit exists as a warning about, where one
+    value in 53 was out by 0.01 and no averaged validation could see it.
+    """
+    coefficients = abraham.solvent_coefficients("acetic acid")
+    for name, expected in _STOVALL_EQ6.items():
+        assert getattr(coefficients, name) == pytest.approx(expected, abs=1e-9), (
+            f"acetic acid's {name} is {getattr(coefficients, name)}, "
+            f"not Stovall 2015 Eq. (6)'s {expected}"
+        )
+
+
+def test_acetic_acid_carries_the_intercept_the_predicted_table_lacks():
+    """`c = 0.175`, and the reason it matters is not tidiness.
+
+    The predicted table is the paper's `c = 0` refit, which exists to make
+    solvents comparable with one another. The solubility equation needs
+    the intercept, so a predicted row is the wrong PARAMETERISATION and
+    not merely a less accurate one -- that was half the recorded refusal.
+    """
+    assert abraham.solvent_coefficients("acetic acid").c != 0.0
+
+
+def test_the_measured_errors_are_what_made_this_shippable():
+    """The refusal was decided by propagation; so is the acceptance.
+
+    `sum(|coefficient error| * descriptor)` -- the same arithmetic the
+    original assessment used, which is why the predicted column is
+    recomputed here rather than quoted: reproducing 1.57 / 1.34 / 0.51 is
+    what says this is the same measurement and not a new one that happens
+    to agree.
+    """
+    for label, smiles, predicted_was in (
+        ("aspirin", "CC(=O)Oc1ccccc1C(=O)O", 1.57),
+        ("ibuprofen", "CC(C)Cc1ccc(cc1)C(C)C(=O)O", 1.34),
+        ("benzene", "c1ccccc1", 0.51),
+    ):
+        solute = abraham.solute_descriptors(_mol(smiles))
+        assert solute is not None, f"setup: no descriptors for {label}"
+        terms = {k: abs(getattr(solute, k)) for k in ("e", "s", "a", "b", "v")}
+
+        predicted = sum(
+            abraham.PREDICTED_COEFFICIENT_OOB_RMSE[k] * terms[k] for k in terms
+        )
+        measured = sum(_STOVALL_EQ6_SE[k] * terms[k] for k in terms)
+
+        assert predicted == pytest.approx(predicted_was, abs=0.01), (
+            f"{label}: the predicted-set propagation now gives {predicted:.2f}, not the "
+            f"{predicted_was} the refusal recorded -- the arithmetic moved, so the "
+            "comparison below is no longer against the same thing"
+        )
+        assert measured < abraham.MAX_PROPAGATED_UNCERTAINTY_LOG, (
+            f"{label}: measured propagation {measured:.2f} still exceeds the ceiling"
+        )
+        assert measured < predicted
+
+
+def test_caffeines_refusal_is_about_caffeine_and_not_about_acetic_acid():
+    """THE SCOPING THIS COMMIT MUST NOT OVERSTATE.
+
+    The plan for this work listed caffeine as "was refused, now passes",
+    on the coefficient-error propagation. That is true of that
+    propagation and NOT true of the module, because the shipped bound is
+    a different quantity: `worst_case_uncertainty` propagates the
+    SOLUTE's own measurement disagreement, and caffeine's descriptors
+    come from two literature sources that disagree.
+
+    So caffeine is refused in acetic acid -- and equally in solvents that
+    have shipped since long before this. Asserting that here is what
+    stops a future reader reading the acceptance above as broader than it
+    is.
+    """
+    caffeine = _mol("Cn1cnc2c1c(=O)n(C)c(=O)n2C")
+    refusals = {
+        solvent: isinstance(abraham.solvent_shift(caffeine, solvent), str)
+        for solvent in ("acetic acid", "ethanol", "toluene", "hexane")
+    }
+    assert all(refusals.values()), (
+        f"caffeine is no longer refused everywhere: {refusals} -- if that changed "
+        "deliberately, this test is the place that said it was solvent-independent"
+    )
+
+
+def test_the_table_says_which_solvent_came_from_which_paper():
+    """91 solvents from one source and 1 from another is a provenance claim.
+
+    The file-level `_source_key` can no longer speak for every row, so a
+    reader must be able to tell them apart without inferring it.
+    """
+    payload = json.loads(
+        (Path(abraham.__file__).parent / "data" / "abraham_solvents.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert payload["solvent_sources"]["acetic acid"] == "stovall2015"
+    assert "stovall2015" in payload["_supplementary_source_keys"]
+    assert payload["_source_key"] == "bradley2015", (
+        "the majority source changed without this guard being updated"
+    )
+    errors = payload["solvent_standard_errors"]["acetic acid"]
+    assert errors == pytest.approx(_STOVALL_EQ6_SE, abs=1e-9)

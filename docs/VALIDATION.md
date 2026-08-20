@@ -479,12 +479,18 @@ against.
 implementation's default is a proprietary consensus method. Nothing to check
 a result against.
 
-**Abraham coefficients for 293 further solvents — acetic acid among them.**
-The source paper measures 91 solvents and *predicts* the rest, saying of
-those they should not be taken "as gospel". Only the measured 91 ship.
-Acetic acid was asked for by name and is refused with that reason rather
-than quietly filled in from the predicted table — the same call already made
-against Miller polarizability, HLB and TSEI.
+**Abraham coefficients for 202 further solvents.** The source paper
+measures 91 and *predicts* the rest, saying of those they should not be
+taken "as gospel". Only measured ones ship.
+
+**Acetic acid is no longer among them, and its removal is the worked
+example of how these entries go stale.** It was asked for by name and
+refused here on two grounds: the predicted coefficients failed this
+module's own uncertainty bound (1.34–2.04 log on ordinary drugs), and the
+predicted table is the `c = 0` refit and so has no intercept. A *measured*
+set was later read from [source:stovall2015] — Eq. (6), N = 68,
+SD = 0.182 — which answers both, so it ships. The 117 names still listed
+predicted-only are refused on exactly the original grounds.
 
 **The Platts fragment scheme for Abraham solute descriptors.** It would
 work, and it is ~480 coefficients and ~132 hand-written SMARTS patterns —
