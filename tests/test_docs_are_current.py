@@ -669,3 +669,227 @@ def test_every_marked_item_has_a_predicate_or_a_reason():
         "these Known TODOs items have no entry in DEFERRALS, so nothing would "
         "notice them going stale:\n" + "\n".join(f"  {u}" for u in unguarded)
     )
+
+
+# ---------------------------------------------------------------------------
+# A calculator's DESCRIPTION is user-facing prose, and it goes stale
+# ---------------------------------------------------------------------------
+# `property_panel._calculator_help` GENERATES each calculator's help
+# contract from `CalculatorDefinition.description`, so a description is not
+# a comment -- it is the tooltip a user reads on hover, and the one place
+# this application tells somebody a method is unavailable.
+#
+# **IT HAD ALREADY ROTTED, UNAIDED, AND THE FILE KNEW.**
+# `topology_analysis`'s description said the Szeged index was "deliberately
+# omitted" while `chem/topology_analysis.py`'s own docstring, twenty lines
+# from the compute function, said "The SZEGED INDEX is now included,
+# validated by a THEOREM". Two statements about one quantity, in one
+# feature, disagreeing -- and the one a user reads was the wrong one.
+#
+# THE CLAIM IS DECLARED, NEVER DETECTED. A first draft scanned descriptions
+# for negative phrasing and was abandoned: "is not offered", "is unavailable"
+# and "does not provide" are one claim in three shapes, and deciding whether
+# a sentence asserts unavailability is prose analysis, which is exactly what
+# `help_tooltip.py` refuses to do for tooltips. So each claim is registered
+# below with a predicate over CODE, in the shape `DEFERRALS` above already
+# uses.
+#
+# SCOPE IS AVAILABILITY OF AN EXTERNAL METHOD, NOT OUR OWN SCOPE.
+# `orbital_electronegativity` says the pi component "is not offered -- it
+# needs a separate pi-charge iteration". That is a statement about OpenChem
+# behaviour, it is still true, and it deliberately has no entry here. Same
+# split `help_tooltip.py` draws between an external scientific fact
+# (`source_key`) and an OpenChem behaviour (neither).
+
+
+@dataclass(frozen=True)
+class CalculatorClaim:
+    """One "we do not offer X" sentence in a calculator's description.
+
+    `fragment` must occur EXACTLY ONCE in that description. Zero means the
+    wording changed and this predicate silently stopped guarding anything,
+    which is the fail-open hole
+    `test_every_marked_item_has_a_predicate_or_a_reason` already closes for
+    Known TODOs.
+
+    `unbuilt` is a fact about CODE. Re-reading the prose to decide whether
+    the prose is true would be circular.
+    """
+
+    calculator_id: str
+    fragment: str
+    unbuilt: Callable[[], bool]
+
+
+def _calculator_descriptions() -> dict[str, str]:
+    """`{calculator_id: description}` from the LIVE registry.
+
+    Not a list kept beside it: `inapplicable_calculators` rotted into 27
+    wrong entries precisely because nothing forced anybody back to a
+    hand-maintained copy.
+    """
+    from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
+
+    return {d.calculator_id: d.description for d in CALCULATOR_DEFINITIONS}
+
+
+#: Every live availability claim, with the predicate that says it is still
+#: true.
+#:
+#: **TWO ENTRIES WERE RETIRED BY THIS GUARD'S OWN FIRST RUN**, which is
+#: the record worth keeping rather than the entries themselves.
+#: `polarizability` said "Miller's method is not offered -- its parameters
+#: are not published in ChemAxon's docs"; `topology_analysis` said Szeged
+#: and the steric index "are deliberately omitted". Both were false when
+#: this list was written -- Szeged had been computed for months -- and
+#: both descriptions are rewritten now, so their fragments occur zero
+#: times and the entries had to go with them. A retired claim leaves this
+#: list; the guard is what forced it.
+CALCULATOR_CLAIMS: list[CalculatorClaim] = [
+    CalculatorClaim(
+        calculator_id="griffin_hlb",
+        fragment="Davies' HLB is not offered",
+        unbuilt=lambda: not _defines("davies_hlb"),
+    ),
+]
+
+
+def test_no_calculator_description_claims_something_that_now_exists():
+    """A tooltip saying a method is unavailable, beside the method.
+
+    This is the guard the Szeged/TSEI sentence needed and did not have.
+    """
+    descriptions = _calculator_descriptions()
+    stale = []
+    for claim in CALCULATOR_CLAIMS:
+        text = descriptions.get(claim.calculator_id)
+        assert text is not None, (
+            f"no calculator {claim.calculator_id!r} is registered, so the claim "
+            f"{claim.fragment!r} guards nothing. If it was renamed, rename it here."
+        )
+        if not claim.unbuilt():
+            stale.append(
+                f"{claim.calculator_id}: {claim.fragment!r} -- the thing it says "
+                "is not offered now EXISTS in first-party source"
+            )
+
+    assert not stale, (
+        "these calculator descriptions are shown to users as tooltips and are no "
+        "longer true:\n" + "\n".join(f"  - {s}" for s in stale)
+    )
+
+
+def test_every_calculator_claim_still_matches_its_description_exactly_once():
+    """A reworded sentence must break loudly, not detach silently."""
+    descriptions = _calculator_descriptions()
+    for claim in CALCULATOR_CLAIMS:
+        text = descriptions.get(claim.calculator_id, "")
+        occurrences = text.count(claim.fragment)
+        assert occurrences == 1, (
+            f"{claim.calculator_id}: the fragment {claim.fragment!r} occurs "
+            f"{occurrences} times in its description, expected exactly 1. Zero "
+            "means the wording changed and the predicate stopped guarding "
+            "anything; more than one means it is ambiguous."
+        )
+
+
+#: Shapes an unavailability claim about an EXTERNAL method tends to take.
+#: A CANDIDATE DETECTOR, never a semantic oracle -- see the test below.
+_AVAILABILITY_SHAPES = (
+    r"is not offered",
+    r"are not offered",
+    r"deliberately omitted",
+    r"could not be reproduced",
+    r"no reference value was found",
+)
+
+
+def test_a_description_that_looks_like_an_availability_claim_is_registered():
+    """A CANDIDATE DETECTOR. It does not decide whether a sentence is TRUE.
+
+    Pretending natural language is a type system is how a check like this
+    decays into `NEGATIVE_WORDS = {"not", "omitted", ...}` and starts
+    flagging "this estimator is intentionally absent" as a scientific
+    claim. The patterns above are narrow and literature-shaped on purpose,
+    and the failure below asks the author to CLASSIFY the sentence -- it
+    never asserts the sentence is false.
+
+    `test_no_calculator_description_claims_something_that_now_exists` is
+    the guard with teeth; this one only stops a new claim being written
+    without one.
+    """
+    registered = {c.calculator_id for c in CALCULATOR_CLAIMS}
+    unclassified = []
+    for calculator_id, text in _calculator_descriptions().items():
+        if calculator_id in registered:
+            continue
+        for shape in _AVAILABILITY_SHAPES:
+            if re.search(shape, text, re.I):
+                unclassified.append(f"{calculator_id}: matched {shape!r}")
+                break
+
+    assert not unclassified, (
+        "these descriptions read like a claim that some external method is "
+        "unavailable, and nothing would notice them going stale. Either add a "
+        "CalculatorClaim with a code predicate, or -- if the sentence is about "
+        "OpenChem's own scope rather than a method's availability, as "
+        "orbital_electronegativity's pi-component note is -- reword it so it "
+        "does not read as one:\n" + "\n".join(f"  - {u}" for u in unclassified)
+    )
+
+
+def test_the_known_stale_szeged_claim_is_gone():
+    """THE REGRESSION TEST FOR THE HISTORICAL CASE, at BOTH locations.
+
+    `topology_analysis` shipped a description lumping Szeged together with
+    TSEI as "deliberately omitted" while its own module docstring said
+    Szeged was included and theorem-validated. A targeted assertion rather
+    than a general prose-analysis framework, for the reason `decline_total`
+    and `DEFERRALS` are both narrow: the general version is a
+    prose-analysis subsystem nobody asked for.
+    """
+    from openchem.chem import topology_analysis
+
+    description = _calculator_descriptions()["topology_analysis"]
+    docstring = topology_analysis.__doc__ or ""
+
+    assert "Szeged" in description, (
+        "Szeged is computed and reported; the description must say so rather "
+        "than being silent about it."
+    )
+    assert not re.search(r"Szeged[^.]{0,120}omitted", description, re.I), (
+        "the description still says Szeged is omitted. It is computed -- "
+        "`chem/topology_analysis.py` validates it against Gutman's theorem."
+    )
+    assert "SZEGED INDEX is now included" in docstring, (
+        "the module docstring's own account of Szeged has moved; the two "
+        "statements this test relates are no longer the same two."
+    )
+    assert not re.search(r"Szeged[^.]{0,120}(absent|not (computed|reported))",
+                         docstring.split("SZEGED INDEX is now included")[-1], re.I), (
+        "the module docstring now contradicts itself about Szeged."
+    )
+
+
+def test_the_candidate_detector_can_say_no():
+    """THE ARM THAT MAKES THE DETECTOR WORTH HAVING.
+
+    `test_a_description_that_looks_like_an_availability_claim_is_registered`
+    passes when nothing matches, which is also what it does if the patterns
+    stop matching anything at all. This asserts it fires on a description
+    shaped like a real claim -- and it did, on its first run: the Griffin
+    HLB calculator was written with "Davies' HLB is not offered" in its
+    description and the detector caught it before a human did.
+    """
+    synthetic = "Some quantity by the usual method. Pauling's method is not offered."
+    assert any(re.search(shape, synthetic, re.I) for shape in _AVAILABILITY_SHAPES)
+
+    # ... and it must NOT fire on a statement about OpenChem's own scope,
+    # which is the distinction the whole registry rests on.
+    scope = _calculator_descriptions()["orbital_electronegativity"]
+    assert "pi component" in scope.lower()
+    assert not any(re.search(shape, scope, re.I) for shape in _AVAILABILITY_SHAPES), (
+        "orbital_electronegativity's own-scope note now reads as an availability "
+        "claim, which would demand a code predicate for something no external "
+        "method is missing"
+    )

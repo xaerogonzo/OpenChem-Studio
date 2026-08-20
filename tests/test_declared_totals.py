@@ -174,7 +174,17 @@ def test_the_two_meaningless_sums_are_declined_by_name(per_atom_results):
     correct value at all. Named individually, because a generic "some
     calculators decline" assertion passes on an empty set."""
     by_id = dict(per_atom_results)
-    for calculator_id in ("orbital_electronegativity", "topology_eccentricity"):
+    # `tsei_projection` joined this list because a MUTATION found the gap:
+    # declaring a plausible total on it -- `declare_total(0.0, "TSEI
+    # projection total")` -- passed every guard in this file and every
+    # guard in `tests/test_tsei.py`. The audit checks that a declaration
+    # EXISTS and is well formed; only naming the calculator says which
+    # answer is right. Same reason the two above are named individually.
+    for calculator_id in (
+        "orbital_electronegativity",
+        "topology_eccentricity",
+        "tsei_projection",
+    ):
         assert calculator_id in by_id, f"{calculator_id} did not run -- the guard tested nothing"
         result = by_id[calculator_id]
         declaration = (result.provenance.parameters or {})[TOTAL]

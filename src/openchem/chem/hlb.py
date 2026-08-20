@@ -70,9 +70,20 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 from rdkit import Chem
 from rdkit.Chem import Descriptors
+
+from openchem.domain.common import TOTAL, CacheState, Provenance, decline_total
+from openchem.domain.report import Fact, FactCategory, ReportResult
+from openchem.domain.structure_issue import Basis
+
+#: DECLARED USER-FACING. `tests/test_calculator_reachability.py` fails if
+#: nothing a user can press reaches this module -- which it did not for the
+#: whole of PR #41, when Griffin HLB shipped correct, guarded, sourced and
+#: unreachable.
+USER_FACING_PROVIDER = "Griffin HLB, through the 'HLB (Griffin)' calculator"
 
 #: Molecular mass of one ethylene oxide repeat unit, -CH2CH2O-.
 #:
@@ -219,3 +230,125 @@ def griffin_hlb_from_chain(units: int, lipophile_mass: float) -> float:
     A = 206.3 for octylphenol, 186.3 for dodecanol.
     """
     return _GRIFFIN_SCALE * EO_UNIT_MASS * units / (EO_UNIT_MASS * units + lipophile_mass)
+
+
+# ---------------------------------------------------------------------------
+# The calculator, and the refusal AS the result
+# ---------------------------------------------------------------------------
+
+#: What each refusal means, in the words a user reads.
+#:
+#: **GENERATED FROM THE ENUM, NEVER WRITTEN AT THE PANEL.** `IsotopeRefusal`
+#: is the precedent and its docstring gives the reason: a value rather than
+#: a sentence, "so `if "isomer" in message` never becomes application
+#: logic". A panel that invented its own prose for `NOT_SOLE_HYDROPHILE`
+#: would give two wordings for one refusal, they would drift, and the help
+#: layer would have nothing to attach to.
+_REFUSAL_TEXT: dict[HlbRefusal, str] = {
+    HlbRefusal.NO_POLYOXYETHYLENE: (
+        "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as "
+        "the sole hydrophilic moiety, and this structure has no polyoxyethylene "
+        "chain. A number computed anyway would be an ethylene-oxide weight fraction "
+        "of zero wearing a surfactant's name."
+    ),
+    HlbRefusal.NOT_SOLE_HYDROPHILE: (
+        "Griffin's HLB requires polyoxyethylene to be the SOLE hydrophilic moiety, "
+        "and this structure carries {detail} as well. Griffin's experiments produced "
+        "the published values for Span and Tween, but his FORMULA does not apply to "
+        "them -- sorbitan is a polyhydric alcohol."
+    ),
+    HlbRefusal.NOT_A_STRUCTURE: "The structure could not be read.",
+}
+
+
+def refusal_text(result: GriffinHlb) -> str:
+    """The one place a refusal becomes prose.
+
+    Every consumer goes through here, so a reader cannot be given two
+    different explanations of one refusal.
+    """
+    if result.refusal is None:  # pragma: no cover - callers check first
+        return ""
+    return _REFUSAL_TEXT[result.refusal].format(detail=result.detail or "another hydrophile")
+
+
+def compute_griffin_hlb(
+    mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None
+) -> ReportResult:
+    """Griffin's HLB, or a named refusal, as the "surface" category's HLB.
+
+    **THE REFUSAL IS THE RESULT.** Returning 4.14 for aspirin and relying
+    on documentation to say it is meaningless is the failure the
+    `AlertResult` migration spent a phase removing, and Griffin's own
+    definition makes applicability a structural question rather than an
+    editorial one.
+    """
+    parameters = parameters or {}
+    places = int(parameters.get("decimal_places", 2))
+    result = griffin_hlb(mol)
+
+    provenance = Provenance(
+        created_by="core",
+        method="griffin",
+        parameters={
+            "decimal_places": places,
+            "ethylene_oxide_units": result.ethylene_oxide_units,
+            "refusal": result.refusal.name if result.refusal else None,
+            TOTAL: decline_total(
+                "HLB is a whole-molecule weight ratio, not a sum over atoms."
+            ),
+        },
+    )
+
+    if not result.applicable:
+        return ReportResult(
+            report_id="griffin_hlb",
+            name="HLB (Griffin)",
+            category="surface",
+            molecule_uuid=molecule_uuid,
+            cache_state=CacheState.FAILED,
+            error=refusal_text(result),
+            provenance=provenance,
+        )
+
+    value = result.value or 0.0
+    facts = (
+        Fact(
+            category=FactCategory.STRUCTURE,
+            label="HLB (Griffin)",
+            value=value,
+            display_value=f"{value:.{places}f}",
+            source="griffin_hlb",
+            basis=Basis.DETERMINISTIC,
+            evidence=(
+                "E / 5, where E is the weight percentage of ethylene oxide -- "
+                "Griffin's own definition, as Schott states it in Eq. [1].",
+            ),
+            limitations=(
+                "GRIFFIN, NOT DAVIES. The two scales share the name and disagree "
+                "substantially across the whole range of practical applications, so a "
+                "number reported as bare 'HLB' is ambiguous between them.",
+                "Marvin's default is a proprietary consensus method and will not "
+                "agree with this.",
+            ),
+        ),
+        Fact(
+            category=FactCategory.STRUCTURE,
+            label="Ethylene oxide units",
+            value=result.ethylene_oxide_units,
+            display_value=str(result.ethylene_oxide_units),
+            source="griffin_hlb",
+            basis=Basis.DETERMINISTIC,
+            evidence=("Non-overlapping -O-CH2-CH2-O- substructure matches.",),
+        ),
+    )
+
+    return ReportResult(
+        report_id="griffin_hlb",
+        name="HLB (Griffin)",
+        category="surface",
+        molecule_uuid=molecule_uuid,
+        facts=facts,
+        limitations=("Griffin's scale, not Davies'. The two are not interchangeable.",),
+        provenance=provenance,
+    )
