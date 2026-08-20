@@ -339,6 +339,91 @@ matches what `benchmarks/solubility/README.md` says about Wiki-pS0.
 """
 
 [[source]]
+key = "schott1989"
+kind = "literature"
+citation = "H. Schott, 'Comments on Hydrophile-Lipophile Balance Systems', Journal of Colloid and Interface Science 1989;133(2):527-529."
+identifier_type = "bibliographic"
+identifier = "J. Colloid Interface Sci. 133(2), December 1989, 527-529"
+status = "shipped"
+license = "publisher"
+used_by = [
+    "src/openchem/chem/hlb.py",
+    "tests/test_hlb.py",
+]
+verification = "citation_and_claim"
+verified_date = 2026-08-20
+note = """
+**NO DOI.** The PDF carries none in its text layer and the article
+predates routine assignment, so it is cited by volume and issue rather
+than by an invented identifier -- the rule this registry adopted after
+six citation errors all landed in the one field nothing could check.
+
+IT SUPPLIES BOTH THE FORMULA AND THE REASON THE NAME IS AMBIGUOUS, which
+is why one source closes a deferral recorded as "no formulas published,
+no worked example... nothing to check a result against".
+
+  Griffin, Eq. [1]   HLB = E / 5, E = weight percentage ethylene oxide
+  Griffin, Eq. [2]   HLB = 881 p / (44.05 p + A), with A = 206.3 for
+                     octylphenol and 186.3 for dodecanol -- the closed
+                     form `tests/test_hlb.py` checks against
+  Davies,  Eq. [3]   group values 0.33 (-CH2CH2O-), 1.9 (-OH), 0.475
+                     (hydrocarbon carbons)
+
+AND ITS CONCLUSION SHAPES THE IMPLEMENTATION rather than merely being
+quoted: for surfactants whose sole hydrophilic moiety is polyoxyethylene
+-- over 73% of US nonionic surfactant production -- "the Davies scale
+differs substantially from the Griffin scale in the entire range of
+practical applications", and "the Davies scale is unsuitable for most
+nonionic surfactants". So "HLB" names two incompatible quantities, and
+only Griffin ships, under that name.
+
+Its opening sentence is also the applicability predicate: Griffin defined
+HLB "for nonionic surfactants with polyoxyethylene as the sole
+hydrophilic moiety". That is a structural condition, and `hlb.py` answers
+it per molecule instead of carrying it as prose.
+"""
+
+[[source]]
+key = "guo2006"
+kind = "literature"
+citation = "X. Guo, Z. Rong & X. Ying, 'Calculation of hydrophile-lipophile balance for polyethoxylated surfactants by group contribution method', Journal of Colloid and Interface Science 2006;298:441-450."
+identifier_type = "doi"
+identifier = "10.1016/j.jcis.2005.12.009"
+status = "reference_only"
+reason = """
+It is a Davies/ECL treatment and mentions Griffin ZERO times, so it
+cannot serve as the acceptance oracle for the Griffin implementation that
+ships -- see the note below. Consulted, and deliberately not scored
+against.
+"""
+license = "publisher"
+used_by = [
+    "src/openchem/chem/hlb.py",
+]
+verification = "citation_and_claim"
+verified_date = 2026-08-20
+note = """
+**REFERENCE ONLY, AND DELIBERATELY NOT THE ACCEPTANCE ORACLE.**
+
+This paper was the obvious validation set -- 224 nonionic surfactants
+across its Tables 3 to 5, including the classic Span and Tween series --
+and using it that way would have been wrong. It mentions Griffin ZERO
+times: it is a Davies/ECL group-contribution treatment, and its reference
+column is manufacturer data, its own footnotes reading "The HLB values
+are obtained from the data reported by BASF Corp." and "...by ICI
+Americas Inc.", with Table 3's citing an unnamed reference.
+
+Scoring a Griffin implementation against it would compare two scales that
+[source:schott1989] shows differ substantially, and produce a
+disagreement that reads as an implementation bug. `hlb.py` checks against
+Schott's closed form instead.
+
+What it is cited FOR: that the scales are not interchangeable (its Table
+2 gives Davies-vs-ECL error), its group-number tables, and as the source
+a Davies implementation would start from if one is ever wanted.
+"""
+
+[[source]]
 key = "stovall2015"
 kind = "literature"
 citation = "D. M. Stovall, A. Schmidt, C. Dai, S. Zhang, W. E. Acree Jr & M. H. Abraham, 'Abraham model correlations for estimating solute transfer of neutral molecules into anhydrous acetic acid from water and from the gas phase', Journal of Molecular Liquids 2015;212:16-22, Eq. (6)."

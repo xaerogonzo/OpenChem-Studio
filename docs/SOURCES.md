@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: b1c7f89f1f0120556099449f066d1f8739d6a57d52628297feb11733dfb06aec -->
+<!-- SOURCE SHA256: a0138ab2b8282423651ed2601c4b0dd91b531eca72f2cedf7433effe10354dce -->
 
 # Sources
 
@@ -107,6 +107,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`drago1990`](#drago1990) | literature | shipped | citation |
 | [`drago1993`](#drago1993) | literature | shipped | citation |
 | [`glasser1995`](#glasser1995) | literature | shipped | citation |
+| [`guo2006`](#guo2006) | literature | reference only | citation + claim |
 | [`gutmann_frontiers2022`](#gutmann_frontiers2022) | literature | **not shipped** | citation |
 | [`hlb`](#hlb) | reference_table | **not shipped** | unverified |
 | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
@@ -140,6 +141,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`ran2002`](#ran2002) | literature | reference only | citation |
 | [`rcsb_pdb`](#rcsb_pdb) | dataset | shipped | citation |
 | [`rdkit`](#rdkit) | software | shipped | citation |
+| [`schott1989`](#schott1989) | literature | shipped | citation + claim |
 | [`sci_downloads_note`](#sci_downloads_note) | reference_table | reference only | citation |
 | [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
 | [`stovall2015`](#stovall2015) | literature | shipped | citation + claim |
@@ -449,6 +451,89 @@ shake-flask methods", which is a DIFFERENT Avdeef paper: ADMET & DMPK 2019,
 were right throughout, because those came from the repository rather than
 from memory. Its abstract's "6355 entries ... for 3014 different molecules"
 matches what `benchmarks/solubility/README.md` says about Wiki-pS0.
+
+### schott1989
+
+<a id="schott1989"></a>
+
+> H. Schott, 'Comments on Hydrophile-Lipophile Balance Systems', Journal of Colloid and Interface Science 1989;133(2):527-529.
+
+| | |
+| --- | --- |
+| Identifier | J. Colloid Interface Sci. 133(2), December 1989, 527-529 |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-20 |
+| Licence | publisher |
+| Used by | `src/openchem/chem/hlb.py`, `tests/test_hlb.py` |
+
+**NO DOI.** The PDF carries none in its text layer and the article
+predates routine assignment, so it is cited by volume and issue rather
+than by an invented identifier -- the rule this registry adopted after
+six citation errors all landed in the one field nothing could check.
+
+IT SUPPLIES BOTH THE FORMULA AND THE REASON THE NAME IS AMBIGUOUS, which
+is why one source closes a deferral recorded as "no formulas published,
+no worked example... nothing to check a result against".
+
+  Griffin, Eq. [1]   HLB = E / 5, E = weight percentage ethylene oxide
+  Griffin, Eq. [2]   HLB = 881 p / (44.05 p + A), with A = 206.3 for
+                     octylphenol and 186.3 for dodecanol -- the closed
+                     form `tests/test_hlb.py` checks against
+  Davies,  Eq. [3]   group values 0.33 (-CH2CH2O-), 1.9 (-OH), 0.475
+                     (hydrocarbon carbons)
+
+AND ITS CONCLUSION SHAPES THE IMPLEMENTATION rather than merely being
+quoted: for surfactants whose sole hydrophilic moiety is polyoxyethylene
+-- over 73% of US nonionic surfactant production -- "the Davies scale
+differs substantially from the Griffin scale in the entire range of
+practical applications", and "the Davies scale is unsuitable for most
+nonionic surfactants". So "HLB" names two incompatible quantities, and
+only Griffin ships, under that name.
+
+Its opening sentence is also the applicability predicate: Griffin defined
+HLB "for nonionic surfactants with polyoxyethylene as the sole
+hydrophilic moiety". That is a structural condition, and `hlb.py` answers
+it per molecule instead of carrying it as prose.
+
+### guo2006
+
+<a id="guo2006"></a>
+
+> X. Guo, Z. Rong & X. Ying, 'Calculation of hydrophile-lipophile balance for polyethoxylated surfactants by group contribution method', Journal of Colloid and Interface Science 2006;298:441-450.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/j.jcis.2005.12.009](https://doi.org/10.1016/j.jcis.2005.12.009) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-08-20 |
+| Licence | publisher |
+| Used by | `src/openchem/chem/hlb.py` |
+
+**Why it is reference only.** It is a Davies/ECL treatment and mentions Griffin ZERO times, so it
+cannot serve as the acceptance oracle for the Griffin implementation that
+ships -- see the note below. Consulted, and deliberately not scored
+against.
+
+**REFERENCE ONLY, AND DELIBERATELY NOT THE ACCEPTANCE ORACLE.**
+
+This paper was the obvious validation set -- 224 nonionic surfactants
+across its Tables 3 to 5, including the classic Span and Tween series --
+and using it that way would have been wrong. It mentions Griffin ZERO
+times: it is a Davies/ECL group-contribution treatment, and its reference
+column is manufacturer data, its own footnotes reading "The HLB values
+are obtained from the data reported by BASF Corp." and "...by ICI
+Americas Inc.", with Table 3's citing an unnamed reference.
+
+Scoring a Griffin implementation against it would compare two scales that
+[source:schott1989] shows differ substantially, and produce a
+disagreement that reads as an implementation bug. `hlb.py` checks against
+Schott's closed form instead.
+
+What it is cited FOR: that the scales are not interchangeable (its Table
+2 gives Davies-vs-ECL error), its group-number tables, and as the source
+a Davies implementation would start from if one is ever wanted.
 
 ### stovall2015
 
