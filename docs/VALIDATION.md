@@ -541,15 +541,35 @@ the second reading found:
   hydrogens is 1.2801. 1.3752 is within 0.0002 of 1.3750, t-Bu's
   plain-additivity value in the table above it.
 
-**THE RADII ARE THE INTERESTING PROVENANCE PROBLEM.** The paper's radius
-source is Lange's Handbook 15th ed. p 4.35 ([source:langes15]), which is
-not held here, and typing a remembered Pauling table would be the
-"fields nobody can check" failure this project has already paid for. Every
-shipped radius is instead **recovered by inverting a TSEI value the paper
-prints** — F from 0.7449, Cl from 1.4190, Br from 1.6957, I from 2.0265,
-H from methyl's 1.0362, O from methoxy's 0.9505 — and an element with no
-printed value to invert is refused by name. Nitrogen, sulfur and phosphorus
-are the notable absences.
+**THE RADII HAVE TWO INDEPENDENT ROUTES, AND THEY AGREE TO THE LAST
+DIGIT.** The paper's radius source is Lange's Handbook 15th ed. Table 4.7,
+p 4.35 ([source:langes15]) — its own ref 18 — and it was not held when
+this shipped. Typing a remembered Pauling table would have been the
+"fields nobody can check" failure this project has already paid for, so
+every radius was instead **recovered by inverting a TSEI value the paper
+prints**: for a lone first-tier atom, eq 8a collapses to
+`8 ρ³/(1+ρ)³` with `ρ = R_X/R_C`.
+
+    F   0.7449  ->  0.63997     Cl  1.4190  ->  0.99001
+    Br  1.6957  ->  1.14002     I   2.0265  ->  1.33000
+    H   from Me = 1.0362  ->  0.30001
+    O   from MeO = 0.9505 ->  0.66000
+
+**The book gives 64, 99, 114, 133, 30 and 66 pm — and carbon at 77.2
+rather than a rounded 77**, which is the extra digit the paper itself
+writes and what identifies this as the right table rather than a
+neighbouring one. Seven for seven, from a transcription and a
+back-calculation that share no step. The inversion is kept as a LIVE
+cross-check rather than as history, so a mistyped radius for any of those
+seven fails against a printed TSEI.
+
+The book carries 28 elements, so nitrogen, sulfur and phosphorus are
+covered now — they have no printed TSEI to invert from, so the projection
+declined every amine, thiol and phosphine until the handbook arrived.
+**The equation is geometric and the validation is not**: `R³/l³` has no
+per-element fitting, so a radius is the only input any element needs, but
+Cao & Liu validated against alkyl, halogen and ether substituents, so a
+silver or mercury radius buys arithmetic rather than evidence.
 
 **Gutmann donor and acceptor numbers — SHIPPED from the classical tables.**
 The earlier assessment rejected [source:gutmann_frontiers2022] correctly —

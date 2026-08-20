@@ -332,35 +332,121 @@ def test_the_two_radii_the_paper_prints_outright():
     )
 
 
-def test_every_shipped_radius_says_which_printed_value_it_came_from():
-    """The paper's own radius source -- Lange's Handbook 15th ed. p 4.35 --
-    is not held locally, so a radius with no printed TSEI value behind it
-    would be a number nobody can check. That is the failure mode CLAUDE.md
-    records as "the fields nobody can check"."""
+#: `symbol -> the TSEI value the paper prints for a lone first-tier atom`.
+#: Only the halogens: they are the substituents that ARE one atom, so eq
+#: 8a collapses to a closed form that inverts.
+_FIRST_TIER_HALOGENS = {"F": 0.7449, "Cl": 1.4190, "Br": 1.6957, "I": 2.0265}
+
+
+@pytest.mark.parametrize("symbol,printed", sorted(_FIRST_TIER_HALOGENS.items()))
+def test_the_transcribed_radius_agrees_with_the_one_the_paper_implies(symbol, printed):
+    """TWO ROUTES THAT SHARE NO STEP, AND THIS IS THE LIVE CROSS-CHECK.
+
+    The radii are transcribed from Lange's Handbook Table 4.7 now, but
+    before that book was available they were RECOVERED by inverting these
+    printed values: for a lone first-tier atom X, eq 8a collapses to
+    `8 rho^3 / (1 + rho)^3` with `rho = R_X / R_C`.
+
+    Keeping the inversion as a test rather than as history is what makes a
+    mistyped radius fail: the transcription would have to be wrong in
+    exactly the way that reproduces a number from a different paper.
+    """
+    radius_c = covalent_radius("C")
+    q = (printed / 8.0) ** (1.0 / 3.0)  # rho / (1 + rho)
+    implied = q / (1.0 - q) * radius_c
+    assert covalent_radius(symbol) == pytest.approx(implied, abs=5e-5)
+
+
+def test_hydrogen_and_oxygen_are_cross_checked_through_a_whole_substituent():
+    """The other three of the seven, and they need more than a closed form.
+
+    Methyl's 1.0362 is one carbon plus three hydrogens at the next tier;
+    methoxy's 0.9505 is an oxygen, a carbon and three hydrogens. Both
+    reproduce only if H = 0.30 and O = 0.66 as the book prints them, and
+    OEt = 0.9939 exercises the pair together over a longer path.
+    """
+    assert covalent_radius("H") == pytest.approx(0.30, abs=1e-9)
+    assert covalent_radius("O") == pytest.approx(0.66, abs=1e-9)
+
+    def with_h(smiles):
+        return substituent_tsei(
+            Chem.AddHs(Chem.MolFromSmiles(smiles)), 0, 1, include_hydrogens=True
+        ).value
+
+    assert with_h("CC") == pytest.approx(1.0362, abs=5e-5)
+    assert with_h("COC") == pytest.approx(0.9505, abs=5e-5)
+    assert with_h("COCC") == pytest.approx(0.9939, abs=5e-5)
+
+
+def test_every_shipped_radius_carries_its_row_from_the_book():
+    """SO A FUTURE AUDIT RUNS AGAINST THE PAGE LINE BY LINE.
+
+    The book prints picometres and the paper works in 1e-8 cm, so both are
+    stored: the derived value and the number actually on the page.
+    """
     payload = json.loads(
         (Path(tsei_module.__file__).parent / "data" / "tsei_radii.json").read_text(
             encoding="utf-8"
         )
     )
-    assert payload["_source_key"] == "cao2004"
-    assert "Lange" in payload["_radius_source"]
+    assert payload["_source_key"] == "langes15"
+    assert "cao2004" in payload["_supplementary_source_keys"]
+    assert len(payload["radii"]) == 28
+
     for symbol, row in payload["radii"].items():
-        assert row["recovered_from"], f"{symbol} has no provenance"
-        assert row["check"], f"{symbol} names no printed value to check against"
+        assert row["element"], f"{symbol} lost the book's own element name"
+        assert row["radius"] == pytest.approx(row["picometres"] / 100.0, abs=1e-9)
         assert row["radius"] > 0
 
+    # Carbon's extra digit is what identifies the table: the book prints
+    # 77.2 pm where a neighbouring set would round to 77.
+    assert payload["radii"]["C"]["picometres"] == 77.2
 
-def test_an_element_with_no_page_verified_radius_is_refused():
-    """NITROGEN IS THE ONE THAT MATTERS, and it is absent on purpose: the
-    paper prints no TSEI for any nitrogen-bearing substituent, so there is
-    nothing to invert a radius from. Substituting one from a neighbouring
-    table gives a plausible number for an element the method was never
-    checked on."""
-    with pytest.raises(TseiRadiusError, match="nitrogen|N\\b"):
-        substituent_tsei(Chem.MolFromSmiles("CN"), 0, 1)
 
-    with pytest.raises(TseiRadiusError, match="Lange"):
-        covalent_radius("S")
+def test_the_seven_cross_checked_radii_are_marked_as_such():
+    """A radius with a second, independent route to it is a different kind
+    of number from one that has only the book, and the data says which is
+    which rather than leaving a reader to work it out."""
+    payload = json.loads(
+        (Path(tsei_module.__file__).parent / "data" / "tsei_radii.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    checked = {s for s, row in payload["radii"].items() if row["cross_check"]}
+    assert checked == {"C", "Cl", "H", "O", "F", "Br", "I"}
+
+
+def test_nitrogen_sulfur_and_phosphorus_are_covered_now():
+    """THEY WERE REFUSED UNTIL THE BOOK ARRIVED, which made the projection
+    decline every amine, thiol and phosphine -- most of drug space.
+
+    The paper prints no TSEI for any substituent containing them, so the
+    inversion could never reach them; Table 4.7 simply has them.
+    """
+    assert covalent_radius("N") == pytest.approx(0.70, abs=1e-9)
+    assert covalent_radius("S") == pytest.approx(1.04, abs=1e-9)
+    assert covalent_radius("P") == pytest.approx(1.10, abs=1e-9)
+
+    # A first-tier nitrogen screens LESS than a carbon, because it is
+    # smaller -- 0.70 against 0.772. The chlorine case is the other side:
+    # bigger, so 1.4190.
+    nitrogen = substituent_tsei(Chem.MolFromSmiles("CN"), 0, 1).value
+    carbon = substituent_tsei(Chem.MolFromSmiles("CC"), 0, 1).value
+    chlorine = substituent_tsei(Chem.MolFromSmiles("CCl"), 0, 1).value
+    assert nitrogen < carbon < chlorine
+    assert carbon == pytest.approx(1.0, abs=5e-5)
+
+
+def test_an_element_the_book_does_not_tabulate_is_refused():
+    """Table 4.7 stops at 28 elements. Everything else -- the transition
+    metals beyond Cu/Ag/Cd/Hg/Zn, the lanthanides, the actinides -- is
+    refused by name rather than given a radius from a neighbouring set,
+    which is what RDKit's would be."""
+    with pytest.raises(TseiRadiusError, match="Pt"):
+        covalent_radius("Pt")
+
+    with pytest.raises(TseiRadiusError, match="Table 4.7"):
+        covalent_radius("Fe")
 
 
 def test_a_refused_element_refuses_the_whole_substituent():
@@ -368,7 +454,7 @@ def test_a_refused_element_refuses_the_whole_substituent():
     a plausible TSEI. `atomic_polarizabilities` refuses the same way and
     for the same reason."""
     with pytest.raises(TseiRadiusError):
-        substituent_tsei(Chem.MolFromSmiles("CCCCN"), 0, 1)
+        substituent_tsei(Chem.MolFromSmiles("CCCC[Fe]"), 0, 1)
 
 
 # --- the per-atom increments ------------------------------------------------

@@ -7887,15 +7887,17 @@ them. **18 of the 19 reachable printed values now reproduce.**
                                              heteroatom, where l_i stops
                                              being L_i x l_CC
 
-#### THE RADII WERE RECOVERED, NOT TYPED
+#### THE RADII WERE RECOVERED BEFORE THE BOOK ARRIVED, AND THE TWO AGREE
 
-The paper's radius source is Lange's Handbook 15th ed. p 4.35 (its ref 18),
-which this project does not hold. Typing a remembered Pauling table is the
-"fields nobody can check" failure recorded in this project's own citation
-audit -- six errors, every one in the field nothing could verify.
+The paper's radius source is Lange's Handbook of Chemistry 15th ed., Table
+4.7 "Covalent Radii for Atoms", p 4.35 -- its ref 18. **This project did
+not hold it when TSEI was corrected**, and typing a remembered Pauling
+table is the "fields nobody can check" failure recorded in this project's
+own citation audit -- six errors, every one in the field nothing could
+verify.
 
-So every shipped radius is **inverted from a TSEI value the paper prints**.
-For a lone first-tier atom, eq 8a collapses to `8 rho^3 / (1+rho)^3` with
+So every radius was **inverted from a TSEI value the paper prints**. For a
+lone first-tier atom, eq 8a collapses to `8 rho^3 / (1+rho)^3` with
 `rho = R_X/R_C`, which inverts to a radius:
 
     F   0.7449  ->  0.63997     Cl  1.4190  ->  0.99001
@@ -7903,12 +7905,35 @@ For a lone first-tier atom, eq 8a collapses to `8 rho^3 / (1+rho)^3` with
     H   from Me = 1.0362  ->  0.30001
     O   from MeO = 0.9505 ->  0.66      (OEt = 0.9939 uses both at once)
 
-Every one lands on a clean two-decimal value, which is itself evidence the
-inversion reads a real table rather than fitting noise -- and it IDENTIFIES
-the family as Pauling's tetrahedral covalent radii, a measured fact rather
-than an inference from the numbers looking familiar. **It still does not
-license typing a seventh value from memory**: nitrogen, sulfur and
-phosphorus have no printed TSEI to invert, so they are refused by name.
+Every one landed on a clean two-decimal value, which is itself evidence
+the inversion was reading a real table rather than fitting noise, and it
+IDENTIFIED the family as the tetrahedral covalent radii -- a measured fact
+rather than an inference from the numbers looking familiar.
+
+**THE BOOK THEN ARRIVED AND AGREED WITH ALL SEVEN TO THE LAST DIGIT** --
+64, 99, 114, 133, 30 and 66 pm, and carbon at **77.2** rather than a
+rounded 77, which is the extra digit the paper itself writes and what
+identifies this as the right table rather than a neighbouring one. Its
+footnote settles the column: "Single-bond radii are for a tetrahedral
+(CN = 4) structure". Two routes sharing no step, agreeing seven times.
+
+**THE INVERSION IS KEPT AS A LIVE CROSS-CHECK, not as history.** A
+mistyped radius for any of those seven would have to be wrong in exactly
+the way that reproduces a number from a different paper. The other 21 have
+the book alone, and `tsei_radii.json` says which is which -- a radius with
+a second independent route to it is a different kind of number.
+
+**WHAT THE BOOK CHANGED IS THE COVERAGE, and it is most of drug space.**
+Nitrogen (70 pm), sulfur (104) and phosphorus (110) are not among the
+substituents the paper tabulates, so the inversion could never have
+reached them and the projection refused every amine, thiol and phosphine.
+28 elements now.
+
+**THE EQUATION IS GEOMETRIC AND THE VALIDATION IS NOT**, which is the
+distinction to keep as the table widens. `R^3 / l^3` has no per-element
+fitting, so a radius is the only input any element needs; but Cao & Liu
+validated against alkyl, halogen and ether substituents on biphenyls, so a
+silver or a mercury radius buys arithmetic rather than evidence.
 
 **RDKit's `GetRcovalent` IS A DIFFERENT TABLE** -- Cordero 2008, carbon
 0.760 against 0.772, chlorine 1.02 against 0.99 -- and it puts the paper's

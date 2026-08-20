@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: ab2b0f3ce7a5db0e7cab99af74da8e7402143d26aeb4f618a21ad82f150bc4f6 -->
+<!-- SOURCE SHA256: 8dd23a6e3b3ee27d29b8371eb56f088aa1e6a24e65d18b7e1727a2f705c97676 -->
 
 # Sources
 
@@ -121,7 +121,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`kendall2008`](#kendall2008) | literature | shipped | citation |
 | [`ketcher`](#ketcher) | software | shipped | citation |
 | [`kwon2023`](#kwon2023) | dataset | shipped | citation + claim |
-| [`langes15`](#langes15) | reference_table | reference only | citation |
+| [`langes15`](#langes15) | reference_table | shipped | citation + claim |
 | [`llinas2008`](#llinas2008) | dataset | shipped | citation |
 | [`llinas2019`](#llinas2019) | dataset | reference only | citation |
 | [`llinas2020`](#llinas2020) | dataset | shipped | citation + claim |
@@ -678,12 +678,12 @@ rather than three times -- t-Bu is 1.8125 in Table 2 and 1.8395 in Table
 6, never 1.3750. Both choices are exposed as named options with the
 paper's own preference as the default.
 
-THE RADII ARE THE INTERESTING PROVENANCE PROBLEM. The paper cites Lange's
-Handbook of Chemistry 15th ed. p 4.35 (its ref 18), which is not held
-here -- see [source:langes15]. Rather than type a remembered Pauling
-table, every shipped radius is RECOVERED by inverting a TSEI value the
-paper prints; `tools/build_tsei_radii.py` records which one per element,
-and an element with no printed value to invert is refused by name.
+THE RADII COME FROM THE PAPER'S OWN REF 18, [source:langes15] Table 4.7,
+which is held now. Seven of the 28 are ALSO recoverable by inverting a
+TSEI value this paper prints, and the two routes agree to the last digit
+-- including carbon's 77.2 rather than a rounded 77, which is the digit
+this paper writes. `tools/build_tsei_radii.py` records which per element,
+and `tests/test_tsei.py` keeps the inversion as a live cross-check.
 
 ### schott1989
 
@@ -1820,32 +1820,55 @@ and never reach an even count. The vendored naming engine implements the
 | | |
 | --- | --- |
 | Identifier | 978-0070163843 |
-| Status | reference only |
-| Verification | citation |
+| Status | shipped |
+| Verification | citation + claim |
 | Verified | 2026-08-20 |
 | Licence | publisher |
+| Local copy | `Langes Handbook of Chemistry/Section 04. Properties of Atoms, Radicals, and Bonds.pdf` (not checked) |
+| Used by | `src/openchem/chem/data/tsei_radii.json`, `tools/build_tsei_radii.py`, `src/openchem/chem/tsei.py`, `tests/test_tsei.py` |
 
-**Why it is reference only.** NOT HELD LOCALLY, and recorded so the next person knows exactly what to
-get rather than re-deriving the question.
+TABLE 4.7, "Covalent Radii for Atoms", p 4.35 -- the single-bond column,
+whose footnote is what makes it the right one: "Single-bond radii are for
+a tetrahedral (CN = 4) structure". 28 elements. Read from the book and
+confirmed against a 400 dpi render of that page rather than trusted to
+the text layer, per this project's transcription rule.
 
-It is the radius table [source:cao2004] computes with -- its ref 18 --
-and therefore the source that would let `chem/tsei.py` cover more than
-seven elements. Nitrogen, sulfur and phosphorus are the notable
-absences: the paper prints no TSEI for any substituent containing them,
-so there is no printed value to invert a radius from and nothing here to
-check one against.
+THIS ENTRY WAS `reference_only` FOR ONE COMMIT, and what it recorded then
+is worth keeping: the book was not held, so every radius `chem/tsei.py`
+needed was instead RECOVERED by inverting a TSEI value [source:cao2004]
+prints. For a lone first-tier atom X, eq 8a collapses to
+`8 rho^3 / (1 + rho)^3` with `rho = R_X / R_C`, which inverts to a
+radius:
 
-Typing the values from a remembered Pauling table is exactly the "fields
-nobody can check" failure this registry's own verification pass recorded
--- six citation errors, every one in the field nothing could verify. So
-the shipped radii come from inverting printed TSEI values instead, and
-this entry records the alternative that was NOT taken.
+    F   0.7449  ->  0.63997     Cl  1.4190  ->  0.99001
+    Br  1.6957  ->  1.14002     I   2.0265  ->  1.33000
+    H   from Me  = 1.0362  ->  0.30001
+    O   from MeO = 0.9505  ->  0.66000
 
-As a by-product, the inversion identifies the family: the six radii
-recovered (H 0.30, F 0.64, O 0.66, C 0.772, Cl 0.99, Br 1.14, I 1.33) are
-Pauling's tetrahedral covalent radii to every digit the inversion
-resolves. That is a measured fact about which table p 4.35 reproduces --
-and it still does not license typing a seventh value from memory.
+**THE BOOK AGREES WITH ALL SEVEN TO THE LAST DIGIT** -- 64, 99, 114, 133,
+30 and 66 pm, and carbon at **77.2** rather than a rounded 77, which is
+the extra digit the paper itself writes and what identifies this as the
+right table rather than a neighbouring one. Two routes sharing no step.
+
+The inversion is kept as a LIVE cross-check in `tests/test_tsei.py`
+rather than as history, so a mistyped radius for any of those seven fails
+against a printed TSEI. The other 21 have the book alone, and the shipped
+data says which is which.
+
+WHAT THE BOOK CHANGED: nitrogen (70 pm), sulfur (104) and phosphorus
+(110) are not among the substituents the paper tabulates, so the
+inversion could never have reached them and the TSEI projection refused
+every amine, thiol and phosphine. It does not now.
+
+The alternative NOT taken is worth naming: typing the values from a
+remembered Pauling table would be exactly the "fields nobody can check"
+failure this registry's own verification pass recorded -- six citation
+errors, every one in the field nothing could verify.
+
+ONLY THE SINGLE-BOND COLUMN IS CARRIED. The double- and triple-bond
+columns exist and are unused: [source:cao2004] takes one radius per
+element -- its chlorine example uses 0.99 whatever the bond order -- and
+eq 8a is stated per atom X with covalent radius R_X.
 
 ### allred1961
 

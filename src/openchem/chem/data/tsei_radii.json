@@ -1,43 +1,206 @@
 {
- "_source_key": "cao2004",
- "_radius_source": "Lange's Handbook of Chemistry, 15th ed., p 4.35 -- cited by [source:cao2004] as its ref 18 and NOT held locally. Every radius below is recovered from a TSEI value the paper itself prints; see `recovered_from`.",
- "attribution": "Radii recovered from the TSEI values printed by C. Cao & L. Liu, 'Topological Steric Effect Index and Its Application', J. Chem. Inf. Comput. Sci. 2004;44:678-687, doi:10.1021/ci034266b. The paper's own radius source is Lange's Handbook of Chemistry, 15th ed., p 4.35 (its ref 18), which is not held locally.",
- "units": "1e-8 cm (the paper's own units; only ratios to carbon are used)",
+ "_source_key": "langes15",
+ "_supplementary_source_keys": [
+  "cao2004"
+ ],
+ "attribution": "Covalent radii from J. A. Dean (ed.), Lange's Handbook of Chemistry, 15th ed.; McGraw-Hill: New York, 1999; Table 4.7 'Covalent Radii for Atoms', p 4.35 -- the source cited as ref 18 by C. Cao & L. Liu, 'Topological Steric Effect Index and Its Application', J. Chem. Inf. Comput. Sci. 2004;44:678-687, doi:10.1021/ci034266b. Transcribed from a 400 dpi render of that page.",
+ "units": "1e-8 cm (the paper's own units; the book prints pm, which is 100x)",
  "radii": {
-  "C": {
-   "radius": 0.772,
-   "recovered_from": "printed in the eq 5a worked example",
-   "check": "Table 1: the whole normal-alkyl series, n = 1..20"
+  "Al": {
+   "radius": 1.26,
+   "picometres": 126,
+   "element": "Aluminum",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": ""
   },
-  "Cl": {
-   "radius": 0.99,
-   "recovered_from": "printed in the heteroatom worked example",
-   "check": "Table 6: Cl = 1.4190, which the example derives in full"
+  "Sb": {
+   "radius": 1.41,
+   "picometres": 141,
+   "element": "Antimony",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": ""
   },
-  "H": {
-   "radius": 0.3,
-   "recovered_from": "inverted from Table 6 Me = 1.0362 (hydrogens included)",
-   "check": "Table 6: Et = 1.1581 and t-Bu = 1.8395"
+  "As": {
+   "radius": 1.21,
+   "picometres": 121,
+   "element": "Arsenic",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": ""
   },
-  "O": {
-   "radius": 0.66,
-   "recovered_from": "inverted from Table 6 MeO = 0.9505",
-   "check": "Table 6: OEt = 0.9939, which uses O and H together"
+  "Be": {
+   "radius": 1.06,
+   "picometres": 106,
+   "element": "Beryllium",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": ""
   },
-  "F": {
-   "radius": 0.64,
-   "recovered_from": "inverted from Table 6 F = 0.7449",
-   "check": "Table 6: F = 0.7449"
+  "B": {
+   "radius": 0.88,
+   "picometres": 88,
+   "element": "Boron",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": ""
   },
   "Br": {
    "radius": 1.14,
-   "recovered_from": "inverted from Table 6 Br = 1.6957",
-   "check": "Table 6: Br = 1.6957"
+   "picometres": 114,
+   "element": "Bromine",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": "inverted from Table 6 Br = 1.6957"
+  },
+  "Cd": {
+   "radius": 1.48,
+   "picometres": 148,
+   "element": "Cadmium",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": ""
+  },
+  "C": {
+   "radius": 0.772,
+   "picometres": 77.2,
+   "element": "Carbon",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": "printed outright in the eq 5a worked example; Table 1's whole series"
+  },
+  "Cl": {
+   "radius": 0.99,
+   "picometres": 99,
+   "element": "Chlorine",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": "printed outright in the heteroatom worked example; Table 6 Cl = 1.4190"
+  },
+  "Cu": {
+   "radius": 1.35,
+   "picometres": 135,
+   "element": "Copper",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": ""
+  },
+  "F": {
+   "radius": 0.64,
+   "picometres": 64,
+   "element": "Fluorine",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": "inverted from Table 6 F = 0.7449"
+  },
+  "Ga": {
+   "radius": 1.26,
+   "picometres": 126,
+   "element": "Gallium",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": ""
+  },
+  "Ge": {
+   "radius": 1.22,
+   "picometres": 122,
+   "element": "Germanium",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": ""
+  },
+  "H": {
+   "radius": 0.3,
+   "picometres": 30,
+   "element": "Hydrogen",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": "inverted from Table 6 Me = 1.0362 (hydrogens included)"
+  },
+  "In": {
+   "radius": 1.44,
+   "picometres": 144,
+   "element": "Indium",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": ""
   },
   "I": {
    "radius": 1.33,
-   "recovered_from": "inverted from Table 6 I = 2.0265",
-   "check": "Table 6: I = 2.0265"
+   "picometres": 133,
+   "element": "Iodine",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": "inverted from Table 6 I = 2.0265"
+  },
+  "Mg": {
+   "radius": 1.4,
+   "picometres": 140,
+   "element": "Magnesium",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": ""
+  },
+  "Hg": {
+   "radius": 1.48,
+   "picometres": 148,
+   "element": "Mercury",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": ""
+  },
+  "N": {
+   "radius": 0.7,
+   "picometres": 70,
+   "element": "Nitrogen",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": ""
+  },
+  "O": {
+   "radius": 0.66,
+   "picometres": 66,
+   "element": "Oxygen",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": "inverted from Table 6 MeO = 0.9505; OEt = 0.9939 uses O and H together"
+  },
+  "P": {
+   "radius": 1.1,
+   "picometres": 110,
+   "element": "Phosphorus",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": ""
+  },
+  "Si": {
+   "radius": 1.17,
+   "picometres": 117,
+   "element": "Silicon",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": ""
+  },
+  "Se": {
+   "radius": 1.17,
+   "picometres": 117,
+   "element": "Selenium",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": ""
+  },
+  "Ag": {
+   "radius": 1.52,
+   "picometres": 152,
+   "element": "Silver",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": ""
+  },
+  "S": {
+   "radius": 1.04,
+   "picometres": 104,
+   "element": "Sulfur",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": ""
+  },
+  "Te": {
+   "radius": 1.37,
+   "picometres": 137,
+   "element": "Tellurium",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": ""
+  },
+  "Sn": {
+   "radius": 1.4,
+   "picometres": 140,
+   "element": "Tin",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": ""
+  },
+  "Zn": {
+   "radius": 1.31,
+   "picometres": 131,
+   "element": "Zinc",
+   "source": "Lange's Handbook 15th ed., Table 4.7, single-bond column",
+   "cross_check": ""
   }
  },
  "reference_values": [

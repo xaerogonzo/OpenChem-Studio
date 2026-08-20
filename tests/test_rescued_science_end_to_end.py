@@ -103,13 +103,23 @@ def test_the_registry_reaches_the_corrected_tsei_and_not_eq_7():
     assert result.values[1] == pytest.approx(0.6729, abs=5e-4)
 
 
-def test_the_registry_refuses_tsei_on_an_element_with_no_verified_radius():
+def test_the_registry_refuses_tsei_on_an_element_the_book_does_not_tabulate():
     """The refusal has to survive the trip out, or a user gets an empty
-    per-atom view with nothing saying why."""
-    result = _run("tsei_projection", "CCN")
+    per-atom view with nothing saying why.
+
+    ETHYLAMINE WAS THIS FIXTURE UNTIL THE HANDBOOK ARRIVED, which is worth
+    saying: nitrogen had no printed TSEI to invert a radius from, so the
+    projection declined every amine. Lange's Table 4.7 simply has it, and
+    the case that still refuses is an element the book itself stops short
+    of.
+    """
+    amine = _run("tsei_projection", "CCN")
+    assert amine.cache_state is not CacheState.FAILED, amine.error
+
+    result = _run("tsei_projection", "CCC[Fe]")
     assert result.cache_state is CacheState.FAILED
-    assert "N" in (result.error or "")
-    assert "Lange" in (result.error or ""), (
+    assert "Fe" in (result.error or "")
+    assert "Table 4.7" in (result.error or ""), (
         "the refusal does not say what is missing, so nobody can act on it"
     )
     assert result.values == {}

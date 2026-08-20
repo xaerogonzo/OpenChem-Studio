@@ -1482,8 +1482,10 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "a SUBSTITUENT measured toward a named reaction centre; running it at every "
             "atom is OpenChem's projection of it, not a quantity the paper defines. "
             "Topological, so two conformers of one molecule score identically. Covers "
-            "H, C, O, F, Cl, Br and I -- the elements whose covalent radius can be "
-            "checked against a value the paper prints -- and refuses the rest by name."
+            "the 28 elements Lange's Handbook tabulates a covalent radius for, and "
+            "refuses the rest by name. The equation is geometric, so any of those 28 "
+            "computes -- but Cao and Liu validated it on alkyl, halogen and ether "
+            "substituents, so a result on an organometallic is an extrapolation."
         ),
         execution=RegistryExecution(compute=compute_tsei_projection),
         prediction_basis="empirical",

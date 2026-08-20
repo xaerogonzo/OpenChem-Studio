@@ -96,9 +96,9 @@ WHAT IT IS AND IS NOT
     DIMENSIONLESS -- a relative specific volume divided by `k_t`
     a TOPOLOGICAL estimate of through-space bulk: it reads the graph, so
     it cannot see a conformation, and two rotamers score identically
-    LIMITED TO SEVEN ELEMENTS, and it refuses the rest by name -- see
-    `chem/data/tsei_radii.json` for why, and note that nitrogen is among
-    the absences
+    LIMITED TO THE 28 ELEMENTS Lange's Handbook Table 4.7 tabulates,
+    and it refuses the rest by name
+    VALIDATED ON A NARROWER SET THAN IT COMPUTES ON -- see below
 
 THE ACCEPTANCE ORACLE IS THE PRINTED TABLES, NOT THE CORRELATIONS. The
 paper reports r = 0.9912 and 0.9845 against biphenyl dihedral angles, and
@@ -119,6 +119,38 @@ which Table 4's own two-branch rows (i-Bu 1.1990, s-Bu 1.2870) refute.
 1.3752 is within 0.0002 of 1.3750, which is t-Bu's plain-additivity value
 in the very table above it. Recorded as an unreproduced printed value;
 nothing here is tuned toward it.
+
+THE RADII, AND THE TWO ROUTES THAT AGREE
+========================================
+
+`chem/data/tsei_radii.json` carries Lange's Handbook of Chemistry 15th
+ed., Table 4.7 "Covalent Radii for Atoms", p 4.35 -- [source:langes15],
+which is the paper's own ref 18. The single-bond column, whose footnote
+reads "Single-bond radii are for a tetrahedral (CN = 4) structure".
+
+**Seven of the 28 are independently recoverable from a TSEI value the
+paper prints**, and were derived that way before the book was available:
+for a lone first-tier atom, eq 8a collapses to `8 rho^3 / (1 + rho)^3`
+with `rho = R_X / R_C`, which inverts to a radius. The inversion and the
+transcription agree to the last digit on all seven, including carbon's
+**77.2 pm** rather than a rounded 77 -- the extra digit the paper writes,
+which is what identifies this as the right table and not a neighbouring
+one. `tests/test_tsei.py` keeps the inversion as a LIVE cross-check, so a
+mistyped radius for any of those seven fails against a printed TSEI.
+
+**THE EQUATION IS GEOMETRIC AND THE VALIDATION IS NOT, which is the
+distinction to keep.** `R^3 / l^3` has no per-element fitting, so a
+radius is the only input any element needs, and all 28 compute. But Cao &
+Liu validated TSEI against alkyl, halogen and ether substituents on
+biphenyls -- so a silver or a mercury radius buys arithmetic rather than
+evidence, and a TSEI for an organometallic is an extrapolation the paper
+does not support. Nitrogen, sulfur and phosphorus sit between the two:
+routine in the chemistry this application is used for, and not among the
+substituents the paper tabulates.
+
+**NOT `Chem.GetPeriodicTable().GetRcovalent`**, which is the Cordero 2008
+set -- carbon 0.760, chlorine 1.02 -- and puts the paper's own chlorine
+example at 1.5052 against a printed 1.4190.
 """
 
 from __future__ import annotations
@@ -156,15 +188,18 @@ _CROWDED_TRIPLE_FACTOR = 6.5
 
 
 class TseiRadiusError(ValueError):
-    """An element with no page-verified covalent radius.
+    """An element Lange's Handbook Table 4.7 does not tabulate.
 
     RAISED RATHER THAN GUESSED AT, for the reason
     `MillerAssignmentError` already gives one module along: substituting a
-    radius from a neighbouring table produces a perfectly plausible number
-    for a method that was never checked on that element. See
-    `chem/data/tsei_radii.json` -- the paper's own radius source is not
-    held locally, so the shipped radii are the ones a printed TSEI value
-    can be inverted from.
+    radius from a NEIGHBOURING table produces a perfectly plausible number
+    for a method that was never checked on that element -- RDKit's
+    Cordero-2008 radii put the paper's own chlorine example at 1.5052
+    against a printed 1.4190.
+
+    The 28 covered are the book's own list. Everything else -- the
+    transition metals beyond Cu/Ag/Cd/Hg/Zn, the lanthanides, the
+    actinides -- is refused by name.
     """
 
 
@@ -202,10 +237,9 @@ def covalent_radius(symbol: str) -> float:
     radius = _radii().get(symbol)
     if radius is None:
         raise TseiRadiusError(
-            f"no page-verified covalent radius for {symbol}. Cao-Liu TSEI ships "
-            f"radii for {', '.join(sorted(_radii()))} only, each recovered from a "
-            "TSEI value the paper prints; extending it needs Lange's Handbook of "
-            "Chemistry 15th ed. p 4.35, which this project does not hold."
+            f"Lange's Handbook Table 4.7 tabulates no covalent radius for "
+            f"{symbol}, and Cao-Liu TSEI needs one. Covered: "
+            f"{', '.join(sorted(_radii()))}."
         )
     return radius
 
