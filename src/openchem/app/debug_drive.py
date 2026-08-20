@@ -368,6 +368,94 @@ class _Driver(QObject):
     def _do_panel(self, step: dict[str, Any]) -> None:
         self._window._on_panel_chosen(str(step["id"]))
 
+    def _do_align(self, step: dict[str, Any]) -> None:
+        """Run the 3D Alignment panel on the project's molecules.
+
+        The panel had no drive coverage at all before the pop-out work,
+        which is why this exists: its output is a PICTURE, and a picture
+        is the one thing the test suite cannot judge.
+
+        **NAME THE REFERENCE.** Without one this ticks everything and
+        aligns onto whatever sits at index 0, which is the STARTER
+        MOLECULE -- it has no molblock, so the run reports "Ensemble
+        alignment failed" and reads as a bug in the panel. Same shape as
+        the `smiles`/`conformers` trap this file already documents one
+        step along: a step that does not select what it added.
+
+        `probes` names which molecules to tick; without it every other
+        molecule is ticked, starter included.
+        """
+        panel = self._window._alignment_panel
+        reference = step.get("reference")
+        if reference is not None:
+            index = panel._reference_combo.findText(str(reference))
+            if index < 0:
+                logger.error("OPENCHEM_DRIVE: no molecule %r to align onto", reference)
+                return
+            panel._reference_combo.setCurrentIndex(index)
+        wanted = step.get("probes")
+        for row in range(panel._probe_list.count()):
+            item = panel._probe_list.item(row)
+            ticked = True if wanted is None else item.text() in wanted
+            item.setCheckState(
+                Qt.CheckState.Checked if ticked else Qt.CheckState.Unchecked
+            )
+        if "method" in step:
+            panel._method_combo.setCurrentText(str(step["method"]))
+        if "accuracy" in step:
+            panel._accuracy_combo.setCurrentText(str(step["accuracy"]))
+        logger.warning(
+            "OPENCHEM_DRIVE: aligning %d probe(s) onto %r, method=%s accuracy=%s",
+            len(panel._checked_uuids()),
+            panel._reference_combo.currentText(),
+            panel._method_combo.currentText(),
+            panel._accuracy_combo.currentText(),
+        )
+        panel._on_align_clicked()
+
+    def _do_pop_out(self, step: dict[str, Any]) -> None:
+        """Move a panel's view into its own window, or bring it back.
+
+        `{"do": "pop_out", "panel": "3D_Alignment"}` -- note the
+        UNDERSCORE. `_dock_by_panel_id` matches `dock.objectName()`, and
+        a wrong id used to be a silent no-op that logged a healthy-looking
+        step while photographing the wrong panel. An unrecognised name is
+        LOGGED here rather than ignored, for the same reason a `tab` name
+        that matches nothing is.
+
+        Called a second time on the same panel it returns the view, so a
+        script can photograph all three states without a second step.
+        """
+        from openchem.ui.widgets.pop_out_host import PopOutHost
+
+        panel_id = str(step["panel"])
+        dock = self._window._dock_by_panel_id(panel_id)
+        if dock is None:
+            logger.error(
+                "OPENCHEM_DRIVE: no panel %r -- object names use underscores, "
+                "e.g. '3D_Alignment', 'Quantum_Chemistry'",
+                panel_id,
+            )
+            return
+        widget = dock.widget()
+        hosts = widget.findChildren(PopOutHost) if widget is not None else []
+        if not hosts:
+            logger.error("OPENCHEM_DRIVE: panel %r has no pop-out view", panel_id)
+            return
+        host = hosts[int(step.get("index", 0))]
+        if host.is_popped_out():
+            host.return_home()
+            self._popout = None
+            logger.warning("OPENCHEM_DRIVE: returned %r to its panel", panel_id)
+            return
+        self._popout = host.pop_out()
+        logger.warning(
+            "OPENCHEM_DRIVE: %r detached, window %dx%d",
+            panel_id,
+            self._popout.width(),
+            self._popout.height(),
+        )
+
     def _do_expand(self, step: dict[str, Any]) -> None:
         """Expand one Properties section, by category id (e.g. "admet")."""
         section = self._window._property_panel._sections.get(str(step["section"]))
@@ -454,6 +542,11 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no spatial dialog open; run {'do': 'spatial'}")
                 return
             target = self._spatial
+        elif step.get("widget") == "popout":
+            if getattr(self, "_popout", None) is None:
+                logger.error("OPENCHEM_DRIVE: no detached view; run {'do': 'pop_out', ...}")
+                return
+            target = self._popout
         target.grab().save(str(path))
         logger.warning("OPENCHEM_DRIVE: wrote %s", path)
 

@@ -965,6 +965,188 @@ so the camera framed nothing, and Mol*'s UI chrome is ~57% of the window.
 With a structure loaded and the count cropped to the 3D canvas, 16778 ->
 20270 (+20.8%).
 
+## POPPING A VIEW OUT: the widget MOVES, and that was measured first
+
+Reported against 3D Alignment: two molecules aligned on a common
+scaffold, and "the 3d conformer is contained in that tiny area". The
+overlay IS that panel's entire output and it renders into a strip about
+400x90 px, because a settings group box, a 160 px result table and the
+style row are all fixed height above it in a dock that opens at 420.
+
+`ui/widgets/pop_out_host.py` is the mechanism. `PopOutHost` wraps one
+view, puts a `↗` button in a thin header row, and moves the widget into a
+`PopOutWindow` and back. Six sites use it: the alignment overlay, and
+Quantum Chemistry's Surfaces, IR, 1D Signals and three correlation plots.
+
+**IT MOVES THE WIDGET; `FactView.open_in_window` COPIES ITS VIEW. Both
+are right, and the difference is the thing to keep.** A report is cheap
+to re-render and two side by side is the use case. A 3D view is stateful
+-- the camera angle the user just set is the whole reason they want it
+bigger -- so copying hands them a default camera and a second
+QtWebEngine process set.
+
+**THE RULE, because an agent meeting `open_in_window()` will assume the
+`FactView` pattern:** for a stateful visualisation the documentation and
+the help contract must SAY which one it is. `workspace.pop_out_view`'s
+text is explicit that the view moves. Never infer it from a label.
+
+### RE-PARENTING A `QWebEngineView` SURVIVES, and nothing here had ever done it
+
+Measured before a line was written, on a real display, with an ensemble
+loaded and the camera turned to a distinctive angle:
+
+    stage                    identity   parent chain              ink%  black%
+    docked                   same       View -> host -> panel     10.5  0.2
+    detached                 same       View -> QDialog -> ...    10.7  0.2
+    drag while detached      --         camera MOVED              --    --
+    returned                 same       View -> host -> panel      9.7  0.1
+    3x round trip            same       stable                     9.0  0.2
+    destroyed after return   ALIVE      View -> host -> panel      9.7  0.1
+
+The camera quaternion came back byte-identical across the move, a
+synthetic drag landed while detached, and the canvas genuinely re-laid
+out -- 796x596 -> 1800x1400 -> 796x596 -- rather than freezing on a last
+frame, which is what distinguishes a live page from a stale one.
+
+**BLACK FRACTION IS COUNTED SEPARATELY FROM INK**, because a failed
+render is a BLACK canvas and scores as heavily inked; this file already
+records that metric being read backwards once, at 94875 against 3067.
+
+**READ THE PAGE'S OWN CANVAS, not the widget.** A `QWebEngineView`
+renders out of process, so 3Dmol's `viewer.pngURI()` is the honest
+source and `widget.grab()` is not.
+
+### THE LIFECYCLE: three states, four transitions, nothing else
+
+                        pop_out()
+            DOCKED  ---------------->  DETACHED
+              |     <----------------      |
+              |      return_home()         |
+              |      window closed         |
+              |                            |
+              |   owner destroyed          |  owner destroyed
+              +----------> DISPOSING <-----+
+
+**"LOOKED AWAY FROM" AND "DESTROYED" ARE DIFFERENT THINGS**, and the
+first draft of this design conflated them -- it said the owner being
+destroyed "returns the view home", which is incoherent once there is no
+home to return to. Six Qt events mean "the panel went away" and only two
+bring the view back:
+
+    another dock selected                stays open
+    another tab selected                 stays open
+    the dock hidden or closed            stays open (retained, not destroyed)
+    the dock floated                     stays open
+    a new job / the result cleared       RETURNS HOME (a semantic reset)
+    the owner destroyed / app shutdown   DISPOSING, no restore
+
+Which is why there is deliberately **NO `hideEvent` hook**: the first
+four rows are all `hideEvent`, so a hideEvent-driven return snaps the
+window shut every time the user glances at another tab.
+
+**THE WINDOW IS PARENTED TO THE HOST**, which is what makes `DISPOSING` a
+cascade rather than a policy somebody has to remember: panel -> host ->
+window -> content, one direction, nothing dangling. An unparented window
+outlives its owner, which is the one forbidden outcome.
+
+### `finished` IS THE PRIMARY HOOK AND `closeEvent` IS NOT
+
+A review proposed driving the restore from `PopOutWindow.closeEvent()`
+with `finished` as a backstop. It is the wrong way round, and it leaks
+the Escape key:
+
+    the X button   close() -> QCloseEvent -> QDialog::closeEvent
+                   -> reject() -> done() -> finished
+    Escape         keyPressEvent -> reject() -> done() -> finished
+                   ... and NO QCloseEvent at all
+
+So `closeEvent` alone silently leaves the content inside a hidden window.
+`closeEvent` is kept as an additional EARLIER hook on the X path, and
+`return_home` is idempotent so both firing is harmless.
+`test_escape_returns_the_view_even_though_it_sends_no_close_event` is the
+guard, and it is the only thing that catches the closeEvent-only
+mutation.
+
+### VIEW CONTROLS STAY IN THE PANEL; the window gets only a Return button
+
+Alignment's `Style:` combo stays in the dock and goes on driving the
+detached overlay, because `Mol3DViewerBackend` holds the page and the
+channel rather than the parent widget. That falls out of the existing
+design rather than being built, which is exactly why it needs an
+assertion -- free today, easy to break.
+
+A duplicate control in the window would be two widgets for one setting.
+The header row therefore never moves, and a header widget that already
+belongs to another layout is REFUSED in the constructor, because the
+silent mistake is
+
+    layout.addWidget(style_combo)          # still there
+    PopOutHost(..., header=[style_combo])  # and now here too
+
+which Qt honours by stealing it and leaving a hole.
+
+**THE BUTTON COSTS THE PANEL NOTHING.** Measured either side of the
+change, since a `QHBoxLayout`'s minimum is the SUM of its children and
+this file's worst layout bug came from exactly that: the alignment
+panel's minimum is **297 x 392 before and after**. The note label in the
+settings box sets it; the header row has slack.
+
+### A PLAIN `QLabel` PLACEHOLDER, NEVER `empty_state()`
+
+`QuantumChemistryPanel.empty_message_for_tab` returns the first
+`is_empty_state` widget it finds anywhere under a tab, via
+`findChildren`. Building the "showing in its own window" placeholder with
+the helper whose NAME sounds right would put a hidden marked label inside
+every host, and every wrapped tab would start answering for itself with
+the pop-out's message. Two guards, one at each end.
+
+### THE SECOND GLYPH WAS AN EMOJI, and only the magnified shot said so
+
+The button first showed `U+2B1C WHITE LARGE SQUARE` while detached. All
+22 tests passed, `--missing` said "Nothing matched", and a 3x crop of the
+running app showed a **lavender emoji square** in the panel chrome.
+Windows resolves that codepoint to a colour emoji font; `U+25FB`,
+`U+29C9` and `U+1F5D6` all do the same.
+
+**A PROBE THAT COUNTS COLOURED PIXELS CANNOT SETTLE IT.** At button size
+ClearType's sub-pixel fringes are genuinely coloured, so an unassigned
+control codepoint scored as "drew, in colour" too and the probe could not
+discriminate. `QFontMetrics.inFont()` is no help either, for the reason
+this file already records. **The screenshot was the oracle.**
+
+The state is not carried by a glyph at all now: `setChecked` is drawn by
+the platform style, is themed, and cannot be missing from a font.
+`U+2197` is kept for both states because it was confirmed in a screenshot
+of the real application at the real size.
+
+### THE MUTATION PASS FOUND A VACUOUS GUARD, as it usually does
+
+Nine arms, nine caught, each by the intended guard and each running the
+full 96 -- but **M5 only after the guard it was aimed at was repaired**.
+`test_a_detached_view_survives_switching_to_another_tab` never showed its
+panel, and **a widget that was never shown receives no hide events at
+all**, so it passed with a `hideEvent` hook installed and without one.
+It shows the panel now and asserts its own setup -- that switching the
+tab really did hide the host -- because otherwise the claim is about a
+hide that never happened.
+
+This is the same lesson as `repaint()` and `resize()` on an unshown
+widget, one event along.
+
+### THE DRIVE STEPS, and the trap in the first run
+
+`{"do": "align"}` and `{"do": "pop_out", "panel": "3D_Alignment"}` --
+note the UNDERSCORE, since `_dock_by_panel_id` matches
+`dock.objectName()`. `{"do": "shot", "widget": "popout"}` photographs the
+detached window.
+
+**NAME THE REFERENCE.** The first run reported "Ensemble alignment
+failed" and read as a bug in the panel: with no reference named, the
+combo sits at index 0, which is the STARTER MOLECULE, and it has no
+molblock. Same shape as the `smiles`/`conformers` trap already recorded
+-- a step that does not select what it added. The failure also made the
+detached screenshot 4.6 KB against 63 KB, which is how it was noticed.
+
 ## A HORIZONTAL ROW'S MINIMUM IS THE SUM, and it set the whole window's
 
 Reported as "the rightmost tab ... will change size, and even became

@@ -36,8 +36,8 @@ from openchem.ui.dialogs.periodic_table_dialog import (
     CELL_SMALL,
     PeriodicTableDialog,
     cell_size_for,
-    fit_within,
 )
+from openchem.ui.widgets.screen_fit import fit_within
 
 
 @pytest.fixture

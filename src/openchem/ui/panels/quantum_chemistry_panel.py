@@ -53,6 +53,7 @@ from openchem.ui.widgets.empty_state import empty_state, empty_state_text, is_em
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.ui.widgets.esp_compare_widget import EspCompareWidget
 from openchem.ui.widgets.ir_view_widget import IrViewWidget
+from openchem.ui.widgets.pop_out_host import PopOutHost
 from openchem.ui.widgets.nmr_correlation_plot_widget import NmrCorrelationPlotWidget, Peak
 from openchem.ui.widgets.nmr_view_widget import NmrViewWidget
 
@@ -744,7 +745,13 @@ class QuantumChemistryPanel(QWidget):
             contour_toggle.toggled.connect(plot.set_show_contours)
             tab_layout.addWidget(table)
             tab_layout.addWidget(contour_toggle)
-            tab_layout.addWidget(plot)
+            # The plot is the cramped half of this tab -- a contour map in
+            # a 420 px dock under a table -- so it gets a pop-out host.
+            # Wrapping only the PLOT leaves `tab.children()` otherwise
+            # untouched, which is what `_content_of` walks.
+            tab_layout.addWidget(
+                PopOutHost(plot, title=f"{correlation_type.upper()} correlations", parent=tab)
+            )
             self._correlation_tabs.addTab(tab, correlation_type.upper())
             self._correlation_tables[correlation_type] = table
             self._correlation_plots[correlation_type] = plot
@@ -1174,7 +1181,9 @@ class QuantumChemistryPanel(QWidget):
                 self._qm_surface_service,
                 parent=self._surfaces_tab,
             )
-            self._surfaces_layout.addWidget(self._surfaces_view)
+            self._surfaces_layout.addWidget(
+                PopOutHost(self._surfaces_view, title="Surfaces", parent=self._surfaces_tab)
+            )
         self._surfaces_view.set_molecule(self._pending_molecule_uuid or "", molblock)
         self._fill_tab(self._surfaces_tab)
         self._correlation_tabs.setVisible(True)
@@ -1290,9 +1299,25 @@ class QuantumChemistryPanel(QWidget):
 
         Walks the tab widget rather than a stored collection, for the
         reason in `_content_of`.
+
+        **A DETACHED VIEW IS BROUGHT HOME FIRST, and this is the only
+        place that does it.** Hiding a `PopOutHost` does not close the
+        window its content is sitting in, so without this a new job would
+        blank the tab while a window on another monitor went on showing
+        the PREVIOUS run's surface, with nothing anywhere saying it was
+        stale.
+
+        A new job is a SEMANTIC reset, which is what distinguishes it from
+        the four ways of merely looking away -- switching dock, switching
+        tab, hiding the dock, floating it. Those must NOT return anything,
+        which is why `PopOutHost` has no `hideEvent` hook: a tab page
+        receives hide events on every tab switch.
         """
         for index in range(self._correlation_tabs.count()):
-            state, content = self._content_of(self._correlation_tabs.widget(index))
+            tab = self._correlation_tabs.widget(index)
+            for host in tab.findChildren(PopOutHost):
+                host.return_home()
+            state, content = self._content_of(tab)
             if state is None:
                 continue
             state.setVisible(True)
@@ -1314,7 +1339,9 @@ class QuantumChemistryPanel(QWidget):
         shifts under the user."""
         if self._ir_view is None:
             self._ir_view = IrViewWidget(self._chemistry_engine, parent=self._ir_view_tab)
-            self._ir_view_layout.addWidget(self._ir_view)
+            self._ir_view_layout.addWidget(
+                PopOutHost(self._ir_view, title="IR spectrum", parent=self._ir_view_tab)
+            )
         # The OPTIMISED conformer, not the submitted structure: an
         # `opt_freq` optimises first and the modes describe motion about
         # the result. `_pending_conformer_molblock` is what was sent, so
@@ -1335,7 +1362,9 @@ class QuantumChemistryPanel(QWidget):
             return
         if self._nmr_view is None:
             self._nmr_view = NmrViewWidget(self._chemistry_engine, parent=self._nmr_view_tab)
-            self._nmr_view_layout.addWidget(self._nmr_view)
+            self._nmr_view_layout.addWidget(
+                PopOutHost(self._nmr_view, title="NMR signals", parent=self._nmr_view_tab)
+            )
         self._nmr_view.set_spectrum(
             self._pending_molblock, spectrum, self._pending_conformer_molblock or None
         )

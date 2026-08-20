@@ -40,6 +40,7 @@ from openchem.events.events import AlignmentJobStateChanged, EnsembleAlignmentRe
 from openchem.services.alignment_service import AlignmentService
 from openchem.ui.molecule_combo import repopulate
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
+from openchem.ui.widgets.pop_out_host import PopOutHost
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 _RESULT_COLUMNS = ("Molecule", "Score", "RMSD (A)", "Paired atoms")
@@ -274,16 +275,29 @@ class AlignmentPanel(QWidget):
         settings_layout.addLayout(buttons)
         settings_layout.addWidget(self._status_label)
 
-        view_header = QHBoxLayout()
-        view_header.addWidget(QLabel("Style:", self))
-        view_header.addWidget(self._style_combo)
-        view_header.addStretch(1)
+        # THE STYLE ROW BECOMES THE HOST'S HEADER rather than a row of its
+        # own. This panel's whole problem is vertical space -- the group
+        # box, the table and this row are all fixed height and the viewer
+        # gets whatever is left, which in a 420 px dock is a strip about
+        # 90 px tall -- so the pop-out button joins a row that already
+        # exists instead of adding another.
+        #
+        # The header STAYS HERE while the view is detached, deliberately:
+        # the backend holds the page and the channel rather than the
+        # parent, so `Style:` goes on driving the overlay in its own
+        # window from the dock. See `pop_out_host` for why a duplicate
+        # control in that window would be worse than none.
+        self._viewer_host = PopOutHost(
+            self._viewer.widget(),
+            title="3D Alignment",
+            header=[QLabel("Style:", self), self._style_combo],
+            parent=self,
+        )
 
         layout = QVBoxLayout(self)
         layout.addWidget(settings_box)
         layout.addWidget(self._result_table)
-        layout.addLayout(view_header)
-        layout.addWidget(self._viewer.widget(), 1)
+        layout.addWidget(self._viewer_host, 1)
 
         event_bus.subscribe(AlignmentJobStateChanged, self._on_job_state_changed)
         event_bus.subscribe(EnsembleAlignmentReady, self._on_alignment_ready)

@@ -170,3 +170,72 @@ def test_the_failed_entry_is_not_sent_to_the_viewer_and_colours_stay_aligned(qap
     colors = {molblock: color for molblock, color in sent[0]}
     assert panel._result_table.item(0, 0).foreground().color().name() == colors["REF"]
     assert panel._result_table.item(2, 0).foreground().color().name() == colors["OK"]
+
+
+# --- the overlay in its own window -----------------------------------------
+
+
+def test_the_overlay_can_be_shown_in_its_own_window(qapp):
+    """The reported problem, end to end.
+
+    The overlay IS this panel's whole output and it renders into a strip
+    about 400x90 px, because the settings box, the result table and the
+    style row above it are all fixed height in a dock that opens at 420.
+    """
+    panel, _service, _bus, _engine = _panel(qapp)
+
+    viewer_widget = panel._viewer.widget()
+    window = panel._viewer_host.pop_out()
+
+    assert window.isAncestorOf(viewer_widget)
+    # The SAME view, not a second one: the camera the user has set is the
+    # reason they are making it bigger.
+    assert panel._viewer_host.content() is viewer_widget
+
+    panel._viewer_host.return_home()
+    assert viewer_widget.parentWidget() is panel._viewer_host
+
+
+def test_the_style_combo_stays_in_the_panel_when_the_viewer_is_detached(qapp):
+    """VIEW-SPECIFIC CONTROLS DO NOT TRAVEL, asserted where a future pass
+    would break it.
+
+    The alternative -- moving the header into the window, or duplicating
+    it there -- was considered and rejected: the panel owns the workflow
+    and its settings, the window owns the temporary presentation of the
+    picture, and two widgets for one setting is a synchronisation bug
+    waiting to be written.
+    """
+    panel, _service, _bus, _engine = _panel(qapp)
+    host = panel._viewer_host
+    window = host.pop_out()
+
+    assert host.isAncestorOf(panel._style_combo)
+    assert not window.isAncestorOf(panel._style_combo)
+
+    host.return_home()
+    assert host.isAncestorOf(panel._style_combo)
+
+
+def test_the_panel_control_is_authoritative_wherever_the_view_lives(qapp):
+    """Both directions, because one alone is satisfied by an
+    implementation that happens to work in the state the test starts in.
+
+    This works at all because `Mol3DViewerBackend` holds the page and the
+    channel rather than the parent widget -- so `Style:` reaches the view
+    through the backend and never cared where the widget was sitting.
+    That falls out of the existing design rather than being built, which
+    is exactly why it needs an assertion: free today, easy to break.
+    """
+    panel, _service, _bus, _engine = _panel(qapp)
+    styles: list[str] = []
+    panel._viewer.set_style = lambda style: styles.append(style)
+
+    host = panel._viewer_host
+    host.pop_out()
+    panel._style_combo.setCurrentText("sphere")
+    assert styles[-1] == "sphere", "the panel's control stopped reaching a detached view"
+
+    host.return_home()
+    panel._style_combo.setCurrentText("line")
+    assert styles[-1] == "line", "the panel's control stopped reaching a returned view"

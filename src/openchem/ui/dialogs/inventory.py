@@ -206,6 +206,23 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
             _result(context, "spatial_report"), context.conformer_molblock or ""
         )
 
+    def pop_out_window(_context: DialogContext):
+        from PySide6.QtWidgets import QLabel
+
+        from openchem.ui.widgets.pop_out_host import PopOutHost
+
+        # THE CONTENT IS A BARE LABEL ON PURPOSE. This window is a generic
+        # container: it defines exactly ONE control of its own, the Return
+        # to panel button, and what it happens to be wrapped around cannot
+        # change that. Every real content widget is already walked in the
+        # panel that owns it.
+        #
+        # It is registered at all because it owns that button. An earlier
+        # draft argued a pure container needed no fixture, which stopped
+        # being true the moment it gained a control -- and an unregistered
+        # dialog's contracts are exactly what this guard exists to catch.
+        return PopOutHost(QLabel("content"), title="Pop-out").pop_out()
+
     yield DialogFixture("AboutDialog", about)
     yield DialogFixture("ConformerOptionsDialog", conformer_options)
     yield DialogFixture("HelpDialog", help_window)
@@ -227,6 +244,7 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
     )
     yield DialogFixture("NmrViewDialog", nmr_view, needs="an NMR spectrum")
     yield DialogFixture("SpatialResultDialog", spatial_result, needs="a report carrying shapes")
+    yield DialogFixture("PopOutWindow", pop_out_window)
 
 
 def dialog_names() -> list[str]:
