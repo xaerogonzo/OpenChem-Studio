@@ -166,3 +166,90 @@ def test_spot_values_are_the_ones_the_page_shows(symbol, tau):
     """Typed from a 400 dpi render, against a text layer that gives
     `0.392 0.31 1 0.3 13 0.387` for a row of four numbers."""
     assert miller.parameters()[symbol]["tau_ahc"] == pytest.approx(tau, abs=1e-9)
+
+
+# --- the paper's OWN printed assignments ------------------------------------
+
+#: Table II prints the hybrid assignment beside every molecule, and that
+#: column is a far stronger oracle than the two molecules above: it fixes
+#: WHICH ROW each atom got rather than only the number the rows add up to.
+#:
+#: Typed from a positional extraction of the table, since the text layer
+#: streams the columns separately -- "acetone 32 6.39 6.33 6.36 -1.0 -0.4
+#: 4.7 -7.4 20 ZCTE CTR 10TR4 6H", where `ZCTE` is `2CTE` and `10TR4` is
+#: `1 OTR4`.
+_TABLE_II_ASSIGNMENTS = {
+    "benzene": ("c1ccccc1", {"CTR": 6, "H": 6}),
+    "toluene": ("Cc1ccccc1", {"CTR": 6, "CTE": 1, "H": 8}),
+    "styrene": ("C=Cc1ccccc1", {"CTR": 7, "CBR": 1, "H": 8}),
+    "acetone": ("CC(C)=O", {"CTE": 2, "CTR": 1, "OTR4": 1, "H": 6}),
+    "naphthalene": ("c1ccc2ccccc2c1", {"CTR": 8, "CBR": 2, "H": 8}),
+    "anthracene": ("c1ccc2cc3ccccc3cc2c1", {"CTR": 10, "CBR": 4, "H": 10}),
+    "pyrene": ("c1cc2ccc3cccc4ccc(c1)c2c34", {"CTR": 10, "CBR": 6, "H": 10}),
+    "b-methylnaphthalene": (
+        "Cc1ccc2ccccc2c1", {"CTR": 8, "CTE": 1, "CBR": 2, "H": 10}
+    ),
+    "a-naphthalenecarboxaldehyde": (
+        "O=Cc1cccc2ccccc12", {"CTR": 8, "CBR": 3, "OTR4": 1, "H": 8}
+    ),
+}
+
+
+@pytest.mark.parametrize(
+    "label", sorted(_TABLE_II_ASSIGNMENTS), ids=lambda s: str(s)
+)
+def test_the_hybrid_assignment_is_the_one_the_paper_prints(label):
+    """THE ORACLE THE TWO-MOLECULE CHECK ABOVE COULD NOT BE.
+
+    Benzene and CCl4 pin the numbers; this pins which ROW every atom got,
+    which is where the +36% error class actually lives. Nine molecules
+    chosen because they SEPARATE the two candidate rules:
+
+        toluene    ipso carbon, no hydrogen, and the paper says CTR
+        styrene    ipso carbon, no hydrogen, and the paper says CBR
+        acetone    carbonyl carbon, no hydrogen, and the paper says CTR
+
+    A "CBR is a trigonal carbon with no hydrogen" rule -- which the 1990
+    paper's PROSE states in as many words on p 8535 -- gets toluene and
+    acetone wrong and puts benzene at 13.99 against 10.39. It was
+    implemented here on the strength of that sentence and this test is
+    what would have caught it. The tables win.
+    """
+    smiles, expected = _TABLE_II_ASSIGNMENTS[label]
+    result = miller_polarizability(Chem.MolFromSmiles(smiles))
+    assert result.assignment == expected
+
+
+def test_the_same_ring_position_changes_row_with_its_substituent():
+    """THE PAIR THAT SHOWS THE RULE IS ABOUT CONJUGATION, not counting.
+
+    b-methylnaphthalene and a-naphthalenecarboxaldehyde differ only in
+    what hangs off one ring carbon, and the paper gives that carbon
+    different rows: CTR under a methyl, CBR under a conjugated CHO. No
+    hydrogen count can produce both.
+    """
+    methyl = miller_polarizability(Chem.MolFromSmiles("Cc1ccc2ccccc2c1")).assignment
+    aldehyde = miller_polarizability(Chem.MolFromSmiles("O=Cc1cccc2ccccc12")).assignment
+    assert methyl["CBR"] == 2, "only the two fusion carbons should be CBR under a methyl"
+    assert aldehyde["CBR"] == 3, "the ipso carbon should join them under a CHO"
+
+
+def test_nitrobenzene_is_the_one_printed_assignment_that_disagrees():
+    """RECORDED, NOT TUNED TOWARD.
+
+    The paper prints `6CTR 1NPI2 2OTE 5H`; this implementation gives the
+    ipso carbon CBR and the nitro oxygens OTR4. That row is also one of
+    the worst in Table II at -6.8%, and the paper's own text lists
+    nitrobenzene among the molecules whose correction "lead to a larger
+    deviation from experimental results".
+
+    Asserted as a DISAGREEMENT so that a future change which resolves it
+    fails here and this account can be corrected, rather than the
+    disagreement being quietly absorbed.
+    """
+    assignment = miller_polarizability(
+        Chem.MolFromSmiles("O=[N+]([O-])c1ccccc1")
+    ).assignment
+    assert assignment["CBR"] == 1
+    assert assignment["CTR"] == 5
+    assert assignment != {"CTR": 6, "NPI2": 1, "OTE": 2, "H": 5}

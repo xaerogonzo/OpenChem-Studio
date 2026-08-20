@@ -56,6 +56,14 @@ from pathlib import Path
 
 from rdkit import Chem
 
+#: DECLARED USER-FACING. Reached INDIRECTLY -- `electronic_properties`
+#: owns the compute function and dispatches here on the method parameter --
+#: which is why the audit walks the import graph rather than asking which
+#: module a compute function lives in.
+USER_FACING_PROVIDER = (
+    "Miller ahc and ahp, as methods on the Polarizability (molecular) calculator"
+)
+
 _DATA = Path(__file__).resolve().parent / "data"
 
 
@@ -108,6 +116,42 @@ def _carbon_symbol(atom: Chem.Atom) -> str:
     # means three heavy neighbours, every one of them also trigonal. A
     # benzene carbon has two such neighbours and a hydrogen, so it is
     # `CTR`, which is what the 1979 paper says in as many words.
+    #
+    # **THE 1990 PAPER'S PROSE SAYS SOMETHING ELSE, AND ITS OWN TABLES
+    # SAY THIS.** p 8535 reads "one for branched trigonal carbon atoms
+    # (CBR) in trigonal carbon atoms NOT BONDED TO HYDROGEN ATOMS, and
+    # the other for ... (CTR) in trigonal carbon atoms bonded to AT LEAST
+    # ONE HYDROGEN atom" -- a hydrogen count, which is simpler and is
+    # contradicted by Table II three pages later:
+    #
+    #     toluene       6CTR 1CTE 8H     the ipso carbon has NO hydrogen
+    #                                    and is still CTR
+    #     styrene       7CTR 1CBR 8H     the ipso carbon IS CBR -- and the
+    #                                    paper prints the 8CTR alternative
+    #                                    beside it at -3.3% against +0.6%
+    #     acetone       2CTE 1CTR 1OTR4 6H
+    #                                    the carbonyl carbon has no
+    #                                    hydrogen and is CTR
+    #     b-methylnaphthalene  8CTR 1CTE 2CBR 10H
+    #     a-naphthalenecarboxaldehyde  8CTR 1OTR4 3CBR 8H
+    #                                    the same ring position, CTR under
+    #                                    a methyl and CBR under a
+    #                                    conjugated CHO
+    #
+    # Every one of those follows the conjugation rule and none follows
+    # the hydrogen count. The hydrogen rule was implemented here for one
+    # commit on the strength of that sentence and put benzene at 13.99
+    # against 10.39; it is recorded rather than deleted because the
+    # sentence is still in the paper and the next reader will find it.
+    #
+    # NITROBENZENE IS THE ONE DISAGREEMENT IN NINE CHECKED, and it is
+    # named rather than smoothed over. The paper assigns
+    # `6CTR 1NPI2 2OTE 5H`, which differs from this implementation twice:
+    # its ipso carbon is CTR where this rule says CBR, and its nitro
+    # oxygens are OTE -- the TETRAHEDRAL row -- where this says OTR4.
+    # That row is also one of the worst in the table at -6.8%, and the
+    # paper's own text lists nitrobenzene among the molecules whose
+    # correction "lead to a larger deviation from experimental results".
     heavy = [n for n in atom.GetNeighbors() if n.GetAtomicNum() > 1]
     if len(heavy) == 3 and all(
         n.GetHybridization() == Chem.HybridizationType.SP2 for n in heavy

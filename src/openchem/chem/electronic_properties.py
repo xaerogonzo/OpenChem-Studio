@@ -128,13 +128,71 @@ def _unparameterised_elements(mol: Chem.Mol) -> list[str]:
     )
 
 
+#: The three polarizability methods this calculator offers, as
+#: `{label shown in the combo: provenance method id}`.
+#:
+#: **THEY ARE NOT INTERCHANGEABLE AND NEITHER MILLER FORM DEFAULTS TO THE
+#: OTHER.** `ahc` squares a sum over the whole molecule and `ahp` is plain
+#: additivity, so feeding one method's column into the other's formula
+#: gives a perfectly reasonable-looking number that is wrong --
+#: `chem/polarizability_miller.py` records that as the likely cause of the
+#: -50% on CCl4 in this project's own history.
+POLARIZABILITY_METHODS: dict[str, str] = {
+    "Jensen (additive)": "jensen",
+    "Miller ahc": "miller_ahc",
+    "Miller ahp": "miller_ahp",
+}
+
+_DEFAULT_POLARIZABILITY_METHOD = "Jensen (additive)"
+
+
+def _polarizability_method(parameters: dict[str, Any]) -> str:
+    """The provenance method id for the chosen label.
+
+    An unrecognised label falls back to Jensen rather than raising: a
+    stored project written by a future version must not make an old one
+    unopenable, and the recorded method says which was used either way.
+    """
+    label = str(parameters.get("method", _DEFAULT_POLARIZABILITY_METHOD))
+    return POLARIZABILITY_METHODS.get(label, POLARIZABILITY_METHODS[_DEFAULT_POLARIZABILITY_METHOD])
+
+
 def compute_polarizability(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None
 ) -> ReportResult:
-    """The "electronic" category's Polarizability calculator."""
+    """The "electronic" category's Polarizability calculator.
+
+    **THE METHOD REACHES PROVENANCE, and that is a separate obligation
+    from computing it.** There is no parameter-keyed result cache today,
+    so a cache keyed on `(molecule, calculator_id)` alone would hand back
+    the Jensen answer for every method; recording the selection in
+    `Provenance.parameters` is what makes such a cache buildable later
+    without silently doing that. `tests/test_polarizability_methods.py`
+    asserts the numeric path and the metadata path separately, because a
+    result that computed Miller while recording Jensen would pass a test
+    of either one alone.
+    """
     parameters = parameters or {}
     target = _maybe_microspecies(mol, parameters)
-    total = molecular_polarizability(target)
+    method = _polarizability_method(parameters)
+
+    if method == "jensen":
+        total = molecular_polarizability(target)
+        failure = (
+            None
+            if total is not None
+            else "No Jensen polarizability parameter for: "
+            + ", ".join(_unparameterised_elements(target))
+        )
+        basis = (
+            "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated "
+            "compounds are accurate to about 1%; saturated hydrocarbons come out roughly "
+            "11% high, because an atom-additive scheme has no hybridization dependence."
+        )
+        assignment: dict[str, int] = {}
+    else:
+        total, failure, basis, assignment = _miller_polarizability(target, method)
+
     if total is None:
         return _report(
             alert_id="polarizability",
@@ -143,21 +201,19 @@ def compute_polarizability(
             matched=[],
             category="electronic",
             cache_state=CacheState.FAILED,
-            error=(
-                "No Jensen polarizability parameter for: "
-                + ", ".join(_unparameterised_elements(target))
-            ),
-            provenance=Provenance(created_by="core", method="jensen"),
+            error=failure or "No polarizability could be computed.",
+            provenance=Provenance(created_by="core", method=method, parameters={"method": method}),
         )
 
     lines = [f"Molecular polarizability: {total:.2f} A^3"]
     if parameters.get("major_microspecies"):
         lines.append(f"Computed on the major microspecies at pH {float(parameters.get('pH', 7.4)):g}.")
-    lines.append(
-        "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated compounds are "
-        "accurate to about 1%; saturated hydrocarbons come out roughly 11% high, because an "
-        "atom-additive scheme has no hybridization dependence."
-    )
+    if assignment:
+        lines.append(
+            "Hybrid assignment: "
+            + ", ".join(f"{symbol} x{count}" for symbol, count in sorted(assignment.items()))
+        )
+    lines.append(basis)
     return _report(
         alert_id="polarizability",
         name="Polarizability",
@@ -165,9 +221,52 @@ def compute_polarizability(
         matched=lines,
         category="electronic",
         provenance=Provenance(
-            created_by="core", method="jensen", parameters={"polarizability_a3": total}
+            created_by="core",
+            method=method,
+            parameters={"polarizability_a3": total, "method": method},
         ),
     )
+
+
+def _miller_polarizability(
+    target: Chem.Mol, method: str
+) -> tuple[float | None, str | None, str, dict[str, int]]:
+    """One of Miller's two answers, or a named refusal.
+
+    Imported here rather than at module scope only to keep the two
+    parameter tables from being loaded by every consumer of this module;
+    the dispatch itself is deliberately explicit, since `ahc` and `ahp`
+    reaching one implementation is the silent failure this whole
+    parameter exists around.
+    """
+    from openchem.chem.polarizability_miller import (
+        MillerAssignmentError,
+        miller_polarizability,
+    )
+
+    try:
+        result = miller_polarizability(target)
+    except MillerAssignmentError as error:
+        return None, f"Miller's Table I has no parameter: {error}", "", {}
+
+    if method == "miller_ahc":
+        value = result.ahc
+        basis = (
+            "Miller's ahc method: alpha = (4/N)(sum of tau_A)^2 over N total electrons "
+            "(Miller & Savchik 1979; parameters from Miller 1990, Table I). Measured here "
+            "at +0.6% on benzene and +0.2% on CCl4 -- the two molecules an earlier "
+            "reconstruction missed by +27% and -50%. It is an empirical scheme fitted to "
+            "about 240 molecules and reports an isotropic average, not a tensor."
+        )
+    else:
+        value = result.ahp
+        basis = (
+            "Miller's ahp method: alpha = sum of alpha_A, plain additivity (Miller 1990, "
+            "Table I). Squaring a sum is what makes ahc not a group-additivity scheme, so "
+            "the two columns are not interchangeable and this one is the additive answer. "
+            "Empirical, fitted to about 240 molecules, and isotropic."
+        )
+    return value, None, basis, dict(result.assignment)
 
 
 def compute_atomic_polarizability(
