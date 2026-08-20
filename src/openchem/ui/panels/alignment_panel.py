@@ -205,6 +205,7 @@ class AlignmentPanel(QWidget):
         alignment_service: AlignmentService,
         event_bus: EventBus,
         parent: QWidget | None = None,
+        settings: object = None,
     ) -> None:
         super().__init__(parent)
         self._alignment_service = alignment_service
@@ -290,6 +291,8 @@ class AlignmentPanel(QWidget):
         self._viewer_host = PopOutHost(
             self._viewer.widget(),
             title="3D Alignment",
+            settings_id="alignment.overlay",
+            settings=settings,
             header=[QLabel("Style:", self), self._style_combo],
             parent=self,
         )

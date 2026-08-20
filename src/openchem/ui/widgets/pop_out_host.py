@@ -243,7 +243,7 @@ class PopOutWindow(QDialog):
     content widget and is already walked in the panel that owns it.
     """
 
-    def __init__(self, host: "PopOutHost", title: str) -> None:
+    def __init__(self, host: "PopOutHost", title: str, saved_geometry: object = None) -> None:
         super().__init__(host)
         self.setWindowTitle(title)
         self._host = host
@@ -280,29 +280,48 @@ class PopOutWindow(QDialog):
         layout.addWidget(self._slot, 1)
         layout.addLayout(buttons)
 
-        self._fit_to_screen()
+        self._apply_opening_geometry(saved_geometry)
 
     def content_slot(self) -> QVBoxLayout:
         return self._slot_layout
 
-    def _fit_to_screen(self) -> None:
-        """Open large, but never larger than the screen can show.
+    def _apply_opening_geometry(self, saved: object = None) -> None:
+        """Open where it was left, but never larger than the screen shows.
 
-        The arithmetic is in `fit_within` because the suite's `offscreen`
-        platform reports an 800x800 screen, where this clamp always
-        bites -- so calling it and deleting the call are indistinguishable
-        through the window, and only the pure function can be tested.
+        **RESTORE FIRST, THEN FIT, AND THAT ORDER WAS MEASURED.** The
+        obvious reading -- fit, then restore -- is what this was first
+        written as, by analogy with the periodic table. Probed with a
+        saved geometry larger than the current screen:
+
+            available 1920x1032, saved 1924x1061
+            fit THEN restore  -> 1918x999   on screen, but FLUSH
+            restore THEN fit  -> 1824x949   correct
+
+        Both stay on screen, because `restoreGeometry` clamps on its own.
+        The difference is that fit-then-restore lets the restore OVERWRITE
+        the fit, leaving the window edge-to-edge -- which is exactly the
+        case `_SCREEN_FRACTION` exists to prevent, its own comment reading
+        "a window flush against every edge is hard to move". So the wrong
+        order does not strand the window off-screen; it silently discards
+        this application's margin policy, which is the quieter failure.
+
+        The arithmetic stays in `fit_within` because the suite's
+        `offscreen` platform reports an 800x800 screen, where the clamp
+        always bites -- so calling it and deleting the call are
+        indistinguishable through the window, and only the pure function
+        can be tested.
         """
+        if saved:
+            self.restoreGeometry(saved)
+            want = (self.width(), self.height())
+        else:
+            want = _PREFERRED_SIZE
         screen = QGuiApplication.primaryScreen()
         if screen is None:  # pragma: no cover - no display
-            self.resize(*_PREFERRED_SIZE)
+            self.resize(*want)
             return
         available = screen.availableGeometry()
-        self.resize(
-            *fit_within(
-                _PREFERRED_SIZE[0], _PREFERRED_SIZE[1], available.width(), available.height()
-            )
-        )
+        self.resize(*fit_within(want[0], want[1], available.width(), available.height()))
 
     def _on_return_clicked(self) -> None:
         self._host.return_home()
@@ -335,11 +354,15 @@ class PopOutHost(QWidget):
         content: QWidget,
         *,
         title: str,
+        settings_id: str | None = None,
+        settings: object = None,
         header: Sequence[QWidget] = (),
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._title = title
+        self._settings_id = settings_id
+        self._settings = settings
         self._content = content
         self._window: PopOutWindow | None = None
 
@@ -402,6 +425,39 @@ class PopOutHost(QWidget):
 
     # --- state ------------------------------------------------------------
 
+    def geometry_key(self) -> str | None:
+        """Where this host's window size is remembered, or None.
+
+        **DERIVED FROM `settings_id`, NEVER FROM `title`.** A title is
+        presentation text: it can be reworded, translated, or collide --
+        two panels could each call a view "Preview". Keying persistent
+        storage on it means a rename silently discards somebody's saved
+        geometry, with nothing to say why.
+
+        This project already draws that line one layer up.
+        `HelpTooltip.help_id` "names a control DEFINITION... never renamed
+        because the UI moved", with `instance_path` carrying the
+        occurrence. Same split: `title` is what the window says,
+        `settings_id` is what the setting is called.
+
+        Returns None when the host was built without an id or without a
+        `Settings`, in which case the window opens at `_PREFERRED_SIZE`
+        and nothing is stored. That is a real configuration -- a panel
+        with no settings to hand -- not a failure.
+        """
+        if not self._settings_id or self._settings is None:
+            return None
+        return f"ui/popout/{self._settings_id}/geometry"
+
+    def _saved_geometry(self) -> object:
+        key = self.geometry_key()
+        return self._settings.get(key, None) if key else None
+
+    def _remember_geometry(self, window: "PopOutWindow") -> None:
+        key = self.geometry_key()
+        if key:
+            self._settings.set(key, window.saveGeometry())
+
     def content(self) -> QWidget:
         """The same object wherever it currently lives.
 
@@ -436,7 +492,7 @@ class PopOutHost(QWidget):
             self._sync_button()
             return self._window
 
-        window = PopOutWindow(self, self._title)
+        window = PopOutWindow(self, self._title, self._saved_geometry())
         window.content_slot().addWidget(self._content, 1)
         window.finished.connect(self._on_window_finished)
         self._window = window
@@ -459,6 +515,11 @@ class PopOutHost(QWidget):
         if window is None:
             return
         self._window = None
+        # BEFORE the window is touched further, for the same reason the
+        # content is moved out first: `close()` and the teardown that
+        # follows can leave `saveGeometry()` describing a hidden or
+        # already-shrunk window rather than the one the user arranged.
+        self._remember_geometry(window)
         # Before the window is touched further, so the content is out of
         # it and owned by this host again even if the teardown that
         # follows is abrupt.

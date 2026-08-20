@@ -750,7 +750,13 @@ class QuantumChemistryPanel(QWidget):
             # Wrapping only the PLOT leaves `tab.children()` otherwise
             # untouched, which is what `_content_of` walks.
             tab_layout.addWidget(
-                PopOutHost(plot, title=f"{correlation_type.upper()} correlations", parent=tab)
+                PopOutHost(
+                    plot,
+                    title=f"{correlation_type.upper()} correlations",
+                    settings_id=f"quantum.correlation_{correlation_type}",
+                    settings=self._settings,
+                    parent=tab,
+                )
             )
             self._correlation_tabs.addTab(tab, correlation_type.upper())
             self._correlation_tables[correlation_type] = table
@@ -1182,7 +1188,13 @@ class QuantumChemistryPanel(QWidget):
                 parent=self._surfaces_tab,
             )
             self._surfaces_layout.addWidget(
-                PopOutHost(self._surfaces_view, title="Surfaces", parent=self._surfaces_tab)
+                PopOutHost(
+                    self._surfaces_view,
+                    title="Surfaces",
+                    settings_id="quantum.surfaces",
+                    settings=self._settings,
+                    parent=self._surfaces_tab,
+                )
             )
         self._surfaces_view.set_molecule(self._pending_molecule_uuid or "", molblock)
         self._fill_tab(self._surfaces_tab)
@@ -1340,7 +1352,13 @@ class QuantumChemistryPanel(QWidget):
         if self._ir_view is None:
             self._ir_view = IrViewWidget(self._chemistry_engine, parent=self._ir_view_tab)
             self._ir_view_layout.addWidget(
-                PopOutHost(self._ir_view, title="IR spectrum", parent=self._ir_view_tab)
+                PopOutHost(
+                    self._ir_view,
+                    title="IR spectrum",
+                    settings_id="quantum.ir_spectrum",
+                    settings=self._settings,
+                    parent=self._ir_view_tab,
+                )
             )
         # The OPTIMISED conformer, not the submitted structure: an
         # `opt_freq` optimises first and the modes describe motion about
@@ -1363,7 +1381,13 @@ class QuantumChemistryPanel(QWidget):
         if self._nmr_view is None:
             self._nmr_view = NmrViewWidget(self._chemistry_engine, parent=self._nmr_view_tab)
             self._nmr_view_layout.addWidget(
-                PopOutHost(self._nmr_view, title="NMR signals", parent=self._nmr_view_tab)
+                PopOutHost(
+                    self._nmr_view,
+                    title="NMR signals",
+                    settings_id="quantum.nmr_signals",
+                    settings=self._settings,
+                    parent=self._nmr_view_tab,
+                )
             )
         self._nmr_view.set_spectrum(
             self._pending_molblock, spectrum, self._pending_conformer_molblock or None

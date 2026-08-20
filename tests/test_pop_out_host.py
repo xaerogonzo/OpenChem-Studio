@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, Qt
-from PySide6.QtGui import QKeyEvent
+from PySide6.QtGui import QGuiApplication, QKeyEvent
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from openchem.ui.widgets.empty_state import is_empty_state
@@ -502,3 +502,127 @@ def test_raising_an_open_window_leaves_the_button_telling_the_truth(owner):
     assert host.is_popped_out()
     assert button.isChecked(), "the button stopped agreeing with the state"
     host.return_home()
+
+
+# --- remembering where the window was left ---------------------------------
+
+
+class _FakeSettings:
+    """Just the two methods `PopOutHost` uses, so these tests need no
+    `QSettings` and cannot touch the machine's real store."""
+
+    def __init__(self) -> None:
+        self.values: dict[str, object] = {}
+
+    def get(self, key, default=None):
+        return self.values.get(key, default)
+
+    def set(self, key, value) -> None:
+        self.values[key] = value
+
+
+def test_the_settings_key_comes_from_the_id_and_not_the_title(qapp):
+    """PERSISTENT IDENTITY IS NOT PRESENTATION TEXT.
+
+    A title can be reworded, translated, or collide -- two panels could
+    each call a view "Preview". Keying storage on it means a rename
+    silently discards somebody's saved geometry with nothing to say why.
+
+    Exactly the line `HelpTooltip.help_id` already draws against
+    `instance_path`, one layer up.
+    """
+    settings = _FakeSettings()
+    host = PopOutHost(
+        QLabel("content"),
+        title="3D Alignment",
+        settings_id="alignment.overlay",
+        settings=settings,
+    )
+    assert host.geometry_key() == "ui/popout/alignment.overlay/geometry"
+
+    renamed = PopOutHost(
+        QLabel("content"),
+        title="Something Else Entirely",
+        settings_id="alignment.overlay",
+        settings=settings,
+    )
+    assert renamed.geometry_key() == host.geometry_key(), (
+        "renaming the window moved its saved geometry"
+    )
+    _dispose(host)
+    _dispose(renamed)
+
+
+def test_a_host_with_no_settings_persists_nothing_and_still_opens(qapp):
+    """A panel with no `Settings` to hand is a real configuration.
+
+    It degrades to `_PREFERRED_SIZE` rather than raising -- and because
+    the keys are new on every install, a missing value can never restore
+    something stale. That is why this needed no `_LAYOUT_VERSION` bump.
+    """
+    host = PopOutHost(QLabel("content"), title="No settings")
+    assert host.geometry_key() is None
+    window = host.pop_out()
+    assert window.isVisible() or window.size().isValid()
+    host.return_home()
+    _dispose(host)
+
+
+def test_the_window_reopens_where_it_was_left(qapp):
+    settings = _FakeSettings()
+    host = PopOutHost(
+        QLabel("content"), title="View", settings_id="test.view", settings=settings
+    )
+
+    window = host.pop_out()
+    window.resize(640, 480)
+    qapp.processEvents()
+    host.return_home()
+
+    assert settings.values, "closing the window stored nothing"
+
+    reopened = host.pop_out()
+    qapp.processEvents()
+    assert abs(reopened.width() - 640) <= 40 and abs(reopened.height() - 480) <= 40, (
+        f"reopened at {reopened.width()}x{reopened.height()}, not near 640x480"
+    )
+    host.return_home()
+    _dispose(host)
+
+
+def test_a_geometry_saved_on_a_bigger_screen_is_clamped_to_this_one(qapp):
+    """RESTORE THEN FIT, and this is the assertion that pins the order.
+
+    The obvious order -- fit, then restore -- lets the restore overwrite
+    the clamp. Measured on a real display: a saved 1924x1061 came back as
+    1918x999 against a 1920x1032 screen, i.e. flush to every edge, which
+    is the case `_SCREEN_FRACTION` exists to prevent. Restore-then-fit
+    gives 1824x949.
+
+    Asserted against `fit_within` rather than a pixel count, because
+    `offscreen` reports an 800x800 screen and any absolute number here
+    would be a statement about the platform.
+    """
+    settings = _FakeSettings()
+    host = PopOutHost(
+        QLabel("content"), title="View", settings_id="test.view", settings=settings
+    )
+
+    donor = host.pop_out()
+    donor.resize(4000, 3000)  # larger than any screen the suite runs on
+    qapp.processEvents()
+    host.return_home()
+
+    reopened = host.pop_out()
+    qapp.processEvents()
+    screen = QGuiApplication.primaryScreen()
+    available = screen.availableGeometry()
+    ceiling = fit_within(
+        available.width(), available.height(), available.width(), available.height()
+    )
+    assert reopened.width() <= ceiling[0] and reopened.height() <= ceiling[1], (
+        f"reopened at {reopened.width()}x{reopened.height()}, past the "
+        f"{ceiling} this screen allows -- the restore overwrote the clamp"
+    )
+    host.return_home()
+    _dispose(host)

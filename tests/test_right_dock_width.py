@@ -862,3 +862,19 @@ def test_the_windows_own_docks_are_pinned_against_a_silent_rename(window):
         "docks by objectName, so a saved layout cannot express this change. Does it "
         "need a bump?"
     )
+
+
+def test_no_two_pop_out_hosts_share_a_settings_id(window):
+    """Two hosts on one key would silently fight over one geometry.
+
+    `settings_id` is persistent identity, so a collision is not a
+    cosmetic clash: whichever window closes last overwrites the other,
+    and the symptom is a view that keeps reopening at somebody else's
+    size. Cheap to assert over the built window, and impossible to notice
+    by reading six call sites in three files.
+    """
+    from openchem.ui.widgets.pop_out_host import PopOutHost
+
+    ids = [host._settings_id for host in window.findChildren(PopOutHost) if host._settings_id]
+    duplicated = sorted({i for i in ids if ids.count(i) > 1})
+    assert not duplicated, f"pop-out settings_ids used more than once: {duplicated}"
