@@ -1453,7 +1453,43 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `5206 passed, 15 skipped`
+A clean run is **6-19 minutes**, ending at `5237 passed, 15 skipped`
+(measured 2026-08-20, **14m51**, on `dialogs-driven-and-documented` at
+`366640d` -- popping a cramped view out into its own window.
+
+**+31 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed:
+
+    branch before   05018fe   COLLECTS 5221
+    after           366640d   COLLECTS 5252   = 5221 + 31
+    the run                            5237 passed + 15 skipped = 5252
+
+Every one of the 31 reconciles to this commit: 24 in the new
+`tests/test_pop_out_host.py` (26 items -- the `fit_within` table is
+parametrised three ways), 5 in `test_quantum_chemistry_panel.py` for the
+tab machinery, and 3 in `test_alignment_panel.py` for the reported
+panel.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line,
+which is the pair this file insists on rather than an absence of FAILED
+lines. The two `DeprecationWarning`s are the same pre-existing
+six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**A GUARD IN THIS BATCH PASSED WHILE TESTING NOTHING, and only mutation
+said so.** `test_a_detached_view_survives_switching_to_another_tab`
+never showed its panel, and a widget that was never shown receives no
+hide events at all -- so it was green with a `hideEvent` hook installed
+and without one. Nine mutation arms, nine caught, but that one only
+after the guard it was aimed at was repaired to show the panel and
+assert its own setup. Same lesson as `repaint()` and `resize()` on an
+unshown widget, one event along.
+
+14m51 sits mid-band; the 6-19 range stands.)
+
+Before it: `5206 passed, 15 skipped`
 (measured 2026-08-19, **14m57**, on `dialogs-driven-and-documented` at
 `6480834` -- the dialog inventory and its drive step, the screening
 table's clipped header, and the help contracts reaching every dialog a
