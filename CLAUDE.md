@@ -1453,7 +1453,59 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `5237 passed, 15 skipped`
+A clean run is **6-19 minutes**, ending at `5379 passed, 15 skipped`
+(measured 2026-08-20, **14m35**, on `dialogs-driven-and-documented` at
+`95877c6` -- the deferred backlog: a layout guard, pop-out persistence,
+and five rotted deferral reasons.
+
+**+143 collected and 1 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed:
+
+    branch before   f24be24   COLLECTS 5252
+    after           95877c6   COLLECTS 5394   = 5252 + 143 - 1
+    the run                            5379 passed + 15 skipped = 5394
+
+**THE ONE REMOVAL IS A RENAME WITH A NAMED SUCCESSOR**, which is the
+whole reason to diff rather than subtract. The test asserting that acetic
+acid is absent from the solvent table "and that is deliberate" asserted
+the opposite of what is now true, and **was right when it was written**:
+the only coefficients that existed were predicted. Its successor is
+`test_acetic_acid_is_present_now_and_the_refusal_is_history`, which says
+so in its docstring, and four more acetic-acid guards landed beside it.
+What changed was the literature, not the standard.
+
+(And naming the OLD test here is what reddened `test_docs_are_current`
+on the first attempt at this entry -- a doc may not cite a test the same
+branch deleted, which is the trap this file already records one section
+along. Cite the successor.)
+
+The 143 reconcile to the nine commits: 46 in the new
+`tests/test_tsei.py` (Table 1 parametrised twice over n = 1..20), 27 in
+`test_gutmann.py`, 21 each in `test_polarizability_miller.py` and
+`test_hlb.py`, 10 in `test_sources_are_current.py` (8 new registry
+entries plus 2 new data tables, each parametrised), 7 in
+`test_abraham.py`, 4 each in `test_right_dock_width.py` and
+`test_pop_out_host.py`, and 3 in `test_structure_check_panel.py`.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line,
+which is the pair this file insists on rather than an absence of FAILED
+lines. The two `DeprecationWarning`s are the same pre-existing
+six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**FORTY MUTATION ARMS, ALL CAUGHT**, and three are worth naming because
+they reconstruct recorded failures rather than inventing new ones: the
+2026-08-15 `_LAYOUT_VERSION` omission, Miller's +27% on benzene, and its
+-50% on CCl4. **And one arm found a vacuous guard again** -- the
+Structure Check tests asserted the pop-out MECHANISM while a call site
+could steal the widget back out of its host, leaving an empty strip with
+an orphaned button; all 47 of that panel's tests passed with it applied.
+
+14m35 sits mid-band; the 6-19 range stands.)
+
+Before it: `5237 passed, 15 skipped`
 (measured 2026-08-20, **14m51**, on `dialogs-driven-and-documented` at
 `366640d` -- popping a cramped view out into its own window.
 
