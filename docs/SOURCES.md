@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: a0138ab2b8282423651ed2601c4b0dd91b531eca72f2cedf7433effe10354dce -->
+<!-- SOURCE SHA256: dc7df57edcba67e08008342f93ab17bf7241c3609835cc41a2d30761c63c4f79 -->
 
 # Sources
 
@@ -97,6 +97,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`bradley2014`](#bradley2014) | dataset | shipped | citation + claim |
 | [`bradley2015`](#bradley2015) | literature | shipped | citation + claim |
 | [`bravetti2023`](#bravetti2023) | literature | shipped | citation |
+| [`cao2004`](#cao2004) | literature | shipped | citation + claim |
 | [`cod`](#cod) | dataset | shipped | citation |
 | [`crc_handbook`](#crc_handbook) | reference_table | shipped | citation + claim |
 | [`cwc_annex_on_chemicals`](#cwc_annex_on_chemicals) | legal | shipped | citation + claim |
@@ -451,6 +452,52 @@ shake-flask methods", which is a DIFFERENT Avdeef paper: ADMET & DMPK 2019,
 were right throughout, because those came from the repository rather than
 from memory. Its abstract's "6355 entries ... for 3014 different molecules"
 matches what `benchmarks/solubility/README.md` says about Wiki-pS0.
+
+### cao2004
+
+<a id="cao2004"></a>
+
+> C. Cao & L. Liu, 'Topological Steric Effect Index and Its Application', Journal of Chemical Information and Computer Sciences 2004;44(2):678-687.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ci034266b](https://doi.org/10.1021/ci034266b) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-20 |
+| Licence | publisher |
+| Used by | `src/openchem/chem/tsei.py`, `tests/test_tsei.py` |
+
+THE DEFERRAL THIS HALF-CLOSES. `chem/topology_analysis.py` records that a
+"topological steric effect index" was deliberately absent because
+"'steric index' genuinely names several mutually incompatible quantities
+in the literature, there is no identity to check an implementation
+against, and no reference value was found".
+
+The second and third clauses are answered here: this paper defines ONE
+quantity, eq 7,
+
+    TSEI = SUM over the substituent's heavy atoms of 1 / L_i^3
+
+with L_i the topological distance to the reaction centre, and prints
+reference values for it.
+
+THE FIRST CLAUSE STILL STANDS AND SHAPES THE DESIGN. Taft's Es,
+Hancock's Esc and Charton's nu are all "steric parameters" and none is
+this one, so it ships as Cao-Liu TSEI and never as a bare "steric index"
+-- the same call `chem/hlb.py` makes about Griffin.
+
+THE ORACLE IS TABLE 1, NOT THE CORRELATIONS. The paper reports r = 0.9912
+against photoelectron-spectroscopy dihedral angles for 7 alkylbiphenyls
+and 0.9845 against force-field angles for 78, which is a behavioural
+check worth having -- but a correlation is weak against a transcription
+error, since a systematically wrong implementation can still correlate.
+Table 1 prints exact TSEI for normal alkyls n = 1..20, converging on
+1.2009. All twenty reproduce, from two independent routes.
+
+Its own branch example is the second fixture: second-tier carbons
+contribute "0.1250, 0.2500, and 0.3750", which the normal-alkyl series
+cannot check because every atom there sits at a different distance.
 
 ### schott1989
 
