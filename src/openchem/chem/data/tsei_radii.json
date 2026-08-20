@@ -1,0 +1,171 @@
+{
+ "_source_key": "cao2004",
+ "_radius_source": "Lange's Handbook of Chemistry, 15th ed., p 4.35 -- cited by [source:cao2004] as its ref 18 and NOT held locally. Every radius below is recovered from a TSEI value the paper itself prints; see `recovered_from`.",
+ "attribution": "Radii recovered from the TSEI values printed by C. Cao & L. Liu, 'Topological Steric Effect Index and Its Application', J. Chem. Inf. Comput. Sci. 2004;44:678-687, doi:10.1021/ci034266b. The paper's own radius source is Lange's Handbook of Chemistry, 15th ed., p 4.35 (its ref 18), which is not held locally.",
+ "units": "1e-8 cm (the paper's own units; only ratios to carbon are used)",
+ "radii": {
+  "C": {
+   "radius": 0.772,
+   "recovered_from": "printed in the eq 5a worked example",
+   "check": "Table 1: the whole normal-alkyl series, n = 1..20"
+  },
+  "Cl": {
+   "radius": 0.99,
+   "recovered_from": "printed in the heteroatom worked example",
+   "check": "Table 6: Cl = 1.4190, which the example derives in full"
+  },
+  "H": {
+   "radius": 0.3,
+   "recovered_from": "inverted from Table 6 Me = 1.0362 (hydrogens included)",
+   "check": "Table 6: Et = 1.1581 and t-Bu = 1.8395"
+  },
+  "O": {
+   "radius": 0.66,
+   "recovered_from": "inverted from Table 6 MeO = 0.9505",
+   "check": "Table 6: OEt = 0.9939, which uses O and H together"
+  },
+  "F": {
+   "radius": 0.64,
+   "recovered_from": "inverted from Table 6 F = 0.7449",
+   "check": "Table 6: F = 0.7449"
+  },
+  "Br": {
+   "radius": 1.14,
+   "recovered_from": "inverted from Table 6 Br = 1.6957",
+   "check": "Table 6: Br = 1.6957"
+  },
+  "I": {
+   "radius": 1.33,
+   "recovered_from": "inverted from Table 6 I = 2.0265",
+   "check": "Table 6: I = 2.0265"
+  }
+ },
+ "reference_values": [
+  {
+   "label": "Me",
+   "smiles": "CC",
+   "tsei": 1.0362,
+   "hydrogens": true,
+   "table": "6"
+  },
+  {
+   "label": "Et",
+   "smiles": "CCC",
+   "tsei": 1.1581,
+   "hydrogens": true,
+   "table": "6"
+  },
+  {
+   "label": "t-Bu",
+   "smiles": "CC(C)(C)C",
+   "tsei": 1.8395,
+   "hydrogens": true,
+   "table": "6"
+  },
+  {
+   "label": "MeO",
+   "smiles": "COC",
+   "tsei": 0.9505,
+   "hydrogens": true,
+   "table": "6"
+  },
+  {
+   "label": "OEt",
+   "smiles": "COCC",
+   "tsei": 0.9939,
+   "hydrogens": true,
+   "table": "6"
+  },
+  {
+   "label": "F",
+   "smiles": "CF",
+   "tsei": 0.7449,
+   "hydrogens": true,
+   "table": "6"
+  },
+  {
+   "label": "Cl",
+   "smiles": "CCl",
+   "tsei": 1.419,
+   "hydrogens": true,
+   "table": "6"
+  },
+  {
+   "label": "Br",
+   "smiles": "CBr",
+   "tsei": 1.6957,
+   "hydrogens": true,
+   "table": "6"
+  },
+  {
+   "label": "I",
+   "smiles": "CI",
+   "tsei": 2.0265,
+   "hydrogens": true,
+   "table": "6"
+  },
+  {
+   "label": "Me",
+   "smiles": "CC",
+   "tsei": 1.0,
+   "hydrogens": false,
+   "table": "2"
+  },
+  {
+   "label": "Et",
+   "smiles": "CCC",
+   "tsei": 1.125,
+   "hydrogens": false,
+   "table": "2"
+  },
+  {
+   "label": "i-Pr",
+   "smiles": "CC(C)C",
+   "tsei": 1.25,
+   "hydrogens": false,
+   "table": "2"
+  },
+  {
+   "label": "t-Bu",
+   "smiles": "CC(C)(C)C",
+   "tsei": 1.8125,
+   "hydrogens": false,
+   "table": "2b"
+  },
+  {
+   "label": "n-Bu",
+   "smiles": "CCCCC",
+   "tsei": 1.1777,
+   "hydrogens": false,
+   "table": "4"
+  },
+  {
+   "label": "i-Bu",
+   "smiles": "CCC(C)C",
+   "tsei": 1.199,
+   "hydrogens": false,
+   "table": "4"
+  },
+  {
+   "label": "s-Bu",
+   "smiles": "CC(C)CC",
+   "tsei": 1.287,
+   "hydrogens": false,
+   "table": "4"
+  },
+  {
+   "label": "i-C5H11",
+   "smiles": "CCCC(C)C",
+   "tsei": 1.1933,
+   "hydrogens": false,
+   "table": "4"
+  },
+  {
+   "label": "CH(Et)2",
+   "smiles": "CC(CC)CC",
+   "tsei": 1.324,
+   "hydrogens": false,
+   "table": "4"
+  }
+ ]
+}

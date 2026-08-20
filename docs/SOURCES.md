@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 6d5e404db87ea2a0ad2b96554dbe4a1350d214e43b01157346618308d6676db2 -->
+<!-- SOURCE SHA256: ab2b0f3ce7a5db0e7cab99af74da8e7402143d26aeb4f618a21ad82f150bc4f6 -->
 
 # Sources
 
@@ -121,6 +121,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`kendall2008`](#kendall2008) | literature | shipped | citation |
 | [`ketcher`](#ketcher) | software | shipped | citation |
 | [`kwon2023`](#kwon2023) | dataset | shipped | citation + claim |
+| [`langes15`](#langes15) | reference_table | reference only | citation |
 | [`llinas2008`](#llinas2008) | dataset | shipped | citation |
 | [`llinas2019`](#llinas2019) | dataset | reference only | citation |
 | [`llinas2020`](#llinas2020) | dataset | shipped | citation + claim |
@@ -623,7 +624,7 @@ measurement [source:gutmann1976]'s Table 2 reports.
 | Verification | citation + claim |
 | Verified | 2026-08-20 |
 | Licence | publisher |
-| Used by | `src/openchem/chem/tsei.py`, `tests/test_tsei.py` |
+| Used by | `src/openchem/chem/tsei.py`, `src/openchem/chem/data/tsei_radii.json`, `tools/build_tsei_radii.py`, `tests/test_tsei.py` |
 
 THE DEFERRAL THIS HALF-CLOSES. `chem/topology_analysis.py` records that a
 "topological steric effect index" was deliberately absent because
@@ -632,29 +633,57 @@ in the literature, there is no identity to check an implementation
 against, and no reference value was found".
 
 The second and third clauses are answered here: this paper defines ONE
-quantity, eq 7,
+quantity and prints reference values for it. THE FIRST STILL STANDS AND
+SHAPES THE DESIGN -- Taft's Es, Hancock's Esc and Charton's nu are all
+"steric parameters" and none is this one, so it ships as Cao-Liu TSEI and
+never as a bare "steric index", the same call `chem/hlb.py` makes about
+Griffin.
+
+**EQ 7 IS NOT THE DEFINITION, AND THIS ENTRY SAID IT WAS.** The first
+version of this note recorded
 
     TSEI = SUM over the substituent's heavy atoms of 1 / L_i^3
 
-with L_i the topological distance to the reaction centre, and prints
-reference values for it.
+which the paper derives one line after "For any alkyl, it only contains
+carbon and hydrogen atoms. When its hydrogen atoms are ignored, eq 4 also
+can be simplified to eq 6". The general quantity is eq 4, with the atom's
+covalent radius over the SUMMED BOND LENGTHS to the reaction centre, and
+eq 8a states it in the relative form the paper prints. The two agree
+exactly on an all-carbon path and nowhere else: the paper's own worked
+example puts a first-tier chlorine at 1.4190, where eq 7 gives 1.000.
+Corrected in `chem/tsei.py`; the account is in that module's docstring.
 
-THE FIRST CLAUSE STILL STANDS AND SHAPES THE DESIGN. Taft's Es,
-Hancock's Esc and Charton's nu are all "steric parameters" and none is
-this one, so it ships as Cao-Liu TSEI and never as a bare "steric index"
--- the same call `chem/hlb.py` makes about Griffin.
+THE ORACLE IS THE PRINTED TABLES, NOT THE CORRELATIONS. The paper reports
+r = 0.9912 against photoelectron-spectroscopy dihedral angles for 7
+alkylbiphenyls and 0.9845 against force-field angles for 78, which is a
+behavioural check worth having -- but a correlation is weak against a
+transcription error, since a systematically wrong implementation can
+still correlate. Table 1 prints exact TSEI for normal alkyls n = 1..20
+converging on 1.2009; Table 6 prints values for the halogens, the ethers
+and the branched alkyls. **18 of the 19 reachable printed values
+reproduce.**
 
-THE ORACLE IS TABLE 1, NOT THE CORRELATIONS. The paper reports r = 0.9912
-against photoelectron-spectroscopy dihedral angles for 7 alkylbiphenyls
-and 0.9845 against force-field angles for 78, which is a behavioural
-check worth having -- but a correlation is weak against a transcription
-error, since a systematically wrong implementation can still correlate.
-Table 1 prints exact TSEI for normal alkyls n = 1..20, converging on
-1.2009. All twenty reproduce, from two independent routes.
+THE NINETEENTH IS RECORDED RATHER THAN CHASED. Table 6 gives i-Pr as
+1.3752 where the traversal gives 1.2801; the paper's own text, Table 2
+and every i-Pr-bearing row of Table 4 all say 1.2500 with hydrogens
+ignored, which plus its seven hydrogens is 1.2801. 1.3752 is within
+0.0002 of 1.3750, t-Bu's plain-additivity value in the table above it.
 
-Its own branch example is the second fixture: second-tier carbons
-contribute "0.1250, 0.2500, and 0.3750", which the normal-alkyl series
-cannot check because every atom there sits at a different distance.
+TWO CONVENTIONS AND TWO VARIANTS, EACH LABELLED BY THE PAPER ITSELF.
+Tables 1, 2 and 4 ignore hydrogens (eq 6's simplification) while Table 6
+includes them and its footnote c says so. And the paper's second-tier
+figures "0.1250, 0.2500, and 0.3750" are a STRAW MAN it then rejects,
+concluding that three carbons on one carbon contribute 6.5 times one
+rather than three times -- t-Bu is 1.8125 in Table 2 and 1.8395 in Table
+6, never 1.3750. Both choices are exposed as named options with the
+paper's own preference as the default.
+
+THE RADII ARE THE INTERESTING PROVENANCE PROBLEM. The paper cites Lange's
+Handbook of Chemistry 15th ed. p 4.35 (its ref 18), which is not held
+here -- see [source:langes15]. Rather than type a remembered Pauling
+table, every shipped radius is RECOVERED by inverting a TSEI value the
+paper prints; `tools/build_tsei_radii.py` records which one per element,
+and an element with no printed value to invert is refused by name.
 
 ### schott1989
 
@@ -1781,6 +1810,42 @@ and never reach an even count. The vendored naming engine implements the
 2013 recommendations more broadly ([source:iupac_namer]).
 
 ## Reference tables
+
+### langes15
+
+<a id="langes15"></a>
+
+> J. A. Dean (ed.), Lange's Handbook of Chemistry, 15th ed.; McGraw-Hill: New York, 1999; p 4.35 (covalent radii).
+
+| | |
+| --- | --- |
+| Identifier | 978-0070163843 |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-08-20 |
+| Licence | publisher |
+
+**Why it is reference only.** NOT HELD LOCALLY, and recorded so the next person knows exactly what to
+get rather than re-deriving the question.
+
+It is the radius table [source:cao2004] computes with -- its ref 18 --
+and therefore the source that would let `chem/tsei.py` cover more than
+seven elements. Nitrogen, sulfur and phosphorus are the notable
+absences: the paper prints no TSEI for any substituent containing them,
+so there is no printed value to invert a radius from and nothing here to
+check one against.
+
+Typing the values from a remembered Pauling table is exactly the "fields
+nobody can check" failure this registry's own verification pass recorded
+-- six citation errors, every one in the field nothing could verify. So
+the shipped radii come from inverting printed TSEI values instead, and
+this entry records the alternative that was NOT taken.
+
+As a by-product, the inversion identifies the family: the six radii
+recovered (H 0.30, F 0.64, O 0.66, C 0.772, Cl 0.99, Br 1.14, I 1.33) are
+Pauling's tetrahedral covalent radii to every digit the inversion
+resolves. That is a measured fact about which table p 4.35 reproduces --
+and it still does not license typing a seventh value from memory.
 
 ### allred1961
 
