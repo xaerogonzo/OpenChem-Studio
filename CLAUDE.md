@@ -1453,7 +1453,75 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `5379 passed, 15 skipped`
+A clean run is **6-19 minutes**, ending at `5559 passed, 15 skipped`
+(measured 2026-08-20, **13m27**, on `make-the-new-science-reachable` --
+wiring PR #41's four unreachable modules, and the three defects that
+surfaced doing it.
+
+**+185 collected and 5 REMOVED**, over two measurements, diffed both
+directions in a detached worktree with the `PYTHONPATH` override
+asserted before the count was believed:
+
+    branch point   d29a077   COLLECTS 5394
+    the wiring               COLLECTS 5567   = 5394 + 175 - 2
+    the handbook             COLLECTS 5574   = 5567 +  10 - 3
+    the run                           5559 passed + 15 skipped = 5574
+
+**ALL FIVE REMOVALS ARE RENAMES WITH NAMED SUCCESSORS**, which is the
+whole reason to diff rather than subtract, and three of them are one
+event: Lange's Handbook arriving turned "no page-verified radius" into
+"an element the book does not tabulate", so every fixture keyed on the
+first wording had to be re-pointed at an element the BOOK stops short of
+rather than one this project could not check.
+
+    test_a_second_tier_atom_contributes_the_increment_the_paper_states
+      -> test_tert_butyl_carries_the_papers_own_crowding_correction
+      +  test_two_branches_are_not_corrected_and_table_4_is_why
+    test_hydrogens_are_ignored_as_the_paper_simplifies
+      -> test_hydrogens_are_excluded_by_default_as_eq_6_simplifies
+    test_an_element_with_no_page_verified_radius_is_refused
+      -> test_an_element_the_book_does_not_tabulate_is_refused
+    test_every_shipped_radius_says_which_printed_value_it_came_from
+      -> test_every_shipped_radius_carries_its_row_from_the_book
+    test_the_registry_refuses_tsei_on_an_element_with_no_verified_radius
+      -> ..._on_an_element_the_book_does_not_tabulate
+
+The first is the sharpest: it asserted t-Bu = 1.3750 from a sentence the
+paper prints and then REJECTS, so its successors assert 1.8125 and keep
+the two-branch case plain.
+
+The 185 reconcile: 64 in the new `test_calculator_reachability.py`, 44 in
+`test_tsei.py` across both commits, 34 in the new `test_gutmann_bridge.py`,
+11 in `test_polarizability_miller.py` for the paper's printed hybrid
+assignments, 10 in the new `test_griffin_hlb_calculator.py`, 9 in the new
+`test_rescued_science_end_to_end.py`, 7 for the polarizability methods, 5
+for the calculator-claim guard and 2 from the new `langes15` registry
+entry.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line,
+which is the pair this file insists on rather than an absence of FAILED
+lines. The two `DeprecationWarning`s are the same pre-existing
+six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**AN EARLIER RUN OF THIS FIGURE WAS THROWN AWAY AT 25%**, and the reason
+is this file's own rule applied to itself: it was started, and then
+CLAUDE.md and `docs/VALIDATION.md` were edited while it ran.
+`test_docs_are_current.py` READS CLAUDE.md. The rule is not "do not edit
+`src/`" -- it is "do not edit anything the suite reads".
+
+**FOURTEEN MUTATION ARMS, ALL CAUGHT**, and two needed repairing first.
+One found a real gap -- a plausible declared `TOTAL` on the TSEI
+projection passed every guard in `test_declared_totals.py` AND every
+guard in `test_tsei.py`, so that calculator joined the named list. The
+other was not a mutation at all: `{...} if False else decline_total(...)`
+changes no behaviour and scored a confident SURVIVED, which is the fifth
+instance of that lesson here.
+
+13m27 sits mid-band; the 6-19 range stands.)
+
+Before it: `5379 passed, 15 skipped`
 (measured 2026-08-20, **14m35**, on `dialogs-driven-and-documented` at
 `95877c6` -- the deferred backlog: a layout guard, pop-out persistence,
 and five rotted deferral reasons.
