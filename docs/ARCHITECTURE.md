@@ -895,7 +895,7 @@ document may cite a file or a test that does not exist.
   `SCIENTIFIC_LIMITATIONS.md`; the sharpest is that no ruleset records repeal
   or expiry, so this answers when a rule STARTED applying and would report
   one since removed as though it still did.
-- **SETTLED** -- the solubility predictor answers for 91 solvents, by
+- **SETTLED** -- the solubility predictor answers for 92 solvents, by
   LOOKUP on both sides. Requested as "solubility in other substances than
   water... similar to how NMR tables can use different solvents", and the
   analogy turned out to be the design: `RESIDUAL_SOLVENT_PEAKS` in
@@ -905,7 +905,7 @@ document may cite a file or a test that does not exist.
   `log Ss = log Sw + c + eE + sS + aA + bB + vV`. The solvent coefficients
   and the solute descriptors are BOTH measured values, fetched by
   `tools/build_abraham_tables.py` into `chem/data/abraham_solvents.json`
-  (91 solvents) and `abraham_solutes.json` (2193 compounds), both CC BY 4.0
+  (92 solvents) and `abraham_solutes.json` (2193 compounds), both CC BY 4.0
   and both carrying their attribution in the shipped file.
 
   **THIS ENTRY PREVIOUSLY DEFERRED THE FEATURE, AND TWO OF ITS THREE

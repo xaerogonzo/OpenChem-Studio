@@ -1,6 +1,6 @@
 # Solubility in solvents other than water
 
-**Status: SHIPPED for 91 solvents, by lookup on both sides.** This document
+**Status: SHIPPED for 92 solvents, by lookup on both sides.** This document
 was twice a record of why the feature could not be built, and both of those
 verdicts were wrong. They are kept below rather than deleted, because the
 route that finally worked is the one the earlier versions had ruled out.

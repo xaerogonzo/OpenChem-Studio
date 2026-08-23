@@ -286,7 +286,7 @@ M9 requires solubility established *experimentally* over pH 1.2–6.8 at
 at no defined temperature. Dose number addresses only the high-solubility
 half of the BCS test; permeability is a separate measurement.
 
-**Solvents other than water are a LOOKUP, and a narrow one.** 91 solvents
+**Solvents other than water are a LOOKUP, and a narrow one.** 92 solvents
 and 2193 compounds, both sides measured (Abraham's solvation equation; see
 `docs/SOLVENT_SOLUBILITY_ASSESSMENT.md` for the sources). Four limits
 follow directly:
@@ -320,15 +320,116 @@ follow directly:
   the answer, it refuses rather than averaging.** Aspirin in toluene is a
   real instance.
 
-**Acetic acid specifically is not available.** It appears only in the
-source's *predicted* coefficient set, which its own authors say should not
-be taken "as gospel".
+**Acetic acid IS available now, and the entry it replaces is worth
+knowing about.** It used to be refused here because it appeared only in
+the source's *predicted* coefficient set, which its own authors say should
+not be taken "as gospel". A *measured* set was later read from a second
+paper, so it ships — and the 118 solvents still listed predicted-only are
+refused on exactly the original grounds, with the reason named rather
+than the solvent silently missing.
 
 **pH, the BCS screen and the pH curve are water-only, deliberately.**
 Henderson–Hasselbalch, the pKa values behind it and the ICH window are all
 defined on aqueous media, so a non-aqueous solvent gets an intrinsic
 solubility and no pH story rather than an authoritative-looking curve that
 means nothing.
+
+**Gutmann donor and acceptor numbers are reported BESIDE the prediction and
+never fed into it.** Where the chosen solvent is one Gutmann measured, the
+report names its donor number and its acceptor number. Those are facts about
+the solvent, looked up, not inputs to the solvation model — Abraham's
+equation is a fitted five-descriptor model and folding a donicity into it
+would be inventing a relationship no source here establishes.
+
+**They are two scales, and "the Gutmann number" is not a well-formed
+question.** DN is −ΔH for the solvent's adduct with SbCl₅ in kcal/mol,
+measured dilute in 1,2-dichloroethane. AN is dimensionless, a ³¹P shift on a
+two-point scale between hexane at 0 and SbCl₅ at 100. A solvent can be high
+in both — water is 18.0 and 54.8 — or high in one and near the bottom in the
+other, which is HMPA at 38.8 and 10.6.
+
+**Bulk donicity is a THIRD quantity.** Seven solvents were measured "in the
+associated liquid" rather than dilute, and water is reported both ways: 18.0
+dilute against 33.0 bulk. That gap is wider than the whole range from benzene
+to acetonitrile, so the two are never merged.
+
+<!-- help:limits-narrow-applicability -->
+## Numbers whose applicability is narrower than their output
+
+Three calculators will produce a number for almost any structure and mean
+something for a much smaller set. Each refuses where it can tell, and this
+section is for the part it cannot.
+
+### Griffin's HLB
+
+**Defined for nonionic surfactants with polyoxyethylene as the sole
+hydrophilic moiety**, which is a structural condition rather than an
+editorial caveat — it comes from the opening sentence of Griffin's own
+definition. An ionic surfactant, a sorbitan ester or an ordinary drug is
+**refused with the reason named**, not given a number.
+
+Sorbitan esters are the case most likely to be got wrong. Griffin's
+*experiments* produced the published values for Span and Tween, but his
+*formula* does not apply to them: sorbitan is a polyhydric alcohol, so
+polyoxyethylene is not the sole hydrophile.
+
+**It will not agree with Marvin**, whose default is a proprietary consensus
+method. That is documented rather than chased.
+
+**"HLB" names two incompatible quantities.** Davies' scale shares the name
+and differs substantially from Griffin's across the entire range of practical
+applications, so the result says which scale it is on. Davies is not offered.
+
+### The Cao–Liu topological steric effect index
+
+**Topological, so it cannot see a conformation.** Two rotamers of one
+molecule score identically. It estimates through-space bulk from the graph
+alone, which is the whole point of it being instant — and the reason it is
+not a substitute for the 3D steric measures in Geometry.
+
+**"Steric index" names several mutually incompatible quantities** — Taft's
+*E*s, Hancock's *E*sc, Charton's *ν* and this one — so it is reported as
+Cao–Liu TSEI and never as a bare "steric index".
+
+**Covers 28 elements and refuses the rest by name.** Those are the elements
+Lange's Handbook tabulates a single-bond covalent radius for; the equation
+needs one and there is nothing to substitute that would not be a number from
+a different table.
+
+**The equation is geometric and the validation is not.** There is no
+per-element fitting, so any of those 28 computes — but Cao and Liu validated
+against alkyl, halogen and ether substituents on biphenyls. A result on an
+organometallic is an extrapolation the source does not support.
+
+**The per-atom form is OpenChem's projection, not the paper's quantity.**
+TSEI is defined for a *substituent measured toward a named reaction centre*;
+running that expression at every atom in turn is a generalisation of it, and
+the calculator is named "projection" for that reason.
+
+**One published value does not reproduce**, and it is recorded rather than
+tuned toward: the source's Table 6 gives isopropyl as 1.3752 where this gives
+1.2801, which is what the same paper's text, Table 2 and Table 4 all imply.
+
+### Miller polarizability
+
+**Empirical, fitted to about 240 molecules**, so it says nothing dependable
+about a structure unlike those.
+
+**Isotropic — an average, not a tensor.** The companion paper that treats the
+tensor is not implemented.
+
+**`ahc` and `ahp` are different quantities, not settings of one.** The first
+squares a sum over the whole molecule; the second is plain additivity. They
+are offered side by side because the source offers both, and neither is a
+default for the other. Jensen's additive scheme is a third answer again:
+about 1% on aromatics and halogenated compounds, and roughly 11% high on
+saturated hydrocarbons, because an atom-additive scheme has no hybridization
+dependence.
+
+**One published atom assignment disagrees.** Nitrobenzene's is `6CTR 1NPI2
+2OTE 5H` in the source and differs here on the ipso carbon and on the nitro
+oxygens — noted because that row is also among the worst in the source's own
+table, at −6.8%.
 
 <!-- help:limits-admet -->
 ## ADMET
