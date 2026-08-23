@@ -65,8 +65,15 @@ PREDICTED_COEFFICIENT_OOB_RMSE = {
 }
 
 _PREDICTED_COEFFICIENTS_NOTE = """\
-Why the 202 predicted-only solvents are not shipped -- acetic acid among
-them, which was asked for by name.
+Why the 202 predicted-only solvents are not shipped.
+
+**ACETIC ACID IS NO LONGER ONE OF THEM.** It was the case that motivated
+this note -- asked for by name, refused, and the numbers below are its
+measurements. A MEASURED set has since been read from a second source
+(Stovall 2015; see `solvent_sources` in the shipped table), so it ships
+with an intercept and standard errors of its own. The reasoning below is
+unchanged and still governs the other 117: what changed was the
+literature available, not the standard applied to it.
 
 **IT FAILS THE BOUND THIS MODULE ALREADY APPLIES**, so this is the
 existing rule applied consistently rather than a fresh opinion.

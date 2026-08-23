@@ -37,10 +37,12 @@ from openchem.chem.alignment import (
 )
 from openchem.chem.dipole import compute_dipole_moment
 from openchem.chem.electronic_properties import (
+    POLARIZABILITY_METHODS,
     compute_atomic_polarizability,
     compute_orbital_electronegativity,
     compute_polarizability,
 )
+from openchem.chem.hlb import compute_griffin_hlb
 from openchem.chem.huckel import compute_huckel_analysis, compute_pi_electron_density
 from openchem.chem.lewis import compute_lewis_sites
 from openchem.chem.lewis_adduct import ROLE_ACID, ROLE_BASE, compute_lewis_adduct
@@ -93,6 +95,7 @@ from openchem.chem.structure_annotation import (
 from openchem.chem.substructure import COMMON_PATTERNS, compute_substructure_search
 from openchem.chem.surface_analysis import compute_sasa_dataset, compute_surface_analysis
 from openchem.chem.substance import compute_substance_analysis
+from openchem.chem.tsei import compute_tsei_projection
 from openchem.chem.topology_analysis import (
     compute_distance_degree_dataset,
     compute_eccentricity_dataset,
@@ -1444,10 +1447,12 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         category="topology",
         description=(
             "Graph-theoretic descriptors: ring and chain counts, cyclomatic number, "
-            "Platt/Randic/Balaban/Harary/Wiener/hyper-Wiener indices, Wiener polarity, "
-            "and stereo centre counts. Szeged and the topological steric effect index "
-            "are deliberately omitted -- their literature definitions conflict and no "
-            "reference value was found to validate an implementation against."
+            "Platt/Randic/Balaban/Harary/Wiener/hyper-Wiener/Szeged indices, Wiener "
+            "polarity, and stereo centre counts. Szeged is validated by identity rather "
+            "than by a reference value -- it equals Wiener for any acyclic graph and "
+            "strictly exceeds it for a cyclic one. The Cao-Liu steric index is measured "
+            "toward a named reaction centre, so it is not a whole-molecule number and "
+            "has its own per-atom calculator."
         ),
         execution=RegistryExecution(compute=compute_topology_analysis),
         tags=["topology", "graph", "indices"],
@@ -1464,6 +1469,47 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         tags=["topology", "graph", "per-atom"],
         parameters=[
             decimal_places_parameter(),
+        ],
+    ),
+    CalculatorDefinition(
+        calculator_id="tsei_projection",
+        display_name="Cao-Liu TSEI projection (per atom)",
+        category="topology",
+        description=(
+            "Cao & Liu's topological steric effect index with every atom in turn as "
+            "the reaction centre -- how much of each atom's approach the rest of the "
+            "molecule screens, read off the graph. Dimensionless. TSEI is defined for "
+            "a SUBSTITUENT measured toward a named reaction centre; running it at every "
+            "atom is OpenChem's projection of it, not a quantity the paper defines. "
+            "Topological, so two conformers of one molecule score identically. Covers "
+            "the 28 elements Lange's Handbook tabulates a covalent radius for, and "
+            "refuses the rest by name. The equation is geometric, so any of those 28 "
+            "computes -- but Cao and Liu validated it on alkyl, halogen and ether "
+            "substituents, so a result on an organometallic is an extrapolation."
+        ),
+        execution=RegistryExecution(compute=compute_tsei_projection),
+        prediction_basis="empirical",
+        tags=["topology", "steric", "per-atom"],
+        parameters=[
+            decimal_places_parameter(),
+            CalculatorParameter(
+                name="include_hydrogens",
+                label="Count hydrogens",
+                kind="bool",
+                # The paper uses BOTH conventions and labels each: eq 6
+                # ignores hydrogens and Tables 1, 2 and 4 follow it, while
+                # Table 6's footnote c says its values include them. Off
+                # matches the series this implementation is gated on.
+                default=False,
+            ),
+            CalculatorParameter(
+                name="crowded_branches",
+                label="Apply the 6.5x crowding correction",
+                kind="bool",
+                # Every TSEI the paper publishes uses it -- t-Bu is 1.8125,
+                # never the 1.3750 plain additivity gives.
+                default=True,
+            ),
         ],
     ),
     CalculatorDefinition(
@@ -2285,21 +2331,52 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         execution=RegistryExecution(compute=compute_structural_frameworks),
         tags=["structures", "scaffold", "murcko"],
     ),
+    CalculatorDefinition(
+        calculator_id="griffin_hlb",
+        display_name="HLB (Griffin)",
+        category="surface",
+        description=(
+            "Griffin's hydrophile-lipophile balance: the weight percentage of ethylene "
+            "oxide over five. Defined only for nonionic surfactants with polyoxyethylene "
+            "as the SOLE hydrophilic moiety, so anything else -- an ionic surfactant, a "
+            "sorbitan ester, an ordinary drug -- is refused with the reason rather than "
+            "given a meaningless number. Davies' HLB is not offered: it shares the name "
+            "and disagrees substantially across the whole range of practical "
+            "applications, so the two must not be reported under one label."
+        ),
+        execution=RegistryExecution(compute=compute_griffin_hlb),
+        prediction_basis="empirical",
+        tags=["surface", "surfactant", "hlb", "formulation"],
+        parameters=[decimal_places_parameter()],
+    ),
     # ---- Polarizability and orbital electronegativity ----------------
     CalculatorDefinition(
         calculator_id="polarizability",
         display_name="Polarizability (molecular)",
         category="electronic",
         description=(
-            "Molecular polarizability in A^3 by the additive atomic scheme of Jensen et al. "
-            "Accurate to about 1% for aromatics and halogenated compounds; roughly 11% high "
-            "for saturated hydrocarbons, since an atom-additive scheme has no hybridization "
-            "dependence. Miller's method is not offered -- its parameters are not published "
-            "in ChemAxon's docs and could not be reproduced reliably."
+            "Molecular polarizability in A^3, by one of three methods. Jensen et al.'s "
+            "additive atomic scheme is accurate to about 1% for aromatics and halogenated "
+            "compounds and roughly 11% high for saturated hydrocarbons, since an "
+            "atom-additive scheme has no hybridization dependence. Miller's two methods are "
+            "hybridization-aware: ahc squares a sum over the whole molecule and lands within "
+            "1% on benzene and CCl4, ahp is plain additivity. The three are different "
+            "quantities, not settings of one -- pick one and read the reported method."
         ),
         execution=RegistryExecution(compute=compute_polarizability),
         prediction_basis="empirical",
         parameters=[
+            CalculatorParameter(
+                # THREE METHODS ON ONE ROW, NOT THREE CALCULATORS. They
+                # answer the same question about the same molecule, so
+                # comparing them is the useful gesture and a settings
+                # change is the cheapest way to make it.
+                name="method",
+                label="Method",
+                kind="choice",
+                default="Jensen (additive)",
+                choices=list(POLARIZABILITY_METHODS),
+            ),
             CalculatorParameter(
                 name="major_microspecies",
                 label="Take major microspecies",
@@ -2340,8 +2417,9 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         description=(
             "Gasteiger-Marsili sigma orbital electronegativity (eV) at each atom's converged "
             "PEOE charge. Absolute values depend on the parameter set and will differ between "
-            "implementations; the ordering between atoms is the meaningful part. The pi "
-            "component is not offered -- it needs a separate pi-charge iteration."
+            "implementations; the ordering between atoms is the meaningful part. This is "
+            "the SIGMA component; a pi component would require a separate pi-charge "
+            "iteration, which OpenChem does not run."
         ),
         execution=RegistryExecution(compute=compute_orbital_electronegativity),
         prediction_basis="empirical",

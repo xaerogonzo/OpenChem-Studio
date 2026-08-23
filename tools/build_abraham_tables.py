@@ -57,7 +57,12 @@ _SOLUTE_URL = "https://ndownloader.figshare.com/files/1684722"
 _ATTRIBUTION_SOLVENTS = (
     "Bradley J-C, Abraham MH, Acree WE Jr, Lang ASID. Predicting Abraham model solvent "
     "coefficients. Chemistry Central Journal / BMC Chemistry 2015;9:12. "
-    "doi:10.1186/s13065-015-0085-4. Table 1, measured solvents only. CC BY 4.0."
+    "doi:10.1186/s13065-015-0085-4. Table 1, measured solvents only. CC BY 4.0. "
+    "Acetic acid is NOT from this table -- see `solvent_sources`: Stovall DM, "
+    "Schmidt A, Dai C, Zhang S, Acree WE Jr, Abraham MH. Abraham model correlations "
+    "for estimating solute transfer of neutral molecules into anhydrous acetic acid "
+    "from water and from the gas phase. J Mol Liq 2015;212:16-22. "
+    "doi:10.1016/j.molliq.2015.08.042, Eq. (6)."
 )
 _ATTRIBUTION_SOLUTES = (
     "Bradley J-C, Acree WE Jr, Lang ASID. Compounds with known Abraham descriptors. "
@@ -80,6 +85,61 @@ def _cells(row: str) -> list[str]:
         html.unescape(re.sub(r"<[^>]+>", " ", cell)).replace("−", "-").strip()
         for cell in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", row, re.S)
     ]
+
+
+#: Acetic acid, MEASURED -- the one solvent here that does not come from
+#: Bradley's Table 1.
+#:
+#: **THIS IS A DEFERRAL WHOSE REASON ROTTED, NOT A NEW FEATURE.** Alex
+#: asked for acetic acid by name during the solubility work and it was
+#: refused, with the reason recorded in `docs/VALIDATION.md`: only
+#: PREDICTED coefficients existed, they failed this module's own 1.0-log
+#: uncertainty ceiling, and the predicted table is the `c = 0` refit and
+#: so carries no intercept at all. Both halves of that are now false.
+#:
+#: Stovall, Schmidt, Dai, Zhang, Acree & Abraham, "Abraham model
+#: correlations for estimating solute transfer of neutral molecules into
+#: anhydrous acetic acid from water and from the gas phase", J. Mol. Liq.
+#: 212 (2015) 16-22, doi 10.1016/j.molliq.2015.08.042, Eq. (6):
+#:
+#:     log P = 0.175 + 0.174 E - 0.454 S - 1.073 A - 2.789 B + 3.725 V
+#:     N = 68, SD = 0.182, R2 = 0.980, F = 612.4
+#:
+#: TYPED FROM THE PAPER, not fetched, because it is not open access --
+#: which is why the standard errors are carried beside the values below
+#: rather than left in a comment. They are the paper's own, printed in
+#: parentheses after each coefficient.
+#:
+#: **THE INTERCEPT IS THE HALF THAT IS EASY TO MISS.** `c = 0.175` is
+#: what the predicted table has no column for, and the solubility
+#: equation needs it -- see `chem/abraham.py` on why the `c = 0` refit is
+#: the wrong parameterisation for anything but comparing solvents.
+_MEASURED_ELSEWHERE = {
+    "acetic acid": {
+        "coefficients": {
+            "c": 0.175,
+            "e": 0.174,
+            "s": -0.454,
+            "a": -1.073,
+            "b": -2.789,
+            "v": 3.725,
+        },
+        #: The paper's printed standard error on each coefficient. Kept
+        #: because the refusal this replaces was decided by propagating
+        #: the PREDICTED set's much larger out-of-bag errors, and the
+        #: comparison only means anything if both are recorded.
+        "standard_errors": {
+            "c": 0.049,
+            "e": 0.086,
+            "s": 0.115,
+            "a": 0.123,
+            "b": 0.163,
+            "v": 0.081,
+        },
+        "source_key": "stovall2015",
+        "fit": {"n": 68, "sd": 0.182, "r2": 0.980},
+    }
+}
 
 
 def build_solvents() -> dict:
@@ -219,13 +279,35 @@ def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
 
     solvents = build_solvents()
+    # The measured coefficients that are NOT in Bradley's Table 1, added
+    # after their own source was read. `solvent_sources` names them, so a
+    # reader can tell which paper any one solvent came from rather than
+    # inferring it from the file-level `_source_key`.
+    solvent_sources = {}
+    for name, entry in _MEASURED_ELSEWHERE.items():
+        solvents[name] = dict(entry["coefficients"])
+        solvent_sources[name] = entry["source_key"]
+    standard_errors = {
+        name: entry["standard_errors"] for name, entry in _MEASURED_ELSEWHERE.items()
+    }
     predicted_only = [n for n in build_predicted_only_names() if n not in
                       {k.lower() for k in solvents}]
     (OUT / "abraham_solvents.json").write_text(
         json.dumps(
             {
+                # EMITTED HERE rather than hand-added afterwards. It was
+                # hand-added before, so regenerating this file silently
+                # dropped it and `test_every_shipped_data_table_declares_
+                # its_source` would have gone red on the next rebuild.
+                "_source_key": "bradley2015",
+                "_supplementary_source_keys": sorted(set(solvent_sources.values())),
                 "attribution": _ATTRIBUTION_SOLVENTS,
                 "solvents": solvents,
+                # Which solvents did NOT come from `_source_key`.
+                "solvent_sources": solvent_sources,
+                # The paper's own standard error per coefficient, for the
+                # solvents whose source prints them.
+                "solvent_standard_errors": standard_errors,
                 # Named so a request for one can be refused with its real
                 # reason. NOT coefficients -- deliberately no numbers here,
                 # so nothing downstream can start using them.
@@ -235,7 +317,11 @@ def main() -> int:
         ),
         encoding="utf-8",
     )
-    print(f"solvents: {len(solvents)} measured, {len(predicted_only)} predicted-only named")
+    print(
+        f"solvents: {len(solvents)} measured "
+        f"({len(solvent_sources)} from a source other than {_ATTRIBUTION_SOLVENTS[:24]!r}...), "
+        f"{len(predicted_only)} predicted-only named"
+    )
 
     solutes, rejected = build_solutes()
     (OUT / "abraham_solutes.json").write_text(

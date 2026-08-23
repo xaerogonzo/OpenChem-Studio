@@ -581,6 +581,38 @@ Each row says where it came from, because a name alone is ambiguous —
 **Ctrl+Shift+F** is the companion: it opens the Atom Inspector with the
 cursor already in its filter box.
 
+### Giving a picture more room
+
+Some panels show a picture rather than a number — the 3D Alignment
+overlay, the IR and NMR spectra, the ESP surfaces, the correlation maps.
+A right-hand panel is a column, and once a settings box and a results
+table are stacked above one of those pictures there is very little height
+left for it.
+
+Any of them carries a small **↗** button in its own header row. Press it
+and the picture moves into its own resizable window, which you can
+maximise or drag onto a second monitor. **Return to panel** puts it back;
+so does closing the window.
+
+Three things worth knowing:
+
+- **The view moves; it is not copied.** Whatever you had set up — the
+  angle you rotated a structure to, the style you chose, what is loaded —
+  comes with it, and comes back unchanged. There is only ever one of it.
+- **The panel's own controls stay in the panel.** The 3D Alignment
+  panel's *Style* box, for instance, stays in the dock and goes on
+  driving the picture in its window. That is deliberate: one control for
+  one setting, rather than two that can disagree.
+- **It stays open while you work elsewhere.** Switching to another panel,
+  another tab, or hiding the dock entirely leaves the window where it is.
+  Only starting a new calculation brings it home, because at that point
+  what it is showing is out of date.
+
+This is not the same as the panel's own **float** button in its title
+bar, which detaches the *whole* panel — settings, tables and all. Use
+float when you want two panels side by side; use ↗ when the picture is
+the thing that needs the room.
+
 ## Properties
 
 The Properties panel is where most calculation happens. It has **25
@@ -1094,6 +1126,12 @@ elsewhere would reshuffle your selection underneath you.
 Higher accuracy levels generate more conformers per probe and allow the
 maximum-common-substructure search more time. That is the trade: alignment
 quality against wall clock.
+
+The superimposed structures are the point of this panel, and a docked
+column is a poor place to read them. Press **↗** beside *Style* to move
+the overlay into its own window — see [Giving a picture more
+room](#giving-a-picture-more-room). The angle you have turned it to comes
+with it, and *Style* keeps working from the panel.
 
 ---
 

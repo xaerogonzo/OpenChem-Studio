@@ -51,6 +51,7 @@ from openchem.events.base import EventBus
 from openchem.events.events import StructureChecked
 from openchem.services.structure_check_service import StructureCheckService
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
+from openchem.ui.widgets.pop_out_host import PopOutHost
 
 #: severity -> (label, colour). The same Okabe-Ito pair the status
 #: indicator uses, for the same colour-vision reason, and always beside a
@@ -139,6 +140,7 @@ class StructureCheckPanel(QWidget):
         parent: QWidget | None = None,
         on_apply_fix: Callable[[str, str], None] | None = None,
         on_recheck: Callable[[], None] | None = None,
+        settings: object = None,
     ) -> None:
         super().__init__(parent)
         self._service = check_service
@@ -195,7 +197,20 @@ class StructureCheckPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.addWidget(self._summary)
         layout.addWidget(self._tree, 1)
-        layout.addWidget(self._depiction)
+        # THE DEPICTION IS THE LAST CRAMPED GRAPHICAL VIEW IN THE DOCK.
+        # It sits under a tree that takes the stretch, in a column 420 px
+        # wide, and it is where a highlighted finding is actually looked
+        # at. The tree stays in the panel and goes on driving it while it
+        # is detached, which is the whole point of the header never
+        # moving -- see `pop_out_host`.
+        self._depiction_host = PopOutHost(
+            self._depiction,
+            title="Structure",
+            settings_id="structure_check.depiction",
+            settings=settings,
+            parent=self,
+        )
+        layout.addWidget(self._depiction_host)
         layout.addWidget(self._oxidation_states)
         layout.addWidget(self._detail)
         layout.addLayout(buttons)

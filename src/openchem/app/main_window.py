@@ -388,7 +388,7 @@ class MainWindow(QMainWindow):
             self,
             qm_surface_service=services.qm_surface_service,
         )
-        self._alignment_panel = AlignmentPanel(services.alignment_service, services.event_bus, self)
+        self._alignment_panel = AlignmentPanel(services.alignment_service, services.event_bus, self, settings=settings)
         self._interactions_panel = InteractionsPanel(
             services.chemistry_engine, services.event_bus, self
         )
@@ -455,6 +455,7 @@ class MainWindow(QMainWindow):
             self,
             on_apply_fix=self._apply_structure_fix,
             on_recheck=self._check_current_structure,
+            settings=settings,
         )
         self._batch_panel = BatchPanel(
             services.batch_service,

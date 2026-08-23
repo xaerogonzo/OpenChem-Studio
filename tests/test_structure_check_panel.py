@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, Qt
+from PySide6.QtWidgets import QLabel
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Geometry import Point3D
@@ -646,3 +647,82 @@ def test_the_explorer_context_menu_can_reach_the_checker(window):
     exists, the right-click is how you use it afterwards. Copy SMILES was
     reported as missing when it lived in only one of the two."""
     assert window._project_explorer._on_check is not None
+
+
+# --- the depiction in its own window ----------------------------------------
+#
+# This panel is the last cramped GRAPHICAL view in the right-hand dock:
+# an SVG under a tree that takes the stretch, in a 420 px column. It gets
+# its own integration tests rather than inheriting "the generic host
+# works, therefore this works" -- it pairs a tree with a picture, which
+# none of the six already-wired sites does.
+
+
+def test_the_depiction_can_be_shown_in_its_own_window(panel):
+    depiction = panel._depiction
+    host = panel._depiction_host
+
+    # AT REST, THE DEPICTION REALLY IS INSIDE THE HOST -- and this half
+    # was added after a mutation walked straight through the rest.
+    #
+    # `PopOutHost.__init__` re-parents its content, so a call site that
+    # adds the raw widget to the panel layout instead of the host STEALS
+    # IT BACK: the host is left an empty strip carrying an orphaned
+    # button, the panel looks broken, and `pop_out()` still works because
+    # the host kept its own reference. Every assertion below passed.
+    assert depiction.parentWidget() is host, (
+        "the depiction is not inside its host -- the panel is showing the raw "
+        "widget and the pop-out button belongs to an empty strip"
+    )
+    assert panel.layout().indexOf(host) >= 0, "the host is not in the panel's layout"
+
+    window = host.pop_out()
+
+    assert window.isAncestorOf(depiction)
+    # The SAME widget, not a second one rendered from the same SVG.
+    assert host.content() is depiction
+
+    host.return_home()
+    assert depiction.parentWidget() is host
+
+
+def test_selecting_in_the_tree_still_drives_a_detached_depiction(panel, service):
+    """The tree stays in the panel; the picture it drives may be elsewhere.
+
+    This is the invariant the header-never-moves rule buys, checked on the
+    one panel where the driver is a tree rather than a combo box.
+    """
+    smiles = "CC(=O)[O-].[Na+]"
+    panel.set_molblock(molblock_for(smiles))
+    panel.show_result(service.check("uuid", molblock_for(smiles)))
+    panel._depiction_host.pop_out()
+
+    drawn: list[dict] = []
+    panel._render_depiction = lambda colors: drawn.append(colors)
+
+    top = panel._tree.topLevelItem(0)
+    assert top is not None and top.childCount(), (
+        "setup: the tree has no finding to select, so this proves nothing"
+    )
+    panel._tree.setCurrentItem(top.child(0))
+
+    assert drawn, "selecting a finding stopped redrawing while detached"
+    panel._depiction_host.return_home()
+
+
+def test_the_panels_empty_state_is_not_shadowed_by_the_host(panel):
+    """The `findChildren` shadowing trap, checked on this panel too.
+
+    `PopOutHost`'s placeholder is a plain `QLabel` precisely so it cannot
+    be mistaken for an empty state -- `empty_message_for_tab` returns the
+    first marked widget it finds anywhere under a surface. This panel has
+    its own summary label doing that job and had not been checked against
+    it.
+    """
+    from openchem.ui.widgets.empty_state import is_empty_state
+
+    panel._depiction_host.pop_out()
+    marked = [w for w in panel._depiction_host.findChildren(QLabel) if is_empty_state(w)]
+    assert marked == [], "the pop-out placeholder is masquerading as an empty state"
+    assert panel._summary.text(), "the panel's own summary went silent"
+    panel._depiction_host.return_home()

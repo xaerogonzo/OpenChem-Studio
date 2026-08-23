@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 261bfa23e626a822fb943574463c627a7df4f44ed2a048413710d3ebbb162f94 -->
+<!-- SOURCE SHA256: 8dd23a6e3b3ee27d29b8371eb56f088aa1e6a24e65d18b7e1727a2f705c97676 -->
 
 # Sources
 
@@ -97,6 +97,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`bradley2014`](#bradley2014) | dataset | shipped | citation + claim |
 | [`bradley2015`](#bradley2015) | literature | shipped | citation + claim |
 | [`bravetti2023`](#bravetti2023) | literature | shipped | citation |
+| [`cao2004`](#cao2004) | literature | shipped | citation + claim |
 | [`cod`](#cod) | dataset | shipped | citation |
 | [`crc_handbook`](#crc_handbook) | reference_table | shipped | citation + claim |
 | [`cwc_annex_on_chemicals`](#cwc_annex_on_chemicals) | legal | shipped | citation + claim |
@@ -107,6 +108,8 @@ next run of `tools/build_lewis_parameters.py`.
 | [`drago1990`](#drago1990) | literature | shipped | citation |
 | [`drago1993`](#drago1993) | literature | shipped | citation |
 | [`glasser1995`](#glasser1995) | literature | shipped | citation |
+| [`guo2006`](#guo2006) | literature | reference only | citation + claim |
+| [`gutmann1976`](#gutmann1976) | literature | shipped | citation + claim |
 | [`gutmann_frontiers2022`](#gutmann_frontiers2022) | literature | **not shipped** | citation |
 | [`hlb`](#hlb) | reference_table | **not shipped** | unverified |
 | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
@@ -118,11 +121,15 @@ next run of `tools/build_lewis_parameters.py`.
 | [`kendall2008`](#kendall2008) | literature | shipped | citation |
 | [`ketcher`](#ketcher) | software | shipped | citation |
 | [`kwon2023`](#kwon2023) | dataset | shipped | citation + claim |
+| [`langes15`](#langes15) | reference_table | shipped | citation + claim |
 | [`llinas2008`](#llinas2008) | dataset | shipped | citation |
 | [`llinas2019`](#llinas2019) | dataset | reference only | citation |
 | [`llinas2020`](#llinas2020) | dataset | shipped | citation + claim |
 | [`lorentzon1995`](#lorentzon1995) | literature | reference only | citation + claim |
+| [`mayer1975`](#mayer1975) | literature | reference only | citation |
 | [`mayo1990`](#mayo1990) | literature | shipped | citation + claim |
+| [`miller1979`](#miller1979) | literature | shipped | citation + claim |
+| [`miller1990`](#miller1990) | literature | shipped | citation + claim |
 | [`miller_polarizability`](#miller_polarizability) | reference_table | **not shipped** | unverified |
 | [`molstar`](#molstar) | software | shipped | citation |
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
@@ -140,8 +147,10 @@ next run of `tools/build_lewis_parameters.py`.
 | [`ran2002`](#ran2002) | literature | reference only | citation |
 | [`rcsb_pdb`](#rcsb_pdb) | dataset | shipped | citation |
 | [`rdkit`](#rdkit) | software | shipped | citation |
+| [`schott1989`](#schott1989) | literature | shipped | citation + claim |
 | [`sci_downloads_note`](#sci_downloads_note) | reference_table | reference only | citation |
 | [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
+| [`stovall2015`](#stovall2015) | literature | shipped | citation + claim |
 | [`tdc_admet`](#tdc_admet) | dataset | reference only | citation |
 | [`threedmol`](#threedmol) | software | shipped | citation |
 | [`trott_olson2010`](#trott_olson2010) | literature | shipped | citation + claim |
@@ -448,6 +457,365 @@ shake-flask methods", which is a DIFFERENT Avdeef paper: ADMET & DMPK 2019,
 were right throughout, because those came from the repository rather than
 from memory. Its abstract's "6355 entries ... for 3014 different molecules"
 matches what `benchmarks/solubility/README.md` says about Wiki-pS0.
+
+### miller1990
+
+<a id="miller1990"></a>
+
+> K. J. Miller, 'Additivity methods in molecular polarizability', Journal of the American Chemical Society 1990;112(23):8533-8542, Table I.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja00179a044](https://doi.org/10.1021/ja00179a044) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-20 |
+| Licence | publisher |
+| Local copy | `miller1990.pdf` (not checked) |
+| Used by | `src/openchem/chem/data/miller_polarizability.json`, `src/openchem/chem/polarizability_miller.py`, `tools/build_miller_parameters.py` |
+
+THE PARAMETERS ARE PUBLISHED, WHICH IS THE DEFERRAL THIS CLOSES.
+docs/VALIDATION.md recorded "The parameters are unpublished. A
+reconstruction missed benzene by +27% and CCl4 by -50%, so there was
+nothing to validate against." The first sentence was a claim about
+ChemAxon's documentation, not about the literature: Table I,
+"Parameters for Atoms in Hybrid Configurations", prints all twenty rows.
+
+READ OFF A 400 DPI RENDER. The text layer gives `0.392 0.31 1 0.3 13
+0.387` for a row of four numbers, `3 .000` for 3.000, `TA` for tau_A and
+`A312` for A^(3/2) -- the Drago E/C case again, where an audit found one
+value in 53 out by 0.01. Each row keeps the paper's own `symbol` and
+`hybrid` columns so a future audit runs against the page line by line.
+
+THE `CBR` ROW IS A TRAP AND IS ALMOST CERTAINLY THE RECORDED +27%. Its
+symbol reads as "carbon in a benzene ring" and means the opposite;
+[source:miller1979] says the trouble "was traced to the two kinds of
+carbon atoms present in the pi-electronic system. In ethylene and
+benzene the pi system is directed only along two bonds, whereas in the 9
+and 10 positions of naphthalene it is directed along all three bonds."
+Measured here: assigning benzene to CBR gives 13.99 against an
+experimental 10.39, i.e. +36%.
+
+WITH THE ROW ASSIGNED CORRECTLY, benzene lands at 10.45 (+0.6%) and CCl4
+at 10.53 (+0.2%) -- the two the earlier attempt failed. Naphthalene
+assigns exactly two CBR carbons and lands at +1.7%.
+
+### miller1979
+
+<a id="miller1979"></a>
+
+> K. J. Miller & J. A. Savchik, 'A new empirical method to calculate average molecular polarizabilities', Journal of the American Chemical Society 1979;101(24):7206-7213.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja00518a014](https://doi.org/10.1021/ja00518a014) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-20 |
+| Licence | publisher |
+| Local copy | `miller1979.pdf` (not checked) |
+| Used by | `src/openchem/chem/polarizability_miller.py`, `tools/build_miller_parameters.py` |
+
+THE METHOD, and the two things about it that are easy to get wrong.
+
+    alpha(ahc) = (4/N) * (SUM_A tau_A)^2,  N = the TOTAL NUMBER OF
+    ELECTRONS in the molecule
+
+Read from the abstract and confirmed in the introduction. SQUARING A SUM
+IS WHAT MAKES IT NOT A GROUP-ADDITIVITY SCHEME, so feeding the additive
+alpha column into this form, or summing tau, gives plausible and wrong
+answers -- which is the shape of the -50% recorded against CCl4.
+
+Its Table X supplies the acceptance oracle: benzene alpha(ahc) 10.40
+against alpha(exp) 10.39, naphthalene 16.59 against 17.48. And page 6
+carries the sentence that explains the CBR row -- see
+[source:miller1990].
+
+### gutmann1976
+
+<a id="gutmann1976"></a>
+
+> V. Gutmann, 'Solvent effects on the reactivities of organometallic compounds', Coordination Chemistry Reviews 1976;18:225-255, Tables 1 and 2.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/S0010-8545(00)82045-7](https://doi.org/10.1016/S0010-8545(00)82045-7) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-20 |
+| Licence | publisher |
+| Local copy | `gutmann1976.pdf` (not checked) |
+| Used by | `src/openchem/chem/data/gutmann_solvents.json`, `src/openchem/chem/gutmann.py`, `tools/build_gutmann_tables.py` |
+
+THE CLASSICAL TABLES, which is what the earlier assessment lacked.
+CLAUDE.md records Gutmann donor/acceptor numbers being assessed and NOT
+shipped because the accessible source was [source:gutmann_frontiers2022]
+-- ionic liquids and deep eutectics, reporting its own acceptor-number
+model failing outright. That paper was correctly rejected; this is the
+molecular scale it is not.
+
+TRANSCRIBED FROM A 300 DPI RENDER, NOT THE TEXT LAYER. This is a scanned
+1976 journal and its OCR is actively wrong: "Dimethylsulphoxitie",
+"Acetonitriie", "l.o.0" where 10.0 belongs, ";:Z" where a number belongs,
+and the names and numbers extracted as two separate runs needing
+positional alignment. THE RENDER ALREADY CAUGHT ONE: the text layer gives
+t-butylamine 57.6, the page says 57.5.
+
+TWO SCALES, KEPT APART:
+
+  DN  donor number, kcal/mol, DILUTE in 1,2-dichloroethane;
+      DN = -dH for the donor's adduct with SbCl5. 53 solvents.
+  AN  acceptor number, DIMENSIONLESS, from the 31P shift of Et3P=O,
+      anchored at hexane = 0 and SbCl5/DCE = 100. 32 solvents.
+
+They are not one ordering: HMPA outranks water on DN and is far below it
+on AN.
+
+AND BULK DONICITY IS A THIRD QUANTITY. The paper's footnote a marks
+values measured "in the associated liquid"; seven rows carry only that,
+and WATER carries both -- 18.0 dilute against 33.0 bulk. Merging the
+columns would be wrong for water by more than the whole range from
+benzene to acetonitrile.
+
+NOT VALIDATED AGAINST THE DRAGO E/C TABLE, deliberately. DN is defined
+as -dH against SbCl5, which [source:vogel_drago1996]'s parameters can
+also predict, so the scales are related -- but they are distinct
+parameterisations with distinct experimental bases, and making
+cross-scale agreement a correctness criterion would let a transcription
+error hide behind a legitimate difference. The oracle is the published
+values.
+
+### mayer1975
+
+<a id="mayer1975"></a>
+
+> U. Mayer, V. Gutmann & W. Gerger, 'The acceptor number - a quantitative empirical parameter for the electrophilic properties of solvents', Monatshefte fuer Chemie 1975;106:1235-1257.
+
+| | |
+| --- | --- |
+| Identifier | [10.1007/BF00913599](https://doi.org/10.1007/BF00913599) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-08-20 |
+| Licence | publisher |
+| Local copy | `mayer1975.pdf` (not checked) |
+| Used by | `src/openchem/chem/gutmann.py` |
+
+**Why it is reference only.** The acceptor-number scale's original paper, and the corroborating source
+for the AN column rather than the one transcribed. Its own text layer is
+a degraded 1975 Springer scan ("Monatshefte ffir Chemie"), and
+[source:gutmann1976] carries the same values in a table that renders
+cleanly, so that is what was read.
+
+Consulted and confirmed to be the paper it claims: 34 solvents'
+acceptor numbers from 31P NMR of triethylphosphine oxide, which is the
+measurement [source:gutmann1976]'s Table 2 reports.
+
+### cao2004
+
+<a id="cao2004"></a>
+
+> C. Cao & L. Liu, 'Topological Steric Effect Index and Its Application', Journal of Chemical Information and Computer Sciences 2004;44(2):678-687.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ci034266b](https://doi.org/10.1021/ci034266b) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-20 |
+| Licence | publisher |
+| Used by | `src/openchem/chem/tsei.py`, `src/openchem/chem/data/tsei_radii.json`, `tools/build_tsei_radii.py`, `tests/test_tsei.py` |
+
+THE DEFERRAL THIS HALF-CLOSES. `chem/topology_analysis.py` records that a
+"topological steric effect index" was deliberately absent because
+"'steric index' genuinely names several mutually incompatible quantities
+in the literature, there is no identity to check an implementation
+against, and no reference value was found".
+
+The second and third clauses are answered here: this paper defines ONE
+quantity and prints reference values for it. THE FIRST STILL STANDS AND
+SHAPES THE DESIGN -- Taft's Es, Hancock's Esc and Charton's nu are all
+"steric parameters" and none is this one, so it ships as Cao-Liu TSEI and
+never as a bare "steric index", the same call `chem/hlb.py` makes about
+Griffin.
+
+**EQ 7 IS NOT THE DEFINITION, AND THIS ENTRY SAID IT WAS.** The first
+version of this note recorded
+
+    TSEI = SUM over the substituent's heavy atoms of 1 / L_i^3
+
+which the paper derives one line after "For any alkyl, it only contains
+carbon and hydrogen atoms. When its hydrogen atoms are ignored, eq 4 also
+can be simplified to eq 6". The general quantity is eq 4, with the atom's
+covalent radius over the SUMMED BOND LENGTHS to the reaction centre, and
+eq 8a states it in the relative form the paper prints. The two agree
+exactly on an all-carbon path and nowhere else: the paper's own worked
+example puts a first-tier chlorine at 1.4190, where eq 7 gives 1.000.
+Corrected in `chem/tsei.py`; the account is in that module's docstring.
+
+THE ORACLE IS THE PRINTED TABLES, NOT THE CORRELATIONS. The paper reports
+r = 0.9912 against photoelectron-spectroscopy dihedral angles for 7
+alkylbiphenyls and 0.9845 against force-field angles for 78, which is a
+behavioural check worth having -- but a correlation is weak against a
+transcription error, since a systematically wrong implementation can
+still correlate. Table 1 prints exact TSEI for normal alkyls n = 1..20
+converging on 1.2009; Table 6 prints values for the halogens, the ethers
+and the branched alkyls. **18 of the 19 reachable printed values
+reproduce.**
+
+THE NINETEENTH IS RECORDED RATHER THAN CHASED. Table 6 gives i-Pr as
+1.3752 where the traversal gives 1.2801; the paper's own text, Table 2
+and every i-Pr-bearing row of Table 4 all say 1.2500 with hydrogens
+ignored, which plus its seven hydrogens is 1.2801. 1.3752 is within
+0.0002 of 1.3750, t-Bu's plain-additivity value in the table above it.
+
+TWO CONVENTIONS AND TWO VARIANTS, EACH LABELLED BY THE PAPER ITSELF.
+Tables 1, 2 and 4 ignore hydrogens (eq 6's simplification) while Table 6
+includes them and its footnote c says so. And the paper's second-tier
+figures "0.1250, 0.2500, and 0.3750" are a STRAW MAN it then rejects,
+concluding that three carbons on one carbon contribute 6.5 times one
+rather than three times -- t-Bu is 1.8125 in Table 2 and 1.8395 in Table
+6, never 1.3750. Both choices are exposed as named options with the
+paper's own preference as the default.
+
+THE RADII COME FROM THE PAPER'S OWN REF 18, [source:langes15] Table 4.7,
+which is held now. Seven of the 28 are ALSO recoverable by inverting a
+TSEI value this paper prints, and the two routes agree to the last digit
+-- including carbon's 77.2 rather than a rounded 77, which is the digit
+this paper writes. `tools/build_tsei_radii.py` records which per element,
+and `tests/test_tsei.py` keeps the inversion as a live cross-check.
+
+### schott1989
+
+<a id="schott1989"></a>
+
+> H. Schott, 'Comments on Hydrophile-Lipophile Balance Systems', Journal of Colloid and Interface Science 1989;133(2):527-529.
+
+| | |
+| --- | --- |
+| Identifier | J. Colloid Interface Sci. 133(2), December 1989, 527-529 |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-20 |
+| Licence | publisher |
+| Used by | `src/openchem/chem/hlb.py`, `tests/test_hlb.py` |
+
+**NO DOI.** The PDF carries none in its text layer and the article
+predates routine assignment, so it is cited by volume and issue rather
+than by an invented identifier -- the rule this registry adopted after
+six citation errors all landed in the one field nothing could check.
+
+IT SUPPLIES BOTH THE FORMULA AND THE REASON THE NAME IS AMBIGUOUS, which
+is why one source closes a deferral recorded as "no formulas published,
+no worked example... nothing to check a result against".
+
+  Griffin, Eq. [1]   HLB = E / 5, E = weight percentage ethylene oxide
+  Griffin, Eq. [2]   HLB = 881 p / (44.05 p + A), with A = 206.3 for
+                     octylphenol and 186.3 for dodecanol -- the closed
+                     form `tests/test_hlb.py` checks against
+  Davies,  Eq. [3]   group values 0.33 (-CH2CH2O-), 1.9 (-OH), 0.475
+                     (hydrocarbon carbons)
+
+AND ITS CONCLUSION SHAPES THE IMPLEMENTATION rather than merely being
+quoted: for surfactants whose sole hydrophilic moiety is polyoxyethylene
+-- over 73% of US nonionic surfactant production -- "the Davies scale
+differs substantially from the Griffin scale in the entire range of
+practical applications", and "the Davies scale is unsuitable for most
+nonionic surfactants". So "HLB" names two incompatible quantities, and
+only Griffin ships, under that name.
+
+Its opening sentence is also the applicability predicate: Griffin defined
+HLB "for nonionic surfactants with polyoxyethylene as the sole
+hydrophilic moiety". That is a structural condition, and `hlb.py` answers
+it per molecule instead of carrying it as prose.
+
+### guo2006
+
+<a id="guo2006"></a>
+
+> X. Guo, Z. Rong & X. Ying, 'Calculation of hydrophile-lipophile balance for polyethoxylated surfactants by group contribution method', Journal of Colloid and Interface Science 2006;298:441-450.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/j.jcis.2005.12.009](https://doi.org/10.1016/j.jcis.2005.12.009) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-08-20 |
+| Licence | publisher |
+| Used by | `src/openchem/chem/hlb.py` |
+
+**Why it is reference only.** It is a Davies/ECL treatment and mentions Griffin ZERO times, so it
+cannot serve as the acceptance oracle for the Griffin implementation that
+ships -- see the note below. Consulted, and deliberately not scored
+against.
+
+**REFERENCE ONLY, AND DELIBERATELY NOT THE ACCEPTANCE ORACLE.**
+
+This paper was the obvious validation set -- 224 nonionic surfactants
+across its Tables 3 to 5, including the classic Span and Tween series --
+and using it that way would have been wrong. It mentions Griffin ZERO
+times: it is a Davies/ECL group-contribution treatment, and its reference
+column is manufacturer data, its own footnotes reading "The HLB values
+are obtained from the data reported by BASF Corp." and "...by ICI
+Americas Inc.", with Table 3's citing an unnamed reference.
+
+Scoring a Griffin implementation against it would compare two scales that
+[source:schott1989] shows differ substantially, and produce a
+disagreement that reads as an implementation bug. `hlb.py` checks against
+Schott's closed form instead.
+
+What it is cited FOR: that the scales are not interchangeable (its Table
+2 gives Davies-vs-ECL error), its group-number tables, and as the source
+a Davies implementation would start from if one is ever wanted.
+
+### stovall2015
+
+<a id="stovall2015"></a>
+
+> D. M. Stovall, A. Schmidt, C. Dai, S. Zhang, W. E. Acree Jr & M. H. Abraham, 'Abraham model correlations for estimating solute transfer of neutral molecules into anhydrous acetic acid from water and from the gas phase', Journal of Molecular Liquids 2015;212:16-22, Eq. (6).
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/j.molliq.2015.08.042](https://doi.org/10.1016/j.molliq.2015.08.042) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-20 |
+| Licence | publisher |
+| Used by | `src/openchem/chem/data/abraham_solvents.json`, `tools/build_abraham_tables.py` |
+
+THIS ENTRY EXISTS BECAUSE A DEFERRAL'S REASON ROTTED, and the reason is
+worth keeping beside the numbers.
+
+Acetic acid was asked for by name during the solubility work and was
+REFUSED, on two recorded grounds: only PREDICTED coefficients existed
+([source:bradley2015] predicts 202 further solvents and says of them they
+should not be taken "as gospel"), and propagating that paper's own
+out-of-bag errors put ordinary drugs at 1.34-2.04 log against this
+module's 1.0 ceiling -- caffeine a factor of 110. The predicted table is
+also the `c = 0` refit, which is the wrong parameterisation for the
+solubility equation because it carries no intercept.
+
+Both grounds are answered here. Eq. (6) is MEASURED over 68 compounds,
+prints a standard error on every coefficient, and carries an intercept:
+
+    log P = 0.175 + 0.174 E - 0.454 S - 1.073 A - 2.789 B + 3.725 V
+    N = 68, SD = 0.182, R2 = 0.980, F = 612.4
+
+Propagated the same way the refusal was, the measured errors give
+aspirin 0.55, ibuprofen 0.47, paracetamol 0.61, benzene 0.19 -- against
+1.57, 1.34, 1.76 and 0.51 for the predicted set.
+
+TYPED FROM THE PDF, NOT FETCHED. It is not open access, which is why the
+standard errors are carried in `solvent_standard_errors` rather than left
+in prose: a future reader can check the transcription against the paper
+without re-deriving which propagation was meant.
+
+THE PAPER'S SD IS NOT THIS MODULE'S BOUND, and the two must not be
+conflated. SD = 0.182 describes the FIT; `worst_case_uncertainty`
+propagates the SOLUTE's own measurement disagreement. Caffeine is still
+refused in acetic acid -- and in ethanol, toluene, hexane and chloroform
+too, because its descriptors come from two literature sources that
+disagree. That refusal is about caffeine and predates this entry.
 
 ### bradley2015
 
@@ -1442,6 +1810,65 @@ and never reach an even count. The vendored naming engine implements the
 2013 recommendations more broadly ([source:iupac_namer]).
 
 ## Reference tables
+
+### langes15
+
+<a id="langes15"></a>
+
+> J. A. Dean (ed.), Lange's Handbook of Chemistry, 15th ed.; McGraw-Hill: New York, 1999; p 4.35 (covalent radii).
+
+| | |
+| --- | --- |
+| Identifier | 978-0070163843 |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-20 |
+| Licence | publisher |
+| Local copy | `Langes Handbook of Chemistry/Section 04. Properties of Atoms, Radicals, and Bonds.pdf` (not checked) |
+| Used by | `src/openchem/chem/data/tsei_radii.json`, `tools/build_tsei_radii.py`, `src/openchem/chem/tsei.py`, `tests/test_tsei.py` |
+
+TABLE 4.7, "Covalent Radii for Atoms", p 4.35 -- the single-bond column,
+whose footnote is what makes it the right one: "Single-bond radii are for
+a tetrahedral (CN = 4) structure". 28 elements. Read from the book and
+confirmed against a 400 dpi render of that page rather than trusted to
+the text layer, per this project's transcription rule.
+
+THIS ENTRY WAS `reference_only` FOR ONE COMMIT, and what it recorded then
+is worth keeping: the book was not held, so every radius `chem/tsei.py`
+needed was instead RECOVERED by inverting a TSEI value [source:cao2004]
+prints. For a lone first-tier atom X, eq 8a collapses to
+`8 rho^3 / (1 + rho)^3` with `rho = R_X / R_C`, which inverts to a
+radius:
+
+    F   0.7449  ->  0.63997     Cl  1.4190  ->  0.99001
+    Br  1.6957  ->  1.14002     I   2.0265  ->  1.33000
+    H   from Me  = 1.0362  ->  0.30001
+    O   from MeO = 0.9505  ->  0.66000
+
+**THE BOOK AGREES WITH ALL SEVEN TO THE LAST DIGIT** -- 64, 99, 114, 133,
+30 and 66 pm, and carbon at **77.2** rather than a rounded 77, which is
+the extra digit the paper itself writes and what identifies this as the
+right table rather than a neighbouring one. Two routes sharing no step.
+
+The inversion is kept as a LIVE cross-check in `tests/test_tsei.py`
+rather than as history, so a mistyped radius for any of those seven fails
+against a printed TSEI. The other 21 have the book alone, and the shipped
+data says which is which.
+
+WHAT THE BOOK CHANGED: nitrogen (70 pm), sulfur (104) and phosphorus
+(110) are not among the substituents the paper tabulates, so the
+inversion could never have reached them and the TSEI projection refused
+every amine, thiol and phosphine. It does not now.
+
+The alternative NOT taken is worth naming: typing the values from a
+remembered Pauling table would be exactly the "fields nobody can check"
+failure this registry's own verification pass recorded -- six citation
+errors, every one in the field nothing could verify.
+
+ONLY THE SINGLE-BOND COLUMN IS CARRIED. The double- and triple-bond
+columns exist and are unused: [source:cao2004] takes one radius per
+element -- its chlorine example uses 0.99 whatever the bond order -- and
+eq 8a is stated per atom X with covalent radius R_X.
 
 ### allred1961
 

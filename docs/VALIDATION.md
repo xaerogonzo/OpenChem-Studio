@@ -471,20 +471,125 @@ distinguishable**. It did not ship. What *did* come out of that work was a
 real improvement found along the way — splitting the index on explicit
 hydrogens — which shipped instead.
 
-**Miller polarizability.** The parameters are unpublished. A reconstruction
-missed benzene by +27% and CCl₄ by −50%, so there was nothing to validate
-against.
+**Miller polarizability — SHIPPED, and the reason it was not is the
+clearest case of a rotted reason in this file.** It read "the parameters
+are unpublished", which was a claim about ChemAxon's documentation rather
+than about the literature: Miller 1990's Table I prints all twenty rows
+([source:miller1990]). Both recorded failures have causes now. The +27% on
+benzene is the `CBR` row, whose symbol reads as "carbon in a benzene ring"
+and means the opposite — [source:miller1979] says the π system in benzene
+"is directed only along two bonds", so benzene is `CTR` and `CBR` is for
+π-*branched* carbons; the wrong row gives +36%. The −50% on CCl₄ is the
+shape of using the wrong form: `α = (4/N)(Σ τ)²` squares a sum. With both
+right, benzene lands at +0.6% and CCl₄ at +0.2%.
 
-**HLB.** No formulas published, no worked example, and the reference
-implementation's default is a proprietary consensus method. Nothing to check
-a result against.
+**AND THE `CBR` RULE HAD TO BE READ TWICE.** [source:miller1990] p 8535
+states it as a hydrogen count — "CBR in trigonal carbon atoms **not bonded
+to hydrogen atoms**" — and its own Table II three pages later contradicts
+that on every case where the two differ: toluene's ipso carbon has no
+hydrogen and is `CTR`, styrene's ipso carbon has no hydrogen and is `CBR`,
+acetone's carbonyl carbon has no hydrogen and is `CTR`. The tables win, the
+rule is conjugation, and the hydrogen rule was implemented here for one
+commit on the strength of that sentence — it puts benzene at 13.99 against
+10.39. **Nine of the paper's printed assignments are now pinned as
+fixtures**, chosen because they separate the two candidate rules; only
+nitrobenzene disagrees, and that row is also one of the worst in Table II
+at −6.8%.
 
-**Abraham coefficients for 293 further solvents — acetic acid among them.**
-The source paper measures 91 solvents and *predicts* the rest, saying of
-those they should not be taken "as gospel". Only the measured 91 ship.
-Acetic acid was asked for by name and is refused with that reason rather
-than quietly filled in from the predicted table — the same call already made
-against Miller polarizability, HLB and TSEI.
+**HLB — SHIPPED as Griffin HLB, and only that.** The recorded reason was
+"No formulas published, no worked example, and the reference
+implementation's default is a proprietary consensus method. Nothing to
+check a result against." Three of those four clauses fell to one paper:
+[source:schott1989] prints Griffin's Eq. [1], its closed form Eq. [2] with
+worked constants, and Davies' group numbers. The fourth stands and is not
+chased — ChemAxon's default is proprietary, so agreeing with Marvin is
+unreachable.
+
+That paper also supplies the *reason the name is ambiguous*, which shaped
+what shipped: the Davies scale "differs substantially from the Griffin
+scale in the entire range of practical applications". So "HLB" names two
+incompatible quantities, and only Griffin ships, under that name, with an
+applicability predicate taken from the source's own opening sentence.
+
+**Cao–Liu TSEI — SHIPPED and REACHABLE, and the second pass corrected
+the first.** `topology_analysis` refused a "steric index" because the name
+covers several incompatible quantities, there was no identity to check
+against, and no reference value was found. [source:cao2004] answers the
+last two; the first still stands, so it ships as *Cao–Liu TSEI* and never
+as a bare "steric index".
+
+What the first pass shipped was **eq 7**, `Σ 1/L³`, which the paper derives
+one line after "For any alkyl, it only contains carbon and hydrogen atoms.
+When its hydrogen atoms are ignored, eq 4 also can be simplified to eq 6".
+On an all-carbon path that is the general form exactly, so Table 1's twenty
+values reproduced perfectly and nothing was wrong — off it, a first-tier
+chlorine came out 1.000 against the **1.4190** the paper derives in full.
+The general form (eq 8a) uses each atom's covalent radius over the
+**summed bond lengths** to the reaction centre.
+
+**18 of the 19 reachable printed values now reproduce**, across Tables 2, 4
+and 6 — the halogens, the ethers, the branched alkyls. Two further things
+the second reading found:
+
+- The second-tier figures "0.1250, 0.2500, and 0.3750" are a **straw man
+  the paper rejects**. It concludes three carbons on one carbon contribute
+  6.5 times one, and every TSEI it publishes after that uses it: t-Bu is
+  1.8125 in Table 2 and 1.8395 in Table 6, never 1.3750.
+- **Table 6's i-Pr = 1.3752 does not reproduce** and is recorded rather
+  than chased. The paper's own text, Table 2 and every i-Pr-bearing row of
+  Table 4 say 1.2500 with hydrogens ignored, which plus its seven
+  hydrogens is 1.2801. 1.3752 is within 0.0002 of 1.3750, t-Bu's
+  plain-additivity value in the table above it.
+
+**THE RADII HAVE TWO INDEPENDENT ROUTES, AND THEY AGREE TO THE LAST
+DIGIT.** The paper's radius source is Lange's Handbook 15th ed. Table 4.7,
+p 4.35 ([source:langes15]) — its own ref 18 — and it was not held when
+this shipped. Typing a remembered Pauling table would have been the
+"fields nobody can check" failure this project has already paid for, so
+every radius was instead **recovered by inverting a TSEI value the paper
+prints**: for a lone first-tier atom, eq 8a collapses to
+`8 ρ³/(1+ρ)³` with `ρ = R_X/R_C`.
+
+    F   0.7449  ->  0.63997     Cl  1.4190  ->  0.99001
+    Br  1.6957  ->  1.14002     I   2.0265  ->  1.33000
+    H   from Me = 1.0362  ->  0.30001
+    O   from MeO = 0.9505 ->  0.66000
+
+**The book gives 64, 99, 114, 133, 30 and 66 pm — and carbon at 77.2
+rather than a rounded 77**, which is the extra digit the paper itself
+writes and what identifies this as the right table rather than a
+neighbouring one. Seven for seven, from a transcription and a
+back-calculation that share no step. The inversion is kept as a LIVE
+cross-check rather than as history, so a mistyped radius for any of those
+seven fails against a printed TSEI.
+
+The book carries 28 elements, so nitrogen, sulfur and phosphorus are
+covered now — they have no printed TSEI to invert from, so the projection
+declined every amine, thiol and phosphine until the handbook arrived.
+**The equation is geometric and the validation is not**: `R³/l³` has no
+per-element fitting, so a radius is the only input any element needs, but
+Cao & Liu validated against alkyl, halogen and ether substituents, so a
+silver or mercury radius buys arithmetic rather than evidence.
+
+**Gutmann donor and acceptor numbers — SHIPPED from the classical tables.**
+The earlier assessment rejected [source:gutmann_frontiers2022] correctly —
+ionic liquids, and its own acceptor model failing — but that was a
+statement about one paper, not about the scales. [source:gutmann1976]
+carries both: 53 donicities and 32 acceptor numbers, transcribed from a
+300 dpi render because the OCR of a 1976 scan is actively wrong.
+
+**Abraham coefficients for 202 further solvents.** The source paper
+measures 91 and *predicts* the rest, saying of those they should not be
+taken "as gospel". Only measured ones ship.
+
+**Acetic acid is no longer among them, and its removal is the worked
+example of how these entries go stale.** It was asked for by name and
+refused here on two grounds: the predicted coefficients failed this
+module's own uncertainty bound (1.34–2.04 log on ordinary drugs), and the
+predicted table is the `c = 0` refit and so has no intercept. A *measured*
+set was later read from [source:stovall2015] — Eq. (6), N = 68,
+SD = 0.182 — which answers both, so it ships. The 117 names still listed
+predicted-only are refused on exactly the original grounds.
 
 **The Platts fragment scheme for Abraham solute descriptors.** It would
 work, and it is ~480 coefficients and ~132 hand-written SMARTS patterns —
@@ -495,9 +600,10 @@ is what shipped. Recorded here because two of the three reasons this
 project had written down for deferring non-aqueous solubility turned out to
 be **false on measurement**, and only the Platts one was real.
 
-**The TSEI steric index.** Several incompatible definitions in the
-literature and no reference value to gate against. Shipped omitted rather
-than guessed. The Szeged index, from the same batch, *did* ship — because it
+**The TSEI steric index — SUPERSEDED; see the Cao–Liu entry above.**
+This paragraph is kept because it is the entry that rotted: "no reference
+value to gate against" was true when written and false by 2004. The Szeged
+index, from the same batch, *did* ship — because it
 could be validated against a theorem.
 
 **Missing-residue repair.** Spiked with PDBFixer, measured, and rejected:

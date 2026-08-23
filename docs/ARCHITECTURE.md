@@ -404,6 +404,24 @@ it).
   "Details...". Hyperlinks, copy formatting, units and filtering are one
   widget to change rather than eight panels.
 
+- **Two ways to open something in its own window, and they are opposite.**
+  `FactView.open_in_window` builds a SECOND `FactView` on the same
+  report; `ui/widgets/pop_out_host.py` MOVES the existing widget into a
+  window and back. Both are right. A report is cheap to re-render and two
+  side by side is the use case, so copying is correct there. A 3D view is
+  stateful -- the camera angle the user has just set is the whole reason
+  they want it bigger -- so copying would hand them a default camera and
+  a second QtWebEngine process set, and moving is correct there.
+
+  The distinction is easy to lose, and losing it is silent: an agent
+  meeting `open_in_window()` will assume the `FactView` pattern. So the
+  rule is that for a stateful visualisation, the documentation and the
+  help contract must SAY which one it is -- `workspace.pop_out_view`'s
+  text is explicit that the view moves -- and it must never be inferred
+  from the button label. Re-parenting a `QWebEngineView` was measured
+  before any of it was built; `pop_out_host.py`'s docstring carries the
+  table.
+
 - **`ReportResult` replaced `AlertResult` for reports, not for alerts.**
   `AlertResult.matched` is a `list[str]` and had become the generic line
   carrier: 25 `alert_id`s, only four of them real catalogs, so four

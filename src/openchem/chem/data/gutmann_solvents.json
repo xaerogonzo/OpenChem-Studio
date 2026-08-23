@@ -1,0 +1,313 @@
+{
+ "_source_key": "gutmann1976",
+ "_supplementary_source_keys": [
+  "mayer1975"
+ ],
+ "attribution": "V. Gutmann, 'Solvent effects on the reactivities of organometallic compounds', Coordination Chemistry Reviews 1976;18:225-255, Tables 1 and 2. doi:10.1016/S0010-8545(00)82045-7. Transcribed from a 300 dpi render.",
+ "definitions": {
+  "dn": "Donor number (donicity), kcal/mol. DN = -dH for the adduct of the electron-pair donor with SbCl5, measured in dilute 1,2-dichloroethane.",
+  "bulk_dn": "BULK donicity, kcal/mol -- the donicity of the solvent in the associated liquid. The paper's footnote a. A DIFFERENT measurement from dn, not a variant of it: water is 18.0 dilute and 33.0 bulk.",
+  "an": "Acceptor number, dimensionless. From the 31P NMR shift of triethylphosphine oxide, on a two-point scale: hexane = 0, SbCl5 in 1,2-dichloroethane = 100.",
+  "p31_shift": "31P NMR shift of Et3P=O relative to Et3PO in hexane, ppm."
+ },
+ "spelling_variants": {
+  "dioxane": "dioxan",
+  "glyme": "dimethoxyethane"
+ },
+ "donor_numbers": {
+  "1,2-dichloroethane": {
+   "dn": null,
+   "note": "the medium DN is measured in"
+  },
+  "benzene": {
+   "dn": 0.1
+  },
+  "sulfuryl chloride": {
+   "dn": 0.1
+  },
+  "thionyl chloride": {
+   "dn": 0.4
+  },
+  "acetyl chloride": {
+   "dn": 0.7
+  },
+  "tetrachloroethylene carbonate": {
+   "dn": 0.8
+  },
+  "benzoyl fluoride": {
+   "dn": 2.3
+  },
+  "benzoyl chloride": {
+   "dn": 2.3
+  },
+  "nitromethane": {
+   "dn": 2.7
+  },
+  "dichloroethylene carbonate": {
+   "dn": 3.2
+  },
+  "nitrobenzene": {
+   "dn": 4.4
+  },
+  "acetic anhydride": {
+   "dn": 10.5
+  },
+  "phosphorus oxychloride": {
+   "dn": 11.7
+  },
+  "benzonitrile": {
+   "dn": 11.9
+  },
+  "selenium oxychloride": {
+   "dn": 12.2
+  },
+  "acetonitrile": {
+   "dn": 14.1
+  },
+  "sulpholane": {
+   "dn": 14.8
+  },
+  "dioxan": {
+   "dn": 14.8
+  },
+  "propanediol-1,2-carbonate": {
+   "dn": 15.1
+  },
+  "benzyl cyanide": {
+   "dn": 15.1
+  },
+  "ethylene sulphite": {
+   "dn": 15.3
+  },
+  "iso-butyronitrile": {
+   "dn": 15.4
+  },
+  "propionitrile": {
+   "dn": 16.1
+  },
+  "ethylene carbonate": {
+   "dn": 16.4
+  },
+  "phenylphosphonic difluoride": {
+   "dn": 16.4
+  },
+  "methyl acetate": {
+   "dn": 16.5
+  },
+  "n-butyronitrile": {
+   "dn": 16.6
+  },
+  "acetone": {
+   "dn": 17.0
+  },
+  "ethyl acetate": {
+   "dn": 17.1
+  },
+  "water": {
+   "dn": 18.0,
+   "bulk_dn": 33.0
+  },
+  "phenylphosphonic dichloride": {
+   "dn": 18.5
+  },
+  "diethyl ether": {
+   "dn": 19.2
+  },
+  "tetrahydrofuran": {
+   "dn": 20.0
+  },
+  "diphenylphosphonic chloride": {
+   "dn": 22.4
+  },
+  "trimethyl phosphate": {
+   "dn": 23.0
+  },
+  "tributyl phosphate": {
+   "dn": 23.7
+  },
+  "dimethoxyethane": {
+   "dn": 24.0,
+   "approximate": true
+  },
+  "dimethylformamide": {
+   "dn": 26.6
+  },
+  "n-methyl-e-caprolactam": {
+   "dn": 27.1
+  },
+  "n-methyl-2-pyrrolidinone": {
+   "dn": 27.3
+  },
+  "n,n-dimethylacetamide": {
+   "dn": 27.8
+  },
+  "dimethyl sulphoxide": {
+   "dn": 29.8
+  },
+  "n,n-diethylformamide": {
+   "dn": 30.9
+  },
+  "n,n-diethylacetamide": {
+   "dn": 32.2
+  },
+  "pyridine": {
+   "dn": 33.1
+  },
+  "hexamethylphosphoramide": {
+   "dn": 38.8
+  },
+  "hydrazine": {
+   "bulk_dn": 44.0
+  },
+  "ethylenediamine": {
+   "bulk_dn": 55.0
+  },
+  "ethylamine": {
+   "bulk_dn": 55.5
+  },
+  "isopropylamine": {
+   "bulk_dn": 57.5
+  },
+  "t-butylamine": {
+   "bulk_dn": 57.5
+  },
+  "ammonia": {
+   "bulk_dn": 59.0
+  },
+  "triethylamine": {
+   "dn": 61.0
+  }
+ },
+ "acceptor_numbers": {
+  "hexane": {
+   "an": 0.0,
+   "p31_shift": 0.0,
+   "note": "the AN scale's zero"
+  },
+  "diethyl ether": {
+   "an": 3.9,
+   "p31_shift": -1.64
+  },
+  "tetrahydrofuran": {
+   "an": 8.0,
+   "p31_shift": -3.39
+  },
+  "benzene": {
+   "an": 8.2,
+   "p31_shift": -3.49
+  },
+  "carbon tetrachloride": {
+   "an": 8.6,
+   "p31_shift": -3.64
+  },
+  "diglyme": {
+   "an": 9.9,
+   "p31_shift": -4.2
+  },
+  "hexamethylphosphoramide": {
+   "an": 10.6,
+   "p31_shift": -4.5
+  },
+  "acetone": {
+   "an": 12.5,
+   "p31_shift": -5.33
+  },
+  "n-methyl-2-pyrrolidinone": {
+   "an": 13.3,
+   "p31_shift": -5.65
+  },
+  "n,n-dimethylacetamide": {
+   "an": 13.6,
+   "p31_shift": -5.8
+  },
+  "pyridine": {
+   "an": 14.2,
+   "p31_shift": -6.04
+  },
+  "nitrobenzene": {
+   "an": 14.8,
+   "p31_shift": -6.32
+  },
+  "benzonitrile": {
+   "an": 15.5,
+   "p31_shift": -6.61
+  },
+  "dimethylformamide": {
+   "an": 16.0,
+   "p31_shift": -6.82
+  },
+  "dichloroethylene carbonate": {
+   "an": 16.7,
+   "p31_shift": -7.11
+  },
+  "propanediol-1,2-carbonate": {
+   "an": 18.3,
+   "p31_shift": -7.77
+  },
+  "acetonitrile": {
+   "an": 18.9,
+   "p31_shift": -8.04
+  },
+  "dimethyl sulphoxide": {
+   "an": 19.3,
+   "p31_shift": -8.22
+  },
+  "dichloromethane": {
+   "an": 20.4,
+   "p31_shift": -8.67
+  },
+  "nitromethane": {
+   "an": 20.5,
+   "p31_shift": -8.74
+  },
+  "chloroform": {
+   "an": 23.1,
+   "p31_shift": -9.83
+  },
+  "isopropanol": {
+   "an": 33.5,
+   "p31_shift": -14.26
+  },
+  "ethanol": {
+   "an": 37.1,
+   "p31_shift": -15.8
+  },
+  "formamide": {
+   "an": 39.8,
+   "p31_shift": -16.95
+  },
+  "methanol": {
+   "an": 41.3,
+   "p31_shift": -17.6
+  },
+  "acetic acid": {
+   "an": 52.9,
+   "p31_shift": -22.51
+  },
+  "water": {
+   "an": 54.8,
+   "p31_shift": -23.35
+  },
+  "trifluoroacetic acid": {
+   "an": 105.3,
+   "p31_shift": -44.83
+  },
+  "methanesulphonic acid": {
+   "an": 126.3,
+   "p31_shift": -53.77
+  },
+  "antimony pentachloride in dichloroethane": {
+   "an": 100.0,
+   "p31_shift": -42.58,
+   "note": "the AN scale's 100 -- a reference, not a solvent"
+  },
+  "dioxan": {
+   "an": 10.8,
+   "p31_shift": -4.59
+  },
+  "dimethoxyethane": {
+   "an": 10.2,
+   "p31_shift": -4.35
+  }
+ }
+}

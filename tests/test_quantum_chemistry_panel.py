@@ -43,6 +43,21 @@ def _make_panel():
     return panel, engine, service
 
 
+def _dispose_panel(panel) -> None:
+    """Destroy one panel deterministically.
+
+    PER WIDGET, never `sendPostedEvents(None, DeferredDelete)`: the global
+    form drains every pending deferred delete in the process, including
+    ones other test files left queued.
+    """
+    from PySide6.QtCore import QCoreApplication, QEvent
+
+    panel.setParent(None)
+    panel.deleteLater()
+    QCoreApplication.sendPostedEvents(panel, QEvent.Type.DeferredDelete)
+
+
+
 def test_run_refuses_a_molecule_with_no_conformer(qapp):
     """Regression test: confirmed live against a real ORCA install that
     running straight off molecule.molblock (from SMILES import or the 2D
@@ -581,3 +596,150 @@ def test_the_hybrid_tab_picks_each_atoms_less_wrong_method(qapp, monkeypatch):
     summary = panel._hybrid_summary_label.text()
     assert "1 ORCA (scaled)" in summary and "1 trusted lookup" in summary
     assert "calibration check passed against 1 trusted values" in summary
+
+
+# --- detached views and the tab machinery ----------------------------------
+#
+# The correlation plots are built eagerly in `__init__`, so their hosts
+# exist without a job having run -- which is what makes these testable
+# without an ORCA backend.
+
+
+def _a_correlation_host(panel):
+    """One PopOutHost from a correlation tab, with its tab index."""
+    from openchem.ui.widgets.pop_out_host import PopOutHost
+
+    for index in range(panel._correlation_tabs.count()):
+        tab = panel._correlation_tabs.widget(index)
+        hosts = tab.findChildren(PopOutHost)
+        if hosts:
+            return index, tab, hosts[0]
+    raise AssertionError("no correlation tab carries a PopOutHost")
+
+
+def test_a_detached_view_survives_switching_to_another_tab(qapp):
+    """LOOKING AWAY IS NOT A RESET.
+
+    Switching tab, switching dock, hiding the dock and floating it are
+    all `hideEvent` on the tab page. If `PopOutHost` grew a `hideEvent`
+    hook -- which is the obvious way to write "put it back when the panel
+    goes away" -- the window would snap shut every time the user glanced
+    at another tab, which is the opposite of why anyone detaches a view.
+    """
+    panel, _engine, _service = _make_panel()
+    index, _tab, host = _a_correlation_host(panel)
+
+    # THE PANEL IS SHOWN, and that is the whole test.
+    #
+    # The first version of this did not show it, and a `hideEvent` hook
+    # mutation walked straight through: a widget that was never shown
+    # receives no hide events at all, so the guard was asserting on code
+    # that never ran. Mutation is what found it -- the test read
+    # perfectly well and proved nothing.
+    panel._correlation_tabs.setVisible(True)
+    panel.show()
+    panel._correlation_tabs.setCurrentIndex(index)
+    qapp.processEvents()
+    assert host.isVisible(), "setup: the host must be on screen before it can be hidden"
+
+    host.pop_out()
+
+    other = (index + 1) % panel._correlation_tabs.count()
+    panel._correlation_tabs.setCurrentIndex(other)
+    qapp.processEvents()
+
+    # SETUP ASSERTION: switching the tab really did hide the host. Without
+    # this the claim below is about a hide that never happened.
+    assert not host.isVisible(), "setup: switching tabs did not hide the host"
+
+    assert host.is_popped_out(), "switching tabs must not bring a detached view home"
+
+    host.return_home()
+    _dispose_panel(panel)
+
+
+def test_resetting_the_empty_states_brings_a_detached_view_home(qapp):
+    """A NEW JOB IS A SEMANTIC RESET, and this is the one thing that
+    returns a view.
+
+    Without it, starting a job blanks the tab back to its placeholder
+    while a window on another monitor goes on showing the PREVIOUS run's
+    result -- a stale picture with nothing anywhere saying so. Hiding the
+    host does not close the window its content is sitting in.
+    """
+    panel, _engine, _service = _make_panel()
+    _index, _tab, host = _a_correlation_host(panel)
+    content = host.content()
+    host.pop_out()
+    assert host.is_popped_out()
+
+    panel._reset_empty_states()
+
+    assert not host.is_popped_out()
+    assert content.parentWidget() is host
+    _dispose_panel(panel)
+
+
+def test_the_host_is_reusable_after_a_reset(qapp):
+    """A one-shot state machine passes a test that only ever goes out
+    once, so this goes out, is reset, and goes out again."""
+    panel, _engine, _service = _make_panel()
+    _index, _tab, host = _a_correlation_host(panel)
+
+    first = host.pop_out()
+    panel._reset_empty_states()
+    second = host.pop_out()
+
+    assert second is not first
+    assert host.is_popped_out()
+
+    host.return_home()
+    _dispose_panel(panel)
+
+
+def test_the_placeholder_message_is_not_shadowed_by_a_pop_out_host(qapp):
+    """`empty_message_for_tab` returns the FIRST `is_empty_state` widget it
+    finds anywhere under a tab, via `findChildren`.
+
+    So building `PopOutHost`'s "showing in its own window" placeholder
+    with `empty_state()` -- the helper whose name sounds exactly right --
+    would put a hidden marked label inside every host, and every wrapped
+    tab would start answering for itself with the pop-out's message
+    instead of its own. It is a plain `QLabel` for that reason.
+    """
+    panel, _engine, _service = _make_panel()
+
+    for index in range(panel._correlation_tabs.count()):
+        message = panel.empty_message_for_tab(index)
+        assert "own window" not in message, (
+            f"tab {index} is answering with a pop-out placeholder: {message!r}"
+        )
+
+    # ...and the real messages are still there, so this is not passing
+    # because every tab went silent.
+    messages = [
+        panel.empty_message_for_tab(index)
+        for index in range(panel._correlation_tabs.count())
+    ]
+    assert all(text.strip() for text in messages), messages
+    _dispose_panel(panel)
+
+
+def test_wrapping_a_view_does_not_change_the_tabs_content_classification(qapp):
+    """The integration invariant for this panel, stated directly.
+
+    `_content_of` walks `tab.children()` -- DIRECT children only -- so a
+    host becomes that direct child and `_fill_tab` goes on showing and
+    hiding exactly one thing. This works BECAUSE the host is a real
+    widget in the tab rather than a transparent wrapper, and it is the
+    property that would break first if somebody made it one.
+    """
+    panel, _engine, _service = _make_panel()
+    index, tab, host = _a_correlation_host(panel)
+
+    state, content = panel._content_of(tab)
+    assert host in content, "the host must be the tab's own direct child"
+    assert state is None or not any(
+        host.isAncestorOf(widget) for widget in [state]
+    ), "the placeholder must not have ended up inside the host"
+    _dispose_panel(panel)

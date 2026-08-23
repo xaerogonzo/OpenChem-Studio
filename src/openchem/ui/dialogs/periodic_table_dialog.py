@@ -73,6 +73,7 @@ from openchem.chem import nuclides as nuclide_data
 from openchem.chem.decay import decay_tree, format_branching, format_mode
 from openchem.chem.decay_svg import legend_lines, render_decay_svg
 from openchem.ui.widgets.zoomable_svg_view import ZoomableSvgView
+from openchem.ui.widgets.screen_fit import fit_within
 from openchem.chem.element_reference import ElementFacts, all_symbols, facts_for, grid_position
 
 #: 137 CONTROLS, 15 CONCEPTS, and the ratio is the whole story: 118 of
@@ -1268,12 +1269,6 @@ def _escape_html(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-#: How much of the screen the table may claim when it opens. Not the
-#: whole of it: a window flush against every edge is hard to move, and
-#: the height leaves room for a title bar the geometry does not include.
-_SCREEN_FRACTION = (0.95, 0.92)
-
-
 #: The grid's cell size, at its most and least comfortable. The upper
 #: pair is what shipped and what a 1920-wide screen still gets; the lower
 #: is the smallest at which the atomic number, the symbol and a heatmap
@@ -1329,21 +1324,6 @@ def cell_size_for(available_width: int, available_height: int) -> tuple[int, int
     if available_width < 18 * width:
         width = max(small_w, available_width // 18)
     return max(small_w, width), max(small_h, height)
-
-
-def fit_within(
-    width: int, height: int, available_width: int, available_height: int
-) -> tuple[int, int]:
-    """An opening size that fits the screen, as a pure function.
-
-    Pure so it can be tested at all: the suite's `offscreen` platform
-    reports an 800x800 screen, where this dialog's own minimum is larger
-    still, so nothing observable distinguishes calling it from not.
-    """
-    return (
-        min(width, int(available_width * _SCREEN_FRACTION[0])),
-        min(height, int(available_height * _SCREEN_FRACTION[1])),
-    )
 
 
 def _ramp(position: float) -> str:

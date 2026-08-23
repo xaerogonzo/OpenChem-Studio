@@ -22,21 +22,28 @@ by accident.
     for n-butane. A promising-looking name that turned out to be a
     different quantity entirely.)
 
-STILL DELIBERATELY ABSENT -- the topological steric effect index (TSEI).
-Unlike Szeged, "steric index" genuinely names several mutually
-incompatible quantities in the literature, there is no identity to check
-an implementation against, and no reference value was found. Shipping a
-number under a recognised name that disagrees with every other tool
-reporting that name would be worse than not shipping it.
+THE TOPOLOGICAL STERIC EFFECT INDEX HAS SINCE SHIPPED, in
+`chem/tsei.py`, and this paragraph used to say it never would. The reason
+recorded here was that "steric index" names several incompatible
+quantities and that "no reference value was found" -- the first half is
+still true and is why that module ships under the name **Cao-Liu TSEI**
+and never the bare one; the second half was simply out of date. Cao & Liu
+2004 print exact values for twenty normal alkyls and for the halogens,
+ethers and branched alkyls, and 18 of the 19 reachable ones reproduce.
 
-TSEI IS NOT RELATED TO THE SZEGED INDEX, despite both being distance-
-matrix quantities and both having been deferred together. Szeged counts
-atoms by which end of a bond they are nearer -- pure connectivity, no
-chemistry. TSEI weights paths by atomic radii to approximate through-space
-bulk from the graph alone. Adding Szeged therefore unblocks nothing here.
-The 3D steric measures are a separate question again, and further along --
-see `geometry_analysis`, which records live results for the Tolman cone
-angle and percent buried volume against their published values.
+A deferral's REASONS rot independently of its verdict, which is a lesson
+this project has now paid for six times.
+
+IT IS STILL NOT PART OF THIS REPORT, and that is a scoping decision
+rather than a leftover. Szeged counts atoms by which end of a bond they
+are nearer -- pure connectivity, no chemistry, one number per molecule.
+TSEI weights paths by atomic radii toward a NAMED REACTION CENTRE, so it
+is not defined without one and is per-atom by nature; it is registered as
+its own per-atom calculator ("Cao-Liu TSEI projection") rather than as a
+line here. The 3D steric measures are a separate question again, and
+further along -- see `geometry_analysis`, which records live results for
+the Tolman cone angle and percent buried volume against their published
+values.
 """
 
 from __future__ import annotations

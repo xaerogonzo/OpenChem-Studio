@@ -965,6 +965,188 @@ so the camera framed nothing, and Mol*'s UI chrome is ~57% of the window.
 With a structure loaded and the count cropped to the 3D canvas, 16778 ->
 20270 (+20.8%).
 
+## POPPING A VIEW OUT: the widget MOVES, and that was measured first
+
+Reported against 3D Alignment: two molecules aligned on a common
+scaffold, and "the 3d conformer is contained in that tiny area". The
+overlay IS that panel's entire output and it renders into a strip about
+400x90 px, because a settings group box, a 160 px result table and the
+style row are all fixed height above it in a dock that opens at 420.
+
+`ui/widgets/pop_out_host.py` is the mechanism. `PopOutHost` wraps one
+view, puts a `↗` button in a thin header row, and moves the widget into a
+`PopOutWindow` and back. Six sites use it: the alignment overlay, and
+Quantum Chemistry's Surfaces, IR, 1D Signals and three correlation plots.
+
+**IT MOVES THE WIDGET; `FactView.open_in_window` COPIES ITS VIEW. Both
+are right, and the difference is the thing to keep.** A report is cheap
+to re-render and two side by side is the use case. A 3D view is stateful
+-- the camera angle the user just set is the whole reason they want it
+bigger -- so copying hands them a default camera and a second
+QtWebEngine process set.
+
+**THE RULE, because an agent meeting `open_in_window()` will assume the
+`FactView` pattern:** for a stateful visualisation the documentation and
+the help contract must SAY which one it is. `workspace.pop_out_view`'s
+text is explicit that the view moves. Never infer it from a label.
+
+### RE-PARENTING A `QWebEngineView` SURVIVES, and nothing here had ever done it
+
+Measured before a line was written, on a real display, with an ensemble
+loaded and the camera turned to a distinctive angle:
+
+    stage                    identity   parent chain              ink%  black%
+    docked                   same       View -> host -> panel     10.5  0.2
+    detached                 same       View -> QDialog -> ...    10.7  0.2
+    drag while detached      --         camera MOVED              --    --
+    returned                 same       View -> host -> panel      9.7  0.1
+    3x round trip            same       stable                     9.0  0.2
+    destroyed after return   ALIVE      View -> host -> panel      9.7  0.1
+
+The camera quaternion came back byte-identical across the move, a
+synthetic drag landed while detached, and the canvas genuinely re-laid
+out -- 796x596 -> 1800x1400 -> 796x596 -- rather than freezing on a last
+frame, which is what distinguishes a live page from a stale one.
+
+**BLACK FRACTION IS COUNTED SEPARATELY FROM INK**, because a failed
+render is a BLACK canvas and scores as heavily inked; this file already
+records that metric being read backwards once, at 94875 against 3067.
+
+**READ THE PAGE'S OWN CANVAS, not the widget.** A `QWebEngineView`
+renders out of process, so 3Dmol's `viewer.pngURI()` is the honest
+source and `widget.grab()` is not.
+
+### THE LIFECYCLE: three states, four transitions, nothing else
+
+                        pop_out()
+            DOCKED  ---------------->  DETACHED
+              |     <----------------      |
+              |      return_home()         |
+              |      window closed         |
+              |                            |
+              |   owner destroyed          |  owner destroyed
+              +----------> DISPOSING <-----+
+
+**"LOOKED AWAY FROM" AND "DESTROYED" ARE DIFFERENT THINGS**, and the
+first draft of this design conflated them -- it said the owner being
+destroyed "returns the view home", which is incoherent once there is no
+home to return to. Six Qt events mean "the panel went away" and only two
+bring the view back:
+
+    another dock selected                stays open
+    another tab selected                 stays open
+    the dock hidden or closed            stays open (retained, not destroyed)
+    the dock floated                     stays open
+    a new job / the result cleared       RETURNS HOME (a semantic reset)
+    the owner destroyed / app shutdown   DISPOSING, no restore
+
+Which is why there is deliberately **NO `hideEvent` hook**: the first
+four rows are all `hideEvent`, so a hideEvent-driven return snaps the
+window shut every time the user glances at another tab.
+
+**THE WINDOW IS PARENTED TO THE HOST**, which is what makes `DISPOSING` a
+cascade rather than a policy somebody has to remember: panel -> host ->
+window -> content, one direction, nothing dangling. An unparented window
+outlives its owner, which is the one forbidden outcome.
+
+### `finished` IS THE PRIMARY HOOK AND `closeEvent` IS NOT
+
+A review proposed driving the restore from `PopOutWindow.closeEvent()`
+with `finished` as a backstop. It is the wrong way round, and it leaks
+the Escape key:
+
+    the X button   close() -> QCloseEvent -> QDialog::closeEvent
+                   -> reject() -> done() -> finished
+    Escape         keyPressEvent -> reject() -> done() -> finished
+                   ... and NO QCloseEvent at all
+
+So `closeEvent` alone silently leaves the content inside a hidden window.
+`closeEvent` is kept as an additional EARLIER hook on the X path, and
+`return_home` is idempotent so both firing is harmless.
+`test_escape_returns_the_view_even_though_it_sends_no_close_event` is the
+guard, and it is the only thing that catches the closeEvent-only
+mutation.
+
+### VIEW CONTROLS STAY IN THE PANEL; the window gets only a Return button
+
+Alignment's `Style:` combo stays in the dock and goes on driving the
+detached overlay, because `Mol3DViewerBackend` holds the page and the
+channel rather than the parent widget. That falls out of the existing
+design rather than being built, which is exactly why it needs an
+assertion -- free today, easy to break.
+
+A duplicate control in the window would be two widgets for one setting.
+The header row therefore never moves, and a header widget that already
+belongs to another layout is REFUSED in the constructor, because the
+silent mistake is
+
+    layout.addWidget(style_combo)          # still there
+    PopOutHost(..., header=[style_combo])  # and now here too
+
+which Qt honours by stealing it and leaving a hole.
+
+**THE BUTTON COSTS THE PANEL NOTHING.** Measured either side of the
+change, since a `QHBoxLayout`'s minimum is the SUM of its children and
+this file's worst layout bug came from exactly that: the alignment
+panel's minimum is **297 x 392 before and after**. The note label in the
+settings box sets it; the header row has slack.
+
+### A PLAIN `QLabel` PLACEHOLDER, NEVER `empty_state()`
+
+`QuantumChemistryPanel.empty_message_for_tab` returns the first
+`is_empty_state` widget it finds anywhere under a tab, via
+`findChildren`. Building the "showing in its own window" placeholder with
+the helper whose NAME sounds right would put a hidden marked label inside
+every host, and every wrapped tab would start answering for itself with
+the pop-out's message. Two guards, one at each end.
+
+### THE SECOND GLYPH WAS AN EMOJI, and only the magnified shot said so
+
+The button first showed `U+2B1C WHITE LARGE SQUARE` while detached. All
+22 tests passed, `--missing` said "Nothing matched", and a 3x crop of the
+running app showed a **lavender emoji square** in the panel chrome.
+Windows resolves that codepoint to a colour emoji font; `U+25FB`,
+`U+29C9` and `U+1F5D6` all do the same.
+
+**A PROBE THAT COUNTS COLOURED PIXELS CANNOT SETTLE IT.** At button size
+ClearType's sub-pixel fringes are genuinely coloured, so an unassigned
+control codepoint scored as "drew, in colour" too and the probe could not
+discriminate. `QFontMetrics.inFont()` is no help either, for the reason
+this file already records. **The screenshot was the oracle.**
+
+The state is not carried by a glyph at all now: `setChecked` is drawn by
+the platform style, is themed, and cannot be missing from a font.
+`U+2197` is kept for both states because it was confirmed in a screenshot
+of the real application at the real size.
+
+### THE MUTATION PASS FOUND A VACUOUS GUARD, as it usually does
+
+Nine arms, nine caught, each by the intended guard and each running the
+full 96 -- but **M5 only after the guard it was aimed at was repaired**.
+`test_a_detached_view_survives_switching_to_another_tab` never showed its
+panel, and **a widget that was never shown receives no hide events at
+all**, so it passed with a `hideEvent` hook installed and without one.
+It shows the panel now and asserts its own setup -- that switching the
+tab really did hide the host -- because otherwise the claim is about a
+hide that never happened.
+
+This is the same lesson as `repaint()` and `resize()` on an unshown
+widget, one event along.
+
+### THE DRIVE STEPS, and the trap in the first run
+
+`{"do": "align"}` and `{"do": "pop_out", "panel": "3D_Alignment"}` --
+note the UNDERSCORE, since `_dock_by_panel_id` matches
+`dock.objectName()`. `{"do": "shot", "widget": "popout"}` photographs the
+detached window.
+
+**NAME THE REFERENCE.** The first run reported "Ensemble alignment
+failed" and read as a bug in the panel: with no reference named, the
+combo sits at index 0, which is the STARTER MOLECULE, and it has no
+molblock. Same shape as the `smiles`/`conformers` trap already recorded
+-- a step that does not select what it added. The failure also made the
+detached screenshot 4.6 KB against 63 KB, which is how it was noticed.
+
 ## A HORIZONTAL ROW'S MINIMUM IS THE SUM, and it set the whole window's
 
 Reported as "the rightmost tab ... will change size, and even became
@@ -1271,7 +1453,163 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `5206 passed, 15 skipped`
+A clean run is **6-19 minutes**, ending at `5559 passed, 15 skipped`
+(measured 2026-08-20, **13m27**, on `make-the-new-science-reachable` --
+wiring PR #41's four unreachable modules, and the three defects that
+surfaced doing it.
+
+**+185 collected and 5 REMOVED**, over two measurements, diffed both
+directions in a detached worktree with the `PYTHONPATH` override
+asserted before the count was believed:
+
+    branch point   d29a077   COLLECTS 5394
+    the wiring               COLLECTS 5567   = 5394 + 175 - 2
+    the handbook             COLLECTS 5574   = 5567 +  10 - 3
+    the run                           5559 passed + 15 skipped = 5574
+
+**ALL FIVE REMOVALS ARE RENAMES WITH NAMED SUCCESSORS**, which is the
+whole reason to diff rather than subtract, and three of them are one
+event: Lange's Handbook arriving turned "no page-verified radius" into
+"an element the book does not tabulate", so every fixture keyed on the
+first wording had to be re-pointed at an element the BOOK stops short of
+rather than one this project could not check.
+
+    test_a_second_tier_atom_contributes_the_increment_the_paper_states
+      -> test_tert_butyl_carries_the_papers_own_crowding_correction
+      +  test_two_branches_are_not_corrected_and_table_4_is_why
+    test_hydrogens_are_ignored_as_the_paper_simplifies
+      -> test_hydrogens_are_excluded_by_default_as_eq_6_simplifies
+    test_an_element_with_no_page_verified_radius_is_refused
+      -> test_an_element_the_book_does_not_tabulate_is_refused
+    test_every_shipped_radius_says_which_printed_value_it_came_from
+      -> test_every_shipped_radius_carries_its_row_from_the_book
+    test_the_registry_refuses_tsei_on_an_element_with_no_verified_radius
+      -> ..._on_an_element_the_book_does_not_tabulate
+
+The first is the sharpest: it asserted t-Bu = 1.3750 from a sentence the
+paper prints and then REJECTS, so its successors assert 1.8125 and keep
+the two-branch case plain.
+
+The 185 reconcile: 64 in the new `test_calculator_reachability.py`, 44 in
+`test_tsei.py` across both commits, 34 in the new `test_gutmann_bridge.py`,
+11 in `test_polarizability_miller.py` for the paper's printed hybrid
+assignments, 10 in the new `test_griffin_hlb_calculator.py`, 9 in the new
+`test_rescued_science_end_to_end.py`, 7 for the polarizability methods, 5
+for the calculator-claim guard and 2 from the new `langes15` registry
+entry.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line,
+which is the pair this file insists on rather than an absence of FAILED
+lines. The two `DeprecationWarning`s are the same pre-existing
+six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**AN EARLIER RUN OF THIS FIGURE WAS THROWN AWAY AT 25%**, and the reason
+is this file's own rule applied to itself: it was started, and then
+CLAUDE.md and `docs/VALIDATION.md` were edited while it ran.
+`test_docs_are_current.py` READS CLAUDE.md. The rule is not "do not edit
+`src/`" -- it is "do not edit anything the suite reads".
+
+**FOURTEEN MUTATION ARMS, ALL CAUGHT**, and two needed repairing first.
+One found a real gap -- a plausible declared `TOTAL` on the TSEI
+projection passed every guard in `test_declared_totals.py` AND every
+guard in `test_tsei.py`, so that calculator joined the named list. The
+other was not a mutation at all: `{...} if False else decline_total(...)`
+changes no behaviour and scored a confident SURVIVED, which is the fifth
+instance of that lesson here.
+
+13m27 sits mid-band; the 6-19 range stands.)
+
+Before it: `5379 passed, 15 skipped`
+(measured 2026-08-20, **14m35**, on `dialogs-driven-and-documented` at
+`95877c6` -- the deferred backlog: a layout guard, pop-out persistence,
+and five rotted deferral reasons.
+
+**+143 collected and 1 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed:
+
+    branch before   f24be24   COLLECTS 5252
+    after           95877c6   COLLECTS 5394   = 5252 + 143 - 1
+    the run                            5379 passed + 15 skipped = 5394
+
+**THE ONE REMOVAL IS A RENAME WITH A NAMED SUCCESSOR**, which is the
+whole reason to diff rather than subtract. The test asserting that acetic
+acid is absent from the solvent table "and that is deliberate" asserted
+the opposite of what is now true, and **was right when it was written**:
+the only coefficients that existed were predicted. Its successor is
+`test_acetic_acid_is_present_now_and_the_refusal_is_history`, which says
+so in its docstring, and four more acetic-acid guards landed beside it.
+What changed was the literature, not the standard.
+
+(And naming the OLD test here is what reddened `test_docs_are_current`
+on the first attempt at this entry -- a doc may not cite a test the same
+branch deleted, which is the trap this file already records one section
+along. Cite the successor.)
+
+The 143 reconcile to the nine commits: 46 in the new
+`tests/test_tsei.py` (Table 1 parametrised twice over n = 1..20), 27 in
+`test_gutmann.py`, 21 each in `test_polarizability_miller.py` and
+`test_hlb.py`, 10 in `test_sources_are_current.py` (8 new registry
+entries plus 2 new data tables, each parametrised), 7 in
+`test_abraham.py`, 4 each in `test_right_dock_width.py` and
+`test_pop_out_host.py`, and 3 in `test_structure_check_panel.py`.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line,
+which is the pair this file insists on rather than an absence of FAILED
+lines. The two `DeprecationWarning`s are the same pre-existing
+six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**FORTY MUTATION ARMS, ALL CAUGHT**, and three are worth naming because
+they reconstruct recorded failures rather than inventing new ones: the
+2026-08-15 `_LAYOUT_VERSION` omission, Miller's +27% on benzene, and its
+-50% on CCl4. **And one arm found a vacuous guard again** -- the
+Structure Check tests asserted the pop-out MECHANISM while a call site
+could steal the widget back out of its host, leaving an empty strip with
+an orphaned button; all 47 of that panel's tests passed with it applied.
+
+14m35 sits mid-band; the 6-19 range stands.)
+
+Before it: `5237 passed, 15 skipped`
+(measured 2026-08-20, **14m51**, on `dialogs-driven-and-documented` at
+`366640d` -- popping a cramped view out into its own window.
+
+**+31 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed:
+
+    branch before   05018fe   COLLECTS 5221
+    after           366640d   COLLECTS 5252   = 5221 + 31
+    the run                            5237 passed + 15 skipped = 5252
+
+Every one of the 31 reconciles to this commit: 24 in the new
+`tests/test_pop_out_host.py` (26 items -- the `fit_within` table is
+parametrised three ways), 5 in `test_quantum_chemistry_panel.py` for the
+tab machinery, and 3 in `test_alignment_panel.py` for the reported
+panel.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line,
+which is the pair this file insists on rather than an absence of FAILED
+lines. The two `DeprecationWarning`s are the same pre-existing
+six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**A GUARD IN THIS BATCH PASSED WHILE TESTING NOTHING, and only mutation
+said so.** `test_a_detached_view_survives_switching_to_another_tab`
+never showed its panel, and a widget that was never shown receives no
+hide events at all -- so it was green with a `hideEvent` hook installed
+and without one. Nine mutation arms, nine caught, but that one only
+after the guard it was aimed at was repaired to show the panel and
+assert its own setup. Same lesson as `repaint()` and `resize()` on an
+unshown widget, one event along.
+
+14m51 sits mid-band; the 6-19 range stands.)
+
+Before it: `5206 passed, 15 skipped`
 (measured 2026-08-19, **14m57**, on `dialogs-driven-and-documented` at
 `6480834` -- the dialog inventory and its drive step, the screening
 table's clipped header, and the help contracts reaching every dialog a
@@ -7398,6 +7736,441 @@ and eighth entries in this file's running count of that:
   from "stable" by two leading letters.
 - **`**Ground states only**` rendered with its asterisks.** QLabel does
   not do markdown.
+
+## FIVE THINGS TO KEEP DISTINCT IN A SCIENTIFIC CALCULATION
+
+Written after a backlog sweep closed five deferrals in one branch, in
+which every confusion was one of these being mistaken for another:
+
+    definition      what quantity is computed
+    applicability   when that quantity is meaningful AT ALL
+    implementation  how OpenChem computes it
+    provenance      which source supports the claim
+    oracle          which published values establish it CORRECT
+
+**A SOURCE USED FOR THE DEFINITION IS NOT AUTOMATICALLY AN ORACLE**, and a
+validation set from a neighbouring method is not one merely because it
+shares an informal name. Three near-misses in one branch, each caught by
+reading the source rather than by review:
+
+- **Guo 2006 was twice written down as the Griffin HLB oracle.** It
+  tabulates 224 nonionic surfactants, which is exactly what "nothing to
+  check a result against" was asking for. It mentions **Griffin zero
+  times**: it is a Davies/ECL paper, and its reference column is
+  manufacturer data -- its own footnotes read "reported by BASF Corp."
+  and "by ICI Americas Inc.". Scoring Griffin against it would have
+  compared two scales and produced a disagreement that reads as a bug.
+- **TSEI's correlations read as an oracle and are a behavioural check.**
+  r = 0.9912 is a fine thing to assert and a weak transcription test:
+  systematically wrong implementations still correlate. Table 1's exact
+  values are the transcription oracle.
+- **Gutmann DN was briefly to be validated against the Drago E/C table.**
+  DN is defined as -dH against SbCl5 and E/C predicts -dH, so they are
+  related -- but they are distinct parameterisations, and cross-scale
+  agreement as a CORRECTNESS criterion lets a real transcription error
+  hide behind a legitimate difference.
+
+### A DEFERRAL'S REASONS ROT INDEPENDENTLY OF ITS VERDICT
+
+Fifth instance in this project. `docs/VALIDATION.md`'s "Measured, and
+deliberately not shipped" section held five entries whose verdicts looked
+settled and whose REASONS had quietly expired:
+
+    acetic acid     "only predicted coefficients exist"    measured in 2015
+    Miller          "the parameters are unpublished"        a claim about
+                                                            ChemAxon's docs,
+                                                            not the literature
+    HLB             "no formulas published"                 both are printed
+    TSEI            "no reference value was found"          Table 1 prints 20
+    Gutmann DN/AN   "the accessible source is ionic
+                     liquids"                               true of THAT paper
+
+Not one of those was a lowered standard. The literature moved, or was
+never checked. **Re-read the REASON, not the verdict**, and ask what would
+have to be true today.
+
+### TRANSCRIBING A TABLE FROM A SCIENTIFIC PDF
+
+**The text layer is not the table.** Every scanned source in this sweep
+gave usable-looking output that was wrong:
+
+    Gutmann 1976   "Dimethylsulphoxitie", "l.o.0" for 10.0, ";:Z" where a
+                   number belongs, and names and numbers extracted as two
+                   SEPARATE runs needing positional alignment
+    Miller 1990    "0.392 0.31 1 0.3 13 0.387" for a row of four numbers,
+                   "3 .000" for 3.000, "TA" for tau_A
+    Guo 2006       clean -- so the rule is to CHECK, not to assume either way
+
+Render at 300-400 dpi and read it. It is not caution for its own sake: the
+render caught t-butylamine's donicity at **57.5** where the text layer
+said 57.6, which is the Drago audit's one-in-53-out-by-0.01 again.
+
+**KEEP THE SOURCE ROW IDENTITY IN THE GENERATED DATA.** `"carbon_sp2": {...}`
+loses the trail; carrying the paper's own `symbol` and `hybrid` columns
+beside it means a future audit runs against the page line by line rather
+than re-deriving which row was meant.
+
+**AND THE ACCEPTANCE TEST IS THE CASE THAT FAILED BEFORE.** Miller's
+recorded failures were benzene (+27%) and CCl4 (-50%), so those two are
+the gate rather than a sample -- and both mutations reproducing them are
+caught. A perturbed coefficient must fail something: a table no test can
+falsify is a table nobody checked.
+
+### ONE NAME, TWO QUANTITIES -- NOW FOUND FOUR TIMES
+
+    "HLB"           Griffin or Davies, differing "substantially... in the
+                    entire range of practical applications"
+    "steric index"  Taft's Es, Hancock's Esc, Charton's nu, Cao-Liu TSEI
+    "donicity"      dilute or BULK -- water is 18.0 and 33.0
+    "SZ"            Mordred's is "sum of constitutional descriptor", not
+                    the Szeged index
+
+The move each time is the same: **ship under the specific name** -- Griffin
+HLB, Cao-Liu TSEI -- never the ambiguous one, and keep the two columns
+apart in the data rather than picking one. Water is the row that proves
+it is not pedantry: merging the donicity columns would be wrong there by
+more than the whole range from benzene to acetonitrile.
+
+### APPLICABILITY IS A RESULT, NOT A FOOTNOTE
+
+Griffin HLB on aspirin is 4.14 and means nothing. Returning it and relying
+on documentation to say so is the failure the `AlertResult` migration
+spent a phase removing.
+
+**AND THE RULE COMES FROM THE SOURCE.** Griffin's definition opens "for
+nonionic surfactants with polyoxyethylene as the sole hydrophilic
+moiety" -- a structural condition, answered per molecule, in the
+refusal-with-a-named-reason shape `BcsReason` and `IsotopeRefusal`
+already use. Sorbitan esters are the case most likely to be got wrong:
+Griffin's EXPERIMENTS produced Span and Tween's published values, but
+sorbitan is a polyhydric alcohol, so his FORMULA does not apply to them.
+
+### CHECKING AGAINST THE SOURCE FINDS BUGS READING THE CODE DOES NOT
+
+Both of these read fine and were wrong, and both were found by comparing
+against a printed closed form rather than by review:
+
+- the polyoxyethylene SMARTS matched a chain from BOTH ends, so a C12E4
+  counted as 9 units; and it matched the chain's own terminal hydroxyl,
+  so **dodecanol** -- the lipophile Brij is built FROM -- was accepted as
+  a surfactant and given an HLB;
+- benzene assigned to Miller's `CBR` row gives 13.99 against 10.39, and
+  the row's symbol is the reason anybody would.
+
+
+## SHIPPED IS NOT REACHABLE, AND FOUR MODULES PROVED IT
+
+PR #41 added `chem/hlb.py`, `chem/tsei.py`, `chem/polarizability_miller.py`
+and `chem/gutmann.py`. Each was correct, guarded by its own test file, and
+registered in `docs/sources.toml`. **Not one was reachable from anything a
+user could press.** Measured against the RUNTIME registry rather than by
+grep, because a dynamic import makes a text search lie: 51 calculators
+backed by 27 modules, none of them among the four.
+
+Every test passed. "Shipped" had come to mean *the file exists* rather than
+*source -> registry -> UI*.
+
+`tests/test_calculator_reachability.py` is the guard, and it checks BOTH
+directions -- every registered calculator's compute is callable, and every
+module that DECLARES itself user-facing is reachable from one.
+
+**USER-FACING IS DECLARED, NEVER INFERRED FROM LIVING UNDER `chem/`.** That
+inference is `inapplicable_calculators` again, a rule keyed on something
+incidental that rotted into 27 wrong entries. A module carries a
+`USER_FACING_PROVIDER` string naming the surface it reaches; the audit reads
+the declaration. An exemption LIST would be the same blocklist in a new
+place, and a module WITHOUT the marker is not claimed to be internal -- it
+is simply making no claim, the same scope `DEFERRALS` has.
+
+**THE WALK MUST FOLLOW A DEFERRED IMPORT, and that is the load-bearing
+half.** Two of the four are reached only from inside a function body --
+`electronic_properties` imports Miller in its method dispatch, `lewis`
+imports Gutmann in its line builder -- so an `ast` walk restricted to
+module-level imports reports both unreachable and is WRONG about it.
+`test_the_reachability_walk_follows_a_deferred_import` asserts those two
+edges by name, and `test_a_module_nothing_reaches_would_fail_this` asserts
+the walk is not simply returning everything.
+
+### A DESCRIPTION IS A TOOLTIP, AND ONE HAD ALREADY ROTTED
+
+`property_panel._calculator_help` GENERATES each help contract from
+`CalculatorDefinition.description`, so a description is not a comment --
+it is what a user reads on hover, and the one place this application says a
+method is unavailable.
+
+**`topology_analysis` said the Szeged index was "deliberately omitted"
+while its own module docstring, twenty lines from the compute function,
+said "The SZEGED INDEX is now included, validated by a THEOREM".** Two
+statements about one quantity in one feature, disagreeing, and the one a
+user reads was the wrong one. It rotted unaided.
+
+`CALCULATOR_CLAIMS` in `tests/test_docs_are_current.py` is the guard, in the
+`DEFERRALS` shape: a `fragment` that must occur EXACTLY ONCE, and an
+`unbuilt` predicate over CODE. **THE CLAIM IS DECLARED, NOT DETECTED** --
+"is not offered", "is unavailable" and "does not provide" are one claim in
+three shapes, and deciding whether a sentence asserts unavailability is the
+prose analysis `help_tooltip.py` refuses.
+
+A phrase scan survives as a **CANDIDATE DETECTOR, never a semantic oracle**.
+It says "this looks like an availability claim and is not registered --
+classify it", never "this sentence is false". Its failure message is worded
+that way deliberately: pretending natural language is a type system is how
+such a check decays into `NEGATIVE_WORDS = {...}` and starts flagging "this
+estimator is intentionally absent". **It earned its keep on its first run**,
+catching a "Davies' HLB is not offered" sentence written minutes earlier.
+
+**SCOPE IS AVAILABILITY OF AN EXTERNAL METHOD, NOT OUR OWN SCOPE.**
+`orbital_electronegativity` says the pi component "is not offered -- it
+needs a separate pi-charge iteration", which is a statement about OpenChem
+behaviour and is still true; it was reworded rather than registered. Same
+split `help_tooltip.py` draws between an external fact and our own.
+
+### EQ 7 WAS A SPECIAL CASE AND SHIPPED AS THE DEFINITION
+
+`chem/tsei.py` computed `TSEI = SUM 1/L_i^3`, which is [source:cao2004]'s
+eq 7 -- derived one line after "**For any alkyl, it only contains carbon
+and hydrogen atoms.** When its hydrogen atoms are ignored, eq 4 also can be
+simplified to eq 6". The general quantity is eq 4, each atom's covalent
+radius over the SUMMED BOND LENGTHS to the reaction centre.
+
+    an all-carbon path      every R_i/R_C is 1 and every l_i is L_i x l_CC,
+                            so eq 8a collapses to eq 7 EXACTLY
+    a first-tier chlorine   the paper derives 1.4190 in full; eq 7 gives
+                            1.000, because it cannot tell a chlorine from
+                            a carbon
+
+**TABLE 1 IS BLIND TO THIS, WHICH IS WHY IT SHIPPED.** All twenty normal
+alkyls reproduced perfectly against the wrong implementation. A fixture
+family is not "big enough" -- it is degenerate or not with respect to a
+specific defect, and this file has now recorded that four times.
+
+**TABLE 6 IS WHERE THE HETEROATOM VALUES ARE, and finding it changed
+everything.** It prints TSEI for F, Cl, Br, I, MeO and OEt, and its
+footnote c says its values include hydrogens where Tables 1/2/4 ignore
+them. **18 of the 19 reachable printed values now reproduce.**
+
+    Table 1, n = 1..20     the CONSTANT      blind to the radius term
+    a first-tier halogen   the RADIUS term   1.4190 vs eq 7's 1.000
+    MeO 0.9505, OEt 0.9939 the TRAVERSAL     a multi-bond path through a
+                                             heteroatom, where l_i stops
+                                             being L_i x l_CC
+
+#### THE RADII WERE RECOVERED BEFORE THE BOOK ARRIVED, AND THE TWO AGREE
+
+The paper's radius source is Lange's Handbook of Chemistry 15th ed., Table
+4.7 "Covalent Radii for Atoms", p 4.35 -- its ref 18. **This project did
+not hold it when TSEI was corrected**, and typing a remembered Pauling
+table is the "fields nobody can check" failure recorded in this project's
+own citation audit -- six errors, every one in the field nothing could
+verify.
+
+So every radius was **inverted from a TSEI value the paper prints**. For a
+lone first-tier atom, eq 8a collapses to `8 rho^3 / (1+rho)^3` with
+`rho = R_X/R_C`, which inverts to a radius:
+
+    F   0.7449  ->  0.63997     Cl  1.4190  ->  0.99001
+    Br  1.6957  ->  1.14002     I   2.0265  ->  1.33000
+    H   from Me = 1.0362  ->  0.30001
+    O   from MeO = 0.9505 ->  0.66      (OEt = 0.9939 uses both at once)
+
+Every one landed on a clean two-decimal value, which is itself evidence
+the inversion was reading a real table rather than fitting noise, and it
+IDENTIFIED the family as the tetrahedral covalent radii -- a measured fact
+rather than an inference from the numbers looking familiar.
+
+**THE BOOK THEN ARRIVED AND AGREED WITH ALL SEVEN TO THE LAST DIGIT** --
+64, 99, 114, 133, 30 and 66 pm, and carbon at **77.2** rather than a
+rounded 77, which is the extra digit the paper itself writes and what
+identifies this as the right table rather than a neighbouring one. Its
+footnote settles the column: "Single-bond radii are for a tetrahedral
+(CN = 4) structure". Two routes sharing no step, agreeing seven times.
+
+**THE INVERSION IS KEPT AS A LIVE CROSS-CHECK, not as history.** A
+mistyped radius for any of those seven would have to be wrong in exactly
+the way that reproduces a number from a different paper. The other 21 have
+the book alone, and `tsei_radii.json` says which is which -- a radius with
+a second independent route to it is a different kind of number.
+
+**WHAT THE BOOK CHANGED IS THE COVERAGE, and it is most of drug space.**
+Nitrogen (70 pm), sulfur (104) and phosphorus (110) are not among the
+substituents the paper tabulates, so the inversion could never have
+reached them and the projection refused every amine, thiol and phosphine.
+28 elements now.
+
+**THE EQUATION IS GEOMETRIC AND THE VALIDATION IS NOT**, which is the
+distinction to keep as the table widens. `R^3 / l^3` has no per-element
+fitting, so a radius is the only input any element needs; but Cao & Liu
+validated against alkyl, halogen and ether substituents on biphenyls, so a
+silver or a mercury radius buys arithmetic rather than evidence.
+
+**RDKit's `GetRcovalent` IS A DIFFERENT TABLE** -- Cordero 2008, carbon
+0.760 against 0.772, chlorine 1.02 against 0.99 -- and it puts the paper's
+own chlorine example at 1.5052 against 1.4190.
+
+#### THE PAPER'S OWN STRAW MAN WAS SHIPPED AS A FIXTURE
+
+A fixture quoted "their corresponding steric effect increments delta-TSEI
+... should be 0.1250, 0.2500, and 0.3750" and asserted t-Bu = 1.3750; its
+successors are `test_tert_butyl_carries_the_papers_own_crowding_correction`
+and `test_two_branches_are_not_corrected_and_table_4_is_why`, which assert
+1.8125 and keep the two-branch case plain. That sentence is
+the paper setting up a question it then answers with **no**: it concludes
+three carbons on one carbon contribute 6.5 times one, and every TSEI it
+publishes afterwards uses that -- t-Bu is 1.8125 in Table 2 and 1.8395 in
+Table 6. Table 2 tabulates both variants and prefers the corrected one,
+R = 1.0000 against 0.9411.
+
+Quoting a source is not the same as reading it. The quote was accurate and
+the conclusion drawn from it was the opposite of the paper's.
+
+#### AND ONE PRINTED VALUE DOES NOT REPRODUCE, recorded rather than chased
+
+Table 6 gives i-Pr as 1.3752 where the traversal gives 1.2801. The paper's
+own text, Table 2 and every i-Pr-bearing row of Table 4 all say 1.2500 with
+hydrogens ignored, which plus its seven hydrogens is 1.2801. Reaching
+1.3752 needs the two second-tier carbons scaled by 2.7611, a factor the
+paper never states and which Table 4's own two-branch rows (i-Bu 1.1990,
+s-Bu 1.2870) refute. 1.3752 is within 0.0002 of 1.3750 -- t-Bu's
+plain-additivity value in the table directly above it.
+
+### A PAPER'S PROSE AND ITS TABLES CAN DISAGREE, AND THE TABLES WIN
+
+[source:miller1990] p 8535 states the `CBR` rule as a hydrogen count: "one
+for branched trigonal carbon atoms (CBR) in trigonal carbon atoms **not
+bonded to hydrogen atoms**, and the other for alkenes and aromatic systems
+(CTR) in trigonal carbon atoms bonded to **at least one hydrogen** atom."
+
+That sentence is simpler than the conjugation rule, reads as authoritative,
+and **is contradicted by the paper's own Table II three pages later**:
+
+    toluene       6CTR 1CTE 8H      ipso carbon, NO hydrogen, and CTR
+    styrene       7CTR 1CBR 8H      ipso carbon, NO hydrogen, and CBR
+    acetone       2CTE 1CTR 1OTR4 6H
+                                    carbonyl carbon, no hydrogen, and CTR
+    b-methylnaphthalene           8CTR 1CTE 2CBR 10H
+    a-naphthalenecarboxaldehyde   8CTR 1OTR4 3CBR 8H
+                                    THE SAME RING POSITION, CTR under a
+                                    methyl and CBR under a conjugated CHO
+
+No hydrogen count produces that last pair. The hydrogen rule was
+implemented here for one commit on the strength of the sentence and put
+benzene at **13.99 against 10.39** -- the +36% shape the module's own
+docstring already warns about.
+
+**THE ASSIGNMENT COLUMN IS A FAR STRONGER ORACLE THAN THE TOTALS**, and it
+was sitting unused. Benzene and CCl4 pin the numbers; Table II pins which
+ROW every atom got, which is where the error class actually lives. Nine
+molecules are fixtures now, chosen because they SEPARATE the two candidate
+rules -- the two-molecule check could not have caught this, and did not.
+
+Nitrobenzene is the one disagreement in nine and is named rather than
+smoothed over: the paper gives `6CTR 1NPI2 2OTE 5H`, differing on the ipso
+carbon AND on the nitro oxygens. That row is also one of the worst in the
+table at -6.8%, and the paper's own text lists nitrobenzene among the
+molecules whose correction "lead to a larger deviation from experimental
+results".
+
+### THE JOIN FOUND A DEFECT THE TRANSCRIPTION TESTS COULD NOT
+
+Wiring Gutmann's numbers to a drawn structure needed one row per liquid,
+and two liquids turned out to be carrying **half their data each**:
+
+    donicity("dioxane")   AN 10.8, no DN     the DN table spells it "Dioxan"
+                                             and prints 14.8
+    donicity("glyme")     AN 10.2, no DN     the DN table files it under
+                                             "Dimethoxyethane (DME)"
+
+One solvent, two names, split across the donor table and the acceptor
+table. Every test in `tests/test_gutmann.py` passed -- they check the
+transcription against the page, and each half IS on the page.
+
+Confirmed against the paper's own prose rather than by the names looking
+alike: p12 reads "faster in THF (DN = 20) than in dioxane (DN = 14,8)",
+using the -e spelling for the row the DN table spells without one.
+
+**DECLARED, NEVER FUZZY-MATCHED.** `difflib` pairs "1,2-dichloroethane"
+with "dichloromethane" and "isopropylamine" with "isopropyl myristate" at
+the same confidence -- two different liquids and a wrong merge no numeric
+test would catch. `_SPELLING_VARIANTS` in the generator is two declared
+pairs, and it fails closed on both sides: a variant naming a row that does
+not exist, or a variant whose two spellings both already carry the same
+field.
+
+**AND `diglyme` IS THE ARM THAT SAYS NO** -- a different ether, keeping its
+own row with an acceptor number and no donor number, which is what the
+paper prints.
+
+#### NOT ONE SMILES IS TYPED FOR THE STRUCTURE LOOKUP
+
+`domain/lewis.py` was written with room for "what is coming -- donor and
+acceptor numbers", and filling it needs a name -> structure map. Writing
+sixty SMILES by hand for liquids like selenium oxychloride and
+phenylphosphonic difluoride would be sixty chances to ship a plausible
+wrong molecule.
+
+The structures come from `abraham_solutes.json` instead -- a SHIPPED,
+SOURCED dataset keyed by InChIKey and carrying each solute's name -- so the
+join is name to name and every structure was somebody else's transcription
+with its own provenance. **35 of 68 solvents are reachable from a drawn
+structure**; the rest have no structure here and get no donicity rather
+than a guessed one.
+
+`test_the_structure_map_is_derived_and_not_a_typed_list_of_smiles` asserts
+the module contains no `MolFromSmiles` at all.
+
+**GUTMANN NUMBERS MUST NOT ENTER THE ABRAHAM CALCULATION.** They are
+additional solvent FACTS, never another descriptor -- the creep is obvious
+and would be plausible ("since we have DN, use it as a predictor") and
+nothing in either source establishes that relationship. Asserted
+structurally, because the numeric version would need a solvent whose DN
+moved and there is none.
+
+**DN AND AN ARE TWO LABELLED FACTS, ALWAYS**, asserted on the presentation
+object rather than trusted to prose: a later tidy-up into one "Gutmann"
+field would erase the distinction without breaking any numeric test. Water
+is 18.0 DN against 54.8 AN with a THIRD number, 33.0 bulk; HMPA is 2nd of
+46 by donor number and in the bottom third by acceptor number.
+
+### A MUTATION FOUND A GAP IN THE DECLARED-TOTALS AUDIT
+
+Fourteen arms, thirteen caught first time. The fourteenth -- declaring a
+plausible total on the TSEI projection, `declare_total(0.0, "TSEI
+projection total")` -- **passed every guard in `test_declared_totals.py`
+and every guard in `test_tsei.py`.** That audit checks a declaration EXISTS
+and is WELL FORMED; only naming the calculator says which answer is right,
+which is exactly why
+`test_the_two_meaningless_sums_are_declined_by_name` names its members
+individually. `tsei_projection` joined that list.
+
+The chemistry behind the name is worth having beside it: on chloromethane
+the carbon feels 1.4190 from the chlorine and the chlorine feels 0.6729
+back, across the same bond. The increments are ASYMMETRIC, because `l_i` is
+a bond length and the radius sits in the numerator on one side only, so the
+sum over atoms is 2.0919 -- not either atom's answer, not twice anything,
+and not a property of the molecule.
+
+**AND THE FIRST VERSION OF THAT ARM WAS NOT A MUTATION AT ALL.** It wrote
+`{...} if False else decline_total(...)`, which changes no behaviour, and
+scored a confident SURVIVED. Fifth instance of that lesson here; the
+harness prints an EDIT-CHECK and compares the arm's ran-count against the
+control's, and neither catches an edit that lands and does nothing.
+
+### `{"do": "scroll"}` -- because a panel that scrolls hides its own output
+
+Measured with a Lewis result on screen: **viewport 396x580 against content
+396x2361**, so five sixths of the Properties panel is unphotographable from
+the top. `dump` reports that the content FITS and `rendered_overflow`
+reports 0 findings -- both true, and neither is a picture.
+
+The step takes `{"to": "bottom"}`, `{"to": "top"}` or `{"y": 1000}` and
+LOGS where it landed, because a request past the end is clamped and a
+silent clamp makes "I scrolled to the bottom" a claim about a position
+nobody checked.
+
+**SCROLLING TO THE BOTTOM OVERSHOOTS A TALL RESULT BOX.** The result widget
+is mostly empty below its text, so `to: bottom` photographs blank space
+with the text above the viewport. Find the band first -- count dark rows
+per scanline across a few positions -- then crop to it.
 
 ## Verification standard
 
