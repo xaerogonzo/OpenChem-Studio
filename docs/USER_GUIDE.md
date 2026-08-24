@@ -530,7 +530,7 @@ lights up.
 
 ---
 
-<!-- help:properties -->
+<!-- help:navigation -->
 ## Finding your way around
 
 The right-hand side has a **navigation rail**: a column of group icons,
@@ -613,10 +613,11 @@ bar, which detaches the *whole* panel — settings, tables and all. Use
 float when you want two panels side by side; use ↗ when the picture is
 the thing that needs the room.
 
+<!-- help:properties -->
 ## Properties
 
 The Properties panel is where most calculation happens. It has **25
-collapsible categories** covering **51 registered calculators**;
+collapsible categories** covering **53 registered calculators**;
 Physicochemical and Identity are open by default.
 
 Scalar descriptors compute eagerly — the whole batch finishes in well under
@@ -1092,6 +1093,7 @@ than a per-job cost.
 
 ---
 
+<!-- help:molecular-dynamics -->
 ## Molecular dynamics
 
 **Geometry (3D) ▸ Molecular Dynamics (vacuum)** runs a short MMFF94
@@ -2030,6 +2032,7 @@ See [PLUGIN_SDK.md](PLUGIN_SDK.md) to write one.
   how two partners sit together — the LED breakdown most of all — needs you
   to place them yourself.
 
+<!-- help:substance-perception -->
 ## Knowing what a structure IS
 
 The Properties panel carries an identity header above the results, and it
@@ -2124,6 +2127,7 @@ You will not get one for sodium acetate or ammonium nitrate. Polyatomic
 ions need a different kind of radius, and the app would rather say nothing
 than give you a number that looks right.
 
+<!-- help:crystals -->
 ## Opening a crystal structure
 
 **File → Import Crystal Structure...** reads a CIF, adds it to the project beside your molecules, draws one unit cell in

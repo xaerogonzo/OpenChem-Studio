@@ -1120,3 +1120,130 @@ def test_the_rescued_features_are_documented(doc, feature, needle):
         "Properties panel and the command palette, so a user can run it and "
         "has nowhere to read what it does or where it stops."
     )
+
+
+def test_every_section_of_the_user_guide_is_a_topic():
+    """A  SECTION WITH NO ANCHOR IS NOT A TOPIC, so the Help window
+    does not LIST it and it cannot be addressed by .
+
+    Four were missing, and the worst was  -- the section
+    carrying the calculator category table, i.e. the reference for
+    everything the application computes. ,
+     and 
+    were the others.
+
+    **THE PRECISE CLAIM IS "NOT LISTED", NOT "UNREACHABLE".** Measured:
+    the search still finds text in an unanchored section, attributing it to
+    the PRECEDING topic. So the cost is a section a user cannot browse to
+    and cannot be sent to, not content that has vanished -- worth stating,
+    because the stronger version is the one that sounds better and is
+    wrong.
+
+    **SCOPED TO USER_GUIDE.md, where the invariant is real.** Every one of
+    its 26 sections is user-facing help. QUICKSTART.md is deliberately at 2
+    of 9 -- the rest are developer setup ("From source", "Running the
+    tests", "Building a distributable"), which is not help. And
+    SCIENTIFIC_LIMITATIONS.md sits at 12 of 18 today; that is a
+    pre-existing state this guard deliberately does NOT claim either way,
+    rather than sweeping six sections into scope under cover of a fix for
+    something else.
+    """
+    text = (_ROOT / "docs" / "USER_GUIDE.md").read_text(encoding="utf-8")
+    anchored = {
+        m.group(1).strip()
+        for m in re.finditer(r"<!--\s*help:[a-z0-9-]+\s*-->\s*\n#{2,3} (.+)", text)
+    }
+    orphans = [
+        m.group(1).strip()
+        for m in re.finditer(r"^## (.+)$", text, re.M)
+        if m.group(1).strip() not in anchored
+    ]
+    assert not orphans, (
+        "these user-guide sections carry no `<!-- help:... -->` anchor, so the "
+        "Help window does not list them and nothing can link to them:\n"
+        + "\n".join(f"  - ## {o}" for o in orphans)
+    )
+
+
+def test_every_dock_help_button_opens_its_own_section():
+    """**"THE TOPIC EXISTS" IS NOT "THE TOPIC IS RIGHT"**, and that gap is
+    what let this ship.
+
+    `test_every_dock_the_window_builds_has_a_help_topic` checks that each
+    dock's key resolves. `properties` resolved perfectly -- to
+    `## Finding your way around`, because the anchor sat above the wrong
+    heading. Eleven `help_anchor="properties"` references across five
+    modules -- the dock's `?` button, the Help menu, the panel's tooltips,
+    the collapsible sections, the pop-out host -- all opened the navigation
+    section instead of the Properties documentation.
+
+    THE ORACLE IS THE DOCK'S OWN NAME, derived rather than declared: a dock
+    called `Atom_Inspector` should open a section whose title contains
+    "Atom Inspector". Where the section is deliberately named something
+    else, `_DOCK_TOPIC_TITLES` says so with the reason -- which is the same
+    rule `test_every_allowlist_entry_is_explained` applies above.
+    """
+    from openchem.app.main_window import HELP_TOPIC_BY_DOCK
+    from openchem.help import topics
+
+    by_key = {t.key: t.title for t in topics()}
+    wrong = []
+    for dock, key in sorted(HELP_TOPIC_BY_DOCK.items()):
+        title = by_key.get(key)
+        assert title is not None, f"{dock} opens {key!r}, which is not a topic"
+        expected = _DOCK_TOPIC_TITLES.get(dock)
+        if expected is not None:
+            if title != expected:
+                wrong.append(f"{dock} opens {title!r}, expected {expected!r}")
+        elif dock.replace("_", " ").lower() not in title.lower():
+            wrong.append(
+                f"{dock} opens {title!r}, which does not name the dock -- either "
+                "move the anchor, or record the difference in _DOCK_TOPIC_TITLES"
+            )
+
+    assert not wrong, "these help buttons open the wrong section:\n" + "\n".join(
+        f"  - {w}" for w in wrong
+    )
+
+
+#: Docks whose section is deliberately titled something other than the dock.
+#: Each says why, so a MISPLACED anchor cannot hide here as a naming choice.
+_DOCK_TOPIC_TITLES: dict[str, str] = {
+    "Project_Explorer": "Projects and molecules",  # the panel is the tree; the
+    # section covers projects AND the molecules in them, which is what a
+    # reader opening it wants.
+    "Structure_Check": "The structure checker",  # the same words with an
+    # article, which the derived rule cannot match on.
+    "Batch": "Batch mode",
+    "Console": "Jobs and the console",  # one section covers both docks
+    # deliberately -- they are two views of the same queue.
+    "Jobs": "Jobs and the console",
+    "Quantum_Chemistry": "Quantum chemistry",  # case differs only.
+}
+
+
+def test_the_guide_states_the_real_number_of_calculators():
+    """A COUNT IN PROSE ROTS THE MOMENT A CALCULATOR IS REGISTERED, and
+    this one had: the guide said 51 while the registry held 53, because the
+    branch below added Griffin HLB and the Cao-Liu TSEI projection.
+
+    Derived from the live registry, so it cannot drift again. The
+    neighbouring "25 collapsible categories" is deliberately NOT guarded
+    here -- the panel's section count needs a built widget to measure and
+    it was not measured when this was written, so asserting it would be
+    asserting a number nobody checked. Recorded as unverified rather than
+    guessed at.
+    """
+    from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
+
+    text = (_ROOT / "docs" / "USER_GUIDE.md").read_text(encoding="utf-8")
+    match = re.search(r"covering \*\*(\d+) registered calculators\*\*", text)
+    assert match, (
+        "docs/USER_GUIDE.md no longer states the calculator count in the shape "
+        "this guard reads. If the sentence was reworded, reword the pattern too "
+        "-- a count nothing checks is a count that rots."
+    )
+    assert int(match.group(1)) == len(CALCULATOR_DEFINITIONS), (
+        f"the guide says {match.group(1)} registered calculators and the "
+        f"registry holds {len(CALCULATOR_DEFINITIONS)}"
+    )
