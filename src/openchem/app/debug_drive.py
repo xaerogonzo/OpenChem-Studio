@@ -524,11 +524,15 @@ class _Driver(QObject):
             panel.check(str(step["property"]))
             logger.warning("OPENCHEM_DRIVE: ticked %s", step["property"])
             return
+        from openchem.ui.panels.batch_panel import _GROUP_NAME_ROLE
+
         wanted = str(step.get("category", ""))
         stack = [panel._tree.topLevelItem(i) for i in range(panel._tree.topLevelItemCount())]
         while stack:
             item = stack.pop()
-            if item.text(0) == wanted:
+            # The NAME, not the rendering -- a group row reads
+            # "Identity  0 / 2" once it carries its count.
+            if item.data(0, _GROUP_NAME_ROLE) == wanted or item.text(0) == wanted:
                 item.setCheckState(0, Qt.CheckState.Checked)
                 descriptors, calculators = panel.selected_ids()
                 logger.warning(

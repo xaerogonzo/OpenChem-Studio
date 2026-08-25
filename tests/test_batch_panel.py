@@ -16,7 +16,7 @@ from openchem.bootstrap import build_service_container
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.ui.dialogs.batch_analysis_dialog import BatchAnalysisDialog
-from openchem.ui.panels.batch_panel import BatchPanel
+from openchem.ui.panels.batch_panel import BatchPanel, _title
 
 _DRUGS = [
     ("aspirin", "CC(=O)Oc1ccccc1C(=O)O"),
@@ -108,10 +108,42 @@ def _dialog(widgets, table, services, project) -> BatchAnalysisDialog:
 
 
 def test_the_picker_offers_descriptors_alerts_and_calculators(panel):
+    """Reads the stored NAME rather than the row's text, which now carries
+    a `n / total` count."""
+    from openchem.ui.panels.batch_panel import _GROUP_NAME_ROLE
+
     headings = {
-        panel._tree.topLevelItem(index).text(0) for index in range(panel._tree.topLevelItemCount())
+        panel._tree.topLevelItem(index).data(0, _GROUP_NAME_ROLE)
+        for index in range(panel._tree.topLevelItemCount())
     }
     assert headings == {"Descriptors", "Structural alerts", "Calculators"}
+
+
+def test_a_group_row_shows_how_many_of_it_are_ticked(panel):
+    """91 properties behind eight headings is a wall unless a heading says
+    how big it is and how much of it is chosen."""
+    calculators = _group_named(panel, "Calculators")
+    assert "/" not in calculators.text(0), "nothing is ticked yet"
+    assert calculators.text(0).startswith("Calculators")
+
+    category = calculators.child(0)
+    category.setCheckState(0, Qt.CheckState.Checked)
+
+    total = category.childCount()
+    assert category.text(0).endswith(f"{total} / {total}")
+    assert "/" in calculators.text(0), "the count has to climb too"
+
+
+def test_the_count_never_replaces_the_name(panel):
+    """The name is STORED, not reconstructed by stripping a suffix off the
+    display -- a category legitimately called "Shape (3D)" would be
+    mangled by any parser, and every helper that matched on the rendered
+    text broke the moment the count arrived."""
+    from openchem.ui.panels.batch_panel import _GROUP_NAME_ROLE
+
+    calculators = _group_named(panel, "Calculators")
+    calculators.child(0).setCheckState(0, Qt.CheckState.Checked)
+    assert calculators.data(0, _GROUP_NAME_ROLE) == "Calculators"
 
 
 def test_discovery_only_calculators_are_not_offered(panel):
@@ -569,10 +601,19 @@ def test_the_basis_column_takes_only_what_its_own_text_needs(panel):
 
 
 def _group_named(panel, text):
+    """Find a group by its NAME, never by what the row renders.
+
+    The row shows `Calculators  0 / 53`, and every helper that matched on
+    `item.text(0)` broke the moment the count arrived -- which is exactly
+    why the name is kept in its own role rather than reconstructed by
+    stripping a suffix off the display.
+    """
+    from openchem.ui.panels.batch_panel import _GROUP_NAME_ROLE
+
     stack = [panel._tree.topLevelItem(i) for i in range(panel._tree.topLevelItemCount())]
     while stack:
         item = stack.pop()
-        if item.text(0) == text:
+        if item.data(0, _GROUP_NAME_ROLE) == text or item.text(0) == text:
             return item
         stack.extend(item.child(i) for i in range(item.childCount()))
     raise AssertionError(f"no group named {text!r}")
@@ -968,3 +1009,142 @@ def test_a_molecules_results_survive_another_molecules_run(
     assert panel._store is not None
     assert panel._store.for_molecule(first.uuid, 0), "the first molecule's results were lost"
     assert panel._store.for_molecule(second.uuid, 0)
+
+
+# --- the selection survives a launch ----------------------------------------
+
+
+class _RecordingSettings:
+    """Enough of `Settings` for the panel, with nothing else attached."""
+
+    def __init__(self, initial=None):
+        self.store = dict(initial or {})
+
+    def get(self, key, default=None):
+        return self.store.get(key, default)
+
+    def set(self, key, value):
+        self.store[key] = value
+
+
+def _panel_with_settings(services, project, widgets, settings):
+    panel = BatchPanel(
+        services.batch_service,
+        services.calculator_registry,
+        services.table_export_service,
+        services.event_bus,
+        services.chemistry_engine,
+        settings=settings,
+    )
+    panel.set_project(project)
+    widgets.append(panel)
+    return panel
+
+
+def test_the_selection_is_remembered_between_launches(services, project, widgets):
+    """91 check boxes is not something to reassemble every launch."""
+    settings = _RecordingSettings()
+    first = _panel_with_settings(services, project, widgets, settings)
+    first.check("topology_analysis")
+    assert settings.store, "nothing was saved"
+
+    second = _panel_with_settings(services, project, widgets, settings)
+    assert second.selected_ids() == ([], ["topology_analysis"])
+
+
+def test_what_is_stored_is_ids_and_not_tree_positions(services, project, widgets):
+    """**IDS NAME A DEFINITION.** Categories and ordering come from the
+    registry and the descriptor provider, so both move when a calculator is
+    added -- a saved row index would then restore somebody else's
+    property. Same principle as `help_id`, and the same failure the
+    tooltip migration hit when an `instance_path` was renamed by wrapping
+    a control in a new container.
+    """
+    settings = _RecordingSettings()
+    panel = _panel_with_settings(services, project, widgets, settings)
+    panel.check("topology_analysis")
+
+    stored = list(settings.store.values())[0]
+    assert "topology_analysis" in stored
+    assert not any(isinstance(entry, int) for entry in stored)
+
+
+def test_a_property_that_no_longer_exists_is_dropped_silently(services, project, widgets):
+    """A calculator removed between launches is not the user's problem,
+    and a dialog about it on startup would be."""
+    settings = _RecordingSettings({"batch/selected_property_ids": ["gone_forever", "mol_wt"]})
+    panel = _panel_with_settings(services, project, widgets, settings)
+    descriptors, calculators = panel.selected_ids()
+    assert descriptors == ["mol_wt"]
+    assert calculators == []
+
+
+def test_a_panel_with_no_settings_still_works(services, project, widgets):
+    """`settings` is optional, and every existing fixture omits it."""
+    panel = _panel_with_settings(services, project, widgets, None)
+    panel.check("topology_analysis")
+    assert panel.selected_ids() == ([], ["topology_analysis"])
+
+
+# --- taming the column wall -------------------------------------------------
+
+
+def test_hiding_a_column_group_hides_its_columns_and_nothing_else(panel, services):
+    """One calculator can contribute twenty columns, so a filled table is
+    wide by nature. Hiding is a VIEW decision -- nothing is recomputed and
+    no value is lost."""
+    _run(panel, ["topology_analysis", "elemental_analysis"])
+    table = panel.table()
+    assert table is not None and len(table.columns) > 2
+
+    categories = {panel._column_category(column) for column in table.columns}
+    assert len(categories) > 1, "one category cannot show that hiding is selective"
+    victim = sorted(categories)[0]
+
+    panel._hidden_categories.add(victim)
+    panel._apply_column_visibility()
+
+    for offset, column in enumerate(table.columns, start=1):
+        expected = panel._column_category(column) == victim
+        assert panel._results.isColumnHidden(offset) is expected
+
+
+def test_hiding_a_group_loses_no_data(panel):
+    """The store and the table are untouched -- a hidden column is a thing
+    the user did not want to LOOK at, not a thing they did not want."""
+    _run(panel, ["topology_analysis"])
+    before = len(panel.table().columns)
+    panel._hidden_categories.add(panel._column_category(panel.table().columns[0]))
+    panel._apply_column_visibility()
+    assert len(panel.table().columns) == before
+
+
+def test_a_rebuild_does_not_un_hide_what_was_put_away(panel):
+    """`QTableWidget.clear()` drops every hidden flag, so a progress event
+    arriving mid-run would silently show everything again."""
+    _run(panel, ["topology_analysis"])
+    table = panel.table()
+    victim = panel._column_category(table.columns[0])
+    panel._hidden_categories.add(victim)
+    panel._apply_column_visibility()
+
+    panel._render_table(table)
+
+    hidden = [
+        offset
+        for offset, column in enumerate(table.columns, start=1)
+        if panel._column_category(column) == victim
+    ]
+    assert hidden
+    assert all(panel._results.isColumnHidden(offset) for offset in hidden)
+
+
+def test_a_columns_category_comes_from_the_same_registry_the_picker_uses(panel):
+    """A new calculator groups itself with no change here -- the reason
+    the picker is a tree built from the registry rather than a hardcoded
+    menu."""
+    _run(panel, ["topology_analysis"])
+    column = panel.table().columns[0]
+    definition = panel._registry.get(column.source_id)
+    if definition is not None:
+        assert panel._column_category(column) == _title(definition.category)

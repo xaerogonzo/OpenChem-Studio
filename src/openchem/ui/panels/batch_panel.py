@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
+    QMenu,
     QMessageBox,
     QProgressBar,
     QPushButton,
@@ -44,7 +45,12 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.chem.result_reduction import PER_ATOM_AGGREGATES
-from openchem.domain.batch import BatchRequest, BatchResultStore, BatchTable
+from openchem.domain.batch import (
+    SOURCE_DESCRIPTOR,
+    BatchRequest,
+    BatchResultStore,
+    BatchTable,
+)
 from openchem.domain.calculator import RegistryExecution
 from openchem.domain.common import CacheState
 from openchem.domain.project import ProjectModel
@@ -152,6 +158,19 @@ _HELP: dict[str, HelpTooltip] = {
         help_id="batch.export_report",
         topic="batch",
     ),
+    "columns": HelpTooltip(
+        text=(
+            "Show or hide whole groups of columns.\n\n"
+            "One calculator can contribute twenty columns, so a filled "
+            "table is wide by nature. Hiding a category affects the VIEW "
+            "only -- nothing is recomputed, no value is lost, and both "
+            "exports still write every column.\n\n"
+            "Right-click the header for the same menu."
+        ),
+        tier=2,
+        help_id="batch.column_groups",
+        topic="batch",
+    ),
     "details": HelpTooltip(
         text=(
             "Show everything computed for the selected molecule, the way "
@@ -235,6 +254,10 @@ _UUID_ROLE = Qt.ItemDataRole.UserRole + 2
 #: four molecules.
 _CONFIRM_ABOVE = 200
 
+#: Sentinel on the menu's reset entry, so it cannot collide with a real
+#: category name however the registry grows.
+_SHOW_ALL = object()
+
 # Moved to `ui/widgets/sortable_item.py` once the per-atom comparison table
 # needed the same thing. Aliased rather than renamed at every call site --
 # the names are private to this module and the move is not worth the churn.
@@ -256,6 +279,7 @@ class BatchPanel(QWidget):
         on_analyse=None,
         on_screen=None,
         structure_check_service=None,
+        settings=None,
     ) -> None:
         super().__init__(parent)
         self._batch_service = batch_service
@@ -270,6 +294,8 @@ class BatchPanel(QWidget):
         # an inspector, which is what Properties has offered all along.
         self._store: BatchResultStore | None = None
         self._structure_check = structure_check_service
+        self._settings = settings
+        self._descriptor_category_cache: dict[str, str] | None = None
         # **WHAT THIS RUN IS FOR**, and the panel is the only thing that
         # knows. A one-molecule run and a whole-project fill go down the
         # identical service path and arrive on the identical event; only
@@ -362,6 +388,14 @@ class BatchPanel(QWidget):
         self._results.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self._results.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         self._results.itemDoubleClicked.connect(self._on_row_activated)
+        header = self._results.horizontalHeader()
+        header.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        header.customContextMenuRequested.connect(self._show_column_menu)
+        #: Category -> shown. Only categories the user has HIDDEN are
+        #: recorded, so a category that appears in a later run starts
+        #: visible rather than inheriting a decision about a different
+        #: table.
+        self._hidden_categories: set[str] = set()
         layout.addWidget(self._results, stretch=1)
 
         export_row = flow_row(self)
@@ -371,6 +405,9 @@ class BatchPanel(QWidget):
         self._report_button = QPushButton("Export Report…", self)
         self._report_button.clicked.connect(self._export_report)
         apply_help_tooltip(self._report_button, _HELP['export_report'])
+        self._columns_button = QPushButton("Columns…", self)
+        self._columns_button.clicked.connect(self._show_column_menu)
+        apply_help_tooltip(self._columns_button, _HELP['columns'])
         self._details_button = QPushButton("Details…", self)
         self._details_button.clicked.connect(self._open_details)
         apply_help_tooltip(self._details_button, _HELP['details'])
@@ -381,6 +418,7 @@ class BatchPanel(QWidget):
         self._screen_button.clicked.connect(self._screen)
         apply_help_tooltip(self._screen_button, _HELP['screen'])
         for button in (
+            self._columns_button,
             self._details_button,
             self._csv_button,
             self._report_button,
@@ -394,7 +432,9 @@ class BatchPanel(QWidget):
         event_bus.subscribe(BatchProgress, self._on_progress)
         self._populate_tree()
         self._make_groups_checkable()
+        self._refresh_group_states()
         self._tree.itemChanged.connect(self._on_item_changed)
+        self._restore_selection()
 
     # -- project / selection ----------------------------------------------
 
@@ -535,6 +575,7 @@ class BatchPanel(QWidget):
                 _group_state(self._tree.topLevelItem(index))
         finally:
             self._suspend_tree = False
+        self._save_selection()
 
     def _set_subtree(self, item: QTreeWidgetItem, state) -> None:
         for index in range(item.childCount()):
@@ -565,6 +606,7 @@ class BatchPanel(QWidget):
         finally:
             self._suspend_tree = False
         self._refresh_group_states()
+        self._save_selection()
         shown = "shown" if self._filter.text().strip() else "available"
         self._status.setText(f"Ticked {count} {shown} propert{'y' if count == 1 else 'ies'}.")
 
@@ -601,6 +643,53 @@ class BatchPanel(QWidget):
         for index in range(self._tree.topLevelItemCount()):
             _filter_item(self._tree.topLevelItem(index), needle)
 
+    #: Where the ticked property ids live between launches.
+    _SELECTION_SETTING = "batch/selected_property_ids"
+
+    def _save_selection(self) -> None:
+        """Remember the ticked IDs.
+
+        **IDS, NEVER TREE POSITIONS OR CHECK STATES.** Categories and
+        ordering come from the registry and the descriptor provider, so
+        both move when a calculator is added -- a saved row index would
+        then restore somebody else's property. An id names a definition,
+        which is the same principle `help_id` rests on and the same
+        failure the tooltip migration hit when an `instance_path` was
+        renamed by wrapping a control in a new container.
+        """
+        if self._settings is None:
+            return
+        descriptors, calculators = self.selected_ids()
+        try:
+            self._settings.set(self._SELECTION_SETTING, list(descriptors) + list(calculators))
+        except Exception:  # noqa: BLE001 - a preference is never worth a crash
+            logger.debug("Could not save the batch selection")
+
+    def _restore_selection(self) -> None:
+        """Tick whatever was ticked last time, ignoring anything gone.
+
+        An id that no longer exists is DROPPED rather than reported: a
+        calculator removed between launches is not the user's problem, and
+        a dialog about it on startup would be.
+        """
+        if self._settings is None:
+            return
+        try:
+            stored = self._settings.get(self._SELECTION_SETTING, []) or []
+        except Exception:  # noqa: BLE001
+            return
+        wanted = {str(identifier) for identifier in stored}
+        if not wanted:
+            return
+        self._suspend_tree = True
+        try:
+            for item, (_kind, identifier) in self._leaves():
+                if identifier in wanted:
+                    item.setCheckState(0, Qt.CheckState.Checked)
+        finally:
+            self._suspend_tree = False
+        self._refresh_group_states()
+
     def _clear_selection(self) -> None:
         self._suspend_tree = True
         try:
@@ -609,6 +698,7 @@ class BatchPanel(QWidget):
         finally:
             self._suspend_tree = False
         self._refresh_group_states()
+        self._save_selection()
 
     def selected_ids(self) -> tuple[list[str], list[str]]:
         """(descriptor ids, calculator ids) currently ticked."""
@@ -701,6 +791,7 @@ class BatchPanel(QWidget):
         # exists for, and greying the button there would make it
         # unreachable.
         self._details_button.setEnabled(not running)
+        self._columns_button.setEnabled(has_results and not running)
         if not running:
             self._filling_table = False
             self._open_pending_details()
@@ -736,8 +827,89 @@ class BatchPanel(QWidget):
             if header is not None:
                 header.setToolTip(_column_tooltip(column))
         self._results.setSortingEnabled(True)
+        # AFTER the rebuild: `clear()` drops every hidden flag, so a
+        # progress event arriving mid-run would silently un-hide
+        # everything the user had put away.
+        self._apply_column_visibility()
 
     # -- exports ----------------------------------------------------------
+
+    def _column_category(self, column) -> str:
+        """Which picker category a column belongs under.
+
+        Asked of the SAME registry and provider the picker is built from,
+        so a new calculator groups itself with no change here -- the
+        reason the picker is a tree rather than a hardcoded menu.
+        """
+        if column.source == SOURCE_DESCRIPTOR:
+            return _title(self._descriptor_categories().get(column.source_id, "other"))
+        definition = self._registry.get(column.source_id)
+        return _title(definition.category if definition is not None else "other")
+
+    def _descriptor_categories(self) -> dict[str, str]:
+        if self._descriptor_category_cache is None:
+            from openchem.chem.descriptor_providers import RDKitDescriptorProvider
+
+            self._descriptor_category_cache = RDKitDescriptorProvider().descriptor_categories()
+        return self._descriptor_category_cache
+
+    def _show_column_menu(self, position=None) -> None:
+        """Tick the column groups to show. THE VIEW ONLY.
+
+        Nothing is recomputed and no value is lost -- both exports go on
+        writing every column, because a hidden column is a thing the user
+        did not want to LOOK at rather than a thing they did not want.
+        """
+        if self._table is None or not self._table.columns:
+            return
+        categories = []
+        for column in self._table.columns:
+            category = self._column_category(column)
+            if category not in categories:
+                categories.append(category)
+
+        menu = QMenu(self)
+        for category in categories:
+            action = menu.addAction(category)
+            action.setCheckable(True)
+            action.setChecked(category not in self._hidden_categories)
+            action.setData(category)
+        menu.addSeparator()
+        show_all = menu.addAction("Show all")
+        show_all.setData(_SHOW_ALL)
+
+        origin = (
+            self._results.horizontalHeader().mapToGlobal(position)
+            if position is not None and not isinstance(position, bool)
+            else self._columns_button.mapToGlobal(self._columns_button.rect().bottomLeft())
+        )
+        chosen = menu.exec(origin)
+        if chosen is None:
+            return
+        if chosen.data() == _SHOW_ALL:
+            self._hidden_categories.clear()
+        elif chosen.isChecked():
+            self._hidden_categories.discard(chosen.data())
+        else:
+            self._hidden_categories.add(chosen.data())
+        self._apply_column_visibility()
+
+    def _apply_column_visibility(self) -> None:
+        if self._table is None:
+            return
+        for offset, column in enumerate(self._table.columns, start=1):
+            hidden = self._column_category(column) in self._hidden_categories
+            self._results.setColumnHidden(offset, hidden)
+        shown = sum(
+            1
+            for offset in range(1, self._results.columnCount())
+            if not self._results.isColumnHidden(offset)
+        )
+        if self._hidden_categories:
+            self._status.setText(
+                f"Showing {shown} of {len(self._table.columns)} columns "
+                f"({len(self._hidden_categories)} group(s) hidden)."
+            )
 
     def _export_csv(self) -> None:
         self._export("CSV (*.csv)", ".csv", self._export_service.export_csv)
@@ -988,6 +1160,43 @@ def _filter_item(item: QTreeWidgetItem, needle: str) -> bool:
     return any_visible
 
 
+#: A group row's label, with its own name kept separately.
+#:
+#: Stored rather than re-derived by stripping the suffix off the displayed
+#: text: a category legitimately called "Shape (3D)" would be mangled by
+#: any parser, and a name is not a thing to reconstruct from its own
+#: rendering. Same instinct as `full_text` on the eliding caption.
+_GROUP_NAME_ROLE = Qt.ItemDataRole.UserRole + 3
+
+
+def _leaves_under(item: QTreeWidgetItem):
+    if not item.childCount():
+        yield item
+        return
+    for index in range(item.childCount()):
+        yield from _leaves_under(item.child(index))
+
+
+def _label_group(item: QTreeWidgetItem) -> None:
+    """Show `n / total` ticked beside a group's name.
+
+    Counts EVERY leaf beneath it, hidden ones included -- a group that
+    read "2 / 2" while a filtered-out third was unticked would be lying
+    about what a run will do, which is the same contract
+    `_on_item_changed` keeps when it declines to tick what it cannot show.
+    """
+    name = item.data(0, _GROUP_NAME_ROLE)
+    if name is None:
+        name = item.text(0)
+        item.setData(0, _GROUP_NAME_ROLE, name)
+    leaves = list(_leaves_under(item))
+    if not leaves:
+        item.setText(0, str(name))
+        return
+    ticked = sum(1 for leaf in leaves if leaf.checkState(0) is Qt.CheckState.Checked)
+    item.setText(0, f"{name}  {ticked} / {len(leaves)}" if ticked else f"{name}  {len(leaves)}")
+
+
 def _group_state(item: QTreeWidgetItem):
     """Set `item`'s box from its descendants, and return that state.
 
@@ -1006,6 +1215,7 @@ def _group_state(item: QTreeWidgetItem):
     else:
         resolved = Qt.CheckState.PartiallyChecked
     item.setCheckState(0, resolved)
+    _label_group(item)
     return resolved
 
 

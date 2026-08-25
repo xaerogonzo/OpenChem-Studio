@@ -473,6 +473,9 @@ class MainWindow(QMainWindow):
             # which is exactly the failure `ResultCache` documents for a
             # uuid-only key.
             structure_check_service=services.structure_check_service,
+            # So a batch selection is not reassembled from 91 check boxes
+            # every launch. IDS are stored, never tree positions.
+            settings=settings,
         )
 
         # Connected after the panels exist, since the handler reads them.
