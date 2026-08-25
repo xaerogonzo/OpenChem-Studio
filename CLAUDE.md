@@ -1849,6 +1849,16 @@ lines. The two `DeprecationWarning`s are the same pre-existing
 six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
 `test_trajectory_player.py`.
 
+**CI MEASURES THE SAME TREE AT 5660 passed, 19 skipped, 1 deselected**
+(run 32896691945, PR #45, 23m21), which is the same 5680: 5660 + 19 + 1.
+The four extra skips are the GPU-gated conformer gallery guards and the
+deselection is the PubChem network test, both already documented above.
+Worth stating because a reader comparing the two figures should not go
+looking for five lost tests. All three gates RAN -- "Naming benchmark
+holds at 181/181", the regulatory benchmark and the ruleset validation --
+which is the step list rather than the conclusion, and the thing a red
+suite would have taken with it.
+
 14m42 sits mid-band; the 6-19 range stands. The run logged Chromium's
 `Failed to make current since context is marked as lost` partway through
 without costing any skips this time -- the `webgl` fixture's behaviour is
