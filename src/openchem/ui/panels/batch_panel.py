@@ -80,11 +80,16 @@ _HELP: dict[str, HelpTooltip] = {
     "run": HelpTooltip(
         text=(
             "Compute every ticked property for every molecule in the "
-            "project.\n\n"
-            "The work runs in the background and is listed in the Jobs "
-            "panel; results fill the table below as they arrive. Cost "
-            "grows with molecules TIMES properties, so a large project "
-            "with a whole category ticked is a long run."
+            "project, and fill the whole table.\n\n"
+            "**THIS IS THE BULK PATH AND IT IS DELIBERATE.** Nothing is "
+            "computed until you ask: opening this panel runs nothing, and "
+            "opening one molecule's details computes that molecule "
+            "alone. Use this when you want the wide table itself -- to "
+            "sort it, export it, or hand it to the analytics.\n\n"
+            "Cost grows with molecules TIMES properties, so it says how "
+            "many calculations it is about to start and waits for you to "
+            "agree. The run is listed in the Jobs panel and can be "
+            "cancelled; results already computed stay."
         ),
         tier=2,
         help_id="batch.run",
@@ -219,6 +224,17 @@ _MISSING = "—"
 
 _UUID_ROLE = Qt.ItemDataRole.UserRole + 2
 
+#: Above this many calculations, filling the table asks first.
+#:
+#: Not a refusal -- the user decides, and a bulk table is a real
+#: deliverable. It is a number small enough that the ordinary case (a few
+#: molecules, a handful of properties) is never interrupted, and large
+#: enough that the case worth pausing on -- a whole category over a whole
+#: project -- always is. Measured against the panel's own registry: 53
+#: registry-executable calculators, so ticking everything trips this at
+#: four molecules.
+_CONFIRM_ABOVE = 200
+
 # Moved to `ui/widgets/sortable_item.py` once the per-atom comparison table
 # needed the same thing. Aliased rather than renamed at every call site --
 # the names are private to this module and the move is not worth the churn.
@@ -254,6 +270,15 @@ class BatchPanel(QWidget):
         # an inspector, which is what Properties has offered all along.
         self._store: BatchResultStore | None = None
         self._structure_check = structure_check_service
+        # **WHAT THIS RUN IS FOR**, and the panel is the only thing that
+        # knows. A one-molecule run and a whole-project fill go down the
+        # identical service path and arrive on the identical event; only
+        # the caller can say whether the table that comes back describes
+        # the project or a single row. `JobManager` allows one batch at a
+        # time project-wide, so one flag is enough.
+        self._filling_table = False
+        #: uuid to open the detail view for once the run it needed lands.
+        self._details_when_ready: str | None = None
         # Re-entry guard for the tree: setting a child's check state emits
         # itemChanged, which is the handler that sets children.
         self._suspend_tree = False
@@ -305,7 +330,7 @@ class BatchPanel(QWidget):
         layout.addWidget(aggregate_row)
 
         button_row = flow_row(self)
-        self._run_button = QPushButton("Run", self)
+        self._run_button = QPushButton("Fill table…", self)
         self._run_button.clicked.connect(self._run)
         apply_help_tooltip(self._run_button, _HELP['run'])
         self._cancel_button = QPushButton("Cancel", self)
@@ -606,10 +631,38 @@ class BatchPanel(QWidget):
     # -- running ----------------------------------------------------------
 
     def _run(self) -> None:
+        """Fill the whole table, after saying what that costs.
+
+        **THE COST IS STATED BEFORE THE WORK, NOT DURING IT.** This is the
+        one place in the panel where the user can ask for an unbounded
+        amount of computation -- molecules TIMES properties -- and a
+        progress bar that appears after the decision is not a decision.
+        """
         if self._project is None:
             self._status.setText("Open or create a project first.")
             return
         descriptors, calculators = self.selected_ids()
+        if not descriptors and not calculators:
+            self._status.setText("Tick at least one property first.")
+            return
+        molecules = list(self._project.molecules)
+        total = len(molecules) * (len(descriptors) + len(calculators))
+        if total > _CONFIRM_ABOVE:
+            answer = QMessageBox.question(
+                self,
+                "Fill the whole table?",
+                f"This will start about {total:,} calculations "
+                f"({len(molecules)} molecules x {len(descriptors) + len(calculators)} "
+                "properties).\n\n"
+                "It runs in the background and can be cancelled; anything "
+                "already computed is kept.",
+                QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Ok,
+            )
+            if answer is not QMessageBox.StandardButton.Ok:
+                self._status.setText("Cancelled -- nothing was computed.")
+                return
+        self._filling_table = True
         request = BatchRequest(
             molecule_uuids=[molecule.uuid for molecule in self._project.molecules],
             descriptor_ids=descriptors,
@@ -617,7 +670,7 @@ class BatchPanel(QWidget):
             per_atom_aggregate=self._aggregate.currentText(),
             structure_version=self._current_structure_version(),
         )
-        self._batch_service.request_batch(request, list(self._project.molecules))
+        self._batch_service.request_batch(request, molecules)
 
     def _cancel(self) -> None:
         self._batch_service.cancel()
@@ -631,20 +684,26 @@ class BatchPanel(QWidget):
             self._progress.setMaximum(event.total)
             self._progress.setValue(event.completed)
         self._status.setText(event.error or event.message)
-        if event.table is not None:
+        # **THE TABLE IS ADOPTED ONLY WHEN THE RUN WAS A FILL.** A
+        # one-molecule run returns a one-row table, and letting that
+        # replace the project's would make opening a detail view destroy
+        # the table the user had built.
+        if event.table is not None and self._filling_table:
             self._table = event.table
             self._render_table(event.table)
         if event.store is not None:
-            self._store = event.store
+            self._merge_store(event.store)
         has_results = bool(self._table and self._table.row_uuids and self._table.columns)
         for button in (self._csv_button, self._report_button, self._analyse_button):
             button.setEnabled(has_results and not running)
-        # Details is enabled by the STORE rather than by the table: a run
-        # that produced only non-tabular results has facts to show and no
-        # columns to show them in.
-        self._details_button.setEnabled(
-            bool(self._store and len(self._store)) and not running
-        )
+        # Details is enabled by the SELECTION rather than by the table: a
+        # molecule with nothing computed is exactly the case the lazy path
+        # exists for, and greying the button there would make it
+        # unreachable.
+        self._details_button.setEnabled(not running)
+        if not running:
+            self._filling_table = False
+            self._open_pending_details()
 
     def table(self) -> BatchTable | None:
         return self._table
@@ -741,9 +800,85 @@ class BatchPanel(QWidget):
         if name_item is not None:
             self._show_details(name_item.data(_UUID_ROLE))
 
+    def _merge_store(self, incoming: BatchResultStore) -> None:
+        """Fold a run's results into what is already held.
+
+        REPLACING would lose everything a previous run computed, which is
+        the whole point of retaining them -- and a one-molecule run would
+        wipe the other 199.
+        """
+        if self._store is None:
+            self._store = BatchResultStore()
+        self._store.results.update(incoming.results)
+
+    def _needs_computing(self, molecule_uuid: str) -> tuple[list[str], list[str]]:
+        """The ticked properties this molecule has no CURRENT result for.
+
+        Keyed on the structure version, so an edited molecule's stale
+        results do not count as computed -- which is the difference between
+        "already done" and "done for a structure that no longer exists".
+        """
+        descriptors, calculators = self.selected_ids()
+        if self._store is None:
+            return descriptors, calculators
+        have = set(
+            self._store.for_molecule(molecule_uuid, self._current_structure_version())
+        )
+        return (
+            [d for d in descriptors if d not in have],
+            [c for c in calculators if c not in have],
+        )
+
+    def _open_pending_details(self) -> None:
+        uuid, self._details_when_ready = self._details_when_ready, None
+        if uuid is not None:
+            self._present_details(uuid)
+
     def _show_details(self, molecule_uuid: str | None) -> None:
+        """Open one molecule's results, computing them if they are missing.
+
+        **NOTHING IS COMPUTED UNASKED, AND THIS IS THE ASKING.** Opening
+        the panel runs nothing; opening a molecule runs THAT MOLECULE's
+        ticked properties and no other molecule's. An arbitrary project
+        size stops being dangerous because an arbitrary project size is no
+        longer computed.
+
+        It reuses `BatchService` rather than calling the registry inline:
+        one molecule against every ticked calculator is still real work,
+        and the service already has the thread, the progress and the
+        cancel. The results land in the same store by the same key, which
+        is what makes the two paths impossible to tell apart afterwards.
+        """
+        if not molecule_uuid or self._project is None:
+            return
+        molecule = self._project.find_molecule(molecule_uuid)
+        if molecule is None:
+            return
+
+        descriptors, calculators = self._needs_computing(molecule_uuid)
+        if descriptors or calculators:
+            if self._batch_service.is_running():
+                self._status.setText("A run is already in progress -- try again when it finishes.")
+                return
+            self._filling_table = False
+            self._details_when_ready = molecule_uuid
+            self._status.setText(f"Computing {molecule.display_name}...")
+            self._batch_service.request_batch(
+                BatchRequest(
+                    molecule_uuids=[molecule_uuid],
+                    descriptor_ids=descriptors,
+                    calculator_ids=calculators,
+                    per_atom_aggregate=self._aggregate.currentText(),
+                    structure_version=self._current_structure_version(),
+                ),
+                [molecule],
+            )
+            return
+        self._present_details(molecule_uuid)
+
+    def _present_details(self, molecule_uuid: str) -> None:
         """One molecule's results, in the Properties panel's own renderer."""
-        if not molecule_uuid or self._store is None or self._project is None:
+        if self._project is None:
             return
         molecule = self._project.find_molecule(molecule_uuid)
         if molecule is None:
@@ -753,7 +888,7 @@ class BatchPanel(QWidget):
         dialog = BatchDetailDialog(
             self._engine,
             molecule,
-            self._store,
+            self._store if self._store is not None else BatchResultStore(),
             self._current_structure_version(),
             self,
         )

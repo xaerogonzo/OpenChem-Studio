@@ -815,3 +815,156 @@ def test_a_failed_cell_still_says_why():
 
     item = _cell_of(FAILED, text="", cache_state=CacheState.FAILED, error="no conformer")
     assert "no conformer" in item.toolTip()
+
+
+# --- the computation matrix: what is computed, and when ---------------------
+#
+# "Nothing is computed unasked" is only an invariant if *asked* is defined.
+# One test per row, so the design has an assertion rather than a slogan.
+
+
+def _spy_on_computes(services):
+    """Which (calculator, molecule) pairs actually ran.
+
+    Spies on the REGISTRY rather than on a panel attribute: what matters
+    is whether a calculator ran, not whether the panel believes it started
+    one.
+    """
+    calls: list[tuple[str, str]] = []
+    original = services.calculator_registry.compute
+
+    def spy(calculator_id, mol, molecule_uuid, parameters=None):
+        calls.append((calculator_id, molecule_uuid))
+        return original(calculator_id, mol, molecule_uuid, parameters)
+
+    services.calculator_registry.compute = spy
+    return calls, original
+
+
+def _settle():
+    QThreadPool.globalInstance().waitForDone(120000)
+    QApplication.instance().processEvents()
+
+
+def test_selecting_a_molecule_computes_that_molecule_and_no_other(
+    panel, services, project, monkeypatch
+):
+    """**ROW TWO OF THE MATRIX.** It means only that MOLECULE, across the
+    ticked calculators -- not one calculator across every molecule, which
+    is the reading the first draft of this plan was ambiguous about.
+    """
+    shown: list[str] = []
+    monkeypatch.setattr(
+        BatchPanel, "_present_details", lambda self, uuid: shown.append(uuid)
+    )
+    panel.check("topology_analysis")
+    target = project.molecules[0]
+
+    calls, original = _spy_on_computes(services)
+    try:
+        panel._show_details(target.uuid)
+        _settle()
+    finally:
+        services.calculator_registry.compute = original
+
+    assert calls, "nothing was computed for the molecule that was opened"
+    assert {uuid for _calculator, uuid in calls} == {target.uuid}
+    assert shown == [target.uuid]
+
+
+def test_a_second_look_at_the_same_molecule_recomputes_nothing(
+    panel, services, project, monkeypatch
+):
+    """Retention is what makes the lazy path usable rather than merely
+    lazy. Without it, every glance would pay again."""
+    monkeypatch.setattr(BatchPanel, "_present_details", lambda self, uuid: None)
+    panel.check("topology_analysis")
+    target = project.molecules[0]
+    panel._show_details(target.uuid)
+    _settle()
+
+    calls, original = _spy_on_computes(services)
+    try:
+        panel._show_details(target.uuid)
+        _settle()
+    finally:
+        services.calculator_registry.compute = original
+
+    assert calls == [], f"re-opening recomputed {calls}"
+
+
+def test_filling_the_table_computes_every_molecule(panel, services, project):
+    """**ROW FIVE.** The bulk path is still a bulk path -- the wide table
+    is a real deliverable and this is where it is paid for."""
+    panel.check("topology_analysis")
+    calls, original = _spy_on_computes(services)
+    try:
+        panel._run()
+        _settle()
+    finally:
+        services.calculator_registry.compute = original
+
+    assert {uuid for _c, uuid in calls} == {m.uuid for m in project.molecules}
+
+
+def test_filling_the_table_asks_first_when_it_is_large(panel, services, project, monkeypatch):
+    """The cost is stated BEFORE the work. A progress bar that appears
+    after the decision is not a decision."""
+    from PySide6.QtWidgets import QMessageBox
+
+    asked: list[str] = []
+
+    def fake_question(_parent, _title, text, *args, **kwargs):
+        asked.append(text)
+        return QMessageBox.StandardButton.Cancel
+
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(fake_question))
+    monkeypatch.setattr("openchem.ui.panels.batch_panel._CONFIRM_ABOVE", 1)
+
+    panel.check("topology_analysis")
+    calls, original = _spy_on_computes(services)
+    try:
+        panel._run()
+        _settle()
+    finally:
+        services.calculator_registry.compute = original
+
+    assert asked, "a large fill started without saying how large"
+    assert "calculations" in asked[0]
+    assert calls == [], "Cancel did not cancel"
+
+
+def test_opening_one_molecule_does_not_destroy_the_table(panel, services, project, monkeypatch):
+    """A one-molecule run returns a ONE-ROW table on the same event the
+    fill uses. Letting that replace the project's would make opening a
+    detail view destroy the table the user had just built."""
+    monkeypatch.setattr(BatchPanel, "_present_details", lambda self, uuid: None)
+    table = _run(panel, ["topology_analysis"])
+    assert len(table.row_uuids) == len(project.molecules)
+
+    panel.check("mol_wt")
+    panel._show_details(project.molecules[0].uuid)
+    _settle()
+
+    assert panel.table() is not None
+    assert len(panel.table().row_uuids) == len(project.molecules)
+
+
+def test_a_molecules_results_survive_another_molecules_run(
+    panel, services, project, monkeypatch
+):
+    """The store is MERGED, never replaced -- replacing would lose
+    everything a previous run computed, which is the whole point of
+    keeping them."""
+    monkeypatch.setattr(BatchPanel, "_present_details", lambda self, uuid: None)
+    panel.check("topology_analysis")
+    first, second = project.molecules[0], project.molecules[1]
+
+    panel._show_details(first.uuid)
+    _settle()
+    panel._show_details(second.uuid)
+    _settle()
+
+    assert panel._store is not None
+    assert panel._store.for_molecule(first.uuid, 0), "the first molecule's results were lost"
+    assert panel._store.for_molecule(second.uuid, 0)

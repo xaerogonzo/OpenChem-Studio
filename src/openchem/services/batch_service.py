@@ -131,6 +131,19 @@ class _BatchTask(QRunnable):
 
     def run(self) -> None:
         table = BatchTable()
+        # **THE REQUEST IS THE AUTHORITY ON SCOPE.** `molecule_uuids` was
+        # written by every caller and READ BY NOTHING -- the task iterated
+        # whatever list it was handed, so a request naming two molecules
+        # while the caller passed twenty would run twenty and nobody would
+        # notice. Found by mutation: changing the request's scope to the
+        # whole project changed no behaviour at all.
+        #
+        # An empty list still means "everything given", which is what the
+        # older callers and fixtures rely on -- a request that names
+        # nothing is not a request to compute nothing.
+        wanted = set(self._request.molecule_uuids)
+        if wanted:
+            self._molecules = [m for m in self._molecules if m.uuid in wanted]
         total = len(self._molecules)
         try:
             for index, molecule in enumerate(self._molecules):
