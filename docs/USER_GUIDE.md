@@ -530,7 +530,7 @@ lights up.
 
 ---
 
-<!-- help:properties -->
+<!-- help:navigation -->
 ## Finding your way around
 
 The right-hand side has a **navigation rail**: a column of group icons,
@@ -613,10 +613,11 @@ bar, which detaches the *whole* panel — settings, tables and all. Use
 float when you want two panels side by side; use ↗ when the picture is
 the thing that needs the room.
 
+<!-- help:properties -->
 ## Properties
 
 The Properties panel is where most calculation happens. It has **25
-collapsible categories** covering **51 registered calculators**;
+collapsible categories** covering **53 registered calculators**;
 Physicochemical and Identity are open by default.
 
 Scalar descriptors compute eagerly — the whole batch finishes in well under
@@ -692,17 +693,18 @@ arrived together. It reads as a slow dialog and is not one.
 | Category | What's in it |
 |---|---|
 | Physicochemical | MW, logP, TPSA, HBD/HBA, rotatable bonds |
-| Solubility | ESOL solubility, the Low/Moderate/High category, solubility at a chosen pH, the pH–solubility curve, a BCS high-solubility screening estimate, and solubility in 91 non-aqueous solvents |
+| Solubility | ESOL solubility, the Low/Moderate/High category, solubility at a chosen pH, the pH–solubility curve, a BCS high-solubility screening estimate, solubility in 91 non-aqueous solvents, and Gutmann donor and acceptor numbers for the chosen solvent where they were measured |
 | Identity | formula, exact mass, elemental composition, InChI/InChIKey |
 | Naming | IUPAC name with its source and exactness label |
 | Charge | Gasteiger partial charges, and charges at a chosen pH |
 | Lipophilicity | logP per-atom contributions, and pH-dependent logD with its curve |
-| Topology | Wiener, Randić, Balaban, Platt, Szeged, Harary, per-atom eccentricity |
+| Topology | Wiener, Randić, Balaban, Platt, Szeged, Harary, per-atom eccentricity, and the Cao–Liu TSEI projection — how much of each atom's approach the rest of the molecule screens |
 | Geometry (3D) | radius of gyration, molecular radii, projection area, MMFF94/UFF/Dreiding energies, 3D alignment, molecular dynamics and intramolecular contacts |
-| Surface Area | SASA (total and per-atom), vdW surface, molecular volume |
+| Surface Area | SASA (total and per-atom), vdW surface, molecular volume, and Griffin's HLB for polyoxyethylene nonionic surfactants |
 | Structure Generators | stereoisomers, tautomers, resonance forms, conformers |
 | Quantum (Hückel) | orbital energies, π densities, HOMO/LUMO and the gap |
-| Electronic Properties | polarizability (molecular and per-atom), orbital electronegativity, molar refractivity |
+| Electronic Properties | polarizability by three methods — Jensen's additive scheme and Miller's ahc and ahp — plus per-atom polarizability, orbital electronegativity and molar refractivity |
+| Lewis acid/base | donor and acceptor sites with the role and strength of each, and whether a chosen pair forms an adduct — with every applicable line of evidence side by side rather than one score |
 | Stereochemistry | CIP descriptors and the stereocentres they label |
 | Medicinal Chemistry | Lipinski, Veber, Ghose, Egan, Pfizer 3/75, GSK 4/400, Rule of Three, QED, PAINS |
 | ADMET / Regulatory | BRENK alerts, BBB, bioavailability, hERG risk factors, ML predictions if the sidecar is installed, and the regulatory ruleset screen |
@@ -1091,6 +1093,7 @@ than a per-job cost.
 
 ---
 
+<!-- help:molecular-dynamics -->
 ## Molecular dynamics
 
 **Geometry (3D) ▸ Molecular Dynamics (vacuum)** runs a short MMFF94
@@ -1499,7 +1502,7 @@ molecules are unaffected and carry no such note.
 
 ### Choosing a solvent
 
-The **Solvent** parameter offers **91 solvents** — water first, then the
+The **Solvent** parameter offers **92 solvents** — water first, then the
 rest alphabetically. Water is the default and is the only one the pH
 machinery applies to.
 
@@ -2029,6 +2032,7 @@ See [PLUGIN_SDK.md](PLUGIN_SDK.md) to write one.
   how two partners sit together — the LED breakdown most of all — needs you
   to place them yourself.
 
+<!-- help:substance-perception -->
 ## Knowing what a structure IS
 
 The Properties panel carries an identity header above the results, and it
@@ -2123,6 +2127,7 @@ You will not get one for sodium acetate or ammonium nitrate. Polyatomic
 ions need a different kind of radius, and the app would rather say nothing
 than give you a number that looks right.
 
+<!-- help:crystals -->
 ## Opening a crystal structure
 
 **File → Import Crystal Structure...** reads a CIF, adds it to the project beside your molecules, draws one unit cell in

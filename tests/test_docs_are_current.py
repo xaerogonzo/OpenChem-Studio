@@ -893,3 +893,357 @@ def test_the_candidate_detector_can_say_no():
         "claim, which would demand a code predicate for something no external "
         "method is missing"
     )
+
+
+# ---------------------------------------------------------------------------
+# The user guide documents CATEGORIES, and nothing related it to the registry
+# ---------------------------------------------------------------------------
+# `docs/USER_GUIDE.md`'s "Categories worth knowing about" table is where a
+# reader finds out a calculator exists at all. It is written at the CATEGORY
+# level, and its row labels are prose -- `Quantum (Huckel)` for `quantum`,
+# `Structure Generators` for `structures`, `ADMET / Regulatory` for two
+# categories at once -- so no rule could ever have derived one from the other.
+#
+# **AND SO A CATEGORY FELL OUT.** `lewis` has had two calculators and no row
+# in that table for as long as the table has existed. Nothing noticed,
+# because nothing was looking.
+#
+# **THE SAME FAILURE IS ALREADY ON RECORD.** CLAUDE.md: a documentation sweep
+# "found four shipped features with no user-facing documentation at all, and
+# an LED section missing from `SCIENTIFIC_LIMITATIONS.md` -- the file that
+# exists precisely to say what the app cannot honestly tell you". It happened
+# again, to the four calculators the previous branch made reachable.
+#
+# THE MAPPING IS DECLARED AND CHECKED BOTH WAYS. Inferring the row from the
+# category is what has never worked; a LIST of documented categories is the
+# blocklist `inapplicable_calculators` rotted into. So each category names its
+# row, every category in the LIVE registry must have one, and every row must
+# be claimed -- the same shape `DEFERRALS` and `CALCULATOR_CLAIMS` use.
+
+_GUIDE_TABLE_HEADING = "### Categories worth knowing about"
+
+#: `registry category -> the row label in the guide's table`.
+#:
+#: **THERE ARE TWO CATEGORY VOCABULARIES AND THE TABLE DOCUMENTS BOTH.**
+#: `CalculatorDefinition.category` names the 17 a calculator can be filed
+#: under; `_DESCRIPTOR_SPECS`'s fourth field names the ones a plain
+#: descriptor row uses, and two of those -- `medicinal_chemistry` and
+#: `physicochemical` -- exist ONLY there, because Lipinski, QED and
+#: molecular weight are published by the descriptor service rather than by
+#: a registered calculator.
+#:
+#: Covering both is strictly better than exempting the second: an exemption
+#: list would stop noticing the day a new descriptor category arrived, which
+#: is the rot this whole guard is written against.
+#:
+#: The regulatory screen is filed under `admet` and has no category of its
+#: own -- the narrow guard below caught that being invented here on its
+#: first run.
+CATEGORY_ROWS: dict[str, str] = {
+    "admet": "ADMET / Regulatory",
+    "medicinal_chemistry": "Medicinal Chemistry",
+    "physicochemical": "Physicochemical",
+    "charge": "Charge",
+    "electronic": "Electronic Properties",
+    "geometry": "Geometry (3D)",
+    "identity": "Identity",
+    "lewis": "Lewis acid/base",
+    "lipophilicity": "Lipophilicity",
+    "naming": "Naming",
+    "nmr": "NMR",
+    "pka": "pKa",
+    "quantum": "Quantum (Hückel)",
+    "solubility": "Solubility",
+    "stereochemistry": "Stereochemistry",
+    "structures": "Structure Generators",
+    "substructure": "Substructure Search",
+    "surface": "Surface Area",
+    "topology": "Topology",
+}
+
+#: Rows that document something real and belong to NEITHER vocabulary.
+#: Empty, and that is the point: both vocabularies are enumerated, so a row
+#: needing an exemption would mean the guard had stopped covering something.
+#: Kept rather than deleted because the day a row legitimately documents
+#: something outside both, it must arrive with a written reason --
+#: `test_every_allowlist_entry_is_explained` applies the same rule to the
+#: path allowlists above.
+_ROWS_WITHOUT_A_CATEGORY: dict[str, str] = {}
+
+
+def _guide_category_rows() -> list[str]:
+    """The row labels in the guide's category table, in document order."""
+    text = (_ROOT / "docs" / "USER_GUIDE.md").read_text(encoding="utf-8")
+    assert text.count(_GUIDE_TABLE_HEADING) == 1, (
+        f"docs/USER_GUIDE.md has no unique {_GUIDE_TABLE_HEADING!r} heading. If it "
+        "was renamed, rename it here too -- this guard reads that table and a "
+        "silently missing one would pass every check below."
+    )
+    table = re.split(r"^#{2,4} ", text.split(_GUIDE_TABLE_HEADING, 1)[1], maxsplit=1, flags=re.M)[0]
+    rows = [m.group(1).strip() for m in re.finditer(r"^\| ([^|]+) \|", table, re.M)]
+    assert rows and rows[0] == "Category", (
+        f"the table's first column no longer starts with a 'Category' header: {rows[:2]}"
+    )
+    return [r for r in rows[1:] if not set(r) <= set("-: ")]
+
+
+def _registry_categories() -> set[str]:
+    """Every category a user-visible result can be filed under, from BOTH
+    vocabularies, read live rather than listed."""
+    from openchem.chem.descriptor_providers import (
+        CALCULATOR_DEFINITIONS,
+        _DESCRIPTOR_SPECS,
+    )
+
+    return {d.category for d in CALCULATOR_DEFINITIONS} | {
+        spec[3] for spec in _DESCRIPTOR_SPECS
+    }
+
+
+def test_every_registry_category_has_a_row_in_the_user_guide():
+    """THE DIRECTION THAT WAS MISSING, and the one `lewis` fell through.
+
+    Enumerated from the LIVE registry rather than from a list beside it --
+    the direction `test_every_dock_the_window_builds_has_a_help_topic`
+    already goes, and the opposite of the one `inapplicable_calculators`
+    rotted in.
+    """
+    from openchem.chem.descriptor_providers import (
+        CALCULATOR_DEFINITIONS,
+        _DESCRIPTOR_SPECS,
+    )
+
+    rows = set(_guide_category_rows())
+    missing = []
+    for category in sorted(_registry_categories()):
+        label = CATEGORY_ROWS.get(category)
+        if label is None:
+            names = [d.display_name for d in CALCULATOR_DEFINITIONS if d.category == category]
+            names += [s[1] for s in _DESCRIPTOR_SPECS if s[3] == category]
+            missing.append(f"{category!r} has no entry in CATEGORY_ROWS ({len(names)}: {names})")
+        elif label not in rows:
+            missing.append(f"{category!r} maps to {label!r}, which is not a row in the table")
+
+    assert not missing, (
+        "these calculator categories are not documented in the user guide's "
+        '"Categories worth knowing about" table, so nothing tells a reader the '
+        "calculators in them exist:\n" + "\n".join(f"  - {m}" for m in missing)
+    )
+
+
+def test_every_mapping_names_a_category_that_still_exists():
+    """The narrow half. Without it, a renamed category leaves a mapping
+    pointing at nothing while the test above passes on the rows that are
+    left -- which reads as coverage and is a smaller universe."""
+    live = _registry_categories()
+    stale = sorted(c for c in CATEGORY_ROWS if c not in live)
+    assert not stale, (
+        f"CATEGORY_ROWS maps categories the registry no longer has: {stale}. "
+        "A renamed category must be renamed here too, or this guard silently "
+        "stops covering it."
+    )
+
+
+def test_every_row_in_the_table_is_claimed():
+    """The third direction: a row for a category that has gone away is prose
+    telling a reader about calculators that no longer exist."""
+    claimed = set(CATEGORY_ROWS.values()) | set(_ROWS_WITHOUT_A_CATEGORY)
+    unclaimed = [r for r in _guide_category_rows() if r not in claimed]
+    assert not unclaimed, (
+        "these rows in the guide's category table belong to no registry "
+        "category and are not explained in _ROWS_WITHOUT_A_CATEGORY:\n"
+        + "\n".join(f"  - {r}" for r in unclaimed)
+    )
+
+
+def test_every_unmapped_row_says_why():
+    """An exemption without a reason is how a guard gets hollowed out.
+
+    The set is empty today because both vocabularies are enumerated. This
+    stays so that the first row to need an exemption has to justify itself
+    rather than being added silently.
+    """
+    for row, reason in _ROWS_WITHOUT_A_CATEGORY.items():
+        assert len(reason) > 30, f"{row!r} is exempted without a real reason: {reason!r}"
+
+
+def test_both_category_vocabularies_are_read():
+    """THE SETUP ASSERTION, and it is load-bearing.
+
+    `_registry_categories` unions two sources, and reverting it to the
+    calculator half alone would still pass every test above -- the rows for
+    `medicinal_chemistry` and `physicochemical` would simply stop being
+    required, which is the green-suite-and-a-smaller-universe failure this
+    project has recorded before. So the two descriptor-only categories are
+    asserted by name.
+    """
+    live = _registry_categories()
+    from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
+
+    calculator_only = {d.category for d in CALCULATOR_DEFINITIONS}
+    assert {"medicinal_chemistry", "physicochemical"} <= live
+    assert not {"medicinal_chemistry", "physicochemical"} & calculator_only, (
+        "these are now calculator categories too, so the descriptor half of "
+        "the union is no longer what makes them appear -- re-point this "
+        "assertion at whatever is descriptor-only now, or drop it"
+    )
+
+
+#: The four the previous branch made reachable, and the words that would have
+#: to appear for a reader to find each. NARROW ON PURPOSE -- see the test.
+_RESCUED_FEATURES = {
+    "Griffin HLB": "HLB",
+    "Cao-Liu TSEI": "TSEI",
+    "Gutmann donicity": "Gutmann",
+    "Miller polarizability": "Miller",
+}
+
+
+@pytest.mark.parametrize("feature,needle", sorted(_RESCUED_FEATURES.items()))
+@pytest.mark.parametrize("doc", ["docs/USER_GUIDE.md", "docs/SCIENTIFIC_LIMITATIONS.md"])
+def test_the_rescued_features_are_documented(doc, feature, needle):
+    """THE TARGETED HALF, in the shape of `test_the_known_stale_szeged_claim_is_gone`.
+
+    These four shipped correct, guarded and sourced in one branch, were made
+    reachable in the next, and appeared in NEITHER user-facing document. The
+    category guard above would not have caught it -- their categories all had
+    rows already.
+
+    **DELIBERATELY NOT A GENERAL RULE.** "Every calculator's display name
+    appears in the guide" measures 20 of 53 today, and closing that would mean
+    rewriting prose to satisfy a regex rather than documenting anything. This
+    names four features and asks only that a reader can find them.
+    """
+    text = (_ROOT / doc).read_text(encoding="utf-8")
+    assert needle in text, (
+        f"{feature} is not mentioned in {doc}. It is reachable from the "
+        "Properties panel and the command palette, so a user can run it and "
+        "has nowhere to read what it does or where it stops."
+    )
+
+
+def test_every_section_of_the_user_guide_is_a_topic():
+    """A  SECTION WITH NO ANCHOR IS NOT A TOPIC, so the Help window
+    does not LIST it and it cannot be addressed by .
+
+    Four were missing, and the worst was  -- the section
+    carrying the calculator category table, i.e. the reference for
+    everything the application computes. ,
+     and 
+    were the others.
+
+    **THE PRECISE CLAIM IS "NOT LISTED", NOT "UNREACHABLE".** Measured:
+    the search still finds text in an unanchored section, attributing it to
+    the PRECEDING topic. So the cost is a section a user cannot browse to
+    and cannot be sent to, not content that has vanished -- worth stating,
+    because the stronger version is the one that sounds better and is
+    wrong.
+
+    **SCOPED TO USER_GUIDE.md, where the invariant is real.** Every one of
+    its 26 sections is user-facing help. QUICKSTART.md is deliberately at 2
+    of 9 -- the rest are developer setup ("From source", "Running the
+    tests", "Building a distributable"), which is not help. And
+    SCIENTIFIC_LIMITATIONS.md sits at 12 of 18 today; that is a
+    pre-existing state this guard deliberately does NOT claim either way,
+    rather than sweeping six sections into scope under cover of a fix for
+    something else.
+    """
+    text = (_ROOT / "docs" / "USER_GUIDE.md").read_text(encoding="utf-8")
+    anchored = {
+        m.group(1).strip()
+        for m in re.finditer(r"<!--\s*help:[a-z0-9-]+\s*-->\s*\n#{2,3} (.+)", text)
+    }
+    orphans = [
+        m.group(1).strip()
+        for m in re.finditer(r"^## (.+)$", text, re.M)
+        if m.group(1).strip() not in anchored
+    ]
+    assert not orphans, (
+        "these user-guide sections carry no `<!-- help:... -->` anchor, so the "
+        "Help window does not list them and nothing can link to them:\n"
+        + "\n".join(f"  - ## {o}" for o in orphans)
+    )
+
+
+def test_every_dock_help_button_opens_its_own_section():
+    """**"THE TOPIC EXISTS" IS NOT "THE TOPIC IS RIGHT"**, and that gap is
+    what let this ship.
+
+    `test_every_dock_the_window_builds_has_a_help_topic` checks that each
+    dock's key resolves. `properties` resolved perfectly -- to
+    `## Finding your way around`, because the anchor sat above the wrong
+    heading. Eleven `help_anchor="properties"` references across five
+    modules -- the dock's `?` button, the Help menu, the panel's tooltips,
+    the collapsible sections, the pop-out host -- all opened the navigation
+    section instead of the Properties documentation.
+
+    THE ORACLE IS THE DOCK'S OWN NAME, derived rather than declared: a dock
+    called `Atom_Inspector` should open a section whose title contains
+    "Atom Inspector". Where the section is deliberately named something
+    else, `_DOCK_TOPIC_TITLES` says so with the reason -- which is the same
+    rule `test_every_allowlist_entry_is_explained` applies above.
+    """
+    from openchem.app.main_window import HELP_TOPIC_BY_DOCK
+    from openchem.help import topics
+
+    by_key = {t.key: t.title for t in topics()}
+    wrong = []
+    for dock, key in sorted(HELP_TOPIC_BY_DOCK.items()):
+        title = by_key.get(key)
+        assert title is not None, f"{dock} opens {key!r}, which is not a topic"
+        expected = _DOCK_TOPIC_TITLES.get(dock)
+        if expected is not None:
+            if title != expected:
+                wrong.append(f"{dock} opens {title!r}, expected {expected!r}")
+        elif dock.replace("_", " ").lower() not in title.lower():
+            wrong.append(
+                f"{dock} opens {title!r}, which does not name the dock -- either "
+                "move the anchor, or record the difference in _DOCK_TOPIC_TITLES"
+            )
+
+    assert not wrong, "these help buttons open the wrong section:\n" + "\n".join(
+        f"  - {w}" for w in wrong
+    )
+
+
+#: Docks whose section is deliberately titled something other than the dock.
+#: Each says why, so a MISPLACED anchor cannot hide here as a naming choice.
+_DOCK_TOPIC_TITLES: dict[str, str] = {
+    "Project_Explorer": "Projects and molecules",  # the panel is the tree; the
+    # section covers projects AND the molecules in them, which is what a
+    # reader opening it wants.
+    "Structure_Check": "The structure checker",  # the same words with an
+    # article, which the derived rule cannot match on.
+    "Batch": "Batch mode",
+    "Console": "Jobs and the console",  # one section covers both docks
+    # deliberately -- they are two views of the same queue.
+    "Jobs": "Jobs and the console",
+    "Quantum_Chemistry": "Quantum chemistry",  # case differs only.
+}
+
+
+def test_the_guide_states_the_real_number_of_calculators():
+    """A COUNT IN PROSE ROTS THE MOMENT A CALCULATOR IS REGISTERED, and
+    this one had: the guide said 51 while the registry held 53, because the
+    branch below added Griffin HLB and the Cao-Liu TSEI projection.
+
+    Derived from the live registry, so it cannot drift again. The
+    neighbouring "25 collapsible categories" is deliberately NOT guarded
+    here -- the panel's section count needs a built widget to measure and
+    it was not measured when this was written, so asserting it would be
+    asserting a number nobody checked. Recorded as unverified rather than
+    guessed at.
+    """
+    from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
+
+    text = (_ROOT / "docs" / "USER_GUIDE.md").read_text(encoding="utf-8")
+    match = re.search(r"covering \*\*(\d+) registered calculators\*\*", text)
+    assert match, (
+        "docs/USER_GUIDE.md no longer states the calculator count in the shape "
+        "this guard reads. If the sentence was reworded, reword the pattern too "
+        "-- a count nothing checks is a count that rots."
+    )
+    assert int(match.group(1)) == len(CALCULATOR_DEFINITIONS), (
+        f"the guide says {match.group(1)} registered calculators and the "
+        f"registry holds {len(CALCULATOR_DEFINITIONS)}"
+    )

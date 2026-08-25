@@ -726,7 +726,7 @@ def compute_lewis_sites(
 
 
 def _gutmann_lines(mol: Any) -> list[str]:
-    """Measured donicity, when the drawn structure IS one of the 68 liquids.
+    """Measured donicity, when the drawn structure IS one of the 66 liquids.
 
     `domain/lewis.py` was written with room for exactly this: "The shape
     also has room for what is coming -- donor and acceptor numbers".
