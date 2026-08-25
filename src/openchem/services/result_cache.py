@@ -103,6 +103,24 @@ def cache_root() -> Path:
     return app_paths.wavefunction_root().parent / "results"
 
 
+def parameters_key(parameters: dict[str, Any] | None) -> str:
+    """A stable key for one calculator's parameter set.
+
+    **A THIN WRAPPER, SO THERE IS ONE RECIPE AND NOT TWO.** The retained
+    batch results are keyed partly on their parameters, and the obvious
+    alternative -- `str(sorted(parameters.items()))` at the call site --
+    is a second serialisation scheme that would drift from this one and
+    make two identical requests into two different keys. `key_for` already
+    solves this: sorted JSON into SHA-256, stable across processes and
+    sessions, and it stringifies values rather than trusting them to
+    serialise so an enum or a Path cannot turn a cache into an outage.
+
+    Empty parameters give a stable key too, rather than "" -- a calculator
+    with no settings still has a parameter set, and it is the empty one.
+    """
+    return key_for("calculator_parameters", **(parameters or {}))
+
+
 def key_for(kind: str, **inputs: Any) -> str:
     """A stable key from everything that determines a result.
 

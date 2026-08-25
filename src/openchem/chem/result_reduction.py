@@ -1,5 +1,13 @@
 """Turning one molecule's result into the cells of a table row.
 
+**THIS IS A PRESENTATION PROJECTION AND MUST NEVER BECOME THE CANONICAL
+STORAGE.** The `ScientificResult` is what is kept -- see
+`domain/batch.BatchResultStore` -- and this is one lossy VIEW of it,
+shaped for a table. It was the storage once, and the cost is measured
+below: 73 numeric columns recovered and 25 real lines refused outright.
+A detail pane, an inspector or a comparison reading from here rather
+than from the store is that loss happening again.
+
 THE PROBLEM THIS SOLVES. Of the 50 registered calculators, exactly zero
 return a scalar. They return per-atom datasets, alert lists, spectra,
 structure sets, pH curves and trajectories -- shapes built for a panel that
@@ -70,6 +78,8 @@ import re
 from typing import Any
 
 from openchem.domain.batch import (
+    FAILED,
+    NON_SCALAR,
     SOURCE_CALCULATOR,
     SOURCE_DESCRIPTOR,
     BatchCell,
@@ -309,6 +319,7 @@ def reduce_result(
                     cache_state=CacheState.FAILED,
                     error=result.error,
                     provenance=result.provenance,
+                    kind=FAILED,
                 ),
             )
         ]
@@ -555,6 +566,11 @@ def _reduce_descriptive(
     text = _descriptive_text(result)
     if not text:
         return []
+    # NON_SCALAR, NOT a failure. The text here DESCRIBES the result ("12
+    # peaks") rather than being it, and a view that tests only `failed`
+    # renders both as an em dash -- telling the reader nothing was computed,
+    # which is the opposite of what happened. The row action is how the real
+    # thing is reached.
     return [
         (
             BatchColumn(
@@ -569,6 +585,7 @@ def _reduce_descriptive(
                 text=text,
                 provenance=result.provenance,
                 cache_state=result.cache_state,
+                kind=NON_SCALAR,
             ),
         )
     ]
