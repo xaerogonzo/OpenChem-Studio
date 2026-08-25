@@ -100,6 +100,21 @@ _HELP: dict[str, HelpTooltip] = {
         help_id="batch.cancel",
         topic="batch",
     ),
+    "select_all": HelpTooltip(
+        text=(
+            "Tick every property currently shown in the list.\n\n"
+            "It respects the filter: type something first and this ticks "
+            "only what matches, leaving anything hidden exactly as it "
+            "was. Ticking a category heading does the same for that "
+            "category alone.\n\n"
+            "Cost grows with molecules TIMES properties, so ticking "
+            "everything over a large project is a long run -- the run "
+            "tells you the size before it starts."
+        ),
+        tier=2,
+        help_id="batch.select_all",
+        topic="batch",
+    ),
     "clear_selection": HelpTooltip(
         text=(
             "Untick every property.\n\n"
@@ -210,6 +225,9 @@ class BatchPanel(QWidget):
         self._engine = chemistry_engine
         self._project: ProjectModel | None = None
         self._table: BatchTable | None = None
+        # Re-entry guard for the tree: setting a child's check state emits
+        # itemChanged, which is the handler that sets children.
+        self._suspend_tree = False
         # Callbacks rather than dialogs constructed here: this panel lives
         # in a dock, and the analytics and screening windows are the main
         # window's to own -- same split `PropertyPanel` makes with
@@ -265,11 +283,15 @@ class BatchPanel(QWidget):
         self._cancel_button.clicked.connect(self._cancel)
         apply_help_tooltip(self._cancel_button, _HELP['cancel'])
         self._cancel_button.setEnabled(False)
+        self._select_all_button = QPushButton("Select all", self)
+        self._select_all_button.clicked.connect(self._select_all_visible)
+        apply_help_tooltip(self._select_all_button, _HELP['select_all'])
         self._select_none_button = QPushButton("Clear selection", self)
         self._select_none_button.clicked.connect(self._clear_selection)
         apply_help_tooltip(self._select_none_button, _HELP['clear_selection'])
         button_row.layout().addWidget(self._run_button)
         button_row.layout().addWidget(self._cancel_button)
+        button_row.layout().addWidget(self._select_all_button)
         button_row.layout().addWidget(self._select_none_button)
         layout.addWidget(button_row)
 
@@ -308,6 +330,8 @@ class BatchPanel(QWidget):
 
         event_bus.subscribe(BatchProgress, self._on_progress)
         self._populate_tree()
+        self._make_groups_checkable()
+        self._tree.itemChanged.connect(self._on_item_changed)
 
     # -- project / selection ----------------------------------------------
 
@@ -389,6 +413,111 @@ class BatchPanel(QWidget):
         if tooltip:
             item.setToolTip(0, tooltip)
 
+    def _make_groups_checkable(self) -> None:
+        """Every non-leaf row gets a check box of its own.
+
+        **THIS IS THE WHOLE OF WHY THERE WAS NO SELECT-ALL-IN-GROUP**:
+        `_add_leaf` set `ItemIsUserCheckable` on LEAVES only, so a category
+        heading had no check state at all and 91 properties could only be
+        ticked one at a time.
+
+        Qt draws the partial state for free once the flag is on; what it
+        does NOT do is propagate, so `_on_item_changed` pushes a parent's
+        state down and recomputes ancestors on the way back up.
+        """
+        stack = [self._tree.topLevelItem(i) for i in range(self._tree.topLevelItemCount())]
+        while stack:
+            item = stack.pop()
+            if item.childCount():
+                # `ItemIsUserCheckable` ALONE, deliberately.
+                # `ItemIsAutoTristate` looks like exactly what this wants
+                # and does too much: Qt then propagates a parent's tick
+                # down to EVERY child itself, hidden ones included, which
+                # silently reaches entries the filter is hiding and
+                # contradicts the filter's own documented promise.
+                # Measured -- with that flag set,
+                # `test_ticking_a_category_leaves_its_hidden_children_alone`
+                # fails on a child Qt ticked before this handler ran.
+                # Both directions are ours instead.
+                item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                item.setCheckState(0, Qt.CheckState.Unchecked)
+                stack.extend(item.child(i) for i in range(item.childCount()))
+
+    def _on_item_changed(self, item: QTreeWidgetItem, column: int) -> None:
+        """Push a group's tick down to its children.
+
+        Guarded against re-entry: setting a child's state emits this again,
+        and Qt's own tristate handling then walks back up -- without the
+        guard a single click on a category recurses through the subtree
+        once per descendant.
+
+        HIDDEN CHILDREN ARE LEFT ALONE, which is not an optimisation. The
+        filter's own help text promises it filters the LIST and never the
+        results, so a group tick that reached entries the user cannot see
+        would contradict a documented contract.
+        """
+        if self._suspend_tree or column != 0:
+            return
+        self._suspend_tree = True
+        try:
+            if item.childCount():
+                state = item.checkState(0)
+                if state is not Qt.CheckState.PartiallyChecked:
+                    self._set_subtree(item, state)
+            # Upwards on every change, leaf or group: a group's box is a
+            # statement about its children and goes stale the moment one
+            # of them moves. Qt would do this half with ItemIsAutoTristate
+            # and the downward half wrongly -- see `_make_groups_checkable`.
+            for index in range(self._tree.topLevelItemCount()):
+                _group_state(self._tree.topLevelItem(index))
+        finally:
+            self._suspend_tree = False
+
+    def _set_subtree(self, item: QTreeWidgetItem, state) -> None:
+        for index in range(item.childCount()):
+            child = item.child(index)
+            if child.isHidden():
+                continue
+            if child.childCount():
+                child.setCheckState(0, state)
+                self._set_subtree(child, state)
+            else:
+                child.setCheckState(0, state)
+
+    def _select_all_visible(self) -> None:
+        """Tick everything the filter is currently showing.
+
+        Not everything that EXISTS -- see `_on_item_changed`. The status
+        line says how many, because "select all" over a filtered list is
+        otherwise a claim the user cannot check.
+        """
+        self._suspend_tree = True
+        try:
+            count = 0
+            for item, _payload in self._leaves():
+                if item.isHidden():
+                    continue
+                item.setCheckState(0, Qt.CheckState.Checked)
+                count += 1
+        finally:
+            self._suspend_tree = False
+        self._refresh_group_states()
+        shown = "shown" if self._filter.text().strip() else "available"
+        self._status.setText(f"Ticked {count} {shown} propert{'y' if count == 1 else 'ies'}.")
+
+    def _refresh_group_states(self) -> None:
+        """Recompute every group's box from its children.
+
+        Needed after a bulk change, which sets leaves directly and so
+        never goes through the propagation above.
+        """
+        self._suspend_tree = True
+        try:
+            for index in range(self._tree.topLevelItemCount()):
+                _group_state(self._tree.topLevelItem(index))
+        finally:
+            self._suspend_tree = False
+
     def _leaves(self):
         iterator = [self._tree.topLevelItem(i) for i in range(self._tree.topLevelItemCount())]
         while iterator:
@@ -410,8 +539,13 @@ class BatchPanel(QWidget):
             _filter_item(self._tree.topLevelItem(index), needle)
 
     def _clear_selection(self) -> None:
-        for item, _payload in self._leaves():
-            item.setCheckState(0, Qt.CheckState.Unchecked)
+        self._suspend_tree = True
+        try:
+            for item, _payload in self._leaves():
+                item.setCheckState(0, Qt.CheckState.Unchecked)
+        finally:
+            self._suspend_tree = False
+        self._refresh_group_states()
 
     def selected_ids(self) -> tuple[list[str], list[str]]:
         """(descriptor ids, calculator ids) currently ticked."""
@@ -597,6 +731,27 @@ def _filter_item(item: QTreeWidgetItem, needle: str) -> bool:
     if needle and any_visible:
         item.setExpanded(True)
     return any_visible
+
+
+def _group_state(item: QTreeWidgetItem):
+    """Set `item`'s box from its descendants, and return that state.
+
+    Depth-first, because a category's state depends on its children's and
+    a top-level group's on the categories'. Hidden leaves are counted:
+    they are still ticked or not, and a group that read "all" while a
+    hidden entry was unticked would be lying about what will run.
+    """
+    if not item.childCount():
+        return item.checkState(0)
+    states = [_group_state(item.child(i)) for i in range(item.childCount())]
+    if all(state is Qt.CheckState.Checked for state in states):
+        resolved = Qt.CheckState.Checked
+    elif all(state is Qt.CheckState.Unchecked for state in states):
+        resolved = Qt.CheckState.Unchecked
+    else:
+        resolved = Qt.CheckState.PartiallyChecked
+    item.setCheckState(0, resolved)
+    return resolved
 
 
 def _title(text: str) -> str:

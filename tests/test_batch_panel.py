@@ -563,3 +563,155 @@ def test_the_basis_column_takes_only_what_its_own_text_needs(panel):
     assert tree.columnWidth(0) > tree.columnWidth(1), (
         f"Property {tree.columnWidth(0)} px vs Basis {tree.columnWidth(1)} px"
     )
+
+
+# --- selection: 91 properties, and no way to tick a group ------------------
+
+
+def _group_named(panel, text):
+    stack = [panel._tree.topLevelItem(i) for i in range(panel._tree.topLevelItemCount())]
+    while stack:
+        item = stack.pop()
+        if item.text(0) == text:
+            return item
+        stack.extend(item.child(i) for i in range(item.childCount()))
+    raise AssertionError(f"no group named {text!r}")
+
+
+def _draws_a_check_box(item) -> bool:
+    """Whether Qt renders a tickable box on this row.
+
+    **NEITHER OF THE OBVIOUS TESTS DISCRIMINATES**, measured on a bare
+    `QTreeWidgetItem`: `ItemIsUserCheckable` is in Qt's DEFAULT item flags
+    and is therefore True on a row nobody ever made checkable, and
+    `checkState(0)` answers `Unchecked` whether a state was set or not.
+    Only the role data tells them apart -- None until `setCheckState` is
+    called -- and it is exactly what decides whether a box is drawn.
+
+    A mutation removing the whole `_make_groups_checkable` body survived
+    both of the obvious versions of this.
+    """
+    return item.data(0, Qt.ItemDataRole.CheckStateRole) is not None
+
+
+def _leaf_states(group):
+    return [group.child(i).checkState(0) for i in range(group.childCount())]
+
+
+def test_ticking_a_category_ticks_everything_in_it(panel):
+    """THE WHOLE OF THE REPORTED COMPLAINT. `_add_leaf` set
+    `ItemIsUserCheckable` on leaves only, so a category heading had no
+    check state at all and 91 properties could only be ticked one by
+    one."""
+    calculators = _group_named(panel, "Calculators")
+    category = calculators.child(0)
+    assert category.childCount() >= 2, "need a category with something in it"
+
+    category.setCheckState(0, Qt.CheckState.Checked)
+
+    assert all(state == Qt.CheckState.Checked for state in _leaf_states(category))
+    _descriptors, ticked = panel.selected_ids()
+    assert len(ticked) == category.childCount()
+
+
+def test_unticking_a_category_unticks_everything_in_it(panel):
+    category = _group_named(panel, "Calculators").child(0)
+    category.setCheckState(0, Qt.CheckState.Checked)
+    category.setCheckState(0, Qt.CheckState.Unchecked)
+    assert all(state == Qt.CheckState.Unchecked for state in _leaf_states(category))
+
+
+def test_a_partly_ticked_category_says_so(panel):
+    """A group's box is a statement about its children and goes stale the
+    moment one of them moves.
+
+    **DRIVEN THROUGH THE LEAF, NOT THROUGH `_refresh_group_states`.** The
+    first version of this called the helper itself, which proves the
+    helper works and says nothing about whether anything calls it -- a
+    mutation deleting the automatic recompute SURVIVED against it.
+    """
+    calculators = _group_named(panel, "Calculators")
+    category = calculators.child(0)
+    assert category.childCount() >= 2, "a one-child category cannot be partial"
+
+    category.child(0).setCheckState(0, Qt.CheckState.Checked)
+
+    assert category.checkState(0) == Qt.CheckState.PartiallyChecked
+    assert calculators.checkState(0) == Qt.CheckState.PartiallyChecked, (
+        "the state has to climb past the immediate parent"
+    )
+
+
+def test_a_category_row_is_something_a_user_can_actually_tick(panel):
+    """**THE FLAG IS THE FEATURE.** `setCheckState` works on any item
+    whether or not `ItemIsUserCheckable` is set, so every propagation test
+    above passes with no check box drawn at all -- which was precisely the
+    reported state of this panel. A mutation removing the flag survived
+    all of them.
+    """
+    calculators = _group_named(panel, "Calculators")
+    assert _draws_a_check_box(calculators)
+    for index in range(calculators.childCount()):
+        assert _draws_a_check_box(calculators.child(index))
+
+
+def test_select_all_respects_the_filter(panel):
+    """**THE FILTER'S OWN HELP TEXT PROMISES IT FILTERS THE LIST AND NEVER
+    THE RESULTS**, so a select-all reaching entries the user cannot see
+    would contradict a documented contract.
+
+    Asserts its own setup: the filter must really be hiding something, or
+    "respects the filter" is a claim about nothing.
+    """
+    panel._filter.setText("logp")
+    hidden = [item for item, _p in panel._leaves() if item.isHidden()]
+    shown = [item for item, _p in panel._leaves() if not item.isHidden()]
+    assert hidden and shown, "the filter matched everything or nothing"
+
+    panel._select_all_visible()
+
+    assert all(item.checkState(0) == Qt.CheckState.Checked for item in shown)
+    assert all(item.checkState(0) == Qt.CheckState.Unchecked for item in hidden)
+
+
+def test_ticking_a_category_leaves_its_hidden_children_alone(panel):
+    """Same contract, reached through the group box rather than the button."""
+    panel._filter.setText("logp")
+    category = None
+    for index in range(_group_named(panel, "Calculators").childCount()):
+        candidate = _group_named(panel, "Calculators").child(index)
+        visible = [candidate.child(i) for i in range(candidate.childCount())
+                   if not candidate.child(i).isHidden()]
+        hidden = [candidate.child(i) for i in range(candidate.childCount())
+                  if candidate.child(i).isHidden()]
+        if visible and hidden:
+            category = candidate
+            break
+    if category is None:
+        pytest.skip("no category is partly filtered by this needle")
+
+    category.setCheckState(0, Qt.CheckState.Checked)
+
+    for index in range(category.childCount()):
+        child = category.child(index)
+        expected = Qt.CheckState.Unchecked if child.isHidden() else Qt.CheckState.Checked
+        assert child.checkState(0) == expected
+
+
+def test_select_all_says_how_many_it_ticked(panel):
+    """"Select all" over a filtered list is otherwise a claim the user
+    cannot check."""
+    panel._select_all_visible()
+    assert "Ticked" in panel._status.text()
+
+
+def test_clear_selection_clears_the_group_boxes_too(panel):
+    """A group left ticked above unticked children is a lie about what
+    will run."""
+    category = _group_named(panel, "Calculators").child(0)
+    category.setCheckState(0, Qt.CheckState.Checked)
+
+    panel._clear_selection()
+
+    assert category.checkState(0) == Qt.CheckState.Unchecked
+    assert panel.selected_ids() == ([], [])
