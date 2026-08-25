@@ -779,6 +779,16 @@ class RDKitDescriptorProvider(DescriptorProvider):
         Each dataset still DECLARES its total, for the same reason the
         registered ones do: nothing downstream may derive one, and this
         batch feeds the same Calculator Inspector.
+
+        **AND EACH DECLARES ITS CATEGORY, because this batch is not in
+        the registry the panel would otherwise ask.** Two of the three
+        used to resolve anyway and did so BY COINCIDENCE -- a registered
+        calculator happens to share their id, offering a hydrogen mode
+        this batch is fixed on. `gasteiger_charge` has no such twin (the
+        registered one is `gasteiger_charge_at_ph`), so it fell through
+        to a generic "Other" section it was the sole occupant of.
+        Declaring all three makes the two that worked deliberate rather
+        than lucky.
         """
         contribs = rdMolDescriptors._CalcCrippenContribs(mol)
         logp_contrib = {idx: logp for idx, (logp, _mr) in enumerate(contribs)}
@@ -805,6 +815,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
             PerAtomDataset(
                 property_id="crippen_logp_contrib",
                 name="LogP Contribution (Crippen)",
+                category="lipophilicity",
                 units="",
                 method=self.provider_id,
                 molecule_uuid=molecule_uuid,
@@ -814,6 +825,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
             PerAtomDataset(
                 property_id="crippen_mr_contrib",
                 name="Molar Refractivity Contribution (Crippen)",
+                category="electronic",
                 units="",
                 method=self.provider_id,
                 molecule_uuid=molecule_uuid,
@@ -823,6 +835,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
             PerAtomDataset(
                 property_id="gasteiger_charge",
                 name="Partial Charge (Gasteiger)",
+                category="charge",
                 units="e",
                 method=self.provider_id,
                 molecule_uuid=molecule_uuid,

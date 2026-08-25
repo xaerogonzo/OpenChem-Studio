@@ -16,6 +16,15 @@ same producer-declares / validator-checks-structure split as
 
 from __future__ import annotations
 
+#: NOT an application surface at all, which is why the kind differs from
+#: the two sidecar runners' `script_path`. This module is the help
+#: layer's discovery seam: the suite and the query tool consume it, the
+#: running application never does.
+REACHED_BY = (
+    "tooling: consumed by tests/test_tooltip_coverage.py and "
+    "tools/list_tooltips.py, never by the running application"
+)
+
 from dataclasses import dataclass
 from typing import Iterator, Literal
 
