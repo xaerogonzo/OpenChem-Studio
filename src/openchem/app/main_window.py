@@ -466,6 +466,13 @@ class MainWindow(QMainWindow):
             self,
             on_analyse=self._show_batch_analysis,
             on_screen=self._show_virtual_screening,
+            # The SAME counter the Atom Inspector's report cache and
+            # `StructureReport.structure_version` already use. Without it
+            # every retained batch result is keyed at version 0 and an
+            # edited molecule goes on serving the old structure's numbers,
+            # which is exactly the failure `ResultCache` documents for a
+            # uuid-only key.
+            structure_check_service=services.structure_check_service,
         )
 
         # Connected after the panels exist, since the handler reads them.

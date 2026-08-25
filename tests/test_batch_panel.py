@@ -715,3 +715,103 @@ def test_clear_selection_clears_the_group_boxes_too(panel):
 
     assert category.checkState(0) == Qt.CheckState.Unchecked
     assert panel.selected_ids() == ([], [])
+
+
+# --- what a cell IS, and what gets computed unasked -------------------------
+
+
+def test_opening_the_panel_computes_nothing(services, project, widgets):
+    """**THE LAZY INVARIANT, ROW ONE.** Opening Batch over a project must
+    run zero calculators -- the panel is a picker until something is
+    asked for, and a project of 200 molecules is only dangerous if
+    building the panel starts work.
+
+    Spies on the registry rather than on a panel attribute, because what
+    matters is whether a CALCULATOR RAN, not whether the panel believes it
+    started one.
+    """
+    calls: list[str] = []
+    original = services.calculator_registry.compute
+
+    def spy(calculator_id, *args, **kwargs):
+        calls.append(calculator_id)
+        return original(calculator_id, *args, **kwargs)
+
+    services.calculator_registry.compute = spy
+    try:
+        panel = BatchPanel(
+            services.batch_service,
+            services.calculator_registry,
+            services.table_export_service,
+            services.event_bus,
+            services.chemistry_engine,
+        )
+        widgets.append(panel)
+        panel.set_project(project)
+    finally:
+        services.calculator_registry.compute = original
+
+    assert calls == [], f"building the panel ran {len(calls)} calculator(s)"
+
+
+def _cell_of(kind, **fields):
+    from openchem.domain.batch import BatchCell, BatchColumn
+
+    column = BatchColumn(column_id="c", label="C", numeric=False)
+    return _cell_item_for(column, BatchCell(kind=kind, **fields))
+
+
+def _cell_item_for(column, cell):
+    from openchem.domain.batch import BatchTable
+    from openchem.ui.panels.batch_panel import _cell_item
+
+    table = BatchTable()
+    table.add_row("m", "aspirin")
+    table.add_column(column)
+    table.set_cell("m", column.column_id, cell)
+    return _cell_item(table, "m", column)
+
+
+def test_the_three_cell_kinds_render_distinguishably():
+    """**THE EM DASH MEANT BOTH.** A failed calculation and a real result
+    with no scalar form rendered identically, and they are opposite
+    statements: one says nothing was computed, the other says something
+    was and a table is the wrong shape for it.
+    """
+    from openchem.domain.batch import FAILED, NON_SCALAR, SCALAR
+    from openchem.domain.common import CacheState
+
+    scalar = _cell_of(SCALAR, value=1.5, text="1.50")
+    non_scalar = _cell_of(NON_SCALAR, text="12 peaks")
+    failed = _cell_of(FAILED, text="", cache_state=CacheState.FAILED, error="no conformer")
+
+    texts = {scalar.text(), non_scalar.text(), failed.text()}
+    assert len(texts) == 3, f"two kinds render the same text: {texts}"
+
+    # The failure is the only one that hides its value behind a dash.
+    assert failed.text() == "—"
+    assert non_scalar.text() == "12 peaks"
+
+    colours = {
+        scalar.foreground().color().name(),
+        non_scalar.foreground().color().name(),
+        failed.foreground().color().name(),
+    }
+    assert len(colours) == 3, f"two kinds share a colour: {colours}"
+
+
+def test_a_non_scalar_cell_says_how_to_reach_the_real_thing():
+    """Naming it is not enough -- a reader has to know it is openable."""
+    from openchem.domain.batch import NON_SCALAR
+
+    item = _cell_of(NON_SCALAR, text="12 peaks")
+    assert "Double-click" in item.toolTip()
+
+
+def test_a_failed_cell_still_says_why():
+    """Unchanged, and asserted so the new branch cannot swallow it."""
+    from openchem.domain.batch import FAILED
+    from openchem.domain.common import CacheState
+
+    item = _cell_of(FAILED, text="", cache_state=CacheState.FAILED, error="no conformer")
+    assert "no conformer" in item.toolTip()

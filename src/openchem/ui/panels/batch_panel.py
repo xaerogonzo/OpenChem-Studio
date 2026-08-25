@@ -44,7 +44,7 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.chem.result_reduction import PER_ATOM_AGGREGATES
-from openchem.domain.batch import BatchRequest, BatchTable
+from openchem.domain.batch import BatchRequest, BatchResultStore, BatchTable
 from openchem.domain.calculator import RegistryExecution
 from openchem.domain.common import CacheState
 from openchem.domain.project import ProjectModel
@@ -147,6 +147,22 @@ _HELP: dict[str, HelpTooltip] = {
         help_id="batch.export_report",
         topic="batch",
     ),
+    "details": HelpTooltip(
+        text=(
+            "Show everything computed for the selected molecule, the way "
+            "the Properties panel shows it.\n\n"
+            "The same grouped facts, units, basis badges and limitations "
+            "-- a table cell keeps one number per calculator and a "
+            "calculator that reports twenty is twenty columns with "
+            "nothing tying them together. Results with their own view, "
+            "like a per-atom map or a spectrum, are offered there rather "
+            "than flattened.\n\n"
+            "Double-clicking a row does the same thing."
+        ),
+        tier=2,
+        help_id="batch.molecule_details",
+        topic="batch",
+    ),
     "analyse": HelpTooltip(
         text=(
             "Open the analysis view on the table that has been "
@@ -193,6 +209,12 @@ _PER_ATOM_AGGREGATE_HELP = HelpTooltip(
 )
 
 _FAILED_BRUSH = QBrush(QColor(150, 150, 150))
+#: Distinct from the failure grey ON PURPOSE. A per-atom map, a spectrum
+#: or a structure set is a real answer that a table is the wrong shape
+#: for, and rendering it like a failure tells the reader nothing was
+#: computed. `reduce_result` refuses 25 of the real registry's lines
+#: outright, so this is the common case rather than an edge one.
+_NON_SCALAR_BRUSH = QBrush(QColor(60, 90, 150))
 _MISSING = "—"
 
 _UUID_ROLE = Qt.ItemDataRole.UserRole + 2
@@ -217,6 +239,7 @@ class BatchPanel(QWidget):
         parent: QWidget | None = None,
         on_analyse=None,
         on_screen=None,
+        structure_check_service=None,
     ) -> None:
         super().__init__(parent)
         self._batch_service = batch_service
@@ -225,6 +248,12 @@ class BatchPanel(QWidget):
         self._engine = chemistry_engine
         self._project: ProjectModel | None = None
         self._table: BatchTable | None = None
+        # The canonical results. The table beside it is a PROJECTION --
+        # `reduce_result` refuses 25 of the real registry's lines outright,
+        # so a panel reading only the table cannot offer a Details view or
+        # an inspector, which is what Properties has offered all along.
+        self._store: BatchResultStore | None = None
+        self._structure_check = structure_check_service
         # Re-entry guard for the tree: setting a child's check state emits
         # itemChanged, which is the handler that sets children.
         self._suspend_tree = False
@@ -307,6 +336,7 @@ class BatchPanel(QWidget):
         self._results.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self._results.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self._results.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self._results.itemDoubleClicked.connect(self._on_row_activated)
         layout.addWidget(self._results, stretch=1)
 
         export_row = flow_row(self)
@@ -316,13 +346,21 @@ class BatchPanel(QWidget):
         self._report_button = QPushButton("Export Report…", self)
         self._report_button.clicked.connect(self._export_report)
         apply_help_tooltip(self._report_button, _HELP['export_report'])
+        self._details_button = QPushButton("Details…", self)
+        self._details_button.clicked.connect(self._open_details)
+        apply_help_tooltip(self._details_button, _HELP['details'])
         self._analyse_button = QPushButton("Analyse…", self)
         self._analyse_button.clicked.connect(self._analyse)
         apply_help_tooltip(self._analyse_button, _HELP['analyse'])
         self._screen_button = QPushButton("Virtual Screening…", self)
         self._screen_button.clicked.connect(self._screen)
         apply_help_tooltip(self._screen_button, _HELP['screen'])
-        for button in (self._csv_button, self._report_button, self._analyse_button):
+        for button in (
+            self._details_button,
+            self._csv_button,
+            self._report_button,
+            self._analyse_button,
+        ):
             button.setEnabled(False)
             export_row.layout().addWidget(button)
         export_row.layout().addWidget(self._screen_button)
@@ -577,6 +615,7 @@ class BatchPanel(QWidget):
             descriptor_ids=descriptors,
             calculator_ids=calculators,
             per_atom_aggregate=self._aggregate.currentText(),
+            structure_version=self._current_structure_version(),
         )
         self._batch_service.request_batch(request, list(self._project.molecules))
 
@@ -595,9 +634,17 @@ class BatchPanel(QWidget):
         if event.table is not None:
             self._table = event.table
             self._render_table(event.table)
+        if event.store is not None:
+            self._store = event.store
         has_results = bool(self._table and self._table.row_uuids and self._table.columns)
         for button in (self._csv_button, self._report_button, self._analyse_button):
             button.setEnabled(has_results and not running)
+        # Details is enabled by the STORE rather than by the table: a run
+        # that produced only non-tabular results has facts to show and no
+        # columns to show them in.
+        self._details_button.setEnabled(
+            bool(self._store and len(self._store)) and not running
+        )
 
     def table(self) -> BatchTable | None:
         return self._table
@@ -656,6 +703,62 @@ class BatchPanel(QWidget):
             return
         self._status.setText(f"Wrote {path.name}.")
 
+    def _current_structure_version(self) -> int:
+        """The checker's counter, or 0 where no checker is wired.
+
+        Zero is what a bare fixture has, and it is a real answer rather
+        than a fallback: with nothing tracking structure edits there is no
+        version to be stale against. A guard for staleness must MOVE this,
+        or it is testing the cache rather than the invalidation -- the trap
+        CLAUDE.md records the Atom Inspector's report cache falling into.
+        """
+        if self._structure_check is None:
+            return 0
+        try:
+            return int(self._structure_check.current_version())
+        except Exception:  # noqa: BLE001 - a version we cannot read is 0
+            logger.debug("Could not read the structure version for a batch run")
+            return 0
+
+    def _selected_molecule_uuid(self) -> str | None:
+        items = self._results.selectedItems()
+        if not items:
+            return None
+        item = self._results.item(items[0].row(), 0)
+        return None if item is None else item.data(_UUID_ROLE)
+
+    def _on_row_activated(self, item) -> None:
+        self._show_details_for(self._results.item(item.row(), 0))
+
+    def _open_details(self) -> None:
+        uuid = self._selected_molecule_uuid()
+        if uuid is None:
+            self._status.setText("Select a molecule's row first.")
+            return
+        self._show_details(uuid)
+
+    def _show_details_for(self, name_item) -> None:
+        if name_item is not None:
+            self._show_details(name_item.data(_UUID_ROLE))
+
+    def _show_details(self, molecule_uuid: str | None) -> None:
+        """One molecule's results, in the Properties panel's own renderer."""
+        if not molecule_uuid or self._store is None or self._project is None:
+            return
+        molecule = self._project.find_molecule(molecule_uuid)
+        if molecule is None:
+            return
+        from openchem.ui.dialogs.batch_detail_dialog import BatchDetailDialog
+
+        dialog = BatchDetailDialog(
+            self._engine,
+            molecule,
+            self._store,
+            self._current_structure_version(),
+            self,
+        )
+        dialog.exec()
+
     def _analyse(self) -> None:
         if self._on_analyse is not None and self._table is not None:
             self._on_analyse(self._table)
@@ -678,6 +781,23 @@ def _cell_item(table: BatchTable, molecule_uuid: str, column) -> QTableWidgetIte
         # Failed rows sort to one end rather than interleaving with real
         # values at whatever a dash happens to compare as.
         item.setData(_SORT_ROLE, float("inf") if column.numeric else "￿")
+        return item
+    if cell.non_scalar:
+        # **A REAL RESULT, NOT A GAP.** This used to render as the same em
+        # dash a failure does, which says nothing was computed -- the
+        # opposite of what happened. The text names what it is; the style
+        # and the tooltip say the real thing is one double-click away.
+        item = _SortableItem(cell.text)
+        item.setForeground(_NON_SCALAR_BRUSH)
+        font = item.font()
+        font.setItalic(True)
+        item.setFont(font)
+        item.setToolTip(
+            _cell_tooltip(column, cell)
+            + "\n\nThis result has no single number. "
+            "Double-click the row to open it."
+        )
+        item.setData(_SORT_ROLE, cell.text)
         return item
     item = _SortableItem(cell.text)
     item.setData(_SORT_ROLE, cell.value if (column.numeric and cell.value is not None) else cell.text)
