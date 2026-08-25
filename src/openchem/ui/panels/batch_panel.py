@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
+    QMenu,
     QMessageBox,
     QProgressBar,
     QPushButton,
@@ -44,7 +45,12 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.chem.result_reduction import PER_ATOM_AGGREGATES
-from openchem.domain.batch import BatchRequest, BatchTable
+from openchem.domain.batch import (
+    SOURCE_DESCRIPTOR,
+    BatchRequest,
+    BatchResultStore,
+    BatchTable,
+)
 from openchem.domain.calculator import RegistryExecution
 from openchem.domain.common import CacheState
 from openchem.domain.project import ProjectModel
@@ -80,11 +86,16 @@ _HELP: dict[str, HelpTooltip] = {
     "run": HelpTooltip(
         text=(
             "Compute every ticked property for every molecule in the "
-            "project.\n\n"
-            "The work runs in the background and is listed in the Jobs "
-            "panel; results fill the table below as they arrive. Cost "
-            "grows with molecules TIMES properties, so a large project "
-            "with a whole category ticked is a long run."
+            "project, and fill the whole table.\n\n"
+            "**THIS IS THE BULK PATH AND IT IS DELIBERATE.** Nothing is "
+            "computed until you ask: opening this panel runs nothing, and "
+            "opening one molecule's details computes that molecule "
+            "alone. Use this when you want the wide table itself -- to "
+            "sort it, export it, or hand it to the analytics.\n\n"
+            "Cost grows with molecules TIMES properties, so it says how "
+            "many calculations it is about to start and waits for you to "
+            "agree. The run is listed in the Jobs panel and can be "
+            "cancelled; results already computed stay."
         ),
         tier=2,
         help_id="batch.run",
@@ -98,6 +109,21 @@ _HELP: dict[str, HelpTooltip] = {
         ),
         tier=1,
         help_id="batch.cancel",
+        topic="batch",
+    ),
+    "select_all": HelpTooltip(
+        text=(
+            "Tick every property currently shown in the list.\n\n"
+            "It respects the filter: type something first and this ticks "
+            "only what matches, leaving anything hidden exactly as it "
+            "was. Ticking a category heading does the same for that "
+            "category alone.\n\n"
+            "Cost grows with molecules TIMES properties, so ticking "
+            "everything over a large project is a long run -- the run "
+            "tells you the size before it starts."
+        ),
+        tier=2,
+        help_id="batch.select_all",
         topic="batch",
     ),
     "clear_selection": HelpTooltip(
@@ -130,6 +156,35 @@ _HELP: dict[str, HelpTooltip] = {
         ),
         tier=2,
         help_id="batch.export_report",
+        topic="batch",
+    ),
+    "columns": HelpTooltip(
+        text=(
+            "Show or hide whole groups of columns.\n\n"
+            "One calculator can contribute twenty columns, so a filled "
+            "table is wide by nature. Hiding a category affects the VIEW "
+            "only -- nothing is recomputed, no value is lost, and both "
+            "exports still write every column.\n\n"
+            "Right-click the header for the same menu."
+        ),
+        tier=2,
+        help_id="batch.column_groups",
+        topic="batch",
+    ),
+    "details": HelpTooltip(
+        text=(
+            "Show everything computed for the selected molecule, the way "
+            "the Properties panel shows it.\n\n"
+            "The same grouped facts, units, basis badges and limitations "
+            "-- a table cell keeps one number per calculator and a "
+            "calculator that reports twenty is twenty columns with "
+            "nothing tying them together. Results with their own view, "
+            "like a per-atom map or a spectrum, are offered there rather "
+            "than flattened.\n\n"
+            "Double-clicking a row does the same thing."
+        ),
+        tier=2,
+        help_id="batch.molecule_details",
         topic="batch",
     ),
     "analyse": HelpTooltip(
@@ -178,9 +233,30 @@ _PER_ATOM_AGGREGATE_HELP = HelpTooltip(
 )
 
 _FAILED_BRUSH = QBrush(QColor(150, 150, 150))
+#: Distinct from the failure grey ON PURPOSE. A per-atom map, a spectrum
+#: or a structure set is a real answer that a table is the wrong shape
+#: for, and rendering it like a failure tells the reader nothing was
+#: computed. `reduce_result` refuses 25 of the real registry's lines
+#: outright, so this is the common case rather than an edge one.
+_NON_SCALAR_BRUSH = QBrush(QColor(60, 90, 150))
 _MISSING = "—"
 
 _UUID_ROLE = Qt.ItemDataRole.UserRole + 2
+
+#: Above this many calculations, filling the table asks first.
+#:
+#: Not a refusal -- the user decides, and a bulk table is a real
+#: deliverable. It is a number small enough that the ordinary case (a few
+#: molecules, a handful of properties) is never interrupted, and large
+#: enough that the case worth pausing on -- a whole category over a whole
+#: project -- always is. Measured against the panel's own registry: 53
+#: registry-executable calculators, so ticking everything trips this at
+#: four molecules.
+_CONFIRM_ABOVE = 200
+
+#: Sentinel on the menu's reset entry, so it cannot collide with a real
+#: category name however the registry grows.
+_SHOW_ALL = object()
 
 # Moved to `ui/widgets/sortable_item.py` once the per-atom comparison table
 # needed the same thing. Aliased rather than renamed at every call site --
@@ -202,6 +278,8 @@ class BatchPanel(QWidget):
         parent: QWidget | None = None,
         on_analyse=None,
         on_screen=None,
+        structure_check_service=None,
+        settings=None,
     ) -> None:
         super().__init__(parent)
         self._batch_service = batch_service
@@ -210,6 +288,26 @@ class BatchPanel(QWidget):
         self._engine = chemistry_engine
         self._project: ProjectModel | None = None
         self._table: BatchTable | None = None
+        # The canonical results. The table beside it is a PROJECTION --
+        # `reduce_result` refuses 25 of the real registry's lines outright,
+        # so a panel reading only the table cannot offer a Details view or
+        # an inspector, which is what Properties has offered all along.
+        self._store: BatchResultStore | None = None
+        self._structure_check = structure_check_service
+        self._settings = settings
+        self._descriptor_category_cache: dict[str, str] | None = None
+        # **WHAT THIS RUN IS FOR**, and the panel is the only thing that
+        # knows. A one-molecule run and a whole-project fill go down the
+        # identical service path and arrive on the identical event; only
+        # the caller can say whether the table that comes back describes
+        # the project or a single row. `JobManager` allows one batch at a
+        # time project-wide, so one flag is enough.
+        self._filling_table = False
+        #: uuid to open the detail view for once the run it needed lands.
+        self._details_when_ready: str | None = None
+        # Re-entry guard for the tree: setting a child's check state emits
+        # itemChanged, which is the handler that sets children.
+        self._suspend_tree = False
         # Callbacks rather than dialogs constructed here: this panel lives
         # in a dock, and the analytics and screening windows are the main
         # window's to own -- same split `PropertyPanel` makes with
@@ -258,18 +356,22 @@ class BatchPanel(QWidget):
         layout.addWidget(aggregate_row)
 
         button_row = flow_row(self)
-        self._run_button = QPushButton("Run", self)
+        self._run_button = QPushButton("Fill table…", self)
         self._run_button.clicked.connect(self._run)
         apply_help_tooltip(self._run_button, _HELP['run'])
         self._cancel_button = QPushButton("Cancel", self)
         self._cancel_button.clicked.connect(self._cancel)
         apply_help_tooltip(self._cancel_button, _HELP['cancel'])
         self._cancel_button.setEnabled(False)
+        self._select_all_button = QPushButton("Select all", self)
+        self._select_all_button.clicked.connect(self._select_all_visible)
+        apply_help_tooltip(self._select_all_button, _HELP['select_all'])
         self._select_none_button = QPushButton("Clear selection", self)
         self._select_none_button.clicked.connect(self._clear_selection)
         apply_help_tooltip(self._select_none_button, _HELP['clear_selection'])
         button_row.layout().addWidget(self._run_button)
         button_row.layout().addWidget(self._cancel_button)
+        button_row.layout().addWidget(self._select_all_button)
         button_row.layout().addWidget(self._select_none_button)
         layout.addWidget(button_row)
 
@@ -285,6 +387,15 @@ class BatchPanel(QWidget):
         self._results.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self._results.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self._results.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self._results.itemDoubleClicked.connect(self._on_row_activated)
+        header = self._results.horizontalHeader()
+        header.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        header.customContextMenuRequested.connect(self._show_column_menu)
+        #: Category -> shown. Only categories the user has HIDDEN are
+        #: recorded, so a category that appears in a later run starts
+        #: visible rather than inheriting a decision about a different
+        #: table.
+        self._hidden_categories: set[str] = set()
         layout.addWidget(self._results, stretch=1)
 
         export_row = flow_row(self)
@@ -294,13 +405,25 @@ class BatchPanel(QWidget):
         self._report_button = QPushButton("Export Report…", self)
         self._report_button.clicked.connect(self._export_report)
         apply_help_tooltip(self._report_button, _HELP['export_report'])
+        self._columns_button = QPushButton("Columns…", self)
+        self._columns_button.clicked.connect(self._show_column_menu)
+        apply_help_tooltip(self._columns_button, _HELP['columns'])
+        self._details_button = QPushButton("Details…", self)
+        self._details_button.clicked.connect(self._open_details)
+        apply_help_tooltip(self._details_button, _HELP['details'])
         self._analyse_button = QPushButton("Analyse…", self)
         self._analyse_button.clicked.connect(self._analyse)
         apply_help_tooltip(self._analyse_button, _HELP['analyse'])
         self._screen_button = QPushButton("Virtual Screening…", self)
         self._screen_button.clicked.connect(self._screen)
         apply_help_tooltip(self._screen_button, _HELP['screen'])
-        for button in (self._csv_button, self._report_button, self._analyse_button):
+        for button in (
+            self._columns_button,
+            self._details_button,
+            self._csv_button,
+            self._report_button,
+            self._analyse_button,
+        ):
             button.setEnabled(False)
             export_row.layout().addWidget(button)
         export_row.layout().addWidget(self._screen_button)
@@ -308,6 +431,10 @@ class BatchPanel(QWidget):
 
         event_bus.subscribe(BatchProgress, self._on_progress)
         self._populate_tree()
+        self._make_groups_checkable()
+        self._refresh_group_states()
+        self._tree.itemChanged.connect(self._on_item_changed)
+        self._restore_selection()
 
     # -- project / selection ----------------------------------------------
 
@@ -389,6 +516,113 @@ class BatchPanel(QWidget):
         if tooltip:
             item.setToolTip(0, tooltip)
 
+    def _make_groups_checkable(self) -> None:
+        """Every non-leaf row gets a check box of its own.
+
+        **THIS IS THE WHOLE OF WHY THERE WAS NO SELECT-ALL-IN-GROUP**:
+        `_add_leaf` set `ItemIsUserCheckable` on LEAVES only, so a category
+        heading had no check state at all and 91 properties could only be
+        ticked one at a time.
+
+        Qt draws the partial state for free once the flag is on; what it
+        does NOT do is propagate, so `_on_item_changed` pushes a parent's
+        state down and recomputes ancestors on the way back up.
+        """
+        stack = [self._tree.topLevelItem(i) for i in range(self._tree.topLevelItemCount())]
+        while stack:
+            item = stack.pop()
+            if item.childCount():
+                # `ItemIsUserCheckable` ALONE, deliberately.
+                # `ItemIsAutoTristate` looks like exactly what this wants
+                # and does too much: Qt then propagates a parent's tick
+                # down to EVERY child itself, hidden ones included, which
+                # silently reaches entries the filter is hiding and
+                # contradicts the filter's own documented promise.
+                # Measured -- with that flag set,
+                # `test_ticking_a_category_leaves_its_hidden_children_alone`
+                # fails on a child Qt ticked before this handler ran.
+                # Both directions are ours instead.
+                item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                item.setCheckState(0, Qt.CheckState.Unchecked)
+                stack.extend(item.child(i) for i in range(item.childCount()))
+
+    def _on_item_changed(self, item: QTreeWidgetItem, column: int) -> None:
+        """Push a group's tick down to its children.
+
+        Guarded against re-entry: setting a child's state emits this again,
+        and Qt's own tristate handling then walks back up -- without the
+        guard a single click on a category recurses through the subtree
+        once per descendant.
+
+        HIDDEN CHILDREN ARE LEFT ALONE, which is not an optimisation. The
+        filter's own help text promises it filters the LIST and never the
+        results, so a group tick that reached entries the user cannot see
+        would contradict a documented contract.
+        """
+        if self._suspend_tree or column != 0:
+            return
+        self._suspend_tree = True
+        try:
+            if item.childCount():
+                state = item.checkState(0)
+                if state is not Qt.CheckState.PartiallyChecked:
+                    self._set_subtree(item, state)
+            # Upwards on every change, leaf or group: a group's box is a
+            # statement about its children and goes stale the moment one
+            # of them moves. Qt would do this half with ItemIsAutoTristate
+            # and the downward half wrongly -- see `_make_groups_checkable`.
+            for index in range(self._tree.topLevelItemCount()):
+                _group_state(self._tree.topLevelItem(index))
+        finally:
+            self._suspend_tree = False
+        self._save_selection()
+
+    def _set_subtree(self, item: QTreeWidgetItem, state) -> None:
+        for index in range(item.childCount()):
+            child = item.child(index)
+            if child.isHidden():
+                continue
+            if child.childCount():
+                child.setCheckState(0, state)
+                self._set_subtree(child, state)
+            else:
+                child.setCheckState(0, state)
+
+    def _select_all_visible(self) -> None:
+        """Tick everything the filter is currently showing.
+
+        Not everything that EXISTS -- see `_on_item_changed`. The status
+        line says how many, because "select all" over a filtered list is
+        otherwise a claim the user cannot check.
+        """
+        self._suspend_tree = True
+        try:
+            count = 0
+            for item, _payload in self._leaves():
+                if item.isHidden():
+                    continue
+                item.setCheckState(0, Qt.CheckState.Checked)
+                count += 1
+        finally:
+            self._suspend_tree = False
+        self._refresh_group_states()
+        self._save_selection()
+        shown = "shown" if self._filter.text().strip() else "available"
+        self._status.setText(f"Ticked {count} {shown} propert{'y' if count == 1 else 'ies'}.")
+
+    def _refresh_group_states(self) -> None:
+        """Recompute every group's box from its children.
+
+        Needed after a bulk change, which sets leaves directly and so
+        never goes through the propagation above.
+        """
+        self._suspend_tree = True
+        try:
+            for index in range(self._tree.topLevelItemCount()):
+                _group_state(self._tree.topLevelItem(index))
+        finally:
+            self._suspend_tree = False
+
     def _leaves(self):
         iterator = [self._tree.topLevelItem(i) for i in range(self._tree.topLevelItemCount())]
         while iterator:
@@ -409,9 +643,62 @@ class BatchPanel(QWidget):
         for index in range(self._tree.topLevelItemCount()):
             _filter_item(self._tree.topLevelItem(index), needle)
 
+    #: Where the ticked property ids live between launches.
+    _SELECTION_SETTING = "batch/selected_property_ids"
+
+    def _save_selection(self) -> None:
+        """Remember the ticked IDs.
+
+        **IDS, NEVER TREE POSITIONS OR CHECK STATES.** Categories and
+        ordering come from the registry and the descriptor provider, so
+        both move when a calculator is added -- a saved row index would
+        then restore somebody else's property. An id names a definition,
+        which is the same principle `help_id` rests on and the same
+        failure the tooltip migration hit when an `instance_path` was
+        renamed by wrapping a control in a new container.
+        """
+        if self._settings is None:
+            return
+        descriptors, calculators = self.selected_ids()
+        try:
+            self._settings.set(self._SELECTION_SETTING, list(descriptors) + list(calculators))
+        except Exception:  # noqa: BLE001 - a preference is never worth a crash
+            logger.debug("Could not save the batch selection")
+
+    def _restore_selection(self) -> None:
+        """Tick whatever was ticked last time, ignoring anything gone.
+
+        An id that no longer exists is DROPPED rather than reported: a
+        calculator removed between launches is not the user's problem, and
+        a dialog about it on startup would be.
+        """
+        if self._settings is None:
+            return
+        try:
+            stored = self._settings.get(self._SELECTION_SETTING, []) or []
+        except Exception:  # noqa: BLE001
+            return
+        wanted = {str(identifier) for identifier in stored}
+        if not wanted:
+            return
+        self._suspend_tree = True
+        try:
+            for item, (_kind, identifier) in self._leaves():
+                if identifier in wanted:
+                    item.setCheckState(0, Qt.CheckState.Checked)
+        finally:
+            self._suspend_tree = False
+        self._refresh_group_states()
+
     def _clear_selection(self) -> None:
-        for item, _payload in self._leaves():
-            item.setCheckState(0, Qt.CheckState.Unchecked)
+        self._suspend_tree = True
+        try:
+            for item, _payload in self._leaves():
+                item.setCheckState(0, Qt.CheckState.Unchecked)
+        finally:
+            self._suspend_tree = False
+        self._refresh_group_states()
+        self._save_selection()
 
     def selected_ids(self) -> tuple[list[str], list[str]]:
         """(descriptor ids, calculator ids) currently ticked."""
@@ -434,17 +721,46 @@ class BatchPanel(QWidget):
     # -- running ----------------------------------------------------------
 
     def _run(self) -> None:
+        """Fill the whole table, after saying what that costs.
+
+        **THE COST IS STATED BEFORE THE WORK, NOT DURING IT.** This is the
+        one place in the panel where the user can ask for an unbounded
+        amount of computation -- molecules TIMES properties -- and a
+        progress bar that appears after the decision is not a decision.
+        """
         if self._project is None:
             self._status.setText("Open or create a project first.")
             return
         descriptors, calculators = self.selected_ids()
+        if not descriptors and not calculators:
+            self._status.setText("Tick at least one property first.")
+            return
+        molecules = list(self._project.molecules)
+        total = len(molecules) * (len(descriptors) + len(calculators))
+        if total > _CONFIRM_ABOVE:
+            answer = QMessageBox.question(
+                self,
+                "Fill the whole table?",
+                f"This will start about {total:,} calculations "
+                f"({len(molecules)} molecules x {len(descriptors) + len(calculators)} "
+                "properties).\n\n"
+                "It runs in the background and can be cancelled; anything "
+                "already computed is kept.",
+                QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Ok,
+            )
+            if answer is not QMessageBox.StandardButton.Ok:
+                self._status.setText("Cancelled -- nothing was computed.")
+                return
+        self._filling_table = True
         request = BatchRequest(
             molecule_uuids=[molecule.uuid for molecule in self._project.molecules],
             descriptor_ids=descriptors,
             calculator_ids=calculators,
             per_atom_aggregate=self._aggregate.currentText(),
+            structure_version=self._current_structure_version(),
         )
-        self._batch_service.request_batch(request, list(self._project.molecules))
+        self._batch_service.request_batch(request, molecules)
 
     def _cancel(self) -> None:
         self._batch_service.cancel()
@@ -458,12 +774,27 @@ class BatchPanel(QWidget):
             self._progress.setMaximum(event.total)
             self._progress.setValue(event.completed)
         self._status.setText(event.error or event.message)
-        if event.table is not None:
+        # **THE TABLE IS ADOPTED ONLY WHEN THE RUN WAS A FILL.** A
+        # one-molecule run returns a one-row table, and letting that
+        # replace the project's would make opening a detail view destroy
+        # the table the user had built.
+        if event.table is not None and self._filling_table:
             self._table = event.table
             self._render_table(event.table)
+        if event.store is not None:
+            self._merge_store(event.store)
         has_results = bool(self._table and self._table.row_uuids and self._table.columns)
         for button in (self._csv_button, self._report_button, self._analyse_button):
             button.setEnabled(has_results and not running)
+        # Details is enabled by the SELECTION rather than by the table: a
+        # molecule with nothing computed is exactly the case the lazy path
+        # exists for, and greying the button there would make it
+        # unreachable.
+        self._details_button.setEnabled(not running)
+        self._columns_button.setEnabled(has_results and not running)
+        if not running:
+            self._filling_table = False
+            self._open_pending_details()
 
     def table(self) -> BatchTable | None:
         return self._table
@@ -496,8 +827,89 @@ class BatchPanel(QWidget):
             if header is not None:
                 header.setToolTip(_column_tooltip(column))
         self._results.setSortingEnabled(True)
+        # AFTER the rebuild: `clear()` drops every hidden flag, so a
+        # progress event arriving mid-run would silently un-hide
+        # everything the user had put away.
+        self._apply_column_visibility()
 
     # -- exports ----------------------------------------------------------
+
+    def _column_category(self, column) -> str:
+        """Which picker category a column belongs under.
+
+        Asked of the SAME registry and provider the picker is built from,
+        so a new calculator groups itself with no change here -- the
+        reason the picker is a tree rather than a hardcoded menu.
+        """
+        if column.source == SOURCE_DESCRIPTOR:
+            return _title(self._descriptor_categories().get(column.source_id, "other"))
+        definition = self._registry.get(column.source_id)
+        return _title(definition.category if definition is not None else "other")
+
+    def _descriptor_categories(self) -> dict[str, str]:
+        if self._descriptor_category_cache is None:
+            from openchem.chem.descriptor_providers import RDKitDescriptorProvider
+
+            self._descriptor_category_cache = RDKitDescriptorProvider().descriptor_categories()
+        return self._descriptor_category_cache
+
+    def _show_column_menu(self, position=None) -> None:
+        """Tick the column groups to show. THE VIEW ONLY.
+
+        Nothing is recomputed and no value is lost -- both exports go on
+        writing every column, because a hidden column is a thing the user
+        did not want to LOOK at rather than a thing they did not want.
+        """
+        if self._table is None or not self._table.columns:
+            return
+        categories = []
+        for column in self._table.columns:
+            category = self._column_category(column)
+            if category not in categories:
+                categories.append(category)
+
+        menu = QMenu(self)
+        for category in categories:
+            action = menu.addAction(category)
+            action.setCheckable(True)
+            action.setChecked(category not in self._hidden_categories)
+            action.setData(category)
+        menu.addSeparator()
+        show_all = menu.addAction("Show all")
+        show_all.setData(_SHOW_ALL)
+
+        origin = (
+            self._results.horizontalHeader().mapToGlobal(position)
+            if position is not None and not isinstance(position, bool)
+            else self._columns_button.mapToGlobal(self._columns_button.rect().bottomLeft())
+        )
+        chosen = menu.exec(origin)
+        if chosen is None:
+            return
+        if chosen.data() == _SHOW_ALL:
+            self._hidden_categories.clear()
+        elif chosen.isChecked():
+            self._hidden_categories.discard(chosen.data())
+        else:
+            self._hidden_categories.add(chosen.data())
+        self._apply_column_visibility()
+
+    def _apply_column_visibility(self) -> None:
+        if self._table is None:
+            return
+        for offset, column in enumerate(self._table.columns, start=1):
+            hidden = self._column_category(column) in self._hidden_categories
+            self._results.setColumnHidden(offset, hidden)
+        shown = sum(
+            1
+            for offset in range(1, self._results.columnCount())
+            if not self._results.isColumnHidden(offset)
+        )
+        if self._hidden_categories:
+            self._status.setText(
+                f"Showing {shown} of {len(self._table.columns)} columns "
+                f"({len(self._hidden_categories)} group(s) hidden)."
+            )
 
     def _export_csv(self) -> None:
         self._export("CSV (*.csv)", ".csv", self._export_service.export_csv)
@@ -522,6 +934,138 @@ class BatchPanel(QWidget):
             return
         self._status.setText(f"Wrote {path.name}.")
 
+    def _current_structure_version(self) -> int:
+        """The checker's counter, or 0 where no checker is wired.
+
+        Zero is what a bare fixture has, and it is a real answer rather
+        than a fallback: with nothing tracking structure edits there is no
+        version to be stale against. A guard for staleness must MOVE this,
+        or it is testing the cache rather than the invalidation -- the trap
+        CLAUDE.md records the Atom Inspector's report cache falling into.
+        """
+        if self._structure_check is None:
+            return 0
+        try:
+            return int(self._structure_check.current_version())
+        except Exception:  # noqa: BLE001 - a version we cannot read is 0
+            logger.debug("Could not read the structure version for a batch run")
+            return 0
+
+    def _selected_molecule_uuid(self) -> str | None:
+        items = self._results.selectedItems()
+        if not items:
+            return None
+        item = self._results.item(items[0].row(), 0)
+        return None if item is None else item.data(_UUID_ROLE)
+
+    def _on_row_activated(self, item) -> None:
+        self._show_details_for(self._results.item(item.row(), 0))
+
+    def _open_details(self) -> None:
+        uuid = self._selected_molecule_uuid()
+        if uuid is None:
+            self._status.setText("Select a molecule's row first.")
+            return
+        self._show_details(uuid)
+
+    def _show_details_for(self, name_item) -> None:
+        if name_item is not None:
+            self._show_details(name_item.data(_UUID_ROLE))
+
+    def _merge_store(self, incoming: BatchResultStore) -> None:
+        """Fold a run's results into what is already held.
+
+        REPLACING would lose everything a previous run computed, which is
+        the whole point of retaining them -- and a one-molecule run would
+        wipe the other 199.
+        """
+        if self._store is None:
+            self._store = BatchResultStore()
+        self._store.results.update(incoming.results)
+
+    def _needs_computing(self, molecule_uuid: str) -> tuple[list[str], list[str]]:
+        """The ticked properties this molecule has no CURRENT result for.
+
+        Keyed on the structure version, so an edited molecule's stale
+        results do not count as computed -- which is the difference between
+        "already done" and "done for a structure that no longer exists".
+        """
+        descriptors, calculators = self.selected_ids()
+        if self._store is None:
+            return descriptors, calculators
+        have = set(
+            self._store.for_molecule(molecule_uuid, self._current_structure_version())
+        )
+        return (
+            [d for d in descriptors if d not in have],
+            [c for c in calculators if c not in have],
+        )
+
+    def _open_pending_details(self) -> None:
+        uuid, self._details_when_ready = self._details_when_ready, None
+        if uuid is not None:
+            self._present_details(uuid)
+
+    def _show_details(self, molecule_uuid: str | None) -> None:
+        """Open one molecule's results, computing them if they are missing.
+
+        **NOTHING IS COMPUTED UNASKED, AND THIS IS THE ASKING.** Opening
+        the panel runs nothing; opening a molecule runs THAT MOLECULE's
+        ticked properties and no other molecule's. An arbitrary project
+        size stops being dangerous because an arbitrary project size is no
+        longer computed.
+
+        It reuses `BatchService` rather than calling the registry inline:
+        one molecule against every ticked calculator is still real work,
+        and the service already has the thread, the progress and the
+        cancel. The results land in the same store by the same key, which
+        is what makes the two paths impossible to tell apart afterwards.
+        """
+        if not molecule_uuid or self._project is None:
+            return
+        molecule = self._project.find_molecule(molecule_uuid)
+        if molecule is None:
+            return
+
+        descriptors, calculators = self._needs_computing(molecule_uuid)
+        if descriptors or calculators:
+            if self._batch_service.is_running():
+                self._status.setText("A run is already in progress -- try again when it finishes.")
+                return
+            self._filling_table = False
+            self._details_when_ready = molecule_uuid
+            self._status.setText(f"Computing {molecule.display_name}...")
+            self._batch_service.request_batch(
+                BatchRequest(
+                    molecule_uuids=[molecule_uuid],
+                    descriptor_ids=descriptors,
+                    calculator_ids=calculators,
+                    per_atom_aggregate=self._aggregate.currentText(),
+                    structure_version=self._current_structure_version(),
+                ),
+                [molecule],
+            )
+            return
+        self._present_details(molecule_uuid)
+
+    def _present_details(self, molecule_uuid: str) -> None:
+        """One molecule's results, in the Properties panel's own renderer."""
+        if self._project is None:
+            return
+        molecule = self._project.find_molecule(molecule_uuid)
+        if molecule is None:
+            return
+        from openchem.ui.dialogs.batch_detail_dialog import BatchDetailDialog
+
+        dialog = BatchDetailDialog(
+            self._engine,
+            molecule,
+            self._store if self._store is not None else BatchResultStore(),
+            self._current_structure_version(),
+            self,
+        )
+        dialog.exec()
+
     def _analyse(self) -> None:
         if self._on_analyse is not None and self._table is not None:
             self._on_analyse(self._table)
@@ -544,6 +1088,23 @@ def _cell_item(table: BatchTable, molecule_uuid: str, column) -> QTableWidgetIte
         # Failed rows sort to one end rather than interleaving with real
         # values at whatever a dash happens to compare as.
         item.setData(_SORT_ROLE, float("inf") if column.numeric else "￿")
+        return item
+    if cell.non_scalar:
+        # **A REAL RESULT, NOT A GAP.** This used to render as the same em
+        # dash a failure does, which says nothing was computed -- the
+        # opposite of what happened. The text names what it is; the style
+        # and the tooltip say the real thing is one double-click away.
+        item = _SortableItem(cell.text)
+        item.setForeground(_NON_SCALAR_BRUSH)
+        font = item.font()
+        font.setItalic(True)
+        item.setFont(font)
+        item.setToolTip(
+            _cell_tooltip(column, cell)
+            + "\n\nThis result has no single number. "
+            "Double-click the row to open it."
+        )
+        item.setData(_SORT_ROLE, cell.text)
         return item
     item = _SortableItem(cell.text)
     item.setData(_SORT_ROLE, cell.value if (column.numeric and cell.value is not None) else cell.text)
@@ -597,6 +1158,65 @@ def _filter_item(item: QTreeWidgetItem, needle: str) -> bool:
     if needle and any_visible:
         item.setExpanded(True)
     return any_visible
+
+
+#: A group row's label, with its own name kept separately.
+#:
+#: Stored rather than re-derived by stripping the suffix off the displayed
+#: text: a category legitimately called "Shape (3D)" would be mangled by
+#: any parser, and a name is not a thing to reconstruct from its own
+#: rendering. Same instinct as `full_text` on the eliding caption.
+_GROUP_NAME_ROLE = Qt.ItemDataRole.UserRole + 3
+
+
+def _leaves_under(item: QTreeWidgetItem):
+    if not item.childCount():
+        yield item
+        return
+    for index in range(item.childCount()):
+        yield from _leaves_under(item.child(index))
+
+
+def _label_group(item: QTreeWidgetItem) -> None:
+    """Show `n / total` ticked beside a group's name.
+
+    Counts EVERY leaf beneath it, hidden ones included -- a group that
+    read "2 / 2" while a filtered-out third was unticked would be lying
+    about what a run will do, which is the same contract
+    `_on_item_changed` keeps when it declines to tick what it cannot show.
+    """
+    name = item.data(0, _GROUP_NAME_ROLE)
+    if name is None:
+        name = item.text(0)
+        item.setData(0, _GROUP_NAME_ROLE, name)
+    leaves = list(_leaves_under(item))
+    if not leaves:
+        item.setText(0, str(name))
+        return
+    ticked = sum(1 for leaf in leaves if leaf.checkState(0) is Qt.CheckState.Checked)
+    item.setText(0, f"{name}  {ticked} / {len(leaves)}" if ticked else f"{name}  {len(leaves)}")
+
+
+def _group_state(item: QTreeWidgetItem):
+    """Set `item`'s box from its descendants, and return that state.
+
+    Depth-first, because a category's state depends on its children's and
+    a top-level group's on the categories'. Hidden leaves are counted:
+    they are still ticked or not, and a group that read "all" while a
+    hidden entry was unticked would be lying about what will run.
+    """
+    if not item.childCount():
+        return item.checkState(0)
+    states = [_group_state(item.child(i)) for i in range(item.childCount())]
+    if all(state is Qt.CheckState.Checked for state in states):
+        resolved = Qt.CheckState.Checked
+    elif all(state is Qt.CheckState.Unchecked for state in states):
+        resolved = Qt.CheckState.Unchecked
+    else:
+        resolved = Qt.CheckState.PartiallyChecked
+    item.setCheckState(0, resolved)
+    _label_group(item)
+    return resolved
 
 
 def _title(text: str) -> str:

@@ -327,3 +327,33 @@ def test_redefining_a_column_mid_run_does_not_reorder_the_table():
     table = _table()
     table.add_column(BatchColumn(column_id="x", label="different label"))
     assert [column.label for column in table.columns] == ["x", "y"]
+
+
+def test_the_request_decides_which_molecules_run(services):
+    """**THE SCOPE FIELD WAS WRITTEN BY EVERY CALLER AND READ BY
+    NOTHING.** The task iterated whatever list it was handed, so a request
+    naming two molecules while the caller passed twenty ran twenty --
+    found by mutation, which changed the request's scope to the whole
+    project and changed no behaviour at all.
+
+    That is the shape of a latent bug rather than a live one: no caller
+    disagreed with itself today. It is the lazy path that makes them
+    disagree easily, since it asks for one molecule out of a project.
+    """
+    molecules = _molecules(services)
+    only = molecules[0]
+    events = _run(
+        services,
+        BatchRequest(molecule_uuids=[only.uuid], descriptor_ids=["mol_wt"]),
+        molecules,
+    )
+    assert len(molecules) > 1, "a one-molecule fixture cannot show this"
+    assert events[-1].table.row_uuids == [only.uuid]
+
+
+def test_naming_no_molecules_still_means_everything_given(services):
+    """A request that names nothing is not a request to compute nothing --
+    which is what every fixture and the older callers rely on."""
+    molecules = _molecules(services)
+    events = _run(services, BatchRequest(descriptor_ids=["mol_wt"]), molecules)
+    assert len(events[-1].table.row_uuids) == len(molecules)

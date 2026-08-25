@@ -584,6 +584,23 @@ label says what it is.
 document may cite a file or a test that does not exist.
 
 
+- **DECISION** -- the 3D alignment overlay has ONE pane with a colour
+  mode, not ChemAxon's two side-by-side views. Requested from a
+  MarvinSpace screenshot on 2026-08-25, showing the same overlay twice --
+  once per-molecule-coloured and once by element.
+
+  **A second pane means a second 3Dmol viewer**, and `createViewerGrid`
+  throws outright under `QT_QPA_PLATFORM=offscreen`, which is the whole
+  suite's platform -- CLAUDE.md records the ladder that established it,
+  including that every capability underneath works and only that call
+  does not. A feature the suite cannot exercise on the machine it runs on
+  is a feature with no guard.
+
+  `AlignmentPanel`'s `Colour:` combo shows either reading in the one
+  pane, which is what the request was for; what is deferred is seeing
+  both at once. It becomes buildable the day the grid works headlessly,
+  or the day the overlay stops needing 3Dmol.
+
 - **DECISION** -- A subatomic-particle editor: quark content inside a
   proton or a neutron, and building other baryons from it. Asked for
   alongside the nuclear-chemistry work on 2026-08-18, and explicitly as

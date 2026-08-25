@@ -46,12 +46,14 @@ from openchem.chem.result_reduction import (
     reduce_result,
 )
 from openchem.domain.batch import (
-    SOURCE_CALCULATOR,
-    SOURCE_DERIVED,
     BatchCell,
     BatchColumn,
     BatchRequest,
+    BatchResultStore,
     BatchTable,
+    ResultKey,
+    SOURCE_CALCULATOR,
+    SOURCE_DERIVED,
 )
 from openchem.domain.common import CacheState
 from openchem.domain.molecule import MoleculeModel
@@ -59,6 +61,7 @@ from openchem.domain.scientific_result import PerAtomDataset
 from openchem.events.base import Event, EventBus
 from openchem.plugins.interfaces import DescriptorProvider
 from openchem.services.calculator_registry import CalculatorRegistry
+from openchem.services.result_cache import parameters_key
 from openchem.services.job_manager import JobManager
 from openchem.services.progress import ProgressHandle
 
@@ -91,6 +94,16 @@ class BatchProgress(Event):
     message: str = ""
     table: BatchTable | None = None
     error: str | None = None
+    #: The un-reduced results, keyed by identity.
+    #:
+    #: **THE TABLE IS A PROJECTION OF THIS, NOT THE OTHER WAY ROUND.**
+    #: `reduce_result` recovers 73 numeric columns from the real registry
+    #: and refuses 25 real lines outright, so a panel reading only `table`
+    #: cannot offer the Details view, the inspector or the comparison that
+    #: Properties has offered for the same calculators all along. Carried
+    #: on the same event and mutated in place for the same reason `table`
+    #: is: copying it once per molecule is real work for no benefit.
+    store: BatchResultStore | None = None
 
 
 class _BatchTask(QRunnable):
@@ -114,9 +127,23 @@ class _BatchTask(QRunnable):
         self._event_bus = event_bus
         self._job_manager = job_manager
         self._progress = progress
+        self._store = BatchResultStore()
 
     def run(self) -> None:
         table = BatchTable()
+        # **THE REQUEST IS THE AUTHORITY ON SCOPE.** `molecule_uuids` was
+        # written by every caller and READ BY NOTHING -- the task iterated
+        # whatever list it was handed, so a request naming two molecules
+        # while the caller passed twenty would run twenty and nobody would
+        # notice. Found by mutation: changing the request's scope to the
+        # whole project changed no behaviour at all.
+        #
+        # An empty list still means "everything given", which is what the
+        # older callers and fixtures rely on -- a request that names
+        # nothing is not a request to compute nothing.
+        wanted = set(self._request.molecule_uuids)
+        if wanted:
+            self._molecules = [m for m in self._molecules if m.uuid in wanted]
         total = len(self._molecules)
         try:
             for index, molecule in enumerate(self._molecules):
@@ -158,7 +185,13 @@ class _BatchTask(QRunnable):
         self._job_manager.update_message(BATCH_JOB_KIND, BATCH_JOB_KEY, message)
         self._event_bus.publish(
             BatchProgress(
-                state=state, completed=completed, total=total, message=message, table=table, error=error
+                state=state,
+                completed=completed,
+                total=total,
+                message=message,
+                table=table,
+                error=error,
+                store=self._store,
             )
         )
 
@@ -288,6 +321,21 @@ class _BatchTask(QRunnable):
             # every calculator again.
             if isinstance(result, PerAtomDataset):
                 table.set_per_atom(molecule.uuid, calculator_id, result)
+            # RETAINED, NOT REDUCED-AND-DROPPED. The whole object is in
+            # hand here and used to be discarded the moment
+            # `reduce_result` had taken its numbers out of it -- which is
+            # why a batch row could not offer the Details view, the
+            # inspector or the comparison that Properties has offered for
+            # the same calculators all along.
+            self._store.put(
+                ResultKey(
+                    molecule_uuid=molecule.uuid,
+                    calculator_id=calculator_id,
+                    parameters_key=parameters_key(parameters),
+                    structure_version=self._request.structure_version,
+                ),
+                result,
+            )
             for column, cell in reduce_result(
                 result,
                 calculator_id,

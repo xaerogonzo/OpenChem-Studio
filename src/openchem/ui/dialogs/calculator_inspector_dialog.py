@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import weakref
 from collections.abc import Callable
 
 from PySide6.QtGui import QGuiApplication
@@ -70,6 +71,7 @@ class _CalculatorResultView(QWidget):
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
+        _OPEN_INSPECTORS.add(self)
         layer = build_visualization_layer(result, include_labels=True)
 
         # THE TOTAL IS READ, NEVER DERIVED. This used to be
@@ -523,6 +525,66 @@ _RESULT_VIEW_FACTORIES: dict[type, Callable[..., QWidget]] = {
     AlertResult: _build_text_view,
     ReportResult: _build_text_view,
 }
+
+
+#: How many Calculator Inspectors may be open at once.
+#:
+#: **AN APPLICATION-LEVEL COUNT OF LIVE DIALOGS, NOT A PROCESS COUNT.**
+#: Chromium process topology is a diagnostic that JUSTIFIES this number,
+#: never the functional contract -- a cap expressed in
+#: `QtWebEngineProcess.exe` counts would change meaning under a Qt upgrade
+#: and is not something a user can reason about.
+#:
+#: Measured before it was written, sampled DURING the run because they are
+#: all reaped at exit and a post-mortem finds zero and looks healthy:
+#:
+#:     open inspectors    QtWebEngineProcess
+#:     0                                   0
+#:     1..8                             1..8      exactly one each, linear
+#:     disposed                            0      per-widget flush frees all
+#:
+#: So RESOURCES are not the binding constraint -- this project's recorded
+#: hang was at 91-116 live processes, and one inspector each puts that
+#: nowhere near eight. **The bound is READABILITY**, and it is stated as
+#: that rather than dressed up as a resource limit: the Properties panel
+#: reached the same conclusion independently, declining to pop inspectors
+#: from a multi-calculator run because "six inspectors stacking up is not
+#: what anybody asked for".
+#:
+#: The disposal half is the one that would turn this from a concurrent cap
+#: into a cumulative one. `processEvents()` NEVER delivers a
+#: `DeferredDelete` at event-loop level 0 against this Qt build -- measured
+#: again here, eight dialogs closed that way left all eight processes
+#: alive -- so `close()` must be followed by the per-widget
+#: `sendPostedEvents(dialog, DeferredDelete)`, never the global form.
+MAX_OPEN_INSPECTORS = 8
+
+#: Weak, so a disposed dialog leaves on its own. A strong container here
+#: would be the leak this cap exists to prevent, wearing the cap's clothes.
+_OPEN_INSPECTORS: "weakref.WeakSet[CalculatorInspectorDialog]" = weakref.WeakSet()
+
+
+def open_inspector_count() -> int:
+    """How many inspectors are alive right now."""
+    return len(_OPEN_INSPECTORS)
+
+
+def inspector_budget_message() -> str | None:
+    """Why the next inspector cannot open, or None if it can.
+
+    A REFUSAL WITH A COUNT, not a silent no-op and not a degraded view.
+    This app already refuses an LED job on estimated cost and a solvent
+    outside its table; a control that quietly does nothing is the one
+    outcome this project has repeatedly called worse than a missing one.
+    """
+    count = open_inspector_count()
+    if count < MAX_OPEN_INSPECTORS:
+        return None
+    return (
+        f"{count} calculator inspectors are already open, which is the limit. "
+        "Close one to open another -- past this many, a side-by-side "
+        "comparison stops being readable."
+    )
 
 
 class CalculatorInspectorDialog(QDialog):

@@ -451,6 +451,27 @@ def _plugins_registering_reactions(root: Path) -> list[str]:
 #: silently fall behind the document.
 DEFERRALS: list[Deferral] = [
     Deferral(
+        claim="the 3D alignment overlay has ONE pane",
+        # The feature would announce itself as a SECOND viewer backend in
+        # the panel -- there is no way to draw two panes with one 3Dmol
+        # instance. Counting the constructions is therefore the honest
+        # `unbuilt` test, and it fails the day somebody adds one.
+        unbuilt=lambda: (
+            (_ROOT / "src/openchem/ui/panels/alignment_panel.py")
+            .read_text(encoding="utf-8")
+            .count("Mol3DViewerBackend(")
+            == 1
+        ),
+        # And the RECORDED REASON is countable, which is why this entry has
+        # a predicate where the one below it cannot: the reason is that the
+        # conformer grid is gated on the PLATFORM rather than on a measured
+        # capability, because nothing but the call itself predicts the
+        # failure. The day `createViewerGrid` works headlessly that gate
+        # goes, and this deferral goes with it.
+        reason=lambda: "def grid_platform_is_offscreen"
+        in (_ROOT / "tests/conftest.py").read_text(encoding="utf-8"),
+    ),
+    Deferral(
         claim="consumes a particle",
         # The feature would announce itself as a module: there is no way
         # to edit quark content without a type for it. Watching for the

@@ -791,6 +791,217 @@ quietly when it finds none. The run logged `step 1 panel` and looked
 perfectly healthy while photographing the Compare panel. **Read the shot,
 not the log.**
 
+## BATCH WAS A SECOND IMPLEMENTATION OF WHAT PROPERTIES ALREADY DID
+
+Reported as "the entire system is a total mess", with three complaints:
+no select-all, no select-all-in-group, and a result table that is
+"incredibly un user friendly". The third one is the structural half:
+**this app had TWO batch systems and they disagreed.**
+
+    PropertyPanel._on_run_selected    N calculators x 1 molecule
+    BatchPanel                        N calculators x M molecules
+
+Same 51 tick boxes -- one `help_id`, `properties.batch_selection` -- and
+two different meanings:
+
+    | | Properties, "Run selected" | Batch |
+    | runs via | DescriptorService.run_calculator | its own _BatchTask |
+    | produces | one ScientificResult | N columns via reduce_result |
+    | offers | a row, Details, an inspector | a number in a cell |
+    | keeps | yes, in _reports | no -- reduced and dropped |
+    | costs | one calculator, when asked | molecules x properties, up front |
+
+The third row is the complaint: **a calculator that is one coherent thing
+in Properties became N unrelated columns in Batch.** Topology Analysis is
+one button and one Details view on the left; on the right it was a Wiener
+column, a Randic column and a Szeged column with nothing tying them
+together. And lossy on top -- `result_reduction` recovers 73 numeric
+columns from the real registry and REFUSES 25 real lines outright.
+
+### The spine: the ScientificResult is the stored thing
+
+`domain/batch.BatchResultStore` retains them; `reduce_result` is a
+PRESENTATION PROJECTION and its module docstring now says so, because
+that is the regression this whole change exists to prevent and a
+docstring is what survives the next author.
+
+**THE DIRECTION MATTERS ONE LEVEL DOWN.** A `BatchTable` is rows by
+columns; the store is keyed by `(molecule, calculator, parameters,
+structure_version)`, which is not a table and does not become one because
+a table can be built from it. If the store were the table, `reduce_result`
+would be back in the storage position by another route.
+
+### NONE OF THE FOUR KEY COMPONENTS IS INVENTED
+
+Checked rather than assumed, because a retained result makes "which
+result am I looking at" a real question and getting it wrong trades a
+lossy system for a stale one:
+
+    molecule_uuid      a uuid4 carried through `to_dict()` into the
+                       project file -- semantic identity, not object
+                       identity. `ResultCache` warns against keying on it
+                       ALONE, which is what the next line is for.
+    structure_version  `StructureCheckService.current_version()`, the
+                       counter `StructureReport` is already built on and
+                       the Atom Inspector's cache already keyed on.
+    parameters_key     a thin wrapper over `result_cache.key_for`, already
+                       sorted-JSON-into-SHA-256 and already stable across
+                       processes. A SECOND parameter serialisation is how
+                       two identical requests become two keys.
+
+So editing a molecule makes its results STALE rather than wrong, and
+stale results are REPORTED rather than deleted -- silently serving one and
+silently blanking it are the two ways this goes wrong and they look
+identical from outside.
+
+**The recorded trap applies directly**: the Atom Inspector's version is
+`None` in a plain fixture, so it is 0 forever, and two guards for a
+stale-index crash passed while testing the cache. Any test here that
+mutates a molecule must move the thing the key is keyed on.
+
+### RETENTION COSTS LITTLE, and the contract was not signed first
+
+Measured over 8 drug-like molecules against all 53 registry-executable
+calculators, 424 results:
+
+    mean per result        9.05 KiB
+    largest single        37.1  KiB   regulatory_screen -- and the SAME
+                                      size for every molecule, which is
+                                      worth knowing but was not chased
+    5 molecules            2.3 MiB     50 ->  23 MiB
+    200 molecules         94   MiB   1000 -> 469 MiB
+
+No eviction, no disk spill: nothing there asks for one at the sizes the
+lazy path reaches. The bulk path could reach the bottom of that table, and
+it states its cost first.
+
+### THE COMPUTATION MATRIX -- five rows, five tests
+
+"Nothing is computed unasked" is only an invariant if *asked* is defined:
+
+    open the Batch panel      zero calculations
+    select a molecule         that molecule's ticked properties, and NO
+                              other molecule's
+    look at it again          nothing -- retention is what makes lazy
+                              usable rather than merely lazy
+    press Fill table          the full explicitly-requested matrix
+    Fill table, large         asks first; Cancel computes nothing
+
+Driven in the app, and the log IS the design:
+
+    panel-opened        ticked 0 | rows 0 cols  0 | store 0
+    category-ticked     ticked 2 | rows 0 cols  0 | store 0
+    after-lazy-details  ticked 2 | rows 0 cols  0 | store 2
+    filled              ticked 2 | rows 3 cols 14 | store 6
+
+**TWO THINGS THE PANEL HAD TO LEARN**, both because the lazy and bulk
+paths now arrive on the identical event. The table is adopted ONLY when
+the run was a fill -- a one-molecule run returns a ONE-ROW table, and
+letting that through makes opening a detail view destroy the table the
+user just built. And the store is MERGED rather than replaced, or a
+one-molecule run wipes the other 199.
+
+### `ItemIsAutoTristate` DOES TOO MUCH
+
+It looks like exactly what a select-all-in-group wants. With it set, Qt
+propagates a parent's tick down to EVERY child itself, hidden ones
+included -- which reaches entries the filter is hiding and contradicts the
+filter's own documented promise that it filters the LIST and never the
+results. Measured: the hidden-children guard fails on a child Qt ticked
+before our handler ran. Both directions are ours instead, with one
+re-entry guard.
+
+**AND NEITHER OBVIOUS ASSERTION CAN TELL A CHECKABLE ROW FROM A PLAIN
+ONE.** Measured on a bare `QTreeWidgetItem`:
+
+    ItemIsUserCheckable   in Qt's DEFAULT item flags -- True on a row
+                          nobody ever made checkable
+    checkState(0)         Unchecked whether a state was set or not
+    data(0, CheckStateRole)   None until setCheckState is called  <- the
+                          only discriminator, and what decides whether a
+                          box is DRAWN
+
+A mutation emptying `_make_groups_checkable` survived both of the obvious
+versions of the guard.
+
+### A FIELD WRITTEN BY EVERY CALLER AND READ BY NOTHING
+
+`BatchRequest.molecule_uuids` was never consulted -- `_BatchTask` iterated
+whatever list it was handed -- so a request naming two molecules while the
+caller passed twenty ran twenty, and nothing would have noticed. Found by
+mutation: widening the request's scope changed no behaviour at all.
+
+Latent rather than live, since no caller disagreed with itself. The lazy
+path is what makes them disagree easily, because it asks for one molecule
+out of a project. The request is the authority on scope now, with an empty
+list still meaning "everything given".
+
+**THE TWO HALVES NOW CROSS-CHECK, so each alone is an EQUIVALENT
+mutation** -- widening the request's scope is clamped by the molecules
+handed over, and vice versa. Only widening BOTH changes behaviour, and
+that is caught. Verified as its own paired arm rather than assumed, since
+"two survivors" otherwise reads as a coverage gap.
+
+### THE CAP COUNTS DIALOGS; CHROMIUM JUSTIFIES THE NUMBER
+
+Measured before it was written, sampled DURING the run because they are
+all reaped at exit and a post-mortem finds zero and looks healthy:
+
+    open inspectors      QtWebEngineProcess
+    1..8                              1..8    exactly one each, linear
+    disposed per widget                  0    all of them freed
+    disposed via processEvents           8    NONE freed
+
+So resources are not the binding constraint -- the recorded hang was at
+91-116 processes. **The bound is READABILITY and says so**; the Properties
+panel reached the same conclusion independently, declining to pop
+inspectors from a multi-calculator run because "six inspectors stacking up
+is not what anybody asked for". A cap expressed in `QtWebEngineProcess`
+counts would change meaning under a Qt upgrade and is not something a user
+can reason about.
+
+The second row is why `close()` is followed by the per-widget
+`sendPostedEvents(dialog, DeferredDelete)`: without it the cap would be
+cumulative rather than concurrent. `processEvents()` never delivers a
+`DeferredDelete` at event-loop level 0, which this file already records
+and which held again here.
+
+### A GUARD MUST NOT DO WORK PROPORTIONAL TO WHAT IT GUARDS
+
+The cap's first guard built `range(MAX_OPEN_INSPECTORS)` stand-ins, so it
+scaled its own work by the constant under test -- and the `1 << 30` arm
+allocated a billion objects and **hung the mutation pass twice** before
+the cause was spotted. Split in two: the shipped constant's magnitude is
+asserted directly and cheaply, and the refusal is exercised against a
+monkeypatched cap of 2.
+
+### THE HARNESS ITSELF COST TWO RUNS
+
+`ROOT.rglob("__pycache__")` reaches into `.venv`, which is thousands of
+directories -- clearing it between arms made every one recompile the whole
+dependency set and took each into the minutes. Scope a mutation harness's
+cache clearing to `src/` and `tests/`.
+
+And `batch_details` REPORTED A WORKING FEATURE BROKEN: `_show_details`
+starts a background run and RETURNS, with `_present_details` called later
+from the progress handler, so a patch restored in a `finally` was gone
+before the dialog was built. The step said "no dialog open" for a run that
+was perfectly correct.
+
+### The cell now says WHAT it is
+
+    SCALAR      a number, as before
+    NON_SCALAR  a real result with no scalar form -- a per-atom map, a
+                spectrum, a structure set. Named, italic, its own colour,
+                and a tooltip saying it is one double-click away.
+    FAILED      the em dash, unchanged
+
+Those last two used to render identically, which is the OPPOSITE
+statement: one says nothing was computed, the other says something was and
+a table is the wrong shape for it. `reduce_result` refuses 25 of the real
+registry's lines, so the second is the common case rather than an edge
+one.
+
 ## THE VIEWER AND THE DOCKING WERE SHOWING DIFFERENT CHAINS
 
 `Viewer.loadStructureFromData`'s default preset builds **biological
@@ -964,6 +1175,161 @@ TRUTH.** Ink went 39940 -> 39942 (+2) on the first attempt and read as
 so the camera framed nothing, and Mol*'s UI chrome is ~57% of the window.
 With a structure loaded and the count cropped to the 3D canvas, 16778 ->
 20270 (+20.8%).
+
+## THE ALIGNMENT COULD NOT MOVE A TORSION, AND THE RMSD COULD NOT SAY SO
+
+Reported against MPMI vs 4-HO-MPMI -- the same skeleton, one hydroxyl
+apart -- aligned on *Common scaffold (MCS)*: "the tail pyrrolidine is not
+aligned at all, which makes no sense". The panel said **score 109.75, RMSD
+0.116, 14 paired atoms**, which is a confident, healthy-looking result for
+a picture that is visibly wrong.
+
+Reproduced bit for bit from `MPMI.ocsproj`, the project the report came
+from, BEFORE anything was changed. Three defects:
+
+**A. THE STORED CONFORMERS WERE THROWN AWAY.**
+`_EnsembleAlignmentTask` calls `engine.mol_from_model`, which reads
+`model.molblock` -- the 2D drawing -- and never `model.conformers`. The
+reference had **17** stored conformers and the alignment embedded five
+fresh ones instead.
+
+**B. O3A IS A RIGID SUPERPOSITION.** The MCS fixes the PAIRING; `Align()`
+then finds the best rigid transform for it. It cannot rotate a bond. So a
+probe embedded in isolation keeps whatever rotamer the embedder chose, the
+rigid indole lands perfectly because it is in the MCS, and the pyrrolidine
+lands wherever it was. **More starting conformers is a lottery, not a
+fix** -- measured, at "Accurate" (20 conformers) rigid mode stumbles onto a
+good rotamer for this molecule anyway, which is exactly why sampling is
+not the answer.
+
+**C. `AddHs` WITH NO `addCoords=True` PUTS EVERY HYDROGEN AT THE ORIGIN**
+when the molecule already carries a 3D conformer -- measured on this
+fixture, all **18** of them -- and `Is3D()` stays True throughout, so it
+returned silently. Unreachable while the input was always a 2D drawing.
+**A is what makes it reachable**, so it lands with it.
+
+### The measurement, through the shipped path
+
+    mode                             score   rmsd   core   flex   geometry
+    rigid (today)                   109.75  0.116  0.083  0.931  embedded
+    flexible                        125.15  0.046  0.052  0.036  constrained
+    flexible + ref conformers       125.24  0.023  0.027  0.016  constrained
+
+Flexible RMSD **0.931 -> 0.036, 26x**.
+
+**AND A ALONE MAKES THE REPORTED CASE WORSE**, which is why measuring
+first mattered: the probe has no stored conformer, so using the
+reference's only moves the target -- core goes to **3.493** while the tail
+improves to 0.212, and the popped-out shot shows the indole benzo ring
+plainly out of register. B is what fixes the picture; A is a refinement
+that needs B.
+
+### THE OBVIOUS METRIC CANNOT BE COMPUTED
+
+The first draft of the guard said "RMSD over the atoms NOT in the MCS".
+**Those atoms have no correspondence by construction** -- the hydroxyl
+exists in one molecule and not the other -- and every patch for it (a
+second MCS, nearest neighbour, matching indices) invents one and turns the
+oracle into an arbitrary geometric metric.
+
+The atoms worth measuring are INSIDE the correspondence. What separates
+them is FLEXIBILITY, not MCS membership: both molecules have the
+pyrrolidine, so the MCS covers it. `mcs_partition` splits the MCS's own
+pairs:
+
+    1  pairs     the MCS correspondence, heavy atoms only
+    2  scaffold  the largest fused ring system OF THE PATTERN -- computed
+                 ONCE, on the shared subgraph
+    3  cuttable  bonds matching RDKit's own RotatableBondSmarts
+    4  core      reachable from the scaffold without crossing one
+    5  classify  a PAIR takes its pattern atom's bucket
+
+**STEP 2 IS THE LOAD-BEARING ONE.** Classifying each molecule
+independently is how "14 core atoms here, 17 there" happens, and two
+RMSDs over two different partitions are not comparable.
+
+### A FLEXIBLE REQUEST THAT CANNOT EMBED DEGRADES AND SAYS SO
+
+Pinning the shared atoms onto the reference is not always geometrically
+possible, and that is chemistry rather than a bug: **ibuprofen's MCS with
+naproxen spans BOTH rings of the naphthalene**, so no conformer of a single
+benzene can put its shared ring atoms there. Distance geometry correctly
+refuses -- measured, it fails at all 14 constraints, at the 6 ring ones,
+and at every subset carrying the real shape, while an arbitrary 6 succeed.
+Forcing it would mean inventing a geometry, so it falls back to an ordinary
+embed and reports `embedded` rather than `constrained_embed`. The panel
+shows that column, so "flexible did not take on this pair" is visible.
+
+**`ff.Initialize()` IS REQUIRED AFTER `AddExtraPoint`**, or `Minimize`
+raises a "size mismatch" pre-condition -- the force field still believes it
+holds as many points as the molecule has atoms.
+
+### `matched_atoms` IS NOT THE MCS SIZE
+
+`len(alignment.Matches())` is O3A's own count. The panel printed it
+unconditionally, so an MCS-method result read **"14 paired atoms" for a
+maximum common substructure of 33**. Two fields now -- `mcs_atom_count`
+and `o3a_match_count` -- because one field with a method-dependent meaning
+is how that ambiguity returns under a new label.
+
+### The mutation pass found a vacuous guard, as it usually does
+
+Six arms. **M1 (reverting `addCoords=True`) SURVIVED** against a test
+named for it: the fixture stored a conformer that already had EXPLICIT
+hydrogens, so `AddHs` added nothing and the bug could not fire. It needs a
+3D conformer carrying IMPLICIT hydrogens -- `Chem.RemoveHs` then
+`MolToMolBlock` -- and `test_the_hydrogen_fixture_really_has_hydrogens_to_place`
+now asserts that setup so it cannot go vacuous again.
+
+**The invariant needs no table and no tolerance**: every added hydrogen is
+nearer to the heavy atom it is bonded to than to any other. `Is3D()` and
+"the coordinates are finite" both pass with the bug in place.
+
+**And the self-alignment tolerance was below the representable
+precision.** It asserted `abs=1e-6` and passed because rigid mode handed
+O3A the same object twice; flexible builds a constrained conformer and
+lands 4.9e-05 away. That is an order of magnitude BELOW the **5e-4**
+molblock floor this file already records. A tolerance tighter than the data
+format can represent is not a stronger test.
+
+### THE 3D VIEW WAS 63 PIXELS TALL, and adding a control made it worse
+
+Measured in the running app with the new `align_report` step, which dumps
+every DIRECT CHILD's height -- "the viewer is 63 px" does not say which
+sibling to argue with:
+
+    panel 699 | viewer 398x63 | QGroupBox=414 QTableWidget=160 PopOutHost=95
+
+The settings box and a results table fixed at 160 px for two rows left the
+overlay -- this panel's entire output -- a strip. Two changes:
+
+    Accuracy and Flexibility share ONE flow_row     2 form rows -> 1
+    the table sizes to its rows under a cap         160 -> 100
+
+    before   viewer 398x63
+    after    viewer 398x123
+
+`flow_row` rather than a `QHBoxLayout`, because a horizontal layout's
+minimum width is the SUM of its children and this panel has already set the
+whole window's minimum that way once.
+
+**JUDGE AN OVERLAY IN THE POPPED-OUT WINDOW, NOT IN THE STRIP.** A 123 px
+crop shows an edge of the molecule and nothing about whether it
+superimposes. `{"do": "pop_out", "panel": "3D_Alignment"}` then
+`{"do": "shot", "widget": "popout"}` gives 960x720 of it, which is what
+settled both arms.
+
+### The drive steps this added
+
+    {"do": "open_project",     "path": "C:/tmp/MPMI.ocsproj"}
+    {"do": "align",            "flexibility": "Flexible"}   (new option)
+    {"do": "align_report",     "tag": "after"}
+    {"do": "ensemble_visible", "row": 1, "on": false}
+    {"do": "overlay_colour",   "mode": "element"}
+
+The last two drive the CONTROL rather than the helper behind it: a test
+that calls `_show_ensemble` directly proves the helper works and says
+nothing about whether the box is wired to it.
 
 ## POPPING A VIEW OUT: the widget MOVES, and that was measured first
 
@@ -1453,7 +1819,53 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `5591 passed, 15 skipped`
+A clean run is **6-19 minutes**, ending at `5665 passed, 15 skipped`
+(measured 2026-08-25, **14m42**, on
+`alignment-geometry-and-batch-on-properties` -- the 3D alignment's three
+defects, and rebuilding batch on the Properties model.
+
+**+74 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed:
+
+    master        6962868   COLLECTS 5606
+    the branch              COLLECTS 5680   = 5606 + 74
+    the run                          5665 passed + 15 skipped = 5680
+
+Every one of the 74 reconciles to this branch: 28 in `test_batch_panel.py`
+(tri-state selection, the computation matrix, the three cell kinds, the
+group counts, persistence, column groups), 14 in the new
+`test_batch_result_store.py`, 13 in `test_alignment.py` (the flexibility
+contract in two arms, the hydrogen invariant and its own setup guard, the
+partition, the two counts), 10 in the new `test_batch_detail_dialog.py`,
+7 in `test_alignment_panel.py` (visibility, colour mode, the four new
+columns) and 2 in `test_batch_service.py` for the scope field that was
+read by nothing.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line,
+which is the pair this file insists on rather than an absence of FAILED
+lines. The two `DeprecationWarning`s are the same pre-existing
+six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**CI MEASURES THE SAME TREE AT 5660 passed, 19 skipped, 1 deselected**
+(run 32896691945, PR #45, 23m21), which is the same 5680: 5660 + 19 + 1.
+The four extra skips are the GPU-gated conformer gallery guards and the
+deselection is the PubChem network test, both already documented above.
+Worth stating because a reader comparing the two figures should not go
+looking for five lost tests. All three gates RAN -- "Naming benchmark
+holds at 181/181", the regulatory benchmark and the ruleset validation --
+which is the step list rather than the conclusion, and the thing a red
+suite would have taken with it.
+
+14m42 sits mid-band; the 6-19 range stands. The run logged Chromium's
+`Failed to make current since context is marked as lost` partway through
+without costing any skips this time -- the `webgl` fixture's behaviour is
+already recorded two entries down, where the same message took 15 skips
+to 19.)
+
+Before it: `5591 passed, 15 skipped`
 (measured 2026-08-25, **15m37**, on `static-import-reachability` -- the
 reachability guard's three blind spots, the widening to all 277 modules,
 and the mis-routed result that measuring a doc claim turned up.

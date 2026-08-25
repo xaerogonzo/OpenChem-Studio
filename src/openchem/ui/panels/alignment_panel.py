@@ -40,10 +40,27 @@ from openchem.events.events import AlignmentJobStateChanged, EnsembleAlignmentRe
 from openchem.services.alignment_service import AlignmentService
 from openchem.ui.molecule_combo import repopulate
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
+from openchem.ui.widgets.flow_layout import flow_row
 from openchem.ui.widgets.pop_out_host import PopOutHost
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
-_RESULT_COLUMNS = ("Molecule", "Score", "RMSD (A)", "Paired atoms")
+#: The results table is capped rather than free: an ensemble of ten would
+#: otherwise push the 3D view -- this panel's entire output -- back down to
+#: a strip. Below the cap it shrinks to its rows and the overlay gets the
+#: difference.
+_TABLE_MAX_HEIGHT = 160
+_TABLE_MIN_HEIGHT = 64
+
+_RESULT_COLUMNS = (
+    "Show",
+    "Molecule",
+    "Score",
+    "RMSD (A)",
+    "Core",
+    "Tail",
+    "Paired atoms",
+    "Geometry",
+)
 
 # Deliberately not a gradient: these identify structures, so neighbouring
 # entries have to be told apart at a glance. Colour-blind-safe ordering
@@ -74,6 +91,100 @@ _METHOD_NOTE = (
 #: and the note is above the table rather than on it. `Paired atoms` is
 #: the denominator both of them are quietly relative to.
 _HELP: dict[str, HelpTooltip] = {
+    "flexibility": HelpTooltip(
+        text=(
+            "Whether the molecule being aligned may change its "
+            "conformation to fit.\n\n"
+            "FLEXIBLE builds it with its shared atoms pinned to the "
+            "reference's own coordinates, so a substituent on a rotatable "
+            "bond can swing into place. RIGID keeps the geometry it was "
+            "given and only rotates and translates it.\n\n"
+            "The alignment itself is a rigid superposition either way, so "
+            "on RIGID a flexible side chain lands wherever its starting "
+            "conformer happened to put it -- the shared core will still "
+            "overlay perfectly and the score will still look healthy. "
+            "Compare the Core and Tail columns rather than the single "
+            "RMSD. Default: Flexible."
+        ),
+        tier=3,
+        help_id="alignment.flexibility",
+        topic="alignment",
+    ),
+    "color_mode": HelpTooltip(
+        text=(
+            "What the colours in the 3D view mean.\n\n"
+            "BY MOLECULE gives each structure one colour, which answers "
+            "'which of these is this atom in'. BY ELEMENT uses the usual "
+            "element colours, which answers 'what is it'. Neither "
+            "replaces the other; the overlay is the same either way."
+        ),
+        tier=1,
+        help_id="alignment.overlay_color_mode",
+        topic="alignment",
+    ),
+    "Show": HelpTooltip(
+        text=(
+            "Hide or show this structure in the 3D view.\n\n"
+            "Hiding one removes it from the picture only -- it is still "
+            "aligned, its numbers are unchanged, and its colour is kept "
+            "so showing it again does not renumber anything. Useful for "
+            "comparing two of a larger overlay."
+        ),
+        tier=1,
+        help_id="alignment.entry_visible",
+        topic="alignment",
+    ),
+    "Core": HelpTooltip(
+        text=(
+            "RMSD in angstroms over the RIGID part of the shared "
+            "substructure, after alignment. Lower is better.\n\n"
+            "'Rigid' is derived: the largest fused ring system of the "
+            "shared substructure, plus everything reachable from it "
+            "without crossing a rotatable bond.\n\n"
+            "It is normally the smaller of the two numbers, because a "
+            "rigid superposition can always fit a rigid fragment. A LARGE "
+            "core RMSD means the two structures were not really "
+            "superimposed at all."
+        ),
+        tier=3,
+        help_id="alignment.core_rmsd",
+        topic="alignment",
+    ),
+    "Tail": HelpTooltip(
+        text=(
+            "RMSD in angstroms over the FLEXIBLE part of the shared "
+            "substructure, after alignment. Lower is better.\n\n"
+            "Everything separated from the rigid core by at least one "
+            "rotatable bond. Measured over the same atom correspondence "
+            "as Core, so the two are directly comparable -- what "
+            "separates them is flexibility, not which atoms matched.\n\n"
+            "**THIS IS THE NUMBER THE SINGLE RMSD CANNOT SHOW YOU.** A "
+            "result can report a small RMSD while a side chain sits an "
+            "angstrom out of place, because the reported figure is "
+            "dominated by the rigid core. A Tail much larger than the "
+            "Core means the substituent did not overlay; try Flexible.\n\n"
+            "Blank when the shared substructure has no flexible part."
+        ),
+        tier=3,
+        help_id="alignment.flexible_rmsd",
+        topic="alignment",
+    ),
+    "Geometry": HelpTooltip(
+        text=(
+            "Where this molecule's 3D coordinates came from.\n\n"
+            "PROJECT -- a conformer already stored for it.\n"
+            "GENERATED -- one built for this alignment.\n"
+            "CONSTRAINED -- built for this alignment with its shared "
+            "atoms pinned to the reference's coordinates.\n\n"
+            "It matters because results begun from different geometries "
+            "are not comparable. A Flexible run that reports GENERATED "
+            "means pinning was not geometrically possible for this pair "
+            "and it fell back."
+        ),
+        tier=3,
+        help_id="alignment.geometry_source",
+        topic="alignment",
+    ),
     "reference": HelpTooltip(
         text=(
             "The molecule everything else is moved onto. It is not "
@@ -212,6 +323,12 @@ class AlignmentPanel(QWidget):
         self._event_bus = event_bus
         self._project: ProjectModel | None = None
         self._entries: list[EnsembleEntry] = []
+        # Row index -> shown. Kept apart from the colour map so hiding an
+        # entry never renumbers a colour: the whole point of the overlay is
+        # that a structure keeps the colour the table says it has.
+        self._visible: dict[int, bool] = {}
+        self._colors: dict[int, str] = {}
+        self._suspend_visibility = False
 
         self._reference_combo = QComboBox(self)
         self._reference_combo.currentIndexChanged.connect(self._on_reference_changed)
@@ -231,6 +348,15 @@ class AlignmentPanel(QWidget):
         self._accuracy_combo.setCurrentText("Normal")
         apply_help_tooltip(self._accuracy_combo, _HELP['accuracy'])
 
+        from openchem.chem.alignment import DEFAULT_FLEXIBILITY, FLEXIBILITY_MODES
+
+        self._flexibility_combo = QComboBox(self)
+        self._flexibility_combo.addItems(list(FLEXIBILITY_MODES))
+        self._flexibility_combo.setCurrentText(
+            next(k for k, v in FLEXIBILITY_MODES.items() if v == DEFAULT_FLEXIBILITY)
+        )
+        apply_help_tooltip(self._flexibility_combo, _HELP['flexibility'])
+
         self._align_button = QPushButton("Align", self)
         self._align_button.clicked.connect(self._on_align_clicked)
         apply_help_tooltip(self._align_button, _HELP['align'])
@@ -249,13 +375,20 @@ class AlignmentPanel(QWidget):
             QHeaderView.ResizeMode.ResizeToContents
         )
         self._result_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self._result_table.setMaximumHeight(160)
+        self._result_table.setMaximumHeight(_TABLE_MAX_HEIGHT)
+        self._result_table.itemChanged.connect(self._on_visibility_changed)
 
         self._viewer = Mol3DViewerBackend(self)
         self._style_combo = QComboBox(self)
         self._style_combo.addItems(["stick", "ballstick", "sphere", "line"])
         self._style_combo.currentTextChanged.connect(self._viewer.set_style)
         apply_help_tooltip(self._style_combo, _HELP['style'])
+
+        self._color_mode_combo = QComboBox(self)
+        self._color_mode_combo.addItem("By molecule", "molecule")
+        self._color_mode_combo.addItem("By element", "element")
+        self._color_mode_combo.currentIndexChanged.connect(self._on_color_mode_changed)
+        apply_help_tooltip(self._color_mode_combo, _HELP['color_mode'])
 
         note = QLabel(_METHOD_NOTE, self)
         note.setWordWrap(True)
@@ -264,7 +397,24 @@ class AlignmentPanel(QWidget):
         form.addRow("Reference:", self._reference_combo)
         form.addRow("Align onto it:", self._probe_list)
         form.addRow("Method:", self._method_combo)
-        form.addRow("Accuracy:", self._accuracy_combo)
+        # ACCURACY AND FLEXIBILITY SHARE ONE ROW, and that is not tidiness.
+        # This panel's reported problem is vertical space -- the settings
+        # box, the note, the table and the style row are all fixed height
+        # and the overlay gets what is left, which in a 420 px dock is a
+        # strip about 90 px tall. Adding Flexibility as a form row of its
+        # own would have made the thing that was complained about worse.
+        #
+        # `flow_row` rather than a QHBoxLayout, because a horizontal
+        # layout's minimum width is the SUM of its children and this panel
+        # has already set the whole window's minimum once that way. It
+        # wraps to two lines when the dock is narrow, which costs the
+        # height back only where there is no width to spend instead.
+        options = flow_row(self)
+        options.layout().addWidget(QLabel("Accuracy:", self))
+        options.layout().addWidget(self._accuracy_combo)
+        options.layout().addWidget(QLabel("Flexibility:", self))
+        options.layout().addWidget(self._flexibility_combo)
+        form.addRow(options)
 
         settings_box = QGroupBox("Alignment", self)
         settings_layout = QVBoxLayout(settings_box)
@@ -293,7 +443,12 @@ class AlignmentPanel(QWidget):
             title="3D Alignment",
             settings_id="alignment.overlay",
             settings=settings,
-            header=[QLabel("Style:", self), self._style_combo],
+            header=[
+                QLabel("Style:", self),
+                self._style_combo,
+                QLabel("Colour:", self),
+                self._color_mode_combo,
+            ],
             parent=self,
         )
 
@@ -376,11 +531,14 @@ class AlignmentPanel(QWidget):
 
         from openchem.chem.alignment import ALIGNMENT_METHODS
 
+        from openchem.chem.alignment import FLEXIBILITY_MODES
+
         self._alignment_service.request_alignment(
             reference,
             probes,
             method=ALIGNMENT_METHODS[self._method_combo.currentText()],
             accuracy=self._accuracy_combo.currentText(),
+            flexibility=FLEXIBILITY_MODES[self._flexibility_combo.currentText()],
         )
 
     def _on_job_state_changed(self, event: AlignmentJobStateChanged) -> None:
@@ -401,38 +559,150 @@ class AlignmentPanel(QWidget):
             i for i, entry in enumerate(event.entries) if entry.aligned and entry.molblock
         ):
             colors[index] = _ENSEMBLE_COLORS[position % len(_ENSEMBLE_COLORS)]
+        self._colors = colors
+        self._visible = {index: True for index in colors}
         self._populate_table(event.entries, colors)
-        self._show_ensemble(event.entries, colors)
+        self._show_ensemble()
 
     def _populate_table(self, entries: list[EnsembleEntry], colors: dict[int, str]) -> None:
-        self._result_table.setRowCount(len(entries))
-        for row, entry in enumerate(entries):
-            name = QTableWidgetItem(entry.label)
-            if row in colors:
-                name.setForeground(QColor(colors[row]))
-            self._result_table.setItem(row, 0, name)
-            if not entry.aligned:
-                # The reason spans the numeric columns -- a failed entry
-                # has no score or RMSD, and blank cells would read as
-                # zeros rather than as "this one did not align".
-                reason = QTableWidgetItem(entry.error or "Alignment failed")
-                self._result_table.setItem(row, 1, reason)
-                self._result_table.setSpan(row, 1, 1, len(_RESULT_COLUMNS) - 1)
-                continue
-            self._result_table.setSpan(row, 1, 1, 1)
-            if entry.score is None:
-                # The reference itself: it defines the frame, so it has no
-                # score against anything.
-                for column in range(1, len(_RESULT_COLUMNS)):
-                    self._result_table.setItem(row, column, QTableWidgetItem("-"))
-                continue
-            self._result_table.setItem(row, 1, QTableWidgetItem(f"{entry.score:.2f}"))
-            self._result_table.setItem(
-                row, 2, QTableWidgetItem("-" if entry.rmsd is None else f"{entry.rmsd:.3f}")
-            )
-            self._result_table.setItem(row, 3, QTableWidgetItem(str(entry.matched_atoms)))
+        # `setItem` emits itemChanged, which is the visibility handler --
+        # without this the table reloads the overlay once per cell while it
+        # is still being filled.
+        self._suspend_visibility = True
+        try:
+            self._result_table.setRowCount(len(entries))
+            for row, entry in enumerate(entries):
+                self._fill_row(row, entry, colors)
+        finally:
+            self._suspend_visibility = False
+        self._fit_table_height()
 
-    def _show_ensemble(self, entries: list[EnsembleEntry], colors: dict[int, str]) -> None:
-        self._viewer.load_ensemble(
-            [(entries[index].molblock, color) for index, color in sorted(colors.items())]
+    def _fill_row(self, row: int, entry: EnsembleEntry, colors: dict[int, str]) -> None:
+        show = QTableWidgetItem()
+        if row in colors:
+            show.setFlags(
+                (show.flags() | Qt.ItemFlag.ItemIsUserCheckable) & ~Qt.ItemFlag.ItemIsSelectable
+            )
+            show.setCheckState(
+                Qt.CheckState.Checked if self._visible.get(row, True) else Qt.CheckState.Unchecked
+            )
+            apply_help_tooltip(show, _HELP["Show"])
+        else:
+            # A failed entry has nothing to show, and a tickable box that
+            # does nothing is worse than no box.
+            show.setFlags(Qt.ItemFlag.NoItemFlags)
+        self._result_table.setItem(row, 0, show)
+
+        name = QTableWidgetItem(entry.label)
+        if row in colors:
+            name.setForeground(QColor(colors[row]))
+        self._result_table.setItem(row, 1, name)
+
+        if not entry.aligned:
+            # The reason spans the numeric columns -- a failed entry has no
+            # score or RMSD, and blank cells would read as zeros rather
+            # than as "this one did not align".
+            reason = QTableWidgetItem(entry.error or "Alignment failed")
+            self._result_table.setItem(row, 2, reason)
+            self._result_table.setSpan(row, 2, 1, len(_RESULT_COLUMNS) - 2)
+            return
+
+        self._result_table.setSpan(row, 2, 1, 1)
+        if entry.score is None:
+            # The reference itself: it defines the frame, so it has no
+            # score against anything.
+            for column in range(2, len(_RESULT_COLUMNS)):
+                self._result_table.setItem(row, column, QTableWidgetItem("-"))
+            return
+
+        self._result_table.setItem(row, 2, QTableWidgetItem(f"{entry.score:.2f}"))
+        self._result_table.setItem(
+            row, 3, QTableWidgetItem("-" if entry.rmsd is None else f"{entry.rmsd:.3f}")
         )
+        self._result_table.setItem(row, 4, QTableWidgetItem(_number(entry.core_rmsd)))
+        self._result_table.setItem(row, 5, QTableWidgetItem(_number(entry.flexible_rmsd)))
+        self._result_table.setItem(row, 6, QTableWidgetItem(_paired_atoms(entry)))
+        self._result_table.setItem(row, 7, QTableWidgetItem(_geometry_label(entry)))
+
+    def _fit_table_height(self) -> None:
+        """Size the results table to its rows, up to the cap.
+
+        A FIXED 160 px FOR TWO ROWS IS 70 px THE OVERLAY DOES NOT GET, and
+        this panel's reported problem is exactly that: measured in the
+        running app, the settings box takes 414, the table 160, and the 3D
+        view is left a 63 px strip -- for a panel whose entire output is
+        that picture.
+
+        Capped rather than unbounded, because a ten-molecule ensemble would
+        otherwise push the viewer back out. Below the cap the space goes
+        where it is worth something.
+        """
+        rows = self._result_table.rowCount()
+        header = self._result_table.horizontalHeader().height()
+        body = sum(self._result_table.rowHeight(row) for row in range(rows))
+        frame = 2 * self._result_table.frameWidth()
+        scrollbar = (
+            self._result_table.horizontalScrollBar().height()
+            if self._result_table.horizontalScrollBar().isVisible()
+            else 0
+        )
+        self._result_table.setFixedHeight(
+            min(_TABLE_MAX_HEIGHT, max(_TABLE_MIN_HEIGHT, header + body + frame + scrollbar))
+        )
+
+    def _on_visibility_changed(self, item: QTableWidgetItem) -> None:
+        if self._suspend_visibility or item.column() != 0:
+            return
+        self._visible[item.row()] = item.checkState() == Qt.CheckState.Checked
+        self._show_ensemble()
+
+    def _on_color_mode_changed(self, _index: int) -> None:
+        self._viewer.set_ensemble_color_mode(self._color_mode_combo.currentData())
+
+    def _show_ensemble(self) -> None:
+        """Draw the entries that are ticked, in their assigned colours.
+
+        A hidden entry is OMITTED rather than drawn transparent, so the
+        cost of hiding is a model the page does not build. Its colour is
+        untouched, so ticking it back on restores the same picture.
+        """
+        self._viewer.load_ensemble(
+            [
+                (self._entries[index].molblock, color)
+                for index, color in sorted(self._colors.items())
+                if self._visible.get(index, True)
+            ]
+        )
+
+
+def _number(value: float | None) -> str:
+    return "-" if value is None else f"{value:.3f}"
+
+
+def _paired_atoms(entry: EnsembleEntry) -> str:
+    """The MCS size when there is one, otherwise O3A's match count.
+
+    TWO DIFFERENT NUMBERS UNDER ONE HEADING WOULD BE THE ORIGINAL BUG.
+    The panel used to print `matched_atoms` unconditionally, and on the
+    pair this was reported against that read "14 paired atoms" for a
+    maximum common substructure of 33. Which one is meaningful depends on
+    the method, so the cell says which it is showing.
+    """
+    if entry.mcs_atom_count:
+        return f"{entry.mcs_atom_count} (MCS)"
+    return str(entry.matched_atoms)
+
+
+def _geometry_label(entry: EnsembleEntry) -> str:
+    """Rendered from the stored vocabulary, never paraphrased.
+
+    "Generated geometry" for `embedded` would reintroduce exactly the
+    rediscovered meaning the field exists to prevent, so the map is the
+    producer's and an unknown value shows itself rather than being
+    silently blanked.
+    """
+    from openchem.chem.alignment import GEOMETRY_SOURCE_LABELS
+
+    if not entry.geometry_source:
+        return "-"
+    return GEOMETRY_SOURCE_LABELS.get(entry.geometry_source, entry.geometry_source)

@@ -44,6 +44,18 @@ The script is a JSON list of steps, run in order:
       {"do": "rail",       "collapsed": true},
       {"do": "scroll",     "to": "bottom"},
       {"do": "geometry",   "label": "maximized/Quantum"},
+      {"do": "open_project",     "path": "C:/tmp/MPMI.ocsproj"},
+      {"do": "batch_select",     "category": "Identity"},
+      {"do": "batch_select_all", "filter": "logp"},
+      {"do": "batch_fill"},
+      {"do": "batch_details",    "molecule": "MPMI"},
+      {"do": "batch_report",     "tag": "after"},
+      {"do": "align",            "reference": "MPMI", "probes": ["4-HO-MPMI"],
+                                 "method": "Common scaffold (MCS)",
+                                 "flexibility": "Flexible"},
+      {"do": "align_report",     "tag": "after"},
+      {"do": "ensemble_visible", "row": 1, "on": false},
+      {"do": "overlay_colour",   "mode": "element"},
       {"do": "quit"}
     ]
 
@@ -405,14 +417,280 @@ class _Driver(QObject):
             panel._method_combo.setCurrentText(str(step["method"]))
         if "accuracy" in step:
             panel._accuracy_combo.setCurrentText(str(step["accuracy"]))
+        if "flexibility" in step:
+            panel._flexibility_combo.setCurrentText(str(step["flexibility"]))
         logger.warning(
-            "OPENCHEM_DRIVE: aligning %d probe(s) onto %r, method=%s accuracy=%s",
+            "OPENCHEM_DRIVE: aligning %d probe(s) onto %r, method=%s accuracy=%s flexibility=%s",
             len(panel._checked_uuids()),
             panel._reference_combo.currentText(),
             panel._method_combo.currentText(),
             panel._accuracy_combo.currentText(),
+            panel._flexibility_combo.currentText(),
         )
         panel._on_align_clicked()
+
+    def _do_align_report(self, step: dict[str, Any]) -> None:
+        """Dump what the alignment table SHOWS, cell by cell.
+
+        `{"do": "align_report", "tag": "flexible"}`
+
+        The panel's own numbers rather than the code's: this exists because
+        the reported defect was a table that looked healthy -- score 109.75,
+        RMSD 0.116 -- beside a picture that was wrong. Reading Core and Tail
+        off the rendered cells is the cheap half of checking that the two
+        now agree; the shot is the other half.
+        """
+        panel = self._window._alignment_panel
+        table = panel._result_table
+        tag = step.get("tag", "")
+        headers = [
+            table.horizontalHeaderItem(c).text() for c in range(table.columnCount())
+        ]
+        view = panel._viewer.widget()
+        # EVERY DIRECT CHILD, not a summary: this panel's whole problem is
+        # that fixed-height siblings leave the overlay a strip, and "the
+        # viewer is 63 px" does not say which sibling to argue with.
+        parts = []
+        layout = panel.layout()
+        for i in range(layout.count()):
+            w = layout.itemAt(i).widget()
+            if w is not None:
+                parts.append(f"{type(w).__name__}={w.height()}")
+        logger.warning(
+            "OPENCHEM_DRIVE: align_report %s | panel %d | viewer %dx%d | %s",
+            tag, panel.height(), view.width(), view.height(), " ".join(parts),
+        )
+        logger.warning("OPENCHEM_DRIVE: align_report %s | %s", tag, " | ".join(headers))
+        for row in range(table.rowCount()):
+            cells = []
+            for column in range(table.columnCount()):
+                item = table.item(row, column)
+                if item is None:
+                    cells.append("")
+                elif column == 0:
+                    cells.append(
+                        "on" if item.checkState() == Qt.CheckState.Checked else "off"
+                    )
+                else:
+                    cells.append(item.text())
+            logger.warning("OPENCHEM_DRIVE: align_report %s | %s", tag, " | ".join(cells))
+
+    def _do_ensemble_visible(self, step: dict[str, Any]) -> None:
+        """Tick or untick one row's visibility box.
+
+        `{"do": "ensemble_visible", "row": 1, "on": false}` -- driven
+        through the box rather than through `_show_ensemble`, because the
+        thing worth checking is the WIRING and a helper called directly
+        proves only that the helper works.
+        """
+        panel = self._window._alignment_panel
+        row = int(step.get("row", 0))
+        item = panel._result_table.item(row, 0)
+        if item is None:
+            logger.error("OPENCHEM_DRIVE: no visibility box on row %d", row)
+            return
+        item.setCheckState(
+            Qt.CheckState.Checked if step.get("on", True) else Qt.CheckState.Unchecked
+        )
+        logger.warning(
+            "OPENCHEM_DRIVE: row %d visible=%s", row, bool(step.get("on", True))
+        )
+
+    def _do_overlay_colour(self, step: dict[str, Any]) -> None:
+        """`{"do": "overlay_colour", "mode": "element"}` -- by molecule or
+        by element. Driven through the combo, for the reason above."""
+        panel = self._window._alignment_panel
+        mode = str(step.get("mode", "molecule"))
+        index = panel._color_mode_combo.findData(mode)
+        if index < 0:
+            logger.error("OPENCHEM_DRIVE: no overlay colour mode %r", mode)
+            return
+        panel._color_mode_combo.setCurrentIndex(index)
+        logger.warning("OPENCHEM_DRIVE: overlay colour mode %s", mode)
+
+    def _do_batch_select(self, step: dict[str, Any]) -> None:
+        """Tick a property, or a whole category, in the Batch picker.
+
+        `{"do": "batch_select", "property": "topology_analysis"}`
+        `{"do": "batch_select", "category": "Identity"}`
+
+        The category form goes through the GROUP'S OWN CHECK BOX rather
+        than ticking each leaf, because the thing worth exercising is the
+        propagation -- setting the leaves directly would drive a path the
+        user never takes.
+        """
+        panel = self._window._batch_panel
+        if "property" in step:
+            panel.check(str(step["property"]))
+            logger.warning("OPENCHEM_DRIVE: ticked %s", step["property"])
+            return
+        from openchem.ui.panels.batch_panel import _GROUP_NAME_ROLE
+
+        wanted = str(step.get("category", ""))
+        stack = [panel._tree.topLevelItem(i) for i in range(panel._tree.topLevelItemCount())]
+        while stack:
+            item = stack.pop()
+            # The NAME, not the rendering -- a group row reads
+            # "Identity  0 / 2" once it carries its count.
+            if item.data(0, _GROUP_NAME_ROLE) == wanted or item.text(0) == wanted:
+                item.setCheckState(0, Qt.CheckState.Checked)
+                descriptors, calculators = panel.selected_ids()
+                logger.warning(
+                    "OPENCHEM_DRIVE: ticked category %r -> %d descriptor(s), %d calculator(s)",
+                    wanted, len(descriptors), len(calculators),
+                )
+                return
+            stack.extend(item.child(i) for i in range(item.childCount()))
+        logger.error("OPENCHEM_DRIVE: no category %r in the picker", wanted)
+
+    def _do_batch_select_all(self, step: dict[str, Any]) -> None:
+        """`{"do": "batch_select_all", "filter": "logp"}` -- the filter is
+        applied FIRST, so this also exercises "select all respects it"."""
+        panel = self._window._batch_panel
+        if "filter" in step:
+            panel._filter.setText(str(step["filter"]))
+        panel._select_all_visible()
+        logger.warning("OPENCHEM_DRIVE: %s", panel._status.text())
+
+    def _do_batch_fill(self, step: dict[str, Any]) -> None:
+        """Fill the whole table.
+
+        **THE CONFIRMATION IS SUPPRESSED, NOT ANSWERED.** A modal
+        `QMessageBox` inside a step spins its own event loop, so the next
+        step is never scheduled and an unattended run stalls on a window
+        with nobody to close it -- the same trap this file already records
+        for `exec()` one row down. The threshold is raised for the run
+        instead, which leaves the code path itself untouched.
+        """
+        from openchem.ui.panels import batch_panel as module
+
+        panel = self._window._batch_panel
+        original = module._CONFIRM_ABOVE
+        module._CONFIRM_ABOVE = 1 << 30
+        try:
+            panel._run()
+        finally:
+            module._CONFIRM_ABOVE = original
+        logger.warning("OPENCHEM_DRIVE: fill started -- %s", panel._status.text())
+
+    def _do_batch_details(self, step: dict[str, Any]) -> None:
+        """Open one molecule's detail view.
+
+        `{"do": "batch_details", "row": 0}` -- by ROW of the results
+        table, or `{"do": "batch_details", "molecule": "MPMI"}` by name,
+        which is what to use before any table exists.
+
+        The dialog is modal, so it is SHOWN rather than `exec`'d, for the
+        reason the `lewis` step already documents: `exec()` spins its own
+        event loop inside the handler and the run never continues.
+        """
+        from openchem.ui.panels.batch_panel import _UUID_ROLE
+
+        panel = self._window._batch_panel
+        uuid = None
+        if "molecule" in step and panel._project is not None:
+            wanted = str(step["molecule"])
+            uuid = next(
+                (m.uuid for m in panel._project.molecules if m.display_name == wanted), None
+            )
+            if uuid is None:
+                logger.error("OPENCHEM_DRIVE: no molecule %r", wanted)
+                return
+        else:
+            row = int(step.get("row", 0))
+            item = panel._results.item(row, 0)
+            if item is None:
+                logger.error("OPENCHEM_DRIVE: no row %d in the results table", row)
+                return
+            uuid = item.data(_UUID_ROLE)
+        self._batch_dialog = None
+        original = type(panel)._present_details
+
+        def capture(panel_self, molecule_uuid):
+            from openchem.ui.dialogs.batch_detail_dialog import BatchDetailDialog
+
+            type(panel_self)._present_details = original
+
+            molecule = panel_self._project.find_molecule(molecule_uuid)
+            dialog = BatchDetailDialog(
+                panel_self._engine,
+                molecule,
+                panel_self._store,
+                panel_self._current_structure_version(),
+                panel_self,
+            )
+            dialog.show()
+            self._batch_dialog = dialog
+            self._dialog = dialog
+            logger.warning(
+                "OPENCHEM_DRIVE: details for %s -- %d retained result(s)",
+                molecule.display_name,
+                len(panel_self._store.for_molecule(
+                    molecule_uuid, panel_self._current_structure_version()
+                )) if panel_self._store else 0,
+            )
+
+        # **RESTORED BY THE CAPTURE, NOT IN A `finally`.** `_show_details`
+        # starts a background run and RETURNS; `_present_details` is called
+        # later, from the progress handler, once the results land. A
+        # `finally` here puts the original back before that happens, so the
+        # dialog is built by the real method, never captured, and the shot
+        # step reports "no dialog open" for a step that worked perfectly.
+        type(panel)._present_details = capture
+        panel._show_details(uuid)
+
+    def _do_batch_report(self, step: dict[str, Any]) -> None:
+        """Dump what the Batch panel SHOWS -- picker counts and cells.
+
+        The panel's own numbers rather than the code's, for the reason
+        `align_report` exists: the reported defect was a table that looked
+        healthy beside a view that was not.
+        """
+        panel = self._window._batch_panel
+        tag = step.get("tag", "")
+        descriptors, calculators = panel.selected_ids()
+        logger.warning(
+            "OPENCHEM_DRIVE: batch_report %s | ticked %d descriptor(s) %d calculator(s) "
+            "| rows %d cols %d | store %d",
+            tag, len(descriptors), len(calculators),
+            panel._results.rowCount(), panel._results.columnCount(),
+            len(panel._store) if panel._store else 0,
+        )
+        for row in range(min(panel._results.rowCount(), 4)):
+            cells = []
+            for column in range(min(panel._results.columnCount(), 8)):
+                item = panel._results.item(row, column)
+                cells.append("" if item is None else item.text())
+            logger.warning("OPENCHEM_DRIVE: batch_report %s | %s", tag, " | ".join(cells))
+
+    def _do_open_project(self, step: dict[str, Any]) -> None:
+        """Load an .ocsproj without the file dialog.
+
+        `{"do": "open_project", "path": "D:/.../MPMI.ocsproj"}`
+
+        Goes through `OpenProjectCommand` and `_set_project`, the same two
+        the File menu uses -- only the dialog is skipped, which is the rule
+        every step in this file follows.
+        """
+        from pathlib import Path as _Path
+
+        from openchem.commands.project_commands import OpenProjectCommand
+
+        path = _Path(str(step.get("path", "")))
+        if not path.is_file():
+            logger.error("OPENCHEM_DRIVE: no project at %s", path)
+            return
+        command = OpenProjectCommand(self._window._services.project_service, path)
+        self._window._undo_stack.push(command)
+        if command.loaded_project is None:
+            logger.error("OPENCHEM_DRIVE: could not load %s", path)
+            return
+        self._window._set_project(command.loaded_project)
+        logger.warning(
+            "OPENCHEM_DRIVE: opened %s -- %d molecule(s)",
+            path.name,
+            len(command.loaded_project.molecules),
+        )
 
     def _do_pop_out(self, step: dict[str, Any]) -> None:
         """Move a panel's view into its own window, or bring it back.

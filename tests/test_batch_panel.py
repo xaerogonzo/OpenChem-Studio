@@ -16,7 +16,7 @@ from openchem.bootstrap import build_service_container
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.ui.dialogs.batch_analysis_dialog import BatchAnalysisDialog
-from openchem.ui.panels.batch_panel import BatchPanel
+from openchem.ui.panels.batch_panel import BatchPanel, _title
 
 _DRUGS = [
     ("aspirin", "CC(=O)Oc1ccccc1C(=O)O"),
@@ -108,10 +108,42 @@ def _dialog(widgets, table, services, project) -> BatchAnalysisDialog:
 
 
 def test_the_picker_offers_descriptors_alerts_and_calculators(panel):
+    """Reads the stored NAME rather than the row's text, which now carries
+    a `n / total` count."""
+    from openchem.ui.panels.batch_panel import _GROUP_NAME_ROLE
+
     headings = {
-        panel._tree.topLevelItem(index).text(0) for index in range(panel._tree.topLevelItemCount())
+        panel._tree.topLevelItem(index).data(0, _GROUP_NAME_ROLE)
+        for index in range(panel._tree.topLevelItemCount())
     }
     assert headings == {"Descriptors", "Structural alerts", "Calculators"}
+
+
+def test_a_group_row_shows_how_many_of_it_are_ticked(panel):
+    """91 properties behind eight headings is a wall unless a heading says
+    how big it is and how much of it is chosen."""
+    calculators = _group_named(panel, "Calculators")
+    assert "/" not in calculators.text(0), "nothing is ticked yet"
+    assert calculators.text(0).startswith("Calculators")
+
+    category = calculators.child(0)
+    category.setCheckState(0, Qt.CheckState.Checked)
+
+    total = category.childCount()
+    assert category.text(0).endswith(f"{total} / {total}")
+    assert "/" in calculators.text(0), "the count has to climb too"
+
+
+def test_the_count_never_replaces_the_name(panel):
+    """The name is STORED, not reconstructed by stripping a suffix off the
+    display -- a category legitimately called "Shape (3D)" would be
+    mangled by any parser, and every helper that matched on the rendered
+    text broke the moment the count arrived."""
+    from openchem.ui.panels.batch_panel import _GROUP_NAME_ROLE
+
+    calculators = _group_named(panel, "Calculators")
+    calculators.child(0).setCheckState(0, Qt.CheckState.Checked)
+    assert calculators.data(0, _GROUP_NAME_ROLE) == "Calculators"
 
 
 def test_discovery_only_calculators_are_not_offered(panel):
@@ -563,3 +595,556 @@ def test_the_basis_column_takes_only_what_its_own_text_needs(panel):
     assert tree.columnWidth(0) > tree.columnWidth(1), (
         f"Property {tree.columnWidth(0)} px vs Basis {tree.columnWidth(1)} px"
     )
+
+
+# --- selection: 91 properties, and no way to tick a group ------------------
+
+
+def _group_named(panel, text):
+    """Find a group by its NAME, never by what the row renders.
+
+    The row shows `Calculators  0 / 53`, and every helper that matched on
+    `item.text(0)` broke the moment the count arrived -- which is exactly
+    why the name is kept in its own role rather than reconstructed by
+    stripping a suffix off the display.
+    """
+    from openchem.ui.panels.batch_panel import _GROUP_NAME_ROLE
+
+    stack = [panel._tree.topLevelItem(i) for i in range(panel._tree.topLevelItemCount())]
+    while stack:
+        item = stack.pop()
+        if item.data(0, _GROUP_NAME_ROLE) == text or item.text(0) == text:
+            return item
+        stack.extend(item.child(i) for i in range(item.childCount()))
+    raise AssertionError(f"no group named {text!r}")
+
+
+def _draws_a_check_box(item) -> bool:
+    """Whether Qt renders a tickable box on this row.
+
+    **NEITHER OF THE OBVIOUS TESTS DISCRIMINATES**, measured on a bare
+    `QTreeWidgetItem`: `ItemIsUserCheckable` is in Qt's DEFAULT item flags
+    and is therefore True on a row nobody ever made checkable, and
+    `checkState(0)` answers `Unchecked` whether a state was set or not.
+    Only the role data tells them apart -- None until `setCheckState` is
+    called -- and it is exactly what decides whether a box is drawn.
+
+    A mutation removing the whole `_make_groups_checkable` body survived
+    both of the obvious versions of this.
+    """
+    return item.data(0, Qt.ItemDataRole.CheckStateRole) is not None
+
+
+def _leaf_states(group):
+    return [group.child(i).checkState(0) for i in range(group.childCount())]
+
+
+def test_ticking_a_category_ticks_everything_in_it(panel):
+    """THE WHOLE OF THE REPORTED COMPLAINT. `_add_leaf` set
+    `ItemIsUserCheckable` on leaves only, so a category heading had no
+    check state at all and 91 properties could only be ticked one by
+    one."""
+    calculators = _group_named(panel, "Calculators")
+    category = calculators.child(0)
+    assert category.childCount() >= 2, "need a category with something in it"
+
+    category.setCheckState(0, Qt.CheckState.Checked)
+
+    assert all(state == Qt.CheckState.Checked for state in _leaf_states(category))
+    _descriptors, ticked = panel.selected_ids()
+    assert len(ticked) == category.childCount()
+
+
+def test_unticking_a_category_unticks_everything_in_it(panel):
+    category = _group_named(panel, "Calculators").child(0)
+    category.setCheckState(0, Qt.CheckState.Checked)
+    category.setCheckState(0, Qt.CheckState.Unchecked)
+    assert all(state == Qt.CheckState.Unchecked for state in _leaf_states(category))
+
+
+def test_a_partly_ticked_category_says_so(panel):
+    """A group's box is a statement about its children and goes stale the
+    moment one of them moves.
+
+    **DRIVEN THROUGH THE LEAF, NOT THROUGH `_refresh_group_states`.** The
+    first version of this called the helper itself, which proves the
+    helper works and says nothing about whether anything calls it -- a
+    mutation deleting the automatic recompute SURVIVED against it.
+    """
+    calculators = _group_named(panel, "Calculators")
+    category = calculators.child(0)
+    assert category.childCount() >= 2, "a one-child category cannot be partial"
+
+    category.child(0).setCheckState(0, Qt.CheckState.Checked)
+
+    assert category.checkState(0) == Qt.CheckState.PartiallyChecked
+    assert calculators.checkState(0) == Qt.CheckState.PartiallyChecked, (
+        "the state has to climb past the immediate parent"
+    )
+
+
+def test_a_category_row_is_something_a_user_can_actually_tick(panel):
+    """**THE FLAG IS THE FEATURE.** `setCheckState` works on any item
+    whether or not `ItemIsUserCheckable` is set, so every propagation test
+    above passes with no check box drawn at all -- which was precisely the
+    reported state of this panel. A mutation removing the flag survived
+    all of them.
+    """
+    calculators = _group_named(panel, "Calculators")
+    assert _draws_a_check_box(calculators)
+    for index in range(calculators.childCount()):
+        assert _draws_a_check_box(calculators.child(index))
+
+
+def test_select_all_respects_the_filter(panel):
+    """**THE FILTER'S OWN HELP TEXT PROMISES IT FILTERS THE LIST AND NEVER
+    THE RESULTS**, so a select-all reaching entries the user cannot see
+    would contradict a documented contract.
+
+    Asserts its own setup: the filter must really be hiding something, or
+    "respects the filter" is a claim about nothing.
+    """
+    panel._filter.setText("logp")
+    hidden = [item for item, _p in panel._leaves() if item.isHidden()]
+    shown = [item for item, _p in panel._leaves() if not item.isHidden()]
+    assert hidden and shown, "the filter matched everything or nothing"
+
+    panel._select_all_visible()
+
+    assert all(item.checkState(0) == Qt.CheckState.Checked for item in shown)
+    assert all(item.checkState(0) == Qt.CheckState.Unchecked for item in hidden)
+
+
+def test_ticking_a_category_leaves_its_hidden_children_alone(panel):
+    """Same contract, reached through the group box rather than the button."""
+    panel._filter.setText("logp")
+    category = None
+    for index in range(_group_named(panel, "Calculators").childCount()):
+        candidate = _group_named(panel, "Calculators").child(index)
+        visible = [candidate.child(i) for i in range(candidate.childCount())
+                   if not candidate.child(i).isHidden()]
+        hidden = [candidate.child(i) for i in range(candidate.childCount())
+                  if candidate.child(i).isHidden()]
+        if visible and hidden:
+            category = candidate
+            break
+    if category is None:
+        pytest.skip("no category is partly filtered by this needle")
+
+    category.setCheckState(0, Qt.CheckState.Checked)
+
+    for index in range(category.childCount()):
+        child = category.child(index)
+        expected = Qt.CheckState.Unchecked if child.isHidden() else Qt.CheckState.Checked
+        assert child.checkState(0) == expected
+
+
+def test_select_all_says_how_many_it_ticked(panel):
+    """"Select all" over a filtered list is otherwise a claim the user
+    cannot check."""
+    panel._select_all_visible()
+    assert "Ticked" in panel._status.text()
+
+
+def test_clear_selection_clears_the_group_boxes_too(panel):
+    """A group left ticked above unticked children is a lie about what
+    will run."""
+    category = _group_named(panel, "Calculators").child(0)
+    category.setCheckState(0, Qt.CheckState.Checked)
+
+    panel._clear_selection()
+
+    assert category.checkState(0) == Qt.CheckState.Unchecked
+    assert panel.selected_ids() == ([], [])
+
+
+# --- what a cell IS, and what gets computed unasked -------------------------
+
+
+def test_opening_the_panel_computes_nothing(services, project, widgets):
+    """**THE LAZY INVARIANT, ROW ONE.** Opening Batch over a project must
+    run zero calculators -- the panel is a picker until something is
+    asked for, and a project of 200 molecules is only dangerous if
+    building the panel starts work.
+
+    Spies on the registry rather than on a panel attribute, because what
+    matters is whether a CALCULATOR RAN, not whether the panel believes it
+    started one.
+    """
+    calls: list[str] = []
+    original = services.calculator_registry.compute
+
+    def spy(calculator_id, *args, **kwargs):
+        calls.append(calculator_id)
+        return original(calculator_id, *args, **kwargs)
+
+    services.calculator_registry.compute = spy
+    try:
+        panel = BatchPanel(
+            services.batch_service,
+            services.calculator_registry,
+            services.table_export_service,
+            services.event_bus,
+            services.chemistry_engine,
+        )
+        widgets.append(panel)
+        panel.set_project(project)
+    finally:
+        services.calculator_registry.compute = original
+
+    assert calls == [], f"building the panel ran {len(calls)} calculator(s)"
+
+
+def _cell_of(kind, **fields):
+    from openchem.domain.batch import BatchCell, BatchColumn
+
+    column = BatchColumn(column_id="c", label="C", numeric=False)
+    return _cell_item_for(column, BatchCell(kind=kind, **fields))
+
+
+def _cell_item_for(column, cell):
+    from openchem.domain.batch import BatchTable
+    from openchem.ui.panels.batch_panel import _cell_item
+
+    table = BatchTable()
+    table.add_row("m", "aspirin")
+    table.add_column(column)
+    table.set_cell("m", column.column_id, cell)
+    return _cell_item(table, "m", column)
+
+
+def test_the_three_cell_kinds_render_distinguishably():
+    """**THE EM DASH MEANT BOTH.** A failed calculation and a real result
+    with no scalar form rendered identically, and they are opposite
+    statements: one says nothing was computed, the other says something
+    was and a table is the wrong shape for it.
+    """
+    from openchem.domain.batch import FAILED, NON_SCALAR, SCALAR
+    from openchem.domain.common import CacheState
+
+    scalar = _cell_of(SCALAR, value=1.5, text="1.50")
+    non_scalar = _cell_of(NON_SCALAR, text="12 peaks")
+    failed = _cell_of(FAILED, text="", cache_state=CacheState.FAILED, error="no conformer")
+
+    texts = {scalar.text(), non_scalar.text(), failed.text()}
+    assert len(texts) == 3, f"two kinds render the same text: {texts}"
+
+    # The failure is the only one that hides its value behind a dash.
+    assert failed.text() == "—"
+    assert non_scalar.text() == "12 peaks"
+
+    colours = {
+        scalar.foreground().color().name(),
+        non_scalar.foreground().color().name(),
+        failed.foreground().color().name(),
+    }
+    assert len(colours) == 3, f"two kinds share a colour: {colours}"
+
+
+def test_a_non_scalar_cell_says_how_to_reach_the_real_thing():
+    """Naming it is not enough -- a reader has to know it is openable."""
+    from openchem.domain.batch import NON_SCALAR
+
+    item = _cell_of(NON_SCALAR, text="12 peaks")
+    assert "Double-click" in item.toolTip()
+
+
+def test_a_failed_cell_still_says_why():
+    """Unchanged, and asserted so the new branch cannot swallow it."""
+    from openchem.domain.batch import FAILED
+    from openchem.domain.common import CacheState
+
+    item = _cell_of(FAILED, text="", cache_state=CacheState.FAILED, error="no conformer")
+    assert "no conformer" in item.toolTip()
+
+
+# --- the computation matrix: what is computed, and when ---------------------
+#
+# "Nothing is computed unasked" is only an invariant if *asked* is defined.
+# One test per row, so the design has an assertion rather than a slogan.
+
+
+def _spy_on_computes(services):
+    """Which (calculator, molecule) pairs actually ran.
+
+    Spies on the REGISTRY rather than on a panel attribute: what matters
+    is whether a calculator ran, not whether the panel believes it started
+    one.
+    """
+    calls: list[tuple[str, str]] = []
+    original = services.calculator_registry.compute
+
+    def spy(calculator_id, mol, molecule_uuid, parameters=None):
+        calls.append((calculator_id, molecule_uuid))
+        return original(calculator_id, mol, molecule_uuid, parameters)
+
+    services.calculator_registry.compute = spy
+    return calls, original
+
+
+def _settle():
+    QThreadPool.globalInstance().waitForDone(120000)
+    QApplication.instance().processEvents()
+
+
+def test_selecting_a_molecule_computes_that_molecule_and_no_other(
+    panel, services, project, monkeypatch
+):
+    """**ROW TWO OF THE MATRIX.** It means only that MOLECULE, across the
+    ticked calculators -- not one calculator across every molecule, which
+    is the reading the first draft of this plan was ambiguous about.
+    """
+    shown: list[str] = []
+    monkeypatch.setattr(
+        BatchPanel, "_present_details", lambda self, uuid: shown.append(uuid)
+    )
+    panel.check("topology_analysis")
+    target = project.molecules[0]
+
+    calls, original = _spy_on_computes(services)
+    try:
+        panel._show_details(target.uuid)
+        _settle()
+    finally:
+        services.calculator_registry.compute = original
+
+    assert calls, "nothing was computed for the molecule that was opened"
+    assert {uuid for _calculator, uuid in calls} == {target.uuid}
+    assert shown == [target.uuid]
+
+
+def test_a_second_look_at_the_same_molecule_recomputes_nothing(
+    panel, services, project, monkeypatch
+):
+    """Retention is what makes the lazy path usable rather than merely
+    lazy. Without it, every glance would pay again."""
+    monkeypatch.setattr(BatchPanel, "_present_details", lambda self, uuid: None)
+    panel.check("topology_analysis")
+    target = project.molecules[0]
+    panel._show_details(target.uuid)
+    _settle()
+
+    calls, original = _spy_on_computes(services)
+    try:
+        panel._show_details(target.uuid)
+        _settle()
+    finally:
+        services.calculator_registry.compute = original
+
+    assert calls == [], f"re-opening recomputed {calls}"
+
+
+def test_filling_the_table_computes_every_molecule(panel, services, project):
+    """**ROW FIVE.** The bulk path is still a bulk path -- the wide table
+    is a real deliverable and this is where it is paid for."""
+    panel.check("topology_analysis")
+    calls, original = _spy_on_computes(services)
+    try:
+        panel._run()
+        _settle()
+    finally:
+        services.calculator_registry.compute = original
+
+    assert {uuid for _c, uuid in calls} == {m.uuid for m in project.molecules}
+
+
+def test_filling_the_table_asks_first_when_it_is_large(panel, services, project, monkeypatch):
+    """The cost is stated BEFORE the work. A progress bar that appears
+    after the decision is not a decision."""
+    from PySide6.QtWidgets import QMessageBox
+
+    asked: list[str] = []
+
+    def fake_question(_parent, _title, text, *args, **kwargs):
+        asked.append(text)
+        return QMessageBox.StandardButton.Cancel
+
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(fake_question))
+    monkeypatch.setattr("openchem.ui.panels.batch_panel._CONFIRM_ABOVE", 1)
+
+    panel.check("topology_analysis")
+    calls, original = _spy_on_computes(services)
+    try:
+        panel._run()
+        _settle()
+    finally:
+        services.calculator_registry.compute = original
+
+    assert asked, "a large fill started without saying how large"
+    assert "calculations" in asked[0]
+    assert calls == [], "Cancel did not cancel"
+
+
+def test_opening_one_molecule_does_not_destroy_the_table(panel, services, project, monkeypatch):
+    """A one-molecule run returns a ONE-ROW table on the same event the
+    fill uses. Letting that replace the project's would make opening a
+    detail view destroy the table the user had just built."""
+    monkeypatch.setattr(BatchPanel, "_present_details", lambda self, uuid: None)
+    table = _run(panel, ["topology_analysis"])
+    assert len(table.row_uuids) == len(project.molecules)
+
+    panel.check("mol_wt")
+    panel._show_details(project.molecules[0].uuid)
+    _settle()
+
+    assert panel.table() is not None
+    assert len(panel.table().row_uuids) == len(project.molecules)
+
+
+def test_a_molecules_results_survive_another_molecules_run(
+    panel, services, project, monkeypatch
+):
+    """The store is MERGED, never replaced -- replacing would lose
+    everything a previous run computed, which is the whole point of
+    keeping them."""
+    monkeypatch.setattr(BatchPanel, "_present_details", lambda self, uuid: None)
+    panel.check("topology_analysis")
+    first, second = project.molecules[0], project.molecules[1]
+
+    panel._show_details(first.uuid)
+    _settle()
+    panel._show_details(second.uuid)
+    _settle()
+
+    assert panel._store is not None
+    assert panel._store.for_molecule(first.uuid, 0), "the first molecule's results were lost"
+    assert panel._store.for_molecule(second.uuid, 0)
+
+
+# --- the selection survives a launch ----------------------------------------
+
+
+class _RecordingSettings:
+    """Enough of `Settings` for the panel, with nothing else attached."""
+
+    def __init__(self, initial=None):
+        self.store = dict(initial or {})
+
+    def get(self, key, default=None):
+        return self.store.get(key, default)
+
+    def set(self, key, value):
+        self.store[key] = value
+
+
+def _panel_with_settings(services, project, widgets, settings):
+    panel = BatchPanel(
+        services.batch_service,
+        services.calculator_registry,
+        services.table_export_service,
+        services.event_bus,
+        services.chemistry_engine,
+        settings=settings,
+    )
+    panel.set_project(project)
+    widgets.append(panel)
+    return panel
+
+
+def test_the_selection_is_remembered_between_launches(services, project, widgets):
+    """91 check boxes is not something to reassemble every launch."""
+    settings = _RecordingSettings()
+    first = _panel_with_settings(services, project, widgets, settings)
+    first.check("topology_analysis")
+    assert settings.store, "nothing was saved"
+
+    second = _panel_with_settings(services, project, widgets, settings)
+    assert second.selected_ids() == ([], ["topology_analysis"])
+
+
+def test_what_is_stored_is_ids_and_not_tree_positions(services, project, widgets):
+    """**IDS NAME A DEFINITION.** Categories and ordering come from the
+    registry and the descriptor provider, so both move when a calculator is
+    added -- a saved row index would then restore somebody else's
+    property. Same principle as `help_id`, and the same failure the
+    tooltip migration hit when an `instance_path` was renamed by wrapping
+    a control in a new container.
+    """
+    settings = _RecordingSettings()
+    panel = _panel_with_settings(services, project, widgets, settings)
+    panel.check("topology_analysis")
+
+    stored = list(settings.store.values())[0]
+    assert "topology_analysis" in stored
+    assert not any(isinstance(entry, int) for entry in stored)
+
+
+def test_a_property_that_no_longer_exists_is_dropped_silently(services, project, widgets):
+    """A calculator removed between launches is not the user's problem,
+    and a dialog about it on startup would be."""
+    settings = _RecordingSettings({"batch/selected_property_ids": ["gone_forever", "mol_wt"]})
+    panel = _panel_with_settings(services, project, widgets, settings)
+    descriptors, calculators = panel.selected_ids()
+    assert descriptors == ["mol_wt"]
+    assert calculators == []
+
+
+def test_a_panel_with_no_settings_still_works(services, project, widgets):
+    """`settings` is optional, and every existing fixture omits it."""
+    panel = _panel_with_settings(services, project, widgets, None)
+    panel.check("topology_analysis")
+    assert panel.selected_ids() == ([], ["topology_analysis"])
+
+
+# --- taming the column wall -------------------------------------------------
+
+
+def test_hiding_a_column_group_hides_its_columns_and_nothing_else(panel, services):
+    """One calculator can contribute twenty columns, so a filled table is
+    wide by nature. Hiding is a VIEW decision -- nothing is recomputed and
+    no value is lost."""
+    _run(panel, ["topology_analysis", "elemental_analysis"])
+    table = panel.table()
+    assert table is not None and len(table.columns) > 2
+
+    categories = {panel._column_category(column) for column in table.columns}
+    assert len(categories) > 1, "one category cannot show that hiding is selective"
+    victim = sorted(categories)[0]
+
+    panel._hidden_categories.add(victim)
+    panel._apply_column_visibility()
+
+    for offset, column in enumerate(table.columns, start=1):
+        expected = panel._column_category(column) == victim
+        assert panel._results.isColumnHidden(offset) is expected
+
+
+def test_hiding_a_group_loses_no_data(panel):
+    """The store and the table are untouched -- a hidden column is a thing
+    the user did not want to LOOK at, not a thing they did not want."""
+    _run(panel, ["topology_analysis"])
+    before = len(panel.table().columns)
+    panel._hidden_categories.add(panel._column_category(panel.table().columns[0]))
+    panel._apply_column_visibility()
+    assert len(panel.table().columns) == before
+
+
+def test_a_rebuild_does_not_un_hide_what_was_put_away(panel):
+    """`QTableWidget.clear()` drops every hidden flag, so a progress event
+    arriving mid-run would silently show everything again."""
+    _run(panel, ["topology_analysis"])
+    table = panel.table()
+    victim = panel._column_category(table.columns[0])
+    panel._hidden_categories.add(victim)
+    panel._apply_column_visibility()
+
+    panel._render_table(table)
+
+    hidden = [
+        offset
+        for offset, column in enumerate(table.columns, start=1)
+        if panel._column_category(column) == victim
+    ]
+    assert hidden
+    assert all(panel._results.isColumnHidden(offset) for offset in hidden)
+
+
+def test_a_columns_category_comes_from_the_same_registry_the_picker_uses(panel):
+    """A new calculator groups itself with no change here -- the reason
+    the picker is a tree built from the registry rather than a hardcoded
+    menu."""
+    _run(panel, ["topology_analysis"])
+    column = panel.table().columns[0]
+    definition = panel._registry.get(column.source_id)
+    if definition is not None:
+        assert panel._column_category(column) == _title(definition.category)

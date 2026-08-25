@@ -169,6 +169,11 @@
         return colored;
       }
 
+      // 'molecule' (one colour each, the default) or 'element' (CPK).
+      // Held here rather than passed into loadEnsemble because it is a
+      // VIEW setting: changing it must not re-issue the structures.
+      var ensembleColorMode = 'molecule';
+
       function applyStyle() {
         // Ensemble mode colours BY MODEL rather than by atom: an overlay
         // of several molecules is read by telling them apart, so each
@@ -176,8 +181,17 @@
         // global setStyle({}) would flatten them all to one colour the
         // moment the user switched from stick to ball-and-stick.
         if (currentEnsemble) {
+          // TWO READINGS OF ONE OVERLAY, which is what ChemAxon shows in
+          // two panes. Colouring BY MOLECULE answers "which structure is
+          // this atom in"; colouring BY ELEMENT answers "what is it".
+          // Neither is a substitute for the other, and a second viewer to
+          // show both at once would be a second WebGL context -- see
+          // CLAUDE.md on createViewerGrid.
           currentEnsemble.forEach(function (color, modelIndex) {
-            viewer.setStyle({ model: modelIndex }, styleSpecWithColor(currentStyle, color));
+            var spec = ensembleColorMode === 'element'
+              ? styleSpecFor(currentStyle)
+              : styleSpecWithColor(currentStyle, color);
+            viewer.setStyle({ model: modelIndex }, spec);
           });
           viewer.render();
           return;
@@ -637,6 +651,15 @@
         setStyle: function (styleName) {
           currentStyle = styleName;
           applyStyle();
+        },
+        setEnsembleColorMode: function (mode) {
+          ensembleColorMode = mode === 'element' ? 'element' : 'molecule';
+          applyStyle();
+        },
+        // The page's own answer, for a probe that must not trust what
+        // Python believes it sent.
+        ensembleColorMode: function () {
+          return ensembleColorMode;
         },
         applyGridShapes: function (cellIndex, shapes) {
           gridShapes[cellIndex] = shapes && shapes.length ? shapes : null;
