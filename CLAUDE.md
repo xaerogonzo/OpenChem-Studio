@@ -5905,6 +5905,56 @@ everything and run master. This file's warnings about flaky access
 violations elsewhere would otherwise excuse a crash that is entirely
 reproducible and entirely yours.
 
+###### AND CI HAS SEEN IT NOW, which nothing above had established
+
+Every measurement in this section was taken locally. **PR #43's run
+32794020310 crashed on the hosted Windows runner**, 2026-08-25, which moves
+the class from "a thing this machine does" to "a thing the suite does".
+
+    crashed at test 4608 of 5591   tests/test_result_reduction.py
+    then 37 more dots, exit 1      and NO SUMMARY LINE
+    the three gates                skipped, as a red suite always takes them
+
+**`--log-failed` RETURNED NOTHING, CORRECTLY, AND THAT IS THE TRAP.** There
+is no failing test to name -- so the first two searches for one came back
+empty and read as a broken log rather than as a crash. The pair this file
+insists on is what answers it: a summary line that must EXIST, and a count
+of `Windows fatal exception`.
+
+**THE VICTIM BUILDS NO QT OBJECT AT ALL.** `tests/test_result_reduction.py`
+reduces results to table columns; there is no widget, no window and no event
+loop in the file. That is the signature rather than a surprise -- the
+corruption is in FREEING a member of a cycle, so whichever test is running
+at that instant is chosen by heap layout.
+
+**THE COMMIT THAT "CAUSED" IT EDITS FOUR DOCUMENTS AND ADDS ONE QT-FREE
+TEST.** `tests/test_gutmann_bridge.py` gained
+`test_the_solvent_count_is_the_merged_one`, which sorts before
+`test_result_reduction.py` and shifts every later index by one. That is the
+documented trigger exactly: the widgets never cause anything, they shuffle
+the heap until the freed window's memory is next to something that matters.
+
+Three cheap checks before the flake verdict, and the third is the one that
+settles it:
+
+    the runner image        IDENTICAL to the previous green run
+                            (windows-2025-vs2026, 20260818.207.1), so no
+                            image bump to blame
+    the same tree locally   5576 passed, 15 skipped, 0 crash markers
+    a re-run, SAME SHA      5571 passed, 19 skipped, 1 deselected,
+                            0 crash markers, all three gates EXECUTED
+
+**A RE-RUN ON THE SAME SHA IS THE DISCRIMINATOR AND COSTS ONLY WALL
+CLOCK.** `gh run rerun <id> --failed` re-uses the ORIGINAL commit -- normally
+the trap this file warns about, and here exactly what is wanted: a second
+sample of one tree. The same move settled the ORCA scratch-cleanup flake.
+The merge commit then made it three CI samples, one crashed.
+
+**THE TWO SKIP COUNTS ARE NOT A DISCREPANCY.** CI's 19 against the local 15
+is the four GPU-gated gallery guards, and 5571 + 19 + 1 reconciles to the
+5591 a local `--collect-only` reports. Check that before reading a CI figure
+as five lost tests.
+
 ## A UI MUST NOT INFER SCIENTIFIC MEANING FROM A DATASET'S SHAPE
 
 Reported as "the logp calculator is a bit confusing... I assume the
