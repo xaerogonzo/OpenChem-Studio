@@ -965,6 +965,161 @@ so the camera framed nothing, and Mol*'s UI chrome is ~57% of the window.
 With a structure loaded and the count cropped to the 3D canvas, 16778 ->
 20270 (+20.8%).
 
+## THE ALIGNMENT COULD NOT MOVE A TORSION, AND THE RMSD COULD NOT SAY SO
+
+Reported against MPMI vs 4-HO-MPMI -- the same skeleton, one hydroxyl
+apart -- aligned on *Common scaffold (MCS)*: "the tail pyrrolidine is not
+aligned at all, which makes no sense". The panel said **score 109.75, RMSD
+0.116, 14 paired atoms**, which is a confident, healthy-looking result for
+a picture that is visibly wrong.
+
+Reproduced bit for bit from `MPMI.ocsproj`, the project the report came
+from, BEFORE anything was changed. Three defects:
+
+**A. THE STORED CONFORMERS WERE THROWN AWAY.**
+`_EnsembleAlignmentTask` calls `engine.mol_from_model`, which reads
+`model.molblock` -- the 2D drawing -- and never `model.conformers`. The
+reference had **17** stored conformers and the alignment embedded five
+fresh ones instead.
+
+**B. O3A IS A RIGID SUPERPOSITION.** The MCS fixes the PAIRING; `Align()`
+then finds the best rigid transform for it. It cannot rotate a bond. So a
+probe embedded in isolation keeps whatever rotamer the embedder chose, the
+rigid indole lands perfectly because it is in the MCS, and the pyrrolidine
+lands wherever it was. **More starting conformers is a lottery, not a
+fix** -- measured, at "Accurate" (20 conformers) rigid mode stumbles onto a
+good rotamer for this molecule anyway, which is exactly why sampling is
+not the answer.
+
+**C. `AddHs` WITH NO `addCoords=True` PUTS EVERY HYDROGEN AT THE ORIGIN**
+when the molecule already carries a 3D conformer -- measured on this
+fixture, all **18** of them -- and `Is3D()` stays True throughout, so it
+returned silently. Unreachable while the input was always a 2D drawing.
+**A is what makes it reachable**, so it lands with it.
+
+### The measurement, through the shipped path
+
+    mode                             score   rmsd   core   flex   geometry
+    rigid (today)                   109.75  0.116  0.083  0.931  embedded
+    flexible                        125.15  0.046  0.052  0.036  constrained
+    flexible + ref conformers       125.24  0.023  0.027  0.016  constrained
+
+Flexible RMSD **0.931 -> 0.036, 26x**.
+
+**AND A ALONE MAKES THE REPORTED CASE WORSE**, which is why measuring
+first mattered: the probe has no stored conformer, so using the
+reference's only moves the target -- core goes to **3.493** while the tail
+improves to 0.212, and the popped-out shot shows the indole benzo ring
+plainly out of register. B is what fixes the picture; A is a refinement
+that needs B.
+
+### THE OBVIOUS METRIC CANNOT BE COMPUTED
+
+The first draft of the guard said "RMSD over the atoms NOT in the MCS".
+**Those atoms have no correspondence by construction** -- the hydroxyl
+exists in one molecule and not the other -- and every patch for it (a
+second MCS, nearest neighbour, matching indices) invents one and turns the
+oracle into an arbitrary geometric metric.
+
+The atoms worth measuring are INSIDE the correspondence. What separates
+them is FLEXIBILITY, not MCS membership: both molecules have the
+pyrrolidine, so the MCS covers it. `mcs_partition` splits the MCS's own
+pairs:
+
+    1  pairs     the MCS correspondence, heavy atoms only
+    2  scaffold  the largest fused ring system OF THE PATTERN -- computed
+                 ONCE, on the shared subgraph
+    3  cuttable  bonds matching RDKit's own RotatableBondSmarts
+    4  core      reachable from the scaffold without crossing one
+    5  classify  a PAIR takes its pattern atom's bucket
+
+**STEP 2 IS THE LOAD-BEARING ONE.** Classifying each molecule
+independently is how "14 core atoms here, 17 there" happens, and two
+RMSDs over two different partitions are not comparable.
+
+### A FLEXIBLE REQUEST THAT CANNOT EMBED DEGRADES AND SAYS SO
+
+Pinning the shared atoms onto the reference is not always geometrically
+possible, and that is chemistry rather than a bug: **ibuprofen's MCS with
+naproxen spans BOTH rings of the naphthalene**, so no conformer of a single
+benzene can put its shared ring atoms there. Distance geometry correctly
+refuses -- measured, it fails at all 14 constraints, at the 6 ring ones,
+and at every subset carrying the real shape, while an arbitrary 6 succeed.
+Forcing it would mean inventing a geometry, so it falls back to an ordinary
+embed and reports `embedded` rather than `constrained_embed`. The panel
+shows that column, so "flexible did not take on this pair" is visible.
+
+**`ff.Initialize()` IS REQUIRED AFTER `AddExtraPoint`**, or `Minimize`
+raises a "size mismatch" pre-condition -- the force field still believes it
+holds as many points as the molecule has atoms.
+
+### `matched_atoms` IS NOT THE MCS SIZE
+
+`len(alignment.Matches())` is O3A's own count. The panel printed it
+unconditionally, so an MCS-method result read **"14 paired atoms" for a
+maximum common substructure of 33**. Two fields now -- `mcs_atom_count`
+and `o3a_match_count` -- because one field with a method-dependent meaning
+is how that ambiguity returns under a new label.
+
+### The mutation pass found a vacuous guard, as it usually does
+
+Six arms. **M1 (reverting `addCoords=True`) SURVIVED** against a test
+named for it: the fixture stored a conformer that already had EXPLICIT
+hydrogens, so `AddHs` added nothing and the bug could not fire. It needs a
+3D conformer carrying IMPLICIT hydrogens -- `Chem.RemoveHs` then
+`MolToMolBlock` -- and `test_the_hydrogen_fixture_really_has_hydrogens_to_place`
+now asserts that setup so it cannot go vacuous again.
+
+**The invariant needs no table and no tolerance**: every added hydrogen is
+nearer to the heavy atom it is bonded to than to any other. `Is3D()` and
+"the coordinates are finite" both pass with the bug in place.
+
+**And the self-alignment tolerance was below the representable
+precision.** It asserted `abs=1e-6` and passed because rigid mode handed
+O3A the same object twice; flexible builds a constrained conformer and
+lands 4.9e-05 away. That is an order of magnitude BELOW the **5e-4**
+molblock floor this file already records. A tolerance tighter than the data
+format can represent is not a stronger test.
+
+### THE 3D VIEW WAS 63 PIXELS TALL, and adding a control made it worse
+
+Measured in the running app with the new `align_report` step, which dumps
+every DIRECT CHILD's height -- "the viewer is 63 px" does not say which
+sibling to argue with:
+
+    panel 699 | viewer 398x63 | QGroupBox=414 QTableWidget=160 PopOutHost=95
+
+The settings box and a results table fixed at 160 px for two rows left the
+overlay -- this panel's entire output -- a strip. Two changes:
+
+    Accuracy and Flexibility share ONE flow_row     2 form rows -> 1
+    the table sizes to its rows under a cap         160 -> 100
+
+    before   viewer 398x63
+    after    viewer 398x123
+
+`flow_row` rather than a `QHBoxLayout`, because a horizontal layout's
+minimum width is the SUM of its children and this panel has already set the
+whole window's minimum that way once.
+
+**JUDGE AN OVERLAY IN THE POPPED-OUT WINDOW, NOT IN THE STRIP.** A 123 px
+crop shows an edge of the molecule and nothing about whether it
+superimposes. `{"do": "pop_out", "panel": "3D_Alignment"}` then
+`{"do": "shot", "widget": "popout"}` gives 960x720 of it, which is what
+settled both arms.
+
+### The drive steps this added
+
+    {"do": "open_project",     "path": "C:/tmp/MPMI.ocsproj"}
+    {"do": "align",            "flexibility": "Flexible"}   (new option)
+    {"do": "align_report",     "tag": "after"}
+    {"do": "ensemble_visible", "row": 1, "on": false}
+    {"do": "overlay_colour",   "mode": "element"}
+
+The last two drive the CONTROL rather than the helper behind it: a test
+that calls `_show_ensemble` directly proves the helper works and says
+nothing about whether the box is wired to it.
+
 ## POPPING A VIEW OUT: the widget MOVES, and that was measured first
 
 Reported against 3D Alignment: two molecules aligned on a common
