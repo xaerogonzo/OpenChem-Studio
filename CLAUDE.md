@@ -791,6 +791,217 @@ quietly when it finds none. The run logged `step 1 panel` and looked
 perfectly healthy while photographing the Compare panel. **Read the shot,
 not the log.**
 
+## BATCH WAS A SECOND IMPLEMENTATION OF WHAT PROPERTIES ALREADY DID
+
+Reported as "the entire system is a total mess", with three complaints:
+no select-all, no select-all-in-group, and a result table that is
+"incredibly un user friendly". The third one is the structural half:
+**this app had TWO batch systems and they disagreed.**
+
+    PropertyPanel._on_run_selected    N calculators x 1 molecule
+    BatchPanel                        N calculators x M molecules
+
+Same 51 tick boxes -- one `help_id`, `properties.batch_selection` -- and
+two different meanings:
+
+    | | Properties, "Run selected" | Batch |
+    | runs via | DescriptorService.run_calculator | its own _BatchTask |
+    | produces | one ScientificResult | N columns via reduce_result |
+    | offers | a row, Details, an inspector | a number in a cell |
+    | keeps | yes, in _reports | no -- reduced and dropped |
+    | costs | one calculator, when asked | molecules x properties, up front |
+
+The third row is the complaint: **a calculator that is one coherent thing
+in Properties became N unrelated columns in Batch.** Topology Analysis is
+one button and one Details view on the left; on the right it was a Wiener
+column, a Randic column and a Szeged column with nothing tying them
+together. And lossy on top -- `result_reduction` recovers 73 numeric
+columns from the real registry and REFUSES 25 real lines outright.
+
+### The spine: the ScientificResult is the stored thing
+
+`domain/batch.BatchResultStore` retains them; `reduce_result` is a
+PRESENTATION PROJECTION and its module docstring now says so, because
+that is the regression this whole change exists to prevent and a
+docstring is what survives the next author.
+
+**THE DIRECTION MATTERS ONE LEVEL DOWN.** A `BatchTable` is rows by
+columns; the store is keyed by `(molecule, calculator, parameters,
+structure_version)`, which is not a table and does not become one because
+a table can be built from it. If the store were the table, `reduce_result`
+would be back in the storage position by another route.
+
+### NONE OF THE FOUR KEY COMPONENTS IS INVENTED
+
+Checked rather than assumed, because a retained result makes "which
+result am I looking at" a real question and getting it wrong trades a
+lossy system for a stale one:
+
+    molecule_uuid      a uuid4 carried through `to_dict()` into the
+                       project file -- semantic identity, not object
+                       identity. `ResultCache` warns against keying on it
+                       ALONE, which is what the next line is for.
+    structure_version  `StructureCheckService.current_version()`, the
+                       counter `StructureReport` is already built on and
+                       the Atom Inspector's cache already keyed on.
+    parameters_key     a thin wrapper over `result_cache.key_for`, already
+                       sorted-JSON-into-SHA-256 and already stable across
+                       processes. A SECOND parameter serialisation is how
+                       two identical requests become two keys.
+
+So editing a molecule makes its results STALE rather than wrong, and
+stale results are REPORTED rather than deleted -- silently serving one and
+silently blanking it are the two ways this goes wrong and they look
+identical from outside.
+
+**The recorded trap applies directly**: the Atom Inspector's version is
+`None` in a plain fixture, so it is 0 forever, and two guards for a
+stale-index crash passed while testing the cache. Any test here that
+mutates a molecule must move the thing the key is keyed on.
+
+### RETENTION COSTS LITTLE, and the contract was not signed first
+
+Measured over 8 drug-like molecules against all 53 registry-executable
+calculators, 424 results:
+
+    mean per result        9.05 KiB
+    largest single        37.1  KiB   regulatory_screen -- and the SAME
+                                      size for every molecule, which is
+                                      worth knowing but was not chased
+    5 molecules            2.3 MiB     50 ->  23 MiB
+    200 molecules         94   MiB   1000 -> 469 MiB
+
+No eviction, no disk spill: nothing there asks for one at the sizes the
+lazy path reaches. The bulk path could reach the bottom of that table, and
+it states its cost first.
+
+### THE COMPUTATION MATRIX -- five rows, five tests
+
+"Nothing is computed unasked" is only an invariant if *asked* is defined:
+
+    open the Batch panel      zero calculations
+    select a molecule         that molecule's ticked properties, and NO
+                              other molecule's
+    look at it again          nothing -- retention is what makes lazy
+                              usable rather than merely lazy
+    press Fill table          the full explicitly-requested matrix
+    Fill table, large         asks first; Cancel computes nothing
+
+Driven in the app, and the log IS the design:
+
+    panel-opened        ticked 0 | rows 0 cols  0 | store 0
+    category-ticked     ticked 2 | rows 0 cols  0 | store 0
+    after-lazy-details  ticked 2 | rows 0 cols  0 | store 2
+    filled              ticked 2 | rows 3 cols 14 | store 6
+
+**TWO THINGS THE PANEL HAD TO LEARN**, both because the lazy and bulk
+paths now arrive on the identical event. The table is adopted ONLY when
+the run was a fill -- a one-molecule run returns a ONE-ROW table, and
+letting that through makes opening a detail view destroy the table the
+user just built. And the store is MERGED rather than replaced, or a
+one-molecule run wipes the other 199.
+
+### `ItemIsAutoTristate` DOES TOO MUCH
+
+It looks like exactly what a select-all-in-group wants. With it set, Qt
+propagates a parent's tick down to EVERY child itself, hidden ones
+included -- which reaches entries the filter is hiding and contradicts the
+filter's own documented promise that it filters the LIST and never the
+results. Measured: the hidden-children guard fails on a child Qt ticked
+before our handler ran. Both directions are ours instead, with one
+re-entry guard.
+
+**AND NEITHER OBVIOUS ASSERTION CAN TELL A CHECKABLE ROW FROM A PLAIN
+ONE.** Measured on a bare `QTreeWidgetItem`:
+
+    ItemIsUserCheckable   in Qt's DEFAULT item flags -- True on a row
+                          nobody ever made checkable
+    checkState(0)         Unchecked whether a state was set or not
+    data(0, CheckStateRole)   None until setCheckState is called  <- the
+                          only discriminator, and what decides whether a
+                          box is DRAWN
+
+A mutation emptying `_make_groups_checkable` survived both of the obvious
+versions of the guard.
+
+### A FIELD WRITTEN BY EVERY CALLER AND READ BY NOTHING
+
+`BatchRequest.molecule_uuids` was never consulted -- `_BatchTask` iterated
+whatever list it was handed -- so a request naming two molecules while the
+caller passed twenty ran twenty, and nothing would have noticed. Found by
+mutation: widening the request's scope changed no behaviour at all.
+
+Latent rather than live, since no caller disagreed with itself. The lazy
+path is what makes them disagree easily, because it asks for one molecule
+out of a project. The request is the authority on scope now, with an empty
+list still meaning "everything given".
+
+**THE TWO HALVES NOW CROSS-CHECK, so each alone is an EQUIVALENT
+mutation** -- widening the request's scope is clamped by the molecules
+handed over, and vice versa. Only widening BOTH changes behaviour, and
+that is caught. Verified as its own paired arm rather than assumed, since
+"two survivors" otherwise reads as a coverage gap.
+
+### THE CAP COUNTS DIALOGS; CHROMIUM JUSTIFIES THE NUMBER
+
+Measured before it was written, sampled DURING the run because they are
+all reaped at exit and a post-mortem finds zero and looks healthy:
+
+    open inspectors      QtWebEngineProcess
+    1..8                              1..8    exactly one each, linear
+    disposed per widget                  0    all of them freed
+    disposed via processEvents           8    NONE freed
+
+So resources are not the binding constraint -- the recorded hang was at
+91-116 processes. **The bound is READABILITY and says so**; the Properties
+panel reached the same conclusion independently, declining to pop
+inspectors from a multi-calculator run because "six inspectors stacking up
+is not what anybody asked for". A cap expressed in `QtWebEngineProcess`
+counts would change meaning under a Qt upgrade and is not something a user
+can reason about.
+
+The second row is why `close()` is followed by the per-widget
+`sendPostedEvents(dialog, DeferredDelete)`: without it the cap would be
+cumulative rather than concurrent. `processEvents()` never delivers a
+`DeferredDelete` at event-loop level 0, which this file already records
+and which held again here.
+
+### A GUARD MUST NOT DO WORK PROPORTIONAL TO WHAT IT GUARDS
+
+The cap's first guard built `range(MAX_OPEN_INSPECTORS)` stand-ins, so it
+scaled its own work by the constant under test -- and the `1 << 30` arm
+allocated a billion objects and **hung the mutation pass twice** before
+the cause was spotted. Split in two: the shipped constant's magnitude is
+asserted directly and cheaply, and the refusal is exercised against a
+monkeypatched cap of 2.
+
+### THE HARNESS ITSELF COST TWO RUNS
+
+`ROOT.rglob("__pycache__")` reaches into `.venv`, which is thousands of
+directories -- clearing it between arms made every one recompile the whole
+dependency set and took each into the minutes. Scope a mutation harness's
+cache clearing to `src/` and `tests/`.
+
+And `batch_details` REPORTED A WORKING FEATURE BROKEN: `_show_details`
+starts a background run and RETURNS, with `_present_details` called later
+from the progress handler, so a patch restored in a `finally` was gone
+before the dialog was built. The step said "no dialog open" for a run that
+was perfectly correct.
+
+### The cell now says WHAT it is
+
+    SCALAR      a number, as before
+    NON_SCALAR  a real result with no scalar form -- a per-atom map, a
+                spectrum, a structure set. Named, italic, its own colour,
+                and a tooltip saying it is one double-click away.
+    FAILED      the em dash, unchanged
+
+Those last two used to render identically, which is the OPPOSITE
+statement: one says nothing was computed, the other says something was and
+a table is the wrong shape for it. `reduce_result` refuses 25 of the real
+registry's lines, so the second is the common case rather than an edge
+one.
+
 ## THE VIEWER AND THE DOCKING WERE SHOWING DIFFERENT CHAINS
 
 `Viewer.loadStructureFromData`'s default preset builds **biological
