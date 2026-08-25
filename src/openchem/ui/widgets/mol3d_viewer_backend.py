@@ -198,6 +198,10 @@ class Mol3DViewerBackend(ViewerBackend):
         # The style is a plain preference, so unlike the payloads above it
         # has a sensible default and only needs queueing when it differs.
         self._pending_style: str | None = None
+        # A VIEW setting rather than a payload, so it has a default and is
+        # kept rather than consumed -- it has to be re-applied after every
+        # ensemble load, not once.
+        self._ensemble_color_mode = "molecule"
         self._page.loadFinished.connect(self._on_load_finished)
         self._page.load(QUrl.fromLocalFile(str(_VIEWER_HTML)))
 
@@ -217,6 +221,11 @@ class Mol3DViewerBackend(ViewerBackend):
         if self._pending_ensemble is not None:
             self._run_load_ensemble(self._pending_ensemble)
             self._pending_ensemble = None
+        # AFTER the ensemble, never before: the page's applyStyle only has
+        # models to colour once loadEnsemble has added them, so a mode set
+        # first would be applied to an empty scene and silently lost.
+        if self._ensemble_color_mode != "molecule":
+            self._run_set_ensemble_color_mode(self._ensemble_color_mode)
         if self._pending_crystal is not None:
             self._run_load_crystal(self._pending_crystal)
             self._pending_crystal = None
@@ -424,11 +433,36 @@ class Mol3DViewerBackend(ViewerBackend):
         self._pending_crystal = None
         if self._page_ready:
             self._run_load_ensemble(payload)
+            # The page resets nothing about the mode, but the MODELS are
+            # new -- applyStyle has to run against them or a colour mode
+            # chosen before this load would describe the previous overlay.
+            if self._ensemble_color_mode != "molecule":
+                self._run_set_ensemble_color_mode(self._ensemble_color_mode)
         else:
             self._pending_ensemble = payload
 
     def _run_load_ensemble(self, payload: list[dict[str, str]]) -> None:
         self._page.runJavaScript(f"window.openchemViewer.loadEnsemble({json.dumps(payload)});")
+
+    def set_ensemble_color_mode(self, mode: str) -> None:
+        """Colour an overlay by MOLECULE (one colour each) or by ELEMENT.
+
+        Queued exactly like `set_style`, and for the same reason: the combo
+        exists and is clickable while the page is still loading, and a
+        dropped call is the silent kind of failure -- the viewer keeps the
+        previous colouring while the control shows what the user picked.
+
+        A VIEW setting, so it never re-issues the structures. Switching it
+        must not cost a reload of the overlay.
+        """
+        self._ensemble_color_mode = mode
+        if self._page_ready:
+            self._run_set_ensemble_color_mode(mode)
+
+    def _run_set_ensemble_color_mode(self, mode: str) -> None:
+        self._page.runJavaScript(
+            f"window.openchemViewer.setEnsembleColorMode({json.dumps(mode)});"
+        )
 
     def set_style(self, style: str) -> None:
         # Queued like every other call for the reason in `clear` below.

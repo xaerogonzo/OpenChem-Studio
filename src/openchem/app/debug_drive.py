@@ -44,6 +44,13 @@ The script is a JSON list of steps, run in order:
       {"do": "rail",       "collapsed": true},
       {"do": "scroll",     "to": "bottom"},
       {"do": "geometry",   "label": "maximized/Quantum"},
+      {"do": "open_project",     "path": "C:/tmp/MPMI.ocsproj"},
+      {"do": "align",            "reference": "MPMI", "probes": ["4-HO-MPMI"],
+                                 "method": "Common scaffold (MCS)",
+                                 "flexibility": "Flexible"},
+      {"do": "align_report",     "tag": "after"},
+      {"do": "ensemble_visible", "row": 1, "on": false},
+      {"do": "overlay_colour",   "mode": "element"},
       {"do": "quit"}
     ]
 
@@ -405,14 +412,125 @@ class _Driver(QObject):
             panel._method_combo.setCurrentText(str(step["method"]))
         if "accuracy" in step:
             panel._accuracy_combo.setCurrentText(str(step["accuracy"]))
+        if "flexibility" in step:
+            panel._flexibility_combo.setCurrentText(str(step["flexibility"]))
         logger.warning(
-            "OPENCHEM_DRIVE: aligning %d probe(s) onto %r, method=%s accuracy=%s",
+            "OPENCHEM_DRIVE: aligning %d probe(s) onto %r, method=%s accuracy=%s flexibility=%s",
             len(panel._checked_uuids()),
             panel._reference_combo.currentText(),
             panel._method_combo.currentText(),
             panel._accuracy_combo.currentText(),
+            panel._flexibility_combo.currentText(),
         )
         panel._on_align_clicked()
+
+    def _do_align_report(self, step: dict[str, Any]) -> None:
+        """Dump what the alignment table SHOWS, cell by cell.
+
+        `{"do": "align_report", "tag": "flexible"}`
+
+        The panel's own numbers rather than the code's: this exists because
+        the reported defect was a table that looked healthy -- score 109.75,
+        RMSD 0.116 -- beside a picture that was wrong. Reading Core and Tail
+        off the rendered cells is the cheap half of checking that the two
+        now agree; the shot is the other half.
+        """
+        panel = self._window._alignment_panel
+        table = panel._result_table
+        tag = step.get("tag", "")
+        headers = [
+            table.horizontalHeaderItem(c).text() for c in range(table.columnCount())
+        ]
+        view = panel._viewer.widget()
+        # EVERY DIRECT CHILD, not a summary: this panel's whole problem is
+        # that fixed-height siblings leave the overlay a strip, and "the
+        # viewer is 63 px" does not say which sibling to argue with.
+        parts = []
+        layout = panel.layout()
+        for i in range(layout.count()):
+            w = layout.itemAt(i).widget()
+            if w is not None:
+                parts.append(f"{type(w).__name__}={w.height()}")
+        logger.warning(
+            "OPENCHEM_DRIVE: align_report %s | panel %d | viewer %dx%d | %s",
+            tag, panel.height(), view.width(), view.height(), " ".join(parts),
+        )
+        logger.warning("OPENCHEM_DRIVE: align_report %s | %s", tag, " | ".join(headers))
+        for row in range(table.rowCount()):
+            cells = []
+            for column in range(table.columnCount()):
+                item = table.item(row, column)
+                if item is None:
+                    cells.append("")
+                elif column == 0:
+                    cells.append(
+                        "on" if item.checkState() == Qt.CheckState.Checked else "off"
+                    )
+                else:
+                    cells.append(item.text())
+            logger.warning("OPENCHEM_DRIVE: align_report %s | %s", tag, " | ".join(cells))
+
+    def _do_ensemble_visible(self, step: dict[str, Any]) -> None:
+        """Tick or untick one row's visibility box.
+
+        `{"do": "ensemble_visible", "row": 1, "on": false}` -- driven
+        through the box rather than through `_show_ensemble`, because the
+        thing worth checking is the WIRING and a helper called directly
+        proves only that the helper works.
+        """
+        panel = self._window._alignment_panel
+        row = int(step.get("row", 0))
+        item = panel._result_table.item(row, 0)
+        if item is None:
+            logger.error("OPENCHEM_DRIVE: no visibility box on row %d", row)
+            return
+        item.setCheckState(
+            Qt.CheckState.Checked if step.get("on", True) else Qt.CheckState.Unchecked
+        )
+        logger.warning(
+            "OPENCHEM_DRIVE: row %d visible=%s", row, bool(step.get("on", True))
+        )
+
+    def _do_overlay_colour(self, step: dict[str, Any]) -> None:
+        """`{"do": "overlay_colour", "mode": "element"}` -- by molecule or
+        by element. Driven through the combo, for the reason above."""
+        panel = self._window._alignment_panel
+        mode = str(step.get("mode", "molecule"))
+        index = panel._color_mode_combo.findData(mode)
+        if index < 0:
+            logger.error("OPENCHEM_DRIVE: no overlay colour mode %r", mode)
+            return
+        panel._color_mode_combo.setCurrentIndex(index)
+        logger.warning("OPENCHEM_DRIVE: overlay colour mode %s", mode)
+
+    def _do_open_project(self, step: dict[str, Any]) -> None:
+        """Load an .ocsproj without the file dialog.
+
+        `{"do": "open_project", "path": "D:/.../MPMI.ocsproj"}`
+
+        Goes through `OpenProjectCommand` and `_set_project`, the same two
+        the File menu uses -- only the dialog is skipped, which is the rule
+        every step in this file follows.
+        """
+        from pathlib import Path as _Path
+
+        from openchem.commands.project_commands import OpenProjectCommand
+
+        path = _Path(str(step.get("path", "")))
+        if not path.is_file():
+            logger.error("OPENCHEM_DRIVE: no project at %s", path)
+            return
+        command = OpenProjectCommand(self._window._services.project_service, path)
+        self._window._undo_stack.push(command)
+        if command.loaded_project is None:
+            logger.error("OPENCHEM_DRIVE: could not load %s", path)
+            return
+        self._window._set_project(command.loaded_project)
+        logger.warning(
+            "OPENCHEM_DRIVE: opened %s -- %d molecule(s)",
+            path.name,
+            len(command.loaded_project.molecules),
+        )
 
     def _do_pop_out(self, step: dict[str, Any]) -> None:
         """Move a panel's view into its own window, or bring it back.

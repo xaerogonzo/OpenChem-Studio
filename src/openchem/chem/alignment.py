@@ -100,10 +100,13 @@ PROJECT_CONFORMERS = "project_conformers"
 EMBEDDED = "embedded"
 CONSTRAINED_EMBED = "constrained_embed"
 
+#: SHORT, because these are rendered in a table column inside a dock that
+#: opens at 420 px. What each one MEANS lives in that column's help
+#: contract, which is the one place it has to be written out.
 GEOMETRY_SOURCE_LABELS: dict[str, str] = {
-    PROJECT_CONFORMERS: "project conformer",
-    EMBEDDED: "generated conformer",
-    CONSTRAINED_EMBED: "constrained to the reference",
+    PROJECT_CONFORMERS: "Project",
+    EMBEDDED: "Generated",
+    CONSTRAINED_EMBED: "Constrained",
 }
 
 

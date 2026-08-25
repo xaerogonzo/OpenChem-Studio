@@ -19,7 +19,11 @@ import logging
 
 from PySide6.QtCore import QRunnable, QThreadPool
 
-from openchem.chem.alignment import DEFAULT_ACCURACY, align_ensemble
+from openchem.chem.alignment import (
+    DEFAULT_ACCURACY,
+    DEFAULT_FLEXIBILITY,
+    align_ensemble,
+)
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.common import CacheState
 from openchem.domain.molecule import MoleculeModel
@@ -29,6 +33,21 @@ from openchem.services.job_manager import JobManager
 from openchem.services.progress import ProgressHandle
 
 _JOB_KIND = "alignment"
+
+
+def _conformer_molblocks(model: MoleculeModel) -> list[str]:
+    """The molblocks of a molecule's stored conformers, newest first.
+
+    Newest first because `ConformerModel.timestamp` is stamped once per
+    generation run, so the most recent run is the geometry the user was
+    looking at when they asked for the alignment.
+    """
+    conformers = sorted(
+        getattr(model, "conformers", None) or (),
+        key=lambda c: getattr(c, "timestamp", 0.0),
+        reverse=True,
+    )
+    return [c.molblock for c in conformers if getattr(c, "molblock", "")]
 
 logger = logging.getLogger("openchem.chemistry")
 
@@ -51,6 +70,7 @@ class _EnsembleAlignmentTask(QRunnable):
         event_bus: EventBus,
         job_manager: JobManager,
         progress: ProgressHandle,
+        flexibility: str = DEFAULT_FLEXIBILITY,
     ) -> None:
         super().__init__()
         self._engine = engine
@@ -58,6 +78,7 @@ class _EnsembleAlignmentTask(QRunnable):
         self._probes = probes
         self._method = method
         self._accuracy = accuracy
+        self._flexibility = flexibility
         self._event_bus = event_bus
         self._job_manager = job_manager
         self._progress = progress
@@ -69,8 +90,17 @@ class _EnsembleAlignmentTask(QRunnable):
         )
         try:
             reference_mol = self._engine.mol_from_model(self._reference)
+            # THE STORED CONFORMERS WERE BEING THROWN AWAY. `mol_from_model`
+            # reads `model.molblock` -- the 2D drawing -- so every conformer
+            # the project held was discarded and fresh ones embedded. On the
+            # pair this was reported against, the reference had seventeen.
             probes = [
-                (model.display_name, self._engine.mol_from_model(model)) for model in self._probes
+                (
+                    model.display_name,
+                    self._engine.mol_from_model(model),
+                    _conformer_molblocks(model),
+                )
+                for model in self._probes
             ]
             entries = align_ensemble(
                 probes,
@@ -79,6 +109,8 @@ class _EnsembleAlignmentTask(QRunnable):
                 method=self._method,
                 accuracy=self._accuracy,
                 on_progress=self._on_progress,
+                flexibility=self._flexibility,
+                reference_conformers=_conformer_molblocks(self._reference),
             )
         except _CancelledError:
             self._fail(uuid, "Cancelled by user")
@@ -137,6 +169,7 @@ class AlignmentService:
         probes: list[MoleculeModel],
         method: str = "atom_types",
         accuracy: str = DEFAULT_ACCURACY,
+        flexibility: str = DEFAULT_FLEXIBILITY,
     ) -> None:
         if not probes:
             self._event_bus.publish(
@@ -172,5 +205,6 @@ class AlignmentService:
                 self._event_bus,
                 self._job_manager,
                 progress,
+                flexibility,
             )
         )
