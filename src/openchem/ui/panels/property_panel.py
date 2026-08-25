@@ -1068,14 +1068,23 @@ def _dump_container_items(panel: QWidget) -> None:
         layout.hasHeightForWidth(),
         layout.totalMinimumSize().height(),
     )
+    # WHICH section, not just what type it is. The docstring above asks
+    # "one section is given half" and the answer was unreadable from this
+    # walk, which named every row `CollapsibleSection`. Reverse-mapped
+    # from `_sections` rather than stored on the widget, so nothing has to
+    # be kept in step.
+    names = {
+        id(section): category
+        for category, section in getattr(panel, "_sections", {}).items()
+    }
     for index in range(layout.count()):
         item = layout.itemAt(index)
         widget = item.widget()
         if widget is None or widget.isHidden():
             continue
         logger.warning(
-            "    item %-18s geom_h=%-5d minSize=%-5d sizeHint=%-5d hfw=%-5s hfw(w)=%s",
-            type(widget).__name__[:18],
+            "    item %-22s geom_h=%-5d minSize=%-5d sizeHint=%-5d hfw=%-5s hfw(w)=%s",
+            names.get(id(widget), type(widget).__name__)[:22],
             item.geometry().height(),
             item.minimumSize().height(),
             item.sizeHint().height(),
@@ -2031,10 +2040,18 @@ class PropertyPanel(QWidget):
     def _category_of(self, calculator_id: str) -> str:
         """Which section a result belongs in.
 
-        `PerAtomDataset` and `SpectrumResult` carry no category of their
-        own -- only `AlertResult` does -- so it comes from the registry,
-        which is the single source of truth for what a calculator is and
-        where it lives.
+        THE FALLBACK, not the authority. `AlertResult` and now
+        `PerAtomDataset` declare their own category and are routed by it;
+        this answers for the results that do not -- `SpectrumResult`,
+        structure sets, pH curves, trajectories -- where the registry is
+        the single source of truth for what a calculator is and where it
+        lives.
+
+        Returning "other" is a real answer and a rare one: it means an id
+        no registered calculator owns, from a producer that declared
+        nothing. That was reachable until the always-on per-atom batch
+        started declaring, and it put one result in a section of its
+        own.
         """
         definition = self._calculator_registry.get(calculator_id)
         return definition.category if definition is not None else "other"
@@ -2330,9 +2347,19 @@ class PropertyPanel(QWidget):
         dataset = event.dataset
         self._finish_batch_run(dataset.property_id)
         if dataset.molecule_uuid == self._selected_molecule_uuid:
+            # THE PRODUCER'S DECLARATION WINS, and the registry is the
+            # fallback rather than the authority. A dataset from the
+            # always-on batch is in no registry, so asking one filed
+            # "Partial Charge (Gasteiger)" under a generic "Other"
+            # section -- while its two batch-mates resolved by
+            # coincidence, their ids happening to match registered
+            # calculators. An empty category still asks the registry,
+            # which is right for a dataset a registered calculator
+            # produced.
             self._show_result(
                 dataset.property_id, dataset.name,
-                self._category_of(dataset.property_id), dataset,
+                dataset.category or self._category_of(dataset.property_id),
+                dataset,
             )
         if (
             self._pending_calculator_id is not None

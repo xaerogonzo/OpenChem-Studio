@@ -57,6 +57,20 @@ class PerAtomDataset(ScientificResult):
     method: str  # e.g. "rdkit"
     molecule_uuid: str
     values: dict[int, float] = field(default_factory=dict)  # atom index -> value
+    #: Which Properties section this belongs in, DECLARED, the same way
+    #: `AlertResult.category` is. Empty means "ask the registry", which is
+    #: right for a dataset produced BY a registered calculator and wrong
+    #: for the always-on batch, which is registry-driven by nothing.
+    #:
+    #: **TWO OF THAT BATCH'S THREE RESOLVED BY COINCIDENCE.**
+    #: `crippen_logp_contrib` and `crippen_mr_contrib` happen to be
+    #: registered calculator ids as well, so the registry lookup found
+    #: them; `gasteiger_charge` is not one -- the registered charge
+    #: calculator is `gasteiger_charge_at_ph` -- so "Partial Charge
+    #: (Gasteiger)" was filed under a generic "Other" section it was the
+    #: only occupant of. Measured in the running app: 21 sections where
+    #: every enumeration of the categories says 20.
+    category: str = ""
 
 
 @dataclass(frozen=True, kw_only=True)

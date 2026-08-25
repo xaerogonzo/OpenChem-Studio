@@ -20,6 +20,13 @@ anything from `openchem` -- that package isn't installed over there.
 
 from __future__ import annotations
 
+#: See `chem/admet_runner.py` for what this declares and why. Same
+#: mechanism, a different sidecar.
+REACHED_BY = (
+    "script_path: handed to the pkasolver environment's interpreter by "
+    "chem/pka_providers.py, which is why nothing imports it"
+)
+
 import json
 import sys
 import types

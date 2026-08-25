@@ -23,6 +23,16 @@ usefulness. Revisit only if batch prediction becomes a real workflow.
 
 from __future__ import annotations
 
+#: Declared for `tests/test_calculator_reachability.py`, which holds that
+#: every first-party module is STATICALLY reachable from `openchem.main`
+#: unless it says here why it is not. The docstring above already states
+#: this; the constant makes the claim checkable, and the guard verifies
+#: the module really IS unreachable rather than trusting the string.
+REACHED_BY = (
+    "script_path: handed to the ADMET environment's interpreter by "
+    "chem/admet_providers.py, which is why nothing imports it"
+)
+
 import contextlib
 import json
 import sys

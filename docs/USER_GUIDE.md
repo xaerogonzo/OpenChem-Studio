@@ -616,7 +616,7 @@ the thing that needs the room.
 <!-- help:properties -->
 ## Properties
 
-The Properties panel is where most calculation happens. It has **25
+The Properties panel is where most calculation happens. It has **20
 collapsible categories** covering **53 registered calculators**;
 Physicochemical and Identity are open by default.
 

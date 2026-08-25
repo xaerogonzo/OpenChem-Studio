@@ -270,7 +270,14 @@ def test_a_calculators_result_lands_in_its_own_section(computed_results):
     mismatched = []
     compared: list[str] = []
     for definition, result in computed_results:
-        carried = getattr(result, "category", None)
+        # EMPTY IS NOT "CARRIES ONE". `PerAtomDataset.category` defaults
+        # to `""` meaning "I am in the registry, ask it" -- so every
+        # registered per-atom calculator now HAS the attribute and none
+        # of them declares a value. Reading `is None` compared "" against
+        # 16 real categories and failed on all of them the moment that
+        # field was added. A NON-empty category that disagrees with its
+        # definition is still exactly the bug this test is about.
+        carried = getattr(result, "category", None) or None
         if carried is None or getattr(result, "cache_state", None) is CacheState.FAILED:
             continue
         compared.append(definition.calculator_id)
@@ -528,3 +535,191 @@ def test_a_named_category_is_not_title_cased(qapp):
     assert _category_label("nmr") == "NMR"
     assert _category_label("pka") == "pKa"
     assert _category_label("") == "Other"
+
+
+def test_the_always_on_per_atom_batch_declares_every_category():
+    """IT IS IN NO REGISTRY, SO IT CANNOT BE ASKED ONE.
+
+    `compute_per_atom` is the always-on batch -- explicitly "not
+    registry-driven" -- and the panel used to route it by looking its
+    `property_id` up in the registry anyway. Two of the three resolved,
+    BY COINCIDENCE: `crippen_logp_contrib` and `crippen_mr_contrib` are
+    also registered calculator ids (the registered ones offer a hydrogen
+    mode this batch is fixed on). `gasteiger_charge` has no twin -- the
+    registered charge calculator is `gasteiger_charge_at_ph` -- so it
+    fell through to a generic "Other" section it was the only occupant
+    of.
+
+    Asserting all THREE rather than the one that was broken: the point of
+    the fix is that the two which worked stop being lucky.
+    """
+    from rdkit import Chem, RDLogger
+
+    from openchem.chem.descriptor_providers import RDKitDescriptorProvider
+
+    RDLogger.DisableLog("rdApp.*")
+    mol = Chem.AddHs(Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O"))
+    datasets = RDKitDescriptorProvider().compute_per_atom(mol, "uuid")
+    assert datasets, "the always-on batch produced nothing, so this proves nothing"
+
+    known = _every_reachable_category()
+    for dataset in datasets:
+        assert dataset.category, (
+            f"{dataset.property_id} declares no category, so the panel must "
+            "guess one from a registry this batch is not in"
+        )
+        assert dataset.category in known, (
+            f"{dataset.property_id} declares {dataset.category!r}, which is "
+            "not a category anything else produces -- it would open a "
+            "section of its own"
+        )
+
+    # ... and the specific one that was wrong, by name, so a future
+    # re-shuffle of the batch cannot quietly drop it back into "other".
+    charge = next(d for d in datasets if d.property_id == "gasteiger_charge")
+    assert charge.category == "charge"
+    assert not _real_registry().get("gasteiger_charge"), (
+        "gasteiger_charge is registered now, so the registry lookup would "
+        "resolve it and this test no longer covers the case it names"
+    )
+
+
+def test_a_declared_category_routes_a_dataset_the_registry_cannot_place():
+    """THE CONSUMER HALF, and it is the one a revert breaks silently.
+
+    The producer declaring a category buys nothing if the panel goes on
+    asking the registry. Driven through the real `PerAtomDataComputed`
+    path with an EMPTY registry, so there is nothing to resolve the id
+    and the declaration is the only thing that can put the row anywhere.
+    """
+    from openchem.chem.engine import ChemistryEngine
+    from openchem.domain.common import Provenance
+    from openchem.domain.scientific_result import PerAtomDataset
+    from openchem.events.base import EventBus
+    from openchem.events.events import MoleculeSelected, PerAtomDataComputed
+    from openchem.services.calculator_registry import CalculatorRegistry
+    from openchem.ui.panels.property_panel import PropertyPanel
+
+    class _Service:
+        def run_calculator(self, model, request) -> None:
+            pass
+
+    bus = EventBus()
+    panel = PropertyPanel(bus, CalculatorRegistry(), _Service(), ChemistryEngine())
+    try:
+        bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+        bus.publish(
+            PerAtomDataComputed(
+                dataset=PerAtomDataset(
+                    property_id="nothing_registered_owns_this",
+                    name="Declared Elsewhere",
+                    units="e",
+                    method="test",
+                    molecule_uuid="mol-1",
+                    values={0: 1.0},
+                    category="charge",
+                    provenance=Provenance(created_by="test", method="test"),
+                )
+            )
+        )
+
+        assert "charge" in panel._sections, (
+            "the declared category did not create its section, so the panel "
+            "is still routing by the registry"
+        )
+        assert "other" not in panel._sections, (
+            "the dataset landed in the generic section despite declaring "
+            "where it belongs"
+        )
+    finally:
+        panel.setParent(None)
+        panel.deleteLater()
+        QCoreApplication.sendPostedEvents(panel, QEvent.Type.DeferredDelete)
+
+
+def test_an_undeclared_dataset_still_asks_the_registry():
+    """THE NARROW HALF. Without it, "prefer the declaration" is satisfied
+    by ignoring the registry entirely -- which would break every dataset
+    a REGISTERED calculator produces, since those carry no category and
+    are placed by exactly that lookup.
+
+    An empty `category` is not a missing value here; it is the producer
+    saying "I am in the registry, ask it".
+    """
+    from openchem.chem.engine import ChemistryEngine
+    from openchem.domain.common import Provenance
+    from openchem.domain.scientific_result import PerAtomDataset
+    from openchem.events.base import EventBus
+    from openchem.events.events import MoleculeSelected, PerAtomDataComputed
+    from openchem.services.calculator_registry import CalculatorRegistry
+    from openchem.ui.panels.property_panel import PropertyPanel
+
+    registry = _real_registry()
+    definition = next(
+        d
+        for d in registry.by_category("charge")
+        if isinstance(d.execution, RegistryExecution)
+    )
+
+    class _Service:
+        def run_calculator(self, model, request) -> None:
+            pass
+
+    bus = EventBus()
+    panel = PropertyPanel(bus, registry, _Service(), ChemistryEngine())
+    try:
+        bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+        bus.publish(
+            PerAtomDataComputed(
+                dataset=PerAtomDataset(
+                    property_id=definition.calculator_id,
+                    name=definition.display_name,
+                    units="e",
+                    method="test",
+                    molecule_uuid="mol-1",
+                    values={0: 1.0},
+                    provenance=Provenance(created_by="test", method="test"),
+                )
+            )
+        )
+
+        assert "other" not in panel._sections, (
+            f"{definition.calculator_id} is registered under "
+            f"{definition.category!r} and still went to the generic section, "
+            "so the registry fallback has been removed"
+        )
+    finally:
+        panel.setParent(None)
+        panel.deleteLater()
+        QCoreApplication.sendPostedEvents(panel, QEvent.Type.DeferredDelete)
+
+
+def test_the_guide_states_the_real_number_of_collapsible_categories():
+    """The count in `docs/USER_GUIDE.md`, against the live enumeration.
+
+    **IT LIVES HERE RATHER THAN IN `test_docs_are_current.py`** because
+    this file already owns "which categories exist", and a second
+    implementation of that is the drift this repository has paid for four
+    times. The doc guards import from production for the same reason;
+    importing another TEST module is the smell.
+
+    **THE CLAIM IS ABOUT WHAT A USER SEES, so it was measured there** --
+    driven in the real application, aspirin selected, the Properties
+    panel dumped: 20 sections, matching this enumeration exactly. It said
+    25 for as long as anybody can trace, and the run that settled it also
+    turned up a 21st section holding one mis-routed result, which is the
+    two tests above.
+    """
+    import re
+    from pathlib import Path
+
+    guide = (
+        Path(__file__).resolve().parent.parent / "docs" / "USER_GUIDE.md"
+    ).read_text(encoding="utf-8")
+
+    stated = re.search(r"\*\*(\d+)\s*\n?collapsible categories\*\*", guide)
+    assert stated, "the guide no longer states a collapsible-category count"
+    assert int(stated.group(1)) == len(_every_reachable_category()), (
+        f"the guide says {stated.group(1)} collapsible categories and there "
+        f"are {len(_every_reachable_category())}"
+    )

@@ -1453,7 +1453,44 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `5559 passed, 15 skipped`
+A clean run is **6-19 minutes**, ending at `5591 passed, 15 skipped`
+(measured 2026-08-25, **15m37**, on `static-import-reachability` -- the
+reachability guard's three blind spots, the widening to all 277 modules,
+and the mis-routed result that measuring a doc claim turned up.
+
+**+15 collected and 0 REMOVED**, diffed both directions against master at
+`b1961d8`, which COLLECTS 5591:
+
+    master        b1961d8   COLLECTS 5591
+    the branch              COLLECTS 5606   = 5591 + 15
+    the run                          5591 passed + 15 skipped = 5606
+
+Every one of the 15 reconciles to this branch: 11 in
+`test_calculator_reachability.py` (the three walk guards, the refusal, the
+entry-point and wide-direction pair, the narrow half, the sidecar setup
+assertion, and the kind/reason check parametrised over the three declared
+modules) and 4 in `test_calculator_sections.py` (the always-on batch's
+declarations, both routing halves, and the guide's category count).
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line,
+which is the pair this file insists on rather than an absence of FAILED
+lines. The two `DeprecationWarning`s are the same pre-existing
+six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**THIRTEEN MUTATION ARMS, THIRTEEN CAUGHT**, each by the intended guard --
+and one of them is a lesson about the HARNESS rather than the code. M6
+(unmarking a genuinely unreachable module) scored `INVALID -- only 92 of
+93 ran`, because the kind/reason guard is PARAMETRISED OVER THE DECLARED
+SET, so removing a declaration legitimately removes a case. The ran-count
+rule that catches an arm which errored out is the same rule that
+false-positives on an arm which changes the parametrised population. Re-run
+by hand it fails the wide direction, which is the intended catcher.
+
+15m37 sits mid-band; the 6-19 range stands.)
+
+Before it: `5559 passed, 15 skipped`
 (measured 2026-08-20, **13m27**, on `make-the-new-science-reachable` --
 wiring PR #41's four unreachable modules, and the three defects that
 surfaced doing it.
@@ -7907,6 +7944,145 @@ against a printed closed form rather than by review:
 - benzene assigned to Miller's `CBR` row gives 13.99 against 10.39, and
   the row's symbol is the reason anybody would.
 
+
+## SHIPPED IS NOT REACHABLE, AND THE GUARD FOR IT HAD THREE BLIND SPOTS
+
+PR #42 added `tests/test_calculator_reachability.py` after four correct,
+guarded, sourced modules turned out to be reachable from nothing a user
+could press. It did not stop that recurring, and both reasons are worth
+knowing.
+
+**IT CHECKED FOUR MODULES.** Only the ones declaring
+`USER_FACING_PROVIDER` were checked, so a FIFTH unreachable module was
+invisible unless somebody remembered to declare it -- the "somebody
+remembers" failure the file exists to remove, one level up from where it
+was being fought.
+
+**AND ITS WALK UNDER-REPORTED REACHABILITY THREE WAYS**, each measured:
+
+    from openchem.chem import nmr_hybrid    the edge landed on the PACKAGE
+                                            and never the submodule, so
+                                            element_palettes and nmr_hybrid
+                                            both read unreachable
+    importing a.b.c imports a.b             chem/regulatory/__init__.py is
+                                            imported by name by NOTHING --
+                                            every consumer wants
+                                            regulatory.engine
+    the ROOT package keyed wrong            `removesuffix` binds to the
+                                            `join`, not the concatenation,
+                                            so src/openchem/__init__.py
+                                            became `openchem.__init__`
+
+The third is the one to remember: every SUBpackage came out right
+(`chem.regulatory.__init__` -> `chem.regulatory`) and only the root did
+not, which is exactly the one nothing would notice.
+
+**THE INVARIANT IS STATIC IMPORT REACHABILITY, NOT "THE APPLICATION RUNS
+THIS".** The walk is an AST pass over `import` statements; a module can be
+genuinely used without appearing in one. That distinction is concrete here
+rather than pedantic, because this project has three such modules -- so
+every name and message says *statically*, and nothing should ever be read
+as proof the application EXECUTES anything.
+
+    first-party modules                        277
+    statically reachable from openchem.main    274
+    script_path (a separate interpreter)         2   admet_runner, pka_runner
+    tooling (the suite and tools/, not the app)  1   tooltip_inventory
+
+**ONE ROOT, AND THE ROOT SET WAS A LOOPHOLE UNTIL REVIEW.** The plan
+rooted on `openchem.main` PLUS every registry compute. A compute module
+forced in as a root is *declared* reachable rather than *shown* to be, so
+a broken registration would still pass a guard whose entire subject is
+reachability. Measured, the extra roots also bought **nothing** -- `main`
+alone gives the identical answer -- so they are gone, and
+`test_the_registry_is_statically_reachable_from_the_entry_point` asserts
+the property they were quietly assuming.
+
+### `REACHED_BY`: a closed kind, a free reason, and both directions
+
+The exception is declared BY THE MODULE, in production source, discovered
+the way `USER_FACING_PROVIDER` already is. A test-side allowlist would be
+the "somebody remembers to add it to the list" failure wearing a new
+costume.
+
+    REACHED_BY = "script_path: handed to the ADMET environment's
+                  interpreter by chem/admet_providers.py"
+    REACHED_BY = "tooling: consumed by tests/test_tooltip_coverage.py and
+                  tools/list_tooltips.py, never by the running application"
+
+**THE KIND IS A CLOSED VOCABULARY AND THE REASON IS FREE TEXT**, which is
+the `applies_to`-beside-`category` split: a typo in a free-form kind reads
+as a silent exemption, while a new instance of a known mechanism should
+need no code change. The two kinds are genuinely different claims -- one
+is a runtime entry surface, the other is not an application surface at all
+-- and a single flat string would conflate them.
+
+**THE NARROW HALF IS LOAD-BEARING**: a MARKED module must genuinely be
+unreachable, derived from the walk. Without it, writing the marker on
+anything turns a red guard green.
+
+**A RELATIVE IMPORT IS REFUSED, NOT RESOLVED.** Review asked for
+relative-import resolution; measured first, this codebase contains
+**ZERO**. Building a resolver and fixtures for a case the tree does not
+contain is a second untested code path, and silently dropping one is the
+fail-open hole -- an edge the walk cannot see reads as an edge that is not
+there. So it raises, naming the file, and a guard asserts both arms. Same
+shape as the `**OPNE**` refusal and the inconclusive-probe rule.
+
+## "25 COLLAPSIBLE CATEGORIES" WAS 20, AND MEASURING IT FOUND A 21st
+
+`docs/USER_GUIDE.md` had claimed 25 for as long as it can be traced, and
+three earlier attempts to measure it failed. Driven in the real
+application -- aspirin selected, Properties dumped -- it is **20**, which
+is exactly what `_every_reachable_category()` in
+`tests/test_calculator_sections.py` already answered. That function reads
+the registry, both descriptor spec tables, and RUNS `compute_alerts`, so
+there was never a need for a second enumerator; the guard lives beside it
+rather than in `test_docs_are_current.py` for that reason.
+
+**THE FIRST RUN SHOWED 21, AND THE EXTRA ONE WAS A BUG.** A section named
+`other`, holding a single result: **"Partial Charge (Gasteiger)"**.
+
+`compute_per_atom` is the always-on batch, explicitly "not registry-driven",
+and the panel routed it by looking its `property_id` up in the registry
+anyway. Two of its three datasets resolved **by coincidence**:
+
+    crippen_logp_contrib   registered too  -> lipophilicity   by luck
+    crippen_mr_contrib     registered too  -> electronic      by luck
+    gasteiger_charge       NOT registered  -> "Other"
+
+The registered charge calculator is `gasteiger_charge_at_ph`, a different
+calculation with a pH parameter, so no twin existed for the third one and
+it fell through. `PerAtomDataset` carries a declared `category` now, the
+batch sets all three, and the panel prefers the producer's declaration
+with the registry as the FALLBACK -- which keeps working for every dataset
+a registered calculator produces, since those declare nothing and are
+placed by exactly that lookup.
+
+**AND THE EXISTING SUITE CAUGHT THE AMBIGUITY IN THAT FIX IMMEDIATELY.**
+`test_a_calculators_result_lands_in_its_own_section` reads
+`getattr(result, "category", None)`, and adding a field defaulting to `""`
+made every registered per-atom result start "carrying" one -- 16
+mismatches, `button in 'charge', result in ''`. Empty is not a missing
+value here; it is the producer saying *I am in the registry, ask it*. The
+guard reads `or None` now and keeps its real teeth: a NON-empty category
+disagreeing with its definition is still the bug it was written for.
+
+**THE DIAGNOSTIC COULD NOT NAME WHAT IT LISTED.** `_dump_container_items`
+printed `CollapsibleSection` twenty-one times, so its own docstring's
+question -- *"one section is given half"*, which one? -- was unanswerable
+from its output. It reverse-maps `_sections` and prints the category now,
+which is how the `other` section was found at all.
+
+**THIRTEEN MUTATION ARMS, THIRTEEN CAUGHT**, each by the intended guard,
+and one of them is a note about harnesses rather than about the code: M6
+(unmarking a genuinely unreachable module) scored `INVALID -- only 92 of
+93 ran`, because the kind/reason guard is PARAMETRISED OVER THE DECLARED
+SET and removing a declaration legitimately removes a case. The ran-count
+rule that catches an arm which errored out is the same rule that
+false-positives here. Re-run by hand it fails
+`test_every_module_is_statically_reachable_or_declares_why_not`, which is
+the intended catcher.
 
 ## SHIPPED IS NOT REACHABLE, AND FOUR MODULES PROVED IT
 
