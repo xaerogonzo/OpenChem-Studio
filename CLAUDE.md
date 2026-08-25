@@ -1819,27 +1819,28 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `5655 passed, 15 skipped`
-(measured 2026-08-25, **16m27**, on
+A clean run is **6-19 minutes**, ending at `5665 passed, 15 skipped`
+(measured 2026-08-25, **14m42**, on
 `alignment-geometry-and-batch-on-properties` -- the 3D alignment's three
 defects, and rebuilding batch on the Properties model.
 
-**+64 collected and 0 REMOVED**, diffed both directions in a detached
+**+74 collected and 0 REMOVED**, diffed both directions in a detached
 worktree with the `PYTHONPATH` override asserted before the count was
 believed:
 
     master        6962868   COLLECTS 5606
-    the branch              COLLECTS 5670   = 5606 + 64
-    the run                          5655 passed + 15 skipped = 5670
+    the branch              COLLECTS 5680   = 5606 + 74
+    the run                          5665 passed + 15 skipped = 5680
 
-Every one of the 64 reconciles to this branch: 18 in `test_batch_panel.py`
-(tri-state selection, the computation matrix, the three cell kinds), 14 in
-the new `test_batch_result_store.py`, 13 in `test_alignment.py` (the
-flexibility contract in two arms, the hydrogen invariant and its own
-setup guard, the partition, the two counts), 10 in the new
-`test_batch_detail_dialog.py`, 7 in `test_alignment_panel.py`
-(visibility, colour mode, the four new columns) and 2 in
-`test_batch_service.py` for the scope field that was read by nothing.
+Every one of the 74 reconciles to this branch: 28 in `test_batch_panel.py`
+(tri-state selection, the computation matrix, the three cell kinds, the
+group counts, persistence, column groups), 14 in the new
+`test_batch_result_store.py`, 13 in `test_alignment.py` (the flexibility
+contract in two arms, the hydrogen invariant and its own setup guard, the
+partition, the two counts), 10 in the new `test_batch_detail_dialog.py`,
+7 in `test_alignment_panel.py` (visibility, colour mode, the four new
+columns) and 2 in `test_batch_service.py` for the scope field that was
+read by nothing.
 
 **THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
 `grep -c "Windows fatal exception"` is 0 and there IS a summary line,
@@ -1848,7 +1849,7 @@ lines. The two `DeprecationWarning`s are the same pre-existing
 six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
 `test_trajectory_player.py`.
 
-16m27 sits mid-band; the 6-19 range stands. The run logged Chromium's
+14m42 sits mid-band; the 6-19 range stands. The run logged Chromium's
 `Failed to make current since context is marked as lost` partway through
 without costing any skips this time -- the `webgl` fixture's behaviour is
 already recorded two entries down, where the same message took 15 skips
