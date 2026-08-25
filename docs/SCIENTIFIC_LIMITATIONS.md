@@ -1412,7 +1412,7 @@ and a molecular atom that share index 7 are not the same object.
 ### Which calculators a crystal is offered, and why it is none of them
 
 Every calculator declares the structure kinds it applies to, and the
-default is molecule-only. Today **none of the 49 registered calculators
+default is molecule-only. Today **none of the 53 registered calculators
 declares a crystal**, so the crystal report says so outright rather than
 implying some subset applies. That is not a gap being admitted — a
 molecular weight, a logP or a rotatable-bond count is a property of a

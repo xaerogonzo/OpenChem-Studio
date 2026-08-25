@@ -6661,7 +6661,7 @@ same both-directions `--check` as `build_regulatory_rulesets.py`.
 `tests/test_sources_are_current.py` is the guard.
 
 **`source_key` IS THE INVARIANT; THE DOI SWEEP IS A BACKSTOP.** There are
-53 sources and **16 DOIs**, so a DOI-only guard would cover under a third of
+71 sources and **35 DOIs**, so a DOI-only guard would cover about half of
 them and leave every prose citation -- the CRC Handbook, the CWC schedules,
 IUPAC 2013 -- free to rot while the suite stayed green. Prose cites with
 `[source:key]`, never a bare backtick: these documents hold thousands of
@@ -8111,7 +8111,7 @@ wrong molecule.
 The structures come from `abraham_solutes.json` instead -- a SHIPPED,
 SOURCED dataset keyed by InChIKey and carrying each solute's name -- so the
 join is name to name and every structure was somebody else's transcription
-with its own provenance. **35 of 68 solvents are reachable from a drawn
+with its own provenance. **35 of 66 solvents are reachable from a drawn
 structure**; the rest have no structure here and get no donicity rather
 than a guessed one.
 

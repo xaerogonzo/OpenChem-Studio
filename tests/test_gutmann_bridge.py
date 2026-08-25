@@ -171,7 +171,7 @@ def test_a_drawn_solvent_resolves_by_inchikey(smiles, expected):
 
 
 def test_a_molecule_that_is_not_a_table_solvent_resolves_to_nothing():
-    """Silence rather than a nearest match. Gutmann measured 68 liquids."""
+    """Silence rather than a nearest match. The tables hold 66 liquids."""
     assert donicity_for_structure(Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O")) is None
     assert donicity_for_structure(None) is None
 
@@ -218,9 +218,15 @@ def test_the_structural_coverage_is_partial_and_that_is_the_honest_state():
     """A guard on the NUMBER, so a change that silently halves the reach
     fails here rather than showing up as a quieter panel.
 
-    35 of 68 today. The rest are liquids the Abraham solute table does not
+    35 of 66 today. The rest are liquids the Abraham solute table does not
     carry, and inventing a structure for them is exactly what this design
     refuses.
+
+    **66 AND NOT 68**, which is worth stating because the pre-merge union of
+    the two tables was 68: `dioxane`/`dioxan` and `glyme`/`dimethoxyethane`
+    were each ONE liquid wearing two names.
+    `test_the_solvent_count_is_the_merged_one` derives it so the number
+    cannot drift from the data again.
     """
     coverage = structural_coverage()
     assert 30 <= len(coverage) <= len(solvent_names())
@@ -306,3 +312,25 @@ def test_gutmann_numbers_never_enter_the_abraham_calculation():
         "chem/abraham.py now references the Gutmann tables. Donor and acceptor "
         "numbers are reported BESIDE the solvation shift, never fed into it."
     )
+
+
+def test_the_solvent_count_is_the_merged_one():
+    """66, NOT the 68 the two tables hold between them before merging.
+
+    `dioxane`/`dioxan` and `glyme`/`dimethoxyethane` are each ONE liquid
+    under two names, so the union of the donor and acceptor tables
+    overcounts by exactly the number of declared spelling variants. Five
+    places quoted 68 -- including prose written in the same commit that did
+    the merging -- so the relationship is derived here rather than trusted
+    to anyone remembering.
+    """
+    payload = _payload()
+    donors, acceptors = set(payload["donor_numbers"]), set(payload["acceptor_numbers"])
+    variants = payload["spelling_variants"]
+
+    assert len(solvent_names()) == len(donors | acceptors)
+    assert len(solvent_names()) == 66
+    assert len(variants) == 2
+    # The pre-merge union is what the stale number was, and naming it here
+    # is what stops somebody "correcting" 66 back to it.
+    assert len(solvent_names()) + len(variants) == 68

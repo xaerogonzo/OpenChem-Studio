@@ -171,7 +171,7 @@ def test_the_registry_reaches_gutmann_through_the_lewis_report():
 
 
 def test_a_molecule_that_is_not_a_table_solvent_gets_no_donicity():
-    """Silence rather than a nearest match. Gutmann measured 68 liquids,
+    """Silence rather than a nearest match. The tables hold 66 liquids,
     and "no donor number is published for this structure" is the honest
     answer for everything else."""
     result = _run("lewis_sites", "CC(=O)Oc1ccccc1C(=O)O")
