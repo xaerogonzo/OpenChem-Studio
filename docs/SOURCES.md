@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 8e041c301474b18e25260d3825db26f25be9d06efd638335c33d877e19bd9497 -->
+<!-- SOURCE SHA256: 953f3b6adba8c65542e1d36a75a620502fdf7ac87d274b26ccb802421ed55245 -->
 
 # Sources
 
@@ -128,6 +128,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`kaya2022`](#kaya2022) | literature | shipped | citation + claim |
 | [`kendall2008`](#kendall2008) | literature | shipped | citation |
 | [`ketcher`](#ketcher) | software | shipped | citation |
+| [`klapotke2017`](#klapotke2017) | literature | shipped | citation + claim |
 | [`kwon2023`](#kwon2023) | dataset | shipped | citation + claim |
 | [`langes15`](#langes15) | reference_table | shipped | citation + claim |
 | [`llinas2008`](#llinas2008) | dataset | shipped | citation |
@@ -165,6 +166,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`trott_olson2010`](#trott_olson2010) | literature | shipped | citation + claim |
 | [`tsei`](#tsei) | reference_table | reference only | citation |
 | [`vogel_drago1996`](#vogel_drago1996) | literature | shipped | citation + claim |
+| [`westwell1995`](#westwell1995) | literature | **not shipped** | citation |
 | [`wildman1999`](#wildman1999) | literature | shipped | citation |
 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
 
@@ -1415,6 +1417,119 @@ Tc 4.8 K, Pc 2.1 bar, Vc 7.5 cm3/mol, dHf 8.4 kJ/mol, dGf 8.4 kJ/mol,
 dHvap 1.27 kJ/mol, dHfus 2.0 kJ/mol. The paper says outright that Tb and
 especially Tf "are not accurate and should be considered as only very
 approximate".
+
+### klapotke2017
+
+<a id="klapotke2017"></a>
+
+> T. M. Klapoetke, 'Chemistry of High-Energy Materials', 4th edition, De Gruyter, Berlin/Boston, 2017. ISBN 978-3-11-053631-7.
+
+| | |
+| --- | --- |
+| Identifier | [10.1515/9783110536515](https://doi.org/10.1515/9783110536515) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-25 |
+| Local copy | `chemistry-of-high-energy-materials 4th.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_energetics.py` |
+
+The oxygen-balance definition (p127) and its reference table (Table 4.1,
+p128). Both closed forms are printed and BOTH ARE SHIPPED, because they are
+different quantities for the same substance -- TNT is -74.0% to CO2 and
+-24.7% to CO -- and the book subscripts them for that reason.
+
+    Omega_CO2 = [d - (2a) - (b/2)] x 1600 / M
+    Omega_CO  = [d -   a  - (b/2)] x 1600 / M
+
+**THE EDITION DECIDES THE DOI.** The 6th edition is 10.1515/9783110739503;
+this is the 4th, whose e-ISBN 978-3-11-053651-5 is the 9783110536515 the
+page's own chapter DOI carries. Registering the edition actually read.
+
+**citation_and_claim BECAUSE TABLE 4.1'S NINE ROWS ALL REPRODUCE**, worst
+deviation 0.08 percentage points, which is the book's own one-decimal
+printing. The table prints a FORMULA beside each value, and that is what
+caught a wrong fixture: the first hexanitrostilbene SMILES was a dinitro
+compound, C14H10N2O4 against the printed C14H6N6O12, which would have read
+as a 104 percentage-point failure of the code.
+
+**AND READING IT SETTLED A SIGN A REVIEW GOT BACKWARDS.** A review of this
+work supplied the expression with a leading minus while quoting TNT at -74%
+in the same sentence; the negated form gives TNT +73.97 and nitroglycerin
+-3.52, both exactly inverted. The book's form has no leading minus.
+
+TWO PLACES WHERE THIS BOOK DEPARTS FROM ITS OWN PRIMARY SOURCES, both found
+by reading those sources and both recorded so nobody "corrects" the code
+toward the textbook:
+
+- **The Kamlet-Jacobs constant.** p253 and the Appendix give K = 15.88;
+  [source:kamlet1968], which is this book's own ref [17], states 15.58
+  three times -- the abstract, Eq. (8), and as the slope of its Fig. 1. The
+  string '15.88' does not occur in that paper.
+- **The sublimation rule.** The Appendix prints `dHsub = 188 Tm`; its ref
+  [25], Westwell et al., fits `y = mx + c` with c = 0.522 kJ/mol, which the
+  book drops. See [source:westwell1995] for why that rule is not used here
+  at all.
+
+The book also carries the Springall-Roberts rules and a worked TNT
+decomposition (Table 4.2), which is the fixture the detonation work will
+need.
+
+### westwell1995
+
+<a id="westwell1995"></a>
+
+> M. S. Westwell, M. S. Searle, D. J. Wales & D. H. Williams, 'Empirical Correlations between Thermodynamic Properties and Intermolecular Forces', J. Am. Chem. Soc. 1995, 117, 5013-5015.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja00123a001](https://doi.org/10.1021/ja00123a001) |
+| Status | **not shipped** |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `westwell1995.pdf` (not checked) |
+
+**Why it is not shipped.** The primary source for the `dHsub = 188 Tm` sublimation rule -- and the
+reason that rule is NOT used to bridge Joback's ideal-GAS enthalpy of
+formation to the condensed-phase value Kamlet-Jacobs needs.
+
+**ITS DOMAIN EXCLUDES EVERY CLASSIC ENERGETIC MATERIAL.** The paper states
+the restriction three times, including in its abstract: the correlation
+"only becomes apparent after removing those substances which possess
+internal rotors", and "all long-chain organic molecules (with more than two
+internal rotations) have been excluded from the data set together with the
+12 compounds which were found to deviate from Trouton's rule". It holds for
+compounds that "obey Trouton's rule, have few or zero internal rotors, and
+do not possess the high symmetry which allows an overall rotation in the
+crystal". r = 0.95 over 160 points, and the paper calls its own scatter
+enough that the relation is "only a crude guide".
+
+Measured against that criterion, 0 of 8:
+
+    TNT   3 rotatable > 2      RDX   3 > 2      HMX  4 > 2
+    PETN 12 rotatable > 2      NG    8 > 2      HNS  4 > 2
+    picric acid     3 > 2, and an H-bond donor
+    nitroguanidine  3 H-bond donors
+
+The nitro groups ARE the rotors. So this is not a rule to apply with a
+caveat; it is one whose published domain excludes the compound class the
+calculation is for.
+
+**AND THE FIRST DOI WRITTEN HERE WAS INVENTED AND WRONG.** The PDF prints
+none -- a 1995 article whose identifier was assigned retroactively -- and
+`10.1021/ja00122a049` was written from the shape of an ACS identifier
+rather than from a record. The real one is `10.1021/ja00123a001`, confirmed
+at pubs.acs.org against the title, volume 117, issue 18 and pages
+5013-5015. Caught because the schema refuses `unverified` beside a
+`verified_date`, which forced the question rather than letting a
+plausible-looking string through.
+
+Registered although nothing ships from it, which is the exception rather
+than the rule here -- a source that establishes a REFUSAL is doing work,
+and the next person to propose estimating a sublimation enthalpy in this
+project needs the measurement rather than a second run at it.
+
+Its domain test is computable: more than two internal rotations, an H-bond
+donor, or crystal-rotation symmetry puts a substance outside.
 
 ### glasser1995
 

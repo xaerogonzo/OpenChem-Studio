@@ -144,6 +144,8 @@ _CATEGORY_LABELS = {
     # the descriptor section and would put a critical volume next to a
     # hydrogen-bond donor count.
     "thermophysical": "Thermophysical",
+    # Oxygen balance, and the detonation properties when they land.
+    "energetic": "Energetic Materials",
     "physicochemical": "Physicochemical",
     "identity": "Identity",
     "naming": "Naming",

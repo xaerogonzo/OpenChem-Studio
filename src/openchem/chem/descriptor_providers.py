@@ -43,6 +43,7 @@ from openchem.chem.electronic_properties import (
     compute_polarizability,
 )
 from openchem.chem.hlb import compute_griffin_hlb
+from openchem.chem.energetics import compute_oxygen_balance
 from openchem.chem.joback import compute_joback
 from openchem.chem.huckel import compute_huckel_analysis, compute_pi_electron_density
 from openchem.chem.lewis import compute_lewis_sites
@@ -2382,6 +2383,26 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         prediction_basis="empirical",
         tags=["surface", "surfactant", "hlb", "formulation"],
         parameters=[decimal_places_parameter()],
+    ),
+    CalculatorDefinition(
+        calculator_id="oxygen_balance",
+        display_name="Oxygen Balance",
+        category="energetic",
+        description=(
+            "Whether a substance carries enough oxygen to burn its own carbon and "
+            "hydrogen, as a percentage of its mass. BOTH published conventions are "
+            "reported, because they are different quantities for the same substance: "
+            "TNT is -74.0% burning carbon to CO2 and -24.7% burning it only to CO, and "
+            "a substance can be negative on one and positive on the other. Defined for "
+            "C/H/N/O only, so a sulfur, a halogen or a metal is refused with the element "
+            "named rather than silently ignored. A composition figure, not a performance "
+            "one -- it says nothing on its own about how powerful or how sensitive "
+            "something is."
+        ),
+        execution=RegistryExecution(compute=compute_oxygen_balance),
+        prediction_basis="empirical",
+        tags=["energetic", "oxygen balance", "combustion", "stoichiometry"],
+        parameters=[decimal_places_parameter(1)],
     ),
     CalculatorDefinition(
         calculator_id="joback_properties",

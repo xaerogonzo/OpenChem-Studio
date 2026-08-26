@@ -976,6 +976,7 @@ CATEGORY_ROWS: dict[str, str] = {
     "medicinal_chemistry": "Medicinal Chemistry",
     "physicochemical": "Physicochemical",
     "thermophysical": "Thermophysical",
+    "energetic": "Energetic Materials",
     "charge": "Charge",
     "electronic": "Electronic Properties",
     "geometry": "Geometry (3D)",
