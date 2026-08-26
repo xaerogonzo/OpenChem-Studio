@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+import io
 import sys
 import time
 from importlib import import_module
@@ -7,7 +9,17 @@ from types import ModuleType
 from typing import Any
 
 from rdkit import Chem
-from rdkit.Chem import Crippen, Descriptors, Descriptors3D, Fragments, Lipinski, QED, rdMolDescriptors, rdPartialCharges
+from rdkit.Chem import (
+    Crippen,
+    Descriptors,
+    Descriptors3D,
+    Fragments,
+    GraphDescriptors,
+    Lipinski,
+    QED,
+    rdMolDescriptors,
+    rdPartialCharges,
+)
 from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
 
 from openchem.chem.elemental_analysis import compute_elemental_analysis
@@ -162,6 +174,30 @@ _DESCRIPTOR_SPECS: list[tuple[str, str, str, str]] = [
     # properties, not a probability that a molecule is a drug.
     ("qed", "QED (Drug-likeness)", "", "medicinal_chemistry"),
     ("sa_score", "Synthetic Accessibility", "", "medicinal_chemistry"),
+    # NP-likeness [source:ertl2008] via RDKit's 2015 public-corpus re-fit
+    # [source:npscorer2015] -- a BAYESIAN COMPARISON AGAINST A CORPUS, never a
+    # statement about where a molecule came from. Caffeine is a natural product
+    # and scores -1.09; morphine scores +2.59.
+    #
+    # THE CONFIDENCE IS A SEPARATE ROW BECAUSE THE SCORE CANNOT CARRY IT.
+    # `scoreMolWConfidence` reports the fraction of the molecule's Morgan
+    # fragments that were in the training model, and an unfound fragment
+    # contributes ZERO to the sum -- so a molecule at confidence 0 scores
+    # exactly 0.0 BY CONSTRUCTION, indistinguishable from one genuinely
+    # scored as neutral. Methane is that case. Two named rows, for the same
+    # reason oxygen balance ships as two: a single value lets a screenshot
+    # collapse the distinction the naming exists to preserve.
+    ("np_likeness", "NP-Likeness (Natural Product)", "", "medicinal_chemistry"),
+    ("np_likeness_confidence", "NP-Likeness Confidence", "", "medicinal_chemistry"),
+    # Bertz's complexity index [source:bertz1981] via RDKit, WHICH
+    # DELIBERATELY DEPARTS FROM THE PAPER FOR AROMATICS [source:rdkit_bertz].
+    # Two molecules can share a value: methane and propane are both 0.
+    ("bertz_ct", "Molecular Complexity (Bertz CT)", "", "medicinal_chemistry"),
+    # Lovering's "escape from flatland" fraction [source:lovering2009]:
+    # sp3-hybridised carbons over all carbons. Benzene is 0.00, cyclohexane
+    # 1.00. A molecule with NO carbon is 0.0 rather than undefined -- RDKit's
+    # own convention, recorded because it is a division by zero that returns.
+    ("fsp3", "Fraction sp3 Carbon", "", "medicinal_chemistry"),
     ("lipinski_pass", "Lipinski Ro5 (≤1 violation)", "", "medicinal_chemistry"),
     ("veber_pass", "Veber Rule", "", "medicinal_chemistry"),
     ("ghose_pass", "Ghose Filter", "", "medicinal_chemistry"),
@@ -248,6 +284,73 @@ def _load_sascorer() -> ModuleType:
         sys.path.append(contrib_dir)
     _sascorer_module = import_module("sascorer")
     return _sascorer_module
+
+
+_npscorer_module: ModuleType | None = None
+_np_model: dict | None = None
+
+#: Why a zero-confidence NP-likeness is refused rather than reported as 0.0.
+#: Not a rounding statement -- `scoreMolWConfidence` sums `fscore[bit]` only
+#: over fragments PRESENT in the model, so a molecule sharing none of them
+#: scores exactly 0.0 arithmetically. The scalar alone cannot distinguish
+#: "balanced" from "recognised nothing", which is the `AlertResult`
+#: empty-versus-FAILED distinction in a new place.
+#: SHORT ON PURPOSE. The panel puts this string in the value CELL and in its
+#: tooltip, from one field, and the cell is about 100 px at the dock's minimum
+#: width -- so a sentence-length reason renders as a clipped fragment. Measured
+#: in the running app: the first draft of this message was cut mid-word at
+#: "None of this molecule's fragments ap". The reasoning it used to carry lives
+#: in this module and in [source:npscorer2015], where a developer reads it;
+#: what a USER needs in a value cell is the fact.
+_NP_NO_KNOWN_FRAGMENTS_ERROR = "Not in the training corpus"
+
+
+def _load_npscorer() -> tuple[ModuleType, dict]:
+    """Ertl's NP-likeness [source:ertl2008], via RDKit's own re-fit model.
+
+    **NOT THE PAPER'S MODEL, AND npscorer.py SAYS SO ITSELF**
+    [source:npscorer2015]: its header records ~50,000 natural products from
+    open databases against ~1M ZINC molecules as background, "for the
+    training of this model only openly available data have been used", dated
+    2015. The 2008 paper's model was Novartis's. For a BAYESIAN score the
+    corpus is part of what the number means, so the paper is the method and
+    this is a different fit of it -- do not gate the shipped number on the
+    paper's printed values. Same split as `vogel_drago1996`'s
+    `_parameter_scale`.
+
+    **THE API IS NOT `_load_sascorer`'s, AND COPYING THAT PATTERN RAISES.**
+    `npscorer` has no `calculateScore` -- that name belongs to `sascorer`.
+    Its surface is `readNPModel()` / `scoreMol(mol, fscore)` /
+    `scoreMolWConfidence(mol, fscore)`, and the model is a SECOND argument
+    that must be loaded first, where the SA scorer loads its own data on
+    import. Measured: 0.09 s for 266,104 fragments, so both are cached at
+    module level.
+
+    **`readNPModel` PRINTS TO STDERR, NOT STDOUT** -- `print(..., file=sys.stderr)`
+    inside RDKit's Contrib script, "reading NP model ..." then "model in".
+    Harmless in a notebook and console noise in a GUI process, so it is
+    captured here rather than by editing RDKit. **The stream was measured
+    rather than assumed**: a `redirect_stdout` written first captured nothing
+    and the lines still appeared, which is the whole reason this sentence
+    names the stream. Suppressed only around the load; a real exception still
+    propagates.
+
+    Reached exactly as `_load_sascorer` reaches the SA scorer -- via
+    `RDConfig.RDContribDir`, never vendored, so this only ever reuses
+    RDKit's own code.
+    """
+    global _npscorer_module, _np_model
+    if _npscorer_module is not None and _np_model is not None:
+        return _npscorer_module, _np_model
+    from rdkit import RDConfig
+
+    contrib_dir = f"{RDConfig.RDContribDir}/NP_Score"
+    if contrib_dir not in sys.path:
+        sys.path.append(contrib_dir)
+    _npscorer_module = import_module("npscorer")
+    with contextlib.redirect_stderr(io.StringIO()):
+        _np_model = _npscorer_module.readNPModel()
+    return _npscorer_module, _np_model
 
 
 _pains_catalog: FilterCatalog | None = None
@@ -653,6 +756,12 @@ class RDKitDescriptorProvider(DescriptorProvider):
         gsk_400_pass = not (mol_logp > 4 and mol_wt > 400)
         rule_of_three_pass = mol_wt < 300 and mol_logp <= 3 and num_hbd <= 3 and num_hba <= 3
 
+        # ONE call for both halves: `scoreMolWConfidence` returns them
+        # together, and computing the score and the confidence separately
+        # would fingerprint the molecule twice for one answer.
+        _npscorer, _np_fscore = _load_npscorer()
+        np_result = _npscorer.scoreMolWConfidence(mol, _np_fscore)
+
         raw_values = {
             "mol_wt": mol_wt,
             "exact_mass": Descriptors.ExactMolWt(mol),
@@ -671,6 +780,10 @@ class RDKitDescriptorProvider(DescriptorProvider):
             "mcgowan_volume": _mcgowan_volume(mol),
             "qed": QED.qed(mol),
             "sa_score": _load_sascorer().calculateScore(mol),
+            "np_likeness": np_result.nplikeness,
+            "np_likeness_confidence": np_result.confidence,
+            "bertz_ct": GraphDescriptors.BertzCT(mol),
+            "fsp3": Descriptors.FractionCSP3(mol),
             "lipinski_pass": lipinski_violations <= 1,
             "veber_pass": veber_pass,
             "ghose_pass": ghose_pass,
@@ -682,6 +795,15 @@ class RDKitDescriptorProvider(DescriptorProvider):
             "gsk_400_pass": gsk_400_pass,
             "rule_of_three_pass": rule_of_three_pass,
         }
+        # A descriptor whose value would be arithmetic rather than a
+        # measurement is FAILED with a reason, following the shape
+        # descriptors' `_NEEDS_CONFORMER_ERROR` path. The CONFIDENCE is
+        # still reported -- 0.000 is a real statement about the molecule,
+        # and blanking it too would hide why the score is absent.
+        refusals: dict[str, str] = {}
+        if np_result.confidence == 0.0:
+            refusals["np_likeness"] = _NP_NO_KNOWN_FRAGMENTS_ERROR
+
         values = [
             DescriptorValue(
                 descriptor_id=descriptor_id,
@@ -690,9 +812,14 @@ class RDKitDescriptorProvider(DescriptorProvider):
                 category=category,
                 provider=self.provider_id,
                 molecule_uuid=molecule_uuid,
-                value=raw_values[descriptor_id],
+                value=None if descriptor_id in refusals else raw_values[descriptor_id],
                 timestamp=now,
-                cache_state=CacheState.COMPLETED,
+                cache_state=(
+                    CacheState.FAILED
+                    if descriptor_id in refusals
+                    else CacheState.COMPLETED
+                ),
+                error=refusals.get(descriptor_id),
                 provenance=provenance,
             )
             for descriptor_id, name, units, category in _DESCRIPTOR_SPECS

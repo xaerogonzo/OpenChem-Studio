@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: bcad65b6201f69195fb2e65fb405ca6b05157c78c60cd7094a298205bbab19c2 -->
+<!-- SOURCE SHA256: ebdf2b96abb58be206e30e7baefb1bd80e94505be9b755cd0d21453899234a46 -->
 
 # Sources
 
@@ -94,6 +94,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`avdeef2007`](#avdeef2007) | literature | shipped | citation + claim |
 | [`avdeef2020`](#avdeef2020) | literature | shipped | citation + claim |
 | [`baell2010`](#baell2010) | literature | shipped | citation |
+| [`bertz1981`](#bertz1981) | literature | shipped | citation |
 | [`bickerton2012`](#bickerton2012) | literature | shipped | citation |
 | [`bolovinos1984`](#bolovinos1984) | literature | shipped | citation + claim |
 | [`bradley2014`](#bradley2014) | dataset | shipped | citation + claim |
@@ -111,6 +112,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`drago1990`](#drago1990) | literature | shipped | citation |
 | [`drago1993`](#drago1993) | literature | shipped | citation |
 | [`ertl2000`](#ertl2000) | literature | shipped | citation |
+| [`ertl2008`](#ertl2008) | literature | shipped | citation |
 | [`ertl2009`](#ertl2009) | literature | shipped | citation |
 | [`gasteiger1980`](#gasteiger1980) | literature | shipped | citation |
 | [`gasteiger1985`](#gasteiger1985) | literature | **not shipped** | citation |
@@ -136,6 +138,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`llinas2019`](#llinas2019) | dataset | reference only | citation |
 | [`llinas2020`](#llinas2020) | dataset | shipped | citation + claim |
 | [`lorentzon1995`](#lorentzon1995) | literature | reference only | citation + claim |
+| [`lovering2009`](#lovering2009) | literature | shipped | citation |
 | [`marsili1980`](#marsili1980) | literature | **not shipped** | citation |
 | [`mayer1975`](#mayer1975) | literature | reference only | citation |
 | [`mayo1990`](#mayo1990) | literature | shipped | citation + claim |
@@ -145,6 +148,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`molstar`](#molstar) | software | shipped | citation |
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
 | [`nmrshiftdb2`](#nmrshiftdb2) | dataset | shipped | citation |
+| [`npscorer2015`](#npscorer2015) | software | shipped | citation |
 | [`nubase2020`](#nubase2020) | dataset | shipped | citation + claim |
 | [`ons_solubility`](#ons_solubility) | dataset | shipped | citation |
 | [`openbabel`](#openbabel) | software | shipped | citation |
@@ -158,6 +162,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`ran2002`](#ran2002) | literature | reference only | citation |
 | [`rcsb_pdb`](#rcsb_pdb) | dataset | shipped | citation |
 | [`rdkit`](#rdkit) | software | shipped | citation |
+| [`rdkit_bertz`](#rdkit_bertz) | software | shipped | citation + claim |
 | [`schott1989`](#schott1989) | literature | shipped | citation + claim |
 | [`sci_downloads_note`](#sci_downloads_note) | reference_table | reference only | citation |
 | [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
@@ -1598,6 +1603,99 @@ of the charge, which is not a crystal density and which P depends on as its
 square, and the condensed-phase enthalpy of formation -- see
 [source:westwell1995] for why the published bridge from an ideal-gas value
 cannot be used for this compound class.
+
+### ertl2008
+
+<a id="ertl2008"></a>
+
+> P. Ertl, S. Roggo & A. Schuffenhauer, 'Natural Product-likeness Score and Its Application for Prioritization of Compound Libraries', J. Chem. Inf. Model. 2008, 48, 68-74.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ci700286x](https://doi.org/10.1021/ci700286x) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `ertl2007.pdf` (not checked) |
+| Used by | `src/openchem/chem/descriptor_providers.py` |
+
+The METHOD behind the `np_likeness` descriptor: a naive-Bayes sum of fragment
+contributions over Morgan environments, normalised by atom count.
+
+**THE LOCAL FILENAME SAYS 2007 AND THE CITATION SAYS 2008, AND BOTH ARE
+RIGHT.** The paper is *Received August 3, 2007* and published in JCIM volume
+48 in 2008; the file is named for submission. Recorded rather than renamed,
+because an entry whose `local` does not match its `citation` reads as the
+wrong-document error this project has made twice -- [source:avdeef2020]
+carried another paper's title, and `gutmann_frontiers2022` claimed a PDF that
+was an unrelated paper sharing only a year in its filename.
+
+**THIS PAPER'S NUMBERS ARE NOT THE SHIPPED NUMBERS.** RDKit bundles a 2015
+re-fit on a public corpus -- see [source:npscorer2015], which is the entry
+describing what actually runs. The paper defines the method; the model decides
+what the number means, and for a Bayesian score those are different claims. Do
+not gate the shipped value on anything printed here.
+
+### bertz1981
+
+<a id="bertz1981"></a>
+
+> S. H. Bertz, 'The First General Index of Molecular Complexity', J. Am. Chem. Soc. 1981, 103, 3599-3601.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja00402a071](https://doi.org/10.1021/ja00402a071) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `bertz1981.pdf` (not checked) |
+| Used by | `src/openchem/chem/descriptor_providers.py` |
+
+The METHOD behind the `bertz_ct` descriptor: a sum of two information-content
+terms, one for the complexity of the bonding and one for the distribution of
+heteroatoms.
+
+**THE PDF OPENS ON A DIFFERENT ARTICLE** -- page 1 is the tail of a
+polyoxometalate paper sharing the sheet, which is the trap already recorded
+for `Drago & Wayland EC 1965.pdf`. Confirmed by full-text search: "The First
+General Index of Molecular Complexity, Steven H. Bertz, Bell Laboratories" IS
+inside. A first page is not a paper.
+
+**RDKit'S IMPLEMENTATION DELIBERATELY DEPARTS FROM THIS PAPER FOR ANY AROMATIC
+MOLECULE** -- see [source:rdkit_bertz]. So a printed value here is a valid
+oracle only for a NON-AROMATIC structure, and an aromatic one would be testing
+the wrong thing. That scoping is the whole reason the implementation has an
+entry of its own.
+
+### lovering2009
+
+<a id="lovering2009"></a>
+
+> F. Lovering, J. Bikker & C. Humblet, 'Escape from Flatland: Increasing Saturation as an Approach to Improving Clinical Success', J. Med. Chem. 2009, 52, 6752-6756.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jm901241e](https://doi.org/10.1021/jm901241e) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `lovering2009.pdf` (not checked) |
+| Used by | `src/openchem/chem/descriptor_providers.py` |
+
+The source for the `fsp3` descriptor -- sp3-hybridised carbons over all
+carbons, the paper's measure of three-dimensionality, correlated there with
+clinical success and with solubility.
+
+**THE DOI IS READ OFF THE PDF'S OWN FIRST PAGE** (`DOI: 10.1021/jm901241e`),
+which is a stronger check than any index and is why this entry needed no
+publisher lookup.
+
+Fsp3 is arithmetic over hybridisation with no fitted parameter, so there is no
+table to transcribe and nothing to get wrong in one -- which is why this stays
+`citation`: the paper supplies the CONCEPT and its interpretation, not a
+number this project reproduces. **A carbon-free molecule is 0.0 rather than
+undefined**, RDKit's own convention for the zero denominator, recorded because
+it returns rather than raising.
 
 ### glasser1995
 
@@ -3050,3 +3148,106 @@ fallback and rejected: it puts propranolol at 5.65 against a real 9.42, off
 by 3.8. That whole design existed only because a probe passed `None` for an
 interpreter path and so reported pkasolver as 'not installed' on a machine
 where it plainly was.
+
+### npscorer2015
+
+<a id="npscorer2015"></a>
+
+> P. Ertl, 'npscorer.py' -- the NP-likeness model re-fitted on openly available data, bundled with RDKit as Contrib/NP_Score.
+
+| | |
+| --- | --- |
+| Identifier | <https://github.com/rdkit/rdkit/tree/master/Contrib/NP_Score> |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Licence | BSD-3-Clause |
+| Package | `rdkit` |
+| Version source | `pyproject.toml` |
+
+**WHAT ACTUALLY RUNS when this project reports NP-likeness**, as distinct from
+[source:ertl2008], which is the method. The module's own header, read from the
+installed distribution:
+
+    for the training of this model only openly available data have been used
+    ~50,000 natural products collected from various open databases
+    ~1 million drug-like molecules from ZINC as a "non-NP background"
+    -- peter ertl, august 2015
+
+The 2008 paper's model was Novartis's. **For a BAYESIAN score the corpus is
+part of what the number means**, so this is a different fit of the same method
+rather than an implementation detail -- the same reason
+[source:vogel_drago1996] carries `_parameter_scale`, and the reason no printed
+value from the paper may gate the shipped number.
+
+**THE CONFIDENCE IS NOT DECORATION, AND THE MECHANISM WAS READ RATHER THAN
+ASSUMED.** `scoreMolWConfidence` computes `confidence = bits_found /
+len(bits)` -- the fraction of the molecule's Morgan environments present in
+the model -- and the score sums `fscore[bit]` over FOUND bits only. An unfound
+fragment therefore contributes ZERO, so a molecule at confidence 0 scores
+**exactly 0.0 by construction**, arithmetically identical to one genuinely
+judged neutral. Methane is that case. This project refuses the score at zero
+confidence and reports the confidence beside it at every other value.
+
+**THE API IS NOT `sascorer`'s.** There is no `calculateScore`; the surface is
+`readNPModel()` / `scoreMol(mol, fscore)` / `scoreMolWConfidence(mol,
+fscore)`, and the model is a second argument that must be loaded first.
+`readNPModel` also prints to **stderr** -- `print(..., file=sys.stderr)` --
+measured after a `redirect_stdout` written first captured nothing and the
+lines still appeared.
+
+**verification = citation, DELIBERATELY NOT `citation_and_claim`.** The
+module's source was read and the mechanism above confirmed from it, but no
+PRINTED value gates the score: this model has no published table to check
+against, which is exactly what distinguishes it from the paper. Upgrading this
+row would need an oracle that does not exist.
+
+### rdkit_bertz
+
+<a id="rdkit_bertz"></a>
+
+> RDKit, `rdkit.Chem.GraphDescriptors.BertzCT` -- an implementation of Bertz's index that deliberately changes its aromatic bond handling.
+
+| | |
+| --- | --- |
+| Identifier | <https://github.com/rdkit/rdkit/blob/master/rdkit/Chem/GraphDescriptors.py> |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-25 |
+| Licence | BSD-3-Clause |
+| Package | `rdkit` |
+| Version source | `pyproject.toml` |
+
+**WHAT ACTUALLY RUNS when this project reports molecular complexity**, as
+distinct from [source:bertz1981], which is the method. Its docstring states
+the divergence in its own words:
+
+    The original implementation ... treats aromatic rings as the
+    corresponding Kekule structure ... Upon further thought, this is the WRONG
+    thing to do. ... THIS MEANS THAT THIS IMPLEMENTATION IS NOT BACKWARDS
+    COMPATIBLE. Any molecule containing aromatic rings will yield different
+    values with this implementation.
+
+The reasoning is sound -- a kekulisation-dependent index gives one molecule
+two values -- so this is a CORRECTION rather than a deviation. It is still not
+the paper's arithmetic, and a printed aromatic value must never be used as an
+oracle for it.
+
+**citation_and_claim, BECAUSE THE STATED CONTRACT IS CHECKED NUMERICALLY.**
+The docstring names two kekule forms of one molecule that the old
+implementation scored differently. Measured live against the installed RDKit:
+
+    CC2=CN=C1C3=C(C(C)=C(C=N3)C)C=CC1=C2C     706.238143
+    CC3=CN=C2C1=NC=C(C)C(C)=C1C=CC2=C3C       706.238143
+
+Equal, and both parse to the same canonical SMILES. That is an oracle the
+paper cannot supply and this implementation can, which is what a separate
+entry buys: the claim under test is *this code's* stated improvement, not the
+1981 numbers.
+
+**A WARNING IN THE SAME DOCSTRING DOES NOT REPRODUCE.** It says BertzCT
+"barfs if the molecule contains a second (or nth) fragment that is one atom".
+Tried on `[Na+].[Cl-]` (2.0000), aspirin sodium (348.4201), ammonium nitrate
+(27.8743) and a lone `[Na+]` (0.0000) -- no raise anywhere. Recorded as *not
+reproduced on the salts tried* rather than as absent, since this application
+ships salts as fixtures.
