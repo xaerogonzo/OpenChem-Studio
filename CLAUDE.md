@@ -1851,13 +1851,25 @@ two `DeprecationWarning`s are the same pre-existing six-argument
 `QMouseEvent` overload in `test_dock_title_bar.py` and
 `test_trajectory_player.py`.
 
-**CI MEASURED THE PREVIOUS COMMIT OF THIS BRANCH AT 5850 passed, 19 skipped,
-1 deselected** (run 32923570851, PR #46, 16m18), which is the same 5870:
-5850 + 19 + 1. The four extra skips are the GPU-gated conformer gallery
-guards and the deselection is the PubChem network test, both already
-documented above. **All three gates RAN** -- "Naming benchmark holds at
-181/181", the regulatory benchmark and the ruleset validation -- which is the
-step list rather than the conclusion.
+**CI MEASURES THE SAME TREE AT 5877 passed, 19 skipped, 1 deselected**
+(run 32925668575, PR #46, 19m49), which is the same 5897: 5877 + 19 + 1. The
+four extra skips are the GPU-gated conformer gallery guards and the
+deselection is the PubChem network test, both already documented above. Worth
+stating because a reader comparing the two figures should not go looking for
+five lost tests.
+
+**THAT RUN IS ON `9e9e287` AND THIS ENTRY IS IN ITS CHILD**, which is the
+weaker of the two claims this file allows and is checkable rather than
+assumed: the child adds only this CLAUDE.md entry and no test, so
+`--collect-only` is unmoved at 5897. Citing the run that measures the tree
+the figure DESCRIBES is the point -- this section has already thrown away one
+figure for describing a tree that no longer existed.
+
+**All three gates RAN** -- "Naming benchmark holds at 181/181", the
+regulatory benchmark and the ruleset validation -- which is the step list
+rather than the conclusion, and the thing a red suite would have taken with
+it. The previous commit `d7e0735` measured 5850 + 19 + 1 = 5870 on run
+32923570851, agreeing with its own local figure the same way.
 
 **AND THAT WAS THIS BRANCH'S FIRST CI RUN AT 4,729 LINES.** `tests.yml`
 fires only on push-to-master or on `pull_request`, so a branch accumulating
