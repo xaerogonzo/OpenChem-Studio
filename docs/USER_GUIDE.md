@@ -706,7 +706,7 @@ arrived together. It reads as a slow dialog and is not one.
 | Surface Area | SASA (total and per-atom), vdW surface, molecular volume, and Griffin's HLB for polyoxyethylene nonionic surfactants |
 | Structure Generators | stereoisomers, tautomers, resonance forms, conformers |
 | Quantum (Hückel) | orbital energies, π densities, HOMO/LUMO and the gap |
-| Electronic Properties | polarizability by three methods — Jensen's additive scheme and Miller's ahc and ahp — plus per-atom polarizability, orbital electronegativity and molar refractivity |
+| Electronic Properties | polarizability by three methods — Jensen's additive scheme and Miller's ahc and ahp — plus per-atom polarizability, orbital electronegativity in either the sigma or the pi component, and molar refractivity |
 | Lewis acid/base | donor and acceptor sites with the role and strength of each, and whether a chosen pair forms an adduct — with every applicable line of evidence side by side rather than one score |
 | Stereochemistry | CIP descriptors and the stereocentres they label |
 | Medicinal Chemistry | Lipinski, Veber, Ghose, Egan, Pfizer 3/75, GSK 4/400, Rule of Three, QED, PAINS |

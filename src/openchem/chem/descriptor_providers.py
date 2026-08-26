@@ -2824,12 +2824,21 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
                 choices=list(ORBITAL_COMPONENTS),
             ),
             CalculatorParameter(
+                # SAYS "sigma only" BECAUSE THE PI BRANCH IGNORES IT, and a
+                # tick box that silently does nothing is worse than an
+                # absent one. Hydrogen has no pi orbital and no row in
+                # Marsili & Gasteiger's Table I; the settings dialog builds
+                # one widget per parameter with no conditional visibility,
+                # so the honest place to say so is the label.
                 name="include_hydrogens",
-                label="Include hydrogens",
+                label="Include hydrogens (sigma only)",
                 kind="bool",
                 default=False,
             ),
             CalculatorParameter(
+                # Both components, unlike the one above: `_maybe_microspecies`
+                # runs BEFORE the component branch, so protonation changes
+                # the sigma charges the pi values are evaluated at too.
                 name="major_microspecies",
                 label="Take major microspecies",
                 kind="bool",

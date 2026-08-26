@@ -356,7 +356,7 @@ to acetonitrile, so the two are never merged.
 <!-- help:limits-narrow-applicability -->
 ## Numbers whose applicability is narrower than their output
 
-Three calculators will produce a number for almost any structure and mean
+Four calculators will produce a number for almost any structure and mean
 something for a much smaller set. Each refuses where it can tell, and this
 section is for the part it cannot.
 
@@ -430,6 +430,36 @@ dependence.
 2OTE 5H` in the source and differs here on the ipso carbon and on the nitro
 oxygens — noted because that row is also among the worst in the source's own
 table, at −6.8%.
+
+### The pi component of orbital electronegativity
+
+**It is a STARTING value, not a converged one**, and that is the whole of
+the limitation. Marsili & Gasteiger's eq (7) is evaluated at the atom's
+converged PEOE **sigma** charge — what the paper itself calls the starting
+POE values — because the pi charge is zero at the beginning of a pi-level
+computation. The iteration that would redistribute pi charge and feed it
+back is not implemented, so nothing in this column reflects it.
+
+**Three reconstructions of that iteration were measured and refused**, and
+the numbers are in docs/VALIDATION.md: against the 15-molecule dipole
+table of the source's own successor paper, the best scored 0.693 D where
+the paper reports 0.164 D, and the printed equations came out at 0.834 D —
+**worse than using no pi term at all**. The sources specify the weighting
+and not the resonance-structure enumeration, so closing that gap means
+tuning an unspecified enumeration until fifteen numbers agree.
+
+**The ordering is the meaningful part, and it is NOT the sigma ordering.**
+A sigma-negative atom is screened and comes out LOWER on this scale, which
+is the effect these parameters exist to carry rather than a defect —
+pyridine's nitrogen sits below its own carbons. Reading a pi value as
+though it were a bare electronegativity inverts the conclusion.
+
+**Conjugated atoms only.** An atom with no pi orbital is absent from the
+result rather than reported as zero, and a molecule with no conjugated
+system is refused with the reason named.
+
+**Absolute values are parameter-set dependent** and will differ from any
+other implementation, the same caveat the sigma component already carries.
 
 <!-- help:limits-thermophysical -->
 ## Thermophysical properties (Joback)

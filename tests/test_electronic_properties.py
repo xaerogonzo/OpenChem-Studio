@@ -340,3 +340,52 @@ def test_a_molecule_with_no_pi_system_refuses_rather_than_returning_nothing():
     assert result.cache_state is CacheState.FAILED
     assert "pi system" in (result.error or "")
     assert result.values == {}
+
+
+def test_include_hydrogens_does_nothing_for_pi_and_the_label_says_so():
+    """A tick box that silently does nothing is worse than an absent one.
+
+    `CalculatorSettingsDialog` builds one widget per `CalculatorParameter`
+    with no conditional visibility, so "Include hydrogens" is on screen for
+    the pi component too -- where hydrogen has no pi orbital and no row in
+    Marsili & Gasteiger's Table I. It is IGNORED there, which is correct;
+    what would not be correct is leaving the label implying otherwise.
+
+    Found by grabbing the real settings dialog, which is the route a user
+    takes and the one the `calculator` drive step bypasses by passing
+    parameters straight through.
+    """
+    from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
+
+    # EXPLICIT hydrogens, or the control below cannot discriminate: a
+    # molecule built straight from SMILES carries implicit ones, so
+    # `include_hydrogens=True` has nothing to include and BOTH arms return
+    # 7 values. Caught by this test's own control on its first run.
+    mol = Chem.AddHs(Chem.MolFromSmiles("Oc1ccccc1"))
+    off = compute_orbital_electronegativity(
+        mol, "u", {"component": "Pi (SD-POE)", "include_hydrogens": False}
+    )
+    on = compute_orbital_electronegativity(
+        mol, "u", {"component": "Pi (SD-POE)", "include_hydrogens": True}
+    )
+    assert on.values == off.values, "the pi branch must ignore include_hydrogens"
+
+    # ... and the SIGMA arm is the control: there the tick really does
+    # something, so "ignored everywhere" would satisfy the line above and
+    # be a different bug.
+    sigma_off = compute_orbital_electronegativity(
+        mol, "u", {"component": "Sigma (PEOE)", "include_hydrogens": False}
+    )
+    sigma_on = compute_orbital_electronegativity(
+        mol, "u", {"component": "Sigma (PEOE)", "include_hydrogens": True}
+    )
+    assert len(sigma_on.values) > len(sigma_off.values)
+
+    definition = next(
+        c for c in CALCULATOR_DEFINITIONS if c.calculator_id == "orbital_electronegativity"
+    )
+    label = next(p.label for p in definition.parameters if p.name == "include_hydrogens")
+    assert "sigma" in label.lower(), (
+        f"the label {label!r} does not say the tick applies to sigma only, so a "
+        "user picking the pi component sees a control that does nothing"
+    )

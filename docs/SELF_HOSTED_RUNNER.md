@@ -107,18 +107,32 @@ Start it for a run, and stop it after:
 
 ## What the runner machine needs
 
-The workflow does not install any of these; it fails the relevant step and
-carries on, so a partly-equipped machine still produces the benchmarks it
-can. Each step reports what it could not find.
+The workflow installs none of these **except one**, noted below; it fails
+the relevant step and carries on, so a partly-equipped machine still
+produces the benchmarks it can. Each step reports what it could not find.
 
 | tool | used by | notes |
 |---|---|---|
-| ORCA + `orca_plot` | `ir`, `esp`, `nmr` | must be on a space-free path |
+| ORCA + `orca_plot` | `ir`, `esp` | must be on a space-free path |
 | AutoDock Vina | `docking` | plus the cached receptor library |
-| nmrshiftdb2 index | `nmr` | the 152 MB download |
+| nmrshiftdb2 index | `nmr` | built, at `data_root()/nmrshiftdb.sqlite` |
 | ADMET-AI sidecar | `admet` | ~1 GB environment |
 | pkasolver sidecar | `pka` | its own environment |
+| network to TDC | `admet` | the splits, fetched at run time |
 | Temurin JRE | naming round-trips | OPSIN shells out to a bare `java` |
+
+**`nmr` DOES NOT NEED ORCA, and this table said it did.** The step runs
+`run_delta50.py`, which reads the COMMITTED shieldings and says so in its
+own docstring; what it needs is the built index, because its `lookup` rows
+come from `nmr_database.predict_spectrum`. Other scripts in that directory
+(`run_shieldings.py`) do need ORCA — the constraint is per SCRIPT, not per
+directory, which is where the over-broad row came from.
+
+**THE ONE THING THE WORKFLOW DOES INSTALL** is `admet`'s throwaway PyTDC
+environment, built into `benchmarks/admet/tdcenv/` and skipped when
+`tdc_data/` is already populated. It is separate on purpose: PyTDC pins
+`rdkit-pypi` and would drag the sidecar's working torch/rdkit stack around
+with it.
 
 Paths come from the same `Settings` store the application uses, so a machine
 where the app already works needs no extra configuration.
