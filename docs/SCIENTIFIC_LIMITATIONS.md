@@ -663,7 +663,9 @@ fixed-column `.pdb` and as `.cif`/`.bcif` (mmCIF), and the app reads both
 through the same chemistry toolkit. That toolkit does not perceive them
 identically.
 
-Most of the gap is closed. Measured across all 48 curated docking targets,
+Most of the gap is closed. Measured across the 48 curated docking targets
+the catalogue held at the time (it holds 49 now — the figures below are a
+measurement of that moment, not a claim about today's catalogue),
 preparing each from both formats and comparing the atom types Vina is
 handed: **0 of 48 matched before this was chased, 38 of 48 match now.**
 Three causes were found and fixed — two-letter element symbols (Zn, Cl,
