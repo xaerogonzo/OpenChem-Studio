@@ -368,10 +368,31 @@ def test_geometry_is_opt_in_and_the_default_is_the_drawing():
     # for a much stronger reason than the first pass recorded: a conformer
     # does not merely fail to help them, it BREAKS them. See the
     # structure-generator tests below.
+    #
+    # THE TWO AROMATICITY INDICES MEET A STRONGER STANDARD THAN THE SEVEN,
+    # and this comment says so rather than implying one method covered
+    # both. The seven give a DIFFERENT NUMBER from a drawing; HOMA and Bird
+    # cannot answer from one AT ALL, because a 2D layout's bond "lengths"
+    # are arbitrary units and both indices are functions of real ones.
+    # `aromaticity._require_geometry` refuses NO_CONFORMER, measured on
+    # benzene:
+    #
+    #     2D drawing     REFUSED NO_CONFORMER    (both)
+    #     3D conformer   HOMA 0.9880   Bird 99.9998
+    #
+    # AND THE SEVEN'S OWN METHOD IS DEGENERATE HERE, which is worth
+    # recording rather than quietly substituting another: an aromatic ring
+    # is already planar, so flattening z barely moves the bonds these
+    # indices read (Bird 99.9998 -> 99.8308). What they respond to is bond
+    # ALTERNATION, and at 0.1 A of it HOMA goes 0.979 -> -1.598 and Bird
+    # 100.0 -> 17.2. A probe built on flattening alone would have reported
+    # "unchanged" and read as evidence they belong on DRAWING.
     assert declared == {
         "atom_sasa",
+        "bird_aromaticity",
         "dipole_moment",
         "geometry_analysis",
+        "homa_aromaticity",
         "interaction_analysis",
         "molecular_dynamics",
         "steric_analysis",
