@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+import io
 import sys
 import time
 from importlib import import_module
@@ -7,7 +9,17 @@ from types import ModuleType
 from typing import Any
 
 from rdkit import Chem
-from rdkit.Chem import Crippen, Descriptors, Descriptors3D, Fragments, Lipinski, QED, rdMolDescriptors, rdPartialCharges
+from rdkit.Chem import (
+    Crippen,
+    Descriptors,
+    Descriptors3D,
+    Fragments,
+    GraphDescriptors,
+    Lipinski,
+    QED,
+    rdMolDescriptors,
+    rdPartialCharges,
+)
 from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
 
 from openchem.chem.elemental_analysis import compute_elemental_analysis
@@ -43,6 +55,10 @@ from openchem.chem.electronic_properties import (
     compute_polarizability,
 )
 from openchem.chem.hlb import compute_griffin_hlb
+from openchem.chem.energetics import compute_detonation, compute_oxygen_balance
+from openchem.chem.aromaticity import compute_aromaticity, compute_bird_index
+from openchem.chem.hansen import compute_hansen
+from openchem.chem.joback import compute_joback
 from openchem.chem.huckel import compute_huckel_analysis, compute_pi_electron_density
 from openchem.chem.lewis import compute_lewis_sites
 from openchem.chem.lewis_adduct import ROLE_ACID, ROLE_BASE, compute_lewis_adduct
@@ -139,6 +155,8 @@ _DESCRIPTOR_SPECS: list[tuple[str, str, str, str]] = [
     ("exact_mass", "Exact Mass", "g/mol", "physicochemical"),
     ("formula", "Molecular Formula", "", "identity"),
     ("mol_logp", "LogP", "", "lipophilicity"),
+    # Ertl's topological PSA [source:ertl2000] -- fragment-based, so it
+    # needs no conformer, which is why this is a DRAWING descriptor.
     ("tpsa", "TPSA", "Å²", "physicochemical"),
     ("num_rotatable_bonds", "Rotatable Bonds", "", "topology"),
     ("num_hbd", "H-Bond Donors", "", "topology"),
@@ -154,8 +172,34 @@ _DESCRIPTOR_SPECS: list[tuple[str, str, str, str]] = [
     # no fitted parameters, and the one Abraham solvation descriptor this
     # project can compute exactly. See `chem/solubility.py`.
     ("mcgowan_volume", "McGowan Volume", "cm³/mol ÷ 100", "physicochemical"),
+    # QED [source:bickerton2012] -- a desirability AGGREGATE over eight
+    # properties, not a probability that a molecule is a drug.
     ("qed", "QED (Drug-likeness)", "", "medicinal_chemistry"),
     ("sa_score", "Synthetic Accessibility", "", "medicinal_chemistry"),
+    # NP-likeness [source:ertl2008] via RDKit's 2015 public-corpus re-fit
+    # [source:npscorer2015] -- a BAYESIAN COMPARISON AGAINST A CORPUS, never a
+    # statement about where a molecule came from. Caffeine is a natural product
+    # and scores -1.09; morphine scores +2.59.
+    #
+    # THE CONFIDENCE IS A SEPARATE ROW BECAUSE THE SCORE CANNOT CARRY IT.
+    # `scoreMolWConfidence` reports the fraction of the molecule's Morgan
+    # fragments that were in the training model, and an unfound fragment
+    # contributes ZERO to the sum -- so a molecule at confidence 0 scores
+    # exactly 0.0 BY CONSTRUCTION, indistinguishable from one genuinely
+    # scored as neutral. Methane is that case. Two named rows, for the same
+    # reason oxygen balance ships as two: a single value lets a screenshot
+    # collapse the distinction the naming exists to preserve.
+    ("np_likeness", "NP-Likeness (Natural Product)", "", "medicinal_chemistry"),
+    ("np_likeness_confidence", "NP-Likeness Confidence", "", "medicinal_chemistry"),
+    # Bertz's complexity index [source:bertz1981] via RDKit, WHICH
+    # DELIBERATELY DEPARTS FROM THE PAPER FOR AROMATICS [source:rdkit_bertz].
+    # Two molecules can share a value: methane and propane are both 0.
+    ("bertz_ct", "Molecular Complexity (Bertz CT)", "", "medicinal_chemistry"),
+    # Lovering's "escape from flatland" fraction [source:lovering2009]:
+    # sp3-hybridised carbons over all carbons. Benzene is 0.00, cyclohexane
+    # 1.00. A molecule with NO carbon is 0.0 rather than undefined -- RDKit's
+    # own convention, recorded because it is a division by zero that returns.
+    ("fsp3", "Fraction sp3 Carbon", "", "medicinal_chemistry"),
     ("lipinski_pass", "Lipinski Ro5 (≤1 violation)", "", "medicinal_chemistry"),
     ("veber_pass", "Veber Rule", "", "medicinal_chemistry"),
     ("ghose_pass", "Ghose Filter", "", "medicinal_chemistry"),
@@ -243,7 +287,15 @@ _sascorer_module: ModuleType | None = None
 
 
 def _load_sascorer() -> ModuleType:
-    """Dynamically imports RDKit's own bundled synthetic-accessibility
+    """Ertl & Schuffenhauer's SA score [source:ertl2009], via RDKit.
+
+    **NOT THE PAPER'S IMPLEMENTATION, AND sascorer.py SAYS SO ITSELF**: its
+    header records a different macrocyclic penalty and an added symmetry
+    term, and puts agreement with Ertl's original at r2 = 0.97 rather than
+    1.0. So the paper is the definition and this is the implementation --
+    do not gate the shipped number on the paper's printed values.
+
+    Dynamically imports RDKit's own bundled synthetic-accessibility
     scorer (`Contrib/SA_Score/sascorer.py`) via `RDConfig.RDContribDir` --
     confirmed live this resolves correctly for the installed RDKit wheel.
     Deliberately NOT vendored/copied into this repo: `Contrib/` isn't a
@@ -264,12 +316,95 @@ def _load_sascorer() -> ModuleType:
     return _sascorer_module
 
 
+_npscorer_module: ModuleType | None = None
+_np_model: dict | None = None
+
+#: Why a zero-confidence NP-likeness is refused rather than reported as 0.0.
+#: Not a rounding statement -- `scoreMolWConfidence` sums `fscore[bit]` only
+#: over fragments PRESENT in the model, so a molecule sharing none of them
+#: scores exactly 0.0 arithmetically. The scalar alone cannot distinguish
+#: "balanced" from "recognised nothing", which is the `AlertResult`
+#: empty-versus-FAILED distinction in a new place.
+#: THE CELL FORM AND THE FULL ONE, which is what `error_summary` bought.
+#:
+#: This was ONE string for exactly one commit, and it was the short one:
+#: the panel wrote a single field into both the value cell and its tooltip,
+#: the cell is about 100 px at the dock's minimum width, and the first draft
+#: was cut mid-word at "None of this molecule's fragments ap" in the running
+#: app. The reasoning had to move into this module and
+#: [source:npscorer2015], where a USER never reads it.
+#:
+#: With the pair, the cell keeps the fact and the hover gets the reason back.
+_NP_NO_KNOWN_FRAGMENTS_SUMMARY = "Not in the training corpus"
+_NP_NO_KNOWN_FRAGMENTS_ERROR = (
+    "None of this molecule's fragments appear in the NP-likeness training "
+    "corpus, so no score can be given -- an unfound fragment contributes "
+    "nothing to the sum, so a reported 0.00 would be arithmetic rather than "
+    "a measurement. The confidence beside this row is 0.00 for the same "
+    "reason."
+)
+
+
+def _load_npscorer() -> tuple[ModuleType, dict]:
+    """Ertl's NP-likeness [source:ertl2008], via RDKit's own re-fit model.
+
+    **NOT THE PAPER'S MODEL, AND npscorer.py SAYS SO ITSELF**
+    [source:npscorer2015]: its header records ~50,000 natural products from
+    open databases against ~1M ZINC molecules as background, "for the
+    training of this model only openly available data have been used", dated
+    2015. The 2008 paper's model was Novartis's. For a BAYESIAN score the
+    corpus is part of what the number means, so the paper is the method and
+    this is a different fit of it -- do not gate the shipped number on the
+    paper's printed values. Same split as `vogel_drago1996`'s
+    `_parameter_scale`.
+
+    **THE API IS NOT `_load_sascorer`'s, AND COPYING THAT PATTERN RAISES.**
+    `npscorer` has no `calculateScore` -- that name belongs to `sascorer`.
+    Its surface is `readNPModel()` / `scoreMol(mol, fscore)` /
+    `scoreMolWConfidence(mol, fscore)`, and the model is a SECOND argument
+    that must be loaded first, where the SA scorer loads its own data on
+    import. Measured: 0.09 s for 266,104 fragments, so both are cached at
+    module level.
+
+    **`readNPModel` PRINTS TO STDERR, NOT STDOUT** -- `print(..., file=sys.stderr)`
+    inside RDKit's Contrib script, "reading NP model ..." then "model in".
+    Harmless in a notebook and console noise in a GUI process, so it is
+    captured here rather than by editing RDKit. **The stream was measured
+    rather than assumed**: a `redirect_stdout` written first captured nothing
+    and the lines still appeared, which is the whole reason this sentence
+    names the stream. Suppressed only around the load; a real exception still
+    propagates.
+
+    Reached exactly as `_load_sascorer` reaches the SA scorer -- via
+    `RDConfig.RDContribDir`, never vendored, so this only ever reuses
+    RDKit's own code.
+    """
+    global _npscorer_module, _np_model
+    if _npscorer_module is not None and _np_model is not None:
+        return _npscorer_module, _np_model
+    from rdkit import RDConfig
+
+    contrib_dir = f"{RDConfig.RDContribDir}/NP_Score"
+    if contrib_dir not in sys.path:
+        sys.path.append(contrib_dir)
+    _npscorer_module = import_module("npscorer")
+    with contextlib.redirect_stderr(io.StringIO()):
+        _np_model = _npscorer_module.readNPModel()
+    return _npscorer_module, _np_model
+
+
 _pains_catalog: FilterCatalog | None = None
 
 
 def _load_pains_catalog() -> FilterCatalog:
-    """Cached at module level -- building the catalog (480 entries,
-    confirmed live) isn't free and its contents never change at runtime."""
+    """Baell & Holloway's PAINS filters [source:baell2010], via RDKit.
+
+    Cached at module level -- building the catalog (480 entries, confirmed
+    live) isn't free and its contents never change at runtime.
+
+    A HIT IS A STATEMENT ABOUT ASSAY INTERFERENCE, not about toxicity or
+    activity: these are substructures that turn up as frequent hitters
+    across unrelated assays."""
     global _pains_catalog
     if _pains_catalog is None:
         params = FilterCatalogParams()
@@ -282,7 +417,7 @@ _brenk_catalog: FilterCatalog | None = None
 
 
 def _load_brenk_catalog() -> FilterCatalog:
-    """Brenk et al. 2008's catalog of reactive/unstable/toxicophore-
+    """Brenk et al. 2008's [source:brenk2008] catalog of reactive/unstable/toxicophore-
     adjacent functional groups (105 entries, confirmed live -- correctly
     flags acetaldehyde as "aldehyde", acetyl chloride as "acid_halide"
     +"aldehyde", leaves benzene/ethanol clean) -- a real, RDKit-bundled
@@ -661,6 +796,12 @@ class RDKitDescriptorProvider(DescriptorProvider):
         gsk_400_pass = not (mol_logp > 4 and mol_wt > 400)
         rule_of_three_pass = mol_wt < 300 and mol_logp <= 3 and num_hbd <= 3 and num_hba <= 3
 
+        # ONE call for both halves: `scoreMolWConfidence` returns them
+        # together, and computing the score and the confidence separately
+        # would fingerprint the molecule twice for one answer.
+        _npscorer, _np_fscore = _load_npscorer()
+        np_result = _npscorer.scoreMolWConfidence(mol, _np_fscore)
+
         raw_values = {
             "mol_wt": mol_wt,
             "exact_mass": Descriptors.ExactMolWt(mol),
@@ -679,6 +820,10 @@ class RDKitDescriptorProvider(DescriptorProvider):
             "mcgowan_volume": _mcgowan_volume(mol),
             "qed": QED.qed(mol),
             "sa_score": _load_sascorer().calculateScore(mol),
+            "np_likeness": np_result.nplikeness,
+            "np_likeness_confidence": np_result.confidence,
+            "bertz_ct": GraphDescriptors.BertzCT(mol),
+            "fsp3": Descriptors.FractionCSP3(mol),
             "lipinski_pass": lipinski_violations <= 1,
             "veber_pass": veber_pass,
             "ghose_pass": ghose_pass,
@@ -690,6 +835,21 @@ class RDKitDescriptorProvider(DescriptorProvider):
             "gsk_400_pass": gsk_400_pass,
             "rule_of_three_pass": rule_of_three_pass,
         }
+        # A descriptor whose value would be arithmetic rather than a
+        # measurement is FAILED with a reason, following the shape
+        # descriptors' `_NEEDS_CONFORMER_ERROR` path. The CONFIDENCE is
+        # still reported -- 0.000 is a real statement about the molecule,
+        # and blanking it too would hide why the score is absent.
+        # (summary for the cell, full explanation for the hover) -- the pair
+        # `describe_failure` reads. A producer writing only one gets today's
+        # behaviour, so this carries both deliberately.
+        refusals: dict[str, tuple[str, str]] = {}
+        if np_result.confidence == 0.0:
+            refusals["np_likeness"] = (
+                _NP_NO_KNOWN_FRAGMENTS_SUMMARY,
+                _NP_NO_KNOWN_FRAGMENTS_ERROR,
+            )
+
         values = [
             DescriptorValue(
                 descriptor_id=descriptor_id,
@@ -698,9 +858,19 @@ class RDKitDescriptorProvider(DescriptorProvider):
                 category=category,
                 provider=self.provider_id,
                 molecule_uuid=molecule_uuid,
-                value=raw_values[descriptor_id],
+                value=None if descriptor_id in refusals else raw_values[descriptor_id],
                 timestamp=now,
-                cache_state=CacheState.COMPLETED,
+                cache_state=(
+                    CacheState.FAILED
+                    if descriptor_id in refusals
+                    else CacheState.COMPLETED
+                ),
+                error=(
+                    refusals[descriptor_id][1] if descriptor_id in refusals else None
+                ),
+                error_summary=(
+                    refusals[descriptor_id][0] if descriptor_id in refusals else None
+                ),
                 provenance=provenance,
             )
             for descriptor_id, name, units, category in _DESCRIPTOR_SPECS
@@ -819,6 +989,8 @@ class RDKitDescriptorProvider(DescriptorProvider):
         Declaring all three makes the two that worked deliberate rather
         than lucky.
         """
+        # Wildman-Crippen atom typing [source:wildman1999] -- 68 atomic
+        # logP contributions and a separate MR set, via RDKit.
         contribs = rdMolDescriptors._CalcCrippenContribs(mol)
         logp_contrib = {idx: logp for idx, (logp, _mr) in enumerate(contribs)}
         mr_contrib = {idx: mr for idx, (_logp, mr) in enumerate(contribs)}
@@ -2395,6 +2567,172 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         prediction_basis="empirical",
         tags=["surface", "surfactant", "hlb", "formulation"],
         parameters=[decimal_places_parameter()],
+    ),
+    CalculatorDefinition(
+        calculator_id="detonation",
+        display_name="Detonation (Kamlet-Jacobs)",
+        category="energetic",
+        description=(
+            "Detonation pressure and velocity for a C/H/N/O explosive, by Kamlet and "
+            "Jacobs' 1968 correlation. REQUIRES two inputs it cannot derive: the "
+            "initial loading density of the charge, which is not a crystal density and "
+            "which the pressure depends on as its square, and a measured "
+            "condensed-phase enthalpy of formation, because the published rule for "
+            "estimating one from an ideal-gas value excludes every classic energetic "
+            "material. Without either, it refuses and says which is missing. An "
+            "empirical correlation fitted to reproduce a 1968 computer code -- not a "
+            "measurement, and not a safety assessment."
+        ),
+        execution=RegistryExecution(compute=compute_detonation),
+        prediction_basis="empirical",
+        tags=["energetic", "detonation", "kamlet-jacobs", "performance"],
+        parameters=[
+            decimal_places_parameter(1),
+            CalculatorParameter(
+                name="loading_density_g_cm3",
+                label="Loading density (g/cm³) — required",
+                kind="float",
+                default=0.0,
+                minimum=0.0,
+                maximum=3.0,
+            ),
+            CalculatorParameter(
+                name="enthalpy_of_formation_kcal_mol",
+                label="Enthalpy of formation, solid (kcal/mol) — required, measured",
+                kind="float",
+                default=-1000.0,
+                minimum=-1000.0,
+                maximum=500.0,
+            ),
+            CalculatorParameter(
+                name="ruby_correction",
+                label="Apply the −6% RUBY-matching correction (G > 0.93)",
+                kind="bool",
+                default=False,
+            ),
+        ],
+    ),
+    CalculatorDefinition(
+        calculator_id="oxygen_balance",
+        display_name="Oxygen Balance",
+        category="energetic",
+        description=(
+            "Whether a substance carries enough oxygen to burn its own carbon and "
+            "hydrogen, as a percentage of its mass. BOTH published conventions are "
+            "reported, because they are different quantities for the same substance: "
+            "TNT is -74.0% burning carbon to CO2 and -24.7% burning it only to CO, and "
+            "a substance can be negative on one and positive on the other. Defined for "
+            "C/H/N/O only, so a sulfur, a halogen or a metal is refused with the element "
+            "named rather than silently ignored. A composition figure, not a performance "
+            "one -- it says nothing on its own about how powerful or how sensitive "
+            "something is."
+        ),
+        execution=RegistryExecution(compute=compute_oxygen_balance),
+        prediction_basis="empirical",
+        tags=["energetic", "oxygen balance", "combustion", "stoichiometry"],
+        parameters=[decimal_places_parameter(1)],
+    ),
+    CalculatorDefinition(
+        calculator_id="bird_aromaticity",
+        display_name="Aromaticity (Bird)",
+        category="aromaticity",
+        description=(
+            "Bird's aromaticity index per ring: every bond length is converted to a "
+            "Gordy bond order, and the index measures how UNIFORM those orders are "
+            "rather than how close the lengths are to one ideal. That is a different "
+            "question from HOMA on the same geometry -- a ring whose bonds are all "
+            "equal but all wrong scores 100 here. Reported as I5 or I6 because the "
+            "paper says outright that values for different ring sizes are not "
+            "comparable, the Kekule reference being 35 for a five-membered ring and "
+            "33.3 for a six-membered one. Any other ring size is refused rather than "
+            "given a reference by analogy. Needs a 3D conformer."
+        ),
+        execution=RegistryExecution(compute=compute_bird_index),
+        calculation_input=GEOMETRY,
+        prediction_basis="empirical",
+        tags=["aromaticity", "bird", "ring", "geometry", "bond order"],
+        parameters=[decimal_places_parameter(1)],
+    ),
+    CalculatorDefinition(
+        calculator_id="homa_aromaticity",
+        display_name="Aromaticity (HOMA)",
+        category="aromaticity",
+        description=(
+            "The harmonic oscillator model of aromaticity, per ring, from Krygowski's "
+            "reference bond lengths. 1 is a ring whose bonds all sit at the optimal "
+            "length and 0 is the reference Kekule structure -- there is NO lower "
+            "bound, so a bond-alternating or saturated ring goes negative. Reported "
+            "per RING rather than per molecule, because fusing rings changes each "
+            "one's local aromatic character. It reads real bond lengths, so it needs "
+            "a 3D conformer and refuses a drawing: a 2D layout gives every bond about "
+            "the same length whatever its order. A geometric index -- it says how "
+            "equalised the bonds are, not whether the ring sustains a ring current."
+        ),
+        execution=RegistryExecution(compute=compute_aromaticity),
+        calculation_input=GEOMETRY,
+        prediction_basis="empirical",
+        tags=["aromaticity", "homa", "ring", "geometry", "krygowski"],
+        parameters=[decimal_places_parameter(3)],
+    ),
+    CalculatorDefinition(
+        calculator_id="hansen_solubility",
+        display_name="Hansen Solubility Parameters",
+        category="solubility",
+        description=(
+            "The three Hansen partial solubility parameters -- dispersion, polar and "
+            "hydrogen bonding -- and their Hildebrand total, from the structure alone by "
+            "Stefanis and Panayiotou's group contributions. Two passes: first-order "
+            "UNIFAC groups partition the molecule, then second-order conjugation groups "
+            "correct it where they apply, which is what the paper's W switch selects. "
+            "Below 3 MPa^0.5 the polar and hydrogen-bonding parameters come from the "
+            "paper's SEPARATE low-range regression rather than from the main equations, "
+            "and the result says which was used. Needs three or more carbons excluding "
+            "the characteristic group's own atom, and refuses a structure carrying an "
+            "atom in no group rather than returning a partial sum."
+        ),
+        execution=RegistryExecution(compute=compute_hansen),
+        prediction_basis="empirical",
+        tags=["solubility", "hansen", "hildebrand", "solvent", "group contribution"],
+        parameters=[decimal_places_parameter(2)],
+    ),
+    CalculatorDefinition(
+        calculator_id="joback_properties",
+        display_name="Thermophysical Properties (Joback)",
+        category="thermophysical",
+        description=(
+            "Eleven pure-component properties from the structure alone, by Joback and "
+            "Reid's group contributions: normal boiling and freezing points, the three "
+            "critical constants, standard enthalpy and Gibbs energy of formation, "
+            "ideal-gas heat capacity, enthalpies of vaporization and fusion, and liquid "
+            "viscosity. Additive over a COMPLETE decomposition, so a structure carrying "
+            "an atom in no Joback group is refused with the atom named rather than given "
+            "a partial sum -- the table has no ring tertiary amine and stops at divalent "
+            "sulfur. Critical temperature takes a boiling point: supply a measured one "
+            "where you have it, because the paper warns that estimating it costs several "
+            "times the error."
+        ),
+        execution=RegistryExecution(compute=compute_joback),
+        prediction_basis="empirical",
+        tags=["thermophysical", "critical", "boiling", "joback", "group contribution"],
+        parameters=[
+            decimal_places_parameter(),
+            CalculatorParameter(
+                name="temperature_k",
+                label="Temperature (K)",
+                kind="float",
+                default=298.15,
+                minimum=1.0,
+                maximum=1500.0,
+            ),
+            CalculatorParameter(
+                name="experimental_boiling_point_k",
+                label="Measured boiling point (K), optional",
+                kind="float",
+                default=0.0,
+                minimum=0.0,
+                maximum=1500.0,
+            ),
+        ],
     ),
     # ---- Polarizability and orbital electronegativity ----------------
     CalculatorDefinition(

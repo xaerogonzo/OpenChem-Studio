@@ -1819,6 +1819,322 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
+A clean run is **6-21 minutes**, ending at `6053 passed, 15 skipped`
+(measured 2026-08-26, **18m21**, on `joback-thermophysical` -- the Hansen
+fragmenter, HOMA, Bird, and the merge of the cell/hover branch. **THIS IS THE
+MERGED TREE the entry below says is owed**, so that debt is paid.
+
+**+171 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed:
+
+    39a7114    COLLECTS 5897
+    this one   COLLECTS 6068   = 5897 + 171
+    the run                     6053 passed + 15 skipped = 6068
+
+**171 ITEMS BUT 103 NEW FUNCTIONS**, and the 68-item gap is the reason this
+section records the two deltas separately. Every added item reconciles to a
+new function or to a new REGISTRATION:
+
+     66  test_hansen_fragmenter.py        the 113 SMARTS
+     25  test_bird.py
+     24  test_hansen_table.py
+     22  test_homa.py
+     12  test_failure_messages.py         arrived with the merge
+      9  test_sources_are_current.py
+      5  test_property_panel.py           arrived with the merge
+      3  test_descriptor_providers.py
+      3  test_calculator_reachability.py
+      2  test_property_panel_long_values.py   arrived with the merge
+
+Twelve of those are PARAMETRISED CASES OF PRE-EXISTING GUARDS rather than
+anything written, and each names a real registration -- which is what a bare
+"+171" would have hidden:
+
+    3  ..._has_a_callable_compute       bird_aromaticity, hansen_solubility,
+                                        homa_aromaticity
+    5  test_every_entry_matches_the_schema
+                                        bird1985, katritzky1990,
+                                        kruszewski1972, krygowski1993,
+                                        stefanis2008
+    4  ..._data_table_declares_its_source
+                                        bird_oracle.json, bird_parameters.json,
+                                        hansen_groups.json, homa_parameters.json
+
+**AND THE GROUP-CONTRIBUTION EXTRACTION ADDED ZERO**, which is the proof it
+was behaviour-neutral: `test_joback_fragmenter.py`'s 59 tests are unmoved.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line, which
+is the pair this file insists on rather than an absence of FAILED lines. The
+two `DeprecationWarning`s are the same pre-existing six-argument
+`QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**CHROMIUM'S `Failed to make current since context is marked as lost` FIRED
+AND COST NO SKIPS THIS TIME.** This file records that message taking the
+skips 15 -> 19 once; here it appears five times and the figure is still 15.
+So it is not reliably a skip-costing event, and 15 stays the deterministic
+number rather than becoming "15 unless the GPU wobbles".
+
+**AND IT BREAKS THE OBVIOUS PROGRESS-COUNTING AWK, which read as 9
+FAILURES.** Chromium writes into the middle of pytest's progress line, so a
+pattern anchored `^[.sFEx]+` matches `Failed to make current...` and
+`[ERROR:...]` as progress characters. Measured on this log: the loose
+pattern counts **9 F/E** on a run with **zero** failures. Anchor the whole
+line -- `^[.sFEx]+ *(\[ *[0-9]+%\])?$` -- which gives 0. The SUMMARY LINE is
+the oracle; a progress-character count is a diagnostic, and this one lies in
+the alarming direction.
+
+**THE FIRST RUN OF THIS FIGURE WAS THROWN AWAY AT 42%, AND THE RULE IS WIDER
+THAN THIS FILE HAD IT.** The recorded rule is "do not edit anything the suite
+reads". Nothing was edited: the probes ran in a SEPARATE detached worktree
+with `PYTHONPATH` pointed at its own `src`, so the main tree was untouched by
+construction. That run still produced an `E` in
+`test_ketcher_editor_backend.py` -- the file this document already names as
+the canonical victim of resource and timing disturbance -- while three other
+Python processes were running against the same venv.
+
+It is recorded as DISCARDED RATHER THAN DIAGNOSED, deliberately. That file
+passes 31 of 31 in isolation and the clean rerun has 0 F/E, which is
+suggestive and is not proof: this file's own rule is that the crash class
+moves between batches and that no A/B here is worth anything below about
+n=10 per arm. **The point is that a contaminated run cannot tell the two
+apart**, so it buys nothing however it comes out. Do not run ANY concurrent
+work against a suite run you intend to cite -- not merely edits.
+
+**AND THE FULL SUITE CAUGHT WHAT THE TARGETED FILES DID NOT, again.** HOMA
+and Bird were verified against `test_homa.py`, `test_bird.py`, the 13
+source-scanning guards and the docs guard -- all green -- and the full run
+failed `test_calculation_input.py::test_geometry_is_opt_in_and_the_default_is_the_drawing`,
+which enumerates the GEOMETRY calculators as an EXACT SET. Both new indices
+are `calculation_input = GEOMETRY` and neither was in it. A targeted set is
+chosen from where you think you changed something, and the registry-wide
+guard was somewhere else.
+
+**THE SEVEN'S OWN VERIFICATION METHOD IS DEGENERATE FOR THESE TWO**, which is
+why adding them meant measuring rather than typing two names. That guard's
+members were each checked by flattening z and confirming the answer changed
+-- and an aromatic ring is ALREADY PLANAR, so flattening barely moves the
+bonds HOMA and Bird read. Measured on benzene:
+
+    2D drawing            REFUSED NO_CONFORMER   both -- the STRONGER claim
+    3D conformer          HOMA  0.9880   Bird  99.9998
+    z flattened           HOMA  0.9890   Bird  99.8308   <- nearly a no-op
+    bond alternation 0.1  HOMA -1.5979   Bird  17.2222   <- what they measure
+    uniform scale x1.1    HOMA -4.5164   Bird 100.0000   <- Bird ignores it
+
+A probe built on flattening alone would have reported "unchanged" and read as
+evidence they belong on DRAWING. **Bird's flatness under a uniform scale is
+the method and not a defect** -- it is a coefficient of VARIATION of bond
+orders, so six equal bonds score 100 at any length -- and that claim was
+already shipped in its limitations and already guarded from both sides by
+`test_a_ring_with_equal_bonds_scores_exactly_100` and
+`test_homa_disagrees_with_bird_on_the_same_rings`. The probe confirmed prose
+the code had already written, which is the outcome to hope for.
+
+**CI MEASURES THE SAME TREE AT 6048 passed, 19 skipped, 1 deselected**
+(run 32939866603, PR #46, 17m27), which is the same 6068: 6048 + 19 + 1. The
+four extra skips are the GPU-gated conformer gallery guards and the
+deselection is the PubChem network test, both already documented above.
+
+**All three gates RAN** -- "Naming benchmark (must stay 181/181)", the
+regulatory benchmark and the ruleset validation -- which is the step list
+rather than the conclusion, and the thing a red suite would have taken with
+it.
+
+**AND THE NON-BLOCKING LINUX JOB CRASHED, WHILE REPORTING SUCCESS AT EVERY
+LEVEL THE API EXPOSES.** This file's `continue-on-error` warning is stated
+for the two advisory STEPS; the Linux job shows it is worse than that,
+because THREE separate mechanisms each turn the failure green:
+
+    the suite step ends `|| true`      so the STEP is [success]
+    the job has continue-on-error      so the JOB is -> success
+    the workflow tolerates the job     so the RUN is completed/success
+
+Every one is deliberate and documented in `tests.yml`; together they mean
+**no field the REST API returns can tell you the Linux suite failed.** The
+real verdict goes to `$GITHUB_STEP_SUMMARY`, which `gh run view --json`
+cannot read. What IS recoverable from the job log is the step's own
+`tail -30 suite.log`: a run that finished carries a pytest summary line, and
+this one carries a C-level fatal traceback instead.
+
+    grep -oE "[0-9]+ passed[^)]*\)"        present = it reached the end
+    grep -cE "Fatal Python error|Extension modules:"   1 = it did not
+
+**AND THE `INFRASTRUCTURE FAILURE` STRING IS NOT A VERDICT.** It appears
+twice in every Linux job log including the green ones, because the
+fingerprint SCRIPT is echoed into the log by `##[group]Run {`. Grepping for
+it counts the source, not the outcome -- the same shape as this file's
+`grep FAILED` lesson, one layer out.
+
+**IT WAS INTRODUCED ON THIS BRANCH, AND n=1 PER COMMIT IS ALL THAT SAYS SO:**
+
+    39a7114   Linux 5877 passed, 19 skipped, 1 deselected, 16m42   GREEN
+    baf5804   not measured
+    c36614c   no summary line, fatal traceback                     CRASHED
+    6729e26   no summary line, fatal traceback                     CRASHED
+
+**NEITHER CANDIDATE COMMIT CONTAINS A LINE OF Qt.** `baf5804` is a JSON
+table, a build tool and 24 tests; `c36614c` is a pure-Python refactor of a
+SMARTS walk whose 59 existing tests did not move. So the likeliest reading is
+the documented order-dependent crash class surfacing on a second platform --
+"non-monotonic ... a corrupting free whose VICTIM depends on heap layout",
+where adding tests shifts collection order and moves the victim, exactly as
+PR #43's Windows crash took a Qt-free victim file. **That is a reading, not a
+finding**: this file's own rule is that no A/B on this crash class is worth
+anything below about n=10 per arm, and this is one sample per commit.
+
+**THE VICTIM TEST IS NOT IDENTIFIED**, because `tail -30` starts mid-traceback
+-- the `Fatal Python error:` header and the frame naming the test are above
+the window. They are in the `linux-suite-log-*` artifact, which is the thing
+to fetch before spending any time on a hypothesis.
+
+It does NOT gate the PR, by that job's explicit design, and the blocking
+Windows gate is green. Recorded because a job whose failure is invisible to
+every automated check is exactly the decorative control `tests.yml`'s own
+header warns against, and because the next person to read a green tick there
+should know what it is worth.
+
+18m21 sits mid-band; the 6-21 range stands.)
+
+Before it: `5882 passed, 15 skipped`
+(measured 2026-08-26, **16m19**, on `joback-thermophysical` -- stage 1 of the
+calculator families, the citation sweep's worktree blindness, and the
+all-surfaces provenance audit.
+
+**+27 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed -- `import openchem; print(openchem.__file__)` reported the
+WORKTREE's `src`, not the main checkout:
+
+    d7e0735    COLLECTS 5870
+    this one   COLLECTS 5897   = 5870 + 27
+    the run                     5882 passed + 15 skipped = 5897
+
+**27 ITEMS BUT 22 NEW FUNCTIONS**, which is the whole reason this section
+records the two deltas separately:
+
+    14  test_descriptor_providers.py   14 functions, none parametrised
+    13  test_sources_are_current.py     8 functions, PLUS 5 parametrised
+                                        cases of the EXISTING schema guard,
+                                        one per new source
+
+A count that only said "+27" would have read as 27 tests written. Every one
+reconciles to a new function or to a new registry entry.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line, which
+is the pair this file insists on rather than an absence of FAILED lines. The
+two `DeprecationWarning`s are the same pre-existing six-argument
+`QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**CI MEASURES THE SAME TREE AT 5877 passed, 19 skipped, 1 deselected**
+(run 32925668575, PR #46, 19m49), which is the same 5897: 5877 + 19 + 1. The
+four extra skips are the GPU-gated conformer gallery guards and the
+deselection is the PubChem network test, both already documented above. Worth
+stating because a reader comparing the two figures should not go looking for
+five lost tests.
+
+**THAT RUN IS ON `9e9e287` AND THIS ENTRY IS IN ITS CHILD**, which is the
+weaker of the two claims this file allows and is checkable rather than
+assumed: the child adds only this CLAUDE.md entry and no test, so
+`--collect-only` is unmoved at 5897. Citing the run that measures the tree
+the figure DESCRIBES is the point -- this section has already thrown away one
+figure for describing a tree that no longer existed.
+
+**All three gates RAN** -- "Naming benchmark holds at 181/181", the
+regulatory benchmark and the ruleset validation -- which is the step list
+rather than the conclusion, and the thing a red suite would have taken with
+it. The previous commit `d7e0735` measured 5850 + 19 + 1 = 5870 on run
+32923570851, agreeing with its own local figure the same way.
+
+**AND THAT WAS THIS BRANCH'S FIRST CI RUN AT 4,729 LINES.** `tests.yml`
+fires only on push-to-master or on `pull_request`, so a branch accumulating
+work sees nothing until a PR exists -- and a DRAFT PR triggers the full
+workflow without being a review request. Worth knowing before the next long
+branch: this project has three recorded CI-only failures no local run could
+reproduce.
+
+16m19 sits mid-band; the 6-21 range stands.)
+
+Before it: `5855 passed, 15 skipped`
+(measured 2026-08-25, **20m31**, on `joback-thermophysical` -- oxygen balance
+on both published conventions, and Kamlet-Jacobs detonation.
+
+**+84 collected and 0 REMOVED**, diffed both directions:
+
+    previous commit   COLLECTS 5786
+    this one          COLLECTS 5870   = 5786 + 84
+    the run                    5855 passed + 15 skipped = 5870
+
+    77  test_energetics.py            written
+     4  test_calculator_reachability.py   the new declared module
+     3  test_sources_are_current.py       klapotke2017, westwell1995, kamlet1968
+
+**THE BAND WENT 6-19 TO 6-21 ON THIS RUN, AND IT IS UNEXPLAINED.** The
+previous entry is 15m37 on a tree 84 tests smaller -- a 31% spread with
+nothing to account for it, on the same machine, and 84 arithmetic-only tests
+that run in 0.3 s cannot cost five minutes. Widened so a reader whose run
+takes 20 minutes does not conclude the suite has hung, and recorded as the
+outlier it is rather than as a new normal. This is the sixth consecutive
+entry to say the band is a range with no predictive value inside it; do not
+narrow it back on one fast run either.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line, which
+is the pair this file insists on rather than an absence of FAILED lines. The
+background task also exited 0, which on its own proves nothing. The two
+`DeprecationWarning`s are the same pre-existing six-argument `QMouseEvent`
+overload in `test_dock_title_bar.py` and `test_trajectory_player.py`.)
+
+Before it: `5771 passed, 15 skipped`
+(measured 2026-08-25, **15m37**, on `joback-thermophysical` -- the Joback
+group-contribution table, its SMARTS fragmenter, and the sources backfill
+that found nine shipped methods with no registry entry.
+
+**+106 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed (`import openchem; print(openchem.__file__)` reported
+`/tmp/jbase/src`, not the main checkout):
+
+    master        d7358ac   COLLECTS 5680
+    the branch              COLLECTS 5786   = 5680 + 106
+    the run                          5771 passed + 15 skipped = 5786
+
+**AND 92 OF THE 106 ARE MINE; THE OTHER 14 ARE PARAMETRISED GUARDS DOING
+THEIR JOB**, which is the whole reason to diff by FILE rather than subtract
+a total:
+
+    59  test_joback_fragmenter.py     written
+    33  test_joback_table.py          written
+    11  test_sources_are_current.py   10 new sources + 1 new data table
+     3  test_calculator_reachability.py   the new declared module
+
+A count that only said "+106" would have read as 14 tests appearing from
+nowhere. Every one reconciles to a registry entry or a declaration.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line, which
+is the pair this file insists on rather than an absence of FAILED lines. The
+background task also exited 0, which on its own proves nothing. The two
+`DeprecationWarning`s are the same pre-existing six-argument `QMouseEvent`
+overload in `test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+15m37 sits mid-band; the 6-19 range stands.)
+
+**THE MERGE OF THOSE TWO BRANCHES IS MEASURED NOW, at the top of this
+section.** This note is kept because the WARNING is the durable part: the two
+figures below are real and NEITHER describes the merged tree. They were taken
+on `joback-thermophysical` and on `failed-descriptor-cell-and-hover`, which
+are SIBLINGS off master rather than one being an ancestor of the other, so
+**adding 5882 to 5684 is meaningless** -- they share master's tests. The
+merged tree collects 6068, which is neither sum and could only be obtained by
+collecting it. Until a figure for a merge exists, the newest entry is the
+newer of two parallel measurements rather than the current one.
+
+Before it, on the OTHER branch of this merge:
 A clean run is **6-19 minutes**, ending at `5684 passed, 15 skipped`
 (measured 2026-08-26, **16m09**, on `failed-descriptor-cell-and-hover` --
 the FAILED descriptor's reason splitting into a cell form and a full one,
@@ -5472,6 +5788,25 @@ quietly weakening the test.
 
 ### The cp1252 rule reaches further than `matched`
 
+**AND cp1252 IS THE WRONG CODEPAGE TO ASSERT AGAINST, which this file says
+throughout and which is measurably too weak.** `sys.stdout.encoding` reports
+cp1252 in a modern terminal, so a guard written against it looks right -- but
+a Windows CONSOLE defaults to an OEM codepage, and those are STRICTER:
+
+    character   cp1252   cp437   cp850   ascii
+    em dash     ok       RAISES  RAISES  RAISES
+    tick        RAISES   RAISES  RAISES  RAISES
+    Angstrom    ok       ok      ok      RAISES
+
+So an em dash passes a cp1252 assertion and still renders as a replacement
+character on a real console. Found the hard way: a refusal message written
+with one rendered as `�`, the guard for it asserted `encode("cp1252")`,
+and **the mutation restoring the em dash SURVIVED**. `isascii()` is the bound
+worth asserting for a result STRING; a units field may legitimately carry an
+Angstrom, which is why the rows above are separated rather than merged into
+one rule.
+
+
 `regulatory/calculator.py` already records that result lines hit Windows
 console streams and that a tick RAISES there -- three times in one
 session. The status glyphs are non-ASCII, so they are produced at RENDER
@@ -7636,8 +7971,40 @@ of source work -- every author-year it prints should resolve to a registry
 key, and the alternation wants extending when a new name enters the tree:
 
 ```bash
-rg -o -N --no-filename -g '!docs/sources.toml' -g '!docs/SOURCES.md' -g '!**/vendor/**' -g '!**/resources/**' -e '(Glasser|Jenkins|Sorkun|Avdeef|Llin[aà]s|Abraham|Acree|Bradley|Delaney|Platts|Pearson|Parr|Drago|Shannon|Allred|Mayo|Hopfinger|Yalkowsky|Banerjee|Kaya|Kuhn|Neese|Vogel)[ ,]{0,2}(?:et al\.?)?[ ,]{0,3}(19|20)\d\d' . | sort -u
+rg -o -N --no-filename -g '!docs/sources.toml' -g '!docs/SOURCES.md' -g '!**/vendor/**' -g '!**/resources/**' -e '(Glasser|Jenkins|Sorkun|Avdeef|Llin[aà]s|Abraham|Acree|Bradley|Delaney|Platts|Pearson|Parr|Drago|Shannon|Allred|Mayo|Hopfinger|Yalkowsky|Banerjee|Kaya|Kuhn|Neese|Vogel|Gasteiger|Marsili|Saller|Wildman|Crippen|Ertl|Schuffenhauer|Rohde|Selzer|Baell|Holloway|Brenk|Bickerton|Bertz|Lovering|Joback|Reid|Stefanis|Panayiotou|Kamlet|Jacobs|Klap[oö]tke|Krygowski|Kruszewski|Bird|Schleyer|Yang|Mortier|Wiener|Randi[cć]|Balaban|Kier|Miller|Cao|Schott|Gutmann)[ ,]{0,2}(?:et al\.?)?[ ,]{0,3}(19|20)\d\d' . | sort -u
 ```
+
+**IT MISSED FIVE SHIPPED METHODS FOR YEARS, AND THE REASON IS THE ALTERNATION
+ITSELF.** Measured 2026-08-25: `gasteiger`, `wildman`, `baell`, `brenk`,
+`labute`, `kier`, `wiener`, `randic`, `balaban`, `lipinski`, `veber` and
+`huckel` all returned **zero hits** in `docs/sources.toml`, while
+Gasteiger-Marsili PEOE, Wildman-Crippen logP/MR, Ertl TPSA and the
+PAINS/BRENK catalogues each backed a shipped calculator. None of those
+surnames was in the list above, so the sweep could not have found them --
+this is its own documented limit, paid for.
+
+**THE `rdkit` ENTRY DOES NOT COVER THEM.** It is `kind = "software"` -- a
+licence and a version constraint -- and makes no claim about the METHODS
+RDKit implements. Under the registry's own scope (`status = "shipped"` means
+this source backs something we ship), a library-implemented method needs its
+own entry exactly as a hand-transcribed table does.
+
+**AND A LIBRARY'S IMPLEMENTATION IS NOT ALWAYS THE PAPER'S.** Two of the
+RDKit contributions register a divergence in their own headers:
+`Contrib/SA_Score/sascorer.py` records a different macrocyclic penalty, an
+added symmetry term and **r2 = 0.97** against Ertl's original rather than
+1.0; `Contrib/NP_Score/npscorer.py` is a 2015 re-fit on ~50k public natural
+products and ~1M ZINC molecules rather than the Novartis corpus behind the
+2008 paper. So a source entry for a library-implemented method says the
+DEFINITION is that paper's -- never that the number is. Validating a shipped
+SA score against [source:ertl2009]'s printed values would be an acceptance
+test that fails against correct code.
+
+**THE RULE THAT FOLLOWS**, and it belongs beside `verification`'s three
+values: a citation-level entry does not authorize an implementation merely
+because its title matches. `citation_and_claim` is granted only after the
+exact method variant, its equation and parameter conventions, and an
+acceptance fixture have been checked against that source.
 
 **PDFs HELD LOCALLY AND CITED NOWHERE ARE NOT REGISTRY ENTRIES**, because
 the registry records what this project rests on and an unused source

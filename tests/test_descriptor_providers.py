@@ -329,3 +329,320 @@ def test_herg_basic_amine_smarts_matches_plain_aliphatic_amines():
         mol = Chem.MolFromSmiles(smiles)
         alerts = {a.alert_id: a for a in provider.compute_alerts(mol, "mol-1")}
         assert "Basic amine present" in alerts["herg_risk_factors"].matched, smiles
+
+
+# ---------------------------------------------------------------------------
+# NP-likeness, Bertz complexity and Fsp3 -- stage 1 of the calculator families.
+#
+# THE ORACLE IS NOT THE PAPER FOR TWO OF THE THREE, and the tests say which is
+# which rather than leaving a reader to assume. RDKit's NP model is a 2015
+# re-fit on a public corpus [source:npscorer2015], and its BertzCT deliberately
+# departs from [source:bertz1981] for any aromatic molecule
+# [source:rdkit_bertz]. So the shipped numbers are pinned as CHANGE DETECTORS
+# against the installed RDKit, and the scientific claims are asserted where an
+# oracle genuinely exists -- the kekule contract below being the sharpest.
+# ---------------------------------------------------------------------------
+
+
+def _np_raw(smiles: str):
+    """The scorer's own answer, bypassing this project's refusal.
+
+    Used to assert the MECHANISM behind the refusal rather than its effect,
+    which is the only way to show the refusal is necessary rather than a
+    stylistic choice.
+    """
+    from openchem.chem.descriptor_providers import _load_npscorer
+
+    npscorer, fscore = _load_npscorer()
+    return npscorer.scoreMolWConfidence(Chem.MolFromSmiles(smiles), fscore)
+
+
+def test_the_three_new_descriptors_are_computed():
+    results = _values_by_id(Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O"))
+
+    assert results["np_likeness"].value == pytest.approx(0.1218, abs=1e-3)
+    assert results["np_likeness_confidence"].value == pytest.approx(0.96, abs=1e-3)
+    assert results["bertz_ct"].value == pytest.approx(343.2229, abs=1e-3)
+    assert results["fsp3"].value == pytest.approx(1 / 9, abs=1e-6)
+
+    for descriptor_id in ("np_likeness", "np_likeness_confidence", "bertz_ct", "fsp3"):
+        assert results[descriptor_id].cache_state == CacheState.COMPLETED
+        assert results[descriptor_id].provenance is not None
+        assert results[descriptor_id].category == "medicinal_chemistry"
+
+
+def test_a_zero_confidence_np_score_is_refused_rather_than_reported():
+    """Methane shares no fragment with the training corpus.
+
+    The refusal is not fastidiousness: see the setup assertion below, which
+    shows the number that would otherwise be printed is arithmetic rather than
+    a measurement.
+    """
+    results = _values_by_id(Chem.MolFromSmiles("C"))
+
+    refused = results["np_likeness"]
+    assert refused.cache_state == CacheState.FAILED
+    assert refused.value is None
+    assert refused.error is not None
+    assert "training corpus" in refused.error
+
+
+def test_the_refused_score_would_have_been_exactly_zero():
+    """THE SETUP ASSERTION, and it is what makes the refusal defensible.
+
+    `scoreMolWConfidence` sums `fscore[bit]` over fragments PRESENT in the
+    model, so an unrecognised fragment contributes nothing. A molecule at
+    confidence 0 therefore scores exactly 0.0 BY CONSTRUCTION -- byte-identical
+    to a molecule genuinely judged neutral. Without this, a reader could
+    reasonably think the refusal was discarding a real value.
+
+    If a future RDKit model recognises methane, this fails and the refusal
+    should be re-examined rather than the test loosened.
+    """
+    raw = _np_raw("C")
+    assert raw.confidence == 0.0
+    assert raw.nplikeness == 0.0
+
+    # ... and the control: a molecule the model DOES recognise is not refused,
+    # so the branch above is not simply "always refuse".
+    recognised = _np_raw("CCC")
+    assert recognised.confidence > 0.0
+    assert recognised.nplikeness != 0.0
+
+
+def test_the_confidence_survives_a_refused_score():
+    """A blanked confidence would hide WHY the score is missing.
+
+    0.000 is a real statement about the molecule -- "none of it was
+    recognised" -- and it is the only thing on screen that explains the
+    refusal beside it.
+    """
+    results = _values_by_id(Chem.MolFromSmiles("C"))
+
+    confidence = results["np_likeness_confidence"]
+    assert confidence.cache_state == CacheState.COMPLETED
+    assert confidence.value == pytest.approx(0.0)
+    assert results["np_likeness"].cache_state == CacheState.FAILED
+
+
+def test_a_partially_recognised_molecule_is_scored_and_says_so():
+    """Propane sits between the two extremes: 0 < confidence < 1.
+
+    The interesting case, because it is neither refused nor fully recognised,
+    and a rule keyed on `confidence == 1.0` would wrongly refuse it.
+    """
+    results = _values_by_id(Chem.MolFromSmiles("CCC"))
+
+    confidence = results["np_likeness_confidence"].value
+    assert 0.0 < confidence < 1.0
+    assert results["np_likeness"].cache_state == CacheState.COMPLETED
+
+
+def test_a_natural_product_can_score_as_synthetic():
+    """CAFFEINE IS THE CASE A READER MUST NOT GET WRONG.
+
+    It is a natural product by any account and NP-likeness scores it NEGATIVE,
+    while morphine scores strongly positive. The score is a Bayesian comparison
+    against a corpus, never a statement about where a molecule came from --
+    which is exactly what the tier-3 help contract has to say, and what this
+    test stops anybody quietly "fixing".
+    """
+    caffeine = _values_by_id(Chem.MolFromSmiles("Cn1cnc2c1c(=O)n(C)c(=O)n2C"))
+    morphine = _values_by_id(
+        Chem.MolFromSmiles("CN1CC[C@]23c4c5ccc(O)c4O[C@H]2[C@@H](O)C=C[C@H]3[C@H]1C5")
+    )
+
+    assert caffeine["np_likeness"].value < 0.0
+    assert morphine["np_likeness"].value > 0.0
+    # Both are fully recognised, so the sign difference is the model's verdict
+    # rather than an artefact of coverage.
+    assert caffeine["np_likeness_confidence"].value == pytest.approx(1.0)
+    assert morphine["np_likeness_confidence"].value == pytest.approx(1.0)
+
+
+def test_the_np_scorer_is_not_reached_by_the_sa_scorers_name():
+    """`npscorer` HAS NO `calculateScore`, and the sibling loader does.
+
+    Writing `_load_npscorer` from `_load_sascorer` by analogy raises
+    AttributeError at runtime, which in a lazily-imported provider means the
+    failure surfaces the first time a user selects a molecule rather than at
+    import. Asserted on the module so the trap is recorded where the next
+    author will meet it.
+    """
+    from openchem.chem.descriptor_providers import _load_npscorer
+
+    npscorer, fscore = _load_npscorer()
+    assert not hasattr(npscorer, "calculateScore")
+    assert hasattr(npscorer, "scoreMolWConfidence")
+    assert fscore, "the model must be loaded and non-empty"
+
+
+def test_loading_the_np_model_writes_nothing_to_the_console(capfd):
+    """`readNPModel` prints to STDERR, and a GUI process has no console to
+    take it.
+
+    The stream matters and was measured: a `redirect_stdout` written first
+    captured nothing at all. This asserts the effect rather than the mechanism,
+    so it still holds if RDKit changes which stream it uses.
+    """
+    import openchem.chem.descriptor_providers as providers
+
+    providers._npscorer_module = None
+    providers._np_model = None
+    try:
+        capfd.readouterr()
+        providers._load_npscorer()
+        captured = capfd.readouterr()
+    finally:
+        providers._npscorer_module = None
+        providers._np_model = None
+
+    assert "reading NP model" not in captured.out
+    assert "reading NP model" not in captured.err
+
+
+def test_the_np_refusal_message_survives_a_windows_console():
+    """Result strings reach Windows console streams, which cannot carry them.
+
+    **AND cp1252 IS THE WRONG CODEPAGE TO TEST AGAINST, which is what this
+    guard got wrong first.** This project's notes say "cp1252" throughout,
+    because that is what `sys.stdout.encoding` reports in a modern terminal --
+    but a Windows console defaults to an OEM codepage, and those are STRICTER.
+    Measured:
+
+        character   cp1252   cp437   cp850   ascii
+        em dash     ok       RAISES  RAISES  RAISES
+        tick        RAISES   RAISES  RAISES  RAISES
+        Angstrom    ok       ok      ok      RAISES
+
+    So an em dash -- which this message originally carried -- passes a cp1252
+    assertion and still renders as a replacement character on a real console.
+    A guard written against cp1252 survived the mutation that put it back.
+
+    ASCII is the intersection and the only bound worth asserting. It is
+    deliberately stricter than the Angstrom row needs: a units string may
+    legitimately be non-ASCII, an ERROR MESSAGE has nothing to gain from it.
+    """
+    results = _values_by_id(Chem.MolFromSmiles("C"))
+
+    error = results["np_likeness"].error
+    assert error is not None
+    assert error.isascii(), f"non-ASCII in a result string: {error!r}"
+
+
+def test_bertz_complexity_is_the_same_for_two_kekule_forms(recwarn):
+    """THE ORACLE FOR RDKit's OWN DEPARTURE FROM THE PAPER.
+
+    Its docstring names two kekule forms of one molecule that the ORIGINAL
+    implementation scored differently, and says the new behaviour is the
+    correct one. That is a claim this implementation can be held to and the
+    1981 paper cannot supply -- so it is the acceptance test for the aromatic
+    half, in place of a printed value that would be testing the wrong thing.
+    """
+    first = Chem.MolFromSmiles("CC2=CN=C1C3=C(C(C)=C(C=N3)C)C=CC1=C2C")
+    second = Chem.MolFromSmiles("CC3=CN=C2C1=NC=C(C)C(C)=C1C=CC2=C3C")
+
+    # Assert the setup: these really are two spellings of one molecule, or the
+    # claim below is about two different structures and proves nothing.
+    assert Chem.MolToSmiles(first) == Chem.MolToSmiles(second)
+    assert first.GetNumAtoms() == second.GetNumAtoms()
+
+    assert _values_by_id(first)["bertz_ct"].value == pytest.approx(
+        _values_by_id(second)["bertz_ct"].value, abs=1e-9
+    )
+
+
+def test_two_different_molecules_can_share_a_complexity():
+    """Methane and propane are both 0.
+
+    A property of the index rather than a defect, and it belongs in the help
+    contract: a reader comparing two values must not read equality as identity.
+    """
+    methane = _values_by_id(Chem.MolFromSmiles("C"))["bertz_ct"].value
+    propane = _values_by_id(Chem.MolFromSmiles("CCC"))["bertz_ct"].value
+
+    assert methane == propane == pytest.approx(0.0)
+    # The control: the index is not simply zero everywhere.
+    assert _values_by_id(Chem.MolFromSmiles("CCCC"))["bertz_ct"].value > 0.0
+
+
+def test_fsp3_spans_its_full_range():
+    """Benzene has no sp3 carbon; cyclohexane has nothing else."""
+    assert _values_by_id(Chem.MolFromSmiles("c1ccccc1"))["fsp3"].value == pytest.approx(0.0)
+    assert _values_by_id(Chem.MolFromSmiles("C1CCCCC1"))["fsp3"].value == pytest.approx(1.0)
+
+
+def test_a_carbon_free_molecule_gets_zero_rather_than_a_refusal():
+    """Fsp3 divides by the carbon count, and water has none.
+
+    RDKit returns 0.0 rather than raising, and this project reports it. Pinned
+    because it is a division by zero that RETURNS -- the behaviour would be
+    easy to "fix" into a refusal, and 0.0 is defensible: a molecule with no
+    carbon has no sp3 carbon.
+    """
+    results = _values_by_id(Chem.MolFromSmiles("O"))
+
+    assert results["fsp3"].cache_state == CacheState.COMPLETED
+    assert results["fsp3"].value == pytest.approx(0.0)
+
+
+def test_the_new_descriptors_join_a_category_that_already_existed():
+    """No new category was declared, and that is deliberate.
+
+    `medicinal_chemistry` already carried QED and SA score -- the two the
+    round-1 survey wrongly reported as unbuilt, because it enumerated
+    `CALCULATOR_DEFINITIONS` and treated one surface as the whole universe.
+    Asserting the shared category is what stops a later change splitting these
+    five apart into a second heading meaning the same thing.
+    """
+    from openchem.chem.descriptor_providers import _DESCRIPTOR_SPECS
+
+    categories = {
+        spec[0]: spec[3]
+        for spec in _DESCRIPTOR_SPECS
+        if spec[0] in {"qed", "sa_score", "np_likeness", "bertz_ct", "fsp3"}
+    }
+    assert len(categories) == 5, "a descriptor went missing"
+    assert set(categories.values()) == {"medicinal_chemistry"}
+
+
+def test_the_np_refusal_gives_a_cell_form_AND_a_full_one():
+    """`error_summary` for the cell, `error` for the hover.
+
+    THIS WAS ONE STRING FOR EXACTLY ONE COMMIT, and it was the short one.
+    The panel wrote a single field into both the value cell and its tooltip,
+    the cell is about 100 px at the dock's minimum width, and the first draft
+    was cut mid-word at "None of this molecule's fragments ap" in the running
+    app. The reasoning had to move into the module and the source entry,
+    where a USER never reads it. The pair puts it back on the hover.
+    """
+    from openchem.domain.common import describe_failure
+
+    refused = _values_by_id(Chem.MolFromSmiles("C"))["np_likeness"]
+    cell, hover = describe_failure(refused.error, refused.error_summary)
+
+    assert cell == "Not in the training corpus"
+    assert len(cell) < 40, "the cell form must fit a narrow column"
+    assert len(hover) > len(cell) * 3, "the hover must carry more than the cell"
+    assert "arithmetic" in hover, "the reason must survive on the hover"
+    assert hover.startswith("None of this molecule")
+
+
+def test_both_halves_of_the_np_refusal_survive_a_console():
+    """Result strings reach Windows console codepages, so ASCII is the bound.
+
+    Asserted on BOTH now: a summary that is clean while its detail is not
+    would pass a check that only looked at the string the cell shows.
+    """
+    refused = _values_by_id(Chem.MolFromSmiles("C"))["np_likeness"]
+
+    assert refused.error_summary.isascii(), repr(refused.error_summary)
+    assert refused.error.isascii(), repr(refused.error)
+
+
+def test_a_descriptor_that_succeeds_carries_neither():
+    """The control: the pair is set on FAILURE, not on everything."""
+    values = _values_by_id(Chem.MolFromSmiles("CCO"))
+
+    assert values["np_likeness"].error is None
+    assert values["np_likeness"].error_summary is None

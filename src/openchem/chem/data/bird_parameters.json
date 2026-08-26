@@ -1,0 +1,38 @@
+{
+ "_source_key": "bird1985",
+ "_description": "Gordy constants a and b for bond orders, Bird Table 1 (p1410), and the Kekule reference V_K values.",
+ "_read_from": "a 340 dpi RENDER of bird1985.pdf page 2, not the text layer",
+ "_why_rendered": "TWO independent reasons, both measured. The text layer corrupts a digit -- `o-s 17.05 5.5a+`, where the `a` is the digit 8 -- and its two-column layout interleaves the rows so the bond-to-(a,b) pairing is destroyed: `Bond c-c C-N c-o c-s C-Se C-Te C-P a b Bond a b - - 6.80 1.71* N-N 5.28 1.41* ...`. Either alone would require the render.",
+ "_equations": {
+  "_table": "p1409-1411",
+  "bond_order": "N = a/R**2 - b            the Gordy relationship, per bond type",
+  "V": "V = (100/Nbar) * sqrt(SUM (N - Nbar)**2 / n)   the coefficient of variation of the ring's bond orders; Nbar is their arithmetic mean and n the bond count",
+  "I": "I = 100 * (1 - V/V_K)"
+ },
+ "_units": {"a": "Angstrom^2", "b": "dimensionless", "R": "Angstrom", "I": "dimensionless"},
+ "_v_kekule": {
+  "five": 35.0,
+  "six": 33.3,
+  "five_six_fused": 35.0,
+  "_why": "V for a fully delocalised ring is 0; for a non-delocalised Kekule form with alternating single and double bonds it takes these values, which is what puts I on a 0-100 scale. The paper states all three."
+ },
+ "_the_subscript_is_the_papers_requirement": "p1411: index values 'are not necessarily comparable for differing ring systems', so 'it seems desirable to attach a guiding subscript as I5, I6 or I5,6, to discourage inappropriate comparisons.' A LABELLING REQUIREMENT from the source, not a presentation preference -- and it matters more here because HOMA sits in the same panel section and DOES share one scale across ring sizes.",
+ "_accuracy": "p1411: 'spot checks indicate that the index values are relatively insensitive to substituent effects causing variations of +-2 to 3.' No fixture should be pinned tighter than the method.",
+ "_what_is_NOT_claimed": "Bird 1985 prints indices (Table 2, Figure 1) but NO bond lengths -- pages 4-6 contain none, and page 6 is the reference list. Every one of its printed values came from an experimental geometry in a cited reference, so none of them is reproducible from this paper alone. The geometry-backed validation comes from [source:katritzky1990] instead; see `data/bird_oracle.json`.",
+ "_footnotes": {"*": "the paper's ref 4", "#": "the paper's ref 3", "+": "this paper, computed from covalent radii and electronegativities via the Shomaker-Stevenson equation"},
+ "bonds": {
+  "C-C":  {"elements": ["C", "C"],  "a": 6.80,  "b": 1.71, "printed": "C-C",  "source": "*"},
+  "C-N":  {"elements": ["C", "N"],  "a": 6.48,  "b": 2.0,  "printed": "C-N",  "source": "*"},
+  "C-O":  {"elements": ["C", "O"],  "a": 5.75,  "b": 1.85, "printed": "C-O",  "source": "*"},
+  "C-S":  {"elements": ["C", "S"],  "a": 11.9,  "b": 2.59, "printed": "C-S",  "source": "*"},
+  "C-Se": {"elements": ["C", "Se"], "a": 15.24, "b": 3.09, "printed": "C-Se", "source": "#"},
+  "C-Te": {"elements": ["C", "Te"], "a": 21.41, "b": 3.81, "printed": "C-Te", "source": "#"},
+  "C-P":  {"elements": ["C", "P"],  "a": 13.54, "b": 3.02, "printed": "C-P",  "source": "+"},
+  "N-N":  {"elements": ["N", "N"],  "a": 5.28,  "b": 1.41, "printed": "N-N",  "source": "*"},
+  "N-O":  {"elements": ["N", "O"],  "a": 4.98,  "b": 1.45, "printed": "N-O",  "source": "*"},
+  "N-S":  {"elements": ["N", "S"],  "a": 10.53, "b": 2.50, "printed": "N-S",  "source": "+"},
+  "N-Se": {"elements": ["N", "Se"], "a": 13.31, "b": 2.86, "printed": "N-Se", "source": "+"},
+  "O-S":  {"elements": ["O", "S"],  "a": 17.05, "b": 5.58, "printed": "O-S",  "source": "+"},
+  "S-S":  {"elements": ["S", "S"],  "a": 19.30, "b": 3.46, "printed": "S-S",  "source": "+"}
+ }
+}

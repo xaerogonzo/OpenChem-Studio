@@ -32,7 +32,22 @@ from openchem.ui.panels.property_panel import _CATEGORY_LABELS, _CATEGORY_ORDER
 #: panel -- and filing a spectroscopic measurement under a structural
 #: heading purely to flatten a count would be worse than the count. The
 #: entry is by NAME so a second singleton cannot arrive quietly.
-_ALLOWED_SINGLETONS = {"nmr"}
+#: `thermophysical` is the second, for the same reason rather than a new
+#: one: Joback's eleven properties are critical constants, phase-change
+#: points and a heat capacity, and not one of the seventeen existing
+#: headings takes them. Filing a critical volume under "Electronic" or
+#: "Solubility" to flatten a count is exactly the trade the nmr entry
+#: above refuses.
+#: `energetic` WAS the third, for exactly one commit. The detonation
+#: properties landed beside oxygen balance and
+#: `test_the_declared_singleton_really_is_one` went red until this name
+#: was removed -- which is the guard working, and the reason that narrow
+#: half exists at all.
+#: `aromaticity` WAS the third, for exactly one commit. Bird's index landed
+#: beside HOMA and `test_the_declared_singleton_really_is_one` went red until
+#: this name was removed -- which is the guard working, and the second time
+#: that has happened here after `energetic`.
+_ALLOWED_SINGLETONS = {"nmr", "thermophysical"}
 
 
 def _real_registry():

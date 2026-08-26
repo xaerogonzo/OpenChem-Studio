@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 8dd23a6e3b3ee27d29b8371eb56f088aa1e6a24e65d18b7e1727a2f705c97676 -->
+<!-- SOURCE SHA256: 9b4792cbf5db088516c5f152cf5d783c9110b31f195c198c8c052254714e1659 -->
 
 # Sources
 
@@ -93,10 +93,15 @@ next run of `tools/build_lewis_parameters.py`.
 | [`autodock_vina`](#autodock_vina) | software | shipped | citation |
 | [`avdeef2007`](#avdeef2007) | literature | shipped | citation + claim |
 | [`avdeef2020`](#avdeef2020) | literature | shipped | citation + claim |
+| [`baell2010`](#baell2010) | literature | shipped | citation |
+| [`bertz1981`](#bertz1981) | literature | shipped | citation |
+| [`bickerton2012`](#bickerton2012) | literature | shipped | citation |
+| [`bird1985`](#bird1985) | literature | shipped | citation |
 | [`bolovinos1984`](#bolovinos1984) | literature | shipped | citation + claim |
 | [`bradley2014`](#bradley2014) | dataset | shipped | citation + claim |
 | [`bradley2015`](#bradley2015) | literature | shipped | citation + claim |
 | [`bravetti2023`](#bravetti2023) | literature | shipped | citation |
+| [`brenk2008`](#brenk2008) | literature | shipped | citation |
 | [`cao2004`](#cao2004) | literature | shipped | citation + claim |
 | [`cod`](#cod) | dataset | shipped | citation |
 | [`crc_handbook`](#crc_handbook) | reference_table | shipped | citation + claim |
@@ -107,33 +112,47 @@ next run of `tools/build_lewis_parameters.py`.
 | [`drago1965`](#drago1965) | literature | shipped | citation + claim |
 | [`drago1990`](#drago1990) | literature | shipped | citation |
 | [`drago1993`](#drago1993) | literature | shipped | citation |
+| [`ertl2000`](#ertl2000) | literature | shipped | citation |
+| [`ertl2008`](#ertl2008) | literature | shipped | citation |
+| [`ertl2009`](#ertl2009) | literature | shipped | citation |
+| [`gasteiger1980`](#gasteiger1980) | literature | shipped | citation |
+| [`gasteiger1985`](#gasteiger1985) | literature | **not shipped** | citation |
 | [`glasser1995`](#glasser1995) | literature | shipped | citation |
 | [`guo2006`](#guo2006) | literature | reference only | citation + claim |
 | [`gutmann1976`](#gutmann1976) | literature | shipped | citation + claim |
 | [`gutmann_frontiers2022`](#gutmann_frontiers2022) | literature | **not shipped** | citation |
-| [`hlb`](#hlb) | reference_table | **not shipped** | unverified |
+| [`hlb`](#hlb) | reference_table | reference only | citation |
 | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
 | [`ich_m9`](#ich_m9) | standard | shipped | citation + claim |
 | [`iupac2013`](#iupac2013) | standard | shipped | citation |
 | [`iupac_namer`](#iupac_namer) | software | shipped | citation |
 | [`jenkins1999`](#jenkins1999) | literature | shipped | citation + claim |
+| [`joback1987`](#joback1987) | literature | shipped | citation + claim |
+| [`kamlet1968`](#kamlet1968) | literature | shipped | citation + claim |
+| [`katritzky1990`](#katritzky1990) | literature | shipped | citation + claim |
 | [`kaya2022`](#kaya2022) | literature | shipped | citation + claim |
 | [`kendall2008`](#kendall2008) | literature | shipped | citation |
 | [`ketcher`](#ketcher) | software | shipped | citation |
+| [`klapotke2017`](#klapotke2017) | literature | shipped | citation + claim |
+| [`kruszewski1972`](#kruszewski1972) | literature | shipped | citation |
+| [`krygowski1993`](#krygowski1993) | literature | shipped | citation + claim |
 | [`kwon2023`](#kwon2023) | dataset | shipped | citation + claim |
 | [`langes15`](#langes15) | reference_table | shipped | citation + claim |
 | [`llinas2008`](#llinas2008) | dataset | shipped | citation |
 | [`llinas2019`](#llinas2019) | dataset | reference only | citation |
 | [`llinas2020`](#llinas2020) | dataset | shipped | citation + claim |
 | [`lorentzon1995`](#lorentzon1995) | literature | reference only | citation + claim |
+| [`lovering2009`](#lovering2009) | literature | shipped | citation |
+| [`marsili1980`](#marsili1980) | literature | **not shipped** | citation |
 | [`mayer1975`](#mayer1975) | literature | reference only | citation |
 | [`mayo1990`](#mayo1990) | literature | shipped | citation + claim |
 | [`miller1979`](#miller1979) | literature | shipped | citation + claim |
 | [`miller1990`](#miller1990) | literature | shipped | citation + claim |
-| [`miller_polarizability`](#miller_polarizability) | reference_table | **not shipped** | unverified |
+| [`miller_polarizability`](#miller_polarizability) | reference_table | reference only | citation |
 | [`molstar`](#molstar) | software | shipped | citation |
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
 | [`nmrshiftdb2`](#nmrshiftdb2) | dataset | shipped | citation |
+| [`npscorer2015`](#npscorer2015) | software | shipped | citation |
 | [`nubase2020`](#nubase2020) | dataset | shipped | citation + claim |
 | [`ons_solubility`](#ons_solubility) | dataset | shipped | citation |
 | [`openbabel`](#openbabel) | software | shipped | citation |
@@ -147,15 +166,19 @@ next run of `tools/build_lewis_parameters.py`.
 | [`ran2002`](#ran2002) | literature | reference only | citation |
 | [`rcsb_pdb`](#rcsb_pdb) | dataset | shipped | citation |
 | [`rdkit`](#rdkit) | software | shipped | citation |
+| [`rdkit_bertz`](#rdkit_bertz) | software | shipped | citation + claim |
 | [`schott1989`](#schott1989) | literature | shipped | citation + claim |
 | [`sci_downloads_note`](#sci_downloads_note) | reference_table | reference only | citation |
 | [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
+| [`stefanis2008`](#stefanis2008) | literature | shipped | citation + claim |
 | [`stovall2015`](#stovall2015) | literature | shipped | citation + claim |
 | [`tdc_admet`](#tdc_admet) | dataset | reference only | citation |
 | [`threedmol`](#threedmol) | software | shipped | citation |
 | [`trott_olson2010`](#trott_olson2010) | literature | shipped | citation + claim |
-| [`tsei`](#tsei) | reference_table | **not shipped** | unverified |
+| [`tsei`](#tsei) | reference_table | reference only | citation |
 | [`vogel_drago1996`](#vogel_drago1996) | literature | shipped | citation + claim |
+| [`westwell1995`](#westwell1995) | literature | **not shipped** | citation |
+| [`wildman1999`](#wildman1999) | literature | shipped | citation |
 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
 
 ## Primary literature
@@ -1113,6 +1136,868 @@ authority. Being correct by luck is not a method. See
 `[source:autodock_vina]` is the software; this is the paper that carries
 the claim.
 
+### gasteiger1980
+
+<a id="gasteiger1980"></a>
+
+> J. Gasteiger & M. Marsili, 'Iterative Partial Equalization of Orbital Electronegativity -- A Rapid Access to Atomic Charges', Tetrahedron 1980, 36, 3219-3228.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/0040-4020(80)80168-2](https://doi.org/10.1016/0040-4020(80)80168-2) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `gasteiger1980.pdf` (not checked) |
+| Used by | `src/openchem/chem/electronic_properties.py`, `src/openchem/chem/dipole.py`, `src/openchem/chem/descriptor_providers.py` |
+
+PEOE, reached through RDKit's rdPartialCharges.ComputeGasteigerCharges. It
+backs `gasteiger_charge_at_ph`, the dipole calculator's charge model and
+`orbital_electronegativity`.
+
+THE SIGMA COMPONENT ONLY. Marvin additionally exposes a pi component, which
+needs the separate pi-charge iteration of [source:marsili1980] and
+[source:gasteiger1985]; relabelling the sigma value as pi would be worse than
+not offering it. That is the one remaining item on ROADMAP's deferral list.
+
+REGISTERED IN A BACKFILL, AND THE HOLE IT CLOSES IS THE INTERESTING PART.
+This method has backed shipped calculators for the life of the project and
+had NO registry entry, because the coverage sweep greps a fixed alternation
+of surnames and Gasteiger was never in it -- that check finds only authors
+somebody already thought of. Wildman, Ertl, Baell and Brenk were missing for
+the same reason; all five landed together.
+
+### marsili1980
+
+<a id="marsili1980"></a>
+
+> M. Marsili & J. Gasteiger, 'pi-Charge Distribution from Molecular Topology and pi-Orbital Electronegativity', Croatica Chemica Acta 1980, 53, 601-614.
+
+| | |
+| --- | --- |
+| Identifier | Croat. Chem. Acta 53 (4) 601-614 (1980), CCA-1246 |
+| Status | **not shipped** |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `cca1246.pdf` (not checked) |
+
+**Why it is not shipped.** The pi half of PEOE. Held for the sigma/pi charge separation work; nothing
+ships from it yet, so it is recorded as read rather than as backing anything.
+
+PRE-DOI AND MARKED "Conference Paper" ON ITS OWN FIRST PAGE, which is worth
+recording because a conference paper and a journal article are not the same
+kind of claim. The PDF confirms itself as CROATICA CHEMICA ACTA CCACAA 53
+(4) 601-614 (1980) CCA-1246.
+
+### gasteiger1985
+
+<a id="gasteiger1985"></a>
+
+> J. Gasteiger & H. Saller, 'Calculation of the Charge Distribution in Conjugated Systems by a Quantification of the Resonance Concept', Angew. Chem. Int. Ed. Engl. 1985, 24, 687-689.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/anie.198506871](https://doi.org/10.1002/anie.198506871) |
+| Status | **not shipped** |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `gasteiger1985.pdf` (not checked) |
+
+**Why it is not shipped.** PEPE -- partial equalization of pi-electronegativity, the route to the pi
+component `orbital_electronegativity` deliberately does not claim. Held for
+that work; nothing ships from it yet.
+
+THE PDF OPENS ON A DIFFERENT ARTICLE -- page 1 carries the tail of an
+oligonucleotide paper's reference list, and the Gasteiger-Saller article
+begins partway down it. Same trap as the Drago & Wayland 1965 scan; confirmed
+present by full-text search rather than by reading page 1.
+
+### wildman1999
+
+<a id="wildman1999"></a>
+
+> S. A. Wildman & G. M. Crippen, 'Prediction of Physicochemical Parameters by Atomic Contributions', J. Chem. Inf. Comput. Sci. 1999, 39, 868-873.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ci990307l](https://doi.org/10.1021/ci990307l) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `wildman1999.pdf` (not checked) |
+| Used by | `src/openchem/chem/descriptor_providers.py`, `src/openchem/chem/alignment.py`, `src/openchem/chem/mpo_scores.py`, `src/openchem/chem/ph_curves.py` |
+
+The atom typing behind RDKit's Crippen.MolLogP, Crippen.MolMR and
+rdMolDescriptors._CalcCrippenContribs -- so it backs `crippen_logp_contrib`,
+`crippen_mr_contrib`, the `mol_logp` descriptor, the logD curve's LogP term,
+CNS MPO and the alignment overlay's colouring.
+
+68 atomic contributions to log P fitted on 9920 molecules (r2 = 0.918), and a
+separate 3412-molecule set for MR (r2 = 0.997).
+
+### ertl2000
+
+<a id="ertl2000"></a>
+
+> P. Ertl, B. Rohde & P. Selzer, 'Fast Calculation of Molecular Polar Surface Area as a Sum of Fragment-Based Contributions and Its Application to the Prediction of Drug Transport Properties', J. Med. Chem. 2000, 43, 3714-3717.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jm000942e](https://doi.org/10.1021/jm000942e) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `ertl2000.pdf` (not checked) |
+| Used by | `src/openchem/chem/descriptor_providers.py`, `src/openchem/chem/mpo_scores.py`, `src/openchem/chem/bbb_stereo.py` |
+
+TPSA, reached through RDKit's rdMolDescriptors.CalcTPSA. It backs
+`polar_surface_area`, CNS MPO's polarity term and the BBB descriptors.
+
+TOPOLOGICAL, NOT GEOMETRIC, AND THAT IS THE WHOLE POINT OF THE PAPER: 43
+polar fragment contributions fitted to single-conformer 3D PSA over 34810
+molecules, giving practically identical results 2-3 orders of magnitude
+faster. So it needs no conformer, which is why the calculator is a DRAWING
+one.
+
+### baell2010
+
+<a id="baell2010"></a>
+
+> J. B. Baell & G. A. Holloway, 'New Substructure Filters for Removal of Pan Assay Interference Compounds (PAINS) from Screening Libraries and for Their Exclusion in Bioassays', J. Med. Chem. 2010, 53, 2719-2740.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jm901137j](https://doi.org/10.1021/jm901137j) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `baell2010.pdf` (not checked) |
+| Used by | `src/openchem/chem/descriptor_providers.py` |
+
+The PAINS catalogue, reached through RDKit's
+FilterCatalogParams.FilterCatalogs.PAINS. One of the four `AlertResult`
+producers this project classes as a genuine warning rather than an
+information carrier.
+
+A PAINS HIT IS NOT A VERDICT ON A COMPOUND. The paper's filters identify
+substructures that appear as frequent hitters across unrelated assays; that
+is a statement about assay interference, not about toxicity or activity.
+
+### brenk2008
+
+<a id="brenk2008"></a>
+
+> R. Brenk, A. Schipani, D. James, A. Krasowski, I. H. Gilbert, J. Frearson & P. G. Wyatt, 'Lessons Learnt from Assembling Screening Libraries for Drug Discovery for Neglected Diseases', ChemMedChem 2008, 3, 435-444.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/cmdc.200700139](https://doi.org/10.1002/cmdc.200700139) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `brenk2008.pdf` (not checked) |
+| Used by | `src/openchem/chem/descriptor_providers.py` |
+
+The BRENK catalogue, reached through RDKit's
+FilterCatalogParams.FilterCatalogs.BRENK. Distinct from PAINS: these are
+substructures excluded when assembling screening libraries for neglected
+diseases, on toxicity, reactivity and metabolic grounds rather than on assay
+interference.
+
+Volume and pages read from the PDF's own running footer,
+ChemMedChem 2008, 3, 435 - 444, since page 1 carries only the DOI.
+
+### bickerton2012
+
+<a id="bickerton2012"></a>
+
+> G. R. Bickerton, G. V. Paolini, J. Besnard, S. Muresan & A. L. Hopkins, 'Quantifying the chemical beauty of drugs', Nature Chemistry 2012, 4, 90-98.
+
+| | |
+| --- | --- |
+| Identifier | [10.1038/nchem.1243](https://doi.org/10.1038/nchem.1243) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `bickerton2012.pdf` (not checked) |
+| Used by | `src/openchem/chem/descriptor_providers.py` |
+
+QED, reached through RDKit's QED.qed. It backs the `qed` descriptor.
+
+A DESIRABILITY AGGREGATE, NOT A PROBABILITY. QED combines eight
+asymmetric-double-sigmoidal desirability functions over molecular
+properties; a value near 1 says a molecule sits where oral drugs
+concentrate, not that it is one, and not that a low scorer cannot be a drug.
+
+RDKit's implementation carries no stated deviation from the paper, unlike
+[source:ertl2009] -- which is why this one may be validated against the
+paper's printed values and that one may not.
+
+### ertl2009
+
+<a id="ertl2009"></a>
+
+> P. Ertl & A. Schuffenhauer, 'Estimation of synthetic accessibility score of drug-like molecules based on molecular complexity and fragment contributions', Journal of Cheminformatics 2009, 1, 8.
+
+| | |
+| --- | --- |
+| Identifier | [10.1186/1758-2946-1-8](https://doi.org/10.1186/1758-2946-1-8) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `ertl2009.pdf` (not checked) |
+| Used by | `src/openchem/chem/descriptor_providers.py` |
+
+The SA score, reached through RDKit's bundled Contrib/SA_Score/sascorer.py.
+It backs the `sa_score` descriptor. 1 is easy to make, 10 is very hard, and
+it scores EASE OF SYNTHESIS rather than whether a route is known to exist.
+
+**THE SHIPPED IMPLEMENTATION IS NOT THE PAPER'S, AND SAYS SO ITSELF.**
+sascorer.py's own header records "several small modifications to the
+original paper ... particularly slightly different formula for macrocyclic
+penalty and taking into account also molecule symmetry (fingerprint
+density)", and puts the agreement with Ertl's original PipelinePilot
+implementation at **r2 = 0.97** over 10k diverse molecules -- not 1.0.
+
+So the paper is the scientific DEFINITION and RDKit is the IMPLEMENTATION
+UNDER TEST, and validating the shipped number against the paper's printed
+values would be an acceptance test that fails against correct code. This is
+the same split [source:vogel_drago1996] records with `_parameter_scale`: a
+table on one normalisation must not be cited to a paper on another.
+
+`verification` stays at `citation` for exactly that reason. It cannot become
+`citation_and_claim` against this paper, because the number this project
+ships is not this paper's number.
+
+### joback1987
+
+<a id="joback1987"></a>
+
+> K. G. Joback & R. C. Reid, 'Estimation of Pure-Component Properties from Group-Contributions', Chemical Engineering Communications 1987, 57, 233-243.
+
+| | |
+| --- | --- |
+| Identifier | [10.1080/00986448708960487](https://doi.org/10.1080/00986448708960487) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-25 |
+| Local copy | `joback1987.pdf` (not checked) |
+| Used by | `src/openchem/chem/joback.py`, `src/openchem/chem/data/joback_groups.json`, `tests/test_joback_table.py`, `tests/test_joback_fragmenter.py` |
+
+Table III's 41 group contributions, for eleven properties: Tb, Tf, Tc, Pc,
+Vc, dHf298, dGf298, ideal-gas Cp(T), dHvap, dHfus and liquid viscosity.
+Table II carries the estimation equations.
+
+**TRANSCRIBED FROM A 300 dpi RENDER, NOT THE TEXT LAYER**, and the reason is
+measured rather than precautionary. The OCR substitutes PLAUSIBLE characters,
+so a junk-character metric scores those pages at 0.1% and calls them clean:
+on p235 five of 119 values are corrupted ('0.011]' for 0.0111, '0.0]68' for
+0.0168, '0.00]9' for 0.0019, and '0.0076' with a MIDDLE DOT for its decimal
+point), and on p236 every heat-capacity exponent is wrong the same way --
+'1.95E + I' for 1.95E+1, 'l.53E - 4' for 1.53E-4.
+
+**TWO INDEPENDENT ROUTES AGREE ON 563 OF 564 VALUES.** Every transcribed
+number was searched for in the whitespace-stripped text layer; the single
+value not found is '>CH-' Cp coefficient a = -23.0, and the text layer holds
+'-2.30E+I' in that position -- the diagnosed corruption, confirmed rather
+than assumed. Same shape as the TSEI radii, where a transcription and a
+back-calculation sharing no step agreed seven times for seven.
+
+**citation_and_claim BECAUSE THE PAPER'S OWN WORKED EXAMPLE REPRODUCES.**
+Tables IV and V estimate all eleven properties for p-dichlorobenzene and
+print every intermediate summation; `tests/test_joback_table.py` reproduces
+them.
+
+**AND THAT ACCEPTANCE TEST FOUND AN INCONSISTENCY IN THE PAPER.** Table III
+prints the -Cl heat-capacity 'c' coefficient as 1.87E-4 while Table IV's
+worked example uses 1.874e-4 -- verified from the text layer ('1.874' occurs
+on p239 and not on p237) and settled by arithmetic, since only the
+four-digit value reproduces the printed sum(c) = 8.42e-5. This table ships
+Table III's rounded value, because Table III is the reference table and the
+fourth digit is known for exactly one group out of 41. The consequence is
+about 0.1-0.3% on Cp for chlorinated compounds, asserted rather than
+tolerated.
+
+One printed artifact recorded rather than silently corrected: p238's nitrogen
+block prints '>H- (nonring)' where '>N- (nonring)' belongs, recoverable from
+the same table's other three pages.
+
+Table VI (p240) carries the paper's own regression errors, which become the
+declared uncertainty per property: Tb 12.9 K over 438 compounds, Tf 22.6 K,
+Tc 4.8 K, Pc 2.1 bar, Vc 7.5 cm3/mol, dHf 8.4 kJ/mol, dGf 8.4 kJ/mol,
+dHvap 1.27 kJ/mol, dHfus 2.0 kJ/mol. The paper says outright that Tb and
+especially Tf "are not accurate and should be considered as only very
+approximate".
+
+### klapotke2017
+
+<a id="klapotke2017"></a>
+
+> T. M. Klapoetke, 'Chemistry of High-Energy Materials', 4th edition, De Gruyter, Berlin/Boston, 2017. ISBN 978-3-11-053631-7.
+
+| | |
+| --- | --- |
+| Identifier | [10.1515/9783110536515](https://doi.org/10.1515/9783110536515) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-25 |
+| Local copy | `chemistry-of-high-energy-materials 4th.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_energetics.py` |
+
+The oxygen-balance definition (p127) and its reference table (Table 4.1,
+p128). Both closed forms are printed and BOTH ARE SHIPPED, because they are
+different quantities for the same substance -- TNT is -74.0% to CO2 and
+-24.7% to CO -- and the book subscripts them for that reason.
+
+    Omega_CO2 = [d - (2a) - (b/2)] x 1600 / M
+    Omega_CO  = [d -   a  - (b/2)] x 1600 / M
+
+**THE EDITION DECIDES THE DOI.** The 6th edition is 10.1515/9783110739503;
+this is the 4th, whose e-ISBN 978-3-11-053651-5 is the 9783110536515 the
+page's own chapter DOI carries. Registering the edition actually read.
+
+**citation_and_claim BECAUSE TABLE 4.1'S NINE ROWS ALL REPRODUCE**, worst
+deviation 0.08 percentage points, which is the book's own one-decimal
+printing. The table prints a FORMULA beside each value, and that is what
+caught a wrong fixture: the first hexanitrostilbene SMILES was a dinitro
+compound, C14H10N2O4 against the printed C14H6N6O12, which would have read
+as a 104 percentage-point failure of the code.
+
+**AND READING IT SETTLED A SIGN A REVIEW GOT BACKWARDS.** A review of this
+work supplied the expression with a leading minus while quoting TNT at -74%
+in the same sentence; the negated form gives TNT +73.97 and nitroglycerin
+-3.52, both exactly inverted. The book's form has no leading minus.
+
+TWO PLACES WHERE THIS BOOK DEPARTS FROM ITS OWN PRIMARY SOURCES, both found
+by reading those sources and both recorded so nobody "corrects" the code
+toward the textbook:
+
+- **The Kamlet-Jacobs constant.** p253 and the Appendix give K = 15.88;
+  [source:kamlet1968], which is this book's own ref [17], states 15.58
+  three times -- the abstract, Eq. (8), and as the slope of its Fig. 1. The
+  string '15.88' does not occur in that paper.
+- **The sublimation rule.** The Appendix prints `dHsub = 188 Tm`; its ref
+  [25], Westwell et al., fits `y = mx + c` with c = 0.522 kJ/mol, which the
+  book drops. See [source:westwell1995] for why that rule is not used here
+  at all.
+
+The book also carries the Springall-Roberts rules and a worked TNT
+decomposition (Table 4.2), which is the fixture the detonation work will
+need.
+
+### westwell1995
+
+<a id="westwell1995"></a>
+
+> M. S. Westwell, M. S. Searle, D. J. Wales & D. H. Williams, 'Empirical Correlations between Thermodynamic Properties and Intermolecular Forces', J. Am. Chem. Soc. 1995, 117, 5013-5015.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja00123a001](https://doi.org/10.1021/ja00123a001) |
+| Status | **not shipped** |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `westwell1995.pdf` (not checked) |
+
+**Why it is not shipped.** The primary source for the `dHsub = 188 Tm` sublimation rule -- and the
+reason that rule is NOT used to bridge Joback's ideal-GAS enthalpy of
+formation to the condensed-phase value Kamlet-Jacobs needs.
+
+**ITS DOMAIN EXCLUDES EVERY CLASSIC ENERGETIC MATERIAL.** The paper states
+the restriction three times, including in its abstract: the correlation
+"only becomes apparent after removing those substances which possess
+internal rotors", and "all long-chain organic molecules (with more than two
+internal rotations) have been excluded from the data set together with the
+12 compounds which were found to deviate from Trouton's rule". It holds for
+compounds that "obey Trouton's rule, have few or zero internal rotors, and
+do not possess the high symmetry which allows an overall rotation in the
+crystal". r = 0.95 over 160 points, and the paper calls its own scatter
+enough that the relation is "only a crude guide".
+
+Measured against that criterion, 0 of 8:
+
+    TNT   3 rotatable > 2      RDX   3 > 2      HMX  4 > 2
+    PETN 12 rotatable > 2      NG    8 > 2      HNS  4 > 2
+    picric acid     3 > 2, and an H-bond donor
+    nitroguanidine  3 H-bond donors
+
+The nitro groups ARE the rotors. So this is not a rule to apply with a
+caveat; it is one whose published domain excludes the compound class the
+calculation is for.
+
+**AND THE FIRST DOI WRITTEN HERE WAS INVENTED AND WRONG.** The PDF prints
+none -- a 1995 article whose identifier was assigned retroactively -- and
+`10.1021/ja00122a049` was written from the shape of an ACS identifier
+rather than from a record. The real one is `10.1021/ja00123a001`, confirmed
+at pubs.acs.org against the title, volume 117, issue 18 and pages
+5013-5015. Caught because the schema refuses `unverified` beside a
+`verified_date`, which forced the question rather than letting a
+plausible-looking string through.
+
+Registered although nothing ships from it, which is the exception rather
+than the rule here -- a source that establishes a REFUSAL is doing work,
+and the next person to propose estimating a sublimation enthalpy in this
+project needs the measurement rather than a second run at it.
+
+Its domain test is computable: more than two internal rotations, an H-bond
+donor, or crystal-rotation symmetry puts a substance outside.
+
+### kamlet1968
+
+<a id="kamlet1968"></a>
+
+> M. J. Kamlet & S. J. Jacobs, 'Chemistry of Detonations. I. A Simple Method for Calculating Detonation Properties of C-H-N-O Explosives', J. Chem. Phys. 1968, 48, 23-35.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.1667908](https://doi.org/10.1063/1.1667908) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-25 |
+| Local copy | `kamlet1968.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_energetics.py` |
+
+Eqs. (8) and (9) for detonation pressure and velocity, Eq. (12)'s H2O-CO2
+arbitrary decomposition with the closed forms (13) and (14) for N and M,
+Eq. (15b) for the heat of detonation, and Eq. (16)'s RUBY-matching
+correction.
+
+**K = 15.58, AND THE TEXTBOOK THAT SUPPLIES THIS PROJECT'S OXYGEN BALANCE
+SAYS 15.88.** This paper states 15.58 FOUR times -- the abstract, Eq. (8),
+the slope of its Fig. 1, and the Table III page -- and '15.88' occurs nowhere
+in it. [source:klapotke2017] prints 15.88 at p253 and in its Appendix, citing
+this paper as its ref [17]. The difference is 1.9% on every pressure and BOTH
+VALUES LOOK ENTIRELY PLAUSIBLE (HMX comes out 392.1 against the paper's own
+384.7), so no check on an output can separate them. Mutated by name.
+
+**EQUATION (14) IS MISPRINTED IN THIS PAPER, AND ITS OWN TABLES PROVE IT.**
+It appears as `M = (56c - 88d - 8b)/(2c + 2d + b)`, read at 3x magnification
+where the typeface makes a minus plainly distinct from the bold plus of
+Eq. (13) directly above it, with the text layer agreeing. That form is
+impossible -- it gives RDX a detonation gas of -8.0 g/mol. The form derived
+from Eq. (12) is `(56c + 88d - 8b)/(2c + 2d + b)`, and it reproduces the M
+values Table VI prints:
+
+    TATB 27.20   R-salt 23.00   TNB 32.00   TNA 30.00
+    printed form: -8.00, 1.00, -18.29, -14.00
+
+Four for four, so this is a typesetting error in the source. Recorded rather
+than silently corrected, and asserted from BOTH directions in the tests.
+
+**citation_and_claim, FROM TWO ORACLES AT OPPOSITE ENDS.** Table III prints
+N, M, Q, rho0 AND the P and D that Eqs. (8) and (9) give from them, so it
+gates the arithmetic with no thermochemistry involved -- 8 rows, worst
+deviation 0.08 kbar and 0.012 mm/us. Table VI gates the path from a
+structure: TATB at seven loading densities, within 0.1%, with N, M, Q and G
+each matching independently so a compensating pair of errors could not pass.
+
+**Eq. (15b)'s constants are standard heats of formation already folded in**
+-- 28.9 per hydrogen is half of 57.8 for water(g), 47.0 is half of 94.1 for
+CO2, carbon nil, nitrogen zero. So no enthalpy of formation is typed into
+this project from memory. The factor of 1000 is the kcal/g-to-cal/g
+conversion, checked by inverting the paper's own printed Q: TATB's 1075
+implies -37.05 kcal/mol against a literature -36.9.
+
+**Eq. (16)'s -6% correction is an OPT-IN and never a default.** The paper
+offers it "for purposes of achieving closer correspondence with RUBY" and
+says outright it is "not necessarily applicable for the prediction of actual
+detonation parameters".
+
+TWO INPUTS ARE REQUIRED AND NEITHER IS ESTIMATED: the initial loading density
+of the charge, which is not a crystal density and which P depends on as its
+square, and the condensed-phase enthalpy of formation -- see
+[source:westwell1995] for why the published bridge from an ideal-gas value
+cannot be used for this compound class.
+
+### ertl2008
+
+<a id="ertl2008"></a>
+
+> P. Ertl, S. Roggo & A. Schuffenhauer, 'Natural Product-likeness Score and Its Application for Prioritization of Compound Libraries', J. Chem. Inf. Model. 2008, 48, 68-74.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ci700286x](https://doi.org/10.1021/ci700286x) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `ertl2007.pdf` (not checked) |
+| Used by | `src/openchem/chem/descriptor_providers.py` |
+
+The METHOD behind the `np_likeness` descriptor: a naive-Bayes sum of fragment
+contributions over Morgan environments, normalised by atom count.
+
+**THE LOCAL FILENAME SAYS 2007 AND THE CITATION SAYS 2008, AND BOTH ARE
+RIGHT.** The paper is *Received August 3, 2007* and published in JCIM volume
+48 in 2008; the file is named for submission. Recorded rather than renamed,
+because an entry whose `local` does not match its `citation` reads as the
+wrong-document error this project has made twice -- [source:avdeef2020]
+carried another paper's title, and `gutmann_frontiers2022` claimed a PDF that
+was an unrelated paper sharing only a year in its filename.
+
+**THIS PAPER'S NUMBERS ARE NOT THE SHIPPED NUMBERS.** RDKit bundles a 2015
+re-fit on a public corpus -- see [source:npscorer2015], which is the entry
+describing what actually runs. The paper defines the method; the model decides
+what the number means, and for a Bayesian score those are different claims. Do
+not gate the shipped value on anything printed here.
+
+### bertz1981
+
+<a id="bertz1981"></a>
+
+> S. H. Bertz, 'The First General Index of Molecular Complexity', J. Am. Chem. Soc. 1981, 103, 3599-3601.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja00402a071](https://doi.org/10.1021/ja00402a071) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `bertz1981.pdf` (not checked) |
+| Used by | `src/openchem/chem/descriptor_providers.py` |
+
+The METHOD behind the `bertz_ct` descriptor: a sum of two information-content
+terms, one for the complexity of the bonding and one for the distribution of
+heteroatoms.
+
+**THE PDF OPENS ON A DIFFERENT ARTICLE** -- page 1 is the tail of a
+polyoxometalate paper sharing the sheet, which is the trap already recorded
+for `Drago & Wayland EC 1965.pdf`. Confirmed by full-text search: "The First
+General Index of Molecular Complexity, Steven H. Bertz, Bell Laboratories" IS
+inside. A first page is not a paper.
+
+**RDKit'S IMPLEMENTATION DELIBERATELY DEPARTS FROM THIS PAPER FOR ANY AROMATIC
+MOLECULE** -- see [source:rdkit_bertz]. So a printed value here is a valid
+oracle only for a NON-AROMATIC structure, and an aromatic one would be testing
+the wrong thing. That scoping is the whole reason the implementation has an
+entry of its own.
+
+### lovering2009
+
+<a id="lovering2009"></a>
+
+> F. Lovering, J. Bikker & C. Humblet, 'Escape from Flatland: Increasing Saturation as an Approach to Improving Clinical Success', J. Med. Chem. 2009, 52, 6752-6756.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jm901241e](https://doi.org/10.1021/jm901241e) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `lovering2009.pdf` (not checked) |
+| Used by | `src/openchem/chem/descriptor_providers.py` |
+
+The source for the `fsp3` descriptor -- sp3-hybridised carbons over all
+carbons, the paper's measure of three-dimensionality, correlated there with
+clinical success and with solubility.
+
+**THE DOI IS READ OFF THE PDF'S OWN FIRST PAGE** (`DOI: 10.1021/jm901241e`),
+which is a stronger check than any index and is why this entry needed no
+publisher lookup.
+
+Fsp3 is arithmetic over hybridisation with no fitted parameter, so there is no
+table to transcribe and nothing to get wrong in one -- which is why this stays
+`citation`: the paper supplies the CONCEPT and its interpretation, not a
+number this project reproduces. **A carbon-free molecule is 0.0 rather than
+undefined**, RDKit's own convention for the zero denominator, recorded because
+it returns rather than raising.
+
+### stefanis2008
+
+<a id="stefanis2008"></a>
+
+> E. Stefanis & C. Panayiotou, 'Prediction of Hansen Solubility Parameters with a New Group-Contribution Method', Int. J. Thermophys. 2008, 29, 568-585.
+
+| | |
+| --- | --- |
+| Identifier | [10.1007/s10765-008-0415-z](https://doi.org/10.1007/s10765-008-0415-z) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-26 |
+| Local copy | `stefanis2008.pdf` (not checked) |
+| Used by | `src/openchem/chem/hansen.py`, `src/openchem/chem/data/hansen_groups.json`, `tools/build_hansen_tables.py`, `tests/test_hansen_table.py`, `tests/test_hansen_fragmenter.py` |
+
+Tables 3-6, and Eqs. 4 and 23-26. The shipped table is
+`chem/data/hansen_groups.json`, generated by `tools/build_hansen_tables.py`.
+
+**citation_and_claim, FROM THE PAPER'S OWN TWO WORKED EXAMPLES.** It works
+1-hexanal end to end at W=0 (Tables 7-9) and alizarin at W=1 (Tables 11-16),
+printing the group assignments, the per-group contributions AND the totals --
+so the transcription is gated on numbers the paper printed rather than on a
+spot comparison. All six first-order totals and the one printed second-order
+total reproduce; see `tests/test_hansen_table.py`.
+
+    delta_d  = sum(Ni*Ci) + W*sum(Mj*Dj) + 17.3231     Eq. 24
+    delta_p  = sum(Ni*Ci) + W*sum(Mj*Dj) +  7.3548     Eq. 25
+    delta_hb = sum(Ni*Ci) + W*sum(Mj*Dj) +  7.9793     Eq. 26
+    delta_t  = sqrt(delta_d^2 + delta_p^2 + delta_hb^2)  Eq. 4, in (MPa)^0.5
+
+**W IS A SWITCH, NOT A TIER.** Eq. 23 defines it as 0 for a compound with NO
+second-order groups and 1 for one with any, so a first-order-only answer is
+the method rather than a degraded fallback, and there is no "unresolved
+correction" refusal to design. Second-order groups DELIBERATELY OVERLAP the
+first-order ones -- principle (ii), p573, requires a second-order group to
+"have adjacent first-order groups as building blocks" -- so the two passes
+cannot share the claim-and-skip rule a single-pass fragmenter uses.
+
+**BORN-DIGITAL IS NOT THE SAME AS CLEAN.** The text layer extracts real
+characters, unlike the scanned sources here, and still carries six hazards --
+all of them about NAMING or CELL SHAPE rather than about digits, and every one
+found by running the worked examples rather than by reading the output:
+
+    a DIGIT ZERO for a letter O in one group name, `>C=0`
+    one group spelled `Ccyclic=O` in Table 4 and `C(cyclic)=O` in the example
+    THREE different Unicode dashes for the same bond stroke, so `-CH3` in
+      Table 3 (U+2212) is not equal to `-CH3` in Table 5 (U+2013) while
+      LOOKING identical in every rendering
+    case varying between tables for one group
+    four to six decimal places, plus bare integers
+    superscript scientific notation flattened to `10-8` and `2 10-8`
+
+The last two are the dangerous pair: rows are recognised by shape, so one
+unparsed cell slides the walk and empties a table rather than shortening it.
+Measured: Table 6 extracted 0 rows of 11, then 10 of 11.
+
+**THE TWO TABLES ARE NOT SUBSETS OF EACH OTHER**, verified against the raw
+page rather than inferred from a failed lookup. Table 5 lists four first-order
+groups Table 3 does not -- ACCH<, CHNH, CCl2F and a bare CHO -- so a
+low-delta contribution can exist for a group with no main-table one. And that
+bare CHO is AMBIGUOUS against Table 3's `CHO (aldehydes)` and `CHO (ethers)`,
+which carry different contributions, so a consumer must refuse the low-delta
+branch there rather than pick.
+
+TWO LIMITS THE PAPER STATES ABOUT ITSELF: the model is applicable to organic
+compounds with THREE OR MORE CARBON ATOMS excluding the characteristic group's
+own atom (p574), and Eqs. 25 and 26 are valid only above 3 (MPa)^0.5 -- which
+is what Tables 5 and 6 exist to cover.
+
+TWO TYPOGRAPHICAL ERRORS IN THE PAPER, recorded rather than corrected
+silently. Section 2.4.1 heads the worked example "1-Hexanal (CH3CH2CHO)",
+which is propanal; the group assignment in Tables 7-9 is 1 CH3 + 4 CH2 + 1
+CHO = C6H12O, so the tables are right and the inline formula is wrong. And
+Table 3's `>C=0` is a ketone carbonyl, not a group containing a zero.
+
+**NO LOCAL ORACLE EXISTS FOR THIS ENDPOINT.** Lange's Handbook covers
+critical properties, thermodynamics, viscosity and dipole moments and
+tabulates no solubility parameters, so unlike Joback the validation set comes
+from the paper itself. Table 10 additionally gives experimental values with
+the Hoy method as a baseline, which is worth using when the calculator lands:
+a number without a baseline says nothing.
+
+### krygowski1993
+
+<a id="krygowski1993"></a>
+
+> T. M. Krygowski, 'Crystallographic Studies of Inter- and Intramolecular Interactions Reflected in Aromatic Character of pi-Electron Systems', J. Chem. Inf. Comput. Sci. 1993, 33, 70-78.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ci00011a011](https://doi.org/10.1021/ci00011a011) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-26 |
+| Local copy | `krygowski1993.pdf` (not checked) |
+| Used by | `src/openchem/chem/aromaticity.py`, `src/openchem/chem/data/homa_parameters.json`, `tests/test_homa.py` |
+
+Table I (p71) and Eqs. 3, 6, 7 and 8. The shipped parameters are
+`chem/data/homa_parameters.json`.
+
+**READ FROM A 320 dpi RENDER, NOT THE TEXT LAYER.** This is a scan whose OCR
+substitutes PLAUSIBLE characters: the title's pi renders as '%', 'J. Chem.
+Inf:' for 'Inf.', and Eq. 7 comes out as "(Y = ~([R(s) -R,,I2 + [R(d)
+-RoptI2)-'" -- readable as a shape and useless as a transcription.
+
+**citation_and_claim, FROM A THREE-POINT ORACLE IN ONE SENTENCE.** p73 reads
+"values for benzene itself 0.969 for electron diffraction geometry, 0.979 for
+MW geometry, and 0.996 for X-ray geometry". Each back-solves to a real
+benzene C-C length -- 1.399, 1.397 and 1.392 A -- and a regular hexagon at
+each reproduces the printed value to better than 6e-4. The same parameters
+and the same formula have to hit all three, so a wrong R_opt, a wrong alpha
+and a wrong formula each miss differently.
+
+**THE TABLE IS INTERNALLY INCONSISTENT IN TWO PLACES**, checked against the
+paper's own Eqs. 6 and 7 rather than assumed:
+
+    CO      Eq. 6 gives R_opt = 1.2670; the table prints 1.265. The printed
+            alpha of 157.38 agrees with the PRINTED 1.265, so the two printed
+            columns agree with each other and the derivation agrees with
+            neither. Reaching 1.265 needs R_s = 1.361 against a printed 1.367.
+    CCb     Eq. 7 on the printed R_opt gives 99.51 against a printed 98.89 --
+            THE ONLY ROW WHOSE ALPHA DOES NOT RECONCILE, and the row the
+            paper's own footnote i tells you not to use.
+
+The printed values ship, because they are what the literature uses and are
+mutually consistent everywhere except the deprecated row. Both exceptions
+are named in the guards rather than tolerated by a loosened bound.
+
+**FOOTNOTE i IS WHY CCb IS UNREACHABLE**: "This parametrization had been used
+in older papers, and it is recommended now to use parameters CCa." It stays
+in the JSON for provenance and is excluded from the element-pair lookup,
+because two rows claiming CC would make the answer depend on dict ordering.
+
+HOMA NEEDS REAL BOND LENGTHS and this project already records what a 2D
+depiction's are worth: aspirin's 2D C=O reads 1.5 "units" against a real
+1.264 A. A molecule without a 3D conformer is refused.
+
+### kruszewski1972
+
+<a id="kruszewski1972"></a>
+
+> J. Kruszewski & T. M. Krygowski, 'Definition of aromaticity basing on the harmonic oscillator model', Tetrahedron Lett. 1972, 13, 3839-3842.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/S0040-4039(01)94175-9](https://doi.org/10.1016/S0040-4039(01)94175-9) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-26 |
+| Local copy | `kruszewski1972.pdf` (not checked) |
+| Used by | `src/openchem/chem/aromaticity.py` |
+
+The ORIGINAL definition of the harmonic-oscillator model that
+[source:krygowski1993] reparameterises. Cited for the method's origin; every
+number this project ships comes from the 1993 paper's Table I.
+
+**ITS TEXT LAYER IS THE WORST IN THIS PROJECT'S ARCHIVE**, which is why no
+value is taken from it: the title extracts as "DEFIBITION OF AROMATICITY
+BASING OX THE HARMOHIC OSCILLATQR MODDL" and the running header as
+"Tetrahedron Letter6 Ro. 36, pp 3839 - 3642, lY72", with the page range
+corrupted from 3842.
+
+**THE IDENTIFIER IS RETROACTIVE**, as for the other pre-DOI papers here, so
+it does not appear in the PDF. Recorded from an index rather than confirmed
+at the publisher, which is a weaker provenance than the three DOIs read off
+their own first pages elsewhere in this registry -- and is why this entry is
+`citation` rather than `citation_and_claim`.
+
+### bird1985
+
+<a id="bird1985"></a>
+
+> C. W. Bird, 'A new aromaticity index and its application to five-membered ring heterocycles', Tetrahedron 1985, 41, 1409-1414.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/S0040-4020(01)96543-3](https://doi.org/10.1016/S0040-4020(01)96543-3) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-26 |
+| Local copy | `bird1985.pdf` (not checked) |
+| Used by | `src/openchem/chem/aromaticity.py`, `src/openchem/chem/data/bird_parameters.json`, `tests/test_bird.py` |
+
+THE METHOD DEFINITION for the `bird_aromaticity` calculator: Gordy's
+`N = a/R^2 - b` with the constants of Table 1 (p1410), the coefficient of
+variation of the ring's bond orders, and `I = 100(1 - V/V_K)` with V_K = 35
+for a five-membered ring, 33.3 for a six-membered one and 35 for a fused
+five-and-six system.
+
+**verification = citation, DELIBERATELY NOT `citation_and_claim`, AND THE
+REASON IS STRUCTURAL.** This paper prints indices -- Table 2 and Figure 1 --
+and NO BOND LENGTHS. Pages 4-6 contain none and page 6 is the reference list,
+so every printed value came from an experimental geometry in a cited
+reference and NONE of them is reproducible from this paper alone. The
+geometry-backed validation comes from [source:katritzky1990] instead.
+
+**TABLE 1 WAS READ FROM A 340 dpi RENDER, for two independent reasons.** The
+text layer corrupts a digit -- `o-s 17.05 5.5a+`, where the `a` is the digit
+8 -- and its two-column layout interleaves the rows so the bond-to-(a,b)
+pairing is destroyed:
+
+    Bond c-c C-N c-o c-s C-Se C-Te C-P a b Bond a b - - 6.80 1.71* N-N ...
+
+Either alone would have required the render.
+
+**THE SUBSCRIPT IS THIS PAPER'S REQUIREMENT, NOT A PRESENTATION CHOICE.**
+p1411: index values "are not necessarily comparable for differing ring
+systems", so "it seems desirable to attach a guiding subscript as I5, I6 or
+I5,6, to discourage inappropriate comparisons." The fact LABEL carries it,
+because HOMA sits in the same panel section and DOES share one scale across
+ring sizes -- an unlabelled Bird number beside it would invite exactly the
+comparison this paper warns against.
+
+I5,6 is NOT computed. It is an index of a fused two-ring SYSTEM, and this
+implementation walks rings individually; reporting a per-ring number under
+that label would be a different quantity wearing the name.
+
+The paper's own stated sensitivity is +-2 to 3 index units from substituent
+effects, and nothing here is pinned tighter than that.
+
+TWO FURTHER PAPERS IN THIS LINEAGE ARE HELD LOCALLY AND ARE NOT REGISTERED,
+because the registry records what this project RESTS ON and an unused source
+inflates it: Bird's own 1986 six-membered-ring follow-up, and Kotelevskii &
+Prezhdo's 2001 refinement, which RECALIBRATES the Gordy relationship and is
+therefore a different method rather than a check on this one. Their DOIs are
+deliberately not written down anywhere in the tree, so the DOI backstop does
+not demand entries for them. Named here so a later reader knows they exist
+and why they were left out.
+
+### katritzky1990
+
+<a id="katritzky1990"></a>
+
+> A. R. Katritzky, M. Szafran, N. Malhotra, S. U. Chaudry & E. Anders, 'Aromaticity as a Quantitative Concept. Part V: A Comparison of Semi-empirical Methods for the Calculation of Molecular Geometries of Heteroaromatic Compounds', Tetrahedron Computer Methodology 1990, 3, 247-269.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/0898-5529(90)90102-E](https://doi.org/10.1016/0898-5529(90)90102-E) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-26 |
+| Local copy | `katritzky1990.pdf` (not checked) |
+| Used by | `src/openchem/chem/data/bird_oracle.json`, `tests/test_bird.py` |
+
+**THE GEOMETRY-BACKED ORACLE FOR BIRD'S INDEX**, which [source:bird1985]
+cannot supply. This paper tabulates experimental bond lengths (Tables 1 and
+2) AND the Bird indices computed from them (Table 6, `Exp.` column) for the
+SAME compounds, and states its purpose in those terms: "The Bird I6 and I5
+aromaticity indices calculated from semiempirical and ab initio geometries
+are compared with those calculated from experimental bond lengths."
+
+**THE CLAIM IS SCOPED, AND THE SCOPE IS THE POINT.** What is verified is:
+this project reproduces KATRITZKY'S experimentally-derived Bird indices from
+KATRITZKY'S OWN tabulated experimental geometries. It is NOT a reproduction
+of Bird 1985's printed indices, which remains impossible.
+
+Five compounds, both ring sizes, five bond types, all to better than 0.2
+against a one-decimal printed value:
+
+    pyridine    I6  85.73  against  85.7   (Table 1 row 1, ref 10m)
+    thiophene   I5  65.48  against  65.5   (Table 2 row 1, ref 41b,m)
+    pyrrole     I5  69.26  against  69.3   (Table 2 row 5, ref 41b,m)
+    furan       I5  43.44  against  43.4   (Table 2 row 6, ref 41b,m)
+    pyrazole    I5  74.60  against  74.6   (Table 2 row 7, ref 41a,m)
+
+**THE PAIRING IS CONFIRMED BY THE REFERENCE TAG, not by row order.**
+Thiophene's geometry row is tagged `41b,m` and its Table 6 value is printed
+`65.5(41b)m` -- same reference, same method letter. Row order alone would
+have been an assumption.
+
+**AND THE TWO PAPERS DISAGREE WHERE THEY CHOSE DIFFERENT GEOMETRIES.** Bird's
+Table 2 gives pyrrole 59; this paper's Exp. column gives 69.3, for the same
+compound. Furan (43 against 43.4) and thiophene (66 against 65.5) happen to
+agree closely and pyrrole does not, which is exactly why the claim above is
+scoped to this paper rather than to Bird's.
+
+**TABLE 6 HAS FIVE COLUMNS AND ONLY ONE IS EXPERIMENTAL.** `Exp.`, MNDO, AM1,
+MINDO/3 and 3-21G sit side by side, and the optimised ones are plausible
+numbers computed from geometries this project does not have. A fixture keyed
+on AM1 would look like a passing test, so the shipped oracle records every
+column and `test_the_oracle_reads_the_EXPERIMENTAL_column_and_not_another`
+asserts they are far enough apart to tell.
+
+The index column was read from a 330 dpi RENDER because its text layer lists
+every compound NAME first and then a wall of numbers, destroying the
+name-to-value pairing. The geometries in Tables 1-2 extract cleanly, each row
+being one line -- except isoxazole, whose row comes out `1.399 i.309 i.425
+i.356 i.344` with the digit 1 read as a letter i three times, and which is
+excluded for that reason.
+
+FIVE COMPOUNDS IS DELIBERATELY SMALL. The full corpus is 42 six-membered and
+dozens of five-membered rings; transcribing it is a validation-expansion
+task, not a prerequisite. This paper also states the problem that made it
+necessary: "Only for a limited number of compounds has a precisely defined
+experimental geometry been measured."
+
 ### glasser1995
 
 <a id="glasser1995"></a>
@@ -2032,51 +2917,100 @@ for the one case it exists for -- it lived in `solvent_shift` while
 
 <a id="miller_polarizability"></a>
 
-> Miller's atomic hybrid polarizability parameters.
+> The deferral of Miller polarizability -- OVERTURNED. See [source:miller1990].
 
 | | |
 | --- | --- |
-| Identifier | no usable published parameter set -- see reason |
-| Status | **not shipped** |
-| Verification | unverified |
+| Identifier | a superseded deferral record, not a source |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-08-25 |
 | Used by | `docs/VALIDATION.md` |
 
-**Why it is not shipped.** THE PARAMETERS ARE UNPUBLISHED. A reconstruction missed benzene by +27% and
-CCl4 by -50%, so there was nothing to validate against and nothing shipped.
+**Why it is reference only.** KEPT AS THE RECORD OF A ROTTED REASON, NOT AS A LIVE DEFERRAL. This entry
+read "THE PARAMETERS ARE UNPUBLISHED", which was a claim about ChemAxon's
+documentation rather than about the literature: [source:miller1990]'s Table I
+prints all twenty rows. Miller polarizability SHIPPED as the `polarizability`
+calculator.
+
+Both recorded failures have causes now. Benzene at +27% was the `CBR` row,
+whose symbol reads as "carbon in a benzene ring" and means the opposite --
+[source:miller1979] says benzene's pi system "is directed only along two
+bonds", so benzene is `CTR`. CCl4 at -50% was using the wrong form:
+alpha = (4/N)(sum tau)^2 squares a sum. With both right, benzene lands at
++0.6% and CCl4 at +0.2%.
+
+A DEFERRAL'S REASONS ROT INDEPENDENTLY OF ITS VERDICT, and this is one of the
+three entries that proved it in the same sweep -- see [source:hlb] and
+[source:tsei]. Re-read the REASON, not the verdict, and ask what would have
+to be true today.
 
 ### hlb
 
 <a id="hlb"></a>
 
-> The Hydrophilic-Lipophilic Balance (HLB) surfactant scale.
+> The deferral of HLB -- OVERTURNED. See [source:schott1989].
 
 | | |
 | --- | --- |
-| Identifier | no usable published formula -- see reason |
-| Status | **not shipped** |
-| Verification | unverified |
+| Identifier | a superseded deferral record, not a source |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-08-25 |
 | Used by | `docs/VALIDATION.md` |
 
-**Why it is not shipped.** No formulas published, no worked example, and the reference implementation's
-default is a proprietary consensus method. Nothing to check a result
-against.
+**Why it is reference only.** KEPT AS THE RECORD OF A ROTTED REASON, NOT AS A LIVE DEFERRAL. This entry
+read "No formulas published, no worked example, and the reference
+implementation's default is a proprietary consensus method. Nothing to check
+a result against." Three of those four clauses fell to one paper:
+[source:schott1989] prints Griffin's Eq. [1], its closed form Eq. [2] with
+worked constants, and Davies' group numbers. Griffin HLB SHIPPED as the
+`griffin_hlb` calculator.
+
+THE FOURTH CLAUSE STANDS and is not chased -- ChemAxon's default is
+proprietary, so agreeing with Marvin is unreachable. That is why the
+calculator ships under the specific name and never as a bare "HLB": the same
+paper supplies the reason the name is ambiguous, saying the Davies scale
+"differs substantially from the Griffin scale in the entire range of
+practical applications".
+
+ONE NAME, TWO QUANTITIES. Registered alongside [source:miller_polarizability]
+and [source:tsei] as the three deferrals whose reasons expired without anyone
+re-reading them.
 
 ### tsei
 
 <a id="tsei"></a>
 
-> The TSEI (Topological Steric Effect Index).
+> The deferral of a bare "steric index" -- PARTLY OVERTURNED. See [source:cao2004].
 
 | | |
 | --- | --- |
-| Identifier | several incompatible published definitions -- see reason |
-| Status | **not shipped** |
-| Verification | unverified |
+| Identifier | a superseded deferral record, not a source |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-08-25 |
 | Used by | `docs/VALIDATION.md` |
 
-**Why it is not shipped.** Several incompatible definitions in the literature and no reference value to
-gate against. Omitted rather than guessed. The Szeged index, from the same
-batch, DID ship -- because it has one definition and a checkable value.
+**Why it is reference only.** KEPT AS THE RECORD OF A ROTTED REASON, NOT AS A LIVE DEFERRAL. This entry
+gave three grounds: several incompatible published definitions, no identity
+to check against, and no reference value to gate on. [source:cao2004]
+answers the last two, so the Cao-Liu TSEI SHIPPED as the `tsei_projection`
+calculator.
+
+THE FIRST GROUND STILL STANDS, and it is why the calculator ships as
+*Cao-Liu TSEI* and never as a bare "steric index" -- that name also covers
+Taft's Es, Hancock's Esc and Charton's nu, which are different quantities.
+A famous name is not a unique mathematical contract.
+
+"No reference value to gate against" was TRUE WHEN WRITTEN and false by
+2004. The Szeged index, from the same batch, did ship at the time -- because
+it could be validated against a theorem.
+
+The radii the shipped projection needs came later still, from
+[source:langes15] Table 4.7, with every one cross-checked by inverting a TSEI
+value [source:cao2004] prints. Two routes sharing no step, agreeing seven
+times for seven.
 
 ### sci_downloads_note
 
@@ -2515,3 +3449,106 @@ fallback and rejected: it puts propranolol at 5.65 against a real 9.42, off
 by 3.8. That whole design existed only because a probe passed `None` for an
 interpreter path and so reported pkasolver as 'not installed' on a machine
 where it plainly was.
+
+### npscorer2015
+
+<a id="npscorer2015"></a>
+
+> P. Ertl, 'npscorer.py' -- the NP-likeness model re-fitted on openly available data, bundled with RDKit as Contrib/NP_Score.
+
+| | |
+| --- | --- |
+| Identifier | <https://github.com/rdkit/rdkit/tree/master/Contrib/NP_Score> |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Licence | BSD-3-Clause |
+| Package | `rdkit` |
+| Version source | `pyproject.toml` |
+
+**WHAT ACTUALLY RUNS when this project reports NP-likeness**, as distinct from
+[source:ertl2008], which is the method. The module's own header, read from the
+installed distribution:
+
+    for the training of this model only openly available data have been used
+    ~50,000 natural products collected from various open databases
+    ~1 million drug-like molecules from ZINC as a "non-NP background"
+    -- peter ertl, august 2015
+
+The 2008 paper's model was Novartis's. **For a BAYESIAN score the corpus is
+part of what the number means**, so this is a different fit of the same method
+rather than an implementation detail -- the same reason
+[source:vogel_drago1996] carries `_parameter_scale`, and the reason no printed
+value from the paper may gate the shipped number.
+
+**THE CONFIDENCE IS NOT DECORATION, AND THE MECHANISM WAS READ RATHER THAN
+ASSUMED.** `scoreMolWConfidence` computes `confidence = bits_found /
+len(bits)` -- the fraction of the molecule's Morgan environments present in
+the model -- and the score sums `fscore[bit]` over FOUND bits only. An unfound
+fragment therefore contributes ZERO, so a molecule at confidence 0 scores
+**exactly 0.0 by construction**, arithmetically identical to one genuinely
+judged neutral. Methane is that case. This project refuses the score at zero
+confidence and reports the confidence beside it at every other value.
+
+**THE API IS NOT `sascorer`'s.** There is no `calculateScore`; the surface is
+`readNPModel()` / `scoreMol(mol, fscore)` / `scoreMolWConfidence(mol,
+fscore)`, and the model is a second argument that must be loaded first.
+`readNPModel` also prints to **stderr** -- `print(..., file=sys.stderr)` --
+measured after a `redirect_stdout` written first captured nothing and the
+lines still appeared.
+
+**verification = citation, DELIBERATELY NOT `citation_and_claim`.** The
+module's source was read and the mechanism above confirmed from it, but no
+PRINTED value gates the score: this model has no published table to check
+against, which is exactly what distinguishes it from the paper. Upgrading this
+row would need an oracle that does not exist.
+
+### rdkit_bertz
+
+<a id="rdkit_bertz"></a>
+
+> RDKit, `rdkit.Chem.GraphDescriptors.BertzCT` -- an implementation of Bertz's index that deliberately changes its aromatic bond handling.
+
+| | |
+| --- | --- |
+| Identifier | <https://github.com/rdkit/rdkit/blob/master/rdkit/Chem/GraphDescriptors.py> |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-25 |
+| Licence | BSD-3-Clause |
+| Package | `rdkit` |
+| Version source | `pyproject.toml` |
+
+**WHAT ACTUALLY RUNS when this project reports molecular complexity**, as
+distinct from [source:bertz1981], which is the method. Its docstring states
+the divergence in its own words:
+
+    The original implementation ... treats aromatic rings as the
+    corresponding Kekule structure ... Upon further thought, this is the WRONG
+    thing to do. ... THIS MEANS THAT THIS IMPLEMENTATION IS NOT BACKWARDS
+    COMPATIBLE. Any molecule containing aromatic rings will yield different
+    values with this implementation.
+
+The reasoning is sound -- a kekulisation-dependent index gives one molecule
+two values -- so this is a CORRECTION rather than a deviation. It is still not
+the paper's arithmetic, and a printed aromatic value must never be used as an
+oracle for it.
+
+**citation_and_claim, BECAUSE THE STATED CONTRACT IS CHECKED NUMERICALLY.**
+The docstring names two kekule forms of one molecule that the old
+implementation scored differently. Measured live against the installed RDKit:
+
+    CC2=CN=C1C3=C(C(C)=C(C=N3)C)C=CC1=C2C     706.238143
+    CC3=CN=C2C1=NC=C(C)C(C)=C1C=CC2=C3C       706.238143
+
+Equal, and both parse to the same canonical SMILES. That is an oracle the
+paper cannot supply and this implementation can, which is what a separate
+entry buys: the claim under test is *this code's* stated improvement, not the
+1981 numbers.
+
+**A WARNING IN THE SAME DOCSTRING DOES NOT REPRODUCE.** It says BertzCT
+"barfs if the molecule contains a second (or nth) fragment that is one atom".
+Tried on `[Na+].[Cl-]` (2.0000), aspirin sodium (348.4201), ammonium nitrate
+(27.8743) and a lone `[Na+]` (0.0000) -- no raise anywhere. Recorded as *not
+reproduced on the salts tried* rather than as absent, since this application
+ships salts as fixtures.

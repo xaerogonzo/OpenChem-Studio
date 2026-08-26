@@ -79,6 +79,17 @@ ALLOWED_MISSING_PATHS = {
     # A path inside the upstream molstar npm package, cited to say where
     # our viewer.html was adapted from. It is not ours and never will be.
     "build/viewer/embedded.html",
+    # Two paths inside the INSTALLED RDKit distribution, not this repo.
+    # CLAUDE.md names them because each file's own header records that its
+    # implementation DIVERGES from the paper it cites -- sascorer at
+    # r2 = 0.97 against Ertl's original, npscorer as a 2015 re-fit on a
+    # public corpus rather than the Novartis one. That divergence is the
+    # reason a source entry for a library-implemented method may say the
+    # definition is the paper's and never that the number is, so the
+    # citation has to be able to name the file that states it.
+    # Same case as the molstar path above: upstream, and never ours.
+    "Contrib/SA_Score/sascorer.py",
+    "Contrib/NP_Score/npscorer.py",
     # The three STOUT modules, named by ROADMAP.md on the line that says
     # "Deleted:". A document recording a removal has to be able to say
     # what it removed, and the absence is the point rather than a stale
@@ -962,8 +973,11 @@ _GUIDE_TABLE_HEADING = "### Categories worth knowing about"
 #: first run.
 CATEGORY_ROWS: dict[str, str] = {
     "admet": "ADMET / Regulatory",
+    "aromaticity": "Aromaticity",
     "medicinal_chemistry": "Medicinal Chemistry",
     "physicochemical": "Physicochemical",
+    "thermophysical": "Thermophysical",
+    "energetic": "Energetic Materials",
     "charge": "Charge",
     "electronic": "Electronic Properties",
     "geometry": "Geometry (3D)",

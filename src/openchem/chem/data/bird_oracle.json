@@ -1,0 +1,68 @@
+{
+ "_source_key": "katritzky1990",
+ "_description": "Experimental ring geometries and the Bird indices computed from them, for validating this project's implementation of Bird's index.",
+ "_read_from": "the text layer of katritzky1990.pdf for the geometries (Tables 1-2), and a 330 dpi RENDER for the indices (Table 6)",
+ "_why_the_index_column_was_rendered": "Table 6's text layer lists every compound NAME first and then a wall of numbers, so the name-to-value pairing is destroyed. Reading it from the text layer would silently attach the wrong index to a compound. The geometries in Tables 1-2 extract cleanly because each row is one line.",
+ "_what_this_oracle_IS": "Katritzky's own Bird indices, computed by them from the experimental bond lengths they tabulate. Reproducing a row therefore tests THIS project's implementation of Bird's formula against THEIRS, on a geometry both have.",
+ "_what_this_oracle_IS_NOT": "A reproduction of Bird 1985's printed indices. Those are not reproducible from Bird's own paper, which prints no bond lengths. AND THE TWO PAPERS DISAGREE WHERE THEY USED DIFFERENT GEOMETRIES: Bird's Table 2 gives pyrrole 59, Katritzky's Exp. column gives 69.3, for the same compound. Furan (43 against 43.4) and thiophene (66 against 65.5) happen to agree closely; pyrrole does not. That disagreement is exactly why the claim is scoped to Katritzky.",
+ "_the_column_matters": "Table 6 carries FIVE columns -- Exp., MNDO, AM1, MINDO/3 and 3-21G -- and only `Exp.` is computed from an experimental geometry. The others come from optimised geometries and are plausible numbers that would validate nothing about this implementation. Every row below records the other columns so a test can prove it is reading the right one.",
+ "_first_row_is_the_experimental_one": "In Tables 1 and 2 a compound's FIRST row is the experimental geometry and the rows beneath it are the optimised ones. The reference tag is what confirms the pairing rather than row order alone: thiophene's geometry row is tagged `41b,m` and its Table 6 Exp. value is `65.5(41b)m` -- same reference, same method letter.",
+ "_atom_1_is_the_heteroatom": "Bond columns run 1-2, 2-3, ... around the ring, and position 1 is the heteroatom (S in thiophene, O in furan, N in pyrrole and pyridine, N-N in pyrazole).",
+ "_tolerance": "The printed indices carry one decimal place, so a fixture is asserted to 0.2. Bird's own stated substituent sensitivity is +-2 to 3, and nothing here is pinned tighter than the method.",
+ "compounds": [
+  {
+   "name": "pyridine",
+   "smiles": "c1ccncc1",
+   "ring": "six",
+   "geometry_table": "Table 1, row 1",
+   "reference": "10m",
+   "bonds": [["N", "C", 1.338], ["C", "C", 1.394], ["C", "C", 1.392],
+             ["C", "C", 1.392], ["C", "C", 1.394], ["C", "N", 1.338]],
+   "index": {"Exp": 85.7, "MNDO": 84.5, "AM1": 84.1, "MINDO/3": 92.2}
+  },
+  {
+   "name": "thiophene",
+   "smiles": "c1ccsc1",
+   "ring": "five",
+   "geometry_table": "Table 2, row 1",
+   "reference": "41b,m",
+   "bonds": [["S", "C", 1.714], ["C", "C", 1.370], ["C", "C", 1.423],
+             ["C", "C", 1.370], ["C", "S", 1.714]],
+   "index": {"Exp": 65.5, "MNDO": 68.3, "AM1": 81.1, "MINDO/3": 37.2}
+  },
+  {
+   "name": "pyrrole",
+   "smiles": "c1cc[nH]c1",
+   "ring": "five",
+   "geometry_table": "Table 2, row 5",
+   "reference": "41b,m",
+   "bonds": [["N", "C", 1.370], ["C", "C", 1.382], ["C", "C", 1.417],
+             ["C", "C", 1.382], ["C", "N", 1.370]],
+   "index": {"Exp": 69.3, "MNDO": 63.7, "AM1": 66.5, "MINDO/3": 73.9}
+  },
+  {
+   "name": "furan",
+   "smiles": "c1ccoc1",
+   "ring": "five",
+   "geometry_table": "Table 2, row 6",
+   "reference": "41b,m",
+   "bonds": [["O", "C", 1.362], ["C", "C", 1.361], ["C", "C", 1.430],
+             ["C", "C", 1.361], ["C", "O", 1.362]],
+   "index": {"Exp": 43.4, "MNDO": 51.1, "AM1": 35.2, "MINDO/3": 52.1}
+  },
+  {
+   "name": "pyrazole",
+   "smiles": "c1cn[nH]c1",
+   "ring": "five",
+   "geometry_table": "Table 2, row 7",
+   "reference": "41a,m",
+   "bonds": [["N", "N", 1.349], ["N", "C", 1.331], ["C", "C", 1.416],
+             ["C", "C", 1.373], ["C", "N", 1.359]],
+   "index": {"Exp": 74.6, "MNDO": 72.6, "AM1": 74.2, "MINDO/3": 84.0}
+  }
+ ],
+ "_deliberately_small": "Five compounds, chosen to exercise both ring sizes and five bond types (C-C, C-N, C-O, C-S, N-N). The full Katritzky corpus is 42 six-membered and dozens of five-membered rings; transcribing it would be a validation-expansion task, not a prerequisite for shipping the implementation.",
+ "_excluded": {
+  "isoxazole": "Table 2 row 8's geometry extracts as `1.399 i.309 i.425 i.356 i.344` -- the digit 1 read as a letter i, three times in one row. It would need the render treatment the index column got, and five compounds already cover both ring sizes and every bond type these rings use."
+ }
+}
