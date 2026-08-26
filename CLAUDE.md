@@ -1819,7 +1819,45 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `5665 passed, 15 skipped`
+A clean run is **6-19 minutes**, ending at `5684 passed, 15 skipped`
+(measured 2026-08-26, **16m09**, on `failed-descriptor-cell-and-hover` --
+the FAILED descriptor's reason splitting into a cell form and a full one,
+and the value column learning to elide.
+
+**+19 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed:
+
+    master        d7358ac   COLLECTS 5680
+    the branch              COLLECTS 5699   = 5680 + 19
+    the run                          5684 passed + 15 skipped = 5699
+
+Every one of the 19 reconciles to this branch: 12 in the new
+`test_failure_messages.py` (the pairing rule in six arms, the two shipped
+producer strings, the observational codepage walk and its control, and
+the wiring guard mutation exposed), 5 in `test_property_panel.py` (the
+degradation path, the cell/hover split, the export leak, the recovery
+staleness, and the wide-row-versus-cell pair) and 2 in
+`test_property_panel_long_values.py` (the geometry oracle and the control
+that proves its fixture can still see the defect).
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line,
+which is the pair this file insists on rather than an absence of FAILED
+lines. The two `DeprecationWarning`s are the same pre-existing
+six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**TWO OF THE SEVEN MUTATION ARMS SURVIVED FIRST TIME**, and both were
+real gaps rather than uncatchable equivalents: `setText` no longer
+clearing the export override (a row that fails and then succeeds goes on
+exporting the stale reason), and the provider no longer attaching
+`error_summary` at all (a constant that exists and is unwired). Each was
+re-run against the guard it forced and caught by it.
+
+16m09 sits mid-band; the 6-19 range stands.)
+
+Before it: `5665 passed, 15 skipped`
 (measured 2026-08-25, **14m42**, on
 `alignment-geometry-and-batch-on-properties` -- the 3D alignment's three
 defects, and rebuilding batch on the Properties model.
@@ -5069,7 +5107,7 @@ hunting the row that "looked wrong" would never have found it.
 It is `_ElidingPushButton`'s bug one widget along. That class was written
 when the widest thing in the panel was a BUTTON (content 287 against a
 256 viewport); with buttons capped, the caption inherited the title.
-`_ElidingCaptionLabel` is the same cure and wrapping is NOT an option —
+`_ElidingLabel` is the same cure and wrapping is NOT an option —
 one height-for-width widget in a section restores everything the three
 parts above exist to prevent.
 
@@ -5101,8 +5139,17 @@ first two are traps anybody reaching for the obvious fix will hit:
 read it and all three were wrong — `as_text` (so "Copy all" exported
 `Blood-Brain Barrier Permeant (heur...`), the instrumentation dump, and
 a guard in `test_result_presentation.py` that the targeted test files
-never reach. `_caption_text` is the accessor; the rule is the one
+never reach. `_unelided_text` is the accessor; the rule is the one
 `_without_glyphs` already follows on the value side.
+
+**AND THE VALUE COLUMN WAS READ RAW UNTIL IT ELIDED TOO**, which is the
+same rule arriving one column across. See "A FAILED DESCRIPTOR'S REASON
+WAS ALSO ITS TOOLTIP" below: once the value label elides, `as_text`
+reading `.text()` would export the short cell form in place of the
+reason, so there are now two accessors — `_unelided_text` (what it says,
+ignoring width) and `_exported_text` (what belongs on a clipboard). They
+differ for exactly one case and folding them back together reinstates
+the coupling this whole area exists to remove.
 
 #### The oracle, and why the obvious one is disproven
 
@@ -5171,6 +5218,209 @@ molecule, the screen, the refusal: content 256 against a 256 viewport,
 **zero** rendered overflow, and the horizontal scrollbar gone (viewport
 height 569 -> 581). Captions elide at the 280 px minimum and recover as
 the dock widens — 2 of 3 full at 340, all three at 420.
+
+### A FAILED DESCRIPTOR'S REASON WAS ALSO ITS TOOLTIP
+
+Reported as a shape descriptor's message clipping mid-word at the panel
+edge, on any molecule with no 3D conformer. The clip is the symptom; the
+cause is that ONE FIELD WAS DOING TWO JOBS.
+
+    if descriptor.cache_state.value == "failed":
+        value_label.setText(descriptor.error or "Failed")
+        value_label.setToolTip(descriptor.error or "")
+
+So a producer had a single string with which to be both a table cell and
+an explanation, and it cannot be both. Measured in the running app at
+Segoe UI 9 -- the font a user gets, NOT `offscreen`'s, which is more than
+twice as wide and would have made every number here look hopeless:
+
+    panel width   caption   value cell
+          280       116          120     <- the dock's own minimum
+          420       116          230     <- its default
+
+against a reason of 87 characters, and a pkasolver one of 344.
+
+**AND THE ROW DID NOT MERELY OVERFLOW ITSELF.** A `QLabel` with word wrap
+off reports its WHOLE TEXT as its minimum width, so this is the caption
+bug of the section above, one column across. Measured on the ten shape
+descriptors with no conformer, panel at 280:
+
+    value label width         1164 px
+    scroll viewport            256
+    rendered_overflow           10 findings, right = 916
+
+-- every row in the panel clipped at the right edge, not just the failed
+ones. `_ElidingCaptionLabel` became `_ElidingLabel` and serves BOTH
+columns, because a second class for the value side would have been a
+second copy of every lesson that class already carries. Measured on a
+bare form with one caption and one long value, the mechanism is unchanged
+by the role: form minimum **1972 -> 268** px.
+
+#### `error` KEEPS ITS MEANING; `error_summary` IS THE NEW CELL FORM
+
+`domain/common.describe_failure(error, summary)` returns `(cell, hover)`
+and is the ONE place that decides which string goes where -- the panel had
+FOUR independent FAILED branches, each writing `error or "Failed"` by
+hand, which is this repository's most repeated failure mode.
+
+**TWO PLAIN FIELDS, NOT ONE WIDENED TYPE**, and the reason is the
+degradation. `error` is still the FULL explanation and still a `str`, so
+every producer that writes it and nothing else keeps exactly today's
+behaviour. A `FailureMessage` value object in that field would have
+rendered as a repr in four call sites and looked plausible doing it.
+`test_a_producer_that_declares_no_summary_gets_exactly_the_old_behaviour`
+is the guard.
+
+**NO LENGTH CEILING ON THE SUMMARY, DELIBERATELY.** Eliding already
+handles width and is measured; a cap would be a second mechanism for one
+problem and a constant nobody could derive. `describe_failure` owns WHICH
+string goes where and never grades one against the other -- the same line
+`valid_total_declaration` draws, and
+`test_the_summary_is_not_graded_against_its_reason` holds it.
+
+#### A WIDE ROW IS NOT A CELL, and consolidating the four lost text
+
+The panel has FOUR FAILED branches and only ONE of them is short of
+room. The other three render into an `ExplicitHeightLabel` inside
+`_add_wide_row` -- spanning both form columns, word wrap ON, stating its
+own height so the value shows IN FULL. The reason is already entirely
+visible there.
+
+So routing all four through `describe_failure` and rendering its CELL
+member was a regression, and it was written, tested green and nearly
+shipped: the pkasolver row is 344 characters of install guidance, and it
+would have become "pkasolver not configured" with the rest reachable only
+by hovering. Deleting what a reader could already see, in the name of
+fixing a clip somewhere else.
+
+    _on_descriptor_computed   QFormLayout field, one line, 120-230 px
+                              -> the CELL form
+    _present_alert            _add_wide_row, wraps, full height
+    _present_result           _add_wide_row
+    _on_report_computed       _add_wide_row
+                              -> the FULL reason, all three
+
+`describe_failure` still supplies all four with the "Failed" default, so
+the branches cannot drift on that; what differs is which MEMBER of the
+pair each renders, and that is a property of the row it is rendering
+into. **The function owns which string is which; the call site owns how
+much room it has.**
+
+`test_a_wide_row_keeps_the_whole_reason_while_a_value_cell_takes_the_summary`
+asserts BOTH halves in one test, deliberately: "always use the summary"
+satisfies the descriptor half and "never use it" satisfies the alert
+half, so either alone is passed by the wrong rule. Mutated in both
+directions, caught in both.
+
+This is "reusing a command whose invariants do not apply is not reuse",
+one layer down and in a presentation function rather than a command.
+
+#### THREE STRINGS, NOT TWO, AND MY OWN FIX SHIPPED THE BUG AGAIN
+
+`as_text` read `value_widget.text()` raw. That was safe only while no
+value elided -- the moment the value column got the caption column's
+treatment, "Copy all" exported `Needs a 3D conformer` where the sentence
+saying what to press belongs. The identical leak the caption rule exists
+to stop, reintroduced by fixing its neighbour, and **caught only because
+the guard for it was written before the fix was believed**.
+
+    painted      what fits the present width
+    unelided     what it says, ignoring width      `_unelided_text`
+    exported     what belongs on a clipboard       `_exported_text`
+
+They differ for exactly one case and agree everywhere else. Folding them
+back into one accessor is the ONE-FIELD-TWO-JOBS bug in miniature, which
+is why they are two names rather than a fallback chain in one.
+
+**`setText` CLEARS THE EXPORT OVERRIDE, and that is what makes staleness
+impossible.** The value label is reused as a descriptor moves through its
+states, so an override set on a failure is still attached when the row
+later succeeds -- exporting a conformer instruction beside a perfectly
+good number. Every branch calls `setText` first, so the reset is
+automatic rather than a rule four call sites have to remember.
+
+#### FIVE MUTATIONS, FIVE CAUGHT -- AND TWO ONLY AFTER THE GUARD EXISTED
+
+    M1  eliding value label -> plain QLabel     the geometry oracle
+    M2  as_text exports the cell form           the export guard
+    M3  setText stops clearing the override     SURVIVED
+    M4  the non-ASCII wording restored          the codepage guard
+    M5  the producer stops declaring a summary  SURVIVED
+
+**M3 AND M5 ARE THE ENTRY WORTH READING.** M3 -- a row that fails and
+then succeeds goes on exporting the stale reason forever -- passed the
+whole panel suite, the geometry guards and the presentation guards. M5 --
+the provider stops attaching `error_summary` -- passed every guard in the
+new file too, because those read the module CONSTANTS and checked they
+relate. A constant existing is not a constant REACHING, which is this
+file's own "shipped is not reachable" one layer down. Both guards were
+written from the surviving arm and both then caught it.
+
+`test_the_probe_can_see_a_failed_reason_widen_the_panel` is the control
+for the geometry guard: it puts the shipped defect back -- a plain,
+non-eliding `QLabel` carrying the same string -- and requires the oracle
+to SAY SO. Without it the guard would pass against a panel with no
+eliding value label at all, which is exactly how the caption oracle in
+the section above once passed with its entire fix reverted.
+
+#### `▸` RAISES ON cp1252 TOO, so the string was unprintable everywhere
+
+`_NEEDS_CONFORMER_ERROR` carried an em dash and a U+25B8 triangle. The
+report noted the em dash; the triangle is worse and measured
+independently per codepage, because the obvious probe short-circuits
+(`ch.encode("cp437"); ch.encode("cp850")` never reaches cp850 when cp437
+raises, which produced one wrong reading of this very table):
+
+    char                      cp1252   cp437   cp850
+    A-ring, sup-2, degree         ok      ok      ok
+    sup-3                         ok   RAISE      ok
+    em dash                       ok   RAISE   RAISE
+    triangle U+25B8            RAISE   RAISE   RAISE
+
+So it was unprintable on EVERY Windows console codepage rather than only
+the DOS ones. `>` is the separator `_PKA_NOT_INSTALLED_MESSAGE` already
+uses for "Tools > External Tools".
+
+**`test_every_line_is_ascii` IS WEAKER THAN ITS OWN DOCSTRING SAYS.**
+That guard, in `tests/test_regulatory_calculator.py`, asserts against
+cp1252 -- and its docstring
+claims that stream "raises on a tick or an em-dash". It raises on the
+tick; it does NOT raise on an em dash. The guard is real and its stated
+reach is not.
+
+**AND `DescriptorValue.error` HAD NO SWEEP COVERAGE AT ALL.**
+`benchmarks/report_lines/sweep.py` instruments `report_adapter._split`,
+so it enumerates the lines reaching `AlertResult.matched` and never
+touches the `error` field -- which is exactly where the shipped non-ASCII
+string was. Run over the real registry, the `matched` population is 499
+distinct lines, 62 of them non-ASCII and **0 failing cp1252 or cp850**;
+10 fail cp437, all of them the `Å³` in `surface_analysis.py:129`. A
+blanket "must be pure ASCII" rule would therefore fail 62 legitimate
+lines, so the rule the constraint actually implies is "encodes under all
+three", and `tests/test_failure_messages.py` is the guard for the error
+population the sweep cannot see.
+
+**THE ONE REMAINING FINDING IS NOT FIXED AND SAYS SO.** `Å³` fails cp437
+only -- the least likely of the three -- and cp437 has `²` but not `³`,
+so the ASCII repair (`Å^3`) would leave line 129 inconsistent with the
+five `Å²` lines directly above it. Recorded rather than changed, because
+it alters user-visible units for the least common codepage.
+
+#### DRIVEN AND MAGNIFIED, and for once nothing new was wrong
+
+`OPENCHEM_DRIVE` with a `CCO` molecule and every section above `shape`
+collapsed, cropped 3x. All ten rows read a complete `Needs a 3D
+conformer` in red, no ellipsis and nothing past the panel edge, and the
+in-app `dump` reports **0 rendered-overflow findings** at both the dock's
+420 default and a squeezed window. At the 280 minimum the cell is 120 px
+against a summary needing 118 -- it fits whole, by 2 px, and past that it
+elides with the reason still in the tooltip.
+
+**`{"do": "expand", "section": ...}` TAKES THE CATEGORY ID, AND `shape`
+IS BELOW THE FOLD.** A first run expanded it correctly and photographed
+nothing, because the section sits under eighteen others in
+`_CATEGORY_ORDER` and the panel scrolls. Collapse the ones above it
+rather than scrolling; a scroll position is one more thing to get right.
 
 ### 20 of 25 `AlertResult`s were never alerts
 

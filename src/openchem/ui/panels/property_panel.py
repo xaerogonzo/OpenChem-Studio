@@ -31,7 +31,7 @@ from openchem.domain.calculator import (
     RegistryExecution,
     ServiceExecution,
 )
-from openchem.domain.common import CacheState
+from openchem.domain.common import CacheState, describe_failure
 from openchem.domain.project import ProjectModel
 from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
 from openchem.ui.visualization import declared_total, label_decimals
@@ -304,7 +304,18 @@ def _present_alert(alert) -> tuple[str, str, str]:
     to do about it, which is the worst of both: wrong, and silent.
     """
     if alert.cache_state is CacheState.FAILED:
-        reason = alert.error or "Failed"
+        # **THE FULL REASON, NOT THE CELL FORM -- A WIDE ROW IS NOT A
+        # CELL.** An alert renders into an `ExplicitHeightLabel` inside
+        # `_add_wide_row`, which spans BOTH form columns, wraps, and
+        # states its own height so the value renders in full. So the
+        # reason is already entirely visible here, and substituting a
+        # summary would DELETE what a reader can see -- the pkasolver
+        # message is 344 characters of install guidance, and it is the
+        # whole point of that row. Only `_on_descriptor_computed`'s
+        # single-line value cell is short of room, and only it takes the
+        # cell form. `describe_failure` is still what supplies the
+        # "Failed" default, so the four branches cannot drift.
+        _cell, reason = describe_failure(alert.error, getattr(alert, "error_summary", None))
         return _FAILURE_GLYPH + reason, _FAILURE_STYLE, reason
     if alert.cache_state in (CacheState.QUEUED, CacheState.RUNNING):
         return alert.cache_state.value.capitalize() + "...", _INFORMATION_STYLE, ""
@@ -554,7 +565,7 @@ _REPORT_ID_PROPERTY = "openchem_report_id"
 _ELIDED_BUTTON_MIN_WIDTH = 80
 
 #: How narrow a row caption may be squeezed before the panel would rather
-#: overflow. It is a FLOOR, not a width: `_ElidingCaptionLabel` caps only
+#: overflow. It is a FLOOR, not a width: `_ElidingLabel` caps only
 #: its `minimumSizeHint`, so a wide panel still shows the full text.
 #:
 #: **DERIVED FROM THE PANEL'S OWN MINIMUM, not chosen for looks.** At the
@@ -566,7 +577,7 @@ _ELIDED_BUTTON_MIN_WIDTH = 80
 #: with room for the field column to grow, and still shows about
 #: eighteen characters -- enough to tell one row from another, with the
 #: full string in the tooltip and recoverable from "Copy all".
-_ELIDED_CAPTION_MIN_WIDTH = 120
+_ELIDED_LABEL_MIN_WIDTH = 120
 
 #: How many pixels of reported overflow are measurement noise rather than
 #: a clip.
@@ -1125,7 +1136,7 @@ def _dump_panel_metrics(panel: QWidget) -> None:
             if field is None or not field.isVisibleTo(panel):
                 continue
             label = label_item.widget() if label_item is not None else None
-            name = _caption_text(label) or category
+            name = _unelided_text(label) or category
             kind = type(field).__name__
             width = field.width()
             logger.warning(
@@ -1238,8 +1249,25 @@ class _ElidingPushButton(QPushButton):
             super().setText(_mnemonic_safe(elided))
 
 
-class _ElidingCaptionLabel(QLabel):
-    """A row caption that may be narrower than its text.
+class _ElidingLabel(QLabel):
+    """A form-row label that may be narrower than its text -- EITHER ROLE.
+
+    **IT SERVES THE CAPTION AND THE VALUE, and that is one class on
+    purpose.** It was written for the caption column and the value column
+    then reproduced the identical defect: a FAILED descriptor writes its
+    reason into the value cell, and the shape descriptors' reason is 87
+    characters, so a plain `QLabel` there reported its whole text as its
+    minimum exactly as a caption did. Measured on a bare form holding one
+    caption and one long value, the mechanism is unchanged by the role:
+
+        field widget      form minimum width
+        plain QLabel                    1972
+        this class                       268
+
+    A second class for the value side would have been a second copy of
+    every lesson below, and this repository has paid four times over for
+    two implementations of one rule. The role-specific part is only WHICH
+    string each column carries, which the call sites decide.
 
     **THE SAME BUG AS `_ElidingPushButton`, ONE WIDGET ALONG.** That class
     fixed the case where the widest thing in the panel was a button; with
@@ -1285,13 +1313,29 @@ class _ElidingCaptionLabel(QLabel):
     wrong.
 
     `full_text` is the unelided string, and everything that EXPORTS a
-    caption reads it -- see `_caption_text`. Copying the panel must not
-    hand somebody "Blood-Brain Barrier Permeant (heur...".
+    label reads it -- see `_unelided_text`. Copying the panel must not
+    hand somebody "Blood-Brain Barrier Permeant (heur...", and now must
+    not hand them a half-sentence telling them to generate a conformer
+    either.
     """
 
     def __init__(self, text: str = "", parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.full_text = ""
+        #: What this label contributes to an EXPORT, when that is not
+        #: simply `full_text`. A FAILED value cell paints a short summary
+        #: and must nevertheless put the full reason on the clipboard, so
+        #: for that one case the three strings a label has -- painted,
+        #: unelided, exported -- are genuinely three rather than two.
+        #:
+        #: **`setText` CLEARS IT, and that is what makes a stale export
+        #: impossible.** The value label is reused as a descriptor moves
+        #: through its states, so an override set on a failure would
+        #: otherwise still be there when the same row later succeeds --
+        #: exporting a reason for a value that computed fine. Every branch
+        #: calls `setText` before anything else, so the reset is automatic
+        #: rather than a rule each branch has to remember.
+        self.export_text: str | None = None
         self.setWordWrap(False)
         self.setText(text)
 
@@ -1343,12 +1387,12 @@ class _ElidingCaptionLabel(QLabel):
             host 250   label 130     host 400   label 280
             host 290   label 170     host 900   label 660 (full text)
 
-        `- _ELIDED_CAPTION_MIN_WIDTH` is the field's share: whatever the
+        `- _ELIDED_LABEL_MIN_WIDTH` is the field's share: whatever the
         caption leaves, the value still needs somewhere to be.
         """
         parent = self.parentWidget()
         room = parent.width() if parent is not None else 0
-        return max(_ELIDED_CAPTION_MIN_WIDTH, room - _ELIDED_CAPTION_MIN_WIDTH)
+        return max(_ELIDED_LABEL_MIN_WIDTH, room - _ELIDED_LABEL_MIN_WIDTH)
 
     def sizeHint(self) -> QSize:  # noqa: N802 - Qt's own casing
         return QSize(
@@ -1363,7 +1407,7 @@ class _ElidingCaptionLabel(QLabel):
         space it has no use for.
         """
         return QSize(
-            min(self._width_for_full_text(), _ELIDED_CAPTION_MIN_WIDTH),
+            min(self._width_for_full_text(), _ELIDED_LABEL_MIN_WIDTH),
             super().minimumSizeHint().height(),
         )
 
@@ -1374,8 +1418,12 @@ class _ElidingCaptionLabel(QLabel):
         built from a placeholder carrying only the internal id and
         recaptioned when the real name arrives -- so storing the full text
         at construction alone would keep the id forever.
+
+        It also drops any `export_text` override; see there for why that
+        reset belongs here rather than at the call sites.
         """
         self.full_text = text
+        self.export_text = None
         self.setToolTip(text)
         self._show_as_much_as_fits()
 
@@ -1401,15 +1449,23 @@ class _ElidingCaptionLabel(QLabel):
             super().setText(elided)
 
 
-def _caption_text(widget: QWidget | None) -> str:
-    """A caption's FULL text, for anything that exports or searches it.
+def _unelided_text(widget: QWidget | None) -> str:
+    """A label's FULL text, for anything that exports or searches it.
 
-    An elided caption's `text()` is what is painted, which is the right
+    An elided label's `text()` is what is painted, which is the right
     answer for the screen and the wrong one for the clipboard. "Copy all"
     handing somebody `Blood-Brain Barrier Permeant (heur...` would be the
     presentation layer corrupting the data on its way out -- the same
     class of mistake as the glyphs, which `_without_glyphs` already
     strips at every exit for the same reason.
+
+    **IT WAS NAMED `_caption_text` AND THE VALUE SIDE WAS READING
+    `.text()` RAW.** That was safe only for as long as no value elided.
+    The moment the value column got the same treatment as the caption
+    column, `as_text` would have exported `Needs a 3D conformer` where
+    the full explanation belongs -- the identical bug, one column across,
+    reintroduced by fixing its neighbour. Both columns come through here
+    now, which is why the name no longer says "caption".
     """
     if widget is None:
         return ""
@@ -1418,6 +1474,28 @@ def _caption_text(widget: QWidget | None) -> str:
         return full
     getter = getattr(widget, "text", None)
     return str(getter() or "") if callable(getter) else ""
+
+
+def _exported_text(widget: QWidget | None) -> str:
+    """What this label contributes to "Copy all".
+
+    **A SEPARATE NAME FROM `_unelided_text`, DELIBERATELY.** Folding the
+    two together is the very mistake this whole change exists to undo --
+    one accessor answering both "what does this say, ignoring width" and
+    "what belongs on a clipboard" is the same coupling that made `error`
+    serve as both a table cell and an explanation. They differ for
+    exactly one case and agree everywhere else, and an accessor that
+    quietly returns a different string depending on which question you
+    meant is how the next reader gets the wrong one.
+
+    A FAILED value cell is that case: it paints a summary chosen to be
+    SHORTER than the reason, so its unelided form is still not what
+    somebody pasting the panel into an issue needs.
+    """
+    override = getattr(widget, "export_text", None)
+    if isinstance(override, str) and override:
+        return override
+    return _unelided_text(widget)
 
 
 def _add_wide_row(section, name: str, field: QWidget) -> None:
@@ -1450,9 +1528,9 @@ def _add_wide_row(section, name: str, field: QWidget) -> None:
     # truncation back; what it did not cover is that a NON-wrapping label
     # reports its full text width as its minimum, so a long caption made
     # the content wider than the viewport and every row was clipped at the
-    # right edge instead. `_ElidingCaptionLabel` is neither -- no wrap, and
+    # right edge instead. `_ElidingLabel` is neither -- no wrap, and
     # no width demand. See its docstring for the measurement.
-    caption = _ElidingCaptionLabel(name, holder)
+    caption = _ElidingLabel(name, holder)
     caption.setStyleSheet(_WIDE_ROW_CAPTION_STYLE)
     box.addWidget(caption)
     field.setParent(holder)
@@ -1887,15 +1965,24 @@ class PropertyPanel(QWidget):
 
         value_label = self._value_labels.get(row_key)
         if value_label is None:
-            value_label = QLabel(section.content)
+            # AN ELIDING LABEL, NOT A PLAIN ONE -- for the reason the
+            # caption beside it is. A `QLabel` with wrap off reports its
+            # whole text as its minimum, and a FAILED descriptor puts a
+            # SENTENCE in this cell: measured on the ten shape
+            # descriptors with no 3D conformer, this label came out 1164
+            # px wide inside a 256 px viewport and dragged the scroll
+            # content out with it, so every row in the panel was clipped
+            # at the right edge and the reason stopped mid-word. That is
+            # the caption bug exactly, one column across.
+            value_label = _ElidingLabel("", section.content)
             value_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
             _make_copyable(value_label)
             # A CAPTION WIDGET, not the string. `addRow(str, widget)` has
             # Qt build a plain `QLabel`, whose minimum width is its whole
             # text -- and the widest of those sized the form's label
             # column, the column sized the content, and the content
-            # overflowed the viewport. See `_ElidingCaptionLabel`.
-            section.content_layout().addRow(_ElidingCaptionLabel(label, section.content), value_label)
+            # overflowed the viewport. See `_ElidingLabel`.
+            section.content_layout().addRow(_ElidingLabel(label, section.content), value_label)
             self._value_labels[row_key] = value_label
             self._row_labels[row_key] = label
         elif self._row_sections.get(row_key) is not section:
@@ -1910,7 +1997,7 @@ class PropertyPanel(QWidget):
                 taken = old_section.content_layout().takeRow(value_label)
                 if taken.labelItem is not None and taken.labelItem.widget() is not None:
                     taken.labelItem.widget().deleteLater()
-            section.content_layout().addRow(_ElidingCaptionLabel(label, section.content), value_label)
+            section.content_layout().addRow(_ElidingLabel(label, section.content), value_label)
             self._row_labels[row_key] = label
         self._row_sections[row_key] = section
 
@@ -1937,9 +2024,15 @@ class PropertyPanel(QWidget):
                 self._row_labels[row_key] = label
 
         if descriptor.cache_state.value == "failed":
-            value_label.setText(descriptor.error or "Failed")
+            cell, hover = describe_failure(descriptor.error, descriptor.error_summary)
+            value_label.setText(cell)
+            # AFTER `setText`, which clears it. The cell is deliberately
+            # the shorter of the two, so an export reading it would hand
+            # somebody "Needs a 3D conformer" where the sentence saying
+            # what to press belongs.
+            value_label.export_text = hover
             value_label.setStyleSheet(_FAILURE_STYLE)
-            value_label.setToolTip(descriptor.error or "")
+            value_label.setToolTip(hover)
         elif descriptor.cache_state.value in ("queued", "running"):
             value_label.setText(descriptor.cache_state.value.capitalize() + "...")
             value_label.setStyleSheet(_INFORMATION_STYLE)
@@ -2027,7 +2120,10 @@ class PropertyPanel(QWidget):
             _add_wide_row(section, name, label)
             self._result_labels[result_id] = label
         if getattr(result, "cache_state", None) is CacheState.FAILED:
-            reason = getattr(result, "error", None) or "Failed"
+            # The full reason: another `_add_wide_row`, see `_present_alert`.
+            _cell, reason = describe_failure(
+                getattr(result, "error", None), getattr(result, "error_summary", None)
+            )
             label.setText(_FAILURE_GLYPH + reason)
             label.setStyleSheet(_FAILURE_STYLE)
             label.setToolTip(reason)
@@ -2176,8 +2272,13 @@ class PropertyPanel(QWidget):
 
         label = self._report_row(section, report.report_id, report.name)
         if report.cache_state is CacheState.FAILED:
-            label.setText(_FAILURE_GLYPH + (report.error or "Failed"))
+            # The full reason: another `_add_wide_row`, see `_present_alert`.
+            _cell, reason = describe_failure(
+                report.error, getattr(report, "error_summary", None)
+            )
+            label.setText(_FAILURE_GLYPH + reason)
             label.setStyleSheet(_FAILURE_STYLE)
+            label.setToolTip(reason)
         elif not report.facts:
             label.setText("Nothing to report.")
             label.setStyleSheet(_INFORMATION_STYLE)
@@ -2568,11 +2669,15 @@ class PropertyPanel(QWidget):
         looking at. Reading it out of the dicts would silently reorder it
         and drop the groupings, which is most of what makes it legible.
 
-        **Captions come through `_caption_text`, never `.text()`.** A
-        caption on screen is elided to whatever the panel's width allows,
+        **BOTH COLUMNS come through `_exported_text`, never `.text()`.**
+        A label on screen is elided to whatever the panel's width allows,
         so `.text()` would put `Blood-Brain Barrier Permeant (heur...`
         on the clipboard -- a width decision leaking into exported data.
-        Same rule as `_without_glyphs` on the value side.
+        The VALUE side read `.text()` raw until the value column started
+        eliding too, at which point it would have exported a FAILED
+        descriptor's short cell form in place of its full reason -- the
+        same leak the caption rule exists to stop, one column across.
+        `_without_glyphs` still runs on the value, for its own reason.
         """
         lines: list[str] = []
         for category in sorted(
@@ -2594,8 +2699,8 @@ class PropertyPanel(QWidget):
                 value_widget = field_item.widget()
                 if name_widget is None or value_widget is None:
                     continue
-                value = _without_glyphs(value_widget.text()).replace("\n", "; ")
-                rows.append(f"  {_caption_text(name_widget)}: {value}")
+                value = _without_glyphs(_exported_text(value_widget)).replace("\n", "; ")
+                rows.append(f"  {_exported_text(name_widget)}: {value}")
             if rows:
                 lines.append(_category_label(category))
                 lines.extend(rows)

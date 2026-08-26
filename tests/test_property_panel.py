@@ -150,6 +150,19 @@ def test_boolean_descriptor_renders_as_pass_fail(qapp):
 
 
 def test_failed_descriptor_shows_error_message(qapp):
+    """A failure says why, rather than leaving the cell blank.
+
+    **READ THROUGH `_unelided_text`, NEVER `.text()`.** The value column
+    elides now -- a FAILED descriptor writes a SENTENCE there, and a plain
+    label reporting its whole text as its minimum is what dragged the
+    scroll content 916 px past a 256 px viewport. `.text()` is therefore
+    whatever fits the fixture's present width, and asserting on it would
+    make this test a claim about the fixture's geometry rather than about
+    the panel saying why the descriptor failed. Same reasoning
+    `test_result_presentation._row_caption` already records for captions.
+    """
+    from openchem.ui.panels.property_panel import _unelided_text
+
     panel, bus, _service = _make_panel(qapp)
     bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
 
@@ -166,7 +179,90 @@ def test_failed_descriptor_shows_error_message(qapp):
     )
 
     label = panel._value_labels[("rdkit", "pbf")]
-    assert label.text() == "Needs a real 3D conformer."
+    assert _unelided_text(label) == "Needs a real 3D conformer."
+
+
+def test_a_producer_that_declares_no_summary_gets_exactly_the_old_behaviour(qapp):
+    """THE DEGRADATION PATH, and it is why this is two fields not one.
+
+    Every producer that writes `error` and nothing else -- which is all of
+    them but two -- must keep putting that same string in the cell and in
+    the hover. If this stops holding, the retrofit stopped being additive
+    and every unmigrated failure message changed meaning at once.
+    """
+    from openchem.ui.panels.property_panel import _unelided_text
+
+    panel, bus, _service = _make_panel(qapp)
+    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+    bus.publish(
+        DescriptorComputed(
+            descriptor=_descriptor(
+                descriptor_id="pbf", category="shape", value=None,
+                cache_state=CacheState.FAILED, error="Something went wrong.",
+            )
+        )
+    )
+    label = panel._value_labels[("rdkit", "pbf")]
+    assert _unelided_text(label) == "Something went wrong."
+    assert label.toolTip() == "Something went wrong."
+
+
+def test_a_declared_summary_reaches_the_cell_and_the_reason_reaches_the_hover(qapp):
+    """THE POINT OF THE WHOLE CHANGE.
+
+    One field could not be both a table cell and an explanation, so the
+    explanation won and was cut off at the panel edge. The producer now
+    says which string is which, and the two must land in DIFFERENT places
+    -- a summary that also became the tooltip would leave the reader with
+    no way to reach the detail at all, which is worse than the clip.
+    """
+    from openchem.ui.panels.property_panel import _unelided_text
+
+    panel, bus, _service = _make_panel(qapp)
+    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+    bus.publish(
+        DescriptorComputed(
+            descriptor=_descriptor(
+                descriptor_id="pbf", category="shape", value=None,
+                cache_state=CacheState.FAILED,
+                error="This descriptor is measured from a real 3D conformer.",
+                error_summary="Needs a 3D conformer",
+            )
+        )
+    )
+    label = panel._value_labels[("rdkit", "pbf")]
+    assert _unelided_text(label) == "Needs a 3D conformer"
+    assert label.toolTip() == "This descriptor is measured from a real 3D conformer."
+    # And the two really are different strings, or this test would pass
+    # against a panel that had simply put the reason in both places.
+    assert _unelided_text(label) != label.toolTip()
+
+
+def test_copy_all_exports_the_reason_and_never_the_cell_summary(qapp):
+    """**THE LEAK THIS CHANGE COULD EASILY HAVE INTRODUCED.**
+
+    `as_text` read `value_widget.text()` raw. That was safe only while no
+    value elided; the moment the value column got the caption column's
+    treatment, "Copy all" would have exported `Needs a 3D conformer` --
+    the cell form -- in place of the sentence saying what to press. It is
+    the identical bug the caption rule already exists to stop, one column
+    across, and nothing would have failed.
+    """
+    panel, bus, _service = _make_panel(qapp)
+    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+    bus.publish(
+        DescriptorComputed(
+            descriptor=_descriptor(
+                descriptor_id="pbf", name="Plane of Best Fit", category="shape",
+                value=None, cache_state=CacheState.FAILED,
+                error="Generate one with Structure > Generate Conformers...",
+                error_summary="Needs a 3D conformer",
+            )
+        )
+    )
+    exported = panel.as_text()
+    assert "Generate one with Structure > Generate Conformers..." in exported
+    assert "Needs a 3D conformer" not in exported
 
 
 def test_alert_computed_shows_clean_when_nothing_matched(qapp):
@@ -1609,3 +1705,113 @@ def test_a_result_nobody_asked_for_does_not_hijack_the_scroll(qapp):
     qapp.processEvents()
 
     assert not revealed
+
+
+def test_a_row_that_recovers_stops_exporting_its_old_failure_reason(qapp):
+    """FOUND BY MUTATION, and nothing else in the file caught it.
+
+    The value label is REUSED as a descriptor moves through its states --
+    the same widget carries the failure and then the number. So the export
+    override set on the failure is still attached when the row later
+    succeeds, and "Copy all" would hand somebody a conformer instruction
+    beside a perfectly good value. `setText` clears it, which is why the
+    reset lives there rather than at the four call sites: every branch
+    calls `setText` first, so no branch has to remember.
+
+    Removing that one line leaves the whole of this file, the geometry
+    guards and the presentation guards passing.
+    """
+    panel, bus, _service = _make_panel(qapp)
+    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+
+    bus.publish(
+        DescriptorComputed(
+            descriptor=_descriptor(
+                descriptor_id="pbf", name="Plane of Best Fit", category="shape",
+                value=None, cache_state=CacheState.FAILED,
+                error="Generate one with Structure > Generate Conformers...",
+                error_summary="Needs a 3D conformer",
+            )
+        )
+    )
+    assert "Generate one with Structure" in panel.as_text(), (
+        "setup: the failure must reach the export, or the recovery below "
+        "is asserting against a panel that never carried a reason"
+    )
+
+    bus.publish(
+        DescriptorComputed(
+            descriptor=_descriptor(
+                descriptor_id="pbf", name="Plane of Best Fit", category="shape",
+                value=0.42, cache_state=CacheState.COMPLETED,
+            )
+        )
+    )
+
+    exported = panel.as_text()
+    assert "0.42" in exported
+    assert "Generate one with Structure" not in exported
+    assert "Needs a 3D conformer" not in exported
+
+
+def test_a_wide_row_keeps_the_whole_reason_while_a_value_cell_takes_the_summary(qapp):
+    """A WIDE ROW IS NOT A CELL, and treating them alike loses text.
+
+    Three of the panel's four FAILED branches render into an
+    `ExplicitHeightLabel` inside `_add_wide_row` -- spanning both form
+    columns, wrapping, and stating its own height so the value shows in
+    full. The reason is therefore ALREADY entirely visible there, and
+    substituting the cell form would DELETE what a reader can see: the
+    pkasolver message is 344 characters of install guidance and is the
+    whole point of that row.
+
+    Only `_on_descriptor_computed`'s single-line value cell is short of
+    room, and only it takes the summary. Both halves are asserted
+    together because each alone is satisfiable by the wrong rule --
+    "always use the summary" passes the descriptor half, "never use it"
+    passes the alert half, and this repository's own lesson is that
+    reusing a mechanism whose invariants do not apply is not reuse.
+    """
+    from openchem.ui.panels.property_panel import _unelided_text
+
+    reason = (
+        "No pkasolver environment configured. Set the interpreter path "
+        "under Tools > External Tools."
+    )
+    summary = "pkasolver not configured"
+
+    panel, bus, _service = _make_panel(qapp)
+    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+
+    bus.publish(
+        AlertComputed(
+            alert=AlertResult(
+                alert_id="pka",
+                name="pKa",
+                molecule_uuid="mol-1",
+                matched=[],
+                category="pka",
+                cache_state=CacheState.FAILED,
+                error=reason,
+                error_summary=summary,
+            )
+        )
+    )
+    bus.publish(
+        DescriptorComputed(
+            descriptor=_descriptor(
+                descriptor_id="pbf", category="shape", value=None,
+                cache_state=CacheState.FAILED, error=reason, error_summary=summary,
+            )
+        )
+    )
+
+    wide = panel._alert_labels[("core", "pka")] if ("core", "pka") in panel._alert_labels \
+        else next(v for k, v in panel._alert_labels.items() if k[1] == "pka")
+    cell = panel._value_labels[("rdkit", "pbf")]
+
+    # The wrapping row keeps every word of it...
+    assert reason in wide.text()
+    assert wide.text() != summary
+    # ...and the one-line cell takes the short form.
+    assert _unelided_text(cell) == summary
