@@ -533,3 +533,138 @@ def test_dock_raises_immediately_when_progress_already_cancelled():
         provider.dock(RECEPTOR_PDB, "pdb", mol, box, 9, progress)
 
     assert engine.dock_calls == []
+
+
+# --- issue #8: the unit-cell copies Open Babel invents ---------------------
+#
+# `pose_analysis.is_symmetry_generated` and the ANALYSIS path are guarded in
+# tests/test_structure_summary.py, where the evidence was gathered. Nothing
+# guarded the DOCKING-PREPARATION half until this, so deleting the
+# `_drop_symmetry_copies` call from `_convert_receptor_to_pdbqt` passed the
+# whole suite -- while that call is the one that stood between Vina and
+# 6WGT's 73,707-atom receptor. The two halves must not be able to disagree;
+# that is the whole reason the drop exists on both.
+
+#: The same alanine as `RECEPTOR_PDB`, as mmCIF, plus a cell and a space
+#: group Open Babel cannot recognise. It then applies the symmetry
+#: operations it CAN read and returns the mates as ordinary atoms carrying
+#: no residue record -- measured here at 2.00x, the same ratio 7M93 showed.
+#:
+#: `-x,-y,z` on a 20 A cell puts the copies at y ~ 6.8-8.0, well clear of
+#: the deposited y ~ 12.0-13.6, so a coordinate check tells the two apart
+#: rather than merely counting them.
+RECEPTOR_MMCIF_WITH_SYMMETRY = """data_TEST
+_cell.length_a     20.000
+_cell.length_b     20.000
+_cell.length_c     20.000
+_cell.angle_alpha  90.000
+_cell.angle_beta   90.000
+_cell.angle_gamma  90.000
+_symmetry.space_group_name_H-M   'Z 99 BOGUS'
+loop_
+_symmetry_equiv_pos_as_xyz
+'x,y,z'
+'-x,-y,z'
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_comp_id
+_atom_site.label_asym_id
+_atom_site.label_seq_id
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+_atom_site.auth_seq_id
+_atom_site.auth_asym_id
+ATOM 1 N N  ALA A 1 11.104 13.207 2.845 1 A
+ATOM 2 C CA ALA A 1 11.999 12.040 2.945 1 A
+ATOM 3 C C  ALA A 1 13.398 12.442 2.508 1 A
+ATOM 4 O O  ALA A 1 13.598 13.601 2.128 1 A
+"""
+
+#: What the deposit itself contains -- the number `_atom_site` rows state.
+#: 7M93 and 6WGT reduce to exactly their own row counts too (5,812 and
+#: 8,100); equality to the atom is what makes the identification exact
+#: rather than approximate, and is a far stronger claim than "fewer".
+_DEPOSITED_HEAVY_ATOMS = 4
+
+
+def _receptor_heavy_atoms(pdbqt_text: str) -> list[tuple[float, float, float]]:
+    """Heavy-atom coordinates from a receptor PDBQT, in file order.
+
+    Hydrogens are excluded because `_convert_receptor_to_pdbqt` adds them
+    (`AddHydrogens` at the prep pH), so a raw line count would be
+    measuring protonation rather than the symmetry drop.
+    """
+    coordinates = []
+    for line in pdbqt_text.splitlines():
+        if not line.startswith(("ATOM", "HETATM")):
+            continue
+        if line.split()[-1] in ("H", "HD"):
+            continue
+        coordinates.append((float(line[30:38]), float(line[38:46]), float(line[46:54])))
+    return coordinates
+
+
+def test_open_babel_really_does_invent_symmetry_copies_from_this_fixture():
+    """ASSERTS THE SETUP, so the guard below cannot go vacuous.
+
+    If a future Open Babel stops expanding this cell, the fixture arrives
+    with nothing to drop and `test_symmetry_copies_never_reach_the_receptor`
+    would pass while testing nothing -- the same failure mode
+    `test_a_tab_bars_scroll_buttons_are_qt_s_own` asserts its own setup
+    against. This fails loudly instead, naming the reason.
+    """
+    from openbabel import openbabel as ob
+    from openbabel import pybel
+
+    mol = pybel.readstring("mmcif", RECEPTOR_MMCIF_WITH_SYMMETRY)
+    atoms = list(ob.OBMolAtomIter(mol.OBMol))
+    invented = [atom for atom in atoms if atom.GetResidue() is None]
+
+    assert len(atoms) == 2 * _DEPOSITED_HEAVY_ATOMS, (
+        "Open Babel no longer expands this cell, so the fixture cannot "
+        "reproduce issue #8 and the guard below is not testing anything"
+    )
+    assert len(invented) == _DEPOSITED_HEAVY_ATOMS
+
+
+def test_symmetry_copies_never_reach_the_receptor_vina_is_handed():
+    """Issue #8, at the end of the pipeline it did its damage in.
+
+    6WGT's 8,100-atom deposit reached Vina as 73,707 atoms -- eight
+    overlapping copies of the protein -- and Vina searched it and returned
+    plausible-looking affinities rather than crashing. So the assertion
+    that matters is about the file Vina is actually handed, not about the
+    predicate in isolation.
+
+    IT ASSERTS WHAT SURVIVES, not merely that the count fell. A drop that
+    deleted too much would satisfy both "fewer atoms" and "no null-residue
+    atoms remain"; only the deposited coordinates coming back intact
+    separates the fix from an over-broad one.
+    """
+    engine = FakeVinaEngine()
+    VinaDockingProvider(engine=engine).dock(
+        RECEPTOR_MMCIF_WITH_SYMMETRY,
+        "mmcif",
+        Chem.MolFromSmiles("CCO"),
+        DockingBox(center=_RECEPTOR_CENTER, size=(20, 20, 20)),
+        9,
+        ProgressHandle(),
+    )
+    heavy = _receptor_heavy_atoms(engine.dock_calls[0]["receptor_pdbqt_text"])
+
+    assert len(heavy) == _DEPOSITED_HEAVY_ATOMS, (
+        f"the receptor Vina was handed holds {len(heavy)} heavy atoms for a "
+        f"{_DEPOSITED_HEAVY_ATOMS}-atom deposit"
+    )
+    assert sorted(heavy) == sorted(
+        [
+            (11.104, 13.207, 2.845),
+            (11.999, 12.040, 2.945),
+            (13.398, 12.442, 2.508),
+            (13.598, 13.601, 2.128),
+        ]
+    ), "the surviving atoms are not the deposited ones"

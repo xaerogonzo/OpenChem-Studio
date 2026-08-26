@@ -436,6 +436,20 @@ class VinaDockingProvider(DockingProvider):
         shared `is_stripped_residue` predicate is that what gets docked
         and what gets analysed cannot disagree, and a fix on one side
         only would reintroduce that split.
+
+        IT IS AN mmCIF-ONLY EXPANSION, re-measured 2026-08-26 against
+        freshly downloaded deposits. The SAME two entries read as PDB come
+        back at 1.00x with nothing to drop; only the mmCIF reader expands:
+
+            entry   _atom_site rows   Open Babel   ratio   after the drop
+            7M93              5,812       11,624   2.00x            5,812
+            6WGT              8,100       64,764   8.00x            8,100
+
+        That bounds the exposure without weakening anything, because
+        `receptor_library_service.fetch_structure` tries PDB FIRST and
+        both of these have one. mmCIF is still reached by the documented
+        fallback for deposits too large for the fixed-column format, and
+        by File > Import Macromolecule, so the drop stays unconditional.
         """
         from openbabel import openbabel as ob
 
