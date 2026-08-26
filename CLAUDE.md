@@ -82,7 +82,23 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "cip",        "on": true}          R/S and E/Z, through the menu
     {"do": "erase",      "element": "N"}      a REAL canvas edit
     {"do": "report",     "tag": "after"}      conformers, undo depth, SMILES
+    {"do": "jobs_report", "tag": "running"}   rows AND whether it is POLLING
+    {"do": "jobs_cancel", "row": 0}           the real button in a real row
     {"do": "wait"} {"do": "quit"}
+
+**`jobs_report` CARRIES A FLAG NO SCREENSHOT CAN**, which is why it exists
+beside a `shot` rather than instead of one: both of the Jobs panel's
+recorded defects live in `QTimer.isActive()` and neither is visible. A
+panel that leaked itself polled for the life of the process; a visibility
+gate that never restarts the timer leaves a frozen list that looks exactly
+like an idle one. Switching to another right-hand panel IS the hide --
+twelve docks, one visible at a time -- so no synthetic `hide()` is needed.
+
+**`jobs_cancel` presses the BUTTON, not the handler behind it**, and here
+that is load-bearing rather than stylistic: `_on_cancel_clicked` reads
+which job it means off `sender()`, so calling it directly passes
+`sender() is None` and proves nothing about the wiring, which is the thing
+that changed.
 
 **`erase` is the only step that drives the route `set_molecule` never
 covers** -- the user drawing on the canvas -- so it is what any
