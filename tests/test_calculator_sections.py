@@ -38,11 +38,12 @@ from openchem.ui.panels.property_panel import _CATEGORY_LABELS, _CATEGORY_ORDER
 #: headings takes them. Filing a critical volume under "Electronic" or
 #: "Solubility" to flatten a count is exactly the trade the nmr entry
 #: above refuses.
-#: `energetic` is the third, and is EXPECTED TO STOP BEING ONE -- the
-#: detonation properties land in it next, and `test_the_declared_singleton_really_is_one`
-#: will then fail until this name is removed. That is the guard working:
-#: an exception that outlives its reason is how a guard starts lying.
-_ALLOWED_SINGLETONS = {"nmr", "thermophysical", "energetic"}
+#: `energetic` WAS the third, for exactly one commit. The detonation
+#: properties landed beside oxygen balance and
+#: `test_the_declared_singleton_really_is_one` went red until this name
+#: was removed -- which is the guard working, and the reason that narrow
+#: half exists at all.
+_ALLOWED_SINGLETONS = {"nmr", "thermophysical"}
 
 
 def _real_registry():

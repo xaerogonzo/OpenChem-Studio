@@ -1616,6 +1616,74 @@ Its domain test is computable: more than two internal rotations, an H-bond
 donor, or crystal-rotation symmetry puts a substance outside.
 """
 
+[[source]]
+key = "kamlet1968"
+kind = "literature"
+citation = "M. J. Kamlet & S. J. Jacobs, 'Chemistry of Detonations. I. A Simple Method for Calculating Detonation Properties of C-H-N-O Explosives', J. Chem. Phys. 1968, 48, 23-35."
+identifier_type = "doi"
+identifier = "10.1063/1.1667908"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/energetics.py",
+    "tests/test_energetics.py",
+]
+local = "kamlet1968.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-08-25
+note = """
+Eqs. (8) and (9) for detonation pressure and velocity, Eq. (12)'s H2O-CO2
+arbitrary decomposition with the closed forms (13) and (14) for N and M,
+Eq. (15b) for the heat of detonation, and Eq. (16)'s RUBY-matching
+correction.
+
+**K = 15.58, AND THE TEXTBOOK THAT SUPPLIES THIS PROJECT'S OXYGEN BALANCE
+SAYS 15.88.** This paper states 15.58 FOUR times -- the abstract, Eq. (8),
+the slope of its Fig. 1, and the Table III page -- and '15.88' occurs nowhere
+in it. [source:klapotke2017] prints 15.88 at p253 and in its Appendix, citing
+this paper as its ref [17]. The difference is 1.9% on every pressure and BOTH
+VALUES LOOK ENTIRELY PLAUSIBLE (HMX comes out 392.1 against the paper's own
+384.7), so no check on an output can separate them. Mutated by name.
+
+**EQUATION (14) IS MISPRINTED IN THIS PAPER, AND ITS OWN TABLES PROVE IT.**
+It appears as `M = (56c - 88d - 8b)/(2c + 2d + b)`, read at 3x magnification
+where the typeface makes a minus plainly distinct from the bold plus of
+Eq. (13) directly above it, with the text layer agreeing. That form is
+impossible -- it gives RDX a detonation gas of -8.0 g/mol. The form derived
+from Eq. (12) is `(56c + 88d - 8b)/(2c + 2d + b)`, and it reproduces the M
+values Table VI prints:
+
+    TATB 27.20   R-salt 23.00   TNB 32.00   TNA 30.00
+    printed form: -8.00, 1.00, -18.29, -14.00
+
+Four for four, so this is a typesetting error in the source. Recorded rather
+than silently corrected, and asserted from BOTH directions in the tests.
+
+**citation_and_claim, FROM TWO ORACLES AT OPPOSITE ENDS.** Table III prints
+N, M, Q, rho0 AND the P and D that Eqs. (8) and (9) give from them, so it
+gates the arithmetic with no thermochemistry involved -- 8 rows, worst
+deviation 0.08 kbar and 0.012 mm/us. Table VI gates the path from a
+structure: TATB at seven loading densities, within 0.1%, with N, M, Q and G
+each matching independently so a compensating pair of errors could not pass.
+
+**Eq. (15b)'s constants are standard heats of formation already folded in**
+-- 28.9 per hydrogen is half of 57.8 for water(g), 47.0 is half of 94.1 for
+CO2, carbon nil, nitrogen zero. So no enthalpy of formation is typed into
+this project from memory. The factor of 1000 is the kcal/g-to-cal/g
+conversion, checked by inverting the paper's own printed Q: TATB's 1075
+implies -37.05 kcal/mol against a literature -36.9.
+
+**Eq. (16)'s -6% correction is an OPT-IN and never a default.** The paper
+offers it "for purposes of achieving closer correspondence with RUBY" and
+says outright it is "not necessarily applicable for the prediction of actual
+detonation parameters".
+
+TWO INPUTS ARE REQUIRED AND NEITHER IS ESTIMATED: the initial loading density
+of the charge, which is not a crystal density and which P depends on as its
+square, and the condensed-phase enthalpy of formation -- see
+[source:westwell1995] for why the published bridge from an ideal-gas value
+cannot be used for this compound class.
+"""
+
 # =============================================================================
 # Datasets
 # =============================================================================

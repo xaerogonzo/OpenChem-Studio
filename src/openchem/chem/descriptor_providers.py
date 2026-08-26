@@ -43,7 +43,7 @@ from openchem.chem.electronic_properties import (
     compute_polarizability,
 )
 from openchem.chem.hlb import compute_griffin_hlb
-from openchem.chem.energetics import compute_oxygen_balance
+from openchem.chem.energetics import compute_detonation, compute_oxygen_balance
 from openchem.chem.joback import compute_joback
 from openchem.chem.huckel import compute_huckel_analysis, compute_pi_electron_density
 from openchem.chem.lewis import compute_lewis_sites
@@ -2383,6 +2383,50 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         prediction_basis="empirical",
         tags=["surface", "surfactant", "hlb", "formulation"],
         parameters=[decimal_places_parameter()],
+    ),
+    CalculatorDefinition(
+        calculator_id="detonation",
+        display_name="Detonation (Kamlet-Jacobs)",
+        category="energetic",
+        description=(
+            "Detonation pressure and velocity for a C/H/N/O explosive, by Kamlet and "
+            "Jacobs' 1968 correlation. REQUIRES two inputs it cannot derive: the "
+            "initial loading density of the charge, which is not a crystal density and "
+            "which the pressure depends on as its square, and a measured "
+            "condensed-phase enthalpy of formation, because the published rule for "
+            "estimating one from an ideal-gas value excludes every classic energetic "
+            "material. Without either, it refuses and says which is missing. An "
+            "empirical correlation fitted to reproduce a 1968 computer code -- not a "
+            "measurement, and not a safety assessment."
+        ),
+        execution=RegistryExecution(compute=compute_detonation),
+        prediction_basis="empirical",
+        tags=["energetic", "detonation", "kamlet-jacobs", "performance"],
+        parameters=[
+            decimal_places_parameter(1),
+            CalculatorParameter(
+                name="loading_density_g_cm3",
+                label="Loading density (g/cm³) — required",
+                kind="float",
+                default=0.0,
+                minimum=0.0,
+                maximum=3.0,
+            ),
+            CalculatorParameter(
+                name="enthalpy_of_formation_kcal_mol",
+                label="Enthalpy of formation, solid (kcal/mol) — required, measured",
+                kind="float",
+                default=-1000.0,
+                minimum=-1000.0,
+                maximum=500.0,
+            ),
+            CalculatorParameter(
+                name="ruby_correction",
+                label="Apply the −6% RUBY-matching correction (G > 0.93)",
+                kind="bool",
+                default=False,
+            ),
+        ],
     ),
     CalculatorDefinition(
         calculator_id="oxygen_balance",
