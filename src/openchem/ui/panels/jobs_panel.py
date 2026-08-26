@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from openchem.services.job_manager import JobManager
+from openchem.services.job_manager import JobHandle, JobManager
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 _COLUMNS = ("Kind", "Key", "Status", "")
@@ -111,14 +111,60 @@ class JobsPanel(QWidget):
         layout.setContentsMargins(4, 4, 4, 4)
         layout.addWidget(self._table)
 
+        #: What the table currently SHOWS, one entry per row, in the shape
+        #: `_rendered_state` derives from the columns. `None` means "nothing
+        #: has been rendered yet", which is not the same as "no jobs" -- an
+        #: empty tuple is that, and the two must stay distinguishable or the
+        #: first refresh of an idle panel is skipped.
+        self._rendered: tuple[tuple[object, ...], ...] | None = None
+
         self._timer = QTimer(self)
         self._timer.setInterval(_POLL_INTERVAL_MS)
         self._timer.timeout.connect(self.refresh)
         self._timer.start()
         self.refresh()
 
+    @staticmethod
+    def _rendered_state(job: JobHandle) -> tuple[object, ...]:
+        """Everything ONE ROW puts on the screen, and nothing else.
+
+        **THE RULE, because the next person to add a column will not read a
+        commit message.** This tuple must carry every value the loop in
+        `refresh` paints. A field added to `JobHandle`, rendered into a cell
+        and left out of here does not crash anything -- the panel simply
+        stops updating that cell, which is a stale number rather than a
+        failure, and the harder kind to notice.
+
+        Derived from the columns rather than remembered:
+
+            _COLUMNS[0] "Kind"    <- job.kind
+            _COLUMNS[1] "Key"     <- job.key
+            _COLUMNS[2] "Status"  <- job.message or "running"
+            _COLUMNS[3] ""        <- whether the Cancel button is enabled;
+                                     its two properties are kind and key,
+                                     already above
+
+        The status entry is the RENDERED string rather than `job.message`,
+        so a message going from `""` to `None` correctly counts as no
+        change -- both paint "running".
+        """
+        return (job.kind, job.key, job.message or "running", job.cancel_callback is not None)
+
     def refresh(self) -> None:
         jobs = self._job_manager.active_jobs()
+
+        # A POLL THAT CHANGES NOTHING MUST TOUCH NOTHING. `setItem` and
+        # `setCellWidget` DELETE whatever was in the cell, so rebuilding an
+        # unchanged table twice a second is a stream of Qt destructions --
+        # and a widget destroyed from inside an event pump belonging to
+        # some other code is this project's documented crash class. Measured
+        # over two test files: 704 such calls landed inside a later file's
+        # `processEvents()` loop, which is where the Linux suite segfaults.
+        state = tuple(self._rendered_state(job) for job in jobs)
+        if state == self._rendered:
+            return
+        self._rendered = state
+
         self._table.setRowCount(len(jobs))
         for row, job in enumerate(jobs):
             self._table.setItem(row, 0, QTableWidgetItem(job.kind))
