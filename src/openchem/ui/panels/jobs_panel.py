@@ -124,6 +124,36 @@ class JobsPanel(QWidget):
         self._timer.start()
         self.refresh()
 
+    def showEvent(self, event) -> None:  # noqa: N802 -- Qt's name
+        """Resume polling, and catch up at once so nothing is stale.
+
+        THE TIMER IS STILL STARTED IN `__init__`, deliberately. Making it
+        start only here would mean a panel polls *if and only if* a
+        showEvent happens to arrive, so any route that skips one leaves a
+        Jobs list frozen forever -- and a frozen Jobs list looks exactly
+        like an idle one, which is what it shows most of the time anyway.
+        `test_a_freshly_built_panel_polls_without_waiting_for_a_show_event`
+        pins that.
+        """
+        super().showEvent(event)
+        self._timer.start()
+        self.refresh()
+
+    def hideEvent(self, event) -> None:  # noqa: N802 -- Qt's name
+        """A panel nobody can see does not poll.
+
+        NOT the `hideEvent` trap recorded for `PopOutHost`. That one drove a
+        RESTORE ACTION off an event with six meanings -- another dock
+        selected, another tab, the dock closed, floated -- so a
+        hideEvent-driven restore snapped a window shut whenever the user
+        glanced elsewhere. Pausing a poll while hidden and resuming on show
+        is what these two events are for, and every one of those six
+        meanings is a case where polling is waste: this is a dock, one of
+        twelve, and only one is visible at a time.
+        """
+        super().hideEvent(event)
+        self._timer.stop()
+
     @staticmethod
     def _rendered_state(job: JobHandle) -> tuple[object, ...]:
         """Everything ONE ROW puts on the screen, and nothing else.
