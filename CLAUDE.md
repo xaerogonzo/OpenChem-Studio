@@ -1819,7 +1819,56 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-21 minutes**, ending at `5855 passed, 15 skipped`
+A clean run is **6-21 minutes**, ending at `5882 passed, 15 skipped`
+(measured 2026-08-26, **16m19**, on `joback-thermophysical` -- stage 1 of the
+calculator families, the citation sweep's worktree blindness, and the
+all-surfaces provenance audit.
+
+**+27 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed -- `import openchem; print(openchem.__file__)` reported the
+WORKTREE's `src`, not the main checkout:
+
+    d7e0735    COLLECTS 5870
+    this one   COLLECTS 5897   = 5870 + 27
+    the run                     5882 passed + 15 skipped = 5897
+
+**27 ITEMS BUT 22 NEW FUNCTIONS**, which is the whole reason this section
+records the two deltas separately:
+
+    14  test_descriptor_providers.py   14 functions, none parametrised
+    13  test_sources_are_current.py     8 functions, PLUS 5 parametrised
+                                        cases of the EXISTING schema guard,
+                                        one per new source
+
+A count that only said "+27" would have read as 27 tests written. Every one
+reconciles to a new function or to a new registry entry.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line, which
+is the pair this file insists on rather than an absence of FAILED lines. The
+two `DeprecationWarning`s are the same pre-existing six-argument
+`QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**CI MEASURED THE PREVIOUS COMMIT OF THIS BRANCH AT 5850 passed, 19 skipped,
+1 deselected** (run 32923570851, PR #46, 16m18), which is the same 5870:
+5850 + 19 + 1. The four extra skips are the GPU-gated conformer gallery
+guards and the deselection is the PubChem network test, both already
+documented above. **All three gates RAN** -- "Naming benchmark holds at
+181/181", the regulatory benchmark and the ruleset validation -- which is the
+step list rather than the conclusion.
+
+**AND THAT WAS THIS BRANCH'S FIRST CI RUN AT 4,729 LINES.** `tests.yml`
+fires only on push-to-master or on `pull_request`, so a branch accumulating
+work sees nothing until a PR exists -- and a DRAFT PR triggers the full
+workflow without being a review request. Worth knowing before the next long
+branch: this project has three recorded CI-only failures no local run could
+reproduce.
+
+16m19 sits mid-band; the 6-21 range stands.)
+
+Before it: `5855 passed, 15 skipped`
 (measured 2026-08-25, **20m31**, on `joback-thermophysical` -- oxygen balance
 on both published conventions, and Kamlet-Jacobs detonation.
 
@@ -5286,6 +5335,25 @@ change that starts drawing tofu fails there naming the reason instead of
 quietly weakening the test.
 
 ### The cp1252 rule reaches further than `matched`
+
+**AND cp1252 IS THE WRONG CODEPAGE TO ASSERT AGAINST, which this file says
+throughout and which is measurably too weak.** `sys.stdout.encoding` reports
+cp1252 in a modern terminal, so a guard written against it looks right -- but
+a Windows CONSOLE defaults to an OEM codepage, and those are STRICTER:
+
+    character   cp1252   cp437   cp850   ascii
+    em dash     ok       RAISES  RAISES  RAISES
+    tick        RAISES   RAISES  RAISES  RAISES
+    Angstrom    ok       ok      ok      RAISES
+
+So an em dash passes a cp1252 assertion and still renders as a replacement
+character on a real console. Found the hard way: a refusal message written
+with one rendered as `�`, the guard for it asserted `encode("cp1252")`,
+and **the mutation restoring the em dash SURVIVED**. `isascii()` is the bound
+worth asserting for a result STRING; a units field may legitimately carry an
+Angstrom, which is why the rows above are separated rather than merged into
+one rule.
+
 
 `regulatory/calculator.py` already records that result lines hit Windows
 console streams and that a tick RAISES there -- three times in one
