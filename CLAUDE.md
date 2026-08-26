@@ -1660,6 +1660,112 @@ catches, and it is written into the test rather than papered over.
   guard in `tests/test_right_dock_width.py` catches it at the window
   level; `flow_row()` is the cure.
 
+## A PANEL THAT LEAKS ITSELF AND THEN POLLS FOREVER
+
+The Linux segfault's cause, and the first entry in this file's long
+access-violation family that names a MECHANISM rather than heap layout.
+Every link was already documented here; nothing was joined up.
+
+    JobsPanel.refresh connects a lambda capturing `self`
+      -> PySide6 holds it STRONGLY, so the panel is immortal
+      -> its 500 ms QTimer is never stopped, so it polls forever
+      -> every poll calls setItem/setCellWidget, which DELETE the old cell
+      -> _wait_until pumps processEvents() for up to 60 s
+      -> Qt destroys a widget inside an unrelated test's event dispatch
+      -> segfault, in whichever test was pumping
+
+**THE LEAK IS "ANY PANEL THAT EVER HAD A JOB TO SHOW", and that is what the
+guard's fixture has to reproduce.** The lambda lived inside
+`for row, job in enumerate(jobs)`, so measured with `_survives_collection`:
+
+    one active job at construction    leaks: True   -> False after the fix
+    no jobs at all                    leaks: False  (both)
+
+A fixture built from a bare `JobManager()` **passes against the bug**, which
+is why `test_a_jobs_panel_with_no_jobs_could_never_have_shown_the_leak`
+exists -- it states in the suite, rather than in a comment, that the empty
+panel is not evidence.
+
+### WHAT IT COST, and why one number would have misled
+
+Instrumented over `test_jobs_panel.py` + `test_molstar_viewer_backend.py`
+alone -- five leaked panels, refreshing inside a file five positions later:
+
+    arm                 cross-file refreshes   widget destructions there
+    neither (master)                     170                         680
+    the bound method
+      alone (A)                            0                           0
+    the snapshot
+      alone (B)                          365                           0
+    A + B                                  0                           0
+
+**NEITHER FIX SUBSUMES THE OTHER.** B alone takes the DESTRUCTIONS -- the
+segfault site -- to zero and leaves the panels immortal, so their refresh
+count goes UP: a cheap refresh fits into the same pump window more often. A
+is what removes the refreshes at all, because a collectable panel's timer
+dies with it. Read either column alone and the other fix looks unnecessary.
+
+### THE VISIBILITY GATE HAD TO LAND LAST, or it would have taken the credit
+
+A panel that is never shown never polls, so stopping the timer in
+`hideEvent` makes the crash disappear **without touching the leak**. The
+attribution table above was taken before that existed, deliberately.
+
+**AND ITS GUARD'S `show()` IS LOAD-BEARING IN THE OPPOSITE DIRECTION FROM
+THE USUAL ONE.** This file records repeatedly that a widget which was never
+shown runs almost none of its own code, so a guard skipping the show passes
+vacuously. Here it does not: no show means no hide event, so the timer stays
+running and the guard **FAILS AGAINST CORRECT CODE**. Measured both ways;
+the first draft of that docstring had it backwards.
+
+**THE TIMER IS STILL STARTED IN `__init__`.** Starting it only in
+`showEvent` means the panel polls if and only if such an event arrives, and
+a frozen Jobs list is indistinguishable from an idle one -- which is what it
+shows most of the time. That mutation is green everywhere except
+`test_a_freshly_built_panel_polls_without_waiting_for_a_show_event`.
+
+### FIVE FILES HAD THE SAME LAMBDA; THREE HAD ALREADY BEEN FIXED
+
+The rule existed, the cure existed (`setProperty`/`setData` + a bound method
+reading `sender()`), and the population was a hand-kept list of two.
+
+    ui/panels/jobs_panel.py                 the crash site
+    ui/panels/atom_inspector_panel.py       every panel
+    ui/dialogs/structure_lookup_dialog.py   two, every dialog
+    app/main_window.py                      a context-menu action, one more
+                                            rooted on every right-click
+    services/quantum_chemistry_service.py   three, on a QProcess
+
+**THE `QProcess` CASE LOOKS HARMLESS AND IS NOT.** The captured object is a
+long-lived service, so "it lives anyway" is the obvious reading -- but the
+service OWNS the process and the process holds the lambda holds the service,
+which is a cycle, and the callable lives in PySide's own map that the cyclic
+collector cannot see through. Every job run rooted the whole service graph.
+
+`test_no_signal_is_connected_to_a_self_capturing_lambda` asserts it over the
+package, in the shape `test_every_single_shot_timer_is_bound_to_a_context_object`
+already uses. **265 connect() calls, 0 offenders**, and it prints that count
+even when it passes -- `checked >= N` catches the walk collapsing to zero,
+the printed count catches drift that stays above the threshold.
+
+**IT SAYS WHAT IT DOES NOT COVER, in its own docstring**, because a green
+structural guard reads as a lifetime proof: it pins ONE SHAPE and is blind
+to `self` reached through another name, a `functools.partial`, a reference
+held elsewhere, or a Qt parent. The two per-widget outcome guards stay.
+
+### AND THE MUTATION HARNESS LIED ONCE, AGAIN
+
+The arm that removes the `checked >= N` threshold sliced the file between an
+`index()` and a later `index()` -- and the second matched the OTHER guard's
+identical `assert not offenders`, so the slice DUPLICATED text instead of
+removing the threshold. It reported a confident result from an edit that
+never landed. Sixth instance in this file. **Assert the edit before running
+the arm**: `assert 'assert checked >= 200' not in mutated`.
+
+Correctly applied, it is the failure mode worth knowing: with the threshold
+gone and the walk broken the guard passes **green while checking nothing**,
+printing `checked 0 connect() calls`.
+
 ## A RED SUITE SILENTLY DISABLES EVERY GATE BEHIND IT
 
 `.github/workflows/tests.yml` runs the suite and then three gates in the
@@ -1985,16 +2091,34 @@ PR #43's Windows crash took a Qt-free victim file. **That is a reading, not a
 finding**: this file's own rule is that no A/B on this crash class is worth
 anything below about n=10 per arm, and this is one sample per commit.
 
-**THE VICTIM TEST IS NOT IDENTIFIED**, because `tail -30` starts mid-traceback
--- the `Fatal Python error:` header and the frame naming the test are above
-the window. They are in the `linux-suite-log-*` artifact, which is the thing
-to fetch before spending any time on a hypothesis.
+**THE VICTIM TEST IS IDENTIFIED NOW, AND FETCHING THE ARTIFACT IS WHAT DID
+IT.** This entry used to end "the victim test is not identified, because
+`tail -30` starts mid-traceback"; that is right about the tail and wrong
+about the artifact, which carries the WHOLE `suite.log` rather than the
+tail. The advice worked exactly as written -- fetch it before spending any
+time on a hypothesis:
 
-It does NOT gate the PR, by that job's explicit design, and the blocking
-Windows gate is green. Recorded because a job whose failure is invisible to
+    gh api repos/OWNER/REPO/actions/runs/RUN_ID/artifacts
+    gh api repos/OWNER/REPO/actions/artifacts/ARTIFACT_ID/zip > a.zip
+
+    Fatal Python error: Segmentation fault
+      src/openchem/ui/panels/jobs_panel.py, line 119 in refresh
+      tests/test_molstar_viewer_backend.py, line 48 in _wait_until
+      tests/test_molstar_viewer_backend.py, line 307 in
+          test_a_clear_racing_a_show_ends_on_whichever_came_last
+
+**AND THE CAUSE IS A NAMED MECHANISM RATHER THAN HEAP-LAYOUT ROULETTE** --
+see "A PANEL THAT LEAKS ITSELF AND THEN POLLS FOREVER" below. The reading
+recorded here, that this was "the documented order-dependent crash class
+surfacing on a second platform", was the right family and the wrong level of
+detail: the widget churn was not random, it was one panel doing table work
+twice a second inside another test's event pump.
+
+It did NOT gate the PR, by that job's explicit design, and the blocking
+Windows gate was green. Recorded because a job whose failure is invisible to
 every automated check is exactly the decorative control `tests.yml`'s own
-header warns against, and because the next person to read a green tick there
-should know what it is worth.
+header warns against -- and that hole is closed now, by an annotation the
+REST API can read.
 
 18m21 sits mid-band; the 6-21 range stands.)
 
