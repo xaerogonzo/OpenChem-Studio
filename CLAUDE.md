@@ -1819,7 +1819,123 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-21 minutes**, ending at `5882 passed, 15 skipped`
+A clean run is **6-21 minutes**, ending at `6053 passed, 15 skipped`
+(measured 2026-08-26, **18m21**, on `joback-thermophysical` -- the Hansen
+fragmenter, HOMA, Bird, and the merge of the cell/hover branch. **THIS IS THE
+MERGED TREE the entry below says is owed**, so that debt is paid.
+
+**+171 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed:
+
+    39a7114    COLLECTS 5897
+    this one   COLLECTS 6068   = 5897 + 171
+    the run                     6053 passed + 15 skipped = 6068
+
+**171 ITEMS BUT 103 NEW FUNCTIONS**, and the 68-item gap is the reason this
+section records the two deltas separately. Every added item reconciles to a
+new function or to a new REGISTRATION:
+
+     66  test_hansen_fragmenter.py        the 113 SMARTS
+     25  test_bird.py
+     24  test_hansen_table.py
+     22  test_homa.py
+     12  test_failure_messages.py         arrived with the merge
+      9  test_sources_are_current.py
+      5  test_property_panel.py           arrived with the merge
+      3  test_descriptor_providers.py
+      3  test_calculator_reachability.py
+      2  test_property_panel_long_values.py   arrived with the merge
+
+Twelve of those are PARAMETRISED CASES OF PRE-EXISTING GUARDS rather than
+anything written, and each names a real registration -- which is what a bare
+"+171" would have hidden:
+
+    3  ..._has_a_callable_compute       bird_aromaticity, hansen_solubility,
+                                        homa_aromaticity
+    5  test_every_entry_matches_the_schema
+                                        bird1985, katritzky1990,
+                                        kruszewski1972, krygowski1993,
+                                        stefanis2008
+    4  ..._data_table_declares_its_source
+                                        bird_oracle.json, bird_parameters.json,
+                                        hansen_groups.json, homa_parameters.json
+
+**AND THE GROUP-CONTRIBUTION EXTRACTION ADDED ZERO**, which is the proof it
+was behaviour-neutral: `test_joback_fragmenter.py`'s 59 tests are unmoved.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line, which
+is the pair this file insists on rather than an absence of FAILED lines. The
+two `DeprecationWarning`s are the same pre-existing six-argument
+`QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**CHROMIUM'S `Failed to make current since context is marked as lost` FIRED
+AND COST NO SKIPS THIS TIME.** This file records that message taking the
+skips 15 -> 19 once; here it appears five times and the figure is still 15.
+So it is not reliably a skip-costing event, and 15 stays the deterministic
+number rather than becoming "15 unless the GPU wobbles".
+
+**AND IT BREAKS THE OBVIOUS PROGRESS-COUNTING AWK, which read as 9
+FAILURES.** Chromium writes into the middle of pytest's progress line, so a
+pattern anchored `^[.sFEx]+` matches `Failed to make current...` and
+`[ERROR:...]` as progress characters. Measured on this log: the loose
+pattern counts **9 F/E** on a run with **zero** failures. Anchor the whole
+line -- `^[.sFEx]+ *(\[ *[0-9]+%\])?$` -- which gives 0. The SUMMARY LINE is
+the oracle; a progress-character count is a diagnostic, and this one lies in
+the alarming direction.
+
+**THE FIRST RUN OF THIS FIGURE WAS THROWN AWAY AT 42%, AND THE RULE IS WIDER
+THAN THIS FILE HAD IT.** The recorded rule is "do not edit anything the suite
+reads". Nothing was edited: the probes ran in a SEPARATE detached worktree
+with `PYTHONPATH` pointed at its own `src`, so the main tree was untouched by
+construction. That run still produced an `E` in
+`test_ketcher_editor_backend.py` -- the file this document already names as
+the canonical victim of resource and timing disturbance -- while three other
+Python processes were running against the same venv.
+
+It is recorded as DISCARDED RATHER THAN DIAGNOSED, deliberately. That file
+passes 31 of 31 in isolation and the clean rerun has 0 F/E, which is
+suggestive and is not proof: this file's own rule is that the crash class
+moves between batches and that no A/B here is worth anything below about
+n=10 per arm. **The point is that a contaminated run cannot tell the two
+apart**, so it buys nothing however it comes out. Do not run ANY concurrent
+work against a suite run you intend to cite -- not merely edits.
+
+**AND THE FULL SUITE CAUGHT WHAT THE TARGETED FILES DID NOT, again.** HOMA
+and Bird were verified against `test_homa.py`, `test_bird.py`, the 13
+source-scanning guards and the docs guard -- all green -- and the full run
+failed `test_calculation_input.py::test_geometry_is_opt_in_and_the_default_is_the_drawing`,
+which enumerates the GEOMETRY calculators as an EXACT SET. Both new indices
+are `calculation_input = GEOMETRY` and neither was in it. A targeted set is
+chosen from where you think you changed something, and the registry-wide
+guard was somewhere else.
+
+**THE SEVEN'S OWN VERIFICATION METHOD IS DEGENERATE FOR THESE TWO**, which is
+why adding them meant measuring rather than typing two names. That guard's
+members were each checked by flattening z and confirming the answer changed
+-- and an aromatic ring is ALREADY PLANAR, so flattening barely moves the
+bonds HOMA and Bird read. Measured on benzene:
+
+    2D drawing            REFUSED NO_CONFORMER   both -- the STRONGER claim
+    3D conformer          HOMA  0.9880   Bird  99.9998
+    z flattened           HOMA  0.9890   Bird  99.8308   <- nearly a no-op
+    bond alternation 0.1  HOMA -1.5979   Bird  17.2222   <- what they measure
+    uniform scale x1.1    HOMA -4.5164   Bird 100.0000   <- Bird ignores it
+
+A probe built on flattening alone would have reported "unchanged" and read as
+evidence they belong on DRAWING. **Bird's flatness under a uniform scale is
+the method and not a defect** -- it is a coefficient of VARIATION of bond
+orders, so six equal bonds score 100 at any length -- and that claim was
+already shipped in its limitations and already guarded from both sides by
+`test_a_ring_with_equal_bonds_scores_exactly_100` and
+`test_homa_disagrees_with_bird_on_the_same_rings`. The probe confirmed prose
+the code had already written, which is the outcome to hope for.
+
+18m21 sits mid-band; the 6-21 range stands.)
+
+Before it: `5882 passed, 15 skipped`
 (measured 2026-08-26, **16m19**, on `joback-thermophysical` -- stage 1 of the
 calculator families, the citation sweep's worktree blindness, and the
 all-surfaces provenance audit.
@@ -1945,13 +2061,15 @@ overload in `test_dock_title_bar.py` and `test_trajectory_player.py`.
 
 15m37 sits mid-band; the 6-19 range stands.)
 
-**AND THE MERGE OF THOSE TWO BRANCHES HAS NOT BEEN MEASURED YET.** Both
-figures below are real and NEITHER describes this tree: they were taken on
-`joback-thermophysical` and on `failed-descriptor-cell-and-hover`, which
-are SIBLINGS off master rather than one being an ancestor of the other.
-Adding 5882 to 5684 is meaningless -- they share master's tests. A figure
-for the merged tree is owed, and until it exists the entry directly below
-is the newer of two parallel measurements rather than the current one.
+**THE MERGE OF THOSE TWO BRANCHES IS MEASURED NOW, at the top of this
+section.** This note is kept because the WARNING is the durable part: the two
+figures below are real and NEITHER describes the merged tree. They were taken
+on `joback-thermophysical` and on `failed-descriptor-cell-and-hover`, which
+are SIBLINGS off master rather than one being an ancestor of the other, so
+**adding 5882 to 5684 is meaningless** -- they share master's tests. The
+merged tree collects 6068, which is neither sum and could only be obtained by
+collecting it. Until a figure for a merge exists, the newest entry is the
+newer of two parallel measurements rather than the current one.
 
 Before it, on the OTHER branch of this merge:
 A clean run is **6-19 minutes**, ending at `5684 passed, 15 skipped`
