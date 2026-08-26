@@ -361,10 +361,13 @@ def compute_orbital_electronegativity(
 ) -> PerAtomDataset:
     """The "electronic" category's Orbital Electronegativity calculator.
 
+    Gasteiger-Marsili PEOE [source:gasteiger1980], via RDKit.
+
     Only the SIGMA component is offered. Marvin additionally exposes a pi
     component, which needs a separate pi-charge iteration this does not
     implement -- claiming a pi value by relabelling the sigma one would be
-    worse than not offering it.
+    worse than not offering it. The route to it is PEPE
+    [source:gasteiger1985], built on [source:marsili1980]; neither ships.
     """
     _places = decimals(parameters)
     parameters = parameters or {}

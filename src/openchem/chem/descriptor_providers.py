@@ -43,6 +43,7 @@ from openchem.chem.electronic_properties import (
     compute_polarizability,
 )
 from openchem.chem.hlb import compute_griffin_hlb
+from openchem.chem.joback import compute_joback
 from openchem.chem.huckel import compute_huckel_analysis, compute_pi_electron_density
 from openchem.chem.lewis import compute_lewis_sites
 from openchem.chem.lewis_adduct import ROLE_ACID, ROLE_BASE, compute_lewis_adduct
@@ -139,6 +140,8 @@ _DESCRIPTOR_SPECS: list[tuple[str, str, str, str]] = [
     ("exact_mass", "Exact Mass", "g/mol", "physicochemical"),
     ("formula", "Molecular Formula", "", "identity"),
     ("mol_logp", "LogP", "", "lipophilicity"),
+    # Ertl's topological PSA [source:ertl2000] -- fragment-based, so it
+    # needs no conformer, which is why this is a DRAWING descriptor.
     ("tpsa", "TPSA", "Å²", "physicochemical"),
     ("num_rotatable_bonds", "Rotatable Bonds", "", "topology"),
     ("num_hbd", "H-Bond Donors", "", "topology"),
@@ -154,6 +157,8 @@ _DESCRIPTOR_SPECS: list[tuple[str, str, str, str]] = [
     # no fitted parameters, and the one Abraham solvation descriptor this
     # project can compute exactly. See `chem/solubility.py`.
     ("mcgowan_volume", "McGowan Volume", "cm³/mol ÷ 100", "physicochemical"),
+    # QED [source:bickerton2012] -- a desirability AGGREGATE over eight
+    # properties, not a probability that a molecule is a drug.
     ("qed", "QED (Drug-likeness)", "", "medicinal_chemistry"),
     ("sa_score", "Synthetic Accessibility", "", "medicinal_chemistry"),
     ("lipinski_pass", "Lipinski Ro5 (≤1 violation)", "", "medicinal_chemistry"),
@@ -215,7 +220,15 @@ _sascorer_module: ModuleType | None = None
 
 
 def _load_sascorer() -> ModuleType:
-    """Dynamically imports RDKit's own bundled synthetic-accessibility
+    """Ertl & Schuffenhauer's SA score [source:ertl2009], via RDKit.
+
+    **NOT THE PAPER'S IMPLEMENTATION, AND sascorer.py SAYS SO ITSELF**: its
+    header records a different macrocyclic penalty and an added symmetry
+    term, and puts agreement with Ertl's original at r2 = 0.97 rather than
+    1.0. So the paper is the definition and this is the implementation --
+    do not gate the shipped number on the paper's printed values.
+
+    Dynamically imports RDKit's own bundled synthetic-accessibility
     scorer (`Contrib/SA_Score/sascorer.py`) via `RDConfig.RDContribDir` --
     confirmed live this resolves correctly for the installed RDKit wheel.
     Deliberately NOT vendored/copied into this repo: `Contrib/` isn't a
@@ -240,8 +253,14 @@ _pains_catalog: FilterCatalog | None = None
 
 
 def _load_pains_catalog() -> FilterCatalog:
-    """Cached at module level -- building the catalog (480 entries,
-    confirmed live) isn't free and its contents never change at runtime."""
+    """Baell & Holloway's PAINS filters [source:baell2010], via RDKit.
+
+    Cached at module level -- building the catalog (480 entries, confirmed
+    live) isn't free and its contents never change at runtime.
+
+    A HIT IS A STATEMENT ABOUT ASSAY INTERFERENCE, not about toxicity or
+    activity: these are substructures that turn up as frequent hitters
+    across unrelated assays."""
     global _pains_catalog
     if _pains_catalog is None:
         params = FilterCatalogParams()
@@ -254,7 +273,7 @@ _brenk_catalog: FilterCatalog | None = None
 
 
 def _load_brenk_catalog() -> FilterCatalog:
-    """Brenk et al. 2008's catalog of reactive/unstable/toxicophore-
+    """Brenk et al. 2008's [source:brenk2008] catalog of reactive/unstable/toxicophore-
     adjacent functional groups (105 entries, confirmed live -- correctly
     flags acetaldehyde as "aldehyde", acetyl chloride as "acid_halide"
     +"aldehyde", leaves benzene/ethanol clean) -- a real, RDKit-bundled
@@ -790,6 +809,8 @@ class RDKitDescriptorProvider(DescriptorProvider):
         Declaring all three makes the two that worked deliberate rather
         than lucky.
         """
+        # Wildman-Crippen atom typing [source:wildman1999] -- 68 atomic
+        # logP contributions and a separate MR set, via RDKit.
         contribs = rdMolDescriptors._CalcCrippenContribs(mol)
         logp_contrib = {idx: logp for idx, (logp, _mr) in enumerate(contribs)}
         mr_contrib = {idx: mr for idx, (_logp, mr) in enumerate(contribs)}
@@ -2361,6 +2382,45 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         prediction_basis="empirical",
         tags=["surface", "surfactant", "hlb", "formulation"],
         parameters=[decimal_places_parameter()],
+    ),
+    CalculatorDefinition(
+        calculator_id="joback_properties",
+        display_name="Thermophysical Properties (Joback)",
+        category="thermophysical",
+        description=(
+            "Eleven pure-component properties from the structure alone, by Joback and "
+            "Reid's group contributions: normal boiling and freezing points, the three "
+            "critical constants, standard enthalpy and Gibbs energy of formation, "
+            "ideal-gas heat capacity, enthalpies of vaporization and fusion, and liquid "
+            "viscosity. Additive over a COMPLETE decomposition, so a structure carrying "
+            "an atom in no Joback group is refused with the atom named rather than given "
+            "a partial sum -- the table has no ring tertiary amine and stops at divalent "
+            "sulfur. Critical temperature takes a boiling point: supply a measured one "
+            "where you have it, because the paper warns that estimating it costs several "
+            "times the error."
+        ),
+        execution=RegistryExecution(compute=compute_joback),
+        prediction_basis="empirical",
+        tags=["thermophysical", "critical", "boiling", "joback", "group contribution"],
+        parameters=[
+            decimal_places_parameter(),
+            CalculatorParameter(
+                name="temperature_k",
+                label="Temperature (K)",
+                kind="float",
+                default=298.15,
+                minimum=1.0,
+                maximum=1500.0,
+            ),
+            CalculatorParameter(
+                name="experimental_boiling_point_k",
+                label="Measured boiling point (K), optional",
+                kind="float",
+                default=0.0,
+                minimum=0.0,
+                maximum=1500.0,
+            ),
+        ],
     ),
     # ---- Polarizability and orbital electronegativity ----------------
     CalculatorDefinition(

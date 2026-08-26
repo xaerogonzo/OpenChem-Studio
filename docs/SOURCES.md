@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 8dd23a6e3b3ee27d29b8371eb56f088aa1e6a24e65d18b7e1727a2f705c97676 -->
+<!-- SOURCE SHA256: 8e041c301474b18e25260d3825db26f25be9d06efd638335c33d877e19bd9497 -->
 
 # Sources
 
@@ -93,10 +93,13 @@ next run of `tools/build_lewis_parameters.py`.
 | [`autodock_vina`](#autodock_vina) | software | shipped | citation |
 | [`avdeef2007`](#avdeef2007) | literature | shipped | citation + claim |
 | [`avdeef2020`](#avdeef2020) | literature | shipped | citation + claim |
+| [`baell2010`](#baell2010) | literature | shipped | citation |
+| [`bickerton2012`](#bickerton2012) | literature | shipped | citation |
 | [`bolovinos1984`](#bolovinos1984) | literature | shipped | citation + claim |
 | [`bradley2014`](#bradley2014) | dataset | shipped | citation + claim |
 | [`bradley2015`](#bradley2015) | literature | shipped | citation + claim |
 | [`bravetti2023`](#bravetti2023) | literature | shipped | citation |
+| [`brenk2008`](#brenk2008) | literature | shipped | citation |
 | [`cao2004`](#cao2004) | literature | shipped | citation + claim |
 | [`cod`](#cod) | dataset | shipped | citation |
 | [`crc_handbook`](#crc_handbook) | reference_table | shipped | citation + claim |
@@ -107,16 +110,21 @@ next run of `tools/build_lewis_parameters.py`.
 | [`drago1965`](#drago1965) | literature | shipped | citation + claim |
 | [`drago1990`](#drago1990) | literature | shipped | citation |
 | [`drago1993`](#drago1993) | literature | shipped | citation |
+| [`ertl2000`](#ertl2000) | literature | shipped | citation |
+| [`ertl2009`](#ertl2009) | literature | shipped | citation |
+| [`gasteiger1980`](#gasteiger1980) | literature | shipped | citation |
+| [`gasteiger1985`](#gasteiger1985) | literature | **not shipped** | citation |
 | [`glasser1995`](#glasser1995) | literature | shipped | citation |
 | [`guo2006`](#guo2006) | literature | reference only | citation + claim |
 | [`gutmann1976`](#gutmann1976) | literature | shipped | citation + claim |
 | [`gutmann_frontiers2022`](#gutmann_frontiers2022) | literature | **not shipped** | citation |
-| [`hlb`](#hlb) | reference_table | **not shipped** | unverified |
+| [`hlb`](#hlb) | reference_table | reference only | citation |
 | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
 | [`ich_m9`](#ich_m9) | standard | shipped | citation + claim |
 | [`iupac2013`](#iupac2013) | standard | shipped | citation |
 | [`iupac_namer`](#iupac_namer) | software | shipped | citation |
 | [`jenkins1999`](#jenkins1999) | literature | shipped | citation + claim |
+| [`joback1987`](#joback1987) | literature | shipped | citation + claim |
 | [`kaya2022`](#kaya2022) | literature | shipped | citation + claim |
 | [`kendall2008`](#kendall2008) | literature | shipped | citation |
 | [`ketcher`](#ketcher) | software | shipped | citation |
@@ -126,11 +134,12 @@ next run of `tools/build_lewis_parameters.py`.
 | [`llinas2019`](#llinas2019) | dataset | reference only | citation |
 | [`llinas2020`](#llinas2020) | dataset | shipped | citation + claim |
 | [`lorentzon1995`](#lorentzon1995) | literature | reference only | citation + claim |
+| [`marsili1980`](#marsili1980) | literature | **not shipped** | citation |
 | [`mayer1975`](#mayer1975) | literature | reference only | citation |
 | [`mayo1990`](#mayo1990) | literature | shipped | citation + claim |
 | [`miller1979`](#miller1979) | literature | shipped | citation + claim |
 | [`miller1990`](#miller1990) | literature | shipped | citation + claim |
-| [`miller_polarizability`](#miller_polarizability) | reference_table | **not shipped** | unverified |
+| [`miller_polarizability`](#miller_polarizability) | reference_table | reference only | citation |
 | [`molstar`](#molstar) | software | shipped | citation |
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
 | [`nmrshiftdb2`](#nmrshiftdb2) | dataset | shipped | citation |
@@ -154,8 +163,9 @@ next run of `tools/build_lewis_parameters.py`.
 | [`tdc_admet`](#tdc_admet) | dataset | reference only | citation |
 | [`threedmol`](#threedmol) | software | shipped | citation |
 | [`trott_olson2010`](#trott_olson2010) | literature | shipped | citation + claim |
-| [`tsei`](#tsei) | reference_table | **not shipped** | unverified |
+| [`tsei`](#tsei) | reference_table | reference only | citation |
 | [`vogel_drago1996`](#vogel_drago1996) | literature | shipped | citation + claim |
+| [`wildman1999`](#wildman1999) | literature | shipped | citation |
 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
 
 ## Primary literature
@@ -1113,6 +1123,299 @@ authority. Being correct by luck is not a method. See
 `[source:autodock_vina]` is the software; this is the paper that carries
 the claim.
 
+### gasteiger1980
+
+<a id="gasteiger1980"></a>
+
+> J. Gasteiger & M. Marsili, 'Iterative Partial Equalization of Orbital Electronegativity -- A Rapid Access to Atomic Charges', Tetrahedron 1980, 36, 3219-3228.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/0040-4020(80)80168-2](https://doi.org/10.1016/0040-4020(80)80168-2) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `gasteiger1980.pdf` (not checked) |
+| Used by | `src/openchem/chem/electronic_properties.py`, `src/openchem/chem/dipole.py`, `src/openchem/chem/descriptor_providers.py` |
+
+PEOE, reached through RDKit's rdPartialCharges.ComputeGasteigerCharges. It
+backs `gasteiger_charge_at_ph`, the dipole calculator's charge model and
+`orbital_electronegativity`.
+
+THE SIGMA COMPONENT ONLY. Marvin additionally exposes a pi component, which
+needs the separate pi-charge iteration of [source:marsili1980] and
+[source:gasteiger1985]; relabelling the sigma value as pi would be worse than
+not offering it. That is the one remaining item on ROADMAP's deferral list.
+
+REGISTERED IN A BACKFILL, AND THE HOLE IT CLOSES IS THE INTERESTING PART.
+This method has backed shipped calculators for the life of the project and
+had NO registry entry, because the coverage sweep greps a fixed alternation
+of surnames and Gasteiger was never in it -- that check finds only authors
+somebody already thought of. Wildman, Ertl, Baell and Brenk were missing for
+the same reason; all five landed together.
+
+### marsili1980
+
+<a id="marsili1980"></a>
+
+> M. Marsili & J. Gasteiger, 'pi-Charge Distribution from Molecular Topology and pi-Orbital Electronegativity', Croatica Chemica Acta 1980, 53, 601-614.
+
+| | |
+| --- | --- |
+| Identifier | Croat. Chem. Acta 53 (4) 601-614 (1980), CCA-1246 |
+| Status | **not shipped** |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `cca1246.pdf` (not checked) |
+
+**Why it is not shipped.** The pi half of PEOE. Held for the sigma/pi charge separation work; nothing
+ships from it yet, so it is recorded as read rather than as backing anything.
+
+PRE-DOI AND MARKED "Conference Paper" ON ITS OWN FIRST PAGE, which is worth
+recording because a conference paper and a journal article are not the same
+kind of claim. The PDF confirms itself as CROATICA CHEMICA ACTA CCACAA 53
+(4) 601-614 (1980) CCA-1246.
+
+### gasteiger1985
+
+<a id="gasteiger1985"></a>
+
+> J. Gasteiger & H. Saller, 'Calculation of the Charge Distribution in Conjugated Systems by a Quantification of the Resonance Concept', Angew. Chem. Int. Ed. Engl. 1985, 24, 687-689.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/anie.198506871](https://doi.org/10.1002/anie.198506871) |
+| Status | **not shipped** |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `gasteiger1985.pdf` (not checked) |
+
+**Why it is not shipped.** PEPE -- partial equalization of pi-electronegativity, the route to the pi
+component `orbital_electronegativity` deliberately does not claim. Held for
+that work; nothing ships from it yet.
+
+THE PDF OPENS ON A DIFFERENT ARTICLE -- page 1 carries the tail of an
+oligonucleotide paper's reference list, and the Gasteiger-Saller article
+begins partway down it. Same trap as the Drago & Wayland 1965 scan; confirmed
+present by full-text search rather than by reading page 1.
+
+### wildman1999
+
+<a id="wildman1999"></a>
+
+> S. A. Wildman & G. M. Crippen, 'Prediction of Physicochemical Parameters by Atomic Contributions', J. Chem. Inf. Comput. Sci. 1999, 39, 868-873.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ci990307l](https://doi.org/10.1021/ci990307l) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `wildman1999.pdf` (not checked) |
+| Used by | `src/openchem/chem/descriptor_providers.py`, `src/openchem/chem/alignment.py`, `src/openchem/chem/mpo_scores.py`, `src/openchem/chem/ph_curves.py` |
+
+The atom typing behind RDKit's Crippen.MolLogP, Crippen.MolMR and
+rdMolDescriptors._CalcCrippenContribs -- so it backs `crippen_logp_contrib`,
+`crippen_mr_contrib`, the `mol_logp` descriptor, the logD curve's LogP term,
+CNS MPO and the alignment overlay's colouring.
+
+68 atomic contributions to log P fitted on 9920 molecules (r2 = 0.918), and a
+separate 3412-molecule set for MR (r2 = 0.997).
+
+### ertl2000
+
+<a id="ertl2000"></a>
+
+> P. Ertl, B. Rohde & P. Selzer, 'Fast Calculation of Molecular Polar Surface Area as a Sum of Fragment-Based Contributions and Its Application to the Prediction of Drug Transport Properties', J. Med. Chem. 2000, 43, 3714-3717.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jm000942e](https://doi.org/10.1021/jm000942e) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `ertl2000.pdf` (not checked) |
+| Used by | `src/openchem/chem/descriptor_providers.py`, `src/openchem/chem/mpo_scores.py`, `src/openchem/chem/bbb_stereo.py` |
+
+TPSA, reached through RDKit's rdMolDescriptors.CalcTPSA. It backs
+`polar_surface_area`, CNS MPO's polarity term and the BBB descriptors.
+
+TOPOLOGICAL, NOT GEOMETRIC, AND THAT IS THE WHOLE POINT OF THE PAPER: 43
+polar fragment contributions fitted to single-conformer 3D PSA over 34810
+molecules, giving practically identical results 2-3 orders of magnitude
+faster. So it needs no conformer, which is why the calculator is a DRAWING
+one.
+
+### baell2010
+
+<a id="baell2010"></a>
+
+> J. B. Baell & G. A. Holloway, 'New Substructure Filters for Removal of Pan Assay Interference Compounds (PAINS) from Screening Libraries and for Their Exclusion in Bioassays', J. Med. Chem. 2010, 53, 2719-2740.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jm901137j](https://doi.org/10.1021/jm901137j) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `baell2010.pdf` (not checked) |
+| Used by | `src/openchem/chem/descriptor_providers.py` |
+
+The PAINS catalogue, reached through RDKit's
+FilterCatalogParams.FilterCatalogs.PAINS. One of the four `AlertResult`
+producers this project classes as a genuine warning rather than an
+information carrier.
+
+A PAINS HIT IS NOT A VERDICT ON A COMPOUND. The paper's filters identify
+substructures that appear as frequent hitters across unrelated assays; that
+is a statement about assay interference, not about toxicity or activity.
+
+### brenk2008
+
+<a id="brenk2008"></a>
+
+> R. Brenk, A. Schipani, D. James, A. Krasowski, I. H. Gilbert, J. Frearson & P. G. Wyatt, 'Lessons Learnt from Assembling Screening Libraries for Drug Discovery for Neglected Diseases', ChemMedChem 2008, 3, 435-444.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/cmdc.200700139](https://doi.org/10.1002/cmdc.200700139) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `brenk2008.pdf` (not checked) |
+| Used by | `src/openchem/chem/descriptor_providers.py` |
+
+The BRENK catalogue, reached through RDKit's
+FilterCatalogParams.FilterCatalogs.BRENK. Distinct from PAINS: these are
+substructures excluded when assembling screening libraries for neglected
+diseases, on toxicity, reactivity and metabolic grounds rather than on assay
+interference.
+
+Volume and pages read from the PDF's own running footer,
+ChemMedChem 2008, 3, 435 - 444, since page 1 carries only the DOI.
+
+### bickerton2012
+
+<a id="bickerton2012"></a>
+
+> G. R. Bickerton, G. V. Paolini, J. Besnard, S. Muresan & A. L. Hopkins, 'Quantifying the chemical beauty of drugs', Nature Chemistry 2012, 4, 90-98.
+
+| | |
+| --- | --- |
+| Identifier | [10.1038/nchem.1243](https://doi.org/10.1038/nchem.1243) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `bickerton2012.pdf` (not checked) |
+| Used by | `src/openchem/chem/descriptor_providers.py` |
+
+QED, reached through RDKit's QED.qed. It backs the `qed` descriptor.
+
+A DESIRABILITY AGGREGATE, NOT A PROBABILITY. QED combines eight
+asymmetric-double-sigmoidal desirability functions over molecular
+properties; a value near 1 says a molecule sits where oral drugs
+concentrate, not that it is one, and not that a low scorer cannot be a drug.
+
+RDKit's implementation carries no stated deviation from the paper, unlike
+[source:ertl2009] -- which is why this one may be validated against the
+paper's printed values and that one may not.
+
+### ertl2009
+
+<a id="ertl2009"></a>
+
+> P. Ertl & A. Schuffenhauer, 'Estimation of synthetic accessibility score of drug-like molecules based on molecular complexity and fragment contributions', Journal of Cheminformatics 2009, 1, 8.
+
+| | |
+| --- | --- |
+| Identifier | [10.1186/1758-2946-1-8](https://doi.org/10.1186/1758-2946-1-8) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-25 |
+| Local copy | `ertl2009.pdf` (not checked) |
+| Used by | `src/openchem/chem/descriptor_providers.py` |
+
+The SA score, reached through RDKit's bundled Contrib/SA_Score/sascorer.py.
+It backs the `sa_score` descriptor. 1 is easy to make, 10 is very hard, and
+it scores EASE OF SYNTHESIS rather than whether a route is known to exist.
+
+**THE SHIPPED IMPLEMENTATION IS NOT THE PAPER'S, AND SAYS SO ITSELF.**
+sascorer.py's own header records "several small modifications to the
+original paper ... particularly slightly different formula for macrocyclic
+penalty and taking into account also molecule symmetry (fingerprint
+density)", and puts the agreement with Ertl's original PipelinePilot
+implementation at **r2 = 0.97** over 10k diverse molecules -- not 1.0.
+
+So the paper is the scientific DEFINITION and RDKit is the IMPLEMENTATION
+UNDER TEST, and validating the shipped number against the paper's printed
+values would be an acceptance test that fails against correct code. This is
+the same split [source:vogel_drago1996] records with `_parameter_scale`: a
+table on one normalisation must not be cited to a paper on another.
+
+`verification` stays at `citation` for exactly that reason. It cannot become
+`citation_and_claim` against this paper, because the number this project
+ships is not this paper's number.
+
+### joback1987
+
+<a id="joback1987"></a>
+
+> K. G. Joback & R. C. Reid, 'Estimation of Pure-Component Properties from Group-Contributions', Chemical Engineering Communications 1987, 57, 233-243.
+
+| | |
+| --- | --- |
+| Identifier | [10.1080/00986448708960487](https://doi.org/10.1080/00986448708960487) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-25 |
+| Local copy | `joback1987.pdf` (not checked) |
+| Used by | `src/openchem/chem/data/joback_groups.json`, `tests/test_joback_table.py` |
+
+Table III's 41 group contributions, for eleven properties: Tb, Tf, Tc, Pc,
+Vc, dHf298, dGf298, ideal-gas Cp(T), dHvap, dHfus and liquid viscosity.
+Table II carries the estimation equations.
+
+**TRANSCRIBED FROM A 300 dpi RENDER, NOT THE TEXT LAYER**, and the reason is
+measured rather than precautionary. The OCR substitutes PLAUSIBLE characters,
+so a junk-character metric scores those pages at 0.1% and calls them clean:
+on p235 five of 119 values are corrupted ('0.011]' for 0.0111, '0.0]68' for
+0.0168, '0.00]9' for 0.0019, and '0.0076' with a MIDDLE DOT for its decimal
+point), and on p236 every heat-capacity exponent is wrong the same way --
+'1.95E + I' for 1.95E+1, 'l.53E - 4' for 1.53E-4.
+
+**TWO INDEPENDENT ROUTES AGREE ON 563 OF 564 VALUES.** Every transcribed
+number was searched for in the whitespace-stripped text layer; the single
+value not found is '>CH-' Cp coefficient a = -23.0, and the text layer holds
+'-2.30E+I' in that position -- the diagnosed corruption, confirmed rather
+than assumed. Same shape as the TSEI radii, where a transcription and a
+back-calculation sharing no step agreed seven times for seven.
+
+**citation_and_claim BECAUSE THE PAPER'S OWN WORKED EXAMPLE REPRODUCES.**
+Tables IV and V estimate all eleven properties for p-dichlorobenzene and
+print every intermediate summation; `tests/test_joback_table.py` reproduces
+them.
+
+**AND THAT ACCEPTANCE TEST FOUND AN INCONSISTENCY IN THE PAPER.** Table III
+prints the -Cl heat-capacity 'c' coefficient as 1.87E-4 while Table IV's
+worked example uses 1.874e-4 -- verified from the text layer ('1.874' occurs
+on p239 and not on p237) and settled by arithmetic, since only the
+four-digit value reproduces the printed sum(c) = 8.42e-5. This table ships
+Table III's rounded value, because Table III is the reference table and the
+fourth digit is known for exactly one group out of 41. The consequence is
+about 0.1-0.3% on Cp for chlorinated compounds, asserted rather than
+tolerated.
+
+One printed artifact recorded rather than silently corrected: p238's nitrogen
+block prints '>H- (nonring)' where '>N- (nonring)' belongs, recoverable from
+the same table's other three pages.
+
+Table VI (p240) carries the paper's own regression errors, which become the
+declared uncertainty per property: Tb 12.9 K over 438 compounds, Tf 22.6 K,
+Tc 4.8 K, Pc 2.1 bar, Vc 7.5 cm3/mol, dHf 8.4 kJ/mol, dGf 8.4 kJ/mol,
+dHvap 1.27 kJ/mol, dHfus 2.0 kJ/mol. The paper says outright that Tb and
+especially Tf "are not accurate and should be considered as only very
+approximate".
+
 ### glasser1995
 
 <a id="glasser1995"></a>
@@ -2032,51 +2335,100 @@ for the one case it exists for -- it lived in `solvent_shift` while
 
 <a id="miller_polarizability"></a>
 
-> Miller's atomic hybrid polarizability parameters.
+> The deferral of Miller polarizability -- OVERTURNED. See [source:miller1990].
 
 | | |
 | --- | --- |
-| Identifier | no usable published parameter set -- see reason |
-| Status | **not shipped** |
-| Verification | unverified |
+| Identifier | a superseded deferral record, not a source |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-08-25 |
 | Used by | `docs/VALIDATION.md` |
 
-**Why it is not shipped.** THE PARAMETERS ARE UNPUBLISHED. A reconstruction missed benzene by +27% and
-CCl4 by -50%, so there was nothing to validate against and nothing shipped.
+**Why it is reference only.** KEPT AS THE RECORD OF A ROTTED REASON, NOT AS A LIVE DEFERRAL. This entry
+read "THE PARAMETERS ARE UNPUBLISHED", which was a claim about ChemAxon's
+documentation rather than about the literature: [source:miller1990]'s Table I
+prints all twenty rows. Miller polarizability SHIPPED as the `polarizability`
+calculator.
+
+Both recorded failures have causes now. Benzene at +27% was the `CBR` row,
+whose symbol reads as "carbon in a benzene ring" and means the opposite --
+[source:miller1979] says benzene's pi system "is directed only along two
+bonds", so benzene is `CTR`. CCl4 at -50% was using the wrong form:
+alpha = (4/N)(sum tau)^2 squares a sum. With both right, benzene lands at
++0.6% and CCl4 at +0.2%.
+
+A DEFERRAL'S REASONS ROT INDEPENDENTLY OF ITS VERDICT, and this is one of the
+three entries that proved it in the same sweep -- see [source:hlb] and
+[source:tsei]. Re-read the REASON, not the verdict, and ask what would have
+to be true today.
 
 ### hlb
 
 <a id="hlb"></a>
 
-> The Hydrophilic-Lipophilic Balance (HLB) surfactant scale.
+> The deferral of HLB -- OVERTURNED. See [source:schott1989].
 
 | | |
 | --- | --- |
-| Identifier | no usable published formula -- see reason |
-| Status | **not shipped** |
-| Verification | unverified |
+| Identifier | a superseded deferral record, not a source |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-08-25 |
 | Used by | `docs/VALIDATION.md` |
 
-**Why it is not shipped.** No formulas published, no worked example, and the reference implementation's
-default is a proprietary consensus method. Nothing to check a result
-against.
+**Why it is reference only.** KEPT AS THE RECORD OF A ROTTED REASON, NOT AS A LIVE DEFERRAL. This entry
+read "No formulas published, no worked example, and the reference
+implementation's default is a proprietary consensus method. Nothing to check
+a result against." Three of those four clauses fell to one paper:
+[source:schott1989] prints Griffin's Eq. [1], its closed form Eq. [2] with
+worked constants, and Davies' group numbers. Griffin HLB SHIPPED as the
+`griffin_hlb` calculator.
+
+THE FOURTH CLAUSE STANDS and is not chased -- ChemAxon's default is
+proprietary, so agreeing with Marvin is unreachable. That is why the
+calculator ships under the specific name and never as a bare "HLB": the same
+paper supplies the reason the name is ambiguous, saying the Davies scale
+"differs substantially from the Griffin scale in the entire range of
+practical applications".
+
+ONE NAME, TWO QUANTITIES. Registered alongside [source:miller_polarizability]
+and [source:tsei] as the three deferrals whose reasons expired without anyone
+re-reading them.
 
 ### tsei
 
 <a id="tsei"></a>
 
-> The TSEI (Topological Steric Effect Index).
+> The deferral of a bare "steric index" -- PARTLY OVERTURNED. See [source:cao2004].
 
 | | |
 | --- | --- |
-| Identifier | several incompatible published definitions -- see reason |
-| Status | **not shipped** |
-| Verification | unverified |
+| Identifier | a superseded deferral record, not a source |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-08-25 |
 | Used by | `docs/VALIDATION.md` |
 
-**Why it is not shipped.** Several incompatible definitions in the literature and no reference value to
-gate against. Omitted rather than guessed. The Szeged index, from the same
-batch, DID ship -- because it has one definition and a checkable value.
+**Why it is reference only.** KEPT AS THE RECORD OF A ROTTED REASON, NOT AS A LIVE DEFERRAL. This entry
+gave three grounds: several incompatible published definitions, no identity
+to check against, and no reference value to gate on. [source:cao2004]
+answers the last two, so the Cao-Liu TSEI SHIPPED as the `tsei_projection`
+calculator.
+
+THE FIRST GROUND STILL STANDS, and it is why the calculator ships as
+*Cao-Liu TSEI* and never as a bare "steric index" -- that name also covers
+Taft's Es, Hancock's Esc and Charton's nu, which are different quantities.
+A famous name is not a unique mathematical contract.
+
+"No reference value to gate against" was TRUE WHEN WRITTEN and false by
+2004. The Szeged index, from the same batch, did ship at the time -- because
+it could be validated against a theorem.
+
+The radii the shipped projection needs came later still, from
+[source:langes15] Table 4.7, with every one cross-checked by inverting a TSEI
+value [source:cao2004] prints. Two routes sharing no step, agreeing seven
+times for seven.
 
 ### sci_downloads_note
 

@@ -1819,7 +1819,42 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `5665 passed, 15 skipped`
+A clean run is **6-19 minutes**, ending at `5771 passed, 15 skipped`
+(measured 2026-08-25, **15m37**, on `joback-thermophysical` -- the Joback
+group-contribution table, its SMARTS fragmenter, and the sources backfill
+that found nine shipped methods with no registry entry.
+
+**+106 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed (`import openchem; print(openchem.__file__)` reported
+`/tmp/jbase/src`, not the main checkout):
+
+    master        d7358ac   COLLECTS 5680
+    the branch              COLLECTS 5786   = 5680 + 106
+    the run                          5771 passed + 15 skipped = 5786
+
+**AND 92 OF THE 106 ARE MINE; THE OTHER 14 ARE PARAMETRISED GUARDS DOING
+THEIR JOB**, which is the whole reason to diff by FILE rather than subtract
+a total:
+
+    59  test_joback_fragmenter.py     written
+    33  test_joback_table.py          written
+    11  test_sources_are_current.py   10 new sources + 1 new data table
+     3  test_calculator_reachability.py   the new declared module
+
+A count that only said "+106" would have read as 14 tests appearing from
+nowhere. Every one reconciles to a registry entry or a declaration.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line, which
+is the pair this file insists on rather than an absence of FAILED lines. The
+background task also exited 0, which on its own proves nothing. The two
+`DeprecationWarning`s are the same pre-existing six-argument `QMouseEvent`
+overload in `test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+15m37 sits mid-band; the 6-19 range stands.)
+
+Before it: `5665 passed, 15 skipped`
 (measured 2026-08-25, **14m42**, on
 `alignment-geometry-and-batch-on-properties` -- the 3D alignment's three
 defects, and rebuilding batch on the Properties model.
@@ -7386,8 +7421,40 @@ of source work -- every author-year it prints should resolve to a registry
 key, and the alternation wants extending when a new name enters the tree:
 
 ```bash
-rg -o -N --no-filename -g '!docs/sources.toml' -g '!docs/SOURCES.md' -g '!**/vendor/**' -g '!**/resources/**' -e '(Glasser|Jenkins|Sorkun|Avdeef|Llin[aà]s|Abraham|Acree|Bradley|Delaney|Platts|Pearson|Parr|Drago|Shannon|Allred|Mayo|Hopfinger|Yalkowsky|Banerjee|Kaya|Kuhn|Neese|Vogel)[ ,]{0,2}(?:et al\.?)?[ ,]{0,3}(19|20)\d\d' . | sort -u
+rg -o -N --no-filename -g '!docs/sources.toml' -g '!docs/SOURCES.md' -g '!**/vendor/**' -g '!**/resources/**' -e '(Glasser|Jenkins|Sorkun|Avdeef|Llin[aà]s|Abraham|Acree|Bradley|Delaney|Platts|Pearson|Parr|Drago|Shannon|Allred|Mayo|Hopfinger|Yalkowsky|Banerjee|Kaya|Kuhn|Neese|Vogel|Gasteiger|Marsili|Saller|Wildman|Crippen|Ertl|Schuffenhauer|Rohde|Selzer|Baell|Holloway|Brenk|Bickerton|Bertz|Lovering|Joback|Reid|Stefanis|Panayiotou|Kamlet|Jacobs|Klap[oö]tke|Krygowski|Kruszewski|Bird|Schleyer|Yang|Mortier|Wiener|Randi[cć]|Balaban|Kier|Miller|Cao|Schott|Gutmann)[ ,]{0,2}(?:et al\.?)?[ ,]{0,3}(19|20)\d\d' . | sort -u
 ```
+
+**IT MISSED FIVE SHIPPED METHODS FOR YEARS, AND THE REASON IS THE ALTERNATION
+ITSELF.** Measured 2026-08-25: `gasteiger`, `wildman`, `baell`, `brenk`,
+`labute`, `kier`, `wiener`, `randic`, `balaban`, `lipinski`, `veber` and
+`huckel` all returned **zero hits** in `docs/sources.toml`, while
+Gasteiger-Marsili PEOE, Wildman-Crippen logP/MR, Ertl TPSA and the
+PAINS/BRENK catalogues each backed a shipped calculator. None of those
+surnames was in the list above, so the sweep could not have found them --
+this is its own documented limit, paid for.
+
+**THE `rdkit` ENTRY DOES NOT COVER THEM.** It is `kind = "software"` -- a
+licence and a version constraint -- and makes no claim about the METHODS
+RDKit implements. Under the registry's own scope (`status = "shipped"` means
+this source backs something we ship), a library-implemented method needs its
+own entry exactly as a hand-transcribed table does.
+
+**AND A LIBRARY'S IMPLEMENTATION IS NOT ALWAYS THE PAPER'S.** Two of the
+RDKit contributions register a divergence in their own headers:
+`Contrib/SA_Score/sascorer.py` records a different macrocyclic penalty, an
+added symmetry term and **r2 = 0.97** against Ertl's original rather than
+1.0; `Contrib/NP_Score/npscorer.py` is a 2015 re-fit on ~50k public natural
+products and ~1M ZINC molecules rather than the Novartis corpus behind the
+2008 paper. So a source entry for a library-implemented method says the
+DEFINITION is that paper's -- never that the number is. Validating a shipped
+SA score against [source:ertl2009]'s printed values would be an acceptance
+test that fails against correct code.
+
+**THE RULE THAT FOLLOWS**, and it belongs beside `verification`'s three
+values: a citation-level entry does not authorize an implementation merely
+because its title matches. `citation_and_claim` is granted only after the
+exact method variant, its equation and parameter conventions, and an
+acceptance fixture have been checked against that source.
 
 **PDFs HELD LOCALLY AND CITED NOWHERE ARE NOT REGISTRY ENTRIES**, because
 the registry records what this project rests on and an unused source

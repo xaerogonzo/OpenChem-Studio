@@ -140,6 +140,10 @@ _CATEGORY_ORDER = [
 #: `test_no_category_holds_a_single_calculator` asserts the exception BY
 #: NAME, so a second one cannot arrive quietly.
 _CATEGORY_LABELS = {
+    # Joback's eleven properties. Not "Physicochemical", which is already
+    # the descriptor section and would put a critical volume next to a
+    # hydrogen-bond donor count.
+    "thermophysical": "Thermophysical",
     "physicochemical": "Physicochemical",
     "identity": "Identity",
     "naming": "Naming",
@@ -2195,7 +2199,16 @@ class PropertyPanel(QWidget):
             # long report is a tall row in a section that collapses, in a
             # panel that already scrolls; that is a layout question, and
             # discarding the values is not an answer to it.
-            label.setText("\n".join(f"{f.label}: {f.display_value}" for f in report.facts))
+            # UNITS TOO. A `Fact` holds them separately and this dropped
+            # them, so "Enthalpy of formation: 26.41" left a reader to guess
+            # between kJ/mol and kcal/mol. Same defect the descriptor rows
+            # had -- captioned with a raw id and stripped of units -- one
+            # surface along, and surfaced by the first calculator to report
+            # eleven quantities in eight different units.
+            label.setText("\n".join(
+                f"{f.label}: {f.display_value}" + (f" {f.units}" if f.units else "")
+                for f in report.facts
+            ))
             label.setStyleSheet(_INFORMATION_STYLE)
             label.setToolTip(
                 f"{len(report.facts)} facts. "

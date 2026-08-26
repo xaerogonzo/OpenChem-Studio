@@ -907,9 +907,22 @@ and three were checked again recently rather than taken on trust.
   from atoms actually observed.
 - **MMTF import** — refused; the service no longer resolves and the
   vendored viewer dropped it.
-- **TSEI, HLB, Miller polarizability, σ/π charge separation** — measured
-  and not shippable honestly, each recorded where the code would have
-  gone.
+- **σ/π charge separation** — the only survivor of a group of four this
+  entry used to name. `compute_orbital_electronegativity` offers the sigma
+  component alone; Marvin additionally exposes a pi component, which needs a
+  separate pi-charge iteration. Claiming a pi value by relabelling the sigma
+  one would be worse than not offering it.
+
+  **TSEI, HLB and Miller polarizability are NO LONGER on this list, and all
+  three shipped.** They are `tsei_projection`, `griffin_hlb` and
+  `polarizability` in the live registry. Each was deferred for reasons that
+  expired without anyone re-reading them — "the parameters are unpublished"
+  was a claim about ChemAxon's documentation rather than the literature, and
+  "no reference value to gate against" was true when written and false by
+  2004. **A deferral's reasons rot independently of its verdict**, which is
+  why the corrected accounts are kept in `docs/sources.toml` under the
+  original keys rather than deleted. See docs/VALIDATION.md for the
+  measurements.
 **Removed from this list because it had SHIPPED**: ensemble alignment
 across a project. This entry read "`alignment.py` aligns onto a reference
 SMILES; aligning a whole project needs its own panel, and nothing is
