@@ -70,6 +70,12 @@ from pathlib import Path
 from typing import Any
 
 from rdkit import Chem
+
+from openchem.chem.group_contribution import (
+    build_patterns,
+    claim_groups,
+    describe_uncovered,
+)
 from rdkit.Chem import Descriptors
 
 from openchem.domain.common import TOTAL, CacheState, Provenance, decline_total
@@ -253,30 +259,14 @@ GROUP_ATOM_COUNT = {
 
 @lru_cache(maxsize=1)
 def _patterns() -> tuple[tuple[str, Chem.Mol, str], ...]:
-    """Compiled once, and validated on three counts.
+    """Compiled once, and validated by `group_contribution.build_patterns`.
 
-    A typo in `_SPEC` fails at import rather than by silently never matching;
-    an unparseable SMARTS fails where it is written; and a pattern whose atom
-    count disagrees with `GROUP_ATOM_COUNT` fails rather than quietly
-    claiming a neighbouring group's atom.
+    The validation moved there when Hansen arrived so the atom-count
+    invariant would travel with the walk rather than be left for the next
+    fragmenter's author to remember -- it caught three bugs here, two of
+    which produced wrong answers rather than refusals.
     """
-    known = groups()
-    compiled = []
-    for group_id, smarts, why in _SPEC:
-        if group_id not in known:
-            raise ValueError(f"_SPEC names {group_id!r}, which is not in the shipped table")
-        patt = Chem.MolFromSmarts(smarts)
-        if patt is None:
-            raise ValueError(f"{group_id!r} has an unparseable SMARTS: {smarts!r}")
-        expected = GROUP_ATOM_COUNT.get(group_id, 1)
-        if patt.GetNumAtoms() != expected:
-            raise ValueError(
-                f"{group_id!r} is {expected} atom(s) but its SMARTS {smarts!r} matches "
-                f"{patt.GetNumAtoms()} -- it would claim an atom belonging to another "
-                "group. Use a recursive $() for context that must not be claimed."
-            )
-        compiled.append((group_id, patt, why))
-    return tuple(compiled)
+    return build_patterns(_SPEC, set(groups()), GROUP_ATOM_COUNT, "Joback")
 
 
 @dataclass(frozen=True)
@@ -346,26 +336,13 @@ def fragment(mol: Chem.Mol | None) -> Fragmentation:
     if Chem.GetFormalCharge(working) != 0:
         return Fragmentation(refusal=JobackRefusal.CHARGED)
 
-    claimed: set[int] = set()
-    counts: dict[str, int] = {}
-    for group_id, patt, _why in _patterns():
-        for match in working.GetSubstructMatches(patt, uniquify=True):
-            if claimed.intersection(match):
-                continue
-            claimed.update(match)
-            counts[group_id] = counts.get(group_id, 0) + 1
-
-    uncovered = [a for a in working.GetAtoms() if a.GetIdx() not in claimed]
-    if uncovered:
-        first = uncovered[0]
-        detail = (
-            f"{first.GetSymbol()} at index {first.GetIdx()} "
-            f"({first.GetTotalNumHs()} H, {first.GetDegree()} connections, "
-            f"{'in a ring' if first.IsInRing() else 'not in a ring'})"
+    walk = claim_groups(working, _patterns())
+    if not walk.complete:
+        return Fragmentation(
+            refusal=JobackRefusal.UNCOVERED_ATOM,
+            detail=describe_uncovered(working, walk.uncovered),
         )
-        if len(uncovered) > 1:
-            detail += f", and {len(uncovered) - 1} more"
-        return Fragmentation(refusal=JobackRefusal.UNCOVERED_ATOM, detail=detail)
+    counts = walk.counts
 
     n_atoms = working.GetNumHeavyAtoms() + sum(
         a.GetTotalNumHs() for a in working.GetAtoms()
