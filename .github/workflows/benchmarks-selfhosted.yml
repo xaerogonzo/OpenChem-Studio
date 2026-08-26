@@ -42,6 +42,31 @@ jobs:
     # this file cannot run it even if it also registers a runner.
     if: github.repository == 'xaerogonzo/OpenChem-Studio'
 
+    # EVERY `run:` BELOW IS BASH, AND THIS JOB IS ON WINDOWS, WHERE GITHUB'S
+    # DEFAULT IS `pwsh`. Without this line the steps are handed to PowerShell,
+    # which is not a style question -- measured on the runner machine:
+    #
+    #   [ ! -d tdc_data ]     ParserError: Missing type name after '['
+    #   <<ROWS heredoc        ParserError
+    #   case / esac           ParserError
+    #
+    # A PowerShell PARSE error kills the WHOLE step before its first line
+    # runs, so those steps would fail having done nothing, and the failure
+    # would read as a broken benchmark rather than a wrong shell.
+    #
+    # AND THE ONE BASH-ISM THAT SURVIVED IS THE MORE DANGEROUS CASE. The
+    # docking step's `mkdir -p bench-out` predates this line and never
+    # failed loudly, because PowerShell resolves `-p` as a prefix of
+    # `-Path` -- so it silently means something else, and then errors the
+    # second time because the directory exists and Actions runs pwsh with
+    # `$ErrorActionPreference = 'stop'`.
+    #
+    # `tests.yml`'s Windows job never exposed any of this: every one of its
+    # steps is a single plain command that runs identically in any shell.
+    defaults:
+      run:
+        shell: bash
+
     steps:
       - uses: actions/checkout@v5
 
