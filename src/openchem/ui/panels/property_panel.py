@@ -81,6 +81,7 @@ _CATEGORY_ORDER = [
     "surface",
     "substructure",
     "stereochemistry",
+    "aromaticity",
     "medicinal_chemistry",
     # Before pKa rather than after, because the pH-solubility curve is read
     # THROUGH pKa and somebody arriving at "how soluble is this" should meet
@@ -159,6 +160,7 @@ _CATEGORY_LABELS = {
     "surface": "Surface Area",
     "substructure": "Substructure Search",
     "stereochemistry": "Stereochemistry",
+    "aromaticity": "Aromaticity",
     "medicinal_chemistry": "Medicinal Chemistry",
     "solubility": "Solubility",
     "pka": "pKa",

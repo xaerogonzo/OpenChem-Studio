@@ -56,6 +56,7 @@ from openchem.chem.electronic_properties import (
 )
 from openchem.chem.hlb import compute_griffin_hlb
 from openchem.chem.energetics import compute_detonation, compute_oxygen_balance
+from openchem.chem.aromaticity import compute_aromaticity
 from openchem.chem.hansen import compute_hansen
 from openchem.chem.joback import compute_joback
 from openchem.chem.huckel import compute_huckel_analysis, compute_pi_electron_density
@@ -2575,6 +2576,27 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         prediction_basis="empirical",
         tags=["energetic", "oxygen balance", "combustion", "stoichiometry"],
         parameters=[decimal_places_parameter(1)],
+    ),
+    CalculatorDefinition(
+        calculator_id="homa_aromaticity",
+        display_name="Aromaticity (HOMA)",
+        category="aromaticity",
+        description=(
+            "The harmonic oscillator model of aromaticity, per ring, from Krygowski's "
+            "reference bond lengths. 1 is a ring whose bonds all sit at the optimal "
+            "length and 0 is the reference Kekule structure -- there is NO lower "
+            "bound, so a bond-alternating or saturated ring goes negative. Reported "
+            "per RING rather than per molecule, because fusing rings changes each "
+            "one's local aromatic character. It reads real bond lengths, so it needs "
+            "a 3D conformer and refuses a drawing: a 2D layout gives every bond about "
+            "the same length whatever its order. A geometric index -- it says how "
+            "equalised the bonds are, not whether the ring sustains a ring current."
+        ),
+        execution=RegistryExecution(compute=compute_aromaticity),
+        calculation_input=GEOMETRY,
+        prediction_basis="empirical",
+        tags=["aromaticity", "homa", "ring", "geometry", "krygowski"],
+        parameters=[decimal_places_parameter(3)],
     ),
     CalculatorDefinition(
         calculator_id="hansen_solubility",

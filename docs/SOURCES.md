@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 3e19cc3cd8e8cd943206927af74c2dff45a877f278f722972fea1c40495eb1df -->
+<!-- SOURCE SHA256: 4c92729aaf025bd52d9d08c2594d5bfc09209cda5bb3d28d6342a111b63bf4ad -->
 
 # Sources
 
@@ -132,6 +132,8 @@ next run of `tools/build_lewis_parameters.py`.
 | [`kendall2008`](#kendall2008) | literature | shipped | citation |
 | [`ketcher`](#ketcher) | software | shipped | citation |
 | [`klapotke2017`](#klapotke2017) | literature | shipped | citation + claim |
+| [`kruszewski1972`](#kruszewski1972) | literature | shipped | citation |
+| [`krygowski1993`](#krygowski1993) | literature | shipped | citation + claim |
 | [`kwon2023`](#kwon2023) | dataset | shipped | citation + claim |
 | [`langes15`](#langes15) | reference_table | shipped | citation + claim |
 | [`llinas2008`](#llinas2008) | dataset | shipped | citation |
@@ -1779,6 +1781,92 @@ tabulates no solubility parameters, so unlike Joback the validation set comes
 from the paper itself. Table 10 additionally gives experimental values with
 the Hoy method as a baseline, which is worth using when the calculator lands:
 a number without a baseline says nothing.
+
+### krygowski1993
+
+<a id="krygowski1993"></a>
+
+> T. M. Krygowski, 'Crystallographic Studies of Inter- and Intramolecular Interactions Reflected in Aromatic Character of pi-Electron Systems', J. Chem. Inf. Comput. Sci. 1993, 33, 70-78.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ci00011a011](https://doi.org/10.1021/ci00011a011) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-26 |
+| Local copy | `krygowski1993.pdf` (not checked) |
+| Used by | `src/openchem/chem/aromaticity.py`, `src/openchem/chem/data/homa_parameters.json`, `tests/test_homa.py` |
+
+Table I (p71) and Eqs. 3, 6, 7 and 8. The shipped parameters are
+`chem/data/homa_parameters.json`.
+
+**READ FROM A 320 dpi RENDER, NOT THE TEXT LAYER.** This is a scan whose OCR
+substitutes PLAUSIBLE characters: the title's pi renders as '%', 'J. Chem.
+Inf:' for 'Inf.', and Eq. 7 comes out as "(Y = ~([R(s) -R,,I2 + [R(d)
+-RoptI2)-'" -- readable as a shape and useless as a transcription.
+
+**citation_and_claim, FROM A THREE-POINT ORACLE IN ONE SENTENCE.** p73 reads
+"values for benzene itself 0.969 for electron diffraction geometry, 0.979 for
+MW geometry, and 0.996 for X-ray geometry". Each back-solves to a real
+benzene C-C length -- 1.399, 1.397 and 1.392 A -- and a regular hexagon at
+each reproduces the printed value to better than 6e-4. The same parameters
+and the same formula have to hit all three, so a wrong R_opt, a wrong alpha
+and a wrong formula each miss differently.
+
+**THE TABLE IS INTERNALLY INCONSISTENT IN TWO PLACES**, checked against the
+paper's own Eqs. 6 and 7 rather than assumed:
+
+    CO      Eq. 6 gives R_opt = 1.2670; the table prints 1.265. The printed
+            alpha of 157.38 agrees with the PRINTED 1.265, so the two printed
+            columns agree with each other and the derivation agrees with
+            neither. Reaching 1.265 needs R_s = 1.361 against a printed 1.367.
+    CCb     Eq. 7 on the printed R_opt gives 99.51 against a printed 98.89 --
+            THE ONLY ROW WHOSE ALPHA DOES NOT RECONCILE, and the row the
+            paper's own footnote i tells you not to use.
+
+The printed values ship, because they are what the literature uses and are
+mutually consistent everywhere except the deprecated row. Both exceptions
+are named in the guards rather than tolerated by a loosened bound.
+
+**FOOTNOTE i IS WHY CCb IS UNREACHABLE**: "This parametrization had been used
+in older papers, and it is recommended now to use parameters CCa." It stays
+in the JSON for provenance and is excluded from the element-pair lookup,
+because two rows claiming CC would make the answer depend on dict ordering.
+
+HOMA NEEDS REAL BOND LENGTHS and this project already records what a 2D
+depiction's are worth: aspirin's 2D C=O reads 1.5 "units" against a real
+1.264 A. A molecule without a 3D conformer is refused.
+
+### kruszewski1972
+
+<a id="kruszewski1972"></a>
+
+> J. Kruszewski & T. M. Krygowski, 'Definition of aromaticity basing on the harmonic oscillator model', Tetrahedron Lett. 1972, 13, 3839-3842.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/S0040-4039(01)94175-9](https://doi.org/10.1016/S0040-4039(01)94175-9) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-26 |
+| Local copy | `kruszewski1972.pdf` (not checked) |
+| Used by | `src/openchem/chem/aromaticity.py` |
+
+The ORIGINAL definition of the harmonic-oscillator model that
+[source:krygowski1993] reparameterises. Cited for the method's origin; every
+number this project ships comes from the 1993 paper's Table I.
+
+**ITS TEXT LAYER IS THE WORST IN THIS PROJECT'S ARCHIVE**, which is why no
+value is taken from it: the title extracts as "DEFIBITION OF AROMATICITY
+BASING OX THE HARMOHIC OSCILLATQR MODDL" and the running header as
+"Tetrahedron Letter6 Ro. 36, pp 3839 - 3642, lY72", with the page range
+corrupted from 3842.
+
+**THE IDENTIFIER IS RETROACTIVE**, as for the other pre-DOI papers here, so
+it does not appear in the PDF. Recorded from an index rather than confirmed
+at the publisher, which is a weaker provenance than the three DOIs read off
+their own first pages elsewhere in this registry -- and is why this entry is
+`citation` rather than `citation_and_claim`.
 
 ### glasser1995
 

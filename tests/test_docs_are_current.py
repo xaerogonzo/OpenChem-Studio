@@ -973,6 +973,7 @@ _GUIDE_TABLE_HEADING = "### Categories worth knowing about"
 #: first run.
 CATEGORY_ROWS: dict[str, str] = {
     "admet": "ADMET / Regulatory",
+    "aromaticity": "Aromaticity",
     "medicinal_chemistry": "Medicinal Chemistry",
     "physicochemical": "Physicochemical",
     "thermophysical": "Thermophysical",

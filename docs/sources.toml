@@ -1865,6 +1865,94 @@ the Hoy method as a baseline, which is worth using when the calculator lands:
 a number without a baseline says nothing.
 """
 
+[[source]]
+key = "krygowski1993"
+kind = "literature"
+citation = "T. M. Krygowski, 'Crystallographic Studies of Inter- and Intramolecular Interactions Reflected in Aromatic Character of pi-Electron Systems', J. Chem. Inf. Comput. Sci. 1993, 33, 70-78."
+identifier_type = "doi"
+identifier = "10.1021/ci00011a011"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/aromaticity.py",
+    "src/openchem/chem/data/homa_parameters.json",
+    "tests/test_homa.py",
+]
+local = "krygowski1993.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-08-26
+note = """
+Table I (p71) and Eqs. 3, 6, 7 and 8. The shipped parameters are
+`chem/data/homa_parameters.json`.
+
+**READ FROM A 320 dpi RENDER, NOT THE TEXT LAYER.** This is a scan whose OCR
+substitutes PLAUSIBLE characters: the title's pi renders as '%', 'J. Chem.
+Inf:' for 'Inf.', and Eq. 7 comes out as "(Y = ~([R(s) -R,,I2 + [R(d)
+-RoptI2)-'" -- readable as a shape and useless as a transcription.
+
+**citation_and_claim, FROM A THREE-POINT ORACLE IN ONE SENTENCE.** p73 reads
+"values for benzene itself 0.969 for electron diffraction geometry, 0.979 for
+MW geometry, and 0.996 for X-ray geometry". Each back-solves to a real
+benzene C-C length -- 1.399, 1.397 and 1.392 A -- and a regular hexagon at
+each reproduces the printed value to better than 6e-4. The same parameters
+and the same formula have to hit all three, so a wrong R_opt, a wrong alpha
+and a wrong formula each miss differently.
+
+**THE TABLE IS INTERNALLY INCONSISTENT IN TWO PLACES**, checked against the
+paper's own Eqs. 6 and 7 rather than assumed:
+
+    CO      Eq. 6 gives R_opt = 1.2670; the table prints 1.265. The printed
+            alpha of 157.38 agrees with the PRINTED 1.265, so the two printed
+            columns agree with each other and the derivation agrees with
+            neither. Reaching 1.265 needs R_s = 1.361 against a printed 1.367.
+    CCb     Eq. 7 on the printed R_opt gives 99.51 against a printed 98.89 --
+            THE ONLY ROW WHOSE ALPHA DOES NOT RECONCILE, and the row the
+            paper's own footnote i tells you not to use.
+
+The printed values ship, because they are what the literature uses and are
+mutually consistent everywhere except the deprecated row. Both exceptions
+are named in the guards rather than tolerated by a loosened bound.
+
+**FOOTNOTE i IS WHY CCb IS UNREACHABLE**: "This parametrization had been used
+in older papers, and it is recommended now to use parameters CCa." It stays
+in the JSON for provenance and is excluded from the element-pair lookup,
+because two rows claiming CC would make the answer depend on dict ordering.
+
+HOMA NEEDS REAL BOND LENGTHS and this project already records what a 2D
+depiction's are worth: aspirin's 2D C=O reads 1.5 "units" against a real
+1.264 A. A molecule without a 3D conformer is refused.
+"""
+
+[[source]]
+key = "kruszewski1972"
+kind = "literature"
+citation = "J. Kruszewski & T. M. Krygowski, 'Definition of aromaticity basing on the harmonic oscillator model', Tetrahedron Lett. 1972, 13, 3839-3842."
+identifier_type = "doi"
+identifier = "10.1016/S0040-4039(01)94175-9"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/aromaticity.py",
+]
+local = "kruszewski1972.pdf"
+verification = "citation"
+verified_date = 2026-08-26
+note = """
+The ORIGINAL definition of the harmonic-oscillator model that
+[source:krygowski1993] reparameterises. Cited for the method's origin; every
+number this project ships comes from the 1993 paper's Table I.
+
+**ITS TEXT LAYER IS THE WORST IN THIS PROJECT'S ARCHIVE**, which is why no
+value is taken from it: the title extracts as "DEFIBITION OF AROMATICITY
+BASING OX THE HARMOHIC OSCILLATQR MODDL" and the running header as
+"Tetrahedron Letter6 Ro. 36, pp 3839 - 3642, lY72", with the page range
+corrupted from 3842.
+
+**THE IDENTIFIER IS RETROACTIVE**, as for the other pre-DOI papers here, so
+it does not appear in the PDF. Recorded from an index rather than confirmed
+at the publisher, which is a weaker provenance than the three DOIs read off
+their own first pages elsewhere in this registry -- and is why this entry is
+`citation` rather than `citation_and_claim`.
+"""
+
 # =============================================================================
 # Datasets
 # =============================================================================
