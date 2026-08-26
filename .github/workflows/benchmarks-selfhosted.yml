@@ -140,6 +140,19 @@ jobs:
       # THE LAST THREE, wired 2026-08-26 after a verified hand-run each,
       # per the rule the docking step above records. Every one found
       # something that a guess would have got wrong; see the commit.
+      #
+      # A PULL REQUEST CANNOT TEST ANY OF THIS. This workflow is
+      # `workflow_dispatch` only -- deliberately, for the security reason in
+      # the banner -- and dispatch runs the file from the DEFAULT BRANCH. So
+      # the first real execution of a newly wired step is AFTER it merges,
+      # which is the wrong moment to find a transcription error in a file
+      # whose whole rule is "encode exactly what worked".
+      #
+      # The cure is cheap and was applied here: extract each step's `run:`
+      # block from this YAML, strip the block indent, and execute it under
+      # bash from its declared working-directory. Not the runner, but the
+      # same script and the same shell. All three came back exit 0, left
+      # their marker in `bench-out/`, and left the tree clean.
 
       # NMR NEEDS NO ORCA -- it reads the committed shieldings. What it does
       # need is the nmrshiftdb2 index at `paths.data_root()/nmrshiftdb.sqlite`,
