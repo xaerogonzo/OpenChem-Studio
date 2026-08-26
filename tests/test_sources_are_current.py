@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 import tomllib
 from datetime import date
 from functools import lru_cache
@@ -146,20 +147,65 @@ def canonicalise_doi(raw: str) -> str:
 
 @lru_cache(maxsize=1)
 def _swept_files() -> tuple[Path, ...]:
-    """Repository text that may cite a source.
+    """Repository text that may cite a source, ASKED OF GIT.
 
     Excludes `.cif` by EXTENSION rather than excluding the fixtures
     directory: a deposition's header carries the depositor's own DOI, which
     is not our citation -- but `tests/fixtures/cif/SOURCES.md` beside them is
     ours and must be swept.
+
+    **THIS USED TO WALK THE TREE WITH `rglob`, AND A GIT WORKTREE BROKE IT.**
+    `test_docs_are_current._repo_files` already records this lesson and was
+    already fixed; this file kept the walk, and it even asks git elsewhere
+    (`test_every_used_by_path_is_tracked_in_git`), so one file was answering
+    the same question two ways.
+
+    A worktree created under `.claude/worktrees/` sits INSIDE the repository
+    folder, so the walk swept a second checkout of this project -- another
+    branch's `CLAUDE.md`, `sources.toml` and `SOURCES.md` -- and reported its
+    contents as this tree's. Measured: 7 unresolved references and 6
+    unregistered DOIs, every one of them a file from the other branch, and
+    `SKIP_FILES` could not help because those paths are not the same objects
+    as this tree's registry.
+
+    The failure mode is the one this project keeps paying for: the guard
+    answered about the MACHINE rather than about the repository. Asking git
+    removes the environment from the question, excludes worktrees, `.venv`
+    and build output by construction, and needs no skip list to be kept in
+    step with whatever a tool decides to create next.
+
+    AN INCONCLUSIVE PROBE RAISES rather than returning an empty tuple. "I
+    could not ask git" is not "there is nothing to sweep", and a silent empty
+    sweep would make every citation check pass vacuously.
+
+    ONE WORKFLOW CONSEQUENCE, and it is correct rather than a wart: an
+    UNTRACKED file is not swept, so a citation written into a brand-new
+    document is not checked until that document is `git add`-ed. The same
+    trade `_repo_files` already makes, and the same one CLAUDE.md records
+    tripping over from the other direction.
     """
+    result = subprocess.run(
+        ["git", "ls-files", "-z"], cwd=ROOT, capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"could not list repository files: {result.stderr.strip()}")
+    tracked = [p for p in result.stdout.split("\0") if p]
+    if len(tracked) < 200:
+        raise RuntimeError(
+            f"git ls-files returned only {len(tracked)} paths, which cannot be this "
+            f"repository -- refusing to sweep it for citations"
+        )
+
     out = []
-    for path in ROOT.rglob("*"):
-        if not path.is_file() or path.suffix not in SWEPT_SUFFIXES:
+    for relative in tracked:
+        path = ROOT / relative
+        if path.suffix not in SWEPT_SUFFIXES:
             continue
-        if any(part in SKIP_DIRS for part in path.relative_to(ROOT).parts):
+        if any(part in SKIP_DIRS for part in Path(relative).parts):
             continue
         if path in SKIP_FILES:
+            continue
+        if not path.is_file():
             continue
         out.append(path)
     return tuple(sorted(out))
@@ -721,3 +767,166 @@ def test_the_generated_doc_is_current():
         text=True,
     )
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_the_sweep_only_sees_this_repository():
+    """The swept set must be the repository, not the folder it sits in.
+
+    GUARDING THE FIX RATHER THAN THE SYMPTOM, because the symptom is not
+    reproducible on demand: it needs a git worktree to exist under
+    `.claude/worktrees/`, and a guard that only fails when a tool happens to
+    have created one is a guard that depends on the machine. This project has
+    recorded that failure three times -- a 10 ms race, a configured data root,
+    and a fixture whose captions were too short.
+
+    So the two properties asserted here are the ones that distinguish the two
+    enumerations, and both hold on any checkout:
+
+      1. no swept path lies outside this repository's own tracked files
+      2. nothing from an environment, build or nested-checkout directory
+
+    `_swept_files` walked the tree with `rglob` for most of this file's life,
+    and the visible consequence was that a SECOND CHECKOUT of this project --
+    another branch's `CLAUDE.md`, `sources.toml` and `SOURCES.md`, sitting
+    inside `.claude/worktrees/` -- was swept as though it were this tree.
+    Measured when it was fixed: 7 unresolved `[source:...]` references and 6
+    unregistered DOIs, every one of them another branch's file, and every one
+    of them a false positive that no amount of editing THIS tree could clear.
+
+    `SKIP_FILES` could not have helped: it holds this tree's registry paths,
+    and the other checkout's registry is a different path.
+
+    **HOW MUCH OF THIS GUARD'S TEETH DEPEND ON A WORKTREE EXISTING was
+    measured rather than assumed**, because a guard that only fails on one
+    machine is one this project has been bitten by three times. Reverting to
+    `rglob` adds **737 untracked files** here, and they do not all come from
+    the worktree:
+
+        from .claude/worktrees/        725
+        from elsewhere                  12   .pytest_cache/README.md,
+                                             .tokensave/config.json,
+                                             .mcp.json, benchmark caches
+
+    So the revert is caught on any checkout that has run the suite once --
+    `.pytest_cache/README.md` alone is enough -- and a genuinely pristine
+    clone that has never run anything is the one case where `rglob` and
+    `git ls-files` agree and the mutation is EQUIVALENT rather than uncaught.
+    Written down rather than papered over, as `initial_right_dock_width`
+    already does for its own unreachable arm.
+    """
+    swept = _swept_files()
+    assert swept, "the sweep is empty, which cannot be right"
+
+    result = subprocess.run(
+        ["git", "ls-files", "-z"], cwd=ROOT, capture_output=True, text=True
+    )
+    assert result.returncode == 0, result.stderr
+    tracked = {(ROOT / p).resolve() for p in result.stdout.split("\0") if p}
+
+    outside = sorted(str(p) for p in swept if p.resolve() not in tracked)
+    assert not outside[:20], (
+        "the sweep is reading files this repository does not track, so a "
+        "citation can be reported against something nobody here wrote: "
+        f"{outside[:20]}"
+    )
+
+    # `dist` is deliberately absent from this set, for the reason its sibling
+    # in test_docs_are_current.py records: `resources/ketcher/dist/` is a
+    # committed, shipped bundle. An environment directory is one git does not
+    # track; a build OUTPUT can be a legitimate part of a repository.
+    intruders = sorted(
+        str(p) for p in swept
+        if any(part in {".venv", "node_modules", "__pycache__", ".git", "worktrees"}
+               for part in p.relative_to(ROOT).parts)
+    )
+    assert not intruders[:20], (
+        f"the sweep is matching against non-repository files: {intruders[:20]}"
+    )
+
+
+def test_the_sweep_still_reaches_the_files_it_exists_to_check():
+    """THE NARROW HALF, and it is the load-bearing one.
+
+    Excluding more can only make an unresolved-reference count SMALLER, so a
+    sweep that quietly stopped reading anything would turn every citation
+    check green and read as a jump in coverage. That is the
+    green-suite-and-a-smaller-universe failure this project records at the
+    `QTabBar` exclusion, where the principled-sounding rule deleted 82% of
+    the universe.
+
+    Named files rather than a threshold, because a threshold would read as
+    stronger than it is.
+    """
+    swept = {p.relative_to(ROOT).as_posix() for p in _swept_files()}
+
+    for path in ("CLAUDE.md", "docs/ROADMAP.md", "docs/ARCHITECTURE.md"):
+        assert path in swept, f"{path} must be swept for citations"
+
+    # And the sweep must still reach source, which is where `[source:key]`
+    # references actually live.
+    assert any(p.startswith("src/openchem/chem/") for p in swept)
+
+
+def test_an_inconclusive_git_probe_raises_rather_than_sweeping_nothing(monkeypatch):
+    """"I could not ask git" is not "there is nothing to sweep".
+
+    ASSERTED ON THE PREDICATE, because the branch is UNREACHABLE end to end:
+    a healthy checkout never returns fewer than 200 tracked paths, so a
+    mutation deleting this floor survives every other test in the file.
+    Measured -- it did. This project's rule is that an unreachable branch is a
+    question about WHERE to assert, not automatically dead code, and the
+    branch is worth keeping: without it a git that answered with an empty
+    string would sweep zero files and turn every citation check in this file
+    green at once.
+
+    Both arms, because a floor that always raises is as wrong as one that
+    never does.
+    """
+    import subprocess as _subprocess
+
+    class _Result:
+        def __init__(self, stdout):
+            self.returncode = 0
+            self.stdout = stdout
+            self.stderr = ""
+
+    def _too_few(*args, **kwargs):
+        return _Result("\0".join(f"file{i}.md" for i in range(5)))
+
+    _swept_files.cache_clear()
+    monkeypatch.setattr(_subprocess, "run", _too_few)
+    try:
+        with pytest.raises(RuntimeError, match="cannot be this repository"):
+            _swept_files()
+    finally:
+        monkeypatch.undo()
+        _swept_files.cache_clear()
+
+    # THE CONTROL: the real probe does NOT raise, so the floor is a floor
+    # rather than a wall. Without this the test passes against a sweep that
+    # refuses unconditionally.
+    assert len(_swept_files()) > 200
+
+
+def test_a_failed_git_probe_raises_too(monkeypatch):
+    """A non-zero exit is the other way the probe can be inconclusive.
+
+    Separate from the floor above because they are different failures: git
+    ANSWERING with too little, and git not answering at all. A single test
+    covering one of them reads as covering both.
+    """
+    import subprocess as _subprocess
+
+    class _Failed:
+        returncode = 128
+        stdout = ""
+        stderr = "fatal: not a git repository"
+
+    _swept_files.cache_clear()
+    monkeypatch.setattr(_subprocess, "run", lambda *a, **k: _Failed())
+    try:
+        with pytest.raises(RuntimeError, match="could not list repository files"):
+            _swept_files()
+    finally:
+        monkeypatch.undo()
+        _swept_files.cache_clear()
