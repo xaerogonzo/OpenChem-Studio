@@ -1941,7 +1941,51 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-21 minutes**, ending at `6053 passed, 15 skipped`
+A clean run is **6-21 minutes**, ending at `6068 passed, 15 skipped`
+(measured 2026-08-26, **15m06**, on `jobs-panel-leaks-and-polls-forever` --
+the Linux segfault's cause, and the five files that shared one lambda.
+
+**+11 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed -- `import openchem; print(openchem.__file__)` reported the
+WORKTREE's `src`:
+
+    master     a123fd2   COLLECTS 6072
+    this one             COLLECTS 6083   = 6072 + 11
+    the run                       6068 passed + 15 skipped = 6083
+
+**THE BASELINE WAS DERIVED, NOT READ FROM THE ENTRY BELOW, and it was
+stale by 4.** That entry records 6068 collected at `7b4652c`, while master
+at `a123fd2` collects 6072 -- the docs-guard commit moved it. Reading the
+entry would have reported +15.
+
+**11 ITEMS BUT 8 NEW FUNCTIONS**, and the three-item gap is one
+parametrisation rather than anything written:
+
+     4  test_a_changed_job_list_does_rebuild   ONE function, over the four
+                                               fields `_rendered_state`
+                                               carries -- which is what
+                                               makes dropping any one of
+                                               them a failure
+     1  test_an_unchanged_job_list_rebuilds_nothing
+     1  test_a_freshly_built_panel_polls_without_waiting_for_a_show_event
+     1  test_a_hidden_panel_stops_polling
+     1  test_showing_it_again_resumes_polling_and_catches_up
+     1  test_the_jobs_panel_does_not_leak
+     1  test_a_jobs_panel_with_no_jobs_could_never_have_shown_the_leak
+     1  test_no_signal_is_connected_to_a_self_capturing_lambda
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception|Fatal Python error"` is 0 and there IS a
+summary line, which is the pair this file insists on rather than an absence
+of FAILED lines. The anchored progress-character count is 0 F/E as well.
+The two `DeprecationWarning`s are the same pre-existing six-argument
+`QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+15m06 sits mid-band; the 6-21 range stands.)
+
+Before it: `6053 passed, 15 skipped`
 (measured 2026-08-26, **18m21**, on `joback-thermophysical` -- the Hansen
 fragmenter, HOMA, Bird, and the merge of the cell/hover branch. **THIS IS THE
 MERGED TREE the entry below says is owed**, so that debt is paid.
