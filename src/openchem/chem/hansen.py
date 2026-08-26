@@ -680,7 +680,8 @@ def compute_hansen(
             source="hansen_solubility",
             # HEURISTIC: the group sum is deterministic given the table, but
             # the number it estimates is a regression -- the paper reports
-            # r2 = 0.925 for delta_p over 350 data points.
+            # r2 = 0.935 (delta_d, 344 points), 0.925 (delta_p, 350) and
+            # 0.960 (delta_hb, 375), read off Figs. 1-3 of the paper.
             basis=Basis.HEURISTIC,
             evidence=(f"From {value.basis.value}, with {order}.",),
             limitations=(
@@ -739,8 +740,9 @@ def compute_hansen(
         provenance=provenance,
         limitations=(
             "A GROUP-CONTRIBUTION ESTIMATE, not a measurement. The paper reports "
-            "r2 = 0.925 for delta-p over 350 data points and 375 for delta-hb; "
-            "errors of one to three MPa^0.5 are ordinary.",
+            "r2 = 0.935 for delta-d over 344 data points, 0.925 for delta-p over "
+            "350, and 0.960 for delta-hb over 375; errors of one to three "
+            "MPa^0.5 are ordinary.",
             "The model is stated for organic compounds with three or more carbon "
             "atoms, excluding the characteristic group's own atom.",
         ),

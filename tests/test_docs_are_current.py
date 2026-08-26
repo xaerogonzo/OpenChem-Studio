@@ -1282,3 +1282,121 @@ def test_the_guide_states_the_real_number_of_calculators():
         f"the guide says {match.group(1)} registered calculators and the "
         f"registry holds {len(CALCULATOR_DEFINITIONS)}"
     )
+
+
+# --------------------------------------------------------------------------
+# THE GUARD ABOVE COVERED ONE DOC, AND EVERY OTHER ONE ROTTED.
+#
+# Measured during the docsweep that added this: `docs/USER_GUIDE.md` was
+# CURRENT at 59, because the guard above holds it -- and every unguarded doc
+# stating the same count had drifted, each at its own pace:
+#
+#     README.md                          58   (twice)
+#     docs/SCIENTIFIC_LIMITATIONS.md     53
+#     benchmarks/report_lines/README.md  49
+#
+# That is not three independent mistakes. It is one guard covering one file
+# while three unguarded files aged, which is the guard above's own docstring
+# -- "a count nothing checks is a count that rots" -- applied to the docs it
+# did not check. Correcting the numbers alone would only reset the clock.
+# --------------------------------------------------------------------------
+
+#: A doc whose calculator counts are HISTORY rather than a claim about today.
+#: Declared WITH the reason and never inferred, because "this one looks old"
+#: is how a live claim gets excused by accident.
+CALCULATOR_COUNTS_ARE_HISTORY = {
+    "CHANGELOG.md": "records what each release contained, at that release",
+    "CLAUDE.md": "a troubleshooting log whose figures are dated measurements",
+    "docs/NAVIGATION_AUDIT.md": "a dated audit of one moment, kept as a record",
+    "docs/ROADMAP.md": "its batch paragraph is ONE measurement, dated in place",
+    "docs/ARCHITECTURE.md": (
+        "its counts are findings from specific investigations -- the panel "
+        "discarding 50 of 126 facts, and the drawing-vs-conformer study run "
+        "across the 49 calculators that existed then -- not claims about the "
+        "registry today"
+    ),
+}
+
+#: The docs that DO state a live count.
+DOCS_STATING_A_LIVE_CALCULATOR_COUNT = (
+    "README.md",
+    "docs/USER_GUIDE.md",
+    "docs/SCIENTIFIC_LIMITATIONS.md",
+    "benchmarks/report_lines/README.md",
+)
+
+_A_CALCULATOR_COUNT = re.compile(r"\b(\d+)\s+(?:registered\s+)?calculators\b")
+
+
+def _tracked_markdown() -> list[str]:
+    """Every markdown file the REPOSITORY contains, vendored trees excluded."""
+    return sorted(
+        path
+        for path in _repo_files()
+        if path.endswith(".md") and not path.startswith("src/openchem/vendor/")
+    )
+
+
+def test_no_doc_states_a_stale_calculator_count():
+    """WIDE: any doc not declared history must state the LIVE count.
+
+    This is the half that covers the doc nobody thought of, including one
+    that does not exist yet -- it walks what git tracks rather than a list
+    somebody maintains.
+    """
+    from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
+
+    live = len(CALCULATOR_DEFINITIONS)
+    wrong = []
+    for rel in _tracked_markdown():
+        if rel in CALCULATOR_COUNTS_ARE_HISTORY:
+            continue
+        text = (_ROOT / rel).read_text(encoding="utf-8")
+        for match in _A_CALCULATOR_COUNT.finditer(text):
+            if int(match.group(1)) != live:
+                line = text[: match.start()].count("\n") + 1
+                wrong.append(f"{rel}:{line} says {match.group(1)}")
+
+    assert not wrong, (
+        f"the registry holds {live} calculators and these say otherwise:\n  "
+        + "\n  ".join(wrong)
+        + "\n\nIf the count is HISTORY rather than a claim about today, add "
+        "the doc to CALCULATOR_COUNTS_ARE_HISTORY with the reason. Do NOT "
+        "part-update a measurement -- bumping one figure leaves the others "
+        "describing a tree that no longer exists, which reads as current and "
+        "is worse than a stale number."
+    )
+
+
+def test_the_docs_that_state_a_live_calculator_count_still_do():
+    """NARROW, and it is the load-bearing half.
+
+    "No doc states a wrong count" is satisfied by a doc that states NO count,
+    so a reword deleting the sentence makes the wide test pass while the
+    claim quietly leaves the documentation. Same shape as the QTabBar
+    exclusion this repository already records: excluding more can only make
+    the wide direction greener.
+    """
+    missing = [
+        rel
+        for rel in DOCS_STATING_A_LIVE_CALCULATOR_COUNT
+        if not _A_CALCULATOR_COUNT.search((_ROOT / rel).read_text(encoding="utf-8"))
+    ]
+    assert not missing, (
+        "these docs used to state the calculator count and no longer do: "
+        f"{missing}. If deliberate, remove them from "
+        "DOCS_STATING_A_LIVE_CALCULATOR_COUNT; if a reword, reword the "
+        "pattern too."
+    )
+
+
+def test_a_doc_whose_counts_are_history_is_excused_for_a_written_reason():
+    """An exemption set with no reasons rots into a blocklist.
+
+    That is the failure `inapplicable_calculators` already cost this project
+    -- thirteen category names, three of which matched no live category, and
+    27 calculators silently treated as applicable.
+    """
+    for rel, reason in CALCULATOR_COUNTS_ARE_HISTORY.items():
+        assert (_ROOT / rel).exists(), f"{rel} is excused and does not exist"
+        assert len(reason) > 20, f"{rel} is excused without a real reason"

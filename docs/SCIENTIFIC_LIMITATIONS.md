@@ -431,6 +431,169 @@ dependence.
 oxygens — noted because that row is also among the worst in the source's own
 table, at −6.8%.
 
+<!-- help:limits-thermophysical -->
+## Thermophysical properties (Joback)
+
+**A group-contribution estimate, not a measurement.** Joback sums increments
+over the 41 groups the 1987 paper tabulates. It has **no way to tell
+structural isomers apart when they share a group count** — the paper says so
+of cis and trans explicitly, so two geometric isomers receive one answer.
+
+**A molecule containing a group Joback does not tabulate is refused by name**,
+never given a partial sum. Every heavy atom has to be covered, and a group
+the paper prints a dash for contributes nothing to *that property* rather
+than contributing zero.
+
+**The enthalpy of formation is the IDEAL-GAS value**, which is what the paper
+predicts. It is not the solid. The gap between them is the enthalpy of
+sublimation — tens of kJ/mol on exactly the compounds where it matters — and
+that gap is why the detonation calculator below refuses rather than chaining
+onto this one.
+
+---
+
+## Hansen solubility parameters
+
+**A group-contribution estimate.** Stefanis and Panayiotou report r² = 0.935
+for δd over 344 data points, 0.925 for δp over 350, and 0.960 for δhb over
+375. **Errors of one to three MPa^0.5 are ordinary**, and δt inherits them
+from all three.
+
+**Stated for organic compounds with three or more carbon atoms**, excluding
+the characteristic group's own atom. That is the paper's own domain, not a
+conservative reading of it.
+
+**Below 3 MPa^0.5 a separate regression applies** — the paper's Eqs. 27 and
+28 rather than 25 and 26 — and the result records which produced it. Without
+those two equations n-hexane's δp comes out **negative**, which is not a
+quantity that exists.
+
+**Second-order corrections deliberately overlap the first-order groups.**
+They exist to say "these groups, in this arrangement, behave differently", so
+a compound with none is not a degraded answer — it is the method. The result
+says which order produced it either way.
+
+---
+
+## Energetic properties
+
+### Oxygen balance
+
+**Two conventions, reported as two named facts.** Ω(CO₂) and Ω(CO) are
+different quantities for the same molecule — TNT is −74.0% against −24.7% —
+so a figure quoted as a bare "oxygen balance" is ambiguous between them. The
+source subscripts them for that reason and so does this.
+
+**CHNO only.** The closed form is stated for CₐH_bN_cO_d. A sulfur or a metal
+needs different accounting, so anything else is **refused rather than given a
+confident wrong number** by silently ignoring those atoms.
+
+### Detonation (Kamlet–Jacobs)
+
+**It needs a measured solid-phase enthalpy of formation and a measured
+loading density, and refuses without either.** Neither is something this
+application can obtain, and that refusal is the honest answer rather than a
+missing feature.
+
+**The obvious bridge does not exist, and that was measured rather than
+assumed.** Joback supplies the ideal-gas ΔHf; Trouton's rule
+(ΔH_sub = 188 × T_m) appears to close the gap to the solid. Its own cited
+source states a domain three times — few or zero internal rotors, no crystal
+symmetry permitting overall rotation, no strong hydrogen bonding — and **0 of
+8 classic energetic materials fall inside it**, because the nitro groups
+*are* the internal rotors the correlation excludes. The domain predicate
+ships anyway, so the next attempt starts from the measurement.
+
+**ρ₀ is the density the charge was actually loaded to**, not a crystal
+density and not a predicted one. P goes as ρ₀², so substituting one for the
+other is not a small error.
+
+**The −6% correction where G > 0.93 is opt-in and says why.** The paper
+introduces it to match RUBY output and states it is "not necessarily
+applicable for the prediction of actual detonation parameters".
+
+---
+
+## Geometric aromaticity (HOMA and Bird)
+
+**Both read real bond lengths, so both refuse a 2D drawing.** A depiction's
+coordinates are a layout in arbitrary units: every bond in one comes out
+about the same length whatever its order, so an index computed from them
+would be a number about the drawing.
+
+**Both describe the conformer in front of them.** A different conformer, or a
+geometry from a different method, gives a different number. Bird's published
+indices come from experimental geometries and a force field's are not those.
+
+**They answer different questions, and the panel labels them so.** HOMA
+measures how far each bond sits from one optimal length; Bird converts every
+bond to a bond order and measures how **uniform** those orders are. Measured
+on a six-carbon ring with all six bonds equal:
+
+    bond length      HOMA      Bird
+    1.397 Å         0.979     100.0
+    1.467 Å        −0.608     100.0
+    1.537 Å        −4.721     100.0
+
+**So a Bird index of 100 means "equal bond orders", not "benzene-like bond
+lengths".** Six equal bonds score 100 at any length, because the index is a
+coefficient of variation; HOMA collapses across the same range. Neither is
+wrong and they are not interchangeable.
+
+**A Bird index is not comparable across ring sizes.** That is the source's
+own requirement rather than an editorial caveat — the Kekulé reference
+differs, 35 for a five-membered ring against 33.3 for a six-membered one — so
+the fact label carries the I₅ or I₆ subscript, in the paper's words, "to
+discourage inappropriate comparisons". HOMA sits in the same panel section
+and *does* share one scale across ring sizes, which is why the labelling
+matters here more than it would alone.
+
+**I₅,₆ is not computed.** It indexes a fused two-ring system; this walks
+rings individually, and reporting a per-ring number under that label would be
+a different quantity wearing the name.
+
+**Bird's own stated sensitivity is ±2 to 3 index units** from substituent
+effects. Nothing here is pinned tighter than the method.
+
+**Neither says whether a ring sustains a ring current or is energetically
+stabilised.** Those are different measures of aromaticity, and this pair is
+geometric only.
+
+---
+
+## Drug-likeness and complexity scores
+
+**None of these is a probability and none is a verdict.**
+
+**QED** is a desirability *aggregate* over eight properties. It is not a
+probability that a molecule is a drug.
+
+**Synthetic accessibility** scores ease of synthesis on a 1–10 scale. It does
+not say whether a synthetic route exists, and RDKit's implementation is the
+author's own later revision rather than the published one — r² = 0.97 against
+the original.
+
+**NP-likeness is a Bayesian comparison against a corpus**, so the corpus is
+part of what the number means, and RDKit's model is a 2015 re-fit on public
+data rather than the Novartis corpus behind the paper. The one case a reader
+must not get wrong: **caffeine scores −1.09**, i.e. synthetic-like, and is a
+natural product by any account; morphine scores +2.59.
+
+**A confidence of 0.000 means no fragment of the molecule appeared in the
+training corpus at all.** Methane scores exactly 0.00 for that reason, which
+is indistinguishable from a confident neutral result unless the confidence is
+read — which is why it ships as its own value beside the score.
+
+**BertzCT is an index, and two different molecules can share a value** —
+methane and propane both score 0. RDKit's implementation **deliberately
+departs from the 1981 paper on aromatic rings**, by its own documentation, so
+a printed value from that paper is an oracle only for non-aromatic molecules.
+
+**Fsp3 is the ratio of sp³ carbons to all carbons.** It says nothing about
+which carbons they are, and nothing about any atom that is not carbon.
+
+---
+
 <!-- help:limits-admet -->
 ## ADMET
 
@@ -1412,7 +1575,7 @@ and a molecular atom that share index 7 are not the same object.
 ### Which calculators a crystal is offered, and why it is none of them
 
 Every calculator declares the structure kinds it applies to, and the
-default is molecule-only. Today **none of the 53 registered calculators
+default is molecule-only. Today **none of the 59 registered calculators
 declares a crystal**, so the crystal report says so outright rather than
 implying some subset applies. That is not a gap being admitted — a
 molecular weight, a logP or a rotatable-bond count is a property of a

@@ -7,7 +7,7 @@
 A desktop chemistry workbench that draws, visualises, computes, docks and
 names molecules in one offline application.
 
-It combines a 2D structure editor, two 3D viewers, 58 calculators, molecular
+It combines a 2D structure editor, two 3D viewers, 59 calculators, molecular
 docking, quantum chemistry, IR and NMR prediction, batch screening over a
 whole project, regulatory intelligence, and an offline IUPAC naming engine —
 no account, no network, no per-seat licence. What sets it apart is
@@ -52,7 +52,7 @@ binding-site boxes validated by redocking their own crystallographic ligands.
 Per-pose interaction analysis, chain exclusion, and a box that refuses to run
 when it contains no receptor.
 
-**58 calculators across 18 categories** — physicochemical, topological,
+**59 calculators across 23 categories** — physicochemical, topological,
 geometric, surface, medicinal-chemistry, ADMET, quantum, stereochemical and
 regulatory. Each is labelled `empirical` or `ab_initio` where a basis exists
 to state one.

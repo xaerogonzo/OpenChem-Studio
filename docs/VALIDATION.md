@@ -460,6 +460,90 @@ rather than cross-checked against it.
 
 ---
 
+## Thermophysical properties — the paper's own tables
+
+**Joback's Tables IV and V, reproduced.** Table IV's group summation is
+checked field by field, and Table V's boiling point, freezing point, critical
+temperature, critical pressure and critical volume each come from the paper's
+own worked example — including the two cases that separate a correct
+implementation from a plausible one: T_c computed from the **experimental**
+boiling point rather than the estimated one, and P_c from the **total atom
+count** rather than the group count.
+
+**The 41 groups keep the symbols the paper printed**, and a dash in the table
+is null rather than zero. A group with no contribution to a property must
+make that property unavailable, not add nothing to it.
+
+## Hansen solubility parameters — the regression, and its low range
+
+r² = **0.935** for δd over 344 data points, **0.925** for δp over 350, and
+**0.960** for δhb over 375, read off the paper's Figs. 1–3.
+
+**Eqs. 27 and 28 are the acceptance test.** Below 3 MPa^0.5 the paper applies
+a separate regression, and without it n-hexane's δp is **−2.009** — a
+negative solubility parameter. It is a fixture precisely because the failure
+produces a plausible-looking number rather than an error.
+
+## Energetic properties — two oracles from opposite ends
+
+**Oxygen balance: Klapötke Table 4.1, nine compounds, all nine reproduce** to
+within **0.08 percentage points**, which is rounding in the book's
+one-decimal printing. They span +20% to −74% — both signs — and ammonium
+nitrate is a carbon-free edge case that a formula indexed on carbon could get
+wrong.
+
+**Detonation: Kamlet & Jacobs Table III, eight compounds.** The table prints
+ρ₀, N, M and Q *and* the P and D their Eqs. (8) and (9) give from them, so it
+validates the equations without requiring any thermochemistry. Worst
+deviation **0.08 kbar** in pressure and **0.012 mm/µs** in velocity, both
+rounding in the printed figures.
+
+**K = 15.58, where the textbook prints 15.88.** The paper states 15.58 four
+times — abstract, Eq. (8), the slope of Fig. 1, and Table III — and 15.88
+appears in it zero times. Both constants produce entirely plausible pressures,
+so no check on an output separates them: HMX comes out **384.7 kbar** against
+the printed 384.7 with the paper's value and **392.1** with the textbook's.
+Only the source can settle it, and a mutation arm is named for it because it
+is the one a future reader is most likely to "fix" from the textbook.
+
+## Geometric aromaticity — one oracle each, from two different papers
+
+**HOMA: Krygowski's own benzene values, all three of them**, from one
+sentence on p73 — with R_opt and α re-derived from the paper's Eqs. 6 and 7
+rather than transcribed:
+
+    geometry               bond length    printed HOMA
+    electron diffraction      1.399 Å        0.969
+    microwave                 1.397 Å        0.979
+    X-ray                     1.392 Å        0.996
+
+A three-point oracle from one source is worth more than three scattered ones:
+the same parameters and the same formula have to hit all three, and the
+spread across geometries is itself the point the limitation text makes.
+
+**Bird: Katritzky 1990, five compounds, both ring sizes, five bond types**,
+every one inside 0.2 of a one-decimal printed value:
+
+    pyridine     I₆   85.73   against   85.7
+    thiophene    I₅   65.48   against   65.5
+    pyrrole      I₅   69.26   against   69.3
+    furan        I₅   43.44   against   43.4
+    pyrazole     I₅   74.60   against   74.6
+
+**The oracle is deliberately not Bird's own paper.** Bird 1985 prints indices
+and **no bond lengths** — pages 4–6 contain none — so not one of its
+published values is reproducible from it. Katritzky tabulates experimental
+geometries *and* the Bird indices computed from them, for the same compounds.
+
+**So the claim is scoped: this reproduces Katritzky's experimentally-derived
+indices from Katritzky's tabulated geometries**, not Bird's printed values.
+The two papers disagree where they chose different geometries — Bird gives
+pyrrole 59 against Katritzky's 69.3 — which is why the distinction is not
+pedantry. Table 6 also carries MNDO, AM1 and MINDO/3 columns computed from
+optimised geometries, and a fixture keyed on one of those would look like a
+passing test, so the shipped oracle records every column and a guard asserts
+they are far enough apart to tell.
+
 ## Measured, and deliberately not shipped
 
 The most load-bearing results here.

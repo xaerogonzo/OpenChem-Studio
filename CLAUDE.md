@@ -7849,6 +7849,14 @@ memory. After the verification pass below: 17 `citation_and_claim`, 21
 `citation`, 16 `unverified`, and every one of the 16 genuinely has no local
 copy and no local metadata to check against.
 
+**THOSE THREE NUMBERS DESCRIBE THAT PASS AND NOT THE REGISTRY TODAY**, which
+is worth saying because they read as current. Measured on master after the
+four calculator families landed: **94 entries, 38 `citation_and_claim`, 56
+`citation`, and ZERO `unverified`.** The 16 are gone -- not by lowering the
+bar, but because every entry added since has arrived with its source read.
+Kept with the correction beside it rather than edited away, because "where
+did that number come from" is the question a reader will have.
+
 ### THE VERIFICATION PASS FOUND TWO WRONG ENTRIES, AND ONE WAS MARKED VERIFIED
 
 Read the PDFs with `pymupdf` in a THROWAWAY venv (`uv venv` in a scratch

@@ -311,7 +311,12 @@ any chosen set of descriptors, alert catalogs and calculators across every
 molecule in a project through the existing `JobManager` single-flight
 machinery, publishing a partial table as it fills.
 
-**A calculator that reports several numbers becomes several columns.** Of
+**A calculator that reports several numbers becomes several columns.**
+Measured when batch mode was built, at 50 registered calculators -- the
+registry holds 59 today, so every figure in this paragraph is a snapshot of
+that tree rather than a current count. It is left whole rather than
+part-updated, because bumping one number in a measurement makes the other
+five describe a tree that no longer exists. Of
 the 50 registered calculators none returns a scalar; 17 return an
 `AlertResult` that is really a report, whose lines (`"Randic index: 9.52"`)
 are parsed rather than counted. Measured over the 16 report calculators on

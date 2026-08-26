@@ -1,7 +1,7 @@
 # Report-line parser sweep
 
 The evidence base for changing either string parser. It exists because
-those two parsers judge free-text lines written across 49 calculators,
+those two parsers judge free-text lines written across 59 calculators,
 so "which lines does this change affect" is not answerable by reading
 the producers — and reading them is how a regression ships.
 

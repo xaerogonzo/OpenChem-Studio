@@ -738,3 +738,33 @@ def test_the_guide_states_the_real_number_of_collapsible_categories():
         f"the guide says {stated.group(1)} collapsible categories and there "
         f"are {len(_every_reachable_category())}"
     )
+
+
+def test_the_readme_states_the_real_number_of_categories_too():
+    """The same claim as the guide's, in the doc a new reader meets first.
+
+    **IT LIVES HERE FOR THE REASON THE GUARD ABOVE GIVES**: this file owns
+    "which categories exist", and a second implementation of that is the
+    drift this repository has paid for four times.
+
+    Measured during the docsweep that added it: the README said "58
+    calculators across 18 categories" against a live 59 and 23. The guide was
+    right on both because a guard held it; the README had nothing.
+    """
+    import re
+    from pathlib import Path
+
+    readme = (Path(__file__).resolve().parent.parent / "README.md").read_text(
+        encoding="utf-8"
+    )
+
+    stated = re.search(r"\*\*(\d+) calculators across (\d+) categories\*\*", readme)
+    assert stated, (
+        "README.md no longer states calculators-across-categories in the shape "
+        "this guard reads. If the sentence was reworded, reword the pattern "
+        "too -- a count nothing checks is a count that rots."
+    )
+    assert int(stated.group(2)) == len(_every_reachable_category()), (
+        f"the README says {stated.group(2)} categories and there are "
+        f"{len(_every_reachable_category())}"
+    )
