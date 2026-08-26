@@ -2000,37 +2000,81 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-21 minutes**, ending at `6082 passed, 15 skipped`
-(measured 2026-08-26, **15m34**, on `sigma-pi-benchmarks-and-issue-8` --
+A clean run is **6-21 minutes**, ending at `6087 passed, 15 skipped`
+(measured 2026-08-26, **14m05**, on `sigma-pi-benchmarks-and-issue-8` --
 the pi component, the last three self-hosted benchmarks, and the docking
 half of issue #8's fix.
 
-**+14 collected and 0 REMOVED**, diffed both directions in a detached
+**+19 collected and 0 REMOVED**, diffed both directions in a detached
 worktree with the `PYTHONPATH` override asserted before the count was
 believed -- `import openchem; print(openchem.__file__)` reported the
 WORKTREE's `src`:
 
     master     9ce6202   COLLECTS 6083
-    this one             COLLECTS 6097   = 6083 + 14
-    the run                       6082 passed + 15 skipped = 6097
+    this one             COLLECTS 6102   = 6083 + 19
+    the run                       6087 passed + 15 skipped = 6102
 
-**14 ITEMS, 13 NEW FUNCTIONS**, and the one-item gap is a registration
+**19 ITEMS, 14 NEW FUNCTIONS**, and the five-item gap is parametrisation
 rather than anything written:
 
-    11  test_electronic_properties.py       the pi component
-     2  test_docking_providers.py           the docking half of issue #8
-     1  test_sources_are_current.py         a parametrised case of the
-                                            EXISTING data-table guard, for
-                                            pi_orbital_electronegativity.json
+    12  test_electronic_properties.py   the pi component, and the tick
+                                        box that does nothing for it
+     2  test_docking_providers.py       the docking half of issue #8
+     4  test_workflow_safety.py         ONE function over the three
+                                        workflows, plus its setup guard
+     1  test_sources_are_current.py     a parametrised case of the
+                                        EXISTING data-table guard, for
+                                        pi_orbital_electronegativity.json
 
 **THE BENCHMARK WIRING ADDED ZERO, deliberately.** Its evidence is three
-hand-runs on this machine, not a test -- the whole rule for that workflow
-is that a step is encoded only after its pipeline has been run by hand,
-and a unit test asserting a YAML string would be the decorative control
-that rule exists to avoid. The one test it DID earn is about the shell
-(see below), which is a property of the file rather than of a run.
+hand-runs on this machine, not a test -- the rule for that workflow is
+that a step is encoded only after its pipeline has been run by hand, and
+a unit test asserting a YAML string would be the decorative control that
+rule exists to avoid. The four it DID earn are about the SHELL, which is
+a property of the file rather than of a run.
 
-**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+**THIS FIGURE IS THE THIRD RUN, AND THE SECOND ONE CRASHED.** Recorded
+because the class is documented here at length and a reader comparing
+numbers deserves to know a run was thrown away:
+
+    run 1   the 6097 tree    CLEAN, 6082 passed   -- and CONTAMINATED
+    run 2   the 6102 tree    CRASHED at 83%, test 5083 of 6102
+    run 3   the 6102 tree    CLEAN, 6087 passed   <- the cited figure
+
+Run 2 died with `Windows fatal exception: access violation` in
+`tests/test_screening_service.py:120 in _drain` -- **and pytest exited
+0**, with no summary line, which is exactly the trap this file already
+records. `_drain` is `waitForDone` + `processEvents()` in a 60-iteration
+loop, i.e. the canonical victim position: the same pump shape as the
+`_wait_until` that took the Linux segfault one branch ago.
+
+**THE VICTIM FILE IS UNTOUCHED BY THAT BRANCH and passes 15 of 15 in
+isolation**, and the five tests added between runs 1 and 2 are Qt-free --
+RDKit, Open Babel and text scanning -- so none of them builds a widget.
+The reading is the documented order-dependent class, where added tests
+shift collection order and move the victim.
+
+**THAT IS A READING AND NOT A FINDING.** Re-running the identical tree
+is the discriminator this file uses, and it gives 1 crash and 1 clean on
+that tree -- n=1 per arm, where the standing rule is that no A/B on this
+crash class is worth much below about n=10. It is consistent with the
+class and is not proof of it.
+
+**RUN 1 WAS DISCARDED FOR A SECOND REASON WORTH KEEPING.** A probe fell
+into an interactive Python REPL and spun for about two minutes while that
+run was between 5% and 24% -- concurrent work against a run intended for
+citation, which this file forbids. It came back clean anyway, and was
+still superseded, because it also predated five tests.
+
+**AND THE FIGURE WAS WRITTEN DOWN WRONG ONCE, WHICH IS THE POINT.** It
+was first committed as `6082 passed, 15 skipped` / 6097 collected -- a
+real measurement of run 1, taken BEFORE the shell guard's four items and
+the tick-box test landed, so it was stale by 5 at the moment it was
+written. The same drift this section records at 5, 10 and 11 items, made
+again by somebody who had just read the warning. **Re-collect AFTER the
+last test lands, and reconcile the run against it.**
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and run 3 has no crash markers --
 `grep -cE "Windows fatal exception|Fatal Python error"` is 0 and there IS
 a summary line, which is the pair this file insists on rather than an
 absence of FAILED lines. The anchored progress-character count is 0 F/E,
@@ -2038,19 +2082,7 @@ and `^FAILED` and `^ERROR` are both 0. The two `DeprecationWarning`s are
 the same pre-existing six-argument `QMouseEvent` overload in
 `test_dock_title_bar.py` and `test_trajectory_player.py`.
 
-**THIS RUN HAD CONCURRENT LOAD FOR ABOUT TWO MINUTES AND IS CITED ANYWAY,
-WHICH IS A DEPARTURE FROM THIS FILE'S OWN RULE.** A probe of mine fell
-into an interactive Python REPL and spun between roughly 5% and 24%. The
-rule says do not run ANY concurrent work against a run you intend to
-cite, and the recorded reason is that contention produces an `E` in
-`test_ketcher_editor_backend.py` -- the canonical victim. There is no `E`
-anywhere in this log. Contention can only ADD failures here, never hide
-one, so a clean result under load is a conservative measurement rather
-than a doubtful one. Recorded rather than quietly omitted; a run that had
-come back with a single unexplained `E` would have been discarded instead
-of diagnosed.
-
-15m34 sits mid-band; the 6-21 range stands.)
+14m05 sits mid-band; the 6-21 range stands.)
 
 Before it: `6068 passed, 15 skipped`
 (measured 2026-08-26, **15m06**, on `jobs-panel-leaks-and-polls-forever` --
