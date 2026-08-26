@@ -920,6 +920,66 @@ class _Driver(QObject):
             self._lewis.status_text(),
         )
 
+    def _do_jobs_report(self, step: dict[str, Any]) -> None:
+        """Dump what the Jobs panel SHOWS, plus whether it is still polling.
+
+        `{"do": "jobs_report", "tag": "running"}`
+
+        The polling state is the half no screenshot can carry, and it is the
+        half this panel's bugs live in: a panel that leaked itself kept
+        refreshing for the life of the process, and a visibility gate that
+        never restarts the timer leaves a frozen list that looks exactly
+        like an idle one. Both are `isActive()` and neither is visible.
+        """
+        window = self._window
+        panel = window._jobs_panel
+        dock = window._dock_by_panel_id("Jobs")
+        tag = step.get("tag", "")
+        table = panel._table
+        rows = [
+            " / ".join(
+                (table.item(r, c).text() if table.item(r, c) is not None else "-")
+                for c in range(3)
+            )
+            + (
+                "  [Cancel enabled]"
+                if getattr(table.cellWidget(r, 3), "isEnabled", lambda: False)()
+                else "  [Cancel disabled]"
+            )
+            for r in range(table.rowCount())
+        ]
+        logger.warning(
+            "OPENCHEM_DRIVE: jobs_report %s | dock visible=%s | panel visible=%s | "
+            "polling=%s | rows=%d",
+            tag,
+            dock is not None and dock.isVisible(),
+            panel.isVisible(),
+            panel._timer.isActive(),
+            table.rowCount(),
+        )
+        for row in rows:
+            logger.warning("OPENCHEM_DRIVE: jobs_report %s | %s", tag, row)
+
+    def _do_jobs_cancel(self, step: dict[str, Any]) -> None:
+        """Press the real Cancel button in a row of the real table.
+
+        `{"do": "jobs_cancel", "row": 0}`
+
+        THE CONTROL, not the helper behind it. `JobsPanel._on_cancel_clicked`
+        now reads which job it means off `sender()`, so calling it directly
+        would pass `sender() is None` and prove nothing about the button
+        being wired, which is exactly the thing that changed.
+        """
+        row = int(step.get("row", 0))
+        button = self._window._jobs_panel._table.cellWidget(row, 3)
+        if button is None:
+            logger.error("OPENCHEM_DRIVE: jobs_cancel -- no button in row %d", row)
+            return
+        logger.warning(
+            "OPENCHEM_DRIVE: jobs_cancel row %d (enabled=%s)", row, button.isEnabled()
+        )
+        button.click()
+
     def _do_conformers(self, step: dict[str, Any]) -> None:
         """Generate conformers through the real service.
 
