@@ -1933,6 +1933,69 @@ already shipped in its limitations and already guarded from both sides by
 `test_homa_disagrees_with_bird_on_the_same_rings`. The probe confirmed prose
 the code had already written, which is the outcome to hope for.
 
+**CI MEASURES THE SAME TREE AT 6048 passed, 19 skipped, 1 deselected**
+(run 32939866603, PR #46, 17m27), which is the same 6068: 6048 + 19 + 1. The
+four extra skips are the GPU-gated conformer gallery guards and the
+deselection is the PubChem network test, both already documented above.
+
+**All three gates RAN** -- "Naming benchmark (must stay 181/181)", the
+regulatory benchmark and the ruleset validation -- which is the step list
+rather than the conclusion, and the thing a red suite would have taken with
+it.
+
+**AND THE NON-BLOCKING LINUX JOB CRASHED, WHILE REPORTING SUCCESS AT EVERY
+LEVEL THE API EXPOSES.** This file's `continue-on-error` warning is stated
+for the two advisory STEPS; the Linux job shows it is worse than that,
+because THREE separate mechanisms each turn the failure green:
+
+    the suite step ends `|| true`      so the STEP is [success]
+    the job has continue-on-error      so the JOB is -> success
+    the workflow tolerates the job     so the RUN is completed/success
+
+Every one is deliberate and documented in `tests.yml`; together they mean
+**no field the REST API returns can tell you the Linux suite failed.** The
+real verdict goes to `$GITHUB_STEP_SUMMARY`, which `gh run view --json`
+cannot read. What IS recoverable from the job log is the step's own
+`tail -30 suite.log`: a run that finished carries a pytest summary line, and
+this one carries a C-level fatal traceback instead.
+
+    grep -oE "[0-9]+ passed[^)]*\)"        present = it reached the end
+    grep -cE "Fatal Python error|Extension modules:"   1 = it did not
+
+**AND THE `INFRASTRUCTURE FAILURE` STRING IS NOT A VERDICT.** It appears
+twice in every Linux job log including the green ones, because the
+fingerprint SCRIPT is echoed into the log by `##[group]Run {`. Grepping for
+it counts the source, not the outcome -- the same shape as this file's
+`grep FAILED` lesson, one layer out.
+
+**IT WAS INTRODUCED ON THIS BRANCH, AND n=1 PER COMMIT IS ALL THAT SAYS SO:**
+
+    39a7114   Linux 5877 passed, 19 skipped, 1 deselected, 16m42   GREEN
+    baf5804   not measured
+    c36614c   no summary line, fatal traceback                     CRASHED
+    6729e26   no summary line, fatal traceback                     CRASHED
+
+**NEITHER CANDIDATE COMMIT CONTAINS A LINE OF Qt.** `baf5804` is a JSON
+table, a build tool and 24 tests; `c36614c` is a pure-Python refactor of a
+SMARTS walk whose 59 existing tests did not move. So the likeliest reading is
+the documented order-dependent crash class surfacing on a second platform --
+"non-monotonic ... a corrupting free whose VICTIM depends on heap layout",
+where adding tests shifts collection order and moves the victim, exactly as
+PR #43's Windows crash took a Qt-free victim file. **That is a reading, not a
+finding**: this file's own rule is that no A/B on this crash class is worth
+anything below about n=10 per arm, and this is one sample per commit.
+
+**THE VICTIM TEST IS NOT IDENTIFIED**, because `tail -30` starts mid-traceback
+-- the `Fatal Python error:` header and the frame naming the test are above
+the window. They are in the `linux-suite-log-*` artifact, which is the thing
+to fetch before spending any time on a hypothesis.
+
+It does NOT gate the PR, by that job's explicit design, and the blocking
+Windows gate is green. Recorded because a job whose failure is invisible to
+every automated check is exactly the decorative control `tests.yml`'s own
+header warns against, and because the next person to read a green tick there
+should know what it is worth.
+
 18m21 sits mid-band; the 6-21 range stands.)
 
 Before it: `5882 passed, 15 skipped`
