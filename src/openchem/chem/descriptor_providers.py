@@ -56,7 +56,7 @@ from openchem.chem.electronic_properties import (
 )
 from openchem.chem.hlb import compute_griffin_hlb
 from openchem.chem.energetics import compute_detonation, compute_oxygen_balance
-from openchem.chem.aromaticity import compute_aromaticity
+from openchem.chem.aromaticity import compute_aromaticity, compute_bird_index
 from openchem.chem.hansen import compute_hansen
 from openchem.chem.joback import compute_joback
 from openchem.chem.huckel import compute_huckel_analysis, compute_pi_electron_density
@@ -2630,6 +2630,27 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         execution=RegistryExecution(compute=compute_oxygen_balance),
         prediction_basis="empirical",
         tags=["energetic", "oxygen balance", "combustion", "stoichiometry"],
+        parameters=[decimal_places_parameter(1)],
+    ),
+    CalculatorDefinition(
+        calculator_id="bird_aromaticity",
+        display_name="Aromaticity (Bird)",
+        category="aromaticity",
+        description=(
+            "Bird's aromaticity index per ring: every bond length is converted to a "
+            "Gordy bond order, and the index measures how UNIFORM those orders are "
+            "rather than how close the lengths are to one ideal. That is a different "
+            "question from HOMA on the same geometry -- a ring whose bonds are all "
+            "equal but all wrong scores 100 here. Reported as I5 or I6 because the "
+            "paper says outright that values for different ring sizes are not "
+            "comparable, the Kekule reference being 35 for a five-membered ring and "
+            "33.3 for a six-membered one. Any other ring size is refused rather than "
+            "given a reference by analogy. Needs a 3D conformer."
+        ),
+        execution=RegistryExecution(compute=compute_bird_index),
+        calculation_input=GEOMETRY,
+        prediction_basis="empirical",
+        tags=["aromaticity", "bird", "ring", "geometry", "bond order"],
         parameters=[decimal_places_parameter(1)],
     ),
     CalculatorDefinition(

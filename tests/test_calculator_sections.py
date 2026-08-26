@@ -43,12 +43,11 @@ from openchem.ui.panels.property_panel import _CATEGORY_LABELS, _CATEGORY_ORDER
 #: `test_the_declared_singleton_really_is_one` went red until this name
 #: was removed -- which is the guard working, and the reason that narrow
 #: half exists at all.
-#: `aromaticity` is the third, and is EXPECTED TO STOP BEING ONE -- Bird's
-#: index lands in it next, and `test_the_declared_singleton_really_is_one`
-#: will then fail until this name is removed. That is the guard working: an
-#: exception that outlives its reason is how a guard starts lying. The same
-#: arc `energetic` went through, which lasted exactly one commit.
-_ALLOWED_SINGLETONS = {"nmr", "thermophysical", "aromaticity"}
+#: `aromaticity` WAS the third, for exactly one commit. Bird's index landed
+#: beside HOMA and `test_the_declared_singleton_really_is_one` went red until
+#: this name was removed -- which is the guard working, and the second time
+#: that has happened here after `energetic`.
+_ALLOWED_SINGLETONS = {"nmr", "thermophysical"}
 
 
 def _real_registry():

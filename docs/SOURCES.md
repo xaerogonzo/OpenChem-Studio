@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 4c92729aaf025bd52d9d08c2594d5bfc09209cda5bb3d28d6342a111b63bf4ad -->
+<!-- SOURCE SHA256: 9b4792cbf5db088516c5f152cf5d783c9110b31f195c198c8c052254714e1659 -->
 
 # Sources
 
@@ -96,6 +96,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`baell2010`](#baell2010) | literature | shipped | citation |
 | [`bertz1981`](#bertz1981) | literature | shipped | citation |
 | [`bickerton2012`](#bickerton2012) | literature | shipped | citation |
+| [`bird1985`](#bird1985) | literature | shipped | citation |
 | [`bolovinos1984`](#bolovinos1984) | literature | shipped | citation + claim |
 | [`bradley2014`](#bradley2014) | dataset | shipped | citation + claim |
 | [`bradley2015`](#bradley2015) | literature | shipped | citation + claim |
@@ -128,6 +129,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`jenkins1999`](#jenkins1999) | literature | shipped | citation + claim |
 | [`joback1987`](#joback1987) | literature | shipped | citation + claim |
 | [`kamlet1968`](#kamlet1968) | literature | shipped | citation + claim |
+| [`katritzky1990`](#katritzky1990) | literature | shipped | citation + claim |
 | [`kaya2022`](#kaya2022) | literature | shipped | citation + claim |
 | [`kendall2008`](#kendall2008) | literature | shipped | citation |
 | [`ketcher`](#ketcher) | software | shipped | citation |
@@ -1867,6 +1869,134 @@ it does not appear in the PDF. Recorded from an index rather than confirmed
 at the publisher, which is a weaker provenance than the three DOIs read off
 their own first pages elsewhere in this registry -- and is why this entry is
 `citation` rather than `citation_and_claim`.
+
+### bird1985
+
+<a id="bird1985"></a>
+
+> C. W. Bird, 'A new aromaticity index and its application to five-membered ring heterocycles', Tetrahedron 1985, 41, 1409-1414.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/S0040-4020(01)96543-3](https://doi.org/10.1016/S0040-4020(01)96543-3) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-26 |
+| Local copy | `bird1985.pdf` (not checked) |
+| Used by | `src/openchem/chem/aromaticity.py`, `src/openchem/chem/data/bird_parameters.json`, `tests/test_bird.py` |
+
+THE METHOD DEFINITION for the `bird_aromaticity` calculator: Gordy's
+`N = a/R^2 - b` with the constants of Table 1 (p1410), the coefficient of
+variation of the ring's bond orders, and `I = 100(1 - V/V_K)` with V_K = 35
+for a five-membered ring, 33.3 for a six-membered one and 35 for a fused
+five-and-six system.
+
+**verification = citation, DELIBERATELY NOT `citation_and_claim`, AND THE
+REASON IS STRUCTURAL.** This paper prints indices -- Table 2 and Figure 1 --
+and NO BOND LENGTHS. Pages 4-6 contain none and page 6 is the reference list,
+so every printed value came from an experimental geometry in a cited
+reference and NONE of them is reproducible from this paper alone. The
+geometry-backed validation comes from [source:katritzky1990] instead.
+
+**TABLE 1 WAS READ FROM A 340 dpi RENDER, for two independent reasons.** The
+text layer corrupts a digit -- `o-s 17.05 5.5a+`, where the `a` is the digit
+8 -- and its two-column layout interleaves the rows so the bond-to-(a,b)
+pairing is destroyed:
+
+    Bond c-c C-N c-o c-s C-Se C-Te C-P a b Bond a b - - 6.80 1.71* N-N ...
+
+Either alone would have required the render.
+
+**THE SUBSCRIPT IS THIS PAPER'S REQUIREMENT, NOT A PRESENTATION CHOICE.**
+p1411: index values "are not necessarily comparable for differing ring
+systems", so "it seems desirable to attach a guiding subscript as I5, I6 or
+I5,6, to discourage inappropriate comparisons." The fact LABEL carries it,
+because HOMA sits in the same panel section and DOES share one scale across
+ring sizes -- an unlabelled Bird number beside it would invite exactly the
+comparison this paper warns against.
+
+I5,6 is NOT computed. It is an index of a fused two-ring SYSTEM, and this
+implementation walks rings individually; reporting a per-ring number under
+that label would be a different quantity wearing the name.
+
+The paper's own stated sensitivity is +-2 to 3 index units from substituent
+effects, and nothing here is pinned tighter than that.
+
+TWO FURTHER PAPERS IN THIS LINEAGE ARE HELD LOCALLY AND ARE NOT REGISTERED,
+because the registry records what this project RESTS ON and an unused source
+inflates it: Bird's own 1986 six-membered-ring follow-up, and Kotelevskii &
+Prezhdo's 2001 refinement, which RECALIBRATES the Gordy relationship and is
+therefore a different method rather than a check on this one. Their DOIs are
+deliberately not written down anywhere in the tree, so the DOI backstop does
+not demand entries for them. Named here so a later reader knows they exist
+and why they were left out.
+
+### katritzky1990
+
+<a id="katritzky1990"></a>
+
+> A. R. Katritzky, M. Szafran, N. Malhotra, S. U. Chaudry & E. Anders, 'Aromaticity as a Quantitative Concept. Part V: A Comparison of Semi-empirical Methods for the Calculation of Molecular Geometries of Heteroaromatic Compounds', Tetrahedron Computer Methodology 1990, 3, 247-269.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/0898-5529(90)90102-E](https://doi.org/10.1016/0898-5529(90)90102-E) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-26 |
+| Local copy | `katritzky1990.pdf` (not checked) |
+| Used by | `src/openchem/chem/data/bird_oracle.json`, `tests/test_bird.py` |
+
+**THE GEOMETRY-BACKED ORACLE FOR BIRD'S INDEX**, which [source:bird1985]
+cannot supply. This paper tabulates experimental bond lengths (Tables 1 and
+2) AND the Bird indices computed from them (Table 6, `Exp.` column) for the
+SAME compounds, and states its purpose in those terms: "The Bird I6 and I5
+aromaticity indices calculated from semiempirical and ab initio geometries
+are compared with those calculated from experimental bond lengths."
+
+**THE CLAIM IS SCOPED, AND THE SCOPE IS THE POINT.** What is verified is:
+this project reproduces KATRITZKY'S experimentally-derived Bird indices from
+KATRITZKY'S OWN tabulated experimental geometries. It is NOT a reproduction
+of Bird 1985's printed indices, which remains impossible.
+
+Five compounds, both ring sizes, five bond types, all to better than 0.2
+against a one-decimal printed value:
+
+    pyridine    I6  85.73  against  85.7   (Table 1 row 1, ref 10m)
+    thiophene   I5  65.48  against  65.5   (Table 2 row 1, ref 41b,m)
+    pyrrole     I5  69.26  against  69.3   (Table 2 row 5, ref 41b,m)
+    furan       I5  43.44  against  43.4   (Table 2 row 6, ref 41b,m)
+    pyrazole    I5  74.60  against  74.6   (Table 2 row 7, ref 41a,m)
+
+**THE PAIRING IS CONFIRMED BY THE REFERENCE TAG, not by row order.**
+Thiophene's geometry row is tagged `41b,m` and its Table 6 value is printed
+`65.5(41b)m` -- same reference, same method letter. Row order alone would
+have been an assumption.
+
+**AND THE TWO PAPERS DISAGREE WHERE THEY CHOSE DIFFERENT GEOMETRIES.** Bird's
+Table 2 gives pyrrole 59; this paper's Exp. column gives 69.3, for the same
+compound. Furan (43 against 43.4) and thiophene (66 against 65.5) happen to
+agree closely and pyrrole does not, which is exactly why the claim above is
+scoped to this paper rather than to Bird's.
+
+**TABLE 6 HAS FIVE COLUMNS AND ONLY ONE IS EXPERIMENTAL.** `Exp.`, MNDO, AM1,
+MINDO/3 and 3-21G sit side by side, and the optimised ones are plausible
+numbers computed from geometries this project does not have. A fixture keyed
+on AM1 would look like a passing test, so the shipped oracle records every
+column and `test_the_oracle_reads_the_EXPERIMENTAL_column_and_not_another`
+asserts they are far enough apart to tell.
+
+The index column was read from a 330 dpi RENDER because its text layer lists
+every compound NAME first and then a wall of numbers, destroying the
+name-to-value pairing. The geometries in Tables 1-2 extract cleanly, each row
+being one line -- except isoxazole, whose row comes out `1.399 i.309 i.425
+i.356 i.344` with the digit 1 read as a letter i three times, and which is
+excluded for that reason.
+
+FIVE COMPOUNDS IS DELIBERATELY SMALL. The full corpus is 42 six-membered and
+dozens of five-membered rings; transcribing it is a validation-expansion
+task, not a prerequisite. This paper also states the problem that made it
+necessary: "Only for a limited number of compounds has a precisely defined
+experimental geometry been measured."
 
 ### glasser1995
 
