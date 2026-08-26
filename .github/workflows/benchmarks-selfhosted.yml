@@ -58,21 +58,25 @@ jobs:
       # tool was missing for the rest -- an all-or-nothing job on a box with
       # five of six tools installed produces nothing and teaches nothing.
       - name: IR - generate ORCA jobs
+        id: ir_generate
         if: inputs.only == '' || inputs.only == 'ir'
         continue-on-error: true
         run: uv run --no-sync python benchmarks/ir/generate.py bench-out/ir
 
       - name: IR - score against NIST CCCBDB
+        id: ir_score
         if: inputs.only == '' || inputs.only == 'ir'
         continue-on-error: true
         run: uv run --no-sync python benchmarks/ir/score.py bench-out/ir
 
       - name: ESP - generate cubes
+        id: esp_generate
         if: inputs.only == '' || inputs.only == 'esp'
         continue-on-error: true
         run: uv run --no-sync python benchmarks/esp/generate.py bench-out/esp
 
       - name: ESP - score QM against point-charge
+        id: esp_score
         if: inputs.only == '' || inputs.only == 'esp'
         continue-on-error: true
         run: uv run --no-sync python benchmarks/esp/score.py bench-out/esp
@@ -96,6 +100,7 @@ jobs:
       # search wandering. This checks the pipeline RUNS and publishes its
       # table; a human reads the shifts.
       - name: Docking - redock the catalogue's own ligands
+        id: docking
         if: inputs.only == '' || inputs.only == 'docking'
         continue-on-error: true
         working-directory: benchmarks/docking
@@ -107,24 +112,146 @@ jobs:
           mkdir -p ../../bench-out
           uv run --no-sync python -u redock.py 2>&1 | tee ../../bench-out/docking-redock.txt
 
-      # NMR, ADMET and pKa have their own multi-script pipelines
-      # (`run_delta50.py`, `predict.py` + `score.py`, `score_pka.py`) whose
-      # orchestration has NOT been verified unattended from this workflow.
-      # They are named rather than invented: a step that always fails is
-      # worse than an absent one, because it trains people to ignore red.
+      # THE LAST THREE, wired 2026-08-26 after a verified hand-run each,
+      # per the rule the docking step above records. Every one found
+      # something that a guess would have got wrong; see the commit.
+
+      # NMR NEEDS NO ORCA -- it reads the committed shieldings. What it does
+      # need is the nmrshiftdb2 index at `paths.data_root()/nmrshiftdb.sqlite`,
+      # because the `lookup` rows come from `nmr_database.predict_spectrum`.
+      # So ROADMAP's "ORCA plus the 152 MB index" is over-broad for THIS
+      # script; the index alone is the prerequisite.
       #
-      # Adding one means running its pipeline by hand on the runner machine
-      # first, then encoding exactly what worked -- which is how the IR step
-      # above got here, and it found a real gap doing it (score.py could
-      # score but nothing could GENERATE, so the benchmark was scoreable and
-      # not runnable). Docking above joined them the same way.
-      - name: Not yet wired up
-        if: inputs.only == '' || inputs.only == 'nmr' || inputs.only == 'admet' || inputs.only == 'pka'
+      # THE OUTPUT DIRECTORY IS AN ARGUMENT AND THAT IS LOAD-BEARING. With
+      # none, the reports land in `benchmarks/nmr/reports/` -- which the
+      # artifact step below does NOT upload (it takes `bench-out/` only), so
+      # the benchmark would run and publish nothing. Those 24 files are also
+      # TRACKED, and the index they depend on grows (~4% in three days per
+      # the README), so a runner whose index differs would rewrite them.
+      - name: NMR - DELTA50 selection strategies
+        id: nmr
+        if: inputs.only == '' || inputs.only == 'nmr'
+        continue-on-error: true
         run: |
-          echo "nmr, admet and pka are not wired into this workflow yet."
-          echo "Each has a multi-script pipeline that needs one verified"
-          echo "hand-run on this machine before it is encoded here."
-          echo "See docs/SELF_HOSTED_RUNNER.md."
+          mkdir -p bench-out
+          uv run --no-sync python -u benchmarks/nmr/run_delta50.py "B3LYP def2-SVP" bench-out/nmr 2>&1 | tee bench-out/nmr-delta50.txt
+
+      # Hand-run measured 24 of 24 compounds, MAE 0.29, median 0.14.
+      # DELIBERATELY NOT GATED ON THAT MAE: the same argument the docking
+      # step makes. It checks the pipeline RUNS; a human reads the table.
+      #
+      # `score_pka.py` carried the interpreter path as a literal until this
+      # commit. It now asks `benchmarks/docking/_config.py`, which reads the
+      # SAME Settings the application does, so the benchmark characterises
+      # the install the app actually runs.
+      - name: pKa - pkasolver against literature values
+        id: pka
+        if: inputs.only == '' || inputs.only == 'pka'
+        continue-on-error: true
+        run: |
+          mkdir -p bench-out
+          uv run --no-sync python -u benchmarks/pka/score_pka.py 2>&1 | tee bench-out/pka-score.txt
+
+      # ADMET IS THREE STEPS AND THREE INTERPRETERS, which is why it is one
+      # step here rather than three: they share `tdc_data/` and a partial
+      # run leaves it half-populated.
+      #
+      #   1. a THROWAWAY env -- PyTDC pins rdkit-pypi and would drag the
+      #      sidecar's working torch/rdkit stack around with it
+      #   2. the SIDECAR's own interpreter -- the one that has admet_ai
+      #   3. this project's env, for scoring
+      #
+      # THE 403 THIS PROJECT RECORDS ELSEWHERE DID NOT REPRODUCE. CLAUDE.md
+      # notes TDC's Dataverse returning 403 and PyTDC then caching the
+      # zero-byte failure as a "local copy", so every retry reports "Found
+      # local copy..." and fails. Measured 2026-08-26: the download
+      # succeeded, 22 datasets and 46 files. If it comes back, the fix is to
+      # DELETE `benchmarks/admet/tdc_data/` before retrying -- a retry alone
+      # reads the poisoned cache and looks like a code bug.
+      #
+      # The fetch is skipped when `tdc_data/` is already populated, so a
+      # re-dispatch costs the predictions only (~4 min) rather than the
+      # environment build.
+      - name: ADMET - TDC endpoints through the real sidecar
+        id: admet
+        if: inputs.only == '' || inputs.only == 'admet'
+        continue-on-error: true
+        working-directory: benchmarks/admet
+        run: |
+          mkdir -p ../../bench-out
+          if [ ! -d tdc_data ] || [ -z "$(ls -A tdc_data 2>/dev/null)" ]; then
+            uv venv tdcenv --python 3.11
+            uv pip install --python tdcenv/Scripts/python.exe "PyTDC==0.4.1" "setuptools<81"
+            ./tdcenv/Scripts/python.exe fetch_tdc.py
+          fi
+          ADMET_PY="$(cd ../.. && uv run --no-sync python -c "import sys; sys.path.insert(0, 'benchmarks/docking'); from _config import admet_interpreter; print(admet_interpreter())" | tail -1)"
+          "$ADMET_PY" predict.py test
+          "$ADMET_PY" predict.py train
+          uv run --no-sync python -u score.py 2>&1 | tee ../../bench-out/admet-scores.txt
+
+      # EVERY STEP ABOVE IS `continue-on-error`, SO THE JOB'S TICK MEANS
+      # NOTHING ON ITS OWN. That is the same decorative-control failure
+      # tests.yml's header warns about, and until this step existed the
+      # verdict lived only in whether a human opened the run page and read
+      # eight step outcomes. Same shape as the Linux fingerprint there.
+      #
+      # FOUR STATES, because two pairs of them look identical from a tick:
+      #
+      #   ran and passed      ran and FAILED
+      #   COULD NOT RUN       skipped by `only:`
+      #
+      # GitHub distinguishes success / failure / skipped by itself. It
+      # cannot tell "the tool is missing" from "the benchmark ran and came
+      # out wrong" -- both are a non-zero exit -- so the discriminator is
+      # whether the step left its OUTPUT behind: a benchmark that reached
+      # the end wrote its file, one that died on a missing ORCA or an
+      # unconfigured sidecar did not.
+      - name: Fingerprint - what actually ran
+        if: always()
+        run: |
+          {
+            echo "## Benchmarks"
+            echo
+            echo "| benchmark | state | evidence |"
+            echo "|---|---|---|"
+            while IFS='|' read -r label outcomes marker; do
+              [ -z "$label" ] && continue
+              state="ran and passed"
+              case "$outcomes" in
+                *failure*) state="ran and FAILED" ;;
+                *skipped*) state="skipped by \`only:\`" ;;
+              esac
+              if [ -e "$marker" ]; then
+                evidence="\`$marker\`"
+              else
+                evidence="no output"
+                case "$outcomes" in
+                  *failure*) state="COULD NOT RUN" ;;
+                esac
+              fi
+              echo "| $label | $state | $evidence |"
+            done <<ROWS
+          IR|${{ steps.ir_generate.outcome }},${{ steps.ir_score.outcome }}|bench-out/ir
+          ESP|${{ steps.esp_generate.outcome }},${{ steps.esp_score.outcome }}|bench-out/esp
+          Docking|${{ steps.docking.outcome }}|bench-out/docking-redock.txt
+          NMR|${{ steps.nmr.outcome }}|bench-out/nmr-delta50.txt
+          pKa|${{ steps.pka.outcome }}|bench-out/pka-score.txt
+          ADMET|${{ steps.admet.outcome }}|bench-out/admet-scores.txt
+          ROWS
+            echo
+            echo "Every step is \`continue-on-error\`, so the job's own"
+            echo "conclusion says nothing. This table is the verdict."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # THE ANNOTATION IS THE ONLY PART A MACHINE CAN READ, for exactly
+          # the reason tests.yml records: $GITHUB_STEP_SUMMARY is invisible
+          # to `gh run view --json`, so without this a failed benchmark has
+          # no witness but a human opening the run page.
+          for pair in "IR:${{ steps.ir_score.outcome }}" \n                      "ESP:${{ steps.esp_score.outcome }}" \n                      "Docking:${{ steps.docking.outcome }}" \n                      "NMR:${{ steps.nmr.outcome }}" \n                      "pKa:${{ steps.pka.outcome }}" \n                      "ADMET:${{ steps.admet.outcome }}"; do
+            if [ "${pair#*:}" = "failure" ]; then
+              echo "::error title=${pair%%:*} benchmark did not pass::Read the run summary; the job's tick is advisory."
+            fi
+          done
 
       # Published whatever happened, because a FAILED benchmark run is a
       # result worth keeping -- it is the evidence for what broke and when.

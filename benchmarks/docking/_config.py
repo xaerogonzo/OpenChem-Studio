@@ -15,6 +15,7 @@ source.
 from __future__ import annotations
 
 from openchem.chem.admet_providers import ADMET_PYTHON_SETTING
+from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING
 
 #: The docking panel's own key, kept here rather than imported because
 #: `chem/docking_providers.py` does not define one -- the setting is bound
@@ -44,5 +45,23 @@ def admet_interpreter() -> str:
         raise SystemExit(
             "No ADMET environment is configured.\n"
             "Set one up via Tools > External Tools > ADMET (hERG/CYP), then re-run."
+        )
+    return path
+
+
+def pka_interpreter() -> str:
+    """The pkasolver sidecar's own interpreter.
+
+    `benchmarks/pka/score_pka.py` carried this path as a literal until
+    2026-08-26, which is exactly what this module's docstring was written
+    to stop -- and it drifted the way that docstring predicts: the
+    benchmark would go on characterising whatever install was hardcoded
+    here while the app used the one configured in Settings.
+    """
+    path = _setting(PKASOLVER_PYTHON_SETTING)
+    if not path:
+        raise SystemExit(
+            "No pkasolver environment is configured.\n"
+            "Set one up via Tools > External Tools > pkasolver (pKa), then re-run."
         )
     return path

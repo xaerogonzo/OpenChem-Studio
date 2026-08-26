@@ -985,22 +985,32 @@ workflow header as well, where whoever revisits it will be looking.
 
 ### What CI still cannot do, and why it is not a gap to close cheaply
 
-Six benchmarks stay hand-run, because each needs a tool that cannot be
-installed on a hosted runner:
+Six benchmarks stay off the HOSTED runners, because each needs a tool
+that cannot be installed there. They are not hand-run any more — all six
+are wired into the self-hosted workflow below — but no PR can gate on
+them:
 
 | benchmark | blocked on |
 |---|---|
 | `ir/`, `esp/` | ORCA — registration-gated, no public direct download |
-| `nmr/` | ORCA plus the 152 MB nmrshiftdb2 index |
+| `nmr/` | the 152 MB nmrshiftdb2 index, built |
 | `docking/` | AutoDock Vina plus RCSB receptor downloads |
 | `admet/` | the ~1 GB ADMET-AI sidecar environment |
 | `pka/` | the pkasolver sidecar environment |
+
+**The `nmr/` row used to read "ORCA plus the 152 MB index" and that was
+over-broad for the script the workflow runs.** `run_delta50.py` reads the
+COMMITTED shieldings and says so in its own docstring; what it needs is
+the built index, because its `lookup` rows come from
+`nmr_database.predict_spectrum`. Other scripts in that directory
+(`run_shieldings.py`) do need ORCA, which is where the confusion came
+from — the constraint is per script, not per directory.
 
 The workflow lists these by name so a green tick is not mistaken for full
 coverage, and `docs/VALIDATION.md` carries their measured results with the
 method and sample size behind each.
 
-### The self-hosted phase — scaffolded, three of six wired
+### The self-hosted phase — all six wired
 
 `benchmarks-selfhosted.yml` runs these on a machine that has the tools and
 publishes the results as artefacts, which is what closes the gap between
@@ -1015,11 +1025,45 @@ file from the default branch and cannot be fired by a fork. The reasoning,
 and the two settings that shrink the remaining exposure to near zero, are
 in [SELF_HOSTED_RUNNER.md](SELF_HOSTED_RUNNER.md).
 
-**IR, ESP and docking are wired up. NMR, ADMET and pKa are not**, and are
-named as such in the workflow rather than encoded on a guess — a step that
-always fails is worse than an absent one, because it trains people to
-ignore red. Each has a multi-script pipeline that needs one verified
-hand-run on the runner machine before it is encoded.
+**All six are wired now.** This entry read "IR, ESP and docking are wired
+up. NMR, ADMET and pKa are not" until 2026-08-26; the last three joined by
+the same route the first three did — one verified hand-run on the runner
+machine, then encoding exactly what worked. A step that always fails is
+worse than an absent one, because it trains people to ignore red.
+
+The hand-runs, and what each settled that a guess would have got wrong:
+
+| benchmark | hand-run result | what it found |
+|---|---|---|
+| NMR | 47 compounds, 13 held out; lookup MAE 13.51 ppm against ORCA's 2.51 | it needs **no ORCA**, and its reports must not go to their default directory |
+| pKa | 24 of 24 compounds, MAE 0.29, median 0.14, 22/24 within 1.0 unit | a **hardcoded interpreter path** `_config.py` exists to remove |
+| ADMET | 22 endpoints, 13,816 test and 9,179 train molecules, mean train/test gap +0.002 | the recorded TDC 403 **did not reproduce** |
+
+**NMR's default output directory would have published nothing.** With no
+second argument `run_delta50.py` writes into `benchmarks/nmr/reports/`,
+and the workflow's artifact step uploads `bench-out/` and nothing else —
+so the benchmark would have run every time and its reports would never
+have left the machine. Those 24 files are also TRACKED. On this machine
+the run reproduces them byte for byte and leaves the tree clean, so the
+contamination is latent rather than live; it becomes live on any runner
+whose nmrshiftdb2 index differs, and that index grows (~4% in three days,
+per `benchmarks/nmr/README.md`). The script takes an output directory
+now, defaulting to the old behaviour so a deliberate refresh still works.
+
+**pKa's interpreter was a literal absolute path**, which is exactly what
+`benchmarks/docking/_config.py` was written to remove — its docstring
+says a hardcoded path "lets a benchmark drift away from the install it
+claims to characterise", and this one had been missed. `_config` gained a
+`pka_interpreter()` beside `vina_executable()` and `admet_interpreter()`,
+reading the same `pka/pkasolver_python_path` setting the application does.
+
+**ADMET's recorded failure mode did not reproduce, and that is recorded
+rather than assumed.** CLAUDE.md notes TDC's Dataverse returning 403 with
+PyTDC caching the zero-byte failure as a "local copy"; measured
+2026-08-26 the download succeeded — 22 datasets, 46 files. The workflow
+comment names the failure and its cure (delete `tdc_data/` before
+retrying, because a bare retry reads the poisoned cache and reads as a
+code bug) so the next person is not starting from nothing.
 
 Docking joined by that route: `benchmarks/docking/redock.py` was run by
 hand against real Vina 1.2.7 first (exit 0, seven targets, six landing in
@@ -1048,6 +1092,27 @@ regenerating from scratch reproduced the published figures exactly — MAE
 64.7 → 27.6 cm⁻¹, fitted factor 0.9666 — which is the first confirmation
 those numbers have had from anything other than the run that produced
 them.
+
+**EVERY STEP IS `continue-on-error`, SO THE JOB'S TICK MEANT NOTHING.**
+That is the decorative-control failure this file already describes one
+section up, in the workflow written to avoid it — and the self-hosted job
+had no fingerprint at all until 2026-08-26, so the verdict lived entirely
+in whether a human opened the run page and read eight step outcomes. A
+`Fingerprint - what actually ran` step now writes a table to
+`$GITHUB_STEP_SUMMARY` and emits a `::error` annotation per failure, which
+is the only half a machine can read.
+
+**It distinguishes FOUR states, because two pairs of them are
+indistinguishable from a tick:**
+
+    ran and passed      ran and FAILED
+    COULD NOT RUN       skipped by `only:`
+
+GitHub separates success / failure / skipped by itself. It cannot tell a
+missing ORCA from a benchmark that ran and came out wrong — both are a
+non-zero exit — so the discriminator is whether the step left its OUTPUT
+in `bench-out/`. Exercised against all four states before it shipped,
+rather than reasoned about.
 
 ### What standing it up cost, recorded because it was not free
 

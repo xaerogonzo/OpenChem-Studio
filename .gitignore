@@ -77,3 +77,11 @@ _build_stamp.py
 
 # tokensave MCP binding (TokenSave Manager) — machine-local by choice
 .mcp.json
+
+# Self-hosted benchmark output. `benchmarks-selfhosted.yml` writes every
+# benchmark here and uploads the directory as the run's artifact, so it is
+# build output rather than anything to keep -- and it was never ignored,
+# which left an untracked directory in the tree after any local run of the
+# IR, ESP or docking benchmarks. Same shape as the naming gate leaving an
+# untracked predictions file, which this project already records.
+bench-out/
