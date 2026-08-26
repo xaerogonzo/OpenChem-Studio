@@ -36,6 +36,7 @@ WHAT THESE GUARDS CANNOT DO, stated here rather than left to be discovered:
 from __future__ import annotations
 
 import json
+import ast
 import re
 import subprocess
 import tomllib
@@ -930,3 +931,276 @@ def test_a_failed_git_probe_raises_too(monkeypatch):
     finally:
         monkeypatch.undo()
         _swept_files.cache_clear()
+
+
+# ---------------------------------------------------------------------------
+# THE ALL-SURFACES PROVENANCE AUDIT
+#
+# "WHAT DOES THIS APP SHIP" HAS AT LEAST SIX ANSWERS, and a survey that asked
+# one of them concluded QED and SA score were unbuilt when both had been
+# shipping for phases:
+#
+#     CALCULATOR_DEFINITIONS       56    registry calculators   <- asked
+#     _DESCRIPTOR_SPECS            31    eager scalar descriptors
+#     _FUNCTIONAL_GROUP_SPECS      24
+#     _SHAPE_DESCRIPTOR_SPECS      10
+#     alert providers                    literals in compute_alerts
+#     the always-on per-atom batch       not registry-driven, says so
+#
+# Same shape as "66 setToolTip call sites was 248 CONTROLS" and "an AST
+# estimate of 179 interactive constructions was really 372": a measurement can
+# be perfectly accurate and still answer the wrong question.
+#
+# ENUMERATING THE SIX WOULD REBUILD THE HOLE ONE LEVEL UP. A test that lists
+# surfaces still covers five the day somebody adds a seventh and forgets it,
+# and all six live in ONE module anyway, so "reachable from a surface" cannot
+# discriminate between them. The question worth asking is not WHERE a
+# computation is registered but whether it is ACCOUNTED FOR:
+#
+#     every user-facing scientific computation is named by a shipped source,
+#     or is recorded as debt
+#
+# and `user-facing scientific computation` is DERIVED FROM CODE rather than
+# curated, or it becomes the new blind spot. The signal is the RETURN TYPE: a
+# computation is user-facing exactly when it produces one of the types the
+# presentation layer renders, and that family is discovered transitively from
+# `domain/` rather than typed here. Measured: 20 types, 48 modules, 118
+# functions -- against the 5 types a hand-written list first guessed at.
+# ---------------------------------------------------------------------------
+
+_DOMAIN = ROOT / "src" / "openchem" / "domain"
+
+#: The two roots of the renderable-result family. Everything else is reached
+#: from them by subclassing, so a NEW result type joins the walk without
+#: anybody remembering to add it -- which is the whole point.
+#:
+#: `DescriptorValue` stands alone deliberately: it predates `ScientificResult`
+#: (Phase 1 against Phase 6+) and its own docstring records that the retrofit
+#: was additive rather than a reparenting.
+_RESULT_ROOTS = frozenset({"ScientificResult", "DescriptorValue"})
+
+
+@lru_cache(maxsize=1)
+def _renderable_result_types() -> frozenset[str]:
+    """The result types the presentation layer renders, derived from `domain/`.
+
+    Transitive, so `ReportResult` is included through `StructureReport` rather
+    than by being named. Deriving this is what stops the audit below being a
+    statement about a list somebody typed.
+    """
+    bases: dict[str, list[str]] = {}
+    for path in sorted(_DOMAIN.glob("*.py")):
+        for node in ast.walk(ast.parse(_read(path))):
+            if isinstance(node, ast.ClassDef):
+                bases[node.name] = [ast.unparse(b) for b in node.bases]
+
+    found = set(_RESULT_ROOTS)
+    for _ in range(len(bases) + 1):
+        grown = {name for name, parents in bases.items() if found & set(parents)}
+        if grown <= found:
+            break
+        found |= grown
+    return frozenset(found)
+
+
+@lru_cache(maxsize=1)
+def _result_producing_modules() -> frozenset[str]:
+    """Repository-relative modules with a function RETURNING a renderable result.
+
+    The return ANNOTATION is the discriminator, so this finds a producer
+    whatever surface registers it -- which is exactly what enumerating the six
+    surfaces cannot do.
+    """
+    types = _renderable_result_types()
+    out: set[str] = set()
+    for path in sorted((ROOT / "src" / "openchem").rglob("*.py")):
+        if "vendor" in path.relative_to(ROOT).parts:
+            continue
+        try:
+            tree = ast.parse(_read(path))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if node.returns is None:
+                continue
+            if any(t in ast.unparse(node.returns) for t in types):
+                out.add(path.relative_to(ROOT).as_posix())
+                break
+    return frozenset(out)
+
+
+@lru_cache(maxsize=1)
+def _modules_named_by_a_shipped_source() -> frozenset[str]:
+    used: set[str] = set()
+    for entry in _registry()["source"]:
+        if entry.get("status") == "shipped":
+            used.update(entry.get("used_by", []))
+    return frozenset(used)
+
+
+#: PRODUCERS WITH NO SHIPPED SOURCE. Allowed to SHRINK and never to grow --
+#: the same staged-migration shape `tooltip_migration_debt.json` used, and for
+#: the same reason: a guard that failed on all 35 today would make this commit
+#: red and forbid the incremental burn-down it exists to enable.
+#:
+#: **THIS SET IS DELIBERATELY UNCLASSIFIED, AND THAT IS THE HONEST STATE.** It
+#: mixes two genuinely different things:
+#:
+#:   infrastructure      produces a result type and implements no scientific
+#:                       method -- `plugins/interfaces.py` is an ABC,
+#:                       `domain/report.py` defines the types themselves,
+#:                       `report_adapter.py` is a presentation projection, and
+#:                       the three `*_report.py` builders assemble facts other
+#:                       modules computed
+#:   unsourced method    implements a published method with no registry entry
+#:                       -- `topology_analysis.py` ships Wiener, Randic and
+#:                       Szeged; `huckel.py` ships Huckel; `steric.py` ships
+#:                       Tolman cone angles
+#:
+#: Splitting them is the burn-down, and doing it quickly would be worse than
+#: not doing it: a module wrongly marked infrastructure is a method that can
+#: never be asked for a source again. So the set records WHAT IS UNACCOUNTED
+#: FOR, and says so, rather than pretending to a classification nobody has
+#: made yet.
+_PROVENANCE_DEBT = frozenset({
+    "src/openchem/chem/analytics.py",
+    "src/openchem/chem/atom_report.py",
+    "src/openchem/chem/boltzmann.py",
+    "src/openchem/chem/bond_report.py",
+    "src/openchem/chem/comparison.py",
+    "src/openchem/chem/crystal_report.py",
+    "src/openchem/chem/elemental_analysis.py",
+    "src/openchem/chem/geometry_analysis.py",
+    "src/openchem/chem/huckel.py",
+    "src/openchem/chem/interaction_analysis.py",
+    "src/openchem/chem/lewis.py",
+    "src/openchem/chem/markush.py",
+    "src/openchem/chem/mode_animation.py",
+    "src/openchem/chem/molecular_dynamics.py",
+    "src/openchem/chem/molecule_report.py",
+    "src/openchem/chem/naming_providers.py",
+    "src/openchem/chem/nmr_reference.py",
+    "src/openchem/chem/orca_engine.py",
+    "src/openchem/chem/oxidation_states.py",
+    "src/openchem/chem/regulatory/calculator.py",
+    "src/openchem/chem/report_adapter.py",
+    "src/openchem/chem/steric.py",
+    "src/openchem/chem/structure_annotation.py",
+    "src/openchem/chem/structure_check.py",
+    "src/openchem/chem/structure_generators.py",
+    "src/openchem/chem/substance.py",
+    "src/openchem/chem/substructure.py",
+    "src/openchem/chem/surface_analysis.py",
+    "src/openchem/chem/topology_analysis.py",
+    "src/openchem/domain/report.py",
+    "src/openchem/plugins/interfaces.py",
+    "src/openchem/services/calculator_registry.py",
+    "src/openchem/services/structure_check_service.py",
+    "src/openchem/ui/widgets/ph_curve_widget.py",
+    "src/openchem/ui/widgets/structure_grid_widget.py",
+})
+
+
+def test_the_provenance_debt_never_grows():
+    """THE WIDE HALF: a new result producer must be sourced or recorded.
+
+    This is the guard the QED/SA miss asked for. Both had been shipping with
+    no method-level source entry, and nothing anywhere could say so, because
+    the only provenance check that existed ran over the calculator registry --
+    one of six registration surfaces.
+
+    A producer that is neither named by a shipped source nor in the debt set
+    fails here, naming the module.
+    """
+    producers = _result_producing_modules()
+    sourced = _modules_named_by_a_shipped_source()
+
+    unaccounted = sorted(producers - sourced - _PROVENANCE_DEBT)
+    assert not unaccounted, (
+        "these produce a user-facing scientific result and are neither named "
+        "by a shipped source nor recorded as debt:\n  "
+        + "\n  ".join(unaccounted)
+        + "\n\nAdd a `used_by` entry to the source backing the method, or -- if "
+        "it implements no method -- add it to _PROVENANCE_DEBT with the reason."
+    )
+
+
+def test_the_provenance_debt_has_no_stale_entries():
+    """THE MIRROR: a module that gained a source must leave the debt set.
+
+    Without it the set only ever grows stale, and a burn-down cannot be
+    measured -- the same thing `tooltip_completed_surfaces.json` was for one
+    layer up. It fired immediately when written: `joback.py` was in the debt
+    set while `joback1987` existed, because that entry's `used_by` named the
+    DATA FILE and the test and not the module implementing its equations.
+    """
+    sourced = _modules_named_by_a_shipped_source()
+    producers = _result_producing_modules()
+
+    settled = sorted(_PROVENANCE_DEBT & sourced)
+    assert not settled, (
+        "these are recorded as provenance debt AND named by a shipped source, "
+        f"so the debt entry is stale -- delete it: {settled}"
+    )
+
+    vanished = sorted(_PROVENANCE_DEBT - producers)
+    assert not vanished, (
+        "these are recorded as provenance debt but no longer produce a "
+        f"user-facing result, so the entry is stale -- delete it: {vanished}"
+    )
+
+
+def test_the_result_type_family_is_discovered_and_not_typed():
+    """THE NARROW HALF, and it is the load-bearing one.
+
+    Excluding more can only make the unaccounted count SMALLER, so a walk that
+    quietly stopped finding result types would turn the audit above green and
+    read as a jump in coverage. That is the green-suite-and-a-smaller-universe
+    failure this project records at the `QTabBar` exclusion, where the
+    principled-sounding rule deleted 82% of the universe.
+
+    Asserted by NAME rather than by a threshold, because a threshold reads as
+    stronger than it is -- and the names chosen are the ones only a TRANSITIVE
+    walk finds: `ReportResult` reaches `ScientificResult` through
+    `StructureReport`, so a walk that took direct subclasses only would miss
+    it and with it most of the application's output.
+    """
+    types = _renderable_result_types()
+
+    for name in ("ScientificResult", "DescriptorValue", "AlertResult", "PerAtomDataset"):
+        assert name in types, f"{name} must be a discovered result type"
+
+    for name in ("StructureReport", "ReportResult", "AtomReport", "MoleculeReport"):
+        assert name in types, (
+            f"{name} is only reachable transitively -- a direct-subclass walk "
+            "would drop it, and with it most of what this application renders"
+        )
+
+    # A control: the walk is not simply returning every class in `domain/`.
+    assert "Provenance" not in types
+    assert "CacheState" not in types
+
+
+def test_the_producer_walk_still_finds_the_known_surfaces():
+    """The complement of the type walk: the MODULES must still be found.
+
+    Named individually, one per registration surface, so a walk that stopped
+    reading `src/` or started skipping a package fails here rather than
+    quietly shrinking the audit's universe.
+    """
+    producers = _result_producing_modules()
+
+    assert "src/openchem/chem/descriptor_providers.py" in producers, (
+        "the module holding all six registration surfaces must be a producer"
+    )
+    for module in (
+        "src/openchem/chem/topology_analysis.py",
+        "src/openchem/chem/energetics.py",
+        "src/openchem/chem/joback.py",
+    ):
+        assert module in producers, f"{module} produces a result and must be found"
+
+    # And the universe is of the right ORDER -- 48 when this was written.
+    assert len(producers) > 30, f"the producer walk collapsed to {len(producers)}"

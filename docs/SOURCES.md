@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: ebdf2b96abb58be206e30e7baefb1bd80e94505be9b755cd0d21453899234a46 -->
+<!-- SOURCE SHA256: ca500e384803024f7a3a9f0e765dca3b84418be72707d6b4c25cca02f7a0e835 -->
 
 # Sources
 
@@ -1377,7 +1377,7 @@ ships is not this paper's number.
 | Verification | citation + claim |
 | Verified | 2026-08-25 |
 | Local copy | `joback1987.pdf` (not checked) |
-| Used by | `src/openchem/chem/data/joback_groups.json`, `tests/test_joback_table.py` |
+| Used by | `src/openchem/chem/joback.py`, `src/openchem/chem/data/joback_groups.json`, `tests/test_joback_table.py`, `tests/test_joback_fragmenter.py` |
 
 Table III's 41 group contributions, for eleven properties: Tb, Tf, Tc, Pc,
 Vc, dHf298, dGf298, ideal-gas Cp(T), dHvap, dHfus and liquid viscosity.

@@ -1450,8 +1450,10 @@ identifier_type = "doi"
 identifier = "10.1080/00986448708960487"
 status = "shipped"
 used_by = [
+    "src/openchem/chem/joback.py",
     "src/openchem/chem/data/joback_groups.json",
     "tests/test_joback_table.py",
+    "tests/test_joback_fragmenter.py",
 ]
 local = "joback1987.pdf"
 verification = "citation_and_claim"
