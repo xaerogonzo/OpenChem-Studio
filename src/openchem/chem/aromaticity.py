@@ -251,6 +251,10 @@ def compute_aromaticity(
             molecule_uuid=molecule_uuid,
             cache_state=CacheState.FAILED,
             error=refusal_text(result.refusal, result.detail),
+            # The CELL form. The detail is a whole sentence -- what to press,
+            # or why a layout's bond lengths are not measurements -- and that
+            # is exactly the half the cell used to eat.
+            error_summary=result.refusal.value if result.refusal else None,
             provenance=provenance,
         )
 

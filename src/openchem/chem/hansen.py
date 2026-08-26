@@ -642,6 +642,10 @@ def compute_hansen(
             molecule_uuid=molecule_uuid,
             cache_state=CacheState.FAILED,
             error=refusal_text(f),
+            # The CELL form. `refusal_text` appends the detail -- "2 carbon(s)",
+            # an uncovered atom's element and connectivity -- which is what a
+            # reader needs on hover and what clips in a 100 px column.
+            error_summary=f.refusal.value if f.refusal else None,
             provenance=provenance,
         )
 

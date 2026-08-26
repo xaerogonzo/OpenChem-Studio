@@ -604,3 +604,45 @@ def test_the_new_descriptors_join_a_category_that_already_existed():
     }
     assert len(categories) == 5, "a descriptor went missing"
     assert set(categories.values()) == {"medicinal_chemistry"}
+
+
+def test_the_np_refusal_gives_a_cell_form_AND_a_full_one():
+    """`error_summary` for the cell, `error` for the hover.
+
+    THIS WAS ONE STRING FOR EXACTLY ONE COMMIT, and it was the short one.
+    The panel wrote a single field into both the value cell and its tooltip,
+    the cell is about 100 px at the dock's minimum width, and the first draft
+    was cut mid-word at "None of this molecule's fragments ap" in the running
+    app. The reasoning had to move into the module and the source entry,
+    where a USER never reads it. The pair puts it back on the hover.
+    """
+    from openchem.domain.common import describe_failure
+
+    refused = _values_by_id(Chem.MolFromSmiles("C"))["np_likeness"]
+    cell, hover = describe_failure(refused.error, refused.error_summary)
+
+    assert cell == "Not in the training corpus"
+    assert len(cell) < 40, "the cell form must fit a narrow column"
+    assert len(hover) > len(cell) * 3, "the hover must carry more than the cell"
+    assert "arithmetic" in hover, "the reason must survive on the hover"
+    assert hover.startswith("None of this molecule")
+
+
+def test_both_halves_of_the_np_refusal_survive_a_console():
+    """Result strings reach Windows console codepages, so ASCII is the bound.
+
+    Asserted on BOTH now: a summary that is clean while its detail is not
+    would pass a check that only looked at the string the cell shows.
+    """
+    refused = _values_by_id(Chem.MolFromSmiles("C"))["np_likeness"]
+
+    assert refused.error_summary.isascii(), repr(refused.error_summary)
+    assert refused.error.isascii(), repr(refused.error)
+
+
+def test_a_descriptor_that_succeeds_carries_neither():
+    """The control: the pair is set on FAILURE, not on everything."""
+    values = _values_by_id(Chem.MolFromSmiles("CCO"))
+
+    assert values["np_likeness"].error is None
+    assert values["np_likeness"].error_summary is None

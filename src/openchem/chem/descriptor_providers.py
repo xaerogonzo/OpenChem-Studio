@@ -325,14 +325,24 @@ _np_model: dict | None = None
 #: scores exactly 0.0 arithmetically. The scalar alone cannot distinguish
 #: "balanced" from "recognised nothing", which is the `AlertResult`
 #: empty-versus-FAILED distinction in a new place.
-#: SHORT ON PURPOSE. The panel puts this string in the value CELL and in its
-#: tooltip, from one field, and the cell is about 100 px at the dock's minimum
-#: width -- so a sentence-length reason renders as a clipped fragment. Measured
-#: in the running app: the first draft of this message was cut mid-word at
-#: "None of this molecule's fragments ap". The reasoning it used to carry lives
-#: in this module and in [source:npscorer2015], where a developer reads it;
-#: what a USER needs in a value cell is the fact.
-_NP_NO_KNOWN_FRAGMENTS_ERROR = "Not in the training corpus"
+#: THE CELL FORM AND THE FULL ONE, which is what `error_summary` bought.
+#:
+#: This was ONE string for exactly one commit, and it was the short one:
+#: the panel wrote a single field into both the value cell and its tooltip,
+#: the cell is about 100 px at the dock's minimum width, and the first draft
+#: was cut mid-word at "None of this molecule's fragments ap" in the running
+#: app. The reasoning had to move into this module and
+#: [source:npscorer2015], where a USER never reads it.
+#:
+#: With the pair, the cell keeps the fact and the hover gets the reason back.
+_NP_NO_KNOWN_FRAGMENTS_SUMMARY = "Not in the training corpus"
+_NP_NO_KNOWN_FRAGMENTS_ERROR = (
+    "None of this molecule's fragments appear in the NP-likeness training "
+    "corpus, so no score can be given -- an unfound fragment contributes "
+    "nothing to the sum, so a reported 0.00 would be arithmetic rather than "
+    "a measurement. The confidence beside this row is 0.00 for the same "
+    "reason."
+)
 
 
 def _load_npscorer() -> tuple[ModuleType, dict]:
@@ -830,9 +840,15 @@ class RDKitDescriptorProvider(DescriptorProvider):
         # descriptors' `_NEEDS_CONFORMER_ERROR` path. The CONFIDENCE is
         # still reported -- 0.000 is a real statement about the molecule,
         # and blanking it too would hide why the score is absent.
-        refusals: dict[str, str] = {}
+        # (summary for the cell, full explanation for the hover) -- the pair
+        # `describe_failure` reads. A producer writing only one gets today's
+        # behaviour, so this carries both deliberately.
+        refusals: dict[str, tuple[str, str]] = {}
         if np_result.confidence == 0.0:
-            refusals["np_likeness"] = _NP_NO_KNOWN_FRAGMENTS_ERROR
+            refusals["np_likeness"] = (
+                _NP_NO_KNOWN_FRAGMENTS_SUMMARY,
+                _NP_NO_KNOWN_FRAGMENTS_ERROR,
+            )
 
         values = [
             DescriptorValue(
@@ -849,7 +865,12 @@ class RDKitDescriptorProvider(DescriptorProvider):
                     if descriptor_id in refusals
                     else CacheState.COMPLETED
                 ),
-                error=refusals.get(descriptor_id),
+                error=(
+                    refusals[descriptor_id][1] if descriptor_id in refusals else None
+                ),
+                error_summary=(
+                    refusals[descriptor_id][0] if descriptor_id in refusals else None
+                ),
                 provenance=provenance,
             )
             for descriptor_id, name, units, category in _DESCRIPTOR_SPECS

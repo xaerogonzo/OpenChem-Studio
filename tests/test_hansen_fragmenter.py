@@ -474,3 +474,28 @@ def test_the_registry_refusal_path_also_works():
 
     assert result.cache_state is CacheState.FAILED
     assert "three or more carbons" in result.error
+
+
+def test_a_refusal_gives_a_cell_form_and_a_full_one():
+    """`error_summary` is the reason; `error` adds the detail.
+
+    `refusal_text` appends "2 carbon(s)", or an uncovered atom's element and
+    connectivity -- exactly what a reader needs on hover and exactly what
+    clips in a 100 px column.
+    """
+    from openchem.domain.common import describe_failure
+
+    result = hansen.compute_hansen(Chem.MolFromSmiles("CC"), "u")
+    cell, hover = describe_failure(result.error, result.error_summary)
+
+    assert cell == "the model needs three or more carbons"
+    assert hover.startswith(cell)
+    assert "2 carbon" in hover
+    assert "2 carbon" not in cell, "the detail belongs on the hover, not the cell"
+
+
+def test_a_completed_result_carries_no_failure_strings():
+    result = hansen.compute_hansen(Chem.MolFromSmiles("CCOC(C)=O"), "u")
+
+    assert result.error is None
+    assert result.error_summary is None

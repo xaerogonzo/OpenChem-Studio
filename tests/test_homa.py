@@ -335,3 +335,33 @@ def test_a_fact_highlights_the_ring_it_is_about():
     highlight = result.facts[0].highlight
     assert len(highlight) == 6
     assert max(highlight) < mol.GetNumAtoms(), "an out-of-range index crashes the viewer"
+
+
+def test_a_refusal_gives_a_cell_form_and_a_full_one():
+    """The no-conformer detail is a whole sentence, and the cell used to eat it.
+
+    "generate one with Structure > Generate Conformers... first" is the half
+    that says what to press -- the half a single overloaded field lost.
+    """
+    from openchem.domain.common import describe_failure
+
+    result = aromaticity.compute_aromaticity(Chem.MolFromSmiles("c1ccccc1"), "u")
+    cell, hover = describe_failure(result.error, result.error_summary)
+
+    assert cell == "this needs a real 3D conformer"
+    assert hover.startswith(cell)
+    assert "Generate Conformers" in hover
+    assert "Generate Conformers" not in cell
+
+
+def test_the_two_dimensional_refusal_keeps_its_reason_on_the_hover():
+    """The sharper of the two: its detail explains WHY a layout will not do."""
+    from openchem.domain.common import describe_failure
+
+    mol = Chem.MolFromSmiles("c1ccccc1")
+    AllChem.Compute2DCoords(mol)
+    result = aromaticity.compute_aromaticity(mol, "u")
+    cell, hover = describe_failure(result.error, result.error_summary)
+
+    assert "not measurements" in hover
+    assert "not measurements" not in cell
