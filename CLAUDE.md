@@ -1819,7 +1819,37 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-19 minutes**, ending at `5771 passed, 15 skipped`
+A clean run is **6-21 minutes**, ending at `5855 passed, 15 skipped`
+(measured 2026-08-25, **20m31**, on `joback-thermophysical` -- oxygen balance
+on both published conventions, and Kamlet-Jacobs detonation.
+
+**+84 collected and 0 REMOVED**, diffed both directions:
+
+    previous commit   COLLECTS 5786
+    this one          COLLECTS 5870   = 5786 + 84
+    the run                    5855 passed + 15 skipped = 5870
+
+    77  test_energetics.py            written
+     4  test_calculator_reachability.py   the new declared module
+     3  test_sources_are_current.py       klapotke2017, westwell1995, kamlet1968
+
+**THE BAND WENT 6-19 TO 6-21 ON THIS RUN, AND IT IS UNEXPLAINED.** The
+previous entry is 15m37 on a tree 84 tests smaller -- a 31% spread with
+nothing to account for it, on the same machine, and 84 arithmetic-only tests
+that run in 0.3 s cannot cost five minutes. Widened so a reader whose run
+takes 20 minutes does not conclude the suite has hung, and recorded as the
+outlier it is rather than as a new normal. This is the sixth consecutive
+entry to say the band is a range with no predictive value inside it; do not
+narrow it back on one fast run either.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line, which
+is the pair this file insists on rather than an absence of FAILED lines. The
+background task also exited 0, which on its own proves nothing. The two
+`DeprecationWarning`s are the same pre-existing six-argument `QMouseEvent`
+overload in `test_dock_title_bar.py` and `test_trajectory_player.py`.)
+
+Before it: `5771 passed, 15 skipped`
 (measured 2026-08-25, **15m37**, on `joback-thermophysical` -- the Joback
 group-contribution table, its SMARTS fragmenter, and the sources backfill
 that found nine shipped methods with no registry entry.
