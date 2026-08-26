@@ -251,8 +251,36 @@ _SHAPE_DESCRIPTOR_SPECS: list[tuple[str, str, str]] = [
     ("pbf", "Plane of Best Fit", "Å"),
 ]
 
+#: The CELL form. Measured in the running application at Segoe UI 9,
+#: which is the font a user actually gets -- NOT under `offscreen`, whose
+#: default font is more than twice as wide and would have made this look
+#: hopeless:
+#:
+#:     panel width   caption   value cell   this string needs
+#:           280       116          120                   118
+#:           420       116          230                   118
+#:
+#: So it fits whole even at the panel's own minimum, by 2 px. That margin
+#: is thin on purpose rather than by luck: past it the label ELIDES and
+#: the tooltip still carries the reason, which is the same graceful
+#: degradation `_ELIDED_LABEL_MIN_WIDTH` documents for captions. What it
+#: must never do again is be a sentence.
+_NEEDS_CONFORMER_SUMMARY = "Needs a 3D conformer"
+
+#: The full explanation, for the hover and for "Copy all".
+#:
+#: **ASCII, and the previous wording was not.** It carried an em dash and
+#: a U+25B8 triangle as the menu separator, and result text reaches
+#: Windows console streams -- `regulatory/calculator.py` records the rule
+#: and `_without_glyphs` enforces it on the glyph side. Measured on this
+#: string: the em dash raises under cp437 and cp850, and the TRIANGLE
+#: raises under cp1252 as well, so it was unprintable on every Windows
+#: console codepage rather than only the DOS ones. `>` is the separator
+#: `_PKA_NOT_INSTALLED_MESSAGE` already uses for "Tools > External Tools".
 _NEEDS_CONFORMER_ERROR = (
-    "Needs a real 3D conformer — generate one first with Structure ▸ Generate Conformers...."
+    "This descriptor is measured from a real 3D conformer, and this molecule "
+    "has only a flat 2D drawing. Generate one with "
+    "Structure > Generate Conformers..."
 )
 
 _sascorer_module: ModuleType | None = None
@@ -845,6 +873,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
                     timestamp=now,
                     cache_state=CacheState.FAILED,
                     error=_NEEDS_CONFORMER_ERROR,
+                    error_summary=_NEEDS_CONFORMER_SUMMARY,
                     provenance=provenance,
                 )
                 for descriptor_id, name, units in _SHAPE_DESCRIPTOR_SPECS
@@ -1185,6 +1214,10 @@ def compute_crippen_mr_contrib_calculator(
     )
 
 
+#: The CELL form of `_PKA_NOT_INSTALLED_MESSAGE`, which is 344 characters
+#: of prose and was being written into a one-line value cell whole.
+_PKA_NOT_INSTALLED_SUMMARY = "pkasolver not configured"
+
 _PKA_NOT_INSTALLED_MESSAGE = (
     "No pkasolver environment configured. pkasolver runs out of process from its "
     "own virtual environment (it requires numpy<2, while this app runs numpy 2.x) "
@@ -1220,6 +1253,7 @@ def compute_pka_dataset(
             provenance=Provenance(created_by="core", method="pkasolver"),
             cache_state=CacheState.FAILED,
             error=_PKA_NOT_INSTALLED_MESSAGE,
+            error_summary=_PKA_NOT_INSTALLED_SUMMARY,
         )
     try:
         pairs = compute_pka(mol, interpreter_path)

@@ -1241,7 +1241,7 @@ document may cite a file or a test that does not exist.
      cannot see a label laid out WIDER than the viewport it is drawn in,
      and that is what the panel was doing -- content 272 px against a
      256 px viewport, every row 14 px past the right edge, every visual
-     line losing its last character. Fixed by `_ElidingCaptionLabel`;
+     line losing its last character. Fixed by `_ElidingLabel`;
      `property_panel.rendered_overflow` is the oracle that can see it.
      "No clipping of the kind I measured" is not "no clipping".
   2. *"`WrapLongRows` on the section's form layout, a 200 px minimum on
@@ -1307,9 +1307,9 @@ document may cite a file or a test that does not exist.
      over-claim -- "nothing needs to be forced wide now, so nothing can
      overflow".
 
-  4. `_ElidingCaptionLabel` -- a row caption that may be narrower than
-     its text, for both the form's label column and `_add_wide_row`'s
-     caption. Word wrap stays OFF (a wrapped caption would be
+  4. `_ElidingLabel` -- a form-row label that may be narrower than its
+     text, for the form's label column, `_add_wide_row`'s caption and
+     (since the FAILED-descriptor work) the VALUE column too. Word wrap stays OFF (a wrapped caption would be
      height-for-width and would undo parts 1 to 3); only the width
      DEMAND is capped, and the cap is derived from the room available so
      a wide panel still shows the full string.

@@ -619,7 +619,7 @@ def test_a_long_calculator_name_does_not_widen_the_panel(qapp):
 def _settle(qapp, passes: int = 40) -> None:
     """Let the layout finish.
 
-    `_ElidingCaptionLabel` re-elides on resize, so its final text is only
+    `_ElidingLabel` re-elides on resize, so its final text is only
     knowable after the passes have run -- reading earlier measures a
     transient, which this file already records as the source of one false
     reproduction of the height bug.
@@ -670,12 +670,12 @@ def test_no_row_is_rendered_past_the_scroll_viewport(qapp):
     shared fixture's captions are "LogP", "TPSA", "Ring Count" -- none wider
     than about a third of the viewport, so no arrangement of them can push
     the content past its edge. Measured: with the fixture's own rows only,
-    removing the cap from `_ElidingCaptionLabel.minimumSizeHint` -- the whole
+    removing the cap from `_ElidingLabel.minimumSizeHint` -- the whole
     of the fix -- left this test passing. The real panel's widest caption is
     "Blood-Brain Barrier Permeant (heuristic)" at 210 px against a 256 px
     viewport, and a guard that never holds one cannot see the bug.
     """
-    from openchem.ui.panels.property_panel import _ElidingCaptionLabel, rendered_overflow
+    from openchem.ui.panels.property_panel import _ElidingLabel, rendered_overflow
 
     floor = _widest_floor(qapp)
     for width in (floor + 1, floor + 40, floor + 80, floor + 160, floor + 300):
@@ -689,7 +689,7 @@ def test_no_row_is_rendered_past_the_scroll_viewport(qapp):
             # from font metrics so it crosses the boundary on any platform.
             section = next(iter(panel._sections.values()))
             section.content_layout().addRow(
-                _ElidingCaptionLabel(_text_of_at_least(viewport + 1, panel), section.content),
+                _ElidingLabel(_text_of_at_least(viewport + 1, panel), section.content),
                 QLabel("value", section.content),
             )
             _settle(qapp)
@@ -847,7 +847,7 @@ def test_the_overflow_probe_can_see_a_clip_at_all(qapp):
     literally what `QFormLayout.addRow(str, widget)` creates -- and requires
     the oracle to fail. So the guard is pinned to the implementation
     mechanism that caused the bug rather than to a fixture: swapping
-    `_ElidingCaptionLabel` back for a plain label fails here, naming the
+    `_ElidingLabel` back for a plain label fails here, naming the
     widget and the pixel count.
 
     It ASSERTS ITS OWN SETUP first. Without the clean reading, the overflow
@@ -1002,7 +1002,7 @@ def test_copying_the_panel_gives_the_full_caption_not_the_elided_one(qapp):
     """An elided caption is a WIDTH decision, and it must not reach the
     clipboard.
 
-    `_ElidingCaptionLabel.text()` is what is painted, so a caption squeezed
+    `_ElidingLabel.text()` is what is painted, so a caption squeezed
     on a narrow panel reads `Blood-Brain Barrier Permeant (heur...`. Exported
     through "Copy all" that is the presentation layer corrupting data on its
     way out -- the same class of mistake `_without_glyphs` already exists to
@@ -1084,6 +1084,144 @@ def test_the_viewport_does_not_shrink_to_fit_long_content(qapp):
         assert after >= before, (
             f"the viewport shrank from {before} px to {after} px when long content "
             "arrived -- content must adapt to the viewport, not the other way round"
+        )
+    finally:
+        _dispose(panel, qapp)
+
+
+def _panel_with_a_failed_descriptor(qapp, reason: str, summary: str | None, plain_value: bool):
+    """The reported case: a descriptor that FAILED with a sentence to say.
+
+    `plain_value` restores the shipped defect -- a non-eliding `QLabel` in
+    the field column -- so the guard below can prove its own fixture is
+    capable of showing the bug rather than merely of passing.
+    """
+    from PySide6.QtWidgets import QSizePolicy
+
+    bus = EventBus()
+    panel = PropertyPanel(bus, CalculatorRegistry(), _FakeService(), ChemistryEngine())
+    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+    for descriptor_id, name, value in SHORT:
+        bus.publish(
+            DescriptorComputed(
+                descriptor=DescriptorValue(
+                    descriptor_id=descriptor_id, name=name, units="",
+                    category="physicochemical", provider="rdkit",
+                    molecule_uuid="mol-1", value=value,
+                    cache_state=CacheState.COMPLETED,
+                )
+            )
+        )
+    for section in panel._sections.values():
+        section.set_expanded(True)
+    panel.resize(_widest_floor(qapp) + 1, 400)
+    panel.show()
+    _settle(qapp)
+
+    bus.publish(
+        DescriptorComputed(
+            descriptor=DescriptorValue(
+                descriptor_id="pbf", name="Plane of Best Fit", units="",
+                category="physicochemical", provider="rdkit",
+                molecule_uuid="mol-1", value=None,
+                cache_state=CacheState.FAILED, error=reason, error_summary=summary,
+            )
+        )
+    )
+    _settle(qapp)
+
+    if plain_value:
+        # The shipped defect, put back through the same row: a QLabel with
+        # wrap off reports its whole text as its minimum.
+        section = panel._sections["physicochemical"]
+        form = section.content_layout()
+        label = panel._value_labels[("rdkit", "pbf")]
+        row, _role = form.getWidgetPosition(label)
+        form.removeRow(row)
+        panel._value_labels.pop(("rdkit", "pbf"))
+        plain = QLabel(reason, section.content)
+        plain.setWordWrap(False)
+        plain.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        form.addRow(QLabel("Plane of Best Fit", section.content), plain)
+        _settle(qapp)
+    return panel
+
+
+def test_a_failed_descriptors_reason_does_not_widen_the_panel(qapp):
+    """THE REPORTED DEFECT, at the oracle.
+
+    A FAILED descriptor writes its reason into the value cell, and the ten
+    shape descriptors' reason is a sentence. The field column was a plain
+    `QLabel` with word wrap off, which reports its WHOLE TEXT as its
+    minimum -- so the same mechanism that made one long caption clip every
+    row in the panel applied to the value column, and nothing covered it.
+    Measured before the fix, on the ten shape descriptors with no 3D
+    conformer and the panel at its 280 px minimum:
+
+        value label width       1164 px
+        scroll viewport          256
+        rendered_overflow         10 findings, right = 916
+
+    Swept across the width range the dock produces, for the reason the
+    caption oracle above is.
+    """
+    from openchem.ui.panels.property_panel import rendered_overflow
+
+    reason = (
+        "This descriptor is measured from a real 3D conformer, and this "
+        "molecule has only a flat 2D drawing. Generate one with "
+        "Structure > Generate Conformers..."
+    )
+    floor = _widest_floor(qapp)
+    for width in (floor + 1, floor + 40, floor + 160, floor + 300):
+        panel = _panel_with_a_failed_descriptor(
+            qapp, reason, "Needs a 3D conformer", plain_value=False
+        )
+        try:
+            panel.resize(width, 400)
+            _settle(qapp)
+            viewport = panel.findChild(QScrollArea).viewport().width()
+            findings = rendered_overflow(panel)
+            assert not findings, "\n".join(
+                [f"a failed descriptor's reason widened the panel at {width} "
+                 f"(viewport {viewport}):"]
+                + ["  " + finding.describe(viewport) for finding in findings]
+            )
+        finally:
+            _dispose(panel, qapp)
+
+
+def test_the_probe_can_see_a_failed_reason_widen_the_panel(qapp):
+    """THE CONTROL, and without it the guard above proves nothing.
+
+    A fixture is not "big enough" or "small" -- it is degenerate or not
+    with respect to a specific defect, and this file already records a
+    caption oracle that passed with the entire fix reverted because its
+    captions were too short to overflow anything. The same trap is open
+    here: if the reason were short, or if the rows never reached the
+    field column, the guard above would be green against a panel with no
+    eliding value label at all.
+
+    So this puts the shipped defect back -- a plain, non-eliding `QLabel`
+    in the field column carrying the same string -- and requires the
+    oracle to SAY SO.
+    """
+    from openchem.ui.panels.property_panel import rendered_overflow
+
+    reason = (
+        "This descriptor is measured from a real 3D conformer, and this "
+        "molecule has only a flat 2D drawing. Generate one with "
+        "Structure > Generate Conformers..."
+    )
+    panel = _panel_with_a_failed_descriptor(
+        qapp, reason, "Needs a 3D conformer", plain_value=True
+    )
+    try:
+        _settle(qapp)
+        assert rendered_overflow(panel), (
+            "the fixture cannot reproduce the defect it guards -- a plain "
+            "QLabel carrying the reason left the panel clean, so the guard "
+            "above would pass with no eliding value label at all"
         )
     finally:
         _dispose(panel, qapp)

@@ -20,6 +20,11 @@ class DescriptorValue:
     timestamp: float | None = None
     cache_state: CacheState = CacheState.QUEUED
     error: str | None = None
+    # The CELL form of `error`. `ScientificResult` carries the same pair
+    # for every other result kind; this class predates it and defines its
+    # own fields, so the retrofit is written twice by construction rather
+    # than by oversight. `describe_failure` is the one reader of both.
+    error_summary: str | None = None
     # `.provider`/`.timestamp` above predate `Provenance` (Phase 1 vs
     # Phase 6+) and are left as they are -- this is an additive retrofit,
     # not a replacement. `None` for a QUEUED/RUNNING placeholder (no real

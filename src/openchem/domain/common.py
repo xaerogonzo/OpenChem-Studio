@@ -137,6 +137,65 @@ def valid_total_declaration(declaration: Any) -> bool:
     return declaration.get("basis") in ATOM_BASES
 
 
+#: What a failure says when the producer said nothing at all.
+FAILED_WITHOUT_A_REASON = "Failed"
+
+
+def describe_failure(error: str | None, summary: str | None = None) -> tuple[str, str]:
+    """A failure as (CELL, HOVER) -- the short form and the full one.
+
+    **ONE FIELD WAS SERVING TWO JOBS, AND THE CELL LOST.** Every FAILED
+    branch in the Properties panel wrote `error` into the value label AND
+    into its tooltip, so a producer had exactly one string with which to
+    be both a table cell and an explanation. It cannot be both. The shape
+    descriptors' reason is 87 characters and the pkasolver one is 344,
+    while the value column is 120 px at the dock's 280 px minimum and 230
+    at its default -- about twenty characters and forty. So the panel read
+    "Needs a real 3D conformer - generate one first" and stopped, with the
+    sentence that says what to press in the half nobody sees.
+
+    Worse, a plain `QLabel` reports its WHOLE text as its minimum width,
+    so the sentence did not merely overflow its own cell: measured on the
+    ten shape descriptors, it made that label 1164 px wide inside a 256 px
+    viewport and dragged the scroll content out with it, clipping every
+    other row in the panel at the right edge.
+
+    `error` keeps its established meaning, which is why nothing that
+    already writes it had to change: it is the FULL explanation, and it is
+    what the hover and "Copy all" carry. `error_summary` is the new,
+    optional short form, and a producer that declines to write one gets
+    exactly today's behaviour -- the same string in both places. That
+    degradation is the whole reason this is two fields rather than one
+    widened type: every existing reader of `.error` still gets a `str`,
+    where a value object would have rendered as a repr in four call sites
+    and looked plausible doing it.
+
+    **THE CELL IS STILL NOT ALLOWED TO BE THE LAST WORD ON WIDTH.** A
+    producer may write a summary longer than any cell, and this function
+    does not stop it -- the panel's `_ElidingLabel` does, by eliding. A
+    length
+    ceiling here would be a second mechanism for one problem and a
+    constant nobody could derive; the elide is measured and needs no
+    number. What this function owns is WHICH STRING goes where.
+
+    Structural only, in the same sense as `valid_total_declaration`: it
+    checks that the strings are non-empty, never that a summary is a fair
+    precis of its detail. That is a claim about prose, and a validator
+    that graded it would be the tooltip layer's forbidden LLM grader
+    wearing a different hat.
+    """
+    detail = (error or "").strip()
+    short = (summary or "").strip()
+    if not short:
+        # No declaration, or a blank one. Today's behaviour exactly.
+        return (detail or FAILED_WITHOUT_A_REASON, detail)
+    # A summary with no detail behind it is a producer bug: the hover
+    # would carry LESS than the cell it is supposed to expand. Fail
+    # closed by promoting the summary rather than showing an empty
+    # tooltip, which reads as "there is nothing more to say".
+    return (short, detail or short)
+
+
 class CacheState(str, Enum):
     """Lifecycle of an asynchronously computed value (a descriptor, a batch
     of conformers, or any future long-running provider result).
@@ -213,3 +272,9 @@ class ScientificResult:
     # rather than on individual subclasses so every result kind can
     # report a failure reason uniformly.
     error: str | None = None
+    # The CELL form of `error`, when the producer has one. Optional, and
+    # an additive retrofit in the same sense `provenance` was: `error`
+    # keeps its meaning as the full explanation, so nothing that already
+    # writes it changed. See `describe_failure` for why the pair is two
+    # plain strings rather than one widened field.
+    error_summary: str | None = None
