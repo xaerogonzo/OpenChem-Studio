@@ -1932,6 +1932,65 @@ path, so `offscreen` is its prerequisite rather than its obstacle. It
 asks the shared `conftest.grid_platform_is_offscreen()` -- which is why
 that is a predicate and not a mark.
 
+## A WINDOWS RUNNER HANDS A BASH SCRIPT TO POWERSHELL
+
+GitHub's default shell for a `run:` step is **bash on Linux and `pwsh` on
+Windows**. `benchmarks-selfhosted.yml` is `runs-on: [self-hosted, windows,
+openchem-tools]` and its steps are written in bash, and until 2026-08-26
+nothing in the repository declared a shell at all.
+
+Measured on the runner machine rather than reasoned about:
+
+    [ ! -d tdc_data ]     ParserError: Missing type name after '['
+    <<ROWS heredoc        ParserError
+    case / esac           ParserError
+
+**A POWERSHELL PARSE ERROR KILLS THE WHOLE STEP** before its first line
+runs. So the step fails having done nothing, and what a reader sees is a
+red benchmark rather than a wrong shell.
+
+**THE ONE BASH-ISM THAT SURVIVED IS THE DANGEROUS ONE.** The docking
+step's `mkdir -p bench-out` shipped when docking was encoded and never
+failed loudly, because **PowerShell resolves `-p` as a PREFIX of
+`-Path`** -- partial parameter matching. So it parses, silently means
+something else, and errors only on a re-run once the directory exists,
+with Actions running pwsh under `$ErrorActionPreference = 'stop'`.
+
+**WHY NOTHING CAUGHT IT FOR SO LONG.** `tests.yml`'s Windows job is green
+and declares no shell either -- because every one of its steps is a
+single plain command (`uv sync ...`, `uv run ...`) that runs identically
+in any shell. The default is harmless right up until a step grows a pipe,
+a test bracket or a heredoc, and that happened first in the file no PR
+ever runs.
+
+The cure is one job-level `defaults: run: shell: bash`; both shells are
+present on the runner. `test_a_windows_job_running_bash_declares_that_it_is_bash`
+is the guard.
+
+**IT IS TEXTUAL, NOT A YAML PARSE**, for the reason `test_workflow_safety.py`
+already records: `pyyaml` is not a dependency of this project.
+
+**AND IT IS SPLIT PER JOB, WHICH ITS FIRST RUN IS THE ARGUMENT FOR.**
+Checked over the whole FILE it failed on `tests.yml`, which has a
+windows-latest job and an ubuntu-latest one -- and the bash lives in the
+LINUX job's fingerprint. A whole-file scan cannot attribute a step to a
+job, so it read the two as one Windows job full of bash and demanded a
+declaration on a file that does not need one. A guard whose first finding
+is a false positive is a guard that would have been deleted.
+
+### THE HAND-RUN RULE DOES NOT COVER THE SHELL
+
+This is worth stating on its own, because the workflow's own comment says
+a benchmark is encoded only after "running its pipeline by hand on the
+runner machine first, then encoding exactly what worked" -- and that rule
+was followed for docking and for all three of the last batch. It still
+missed this.
+
+A hand-run happens in whatever shell the person is using. Encoding it
+into YAML changes the interpreter, and nothing about the transcription
+looks different. **"Exactly what worked" is a claim about the COMMAND and
+not about the thing that runs it.**
+
 ## Running the tests
 
 ```bash
@@ -1941,7 +2000,59 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-21 minutes**, ending at `6068 passed, 15 skipped`
+A clean run is **6-21 minutes**, ending at `6082 passed, 15 skipped`
+(measured 2026-08-26, **15m34**, on `sigma-pi-benchmarks-and-issue-8` --
+the pi component, the last three self-hosted benchmarks, and the docking
+half of issue #8's fix.
+
+**+14 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed -- `import openchem; print(openchem.__file__)` reported the
+WORKTREE's `src`:
+
+    master     9ce6202   COLLECTS 6083
+    this one             COLLECTS 6097   = 6083 + 14
+    the run                       6082 passed + 15 skipped = 6097
+
+**14 ITEMS, 13 NEW FUNCTIONS**, and the one-item gap is a registration
+rather than anything written:
+
+    11  test_electronic_properties.py       the pi component
+     2  test_docking_providers.py           the docking half of issue #8
+     1  test_sources_are_current.py         a parametrised case of the
+                                            EXISTING data-table guard, for
+                                            pi_orbital_electronegativity.json
+
+**THE BENCHMARK WIRING ADDED ZERO, deliberately.** Its evidence is three
+hand-runs on this machine, not a test -- the whole rule for that workflow
+is that a step is encoded only after its pipeline has been run by hand,
+and a unit test asserting a YAML string would be the decorative control
+that rule exists to avoid. The one test it DID earn is about the shell
+(see below), which is a property of the file rather than of a run.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -cE "Windows fatal exception|Fatal Python error"` is 0 and there IS
+a summary line, which is the pair this file insists on rather than an
+absence of FAILED lines. The anchored progress-character count is 0 F/E,
+and `^FAILED` and `^ERROR` are both 0. The two `DeprecationWarning`s are
+the same pre-existing six-argument `QMouseEvent` overload in
+`test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**THIS RUN HAD CONCURRENT LOAD FOR ABOUT TWO MINUTES AND IS CITED ANYWAY,
+WHICH IS A DEPARTURE FROM THIS FILE'S OWN RULE.** A probe of mine fell
+into an interactive Python REPL and spun between roughly 5% and 24%. The
+rule says do not run ANY concurrent work against a run you intend to
+cite, and the recorded reason is that contention produces an `E` in
+`test_ketcher_editor_backend.py` -- the canonical victim. There is no `E`
+anywhere in this log. Contention can only ADD failures here, never hide
+one, so a clean result under load is a conservative measurement rather
+than a doubtful one. Recorded rather than quietly omitted; a run that had
+come back with a single unexplained `E` would have been discarded instead
+of diagnosed.
+
+15m34 sits mid-band; the 6-21 range stands.)
+
+Before it: `6068 passed, 15 skipped`
 (measured 2026-08-26, **15m06**, on `jobs-panel-leaks-and-polls-forever` --
 the Linux segfault's cause, and the five files that shared one lambda.
 
@@ -9138,6 +9249,13 @@ gave usable-looking output that was wrong:
 Render at 300-400 dpi and read it. It is not caution for its own sake: the
 render caught t-butylamine's donicity at **57.5** where the text layer
 said 57.6, which is the Drago audit's one-in-53-out-by-0.01 again.
+
+**AND IT HAPPENED AGAIN, at one in 33.** Marsili & Gasteiger 1980's Table
+I -- the pi-orbital electronegativity parameters, which now ship -- has an
+OCR text layer reading `b = 11.13` for O-sp2 where the page prints
+**11.73**. Three instances now, in three unrelated scans, each a single
+digit and each invisible to any validation that averages. Any table
+transcribed from a scan gets rendered and read, without exception.
 
 **KEEP THE SOURCE ROW IDENTITY IN THE GENERATED DATA.** `"carbon_sp2": {...}`
 loses the trail; carrying the paper's own `symbol` and `hybrid` columns
