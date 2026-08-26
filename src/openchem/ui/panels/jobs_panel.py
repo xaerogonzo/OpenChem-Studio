@@ -72,6 +72,11 @@ _COLUMN_HELP = {
 }
 _POLL_INTERVAL_MS = 500
 
+#: WHICH JOB A CANCEL BUTTON MEANS TRAVELS ON THE BUTTON, never in a closure.
+#: See `_on_cancel_clicked` for the measurement that forced this.
+_JOB_KIND_PROPERTY = "_openchem_job_kind"
+_JOB_KEY_PROPERTY = "_openchem_job_key"
+
 
 class JobsPanel(QWidget):
     """Lists every active job across Conformer/Docking/QuantumChemistry
@@ -122,10 +127,42 @@ class JobsPanel(QWidget):
 
             cancel_button = QPushButton("Cancel", self)
             cancel_button.setEnabled(job.cancel_callback is not None)
-            cancel_button.clicked.connect(
-                lambda _checked=False, kind=job.kind, key=job.key: self._on_cancel_clicked(kind, key)
-            )
+            # A BOUND METHOD, never a lambda that captures `self`.
+            cancel_button.setProperty(_JOB_KIND_PROPERTY, job.kind)
+            cancel_button.setProperty(_JOB_KEY_PROPERTY, job.key)
+            cancel_button.clicked.connect(self._on_cancel_clicked)
             self._table.setCellWidget(row, 3, cancel_button)
 
-    def _on_cancel_clicked(self, kind: str, key: str) -> None:
-        self._job_manager.cancel(kind, key)
+    def _on_cancel_clicked(self, _checked: bool = False) -> None:
+        """Which job travels on the button; `self` never travels in a closure.
+
+        PySide6 holds a connected plain callable STRONGLY and a QObject's
+        bound method weakly, so
+        `connect(lambda ...: self._on_cancel_clicked(kind, key))` rooted this
+        panel for the life of the process -- past refcounting and past the
+        cyclic collector, which cannot see through the map the callable is
+        kept in. `PropertyPanel`, `PeriodicTableDialog` and
+        `ExternalToolsDialog` were each fixed for this; **this panel was
+        missed**, and it is the worst place to miss it, because `refresh`
+        runs on a 500 ms timer and so connected a fresh rooted lambda twice
+        a second for the life of the process.
+
+        MEASURED, before and after, with `_survives_collection`: a panel that
+        has rendered ONE ROW survived three cycles of the collector; one that
+        never rendered a row did not, because the loop this sits in never
+        ran. So the leak was "any panel that ever had a job to show".
+
+        What it cost is in CLAUDE.md: over two test files alone, five leaked
+        panels fired **170 refreshes inside a later file's event pump** --
+        704 `setItem`/`setCellWidget` calls, every one of them destroying a
+        Qt object inside an unrelated test's event dispatch. That is the
+        Linux segfault's own traceback.
+        """
+        button = self.sender()
+        if button is None:
+            return
+        kind = button.property(_JOB_KIND_PROPERTY)
+        key = button.property(_JOB_KEY_PROPERTY)
+        if kind is None or key is None:
+            return
+        self._job_manager.cancel(str(kind), str(key))

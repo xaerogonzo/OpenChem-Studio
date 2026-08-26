@@ -280,6 +280,46 @@ def test_the_periodic_table_dialog_does_not_leak(qapp):
     assert not _survives_collection(PeriodicTableDialog)
 
 
+def test_the_jobs_panel_does_not_leak(qapp):
+    """The one that was missed, and the worst place to miss it.
+
+    `refresh` runs on a 500 ms timer that nothing stops, so the leaked
+    lambda was not connected once -- it was connected TWICE A SECOND for
+    the life of the process, on a panel that could never be collected.
+
+    **THE FIXTURE MUST HAVE A JOB, or it cannot see the defect.** The
+    lambda lived inside `for row, job in enumerate(jobs)`, so a panel with
+    an empty `JobManager` never reached it and was collected perfectly
+    happily. Measured on the shipped defect: with one active job
+    `_survives_collection` is True, with none it is False. A fixture built
+    from a bare `JobManager()` is the degenerate case this project keeps
+    paying for -- it passes against the bug.
+    """
+    from openchem.services.job_manager import JobManager
+    from openchem.ui.panels.jobs_panel import JobsPanel
+
+    def build():
+        job_manager = JobManager()
+        job_manager.try_start("conformer", "mol-1")
+        return JobsPanel(job_manager)
+
+    assert not _survives_collection(build)
+
+
+def test_a_jobs_panel_with_no_jobs_could_never_have_shown_the_leak(qapp):
+    """The control for the fixture above, asserting its own setup.
+
+    Without this, someone simplifying `build()` to `JobsPanel(JobManager())`
+    leaves a green test that cannot fail. This states, in the suite rather
+    than in a comment, that the empty panel is NOT evidence: it is collected
+    with the fix and was collected without it.
+    """
+    from openchem.services.job_manager import JobManager
+    from openchem.ui.panels.jobs_panel import JobsPanel
+
+    assert not _survives_collection(lambda: JobsPanel(JobManager()))
+
+
 def test_a_subscriber_collected_during_dispatch_is_not_called(qapp):
     """The narrow race the None check in `_dispatch` exists for.
 
