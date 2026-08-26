@@ -39,6 +39,9 @@ iteration -- an independent reimplementation here diverged badly (chi from
 
 from __future__ import annotations
 
+import json
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from rdkit import Chem
@@ -83,6 +86,150 @@ _CHI_PARAMETERS: dict[tuple[str, str | None], tuple[float, float, float]] = {
     ("S", "SP3"): (10.14, 9.13, 1.38),
     ("S", "SP2"): (10.14, 9.13, 1.38),
 }
+
+
+_PI_DATA_PATH = Path(__file__).resolve().parent / "data" / "pi_orbital_electronegativity.json"
+
+#: The two components of orbital electronegativity, as a CLOSED vocabulary.
+#: A free string would let a typo select a different quantity silently --
+#: the same reason `applies_to` is closed while `category` is not.
+ORBITAL_COMPONENTS: dict[str, str] = {
+    "Sigma (PEOE)": "sigma",
+    "Pi (SD-POE)": "pi",
+}
+
+_DEFAULT_ORBITAL_COMPONENT = "Sigma (PEOE)"
+
+_ORBITAL_NAME = {
+    "sigma": "Orbital Electronegativity (sigma)",
+    "pi": "Orbital Electronegativity (pi)",
+}
+
+_ORBITAL_METHOD = {"sigma": "gasteiger_marsili", "pi": "marsili_sd_poe"}
+
+_ORBITAL_NOTE = {
+    "sigma": (
+        "chi = a + b*q + c*q^2 at the converged PEOE charge. Absolute values are "
+        "parameter-set dependent; the ordering between atoms is the meaningful part."
+    ),
+    "pi": (
+        "chi_pi = a + b*q + c*q^2 on Marsili & Gasteiger's Table I, at the converged "
+        "PEOE SIGMA charge -- their starting POE values, NOT iterated to pi "
+        "self-consistency. Covers the conjugated atoms only. Absolute values are "
+        "parameter-set dependent; the ordering between atoms is the meaningful part, "
+        "and it is NOT the sigma ordering -- a sigma-negative atom is screened and "
+        "comes out lower, which is the effect these parameters exist to carry."
+    ),
+}
+
+
+def _orbital_component(parameters: dict[str, Any]) -> str:
+    """The provenance method id for the chosen component label.
+
+    An unrecognised label falls back to SIGMA rather than raising, for the
+    reason `_polarizability_method` records: a project stored by a future
+    version must not make an older one unopenable. The RECORDED component
+    is what stops that fallback being silent -- these are two different
+    quantities on two different parameter sets, so a fallback nobody can
+    see would change what a stored number MEANS.
+    """
+    label = str(parameters.get("component", _DEFAULT_ORBITAL_COMPONENT))
+    return ORBITAL_COMPONENTS.get(label, ORBITAL_COMPONENTS[_DEFAULT_ORBITAL_COMPONENT])
+
+
+@lru_cache(maxsize=1)
+def pi_parameter_table() -> dict[str, dict[str, Any]]:
+    """Marsili & Gasteiger 1980 Table I [source:marsili1980], by row key."""
+    return json.loads(_PI_DATA_PATH.read_text(encoding="utf-8"))["orbitals"]
+
+
+def _pi_role(atom: Chem.Atom) -> str | None:
+    """Which of Table I's two kinds of orbital this atom contributes.
+
+    `pz` is an atom putting ONE electron into a pi bond; `pair` is one
+    donating a LONE PAIR into conjugation. The paper keys its rows that
+    way ("N-sp2 (pz)" against "N-sp3 (electron pair)") and the two rows
+    for one element are far apart -- nitrogen is 7.95 against 4.54 -- so
+    picking the wrong one is not a rounding difference.
+
+    The aromatic heteroatoms are the only place this needs a rule rather
+    than a bond order: a pyridine nitrogen contributes one electron and a
+    pyrrole nitrogen contributes two, and they differ by their connection
+    count, not by anything RDKit exposes directly. Furan's oxygen and
+    thiophene's sulfur are always two-electron donors.
+    """
+    symbol = atom.GetSymbol()
+    if atom.GetIsAromatic():
+        if symbol == "C":
+            return "pz"
+        if symbol == "N":
+            return "pair" if atom.GetDegree() + atom.GetTotalNumHs() >= 3 else "pz"
+        if symbol in ("O", "S"):
+            return "pair"
+        return None
+    if any(bond.GetBondTypeAsDouble() > 1.0 for bond in atom.GetBonds()):
+        return "pz" if symbol in ("C", "N", "O", "S") else None
+    if symbol == "C":
+        return None
+    if any(
+        neighbour.GetIsAromatic()
+        or any(b.GetBondTypeAsDouble() > 1.0 for b in neighbour.GetBonds())
+        for neighbour in atom.GetNeighbors()
+    ):
+        return "pair"
+    return None
+
+
+def _pi_chi_parameters(atom: Chem.Atom) -> tuple[float, float, float] | None:
+    role = _pi_role(atom)
+    if role is None:
+        return None
+    for row in pi_parameter_table().values():
+        if row["element"] == atom.GetSymbol() and row["role"] == role:
+            return (row["a"], row["b"], row["c"])
+    return None
+
+
+def pi_orbital_electronegativities(mol: Chem.Mol) -> dict[int, float]:
+    """chi_pi at each conjugated atom's SIGMA charge, in eV.
+
+    Marsili & Gasteiger's eq (7), `chi_pi = a + b*q + c*q^2`, evaluated at
+    the converged PEOE sigma charge -- what [source:marsili1980] calls the
+    STARTING POE values: "After the sigma level computation the sigma
+    charges of the atoms involved in a pi level calculation are inserted
+    into their specific POE parabolas (7) and from them the starting POE
+    values are obtained."
+
+    **IT IS THE STARTING VALUE AND NOT A CONVERGED ONE**, which is the
+    whole limitation and is stated in the calculator's contract too. The
+    paper's pi-charge iteration is not implemented here (see
+    docs/VALIDATION.md for the three reconstructions that were measured
+    and not shipped), so nothing below reflects pi charge redistribution.
+
+    That is still the quantity that decides the DIRECTION of conjugation,
+    which is the paper's own central point: with neutral-state values "no
+    transfer from the heteroatom to the double bond would be possible",
+    and inserting the sigma charge is what makes the lone pair's POE fall
+    below the vicinal carbon's so a +M effect can be predicted at all.
+
+    An atom outside the pi system is ABSENT rather than zero. Zero is a
+    value on this scale and every real one here is positive, so reporting
+    it for an atom that has no pi orbital would be a number with no
+    referent.
+    """
+    working = Chem.Mol(mol)
+    rdPartialCharges.ComputeGasteigerCharges(working)
+    values: dict[int, float] = {}
+    for atom in working.GetAtoms():
+        coefficients = _pi_chi_parameters(atom)
+        if coefficients is None or not atom.HasProp("_GasteigerCharge"):
+            continue
+        charge = atom.GetDoubleProp("_GasteigerCharge")
+        if charge != charge:  # NaN, for atoms Gasteiger cannot type
+            continue
+        a, b, c = coefficients
+        values[atom.GetIdx()] = a + b * charge + c * charge * charge
+    return values
 
 
 def _maybe_microspecies(mol: Chem.Mol, parameters: dict[str, Any]) -> Chem.Mol:
@@ -361,48 +508,68 @@ def compute_orbital_electronegativity(
 ) -> PerAtomDataset:
     """The "electronic" category's Orbital Electronegativity calculator.
 
-    Gasteiger-Marsili PEOE [source:gasteiger1980], via RDKit.
+    Two components, chosen by the `component` parameter.
 
-    Only the SIGMA component is offered. Marvin additionally exposes a pi
-    component, which needs a separate pi-charge iteration this does not
-    implement -- claiming a pi value by relabelling the sigma one would be
-    worse than not offering it. The route to it is PEPE
-    [source:gasteiger1985], built on [source:marsili1980]; neither ships.
+    SIGMA is Gasteiger-Marsili PEOE [source:gasteiger1980] via RDKit, and
+    is the default and the historical behaviour.
+
+    PI is Marsili & Gasteiger's eq (7) [source:marsili1980] on their own
+    Table I parameters, at the atom's converged sigma charge -- the paper's
+    STARTING POE values. It is not iterated to pi self-consistency; see
+    `pi_orbital_electronegativities` and docs/VALIDATION.md, which records
+    the three pi-charge reconstructions that were measured and refused.
+
+    THEY ARE DIFFERENT QUANTITIES ON DIFFERENT PARAMETER SETS, not one
+    number relabelled -- nitrogen's two rows alone are 7.95 and 4.54 --
+    which is what makes offering the pi one honest at all.
     """
     _places = decimals(parameters)
     parameters = parameters or {}
+    component = _orbital_component(parameters)
     target = _maybe_microspecies(mol, parameters)
-    values = orbital_electronegativities(
-        target, include_hydrogens=bool(parameters.get("include_hydrogens", False))
-    )
+    if component == "pi":
+        # `include_hydrogens` is not consulted: hydrogen has no pi orbital
+        # and no row in Table I, so there is nothing for it to include.
+        values = pi_orbital_electronegativities(target)
+    else:
+        values = orbital_electronegativities(
+            target, include_hydrogens=bool(parameters.get("include_hydrogens", False))
+        )
     if not values:
         return PerAtomDataset(
             property_id="orbital_electronegativity",
-            name="Orbital Electronegativity (sigma)",
+            name=_ORBITAL_NAME[component],
             units="eV",
-            method="gasteiger_marsili",
+            method=_ORBITAL_METHOD[component],
             molecule_uuid=molecule_uuid,
             values={},
             cache_state=CacheState.FAILED,
-            error="No atom in this molecule has Gasteiger-Marsili parameters.",
-            provenance=Provenance(created_by="core", method="gasteiger_marsili", parameters={"decimal_places": _places}),
+            error=(
+                "This molecule has no conjugated pi system, so no atom has a "
+                "pi-orbital electronegativity."
+                if component == "pi"
+                else "No atom in this molecule has Gasteiger-Marsili parameters."
+            ),
+            error_summary=("No pi system" if component == "pi" else "No parameters"),
+            provenance=Provenance(
+                created_by="core",
+                method=_ORBITAL_METHOD[component],
+                parameters={"decimal_places": _places, "component": component},
+            ),
         )
     return PerAtomDataset(
         property_id="orbital_electronegativity",
-        name="Orbital Electronegativity (sigma)",
+        name=_ORBITAL_NAME[component],
         units="eV",
-        method="gasteiger_marsili",
+        method=_ORBITAL_METHOD[component],
         molecule_uuid=molecule_uuid,
         values=values,
         provenance=Provenance(
             created_by="core",
-            method="gasteiger_marsili",
+            method=_ORBITAL_METHOD[component],
             parameters={
-                "component": "sigma",
-                "note": (
-                    "chi = a + b*q + c*q^2 at the converged PEOE charge. Absolute values are "
-                    "parameter-set dependent; the ordering between atoms is the meaningful part."
-                ),
+                "component": component,
+                "note": _ORBITAL_NOTE[component],
                 ATOM_BASIS: atom_basis_of(target),
                 # DECLINED, and the note above already says why: an
                 # electronegativity is an INTENSIVE per-atom property, so

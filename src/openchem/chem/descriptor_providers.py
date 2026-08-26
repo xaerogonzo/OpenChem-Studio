@@ -51,6 +51,7 @@ from openchem.chem.dipole import compute_dipole_moment
 from openchem.chem.electronic_properties import (
     POLARIZABILITY_METHODS,
     compute_atomic_polarizability,
+    ORBITAL_COMPONENTS,
     compute_orbital_electronegativity,
     compute_polarizability,
 )
@@ -2800,23 +2801,44 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         display_name="Orbital Electronegativity",
         category="electronic",
         description=(
-            "Gasteiger-Marsili sigma orbital electronegativity (eV) at each atom's converged "
-            "PEOE charge. Absolute values depend on the parameter set and will differ between "
-            "implementations; the ordering between atoms is the meaningful part. This is "
-            "the SIGMA component; a pi component would require a separate pi-charge "
-            "iteration, which OpenChem does not run."
+            "Orbital electronegativity (eV) at each atom, in either component. Sigma is "
+            "Gasteiger-Marsili PEOE at the converged sigma charge. Pi is Marsili & "
+            "Gasteiger's own pi parameters at that same sigma charge -- their starting POE "
+            "values, covering the conjugated atoms only and NOT iterated to pi "
+            "self-consistency, so it does not reflect pi charge redistribution. Absolute "
+            "values depend on the parameter set and will differ between implementations; "
+            "the ordering between atoms is the meaningful part, and the pi ordering is not "
+            "the sigma one."
         ),
         execution=RegistryExecution(compute=compute_orbital_electronegativity),
         prediction_basis="empirical",
         parameters=[
             decimal_places_parameter(),
             CalculatorParameter(
+                # A CLOSED vocabulary shared with the chemistry layer, so the
+                # label the user picks and the branch that runs cannot drift.
+                name="component",
+                label="Component",
+                kind="choice",
+                default="Sigma (PEOE)",
+                choices=list(ORBITAL_COMPONENTS),
+            ),
+            CalculatorParameter(
+                # SAYS "sigma only" BECAUSE THE PI BRANCH IGNORES IT, and a
+                # tick box that silently does nothing is worse than an
+                # absent one. Hydrogen has no pi orbital and no row in
+                # Marsili & Gasteiger's Table I; the settings dialog builds
+                # one widget per parameter with no conditional visibility,
+                # so the honest place to say so is the label.
                 name="include_hydrogens",
-                label="Include hydrogens",
+                label="Include hydrogens (sigma only)",
                 kind="bool",
                 default=False,
             ),
             CalculatorParameter(
+                # Both components, unlike the one above: `_maybe_microspecies`
+                # runs BEFORE the component branch, so protonation changes
+                # the sigma charges the pi values are evaluated at too.
                 name="major_microspecies",
                 label="Take major microspecies",
                 kind="bool",

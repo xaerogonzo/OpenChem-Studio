@@ -12,11 +12,20 @@ well separated from any other.
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 
 from openchem.chem.pka_providers import compute_pka
 from rdkit import Chem
 
-INTERPRETER = r"D:\Random Programs\OpenChemStudio_Data\pkasolver_env\.venv\Scripts\python.exe"
+# The sibling `_config` reads the SAME Settings the application uses, so
+# this benchmark measures the pkasolver install the app actually runs.
+# It carried that path as a literal until 2026-08-26, which is the exact
+# drift `_config`'s own docstring exists to prevent.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "docking"))
+
+from _config import pka_interpreter  # noqa: E402
+
+INTERPRETER = pka_interpreter()
 
 # (name, SMILES, literature pKa, kind)
 CASES = [

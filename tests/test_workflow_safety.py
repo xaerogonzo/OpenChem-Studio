@@ -92,3 +92,94 @@ def test_the_self_hosted_workflow_refuses_to_run_on_a_fork() -> None:
     """
     body = _uncommented(WORKFLOWS / "benchmarks-selfhosted.yml")
     assert "github.repository == 'xaerogonzo/OpenChem-Studio'" in body
+
+
+# --- the shell a Windows runner hands a bash script to ---------------------
+#
+# Not a security rule like the ones above, but the same shape: one plausible
+# line, and a failure that reads as something else entirely.
+#
+# GitHub's default shell for `run:` is `bash` on Linux and **`pwsh` on
+# Windows**. `benchmarks-selfhosted.yml` runs on Windows and its steps are
+# written in bash, so without an explicit declaration PowerShell is handed a
+# bash script. Measured on the runner machine:
+#
+#     [ ! -d tdc_data ]     ParserError: Missing type name after '['
+#     <<ROWS heredoc        ParserError
+#     case / esac           ParserError
+#
+# A PowerShell PARSE error kills the WHOLE step before its first line runs,
+# so the step fails having done nothing and the failure reads as a broken
+# benchmark rather than a wrong shell.
+#
+# THE ONE THAT SURVIVED IS WHY THIS IS A TEST. `mkdir -p bench-out` shipped
+# in the docking step long before anyone noticed, because PowerShell resolves
+# `-p` as a prefix of `-Path` -- so it silently means something else, and
+# errors only on a re-run when the directory already exists.
+
+#: Constructs that PARSE in bash and do not in PowerShell. Deliberately
+#: distinctive: `fi` and `[` alone appear in ordinary YAML and prose.
+_BASH_ONLY = ("[ -", "[ !", "<<", "esac", "; do", "; then", '2>&1 | tee')
+
+_WINDOWS_RUNNER = re.compile(r"^\s*runs-on:.*windows", re.M | re.I)
+
+#: A job key: exactly two spaces of indent, under `jobs:`.
+_JOB_KEY = re.compile(r"^  ([A-Za-z_][\w-]*):\s*$", re.M)
+
+
+def _jobs(body: str) -> list[tuple[str, str]]:
+    """`(name, text)` per job. PER JOB IS THE WHOLE POINT of this split.
+
+    `tests.yml` has a windows-latest job and an ubuntu-latest one, and the
+    bash lives in the LINUX job's fingerprint. Checked over the whole file
+    the two look like one Windows job full of bash, and this guard's first
+    run said exactly that -- a false positive that would have demanded
+    `shell: bash` on a file whose Windows steps are all single plain
+    commands that run in any shell.
+    """
+    starts = [(m.start(), m.group(1)) for m in _JOB_KEY.finditer(body)]
+    bounds = [s for s, _ in starts] + [len(body)]
+    return [(name, body[bounds[i]:bounds[i + 1]]) for i, (_, name) in enumerate(starts)]
+
+
+@pytest.mark.parametrize("path", _workflows(), ids=lambda p: p.name)
+def test_a_windows_job_running_bash_declares_that_it_is_bash(path: Path) -> None:
+    """Windows defaults to `pwsh`, so bash steps must say so explicitly."""
+    body = _uncommented(path)
+    offenders = []
+    for name, job in _jobs(body):
+        if not _WINDOWS_RUNNER.search(job):
+            continue
+        used = [token for token in _BASH_ONLY if token in job]
+        if used and "shell: bash" not in job:
+            offenders.append((name, used))
+    if not offenders:
+        return
+    used = sorted({token for _n, tokens in offenders for token in tokens})
+    raise AssertionError(
+        f"{path.name}: job(s) {[n for n, _ in offenders]} run on Windows and "
+        f"use bash-only syntax ({', '.join(used)}) without declaring "
+        "`shell: bash`. GitHub hands those steps to PowerShell, where they "
+        "are a PARSE error -- the whole step dies before its first line runs."
+    )
+
+
+def test_the_self_hosted_workflow_really_is_written_in_bash() -> None:
+    """ASSERTS THE SETUP of the guard above, which is otherwise vacuous.
+
+    That test returns early for any workflow with no bash-only syntax in it,
+    so it passes whether or not the rule is doing anything. If the
+    self-hosted workflow were ever rewritten in PowerShell -- or if these
+    tokens stopped appearing for any other reason -- the guard would go
+    quietly green while the requirement it encodes had changed.
+
+    Same reason `test_a_tab_bars_scroll_buttons_are_qt_s_own` asserts the
+    window really does build a `QTabWidget`.
+    """
+    body = _uncommented(WORKFLOWS / "benchmarks-selfhosted.yml")
+    jobs = [job for _name, job in _jobs(body) if _WINDOWS_RUNNER.search(job)]
+    assert jobs, "this workflow no longer has a Windows job"
+    assert [token for job in jobs for token in _BASH_ONLY if token in job], (
+        "no bash-only syntax left in the self-hosted workflow, so the guard "
+        "above is now vacuous -- either it was rewritten, or the tokens moved"
+    )

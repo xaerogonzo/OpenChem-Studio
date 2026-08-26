@@ -1,6 +1,21 @@
 """Score every selection strategy on DELTA50, choosing on a split.
 
     uv run --no-sync python benchmarks/nmr/run_delta50.py "B3LYP def2-SVP"
+    uv run --no-sync python benchmarks/nmr/run_delta50.py "B3LYP def2-SVP" bench-out/nmr
+
+WHERE THE REPORTS GO, and why it is an argument rather than a constant.
+With no second argument they land in `reports/` beside this file, which is
+the deliberate hand-run that refreshes the committed tables. CI must NOT
+do that, for two separate reasons:
+
+  - `benchmarks-selfhosted.yml` uploads `bench-out/` and nothing else, so
+    reports written here are never published at all; and
+  - the `lookup` rows come from `nmr_database.predict_spectrum`, which
+    reads a MACHINE-LOCAL index that grows -- nmrshiftdb2 gained roughly
+    4% in three days (see README.md). On this machine today the run
+    reproduces the committed reports byte for byte and leaves the tree
+    clean; on a runner whose index differs it silently rewrites 24
+    TRACKED files.
 
 WHY A SPLIT. Forty-seven molecules is few enough to tune to by accident,
 and one of the candidate rules was written after looking at an atom it
@@ -128,8 +143,8 @@ def main() -> None:
     print("Lookup band errors on THIS corpus vs what the strategies assume:")
     print(band_reality_check(everything), "\n")
 
-    out = HERE / "reports"
-    out.mkdir(exist_ok=True)
+    out = Path(sys.argv[2]) if len(sys.argv) > 2 else HERE / "reports"
+    out.mkdir(parents=True, exist_ok=True)
     sections = []
     for label, subset in (("development", dev), ("held-out", test), ("all", everything)):
         evaluations = [
