@@ -1983,6 +1983,32 @@ The two `DeprecationWarning`s are the same pre-existing six-argument
 `QMouseEvent` overload in `test_dock_title_bar.py` and
 `test_trajectory_player.py`.
 
+**CI MEASURES THE SAME TREE AT 6063 passed, 19 skipped, 1 deselected**
+(run 32959039607, PR #48, Windows gate green, all three gates RAN), which
+is the same 6083: 6063 + 19 + 1. The four extra skips are the GPU-gated
+conformer gallery guards and the deselection is the PubChem network test.
+
+**AND THE LINUX JOB REACHED THE END, which is the whole point of the
+branch.** It crashed at 53% on master's merge; here it is
+`6063 passed, 19 skipped, 1 deselected` in 16m50 with **zero crash
+markers**, and the count reconciles to the same 6083. **THAT IS ONE RUN.**
+This file's own rule is that no A/B on this crash class is worth much below
+about n=10 per arm, and one green Linux run is n=1 -- it is consistent with
+the fix and is not proof of it. The instrumented 170-refreshes-to-0 is the
+number to trust.
+
+**THE ANNOTATION'S CRASH BRANCH DID NOT FIRE, BECAUSE NOTHING CRASHED**, so
+say what is and is not established. The classification LOGIC is verified
+against the real crashed log plus three synthetic arms (empty / no-summary
+/ clean / crashed), offline. That annotations from this job reach the REST
+API at all is verified directly -- the linux check-run already carries two,
+both `level=warning`. What has NOT run live is the `::error::` line itself.
+When it does, this is how to read it, and the `failure` filter is what
+tells it from the two ambient warnings:
+
+    gh api repos/OWNER/REPO/commits/SHA/check-runs       --jq '.check_runs[] | select(.name|startswith("linux")) | .id'
+    gh api repos/OWNER/REPO/check-runs/ID/annotations       --jq '.[] | select(.annotation_level=="failure")'
+
 15m06 sits mid-band; the 6-21 range stands.)
 
 Before it: `6053 passed, 15 skipped`
