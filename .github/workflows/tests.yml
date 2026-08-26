@@ -25,6 +25,23 @@
 # that turns empty output into "0 failed" would be the same failure one
 # level down.
 #
+# AND THE SUMMARY WAS STILL NOT ENOUGH, WHICH TOOK A CRASH TO FIND. Three
+# mechanisms deliberately turn a Linux failure green -- the suite step's
+# `|| true`, this job's `continue-on-error`, and the workflow tolerating the
+# job -- so no field the REST API returns can say the suite failed. That is
+# by design; the verdict is supposed to live in $GITHUB_STEP_SUMMARY. But
+# `gh run view --json` cannot read a step summary, so the only witness was a
+# human opening the run page, and run 32949434045 on master duly segfaulted
+# at 53% while every automated check reported success.
+#
+# The fingerprint step therefore also emits a WORKFLOW ANNOTATION, which is
+# exposed at `repos/{owner}/{repo}/check-runs/{id}/annotations` and does not
+# fail the job. It classifies three failures the old wording collapsed into
+# one: nothing ran, crashed part-way (a fatal-error marker and no summary
+# line), and ran without producing a summary. "Did not reach the end of
+# COLLECTION" was the wrong diagnosis for a suite that reached 53% of the
+# RUN.
+#
 # THE SAME JOBS RUN ON PUSH AND ON PULL_REQUEST, on purpose. A workflow whose
 # job set differs between the two triggers produces the trap where a green
 # push run sits beside a red PR, because the two were never running the same
@@ -262,6 +279,45 @@ jobs:
       - name: Report the Linux fingerprint
         if: always()
         run: |
+          summary=""; crash_markers=0; reached=""; victim=""
+          if [ -s suite.log ]; then
+            summary="$(grep -E '^[0-9]+ (passed|failed)|=+ .*(passed|failed|error)' suite.log | tail -1 || true)"
+            crash_markers="$(grep -cE 'Fatal Python error|Windows fatal exception|^Extension modules:' suite.log || true)"
+            # HOW FAR IT GOT. Anchored on the bracket rather than on the
+            # progress characters: Chromium writes ERROR lines into the middle
+            # of pytest's progress line, so a pattern matching leading
+            # `[.sFEx]` counts `Failed to make current...` as progress.
+            reached="$(grep -oE '\[ *[0-9]+%\]' suite.log | tail -1 | tr -d ' ' || true)"
+            # The DEEPEST frame belonging to this repository's tests, printed
+            # as `path:line in test_name`. `tail -1` because the traceback runs
+            # most-recent-first and the test function is below the helper it
+            # called -- the helper alone would name `_wait_until` and not the
+            # test that crashed.
+            victim="$(grep -oE 'tests/[A-Za-z0-9_/]+\.py", line [0-9]+ in [A-Za-z0-9_]+' suite.log               | tail -1 | sed -E 's/", line /:/' || true)"
+          fi
+
+          # THE ANNOTATION IS THE ONLY PART OF THIS A MACHINE CAN READ.
+          #
+          # Three mechanisms already turn a Linux failure green on purpose --
+          # the step's `|| true`, the job's `continue-on-error`, and the
+          # workflow tolerating the job -- so NO FIELD THE REST API RETURNS
+          # can say the suite failed. The verdict below goes to
+          # $GITHUB_STEP_SUMMARY, which `gh run view --json` cannot read, so
+          # for one whole class of failure the only witness was a human
+          # opening the run page. A workflow-command annotation IS exposed,
+          # via `gh api repos/{owner}/{repo}/check-runs/{id}/annotations`, and
+          # costs nothing: it does not fail the job, which stays advisory.
+          #
+          # MEASURED: run 32949434045 on master segfaulted at 53% and every
+          # automated check reported success.
+          if [ ! -s suite.log ]; then
+            echo "::error title=Linux suite produced NO OUTPUT::Nothing ran. This is not 'zero failures' -- the suite could not start."
+          elif [ -z "$summary" ] && [ "$crash_markers" != "0" ]; then
+            echo "::error title=Linux suite CRASHED MID-RUN::Reached ${reached:-an unknown point} then died at ${victim:-an unidentified frame}. No pytest summary line: the counts below are absent, not zero."
+          elif [ -z "$summary" ]; then
+            echo "::error title=Linux suite produced NO SUMMARY LINE::Output exists and carries no crash marker either. The run did not reach the end."
+          fi
+
           {
             echo "## Linux suite (non-blocking)"
             echo
@@ -270,10 +326,30 @@ jobs:
               echo "This is not 'zero failures'; nothing ran. Check the step above."
               exit 0
             fi
-            summary="$(grep -E '^[0-9]+ (passed|failed)|=+ .*(passed|failed|error)' suite.log | tail -1)"
+            if [ -z "$summary" ] && [ "$crash_markers" != "0" ]; then
+              # THE THIRD STATE, and the one this used to get wrong. It read
+              # "did not reach the end of collection", which is the wrong
+              # diagnosis for a suite that reached 53% of the RUN. A crash
+              # marker with no summary line is a native-code death part-way
+              # through, and the frames say where.
+              echo "**INFRASTRUCTURE FAILURE** -- the suite CRASHED PART-WAY THROUGH."
+              echo "It reached ${reached:-an unknown point} and produced no summary line,"
+              echo "so every count below is ABSENT rather than zero."
+              echo
+              echo "Victim frame: \`${victim:-not identified}\`"
+              echo
+              echo '```'
+              sed -n '/Fatal Python error\|Windows fatal exception/,/^Extension modules:/p' suite.log | head -40
+              echo '```'
+              echo
+              echo "**The published artifact carries the WHOLE log**, which is what a"
+              echo "\`tail\` cannot: the header and the frames naming the test are above"
+              echo "any window the job log prints. Fetch it before forming a hypothesis."
+              exit 0
+            fi
             if [ -z "$summary" ]; then
-              echo "**INFRASTRUCTURE FAILURE** -- output exists but carries no pytest"
-              echo "summary line, so the suite did not reach the end of collection."
+              echo "**INFRASTRUCTURE FAILURE** -- output exists, carries no pytest summary"
+              echo "line, and carries no crash marker either. The run did not reach the end."
               echo
               echo '```'
               tail -20 suite.log
@@ -303,7 +379,13 @@ jobs:
       # THE LOG IS PUBLISHED BECAUSE THE JOB LOG TRUNCATES IT. The suite step
       # prints `tail -30`, and the first Linux run had 9 failures of which
       # only 2 fell inside that window -- so the job log said "9 failed" and
-      # could not say which 9. The step summary carries the first 20, but
+      # could not say which 9.
+      #
+      # IT IS ALSO WHAT DIAGNOSED THE SEGFAULT, and for a sharper reason: a
+      # fatal traceback's header and the frames naming the test are ABOVE any
+      # tail window, so `tail -30` starts mid-traceback and names a pluggy
+      # frame. The artifact carries the whole file. Fetch it before forming a
+      # hypothesis. The step summary carries the first 20, but
       # nothing outside the browser can read a step summary. An artifact is
       # the only form the failures survive in for anyone diagnosing them
       # later, which is the whole point of running this job at all.
