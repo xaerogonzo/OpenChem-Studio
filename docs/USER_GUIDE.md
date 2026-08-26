@@ -617,7 +617,7 @@ the thing that needs the room.
 ## Properties
 
 The Properties panel is where most calculation happens. It has **22
-collapsible categories** covering **56 registered calculators**;
+collapsible categories** covering **57 registered calculators**;
 Physicochemical and Identity are open by default.
 
 Scalar descriptors compute eagerly — the whole batch finishes in well under
@@ -695,7 +695,7 @@ arrived together. It reads as a slow dialog and is not one.
 | Physicochemical | MW, logP, TPSA, HBD/HBA, rotatable bonds |
 | Energetic Materials | oxygen balance on both published conventions — burning carbon to CO₂ and to CO, which are different quantities for the same substance and can disagree in sign — and Kamlet–Jacobs detonation pressure and velocity, which require a measured loading density and enthalpy of formation and refuse without them. C/H/N/O only |
 | Thermophysical | Joback group contributions: normal boiling and freezing points, the three critical constants, enthalpy and Gibbs energy of formation, ideal-gas heat capacity, enthalpies of vaporization and fusion, and liquid viscosity — refused with the atom named when a structure carries a group the method has no contribution for |
-| Solubility | ESOL solubility, the Low/Moderate/High category, solubility at a chosen pH, the pH–solubility curve, a BCS high-solubility screening estimate, solubility in 91 non-aqueous solvents, and Gutmann donor and acceptor numbers for the chosen solvent where they were measured |
+| Solubility | ESOL solubility, the Low/Moderate/High category, solubility at a chosen pH, the pH–solubility curve, a BCS high-solubility screening estimate, solubility in 91 non-aqueous solvents, and Gutmann donor and acceptor numbers for the chosen solvent where they were measured. Also the three Hansen partial solubility parameters and their Hildebrand total by Stefanis-Panayiotou group contribution, which says which of the paper's two parameter sets produced each value |
 | Identity | formula, exact mass, elemental composition, InChI/InChIKey |
 | Naming | IUPAC name with its source and exactness label |
 | Charge | Gasteiger partial charges, and charges at a chosen pH |

@@ -98,6 +98,14 @@ CONSTANTS = {"d": 17.3231, "p": 7.3548, "hb": 7.9793}
 #: cover below it. In (MPa)^0.5.
 LOW_DELTA_THRESHOLD = 3.0
 
+#: EQS. 27 AND 28, AND THEY ARE EASY TO MISS. The low-range branch is not
+#: Eqs. 25/26 with different group contributions -- it has its OWN
+#: intercepts, given in a sentence between two figures rather than beside
+#: Tables 5 and 6. Building the branch without them puts n-hexane's delta_p
+#: at -2.009, a NEGATIVE solubility parameter, which is impossible; with them
+#: it is 0.737 against a literature 0.0.
+LOW_CONSTANTS = {"p": 2.7467, "hb": 1.3720}
+
 #: Every dash the paper uses for the same bond stroke. Hazard 3.
 DASHES = "\u002d\u2010\u2011\u2012\u2013\u2014\u2212"
 
@@ -363,6 +371,11 @@ def document(tables) -> dict:
         "_constants": CONSTANTS,
         "_low_delta": {
             "threshold": LOW_DELTA_THRESHOLD,
+            "constants": LOW_CONSTANTS,
+            "equations": {
+                "delta_p": "sum(Ni*Ci) + W*sum(Mj*Dj) + 2.7467   Eq. 27",
+                "delta_hb": "sum(Ni*Ci) + W*sum(Mj*Dj) + 1.3720  Eq. 28",
+            },
             "why": (
                 "Eqs. 25 and 26 are stated valid only for values greater than 3 "
                 "(MPa)^0.5. Tables 5 and 6 carry SEPARATE contributions for delta_p "

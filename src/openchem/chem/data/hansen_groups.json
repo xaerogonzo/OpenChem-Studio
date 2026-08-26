@@ -25,6 +25,14 @@
  },
  "_low_delta": {
   "threshold": 3.0,
+  "constants": {
+   "p": 2.7467,
+   "hb": 1.372
+  },
+  "equations": {
+   "delta_p": "sum(Ni*Ci) + W*sum(Mj*Dj) + 2.7467   Eq. 27",
+   "delta_hb": "sum(Ni*Ci) + W*sum(Mj*Dj) + 1.3720  Eq. 28"
+  },
   "why": "Eqs. 25 and 26 are stated valid only for values greater than 3 (MPa)^0.5. Tables 5 and 6 carry SEPARATE contributions for delta_p < 3 and delta_hb < 3, so the low range is answerable rather than refused -- but with a different parameter set, not the main one.",
   "applies_to": [
    "p",

@@ -56,6 +56,7 @@ from openchem.chem.electronic_properties import (
 )
 from openchem.chem.hlb import compute_griffin_hlb
 from openchem.chem.energetics import compute_detonation, compute_oxygen_balance
+from openchem.chem.hansen import compute_hansen
 from openchem.chem.joback import compute_joback
 from openchem.chem.huckel import compute_huckel_analysis, compute_pi_electron_density
 from openchem.chem.lewis import compute_lewis_sites
@@ -2574,6 +2575,27 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         prediction_basis="empirical",
         tags=["energetic", "oxygen balance", "combustion", "stoichiometry"],
         parameters=[decimal_places_parameter(1)],
+    ),
+    CalculatorDefinition(
+        calculator_id="hansen_solubility",
+        display_name="Hansen Solubility Parameters",
+        category="solubility",
+        description=(
+            "The three Hansen partial solubility parameters -- dispersion, polar and "
+            "hydrogen bonding -- and their Hildebrand total, from the structure alone by "
+            "Stefanis and Panayiotou's group contributions. Two passes: first-order "
+            "UNIFAC groups partition the molecule, then second-order conjugation groups "
+            "correct it where they apply, which is what the paper's W switch selects. "
+            "Below 3 MPa^0.5 the polar and hydrogen-bonding parameters come from the "
+            "paper's SEPARATE low-range regression rather than from the main equations, "
+            "and the result says which was used. Needs three or more carbons excluding "
+            "the characteristic group's own atom, and refuses a structure carrying an "
+            "atom in no group rather than returning a partial sum."
+        ),
+        execution=RegistryExecution(compute=compute_hansen),
+        prediction_basis="empirical",
+        tags=["solubility", "hansen", "hildebrand", "solvent", "group contribution"],
+        parameters=[decimal_places_parameter(2)],
     ),
     CalculatorDefinition(
         calculator_id="joback_properties",

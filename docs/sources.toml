@@ -1787,9 +1787,11 @@ identifier_type = "doi"
 identifier = "10.1007/s10765-008-0415-z"
 status = "shipped"
 used_by = [
+    "src/openchem/chem/hansen.py",
     "src/openchem/chem/data/hansen_groups.json",
     "tools/build_hansen_tables.py",
     "tests/test_hansen_table.py",
+    "tests/test_hansen_fragmenter.py",
 ]
 local = "stefanis2008.pdf"
 verification = "citation_and_claim"
