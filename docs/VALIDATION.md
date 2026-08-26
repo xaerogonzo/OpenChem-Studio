@@ -548,6 +548,65 @@ they are far enough apart to tell.
 
 The most load-bearing results here.
 
+**The pi-charge iteration — THREE reconstructions, all measured, none
+shipped.** The pi component of `orbital_electronegativity` DID ship (see
+below); what did not is the iteration that would make those values
+self-consistent, and with it a `pi_charge` calculator and a sigma+pi
+dipole.
+
+The oracle is Table I of [source:gasteiger1985] — 15 molecules with
+experimental *and* calculated dipole moments, read off a 320 dpi render.
+Their own MAE against experiment is **0.164 D**. Measured on this
+project's PEOE sigma charges and ETKDG/MMFF geometries:
+
+| model | MAE vs experiment |
+|---|---|
+| sigma only (PEOE, what ships today) | 0.794 D |
+| PEPE [source:gasteiger1985], reconstructed | 0.693 D |
+| SD-POE [source:marsili1980] eqs (8)–(10), as printed | **0.834 D** |
+| the paper's own PEPE | **0.164 D** |
+
+**SD-POE AS PRINTED IS WORSE THAN NO PI TERM AT ALL**, which is the
+clearest single result. Its eq (8) has no weighting — the raw
+electronegativity difference over `D_j` — so an isolated C=O moves 0.130 e
+where the paper's own total implies about 0.019 e. Nitrobenzene ends up
+3.37 D high.
+
+**AND THE GAP CANNOT BE CLOSED HONESTLY.** [source:gasteiger1985]
+specifies the WEIGHTING completely — eqs (d)–(j), and all six factors
+(`f_a` 0.65, `f_b` 0.30, `f_c` 0.133, `f_e` 1.00, `f_sp` 0.50, `f_s` 0.33)
+over 8 cycles — and does not specify the resonance-structure
+ENUMERATION, which lived in the PL/1 program it describes. Tuning an
+unspecified enumeration until 15 dipoles agree is fitting a six-parameter
+model to 15 numbers, and nothing afterwards could tell that apart from a
+reconstruction. The same reason the conformer threshold fitted to butane
+is recorded here as a wrong KIND of bound rather than a wrong value.
+
+**WHAT THE SPIKE'S TWO GATES DID NOT COVER.** They were "is the parameter
+table legible" and "does a printed oracle exist"; both passed. The
+enumeration was a third requirement neither gate asked about, and it is
+the one that decided the outcome. A gate list is only as good as the
+question it forgot.
+
+**WHAT SHIPPED INSTEAD**, and why it is not a consolation prize: Table I
+of [source:marsili1980] plus its eq (7), at the converged PEOE sigma
+charge — the paper's own *starting POE* values, fully specified and
+needing no reconstruction. That is the quantity deciding the DIRECTION of
+conjugation, which is the paper's central point: with neutral-state
+values "no transfer from the heteroatom to the double bond would be
+possible … whenever a +M effect is expected none can be predicted", and
+inserting the sigma charge is precisely what fixes it. Benzene's six
+carbons come out identical; phenol runs ipso 6.67 > ortho 5.42 > meta
+5.09 > para 5.06; phenol's oxygen sits at 2.18, far below the ring it
+donates into. Pyridine's nitrogen lands *below* its carbons — screened by
+its own sigma charge, which is the mechanism these parameters exist to
+carry and is asserted on purpose.
+
+**THE TRANSCRIPTION CAUGHT AN ERROR, in 1 value of 33.** The scan's OCR
+text layer reads `b = 11.13` for O-sp2 where the page prints **11.73**.
+Same one-in-fifty-three as the Drago E/C audit's 3.13 against 3.12, and
+no averaged validation would have seen it. Read the render.
+
 **A trained NMR shift model.** Boosted trees over HOSE codes plus RDKit atom
 features, aimed squarely at the 10.00 ppm `rough` band. Held-out MAE moved
 2.98 → 2.91 with a confidence interval spanning zero: **not

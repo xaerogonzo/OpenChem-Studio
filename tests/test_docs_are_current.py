@@ -918,8 +918,17 @@ def test_the_candidate_detector_can_say_no():
 
     # ... and it must NOT fire on a statement about OpenChem's own scope,
     # which is the distinction the whole registry rests on.
+    #
+    # THE SUBSTRING WAS RE-POINTED, NOT THE CONTROL. It read "pi component"
+    # while that description said a pi component "would require a separate
+    # pi-charge iteration, which OpenChem does not run" -- and the pi
+    # component SHIPPED, so that sentence is gone. What replaced it is
+    # still an own-scope note (the pi values are not iterated to
+    # self-consistency), so this calculator is still the right control and
+    # only the phrase it is anchored on had to move. Deleting the arm would
+    # have left the detector with nothing asserting it can say no.
     scope = _calculator_descriptions()["orbital_electronegativity"]
-    assert "pi component" in scope.lower()
+    assert "not iterated to pi self-consistency" in scope.lower()
     assert not any(re.search(shape, scope, re.I) for shape in _AVAILABILITY_SHAPES), (
         "orbital_electronegativity's own-scope note now reads as an availability "
         "claim, which would demand a code predicate for something no external "

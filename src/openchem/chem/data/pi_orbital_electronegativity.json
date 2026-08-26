@@ -1,0 +1,20 @@
+{
+ "_source_key": "marsili1980",
+ "attribution": "M. Marsili & J. Gasteiger, 'pi-Charge Distribution from Molecular Topology and pi-Orbital Electronegativity', Croatica Chemica Acta 1980;53(4):601-614, CCA-1246, Table I, p 606. Transcribed from a 300 dpi render of that page.",
+ "relation": "chi_pi = a_pi + b_pi*q + c_pi*q^2  (the paper's eq 7)",
+ "units": "eV",
+ "transcription_note": "THE TEXT LAYER OF THAT SCAN IS WRONG IN ONE PLACE. It reads b_pi = 11.13 for O-sp2 where the page prints 11.73. One of 33 values, which is why this table was read off a render rather than extracted -- the same failure mode the Drago E/C audit found at 3.13 against a printed 3.12. 'J' is the paper's German notation for iodine (Jod) and is stored under 'I'.",
+ "orbitals": {
+  "O-sp2": {"paper_row": "O-sp2 (pz)", "role": "pz", "element": "O", "a": 10.09, "b": 11.73, "c": 2.87},
+  "O-sp3": {"paper_row": "O-sp3 (electron pair)", "role": "pair", "element": "O", "a": 7.91, "b": 14.76, "c": 6.85},
+  "S-sp2": {"paper_row": "S-sp2 (pz)", "role": "pz", "element": "S", "a": 7.73, "b": 8.16, "c": 1.81},
+  "S-sp3": {"paper_row": "S-sp3 (electron pair)", "role": "pair", "element": "S", "a": 6.60, "b": 10.32, "c": 3.72},
+  "N-sp2": {"paper_row": "N-sp2 (pz)", "role": "pz", "element": "N", "a": 7.95, "b": 9.73, "c": 2.67},
+  "N-sp3": {"paper_row": "N-sp3 (electron pair)", "role": "pair", "element": "N", "a": 4.54, "b": 11.86, "c": 7.32},
+  "C-sp2": {"paper_row": "C-sp2 (pz)", "role": "pz", "element": "C", "a": 5.60, "b": 8.93, "c": 2.94},
+  "F": {"paper_row": "F (electron pair)", "role": "pair", "element": "F", "a": 7.34, "b": 13.86, "c": 9.64},
+  "Cl": {"paper_row": "Cl (electron pair)", "role": "pair", "element": "Cl", "a": 6.50, "b": 9.69, "c": 5.49},
+  "Br": {"paper_row": "Br (electron pair)", "role": "pair", "element": "Br", "a": 5.20, "b": 9.68, "c": 4.48},
+  "I": {"paper_row": "J (electron pair)", "role": "pair", "element": "I", "a": 4.95, "b": 8.81, "c": 3.86}
+ }
+}

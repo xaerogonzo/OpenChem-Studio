@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 9b4792cbf5db088516c5f152cf5d783c9110b31f195c198c8c052254714e1659 -->
+<!-- SOURCE SHA256: 055ad36ad3581cc9f88c5c9c1c42585d9c41c1d1f1cc01ae414e00eadabc8a2f -->
 
 # Sources
 
@@ -143,7 +143,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`llinas2020`](#llinas2020) | dataset | shipped | citation + claim |
 | [`lorentzon1995`](#lorentzon1995) | literature | reference only | citation + claim |
 | [`lovering2009`](#lovering2009) | literature | shipped | citation |
-| [`marsili1980`](#marsili1980) | literature | **not shipped** | citation |
+| [`marsili1980`](#marsili1980) | literature | shipped | citation + claim |
 | [`mayer1975`](#mayer1975) | literature | reference only | citation |
 | [`mayo1990`](#mayo1990) | literature | shipped | citation + claim |
 | [`miller1979`](#miller1979) | literature | shipped | citation + claim |
@@ -1155,10 +1155,11 @@ PEOE, reached through RDKit's rdPartialCharges.ComputeGasteigerCharges. It
 backs `gasteiger_charge_at_ph`, the dipole calculator's charge model and
 `orbital_electronegativity`.
 
-THE SIGMA COMPONENT ONLY. Marvin additionally exposes a pi component, which
-needs the separate pi-charge iteration of [source:marsili1980] and
-[source:gasteiger1985]; relabelling the sigma value as pi would be worse than
-not offering it. That is the one remaining item on ROADMAP's deferral list.
+THE SIGMA COMPONENT. `orbital_electronegativity` offers a pi one as well now,
+on [source:marsili1980]'s own parameters rather than by relabelling this one
+-- they are different quantities on different tables, and nitrogen's two rows
+alone are 7.95 against 4.54. What is still not offered is the pi-charge
+ITERATION; see that entry and [source:gasteiger1985].
 
 REGISTERED IN A BACKFILL, AND THE HOLE IT CLOSES IS THE INTERESTING PART.
 This method has backed shipped calculators for the life of the project and
@@ -1176,18 +1177,32 @@ the same reason; all five landed together.
 | | |
 | --- | --- |
 | Identifier | Croat. Chem. Acta 53 (4) 601-614 (1980), CCA-1246 |
-| Status | **not shipped** |
-| Verification | citation |
-| Verified | 2026-08-25 |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-26 |
 | Local copy | `cca1246.pdf` (not checked) |
-
-**Why it is not shipped.** The pi half of PEOE. Held for the sigma/pi charge separation work; nothing
-ships from it yet, so it is recorded as read rather than as backing anything.
+| Used by | `src/openchem/chem/electronic_properties.py`, `src/openchem/chem/data/pi_orbital_electronegativity.json` |
 
 PRE-DOI AND MARKED "Conference Paper" ON ITS OWN FIRST PAGE, which is worth
 recording because a conference paper and a journal article are not the same
 kind of claim. The PDF confirms itself as CROATICA CHEMICA ACTA CCACAA 53
 (4) 601-614 (1980) CCA-1246.
+
+TABLE I (p 606) SHIPS, all 11 rows, as the pi component of
+`orbital_electronegativity`. chi_pi = a + b*q + c*q^2 is the paper's eq (7),
+evaluated at the converged PEOE SIGMA charge -- what the paper calls the
+starting POE values.
+
+**READ OFF A 300 dpi RENDER, AND THAT CAUGHT ONE ERROR IN 33 VALUES.** The
+scan's OCR text layer gives b = 11.13 for O-sp2 where the page prints 11.73.
+Same one-in-fifty-three the Drago E/C audit found at 3.13 against 3.12, and a
+validation that averages would never have seen it. The shipped JSON records
+the paper's own row labels so a future audit runs line by line.
+
+WHAT DOES NOT SHIP IS THE PI-CHARGE ITERATION. eqs (8)-(10) were implemented
+and measured against the dipole table of [source:gasteiger1985] and came out
+WORSE than no pi term at all -- 0.834 D against 0.794 D. See
+docs/VALIDATION.md; the shipped values are the starting POE and say so.
 
 ### gasteiger1985
 
@@ -1203,9 +1218,22 @@ kind of claim. The PDF confirms itself as CROATICA CHEMICA ACTA CCACAA 53
 | Verified | 2026-08-25 |
 | Local copy | `gasteiger1985.pdf` (not checked) |
 
-**Why it is not shipped.** PEPE -- partial equalization of pi-electronegativity, the route to the pi
-component `orbital_electronegativity` deliberately does not claim. Held for
-that work; nothing ships from it yet.
+**Why it is not shipped.** PEPE -- partial equalization of pi-electronegativity. MEASURED AND REFUSED
+2026-08-26, which is a stronger statement than the "held for that work" this
+field carried before.
+
+The paper specifies the WEIGHTING completely -- eqs (d)-(j) and all six
+factors, f_a 0.65, f_b 0.30, f_c 0.133, f_e 1.00, f_sp 0.50, f_s 0.33, over
+8 cycles -- and does NOT specify the resonance-structure ENUMERATION, which
+lived in the PL/1 program the paper describes. A reconstruction of it scores
+0.693 D against the paper's own 0.164 D on its Table I, and closing that gap
+means tuning an unspecified enumeration until 15 numbers agree, which is
+fitting rather than reconstructing. docs/VALIDATION.md carries the table.
+
+ITS TABLE I IS STILL USED, as the ORACLE that refused the reconstruction --
+15 molecules with experimental and calculated dipole moments. That is a
+different thing from backing a shipped number, which is why this stays
+assessed_not_shipped.
 
 THE PDF OPENS ON A DIFFERENT ARTICLE -- page 1 carries the tail of an
 oligonucleotide paper's reference list, and the Gasteiger-Saller article

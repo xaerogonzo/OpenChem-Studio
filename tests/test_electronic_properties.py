@@ -163,3 +163,180 @@ def test_electronegativity_can_be_taken_on_the_major_microspecies():
     )
     assert result.cache_state != CacheState.FAILED
     assert result.values
+
+
+# --- the pi component ------------------------------------------------------
+#
+# `chi_pi = a + b*q + c*q^2` on Marsili & Gasteiger 1980's Table I, at the
+# converged PEOE SIGMA charge -- the paper's own "starting POE" values. What
+# is NOT here is a pi-charge iteration; docs/VALIDATION.md records three
+# reconstructions of it that were measured and refused.
+
+
+def _pi(smiles: str) -> dict[int, float]:
+    from openchem.chem.electronic_properties import pi_orbital_electronegativities
+
+    return pi_orbital_electronegativities(Chem.MolFromSmiles(smiles))
+
+
+def test_the_shipped_pi_table_is_the_papers_table():
+    """Transcription, against the 300-dpi render rather than the text layer.
+
+    THE OCR LAYER OF THAT SCAN IS WRONG IN ONE PLACE and this is the value:
+    it reads 11.13 for O-sp2's b where the page prints 11.73. One of 33
+    numbers -- the same one-in-fifty-three the Drago E/C audit found -- and
+    a validation that averages would never have seen it.
+    """
+    from openchem.chem.electronic_properties import pi_parameter_table
+
+    table = pi_parameter_table()
+    assert len(table) == 11
+    assert (table["O-sp2"]["a"], table["O-sp2"]["b"], table["O-sp2"]["c"]) == (10.09, 11.73, 2.87)
+    assert (table["N-sp3"]["a"], table["N-sp3"]["b"], table["N-sp3"]["c"]) == (4.54, 11.86, 7.32)
+    assert (table["C-sp2"]["a"], table["C-sp2"]["b"], table["C-sp2"]["c"]) == (5.60, 8.93, 2.94)
+    # "J (electron pair)" is the paper's German notation for iodine.
+    assert table["I"]["paper_row"].startswith("J ")
+    assert table["I"]["element"] == "I"
+
+
+def test_the_two_rows_for_one_element_are_far_apart():
+    """Why picking the wrong ROLE is not a rounding difference.
+
+    Nitrogen contributing one electron to a pi bond and nitrogen donating a
+    lone pair are different rows -- 7.95 against 4.54 -- so `_pi_role` is
+    load-bearing rather than a tidy-up. This asserts the SPREAD, so the
+    claim survives a future edition changing the values.
+    """
+    from openchem.chem.electronic_properties import pi_parameter_table
+
+    table = pi_parameter_table()
+    for element, pz, pair in (("N", "N-sp2", "N-sp3"), ("O", "O-sp2", "O-sp3")):
+        assert table[pz]["element"] == table[pair]["element"] == element
+        assert abs(table[pz]["a"] - table[pair]["a"]) > 2.0
+
+
+def test_a_symmetric_ring_gives_one_value_to_every_carbon():
+    values = _pi("c1ccccc1")
+    assert len(values) == 6
+    assert max(values.values()) - min(values.values()) == pytest.approx(0.0, abs=1e-9)
+
+
+def test_a_substituent_is_felt_at_the_ortho_and_para_positions():
+    """The ORDERING, which is what this quantity is for.
+
+    Phenol: ipso > ortho > meta, and the ring keeps its mirror symmetry.
+    That is the substituent effect these parameters carry, and it is
+    model-independent in the way the file docstring means.
+    """
+    values = _pi("Oc1ccccc1")          # O=0, ipso=1, ortho=2/6, meta=3/5, para=4
+    assert values[1] > values[2] > values[3]
+    assert values[2] == pytest.approx(values[6], abs=1e-9)
+    assert values[3] == pytest.approx(values[5], abs=1e-9)
+
+
+def test_a_lone_pair_donor_falls_BELOW_the_ring_it_donates_into():
+    """THE PAPER'S OWN CENTRAL POINT, asserted rather than described.
+
+    [source:marsili1980] p 606: with neutral-state values "no transfer from
+    the heteroatom to the double bond would be possible ... Generally,
+    whenever a +M effect is expected none can be predicted". Inserting the
+    SIGMA charge is the fix, and the test of it is that the donor's POE now
+    sits below the vicinal carbon's. If this ever inverts, the +M direction
+    inverts with it and every value here means the opposite thing.
+    """
+    for smiles, donor, ipso in (("Oc1ccccc1", 0, 1), ("Nc1ccccc1", 0, 1)):
+        values = _pi(smiles)
+        assert values[donor] < values[ipso], smiles
+
+
+def test_pyridines_nitrogen_comes_out_BELOW_its_carbons_and_that_is_the_model():
+    """Counter-intuitive, correct, and asserted ON PURPOSE.
+
+    Bare electronegativity puts nitrogen well above carbon. Here the
+    pyridine nitrogen is sigma-NEGATIVE, and the paper's mechanism is that
+    "the excess negative charge will cause an additional screening of the
+    pz(B) orbital which thereby LOWERS the POE of this orbital" -- so it
+    lands below its sigma-positive neighbours.
+
+    Same shape as `test_koopmans_inverts_ammonia_against_phosphine`: if a
+    future change makes this agree with bare electronegativity, the
+    sigma-dependence has been lost and this fails naming it.
+    """
+    values = _pi("c1ccncc1")           # nitrogen is atom 3
+    assert values[3] < values[2]
+    assert values[3] < values[4]
+
+
+def test_an_atom_outside_the_pi_system_is_ABSENT_not_zero():
+    """Zero is a value on this scale, and every real one is positive."""
+    assert _pi("CCO") == {}
+    ethylbenzene = _pi("CCc1ccccc1")
+    assert 0 not in ethylbenzene and 1 not in ethylbenzene   # the ethyl carbons
+    assert len(ethylbenzene) == 6                            # the ring, and only the ring
+
+
+def test_asking_for_SIGMA_still_covers_the_whole_molecule():
+    """THE LOAD-BEARING HALF of the pair above.
+
+    "The dataset covers pi atoms only" is satisfied by an implementation
+    that has quietly narrowed the SIGMA dataset too, which would be a
+    silent regression in the component that has shipped all along.
+    """
+    ethanol = compute_orbital_electronegativity(Chem.MolFromSmiles("CCO"), "u")
+    assert len(ethanol.values) == 3
+    assert ethanol.cache_state is not CacheState.FAILED
+
+
+def test_an_unknown_component_label_falls_back_and_says_which_ran():
+    """Both halves, and the second is the one that matters.
+
+    A stored project written by a future version must stay openable, so an
+    unrecognised label falls back rather than raising. But sigma and pi are
+    DIFFERENT QUANTITIES on different parameter sets, so a fallback nobody
+    can see would silently change what a stored number means -- the
+    recorded component is what stops that. Same shape as
+    `test_an_unknown_method_label_falls_back_and_says_which_ran`.
+    """
+    mol = Chem.MolFromSmiles("Oc1ccccc1")
+    fell_back = compute_orbital_electronegativity(mol, "u", {"component": "Pi (SD-POE) v2"})
+    sigma = compute_orbital_electronegativity(mol, "u", {"component": "Sigma (PEOE)"})
+
+    assert fell_back.values == sigma.values
+    assert fell_back.provenance.parameters["component"] == "sigma"
+    assert fell_back.method == "gasteiger_marsili"
+
+    # AND THE OTHER DIRECTION, which is the half that discriminates. A
+    # mutation hardcoding `"component": "sigma"` in the provenance SURVIVED
+    # the assertions above -- of course it did: the fallback case really is
+    # sigma. Only a successful PI run recording "pi" can tell a field that
+    # reports what ran from one that always says the same thing.
+    ran_pi = compute_orbital_electronegativity(mol, "u", {"component": "Pi (SD-POE)"})
+    assert ran_pi.provenance.parameters["component"] == "pi"
+    assert ran_pi.method == "marsili_sd_poe"
+
+
+def test_the_two_components_are_not_the_same_numbers_under_two_labels():
+    """The refusal this feature exists to avoid becoming.
+
+    `orbital_electronegativity` used to say a pi value "would require a
+    separate pi-charge iteration, which OpenChem does not run", because
+    relabelling the sigma one would be worse than offering nothing. So the
+    thing to assert is that they genuinely differ.
+    """
+    mol = Chem.MolFromSmiles("Oc1ccccc1")
+    sigma = compute_orbital_electronegativity(mol, "u", {"component": "Sigma (PEOE)"})
+    pi = compute_orbital_electronegativity(mol, "u", {"component": "Pi (SD-POE)"})
+
+    assert sigma.method != pi.method
+    shared = set(sigma.values) & set(pi.values)
+    assert shared, "nothing to compare"
+    assert all(abs(sigma.values[i] - pi.values[i]) > 0.5 for i in shared)
+
+
+def test_a_molecule_with_no_pi_system_refuses_rather_than_returning_nothing():
+    result = compute_orbital_electronegativity(
+        Chem.MolFromSmiles("CCO"), "u", {"component": "Pi (SD-POE)"}
+    )
+    assert result.cache_state is CacheState.FAILED
+    assert "pi system" in (result.error or "")
+    assert result.values == {}

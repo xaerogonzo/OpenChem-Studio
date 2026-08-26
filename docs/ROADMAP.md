@@ -371,8 +371,11 @@ orbitals. Every one carries its options; none is unlabelled as to whether
 it is measured, empirical or ab initio.
 
 Several things were deliberately NOT shipped after measurement — TSEI,
-HLB, Miller polarizability, σ/π charge separation — and that is recorded
-in the modules themselves rather than left as silence.
+HLB, Miller polarizability, the π-charge iteration — and that is recorded
+in the modules themselves rather than left as silence. The first three
+have since shipped, on re-reading their reasons rather than their
+verdicts; the fourth was measured against a printed oracle and refused,
+which is the outcome that list exists to hold.
 
 ### Spectroscopy
 
@@ -912,11 +915,30 @@ and three were checked again recently rather than taken on trust.
   from atoms actually observed.
 - **MMTF import** — refused; the service no longer resolves and the
   vendored viewer dropped it.
-- **σ/π charge separation** — the only survivor of a group of four this
-  entry used to name. `compute_orbital_electronegativity` offers the sigma
-  component alone; Marvin additionally exposes a pi component, which needs a
-  separate pi-charge iteration. Claiming a pi value by relabelling the sigma
-  one would be worse than not offering it.
+- **The π-charge ITERATION** — what is left of an entry that used to read
+  "σ/π charge separation" and named the whole thing.
+
+  **The π COMPONENT shipped 2026-08-26.**
+  `compute_orbital_electronegativity` takes a `component` parameter now,
+  and the π branch is Marsili & Gasteiger's own Table I on their eq (7)
+  [source:marsili1980] — a different parameter set, not the σ value
+  relabelled, which is what the old entry rightly refused. Benzene's six
+  carbons come out identical, phenol runs ipso > ortho > meta > para, and
+  pyridine's nitrogen lands *below* its carbons because its own σ charge
+  screens it, which is the mechanism the parameters exist to carry.
+
+  **What is NOT shipped is the iteration that would make those values
+  self-consistent**, and with it a π-charge calculator and a σ+π dipole.
+  Three reconstructions were measured against the 15-molecule dipole table
+  of [source:gasteiger1985]; the best scored 0.693 D against the paper's
+  own 0.164 D, and the printed SD-POE equations came out at 0.834 D —
+  **worse than no π term at all**. The papers specify the weighting and
+  not the resonance-structure enumeration, so closing that gap means
+  tuning an unspecified enumeration until 15 numbers agree. That is
+  fitting, not reconstructing. docs/VALIDATION.md carries the table.
+
+  So the shipped values are the paper's *starting POE* and say so, in the
+  calculator's description, its provenance note and its docstring.
 
   **TSEI, HLB and Miller polarizability are NO LONGER on this list, and all
   three shipped.** They are `tsei_projection`, `griffin_hlb` and
