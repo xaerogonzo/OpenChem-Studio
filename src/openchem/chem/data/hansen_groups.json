@@ -1,0 +1,1118 @@
+{
+ "_source_key": "stefanis2008",
+ "_description": "Stefanis & Panayiotou group contributions to the Hansen solubility parameters, Tables 3-6 (pp 578-581).",
+ "_read_from": "the BORN-DIGITAL text layer of stefanis2008.pdf, not a render",
+ "_why_text_layer": "The paper prints its own DOI and its glyphs extract as real characters, unlike the scanned sources in this project. Its four transcription hazards are recorded in tools/build_hansen_tables.py and are about NAMING rather than about digits: a digit zero for a letter O, one group spelled two ways, three different Unicode dashes for the same bond stroke, and five decimal places in the low-delta tables against four in the main ones.",
+ "_equations": {
+  "_table": "Eqs. 23-26, pp 573-574",
+  "general": "f(x) = sum(Ni*Ci) + W*sum(Mj*Dj)",
+  "W": "0 for a compound with NO second-order groups, 1 for one with any",
+  "delta_d": "sum(Ni*Ci) + W*sum(Mj*Dj) + 17.3231",
+  "delta_p": "sum(Ni*Ci) + W*sum(Mj*Dj) + 7.3548",
+  "delta_hb": "sum(Ni*Ci) + W*sum(Mj*Dj) + 7.9793",
+  "delta_t": "sqrt(delta_d**2 + delta_p**2 + delta_hb**2)"
+ },
+ "_units": {
+  "delta_d": "MPa^0.5",
+  "delta_p": "MPa^0.5",
+  "delta_hb": "MPa^0.5",
+  "delta_t": "MPa^0.5"
+ },
+ "_constants": {
+  "d": 17.3231,
+  "p": 7.3548,
+  "hb": 7.9793
+ },
+ "_low_delta": {
+  "threshold": 3.0,
+  "why": "Eqs. 25 and 26 are stated valid only for values greater than 3 (MPa)^0.5. Tables 5 and 6 carry SEPARATE contributions for delta_p < 3 and delta_hb < 3, so the low range is answerable rather than refused -- but with a different parameter set, not the main one.",
+  "applies_to": [
+   "p",
+   "hb"
+  ]
+ },
+ "_applicability": "Stated on p574: the model is applicable to organic compounds with THREE OR MORE CARBON ATOMS, excluding the atom of the characteristic group (e.g. -COOH or -CHO).",
+ "_missing_marker": "A null contribution is the paper's own '***', which its Table 5 caption expands as 'The specific group contributions to this delta parameter are not available'. It is ABSENCE, never zero.",
+ "_asymmetries": {
+  "low_first_order_groups_absent_from_table_3": [
+   "ACCH<",
+   "CCl2F",
+   "CHNH",
+   "CHO"
+  ],
+  "why": "Table 5 lists four first-order groups Table 3 does not, verified against the raw page rather than inferred from a failed lookup: ACCH< (0.86718, -1.44666), CHNH (1.25999, ***), CCl2F (***, ***) and a bare CHO (***, -0.40667). So a low-delta contribution can exist for a group with NO main-table contribution, and the reverse. Neither table is a subset of the other.",
+  "cho_is_ambiguous": "Table 3 disambiguates CHO into 'CHO (aldehydes)' and 'CHO (ethers)', which carry different contributions. Table 5 writes a bare 'CHO'. Its low-delta_hb value of -0.40667 therefore cannot be attributed to either without a judgement the paper does not make -- so a consumer must REFUSE the low-delta branch for those two groups rather than pick one. Recorded here because the data cannot express the distinction and the code must not invent it."
+ },
+ "_naming": "`printed` is the paper's own spelling and the key is that spelling with every dash variant folded onto ASCII '-'. Where the two differ by more than dashes, `corrected` records the change and why it was made.",
+ "first_order": {
+  "-ch3": {
+   "d": -0.9714,
+   "p": -1.6448,
+   "hb": -0.7813,
+   "printed": "−CH3",
+   "example": "Propane (2)"
+  },
+  "-ch2": {
+   "d": -0.0269,
+   "p": -0.3045,
+   "hb": -0.4119,
+   "printed": "−CH2",
+   "example": "Butane (2)"
+  },
+  "-ch<": {
+   "d": 0.645,
+   "p": 0.6491,
+   "hb": -0.2018,
+   "printed": "−CH<",
+   "example": "Isobutane (1)"
+  },
+  ">c<": {
+   "d": 1.2686,
+   "p": 2.0838,
+   "hb": 0.0866,
+   "printed": ">C<",
+   "example": "Neopentane (1)"
+  },
+  "ch2=ch-": {
+   "d": -1.0585,
+   "p": -2.0035,
+   "hb": -1.2985,
+   "printed": "CH2=CH–",
+   "example": "Propylene (1)"
+  },
+  "-ch=ch-": {
+   "d": 0.0048,
+   "p": -0.2984,
+   "hb": -0.04,
+   "printed": "−CH=CH–",
+   "example": "cis-2-Butene (1)"
+  },
+  "ch2=c<": {
+   "d": -0.4829,
+   "p": -0.7794,
+   "hb": -0.826,
+   "printed": "CH2=C<",
+   "example": "Isobutene (1)"
+  },
+  "-ch=c<": {
+   "d": 0.5372,
+   "p": -0.9024,
+   "hb": -1.8872,
+   "printed": "−CH=C<",
+   "example": "2-Methyl-2-butene (1)"
+  },
+  ">c=c<": {
+   "d": 0.3592,
+   "p": 1.0526,
+   "hb": -15.4659,
+   "printed": ">C=C<",
+   "example": "2,3-Dimethyl-2-butene (1)"
+  },
+  "ch2=c=ch-": {
+   "d": -1.6518,
+   "p": null,
+   "hb": -0.998,
+   "printed": "CH2=C=CH–",
+   "example": "1,2-Butadiene (1)"
+  },
+  "ch≡c-": {
+   "d": 0.232,
+   "p": -1.3294,
+   "hb": 1.0736,
+   "printed": "CH≡C–",
+   "example": "Propyne (1)"
+  },
+  "c≡c": {
+   "d": -0.2028,
+   "p": -0.7598,
+   "hb": -1.1083,
+   "printed": "C≡C",
+   "example": "2-Butyne (1)"
+  },
+  "ach": {
+   "d": 0.1105,
+   "p": -0.5303,
+   "hb": -0.4305,
+   "printed": "ACH",
+   "example": "Benzene (6)"
+  },
+  "ac": {
+   "d": 0.8446,
+   "p": 0.6187,
+   "hb": 0.0084,
+   "printed": "AC",
+   "example": "Naphthalene (2)"
+  },
+  "acch3": {
+   "d": 0.2174,
+   "p": -0.5705,
+   "hb": -1.1473,
+   "printed": "ACCH3",
+   "example": "Toluene (1)"
+  },
+  "acch2-": {
+   "d": 0.6933,
+   "p": 0.6517,
+   "hb": -0.1375,
+   "printed": "ACCH2–",
+   "example": "m-Ethyltoluene (1)"
+  },
+  "ch3co": {
+   "d": -0.3551,
+   "p": 2.3192,
+   "hb": -1.3078,
+   "printed": "CH3CO",
+   "example": "Methyl ethyl ketone (1)"
+  },
+  "ch2co": {
+   "d": 0.6527,
+   "p": 3.7328,
+   "hb": -0.5344,
+   "printed": "CH2CO",
+   "example": "Cyclopentanone (1)"
+  },
+  "cho (aldehydes)": {
+   "d": -0.403,
+   "p": 3.4734,
+   "hb": 0.1687,
+   "printed": "CHO (aldehydes)",
+   "example": "1-Butanal (1)"
+  },
+  "cooh": {
+   "d": -0.291,
+   "p": 0.9042,
+   "hb": 3.7391,
+   "printed": "COOH",
+   "example": "Vinyl acid (1)"
+  },
+  "ch3coo": {
+   "d": -0.5401,
+   "p": -0.397,
+   "hb": 1.5826,
+   "printed": "CH3COO",
+   "example": "Ethyl acetate (1)"
+  },
+  "ch2coo": {
+   "d": 0.2913,
+   "p": 3.6462,
+   "hb": 1.2523,
+   "printed": "CH2COO",
+   "example": "Methyl propionate (1)"
+  },
+  "hcoo": {
+   "d": null,
+   "p": 1.9308,
+   "hb": 2.1202,
+   "printed": "HCOO",
+   "example": "n-Propyl formate (1)"
+  },
+  "coo": {
+   "d": 0.2039,
+   "p": 3.4637,
+   "hb": 1.1389,
+   "printed": "COO",
+   "example": "Ethyl acrylate (1)"
+  },
+  "oh": {
+   "d": -0.3462,
+   "p": 1.1404,
+   "hb": 7.1908,
+   "printed": "OH",
+   "example": "Isopropanol (1)"
+  },
+  "acoh": {
+   "d": 0.5288,
+   "p": 1.101,
+   "hb": 6.958,
+   "printed": "ACOH",
+   "example": "Phenol (1)"
+  },
+  "ch3o": {
+   "d": -0.5828,
+   "p": 0.1764,
+   "hb": 0.146,
+   "printed": "CH3O",
+   "example": "Methyl ethyl ether (1)"
+  },
+  "ch2o": {
+   "d": 0.031,
+   "p": 0.8826,
+   "hb": -0.1528,
+   "printed": "CH2O",
+   "example": "Ethyl vinyl ether (1)"
+  },
+  "cho (ethers)": {
+   "d": 0.8833,
+   "p": 1.6853,
+   "hb": 0.447,
+   "printed": "CHO (ethers)",
+   "example": "Diisopropyl ether (1)"
+  },
+  "c2h5o2": {
+   "d": -0.1249,
+   "p": 3.6422,
+   "hb": 8.3579,
+   "printed": "C2H5O2",
+   "example": "2-Methoxy-ethanol (1)"
+  },
+  "ch2o (cyclic)": {
+   "d": 0.2753,
+   "p": 0.1994,
+   "hb": -0.161,
+   "printed": "CH2O (cyclic)",
+   "example": "1,4-Dioxane (2)"
+  },
+  "ch2nh2": {
+   "d": -0.5828,
+   "p": 1.4084,
+   "hb": 2.592,
+   "printed": "CH2NH2",
+   "example": "1-Amino-2-propanol (1)"
+  },
+  "chnh2": {
+   "d": 0.0112,
+   "p": -1.1989,
+   "hb": 0.3818,
+   "printed": "CHNH2",
+   "example": "Isopropylamine (1)"
+  },
+  "ch3nh": {
+   "d": null,
+   "p": 0.6777,
+   "hb": 5.6646,
+   "printed": "CH3NH",
+   "example": "n-Methylaniline (1)"
+  },
+  "ch2nh": {
+   "d": 0.8116,
+   "p": 0.9412,
+   "hb": 1.34,
+   "printed": "CH2NH",
+   "example": "di-n-Propylamine (1)"
+  },
+  "ch3n": {
+   "d": 0.8769,
+   "p": 1.2046,
+   "hb": 1.6062,
+   "printed": "CH3N",
+   "example": "Trimethylamine (1)"
+  },
+  "ch2n": {
+   "d": 1.4681,
+   "p": 2.8345,
+   "hb": 1.2505,
+   "printed": "CH2N",
+   "example": "Triethylamine (1)"
+  },
+  "acnh2": {
+   "d": 1.6987,
+   "p": 1.6761,
+   "hb": 4.5274,
+   "printed": "ACNH2",
+   "example": "Aniline (1)"
+  },
+  "conh2": {
+   "d": -0.0689,
+   "p": 6.0694,
+   "hb": 5.228,
+   "printed": "CONH2",
+   "example": "2-Methacrylamide (1)"
+  },
+  "con(ch3)2": {
+   "d": 0.4482,
+   "p": 5.7899,
+   "hb": 3.002,
+   "printed": "CON(CH3)2",
+   "example": "n,n-Dimethylacetamide (1)"
+  },
+  "ch2sh": {
+   "d": 1.2797,
+   "p": -0.8223,
+   "hb": 4.4646,
+   "printed": "CH2SH",
+   "example": "n-Butyl mercaptan (1)"
+  },
+  "ch3s": {
+   "d": null,
+   "p": 0.4944,
+   "hb": -1.4861,
+   "printed": "CH3S",
+   "example": "Methyl ethyl sulﬁde (1)"
+  },
+  "ch2s": {
+   "d": 1.0595,
+   "p": 0.753,
+   "hb": -0.2287,
+   "printed": "CH2S",
+   "example": "Diethyl sulﬁde (1)"
+  },
+  "i": {
+   "d": 0.7797,
+   "p": 0.6777,
+   "hb": 0.2646,
+   "printed": "I",
+   "example": "Isopropyl iodide (1)"
+  },
+  "br": {
+   "d": 0.5717,
+   "p": 0.6997,
+   "hb": -1.0722,
+   "printed": "Br",
+   "example": "2-Bromopropane (1)"
+  },
+  "ch2cl": {
+   "d": 0.2623,
+   "p": 0.597,
+   "hb": -0.5364,
+   "printed": "CH2Cl",
+   "example": "n-Butyl chloride (1)"
+  },
+  "chcl": {
+   "d": 0.4462,
+   "p": 2.806,
+   "hb": -1.4125,
+   "printed": "CHCl",
+   "example": "Isopropyl chloride (1)"
+  },
+  "ccl": {
+   "d": 2.7576,
+   "p": 2.0406,
+   "hb": 0.1101,
+   "printed": "CCl",
+   "example": "t-Butyl chloride (1)"
+  },
+  "chcl2": {
+   "d": 1.1797,
+   "p": 1.8361,
+   "hb": -3.2861,
+   "printed": "CHCl2",
+   "example": "1,1-Dichloropropane (1)"
+  },
+  "ccl2": {
+   "d": 0.3653,
+   "p": 0.1696,
+   "hb": -1.4334,
+   "printed": "CCl2",
+   "example": "Pentachlorocyclopropane (2)"
+  },
+  "ccl3": {
+   "d": null,
+   "p": 1.2777,
+   "hb": -2.6354,
+   "printed": "CCl3",
+   "example": "Benzotrichloride (1)"
+  },
+  "accl": {
+   "d": 0.8475,
+   "p": -0.0339,
+   "hb": -0.784,
+   "printed": "ACCl",
+   "example": "m-Dichlorobenzene (2)"
+  },
+  "acf": {
+   "d": 0.117,
+   "p": 0.1856,
+   "hb": -0.7182,
+   "printed": "ACF",
+   "example": "Fluorobenzene (1)"
+  },
+  "cl-(c=c)": {
+   "d": 0.2289,
+   "p": 2.3444,
+   "hb": 3.8893,
+   "printed": "Cl–(C=C)",
+   "example": "2,3-Dichloropropene (1)"
+  },
+  "cf3": {
+   "d": -0.2293,
+   "p": -1.9735,
+   "hb": -1.4665,
+   "printed": "CF3",
+   "example": "Perﬂuorohexane (2)"
+  },
+  "ch2no2": {
+   "d": null,
+   "p": 6.8944,
+   "hb": -1.2861,
+   "printed": "CH2NO2",
+   "example": "1-Nitropropane (1)"
+  },
+  "chno2": {
+   "d": null,
+   "p": 8.0347,
+   "hb": -2.3167,
+   "printed": "CHNO2",
+   "example": "2-Nitropropane (1)"
+  },
+  "acno2": {
+   "d": 1.4195,
+   "p": 4.4838,
+   "hb": -0.7167,
+   "printed": "ACNO2",
+   "example": "Nitrobenzene (1)"
+  },
+  "ch2cn": {
+   "d": -0.3392,
+   "p": 6.5341,
+   "hb": -0.8892,
+   "printed": "CH2CN",
+   "example": "n-Butyronitrile (1)"
+  },
+  "cf2": {
+   "d": -0.9729,
+   "p": null,
+   "hb": null,
+   "printed": "CF2",
+   "example": "Perﬂuoromethylcyclohexane (5)"
+  },
+  "cf": {
+   "d": 0.1707,
+   "p": null,
+   "hb": null,
+   "printed": "CF",
+   "example": "Perﬂuoromethylcyclohexane (1)"
+  },
+  "f (except as above)": {
+   "d": -0.7069,
+   "p": null,
+   "hb": null,
+   "printed": "F (except as above)",
+   "example": "2-Fluoropropane (1)"
+  },
+  "ch2=c=c<": {
+   "d": -0.2804,
+   "p": null,
+   "hb": -1.9167,
+   "printed": "CH2=C=C<",
+   "example": "3-Methyl-1,2-butadiene (1)"
+  },
+  "o (except as above)": {
+   "d": 0.0472,
+   "p": 3.3432,
+   "hb": 0.0256,
+   "printed": "O (except as above)",
+   "example": "Divinyl ether (1)"
+  },
+  "cl (except as above)": {
+   "d": 0.2256,
+   "p": 1.8711,
+   "hb": -0.3295,
+   "printed": "Cl (except as above)",
+   "example": "Hexachlorocyclopentadiene (2)"
+  },
+  ">c=n-": {
+   "d": -0.3074,
+   "p": -0.0012,
+   "hb": -5.3956,
+   "printed": ">C=N–",
+   "example": "2,4,6-Trimethylpyridine (1)"
+  },
+  "-ch=n-": {
+   "d": 0.9672,
+   "p": 1.9728,
+   "hb": 0.7668,
+   "printed": "−CH=N–",
+   "example": "Isoquinoline (1)"
+  },
+  "nh (except as above)": {
+   "d": null,
+   "p": 0.0103,
+   "hb": 2.2086,
+   "printed": "NH (except as above)",
+   "example": "Dibenzopyrrole (1)"
+  },
+  "cn (except as above)": {
+   "d": 0.0861,
+   "p": 6.5331,
+   "hb": -0.6849,
+   "printed": "CN (except as above)",
+   "example": "cis-Crotonitrile (1)"
+  },
+  "o=c=n-": {
+   "d": -0.1306,
+   "p": 1.6102,
+   "hb": 4.0461,
+   "printed": "O=C=N–",
+   "example": "n-Butyl isocyanate (1)"
+  },
+  "sh (except as above)": {
+   "d": 1.0427,
+   "p": 1.9813,
+   "hb": 4.8181,
+   "printed": "SH (except as above)",
+   "example": "2-Mercaptobenzothiazole (1)"
+  },
+  "s (except as above)": {
+   "d": 1.4899,
+   "p": 9.2072,
+   "hb": -0.625,
+   "printed": "S (except as above)",
+   "example": "Thiophene (1)"
+  },
+  "so2": {
+   "d": 1.5502,
+   "p": 11.1758,
+   "hb": 0.1055,
+   "printed": "SO2",
+   "example": "Sulfolene (1)"
+  },
+  ">c=s": {
+   "d": 0.7747,
+   "p": 0.0683,
+   "hb": 3.408,
+   "printed": ">C=S",
+   "example": "n-Methylthiopyrrolidone (1)"
+  },
+  ">c=o (except as above)": {
+   "d": -0.4343,
+   "p": 0.7905,
+   "hb": 1.8147,
+   "printed": ">C=0 (except as above)",
+   "corrected": ">C=O (except as above)",
+   "example": "Anthraquinone (2)"
+  },
+  "n (except as above)": {
+   "d": 1.5438,
+   "p": 2.578,
+   "hb": 1.1189,
+   "printed": "N (except as above)",
+   "example": "Triphenylamine (1)"
+  }
+ },
+ "second_order": {
+  "(ch3)2-ch-": {
+   "d": 0.046,
+   "p": 0.0019,
+   "hb": 0.3149,
+   "printed": "(CH3)2–CH–",
+   "example": "Isobutane (1)"
+  },
+  "(ch3)3-c-": {
+   "d": -0.0738,
+   "p": 1.1881,
+   "hb": -0.2966,
+   "printed": "(CH3)3–C–",
+   "example": "Neopentane (1)"
+  },
+  "ring of 5 carbons": {
+   "d": -0.6681,
+   "p": -2.343,
+   "hb": -0.3079,
+   "printed": "ring of 5 carbons",
+   "example": "Cyclopentane (1)"
+  },
+  "ring of 6 carbons": {
+   "d": -0.3874,
+   "p": -3.6432,
+   "hb": null,
+   "printed": "ring of 6 carbons",
+   "example": "Cyclohexane (1)"
+  },
+  "-c=c-c=c-": {
+   "d": -0.1355,
+   "p": -3.5085,
+   "hb": -1.0795,
+   "printed": "−C=C–C=C–",
+   "example": "1,3-Butadiene (1)"
+  },
+  "ch3-c=": {
+   "d": -0.0785,
+   "p": 0.3316,
+   "hb": 0.3875,
+   "printed": "CH3-C=",
+   "example": "Isobutene (2)"
+  },
+  "-ch2-c=": {
+   "d": -0.3236,
+   "p": -2.3179,
+   "hb": -0.5836,
+   "printed": "−CH2–C=",
+   "example": "1-Butene (1)"
+  },
+  ">c{h or c}-c=": {
+   "d": -0.2798,
+   "p": null,
+   "hb": -1.1164,
+   "printed": ">C{H or C}–C=",
+   "example": "3-Methyl-1-butene (1)"
+  },
+  "string in cyclic": {
+   "d": -0.1945,
+   "p": null,
+   "hb": null,
+   "printed": "string in cyclic",
+   "example": "Ethylcyclohexane (1)"
+  },
+  "ch3(co)ch2-": {
+   "d": -0.0451,
+   "p": -0.3383,
+   "hb": -0.4083,
+   "printed": "CH3(CO)CH2–",
+   "example": "Methyl ethyl ketone (1)"
+  },
+  "ccyclic=o": {
+   "d": -0.2981,
+   "p": 0.4497,
+   "hb": -0.4794,
+   "printed": "Ccyclic=O",
+   "example": "Cyclopentanone (1)"
+  },
+  "accooh": {
+   "d": -0.2293,
+   "p": -0.6349,
+   "hb": -0.903,
+   "printed": "ACCOOH",
+   "example": "Benzoic acid (1)"
+  },
+  ">c{h or c}-cooh": {
+   "d": null,
+   "p": -0.2187,
+   "hb": 1.146,
+   "printed": ">C{H or C}–COOH",
+   "example": "Isobutyric acid (1)"
+  },
+  "ch3(co)oc{h or c}<": {
+   "d": -0.522,
+   "p": -0.0652,
+   "hb": 0.3085,
+   "printed": "CH3(CO)OC{H or C}<",
+   "example": "Isopropyl acetate (1)"
+  },
+  "(co)c{h2}coo": {
+   "d": null,
+   "p": -2.3792,
+   "hb": 0.8412,
+   "printed": "(CO)C{H2}COO",
+   "example": "Ethyl acetoacetate (1)"
+  },
+  "(co)o(co)": {
+   "d": -0.2707,
+   "p": -1.0562,
+   "hb": 1.6335,
+   "printed": "(CO)O(CO)",
+   "example": "Acetic anhydride (1)"
+  },
+  "acho": {
+   "d": 0.3772,
+   "p": -1.811,
+   "hb": -1.0096,
+   "printed": "ACHO",
+   "example": "Benzaldehyde (1)"
+  },
+  ">choh": {
+   "d": 0.1123,
+   "p": 0.2564,
+   "hb": -0.1928,
+   "printed": ">CHOH",
+   "example": "2-Propanol (1)"
+  },
+  ">c<oh": {
+   "d": -0.068,
+   "p": 0.1075,
+   "hb": 1.2931,
+   "printed": ">C<OH",
+   "example": "Tert-Butanol (1)"
+  },
+  "-c(oh)c(oh)-": {
+   "d": null,
+   "p": 0.6419,
+   "hb": 0.387,
+   "printed": "−C(OH)C(OH)–",
+   "example": "1,2-Propanediol (1)"
+  },
+  "-c(oh)c(n)": {
+   "d": -0.0809,
+   "p": 0.5683,
+   "hb": -0.6326,
+   "printed": "−C(OH)C(N)",
+   "example": "1-Amino-2-propanol (1)"
+  },
+  "ccyclic-oh": {
+   "d": -0.0876,
+   "p": -3.522,
+   "hb": 0.5914,
+   "printed": "Ccyclic–OH",
+   "example": "Cyclohexanol (1)"
+  },
+  "c-o-c=c": {
+   "d": 0.2063,
+   "p": 0.608,
+   "hb": 1.1344,
+   "printed": "C–O–C=C",
+   "example": "Ethyl vinyl ether (1)"
+  },
+  "ac-o-c": {
+   "d": 0.2568,
+   "p": 0.8153,
+   "hb": 0.6092,
+   "printed": "AC–O–C",
+   "example": "Methyl phenyl ether (1)"
+  },
+  ">n{h or c}(in cyclic)": {
+   "d": 0.2218,
+   "p": -2.2018,
+   "hb": -0.0452,
+   "printed": ">N{H or C}(in cyclic)",
+   "example": "Cyclopentimine (1)"
+  },
+  "-s-(in cyclic)": {
+   "d": 0.4892,
+   "p": 0.304,
+   "hb": 0.2297,
+   "printed": "−S-(in cyclic)",
+   "example": "Tetrahydrothiophene (1)"
+  },
+  "acbr": {
+   "d": 0.1234,
+   "p": -0.4495,
+   "hb": 0.3397,
+   "printed": "ACBr",
+   "example": "Bromobenzene (1)"
+  },
+  "(c=c)-br": {
+   "d": -0.4059,
+   "p": -0.0024,
+   "hb": -1.1304,
+   "printed": "(C=C)–Br",
+   "example": "2-Bromopropene (1)"
+  },
+  "ring of 3 carbons": {
+   "d": 0.02,
+   "p": 1.8288,
+   "hb": -0.8073,
+   "printed": "ring of 3 carbons",
+   "example": "Cyclopropane (1)"
+  },
+  "accoo": {
+   "d": -0.1847,
+   "p": 0.4059,
+   "hb": -0.1921,
+   "printed": "ACCOO",
+   "example": "Methyl benzoate (1)"
+  },
+  "ac(achm)2ac(achn)2": {
+   "d": -0.3751,
+   "p": -1.298,
+   "hb": 0.6844,
+   "printed": "AC(ACHm)2AC(ACHn)2",
+   "example": "Naphthalene (1)"
+  },
+  "ocyclic-ccyclic=o": {
+   "d": 0.2468,
+   "p": 2.7501,
+   "hb": 0.122,
+   "printed": "Ocyclic–Ccyclic=O",
+   "example": "Diketene (1)"
+  },
+  "ac-o-ac": {
+   "d": -0.5646,
+   "p": -3.4329,
+   "hb": 2.083,
+   "printed": "AC–O–AC",
+   "example": "Diphenyl ether (1)"
+  },
+  "ccyclichm=ncyclic-ccyclichn=ccyclichp": {
+   "d": 0.7002,
+   "p": 0.0691,
+   "hb": -2.7661,
+   "printed": "CcyclicHm=Ncyclic–CcyclicHn=CcyclicHp",
+   "example": "2,6-Dimethylpyridine (1)"
+  },
+  "ncyclichm-ccyclic =o": {
+   "d": 0.2956,
+   "p": 2.8958,
+   "hb": 1.3125,
+   "printed": "NcyclicHm–Ccyclic =O",
+   "example": "2-Pyrrolidone (1)"
+  },
+  "-o-chm-o-chn-": {
+   "d": 0.0839,
+   "p": 0.3451,
+   "hb": 0.3767,
+   "printed": "−O–CHm–O–CHn–",
+   "example": "Methylal (1)"
+  },
+  "c(=o)-c-c(=o)": {
+   "d": -0.4862,
+   "p": -0.4888,
+   "hb": 1.2482,
+   "printed": "C(=O)–C–C(=O)",
+   "example": "2,4-Pentanedione (1)"
+  }
+ },
+ "first_order_low": {
+  "-ch3": {
+   "p": -0.72412,
+   "hb": 0.29901,
+   "printed": "–CH3"
+  },
+  "-ch2": {
+   "p": -0.1403,
+   "hb": -0.1161,
+   "printed": "–CH2"
+  },
+  "-ch<": {
+   "p": 0.58978,
+   "hb": 0.1386,
+   "printed": "–CH<"
+  },
+  "ch2=ch-": {
+   "p": -0.29774,
+   "hb": 1.35521,
+   "printed": "CH2=CH–"
+  },
+  "-ch=ch-": {
+   "p": -0.22864,
+   "hb": 0.48189,
+   "printed": "–CH=CH–"
+  },
+  "ch2=c<": {
+   "p": 0.64816,
+   "hb": 0.11148,
+   "printed": "CH2=C<"
+  },
+  "-ch=c<": {
+   "p": 1.22566,
+   "hb": -0.03066,
+   "printed": "–CH=C<"
+  },
+  ">c=c<": {
+   "p": null,
+   "hb": -0.12117,
+   "printed": ">C=C<"
+  },
+  "ch2=c=ch-": {
+   "p": -0.32258,
+   "hb": null,
+   "printed": "CH2=C=CH–"
+  },
+  "ch≡c-": {
+   "p": -0.74895,
+   "hb": 0.43846,
+   "printed": "CH≡C–"
+  },
+  "c≡c": {
+   "p": null,
+   "hb": -0.35107,
+   "printed": "C≡C"
+  },
+  "ach": {
+   "p": -0.19313,
+   "hb": 0.13532,
+   "printed": "ACH"
+  },
+  "ac": {
+   "p": 0.16369,
+   "hb": -0.17405,
+   "printed": "AC"
+  },
+  "acch3": {
+   "p": -0.47724,
+   "hb": -0.28733,
+   "printed": "ACCH3"
+  },
+  "acch2-": {
+   "p": -0.33086,
+   "hb": -0.88084,
+   "printed": "ACCH2–"
+  },
+  "acch<": {
+   "p": 0.86718,
+   "hb": -1.44666,
+   "printed": "ACCH<"
+  },
+  "ch3coo": {
+   "p": 1.71923,
+   "hb": null,
+   "printed": "CH3COO"
+  },
+  "ch2coo": {
+   "p": 2.16274,
+   "hb": null,
+   "printed": "CH2COO"
+  },
+  "coo": {
+   "p": 1.60913,
+   "hb": 0.37204,
+   "printed": "COO"
+  },
+  "oh": {
+   "p": 1.84013,
+   "hb": null,
+   "printed": "OH"
+  },
+  "ch3o": {
+   "p": -0.4032,
+   "hb": null,
+   "printed": "CH3O"
+  },
+  "ch2o": {
+   "p": null,
+   "hb": null,
+   "printed": "CH2O"
+  },
+  "cho": {
+   "p": null,
+   "hb": -0.40667,
+   "printed": "CHO"
+  },
+  "ch2o (cyclic)": {
+   "p": -0.33305,
+   "hb": null,
+   "printed": "CH2O (cyclic)"
+  },
+  "ch2nh2": {
+   "p": null,
+   "hb": null,
+   "printed": "CH2NH2"
+  },
+  "ch2nh": {
+   "p": 0.83214,
+   "hb": null,
+   "printed": "CH2NH"
+  },
+  "chnh": {
+   "p": 1.25999,
+   "hb": null,
+   "printed": "CHNH"
+  },
+  "ch3n": {
+   "p": null,
+   "hb": -0.17004,
+   "printed": "CH3N"
+  },
+  "ch2n": {
+   "p": 0.65229,
+   "hb": -1.03686,
+   "printed": "CH2N"
+  },
+  "ch2s": {
+   "p": null,
+   "hb": 0.14606,
+   "printed": "CH2S"
+  },
+  "ch2cl": {
+   "p": null,
+   "hb": 0.48952,
+   "printed": "CH2Cl"
+  },
+  "chcl": {
+   "p": null,
+   "hb": 0.12996,
+   "printed": "CHCl"
+  },
+  "chcl2": {
+   "p": null,
+   "hb": 0.52541,
+   "printed": "CHCl2"
+  },
+  "accl": {
+   "p": -0.10778,
+   "hb": 0.44238,
+   "printed": "ACCl"
+  },
+  "ccl2f": {
+   "p": null,
+   "hb": null,
+   "printed": "CCl2F"
+  },
+  "acf": {
+   "p": null,
+   "hb": -0.37183,
+   "printed": "ACF"
+  },
+  "cl-(c=c)": {
+   "p": null,
+   "hb": 0.66062,
+   "printed": "Cl–(C=C)"
+  },
+  "cf3": {
+   "p": null,
+   "hb": -0.08871,
+   "printed": "CF3"
+  },
+  "ch2=c=c<": {
+   "p": 1.20154,
+   "hb": null,
+   "printed": "CH2=C=C<"
+  },
+  "o (except as above)": {
+   "p": -0.48942,
+   "hb": null,
+   "printed": "O (except as above)"
+  },
+  "cl (except as above)": {
+   "p": null,
+   "hb": 1.12515,
+   "printed": "Cl (except as above)"
+  },
+  "s (except as above)": {
+   "p": 0.11058,
+   "hb": null,
+   "printed": "S (except as above)"
+  },
+  ">c=o (except as above)": {
+   "p": null,
+   "hb": -0.05529,
+   "printed": ">C=0 (except as above)",
+   "corrected": ">C=O (except as above)"
+  }
+ },
+ "second_order_low": {
+  "(ch3)2-ch-": {
+   "p": 0.200694,
+   "hb": 1e-08,
+   "printed": "(CH3)2–CH–"
+  },
+  "ring of 5 carbons": {
+   "p": -0.897912,
+   "hb": 0.19438,
+   "printed": "Ring of 5 carbons"
+  },
+  "ring of 6 carbons": {
+   "p": -0.956852,
+   "hb": 2e-08,
+   "printed": "Ring of 6 carbons"
+  },
+  "-c=c-c=c-": {
+   "p": 0.648793,
+   "hb": null,
+   "printed": "–C=C–C=C–"
+  },
+  "ch3-c=": {
+   "p": -0.008375,
+   "hb": -0.06137,
+   "printed": "CH3–C="
+  },
+  "-ch2-c=": {
+   "p": 0.011009,
+   "hb": 0.06599,
+   "printed": "–CH2–C="
+  },
+  ">c{h or c}-c=": {
+   "p": -0.3972,
+   "hb": 0.342229,
+   "printed": ">C{H or C}–C="
+  },
+  "string in cyclic": {
+   "p": null,
+   "hb": -0.280859,
+   "printed": "String in cyclic"
+  },
+  "accoo": {
+   "p": 0.491153,
+   "hb": 1e-08,
+   "printed": "ACCOO"
+  },
+  "ac(achm)2ac(achn)2": {
+   "p": 0.013012,
+   "hb": 0.086424,
+   "printed": "AC(ACHm)2AC(ACHn)2"
+  },
+  "-o-chm-o-chn-": {
+   "p": 0.0,
+   "hb": null,
+   "printed": "–O–CHm–O–CHn–"
+  }
+ }
+}
