@@ -37,6 +37,11 @@ from openchem.services.job_manager import JobManager
 
 logger = logging.getLogger("openchem.chemistry")
 
+#: WHICH JOB A QProcess BELONGS TO, carried on the process itself so the
+#: three signal handlers need no closure over `self`. See the connections in
+#: `_launch` for what a closure cost.
+_JOB_KEY_PROPERTY = "_openchem_job_key"
+
 # Same appname/appauthor PluginManager/reaction_prediction already use for
 # their own "OpenChemStudio" app-data locations.
 _APP_NAME = "OpenChemStudio"
@@ -599,9 +604,16 @@ class QuantumChemistryService(QObject):
         self._active_jobs[key] = job
 
         process.setWorkingDirectory(str(scratch_dir))
-        process.readyReadStandardOutput.connect(lambda: self._on_stdout(key))
-        process.finished.connect(lambda code, status: self._on_finished(key))
-        process.errorOccurred.connect(lambda error: self._on_process_error(key, error))
+        # WHICH JOB TRAVELS ON THE PROCESS, never in a closure. PySide6 holds
+        # a connected plain callable strongly, so `lambda: self._on_stdout(key)`
+        # made `process -> lambda -> self` -- and since the service owns the
+        # process, a cycle the cyclic collector cannot see through, because
+        # the callable lives in PySide's own map. Every job run therefore
+        # rooted the whole service graph for the life of the process.
+        process.setProperty(_JOB_KEY_PROPERTY, key)
+        process.readyReadStandardOutput.connect(self._on_process_ready_read)
+        process.finished.connect(self._on_process_finished)
+        process.errorOccurred.connect(self._on_process_error_occurred)
 
         process.setProgram(args[0])
         process.setArguments([str(a) for a in args[1:]])
@@ -617,6 +629,29 @@ class QuantumChemistryService(QObject):
             return
         job.cancelled = True
         job.process.kill()
+
+    def _key_of_sender(self) -> str | None:
+        """The job key the signalling QProcess was tagged with."""
+        process = self.sender()
+        if process is None:
+            return None
+        key = process.property(_JOB_KEY_PROPERTY)
+        return None if key is None else str(key)
+
+    def _on_process_ready_read(self) -> None:
+        key = self._key_of_sender()
+        if key is not None:
+            self._on_stdout(key)
+
+    def _on_process_finished(self, _code: int = 0, _status: object = None) -> None:
+        key = self._key_of_sender()
+        if key is not None:
+            self._on_finished(key)
+
+    def _on_process_error_occurred(self, error: QProcess.ProcessError) -> None:
+        key = self._key_of_sender()
+        if key is not None:
+            self._on_process_error(key, error)
 
     def _on_stdout(self, key: str) -> None:
         job = self._active_jobs.get(key)
