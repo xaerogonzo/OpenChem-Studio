@@ -59,9 +59,24 @@ def test_a_scheduled_structure_is_reported_with_its_framework(registry):
 
 def test_every_line_is_ascii(registry):
     """These reach `AlertResult.matched`, which goes to Qt, logs and console
-    streams. A Windows cp1252 stream raises on a tick or an em-dash --
-    `test_naming_result_lines_stay_ascii` exists because that was hit three
-    times in one session."""
+    streams. `test_naming_result_lines_stay_ascii` exists because that was
+    hit three times in one session.
+
+    **WHAT cp1252 ACTUALLY REFUSES, measured rather than recalled.** This
+    docstring used to say the stream "raises on a tick or an em-dash". It
+    raises on the tick and NOT on the em dash, so the guard is real and its
+    stated reach was not:
+
+        tick U+2713   RAISE      em dash U+2014   ok
+        A-ring, degree, sup-2    ok               sup-3   ok
+
+    cp437 and cp850 are stricter -- both refuse the em dash, and cp437 also
+    refuses a superscript three. Widening this guard to all three is a
+    separate decision from correcting what it claims, and is NOT made here:
+    `Å²` and `Å³` are legitimate units in this application's result lines
+    and cp437 has the first and not the second. See
+    `tests/test_failure_messages.py`, which applies the all-three rule to
+    the failure-message population, where no unit has any business being."""
     for smiles in (SARIN, DFP, ASPIRIN):
         for line in _run(registry, smiles).matched:
             line.encode("cp1252")
