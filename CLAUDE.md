@@ -1782,6 +1782,92 @@ Correctly applied, it is the failure mode worth knowing: with the threshold
 gone and the walk broken the guard passes **green while checking nothing**,
 printing `checked 0 connect() calls`.
 
+## THE LINUX SUITE CRASHES ON 4 OF 6 COMMITS, AND THE OLD MECHANISM IS AT ZERO
+
+Measured 2026-08-26, after the jobs-panel fix landed. The entry above
+says "THAT IS ONE RUN" about the green Linux job on `f46537e`, and
+correctly declined to call it proof. Master's own subsequent runs have
+now answered it, and the answer is no.
+
+    9db5ff8  CRASHED     the sigma/pi merge
+    398c084  CRASHED     that branch's PR run
+    9ce6202  CRASHED     a DOCUMENTATION-ONLY commit
+    469ec27  CRASHED     the #48 merge
+    f46537e  OK          <- the one run the entry above cites
+    e9b2716  OK
+
+Only these six carry the verdict, because the annotation that exposes it
+was added in `b229bb0` and nothing earlier can be read this way.
+
+**`git diff f46537e 469ec27` IS EMPTY.** Those two commits carry
+byte-identical trees, and Linux passed on one and crashed on the other.
+That is the strongest single fact here: **no code change causes this**,
+so no bisect can find it and no commit can be blamed. A
+documentation-only commit crashing is the same statement said twice.
+
+### The old mechanism is NOT what is happening now
+
+The census that found the last one -- instrumenting `destroyed`, the only
+signal meaning a C++ destructor ran, over a full local run:
+
+    destroyed (any time)   12853
+    destroyed LATE             0     <- the landmine population
+    still alive at end     16022
+
+**ZERO late destructions.** The teardown `gc.collect()` is holding; the
+138-to-4 result it was built for is now 0. So an object destroyed inside
+an unrelated test's event dispatch is not the current cause, and any
+theory starting there is starting in the wrong place.
+
+**THE 16022 ALIVE ARE NOT THE STORY EITHER**, for the reason the earlier
+census already records: a widget still alive has never been destroyed, so
+it cannot be the thing that faults. It is a leak, not a landmine.
+
+**AND A SESSION-END CENSUS CANNOT SEE A CRASH.** The process dies before
+`pytest_sessionfinish`, so the run that reports is by construction a run
+that did not crash. Anything instrumenting this has to flush per test.
+
+### The two platforms have DIFFERENT signatures
+
+    Linux CI    Fatal Python error: Aborted           at 59%, 59%, 63%
+    Windows     Windows fatal exception: access violation
+
+`Aborted` is `abort()` -- a Qt fatal, an assertion, a C++ exception
+escaping -- and NOT a segfault. Nothing is printed before it: the log
+goes straight from progress dots to the traceback, so whatever calls
+`abort()` is not saying why. Whether the two platforms are one bug
+wearing two coats is **not established**, and the difference is large
+enough that assuming it would be a guess.
+
+**ONE OF THE THREE LINUX LOGS NAMES A FRAME OF OURS, and the other two
+do not.** That one is:
+
+    tests/test_panel_rail.py, line 19 in _dispose
+    tests/test_panel_rail.py, line 250 in
+        test_clicking_the_active_group_again_collapses_the_rail
+
+Line 19 is `sendPostedEvents(widget, DeferredDelete)` -- **the disposal
+recipe itself**, not a later collection. That file is well behaved: every
+test calls `_dispose`, which is the documented per-widget form and not
+the forbidden global drain. So the suspicion it raises is that FORCING a
+deferred delete is itself the dangerous moment, which is the opposite of
+what the recipe assumes. **n=1, and the other two logs cannot corroborate
+it**, so it is a lead and not a finding.
+
+### What it would take, recorded so the next attempt starts here
+
+The reproduction is on the platform this project does not ship, at 4 in
+6, with a 17-minute round trip through CI and no local Linux environment.
+Windows reproduces it too but at roughly 1 in 3, and with a different
+signature. The instruments that worked last time -- the `destroyed`
+census and the forced-drain lever -- were built for a mechanism that now
+measures zero.
+
+`flush_deferred_deletes`' own docstring has said the whole time that the
+crash it was written around is not fixed, and asks not to be read as
+evidence that it is. That is still true, and this entry is the measured
+version of it.
+
 ## A RED SUITE SILENTLY DISABLES EVERY GATE BEHIND IT
 
 `.github/workflows/tests.yml` runs the suite and then three gates in the
