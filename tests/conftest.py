@@ -828,13 +828,28 @@ def _start_census() -> None:
         _census_born[key] = born
         _census_counts["built"] += 1
 
-        def gone(_obj=None, _key=key, _born=born) -> None:
+        # THE CLASS NAME IS BOUND AS A STRING, and `self` MUST NOT appear
+        # in this closure. PySide holds a connected plain callable
+        # STRONGLY, so a reference to `self` here makes every widget in
+        # the suite immortal -- the exact self-capturing-`connect` leak
+        # this repository documents, written into the one instrument
+        # whose job is measuring widget lifetimes.
+        #
+        # It is not a hypothetical: the first version interpolated
+        # `type(self).__name__` and it (a) failed
+        # `test_a_pending_metrics_dump_is_cancelled_when_the_panel_is_destroyed`,
+        # which asserts a panel really is destroyed, and (b) reported
+        # `late=0` over a full run -- a number that cannot be anything
+        # else when nothing can be destroyed at all.
+        cls_name = type(self).__name__
+
+        def gone(_obj=None, _key=key, _born=born, _cls=cls_name) -> None:
             if _census_born.pop(_key, None) is None:
                 return
             _census_counts["destroyed"] += 1
             if _born != _census_where[0]:
                 _census_counts["late"] += 1
-                _census_write(f"LATE {type(self).__name__} built={_born} died={_census_where[0]}")
+                _census_write(f"LATE {_cls} built={_born} died={_census_where[0]}")
 
         try:
             self.destroyed.connect(gone)
