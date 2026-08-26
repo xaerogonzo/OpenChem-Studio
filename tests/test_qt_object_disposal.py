@@ -280,6 +280,46 @@ def test_the_periodic_table_dialog_does_not_leak(qapp):
     assert not _survives_collection(PeriodicTableDialog)
 
 
+def test_the_jobs_panel_does_not_leak(qapp):
+    """The one that was missed, and the worst place to miss it.
+
+    `refresh` runs on a 500 ms timer that nothing stops, so the leaked
+    lambda was not connected once -- it was connected TWICE A SECOND for
+    the life of the process, on a panel that could never be collected.
+
+    **THE FIXTURE MUST HAVE A JOB, or it cannot see the defect.** The
+    lambda lived inside `for row, job in enumerate(jobs)`, so a panel with
+    an empty `JobManager` never reached it and was collected perfectly
+    happily. Measured on the shipped defect: with one active job
+    `_survives_collection` is True, with none it is False. A fixture built
+    from a bare `JobManager()` is the degenerate case this project keeps
+    paying for -- it passes against the bug.
+    """
+    from openchem.services.job_manager import JobManager
+    from openchem.ui.panels.jobs_panel import JobsPanel
+
+    def build():
+        job_manager = JobManager()
+        job_manager.try_start("conformer", "mol-1")
+        return JobsPanel(job_manager)
+
+    assert not _survives_collection(build)
+
+
+def test_a_jobs_panel_with_no_jobs_could_never_have_shown_the_leak(qapp):
+    """The control for the fixture above, asserting its own setup.
+
+    Without this, someone simplifying `build()` to `JobsPanel(JobManager())`
+    leaves a green test that cannot fail. This states, in the suite rather
+    than in a comment, that the empty panel is NOT evidence: it is collected
+    with the fix and was collected without it.
+    """
+    from openchem.services.job_manager import JobManager
+    from openchem.ui.panels.jobs_panel import JobsPanel
+
+    assert not _survives_collection(lambda: JobsPanel(JobManager()))
+
+
 def test_a_subscriber_collected_during_dispatch_is_not_called(qapp):
     """The narrow race the None check in `_dispatch` exists for.
 
@@ -508,4 +548,77 @@ def test_every_single_shot_timer_is_bound_to_a_context_object():
     assert not offenders, (
         "pass a context object as the second argument, or the shot outlives its widget: "
         + ", ".join(offenders)
+    )
+
+
+def test_no_signal_is_connected_to_a_self_capturing_lambda():
+    """The invariant, over the package, rather than one widget at a time.
+
+    PySide6 holds a connected plain callable STRONGLY and a QObject's bound
+    method weakly, so `signal.connect(lambda ...: self._handler(x))` roots
+    its owner for the life of the process -- past refcounting and past the
+    cyclic collector, which cannot see through the map the callable is kept
+    in. `test_connecting_a_self_capturing_lambda_leaks_its_widget` above
+    pins that mechanism; this pins that nothing in the package does it.
+
+    **FIVE SITES SHIPPED WITH THIS, in five files, and they were not one
+    bug.** `PropertyPanel`, `PeriodicTableDialog` and `ExternalToolsDialog`
+    had each been fixed individually, and a per-widget guard was written for
+    two of them -- so the rule existed, the cure existed, and the population
+    was still a hand-kept list that three widgets were on and five were not.
+    The worst of the five was `JobsPanel`, whose `refresh` runs on a 500 ms
+    timer, so it connected a fresh rooted lambda twice a second forever and
+    was named in the Linux suite's segfault traceback.
+
+    WHAT IT DOES NOT COVER, said here because a green structural guard is
+    easily mistaken for a lifetime proof. It pins ONE SHAPE: a lambda passed
+    directly to `connect` whose body mentions `self`. It says nothing about
+    a lambda that reaches `self` through another name, a
+    `functools.partial(self...)`, a strong reference held somewhere else
+    entirely, or an object kept alive by its Qt parent.
+    `test_the_property_panel_does_not_leak` and its siblings assert the
+    OUTCOME and are not made redundant by this.
+
+    If a site genuinely needs the capture it should fail here and say why in
+    a comment, the same escape `test_every_single_shot_timer_is_bound_to_a_context_object`
+    grants `QCoreApplication.instance()`.
+    """
+    import ast
+    from pathlib import Path
+
+    package = Path(__file__).resolve().parents[1] / "src" / "openchem"
+    offenders = []
+    checked = 0
+    for path in sorted(package.rglob("*.py")):
+        if "vendor" in path.parts:
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "connect"
+            ):
+                continue
+            checked += 1
+            for argument in node.args:
+                if isinstance(argument, ast.Lambda) and any(
+                    isinstance(name, ast.Name) and name.id == "self"
+                    for name in ast.walk(argument.body)
+                ):
+                    rel = path.relative_to(package.parent.parent)
+                    offenders.append(f"{rel}:{node.lineno}")
+
+    # REPORTED EVEN WHEN IT PASSES. `checked >= N` catches the walk
+    # collapsing to nothing; the printed count is what makes a quieter drift
+    # visible in a green run. Measured at 265 when this was written.
+    print(f"\nchecked {checked} connect() calls; {len(offenders)} self-capturing lambdas")
+
+    assert checked >= 200, (
+        f"only {checked} connect() calls found; this guard has lost its subject"
+    )
+    assert not offenders, (
+        "connect a bound method and carry the payload on the widget "
+        "(setProperty/setData, read back through sender()) -- a lambda "
+        "capturing `self` roots its owner forever: " + ", ".join(offenders)
     )

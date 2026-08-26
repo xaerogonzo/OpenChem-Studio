@@ -2907,10 +2907,24 @@ class MainWindow(QMainWindow):
         # Kept by decision: replacing the menu must not cost the editor's
         # own dialog, which is the one thing it had that we do not.
         editor_edit = menu.addAction("Edit... (the editor's own)")
-        editor_edit.triggered.connect(
-            lambda _checked=False, index=atom_index: self._editor.open_atom_editor(index)
-        )
+        # WHICH ATOM TRAVELS ON THE ACTION, never in a closure. A menu is
+        # built per right-click, so a self-capturing lambda here rooted one
+        # more action on every one of them -- see `jobs_panel.py` for the
+        # measurement and `test_no_signal_is_connected_to_a_self_capturing_lambda`
+        # for the invariant.
+        editor_edit.setData(atom_index)
+        editor_edit.triggered.connect(self._on_editor_atom_edit)
         return menu
+
+    def _on_editor_atom_edit(self, _checked: bool = False) -> None:
+        """Reads the atom index back off the action that sent it."""
+        action = self.sender()
+        if action is None:
+            return
+        index = action.data()
+        if index is None:
+            return
+        self._editor.open_atom_editor(int(index))
 
     def _reveal_atom_inspector(self, _checked: bool = False) -> None:
         """Show the panel and let it keep the atom the menu was opened on."""

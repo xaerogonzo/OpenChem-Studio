@@ -95,17 +95,13 @@ class StructureLookupDialog(QDialog):
             "Opens a ChemSpider search in your browser. ChemSpider's API needs a "
             "registered key, so this is a link rather than a built-in lookup."
         )
-        self._chemspider_button.clicked.connect(
-            lambda: QDesktopServices.openUrl(QUrl(chemspider_search_url(self._inchikey)))
-        )
+        self._chemspider_button.clicked.connect(self._open_in_chemspider)
         self._open_button = QPushButton("Open PubChem Page", self)
         self._open_button.setEnabled(False)
         self._open_button.clicked.connect(self._open_pubchem)
         self._copy_button = QPushButton("Copy Result", self)
         self._copy_button.setEnabled(False)
-        self._copy_button.clicked.connect(
-            lambda: QGuiApplication.clipboard().setText(self._results.toPlainText())
-        )
+        self._copy_button.clicked.connect(self._copy_result)
 
         self._status = QLabel("", self)
         self._status.setWordWrap(True)
@@ -171,6 +167,14 @@ class StructureLookupDialog(QDialog):
             "structure to this search. Try ChemSpider, or search PubChem for a "
             "name instead."
         )
+
+    def _open_in_chemspider(self, _checked: bool = False) -> None:
+        """Bound methods, never self-capturing lambdas -- both rooted this
+        dialog for the life of the process. Measured: it leaked."""
+        QDesktopServices.openUrl(QUrl(chemspider_search_url(self._inchikey)))
+
+    def _copy_result(self, _checked: bool = False) -> None:
+        QGuiApplication.clipboard().setText(self._results.toPlainText())
 
     def _open_pubchem(self) -> None:
         if self._result is not None:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from openchem.services.job_manager import JobManager
 from openchem.ui.panels.jobs_panel import JobsPanel
 
@@ -65,3 +67,133 @@ def test_cancel_button_enabled_and_wired_to_job_manager_cancel(qapp):
     cancel_button.click()
 
     assert calls == [1]
+
+
+def _counting_table(monkeypatch):
+    """Counts the two calls that DESTROY whatever was in a cell."""
+    from PySide6.QtWidgets import QTableWidget
+
+    counts = {"setItem": 0, "setCellWidget": 0}
+    original_item = QTableWidget.setItem
+    original_widget = QTableWidget.setCellWidget
+
+    def set_item(self, *args, **kwargs):
+        counts["setItem"] += 1
+        return original_item(self, *args, **kwargs)
+
+    def set_cell_widget(self, *args, **kwargs):
+        counts["setCellWidget"] += 1
+        return original_widget(self, *args, **kwargs)
+
+    monkeypatch.setattr(QTableWidget, "setItem", set_item)
+    monkeypatch.setattr(QTableWidget, "setCellWidget", set_cell_widget)
+    return counts
+
+
+def test_an_unchanged_job_list_rebuilds_nothing(qapp, monkeypatch):
+    """The poll runs twice a second and must be free when nothing moved.
+
+    `setItem` and `setCellWidget` DELETE whatever was in the cell, so an
+    unconditional rebuild is a stream of Qt destructions -- and one landing
+    inside another component's event pump is this project's documented
+    crash class. Measured before this: 704 such calls fired inside
+    `test_molstar_viewer_backend.py`'s `processEvents()` loop, from panels
+    built five files earlier.
+    """
+    job_manager = JobManager()
+    job_manager.try_start("conformer", "mol-1")
+    panel = JobsPanel(job_manager)
+    panel.refresh()
+
+    counts = _counting_table(monkeypatch)
+    panel.refresh()
+
+    assert counts == {"setItem": 0, "setCellWidget": 0}
+
+
+@pytest.mark.parametrize(
+    "field, mutate",
+    [
+        ("kind", lambda m: (m.finish("conformer", "mol-1"), m.try_start("docking", "mol-1"))),
+        ("key", lambda m: (m.finish("conformer", "mol-1"), m.try_start("conformer", "mol-2"))),
+        ("message", lambda m: m.update_message("conformer", "mol-1", "3/9 conformers")),
+        (
+            "cancellable",
+            lambda m: (
+                m.finish("conformer", "mol-1"),
+                m.try_start("conformer", "mol-1", cancel_callback=lambda: None),
+            ),
+        ),
+    ],
+)
+def test_a_changed_job_list_does_rebuild(qapp, monkeypatch, field, mutate):
+    """THE NARROW HALF, and it is the load-bearing one.
+
+    "Never rebuild" satisfies the test above and breaks the panel outright,
+    so the no-op arm alone is passed by the wrong rule.
+
+    Parametrised over EVERY field `_rendered_state` carries, one at a time,
+    because that is what makes dropping one from the snapshot a failure
+    rather than a silently stale cell. A field added to `JobHandle` and
+    painted into a cell belongs here as a fifth case.
+    """
+    job_manager = JobManager()
+    job_manager.try_start("conformer", "mol-1")
+    panel = JobsPanel(job_manager)
+    panel.refresh()
+
+    counts = _counting_table(monkeypatch)
+    mutate(job_manager)
+    panel.refresh()
+
+    assert counts["setItem"] > 0, f"a changed {field} did not reach the table"
+    assert counts["setCellWidget"] > 0, f"a changed {field} did not reach the table"
+
+
+def test_a_freshly_built_panel_polls_without_waiting_for_a_show_event(qapp):
+    """M7, the quiet mutation: a gate that leaves the timer stopped until a
+    showEvent arrives is green everywhere and silently freezes the panel.
+
+    A frozen Jobs list is indistinguishable from an idle one, which is what
+    it shows most of the time -- so nothing else in this file would notice.
+    """
+    panel = JobsPanel(JobManager())
+
+    assert panel._timer.isActive(), "a panel must poll from construction, not from a showEvent"
+
+
+def test_a_hidden_panel_stops_polling(qapp):
+    """A dock nobody can see should not wake twice a second forever.
+
+    THE PANEL IS SHOWN FIRST, and the reason is the opposite of the obvious
+    one. A widget that was never shown receives no hide event, so `hide()`
+    on one leaves the timer running -- which means a guard skipping the
+    `show()` FAILS AGAINST CORRECT CODE rather than passing vacuously.
+    Measured both ways; the first draft of this docstring had it backwards.
+
+    The visibility assertion is the setup guard: if `hide()` ever stops
+    delivering the event, this must fail naming that rather than blaming
+    the panel.
+    """
+    panel = JobsPanel(JobManager())
+    panel.show()
+    assert panel._timer.isActive()
+
+    panel.hide()
+
+    assert not panel.isVisible(), "the hide was not delivered; this test proves nothing"
+    assert not panel._timer.isActive()
+
+
+def test_showing_it_again_resumes_polling_and_catches_up(qapp):
+    """Resuming is half of it; a panel returning to view must not be stale."""
+    job_manager = JobManager()
+    panel = JobsPanel(job_manager)
+    panel.show()
+    panel.hide()
+
+    job_manager.try_start("conformer", "mol-1")
+    panel.show()
+
+    assert panel._timer.isActive()
+    assert panel._table.rowCount() == 1, "the panel came back showing what it had before"

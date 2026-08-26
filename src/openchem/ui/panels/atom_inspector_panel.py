@@ -284,7 +284,7 @@ class AtomInspectorPanel(QWidget):
         # arbitrary would be worse than one that says it cannot.
         self._isotopes_button = QPushButton("Isotopes...", self)
         apply_help_tooltip(self._isotopes_button, _CONTROL_HELP["isotopes"])
-        self._isotopes_button.clicked.connect(lambda: self.isotopes_requested.emit())
+        self._isotopes_button.clicked.connect(self._on_isotopes_clicked)
 
         controls = QHBoxLayout()
         controls.addWidget(QLabel("Show:", self))
@@ -667,6 +667,15 @@ class AtomInspectorPanel(QWidget):
         if self._subject == "Bond":
             return self._bond_index
         return self._atom_index
+
+    def _on_isotopes_clicked(self, _checked: bool = False) -> None:
+        """A bound method, never `lambda: self.isotopes_requested.emit()`.
+
+        PySide6 holds a connected plain callable strongly, so that lambda
+        rooted this panel for the life of the process. Measured with
+        `_survives_collection`: True before, False after.
+        """
+        self.isotopes_requested.emit()
 
     def _on_subject_changed(self, subject: str) -> None:
         self._subject = subject
