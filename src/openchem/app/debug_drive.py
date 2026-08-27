@@ -1730,6 +1730,71 @@ class _Driver(QObject):
                 return bar
         return None
 
+    def _do_formulation(self, step: dict[str, Any]) -> None:
+        """Add a stated formulation and show its report.
+
+        `{"do": "formulation"}` uses ANFO, the case the whole feature
+        exists for -- both components are refused by Kamlet-Jacobs'
+        arbitrary on their own and the mixture lands inside it -- so a
+        run with no arguments still exercises the interesting path. A
+        `components` list of `[name, smiles, mass_fraction, dHf]` rows
+        and a `density` override state a different recipe.
+
+        **IT GOES THROUGH `_formulation_report_dialog`, WHICH IS THE
+        PRODUCTION PATH**, rather than calling `build_formulation_report`
+        here. Calling the builder directly would photograph a report the
+        application never renders, which is the harness proving its own
+        arithmetic instead of the feature -- the same distinction
+        `jobs_cancel` draws by pressing the real button.
+
+        `show()`, never `exec()`: a modal spins its own event loop inside
+        this handler and an unattended run stalls with nobody to close
+        the window.
+        """
+        from openchem.domain.formulation import FormulationComponent, FormulationModel
+
+        window = self._window
+        project = window._session.project
+        if project is None:
+            logger.error("OPENCHEM_DRIVE: no project to add a formulation to")
+            return
+        rows = step.get(
+            "components",
+            [
+                ["Ammonium nitrate", "[NH4+].[N+](=O)([O-])[O-]", 0.945, -87.3],
+                ["Fuel oil", "CCCCCCCCCCCC", 0.055, -83.9],
+            ],
+        )
+        formulation = FormulationModel(
+            display_name=str(step.get("name", "ANFO")),
+            components=tuple(
+                FormulationComponent(
+                    display_name=str(row[0]),
+                    smiles=str(row[1]),
+                    mass_fraction=float(row[2]),
+                    enthalpy_kcal_per_mol=float(row[3]),
+                )
+                for row in rows
+            ),
+            loading_density=float(step.get("density", 0.85)),
+        )
+        project.formulations.append(formulation)
+        window._project_explorer.refresh()
+        self._dialog = None
+        dialog = window._formulation_report_dialog(formulation)
+        dialog.setParent(window)
+        dialog.setWindowFlag(Qt.WindowType.Dialog, True)
+        if "width" in step:
+            dialog.resize(int(step["width"]), int(step.get("height", dialog.height())))
+        dialog.show()
+        self._dialog = dialog
+        logger.info(
+            "OPENCHEM_DRIVE: formulation %r, %d components, rho0=%s",
+            formulation.display_name,
+            len(formulation.components),
+            formulation.loading_density,
+        )
+
     def _do_dialog(self, step: dict[str, Any]) -> None:
         """Open any dialog by name, for a screenshot.
 

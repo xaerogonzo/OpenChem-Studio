@@ -72,6 +72,7 @@ from __future__ import annotations
 
 import ast
 import importlib
+import re
 from functools import lru_cache
 from pathlib import Path
 
@@ -636,3 +637,176 @@ def test_the_two_sidecar_runners_are_the_script_path_case():
             f"{importer} no longer names {runner}.py, so the declared "
             "mechanism is not the one in the source"
         )
+
+
+# --- the SYMBOL direction: a report builder the application never calls -----
+
+
+#: A report builder, by the naming convention every one of them already
+#: follows. DERIVED from the tree rather than listed beside it: a list is
+#: the `inapplicable_calculators` failure again, and a seventh builder
+#: added tomorrow is checked without anybody having to remember to add it.
+_REPORT_BUILDER = re.compile(r"^build_[a-z0-9_]*report$")
+
+
+def _called_name(call: ast.Call) -> str | None:
+    """The bare name a call targets: `f()` and `mod.f()` both give `f`."""
+    if isinstance(call.func, ast.Name):
+        return call.func.id
+    if isinstance(call.func, ast.Attribute):
+        return call.func.attr
+    return None
+
+
+class _CallCollector(ast.NodeVisitor):
+    """Every name CALLED in a module, ignoring a function calling itself.
+
+    The enclosing-function STACK is what makes the recursion exclusion
+    right for a nested definition: a helper defined inside `f` that calls
+    `f` is still `f` reaching only itself. Comparing against one function
+    name instead would let that certify itself.
+    """
+
+    def __init__(self) -> None:
+        self.called: set[str] = set()
+        self._enclosing: list[str] = []
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        self._enclosing.append(node.name)
+        self.generic_visit(node)
+        self._enclosing.pop()
+
+    visit_AsyncFunctionDef = visit_FunctionDef  # type: ignore[assignment]
+
+    def visit_Call(self, node: ast.Call) -> None:
+        name = _called_name(node)
+        if name is not None and name not in self._enclosing:
+            self.called.add(name)
+        self.generic_visit(node)
+
+
+@lru_cache(maxsize=1)
+def _report_builders() -> dict[str, str]:
+    """`{name: the module that defines it}` for every `build_*_report`."""
+    out: dict[str, str] = {}
+    for path in sorted(_SRC.rglob("*.py")):
+        if "vendor" in path.parts:
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and _REPORT_BUILDER.match(node.name):
+                out[node.name] = _module_name(path)
+    return out
+
+
+@lru_cache(maxsize=1)
+def _called_in_production() -> set[str]:
+    """Every name called anywhere in first-party source, module level included.
+
+    **`ast.Call`, NEVER A TEXT SEARCH, and that distinction decides the
+    answer here.** Five of the six report builders are named in a
+    DOCSTRING as well as being called -- `services/atom_fact_service.py`
+    names three of them in one sentence, and `chem/energetics.py` mentions
+    `build_crystal_report` in two comments explaining a convention it
+    borrows. A `grep -c` rule would count those and pass, which is this
+    project's own *"grepping for a phrase counts the source, not the
+    outcome"* lesson one layer down.
+    """
+    called: set[str] = set()
+    for path in sorted(_SRC.rglob("*.py")):
+        if "vendor" in path.parts:
+            continue
+        collector = _CallCollector()
+        collector.visit(ast.parse(path.read_text(encoding="utf-8"), filename=str(path)))
+        called |= collector.called
+    return called
+
+
+def test_every_report_builder_is_called_by_the_application():
+    """A report nothing calls is a report nobody can see.
+
+    **THE THREE DIRECTIONS ABOVE CANNOT SEE THIS, and one shipped
+    straight through them.** `build_formulation_report` landed in
+    `chem/energetics.py` -- a module statically reachable from
+    `openchem.main`, which truthfully declares
+    `USER_FACING_PROVIDER = "Oxygen balance, through the 'Oxygen Balance'
+    calculator"`. Every direction this file checks was satisfied by a
+    DIFFERENT function in the same file, and the report itself was
+    reached by nothing but its own test. That is PR #41's failure at
+    finer granularity: "shipped" had come to mean *the file exists and
+    something else in it is wired up*.
+
+    The population is derived from the naming convention, and the rule
+    was measured before it was written -- six builders, five with a real
+    call site in `src/` and exactly one with none:
+
+        build_atom_report         ui/panels/atom_inspector_panel.py:517
+        build_bond_report         ui/panels/atom_inspector_panel.py:511
+        build_molecule_report     ui/panels/atom_inspector_panel.py:513
+        build_crystal_report      app/main_window.py:2113
+        build_site_report         app/main_window.py:2249
+        build_formulation_report  NOTHING
+
+    So it is a real family with a real invariant, rather than a rule
+    invented to fit one case.
+
+    **WHAT IT DOES NOT CLAIM.** That the call site is itself reachable
+    from `openchem.main`: the wide direction is what says that, and the
+    two compose, since a call inside a module already shown reachable is
+    genuinely reachable. Nor that the application EXECUTES the builder,
+    for the reason `_import_graph`'s docstring gives.
+    """
+    builders = _report_builders()
+    assert builders, "the walk found no report builders at all"
+    called = _called_in_production()
+    orphans = sorted(
+        f"{name} (defined in {module})"
+        for name, module in builders.items()
+        if name not in called
+    )
+    assert not orphans, (
+        "these report builders are called by nothing in src/openchem, so no user "
+        "can reach the report they build: " + ", ".join(orphans)
+    )
+
+
+def test_the_report_builder_walk_finds_the_ones_that_exist():
+    """The narrow half: this guard asserting its own population.
+
+    Without it a `_REPORT_BUILDER` pattern that matched nothing would let
+    the guard above pass vacuously -- the green-suite-and-a-smaller-
+    universe failure this repository has now recorded five times. It
+    NAMES the builders rather than counting them, so a seventh does not
+    redden it while a deleted one does.
+    """
+    builders = _report_builders()
+    for expected in (
+        "build_atom_report",
+        "build_bond_report",
+        "build_molecule_report",
+        "build_crystal_report",
+        "build_site_report",
+        "build_formulation_report",
+    ):
+        assert expected in builders, f"the walk lost {expected}"
+
+
+def test_a_builder_named_only_in_a_docstring_is_not_called():
+    """The fail-open arm, and it is the load-bearing one.
+
+    A text-search implementation of the guard above passes against the
+    real defect, because two production modules name report builders in
+    prose. This asserts the discriminator directly rather than through
+    the tree: a name that appears only in a string is not a call, and a
+    name a function calls on itself is not somebody else calling it.
+    """
+    collector = _CallCollector()
+    collector.visit(
+        ast.parse(
+            '"""Mentions build_crystal_report."""\n'
+            "def build_thing_report():\n"
+            "    return build_thing_report()\n"
+        )
+    )
+    assert "build_crystal_report" not in collector.called
+    assert "build_thing_report" not in collector.called

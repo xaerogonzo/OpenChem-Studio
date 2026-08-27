@@ -2202,3 +2202,70 @@ Two things worth knowing about the answer:
 - **Several neighbours belong to next-door cells.** They are found as
   real periodic images, which is why halite's sodium has six chlorides
   even though the asymmetric unit holds one.
+
+<!-- help:formulations -->
+## Stating an energetic formulation
+
+**File → Energetic Formulation...** describes a *mixture* — several
+substances in stated proportions — and reports what it would do. ANFO,
+Composition B, a dynamite: a recipe whose detonation behaviour belongs to
+the blend and to nothing in it.
+
+It is a separate action from anything on the molecule side for the same
+reason *Import Crystal Structure* is. A recipe is not a molecule, and it
+appears in the Project Explorer marked `[formulation]`, saved with the
+project like a crystal.
+
+### Why a mixture and not just the ingredients
+
+This is the part worth knowing, because it is not a convenience over the
+single-substance calculators — it reaches cases they structurally cannot
+answer. The Kamlet–Jacobs method is stated only for a compound with
+enough oxygen to burn its hydrogen to water, but no more than would also
+burn its carbon to CO₂. The classic formulation ingredients each fall
+outside that window on their own:
+
+| component | on its own |
+|---|---|
+| TNT | answered |
+| RDX | answered |
+| ammonium nitrate | **refused** — over-oxidised |
+| nitroglycerin | **refused** — over-oxidised |
+| fuel oil | **refused** — too little oxygen to form water |
+
+Their *mixture* lands inside it. ANFO at 94.5/5.5 composites to
+`C0.3194 H4.5857 N1.9468 O2.9201`, which sits in the window, and the
+report gives a detonation pressure, a velocity and a heat of detonation.
+
+### What you have to supply, and why
+
+Three of the fields cannot be derived, and the application refuses to
+guess rather than filling them in:
+
+- **Proportions are by MASS**, as a fraction of 1. They must sum to 1 and
+  are **checked rather than rescaled** — 94.5 + 5.0 renormalises to a
+  perfectly ordinary recipe that is not the one you meant, and the
+  missing half a percent is exactly the typo a rescale hides forever.
+  The running total under the table says where you stand as you type.
+- **Each component's enthalpy of formation**, condensed phase, in
+  kcal/mol. Never estimated: the published route from an ideal-gas value
+  to the solid excludes every classic energetic material.
+- **The loading density** — the *measured* bulk density of the charge.
+  **Never an average of the components' crystal densities.** That
+  substitution is arithmetically reasonable and wrong: a packed charge is
+  nowhere near its ingredients' crystals, and pressure goes as the
+  *square* of this number. Leave it at zero and the pressure and velocity
+  are refused rather than guessed.
+
+### Reading the report
+
+The **composite formula is reported on the face of it**, not kept
+internal, and that is deliberate. Mass fractions and mole fractions both
+land inside the method's window and both give an ordinary-looking
+pressure, so no check in the application can tell a correct
+mole-weighting from the mass-as-mole error — the composite formula is the
+one number you can check the arithmetic against.
+
+Everything here is an empirical correlation fitted to reproduce a 1968
+computer code. **It is not a measurement and not a safety assessment**,
+and the report says so under every answer.
