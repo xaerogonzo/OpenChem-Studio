@@ -184,6 +184,8 @@ class FactView(QWidget):
         #: "Structure (4)" heading, and the status line advised choosing
         #: "Everything" from a combo box that was not on screen.
         self._compact = not show_controls
+        #: Set by `set_report`; None means "use `DEFAULT_EXPANDED`".
+        self._expanded_override: frozenset | None = None
 
         self._title = QLabel("", self)
         self._title.setStyleSheet("font-weight: bold;")
@@ -249,8 +251,33 @@ class FactView(QWidget):
 
     # --- what it is showing --------------------------------------------------
 
-    def set_report(self, report, title: str = "", summary: str = "") -> None:
+    def set_report(
+        self, report, title: str = "", summary: str = "", expanded=None
+    ) -> None:
+        """Show `report`. `expanded` overrides which categories start open.
+
+        **`DEFAULT_EXPANDED` IS A DEFAULT FOR A LARGE REPORT, AND A SMALL
+        ONE IS NOT A SMALLER VERSION OF THAT.** Its own docstring gives
+        the reason it exists -- *"a hundred-odd facts rendered flat is a
+        wall"* -- and an atom report really is that. A report whose whole
+        content is six facts is not, and collapsing two thirds of it
+        leaves the reader a heading where the answer should be.
+
+        Found the same way the `_compact` rule above was, and in the same
+        heading: the formulation report renders its composite formula,
+        pressure, velocity and heat of detonation as `STRUCTURE`, so the
+        window opened on a name, a component list and a folded
+        "Structure (4)" -- with every test green, because nothing asserts
+        what a section's initial state is. `_compact` does not cover it:
+        that fires when the CONTROLS are hidden, and here they are shown.
+
+        None keeps `DEFAULT_EXPANDED`, so every existing caller is
+        unchanged.
+        """
         self._report = report
+        self._expanded_override = (
+            None if expanded is None else frozenset(expanded)
+        )
         self._title.setText(title)
         self._summary.setText(summary)
         self._summary.setVisible(bool(summary))
@@ -334,7 +361,12 @@ class FactView(QWidget):
             shown += len(visible)
             # Expanded while filtering: a search that hides its own results
             # behind a collapsed header is worse than no search.
-            expanded = self._compact or bool(needle.strip()) or category in DEFAULT_EXPANDED
+            open_by_default = (
+                DEFAULT_EXPANDED
+                if self._expanded_override is None
+                else self._expanded_override
+            )
+            expanded = self._compact or bool(needle.strip()) or category in open_by_default
             section = CollapsibleSection(
                 f"{CATEGORY_LABELS[category]} ({len(visible)})", expanded, self._container
             )

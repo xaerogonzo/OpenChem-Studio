@@ -101,6 +101,23 @@ MENU_HELP: dict[str, HelpTooltip] = {
         ),
         tier=2, help_id="file.import_crystal", topic=_M, help_anchor="projects",
     ),
+    "new_formulation": HelpTooltip(
+        text=(
+            "States an energetic FORMULATION -- several substances in stated "
+            "MASS proportions -- and reports what the mixture would do.\n\n"
+            "Its own entry because a recipe is not a molecule, and because it "
+            "reaches cases the single-substance calculators structurally "
+            "cannot. Kamlet-Jacobs is stated only for a compound with enough "
+            "oxygen to burn its hydrogen to water but no more than would also "
+            "burn its carbon to CO2; ammonium nitrate, nitroglycerin and fuel "
+            "oil are each refused by that window on their own, while ANFO's "
+            "composite formula falls inside it.\n\n"
+            "The loading density and each component's enthalpy of formation "
+            "have to be supplied: neither can be derived from a recipe, and "
+            "the estimate is refused rather than guessed."
+        ),
+        tier=2, help_id="file.new_formulation", topic=_M, help_anchor="projects",
+    ),
     "receptor_library": HelpTooltip(
         text=(
             "Opens the curated docking-target catalogue. Each entry carries a "

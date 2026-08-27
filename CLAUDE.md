@@ -2377,6 +2377,105 @@ this is outside anything real by a wide margin" was documenting a
 tolerance of 1e-3, and the sentinel it was written for had no
 documentation at all. Nothing catches that; it needs a reader.
 
+### AND THE WHOLE THING WAS REACHABLE FROM NOTHING A USER COULD PRESS
+
+`build_formulation_report` shipped correct, sourced, and covered by 24
+tests. **No menu item, panel or registration invoked it.** The only
+caller in the repository was its own test file.
+
+**AND `tests/test_calculator_reachability.py` WAS GREEN THROUGHOUT**,
+which is the part worth reading. That file exists precisely because PR
+#41 shipped four unreachable modules, and it checks three directions --
+forward from the registry, reverse from `USER_FACING_PROVIDER`, and wide
+from `openchem.main`. All three passed, because **every one of them is
+about the MODULE**:
+
+    chem/energetics.py is statically reachable from openchem.main   yes
+    it declares USER_FACING_PROVIDER                                yes
+    ...naming "Oxygen balance, through the 'Oxygen Balance'
+       calculator", which is TRUE                                  yes
+
+So the module's own declaration was satisfied by a DIFFERENT function in
+the same file, and the report sat beside it reached by nothing. PR #41's
+failure at finer granularity: **"shipped" had come to mean *the file
+exists and something else in it is wired up*.**
+
+#### The rule that closes it is a real family, and it was measured first
+
+`test_every_report_builder_is_called_by_the_application` derives its
+population from the naming convention every one of them already follows,
+so a seventh is checked without anybody remembering to add it. Measured
+BEFORE the rule was written -- six builders, five with a real call site
+in `src/` and exactly one with none:
+
+    build_atom_report         ui/panels/atom_inspector_panel.py:517
+    build_bond_report         ui/panels/atom_inspector_panel.py:511
+    build_molecule_report     ui/panels/atom_inspector_panel.py:513
+    build_crystal_report      app/main_window.py:2113
+    build_site_report         app/main_window.py:2249
+    build_formulation_report  NOTHING
+
+**IT COUNTS `ast.Call`, NEVER TEXT, AND THAT DECIDES THE ANSWER.** Five
+of the six are also named in PROSE -- `services/atom_fact_service.py`
+names three in one docstring sentence, and `chem/energetics.py` mentions
+`build_crystal_report` in two comments explaining a convention it
+borrows. A `grep -c` rule counts those and passes, which is this file's
+own *"grepping for a phrase counts the source, not the outcome"* lesson
+one layer down.
+
+**WHAT IT DOES NOT CLAIM** is that the call site is reachable from
+`openchem.main`; the wide direction says that, and the two compose.
+
+Two mutations, two caught, and the first is the demonstration: removing
+the production call fails this guard **while the other 87 tests in the
+file stay green**, which is the blind spot shown rather than described.
+Neutering the population regex fails both halves.
+
+### THE ANSWER SHIPPED BEHIND A FOLD, AND EVERY TEST WAS GREEN
+
+Found by driving the app and reading the shot, which is now the
+thirteenth entry in this file's running count of that. The report opened
+on a name, a component list, and a collapsed **"Structure (4)"** --
+`DEFAULT_EXPANDED` holds IDENTITY and ELECTRONIC, and the composite
+formula, the pressure, the velocity and the heat of detonation are all
+STRUCTURE. **The entire answer was one click away and invisible.**
+
+`FactView._compact`'s own docstring already records this defect, in the
+same heading and at the same count, for the solubility stats block -- and
+its fix does not cover this: `_compact` fires when the CONTROLS are
+hidden, and here they are shown. `set_report` takes an `expanded`
+override now, defaulting to None so every existing caller is unmoved.
+`DEFAULT_EXPANDED` exists because *"a hundred-odd facts rendered flat is
+a wall"*; a six-fact report is not one.
+
+**NOTHING IN THE SUITE ASSERTED A SECTION'S INITIAL STATE**, which is why
+it shipped. The guard reads `isChecked()` rather than counting rows: the
+facts were always PRESENT, and present is not visible.
+
+**AND THE HELPER GUARD DOES NOT CATCH IT** -- mutating the override out
+of `_formulation_report_dialog` leaves both `FactView` guards green and
+fails only
+`test_the_windows_own_report_dialog_opens_with_the_answer_visible`.
+*Testing a helper is not testing the wiring*, for the third time in this
+file.
+
+### `Fact.units` NEVER REACHES A FactView ROW, and that is PRE-EXISTING
+
+Recorded rather than fixed, because it is system-wide and not this
+branch's. The detonation facts carry `units="kbar"`, `"mm/us"`,
+`"cal/g"`; the row renders `display_value` alone and the row TOOLTIP
+carries source, basis, evidence and limitations -- not units. So the
+report reads `Detonation pressure (C-J)  70.7`.
+
+**It is not a dead field**, which is the thing to check before calling it
+one: `ui/report_format.py`, `ui/result_clipboard.py` and
+`comparison_panel` all read it, so *Copy report* carries the units the
+screen does not. And `chem/crystal_report.py` has the identical shape --
+`units="A^3"`, `"g/cm^3"`, `"kJ/mol"`, none of them rendered -- so every
+Fact-based report in the application reads this way and has since the
+migration. Changing it touches all of them and wants its own measurement,
+its own guard and its own driven check.
+
 ## Running the tests
 
 ```bash
@@ -2386,58 +2485,60 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-21 minutes**, ending at `6154 passed, 16 skipped`
-(measured 2026-08-27, **18m30**, on `energetic-formulations` -- a
-composite CaHbNcOd for a MIXTURE, the three remaining Kamlet papers
-registered, and a mutation pass that found an unguarded weighting.
+A clean run is **6-21 minutes**, ending at `6173 passed, 16 skipped`
+(measured 2026-08-27, **15m12**, on `energetic-formulations` -- the
+formulation report reaching a control a user can press, and the
+reachability guard's module-level blind spot.
 
-**TWO OF THIS SECTION'S OWN STANDARDS WERE NOT MET, and they are stated
-here rather than left for a reader to discover.** A tooling restriction
-in the session that produced this figure blocked `git`, `uv run` outside
-one test file, and worktree creation, so:
+**+19 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed -- `import openchem; print(openchem.__file__)` reported the
+WORKTREE's `src`:
 
-**THE COLLECTED DELTA WAS NOT DIFFED.** Every other entry in this list
-carries a both-directions `comm` against a detached worktree; this one
-does not, so **no claim is made that 0 tests were REMOVED**. What is
-known is the run's own arithmetic and the branch's own contribution:
+    08cb4d5              COLLECTS 6170
+    this one             COLLECTS 6189   = 6170 + 19
+    the run                       6173 passed + 16 skipped = 6189
 
-    the run     6154 passed + 16 skipped = 6170 COLLECTED
-    this branch adds 24 items in tests/test_formulations.py
-                plus 3 parametrised cases of the EXISTING schema guard,
-                one per new source -- so 27, if nothing else moved
+**19 ITEMS, 19 NEW FUNCTIONS**, none parametrised, so for once the two
+deltas are the same number:
 
-That last clause is the whole reason the diff exists as a rule. **A
-BARE SUBTRACTION CANNOT TELL "27 ADDED" FROM "30 ADDED AND 3 QUIETLY
-DELETED"**, and this section has twice recorded a delta that was wrong.
-Re-derive it before citing 6170 as a baseline.
+    16  test_formulation_wiring.py       the dialog, the two commands,
+                                         the events, and the fold
+     3  test_calculator_reachability.py  the report-builder guard, its
+                                         narrow half, and the
+                                         docstring-is-not-a-call arm
 
-**AND THE SKIPS ARE 16, NOT THE DETERMINISTIC 15.** Unattributed, with
-two candidates that this run cannot separate:
+**THE SKIPS ARE 16 AND THE 16th IS NOW ATTRIBUTED**, which the entry
+this replaces recorded as unexplained between two candidates. It is
+neither mysterious nor the GPU: **`tests/test_pdf_library_index.py:274`,
+added by #51**, so master moved. Read off `-rs` rather than inferred:
 
-    the GPU context dropped     `Failed to make current since context is
-                                marked as lost` fires repeatedly through
-                                this log, and this file already records
-                                that message taking the skips 15 -> 19
-                                once, and NOT costing any the other times
-    master moved                the 15 was measured before #50, #51 and
-                                #52 landed; one of them may have added a
-                                legitimate skip
+    13  $3Dmol.createViewerGrid under offscreen   6 mol3d + 7 spatial
+     1  test_naming_providers.py:297              hits the network
+     1  test_namer_known_defects.py:471           an EMPTY PARAMETER SET
+     1  test_pdf_library_index.py:274             NEW, from #51
 
-**It is not this branch's**, which is the one half that IS established:
-nothing added here is GPU-gated or skip-capable -- 24 arithmetic and
-document tests, no widget, no webview. Treat 15 as deterministic and 16
-as unexplained rather than as the new figure, and settle it by mapping
-the `s` characters back onto `--collect-only` order the way the
-2026-08-18 entry did.
+**AND THE GPU CANDIDATE IS REFUTED RATHER THAN MERELY UNCHOSEN.**
+Chromium's `Failed to make current` fires **28 times** in this very log
+and costs **zero** skips -- so 15 was never "15 unless the GPU wobbles",
+and the previous entry's suspicion was wrong in a checkable way.
 
-**The crash pair IS satisfied**, which is the check this file insists on
-rather than an absence of FAILED lines: there IS a summary line, and
-`Fatal Python error|Windows fatal exception` matches **0**. The two
-`DeprecationWarning`s are the same pre-existing six-argument
-`QMouseEvent` overload in `test_dock_title_bar.py` and
-`test_trajectory_player.py`.
+**THE EMPTY-PARAMETER-SET SKIP IS WHY NO GREP FOUND IT.** A subset run
+over every file matching `skipif|pytest.skip|importorskip|mark.skip`
+gives 15, not 16, because `test_namer_known_defects.py` carries no skip
+MARKER at all -- pytest reports an empty parametrisation as a skip. Any
+future attempt to enumerate the skip-capable files by text will miss it
+the same way; `-rs` on the full run is the only complete answer, and it
+costs nothing when folded into a run you are taking anyway.
 
-18m30 sits near the top of the band; the 6-21 range stands.)
+**The crash pair is satisfied**: there IS a summary line, and
+`^(Windows fatal exception|Fatal Python error)` matches **0**, as do
+`^FAILED` and `^ERROR`. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in
+`test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+15m12 sits mid-band; the 6-21 range stands.)
+
 
 Before it: `6087 passed, 15 skipped`
 (measured 2026-08-26, **14m05**, on `sigma-pi-benchmarks-and-issue-8` --

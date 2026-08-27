@@ -98,6 +98,15 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
 
         return ConformerOptionsDialog()
 
+    def formulation(_context: DialogContext):
+        from openchem.ui.dialogs.formulation_dialog import FormulationDialog
+
+        # Needs nothing: an empty recipe is a valid starting state, and
+        # the component picker degrades to disabled without a project.
+        # That is what puts it in the bare-context half, so the help
+        # guard covers every one of its controls for free.
+        return FormulationDialog()
+
     def help_window(_context: DialogContext):
         from openchem.ui.dialogs.help_dialog import HelpDialog
 
@@ -225,6 +234,7 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
 
     yield DialogFixture("AboutDialog", about)
     yield DialogFixture("ConformerOptionsDialog", conformer_options)
+    yield DialogFixture("FormulationDialog", formulation)
     yield DialogFixture("HelpDialog", help_window)
     yield DialogFixture("PeriodicTableDialog", periodic_table)
     yield DialogFixture("ReceptorLibraryDialog", receptor_library)
