@@ -18,8 +18,27 @@
 #                 (resource_path, package_manifest, license_files,
 #                 third_party_globs, our_files) are the authoritative ones.
 #   local         a filename in Alex's `Sci Downloads`, recorded so a later
-#                 session can verify without hunting. NOT checked by any
-#                 guard -- that folder is not in the repo.
+#                 session can verify without hunting. Checked OPT-IN by
+#                 `tools/index_pdf_library.py --check`, which reads the
+#                 identity a PDF carries INSIDE it rather than trusting the
+#                 filename -- the filename is a locator and drifts. It runs
+#                 where that folder exists and SKIPS, naming the missing
+#                 prerequisite, everywhere else, so it is not a guard the
+#                 suite can rely on and is not meant to be.
+#
+#                 It proves ARTIFACT IDENTITY only -- "this file is that
+#                 paper", never "that paper supports this claim". The
+#                 second question is what `verification` below is for, and
+#                 the two vocabularies are deliberately disjoint so a
+#                 `doi_exact` is never read as a `citation_and_claim`.
+#
+#                 A DOI is the strongest key and NOT the only one: measured
+#                 over these 55 entries, the declared DOI appears in only 24
+#                 of the 44 DOI-bearing PDFs, because a 1965 or 1976 paper
+#                 was typeset long before its DOI existed. An entry whose
+#                 file carries no evidence at all is reported `unresolved`
+#                 and is NOT a failure -- three of them are scans with no
+#                 text layer and two are reference books.
 #
 # `verification` is three-valued because the two-valued version has already
 # cost this project: a fixture labelled "verbatim from a real run" had its

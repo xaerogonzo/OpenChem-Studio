@@ -85,3 +85,11 @@ _build_stamp.py
 # IR, ESP or docking benchmarks. Same shape as the naming gate leaving an
 # untracked predictions file, which this project already records.
 bench-out/
+
+# The PDF library manifest from `tools/index_pdf_library.py`. MACHINE-SPECIFIC
+# by construction -- it records sha256s and confidences for one person's
+# `Sci Downloads` folder, which is not in this repo and is not the same folder
+# on any two machines. The TOOL is tracked; its output is not, for the same
+# reason `bench-out/` above is not: it is a measurement of a local
+# environment rather than anything a reader of this repository can use.
+pdf-library.json
