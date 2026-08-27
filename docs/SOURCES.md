@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: ab931abd47692925faa7f5cdc4aba967554996a3ad55c920358d780e74eb3b01 -->
+<!-- SOURCE SHA256: 3defb9d563f33366ceb0930c009d0c0898710516f93ede9e2d232f02a339a129 -->
 
 # Sources
 
@@ -102,8 +102,10 @@ next run of `tools/build_lewis_parameters.py`.
 | [`bradley2015`](#bradley2015) | literature | shipped | citation + claim |
 | [`bravetti2023`](#bravetti2023) | literature | shipped | citation |
 | [`brenk2008`](#brenk2008) | literature | shipped | citation |
+| [`brown2006`](#brown2006) | literature | **not shipped** | citation |
 | [`cao2004`](#cao2004) | literature | shipped | citation + claim |
 | [`cod`](#cod) | dataset | shipped | citation |
+| [`coppens2006`](#coppens2006) | literature | **not shipped** | citation |
 | [`crc_handbook`](#crc_handbook) | reference_table | shipped | citation + claim |
 | [`cwc_annex_on_chemicals`](#cwc_annex_on_chemicals) | legal | shipped | citation + claim |
 | [`dea_listed_chemicals`](#dea_listed_chemicals) | legal | shipped | citation |
@@ -179,11 +181,120 @@ next run of `tools/build_lewis_parameters.py`.
 | [`trott_olson2010`](#trott_olson2010) | literature | shipped | citation + claim |
 | [`tsei`](#tsei) | reference_table | reference only | citation |
 | [`vogel_drago1996`](#vogel_drago1996) | literature | shipped | citation + claim |
+| [`waasmaier1995`](#waasmaier1995) | literature | **not shipped** | citation |
 | [`westwell1995`](#westwell1995) | literature | **not shipped** | citation |
 | [`wildman1999`](#wildman1999) | literature | shipped | citation |
 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
 
 ## Primary literature
+
+### waasmaier1995
+
+<a id="waasmaier1995"></a>
+
+> D. Waasmaier & A. Kirfel, 'New Analytical Scattering-Factor Functions for Free Atoms and Ions', Acta Crystallographica A51, 1995, pp. 416-431.
+
+| | |
+| --- | --- |
+| Identifier | Acta Cryst. (1995) A51, 416-431 |
+| Status | **not shipped** |
+| Verification | citation |
+| Verified | 2026-08-27 |
+| Local copy | `waasmaier1995.pdf` (not checked) |
+
+**Why it is not shipped.** THE PARAMETER SOURCE A POWDER PATTERN'S INTENSITIES WOULD NEED, AND THE
+REFUSAL IS A MEASUREMENT RATHER THAN AN ESTIMATE OF EFFORT.
+
+`chem/powder_xrd.py` ships peak POSITIONS and no intensities. |F(hkl)|^2
+needs a tabulated atomic scattering factor per species, f0(sin(theta)/
+lambda), and this paper is the standard parameterisation: five Gaussians,
+eleven parameters per atom or ion, valid over sin(theta)/lambda 0.0 to
+6.0 A^-1.
+
+The copy held locally is a scan whose text layer is damaged. Measured
+over the four pages of its Table 1:
+
+    numeric tokens on the table pages     2267
+    visibly corrupted                      673   (29.7%)
+
+...and 70.3% "clean" is an UPPER bound on correctness, because a token
+can be well formed and still wrong. Element labels are corrupted too --
+the calcium row extracts as `Cs`, which would silently put caesium's
+factors on calcium.
+
+THE DECIDING POINT IS THAT ONLY 6 OF THE 11 PARAMETERS CAN BE CHECKED.
+A neutral atom's scattering factor at zero angle is its electron count,
+so sum(a_i) + c = Z is a per-row oracle over a1..a5 and c. The five b
+values have no such check: a wrong b is wrong at every non-zero angle
+and exactly right at theta = 0, which is the one place the checksum
+looks. Transcribing a table where nearly a third of the numbers are
+visibly damaged and 5 in every 11 are unverifiable would produce
+plausible intensities of unknown correctness.
+
+WHAT WOULD LIFT IT: a machine-readable copy of this table, or the
+tabulated values of International Tables for Crystallography Vol. C that
+it was fitted to.
+
+The citation is read off the paper's own header line ("Acta Cryst.
+(1995). A51,416-431") on page 1, which is NOT where the file begins --
+that page opens with the tail of the preceding article's references. No
+DOI is printed anywhere in the file, so none is recorded.
+
+### coppens2006
+
+<a id="coppens2006"></a>
+
+> P. Coppens, 'The structure factor', International Tables for Crystallography Volume B, ch. 1.2, 2006, pp. 10-24.
+
+| | |
+| --- | --- |
+| Identifier | International Tables for Crystallography (2006). Vol. B, Chapter 1.2, pp. 10-24 |
+| Status | **not shipped** |
+| Verification | citation |
+| Verified | 2026-08-27 |
+| Local copy | `coppens2006.pdf` (not checked) |
+
+**Why it is not shipped.** The structure-factor FORMALISM an intensity calculation would rest on.
+Read, and not implemented: `chem/powder_xrd.py` computes no structure
+factor, because the scattering factors it would need are refused -- see
+`waasmaier1995`.
+
+DELIBERATELY NOT CITED AS BACKING THE SYSTEMATIC-ABSENCE RULE, which
+this project does ship. That rule was derived from the invariance of a
+reflection under a symmetry operation and verified against the
+F-centring parity rule; searching this chapter finds no occurrence of
+"systematic", "absence" or "extinction condition", so citing it would
+be the "a citation-level entry does not authorize an implementation
+merely because its title matches" trap. Reflection conditions are Vol. A
+material, not Vol. B.
+
+Citation read off the file's own header line on page 1.
+
+### brown2006
+
+<a id="brown2006"></a>
+
+> P. J. Brown, A. G. Fox, E. N. Maslen, M. A. O'Keefe & B. T. M. Willis, 'Intensity of diffracted intensities', International Tables for Crystallography Volume C, sec. 6.1.1, 2006, pp. 554-590.
+
+| | |
+| --- | --- |
+| Identifier | International Tables for Crystallography (2006). Vol. C, Section 6.1.1, pp. 554-590 |
+| Status | **not shipped** |
+| Verification | citation |
+| Verified | 2026-08-27 |
+| Local copy | `brown2006.pdf` (not checked) |
+
+**Why it is not shipped.** Where diffracted INTENSITY is defined -- the Lorentz-polarization and
+Debye-Waller terms a powder pattern's heights would carry. Read, and not
+implemented, for the reason `waasmaier1995` records: without trustworthy
+scattering factors there is nothing for these terms to multiply.
+
+The title reads oddly and is printed exactly so on the page.
+
+ITS TEXT LAYER IS UNUSABLE -- page 1 extracts as whitespace and stray
+punctuation -- so the citation, the section number and the author list
+were read from a 350 dpi RENDER of the page rather than from the text.
+No DOI is printed in the file.
 
 ### souvignier2016
 

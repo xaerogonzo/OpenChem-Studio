@@ -2202,3 +2202,37 @@ Two things worth knowing about the answer:
 - **Several neighbours belong to next-door cells.** They are found as
   real periodic images, which is why halite's sodium has six chlorides
   even though the asymmetric unit holds one.
+
+### The calculated powder pattern
+
+The crystal report ends with a **powder X-ray diffraction pattern**: the
+reflections the cell and its symmetry allow, each with an interplanar
+spacing *d*, a Bragg angle 2θ and a multiplicity. Open *Structure* in the
+report to see them, and choose *Everything* in the depth box for the full
+line list — the summary row is always visible, the individual lines are
+marked advanced so they do not bury the cell and the density.
+
+It reports **where the peaks fall and not how tall they are**, which is a
+deliberate refusal rather than an unfinished feature — see
+`SCIENTIFIC_LIMITATIONS.md` for the measurement behind it. In short:
+positions are lattice geometry you can check by hand, while intensities
+need a table of atomic scattering factors that could not be transcribed
+reliably from the copy available.
+
+**The wavelength comes from the file.** A pattern needs one, and no
+property of a structure supplies it, so the report uses the CIF's own
+`_diffrn_radiation_wavelength` and says *"not calculated"* when the file
+states none. Nothing defaults to a copper tube: the entire angle axis
+scales with that number.
+
+A few things worth knowing when reading the list:
+
+- **The multiplicity counts symmetry-equivalent planes plus the Friedel
+  pair**, because a powder superimposes (hkl) and (−h−k−l) into one line
+  whatever the point group does.
+- **Absent reflections are simply not listed.** They are worked out from
+  the structure's own symmetry operations rather than from a lookup of
+  extinction conditions, so for halite you get 111, 200, 220, 311 … and
+  never 100 or 110.
+- **The list is capped at twelve lines and says how many it dropped.** A
+  large organic cell with molybdenum radiation genuinely has thousands.

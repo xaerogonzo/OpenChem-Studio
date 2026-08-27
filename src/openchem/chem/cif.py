@@ -63,6 +63,10 @@ _KNOWN_PREFIXES = (
     "_atom_site_symmetry_multiplicity",
     "_atom_site_wyckoff",
     "_chemical_",
+    # Read for the powder pattern's default wavelength. Listed here so it
+    # stops being reported as `unhandled`, which is the honest record of
+    # what the reader IGNORES -- a tag that is now used must leave it.
+    "_diffrn_radiation_wavelength",
 )
 
 _UNCERTAINTY = re.compile(r"\(\d+\)\s*$")
@@ -466,4 +470,11 @@ def read_cif(text: str, *, block: str = "") -> Crystal:
         ),
         source=tags.get("_chemical_formula_sum", "").strip(),
         unhandled=tuple(unhandled),
+        # The file's OWN stated wavelength. A powder pattern needs one and
+        # no property of the structure supplies it, so reading it here is
+        # what lets `powder_xrd` default to the experiment the file
+        # describes rather than to a constant nothing here can source.
+        radiation_wavelength=parse_number(
+            tags.get("_diffrn_radiation_wavelength", "")
+        ),
     )
