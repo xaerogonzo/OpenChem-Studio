@@ -1835,13 +1835,26 @@ time. The double-wrap guard then fired:
     census ON    4 failed     RuntimeError from the guard
 
 An instrument that reddens the suite exactly when enabled is the hazard
-that guard exists to prevent, restated -- and **the Linux CI job is what
-sets `OPENCHEM_CENSUS`**, so this would have put four failures into the
-log of the job it was written to diagnose. The flag records the SOURCE
-FILE now rather than a bool: re-executing the same file returns quietly,
-a census from a DIFFERENT file still raises. Both halves are guarded and
+that guard exists to prevent, restated. The flag records the SOURCE FILE
+now rather than a bool: re-executing the same file returns quietly, a
+census from a DIFFERENT file still raises. Both halves are guarded and
 **the narrow one is load-bearing** -- "never raise" satisfies the first
 and silently deletes the stacked-instrument protection.
+
+**AND THE CENSUS HAD NEVER RUN IN CI AT ALL, WHICH IS WHY THIS SURVIVED.**
+`conftest.py` said "The Linux CI job sets it" and no workflow did --
+measured, `grep -rn OPENCHEM_CENSUS .github/` matched nothing. So an
+instrument written to diagnose a crash that only reproduces on Linux was
+never switched on where that crash happens, and the four failures were
+unreachable until somebody ran the full suite with it locally.
+
+**I REPEATED THAT CLAIM HERE BEFORE CHECKING IT**, in this very section,
+because the docstring stated it as a fact. A comment asserting an
+intention is worse than silence: it is believed, and then quoted. It is
+wired into the Linux job now -- which is what makes the sentence true --
+and `census.txt` goes up beside `suite.log` as an artifact, because a run
+that aborts has no pytest summary line while the census's last `BEGIN`
+still names the test it died in.
 
 **RETURNING BEFORE THE `open()` IS LOAD-BEARING.** The handle is opened
 `"w"`, so a second execution that reached it would TRUNCATE the trail --
@@ -7526,6 +7539,24 @@ CLOCK.** `gh run rerun <id> --failed` re-uses the ORIGINAL commit -- normally
 the trap this file warns about, and here exactly what is wanted: a second
 sample of one tree. The same move settled the ORCA scratch-cleanup flake.
 The merge commit then made it three CI samples, one crashed.
+
+**AND IT HAPPENED AGAIN ON PR #50, WHICH IS THE SECOND CI INSTANCE.** Run
+33029344304, 2026-08-27:
+
+    first attempt   crashed at 83%, `0xc0000374`, top frame
+                    `conftest.py pytest_runtest_logfinish` /
+                    `Garbage-collecting` -- the same site as before
+    the three gates skipped, exactly as a red suite always takes them
+    re-run, SAME SHA   6085 passed, 19 skipped, 1 deselected,
+                       all three gates EXECUTED, naming 181/181
+
+So the discriminator worked a second time and cost one wall-clock cycle.
+Worth recording because the branch under test was editing `conftest.py`,
+which makes "I broke it" the obvious reading -- and the census it was
+changing is **switched off unless `OPENCHEM_CENSUS` is set**, which no
+workflow did at the time, so every line of that change was inert on CI.
+**Check whether your change is even LIVE on the job that failed before
+believing you caused the failure.**
 
 **THE TWO SKIP COUNTS ARE NOT A DISCREPANCY.** CI's 19 against the local 15
 is the four GPU-gated gallery guards, and 5571 + 19 + 1 reconciles to the

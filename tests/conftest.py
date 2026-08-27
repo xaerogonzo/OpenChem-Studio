@@ -747,8 +747,19 @@ def pytest_runtest_logfinish(nodeid, location):
 # ---------------------------------------------------------------------------
 #
 # Set `OPENCHEM_CENSUS=<path>` to switch it on; off costs nothing but the
-# `if` below. The Linux CI job sets it, because that is where the suite
-# aborts on 4 of 6 commits.
+# `if` below.
+#
+# **NO WORKFLOW SETS IT, AND THIS COMMENT USED TO CLAIM THE LINUX JOB
+# DID.** Measured: `grep -rn OPENCHEM_CENSUS .github/` matches nothing, so
+# an instrument written to diagnose a crash that only reproduces on Linux
+# had never run in CI at all. The claim described an intention, and a
+# comment that states an intention as a fact is worse than silence --
+# somebody reading the Linux logs for a census trail would find none and
+# have no way to tell that from a run where nothing was destroyed late.
+#
+# It is wired into the Linux job now, which is what makes the sentence
+# true rather than aspirational. That job is `continue-on-error` and
+# publishes its `suite.log` as an artifact; the trail goes up beside it.
 #
 # WHY IT IS WRITTEN PER TEST AND NOT AT SESSION END. The first version of
 # this reported from `pytest_sessionfinish`, which cannot work: the

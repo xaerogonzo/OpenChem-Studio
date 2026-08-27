@@ -260,11 +260,23 @@ jobs:
       # findings on a platform this application does not ship". An NCBI
       # outage is not a Linux finding, and listing it as one is how a
       # fingerprint stops being read.
+      # `OPENCHEM_CENSUS` switches on the widget-lifetime census in
+      # `tests/conftest.py`, which is written PER TEST and flushed, so it
+      # survives the `abort()` this job exists to catch. It had never
+      # actually been set anywhere -- the instrument was written for this
+      # job and then not wired to it, so a crash here left no trail.
+      #
+      # Read the trail as: the LAST `BEGIN` line names the test that was
+      # running when the process died, and the absence of the
+      # `# session finished` sentinel is what says it died at all. A
+      # `LATE` line after that sentinel is process teardown, not a
+      # cross-test landmine.
       - name: Run the test suite
         id: suite
         run: |
           set -o pipefail
           export QTWEBENGINE_CHROMIUM_FLAGS="--no-sandbox"
+          export OPENCHEM_CENSUS="$PWD/census.txt"
           xvfb-run -a uv run --no-sync python -u -m pytest -q -ra \
             --deselect "${{ env.NETWORK_TEST }}" \
             > suite.log 2>&1 || true
@@ -389,11 +401,20 @@ jobs:
       # nothing outside the browser can read a step summary. An artifact is
       # the only form the failures survive in for anyone diagnosing them
       # later, which is the whole point of running this job at all.
+      # BOTH FILES, and the census is the one that survives a crash. A run
+      # that aborts has no pytest summary line, so `suite.log` says only
+      # that it died; `census.txt`'s last `BEGIN` names the test it died
+      # in. `if-no-files-found: warn` rather than `error` because the
+      # census is absent by design on any run where it was not switched
+      # on, and a hard failure there would redden a job for a
+      # non-finding.
       - name: Publish the Linux suite log
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: linux-suite-log-${{ github.run_number }}
-          path: suite.log
+          path: |
+            suite.log
+            census.txt
           if-no-files-found: warn
           retention-days: 30
