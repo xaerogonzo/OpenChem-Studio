@@ -773,6 +773,13 @@ def pytest_runtest_logfinish(nodeid, location):
 # with `core.1234`. Without it, matching them is guesswork.
 
 _CENSUS_PATH = os.environ.get("OPENCHEM_CENSUS")
+
+#: Which FILE installed the wrapper, and the identity a second execution
+#: compares itself against. `realpath` rather than a bare `__file__`
+#: because the two module instances are loaded by different machinery --
+#: pytest's own conftest loader and an ordinary `import tests.conftest` --
+#: and nothing guarantees they spell the same path identically.
+_CENSUS_SOURCE = os.path.realpath(__file__)
 _census_counts = {"built": 0, "destroyed": 0, "late": 0}
 _census_born: dict[int, str] = {}
 _census_where = ["<session>"]
@@ -807,16 +814,52 @@ def _start_census() -> None:
     Same shape as `_track_web_engine_views`' `_openchem_tracks_views` flag
     and `_retain_main_windows`' `_openchem_retained`, which is the idiom
     this file already uses twice.
+
+    **A RE-IMPORT OF THIS FILE IS NOT A SECOND CENSUS, AND A BARE FLAG
+    CANNOT TELL THE DIFFERENCE.** `tests/` has no `__init__.py`, so pytest
+    loads this conftest under its own plugin name -- and four tests do
+    `from tests.conftest import painted/ink`, which imports the SAME FILE
+    again under a second module name and re-runs everything at module
+    level, including this function.
+
+    A flag that only records "somebody wrapped it" reddens the suite on
+    exactly those four tests, and only when the census is switched on:
+
+        census OFF   4 passed      `_CENSUS_PATH is None`, returns early
+        census ON    4 failed      RuntimeError from this guard
+
+    which is the whole hazard restated -- an instrument that changes what
+    it measures. It shipped in `68aa89e` and survived because nobody had
+    run the full suite with the census enabled; the run that produced the
+    figures below is what found it.
+
+    So the flag records the SOURCE FILE rather than a bool. Re-executing
+    this same file returns quietly and leaves the first wrapper in place;
+    a census installed from a DIFFERENT file still raises, which is the
+    stacked-instrument case the hazard is actually about.
+
+    **RETURNING BEFORE THE `open()` IS LOAD-BEARING**, not incidental
+    tidiness: the handle is opened in `"w"` mode, so a second execution
+    that got that far would TRUNCATE the trail -- destroying the evidence
+    this instrument exists to preserve, in the crash case where it is the
+    only evidence there is.
     """
     if _CENSUS_PATH is None:
         return
     from PySide6.QtWidgets import QWidget
 
-    if getattr(QWidget.__init__, "_openchem_census", False):
+    installed_by = getattr(QWidget.__init__, "_openchem_census", None)
+    if installed_by is not None:
+        if installed_by == _CENSUS_SOURCE:
+            # This same conftest, executed a second time by an import.
+            # The first wrapper is already in place and owns the handle;
+            # this module instance stays inert. `_census_write` no-ops
+            # here because `_census_handle` is empty in it.
+            return
         raise RuntimeError(
-            "QWidget.__init__ is already census-wrapped. Two censuses "
-            "stacked is a measured cause of instability, not a tidiness "
-            "problem -- run one at a time."
+            "QWidget.__init__ is already census-wrapped, by "
+            f"{installed_by!r}. Two censuses stacked is a measured cause "
+            "of instability, not a tidiness problem -- run one at a time."
         )
 
     original_init = QWidget.__init__
@@ -856,7 +899,9 @@ def _start_census() -> None:
         except Exception:  # noqa: BLE001 - a half-built widget is not our problem
             _census_born.pop(key, None)
 
-    census_init._openchem_census = True
+    # The SOURCE FILE, not a bool -- see this function's docstring for why
+    # a bare flag cannot tell a re-import from a stacked instrument.
+    census_init._openchem_census = _CENSUS_SOURCE
     QWidget.__init__ = census_init
 
     handle = open(_CENSUS_PATH, "w", encoding="utf-8", buffering=1)
@@ -878,3 +923,36 @@ def pytest_runtest_logstart(nodeid, location):
         return
     _census_where[0] = nodeid
     _census_write(f"BEGIN {nodeid} pid={os.getpid()}")
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Mark the boundary, so a shutdown destruction is not read as a landmine.
+
+    **THIS IS A SENTINEL, NOT A REPORT**, and the distinction is the one
+    this module's own docstring insists on. Reporting TOTALS from here
+    cannot work -- the process dies before this hook, so the run that
+    reports is by construction a run that did not crash. Writing one line
+    that says "the session ended here" has the opposite property: if the
+    process aborts, the line is simply ABSENT, and its absence is itself
+    the correct answer.
+
+    WHY IT IS NEEDED. `gone()` calls a destruction LATE when the test that
+    built the widget is not the test running now. At interpreter shutdown
+    every surviving widget is torn down while `_census_where[0]` still
+    holds the LAST test's nodeid, so every one of them trips that check --
+    and they are process teardown, not the cross-test landmine the
+    instrument exists to find. Measured over a full run:
+
+        LATE lines written during the run          0
+        LATE lines written after the last test   16022   <- all shutdown
+
+    Every one of the 16022 fell after the final `end` line, which is the
+    only reason the two could be told apart at all. Naming the boundary
+    makes each line say which it is (`died=<session teardown>`) instead of
+    leaving a reader to compare line numbers -- and a reader who does not
+    know to do that reads 16022 landmines that are not there.
+    """
+    if _CENSUS_PATH is None:
+        return
+    _census_write(f"# session finished exitstatus={exitstatus}")
+    _census_where[0] = "<session teardown>"
