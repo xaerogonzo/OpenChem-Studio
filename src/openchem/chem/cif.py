@@ -285,7 +285,33 @@ def _operations_from(loops: list[dict[str, list[str]]]) -> tuple[SymmetryOperati
         ):
             if tag in loop and not tag.endswith("_id"):
                 return tuple(parse_symmetry_operation(text) for text in loop[tag])
-    return (parse_symmetry_operation("x,y,z"),)
+    return None
+
+
+def _operations_from_symbol(symbol: str, lattice: Lattice):
+    """The operations a space-group symbol stands for, or why not.
+
+    **This is the branch that used to return the identity and say
+    nothing.** A CIF may legally name its space group and supply no
+    `_symmetry_equiv_pos_as_xyz` loop, and answering that with `x,y,z`
+    leaves the asymmetric unit unexpanded -- so atoms per cell,
+    composition, density, volume per formula unit, every coordination
+    shell and the lattice energy are all computed about a structure that
+    was never built. None of them looks wrong.
+
+    All six shipped COD fixtures carry a symop loop, so the corpus could
+    not see this: a mutation deleting the fallback passed.
+
+    The cell is passed through because it is what disambiguates the seven
+    rhombohedral groups, whose hexagonal and rhombohedral settings differ
+    by a factor of three in operation count. See `chem/space_groups`.
+    """
+    from openchem.chem.space_groups import Unresolved, describe, resolve
+
+    resolved = resolve(symbol, lattice)
+    if isinstance(resolved, Unresolved):
+        return None, describe(resolved, symbol)
+    return resolved.symmetry_operations(), ""
 
 
 def _sites_from(loops: list[dict[str, list[str]]]) -> tuple[Site, ...]:
@@ -401,15 +427,36 @@ def read_cif(text: str, *, block: str = "") -> Crystal:
     )
     z = parse_number(tags.get("_cell_formula_units_z", ""))
 
+    space_group = (
+        tags.get("_symmetry_space_group_name_h-m")
+        or tags.get("_space_group_name_h-m_alt")
+        or ""
+    ).strip()
+
+    # The loop is authoritative when it is there; the symbol is the
+    # fallback; the identity is the LAST resort and is recorded as such.
+    operations = _operations_from(loops)
+    if operations is not None:
+        symmetry_source, symmetry_note = "loop", ""
+    else:
+        operations, note = _operations_from_symbol(space_group, lattice)
+        if operations is not None:
+            symmetry_source, symmetry_note = "space_group", ""
+        else:
+            operations = (parse_symmetry_operation("x,y,z"),)
+            symmetry_source = "unexpanded"
+            symmetry_note = note or (
+                "the file lists no symmetry operations and names no space group, "
+                "so the asymmetric unit could not be expanded"
+            )
+
     return Crystal(
         lattice=lattice,
         sites=sites,
-        operations=_operations_from(loops),
-        space_group=(
-            tags.get("_symmetry_space_group_name_h-m")
-            or tags.get("_space_group_name_h-m_alt")
-            or ""
-        ).strip(),
+        operations=operations,
+        symmetry_source=symmetry_source,
+        symmetry_note=symmetry_note,
+        space_group=space_group,
         space_group_number=int(number) if number else None,
         formula_units_z=int(z) if z else None,
         name=_short_name(

@@ -140,16 +140,42 @@ def build_crystal_report(crystal: Crystal, *, report_id: str = "crystal") -> Rep
             )
         )
 
+    _WHERE_FROM = {
+        "loop": "as listed in the file, which is authoritative",
+        "space_group": (
+            "DERIVED from the space-group symbol, because the file lists none. "
+            "International Tables Vol. A ch. 1.4 [source:souvignier2016]"
+        ),
+        "unexpanded": "NOT ESTABLISHED -- see the limitation on this row",
+    }
+    unexpanded = crystal.symmetry_source == "unexpanded"
     facts.append(
         _fact(
             FactCategory.STRUCTURE,
             "Symmetry operations",
             len(crystal.operations),
-            str(len(crystal.operations)),
-            evidence=(
-                "as listed in the file. A file may give the centring only, which is "
-                "enough when every site sits on a special position and not otherwise.",
+            f"{len(crystal.operations)}" + (" (cell NOT expanded)" if unexpanded else ""),
+            basis=Basis.HEURISTIC if crystal.symmetry_source == "space_group" else Basis.DETERMINISTIC,
+            evidence=(_WHERE_FROM.get(crystal.symmetry_source, ""),),
+            limitations=(
+                # **THE ONE FACT THAT INVALIDATES EVERY OTHER ONE.** Without
+                # the operations the asymmetric unit is never expanded, so
+                # the atom count, the composition, the density, the volume
+                # per formula unit, every coordination shell and the lattice
+                # energy below are all computed about a structure that was
+                # not built -- and every one of them looks ordinary. Halite
+                # from a symbol-only file reads 0.5409 g/cm3 against a real
+                # 2.17: a factor of four, and a plausible number either way.
+                (
+                    f"THE CELL WAS NOT EXPANDED, so every count, the composition, "
+                    f"the density and any coordination below describe the "
+                    f"asymmetric unit alone rather than the unit cell. "
+                    f"{crystal.symmetry_note}",
+                )
+                if unexpanded
+                else ()
             ),
+            detail=Detail.STANDARD,
         )
     )
 

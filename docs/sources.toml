@@ -53,6 +53,66 @@ schema_version = 1
 # =============================================================================
 
 [[source]]
+key = "souvignier2016"
+kind = "literature"
+citation = "B. Souvignier, H. Wondratschek, M. I. Aroyo, G. Chapuis & A. M. Glazer, 'Space groups and their descriptions', International Tables for Crystallography Volume A, ch. 1.4, 2016, pp. 42-74."
+identifier_type = "doi"
+identifier = "10.1107/97809553602060000922"
+status = "shipped"
+used_by = [
+    "tools/build_space_groups.py",
+    "src/openchem/chem/data/space_groups.json",
+    "src/openchem/chem/space_groups.py",
+]
+local = "souvignier2016.pdf"
+verification = "citation"
+verified_date = 2026-08-27
+note = """
+The AUTHORITY for what a space group is and how its settings are named.
+Confirmed from page 1 with pymupdf: "1.4. Space groups and their
+descriptions -- B. Souvignier, H. Wondratschek, M. I. Aroyo, G. Chapuis and
+A. M. Glazer".
+
+**`citation` AND NOT `citation_and_claim`, deliberately.** The shipped
+operations are not checked against this chapter's tables -- they are
+checked by CLOSURE UNDER COMPOSITION, which is mathematics rather than a
+lookup and is non-circular in a way comparing counts against a list
+derived from the same source would not be. Claiming the stronger value
+would assert a page-by-page comparison that was not made.
+
+The operations themselves come from Open Babel's `space-groups.txt`, which
+is a data DEPENDENCY rather than the scientific authority -- the same
+distinction the TSEI radii were held to.
+"""
+
+[[source]]
+key = "hall1981"
+kind = "literature"
+citation = "S. R. Hall, 'Space-Group Notation with an Explicit Origin', Acta Cryst. 1981, A37, 517-525."
+identifier_type = "doi"
+identifier = "10.1107/S0567739481001228"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/space_groups.py",
+    "src/openchem/chem/data/space_groups.json",
+]
+local = "hall1981.pdf"
+verification = "citation"
+verified_date = 2026-08-27
+note = """
+Hall notation, which is what pins a SETTING rather than merely a space
+group -- 13 IT numbers carry settings whose operation counts differ, so the
+number alone does not identify the operations and `SpaceGroupSetting`
+carries the Hall symbol for that reason.
+
+Confirmed from the PDF's own first page: "Acta Cryst. (1981). A37, 517-525
+-- Space-Group Notation with an Explicit Origin -- BY S. R. HALL". The DOI
+is NOT present anywhere in the file, which is ordinary for a paper typeset
+long before DOIs existed -- so the volume/page line is what identifies it,
+and the DOI recorded here comes from the publisher rather than the file.
+"""
+
+[[source]]
 key = "mayo1990"
 kind = "literature"
 citation = "S. L. Mayo, B. D. Olafson & W. A. Goddard III, 'DREIDING: A Generic Force Field for Molecular Simulations', J. Phys. Chem. 1990, 94, 8897-8909."
