@@ -65,6 +65,16 @@ from rdkit import Chem
 from rdkit.Chem import Descriptors, rdMolDescriptors
 
 from openchem.domain.common import TOTAL, CacheState, Provenance, decline_total
+
+# IMPORTED RATHER THAN REDECLARED. The same claim -- how far a recipe's
+# stated mass fractions may sum from 1 -- is checked here and on the
+# document, and two literals of it would drift silently: a tolerance
+# loosened on one side only turns "refused" into "quietly accepted" with
+# nothing to say which value won. This is the CONSTANT, not the component
+# TYPE; `composite_formula` still takes its components structurally.
+from openchem.domain.formulation import (
+    FRACTION_TOLERANCE as FORMULATION_FRACTION_TOLERANCE,
+)
 from openchem.domain.report import Fact, FactCategory, ReportResult
 from openchem.domain.structure_issue import Basis
 
@@ -709,4 +719,397 @@ def compute_detonation(
             "density and is not inferred from the structure.",
         ),
         provenance=provenance,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Formulations: several substances, one composite CaHbNcOd
+# ---------------------------------------------------------------------------
+#
+# **NO NEW DETONATION EQUATION IS INTRODUCED.** `arbitrary_gas`,
+# `heat_of_detonation` and `detonation_from_parameters` above are pure
+# functions over element counts, and a mixture is a composite element count
+# fed to the same three -- verified: they accept the FRACTIONAL counts a
+# mixture produces and return a real answer. What is new is the
+# ABSTRACTION, that a recipe is a thing with a composite formula at all,
+# rather than any chemistry.
+#
+# IT REACHES CASES THE SINGLE-SUBSTANCE PATH STRUCTURALLY CANNOT ANSWER.
+# Measured through `detonation()`, the classic formulation components are
+# each refused as outside Eq. (12)'s window -- ammonium nitrate
+# over-oxidised, nitroglycerin over-oxidised, a fuel-oil proxy with too
+# little oxygen -- and their MIXTURE lands inside it.
+#
+# AND THE AUTHORS EVALUATED THE METHOD ON MIXTURES THEMSELVES, which is
+# what makes this an application of it rather than a liberty taken with
+# it. [source:kamlet1968_iii]'s Table I covers "13 explosive compounds and
+# 14 binary mixtures of three general types", and says on the same page
+# that the mixtures' parameters were "estimated from the H2O-CO2 arbitrary
+# according to Eqs. (13)-(15) of Ref. 1" -- the same arbitrary
+# `arbitrary_gas` implements. [source:kamlet1968_iv] is the matching
+# evaluation for the detonation VELOCITY, which this reports beside the
+# pressure.
+#
+# **NEITHER IS AN ORACLE FOR ANYTHING BELOW.** Both are registered at
+# `citation`: they establish that the method is stated for mixtures, never
+# that a number this module returns is right. What the numbers are checked
+# against -- and what that check is worth -- is in
+# `tests/test_formulations.py`.
+
+
+class FormulationRefusal(Enum):
+    """Why a formulation could not be composited.
+
+    Separate from `DetonationRefusal`, and deliberately not folded into
+    `NOT_CHNO`. These are faults in the RECIPE -- no components, fractions
+    that do not sum -- and they send a reader to the formulation rather
+    than to the chemistry. Somebody told "outside the arbitrary" about a
+    recipe that simply omits its binder would look in the wrong place.
+    """
+
+    NO_COMPONENTS = "the formulation lists no components"
+    FRACTIONS_DO_NOT_SUM = "the stated mass fractions do not sum to 1"
+    COMPONENT_NOT_CHNO = "a component contains an element outside C, H, N and O"
+    COMPONENT_NOT_A_STRUCTURE = "a component's structure could not be read"
+
+
+@dataclass(frozen=True)
+class CompositeFormula:
+    """One mole of mixture, as element counts, plus its enthalpy.
+
+    The counts are FRACTIONAL and that is correct rather than a rounding
+    artefact -- a mole of ANFO holds 0.3195 carbon atoms on average.
+    """
+
+    carbon: float = 0.0
+    hydrogen: float = 0.0
+    nitrogen: float = 0.0
+    oxygen: float = 0.0
+    #: kcal per mole of the COMPOSITE formula unit, so that
+    #: `heat_of_detonation` -- which divides by that unit's mass -- is right.
+    enthalpy_kcal_per_mol: float = 0.0
+    #: Mean molar mass of the mixture, g/mol: the bridge between the
+    #: mole-weighted formula and the mass-weighted Q. Carried rather than
+    #: recomputed, because two implementations of it would drift.
+    mean_molar_mass: float = 0.0
+    refusal: "FormulationRefusal | None" = None
+    detail: str = ""
+
+    @property
+    def applicable(self) -> bool:
+        return self.refusal is None
+
+
+def composite_formula(components) -> CompositeFormula:
+    """Mole-weight a recipe that is stated in MASS fractions.
+
+    `components` is any iterable of objects carrying `smiles`,
+    `mass_fraction` and `enthalpy_kcal_per_mol` -- structurally
+    `domain.formulation.FormulationComponent`, whose TYPE this layer does
+    not import, so a caller may pass anything of that shape. (The
+    fraction tolerance is imported from that module, deliberately; see
+    the import.)
+
+    **THE MASS-TO-MOLE CONVERSION IS THE WHOLE FUNCTION, AND SKIPPING IT IS
+    SILENT.** A formulation is mixed by MASS; `CaHbNcOd` is per MOLE.
+    Treating the stated mass fractions as mole fractions gives a composite
+    wrong by a few percent per element, still inside Eq. (12)'s window, and
+    a perfectly ordinary pressure. Measured on ANFO 94.5/5.5:
+
+        mass -> mole (correct)   C0.3195 H4.5857 N1.9468 O2.9201
+        mass AS mole (wrong)     C0.6600 H5.2100 N1.8900 O2.8350
+
+    Only a fixture asserting the composite formula tells them apart.
+
+    Q is the other half of the same distinction and is per GRAM, so it is
+    mass-weighted -- which falls out of dividing by `mean_molar_mass`
+    rather than being applied separately.
+    """
+    items = list(components)
+    if not items:
+        return CompositeFormula(refusal=FormulationRefusal.NO_COMPONENTS)
+
+    total = sum(component.mass_fraction for component in items)
+    if abs(total - 1.0) > FORMULATION_FRACTION_TOLERANCE:
+        return CompositeFormula(
+            refusal=FormulationRefusal.FRACTIONS_DO_NOT_SUM,
+            detail="they sum to {0:g}".format(total),
+        )
+
+    # (moles per gram of mixture, its element counts, its enthalpy)
+    weighted: list[tuple[float, tuple[float, float, float, float], float]] = []
+    for component in items:
+        mol = Chem.MolFromSmiles(component.smiles)
+        if mol is None:
+            return CompositeFormula(
+                refusal=FormulationRefusal.COMPONENT_NOT_A_STRUCTURE,
+                detail=component.smiles,
+            )
+        balance = oxygen_balance(mol)
+        if not balance.applicable:
+            reason = (
+                FormulationRefusal.COMPONENT_NOT_CHNO
+                if balance.refusal is OxygenBalanceRefusal.NOT_CHNO
+                else FormulationRefusal.COMPONENT_NOT_A_STRUCTURE
+            )
+            return CompositeFormula(refusal=reason, detail=component.smiles)
+        if balance.molecular_weight <= 0:
+            return CompositeFormula(
+                refusal=FormulationRefusal.COMPONENT_NOT_A_STRUCTURE,
+                detail=component.smiles,
+            )
+        counts = (
+            float(balance.carbon),
+            float(balance.hydrogen),
+            float(_nitrogen_count(mol)),
+            float(balance.oxygen),
+        )
+        weighted.append(
+            (
+                component.mass_fraction / balance.molecular_weight,
+                counts,
+                component.enthalpy_kcal_per_mol,
+            )
+        )
+
+    moles_per_gram = sum(count for count, _, _ in weighted)
+    if moles_per_gram <= 0:
+        return CompositeFormula(refusal=FormulationRefusal.NO_COMPONENTS)
+
+    def mean(index: int) -> float:
+        return sum(count * counts[index] for count, counts, _ in weighted) / moles_per_gram
+
+    return CompositeFormula(
+        carbon=mean(0),
+        hydrogen=mean(1),
+        nitrogen=mean(2),
+        oxygen=mean(3),
+        enthalpy_kcal_per_mol=(
+            sum(count * enthalpy for count, _, enthalpy in weighted) / moles_per_gram
+        ),
+        # Grams per mole is the reciprocal of moles per gram.
+        mean_molar_mass=1.0 / moles_per_gram,
+    )
+
+
+def detonation_of_formulation(
+    components,
+    loading_density: float | None,
+    *,
+    ruby_correction: bool = False,
+) -> Detonation:
+    """Kamlet-Jacobs for a MIXTURE, through the single-substance machinery.
+
+    `loading_density` is the MEASURED bulk density of the charge, in g/cm3.
+    **Never a weighted average of the components' crystal densities.**
+    Pressure goes as its square and a packed charge is nowhere near the
+    density of its ingredients' crystals, so that substitution is a large
+    error wearing a plausible number.
+    """
+    composite = composite_formula(components)
+    if not composite.applicable:
+        detail = composite.refusal.value
+        if composite.detail:
+            detail = "{0} ({1})".format(detail, composite.detail)
+        return Detonation(refusal=DetonationRefusal.NOT_A_STRUCTURE, detail=detail)
+
+    if loading_density is None or loading_density <= 0:
+        return Detonation(refusal=DetonationRefusal.NO_LOADING_DENSITY)
+
+    a, b, c, d = composite.carbon, composite.hydrogen, composite.nitrogen, composite.oxygen
+    low, high = b / 2, 2 * a + b / 2
+    if not (low <= d <= high):
+        side = "over-oxidised" if d > high else "too little oxygen to form water"
+        return Detonation(
+            refusal=DetonationRefusal.OUTSIDE_THE_ARBITRARY,
+            detail="the MIXTURE is {0}: needs {1:g} <= O <= {2:g}, has {3:g}".format(
+                side, low, high, d
+            ),
+        )
+
+    n, m = arbitrary_gas(a, b, c, d)
+    q = heat_of_detonation(a, b, c, d, composite.enthalpy_kcal_per_mol)
+    if q <= 0:
+        return Detonation(
+            refusal=DetonationRefusal.OUTSIDE_THE_ARBITRARY,
+            detail="the heat of detonation comes out non-positive",
+        )
+    return detonation_from_parameters(
+        n, m, q, loading_density, ruby_correction=ruby_correction
+    )
+
+
+def build_formulation_report(formulation, *, report_id: str = "formulation_detonation"):
+    """What a stated mixture would do, or why it cannot be said.
+
+    Takes a `domain.formulation.FormulationModel` structurally -- this
+    layer does not import that TYPE, for the same reason
+    `composite_formula` does not.
+
+    **THE COMPOSITE FORMULA IS A REPORTED FACT, not an internal.** It is
+    the one number that distinguishes a correct mole-weighting from the
+    mass-as-mole error, which is invisible in the pressure: both land
+    inside Eq. (12)'s window and both give an ordinary answer. Putting it
+    on the face of the report is what lets a reader check the arithmetic
+    that everything else rests on.
+    """
+    facts: list[Fact] = []
+    name = getattr(formulation, "display_name", "") or "formulation"
+
+    facts.append(
+        Fact(
+            category=FactCategory.IDENTITY,
+            label="Formulation",
+            value=name,
+            display_value=name,
+            source="Formulation",
+            basis=Basis.DETERMINISTIC,
+        )
+    )
+
+    components = tuple(getattr(formulation, "components", ()) or ())
+    facts.append(
+        Fact(
+            category=FactCategory.IDENTITY,
+            label="Components",
+            value=len(components),
+            display_value=", ".join(
+                "{0} {1:.1%}".format(
+                    getattr(c, "display_name", "") or c.smiles, c.mass_fraction
+                )
+                for c in components
+            )
+            or "none",
+            source="Formulation",
+            basis=Basis.DETERMINISTIC,
+            evidence=("proportions are MASS fractions, as stated",),
+        )
+    )
+
+    composite = composite_formula(components)
+    if not composite.applicable:
+        detail = composite.refusal.value
+        if composite.detail:
+            detail = "{0} ({1})".format(detail, composite.detail)
+        facts.append(
+            Fact(
+                category=FactCategory.STRUCTURE,
+                label="Composite formula",
+                value=None,
+                display_value=detail,
+                source="Formulation",
+                basis=Basis.DETERMINISTIC,
+            )
+        )
+        return ReportResult(
+            report_id=report_id,
+            # A formulation is not a molecule, so it has no molecule uuid --
+            # the same convention `build_crystal_report` uses for a periodic
+            # solid. A recipe's identity is its own `FormulationModel.uuid`,
+            # and borrowing a component's would claim the report was about
+            # that component.
+            molecule_uuid="",
+            name="Detonation of a formulation (Kamlet-Jacobs)",
+            category="energetic",
+            facts=tuple(facts),
+            limitations=("Nothing was computed: the recipe could not be composited.",),
+        )
+
+    facts.append(
+        Fact(
+            category=FactCategory.STRUCTURE,
+            label="Composite formula",
+            value=(composite.carbon, composite.hydrogen, composite.nitrogen, composite.oxygen),
+            display_value="C{0:.4f} H{1:.4f} N{2:.4f} O{3:.4f}".format(
+                composite.carbon, composite.hydrogen, composite.nitrogen, composite.oxygen
+            ),
+            source="Formulation",
+            basis=Basis.DETERMINISTIC,
+            evidence=(
+                "MOLE-weighted from the stated MASS fractions (n = w / M), which is "
+                "not the same as weighting by mass and is the step a reader should "
+                "check",
+                "mean molar mass {0:.3f} g/mol".format(composite.mean_molar_mass),
+            ),
+            limitations=(
+                "Fractional atom counts are correct here rather than rounded: they "
+                "describe one mole of MIXTURE, not one molecule of anything.",
+            ),
+        )
+    )
+
+    density = getattr(formulation, "loading_density", None)
+    result = detonation_of_formulation(components, density)
+
+    if not result.applicable:
+        facts.append(
+            Fact(
+                category=FactCategory.STRUCTURE,
+                label="Detonation",
+                value=None,
+                display_value=detonation_refusal_text(result) or result.detail
+                or (result.refusal.value if result.refusal else "not computed"),
+                source="Kamlet-Jacobs",
+                basis=Basis.DETERMINISTIC,
+            )
+        )
+        return ReportResult(
+            report_id=report_id,
+            # A formulation is not a molecule, so it has no molecule uuid --
+            # the same convention `build_crystal_report` uses for a periodic
+            # solid. A recipe's identity is its own `FormulationModel.uuid`,
+            # and borrowing a component's would claim the report was about
+            # that component.
+            molecule_uuid="",
+            name="Detonation of a formulation (Kamlet-Jacobs)",
+            category="energetic",
+            facts=tuple(facts),
+            limitations=(
+                "The loading density is the MEASURED bulk density of the charge. It "
+                "is not a crystal density, and it is NOT a weighted average of the "
+                "components' densities -- pressure goes as its square.",
+            ),
+        )
+
+    for label, value, units, places in (
+        ("Detonation pressure (C-J)", result.pressure_kbar, "kbar", 1),
+        ("Detonation velocity", result.velocity_mm_per_us, "mm/us", 3),
+        ("Heat of detonation", result.heat_of_detonation, "cal/g", 1),
+    ):
+        facts.append(
+            Fact(
+                category=FactCategory.STRUCTURE,
+                label=label,
+                value=round(value, places),
+                display_value="{0:.{1}f}".format(value, places),
+                units=units,
+                source="Kamlet-Jacobs",
+                basis=Basis.HEURISTIC,
+            )
+        )
+
+    limitations = [
+        "An empirical correlation fitted to reproduce a 1968 computer code, not a "
+        "measurement and not a safety assessment.",
+        "The loading density is the MEASURED bulk density of the charge. It is not "
+        "a crystal density, and it is NOT a weighted average of the components' "
+        "densities -- pressure goes as its square.",
+        "Every component's condensed-phase enthalpy of formation was SUPPLIED. None "
+        "is estimated: the published bridge from an ideal-gas value excludes every "
+        "classic energetic material.",
+    ]
+    if density is not None and density < LOADING_DENSITY_FLOOR:
+        limitations.append(
+            "Below {0:g} g/cm3 the paper notes the hydrogen equilibrium introduces "
+            "complications, and its own tables stop there. This charge is at "
+            "{1:g}.".format(LOADING_DENSITY_FLOOR, density)
+        )
+
+    return ReportResult(
+        report_id=report_id,
+        molecule_uuid="",  # see the note above: a recipe is not a molecule
+        name="Detonation of a formulation (Kamlet-Jacobs)",
+        category="energetic",
+        facts=tuple(facts),
+        limitations=tuple(limitations),
     )

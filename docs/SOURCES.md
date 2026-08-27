@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: ab931abd47692925faa7f5cdc4aba967554996a3ad55c920358d780e74eb3b01 -->
+<!-- SOURCE SHA256: 703d18623bec443307a80a117b7b6988c7efd89098c2e15117f081e5753df44e -->
 
 # Sources
 
@@ -130,6 +130,9 @@ next run of `tools/build_lewis_parameters.py`.
 | [`jenkins1999`](#jenkins1999) | literature | shipped | citation + claim |
 | [`joback1987`](#joback1987) | literature | shipped | citation + claim |
 | [`kamlet1968`](#kamlet1968) | literature | shipped | citation + claim |
+| [`kamlet1968_ii`](#kamlet1968_ii) | literature | reference only | citation |
+| [`kamlet1968_iii`](#kamlet1968_iii) | literature | shipped | citation |
+| [`kamlet1968_iv`](#kamlet1968_iv) | literature | shipped | citation |
 | [`katritzky1990`](#katritzky1990) | literature | shipped | citation + claim |
 | [`kaya2022`](#kaya2022) | literature | shipped | citation + claim |
 | [`kendall2008`](#kendall2008) | literature | shipped | citation |
@@ -1695,6 +1698,111 @@ of the charge, which is not a crystal density and which P depends on as its
 square, and the condensed-phase enthalpy of formation -- see
 [source:westwell1995] for why the published bridge from an ideal-gas value
 cannot be used for this compound class.
+
+### kamlet1968_ii
+
+<a id="kamlet1968_ii"></a>
+
+> M. J. Kamlet & J. E. Ablard, 'Chemistry of Detonations. II. Buffered Equilibria', J. Chem. Phys. 1968, 48, 36-42.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.1667930](https://doi.org/10.1063/1.1667930) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-08-27 |
+| Local copy | `kamlet1968_2.pdf` (not checked) |
+
+**Why it is reference only.** NOTHING SHIPS FROM THIS ONE, and it is registered anyway because a
+four-part series with parts I, III and IV recorded and II silently absent
+reads as an oversight rather than as a decision. This entry IS the
+decision.
+
+Registered at `citation` and no further: the citation was read off the
+paper's own AIP cover sheet -- title, both authors, J. Chem. Phys. 48, 36
+(1968), and the DOI -- and NOTHING ELSE ABOUT IT HAS BEEN CHECKED. Its
+argument is not summarised here, because summarising a paper from its
+title is the [source:avdeef2020] error, and this project has made it
+twice.
+
+The H2O-CO2 arbitrary and its low-density caution both come from
+[source:kamlet1968]'s own text and footnote 19, not from here, so no
+limitation in `chem/energetics.py` rests on this paper.
+
+### kamlet1968_iii
+
+<a id="kamlet1968_iii"></a>
+
+> M. J. Kamlet & C. Dickinson, 'Chemistry of Detonations. III. Evaluation of the Simplified Calculational Method for Chapman-Jouguet Detonation Pressures on the Basis of Available Experimental Information', J. Chem. Phys. 1968, 48, 43-50.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.1667939](https://doi.org/10.1063/1.1667939) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-27 |
+| Local copy | `kamlet1968part3.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_formulations.py`, `docs/SCIENTIFIC_LIMITATIONS.md` |
+
+**THIS IS WHY A FORMULATION IS NOT AN EXTENSION THIS PROJECT INVENTED.**
+Applying Kamlet-Jacobs to a MIXTURE looks like a liberty taken with a
+single-substance method, and it is not: the authors' own evaluation does
+it. Read directly from p45, the 80 data sets of its Table I "represent
+measurements at loading densities from 0.95 to 1.90 g/cc on 13 explosive
+compounds and 14 binary mixtures of three general types", and the same
+paragraph says the values used in those calculations "were estimated from
+the H2O-CO2 arbitrary according to Eqs. (13)-(15) of Ref. 1" -- i.e. the
+mixtures go through the identical arbitrary that `arbitrary_gas`
+implements. RDX/TNT mixtures are named on the same page.
+
+So the composite-formula path has a source for its APPLICABILITY. What it
+does not have from here is a checked NUMBER, which is why this is
+`citation` and not `citation_and_claim`.
+
+**WHAT IS DELIBERATELY NOT CLAIMED.** Table I's own measured pressures
+have NOT been transcribed, and the three published formulations that
+`tests/test_formulations.py` uses as its oracle are NOT taken from this
+paper -- they carry their own provenance problem, recorded in that file.
+Reading a printed table off this scan needs the render-at-magnification
+treatment CLAUDE.md requires, since its text layer is visibly OCR-damaged
+("4S" for 45, "1. 632k" for 1.632k). Anyone wanting to gate a number on
+this paper starts there.
+
+### kamlet1968_iv
+
+<a id="kamlet1968_iv"></a>
+
+> M. J. Kamlet & H. Hurwitz, 'Chemistry of Detonations. IV. Evaluation of a Simple Predictional Method for Detonation Velocities of C-H-N-O Explosives', J. Chem. Phys. 1968, 48, 3685-3692.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.1669671](https://doi.org/10.1063/1.1669671) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-27 |
+| Local copy | `kamlet1968_IV.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_formulations.py`, `docs/SCIENTIFIC_LIMITATIONS.md` |
+
+The VELOCITY half of the series' evaluation, and this feature reports a
+velocity -- `detonation_of_formulation` returns `velocity_mm_per_us` and
+`build_formulation_report` puts it on the face of the report -- so the
+paper that evaluates Eq. (9) against experiment belongs beside
+[source:kamlet1968_iii], which does the same for the pressure.
+
+Note the KEY says `iv` while the local file says `_IV`: registry keys are
+constrained to `^[a-z][a-z0-9_]*$` so that `Kamlet1968_IV` and
+`kamlet1968_iv` cannot become two identifiers for one paper. The filename
+is a locator and the key is the identity, which is the split
+`f05be33` already made for the PDF library.
+
+Citation read off the paper's own AIP cover sheet: both authors,
+J. Chem. Phys. 48, 3685 (1968), and the DOI. That cover sheet also prints
+Part I's own DOI as 10.1063/1.1667908, which is an independent
+confirmation of the [source:kamlet1968] row above -- a second route to a
+field this project has recorded getting wrong when only one route existed.
+
+`citation` rather than `citation_and_claim`: no number this project
+computes has been gated against this paper's tables.
 
 ### ertl2008
 

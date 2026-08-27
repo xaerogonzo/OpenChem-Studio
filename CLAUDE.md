@@ -2240,6 +2240,143 @@ into YAML changes the interpreter, and nothing about the transcription
 looks different. **"Exactly what worked" is a claim about the COMMAND and
 not about the thing that runs it.**
 
+## A FORMULATION IS NOT A MOLECULE, AND THE COMPONENTS ARE EACH REFUSED
+
+`domain/formulation.py` is the recipe as a project DOCUMENT and the
+formulations half of `chem/energetics.py` is the arithmetic. **NO NEW
+DETONATION EQUATION IS INTRODUCED** -- `arbitrary_gas`,
+`heat_of_detonation` and `detonation_from_parameters` are pure functions
+over element counts, and they accept the FRACTIONAL counts a mixture
+produces. What is new is the abstraction, not any chemistry.
+
+**THE FEATURE EXISTS BECAUSE THE SINGLE-SUBSTANCE PATH STRUCTURALLY
+CANNOT ANSWER FOR ITS OWN INGREDIENTS.** Measured through the shipped
+calculator:
+
+    TNT                  answered
+    RDX                  answered
+    ammonium nitrate     REFUSED  over-oxidised: needs 2 <= O <= 2, has 3
+    nitroglycerin        REFUSED  over-oxidised: needs 2.5 <= O <= 8.5, has 9
+    dodecane (fuel oil)  REFUSED  too little oxygen to form water
+
+...and the MIXTURE lands inside. ANFO at 94.5/5.5 composites to
+`C0.3195 H4.5857 N1.9468 O2.9201` against a window of 2.2928 to 2.9317.
+Two refusals in, one answer out.
+
+### THE AUTHORS EVALUATED THE METHOD ON MIXTURES THEMSELVES
+
+Applying Kamlet-Jacobs to a recipe reads like a liberty taken with a
+single-substance correlation, and it is not. Read directly off p45 of
+[source:kamlet1968_iii], its Table I's 80 data sets cover "13 explosive
+compounds and 14 binary mixtures of three general types", and the same
+paragraph says those calculations' parameters "were estimated from the
+H2O-CO2 arbitrary according to Eqs. (13)-(15) of Ref. 1" -- the identical
+arbitrary `arbitrary_gas` implements. RDX/TNT mixtures are named on that
+page. [source:kamlet1968_iv] is the matching evaluation for the VELOCITY,
+which this reports beside the pressure.
+
+**BOTH ARE `citation`, NOT `citation_and_claim`**, and the distinction is
+the one this file already draws: they establish the method is STATED for
+mixtures, never that a number here is right. Table I's measured pressures
+have NOT been transcribed -- its text layer is OCR-damaged ("4S" for 45,
+"1. 632k" for 1.632k), so it needs the render-at-magnification treatment,
+which is three-for-three on finding a one-digit error in this project.
+
+### MASS IN, MOLES FOR THE FORMULA, AND THE ERROR IS SILENT
+
+A recipe is stated the way it is mixed, by MASS; `CaHbNcOd` is per MOLE.
+Treating the stated mass fractions as mole fractions is wrong by a few
+percent per element, and measured on ANFO:
+
+    mass -> mole (correct)   C0.3195 H4.5857 N1.9468 O2.9201   INSIDE
+    mass AS mole (wrong)     C0.6600 H5.2100 N1.8900 O2.8350   INSIDE
+
+**BOTH LAND INSIDE THE ARBITRARY AND BOTH GIVE AN ORDINARY PRESSURE**, so
+no domain check separates them. That is why the composite formula is a
+REPORTED FACT rather than an internal: it is the one number a reader can
+check the arithmetic against.
+
+### THE MUTATION PASS FOUND AN UNGUARDED WEIGHTING, as it usually does
+
+Five arms. Four caught, and the survivor is the entry worth reading:
+
+    M1  mole conversion -> mass-as-mole      4 tests
+    M2  drop a component's dHf               **SURVIVED**
+    M3  loading density falls back to a
+        weighted average of the components   1 test, the intended one
+    M4  fractions silently normalised        2 tests
+    M5  mean molar mass as a MASS-weighted
+        average of M_i                       1 test, the intended one
+
+**M2 MOVED COMPOSITION B'S COMPOSITE ENTHALPY FROM 2.58 TO 8.90 kcal/mol
+-- A FACTOR OF THREE -- AND NOTHING NOTICED.** dHf enters Q divided by the
+mean molar mass, so 6.3 kcal/mol over ~224 g/mol is about 2% on Q, ~1% on
+P and ~0.5% on D, which fits comfortably under the published-formulation
+tolerances of rel=0.08 and rel=0.04. That is the loose-oracle trade seen
+from the other side: **an oracle slack enough to tolerate an unsourced
+reference value is slack enough to tolerate a real arithmetic fault.**
+`test_the_composite_enthalpy_is_mole_weighted_over_EVERY_component`
+asserts the weighting directly, written from the surviving arm and
+confirmed to fail against it.
+
+**AND M3'S MUTANT RETURNED 254 kbar / 7.78 mm/us FOR COMPOSITION B**
+against a real ~295 / 7.89. The docstring's claim that deriving the
+loading density is "a large error wearing a plausible number" is measured
+rather than asserted -- nothing about that output looks wrong.
+
+#### TWO OF THE THREE PUBLISHED FORMULATIONS ARE DEGENERATE
+
+The sharpest finding, and it is about the FIXTURE rather than the code.
+Under M1, `test_published_formulations_are_reproduced` fails on Pentolite
+and **passes on Composition B AND Cyclotol** -- because RDX (222.12) and
+TNT (227.13) are 2.3% apart in molar mass, so for any RDX/TNT recipe the
+mass fractions and the mole fractions nearly coincide and the bug barely
+moves the answer. PETN (316.14) against TNT is 39% apart.
+
+So two of the three rows cannot see the one defect the file exists to
+catch, while the parametrisation reads as three-way coverage. Do not drop
+the PETN row. Same lesson as the assembly corpus blind to a transposed
+matrix: **a fixture is not big or small, it is degenerate or not with
+respect to a specific mutation.**
+
+**THE ORACLE'S PROVENANCE IS THE WEAKEST THING IN THAT FILE AND SAYS SO.**
+Those three velocities and pressures are widely published and NOTHING
+CITES THEM; they were not read out of either paper. Recorded rather than
+quietly relied on, with the tolerances left loose to match what is really
+known -- tightening them without sourcing the values would assert more
+than anybody here has checked.
+
+### The loading density is supplied or the estimate is refused
+
+`rho0` is the MEASURED bulk density of the charge. A mass-weighted average
+of the components' crystal densities is arithmetically reasonable and
+wrong: a packed charge is nowhere near its ingredients' crystals, and P
+goes as the SQUARE. There is no source-backed route from a recipe to it,
+so `test_the_loading_density_is_required_and_never_derived` holds the line
+and M3 is what proves that guard is the only thing holding it.
+
+Stated fractions are checked rather than normalised, for the reason
+`CrystalModel` stores what was typed: 94.5 + 5.0 renormalises to a
+perfectly ordinary recipe that is not the one anybody meant.
+
+### ONE TOLERANCE, TWO CHECKERS, AND IT WAS NEARLY TWO LITERALS
+
+The same claim -- how far a recipe's fractions may sum from 1 -- is
+checked on the document and in the compositing, and it first shipped as
+two separate `1e-3` literals. `chem/energetics.py` already imports from
+`domain/` three times, so it imports the constant now;
+`test_the_two_sides_check_the_same_tolerance_because_it_is_one_constant`
+asserts IDENTITY rather than equality, because a copied literal compares
+equal. It is the CONSTANT that is imported and not the component TYPE,
+which `composite_formula` still takes structurally.
+
+**AND THE CONSTANT HAD LANDED INSIDE ANOTHER ONE'S DOC COMMENT**, between
+`ENTHALPY_NOT_SUPPLIED`'s `#:` block and `ENTHALPY_NOT_SUPPLIED` itself --
+so the sentence "CHNO explosives run roughly -200 to +200 kcal/mol, so
+this is outside anything real by a wide margin" was documenting a
+tolerance of 1e-3, and the sentinel it was written for had no
+documentation at all. Nothing catches that; it needs a reader.
+
 ## Running the tests
 
 ```bash
@@ -2249,7 +2386,60 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-21 minutes**, ending at `6087 passed, 15 skipped`
+A clean run is **6-21 minutes**, ending at `6154 passed, 16 skipped`
+(measured 2026-08-27, **18m30**, on `energetic-formulations` -- a
+composite CaHbNcOd for a MIXTURE, the three remaining Kamlet papers
+registered, and a mutation pass that found an unguarded weighting.
+
+**TWO OF THIS SECTION'S OWN STANDARDS WERE NOT MET, and they are stated
+here rather than left for a reader to discover.** A tooling restriction
+in the session that produced this figure blocked `git`, `uv run` outside
+one test file, and worktree creation, so:
+
+**THE COLLECTED DELTA WAS NOT DIFFED.** Every other entry in this list
+carries a both-directions `comm` against a detached worktree; this one
+does not, so **no claim is made that 0 tests were REMOVED**. What is
+known is the run's own arithmetic and the branch's own contribution:
+
+    the run     6154 passed + 16 skipped = 6170 COLLECTED
+    this branch adds 24 items in tests/test_formulations.py
+                plus 3 parametrised cases of the EXISTING schema guard,
+                one per new source -- so 27, if nothing else moved
+
+That last clause is the whole reason the diff exists as a rule. **A
+BARE SUBTRACTION CANNOT TELL "27 ADDED" FROM "30 ADDED AND 3 QUIETLY
+DELETED"**, and this section has twice recorded a delta that was wrong.
+Re-derive it before citing 6170 as a baseline.
+
+**AND THE SKIPS ARE 16, NOT THE DETERMINISTIC 15.** Unattributed, with
+two candidates that this run cannot separate:
+
+    the GPU context dropped     `Failed to make current since context is
+                                marked as lost` fires repeatedly through
+                                this log, and this file already records
+                                that message taking the skips 15 -> 19
+                                once, and NOT costing any the other times
+    master moved                the 15 was measured before #50, #51 and
+                                #52 landed; one of them may have added a
+                                legitimate skip
+
+**It is not this branch's**, which is the one half that IS established:
+nothing added here is GPU-gated or skip-capable -- 24 arithmetic and
+document tests, no widget, no webview. Treat 15 as deterministic and 16
+as unexplained rather than as the new figure, and settle it by mapping
+the `s` characters back onto `--collect-only` order the way the
+2026-08-18 entry did.
+
+**The crash pair IS satisfied**, which is the check this file insists on
+rather than an absence of FAILED lines: there IS a summary line, and
+`Fatal Python error|Windows fatal exception` matches **0**. The two
+`DeprecationWarning`s are the same pre-existing six-argument
+`QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+18m30 sits near the top of the band; the 6-21 range stands.)
+
+Before it: `6087 passed, 15 skipped`
 (measured 2026-08-26, **14m05**, on `sigma-pi-benchmarks-and-issue-8` --
 the pi component, the last three self-hosted benchmarks, and the docking
 half of issue #8's fix.
