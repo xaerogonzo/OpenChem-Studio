@@ -48,7 +48,20 @@ def _pdf(visible: str = "", compressed: str = "") -> bytes:
     return body + b"\n%%EOF\n"
 
 
-def _entry(key, identifier_type="doi", identifier="10.1000/aaa", citation="", local="x.pdf"):
+#: **FIXTURE IDENTIFIERS ARE DELIBERATELY NOT DOI-SHAPED.**
+#: `test_every_doi_cited_in_the_tree_is_in_the_registry` sweeps every
+#: tracked file for `10.xxxx/...` and demands each one resolve to a
+#: `docs/sources.toml` entry -- correctly, since a DOI in the tree with no
+#: entry means a citation bypassed the registry. Invented fixture DOIs are
+#: indistinguishable from real ones to that guard, and a REAL one here
+#: would quietly require registering a source this branch does not use.
+#:
+#: The tool searches for its identifier as a literal substring and never
+#: parses DOI syntax, so a `urn:test:` string exercises exactly the same
+#: path. **And it passed locally before `git add`**: the guard reads
+#: `git ls-files`, so an untracked file is invisible to it -- a green run
+#: before staging says nothing about the committed tree.
+def _entry(key, identifier_type="doi", identifier="urn:test:aaa", citation="", local="x.pdf"):
     return {
         "key": key,
         "identifier_type": identifier_type,
@@ -88,8 +101,8 @@ def test_check_without_a_library_says_so_instead_of_passing_quietly(monkeypatch,
 
 def test_a_doi_inside_a_compressed_stream_is_found(monkeypatch):
     """The zlib half. A raw-byte scan alone misses 8 of the 44 real entries."""
-    blob = index_pdf_library.searchable(_pdf(compressed="see doi:10.1107/S0108767394013292 here"))
-    assert b"10.1107/S0108767394013292" in blob
+    blob = index_pdf_library.searchable(_pdf(compressed="see doi:urn:test:in-a-compressed-stream here"))
+    assert b"urn:test:in-a-compressed-stream" in blob
 
 
 def test_an_uninflatable_stream_is_skipped_rather_than_fatal():
@@ -121,8 +134,8 @@ def test_the_title_words_come_from_the_quoted_part_of_a_citation():
 
 
 def test_a_declared_doi_present_in_the_file_is_doi_exact():
-    entry = _entry("smith1990", identifier="10.1000/xyz")
-    record = index_pdf_library.classify(entry, _pdf("10.1000/xyz"), [])
+    entry = _entry("smith1990", identifier="urn:test:xyz")
+    record = index_pdf_library.classify(entry, _pdf("urn:test:xyz"), [])
     assert record["confidence"] == index_pdf_library.DOI_EXACT
     assert "doi" in record["evidence"]
 
@@ -134,7 +147,7 @@ def test_a_missing_doi_falls_back_to_author_and_year_rather_than_failing():
     44 DOI-bearing PDFs, because it was assigned retroactively and never
     printed. Demanding it would fail 45% of them, every failure false.
     """
-    entry = _entry("gasteiger1980", identifier="10.1016/0040-4020(80)80168-2")
+    entry = _entry("gasteiger1980", identifier="urn:test:gasteiger-doi")
     record = index_pdf_library.classify(entry, _pdf("Gasteiger, Tetrahedron 1980"), [])
     assert record["confidence"] == index_pdf_library.BIBLIOGRAPHIC
     assert record["evidence"] == ["surname_year"]
@@ -149,9 +162,9 @@ def test_a_file_carrying_only_a_foreign_doi_is_flagged():
     signal rather than noise -- 3 of 44 files contain a foreign DOI and
     all three also carry their own.
     """
-    entry = _entry("smith1990", identifier="10.1000/mine")
+    entry = _entry("smith1990", identifier="urn:test:mine")
     record = index_pdf_library.classify(
-        entry, _pdf("10.1000/yours"), [("jones1985", "10.1000/yours")]
+        entry, _pdf("urn:test:yours"), [("jones1985", "urn:test:yours")]
     )
     assert record["confidence"] == index_pdf_library.AMBIGUOUS
     assert record["foreign_dois"] == ["jones1985"]
@@ -163,9 +176,9 @@ def test_a_foreign_doi_alongside_its_own_is_just_a_reference_list():
     Every paper's bibliography carries other people's DOIs. Only the
     ABSENCE of its own makes a foreign one meaningful.
     """
-    entry = _entry("smith1990", identifier="10.1000/mine")
+    entry = _entry("smith1990", identifier="urn:test:mine")
     record = index_pdf_library.classify(
-        entry, _pdf("10.1000/mine and also 10.1000/yours"), [("jones1985", "10.1000/yours")]
+        entry, _pdf("urn:test:mine and also urn:test:yours"), [("jones1985", "urn:test:yours")]
     )
     assert record["confidence"] == index_pdf_library.DOI_EXACT
 
@@ -177,7 +190,7 @@ def test_a_file_with_no_evidence_is_unresolved_and_that_is_not_a_failure(tmp_pat
     reference books whose identity is on a cover page -- and every one of
     them is exactly the file it should be.
     """
-    entry = _entry("nothing1999", identifier="10.1000/absent", local="blank.pdf")
+    entry = _entry("nothing1999", identifier="urn:test:absent", local="blank.pdf")
     record = index_pdf_library.classify(entry, _pdf("unrelated bytes"), [])
     assert record["confidence"] == index_pdf_library.UNRESOLVED
 
@@ -200,7 +213,7 @@ def test_a_named_file_that_is_absent_IS_a_failure(tmp_path, capsys):
 
 def test_byte_identical_files_under_two_names_are_reported(tmp_path):
     """The practical payoff: identity comes from the file, not the name."""
-    payload = _pdf("10.1000/same")
+    payload = _pdf("urn:test:same")
     (tmp_path / "mayo1990.pdf").write_bytes(payload)
     (tmp_path / "DREIDING A Generic Force Field.pdf").write_bytes(payload)
     (tmp_path / "different.pdf").write_bytes(_pdf("something else"))
@@ -218,7 +231,7 @@ def test_byte_identical_files_under_two_names_are_reported(tmp_path):
 
 def test_the_manifest_records_HOW_identity_was_established(tmp_path):
     """Not just what was found. The index proves ARTIFACT identity only."""
-    (tmp_path / "x.pdf").write_bytes(_pdf("10.1000/aaa"))
+    (tmp_path / "x.pdf").write_bytes(_pdf("urn:test:aaa"))
     index = index_pdf_library.build_index(tmp_path, [_entry("smith1990")])
     record = index["records"][0]
     assert record["confidence"] == index_pdf_library.DOI_EXACT
