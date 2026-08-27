@@ -60,6 +60,34 @@ class CrystalChanged(Event):
 
 
 @dataclass(frozen=True)
+class FormulationSelected(Event):
+    """An energetic formulation was picked in the project tree.
+
+    **Its own event, on exactly the reasoning `CrystalSelected` records.**
+    A formulation is not a molecule (see `domain/formulation.py`), so
+    every panel subscribing to `MoleculeSelected` would look this uuid up
+    in `project.molecules`, find nothing, and go on showing the previous
+    molecule's results beside a mixture's name. That is the same
+    index-space confusion twice already paid for here.
+    """
+
+    formulation_uuid: str | None
+
+
+@dataclass(frozen=True)
+class FormulationChanged(Event):
+    """A formulation was added, edited or removed.
+
+    Its own event rather than `MoleculeChanged`, on the same reasoning as
+    `FormulationSelected`: a panel refreshing on a molecule change should
+    not be woken by a recipe, and a formulation uuid must never be looked
+    up in `project.molecules`.
+    """
+
+    formulation_uuid: str | None
+
+
+@dataclass(frozen=True)
 class MoleculeSnapshotUpdated(Event):
     """A lightweight, read-only snapshot of a molecule's identity fields.
 

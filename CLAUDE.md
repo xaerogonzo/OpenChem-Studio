@@ -1974,6 +1974,41 @@ rather than by fault. It is a lead and not a finding, and the next Linux
 crash now carries a trail to compare it against, which no previous one
 did.
 
+#### AND THE VICTIM DID NOT MOVE: 58% THREE TIMES, TWICE THE SAME TEST
+
+Measured 2026-08-27 on PR #53, and it revises the paragraph above rather
+than merely adding to it. The `::error::` annotation the entry below calls
+untested-in-anger has now fired live, twice, and both times the job
+reported **success at every level the REST API exposes**:
+
+    33031947731   58%   test_nmr_view_dialog.py:48 ...conformer_into_the_3d_pane
+    08cb4d5       58%   "an unidentified frame"
+    ecf17e0       58%   test_nmr_view_dialog.py:48 ...conformer_into_the_3d_pane
+
+**THE PARENT COMMIT CRASHED AT THE SAME PERCENTAGE**, which is what says
+the child did not cause it -- `ecf17e0` adds 19 tests and shifts
+collection order, and the crash did not move. So for THIS crash the
+victim is stable, not chosen by heap layout, and "the victim moves" holds
+across the 59%/59%/63% batch above and NOT within this one.
+
+That makes `test_nmr_view_dialog.py:48` the first Linux frame worth
+attacking directly. It is a CONSTRUCTOR -- `NmrViewDialog(...)` being
+built -- which points the opposite way from the `test_panel_rail.py`
+`sendPostedEvents(widget, DeferredDelete)` lead.
+
+**IT IS STILL NON-BLOCKING AND THE WINDOWS GATE WAS GREEN**, all four
+gating steps executed. The point of recording it is that three
+`gh run view --json` calls would have said `success` three times.
+
+**AND `gh run view --job ID --log` CANNOT ANSWER THIS.** The verdict goes
+to `$GITHUB_STEP_SUMMARY`; the job log carries the fingerprint SCRIPT,
+whose own text contains `Fatal Python error|Windows` and
+`Extension modules:` as grep PATTERNS -- so grepping the log counts the
+source and reports a crash on a clean run. Read the ANNOTATION:
+
+    gh api repos/OWNER/REPO/commits/SHA/check-runs       --jq '.check_runs[] | select(.name|startswith("linux")) | .id'
+    gh api repos/OWNER/REPO/check-runs/ID/annotations       --jq '.[] | select(.annotation_level=="failure") | .message'
+
 ### The two platforms have DIFFERENT signatures
 
     Linux CI    Fatal Python error: Aborted           at 59%, 59%, 63%
@@ -2240,6 +2275,242 @@ into YAML changes the interpreter, and nothing about the transcription
 looks different. **"Exactly what worked" is a claim about the COMMAND and
 not about the thing that runs it.**
 
+## A FORMULATION IS NOT A MOLECULE, AND THE COMPONENTS ARE EACH REFUSED
+
+`domain/formulation.py` is the recipe as a project DOCUMENT and the
+formulations half of `chem/energetics.py` is the arithmetic. **NO NEW
+DETONATION EQUATION IS INTRODUCED** -- `arbitrary_gas`,
+`heat_of_detonation` and `detonation_from_parameters` are pure functions
+over element counts, and they accept the FRACTIONAL counts a mixture
+produces. What is new is the abstraction, not any chemistry.
+
+**THE FEATURE EXISTS BECAUSE THE SINGLE-SUBSTANCE PATH STRUCTURALLY
+CANNOT ANSWER FOR ITS OWN INGREDIENTS.** Measured through the shipped
+calculator:
+
+    TNT                  answered
+    RDX                  answered
+    ammonium nitrate     REFUSED  over-oxidised: needs 2 <= O <= 2, has 3
+    nitroglycerin        REFUSED  over-oxidised: needs 2.5 <= O <= 8.5, has 9
+    dodecane (fuel oil)  REFUSED  too little oxygen to form water
+
+...and the MIXTURE lands inside. ANFO at 94.5/5.5 composites to
+`C0.3195 H4.5857 N1.9468 O2.9201` against a window of 2.2928 to 2.9317.
+Two refusals in, one answer out.
+
+### THE AUTHORS EVALUATED THE METHOD ON MIXTURES THEMSELVES
+
+Applying Kamlet-Jacobs to a recipe reads like a liberty taken with a
+single-substance correlation, and it is not. Read directly off p45 of
+[source:kamlet1968_iii], its Table I's 80 data sets cover "13 explosive
+compounds and 14 binary mixtures of three general types", and the same
+paragraph says those calculations' parameters "were estimated from the
+H2O-CO2 arbitrary according to Eqs. (13)-(15) of Ref. 1" -- the identical
+arbitrary `arbitrary_gas` implements. RDX/TNT mixtures are named on that
+page. [source:kamlet1968_iv] is the matching evaluation for the VELOCITY,
+which this reports beside the pressure.
+
+**BOTH ARE `citation`, NOT `citation_and_claim`**, and the distinction is
+the one this file already draws: they establish the method is STATED for
+mixtures, never that a number here is right. Table I's measured pressures
+have NOT been transcribed -- its text layer is OCR-damaged ("4S" for 45,
+"1. 632k" for 1.632k), so it needs the render-at-magnification treatment,
+which is three-for-three on finding a one-digit error in this project.
+
+### MASS IN, MOLES FOR THE FORMULA, AND THE ERROR IS SILENT
+
+A recipe is stated the way it is mixed, by MASS; `CaHbNcOd` is per MOLE.
+Treating the stated mass fractions as mole fractions is wrong by a few
+percent per element, and measured on ANFO:
+
+    mass -> mole (correct)   C0.3195 H4.5857 N1.9468 O2.9201   INSIDE
+    mass AS mole (wrong)     C0.6600 H5.2100 N1.8900 O2.8350   INSIDE
+
+**BOTH LAND INSIDE THE ARBITRARY AND BOTH GIVE AN ORDINARY PRESSURE**, so
+no domain check separates them. That is why the composite formula is a
+REPORTED FACT rather than an internal: it is the one number a reader can
+check the arithmetic against.
+
+### THE MUTATION PASS FOUND AN UNGUARDED WEIGHTING, as it usually does
+
+Five arms. Four caught, and the survivor is the entry worth reading:
+
+    M1  mole conversion -> mass-as-mole      4 tests
+    M2  drop a component's dHf               **SURVIVED**
+    M3  loading density falls back to a
+        weighted average of the components   1 test, the intended one
+    M4  fractions silently normalised        2 tests
+    M5  mean molar mass as a MASS-weighted
+        average of M_i                       1 test, the intended one
+
+**M2 MOVED COMPOSITION B'S COMPOSITE ENTHALPY FROM 2.58 TO 8.90 kcal/mol
+-- A FACTOR OF THREE -- AND NOTHING NOTICED.** dHf enters Q divided by the
+mean molar mass, so 6.3 kcal/mol over ~224 g/mol is about 2% on Q, ~1% on
+P and ~0.5% on D, which fits comfortably under the published-formulation
+tolerances of rel=0.08 and rel=0.04. That is the loose-oracle trade seen
+from the other side: **an oracle slack enough to tolerate an unsourced
+reference value is slack enough to tolerate a real arithmetic fault.**
+`test_the_composite_enthalpy_is_mole_weighted_over_EVERY_component`
+asserts the weighting directly, written from the surviving arm and
+confirmed to fail against it.
+
+**AND M3'S MUTANT RETURNED 254 kbar / 7.78 mm/us FOR COMPOSITION B**
+against a real ~295 / 7.89. The docstring's claim that deriving the
+loading density is "a large error wearing a plausible number" is measured
+rather than asserted -- nothing about that output looks wrong.
+
+#### TWO OF THE THREE PUBLISHED FORMULATIONS ARE DEGENERATE
+
+The sharpest finding, and it is about the FIXTURE rather than the code.
+Under M1, `test_published_formulations_are_reproduced` fails on Pentolite
+and **passes on Composition B AND Cyclotol** -- because RDX (222.12) and
+TNT (227.13) are 2.3% apart in molar mass, so for any RDX/TNT recipe the
+mass fractions and the mole fractions nearly coincide and the bug barely
+moves the answer. PETN (316.14) against TNT is 39% apart.
+
+So two of the three rows cannot see the one defect the file exists to
+catch, while the parametrisation reads as three-way coverage. Do not drop
+the PETN row. Same lesson as the assembly corpus blind to a transposed
+matrix: **a fixture is not big or small, it is degenerate or not with
+respect to a specific mutation.**
+
+**THE ORACLE'S PROVENANCE IS THE WEAKEST THING IN THAT FILE AND SAYS SO.**
+Those three velocities and pressures are widely published and NOTHING
+CITES THEM; they were not read out of either paper. Recorded rather than
+quietly relied on, with the tolerances left loose to match what is really
+known -- tightening them without sourcing the values would assert more
+than anybody here has checked.
+
+### The loading density is supplied or the estimate is refused
+
+`rho0` is the MEASURED bulk density of the charge. A mass-weighted average
+of the components' crystal densities is arithmetically reasonable and
+wrong: a packed charge is nowhere near its ingredients' crystals, and P
+goes as the SQUARE. There is no source-backed route from a recipe to it,
+so `test_the_loading_density_is_required_and_never_derived` holds the line
+and M3 is what proves that guard is the only thing holding it.
+
+Stated fractions are checked rather than normalised, for the reason
+`CrystalModel` stores what was typed: 94.5 + 5.0 renormalises to a
+perfectly ordinary recipe that is not the one anybody meant.
+
+### ONE TOLERANCE, TWO CHECKERS, AND IT WAS NEARLY TWO LITERALS
+
+The same claim -- how far a recipe's fractions may sum from 1 -- is
+checked on the document and in the compositing, and it first shipped as
+two separate `1e-3` literals. `chem/energetics.py` already imports from
+`domain/` three times, so it imports the constant now;
+`test_the_two_sides_check_the_same_tolerance_because_it_is_one_constant`
+asserts IDENTITY rather than equality, because a copied literal compares
+equal. It is the CONSTANT that is imported and not the component TYPE,
+which `composite_formula` still takes structurally.
+
+**AND THE CONSTANT HAD LANDED INSIDE ANOTHER ONE'S DOC COMMENT**, between
+`ENTHALPY_NOT_SUPPLIED`'s `#:` block and `ENTHALPY_NOT_SUPPLIED` itself --
+so the sentence "CHNO explosives run roughly -200 to +200 kcal/mol, so
+this is outside anything real by a wide margin" was documenting a
+tolerance of 1e-3, and the sentinel it was written for had no
+documentation at all. Nothing catches that; it needs a reader.
+
+### AND THE WHOLE THING WAS REACHABLE FROM NOTHING A USER COULD PRESS
+
+`build_formulation_report` shipped correct, sourced, and covered by 24
+tests. **No menu item, panel or registration invoked it.** The only
+caller in the repository was its own test file.
+
+**AND `tests/test_calculator_reachability.py` WAS GREEN THROUGHOUT**,
+which is the part worth reading. That file exists precisely because PR
+#41 shipped four unreachable modules, and it checks three directions --
+forward from the registry, reverse from `USER_FACING_PROVIDER`, and wide
+from `openchem.main`. All three passed, because **every one of them is
+about the MODULE**:
+
+    chem/energetics.py is statically reachable from openchem.main   yes
+    it declares USER_FACING_PROVIDER                                yes
+    ...naming "Oxygen balance, through the 'Oxygen Balance'
+       calculator", which is TRUE                                  yes
+
+So the module's own declaration was satisfied by a DIFFERENT function in
+the same file, and the report sat beside it reached by nothing. PR #41's
+failure at finer granularity: **"shipped" had come to mean *the file
+exists and something else in it is wired up*.**
+
+#### The rule that closes it is a real family, and it was measured first
+
+`test_every_report_builder_is_called_by_the_application` derives its
+population from the naming convention every one of them already follows,
+so a seventh is checked without anybody remembering to add it. Measured
+BEFORE the rule was written -- six builders, five with a real call site
+in `src/` and exactly one with none:
+
+    build_atom_report         ui/panels/atom_inspector_panel.py:517
+    build_bond_report         ui/panels/atom_inspector_panel.py:511
+    build_molecule_report     ui/panels/atom_inspector_panel.py:513
+    build_crystal_report      app/main_window.py:2113
+    build_site_report         app/main_window.py:2249
+    build_formulation_report  NOTHING
+
+**IT COUNTS `ast.Call`, NEVER TEXT, AND THAT DECIDES THE ANSWER.** Five
+of the six are also named in PROSE -- `services/atom_fact_service.py`
+names three in one docstring sentence, and `chem/energetics.py` mentions
+`build_crystal_report` in two comments explaining a convention it
+borrows. A `grep -c` rule counts those and passes, which is this file's
+own *"grepping for a phrase counts the source, not the outcome"* lesson
+one layer down.
+
+**WHAT IT DOES NOT CLAIM** is that the call site is reachable from
+`openchem.main`; the wide direction says that, and the two compose.
+
+Two mutations, two caught, and the first is the demonstration: removing
+the production call fails this guard **while the other 87 tests in the
+file stay green**, which is the blind spot shown rather than described.
+Neutering the population regex fails both halves.
+
+### THE ANSWER SHIPPED BEHIND A FOLD, AND EVERY TEST WAS GREEN
+
+Found by driving the app and reading the shot, which is now the
+thirteenth entry in this file's running count of that. The report opened
+on a name, a component list, and a collapsed **"Structure (4)"** --
+`DEFAULT_EXPANDED` holds IDENTITY and ELECTRONIC, and the composite
+formula, the pressure, the velocity and the heat of detonation are all
+STRUCTURE. **The entire answer was one click away and invisible.**
+
+`FactView._compact`'s own docstring already records this defect, in the
+same heading and at the same count, for the solubility stats block -- and
+its fix does not cover this: `_compact` fires when the CONTROLS are
+hidden, and here they are shown. `set_report` takes an `expanded`
+override now, defaulting to None so every existing caller is unmoved.
+`DEFAULT_EXPANDED` exists because *"a hundred-odd facts rendered flat is
+a wall"*; a six-fact report is not one.
+
+**NOTHING IN THE SUITE ASSERTED A SECTION'S INITIAL STATE**, which is why
+it shipped. The guard reads `isChecked()` rather than counting rows: the
+facts were always PRESENT, and present is not visible.
+
+**AND THE HELPER GUARD DOES NOT CATCH IT** -- mutating the override out
+of `_formulation_report_dialog` leaves both `FactView` guards green and
+fails only
+`test_the_windows_own_report_dialog_opens_with_the_answer_visible`.
+*Testing a helper is not testing the wiring*, for the third time in this
+file.
+
+### `Fact.units` NEVER REACHES A FactView ROW, and that is PRE-EXISTING
+
+Recorded rather than fixed, because it is system-wide and not this
+branch's. The detonation facts carry `units="kbar"`, `"mm/us"`,
+`"cal/g"`; the row renders `display_value` alone and the row TOOLTIP
+carries source, basis, evidence and limitations -- not units. So the
+report reads `Detonation pressure (C-J)  70.7`.
+
+**It is not a dead field**, which is the thing to check before calling it
+one: `ui/report_format.py`, `ui/result_clipboard.py` and
+`comparison_panel` all read it, so *Copy report* carries the units the
+screen does not. And `chem/crystal_report.py` has the identical shape --
+`units="A^3"`, `"g/cm^3"`, `"kJ/mol"`, none of them rendered -- so every
+Fact-based report in the application reads this way and has since the
+migration. Changing it touches all of them and wants its own measurement,
+its own guard and its own driven check.
+
 ## A POWDER PATTERN'S POSITIONS SHIP AND ITS INTENSITIES ARE REFUSED
 
 `chem/powder_xrd.py` reports where a calculated powder X-ray pattern's
@@ -2444,6 +2715,60 @@ independent -- C depends on B, not on D -- so neither figure includes the
 other's tests and adding them is meaningless.
 
 15m45 sits mid-band; the 6-21 range stands.)
+
+Before it: `6173 passed, 16 skipped`
+(measured 2026-08-27, **15m12**, on `energetic-formulations` -- the
+formulation report reaching a control a user can press, and the
+reachability guard's module-level blind spot.
+
+**+19 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed -- `import openchem; print(openchem.__file__)` reported the
+WORKTREE's `src`:
+
+    08cb4d5              COLLECTS 6170
+    this one             COLLECTS 6189   = 6170 + 19
+    the run                       6173 passed + 16 skipped = 6189
+
+**19 ITEMS, 19 NEW FUNCTIONS**, none parametrised, so for once the two
+deltas are the same number:
+
+    16  test_formulation_wiring.py       the dialog, the two commands,
+                                         the events, and the fold
+     3  test_calculator_reachability.py  the report-builder guard, its
+                                         narrow half, and the
+                                         docstring-is-not-a-call arm
+
+**THE SKIPS ARE 16 AND THE 16th IS NOW ATTRIBUTED**, which the entry
+this replaces recorded as unexplained between two candidates. It is
+neither mysterious nor the GPU: **`tests/test_pdf_library_index.py:274`,
+added by #51**, so master moved. Read off `-rs` rather than inferred:
+
+    13  $3Dmol.createViewerGrid under offscreen   6 mol3d + 7 spatial
+     1  test_naming_providers.py:297              hits the network
+     1  test_namer_known_defects.py:471           an EMPTY PARAMETER SET
+     1  test_pdf_library_index.py:274             NEW, from #51
+
+**AND THE GPU CANDIDATE IS REFUTED RATHER THAN MERELY UNCHOSEN.**
+Chromium's `Failed to make current` fires **28 times** in this very log
+and costs **zero** skips -- so 15 was never "15 unless the GPU wobbles",
+and the previous entry's suspicion was wrong in a checkable way.
+
+**THE EMPTY-PARAMETER-SET SKIP IS WHY NO GREP FOUND IT.** A subset run
+over every file matching `skipif|pytest.skip|importorskip|mark.skip`
+gives 15, not 16, because `test_namer_known_defects.py` carries no skip
+MARKER at all -- pytest reports an empty parametrisation as a skip. Any
+future attempt to enumerate the skip-capable files by text will miss it
+the same way; `-rs` on the full run is the only complete answer, and it
+costs nothing when folded into a run you are taking anyway.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`^(Windows fatal exception|Fatal Python error)` matches **0**, as do
+`^FAILED` and `^ERROR`. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in
+`test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+15m12 sits mid-band; the 6-21 range stands.)
 
 Before it: `6087 passed, 15 skipped`
 (measured 2026-08-26, **14m05**, on `sigma-pi-benchmarks-and-issue-8` --

@@ -66,6 +66,7 @@ from openchem.events.events import (
     ConformersReady,
     DescriptorComputed,
     DockingResultReady,
+    FormulationSelected,
     MoleculeChanged,
     MoleculeSelected,
     StructureChecked,
@@ -160,6 +161,16 @@ _MENU_KEYWORDS: dict[str, tuple[str, ...]] = {
     "Export Molecule...": ("molfile", "sdf", "xyz", "save structure"),
     "Import Macromolecule...": ("pdb", "mmcif", "protein", "receptor", "biomolecule"),
     "Import Crystal Structure...": ("cif", "mmcif", "lattice", "unit cell", "solid", "xrd"),
+    # `explosive`, `detonation` and `mixture` point here and nowhere else:
+    # the single-substance calculators refuse every classic formulation
+    # ingredient on its own, so "how do I get a detonation pressure for
+    # ANFO" has one answer and this is it.
+    # NOT "formulation": that is already a word of the label, so the
+    # palette finds it by label and the keyword would only make the map
+    # look bigger than it is.
+    "Energetic Formulation...": (
+        "mixture", "explosive", "detonation", "anfo", "blend",
+    ),
     "Receptor Library...": ("pdb", "protein", "target", "docking"),
     "Periodic Table...": ("element", "isotope", "atomic number", "electron configuration"),
     "Identify Structure Online...": ("pubchem", "lookup", "search online", "name"),
@@ -361,6 +372,7 @@ class MainWindow(QMainWindow):
             on_duplicate=self._duplicate_molecule,
             on_identify=self._identify_structure,
             on_check=self._show_structure_check_panel,
+            on_edit_formulation=self._edit_formulation,
         )
         self._property_panel = PropertyPanel(
             services.event_bus,
@@ -420,6 +432,11 @@ class MainWindow(QMainWindow):
         # leave each panel showing the previous molecule beside a
         # crystal's name.
         services.event_bus.subscribe(CrystalSelected, self._on_crystal_selected)
+        # Selecting a formulation shows its report. Its OWN event too, on
+        # the identical reasoning -- see `FormulationSelected`.
+        services.event_bus.subscribe(
+            FormulationSelected, self._on_formulation_selected
+        )
         # And the 2D canvas, which turned out to be possible after all --
         # Ketcher's editor carries a `selectionChange` event even though
         # its public `subscribe()` facade does not accept that name.
@@ -1253,6 +1270,17 @@ class MainWindow(QMainWindow):
         self._document(
             file_menu.addAction("Import Crystal Structure...", self._import_crystal),
             "import_crystal",
+        )
+        # Its OWN action for the same reason the crystal importer is one:
+        # a formulation is not a molecule. It is a NEW rather than an
+        # Import because a recipe is stated, not read from a file -- and
+        # the three numbers it needs (mass fractions, each component's
+        # enthalpy of formation, the loading density) are exactly the
+        # ones no file format carries and no estimate is allowed to
+        # supply.
+        self._document(
+            file_menu.addAction("Energetic Formulation...", self._new_formulation),
+            "new_formulation",
         )
         self._document(
             file_menu.addAction("Receptor Library...", self._open_receptor_library),
@@ -2281,6 +2309,117 @@ class MainWindow(QMainWindow):
 
     def _show_crystal_report(self, report, filename: str) -> None:
         self.crystal_report_dialog(report, filename).exec()
+
+    # --- energetic formulations ---------------------------------------------
+
+    def _project_component_choices(self) -> tuple[tuple[str, str], ...]:
+        """`(name, SMILES)` for every molecule in the project that has one.
+
+        The dialog offers these in its picker and knows no chemistry, so
+        the SMILES is derived here. A molecule whose structure does not
+        yield one is omitted rather than offered with a blank: a
+        component with no SMILES contributes no element counts, and the
+        composite formula would quietly be missing a term.
+        """
+        from openchem.chem.identifiers import identifier_for_molblock
+
+        project = self._session.project
+        if project is None:
+            return ()
+        choices: list[tuple[str, str]] = []
+        for molecule in project.molecules:
+            smiles = identifier_for_molblock(molecule.molblock, "smiles")
+            if smiles:
+                choices.append((molecule.display_name, smiles))
+        return tuple(choices)
+
+    def _new_formulation(self) -> None:
+        """State a mixture, then show what it would do."""
+        self._edit_formulation(None)
+
+    def _edit_formulation(self, formulation) -> None:
+        """The one route in and out of the formulation editor.
+
+        `_new_formulation` and the project tree's "Edit..." are the same
+        operation with and without a subject, which is what stops an edit
+        and an add drifting into two ideas of what a formulation needs.
+        The save command is add-or-replace keyed on the uuid, so the
+        distinction never has to be made twice.
+        """
+        from openchem.commands.formulation_commands import SaveFormulationCommand
+        from openchem.ui.dialogs.formulation_dialog import FormulationDialog
+
+        project = self._session.project
+        if project is None:
+            return
+        dialog = FormulationDialog(
+            formulation, molecules=self._project_component_choices(), parent=self
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        stated = dialog.formulation()
+        self._undo_stack.push(
+            SaveFormulationCommand(project, stated, self._services.event_bus)
+        )
+        self._project_explorer.refresh()
+        self._show_formulation_report(stated)
+
+    def _on_formulation_selected(self, event) -> None:
+        """Show the report for a formulation picked in the project tree."""
+        project = self._session.project
+        if project is None or event.formulation_uuid is None:
+            return
+        formulation = project.find_formulation(event.formulation_uuid)
+        if formulation is None:
+            return
+        self._show_formulation_report(formulation)
+
+    def _formulation_report_dialog(self, formulation) -> QDialog:
+        """The report, built and NOT shown.
+
+        **The split is what makes this testable at all.** A method that
+        built and `exec()`d in one step spins its own event loop inside
+        the handler, so a test reaches an invisible modal window with
+        nobody to close it -- 42 minutes, on the last occasion this
+        project paid for it. `build_atom_context_menu` is the same shape
+        for the same reason.
+
+        **AND THIS IS THE CALL THAT MAKES THE REPORT REACHABLE.**
+        `build_formulation_report` was reached by nothing but its own
+        test file until this line existed, while every module-level
+        reachability guard stayed green -- see
+        `test_every_report_builder_is_called_by_the_application`.
+        """
+        from openchem.chem.energetics import build_formulation_report
+        from openchem.ui.widgets.fact_view import FactView
+
+        report = build_formulation_report(formulation)
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Formulation - {formulation.display_name}")
+        dialog.resize(560, 620)
+        view = FactView(dialog)
+        # EVERY category this report carries starts open, which for a
+        # six-fact report is all of them. `DEFAULT_EXPANDED` holds
+        # IDENTITY and ELECTRONIC, and every number here -- the composite
+        # formula, the pressure, the velocity, the heat of detonation --
+        # is STRUCTURE, so the default folded the entire answer away and
+        # opened the window on a name and a component list. Found by
+        # driving the app and looking at the shot; no test asserts a
+        # section's initial state.
+        view.set_report(
+            report,
+            title=report.name,
+            expanded={fact.category for fact in report.facts},
+        )
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(view)
+        close = QPushButton("Close", dialog)
+        close.clicked.connect(dialog.close)
+        layout.addWidget(close)
+        return dialog
+
+    def _show_formulation_report(self, formulation) -> None:
+        self._formulation_report_dialog(formulation).exec()
 
     def _export_molecule(self) -> None:
         molecule = self._current_molecule()
