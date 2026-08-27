@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 816f8841bc928e394a52a694d33f19918dc897c882fc78e4e3a8c8f15fdbe09f -->
+<!-- SOURCE SHA256: ab931abd47692925faa7f5cdc4aba967554996a3ad55c920358d780e74eb3b01 -->
 
 # Sources
 
@@ -121,6 +121,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`guo2006`](#guo2006) | literature | reference only | citation + claim |
 | [`gutmann1976`](#gutmann1976) | literature | shipped | citation + claim |
 | [`gutmann_frontiers2022`](#gutmann_frontiers2022) | literature | **not shipped** | citation |
+| [`hall1981`](#hall1981) | literature | shipped | citation |
 | [`hlb`](#hlb) | reference_table | reference only | citation |
 | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
 | [`ich_m9`](#ich_m9) | standard | shipped | citation + claim |
@@ -170,6 +171,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`schott1989`](#schott1989) | literature | shipped | citation + claim |
 | [`sci_downloads_note`](#sci_downloads_note) | reference_table | reference only | citation |
 | [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
+| [`souvignier2016`](#souvignier2016) | literature | shipped | citation |
 | [`stefanis2008`](#stefanis2008) | literature | shipped | citation + claim |
 | [`stovall2015`](#stovall2015) | literature | shipped | citation + claim |
 | [`tdc_admet`](#tdc_admet) | dataset | reference only | citation |
@@ -182,6 +184,63 @@ next run of `tools/build_lewis_parameters.py`.
 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
 
 ## Primary literature
+
+### souvignier2016
+
+<a id="souvignier2016"></a>
+
+> B. Souvignier, H. Wondratschek, M. I. Aroyo, G. Chapuis & A. M. Glazer, 'Space groups and their descriptions', International Tables for Crystallography Volume A, ch. 1.4, 2016, pp. 42-74.
+
+| | |
+| --- | --- |
+| Identifier | [10.1107/97809553602060000922](https://doi.org/10.1107/97809553602060000922) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-27 |
+| Local copy | `souvignier2016.pdf` (not checked) |
+| Used by | `tools/build_space_groups.py`, `src/openchem/chem/data/space_groups.json`, `src/openchem/chem/space_groups.py` |
+
+The AUTHORITY for what a space group is and how its settings are named.
+Confirmed from page 1 with pymupdf: "1.4. Space groups and their
+descriptions -- B. Souvignier, H. Wondratschek, M. I. Aroyo, G. Chapuis and
+A. M. Glazer".
+
+**`citation` AND NOT `citation_and_claim`, deliberately.** The shipped
+operations are not checked against this chapter's tables -- they are
+checked by CLOSURE UNDER COMPOSITION, which is mathematics rather than a
+lookup and is non-circular in a way comparing counts against a list
+derived from the same source would not be. Claiming the stronger value
+would assert a page-by-page comparison that was not made.
+
+The operations themselves come from Open Babel's `space-groups.txt`, which
+is a data DEPENDENCY rather than the scientific authority -- the same
+distinction the TSEI radii were held to.
+
+### hall1981
+
+<a id="hall1981"></a>
+
+> S. R. Hall, 'Space-Group Notation with an Explicit Origin', Acta Cryst. 1981, A37, 517-525.
+
+| | |
+| --- | --- |
+| Identifier | [10.1107/S0567739481001228](https://doi.org/10.1107/S0567739481001228) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-27 |
+| Local copy | `hall1981.pdf` (not checked) |
+| Used by | `src/openchem/chem/space_groups.py`, `src/openchem/chem/data/space_groups.json` |
+
+Hall notation, which is what pins a SETTING rather than merely a space
+group -- 13 IT numbers carry settings whose operation counts differ, so the
+number alone does not identify the operations and `SpaceGroupSetting`
+carries the Hall symbol for that reason.
+
+Confirmed from the PDF's own first page: "Acta Cryst. (1981). A37, 517-525
+-- Space-Group Notation with an Explicit Origin -- BY S. R. HALL". The DOI
+is NOT present anywhere in the file, which is ordinary for a paper typeset
+long before DOIs existed -- so the volume/page line is what identifies it,
+and the DOI recorded here comes from the publisher rather than the file.
 
 ### mayo1990
 

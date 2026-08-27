@@ -281,6 +281,25 @@ class Crystal:
     #: showing, and silently ignoring the fields is how a tool starts
     #: pretending it understood more than it did.
     unhandled: tuple[str, ...] = field(default_factory=tuple)
+    #: WHERE `operations` came from, as plain data -- `domain/` may not
+    #: import `openchem.chem`, so the reader decides and records, and this
+    #: only carries the answer.
+    #:
+    #:     "loop"          the file listed them, which is authoritative
+    #:     "space_group"   derived from the symbol, via chem/space_groups
+    #:     "unexpanded"    NEITHER, so `operations` is the identity alone
+    #:
+    #: **The third is the one that matters.** A cell that was never
+    #: expanded still has a lattice, a formula and a density, and every
+    #: one of them is wrong -- so a consumer that reports numbers has to
+    #: be able to find out, rather than being handed a plausible
+    #: `Crystal` with no way to tell. `chem/crystal_report` says it out
+    #: loud; see `symmetry_note` for why it does not say why.
+    symmetry_source: str = "loop"
+    #: Why, when `symmetry_source` is "unexpanded". Free text from the
+    #: resolver, because the two reasons -- an unknown symbol and an
+    #: ambiguous setting -- send a reader somewhere different.
+    symmetry_note: str = ""
 
     def expand(self) -> tuple[ExpandedAtom, ...]:
         """Every atom of one unit cell, wrapped into it, deduplicated.
