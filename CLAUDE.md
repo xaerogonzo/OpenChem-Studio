@@ -1974,6 +1974,41 @@ rather than by fault. It is a lead and not a finding, and the next Linux
 crash now carries a trail to compare it against, which no previous one
 did.
 
+#### AND THE VICTIM DID NOT MOVE: 58% THREE TIMES, TWICE THE SAME TEST
+
+Measured 2026-08-27 on PR #53, and it revises the paragraph above rather
+than merely adding to it. The `::error::` annotation the entry below calls
+untested-in-anger has now fired live, twice, and both times the job
+reported **success at every level the REST API exposes**:
+
+    33031947731   58%   test_nmr_view_dialog.py:48 ...conformer_into_the_3d_pane
+    08cb4d5       58%   "an unidentified frame"
+    ecf17e0       58%   test_nmr_view_dialog.py:48 ...conformer_into_the_3d_pane
+
+**THE PARENT COMMIT CRASHED AT THE SAME PERCENTAGE**, which is what says
+the child did not cause it -- `ecf17e0` adds 19 tests and shifts
+collection order, and the crash did not move. So for THIS crash the
+victim is stable, not chosen by heap layout, and "the victim moves" holds
+across the 59%/59%/63% batch above and NOT within this one.
+
+That makes `test_nmr_view_dialog.py:48` the first Linux frame worth
+attacking directly. It is a CONSTRUCTOR -- `NmrViewDialog(...)` being
+built -- which points the opposite way from the `test_panel_rail.py`
+`sendPostedEvents(widget, DeferredDelete)` lead.
+
+**IT IS STILL NON-BLOCKING AND THE WINDOWS GATE WAS GREEN**, all four
+gating steps executed. The point of recording it is that three
+`gh run view --json` calls would have said `success` three times.
+
+**AND `gh run view --job ID --log` CANNOT ANSWER THIS.** The verdict goes
+to `$GITHUB_STEP_SUMMARY`; the job log carries the fingerprint SCRIPT,
+whose own text contains `Fatal Python error|Windows` and
+`Extension modules:` as grep PATTERNS -- so grepping the log counts the
+source and reports a crash on a clean run. Read the ANNOTATION:
+
+    gh api repos/OWNER/REPO/commits/SHA/check-runs       --jq '.check_runs[] | select(.name|startswith("linux")) | .id'
+    gh api repos/OWNER/REPO/check-runs/ID/annotations       --jq '.[] | select(.annotation_level=="failure") | .message'
+
 ### The two platforms have DIFFERENT signatures
 
     Linux CI    Fatal Python error: Aborted           at 59%, 59%, 63%
