@@ -1928,6 +1928,52 @@ A widget still alive has never been destroyed, so it cannot be the thing
 that faults. It is a leak, not a landmine -- which is what the earlier
 census already said, and remains the right reading.
 
+### THE CENSUS CAUGHT ONE, ON LINUX, ON ITS FIRST LIVE RUN
+
+Run 33031947731, 2026-08-27 -- the first Linux job ever to have
+`OPENCHEM_CENSUS` set, and it crashed, which is the whole reason the
+instrument exists. What the trail says:
+
+    the `# session finished` sentinel   ABSENT  -> it aborted
+    the last BEGIN, with no `end`       tests/test_nmr_view_dialog.py::
+                                        test_dialog_loads_a_conformer_into_
+                                        the_3d_pane_when_one_exists
+    test number                         3623, at 58%
+    LATE lines in the whole trail       0
+    at the last completed test          built 19963  destroyed 5991
+                                        late 0  alive 13972
+
+**THE CENSUS AND THE TRACEBACK AGREE INDEPENDENTLY**, which is what
+validates the instrument rather than merely using it: `suite.log`'s
+`Fatal Python error: Aborted` names
+`test_nmr_view_dialog.py, line 48`, and the census's last `BEGIN` names
+the same test, derived from a completely different mechanism -- a line
+flushed before the test ran, versus a C-level traceback written after it
+died.
+
+**ZERO LATE DESTRUCTIONS, MEASURED ON LINUX AT THE MOMENT OF THE CRASH.**
+The entry above establishes that on Windows, where the suite does not
+crash; this establishes it on the platform where it does, in the run that
+did. So an object destroyed inside an unrelated test's event dispatch is
+not the mechanism here, and a theory starting there is starting in the
+wrong place -- which is what the previous entry claimed on weaker
+evidence and is now measured.
+
+**AND THE FRAME IS A CONSTRUCTOR, NOT A DISPOSAL.** Line 48 is
+`NmrViewDialog(engine, molecule, spectrum, conformer.molblock,
+backend=backend)` -- the dialog being BUILT. That is a second frame of
+ours across four Linux logs, and it points the opposite way from the
+first: the `test_panel_rail.py` lead is `sendPostedEvents(widget,
+DeferredDelete)`, a forced disposal. One says building, one says tearing
+down.
+
+**n=1, THE VICTIM MOVES, AND THE TEST PASSES LOCALLY** -- 5 of 5, and
+59%/59%/63% previously against 58% here, on four different tests. That is
+the documented order-dependent shape: the victim is chosen by heap layout
+rather than by fault. It is a lead and not a finding, and the next Linux
+crash now carries a trail to compare it against, which no previous one
+did.
+
 ### The two platforms have DIFFERENT signatures
 
     Linux CI    Fatal Python error: Aborted           at 59%, 59%, 63%
