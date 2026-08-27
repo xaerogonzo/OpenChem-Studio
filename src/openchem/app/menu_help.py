@@ -101,6 +101,24 @@ MENU_HELP: dict[str, HelpTooltip] = {
         ),
         tier=2, help_id="file.import_crystal", topic=_M, help_anchor="projects",
     ),
+    "particle_editor": HelpTooltip(
+        text=(
+            "Composes a hadron from quarks and reports what its quantum "
+            "numbers add up to: charge, baryon number, strangeness, charm, "
+            "bottomness and isospin.\n\n"
+            "MATCHING THOSE NUMBERS IS NECESSARY AND NOT SUFFICIENT for "
+            "identity. Lambda and Sigma zero are both u d s with the same "
+            "charge, baryon number, strangeness and third isospin "
+            "component, differing only in TOTAL isospin, which is not a "
+            "sum over the content -- so that composition is reported as "
+            "valid and not uniquely identified rather than being given a "
+            "name.\n\n"
+            "It is a self-contained editor: nothing composed here reaches "
+            "a molecule, a property or a report."
+        ),
+        tier=3, help_id="tools.particle_editor", topic=_M,
+        help_anchor="particles",
+    ),
     "receptor_library": HelpTooltip(
         text=(
             "Opens the curated docking-target catalogue. Each entry carries a "

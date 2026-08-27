@@ -2202,3 +2202,55 @@ Two things worth knowing about the answer:
 - **Several neighbours belong to next-door cells.** They are found as
   real periodic images, which is why halite's sodium has six chlorides
   even though the asymmetric unit holds one.
+
+<!-- help:particles -->
+## Quarks and hadrons
+
+**Tools → Quarks and Hadrons...** composes a hadron from quarks and reports
+what its quantum numbers add up to. Three quarks make a baryon, three
+antiquarks an antibaryon, and one quark with one antiquark makes a meson;
+anything else is refused.
+
+It is **a self-contained editor**. Nothing composed here reaches a molecule,
+a property or a report — the rest of the application is built on atoms as
+its smallest unit, and this deliberately does not change that.
+
+### What is derived, and what is looked up
+
+Charge, baryon number, strangeness, charm, bottomness, topness and the third
+component of isospin are **summed from the quark content**. They are on
+screen whether or not the composition has a name, because the arithmetic is
+the part that always works.
+
+The mass, the mean life and the `I(Jᴾ)` numbers are **read from the Particle
+Data Group's summary tables** and shown only when a single state matches.
+
+### Three answers, not two
+
+| verdict | meaning |
+|---|---|
+| not a valid combination | not a baryon or a meson |
+| valid, not identified | the arithmetic works; no one named state matches |
+| identified | exactly one PDG row has this quark content |
+
+**The middle row is the interesting one**, and it is not a gap in the
+software. Two cases reach it for real reasons:
+
+- **`u d s` is the content of both Λ and Σ⁰.** They have the same charge,
+  baryon number, strangeness *and* third isospin component, differing only
+  in **total** isospin — which is not a sum over quark content the way the
+  third component is. The derived numbers therefore cannot choose between
+  them, so both are named and neither is picked.
+- **A quark with its own antiquark is not a single particle.** The PDG
+  prints π⁰ as `(uū − dd̄)/√2` and the I = 0 mesons as a mixture
+  `c₁(uū + dd̄) + c₂(ss̄)`. No single pair names any of them.
+
+So **matching quantum numbers is necessary and not sufficient for identity.**
+A PDG row is the claim; the arithmetic only checks it.
+
+### What it carries
+
+The spin-½ baryon octet, Ω⁻, and four charged mesons — the states whose
+quark content the summary tables print unambiguously beside the name. It is
+**not a complete PDG mirror**, so "not identified" never means "no such
+particle exists".

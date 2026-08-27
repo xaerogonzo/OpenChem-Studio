@@ -601,24 +601,33 @@ document may cite a file or a test that does not exist.
   both at once. It becomes buildable the day the grid works headlessly,
   or the day the overlay stops needing 3Dmol.
 
-- **DECISION** -- A subatomic-particle editor: quark content inside a
-  proton or a neutron, and building other baryons from it. Asked for
-  alongside the nuclear-chemistry work on 2026-08-18, and explicitly as
-  "might be out of scope, but we could at least record it".
+- **SETTLED** -- a subatomic-particle editor: quark content, the quantum
+  numbers it adds up to, and identification against the PDG summary
+  tables. Asked for alongside the nuclear-chemistry work on 2026-08-18,
+  recorded here as a DECISION against building it, and **built anyway on
+  2026-08-27 because it was wanted.**
 
-  It is out of scope, and **the reason is not checkable by anything**,
-  which is stated plainly rather than dressed up as a predicate: nothing
-  in this application consumes a particle. Every layer below the UI --
-  `chem/`, `domain/`, the calculator registry, the file formats -- is
-  built on atoms as the smallest unit, so a quark editor would be a
-  self-contained toy with no path into a molecule, a property or a
-  report. That is a judgement about product shape, not a measurement, and
-  the day something downstream can read a baryon is the day it changes.
+  **THIS IS A REVERSAL ON PRODUCT GROUNDS, NOT A GAP CLOSED, AND THE
+  DIFFERENCE IS THE WHOLE REASON THIS PARAGRAPH IS LONGER THAN THE ENTRY
+  IT REPLACES.** The DECISION's stated expiry was "the day something
+  downstream can read a baryon". **That day has not come and this does
+  not bring it**: `chem/`, `domain/`'s molecular types, the calculator
+  registry and every file format are still built on atoms as the smallest
+  unit, nothing consumes a particle, and `domain/particle.py` reaches
+  none of them. The original reasoning was not refuted; it was overruled.
 
-  The nuclear work that IS in scope is a different thing and is not
-  deferred: isotopes, half-lives, decay modes and decay chains all
-  attach to atoms the application already models, and all of it shipped
-  -- see the entry directly below.
+  Writing this up as though the condition had been met would make the
+  DECISION vocabulary worthless to the next reader -- a marker that can
+  be retired by doing the thing anyway records nothing. The honest shape
+  is: the reason still holds, and it was outweighed.
+
+  What that buys is a hard scope boundary rather than an apology. The
+  editor is a LEAF: `tests/test_particle.py` asserts that
+  `domain/particle.py` imports nothing from `openchem.chem`, that no
+  particle is reachable from `ProjectModel`, and that a particle is never
+  serialised as a molecule, a crystal or a formulation. The day something
+  downstream really can read a baryon, that guard is what will have to be
+  changed on purpose rather than eroded.
 
 - **SETTLED** -- the periodic table answers nuclear questions, and an
   isotope reaches the canvas. Merged 2026-08-19 as #38.

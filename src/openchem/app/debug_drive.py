@@ -1730,6 +1730,46 @@ class _Driver(QObject):
                 return bar
         return None
 
+    def _do_particle(self, step: dict[str, Any]) -> None:
+        """Open the quark editor on a stated content.
+
+        `{"do": "particle", "content": "u d s"}`, then
+        `{"do": "shot", "widget": "dialog"}`. An antiquark is written
+        `dbar`, matching the picker.
+
+        **IT DRIVES THE COMBO BOXES, not `identify` directly.** Calling
+        the arithmetic here would photograph a verdict the dialog never
+        rendered -- and the defect this step exists to have caught was
+        exactly a broken selection sitting behind correct arithmetic:
+        the editor opened on `u u u` while every test passed, because
+        `content()` read the boxes and was right about the wrong ones.
+        """
+        from openchem.domain.particle import Flavour
+        from openchem.ui.dialogs.particle_dialog import ParticleDialog
+
+        window = self._window
+        spec = str(step.get("content", "u u d")).split()
+        self._dialog = None
+        dialog = ParticleDialog(window)
+        try:
+            dialog._meson.setChecked(len(spec) == 2)
+            for slot, token in enumerate(spec[:3]):
+                anti = token.endswith("bar")
+                dialog._select(slot, Flavour(token[:-3] if anti else token), anti)
+        except (ValueError, KeyError) as exc:
+            logger.error("OPENCHEM_DRIVE: cannot compose %r: %s", spec, exc)
+            dialog.deleteLater()
+            return
+        dialog.setWindowFlag(Qt.WindowType.Dialog, True)
+        dialog.show()
+        self._dialog = dialog
+        logger.info(
+            "OPENCHEM_DRIVE: particle %s -> %s | %s",
+            " ".join(spec),
+            dialog.verdict_text(),
+            dialog.measured_text()[:80] or "(no measured values)",
+        )
+
     def _do_dialog(self, step: dict[str, Any]) -> None:
         """Open any dialog by name, for a screenshot.
 

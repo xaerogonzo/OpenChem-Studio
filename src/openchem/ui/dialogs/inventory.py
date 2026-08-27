@@ -98,6 +98,14 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
 
         return ConformerOptionsDialog()
 
+    def particle(_context: DialogContext):
+        from openchem.ui.dialogs.particle_dialog import ParticleDialog
+
+        # Needs nothing: it opens on a proton and composes from there, so
+        # it lands in the bare-context half and the help-contract guard
+        # covers every one of its controls for free.
+        return ParticleDialog()
+
     def help_window(_context: DialogContext):
         from openchem.ui.dialogs.help_dialog import HelpDialog
 
@@ -225,6 +233,7 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
 
     yield DialogFixture("AboutDialog", about)
     yield DialogFixture("ConformerOptionsDialog", conformer_options)
+    yield DialogFixture("ParticleDialog", particle)
     yield DialogFixture("HelpDialog", help_window)
     yield DialogFixture("PeriodicTableDialog", periodic_table)
     yield DialogFixture("ReceptorLibraryDialog", receptor_library)
