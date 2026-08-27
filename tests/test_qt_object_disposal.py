@@ -622,3 +622,118 @@ def test_no_signal_is_connected_to_a_self_capturing_lambda():
         "(setProperty/setData, read back through sender()) -- a lambda "
         "capturing `self` roots its owner forever: " + ", ".join(offenders)
     )
+
+
+# ---------------------------------------------------------------------------
+# The Qt object census: a re-import is not a second census
+# ---------------------------------------------------------------------------
+#
+# `_start_census` in `conftest.py` refuses to be the second wrapper, because
+# double-wrapping every widget constructor is a measured cause of
+# instability. That refusal was written as a bare boolean flag, and a bare
+# flag cannot tell two different situations apart:
+#
+#     a SECOND instrument stacking on the first     the real hazard
+#     THIS SAME FILE executed twice by an import    harmless
+#
+# `tests/` has no `__init__.py`, so pytest loads the conftest under its own
+# plugin name and `from tests.conftest import painted/ink` -- which four
+# tests in three files do -- imports the SAME FILE again under a second
+# module name and re-runs it at module level. Measured on the four:
+#
+#     census OFF   4 passed     `_CENSUS_PATH is None`, returns early
+#     census ON    4 failed     RuntimeError from the guard
+#
+# So the instrument reddened the suite exactly when switched on, which is
+# the hazard it exists to prevent, restated. It shipped in `68aa89e` and
+# survived because nobody had run the full suite with the census enabled.
+#
+# BOTH HALVES ARE GUARDED AND THE NARROW ONE IS LOAD-BEARING. "Never raise"
+# satisfies the first test and silently deletes the stacked-instrument
+# protection, which is the thing the hazard is actually about.
+
+
+def _census_stand_in(source):
+    """A stand-in for an already-installed census, tagged with `source`."""
+
+    def already_wrapped(self, *args, **kwargs):  # pragma: no cover - never called
+        raise AssertionError("the stand-in constructor must not run")
+
+    already_wrapped._openchem_census = source
+    return already_wrapped
+
+
+def _conftest_source():
+    """The path `_start_census` compares against, spelled the same way."""
+    import os
+    import pathlib
+
+    return os.path.realpath(pathlib.Path(__file__).with_name("conftest.py"))
+
+
+def _reimport_conftest(monkeypatch, trail, installed_by):
+    """Re-execute `conftest.py` with a census reported as already installed."""
+    import importlib
+    import sys
+
+    from PySide6.QtWidgets import QWidget
+
+    monkeypatch.setenv("OPENCHEM_CENSUS", str(trail))
+    monkeypatch.setattr(QWidget, "__init__", _census_stand_in(installed_by))
+    monkeypatch.delitem(sys.modules, "tests.conftest", raising=False)
+    return importlib.import_module("tests.conftest")
+
+
+def test_re_executing_this_conftest_does_not_raise(qapp, monkeypatch, tmp_path):
+    """The wide half: importing `tests.conftest` again is not a second census.
+
+    Exercised through a REAL re-import rather than by calling
+    `_start_census` directly, because the import is the route the four
+    failing tests take and a direct call would not prove that route is
+    safe.
+    """
+    trail = tmp_path / "census.txt"
+
+    module = _reimport_conftest(monkeypatch, trail, _conftest_source())
+
+    # It returned early, so it neither installed a second wrapper nor
+    # opened the trail. The `open()` is `"w"`, so reaching it would have
+    # TRUNCATED a running census -- destroying the evidence the instrument
+    # exists to preserve, in exactly the crash case where it is the only
+    # evidence there is.
+    assert module._census_handle == []
+    assert not trail.exists()
+
+
+def test_a_census_installed_by_another_file_still_raises(qapp, monkeypatch, tmp_path):
+    """The narrow half, and the one a blanket "never raise" would delete.
+
+    Asserted through the same import route as its sibling so the two
+    differ in exactly one input: who installed the existing wrapper.
+    """
+    with pytest.raises(RuntimeError, match="already census-wrapped"):
+        _reimport_conftest(
+            monkeypatch,
+            tmp_path / "census.txt",
+            "/some/other/plugin/conftest.py",
+        )
+
+
+def test_the_stand_in_really_is_what_start_census_compares_against(qapp):
+    """Assert the setup, so neither guard above can go vacuous.
+
+    If `_CENSUS_SOURCE` is ever spelled differently from what
+    `_conftest_source()` builds, the wide test would pass for the wrong
+    reason -- it would be exercising the RAISE branch and asserting
+    against a module that never loaded.
+    """
+    import sys
+
+    loaded = [
+        module
+        for name, module in list(sys.modules.items())
+        if name.rsplit(".", 1)[-1] == "conftest"
+        and getattr(module, "_CENSUS_SOURCE", None) is not None
+    ]
+    assert loaded, "no loaded conftest exposes _CENSUS_SOURCE"
+    assert all(module._CENSUS_SOURCE == _conftest_source() for module in loaded)

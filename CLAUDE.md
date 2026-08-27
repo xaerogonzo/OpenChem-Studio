@@ -1782,7 +1782,7 @@ Correctly applied, it is the failure mode worth knowing: with the threshold
 gone and the walk broken the guard passes **green while checking nothing**,
 printing `checked 0 connect() calls`.
 
-## THE LINUX SUITE CRASHES ON 4 OF 6 COMMITS, AND THE OLD MECHANISM IS AT ZERO
+## THE LINUX SUITE CRASHES ON 4 OF 6 COMMITS, AND THE INSTRUMENT NEEDED FIXING TWICE
 
 Measured 2026-08-26, after the jobs-panel fix landed. The entry above
 says "THAT IS ONE RUN" about the green Linux job on `f46537e`, and
@@ -1805,27 +1805,174 @@ That is the strongest single fact here: **no code change causes this**,
 so no bisect can find it and no commit can be blamed. A
 documentation-only commit crashing is the same statement said twice.
 
-### The old mechanism is NOT what is happening now
+### THIS SECTION'S NUMBERS ARE FROM WINDOWS, AND THE CRASH IS ON LINUX
 
-The census that found the last one -- instrumenting `destroyed`, the only
-signal meaning a C++ destructor ran, over a full local run:
+Stated first, because everything below is worth less than it looks
+otherwise. The census figures here were taken on:
 
-    destroyed (any time)   12853
-    destroyed LATE             0     <- the landmine population
-    still alive at end     16022
+    python 3.13.7 | PySide6 / Qt 6.11.1 | rdkit 2025.09.6
+    Windows-11-10.0.26200-SP0 | QT_QPA_PLATFORM=offscreen
+    6090 passed, 15 skipped, 19m09, zero crash markers
 
-**ZERO late destructions.** The teardown `gc.collect()` is holding; the
-138-to-4 result it was built for is now 0. So an object destroyed inside
-an unrelated test's event dispatch is not the current cause, and any
-theory starting there is starting in the wrong place.
+**"Linux" is not a reproducible experimental condition and neither is
+"Windows"** -- record the versions beside any figure that will later be
+compared against CI, which is the whole reason to instrument this at all.
 
-**THE 16022 ALIVE ARE NOT THE STORY EITHER**, for the reason the earlier
-census already records: a widget still alive has never been destroyed, so
-it cannot be the thing that faults. It is a leak, not a landmine.
+### The census was broken twice, and the full suite is what found it
 
-**AND A SESSION-END CENSUS CANNOT SEE A CRASH.** The process dies before
-`pytest_sessionfinish`, so the run that reports is by construction a run
-that did not crash. Anything instrumenting this has to flush per test.
+`OPENCHEM_CENSUS=<path>` switches on the widget-lifetime census in
+`tests/conftest.py`. Both defects shipped in `68aa89e`/`40f9fcf`, and both
+survived because **nobody had run the full suite with it enabled**.
+
+**ONE: IT REDDENED THE SUITE WHENEVER IT WAS SWITCHED ON.** `tests/` has
+no `__init__.py`, so pytest loads the conftest under its own plugin name
+-- and four tests in three files do `from tests.conftest import
+painted/ink`, which imports the SAME FILE again under a second module
+name and re-runs it at module level, calling `_start_census()` a second
+time. The double-wrap guard then fired:
+
+    census OFF   4 passed     `_CENSUS_PATH is None`, returns early
+    census ON    4 failed     RuntimeError from the guard
+
+An instrument that reddens the suite exactly when enabled is the hazard
+that guard exists to prevent, restated. The flag records the SOURCE FILE
+now rather than a bool: re-executing the same file returns quietly, a
+census from a DIFFERENT file still raises. Both halves are guarded and
+**the narrow one is load-bearing** -- "never raise" satisfies the first
+and silently deletes the stacked-instrument protection.
+
+**AND THE CENSUS HAD NEVER RUN IN CI AT ALL, WHICH IS WHY THIS SURVIVED.**
+`conftest.py` said "The Linux CI job sets it" and no workflow did --
+measured, `grep -rn OPENCHEM_CENSUS .github/` matched nothing. So an
+instrument written to diagnose a crash that only reproduces on Linux was
+never switched on where that crash happens, and the four failures were
+unreachable until somebody ran the full suite with it locally.
+
+**I REPEATED THAT CLAIM HERE BEFORE CHECKING IT**, in this very section,
+because the docstring stated it as a fact. A comment asserting an
+intention is worse than silence: it is believed, and then quoted. It is
+wired into the Linux job now -- which is what makes the sentence true --
+and `census.txt` goes up beside `suite.log` as an artifact, because a run
+that aborts has no pytest summary line while the census's last `BEGIN`
+still names the test it died in.
+
+**RETURNING BEFORE THE `open()` IS LOAD-BEARING.** The handle is opened
+`"w"`, so a second execution that reached it would TRUNCATE the trail --
+destroying the evidence in exactly the crash case where it is the only
+evidence there is.
+
+**TWO: IT COULD NOT TELL PROCESS TEARDOWN FROM A CROSS-TEST LANDMINE.**
+`gone()` calls a destruction LATE when the test that built the widget is
+not the test running now. At interpreter shutdown every survivor is torn
+down while `_census_where[0]` still holds the LAST test's nodeid, so
+every one of them trips that check:
+
+    LATE lines written during the run          0
+    LATE lines written after the last test   16022   <- all teardown
+
+Every one of the 16022 fell after the final `end` line, which is the only
+reason the two could be told apart at all -- by comparing line numbers, a
+step no reader is going to know to take. A `pytest_sessionfinish` sentinel
+names the boundary now, so each line says `died=<session teardown>`
+outright. **It is a SENTINEL, not a report**: reporting totals from that
+hook cannot work, because the process dies before it -- but a line saying
+"the session ended here" has the opposite property, since if the run
+aborts it is simply ABSENT, and its absence is the correct answer.
+
+### What the corrected census measures
+
+    built                        28875
+    destroyed during the run     12853
+    destroyed LATE, in the run       0
+    alive at the last test       16022  -> all destroyed at teardown
+
+**ZERO cross-test late destructions, re-measured with an instrument that
+is not leaking.** So the conclusion the previous entry reached survives,
+while the reasoning that produced it did not: `40f9fcf` was right to doubt
+the instrument, and its own extrapolation -- "late destructions appear
+immediately" -- is NOT reproduced. Neither a full run nor either of two
+Qt-heavy pairs shows one.
+
+**THE LEAK WAS REAL, and this is what it was worth**, measured on
+`test_property_panel.py` with the original closure restored exactly:
+
+    census as fixed    built 1918   destroyed 1918   alive     0
+    the real leak      built 1918   destroyed  310   alive  1608
+
+84% of widgets immortalised, and `40f9fcf`'s cited test
+(`test_a_pending_metrics_dump_is_cancelled_when_the_panel_is_destroyed`)
+fails with it and passes without, exactly as that commit says.
+
+**AND MY FIRST TWO ATTEMPTS TO REPRODUCE IT SHOWED NOTHING, BECAUSE THE
+MUTATION WAS NOT THE BUG.** The original captured `self` in the BODY of
+`gone`, inside an f-string; I put `type(self).__name__` in a DEFAULT
+ARGUMENT, which evaluates at def-time and captures nothing. Both arms came
+back identical and I nearly wrote up "not reproduced". Same lesson this
+file already records five times: **assert that the edit changed BEHAVIOUR,
+not that the bytes changed** -- and for a closure, that the name really is
+a free variable.
+
+**THE 16022 ALIVE ARE NOT A MYSTERY AND MOSTLY NOT A DEFECT.** They come
+from 23 files, and the largest contributors are the MainWindow builders
+this file already documents as deliberately retained -- `conftest.py` keeps
+every MainWindow for the session, and
+`test_main_windows_are_deliberately_never_collected` fails if that
+retainer is removed:
+
+    3810  test_isotopes.py                  946  test_right_dock_width.py
+    3255  test_main_window_empty_state.py   930  test_main_window_docking_visualization.py
+    2815  test_main_window_menu_actions.py  620  test_command_palette.py
+    1197  test_main_window_conformers.py    468  test_receptor_library_dialog.py
+
+A widget still alive has never been destroyed, so it cannot be the thing
+that faults. It is a leak, not a landmine -- which is what the earlier
+census already said, and remains the right reading.
+
+### THE CENSUS CAUGHT ONE, ON LINUX, ON ITS FIRST LIVE RUN
+
+Run 33031947731, 2026-08-27 -- the first Linux job ever to have
+`OPENCHEM_CENSUS` set, and it crashed, which is the whole reason the
+instrument exists. What the trail says:
+
+    the `# session finished` sentinel   ABSENT  -> it aborted
+    the last BEGIN, with no `end`       tests/test_nmr_view_dialog.py::
+                                        test_dialog_loads_a_conformer_into_
+                                        the_3d_pane_when_one_exists
+    test number                         3623, at 58%
+    LATE lines in the whole trail       0
+    at the last completed test          built 19963  destroyed 5991
+                                        late 0  alive 13972
+
+**THE CENSUS AND THE TRACEBACK AGREE INDEPENDENTLY**, which is what
+validates the instrument rather than merely using it: `suite.log`'s
+`Fatal Python error: Aborted` names
+`test_nmr_view_dialog.py, line 48`, and the census's last `BEGIN` names
+the same test, derived from a completely different mechanism -- a line
+flushed before the test ran, versus a C-level traceback written after it
+died.
+
+**ZERO LATE DESTRUCTIONS, MEASURED ON LINUX AT THE MOMENT OF THE CRASH.**
+The entry above establishes that on Windows, where the suite does not
+crash; this establishes it on the platform where it does, in the run that
+did. So an object destroyed inside an unrelated test's event dispatch is
+not the mechanism here, and a theory starting there is starting in the
+wrong place -- which is what the previous entry claimed on weaker
+evidence and is now measured.
+
+**AND THE FRAME IS A CONSTRUCTOR, NOT A DISPOSAL.** Line 48 is
+`NmrViewDialog(engine, molecule, spectrum, conformer.molblock,
+backend=backend)` -- the dialog being BUILT. That is a second frame of
+ours across four Linux logs, and it points the opposite way from the
+first: the `test_panel_rail.py` lead is `sendPostedEvents(widget,
+DeferredDelete)`, a forced disposal. One says building, one says tearing
+down.
+
+**n=1, THE VICTIM MOVES, AND THE TEST PASSES LOCALLY** -- 5 of 5, and
+59%/59%/63% previously against 58% here, on four different tests. That is
+the documented order-dependent shape: the victim is chosen by heap layout
+rather than by fault. It is a lead and not a finding, and the next Linux
+crash now carries a trail to compare it against, which no previous one
+did.
 
 ### The two platforms have DIFFERENT signatures
 
@@ -1833,14 +1980,14 @@ that did not crash. Anything instrumenting this has to flush per test.
     Windows     Windows fatal exception: access violation
 
 `Aborted` is `abort()` -- a Qt fatal, an assertion, a C++ exception
-escaping -- and NOT a segfault. Nothing is printed before it: the log
-goes straight from progress dots to the traceback, so whatever calls
-`abort()` is not saying why. Whether the two platforms are one bug
-wearing two coats is **not established**, and the difference is large
-enough that assuming it would be a guess.
+escaping -- and NOT a segfault. Nothing is printed before it: the log goes
+straight from progress dots to the traceback, so whatever calls `abort()`
+is not saying why. Whether the two platforms are one bug wearing two coats
+is **not established**, and the difference is large enough that assuming it
+would be a guess.
 
-**ONE OF THE THREE LINUX LOGS NAMES A FRAME OF OURS, and the other two
-do not.** That one is:
+**ONE OF THE THREE LINUX LOGS NAMES A FRAME OF OURS, and the other two do
+not.** That one is:
 
     tests/test_panel_rail.py, line 19 in _dispose
     tests/test_panel_rail.py, line 250 in
@@ -1848,25 +1995,41 @@ do not.** That one is:
 
 Line 19 is `sendPostedEvents(widget, DeferredDelete)` -- **the disposal
 recipe itself**, not a later collection. That file is well behaved: every
-test calls `_dispose`, which is the documented per-widget form and not
-the forbidden global drain. So the suspicion it raises is that FORCING a
+test calls `_dispose`, which is the documented per-widget form and not the
+forbidden global drain. So the suspicion it raises is that FORCING a
 deferred delete is itself the dangerous moment, which is the opposite of
 what the recipe assumes. **n=1, and the other two logs cannot corroborate
 it**, so it is a lead and not a finding.
 
+### THE CRASH-MARKER GREP FALSE-POSITIVES ON THE CENSUS'S OWN PROSE
+
+Measured: a run reporting "crash markers: 4" had not crashed. The phrase
+`Fatal Python error: Aborted` appears in `_start_census`'s docstring, and
+pytest echoes the source of a failing function into the log as failure
+context -- so four failures printed that docstring four times and the grep
+counted its own subject. Same shape as the `INFRASTRUCTURE FAILURE` string
+this file already records: **grepping for a phrase counts the source, not
+the outcome.** The SUMMARY LINE is the oracle, and the pair to check is
+that one EXISTS and that the marker count is 0.
+
 ### What it would take, recorded so the next attempt starts here
 
-The reproduction is on the platform this project does not ship, at 4 in
-6, with a 17-minute round trip through CI and no local Linux environment.
+The reproduction is on the platform this project does not ship, at 4 in 6,
+with a 17-minute round trip through CI and no local Linux environment.
 Windows reproduces it too but at roughly 1 in 3, and with a different
-signature. The instruments that worked last time -- the `destroyed`
-census and the forced-drain lever -- were built for a mechanism that now
-measures zero.
+signature.
+
+The census works now and says **zero cross-test late destructions on
+Windows** -- which is a real measurement and is not an answer about Linux.
+The next attempt runs it THERE, where the annotation added in `b229bb0`
+can carry the trail out, and where the sentinel's ABSENCE will say the
+process died before the session ended.
 
 `flush_deferred_deletes`' own docstring has said the whole time that the
 crash it was written around is not fixed, and asks not to be read as
 evidence that it is. That is still true, and this entry is the measured
 version of it.
+
 
 ## A RED SUITE SILENTLY DISABLES EVERY GATE BEHIND IT
 
@@ -7422,6 +7585,24 @@ CLOCK.** `gh run rerun <id> --failed` re-uses the ORIGINAL commit -- normally
 the trap this file warns about, and here exactly what is wanted: a second
 sample of one tree. The same move settled the ORCA scratch-cleanup flake.
 The merge commit then made it three CI samples, one crashed.
+
+**AND IT HAPPENED AGAIN ON PR #50, WHICH IS THE SECOND CI INSTANCE.** Run
+33029344304, 2026-08-27:
+
+    first attempt   crashed at 83%, `0xc0000374`, top frame
+                    `conftest.py pytest_runtest_logfinish` /
+                    `Garbage-collecting` -- the same site as before
+    the three gates skipped, exactly as a red suite always takes them
+    re-run, SAME SHA   6085 passed, 19 skipped, 1 deselected,
+                       all three gates EXECUTED, naming 181/181
+
+So the discriminator worked a second time and cost one wall-clock cycle.
+Worth recording because the branch under test was editing `conftest.py`,
+which makes "I broke it" the obvious reading -- and the census it was
+changing is **switched off unless `OPENCHEM_CENSUS` is set**, which no
+workflow did at the time, so every line of that change was inert on CI.
+**Check whether your change is even LIVE on the job that failed before
+believing you caused the failure.**
 
 **THE TWO SKIP COUNTS ARE NOT A DISCREPANCY.** CI's 19 against the local 15
 is the four GPU-gated gallery guards, and 5571 + 19 + 1 reconciles to the

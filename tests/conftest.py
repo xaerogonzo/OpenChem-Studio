@@ -727,3 +727,243 @@ def pytest_runtest_logfinish(nodeid, location):
     if _used_qt[0]:
         _used_qt[0] = False
         gc.collect()
+
+    # The census's per-test line, written from INSIDE this hook rather
+    # than from a second `pytest_runtest_logfinish`. Defining that would
+    # SHADOW this one -- same module, same name -- and silently disable
+    # the collect above, which is the thing holding late destructions at
+    # zero. A diagnostic that switches off the fix it is measuring would
+    # be worse than no diagnostic.
+    if _CENSUS_PATH is not None:
+        _census_write(
+            f"  end {nodeid} built={_census_counts['built']} "
+            f"destroyed={_census_counts['destroyed']} "
+            f"late={_census_counts['late']} alive={len(_census_born)}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# The Qt object census, written PER TEST so a crash leaves a trail
+# ---------------------------------------------------------------------------
+#
+# Set `OPENCHEM_CENSUS=<path>` to switch it on; off costs nothing but the
+# `if` below.
+#
+# **NO WORKFLOW SETS IT, AND THIS COMMENT USED TO CLAIM THE LINUX JOB
+# DID.** Measured: `grep -rn OPENCHEM_CENSUS .github/` matches nothing, so
+# an instrument written to diagnose a crash that only reproduces on Linux
+# had never run in CI at all. The claim described an intention, and a
+# comment that states an intention as a fact is worse than silence --
+# somebody reading the Linux logs for a census trail would find none and
+# have no way to tell that from a run where nothing was destroyed late.
+#
+# It is wired into the Linux job now, which is what makes the sentence
+# true rather than aspirational. That job is `continue-on-error` and
+# publishes its `suite.log` as an artifact; the trail goes up beside it.
+#
+# WHY IT IS WRITTEN PER TEST AND NOT AT SESSION END. The first version of
+# this reported from `pytest_sessionfinish`, which cannot work: the
+# process dies before that hook, so **the run that reports is by
+# construction a run that did not crash**. It measured 0 late
+# destructions over a clean run and could not have measured anything
+# else. Flushing a line per test is the whole fix.
+#
+# WHAT IT RECORDS, and the two things it deliberately does not:
+#
+#   - `destroyed` is the ONLY signal meaning a C++ destructor ran. NEVER a
+#     weakref callback -- that counts Python WRAPPERS and over-reports by
+#     an order of magnitude, measured 1406 against a real 138. A wrapper
+#     collected after Qt already destroyed the object is harmless.
+#   - `alive` is not a bug count. A widget still alive has never been
+#     destroyed, so it cannot be the thing that faults; the earlier census
+#     reported 65 live panels and they were irrelevant. It is here as
+#     context for the two numbers that matter.
+#
+# THE PID IS THE JOIN KEY TO A CORE FILE. `kernel.core_pattern` is set to
+# `core.%p` alongside this, so `BEGIN ... pid=1234` is what pairs a trail
+# with `core.1234`. Without it, matching them is guesswork.
+
+_CENSUS_PATH = os.environ.get("OPENCHEM_CENSUS")
+
+#: Which FILE installed the wrapper, and the identity a second execution
+#: compares itself against. `realpath` rather than a bare `__file__`
+#: because the two module instances are loaded by different machinery --
+#: pytest's own conftest loader and an ordinary `import tests.conftest` --
+#: and nothing guarantees they spell the same path identically.
+_CENSUS_SOURCE = os.path.realpath(__file__)
+_census_counts = {"built": 0, "destroyed": 0, "late": 0}
+_census_born: dict[int, str] = {}
+_census_where = ["<session>"]
+_census_handle = []
+
+
+def _census_write(text: str) -> None:
+    """One line, flushed.
+
+    `flush()` and NOT `fsync()`. `abort()` kills the process, not the OS
+    page cache, so a flushed line survives the very crash this exists to
+    catch; fsync would buy protection against a kernel panic -- which is
+    not what is happening -- at the price of 6100 syncs a run.
+    """
+    if not _census_handle:
+        return
+    handle = _census_handle[0]
+    handle.write(text + "\n")
+    handle.flush()
+
+
+def _start_census() -> None:
+    """Wrap `QWidget.__init__` ONCE, and refuse to be the second wrapper.
+
+    "Never stack two censuses" is a measured hazard here rather than a
+    style rule -- double-wrapping every widget constructor destabilised a
+    run by itself, producing a `Fatal Python error: Aborted` that appears
+    under no other configuration. So this ASSERTS rather than documenting:
+    a second copy of this instrument fails loudly instead of quietly
+    making the suite less stable than the thing it is measuring.
+
+    Same shape as `_track_web_engine_views`' `_openchem_tracks_views` flag
+    and `_retain_main_windows`' `_openchem_retained`, which is the idiom
+    this file already uses twice.
+
+    **A RE-IMPORT OF THIS FILE IS NOT A SECOND CENSUS, AND A BARE FLAG
+    CANNOT TELL THE DIFFERENCE.** `tests/` has no `__init__.py`, so pytest
+    loads this conftest under its own plugin name -- and four tests do
+    `from tests.conftest import painted/ink`, which imports the SAME FILE
+    again under a second module name and re-runs everything at module
+    level, including this function.
+
+    A flag that only records "somebody wrapped it" reddens the suite on
+    exactly those four tests, and only when the census is switched on:
+
+        census OFF   4 passed      `_CENSUS_PATH is None`, returns early
+        census ON    4 failed      RuntimeError from this guard
+
+    which is the whole hazard restated -- an instrument that changes what
+    it measures. It shipped in `68aa89e` and survived because nobody had
+    run the full suite with the census enabled; the run that produced the
+    figures below is what found it.
+
+    So the flag records the SOURCE FILE rather than a bool. Re-executing
+    this same file returns quietly and leaves the first wrapper in place;
+    a census installed from a DIFFERENT file still raises, which is the
+    stacked-instrument case the hazard is actually about.
+
+    **RETURNING BEFORE THE `open()` IS LOAD-BEARING**, not incidental
+    tidiness: the handle is opened in `"w"` mode, so a second execution
+    that got that far would TRUNCATE the trail -- destroying the evidence
+    this instrument exists to preserve, in the crash case where it is the
+    only evidence there is.
+    """
+    if _CENSUS_PATH is None:
+        return
+    from PySide6.QtWidgets import QWidget
+
+    installed_by = getattr(QWidget.__init__, "_openchem_census", None)
+    if installed_by is not None:
+        if installed_by == _CENSUS_SOURCE:
+            # This same conftest, executed a second time by an import.
+            # The first wrapper is already in place and owns the handle;
+            # this module instance stays inert. `_census_write` no-ops
+            # here because `_census_handle` is empty in it.
+            return
+        raise RuntimeError(
+            "QWidget.__init__ is already census-wrapped, by "
+            f"{installed_by!r}. Two censuses stacked is a measured cause "
+            "of instability, not a tidiness problem -- run one at a time."
+        )
+
+    original_init = QWidget.__init__
+
+    def census_init(self, *args, **kwargs):
+        original_init(self, *args, **kwargs)
+        key = id(self)
+        born = _census_where[0]
+        _census_born[key] = born
+        _census_counts["built"] += 1
+
+        # THE CLASS NAME IS BOUND AS A STRING, and `self` MUST NOT appear
+        # in this closure. PySide holds a connected plain callable
+        # STRONGLY, so a reference to `self` here makes every widget in
+        # the suite immortal -- the exact self-capturing-`connect` leak
+        # this repository documents, written into the one instrument
+        # whose job is measuring widget lifetimes.
+        #
+        # It is not a hypothetical: the first version interpolated
+        # `type(self).__name__` and it (a) failed
+        # `test_a_pending_metrics_dump_is_cancelled_when_the_panel_is_destroyed`,
+        # which asserts a panel really is destroyed, and (b) reported
+        # `late=0` over a full run -- a number that cannot be anything
+        # else when nothing can be destroyed at all.
+        cls_name = type(self).__name__
+
+        def gone(_obj=None, _key=key, _born=born, _cls=cls_name) -> None:
+            if _census_born.pop(_key, None) is None:
+                return
+            _census_counts["destroyed"] += 1
+            if _born != _census_where[0]:
+                _census_counts["late"] += 1
+                _census_write(f"LATE {_cls} built={_born} died={_census_where[0]}")
+
+        try:
+            self.destroyed.connect(gone)
+        except Exception:  # noqa: BLE001 - a half-built widget is not our problem
+            _census_born.pop(key, None)
+
+    # The SOURCE FILE, not a bool -- see this function's docstring for why
+    # a bare flag cannot tell a re-import from a stacked instrument.
+    census_init._openchem_census = _CENSUS_SOURCE
+    QWidget.__init__ = census_init
+
+    handle = open(_CENSUS_PATH, "w", encoding="utf-8", buffering=1)
+    _census_handle.append(handle)
+    _census_write(f"# census pid={os.getpid()}")
+
+
+_start_census()
+
+
+def pytest_runtest_logstart(nodeid, location):
+    """The line that names the victim of a crash.
+
+    Written BEFORE the test runs, so when the process aborts partway
+    through one the trail's last line is that test. `logfinish` never
+    arrives for it, which is precisely the case this exists for.
+    """
+    if _CENSUS_PATH is None:
+        return
+    _census_where[0] = nodeid
+    _census_write(f"BEGIN {nodeid} pid={os.getpid()}")
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Mark the boundary, so a shutdown destruction is not read as a landmine.
+
+    **THIS IS A SENTINEL, NOT A REPORT**, and the distinction is the one
+    this module's own docstring insists on. Reporting TOTALS from here
+    cannot work -- the process dies before this hook, so the run that
+    reports is by construction a run that did not crash. Writing one line
+    that says "the session ended here" has the opposite property: if the
+    process aborts, the line is simply ABSENT, and its absence is itself
+    the correct answer.
+
+    WHY IT IS NEEDED. `gone()` calls a destruction LATE when the test that
+    built the widget is not the test running now. At interpreter shutdown
+    every surviving widget is torn down while `_census_where[0]` still
+    holds the LAST test's nodeid, so every one of them trips that check --
+    and they are process teardown, not the cross-test landmine the
+    instrument exists to find. Measured over a full run:
+
+        LATE lines written during the run          0
+        LATE lines written after the last test   16022   <- all shutdown
+
+    Every one of the 16022 fell after the final `end` line, which is the
+    only reason the two could be told apart at all. Naming the boundary
+    makes each line say which it is (`died=<session teardown>`) instead of
+    leaving a reader to compare line numbers -- and a reader who does not
+    know to do that reads 16022 landmines that are not there.
+    """
+    if _CENSUS_PATH is None:
+        return
+    _census_write(f"# session finished exitstatus={exitstatus}")
+    _census_where[0] = "<session teardown>"
