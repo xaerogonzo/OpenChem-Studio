@@ -300,10 +300,19 @@ _atom_site_fract_y
 _atom_site_fract_z
  Na1 Na 0.0 0.0 0.0
 """
-    unhandled = read_cif(text).unhandled
+    crystal = read_cif(text)
+    unhandled = crystal.unhandled
 
-    assert "_diffrn_radiation_wavelength" in unhandled
     assert "_refine_ls_r_factor_all" in unhandled
+    # **`_diffrn_radiation_wavelength` USED TO BE THE OTHER EXAMPLE HERE,
+    # and it was the right one until the powder pattern needed it.** It is
+    # READ now, so it must have left `unhandled` -- that field is the
+    # honest record of what the reader IGNORES, and a tag listed there
+    # while being used would make the record a lie in the reassuring
+    # direction. The claim this test makes is unchanged; only its example
+    # of an unread field had to move.
+    assert "_diffrn_radiation_wavelength" not in unhandled
+    assert crystal.radiation_wavelength == pytest.approx(0.71073)
 
 
 # --- density and coordination -----------------------------------------------

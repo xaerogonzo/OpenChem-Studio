@@ -1795,6 +1795,87 @@ class _Driver(QObject):
             formulation.loading_density,
         )
 
+    def _do_crystal(self, step: dict[str, Any]) -> None:
+        """Import a CIF by PATH and show its report, with no file dialog.
+
+        `{"do": "crystal", "path": "tests/fixtures/cif/1569411.cif"}`,
+        then `{"do": "shot", "widget": "dialog"}`.
+
+        **IT GOES THROUGH `crystal_report_dialog`, WHICH IS THE PRODUCTION
+        PATH**, rather than calling `build_crystal_report` here: calling
+        the builder directly would photograph a report the application
+        never renders, which is the harness proving its own arithmetic
+        instead of the feature.
+
+        `show()`, never `exec()`, for the reason `_do_lewis` gives.
+        """
+        from pathlib import Path
+
+        from openchem.chem.cif import CifError, read_cif
+        from openchem.chem.crystal_report import build_crystal_report
+        from openchem.domain.crystal import CrystalModel
+
+        window = self._window
+        project = window._session.project
+        path = Path(str(step.get("path", "")))
+        if project is None or not path.is_file():
+            logger.error("OPENCHEM_DRIVE: no project, or no such CIF: %s", path)
+            return
+        text = path.read_text(encoding="utf-8", errors="replace")
+        try:
+            crystal = read_cif(text)
+        except CifError as exc:
+            logger.error("OPENCHEM_DRIVE: %s did not parse: %s", path.name, exc)
+            return
+        project.crystals.append(
+            CrystalModel(
+                display_name=crystal.name or path.stem,
+                cif_text=text,
+                source_name=path.name,
+            )
+        )
+        window._project_explorer.refresh()
+        self._dialog = None
+        dialog = window.crystal_report_dialog(build_crystal_report(crystal), path.name)
+        dialog.setParent(window)
+        dialog.setWindowFlag(Qt.WindowType.Dialog, True)
+        if "width" in step:
+            dialog.resize(int(step["width"]), int(step.get("height", dialog.height())))
+        if step.get("everything"):
+            # The report opens with STRUCTURE and GEOMETRY collapsed and
+            # the depth at Standard, which is how the crystal report has
+            # always opened -- the cell volume and the density sit behind
+            # the same fold. `{"everything": true}` is what lets a shot
+            # show the rows rather than the headings.
+            from PySide6.QtWidgets import QToolButton
+
+            from openchem.ui.widgets.collapsible_section import CollapsibleSection
+            from openchem.ui.widgets.fact_view import FactView
+
+            view = dialog.findChild(FactView)
+            if view is not None:
+                view._detail.setCurrentIndex(view._detail.count() - 1)
+                # A needle narrows the report to the rows worth
+                # photographing -- a 44-fact report does not fit one
+                # window, and the view expands every section while
+                # filtering, which is what makes this enough on its own.
+                needle = str(step.get("filter", ""))
+                if needle:
+                    view.search_box().setText(needle)
+                for section in view.findChildren(CollapsibleSection):
+                    button = section.findChild(QToolButton)
+                    if button is not None and not button.isChecked():
+                        button.click()
+        dialog.show()
+        self._dialog = dialog
+        logger.info(
+            "OPENCHEM_DRIVE: crystal %s, a=%.4f, %d operations, wavelength=%s",
+            crystal.name or path.stem,
+            crystal.lattice.a,
+            len(crystal.operations),
+            crystal.radiation_wavelength,
+        )
+
     def _do_dialog(self, step: dict[str, Any]) -> None:
         """Open any dialog by name, for a screenshot.
 

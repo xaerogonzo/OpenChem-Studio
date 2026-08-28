@@ -1731,6 +1731,72 @@ What remains untested: **modulated and incommensurate structures**, which
 this model has no vocabulary for at all, and **CIFs whose coordinates are
 Cartesian rather than fractional**, which are refused by name.
 
+### The calculated powder pattern gives POSITIONS and no intensities
+
+**File → Import Crystal Structure** now reports where a powder X-ray
+diffraction pattern's peaks would fall: an (hkl) list with an interplanar
+spacing, a Bragg angle and a multiplicity. It reports **no peak heights
+at all**, and that is a refusal rather than an omission.
+
+**The two halves rest on different kinds of evidence, which is why one
+ships and the other does not.**
+
+Positions are lattice geometry. `1/d² = [h k l] G* [h k l]ᵀ` and Bragg's
+law — nothing fitted, nothing tabulated, and the answer is checkable by
+arithmetic you can redo: for a cubic cell the general expression must
+reduce to `a/√(h²+k²+l²)`, and it does to six decimal places. Halite's
+first lines come out at 27.37°, 31.70°, 45.45° and 53.87° for Cu Kα₁,
+which is what a powder-diffraction text prints.
+
+Intensities need `|F(hkl)|²`, and that needs a tabulated atomic
+scattering factor per element. The standard parameterisation is
+Waasmaier & Kirfel (1995) — five Gaussians, eleven parameters per
+species. **The refusal is a measurement, not an estimate of effort.**
+Over the four pages of its Table 1 in the copy available here:
+
+| | |
+|---|---|
+| numeric tokens on the table pages | 2267 |
+| visibly corrupted | 673 (29.7%) |
+
+…and 70.3% "clean" is an *upper bound* on correctness, because a token
+can be well formed and still wrong. Element labels are corrupted too —
+the calcium row extracts as `Cs`, which would silently put caesium's
+scattering factors on calcium.
+
+**The deciding point is that only 6 of the 11 parameters can be
+checked.** A neutral atom's scattering factor at zero angle is its
+electron count, so `Σaᵢ + c = Z` is a per-row oracle over `a₁..a₅` and
+`c`. The five `b` values have no such check: a wrong `b` is wrong at
+every non-zero angle and exactly right at θ = 0, which is the one place
+the checksum looks. A plausible intensity of unknown correctness is
+worse than none.
+
+### What the powder pattern is not
+
+- **It is kinematic.** Extinction, multiple scattering and anomalous
+  dispersion are not represented.
+- **It is an idealised cell.** No preferred orientation, no strain, no
+  instrument broadening, no zero-point offset, no sample displacement,
+  and **no peak shape at all** — a reflection is a line at an angle, not
+  a profile. Comparing it against a measured diffractogram is comparing a
+  stick pattern with data that has all of those in it.
+- **A systematic absence here is a statement about the space group**, not
+  a prediction that an experiment sees nothing. The absences are derived
+  from the structure's own symmetry operations rather than from a table
+  of extinction conditions, so they are only as good as the space group
+  the CIF resolved to — see the space-group section above.
+- **The wavelength is the experiment's, not the crystal's.** The pattern
+  uses the CIF's own `_diffrn_radiation_wavelength` when the file states
+  one, and refuses when it does not. Nothing defaults to a laboratory
+  tube: the whole angle axis scales with that number, and inventing it
+  would be inventing the result.
+- **The reported list is capped and says so.** A large organic cell with
+  Mo radiation has tens of thousands of reflection families out to 60°;
+  the report lists the twelve lowest-angle ones and states how many it
+  did not list. Lowest-angle is the only honest ordering available
+  without intensities.
+
 ## Where this is enforced
 
 Most of these limits are also written into the module that implements the

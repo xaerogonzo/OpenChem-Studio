@@ -2280,12 +2280,18 @@ class MainWindow(QMainWindow):
         dialog.show()
         dialog.raise_()
 
-    def _show_crystal_report(self, report, filename: str) -> None:
-        """The report, in the same FactView every other report uses.
+    def crystal_report_dialog(self, report, filename: str) -> QDialog:
+        """The report, in the same FactView every other report uses, UNSHOWN.
 
-        Reusing it is the point: a crystal's facts are Facts, and somebody
-        who has learned the report surface once should not learn a second
-        one because the subject is periodic.
+        Reusing the view is the point: a crystal's facts are Facts, and
+        somebody who has learned the report surface once should not learn
+        a second one because the subject is periodic.
+
+        **BUILT AND NOT SHOWN, so it can be driven and photographed.** A
+        method that built and `exec()`d in one step spins its own event
+        loop inside the handler, and an unattended run stalls on a modal
+        window with nobody to close it -- 42 minutes, the last time this
+        project paid for it. Same split as `build_atom_context_menu`.
         """
         from openchem.ui.widgets.fact_view import FactView
 
@@ -2299,7 +2305,10 @@ class MainWindow(QMainWindow):
         close = QPushButton("Close", dialog)
         close.clicked.connect(dialog.close)
         layout.addWidget(close)
-        dialog.exec()
+        return dialog
+
+    def _show_crystal_report(self, report, filename: str) -> None:
+        self.crystal_report_dialog(report, filename).exec()
 
     # --- energetic formulations ---------------------------------------------
 

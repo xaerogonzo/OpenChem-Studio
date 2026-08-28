@@ -257,8 +257,27 @@ def _declared_providers() -> dict[str, str]:
             path.relative_to(_SRC).with_suffix("").parts
         ).removesuffix(".__init__")
         module = importlib.import_module(name)
-        value = getattr(module, _MARKER, "")
-        out[name] = str(value)
+        # **THE TEXT SCAN IS A PREFILTER; THE ATTRIBUTE IS THE ANSWER.**
+        # Reading the source is what lets an unimportable module fail
+        # HERE rather than as a collection error elsewhere -- but a module
+        # that merely NAMES the marker in prose is not declaring one, and
+        # treating it as one is this repository's own "grepping for a
+        # phrase counts the source, not the outcome" lesson.
+        #
+        # It was found by writing exactly such a comment:
+        # `chem/powder_xrd.py` explains at its head why it declares NO
+        # provider (it reaches the user through the crystal report, not
+        # through a registered calculator, as `chem/crystal_report.py`
+        # does), and that explanation put it in this dict with an empty
+        # string -- failing two guards for a declaration nobody made.
+        #
+        # `hasattr`, not a truthiness test: `USER_FACING_PROVIDER = ""` IS
+        # a declaration and a useless one, and it must keep failing
+        # `test_every_declaration_names_the_surface_it_reaches` rather
+        # than vanishing from the population.
+        if not hasattr(module, _MARKER):
+            continue
+        out[name] = str(getattr(module, _MARKER))
     return out
 
 
@@ -637,6 +656,44 @@ def test_the_two_sidecar_runners_are_the_script_path_case():
             f"{importer} no longer names {runner}.py, so the declared "
             "mechanism is not the one in the source"
         )
+
+
+def test_a_module_that_only_MENTIONS_the_marker_is_not_a_declaration():
+    """The prefilter is a text scan; the declaration is an attribute.
+
+    **FOUND BY WRITING A COMMENT.** `chem/powder_xrd.py` explains at its
+    head why it declares no provider -- it reaches the user through the
+    crystal report rather than through a registered calculator, exactly
+    as `chem/crystal_report.py` does -- and naming the marker in that
+    explanation was enough to put it in the population with an empty
+    string, failing two guards for a declaration nobody had made.
+
+    This asserts the discriminator directly: the module's source contains
+    the marker, and the module is NOT in the population.
+    """
+    source = (_SRC / "chem" / "powder_xrd.py").read_text(encoding="utf-8")
+    assert _MARKER in source, "the fixture no longer mentions the marker at all"
+    assert not hasattr(
+        importlib.import_module("openchem.chem.powder_xrd"), _MARKER
+    ), "powder_xrd now really declares one; this guard needs a new example"
+    assert "openchem.chem.powder_xrd" not in _declared_providers()
+
+
+def test_an_EMPTY_declaration_is_still_a_declaration():
+    """The narrow half, and it is the load-bearing one.
+
+    "Skip anything whose marker is falsy" satisfies the test above and
+    silently drops `USER_FACING_PROVIDER = ""` out of the population --
+    which is a declaration, and a useless one that
+    `test_every_declaration_names_the_surface_it_reaches` exists to
+    catch. `hasattr` keeps it in; a truthiness test would not.
+    """
+    import types
+
+    module = types.SimpleNamespace()
+    setattr(module, _MARKER, "")
+    assert hasattr(module, _MARKER)
+    assert not getattr(module, _MARKER)
 
 
 # --- the SYMBOL direction: a report builder the application never calls -----

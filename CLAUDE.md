@@ -2511,6 +2511,164 @@ Fact-based report in the application reads this way and has since the
 migration. Changing it touches all of them and wants its own measurement,
 its own guard and its own driven check.
 
+## A POWDER PATTERN'S POSITIONS SHIP AND ITS INTENSITIES ARE REFUSED
+
+`chem/powder_xrd.py` reports where a calculated powder X-ray pattern's
+peaks fall -- (hkl), d, 2theta, multiplicity -- and **no peak heights at
+all.** The plan for this branch asked for both halves and named a
+three-layer source chain for the second; the split is the plan's own
+("different evidence requirements"), and the refusal is a MEASUREMENT
+rather than an estimate of effort.
+
+**POSITIONS ARE CHECKABLE BY ARITHMETIC A READER CAN REDO.** For a cubic
+cell the general expression must reduce to the closed form, and halite
+comes out where a textbook prints it:
+
+    111  d 3.2564  2theta 27.37      200  d 2.8201  31.70
+    220  d 1.9941  45.45             311  d 1.7006  53.87
+
+**THE PLAN'S OWN ACCEPTANCE VALUE IS WRONG, and this is the second branch
+running where a plan premise did not survive measurement.** It quotes
+d(111) = 3.258 for a = 5.64; the arithmetic gives **3.2563**, and 3.258
+would need a = 5.6431. Its 200 and 220 are right. Recompute a plan's
+numbers before encoding them.
+
+### The intensity refusal, measured
+
+    numeric tokens on Waasmaier & Kirfel Table 1 (4 pages)   2267
+    visibly corrupted                                         673   29.7%
+
+...and 70.3% "clean" is an UPPER BOUND on correctness, because a token
+can be well formed and still wrong. Element labels are corrupted too --
+the **calcium** row extracts as `Cs`, which would silently put caesium's
+scattering factors on calcium.
+
+**THE DECIDING POINT IS THAT ONLY 6 OF THE 11 PARAMETERS HAVE AN
+ORACLE.** A neutral atom's scattering factor at zero angle is its
+electron count, so `sum(a_i) + c = Z` checks `a1..a5` and `c` per row.
+The five `b` values have NONE: a wrong `b` is wrong at every non-zero
+angle and exactly right at theta = 0, which is the one place the
+checksum looks. A table where nearly a third of the numbers are visibly
+damaged and 5 in 11 are unverifiable produces plausible intensities of
+unknown correctness.
+
+**AND THE PDF LIBRARY INDEXER AGREED BY A DIFFERENT ROUTE.** Branch F's
+`tools/index_pdf_library.py --check` reports `brown2006` as
+`unresolved` -- it finds no identity evidence inside the file at all --
+which is the same conclusion about that scan's text layer, reached
+without looking at a single number. That makes four unresolved scans
+rather than three.
+
+### THREE SOURCES REGISTERED, ALL `assessed_not_shipped`
+
+    waasmaier1995   the parameters, refused with the measurement above
+    brown2006       ITC Vol C 6.1.1, the intensity formalism
+    coppens2006     ITC Vol B 1.2, the structure factor
+
+**`coppens2006` IS DELIBERATELY NOT CITED AS BACKING THE ABSENCE RULE**,
+which this project DOES ship. Searching that chapter finds no occurrence
+of "systematic", "absence" or "extinction condition" -- reflection
+conditions are Vol. A material. Citing it would be this file's own "a
+citation-level entry does not authorize an implementation merely because
+its title matches" trap.
+
+**NONE OF THE THREE PRINTS A DOI**, so none is recorded. All three
+citations were read off the papers' own header lines -- and
+`waasmaier1995`'s page 1 opens with the TAIL OF THE PRECEDING ARTICLE's
+references, which is this file's "a PDF's first page is not necessarily
+its paper" trap, hit again. `brown2006`'s text layer is unusable, so its
+citation, section number and five-author list were read from a **350 dpi
+render**.
+
+### THE ABSENCE RULE IS DERIVED, NEVER TABULATED
+
+    if h.R == h  and  h.t is not an integer   ->   F(hkl) = 0
+
+One statement over the space group's own operations reproduces every
+centring and glide/screw condition a textbook lists separately --
+verified against the F-centring parity rule on all eight cases. A
+hand-kept table of conditions per space group would be the
+`inapplicable_calculators` rot waiting to happen, 230 rows deep.
+
+### THREE MUTATIONS, THREE CAUGHT, AND TWO SAY SOMETHING
+
+    M1  absences disabled                    7 tests
+    M2  the Friedel pair dropped             ONE test -- the P1 one
+    M3  diagonal-only tensor inverse         ONE test -- the triclinic one
+
+**M2 AND M3 ARE BOTH BLIND TO THE OBVIOUS FIXTURE.** Fm-3m is
+centrosymmetric, so the Friedel pair is already in its orbit and every
+cubic multiplicity test passes with the term deleted; only a P1 cell,
+which has ONE operation, can show that the pairing comes from anywhere
+else. And a diagonal-only inverse is EXACTLY RIGHT for an orthogonal
+cell, so the whole cubic acceptance case cannot tell it from the real
+one -- which is `Lattice.volume`'s own recorded lesson ("a cubic-only
+check cannot tell this formula from a bare multiplication") arriving one
+property along.
+
+### WHAT DRIVING THE APP FOUND, AND WHAT IT DID NOT
+
+**The pattern was computed and invisible.** Marked `Detail.ADVANCED`
+throughout, the whole thing vanished behind "16 advanced hidden" and
+nothing on screen said a powder pattern existed. The summary row is
+`STANDARD` now and the individual lines stay `ADVANCED` -- the split the
+regulatory report already makes, where ruleset versions are advanced so
+they do not bury the findings.
+
+**The report's sections are still collapsed, and that is PRE-EXISTING.**
+`Structure` and `Geometry` are not in `DEFAULT_EXPANDED`, so the cell
+volume and the density have always opened behind the same fold. Not
+touched here, because the `expanded` override that fixes it lives on an
+unmerged branch and duplicating it would be a merge conflict.
+
+**AND THE CRYSTAL REPORT WAS ALREADY SLOW.** Measured with the powder
+facts stubbed out, before blaming the new code:
+
+    fixture      report WITHOUT powder     pattern alone
+    1502211              10.63 s               1.17 s
+    1004002               3.61 s               0.70 s
+    1504676               0.07 s               0.17 s
+
+So the pattern is 10-30% of a report that already takes ten seconds on
+its worst fixture. Recorded rather than fixed; the cost is in the
+coordination shells.
+
+### HOISTING THE METRIC TENSOR IS 4-10x, AND THE GUESS WAS WRONG FIRST
+
+`Lattice.d_spacing` inverts the metric tensor on every call, which is
+right for a readable one-reflection API and ruinous inside an enumeration
+reaching ~226000 index triples for a 15 A cell. Measured over the six CIF
+fixtures at 60 degrees, hoisting it out of the loop took the range from
+**1.9-3.9 s to 0.02-0.91 s** with every pattern unchanged.
+
+Reordering the cheap d-test ahead of the 192-operation orbit was tried
+FIRST, on the reasoning that the orbit was the expensive part, and bought
+almost nothing -- one fixture got SLOWER. The inversion was the cost.
+Profile before optimising, even when the expensive-looking thing is
+obvious.
+
+### A GUARD READ MY OWN COMMENT AS A DECLARATION
+
+`chem/powder_xrd.py` declares no `USER_FACING_PROVIDER` -- it reaches the
+user through the crystal report rather than through a registered
+calculator, exactly as `chem/crystal_report.py` does -- and the module
+says so at its head. **That explanation put it in the guard's
+population**, because `_declared_providers()` finds candidates with
+`if _MARKER not in text`, a TEXT scan. The module then failed two guards
+for a declaration nobody had made.
+
+The text scan is kept as a PREFILTER -- it is what lets an unimportable
+module fail there rather than as a collection error elsewhere -- and
+`hasattr` is the answer. **`hasattr`, not truthiness**:
+`USER_FACING_PROVIDER = ""` IS a declaration and a useless one, and it
+must keep failing `test_every_declaration_names_the_surface_it_reaches`
+rather than vanishing from the population. Both halves are guarded.
+
+Same family as this file's `grep FAILED`, `INFRASTRUCTURE FAILURE` and
+`Fatal Python error|Windows` entries: **grepping for a phrase counts the
+source, not the outcome** -- this time counting a comment that existed
+only to explain why the thing it names is absent.
+
 ## Running the tests
 
 ```bash
@@ -2520,7 +2678,82 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-21 minutes**, ending at `6173 passed, 16 skipped`
+A clean run is **6-21 minutes**, ending at `6230 passed, 16 skipped`
+(measured 2026-08-27, **14m49**, on `powder-xrd` AT ITS MERGE OF MASTER --
+a calculated powder pattern's POSITIONS with its intensities refused, on
+top of the formulation work that landed as #53.
+
+**MEASURED ON THE MERGE, which is what the entry below it could not be.**
+That one is `energetic-formulations` and this one was `powder-xrd`, and
+the two are SIBLINGS off master rather than one being an ancestor of the
+other -- so **adding 6173 and 6184 is meaningless**, they share master's
+tests. Only collecting the merged tree answers it.
+
+**+57 collected and 0 REMOVED** against master at the merge:
+
+    master     7a227be   COLLECTS 6189      <- #53 already in
+    this one             COLLECTS 6246      = 6189 + 57
+    the run                       6230 passed + 16 skipped = 6246
+
+    52  test_powder_xrd.py               written
+     2  test_calculator_reachability.py  the text-scan prefilter, both arms
+     3  test_sources_are_current.py      parametrised cases of the EXISTING
+                                         schema guard, one per new source
+
+**THE SKIPS ARE 16 AND THE COMPOSITION IS UNCHANGED** -- 13
+`createViewerGrid` under offscreen (7 spatial + 6 mol3d), the network
+test, `test_namer_known_defects.py:471`'s empty parametrisation, and
+`test_pdf_library_index.py:274` from #51. Chromium's `Failed to make
+current` fires **41 times** in this log -- the highest count yet recorded
+here, against 28, 18, 12 and 5 -- and costs **zero** skips, which is the
+fifth independent confirmation that the GPU is not what moved that figure.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0**, as do
+`^FAILED` and `^ERROR`. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in
+`test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**AND THE MARKER GREP MUST NOT BE ANCHORED, which cost a wrong verdict on
+the first run of this figure.** `^(Windows fatal exception|...)` reported
+**0 markers on a run that had plainly crashed**, because pytest's
+progress dots share the line:
+
+    .......Windows fatal exception: access violation
+
+This file's own recipe is unanchored for exactly that reason. Tightening
+it looks more careful and is strictly worse -- it is the crash-pair check
+reporting clean on a crashed run, which is the one thing it exists to
+prevent. The FAILED/ERROR greps stay anchored; those really do start
+their line.
+
+**THIS FIGURE IS THE THIRD RUN, AND THE FIRST TWO WERE THROWN AWAY.**
+Recorded because a reader comparing numbers deserves to know:
+
+    run 1   CRASHED at 84%, access violation, 790s, no summary line
+    run 2   CLEAN but 6h11m -- 24x the norm -- with ONE failure
+    run 3   6230 passed, 16 skipped, 14m49          <- the cited figure
+
+Run 1 died in `tests/test_screening_service.py:120 in _drain`, which is
+**the same file, line and function this file already records** one branch
+ago at 83%. `_drain` is `waitForDone` + `processEvents()` in a
+60-iteration loop -- the canonical victim position. The file is untouched
+by this merge (nothing in the diff matches `screen|dock`) and passes 15 of
+15 in isolation.
+
+Run 2's single failure was a Ketcher page-load timeout in
+`test_electron_overlay_lifecycle.py`, which passes 8 of 8 in isolation in
+42 s. **A 24x wall clock is the finding, not the failure**: its counts
+still reconcile exactly (6229 + 1 + 16 = 6246), so nothing was lost, and
+the most likely cause is the machine SLEEPING mid-run -- a QtWebEngine
+page load spanning a suspend times out exactly that way. Discarded rather
+than diagnosed, which is this file's standing rule for a contaminated run;
+the machine measured 0% load and zero stray `QtWebEngineProcess` handles
+immediately afterwards, so there was nothing left to diagnose.
+
+14m49 sits mid-band; the 6-21 range stands.)
+
+Before it: `6173 passed, 16 skipped`
 (measured 2026-08-27, **15m12**, on `energetic-formulations` -- the
 formulation report reaching a control a user can press, and the
 reachability guard's module-level blind spot.
@@ -2573,7 +2806,6 @@ pre-existing six-argument `QMouseEvent` overload in
 `test_dock_title_bar.py` and `test_trajectory_player.py`.
 
 15m12 sits mid-band; the 6-21 range stands.)
-
 
 Before it: `6087 passed, 15 skipped`
 (measured 2026-08-26, **14m05**, on `sigma-pi-benchmarks-and-issue-8` --
