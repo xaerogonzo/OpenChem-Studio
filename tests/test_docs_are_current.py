@@ -482,25 +482,14 @@ DEFERRALS: list[Deferral] = [
         reason=lambda: "def grid_platform_is_offscreen"
         in (_ROOT / "tests/conftest.py").read_text(encoding="utf-8"),
     ),
-    Deferral(
-        claim="consumes a particle",
-        # The feature would announce itself as a module: there is no way
-        # to edit quark content without a type for it. Watching for the
-        # word in first-party source is therefore the honest `unbuilt`
-        # test -- and it fails the day somebody adds one, which is the
-        # point.
-        unbuilt=lambda: "quark" not in _src_text().lower(),
-        manual=(
-            "The reason is a judgement about product shape, not a countable "
-            "fact. 'Every layer below the UI is built on atoms as the smallest "
-            "unit' is true of `chem/`, `domain/`, the calculator registry and "
-            "the file formats today, and no single expression distinguishes "
-            "that from a codebase that had grown a particle model -- the "
-            "`unbuilt` predicate above is what would notice that. Stating an "
-            "uncheckable reason as uncheckable is the rule this table already "
-            "applies to 'the cause was never established'."
-        ),
-    ),
+    # "consumes a particle" lived here and is gone, because that entry is
+    # SETTLED now -- and it went stale in the one direction this table is
+    # least able to argue with: somebody BUILT the thing. The `unbuilt`
+    # predicate was `"quark" not in _src_text()`, which fired the moment
+    # `domain/particle.py` existed, exactly as its comment said it would.
+    # Worth keeping the shape in mind: the deferral was retired by a
+    # product decision rather than by its recorded reason expiring, and
+    # ARCHITECTURE.md says so rather than implying the condition was met.
     # "`SimilarityService` doesn't exist yet" lived here and is gone, because
     # its entry is SETTLED now. Worth noting HOW it went stale: the recorded
     # `unbuilt` predicate was still perfectly true -- no class of that name

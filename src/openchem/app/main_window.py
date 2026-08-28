@@ -173,6 +173,11 @@ _MENU_KEYWORDS: dict[str, tuple[str, ...]] = {
     ),
     "Receptor Library...": ("pdb", "protein", "target", "docking"),
     "Periodic Table...": ("element", "isotope", "atomic number", "electron configuration"),
+    # NOT "quark" or "hadron": both are words of the label, so the palette
+    # finds them directly and a keyword would only pad the map.
+    "Quarks and Hadrons...": (
+        "particle", "baryon", "meson", "proton", "strangeness", "isospin",
+    ),
     "Identify Structure Online...": ("pubchem", "lookup", "search online", "name"),
     "External Tools...": ("orca", "vina", "sidecar", "executable", "path"),
     "Check Structure...": ("valence", "sanitise", "sanitize", "validate", "problems"),
@@ -1510,6 +1515,15 @@ class MainWindow(QMainWindow):
             tools_menu.addAction("Periodic Table...", self._show_periodic_table),
             "periodic_table",
         )
+        # Beside the periodic table because that is where somebody goes
+        # asking what a thing is MADE of. It is deliberately a leaf: no
+        # composed particle reaches a molecule, a property or a report --
+        # see `domain/particle.py` for why that is stated rather than
+        # apologised for.
+        self._document(
+            tools_menu.addAction("Quarks and Hadrons...", self._show_particle_editor),
+            "particle_editor",
+        )
         self._document(
             tools_menu.addAction(
                 "Identify Structure Online...", self._identify_structure
@@ -2681,6 +2695,24 @@ class MainWindow(QMainWindow):
         # non-modal and long-lived, so a selection made while it was
         # closed would otherwise never reach it.
         self._push_selected_atom_to_periodic_table()
+        existing.show()
+        existing.raise_()
+        existing.activateWindow()
+
+    def _show_particle_editor(self) -> None:
+        """The quark editor, non-modal and reused like the periodic table.
+
+        **DELIBERATELY A LEAF.** Nothing it composes reaches a molecule, a
+        property or a report, and it takes no molecule in -- so it needs no
+        selection pushed to it and no event subscription, which is the
+        whole shape `docs/ARCHITECTURE.md` records this as being.
+        """
+        from openchem.ui.dialogs.particle_dialog import ParticleDialog
+
+        existing = getattr(self, "_particle_dialog", None)
+        if existing is None:
+            existing = ParticleDialog(self)
+            self._particle_dialog = existing
         existing.show()
         existing.raise_()
         existing.activateWindow()

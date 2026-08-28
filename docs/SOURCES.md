@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 843bb266658e9017686a305a133929734e88b7d6a5257c8204c0d36a8650ea76 -->
+<!-- SOURCE SHA256: 20b591b4e10a97e31471e70adfdb083edeaddd74dd629f91066ddec686db014a -->
 
 # Sources
 
@@ -165,6 +165,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`opsin`](#opsin) | software | shipped | citation |
 | [`orca`](#orca) | software | shipped | citation |
 | [`parr_pearson1983`](#parr_pearson1983) | literature | shipped | citation |
+| [`pdg2024`](#pdg2024) | literature | shipped | citation + claim |
 | [`pearson1988`](#pearson1988) | literature | shipped | citation + claim |
 | [`pkasolver`](#pkasolver) | software | shipped | citation |
 | [`platts1999`](#platts1999) | literature | **not shipped** | citation + claim |
@@ -298,6 +299,62 @@ ITS TEXT LAYER IS UNUSABLE -- page 1 extracts as whitespace and stray
 punctuation -- so the citation, the section number and the author list
 were read from a 350 dpi RENDER of the page rather than from the text.
 No DOI is printed in the file.
+
+### pdg2024
+
+<a id="pdg2024"></a>
+
+> S. Navas et al. (Particle Data Group), 'Review of Particle Physics', Physical Review D 110, 030001, 2024.
+
+| | |
+| --- | --- |
+| Identifier | [10.1103/PhysRevD.110.030001](https://doi.org/10.1103/PhysRevD.110.030001) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-27 |
+| Used by | `src/openchem/domain/particle.py`, `src/openchem/ui/dialogs/particle_dialog.py` |
+
+THE AUTHORITY FOR EVERY MEASURED NUMBER IN THE PARTICLE EDITOR, and for
+the quantum-number CONVENTIONS the arithmetic rests on.
+
+`citation_and_claim` rather than `citation`, because the numbers this
+project uses were read out of the 2024 summary tables themselves rather
+than recalled. There is no local copy in `Sci Downloads`, so the tables
+were fetched from the PDG's own site -- they are free -- and read with
+pymupdf. Every page of the fetched PDF carries the citation line above
+verbatim, which is where it comes from.
+
+WHAT WAS READ, AND THE CROSS-CHECK. Masses and mean lives for the
+spin-1/2 baryon octet, Omega minus, the charged pions and the charged
+kaons. Each agreed with an independent expectation before being written
+down -- proton 938.27208816 MeV, neutron 939.5654205 MeV and 878.4 s,
+Lambda 1115.683 MeV, Sigma+ 1189.37, Sigma0 1192.642, Sigma- 1197.449,
+Xi0 1314.86, Xi- 1321.71, Omega- 1672.45, pi+ 139.57039, K+ 493.677.
+Two routes agreeing is what makes the transcription checkable; the
+source supplies the value and the expectation only screens for a
+transcription failure.
+
+THE SIGN CONVENTIONS CAME FROM THE SOURCE'S OWN SECTION HEADERS, which
+is the part most easily got wrong from memory:
+
+    Lambda BARYONS (S = -1, I = 0)   above   Lambda0 = uds
+    Xi BARYONS     (S = -2, I = 1/2) above   Xi0 = uss, Xi- = dss
+    Omega BARYONS  (S = -3, I = 0)   above   Omega- = sss
+
+...which is the strange quark carrying S = -1, and it is asserted in
+`test_particle.py` by name because it is the classic trap.
+
+AND THE REFUSAL IS THE SOURCE'S POSITION TOO. The light-unflavoured
+meson section is headed "for I = 1 (pi, b, rho, a): ud, (uu-dd)/sqrt(2),
+du; for I = 0 (eta, eta', h, h', omega, phi, f, f'): c1(uu + dd) +
+c2(ss)". So pi0 is a superposition rather than a quark-antiquark pair,
+and the editor declines to name any quark-plus-own-antiquark composition
+on the PDG's own authority rather than on a judgement of ours.
+
+NOT A MIRROR OF THE TABLES. Thirteen states are carried, chosen because
+the summary tables print their quark content unambiguously beside the
+name. Nothing here should be read as a claim about states that are
+absent.
 
 ### souvignier2016
 

@@ -2669,6 +2669,167 @@ Same family as this file's `grep FAILED`, `INFRASTRUCTURE FAILURE` and
 source, not the outcome** -- this time counting a comment that existed
 only to explain why the thing it names is absent.
 
+## A DECISION WAS REVERSED ON PRODUCT GROUNDS, AND THE RECORD SAYS SO
+
+`docs/ARCHITECTURE.md` carried a subatomic-particle editor as a
+**DECISION** against building it: nothing in this application consumes a
+particle, every layer below the UI is built on atoms as the smallest
+unit, and the stated expiry was "the day something downstream can read a
+baryon".
+
+**THAT DAY HAS NOT COME AND THIS DOES NOT BRING IT.** `domain/particle.py`
+reaches no molecule, no property and no report. The entry is SETTLED now
+and says outright that the condition was not met and the thing was built
+because it was wanted -- because a DECISION marker that can be retired by
+doing the thing anyway records nothing for the next reader. The original
+reasoning was not refuted; it was outweighed.
+
+**THE GUARD FIRED EXACTLY AS ITS OWN COMMENT PREDICTED.** The deferral's
+predicate was `"quark" not in _src_text().lower()`, with a comment saying
+"it fails the day somebody adds one, which is the point". It does:
+measured after the module landed, that expression is now `False`. The
+entry is removed with a note recording that it went stale in the
+direction this table is least able to argue with -- somebody built the
+thing.
+
+### What the reversal buys is a boundary, not an apology
+
+Four guards in `tests/test_particle.py`, and the last two are the
+load-bearing ones:
+
+    domain/particle.py imports nothing from openchem.chem
+    no ProjectModel field mentions a particle
+    ParticleState has NO to_dict/from_dict/uuid/molblock/smiles
+    nothing under chem/ imports domain.particle
+
+The third is the narrow half: "no field on `ProjectModel`" is satisfied
+by smuggling a particle into `metadata`, or by giving the type a
+`to_dict` a project writer would happily call. Asserting the type carries
+no serialisation at all is what leaves nothing to call.
+
+## GELL-MANN--NISHIJIMA IS THE CHECKSUM ON A HAND-ENTERED TABLE
+
+    Q = I3 + (B + S + C + B' + T) / 2
+
+It holds per quark and both sides are additive, so it holds for any
+composition BY CONSTRUCTION -- which makes it useless as a test of the
+composition logic and exactly right as a test of the six-row flavour
+table this module types by hand. A wrong sign or a mistyped third in any
+flavour breaks it.
+
+**THE SIGNS IT PROTECTS ARE THE CLASSIC TRAPS**, and they came from the
+PDG's own section headers rather than from memory:
+
+    Lambda BARYONS (S = -1, I = 0)    above   Lambda0 = uds
+    Xi BARYONS     (S = -2, I = 1/2)  above   Xi0 = uss, Xi- = dss
+    Omega BARYONS  (S = -3, I = 0)    above   Omega- = sss
+
+...which is the strange quark carrying **S = -1**. The negatively-charged
+quarks carry NEGATIVE flavour numbers -- s has S = -1 and b has B' = -1,
+while c has C = +1 and t has T = +1.
+
+**`Fraction`, NEVER FLOAT.** A proton is 2/3 + 2/3 - 1/3, which in binary
+floating point is 0.9999999999999999 -- so an equality test against +1
+fails, and a tolerance would be a tolerance on a number that is exactly
+an integer.
+
+## THE PDG SUPPLIES ITS OWN COUNTEREXAMPLE, WHICH IS THE WHOLE DESIGN
+
+Lambda and Sigma zero have the SAME quark content:
+
+    Lambda BARYONS (S = -1, I = 0)   Lambda0 = uds    1115.683 MeV
+    Sigma BARYONS  (S = -1, I = 1)   Sigma0  = uds    1192.642 MeV
+
+Identical charge, baryon number, strangeness AND third isospin component.
+They differ in **TOTAL isospin, which is not a sum over quark content the
+way I3 is** -- so the derived numbers PROVABLY cannot tell them apart.
+
+That is why the verdict is three-valued rather than known/not-known:
+
+    invalid                not a baryon or a meson
+    valid, not identified  the arithmetic works, no unique named state
+    identified             exactly one PDG row has this content
+
+Forcing two states would have to lie about `uds`. The editor names both
+candidates and picks neither.
+
+**AND THE LOOKUP IS BY CONTENT, NEVER BY QUANTUM-NUMBER TUPLE.** Searching
+the table for a row whose (Q, B, S) happens to match is how "known
+particle" quietly becomes "whatever came back". Asserted on the SOURCE --
+an AST check that `identify` calls `_same_content` -- because the shipped
+table contains no pair whose numbers coincide while their contents
+differ, so no composition discriminates the two implementations end to
+end. Same rule as "an unreachable branch is a question about where to
+assert".
+
+## A NEUTRAL LIGHT MESON IS A SUPERPOSITION, AND THE SOURCE PRINTS IT
+
+The light-unflavoured meson section is headed
+
+    for I = 1 (pi, b, rho, a):  ud, (uu-dd)/sqrt(2), du
+    for I = 0 (eta, eta', ...): c1(uu + dd) + c2(ss)
+
+so pi0 is not a quark-antiquark PAIR at all and the I = 0 states carry
+mixing coefficients the table does not fix. A bare `u ubar` therefore
+composes to a valid meson this editor refuses to name -- **that refusal is
+the PDG's own position rather than a limitation of the arithmetic**, which
+is a materially different thing to tell a reader.
+
+## THE PDG WAS FETCHED, READ AS A PDF, AND CROSS-CHECKED
+
+No copy in `Sci Downloads`. The summary tables are free, so they were
+fetched -- and `WebFetch` cannot read a PDF, but it SAVES one, which is
+the useful part: the file was then read with pymupdf exactly like every
+other source here. Every page carries
+`Citation: S. Navas et al. (Particle Data Group), Phys. Rev. D 110,
+030001 (2024)` verbatim, which is where the registry entry comes from.
+
+**EVERY MEASURED VALUE AGREED WITH AN INDEPENDENT EXPECTATION BEFORE IT
+WAS WRITTEN DOWN** -- proton 938.27208816 MeV, neutron 939.5654205 MeV
+and 878.4 s, Lambda 1115.683, Sigma+ 1189.37, Sigma0 1192.642, Sigma-
+1197.449, Xi0 1314.86, Xi- 1321.71, Omega- 1672.45, pi+ 139.57039, K+
+493.677. The source supplies the value; the expectation only screens for
+a transcription failure. Two routes agreeing is what makes a hand-typed
+number checkable, and it is the pattern the Waasmaier radius inversion
+already used.
+
+**A LIMIT IS NOT A MEASUREMENT.** `mean_life_s` is None for the proton and
+the note says the PDG prints `> 9 x 10^29 years (CL 90%)`. Storing that
+figure as a lifetime would turn "nobody has ever seen one decay" into "it
+decays", which is the same shape as this file's `n/a is not 0` finding.
+
+## THE DIALOG OPENED ON A DELTA++ AND EVERY TEST PASSED
+
+Found by driving the app and reading the shot -- the fourteenth entry in
+this file's running count of that, and the mechanism is new.
+
+**`QComboBox.findData` CANNOT MATCH A PYTHON TUPLE, AND FAILS SILENTLY.**
+The items carry `(Flavour, bool)` as their data; `findData` compares
+through `QVariant`, returns -1, and `_select` left every box at index 0.
+So `_reset_to_proton` believed it had set `u u d` and the editor opened
+on `u u u`.
+
+**NOTHING NOTICED BECAUSE `content()` READS `currentData()`** -- it was
+perfectly correct about the wrong selection, so all 56 tests passed
+against a dialog showing the wrong particle. The verdict on screen was
+even right FOR what was displayed: "a valid baryon, not identified" is
+the correct answer for a Delta++, which this table does not carry.
+
+Comparing in Python is the fix, and the lookup now RAISES on a miss
+rather than returning quietly: the whole reason the bug was invisible was
+a silent -1. Both halves are guarded, and the regression test asserts the
+CONTENT the dialog opens with rather than combo indices, so it survives
+the picker being reordered.
+
+## A DRIVE STEP THAT DRIVES THE CONTROLS, NOT THE FUNCTION BEHIND THEM
+
+`{"do": "particle", "content": "u d s"}` sets the combo boxes and reads
+the rendered verdict. Calling `identify` in the step would photograph an
+answer the dialog never produced -- and the defect above was precisely a
+broken selection sitting behind correct arithmetic, so a step that
+bypassed the boxes could not have caught it. Same argument
+`jobs_cancel` makes by pressing the real button.
+
 ## Running the tests
 
 ```bash
@@ -2678,7 +2839,58 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-21 minutes**, ending at `6230 passed, 16 skipped`
+A clean run is **6-21 minutes**, ending at `6292 passed, 16 skipped`
+(measured 2026-08-28, **15m36**, on `particle-editor` AT ITS MERGE OF
+MASTER -- the quark editor and the DECISION it reverses, on top of the
+formulation work (#53) and the powder pattern (#54).
+
+**MEASURED ON THE MERGE**, like the entry below it and unlike the branch
+figures either of them replaced. All three of D, C and E were siblings off
+`d90cf70`, so their +19, +57 and +62 are each measured against the SAME
+base and adding them to one total is meaningless -- what is meaningful is
+that each merge's collection reconciles against the master it landed on:
+
+    d90cf70  6143  ->  #53  6189  ->  #54  6246  ->  this one  6308
+
+**+62 collected and 0 REMOVED** against master at the merge:
+
+    master     378180e   COLLECTS 6246      <- #53 and #54 already in
+    this one             COLLECTS 6308      = 6246 + 62
+    the run                       6292 passed + 16 skipped = 6308
+
+    61  test_particle.py             written
+     1  test_sources_are_current.py  a parametrised case of the EXISTING
+                                     schema guard, for `pdg2024`
+
+**RETIRING A DEFERRAL REMOVED NO TEST**, which is worth stating because a
+reader would expect one: the `DEFERRALS` guards loop over the table INSIDE
+one test each rather than parametrising over it, so dropping the particle
+entry changes the list they iterate and not the collected count.
+
+**THE SKIPS ARE 16 AND THE COMPOSITION IS UNCHANGED** across all three
+merges -- 13 `createViewerGrid` under offscreen (7 spatial + 6 mol3d), the
+network test, `test_namer_known_defects.py:471`'s empty parametrisation,
+and `test_pdf_library_index.py:274` from #51. Chromium's `Failed to make
+current` fires 16 times here, against 41 on the previous merge, and both
+cost **zero** skips -- the sixth independent confirmation that the GPU is
+not what moved that figure, and the widest spread yet recorded (5 to 41)
+with no effect either way.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- UNANCHORED,
+for the reason the entry below records -- as do `^FAILED` and `^ERROR`.
+The two `DeprecationWarning`s are the same pre-existing six-argument
+`QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**THIS ONE WAS CLEAN ON ITS FIRST RUN**, which is worth saying beside the
+entry below, where three were needed. Nothing distinguishes the two trees
+that would predict it; that is the crash class being what this file has
+always said it is.
+
+15m36 sits mid-band; the 6-21 range stands.)
+
+Before it: `6230 passed, 16 skipped`
 (measured 2026-08-27, **14m49**, on `powder-xrd` AT ITS MERGE OF MASTER --
 a calculated powder pattern's POSITIONS with its intensities refused, on
 top of the formulation work that landed as #53.
