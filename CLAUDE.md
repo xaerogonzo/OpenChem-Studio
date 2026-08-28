@@ -2839,7 +2839,58 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-21 minutes**, ending at `6230 passed, 16 skipped`
+A clean run is **6-21 minutes**, ending at `6292 passed, 16 skipped`
+(measured 2026-08-28, **15m36**, on `particle-editor` AT ITS MERGE OF
+MASTER -- the quark editor and the DECISION it reverses, on top of the
+formulation work (#53) and the powder pattern (#54).
+
+**MEASURED ON THE MERGE**, like the entry below it and unlike the branch
+figures either of them replaced. All three of D, C and E were siblings off
+`d90cf70`, so their +19, +57 and +62 are each measured against the SAME
+base and adding them to one total is meaningless -- what is meaningful is
+that each merge's collection reconciles against the master it landed on:
+
+    d90cf70  6143  ->  #53  6189  ->  #54  6246  ->  this one  6308
+
+**+62 collected and 0 REMOVED** against master at the merge:
+
+    master     378180e   COLLECTS 6246      <- #53 and #54 already in
+    this one             COLLECTS 6308      = 6246 + 62
+    the run                       6292 passed + 16 skipped = 6308
+
+    61  test_particle.py             written
+     1  test_sources_are_current.py  a parametrised case of the EXISTING
+                                     schema guard, for `pdg2024`
+
+**RETIRING A DEFERRAL REMOVED NO TEST**, which is worth stating because a
+reader would expect one: the `DEFERRALS` guards loop over the table INSIDE
+one test each rather than parametrising over it, so dropping the particle
+entry changes the list they iterate and not the collected count.
+
+**THE SKIPS ARE 16 AND THE COMPOSITION IS UNCHANGED** across all three
+merges -- 13 `createViewerGrid` under offscreen (7 spatial + 6 mol3d), the
+network test, `test_namer_known_defects.py:471`'s empty parametrisation,
+and `test_pdf_library_index.py:274` from #51. Chromium's `Failed to make
+current` fires 16 times here, against 41 on the previous merge, and both
+cost **zero** skips -- the sixth independent confirmation that the GPU is
+not what moved that figure, and the widest spread yet recorded (5 to 41)
+with no effect either way.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- UNANCHORED,
+for the reason the entry below records -- as do `^FAILED` and `^ERROR`.
+The two `DeprecationWarning`s are the same pre-existing six-argument
+`QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**THIS ONE WAS CLEAN ON ITS FIRST RUN**, which is worth saying beside the
+entry below, where three were needed. Nothing distinguishes the two trees
+that would predict it; that is the crash class being what this file has
+always said it is.
+
+15m36 sits mid-band; the 6-21 range stands.)
+
+Before it: `6230 passed, 16 skipped`
 (measured 2026-08-27, **14m49**, on `powder-xrd` AT ITS MERGE OF MASTER --
 a calculated powder pattern's POSITIONS with its intensities refused, on
 top of the formulation work that landed as #53.
