@@ -2678,43 +2678,80 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-21 minutes**, ending at `6184 passed, 16 skipped`
-(measured 2026-08-27, **15m45**, on `powder-xrd` -- a calculated powder
-pattern's POSITIONS, with its intensities refused on a measurement.
+A clean run is **6-21 minutes**, ending at `6230 passed, 16 skipped`
+(measured 2026-08-27, **14m49**, on `powder-xrd` AT ITS MERGE OF MASTER --
+a calculated powder pattern's POSITIONS with its intensities refused, on
+top of the formulation work that landed as #53.
 
-**+57 collected and 0 REMOVED**, diffed both directions in a detached
-worktree with the `PYTHONPATH` override asserted before the count was
-believed:
+**MEASURED ON THE MERGE, which is what the entry below it could not be.**
+That one is `energetic-formulations` and this one was `powder-xrd`, and
+the two are SIBLINGS off master rather than one being an ancestor of the
+other -- so **adding 6173 and 6184 is meaningless**, they share master's
+tests. Only collecting the merged tree answers it.
 
-    master     d90cf70   COLLECTS 6143
-    this one             COLLECTS 6200   = 6143 + 57
-    the run                       6184 passed + 16 skipped = 6200
+**+57 collected and 0 REMOVED** against master at the merge:
+
+    master     7a227be   COLLECTS 6189      <- #53 already in
+    this one             COLLECTS 6246      = 6189 + 57
+    the run                       6230 passed + 16 skipped = 6246
 
     52  test_powder_xrd.py               written
      2  test_calculator_reachability.py  the text-scan prefilter, both arms
      3  test_sources_are_current.py      parametrised cases of the EXISTING
                                          schema guard, one per new source
 
-**THE SKIPS ARE 16 AND THE COMPOSITION IS UNCHANGED** from the branch
-that first attributed them -- 13 `createViewerGrid` under offscreen, the
-network test, the empty-parametrisation skip in
-`test_namer_known_defects.py`, and `test_pdf_library_index.py` from #51.
-Chromium's `Failed to make current` fires **12 times** in this log and
-costs **zero** skips, which is the third independent confirmation that
-the GPU is not what moved that figure.
+**THE SKIPS ARE 16 AND THE COMPOSITION IS UNCHANGED** -- 13
+`createViewerGrid` under offscreen (7 spatial + 6 mol3d), the network
+test, `test_namer_known_defects.py:471`'s empty parametrisation, and
+`test_pdf_library_index.py:274` from #51. Chromium's `Failed to make
+current` fires **41 times** in this log -- the highest count yet recorded
+here, against 28, 18, 12 and 5 -- and costs **zero** skips, which is the
+fifth independent confirmation that the GPU is not what moved that figure.
 
 **The crash pair is satisfied**: there IS a summary line, and
-`^(Windows fatal exception|Fatal Python error)` matches **0**, as do
+`Windows fatal exception|Fatal Python error` matches **0**, as do
 `^FAILED` and `^ERROR`. The two `DeprecationWarning`s are the same
 pre-existing six-argument `QMouseEvent` overload in
 `test_dock_title_bar.py` and `test_trajectory_player.py`.
 
-**NOTE THIS BRANCH IS OFF MASTER AND NOT OFF `energetic-formulations`**,
-which is open as PR #53 and adds 19 tests of its own. The two are
-independent -- C depends on B, not on D -- so neither figure includes the
-other's tests and adding them is meaningless.
+**AND THE MARKER GREP MUST NOT BE ANCHORED, which cost a wrong verdict on
+the first run of this figure.** `^(Windows fatal exception|...)` reported
+**0 markers on a run that had plainly crashed**, because pytest's
+progress dots share the line:
 
-15m45 sits mid-band; the 6-21 range stands.)
+    .......Windows fatal exception: access violation
+
+This file's own recipe is unanchored for exactly that reason. Tightening
+it looks more careful and is strictly worse -- it is the crash-pair check
+reporting clean on a crashed run, which is the one thing it exists to
+prevent. The FAILED/ERROR greps stay anchored; those really do start
+their line.
+
+**THIS FIGURE IS THE THIRD RUN, AND THE FIRST TWO WERE THROWN AWAY.**
+Recorded because a reader comparing numbers deserves to know:
+
+    run 1   CRASHED at 84%, access violation, 790s, no summary line
+    run 2   CLEAN but 6h11m -- 24x the norm -- with ONE failure
+    run 3   6230 passed, 16 skipped, 14m49          <- the cited figure
+
+Run 1 died in `tests/test_screening_service.py:120 in _drain`, which is
+**the same file, line and function this file already records** one branch
+ago at 83%. `_drain` is `waitForDone` + `processEvents()` in a
+60-iteration loop -- the canonical victim position. The file is untouched
+by this merge (nothing in the diff matches `screen|dock`) and passes 15 of
+15 in isolation.
+
+Run 2's single failure was a Ketcher page-load timeout in
+`test_electron_overlay_lifecycle.py`, which passes 8 of 8 in isolation in
+42 s. **A 24x wall clock is the finding, not the failure**: its counts
+still reconcile exactly (6229 + 1 + 16 = 6246), so nothing was lost, and
+the most likely cause is the machine SLEEPING mid-run -- a QtWebEngine
+page load spanning a suspend times out exactly that way. Discarded rather
+than diagnosed, which is this file's standing rule for a contaminated run;
+the machine measured 0% load and zero stray `QtWebEngineProcess` handles
+immediately afterwards, so there was nothing left to diagnose.
+
+14m49 sits mid-band; the 6-21 range stands.)
 
 Before it: `6173 passed, 16 skipped`
 (measured 2026-08-27, **15m12**, on `energetic-formulations` -- the
