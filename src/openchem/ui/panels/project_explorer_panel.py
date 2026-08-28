@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QListWidget, QListWidgetItem, QMenu, QVBoxLayout, 
 
 from openchem.chem.identifiers import identifier_for_molblock
 from openchem.commands.crystal_commands import DeleteCrystalCommand, RenameCrystalCommand
+from openchem.commands.formulation_commands import DeleteFormulationCommand
 from openchem.commands.molecule_commands import DeleteMoleculeCommand, RenameMoleculeCommand
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
@@ -15,6 +16,8 @@ from openchem.events.base import EventBus
 from openchem.events.events import (
     CrystalChanged,
     CrystalSelected,
+    FormulationChanged,
+    FormulationSelected,
     MoleculeChanged,
     MoleculeSelected,
 )
@@ -27,9 +30,16 @@ from openchem.events.events import (
 _KIND_ROLE = Qt.ItemDataRole.UserRole + 1
 _MOLECULE = "molecule"
 _CRYSTAL = "crystal"
+_FORMULATION = "formulation"
 #: Appended to a crystal row so one flat list stays readable. Chrome,
 #: never part of the stored name -- see `_on_item_changed`.
 _CRYSTAL_SUFFIX = "  [crystal]"
+#: The same chrome for a recipe. A formulation row is deliberately NOT
+#: `ItemIsEditable`: `FormulationModel` is FROZEN, so there is no field
+#: to assign and an inline rename would have to rebuild the whole model
+#: -- which is what the editor dialog already does, with every other
+#: field in front of the user rather than one of them alone.
+_FORMULATION_SUFFIX = "  [formulation]"
 
 
 class ProjectExplorerPanel(QWidget):
@@ -51,6 +61,7 @@ class ProjectExplorerPanel(QWidget):
         on_duplicate: Callable[[MoleculeModel], None] | None = None,
         on_identify: Callable[[MoleculeModel], None] | None = None,
         on_check: Callable[[], None] | None = None,
+        on_edit_formulation: Callable[[object], None] | None = None,
     ) -> None:
         super().__init__(parent)
         self._event_bus = event_bus
@@ -58,6 +69,11 @@ class ProjectExplorerPanel(QWidget):
         self._on_duplicate = on_duplicate
         self._on_identify = on_identify
         self._on_check = on_check
+        # A callback into MainWindow, the same shape as `on_duplicate`:
+        # editing means re-opening the editor dialog, and the window owns
+        # both the dialog and the SMILES the picker offers -- deriving one
+        # from a drawing needs RDKit, which this layer may not import.
+        self._on_edit_formulation = on_edit_formulation
         self._project: ProjectModel | None = None
         # Set while `refresh()` is rebuilding `_list` -- guards `_on_item_changed`
         # against firing a rename command for edits that aren't user-initiated
@@ -79,6 +95,7 @@ class ProjectExplorerPanel(QWidget):
         )
         event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
         event_bus.subscribe(CrystalChanged, self._on_molecule_changed)
+        event_bus.subscribe(FormulationChanged, self._on_molecule_changed)
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
@@ -108,6 +125,14 @@ class ProjectExplorerPanel(QWidget):
                 item.setData(Qt.ItemDataRole.UserRole, crystal.uuid)
                 item.setData(_KIND_ROLE, _CRYSTAL)
                 self._list.addItem(item)
+            for formulation in self._project.formulations:
+                item = QListWidgetItem(
+                    f"{formulation.display_name}{_FORMULATION_SUFFIX}"
+                )
+                # No `ItemIsEditable` -- see `_FORMULATION_SUFFIX`.
+                item.setData(Qt.ItemDataRole.UserRole, formulation.uuid)
+                item.setData(_KIND_ROLE, _FORMULATION)
+                self._list.addItem(item)
         self._list.blockSignals(False)
         self._refreshing = False
 
@@ -115,6 +140,18 @@ class ProjectExplorerPanel(QWidget):
         if current is not None and current.data(_KIND_ROLE) == _CRYSTAL:
             self._event_bus.publish(
                 CrystalSelected(crystal_uuid=current.data(Qt.ItemDataRole.UserRole))
+            )
+            return
+        # Its own event, never `MoleculeSelected` carrying a recipe's
+        # uuid. Without this branch the uuid falls through to the line
+        # below, every subscriber looks it up in `project.molecules`,
+        # finds nothing, and the panels go on describing whichever
+        # molecule was selected before -- beside a mixture's name.
+        if current is not None and current.data(_KIND_ROLE) == _FORMULATION:
+            self._event_bus.publish(
+                FormulationSelected(
+                    formulation_uuid=current.data(Qt.ItemDataRole.UserRole)
+                )
             )
             return
         molecule_uuid = current.data(Qt.ItemDataRole.UserRole) if current is not None else None
@@ -128,6 +165,19 @@ class ProjectExplorerPanel(QWidget):
         if self._project is None or item.data(_KIND_ROLE) != _CRYSTAL:
             return None
         return self._project.find_crystal(item.data(Qt.ItemDataRole.UserRole))
+
+    def _formulation_for_item(self, item: QListWidgetItem):
+        """The formulation a row stands for, or None.
+
+        The KIND check is load-bearing here in a way it is not for a
+        crystal: `find_formulation` and `find_crystal` both match on a
+        bare uuid, so without it a crystal row would be looked up in the
+        wrong list -- and find nothing, which is harmless, right up until
+        two documents ever share an id space.
+        """
+        if self._project is None or item.data(_KIND_ROLE) != _FORMULATION:
+            return None
+        return self._project.find_formulation(item.data(Qt.ItemDataRole.UserRole))
 
     def _molecule_for_item(self, item: QListWidgetItem):
         """The molecule a row stands for, or None.
@@ -152,6 +202,14 @@ class ProjectExplorerPanel(QWidget):
         # which is exactly how it was reported.
         item = self._list.itemAt(pos) or self._list.currentItem()
         if item is None:
+            return
+        # A recipe gets its own short menu rather than the molecular one.
+        # "Copy SMILES" on a mixture is a question with no answer, and
+        # `_molecule_for_item` would return None for every entry on it --
+        # a menu whose items all silently do nothing.
+        formulation = self._formulation_for_item(item)
+        if formulation is not None:
+            self._show_formulation_menu(formulation, pos)
             return
         menu = QMenu(self._list)
         # Identifiers first: this is the most frequent reason to
@@ -204,6 +262,25 @@ class ProjectExplorerPanel(QWidget):
         elif chosen is delete_action:
             self._delete_item(item)
 
+    def _show_formulation_menu(self, formulation, pos) -> None:
+        """Edit and Delete, which is the whole surface a recipe has here.
+
+        `Edit` re-opens the editor rather than offering an inline rename:
+        `FormulationModel` is frozen, so changing the name means
+        rebuilding the model anyway, and doing that with only the name in
+        front of the user hides the fields that decide the answer.
+        """
+        menu = QMenu(self._list)
+        edit_action = menu.addAction("Edit...") if self._on_edit_formulation else None
+        delete_action = menu.addAction("Delete")
+        chosen = menu.exec(self._list.mapToGlobal(pos))
+        if edit_action is not None and chosen is edit_action:
+            self._on_edit_formulation(formulation)
+        elif chosen is delete_action and self._project is not None:
+            self._undo_stack.push(
+                DeleteFormulationCommand(self._project, formulation, self._event_bus)
+            )
+
     def _copy_identifier(self, item: QListWidgetItem, kind: str) -> None:
         """Put one identifier for `item`'s molecule on the clipboard.
 
@@ -231,6 +308,12 @@ class ProjectExplorerPanel(QWidget):
         if crystal is not None:
             self._undo_stack.push(
                 DeleteCrystalCommand(self._project, crystal, self._event_bus)
+            )
+            return
+        formulation = self._formulation_for_item(item)
+        if formulation is not None:
+            self._undo_stack.push(
+                DeleteFormulationCommand(self._project, formulation, self._event_bus)
             )
             return
         molecule = self._molecule_for_item(item)

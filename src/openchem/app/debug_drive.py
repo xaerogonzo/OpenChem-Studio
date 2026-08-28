@@ -1730,6 +1730,152 @@ class _Driver(QObject):
                 return bar
         return None
 
+    def _do_formulation(self, step: dict[str, Any]) -> None:
+        """Add a stated formulation and show its report.
+
+        `{"do": "formulation"}` uses ANFO, the case the whole feature
+        exists for -- both components are refused by Kamlet-Jacobs'
+        arbitrary on their own and the mixture lands inside it -- so a
+        run with no arguments still exercises the interesting path. A
+        `components` list of `[name, smiles, mass_fraction, dHf]` rows
+        and a `density` override state a different recipe.
+
+        **IT GOES THROUGH `_formulation_report_dialog`, WHICH IS THE
+        PRODUCTION PATH**, rather than calling `build_formulation_report`
+        here. Calling the builder directly would photograph a report the
+        application never renders, which is the harness proving its own
+        arithmetic instead of the feature -- the same distinction
+        `jobs_cancel` draws by pressing the real button.
+
+        `show()`, never `exec()`: a modal spins its own event loop inside
+        this handler and an unattended run stalls with nobody to close
+        the window.
+        """
+        from openchem.domain.formulation import FormulationComponent, FormulationModel
+
+        window = self._window
+        project = window._session.project
+        if project is None:
+            logger.error("OPENCHEM_DRIVE: no project to add a formulation to")
+            return
+        rows = step.get(
+            "components",
+            [
+                ["Ammonium nitrate", "[NH4+].[N+](=O)([O-])[O-]", 0.945, -87.3],
+                ["Fuel oil", "CCCCCCCCCCCC", 0.055, -83.9],
+            ],
+        )
+        formulation = FormulationModel(
+            display_name=str(step.get("name", "ANFO")),
+            components=tuple(
+                FormulationComponent(
+                    display_name=str(row[0]),
+                    smiles=str(row[1]),
+                    mass_fraction=float(row[2]),
+                    enthalpy_kcal_per_mol=float(row[3]),
+                )
+                for row in rows
+            ),
+            loading_density=float(step.get("density", 0.85)),
+        )
+        project.formulations.append(formulation)
+        window._project_explorer.refresh()
+        self._dialog = None
+        dialog = window._formulation_report_dialog(formulation)
+        dialog.setParent(window)
+        dialog.setWindowFlag(Qt.WindowType.Dialog, True)
+        if "width" in step:
+            dialog.resize(int(step["width"]), int(step.get("height", dialog.height())))
+        dialog.show()
+        self._dialog = dialog
+        logger.info(
+            "OPENCHEM_DRIVE: formulation %r, %d components, rho0=%s",
+            formulation.display_name,
+            len(formulation.components),
+            formulation.loading_density,
+        )
+
+    def _do_crystal(self, step: dict[str, Any]) -> None:
+        """Import a CIF by PATH and show its report, with no file dialog.
+
+        `{"do": "crystal", "path": "tests/fixtures/cif/1569411.cif"}`,
+        then `{"do": "shot", "widget": "dialog"}`.
+
+        **IT GOES THROUGH `crystal_report_dialog`, WHICH IS THE PRODUCTION
+        PATH**, rather than calling `build_crystal_report` here: calling
+        the builder directly would photograph a report the application
+        never renders, which is the harness proving its own arithmetic
+        instead of the feature.
+
+        `show()`, never `exec()`, for the reason `_do_lewis` gives.
+        """
+        from pathlib import Path
+
+        from openchem.chem.cif import CifError, read_cif
+        from openchem.chem.crystal_report import build_crystal_report
+        from openchem.domain.crystal import CrystalModel
+
+        window = self._window
+        project = window._session.project
+        path = Path(str(step.get("path", "")))
+        if project is None or not path.is_file():
+            logger.error("OPENCHEM_DRIVE: no project, or no such CIF: %s", path)
+            return
+        text = path.read_text(encoding="utf-8", errors="replace")
+        try:
+            crystal = read_cif(text)
+        except CifError as exc:
+            logger.error("OPENCHEM_DRIVE: %s did not parse: %s", path.name, exc)
+            return
+        project.crystals.append(
+            CrystalModel(
+                display_name=crystal.name or path.stem,
+                cif_text=text,
+                source_name=path.name,
+            )
+        )
+        window._project_explorer.refresh()
+        self._dialog = None
+        dialog = window.crystal_report_dialog(build_crystal_report(crystal), path.name)
+        dialog.setParent(window)
+        dialog.setWindowFlag(Qt.WindowType.Dialog, True)
+        if "width" in step:
+            dialog.resize(int(step["width"]), int(step.get("height", dialog.height())))
+        if step.get("everything"):
+            # The report opens with STRUCTURE and GEOMETRY collapsed and
+            # the depth at Standard, which is how the crystal report has
+            # always opened -- the cell volume and the density sit behind
+            # the same fold. `{"everything": true}` is what lets a shot
+            # show the rows rather than the headings.
+            from PySide6.QtWidgets import QToolButton
+
+            from openchem.ui.widgets.collapsible_section import CollapsibleSection
+            from openchem.ui.widgets.fact_view import FactView
+
+            view = dialog.findChild(FactView)
+            if view is not None:
+                view._detail.setCurrentIndex(view._detail.count() - 1)
+                # A needle narrows the report to the rows worth
+                # photographing -- a 44-fact report does not fit one
+                # window, and the view expands every section while
+                # filtering, which is what makes this enough on its own.
+                needle = str(step.get("filter", ""))
+                if needle:
+                    view.search_box().setText(needle)
+                for section in view.findChildren(CollapsibleSection):
+                    button = section.findChild(QToolButton)
+                    if button is not None and not button.isChecked():
+                        button.click()
+        dialog.show()
+        self._dialog = dialog
+        logger.info(
+            "OPENCHEM_DRIVE: crystal %s, a=%.4f, %d operations, wavelength=%s",
+            crystal.name or path.stem,
+            crystal.lattice.a,
+            len(crystal.operations),
+            crystal.radiation_wavelength,
+        )
+
     def _do_particle(self, step: dict[str, Any]) -> None:
         """Open the quark editor on a stated content.
 

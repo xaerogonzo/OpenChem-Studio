@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: ccc1330b4a6bbd01c3a2ede55c4d6c30aa7fd4c40b89b7b22ee33de828eca767 -->
+<!-- SOURCE SHA256: 20b591b4e10a97e31471e70adfdb083edeaddd74dd629f91066ddec686db014a -->
 
 # Sources
 
@@ -102,8 +102,10 @@ next run of `tools/build_lewis_parameters.py`.
 | [`bradley2015`](#bradley2015) | literature | shipped | citation + claim |
 | [`bravetti2023`](#bravetti2023) | literature | shipped | citation |
 | [`brenk2008`](#brenk2008) | literature | shipped | citation |
+| [`brown2006`](#brown2006) | literature | **not shipped** | citation |
 | [`cao2004`](#cao2004) | literature | shipped | citation + claim |
 | [`cod`](#cod) | dataset | shipped | citation |
+| [`coppens2006`](#coppens2006) | literature | **not shipped** | citation |
 | [`crc_handbook`](#crc_handbook) | reference_table | shipped | citation + claim |
 | [`cwc_annex_on_chemicals`](#cwc_annex_on_chemicals) | legal | shipped | citation + claim |
 | [`dea_listed_chemicals`](#dea_listed_chemicals) | legal | shipped | citation |
@@ -130,6 +132,9 @@ next run of `tools/build_lewis_parameters.py`.
 | [`jenkins1999`](#jenkins1999) | literature | shipped | citation + claim |
 | [`joback1987`](#joback1987) | literature | shipped | citation + claim |
 | [`kamlet1968`](#kamlet1968) | literature | shipped | citation + claim |
+| [`kamlet1968_ii`](#kamlet1968_ii) | literature | reference only | citation |
+| [`kamlet1968_iii`](#kamlet1968_iii) | literature | shipped | citation |
+| [`kamlet1968_iv`](#kamlet1968_iv) | literature | shipped | citation |
 | [`katritzky1990`](#katritzky1990) | literature | shipped | citation + claim |
 | [`kaya2022`](#kaya2022) | literature | shipped | citation + claim |
 | [`kendall2008`](#kendall2008) | literature | shipped | citation |
@@ -180,11 +185,120 @@ next run of `tools/build_lewis_parameters.py`.
 | [`trott_olson2010`](#trott_olson2010) | literature | shipped | citation + claim |
 | [`tsei`](#tsei) | reference_table | reference only | citation |
 | [`vogel_drago1996`](#vogel_drago1996) | literature | shipped | citation + claim |
+| [`waasmaier1995`](#waasmaier1995) | literature | **not shipped** | citation |
 | [`westwell1995`](#westwell1995) | literature | **not shipped** | citation |
 | [`wildman1999`](#wildman1999) | literature | shipped | citation |
 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
 
 ## Primary literature
+
+### waasmaier1995
+
+<a id="waasmaier1995"></a>
+
+> D. Waasmaier & A. Kirfel, 'New Analytical Scattering-Factor Functions for Free Atoms and Ions', Acta Crystallographica A51, 1995, pp. 416-431.
+
+| | |
+| --- | --- |
+| Identifier | Acta Cryst. (1995) A51, 416-431 |
+| Status | **not shipped** |
+| Verification | citation |
+| Verified | 2026-08-27 |
+| Local copy | `waasmaier1995.pdf` (not checked) |
+
+**Why it is not shipped.** THE PARAMETER SOURCE A POWDER PATTERN'S INTENSITIES WOULD NEED, AND THE
+REFUSAL IS A MEASUREMENT RATHER THAN AN ESTIMATE OF EFFORT.
+
+`chem/powder_xrd.py` ships peak POSITIONS and no intensities. |F(hkl)|^2
+needs a tabulated atomic scattering factor per species, f0(sin(theta)/
+lambda), and this paper is the standard parameterisation: five Gaussians,
+eleven parameters per atom or ion, valid over sin(theta)/lambda 0.0 to
+6.0 A^-1.
+
+The copy held locally is a scan whose text layer is damaged. Measured
+over the four pages of its Table 1:
+
+    numeric tokens on the table pages     2267
+    visibly corrupted                      673   (29.7%)
+
+...and 70.3% "clean" is an UPPER bound on correctness, because a token
+can be well formed and still wrong. Element labels are corrupted too --
+the calcium row extracts as `Cs`, which would silently put caesium's
+factors on calcium.
+
+THE DECIDING POINT IS THAT ONLY 6 OF THE 11 PARAMETERS CAN BE CHECKED.
+A neutral atom's scattering factor at zero angle is its electron count,
+so sum(a_i) + c = Z is a per-row oracle over a1..a5 and c. The five b
+values have no such check: a wrong b is wrong at every non-zero angle
+and exactly right at theta = 0, which is the one place the checksum
+looks. Transcribing a table where nearly a third of the numbers are
+visibly damaged and 5 in every 11 are unverifiable would produce
+plausible intensities of unknown correctness.
+
+WHAT WOULD LIFT IT: a machine-readable copy of this table, or the
+tabulated values of International Tables for Crystallography Vol. C that
+it was fitted to.
+
+The citation is read off the paper's own header line ("Acta Cryst.
+(1995). A51,416-431") on page 1, which is NOT where the file begins --
+that page opens with the tail of the preceding article's references. No
+DOI is printed anywhere in the file, so none is recorded.
+
+### coppens2006
+
+<a id="coppens2006"></a>
+
+> P. Coppens, 'The structure factor', International Tables for Crystallography Volume B, ch. 1.2, 2006, pp. 10-24.
+
+| | |
+| --- | --- |
+| Identifier | International Tables for Crystallography (2006). Vol. B, Chapter 1.2, pp. 10-24 |
+| Status | **not shipped** |
+| Verification | citation |
+| Verified | 2026-08-27 |
+| Local copy | `coppens2006.pdf` (not checked) |
+
+**Why it is not shipped.** The structure-factor FORMALISM an intensity calculation would rest on.
+Read, and not implemented: `chem/powder_xrd.py` computes no structure
+factor, because the scattering factors it would need are refused -- see
+`waasmaier1995`.
+
+DELIBERATELY NOT CITED AS BACKING THE SYSTEMATIC-ABSENCE RULE, which
+this project does ship. That rule was derived from the invariance of a
+reflection under a symmetry operation and verified against the
+F-centring parity rule; searching this chapter finds no occurrence of
+"systematic", "absence" or "extinction condition", so citing it would
+be the "a citation-level entry does not authorize an implementation
+merely because its title matches" trap. Reflection conditions are Vol. A
+material, not Vol. B.
+
+Citation read off the file's own header line on page 1.
+
+### brown2006
+
+<a id="brown2006"></a>
+
+> P. J. Brown, A. G. Fox, E. N. Maslen, M. A. O'Keefe & B. T. M. Willis, 'Intensity of diffracted intensities', International Tables for Crystallography Volume C, sec. 6.1.1, 2006, pp. 554-590.
+
+| | |
+| --- | --- |
+| Identifier | International Tables for Crystallography (2006). Vol. C, Section 6.1.1, pp. 554-590 |
+| Status | **not shipped** |
+| Verification | citation |
+| Verified | 2026-08-27 |
+| Local copy | `brown2006.pdf` (not checked) |
+
+**Why it is not shipped.** Where diffracted INTENSITY is defined -- the Lorentz-polarization and
+Debye-Waller terms a powder pattern's heights would carry. Read, and not
+implemented, for the reason `waasmaier1995` records: without trustworthy
+scattering factors there is nothing for these terms to multiply.
+
+The title reads oddly and is printed exactly so on the page.
+
+ITS TEXT LAYER IS UNUSABLE -- page 1 extracts as whitespace and stray
+punctuation -- so the citation, the section number and the author list
+were read from a 350 dpi RENDER of the page rather than from the text.
+No DOI is printed in the file.
 
 ### pdg2024
 
@@ -1752,6 +1866,111 @@ of the charge, which is not a crystal density and which P depends on as its
 square, and the condensed-phase enthalpy of formation -- see
 [source:westwell1995] for why the published bridge from an ideal-gas value
 cannot be used for this compound class.
+
+### kamlet1968_ii
+
+<a id="kamlet1968_ii"></a>
+
+> M. J. Kamlet & J. E. Ablard, 'Chemistry of Detonations. II. Buffered Equilibria', J. Chem. Phys. 1968, 48, 36-42.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.1667930](https://doi.org/10.1063/1.1667930) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-08-27 |
+| Local copy | `kamlet1968_2.pdf` (not checked) |
+
+**Why it is reference only.** NOTHING SHIPS FROM THIS ONE, and it is registered anyway because a
+four-part series with parts I, III and IV recorded and II silently absent
+reads as an oversight rather than as a decision. This entry IS the
+decision.
+
+Registered at `citation` and no further: the citation was read off the
+paper's own AIP cover sheet -- title, both authors, J. Chem. Phys. 48, 36
+(1968), and the DOI -- and NOTHING ELSE ABOUT IT HAS BEEN CHECKED. Its
+argument is not summarised here, because summarising a paper from its
+title is the [source:avdeef2020] error, and this project has made it
+twice.
+
+The H2O-CO2 arbitrary and its low-density caution both come from
+[source:kamlet1968]'s own text and footnote 19, not from here, so no
+limitation in `chem/energetics.py` rests on this paper.
+
+### kamlet1968_iii
+
+<a id="kamlet1968_iii"></a>
+
+> M. J. Kamlet & C. Dickinson, 'Chemistry of Detonations. III. Evaluation of the Simplified Calculational Method for Chapman-Jouguet Detonation Pressures on the Basis of Available Experimental Information', J. Chem. Phys. 1968, 48, 43-50.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.1667939](https://doi.org/10.1063/1.1667939) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-27 |
+| Local copy | `kamlet1968part3.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_formulations.py`, `docs/SCIENTIFIC_LIMITATIONS.md` |
+
+**THIS IS WHY A FORMULATION IS NOT AN EXTENSION THIS PROJECT INVENTED.**
+Applying Kamlet-Jacobs to a MIXTURE looks like a liberty taken with a
+single-substance method, and it is not: the authors' own evaluation does
+it. Read directly from p45, the 80 data sets of its Table I "represent
+measurements at loading densities from 0.95 to 1.90 g/cc on 13 explosive
+compounds and 14 binary mixtures of three general types", and the same
+paragraph says the values used in those calculations "were estimated from
+the H2O-CO2 arbitrary according to Eqs. (13)-(15) of Ref. 1" -- i.e. the
+mixtures go through the identical arbitrary that `arbitrary_gas`
+implements. RDX/TNT mixtures are named on the same page.
+
+So the composite-formula path has a source for its APPLICABILITY. What it
+does not have from here is a checked NUMBER, which is why this is
+`citation` and not `citation_and_claim`.
+
+**WHAT IS DELIBERATELY NOT CLAIMED.** Table I's own measured pressures
+have NOT been transcribed, and the three published formulations that
+`tests/test_formulations.py` uses as its oracle are NOT taken from this
+paper -- they carry their own provenance problem, recorded in that file.
+Reading a printed table off this scan needs the render-at-magnification
+treatment CLAUDE.md requires, since its text layer is visibly OCR-damaged
+("4S" for 45, "1. 632k" for 1.632k). Anyone wanting to gate a number on
+this paper starts there.
+
+### kamlet1968_iv
+
+<a id="kamlet1968_iv"></a>
+
+> M. J. Kamlet & H. Hurwitz, 'Chemistry of Detonations. IV. Evaluation of a Simple Predictional Method for Detonation Velocities of C-H-N-O Explosives', J. Chem. Phys. 1968, 48, 3685-3692.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.1669671](https://doi.org/10.1063/1.1669671) |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-08-27 |
+| Local copy | `kamlet1968_IV.pdf` (not checked) |
+| Used by | `src/openchem/chem/energetics.py`, `tests/test_formulations.py`, `docs/SCIENTIFIC_LIMITATIONS.md` |
+
+The VELOCITY half of the series' evaluation, and this feature reports a
+velocity -- `detonation_of_formulation` returns `velocity_mm_per_us` and
+`build_formulation_report` puts it on the face of the report -- so the
+paper that evaluates Eq. (9) against experiment belongs beside
+[source:kamlet1968_iii], which does the same for the pressure.
+
+Note the KEY says `iv` while the local file says `_IV`: registry keys are
+constrained to `^[a-z][a-z0-9_]*$` so that `Kamlet1968_IV` and
+`kamlet1968_iv` cannot become two identifiers for one paper. The filename
+is a locator and the key is the identity, which is the split
+`f05be33` already made for the PDF library.
+
+Citation read off the paper's own AIP cover sheet: both authors,
+J. Chem. Phys. 48, 3685 (1968), and the DOI. That cover sheet also prints
+Part I's own DOI as 10.1063/1.1667908, which is an independent
+confirmation of the [source:kamlet1968] row above -- a second route to a
+field this project has recorded getting wrong when only one route existed.
+
+`citation` rather than `citation_and_claim`: no number this project
+computes has been gated against this paper's tables.
 
 ### ertl2008
 

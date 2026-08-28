@@ -2203,6 +2203,107 @@ Two things worth knowing about the answer:
   real periodic images, which is why halite's sodium has six chlorides
   even though the asymmetric unit holds one.
 
+### The calculated powder pattern
+
+The crystal report ends with a **powder X-ray diffraction pattern**: the
+reflections the cell and its symmetry allow, each with an interplanar
+spacing *d*, a Bragg angle 2θ and a multiplicity. Open *Structure* in the
+report to see them, and choose *Everything* in the depth box for the full
+line list — the summary row is always visible, the individual lines are
+marked advanced so they do not bury the cell and the density.
+
+It reports **where the peaks fall and not how tall they are**, which is a
+deliberate refusal rather than an unfinished feature — see
+`SCIENTIFIC_LIMITATIONS.md` for the measurement behind it. In short:
+positions are lattice geometry you can check by hand, while intensities
+need a table of atomic scattering factors that could not be transcribed
+reliably from the copy available.
+
+**The wavelength comes from the file.** A pattern needs one, and no
+property of a structure supplies it, so the report uses the CIF's own
+`_diffrn_radiation_wavelength` and says *"not calculated"* when the file
+states none. Nothing defaults to a copper tube: the entire angle axis
+scales with that number.
+
+A few things worth knowing when reading the list:
+
+- **The multiplicity counts symmetry-equivalent planes plus the Friedel
+  pair**, because a powder superimposes (hkl) and (−h−k−l) into one line
+  whatever the point group does.
+- **Absent reflections are simply not listed.** They are worked out from
+  the structure's own symmetry operations rather than from a lookup of
+  extinction conditions, so for halite you get 111, 200, 220, 311 … and
+  never 100 or 110.
+- **The list is capped at twelve lines and says how many it dropped.** A
+  large organic cell with molybdenum radiation genuinely has thousands.
+
+<!-- help:formulations -->
+## Stating an energetic formulation
+
+**File → Energetic Formulation...** describes a *mixture* — several
+substances in stated proportions — and reports what it would do. ANFO,
+Composition B, a dynamite: a recipe whose detonation behaviour belongs to
+the blend and to nothing in it.
+
+It is a separate action from anything on the molecule side for the same
+reason *Import Crystal Structure* is. A recipe is not a molecule, and it
+appears in the Project Explorer marked `[formulation]`, saved with the
+project like a crystal.
+
+### Why a mixture and not just the ingredients
+
+This is the part worth knowing, because it is not a convenience over the
+single-substance calculators — it reaches cases they structurally cannot
+answer. The Kamlet–Jacobs method is stated only for a compound with
+enough oxygen to burn its hydrogen to water, but no more than would also
+burn its carbon to CO₂. The classic formulation ingredients each fall
+outside that window on their own:
+
+| component | on its own |
+|---|---|
+| TNT | answered |
+| RDX | answered |
+| ammonium nitrate | **refused** — over-oxidised |
+| nitroglycerin | **refused** — over-oxidised |
+| fuel oil | **refused** — too little oxygen to form water |
+
+Their *mixture* lands inside it. ANFO at 94.5/5.5 composites to
+`C0.3194 H4.5857 N1.9468 O2.9201`, which sits in the window, and the
+report gives a detonation pressure, a velocity and a heat of detonation.
+
+### What you have to supply, and why
+
+Three of the fields cannot be derived, and the application refuses to
+guess rather than filling them in:
+
+- **Proportions are by MASS**, as a fraction of 1. They must sum to 1 and
+  are **checked rather than rescaled** — 94.5 + 5.0 renormalises to a
+  perfectly ordinary recipe that is not the one you meant, and the
+  missing half a percent is exactly the typo a rescale hides forever.
+  The running total under the table says where you stand as you type.
+- **Each component's enthalpy of formation**, condensed phase, in
+  kcal/mol. Never estimated: the published route from an ideal-gas value
+  to the solid excludes every classic energetic material.
+- **The loading density** — the *measured* bulk density of the charge.
+  **Never an average of the components' crystal densities.** That
+  substitution is arithmetically reasonable and wrong: a packed charge is
+  nowhere near its ingredients' crystals, and pressure goes as the
+  *square* of this number. Leave it at zero and the pressure and velocity
+  are refused rather than guessed.
+
+### Reading the report
+
+The **composite formula is reported on the face of it**, not kept
+internal, and that is deliberate. Mass fractions and mole fractions both
+land inside the method's window and both give an ordinary-looking
+pressure, so no check in the application can tell a correct
+mole-weighting from the mass-as-mole error — the composite formula is the
+one number you can check the arithmetic against.
+
+Everything here is an empirical correlation fitted to reproduce a 1968
+computer code. **It is not a measurement and not a safety assessment**,
+and the report says so under every answer.
+
 <!-- help:particles -->
 ## Quarks and hadrons
 

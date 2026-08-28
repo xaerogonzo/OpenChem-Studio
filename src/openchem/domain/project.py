@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any, TypeVar
 
 from openchem.domain.crystal import CrystalModel
+from openchem.domain.formulation import FormulationModel
 from openchem.domain.docking import DockingResultModel
 from openchem.domain.macromolecule import MacromoleculeModel
 from openchem.domain.molecule import MoleculeModel
@@ -65,6 +66,11 @@ class ProjectModel:
     # iterates that list, which is exactly what `chem/crystal_report.py`
     # exists to refuse.
     crystals: list[CrystalModel] = field(default_factory=list)
+    #: Energetic FORMULATIONS. Its own list for the same reason
+    #: `crystals` is: a recipe is not a molecule, and putting one in
+    #: `molecules` would hand it to every molecular calculator, none
+    #: of which can answer about a mixture.
+    formulations: list[FormulationModel] = field(default_factory=list)
     docking_results: list[DockingResultModel] = field(default_factory=list)
     notes: str = ""
     tags: list[str] = field(default_factory=list)
@@ -81,6 +87,9 @@ class ProjectModel:
 
     def find_macromolecule(self, macromolecule_uuid: str) -> MacromoleculeModel | None:
         return _find_by_uuid(self.macromolecules, macromolecule_uuid)
+
+    def find_formulation(self, formulation_uuid: str) -> FormulationModel | None:
+        return _find_by_uuid(self.formulations, formulation_uuid)
 
     def find_crystal(self, crystal_uuid: str) -> CrystalModel | None:
         return _find_by_uuid(self.crystals, crystal_uuid)
@@ -125,6 +134,7 @@ class ProjectModel:
             "molecules": [m.to_dict() for m in self.molecules],
             "macromolecules": [m.to_dict() for m in self.macromolecules],
             "crystals": [c.to_dict() for c in self.crystals],
+            "formulations": [f.to_dict() for f in self.formulations],
             "docking_results": [d.to_dict() for d in self.docking_results],
             "notes": self.notes,
             "tags": list(self.tags),
@@ -150,6 +160,9 @@ class ProjectModel:
             # before crystals existed loads with an empty list rather
             # than a KeyError, so no schema bump is needed.
             crystals=[CrystalModel.from_dict(c) for c in data.get("crystals", [])],
+            formulations=[
+                FormulationModel.from_dict(f) for f in data.get("formulations", [])
+            ],
             docking_results=[
                 DockingResultModel.from_dict(d) for d in data.get("docking_results", [])
             ],

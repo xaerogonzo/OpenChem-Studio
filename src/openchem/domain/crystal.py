@@ -103,6 +103,88 @@ class Lattice:
             abs(angle - 90.0) < 1e-6 for angle in (self.alpha, self.beta, self.gamma)
         )
 
+    @property
+    def metric_tensor(self) -> tuple[tuple[float, float, float], ...]:
+        """G, whose entries are the dot products of the cell vectors.
+
+            G = [[a.a, a.b, a.c],   =  [[a2,      ab cos g, ac cos b],
+                 [b.a, b.b, b.c],       [ab cos g, b2,      bc cos a],
+                 [c.a, c.b, c.c]]       [ac cos b, bc cos a, c2     ]]
+
+        Independent of the Cartesian convention `to_cartesian` fixes:
+        rotating the cell changes those coordinates and leaves every dot
+        product alone, which is what makes this the right object to
+        derive d-spacings from.
+        """
+        ca = math.cos(math.radians(self.alpha))
+        cb = math.cos(math.radians(self.beta))
+        cg = math.cos(math.radians(self.gamma))
+        a, b, c = self.a, self.b, self.c
+        return (
+            (a * a, a * b * cg, a * c * cb),
+            (a * b * cg, b * b, b * c * ca),
+            (a * c * cb, b * c * ca, c * c),
+        )
+
+    @property
+    def reciprocal_metric_tensor(self) -> tuple[tuple[float, float, float], ...]:
+        """G* = G inverse, by cofactors.
+
+        **INVERTED HERE RATHER THAN BUILT FROM RECIPROCAL CELL
+        CONSTANTS.** The textbook route computes a*, b*, c*, alpha*, beta*,
+        gamma* from six trigonometric identities and assembles G* from
+        them -- six more chances to transpose a term, and every one of
+        them reduces to this. The inverse is one operation with an
+        arithmetic check available: `1/sqrt(det G*)` must equal
+        `volume`, on a TRICLINIC cell where the two are not the same
+        computation. `test_powder_xrd.py` asserts exactly that.
+        """
+        g = self.metric_tensor
+        determinant = (
+            g[0][0] * (g[1][1] * g[2][2] - g[1][2] * g[2][1])
+            - g[0][1] * (g[1][0] * g[2][2] - g[1][2] * g[2][0])
+            + g[0][2] * (g[1][0] * g[2][1] - g[1][1] * g[2][0])
+        )
+        if abs(determinant) < 1e-30:
+            raise ValueError("degenerate cell: the metric tensor is singular")
+        rows = []
+        for i in range(3):
+            row = []
+            for j in range(3):
+                minor = [
+                    [g[r][c] for c in range(3) if c != i] for r in range(3) if r != j
+                ]
+                cofactor = minor[0][0] * minor[1][1] - minor[0][1] * minor[1][0]
+                row.append(((-1) ** (i + j)) * cofactor / determinant)
+            rows.append(tuple(row))
+        return tuple(rows)
+
+    def d_spacing(self, h: int, k: int, l: int) -> float:
+        """The interplanar spacing of (hkl), in angstrom.
+
+            1/d^2 = [h k l] G* [h k l]^T
+
+        ONE expression for all seven crystal systems, rather than the
+        seven closed forms a textbook prints. Those are what this reduces
+        to -- verified against the cubic `a/sqrt(h2+k2+l2)` to 6 decimal
+        places -- and keeping seven of them would be seven places for a
+        system to be mis-detected and the wrong one used.
+
+        (000) has no spacing and raises rather than returning infinity: a
+        reflection at infinite d is not a reflection, and an infinity
+        propagates into a Bragg angle as a silent NaN.
+        """
+        if h == 0 and k == 0 and l == 0:
+            raise ValueError("(000) is not a reflection")
+        star = self.reciprocal_metric_tensor
+        indices = (h, k, l)
+        inverse_d_squared = sum(
+            indices[i] * star[i][j] * indices[j] for i in range(3) for j in range(3)
+        )
+        if inverse_d_squared <= 0.0:
+            raise ValueError("degenerate cell: 1/d^2 came out non-positive")
+        return 1.0 / math.sqrt(inverse_d_squared)
+
     def to_cartesian(self, x: float, y: float, z: float) -> tuple[float, float, float]:
         """Fractional to Cartesian, in the standard crystallographic setting.
 
@@ -300,6 +382,13 @@ class Crystal:
     #: resolver, because the two reasons -- an unknown symbol and an
     #: ambiguous setting -- send a reader somewhere different.
     symmetry_note: str = ""
+    #: `_diffrn_radiation_wavelength`, in angstrom, when the file states
+    #: one. **A PROPERTY OF THE EXPERIMENT, NOT OF THE CRYSTAL** -- it is
+    #: kept here because it is what the file says, in the same
+    #: store-the-inputs spirit as `CrystalModel.cif_text`, and because a
+    #: calculated powder pattern needs a wavelength that nothing about
+    #: the structure itself can supply. All six CIF fixtures carry one.
+    radiation_wavelength: float | None = None
 
     def expand(self) -> tuple[ExpandedAtom, ...]:
         """Every atom of one unit cell, wrapped into it, deduplicated.

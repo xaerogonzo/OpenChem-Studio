@@ -99,6 +99,110 @@ def inapplicable_calculators(registry: Any = None) -> list[str]:
     )
 
 
+#: How many powder lines the crystal report carries, and how far out.
+#:
+#: **BOTH ARE REPORTING CHOICES, NOT PHYSICS**, which is why they live
+#: here rather than in `chem/powder_xrd.py`: that module computes what a
+#: caller asks for, and this is what a REPORT has room to say. Measured
+#: over the six CIF fixtures, a 30-degree range with Mo radiation holds
+#: 60 to 2000 families, so a cap is unavoidable and the count dropped is
+#: always stated -- see `PowderPattern.truncated_by`.
+POWDER_LINES_IN_REPORT = 12
+POWDER_MAX_TWO_THETA = 60.0
+
+
+def _powder_facts(crystal: Crystal) -> list[Fact]:
+    """The first powder lines, or why there are none.
+
+    **A STRUCTURE WITH NO STATED WAVELENGTH GETS A ROW SAYING SO**, never
+    a silently absent section. `calculate_pattern` refuses without one
+    because a wavelength is a property of the experiment and no property
+    of the structure supplies it; a reader seeing no powder rows would
+    otherwise conclude the structure has no pattern.
+    """
+    from openchem.chem.powder_xrd import calculate_pattern, intensity_refusal
+
+    try:
+        pattern = calculate_pattern(
+            crystal,
+            max_two_theta=POWDER_MAX_TWO_THETA,
+            max_reflections=POWDER_LINES_IN_REPORT,
+        )
+    except ValueError as exc:
+        return [
+            _fact(
+                FactCategory.STRUCTURE,
+                "Powder pattern",
+                None,
+                f"not calculated -- {exc}",
+                detail=Detail.ADVANCED,
+            )
+        ]
+
+    if not pattern.reflections:
+        return [
+            _fact(
+                FactCategory.STRUCTURE,
+                "Powder pattern",
+                0,
+                f"no reflections within {POWDER_MAX_TWO_THETA:.0f} degrees at "
+                f"{pattern.wavelength:.5f} A",
+                detail=Detail.ADVANCED,
+            )
+        ]
+
+    listed = ", ".join(
+        f"{r.label} {r.two_theta:.2f} deg" for r in pattern.reflections[:4]
+    )
+    summary = f"{pattern.total_reflections} reflections to "
+    summary += f"{POWDER_MAX_TWO_THETA:.0f} deg at {pattern.wavelength:.5f} A; {listed}"
+    if pattern.truncated_by:
+        summary += f"; {pattern.truncated_by} more not listed"
+
+    facts = [
+        _fact(
+            FactCategory.STRUCTURE,
+            "Powder pattern",
+            pattern.total_reflections,
+            summary,
+            basis=Basis.DETERMINISTIC,
+            evidence=(
+                f"d-spacings from the reciprocal metric tensor, angles from "
+                f"Bragg's law at {pattern.wavelength:.5f} A.",
+                "Systematic absences are derived from the space group's own "
+                "operations rather than from a table of extinction conditions.",
+            ),
+            limitations=pattern.limitations,
+            # **STANDARD, while the individual lines below are ADVANCED.**
+            # Found by driving the app: with the summary marked ADVANCED
+            # too, the whole pattern vanished behind "16 advanced hidden"
+            # and the report gave no sign a powder pattern had been
+            # computed at all. Same split the regulatory report already
+            # makes -- ruleset versions are ADVANCED so they do not bury
+            # the findings, and the findings are not.
+            detail=Detail.STANDARD,
+        )
+    ]
+    for reflection in pattern.reflections:
+        facts.append(
+            _fact(
+                FactCategory.STRUCTURE,
+                f"  {reflection.label}",
+                round(reflection.two_theta, 4),
+                f"{reflection.two_theta:.3f} deg, d = {reflection.d_spacing:.4f} A, "
+                f"multiplicity {reflection.multiplicity}",
+                units="degrees 2theta",
+                evidence=(
+                    "The multiplicity counts symmetry-equivalent planes plus the "
+                    "Friedel pair, which a powder superimposes into one line.",
+                ),
+                limitations=(intensity_refusal(),),
+                detail=Detail.ADVANCED,
+            )
+        )
+    return facts
+
+
 def build_crystal_report(crystal: Crystal, *, report_id: str = "crystal") -> ReportResult:
     """Everything known about one periodic structure."""
     from openchem.domain.common import Provenance
@@ -369,6 +473,8 @@ def build_crystal_report(crystal: Crystal, *, report_id: str = "crystal") -> Rep
                 detail=Detail.ADVANCED,
             )
         )
+
+    facts.extend(_powder_facts(crystal))
 
     return ReportResult(
         molecule_uuid="",
