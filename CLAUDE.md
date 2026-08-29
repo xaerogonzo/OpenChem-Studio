@@ -1946,28 +1946,35 @@ Correctly applied, it is the failure mode worth knowing: with the threshold
 gone and the walk broken the guard passes **green while checking nothing**,
 printing `checked 0 connect() calls`.
 
-## OPEN BABEL HAS BEEN RUNNING WITHOUT ITS DATA FILES, ON EVERY PLATFORM
+## OPEN BABEL HAS NO DATA FILES ON WINDOWS -- THE PLATFORM THIS SHIPS ON
 
-Found while asking why one test fails on Linux and passes on Windows. The
-answer is not the platform. **The wheel points `BABEL_DATADIR` at a directory
-containing one file.**
+**AND I FIRST WROTE THIS UP AS "ON EVERY PLATFORM", WHICH WAS WRONG.** The
+Linux half was an INFERENCE -- that its wheel had the same layout because it
+behaves as a repaired Windows does -- and the environment probe added in the
+same commit refuted it on its first run. The commit message
+(`9e302e4`) carries the wrong claim and cannot be edited; this is the
+correction. Same failure this file records repeatedly: a measurement on one
+platform, generalised to another that was never measured.
 
-`openbabel/__init__.py:28` sets it unconditionally to
-`share/openbabel/<version>/`. Measured in this venv:
+What is measured, both platforms, from the probe:
 
-    share/openbabel/3.1.0/     1 file      splash.png
-    bin/data/                 40+ files    space-groups.txt, atomtyp.txt,
-                                           bondtyp.txt, mmff94.ff, logp.txt,
-                                           ring-fragments-index.txt, ...
+    Linux    BABEL_DATADIR -> share/openbabel/3.1.0    55 files, space-groups.txt
+             bin/data                                   DOES NOT EXIST
+    Windows  BABEL_DATADIR -> share/openbabel/3.1.0     1 file, splash.png
+             bin/data                                   40+ files, space-groups.txt
 
-So every table Open Babel ships is unreachable through the path Open Babel is
-told to use. **IT IS NOT SILENT -- it warns, and the warnings have been in
-every run all along**, which is why nobody noticed: they are noise on stderr
-in a suite that produces a lot of it.
+**The two wheels lay their data out differently and only one of them agrees
+with the variable `openbabel/__init__.py:28` sets.** Linux is correct.
+Windows is broken -- and Windows is the platform this application ships on,
+which makes it the worse half rather than the better one.
+
+**IT IS NOT SILENT -- it warns, and the warnings have been in every Windows
+run all along**, which is why nobody noticed: they are noise on stderr in a
+suite that produces a lot of it.
 
 **THE DEFECT IS NOT CONFINED TO SPACE GROUPS**, which is what makes it worth
-an entry rather than a footnote. Measured on aspirin, `addh` + `make3D` +
-write PDBQT, with and without the data dir repaired:
+an entry rather than a footnote. Measured ON WINDOWS on aspirin, `addh` +
+`make3D` + write PDBQT, with and without the data dir repaired:
 
     BABEL_DATADIR      space groups   ring fragments   MMFF94 setup
     as the wheel sets  cannot open    cannot open      **False**
@@ -1979,9 +1986,13 @@ types came out identical in both arms for that molecule (`A`x6 `C`x3 `OA`x4
 not a claim about the docking path.**
 
 **NOTHING IS CHANGED HERE, DELIBERATELY.** Repairing the variable alters what
-Open Babel does on every platform and in every format conversion, and the one
-effect measured so far REVERSES a shipped test result (below). That is its own
-measurement with its own benchmark, not a side effect of repairing a test.
+Open Babel does in every format conversion on the shipping platform, and the
+one effect measured so far REVERSES a shipped test result (below). That is its
+own measurement with its own benchmark, not a side effect of repairing a test.
+
+**AND THE REPAIR IS NOT "POINT IT AT `bin/data`"**, because that directory
+does not exist on Linux. Whatever ships has to derive the right answer per
+installation -- or better, be reported upstream to the wheel.
 
 ### AND IT IS THE WHOLE WINDOWS/LINUX DIFFERENCE ON ISSUE #8's FIXTURE
 
@@ -2000,10 +2011,12 @@ available symmetry transformations", and applies the two listed operations.
 With the database it resolves nothing for a bogus name and leaves the cell
 alone.
 
-**THE INFERENCE ABOUT LINUX IS INFERENCE.** Its wheel was not inspected --
-only that it does not expand, which the repaired Windows arm reproduces
-exactly. The new environment step in `tests.yml` reports the resolved data dir
-on every Linux run, so the next one settles it without an investigation.
+**THE INFERENCE ABOUT LINUX WAS WRONG AND THE PROBE CAUGHT IT SAME-DAY.** The
+first write-up said its wheel presumably shared the defect, on the strength of
+it behaving like a repaired Windows. It does not: Linux resolves 55 files and
+has no `bin/data` at all. The environment step added to `tests.yml` reported
+that on its first run, which is the whole argument for a job that prints
+environment facts rather than one that only passes or fails.
 
 ### THE GATE IS MEASURED, AND IT WAS PROVEN TO SAY NO WITHOUT WAITING FOR CI
 
@@ -3127,7 +3140,39 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-21 minutes**, ending at `6318 passed, 16 skipped`
+A clean run is **6-21 minutes**, ending at `6332 passed, 16 skipped`
+(measured 2026-08-29 on `linux-job-can-report` -- the census reader and the
+Open Babel capability gate.
+
+**+14 collected and 0 REMOVED** against master at `e4dd6b8`:
+
+    master     e4dd6b8   COLLECTS 6334
+    this one             COLLECTS 6348   = 6334 + 14
+    the run                       6332 passed + 16 skipped = 6348
+
+    11  test_read_census.py          written
+     3  test_docking_providers.py    the gate's two answers, and the
+                                     never-reads-the-platform guard
+
+**THE SKIPS ARE STILL 16 ON WINDOWS, WHICH IS THE GATE WORKING RATHER THAN
+IDLE.** The two issue-#8 guards RUN here, because this platform's Open Babel
+has no space-group database and so still expands the fixture. They skip where
+it does not -- verified by repairing `BABEL_DATADIR` locally, which is the
+Linux condition reproduced on Windows.
+
+**THE WALL CLOCK IS 26m53 AND IS NOT CITABLE, SO THE BAND IS NOT WIDENED.**
+Concurrent work ran against this one -- git operations, `gh` calls and a PR
+being opened -- which this file forbids for a figure it intends to compare.
+The COUNTS are unaffected and reconcile exactly, so the tree is measured; the
+duration describes a contended machine and nothing else. The 6-21 band stands
+on the runs that were taken cleanly.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored -- as
+do `^FAILED` and `^ERROR`. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload.)
+
+Before it: `6318 passed, 16 skipped`
 (measured 2026-08-29, **15m49**, on `driven-visual-oracle` -- the geometric
 oracle, its drive step and the committed visual benchmarks.
 
