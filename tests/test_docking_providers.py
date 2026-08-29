@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import textwrap
 from pathlib import Path
 from unittest.mock import patch
 
@@ -608,26 +609,136 @@ def _receptor_heavy_atoms(pdbqt_text: str) -> list[tuple[float, float, float]]:
     return coordinates
 
 
-def test_open_babel_really_does_invent_symmetry_copies_from_this_fixture():
-    """ASSERTS THE SETUP, so the guard below cannot go vacuous.
+def symmetry_expansion_skip_reason() -> str | None:
+    """The reason to skip the issue-#8 guards, or None to RUN them.
 
-    If a future Open Babel stops expanding this cell, the fixture arrives
-    with nothing to drop and `test_symmetry_copies_never_reach_the_receptor`
-    would pass while testing nothing -- the same failure mode
-    `test_a_tab_bars_scroll_buttons_are_qt_s_own` asserts its own setup
-    against. This fails loudly instead, naming the reason.
+    **A MEASURED CAPABILITY GATE, NOT A PLATFORM CHECK**, in the shape
+    `conftest.webgl_skip_reason` already uses: a plain function returning a
+    REASON, so both answers are values a test can assert rather than one
+    being the absence of an exception.
+
+    It exists because this fixture is degenerate on some Open Babel
+    builds. Measured 2026-08-29 -- and the cause is not the platform, it is
+    which DATA FILES Open Babel found:
+
+        BABEL_DATADIR as the wheel sets it   8 atoms, expands
+        BABEL_DATADIR at the real data dir   4 atoms, does NOT expand
+
+    The wheel points `BABEL_DATADIR` at `share/openbabel/<version>/`, which
+    holds exactly one file (`splash.png`); the real tables, including
+    `space-groups.txt`, are in `bin/data/`. Without the space-group database
+    Open Babel cannot resolve this fixture's deliberately bogus
+    `'Z 99 BOGUS'` group, warns, and falls back to "Converting to P 1 cell
+    using available symmetry transformations" -- which applies the two
+    operations the CIF lists and doubles the atoms. WITH the database it
+    resolves nothing for a bogus name and leaves the cell alone.
+
+    So a build that does not expand is not broken and neither is ours; the
+    fixture simply cannot reproduce issue #8 there. Skipping NAMES the
+    absent prerequisite rather than failing and blaming the code -- and it
+    must stay able to say NO, which is what the guards in this file's
+    companion assert.
+
+    **The `BABEL_DATADIR` defect is real and is NOT fixed here.** It is
+    recorded in CLAUDE.md: it affects every platform and every Open Babel
+    data table, so changing it is its own measurement, not a side effect of
+    repairing a test.
     """
     from openbabel import openbabel as ob
     from openbabel import pybel
 
     mol = pybel.readstring("mmcif", RECEPTOR_MMCIF_WITH_SYMMETRY)
+    return expansion_skip_reason(len(list(ob.OBMolAtomIter(mol.OBMol))))
+
+
+def expansion_skip_reason(atom_count: int) -> str | None:
+    """The DECISION, split from the measurement so both answers are testable.
+
+    The same two-level split `ui/visual_check.py` uses: this is arithmetic
+    over a number somebody measured, so a guard for it needs no Open Babel
+    and cannot become a claim about which build the test machine happens to
+    have. `symmetry_expansion_skip_reason` does the measuring.
+    """
+    if atom_count != 2 * _DEPOSITED_HEAVY_ATOMS:
+        return (
+            "Skipped: this Open Babel build does not expand the fixture cell "
+            f"({atom_count} atoms, not {2 * _DEPOSITED_HEAVY_ATOMS}), so the "
+            "fixture cannot reproduce issue #8 -- see "
+            "symmetry_expansion_skip_reason for the BABEL_DATADIR measurement"
+        )
+    return None
+
+
+def test_a_measured_absence_skips_and_says_so_in_words_a_ci_log_shows():
+    """The reason has to be readable in a CI log by somebody who has never
+    seen this file, or a skip is indistinguishable from a test nobody
+    bothered to write."""
+    reason = expansion_skip_reason(_DEPOSITED_HEAVY_ATOMS)
+    assert reason is not None
+    assert "does not expand" in reason
+    assert "issue #8" in reason
+
+
+def test_a_measured_PRESENCE_does_not_skip():
+    """**A CAPABILITY GATE IS WORTH WHAT ITS ABILITY TO SAY NO IS WORTH.**
+    Without this, `return "skipped"` satisfies the test above and silently
+    disables the issue-#8 guards on every platform."""
+    assert expansion_skip_reason(2 * _DEPOSITED_HEAVY_ATOMS) is None
+
+
+def test_the_symmetry_gate_measures_open_babel_and_never_the_platform():
+    """The Linux job was permanently red here, so a platform check is the
+    tempting repair -- and it would be wrong twice: it would encode a
+    conclusion about an environment rather than measuring one, and it would
+    keep skipping if a future wheel fixed its data directory.
+
+    Asserted on the SOURCE, because a platform read could be added without
+    any fixture noticing on the platform that still runs the tests.
+    """
+    import ast
+    import inspect
+
+    source = inspect.getsource(symmetry_expansion_skip_reason)
+    tree = ast.parse(textwrap.dedent(source))
+    banned = {"platform", "system", "name", "uname"}
+    offenders = [
+        node.attr
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Attribute) and node.attr in banned
+    ]
+    assert not offenders, offenders
+    # ...and assert the setup: it really does read Open Babel, so a gate
+    # that stopped measuring anything could not pass this vacuously.
+    assert "readstring" in source
+
+
+def test_open_babel_really_does_invent_symmetry_copies_from_this_fixture():
+    """ASSERTS THE SETUP, so the guard below cannot go vacuous.
+
+    If Open Babel does not expand this cell, the fixture arrives with
+    nothing to drop and `test_symmetry_copies_never_reach_the_receptor`
+    would pass while testing nothing -- the same failure mode
+    `test_a_tab_bars_scroll_buttons_are_qt_s_own` asserts its own setup
+    against.
+
+    It used to FAIL in that case, which made the Linux job permanently red
+    on a guard doing its job and saturated the only signal that job has.
+    It SKIPS now, naming the measured prerequisite -- and the assertions
+    below still run wherever the prerequisite is present, so the setup is
+    still asserted rather than assumed.
+    """
+    from openbabel import openbabel as ob
+    from openbabel import pybel
+
+    reason = symmetry_expansion_skip_reason()
+    if reason:
+        pytest.skip(reason)
+
+    mol = pybel.readstring("mmcif", RECEPTOR_MMCIF_WITH_SYMMETRY)
     atoms = list(ob.OBMolAtomIter(mol.OBMol))
     invented = [atom for atom in atoms if atom.GetResidue() is None]
 
-    assert len(atoms) == 2 * _DEPOSITED_HEAVY_ATOMS, (
-        "Open Babel no longer expands this cell, so the fixture cannot "
-        "reproduce issue #8 and the guard below is not testing anything"
-    )
+    assert len(atoms) == 2 * _DEPOSITED_HEAVY_ATOMS
     assert len(invented) == _DEPOSITED_HEAVY_ATOMS
 
 
@@ -644,7 +755,15 @@ def test_symmetry_copies_never_reach_the_receptor_vina_is_handed():
     deleted too much would satisfy both "fewer atoms" and "no null-residue
     atoms remain"; only the deposited coordinates coming back intact
     separates the fix from an over-broad one.
+
+    Gated on the SAME measured prerequisite as the setup guard above:
+    where Open Babel does not expand the cell there is nothing to drop,
+    so this would pass while testing nothing.
     """
+    reason = symmetry_expansion_skip_reason()
+    if reason:
+        pytest.skip(reason)
+
     engine = FakeVinaEngine()
     VinaDockingProvider(engine=engine).dock(
         RECEPTOR_MMCIF_WITH_SYMMETRY,

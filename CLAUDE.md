@@ -1946,6 +1946,143 @@ Correctly applied, it is the failure mode worth knowing: with the threshold
 gone and the walk broken the guard passes **green while checking nothing**,
 printing `checked 0 connect() calls`.
 
+## OPEN BABEL HAS NO DATA FILES ON WINDOWS -- THE PLATFORM THIS SHIPS ON
+
+**AND I FIRST WROTE THIS UP AS "ON EVERY PLATFORM", WHICH WAS WRONG.** The
+Linux half was an INFERENCE -- that its wheel had the same layout because it
+behaves as a repaired Windows does -- and the environment probe added in the
+same commit refuted it on its first run. The commit message
+(`9e302e4`) carries the wrong claim and cannot be edited; this is the
+correction. Same failure this file records repeatedly: a measurement on one
+platform, generalised to another that was never measured.
+
+What is measured, both platforms, from the probe:
+
+    Linux    BABEL_DATADIR -> share/openbabel/3.1.0    55 files, space-groups.txt
+             bin/data                                   DOES NOT EXIST
+    Windows  BABEL_DATADIR -> share/openbabel/3.1.0     1 file, splash.png
+             bin/data                                   40+ files, space-groups.txt
+
+**The two wheels lay their data out differently and only one of them agrees
+with the variable `openbabel/__init__.py:28` sets.** Linux is correct.
+Windows is broken -- and Windows is the platform this application ships on,
+which makes it the worse half rather than the better one.
+
+**IT IS NOT SILENT -- it warns, and the warnings have been in every Windows
+run all along**, which is why nobody noticed: they are noise on stderr in a
+suite that produces a lot of it.
+
+**THE DEFECT IS NOT CONFINED TO SPACE GROUPS**, which is what makes it worth
+an entry rather than a footnote. Measured ON WINDOWS on aspirin, `addh` +
+`make3D` + write PDBQT, with and without the data dir repaired:
+
+    BABEL_DATADIR      space groups   ring fragments   MMFF94 setup
+    as the wheel sets  cannot open    cannot open      **False**
+    at bin/data        fine           fine             **True**
+
+Open Babel's MMFF94 **cannot be set up at all** as things stand. PDBQT atom
+types came out identical in both arms for that molecule (`A`x6 `C`x3 `OA`x4
+`HD`x1), so typing is not obviously affected -- **that is ONE molecule and is
+not a claim about the docking path.**
+
+**NOTHING IS CHANGED HERE, DELIBERATELY.** Repairing the variable alters what
+Open Babel does in every format conversion on the shipping platform, and the
+one effect measured so far REVERSES a shipped test result (below). That is its
+own measurement with its own benchmark, not a side effect of repairing a test.
+
+**AND THE REPAIR IS NOT "POINT IT AT `bin/data`"**, because that directory
+does not exist on Linux. Whatever ships has to derive the right answer per
+installation -- or better, be reported upstream to the wheel.
+
+### AND IT IS THE WHOLE WINDOWS/LINUX DIFFERENCE ON ISSUE #8's FIXTURE
+
+`test_open_babel_really_does_invent_symmetry_copies_from_this_fixture` failed
+on **every completed Linux run** and passed on Windows. This file recorded
+that as a platform-dependent fixture. It is not:
+
+    BABEL_DATADIR as the wheel sets it   8 atoms, EXPANDS
+    BABEL_DATADIR at the real data dir   4 atoms, does NOT expand
+
+...on Windows, both arms, nothing else varied. So **Windows expands BECAUSE
+Open Babel cannot find its space-group database.** The fixture declares a
+deliberately bogus `'Z 99 BOGUS'` group plus two explicit operations; with no
+database Open Babel warns, falls back to "Converting to P 1 cell using
+available symmetry transformations", and applies the two listed operations.
+With the database it resolves nothing for a bogus name and leaves the cell
+alone.
+
+**THE INFERENCE ABOUT LINUX WAS WRONG AND THE PROBE CAUGHT IT SAME-DAY.** The
+first write-up said its wheel presumably shared the defect, on the strength of
+it behaving like a repaired Windows. It does not: Linux resolves 55 files and
+has no `bin/data` at all. The environment step added to `tests.yml` reported
+that on its first run, which is the whole argument for a job that prints
+environment facts rather than one that only passes or fails.
+
+### THE GATE IS MEASURED, AND IT WAS PROVEN TO SAY NO WITHOUT WAITING FOR CI
+
+`symmetry_expansion_skip_reason()` reads Open Babel and returns a REASON or
+None, the shape `conftest.webgl_skip_reason` already uses so both answers are
+values. The DECISION is split into `expansion_skip_reason(atom_count)` -- pure
+arithmetic, so its guards need no Open Babel and cannot become a claim about
+which build the machine has. Same two-level split as `ui/visual_check.py`.
+
+**A CAPABILITY GATE IS WORTH WHAT ITS ABILITY TO SAY NO IS WORTH**, and that
+was verified on ONE machine by reproducing the other's condition rather than
+by pushing and hoping:
+
+    normal Windows                     both guards RUN (23 passed)
+    BABEL_DATADIR pointed at bin/data  both guards SKIP, naming the reason
+
+`test_the_symmetry_gate_measures_open_babel_and_never_the_platform` asserts on
+the source that no platform read crept in -- the tempting repair, and wrong
+twice over: it encodes a conclusion about an environment instead of measuring
+one, and it would keep skipping if a future wheel fixed its data directory.
+
+## THE LINUX JOB COULD NOT NAME ITS OWN VICTIM, AND THE DATA WAS ALREADY THERE
+
+The fingerprint step derived the crashed test by grepping `suite.log` for the
+deepest `tests/*.py", line N in ...` frame. **For a fatal signal that frame is
+wherever the process happened to be** -- `abort()` unwinds through pluggy and
+the test function need not appear at all. Measured on master `becc743`:
+
+    the annotation said    "Reached [57%] then died at an unidentified frame"
+    census.txt, same       tests/test_nmr_view_dialog.py::
+    artifact, said         test_dialog_shows_the_signal_list
+
+`census.txt` is written per test, flushed, and **was already being uploaded**.
+The step simply never opened it. `tools/read_census.py` does now, so every
+future crash names its victim in the annotation -- one `gh api` call instead
+of an artifact download, an unzip and two greps.
+
+**THAT IS WHERE THIS FILE'S "the victim depends on heap layout" READING CAME
+FROM.** The 59%/59%/63%-on-four-different-tests figures were taken from runs
+with no census, where the victim was inferred from a traceback frame. The
+census does not wander:
+
+    33031947731  master   test_dialog_loads_a_conformer_into_the_3d_pane...
+    33099748752  PR #53   test_dialog_shows_the_signal_list
+    33105696692  PR #54   test_dialog_shows_the_signal_list
+    33144071885  master   test_dialog_shows_the_signal_list
+
+**Four observations in ONE file, three on that file's first test. It localises
+the victim; it does not establish the cause** -- and PR #56 then ran to
+completion on the same tree, so the trigger is still intermittent and still
+unknown. The location is pinned; the trigger is not.
+
+**THE PARSER FAILS CLOSED, and the narrow half is the load-bearing one.**
+`return the last BEGIN` names a victim on every clean run too, which would
+make the annotation cry wolf until somebody deleted it -- so a CLEAN trail
+must name NO victim, and an empty or unreadable one reports `NO TRAIL` rather
+than either. Seven mutations, seven caught. It always exits 0: a diagnostic
+that fails the job it was added to observe does not survive.
+
+**THE SENTINEL WAS CHECKED RATHER THAN ASSUMED.** The whole design rests on
+"absent sentinel means it died mid-run", and a first read of the completed
+PR #56 trail suggested the sentinel was never written at all. That was a
+`&&` chain dying on an earlier `grep -c` that legitimately returned 0 --
+`# session finished` is present on the completed run and absent on the crashed
+one, as designed. Two minutes, and it was load-bearing enough to be worth them.
+
 ## THE LINUX SUITE CRASHES ON 4 OF 6 COMMITS, AND THE INSTRUMENT NEEDED FIXING TWICE
 
 Measured 2026-08-26, after the jobs-panel fix landed. The entry above
@@ -3003,7 +3140,39 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-21 minutes**, ending at `6318 passed, 16 skipped`
+A clean run is **6-21 minutes**, ending at `6332 passed, 16 skipped`
+(measured 2026-08-29 on `linux-job-can-report` -- the census reader and the
+Open Babel capability gate.
+
+**+14 collected and 0 REMOVED** against master at `e4dd6b8`:
+
+    master     e4dd6b8   COLLECTS 6334
+    this one             COLLECTS 6348   = 6334 + 14
+    the run                       6332 passed + 16 skipped = 6348
+
+    11  test_read_census.py          written
+     3  test_docking_providers.py    the gate's two answers, and the
+                                     never-reads-the-platform guard
+
+**THE SKIPS ARE STILL 16 ON WINDOWS, WHICH IS THE GATE WORKING RATHER THAN
+IDLE.** The two issue-#8 guards RUN here, because this platform's Open Babel
+has no space-group database and so still expands the fixture. They skip where
+it does not -- verified by repairing `BABEL_DATADIR` locally, which is the
+Linux condition reproduced on Windows.
+
+**THE WALL CLOCK IS 26m53 AND IS NOT CITABLE, SO THE BAND IS NOT WIDENED.**
+Concurrent work ran against this one -- git operations, `gh` calls and a PR
+being opened -- which this file forbids for a figure it intends to compare.
+The COUNTS are unaffected and reconcile exactly, so the tree is measured; the
+duration describes a contended machine and nothing else. The 6-21 band stands
+on the runs that were taken cleanly.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored -- as
+do `^FAILED` and `^ERROR`. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload.)
+
+Before it: `6318 passed, 16 skipped`
 (measured 2026-08-29, **15m49**, on `driven-visual-oracle` -- the geometric
 oracle, its drive step and the committed visual benchmarks.
 
