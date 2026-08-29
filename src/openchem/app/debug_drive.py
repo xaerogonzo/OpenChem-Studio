@@ -56,6 +56,7 @@ The script is a JSON list of steps, run in order:
       {"do": "align_report",     "tag": "after"},
       {"do": "ensemble_visible", "row": 1, "on": false},
       {"do": "overlay_colour",   "mode": "element"},
+      {"do": "visual_check",     "surface": "properties", "tag": "at-minimum"},
       {"do": "quit"}
     ]
 
@@ -1499,6 +1500,102 @@ class _Driver(QObject):
             % (200 + dx, 200 + dy, 200 + dx, 200 + dy),
             lambda result: logger.warning("OPENCHEM_DRIVE: rotate -> %s", result),
         )
+
+    def _do_visual_check(self, step: dict[str, Any]) -> None:
+        """Run the geometric oracle against one surface and log its findings.
+
+        `{"do": "visual_check", "surface": "properties", "tag": "at-minimum"}`
+
+        **THIS IS THE HALF A SCREENSHOT CANNOT BE.** A crop shows a reader
+        that something is wrong; this says WHICH widget and by how many
+        pixels, in a line a diff can compare. It pairs with `shot` and never
+        replaces it -- the same relationship `jobs_report` has, where the
+        flag it carries is invisible to any picture.
+
+        **A SCROLLING SURFACE IS JUDGED AGAINST ITS VIEWPORT**, never against
+        its own content rectangle. Content legitimately extends past a
+        viewport -- that is what scrolling IS -- so judging the content
+        widget against itself would report nothing forever, which is the
+        failure mode `horizontalScrollBar().maximum() == 0` already has.
+
+        Surfaces: `properties` (the panel, against its scroll viewport),
+        `window`, and any dialog `shot` can already reach -- `dialog`,
+        `lewis`, `periodic`, `details`, `spatial`, `popout`.
+
+        **A SURFACE WITH NO SINGLE SCROLL AREA IS JUDGED AGAINST ITS OWN
+        RECTANGLE, WHICH MAKES THE OVERFLOW TERM NEARLY VACUOUS THERE** --
+        a child is inside its parent by construction unless something
+        positioned it outside. Said out loud rather than left to be
+        discovered: on such a surface the useful predicates are the other
+        three, and a clean overflow result is close to a tautology.
+        """
+        from PySide6.QtWidgets import QScrollArea
+
+        from openchem.ui import visual_check
+
+        name = str(step.get("surface", "properties"))
+        tag = str(step.get("tag", name))
+        root = self._surface(name)
+        if root is None:
+            return
+
+        bounds = None
+        areas = root.findChildren(QScrollArea)
+        if len(areas) == 1:
+            root = areas[0].viewport()
+            bounds = root.rect()
+
+        # `"tolerance": -1000` is how a run CONFIRMS THE ORACLE CAN STILL SAY
+        # NO. Every surface in this application is clean today, and Qt clamps
+        # a resize to each widget's own minimum, so no script can squeeze a
+        # real panel into a real finding -- which leaves "0 findings" and
+        # "the wiring is dead" indistinguishable from the log. Lowering the
+        # tolerance makes every measured item report, which proves the
+        # geometry reached the predicates and the findings reached the log.
+        tolerance = int(step.get("tolerance", visual_check.DEFAULT_TOLERANCE))
+        items = visual_check.painted_items(root, root)
+        findings = visual_check.check_surface(root, bounds, root, tolerance)
+        # THE POPULATION IS LOGGED EVEN WHEN NOTHING IS WRONG. "Nothing
+        # overflowed" and "the walk found nothing to measure" are opposite
+        # outcomes that read identically in an empty findings list, and the
+        # second is how an over-broad exclusion reads as a clean run.
+        logger.warning(
+            "OPENCHEM_DRIVE: visual_check %s [%s] -- %d painted item(s), %d finding(s)",
+            tag,
+            name,
+            len(items),
+            len(findings),
+        )
+        for finding in findings:
+            logger.warning("OPENCHEM_DRIVE:     %s", finding.describe())
+
+    def _surface(self, name: str):
+        """Resolve a surface name to a widget, or log why it could not be.
+
+        A name that matches nothing is LOGGED rather than ignored. A silent
+        no-op here would photograph the wrong thing while the log looked
+        perfectly healthy, which is the wrong-panel-id trap this harness has
+        already been caught by once.
+        """
+        if name == "properties":
+            return self._window._property_panel
+        if name == "window":
+            return self._window
+        attr = {
+            "dialog": "_dialog",
+            "lewis": "_lewis",
+            "periodic": "_periodic",
+            "details": "_details",
+            "spatial": "_spatial",
+            "popout": "_popout",
+        }.get(name)
+        if attr is None:
+            logger.error("OPENCHEM_DRIVE: unknown visual_check surface %r", name)
+            return None
+        widget = getattr(self, attr, None)
+        if widget is None:
+            logger.error("OPENCHEM_DRIVE: no %s open for visual_check", name)
+        return widget
 
     def _do_dump(self, step: dict[str, Any]) -> None:
         """Dump the Properties panel's row geometry to the log.

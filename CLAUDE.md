@@ -195,6 +195,170 @@ Three things that cost a run each:
   caller's session; here it broke the harness's own exit-code handling
   and read as a failure of a capture that had just succeeded.
 
+## THE DRIVEN CHECK CAN ASSERT NOW, AND THREE EYE-ONLY DEFECTS BECAME TESTS
+
+This file's own running count of "found by driving the app and magnifying the
+shot" reached **fourteen**, every one with a fully green suite, against **six**
+entries where an out-of-app harness disagreed with the running application. So
+it is the most productive technique here -- and it was **the least repeatable**:
+measured before this landed, **not one drive script was committed anywhere**.
+Every live check in this project's history was written once, run once, and
+thrown away.
+
+`src/openchem/ui/visual_check.py` is what closes that. Three of the fourteen are
+pure geometry and are now assertions rather than eye-work:
+
+    a value painted on top of its caption     "Aqu36ous Solubility (..."
+    a caption latched at an ellipsis          the hints measured the ELIDED string
+    a caption collapsed to zero width         QRect(16, 2, 0, 14) vs a min of 120
+
+**THE RULE THAT SCOPES IT: the visual oracle owns geometric invariants that are
+mechanically measurable; the SCREENSHOT owns human judgment about appearance.**
+Same line `help_tooltip.py` draws when it forbids grading prose -- the validator
+owns the SHAPE, a reviewer owns the meaning. Without it this becomes computer
+vision for OpenChem.
+
+### TWO LEVELS, AND THE SECOND IS THE ONE THAT CAN GO SILENTLY VACUOUS
+
+    the predicates    pure functions over QRects and strings, tested headless
+                      on CONSTRUCTED geometry
+    the extraction    reads ACTUAL laid-out geometry and does ALL the font
+                      measurement, exercised by the drive step
+
+A predicate that called `QFontMetrics` would be a predicate whose unit test is a
+claim about the machine's fonts -- `offscreen`'s default is more than twice as
+wide, and this file already records a geometry test failing by 40 px on a panel
+measurably clean in the app. `test_no_predicate_measures_a_font` asserts that on
+the SOURCE, because a predicate could take a measurement without any fixture
+noticing.
+
+**AND THE EXTRACTION GETS A POPULATION ASSERTION**, which is the half a
+pure-predicate suite cannot cover: a walk returning nothing makes every
+predicate vacuously happy while the app clips. The drive step logs the painted-
+item count even when nothing is wrong, because "nothing overflowed" and "the
+walk found nothing to measure" read identically in an empty findings list.
+
+### THE TWO CONTRACTS THAT NEEDED PINNING, AND BOTH CAME FROM QT
+
+**`overlapping` IS NOT A RECTANGLE-COLLISION DETECTOR.** Qt composites children
+constantly, so "something overlaps something" is a pile of false positives. The
+pairing is `QFormLayout.itemAt(row, LabelRole)` against `itemAt(row, FieldRole)`
+-- **asked of Qt**, the move `_tooltip_is_qt_s_own_echo` already makes.
+
+**`latched_ellipsis` NEVER LOOKS FOR THE GLYPH.** A value may legitimately
+contain an ellipsis. `_ElidingLabel` already stores `full_text`, whose own
+comment says it "does not change when the painted string does", so the predicate
+compares painted against stored AND requires the room to have come back. The
+false positive is structurally impossible rather than merely unlikely.
+
+### EIGHT MUTATIONS, AND THE TWO SURVIVORS WERE BOTH DEGENERATE FIXTURES
+
+Every arm caught by its intended guard -- after two rounds, and the two that
+survived the first round are the entry worth reading. Neither was untested code:
+
+    M4  latched sniffs for "..." instead of comparing full_text   SURVIVED
+    M7  spanning rows are no longer excluded                      SURVIVED
+
+**M4** survived because both literal-ellipsis fixtures had
+`full_text_width = 0`, so `available >= 0 > 0` short-circuits and the mutation
+cannot change the answer. The discriminating case needs a real measured width
+AND a value containing an ellipsis that is NOT elided.
+
+**M7 LOOKED LIKE AN EQUIVALENT MUTATION AND WAS NOT.** Measured, for a row built
+with `addRow(QWidget)`:
+
+    row 1:  LabelRole = None    FieldRole = the spanning widget
+                                SpanningRole = the same widget
+
+-- so the `label_item is None` guard excludes it anyway and the explicit rule is
+redundant. **But `setWidget` can put a label AND a spanning widget on ONE row**,
+and then `LabelRole` is a real caption while `FieldRole` hands back the
+full-width widget, so without the rule the two are PAIRED. `addRow` cannot reach
+that case, which is why the first fixture could not see it. Same lesson as M4
+and as the assembly corpus blind to a transposed matrix: **a fixture is
+degenerate or not with respect to a specific mutation.**
+
+### DRIVEN, AND THE ORACLE HAD TO BE MADE TO SAY NO
+
+`benchmarks/visual/` holds the committed scripts; `artifacts/` is gitignored.
+Run on the real desktop, the Properties panel reports **40 painted items, 0
+findings** at 900 px and again at 1600 px, and the magnified shot agrees --
+captions and values cleanly separated, nothing clipped.
+
+**A CHECK THAT CANNOT FAIL IS NOT A CHECK, AND PROVING THIS ONE COULD FAIL TOOK
+THREE ATTEMPTS.** Squeezing the window to 620 px gave 0 findings; forcing the
+Periodic Table dialog to 320 px gave 0 findings across 125 painted items. Both
+because **Qt clamps every resize to the widget's own minimum**, so no script can
+squeeze a real surface into a real finding -- which is the width work of this
+file having succeeded, and simultaneously leaves "0 findings" and "the wiring is
+dead" indistinguishable. The `visual_check` step therefore takes a `tolerance`:
+
+    tolerance  2 (default)      40 painted items,  0 findings
+    tolerance  -1000            40 painted items, 46 findings, with real
+                                geometry ("right -253 px against bounds width
+                                396") and real ancestry paths
+
+That is the proof the geometry reached the predicates and the findings reached
+the log.
+
+### THE HONEST LIMIT, STATED RATHER THAN DISCOVERED LATER
+
+**A surface with no single `QScrollArea` is judged against its own rectangle,
+which makes the OVERFLOW term nearly vacuous there** -- a child is inside its
+parent by construction unless something positioned it outside. On such a surface
+the useful predicates are the other three, and a clean overflow result is close
+to a tautology. Written into `_do_visual_check`'s docstring so nobody reads a
+green `window` check as coverage.
+
+### THE PORTABLE HALF, AND THE FLOW IS NOT ONE-WAY
+
+`docs/LIVE_VERIFICATION.md` carries the failure-class-to-technique mapping, the
+traps, and a paste-ready sendoff prompt per project shape. **It standardises
+failure classes and evidence -- not APIs, not folder structure.** Measured across
+the estate:
+
+    OpenChem Studio       52 drive steps, the ONLY geometry oracle
+    Fortuna Lab           28 steps
+    TokenSave-Manager      8 steps, a dedicated TESTED capture helper
+    KicomAI / PolyShield  scene-based, and the ONLY golden-image diffing
+    LexForge              a real Qt UI, 19 files, and NO harness at all
+    four more             a GUI and NO TEST SUITE AT ALL
+
+**The four with no tests are why "do not adopt this blindly" is structural
+rather than a closing courtesy**: for them a visual oracle is the fourth rung of
+a ladder they have not started.
+
+**AND KICOMAI DERIVED THIS FILE'S OWN FIXTURE RULE INDEPENDENTLY.** Its `uishot`
+README records a first golden set that included scenes reading live data, three
+of which "drifted" an hour later because `just now` had become `11h ago`. That
+is "a committed benchmark must construct its own state" reached from the other
+side. Two projects paying the same tax separately is the argument for writing it
+down once.
+
+### A CLAIM IN THIS FILE WAS WRONG, AND I QUOTED IT BEFORE MEASURING IT
+
+The entry on `ENTHALPY_NOT_SUPPLIED`'s doc comment ends "Nothing catches that;
+it needs a reader." That was repeated into a plan as an argument that the defect
+class is unautomatable. **It is not.** Measured:
+
+    files using the `#:` convention on module constants        96
+    of those, with at least one UNDOCUMENTED constant          39
+    chem/energetics.py today                                  6/9
+
+The defect left `ENTHALPY_NOT_SUPPLIED` with no documentation at all, so a
+"constant with no `#:` in a file that uses `#:`" guard would have flipped that
+file 7/9 -> 6/9 and gone red naming it. It is a staged migration with real debt,
+in the `tooltip_migration_debt.json` shape -- not an impossibility.
+
+**The way it was got wrong is the durable part**, and this file already warns
+about it two sections above the one quoted: *"I repeated that claim here before
+checking it... A comment asserting an intention is worse than silence: it is
+believed, and then quoted."* Now instanced twice.
+
+**AND IT IS A STATIC GUARD, NOT A SCREENSHOT** -- a doc comment on the wrong
+constant never renders anywhere. Conflating the two techniques is how a guard
+comes to be built that cannot see its own subject.
+
 ## THE HELP CONTRACT: a tooltip is a RENDERING, not the thing itself
 
 Reported as "this suite especially needs tooltips... for a great, many
@@ -2839,7 +3003,42 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-21 minutes**, ending at `6292 passed, 16 skipped`
+A clean run is **6-21 minutes**, ending at `6318 passed, 16 skipped`
+(measured 2026-08-29, **15m49**, on `driven-visual-oracle` -- the geometric
+oracle, its drive step and the committed visual benchmarks.
+
+**+26 collected and 0 REMOVED** against master at `becc743`, and for once the
+reconciliation needs no diff because both halves are nameable:
+
+    master     becc743   COLLECTS 6308
+    this one             COLLECTS 6334   = 6308 + 26
+    the run                       6318 passed + 16 skipped = 6334
+
+    24  test_visual_check.py             written
+     2  test_docs_are_current.py         parametrised cases of the EXISTING
+                                         doc guards, for the new
+                                         `docs/LIVE_VERIFICATION.md`
+
+**THE 24 ARE 24 FUNCTIONS**, none parametrised, so the two deltas agree.
+
+**THE SKIPS ARE THE DETERMINISTIC 16 AND THE COMPOSITION IS UNCHANGED** --
+13 `createViewerGrid` under offscreen (7 spatial + 6 mol3d), the network test,
+`test_namer_known_defects.py`'s empty parametrisation, and
+`test_pdf_library_index.py:274`. None of the 24 new tests skips: the predicate
+half needs no display and the extraction half builds its own widgets.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- UNANCHORED, for
+the reason recorded above -- as do `^FAILED` and `^ERROR`. The two
+`DeprecationWarning`s are the same pre-existing six-argument `QMouseEvent`
+overload in `test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**CLEAN ON ITS FIRST RUN**, with nothing else touching the tree for its
+duration -- the memory files edited during it live outside the repository, so
+no source-scanning guard could read a file mid-write. 15m49 sits mid-band; the
+6-21 range stands.)
+
+Before it: `6292 passed, 16 skipped`
 (measured 2026-08-28, **15m36**, on `particle-editor` AT ITS MERGE OF
 MASTER -- the quark editor and the DECISION it reverses, on top of the
 formulation work (#53) and the powder pattern (#54).

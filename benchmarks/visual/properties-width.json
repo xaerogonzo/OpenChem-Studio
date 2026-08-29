@@ -1,0 +1,14 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin"},
+  {"do": "select", "molecule": -1},
+  {"do": "panel", "id": "Properties"},
+  {"do": "rail", "collapsed": true},
+  {"do": "resize", "maximized": false},
+  {"do": "resize", "width": 900, "height": 900, "after_ms": 600},
+  {"do": "visual_check", "surface": "properties", "tag": "squeezed"},
+  {"do": "shot", "path": "artifacts/visual/properties-squeezed.png"},
+  {"do": "resize", "width": 1600, "height": 900, "after_ms": 600},
+  {"do": "visual_check", "surface": "properties", "tag": "widened"},
+  {"do": "shot", "path": "artifacts/visual/properties-widened.png"},
+  {"do": "quit"}
+]

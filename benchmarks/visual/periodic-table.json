@@ -1,0 +1,9 @@
+[
+  {"do": "dialog", "name": "PeriodicTableDialog", "after_ms": 800},
+  {"do": "visual_check", "surface": "dialog", "tag": "elements"},
+  {"do": "shot", "path": "artifacts/visual/periodic-elements.png", "widget": "dialog"},
+  {"do": "dialog", "name": "PeriodicTableDialog", "tab": "Isotopes", "after_ms": 800},
+  {"do": "visual_check", "surface": "dialog", "tag": "isotopes"},
+  {"do": "shot", "path": "artifacts/visual/periodic-isotopes.png", "widget": "dialog"},
+  {"do": "quit"}
+]

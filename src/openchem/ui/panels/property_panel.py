@@ -5,7 +5,7 @@ import os
 from collections.abc import Callable
 from typing import NamedTuple
 
-from PySide6.QtCore import QPoint, QRect, QSize, Qt, QTimer
+from PySide6.QtCore import QPoint, QSize, Qt, QTimer
 from PySide6.QtGui import QFontMetrics, QGuiApplication
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -34,6 +34,7 @@ from openchem.domain.calculator import (
 from openchem.domain.common import CacheState, describe_failure
 from openchem.domain.project import ProjectModel
 from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
+from openchem.ui import visual_check
 from openchem.ui.visualization import declared_total, label_decimals
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.chem.report_adapter import report_from_alert
@@ -601,7 +602,12 @@ _ELIDED_LABEL_MIN_WIDTH = 120
 #: 2 is that 1 px with a pixel of headroom, and it is far below the thing
 #: being guarded against: the reported symptom was a whole character, and
 #: the measured defect was 14 px.
-_OVERFLOW_TOLERANCE = 2
+#:
+#: IMPORTED rather than repeated, so the panel and the driven check cannot
+#: come to disagree about what "fits". A copied literal compares equal and
+#: then drifts silently, which is why the formulation tolerance is shared
+#: by identity too.
+_OVERFLOW_TOLERANCE = visual_check.DEFAULT_TOLERANCE
 
 #: The longest a calculator's display name may be before its button
 #: elides at the panel's minimum width.
@@ -907,9 +913,13 @@ class RenderedOverflow(NamedTuple):
     text needs at the width the widget was GIVEN, minus that width --
     non-zero means the clip happens INSIDE the widget, which no amount
     of moving it would fix.
+
+    `widget_class` is a NAME rather than the widget, because a finding
+    may outlive the walk and PySide invalidates a wrapper reached
+    through a temporary.
     """
 
-    widget: QWidget
+    widget_class: str
     text: str
     left: int
     right: int
@@ -918,45 +928,19 @@ class RenderedOverflow(NamedTuple):
 
     def describe(self, viewport_width: int) -> str:
         return (
-            f"{type(self.widget).__name__} {self.text[:44]!r} "
+            f"{self.widget_class} {self.text[:44]!r} "
             f"overflowed left {self.left} px / right {self.right} px "
             f"/ intra {self.intra} px | viewport width {viewport_width} "
             f"| path: {self.path}"
         )
 
 
-def _painted_text(widget: QWidget) -> str:
-    """The text a widget actually draws, or `""` for a pure container.
-
-    **Containers are deliberately excluded from the overflow walk.** A
-    holder wider than the viewport with every child inside it clips
-    nothing, and reporting it would bury the one widget that does --
-    which is the false-positive this walk exists to avoid. A container's
-    demand is the OTHER question and shows up in `_dump_width_budget`.
-    """
-    getter = getattr(widget, "text", None)
-    if not callable(getter):
-        return ""
-    try:
-        return str(getter() or "")
-    except (TypeError, RuntimeError):
-        # A Qt method needing arguments, or a freed C++ object.
-        return ""
-
-
-def _ancestry_path(widget: QWidget, top: QWidget) -> str:
-    """`A > B > C`, so a failure names WHERE the offender sits.
-
-    A bare "QLabel overflowed by 17 px" is not actionable in a panel
-    holding a hundred labels; the chain is what points at the row.
-    """
-    names: list[str] = []
-    node: QWidget | None = widget
-    while node is not None and node is not top:
-        names.append(type(node).__name__)
-        node = node.parentWidget()
-    names.append(type(top).__name__)
-    return " > ".join(reversed(names))
+# THE WALK AND THE ARITHMETIC BOTH LIVE IN `ui/visual_check.py` NOW, and
+# these two names stay as aliases so the other call sites in this file do
+# not have to change. Two implementations of "every widget that paints
+# text" would drift, which this repository has paid for four times.
+_painted_text = visual_check.painted_string
+_ancestry_path = visual_check.ancestry_path
 
 
 def rendered_overflow(
@@ -984,6 +968,14 @@ def rendered_overflow(
     Returns findings rather than logging them, so the live dump and the
     headless guard share ONE implementation. Computing overflow twice is
     how a dump and a test come to disagree about the same panel.
+
+    **THE WALK AND THE ARITHMETIC ARE `ui/visual_check.py`'s NOW.** This
+    is the panel-shaped adapter over them: it locates the ONE scroll
+    viewport that owns the boundary and translates the shared findings
+    into this module's own tuple, which several tests render through
+    `describe`. Everything genuinely general -- which widgets paint text,
+    the `isVisibleTo` rule, the labels-only intra term -- lives there and
+    is shared with the driven check.
     """
     areas = panel.findChildren(QScrollArea)
     if len(areas) != 1:
@@ -996,55 +988,18 @@ def rendered_overflow(
             "a nested scrollable invalidates this measurement"
         )
     viewport = areas[0].viewport()
-    bounds = viewport.rect()
-
-    findings: list[RenderedOverflow] = []
-    for child in viewport.findChildren(QWidget):
-        # **`isVisibleTo`, NOT `isHidden` AND NOT `isVisible`.** A widget
-        # inside a COLLAPSED section has `isHidden() == False` -- the flag
-        # is on the section's content, not on the child -- and it has
-        # never been laid out, so it still carries a default geometry that
-        # reads as a huge overflow. Measured before this filter existed:
-        # 56 findings at "right 384 px", every one of them a label in a
-        # collapsed section, against a real overflow of 14. `isVisible()`
-        # is the opposite mistake and this file already records it: it is
-        # False for every child of a window nobody showed, so under a test
-        # harness it answers "none of them".
-        if not child.isVisibleTo(viewport):
-            continue
-        text = _painted_text(child)
-        if not text:
-            continue
-        mapped = QRect(child.mapTo(viewport, QPoint(0, 0)), child.size())
-        left = bounds.left() - mapped.left()
-        right = mapped.right() - bounds.right()
-
-        # What the text NEEDS at the width it was given. A single
-        # unbreakable token longer than the widget clips inside it, and
-        # no amount of repositioning the widget would show it.
-        #
-        # **LABELS ONLY.** A `QPushButton`'s `contentsRect` is not its text
-        # rectangle -- the style adds its own padding -- so the comparison
-        # is meaningless there, and `_ElidingPushButton` elides on purpose
-        # anyway. Measured: the 80 px "Details..." button reports `intra 40`
-        # under the test platform's wider font while rendering correctly for
-        # a user, which is a false positive that would make this probe
-        # untrustworthy exactly where it needs to be believed. The geometry
-        # terms above still cover buttons.
-        inner = child.contentsRect().width() if isinstance(child, QLabel) else 0
-        intra = 0
-        if inner > 0:
-            flags = Qt.TextFlag.TextWordWrap if getattr(child, "wordWrap", None) and child.wordWrap() else Qt.TextFlag.TextSingleLine
-            needed = QFontMetrics(child.font()).boundingRect(
-                QRect(0, 0, inner, 0), int(flags), text
-            ).width()
-            intra = needed - inner
-
-        if left > tolerance or right > tolerance or intra > tolerance:
-            findings.append(
-                RenderedOverflow(child, text, left, right, intra, _ancestry_path(child, viewport))
-            )
-    return findings
+    items = visual_check.painted_items(viewport, viewport)
+    return [
+        RenderedOverflow(
+            over.item.widget_class,
+            over.item.text,
+            over.left,
+            over.right,
+            over.intra,
+            over.item.path,
+        )
+        for over in visual_check.overflowing(items, viewport.rect(), tolerance)
+    ]
 
 
 def _dump_rendered_overflow(panel: QWidget) -> None:
