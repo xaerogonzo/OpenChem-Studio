@@ -347,8 +347,14 @@ class is unautomatable. **It is not.** Measured:
 
 The defect left `ENTHALPY_NOT_SUPPLIED` with no documentation at all, so a
 "constant with no `#:` in a file that uses `#:`" guard would have flipped that
-file 7/9 -> 6/9 and gone red naming it. It is a staged migration with real debt,
-in the `tooltip_migration_debt.json` shape -- not an impossibility.
+file 7/9 -> 6/9 and gone red naming it.
+
+**IT IS BUILT NOW** -- `tools/constant_docs.py` and
+`tests/test_constant_docs.py` -- and it was verified the only way worth
+trusting: the exact edit was re-created on the real file, and the guard went
+red naming `ENTHALPY_NOT_SUPPLIED`, the very constant the original orphaned.
+See "A RATCHET IS NOT A MIGRATION" below, which is where the description above
+turned out to be wrong in a way worth keeping.
 
 **The way it was got wrong is the durable part**, and this file already warns
 about it two sections above the one quoted: *"I repeated that claim here before
@@ -358,6 +364,94 @@ believed, and then quoted."* Now instanced twice.
 **AND IT IS A STATIC GUARD, NOT A SCREENSHOT** -- a doc comment on the wrong
 constant never renders anywhere. Conflating the two techniques is how a guard
 comes to be built that cannot see its own subject.
+
+## A RATCHET IS NOT A MIGRATION, AND CALLING THIS ONE A MIGRATION WAS WRONG
+
+`tools/constant_docs.py` walks every module-level constant in a file that uses
+the `#:` convention and reports the ones with no doc comment;
+`tests/test_constant_docs.py` holds the recorded set against
+`tests/fixtures/constant_doc_debt.json`, which **may only shrink**.
+
+This entry exists because the description written for it one section above --
+"a staged migration with real debt, in the `tooltip_migration_debt.json`
+shape" -- is **the wrong shape**, and the difference decides whether the guard
+is useful or noise.
+
+    tooltip_migration_debt.json   248 controls, burned down to ZERO, because
+                                  every one genuinely owed the user an
+                                  explanation
+    constant_doc_debt.json        407 constants, and NOBODY IS EXPECTED TO
+                                  EMPTY IT
+
+**`_TOKEN = "x"` and `APP_NAME = "OpenChem Studio"` do not want a doc
+comment.** A guard demanding one is answered with `#: The app name.` -- the
+degenerate string the tooltip work spent a whole phase learning to refuse. So
+the invariant is not "every constant is documented". It is **that a constant
+does not FALL INTO the set**, which is exactly the orphaning.
+
+Getting that wrong would have produced a 407-item backlog somebody felt
+obliged to burn down, and 407 degenerate comments at the end of it.
+
+### THE PRECISE SIGNATURE IS NOT DETECTABLE, AND THE PROXY IS
+
+A documented constant followed by an undocumented one is also what two
+perfectly ordinary constants look like. Nothing distinguishes the orphaning
+from the normal case by SHAPE. What is detectable is the constant's ARRIVAL
+in the undocumented set, which is what the ratchet watches -- so the mechanism
+is a recorded baseline, not a pattern match.
+
+### VERIFIED BY RE-CREATING THE DEFECT ON THE REAL FILE
+
+A guard for a historical defect should be run against that defect, not against
+a fixture resembling it. Inserting one constant between the `#:` block and
+`ENTHALPY_NOT_SUPPLIED` in the real `chem/energetics.py`:
+
+    E   src/openchem/chem/energetics.py::ENTHALPY_NOT_SUPPLIED
+    E   assert not ['src/openchem/chem/energetics.py::ENTHALPY_NOT_SUPPLIED']
+    1 failed, 10 passed
+
+...and green again on restore. **The guard names the constant the original
+defect orphaned**, on the file it happened in. Eight mutations, eight caught.
+
+### PRIVATE CONSTANTS COUNT, AND EXCLUDING THEM WAS THE TEMPTING VERSION
+
+It would have halved the recorded set -- 407 to 116 across 39 files -- which
+is exactly why it is worth naming as a refused option. It would be a rule
+keyed on NAMING rather than on whether documentation is warranted, which is
+how `inapplicable_calculators` rotted into 27 wrong entries. Measured, both
+populations are mixed: `METAL_COORDINATION_CUTOFF` is public and wants
+documentation, `_Q_CARBON_DIOXIDE` is private and wants it just as much, and
+`APP_NAME` is public and does not.
+
+### THE SCOPE IS PER FILE, AND THE NARROW HALF IS LOAD-BEARING
+
+Only a file that ALREADY documents a constant is held to the convention. A
+module documenting none is making no claim. Without that rule this becomes
+"every constant in the project must be documented" -- a far larger claim than
+anybody agreed to -- so `test_a_file_that_documents_nothing_is_not_in_the_population`
+sits beside its opposite, and a mutation making every file eligible is caught
+by both.
+
+### FOUR THINGS THE WALK HAD TO GET RIGHT, ALL MEASURED FIRST
+
+    module-level TUPLE assignments        2   `CELL_W, CELL_H` in decay_svg.py
+    constants nested in try/if            0   so `tree.body` alone is enough
+    constants using a TRAILING docstring  1   Sphinx honours both forms
+    lower-case module globals           many  `logger` is not a constant
+
+Skipping tuples would have silently shrunk the population -- a green suite and
+a smaller universe, which reads as a coverage win. Ignoring the trailing
+docstring would have reported a false positive on correct code.
+
+### AND THE HARNESS ATE A BACKSLASH, WHICH COST THREE ATTEMPTS
+
+Writing `+ "\\n",` into a file through a quoted heredoc produced a real
+newline instead, splitting a string literal across two lines and making the
+module unparseable. The repair was applied three times and reported success
+three times, because **the replacement string was being collapsed to the
+search string, so `str.replace` was a no-op that `count()` could not see.**
+Reach for a real editing tool rather than a shell heredoc when the content
+contains escapes; `bash -n`-style verification catches it, guessing does not.
 
 ## THE HELP CONTRACT: a tooltip is a RENDERING, not the thing itself
 
@@ -3140,7 +3234,31 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-21 minutes**, ending at `6332 passed, 16 skipped`
+A clean run is **6-21 minutes**, ending at `6343 passed, 16 skipped`
+(measured 2026-08-29, **14m25**, on `constant-doc-guard` -- the `#:` ratchet.
+
+**+11 collected and 0 REMOVED** against master at `2ae9de2`:
+
+    master     2ae9de2   COLLECTS 6348
+    this one             COLLECTS 6359   = 6348 + 11
+    the run                       6343 passed + 16 skipped = 6359
+
+All 11 are `test_constant_docs.py`, none parametrised, so the two deltas agree.
+
+**AND THIS ONE IS CITABLE WHERE THE ENTRY BELOW IS NOT.** Nothing else touched
+the tree for its duration -- no git, no `gh`, no PR being opened -- which is
+what the previous figure could not say. It came in at **14m25 against that
+one's 26m53**, on a tree 11 tests LARGER, which is the concurrency explanation
+confirmed rather than assumed: the earlier duration described a contended
+machine and not the suite. The 6-21 band stands and did not need widening.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored -- as
+do `^FAILED` and `^ERROR`. The skips are the deterministic 16; the new guard
+needs no display and none of its 11 skips. The two `DeprecationWarning`s are
+the same pre-existing six-argument `QMouseEvent` overload.)
+
+Before it: `6332 passed, 16 skipped`
 (measured 2026-08-29 on `linux-job-can-report` -- the census reader and the
 Open Babel capability gate.
 
