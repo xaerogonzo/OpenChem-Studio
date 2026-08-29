@@ -53,6 +53,7 @@ DOCS = [
     "CONTRIBUTING.md",
     "CHANGELOG.md",
     "docs/ARCHITECTURE.md",
+    "docs/LIVE_VERIFICATION.md",
     "docs/NAVIGATION_AUDIT.md",
     "docs/SCIENTIFIC_LIMITATIONS.md",
     "docs/USER_GUIDE.md",

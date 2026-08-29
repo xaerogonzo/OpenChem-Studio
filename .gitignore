@@ -93,3 +93,7 @@ bench-out/
 # reason `bench-out/` above is not: it is a measurement of a local
 # environment rather than anything a reader of this repository can use.
 pdf-library.json
+
+# Driven visual checks write shots here; the scripts are tracked, the
+# output is not. See benchmarks/visual/README.md.
+artifacts/
