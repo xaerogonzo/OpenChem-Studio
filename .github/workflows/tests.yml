@@ -283,6 +283,45 @@ jobs:
           echo "exit_code=${PIPESTATUS[0]:-0}" >> "$GITHUB_OUTPUT"
           tail -30 suite.log
 
+      # WHICH DATA FILES OPEN BABEL FOUND, because it decides a test result
+      # and took a whole investigation to find once.
+      #
+      # The wheel's `__init__.py` sets `BABEL_DATADIR` to
+      # `share/openbabel/<version>/`, which on Windows holds exactly one file
+      # (`splash.png`); the real tables, `space-groups.txt` among them, are in
+      # `bin/data/`. Measured 2026-08-29, that decides whether a cell expands:
+      #
+      #     BABEL_DATADIR as the wheel sets it   8 atoms, expands
+      #     BABEL_DATADIR at the real data dir   4 atoms, does NOT expand
+      #
+      # Which is the whole Windows/Linux difference on
+      # `test_open_babel_really_does_invent_symmetry_copies_from_this_fixture`.
+      # This job exists to surface environment assumptions one at a time, and
+      # this is one -- so it is reported on every run rather than rediscovered.
+      - name: What Open Babel resolved (environment fingerprint)
+        if: always()
+        continue-on-error: true
+        run: |
+          uv run --no-sync python - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
+          import os, pathlib
+          import openbabel
+          from openbabel import openbabel as ob
+          base = pathlib.Path(openbabel.__file__).parent
+          declared = pathlib.Path(os.environ.get("BABEL_DATADIR", ""))
+          print("## Open Babel")
+          print()
+          print(f"- version: `{ob.OBReleaseVersion()}`")
+          print(f"- BABEL_DATADIR: `{declared}`")
+          print(f"- that directory exists: `{declared.is_dir()}`")
+          if declared.is_dir():
+              names = sorted(p.name for p in declared.iterdir())
+              print(f"- files there: `{len(names)}` -- {', '.join(names[:6])}")
+              print(f"- space-groups.txt there: `{(declared / 'space-groups.txt').is_file()}`")
+          alt = base / "bin" / "data"
+          print(f"- bin/data exists: `{alt.is_dir()}`, "
+                f"space-groups.txt there: `{(alt / 'space-groups.txt').is_file()}`")
+          PY
+
       # THE FINGERPRINT, not just "passed". A raw pass count means very little
       # in a suite this size -- collected/skipped/deselected are what say
       # whether the run measured what you think. `if: always()` is
@@ -291,7 +330,7 @@ jobs:
       - name: Report the Linux fingerprint
         if: always()
         run: |
-          summary=""; crash_markers=0; reached=""; victim=""
+          summary=""; crash_markers=0; reached=""; victim=""; census=""
           if [ -s suite.log ]; then
             summary="$(grep -E '^[0-9]+ (passed|failed)|=+ .*(passed|failed|error)' suite.log | tail -1 || true)"
             crash_markers="$(grep -cE 'Fatal Python error|Windows fatal exception|^Extension modules:' suite.log || true)"
@@ -307,6 +346,30 @@ jobs:
             # test that crashed.
             victim="$(grep -oE 'tests/[A-Za-z0-9_/]+\.py", line [0-9]+ in [A-Za-z0-9_]+' suite.log               | tail -1 | sed -E 's/", line /:/' || true)"
           fi
+
+          # THE CENSUS NAMES THE VICTIM AND THE TRACEBACK DOES NOT.
+          #
+          # The frame above is the DEEPEST test frame in the traceback, and
+          # for a fatal signal that is wherever the process happened to be --
+          # `abort()` unwinds through pluggy and the test function may not
+          # appear at all. Measured on master `becc743`: the annotation said
+          # "died at an unidentified frame" while `census.txt`, already
+          # written and already uploaded in the same artifact, named
+          # `test_nmr_view_dialog.py::test_dialog_shows_the_signal_list`
+          # exactly. That is a fourth observation in one file.
+          #
+          # `tools/read_census.py` is Python rather than more shell here
+          # because it can be unit-tested -- `tests/test_read_census.py`
+          # covers the fail-closed path and the narrow half (a CLEAN trail
+          # must name NO victim, or the annotation cries wolf on every green
+          # run). It always exits 0: a diagnostic that fails the job it was
+          # added to observe gets deleted.
+          if [ -s census.txt ]; then
+            census="$(uv run --no-sync python tools/read_census.py census.txt || true)"
+          else
+            census="NO TRAIL -- census.txt is absent or empty"
+          fi
+
 
           # THE ANNOTATION IS THE ONLY PART OF THIS A MACHINE CAN READ.
           #
@@ -325,7 +388,7 @@ jobs:
           if [ ! -s suite.log ]; then
             echo "::error title=Linux suite produced NO OUTPUT::Nothing ran. This is not 'zero failures' -- the suite could not start."
           elif [ -z "$summary" ] && [ "$crash_markers" != "0" ]; then
-            echo "::error title=Linux suite CRASHED MID-RUN::Reached ${reached:-an unknown point} then died at ${victim:-an unidentified frame}. No pytest summary line: the counts below are absent, not zero."
+            echo "::error title=Linux suite CRASHED MID-RUN::Reached ${reached:-an unknown point}. CENSUS: ${census}. Traceback frame: ${victim:-none identified}. No pytest summary line: the counts below are absent, not zero."
           elif [ -z "$summary" ]; then
             echo "::error title=Linux suite produced NO SUMMARY LINE::Output exists and carries no crash marker either. The run did not reach the end."
           fi
@@ -348,7 +411,8 @@ jobs:
               echo "It reached ${reached:-an unknown point} and produced no summary line,"
               echo "so every count below is ABSENT rather than zero."
               echo
-              echo "Victim frame: \`${victim:-not identified}\`"
+              echo "Census verdict: \`${census}\`"
+              echo "Victim frame (traceback, unreliable for a fatal signal): \`${victim:-not identified}\`"
               echo
               echo '```'
               sed -n '/Fatal Python error\|Windows fatal exception/,/^Extension modules:/p' suite.log | head -40
