@@ -377,6 +377,41 @@ def is_symmetry_generated(residue) -> bool:
     mmCIF reader offers only `s`, `p`, `b` and `w` -- and stripping the
     `_cell` records from the text to stop it SEGFAULTS the parser.
     Filtering after the fact is what is left, and it is exact.
+
+    ## WHY IT CANNOT RECOGNISE THE SPACE GROUP: ITS DATABASE IS MISSING
+
+    Established 2026-08-29, and the sentence above stood for months
+    without it -- "cannot recognise a space group" was the observation,
+    never the cause. **The cause is that `space-groups.txt` is
+    unreachable on Windows.** `openbabel/__init__.py` sets
+    `BABEL_DATADIR` to `share/openbabel/<version>/`, which in the Windows
+    wheel holds one file (`splash.png`); the real tables are in
+    `bin/data/`. The Linux wheel puts them where the variable points, so
+    **this is a Windows-wheel packaging defect and not a platform
+    difference in Open Babel.**
+
+    Measured on a fixture with a REAL group, `P 21 21 21` and its four
+    operations, four deposited atoms:
+
+        BABEL_DATADIR as the wheel sets it   16 atoms, 12 invented
+        BABEL_DATADIR at bin/data             4 atoms,  0 invented
+
+    Which is this whole function's subject: with the database present
+    Open Babel resolves the group and duplicates nothing. The recorded
+    ratios follow from the operation counts -- 6WGT's 8.00x is a group
+    with eight, 7M93's 2.00x one with two.
+
+    **THE FILTER IS KEPT ANYWAY, AND NOT ONLY OUT OF CAUTION.** The
+    receptor this application hands Vina is byte-identical either way --
+    measured through `_convert_receptor_to_pdbqt`, same SHA-256, because
+    every invented atom is dropped here. So repairing the variable would
+    change what Open Babel does on the shipping platform and change
+    nothing observable, while turning this exact, measured filter into a
+    no-op. It also has to survive a wheel that fixes itself, and a
+    deposit whose group genuinely is unknown.
+
+    **AND THE OBVIOUS REPAIR CANNOT SHIP:** pointing `BABEL_DATADIR` at
+    `bin/data` fails on Linux, where that directory does not exist.
     """
     if residue is None:
         return True

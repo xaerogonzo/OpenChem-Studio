@@ -1994,6 +1994,86 @@ own measurement with its own benchmark, not a side effect of repairing a test.
 does not exist on Linux. Whatever ships has to derive the right answer per
 installation -- or better, be reported upstream to the wheel.
 
+### IT IS ISSUE #8's ROOT CAUSE, AND THE FIX FOR IT IS TO CHANGE NOTHING
+
+`pose_analysis.is_symmetry_generated` has said since the docking work that
+Open Babel "expands the unit cell when it cannot recognise a space group".
+That was the OBSERVATION. The CAUSE is the missing database above, and
+establishing it took one fixture with a real group rather than the bogus one
+the test suite uses:
+
+    P 21 21 21, its four operations, four deposited atoms
+    BABEL_DATADIR as the wheel sets it   16 atoms, 12 invented
+    BABEL_DATADIR at bin/data             4 atoms,  0 invented
+
+With the database present Open Babel resolves the group and duplicates
+nothing. **The recorded ratios follow from the operation counts** -- 6WGT's
+8.00x is a group with eight operations, 7M93's 2.00x one with two -- which is
+what turns a coincidence into an explanation.
+
+Confirmed on real data rather than only a fixture. The six COD crystals in
+`tests/fixtures/cif/`, read through Open Babel both ways:
+
+    1502211   1488 -> 186    8.0x
+    1511792    241 ->  61    4.0x
+    1569411     78 ->  20    3.9x
+    1004002    476 -> 238    2.0x
+    1504676     60 ->  30    2.0x
+    7717378    240 -> 120    2.0x
+
+**The BOND count is identical in every arm** (267, 181, 31, 46, 20, 110), so
+the extra atoms are unbonded duplicates -- the signature the filter keys on.
+
+#### AND THE RECOMMENDATION IS TO LEAVE IT ALONE, WHICH THE MEASUREMENT DECIDED
+
+The instinct on finding a root cause is to fix it. Measured through
+`_convert_receptor_to_pdbqt`, the receptor this application hands Vina is
+**byte-identical either way** -- same SHA-256, because `is_symmetry_generated`
+drops every invented atom before the PDBQT is written.
+
+    broken    7 lines   {N:1, C:2, OA:1, HD:3}   sha 8acc47d7b1a8b147
+    repaired  7 lines   {N:1, C:2, OA:1, HD:3}   sha 8acc47d7b1a8b147
+
+And the rest of the defect misses this application entirely: `make3D`,
+`localopt`, `OBForceField` and `GetForceField` appear **nowhere in `src/`**,
+so the broken MMFF94 and the missing ring fragments cost nothing here. What
+Open Babel is used for is format conversion, two atom iterators and
+`OBAtomAssignTypicalImplicitHydrogens`.
+
+So repairing the variable would change what Open Babel does on the platform
+this ships on, change nothing observable, and turn an exact measured filter
+into a no-op. **There is no benchmark that comes out better.** The cost of
+leaving it is wasted work -- 6WGT builds a 73,707-atom intermediate and throws
+90% of it away -- which is real, bounded, and not worth a behaviour change on
+the shipping platform to avoid.
+
+**THE TRAP FOR WHOEVER REVISITS THIS:** the obvious repair, pointing
+`BABEL_DATADIR` at `bin/data`, **cannot ship** -- that directory does not
+exist on Linux, where the declared path is already correct. Any fix has to
+derive the answer per installation, which is more machinery than the problem
+justifies. The right place for it is upstream.
+
+#### THE UPSTREAM REPORT, RECORDED SO IT NEED NOT BE RE-DERIVED
+
+`openbabel-wheel` 3.1.1.23, Windows only. `openbabel/__init__.py` sets
+`BABEL_DATADIR` to `<pkg>/share/openbabel/<version>/`, which the Windows wheel
+populates with `splash.png` alone; its data files ship in `<pkg>/bin/data/`.
+The Linux wheel populates the declared directory with all 55 and has no
+`bin/data`. Reproduction, on Windows, with no OpenChem code involved:
+
+```python
+import os, pathlib, openbabel
+from openbabel import pybel
+d = pathlib.Path(os.environ["BABEL_DATADIR"])
+print(sorted(p.name for p in d.iterdir()))          # ['splash.png']
+print((pathlib.Path(openbabel.__file__).parent / "bin/data/space-groups.txt").is_file())
+pybel.readstring("smi", "c1ccccc1").make3D()        # warns: cannot open
+```
+
+Symptoms: `Unable to open data file 'space-groups.txt'`, `Cannot open
+ring-fragments-index.txt`, and an MMFF94 force field that cannot be set up at
+all (`Setup()` returns False; True once `BABEL_DATADIR` is repointed).
+
 ### AND IT IS THE WHOLE WINDOWS/LINUX DIFFERENCE ON ISSUE #8's FIXTURE
 
 `test_open_babel_really_does_invent_symmetry_copies_from_this_fixture` failed
