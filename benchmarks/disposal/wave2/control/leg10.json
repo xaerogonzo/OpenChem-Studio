@@ -1,0 +1,13 @@
+{
+ "arm": "control",
+ "replica": "10",
+ "crashed": true,
+ "census_usable": true,
+ "victim": "tests/test_nmr_view_dialog.py::test_dialog_shows_the_signal_list",
+ "tests_begun": 3698,
+ "late_during_run": 0,
+ "has_summary": false,
+ "summary": null,
+ "detail": "",
+ "ran": true
+}

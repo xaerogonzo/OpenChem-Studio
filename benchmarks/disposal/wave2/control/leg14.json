@@ -1,0 +1,13 @@
+{
+ "arm": "control",
+ "replica": "14",
+ "crashed": true,
+ "census_usable": true,
+ "victim": "tests/test_nmr_view_dialog.py::test_copy_signals_gives_tab_separated_columns",
+ "tests_begun": 3701,
+ "late_during_run": 0,
+ "has_summary": false,
+ "summary": null,
+ "detail": "",
+ "ran": true
+}

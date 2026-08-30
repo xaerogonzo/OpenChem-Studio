@@ -1,0 +1,13 @@
+{
+ "arm": "treatment",
+ "replica": "3",
+ "crashed": true,
+ "census_usable": true,
+ "victim": "tests/test_nmr_view_dialog.py::test_dialog_loads_a_conformer_into_the_3d_pane_when_one_exists",
+ "tests_begun": 3699,
+ "late_during_run": 0,
+ "has_summary": false,
+ "summary": null,
+ "detail": "",
+ "ran": true
+}

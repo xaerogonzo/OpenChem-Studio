@@ -2704,6 +2704,69 @@ across unrelated files PLUS the prior 8-of-8 -- **not** that either frame
 is trustworthy on its own. For a fatal signal a traceback frame is still
 wherever the process happened to be, and that caution is unchanged.
 
+##### AND THE EXPERIMENT SAID NO. 40 legs, and the flush is not the cause
+
+`benchmarks/disposal/README.md` carries the preregistration; the result
+is a flat null:
+
+    commit 1c8c71f, 20 legs per arm, all 40 accounted for
+
+                    crashed  completed
+      control            13          7        flush in dispose()
+      treatment          11          9        flush at end of test
+
+      Fisher exact  p = 0.7475      odds ratio 1.519
+
+**NOT AN UNDERPOWERED NULL.** It was powered for near-total elimination,
+and 13 against 11 is no effect at all rather than a shrunken one.
+
+**WHAT IT DOES NOT REFUTE**, because the arm tests one thing and not the
+other: the treatment still delivers the same `DeferredDelete` per object,
+just later, through `flush_deferred_deletes`. So the TIMING is refuted,
+not forced delivery as such. "Never force it" is a different arm and is
+not runnable -- it leaves the process-wide backlog that fixture exists to
+prevent, which is its own documented crash.
+
+So both frames of ours, and the 8-of-8 prior, survived as a lead right up
+to the point somebody measured them. That is the vocabulary earning its
+keep three sections after being written: this stayed a **LEAD**, was
+never called a FINDING, and is now a lead with evidence against it.
+
+##### THE VICTIM SPANS FIVE FILES, which is the sharper result
+
+Across those 50 legs -- 27 crashes, rate **0.54** on a fixed tree:
+
+       23  test_nmr_view_dialog.py
+        1  test_screening_service.py
+        1  test_panel_rail.py
+        1  test_main_window_conformers.py
+        1  test_rotation_transaction.py
+
+The "one file" reading was opened above by refuting it with a single
+counter-example; it is buried here by four. **`test_panel_rail.py` is the
+file whose `_dispose` frame was the original n=1 lead**, which is worth
+knowing before anybody reads its reappearance as corroboration of
+anything.
+
+##### AND I MADE THE SAME MISTAKE AGAIN, ONE COMMIT AFTER CORRECTING IT
+
+The pilot measured 3 crashes in 10 and the preregistration was amended on
+the strength of it, concluding the rate was 0.30 rather than the assumed
+0.50. Wave 2's control measured **13 in 20** on a tree with no executable
+difference; the two waves differ at p = 0.12 with overlapping intervals,
+and pooled the control is **16/30 = 0.53**.
+
+**The original assumption was fine. 0.30 was an n=10 artefact.** So this
+whole section's lesson -- a pattern in a handful of samples of a 50/50
+process is not a law -- was committed, and then broken by its own author
+in the next commit. The amendment's ACTION (n=20) was right anyway and
+cost only runner time; only its stated reason was unsound.
+
+**The rule that would have caught both:** before concluding anything from
+a rate here, ask what n it rests on and what the interval is. Ten legs of
+a coin-flip process supports almost nothing, and it looks exactly like
+data.
+
 ### THE CRASH-MARKER GREP FALSE-POSITIVES ON THE CENSUS'S OWN PROSE
 
 Measured: a run reporting "crash markers: 4" had not crashed. The phrase

@@ -200,7 +200,95 @@ one instead of guessing.
 
 ---
 
-## Results
+## Results — INSUFFICIENT EVIDENCE. The flush is not the cause.
 
-*Not yet run at n = 20.* This section is written after the dispatch, and
-neither the threshold nor the refusal is renegotiated when it is.
+Runs [33331993629](https://github.com/xaerogonzo/OpenChem-Studio/actions/runs/33331993629)
+(control) and [33333432904](https://github.com/xaerogonzo/OpenChem-Studio/actions/runs/33333432904)
+(treatment), commit `1c8c71f`, 20 legs each, **all 40 accounted for**:
+
+                    crashed  completed
+      control            13          7
+      treatment          11          9
+
+      Fisher exact (two-sided)  p = 0.7475
+      odds ratio                1.519
+      control   crash rate 95% CI  [0.433, 0.819]
+      treatment crash rate 95% CI  [0.342, 0.742]
+
+**THIS IS NOT AN UNDERPOWERED NULL, AND THE DIFFERENCE MATTERS.** The
+experiment was powered to detect near-total elimination, and 13 against
+11 is not a shrunken effect — it is *no effect*, with the intervals
+almost entirely overlapping. Moving the `DeferredDelete` delivery out of
+`dispose()` changed nothing.
+
+### What that refutes, precisely
+
+**The LEAD is not supported.** Both Linux frames of ours name that flush,
+and the reverted `dispose_app_widgets` crashed 8 of 8 doing the same
+thing automatically — and neither fact survives contact with 40 legs.
+Under the vocabulary in `CLAUDE.md` this stays a LEAD and never becomes
+a FINDING; it is now a lead with evidence *against* it.
+
+**What it does NOT refute**, stated because the distinction is the whole
+value of the arm: the treatment still delivers the same
+`DeferredDelete` per object, just at end of test via
+`flush_deferred_deletes`. So this tests the **TIMING** of the delivery,
+not the existence of a forced delivery. "Never force it at all" is a
+different arm, and it is not runnable as written — it would leave the
+process-wide backlog that `flush_deferred_deletes` exists to prevent,
+which this repository already documents as its own crash.
+
+### The victim spans FIVE files, and that is the sharper result
+
+Across all 50 legs (27 crashes, rate **0.54**):
+
+       23  test_nmr_view_dialog.py
+        1  test_screening_service.py
+        1  test_panel_rail.py
+        1  test_main_window_conformers.py
+        1  test_rotation_transaction.py
+
+The "one file" reading this branch opened by refuting with a single
+counter-example is buried by four. `test_panel_rail.py` appearing here is
+worth noting on its own: it is the file whose `_dispose` frame was the
+original n=1 lead.
+
+### AMENDMENT 1'S STATED REASON WAS WRONG, and n=30 says so
+
+The pilot measured 3/10 and the amendment above concluded the rate was
+0.30 rather than the assumed ~0.50. Wave 2's control measured **13/20**
+on a tree with no executable difference. The two waves differ at
+**p = 0.12** with heavily overlapping intervals — sampling noise, not a
+real shift — and pooled the control is **16/30 = 0.53**.
+
+**So the original 0.50 assumption was fine, and 0.30 was an n=10
+artefact.** The amendment reasoned from n=10 to overturn an assumption,
+which is the exact error this branch exists to correct in `CLAUDE.md`,
+committed by the person correcting it, one commit after correcting it.
+The amendment's *action* — n=20 — was still right and cost only runner
+time; only its justification was unsound. Left standing with this
+correction beside it rather than rewritten.
+
+### The design limit, stated rather than discovered later
+
+The arms ran in **sequential waves** about an hour apart, so any drift in
+GitHub's runner fleet between them is confounded with the arm. The
+between-wave control comparison above is the only handle on its size and
+it is not significant. A single wave carrying both arms — an object
+matrix of `{arm, replica}` — removes the confound entirely and is the
+right shape if this is ever re-run.
+
+Given the result is a flat null rather than a near miss, the confound
+cannot be what hid an effect: it would have had to hide a large one and
+produce 13-versus-11 exactly.
+
+### What lands
+
+Nothing from the treatment arm. `FLUSH_AT_DISPOSE` stays **on** by
+default, which is the shipped behaviour and was never changed. The env
+var itself stays — it is the instrument that answered the question, and
+removing it would make the experiment unrepeatable.
+
+The consolidation stays too, and its justification never depended on this
+outcome: one implementation instead of 64 is right whichever way the
+experiment had gone.

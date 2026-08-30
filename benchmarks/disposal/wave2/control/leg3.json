@@ -1,0 +1,13 @@
+{
+ "arm": "control",
+ "replica": "3",
+ "crashed": true,
+ "census_usable": true,
+ "victim": "tests/test_panel_rail.py::test_choosing_a_panel_emits_its_id",
+ "tests_begun": 4020,
+ "late_during_run": 0,
+ "has_summary": false,
+ "summary": null,
+ "detail": "",
+ "ran": true
+}

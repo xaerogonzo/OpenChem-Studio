@@ -1,0 +1,13 @@
+{
+ "arm": "treatment",
+ "replica": "9",
+ "crashed": true,
+ "census_usable": true,
+ "victim": "tests/test_rotation_transaction.py::test_the_mmff_energy_is_unchanged_by_a_rotation",
+ "tests_begun": 5350,
+ "late_during_run": 0,
+ "has_summary": false,
+ "summary": null,
+ "detail": "",
+ "ran": true
+}
