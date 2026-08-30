@@ -2449,6 +2449,11 @@ rather than by fault. It is a lead and not a finding, and the next Linux
 crash now carries a trail to compare it against, which no previous one
 did.
 
+**SUPERSEDED -- see "SEVEN CENSUS-NAMED CRASHES, ONE FILE" below.** Those
+percentages name TRACEBACK FRAMES, and for a fatal signal a traceback frame
+is wherever the process happened to be. Read from the census instead, seven
+crashes land in ONE file.
+
 #### AND THE VICTIM DID NOT MOVE: 58% THREE TIMES, TWICE THE SAME TEST
 
 Measured 2026-08-27 on PR #53, and it revises the paragraph above rather
@@ -2483,6 +2488,69 @@ source and reports a crash on a clean run. Read the ANNOTATION:
 
     gh api repos/OWNER/REPO/commits/SHA/check-runs       --jq '.check_runs[] | select(.name|startswith("linux")) | .id'
     gh api repos/OWNER/REPO/check-runs/ID/annotations       --jq '.[] | select(.annotation_level=="failure") | .message'
+
+## SEVEN CENSUS-NAMED CRASHES, ONE FILE, AND "THE VICTIM MOVES" WAS AN ARTEFACT
+
+**This supersedes every victim claim above it**, including the
+"59%/59%/63% on four different tests" figures and the reading of this class as
+"a corrupting free whose VICTIM depends on heap layout". Those numbers are
+real; what was done with them was not. **They name traceback frames, and for a
+fatal signal a traceback frame is wherever the process happened to be** --
+`abort()` unwinds through pluggy and the test function need not appear at all.
+
+The census names the test that was RUNNING, from a line flushed before it
+started. Since the annotation learned to read it (PR #57), every crash reports
+its own victim:
+
+    33031947731  master   test_dialog_loads_a_conformer_into_the_3d_pane   2nd of 5
+    33099748752  PR #53   test_dialog_shows_the_signal_list                1st
+    33105696692  PR #54   test_dialog_shows_the_signal_list                1st
+    33144071885  master   test_dialog_shows_the_signal_list                1st
+    33256330770  PR #57   test_dialog_shows_the_signal_list                1st
+    33268500266  PR #58   test_copy_signals_gives_tab_separated_columns    4th
+    33287037217  PR #59   test_dialog_shows_the_signal_list                1st
+
+**SEVEN OBSERVATIONS, ALL IN `tests/test_nmr_view_dialog.py`.** The preceding
+file is always `tests/test_nmr_spectrum_widget.py` and it always completes.
+
+### THE FILE IS THE CONSTANT. THE TEST IS NOT.
+
+Three of that file's five tests, one of them five times out of seven. So both
+earlier readings were half right and neither was the shape:
+
+    "the victim moves"        true WITHIN the file, false across files
+    "the victim is stable"    true of one test five times, and #6 broke it
+
+The honest statement is the file. Any fix attempt starts at
+`NmrViewDialog`, not at heap-layout roulette and not at one test.
+
+### AND IT STILL DOES NOT ESTABLISH A CAUSE
+
+Roughly half the runs reach the end -- PR #55, PR #56, and PR #57's second run
+(a fully clean `6325 passed`) all did. **Observation six is a
+DOCUMENTATION-ONLY commit**, `5a331ab`, a docstring and markdown with nothing
+executable in it, which is the strongest available form of this file's own
+"no code change causes this". The LOCATION is pinned; the TRIGGER is not.
+
+`late=0` in all seven, so an object destroyed inside an unrelated test's event
+dispatch is still not the mechanism -- which is what the census sections above
+claim on Windows and now hold on Linux across seven crashes rather than one.
+
+### WHAT THE CENSUS ANSWERED THAT NOTHING ELSE COULD
+
+On the PR #59 run the suite died at 57% with no summary line, so the log could
+not say whether that branch's new guard had even passed. The census could:
+`tests/test_constant_docs.py` shows 11 `BEGIN` lines and 11 matching `end`
+lines, so all of it ran to completion before the crash. **A crashed run is not
+a run with no information in it**, which is the whole reason that trail is
+written per test and flushed.
+
+**AND THE PROGRESS-CHARACTER COUNT LIED ON THAT SAME LOG**, exactly as this
+file warns two sections along. A naive `^[.sFEx]+` count reported 2 failures;
+both were Chromium's `ERROR:` and the `F` of `Fatal Python error` bleeding
+into pytest's progress line. The whole-line anchored form gives 0:
+
+    grep -oE "^[.sFEx]+ *(\[ *[0-9]+%\])?$"
 
 ### The two platforms have DIFFERENT signatures
 
