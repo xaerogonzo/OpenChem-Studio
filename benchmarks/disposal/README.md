@@ -131,7 +131,76 @@ deliberately turn it green:
 gh api repos/xaerogonzo/OpenChem-Studio/commits/SHA/check-runs --jq '.check_runs[] | select(.name|startswith("linux")) | .id'
 ```
 
+---
+
+# AMENDMENT 1 — the pilot refuted the rate the power was computed against
+
+**What was known when this was written:** the control arm had run at
+n = 10 and the treatment arm had **not been dispatched at all**. No
+comparison existed, and none was computed until after this was committed.
+
+## The pilot
+
+Run [33330587107](https://github.com/xaerogonzo/OpenChem-Studio/actions/runs/33330587107),
+commit `1189098`, control arm, 10 legs, all 10 accounted for:
+
+    crashed  3 / 10     replicas 4, 8, 9 -- all in test_nmr_view_dialog.py
+    clean    7 / 10     6382 tests each
+
+**This is the first measurement of this crash's rate on a FIXED tree.**
+Every earlier figure — the "9 in 18" this branch quotes — is across trees
+that all differ. On one tree it is **0.30**, not the ~0.50 the power
+table above assumed.
+
+## Why that breaks the design as written
+
+The whole power calculation was anchored on a control rate near 0.5. At
+0.3 the experiment cannot reach its own threshold **even if the treatment
+eliminates the crash completely**:
+
+| control | treatment | Fisher p |
+| --- | --- | --- |
+| 3/10 | 0/10 | **0.2105** |
+| 3/10 | 1/10 | 0.5820 |
+
+0.2105 also falls **outside** the preregistered escalation band
+`[0.05, 0.20]`, by four thousandths. So the rule as written would have
+run arm B, observed the strongest result the experiment can produce,
+declared *insufficient evidence*, and then **declined to escalate** —
+terminating on a technicality rather than on a finding.
+
+At n = 20 per arm the same rates give `6/20 vs 0/20 → p = 0.0202`, which
+can clear the threshold.
+
+## The amendment
+
+**n = 20 per arm, both arms, dispatched fresh.** Everything else — the
+0.05 threshold, the refusal, "insufficient evidence, change nothing" as
+an allowed outcome — is unchanged.
+
+**THE PILOT'S LEGS ARE NOT POOLED IN**, and that is the point rather
+than fastidiousness. Committing this amendment changes the tree, so
+wave-1 and wave-2 control legs would run different commits — and this
+branch's own finding is that a byte-identical tree crashes differently
+run to run. Pooling across commits inside one arm is exactly the confound
+the env-var design was chosen to avoid. The pilot is reported as a
+pilot: it estimated the rate, and that is all it is used for.
+
+**This is sample-size re-estimation on a NUISANCE parameter, not on the
+effect.** The control rate is not what the experiment is about, and the
+treatment arm was unrun when this was written. That is a recognised
+internal-pilot design; it is not the same as widening a threshold after
+seeing a p-value, and it must not be used to license that later.
+
+**The honest admission:** the power table above was written from an
+assumed rate rather than a measured one, in a document whose whole
+purpose is to fix the rules in advance. Measuring the control rate first
+is what a pilot is FOR, and this preregistration should have called for
+one instead of guessing.
+
+---
+
 ## Results
 
-*Not yet run.* This section is written after the dispatch, and the
-decision rule above is not renegotiated when it is.
+*Not yet run at n = 20.* This section is written after the dispatch, and
+neither the threshold nor the refusal is renegotiated when it is.
