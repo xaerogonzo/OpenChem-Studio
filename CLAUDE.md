@@ -2449,7 +2449,7 @@ rather than by fault. It is a lead and not a finding, and the next Linux
 crash now carries a trail to compare it against, which no previous one
 did.
 
-**SUPERSEDED -- see "SEVEN CENSUS-NAMED CRASHES, ONE FILE" below.** Those
+**SUPERSEDED -- see "TEN CENSUS-NAMED CRASHES, TWO FILES" below.** Those
 percentages name TRACEBACK FRAMES, and for a fatal signal a traceback frame
 is wherever the process happened to be. Read from the census instead, seven
 crashes land in ONE file.
@@ -2489,7 +2489,93 @@ source and reports a crash on a clean run. Read the ANNOTATION:
     gh api repos/OWNER/REPO/commits/SHA/check-runs       --jq '.check_runs[] | select(.name|startswith("linux")) | .id'
     gh api repos/OWNER/REPO/check-runs/ID/annotations       --jq '.[] | select(.annotation_level=="failure") | .message'
 
-## SEVEN CENSUS-NAMED CRASHES, ONE FILE, AND "THE VICTIM MOVES" WAS AN ARTEFACT
+## TEN CENSUS-NAMED CRASHES, TWO FILES, AND THE COUNTER-EXAMPLE CAME ON A BYTE-IDENTICAL TREE
+
+**THE HEADING BELOW USED TO READ "SEVEN CENSUS-NAMED CRASHES, ONE FILE,
+AND 'THE VICTIM MOVES' WAS AN ARTEFACT", AND ITS OWN SUCCESSOR RUN
+REFUTED IT THREE COMMITS LATER.** It is kept with its correction beside
+it rather than edited away, the way `9e302e4`'s Open Babel claim is,
+because the WAY it was got wrong is the durable part: seven observations
+in one file is a real measurement and "the file is the constant" is an
+inference from it, and this file had just finished warning that the
+59%/63% figures were exactly that mistake one level up. **A pattern in
+seven samples of a 50/50 process is not a law.** Third instance here of
+a claim being tightened past what the data carries.
+
+    what it said      the victim wanders WITHIN one file, never across
+    what happened     observation ten landed in a different file, at a
+                      different percentage, on a byte-identical tree
+
+The corrected account follows; the original text is preserved below it.
+
+### THE MEASUREMENT THAT BROKE IT
+
+Sweeping the Linux annotation across the 18 runs since (`gh api
+.../check-runs/{id}/annotations`, filtered to `annotation_level=failure`)
+gives **9 crashes in 18 runs** and three census-named observations that
+postdate the table below:
+
+    33298732951  4267fdc  master   test_dialog_shows_the_signal_list   57%
+    33300040059  c6155fa  PR #61   test_dialog_shows_the_signal_list   57%
+    33301056335  96e8c9c  master   test_screening_service.py::
+                                   test_the_ranked_table_leaves_a_
+                                   failure_unranked                    83%
+
+**Ten census-named crashes, TWO files.**
+
+#### `git diff c6155fa 96e8c9c` IS EMPTY, AND THAT IS THE WHOLE ARGUMENT
+
+Those are the branch tip and the merge commit of PR #61, which carry the
+same tree byte for byte. **Two runs of one tree crashed in different
+files, 26 percentage points apart** -- 57% and 3683 tests against 83% and
+5365. `git diff 0da570c 4267fdc` is empty too, and there one run was
+CLEAN and the other crashed at 57%.
+
+So on a FIXED tree: crash-versus-clean is a coin flip, and when it
+crashes the victim is not fixed. No count of same-file observations can
+establish a law that a single pair of same-tree runs refutes -- which is
+why the pair, not the count, is the thing to cite.
+
+And #61 changed **`.gitignore` and a deleted binary**: nothing executable
+at all. That is the second non-executable commit in this file's history
+to "cause" a crash, after `5a331ab`.
+
+### AND THE PLATFORMS CONVERGE, FOR THE FIRST TIME
+
+`tests/test_screening_service.py` is not a new name here. It is the
+canonical **Windows** victim, recorded twice in this file at 83% and 84%,
+frame `test_screening_service.py:120 in _drain`. Linux has now landed in
+the same file at 83%.
+
+    Windows   test_screening_service.py:120 in _drain     processEvents()
+    Linux     test_screening_service.py:269 in widgets    sendPostedEvents(
+                                                          w, DeferredDelete)
+
+Both are event pump/flush moments in one file. **That is a datum, not a
+conclusion**: the two signatures (`Aborted` against an access violation)
+are still different, and whether they are one bug is still NOT
+established. What changed is that there is now something to connect them
+by, where before there was nothing.
+
+### THE EVIDENCE VOCABULARY, and it is a CONVENTION rather than a guard
+
+Three words, used from here on, so a weak claim cannot become a strong
+one by being restated -- which is exactly what happened to "seven
+observations" above:
+
+    LEAD        a repeated traceback frame. NOT causal proof.
+    HYPOTHESIS  a lead with a preregistered experiment attached.
+    FINDING     a preregistered experiment that supports the mechanism.
+
+Same move `ARCHITECTURE.md` makes with `OPEN`/`DECISION`/`SETTLED`,
+`sources.toml` with `citation`/`citation_and_claim`/`unverified`, and
+`ArmStatus` with `HONEST`/`OPTIMISTIC`.
+
+**NOTHING ENFORCES IT.** `test_docs_are_current.py`'s `DEFERRALS` parses
+`ARCHITECTURE.md`'s markers and fails closed on an unknown one; nothing
+parses this file. Do not read these three words as guarded.
+
+### The original text, superseded and kept
 
 **This supersedes every victim claim above it**, including the
 "59%/59%/63% on four different tests" figures and the reading of this class as
@@ -2513,7 +2599,11 @@ its own victim:
 **SEVEN OBSERVATIONS, ALL IN `tests/test_nmr_view_dialog.py`.** The preceding
 file is always `tests/test_nmr_spectrum_widget.py` and it always completes.
 
-### THE FILE IS THE CONSTANT. THE TEST IS NOT.
+### THE FILE IS THE CONSTANT. THE TEST IS NOT.  -- **WRONG, see the correction above**
+
+*(Kept as written. Observation ten is in another file, so the heading is
+false as stated; the per-test breakdown within `test_nmr_view_dialog.py`
+is still a real measurement of nine of the ten.)*
 
 Three of that file's five tests, one of them five times out of seven. So both
 earlier readings were half right and neither was the shape:
@@ -2576,8 +2666,39 @@ recipe itself**, not a later collection. That file is well behaved: every
 test calls `_dispose`, which is the documented per-widget form and not the
 forbidden global drain. So the suspicion it raises is that FORCING a
 deferred delete is itself the dangerous moment, which is the opposite of
-what the recipe assumes. **n=1, and the other two logs cannot corroborate
-it**, so it is a lead and not a finding.
+what the recipe assumes. ~~**n=1, and the other two logs cannot
+corroborate it**~~ -- **CORROBORATED, n=2. See below.**
+
+#### THE SAME LINE, IN AN UNRELATED FILE -- the LEAD is n=2
+
+Observation ten's frame is `tests/test_screening_service.py:269 in
+widgets`. Verified: that line is
+`QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)`,
+in a fixture teardown. **The same line of the same three-line recipe, in
+a file with nothing to do with `test_panel_rail.py`.** Those are the only
+two frames of ours ever named across the whole Linux history, and they
+name the same operation.
+
+`late=0` in all ten, so the cross-test late-destruction mechanism stays
+ruled out. That flush is the only frame of ours that has ever appeared.
+
+**AND THE CLOSEST PRIOR EXPERIMENT SAYS THAT FLUSH IS DANGEROUS.**
+`tests/conftest.py` documents `dispose_app_widgets`, a reverted fixture
+that destroyed abandoned widgets "with the same per-object
+`deleteLater()` plus flush used below", and which crashed the suite **8
+of 8 full runs** on master while 8 of 8 completed with it neutered.
+
+**THE 58 HAND-WRITTEN COPIES OF THAT RECIPE HAVE NEVER BEEN A/B'd**,
+because that experiment was about the AUTOMATIC fixture -- which
+discovered 112 widgets by itself -- and not about the per-file copies a
+test hands over explicitly. `benchmarks/disposal/inventory.md` is what
+those copies are, measured: 64 sequences, 8 distinct, 46 files.
+
+**THIS IS A LEAD, NOT A FINDING, AND THE PROMOTION IS NOT AUTOMATIC.**
+What makes it worth an experiment is the recurrence of one operation
+across unrelated files PLUS the prior 8-of-8 -- **not** that either frame
+is trustworthy on its own. For a fatal signal a traceback frame is still
+wherever the process happened to be, and that caution is unchanged.
 
 ### THE CRASH-MARKER GREP FALSE-POSITIVES ON THE CENSUS'S OWN PROSE
 
