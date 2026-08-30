@@ -97,3 +97,8 @@ pdf-library.json
 # Driven visual checks write shots here; the scripts are tracked, the
 # output is not. See benchmarks/visual/README.md.
 artifacts/
+
+# `pyscope` maintains this index in the working tree and rewrites it as it
+# runs, so a tracked copy conflicts on every branch switch. It was committed
+# by accident in 0da570c.
+.pyscope/
