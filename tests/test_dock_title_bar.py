@@ -10,12 +10,14 @@ if the replacement accepts mouse events across its width.
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent, QPoint, Qt
+from PySide6.QtCore import QEvent, QPoint, Qt
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QDockWidget, QLabel, QMainWindow, QToolButton
 
 from openchem.app.main_window import HELP_TOPIC_BY_DOCK
 from openchem.ui.widgets.dock_title_bar import DockTitleBar
+
+import conftest
 
 
 @pytest.fixture
@@ -24,9 +26,7 @@ def widgets():
     built = []
     yield built
     for widget in built:
-        widget.setParent(None)
-        widget.deleteLater()
-        QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+        conftest.dispose(widget)
 
 
 @pytest.fixture

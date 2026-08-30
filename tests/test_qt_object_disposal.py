@@ -737,3 +737,139 @@ def test_the_stand_in_really_is_what_start_census_compares_against(qapp):
     ]
     assert loaded, "no loaded conftest exposes _CENSUS_SOURCE"
     assert all(module._CENSUS_SOURCE == _conftest_source() for module in loaded)
+
+
+def test_no_test_file_derives_the_disposal_recipe_for_itself():
+    """`setParent(None)` + `deleteLater()` + a flush lives in ONE place.
+
+    Those three lines were copy-pasted across 46 test files under at
+    least six names. `git show dba03eb:benchmarks/disposal/inventory.md`
+    is what that looked like, measured before any of it was touched: 64
+    sequences, 8 distinct. This repository has paid four times for two
+    implementations of one idea drifting, and forty-six is worse than
+    two.
+
+    IT IS AN AST WALK AND NOT A TEXT SCAN, for the reason
+    `test_no_test_file_derives_the_platform_gate_for_itself` already
+    gives: the prose explaining this rule -- this docstring included --
+    names the three calls, and a text search flags it.
+
+    WHAT IT DELIBERATELY DOES NOT CATCH is a sequence that is not this
+    recipe. `tests/test_pop_out_host.py` closes a window and forces Qt's
+    own posted delete precisely to assert the CONTENT survived: that is
+    the test's subject, not its cleanup, and consolidating it would
+    destroy the thing under test. `benchmarks/disposal/inventory.md`
+    lists every survivor, so "what is left" is a reviewable number rather
+    than a hole.
+    """
+    import sys
+    from pathlib import Path
+
+    tools = Path(__file__).resolve().parent.parent / "tools"
+    if str(tools) not in sys.path:
+        sys.path.insert(0, str(tools))
+    from disposal_inventory import CANONICAL, collect  # noqa: E402
+
+    offenders = [
+        f"{s['file']}:{s['line']}"
+        for s in collect()
+        if s["names"][-3:] == CANONICAL and not s["file"].endswith("conftest.py")
+    ]
+    assert not offenders, (
+        "these re-derive the disposal recipe instead of calling "
+        f"conftest.dispose(): {offenders}"
+    )
+
+
+def test_the_recipe_really_is_findable_and_this_guard_is_not_vacuous():
+    """Assert the setup: the walker must SEE `conftest.dispose` itself.
+
+    Without this, a walker that silently returned nothing -- a changed
+    AST shape, a moved `tests/` -- would satisfy the guard above forever
+    while the tree filled back up with copies. A green
+    "no offenders" and "the walk found nothing to walk" read identically
+    in an empty list, which is the population assertion `ui/visual_check`
+    already records needing.
+    """
+    import sys
+    from pathlib import Path
+
+    tools = Path(__file__).resolve().parent.parent / "tools"
+    if str(tools) not in sys.path:
+        sys.path.insert(0, str(tools))
+    from disposal_inventory import CANONICAL, collect  # noqa: E402
+
+    from disposal_inventory import sequences_in_source  # noqa: E402
+
+    assert collect(), "the walker found no disposal sequences in tests/ at all"
+
+    # ON CONSTRUCTED SOURCE, not on whatever the tree happens to hold. An
+    # earlier version of this located `conftest.dispose` and asserted the
+    # walk found it -- and broke the moment that function grew an `if`
+    # around its flush for the experiment, which is a refactor and not a
+    # regression. What must never change is that the walk can recognise
+    # the recipe when it is there.
+    planted = sequences_in_source(
+        """
+def teardown(widget):
+    widget.setParent(None)
+    widget.deleteLater()
+    QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+""",
+        "<constructed>",
+    )
+    assert [s for s in planted if s["names"][-3:] == CANONICAL], (
+        "the walker cannot recognise the recipe even when handed it, so the "
+        "guard above would pass against a tree full of copies"
+    )
+
+    # ...and the CONTROL: a sequence that merely RESEMBLES it is not it.
+    # Without this the guard above is satisfied by a walker that calls
+    # everything canonical, which would make the offender test fire on
+    # every file in the tree.
+    near_miss = sequences_in_source(
+        """
+def teardown(widget):
+    widget.deleteLater()
+    QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+""",
+        "<constructed>",
+    )
+    assert not [s for s in near_miss if s["names"][-3:] == CANONICAL]
+
+
+def test_the_shipped_disposal_still_flushes_by_default():
+    """The control arm is what the suite runs unless told otherwise.
+
+    `OPENCHEM_DISPOSE_FLUSH` exists to A/B the one line both Linux frames
+    of ours name. A switch whose default drifted would silently make
+    every ordinary run the EXPERIMENTAL arm, and nothing else would say
+    so -- the crash it changes is 50/50 either way, so no outcome could
+    reveal it.
+    """
+    import conftest
+
+    assert conftest.FLUSH_AT_DISPOSE is True
+
+
+@pytest.mark.parametrize(
+    "value, flushes",
+    [
+        (None, True),  # unset: the shipped behaviour
+        ("1", True),
+        ("0", False),  # the treatment arm, and the ONLY value that turns it off
+        ("", True),
+        ("false", True),  # NOT a synonym for "0" -- see the docstring
+        ("nonsense", True),
+    ],
+)
+def test_only_the_exact_string_zero_turns_the_flush_off(value, flushes):
+    """Fail SAFE, onto the shipped behaviour.
+
+    A truthy-string parse (`"false"` -> off) would let a typo in a
+    workflow put an ordinary run into the treatment arm. Tested on the
+    pure function so it needs no environment manipulation.
+    """
+    import conftest
+
+    assert conftest.flush_at_dispose(value) is flushes

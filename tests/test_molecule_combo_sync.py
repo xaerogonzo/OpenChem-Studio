@@ -14,7 +14,6 @@ Two independent defects produced it, so there are two tests:
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent
 
 from openchem.app.settings import Settings
 from openchem.chem.engine import ChemistryEngine
@@ -25,6 +24,8 @@ from openchem.events.base import EventBus
 from openchem.events.events import MoleculeSelected
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.ui.panels.quantum_chemistry_panel import QuantumChemistryPanel
+
+import conftest
 
 
 @pytest.fixture
@@ -39,9 +40,7 @@ def widgets():
     built = []
     yield built
     for widget in built:
-        widget.setParent(None)
-        widget.deleteLater()
-        QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+        conftest.dispose(widget)
 
 
 @pytest.fixture

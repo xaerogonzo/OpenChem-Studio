@@ -24,6 +24,8 @@ from openchem.services.docking_service import DockingService
 from openchem.services.job_manager import JobManager
 from openchem.services.screening_service import ScreeningEntry, ScreeningProgress, ScreeningService, rank
 
+import conftest
+
 
 class _FakeVina:
     """Returns a fixed score per ligand, or raises for named ones.
@@ -259,14 +261,11 @@ def widgets():
     """Destroyed deterministically -- see the same fixture in
     `tests/test_batch_panel.py` for why leaving it to the collector caused
     an access violation inside `processEvents`."""
-    from PySide6.QtCore import QCoreApplication, QEvent
 
     built = []
     yield built
     for widget in built:
-        widget.setParent(None)
-        widget.deleteLater()
-        QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+        conftest.dispose(widget)
 
 
 def _dialog(widgets, harness, project):

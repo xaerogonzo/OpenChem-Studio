@@ -13,12 +13,13 @@ blankness it replaces.
 
 from __future__ import annotations
 
-from PySide6.QtCore import QCoreApplication, QEvent
 from PySide6.QtWidgets import QFormLayout, QLabel
 
 from openchem.domain.common import Provenance
 from openchem.domain.conformer import ConformerModel
 from openchem.ui.dialogs.conformer_details_dialog import ConformerDetailsDialog
+
+import conftest
 
 
 def _conformer(**parameters) -> ConformerModel:
@@ -45,9 +46,7 @@ def _dispose(dialog) -> None:
     """A widget a test walks away from is destroyed at whatever arbitrary
     later moment the collector runs -- inside an unrelated test, from
     inside Qt's event dispatch. Per widget, never the global form."""
-    dialog.setParent(None)
-    dialog.deleteLater()
-    QCoreApplication.sendPostedEvents(dialog, QEvent.Type.DeferredDelete)
+    conftest.dispose(dialog)
 
 
 def test_the_full_funnel_is_shown(qapp):

@@ -1,0 +1,102 @@
+[
+ {
+  "file": "tests/conftest.py",
+  "line": 200,
+  "subject": "widget",
+  "names": [
+   "sendPostedEvents"
+  ],
+  "steps": [
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/conftest.py",
+  "line": 296,
+  "subject": "view",
+  "names": [
+   "stop",
+   "deleteLater",
+   "sendPostedEvents"
+  ],
+  "steps": [
+   "stop()",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/conftest.py",
+  "line": 418,
+  "subject": "view",
+  "names": [
+   "stop",
+   "setParent",
+   "deleteLater",
+   "sendPostedEvents"
+  ],
+  "steps": [
+   "stop()",
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/conftest.py",
+  "line": 115,
+  "subject": "obj",
+  "names": [
+   "sendPostedEvents"
+  ],
+  "steps": [
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_pop_out_host.py",
+  "line": 160,
+  "subject": "window",
+  "names": [
+   "close",
+   "sendPostedEvents"
+  ],
+  "steps": [
+   "close()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_pop_out_host.py",
+  "line": 203,
+  "subject": "window",
+  "names": [
+   "close",
+   "sendPostedEvents"
+  ],
+  "steps": [
+   "close()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_property_panel_long_values.py",
+  "line": 489,
+  "subject": "parent",
+  "names": [
+   "deleteLater",
+   "sendPostedEvents"
+  ],
+  "steps": [
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ }
+]

@@ -22,7 +22,7 @@ from __future__ import annotations
 import dataclasses
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent
+from PySide6.QtCore import QCoreApplication
 
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.common import CacheState, Provenance
@@ -49,6 +49,8 @@ from openchem.events.events import (
 )
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.ui.panels.property_panel import _PAYLOAD_FIELDS, PropertyPanel, _summarise
+
+import conftest
 
 MOLECULE = "mol-1"
 
@@ -77,9 +79,7 @@ def panel(qapp, bus):
     built = PropertyPanel(bus, CalculatorRegistry(), _FakeService(), ChemistryEngine())
     bus.publish(MoleculeSelected(molecule_uuid=MOLECULE))
     yield built
-    built.setParent(None)
-    built.deleteLater()
-    QCoreApplication.sendPostedEvents(built, QEvent.Type.DeferredDelete)
+    conftest.dispose(built)
 
 
 def _provenance() -> Provenance:
@@ -388,9 +388,7 @@ def running_panel(qapp, bus):
     built._section_for("nmr")
     built._section_for("topology")
     yield built, molecule, dispatched
-    built.setParent(None)
-    built.deleteLater()
-    QCoreApplication.sendPostedEvents(built, QEvent.Type.DeferredDelete)
+    conftest.dispose(built)
 
 
 def test_a_dispatched_calculator_says_it_is_running(running_panel):
@@ -581,9 +579,7 @@ def test_a_pending_reveal_is_cancelled_when_the_panel_is_destroyed(qapp, bus, mo
         bus.publish(MoleculeSelected(molecule_uuid=MOLECULE))
         schedule(built, bus)
         if dispose:
-            built.setParent(None)
-            built.deleteLater()
-            QCoreApplication.sendPostedEvents(built, QEvent.Type.DeferredDelete)
+            conftest.dispose(built)
         QCoreApplication.processEvents()
 
     schedule_a_reveal(dispose=False)
@@ -630,9 +626,7 @@ def test_a_pending_metrics_dump_is_cancelled_when_the_panel_is_destroyed(qapp, b
         bus.publish(MoleculeSelected(molecule_uuid=MOLECULE))
         bus.publish(ReportComputed(report=_report(3)))
         if dispose:
-            built.setParent(None)
-            built.deleteLater()
-            QCoreApplication.sendPostedEvents(built, QEvent.Type.DeferredDelete)
+            conftest.dispose(built)
         QCoreApplication.processEvents()
 
     build_a_report_row(dispose=False)

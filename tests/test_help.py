@@ -12,10 +12,12 @@ import re
 
 import pytest
 
-from PySide6.QtCore import QCoreApplication, QEvent, Qt
+from PySide6.QtCore import Qt
 
 from openchem import help as help_docs
 from openchem.app.main_window import HELP_TOPIC_BY_CENTRE_TAB, HELP_TOPIC_BY_DOCK
+
+import conftest
 
 
 @pytest.fixture
@@ -26,9 +28,7 @@ def help_widgets():
     yield built
     for widget in built:
         widget.close()
-        widget.setParent(None)
-        widget.deleteLater()
-        QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+        conftest.dispose(widget)
 
 ANCHOR = re.compile(r"<!--\s*help:([a-z0-9-]+)\s*-->")
 

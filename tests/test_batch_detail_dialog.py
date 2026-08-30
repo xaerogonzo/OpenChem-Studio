@@ -9,7 +9,6 @@ back.
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent
 
 from openchem.domain.batch import BatchResultStore, ResultKey
 from openchem.domain.molecule import MoleculeModel
@@ -17,6 +16,8 @@ from openchem.domain.report import Basis, Fact, FactCategory, ReportResult
 from openchem.ui.dialogs import calculator_inspector_dialog as inspector_module
 from openchem.ui.dialogs.batch_detail_dialog import BatchDetailDialog
 from openchem.ui.widgets.fact_view import FactView
+
+import conftest
 
 
 class _Tracked:
@@ -261,9 +262,7 @@ def widgets():
     yield built
     for widget in built:
         widget.close()
-        widget.setParent(None)
-        widget.deleteLater()
-        QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+        conftest.dispose(widget)
 
 
 @pytest.fixture

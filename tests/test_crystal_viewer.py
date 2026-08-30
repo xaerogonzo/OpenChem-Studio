@@ -13,10 +13,11 @@ import re
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent
 
 from openchem.chem.cif import read_cif
 from openchem.chem.crystal_analysis import scene_as_xyz, scene_for
+
+import conftest
 
 HALITE = Path("spikes/crystallography/halite.cif")
 VIEWER_HTML = Path("src/openchem/resources/viewer3d/viewer.html")
@@ -172,9 +173,7 @@ def backend(qapp):
     widget = Mol3DViewerBackend()
     yield widget
     view = widget.widget()
-    view.setParent(None)
-    view.deleteLater()
-    QCoreApplication.sendPostedEvents(view, QEvent.Type.DeferredDelete)
+    conftest.dispose(view)
 
 
 def test_a_crystal_requested_before_the_page_is_ready_is_queued(backend):

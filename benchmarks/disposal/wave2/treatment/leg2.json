@@ -1,0 +1,13 @@
+{
+ "arm": "treatment",
+ "replica": "2",
+ "crashed": true,
+ "census_usable": true,
+ "victim": "tests/test_screening_service.py::test_the_ranked_table_leaves_a_failure_unranked",
+ "tests_begun": 5389,
+ "late_during_run": 0,
+ "has_summary": false,
+ "summary": null,
+ "detail": "",
+ "ran": true
+}

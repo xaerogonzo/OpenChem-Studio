@@ -9,7 +9,7 @@ could not get at.
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent, Qt
+from PySide6.QtCore import Qt
 
 from openchem.chem.comparison import ValueRow, compare_values, differing_rows
 from openchem.domain.common import Provenance
@@ -22,11 +22,11 @@ from openchem.events.base import EventBus
 from openchem.events.events import DescriptorComputed, ReportComputed
 from openchem.ui.panels.comparison_panel import ComparisonPanel
 
+import conftest
+
 
 def _dispose(widget) -> None:
-    widget.setParent(None)
-    widget.deleteLater()
-    QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+    conftest.dispose(widget)
 
 
 # --- the engine, without any Qt ---------------------------------------------

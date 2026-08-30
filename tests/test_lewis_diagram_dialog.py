@@ -20,13 +20,15 @@ details panel is the one place in the app that prints every count.
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent
+from PySide6.QtCore import QCoreApplication
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
 from openchem.chem.lewis_diagram import Known, Status, Unknown
 from openchem.domain.molecule import MoleculeModel
 from openchem.ui.dialogs.lewis_diagram_dialog import LewisDiagramDialog
+
+import conftest
 
 
 def molblock(smiles: str) -> str:
@@ -42,9 +44,7 @@ def _dispose(dialog) -> None:
     queue including deletes other test files left on it, which is the
     double-free `tests/conftest.py` already documents.
     """
-    dialog.setParent(None)
-    dialog.deleteLater()
-    QCoreApplication.sendPostedEvents(dialog, QEvent.Type.DeferredDelete)
+    conftest.dispose(dialog)
 
 
 @pytest.fixture

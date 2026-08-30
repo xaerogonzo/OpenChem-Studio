@@ -21,13 +21,14 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent
 
 from openchem.ui.widgets.help_tooltip import HelpTooltip, HelpTooltipError
 from openchem.ui.widgets.tooltip_inventory import (
     iter_documentable_controls,
     iter_exclusions,
 )
+
+import conftest
 
 #: The legacy raw `setToolTip` calls present when the contract landed.
 #:
@@ -455,9 +456,7 @@ def test_a_line_edits_clear_button_is_qt_s_own(qapp):
             "the line edit itself was excluded along with its clear button"
         )
     finally:
-        host.setParent(None)
-        host.deleteLater()
-        QCoreApplication.sendPostedEvents(host, QEvent.Type.DeferredDelete)
+        conftest.dispose(host)
 
 
 def test_the_composite_rule_does_not_swallow_the_line_edits(controls):

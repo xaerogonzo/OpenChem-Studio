@@ -1,0 +1,13 @@
+{
+ "arm": "control",
+ "replica": "17",
+ "crashed": true,
+ "census_usable": true,
+ "victim": "tests/test_main_window_conformers.py::test_adopting_a_conformer_is_one_undoable_step",
+ "tests_begun": 3174,
+ "late_during_run": 0,
+ "has_summary": false,
+ "summary": null,
+ "detail": "",
+ "ran": true
+}

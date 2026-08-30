@@ -1,0 +1,13 @@
+{
+ "arm": "treatment",
+ "replica": "14",
+ "crashed": false,
+ "census_usable": true,
+ "victim": null,
+ "tests_begun": 6382,
+ "late_during_run": 0,
+ "has_summary": false,
+ "summary": null,
+ "detail": "",
+ "ran": true
+}

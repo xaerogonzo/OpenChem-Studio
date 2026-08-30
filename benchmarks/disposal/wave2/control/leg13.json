@@ -1,0 +1,13 @@
+{
+ "arm": "control",
+ "replica": "13",
+ "crashed": true,
+ "census_usable": true,
+ "victim": "tests/test_nmr_view_dialog.py::test_dialog_without_a_conformer_still_shows_the_spectrum",
+ "tests_begun": 3700,
+ "late_during_run": 0,
+ "has_summary": false,
+ "summary": null,
+ "detail": "",
+ "ran": true
+}

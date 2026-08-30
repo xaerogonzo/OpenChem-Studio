@@ -9,7 +9,7 @@ run this way, and an analysis dialog that offers a column it cannot plot.
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent, Qt, QThreadPool
+from PySide6.QtCore import Qt, QThreadPool
 from PySide6.QtWidgets import QApplication
 
 from openchem.bootstrap import build_service_container
@@ -17,6 +17,8 @@ from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.ui.dialogs.batch_analysis_dialog import BatchAnalysisDialog
 from openchem.ui.panels.batch_panel import BatchPanel, _title
+
+import conftest
 
 _DRUGS = [
     ("aspirin", "CC(=O)Oc1ccccc1C(=O)O"),
@@ -63,9 +65,7 @@ def widgets():
     built = []
     yield built
     for widget in built:
-        widget.setParent(None)
-        widget.deleteLater()
-        QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+        conftest.dispose(widget)
 
 
 @pytest.fixture

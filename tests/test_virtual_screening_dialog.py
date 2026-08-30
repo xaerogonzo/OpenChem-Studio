@@ -9,12 +9,13 @@ green -- the dialogs had no coverage at all until this file.
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent
 
 from openchem.bootstrap import build_service_container
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.ui.dialogs.inventory import DialogContext, iter_dialog_fixtures
+
+import conftest
 
 
 @pytest.fixture
@@ -38,9 +39,7 @@ def dialog(qapp):
     fixture = next(f for f in iter_dialog_fixtures() if f.name == "VirtualScreeningDialog")
     built = fixture.build(context)
     yield built
-    built.setParent(None)
-    built.deleteLater()
-    QCoreApplication.sendPostedEvents(built, QEvent.Type.DeferredDelete)
+    conftest.dispose(built)
 
 
 def test_no_results_header_is_narrower_than_its_own_text(dialog):

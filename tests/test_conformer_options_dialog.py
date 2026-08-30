@@ -9,7 +9,6 @@ answer about the molecule.
 
 from __future__ import annotations
 
-from PySide6.QtCore import QCoreApplication, QEvent
 from PySide6.QtWidgets import QDialog
 
 from openchem.ui.dialogs.conformer_options_dialog import (
@@ -19,6 +18,8 @@ from openchem.ui.dialogs.conformer_options_dialog import (
     MAX_EMBEDDINGS,
     ConformerOptionsDialog,
 )
+
+import conftest
 
 
 def _dispose(widget) -> None:
@@ -31,9 +32,7 @@ def _dispose(widget) -> None:
     pending delete in the process including ones other files queued, which
     is the double-free CLAUDE.md already documents.
     """
-    widget.setParent(None)
-    widget.deleteLater()
-    QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+    conftest.dispose(widget)
 
 
 def test_the_dialog_asks_for_embeddings_and_conformers_separately(qapp):

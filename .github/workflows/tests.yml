@@ -53,6 +53,25 @@ on:
   push:
     branches: [master]
   pull_request:
+  # THE CRASH-RATE HARNESS, and it changes NOTHING about push or PR.
+  #
+  # The Linux crash is roughly 50/50 on a byte-identical tree, so any
+  # claim about it needs n around 10 per arm -- and sampling it by
+  # pushing was ~17 minutes PER SAMPLE, serially, because
+  # `cancel-in-progress` below means a follow-up push voids the run
+  # before it. A matrix of independent legs gets the same n in one wave.
+  #
+  # `github.event.inputs` is null for push and pull_request, so the
+  # `|| '[1]'` fallback in the `linux` job yields exactly the single leg
+  # those events have always run. The default path is untouched.
+  workflow_dispatch:
+    inputs:
+      linux_replicas:
+        description: 'Independent Linux legs, as a JSON array: [1,2,3,4,5,6,7,8,9,10]'
+        default: '[1]'
+      dispose_flush:
+        description: "conftest.dispose's flush -- 1 = shipped (control), 0 = deferred to end of test (treatment)"
+        default: '1'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -87,7 +106,27 @@ jobs:
   suite:
     name: suite + gating benchmarks
     runs-on: windows-latest
-    timeout-minutes: 30
+    # 30 WAS NOT A CEILING, IT WAS A COIN FLIP -- measured across five
+    # consecutive runs, four of them on unmodified master:
+    #
+    #     1555 s   success        86% of the budget
+    #     1639 s   success        91%
+    #     1678 s   success        93%
+    #     1710 s   success        95%
+    #     1838 s   CANCELLED     102%   <- run 33333432904
+    #
+    # A timeout here is not a slow run, it is a RED GATE: this file's own
+    # header records that a failure in this job takes the naming
+    # benchmark, the regulatory benchmark and the ruleset validation with
+    # it, reported as `skipped` rather than as anything alarming. So the
+    # three gates would have been silently disabled by wall clock.
+    #
+    # 45 matches the `linux` job below and restores real headroom against
+    # the observed spread. It is NOT a fix for the growth -- the suite has
+    # gone from ~6 minutes to a 6-21 minute band as it grew past 6000
+    # tests, and the day this budget is tight again the answer is to look
+    # at what got slower, not to raise it a second time.
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v5
@@ -215,10 +254,22 @@ jobs:
   # NON-BLOCKING. Nothing here can fail a PR -- see the header for why, and
   # for why it still has to be loud.
   linux:
-    name: linux (NON-BLOCKING, informational only)
+    name: linux ${{ matrix.replica }} (NON-BLOCKING, informational only)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     continue-on-error: true
+
+    # ONE leg on push and pull_request, exactly as before. N independent
+    # legs on a manual dispatch, for the crash-rate sampling the
+    # `workflow_dispatch` block above explains.
+    #
+    # `fail-fast: false` is load-bearing rather than tidy: with it on, the
+    # first leg to crash would cancel the rest, and an experiment whose
+    # sample size depends on its own outcome measures nothing.
+    strategy:
+      fail-fast: false
+      matrix:
+        replica: ${{ fromJSON(github.event.inputs.linux_replicas || '[1]') }}
 
     steps:
       - uses: actions/checkout@v5
@@ -277,6 +328,11 @@ jobs:
           set -o pipefail
           export QTWEBENGINE_CHROMIUM_FLAGS="--no-sandbox"
           export OPENCHEM_CENSUS="$PWD/census.txt"
+          # The experimental arm. Only the exact string "0" turns the
+          # flush off (`conftest.flush_at_dispose`), so a typo here runs
+          # the CONTROL rather than silently running the treatment.
+          export OPENCHEM_DISPOSE_FLUSH="${{ github.event.inputs.dispose_flush || '1' }}"
+          echo "arm: OPENCHEM_DISPOSE_FLUSH=$OPENCHEM_DISPOSE_FLUSH  replica: ${{ matrix.replica }}"
           xvfb-run -a uv run --no-sync python -u -m pytest -q -ra \
             --deselect "${{ env.NETWORK_TEST }}" \
             > suite.log 2>&1 || true
@@ -321,6 +377,34 @@ jobs:
           print(f"- bin/data exists: `{alt.is_dir()}`, "
                 f"space-groups.txt there: `{(alt / 'space-groups.txt').is_file()}`")
           PY
+
+      # ONE LEG, ONE BERNOULLI TRIAL, machine-readable.
+      #
+      # A replica cannot emit a 2x2 -- it is a single trial, and the table
+      # assembles across arms in `benchmarks/disposal/score.py score`.
+      # What it emits here is the one bit that experiment turns on, plus
+      # enough to REFUSE it later: a leg with neither a pytest summary nor
+      # a census trail ran nothing, and scoring it as a completion is how
+      # a partial matrix becomes a published n=10.
+      #
+      # `if: always()` because the interesting legs are the ones that
+      # crashed, and a crashed suite skips every later step by default.
+      - name: Record this leg's outcome
+        if: always()
+        continue-on-error: true
+        run: |
+          arm=control
+          [ "${{ github.event.inputs.dispose_flush || '1' }}" = "0" ] && arm=treatment
+          uv run --no-sync python benchmarks/disposal/score.py leg \
+            --census census.txt --log suite.log \
+            --arm "$arm" --replica "${{ matrix.replica }}" --out leg.json
+          {
+            echo "## Disposal A/B leg"
+            echo
+            echo '```json'
+            cat leg.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # THE FINGERPRINT, not just "passed". A raw pass count means very little
       # in a suite this size -- collected/skipped/deselected are what say
@@ -476,9 +560,14 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: linux-suite-log-${{ github.run_number }}
+          # THE REPLICA IS NOT DECORATION. `upload-artifact@v4` FAILS on a
+          # duplicate artifact name, so without it every leg past the
+          # first errors here and the experiment loses exactly the
+          # evidence it exists to collect.
+          name: linux-suite-log-${{ github.run_number }}-${{ matrix.replica }}
           path: |
             suite.log
             census.txt
+            leg.json
           if-no-files-found: warn
           retention-days: 30

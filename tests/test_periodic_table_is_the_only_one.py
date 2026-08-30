@@ -39,14 +39,14 @@ from openchem.ui.dialogs.periodic_table_dialog import (
 )
 from openchem.ui.widgets.screen_fit import fit_within
 
+import conftest
+
 
 @pytest.fixture
 def dialog(qapp):
     built = PeriodicTableDialog()
     yield built
-    built.setParent(None)
-    built.deleteLater()
-    QCoreApplication.sendPostedEvents(built, QEvent.Type.DeferredDelete)
+    conftest.dispose(built)
 
 
 def test_an_element_cells_live_tooltip_still_carries_its_contract(dialog):

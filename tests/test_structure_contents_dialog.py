@@ -8,11 +8,12 @@ docking result produced so far.
 
 from __future__ import annotations
 
-from PySide6.QtCore import QCoreApplication, QEvent
 
 from openchem.chem.structure_assembly import AssemblyAnnotation, BiologicalAssembly
 from openchem.chem.structure_summary import ChainSummary, StructureSummary
 from openchem.ui.dialogs.structure_contents_dialog import StructureContentsDialog
+
+import conftest
 
 
 def _summary() -> StructureSummary:
@@ -44,9 +45,7 @@ def _annotation(operator_applications: int) -> AssemblyAnnotation:
 
 
 def _dispose(dialog, qapp) -> None:
-    dialog.setParent(None)
-    dialog.deleteLater()
-    QCoreApplication.sendPostedEvents(dialog, QEvent.Type.DeferredDelete)
+    conftest.dispose(dialog)
     qapp.processEvents()
 
 

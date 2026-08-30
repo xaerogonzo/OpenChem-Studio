@@ -12,6 +12,8 @@ from openchem.events.events import NmrReferenceCalibrated, SpectrumComputed
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.ui.panels.quantum_chemistry_panel import QuantumChemistryPanel
 
+import conftest
+
 
 class _RecordingQuantumChemistryService(QuantumChemistryService):
     """Stands in for the real service -- captures request_calculation's
@@ -50,11 +52,8 @@ def _dispose_panel(panel) -> None:
     form drains every pending deferred delete in the process, including
     ones other test files left queued.
     """
-    from PySide6.QtCore import QCoreApplication, QEvent
 
-    panel.setParent(None)
-    panel.deleteLater()
-    QCoreApplication.sendPostedEvents(panel, QEvent.Type.DeferredDelete)
+    conftest.dispose(panel)
 
 
 

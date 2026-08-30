@@ -19,7 +19,6 @@ shrinking silently.
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent
 
 from openchem.ui.dialogs.inventory import (
     DialogContext,
@@ -27,6 +26,8 @@ from openchem.ui.dialogs.inventory import (
     iter_dialog_fixtures,
 )
 from openchem.ui.widgets.tooltip_inventory import iter_documentable_controls
+
+import conftest
 
 #: THERE IS NO EXCEPTION LIST, AND THERE WAS ONE FOR EXACTLY ONE COMMIT.
 #: `_NOT_YET_MIGRATED` held `PeriodicTableDialog` and its 137 controls
@@ -60,9 +61,7 @@ def _walk(name_filter=None) -> dict[str, list[tuple[str, str, str, object]]]:
             (c.status, c.instance_path, c.widget_class, c.help_tooltip)
             for c in iter_documentable_controls(dialog, path=fixture.name)
         ]
-        dialog.setParent(None)
-        dialog.deleteLater()
-        QCoreApplication.sendPostedEvents(dialog, QEvent.Type.DeferredDelete)
+        conftest.dispose(dialog)
     return walked
 
 
@@ -161,6 +160,4 @@ def test_a_dialog_that_cannot_be_built_says_so(qapp):
             )
             continue
         assert dialog is not None, f"{fixture.name} built None rather than refusing"
-        dialog.setParent(None)
-        dialog.deleteLater()
-        QCoreApplication.sendPostedEvents(dialog, QEvent.Type.DeferredDelete)
+        conftest.dispose(dialog)

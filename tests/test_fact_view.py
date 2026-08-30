@@ -8,7 +8,6 @@ exercised, and what the other report surfaces will depend on.
 
 from __future__ import annotations
 
-from PySide6.QtCore import QCoreApplication, QEvent
 from PySide6.QtWidgets import QPushButton
 
 from openchem.domain.report import (
@@ -22,11 +21,11 @@ from openchem.domain.report import (
 from openchem.domain.structure_issue import Basis
 from openchem.ui.widgets.fact_view import FactView, _FactRow
 
+import conftest
+
 
 def _dispose(widget) -> None:
-    widget.setParent(None)
-    widget.deleteLater()
-    QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+    conftest.dispose(widget)
 
 
 def _fact(label, category=FactCategory.IDENTITY, **overrides) -> Fact:

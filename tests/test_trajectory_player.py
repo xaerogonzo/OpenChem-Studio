@@ -14,7 +14,7 @@ for the same reason `ir_view_widget` and `nmr_view_widget` do.
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent
+from PySide6.QtCore import QEvent
 from PySide6.QtWidgets import QWidget
 
 from openchem.domain.common import Provenance
@@ -22,6 +22,8 @@ from openchem.domain.scientific_result import TrajectoryResult
 from openchem.ui.widgets.trajectory_player import EnergyTrace, TrajectoryPlayerWidget
 
 from conftest import ink, painted
+
+import conftest
 
 
 class _RecordingBackend:
@@ -80,9 +82,7 @@ def trace(qapp):
 
     yield make
     for widget in built:
-        widget.setParent(None)
-        widget.deleteLater()
-        QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+        conftest.dispose(widget)
 
 
 @pytest.fixture
@@ -96,9 +96,7 @@ def player(qapp):
 
     yield make
     for widget in built:
-        widget.setParent(None)
-        widget.deleteLater()
-        QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+        conftest.dispose(widget)
 
 
 # --- the frames ---------------------------------------------------------
