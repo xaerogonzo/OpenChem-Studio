@@ -1,0 +1,709 @@
+[
+ {
+  "file": "tests/conftest.py",
+  "line": 211,
+  "subject": "view",
+  "steps": [
+   "stop()",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/conftest.py",
+  "line": 333,
+  "subject": "view",
+  "steps": [
+   "stop()",
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/conftest.py",
+  "line": 115,
+  "subject": "obj",
+  "steps": [
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_atom_diagram.py",
+  "line": 18,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_atom_inspector_panel.py",
+  "line": 42,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_batch_detail_dialog.py",
+  "line": 263,
+  "subject": "widget",
+  "steps": [
+   "close()",
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_batch_panel.py",
+  "line": 66,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_calculator_sections.py",
+  "line": 470,
+  "subject": "panel",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_calculator_sections.py",
+  "line": 540,
+  "subject": "panel",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_calculator_sections.py",
+  "line": 650,
+  "subject": "panel",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_calculator_sections.py",
+  "line": 707,
+  "subject": "panel",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_command_palette.py",
+  "line": 17,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_comparison_panel.py",
+  "line": 27,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_conformer_details_dialog.py",
+  "line": 48,
+  "subject": "dialog",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_conformer_options_dialog.py",
+  "line": 34,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_crystal_viewer.py",
+  "line": 175,
+  "subject": "view",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_debug_drive.py",
+  "line": 40,
+  "subject": "built",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_debug_drive.py",
+  "line": 121,
+  "subject": "built",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_debug_drive.py",
+  "line": 127,
+  "subject": "built",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_dialog_help_contracts.py",
+  "line": 63,
+  "subject": "dialog",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_dialog_help_contracts.py",
+  "line": 164,
+  "subject": "dialog",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_dock_title_bar.py",
+  "line": 27,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_docking_result_inverse.py",
+  "line": 32,
+  "subject": "widget",
+  "steps": [
+   "close()",
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_element_palettes.py",
+  "line": 24,
+  "subject": "built",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_empty_states.py",
+  "line": 35,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_external_tool_executables.py",
+  "line": 26,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_fact_view.py",
+  "line": 27,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_formulation_wiring.py",
+  "line": 58,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_help.py",
+  "line": 28,
+  "subject": "widget",
+  "steps": [
+   "close()",
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_interactions_panel.py",
+  "line": 33,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_isotopes.py",
+  "line": 811,
+  "subject": "host",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": true
+ },
+ {
+  "file": "tests/test_lewis_diagram_dialog.py",
+  "line": 45,
+  "subject": "dialog",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_molecule_combo_sync.py",
+  "line": 42,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_panel_rail.py",
+  "line": 17,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_particle.py",
+  "line": 391,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_periodic_table_is_the_only_one.py",
+  "line": 47,
+  "subject": "built",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_pop_out_host.py",
+  "line": 42,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_pop_out_host.py",
+  "line": 160,
+  "subject": "window",
+  "steps": [
+   "close()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_pop_out_host.py",
+  "line": 203,
+  "subject": "window",
+  "steps": [
+   "close()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_pop_out_host.py",
+  "line": 240,
+  "subject": "panel",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_project_and_plugin_inverses.py",
+  "line": 26,
+  "subject": "widget",
+  "steps": [
+   "close()",
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_property_panel_long_values.py",
+  "line": 213,
+  "subject": "panel",
+  "steps": [
+   "hide()",
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_property_panel_long_values.py",
+  "line": 489,
+  "subject": "parent",
+  "steps": [
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_property_panel_long_values.py",
+  "line": 602,
+  "subject": "panel",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_property_panel_result_rows.py",
+  "line": 80,
+  "subject": "built",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_property_panel_result_rows.py",
+  "line": 391,
+  "subject": "built",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_property_panel_result_rows.py",
+  "line": 584,
+  "subject": "built",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_property_panel_result_rows.py",
+  "line": 633,
+  "subject": "built",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_quantum_chemistry_panel.py",
+  "line": 55,
+  "subject": "panel",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_result_presentation.py",
+  "line": 61,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_screening_service.py",
+  "line": 267,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_spatial_overlay_widget.py",
+  "line": 171,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_spatial_overlay_widget.py",
+  "line": 507,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_spatial_result_dialog.py",
+  "line": 24,
+  "subject": "dialog",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_spectrum_overlay.py",
+  "line": 44,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_structure_check_panel.py",
+  "line": 54,
+  "subject": "widget",
+  "steps": [
+   "close()",
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_structure_contents_dialog.py",
+  "line": 47,
+  "subject": "dialog",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_substance_card.py",
+  "line": 41,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_tooltip_coverage.py",
+  "line": 458,
+  "subject": "host",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_trajectory_player.py",
+  "line": 83,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_trajectory_player.py",
+  "line": 99,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_undo_refreshes_panels.py",
+  "line": 31,
+  "subject": "widget",
+  "steps": [
+   "close()",
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_virtual_screening_dialog.py",
+  "line": 41,
+  "subject": "built",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ },
+ {
+  "file": "tests/test_visual_check.py",
+  "line": 49,
+  "subject": "widget",
+  "steps": [
+   "setParent(None)",
+   "deleteLater()",
+   "sendPostedEvents(<subject>, QEvent.Type.DeferredDelete)"
+  ],
+  "via_import": false
+ }
+]
