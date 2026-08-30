@@ -106,7 +106,27 @@ jobs:
   suite:
     name: suite + gating benchmarks
     runs-on: windows-latest
-    timeout-minutes: 30
+    # 30 WAS NOT A CEILING, IT WAS A COIN FLIP -- measured across five
+    # consecutive runs, four of them on unmodified master:
+    #
+    #     1555 s   success        86% of the budget
+    #     1639 s   success        91%
+    #     1678 s   success        93%
+    #     1710 s   success        95%
+    #     1838 s   CANCELLED     102%   <- run 33333432904
+    #
+    # A timeout here is not a slow run, it is a RED GATE: this file's own
+    # header records that a failure in this job takes the naming
+    # benchmark, the regulatory benchmark and the ruleset validation with
+    # it, reported as `skipped` rather than as anything alarming. So the
+    # three gates would have been silently disabled by wall clock.
+    #
+    # 45 matches the `linux` job below and restores real headroom against
+    # the observed spread. It is NOT a fix for the growth -- the suite has
+    # gone from ~6 minutes to a 6-21 minute band as it grew past 6000
+    # tests, and the day this budget is tight again the answer is to look
+    # at what got slower, not to raise it a second time.
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v5
