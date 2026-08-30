@@ -17,8 +17,6 @@ chemistry. Each has a guard here.
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QEvent
-from PySide6.QtCore import QCoreApplication
 from PySide6.QtWidgets import QFormLayout, QLabel
 from rdkit import Chem, RDLogger
 from rdkit.Chem import Crippen
@@ -41,6 +39,8 @@ from openchem.ui.panels.property_panel import PropertyPanel, _summarise
 from openchem.ui.result_clipboard import result_to_text
 from openchem.ui.visualization import build_atom_color_layer, data_range
 
+import conftest
+
 RDLogger.DisableLog("rdApp.*")
 
 ASPIRIN = "CC(=O)Oc1ccccc1C(=O)O"
@@ -58,9 +58,7 @@ def _dispose(widget) -> None:
     including ones other test files left queued -- which is a double-free
     this repo has already recorded twice.
     """
-    widget.setParent(None)
-    widget.deleteLater()
-    QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+    conftest.dispose(widget)
 
 
 def _row_caption(panel: PropertyPanel, key: tuple[str, str]) -> str:

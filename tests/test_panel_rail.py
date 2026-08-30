@@ -7,16 +7,15 @@ two or three characters. Three grouped labels need 324.
 
 from __future__ import annotations
 
-from PySide6.QtCore import QCoreApplication, QEvent
 from PySide6.QtWidgets import QToolButton
 
 from openchem.ui.widgets.panel_rail import GROUP_LABELS, PanelRail
 
+import conftest
+
 
 def _dispose(widget) -> None:
-    widget.setParent(None)
-    widget.deleteLater()
-    QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+    conftest.dispose(widget)
 
 
 def _rail(qapp) -> PanelRail:

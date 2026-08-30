@@ -30,6 +30,8 @@ from openchem.ui.widgets.pop_out_host import PopOutHost, PopOutWindow
 from openchem.ui.widgets.screen_fit import fit_within
 from openchem.ui.widgets.tooltip_inventory import iter_documentable_controls
 
+import conftest
+
 
 def _dispose(widget) -> None:
     """Destroy one widget deterministically.
@@ -39,9 +41,7 @@ def _dispose(widget) -> None:
     ones other test files left queued, which is a double free this
     repository has already paid for.
     """
-    widget.setParent(None)
-    widget.deleteLater()
-    QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+    conftest.dispose(widget)
 
 
 @pytest.fixture
@@ -237,9 +237,7 @@ def test_destroying_the_owner_while_detached_leaves_no_window_behind(owner):
 
     assert window.parent() is host, "the window must be owned by the host, not floating free"
 
-    panel.setParent(None)
-    panel.deleteLater()
-    QCoreApplication.sendPostedEvents(panel, QEvent.Type.DeferredDelete)
+    conftest.dispose(panel)
 
     # Nothing is asserted about `content` here on purpose: it is gone,
     # correctly, along with everything else. What must not happen is a

@@ -2543,13 +2543,17 @@ to "cause" a crash, after `5a331ab`.
 ### AND THE PLATFORMS CONVERGE, FOR THE FIRST TIME
 
 `tests/test_screening_service.py` is not a new name here. It is the
-canonical **Windows** victim, recorded twice in this file at 83% and 84%,
-frame `test_screening_service.py:120 in _drain`. Linux has now landed in
-the same file at 83%.
+canonical **Windows** victim, and it has now been named **four times
+across the two platforms**, three of them at one statement:
 
-    Windows   test_screening_service.py:120 in _drain     processEvents()
-    Linux     test_screening_service.py:269 in widgets    sendPostedEvents(
-                                                          w, DeferredDelete)
+    Windows   :120 in _drain     processEvents()       83%   (recorded)
+    Windows   :120 in _drain     processEvents()       84%   (recorded)
+    Windows   :122 in _drain     processEvents()       83%   (this branch)
+    Linux     :269 in widgets    sendPostedEvents(w, DeferredDelete)  83%
+
+The third is from this branch's own first suite run -- see the figure at
+the top of "Running the tests". `:122` is `:120`: an import edit above it
+moved the line, and `_drain` is byte-identical to master.
 
 Both are event pump/flush moments in one file. **That is a datum, not a
 conclusion**: the two signatures (`Aborted` against an access violation)
@@ -3503,7 +3507,63 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-21 minutes**, ending at `6343 passed, 16 skipped`
+A clean run is **6-21 minutes**, ending at `6367 passed, 16 skipped`
+(measured 2026-08-30, **14m29**, on `linux-victim-wandered-after-all` --
+the record correction, the disposal consolidation and the A/B harness.
+
+**+24 collected and 0 REMOVED** against master at `96e8c9c`, diffed both
+directions with `comm` rather than subtracted:
+
+    master     96e8c9c   COLLECTS 6359
+    this one             COLLECTS 6383   = 6359 + 24
+    the run                       6367 passed + 16 skipped = 6383
+
+    15  test_disposal_score.py       written
+     9  test_qt_object_disposal.py   the two walker guards, the flush
+                                     default, and 6 parametrised cases
+                                     of the fail-safe parse
+
+**THE CONSOLIDATION ITSELF ADDED NOTHING, WHICH IS THE POINT.** It
+rewrote 58 disposal sites across 45 files and the collected set is
+byte-identical either side -- 0 added, 0 removed, measured before the new
+tests were written. A pure refactor that moved the count would have been
+the finding.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored,
+for the reason recorded above -- as do `^FAILED` and `^ERROR`. The skips
+are the deterministic 16. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in
+`test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**THIS FIGURE IS THE SECOND RUN, AND THE FIRST ONE CRASHED IN THE FILE
+THIS BRANCH IS ABOUT.** Recorded rather than quietly re-run, because it
+is evidence:
+
+    run 1   CRASHED at 83%, access violation, exit code 0, NO summary
+            tests/test_screening_service.py:122 in _drain
+            tests/test_screening_service.py:140 in
+                test_ligands_are_docked_one_at_a_time
+    run 2   6367 passed, 16 skipped, 14m29        <- the cited figure
+
+Line 122 is `QApplication.instance().processEvents()` -- **the same
+statement this file already records at `:120 in _drain` on two earlier
+Windows crashes**, at 83% and 84%. The line number moved by 2 because of
+an import edit above it; `_drain` itself is byte-identical to master.
+That makes THREE Windows observations at one statement, and with the
+Linux crash at `:269` it is four naming this one file.
+
+**AND ONE CRASH PLUS ONE CLEAN ON A FIXED TREE IS NOT A VERDICT ON
+EITHER SIDE.** It cannot show the branch caused it -- the disposal
+semantics are unchanged, `FLUSH_AT_DISPOSE` defaults on and every one of
+the 58 sites does exactly what it did before -- and it cannot show the
+branch did not, because 24 added tests shift collection order, which is
+precisely what this file says moves the victim. n=1 per arm, against a
+class documented at roughly 1 in 3 on Windows. The re-run is the
+discriminator this project uses and all it settles is that the tree is
+not deterministically broken.
+
+Before it: `6343 passed, 16 skipped`
 (measured 2026-08-29, **14m25**, on `constant-doc-guard` -- the `#:` ratchet.
 
 **+11 collected and 0 REMOVED** against master at `2ae9de2`:

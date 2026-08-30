@@ -37,6 +37,8 @@ from openchem.domain.particle import (
     identify,
 )
 
+import conftest
+
 _SRC = Path(__file__).resolve().parent.parent / "src" / "openchem"
 
 
@@ -386,11 +388,8 @@ def test_nothing_in_chem_imports_the_particle_model():
 
 
 def _dispose(widget):
-    from PySide6.QtCore import QCoreApplication, QEvent
 
-    widget.setParent(None)
-    widget.deleteLater()
-    QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+    conftest.dispose(widget)
 
 
 def test_the_dialog_opens_on_a_proton(qapp):

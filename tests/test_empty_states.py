@@ -16,11 +16,11 @@ exactly that reason -- both walked the map instead of the docks.
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QEvent
-from PySide6.QtCore import QCoreApplication
 from PySide6.QtWidgets import QTableWidget, QTabWidget, QWidget
 
 from openchem.ui.widgets.empty_state import empty_state, empty_state_text, is_empty_state
+
+import conftest
 
 
 def _dispose(widget) -> None:
@@ -32,9 +32,7 @@ def _dispose(widget) -> None:
     per widget, never with the global `sendPostedEvents(None, ...)` form,
     which drains deletes other files queued.
     """
-    widget.setParent(None)
-    widget.deleteLater()
-    QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+    conftest.dispose(widget)
 
 
 @pytest.fixture

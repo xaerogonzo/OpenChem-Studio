@@ -115,6 +115,91 @@ def flush_deferred_deletes():
             QCoreApplication.sendPostedEvents(obj, QEvent.Type.DeferredDelete)
 
 
+def flush_at_dispose(value: str | None) -> bool:
+    """Whether `dispose()` flushes the delete itself, from the env value.
+
+    A pure function so the mapping is testable without touching the
+    process environment -- the two-level split `ui/visual_check.py` and
+    `expansion_skip_reason` both use. **Anything but the exact string
+    `"0"` means flush**, so a typo'd value fails SAFE, onto the shipped
+    behaviour, rather than silently running the experimental arm.
+    """
+    return value != "0"
+
+
+#: The shipped behaviour, and the control arm of the experiment. Set
+#: `OPENCHEM_DISPOSE_FLUSH=0` to move the delete's delivery to end-of-test.
+FLUSH_AT_DISPOSE = flush_at_dispose(os.environ.get("OPENCHEM_DISPOSE_FLUSH"))
+
+
+def dispose(widget) -> None:
+    """Destroy a widget a test built and is walking away from.
+
+    THE ONE IMPLEMENTATION. These three lines were copy-pasted across 46
+    test files under at least six names -- `_dispose`, `dispose`,
+    `_dispose_panel`, `widgets`, `card`, and inline -- and
+    `benchmarks/disposal/inventory.md` is what they were, measured before
+    any of them was touched: 64 sequences, 8 distinct. This repository has
+    paid four times for two implementations of one idea drifting.
+
+    **IT IS NOT `dispose_app_widgets`, AND THE DIFFERENCE IS
+    LOAD-BEARING.** That fixture was reverted for crashing the suite 8 of
+    8 full runs on master (see `flush_deferred_deletes` above), and it was
+    AUTOUSE and DISCOVERED its subjects -- 112 top-level widgets a test
+    never mentioned. This serves only what a test explicitly hands over:
+    same call sites, same set, same timing as the 46 copies it replaces.
+
+    **NEVER MAKE IT AUTOUSE.** The moment it discovers its own subjects it
+    becomes the fixture that was reverted, and the reason it is safe today
+    stops being true.
+
+    A `close()` or `hide()` a site needs first stays AT that site -- 7 of
+    the 64 sequences have one, and folding a flag in here would make one
+    helper mean three things.
+
+    **THERE IS NO SHARED `widgets` FIXTURE, and that was measured rather
+    than assumed.** One was written and deleted: ten test files define
+    their own `widgets`, every one of which SHADOWS a conftest fixture of
+    that name, so the shared version would have resolved for nothing --
+    the "shipped is not reachable" failure `test_calculator_reachability`
+    exists for. And six of the ten must `close()` each widget first,
+    which a shared fixture cannot express without becoming the flag this
+    docstring just refused. They delegate here instead, which is what
+    makes this the one implementation.
+
+    IT IS A PLAIN FUNCTION, reached with `import conftest`. That form
+    finds the module pytest already loaded; `from tests.conftest import x`
+    imports the same file AGAIN under a second name and re-runs it at
+    module level, which is the hazard `_start_census` guards against.
+
+    ## THE FLUSH IS THE EXPERIMENTAL VARIABLE, AND IT IS ENV-GATED
+
+    Both Linux frames of ours ever named are this line
+    (`test_panel_rail.py:19`, `test_screening_service.py:269`), and the
+    reverted `dispose_app_widgets` crashed 8 of 8 doing the same thing
+    automatically. That is a LEAD, not a cause, and
+    `OPENCHEM_DISPOSE_FLUSH=0` is what lets it be tested.
+
+    **Both arms still destroy the object. Only the TIMING changes** --
+    with the flush off, `flush_deferred_deletes` above delivers the same
+    `DeferredDelete` per object at end of test instead of here. Nothing
+    is left queued.
+
+    **The variable is an env var and NOT a second branch**, deliberately.
+    This branch's own finding is that a byte-identical tree crashes in
+    different files on different runs, so an A/B whose arms are different
+    commits invites exactly the explanation it cannot rule out. One
+    commit, one env var, two dispatches.
+
+    Same shape as `OPENCHEM_CENSUS`: off by default, costing nothing, and
+    the default is guarded so it cannot drift.
+    """
+    widget.setParent(None)
+    widget.deleteLater()
+    if FLUSH_AT_DISPOSE:
+        QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+
+
 # Weak refs to every QWebEngineView built since the current test started.
 # Weak so that merely watching a view never keeps it alive.
 _views_created_during_test: list[weakref.ref] = []

@@ -18,12 +18,13 @@ from collections import Counter
 
 import pytest
 
-from PySide6.QtCore import QCoreApplication, QEvent
 
 from openchem.bootstrap import build_service_container
 from openchem.domain.calculator import RegistryExecution
 from openchem.domain.common import CacheState
 from openchem.ui.panels.property_panel import _CATEGORY_LABELS, _CATEGORY_ORDER
+
+import conftest
 
 #: The one category that may hold a single calculator, and why.
 #:
@@ -467,9 +468,7 @@ def test_the_panels_button_label_is_the_calculator_name_and_nothing_else(qapp):
         assert not offenders, offenders
         assert "Elemental Analysis..." in labels
     finally:
-        panel.setParent(None)
-        panel.deleteLater()
-        QCoreApplication.sendPostedEvents(panel, QEvent.Type.DeferredDelete)
+        conftest.dispose(panel)
 
 
 def test_the_heading_and_the_copied_text_agree(qapp):
@@ -537,9 +536,7 @@ def test_the_heading_and_the_copied_text_agree(qapp):
         assert "Plugin_Supplied_Tools" not in copied
         assert _category_label(category) == heading
     finally:
-        panel.setParent(None)
-        panel.deleteLater()
-        QCoreApplication.sendPostedEvents(panel, QEvent.Type.DeferredDelete)
+        conftest.dispose(panel)
 
 
 def test_a_named_category_is_not_title_cased(qapp):
@@ -647,9 +644,7 @@ def test_a_declared_category_routes_a_dataset_the_registry_cannot_place():
             "where it belongs"
         )
     finally:
-        panel.setParent(None)
-        panel.deleteLater()
-        QCoreApplication.sendPostedEvents(panel, QEvent.Type.DeferredDelete)
+        conftest.dispose(panel)
 
 
 def test_an_undeclared_dataset_still_asks_the_registry():
@@ -704,9 +699,7 @@ def test_an_undeclared_dataset_still_asks_the_registry():
             "so the registry fallback has been removed"
         )
     finally:
-        panel.setParent(None)
-        panel.deleteLater()
-        QCoreApplication.sendPostedEvents(panel, QEvent.Type.DeferredDelete)
+        conftest.dispose(panel)
 
 
 def test_the_guide_states_the_real_number_of_collapsible_categories():

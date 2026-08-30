@@ -13,7 +13,6 @@ import os
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent
 
 from openchem.app.settings import Settings
 from openchem.events.base import EventBus
@@ -21,11 +20,11 @@ from openchem.services import tool_download_service as tools
 from openchem.ui.dialogs.external_tool_catalog import orca, vina
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
 
+import conftest
+
 
 def _dispose(widget) -> None:
-    widget.setParent(None)
-    widget.deleteLater()
-    QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+    conftest.dispose(widget)
 
 
 @pytest.fixture

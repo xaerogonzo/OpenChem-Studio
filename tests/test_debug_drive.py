@@ -12,10 +12,12 @@ from __future__ import annotations
 import json
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent
+from PySide6.QtCore import QCoreApplication
 from PySide6.QtWidgets import QWidget
 
 import openchem.app.debug_drive as debug_drive
+
+import conftest
 
 
 @pytest.fixture
@@ -37,9 +39,7 @@ def window(qapp):
     """
     built = QWidget()
     yield built
-    built.setParent(None)
-    built.deleteLater()
-    QCoreApplication.sendPostedEvents(built, QEvent.Type.DeferredDelete)
+    conftest.dispose(built)
 
 
 def test_it_does_nothing_unless_the_variable_is_set(monkeypatch):
@@ -118,15 +118,11 @@ def test_destroying_the_window_stops_the_script(qapp, monkeypatch):
         driver = debug_drive._Driver(built, list(steps))
         driver.start()
         if destroy:
-            built.setParent(None)
-            built.deleteLater()
-            QCoreApplication.sendPostedEvents(built, QEvent.Type.DeferredDelete)
+            conftest.dispose(built)
         for _ in range(10):
             QCoreApplication.processEvents()
         if not destroy:
-            built.setParent(None)
-            built.deleteLater()
-            QCoreApplication.sendPostedEvents(built, QEvent.Type.DeferredDelete)
+            conftest.dispose(built)
         return driver._index
 
     advanced = run_a_script(destroy=False)

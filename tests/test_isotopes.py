@@ -21,6 +21,8 @@ from openchem.domain.molecule import MoleculeModel
 from openchem.events.base import EventBus
 from openchem.events.events import ConformersInvalidated
 
+import conftest
+
 
 def _drawn(smiles: str, *, explicit_hydrogens: bool = False) -> str:
     mol = Chem.MolFromSmiles(smiles)
@@ -808,8 +810,4 @@ def test_the_backend_says_whether_it_armed(qapp, tmp_path):
         backend._ketcher_ready = True
         assert backend.set_atom_tool("C", 13) is True
     finally:
-        host.setParent(None)
-        host.deleteLater()
-        from PySide6.QtCore import QCoreApplication, QEvent
-
-        QCoreApplication.sendPostedEvents(host, QEvent.Type.DeferredDelete)
+        conftest.dispose(host)

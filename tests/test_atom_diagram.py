@@ -8,16 +8,13 @@ no painter at all. `conftest.painted()` renders into a QImage, which does.
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent
 
 from conftest import ink, painted
 from openchem.ui.widgets.atom_diagram import AtomDiagram, OrbitalBoxes, ShellDiagram
 
 
 def _dispose(widget) -> None:
-    widget.setParent(None)
-    widget.deleteLater()
-    QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+    conftest.dispose(widget)
 
 
 @pytest.fixture
@@ -547,6 +544,8 @@ _MIN_ELECTRON_CLEARANCE = 2.0
 # that a constant happened to suit it.
 
 import pytest
+
+import conftest
 
 
 @pytest.mark.parametrize("symbol", ["H", "Br", "Po", "U"])

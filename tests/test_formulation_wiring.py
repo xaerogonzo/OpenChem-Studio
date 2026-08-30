@@ -16,7 +16,6 @@ The split is deliberate. The guard says *something calls it*; these say
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent
 from PySide6.QtWidgets import QDialog
 
 from openchem.commands.formulation_commands import (
@@ -28,6 +27,8 @@ from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
 from openchem.events.events import FormulationChanged, FormulationSelected
 from openchem.ui.dialogs.formulation_dialog import FormulationDialog
+
+import conftest
 
 
 #: ANFO, the case the whole feature exists for: both components are
@@ -55,9 +56,7 @@ def _dispose(widget) -> None:
     in the process, including ones other files left queued -- see
     CLAUDE.md.
     """
-    widget.setParent(None)
-    widget.deleteLater()
-    QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+    conftest.dispose(widget)
 
 
 @pytest.fixture

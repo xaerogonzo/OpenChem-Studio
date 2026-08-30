@@ -23,7 +23,7 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from PySide6.QtCore import QCoreApplication, QEvent, QRect
+from PySide6.QtCore import QRect
 from PySide6.QtWidgets import QFormLayout, QLabel, QWidget
 
 from openchem.ui import visual_check
@@ -38,6 +38,8 @@ from openchem.ui.visual_check import (
     painted_items,
 )
 
+import conftest
+
 
 def _dispose(widget: QWidget) -> None:
     """The per-widget recipe, never the global drain.
@@ -46,9 +48,7 @@ def _dispose(widget: QWidget) -> None:
     delete in the process, including ones other test files left queued,
     which is a double free.
     """
-    widget.setParent(None)
-    widget.deleteLater()
-    QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+    conftest.dispose(widget)
 
 
 def _item(

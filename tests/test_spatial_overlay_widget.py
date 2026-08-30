@@ -9,7 +9,7 @@ NOTHING drawn rather than the previous conformer's geometry.
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent
+from PySide6.QtCore import QCoreApplication
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
@@ -25,6 +25,8 @@ from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.spatial_overlay_service import SINGLE_VIEW_CELL, SpatialOverlayService
 from openchem.ui.widgets.molecule_viewer3d_widget import MoleculeViewer3DWidget
 from tests.test_molecule_viewer3d_widget import FakeViewerBackend
+
+import conftest
 
 PARAMETERS_KEY = f"{INPUT_PREFIX}parameters"
 
@@ -168,9 +170,7 @@ def viewer(qapp):
         spatial_overlay_service=service,
     )
     yield widget, backend, service, pool, bus
-    widget.setParent(None)
-    widget.deleteLater()
-    QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+    conftest.dispose(widget)
 
 
 def test_the_control_stays_off_until_something_has_answered_with_geometry(viewer):
@@ -504,9 +504,7 @@ def gallery(qapp):
         spatial_overlay_service=service,
     )
     yield widget, backend, service, pool, bus
-    widget.setParent(None)
-    widget.deleteLater()
-    QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+    conftest.dispose(widget)
 
 
 #: 2 x 3 is the default gallery, so a page holds six cells and eight

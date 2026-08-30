@@ -13,7 +13,6 @@ where it could still be selected and docked against.
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent
 
 from openchem.app.main_window import MainWindow
 from openchem.app.session import SessionManager
@@ -22,6 +21,8 @@ from openchem.bootstrap import build_service_container
 from openchem.domain.macromolecule import MacromoleculeModel
 from openchem.domain.molecule import MoleculeModel
 
+import conftest
+
 
 @pytest.fixture
 def widgets():
@@ -29,9 +30,7 @@ def widgets():
     yield built
     for widget in built:
         widget.close()
-        widget.setParent(None)
-        widget.deleteLater()
-        QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+        conftest.dispose(widget)
 
 
 @pytest.fixture

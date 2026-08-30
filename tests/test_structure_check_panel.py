@@ -10,7 +10,7 @@ objects with it, which is the double-free CLAUDE.md records.
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent, Qt
+from PySide6.QtCore import QCoreApplication, Qt
 from PySide6.QtWidgets import QLabel
 from rdkit import Chem
 from rdkit.Chem import AllChem
@@ -36,6 +36,8 @@ from openchem.services.structure_check_service import StructureCheckService
 from openchem.ui.panels.structure_check_panel import StructureCheckPanel
 from openchem.ui.widgets.checker_status_indicator import CheckerStatusIndicator
 
+import conftest
+
 
 def molblock_for(smiles: str, mutate=None) -> str:
     mol = Chem.MolFromSmiles(smiles, sanitize=False)
@@ -52,9 +54,7 @@ def widgets():
     yield built
     for widget in built:
         widget.close()
-        widget.setParent(None)
-        widget.deleteLater()
-        QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+        conftest.dispose(widget)
 
 
 @pytest.fixture

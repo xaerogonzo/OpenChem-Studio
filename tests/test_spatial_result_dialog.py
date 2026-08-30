@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QCoreApplication, QEvent
 
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
 from openchem.chem.dipole import compute_dipole_moment
 from openchem.ui.dialogs.spatial_result_dialog import SpatialResultDialog
+
+import conftest
 
 
 def _conformer_mol():
@@ -21,9 +22,7 @@ def _conformer_mol():
 
 
 def _dispose(dialog) -> None:
-    dialog.setParent(None)
-    dialog.deleteLater()
-    QCoreApplication.sendPostedEvents(dialog, QEvent.Type.DeferredDelete)
+    conftest.dispose(dialog)
 
 
 def test_the_dialog_hands_the_annotations_to_the_renderer(qapp):

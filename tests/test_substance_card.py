@@ -8,7 +8,6 @@ one of the two is missing.
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent
 from rdkit import Chem
 
 from openchem.chem.substance import compute_substance_analysis
@@ -19,6 +18,8 @@ from openchem.ui.widgets.substance_card import (
     SubstanceCardData,
     card_data_from_report,
 )
+
+import conftest
 
 FERROCENE = "[Fe+2].[cH-]1cccc1.[cH-]1cccc1"
 SODIUM_CHLORIDE = "[Na+].[Cl-]"
@@ -38,9 +39,7 @@ def card(qapp):
     happens to be pumping events, which is an access violation."""
     widget = SubstanceCard()
     yield widget
-    widget.setParent(None)
-    widget.deleteLater()
-    QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+    conftest.dispose(widget)
 
 
 # --- the shape changes with the substance -----------------------------------

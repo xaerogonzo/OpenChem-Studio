@@ -9,21 +9,20 @@ from the palette computing it.
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent
 
 from openchem.chem import element_palettes as palettes
 from openchem.chem import nuclides as N
 from openchem.chem.element_reference import all_symbols, facts_for
 from openchem.ui.dialogs.periodic_table_dialog import PeriodicTableDialog
 
+import conftest
+
 
 @pytest.fixture
 def dialog(qapp):
     built = PeriodicTableDialog()
     yield built
-    built.setParent(None)
-    built.deleteLater()
-    QCoreApplication.sendPostedEvents(built, QEvent.Type.DeferredDelete)
+    conftest.dispose(built)
 
 
 # --- the scale is a value, and the mapping is a pure function ---------------

@@ -33,6 +33,8 @@ from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.ui.panels.property_panel import PropertyPanel
 from openchem.ui.widgets.collapsible_section import CollapsibleSection
 
+import conftest
+
 #: A real Geometry result. Six lines, and the longest needs ~187 px on
 #: one line at the default font.
 GEOMETRY_LINES = [
@@ -211,9 +213,7 @@ def _dispose(panel, qapp) -> None:
     from PySide6.QtCore import QCoreApplication, QEvent
 
     panel.hide()
-    panel.setParent(None)
-    panel.deleteLater()
-    QCoreApplication.sendPostedEvents(panel, QEvent.Type.DeferredDelete)
+    conftest.dispose(panel)
 
 
 def test_the_probe_can_see_a_clip_at_all(qapp):
@@ -599,9 +599,7 @@ def test_a_long_calculator_name_does_not_widen_the_panel(qapp):
             f"row is clipped on the right"
         )
     finally:
-        panel.setParent(None)
-        panel.deleteLater()
-        QCoreApplication.sendPostedEvents(panel, QEvent.Type.DeferredDelete)
+        conftest.dispose(panel)
 
 
 # --- the WIDTH oracle -------------------------------------------------------

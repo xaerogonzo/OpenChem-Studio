@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent, Qt
+from PySide6.QtCore import QCoreApplication, Qt
 from PySide6.QtWidgets import QPushButton
 from rdkit import Chem
 
@@ -27,6 +27,8 @@ from openchem.events.base import EventBus
 from openchem.events.events import MoleculeSelected, PerAtomDataComputed
 from openchem.ui.panels.atom_inspector_panel import AtomInspectorPanel, format_report
 
+import conftest
+
 CHALCONE = "c1ccc(cc1)C=CC(=O)c1ccccc1"
 CARBONYL_O = 9
 _PROVENANCE = Provenance(created_by="core", method="test")
@@ -39,9 +41,7 @@ def dispose(widget) -> None:
     every pending delete in the process, including ones other test files
     left queued, which is a double-free.
     """
-    widget.setParent(None)
-    widget.deleteLater()
-    QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+    conftest.dispose(widget)
 
 
 def molecule(smiles: str = CHALCONE, name: str = "chalcone") -> MoleculeModel:

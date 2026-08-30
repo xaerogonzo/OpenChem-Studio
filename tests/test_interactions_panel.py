@@ -10,7 +10,7 @@ an access violation inside some unrelated event-driven test.
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent, Qt
+from PySide6.QtCore import QCoreApplication, Qt
 from rdkit import Chem
 
 from openchem.chem.engine import ChemistryEngine
@@ -22,6 +22,8 @@ from openchem.events.base import EventBus
 from openchem.events.events import QuantumChemistryResultReady
 from openchem.ui.panels.interactions_panel import InteractionsPanel
 
+import conftest
+
 
 def dispose(widget) -> None:
     """Destroy one widget now, flushing only ITS deferred delete.
@@ -30,9 +32,7 @@ def dispose(widget) -> None:
     every pending delete in the process, including ones other test files
     left queued, which is a double-free.
     """
-    widget.setParent(None)
-    widget.deleteLater()
-    QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+    conftest.dispose(widget)
 
 
 def molecule(name: str, smiles: str) -> MoleculeModel:

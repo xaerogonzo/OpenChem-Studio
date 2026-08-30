@@ -18,6 +18,8 @@ from openchem.chem.spectrum_overlay import (
 )
 from openchem.domain.scientific_result import VibrationalMode
 
+import conftest
+
 
 def _measured(y, units="TRANSMITTANCE", x=None):
     return JcampSpectrum(
@@ -36,14 +38,11 @@ def widgets():
     has gone -- an access violation, in a file that never called
     processEvents itself. Flushed PER WIDGET, never globally.
     """
-    from PySide6.QtCore import QCoreApplication, QEvent
 
     built = []
     yield built
     for widget in built:
-        widget.setParent(None)
-        widget.deleteLater()
-        QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+        conftest.dispose(widget)
 
 
 # --- Transmittance to absorbance, and only in that direction ------------

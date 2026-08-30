@@ -10,7 +10,6 @@ binding affinities.
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent
 from rdkit import Chem
 
 from openchem.app.main_window import MainWindow
@@ -23,6 +22,8 @@ from openchem.domain.macromolecule import MacromoleculeModel
 from openchem.domain.molecule import MoleculeModel
 from openchem.events.events import DockingResultReady
 
+import conftest
+
 
 @pytest.fixture
 def widgets():
@@ -30,9 +31,7 @@ def widgets():
     yield built
     for widget in built:
         widget.close()
-        widget.setParent(None)
-        widget.deleteLater()
-        QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+        conftest.dispose(widget)
 
 
 @pytest.fixture

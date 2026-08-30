@@ -8,15 +8,15 @@ lists things but puts the obvious answer fourth is worse than none.
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent, Qt
+from PySide6.QtCore import QEvent, Qt
 
 from openchem.ui.dialogs.command_palette import Command, CommandPalette, rank, score
 
+import conftest
+
 
 def _dispose(widget) -> None:
-    widget.setParent(None)
-    widget.deleteLater()
-    QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+    conftest.dispose(widget)
 
 
 def _command(label: str, source: str = "Panel") -> Command:
