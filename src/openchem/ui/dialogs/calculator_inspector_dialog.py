@@ -109,9 +109,32 @@ class _CalculatorResultView(QWidget):
             # renders as an uncoloured molecule beside a blank line, which
             # reads as broken rather than as "nothing found".
             summary_text = summary_note(result)
+        # WHAT AM I LOOKING AT. `result.name` carries the parameters that
+        # change the answer -- "Partial Charge (Gasteiger) at pH 7.4 incl.
+        # H" states the pH AND the hydrogen mode -- and this dialog showed
+        # neither, while the window title carries only the molecule.
+        #
+        # That is how a correct number came to read as a wrong one: the
+        # Properties panel says "Total charge 0" for the drawn structure
+        # and this said "Net calculated charge: 1.00 e" for the pH 7.4
+        # microspecies, with nothing on screen relating the two.
+        name_label = QLabel(getattr(result, "name", "") or "", self)
+        name_label.setWordWrap(True)
+        name_label.setVisible(bool(name_label.text()))
+
         summary_label = QLabel(summary_text, self)
         summary_label.setWordWrap(True)
         summary_label.setVisible(bool(summary_text))
+
+        # A PRODUCER'S OWN SENTENCE, AND IT MUST NOT BE AN EITHER/OR.
+        # `summary_note` was reachable only when there was NO total, so a
+        # result that has both a headline and something to explain about it
+        # could not say the second thing. The charge calculator is exactly
+        # that case: it has a total, and the interesting fact is which
+        # SPECIES the total belongs to.
+        note_label = QLabel(summary_note(result) if total is not None else "", self)
+        note_label.setWordWrap(True)
+        note_label.setVisible(bool(note_label.text()))
 
         # WHY THE ATOMS BELOW MAY NOT ADD UP TO IT.
         #
@@ -223,7 +246,9 @@ class _CalculatorResultView(QWidget):
         surface_row.addStretch()
 
         layout = QVBoxLayout(self)
+        layout.addWidget(name_label)
         layout.addWidget(summary_label)
+        layout.addWidget(note_label)
         layout.addWidget(balance_label)
         layout.addLayout(views_row)
         layout.addLayout(surface_row)

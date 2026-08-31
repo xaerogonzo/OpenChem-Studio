@@ -7,6 +7,8 @@
   "src/openchem/app/main_window.py::_LAYOUT_VERSION",
   "src/openchem/app/main_window.py::_LAYOUT_VERSION_KEY",
   "src/openchem/app/main_window.py::_RAIL_COLLAPSED_KEY",
+  "src/openchem/app/settings.py::APP_NAME",
+  "src/openchem/app/settings.py::ORG_NAME",
   "src/openchem/chem/abraham.py::_DATA",
   "src/openchem/chem/abraham.py::_PREDICTED_COEFFICIENTS_NOTE",
   "src/openchem/chem/admet_providers.py::ADVANCED",

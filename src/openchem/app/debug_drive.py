@@ -332,6 +332,45 @@ class _Driver(QObject):
         combo.setCurrentIndex(index)
         logger.warning("OPENCHEM_DRIVE: dock_receptor -> %r", combo.currentText())
 
+    def _do_dock_run(self, step: dict[str, Any]) -> None:
+        """Press the Docking panel's Dock button, for real.
+
+        `{"do": "dock_run", "after_ms": 240000}`
+
+        THE BUTTON, NOT `_on_dock_clicked` -- the same reason `jobs_cancel`
+        presses a real row's button. The handler reads the panel's current
+        selection and enabled state, so calling it directly proves the
+        handler works and says nothing about whether the control is wired,
+        which is the half a screenshot is being taken to check.
+
+        Docking is ASYNCHRONOUS and runs a real Vina. Give the step an
+        `after_ms` long enough for the result to come back, or the next step
+        photographs a viewer that has not been handed a pose yet -- which
+        looks exactly like the pose failing to draw.
+
+        A DISABLED BUTTON IS LOGGED RATHER THAN CLICKED. Qt silently ignores
+        a click on a disabled control, so without this the run would report
+        a healthy `dock_run` step and simply never dock -- the wrong-panel-id
+        trap in another costume.
+        """
+        panel = getattr(self._window, "_docking_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: no docking panel on this window")
+            return
+        button = panel._dock_button
+        if not button.isEnabled():
+            logger.error(
+                "OPENCHEM_DRIVE: dock_run -- the Dock button is DISABLED "
+                "(receptor=%r, no docking started)",
+                panel._receptor_combo.currentText(),
+            )
+            return
+        logger.warning(
+            "OPENCHEM_DRIVE: dock_run -> pressing Dock (receptor=%r)",
+            panel._receptor_combo.currentText(),
+        )
+        button.click()
+
     def _do_dock_panel(self, step: dict[str, Any]) -> None:
         """Report what the Docking panel's search box currently says.
 
@@ -783,6 +822,56 @@ class _Driver(QObject):
             ),
         )
 
+    def _do_inspect(self, step: dict[str, Any]) -> None:
+        """Open the Calculator Inspector on a per-atom calculator's result.
+
+        `{"do": "inspect", "id": "gasteiger_charge_at_ph"}`, then
+        `{"do": "shot", "widget": "inspector"}`.
+
+        **`show()`, NEVER `exec()`.** The panel's own `_open_inspector`
+        ends in `exec()`, which spins an event loop inside the handler --
+        the next step is never scheduled and an unattended run stalls on a
+        window with nobody to close it. Same trap `lewis` documents.
+
+        WHAT THIS DOES AND DOES NOT DRIVE, stated because it matters:
+        it builds the real dialog from a real computed result, so what is
+        photographed is the dialog as a user sees it. It does NOT go
+        through the panel's reveal-and-click path, which is unchanged and
+        covered by `tests/test_property_panel.py`.
+        """
+        from openchem.ui.dialogs.calculator_inspector_dialog import (
+            CalculatorInspectorDialog,
+        )
+        from openchem.chem.calculation_input import canonical_conformer
+
+        window = self._window
+        panel = window._property_panel
+        calculator_id = str(step["id"])
+        definition = window._services.calculator_registry.get(calculator_id)
+        if definition is None:
+            logger.error("OPENCHEM_DRIVE: no calculator %r", calculator_id)
+            return
+        molecule = window._session.project.find_molecule(panel._selected_molecule_uuid)
+        if molecule is None:
+            logger.error("OPENCHEM_DRIVE: no molecule selected for %r", calculator_id)
+            return
+        parameters = {p.name: p.default for p in definition.parameters}
+        parameters.update(step.get("parameters") or {})
+        mol = window._services.chemistry_engine.mol_from_model(molecule)
+        result = definition.execution.compute(mol, molecule.uuid, parameters)
+        best = canonical_conformer(molecule)
+        self._inspector = CalculatorInspectorDialog(
+            window._services.chemistry_engine,
+            molecule,
+            result,
+            best.molblock if best is not None else None,
+            window,
+        )
+        self._inspector.show()
+        logger.warning(
+            "OPENCHEM_DRIVE: inspect %s -> %r", calculator_id, getattr(result, "name", "")
+        )
+
     def _do_shot(self, step: dict[str, Any]) -> None:
         """Save a picture of the window from inside Qt.
 
@@ -817,6 +906,11 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no dialog open; run {'do': 'dialog', ...}")
                 return
             target = self._dialog
+        elif step.get("widget") == "inspector":
+            if getattr(self, "_inspector", None) is None:
+                logger.error("OPENCHEM_DRIVE: no inspector open; run {'do': 'inspect', ...}")
+                return
+            target = self._inspector
         elif step.get("widget") == "spatial":
             if getattr(self, "_spatial", None) is None:
                 logger.error("OPENCHEM_DRIVE: no spatial dialog open; run {'do': 'spatial'}")

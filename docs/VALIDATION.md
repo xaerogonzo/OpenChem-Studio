@@ -387,6 +387,63 @@ exception.
 
 ---
 
+## Partial charges — the paper's own Table 3, and a species chosen by the hash seed
+
+**Method.** Gasteiger & Marsili's Table 3 ([source:gasteiger1980], p3224)
+prints PEOE charges on carbon in millielectrons for 17 compounds and 22
+values. All 22 are held in
+[`tests/test_gasteiger_charges.py`](../tests/test_gasteiger_charges.py) and
+compared against RDKit's `rdPartialCharges.ComputeGasteigerCharges`, which
+is what this application's charges, dipoles and ESP surfaces are built on.
+
+| | |
+| --- | --- |
+| n | 22 carbons over 17 compounds |
+| mean | −1.9 me |
+| MAE | 2.1 me |
+| max \|diff\| | 8.6 me |
+
+A millielectron is 0.001 e and the paper prints whole millielectrons, so
+±0.5 me is rounding before anything else. The three largest deviations —
+H₂CO 8.6, \*CH₃CF₃ 7.2, CH₃\*CHO 6.6 — are π-containing or heavily
+fluorinated, which is where the abstract itself scopes the method
+("σ-bonded and nonconjugated π-systems").
+
+**Both outcomes were written down before measuring.** A library's
+implementation is not always the paper's — RDKit's own SA and NP scores
+document divergences from Ertl in their headers — so disagreement would
+have been recorded as a finding with numbers and `gasteiger1980` left at
+`verification = "citation"`. It agreed, so the entry is
+`citation_and_claim`.
+
+Table 3 was read from a 320 dpi render rather than the text layer, which
+gives the paper's own page range as "3219 to 3288" where ten pages from
+3219 is 3228. The paper states its own count in prose ("these were 17
+compounds and 22 values"), which is a free acceptance test on the
+transcription and is asserted.
+
+### The charge was right and the MOLECULE was chosen by the hash seed
+
+Separately, and worth more than the agreement above: `protonate_at_ph`
+selected the ionization state to charge by taking the first entry of
+Dimorphite-DL's output. That output **enumerates** microspecies rather
+than ranking them, and its order comes from a set iteration — so the
+species depended on `PYTHONHASHSEED`. Measured on one molecule at pH 7.4,
+eight separate processes returned net charges of 0, +1 and +2, and
+`logd_from_microspecies` ranged **1.68 to 4.38** — a factor of 500 in
+partition coefficient.
+
+Determinism was half the fix. Dimorphite's amine site is
+`[C:1]-[NX3+0:2]` at pKa 8.16 with no exclusion for an adjacent carbonyl,
+while its amide rule requires an N–H, so every *tertiary* amide is
+over-protonated at pH 7.4. Over sixteen drug-like molecules with
+literature charge states, five were wrong and all five were that class;
+after the correction, 16 of 16.
+
+→ [`tests/test_protonation_microspecies.py`](../tests/test_protonation_microspecies.py)
+
+---
+
 ## Regulatory rules — scored per rule, and one is not perfect
 
 **Method.** 148 structures across four corpora — positives, negatives, edge

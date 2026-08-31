@@ -278,3 +278,23 @@ class ScientificResult:
     # writes it changed. See `describe_failure` for why the pair is two
     # plain strings rather than one widened field.
     error_summary: str | None = None
+    # WHY IT FAILED, in the only sense a view can act on: is this a fault
+    # or a limit of the method?
+    #
+    # `False` (the default) means a FAULT -- something broke, or the input
+    # is invalid, and the user may be able to do something about it.
+    # "Needs a 3D conformer" is a fault in this sense: it names an action.
+    #
+    # `True` means the METHOD DOES NOT COVER THIS MOLECULE, which is a
+    # correct and permanent statement rather than something going wrong.
+    # Joback has no group for a ring tertiary amine; Kamlet-Jacobs needs a
+    # measured loading density that no structure can supply. Painting
+    # those the same red as a crash is what made two working calculators
+    # read as broken.
+    #
+    # DECLARED BY THE PRODUCER, never sniffed from the message. `if "no
+    # group for" in error` as application logic is exactly what
+    # `joback.refusal_text` exists to prevent. Optional and defaulting to
+    # today's behaviour, for the same reason `error_summary` is: every
+    # producer that declines to declare one is completely unmoved.
+    inapplicable: bool = False

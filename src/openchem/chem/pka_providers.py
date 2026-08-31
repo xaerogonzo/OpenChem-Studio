@@ -44,40 +44,161 @@ from openchem.chem.engine import InvalidStructureError
 
 logger = logging.getLogger("openchem.chemistry")
 
-# Settings key holding the path to a Python interpreter that has pkasolver
-# installed. Configured via Tools -> External Tools, same as ORCA's and
-# Vina's executables.
+#: Settings key holding the path to a Python interpreter that has pkasolver
+#: installed. Configured via Tools -> External Tools, same as ORCA's and
+#: Vina's executables.
 PKASOLVER_PYTHON_SETTING = "pka/pkasolver_python_path"
 
+#: The sidecar script `compute_pka` runs in the pkasolver interpreter. A
+#: separate process because pkasolver pins its own torch and RDKit; a
+#: separate FILE because an inline `-c` program cannot be linted or tested.
 _RUNNER = Path(__file__).resolve().parent / "pka_runner.py"
 
-# A pkasolver call loads a 105 MB ensemble of models per invocation, so it
-# is slow but bounded -- generous enough not to fail a legitimate run on a
-# cold filesystem cache, short enough not to hang the UI forever.
+#: A pkasolver call loads a 105 MB ensemble of models per invocation, so it
+#: is slow but bounded -- generous enough not to fail a legitimate run on a
+#: cold filesystem cache, short enough not to hang the UI forever.
 _TIMEOUT_SECONDS = 300
 
 
-def protonate_at_ph(mol: Chem.Mol, ph: float) -> Chem.Mol:
-    """Returns a new Mol representing the dominant ionization microspecies
-    at `ph`, via Dimorphite-DL's curated SMARTS/pKa-range library
-    (confirmed live: `protonate_smiles("CC(=O)O", ph_min=2, ph_max=2)` ->
-    neutral carboxylic acid; the same call at pH 7.4/12 -> deprotonated
-    carboxylate, matching acetic acid's real pKa ~4.76).
+#: Nitrogen whose lone pair is DELOCALISED into an adjacent electron sink,
+#: written against the PROTONATED product: an N carrying four connections
+#: and a positive charge, bonded to a carbonyl, a thiocarbonyl or a
+#: sulfonyl. Such a nitrogen is not a base at any physiological pH -- the
+#: lone pair is in the pi system rather than available to a proton -- and
+#: an amide's conjugate acid sits around pKa -0.5, some eight units below
+#: the pH this application asks about.
+_OVERPROTONATED_N = Chem.MolFromSmarts(
+    "[$([NX4+]-[CX3]=[OX1]),$([NX4+]-[CX3]=[SX1]),$([NX4+]-[SX4](=[OX1])=[OX1])]"
+)
 
-    Standalone and not charge-specific on purpose -- a future second
-    consumer of "the pH-appropriate structure" can reuse this directly
-    instead of duplicating the protonate-then-reparse pipeline.
+
+@dataclass(frozen=True)
+class Microspecies:
+    """The dominant ionization state at one pH, and what it took to get it.
+
+    `corrected_atoms` is empty on the ordinary path. When it is not, this
+    module overrode Dimorphite-DL on the atoms it names -- reported rather
+    than applied silently, because a charge distribution that quietly
+    disagrees with the library that produced it is the kind of number this
+    project spends its time removing.
+    """
+
+    mol: Chem.Mol
+    formal_charge: int
+    corrected_atoms: tuple[int, ...] = ()
+
+
+def dominant_microspecies(mol: Chem.Mol, ph: float) -> Microspecies:
+    """The single dominant ionization state at `ph`.
+
+    **`variants[0]` WAS NOT A RANKING, AND THE ORDER CAME FROM THE HASH
+    SEED.** Dimorphite-DL ENUMERATES microspecies; it does not sort them.
+    This module used to take the first and call it dominant. Measured on
+    an isobutyrylfentanyl at pH 7.4, eight separate processes returned
+    THREE different net charges for one molecule:
+
+        chg  +1  +0  +1  +0  +1  +0  +2  +0
+
+    Within one process twelve calls agreed, and `PYTHONHASHSEED=0` was
+    stable across processes while varying seeds were not -- so the order
+    is a set iteration escaping into a scientific answer. It reached six
+    production consumers, and logD moved **1.68 to 4.38** on one molecule,
+    a factor of 500 in partition coefficient.
+
+    `precision=0.0` is the fix for that half: it collapses Dimorphite's
+    window to the pKa itself, so exactly one state comes back and the
+    answer no longer depends on anything but the chemistry. Measured, six
+    processes, identical.
+
+    **DETERMINISM IS NOT CORRECTNESS, WHICH IS THE SECOND HALF.**
+    Dimorphite's `Amines_primary_secondary_tertiary` site is
+    `[C:1]-[NX3+0:2]` with pKa 8.16 and NO exclusion for an adjacent
+    carbonyl, while its `*Amide` rule requires an N-H. So a TERTIARY amide
+    matches nothing amide-specific, falls through to the plain-amine rule,
+    and is protonated at pH 7.4 because 7.4 < 8.16. Measured over fifteen
+    drug-like molecules with literature charge states, five were wrong and
+    every one was that class:
+
+        DMF, DEET, N,N-dimethylacetamide, N-methylpyrrolidone   0 -> +1
+        fentanyl                                               +1 -> +2
+
+    Acetanilide and lidocaine are right because they HAVE an N-H, which is
+    the tell. So the correction here is a statement about a class rather
+    than a patch for one molecule, and it is textbook: an amide,
+    thioamide or sulfonamide nitrogen is not protonated at physiological
+    pH.
+
+    **IT ONLY EVER REMOVES A PROTON DIMORPHITE ADDED**, never adds one.
+    Overriding a library's chemistry is a claim, and this is the narrowest
+    form of it -- anything the library does that is not this specific,
+    well-understood error stands.
     """
     import dimorphite_dl
 
     smiles = Chem.MolToSmiles(mol)
-    variants = dimorphite_dl.protonate_smiles(smiles, ph_min=ph, ph_max=ph)
+    # precision=0.0: the dominant state, not the enumeration. See above --
+    # without it this function is a coin flip.
+    variants = dimorphite_dl.protonate_smiles(
+        smiles, ph_min=ph, ph_max=ph, precision=0.0
+    )
     if not variants:
-        raise InvalidStructureError(f"Dimorphite-DL returned no protonation state for {smiles!r} at pH {ph}")
-    protonated = Chem.MolFromSmiles(variants[0])
+        raise InvalidStructureError(
+            f"Dimorphite-DL returned no protonation state for {smiles!r} at pH {ph}"
+        )
+    # SORTED, NEVER ARRIVAL ORDER, and this is the belt to precision=0.0's
+    # braces. At precision 0 the library returns exactly one state on every
+    # molecule measured -- but "measured on every input I tried" is not "no
+    # input can", and the failure mode of being wrong here is silent and
+    # irreproducible rather than loud. Sorting costs nothing and makes the
+    # answer a function of the chemistry alone, which is the property that
+    # can actually be tested: a fake returning the same states in two
+    # different orders must give one answer.
+    chosen = sorted(variants)[0]
+    protonated = Chem.MolFromSmiles(chosen)
     if protonated is None:
-        raise InvalidStructureError(f"Could not parse Dimorphite-DL output {variants[0]!r}")
-    return protonated
+        raise InvalidStructureError(f"Could not parse Dimorphite-DL output {chosen!r}")
+
+    corrected = _deprotonate_delocalised_nitrogen(protonated)
+    return Microspecies(
+        mol=protonated,
+        formal_charge=Chem.GetFormalCharge(protonated),
+        corrected_atoms=corrected,
+    )
+
+
+def _deprotonate_delocalised_nitrogen(mol: Chem.Mol) -> tuple[int, ...]:
+    """Undo, IN PLACE, any protonation of an amide-like nitrogen.
+
+    Returns the atom indices corrected, so a caller can say what happened
+    rather than presenting a silently-edited molecule.
+    """
+    matches = mol.GetSubstructMatches(_OVERPROTONATED_N)
+    if not matches:
+        return ()
+    corrected = []
+    for (index,) in matches:
+        atom = mol.GetAtomWithIdx(index)
+        atom.SetFormalCharge(0)
+        # The proton Dimorphite added is explicit on the parsed product, so
+        # the charge alone is not enough -- leaving it would be a neutral
+        # nitrogen with five bonds, which does not sanitize.
+        if atom.GetNumExplicitHs():
+            atom.SetNumExplicitHs(atom.GetNumExplicitHs() - 1)
+        atom.SetNoImplicit(False)
+        corrected.append(index)
+    Chem.SanitizeMol(mol)
+    return tuple(corrected)
+
+
+def protonate_at_ph(mol: Chem.Mol, ph: float) -> Chem.Mol:
+    """The dominant ionization microspecies at `ph`, as a new Mol.
+
+    The thin form of `dominant_microspecies`, kept because six production
+    consumers want only the structure. Read that function's docstring
+    before changing anything here: what looks like a one-line call into a
+    library is the fix for a non-deterministic scientific answer.
+    """
+    return dominant_microspecies(mol, ph).mol
 
 
 class PKaStatus(Enum):

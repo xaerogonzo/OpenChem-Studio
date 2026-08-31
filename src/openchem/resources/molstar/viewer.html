@@ -29,6 +29,72 @@
       // than assuming the viewer already exists.
       var pendingCalls = [];
 
+      // LOADING IS A STATE MACHINE, NOT "SOME PROMISE".
+      //
+      // `loadStructure` does all its work inside `plugin.clear().then(...)`
+      // and returns immediately, while `loadAdditionalStructure` used to run
+      // synchronously. `_on_docking_result_ready` issues the two back to
+      // back, so the pose interleaved into the middle of the receptor load.
+      // Measured against the real bundle, that left the state tree as
+      //
+      //     receptor  type {name: 'assembly', params: {id: '1'}}
+      //     pose      type {name: 'model'}
+      //
+      // -- the exact inversion of what is wanted, because
+      // `showDepositedCoordinates` kept the LAST matching cell and that was
+      // the pose. Retargeting a single-ligand structure is a NO-OP, so
+      // nothing anywhere reported a problem while the receptor was drawn as
+      // assembly 1: on 6WGT that is chain A, about 43 A from the chain-B
+      // pocket the search box and the pose are both in. Precisely the
+      // reported "docked way outside the receptor".
+      //
+      // Two pieces of state, and BOTH are load-bearing:
+      //
+      //   loadChain       serializes loads, so a pose can no longer land in
+      //                   the middle of a receptor's promise chain
+      //   loadGeneration  identifies WHICH receptor load a pose belongs to
+      //
+      // Serialization alone is not enough. Docking twice in quick
+      // succession would queue pose 1 behind receptor 2 and attach it to the
+      // wrong receptor -- a plausible-looking picture that is simply the
+      // wrong answer, which is the failure mode this whole page exists to
+      // remove. So an additional structure captures the generation current
+      // when it was REQUESTED and is DROPPED if that receptor has since been
+      // superseded, rather than being drawn against a receptor it was never
+      // computed for.
+      //
+      // Latest-wins rather than queue-everything, the same shape
+      // `searchBoxDesired` / `applySearchBox` already uses below.
+      var loadGeneration = 0;
+      var loadChain = Promise.resolve();
+
+      // Runs `step` after whatever is already in flight, in order. A step
+      // that throws must not wedge every later load, so both arms of the
+      // `then` continue the chain -- a rejected chain here would leave the
+      // viewer permanently unable to load anything, with no error anyone
+      // could see.
+      function queueLoad(step) {
+        loadChain = loadChain.then(step, step);
+        return loadChain;
+      }
+
+      // Every committed `structure-from-model` ref, in state-tree order.
+      // ONE implementation, used by the ownership diff, by
+      // `showDepositedCoordinates` and by the `structureTransforms` probe --
+      // two implementations of "which cells are structures" is exactly the
+      // drift the single discovery layer exists to prevent.
+      function structureFromModelRefs() {
+        var refs = [];
+        if (viewer && viewer.plugin) {
+          viewer.plugin.state.data.cells.forEach(function (cell, cellRef) {
+            if ((cell.transform.transformer.id || '') === 'ms-plugin.structure-from-model') {
+              refs.push(cellRef);
+            }
+          });
+        }
+        return refs;
+      }
+
       function whenReady(fn) {
         if (viewer) {
           fn();
@@ -51,7 +117,11 @@
       window.openchemMolstarViewer = {
         loadStructure: function (structureText, format, label) {
           whenReady(function () {
-            viewer.plugin.clear().then(function () {
+            // Claim a generation BEFORE queueing, so a pose requested after
+            // this call binds to THIS load even though neither has run yet.
+            var generation = ++loadGeneration;
+            queueLoad(function () {
+              return viewer.plugin.clear().then(function () {
               // `plugin.clear()` empties the whole state tree, so any box
               // this page drew is GONE and its refs are dangling. Forget
               // them -- without this, `searchBoxState()` keeps describing a
@@ -63,13 +133,33 @@
               // structure once it is in. That is what makes loading a
               // receptor redraw its search box without the window having to
               // sequence the two.
-              searchBoxRefs = null;
-              searchBoxGeometry = null;
-              Promise.resolve(
-                viewer.loadStructureFromData(structureText, format, { dataLabel: label })
-              ).then(function () {
-                showDepositedCoordinates();
-                applySearchBox();
+                searchBoxRefs = null;
+                searchBoxGeometry = null;
+                // A newer receptor arrived while this one was clearing, so
+                // this load is stale. Return rather than loading a structure
+                // the caller has already replaced.
+                if (generation !== loadGeneration) { return; }
+                // OWNERSHIP BY DIFF: snapshot the structure cells before the
+                // load, and whatever is new afterwards is OURS.
+                //
+                // `loadStructureFromData`'s return shape is NOT relied on --
+                // this project's standing rule is that a Mol* API is probed
+                // against the vendored bundle rather than assumed, and that
+                // rule was earned here: passing `structure: {name: 'model'}`
+                // in this very call's options is accepted and SILENTLY
+                // IGNORED. A diff over the state tree asks the state tree,
+                // which is the thing that decides what is drawn.
+                var before = structureFromModelRefs();
+                return Promise.resolve(
+                  viewer.loadStructureFromData(structureText, format, { dataLabel: label })
+                ).then(function () {
+                  if (generation !== loadGeneration) { return; }
+                  var mine = structureFromModelRefs().filter(function (ref) {
+                    return before.indexOf(ref) === -1;
+                  });
+                  showDepositedCoordinates(mine);
+                  applySearchBox();
+                });
               });
             });
           });
@@ -78,13 +168,35 @@
         // clearing first -- used to show a docked ligand pose together
         // with its receptor (see ui/widgets/molstar_viewer_backend.py's
         // load_additional_structure).
+        //
+        // IT AWAITS THE RECEPTOR LOAD THAT OWNS IT. The generation is read
+        // at REQUEST time, not at run time: a pose belongs to the receptor
+        // that was current when the caller asked for it. If a newer receptor
+        // has been requested by the time this runs, the pose is DROPPED
+        // rather than drawn against a structure it was never docked into.
         loadAdditionalStructure: function (structureText, format, label) {
           whenReady(function () {
-            viewer.loadStructureFromData(structureText, format, { dataLabel: label });
+            var generation = loadGeneration;
+            queueLoad(function () {
+              if (generation !== loadGeneration) { return; }
+              return Promise.resolve(
+                viewer.loadStructureFromData(structureText, format, { dataLabel: label })
+              );
+            });
           });
         },
         clear: function () {
           whenReady(function () {
+            // Supersede anything queued. A pose or a receptor still waiting
+            // its turn belongs to a scene the caller has just thrown away,
+            // so it must not be drawn onto the empty one a moment later.
+            //
+            // The BODY stays synchronous, deliberately: callers read
+            // `searchBoxState()` straight after a clear, and deferring the
+            // reset would leave the page briefly describing a box that no
+            // longer exists -- the dangling-mirror failure this page has
+            // already been caught in once.
+            loadGeneration += 1;
             viewer.plugin.clear();
             // Same dangling-ref reset as `loadStructure`. Here the DESIRED
             // state is dropped too: there is no structure left to draw a
@@ -223,6 +335,34 @@
               : { present: false, center: null, size: null }
           );
         },
+
+        // Every committed `structure-from-model` transform, so a test can
+        // see WHICH structure was retargeted to deposited coordinates and
+        // which was left on a biological assembly.
+        //
+        // Reads the STATE TREE and echoes nothing it was handed -- the rule
+        // `searchBoxState` above follows, for the same reason: a probe that
+        // returns its own input passes while nothing is committed, which
+        // this page has already been caught doing once.
+        //
+        // ONLY THE TRANSFORM IS REPORTED, DELIBERATELY. The chain set would
+        // corroborate it and needs Mol*'s own atomic-hierarchy API, which
+        // has NOT been probed against this vendored bundle. This project has
+        // twice paid for assuming a viewer's API instead of measuring it --
+        // Ketcher's `subscribe` turned out to be a switch accepting two
+        // names, and Mol*'s own `structure` load option is accepted and
+        // silently ignored. Everything used here is already exercised by
+        // `showDepositedCoordinates` a few lines down.
+        structureTransforms: function () {
+          var out = structureFromModelRefs().map(function (ref) {
+            var cell = viewer.plugin.state.data.cells.get(ref);
+            return {
+              ref: ref,
+              type: (cell && cell.transform.params && cell.transform.params.type) || null,
+            };
+          });
+          return JSON.stringify(out);
+        },
       };
 
       // THE VIEWER MUST SHOW THE COORDINATES DOCKING USES.
@@ -253,15 +393,29 @@
       // elsewhere -- building an assembly for docking is an explicit opt-in
       // in the Contents dialog, defaulted off, which the viewer was silently
       // contradicting. That opt-in is untouched.
-      function showDepositedCoordinates() {
-        var ref = null;
-        viewer.plugin.state.data.cells.forEach(function (cell, cellRef) {
-          if ((cell.transform.transformer.id || '') === 'ms-plugin.structure-from-model') {
-            ref = cellRef;
-          }
+      //
+      // IT RETARGETS THE STRUCTURES IT IS GIVEN, AND NOTHING ELSE. It used
+      // to walk every `structure-from-model` cell and keep the LAST one,
+      // which is a different claim and a wrong one: with a docked pose in
+      // the scene the last cell is the POSE, so the ligand was retargeted --
+      // a no-op, since a single ligand has no biological assembly -- and the
+      // receptor was left on assembly 1. That is the reported defect, and
+      // the permissive form could not detect it, because "some cell got
+      // retargeted" is true either way.
+      //
+      // The caller passes the refs its OWN load created (see the diff in
+      // `loadStructure`), so ownership is explicit rather than positional.
+      // One builder and one commit for the whole set: a builder created
+      // before the previous commit resolves operates on a state tree that
+      // does not have the earlier change yet, which this page has already
+      // measured going wrong for the search box.
+      function showDepositedCoordinates(refs) {
+        if (!refs || !refs.length) { return; }
+        var builder = viewer.plugin.build();
+        refs.forEach(function (ref) {
+          builder.to(ref).update({ type: { name: 'model', params: {} } });
         });
-        if (!ref) { return; }
-        viewer.plugin.build().to(ref).update({ type: { name: 'model', params: {} } }).commit();
+        return builder.commit();
       }
 
       // Appearance is the VIEWER's, not the caller's: docking supplies

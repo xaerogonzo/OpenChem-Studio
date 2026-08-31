@@ -725,6 +725,31 @@ of the dominant microspecies at that pH — a genuinely pH-dependent number,
 but not the same quantity, and labelled as such rather than presented as
 equivalent.
 
+**The dominant microspecies comes from Dimorphite-DL, and one of its
+answers is corrected rather than inherited.** Dimorphite treats a nitrogen
+bonded to an aliphatic carbon as a basic amine with pKa 8.16, and its
+amide rule only fires when that nitrogen carries a hydrogen. A *tertiary*
+amide therefore matches neither and is protonated at pH 7.4, which is
+wrong by about eight pKa units — an amide's conjugate acid sits near −0.5.
+Measured over sixteen drug-like molecules with literature charge states,
+five were affected and every one was that class: DMF, DEET,
+N,N-dimethylacetamide, N-methylpyrrolidone and fentanyl. Acetanilide and
+lidocaine are unaffected, because they have an N–H.
+
+This application removes that one protonation and reports the atoms it
+touched — it never *adds* one, and anything else Dimorphite does stands.
+Where the correction fires, the Calculator Inspector says so. It is worth
+knowing that this is us overriding a library on a specific, well-understood
+class rather than a general re-derivation of protonation, and that the
+correction is structural: it does not consult a pKa predictor, so it
+behaves the same whether or not one is configured.
+
+**Charges are computed on that species, not on the structure as drawn.** A
+neutral molecule with a basic centre is charged as its cation at pH 7.4, so
+the Properties panel's "Total charge" (the drawn structure) and the
+inspector's "Net calculated charge" (the species) legitimately differ. The
+inspector names the species when they do.
+
 ---
 
 <!-- help:limits-structure -->

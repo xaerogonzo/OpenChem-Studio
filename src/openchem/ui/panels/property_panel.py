@@ -229,14 +229,41 @@ _DEFAULT_EXPANDED = {"physicochemical", "identity"}
 # Colour never carries meaning on its own -- each state has a glyph too,
 # for colour-blind readers and for anyone reading a copied plain-text
 # export where the styling is gone.
-_FAILURE_STYLE = "color: #c62828;"  # red: it did not work, or it is invalid
+_FAILURE_STYLE = "color: #c62828;"  # red: a FAULT -- it broke, or the input is invalid
 _WARNING_STYLE = "color: #ef6c00;"  # amber: it worked, and you should look
 _SUCCESS_STYLE = "color: #2e7d32;"  # green: checked, nothing flagged
 _INFORMATION_STYLE = "color: #666666;"  # neutral: it is simply a value
 
 _FAILURE_GLYPH = "✕ "  # ballot X
+
+#: A REFUSAL IS NOT A FAULT, and painting the two the same is what made
+#: two working calculators read as broken. Joback has no group for a ring
+#: tertiary amine; Kamlet-Jacobs needs a measured loading density no
+#: structure can supply. Both statements are correct, permanent, and
+#: nothing a user can act on -- so they take the neutral style the panel
+#: already uses for "this is simply a value", and a glyph that is not the
+#: ballot X.
+#:
+#: The style comment above used to read "it did not work, OR IT IS
+#: INVALID" -- the style admitting in its own comment that it meant two
+#: different things.
+_INAPPLICABLE_GLYPH = "○ "  # white circle
 _WARNING_GLYPH = "△ "  # white up-pointing triangle
 _SUCCESS_GLYPH = "✓ "  # check mark
+
+
+def _failure_appearance(result) -> tuple[str, str]:
+    """(glyph, style) for a FAILED result, from the producer's declaration.
+
+    READ, NEVER SNIFFED. Deciding this from the message text -- `if "no
+    group for" in error` -- is precisely what `joback.refusal_text`'s own
+    docstring exists to prevent, and it would rot the first time somebody
+    reworded a sentence.
+    """
+    if getattr(result, "inapplicable", False):
+        return _INAPPLICABLE_GLYPH, _INFORMATION_STYLE
+    return _FAILURE_GLYPH, _FAILURE_STYLE
+
 
 #: Plain BMP glyphs, not emoji. Qt's emoji rendering on Windows falls back
 #: per font and can produce a tofu box where a symbol was intended; these
@@ -281,14 +308,14 @@ def _without_glyphs(text: str) -> str:
     paper wants "Pass", not "✓ Pass", and the word already carries the
     meaning the glyph duplicates on screen.
 
-    And these three are non-ASCII. `regulatory/calculator.py`'s docstring
+    And all four are non-ASCII. `regulatory/calculator.py`'s docstring
     records that result text reaches Qt, logs and console streams, and
     that a Windows cp1252 stream RAISES on a tick -- hit three times in
     one session, which is why `test_naming_result_lines_stay_ascii`
     exists. Producing them at render time and dropping them at the exit is
     what keeps the glyphs on screen without putting them in the pipe.
     """
-    for glyph in (_FAILURE_GLYPH, _WARNING_GLYPH, _SUCCESS_GLYPH):
+    for glyph in (_FAILURE_GLYPH, _WARNING_GLYPH, _SUCCESS_GLYPH, _INAPPLICABLE_GLYPH):
         text = text.replace(glyph, "")
     return text
 
@@ -325,7 +352,8 @@ def _present_alert(alert) -> tuple[str, str, str]:
         # cell form. `describe_failure` is still what supplies the
         # "Failed" default, so the four branches cannot drift.
         _cell, reason = describe_failure(alert.error, getattr(alert, "error_summary", None))
-        return _FAILURE_GLYPH + reason, _FAILURE_STYLE, reason
+        glyph, style = _failure_appearance(alert)
+        return glyph + reason, style, reason
     if alert.cache_state in (CacheState.QUEUED, CacheState.RUNNING):
         return alert.cache_state.value.capitalize() + "...", _INFORMATION_STYLE, ""
 
@@ -1994,7 +2022,7 @@ class PropertyPanel(QWidget):
             # somebody "Needs a 3D conformer" where the sentence saying
             # what to press belongs.
             value_label.export_text = hover
-            value_label.setStyleSheet(_FAILURE_STYLE)
+            value_label.setStyleSheet(_failure_appearance(descriptor)[1])
             value_label.setToolTip(hover)
         elif descriptor.cache_state.value in ("queued", "running"):
             value_label.setText(descriptor.cache_state.value.capitalize() + "...")
@@ -2087,8 +2115,9 @@ class PropertyPanel(QWidget):
             _cell, reason = describe_failure(
                 getattr(result, "error", None), getattr(result, "error_summary", None)
             )
-            label.setText(_FAILURE_GLYPH + reason)
-            label.setStyleSheet(_FAILURE_STYLE)
+            glyph, style = _failure_appearance(result)
+            label.setText(glyph + reason)
+            label.setStyleSheet(style)
             label.setToolTip(reason)
             return
         summary = _summarise(result)
@@ -2239,8 +2268,9 @@ class PropertyPanel(QWidget):
             _cell, reason = describe_failure(
                 report.error, getattr(report, "error_summary", None)
             )
-            label.setText(_FAILURE_GLYPH + reason)
-            label.setStyleSheet(_FAILURE_STYLE)
+            glyph, style = _failure_appearance(report)
+            label.setText(glyph + reason)
+            label.setStyleSheet(style)
             label.setToolTip(reason)
         elif not report.facts:
             label.setText("Nothing to report.")

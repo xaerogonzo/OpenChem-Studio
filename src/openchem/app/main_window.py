@@ -35,7 +35,12 @@ from PySide6.QtWidgets import (
 
 from openchem.app.session import SessionManager
 from openchem.app.menu_help import MENU_HELP
-from openchem.app.settings import Settings
+from openchem.app.settings import (
+    Settings,
+    dialog_start_directory,
+    remember_chosen_path,
+    suggested_save_path,
+)
 from openchem.chem.calculation_input import canonical_conformer
 from openchem.chem.identifiers import identifier_for_molblock
 from openchem.chem.isotopes import IsotopeError, element_at, set_isotope
@@ -1995,9 +2000,15 @@ class MainWindow(QMainWindow):
     def _open_project(self) -> None:
         if not self._confirm_discarding_unsaved_changes():
             return
-        path_str, _ = QFileDialog.getOpenFileName(self, "Open Project", filter="OpenChem Project (*.ocsproj)")
+        path_str, _ = QFileDialog.getOpenFileName(
+            self,
+            "Open Project",
+            dialog_start_directory(self._settings, "project"),
+            filter="OpenChem Project (*.ocsproj)",
+        )
         if not path_str:
             return
+        remember_chosen_path(self._settings, "project", path_str)
         command = OpenProjectCommand(self._services.project_service, Path(path_str))
         self._undo_stack.push(command)
         if command.loaded_project is not None:
@@ -2013,9 +2024,17 @@ class MainWindow(QMainWindow):
         """
         if self._session.project is None:
             return False
-        path_str, _ = QFileDialog.getSaveFileName(self, "Save Project", filter="OpenChem Project (*.ocsproj)")
+        path_str, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Project",
+            suggested_save_path(
+                self._settings, "project", self._session.project.name, ".ocsproj"
+            ),
+            filter="OpenChem Project (*.ocsproj)",
+        )
         if not path_str:
             return False
+        remember_chosen_path(self._settings, "project", path_str)
         if not path_str.endswith(".ocsproj"):
             path_str += ".ocsproj"
         command = SaveProjectCommand(self._services.project_service, self._session.project, Path(path_str))
@@ -2064,10 +2083,12 @@ class MainWindow(QMainWindow):
         path_str, _ = QFileDialog.getOpenFileName(
             self,
             "Import Molecule",
+            dialog_start_directory(self._settings, "molecule"),
             filter="Molecule files (*.mol *.sdf *.smi *.smiles *.inchi *.mol2 *.pdb *.xyz *.cml)",
         )
         if not path_str:
             return
+        remember_chosen_path(self._settings, "molecule", path_str)
         try:
             command = ImportMoleculeCommand(
                 self._services.import_service, self._session.project, Path(path_str), self._services.event_bus
@@ -2094,10 +2115,14 @@ class MainWindow(QMainWindow):
         from openchem.chem.crystal_report import build_crystal_report
 
         path_str, _ = QFileDialog.getOpenFileName(
-            self, "Import Crystal Structure", filter="Crystallographic Information File (*.cif)"
+            self,
+            "Import Crystal Structure",
+            dialog_start_directory(self._settings, "macromolecule"),
+            filter="Crystallographic Information File (*.cif)",
         )
         if not path_str:
             return
+        remember_chosen_path(self._settings, "macromolecule", path_str)
         try:
             # errors="replace" because a deposited CIF may carry a stray
             # byte in an author name or a comment, and refusing to show a
@@ -2441,10 +2466,16 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "Export Molecule", "Select a molecule first.")
             return
         path_str, _ = QFileDialog.getSaveFileName(
-            self, "Export Molecule", filter="MOL (*.mol);;SDF (*.sdf);;SMILES (*.smi)"
+            self,
+            "Export Molecule",
+            suggested_save_path(
+                self._settings, "molecule", molecule.display_name, ".mol"
+            ),
+            filter="MOL (*.mol);;SDF (*.sdf);;SMILES (*.smi)",
         )
         if not path_str:
             return
+        remember_chosen_path(self._settings, "molecule", path_str)
         try:
             command = ExportMoleculeCommand(self._services.export_service, molecule, Path(path_str))
             self._undo_stack.push(command)
@@ -2460,10 +2491,14 @@ class MainWindow(QMainWindow):
         from openchem.chem.structure_io import STRUCTURE_FILE_FILTER, read_structure_file
 
         path_str, _ = QFileDialog.getOpenFileName(
-            self, "Import Macromolecule", filter=STRUCTURE_FILE_FILTER
+            self,
+            "Import Macromolecule",
+            dialog_start_directory(self._settings, "macromolecule"),
+            filter=STRUCTURE_FILE_FILTER,
         )
         if not path_str:
             return
+        remember_chosen_path(self._settings, "macromolecule", path_str)
         path = Path(path_str)
         # BinaryCIF and gzip are unpacked here rather than carried inward:
         # `read_structure_file` returns Mol*'s own format vocabulary (see

@@ -1,0 +1,11 @@
+[
+  {"do": "smiles",        "smiles": "CN(C)CCc1c[nH]c2ccccc12", "name": "DMT"},
+  {"do": "select",        "molecule": -1},
+  {"do": "receptor",      "pdb_id": "6WGT", "after_ms": 4000},
+  {"do": "dock_receptor", "index": -1},
+  {"do": "dock_panel",    "tag": "before-docking"},
+  {"do": "dock_run",      "after_ms": 300000},
+  {"do": "dock_panel",    "tag": "after-docking"},
+  {"do": "shot",          "path": "benchmarks/visual/artifacts/6wgt-docked.png", "after_ms": 4000},
+  {"do": "quit"}
+]

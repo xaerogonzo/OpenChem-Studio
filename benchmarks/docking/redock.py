@@ -16,6 +16,7 @@ be quietly flattered by a good score.
 
 from __future__ import annotations
 
+import argparse
 import json
 import math
 
@@ -36,6 +37,24 @@ PREP = {"strip_waters": True, "strip_cofactors": True}
 # receptor, and the hERG channel whose astemizole is the compound this
 # project's ADMET model is benchmarked on.
 TARGETS = ["1HSG", "4DKL", "3EML", "2RH1", "8ZYO", "1ERE", "4EY7"]
+
+# `--targets 6WGT --repeat 3` is how a SINGLE number here is made readable.
+#
+# `VinaDockingProvider` passes `seed=None`, so the shipped app runs Vina with
+# a RANDOM seed and two runs of the same receptor already differ. A lone
+# centroid shift is therefore a draw from a distribution nobody has measured,
+# and reading it as a verdict is this project's recorded "a docking A/B needs
+# its own noise floor" mistake. Repeating the SAME receptor gives the spread
+# to read the shift against.
+_parser = argparse.ArgumentParser(description=__doc__)
+_parser.add_argument("--targets", nargs="+", default=None,
+                     help="PDB ids to redock (default: the seven-target spread)")
+_parser.add_argument("--repeat", type=int, default=1,
+                     help="redock each target N times; N>1 measures the "
+                          "same-receptor spread, which is the noise floor")
+_args = _parser.parse_args()
+if _args.targets:
+    TARGETS = [t.upper() for t in _args.targets]
 
 
 def component_smiles(comp_id: str) -> str | None:
@@ -61,7 +80,7 @@ def component_smiles(comp_id: str) -> str | None:
 provider = VinaDockingProvider(executable_path_resolver=lambda: VINA)
 print(f"{'PDB':<6} {'ligand':<6} {'affinity':>9} {'centroid shift':>15}   verdict")
 print("-" * 62)
-for pdb_id in TARGETS:
+for pdb_id in [t for t in TARGETS for _ in range(_args.repeat)]:
     entry = find(pdb_id)
     text, source_format = fetch_structure(pdb_id)
     site = box_from_ligand(text, source_format, entry.ligand_code)
