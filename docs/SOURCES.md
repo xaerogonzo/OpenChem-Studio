@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 032d0e7c0bce0960e4727bfbcefa16ae0c6cc1405d3487bd067506c82ebba31f -->
+<!-- SOURCE SHA256: b9e5af265962a1ce2dc8b03d65c5b66c2d38e37a299533ba0e310eb3bb3a5a3a -->
 
 # Sources
 
@@ -152,6 +152,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`llinas2020`](#llinas2020) | dataset | shipped | citation + claim |
 | [`lorentzon1995`](#lorentzon1995) | literature | reference only | citation + claim |
 | [`lovering2009`](#lovering2009) | literature | shipped | citation |
+| [`mann1947`](#mann1947) | literature | shipped | citation + claim |
 | [`marsili1980`](#marsili1980) | literature | shipped | citation + claim |
 | [`mayer1975`](#mayer1975) | literature | reference only | citation |
 | [`mayo1990`](#mayo1990) | literature | shipped | citation + claim |
@@ -160,6 +161,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`miller_polarizability`](#miller_polarizability) | reference_table | reference only | citation |
 | [`molstar`](#molstar) | software | shipped | citation |
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
+| [`nguyen2020`](#nguyen2020) | literature | shipped | citation + claim |
 | [`nmrshiftdb2`](#nmrshiftdb2) | dataset | shipped | citation |
 | [`npscorer2015`](#npscorer2015) | software | shipped | citation |
 | [`nubase2020`](#nubase2020) | dataset | shipped | citation + claim |
@@ -2758,6 +2760,91 @@ attempts to retrieve this DOI returned unrelated papers from the same journal
 10.1016/j.rineng.2025.104139, construction governance), and it was concluded
 from those two failures that the citation was fabricated. It was not. Two
 failed downloads are evidence about the downloads, not about the paper.
+
+### mann1947
+
+<a id="mann1947"></a>
+
+> H. B. Mann & D. R. Whitney, 'On a Test of Whether one of Two Random Variables is Stochastically Larger than the Other', Ohio State University, The Annals of Mathematical Statistics, pp. 50-60.
+
+| | |
+| --- | --- |
+| Identifier | Ann. Math. Statist., pp. 50-60 (Mann & Whitney) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-31 |
+| Local copy | `D:/Xaero Stuff/Documents/Sci Downloads/mann1947.pdf` (not checked) |
+| Used by | `src/openchem/domain/affinity_range.py` |
+
+**THE TEST THE REPLICATE REFUSAL RULE IMPLEMENTS, NAMED RATHER THAN
+REINVENTED.** `domain/affinity_range.py` orders two ligands only when their
+observed affinity ranges separate completely, which is the extreme outcome
+U = 0 of this paper's rank-sum test. Inventing a name for a known test costs a
+reviewer the ability to check it.
+
+**THE COMBINATORIAL CLAIM WAS READ OFF THE PAGE, not recalled.** Section 4, on
+the paper's own p. 51:
+
+    "Under the null hypothesis each of the (m + n)!/m!n! sequences of n 0's
+     and m 1's is equally likely."
+
+That is exactly `comb(n_a + n_b, n_a)`, and it is the whole derivation the
+shipped `separation_p_value` rests on: of those equally likely arrangements,
+one puts all of A below all of B and one more puts all of B below all of A, so
+a procedure that reports a separation in EITHER direction has rate
+2/comb(n_a+n_b, n_a). The earlier one-sided reading of this, 1/comb(2n, n),
+would have licensed orderings at n = 3 while claiming 0.05.
+
+**THE SCAN HAS NO USABLE TEXT LAYER AND WAS READ AS RENDERED PAGES**, which is
+this project's standing rule for a scanned source. `pdftotext` returns only the
+JSTOR cover boilerplate for the whole file.
+
+**WHAT IS NOT RECORDED, BECAUSE THE PAGES DO NOT PRINT IT.** No volume, no
+issue and no year appears anywhere in this scan -- the article's own first page
+carries the title, the two authors, "Ohio State University" and the page number
+50, and the JSTOR footer names the journal. A search of the whole extracted
+text for "1947" and for "Vol" returns nothing. Volume 18 (1947) is what the
+filename and the general record say, and it was NOT verified here, so it is
+absent from the citation rather than stated as read. There is no DOI: the paper
+predates them.
+
+### nguyen2020
+
+<a id="nguyen2020"></a>
+
+> N. T. Nguyen, T. H. Nguyen, T. N. H. Pham, N. T. Huy, M. V. Bay, M. Q. Pham, P. C. Nam, V. V. Vu & S. T. Ngo, 'Autodock Vina Adopts More Accurate Binding Poses but Autodock4 Forms Better Binding Affinity', J. Chem. Inf. Model. 2020, 60, 204-211.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.jcim.9b00778](https://doi.org/10.1021/acs.jcim.9b00778) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-08-31 |
+| Local copy | `D:/Xaero Stuff/Documents/Sci Downloads/nguyen2019.pdf` (not checked) |
+| Used by | `src/openchem/domain/affinity_range.py` |
+
+**AN INDEPENDENT CORROBORATION OF THE RANKING CEILING, ON A DIFFERENT
+BENCHMARK FROM [source:su2019].** Over 800 protein-ligand complexes with both
+a PDB structure and an experimental affinity, this reports Vina at a
+correlation coefficient of
+
+    R_Vina(long) = 0.498 +/- 0.026
+
+which sits beside CASF-2016's "around 0.6" ranking figure without sharing its
+data. `domain/affinity_range.py` cites both, because the module's whole reason
+for existing is that a separation between two Vina scores is evidence about the
+SEARCH separating them and not about the affinities being different.
+
+The figure was read out of the paper rather than from its abstract: the string
+"0.498" occurs twice in the extracted text, both times as R_Vina for the long
+docking option.
+
+**THE FILENAME SAYS 2019 AND THE CITATION SAYS 2020, AND THE CITATION WINS.**
+Received 13 September 2019, published online 30 December 2019, and the paper's
+own "Cite This" line reads `J. Chem. Inf. Model. 2020, 60, 204-211`. The
+registry key is therefore `nguyen2020` while the local file is `nguyen2019.pdf`
+-- the same online-versus-issue split [source:su2019] already records, and not
+a discrepancy. The DOI was read from the file rather than reconstructed.
 
 ## Datasets
 

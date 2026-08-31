@@ -42,7 +42,8 @@ WHAT A SEPARATION LICENSES, IN ONE DIRECTION ONLY
 Non-overlap says the *scoring function* separated them by more than its own
 run-to-run scatter. It does not say the separation is real: CASF-2016 puts even
 top-ranked scoring functions at correlation "around 0.6" ([source:su2019]), and
-an independent 800-complex evaluation puts Vina at 0.498 ([source:nguyen2020]).
+an independent 800-complex evaluation puts Vina at a correlation coefficient of
+0.498 +/- 0.026 ([source:nguyen2020]).
 An error bar that read as accuracy would be strictly worse than the bare number
 it replaced, because a bare number at least claims no precision.
 

@@ -9,6 +9,7 @@ from openchem.domain.docking import (
     DockingReplicate,
     DockingReplicateSet,
     DockingResultModel,
+    median_replicate_index,
 )
 from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
@@ -244,3 +245,86 @@ def test_the_stored_seed_is_the_seed_that_produced_the_stored_poses():
     assert result.seed == 1990277
     assert result.replicates.protocol_seed == 4712
     assert result.seed != result.replicates.protocol_seed
+
+
+# --- which replicate represents the set -------------------------------------
+
+
+def _replicates(*affinities: float | None) -> list[DockingReplicate]:
+    """One replicate per affinity, seeded by position so a test can name which
+    one was chosen without depending on the choice."""
+    return [
+        DockingReplicate(seed=1000 + index, best_affinity_kcal_mol=value)
+        for index, value in enumerate(affinities)
+    ]
+
+
+def test_the_representative_is_the_median_replicate():
+    """`sorted(values)[n // 2]`, on a fixture that discriminates every rule.
+
+    -10.0 / -9.0 / -8.0 / -1.0 was chosen because FIRST, BEST and LAST each
+    select a DIFFERENT replicate on it -- index 0, index 0 and index 3 -- so
+    one assertion rules out all three at once. An even-length list whose middle
+    values tie would not: it would pass against a mutation that took either of
+    them.
+    """
+    replicates = _replicates(-10.0, -9.0, -8.0, -1.0)
+
+    assert median_replicate_index(replicates) == 2
+    assert replicates[2].best_affinity_kcal_mol == -8.0
+
+
+def test_the_representative_is_never_the_best_scoring_replicate():
+    """The mutation the whole rule exists to refuse.
+
+    Best-of-N is a MAX SELECTION, so a headline affinity taken from it drifts
+    more negative purely as the replicate count rises -- the reported number
+    becoming a function of how many times the dock was run. That is the exact
+    harm replicates exist to expose, reintroduced in the first number a reader
+    sees.
+    """
+    replicates = _replicates(-10.0, -9.0, -8.0, -1.0)
+    best = min(range(len(replicates)), key=lambda i: replicates[i].best_affinity_kcal_mol)
+
+    assert best == 0
+    assert median_replicate_index(replicates) != best
+
+
+def test_an_even_length_set_takes_the_less_negative_middle():
+    """One rule for both parities, and the conservative side of it.
+
+    A Vina score is better the more negative it is, so of the two middle values
+    `n // 2` picks the WEAKER one. That is deliberate: a representative that
+    rounded toward the better half would be a small max-selection wearing a
+    median's name.
+    """
+    assert median_replicate_index(_replicates(-9.0, -8.0)) == 1
+
+
+def test_ties_break_on_the_smaller_replicate_index():
+    """Determinism, asserted on a real tie rather than assumed.
+
+    Two replicates that score identically are ordered by index, so the choice
+    cannot depend on dict or sort instability. Without the index in the sort
+    key this is a coin toss that would reproduce most of the time.
+    """
+    assert median_replicate_index(_replicates(-9.0, -8.0, -8.0)) == 1
+
+
+def test_a_replicate_that_measured_nothing_is_not_a_candidate():
+    """A run that returned no poses has no affinity, so it cannot be the median
+    of a set of affinities -- and it must not be silently counted as one, which
+    a `None`-tolerant sort would do by treating it as the extreme.
+    """
+    replicates = _replicates(-9.0, None, -8.0, -7.0)
+
+    assert median_replicate_index(replicates) == 2
+
+
+def test_the_representative_of_a_set_that_measured_nothing_is_index_zero():
+    """Something has to hold the poses.
+
+    Index 0 is the only answer that asserts no ordering over an empty set. It
+    is reachable: a provider can legitimately return no poses for every run.
+    """
+    assert median_replicate_index(_replicates(None, None)) == 0

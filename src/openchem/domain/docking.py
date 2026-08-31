@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -67,12 +68,20 @@ class DockingReplicate:
     """One search of a replicate set: the seed it ran under, and the best
     affinity it found.
 
-    `best_affinity_kcal_mol` is None when this replicate FAILED, and `error`
-    says why. A failed replicate keeps its row rather than being dropped: a set
-    where 1 of 5 runs failed is a normal outcome, and silently omitting it
-    would make the set look like a clean 4 and overstate what was attempted.
-    Same shape as `ScreeningEntry`, which keeps a failed ligand's row for the
-    same reason.
+    `best_affinity_kcal_mol` is None when this replicate produced no affinity,
+    and `error` says why. The row is KEPT rather than dropped, so a set never
+    looks like a clean 4 when 5 runs were attempted -- the same shape as
+    `ScreeningEntry`, which keeps a failed ligand's row for the same reason.
+
+    THE SHIPPED SERVICE NEVER PUBLISHES A SET WITH A CRASHED REPLICATE IN IT,
+    and this docstring said the opposite before the service existed to check it
+    against. `DockingService` fails the WHOLE run when `provider.dock()`
+    raises, because a spread over "the 3 of 5 that worked" is a spread over a
+    selected subset and the selection is not random -- a replicate that crashed
+    may well be one whose search went somewhere unusual. What does reach this
+    field is the milder case the provider reports as success: a run that
+    returned no poses at all. The field stays general because the TYPE is not
+    the place to encode one producer's failure policy.
 
     `seed` is None when the provider does not accept `search_options` at all --
     it then runs on its own defaults and the seed we derived was never sent, so
@@ -161,6 +170,38 @@ class DockingReplicateSet:
             representative_index=int(data.get("representative_index", 0)),
             replicates=[DockingReplicate.from_dict(r) for r in data.get("replicates", [])],
         )
+
+
+def median_replicate_index(replicates: Sequence[DockingReplicate]) -> int:
+    """Which replicate's poses represent the set: the MEDIAN by best affinity.
+
+    NOT THE BEST-SCORING ONE, which was this design's first answer and is
+    disqualified rather than merely second choice. Best-of-N is a MAX
+    SELECTION, so the headline affinity would drift more negative purely as the
+    replicate count rose -- the reported number becoming a function of how many
+    times it was run, which is the exact harm replicates exist to expose,
+    reintroduced in the first number a reader sees.
+
+    `sorted(values)[n // 2]`, which for even n takes the LESS NEGATIVE of the
+    two middle values: the conservative side for a Vina score, and one rule for
+    both parities rather than a special case. Ties break on the smaller
+    replicate index, so the answer is deterministic.
+
+    It also makes the pose table's row 1 equal BY CONSTRUCTION to the reported
+    centre, so the panel never prints two different numbers for one quantity.
+
+    A replicate with no affinity is not a candidate. With none at all the
+    answer is 0 -- some replicate has to hold the poses, and index 0 is the
+    only choice that does not assert an ordering over an empty set.
+    """
+    scored = sorted(
+        (replicate.best_affinity_kcal_mol, index)
+        for index, replicate in enumerate(replicates)
+        if replicate.best_affinity_kcal_mol is not None
+    )
+    if not scored:
+        return 0
+    return scored[len(scored) // 2][1]
 
 
 @dataclass(slots=True)
